@@ -34,6 +34,7 @@ Review run ID: rvw-20260402-221530
 Detected stack: kotlin
 Routed to: bill-kotlin-code-review
 Execution mode: inline
+Applied learnings: none
 Specialist reviews: architecture, platform-correctness, testing
 
 ### 2. Risk Register
@@ -101,7 +102,7 @@ Base entry points stay stable for users:
 
 ## Local review telemetry
 
-Skill Bill can now record a first local measurement loop for code-review usefulness.
+Skill Bill can now record a local-first measurement loop for code-review usefulness.
 
 - each review run should expose a `Review run ID: ...` using `rvw-YYYYMMDD-HHMMSS`
 - each finding in `### 2. Risk Register` should use `- [F-001] Severity | Confidence | file:line | description`
@@ -125,17 +126,61 @@ Typical workflow:
 
 1. Save a review output to a text file.
 2. Import the review so the run and findings are stored locally.
-3. Record explicit user feedback for accepted, dismissed, or fix-requested findings.
-4. Query summary stats for one run or for all imported runs.
+3. Use numbered triage to respond with issue numbers instead of raw finding ids.
+4. Optionally store reusable learnings separately from raw feedback history.
+5. Resolve active learnings for the next review context when you want that feedback to influence future reviews explicitly.
+6. Query summary stats for one run or for all imported runs.
 
 Example:
 
 ```bash
 python3 scripts/review_metrics.py import-review review.txt
-python3 scripts/review_metrics.py record-feedback --run-id rvw-20260402-001 --event accepted --finding F-001
-python3 scripts/review_metrics.py record-feedback --run-id rvw-20260402-001 --event fix_requested --finding F-001 --finding F-003
+python3 scripts/review_metrics.py triage --run-id rvw-20260402-001
+python3 scripts/review_metrics.py triage --run-id rvw-20260402-001 --decision "1 fix - keep current terminology" --decision "2 skip - intentional"
+python3 scripts/review_metrics.py learnings resolve --repo Sermilion/skill-bill --skill bill-agent-config-code-review
 python3 scripts/review_metrics.py stats --run-id rvw-20260402-001 --format json
 ```
+
+The `triage` command maps the visible numbers back to the stable `F-001` ids internally. Supported triage actions are:
+
+- `fix` -> records `fix_requested`
+- `accept` -> records `accepted`
+- `skip` or `dismiss` -> records `dismissed`
+
+You can still use the low-level command when you want direct control:
+
+```bash
+python3 scripts/review_metrics.py record-feedback --run-id rvw-20260402-001 --event fix_requested --finding F-001 --note "keep current terminology"
+```
+
+Learnings stay in a separate local layer and are always user-reviewable:
+
+```bash
+python3 scripts/review_metrics.py learnings add --scope repo --scope-key Sermilion/skill-bill --title "Ignore minor wording churn" --rule "Do not flag minor README wording issues in this repo unless behavior changes."
+python3 scripts/review_metrics.py learnings list
+python3 scripts/review_metrics.py learnings show --id 1
+python3 scripts/review_metrics.py learnings edit --id 1 --reason "Confirmed by repeated skip feedback."
+python3 scripts/review_metrics.py learnings disable --id 1
+python3 scripts/review_metrics.py learnings delete --id 1
+```
+
+Raw feedback history and learnings are stored separately. That means you can wipe or disable reusable learnings without losing the original review-event history.
+
+When you want future reviews to use those learnings explicitly, resolve the active learnings for the current review context:
+
+```bash
+python3 scripts/review_metrics.py learnings resolve --repo Sermilion/skill-bill --skill bill-agent-config-code-review --format json
+```
+
+Resolution stays local-first and explicit:
+
+- only `active` learnings apply
+- precedence is `skill > repo > global`
+- the helper returns stable learning references such as `L-003`
+- the top-level code-review caller owns learnings resolution and passes the applied references through routed/delegated reviews
+- review output should surface `Applied learnings: ...` so the behavior is auditable
+
+This is intentionally not hidden auto-learning. The learnings layer remains inspectable, editable, disable-able, and deletable by the user.
 
 The first measurement to watch is `actionable_findings / total_findings`, where actionable means the user explicitly accepted the finding or asked to fix it.
 

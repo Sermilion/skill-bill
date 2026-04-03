@@ -76,6 +76,7 @@ Detected review scope: <staged changes / unstaged changes / working tree / commi
 Detected stack: agent-config
 Signals: SKILL.md, AGENTS.md, install.sh, orchestration/, validator tests
 Execution mode: inline | delegated
+Applied learnings: none | <learning references>
 Review focus: routing/contracts, installer/runtime safety, docs/tests/catalog consistency
 Reason: skill/agent-config repository signals dominate, so the governed repo review layer was selected
 ```

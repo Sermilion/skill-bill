@@ -35,6 +35,18 @@ Inspect both the changed files and repo markers before routing.
 
 Resolve the scope before routing. If the caller asks for staged changes, route and review only the staged diff; do not let unstaged edits expand the findings beyond repo-marker stack detection.
 
+## Local Review Learnings
+
+The top-level router owns learnings resolution for the current review context.
+
+- When a local learnings resolver is available, resolve active learnings for the current repo and routed review skill before final routed review execution.
+- Routed and delegated reviewers should reuse applied learnings passed by the caller instead of re-resolving them independently.
+- Apply only active learnings.
+- Prefer more specific scopes in this order: `skill`, `repo`, `global`.
+- Treat learnings as explicit context, not as hidden suppression rules.
+- If no learnings can be resolved, report `Applied learnings: none`.
+- Pass the applied learning references forward to routed review layers and report them in the review summary.
+
 ## Additional Resources
 
 - For shared stack-routing signals and tie-breakers, see [stack-routing.md](stack-routing.md).
@@ -85,6 +97,7 @@ When routing to another skill, pass along:
 - the exact resolved review scope label
 - the exact review scope
 - the current `review_run_id` when one already exists
+- the applicable active learnings for the current repo and routed review skill when they are available
 - the changed files or diff source
 - the detected stack and key signals
 - relevant `AGENTS.md` guidance and matching `.agents/skill-overrides.md` sections
@@ -106,6 +119,7 @@ Detected review scope: <staged changes / unstaged changes / working tree / commi
 Detected stack: <stack>
 Signals: <markers>
 Execution mode: inline | delegated
+Applied learnings: none | <learning references>
 Reason: <why this stack-specific reviewer was selected and why this execution mode was used>
 
 <review output>
@@ -120,6 +134,7 @@ Detected review scope: <staged changes / unstaged changes / working tree / commi
 Detected stack: Mixed
 Signals: <markers>
 Execution mode: delegated
+Applied learnings: none | <learning references>
 Reason: <why multiple stack-specific reviewers were selected and why delegated routing was required>
 
 <merged delegated review output>

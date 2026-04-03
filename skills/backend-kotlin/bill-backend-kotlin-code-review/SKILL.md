@@ -112,7 +112,7 @@ If execution mode is `inline`:
 
 If execution mode is `delegated`:
 - run one delegated subagent per selected backend specialist review pass
-- pass the detected project type, list of changed files, instructions to read the backend specialist skill file, the parent thread's model when the runtime supports delegated-worker model inheritance, and the shared specialist contract in [review-orchestrator.md](review-orchestrator.md)
+- pass the detected project type, list of changed files, applicable active learnings, instructions to read the backend specialist skill file, the parent thread's model when the runtime supports delegated-worker model inheritance, and the shared specialist contract in [review-orchestrator.md](review-orchestrator.md)
 - if delegated review is required for this scope but the current runtime lacks a documented delegation path or cannot start the required subagent(s), stop and report that delegated review is required for this scope but unavailable on the current runtime
 
 If no backend-only triggers match but backend/server signals are clearly present, keep the baseline Kotlin review output and state that no extra backend-specific specialist was needed for this scope.
@@ -128,6 +128,7 @@ Detected review scope: <staged changes / unstaged changes / working tree / commi
 Detected stack: backend-kotlin | mixed-backend-kotlin
 Signals: application.yml, @RestController, Exposed
 Execution mode: inline | delegated
+Applied learnings: none | <learning references>
 Baseline review: bill-kotlin-code-review
 Backend specialist reviews: bill-backend-kotlin-code-review-api-contracts
 Reason: backend/server signals were high-confidence, so the backend layer was added on top of the baseline Kotlin review

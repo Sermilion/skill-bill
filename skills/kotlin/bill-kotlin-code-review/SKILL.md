@@ -116,7 +116,7 @@ If execution mode is `inline`:
 
 If execution mode is `delegated`:
 - run one delegated subagent per selected specialist review pass
-- pass the detected project type, list of changed files, instructions to read the specialist skill file, the parent thread's model when the runtime supports delegated-worker model inheritance, and the shared specialist contract in [review-orchestrator.md](review-orchestrator.md)
+- pass the detected project type, list of changed files, applicable active learnings, instructions to read the specialist skill file, the parent thread's model when the runtime supports delegated-worker model inheritance, and the shared specialist contract in [review-orchestrator.md](review-orchestrator.md)
 - if delegated review is required for this scope but the current runtime lacks a documented delegation path or cannot start the required subagent(s), stop and report that delegated review is required for this scope but unavailable on the current runtime
 
 ---
@@ -130,6 +130,7 @@ Detected review scope: <staged changes / unstaged changes / working tree / commi
 Detected stack: kotlin | kmp-baseline | backend-kotlin-baseline
 Signals: <markers>
 Execution mode: inline | delegated
+Applied learnings: none | <learning references>
 Specialist reviews: bill-kotlin-code-review-architecture, bill-kotlin-code-review-platform-correctness
 Reason: <why this Kotlin baseline route was selected>
 ```

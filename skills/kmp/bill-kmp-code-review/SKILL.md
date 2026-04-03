@@ -123,7 +123,7 @@ If execution mode is `inline`:
 
 If execution mode is `delegated`:
 - run one delegated subagent per selected KMP specialist review pass
-- pass the detected project type, list of changed files, instructions to read the KMP specialist skill file, the parent thread's model when the runtime supports delegated-worker model inheritance, and the shared specialist contract in [review-orchestrator.md](review-orchestrator.md)
+- pass the detected project type, list of changed files, applicable active learnings, instructions to read the KMP specialist skill file, the parent thread's model when the runtime supports delegated-worker model inheritance, and the shared specialist contract in [review-orchestrator.md](review-orchestrator.md)
 - if delegated review is required for this scope but the current runtime lacks a documented delegation path or cannot start the required subagent(s), stop and report that delegated review is required for this scope but unavailable on the current runtime
 
 If no KMP-only triggers match but Android/KMP signals are clearly present, keep the baseline review output and state that no extra KMP-only specialist was needed for this scope.
@@ -139,6 +139,7 @@ Detected review scope: <staged changes / unstaged changes / working tree / commi
 Detected stack: kmp | mixed-kmp
 Signals: @Composable, AndroidManifest.xml, ViewModel
 Execution mode: inline | delegated
+Applied learnings: none | <learning references>
 Baseline review: bill-kotlin-code-review | bill-backend-kotlin-code-review
 KMP specialist reviews: bill-kmp-code-review-ui
 Reason: Android/KMP signals were high-confidence, so the mobile layer was added on top of the baseline Kotlin-family review

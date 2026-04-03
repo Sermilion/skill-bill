@@ -8,6 +8,7 @@ import re
 import sys
 
 from skill_repo_contracts import (
+  APPLIED_LEARNINGS_PLACEHOLDER,
   ORCHESTRATION_PLAYBOOKS,
   PORTABLE_REVIEW_SKILLS,
   REVIEW_DELEGATION_REQUIRED_SECTIONS,
@@ -213,12 +214,16 @@ def validate_portable_review_wording(
     issues.append(f"{skill_file}: shared code-review router must expose '{REVIEW_RUN_ID_PLACEHOLDER}'")
   if skill_name == "bill-code-review" and REVIEW_RUN_ID_FORMAT not in text:
     issues.append(f"{skill_file}: shared code-review router must define the review run id format '{REVIEW_RUN_ID_FORMAT}'")
+  if skill_name == "bill-code-review" and APPLIED_LEARNINGS_PLACEHOLDER not in text:
+    issues.append(f"{skill_file}: shared code-review router must expose '{APPLIED_LEARNINGS_PLACEHOLDER}'")
 
   if skill_name not in PORTABLE_REVIEW_SKILLS:
     return
 
   if REVIEW_RUN_ID_PLACEHOLDER not in text:
     issues.append(f"{skill_file}: portable review skills must expose '{REVIEW_RUN_ID_PLACEHOLDER}'")
+  if APPLIED_LEARNINGS_PLACEHOLDER not in text:
+    issues.append(f"{skill_file}: portable review skills must expose '{APPLIED_LEARNINGS_PLACEHOLDER}'")
 
   for pattern, message in NON_PORTABLE_REVIEW_PATTERNS:
     match = pattern.search(text)
@@ -250,6 +255,10 @@ def validate_orchestration_playbooks(root: Path, issues: list[str]) -> None:
       if REVIEW_RUN_ID_FORMAT not in text:
         issues.append(
           f"{relative_path}: review orchestration contract must define the review run id format '{REVIEW_RUN_ID_FORMAT}'"
+        )
+      if APPLIED_LEARNINGS_PLACEHOLDER not in text:
+        issues.append(
+          f"{relative_path}: review orchestration contract must expose '{APPLIED_LEARNINGS_PLACEHOLDER}'"
         )
       if RISK_REGISTER_FINDING_FORMAT not in text:
         issues.append(

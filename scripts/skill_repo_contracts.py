@@ -44,6 +44,7 @@ PORTABLE_REVIEW_SKILLS = (
 
 REVIEW_RUN_ID_PLACEHOLDER = "Review run ID: <review-run-id>"
 REVIEW_RUN_ID_FORMAT = "rvw-YYYYMMDD-HHMMSS"
+APPLIED_LEARNINGS_PLACEHOLDER = "Applied learnings: none | <learning references>"
 RISK_REGISTER_FINDING_FORMAT = "- [F-001] <Severity> | <Confidence> | <file:line> | <description>"
 
 
