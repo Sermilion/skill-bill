@@ -134,6 +134,7 @@ If no KMP-only triggers match but Android/KMP signals are clearly present, keep 
 
 ### 1. Classification & Layer Summary
 ```text
+Review session ID: <review-session-id>
 Review run ID: <review-run-id>
 Detected review scope: <staged changes / unstaged changes / working tree / commit range / PR diff / files>
 Detected stack: kmp | mixed-kmp

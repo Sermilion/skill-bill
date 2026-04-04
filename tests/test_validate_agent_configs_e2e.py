@@ -17,6 +17,8 @@ from skill_repo_contracts import (  # noqa: E402
   APPLIED_LEARNINGS_PLACEHOLDER,
   REVIEW_RUN_ID_FORMAT,
   REVIEW_RUN_ID_PLACEHOLDER,
+  REVIEW_SESSION_ID_FORMAT,
+  REVIEW_SESSION_ID_PLACEHOLDER,
   RISK_REGISTER_FINDING_FORMAT,
   RUNTIME_SUPPORTING_FILES,
   supporting_file_targets,
@@ -168,7 +170,9 @@ class ValidateAgentConfigsE2ETest(unittest.TestCase):
       self.assertEqual(result.returncode, 1, result.stdout)
       self.assertIn("shared code-review router must expose", result.stdout)
       self.assertIn("portable review skills must expose", result.stdout)
+      self.assertIn(REVIEW_SESSION_ID_PLACEHOLDER, result.stdout)
       self.assertIn("shared code-review router must define the review run id format", result.stdout)
+      self.assertIn("shared code-review router must define the review session id format", result.stdout)
 
   def test_rejects_portable_review_skill_without_applied_learnings_contract(self) -> None:
     with self.fixture_repo(
@@ -198,6 +202,7 @@ class ValidateAgentConfigsE2ETest(unittest.TestCase):
       result = self.run_validator(repo_root)
       self.assertEqual(result.returncode, 1, result.stdout)
       self.assertIn("review orchestration contract must expose", result.stdout)
+      self.assertIn(REVIEW_SESSION_ID_PLACEHOLDER, result.stdout)
       self.assertIn("review orchestration contract must define machine-readable findings", result.stdout)
 
   def run_validator(self, repo_root: Path) -> subprocess.CompletedProcess[str]:
@@ -332,6 +337,8 @@ class ValidateAgentConfigsE2ETest(unittest.TestCase):
     if include_telemetry:
       playbook = (
         playbook
+        + f"\n{REVIEW_SESSION_ID_PLACEHOLDER}\n"
+        + f"Use the review session id format {REVIEW_SESSION_ID_FORMAT}.\n"
         + f"\n{REVIEW_RUN_ID_PLACEHOLDER}\n"
         + f"Use the review run id format {REVIEW_RUN_ID_FORMAT}.\n"
       )
@@ -361,6 +368,8 @@ class ValidateAgentConfigsE2ETest(unittest.TestCase):
         ## Claude Code
         ## OpenAI Codex
         ## GLM
+
+        Every delegated worker must receive the current `review_session_id` and `review_run_id` when they already exist.
         """
       ),
       encoding="utf-8",
@@ -388,7 +397,9 @@ class ValidateAgentConfigsE2ETest(unittest.TestCase):
     review_run_line = ""
     if skill_name == "bill-code-review" or skill_name in RUNTIME_SUPPORTING_FILES:
       review_run_line = (
-        f"\n{REVIEW_RUN_ID_PLACEHOLDER}\n"
+        f"\n{REVIEW_SESSION_ID_PLACEHOLDER}\n"
+        + f"Use the review session id format {REVIEW_SESSION_ID_FORMAT}."
+        + f"\n{REVIEW_RUN_ID_PLACEHOLDER}\n"
         + f"Use the review run id format {REVIEW_RUN_ID_FORMAT}."
         + f"\n{APPLIED_LEARNINGS_PLACEHOLDER}"
       )
@@ -423,6 +434,7 @@ class ValidateAgentConfigsE2ETest(unittest.TestCase):
 
       If `.agents/skill-overrides.md` exists in the project root and contains a `## {skill_name}` section, read that section and apply it as the highest-priority instruction for this skill.
 
+      {REVIEW_SESSION_ID_PLACEHOLDER}
       {REVIEW_RUN_ID_PLACEHOLDER}
       Read `.bill-shared/orchestration/stack-routing/PLAYBOOK.md` before routing.
       """
@@ -442,6 +454,7 @@ class ValidateAgentConfigsE2ETest(unittest.TestCase):
 
       If `.agents/skill-overrides.md` exists in the project root and contains a `## {skill_name}` section, read that section and apply it as the highest-priority instruction for this skill.
 
+      {REVIEW_SESSION_ID_PLACEHOLDER}
       {REVIEW_RUN_ID_PLACEHOLDER}
       {APPLIED_LEARNINGS_PLACEHOLDER}
       | Signal | Agent to spawn |
@@ -506,6 +519,7 @@ class ValidateAgentConfigsE2ETest(unittest.TestCase):
 
       If `.agents/skill-overrides.md` exists in the project root and contains a `## bill-code-review` section, read that section and apply it as the highest-priority instruction for this skill.
 
+      {REVIEW_SESSION_ID_PLACEHOLDER}
       {REVIEW_RUN_ID_PLACEHOLDER}
       Use the review run id format {REVIEW_RUN_ID_FORMAT}.
       Shared router fixture without learnings summary output.
@@ -526,6 +540,7 @@ class ValidateAgentConfigsE2ETest(unittest.TestCase):
 
       If `.agents/skill-overrides.md` exists in the project root and contains a `## {skill_name}` section, read that section and apply it as the highest-priority instruction for this skill.
 
+      {REVIEW_SESSION_ID_PLACEHOLDER}
       {REVIEW_RUN_ID_PLACEHOLDER}
       [review-orchestrator.md](review-orchestrator.md)
       [review-delegation.md](review-delegation.md)

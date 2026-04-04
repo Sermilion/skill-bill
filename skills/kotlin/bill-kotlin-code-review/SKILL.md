@@ -125,6 +125,7 @@ If execution mode is `delegated`:
 
 ### 1. Classification & Specialist Summary
 ```text
+Review session ID: <review-session-id>
 Review run ID: <review-run-id>
 Detected review scope: <staged changes / unstaged changes / working tree / commit range / PR diff / files>
 Detected stack: kotlin | kmp-baseline | backend-kotlin-baseline

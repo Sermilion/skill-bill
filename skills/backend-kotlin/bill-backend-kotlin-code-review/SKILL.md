@@ -123,6 +123,7 @@ If no backend-only triggers match but backend/server signals are clearly present
 
 ### 1. Classification & Layer Summary
 ```text
+Review session ID: <review-session-id>
 Review run ID: <review-run-id>
 Detected review scope: <staged changes / unstaged changes / working tree / commit range / PR diff / files>
 Detected stack: backend-kotlin | mixed-backend-kotlin

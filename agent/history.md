@@ -22,3 +22,19 @@ Areas: scripts/review_metrics.py, orchestration/review-orchestrator, orchestrati
 - Added validator and regression coverage so future review-skill edits cannot drop the auditable learnings contract silently.
 Feature flag: N/A
 Acceptance criteria: 5/5 implemented
+
+## [2026-04-03] review-telemetry-remote-sync
+Areas: scripts/review_metrics.py, install.sh, README, tests
+- Added a local telemetry outbox plus optional remote batch sync so SQLite stays canonical while cross-install product analytics can be reported later.
+- Added default-on installer telemetry preference handling and helper commands to inspect status, enable or disable sync, and flush pending events manually.
+- Kept the remote payload privacy-scoped by excluding repo identity and raw review text while still reporting skill, feedback, and applied-learning metadata (learning content was later included in `skillbill_learnings_resolved` events by the proxy-sync change).
+Feature flag: N/A
+Acceptance criteria: 5/5 implemented
+
+## [2026-04-03] review-telemetry-proxy-sync
+Areas: scripts/review_metrics.py, install.sh, docs/cloudflare-telemetry-proxy, README, tests
+- Added proxy-aware telemetry transport so installs can keep the same local outbox flow while sending batches to a configured relay.
+- Added a Cloudflare Worker example that accepts Skill Bill telemetry batches, validates them lightly, and forwards them to the example backend with the credential stored server-side.
+- Kept the telemetry privacy boundary unchanged: no repo identity and no learning title, rule, or rationale text leave the client.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented

@@ -63,12 +63,15 @@ Runtime-facing skills consume this contract through sibling supporting files suc
 
 ## Shared Report Structure
 
+Section 1 summary must include `Review session ID: <review-session-id>`.
 Section 1 summary must include `Review run ID: <review-run-id>`.
 Section 1 summary must include `Detected review scope: <staged changes / unstaged changes / working tree / commit range / PR diff / files>`.
 Section 1 summary must include `Execution mode: inline | delegated`.
 Section 1 summary must include `Applied learnings: none | <learning references>`.
 
-Generate one review run id per top-level review using the format `rvw-YYYYMMDD-HHMMSS`. If a parent reviewer already passed a `review_run_id` into a delegated or layered review, reuse it instead of generating a new one. Reuse that same id across the summary, the risk register, and any follow-up feedback workflow for the current review output.
+Generate one review session id per top-level review using the format `rvs-YYYYMMDD-HHMMSS`. If a parent reviewer already passed a `review_session_id` into a delegated or layered review, reuse it instead of generating a new one. Reuse that same session id across the summary, follow-up telemetry, and any learnings-resolution workflow for the current review lifecycle.
+
+Generate one review run id per concrete review output using the format `rvw-YYYYMMDD-HHMMSS`. If a parent reviewer already passed a `review_run_id` into a delegated or layered review, reuse it instead of generating a new one. Reuse that same run id across the summary, the risk register, and any follow-up feedback workflow for the current review output.
 
 After Section 1 in a stack-specific review skill, use:
 

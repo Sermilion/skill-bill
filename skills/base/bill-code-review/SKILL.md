@@ -96,6 +96,7 @@ For multiple routed stack-specific review skills:
 When routing to another skill, pass along:
 - the exact resolved review scope label
 - the exact review scope
+- the current `review_session_id` when one already exists
 - the current `review_run_id` when one already exists
 - the applicable active learnings for the current repo and routed review skill when they are available
 - the changed files or diff source
@@ -108,12 +109,15 @@ When routing to another skill, pass along:
 
 ## Output Format
 
-Generate one review run id per routed review using the format `rvw-YYYYMMDD-HHMMSS`. Reuse that same id for the entire routed output.
+Generate one review session id per top-level review using the format `rvs-YYYYMMDD-HHMMSS`. If a parent workflow already passed a `review_session_id`, reuse it instead of generating a new one.
+
+Generate one review run id per routed review using the format `rvw-YYYYMMDD-HHMMSS`. If a parent workflow already passed a `review_run_id`, reuse it instead of generating a new one.
 
 For a single routed skill:
 
 ```text
 Routed to: <skill-name>
+Review session ID: <review-session-id>
 Review run ID: <review-run-id>
 Detected review scope: <staged changes / unstaged changes / working tree / commit range / PR diff / files>
 Detected stack: <stack>
@@ -129,6 +133,7 @@ For multiple delegated skills:
 
 ```text
 Routed to: <skill-a>, <skill-b>
+Review session ID: <review-session-id>
 Review run ID: <review-run-id>
 Detected review scope: <staged changes / unstaged changes / working tree / commit range / PR diff / files>
 Detected stack: Mixed
