@@ -81,7 +81,7 @@ Do not redefine stack signals here unless a route-specific exception is truly un
 
 ## Execution Contract
 
-Before running delegated routed reviews, read [review-delegation.md](review-delegation.md). Use it as the source of truth for agent-specific delegated execution of routed stack-specific review skills.
+For multi-stack delegated routing, read [review-delegation.md](review-delegation.md) (only your current runtime's section). Skip it for single-stack reviews — the routed skill handles its own delegation.
 
 For a single routed stack-specific review skill:
 - Let the routed stack-specific reviewer choose `inline` or `delegated` using its own `review-orchestrator.md` contract

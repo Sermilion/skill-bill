@@ -37,11 +37,11 @@ Inspect both the changed files and repo markers for skill/agent-config signals.
 - For shared review-orchestration rules, see [review-orchestrator.md](review-orchestrator.md).
 - For agent-specific delegated review execution, see [review-delegation.md](review-delegation.md).
 
-Before classifying, read [stack-routing.md](stack-routing.md). Use it as the source of truth for `agent-config` signals and mixed-stack routing expectations.
+When the caller already passed the detected stack, skip reading [stack-routing.md](stack-routing.md). For standalone invocation, read it before classifying.
 
-Before selecting review depth or formatting the final report, read [review-orchestrator.md](review-orchestrator.md). Use it as the source of truth for the shared specialist review contract, merge rules, common output sections, and review principles used by stack-specific review orchestrators.
+Before selecting review depth or formatting the final report, read [review-orchestrator.md](review-orchestrator.md) unless the caller already passed the shared review contract.
 
-Before delegating review execution, read [review-delegation.md](review-delegation.md). Use it as the source of truth for agent-specific delegated execution.
+Before delegating review execution, read only your current runtime's section in [review-delegation.md](review-delegation.md).
 
 ## Review Focus
 

@@ -43,11 +43,11 @@ Resolve the scope before reviewing. If the caller asks for staged changes, inspe
 - For shared review-orchestration rules, see [review-orchestrator.md](review-orchestrator.md).
 - For agent-specific delegated review execution, see [review-delegation.md](review-delegation.md).
 
-Before applying review heuristics, read [stack-routing.md](stack-routing.md) and use it as the source of truth for PHP stack signals and mixed-stack routing expectations. This skill owns the PHP review depth that applies after PHP is already in scope.
+When the caller already passed the detected stack, skip reading [stack-routing.md](stack-routing.md). For standalone invocation, read it before classifying.
 
-Before selecting specialist review passes or formatting the final report, read [review-orchestrator.md](review-orchestrator.md). Use it as the source of truth for the shared specialist contract, merge rules, common output sections, shared standalone behavior, and review principles used by stack-specific review orchestrators.
+Before selecting specialist review passes or formatting the final report, read [review-orchestrator.md](review-orchestrator.md) unless the caller already passed the shared review contract.
 
-Before delegating specialist review passes, read [review-delegation.md](review-delegation.md). Use it as the source of truth for agent-specific subagent execution.
+Before delegating specialist review passes, read only your current runtime's section in [review-delegation.md](review-delegation.md).
 
 ---
 
