@@ -1,3 +1,24 @@
+## [2026-04-05] mcp-server
+Areas: skill_bill/, skills/base/bill-code-review, install.sh, pyproject.toml, tests/
+- Added MCP server (FastMCP/stdio) exposing 5 tools: import_review, triage_findings, resolve_learnings, review_stats, doctor
+- Tools wrap existing skill_bill.* module functions directly — zero logic duplication (reusable)
+- bill-code-review SKILL.md Auto-Import/Auto-Triage now prefer MCP tools with CLI fallback
+- .mcp.json in repo root for Claude Code auto-discovery; install.sh confirms registration
+- pyproject.toml adds `mcp` as first external dependency
+Feature flag: N/A
+Acceptance criteria: 10/10 implemented
+
+## [2026-04-04] runtime-package-migration
+Areas: skill_bill/, scripts/, skills/base/bill-code-review, install.sh, .github/workflows/, tests/
+- Migrated monolithic scripts/review_metrics.py into skill_bill/ Python package with 10 domain modules (constants, db, config, review, triage, learnings, stats, sync, output, cli)
+- CLI entrypoint `skill-bill` replaces direct `python3 scripts/review_metrics.py` invocations everywhere
+- bill-code-review Auto-Import now calls `skill-bill import-review` instead of resolving script paths (reusable)
+- install.sh telemetry setup uses `python3 -m skill_bill` for enable/disable
+- pyproject.toml with zero external dependencies; CI installs via `pip install -e .`
+- All behavior preserved exactly; pure structural migration
+Feature flag: N/A
+Acceptance criteria: 13/13 implemented
+
 ## [2026-04-02] review-acceptance-metrics
 Areas: repo-root governance, orchestration/review-orchestrator, orchestration/review-delegation, skills/base/bill-code-review, stack review skills, scripts, tests, README
 - Added a local-first review telemetry contract with `review_run_id` output and machine-readable `finding_id` risk-register lines for code-review flows.

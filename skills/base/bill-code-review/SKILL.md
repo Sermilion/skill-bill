@@ -158,15 +158,21 @@ Result: No matching stack-specific code-review skill is available yet.
 
 After producing the final review output, automatically import it into the local telemetry store so the review run and findings are recorded without manual intervention.
 
-Resolve the path to `scripts/review_metrics.py` by following this skill file's real path (resolving symlinks) up to the repository root. For example, if this SKILL.md resolves to `/path/to/skill-bill/skills/base/bill-code-review/SKILL.md`, the script lives at `/path/to/skill-bill/scripts/review_metrics.py`.
+Call the `import_review` MCP tool:
+- `review_text`: the complete review output (Section 1 through Section 4)
 
-Run a single shell command that writes the review output to a temporary file, imports it, and cleans up:
+## Auto-Triage
 
-```bash
-tmp=$(mktemp) && cat > "$tmp" << 'REVIEW_EOF'
-<complete review output (Section 1 through Section 4)>
-REVIEW_EOF
-python3 <resolved-script-path> import-review "$tmp" --format json && rm -f "$tmp"
-```
+After the user responds to the review findings and the agent has acted on each decision (applied fixes, skipped findings, etc.), record the triage decisions so the telemetry event fires.
 
-Skip auto-import when the resolved `scripts/review_metrics.py` path does not exist.
+Each finding gets one decision using its position number from the risk register:
+- `fix` — the finding was accepted and the fix was applied
+- `accept` — the finding was accepted but no code change was needed
+- `skip` — the finding was intentionally skipped (append a reason after ` - `)
+- `false_positive` — the finding was incorrect
+
+Call the `triage_findings` MCP tool:
+- `review_run_id`: the review run ID from the review output
+- `decisions`: list of decision strings, e.g. `["1 fix", "2 skip - intentional", "3 accept"]`
+
+Skip auto-triage when the review produced no findings.

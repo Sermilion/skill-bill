@@ -848,13 +848,92 @@ SKILL_BILL_STATE_DIR="${HOME}/.skill-bill"
 export SKILL_BILL_CONFIG_PATH="${SKILL_BILL_CONFIG_PATH:-${SKILL_BILL_STATE_DIR}/config.json}"
 export SKILL_BILL_REVIEW_DB="${SKILL_BILL_REVIEW_DB:-${SKILL_BILL_STATE_DIR}/review-metrics.db}"
 
+info "Installing skill-bill CLI and MCP server..."
+if python3 -m pip install -e "$PLUGIN_DIR" --quiet 2>/dev/null; then
+  ok "skill-bill CLI installed"
+  register_mcp_json() {
+    local config_path="$1"
+    local label="$2"
+    if python3 -c "
+import json, sys, os
+path = sys.argv[1]
+try:
+    settings = json.loads(open(path).read())
+except (FileNotFoundError, json.JSONDecodeError):
+    settings = {}
+servers = settings.get('mcpServers', {})
+servers['skill-bill'] = {
+    'type': 'stdio',
+    'command': sys.executable,
+    'args': ['-m', 'skill_bill.mcp_server']
+}
+settings['mcpServers'] = servers
+os.makedirs(os.path.dirname(path), exist_ok=True)
+open(path, 'w').write(json.dumps(settings, indent=2, sort_keys=True) + '\n')
+" "$config_path" 2>/dev/null; then
+      ok "  skill-bill MCP server registered ($label)"
+    else
+      warn "  Could not register MCP server ($label)."
+    fi
+  }
+  register_mcp_toml() {
+    local config_path="$1"
+    local label="$2"
+    if python3 -c "
+import sys, os
+path = sys.argv[1]
+python_cmd = sys.executable
+section = '[mcp_servers.skill-bill]'
+lines = []
+if os.path.exists(path):
+    lines = open(path).read().splitlines()
+filtered = []
+skip = False
+for line in lines:
+    if line.strip() == section:
+        skip = True
+        continue
+    if skip and (line.startswith('[') or not line.strip()):
+        if line.startswith('['):
+            skip = False
+            filtered.append(line)
+        continue
+    if not skip:
+        filtered.append(line)
+while filtered and not filtered[-1].strip():
+    filtered.pop()
+filtered.append('')
+filtered.append(section)
+filtered.append(f'command = \"{python_cmd}\"')
+filtered.append('args = [\"-m\", \"skill_bill.mcp_server\"]')
+filtered.append('')
+os.makedirs(os.path.dirname(path), exist_ok=True)
+open(path, 'w').write('\n'.join(filtered))
+" "$config_path" 2>/dev/null; then
+      ok "  skill-bill MCP server registered ($label)"
+    else
+      warn "  Could not register MCP server ($label)."
+    fi
+  }
+  for i in "${!AGENT_NAMES[@]}"; do
+    case "${AGENT_NAMES[$i]}" in
+      claude)  register_mcp_json "$HOME/.claude.json" "claude" ;;
+      copilot) register_mcp_json "$HOME/.copilot/mcp-config.json" "copilot" ;;
+      codex)   register_mcp_toml "$HOME/.codex/config.toml" "codex" ;;
+      glm)     register_mcp_json "$HOME/.glm/mcp-config.json" "glm" ;;
+    esac
+  done
+else
+  warn "Could not install skill-bill CLI (python3 or pip may be unavailable)."
+fi
+
 if [[ "$TELEMETRY_ENABLED" == "true" ]]; then
-  if ! python3 "$PLUGIN_DIR/scripts/review_metrics.py" telemetry enable --format json >/dev/null; then
+  if ! python3 -m skill_bill telemetry enable --format json >/dev/null 2>&1; then
     warn "Telemetry setup failed."
     TELEMETRY_ENABLED="setup_failed"
   fi
 elif [[ -e "$SKILL_BILL_CONFIG_PATH" || -e "$SKILL_BILL_REVIEW_DB" ]]; then
-  python3 "$PLUGIN_DIR/scripts/review_metrics.py" telemetry disable --format json >/dev/null || warn "Telemetry setup failed."
+  python3 -m skill_bill telemetry disable --format json >/dev/null 2>&1 || warn "Telemetry setup failed."
 fi
 
 printf "${GREEN}━━━ Installation complete ━━━${NC}\n"
