@@ -180,11 +180,12 @@ def save_imported_review(
           ),
         )
 
-    update_review_finished_telemetry_state(
-      connection,
-      review_run_id=review.review_run_id,
-      enabled=telemetry_enabled,
-    )
+    if not review.findings:
+      update_review_finished_telemetry_state(
+        connection,
+        review_run_id=review.review_run_id,
+        enabled=telemetry_enabled,
+      )
 
 
 def fetch_imported_findings(
