@@ -9,7 +9,7 @@ This example lets Skill Bill clients send telemetry to a small Cloudflare Worker
 3. Adds the server-side `POSTHOG_API_KEY` for this example backend.
 4. Forwards the batch to PostHog `/batch/`.
 
-The client payload stays the same privacy-scoped metadata already produced by `scripts/review_metrics.py`:
+The client payload stays the same privacy-scoped metadata produced by the `skill-bill` CLI and MCP server:
 
 - completed review run snapshots with finding outcomes, severity buckets, rejected-finding details, and applied learnings (count, references, scope mix, and readable content)
 
@@ -50,8 +50,8 @@ When this variable is set, Skill Bill sends telemetry to your Worker only.
 Then keep using the normal telemetry commands:
 
 ```bash
-python3 scripts/review_metrics.py telemetry status
-python3 scripts/review_metrics.py telemetry sync
+skill-bill telemetry status
+skill-bill telemetry sync
 ```
 
 ## Notes
