@@ -241,6 +241,13 @@ unregister_mcp_json "$HOME/.copilot/mcp-config.json" "copilot"
 unregister_mcp_toml "$HOME/.codex/config.toml" "codex"
 unregister_mcp_json "$HOME/.glm/mcp-config.json" "glm"
 
+SKILL_BILL_STATE_DIR="${HOME}/.skill-bill"
+if [[ -d "$SKILL_BILL_STATE_DIR" ]]; then
+  info "Removing skill-bill state directory."
+  rm -rf "$SKILL_BILL_STATE_DIR"
+  ok "  removed $SKILL_BILL_STATE_DIR"
+fi
+
 echo ""
 printf "${GREEN}━━━ Uninstall complete ━━━${NC}\n"
 echo ""
