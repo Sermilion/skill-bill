@@ -7,7 +7,7 @@ from mcp.server.fastmcp import FastMCP
 from skill_bill import __version__
 from skill_bill.config import telemetry_is_enabled
 from skill_bill.constants import LEARNING_SCOPE_PRECEDENCE
-from skill_bill.db import ensure_database, resolve_db_path
+from skill_bill.db import open_db, resolve_db_path
 from skill_bill.learnings import (
   learning_payload,
   learning_summary_payload,
@@ -22,7 +22,6 @@ from skill_bill.review import (
   save_imported_review,
 )
 from skill_bill.stats import stats_payload
-from skill_bill.sync import auto_sync_telemetry
 from skill_bill.triage import (
   parse_triage_decisions,
   record_feedback,
@@ -39,15 +38,9 @@ def import_review(review_text: str) -> dict:
   a bill-code-review skill execution. The review must contain a Review run ID
   and Review session ID line. Findings are parsed from the risk register.
   """
-  db_path = resolve_db_path(None)
   review = parse_review(review_text)
-  connection = ensure_database(db_path)
-  try:
+  with open_db() as (connection, db_path):
     save_imported_review(connection, review, source_path=None)
-  finally:
-    connection.close()
-
-  auto_sync_telemetry(db_path)
   return {
     "db_path": str(db_path),
     "review_run_id": review.review_run_id,
@@ -71,9 +64,7 @@ def triage_findings(review_run_id: str, decisions: list[str]) -> dict:
   Valid actions: fix, accept, skip, edit, false_positive.
   Append a reason after ' - ' for skip and false_positive decisions.
   """
-  db_path = resolve_db_path(None)
-  connection = ensure_database(db_path)
-  try:
+  with open_db() as (connection, db_path):
     numbered_findings = fetch_numbered_findings(connection, review_run_id)
     parsed_decisions = parse_triage_decisions(decisions, numbered_findings)
     for decision in parsed_decisions:
@@ -84,10 +75,6 @@ def triage_findings(review_run_id: str, decisions: list[str]) -> dict:
         event_type=decision.outcome_type,
         note=decision.note,
       )
-  finally:
-    connection.close()
-
-  auto_sync_telemetry(db_path)
   return {
     "db_path": str(db_path),
     "review_run_id": review_run_id,
@@ -116,9 +103,7 @@ def resolve_learnings(
   When review_session_id is provided, the resolved learnings are cached
   for inclusion in the review-finished telemetry event.
   """
-  db_path = resolve_db_path(None)
-  connection = ensure_database(db_path)
-  try:
+  with open_db() as (connection, db_path):
     with connection:
       repo_scope_key, skill_name, rows = _resolve_learnings(
         connection,
@@ -140,10 +125,6 @@ def resolve_learnings(
           review_session_id=review_session_id,
           learnings_json=json.dumps(learnings_cache, sort_keys=True),
         )
-  finally:
-    connection.close()
-
-  auto_sync_telemetry(db_path)
   result = {
     "db_path": str(db_path),
     "repo_scope_key": repo_scope_key,
@@ -164,13 +145,8 @@ def review_stats(review_run_id: str | None = None) -> dict:
   When review_run_id is provided, stats are scoped to that single review.
   Otherwise, stats cover all imported reviews.
   """
-  db_path = resolve_db_path(None)
-  connection = ensure_database(db_path)
-  try:
+  with open_db(sync=False) as (connection, db_path):
     payload = stats_payload(connection, review_run_id)
-  finally:
-    connection.close()
-
   payload["db_path"] = str(db_path)
   return payload
 
