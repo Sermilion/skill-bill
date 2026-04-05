@@ -39,6 +39,13 @@ def import_review(review_text: str) -> dict:
   and Review session ID line. Findings are parsed from the risk register.
   """
   review = parse_review(review_text)
+  if not telemetry_is_enabled():
+    return {
+      "status": "skipped",
+      "reason": "telemetry is disabled",
+      "review_run_id": review.review_run_id,
+      "finding_count": len(review.findings),
+    }
   with open_db() as (connection, db_path):
     save_imported_review(connection, review, source_path=None)
   return {
@@ -64,6 +71,12 @@ def triage_findings(review_run_id: str, decisions: list[str]) -> dict:
   Valid actions: fix, accept, skip, edit, false_positive.
   Append a reason after ' - ' for skip and false_positive decisions.
   """
+  if not telemetry_is_enabled():
+    return {
+      "status": "skipped",
+      "reason": "telemetry is disabled",
+      "review_run_id": review_run_id,
+    }
   with open_db() as (connection, db_path):
     numbered_findings = fetch_numbered_findings(connection, review_run_id)
     parsed_decisions = parse_triage_decisions(decisions, numbered_findings)
@@ -103,6 +116,13 @@ def resolve_learnings(
   When review_session_id is provided, the resolved learnings are cached
   for inclusion in the review-finished telemetry event.
   """
+  if not telemetry_is_enabled():
+    return {
+      "status": "skipped",
+      "reason": "telemetry is disabled",
+      "applied_learnings": "none",
+      "learnings": [],
+    }
   with open_db() as (connection, db_path):
     with connection:
       repo_scope_key, skill_name, rows = _resolve_learnings(
