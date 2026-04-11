@@ -3,7 +3,9 @@ set -euo pipefail
 
 PLUGIN_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILLS_DIR="$PLUGIN_DIR/skills"
+CUSTOM_AGENT_SOURCE_DIR="$PLUGIN_DIR/.github/agents"
 MANAGED_INSTALL_MARKER=".skill-bill-install"
+MANAGED_AGENT_FILE_MARKER="<!-- managed_by=skill-bill-agent -->"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -83,6 +85,8 @@ declare -a SKILL_PATHS=()
 declare -a INSTALL_SKILL_NAMES=()
 declare -a INSTALL_SKILL_PATHS=()
 declare -a INSTALL_TARGET_NAMES=()
+declare -a CUSTOM_AGENT_FILE_NAMES=()
+declare -a CUSTOM_AGENT_FILE_PATHS=()
 declare -a PLATFORM_PACKAGES=()
 declare -a REQUIRED_PLATFORM_PACKAGES=(agent-config)
 declare -a SELECTED_PLATFORM_PACKAGES=()
@@ -179,6 +183,13 @@ normalize_platform_token() {
 
 normalize_agent_token() {
   printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]'
+}
+
+get_custom_agent_path() {
+  case "$1" in
+    copilot) echo "$HOME/.copilot/agents" ;;
+    *)       return 1 ;;
+  esac
 }
 
 is_valid_prefix() {
@@ -623,6 +634,23 @@ build_skill_names() {
   done < <(find "$SKILLS_DIR" -type f -name 'SKILL.md' | sort)
 }
 
+build_custom_agent_files() {
+  local agent_file agent_name
+
+  CUSTOM_AGENT_FILE_NAMES=()
+  CUSTOM_AGENT_FILE_PATHS=()
+
+  if [[ ! -d "$CUSTOM_AGENT_SOURCE_DIR" ]]; then
+    return 0
+  fi
+
+  while IFS= read -r agent_file; do
+    agent_name="$(basename "$agent_file")"
+    CUSTOM_AGENT_FILE_NAMES+=("$agent_name")
+    CUSTOM_AGENT_FILE_PATHS+=("$agent_file")
+  done < <(find "$CUSTOM_AGENT_SOURCE_DIR" -type f -name '*.agent.md' | sort)
+}
+
 build_install_skill_names() {
   local idx
   local skill_dir
@@ -753,6 +781,33 @@ rewrite_markdown_file() {
     "$source_file" > "$target_file"
 }
 
+custom_agent_file_is_managed() {
+  local target="$1"
+  [[ -f "$target" ]] || return 1
+  grep -Fqx "$MANAGED_AGENT_FILE_MARKER" "$target"
+}
+
+remove_custom_agent_target_if_allowed() {
+  local target="$1"
+
+  if [[ ! -e "$target" && ! -L "$target" ]]; then
+    return 0
+  fi
+
+  if [[ -L "$target" ]]; then
+    rm -f "$target"
+    return 0
+  fi
+
+  if custom_agent_file_is_managed "$target"; then
+    rm -f "$target"
+    return 0
+  fi
+
+  err "Refusing to overwrite existing non-Skill-Bill path: $target"
+  return 1
+}
+
 install_generated_skill_dir() {
   local target="$1"
   local source="$2"
@@ -805,8 +860,32 @@ install_skill() {
   fi
 }
 
+install_generated_custom_agent_file() {
+  local target="$1"
+  local source="$2"
+  local label="$3"
+
+  if [[ -e "$target" || -L "$target" ]]; then
+    remove_custom_agent_target_if_allowed "$target"
+  fi
+
+  mkdir -p "$(dirname "$target")"
+  rewrite_markdown_file "$source" "$target"
+  printf '%s\n' "$MANAGED_AGENT_FILE_MARKER" >> "$target"
+  ok "  $label"
+}
+
+install_custom_agent() {
+  local target="$1"
+  local source="$2"
+  local label="$3"
+
+  install_generated_custom_agent_file "$target" "$source" "$label"
+}
+
 parse_args "$@"
 build_skill_names
+build_custom_agent_files
 build_legacy_skill_names
 build_platform_packages
 
@@ -847,6 +926,20 @@ for i in "${!AGENT_NAMES[@]}"; do
     target_skill="${INSTALL_TARGET_NAMES[$idx]}"
     install_skill "$agent_dir/$target_skill" "${INSTALL_SKILL_PATHS[$idx]}" "$target_skill → plugin ($skill)"
   done
+
+  if [[ "$agent" == "copilot" && ${#CUSTOM_AGENT_FILE_NAMES[@]} -gt 0 ]]; then
+    custom_agent_dir="$(get_custom_agent_path "$agent")"
+    mkdir -p "$custom_agent_dir"
+    info "Installing Copilot custom agents: $custom_agent_dir"
+    for idx in "${!CUSTOM_AGENT_FILE_NAMES[@]}"; do
+      source_agent_name="${CUSTOM_AGENT_FILE_NAMES[$idx]}"
+      target_agent_name="$(echo "$source_agent_name" | sed "s/^bill-/${INSTALL_PREFIX}-/")"
+      install_custom_agent \
+        "$custom_agent_dir/$target_agent_name" \
+        "${CUSTOM_AGENT_FILE_PATHS[$idx]}" \
+        "$target_agent_name → copilot agent"
+    done
+  fi
   echo ""
 done
 
@@ -947,6 +1040,9 @@ fi
 printf "${GREEN}━━━ Installation complete ━━━${NC}\n"
 echo ""
 info "Source of truth: $PLUGIN_DIR/skills/"
+if [[ ${#CUSTOM_AGENT_FILE_NAMES[@]} -gt 0 ]]; then
+  info "Copilot agents:  $CUSTOM_AGENT_SOURCE_DIR"
+fi
 info "Platforms:       $(format_platform_list "${SELECTED_PLATFORM_PACKAGES[@]}")"
 info "Command prefix:  ${INSTALL_PREFIX}-"
 if [[ "$TELEMETRY_LEVEL" == "setup_failed" ]]; then
