@@ -190,6 +190,8 @@ Findings to fix:
 
 Current branch diff pointer: {branch_or_commit_range}
 
+Test gate is relaxed: write tests only when the finding being fixed requires them (for example, a finding about missing regression coverage or a broken test). Do not treat the standard "write tests if the plan included testable logic" gate as mandatory in fix mode — the plan is not being re-executed here.
+
 Return the standard implementation return contract, with `notes_for_review` describing which finding each change addresses.
 ```
 
