@@ -10,11 +10,31 @@ ORCHESTRATION_PLAYBOOKS: dict[str, str] = {
   "telemetry-contract": "orchestration/telemetry-contract/PLAYBOOK.md",
 }
 
+ADDON_DIRECTORY_NAME = "addons"
+ADDON_IMPLEMENTATION_SUFFIX = "-implementation.md"
+ADDON_REVIEW_SUFFIX = "-review.md"
+ADDON_REPORTING_LINE = "Selected add-ons: none | <add-on slugs>"
+GOVERNED_STACK_ADDONS: dict[str, tuple[str, ...]] = {
+  "kmp": ("android-compose",),
+}
+
+ADDON_SUPPORTING_FILE_TARGETS: dict[str, str] = {
+  f"{addon_slug}{ADDON_IMPLEMENTATION_SUFFIX}": f"skills/{stack}/addons/{addon_slug}{ADDON_IMPLEMENTATION_SUFFIX}"
+  for stack, addon_slugs in GOVERNED_STACK_ADDONS.items()
+  for addon_slug in addon_slugs
+}
+ADDON_SUPPORTING_FILE_TARGETS.update({
+  f"{addon_slug}{ADDON_REVIEW_SUFFIX}": f"skills/{stack}/addons/{addon_slug}{ADDON_REVIEW_SUFFIX}"
+  for stack, addon_slugs in GOVERNED_STACK_ADDONS.items()
+  for addon_slug in addon_slugs
+})
+
 SUPPORTING_FILE_TARGETS: dict[str, str] = {
   "stack-routing.md": ORCHESTRATION_PLAYBOOKS["stack-routing"],
   "review-orchestrator.md": ORCHESTRATION_PLAYBOOKS["review-orchestrator"],
   "review-delegation.md": ORCHESTRATION_PLAYBOOKS["review-delegation"],
   "telemetry-contract.md": ORCHESTRATION_PLAYBOOKS["telemetry-contract"],
+  **ADDON_SUPPORTING_FILE_TARGETS,
 }
 
 RUNTIME_SUPPORTING_FILES: dict[str, tuple[str, ...]] = {
@@ -23,11 +43,12 @@ RUNTIME_SUPPORTING_FILES: dict[str, tuple[str, ...]] = {
   "bill-agent-config-code-review": ("stack-routing.md", "review-orchestrator.md", "review-delegation.md", "telemetry-contract.md"),
   "bill-kotlin-code-review": ("stack-routing.md", "review-orchestrator.md", "review-delegation.md", "telemetry-contract.md"),
   "bill-backend-kotlin-code-review": ("stack-routing.md", "review-orchestrator.md", "review-delegation.md", "telemetry-contract.md"),
-  "bill-kmp-code-review": ("stack-routing.md", "review-orchestrator.md", "review-delegation.md", "telemetry-contract.md"),
+  "bill-kmp-code-review": ("stack-routing.md", "review-orchestrator.md", "review-delegation.md", "telemetry-contract.md", "android-compose-review.md"),
+  "bill-kmp-code-review-ui": ("android-compose-review.md",),
   "bill-php-code-review": ("stack-routing.md", "review-orchestrator.md", "review-delegation.md", "telemetry-contract.md"),
   "bill-go-code-review": ("stack-routing.md", "review-orchestrator.md", "review-delegation.md", "telemetry-contract.md"),
-  "bill-feature-implement": ("telemetry-contract.md",),
-  "bill-feature-implement-agentic": ("telemetry-contract.md",),
+  "bill-feature-implement": ("telemetry-contract.md", "android-compose-implementation.md"),
+  "bill-feature-implement-agentic": ("telemetry-contract.md", "android-compose-implementation.md"),
   "bill-feature-verify": ("telemetry-contract.md",),
   "bill-pr-description": ("telemetry-contract.md",),
 }
@@ -97,6 +118,10 @@ def skills_requiring_supporting_file(file_name: str) -> tuple[str, ...]:
     for skill_name, supporting_files in RUNTIME_SUPPORTING_FILES.items()
     if file_name in supporting_files
   )
+
+
+def governed_addon_slugs_for_stack(stack: str) -> tuple[str, ...]:
+  return GOVERNED_STACK_ADDONS.get(stack, ())
 
 
 def supporting_file_targets(root: Path) -> dict[str, Path]:

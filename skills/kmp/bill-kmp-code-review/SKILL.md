@@ -68,6 +68,15 @@ Classify the review as one of:
 - If backend/server files are also touched, choose `bill-backend-kotlin-code-review` as the baseline review layer so backend coverage is preserved before this skill adds mobile-specific specialists.
 - When uncertain, prefer the safer route that preserves Android/KMP review depth.
 
+## Governed Add-On Resolution
+
+After the stack is already classified as `kmp`, resolve governed add-ons before selecting KMP-specific specialists.
+
+- Start with `Selected add-ons: none`.
+- Select `android-compose` when the scoped diff contains Compose UI signals such as `@Composable`, Compose UI state, `Modifier` chains, previews, `remember*`, or Compose side effects.
+- Read [android-compose-review.md](android-compose-review.md) only when `android-compose` is selected.
+- Add-ons enrich the routed KMP review; they do not create standalone reviewer names or bypass the `kmp` route.
+
 ---
 
 ## Layered Review Plan
@@ -103,6 +112,7 @@ If execution mode is `delegated`, run the selected baseline review as a delegate
 
 - Preserve Android/KMP specialists for any Android/KMP files even when backend files are changed in the same PR
 - A single PR may spawn both the baseline review and KMP-only specialists, but keep the KMP-specific specialist count at 2 or fewer
+- Pass any selected governed add-ons into the chosen KMP specialist review passes
 
 #### Android/KMP Route
 
@@ -149,6 +159,7 @@ Review session ID: <review-session-id>
 Review run ID: <review-run-id>
 Detected review scope: <staged changes / unstaged changes / working tree / commit range / PR diff / files>
 Detected stack: <stack>
+Selected add-ons: none | <add-on slugs>
 Signals: <markers>
 Execution mode: inline | delegated
 Applied learnings: none | <learning references>

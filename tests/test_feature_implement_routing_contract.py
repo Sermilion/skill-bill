@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from skill_repo_contracts import (  # noqa: E402
+  ADDON_REPORTING_LINE,
   APPLIED_LEARNINGS_PLACEHOLDER,
   CHILD_METADATA_HANDOFF_RULE,
   CHILD_NO_IMPORT_RULE,
@@ -27,6 +28,7 @@ from skill_repo_contracts import (  # noqa: E402
   RUNTIME_SUPPORTING_FILES,
   TELEMETRY_OWNERSHIP_HEADING,
   TRIAGE_OWNERSHIP_HEADING,
+  governed_addon_slugs_for_stack,
   supporting_file_targets,
   skills_requiring_supporting_file,
 )
@@ -37,6 +39,7 @@ def read(relative_path: str) -> str:
 
 
 FEATURE_IMPLEMENT = read("skills/base/bill-feature-implement/SKILL.md") + "\n" + read("skills/base/bill-feature-implement/reference.md")
+FEATURE_IMPLEMENT_AGENTIC = read("skills/base/bill-feature-implement-agentic/SKILL.md") + "\n" + read("skills/base/bill-feature-implement-agentic/reference.md")
 CODE_REVIEW = read("skills/base/bill-code-review/SKILL.md")
 QUALITY_CHECK = read("skills/base/bill-quality-check/SKILL.md")
 PR_DESCRIPTION = read("skills/base/bill-pr-description/SKILL.md")
@@ -45,6 +48,8 @@ AGENT_CONFIG_QUALITY_CHECK = read("skills/agent-config/bill-agent-config-quality
 KOTLIN_CODE_REVIEW = read("skills/kotlin/bill-kotlin-code-review/SKILL.md")
 BACKEND_KOTLIN_CODE_REVIEW = read("skills/backend-kotlin/bill-backend-kotlin-code-review/SKILL.md")
 KMP_CODE_REVIEW = read("skills/kmp/bill-kmp-code-review/SKILL.md")
+KMP_ANDROID_COMPOSE_REVIEW = read("skills/kmp/addons/android-compose-review.md")
+KMP_COMPOSE_UI_REVIEW = read("skills/kmp/bill-kmp-code-review-ui/SKILL.md")
 PHP_CODE_REVIEW = read("skills/php/bill-php-code-review/SKILL.md")
 GO_CODE_REVIEW = read("skills/go/bill-go-code-review/SKILL.md")
 STACK_ROUTING_PLAYBOOK = read("orchestration/stack-routing/PLAYBOOK.md")
@@ -121,6 +126,7 @@ class FeatureImplementRoutingContractTest(unittest.TestCase):
     self.assertIn("Supported scope labels are `staged changes`, `unstaged changes`, `working tree`, `commit range`, `PR diff`, and `files`", REVIEW_ORCHESTRATOR_PLAYBOOK)
     self.assertIn("When the caller asks for staged changes, inspect only the staged/index diff", REVIEW_ORCHESTRATOR_PLAYBOOK)
     self.assertIn("Detected review scope: <staged changes / unstaged changes / working tree / commit range / PR diff / files>", REVIEW_ORCHESTRATOR_PLAYBOOK)
+    self.assertIn(ADDON_REPORTING_LINE, REVIEW_ORCHESTRATOR_PLAYBOOK)
     self.assertIn(REVIEW_SESSION_ID_PLACEHOLDER, REVIEW_ORCHESTRATOR_PLAYBOOK)
     self.assertIn(REVIEW_SESSION_ID_FORMAT, REVIEW_ORCHESTRATOR_PLAYBOOK)
     self.assertIn(REVIEW_RUN_ID_PLACEHOLDER, REVIEW_ORCHESTRATOR_PLAYBOOK)
@@ -142,10 +148,12 @@ class FeatureImplementRoutingContractTest(unittest.TestCase):
     self.assertIn(CHILD_NO_TRIAGE_RULE, TELEMETRY_CONTRACT_PLAYBOOK)
     self.assertIn(PARENT_TRIAGE_RULE, TELEMETRY_CONTRACT_PLAYBOOK)
     self.assertIn(NO_FINDINGS_TRIAGE_RULE, TELEMETRY_CONTRACT_PLAYBOOK)
+    self.assertIn("## Governed add-ons", TELEMETRY_CONTRACT_PLAYBOOK)
     self.assertIn("The parent review owns only the delegated workers it launched itself.", REVIEW_DELEGATION_PLAYBOOK)
     self.assertIn("Track delegated workers by the ids returned when they are launched.", REVIEW_DELEGATION_PLAYBOOK)
     self.assertIn("the current `review_session_id` and `review_run_id` when they already exist", REVIEW_DELEGATION_PLAYBOOK)
     self.assertIn("any applicable active learnings when they are available", REVIEW_DELEGATION_PLAYBOOK)
+    self.assertIn("any already-selected governed add-ons", REVIEW_DELEGATION_PLAYBOOK)
     self.assertIn("Do not use `list_agents` to discover delegated workers during normal review execution.", REVIEW_DELEGATION_PLAYBOOK)
     self.assertIn("Delegated workers must not call those telemetry tools themselves.", REVIEW_DELEGATION_PLAYBOOK)
     self.assertIn("return structured review output plus telemetry-relevant metadata to the parent", REVIEW_DELEGATION_PLAYBOOK)
@@ -227,6 +235,80 @@ class FeatureImplementRoutingContractTest(unittest.TestCase):
     )
     self.assertIn(
       "- Otherwise use `bill-kotlin-code-review`",
+      KMP_CODE_REVIEW,
+    )
+
+  def test_kmp_governed_addons_apply_only_after_stack_routing(self) -> None:
+    self.assertEqual(governed_addon_slugs_for_stack("kmp"), ("android-compose",))
+    self.assertIn("## Post-Stack Add-Ons", STACK_ROUTING_PLAYBOOK)
+    self.assertIn("Resolve governed add-ons only after the dominant stack route is chosen.", STACK_ROUTING_PLAYBOOK)
+    self.assertIn("Selected add-ons: none", STACK_ROUTING_PLAYBOOK)
+
+  def test_kmp_feature_implement_defers_governed_addons_to_stack_routing(self) -> None:
+    self.assertIn(
+      "When `kmp` signals dominate, resolve governed add-ons only after stack routing.",
+      FEATURE_IMPLEMENT,
+    )
+    self.assertIn(
+      "Let the routed stack own add-on detection and selection",
+      FEATURE_IMPLEMENT,
+    )
+    self.assertIn(
+      "matching stack-owned add-on supporting files",
+      FEATURE_IMPLEMENT,
+    )
+    self.assertNotIn(
+      "android-compose-implementation.md",
+      FEATURE_IMPLEMENT,
+    )
+    self.assertIn(
+      "When `kmp` signals dominate, resolve governed add-ons only after stack routing settles on `kmp`.",
+      FEATURE_IMPLEMENT_AGENTIC,
+    )
+    self.assertIn(
+      "Let the routed stack own add-on detection and selection",
+      FEATURE_IMPLEMENT_AGENTIC,
+    )
+    self.assertIn(
+      "matching stack-owned add-on supporting files",
+      FEATURE_IMPLEMENT_AGENTIC,
+    )
+    self.assertNotIn(
+      "android-compose-implementation.md",
+      FEATURE_IMPLEMENT_AGENTIC,
+    )
+    self.assertIn(
+      '"selected_addons": ["<addon-slug>", ...]',
+      FEATURE_IMPLEMENT_AGENTIC,
+    )
+
+  def test_kmp_compose_review_skill_keeps_review_rubric_as_enforcement_layer(self) -> None:
+    self.assertIn(
+      "When the parent KMP review selects the `android-compose` add-on, read [android-compose-review.md](android-compose-review.md) as supplemental Android/Compose review guidance.",
+      KMP_COMPOSE_UI_REVIEW,
+    )
+    self.assertIn(
+      "For review enforcement, read [compose-guidelines.md](compose-guidelines.md) as the Compose review rubric",
+      KMP_COMPOSE_UI_REVIEW,
+    )
+    self.assertIn(
+      "do not treat it as a standalone review command.",
+      KMP_COMPOSE_UI_REVIEW,
+    )
+    self.assertIn(
+      "This file supplements `bill-kmp-code-review` and `bill-kmp-code-review-ui`.",
+      KMP_ANDROID_COMPOSE_REVIEW,
+    )
+    self.assertIn(
+      "- Keep this add-on subordinate to the routed `kmp` review.",
+      KMP_ANDROID_COMPOSE_REVIEW,
+    )
+    for skill_name, sidecar_path in sidecar_paths("android-compose-review.md").items():
+      with self.subTest(skill=skill_name):
+        self.assertTrue(sidecar_path.is_symlink())
+        self.assertEqual(sidecar_path.resolve(), ROOT / "skills" / "kmp" / "addons" / "android-compose-review.md")
+    self.assertIn(
+      "Selected add-ons: none | <add-on slugs>",
       KMP_CODE_REVIEW,
     )
 

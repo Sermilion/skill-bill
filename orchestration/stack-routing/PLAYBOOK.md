@@ -73,3 +73,17 @@ Classify work as one of:
 - If generic Kotlin markers appear without meaningful `kmp` or `backend-kotlin` markers, route to `kotlin`
 - If multiple supported stacks are clearly present, treat the scope as mixed and route to each matching stack-specific skill when the caller supports it
 - If no supported stack has clear evidence, stop and say the stack is unsupported instead of pretending coverage exists
+
+## Post-Stack Add-Ons
+
+- Resolve governed add-ons only after the dominant stack route is chosen.
+- Add-ons never create new top-level stack labels, package names, or user-facing commands.
+- Add-on detection must be owned by the routed stack package and reported separately from stack classification.
+- When no governed add-on applies, report `Selected add-ons: none`.
+- When one or more governed add-ons apply, report them as `Selected add-ons: <slug[, slug]>`.
+
+### KMP pilot: `android-compose`
+
+- Eligible only after the route is already `kmp`.
+- Signals: `@Composable`, Compose UI state classes, `Modifier` chains, previews, `remember*`, `LaunchedEffect`, or other Compose side effects in Android/KMP scope.
+- The add-on augments KMP implementation or review guidance; it does not replace the base `kmp` route.

@@ -131,6 +131,49 @@ class ValidateAgentConfigsE2ETest(unittest.TestCase):
       self.assertEqual(result.returncode, 1, result.stdout)
       self.assertIn("package 'laravel' is not allowed", result.stdout)
 
+  def test_accepts_governed_addon_files_under_stack_addons_dir(self) -> None:
+    with self.fixture_repo([("base", "bill-code-review")]) as repo_root:
+      result = self.run_validator(repo_root)
+      self.assertEqual(result.returncode, 0, result.stdout)
+      self.assertIn("2 governed add-on files", result.stdout)
+
+  def test_accepts_governed_addon_files_with_future_expansion_names(self) -> None:
+    with self.fixture_repo([("base", "bill-code-review")]) as repo_root:
+      bare_addon = repo_root / "skills" / "kmp" / "addons" / "eloquent.md"
+      area_scoped_addon = repo_root / "skills" / "kmp" / "addons" / "eloquent-persistence.md"
+      bare_addon.write_text("# valid\n", encoding="utf-8")
+      area_scoped_addon.write_text("# valid\n", encoding="utf-8")
+      result = self.run_validator(repo_root)
+      self.assertEqual(result.returncode, 0, result.stdout)
+      self.assertIn("4 governed add-on files", result.stdout)
+
+  def test_rejects_governed_addon_under_base_package(self) -> None:
+    with self.fixture_repo([("base", "bill-feature-implement")]) as repo_root:
+      path = repo_root / "skills" / "base" / "addons" / "android-compose-review.md"
+      path.parent.mkdir(parents=True, exist_ok=True)
+      path.write_text("# invalid\n", encoding="utf-8")
+      result = self.run_validator(repo_root)
+      self.assertEqual(result.returncode, 1, result.stdout)
+      self.assertIn("governed add-ons must be stack-owned", result.stdout)
+
+  def test_rejects_governed_addon_with_invalid_filename_shape(self) -> None:
+    with self.fixture_repo([("base", "bill-feature-implement")]) as repo_root:
+      path = repo_root / "skills" / "kmp" / "addons" / "android-compose-Notes.md"
+      path.parent.mkdir(parents=True, exist_ok=True)
+      path.write_text("# invalid\n", encoding="utf-8")
+      result = self.run_validator(repo_root)
+      self.assertEqual(result.returncode, 1, result.stdout)
+      self.assertIn("must use lowercase kebab-case", result.stdout)
+
+  def test_rejects_nested_governed_addon_path(self) -> None:
+    with self.fixture_repo([("base", "bill-feature-implement")]) as repo_root:
+      path = repo_root / "skills" / "kmp" / "addons" / "android-compose" / "review.md"
+      path.parent.mkdir(parents=True, exist_ok=True)
+      path.write_text("# invalid\n", encoding="utf-8")
+      result = self.run_validator(repo_root)
+      self.assertEqual(result.returncode, 1, result.stdout)
+      self.assertIn("expected add-on path format skills/<package>/addons/<addon-file>.md", result.stdout)
+
   def test_rejects_runtime_playbook_references(self) -> None:
     with self.fixture_repo(
       [
@@ -336,6 +379,7 @@ class ValidateAgentConfigsE2ETest(unittest.TestCase):
       )
       self.write_review_delegation_playbook(repo_root)
       self.write_telemetry_contract_playbook(repo_root)
+      self.write_governed_addons(repo_root)
 
       for package_name, skill_name in skills:
         self.write_skill(
@@ -517,6 +561,31 @@ class ValidateAgentConfigsE2ETest(unittest.TestCase):
         {PARENT_TRIAGE_RULE}
         {CHILD_NO_TRIAGE_RULE}
         {NO_FINDINGS_TRIAGE_RULE}
+        """
+      ),
+      encoding="utf-8",
+    )
+
+  def write_governed_addons(self, repo_root: Path) -> None:
+    implementation = repo_root / "skills" / "kmp" / "addons" / "android-compose-implementation.md"
+    implementation.parent.mkdir(parents=True, exist_ok=True)
+    implementation.write_text(
+      textwrap.dedent(
+        """\
+        # KMP Android Compose Add-On
+
+        This governed add-on provides implementation guidance for KMP Compose work.
+        """
+      ),
+      encoding="utf-8",
+    )
+    review = repo_root / "skills" / "kmp" / "addons" / "android-compose-review.md"
+    review.write_text(
+      textwrap.dedent(
+        """\
+        # KMP Android Compose Review Add-On
+
+        This governed add-on provides review guidance for KMP Compose work.
         """
       ),
       encoding="utf-8",

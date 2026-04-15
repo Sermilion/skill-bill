@@ -95,6 +95,8 @@ A single `feature-implement` run chains 10-12 skill invocations:
 
 Small, low-risk review scopes may stay inline in one thread. Larger or higher-risk scopes use delegated review passes and report the chosen execution mode explicitly.
 
+After stack routing, a platform package may apply governed add-ons from `skills/<platform>/addons/`. These remain stack-owned metadata such as `Selected add-ons: android-compose` for KMP Compose work. They are not extra slash commands and are not counted in the skill catalog.
+
 Base entry points stay stable for users:
 
 - `/bill-code-review` routes to `bill-agent-config-code-review` | `bill-kotlin-code-review` | `bill-backend-kotlin-code-review` | `bill-kmp-code-review` | `bill-php-code-review` | `bill-go-code-review`
@@ -141,7 +143,7 @@ The installer first asks which agent targets to install to. You can choose one o
 all
 ```
 
-It then shows the available **optional** platform packages and asks which ones to install. Base skills in `skills/base/` and the governed `agent-config` package are always installed; the remaining platform packages are installed only when selected. The primary input path is **comma-separated numbers**, though platform names still work too.
+It then shows the available **optional** platform packages and asks which ones to install. Base skills in `skills/base/` and the governed `agent-config` package are always installed; the remaining platform packages are installed only when selected. Governed add-ons under `skills/<platform>/addons/` ship with their owning platform package and do not appear as separate install targets or slash commands. The primary input path is **comma-separated numbers**, though platform names still work too.
 
 Available options are shown as separate entries:
 
@@ -295,8 +297,9 @@ If you only remember four things, remember these:
 
 1. Users enter through stable skills in `skills/base/`.
 2. Platform depth lives in `skills/<platform>/`.
-3. Shared logic is documented in `orchestration/`, but runtimes consume it through sibling sidecars such as `stack-routing.md`, `review-orchestrator.md`, `review-delegation.md`, and `telemetry-contract.md`.
-4. Topology changes should start in `scripts/skill_repo_contracts.py`, then flow into skills, tests, and docs.
+3. Governed add-ons live under `skills/<platform>/addons/` and apply only after stack routing.
+4. Shared logic is documented in `orchestration/`, but runtimes consume it through sibling sidecars such as `stack-routing.md`, `review-orchestrator.md`, `review-delegation.md`, and `telemetry-contract.md`.
+5. Topology changes should start in `scripts/skill_repo_contracts.py`, then flow into skills, tests, and docs.
 
 That last file is the canonical map for:
 
