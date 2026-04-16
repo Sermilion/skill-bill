@@ -2,8 +2,8 @@
 Areas: AGENTS.md, scripts/, orchestration/, skills/base/, skills/kmp/, tests/, install.sh, README.md
 - Added a governed stack-owned add-on layer under `skills/<platform>/addons/` so framework/runtime depth stays behind dominant-stack routing instead of becoming new top-level packages or slash commands. reusable
 - Established the reusable pattern: runtime skills consume add-ons through sibling supporting-file symlinks, while orchestration snapshots and validator rules define naming, ownership, reporting, and test expectations. reusable
-- Piloted the model in `kmp` with `android-compose-implementation.md` and `android-compose-review.md`, adapting transferable Android/Compose guidance and explicitly excluding migration or upgrade workflows.
-- Base feature-implement workflows now treat add-ons as stack-selected metadata; stack skills own add-on detection and report `Selected add-ons: ...` after routing settles.
+- Piloted the model in `kmp` with `android-compose` implementation/review indexes plus topic files for edge-to-edge, navigation/results, and adaptive layouts, with recipe-style source pointers back to the official Android skills. reusable
+- Base feature-implement and KMP review workflows now scan add-on indexes first and open only the linked topic files whose cues match the work, reducing token use while keeping Android-specific depth available. reusable
 - Validator and routing-contract coverage now lock flat add-on paths under `skills/<stack>/addons/`, reject top-level/package confusion, and preserve future names such as area-scoped add-ons.
 Feature flag: N/A
 Acceptance criteria: 7/7 implemented

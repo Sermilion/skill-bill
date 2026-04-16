@@ -6,6 +6,18 @@ Read this file when the diff touches `NavHost`, route models, deep links, multip
 
 This guidance mainly adapts the official Android `navigation/navigation-3` skill into a governed KMP add-on shape.
 
+## Source recipes
+
+- Navigation 3 `multiple-backstacks`
+  Read when top-level tabs, bars, or rails each need their own preserved back stack.
+- Navigation 3 `deeplinks-basic` and `deeplinks-advanced`
+  Read when URLs or intents must resolve into the same routed state used by in-app navigation.
+- Navigation 3 `conditional`
+  Read when auth, onboarding, or first-run state switches users between navigation flows.
+- Navigation 3 `results-event` and `results-state`
+  Read when dialogs, sheets, editors, or subflows return data to earlier content.
+- Keep only the transferable route/state/result patterns; do not import Android-only migration setup or dependency instructions.
+
 ## Implementation guidance
 
 - Keep navigation wiring above leaf composables. Reusable UI should still receive lambdas or abstract navigation actions, not Android navigation objects.

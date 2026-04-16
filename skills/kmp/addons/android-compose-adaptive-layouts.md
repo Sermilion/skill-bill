@@ -6,6 +6,18 @@ Read this file when the diff touches list-detail, panes, rails, `NavigationSuite
 
 This guidance adapts the adaptive panes and scene-oriented themes from the official Android navigation skills into a governed KMP add-on shape.
 
+## Source recipes
+
+- Navigation 3 `scenes-listdetail`
+  Read when the UI needs adaptive list-detail behavior across compact and expanded layouts.
+- Navigation 3 `material-listdetail`
+  Read when Material adaptive list-detail behavior is in scope.
+- Navigation 3 `material-supportingpane`
+  Read when a supporting pane or secondary surface participates in the routed screen state.
+- `NavigationSuiteScaffold` guidance from the Android edge-to-edge skill
+  Read when adaptive navigation chrome and safe-area handling interact.
+- Keep only the transferable pane/state/layout patterns; do not import Android-only scene migration steps.
+
 ## Implementation guidance
 
 - Treat adaptive list-detail and pane layouts as navigation/state problems, not just layout reshuffles.

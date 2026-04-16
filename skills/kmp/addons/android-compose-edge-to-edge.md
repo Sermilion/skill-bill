@@ -6,6 +6,13 @@ Read this file when the diff touches `Scaffold`, app bars, `WindowInsets`, syste
 
 This guidance mainly adapts the official Android `system/edge-to-edge` skill into a governed KMP add-on shape.
 
+## Source recipes
+
+- Android `system/edge-to-edge` skill
+  Read when the work introduces or audits edge-to-edge setup, safe-area handling, system bars, or IME resizing behavior.
+- Focus on the transferable edge-to-edge and inset application patterns only.
+- Exclude SDK bump, migration, and upgrade-workflow instructions from the source skill.
+
 ## Implementation guidance
 
 - Prefer `enableEdgeToEdge()` before `setContent` in Android activities that own the Compose surface.

@@ -353,10 +353,15 @@ class FeatureImplementRoutingContractTest(unittest.TestCase):
 
   def test_kmp_android_compose_topic_files_add_android_specific_depth_without_generic_compose_duplication(self) -> None:
     self.assertIn("system/edge-to-edge", KMP_ANDROID_COMPOSE_EDGE_TO_EDGE)
+    self.assertIn("## Source recipes", KMP_ANDROID_COMPOSE_EDGE_TO_EDGE)
     self.assertIn("adjustResize", KMP_ANDROID_COMPOSE_EDGE_TO_EDGE)
     self.assertIn("navigation/navigation-3", KMP_ANDROID_COMPOSE_NAVIGATION)
+    self.assertIn("multiple-backstacks", KMP_ANDROID_COMPOSE_NAVIGATION)
+    self.assertIn("results-event", KMP_ANDROID_COMPOSE_NAVIGATION)
     self.assertIn("multiple back stacks", KMP_ANDROID_COMPOSE_NAVIGATION)
+    self.assertIn("## Source recipes", KMP_ANDROID_COMPOSE_ADAPTIVE)
     self.assertIn("list-detail", KMP_ANDROID_COMPOSE_ADAPTIVE)
+    self.assertIn("material-listdetail", KMP_ANDROID_COMPOSE_ADAPTIVE)
     self.assertIn("NavigationSuiteScaffold", KMP_ANDROID_COMPOSE_ADAPTIVE)
 
   def test_php_context_routes_to_php_review_and_quality_check(self) -> None:
