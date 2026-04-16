@@ -97,6 +97,15 @@ Small, low-risk review scopes may stay inline in one thread. Larger or higher-ri
 
 After stack routing, a platform package may apply governed add-ons from `skills/<platform>/addons/`. These remain stack-owned metadata such as `Selected add-ons: android-compose` for KMP Compose work. They are not extra slash commands and are not counted in the skill catalog.
 
+The current `kmp` pilot uses a small add-on index plus topic files:
+- `android-compose-implementation.md`
+- `android-compose-review.md`
+- `android-compose-edge-to-edge.md`
+- `android-compose-navigation.md`
+- `android-compose-adaptive-layouts.md`
+
+Runtime skills scan the add-on index first, then open only the linked topic files whose cues match the current work so Android-specific depth stays available without paying the token cost on every KMP run.
+
 Base entry points stay stable for users:
 
 - `/bill-code-review` routes to `bill-agent-config-code-review` | `bill-kotlin-code-review` | `bill-backend-kotlin-code-review` | `bill-kmp-code-review` | `bill-php-code-review` | `bill-go-code-review`
