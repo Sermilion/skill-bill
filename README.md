@@ -4,6 +4,8 @@ Treat your AI skills like software — with stable interfaces, platform override
 
 sKill Bill is a portable collection of 48 AI skills for code review, feature implementation, and developer tooling. One repo, synced to every supported agent. Platform depth varies — see [platform coverage tiers](#platform-coverage-tiers) for what each stack gets today.
 
+Rolling out to a team? Start with [Getting Started for Teams](docs/getting-started-for-teams.md) — it covers customization, expectations, and when to trust vs verify review output.
+
 ## Why this exists
 
 Most prompt or skill repos degrade over time:
