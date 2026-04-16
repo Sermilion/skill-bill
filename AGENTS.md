@@ -20,7 +20,7 @@ The repository uses a strict governed model:
 - `skills/base/` — canonical, user-facing capabilities
 - `skills/<platform>/` — platform-specific overrides and approved platform-owned subskills
 - `skills/<platform>/addons/` — governed stack-owned add-on assets that apply only after stack routing
-- `orchestration/` — maintainer-facing reference snapshots for shared routing, review, delegation, and telemetry contracts; not a runtime dependency for installed skills
+- `orchestration/` — single source of truth for shared routing, review, delegation, and telemetry contracts; skills consume these via sibling symlinks, so edits here change runtime behavior for every linked skill
 
 ## Naming rules
 
@@ -77,7 +77,7 @@ Use only these two platform naming patterns unless the taxonomy itself is intent
 - Runtime-facing skills may reference sibling supporting files inside the same skill directory.
 - Use sibling supporting files for runtime-shared routing, review, delegation, and telemetry contracts instead of repo-relative or install-root-relative playbook paths.
 - Use sibling supporting-file links for governed add-on assets too; do not wire runtime add-on reads directly to repo-relative paths.
-- Keep `orchestration/` snapshots aligned with the sibling supporting-file contracts when shared routing, review, delegation, or telemetry behavior changes.
+- Keep `orchestration/` contracts aligned with the sibling supporting-file links when shared routing, review, delegation, or telemetry behavior changes.
 - Preserve stable base entry points even when a platform needs more depth behind the router.
 - Keep dominant-stack routing primary. Apply governed add-ons only after stack routing settles on the owning package.
 - Keep README.md (user-facing only, do not read for agent context) skill counts and catalog entries accurate whenever skills change.
@@ -107,7 +107,7 @@ When adding a new platform or language package:
    - `ALLOWED_PACKAGES`
    - any package-specific validation logic
    - any tests or assumptions tied to current package names
-4. Update maintainer reference snapshots when shared routing, review, or telemetry behavior changes:
+4. Update shared contracts when routing, review, or telemetry behavior changes:
    - `orchestration/stack-routing/PLAYBOOK.md`
    - `orchestration/review-orchestrator/PLAYBOOK.md`
    - `orchestration/review-delegation/PLAYBOOK.md`
