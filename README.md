@@ -95,16 +95,25 @@ A single `feature-implement` run chains 10-12 skill invocations:
 
 Small, low-risk review scopes may stay inline in one thread. Larger or higher-risk scopes use delegated review passes and report the chosen execution mode explicitly.
 
-After stack routing, a platform package may apply governed add-ons from `skills/<platform>/addons/`. These remain stack-owned metadata such as `Selected add-ons: android-compose` for KMP Compose work. They are not extra slash commands and are not counted in the skill catalog.
+After stack routing, a platform package may apply governed add-ons from `skills/<platform>/addons/`. These remain stack-owned metadata such as `Selected add-ons: android-compose, android-navigation, android-interop, android-design-system, android-r8` for KMP Android work. They are not extra slash commands and are not counted in the skill catalog.
 
-The current `kmp` pilot uses a small add-on index plus topic files:
+The current `kmp` pilot uses:
 - `android-compose-implementation.md`
 - `android-compose-review.md`
 - `android-compose-edge-to-edge.md`
-- `android-compose-navigation.md`
 - `android-compose-adaptive-layouts.md`
+- `android-navigation-implementation.md`
+- `android-navigation-review.md`
+- `android-interop-implementation.md`
+- `android-interop-review.md`
+- `android-design-system-implementation.md`
+- `android-design-system-review.md`
+- `android-r8-implementation.md`
+- `android-r8-review.md`
 
 Runtime skills scan the add-on index first, then open only the linked topic files whose cues match the current work so Android-specific depth stays available without paying the token cost on every KMP run.
+
+The intent is for these stack-owned add-ons to be the apex Android reference layer inside Skill Bill for transferable Android development guidance: Compose edge-to-edge and adaptive surfaces, Android navigation/state patterns, host-boundary interoperability, design-system/theming work, and Android shrinker/R8 behavior. Android-specific upgrade playbooks such as AGP migrations or Play Billing version bumps stay out of runtime add-ons unless they are intentionally modeled as their own governed assets.
 
 Base entry points stay stable for users:
 

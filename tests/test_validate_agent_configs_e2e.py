@@ -135,7 +135,7 @@ class ValidateAgentConfigsE2ETest(unittest.TestCase):
     with self.fixture_repo([("base", "bill-code-review")]) as repo_root:
       result = self.run_validator(repo_root)
       self.assertEqual(result.returncode, 0, result.stdout)
-      self.assertIn("5 governed add-on files", result.stdout)
+      self.assertIn("12 governed add-on files", result.stdout)
 
   def test_accepts_governed_addon_files_with_future_expansion_names(self) -> None:
     with self.fixture_repo([("base", "bill-code-review")]) as repo_root:
@@ -145,7 +145,7 @@ class ValidateAgentConfigsE2ETest(unittest.TestCase):
       area_scoped_addon.write_text("# valid\n", encoding="utf-8")
       result = self.run_validator(repo_root)
       self.assertEqual(result.returncode, 0, result.stdout)
-      self.assertIn("7 governed add-on files", result.stdout)
+      self.assertIn("14 governed add-on files", result.stdout)
 
   def test_rejects_governed_addon_under_base_package(self) -> None:
     with self.fixture_repo([("base", "bill-feature-implement")]) as repo_root:
@@ -578,6 +578,7 @@ class ValidateAgentConfigsE2ETest(unittest.TestCase):
 
         ## Section index
         - [android-compose-edge-to-edge.md](android-compose-edge-to-edge.md)
+        - [android-navigation-implementation.md](android-navigation-implementation.md)
         """
       ),
       encoding="utf-8",
@@ -591,17 +592,32 @@ class ValidateAgentConfigsE2ETest(unittest.TestCase):
         This governed add-on provides review guidance for KMP Compose work.
 
         ## Section index
-        - [android-compose-navigation.md](android-compose-navigation.md)
+        - [android-navigation-review.md](android-navigation-review.md)
+        - [android-r8-review.md](android-r8-review.md)
         """
       ),
       encoding="utf-8",
     )
     edge_to_edge = repo_root / "skills" / "kmp" / "addons" / "android-compose-edge-to-edge.md"
     edge_to_edge.write_text("# Edge-to-edge\n", encoding="utf-8")
-    navigation = repo_root / "skills" / "kmp" / "addons" / "android-compose-navigation.md"
-    navigation.write_text("# Navigation\n", encoding="utf-8")
     adaptive = repo_root / "skills" / "kmp" / "addons" / "android-compose-adaptive-layouts.md"
     adaptive.write_text("# Adaptive layouts\n", encoding="utf-8")
+    navigation_impl = repo_root / "skills" / "kmp" / "addons" / "android-navigation-implementation.md"
+    navigation_impl.write_text("# Navigation implementation\n", encoding="utf-8")
+    navigation_review = repo_root / "skills" / "kmp" / "addons" / "android-navigation-review.md"
+    navigation_review.write_text("# Navigation review\n", encoding="utf-8")
+    interop_impl = repo_root / "skills" / "kmp" / "addons" / "android-interop-implementation.md"
+    interop_impl.write_text("# Interop implementation\n", encoding="utf-8")
+    interop_review = repo_root / "skills" / "kmp" / "addons" / "android-interop-review.md"
+    interop_review.write_text("# Interop review\n", encoding="utf-8")
+    design_impl = repo_root / "skills" / "kmp" / "addons" / "android-design-system-implementation.md"
+    design_impl.write_text("# Design system implementation\n", encoding="utf-8")
+    design_review = repo_root / "skills" / "kmp" / "addons" / "android-design-system-review.md"
+    design_review.write_text("# Design system review\n", encoding="utf-8")
+    r8_implementation = repo_root / "skills" / "kmp" / "addons" / "android-r8-implementation.md"
+    r8_implementation.write_text("# R8 implementation\n", encoding="utf-8")
+    r8_review = repo_root / "skills" / "kmp" / "addons" / "android-r8-review.md"
+    r8_review.write_text("# R8 review\n", encoding="utf-8")
 
   def write_skill(
     self,

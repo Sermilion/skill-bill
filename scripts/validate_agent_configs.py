@@ -8,6 +8,7 @@ import re
 import sys
 
 from skill_repo_contracts import (
+  ADDON_SUPPORTING_FILE_TARGETS,
   ADDON_DIRECTORY_NAME,
   APPLIED_LEARNINGS_PLACEHOLDER,
   CHILD_METADATA_HANDOFF_RULE,
@@ -314,7 +315,7 @@ def validate_runtime_supporting_files(
     supporting_file = skill_file.parent / file_name
     if (
       skill_name in {"bill-feature-implement", "bill-feature-implement-agentic"}
-      and file_name.startswith("android-compose-")
+      and file_name in ADDON_SUPPORTING_FILE_TARGETS
     ):
       if file_name not in text and "matching stack-owned add-on supporting files" not in text:
         issues.append(

@@ -12,10 +12,14 @@ Scan this file first. Then open only the linked topic files whose cues match the
   Read first to decide whether `android-compose` should be active.
 - `[android-compose-edge-to-edge.md](android-compose-edge-to-edge.md)`
   Read when the diff touches `Scaffold`, app bars, lists, `WindowInsets`, system bars, IME behavior, activities, or `AndroidManifest.xml`.
-- `[android-compose-navigation.md](android-compose-navigation.md)`
-  Read when the diff touches route models, deep links, multiple back stacks, conditional navigation, or result handoff between destinations.
 - `[android-compose-adaptive-layouts.md](android-compose-adaptive-layouts.md)`
   Read when the diff touches list-detail, panes, rails, `NavigationSuiteScaffold`, or large-screen-specific Compose surfaces.
+- `[android-navigation-review.md](android-navigation-review.md)`
+  Read when the diff touches route models, deep links, scene destinations, or Android navigation ownership.
+- `[android-design-system-review.md](android-design-system-review.md)`
+  Read when the diff touches `MaterialTheme`, color schemes, typography, shapes, XML theme migration, or Android-specific styled component replacements.
+- `[android-interop-review.md](android-interop-review.md)`
+  Read when the diff mixes Compose with legacy Views or Fragments through `ComposeView`, `AndroidView`, `AndroidViewBinding`, or `AndroidFragment`.
 - Generic Compose enforcement stays in `compose-guidelines.md`; use this add-on only for Android-specific review depth beyond that rubric.
 
 ## Activation signals
@@ -25,7 +29,7 @@ Select `android-compose` when the scoped diff includes:
 - `@Composable` functions or screen composables
 - Compose previews, `remember*`, `LaunchedEffect`, or other side-effect APIs
 - `Scaffold`, `LazyColumn`, `LazyRow`, insets, or IME handling
-- Android-specific Compose resources, edge-to-edge setup, or navigation-state wiring
+- Android-specific Compose resources, edge-to-edge setup, or pane/adaptive layout wiring
 
 ## Review boundary
 

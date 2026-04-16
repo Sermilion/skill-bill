@@ -15,12 +15,17 @@ ADDON_IMPLEMENTATION_SUFFIX = "-implementation.md"
 ADDON_REVIEW_SUFFIX = "-review.md"
 ADDON_REPORTING_LINE = "Selected add-ons: none | <add-on slugs>"
 GOVERNED_STACK_ADDONS: dict[str, tuple[str, ...]] = {
-  "kmp": ("android-compose",),
+  "kmp": (
+    "android-compose",
+    "android-navigation",
+    "android-interop",
+    "android-design-system",
+    "android-r8",
+  ),
 }
 GOVERNED_ADDON_SUPPORT_FILES: dict[str, tuple[str, ...]] = {
   "kmp": (
     "android-compose-edge-to-edge.md",
-    "android-compose-navigation.md",
     "android-compose-adaptive-layouts.md",
   ),
 }
@@ -61,14 +66,19 @@ RUNTIME_SUPPORTING_FILES: dict[str, tuple[str, ...]] = {
     "review-delegation.md",
     "telemetry-contract.md",
     "android-compose-review.md",
+    "android-navigation-review.md",
+    "android-interop-review.md",
+    "android-design-system-review.md",
+    "android-r8-review.md",
     "android-compose-edge-to-edge.md",
-    "android-compose-navigation.md",
     "android-compose-adaptive-layouts.md",
   ),
   "bill-kmp-code-review-ui": (
     "android-compose-review.md",
+    "android-navigation-review.md",
+    "android-interop-review.md",
+    "android-design-system-review.md",
     "android-compose-edge-to-edge.md",
-    "android-compose-navigation.md",
     "android-compose-adaptive-layouts.md",
   ),
   "bill-php-code-review": ("stack-routing.md", "review-orchestrator.md", "review-delegation.md", "telemetry-contract.md"),
@@ -76,15 +86,21 @@ RUNTIME_SUPPORTING_FILES: dict[str, tuple[str, ...]] = {
   "bill-feature-implement": (
     "telemetry-contract.md",
     "android-compose-implementation.md",
+    "android-navigation-implementation.md",
+    "android-interop-implementation.md",
+    "android-design-system-implementation.md",
+    "android-r8-implementation.md",
     "android-compose-edge-to-edge.md",
-    "android-compose-navigation.md",
     "android-compose-adaptive-layouts.md",
   ),
   "bill-feature-implement-agentic": (
     "telemetry-contract.md",
     "android-compose-implementation.md",
+    "android-navigation-implementation.md",
+    "android-interop-implementation.md",
+    "android-design-system-implementation.md",
+    "android-r8-implementation.md",
     "android-compose-edge-to-edge.md",
-    "android-compose-navigation.md",
     "android-compose-adaptive-layouts.md",
   ),
   "bill-feature-verify": ("telemetry-contract.md",),

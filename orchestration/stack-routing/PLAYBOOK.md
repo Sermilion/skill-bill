@@ -85,5 +85,29 @@ Classify work as one of:
 ### KMP pilot: `android-compose`
 
 - Eligible only after the route is already `kmp`.
-- Signals: `@Composable`, Compose UI state classes, `Modifier` chains, previews, `remember*`, `LaunchedEffect`, or other Compose side effects in Android/KMP scope.
+- Signals: `@Composable`, Compose UI state classes, `Modifier` chains, previews, `remember*`, `LaunchedEffect`, edge-to-edge work, or adaptive Compose surfaces in Android/KMP scope.
 - The add-on augments KMP implementation or review guidance; it does not replace the base `kmp` route.
+
+### KMP pilot: `android-navigation`
+
+- Eligible only after the route is already `kmp`.
+- Signals: route models, `NavHost`/`NavDisplay`, deep links, multi-back-stack behavior, scene destinations, or Android navigation ownership in KMP-owned Android modules.
+- The add-on augments KMP implementation or review guidance for Android navigation; it does not replace the base `kmp` route.
+
+### KMP pilot: `android-interop`
+
+- Eligible only after the route is already `kmp`.
+- Signals: `ComposeView`, `AndroidView`, `AndroidViewBinding`, `AndroidFragment`, or other Android host-boundary glue in KMP-owned Android modules.
+- The add-on augments KMP implementation or review guidance for Android interoperability; it does not replace the base `kmp` route.
+
+### KMP pilot: `android-design-system`
+
+- Eligible only after the route is already `kmp`.
+- Signals: `MaterialTheme`, design tokens, XML-theme-to-Compose translation, or styled Android components in KMP-owned Android modules.
+- The add-on augments KMP implementation or review guidance for Android design-system work; it does not replace the base `kmp` route.
+
+### KMP pilot: `android-r8`
+
+- Eligible only after the route is already `kmp`.
+- Signals: `proguard-rules.pro`, `consumer-rules.pro`, broad `-keep` rules, `isMinifyEnabled`, `isShrinkResources`, `proguardFiles`, or other Android shrinker configuration in KMP-owned Android modules.
+- The add-on augments KMP implementation or review guidance for Android release shrinking; it does not replace the base `kmp` route.

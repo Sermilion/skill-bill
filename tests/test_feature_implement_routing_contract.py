@@ -49,10 +49,17 @@ KOTLIN_CODE_REVIEW = read("skills/kotlin/bill-kotlin-code-review/SKILL.md")
 BACKEND_KOTLIN_CODE_REVIEW = read("skills/backend-kotlin/bill-backend-kotlin-code-review/SKILL.md")
 KMP_CODE_REVIEW = read("skills/kmp/bill-kmp-code-review/SKILL.md")
 KMP_ANDROID_COMPOSE_EDGE_TO_EDGE = read("skills/kmp/addons/android-compose-edge-to-edge.md")
-KMP_ANDROID_COMPOSE_NAVIGATION = read("skills/kmp/addons/android-compose-navigation.md")
 KMP_ANDROID_COMPOSE_ADAPTIVE = read("skills/kmp/addons/android-compose-adaptive-layouts.md")
 KMP_ANDROID_COMPOSE_IMPLEMENTATION = read("skills/kmp/addons/android-compose-implementation.md")
 KMP_ANDROID_COMPOSE_REVIEW = read("skills/kmp/addons/android-compose-review.md")
+KMP_ANDROID_NAVIGATION_IMPLEMENTATION = read("skills/kmp/addons/android-navigation-implementation.md")
+KMP_ANDROID_NAVIGATION_REVIEW = read("skills/kmp/addons/android-navigation-review.md")
+KMP_ANDROID_INTEROP_IMPLEMENTATION = read("skills/kmp/addons/android-interop-implementation.md")
+KMP_ANDROID_INTEROP_REVIEW = read("skills/kmp/addons/android-interop-review.md")
+KMP_ANDROID_DESIGN_SYSTEM_IMPLEMENTATION = read("skills/kmp/addons/android-design-system-implementation.md")
+KMP_ANDROID_DESIGN_SYSTEM_REVIEW = read("skills/kmp/addons/android-design-system-review.md")
+KMP_ANDROID_R8_IMPLEMENTATION = read("skills/kmp/addons/android-r8-implementation.md")
+KMP_ANDROID_R8_REVIEW = read("skills/kmp/addons/android-r8-review.md")
 KMP_COMPOSE_UI_REVIEW = read("skills/kmp/bill-kmp-code-review-ui/SKILL.md")
 PHP_CODE_REVIEW = read("skills/php/bill-php-code-review/SKILL.md")
 GO_CODE_REVIEW = read("skills/go/bill-go-code-review/SKILL.md")
@@ -243,10 +250,17 @@ class FeatureImplementRoutingContractTest(unittest.TestCase):
     )
 
   def test_kmp_governed_addons_apply_only_after_stack_routing(self) -> None:
-    self.assertEqual(governed_addon_slugs_for_stack("kmp"), ("android-compose",))
+    self.assertEqual(
+      governed_addon_slugs_for_stack("kmp"),
+      ("android-compose", "android-navigation", "android-interop", "android-design-system", "android-r8"),
+    )
     self.assertIn("## Post-Stack Add-Ons", STACK_ROUTING_PLAYBOOK)
     self.assertIn("Resolve governed add-ons only after the dominant stack route is chosen.", STACK_ROUTING_PLAYBOOK)
     self.assertIn("Selected add-ons: none", STACK_ROUTING_PLAYBOOK)
+    self.assertIn("### KMP pilot: `android-navigation`", STACK_ROUTING_PLAYBOOK)
+    self.assertIn("### KMP pilot: `android-interop`", STACK_ROUTING_PLAYBOOK)
+    self.assertIn("### KMP pilot: `android-design-system`", STACK_ROUTING_PLAYBOOK)
+    self.assertIn("### KMP pilot: `android-r8`", STACK_ROUTING_PLAYBOOK)
 
   def test_kmp_feature_implement_defers_governed_addons_to_stack_routing(self) -> None:
     self.assertIn(
@@ -296,7 +310,19 @@ class FeatureImplementRoutingContractTest(unittest.TestCase):
 
   def test_kmp_compose_review_skill_keeps_review_rubric_as_enforcement_layer(self) -> None:
     self.assertIn(
-      "When the parent KMP review selects the `android-compose` add-on, scan [android-compose-review.md](android-compose-review.md) first. If the add-on is split into topic files, open only the linked topic files whose cues match the diff, such as [android-compose-edge-to-edge.md](android-compose-edge-to-edge.md), [android-compose-navigation.md](android-compose-navigation.md), and [android-compose-adaptive-layouts.md](android-compose-adaptive-layouts.md).",
+      "When the parent KMP review selects the `android-compose` add-on, scan [android-compose-review.md](android-compose-review.md) first. If the add-on is split into topic files, open only the linked topic files whose cues match the diff, such as [android-compose-edge-to-edge.md](android-compose-edge-to-edge.md) and [android-compose-adaptive-layouts.md](android-compose-adaptive-layouts.md).",
+      KMP_COMPOSE_UI_REVIEW,
+    )
+    self.assertIn(
+      "When the parent KMP review selects `android-navigation`, scan [android-navigation-review.md](android-navigation-review.md) first",
+      KMP_COMPOSE_UI_REVIEW,
+    )
+    self.assertIn(
+      "When the parent KMP review selects `android-interop`, scan [android-interop-review.md](android-interop-review.md) first",
+      KMP_COMPOSE_UI_REVIEW,
+    )
+    self.assertIn(
+      "When the parent KMP review selects `android-design-system`, scan [android-design-system-review.md](android-design-system-review.md) first",
       KMP_COMPOSE_UI_REVIEW,
     )
     self.assertIn(
@@ -320,13 +346,12 @@ class FeatureImplementRoutingContractTest(unittest.TestCase):
       KMP_ANDROID_COMPOSE_REVIEW,
     )
     self.assertIn(
-      "[android-compose-navigation.md](android-compose-navigation.md)",
-      KMP_ANDROID_COMPOSE_REVIEW,
-    )
-    self.assertIn(
       "[android-compose-adaptive-layouts.md](android-compose-adaptive-layouts.md)",
       KMP_ANDROID_COMPOSE_REVIEW,
     )
+    self.assertIn("[android-navigation-review.md](android-navigation-review.md)", KMP_ANDROID_COMPOSE_REVIEW)
+    self.assertIn("[android-design-system-review.md](android-design-system-review.md)", KMP_ANDROID_COMPOSE_REVIEW)
+    self.assertIn("[android-interop-review.md](android-interop-review.md)", KMP_ANDROID_COMPOSE_REVIEW)
     self.assertIn(
       "- Keep this add-on subordinate to the routed `kmp` review.",
       KMP_ANDROID_COMPOSE_REVIEW,
@@ -347,22 +372,54 @@ class FeatureImplementRoutingContractTest(unittest.TestCase):
       KMP_ANDROID_COMPOSE_IMPLEMENTATION,
     )
     self.assertIn("[android-compose-edge-to-edge.md](android-compose-edge-to-edge.md)", KMP_ANDROID_COMPOSE_IMPLEMENTATION)
-    self.assertIn("[android-compose-navigation.md](android-compose-navigation.md)", KMP_ANDROID_COMPOSE_IMPLEMENTATION)
     self.assertIn("[android-compose-adaptive-layouts.md](android-compose-adaptive-layouts.md)", KMP_ANDROID_COMPOSE_IMPLEMENTATION)
+    self.assertIn("[android-navigation-implementation.md](android-navigation-implementation.md)", KMP_ANDROID_COMPOSE_IMPLEMENTATION)
+    self.assertIn("[android-design-system-implementation.md](android-design-system-implementation.md)", KMP_ANDROID_COMPOSE_IMPLEMENTATION)
+    self.assertIn("[android-interop-implementation.md](android-interop-implementation.md)", KMP_ANDROID_COMPOSE_IMPLEMENTATION)
     self.assertIn("## Android-specific verification checklist", KMP_ANDROID_COMPOSE_IMPLEMENTATION)
 
   def test_kmp_android_compose_topic_files_add_android_specific_depth_without_generic_compose_duplication(self) -> None:
     self.assertIn("system/edge-to-edge", KMP_ANDROID_COMPOSE_EDGE_TO_EDGE)
     self.assertIn("## Source recipes", KMP_ANDROID_COMPOSE_EDGE_TO_EDGE)
     self.assertIn("adjustResize", KMP_ANDROID_COMPOSE_EDGE_TO_EDGE)
-    self.assertIn("navigation/navigation-3", KMP_ANDROID_COMPOSE_NAVIGATION)
-    self.assertIn("multiple-backstacks", KMP_ANDROID_COMPOSE_NAVIGATION)
-    self.assertIn("results-event", KMP_ANDROID_COMPOSE_NAVIGATION)
-    self.assertIn("multiple back stacks", KMP_ANDROID_COMPOSE_NAVIGATION)
     self.assertIn("## Source recipes", KMP_ANDROID_COMPOSE_ADAPTIVE)
     self.assertIn("list-detail", KMP_ANDROID_COMPOSE_ADAPTIVE)
     self.assertIn("material-listdetail", KMP_ANDROID_COMPOSE_ADAPTIVE)
     self.assertIn("NavigationSuiteScaffold", KMP_ANDROID_COMPOSE_ADAPTIVE)
+    self.assertIn("system-bar legibility", KMP_ANDROID_COMPOSE_EDGE_TO_EDGE)
+
+  def test_kmp_android_navigation_addon_captures_android_navigation_depth(self) -> None:
+    self.assertIn("common-ui", KMP_ANDROID_NAVIGATION_IMPLEMENTATION)
+    self.assertIn("multiple-backstacks", KMP_ANDROID_NAVIGATION_IMPLEMENTATION)
+    self.assertIn("bottomsheet", KMP_ANDROID_NAVIGATION_IMPLEMENTATION)
+    self.assertIn("modular-hilt", KMP_ANDROID_NAVIGATION_IMPLEMENTATION)
+    self.assertIn("results-event", KMP_ANDROID_NAVIGATION_IMPLEMENTATION)
+    self.assertIn("synthetic back stack", KMP_ANDROID_NAVIGATION_IMPLEMENTATION)
+    self.assertIn("back stack per top-level route", KMP_ANDROID_NAVIGATION_IMPLEMENTATION)
+    self.assertIn("typed destination models", KMP_ANDROID_NAVIGATION_IMPLEMENTATION)
+    self.assertIn("Android navigation risks", KMP_ANDROID_NAVIGATION_REVIEW)
+
+  def test_kmp_android_interop_and_design_system_addons_capture_android_ui_host_depth(self) -> None:
+    self.assertIn("AndroidView", KMP_ANDROID_INTEROP_IMPLEMENTATION)
+    self.assertIn("AndroidFragment", KMP_ANDROID_INTEROP_IMPLEMENTATION)
+    self.assertIn("rememberUpdatedState", KMP_ANDROID_INTEROP_IMPLEMENTATION)
+    self.assertIn("Interop", KMP_ANDROID_INTEROP_REVIEW)
+    self.assertIn("MaterialTheme", KMP_ANDROID_DESIGN_SYSTEM_IMPLEMENTATION)
+    self.assertIn("design-system", KMP_ANDROID_DESIGN_SYSTEM_IMPLEMENTATION)
+    self.assertIn("hybrid XML/Compose", KMP_ANDROID_DESIGN_SYSTEM_IMPLEMENTATION)
+    self.assertIn("duplicate or parallel Android theme layers", KMP_ANDROID_DESIGN_SYSTEM_REVIEW)
+
+  def test_kmp_android_r8_addons_capture_android_shrinker_guidance(self) -> None:
+    self.assertIn("## Section index", KMP_ANDROID_R8_IMPLEMENTATION)
+    self.assertIn("proguard-rules.pro", KMP_ANDROID_R8_IMPLEMENTATION)
+    self.assertIn("proguard-android-optimize.txt", KMP_ANDROID_R8_IMPLEMENTATION)
+    self.assertIn("-dontshrink", KMP_ANDROID_R8_IMPLEMENTATION)
+    self.assertIn("Class.forName", KMP_ANDROID_R8_IMPLEMENTATION)
+    self.assertIn("android-r8", KMP_ANDROID_R8_IMPLEMENTATION)
+    self.assertIn("proguard-rules.pro", KMP_ANDROID_R8_REVIEW)
+    self.assertIn("consumer rules already cover them", KMP_ANDROID_R8_REVIEW)
+    self.assertIn("Parcelable", KMP_ANDROID_R8_REVIEW)
+    self.assertIn("Android shrinker risks", KMP_ANDROID_R8_REVIEW)
 
   def test_php_context_routes_to_php_review_and_quality_check(self) -> None:
     self.assertIn(

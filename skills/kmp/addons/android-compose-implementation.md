@@ -12,10 +12,14 @@ Scan this file first. Then open only the linked topic files whose cues match the
   Read first to decide whether `android-compose` should apply at all.
 - `[android-compose-edge-to-edge.md](android-compose-edge-to-edge.md)`
   Read when the diff touches `Scaffold`, app bars, lists, `WindowInsets`, system bars, IME behavior, Android activities, or `AndroidManifest.xml`.
-- `[android-compose-navigation.md](android-compose-navigation.md)`
-  Read when the diff touches `NavHost`, route models, deep links, multiple back stacks, conditional navigation, or returned results from subflows.
 - `[android-compose-adaptive-layouts.md](android-compose-adaptive-layouts.md)`
   Read when the diff touches list-detail, panes, `NavigationSuiteScaffold`, rails, supporting panes, or large-screen-specific Android Compose surfaces.
+- `[android-navigation-implementation.md](android-navigation-implementation.md)`
+  Read when the diff touches route models, deep links, multiple back stacks, scene destinations, or Android navigation ownership.
+- `[android-design-system-implementation.md](android-design-system-implementation.md)`
+  Read when the diff touches `MaterialTheme`, color schemes, typography, shapes, XML theme migration, or Android-specific styled component replacements.
+- `[android-interop-implementation.md](android-interop-implementation.md)`
+  Read when the diff mixes Compose with legacy Views or Fragments through `ComposeView`, `AndroidView`, `AndroidViewBinding`, or `AndroidFragment`.
 - Generic Compose API and enforcement work stays in `compose-guidelines.md`; use this add-on only for Android-specific depth beyond the base Compose rubric.
 
 ## Activation signals
@@ -26,7 +30,7 @@ Activate `android-compose` when the routed KMP work includes signals such as:
 - Compose UI state models or `collectAsStateWithLifecycle()`
 - `Modifier` chains, previews, `remember*`, or Compose side effects
 - Android UI-safe-area concerns such as system bars, IME, list inset handling, or activity-level Compose setup
-- Android navigation/state concerns such as `NavHost`, deep links, pane navigation, or multi-back-stack flows
+- Android adaptive Compose surfaces such as panes, list-detail layouts, or `NavigationSuiteScaffold`
 
 ## Exclusions
 
@@ -41,9 +45,8 @@ Do not use this add-on for:
 
 - The Android activity boundary enables the platform behavior the screen expects.
 - Insets and IME handling are applied once, at the right layer, and still preserve usable scrolling.
-- Navigation state survives the transitions this screen is expected to survive.
 - Adaptive layouts preserve the same domain state across compact and expanded layouts.
-- Returned results are consumed exactly once.
+- Android-specific Compose host surfaces stay edge-to-edge and pane-safe without duplicating generic Compose enforcement.
 
 ## Implementation boundary
 

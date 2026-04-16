@@ -16,13 +16,16 @@ This guidance mainly adapts the official Android `system/edge-to-edge` skill int
 ## Implementation guidance
 
 - Prefer `enableEdgeToEdge()` before `setContent` in Android activities that own the Compose surface.
+- Treat activity-level edge-to-edge enablement as part of the Android route boundary. A screen should not silently assume edge-to-edge if the host entry point still renders in legacy insets mode.
 - Prefer `Scaffold` and pass `innerPadding` into content instead of padding an outer parent container.
 - For scrollable content such as `LazyColumn` or `LazyRow`, feed inset padding into `contentPadding` and consume upstream inset values deliberately.
 - When Material components already manage their own safe areas, pass insets to the component rather than padding the entire parent container.
 - When you are outside a `Scaffold`, use `safeDrawingPadding()` or `windowInsetsPadding(WindowInsets.safeDrawing)` rather than inventing ad hoc spacing.
+- For deeply nested Android Compose surfaces with repeated inset plumbing, use inset rulers or another central strategy instead of stacking unrelated paddings down the tree.
 - Apply inset values once. Avoid stacking parent padding and child inset modifiers on the same axis unless you have a concrete reason.
 - For adaptive scaffolds such as `NavigationSuiteScaffold`, apply insets to the inner screen content rather than the scaffold parent itself.
 - When a decorative element needs to match a system bar, prefer inset size modifiers instead of hard-coded dimensions.
+- Verify system-bar legibility as well as geometry. Edge-to-edge is not complete if content reaches the bar but the bar icons or background contrast are wrong.
 
 ## IME, focus, and scrolling
 
