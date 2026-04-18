@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import json
-import sqlite3
-from pathlib import Path
 import os
+from pathlib import Path
 import shutil
 import subprocess
 import tempfile
@@ -11,339 +10,163 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-INSTALL_SCRIPT = ROOT / "install.sh"
-SKILLS_DIR = ROOT / "skills"
-PLATFORM_PACKS_DIR = ROOT / "platform-packs"
+OPTIONAL_PACK_FIXTURE = ROOT / "tests" / "fixtures" / "optional_pack" / "example-pack"
+VALID_PACK_FIXTURE = ROOT / "tests" / "fixtures" / "shell_content_contract" / "valid_pack"
+INVALID_PACK_FIXTURE = ROOT / "tests" / "fixtures" / "shell_content_contract" / "invalid_schema"
 
 
-def skill_names(package_name: str) -> set[str]:
-  """Return every skill name belonging to a package, across both trees.
-
-  SKILL-14 split platform code-review content out of ``skills/`` into
-  ``platform-packs/``. The installer walks both trees; the test helpers
-  must mirror that union so the installer-behavior assertions stay
-  accurate.
-  """
-  names: set[str] = set()
-  skills_package = SKILLS_DIR / package_name
-  if skills_package.is_dir():
-    names.update(
-      skill_file.parent.name for skill_file in skills_package.glob("*/SKILL.md")
-    )
-  packs_package = PLATFORM_PACKS_DIR / package_name
-  if packs_package.is_dir():
-    names.update(
-      skill_file.parent.name for skill_file in packs_package.rglob("SKILL.md")
-    )
-  return names
-
-
-BASE_SKILLS = skill_names("base")
-BACKEND_KOTLIN_SKILLS = skill_names("backend-kotlin")
-KOTLIN_SKILLS = skill_names("kotlin")
-KMP_SKILLS = skill_names("kmp")
-PHP_SKILLS = skill_names("php")
-GO_SKILLS = skill_names("go")
-AGENT_CONFIG_SKILLS = skill_names("agent-config")
+def skill_names(repo_root: Path, package_name: str) -> set[str]:
+  from skill_bill.install import discover_installable_skills
+  return {
+    skill.skill_name
+    for skill in discover_installable_skills(repo_root)
+    if skill.package_name == package_name
+  }
 
 
 class InstallScriptTest(unittest.TestCase):
   maxDiff = None
 
-  def test_accepts_multi_agent_selection_without_primary_prompt(self) -> None:
-    with tempfile.TemporaryDirectory() as temp_home:
-      self.prepare_agent_homes(temp_home)
-      result = self.run_installer(temp_home, "all\nPHP\n")
+  def test_installs_framework_only_core_when_no_optional_packs_exist(self) -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+      repo_root = self.copy_repo(Path(temp_dir))
+      shutil.rmtree(repo_root / "platform-packs", ignore_errors=True)
+      self.prepare_agent_homes(Path(temp_dir))
+
+      result = self.run_installer(repo_root, Path(temp_dir), "copilot\n\n\n")
+
       self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-      self.assertIn("Available agents:", result.stdout)
-      self.assertNotIn("Choose the primary agent:", result.stdout)
-      self.assertNotIn("Primary:", result.stdout)
-      self.assertNotIn("via copilot", result.stdout)
-      self.assertNotIn("Choose the user-facing skill prefix.", result.stdout)
-      self.assertNotIn("Command prefix:", result.stdout)
-
-      for relative_path in (
-        ".copilot/skills/bill-code-review",
-        ".claude/commands/bill-code-review",
-        ".glm/commands/bill-code-review",
-        ".codex/skills/bill-code-review",
-        ".config/opencode/skills/bill-code-review",
-      ):
-        path = Path(temp_home) / relative_path
-        self.assertTrue(path.is_symlink(), relative_path)
-        self.assertEqual(path.resolve(), ROOT / "skills" / "base" / "bill-code-review")
-
-  def test_installs_base_and_selected_platform_only(self) -> None:
-    with tempfile.TemporaryDirectory() as temp_home:
-      result = self.run_installer(temp_home, "copilot\nPHP\n")
-      self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-      self.assertIn("Available optional platforms:", result.stdout)
-      self.assertIn("Base skills and Agent config skills are always installed.", result.stdout)
-      self.assertIn("Choose one or more optional platform numbers (comma-separated).", result.stdout)
-
-      installed = self.installed_skills(temp_home)
-      self.assertEqual(installed, BASE_SKILLS | PHP_SKILLS | AGENT_CONFIG_SKILLS)
-      self.assertFalse((Path(temp_home) / ".copilot" / "skills" / ".bill-shared").exists())
-      self.assertTrue((Path(temp_home) / ".copilot" / "skills" / "bill-code-review" / "stack-routing.md").exists())
-      self.assertTrue((Path(temp_home) / ".copilot" / "skills" / "bill-php-code-review" / "review-orchestrator.md").exists())
-      self.assertIn("Installed agent: copilot", result.stdout)
-      self.assertEqual(self.telemetry_config(Path(temp_home) / ".skill-bill" / "config.json")["telemetry"]["level"], "anonymous")
-
-  def test_installs_base_and_selected_go_platform_only(self) -> None:
-    with tempfile.TemporaryDirectory() as temp_home:
-      result = self.run_installer(temp_home, "copilot\nGo\n")
-      self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-
-      installed = self.installed_skills(temp_home)
-      self.assertEqual(installed, BASE_SKILLS | GO_SKILLS | AGENT_CONFIG_SKILLS)
-
-  def test_installs_agent_config_skills_automatically(self) -> None:
-    with tempfile.TemporaryDirectory() as temp_home:
-      result = self.run_installer(temp_home, "copilot\nPHP\n")
-      self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-      self.assertNotIn("Agent config (agent-config)", result.stdout)
-
-      installed = self.installed_skills(temp_home)
-      self.assertEqual(installed, BASE_SKILLS | PHP_SKILLS | AGENT_CONFIG_SKILLS)
-
-  def test_installs_opencode_skills_and_registers_mcp(self) -> None:
-    with tempfile.TemporaryDirectory() as temp_home:
-      result = self.run_installer(temp_home, "opencode\nPHP\n")
-      self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-
-      installed = self.installed_skills(temp_home, relative_dir=".config/opencode/skills")
-      self.assertEqual(installed, BASE_SKILLS | PHP_SKILLS | AGENT_CONFIG_SKILLS)
-      self.assertIn("Installed agent: opencode", result.stdout)
-
-      config = json.loads((Path(temp_home) / ".config" / "opencode" / "opencode.json").read_text(encoding="utf-8"))
-      self.assertEqual(config["mcp"]["skill-bill"]["type"], "local")
-      self.assertEqual(config["mcp"]["skill-bill"]["command"][1:], ["-m", "skill_bill.mcp_server"])
-      self.assertTrue(config["mcp"]["skill-bill"]["enabled"])
-
-  def test_installer_merges_opencode_jsonc_config_when_registering_mcp(self) -> None:
-    with tempfile.TemporaryDirectory() as temp_home:
-      config_path = Path(temp_home) / ".config" / "opencode" / "opencode.json"
-      config_path.parent.mkdir(parents=True, exist_ok=True)
-      config_path.write_text('{\n  // keep this user setting\n  "theme": "opencode",\n}\n', encoding="utf-8")
-
-      result = self.run_installer(temp_home, "opencode\nPHP\n")
-      self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-
-      config = json.loads(config_path.read_text(encoding="utf-8"))
-      self.assertEqual(config["theme"], "opencode")
-      self.assertIn("skill-bill", config["mcp"])
-
-  def test_accepts_numeric_multi_platform_selection(self) -> None:
-    with tempfile.TemporaryDirectory() as temp_home:
-      result = self.run_installer(temp_home, "copilot\n1,2,3\n")
-      self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-
-      installed = self.installed_skills(temp_home)
-      self.assertEqual(installed, BASE_SKILLS | BACKEND_KOTLIN_SKILLS | KOTLIN_SKILLS | KMP_SKILLS | AGENT_CONFIG_SKILLS)
-      self.assertTrue(PHP_SKILLS.isdisjoint(installed))
-
-  def test_accepts_human_friendly_multi_platform_selection(self) -> None:
-    with tempfile.TemporaryDirectory() as temp_home:
-      result = self.run_installer(temp_home, "copilot\nKotlin backend, Kotlin, KMP\n")
-      self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-
-      installed = self.installed_skills(temp_home)
-      self.assertEqual(installed, BASE_SKILLS | BACKEND_KOTLIN_SKILLS | KOTLIN_SKILLS | KMP_SKILLS | AGENT_CONFIG_SKILLS)
-      self.assertTrue(PHP_SKILLS.isdisjoint(installed))
-
-  def test_shows_each_platform_option_and_supports_all(self) -> None:
-    with tempfile.TemporaryDirectory() as temp_home:
-      result = self.run_installer(temp_home, "copilot\nall\n")
-      self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-      self.assertIn("Kotlin backend (backend-kotlin)", result.stdout)
-      self.assertIn("Kotlin (kotlin)", result.stdout)
-      self.assertIn("KMP (kmp)", result.stdout)
-      self.assertIn("PHP (php)", result.stdout)
-      self.assertIn("Go (go)", result.stdout)
-      self.assertIn("all (install every platform package)", result.stdout)
-      self.assertNotIn("Agent config (agent-config)", result.stdout)
-
-      installed = self.installed_skills(temp_home)
+      self.assertIn("No optional platform packs were discovered", result.stdout)
+      self.assertIn("Optional packs:  none (framework-only core)", result.stdout)
       self.assertEqual(
-        installed,
-        BASE_SKILLS | BACKEND_KOTLIN_SKILLS | KOTLIN_SKILLS | KMP_SKILLS | PHP_SKILLS | GO_SKILLS | AGENT_CONFIG_SKILLS,
+        self.installed_skills(Path(temp_dir)),
+        skill_names(repo_root, "base"),
       )
 
-  def test_ignores_empty_platform_tokens(self) -> None:
-    with tempfile.TemporaryDirectory() as temp_home:
-      result = self.run_installer(temp_home, "copilot\nPHP, , Kotlin backend\n")
-      self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-
-      installed = self.installed_skills(temp_home)
-      self.assertEqual(installed, BASE_SKILLS | PHP_SKILLS | BACKEND_KOTLIN_SKILLS | AGENT_CONFIG_SKILLS)
-
-  def test_rerun_reinstalls_only_selected_platforms(self) -> None:
-    with tempfile.TemporaryDirectory() as temp_home:
-      first = self.run_installer(temp_home, "copilot\nPHP\n")
-      self.assertEqual(first.returncode, 0, first.stdout + first.stderr)
-
-      second = self.run_installer(
-        temp_home,
-        "copilot\nKotlin backend\n",
+  def test_installs_selected_synthetic_optional_pack(self) -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+      repo_root = self.copy_repo(Path(temp_dir))
+      shutil.rmtree(repo_root / "platform-packs", ignore_errors=True)
+      shutil.copytree(
+        OPTIONAL_PACK_FIXTURE,
+        repo_root / "platform-packs" / "example-pack",
+        symlinks=True,
       )
-      self.assertEqual(second.returncode, 0, second.stdout + second.stderr)
-      self.assertIn("Skill Bill Uninstaller", second.stdout)
+      self.prepare_agent_homes(Path(temp_dir))
 
-      installed = self.installed_skills(temp_home)
-      self.assertEqual(installed, BASE_SKILLS | BACKEND_KOTLIN_SKILLS | AGENT_CONFIG_SKILLS)
+      result = self.run_installer(repo_root, Path(temp_dir), "copilot\nexample-pack\n\n")
 
-  def test_rerun_replaces_existing_skill_directory_and_restores_sidecars(self) -> None:
-    with tempfile.TemporaryDirectory() as temp_home:
-      first = self.run_installer(temp_home, "copilot\nPHP\n")
-      self.assertEqual(first.returncode, 0, first.stdout + first.stderr)
-
-      installed_skill = Path(temp_home) / ".copilot" / "skills" / "bill-code-review"
-      self.assertTrue(installed_skill.is_symlink())
-      installed_skill.unlink()
-      shutil.copytree(ROOT / "skills" / "base" / "bill-code-review", installed_skill, symlinks=False)
-      (installed_skill / "stack-routing.md").write_text("stale sidecar", encoding="utf-8")
-
-      second = self.run_installer(temp_home, "copilot\nPHP\n")
-      self.assertEqual(second.returncode, 0, second.stdout + second.stderr)
-
-      self.assertTrue(installed_skill.is_symlink())
-      self.assertEqual(installed_skill.resolve(), ROOT / "skills" / "base" / "bill-code-review")
-      self.assertTrue((installed_skill / "stack-routing.md").exists())
-
-  def test_installer_writes_telemetry_config_with_default_anonymous(self) -> None:
-    with tempfile.TemporaryDirectory() as temp_home:
-      result = self.run_installer(temp_home, "copilot\nPHP\n")
       self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-      self.assertIn("Choose a telemetry level", result.stdout)
-
-      config = self.telemetry_config(Path(temp_home) / ".skill-bill" / "config.json")
+      self.assertIn("Available optional platform packs:", result.stdout)
+      self.assertIn("Example Pack (example-pack)", result.stdout)
       self.assertEqual(
-        config["telemetry"],
-        {
-          "batch_size": 50,
-          "level": "anonymous",
-          "proxy_url": "",
-        },
+        self.installed_skills(Path(temp_dir)),
+        skill_names(repo_root, "base") | skill_names(repo_root, "example-pack"),
       )
-      self.assertTrue(config["install_id"])
 
-  def test_installer_supports_telemetry_opt_out_without_creating_state(self) -> None:
-    with tempfile.TemporaryDirectory() as temp_home:
-      result = self.run_installer(temp_home, "copilot\nPHP\n3\n")
-      self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-
-      state_dir = Path(temp_home) / ".skill-bill"
-      self.assertFalse((state_dir / "config.json").exists())
-      self.assertFalse((state_dir / "review-metrics.db").exists())
-
-  def test_installer_respects_custom_telemetry_config_path_when_enabled(self) -> None:
-    with tempfile.TemporaryDirectory() as temp_home:
-      custom_state_dir = Path(temp_home) / "custom-state"
-      custom_config_path = custom_state_dir / "config.json"
-      custom_db_path = custom_state_dir / "review-metrics.db"
-
-      result = self.run_installer(
-        temp_home,
-        "copilot\nPHP\n",
-        extra_env={
-          "SKILL_BILL_CONFIG_PATH": str(custom_config_path),
-          "SKILL_BILL_REVIEW_DB": str(custom_db_path),
-        },
+  def test_installs_manifest_declared_pack_skill_names_and_display_name(self) -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+      repo_root = self.copy_repo(Path(temp_dir))
+      shutil.rmtree(repo_root / "platform-packs", ignore_errors=True)
+      shutil.copytree(
+        VALID_PACK_FIXTURE,
+        repo_root / "platform-packs" / "valid_pack",
+        symlinks=True,
       )
+      self.prepare_agent_homes(Path(temp_dir))
+
+      result = self.run_installer(repo_root, Path(temp_dir), "copilot\nvalid_pack\n\n")
+
       self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+      self.assertIn("Valid Fixture Pack (valid_pack)", result.stdout)
+      self.assertIn("Optional packs:  Valid Fixture Pack", result.stdout)
+      installed = self.installed_skills(Path(temp_dir))
+      self.assertIn("bill-valid_pack-code-review", installed)
+      self.assertNotIn("code-review", installed)
 
-      self.assertFalse((Path(temp_home) / ".skill-bill" / "config.json").exists())
-      self.assertTrue(custom_config_path.exists())
-      self.assertEqual(self.telemetry_config(custom_config_path)["telemetry"]["level"], "anonymous")
-
-  def test_installer_respects_custom_telemetry_paths_when_disabled(self) -> None:
-    with tempfile.TemporaryDirectory() as temp_home:
-      custom_state_dir = Path(temp_home) / "custom-state"
-      custom_config_path = custom_state_dir / "config.json"
-      custom_db_path = custom_state_dir / "review-metrics.db"
-      custom_state_dir.mkdir(parents=True, exist_ok=True)
-      custom_config_path.write_text(
-        json.dumps(
-          {
-            "install_id": "install-test-123",
-            "telemetry": {
-              "enabled": True,
-              "proxy_url": "",
-              "batch_size": 50,
-            },
-          },
-          indent=2,
-          sort_keys=True,
-        ) + "\n",
+  def test_discovery_accepts_valid_optional_pack_manifest_with_noncanonical_indentation(self) -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+      repo_root = self.copy_repo(Path(temp_dir))
+      shutil.rmtree(repo_root / "platform-packs", ignore_errors=True)
+      pack_root = repo_root / "platform-packs" / "valid_pack"
+      shutil.copytree(
+        VALID_PACK_FIXTURE,
+        pack_root,
+        symlinks=True,
+      )
+      (pack_root / "platform.yaml").write_text(
+        "platform: valid_pack\n"
+        "contract_version: \"1.0\"\n"
+        "display_name: Valid Fixture Pack\n"
+        "routing_signals:\n"
+        "  strong:\n"
+        "    - \".fixture\"\n"
+        "  tie_breakers:\n"
+        "    - \"Prefer valid_pack when generic markers dominate.\"\n"
+        "  addon_signals: []\n"
+        "declared_code_review_areas:\n"
+        "  - architecture\n"
+        "declared_files:\n"
+        "    baseline: code-review/SKILL.md\n"
+        "    areas:\n"
+        "      architecture: code-review/architecture.md\n",
         encoding="utf-8",
       )
-      connection = sqlite3.connect(custom_db_path)
-      try:
-        connection.execute(
-          """
-          CREATE TABLE telemetry_outbox (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            event_name TEXT NOT NULL,
-            payload_json TEXT NOT NULL,
-            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            synced_at TEXT,
-            last_error TEXT NOT NULL DEFAULT ''
-          )
-          """
-        )
-        connection.execute(
-          """
-          INSERT INTO telemetry_outbox (event_name, payload_json)
-          VALUES (?, ?)
-          """,
-          ("skillbill_review_finished", "{}"),
-        )
-        connection.commit()
-      finally:
-        connection.close()
 
-      result = self.run_installer(
-        temp_home,
-        "copilot\nPHP\n3\n",
-        extra_env={
-          "SKILL_BILL_CONFIG_PATH": str(custom_config_path),
-          "SKILL_BILL_REVIEW_DB": str(custom_db_path),
-        },
+      self.assertEqual(
+        skill_names(repo_root, "valid_pack"),
+        {"bill-valid_pack-code-review"},
       )
+
+  def test_discovery_raises_for_invalid_optional_pack_manifest(self) -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+      repo_root = self.copy_repo(Path(temp_dir))
+      shutil.rmtree(repo_root / "platform-packs", ignore_errors=True)
+      shutil.copytree(
+        INVALID_PACK_FIXTURE,
+        repo_root / "platform-packs" / "invalid_schema",
+        symlinks=True,
+      )
+
+      from skill_bill.install import discover_installable_skills
+      from skill_bill.shell_content_contract import InvalidManifestSchemaError
+
+      with self.assertRaises(InvalidManifestSchemaError):
+        discover_installable_skills(repo_root)
+
+  def test_installer_writes_default_telemetry_config_for_core_only_install(self) -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+      repo_root = self.copy_repo(Path(temp_dir))
+      shutil.rmtree(repo_root / "platform-packs", ignore_errors=True)
+      self.prepare_agent_homes(Path(temp_dir))
+
+      result = self.run_installer(repo_root, Path(temp_dir), "copilot\n\n\n")
+
       self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+      config = json.loads((Path(temp_dir) / ".skill-bill" / "config.json").read_text(encoding="utf-8"))
+      self.assertEqual(config["telemetry"]["level"], "anonymous")
 
-      self.assertFalse((Path(temp_home) / ".skill-bill" / "config.json").exists())
-      self.assertFalse(custom_config_path.exists())
-      connection = sqlite3.connect(custom_db_path)
-      try:
-        remaining_events = connection.execute("SELECT COUNT(*) FROM telemetry_outbox").fetchone()[0]
-      finally:
-        connection.close()
-      self.assertEqual(remaining_events, 0)
+  def copy_repo(self, temp_root: Path) -> Path:
+    repo_root = temp_root / "repo"
+    shutil.copytree(
+      ROOT,
+      repo_root,
+      symlinks=True,
+      ignore=shutil.ignore_patterns(
+        ".git",
+        ".venv",
+        "__pycache__",
+        "*.pyc",
+        "skill_bill.egg-info",
+      ),
+    )
+    return repo_root
 
-  def test_installer_supports_full_telemetry_level(self) -> None:
-    with tempfile.TemporaryDirectory() as temp_home:
-      result = self.run_installer(temp_home, "copilot\nPHP\n2\n")
-      self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-
-      config = self.telemetry_config(Path(temp_home) / ".skill-bill" / "config.json")
-      self.assertEqual(config["telemetry"]["level"], "full")
-      self.assertNotIn("enabled", config["telemetry"])
-
-  def run_installer(
-    self,
-    temp_home: str,
-    user_input: str,
-    *,
-    extra_env: dict[str, str] | None = None,
-  ) -> subprocess.CompletedProcess[str]:
-    env = os.environ.copy()
-    env["HOME"] = temp_home
-    if extra_env is not None:
-      env.update(extra_env)
+  def run_installer(self, repo_root: Path, home: Path, user_input: str) -> subprocess.CompletedProcess[str]:
+    env = {**dict(os.environ), "HOME": str(home)}
     return subprocess.run(
-      ["bash", str(INSTALL_SCRIPT)],
-      cwd=ROOT,
+      ["bash", str(repo_root / "install.sh")],
+      cwd=repo_root,
       input=user_input,
       capture_output=True,
       text=True,
@@ -351,24 +174,14 @@ class InstallScriptTest(unittest.TestCase):
       env=env,
     )
 
-  def installed_skills(self, temp_home: str, *, relative_dir: str = ".copilot/skills") -> set[str]:
-    install_dir = Path(temp_home) / relative_dir
+  def installed_skills(self, home: Path) -> set[str]:
+    install_dir = home / ".copilot" / "skills"
     if not install_dir.exists():
       return set()
     return {path.name for path in install_dir.iterdir() if not path.name.startswith(".")}
 
-  def prepare_agent_homes(self, temp_home: str) -> None:
-    for relative_dir in (
-      ".copilot",
-      ".claude",
-      ".glm",
-      ".codex",
-      ".config/opencode",
-    ):
-      (Path(temp_home) / relative_dir).mkdir(parents=True, exist_ok=True)
-
-  def telemetry_config(self, config_path: Path) -> dict[str, object]:
-    return json.loads(config_path.read_text(encoding="utf-8"))
+  def prepare_agent_homes(self, home: Path) -> None:
+    (home / ".copilot").mkdir(parents=True, exist_ok=True)
 
 
 if __name__ == "__main__":

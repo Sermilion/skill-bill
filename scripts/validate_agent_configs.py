@@ -14,31 +14,31 @@ from skill_bill.shell_content_contract import (  # noqa: E402
   APPROVED_CODE_REVIEW_AREAS as SHELL_APPROVED_CODE_REVIEW_AREAS,
   SHELL_CONTRACT_VERSION,
   ShellContentContractError,
+  discover_installable_pack_skills,
   discover_platform_packs,
   load_quality_check_content,
+  resolve_active_skill_markdown,
 )
 
 from skill_repo_contracts import (  # noqa: E402
-  ADDON_SUPPORTING_FILE_TARGETS,
   ADDON_DIRECTORY_NAME,
   APPLIED_LEARNINGS_PLACEHOLDER,
   CHILD_METADATA_HANDOFF_RULE,
   CHILD_NO_IMPORT_RULE,
   CHILD_NO_TRIAGE_RULE,
+  compute_addon_supporting_file_targets,
+  compute_runtime_supporting_files,
   INLINE_TELEMETRY_CONTRACT_MARKERS,
   ORCHESTRATION_PLAYBOOKS,
   NO_FINDINGS_TRIAGE_RULE,
   PARENT_IMPORT_RULE,
   PARENT_TRIAGE_RULE,
-  PORTABLE_REVIEW_SKILLS,
   REVIEW_DELEGATION_REQUIRED_SECTIONS,
   REVIEW_RUN_ID_FORMAT,
   REVIEW_RUN_ID_PLACEHOLDER,
   REVIEW_SESSION_ID_FORMAT,
   REVIEW_SESSION_ID_PLACEHOLDER,
   RISK_REGISTER_FINDING_FORMAT,
-  RUNTIME_SUPPORTING_FILES,
-  TELEMETERABLE_SKILLS,
   TELEMETRY_OWNERSHIP_HEADING,
   TRIAGE_OWNERSHIP_HEADING,
 )
@@ -83,7 +83,6 @@ def _discover_allowed_packages(root: Path) -> tuple[str, ...]:
   return tuple(sorted(discovered))
 
 
-ALLOWED_PACKAGES = _discover_allowed_packages(_ROOT_DIR)
 # The approved code-review area set is owned by the shell+content contract.
 # The validator re-exports it under the historic name so the existing call
 # sites continue to compile; platform code-review area enforcement is now
@@ -149,7 +148,7 @@ def main() -> int:
   addon_files = discover_addon_files(root)
 
   for skill_name, skill_file in skill_files.items():
-    validate_skill_file(skill_name, skill_file, issues)
+    validate_skill_file(root, skill_name, skill_file, issues)
   for skill_name, skill_file in platform_pack_skill_files.items():
     validate_platform_pack_skill_file(skill_name, skill_file, issues)
   for addon_file in addon_files:
@@ -176,12 +175,12 @@ def main() -> int:
   platform_pack_slugs = validate_platform_packs(root, issues)
 
   if issues:
-    print("Agent-config validation failed:")
+    print("Repository validation failed:")
     for issue in issues:
       print(f"- {issue}")
     return 1
 
-  print("Agent-config validation passed.")
+  print("Repository validation passed.")
   print(
     f"Validated {len(skill_names)} skills, {len(addon_files)} governed add-on files, "
     f"{len(platform_pack_slugs)} platform packs, "
@@ -271,26 +270,20 @@ def discover_skill_files(root: Path, issues: list[str]) -> dict[str, Path]:
 
 
 def discover_platform_pack_skill_files(root: Path) -> dict[str, Path]:
-  """Enumerate SKILL.md files shipped under platform-packs/.
-
-  Platform packs own code-review content outside ``skills/``; their skill
-  directories still ship a SKILL.md that end users invoke by name, so the
-  validator must know about them to enforce cross-references and README
-  catalog membership.
-  """
+  """Enumerate installable skills declared by optional platform packs."""
   packs_root = root / "platform-packs"
   if not packs_root.is_dir():
     return {}
 
   found: dict[str, Path] = {}
-  for skill_file in sorted(packs_root.rglob("SKILL.md")):
-    skill_dir = skill_file.parent
-    if not skill_dir.is_dir():
-      continue
-    # Skip anything not named bill-*; platform-packs may host supporting files.
-    if not skill_dir.name.startswith("bill-"):
-      continue
-    found[skill_dir.name] = skill_file
+  try:
+    packs = discover_platform_packs(packs_root)
+  except ShellContentContractError:
+    return {}
+
+  for pack in packs:
+    for skill in discover_installable_pack_skills(pack):
+      found[skill.skill_name] = skill.source_file
   return found
 
 
@@ -303,8 +296,11 @@ def validate_platform_pack_skill_file(skill_name: str, skill_file: Path, issues:
   to every installable SKILL.md: frontmatter shape, declared name matches
   directory, and a description field.
   """
-  text = skill_file.read_text(encoding="utf-8")
-  frontmatter_match = FRONTMATTER_PATTERN.match(text)
+  resolved = _resolve_skill_validation_content(skill_file, issues)
+  if resolved is None:
+    return
+
+  frontmatter_match = FRONTMATTER_PATTERN.match(resolved.bootstrap_text)
   if not frontmatter_match:
     issues.append(f"{skill_file}: missing YAML frontmatter block")
     return
@@ -321,18 +317,34 @@ def validate_platform_pack_skill_file(skill_name: str, skill_file: Path, issues:
     issues.append(
       f"{skill_file}: skill name '{skill_name}' must match an approved bill-* naming pattern"
     )
-  validate_runtime_supporting_files(skill_name, text, skill_file, issues)
-  validate_portable_review_wording(skill_name, text, skill_file, issues)
+  root = _resolve_repo_root_from_platform_pack_skill_file(skill_file)
+  validate_bootstrap_supporting_files(
+    root,
+    skill_name,
+    resolved.bootstrap_text,
+    resolved.bootstrap_file,
+    uses_split_layout=resolved.uses_split_layout,
+    issues=issues,
+  )
+  validate_runtime_supporting_files(root, skill_name, resolved.active_text, resolved.active_file, issues)
+  validate_portable_review_wording(root, skill_name, resolved.active_text, resolved.active_file, issues)
+
+
+def _resolve_repo_root_from_platform_pack_skill_file(skill_file: Path) -> Path:
+  for parent in skill_file.parents:
+    if (parent / "platform-packs").is_dir():
+      return parent
+  return ROOT_DIR
 
 
 def discover_addon_files(root: Path) -> list[Path]:
-  skills_dir = root / "skills"
-  if not skills_dir.is_dir():
+  packs_dir = root / "platform-packs"
+  if not packs_dir.is_dir():
     return []
   return sorted(
     path
-    for path in skills_dir.rglob("*.md")
-    if ADDON_DIRECTORY_NAME in path.relative_to(skills_dir).parts
+    for path in packs_dir.rglob("*.md")
+    if ADDON_DIRECTORY_NAME in path.relative_to(packs_dir).parts
   )
 
 
@@ -361,7 +373,13 @@ def validate_orchestrator_passthrough(root: Path, issues: list[str]) -> None:
     for file_name in files:
       file_path = skill_dir / file_name
       if file_path.exists():
-        combined_text += file_path.read_text(encoding="utf-8") + "\n"
+        if file_name == "SKILL.md":
+          resolved = _resolve_skill_validation_content(file_path, issues)
+          if resolved is None:
+            continue
+          combined_text += resolved.active_text + "\n"
+        else:
+          combined_text += file_path.read_text(encoding="utf-8") + "\n"
     if ORCHESTRATED_PASS_THROUGH_MARKER not in combined_text.lower():
       issues.append(
         f"{skill_dir}: orchestrator skill must instruct the agent to pass "
@@ -377,7 +395,7 @@ def validate_no_inline_telemetry_contract_drift(root: Path, issues: list[str]) -
   re-accumulation: a skill that references the sidecar but also contains
   forbidden marker text fails validation.
   """
-  for skill_name in TELEMETERABLE_SKILLS:
+  for skill_name in _telemeterable_skills(root):
     skill_dirs = list((root / "skills").rglob(skill_name))
     packs_root = root / "platform-packs"
     if packs_root.is_dir():
@@ -397,24 +415,35 @@ def validate_no_inline_telemetry_contract_drift(root: Path, issues: list[str]) -
       file_path = skill_dir / file_name
       if not file_path.exists():
         continue
-      text = file_path.read_text(encoding="utf-8")
+      if file_name == "SKILL.md":
+        resolved = _resolve_skill_validation_content(file_path, issues)
+        if resolved is None:
+          continue
+        text = resolved.active_text
+        reported_path = resolved.active_file
+      else:
+        text = file_path.read_text(encoding="utf-8")
+        reported_path = file_path
       for marker in INLINE_TELEMETRY_CONTRACT_MARKERS:
         if marker in text:
           issues.append(
-            f"{file_path.relative_to(root)}: telemeterable skill must not contain inline "
+            f"{reported_path.relative_to(root)}: telemeterable skill must not contain inline "
             f"telemetry contract text; found '{marker}'. Use the shared "
             f"telemetry-contract.md sidecar instead."
           )
 
 
-def validate_skill_file(skill_name: str, skill_file: Path, issues: list[str]) -> None:
-  text = skill_file.read_text(encoding="utf-8")
-  frontmatter_match = FRONTMATTER_PATTERN.match(text)
+def validate_skill_file(root: Path, skill_name: str, skill_file: Path, issues: list[str]) -> None:
+  resolved = _resolve_skill_validation_content(skill_file, issues)
+  if resolved is None:
+    return
+
+  frontmatter_match = FRONTMATTER_PATTERN.match(resolved.bootstrap_text)
   if not frontmatter_match:
     issues.append(f"{skill_file}: missing YAML frontmatter block")
     return
 
-  validate_skill_location(skill_name, skill_file, issues)
+  validate_skill_location(root, skill_name, skill_file, issues)
 
   frontmatter = parse_frontmatter(frontmatter_match.group(1))
   declared_name = frontmatter.get("name", "")
@@ -428,82 +457,129 @@ def validate_skill_file(skill_name: str, skill_file: Path, issues: list[str]) ->
   if not description:
     issues.append(f"{skill_file}: frontmatter description is missing")
 
-  if PROJECT_OVERRIDES_HEADING not in text:
-    issues.append(f"{skill_file}: missing '{PROJECT_OVERRIDES_HEADING}' section")
+  if PROJECT_OVERRIDES_HEADING not in resolved.active_text:
+    issues.append(f"{resolved.active_file}: missing '{PROJECT_OVERRIDES_HEADING}' section")
 
-  if SKILL_OVERRIDE_FILE not in text:
-    issues.append(f"{skill_file}: missing reference to '{SKILL_OVERRIDE_FILE}'")
+  if SKILL_OVERRIDE_FILE not in resolved.active_text:
+    issues.append(f"{resolved.active_file}: missing reference to '{SKILL_OVERRIDE_FILE}'")
 
-  validate_runtime_supporting_files(skill_name, text, skill_file, issues)
-  validate_portable_review_wording(skill_name, text, skill_file, issues)
+  validate_bootstrap_supporting_files(
+    root,
+    skill_name,
+    resolved.bootstrap_text,
+    resolved.bootstrap_file,
+    uses_split_layout=resolved.uses_split_layout,
+    issues=issues,
+  )
+  validate_runtime_supporting_files(root, skill_name, resolved.active_text, resolved.active_file, issues)
+  validate_portable_review_wording(root, skill_name, resolved.active_text, resolved.active_file, issues)
+
+
+def _resolve_skill_validation_content(skill_file: Path, issues: list[str]):
+  try:
+    return resolve_active_skill_markdown(skill_file)
+  except ShellContentContractError as error:
+    issues.append(str(error))
+    return None
+
+
+def validate_bootstrap_supporting_files(
+  root: Path,
+  skill_name: str,
+  bootstrap_text: str,
+  bootstrap_file: Path,
+  *,
+  uses_split_layout: bool,
+  issues: list[str],
+) -> None:
+  if not uses_split_layout:
+    return
+
+  runtime_supporting_files = compute_runtime_supporting_files(root)
+  required_files = runtime_supporting_files.get(skill_name)
+  if not required_files:
+    return
+
+  for pattern, message in EXTERNAL_PLAYBOOK_REFERENCE_PATTERNS:
+    match = pattern.search(bootstrap_text)
+    if match:
+      issues.append(f"{bootstrap_file}: {message}; found '{match.group(0)}'")
+
+  for file_name in required_files:
+    if file_name not in bootstrap_text:
+      issues.append(f"{bootstrap_file}: split-layout bootstrap must reference local supporting file '{file_name}'")
 
 
 def validate_runtime_supporting_files(
+  root: Path,
   skill_name: str,
   text: str,
-  skill_file: Path,
+  content_file: Path,
   issues: list[str],
 ) -> None:
-  required_files = RUNTIME_SUPPORTING_FILES.get(skill_name)
+  runtime_supporting_files = compute_runtime_supporting_files(root)
+  required_files = runtime_supporting_files.get(skill_name)
   if not required_files:
     return
 
   for pattern, message in EXTERNAL_PLAYBOOK_REFERENCE_PATTERNS:
     match = pattern.search(text)
     if match:
-      issues.append(f"{skill_file}: {message}; found '{match.group(0)}'")
+      issues.append(f"{content_file}: {message}; found '{match.group(0)}'")
 
+  addon_supporting_file_targets = compute_addon_supporting_file_targets(root)
   for file_name in required_files:
-    supporting_file = skill_file.parent / file_name
+    supporting_file = content_file.parent / file_name
     if (
       skill_name == "bill-feature-implement"
-      and file_name in ADDON_SUPPORTING_FILE_TARGETS
+      and file_name in addon_supporting_file_targets
     ):
       if file_name not in text and "matching stack-owned add-on supporting files" not in text:
         issues.append(
-          f"{skill_file}: must reference local supporting file '{file_name}' or describe stack-owned add-on support-file selection"
+          f"{content_file}: must reference local supporting file '{file_name}' or describe stack-owned add-on support-file selection"
         )
     elif file_name not in text:
-      issues.append(f"{skill_file}: must reference local supporting file '{file_name}'")
+      issues.append(f"{content_file}: must reference local supporting file '{file_name}'")
     if not supporting_file.exists():
-      issues.append(f"{skill_file}: supporting file '{file_name}' is missing")
+      issues.append(f"{content_file}: supporting file '{file_name}' is missing")
     elif not supporting_file.is_symlink():
-      issues.append(f"{skill_file}: supporting file '{file_name}' must be a symlink to the shared contract")
+      issues.append(f"{content_file}: supporting file '{file_name}' must be a symlink to the shared contract")
 
 
 def validate_portable_review_wording(
+  root: Path,
   skill_name: str,
   text: str,
-  skill_file: Path,
+  content_file: Path,
   issues: list[str],
 ) -> None:
   if skill_name == "bill-code-review" and REVIEW_SESSION_ID_PLACEHOLDER not in text:
-    issues.append(f"{skill_file}: shared code-review router must expose '{REVIEW_SESSION_ID_PLACEHOLDER}'")
+    issues.append(f"{content_file}: shared code-review router must expose '{REVIEW_SESSION_ID_PLACEHOLDER}'")
   if skill_name == "bill-code-review" and REVIEW_SESSION_ID_FORMAT not in text:
     issues.append(
-      f"{skill_file}: shared code-review router must define the review session id format '{REVIEW_SESSION_ID_FORMAT}'"
+      f"{content_file}: shared code-review router must define the review session id format '{REVIEW_SESSION_ID_FORMAT}'"
     )
   if skill_name == "bill-code-review" and REVIEW_RUN_ID_PLACEHOLDER not in text:
-    issues.append(f"{skill_file}: shared code-review router must expose '{REVIEW_RUN_ID_PLACEHOLDER}'")
+    issues.append(f"{content_file}: shared code-review router must expose '{REVIEW_RUN_ID_PLACEHOLDER}'")
   if skill_name == "bill-code-review" and REVIEW_RUN_ID_FORMAT not in text:
-    issues.append(f"{skill_file}: shared code-review router must define the review run id format '{REVIEW_RUN_ID_FORMAT}'")
+    issues.append(f"{content_file}: shared code-review router must define the review run id format '{REVIEW_RUN_ID_FORMAT}'")
   if skill_name == "bill-code-review" and APPLIED_LEARNINGS_PLACEHOLDER not in text:
-    issues.append(f"{skill_file}: shared code-review router must expose '{APPLIED_LEARNINGS_PLACEHOLDER}'")
+    issues.append(f"{content_file}: shared code-review router must expose '{APPLIED_LEARNINGS_PLACEHOLDER}'")
 
-  if skill_name not in PORTABLE_REVIEW_SKILLS:
+  if skill_name not in _portable_review_skills(root):
     return
 
   if REVIEW_SESSION_ID_PLACEHOLDER not in text:
-    issues.append(f"{skill_file}: portable review skills must expose '{REVIEW_SESSION_ID_PLACEHOLDER}'")
+    issues.append(f"{content_file}: portable review skills must expose '{REVIEW_SESSION_ID_PLACEHOLDER}'")
   if REVIEW_RUN_ID_PLACEHOLDER not in text:
-    issues.append(f"{skill_file}: portable review skills must expose '{REVIEW_RUN_ID_PLACEHOLDER}'")
+    issues.append(f"{content_file}: portable review skills must expose '{REVIEW_RUN_ID_PLACEHOLDER}'")
   if APPLIED_LEARNINGS_PLACEHOLDER not in text:
-    issues.append(f"{skill_file}: portable review skills must expose '{APPLIED_LEARNINGS_PLACEHOLDER}'")
+    issues.append(f"{content_file}: portable review skills must expose '{APPLIED_LEARNINGS_PLACEHOLDER}'")
 
   for pattern, message in NON_PORTABLE_REVIEW_PATTERNS:
     match = pattern.search(text)
     if match:
-      issues.append(f"{skill_file}: {message}; found '{match.group(0)}'")
+      issues.append(f"{content_file}: {message}; found '{match.group(0)}'")
 
 
 def validate_orchestration_playbooks(root: Path, issues: list[str]) -> None:
@@ -586,32 +662,33 @@ def require_markdown_heading(text: str, heading: str, message: str, issues: list
 
 
 def validate_addon_file(addon_file: Path, root: Path, issues: list[str]) -> None:
-  skills_dir = root / "skills"
-  relative_path = addon_file.relative_to(skills_dir)
+  packs_dir = root / "platform-packs"
+  relative_path = addon_file.relative_to(packs_dir)
   parts = relative_path.parts
 
   if len(parts) != 3:
     issues.append(
-      f"{addon_file}: expected add-on path format skills/<package>/{ADDON_DIRECTORY_NAME}/<addon-file>.md, "
-      f"got skills/{relative_path}"
+      f"{addon_file}: expected add-on path format platform-packs/<package>/{ADDON_DIRECTORY_NAME}/<addon-file>.md, "
+      f"got platform-packs/{relative_path}"
     )
     return
 
   package_name, directory_name, file_name = parts
   if directory_name != ADDON_DIRECTORY_NAME:
     issues.append(
-      f"{addon_file}: governed add-ons must live under skills/<package>/{ADDON_DIRECTORY_NAME}/"
+      f"{addon_file}: governed add-ons must live under platform-packs/<package>/{ADDON_DIRECTORY_NAME}/"
     )
     return
 
-  if package_name == "base":
-    issues.append(f"{addon_file}: governed add-ons must be stack-owned, not placed under skills/base/")
-    return
-
-  if package_name not in ALLOWED_PACKAGES:
+  platform_packages = tuple(
+    entry.name
+    for entry in sorted((root / "platform-packs").iterdir())
+    if entry.is_dir() and not entry.name.startswith(".")
+  ) if (root / "platform-packs").is_dir() else ()
+  if package_name not in platform_packages:
     issues.append(
       f"{addon_file}: add-on package '{package_name}' is not allowed; use one of "
-      f"{', '.join(package for package in ALLOWED_PACKAGES if package != 'base')}"
+      f"{', '.join(platform_packages)}"
     )
     return
 
@@ -626,7 +703,7 @@ def validate_addon_file(addon_file: Path, root: Path, issues: list[str]) -> None
     )
 
 
-def validate_skill_location(skill_name: str, skill_file: Path, issues: list[str]) -> None:
+def validate_skill_location(root: Path, skill_name: str, skill_file: Path, issues: list[str]) -> None:
   skills_dir = skill_file.parents[2]
   relative_path = skill_file.relative_to(skills_dir)
   parts = relative_path.parts
@@ -651,19 +728,25 @@ def validate_skill_location(skill_name: str, skill_file: Path, issues: list[str]
       f"{skill_file}: skill name '{skill_name}' must match an approved bill-* naming pattern"
     )
 
-  if package_name not in ALLOWED_PACKAGES:
+  allowed_packages = _discover_allowed_packages(root)
+  if package_name not in allowed_packages:
     issues.append(
-      f"{skill_file}: package '{package_name}' is not allowed; use one of {', '.join(ALLOWED_PACKAGES)}"
+      f"{skill_file}: package '{package_name}' is not allowed; use one of {', '.join(allowed_packages)}"
     )
     return
 
   expected_prefixes = expected_prefixes_for_package(package_name)
   if package_name == "base":
-    if any(skill_name.startswith(prefix) for prefix in ("bill-agent-config-", "bill-kotlin-", "bill-kmp-", "bill-backend-kotlin-", "bill-php-", "bill-go-", "bill-gradle-")):
+    non_base_prefixes = tuple(
+      f"bill-{package}-"
+      for package in allowed_packages
+      if package != "base"
+    )
+    if any(skill_name.startswith(prefix) for prefix in non_base_prefixes):
       issues.append(
         f"{skill_file}: base skills must use neutral names; move '{skill_name}' to the matching package"
       )
-    return
+      return
 
   if not any(skill_name.startswith(prefix) for prefix in expected_prefixes):
     issues.append(
@@ -725,8 +808,26 @@ def base_capabilities_for_skills_dir(skills_dir: Path) -> set[str]:
 
 def expected_prefixes_for_package(package_name: str) -> tuple[str, ...]:
   if package_name == "base":
-    return ()
+    return ("bill-",)
   return (f"bill-{package_name}-",)
+
+
+def _portable_review_skills(root: Path) -> tuple[str, ...]:
+  return tuple(
+    skill_name
+    for skill_name in compute_runtime_supporting_files(root)
+    if skill_name.startswith("bill-")
+    and skill_name.endswith("-code-review")
+    and skill_name != "bill-code-review"
+  )
+
+
+def _telemeterable_skills(root: Path) -> tuple[str, ...]:
+  return tuple(
+    skill_name
+    for skill_name, supporting_files in compute_runtime_supporting_files(root).items()
+    if "telemetry-contract.md" in supporting_files
+  )
 
 
 def parse_frontmatter(block: str) -> dict[str, str]:
@@ -799,7 +900,14 @@ def validate_skill_references(root: Path, skill_names: list[str], issues: list[s
     files_to_scan.extend(sorted(platform_packs_dir.rglob("SKILL.md")))
 
   for file_path in files_to_scan:
-    text = file_path.read_text(encoding="utf-8")
+    try:
+      resolved = resolve_active_skill_markdown(file_path)
+    except ShellContentContractError as error:
+      issues.append(str(error))
+      continue
+    text = resolved.bootstrap_text
+    if resolved.active_file != file_path:
+      text += "\n" + resolved.active_text
     for reference in sorted(set(SKILL_REFERENCE_PATTERN.findall(text))):
       if reference not in known_skills:
         relative_path = file_path.relative_to(root)

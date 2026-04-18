@@ -59,6 +59,16 @@ class InstallTransaction:
   created_symlinks: list[Path] = field(default_factory=list)
 
 
+@dataclass(frozen=True)
+class InstallableSkill:
+  """A skill directory that should be installed into agent homes."""
+
+  skill_name: str
+  skill_path: Path
+  package_name: str
+  package_display_name: str
+
+
 def _codex_path(home: Path) -> Path:
   """Mirror ``install.sh::get_agent_path`` for codex.
 
@@ -92,6 +102,88 @@ def agent_paths(home: Path | None = None) -> dict[str, Path]:
     "opencode": resolved_home / ".config" / "opencode" / "skills",
     "codex": _codex_path(resolved_home),
   }
+
+
+def discover_installable_skills(repo_root: Path | None = None) -> list[InstallableSkill]:
+  """Return every installable skill in ``repo_root``.
+
+  Base and pre-shell skills are discovered from ``skills/``. Optional-pack
+  skills are discovered from ``platform.yaml`` so canonical skill names come
+  from the contract rather than the content directory name. Discovery remains
+  anchored on canonical ``SKILL.md`` files even when a skill uses the split
+  bootstrap+implementation layout.
+  """
+  resolved_root = repo_root if repo_root is not None else Path.cwd().resolve()
+  discovered: list[InstallableSkill] = []
+
+  skills_root = resolved_root / "skills"
+  if skills_root.is_dir():
+    for skill_file in sorted(skills_root.rglob("SKILL.md")):
+      skill_dir = skill_file.parent
+      package_name = skill_dir.parent.name
+      discovered.append(
+        InstallableSkill(
+          skill_name=skill_dir.name,
+          skill_path=skill_dir,
+          package_name=package_name,
+          package_display_name=_humanize_package_name(package_name),
+        )
+      )
+
+  for declared_skill in _discover_optional_pack_skills(resolved_root / "platform-packs"):
+    display_name = (
+      declared_skill.pack_display_name
+      or _humanize_package_name(declared_skill.package_name)
+    )
+    discovered.append(
+      InstallableSkill(
+        skill_name=declared_skill.skill_name,
+        skill_path=declared_skill.skill_path,
+        package_name=declared_skill.package_name,
+        package_display_name=display_name,
+      )
+    )
+
+  return discovered
+
+
+@dataclass(frozen=True)
+class _DiscoveredOptionalPackSkill:
+  skill_name: str
+  skill_path: Path
+  package_name: str
+  pack_display_name: str | None
+
+
+def _discover_optional_pack_skills(platform_packs_root: Path) -> list[_DiscoveredOptionalPackSkill]:
+  from skill_bill.shell_content_contract import (
+    discover_installable_pack_skills,
+    discover_platform_packs,
+  )
+
+  discovered: list[_DiscoveredOptionalPackSkill] = []
+  for pack in discover_platform_packs(platform_packs_root):
+    for skill in discover_installable_pack_skills(pack):
+      discovered.append(
+        _DiscoveredOptionalPackSkill(
+          skill_name=skill.skill_name,
+          skill_path=skill.skill_dir,
+          package_name=pack.slug,
+          pack_display_name=pack.display_name,
+        )
+      )
+  return discovered
+
+
+def discover_optional_packages(repo_root: Path | None = None) -> list[tuple[str, str]]:
+  """Return discovered optional package slugs plus display labels."""
+  resolved_root = repo_root if repo_root is not None else Path.cwd().resolve()
+  labels: dict[str, str] = {}
+  for skill in discover_installable_skills(resolved_root):
+    if skill.package_name == "base":
+      continue
+    labels.setdefault(skill.package_name, skill.package_display_name)
+  return sorted(labels.items())
 
 
 def detect_agents(home: Path | None = None) -> list[AgentTarget]:
@@ -140,13 +232,16 @@ def install_skill(
   agent_targets: Iterable[AgentTarget],
   *,
   transaction: InstallTransaction | None = None,
+  link_name: str | None = None,
 ) -> list[Path]:
   """Symlink ``skill_path`` into each detected agent directory.
 
-  ``skill_path`` MUST be a directory containing ``SKILL.md``. Standalone
-  markdown files (for example add-on ``*.md`` assets under
-  ``skills/<platform>/addons/``) are NOT installed via this function — they
-  ship with their owning platform package as supporting assets and are
+  ``skill_path`` MUST be a directory containing canonical ``SKILL.md``.
+  Split-layout skills may also include sibling ``implementation.md``, but
+  install/discovery still anchor on ``SKILL.md``. Standalone markdown files
+  (for example add-on ``*.md`` assets under
+  ``platform-packs/<platform>/addons/``) are NOT installed via this function — they
+  ship with their owning optional extension as supporting assets and are
   resolved through sibling-file lookup at runtime rather than by symlinking
   each file into every agent's install directory. The scaffolder's
   ``_perform_install`` short-circuits the add-on kind for exactly this
@@ -171,7 +266,7 @@ def install_skill(
   created: list[Path] = []
   for target in agent_targets:
     target.path.mkdir(parents=True, exist_ok=True)
-    link_path = target.path / skill_path.name
+    link_path = target.path / (link_name or skill_path.name)
     if link_path.is_symlink() and link_path.resolve(strict=False) == skill_path:
       continue
     if link_path.is_symlink() or link_path.exists():
@@ -202,6 +297,13 @@ def uninstall_skill(skill_path: Path, agent_targets: Iterable[AgentTarget]) -> l
   return removed
 
 
+def _humanize_package_name(package_name: str) -> str:
+  if not package_name:
+    return package_name
+  first_char = package_name[0].upper()
+  return f"{first_char}{package_name[1:]}".replace("-", " ")
+
+
 def uninstall_targets(created_symlinks: Iterable[Path]) -> list[Path]:
   """Remove the exact symlinks recorded in an :class:`InstallTransaction`.
 
@@ -221,9 +323,12 @@ def uninstall_targets(created_symlinks: Iterable[Path]) -> list[Path]:
 __all__ = [
   "AgentTarget",
   "InstallTransaction",
+  "InstallableSkill",
   "SUPPORTED_AGENTS",
   "agent_paths",
   "detect_agents",
+  "discover_installable_skills",
+  "discover_optional_packages",
   "install_skill",
   "uninstall_skill",
   "uninstall_targets",

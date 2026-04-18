@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import sys
+import tempfile
 import unittest
 from unittest import mock
 
@@ -20,6 +21,8 @@ sys.path.insert(0, str(ROOT))
 from skill_bill import shell_content_contract  # noqa: E402
 from skill_bill.shell_content_contract import (  # noqa: E402
   ContractVersionMismatchError,
+  discover_installable_pack_skills,
+  InvalidContentFrontmatterError,
   InvalidManifestSchemaError,
   MissingContentFileError,
   MissingManifestError,
@@ -27,6 +30,8 @@ from skill_bill.shell_content_contract import (  # noqa: E402
   PlatformPack,
   PyYAMLMissingError,
   SHELL_CONTRACT_VERSION,
+  describe_zero_platform_packs_state,
+  discover_platform_packs,
   load_platform_pack,
   load_quality_check_content,
 )
@@ -35,8 +40,46 @@ from skill_bill.shell_content_contract import (  # noqa: E402
 FIXTURES_ROOT = ROOT / "tests" / "fixtures" / "shell_content_contract"
 
 
+def _copy_pack_fixture(source: Path, destination: Path) -> None:
+  for path in source.rglob("*"):
+    relative = path.relative_to(source)
+    target = destination / relative
+    if path.is_dir():
+      target.mkdir(parents=True, exist_ok=True)
+      continue
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(path.read_text(encoding="utf-8"), encoding="utf-8")
+
+
+def _convert_skill_to_split_layout(skill_dir: Path, *, write_implementation: bool = True) -> None:
+  skill_file = skill_dir / "SKILL.md"
+  implementation_file = skill_dir / "implementation.md"
+  original = skill_file.read_text(encoding="utf-8")
+  frontmatter, separator, body = original.partition("---\n\n")
+  if not separator:
+    raise AssertionError(f"{skill_file} fixture is missing the expected frontmatter separator")
+  skill_file.write_text(
+    f"{frontmatter}{separator}"
+    "# Skill Bootstrap\n\n"
+    "This `SKILL.md` file stays canonical for install and discovery.\n"
+    "Read and follow the active implementation in [implementation.md](implementation.md).\n",
+    encoding="utf-8",
+  )
+  if write_implementation:
+    implementation_file.write_text(body, encoding="utf-8")
+
+
 class ShellContentContractLoaderTest(unittest.TestCase):
   maxDiff = None
+
+  def test_discovery_allows_zero_pack_state(self) -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+      self.assertEqual(discover_platform_packs(Path(temp_dir) / "platform-packs"), [])
+
+  def test_zero_pack_state_message_is_explicit(self) -> None:
+    message = describe_zero_platform_packs_state(Path("/repo/platform-packs"))
+    self.assertIn("No optional platform packs discovered", message)
+    self.assertIn("Framework-only mode is active", message)
 
   def test_loads_valid_pack(self) -> None:
     pack = load_platform_pack(FIXTURES_ROOT / "valid_pack")
@@ -46,6 +89,19 @@ class ShellContentContractLoaderTest(unittest.TestCase):
     self.assertEqual(pack.declared_code_review_areas, ("architecture",))
     self.assertEqual(pack.routing_signals.strong, (".fixture",))
     self.assertEqual(pack.routed_skill_name, "bill-valid_pack-code-review")
+
+  def test_loads_split_layout_pack_and_preserves_skill_entrypoint(self) -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+      pack_root = Path(temp_dir) / "valid_pack"
+      _copy_pack_fixture(FIXTURES_ROOT / "valid_pack", pack_root)
+      _convert_skill_to_split_layout(pack_root / "code-review")
+
+      pack = load_platform_pack(pack_root)
+      installable = discover_installable_pack_skills(pack)
+
+      self.assertEqual(pack.declared_files["baseline"].name, "SKILL.md")
+      self.assertEqual(installable[0].source_file.name, "SKILL.md")
+      self.assertEqual(installable[0].skill_dir.resolve(), (pack_root / "code-review").resolve())
 
   def test_rejects_missing_manifest(self) -> None:
     with self.assertRaises(MissingManifestError) as context:
@@ -60,6 +116,16 @@ class ShellContentContractLoaderTest(unittest.TestCase):
     self.assertIn("missing_content_file", message)
     self.assertIn("baseline", message)
     self.assertIn("code-review/SKILL.md", message)
+
+  def test_rejects_split_layout_when_bootstrap_target_is_missing(self) -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+      pack_root = Path(temp_dir) / "valid_pack"
+      _copy_pack_fixture(FIXTURES_ROOT / "valid_pack", pack_root)
+      _convert_skill_to_split_layout(pack_root / "code-review", write_implementation=False)
+
+      with self.assertRaises(MissingContentFileError) as context:
+        load_platform_pack(pack_root)
+    self.assertIn("references missing implementation file", str(context.exception))
 
   def test_rejects_bad_version(self) -> None:
     with self.assertRaises(ContractVersionMismatchError) as context:
@@ -124,6 +190,32 @@ class ShellContentContractLoaderTest(unittest.TestCase):
     self.assertIn("heading_in_fence", message)
     self.assertIn("## Specialist Scope", message)
 
+  def test_rejects_invalid_declared_skill_frontmatter_name(self) -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+      pack_root = Path(temp_dir) / "valid_pack"
+      source = FIXTURES_ROOT / "valid_pack"
+      for path in source.rglob("*"):
+        relative = path.relative_to(source)
+        target = pack_root / relative
+        if path.is_dir():
+          target.mkdir(parents=True, exist_ok=True)
+          continue
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(path.read_text(encoding="utf-8"), encoding="utf-8")
+
+      baseline_file = pack_root / "code-review" / "SKILL.md"
+      baseline_file.write_text(
+        baseline_file.read_text(encoding="utf-8").replace(
+          "name: bill-valid_pack-code-review",
+          "name: wrong-name",
+        ),
+        encoding="utf-8",
+      )
+
+      with self.assertRaises(InvalidContentFrontmatterError) as context:
+        load_platform_pack(pack_root)
+    self.assertIn("wrong-name", str(context.exception))
+
   # --- PyYAML missing coverage (P-002) -----------------------------------
 
   def test_raises_pyyaml_missing_error_when_yaml_import_fails(self) -> None:
@@ -162,6 +254,18 @@ class QualityCheckContentContractTest(unittest.TestCase):
     self.assertTrue(resolved.is_file())
     # Both code-review baseline and quality-check files must succeed.
     self.assertEqual(pack.declared_code_review_areas, ("architecture",))
+
+  def test_loads_split_layout_quality_check_and_preserves_declared_skill_path(self) -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+      pack_root = Path(temp_dir) / "quality_check_only"
+      _copy_pack_fixture(FIXTURES_ROOT / "quality_check_only", pack_root)
+      _convert_skill_to_split_layout(pack_root / "quality-check")
+
+      pack = load_platform_pack(pack_root)
+      resolved = load_quality_check_content(pack)
+
+      self.assertEqual(resolved.name, "SKILL.md")
+      self.assertEqual(resolved, pack.declared_quality_check_file)
 
   def test_rejects_quality_check_missing_file(self) -> None:
     pack = load_platform_pack(FIXTURES_ROOT / "quality_check_missing_file")

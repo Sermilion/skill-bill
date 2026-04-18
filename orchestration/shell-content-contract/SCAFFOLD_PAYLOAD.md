@@ -37,15 +37,14 @@ Every payload MUST include:
     `platform-packs/<slug>/code-review/<name>/SKILL.md` plus additions to
     `declared_code_review_areas` and `declared_files.areas` in the owning
     `platform.yaml`.
-  - `"add-on"` — placed at `skills/<platform>/addons/<name>.md` (flat; no
+  - `"add-on"` — placed at `platform-packs/<platform>/addons/<name>.md` (flat; no
     sub-directory).
 - `name` — the canonical `bill-...` slug for the new skill.
 
 ## Conditionally Required Keys
 
 - `platform` — required for `platform-override-piloted`, `code-review-area`,
-  and `add-on`. Must be a recognized platform slug (e.g. `kotlin`, `kmp`,
-  `backend-kotlin`, `php`, `go`, `agent-config`).
+  and `add-on`. Must be the slug of an optional extension when one exists.
 - `family` — required for `platform-override-piloted`. One of the known
   families:
   - Shelled: `code-review`, `quality-check`.
@@ -60,6 +59,24 @@ Every payload MUST include:
 ## Optional Keys
 
 - `description` — one-line description copied into the frontmatter.
+- `implementation_text` — optional authored Markdown written verbatim into
+  the scaffolded `implementation.md`. When omitted, the scaffolder emits the
+  default required sections for the selected family.
+- `platform_manifest` — object used only when scaffolding the first baseline
+  code-review skill for a brand-new shelled platform pack. When present, the
+  scaffolder creates `platform-packs/<slug>/platform.yaml` atomically before
+  validating the new baseline skill. The object must include:
+  - `platform` — exact pack slug; must match the payload `platform`.
+  - `contract_version` — exact shell contract version (`"1.0"` today).
+  - `routing_signals.strong` — list of strong detection markers.
+  - `routing_signals.tie_breakers` — list of tie-breaker rules.
+  - `routing_signals.addon_signals` — optional list of governed add-on slugs.
+  - `declared_code_review_areas` — must be `[]` for the first baseline skill.
+    The baseline still owns approved area coverage inline; add specialist
+    area skills later and register them here only when they actually exist.
+  - `declared_files.baseline` — relative path to the baseline skill file.
+  - `declared_files.areas` — must be `{}` for the first baseline skill.
+  - `display_name`, `governs_addons`, and `notes` are optional.
 - `repo_root` — absolute path override used by tests. Defaults to the
   current working directory.
 
@@ -72,7 +89,8 @@ Every payload MUST include:
   "scaffold_payload_version": "1.0",
   "kind": "horizontal",
   "name": "bill-new-horizontal",
-  "description": "Use for ..."
+  "description": "Use for ...",
+  "implementation_text": "## Project Overrides\n\n..."
 }
 ```
 
@@ -82,10 +100,39 @@ Every payload MUST include:
 {
   "scaffold_payload_version": "1.0",
   "kind": "platform-override-piloted",
-  "name": "bill-kotlin-code-review-new",
-  "platform": "kotlin",
+  "name": "bill-example-code-review-new",
+  "platform": "example-pack",
   "family": "code-review",
   "description": "..."
+}
+```
+
+### Platform-override (new baseline code-review pack)
+
+```json
+{
+  "scaffold_payload_version": "1.0",
+  "kind": "platform-override-piloted",
+  "name": "bill-kmp-code-review",
+  "platform": "kmp",
+  "family": "code-review",
+  "description": "Use when conducting Android/KMP code review.",
+  "platform_manifest": {
+    "platform": "kmp",
+    "contract_version": "1.0",
+    "display_name": "Kmp",
+    "governs_addons": true,
+    "routing_signals": {
+      "strong": ["@Composable", "kmp"],
+      "tie_breakers": ["Prefer the kmp pack when Android/KMP markers are present."],
+      "addon_signals": ["android-compose"]
+    },
+    "declared_code_review_areas": [],
+    "declared_files": {
+      "baseline": "code-review/bill-kmp-code-review/SKILL.md",
+      "areas": {}
+    }
+  }
 }
 ```
 
@@ -95,16 +142,18 @@ Every payload MUST include:
 {
   "scaffold_payload_version": "1.0",
   "kind": "platform-override-piloted",
-  "name": "bill-php-quality-check",
-  "platform": "php",
+  "name": "bill-example-quality-check",
+  "platform": "example-pack",
   "family": "quality-check"
 }
 ```
 
 This lands the skill at
-`platform-packs/php/quality-check/bill-php-quality-check/SKILL.md` and edits
+`platform-packs/example-pack/quality-check/bill-example-quality-check/SKILL.md` plus
+`platform-packs/example-pack/quality-check/bill-example-quality-check/implementation.md`,
+and edits
 the owning pack's `platform.yaml` to register
-`declared_quality_check_file: quality-check/bill-php-quality-check/SKILL.md`.
+`declared_quality_check_file: quality-check/bill-example-quality-check/SKILL.md`.
 The scaffolded skill links the sibling sidecars `stack-routing.md` and
 `telemetry-contract.md` just like the shelled code-review example above.
 
@@ -114,8 +163,8 @@ The scaffolded skill links the sibling sidecars `stack-routing.md` and
 {
   "scaffold_payload_version": "1.0",
   "kind": "code-review-area",
-  "name": "bill-kotlin-code-review-api-contracts",
-  "platform": "kotlin",
+  "name": "bill-example-code-review-api-contracts",
+  "platform": "example-pack",
   "area": "api-contracts"
 }
 ```
@@ -126,10 +175,22 @@ The scaffolded skill links the sibling sidecars `stack-routing.md` and
 {
   "scaffold_payload_version": "1.0",
   "kind": "add-on",
-  "name": "android-paging",
-  "platform": "kmp"
+  "name": "example-addon",
+  "platform": "example-pack"
 }
 ```
+
+## Authoring Notes
+
+- Every scaffolded skill keeps `SKILL.md` as the canonical install/discovery
+  entrypoint and writes the active authored body to sibling
+  `implementation.md`.
+- A brand-new platform pack starts with only its baseline
+  `bill-<slug>-code-review` skill plus `platform.yaml`.
+- Do not treat future specialist areas as already-installed skill files in
+  that first baseline. Describe them as approved review areas that the
+  baseline can run inline until a later scaffold adds the specialist and
+  registers it under `declared_code_review_areas`.
 
 ## Loud-Fail Exception Catalog
 
@@ -142,8 +203,8 @@ All exceptions derive from `skill_bill.scaffold_exceptions.ScaffoldError`:
 - `UnknownSkillKindError` — `kind` is not one of the four supported kinds.
 - `UnknownPreShellFamilyError` — pre-shell family not in
   `PRE_SHELL_FAMILIES`.
-- `MissingPlatformPackError` — platform pack (`platform-packs/<slug>/`)
-  does not exist; create a conforming `platform.yaml` before retrying.
+- `MissingPlatformPackError` — optional platform pack (`platform-packs/<slug>/`)
+  does not exist; create or import a conforming `platform.yaml` before retrying.
 - `MissingSupportingFileTargetError` — a file name declared in
   `RUNTIME_SUPPORTING_FILES` for this skill is not registered in
   `SUPPORTING_FILE_TARGETS`; register the target or drop the reference.

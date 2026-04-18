@@ -68,45 +68,25 @@ get_agent_path() {
   esac
 }
 
-# SKILL-14 + SKILL-16: pure relocations whose skill directory name stays the
-# same (for example, moving
-# skills/kotlin/bill-kotlin-quality-check/ to
-# platform-packs/kotlin/quality-check/bill-kotlin-quality-check/) do NOT need
+# Pure relocations whose skill directory name stays the same do NOT need
 # RENAMED_SKILL_PAIRS entries. The installer's build_skill_names walks both
-# skills/ AND platform-packs/, and the uninstaller removes
+# skills/ and platform-packs/, and the uninstaller removes
 # $agent_dir/<skill_name> symlinks by name — so relocations are discovered
 # automatically. Only use this array when the skill's canonical name changes.
 declare -a RENAMED_SKILL_PAIRS=(
   'bill-module-history:bill-boundary-history'
-  'bill-code-review-architecture:bill-kotlin-code-review-architecture'
-  'bill-code-review-backend-api-contracts:bill-backend-kotlin-code-review-api-contracts'
-  'bill-kotlin-code-review-backend-api-contracts:bill-backend-kotlin-code-review-api-contracts'
-  'bill-code-review-backend-persistence:bill-backend-kotlin-code-review-persistence'
-  'bill-kotlin-code-review-backend-persistence:bill-backend-kotlin-code-review-persistence'
-  'bill-code-review-backend-reliability:bill-backend-kotlin-code-review-reliability'
-  'bill-kotlin-code-review-backend-reliability:bill-backend-kotlin-code-review-reliability'
-  'bill-code-review-compose-check:bill-kmp-code-review-ui'
-  'bill-kotlin-code-review-compose-check:bill-kmp-code-review-ui'
-  'bill-kmp-code-review-compose-check:bill-kmp-code-review-ui'
-  'bill-code-review-performance:bill-kotlin-code-review-performance'
-  'bill-code-review-platform-correctness:bill-kotlin-code-review-platform-correctness'
-  'bill-code-review-security:bill-kotlin-code-review-security'
-  'bill-code-review-testing:bill-kotlin-code-review-testing'
-  'bill-code-review-ux-accessibility:bill-kmp-code-review-ux-accessibility'
-  'bill-kotlin-code-review-ux-accessibility:bill-kmp-code-review-ux-accessibility'
-  'bill-kotlin-feature-implement:bill-feature-implement'
   'bill-feature-implement-agentic:bill-feature-implement'
-  'bill-kotlin-feature-verify:bill-feature-verify'
   'bill-gcheck:bill-quality-check'
 )
 
 declare -a SUPPORTED_AGENTS=(copilot claude glm codex opencode)
 declare -a SKILL_NAMES=()
 declare -a SKILL_PATHS=()
+declare -a SKILL_PACKAGES=()
 declare -a INSTALL_SKILL_NAMES=()
 declare -a INSTALL_SKILL_PATHS=()
 declare -a PLATFORM_PACKAGES=()
-declare -a REQUIRED_PLATFORM_PACKAGES=(agent-config)
+declare -a PLATFORM_PACKAGE_LABELS=()
 declare -a SELECTED_PLATFORM_PACKAGES=()
 declare -a LEGACY_SKILL_NAMES=()
 TELEMETRY_LEVEL="anonymous"
@@ -317,54 +297,99 @@ prompt_for_agent_selection() {
   done
 }
 
+default_platform_label() {
+  local slug="$1"
+  local first_char="${slug:0:1}"
+  local remainder="${slug:1}"
+  printf '%s%s' "$(printf '%s' "$first_char" | tr '[:lower:]' '[:upper:]')" "${remainder//-/ }"
+}
+
 display_platform_name() {
-  case "$1" in
-    agent-config) printf 'Agent config' ;;
-    backend-kotlin) printf 'Kotlin backend' ;;
-    kotlin) printf 'Kotlin' ;;
-    kmp) printf 'KMP' ;;
-    php) printf 'PHP' ;;
-    go) printf 'Go' ;;
-    *)
-      local label="${1//-/ }"
-      printf '%s' "$label"
-      ;;
-  esac
+  local slug="$1"
+  local idx
+  for idx in "${!PLATFORM_PACKAGES[@]}"; do
+    if [[ "${PLATFORM_PACKAGES[$idx]}" == "$slug" ]]; then
+      printf '%s' "${PLATFORM_PACKAGE_LABELS[$idx]}"
+      return 0
+    fi
+  done
+  default_platform_label "$slug"
+}
+
+find_python_310_plus() {
+  local candidate
+  for candidate in python3.13 python3.12 python3.11 python3.10 python3; do
+    if command -v "$candidate" >/dev/null 2>&1; then
+      if "$candidate" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)' >/dev/null 2>&1; then
+        echo "$candidate"
+        return 0
+      fi
+    fi
+  done
+  return 1
+}
+
+ensure_skill_bill_venv() {
+  local venv_dir="$PLUGIN_DIR/.venv"
+  local venv_python="$venv_dir/bin/python"
+  local system_python
+  if ! system_python="$(find_python_310_plus)"; then
+    return 1
+  fi
+  if [ -x "$venv_python" ] && "$venv_python" -c 'import mcp' >/dev/null 2>&1; then
+    echo "$venv_python"
+    return 0
+  fi
+  if [ -d "$venv_dir" ] && [ ! -x "$venv_python" ]; then
+    rm -rf "$venv_dir"
+  fi
+  if [ ! -d "$venv_dir" ]; then
+    if ! "$system_python" -m venv "$venv_dir" >/dev/null 2>&1; then
+      return 1
+    fi
+  fi
+  "$venv_python" -m pip install --quiet --upgrade pip >/dev/null 2>&1 || true
+  if ! "$venv_python" -m pip install --quiet -e "$PLUGIN_DIR" >/dev/null 2>&1; then
+    return 1
+  fi
+  echo "$venv_python"
+  return 0
+}
+
+resolve_skill_bill_python_for_discovery() {
+  local python_cmd
+  if python_cmd="$(ensure_skill_bill_venv 2>/dev/null)"; then
+    echo "$python_cmd"
+    return 0
+  fi
+  command -v python3 2>/dev/null
 }
 
 build_platform_packages() {
-  local discovered=()
+  PLATFORM_PACKAGES=()
+  PLATFORM_PACKAGE_LABELS=()
+
+  local python_cmd
   local package
-
-  while IFS= read -r package; do
-    [[ "$package" == "base" ]] && continue
-    discovered+=("$package")
-  done < <(find "$SKILLS_DIR" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | sort)
-
-  # Platform packs contribute package names as well. With SKILL-14, most
-  # platform code-review content lives under platform-packs/<slug>/. These
-  # slugs may or may not overlap with skills/<package>/ entries; union both.
-  if [[ -d "$PLATFORM_PACKS_DIR" ]]; then
-    while IFS= read -r package; do
-      if ! array_contains "$package" "${discovered[@]:-}"; then
-        discovered+=("$package")
-      fi
-    done < <(find "$PLATFORM_PACKS_DIR" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | sort)
+  local label
+  if python_cmd="$(resolve_skill_bill_python_for_discovery)"; then
+    while IFS=$'\t' read -r package label; do
+      [[ -z "$package" ]] && continue
+      PLATFORM_PACKAGES+=("$package")
+      PLATFORM_PACKAGE_LABELS+=("$label")
+    done < <("$python_cmd" -m skill_bill install list-packages --repo-root "$PLUGIN_DIR" 2>/dev/null || true)
   fi
 
-  PLATFORM_PACKAGES=()
-  for package in backend-kotlin kotlin kmp php go; do
-    if array_contains "$package" "${discovered[@]:-}"; then
-      PLATFORM_PACKAGES+=("$package")
-    fi
-  done
+  if [[ ${#PLATFORM_PACKAGES[@]} -gt 0 ]]; then
+    return 0
+  fi
 
-  for package in "${discovered[@]:-}"; do
-    if array_contains "$package" "${REQUIRED_PLATFORM_PACKAGES[@]:-}"; then
-      continue
-    fi
-    if ! array_contains "$package" "${PLATFORM_PACKAGES[@]:-}"; then
+  local idx
+  for idx in "${!SKILL_PACKAGES[@]}"; do
+    package="${SKILL_PACKAGES[$idx]}"
+    if [[ "$package" != "base" ]] && ! array_contains "$package" "${PLATFORM_PACKAGES[@]:-}"; then
       PLATFORM_PACKAGES+=("$package")
+      PLATFORM_PACKAGE_LABELS+=("$(default_platform_label "$package")")
     fi
   done
 }
@@ -399,28 +424,8 @@ resolve_platform_selection() {
       printf '__all__\n'
       return 0
       ;;
-    backendkotlin|kotlinbackend)
-      printf 'backend-kotlin\n'
-      return 0
-      ;;
-    agentconfig|skillrepo|skillsinfra)
-      printf '__deprecated_agent_config__\n'
-      return 0
-      ;;
-    kotlin)
-      printf 'kotlin\n'
-      return 0
-      ;;
-    kmp|androidkmp)
-      printf 'kmp\n'
-      return 0
-      ;;
-    php)
-      printf 'php\n'
-      return 0
-      ;;
-    go|golang)
-      printf 'go\n'
+    none|core|coreonly|frameworkonly)
+      printf '__none__\n'
       return 0
       ;;
   esac
@@ -440,6 +445,11 @@ resolve_platform_selection() {
 }
 
 format_platform_list() {
+  if [[ $# -eq 0 ]]; then
+    printf 'none (framework-only core)'
+    return 0
+  fi
+
   local result=""
   local package
   local label
@@ -456,19 +466,12 @@ format_platform_list() {
   printf '%s' "$result"
 }
 
-append_required_platform_packages() {
-  local package
-
-  for package in "${REQUIRED_PLATFORM_PACKAGES[@]:-}"; do
-    # A required package is present if it exists under skills/ OR under
-    # platform-packs/. SKILL-14 and SKILL-16 moved governed packages
-    # (agent-config code-review, quality-check) into platform-packs/, so the
-    # check must span both trees or required packages silently drop.
-    if { [[ -d "$SKILLS_DIR/$package" ]] || [[ -d "$PLATFORM_PACKS_DIR/$package" ]]; } \
-      && ! array_contains "$package" "${SELECTED_PLATFORM_PACKAGES[@]:-}"; then
-      SELECTED_PLATFORM_PACKAGES+=("$package")
-    fi
-  done
+format_selected_platform_list() {
+  if [[ ${#SELECTED_PLATFORM_PACKAGES[@]} -eq 0 ]]; then
+    printf 'none (framework-only core)'
+    return 0
+  fi
+  format_platform_list "${SELECTED_PLATFORM_PACKAGES[@]}"
 }
 
 prompt_for_platform_selection() {
@@ -483,28 +486,27 @@ prompt_for_platform_selection() {
 
   if [[ ${#PLATFORM_PACKAGES[@]} -eq 0 ]]; then
     SELECTED_PLATFORM_PACKAGES=()
-    append_required_platform_packages
+    info "No optional platform packs were discovered. Installing the framework-only core."
     return 0
   fi
 
   while true; do
     echo ""
-    info "Available optional platforms:"
+    info "Available optional platform packs:"
     for i in "${!PLATFORM_PACKAGES[@]}"; do
       package="${PLATFORM_PACKAGES[$i]}"
       printf "  %s. %s (%s)\n" "$((i + 1))" "$(display_platform_name "$package")" "$package"
     done
     option_number=$(( ${#PLATFORM_PACKAGES[@]} + 1 ))
-    printf "  %s. all (install every platform package)\n" "$option_number"
-    info "Base skills and Agent config skills are always installed."
-    info "Governed add-on assets under skills/<platform>/addons/ ship with their owning platform package."
-    info "Choose one or more optional platform numbers (comma-separated). Names still work if you prefer them."
-    printf "${CYAN}▸${NC} Enter platforms (e.g. 1,3 or %s): " "$option_number"
+    printf "  %s. all (install every discovered optional pack)\n" "$option_number"
+    info "Base skills are always installed."
+    info "Press Enter for the framework-only core, or choose one or more optional pack numbers (comma-separated). Names still work if you prefer them."
+    printf "${CYAN}▸${NC} Enter optional packs (e.g. 1,3, %s, or Enter for core only): " "$option_number"
     read -r input
 
     if [[ -z "$(trim_string "$input")" ]]; then
-      warn "No platforms provided. Choose at least one optional platform."
-      continue
+      SELECTED_PLATFORM_PACKAGES=()
+      return 0
     fi
 
     SELECTED_PLATFORM_PACKAGES=()
@@ -519,12 +521,12 @@ prompt_for_platform_selection() {
         invalid_tokens+=("$token")
         continue
       fi
-      if [[ "$resolved" == "__deprecated_agent_config__" ]]; then
-        info "Agent config is now always installed. The '$token' alias is no longer needed."
-        continue
-      fi
       if [[ "$resolved" == "__all__" ]]; then
         SELECTED_PLATFORM_PACKAGES=("${PLATFORM_PACKAGES[@]}")
+        break
+      fi
+      if [[ "$resolved" == "__none__" ]]; then
+        SELECTED_PLATFORM_PACKAGES=()
         break
       fi
       if ! array_contains "$resolved" "${SELECTED_PLATFORM_PACKAGES[@]:-}"; then
@@ -533,16 +535,10 @@ prompt_for_platform_selection() {
     done
 
     if [[ ${#invalid_tokens[@]} -gt 0 ]]; then
-      warn "Unknown platform selection: $(printf '%s, ' "${invalid_tokens[@]}" | sed 's/, $//')"
+      warn "Unknown optional pack selection: $(printf '%s, ' "${invalid_tokens[@]}" | sed 's/, $//')"
       continue
     fi
 
-    if [[ ${#SELECTED_PLATFORM_PACKAGES[@]} -eq 0 ]]; then
-      warn "No valid platforms selected. Choose at least one optional platform."
-      continue
-    fi
-
-    append_required_platform_packages
     return 0
   done
 }
@@ -584,15 +580,38 @@ prompt_for_telemetry_preference() {
 }
 
 build_skill_names() {
-  local skill_file skill_dir skill_name
+  local skill_file skill_dir skill_name package_name
   local existing_idx
+  local python_cmd
 
   SKILL_NAMES=()
   SKILL_PATHS=()
+  SKILL_PACKAGES=()
+
+  if python_cmd="$(resolve_skill_bill_python_for_discovery)"; then
+    while IFS=$'\t' read -r skill_name package_name skill_dir; do
+      [[ -z "$skill_name" ]] && continue
+      if existing_idx="$(find_skill_index "$skill_name" 2>/dev/null)"; then
+        err "Duplicate skill name '$skill_name' found at:"
+        err "  ${SKILL_PATHS[$existing_idx]}"
+        err "  $skill_dir"
+        exit 1
+      fi
+
+      SKILL_NAMES+=("$skill_name")
+      SKILL_PATHS+=("$skill_dir")
+      SKILL_PACKAGES+=("$package_name")
+    done < <("$python_cmd" -m skill_bill install list-skills --repo-root "$PLUGIN_DIR" 2>/dev/null || true)
+  fi
+
+  if [[ ${#SKILL_NAMES[@]} -gt 0 ]]; then
+    return 0
+  fi
 
   while IFS= read -r skill_file; do
     skill_dir="$(dirname "$skill_file")"
     skill_name="$(basename "$skill_dir")"
+    package_name="$(resolve_package_name_for_skill_path "$skill_dir")"
 
     if existing_idx="$(find_skill_index "$skill_name" 2>/dev/null)"; then
       err "Duplicate skill name '$skill_name' found at:"
@@ -603,11 +622,12 @@ build_skill_names() {
 
     SKILL_NAMES+=("$skill_name")
     SKILL_PATHS+=("$skill_dir")
+    SKILL_PACKAGES+=("$package_name")
   done < <(
     {
       find "$SKILLS_DIR" -type f -name 'SKILL.md'
       if [[ -d "$PLATFORM_PACKS_DIR" ]]; then
-        find "$PLATFORM_PACKS_DIR" -type f -name 'SKILL.md'
+        find "$PLATFORM_PACKS_DIR" -type f -path '*/bill-*/SKILL.md'
       fi
     } | sort
   )
@@ -646,7 +666,7 @@ build_install_skill_names() {
 
   for idx in "${!SKILL_NAMES[@]}"; do
     skill_dir="${SKILL_PATHS[$idx]}"
-    package_name="$(resolve_package_name_for_skill_path "$skill_dir")"
+    package_name="${SKILL_PACKAGES[$idx]}"
     canonical_name="${SKILL_NAMES[$idx]}"
 
     if [[ "$package_name" == "base" ]] || array_contains "$package_name" "${SELECTED_PLATFORM_PACKAGES[@]:-}"; then
@@ -726,6 +746,8 @@ install_skill() {
   local target="$1"
   local source="$2"
   local label="$3"
+  local link_name
+  link_name="$(basename "$target")"
 
   if [[ -e "$target" || -L "$target" ]]; then
     remove_if_allowed "$target"
@@ -735,6 +757,7 @@ install_skill() {
     python3 -m skill_bill install link-skill \
       --source "$source" \
       --target-dir "$(dirname "$target")" \
+      --link-name "$link_name" \
       --agent manual
   else
     ln -s "$source" "$target"
@@ -765,7 +788,7 @@ echo ""
 printf "${CYAN}━━━ Skill Bill Installer ━━━${NC}\n"
 echo ""
 info "Supported agents: copilot, claude, glm, codex, opencode"
-info "Install behavior: replace existing Skill Bill installs and reinstall the selected platforms."
+info "Install behavior: replace existing Skill Bill installs and reinstall the core plus any selected optional packs."
 prompt_for_agent_selection
 prompt_for_platform_selection
 prompt_for_telemetry_preference
@@ -775,11 +798,11 @@ echo ""
 info "Plugin:  $PLUGIN_DIR"
 info "Agents selected: $(format_agent_list "${AGENT_NAMES[@]}")"
 info "Skills found: ${#SKILL_NAMES[@]}"
-info "Skills selected: ${#INSTALL_SKILL_NAMES[@]} (base + $(format_platform_list "${SELECTED_PLATFORM_PACKAGES[@]}"))"
+info "Skills selected: ${#INSTALL_SKILL_NAMES[@]} (core + $(format_selected_platform_list))"
 info "Telemetry:      $TELEMETRY_LEVEL"
 echo ""
 
-info "Removing existing Skill Bill installs before reinstalling the selected platforms."
+info "Removing existing Skill Bill installs before reinstalling the selected core/optional-pack set."
 bash "$PLUGIN_DIR/uninstall.sh"
 echo ""
 
@@ -801,46 +824,6 @@ done
 SKILL_BILL_STATE_DIR="${HOME}/.skill-bill"
 export SKILL_BILL_CONFIG_PATH="${SKILL_BILL_CONFIG_PATH:-${SKILL_BILL_STATE_DIR}/config.json}"
 export SKILL_BILL_REVIEW_DB="${SKILL_BILL_REVIEW_DB:-${SKILL_BILL_STATE_DIR}/review-metrics.db}"
-
-find_python_310_plus() {
-  local candidate
-  for candidate in python3.13 python3.12 python3.11 python3.10 python3; do
-    if command -v "$candidate" >/dev/null 2>&1; then
-      if "$candidate" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)' >/dev/null 2>&1; then
-        echo "$candidate"
-        return 0
-      fi
-    fi
-  done
-  return 1
-}
-
-ensure_skill_bill_venv() {
-  local venv_dir="$PLUGIN_DIR/.venv"
-  local venv_python="$venv_dir/bin/python"
-  local system_python
-  if ! system_python="$(find_python_310_plus)"; then
-    return 1
-  fi
-  if [ -x "$venv_python" ] && "$venv_python" -c 'import mcp' >/dev/null 2>&1; then
-    echo "$venv_python"
-    return 0
-  fi
-  if [ -d "$venv_dir" ] && [ ! -x "$venv_python" ]; then
-    rm -rf "$venv_dir"
-  fi
-  if [ ! -d "$venv_dir" ]; then
-    if ! "$system_python" -m venv "$venv_dir" >/dev/null 2>&1; then
-      return 1
-    fi
-  fi
-  "$venv_python" -m pip install --quiet --upgrade pip >/dev/null 2>&1 || true
-  if ! "$venv_python" -m pip install --quiet -e "$PLUGIN_DIR" >/dev/null 2>&1; then
-    return 1
-  fi
-  echo "$venv_python"
-  return 0
-}
 
 if [[ "$TELEMETRY_LEVEL" != "off" ]]; then
   info "Installing skill-bill CLI and MCP server..."
@@ -1057,7 +1040,7 @@ fi
 printf "${GREEN}━━━ Installation complete ━━━${NC}\n"
 echo ""
 info "Source of truth: $PLUGIN_DIR/skills/"
-info "Platforms:       $(format_platform_list "${SELECTED_PLATFORM_PACKAGES[@]}")"
+info "Optional packs:  $(format_selected_platform_list)"
 if [[ "$TELEMETRY_LEVEL" == "setup_failed" ]]; then
   info "Telemetry:       setup failed (python3 may be unavailable)"
 else
@@ -1074,5 +1057,5 @@ info "Edit skills in: $PLUGIN_DIR/skills/"
 if [[ "$TELEMETRY_LEVEL" != "off" && "$TELEMETRY_LEVEL" != "setup_failed" ]]; then
   info "Telemetry uses the default Skill Bill relay automatically. Override it with SKILL_BILL_TELEMETRY_PROXY_URL or ~/.skill-bill/config.json."
 fi
-info "Run './install.sh' again to reinstall with a different agent or platform selection."
+info "Run './install.sh' again to reinstall with a different agent or optional-pack selection."
 echo ""

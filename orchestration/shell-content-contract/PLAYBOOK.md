@@ -1,15 +1,15 @@
 ---
 name: shell-content-contract
-description: Versioned schema contract between the governed code-review shell and user-owned platform packs. Platform packs declare the contract version they target; the shell loader validates manifests and content against this schema.
+description: Versioned schema contract between the governed code-review shell and optional user-owned platform packs. Platform packs declare the contract version they target; the shell loader validates manifests and content against this schema.
 ---
 
 # Shared Shell Content Contract
 
 This is the canonical shell+content contract. The governed code-review shell
 (`skills/base/bill-code-review/SKILL.md`) owns ceremony, orchestration, output
-structure, telemetry, and contract enforcement. Platform packs under
-`platform-packs/<platform>/` own reviewer reasoning. This file specifies the
-boundary between the two.
+structure, telemetry, and contract enforcement. Optional platform packs under
+`platform-packs/<platform>/` own extension-specific reviewer reasoning when
+present. This file specifies the boundary between the two.
 
 Skills consume this file through sibling symlinks (e.g. `shell-content-contract.md`
 inside the shell skill directory), so changes here propagate to every linked
@@ -31,7 +31,8 @@ The current shell contract version is **`1.0`**.
 
 ## Required Platform Manifest (`platform.yaml`)
 
-Every platform pack lives at `platform-packs/<platform-slug>/platform.yaml`.
+Every optional platform pack lives at
+`platform-packs/<platform-slug>/platform.yaml`.
 
 Required top-level fields:
 
@@ -44,15 +45,16 @@ Required top-level fields:
     file extension, dependency coordinate, or language-level marker) that
     indicates the platform when seen in the review scope.
   - `tie_breakers` — list of strings describing post-detection rules that
-    disambiguate this platform against overlapping ones (e.g. Kotlin vs. KMP
-    vs. backend-Kotlin).
+    disambiguate this platform against overlapping optional extensions.
   - `addon_signals` — optional list of signal hints used by governed add-ons
     that belong to this platform. May be an empty list.
 - `declared_code_review_areas` — list of area slugs. Each entry must be one of
   the approved areas: `architecture`, `performance`, `platform-correctness`,
   `security`, `testing`, `api-contracts`, `persistence`, `reliability`, `ui`,
-  `ux-accessibility`. The list may be empty for meta packs (e.g. self-config)
-  that have no specialist areas.
+  `ux-accessibility`. This list is the source of truth for specialist
+  code-review skills that actually exist in the pack. The list may be empty
+  for meta packs (e.g. self-config) that have no specialist areas or for a
+  brand-new platform pack that starts with only its baseline review skill.
 - `declared_files` — object mapping logical content slots to content file
   paths, relative to the platform pack root. Required keys:
   - `baseline` — the per-platform baseline review content file path (the
@@ -66,23 +68,35 @@ Required top-level fields:
 Optional top-level fields:
 
 - `display_name` — human-readable label for installers and docs.
+  When present, installers should show this label instead of auto-formatting
+  the slug.
 - `notes` — free-form maintainer notes.
 - `declared_quality_check_file` — path (string) to a per-platform
   quality-check SKILL.md file, relative to the platform pack root. When
   present, the shell loader validates the referenced file against the
   quality-check content contract (see below). Omitting the key is valid —
   the shell contract version stays `1.0` and packs without the key remain
-  contract-compliant. Today the `kmp` and `backend-kotlin` packs intentionally
-  omit the key; the `bill-quality-check` shell falls back to the `kotlin`
-  pack for those two slugs.
+  contract-compliant. Shells must not assume another optional pack will supply
+  replacement content when this key is omitted.
 
 ## Required Content Files
 
 Every path declared in `declared_files` must exist on disk relative to the
 platform pack root.
 
-Each declared content file must be a Markdown file with a YAML frontmatter
-block (`---` ... `---`) and must contain all of the following H2 sections:
+Each declared content file must be a Markdown file whose canonical entrypoint
+remains `SKILL.md`. The declared `SKILL.md` file must carry the YAML
+frontmatter block (`---` ... `---`). It may either:
+
+- contain the full authored content itself (legacy single-file layout), or
+- act as a thin bootstrap that points at sibling `implementation.md`.
+
+When the canonical bootstrap points at `implementation.md`, the loader
+validates the required H2 sections from `implementation.md` while continuing
+to validate frontmatter from `SKILL.md`. Manifests still declare the
+`.../SKILL.md` path, not `implementation.md`.
+
+The active content body must contain all of the following H2 sections:
 
 - `## Description`
 - `## Specialist Scope`
@@ -94,12 +108,30 @@ block (`---` ... `---`) and must contain all of the following H2 sections:
 Section order is not enforced, but each section heading must appear exactly as
 written (case-sensitive, H2 only).
 
+The baseline file declared by `declared_files.baseline` is an installable
+skill. Its frontmatter `name` must be `bill-<slug>-code-review`, and its
+frontmatter `description` must be non-empty.
+
+Baseline code-review files own the fallback behavior for approved areas:
+
+- When a triggered approved area is present in `declared_code_review_areas`,
+  the baseline skill may route that area to the matching installed
+  `bill-<slug>-code-review-<area>` specialist.
+- When a triggered approved area is not declared yet, the baseline skill must
+  still review that area inline instead of silently dropping coverage or
+  pretending the specialist already exists.
+
 Content files may include additional H2 sections beyond the required set.
+Sibling sidecar files remain anchored to the skill directory that contains
+canonical `SKILL.md`; the split layout does not introduce any alternate
+runtime directory or manifest path rules.
 
 ## Required Content File (quality-check)
 
 When a platform pack declares the optional `declared_quality_check_file`
-top-level key, the referenced Markdown file must contain all of the
+top-level key, the canonical referenced `SKILL.md` file may either contain
+the full content directly or bootstrap to sibling `implementation.md`. The
+active content body must contain all of the
 following H2 sections:
 
 - `## Description`
@@ -116,6 +148,11 @@ and does not require the `## Specialist Scope`, `## Inputs`, or
 Section order is not enforced, but each section heading must appear
 exactly as written (case-sensitive, H2 only). Content files may include
 additional H2 sections beyond the required set.
+
+The quality-check file declared by `declared_quality_check_file` is also an
+installable skill. Its frontmatter `name` must start with
+`bill-<slug>-quality-check`, and its frontmatter `description` must be
+non-empty.
 
 ## Loud-Fail Rules
 
@@ -136,6 +173,9 @@ is ever permitted.
 - A declared content file is missing one of the required H2 sections →
   `MissingRequiredSectionError`. The message must include the missing
   section heading and the file path.
+- An installable declared skill file has missing or incorrect frontmatter →
+  `InvalidContentFrontmatterError`. The message must include the expected
+  skill name and the file path.
 
 Every error message must name the specific artifact at fault (pack slug,
 file path, section heading, or version string) so operators can repair the
@@ -151,6 +191,9 @@ optional `declared_quality_check_file` key:
 - The file referenced by `declared_quality_check_file` does not exist →
   `MissingContentFileError`. The message must include the pack slug and the
   resolved file path.
+- The canonical bootstrap references `implementation.md` but the file does
+  not exist → `MissingContentFileError`. The message must include the
+  bootstrap path and the missing implementation path.
 - The declared quality-check content file is missing one of the required H2
   sections listed above → `MissingRequiredSectionError`. The message must
   include the missing section heading and the file path.
@@ -158,21 +201,23 @@ optional `declared_quality_check_file` key:
 Calling `load_quality_check_content` on a pack whose
 `declared_quality_check_file` is `None` also raises
 `MissingContentFileError` rather than silently returning nothing — callers
-must gate the call on `pack.declared_quality_check_file is not None`. The
-shell never silently substitutes a different pack's quality-check file
-except via the explicit `kmp`/`backend-kotlin` → `kotlin` fallback noted
-above.
+must gate the call on `pack.declared_quality_check_file is not None` and
+report the unsupported-extension state explicitly.
 
 ## Discovery Semantics
 
 The shell loader, validator, and stack-routing playbook all share a common
 discovery algorithm:
 
-1. Walk `platform-packs/` for immediate subdirectories.
+1. Walk `platform-packs/` for immediate subdirectories when the directory
+   exists.
 2. For each candidate slug, load `platform-packs/<slug>/platform.yaml` via the
    loader.
 3. Validate each pack against this contract.
-4. The routed skill name for a platform pack with slug `<slug>` is
+4. If the directory is missing or no pack directories are present, discovery
+   returns no packs. That zero-pack result is valid and must be reported as a
+   framework-only core state rather than as an error.
+5. The routed skill name for a platform pack with slug `<slug>` is
    `bill-<slug>-code-review`. Installers and runtime skills must preserve this
    contract so existing user-facing commands keep working.
 

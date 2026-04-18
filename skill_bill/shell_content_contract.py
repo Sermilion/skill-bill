@@ -1,13 +1,13 @@
-"""Shell+content contract loader for governed code-review platform packs.
+"""Shell+content contract loader for optional governed code-review platform packs.
 
 This module is the runtime authority for loading and validating user-owned
 platform packs against the versioned contract documented in
 ``orchestration/shell-content-contract/PLAYBOOK.md``.
 
-The loader is intentionally strict: missing or malformed content raises a
-specific named exception rather than silently falling back. The shell relies
-on this behavior to refuse to run on broken packs and to print an actionable
-error.
+The loader is intentionally strict: malformed content raises a specific named
+exception rather than silently falling back. Missing or empty
+``platform-packs/`` is a valid framework-only state; callers should report it
+explicitly instead of treating it as an error.
 """
 
 from __future__ import annotations
@@ -42,6 +42,10 @@ def _import_yaml():
 
 
 SHELL_CONTRACT_VERSION: str = "1.0"
+ZERO_PLATFORM_PACKS_MESSAGE_TEMPLATE: str = (
+  "No optional platform packs discovered under '{path}'. "
+  "Framework-only mode is active."
+)
 
 APPROVED_CODE_REVIEW_AREAS: frozenset[str] = frozenset(
   {
@@ -79,8 +83,13 @@ REQUIRED_QUALITY_CHECK_SECTIONS: tuple[str, ...] = (
 )
 
 MANIFEST_FILENAME: str = "platform.yaml"
+SKILL_IMPLEMENTATION_FILENAME: str = "implementation.md"
 
 _SECTION_HEADING_PATTERN = re.compile(r"^##\s+[^\n]+$")
+_FRONTMATTER_PATTERN = re.compile(r"\A---\n(.*?)\n---\n", re.DOTALL)
+_SKILL_BOOTSTRAP_LINK_PATTERN = re.compile(
+  r"\[implementation\.md\]\(implementation\.md\)"
+)
 # Fenced code-block markers recognized when scanning for H2 sections.
 # Covers both triple-backtick and triple-tilde fences (with or without a
 # language tag). A fence line must have the marker as the first non-space
@@ -117,6 +126,10 @@ class MissingRequiredSectionError(ShellContentContractError):
   """Raised when a declared content file is missing a required H2 section."""
 
 
+class InvalidContentFrontmatterError(ShellContentContractError):
+  """Raised when a declared installable skill file has invalid frontmatter."""
+
+
 class PyYAMLMissingError(ShellContentContractError):
   """Raised when PyYAML is not installed in the active Python environment.
 
@@ -125,6 +138,17 @@ class PyYAMLMissingError(ShellContentContractError):
   raises this subclass with an actionable install message, so the CLI and
   the validator print a friendly error instead of a traceback.
   """
+
+
+@dataclass(frozen=True)
+class ResolvedSkillMarkdown:
+  """Resolved bootstrap plus active markdown for an installable skill."""
+
+  bootstrap_file: Path
+  active_file: Path
+  bootstrap_text: str = field(hash=False)
+  active_text: str = field(hash=False)
+  uses_split_layout: bool = False
 
 
 @dataclass(frozen=True)
@@ -160,6 +184,61 @@ class PlatformPack:
     """Return the contract-preserving routed skill name for this pack."""
 
     return f"bill-{self.slug}-code-review"
+
+
+@dataclass(frozen=True)
+class InstallablePackSkill:
+  """An installable skill declared by a platform pack."""
+
+  skill_name: str
+  skill_dir: Path
+  source_file: Path
+  family: str
+
+
+def skill_bootstrap_references_implementation(markdown_text: str) -> bool:
+  """Return True when a canonical ``SKILL.md`` points at ``implementation.md``."""
+
+  return bool(_SKILL_BOOTSTRAP_LINK_PATTERN.search(markdown_text))
+
+
+def resolve_active_skill_markdown(
+  skill_file: Path | str,
+  *,
+  owner_label: str | None = None,
+) -> ResolvedSkillMarkdown:
+  """Resolve the active markdown file for a canonical installable skill.
+
+  ``SKILL.md`` remains the canonical install/discovery file. When it contains
+  a bootstrap reference to sibling ``implementation.md``, the implementation
+  file becomes the active body for section validation and runtime reading.
+  """
+  bootstrap_file = Path(skill_file).resolve()
+  bootstrap_text = bootstrap_file.read_text(encoding="utf-8")
+  if not skill_bootstrap_references_implementation(bootstrap_text):
+    return ResolvedSkillMarkdown(
+      bootstrap_file=bootstrap_file,
+      active_file=bootstrap_file,
+      bootstrap_text=bootstrap_text,
+      active_text=bootstrap_text,
+      uses_split_layout=False,
+    )
+
+  implementation_file = bootstrap_file.parent / SKILL_IMPLEMENTATION_FILENAME
+  if not implementation_file.is_file():
+    artifact_label = f"{owner_label}: " if owner_label else ""
+    raise MissingContentFileError(
+      f"{artifact_label}skill bootstrap '{bootstrap_file}' references missing "
+      f"implementation file '{implementation_file}'."
+    )
+
+  return ResolvedSkillMarkdown(
+    bootstrap_file=bootstrap_file,
+    active_file=implementation_file,
+    bootstrap_text=bootstrap_text,
+    active_text=implementation_file.read_text(encoding="utf-8"),
+    uses_split_layout=True,
+  )
 
 
 def load_platform_pack(pack_root: Path | str) -> PlatformPack:
@@ -237,6 +316,12 @@ def validate_platform_pack(pack: PlatformPack, contract_version: str) -> None:
     )
 
   _assert_content_file_ok(pack, slot="baseline", file_path=baseline_path)
+  _assert_declared_skill_frontmatter(
+    pack,
+    slot="baseline",
+    file_path=baseline_path,
+    expected_name=pack.routed_skill_name,
+  )
 
   for area in pack.declared_code_review_areas:
     area_path = declared_area_files[area]
@@ -245,6 +330,13 @@ def validate_platform_pack(pack: PlatformPack, contract_version: str) -> None:
         f"Platform pack '{pack.slug}': declared_files.areas['{area}'] must resolve to a path."
       )
     _assert_content_file_ok(pack, slot=f"areas.{area}", file_path=area_path)
+    if area_path.name == "SKILL.md":
+      _assert_declared_skill_frontmatter(
+        pack,
+        slot=f"areas.{area}",
+        file_path=area_path,
+        expected_name=f"bill-{pack.slug}-code-review-{area}",
+      )
 
 
 def discover_platform_packs(platform_packs_root: Path | str) -> list[PlatformPack]:
@@ -252,6 +344,11 @@ def discover_platform_packs(platform_packs_root: Path | str) -> list[PlatformPac
 
   The first loader error aborts discovery with the specific exception so
   callers can act on a single precise message.
+
+  Missing or empty ``platform-packs/`` is valid and returns ``[]``. Callers
+  that need user-facing messaging should surface
+  :func:`describe_zero_platform_packs_state` instead of inventing their own
+  fallback wording.
   """
 
   packs_root = Path(platform_packs_root).resolve()
@@ -266,6 +363,52 @@ def discover_platform_packs(platform_packs_root: Path | str) -> list[PlatformPac
       continue
     discovered.append(load_platform_pack(entry))
   return discovered
+
+
+def describe_zero_platform_packs_state(platform_packs_root: Path | str) -> str:
+  """Return the canonical user-facing message for the zero-pack state."""
+
+  packs_root = Path(platform_packs_root).resolve()
+  return ZERO_PLATFORM_PACKS_MESSAGE_TEMPLATE.format(path=str(packs_root))
+
+
+def discover_installable_pack_skills(pack: PlatformPack) -> tuple[InstallablePackSkill, ...]:
+  """Return the installable skills declared by ``pack``."""
+
+  skills: list[InstallablePackSkill] = [
+    InstallablePackSkill(
+      skill_name=pack.routed_skill_name,
+      skill_dir=pack.declared_files["baseline"].parent,
+      source_file=pack.declared_files["baseline"],
+      family="code-review-baseline",
+    )
+  ]
+
+  for area in pack.declared_code_review_areas:
+    area_path = pack.declared_files["areas"][area]
+    if area_path.name != "SKILL.md":
+      continue
+    skills.append(
+      InstallablePackSkill(
+        skill_name=f"bill-{pack.slug}-code-review-{area}",
+        skill_dir=area_path.parent,
+        source_file=area_path,
+        family="code-review-area",
+      )
+    )
+
+  if pack.declared_quality_check_file is not None:
+    file_path = load_quality_check_content(pack)
+    skills.append(
+      InstallablePackSkill(
+        skill_name=f"bill-{pack.slug}-quality-check",
+        skill_dir=file_path.parent,
+        source_file=file_path,
+        family="quality-check",
+      )
+    )
+
+  return tuple(skills)
 
 
 def _build_pack(
@@ -434,12 +577,15 @@ def _assert_content_file_ok(pack: PlatformPack, *, slot: str, file_path: Path) -
       f"is missing at '{file_path}'."
     )
 
-  text = file_path.read_text(encoding="utf-8")
-  headings = _collect_top_level_h2_headings(text)
+  resolved = resolve_active_skill_markdown(
+    file_path,
+    owner_label=f"Platform pack '{pack.slug}'",
+  )
+  headings = _collect_top_level_h2_headings(resolved.active_text)
   for required in REQUIRED_CONTENT_SECTIONS:
     if required not in headings:
       raise MissingRequiredSectionError(
-        f"Platform pack '{pack.slug}': content file '{file_path}' is missing "
+        f"Platform pack '{pack.slug}': content file '{resolved.active_file}' is missing "
         f"required section '{required}'."
       )
 
@@ -455,10 +601,9 @@ def load_quality_check_content(pack: PlatformPack) -> Path:
   - Raises :class:`MissingRequiredSectionError` when the content file is
     missing one of the :data:`REQUIRED_QUALITY_CHECK_SECTIONS` H2 sections.
 
-  The function never silently falls back to another pack. The
-  ``bill-quality-check`` shell implements the explicit ``kmp`` /
-  ``backend-kotlin`` → ``kotlin`` routing fallback by selecting a
-  different pack before calling this loader.
+  The function never silently falls back to another pack. Callers must either
+  use the declared file from the selected pack or report that the selected
+  optional extension does not provide quality-check content.
   """
   if pack.declared_quality_check_file is None:
     raise MissingContentFileError(
@@ -473,14 +618,23 @@ def load_quality_check_content(pack: PlatformPack) -> Path:
       f"is missing at '{file_path}'."
     )
 
-  text = file_path.read_text(encoding="utf-8")
-  headings = _collect_top_level_h2_headings(text)
+  resolved = resolve_active_skill_markdown(
+    file_path,
+    owner_label=f"Platform pack '{pack.slug}'",
+  )
+  headings = _collect_top_level_h2_headings(resolved.active_text)
   for required in REQUIRED_QUALITY_CHECK_SECTIONS:
     if required not in headings:
       raise MissingRequiredSectionError(
-        f"Platform pack '{pack.slug}': quality-check content file '{file_path}' "
+        f"Platform pack '{pack.slug}': quality-check content file '{resolved.active_file}' "
         f"is missing required section '{required}'."
       )
+  _assert_declared_skill_frontmatter(
+    pack,
+    slot="declared_quality_check_file",
+    file_path=file_path,
+    expected_prefix=f"bill-{pack.slug}-quality-check",
+  )
   return file_path
 
 
@@ -505,9 +659,60 @@ def _collect_top_level_h2_headings(text: str) -> set[str]:
   return headings
 
 
+def _assert_declared_skill_frontmatter(
+  pack: PlatformPack,
+  *,
+  slot: str,
+  file_path: Path,
+  expected_name: str | None = None,
+  expected_prefix: str | None = None,
+) -> None:
+  frontmatter = _parse_frontmatter(file_path, pack.slug)
+  declared_name = frontmatter.get("name", "")
+  if expected_name is not None and declared_name != expected_name:
+    raise InvalidContentFrontmatterError(
+      f"Platform pack '{pack.slug}': declared content file for slot '{slot}' "
+      f"must declare frontmatter name '{expected_name}', found '{declared_name}' "
+      f"in '{file_path}'."
+    )
+  if expected_prefix is not None and not declared_name.startswith(expected_prefix):
+    raise InvalidContentFrontmatterError(
+      f"Platform pack '{pack.slug}': declared content file for slot '{slot}' "
+      f"must declare frontmatter name starting with '{expected_prefix}', found "
+      f"'{declared_name}' in '{file_path}'."
+    )
+
+  description = frontmatter.get("description", "")
+  if not description:
+    raise InvalidContentFrontmatterError(
+      f"Platform pack '{pack.slug}': declared content file for slot '{slot}' "
+      f"must declare a non-empty frontmatter description in '{file_path}'."
+    )
+
+
+def _parse_frontmatter(file_path: Path, slug: str) -> dict[str, str]:
+  text = file_path.read_text(encoding="utf-8")
+  match = _FRONTMATTER_PATTERN.match(text)
+  if not match:
+    raise InvalidContentFrontmatterError(
+      f"Platform pack '{slug}': declared content file '{file_path}' is missing "
+      "the required YAML frontmatter block."
+    )
+
+  values: dict[str, str] = {}
+  for line in match.group(1).splitlines():
+    if ":" not in line:
+      continue
+    key, value = line.split(":", 1)
+    values[key.strip()] = value.strip()
+  return values
+
+
 __all__ = [
   "APPROVED_CODE_REVIEW_AREAS",
   "ContractVersionMismatchError",
+  "InstallablePackSkill",
+  "InvalidContentFrontmatterError",
   "InvalidManifestSchemaError",
   "MissingContentFileError",
   "MissingManifestError",
@@ -516,11 +721,18 @@ __all__ = [
   "PyYAMLMissingError",
   "REQUIRED_CONTENT_SECTIONS",
   "REQUIRED_QUALITY_CHECK_SECTIONS",
+  "ResolvedSkillMarkdown",
   "RoutingSignals",
   "SHELL_CONTRACT_VERSION",
+  "SKILL_IMPLEMENTATION_FILENAME",
   "ShellContentContractError",
+  "ZERO_PLATFORM_PACKS_MESSAGE_TEMPLATE",
+  "describe_zero_platform_packs_state",
+  "discover_installable_pack_skills",
   "discover_platform_packs",
   "load_platform_pack",
   "load_quality_check_content",
+  "resolve_active_skill_markdown",
+  "skill_bootstrap_references_implementation",
   "validate_platform_pack",
 ]

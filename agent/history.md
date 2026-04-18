@@ -1,3 +1,12 @@
+## [2026-04-18] bootstrap-implementation-split-for-skills
+Areas: skill_bill/, scripts/, orchestration/shell-content-contract/, skills/base/, platform-packs/, install.sh, README.md, tests/
+- Added additive split-layout support where canonical `SKILL.md` stays the install/discovery entrypoint and may bootstrap to sibling `implementation.md`; scaffolded skills now emit both files and keep required sidecar links in the bootstrap. reusable
+- Extended shell-content-contract loading and validator rules to resolve the active implementation body while keeping frontmatter and manifest declarations anchored on `.../SKILL.md`; missing implementation targets fail loudly. reusable
+- Install/discovery remains manifest-driven: optional-pack skill discovery now uses the authoritative shell-content-contract loader instead of ad hoc manifest parsing, and `install.sh` prefers the repo venv for discovery commands when PyYAML is not globally available. reusable
+- Migrated `skills/base/bill-feature-verify/` to prove the split works for a real pre-shell family and added legacy/split acceptance + rejection coverage across scaffold, validator, shell-content contract, and installer tests.
+Feature flag: N/A
+Acceptance criteria: 9/9 implemented
+
 ## [2026-04-17] boundary-history-value-rubric
 Areas: skills/base/bill-feature-implement/, tests/
 - Anchored the `boundary_history_value` telemetry field with a five-value rubric (`none` | `irrelevant` | `low` | `medium` | `high`) nested under step 3 of the pre-planning briefing's Instructions list in `reference.md`. Added a citation guardrail: `medium`/`high` ratings MUST cite a specific past entry in `boundary_history_digest`, otherwise downgrade to `low`. Enum, DB schema, validation, MCP signature, and platform-pack manifests all unchanged — the field is pass-through so this is a prompt-level fix, not a contract change. reusable

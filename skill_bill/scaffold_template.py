@@ -30,6 +30,7 @@ _SCAFFOLDER_OWNED_HEADINGS: tuple[str, ...] = (
 )
 
 _H2_PATTERN = re.compile(r"^##\s+[^\n]+$", re.MULTILINE)
+DEFAULT_SKILL_IMPLEMENTATION_FILE = "implementation.md"
 
 
 @dataclass(frozen=True)
@@ -47,6 +48,14 @@ class ScaffoldTemplateContext:
   family: str
   platform: str = ""
   area: str = ""
+
+
+def _is_platform_code_review_baseline(context: ScaffoldTemplateContext) -> bool:
+  return context.family == "code-review" and bool(context.platform) and not context.area
+
+
+def _is_platform_quality_check(context: ScaffoldTemplateContext) -> bool:
+  return context.family == "quality-check" and bool(context.platform)
 
 
 def render_project_overrides(context: ScaffoldTemplateContext) -> str:
@@ -80,6 +89,46 @@ def render_project_overrides(context: ScaffoldTemplateContext) -> str:
     "\n"
     f"Precedence for this skill: matching `.agents/skill-overrides.md` section > "
     "`AGENTS.md` > built-in defaults.\n"
+  )
+
+
+def render_skill_bootstrap(
+  *,
+  skill_name: str,
+  description: str,
+  implementation_file: str = DEFAULT_SKILL_IMPLEMENTATION_FILE,
+  supporting_files: tuple[str, ...] = (),
+) -> str:
+  """Render the canonical thin ``SKILL.md`` bootstrap file.
+
+  ``SKILL.md`` remains the install/discovery entrypoint for every skill
+  layout. In the split layout it carries frontmatter plus a short
+  instruction that points agents at the active implementation file and any
+  required sibling supporting files.
+  """
+  supporting_files_block = ""
+  if supporting_files:
+    links = "".join(
+      f"- [{file_name}]({file_name})\n"
+      for file_name in supporting_files
+    )
+    supporting_files_block = (
+      "\n"
+      "This skill also depends on these sibling runtime files:\n"
+      f"{links}"
+    )
+  return (
+    "---\n"
+    f"name: {skill_name}\n"
+    f"description: {description}\n"
+    "---\n"
+    "\n"
+    "# Skill Bootstrap\n"
+    "\n"
+    "This `SKILL.md` file stays canonical for install and discovery.\n"
+    f"Read and follow the active implementation in [{implementation_file}]"
+    f"({implementation_file}) before acting.\n"
+    f"{supporting_files_block}"
   )
 
 
@@ -150,6 +199,79 @@ def render_default_section(section_name: str, context: ScaffoldTemplateContext) 
     renderer = _DEFAULT_SECTION_RENDERERS[section_name]
     return renderer(context)  # type: ignore[operator]
 
+  if section_name == "## Description" and _is_platform_code_review_baseline(context):
+    return (
+      "## Description\n"
+      "\n"
+      f"This content file is the platform-pack baseline review module for `{context.skill_name}`. "
+      "The governed `bill-code-review` shell delegates single-stack reviews here after stack routing "
+      "settles. Use the sibling `stack-routing.md`, `review-orchestrator.md`, `review-delegation.md`, "
+      "and `telemetry-contract.md` files as the shared runtime contracts.\n"
+    )
+
+  if section_name == "## Specialist Scope" and _is_platform_code_review_baseline(context):
+    return (
+      "## Specialist Scope\n"
+      "\n"
+      "Baseline orchestrator. Select approved code-review area passes based on the diff and keep "
+      "coverage present for every triggered area.\n"
+      "\n"
+      "- When `platform.yaml` declares a triggered area under `declared_code_review_areas`, route that "
+      "area to the matching `bill-<platform>-code-review-<area>` specialist skill.\n"
+      "- When a triggered approved area is not yet declared, review that area inline in this baseline "
+      "skill instead of skipping coverage.\n"
+    )
+
+  if section_name == "## Inputs" and _is_platform_code_review_baseline(context):
+    return (
+      "## Inputs\n"
+      "\n"
+      "Review scope (staged/unstaged/commit range/PR), changed files, detected stack signals, active "
+      "learnings, `review_session_id`, `review_run_id`, and the `orchestrated` flag from the shell.\n"
+    )
+
+  if section_name == "## Outputs Contract" and _is_platform_code_review_baseline(context):
+    return (
+      "## Outputs Contract\n"
+      "\n"
+      "Section 1 summary must include:\n"
+      "\n"
+      "- `Review session ID: <review-session-id>`\n"
+      "- `Review run ID: <review-run-id>`\n"
+      "- `Applied learnings: none | <learning references>`\n"
+      "\n"
+      "Findings must use the machine-readable format\n"
+      "`- [F-001] <Severity> | <Confidence> | <file:line> | <description>`.\n"
+      "\n"
+      "Use `review-orchestrator.md` for merge rules, `review-delegation.md` for delegated execution, "
+      "and `telemetry-contract.md` for telemetry ownership.\n"
+    )
+
+  if section_name == "## Description" and _is_platform_quality_check(context):
+    return (
+      "## Description\n"
+      "\n"
+      f"This content file is the per-platform quality-check module for `{context.skill_name}`. "
+      "Use `stack-routing.md` to keep platform detection aligned with the shared shell and "
+      "`telemetry-contract.md` for telemetry ownership.\n"
+    )
+
+  if section_name == "## Execution Steps" and _is_platform_quality_check(context):
+    return (
+      "## Execution Steps\n"
+      "\n"
+      "Detect the scoped platform signals, run the platform-appropriate checks for the current diff or "
+      "working set, and report concrete failures before attempting fixes.\n"
+    )
+
+  if section_name == "## Fix Strategy" and _is_platform_quality_check(context):
+    return (
+      "## Fix Strategy\n"
+      "\n"
+      "Apply the smallest safe fixes first, rerun only the impacted checks after each iteration, and "
+      "stop when the remaining failures require broader product or architecture decisions.\n"
+    )
+
   humanized = section_name.removeprefix("## ").strip()
   return (
     f"{section_name}\n"
@@ -184,10 +306,12 @@ def extract_scaffolder_owned(markdown_text: str) -> dict[str, str]:
 
 
 __all__ = [
+  "DEFAULT_SKILL_IMPLEMENTATION_FILE",
   "ScaffoldTemplateContext",
   "extract_scaffolder_owned",
   "render_default_section",
   "render_execution_mode_reporting",
   "render_project_overrides",
+  "render_skill_bootstrap",
   "render_telemetry_ceremony_hooks",
 ]

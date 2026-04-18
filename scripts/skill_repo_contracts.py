@@ -2,6 +2,14 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from skill_bill.shell_content_contract import (
+  ShellContentContractError,
+  discover_installable_pack_skills,
+  load_platform_pack,
+)
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 ORCHESTRATION_PLAYBOOKS: dict[str, str] = {
   "stack-routing": "orchestration/stack-routing/PLAYBOOK.md",
@@ -15,45 +23,120 @@ ADDON_DIRECTORY_NAME = "addons"
 ADDON_IMPLEMENTATION_SUFFIX = "-implementation.md"
 ADDON_REVIEW_SUFFIX = "-review.md"
 ADDON_REPORTING_LINE = "Selected add-ons: none | <add-on slugs>"
-# TODO(SKILL-14 follow-up): migrate GOVERNED_STACK_ADDONS to discovery from
-# platform-packs/<slug>/platform.yaml (using the `governs_addons: true` flag
-# and the declared `addon_signals`). The SKILL-14 pilot intentionally scopes
-# add-on discovery out: AC9 (manifest-driven routing) covers **routing
-# playbooks and the validator**, and `GOVERNED_STACK_ADDONS` is an internal
-# implementation detail of add-on sidecar wiring. Promoting it to discovery
-# is mechanical but touches every skill sidecar graph, which is bigger than
-# this pilot. Tracking in SKILL-15.
-GOVERNED_STACK_ADDONS: dict[str, tuple[str, ...]] = {
-  "kmp": (
-    "android-compose",
-    "android-navigation",
-    "android-interop",
-    "android-design-system",
-    "android-r8",
+
+CODE_REVIEW_SIDECARS: tuple[str, ...] = (
+  "stack-routing.md",
+  "review-orchestrator.md",
+  "review-delegation.md",
+  "telemetry-contract.md",
+)
+QUALITY_CHECK_SIDECARS: tuple[str, ...] = ("stack-routing.md", "telemetry-contract.md")
+BASE_RUNTIME_SUPPORTING_FILES: dict[str, tuple[str, ...]] = {
+  "bill-code-review": (
+    "stack-routing.md",
+    "review-delegation.md",
+    "telemetry-contract.md",
+    "shell-content-contract.md",
   ),
-}
-GOVERNED_ADDON_SUPPORT_FILES: dict[str, tuple[str, ...]] = {
-  "kmp": (
-    "android-compose-edge-to-edge.md",
-    "android-compose-adaptive-layouts.md",
-  ),
+  "bill-quality-check": QUALITY_CHECK_SIDECARS,
+  "bill-feature-implement": ("telemetry-contract.md",),
+  "bill-feature-verify": ("telemetry-contract.md",),
+  "bill-pr-description": ("telemetry-contract.md",),
 }
 
-ADDON_SUPPORTING_FILE_TARGETS: dict[str, str] = {
-  f"{addon_slug}{ADDON_IMPLEMENTATION_SUFFIX}": f"skills/{stack}/addons/{addon_slug}{ADDON_IMPLEMENTATION_SUFFIX}"
-  for stack, addon_slugs in GOVERNED_STACK_ADDONS.items()
-  for addon_slug in addon_slugs
-}
-ADDON_SUPPORTING_FILE_TARGETS.update({
-  f"{addon_slug}{ADDON_REVIEW_SUFFIX}": f"skills/{stack}/addons/{addon_slug}{ADDON_REVIEW_SUFFIX}"
-  for stack, addon_slugs in GOVERNED_STACK_ADDONS.items()
-  for addon_slug in addon_slugs
-})
-ADDON_SUPPORTING_FILE_TARGETS.update({
-  file_name: f"skills/{stack}/addons/{file_name}"
-  for stack, file_names in GOVERNED_ADDON_SUPPORT_FILES.items()
-  for file_name in file_names
-})
+
+def _iter_child_directories(root: Path) -> tuple[Path, ...]:
+  if not root.is_dir():
+    return ()
+  return tuple(
+    entry
+    for entry in sorted(root.iterdir())
+    if entry.is_dir() and not entry.name.startswith(".")
+  )
+
+
+def _discover_addon_inventory(root: Path) -> tuple[dict[str, tuple[str, ...]], dict[str, tuple[str, ...]]]:
+  governed_addons: dict[str, tuple[str, ...]] = {}
+  support_files: dict[str, tuple[str, ...]] = {}
+  packs_root = root / "platform-packs"
+  for platform_dir in _iter_child_directories(packs_root):
+    addons_dir = platform_dir / ADDON_DIRECTORY_NAME
+    if not addons_dir.is_dir():
+      continue
+
+    addon_slugs: set[str] = set()
+    topic_files: list[str] = []
+    for file_path in sorted(addons_dir.glob("*.md")):
+      file_name = file_path.name
+      if file_name.endswith(ADDON_IMPLEMENTATION_SUFFIX):
+        addon_slugs.add(file_name[: -len(ADDON_IMPLEMENTATION_SUFFIX)])
+        continue
+      if file_name.endswith(ADDON_REVIEW_SUFFIX):
+        addon_slugs.add(file_name[: -len(ADDON_REVIEW_SUFFIX)])
+        continue
+      topic_files.append(file_name)
+
+    governed_addons[platform_dir.name] = tuple(sorted(addon_slugs))
+    support_files[platform_dir.name] = tuple(topic_files)
+
+  return governed_addons, support_files
+
+
+def compute_addon_supporting_file_targets(root: Path) -> dict[str, str]:
+  governed_addons, support_files = _discover_addon_inventory(root)
+  targets: dict[str, str] = {}
+
+  for stack, addon_slugs in governed_addons.items():
+    for addon_slug in addon_slugs:
+      targets[f"{addon_slug}{ADDON_IMPLEMENTATION_SUFFIX}"] = (
+        f"platform-packs/{stack}/addons/{addon_slug}{ADDON_IMPLEMENTATION_SUFFIX}"
+      )
+      targets[f"{addon_slug}{ADDON_REVIEW_SUFFIX}"] = (
+        f"platform-packs/{stack}/addons/{addon_slug}{ADDON_REVIEW_SUFFIX}"
+      )
+
+  for stack, file_names in support_files.items():
+    for file_name in file_names:
+      targets[file_name] = f"platform-packs/{stack}/addons/{file_name}"
+
+  return targets
+
+
+def _addon_review_sidecars_for_platform(root: Path, platform: str) -> tuple[str, ...]:
+  governed_addons, support_files = _discover_addon_inventory(root)
+  return (
+    tuple(f"{addon_slug}{ADDON_REVIEW_SUFFIX}" for addon_slug in governed_addons.get(platform, ()))
+    + support_files.get(platform, ())
+  )
+
+
+def compute_runtime_supporting_files(root: Path) -> dict[str, tuple[str, ...]]:
+  """Return required sibling sidecars per skill name.
+
+  Sidecars stay anchored to the skill directory that owns canonical
+  ``SKILL.md``. Split-layout skills may also ship ``implementation.md``, but
+  that does not change sidecar names, locations, or lookup rules.
+  """
+  runtime_supporting_files = dict(BASE_RUNTIME_SUPPORTING_FILES)
+  for pack_dir in _iter_child_directories(root / "platform-packs"):
+    try:
+      pack = load_platform_pack(pack_dir)
+    except ShellContentContractError:
+      continue
+    addon_review_sidecars = _addon_review_sidecars_for_platform(root, pack.slug)
+    for skill in discover_installable_pack_skills(pack):
+      if skill.family == "code-review-baseline":
+        runtime_supporting_files[skill.skill_name] = CODE_REVIEW_SIDECARS + addon_review_sidecars
+      elif skill.family == "quality-check":
+        runtime_supporting_files[skill.skill_name] = QUALITY_CHECK_SIDECARS
+      else:
+        runtime_supporting_files[skill.skill_name] = addon_review_sidecars
+
+  return runtime_supporting_files
+
+
+GOVERNED_STACK_ADDONS, GOVERNED_ADDON_SUPPORT_FILES = _discover_addon_inventory(REPO_ROOT)
+ADDON_SUPPORTING_FILE_TARGETS: dict[str, str] = compute_addon_supporting_file_targets(REPO_ROOT)
 
 SUPPORTING_FILE_TARGETS: dict[str, str] = {
   "stack-routing.md": ORCHESTRATION_PLAYBOOKS["stack-routing"],
@@ -64,57 +147,7 @@ SUPPORTING_FILE_TARGETS: dict[str, str] = {
   **ADDON_SUPPORTING_FILE_TARGETS,
 }
 
-RUNTIME_SUPPORTING_FILES: dict[str, tuple[str, ...]] = {
-  "bill-code-review": (
-    "stack-routing.md",
-    "review-delegation.md",
-    "telemetry-contract.md",
-    "shell-content-contract.md",
-  ),
-  "bill-quality-check": ("stack-routing.md", "telemetry-contract.md"),
-  "bill-agent-config-quality-check": ("stack-routing.md", "telemetry-contract.md"),
-  "bill-go-quality-check": ("stack-routing.md", "telemetry-contract.md"),
-  "bill-kotlin-quality-check": ("stack-routing.md", "telemetry-contract.md"),
-  "bill-php-quality-check": ("stack-routing.md", "telemetry-contract.md"),
-  "bill-agent-config-code-review": ("stack-routing.md", "review-orchestrator.md", "review-delegation.md", "telemetry-contract.md"),
-  "bill-kotlin-code-review": ("stack-routing.md", "review-orchestrator.md", "review-delegation.md", "telemetry-contract.md"),
-  "bill-backend-kotlin-code-review": ("stack-routing.md", "review-orchestrator.md", "review-delegation.md", "telemetry-contract.md"),
-  "bill-kmp-code-review": (
-    "stack-routing.md",
-    "review-orchestrator.md",
-    "review-delegation.md",
-    "telemetry-contract.md",
-    "android-compose-review.md",
-    "android-navigation-review.md",
-    "android-interop-review.md",
-    "android-design-system-review.md",
-    "android-r8-review.md",
-    "android-compose-edge-to-edge.md",
-    "android-compose-adaptive-layouts.md",
-  ),
-  "bill-kmp-code-review-ui": (
-    "android-compose-review.md",
-    "android-navigation-review.md",
-    "android-interop-review.md",
-    "android-design-system-review.md",
-    "android-compose-edge-to-edge.md",
-    "android-compose-adaptive-layouts.md",
-  ),
-  "bill-php-code-review": ("stack-routing.md", "review-orchestrator.md", "review-delegation.md", "telemetry-contract.md"),
-  "bill-go-code-review": ("stack-routing.md", "review-orchestrator.md", "review-delegation.md", "telemetry-contract.md"),
-  "bill-feature-implement": (
-    "telemetry-contract.md",
-    "android-compose-implementation.md",
-    "android-navigation-implementation.md",
-    "android-interop-implementation.md",
-    "android-design-system-implementation.md",
-    "android-r8-implementation.md",
-    "android-compose-edge-to-edge.md",
-    "android-compose-adaptive-layouts.md",
-  ),
-  "bill-feature-verify": ("telemetry-contract.md",),
-  "bill-pr-description": ("telemetry-contract.md",),
-}
+RUNTIME_SUPPORTING_FILES: dict[str, tuple[str, ...]] = compute_runtime_supporting_files(REPO_ROOT)
 
 REVIEW_DELEGATION_REQUIRED_SECTIONS = (
   "## GitHub Copilot CLI",
@@ -123,13 +156,12 @@ REVIEW_DELEGATION_REQUIRED_SECTIONS = (
   "## GLM",
 )
 
-PORTABLE_REVIEW_SKILLS = (
-  "bill-agent-config-code-review",
-  "bill-kotlin-code-review",
-  "bill-backend-kotlin-code-review",
-  "bill-kmp-code-review",
-  "bill-php-code-review",
-  "bill-go-code-review",
+PORTABLE_REVIEW_SKILLS = tuple(
+  skill_name
+  for skill_name in RUNTIME_SUPPORTING_FILES
+  if skill_name.startswith("bill-")
+  and skill_name.endswith("-code-review")
+  and skill_name != "bill-code-review"
 )
 
 REVIEW_RUN_ID_PLACEHOLDER = "Review run ID: <review-run-id>"
@@ -190,5 +222,12 @@ def governed_addon_slugs_for_stack(stack: str) -> tuple[str, ...]:
 def supporting_file_targets(root: Path) -> dict[str, Path]:
   return {
     file_name: root / relative_path
-    for file_name, relative_path in SUPPORTING_FILE_TARGETS.items()
+    for file_name, relative_path in {
+      "stack-routing.md": ORCHESTRATION_PLAYBOOKS["stack-routing"],
+      "review-orchestrator.md": ORCHESTRATION_PLAYBOOKS["review-orchestrator"],
+      "review-delegation.md": ORCHESTRATION_PLAYBOOKS["review-delegation"],
+      "telemetry-contract.md": ORCHESTRATION_PLAYBOOKS["telemetry-contract"],
+      "shell-content-contract.md": ORCHESTRATION_PLAYBOOKS["shell-content-contract"],
+      **compute_addon_supporting_file_targets(root),
+    }.items()
   }
