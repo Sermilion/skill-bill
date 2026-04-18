@@ -84,6 +84,19 @@ class UninstallScriptTest(unittest.TestCase):
       self.assertEqual(second.returncode, 0, second.stdout + second.stderr)
       self.assertIn("Removed installs: 0", second.stdout)
 
+  def test_uninstall_removes_legacy_backend_kotlin_alias_symlink(self) -> None:
+    with tempfile.TemporaryDirectory() as temp_home:
+      self.prepare_agent_homes(temp_home)
+      legacy_target = Path(temp_home) / "legacy-backend-target"
+      legacy_target.write_text("legacy", encoding="utf-8")
+      legacy_symlink = Path(temp_home) / ".copilot" / "skills" / "bill-backend-kotlin-code-review"
+      legacy_symlink.symlink_to(legacy_target)
+
+      uninstall = self.run_script(UNINSTALL_SCRIPT, temp_home)
+      self.assertEqual(uninstall.returncode, 0, uninstall.stdout + uninstall.stderr)
+      self.assertFalse(legacy_symlink.exists())
+      self.assertIn("removed bill-backend-kotlin-code-review", uninstall.stdout)
+
   def prepare_agent_homes(self, temp_home: str) -> None:
     for relative_dir in (
       ".copilot/skills",

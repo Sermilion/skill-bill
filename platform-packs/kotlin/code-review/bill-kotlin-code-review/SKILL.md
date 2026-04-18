@@ -1,6 +1,6 @@
 ---
 name: bill-kotlin-code-review
-description: Use when conducting a thorough Kotlin PR code review across shared, backend/server, or generic Kotlin code, or when providing the baseline Kotlin review layer for Android/KMP reviews. Select shared Kotlin specialists for architecture, correctness, security, performance, and testing. Produces a structured review with risk register and prioritized action items. Use when user mentions Kotlin review, review Kotlin PR, Kotlin code review, or asks to review .kt files.
+description: Use when conducting a thorough Kotlin PR code review across shared, backend/server, or generic Kotlin code, or when providing the baseline Kotlin review layer for Android/KMP reviews. Select shared Kotlin specialists for architecture, correctness, security, performance, and testing, and add backend-focused specialists for API contracts, persistence, and reliability when server signals are present. Produces a structured review with risk register and prioritized action items. Use when user mentions Kotlin review, review Kotlin PR, Kotlin code review, or asks to review .kt files.
 ---
 
 # Adaptive Kotlin PR Review
@@ -64,7 +64,7 @@ Classify the review as one of:
 
 - If this skill is invoked from `bill-kmp-code-review`, accept Android/KMP scope and classify it as `kmp-baseline`. In that mode, review only shared Kotlin concerns and let `bill-kmp-code-review` add mobile-specific specialists.
 - If strong Android/KMP markers are present and this skill is invoked standalone, clearly say that `bill-kmp-code-review` is required for full Android/KMP coverage. Continue only if the caller explicitly wants the baseline Kotlin layer.
-- Backend/server markers stay on the `kotlin` route. Use the standard Kotlin specialists and call out backend-specific risk explicitly in findings because this repo no longer ships a separate built-in backend pack.
+- Backend/server markers stay on the `kotlin` route. Select backend-focused Kotlin specialists for API contracts, persistence, and reliability when backend/server signals are present.
 - Otherwise use the `kotlin` route.
 
 ---
@@ -88,12 +88,15 @@ Architecture review is relevant for every non-trivial change.
 | Auth, tokens, keys, passwords, encryption, HTTP clients, interceptors, sensitive data | `bill-kotlin-code-review-security` |
 | Heavy computation, blocking I/O, retry/polling loops, bulk data processing, redundant I/O | `bill-kotlin-code-review-performance` |
 | Test files modified (`*Test.kt`), new test classes, mock setup changes, coverage-padding or tautological tests | `bill-kotlin-code-review-testing` |
+| Routes/controllers, request/response DTOs, serializers, content negotiation, validation, status-code mapping, OpenAPI/schema changes | `bill-kotlin-code-review-api-contracts` |
+| Repositories/DAOs, SQL, ORM mappings, transactions, migrations, optimistic locking, upserts, bulk writes | `bill-kotlin-code-review-persistence` |
+| Timeouts, retries, circuit breakers, queues, schedulers, idempotency, caching, metrics, tracing, startup/shutdown lifecycle | `bill-kotlin-code-review-reliability` |
 
 ### Step 4: Apply minimum
 
 - Minimum 2 agents (architecture + at least one other)
 - If no additional triggers match, include `bill-kotlin-code-review-platform-correctness` as the default second specialist review
-- Maximum 5 agents
+- Maximum 8 agents so backend-heavy Kotlin diffs can include the restored server specialists without dropping shared Kotlin coverage
 - Do not run KMP-only specialists from this skill; leave those to the platform-specific override that owns them
 
 ### Step 5: Choose execution mode

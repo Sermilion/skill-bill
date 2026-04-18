@@ -377,7 +377,19 @@ class FeatureImplementRoutingContractTest(unittest.TestCase):
       KOTLIN_CODE_REVIEW,
     )
     self.assertIn(
-      "- Backend/server markers stay on the `kotlin` route. Use the standard Kotlin specialists and call out backend-specific risk explicitly in findings because this repo no longer ships a separate built-in backend pack.",
+      "- Backend/server markers stay on the `kotlin` route. Select backend-focused Kotlin specialists for API contracts, persistence, and reliability when backend/server signals are present.",
+      KOTLIN_CODE_REVIEW,
+    )
+    self.assertIn(
+      "`bill-kotlin-code-review-api-contracts`",
+      KOTLIN_CODE_REVIEW,
+    )
+    self.assertIn(
+      "`bill-kotlin-code-review-persistence`",
+      KOTLIN_CODE_REVIEW,
+    )
+    self.assertIn(
+      "`bill-kotlin-code-review-reliability`",
       KOTLIN_CODE_REVIEW,
     )
 

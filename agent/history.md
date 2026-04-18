@@ -1,3 +1,11 @@
+## [2026-04-18] restore-kotlin-backend-review-depth
+Areas: platform-packs/kotlin, README.md, tests/
+- Restored backend review depth inside the built-in `kotlin` pack instead of reviving a separate `backend-kotlin` pack: added `api-contracts`, `persistence`, and `reliability` specialist skills under `platform-packs/kotlin/code-review/`. reusable
+- Updated `platform-packs/kotlin/platform.yaml` and `bill-kotlin-code-review` so backend/server signals stay on the Kotlin route but now select the backend specialists explicitly, preserving the simpler two-pack repo story while bringing server review depth back. reusable
+- Expanded README and contract tests to pin the Kotlin pack at 9 code-review skills plus `bill-kotlin-quality-check`, and to assert the backend-specialist routing text so future pack simplifications do not silently drop server review coverage again. reusable
+Feature flag: N/A
+Acceptance criteria: 4/4 implemented
+
 ## [2026-04-18] narrow-built-in-packs-to-kotlin-and-kmp
 Areas: README.md, AGENTS.md, CLAUDE.md, install.sh, platform-packs/{kotlin,kmp}, platform-packs/{agent-config,backend-kotlin,go,php}, scripts/, skill_bill/, skills/base/bill-quality-check/, tests/, docs/
 - Reframed the repo as the governed skill-management system plus two built-in reference packs only: `kotlin` and `kmp`. Removed the shipped `agent-config`, `backend-kotlin`, `go`, and `php` pack roots, narrowed installer/catalog/help surfaces to the remaining built-ins, and kept `platform-packs/` as the pack home. reusable

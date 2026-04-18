@@ -19,6 +19,9 @@ declared_code_review_areas:
   - platform-correctness
   - security
   - testing
+  - api-contracts
+  - persistence
+  - reliability
 
 declared_files:
   baseline: code-review/bill-kotlin-code-review/SKILL.md
@@ -28,5 +31,8 @@ declared_files:
     platform-correctness: code-review/bill-kotlin-code-review-platform-correctness/SKILL.md
     security: code-review/bill-kotlin-code-review-security/SKILL.md
     testing: code-review/bill-kotlin-code-review-testing/SKILL.md
+    api-contracts: code-review/bill-kotlin-code-review-api-contracts/SKILL.md
+    persistence: code-review/bill-kotlin-code-review-persistence/SKILL.md
+    reliability: code-review/bill-kotlin-code-review-reliability/SKILL.md
 
 declared_quality_check_file: quality-check/bill-kotlin-quality-check/SKILL.md

@@ -90,7 +90,8 @@ A single `feature-implement` run chains 10-12 skill invocations:
 │       ├── architecture (inline pass or subagent)
 │       ├── platform-correctness (inline pass or subagent)
 │       ├── security (inline pass or subagent, if applicable)
-│       └── testing (inline pass or subagent, if applicable)
+│       ├── testing (inline pass or subagent, if applicable)
+│       └── api-contracts / persistence / reliability (inline pass or subagent, when backend signals are present)
 ├── /bill-quality-check (auto-routed)
 │   └── e.g. bill-kotlin-quality-check
 ├── completeness audit
@@ -131,7 +132,7 @@ Skill Bill keeps its first-party reference surface intentionally small. The gove
 
 | Tier | Platforms | What you get | Skill count |
 |------|-----------|-------------|-------------|
-| **Deep** | Kotlin, KMP | Multi-layer specialist routing (KMP → Kotlin baseline), 12 governed Android add-ons (Compose, navigation, interop, design-system, R8), inline/delegated execution modes, quality-check | 10 skills + 12 add-ons |
+| **Deep** | Kotlin, KMP | Multi-layer specialist routing (KMP → Kotlin baseline), 12 governed Android add-ons (Compose, navigation, interop, design-system, R8), inline/delegated execution modes, quality-check | 13 skills + 12 add-ons |
 
 Teams can still create other platform packs. The point of the built-in inventory is to demonstrate the governance model, not to keep every stack in this repository forever.
 
@@ -225,9 +226,9 @@ The skills below ship in this repo as the built-in governance system plus the tw
 |-------|---------|
 | `/bill-code-review` | Shell-owned code-review router; routes to the matching platform pack based on manifest-declared signals |
 
-### Platform Packs — Kotlin (6 skills)
+### Platform Packs — Kotlin (9 skills)
 
-Built-in first-party reference pack at `platform-packs/kotlin/`. Covers shared Kotlin code and acts as the baseline layer for the KMP pack.
+Built-in first-party reference pack at `platform-packs/kotlin/`. Covers shared Kotlin plus backend/server Kotlin code and acts as the baseline layer for the KMP pack.
 
 | Skill | Purpose |
 |-------|---------|
@@ -237,6 +238,9 @@ Built-in first-party reference pack at `platform-packs/kotlin/`. Covers shared K
 | `/bill-kotlin-code-review-performance` | Kotlin performance review |
 | `/bill-kotlin-code-review-security` | Kotlin security review |
 | `/bill-kotlin-code-review-testing` | Kotlin test quality review |
+| `/bill-kotlin-code-review-api-contracts` | Kotlin backend API contract review |
+| `/bill-kotlin-code-review-persistence` | Kotlin backend persistence review |
+| `/bill-kotlin-code-review-reliability` | Kotlin backend reliability review |
 
 ### Platform Packs — KMP (3 skills)
 
@@ -334,7 +338,7 @@ That last file is the canonical map for:
 
 Current shipped platform packs (under `platform-packs/`):
 
-- `kotlin` — built-in first-party reference pack with 6 code-review skills plus `bill-kotlin-quality-check`
+- `kotlin` — built-in first-party reference pack with 9 code-review skills plus `bill-kotlin-quality-check`
 - `kmp` — built-in first-party reference pack with 3 code-review skills and 12 governed Android add-ons; quality-check currently falls back to `kotlin`
 
 Other stacks belong in separately authored or forked platform packs created with the scaffolder, not in this repo's shipped surface.

@@ -188,6 +188,22 @@ class InstallScriptTest(unittest.TestCase):
       self.assertEqual(installed_skill.resolve(), ROOT / "skills" / "base" / "bill-code-review")
       self.assertTrue((installed_skill / "stack-routing.md").exists())
 
+  def test_install_removes_legacy_backend_kotlin_aliases(self) -> None:
+    with tempfile.TemporaryDirectory() as temp_home:
+      legacy_target = Path(temp_home) / "legacy-backend-skill"
+      legacy_target.write_text("legacy", encoding="utf-8")
+      legacy_symlink = Path(temp_home) / ".copilot" / "skills" / "bill-backend-kotlin-code-review-reliability"
+      legacy_symlink.parent.mkdir(parents=True, exist_ok=True)
+      legacy_symlink.symlink_to(legacy_target)
+
+      result = self.run_installer(temp_home, "copilot\nKotlin\n")
+      self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+      self.assertFalse(legacy_symlink.exists())
+      self.assertIn(
+        "removed bill-backend-kotlin-code-review-reliability",
+        result.stdout,
+      )
+
   def test_installer_writes_telemetry_config_with_default_anonymous(self) -> None:
     with tempfile.TemporaryDirectory() as temp_home:
       result = self.run_installer(temp_home, "copilot\nKotlin\n")
