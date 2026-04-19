@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from pathlib import Path
 import sys
 
 from skill_bill import __version__
@@ -488,7 +489,20 @@ def _prompt_yes_no(prompt: str, *, default: bool = False) -> bool:
     print("Enter yes or no.")
 
 
-def _prompt_new_skill_interactively() -> dict:
+def _prompt_choice(prompt: str, choices: dict[str, str]) -> str:
+  while True:
+    raw = _prompt_nonempty(prompt).strip().lower()
+    if raw in choices:
+      return choices[raw]
+    print(f"Choose one of: {', '.join(choices)}")
+
+
+def _platform_pack_exists(platform: str, *, repo_root: Path | None = None) -> bool:
+  root = repo_root or Path.cwd()
+  return (root / "platform-packs" / platform / "platform.yaml").exists()
+
+
+def _prompt_new_skill_interactively(*, repo_root: Path | None = None) -> dict:
   """Collect the interactive payload without an LLM.
 
   The CLI should still feel usable when no agent is involved, so it asks in
@@ -496,40 +510,54 @@ def _prompt_new_skill_interactively() -> dict:
   """
   from skill_bill.scaffold import platform_pack_preset
 
-  print("What do you want to create?")
-  print("1. New platform skill set")
-  print("2. Cross-platform skill")
-  print("3. Platform-specific override")
-  print("4. Code-review specialist")
-  print("5. Platform add-on")
-
-  kind_choice = _prompt_nonempty("Choose 1-5: ")
-  kind_map = {
-    "1": "platform-pack",
-    "2": "horizontal",
-    "3": "platform-override-piloted",
-    "4": "code-review-area",
-    "5": "add-on",
-    "platform-pack": "platform-pack",
-    "horizontal": "horizontal",
-    "platform-override-piloted": "platform-override-piloted",
-    "code-review-area": "code-review-area",
-    "add-on": "add-on",
-  }
-  kind = kind_map.get(kind_choice.strip().lower(), kind_choice.strip())
-
   payload: dict = {
     "scaffold_payload_version": "1.0",
-    "kind": kind,
   }
-  if kind == "platform-pack":
-    platform = _prompt_nonempty("New platform slug (example: java): ")
-    payload["platform"] = platform
-    include_specialists = _prompt_yes_no(
-      "Include code-review specialist stubs now?",
-      default=False,
+  platform = _prompt_nonempty("Platform name: ").strip()
+  if platform.lower() == "cross-stack":
+    payload["kind"] = "horizontal"
+    payload["name"] = _prompt_nonempty("Skill name (bill-...): ")
+    description = input("What should it do? ").strip()
+    if description:
+      payload["description"] = description
+    return payload
+
+  payload["platform"] = platform
+  if _platform_pack_exists(platform, repo_root=repo_root):
+    print("What should this platform get?")
+    print("1. Baseline")
+    print("2. Baseline + Code Review Specialists")
+    print("3. Code-Review Specialist")
+    print("4. Add-On")
+    print("5. Platform Override")
+    selection = _prompt_choice(
+      "Choose 1-5: ",
+      {
+        "1": "platform-pack-starter",
+        "2": "platform-pack-full",
+        "3": "code-review-area",
+        "4": "add-on",
+        "5": "platform-override-piloted",
+      },
     )
-    payload["skeleton_mode"] = "full" if include_specialists else "starter"
+  else:
+    print("New platform pack:")
+    print("1. Baseline")
+    print("2. Baseline + Code Review Specialists")
+    selection = _prompt_choice(
+      "Choose 1-2: ",
+      {
+        "1": "platform-pack-starter",
+        "2": "platform-pack-full",
+      },
+    )
+
+  if selection.startswith("platform-pack"):
+    payload["kind"] = "platform-pack"
+    payload["platform"] = platform
+    payload["skeleton_mode"] = (
+      "full" if selection == "platform-pack-full" else "starter"
+    )
     display_name = input("Display name (blank to derive from slug): ").strip()
     if display_name:
       payload["display_name"] = display_name
@@ -564,16 +592,8 @@ def _prompt_new_skill_interactively() -> dict:
     )
     return payload
 
-  if kind == "horizontal":
-    payload["name"] = _prompt_nonempty("Skill name (bill-...): ")
-    description = input("One-line description (optional): ").strip()
-    if description:
-      payload["description"] = description
-    return payload
-
-  if kind == "platform-override-piloted":
-    platform = _prompt_nonempty("Existing platform slug: ")
-    payload["platform"] = platform
+  if selection == "platform-override-piloted":
+    payload["kind"] = "platform-override-piloted"
     family = _prompt_nonempty(
       "Family (code-review / quality-check / feature-implement / feature-verify): "
     )
@@ -586,8 +606,8 @@ def _prompt_new_skill_interactively() -> dict:
       payload["description"] = description
     return payload
 
-  if kind == "code-review-area":
-    payload["platform"] = _prompt_nonempty("Existing platform slug: ")
+  if selection == "code-review-area":
+    payload["kind"] = "code-review-area"
     payload["area"] = _prompt_nonempty(
       "Area (architecture / performance / platform-correctness / security / testing / api-contracts / persistence / reliability / ui / ux-accessibility): "
     )
@@ -599,8 +619,8 @@ def _prompt_new_skill_interactively() -> dict:
       payload["description"] = description
     return payload
 
-  if kind == "add-on":
-    payload["platform"] = _prompt_nonempty("Existing platform slug: ")
+  if selection == "add-on":
+    payload["kind"] = "add-on"
     payload["name"] = _prompt_nonempty("Add-on slug (no bill- prefix): ")
     description = input("One-line description (optional): ").strip()
     if description:

@@ -3,18 +3,6 @@
 You are an experienced Android/KMP architect conducting a code review.
 
 Your job is to preserve Android/KMP review depth without duplicating the shared Kotlin review logic.
-## Setup
-
-Determine the review scope:
-- Specific files (list paths)
-- Git commits (hashes/range)
-- Staged changes (`git diff --cached`; index only)
-- Unstaged changes (`git diff`; working tree only)
-- Combined working tree (`git diff --cached` + `git diff`) only when the caller explicitly asks for all local changes
-- Entire PR
-
-Resolve the scope before reviewing. If the caller asks for staged changes, inspect only the staged diff and keep unstaged edits out of findings except for repo markers needed for classification.
-
 ---
 
 ## Project Classification
@@ -65,7 +53,7 @@ After the stack is already classified as `kmp`, resolve governed add-ons before 
 
 ### Step 1: Choose execution mode
 
-Select `inline` or `delegated` using [review-orchestrator.md](review-orchestrator.md).
+Select `inline` or `delegated` using the shared execution-mode contract.
 
 - Use `inline` only when the Android/KMP review scope stays small and low-risk under the shared execution-mode contract
 - Use `delegated` when the diff is large, mobile or backend specialist risk is present, mixed scope is meaningfully involved, or the safest choice is unclear
@@ -87,7 +75,7 @@ When invoking the baseline review in either execution mode:
 
 If execution mode is `inline`, apply the selected baseline review inline in the current thread.
 
-If execution mode is `delegated`, run the selected baseline review as a delegated subagent and use the runtime-specific delegation contract from [review-delegation.md](review-delegation.md).
+If execution mode is `delegated`, run the selected baseline review as a delegated subagent and use the runtime-specific delegation contract linked from the wrapper.
 
 ### Step 3: Analyze the diff and select KMP-specific agents
 
@@ -119,12 +107,12 @@ This is a lightweight file-level classification (names + imports), not a full re
 If execution mode is `inline`:
 - run the selected KMP specialist review passes sequentially in the current thread
 - read each KMP specialist skill file as the primary rubric for that pass
-- apply the shared specialist contract in [review-orchestrator.md](review-orchestrator.md)
+- apply the shared execution-mode and reporting contract from the wrapper-linked sidecars
 - keep findings attributed to each layer before merging and deduplicating them for the final report
 
 If execution mode is `delegated`:
 - run one delegated subagent per selected KMP specialist review pass
-- pass the specialist-scoped file list (from Step 3.5), applicable active learnings, instructions to read the KMP specialist skill file, the parent thread's model when the runtime supports delegated-worker model inheritance, and the shared specialist contract in [specialist-contract.md](specialist-contract.md)
+- pass the specialist-scoped file list (from Step 3.5), applicable active learnings, instructions to read the KMP specialist skill file, the parent thread's model when the runtime supports delegated-worker model inheritance, and the shared specialist contract from the wrapper-linked sidecars
 - if delegated review is required for this scope but the current runtime lacks a documented delegation path or cannot start the required subagent(s), stop and report that delegated review is required for this scope but unavailable on the current runtime
 
 If no KMP-only triggers match but Android/KMP signals are clearly present, keep the baseline review output and state that no extra KMP-only specialist was needed for this scope.

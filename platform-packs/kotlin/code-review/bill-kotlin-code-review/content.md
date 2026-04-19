@@ -3,18 +3,6 @@
 You are an experienced Kotlin architect conducting a code review.
 
 This skill owns the baseline Kotlin review layer. It covers shared Kotlin concerns for libraries, CLIs, shared utilities, and the common Kotlin layer that platform-specific review overrides build on top of.
-## Setup
-
-Determine the review scope:
-- Specific files (list paths)
-- Git commits (hashes/range)
-- Staged changes (`git diff --cached`; index only)
-- Unstaged changes (`git diff`; working tree only)
-- Combined working tree (`git diff --cached` + `git diff`) only when the caller explicitly asks for all local changes
-- Entire PR
-
-Resolve the scope before reviewing. If the caller asks for staged changes, inspect only the staged diff and keep unstaged edits out of findings except for repo markers needed for classification.
-
 ---
 
 ## Kotlin-Family Classification
@@ -75,7 +63,7 @@ Architecture review is relevant for every non-trivial change.
 
 ### Step 5: Choose execution mode
 
-Select `inline` or `delegated` using [review-orchestrator.md](review-orchestrator.md).
+Select `inline` or `delegated` using the shared execution-mode contract.
 
 - Use `inline` only when the Kotlin review scope stays small and low-risk under the shared execution-mode contract
 - Use `delegated` when the diff is large, the risk profile is high, multiple layers are meaningfully involved, or the safest choice is unclear
@@ -98,12 +86,12 @@ This is a lightweight file-level classification (names + imports), not a full re
 If execution mode is `inline`:
 - run the selected specialist review passes sequentially in the current thread
 - read each specialist skill file as the primary rubric for that pass
-- apply the shared specialist contract in [review-orchestrator.md](review-orchestrator.md)
+- apply the shared execution-mode and reporting contract from the wrapper-linked sidecars
 - keep findings attributed to each specialist before merging and deduplicating them for the final report
 
 If execution mode is `delegated`:
 - run one delegated subagent per selected specialist review pass
-- pass the specialist-scoped file list (from Step 5.5), applicable active learnings, instructions to read the specialist skill file, the parent thread's model when the runtime supports delegated-worker model inheritance, and the shared specialist contract in [specialist-contract.md](specialist-contract.md)
+- pass the specialist-scoped file list (from Step 5.5), applicable active learnings, instructions to read the specialist skill file, the parent thread's model when the runtime supports delegated-worker model inheritance, and the shared specialist contract from the wrapper-linked sidecars
 - if delegated review is required for this scope but the current runtime lacks a documented delegation path or cannot start the required subagent(s), stop and report that delegated review is required for this scope but unavailable on the current runtime
 
 ---

@@ -474,7 +474,7 @@ def validate_runtime_supporting_files(
   content_file = skill_file.parent / "content.md"
   if content_file.is_file():
     content_text = content_file.read_text(encoding="utf-8")
-  combined_text = text if not content_text else f"{text}\n{content_text}"
+  combined_text = text
 
   for pattern, message in EXTERNAL_PLAYBOOK_REFERENCE_PATTERNS:
     match = pattern.search(combined_text)
@@ -491,6 +491,10 @@ def validate_runtime_supporting_files(
         issues.append(
           f"{skill_file}: must reference local supporting file '{file_name}' or describe pack-owned add-on support-file selection"
         )
+    elif file_name in ADDON_SUPPORTING_FILE_TARGETS:
+      addon_combined_text = text if not content_text else f"{text}\n{content_text}"
+      if file_name not in addon_combined_text:
+        issues.append(f"{skill_file}: must reference local supporting file '{file_name}'")
     elif file_name not in combined_text:
       issues.append(f"{skill_file}: must reference local supporting file '{file_name}'")
     if not supporting_file.exists():

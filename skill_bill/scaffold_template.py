@@ -179,8 +179,17 @@ def render_ceremony_section(context: ScaffoldTemplateContext) -> str:
   supporting file without pushing shared contract prose back into ``content.md``.
   """
   body = CANONICAL_CEREMONY_SECTION
+  if _skill_requires_review_scope(context.skill_name):
+    body += "\nDetermine the review scope using [review-scope.md](review-scope.md).\n"
+    body += (
+      "Resolve the scope before reviewing. If the caller asks for staged changes, "
+      "inspect only the staged diff and keep unstaged edits out of findings except "
+      "for repo markers needed for classification.\n"
+    )
   if _skill_requires_stack_routing(context.skill_name):
     body += "\nWhen stack routing applies, follow [stack-routing.md](stack-routing.md).\n"
+  if _skill_requires_specialist_contract(context.skill_name):
+    body += "\nWhen delegated specialist review applies, use [specialist-contract.md](specialist-contract.md).\n"
   if _skill_requires_review_delegation(context.skill_name):
     body += "\nWhen delegated review execution applies, follow [review-delegation.md](review-delegation.md).\n"
   if _skill_requires_review_orchestrator(context.skill_name):
@@ -530,6 +539,12 @@ def _skill_requires_telemetry_contract(skill_name: str) -> bool:
   return False
 
 
+def _skill_requires_review_scope(skill_name: str) -> bool:
+  if skill_name == "bill-code-review":
+    return True
+  return skill_name.startswith("bill-") and skill_name.endswith("-code-review")
+
+
 def _skill_requires_review_orchestrator(skill_name: str) -> bool:
   if not skill_name.startswith("bill-"):
     return False
@@ -538,6 +553,12 @@ def _skill_requires_review_orchestrator(skill_name: str) -> bool:
   if "-code-review-" in skill_name:
     return True
   return False
+
+
+def _skill_requires_specialist_contract(skill_name: str) -> bool:
+  if skill_name == "bill-code-review":
+    return False
+  return skill_name.startswith("bill-") and skill_name.endswith("-code-review")
 
 
 def _skill_requires_stack_routing(skill_name: str) -> bool:

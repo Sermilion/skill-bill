@@ -4,6 +4,7 @@ from pathlib import Path
 
 
 ORCHESTRATION_PLAYBOOKS: dict[str, str] = {
+  "review-scope": "orchestration/review-scope/PLAYBOOK.md",
   "stack-routing": "orchestration/stack-routing/PLAYBOOK.md",
   "review-orchestrator": "orchestration/review-orchestrator/PLAYBOOK.md",
   "review-specialist-contract": "orchestration/review-orchestrator/specialist-contract.md",
@@ -61,6 +62,7 @@ ADDON_SUPPORTING_FILE_TARGETS.update({
 })
 
 _CODE_REVIEW_RUNTIME_SUPPORTING_FILES: tuple[str, ...] = (
+  "review-scope.md",
   "stack-routing.md",
   "review-orchestrator.md",
   "specialist-contract.md",
@@ -82,6 +84,7 @@ _QUALITY_CHECK_RUNTIME_SUPPORTING_FILES: tuple[str, ...] = (
 )
 
 SUPPORTING_FILE_TARGETS: dict[str, str] = {
+  "review-scope.md": ORCHESTRATION_PLAYBOOKS["review-scope"],
   "stack-routing.md": ORCHESTRATION_PLAYBOOKS["stack-routing"],
   "review-orchestrator.md": ORCHESTRATION_PLAYBOOKS["review-orchestrator"],
   "specialist-contract.md": ORCHESTRATION_PLAYBOOKS["review-specialist-contract"],
@@ -94,6 +97,7 @@ SUPPORTING_FILE_TARGETS: dict[str, str] = {
 
 RUNTIME_SUPPORTING_FILES: dict[str, tuple[str, ...]] = {
   "bill-code-review": (
+    "review-scope.md",
     "stack-routing.md",
     "review-delegation.md",
     "telemetry-contract.md",
@@ -103,6 +107,7 @@ RUNTIME_SUPPORTING_FILES: dict[str, tuple[str, ...]] = {
   "bill-quality-check": ("stack-routing.md", "telemetry-contract.md", "shell-ceremony.md"),
   "bill-kotlin-quality-check": ("stack-routing.md", "telemetry-contract.md", "shell-ceremony.md"),
   "bill-kotlin-code-review": (
+    "review-scope.md",
     "stack-routing.md",
     "review-orchestrator.md",
     "specialist-contract.md",
@@ -111,6 +116,7 @@ RUNTIME_SUPPORTING_FILES: dict[str, tuple[str, ...]] = {
     "shell-ceremony.md",
   ),
   "bill-kmp-code-review": (
+    "review-scope.md",
     "stack-routing.md",
     "review-orchestrator.md",
     "specialist-contract.md",

@@ -55,6 +55,11 @@ from skill_bill.scaffold_template import (  # noqa: E402
 
 
 FIXTURES_ROOT = ROOT / "tests" / "fixtures" / "scaffold"
+GOVERNED_CONTENT_AUTHORING_NOTE = (
+  "Author skill instructions only in sibling `content.md` files. "
+  "Keep scaffold-managed `SKILL.md` wrappers and `shell-ceremony.md` unchanged "
+  "unless you are intentionally changing the shared contract."
+)
 
 
 def _load_validate_skill_file():
@@ -171,6 +176,7 @@ def _seed_governed_skill(
     encoding="utf-8",
   )
   targets = {
+    "review-scope.md": repo / "orchestration" / "review-scope" / "PLAYBOOK.md",
     "shell-ceremony.md": repo / "orchestration" / "shell-content-contract" / "shell-ceremony.md",
     "telemetry-contract.md": repo / "orchestration" / "telemetry-contract" / "PLAYBOOK.md",
     "review-orchestrator.md": repo / "orchestration" / "review-orchestrator" / "PLAYBOOK.md",
@@ -426,32 +432,35 @@ class ScaffoldHappyPathsTest(unittest.TestCase):
 
     review_skill = pack_root / "code-review" / "bill-java-code-review" / "SKILL.md"
     quality_skill = pack_root / "quality-check" / "bill-java-quality-check" / "SKILL.md"
-    feature_implement_skill = (
-      self.repo / "skills" / "java" / "bill-java-feature-implement" / "SKILL.md"
-    )
-    feature_verify_skill = (
-      self.repo / "skills" / "java" / "bill-java-feature-verify" / "SKILL.md"
-    )
     self.assertTrue(review_skill.is_file())
     self.assertTrue(quality_skill.is_file())
-    self.assertTrue(feature_implement_skill.is_file())
-    self.assertTrue(feature_verify_skill.is_file())
-    self.assertTrue((feature_implement_skill.parent / "shell-ceremony.md").exists())
-    self.assertTrue((feature_implement_skill.parent / "telemetry-contract.md").exists())
-    self.assertTrue((feature_verify_skill.parent / "shell-ceremony.md").exists())
-    self.assertTrue((feature_verify_skill.parent / "telemetry-contract.md").exists())
 
     review_body = review_skill.read_text(encoding="utf-8")
     review_content = (review_skill.parent / "content.md").read_text(encoding="utf-8")
     quality_body = quality_skill.read_text(encoding="utf-8")
     quality_content = (quality_skill.parent / "content.md").read_text(encoding="utf-8")
-    feature_implement_body = feature_implement_skill.read_text(encoding="utf-8")
-    feature_verify_body = feature_verify_skill.read_text(encoding="utf-8")
     self.assertIn("## Descriptor", review_body)
     self.assertIn("## Execution", review_body)
     self.assertIn("## Ceremony", review_body)
     self.assertNotIn("## Additional Resources", review_content)
+    self.assertIn("[review-scope.md](review-scope.md)", review_body)
+    self.assertIn(
+      "Resolve the scope before reviewing. If the caller asks for staged changes, "
+      "inspect only the staged diff and keep unstaged edits out of findings except "
+      "for repo markers needed for classification.",
+      review_body,
+    )
     self.assertIn("TODO: author the governed content body.", review_content)
+    self.assertIn("[specialist-contract.md](specialist-contract.md)", review_body)
+    self.assertNotIn("review-scope.md", review_content)
+    self.assertNotIn("specialist-contract.md", review_content)
+    self.assertNotIn("## Setup", review_content)
+    self.assertNotIn(
+      "Resolve the scope before reviewing. If the caller asks for staged changes, "
+      "inspect only the staged diff and keep unstaged edits out of findings except "
+      "for repo markers needed for classification.",
+      review_content,
+    )
     self.assertIn("[stack-routing.md](stack-routing.md)", review_body)
     self.assertIn("[review-orchestrator.md](review-orchestrator.md)", review_body)
     self.assertIn("[review-delegation.md](review-delegation.md)", review_body)
@@ -466,16 +475,13 @@ class ScaffoldHappyPathsTest(unittest.TestCase):
     self.assertNotIn("## Description", quality_content)
     self.assertNotIn("## Specialist Scope", quality_content)
     self.assertNotIn("## Outputs Contract", quality_content)
-    self.assertIn("## Project Overrides", feature_implement_body)
-    self.assertIn("## Project Overrides", feature_verify_body)
     self.assertTrue(
       any("Applied built-in platform preset for 'java'." in note for note in result.notes)
     )
-    self.assertTrue(
-      any("Thin feature-implement and feature-verify stubs" in note for note in result.notes)
-    )
+    self.assertIn(GOVERNED_CONTENT_AUTHORING_NOTE, result.notes)
 
     symlink_names = sorted(path.name for path in result.symlinks)
+    self.assertIn("review-scope.md", symlink_names)
     self.assertIn("shell-ceremony.md", symlink_names)
     self.assertIn("stack-routing.md", symlink_names)
     self.assertIn("telemetry-contract.md", symlink_names)
@@ -504,6 +510,7 @@ class ScaffoldHappyPathsTest(unittest.TestCase):
     self.assertTrue(
       any("Applied built-in platform preset for 'php'." in note for note in result.notes)
     )
+    self.assertIn(GOVERNED_CONTENT_AUTHORING_NOTE, result.notes)
 
   def test_platform_pack_full_skeleton(self) -> None:
     result = scaffold(
@@ -539,7 +546,7 @@ class ScaffoldHappyPathsTest(unittest.TestCase):
     self.assertTrue(
       any("Full skeleton scaffolded with" in note for note in result.notes)
     )
-    expected_created_files = 7 + (2 * len(scaffold_module.APPROVED_CODE_REVIEW_AREAS))
+    expected_created_files = 5 + (2 * len(scaffold_module.APPROVED_CODE_REVIEW_AREAS))
     self.assertEqual(len(result.created_files), expected_created_files)
 
   def test_add_on_flat(self) -> None:
@@ -614,7 +621,9 @@ class ScaffoldHappyPathsTest(unittest.TestCase):
     self.assertNotIn("## Delegated Mode", baseline_body)
     self.assertNotIn("## Inline Mode", baseline_body)
     self.assertNotIn("## Outputs Contract", baseline_body)
+    self.assertNotIn("review-scope.md", baseline_body)
     self.assertIn("TODO: author the governed content body.", baseline_body)
+    self.assertNotIn("specialist-contract.md", baseline_body)
 
     quality_body = (
       self.repo
@@ -776,6 +785,18 @@ class ScaffoldHappyPathsTest(unittest.TestCase):
     self.assertNotIn("## Specialist Scope", content)
     self.assertNotIn("## Outputs Contract", content)
     self.assertNotIn("## Project Overrides", body)
+    self.assertIn(GOVERNED_CONTENT_AUTHORING_NOTE, result.notes)
+
+  def test_code_review_area_reports_content_md_authoring_note(self) -> None:
+    result = scaffold(
+      self._payload(
+        kind="code-review-area",
+        name="bill-kotlin-code-review-reliability",
+        platform="kotlin",
+        area="reliability",
+      )
+    )
+    self.assertIn(GOVERNED_CONTENT_AUTHORING_NOTE, result.notes)
 
   def test_shelled_quality_check_rollback_on_manifest_write_failure(self) -> None:
     """SKILL-16: manifest-write failure for quality-check must roll back atomically."""
@@ -1164,9 +1185,8 @@ class NewSkillInteractivePromptTest(unittest.TestCase):
     with mock.patch(
       "builtins.input",
       side_effect=[
-        "1",      # new platform skill set
         "java",   # platform
-        "n",      # include specialists?
+        "1",      # baseline
         "",       # display name
         "",       # description
         "n",      # governs add-ons?
@@ -1185,9 +1205,8 @@ class NewSkillInteractivePromptTest(unittest.TestCase):
     with mock.patch(
       "builtins.input",
       side_effect=[
-        "1",      # new platform skill set
         "php",    # platform
-        "n",      # include specialists?
+        "1",      # baseline
         "",       # display name
         "",       # description
         "n",      # governs add-ons?
@@ -1207,9 +1226,8 @@ class NewSkillInteractivePromptTest(unittest.TestCase):
     with mock.patch(
       "builtins.input",
       side_effect=[
-        "1",         # new platform skill set
         "python",    # platform
-        "y",         # include specialists?
+        "2",         # baseline + specialists
         "Python",    # display name
         "",          # description
         "pyproject.toml,setup.py",  # strong signals
@@ -1227,6 +1245,33 @@ class NewSkillInteractivePromptTest(unittest.TestCase):
       ["pyproject.toml", "setup.py"],
     )
     self.assertTrue(payload["governs_addons"])
+
+  def test_existing_platform_prompt_branches_to_specialist(self) -> None:
+    from skill_bill.cli import _prompt_new_skill_interactively
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+      repo_root = Path(tmpdir)
+      (repo_root / "platform-packs" / "php").mkdir(parents=True)
+      (repo_root / "platform-packs" / "php" / "platform.yaml").write_text(
+        "shell_contract_version: '1.0'\n",
+        encoding="utf-8",
+      )
+      with mock.patch(
+        "builtins.input",
+        side_effect=[
+          "php",           # platform
+          "3",             # code-review specialist
+          "security",      # area
+          "",              # derived name
+          "Review PHP security risks.",  # description
+        ],
+      ):
+        payload = _prompt_new_skill_interactively(repo_root=repo_root)
+
+    self.assertEqual(payload["kind"], "code-review-area")
+    self.assertEqual(payload["platform"], "php")
+    self.assertEqual(payload["area"], "security")
+    self.assertEqual(payload["description"], "Review PHP security risks.")
 
 
 class AgentDetectionTest(unittest.TestCase):

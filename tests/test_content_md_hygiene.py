@@ -9,6 +9,10 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from skill_bill.shell_content_contract import CEREMONY_FREE_FORM_H2S  # noqa: E402
+from scripts.skill_repo_contracts import (  # noqa: E402
+  ADDON_SUPPORTING_FILE_TARGETS,
+  required_supporting_files_for_skill,
+)
 
 
 FRAMEWORK_DUPLICATION_LINES = (
@@ -18,6 +22,11 @@ FRAMEWORK_DUPLICATION_LINES = (
   "## Output Format",
   "### Telemetry",
   "### Implementation Mode Notes",
+)
+
+SYSTEM_OWNED_CONTENT_MARKERS = (
+  "## Setup",
+  "Resolve the scope before reviewing. If the caller asks for staged changes, inspect only the staged diff and keep unstaged edits out of findings except for repo markers needed for classification.",
 )
 
 
@@ -43,6 +52,32 @@ class ContentMdHygieneTest(unittest.TestCase):
             marker,
             lines,
             f"{content_file} must not inline shared review-contract block '{marker}'.",
+          )
+
+  def test_governed_content_files_do_not_reference_required_supporting_files(self) -> None:
+    for content_file in sorted((ROOT / "platform-packs").rglob("content.md")):
+      text = content_file.read_text(encoding="utf-8")
+      skill_name = content_file.parent.name
+      required_files = required_supporting_files_for_skill(skill_name)
+      for file_name in required_files:
+        if file_name in ADDON_SUPPORTING_FILE_TARGETS:
+          continue
+        with self.subTest(content_file=content_file, file_name=file_name):
+          self.assertNotIn(
+            file_name,
+            text,
+            f"{content_file} must not carry system-required supporting file reference '{file_name}'; keep required sidecar references in SKILL.md.",
+          )
+
+  def test_governed_content_files_do_not_inline_setup_contract(self) -> None:
+    for content_file in sorted((ROOT / "platform-packs").rglob("content.md")):
+      text = content_file.read_text(encoding="utf-8")
+      for marker in SYSTEM_OWNED_CONTENT_MARKERS:
+        with self.subTest(content_file=content_file, marker=marker):
+          self.assertNotIn(
+            marker,
+            text,
+            f"{content_file} must not inline system-owned setup contract marker '{marker}'; keep it in SKILL.md.",
           )
 
 

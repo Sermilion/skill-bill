@@ -35,8 +35,7 @@ Every payload MUST include:
     `skills/<platform>/<name>/SKILL.md` with an interim-location note.
   - `"platform-pack"` — creates a new `platform-packs/<slug>/` root with a
     generated baseline `code-review` skill, a default `quality-check` skill,
-    thin `feature-implement` / `feature-verify` platform stubs, and a freshly
-    rendered `platform.yaml`.
+    and a freshly rendered `platform.yaml`.
   - `"code-review-area"` — placed under
     `platform-packs/<slug>/code-review/<name>/SKILL.md` plus additions to
     `declared_code_review_areas`, `declared_files.areas`, and
@@ -78,8 +77,8 @@ Every payload MUST include:
   title-cased version of `platform`.
 - `skeleton_mode` — `starter` or `full` for `platform-pack`. Defaults to
   `starter`.
-  - `starter` creates the pack root, baseline `code-review`, default
-    `quality-check`, and thin `feature-implement` / `feature-verify` stubs.
+  - `starter` creates the pack root, baseline `code-review`, and default
+    `quality-check`.
   - `full` also creates bare specialist stubs for every approved
     code-review area and registers them in the generated manifest, including
     the `area_metadata` entries used to auto-render governed `## Descriptor`
@@ -156,12 +155,9 @@ The scaffolded skill links the governed sibling sidecars
 ```
 
 This creates `platform-packs/java/platform.yaml`,
-`platform-packs/java/code-review/bill-java-code-review/SKILL.md`,
-`platform-packs/java/quality-check/bill-java-quality-check/SKILL.md`,
-`skills/java/bill-java-feature-implement/SKILL.md`, and
-`skills/java/bill-java-feature-verify/SKILL.md`. The quality-check skill
-and the thin pre-shell feature stubs are scaffolded by default. The built-in
-`java` preset supplies the routing signals, and the follow-on
+`platform-packs/java/code-review/bill-java-code-review/SKILL.md`, and
+`platform-packs/java/quality-check/bill-java-quality-check/SKILL.md`. The
+built-in `java` preset supplies the routing signals, and the follow-on
 `code-review-area` flow can add specialists such as architecture or
 performance without manual manifest or README edits.
 

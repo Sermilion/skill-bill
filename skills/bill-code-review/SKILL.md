@@ -30,13 +30,7 @@ If `.agents/skill-overrides.md` exists in the project root and contains a matchi
 
 ## Setup
 
-Determine the review scope:
-- Specific files (list paths)
-- Git commits (hashes/range)
-- Staged changes (`git diff --cached`; index only)
-- Unstaged changes (`git diff`; working tree only)
-- Combined working tree (`git diff --cached` + `git diff`) only when the caller explicitly asks for all local changes
-- Entire PR
+Determine the review scope using [review-scope.md](review-scope.md).
 
 Inspect both the changed files and repo markers before routing.
 

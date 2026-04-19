@@ -465,7 +465,7 @@ Preferred path:
 - from inside an AI agent, run `/bill-create-skill`. The skill now starts with plain-language intake, especially for `platform-pack`: ask for the platform slug, ask whether to include code-review specialists, preview the generated baseline set, then subprocess-call `skill-bill new-skill --payload <tempfile>` to materialize it.
 - outside an agent (scripts, CI, teams piloting a new platform), run `skill-bill new-skill --interactive` for the same plain-language bootstrap flow, or pass a JSON payload file with `skill-bill new-skill --payload ./payload.json`.
 
-New platform packs are scaffolded as a bootstrap set: pack root, baseline `code-review`, baseline `quality-check`, and thin `feature-implement` / `feature-verify` stubs. Known platforms such as `java` use built-in routing presets; only unknown or custom platforms need manual `routing_signals`. `platform-pack` still supports `skeleton_mode=full` when you want the bare-bones review specialists created up front; choose `starter` when you want only the baseline path first.
+New platform packs are scaffolded as a bootstrap set: pack root, baseline `code-review`, and baseline `quality-check`. Known platforms such as `java` use built-in routing presets; only unknown or custom platforms need manual `routing_signals`. `platform-pack` still supports `skeleton_mode=full` when you want the bare-bones review specialists created up front; choose `starter` when you want only the baseline path first.
 
 The payload schema, the loud-fail exception catalog, and one worked example per kind live in `orchestration/shell-content-contract/SCAFFOLD_PAYLOAD.md`.
 

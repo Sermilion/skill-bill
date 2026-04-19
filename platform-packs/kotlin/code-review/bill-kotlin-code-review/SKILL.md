@@ -18,7 +18,11 @@ Follow the instructions in [content.md](content.md).
 
 Follow the shell ceremony in [shell-ceremony.md](shell-ceremony.md).
 
+Determine the review scope using [review-scope.md](review-scope.md).
+
 When stack routing applies, follow [stack-routing.md](stack-routing.md).
+
+When delegated specialist review applies, use [specialist-contract.md](specialist-contract.md).
 
 When delegated review execution applies, follow [review-delegation.md](review-delegation.md).
 
