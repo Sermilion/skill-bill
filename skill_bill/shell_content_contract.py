@@ -178,22 +178,13 @@ class PlatformPack:
     return f"bill-{self.slug}-code-review"
 
 
-def load_platform_pack(pack_root: Path | str) -> PlatformPack:
-  """Load and validate a single platform pack.
+def load_platform_manifest(pack_root: Path | str) -> PlatformPack:
+  """Load a single platform manifest without validating governed skill files.
 
-  Args:
-    pack_root: path to ``platform-packs/<slug>/``.
-
-  Raises:
-    MissingManifestError: when ``platform.yaml`` is absent.
-    InvalidManifestSchemaError: when the manifest is malformed.
-    ContractVersionMismatchError: when ``contract_version`` is wrong.
-    MissingContentFileError: when a declared file does not exist.
-    MissingRequiredSectionError: when a content file lacks a required
-      H2 section.
-
-  Returns:
-    A validated :class:`PlatformPack`.
+  This helper exists for migration and upgrade flows that need manifest
+  metadata from older wrapper shapes before rewriting those wrappers to the
+  current contract. It still enforces manifest presence, YAML validity, and
+  manifest schema rules, but it deliberately skips governed skill validation.
   """
 
   pack_root = Path(pack_root).resolve()
@@ -213,7 +204,32 @@ def load_platform_pack(pack_root: Path | str) -> PlatformPack:
       f"Platform pack '{slug}': manifest '{manifest_path}' is not valid YAML: {error}"
     ) from error
 
-  pack = _build_pack(slug=slug, pack_root=pack_root, manifest_path=manifest_path, raw=raw)
+  return _build_pack(
+    slug=slug,
+    pack_root=pack_root,
+    manifest_path=manifest_path,
+    raw=raw,
+  )
+
+
+def load_platform_pack(pack_root: Path | str) -> PlatformPack:
+  """Load and validate a single platform pack.
+
+  Args:
+    pack_root: path to ``platform-packs/<slug>/``.
+
+  Raises:
+    MissingManifestError: when ``platform.yaml`` is absent.
+    InvalidManifestSchemaError: when the manifest is malformed.
+    ContractVersionMismatchError: when ``contract_version`` is wrong.
+    MissingContentFileError: when a declared file does not exist.
+    MissingRequiredSectionError: when a content file lacks a required
+      H2 section.
+
+  Returns:
+    A validated :class:`PlatformPack`.
+  """
+  pack = load_platform_manifest(pack_root)
   validate_platform_pack(pack, contract_version=SHELL_CONTRACT_VERSION)
   return pack
 
@@ -292,6 +308,23 @@ def discover_platform_packs(platform_packs_root: Path | str) -> list[PlatformPac
     if entry.name.startswith("."):
       continue
     discovered.append(load_platform_pack(entry))
+  return discovered
+
+
+def discover_platform_pack_manifests(platform_packs_root: Path | str) -> list[PlatformPack]:
+  """Discover platform manifests without validating governed skill wrappers."""
+
+  packs_root = Path(platform_packs_root).resolve()
+  if not packs_root.is_dir():
+    return []
+
+  discovered: list[PlatformPack] = []
+  for entry in sorted(packs_root.iterdir()):
+    if not entry.is_dir():
+      continue
+    if entry.name.startswith("."):
+      continue
+    discovered.append(load_platform_manifest(entry))
   return discovered
 
 
@@ -394,10 +427,14 @@ def _build_pack(
     "areas": {area: (pack_root / areas_raw[area]).resolve() for area in declared_areas if area in areas_raw},
   }
 
-  area_metadata_raw = raw.get("area_metadata", {})
+  area_metadata_raw = raw.get("area_metadata")
+  if area_metadata_raw is None:
+    raise InvalidManifestSchemaError(
+      f"Platform pack '{slug}': manifest is missing required field 'area_metadata'."
+    )
   if not isinstance(area_metadata_raw, dict):
     raise InvalidManifestSchemaError(
-      f"Platform pack '{slug}': manifest field 'area_metadata' must be a mapping when provided."
+      f"Platform pack '{slug}': manifest field 'area_metadata' must be a mapping."
     )
   extra_area_metadata = sorted(set(area_metadata_raw.keys()) - set(declared_areas))
   if extra_area_metadata:
@@ -631,6 +668,8 @@ __all__ = [
   "SHELL_CONTRACT_VERSION",
   "ShellContentContractError",
   "discover_platform_packs",
+  "discover_platform_pack_manifests",
+  "load_platform_manifest",
   "load_platform_pack",
   "load_quality_check_content",
   "validate_platform_pack",

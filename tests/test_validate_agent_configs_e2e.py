@@ -498,9 +498,8 @@ class ValidateAgentConfigsE2ETest(unittest.TestCase):
       },
       "declared_code_review_areas": areas,
       "declared_files": declared_files,
+      "area_metadata": area_metadata,
     }
-    if area_metadata:
-      manifest["area_metadata"] = area_metadata
     (pack_dir / "platform.yaml").write_text(yaml.safe_dump(manifest, sort_keys=False), encoding="utf-8")
 
   def write_governed_skill(
