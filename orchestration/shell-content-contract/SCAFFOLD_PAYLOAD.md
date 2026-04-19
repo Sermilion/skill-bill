@@ -1,13 +1,13 @@
 ---
 name: scaffold-payload
-description: Payload schema for the new-skill scaffolder (SKILL-15). Documents the JSON contract consumed by `skill-bill new-skill --payload`, the `new_skill_scaffold` MCP tool, and the bill-skill-scaffold skill.
+description: Payload schema for the new-skill scaffolder (SKILL-15). Documents the JSON contract consumed by `skill-bill new-skill --payload`, the `new_skill_scaffold` MCP tool, and the `bill-create-skill` skill.
 ---
 
 # Scaffold Payload Contract
 
 This is the canonical payload schema for the new-skill scaffolder. Every
 caller of `skill_bill.scaffold.scaffold(payload)` — the CLI, the MCP tool,
-and the `bill-skill-scaffold` skill — ships a payload that conforms to
+and the `bill-create-skill` skill — ships a payload that conforms to
 this schema. Mismatches raise specific named exceptions and abort the run;
 no silent coercion.
 
@@ -68,7 +68,8 @@ Every payload MUST include:
 - `routing_signals` — required for `platform-pack` only when the platform
   does not have a built-in preset. Must be a mapping with a non-empty
   `strong` list and optional `tie_breakers` / `addon_signals` lists. For
-  known platforms such as `java`, the scaffolder can infer these defaults.
+  known platforms such as `java` and `php`, the scaffolder can infer these
+  defaults.
 
 ## Optional Keys
 
@@ -130,8 +131,8 @@ This lands the skill at
 `platform-packs/kotlin/quality-check/bill-kotlin-quality-check/SKILL.md` and edits
 the owning pack's `platform.yaml` to register
 `declared_quality_check_file: quality-check/bill-kotlin-quality-check/SKILL.md`.
-The scaffolded skill links the sibling sidecars `stack-routing.md` and
-`telemetry-contract.md` just like the shelled code-review example above.
+The scaffolded skill links the governed sibling sidecars
+`stack-routing.md`, `telemetry-contract.md`, and `shell-ceremony.md`.
 
 ### New platform pack
 

@@ -481,6 +481,30 @@ class ScaffoldHappyPathsTest(unittest.TestCase):
     self.assertIn("telemetry-contract.md", symlink_names)
     self.assertTrue(any("Quality-check scaffolded by default." in note for note in result.notes))
 
+  def test_platform_pack_php_uses_built_in_preset(self) -> None:
+    result = scaffold(
+      self._payload(
+        kind="platform-pack",
+        platform="php",
+      )
+    )
+    self.assertEqual(result.kind, "platform-pack")
+
+    pack_root = self.repo / "platform-packs" / "php"
+    manifest = (pack_root / "platform.yaml").read_text(encoding="utf-8")
+    self.assertIn('platform: "php"', manifest)
+    self.assertIn('display_name: "PHP"', manifest)
+    self.assertIn('    - "composer.json"', manifest)
+    self.assertIn('    - ".php"', manifest)
+    self.assertIn('    - "phpunit.xml"', manifest)
+    self.assertIn(
+      "Prefer PHP when Composer metadata or .php source files dominate mixed backend signals.",
+      manifest,
+    )
+    self.assertTrue(
+      any("Applied built-in platform preset for 'php'." in note for note in result.notes)
+    )
+
   def test_platform_pack_full_skeleton(self) -> None:
     result = scaffold(
       self._payload(
@@ -1153,6 +1177,28 @@ class NewSkillInteractivePromptTest(unittest.TestCase):
     self.assertEqual(payload["kind"], "platform-pack")
     self.assertEqual(payload["platform"], "java")
     self.assertEqual(payload["skeleton_mode"], "starter")
+    self.assertFalse(payload["governs_addons"])
+
+  def test_platform_pack_prompt_uses_php_preset_without_signal_prompt(self) -> None:
+    from skill_bill.cli import _prompt_new_skill_interactively
+
+    with mock.patch(
+      "builtins.input",
+      side_effect=[
+        "1",      # new platform skill set
+        "php",    # platform
+        "n",      # include specialists?
+        "",       # display name
+        "",       # description
+        "n",      # governs add-ons?
+      ],
+    ):
+      payload = _prompt_new_skill_interactively()
+
+    self.assertEqual(payload["kind"], "platform-pack")
+    self.assertEqual(payload["platform"], "php")
+    self.assertEqual(payload["skeleton_mode"], "starter")
+    self.assertNotIn("routing_signals", payload)
     self.assertFalse(payload["governs_addons"])
 
   def test_platform_pack_prompt_maps_specialists_to_full(self) -> None:
