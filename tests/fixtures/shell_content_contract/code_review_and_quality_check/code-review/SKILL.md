@@ -1,24 +1,19 @@
 ---
-name: code_review_and_quality_check-code-review
+name: code-review
 description: Fixture baseline content.
 ---
 
-# Fixture Baseline
+## Descriptor
 
-## Description
-Fixture baseline content.
+Governed skill: `code-review`
+Family: `code-review`
+Platform pack: `code_review_and_quality_check` (Code Review And Quality Check Fixture)
+Description: Use when reviewing Code Review And Quality Check Fixture changes across code-review specialists.
 
-## Specialist Scope
-Fixture specialist scope.
+## Execution
 
-## Inputs
-Fixture inputs.
+Follow the instructions in [content.md](content.md).
 
-## Outputs Contract
-Fixture outputs contract.
+## Ceremony
 
-## Execution Mode Reporting
-Fixture execution mode reporting.
-
-## Telemetry Ceremony Hooks
-Fixture telemetry hooks.
+Follow the shell ceremony in [shell-ceremony.md](shell-ceremony.md).

@@ -17,6 +17,14 @@ from pathlib import Path
 from typing import Any
 import re
 
+from skill_bill.constants import SHELL_CONTRACT_VERSION
+from skill_bill.scaffold_template import (
+  DescriptorMetadata,
+  ScaffoldTemplateContext,
+  default_area_focus,
+  render_descriptor_section,
+)
+
 
 def _import_yaml():
   """Import PyYAML lazily so importing this module does not require it.
@@ -41,8 +49,6 @@ def _import_yaml():
   return yaml
 
 
-SHELL_CONTRACT_VERSION: str = "1.0"
-
 APPROVED_CODE_REVIEW_AREAS: frozenset[str] = frozenset(
   {
     "api-contracts",
@@ -58,29 +64,30 @@ APPROVED_CODE_REVIEW_AREAS: frozenset[str] = frozenset(
   }
 )
 
-REQUIRED_CONTENT_SECTIONS: tuple[str, ...] = (
+REQUIRED_GOVERNED_SECTIONS: tuple[str, ...] = (
+  "## Descriptor",
+  "## Execution",
+  "## Ceremony",
+)
+REQUIRED_CONTENT_SECTIONS: tuple[str, ...] = REQUIRED_GOVERNED_SECTIONS
+REQUIRED_QUALITY_CHECK_SECTIONS: tuple[str, ...] = REQUIRED_GOVERNED_SECTIONS
+CEREMONY_FREE_FORM_H2S: tuple[str, ...] = (
+  "## Project Overrides",
+  "## Execution",
+  "## Ceremony",
   "## Description",
   "## Specialist Scope",
   "## Inputs",
   "## Outputs Contract",
-  "## Execution Mode Reporting",
-  "## Telemetry Ceremony Hooks",
-)
-
-# Required H2 sections for per-platform quality-check content files. The
-# bill-quality-check shell is horizontal and does not require the three
-# code-review-specific sections (Specialist Scope, Inputs, Outputs Contract).
-REQUIRED_QUALITY_CHECK_SECTIONS: tuple[str, ...] = (
-  "## Description",
-  "## Execution Steps",
-  "## Fix Strategy",
+  "## Delegated Mode",
+  "## Inline Mode",
   "## Execution Mode Reporting",
   "## Telemetry Ceremony Hooks",
 )
 
 MANIFEST_FILENAME: str = "platform.yaml"
 
-_SECTION_HEADING_PATTERN = re.compile(r"^##\s+[^\n]+$")
+_SECTION_HEADING_PATTERN = re.compile(r"^##\s+[^\n]+$", re.MULTILINE)
 # Fenced code-block markers recognized when scanning for H2 sections.
 # Covers both triple-backtick and triple-tilde fences (with or without a
 # language tag). A fence line must have the marker as the first non-space
@@ -117,6 +124,14 @@ class MissingRequiredSectionError(ShellContentContractError):
   """Raised when a declared content file is missing a required H2 section."""
 
 
+class InvalidDescriptorSectionError(ShellContentContractError):
+  """Raised when a governed skill's ``## Descriptor`` section drifts."""
+
+
+class MissingShellCeremonyFileError(ShellContentContractError):
+  """Raised when a governed skill is missing its ``shell-ceremony.md`` sidecar."""
+
+
 class PyYAMLMissingError(ShellContentContractError):
   """Raised when PyYAML is not installed in the active Python environment.
 
@@ -150,6 +165,7 @@ class PlatformPack:
   routing_signals: RoutingSignals
   declared_code_review_areas: tuple[str, ...]
   declared_files: dict[str, Path] = field(hash=False)
+  area_metadata: dict[str, str] = field(hash=False)
   governs_addons: bool = False
   display_name: str | None = None
   notes: str | None = None
@@ -162,22 +178,13 @@ class PlatformPack:
     return f"bill-{self.slug}-code-review"
 
 
-def load_platform_pack(pack_root: Path | str) -> PlatformPack:
-  """Load and validate a single platform pack.
+def load_platform_manifest(pack_root: Path | str) -> PlatformPack:
+  """Load a single platform manifest without validating governed skill files.
 
-  Args:
-    pack_root: path to ``platform-packs/<slug>/``.
-
-  Raises:
-    MissingManifestError: when ``platform.yaml`` is absent.
-    InvalidManifestSchemaError: when the manifest is malformed.
-    ContractVersionMismatchError: when ``contract_version`` is wrong.
-    MissingContentFileError: when a declared file does not exist.
-    MissingRequiredSectionError: when a content file lacks a required
-      H2 section.
-
-  Returns:
-    A validated :class:`PlatformPack`.
+  This helper exists for migration and upgrade flows that need manifest
+  metadata from older wrapper shapes before rewriting those wrappers to the
+  current contract. It still enforces manifest presence, YAML validity, and
+  manifest schema rules, but it deliberately skips governed skill validation.
   """
 
   pack_root = Path(pack_root).resolve()
@@ -197,7 +204,32 @@ def load_platform_pack(pack_root: Path | str) -> PlatformPack:
       f"Platform pack '{slug}': manifest '{manifest_path}' is not valid YAML: {error}"
     ) from error
 
-  pack = _build_pack(slug=slug, pack_root=pack_root, manifest_path=manifest_path, raw=raw)
+  return _build_pack(
+    slug=slug,
+    pack_root=pack_root,
+    manifest_path=manifest_path,
+    raw=raw,
+  )
+
+
+def load_platform_pack(pack_root: Path | str) -> PlatformPack:
+  """Load and validate a single platform pack.
+
+  Args:
+    pack_root: path to ``platform-packs/<slug>/``.
+
+  Raises:
+    MissingManifestError: when ``platform.yaml`` is absent.
+    InvalidManifestSchemaError: when the manifest is malformed.
+    ContractVersionMismatchError: when ``contract_version`` is wrong.
+    MissingContentFileError: when a declared file does not exist.
+    MissingRequiredSectionError: when a content file lacks a required
+      H2 section.
+
+  Returns:
+    A validated :class:`PlatformPack`.
+  """
+  pack = load_platform_manifest(pack_root)
   validate_platform_pack(pack, contract_version=SHELL_CONTRACT_VERSION)
   return pack
 
@@ -213,8 +245,7 @@ def validate_platform_pack(pack: PlatformPack, contract_version: str) -> None:
   if pack.contract_version != contract_version:
     raise ContractVersionMismatchError(
       f"Platform pack '{pack.slug}': declares contract_version "
-      f"'{pack.contract_version}' but the shell expects '{contract_version}'. "
-      "Update the pack to the new schema or pin the shell to the pack's version."
+      f"'{pack.contract_version}' but the shell expects '{contract_version}'."
     )
 
   expected_areas = set(pack.declared_code_review_areas)
@@ -236,7 +267,13 @@ def validate_platform_pack(pack: PlatformPack, contract_version: str) -> None:
       f"Platform pack '{pack.slug}': declared_files.baseline is required."
     )
 
-  _assert_content_file_ok(pack, slot="baseline", file_path=baseline_path)
+  _assert_governed_skill_ok(
+    pack,
+    slot="baseline",
+    skill_path=baseline_path,
+    family="code-review",
+    area="",
+  )
 
   for area in pack.declared_code_review_areas:
     area_path = declared_area_files[area]
@@ -244,7 +281,13 @@ def validate_platform_pack(pack: PlatformPack, contract_version: str) -> None:
       raise InvalidManifestSchemaError(
         f"Platform pack '{pack.slug}': declared_files.areas['{area}'] must resolve to a path."
       )
-    _assert_content_file_ok(pack, slot=f"areas.{area}", file_path=area_path)
+    _assert_governed_skill_ok(
+      pack,
+      slot=f"areas.{area}",
+      skill_path=area_path,
+      family="code-review",
+      area=area,
+    )
 
 
 def discover_platform_packs(platform_packs_root: Path | str) -> list[PlatformPack]:
@@ -265,6 +308,23 @@ def discover_platform_packs(platform_packs_root: Path | str) -> list[PlatformPac
     if entry.name.startswith("."):
       continue
     discovered.append(load_platform_pack(entry))
+  return discovered
+
+
+def discover_platform_pack_manifests(platform_packs_root: Path | str) -> list[PlatformPack]:
+  """Discover platform manifests without validating governed skill wrappers."""
+
+  packs_root = Path(platform_packs_root).resolve()
+  if not packs_root.is_dir():
+    return []
+
+  discovered: list[PlatformPack] = []
+  for entry in sorted(packs_root.iterdir()):
+    if not entry.is_dir():
+      continue
+    if entry.name.startswith("."):
+      continue
+    discovered.append(load_platform_manifest(entry))
   return discovered
 
 
@@ -367,6 +427,37 @@ def _build_pack(
     "areas": {area: (pack_root / areas_raw[area]).resolve() for area in declared_areas if area in areas_raw},
   }
 
+  area_metadata_raw = raw.get("area_metadata")
+  if area_metadata_raw is None:
+    raise InvalidManifestSchemaError(
+      f"Platform pack '{slug}': manifest is missing required field 'area_metadata'."
+    )
+  if not isinstance(area_metadata_raw, dict):
+    raise InvalidManifestSchemaError(
+      f"Platform pack '{slug}': manifest field 'area_metadata' must be a mapping."
+    )
+  extra_area_metadata = sorted(set(area_metadata_raw.keys()) - set(declared_areas))
+  if extra_area_metadata:
+    raise InvalidManifestSchemaError(
+      f"Platform pack '{slug}': area_metadata contains entries {extra_area_metadata} "
+      "that are not listed in 'declared_code_review_areas'."
+    )
+  area_metadata: dict[str, str] = {
+    area: default_area_focus(area)
+    for area in declared_areas
+  }
+  for area, metadata in area_metadata_raw.items():
+    if not isinstance(metadata, dict):
+      raise InvalidManifestSchemaError(
+        f"Platform pack '{slug}': area_metadata['{area}'] must be a mapping."
+      )
+    focus = metadata.get("focus")
+    if not isinstance(focus, str) or not focus:
+      raise InvalidManifestSchemaError(
+        f"Platform pack '{slug}': area_metadata['{area}'].focus must be a non-empty string."
+      )
+    area_metadata[area] = focus
+
   governs_addons_raw = raw.get("governs_addons", False)
   if not isinstance(governs_addons_raw, bool):
     raise InvalidManifestSchemaError(
@@ -403,6 +494,7 @@ def _build_pack(
     routing_signals=routing_signals,
     declared_code_review_areas=tuple(declared_areas),
     declared_files=declared_files,
+    area_metadata=area_metadata,
     governs_addons=governs_addons_raw,
     display_name=display_name_raw,
     notes=notes_raw,
@@ -427,25 +519,59 @@ def _as_string_tuple(slug: str, value: Any, field_label: str) -> tuple[str, ...]
   return tuple(result)
 
 
-def _assert_content_file_ok(pack: PlatformPack, *, slot: str, file_path: Path) -> None:
-  if not file_path.is_file():
+def _assert_governed_skill_ok(
+  pack: PlatformPack,
+  *,
+  slot: str,
+  skill_path: Path,
+  family: str,
+  area: str,
+) -> None:
+  if not skill_path.is_file():
     raise MissingContentFileError(
       f"Platform pack '{pack.slug}': declared content file for slot '{slot}' "
-      f"is missing at '{file_path}'."
+      f"is missing at '{skill_path}'."
     )
 
-  text = file_path.read_text(encoding="utf-8")
-  headings = _collect_top_level_h2_headings(text)
+  text = skill_path.read_text(encoding="utf-8")
+  sections = _collect_top_level_h2_sections(text)
+  headings = set(sections)
   for required in REQUIRED_CONTENT_SECTIONS:
     if required not in headings:
       raise MissingRequiredSectionError(
-        f"Platform pack '{pack.slug}': content file '{file_path}' is missing "
+        f"Platform pack '{pack.slug}': skill file '{skill_path}' is missing "
         f"required section '{required}'."
       )
 
+  content_path = skill_path.with_name("content.md")
+  if not content_path.is_file():
+    raise MissingContentFileError(
+      f"Platform pack '{pack.slug}': sibling content file for slot '{slot}' "
+      f"is missing at '{content_path}'."
+    )
+
+  ceremony_path = skill_path.with_name("shell-ceremony.md")
+  if not ceremony_path.is_file():
+    raise MissingShellCeremonyFileError(
+      f"Platform pack '{pack.slug}': sibling shell ceremony file for slot '{slot}' "
+      f"is missing at '{ceremony_path}'."
+    )
+
+  expected_descriptor = _render_expected_descriptor(
+    pack,
+    skill_name=skill_path.parent.name,
+    family=family,
+    area=area,
+  )
+  if sections["## Descriptor"] != expected_descriptor:
+    raise InvalidDescriptorSectionError(
+      f"Platform pack '{pack.slug}': skill file '{skill_path}' has a drifted "
+      "## Descriptor section."
+    )
+
 
 def load_quality_check_content(pack: PlatformPack) -> Path:
-  """Return the resolved path to a pack's declared quality-check content file.
+  """Return the resolved path to a pack's sibling quality-check `content.md`.
 
   Loud-fail rules:
 
@@ -455,10 +581,11 @@ def load_quality_check_content(pack: PlatformPack) -> Path:
   - Raises :class:`MissingRequiredSectionError` when the content file is
     missing one of the :data:`REQUIRED_QUALITY_CHECK_SECTIONS` H2 sections.
 
-  The function never silently falls back to another pack. The
-  ``bill-quality-check`` shell implements the explicit ``kmp`` → ``kotlin``
-  routing fallback by selecting a
-  different pack before calling this loader.
+  The function validates the declared quality-check `SKILL.md`, then returns
+  the sibling `content.md` path that contains the authored execution content.
+  It never silently falls back to another pack. The ``bill-quality-check``
+  shell implements the explicit ``kmp`` → ``kotlin`` routing fallback by
+  selecting a different pack before calling this loader.
   """
   if pack.declared_quality_check_file is None:
     raise MissingContentFileError(
@@ -467,59 +594,82 @@ def load_quality_check_content(pack: PlatformPack) -> Path:
     )
 
   file_path = pack.declared_quality_check_file
-  if not file_path.is_file():
-    raise MissingContentFileError(
-      f"Platform pack '{pack.slug}': declared quality-check content file "
-      f"is missing at '{file_path}'."
-    )
-
-  text = file_path.read_text(encoding="utf-8")
-  headings = _collect_top_level_h2_headings(text)
-  for required in REQUIRED_QUALITY_CHECK_SECTIONS:
-    if required not in headings:
-      raise MissingRequiredSectionError(
-        f"Platform pack '{pack.slug}': quality-check content file '{file_path}' "
-        f"is missing required section '{required}'."
-      )
-  return file_path
+  _assert_governed_skill_ok(
+    pack,
+    slot="quality-check",
+    skill_path=file_path,
+    family="quality-check",
+    area="",
+  )
+  return file_path.with_name("content.md")
 
 
-def _collect_top_level_h2_headings(text: str) -> set[str]:
-  """Return the set of real H2 headings outside fenced code blocks.
+def _collect_top_level_h2_sections(text: str) -> dict[str, str]:
+  """Return the real H2 sections outside fenced code blocks.
 
   A naive regex scan would incorrectly match ``## Specialist Scope`` inside
   a fenced code block — that would let a pack author silently omit a real
   section while "documenting" it in a code example. This walker tracks
   fence state line-by-line and only collects headings while outside fences.
   """
-  headings: set[str] = set()
+  visible_lines: list[str] = []
   in_fence = False
   for line in text.splitlines():
     if _FENCE_PATTERN.match(line):
       in_fence = not in_fence
       continue
-    if in_fence:
-      continue
-    if _SECTION_HEADING_PATTERN.match(line):
-      headings.add(line.strip())
-  return headings
+    if not in_fence:
+      visible_lines.append(line)
+  visible_text = "\n".join(visible_lines)
+  matches = list(_SECTION_HEADING_PATTERN.finditer(visible_text))
+  sections: dict[str, str] = {}
+  for index, match in enumerate(matches):
+    heading = match.group(0).strip()
+    end = matches[index + 1].start() if index + 1 < len(matches) else len(visible_text)
+    section_text = visible_text[match.start():end].strip() + "\n"
+    sections[heading] = section_text
+  return sections
+
+
+def _render_expected_descriptor(
+  pack: PlatformPack,
+  *,
+  skill_name: str,
+  family: str,
+  area: str,
+) -> str:
+  context = ScaffoldTemplateContext(
+    skill_name=skill_name,
+    family=family,
+    platform=pack.slug,
+    area=area,
+    display_name=pack.display_name or pack.slug.replace("-", " ").title(),
+  )
+  metadata = DescriptorMetadata(area_focus=pack.area_metadata.get(area, ""))
+  return render_descriptor_section(context, metadata=metadata)
 
 
 __all__ = [
   "APPROVED_CODE_REVIEW_AREAS",
   "ContractVersionMismatchError",
+  "CEREMONY_FREE_FORM_H2S",
+  "InvalidDescriptorSectionError",
   "InvalidManifestSchemaError",
   "MissingContentFileError",
   "MissingManifestError",
   "MissingRequiredSectionError",
+  "MissingShellCeremonyFileError",
   "PlatformPack",
   "PyYAMLMissingError",
   "REQUIRED_CONTENT_SECTIONS",
+  "REQUIRED_GOVERNED_SECTIONS",
   "REQUIRED_QUALITY_CHECK_SECTIONS",
   "RoutingSignals",
   "SHELL_CONTRACT_VERSION",
   "ShellContentContractError",
   "discover_platform_packs",
+  "discover_platform_pack_manifests",
+  "load_platform_manifest",
   "load_platform_pack",
   "load_quality_check_content",
   "validate_platform_pack",

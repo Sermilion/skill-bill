@@ -1,15 +1,13 @@
 ---
-name: bill-skill-scaffold
+name: bill-create-skill
 description: Use when scaffolding a new skill or platform skill set and syncing it to all detected local AI agents (Claude, Copilot, GLM, Codex, Opencode). Use when user mentions scaffold skill, create skill set, create skill, new skill, add skill, or sync skill to agents.
 ---
 
 ## Project Overrides
 
-If `.agents/skill-overrides.md` exists in the project root and contains a `## bill-skill-scaffold` section, read that section and apply it as the highest-priority instruction for this skill. The matching section may refine or replace parts of the default workflow below.
+Follow the shell ceremony in [shell-ceremony.md](shell-ceremony.md).
 
-If an `AGENTS.md` file exists in the project root, apply it as project-wide guidance.
-
-Precedence for this skill: matching `.agents/skill-overrides.md` section > `AGENTS.md` > built-in defaults.
+If `.agents/skill-overrides.md` exists in the project root and contains a matching section, read that section and apply it as the highest-priority instruction for this skill.
 
 ## Overview
 
@@ -31,7 +29,7 @@ Ask the user enough to pick exactly one of the five kinds:
    - Ask for the platform slug and whether the user wants just the baseline review path or also the code-review specialists.
    - `starter` → scaffold the pack root, baseline code-review, default quality-check, and thin `feature-implement` / `feature-verify` stubs.
    - `full` → scaffold the starter set plus bare specialist stubs for every approved code-review area.
-   - For known platforms such as `java`, the scaffolder infers routing signals from a built-in preset; ask for manual routing signals only when no preset exists.
+   - For known platforms such as `java` and `php`, the scaffolder infers routing signals from a built-in preset; ask for manual routing signals only when no preset exists and you do not have a defensible inference.
 4. **code-review-area** — a specialist for one approved code-review area inside an existing platform pack.
    - Approved areas: `architecture`, `performance`, `platform-correctness`, `security`, `testing`, `api-contracts`, `persistence`, `reliability`, `ui`, `ux-accessibility`.
    - Destination: `platform-packs/<slug>/code-review/<name>/SKILL.md` + manifest edits.
@@ -54,7 +52,7 @@ Refuse to invent a new family or code-review area inline. New platforms are allo
      - thin `bill-<platform>-feature-verify`
    - Only ask follow-ups that are still missing:
      - description when the user wants to customize it now
-     - routing signals only for a new platform with no built-in preset
+     - routing signals only for a new platform with no built-in preset and no defensible repo-marker inference
      - family / area / skill name only for the non-`platform-pack` branches
 
    If the user says “create a skill set for Java” or equivalent, interpret that as `kind=platform-pack`. Ask one follow-up:
@@ -68,30 +66,20 @@ Refuse to invent a new family or code-review area inline. New platforms are allo
    - anything you still need from the user
 
 3. **Preview with synthesized markers.** Before calling the scaffolder, render a preview that shows the final destination path and the generated contract shape:
-   - For review-family skills, preview the six required H2 headings with synthesized defaults:
-     - `## Description`
-     - `## Specialist Scope`
-     - `## Inputs`
-     - `## Outputs Contract`
-     - `## Execution Mode Reporting` *(scaffolder-owned, byte-identical across specialists in a family)*
-     - `## Telemetry Ceremony Hooks` *(scaffolder-owned, byte-identical across specialists in a family)*
-   - For **baseline** code-review skills (kind `platform-pack` or a `platform-override-piloted` targeting `family=code-review` with no `area`), the scaffolder also inserts two extra runtime-mode sections between `## Outputs Contract` and `## Execution Mode Reporting`:
-     - `## Delegated Mode` — applies when the pack's `declared_code_review_areas` list is non-empty and the diff warrants subagents.
-     - `## Inline Mode` — covers both the "specialists declared, small scope → run sequentially" sub-case and the "no specialists declared → do the full review yourself" sub-case.
-
-     These sections are NOT part of the six-H2 content contract; they are seeded extras so a baseline pack works whether or not specialists are added later. Area specialists, quality-check, and feature-implement/verify skills do not receive them.
-   - For quality-check skills, preview the five required H2 headings:
-     - `## Description`
-     - `## Execution Steps`
-     - `## Fix Strategy`
-     - `## Execution Mode Reporting`
-     - `## Telemetry Ceremony Hooks`
-
-     `## Description` ships with an inferred seed. `## Execution Steps` and `## Fix Strategy` deliberately stay as `TODO:` markers because the actual platform commands must be hand-authored.
-   - For `platform-pack`, preview the generated manifest path plus the baseline `bill-<platform>-code-review` skill, the default `bill-<platform>-quality-check` skill, and the thin `bill-<platform>-feature-implement` / `bill-<platform>-feature-verify` stubs that will be scaffolded together.
+   - For governed review-family skills, preview the thin `SKILL.md` wrapper with the three required H2 headings:
+     - `## Descriptor`
+     - `## Execution`
+     - `## Ceremony`
+   - Also preview the sibling `content.md` file that carries the authored body.
+     - For governed `code-review` skills, show the current minimal seed: a titled content file with a `TODO:` body for the authored review instructions.
+     - For governed `quality-check` skills, show the current minimal seed: `# Quality-Check Content`, `## Execution Steps`, and `## Fix Strategy`, with the two lower sections left as `TODO:` markers because the platform commands must be authored by hand.
+   - For every governed skill preview, show the supporting sidecars that will be linked in from the runtime contract.
+     - `shell-ceremony.md` is always present for governed review-family and quality-check skills.
+     - `stack-routing.md` and `telemetry-contract.md` are also linked for routed review-family and quality-check entry points.
+   - For `platform-pack`, preview the generated manifest path plus the baseline `bill-<platform>-code-review` skill directory, the default `bill-<platform>-quality-check` skill directory, and the thin `bill-<platform>-feature-implement` / `bill-<platform>-feature-verify` stubs that will be scaffolded together.
    - For `platform-pack` with `skeleton_mode=full`, also preview the list of approved specialist stubs that will be created.
 
-   The scaffolder-owned sections always render identically across every specialist in the same family — do not invite edits on those. The authored sections (`## Description`, `## Specialist Scope`, `## Inputs`, `## Outputs Contract`) ship with family- and area-aware seeds rather than `TODO:` markers; users can freely edit those seeds after scaffolding.
+   The `SKILL.md` wrapper and governed sidecars should not be offered for ad hoc edits during preview. Users can edit the scaffolded `content.md` body after creation, but the wrapper contract and linked sidecars stay governed.
 
 4. **Iterate.** Offer three choices:
    - `yes` — accept the preview and proceed to scaffold.
@@ -119,7 +107,7 @@ Refuse to invent a new family or code-review area inline. New platforms are allo
    }
    ```
 
-   Omit `routing_signals` for known platforms with built-in presets. Include it only when overriding a preset or introducing an unknown platform.
+   Omit `routing_signals` for known platforms with built-in presets. Include it only when overriding a preset or introducing an unknown platform whose routing signals cannot be inferred confidently.
 
    The full schema (required keys, worked examples per kind, the loud-fail exception catalog) lives in the repo at `orchestration/shell-content-contract/SCAFFOLD_PAYLOAD.md`.
 
@@ -140,5 +128,5 @@ Refuse to invent a new family or code-review area inline. New platforms are allo
 - If no agents are detected, the scaffolder skips the install step and notes that the user should run `./install.sh` to set up agent paths. Do not synthesize agent paths by hand.
 - Default to conversational guidance. The raw field template and JSON payload are implementation details, not the primary UX.
 - Treat `platform-pack` as the one-shot bootstrap path for a new stack: platform slug plus specialist depth should be enough to get the initial set created.
-- Review-family skill bodies must include all six required H2 sections; quality-check skill bodies use the five-section contract. The scaffolder-owned sections (`## Execution Mode Reporting`, `## Telemetry Ceremony Hooks`) are not customizable per skill — they come from the stored template and are identical across specialists in a family.
+- Governed review-family and quality-check skills use the same wrapper contract: `SKILL.md` must keep `## Descriptor`, `## Execution`, and `## Ceremony`, with sibling `content.md` and `shell-ceremony.md` beside it. The shared ceremony sidecar is not customizable per skill; it comes from the stored template and stays identical across governed skills in the family.
 - Adding a new pre-shell family requires updating `skill_bill/constants.py::PRE_SHELL_FAMILIES` and `skill_bill/scaffold.py::FAMILY_REGISTRY` in the same change.

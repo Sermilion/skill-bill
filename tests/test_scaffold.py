@@ -45,7 +45,13 @@ from skill_bill.scaffold_exceptions import (  # noqa: E402
   ScaffoldValidatorError,
   SkillAlreadyExistsError,
 )
-from skill_bill.scaffold_template import extract_scaffolder_owned  # noqa: E402
+from skill_bill.scaffold_template import (  # noqa: E402
+  DescriptorMetadata,
+  ScaffoldTemplateContext,
+  extract_scaffolder_owned,
+  render_ceremony_section,
+  render_descriptor_section,
+)
 
 
 FIXTURES_ROOT = ROOT / "tests" / "fixtures" / "scaffold"
@@ -86,6 +92,10 @@ declared_files:
   baseline: code-review/bill-kotlin-code-review/SKILL.md
   areas:
     architecture: code-review/bill-kotlin-code-review-architecture/SKILL.md
+
+area_metadata:
+  architecture:
+    focus: "architecture, boundaries, and dependency direction"
 """
 
 _KMP_MANIFEST = """\
@@ -109,25 +119,74 @@ declared_files:
   baseline: code-review/bill-kmp-code-review/SKILL.md
   areas:
     ui: code-review/bill-kmp-code-review-ui/SKILL.md
+
+area_metadata:
+  ui:
+    focus: "UI correctness and framework usage"
 """
 
 
-def _seed_skill_file(path: Path) -> None:
-  """Write a minimal six-section SKILL.md at ``path``."""
-  path.parent.mkdir(parents=True, exist_ok=True)
-  path.write_text(
+def _seed_governed_skill(
+  repo: Path,
+  skill_dir: Path,
+  *,
+  platform: str,
+  display_name: str,
+  family: str,
+  area: str = "",
+  area_focus: str = "",
+) -> None:
+  """Write a minimal governed skill directory in the new thin-shell shape."""
+  scripts_dir = ROOT / "scripts"
+  if str(scripts_dir) not in sys.path:
+    sys.path.insert(0, str(scripts_dir))
+  from scripts.skill_repo_contracts import required_supporting_files_for_skill  # noqa: WPS433
+
+  skill_dir.mkdir(parents=True, exist_ok=True)
+  skill_name = skill_dir.name
+  descriptor = render_descriptor_section(
+    ScaffoldTemplateContext(
+      skill_name=skill_name,
+      family=family,
+      platform=platform,
+      area=area,
+      display_name=display_name,
+    ),
+    metadata=DescriptorMetadata(area_focus=area_focus),
+  )
+  (skill_dir / "SKILL.md").write_text(
     "---\n"
-    f"name: {path.parent.name}\n"
+    f"name: {skill_name}\n"
     "description: Fixture content.\n"
     "---\n\n"
-    "## Description\n.\n\n"
-    "## Specialist Scope\n.\n\n"
-    "## Inputs\n.\n\n"
-    "## Outputs Contract\n.\n\n"
-    "## Execution Mode Reporting\n.\n\n"
-    "## Telemetry Ceremony Hooks\n.\n",
+    f"{descriptor}\n"
+    "## Execution\n\n"
+    "Follow the instructions in [content.md](content.md).\n\n"
+    f"{render_ceremony_section(ScaffoldTemplateContext(skill_name=skill_name, family=family, platform=platform, area=area, display_name=display_name))}",
     encoding="utf-8",
   )
+  (skill_dir / "content.md").write_text(
+    "# Fixture Content\n\n"
+    "TODO: author the governed content body.\n",
+    encoding="utf-8",
+  )
+  targets = {
+    "shell-ceremony.md": repo / "orchestration" / "shell-content-contract" / "shell-ceremony.md",
+    "telemetry-contract.md": repo / "orchestration" / "telemetry-contract" / "PLAYBOOK.md",
+    "review-orchestrator.md": repo / "orchestration" / "review-orchestrator" / "PLAYBOOK.md",
+    "specialist-contract.md": repo / "orchestration" / "review-orchestrator" / "specialist-contract.md",
+    "review-delegation.md": repo / "orchestration" / "review-delegation" / "PLAYBOOK.md",
+    "stack-routing.md": repo / "orchestration" / "stack-routing" / "PLAYBOOK.md",
+    "android-compose-review.md": repo / "platform-packs" / "kmp" / "addons" / "android-compose-review.md",
+    "android-navigation-review.md": repo / "platform-packs" / "kmp" / "addons" / "android-navigation-review.md",
+    "android-interop-review.md": repo / "platform-packs" / "kmp" / "addons" / "android-interop-review.md",
+    "android-design-system-review.md": repo / "platform-packs" / "kmp" / "addons" / "android-design-system-review.md",
+    "android-r8-review.md": repo / "platform-packs" / "kmp" / "addons" / "android-r8-review.md",
+    "android-compose-edge-to-edge.md": repo / "platform-packs" / "kmp" / "addons" / "android-compose-edge-to-edge.md",
+    "android-compose-adaptive-layouts.md": repo / "platform-packs" / "kmp" / "addons" / "android-compose-adaptive-layouts.md",
+  }
+  for file_name in required_supporting_files_for_skill(skill_name):
+    (skill_dir / file_name).symlink_to(targets[file_name])
 
 
 def _build_seed_repo(tmp_path: Path) -> Path:
@@ -138,6 +197,65 @@ def _build_seed_repo(tmp_path: Path) -> Path:
   """
   repo = tmp_path / "repo"
   (repo / "skills").mkdir(parents=True)
+  shell_ceremony = repo / "orchestration" / "shell-content-contract" / "shell-ceremony.md"
+  shell_ceremony.parent.mkdir(parents=True, exist_ok=True)
+  shell_ceremony.write_text(
+    "## Project Overrides\n\n"
+    "If `.agents/skill-overrides.md` exists in the project root and contains a matching section, "
+    "read that section and apply it as the highest-priority instruction for this skill.\n\n"
+    "## Inputs\n\n"
+    "Fixture shell ceremony inputs.\n\n"
+    "## Execution Mode Reporting\n\n"
+    "Execution mode: inline | delegated\n\n"
+    "## Telemetry Ceremony Hooks\n\n"
+    "Follow `telemetry-contract.md` when it is present.\n",
+    encoding="utf-8",
+  )
+  telemetry_contract = repo / "orchestration" / "telemetry-contract" / "PLAYBOOK.md"
+  telemetry_contract.parent.mkdir(parents=True, exist_ok=True)
+  telemetry_contract.write_text(
+    "# Telemetry Contract\n\n"
+    "Fixture telemetry contract.\n",
+    encoding="utf-8",
+  )
+  review_orchestrator = repo / "orchestration" / "review-orchestrator" / "PLAYBOOK.md"
+  review_orchestrator.parent.mkdir(parents=True, exist_ok=True)
+  review_orchestrator.write_text(
+    "# Review Orchestrator\n\n"
+    "Review session ID: <review-session-id>\n"
+    "Review run ID: <review-run-id>\n"
+    "Applied learnings: none | <learning references>\n",
+    encoding="utf-8",
+  )
+  review_specialist_contract = repo / "orchestration" / "review-orchestrator" / "specialist-contract.md"
+  review_specialist_contract.write_text(
+    "# Shared Specialist Contract\n\nFixture specialist contract.\n",
+    encoding="utf-8",
+  )
+  review_delegation = repo / "orchestration" / "review-delegation" / "PLAYBOOK.md"
+  review_delegation.parent.mkdir(parents=True, exist_ok=True)
+  review_delegation.write_text(
+    "# Review Delegation\n\nFixture delegation contract.\n",
+    encoding="utf-8",
+  )
+  stack_routing = repo / "orchestration" / "stack-routing" / "PLAYBOOK.md"
+  stack_routing.parent.mkdir(parents=True, exist_ok=True)
+  stack_routing.write_text(
+    "# Stack Routing\n\nFixture routing contract.\n",
+    encoding="utf-8",
+  )
+  kmp_addons = repo / "platform-packs" / "kmp" / "addons"
+  kmp_addons.mkdir(parents=True, exist_ok=True)
+  for addon_name in (
+    "android-compose-review.md",
+    "android-navigation-review.md",
+    "android-interop-review.md",
+    "android-design-system-review.md",
+    "android-r8-review.md",
+    "android-compose-edge-to-edge.md",
+    "android-compose-adaptive-layouts.md",
+  ):
+    (kmp_addons / addon_name).write_text(f"# {addon_name}\n", encoding="utf-8")
   # Seed a minimal base capability directory so the repo-level validator
   # (``validate_platform_skill_name``) can resolve pre-shell platform
   # overrides like ``bill-php-feature-verify`` without tripping on missing
@@ -147,16 +265,40 @@ def _build_seed_repo(tmp_path: Path) -> Path:
   kotlin_pack_root = repo / "platform-packs" / "kotlin"
   kotlin_pack_root.mkdir(parents=True)
   (kotlin_pack_root / "platform.yaml").write_text(_KOTLIN_MANIFEST, encoding="utf-8")
-  _seed_skill_file(kotlin_pack_root / "code-review" / "bill-kotlin-code-review" / "SKILL.md")
-  _seed_skill_file(
-    kotlin_pack_root / "code-review" / "bill-kotlin-code-review-architecture" / "SKILL.md"
+  _seed_governed_skill(
+    repo,
+    kotlin_pack_root / "code-review" / "bill-kotlin-code-review",
+    platform="kotlin",
+    display_name="Kotlin",
+    family="code-review",
+  )
+  _seed_governed_skill(
+    repo,
+    kotlin_pack_root / "code-review" / "bill-kotlin-code-review-architecture",
+    platform="kotlin",
+    display_name="Kotlin",
+    family="code-review",
+    area="architecture",
+    area_focus="architecture, boundaries, and dependency direction",
   )
   kmp_pack_root = repo / "platform-packs" / "kmp"
-  kmp_pack_root.mkdir(parents=True)
+  kmp_pack_root.mkdir(parents=True, exist_ok=True)
   (kmp_pack_root / "platform.yaml").write_text(_KMP_MANIFEST, encoding="utf-8")
-  _seed_skill_file(kmp_pack_root / "code-review" / "bill-kmp-code-review" / "SKILL.md")
-  _seed_skill_file(
-    kmp_pack_root / "code-review" / "bill-kmp-code-review-ui" / "SKILL.md"
+  _seed_governed_skill(
+    repo,
+    kmp_pack_root / "code-review" / "bill-kmp-code-review",
+    platform="kmp",
+    display_name="KMP",
+    family="code-review",
+  )
+  _seed_governed_skill(
+    repo,
+    kmp_pack_root / "code-review" / "bill-kmp-code-review-ui",
+    platform="kmp",
+    display_name="KMP",
+    family="code-review",
+    area="ui",
+    area_focus="UI correctness and framework usage",
   )
   # No scripts/validate_agent_configs.py in the scratch repo; the scaffolder
   # skips the validator in that case. Tests that want to exercise validator
@@ -250,6 +392,9 @@ class ScaffoldHappyPathsTest(unittest.TestCase):
     # validate_platform_pack_skill_file and intentionally do NOT get the
     # Project Overrides boilerplate — keep them lean.
     body = skill_md.read_text(encoding="utf-8")
+    self.assertIn("## Descriptor", body)
+    self.assertIn("## Execution", body)
+    self.assertIn("## Ceremony", body)
     self.assertNotIn("## Project Overrides", body)
 
   def test_platform_pack(self) -> None:
@@ -291,23 +436,36 @@ class ScaffoldHappyPathsTest(unittest.TestCase):
     self.assertTrue(quality_skill.is_file())
     self.assertTrue(feature_implement_skill.is_file())
     self.assertTrue(feature_verify_skill.is_file())
+    self.assertTrue((feature_implement_skill.parent / "shell-ceremony.md").exists())
+    self.assertTrue((feature_implement_skill.parent / "telemetry-contract.md").exists())
+    self.assertTrue((feature_verify_skill.parent / "shell-ceremony.md").exists())
+    self.assertTrue((feature_verify_skill.parent / "telemetry-contract.md").exists())
 
     review_body = review_skill.read_text(encoding="utf-8")
+    review_content = (review_skill.parent / "content.md").read_text(encoding="utf-8")
     quality_body = quality_skill.read_text(encoding="utf-8")
+    quality_content = (quality_skill.parent / "content.md").read_text(encoding="utf-8")
     feature_implement_body = feature_implement_skill.read_text(encoding="utf-8")
     feature_verify_body = feature_verify_skill.read_text(encoding="utf-8")
-    self.assertIn("## Additional Resources", review_body)
+    self.assertIn("## Descriptor", review_body)
+    self.assertIn("## Execution", review_body)
+    self.assertIn("## Ceremony", review_body)
+    self.assertNotIn("## Additional Resources", review_content)
+    self.assertIn("TODO: author the governed content body.", review_content)
     self.assertIn("[stack-routing.md](stack-routing.md)", review_body)
     self.assertIn("[review-orchestrator.md](review-orchestrator.md)", review_body)
     self.assertIn("[review-delegation.md](review-delegation.md)", review_body)
     self.assertIn("[telemetry-contract.md](telemetry-contract.md)", review_body)
     self.assertNotIn("## Project Overrides", review_body)
 
-    self.assertIn("## Additional Resources", quality_body)
-    self.assertIn("[stack-routing.md](stack-routing.md)", quality_body)
-    self.assertIn("[telemetry-contract.md](telemetry-contract.md)", quality_body)
-    self.assertNotIn("## Specialist Scope", quality_body)
-    self.assertNotIn("## Outputs Contract", quality_body)
+    self.assertIn("## Descriptor", quality_body)
+    self.assertIn("## Execution", quality_body)
+    self.assertIn("## Ceremony", quality_body)
+    self.assertIn("## Execution Steps", quality_content)
+    self.assertIn("## Fix Strategy", quality_content)
+    self.assertNotIn("## Description", quality_content)
+    self.assertNotIn("## Specialist Scope", quality_content)
+    self.assertNotIn("## Outputs Contract", quality_content)
     self.assertIn("## Project Overrides", feature_implement_body)
     self.assertIn("## Project Overrides", feature_verify_body)
     self.assertTrue(
@@ -317,20 +475,35 @@ class ScaffoldHappyPathsTest(unittest.TestCase):
       any("Thin feature-implement and feature-verify stubs" in note for note in result.notes)
     )
 
-    self.assertEqual(
-      sorted(path.name for path in result.symlinks),
-      sorted(
-        [
-          "review-delegation.md",
-          "review-orchestrator.md",
-          "stack-routing.md",
-          "telemetry-contract.md",
-          "stack-routing.md",
-          "telemetry-contract.md",
-        ]
-      ),
-    )
+    symlink_names = sorted(path.name for path in result.symlinks)
+    self.assertIn("shell-ceremony.md", symlink_names)
+    self.assertIn("stack-routing.md", symlink_names)
+    self.assertIn("telemetry-contract.md", symlink_names)
     self.assertTrue(any("Quality-check scaffolded by default." in note for note in result.notes))
+
+  def test_platform_pack_php_uses_built_in_preset(self) -> None:
+    result = scaffold(
+      self._payload(
+        kind="platform-pack",
+        platform="php",
+      )
+    )
+    self.assertEqual(result.kind, "platform-pack")
+
+    pack_root = self.repo / "platform-packs" / "php"
+    manifest = (pack_root / "platform.yaml").read_text(encoding="utf-8")
+    self.assertIn('platform: "php"', manifest)
+    self.assertIn('display_name: "PHP"', manifest)
+    self.assertIn('    - "composer.json"', manifest)
+    self.assertIn('    - ".php"', manifest)
+    self.assertIn('    - "phpunit.xml"', manifest)
+    self.assertIn(
+      "Prefer PHP when Composer metadata or .php source files dominate mixed backend signals.",
+      manifest,
+    )
+    self.assertTrue(
+      any("Applied built-in platform preset for 'php'." in note for note in result.notes)
+    )
 
   def test_platform_pack_full_skeleton(self) -> None:
     result = scaffold(
@@ -358,13 +531,15 @@ class ScaffoldHappyPathsTest(unittest.TestCase):
       )
       self.assertTrue(skill_md.is_file())
       body = skill_md.read_text(encoding="utf-8")
-      self.assertIn("## Description", body)
+      self.assertIn("## Descriptor", body)
+      self.assertIn("## Execution", body)
+      self.assertIn("## Ceremony", body)
       self.assertNotIn("## Additional Resources", body)
 
     self.assertTrue(
       any("Full skeleton scaffolded with" in note for note in result.notes)
     )
-    expected_created_files = 5 + len(scaffold_module.APPROVED_CODE_REVIEW_AREAS)
+    expected_created_files = 7 + (2 * len(scaffold_module.APPROVED_CODE_REVIEW_AREAS))
     self.assertEqual(len(result.created_files), expected_created_files)
 
   def test_add_on_flat(self) -> None:
@@ -376,10 +551,7 @@ class ScaffoldHappyPathsTest(unittest.TestCase):
     self.assertTrue(addon_md.is_file())
 
   def test_description_section_inferred_no_todo(self) -> None:
-    """Default `## Description` bodies must be seeded from family/platform/area
-    rather than left as `TODO:` markers. Acceptance: the H2 body renders
-    plain-English text every kind and never contains a ``TODO`` placeholder.
-    """
+    """Governed descriptions now live in the thin shell descriptor, not content."""
     code_review_area = scaffold(
       self._payload(
         kind="code-review-area",
@@ -396,7 +568,7 @@ class ScaffoldHappyPathsTest(unittest.TestCase):
       / "bill-kotlin-code-review-performance"
       / "SKILL.md"
     ).read_text(encoding="utf-8")
-    self.assertIn("## Description", area_body)
+    self.assertIn("## Descriptor", area_body)
     self.assertNotIn("TODO: author the description", area_body)
     self.assertIn("Kotlin", area_body)
     self.assertIn("performance risks", area_body)
@@ -423,11 +595,7 @@ class ScaffoldHappyPathsTest(unittest.TestCase):
     self.assertNotIn("TODO: author the description", horizontal_body)
 
   def test_code_review_baseline_has_dual_mode_sections(self) -> None:
-    """A baseline code-review skill must ship with ``## Delegated Mode`` and
-    ``## Inline Mode`` seeds so the skill works regardless of whether the
-    pack has declared any specialists yet. Area specialists, quality-check,
-    and feature-implement/verify skills MUST NOT get these extra sections.
-    """
+    """Governed content must stay author-owned and free of shell boilerplate."""
     scaffold(
       self._payload(
         kind="platform-pack",
@@ -441,23 +609,12 @@ class ScaffoldHappyPathsTest(unittest.TestCase):
       / "java"
       / "code-review"
       / "bill-java-code-review"
-      / "SKILL.md"
+      / "content.md"
     ).read_text(encoding="utf-8")
-    self.assertIn("## Delegated Mode", baseline_body)
-    self.assertIn("## Inline Mode", baseline_body)
-    self.assertIn("declared_code_review_areas", baseline_body)
-    # Specialist Scope must now mention both modes.
-    self.assertIn("Delegated", baseline_body)
-    self.assertIn("Inline", baseline_body)
-    # Dual-mode sections must sit between Outputs Contract and Execution
-    # Mode Reporting so the runtime-mode narrative flows naturally.
-    outputs_index = baseline_body.index("## Outputs Contract")
-    delegated_index = baseline_body.index("## Delegated Mode")
-    inline_index = baseline_body.index("## Inline Mode")
-    exec_mode_index = baseline_body.index("## Execution Mode Reporting")
-    self.assertLess(outputs_index, delegated_index)
-    self.assertLess(delegated_index, inline_index)
-    self.assertLess(inline_index, exec_mode_index)
+    self.assertNotIn("## Delegated Mode", baseline_body)
+    self.assertNotIn("## Inline Mode", baseline_body)
+    self.assertNotIn("## Outputs Contract", baseline_body)
+    self.assertIn("TODO: author the governed content body.", baseline_body)
 
     quality_body = (
       self.repo
@@ -465,7 +622,7 @@ class ScaffoldHappyPathsTest(unittest.TestCase):
       / "java"
       / "quality-check"
       / "bill-java-quality-check"
-      / "SKILL.md"
+      / "content.md"
     ).read_text(encoding="utf-8")
     self.assertNotIn("## Delegated Mode", quality_body)
     self.assertNotIn("## Inline Mode", quality_body)
@@ -484,18 +641,14 @@ class ScaffoldHappyPathsTest(unittest.TestCase):
       / "java"
       / "code-review"
       / "bill-java-code-review-performance"
-      / "SKILL.md"
+      / "content.md"
     ).read_text(encoding="utf-8")
     self.assertNotIn("## Delegated Mode", area_body)
     self.assertNotIn("## Inline Mode", area_body)
+    self.assertNotIn("## Specialist Scope", area_body)
 
   def test_code_review_sections_seeded_no_todo(self) -> None:
-    """`## Specialist Scope`, `## Inputs`, and `## Outputs Contract` must ship
-    with family/area-aware seeds instead of TODO placeholders for code-review
-    and feature families. Quality-check's ``## Execution Steps`` /
-    ``## Fix Strategy`` intentionally stay as TODOs because the platform
-    commands must be hand-authored.
-    """
+    """Governed content should no longer ship duplicated shell contract sections."""
     scaffold(
       self._payload(
         kind="code-review-area",
@@ -510,14 +663,14 @@ class ScaffoldHappyPathsTest(unittest.TestCase):
       / "kotlin"
       / "code-review"
       / "bill-kotlin-code-review-security"
-      / "SKILL.md"
+      / "content.md"
     ).read_text(encoding="utf-8")
-    self.assertNotIn("TODO: author the specialist scope", area_body)
-    self.assertNotIn("TODO: author the inputs", area_body)
-    self.assertNotIn("TODO: author the outputs contract", area_body)
-    self.assertIn("secrets handling", area_body)
-    self.assertIn("stack-routing.md", area_body)
-    self.assertIn("Findings scoped to", area_body)
+    self.assertIn("TODO: author the governed content body.", area_body)
+    self.assertNotIn("## Description", area_body)
+    self.assertNotIn("## Specialist Scope", area_body)
+    self.assertNotIn("## Inputs", area_body)
+    self.assertNotIn("## Outputs Contract", area_body)
+    self.assertNotIn("telemetry-contract.md", area_body)
 
     scaffold(
       self._payload(
@@ -551,7 +704,7 @@ class ScaffoldHappyPathsTest(unittest.TestCase):
       / "kmp"
       / "quality-check"
       / "bill-kmp-quality-check"
-      / "SKILL.md"
+      / "content.md"
     ).read_text(encoding="utf-8")
     self.assertIn("TODO: author the execution steps", quality_body)
     self.assertIn("TODO: author the fix strategy", quality_body)
@@ -579,6 +732,8 @@ class ScaffoldHappyPathsTest(unittest.TestCase):
     body = skill_md.read_text(encoding="utf-8")
     self.assertIn("## Project Overrides", body)
     self.assertIn(".agents/skill-overrides.md", body)
+    self.assertTrue((skill_md.parent / "shell-ceremony.md").exists())
+    self.assertTrue((skill_md.parent / "telemetry-contract.md").exists())
 
   def test_shelled_quality_check_family(self) -> None:
     """SKILL-16: quality-check is shelled — scaffolder lands SKILL.md in the pack
@@ -611,18 +766,15 @@ class ScaffoldHappyPathsTest(unittest.TestCase):
     )
 
     body = skill_md.read_text(encoding="utf-8")
-    # Shelled quality-check content contract requires these five H2s; the
-    # three code-review-specific ones (Specialist Scope, Inputs, Outputs
-    # Contract) MUST NOT be required here.
-    self.assertIn("## Description", body)
-    self.assertIn("## Execution Steps", body)
-    self.assertIn("## Fix Strategy", body)
-    self.assertIn("## Execution Mode Reporting", body)
-    self.assertIn("## Telemetry Ceremony Hooks", body)
-    self.assertNotIn("## Specialist Scope", body)
-    self.assertNotIn("## Outputs Contract", body)
-    # Platform-pack skills go through the lighter validator and do not get
-    # Project Overrides boilerplate — keep them lean.
+    content = (skill_md.parent / "content.md").read_text(encoding="utf-8")
+    self.assertIn("## Descriptor", body)
+    self.assertIn("## Execution", body)
+    self.assertIn("## Ceremony", body)
+    self.assertIn("## Execution Steps", content)
+    self.assertIn("## Fix Strategy", content)
+    self.assertNotIn("## Description", content)
+    self.assertNotIn("## Specialist Scope", content)
+    self.assertNotIn("## Outputs Contract", content)
     self.assertNotIn("## Project Overrides", body)
 
   def test_shelled_quality_check_rollback_on_manifest_write_failure(self) -> None:
@@ -680,6 +832,8 @@ class ScaffoldHappyPathsTest(unittest.TestCase):
     skill_md = (
       self.repo / "skills" / "php" / "bill-php-feature-verify" / "SKILL.md"
     )
+    self.assertTrue((skill_md.parent / "shell-ceremony.md").exists())
+    self.assertTrue((skill_md.parent / "telemetry-contract.md").exists())
 
     validate_skill_file = _load_validate_skill_file()
     issues: list[str] = []
@@ -950,7 +1104,7 @@ class ScaffolderOwnedSectionsIdenticalTest(unittest.TestCase):
     body_b = (specialist_b.skill_path / "SKILL.md").read_text(encoding="utf-8")
     owned_a = extract_scaffolder_owned(body_a)
     owned_b = extract_scaffolder_owned(body_b)
-    self.assertEqual(set(owned_a), {"## Execution Mode Reporting", "## Telemetry Ceremony Hooks"})
+    self.assertEqual(set(owned_a), {"## Execution", "## Ceremony"})
     self.assertEqual(owned_a, owned_b)
 
 
@@ -1023,6 +1177,28 @@ class NewSkillInteractivePromptTest(unittest.TestCase):
     self.assertEqual(payload["kind"], "platform-pack")
     self.assertEqual(payload["platform"], "java")
     self.assertEqual(payload["skeleton_mode"], "starter")
+    self.assertFalse(payload["governs_addons"])
+
+  def test_platform_pack_prompt_uses_php_preset_without_signal_prompt(self) -> None:
+    from skill_bill.cli import _prompt_new_skill_interactively
+
+    with mock.patch(
+      "builtins.input",
+      side_effect=[
+        "1",      # new platform skill set
+        "php",    # platform
+        "n",      # include specialists?
+        "",       # display name
+        "",       # description
+        "n",      # governs add-ons?
+      ],
+    ):
+      payload = _prompt_new_skill_interactively()
+
+    self.assertEqual(payload["kind"], "platform-pack")
+    self.assertEqual(payload["platform"], "php")
+    self.assertEqual(payload["skeleton_mode"], "starter")
+    self.assertNotIn("routing_signals", payload)
     self.assertFalse(payload["governs_addons"])
 
   def test_platform_pack_prompt_maps_specialists_to_full(self) -> None:

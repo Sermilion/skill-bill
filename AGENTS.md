@@ -2,7 +2,7 @@
 
 ## Project context
 
-skill-bill is a governed system for authoring, routing, validating, installing, and measuring AI-agent skills. The core product is the shared orchestration playbooks, validators, installers, scaffolder, telemetry, and stable base shells for code review, quality checks, feature work, feature verification, and PR descriptions. This repo keeps only two built-in reference platform packs: `kotlin` and `kmp`. Other stacks should be authored as separate platform packs with the scaffolder.
+skill-bill is a governed system for authoring, routing, validating, installing, and measuring AI-agent skills. It ships shared orchestration, validators, installers, scaffolding, telemetry, and stable base shells for review, quality checks, feature work, feature verification, and PR descriptions. This repo keeps only two built-in reference platform packs: `kotlin` and `kmp`. Other stacks should be authored as separate platform packs with the scaffolder.
 
 ## Core taxonomy
 
@@ -22,11 +22,12 @@ skill-bill is a governed system for authoring, routing, validating, installing, 
 ## Governed platform packs
 
 - Packs live under `platform-packs/` and are user-owned.
+- Skill Bill is platform-extensible: any team may author a new conforming pack.
+- That does **not** mean every new platform belongs in this repo's built-in surface. Keep the shipped first-party set intentionally narrow unless the platform is meant to be maintained here as a reference pack.
 - This repo ships `kotlin` and `kmp` as the first-party reference implementations for the governed pack model.
 - Each pack ships a manifest. The schema lives in the shell-content-contract playbook under `orchestration/`.
 - The current shell contract version is 1.0. Keep it locked across the shell and every pack; version drift must loud-fail.
-- Code-review content needs six contract H2s: Description, Specialist Scope, Inputs, Outputs Contract, Execution Mode Reporting, Telemetry Ceremony Hooks.
-- Quality-check content needs five contract H2s: Description, Execution Steps, Fix Strategy, Execution Mode Reporting, Telemetry Ceremony Hooks.
+- Follow `orchestration/shell-content-contract/PLAYBOOK.md` for governed skill shape.
 - Missing manifest, wrong version, missing content file, or missing section must raise the named loud-fail exceptions. Do not add silent fallback.
 - Discovery is manifest-driven. The shells, routing playbook, and validator read `routing_signals` from pack manifests instead of hard-coding platform names.
 - `kmp` currently routes quality-check work to `kotlin`. `bill-feature-implement` and `bill-feature-verify` remain pre-shell.
@@ -49,12 +50,12 @@ skill-bill is a governed system for authoring, routing, validating, installing, 
 ## Adding a new platform
 
 1. For code review, create the new pack root, add a conforming manifest and content, wire the sidecars, update the README catalog, extend pack tests, and run validation.
-2. For quality-check, register the pack's quality-check skill in the manifest, ship the five contract H2 sections, and wire the routing plus telemetry sidecars. The built-in `kmp` reference pack still falls back to `kotlin`.
+2. For quality-check, register the manifest entry and ship the governed wrapper plus sidecars. `kmp` still falls back to `kotlin`.
 3. For pre-shell families (`feature-implement`, `feature-verify`), keep using the historic `skills/<platform>/` layout until those families are piloted.
 
 ## New-skill authoring
 
-- Use the scaffolder for all new skills: `skill-bill new-skill --payload <file>`, `--interactive`, or `/bill-skill-scaffold`.
+- Use the scaffolder for all new skills: `skill-bill new-skill --payload <file>`, `--interactive`, or `/bill-create-skill`.
 - Supported `kind` values:
   - `horizontal`: create a canonical skill under `skills/`.
   - `platform-override-piloted`: create the skill in the selected pack, updating its manifest; for `quality-check`, register `declared_quality_check_file`.
@@ -64,7 +65,7 @@ skill-bill is a governed system for authoring, routing, validating, installing, 
 - Pre-shell families are defined in `skill_bill/constants.py`; add the family there and in `skill_bill/scaffold.py` together.
 - Entry point: `skill_bill/scaffold.py`. Payload schema and exception catalog live in `orchestration/shell-content-contract/SCAFFOLD_PAYLOAD.md`.
 - The scaffolder is atomic. Validator, manifest-write, or symlink failures must roll the repo back byte-for-byte.
-- `## Execution Mode Reporting` and `## Telemetry Ceremony Hooks` come from a stored template and stay byte-identical within a family.
+- Keep it byte-identical across governed skills on the same shell contract.
 
 ## Quality-check guidance
 

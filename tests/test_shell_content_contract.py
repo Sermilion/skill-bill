@@ -9,7 +9,10 @@ error message.
 from __future__ import annotations
 
 from pathlib import Path
+import re
+import shutil
 import sys
+import tempfile
 import unittest
 from unittest import mock
 
@@ -20,10 +23,12 @@ sys.path.insert(0, str(ROOT))
 from skill_bill import shell_content_contract  # noqa: E402
 from skill_bill.shell_content_contract import (  # noqa: E402
   ContractVersionMismatchError,
+  InvalidDescriptorSectionError,
   InvalidManifestSchemaError,
   MissingContentFileError,
   MissingManifestError,
   MissingRequiredSectionError,
+  MissingShellCeremonyFileError,
   PlatformPack,
   PyYAMLMissingError,
   SHELL_CONTRACT_VERSION,
@@ -74,7 +79,7 @@ class ShellContentContractLoaderTest(unittest.TestCase):
       load_platform_pack(FIXTURES_ROOT / "missing_section")
     message = str(context.exception)
     self.assertIn("missing_section", message)
-    self.assertIn("## Telemetry Ceremony Hooks", message)
+    self.assertIn("## Ceremony", message)
 
   def test_rejects_invalid_schema(self) -> None:
     with self.assertRaises(InvalidManifestSchemaError) as context:
@@ -107,6 +112,26 @@ class ShellContentContractLoaderTest(unittest.TestCase):
     self.assertIn("schema_governs_addons_wrong_type", message)
     self.assertIn("governs_addons", message)
 
+  def test_rejects_missing_area_metadata(self) -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+      fixture_root = Path(tmpdir) / "valid_pack"
+      shutil.copytree(FIXTURES_ROOT / "valid_pack", fixture_root, symlinks=True)
+      manifest_path = fixture_root / "platform.yaml"
+      manifest_text = manifest_path.read_text(encoding="utf-8")
+      manifest_text = re.sub(
+        r"(?ms)^area_metadata:\n(?:  [^\n]+\n|    [^\n]+\n)*",
+        "",
+        manifest_text,
+      )
+      manifest_path.write_text(manifest_text, encoding="utf-8")
+
+      with self.assertRaises(InvalidManifestSchemaError) as context:
+        load_platform_pack(fixture_root)
+
+    message = str(context.exception)
+    self.assertIn("valid_pack", message)
+    self.assertIn("area_metadata", message)
+
   # --- Additional contract-error coverage (A-003, P-001) -----------------
 
   def test_rejects_extra_area_in_declared_files(self) -> None:
@@ -122,7 +147,53 @@ class ShellContentContractLoaderTest(unittest.TestCase):
       load_platform_pack(FIXTURES_ROOT / "heading_in_fence")
     message = str(context.exception)
     self.assertIn("heading_in_fence", message)
-    self.assertIn("## Specialist Scope", message)
+    self.assertIn("## Descriptor", message)
+
+  def test_rejects_missing_shell_ceremony_sidecar(self) -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+      fixture_root = Path(tmpdir) / "valid_pack"
+      shutil.copytree(FIXTURES_ROOT / "valid_pack", fixture_root, symlinks=True)
+      (fixture_root / "code-review" / "shell-ceremony.md").unlink()
+
+      with self.assertRaises(MissingShellCeremonyFileError) as context:
+        load_platform_pack(fixture_root)
+
+    message = str(context.exception)
+    self.assertIn("valid_pack", message)
+    self.assertIn("shell-ceremony.md", message)
+
+  def test_rejects_descriptor_drift(self) -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+      fixture_root = Path(tmpdir) / "valid_pack"
+      shutil.copytree(FIXTURES_ROOT / "valid_pack", fixture_root, symlinks=True)
+      skill_path = fixture_root / "code-review" / "SKILL.md"
+      skill_text = skill_path.read_text(encoding="utf-8").replace(
+        "Governed skill: `code-review`",
+        "Governed skill: `code-review-drifted`",
+      )
+      skill_path.write_text(skill_text, encoding="utf-8")
+
+      with self.assertRaises(InvalidDescriptorSectionError) as context:
+        load_platform_pack(fixture_root)
+
+    message = str(context.exception)
+    self.assertIn("valid_pack", message)
+    self.assertIn("## Descriptor", message)
+
+  def test_missing_shell_ceremony_fails_before_descriptor_drift(self) -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+      fixture_root = Path(tmpdir) / "valid_pack"
+      shutil.copytree(FIXTURES_ROOT / "valid_pack", fixture_root, symlinks=True)
+      skill_path = fixture_root / "code-review" / "SKILL.md"
+      skill_text = skill_path.read_text(encoding="utf-8").replace(
+        "Governed skill: `code-review`",
+        "Governed skill: `code-review-drifted`",
+      )
+      skill_path.write_text(skill_text, encoding="utf-8")
+      (fixture_root / "code-review" / "shell-ceremony.md").unlink()
+
+      with self.assertRaises(MissingShellCeremonyFileError):
+        load_platform_pack(fixture_root)
 
   # --- PyYAML missing coverage (P-002) -----------------------------------
 
@@ -152,7 +223,7 @@ class QualityCheckContentContractTest(unittest.TestCase):
     pack = load_platform_pack(FIXTURES_ROOT / "quality_check_only")
     self.assertIsNotNone(pack.declared_quality_check_file)
     resolved = load_quality_check_content(pack)
-    self.assertEqual(resolved, pack.declared_quality_check_file)
+    self.assertEqual(resolved, pack.declared_quality_check_file.with_name("content.md"))
     self.assertTrue(resolved.is_file())
 
   def test_loads_code_review_and_quality_check_fixture(self) -> None:
@@ -177,7 +248,7 @@ class QualityCheckContentContractTest(unittest.TestCase):
       load_quality_check_content(pack)
     message = str(context.exception)
     self.assertIn("quality_check_missing_section", message)
-    self.assertIn("## Fix Strategy", message)
+    self.assertIn("## Ceremony", message)
 
   def test_valid_pack_without_quality_check_key_is_none(self) -> None:
     """A pack that does NOT declare the key has declared_quality_check_file=None.

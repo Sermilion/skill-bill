@@ -6,9 +6,14 @@ from pathlib import Path
 ORCHESTRATION_PLAYBOOKS: dict[str, str] = {
   "stack-routing": "orchestration/stack-routing/PLAYBOOK.md",
   "review-orchestrator": "orchestration/review-orchestrator/PLAYBOOK.md",
+  "review-specialist-contract": "orchestration/review-orchestrator/specialist-contract.md",
   "review-delegation": "orchestration/review-delegation/PLAYBOOK.md",
   "telemetry-contract": "orchestration/telemetry-contract/PLAYBOOK.md",
   "shell-content-contract": "orchestration/shell-content-contract/PLAYBOOK.md",
+}
+
+ORCHESTRATION_SIDECARS: dict[str, str] = {
+  "shell-ceremony": "orchestration/shell-content-contract/shell-ceremony.md",
 }
 
 ADDON_DIRECTORY_NAME = "addons"
@@ -58,21 +63,32 @@ ADDON_SUPPORTING_FILE_TARGETS.update({
 _CODE_REVIEW_RUNTIME_SUPPORTING_FILES: tuple[str, ...] = (
   "stack-routing.md",
   "review-orchestrator.md",
+  "specialist-contract.md",
   "review-delegation.md",
   "telemetry-contract.md",
+  "shell-ceremony.md",
+)
+
+_CODE_REVIEW_SPECIALIST_RUNTIME_SUPPORTING_FILES: tuple[str, ...] = (
+  "review-orchestrator.md",
+  "telemetry-contract.md",
+  "shell-ceremony.md",
 )
 
 _QUALITY_CHECK_RUNTIME_SUPPORTING_FILES: tuple[str, ...] = (
   "stack-routing.md",
   "telemetry-contract.md",
+  "shell-ceremony.md",
 )
 
 SUPPORTING_FILE_TARGETS: dict[str, str] = {
   "stack-routing.md": ORCHESTRATION_PLAYBOOKS["stack-routing"],
   "review-orchestrator.md": ORCHESTRATION_PLAYBOOKS["review-orchestrator"],
+  "specialist-contract.md": ORCHESTRATION_PLAYBOOKS["review-specialist-contract"],
   "review-delegation.md": ORCHESTRATION_PLAYBOOKS["review-delegation"],
   "telemetry-contract.md": ORCHESTRATION_PLAYBOOKS["telemetry-contract"],
   "shell-content-contract.md": ORCHESTRATION_PLAYBOOKS["shell-content-contract"],
+  "shell-ceremony.md": ORCHESTRATION_SIDECARS["shell-ceremony"],
   **ADDON_SUPPORTING_FILE_TARGETS,
 }
 
@@ -82,15 +98,25 @@ RUNTIME_SUPPORTING_FILES: dict[str, tuple[str, ...]] = {
     "review-delegation.md",
     "telemetry-contract.md",
     "shell-content-contract.md",
+    "shell-ceremony.md",
   ),
-  "bill-quality-check": ("stack-routing.md", "telemetry-contract.md"),
-  "bill-kotlin-quality-check": ("stack-routing.md", "telemetry-contract.md"),
-  "bill-kotlin-code-review": ("stack-routing.md", "review-orchestrator.md", "review-delegation.md", "telemetry-contract.md"),
+  "bill-quality-check": ("stack-routing.md", "telemetry-contract.md", "shell-ceremony.md"),
+  "bill-kotlin-quality-check": ("stack-routing.md", "telemetry-contract.md", "shell-ceremony.md"),
+  "bill-kotlin-code-review": (
+    "stack-routing.md",
+    "review-orchestrator.md",
+    "specialist-contract.md",
+    "review-delegation.md",
+    "telemetry-contract.md",
+    "shell-ceremony.md",
+  ),
   "bill-kmp-code-review": (
     "stack-routing.md",
     "review-orchestrator.md",
+    "specialist-contract.md",
     "review-delegation.md",
     "telemetry-contract.md",
+    "shell-ceremony.md",
     "android-compose-review.md",
     "android-navigation-review.md",
     "android-interop-review.md",
@@ -100,6 +126,8 @@ RUNTIME_SUPPORTING_FILES: dict[str, tuple[str, ...]] = {
     "android-compose-adaptive-layouts.md",
   ),
   "bill-kmp-code-review-ui": (
+    "telemetry-contract.md",
+    "shell-ceremony.md",
     "android-compose-review.md",
     "android-navigation-review.md",
     "android-interop-review.md",
@@ -108,6 +136,7 @@ RUNTIME_SUPPORTING_FILES: dict[str, tuple[str, ...]] = {
     "android-compose-adaptive-layouts.md",
   ),
   "bill-feature-implement": (
+    "shell-ceremony.md",
     "telemetry-contract.md",
     "android-compose-implementation.md",
     "android-navigation-implementation.md",
@@ -117,8 +146,16 @@ RUNTIME_SUPPORTING_FILES: dict[str, tuple[str, ...]] = {
     "android-compose-edge-to-edge.md",
     "android-compose-adaptive-layouts.md",
   ),
-  "bill-feature-verify": ("telemetry-contract.md",),
-  "bill-pr-description": ("telemetry-contract.md",),
+  "bill-feature-verify": ("shell-ceremony.md", "telemetry-contract.md"),
+  "bill-pr-description": ("shell-ceremony.md", "telemetry-contract.md"),
+  "bill-boundary-decisions": ("shell-ceremony.md",),
+  "bill-boundary-history": ("shell-ceremony.md",),
+  "bill-feature-guard": ("shell-ceremony.md",),
+  "bill-feature-guard-cleanup": ("shell-ceremony.md",),
+  "bill-grill-plan": ("shell-ceremony.md",),
+  "bill-skill-remove": ("shell-ceremony.md",),
+  "bill-create-skill": ("shell-ceremony.md",),
+  "bill-unit-test-value-check": ("shell-ceremony.md",),
 }
 
 REVIEW_DELEGATION_REQUIRED_SECTIONS = (
@@ -192,8 +229,17 @@ def required_supporting_files_for_skill(skill_name: str) -> tuple[str, ...]:
   if skill_name.startswith("bill-") and skill_name.endswith("-code-review"):
     return _CODE_REVIEW_RUNTIME_SUPPORTING_FILES
 
+  if skill_name.startswith("bill-") and "-code-review-" in skill_name:
+    return _CODE_REVIEW_SPECIALIST_RUNTIME_SUPPORTING_FILES
+
   if skill_name.startswith("bill-") and skill_name.endswith("-quality-check"):
     return _QUALITY_CHECK_RUNTIME_SUPPORTING_FILES
+
+  if skill_name.startswith("bill-") and skill_name.endswith("-feature-implement"):
+    return RUNTIME_SUPPORTING_FILES["bill-feature-implement"]
+
+  if skill_name.startswith("bill-") and skill_name.endswith("-feature-verify"):
+    return RUNTIME_SUPPORTING_FILES["bill-feature-verify"]
 
   return ()
 
