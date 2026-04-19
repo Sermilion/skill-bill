@@ -1,5 +1,5 @@
 ---
-name: bill-skill-scaffold
+name: bill-create-skill
 description: Use when scaffolding a new skill or platform skill set and syncing it to all detected local AI agents (Claude, Copilot, GLM, Codex, Opencode). Use when user mentions scaffold skill, create skill set, create skill, new skill, add skill, or sync skill to agents.
 ---
 
@@ -29,7 +29,7 @@ Ask the user enough to pick exactly one of the five kinds:
    - Ask for the platform slug and whether the user wants just the baseline review path or also the code-review specialists.
    - `starter` → scaffold the pack root, baseline code-review, default quality-check, and thin `feature-implement` / `feature-verify` stubs.
    - `full` → scaffold the starter set plus bare specialist stubs for every approved code-review area.
-   - For known platforms such as `java`, the scaffolder infers routing signals from a built-in preset; ask for manual routing signals only when no preset exists.
+   - For known platforms such as `java` and `php`, the scaffolder infers routing signals from a built-in preset; ask for manual routing signals only when no preset exists and you do not have a defensible inference.
 4. **code-review-area** — a specialist for one approved code-review area inside an existing platform pack.
    - Approved areas: `architecture`, `performance`, `platform-correctness`, `security`, `testing`, `api-contracts`, `persistence`, `reliability`, `ui`, `ux-accessibility`.
    - Destination: `platform-packs/<slug>/code-review/<name>/SKILL.md` + manifest edits.
@@ -52,7 +52,7 @@ Refuse to invent a new family or code-review area inline. New platforms are allo
      - thin `bill-<platform>-feature-verify`
    - Only ask follow-ups that are still missing:
      - description when the user wants to customize it now
-     - routing signals only for a new platform with no built-in preset
+     - routing signals only for a new platform with no built-in preset and no defensible repo-marker inference
      - family / area / skill name only for the non-`platform-pack` branches
 
    If the user says “create a skill set for Java” or equivalent, interpret that as `kind=platform-pack`. Ask one follow-up:
@@ -70,27 +70,16 @@ Refuse to invent a new family or code-review area inline. New platforms are allo
      - `## Descriptor`
      - `## Execution`
      - `## Ceremony`
-   - Also preview the sibling `content.md` file that carries the authored review body. For baseline code-review skills, that content includes:
-     - `## Description`
-     - `## Specialist Scope`
-     - `## Inputs`
-     - `## Outputs Contract`
-   - For **baseline** code-review skills (kind `platform-pack` or a `platform-override-piloted` targeting `family=code-review` with no `area`), the generated `content.md` also inserts two extra runtime-mode sections after `## Outputs Contract`:
-     - `## Delegated Mode` — applies when the pack's `declared_code_review_areas` list is non-empty and the diff warrants subagents.
-     - `## Inline Mode` — covers both the "specialists declared, small scope → run sequentially" sub-case and the "no specialists declared → do the full review yourself" sub-case.
-
-     These sections are NOT part of the wrapper contract; they are seeded extras in `content.md` so a baseline pack works whether or not specialists are added later. Area specialists, quality-check, and feature-implement/verify skills do not receive them.
-   - For governed quality-check skills, preview the same three-section `SKILL.md` wrapper plus a `content.md` body containing:
-     - `## Description`
-     - `## Execution Steps`
-     - `## Fix Strategy`
-
-     `## Description` ships with an inferred seed. `## Execution Steps` and `## Fix Strategy` deliberately stay as `TODO:` markers because the actual platform commands must be hand-authored.
-   - For every governed skill preview, show that `shell-ceremony.md` will be linked in as the shared ceremony sidecar.
+   - Also preview the sibling `content.md` file that carries the authored body.
+     - For governed `code-review` skills, show the current minimal seed: a titled content file with a `TODO:` body for the authored review instructions.
+     - For governed `quality-check` skills, show the current minimal seed: `# Quality-Check Content`, `## Execution Steps`, and `## Fix Strategy`, with the two lower sections left as `TODO:` markers because the platform commands must be authored by hand.
+   - For every governed skill preview, show the supporting sidecars that will be linked in from the runtime contract.
+     - `shell-ceremony.md` is always present for governed review-family and quality-check skills.
+     - `stack-routing.md` and `telemetry-contract.md` are also linked for routed review-family and quality-check entry points.
    - For `platform-pack`, preview the generated manifest path plus the baseline `bill-<platform>-code-review` skill directory, the default `bill-<platform>-quality-check` skill directory, and the thin `bill-<platform>-feature-implement` / `bill-<platform>-feature-verify` stubs that will be scaffolded together.
    - For `platform-pack` with `skeleton_mode=full`, also preview the list of approved specialist stubs that will be created.
 
-   The `SKILL.md` wrapper and `shell-ceremony.md` sidecar are governed and should not be offered for ad hoc edits during preview. The authored `content.md` sections ship with family- and area-aware seeds rather than generic boilerplate; users can freely edit those seeds after scaffolding.
+   The `SKILL.md` wrapper and governed sidecars should not be offered for ad hoc edits during preview. Users can edit the scaffolded `content.md` body after creation, but the wrapper contract and linked sidecars stay governed.
 
 4. **Iterate.** Offer three choices:
    - `yes` — accept the preview and proceed to scaffold.
@@ -118,7 +107,7 @@ Refuse to invent a new family or code-review area inline. New platforms are allo
    }
    ```
 
-   Omit `routing_signals` for known platforms with built-in presets. Include it only when overriding a preset or introducing an unknown platform.
+   Omit `routing_signals` for known platforms with built-in presets. Include it only when overriding a preset or introducing an unknown platform whose routing signals cannot be inferred confidently.
 
    The full schema (required keys, worked examples per kind, the loud-fail exception catalog) lives in the repo at `orchestration/shell-content-contract/SCAFFOLD_PAYLOAD.md`.
 

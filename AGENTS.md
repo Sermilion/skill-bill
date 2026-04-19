@@ -55,7 +55,7 @@ skill-bill is a governed system for authoring, routing, validating, installing, 
 
 ## New-skill authoring
 
-- Use the scaffolder for all new skills: `skill-bill new-skill --payload <file>`, `--interactive`, or `/bill-skill-scaffold`.
+- Use the scaffolder for all new skills: `skill-bill new-skill --payload <file>`, `--interactive`, or `/bill-create-skill`.
 - Supported `kind` values:
   - `horizontal`: create a canonical skill under `skills/`.
   - `platform-override-piloted`: create the skill in the selected pack, updating its manifest; for `quality-check`, register `declared_quality_check_file`.

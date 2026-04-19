@@ -4,7 +4,7 @@ Pure-Python scaffolder invoked by:
 
 - the ``skill-bill new-skill`` CLI subcommand
 - the ``new_skill_scaffold`` MCP tool
-- the ``bill-skill-scaffold`` skill (via subprocess)
+- the ``bill-create-skill`` skill (via subprocess)
 
 The entry point is :func:`scaffold`. It takes a validated payload and returns
 a :class:`ScaffoldResult` describing every filesystem mutation. The scaffolder
@@ -139,6 +139,16 @@ PLATFORM_PACK_PRESETS: dict[str, dict[str, Any]] = {
       "strong": ["pom.xml", "build.gradle", "src/main/java"],
       "tie_breakers": [
         "Prefer Java when Maven metadata or Java source markers dominate generic JVM signals."
+      ],
+      "addon_signals": [],
+    },
+  },
+  "php": {
+    "display_name": "PHP",
+    "routing_signals": {
+      "strong": ["composer.json", ".php", "phpunit.xml"],
+      "tie_breakers": [
+        "Prefer PHP when Composer metadata or .php source files dominate mixed backend signals."
       ],
       "addon_signals": [],
     },

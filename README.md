@@ -2,7 +2,7 @@
 
 A governed system for portable AI-agent behavior: stable base commands, shared orchestration, validator-backed contracts, cross-agent installers, scaffolding, and local-first telemetry that keep one source of truth from drifting as the repo grows.
 
-Skill Bill is a governance product, not a prompt dump. This repo ships the shared orchestration playbooks under `orchestration/`, validators and CLI/MCP runtime under `skill_bill/` and `scripts/`, cross-agent installers, the `bill-skill-scaffold` authoring path, SQLite-backed telemetry, and stable base shells such as `bill-code-review` and `bill-quality-check`. Governed pack skills now use a thin `SKILL.md` wrapper plus sibling `content.md` and `shell-ceremony.md` sidecars; the shell+content contract is versioned at `orchestration/shell-content-contract/PLAYBOOK.md`.
+Skill Bill is a governance product, not a prompt dump. This repo ships the shared orchestration playbooks under `orchestration/`, validators and CLI/MCP runtime under `skill_bill/` and `scripts/`, cross-agent installers, the `bill-create-skill` authoring path, SQLite-backed telemetry, and stable base shells such as `bill-code-review` and `bill-quality-check`. Governed pack skills now use a thin `SKILL.md` wrapper plus sibling `content.md` and `shell-ceremony.md` sidecars; the shell+content contract is versioned at `orchestration/shell-content-contract/PLAYBOOK.md`.
 
 The in-repo first-party reference packs are intentionally narrow: `kotlin` and `kmp` live under `platform-packs/` as the built-in examples of the governed pack model. If your team needs another stack, author or fork a separate platform pack with the scaffolder instead of treating this repo as the permanent home for every ecosystem.
 
@@ -225,7 +225,7 @@ The uninstaller is idempotent. It removes current Skill Bill installs, generated
 
 ## Reference skill catalog
 
-The skills below ship in this repo as the built-in governance system plus the two first-party reference packs. Install them via `./install.sh`, extend them in your fork, or author separate stacks via `/bill-skill-scaffold`.
+The skills below ship in this repo as the built-in governance system plus the two first-party reference packs. Install them via `./install.sh`, extend them in your fork, or author separate stacks via `/bill-create-skill`.
 
 ### Code Review (1 skills)
 
@@ -279,7 +279,7 @@ Built-in first-party reference pack at `platform-packs/kmp/`. Layers Android/KMP
 | `/bill-unit-test-value-check` | Audit unit tests for real value |
 | `/bill-pr-description` | Generate PR title, description, and QA steps, preferring repo PR templates when present |
 | `/bill-grill-plan` | Stress-test a plan or design by walking every decision branch |
-| `/bill-skill-scaffold` | Scaffold a new skill or platform skill set and sync it to all agents |
+| `/bill-create-skill` | Scaffold a new skill or platform skill set and sync it to all agents |
 | `/bill-skill-remove` | Remove an existing skill or platform skill set and clean up installs and wiring |
 
 ## Project customization
@@ -462,7 +462,7 @@ rewrite, rolls back per-skill on validator failure, and never commits.
 
 Preferred path:
 
-- from inside an AI agent, run `/bill-skill-scaffold`. The skill now starts with plain-language intake, especially for `platform-pack`: ask for the platform slug, ask whether to include code-review specialists, preview the generated baseline set, then subprocess-call `skill-bill new-skill --payload <tempfile>` to materialize it.
+- from inside an AI agent, run `/bill-create-skill`. The skill now starts with plain-language intake, especially for `platform-pack`: ask for the platform slug, ask whether to include code-review specialists, preview the generated baseline set, then subprocess-call `skill-bill new-skill --payload <tempfile>` to materialize it.
 - outside an agent (scripts, CI, teams piloting a new platform), run `skill-bill new-skill --interactive` for the same plain-language bootstrap flow, or pass a JSON payload file with `skill-bill new-skill --payload ./payload.json`.
 
 New platform packs are scaffolded as a bootstrap set: pack root, baseline `code-review`, baseline `quality-check`, and thin `feature-implement` / `feature-verify` stubs. Known platforms such as `java` use built-in routing presets; only unknown or custom platforms need manual `routing_signals`. `platform-pack` still supports `skeleton_mode=full` when you want the bare-bones review specialists created up front; choose `starter` when you want only the baseline path first.
