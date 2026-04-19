@@ -56,6 +56,8 @@ from skill_bill.scaffold_template import (
   ScaffoldTemplateContext,
   infer_skill_description,
   render_default_section,
+  render_delegated_mode_section,
+  render_inline_mode_section,
   render_project_overrides,
 )
 from skill_bill.shell_content_contract import (
@@ -693,6 +695,23 @@ def _render_skill_body(plan: dict[str, Any], payload: dict) -> str:
     else REQUIRED_CONTENT_SECTIONS
   )
   sections.extend(render_default_section(heading, context) for heading in required_sections)
+
+  # Baseline code-review skills ship with dual-mode seeds so the skill works
+  # whether the pack has specialists yet or not. Area specialists and other
+  # families don't need this branching.
+  is_code_review_baseline = (
+    plan["family"] == "code-review"
+    and not plan["area"]
+    and plan["is_shelled"]
+  )
+  if is_code_review_baseline:
+    outputs_index = next(
+      (i for i, section in enumerate(sections) if section.startswith("## Outputs Contract")),
+      len(sections),
+    )
+    sections.insert(outputs_index + 1, render_delegated_mode_section(context))
+    sections.insert(outputs_index + 2, render_inline_mode_section(context))
+
   body = "\n".join(sections)
   return f"{front_matter}\n{body}"
 

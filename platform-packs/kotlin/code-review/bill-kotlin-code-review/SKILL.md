@@ -191,6 +191,39 @@ Summary, Risk Register with findings of the form
 Action Items, and Verdict (`approve`, `approve-with-changes`, or
 `request-changes`). The output layer follows the shell's structured format.
 
+## Delegated Mode
+
+Requires the owning pack's `declared_code_review_areas` list to be non-empty.
+
+Applies when the diff is large, the risk profile is high, multiple areas are
+meaningfully involved, or the safest choice is unclear.
+
+- Select specialists using the logic in the Dynamic Specialist Selection section.
+- Launch one delegated subagent per selected specialist via
+  [review-delegation.md](review-delegation.md).
+- Pass each subagent its scoped file list, applicable active learnings, and the
+  shared specialist contract.
+- Aggregate specialist findings into the final risk register.
+- Report `Execution mode: delegated`.
+
+## Inline Mode
+
+Applies in either of these cases:
+
+- **Specialists declared, small and low-risk scope** — run each selected
+  specialist review pass sequentially in the current thread, read the specialist
+  skill file as the primary rubric, keep findings attributed before merging.
+- **No specialists declared** — review the Kotlin diff directly here. Cover
+  architecture, correctness, security, performance, and testing concerns in one
+  pass.
+
+Common to both:
+
+- Apply the shared specialist contract in
+  [review-orchestrator.md](review-orchestrator.md).
+- Merge and deduplicate findings into the final risk register.
+- Report `Execution mode: inline`.
+
 ## Execution Mode Reporting
 Report `Execution mode: inline` or `Execution mode: delegated` explicitly,
 per the shell's output contract.

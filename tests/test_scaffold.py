@@ -422,6 +422,140 @@ class ScaffoldHappyPathsTest(unittest.TestCase):
     ).read_text(encoding="utf-8")
     self.assertNotIn("TODO: author the description", horizontal_body)
 
+  def test_code_review_baseline_has_dual_mode_sections(self) -> None:
+    """A baseline code-review skill must ship with ``## Delegated Mode`` and
+    ``## Inline Mode`` seeds so the skill works regardless of whether the
+    pack has declared any specialists yet. Area specialists, quality-check,
+    and feature-implement/verify skills MUST NOT get these extra sections.
+    """
+    scaffold(
+      self._payload(
+        kind="platform-pack",
+        platform="java",
+        skeleton_mode="starter",
+      )
+    )
+    baseline_body = (
+      self.repo
+      / "platform-packs"
+      / "java"
+      / "code-review"
+      / "bill-java-code-review"
+      / "SKILL.md"
+    ).read_text(encoding="utf-8")
+    self.assertIn("## Delegated Mode", baseline_body)
+    self.assertIn("## Inline Mode", baseline_body)
+    self.assertIn("declared_code_review_areas", baseline_body)
+    # Specialist Scope must now mention both modes.
+    self.assertIn("Delegated", baseline_body)
+    self.assertIn("Inline", baseline_body)
+    # Dual-mode sections must sit between Outputs Contract and Execution
+    # Mode Reporting so the runtime-mode narrative flows naturally.
+    outputs_index = baseline_body.index("## Outputs Contract")
+    delegated_index = baseline_body.index("## Delegated Mode")
+    inline_index = baseline_body.index("## Inline Mode")
+    exec_mode_index = baseline_body.index("## Execution Mode Reporting")
+    self.assertLess(outputs_index, delegated_index)
+    self.assertLess(delegated_index, inline_index)
+    self.assertLess(inline_index, exec_mode_index)
+
+    quality_body = (
+      self.repo
+      / "platform-packs"
+      / "java"
+      / "quality-check"
+      / "bill-java-quality-check"
+      / "SKILL.md"
+    ).read_text(encoding="utf-8")
+    self.assertNotIn("## Delegated Mode", quality_body)
+    self.assertNotIn("## Inline Mode", quality_body)
+
+    scaffold(
+      self._payload(
+        kind="code-review-area",
+        name="bill-java-code-review-performance",
+        platform="java",
+        area="performance",
+      )
+    )
+    area_body = (
+      self.repo
+      / "platform-packs"
+      / "java"
+      / "code-review"
+      / "bill-java-code-review-performance"
+      / "SKILL.md"
+    ).read_text(encoding="utf-8")
+    self.assertNotIn("## Delegated Mode", area_body)
+    self.assertNotIn("## Inline Mode", area_body)
+
+  def test_code_review_sections_seeded_no_todo(self) -> None:
+    """`## Specialist Scope`, `## Inputs`, and `## Outputs Contract` must ship
+    with family/area-aware seeds instead of TODO placeholders for code-review
+    and feature families. Quality-check's ``## Execution Steps`` /
+    ``## Fix Strategy`` intentionally stay as TODOs because the platform
+    commands must be hand-authored.
+    """
+    scaffold(
+      self._payload(
+        kind="code-review-area",
+        name="bill-kotlin-code-review-security",
+        platform="kotlin",
+        area="security",
+      )
+    )
+    area_body = (
+      self.repo
+      / "platform-packs"
+      / "kotlin"
+      / "code-review"
+      / "bill-kotlin-code-review-security"
+      / "SKILL.md"
+    ).read_text(encoding="utf-8")
+    self.assertNotIn("TODO: author the specialist scope", area_body)
+    self.assertNotIn("TODO: author the inputs", area_body)
+    self.assertNotIn("TODO: author the outputs contract", area_body)
+    self.assertIn("secrets handling", area_body)
+    self.assertIn("stack-routing.md", area_body)
+    self.assertIn("Findings scoped to", area_body)
+
+    scaffold(
+      self._payload(
+        kind="platform-override-piloted",
+        name="bill-php-feature-verify",
+        platform="php",
+        family="feature-verify",
+      )
+    )
+    verify_body = (
+      self.repo / "skills" / "php" / "bill-php-feature-verify" / "SKILL.md"
+    ).read_text(encoding="utf-8")
+    self.assertNotIn("TODO: author the specialist scope", verify_body)
+    self.assertNotIn("TODO: author the inputs", verify_body)
+    self.assertNotIn("TODO: author the outputs contract", verify_body)
+    self.assertIn("acceptance criteria", verify_body)
+    self.assertIn("Pass/fail verdict", verify_body)
+
+    quality_result = scaffold(
+      self._payload(
+        kind="platform-override-piloted",
+        name="bill-kmp-quality-check",
+        platform="kmp",
+        family="quality-check",
+      )
+    )
+    self.assertEqual(quality_result.kind, "platform-override-piloted")
+    quality_body = (
+      self.repo
+      / "platform-packs"
+      / "kmp"
+      / "quality-check"
+      / "bill-kmp-quality-check"
+      / "SKILL.md"
+    ).read_text(encoding="utf-8")
+    self.assertIn("TODO: author the execution steps", quality_body)
+    self.assertIn("TODO: author the fix strategy", quality_body)
+
   def test_pre_shell_family_emits_interim_note(self) -> None:
     # SKILL-16 promoted quality-check onto the shell+content contract, so the
     # pre-shell acceptance case now exercises feature-implement (the other

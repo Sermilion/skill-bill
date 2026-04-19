@@ -75,16 +75,23 @@ Refuse to invent a new family or code-review area inline. New platforms are allo
      - `## Outputs Contract`
      - `## Execution Mode Reporting` *(scaffolder-owned, byte-identical across specialists in a family)*
      - `## Telemetry Ceremony Hooks` *(scaffolder-owned, byte-identical across specialists in a family)*
+   - For **baseline** code-review skills (kind `platform-pack` or a `platform-override-piloted` targeting `family=code-review` with no `area`), the scaffolder also inserts two extra runtime-mode sections between `## Outputs Contract` and `## Execution Mode Reporting`:
+     - `## Delegated Mode` — applies when the pack's `declared_code_review_areas` list is non-empty and the diff warrants subagents.
+     - `## Inline Mode` — covers both the "specialists declared, small scope → run sequentially" sub-case and the "no specialists declared → do the full review yourself" sub-case.
+
+     These sections are NOT part of the six-H2 content contract; they are seeded extras so a baseline pack works whether or not specialists are added later. Area specialists, quality-check, and feature-implement/verify skills do not receive them.
    - For quality-check skills, preview the five required H2 headings:
      - `## Description`
      - `## Execution Steps`
      - `## Fix Strategy`
      - `## Execution Mode Reporting`
      - `## Telemetry Ceremony Hooks`
+
+     `## Description` ships with an inferred seed. `## Execution Steps` and `## Fix Strategy` deliberately stay as `TODO:` markers because the actual platform commands must be hand-authored.
    - For `platform-pack`, preview the generated manifest path plus the baseline `bill-<platform>-code-review` skill, the default `bill-<platform>-quality-check` skill, and the thin `bill-<platform>-feature-implement` / `bill-<platform>-feature-verify` stubs that will be scaffolded together.
    - For `platform-pack` with `skeleton_mode=full`, also preview the list of approved specialist stubs that will be created.
 
-   The scaffolder-owned sections always render identically across every specialist in the same family — do not invite edits on those.
+   The scaffolder-owned sections always render identically across every specialist in the same family — do not invite edits on those. The authored sections (`## Description`, `## Specialist Scope`, `## Inputs`, `## Outputs Contract`) ship with family- and area-aware seeds rather than `TODO:` markers; users can freely edit those seeds after scaffolding.
 
 4. **Iterate.** Offer three choices:
    - `yes` — accept the preview and proceed to scaffold.

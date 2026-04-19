@@ -215,6 +215,40 @@ Summary, Risk Register with findings of the form
 Action Items, and Verdict (`approve`, `approve-with-changes`, or
 `request-changes`). The output layer follows the shell's structured format.
 
+## Delegated Mode
+
+Requires the owning pack's `declared_code_review_areas` list to be non-empty.
+
+Applies when the diff is large, mobile or backend specialist risk is present,
+mixed scope is meaningfully involved, or the safest choice is unclear.
+
+- Run the selected baseline Kotlin review and the selected KMP specialists as
+  delegated subagents via [review-delegation.md](review-delegation.md).
+- Pass each subagent its scoped file list, applicable active learnings, and any
+  selected governed add-ons.
+- Aggregate findings from the baseline layer and the KMP specialists into the
+  final risk register.
+- Report `Execution mode: delegated`.
+
+## Inline Mode
+
+Applies in either of these cases:
+
+- **Specialists declared, small and low-risk scope** — run the baseline Kotlin
+  review and the selected KMP specialists sequentially in the current thread,
+  read each specialist skill file as the primary rubric, keep findings
+  attributed before merging.
+- **No specialists declared** — review the Android/KMP diff directly here.
+  Cover architecture, correctness, security, performance, testing, UI, and
+  UX/accessibility concerns in one pass.
+
+Common to both:
+
+- Apply the shared specialist contract in
+  [review-orchestrator.md](review-orchestrator.md).
+- Merge and deduplicate findings into the final risk register.
+- Report `Execution mode: inline`.
+
 ## Execution Mode Reporting
 Report `Execution mode: inline` or `Execution mode: delegated` explicitly,
 per the shell's output contract.
