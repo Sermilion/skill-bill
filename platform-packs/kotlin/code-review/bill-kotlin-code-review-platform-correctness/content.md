@@ -1,3 +1,7 @@
+# Platform & Correctness Review Specialist
+
+Review only correctness and runtime-safety issues.
+
 ## Focus
 - Coroutine scoping, cancellation, and dispatcher/thread correctness
 - Race conditions, ordering bugs, and stale-state updates
@@ -13,7 +17,6 @@
 ## Applicability
 
 Use this specialist for shared Kotlin correctness risks across libraries, app layers, and backend services. Favor issues around ownership, concurrency, cancellation, and logic safety that remain meaningful regardless of platform.
-
 ## Project-Specific Rules
 
 ### Shared Kotlin Correctness
@@ -38,9 +41,48 @@ Use this specialist for shared Kotlin correctness risks across libraries, app la
 - Retry, recollection, resubscription, or repeated lifecycle entry must not bypass one-time business checks or re-apply one-time user-visible effects unless the contract explicitly permits it
 - Feature-flag, permission-gated, and role-gated paths must preserve the same core invariants as the primary path unless different behavior is explicitly intended
 
-## Finding Requirements
-
+## Output Rules
 - Report at most 7 findings.
-- Include a reproducible failure scenario for Major/Blocker findings.
+- Include reproducible failure scenario for Major/Blocker findings.
 - Potential edge-case findings must be grounded in a reachable code path or declared contract. Identify the triggering input, state, async event sequence, or lifecycle transition and the violated invariant or expected behavior.
+- Include `file:line` evidence for each finding.
+- Severity: `Blocker | Major | Minor`
+- Confidence: `High | Medium | Low`
 - Include a minimal, concrete fix.
+
+## Output Format
+
+Every finding must use this exact bullet format for downstream tooling:
+
+```text
+- [F-001] <Severity> | <Confidence> | <file:line> | <description>
+```
+
+Do NOT use markdown tables, numbered lists, or any other format for findings.
+
+## Description
+This content file is a platform-pack specialist area review module for
+`bill-kotlin-code-review-platform-correctness`. The baseline orchestrator delegates a single specialist area here.
+The sections above define the specialist playbook; the sections below satisfy
+the shell+content contract v1.0.
+
+## Specialist Scope
+Scoped to one approved code-review area. Does not cover other areas.
+
+## Inputs
+Review scope, changed files, detected stack signals, active learnings,
+`review_session_id`, `review_run_id`, and the `orchestrated` flag.
+
+## Outputs Contract
+Findings in the shared Risk Register format
+`- [F-###] <Severity> | <Confidence> | <file:line> | <description>`, plus
+specialist-specific action items consumed by the baseline orchestrator.
+
+## Execution Mode Reporting
+Report `Execution mode: inline` or `Execution mode: delegated` per the
+shell's output contract.
+
+## Telemetry Ceremony Hooks
+Specialist reviews never call `import_review` or `triage_findings` directly;
+the baseline orchestrator owns lifecycle telemetry per
+`telemetry-contract.md`.

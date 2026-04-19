@@ -1,3 +1,7 @@
+# Security Review Specialist
+
+Review only exploitable or compliance-relevant issues.
+
 ## Focus
 - Secret leakage (keys/tokens/credentials)
 - Auth/authz logic gaps and session/token misuse
@@ -11,7 +15,6 @@
 ## Applicability
 
 Use this specialist for shared security risks across Kotlin libraries, app layers, and backend services. Favor issues that stay security-relevant regardless of platform; leave transport- or UI-specific nuances to route-specific specialists.
-
 ## Project-Specific Rules
 
 ### Shared Kotlin Security
@@ -25,8 +28,47 @@ Use this specialist for shared security risks across Kotlin libraries, app layer
 - Verify authenticity and integrity checks for new external entry points, signed callbacks, or inter-service trust boundaries
 - Verify that sensitive stored data receives the protection level the contract or platform requires
 
-## Finding Requirements
-
+## Output Rules
 - Report at most 7 findings.
-- Include an abuse scenario for each Major/Blocker.
+- Include abuse scenario for each Major/Blocker.
+- Include `file:line` evidence for each finding.
+- Severity: `Blocker | Major | Minor`
+- Confidence: `High | Medium | Low`
 - Include a minimal, concrete fix.
+
+## Output Format
+
+Every finding must use this exact bullet format for downstream tooling:
+
+```text
+- [F-001] <Severity> | <Confidence> | <file:line> | <description>
+```
+
+Do NOT use markdown tables, numbered lists, or any other format for findings.
+
+## Description
+This content file is a platform-pack specialist area review module for
+`bill-kotlin-code-review-security`. The baseline orchestrator delegates a single specialist area here.
+The sections above define the specialist playbook; the sections below satisfy
+the shell+content contract v1.0.
+
+## Specialist Scope
+Scoped to one approved code-review area. Does not cover other areas.
+
+## Inputs
+Review scope, changed files, detected stack signals, active learnings,
+`review_session_id`, `review_run_id`, and the `orchestrated` flag.
+
+## Outputs Contract
+Findings in the shared Risk Register format
+`- [F-###] <Severity> | <Confidence> | <file:line> | <description>`, plus
+specialist-specific action items consumed by the baseline orchestrator.
+
+## Execution Mode Reporting
+Report `Execution mode: inline` or `Execution mode: delegated` per the
+shell's output contract.
+
+## Telemetry Ceremony Hooks
+Specialist reviews never call `import_review` or `triage_findings` directly;
+the baseline orchestrator owns lifecycle telemetry per
+`telemetry-contract.md`.

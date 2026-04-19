@@ -79,7 +79,7 @@ class ShellContentContractLoaderTest(unittest.TestCase):
       load_platform_pack(FIXTURES_ROOT / "missing_section")
     message = str(context.exception)
     self.assertIn("missing_section", message)
-    self.assertIn("## Telemetry Ceremony Hooks", message)
+    self.assertIn("## Ceremony", message)
 
   def test_rejects_invalid_schema(self) -> None:
     with self.assertRaises(InvalidManifestSchemaError) as context:
@@ -127,7 +127,7 @@ class ShellContentContractLoaderTest(unittest.TestCase):
       load_platform_pack(FIXTURES_ROOT / "heading_in_fence")
     message = str(context.exception)
     self.assertIn("heading_in_fence", message)
-    self.assertIn("## Specialist Scope", message)
+    self.assertIn("## Descriptor", message)
 
   # --- PyYAML missing coverage (P-002) -----------------------------------
 
@@ -157,7 +157,7 @@ class QualityCheckContentContractTest(unittest.TestCase):
     pack = load_platform_pack(FIXTURES_ROOT / "quality_check_only")
     self.assertIsNotNone(pack.declared_quality_check_file)
     resolved = load_quality_check_content(pack)
-    self.assertEqual(resolved, pack.declared_quality_check_file)
+    self.assertEqual(resolved, pack.declared_quality_check_file.with_name("content.md"))
     self.assertTrue(resolved.is_file())
 
   def test_loads_code_review_and_quality_check_fixture(self) -> None:
@@ -182,7 +182,7 @@ class QualityCheckContentContractTest(unittest.TestCase):
       load_quality_check_content(pack)
     message = str(context.exception)
     self.assertIn("quality_check_missing_section", message)
-    self.assertIn("## Fix Strategy", message)
+    self.assertIn("## Ceremony", message)
 
   def test_valid_pack_without_quality_check_key_is_none(self) -> None:
     """A pack that does NOT declare the key has declared_quality_check_file=None.

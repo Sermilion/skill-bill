@@ -35,4 +35,22 @@ declared_files:
     persistence: code-review/bill-kotlin-code-review-persistence/SKILL.md
     reliability: code-review/bill-kotlin-code-review-reliability/SKILL.md
 
+area_metadata:
+  architecture:
+    focus: "architecture, boundaries, and dependency direction"
+  performance:
+    focus: "performance risks on hot paths, blocking I/O, and resource usage"
+  platform-correctness:
+    focus: "lifecycle, concurrency, threading, and logic correctness"
+  security:
+    focus: "secrets handling, auth, and sensitive-data exposure"
+  testing:
+    focus: "test coverage quality and regression protection"
+  api-contracts:
+    focus: "API contracts, request validation, and serialization"
+  persistence:
+    focus: "persistence, transactions, migrations, and data consistency"
+  reliability:
+    focus: "timeouts, retries, background work, and observability"
+
 declared_quality_check_file: quality-check/bill-kotlin-quality-check/SKILL.md

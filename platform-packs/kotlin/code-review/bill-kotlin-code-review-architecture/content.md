@@ -1,3 +1,7 @@
+# Architecture Review Specialist
+
+Review only high-signal architectural issues.
+
 ## Focus
 - Layer boundaries and dependency direction
 - Module ownership and source-of-truth consistency
@@ -13,7 +17,6 @@
 ## Applicability
 
 Use this specialist for shared Kotlin architectural concerns across libraries, app layers, and backend services. Favor findings that remain true regardless of runtime platform; let route-specific specialists own UI-framework concerns and backend transport or persistence-only details.
-
 ## Project-Specific Rules
 
 ### Shared Kotlin Architecture
@@ -29,7 +32,46 @@ Use this specialist for shared Kotlin architectural concerns across libraries, a
 - Background/async entry points should reuse the same business services as synchronous entry points instead of duplicating workflow logic
 - Avoid `kotlin.Result` and `Any` in core architecture contracts unless the project explicitly standardizes on them
 
-## Finding Requirements
-
+## Output Rules
 - Report at most 7 findings.
+- Include `file:line` evidence for each finding.
+- Severity: `Blocker | Major | Minor`
+- Confidence: `High | Medium | Low`
 - Include a minimal, concrete fix.
+
+## Output Format
+
+Every finding must use this exact bullet format for downstream tooling:
+
+```text
+- [F-001] <Severity> | <Confidence> | <file:line> | <description>
+```
+
+Do NOT use markdown tables, numbered lists, or any other format for findings.
+
+## Description
+This content file is a platform-pack specialist area review module for
+`bill-kotlin-code-review-architecture`. The baseline orchestrator delegates a single specialist area here.
+The sections above define the specialist playbook; the sections below satisfy
+the shell+content contract v1.0.
+
+## Specialist Scope
+Scoped to one approved code-review area. Does not cover other areas.
+
+## Inputs
+Review scope, changed files, detected stack signals, active learnings,
+`review_session_id`, `review_run_id`, and the `orchestrated` flag.
+
+## Outputs Contract
+Findings in the shared Risk Register format
+`- [F-###] <Severity> | <Confidence> | <file:line> | <description>`, plus
+specialist-specific action items consumed by the baseline orchestrator.
+
+## Execution Mode Reporting
+Report `Execution mode: inline` or `Execution mode: delegated` per the
+shell's output contract.
+
+## Telemetry Ceremony Hooks
+Specialist reviews never call `import_review` or `triage_findings` directly;
+the baseline orchestrator owns lifecycle telemetry per
+`telemetry-contract.md`.

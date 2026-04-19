@@ -1,3 +1,7 @@
+# Testing Review Specialist
+
+Review only test gaps that create real regression risk.
+
 ## Focus
 - Missing tests for changed behavior and failure paths
 - Brittle/flaky test patterns and false-confidence assertions
@@ -13,7 +17,6 @@
 ## Applicability
 
 Use this specialist for shared Kotlin test-risk concerns across libraries, app layers, and backend services. Favor findings about regression protection, contract coverage, and deterministic behavior that remain valid regardless of platform.
-
 ## Project-Specific Rules
 
 ### Shared Kotlin Testing
@@ -38,9 +41,48 @@ Use this specialist for shared Kotlin test-risk concerns across libraries, app l
 - Prefer real serializers/request objects at owned boundaries; mock downstream systems, not the contract itself
 - Verify negative-path coverage for malformed input, forbidden access, downstream failures, retries, and duplicate delivery where relevant
 
-## Finding Requirements
-
+## Output Rules
 - Report at most 7 findings.
 - Include a minimal test plan for top uncovered risks.
 - Report weak or useless tests only when they materially reduce regression confidence.
-- A minimal, concrete fix may be to rewrite or delete the test and replace it with a behavior-focused one.
+- Include `file:line` evidence for each finding.
+- Severity: `Blocker | Major | Minor`
+- Confidence: `High | Medium | Low`
+- Include a minimal, concrete fix, which may be to rewrite or delete the test and replace it with a behavior-focused one.
+
+## Output Format
+
+Every finding must use this exact bullet format for downstream tooling:
+
+```text
+- [F-001] <Severity> | <Confidence> | <file:line> | <description>
+```
+
+Do NOT use markdown tables, numbered lists, or any other format for findings.
+
+## Description
+This content file is a platform-pack specialist area review module for
+`bill-kotlin-code-review-testing`. The baseline orchestrator delegates a single specialist area here.
+The sections above define the specialist playbook; the sections below satisfy
+the shell+content contract v1.0.
+
+## Specialist Scope
+Scoped to one approved code-review area. Does not cover other areas.
+
+## Inputs
+Review scope, changed files, detected stack signals, active learnings,
+`review_session_id`, `review_run_id`, and the `orchestrated` flag.
+
+## Outputs Contract
+Findings in the shared Risk Register format
+`- [F-###] <Severity> | <Confidence> | <file:line> | <description>`, plus
+specialist-specific action items consumed by the baseline orchestrator.
+
+## Execution Mode Reporting
+Report `Execution mode: inline` or `Execution mode: delegated` per the
+shell's output contract.
+
+## Telemetry Ceremony Hooks
+Specialist reviews never call `import_review` or `triage_findings` directly;
+the baseline orchestrator owns lifecycle telemetry per
+`telemetry-contract.md`.

@@ -1,6 +1,37 @@
+# Adaptive Kotlin PR Review
+
+You are an experienced Kotlin architect conducting a code review.
+
+This skill owns the baseline Kotlin review layer. It covers shared Kotlin concerns for libraries, CLIs, shared utilities, and the common Kotlin layer that platform-specific review overrides build on top of.
+## Setup
+
+Determine the review scope:
+- Specific files (list paths)
+- Git commits (hashes/range)
+- Staged changes (`git diff --cached`; index only)
+- Unstaged changes (`git diff`; working tree only)
+- Combined working tree (`git diff --cached` + `git diff`) only when the caller explicitly asks for all local changes
+- Entire PR
+
+Resolve the scope before reviewing. If the caller asks for staged changes, inspect only the staged diff and keep unstaged edits out of findings except for repo markers needed for classification.
+
+---
+
 ## Kotlin-Family Classification
 
 Inspect both the changed files and repo markers (`build.gradle*`, `settings.gradle*`, `gradle/libs.versions.toml`, `pom.xml`, `application.yml`, `application.conf`, source layout, module names, imports).
+
+## Additional Resources
+
+- For shared stack-routing signals and tie-breakers, see [stack-routing.md](stack-routing.md).
+- For shared review-orchestration rules, see [review-orchestrator.md](review-orchestrator.md).
+- For agent-specific delegated review execution, see [review-delegation.md](review-delegation.md).
+
+When the caller already passed the detected stack, skip reading [stack-routing.md](stack-routing.md). For standalone invocation, read it before classifying.
+
+Before selecting specialist review passes or formatting the final report, read [review-orchestrator.md](review-orchestrator.md) unless the caller already passed the shared review contract.
+
+Before delegating specialist review passes, read only your current runtime's section in [review-delegation.md](review-delegation.md).
 
 Classify the review as one of:
 - `kotlin`
@@ -22,20 +53,20 @@ Classify the review as one of:
 - Backend/server markers stay on the `kotlin` route. Select backend-focused Kotlin specialists for API contracts, persistence, and reliability when backend/server signals are present.
 - Otherwise use the `kotlin` route.
 
+---
+
 ## Dynamic Specialist Selection
 
-### Always include `bill-kotlin-code-review-architecture`
+### Step 1: Always include `bill-kotlin-code-review-architecture`
 
 Architecture review is relevant for every non-trivial change.
 
-### Route baseline
+### Step 2: Choose route baseline
 
 - `kotlin`: baseline is `architecture` + `bill-kotlin-code-review-platform-correctness`
 - `kmp-baseline`: baseline is `architecture` + `bill-kotlin-code-review-platform-correctness`
 
-### Specialist routing table
-
-Analyze the diff and select additional specialist reviews:
+### Step 3: Analyze the diff and select additional specialist reviews
 
 | Signal in the diff | Specialist review to run |
 |---------------------|--------------------------|
@@ -47,18 +78,25 @@ Analyze the diff and select additional specialist reviews:
 | Repositories/DAOs, SQL, ORM mappings, transactions, migrations, optimistic locking, upserts, bulk writes | `bill-kotlin-code-review-persistence` |
 | Timeouts, retries, circuit breakers, queues, schedulers, idempotency, caching, metrics, tracing, startup/shutdown lifecycle | `bill-kotlin-code-review-reliability` |
 
-### Minimum and maximum
+### Step 4: Apply minimum
 
-- Minimum 2 specialists (architecture + at least one other)
+- Minimum 2 agents (architecture + at least one other)
 - If no additional triggers match, include `bill-kotlin-code-review-platform-correctness` as the default second specialist review
-- Maximum 8 specialists so backend-heavy Kotlin diffs can include the restored server specialists without dropping shared Kotlin coverage
+- Maximum 8 agents so backend-heavy Kotlin diffs can include the restored server specialists without dropping shared Kotlin coverage
 - Do not run KMP-only specialists from this skill; leave those to the platform-specific override that owns them
 
-### Scope diff per specialist (delegated mode only)
+### Step 5: Choose execution mode
+
+Select `inline` or `delegated` using [review-orchestrator.md](review-orchestrator.md).
+
+- Use `inline` only when the Kotlin review scope stays small and low-risk under the shared execution-mode contract
+- Use `delegated` when the diff is large, the risk profile is high, multiple layers are meaningfully involved, or the safest choice is unclear
+
+### Step 5.5: Scope diff per specialist (delegated mode only)
 
 When execution mode is `delegated`, build a per-specialist file list before launching subagents:
 
-1. Scan each changed file's name and imports for the routing-table signals above
+1. Scan each changed file's name and imports for the routing-table signals from Step 3
 2. Map each file to the specialists whose signals it matches
 3. `bill-kotlin-code-review-architecture` always receives all changed files
 4. Every other specialist receives only files matching its routing-table signals
@@ -66,3 +104,116 @@ When execution mode is `delegated`, build a per-specialist file list before laun
 6. After scoping, re-check the minimum-2-specialist requirement; if only architecture remains, add `bill-kotlin-code-review-platform-correctness` with all changed files as the default second
 
 This is a lightweight file-level classification (names + imports), not a full review.
+
+### Step 6: Run selected specialist reviews
+
+If execution mode is `inline`:
+- run the selected specialist review passes sequentially in the current thread
+- read each specialist skill file as the primary rubric for that pass
+- apply the shared specialist contract in [review-orchestrator.md](review-orchestrator.md)
+- keep findings attributed to each specialist before merging and deduplicating them for the final report
+
+If execution mode is `delegated`:
+- run one delegated subagent per selected specialist review pass
+- pass the specialist-scoped file list (from Step 5.5), applicable active learnings, instructions to read the specialist skill file, the parent thread's model when the runtime supports delegated-worker model inheritance, and the shared specialist contract in [specialist-contract.md](specialist-contract.md)
+- if delegated review is required for this scope but the current runtime lacks a documented delegation path or cannot start the required subagent(s), stop and report that delegated review is required for this scope but unavailable on the current runtime
+
+---
+
+## Review Output
+
+### 1. Summary
+
+```text
+Review session ID: <review-session-id>
+Review run ID: <review-run-id>
+Detected review scope: <staged changes / unstaged changes / working tree / commit range / PR diff / files>
+Detected stack: <stack>
+Signals: <markers>
+Execution mode: inline | delegated
+Applied learnings: none | <learning references>
+Specialist reviews: <selected specialists>
+Reason: <why these specialists were selected>
+```
+
+Every finding in `### 2. Risk Register` must use this exact bullet format (do NOT use markdown tables):
+
+```text
+- [F-001] <Severity> | <Confidence> | <file:line> | <description>
+```
+
+Severity: `Blocker | Major | Minor`. Confidence: `High | Medium | Low`.
+
+### Telemetry
+
+For telemetry ownership, triage ownership, and the `orchestrated` flag contract, follow [telemetry-contract.md](telemetry-contract.md).
+
+For action items, verdict format, merge rules, and review principles, follow [review-orchestrator.md](review-orchestrator.md).
+
+### Implementation Mode Notes
+
+- If invoked from `bill-feature-implement`, `bill-feature-verify`, or another orchestration skill, do not pause for user selection. Return prioritized findings so the caller can auto-fix P0/P1 items and decide whether to carry Minor items forward.
+- After all P0 and P1 items are resolved, run `bill-quality-check` as final verification when the project uses a routed quality-check path and this review is being run standalone.
+
+## Description
+This content file is a platform-pack baseline review module for `bill-kotlin-code-review`. The
+governed shell (`bill-code-review`) delegates single-stack reviews here after
+stack routing settles. The sections above define the operational playbook; the
+sections below satisfy the shell+content contract v1.0.
+
+## Specialist Scope
+Baseline orchestrator. Selects and coordinates specialist area reviewers
+declared under the platform pack's `declared_code_review_areas` and returns a
+merged review.
+
+## Inputs
+Review scope (staged/unstaged/commit range/PR), changed files, detected stack
+signals, active learnings, `review_session_id`, `review_run_id`, and the
+`orchestrated` flag from the shell.
+
+## Outputs Contract
+Summary, Risk Register with findings of the form
+`- [F-###] <Severity> | <Confidence> | <file:line> | <description>`,
+Action Items, and Verdict (`approve`, `approve-with-changes`, or
+`request-changes`). The output layer follows the shell's structured format.
+
+## Delegated Mode
+
+Requires the owning pack's `declared_code_review_areas` list to be non-empty.
+
+Applies when the diff is large, the risk profile is high, multiple areas are
+meaningfully involved, or the safest choice is unclear.
+
+- Select specialists using the logic in the Dynamic Specialist Selection section.
+- Launch one delegated subagent per selected specialist via
+  [review-delegation.md](review-delegation.md).
+- Pass each subagent its scoped file list, applicable active learnings, and the
+  shared specialist contract.
+- Aggregate specialist findings into the final risk register.
+- Report `Execution mode: delegated`.
+
+## Inline Mode
+
+Applies in either of these cases:
+
+- **Specialists declared, small and low-risk scope** — run each selected
+  specialist review pass sequentially in the current thread, read the specialist
+  skill file as the primary rubric, keep findings attributed before merging.
+- **No specialists declared** — review the Kotlin diff directly here. Cover
+  architecture, correctness, security, performance, and testing concerns in one
+  pass.
+
+Common to both:
+
+- Apply the shared specialist contract in
+  [review-orchestrator.md](review-orchestrator.md).
+- Merge and deduplicate findings into the final risk register.
+- Report `Execution mode: inline`.
+
+## Execution Mode Reporting
+Report `Execution mode: inline` or `Execution mode: delegated` explicitly,
+per the shell's output contract.
+
+## Telemetry Ceremony Hooks
+Follow `telemetry-contract.md` for `import_review`/`triage_findings`
+ownership. Suppress emission when the shell passes `orchestrated=true`.

@@ -65,6 +65,9 @@ TEMPLATE_VERSION: str = "2026.04.19.5"
 
 # New-skill scaffolder constants (SKILL-15).
 SCAFFOLD_PAYLOAD_VERSION: str = "1.0"
+# Governed shell+content contract version. Keep in lockstep with manifests,
+# docs, and the loader's exported constant.
+SHELL_CONTRACT_VERSION: str = "1.0"
 # Pre-shell capability families. These families have not been piloted onto the
 # shell+content contract yet; the scaffolder places their platform overrides
 # under the historic skills/<platform>/bill-<platform>-<capability>/ layout

@@ -7,12 +7,7 @@ description: Use when recording architectural or implementation decisions in a m
 
 ## Project Overrides
 
-If `.agents/skill-overrides.md` exists in the project root and contains a `## bill-boundary-decisions` section, read that section and apply it as the highest-priority instruction for this skill. The matching section may refine or replace parts of the default workflow below.
-
-If an `AGENTS.md` file exists in the project root, apply it as project-wide guidance.
-
-Precedence for this skill: matching `.agents/skill-overrides.md` section > `AGENTS.md` > built-in defaults.
-
+Follow the shell ceremony in [shell-ceremony.md](shell-ceremony.md).
 ## Purpose
 
 Record **why** something was done a certain way — not what changed (that belongs in `history.md`), but the reasoning behind non-obvious choices, special cases, constraints, and trade-offs that future contributors need to understand before modifying the code.
