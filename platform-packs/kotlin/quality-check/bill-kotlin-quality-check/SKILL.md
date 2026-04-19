@@ -17,3 +17,7 @@ Follow the instructions in [content.md](content.md).
 ## Ceremony
 
 Follow the shell ceremony in [shell-ceremony.md](shell-ceremony.md).
+
+When stack routing applies, follow [stack-routing.md](stack-routing.md).
+
+When telemetry applies, follow [telemetry-contract.md](telemetry-contract.md).

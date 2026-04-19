@@ -8,6 +8,9 @@ description: Use when updating module/package/area agent/history.md files with r
 ## Project Overrides
 
 Follow the shell ceremony in [shell-ceremony.md](shell-ceremony.md).
+
+If `.agents/skill-overrides.md` exists in the project root and contains a matching section, read that section and apply it as the highest-priority instruction for this skill.
+
 ## Inputs Required
 
 - Feature name

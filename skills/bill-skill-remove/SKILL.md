@@ -6,6 +6,9 @@ description: Use when removing an existing skill or platform skill set and clean
 ## Project Overrides
 
 Follow the shell ceremony in [shell-ceremony.md](shell-ceremony.md).
+
+If `.agents/skill-overrides.md` exists in the project root and contains a matching section, read that section and apply it as the highest-priority instruction for this skill.
+
 ## Description
 
 Use this skill when removing an existing Skill Bill skill, add-on, platform override, code-review area, or an entire scaffolded platform pack.

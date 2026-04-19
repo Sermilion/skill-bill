@@ -695,6 +695,27 @@ def doctor_command(args: argparse.Namespace) -> int:
   return 0
 
 
+def upgrade_command(args: argparse.Namespace) -> int:
+  from skill_bill.upgrade import upgrade_skill_wrappers
+
+  result = upgrade_skill_wrappers(
+    args.repo_root,
+    validate=not args.skip_validate,
+  )
+  emit(
+    {
+      "repo_root": str(result.repo_root),
+      "regenerated_count": len(result.regenerated_files),
+      "regenerated_files": [str(path) for path in result.regenerated_files],
+      "content_md_touched": False,
+      "shell_ceremony_touched": False,
+      "validator_ran": not args.skip_validate,
+    },
+    args.format,
+  )
+  return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
   parser = argparse.ArgumentParser(
     description="Import Skill Bill review output, triage numbered findings, and manage local review learnings."
@@ -872,6 +893,23 @@ def build_parser() -> argparse.ArgumentParser:
   doctor_parser = subparsers.add_parser("doctor", help="Check skill-bill installation health.")
   doctor_parser.add_argument("--format", choices=("text", "json"), default="text")
   doctor_parser.set_defaults(handler=doctor_command)
+
+  upgrade_parser = subparsers.add_parser(
+    "upgrade",
+    help="Regenerate scaffold-managed SKILL.md wrappers without touching authored sidecars.",
+  )
+  upgrade_parser.add_argument(
+    "--repo-root",
+    default=".",
+    help="Repo root to upgrade. Defaults to the current working directory.",
+  )
+  upgrade_parser.add_argument(
+    "--skip-validate",
+    action="store_true",
+    help="Skip scripts/validate_agent_configs.py after wrapper regeneration.",
+  )
+  upgrade_parser.add_argument("--format", choices=("text", "json"), default="text")
+  upgrade_parser.set_defaults(handler=upgrade_command)
 
   new_skill_parser = subparsers.add_parser(
     "new-skill",

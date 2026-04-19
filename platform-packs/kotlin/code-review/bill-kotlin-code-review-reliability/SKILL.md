@@ -18,3 +18,7 @@ Follow the instructions in [content.md](content.md).
 ## Ceremony
 
 Follow the shell ceremony in [shell-ceremony.md](shell-ceremony.md).
+
+When review reporting applies, follow [review-orchestrator.md](review-orchestrator.md).
+
+When telemetry applies, follow [telemetry-contract.md](telemetry-contract.md).

@@ -6,6 +6,8 @@ Skill Bill is a governance product, not a prompt dump. This repo ships the share
 
 The in-repo first-party reference packs are intentionally narrow: `kotlin` and `kmp` live under `platform-packs/` as the built-in examples of the governed pack model. If your team needs another stack, author or fork a separate platform pack with the scaffolder instead of treating this repo as the permanent home for every ecosystem.
 
+Skill Bill is platform-extensible, not "every platform goes in this repo" by default. Any team can author a conforming platform pack, but only a small first-party reference set should ship here.
+
 Rolling out to a team? Start with [Getting Started for Teams](docs/getting-started-for-teams.md) — it covers customization, expectations, and when to trust vs. verify output.
 
 ## Why this exists
@@ -129,6 +131,11 @@ Base entry points stay stable for users:
 ## Reference platform packs
 
 Skill Bill keeps its first-party reference surface intentionally small. The governed architecture lives in `platform-packs/<slug>/`; this repo ships only the `kotlin` and `kmp` packs as built-in examples, while other stacks are expected to be scaffolded or maintained separately.
+
+Policy:
+- Any platform is allowed by the architecture if it follows the governed pack contract.
+- New platforms should usually be authored as separate or forked packs.
+- Add a platform to this repo's shipped surface only when it is intentionally maintained here as a first-party reference pack.
 
 | Tier | Platforms | What you get | Skill count |
 |------|-----------|-------------|-------------|
@@ -413,6 +420,8 @@ New platform packs are scaffolded as a bootstrap set: pack root, baseline `code-
 The payload schema, the loud-fail exception catalog, and one worked example per kind live in `orchestration/shell-content-contract/SCAFFOLD_PAYLOAD.md`.
 
 The scaffolder is atomic: it creates files, edits manifests with best-effort comment preservation, wires sibling supporting-file symlinks, runs `scripts/validate_agent_configs.py`, and auto-installs into detected agents. Any failure rolls back every staged change and prints the validator's error verbatim.
+
+When the shared wrapper template changes, run `skill-bill upgrade` from the repo root. It regenerates scaffold-managed `SKILL.md` wrappers in place, then reruns `scripts/validate_agent_configs.py`. Authored `content.md` files and the shared `shell-ceremony.md` sidecar stay untouched.
 
 Manual path (discouraged — prefer the scaffolder):
 

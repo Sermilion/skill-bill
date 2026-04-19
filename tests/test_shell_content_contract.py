@@ -9,7 +9,9 @@ error message.
 from __future__ import annotations
 
 from pathlib import Path
+import shutil
 import sys
+import tempfile
 import unittest
 from unittest import mock
 
@@ -20,10 +22,12 @@ sys.path.insert(0, str(ROOT))
 from skill_bill import shell_content_contract  # noqa: E402
 from skill_bill.shell_content_contract import (  # noqa: E402
   ContractVersionMismatchError,
+  InvalidDescriptorSectionError,
   InvalidManifestSchemaError,
   MissingContentFileError,
   MissingManifestError,
   MissingRequiredSectionError,
+  MissingShellCeremonyFileError,
   PlatformPack,
   PyYAMLMissingError,
   SHELL_CONTRACT_VERSION,
@@ -123,6 +127,52 @@ class ShellContentContractLoaderTest(unittest.TestCase):
     message = str(context.exception)
     self.assertIn("heading_in_fence", message)
     self.assertIn("## Descriptor", message)
+
+  def test_rejects_missing_shell_ceremony_sidecar(self) -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+      fixture_root = Path(tmpdir) / "valid_pack"
+      shutil.copytree(FIXTURES_ROOT / "valid_pack", fixture_root, symlinks=True)
+      (fixture_root / "code-review" / "shell-ceremony.md").unlink()
+
+      with self.assertRaises(MissingShellCeremonyFileError) as context:
+        load_platform_pack(fixture_root)
+
+    message = str(context.exception)
+    self.assertIn("valid_pack", message)
+    self.assertIn("shell-ceremony.md", message)
+
+  def test_rejects_descriptor_drift(self) -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+      fixture_root = Path(tmpdir) / "valid_pack"
+      shutil.copytree(FIXTURES_ROOT / "valid_pack", fixture_root, symlinks=True)
+      skill_path = fixture_root / "code-review" / "SKILL.md"
+      skill_text = skill_path.read_text(encoding="utf-8").replace(
+        "Governed skill: `code-review`",
+        "Governed skill: `code-review-drifted`",
+      )
+      skill_path.write_text(skill_text, encoding="utf-8")
+
+      with self.assertRaises(InvalidDescriptorSectionError) as context:
+        load_platform_pack(fixture_root)
+
+    message = str(context.exception)
+    self.assertIn("valid_pack", message)
+    self.assertIn("## Descriptor", message)
+
+  def test_missing_shell_ceremony_fails_before_descriptor_drift(self) -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+      fixture_root = Path(tmpdir) / "valid_pack"
+      shutil.copytree(FIXTURES_ROOT / "valid_pack", fixture_root, symlinks=True)
+      skill_path = fixture_root / "code-review" / "SKILL.md"
+      skill_text = skill_path.read_text(encoding="utf-8").replace(
+        "Governed skill: `code-review`",
+        "Governed skill: `code-review-drifted`",
+      )
+      skill_path.write_text(skill_text, encoding="utf-8")
+      (fixture_root / "code-review" / "shell-ceremony.md").unlink()
+
+      with self.assertRaises(MissingShellCeremonyFileError):
+        load_platform_pack(fixture_root)
 
   # --- PyYAML missing coverage (P-002) -----------------------------------
 

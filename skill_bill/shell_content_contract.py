@@ -75,6 +75,12 @@ CEREMONY_FREE_FORM_H2S: tuple[str, ...] = (
   "## Project Overrides",
   "## Execution",
   "## Ceremony",
+  "## Description",
+  "## Specialist Scope",
+  "## Inputs",
+  "## Outputs Contract",
+  "## Delegated Mode",
+  "## Inline Mode",
   "## Execution Mode Reporting",
   "## Telemetry Ceremony Hooks",
 )

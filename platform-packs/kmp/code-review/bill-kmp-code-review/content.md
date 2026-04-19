@@ -21,18 +21,6 @@ Resolve the scope before reviewing. If the caller asks for staged changes, inspe
 
 Inspect both the changed files and repo markers (`build.gradle*`, `settings.gradle*`, `gradle/libs.versions.toml`, `pom.xml`, source set layout, module names, imports).
 
-## Additional Resources
-
-- For shared stack-routing signals and tie-breakers, see [stack-routing.md](stack-routing.md).
-- For shared review-orchestration rules, see [review-orchestrator.md](review-orchestrator.md).
-- For agent-specific delegated review execution, see [review-delegation.md](review-delegation.md).
-
-When the caller already passed the detected stack, skip reading [stack-routing.md](stack-routing.md). For standalone invocation, read it before classifying.
-
-Before selecting KMP specialist review passes or formatting the final report, read [review-orchestrator.md](review-orchestrator.md) unless the caller already passed the shared review contract.
-
-Before delegating baseline or KMP specialist review passes, read only your current runtime's section in [review-delegation.md](review-delegation.md).
-
 Classify the review as one of:
 - `kmp`
 - `mixed-kmp`
@@ -111,9 +99,9 @@ If execution mode is `delegated`, run the selected baseline review as a delegate
 
 Keep the mobile triggers focused on what the baseline review does not cover:
 
-| Signal in the diff | Specialist review to run |
-|---------------------|--------------------------|
-| `@Composable` functions, UI state classes, Modifier chains, `remember`, `LaunchedEffect` | `bill-kmp-code-review-ui` |
+| Signal in the diff                                                                                               | Specialist review to run                |
+|------------------------------------------------------------------------------------------------------------------|-----------------------------------------|
+| `@Composable` functions, UI state classes, Modifier chains, `remember`, `LaunchedEffect`                         | `bill-kmp-code-review-ui`               |
 | User-facing UI changes, `stringResource`, accessibility attributes, navigation, error states, localization files | `bill-kmp-code-review-ux-accessibility` |
 
 ### Step 3.5: Scope diff per KMP specialist (delegated mode only)
@@ -142,103 +130,3 @@ If execution mode is `delegated`:
 If no KMP-only triggers match but Android/KMP signals are clearly present, keep the baseline review output and state that no extra KMP-only specialist was needed for this scope.
 
 ---
-
-## Review Output
-
-### 1. Summary
-
-```text
-Review session ID: <review-session-id>
-Review run ID: <review-run-id>
-Detected review scope: <staged changes / unstaged changes / working tree / commit range / PR diff / files>
-Detected stack: <stack>
-Selected add-ons: none | <add-on slugs>
-Signals: <markers>
-Execution mode: inline | delegated
-Applied learnings: none | <learning references>
-Specialist reviews: <selected specialists>
-Reason: <why these specialists were selected>
-```
-
-Every finding in `### 2. Risk Register` must use this exact bullet format (do NOT use markdown tables):
-
-```text
-- [F-001] <Severity> | <Confidence> | <file:line> | <description>
-```
-
-Severity: `Blocker | Major | Minor`. Confidence: `High | Medium | Low`.
-
-### Telemetry
-
-For telemetry ownership, triage ownership, and the `orchestrated` flag contract, follow [telemetry-contract.md](telemetry-contract.md).
-
-For action items, verdict format, merge rules, and review principles, follow [review-orchestrator.md](review-orchestrator.md).
-
-### Implementation Mode Notes
-
-- If invoked from `bill-feature-implement`, `bill-feature-verify`, or another orchestration skill, do not pause for user selection. Return prioritized findings so the caller can auto-fix P0/P1 items and decide whether to carry Minor items forward.
-- After all P0 and P1 items are resolved, run `bill-quality-check` as final verification when the project uses a routed quality-check path and this review is being run standalone.
-
-## Description
-This content file is a platform-pack baseline review module for `bill-kmp-code-review`. The
-governed shell (`bill-code-review`) delegates single-stack reviews here after
-stack routing settles. The sections above define the operational playbook; the
-sections below satisfy the shell+content contract v1.0.
-
-## Specialist Scope
-Baseline orchestrator. Selects and coordinates specialist area reviewers
-declared under the platform pack's `declared_code_review_areas` and returns a
-merged review.
-
-## Inputs
-Review scope (staged/unstaged/commit range/PR), changed files, detected stack
-signals, active learnings, `review_session_id`, `review_run_id`, and the
-`orchestrated` flag from the shell.
-
-## Outputs Contract
-Summary, Risk Register with findings of the form
-`- [F-###] <Severity> | <Confidence> | <file:line> | <description>`,
-Action Items, and Verdict (`approve`, `approve-with-changes`, or
-`request-changes`). The output layer follows the shell's structured format.
-
-## Delegated Mode
-
-Requires the owning pack's `declared_code_review_areas` list to be non-empty.
-
-Applies when the diff is large, mobile or backend specialist risk is present,
-mixed scope is meaningfully involved, or the safest choice is unclear.
-
-- Run the selected baseline Kotlin review and the selected KMP specialists as
-  delegated subagents via [review-delegation.md](review-delegation.md).
-- Pass each subagent its scoped file list, applicable active learnings, and any
-  selected governed add-ons.
-- Aggregate findings from the baseline layer and the KMP specialists into the
-  final risk register.
-- Report `Execution mode: delegated`.
-
-## Inline Mode
-
-Applies in either of these cases:
-
-- **Specialists declared, small and low-risk scope** — run the baseline Kotlin
-  review and the selected KMP specialists sequentially in the current thread,
-  read each specialist skill file as the primary rubric, keep findings
-  attributed before merging.
-- **No specialists declared** — review the Android/KMP diff directly here.
-  Cover architecture, correctness, security, performance, testing, UI, and
-  UX/accessibility concerns in one pass.
-
-Common to both:
-
-- Apply the shared specialist contract in
-  [review-orchestrator.md](review-orchestrator.md).
-- Merge and deduplicate findings into the final risk register.
-- Report `Execution mode: inline`.
-
-## Execution Mode Reporting
-Report `Execution mode: inline` or `Execution mode: delegated` explicitly,
-per the shell's output contract.
-
-## Telemetry Ceremony Hooks
-Follow `telemetry-contract.md` for `import_review`/`triage_findings`
-ownership. Suppress emission when the shell passes `orchestrated=true`.

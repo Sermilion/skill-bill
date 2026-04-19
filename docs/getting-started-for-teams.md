@@ -88,6 +88,11 @@ Strict structure, enforced by the validator:
 
 `/bill-code-review` uses a shell + content split. The shell at `skills/bill-code-review/` is governed and shared; the reviewer reasoning lives in **platform packs** under `platform-packs/<platform>/`. Teams that need platform-specific customization beyond `.agents/skill-overrides.md` can fork a pack:
 
+Important policy:
+- Skill Bill allows any platform that can be expressed as a conforming governed pack.
+- That does not mean every platform should be added to this repo's built-in inventory.
+- Treat the shipped `kotlin` and `kmp` packs as first-party references; create or fork other stacks separately unless you explicitly want to maintain them here.
+
 1. Copy `platform-packs/<platform>/` (e.g. `platform-packs/kotlin/`) into your team's own checkout.
 2. Edit the `platform.yaml` manifest to declare the `routing_signals`, `declared_code_review_areas`, and `declared_files` you want to ship. Keep `contract_version: "1.0"` in lockstep with the shell.
 3. Edit or add per-area governed skill directories. Each declared `SKILL.md` must stay a thin wrapper with the three required H2 sections `Descriptor`, `Execution`, and `Ceremony`, and each governed directory must also contain sibling `content.md` and `shell-ceremony.md`. The shell refuses to run with a named error if any required piece is missing — no silent fallback.

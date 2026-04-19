@@ -4,15 +4,6 @@ This is the current Gradle/Kotlin implementation behind the shared `bill-quality
 
 Execute `./gradlew check` and systematically fix issues **only in files changed in the current unit of work**. Ignore pre-existing issues in untouched files.
 
-## Description
-
-Run `./gradlew check` (or the repo's equivalent wrapper) against the current Gradle/Kotlin project and systematically fix every structural, formatting, lint, deprecation, logic, or test failure touched by the current unit of work without suppressing or deferring issues. This is the `kotlin` leaf behind the shared `bill-quality-check` shell; the shell routes into this pack via the `declared_quality_check_file` manifest key on the `kotlin` platform pack, and it is also the fallback route for `kmp` work today.
-
-## Additional Resources
-
-- For shared stack-routing signals and tie-breakers, see [stack-routing.md](stack-routing.md).
-- For the shared telemetry contract, see [telemetry-contract.md](telemetry-contract.md).
-
 ## Execution Steps
 
 1. **Determine changed files**: Use `git diff --name-only` (against the base branch or HEAD) to identify files changed in the current unit of work
@@ -69,6 +60,7 @@ These issues require file operations and should be fixed before other issues:
 - Test failures where business logic is unclear
 - Security-related issues requiring policy decisions
 - When multiple valid fix approaches exist with trade-offs
+
 ## Code Style Guidelines
 
 - Use 2-space indentation
@@ -87,29 +79,4 @@ These issues require file operations and should be fixed before other issues:
   - `data class` - for variables
   - `interface` - for navigation/action lambdas
 
-## Output Format
-
-Show issue count by category, report each fix with file:line, display final `./gradlew check` result, and summarize all changes.
-
-## Execution Mode Reporting
-
-When this quality-check skill runs, report the execution mode on its own line:
-
-```
-Execution mode: inline | delegated
-```
-
-- `inline` — the current agent handled the work directly.
-- `delegated` — the current agent dispatched the work to a specialist subagent or a sibling skill.
-
-## Telemetry Ceremony Hooks
-
-Follow the standalone-first telemetry contract documented in the sibling
-`telemetry-contract.md` file:
-
-- Emit a single `*_started` event at the top of the ceremony.
-- Emit a single `*_finished` event at the bottom of the ceremony.
-- Routers aggregate `child_steps` but never emit their own `*_started` or
-  `*_finished` events.
-- Degrade gracefully when telemetry is disabled: the skill must still run
-  to completion without an MCP connection.
+When reporting results, show issue count by category, report each fix with `file:line`, display the final `./gradlew check` result, and summarize all changes.

@@ -30,6 +30,9 @@ declaring the key opts the pack into quality-check routing.
 ## Project Overrides
 
 Follow the shell ceremony in [shell-ceremony.md](shell-ceremony.md).
+
+If `.agents/skill-overrides.md` exists in the project root and contains a matching section, read that section and apply it as the highest-priority instruction for this skill.
+
 ## Setup
 
 Determine the current unit of work:

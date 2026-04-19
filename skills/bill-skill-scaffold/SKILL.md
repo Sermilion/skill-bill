@@ -6,6 +6,9 @@ description: Use when scaffolding a new skill or platform skill set and syncing 
 ## Project Overrides
 
 Follow the shell ceremony in [shell-ceremony.md](shell-ceremony.md).
+
+If `.agents/skill-overrides.md` exists in the project root and contains a matching section, read that section and apply it as the highest-priority instruction for this skill.
+
 ## Overview
 
 This skill is the user-facing wrapper around `skill-bill new-skill`. You collect intent from the user, preview the scaffolded output with synthesized markers, iterate on edits until the user approves, then call into the Python scaffolder to actually create files, edit manifests, wire sidecar symlinks, run the validator, and install into detected agents.

@@ -58,14 +58,8 @@ from skill_bill.scaffold_template import (
   default_area_focus,
   infer_skill_description,
   render_default_section,
-  render_delegated_mode_section,
-  render_inline_mode_section,
   render_descriptor_section,
-  render_description_section,
-  render_inputs_section,
-  render_outputs_contract_section,
   render_project_overrides,
-  render_specialist_scope_section,
 )
 from skill_bill.shell_content_contract import (
   APPROVED_CODE_REVIEW_AREAS,
@@ -760,23 +754,10 @@ def _render_skill_body(plan: dict[str, Any], payload: dict) -> str:
 
 def _render_governed_content_body(plan: dict[str, Any], payload: dict) -> str:
   """Render the authored `content.md` body for governed platform-pack skills."""
-  platform = plan["platform"]
-  display_name = plan.get("display_name") or (
-    _derive_display_name(platform) if platform else ""
-  )
-  context = ScaffoldTemplateContext(
-    skill_name=plan["skill_name"],
-    family=plan["family"],
-    platform=platform,
-    area=plan["area"],
-    display_name=display_name,
-  )
-
   sections: list[str] = []
   if plan["family"] == "quality-check":
     sections.extend(
       [
-        render_description_section(context),
         "## Execution Steps\n\nTODO: author the execution steps for "
         f"`{plan['skill_name']}`.\n",
         "## Fix Strategy\n\nTODO: author the fix strategy for "
@@ -784,26 +765,10 @@ def _render_governed_content_body(plan: dict[str, Any], payload: dict) -> str:
       ]
     )
   else:
-    sections.extend(
-      [
-        render_description_section(context),
-        render_specialist_scope_section(context),
-        render_inputs_section(context),
-        render_outputs_contract_section(context),
-      ]
+    sections.append(
+      "TODO: author the governed content body. Keep shell metadata, telemetry rules, and "
+      "other shared ceremony in `SKILL.md` or shared sidecars, not here.\n"
     )
-    is_code_review_baseline = (
-      plan["family"] == "code-review"
-      and not plan["area"]
-      and plan["is_shelled"]
-    )
-    if is_code_review_baseline:
-      sections.extend(
-        [
-          render_delegated_mode_section(context),
-          render_inline_mode_section(context),
-        ]
-      )
 
   title = "Content"
   if plan["family"] == "quality-check":
@@ -835,15 +800,6 @@ def _render_addon_body(plan: dict[str, Any], payload: dict) -> str:
     "\n"
     "TODO: author the add-on body.\n"
   )
-
-
-def _append_supporting_file_links(body: str, file_names: list[str]) -> str:
-  if not file_names:
-    return body
-
-  lines = [body.rstrip(), "", "## Additional Resources", ""]
-  lines.extend(f"- [{file_name}]({file_name})" for file_name in file_names)
-  return "\n".join(lines) + "\n"
 
 
 def _stage_file(txn: _ScaffoldTransaction, path: Path, content: str) -> None:
@@ -959,9 +915,6 @@ def _create_platform_pack(
     governs_addons=plan["governs_addons"],
   )
   _stage_file(txn, manifest_path, manifest_content)
-  baseline_supporting_files = list(required_supporting_files_for_skill(baseline_name))
-  quality_check_supporting_files = list(required_supporting_files_for_skill(quality_check_name))
-
   baseline_plan = {
     "kind": SKILL_KIND_PLATFORM_PACK,
     "skill_name": baseline_name,
@@ -1031,10 +984,7 @@ def _create_platform_pack(
   _stage_file(
     txn,
     baseline_plan["content_file"],
-    _append_supporting_file_links(
-      _render_governed_content_body(baseline_plan, {"description": baseline_description}),
-      baseline_supporting_files,
-    ),
+    _render_governed_content_body(baseline_plan, {"description": baseline_description}),
   )
   created_symlinks: list[Path] = []
   created_symlinks.extend(_stage_sidecar_symlinks_for_skill(
@@ -1052,10 +1002,7 @@ def _create_platform_pack(
   _stage_file(
     txn,
     quality_check_plan["content_file"],
-    _append_supporting_file_links(
-      _render_governed_content_body(quality_check_plan, {"description": quality_check_description}),
-      quality_check_supporting_files,
-    ),
+    _render_governed_content_body(quality_check_plan, {"description": quality_check_description}),
   )
   created_symlinks.extend(_stage_sidecar_symlinks_for_skill(
     txn,
@@ -1087,9 +1034,6 @@ def _create_platform_pack(
     ))
 
   for specialist_plan in specialist_plans:
-    specialist_supporting_files = list(
-      required_supporting_files_for_skill(specialist_plan["skill_name"])
-    )
     _stage_file(
       txn,
       specialist_plan["skill_file"],
@@ -1106,17 +1050,14 @@ def _create_platform_pack(
     _stage_file(
       txn,
       specialist_plan["content_file"],
-      _append_supporting_file_links(
-        _render_governed_content_body(
-          specialist_plan,
-          {
-            "description": (
-              f"Use when reviewing {plan['display_name']} changes for "
-              f"{specialist_plan['area']} risks."
-            )
-          },
-        ),
-        specialist_supporting_files,
+      _render_governed_content_body(
+        specialist_plan,
+        {
+          "description": (
+            f"Use when reviewing {plan['display_name']} changes for "
+            f"{specialist_plan['area']} risks."
+          )
+        },
       ),
     )
     created_symlinks.extend(_stage_sidecar_symlinks_for_skill(
@@ -1442,16 +1383,11 @@ def scaffold(payload: dict, *, dry_run: bool = False) -> ScaffoldResult:
 
       _stage_file(txn, plan["skill_file"], body)
       if plan["is_shelled"] and plan.get("content_file") is not None:
-        from scripts.skill_repo_contracts import required_supporting_files_for_skill
-
         _stage_file(
           txn,
           plan["content_file"],
-          _append_supporting_file_links(
-            _render_governed_content_body(plan, payload),
-            list(required_supporting_files_for_skill(plan["skill_name"])),
-          ),
-        )
+        _render_governed_content_body(plan, payload),
+      )
 
       manifest_edits = _apply_manifest_edits(txn, plan, repo_root)
       symlinks = _stage_sidecar_symlinks(txn, plan, repo_root)

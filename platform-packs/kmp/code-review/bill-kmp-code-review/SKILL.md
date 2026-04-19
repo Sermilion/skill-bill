@@ -17,3 +17,15 @@ Follow the instructions in [content.md](content.md).
 ## Ceremony
 
 Follow the shell ceremony in [shell-ceremony.md](shell-ceremony.md).
+
+When stack routing applies, follow [stack-routing.md](stack-routing.md).
+
+When delegated review execution applies, follow [review-delegation.md](review-delegation.md).
+
+When review reporting applies, follow [review-orchestrator.md](review-orchestrator.md).
+
+When telemetry applies, follow [telemetry-contract.md](telemetry-contract.md).
+
+`Review session ID: <review-session-id>`
+`Review run ID: <review-run-id>`
+`Applied learnings: none | <learning references>`

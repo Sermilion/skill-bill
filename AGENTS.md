@@ -22,6 +22,8 @@ skill-bill is a governed system for authoring, routing, validating, installing, 
 ## Governed platform packs
 
 - Packs live under `platform-packs/` and are user-owned.
+- Skill Bill is platform-extensible: any team may author a new conforming pack.
+- That does **not** mean every new platform belongs in this repo's built-in surface. Keep the shipped first-party set intentionally narrow unless the platform is meant to be maintained here as a reference pack.
 - This repo ships `kotlin` and `kmp` as the first-party reference implementations for the governed pack model.
 - Each pack ships a manifest. The schema lives in the shell-content-contract playbook under `orchestration/`.
 - The current shell contract version is 1.0. Keep it locked across the shell and every pack; version drift must loud-fail.

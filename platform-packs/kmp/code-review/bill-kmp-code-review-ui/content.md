@@ -18,16 +18,6 @@ state hoisting, signature conventions, recomposition & performance, theming, str
 
 Apply every section from `compose-guidelines.md` as a review checklist when reviewing `@Composable` code. Use the governed add-on only to extend the routed KMP review with transferable Android/Compose concerns; do not treat it as a standalone review command.
 
-## Output Format
-
-Every finding must use this exact bullet format for downstream tooling:
-
-```text
-- [F-001] <Severity> | <Confidence> | <file:line> | <description>
-```
-
-Do NOT use markdown tables, numbered lists, or any other format for findings.
-
 ## Checklist
 
 Before considering a composable done, verify:
@@ -49,30 +39,3 @@ Before considering a composable done, verify:
 - [ ] `Modifier.testTag` on key interactive elements
 - [ ] No unnecessary decomposition — extractions have a reason
 - [ ] File organization: screen → helpers → previews (top to bottom)
-
-## Description
-This content file is a platform-pack specialist area review module for
-`bill-kmp-code-review-ui`. The baseline orchestrator delegates a single specialist area here.
-The sections above define the specialist playbook; the sections below satisfy
-the shell+content contract v1.0.
-
-## Specialist Scope
-Scoped to one approved code-review area. Does not cover other areas.
-
-## Inputs
-Review scope, changed files, detected stack signals, active learnings,
-`review_session_id`, `review_run_id`, and the `orchestrated` flag.
-
-## Outputs Contract
-Findings in the shared Risk Register format
-`- [F-###] <Severity> | <Confidence> | <file:line> | <description>`, plus
-specialist-specific action items consumed by the baseline orchestrator.
-
-## Execution Mode Reporting
-Report `Execution mode: inline` or `Execution mode: delegated` per the
-shell's output contract.
-
-## Telemetry Ceremony Hooks
-Specialist reviews never call `import_review` or `triage_findings` directly;
-the baseline orchestrator owns lifecycle telemetry per
-`telemetry-contract.md`.

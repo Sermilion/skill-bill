@@ -6,6 +6,7 @@ from pathlib import Path
 ORCHESTRATION_PLAYBOOKS: dict[str, str] = {
   "stack-routing": "orchestration/stack-routing/PLAYBOOK.md",
   "review-orchestrator": "orchestration/review-orchestrator/PLAYBOOK.md",
+  "review-specialist-contract": "orchestration/review-orchestrator/specialist-contract.md",
   "review-delegation": "orchestration/review-delegation/PLAYBOOK.md",
   "telemetry-contract": "orchestration/telemetry-contract/PLAYBOOK.md",
   "shell-content-contract": "orchestration/shell-content-contract/PLAYBOOK.md",
@@ -62,12 +63,14 @@ ADDON_SUPPORTING_FILE_TARGETS.update({
 _CODE_REVIEW_RUNTIME_SUPPORTING_FILES: tuple[str, ...] = (
   "stack-routing.md",
   "review-orchestrator.md",
+  "specialist-contract.md",
   "review-delegation.md",
   "telemetry-contract.md",
   "shell-ceremony.md",
 )
 
 _CODE_REVIEW_SPECIALIST_RUNTIME_SUPPORTING_FILES: tuple[str, ...] = (
+  "review-orchestrator.md",
   "telemetry-contract.md",
   "shell-ceremony.md",
 )
@@ -81,6 +84,7 @@ _QUALITY_CHECK_RUNTIME_SUPPORTING_FILES: tuple[str, ...] = (
 SUPPORTING_FILE_TARGETS: dict[str, str] = {
   "stack-routing.md": ORCHESTRATION_PLAYBOOKS["stack-routing"],
   "review-orchestrator.md": ORCHESTRATION_PLAYBOOKS["review-orchestrator"],
+  "specialist-contract.md": ORCHESTRATION_PLAYBOOKS["review-specialist-contract"],
   "review-delegation.md": ORCHESTRATION_PLAYBOOKS["review-delegation"],
   "telemetry-contract.md": ORCHESTRATION_PLAYBOOKS["telemetry-contract"],
   "shell-content-contract.md": ORCHESTRATION_PLAYBOOKS["shell-content-contract"],
@@ -101,6 +105,7 @@ RUNTIME_SUPPORTING_FILES: dict[str, tuple[str, ...]] = {
   "bill-kotlin-code-review": (
     "stack-routing.md",
     "review-orchestrator.md",
+    "specialist-contract.md",
     "review-delegation.md",
     "telemetry-contract.md",
     "shell-ceremony.md",
@@ -108,6 +113,7 @@ RUNTIME_SUPPORTING_FILES: dict[str, tuple[str, ...]] = {
   "bill-kmp-code-review": (
     "stack-routing.md",
     "review-orchestrator.md",
+    "specialist-contract.md",
     "review-delegation.md",
     "telemetry-contract.md",
     "shell-ceremony.md",

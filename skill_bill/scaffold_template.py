@@ -171,6 +171,31 @@ CANONICAL_CEREMONY_SECTION = (
 )
 
 
+def render_ceremony_section(context: ScaffoldTemplateContext) -> str:
+  """Render the canonical ``## Ceremony`` section for wrapper skills.
+
+  Keep the wrapper thin, but still mention any required local telemetry sidecar
+  so repo validation can confirm the governed shell references every required
+  supporting file without pushing shared contract prose back into ``content.md``.
+  """
+  body = CANONICAL_CEREMONY_SECTION
+  if _skill_requires_stack_routing(context.skill_name):
+    body += "\nWhen stack routing applies, follow [stack-routing.md](stack-routing.md).\n"
+  if _skill_requires_review_delegation(context.skill_name):
+    body += "\nWhen delegated review execution applies, follow [review-delegation.md](review-delegation.md).\n"
+  if _skill_requires_review_orchestrator(context.skill_name):
+    body += "\nWhen review reporting applies, follow [review-orchestrator.md](review-orchestrator.md).\n"
+  if _skill_requires_telemetry_contract(context.skill_name):
+    body += "\nWhen telemetry applies, follow [telemetry-contract.md](telemetry-contract.md).\n"
+  if _skill_is_portable_review_entrypoint(context.skill_name):
+    body += (
+      "\n`Review session ID: <review-session-id>`\n"
+      "`Review run ID: <review-run-id>`\n"
+      "`Applied learnings: none | <learning references>`\n"
+    )
+  return body
+
+
 def render_project_overrides(context: ScaffoldTemplateContext) -> str:
   """Render the thin ``## Project Overrides`` pointer for root-level skills."""
   del context
@@ -483,8 +508,54 @@ _DEFAULT_SECTION_RENDERERS: dict[str, object] = {
   "## Execution Mode Reporting": render_execution_mode_reporting,
   "## Telemetry Ceremony Hooks": render_telemetry_ceremony_hooks,
   "## Execution": lambda _context: CANONICAL_EXECUTION_SECTION,
-  "## Ceremony": lambda _context: CANONICAL_CEREMONY_SECTION,
+  "## Ceremony": render_ceremony_section,
 }
+
+
+def _skill_requires_telemetry_contract(skill_name: str) -> bool:
+  if not skill_name.startswith("bill-"):
+    return False
+  if skill_name.endswith("-code-review"):
+    return True
+  if "-code-review-" in skill_name:
+    return True
+  if skill_name.endswith("-quality-check"):
+    return True
+  if skill_name.endswith("-feature-implement"):
+    return True
+  if skill_name.endswith("-feature-verify"):
+    return True
+  if skill_name == "bill-pr-description":
+    return True
+  return False
+
+
+def _skill_requires_review_orchestrator(skill_name: str) -> bool:
+  if not skill_name.startswith("bill-"):
+    return False
+  if skill_name.endswith("-code-review"):
+    return True
+  if "-code-review-" in skill_name:
+    return True
+  return False
+
+
+def _skill_requires_stack_routing(skill_name: str) -> bool:
+  if not skill_name.startswith("bill-"):
+    return False
+  if skill_name.endswith("-code-review"):
+    return True
+  if skill_name.endswith("-quality-check"):
+    return True
+  return False
+
+
+def _skill_requires_review_delegation(skill_name: str) -> bool:
+  return skill_name.startswith("bill-") and skill_name.endswith("-code-review")
+
+
+def _skill_is_portable_review_entrypoint(skill_name: str) -> bool:
+  return skill_name.startswith("bill-") and skill_name.endswith("-code-review")
 
 
 def render_default_section(section_name: str, context: ScaffoldTemplateContext) -> str:

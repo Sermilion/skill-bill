@@ -46,11 +46,19 @@ KOTLIN_CODE_REVIEW = (
   read("platform-packs/kotlin/code-review/bill-kotlin-code-review/SKILL.md")
   + "\n"
   + read("platform-packs/kotlin/code-review/bill-kotlin-code-review/content.md")
+  + "\n"
+  + read("platform-packs/kotlin/code-review/bill-kotlin-code-review/shell-ceremony.md")
+  + "\n"
+  + read("platform-packs/kotlin/code-review/bill-kotlin-code-review/review-orchestrator.md")
 )
 KMP_CODE_REVIEW = (
   read("platform-packs/kmp/code-review/bill-kmp-code-review/SKILL.md")
   + "\n"
   + read("platform-packs/kmp/code-review/bill-kmp-code-review/content.md")
+  + "\n"
+  + read("platform-packs/kmp/code-review/bill-kmp-code-review/shell-ceremony.md")
+  + "\n"
+  + read("platform-packs/kmp/code-review/bill-kmp-code-review/review-orchestrator.md")
 )
 KMP_ANDROID_COMPOSE_EDGE_TO_EDGE = read("platform-packs/kmp/addons/android-compose-edge-to-edge.md")
 KMP_ANDROID_COMPOSE_ADAPTIVE = read("platform-packs/kmp/addons/android-compose-adaptive-layouts.md")
@@ -463,10 +471,6 @@ class FeatureImplementRoutingContractTest(unittest.TestCase):
         )
         self.assertIn(
           "Resolve the scope before reviewing. If the caller asks for staged changes, inspect only the staged diff",
-          skill_text,
-        )
-        self.assertIn(
-          "Detected review scope: <staged changes / unstaged changes / working tree / commit range / PR diff / files>",
           skill_text,
         )
         self.assertIn(REVIEW_RUN_ID_PLACEHOLDER, skill_text)

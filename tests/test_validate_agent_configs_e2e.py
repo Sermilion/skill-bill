@@ -593,6 +593,7 @@ class ValidateAgentConfigsE2ETest(unittest.TestCase):
         include_applied_learnings=review_orchestrator_has_applied_learnings,
         use_heading_sections=review_orchestrator_uses_heading_sections,
       )
+      self.write_review_specialist_contract_playbook(repo_root)
       self.write_review_delegation_playbook(repo_root)
       self.write_telemetry_contract_playbook(repo_root)
       self.write_shell_content_contract_playbook(repo_root)
@@ -753,6 +754,33 @@ class ValidateAgentConfigsE2ETest(unittest.TestCase):
         ## GLM
 
         Every delegated worker must receive the current `review_session_id` and `review_run_id` when they already exist.
+        """
+      ),
+      encoding="utf-8",
+    )
+
+  def write_review_specialist_contract_playbook(self, repo_root: Path) -> None:
+    path = repo_root / "orchestration" / "review-orchestrator" / "specialist-contract.md"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+      textwrap.dedent(
+        """\
+        ---
+        name: specialist-contract
+        description: Fixture shared contract for delegated specialist review output.
+        ---
+
+        # Shared Review Specialist Contract
+
+        Apply this shared contract to every specialist review output.
+
+        ## Output Rules
+        - Report at most 7 findings.
+        - Include the user-visible or externally observable consequence for each finding.
+        - Include `file:line` evidence for each finding.
+        - Severity: `Blocker | Major | Minor`
+        - Confidence: `High | Medium | Low`
+        - Include a minimal, concrete fix.
         """
       ),
       encoding="utf-8",
@@ -974,6 +1002,7 @@ class ValidateAgentConfigsE2ETest(unittest.TestCase):
       {REVIEW_SESSION_ID_PLACEHOLDER}
       {REVIEW_RUN_ID_PLACEHOLDER}
       {APPLIED_LEARNINGS_PLACEHOLDER}
+      [specialist-contract.md](specialist-contract.md)
       For telemetry and triage rules, follow [telemetry-contract.md](telemetry-contract.md).
 
       | Signal | Agent to spawn |
@@ -1020,6 +1049,7 @@ class ValidateAgentConfigsE2ETest(unittest.TestCase):
 
       {REVIEW_SESSION_ID_PLACEHOLDER}
       {APPLIED_LEARNINGS_PLACEHOLDER}
+      [specialist-contract.md](specialist-contract.md)
       [review-orchestrator.md](review-orchestrator.md)
       [review-delegation.md](review-delegation.md)
       For telemetry and triage rules, follow [telemetry-contract.md](telemetry-contract.md).
@@ -1065,6 +1095,7 @@ class ValidateAgentConfigsE2ETest(unittest.TestCase):
 
       {REVIEW_SESSION_ID_PLACEHOLDER}
       {REVIEW_RUN_ID_PLACEHOLDER}
+      [specialist-contract.md](specialist-contract.md)
       [review-orchestrator.md](review-orchestrator.md)
       [review-delegation.md](review-delegation.md)
       For telemetry and triage rules, follow [telemetry-contract.md](telemetry-contract.md).
@@ -1089,6 +1120,7 @@ class ValidateAgentConfigsE2ETest(unittest.TestCase):
       {REVIEW_SESSION_ID_PLACEHOLDER}
       {REVIEW_RUN_ID_PLACEHOLDER}
       {APPLIED_LEARNINGS_PLACEHOLDER}
+      [specialist-contract.md](specialist-contract.md)
       [review-orchestrator.md](review-orchestrator.md)
       [review-delegation.md](review-delegation.md)
       Specialist review fixture content.
@@ -1112,6 +1144,7 @@ class ValidateAgentConfigsE2ETest(unittest.TestCase):
       {REVIEW_SESSION_ID_PLACEHOLDER}
       {REVIEW_RUN_ID_PLACEHOLDER}
       {APPLIED_LEARNINGS_PLACEHOLDER}
+      [specialist-contract.md](specialist-contract.md)
       [review-orchestrator.md](review-orchestrator.md)
       [review-delegation.md](review-delegation.md)
       {TELEMETRY_OWNERSHIP_HEADING}
@@ -1151,6 +1184,7 @@ class ValidateAgentConfigsE2ETest(unittest.TestCase):
       {REVIEW_SESSION_ID_PLACEHOLDER}
       {REVIEW_RUN_ID_PLACEHOLDER}
       {APPLIED_LEARNINGS_PLACEHOLDER}
+      [specialist-contract.md](specialist-contract.md)
       [review-orchestrator.md](review-orchestrator.md)
       [review-delegation.md](review-delegation.md)
       [stack-routing.md](stack-routing.md)
@@ -1175,6 +1209,7 @@ class ValidateAgentConfigsE2ETest(unittest.TestCase):
       {REVIEW_SESSION_ID_PLACEHOLDER}
       {REVIEW_RUN_ID_PLACEHOLDER}
       {APPLIED_LEARNINGS_PLACEHOLDER}
+      [specialist-contract.md](specialist-contract.md)
       [review-orchestrator.md](review-orchestrator.md)
       [review-delegation.md](review-delegation.md)
       [stack-routing.md](stack-routing.md)

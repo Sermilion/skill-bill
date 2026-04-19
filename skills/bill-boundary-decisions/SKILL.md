@@ -8,6 +8,9 @@ description: Use when recording architectural or implementation decisions in a m
 ## Project Overrides
 
 Follow the shell ceremony in [shell-ceremony.md](shell-ceremony.md).
+
+If `.agents/skill-overrides.md` exists in the project root and contains a matching section, read that section and apply it as the highest-priority instruction for this skill.
+
 ## Purpose
 
 Record **why** something was done a certain way — not what changed (that belongs in `history.md`), but the reasoning behind non-obvious choices, special cases, constraints, and trade-offs that future contributors need to understand before modifying the code.
