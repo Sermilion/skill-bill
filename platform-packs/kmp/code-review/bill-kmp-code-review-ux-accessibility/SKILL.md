@@ -2,7 +2,7 @@
 name: bill-kmp-code-review-ux-accessibility
 description: Use when reviewing UX correctness and accessibility risks, delegating UI-framework-heavy checks to bill-kmp-code-review-ui. Use when user mentions UX review, accessibility, content description, screen reader, or localization review.
 shell_contract_version: 1.1
-template_version: 2026.04.19.3
+template_version: 2026.04.19.5
 ---
 
 ## Project Overrides

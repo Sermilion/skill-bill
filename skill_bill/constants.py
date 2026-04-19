@@ -61,7 +61,7 @@ SHELL_CONTRACT_VERSION: str = "1.1"
 # shape or body changes so existing skills surface drift through
 # ``skill-bill doctor`` and can be regenerated with ``skill-bill upgrade``.
 # Template drift is not a runtime failure — it is an upgrade-actionable state.
-TEMPLATE_VERSION: str = "2026.04.19.3"
+TEMPLATE_VERSION: str = "2026.04.19.5"
 
 # New-skill scaffolder constants (SKILL-15).
 SCAFFOLD_PAYLOAD_VERSION: str = "1.0"

@@ -38,21 +38,9 @@ Use this specialist for shared Kotlin correctness risks across libraries, app la
 - Retry, recollection, resubscription, or repeated lifecycle entry must not bypass one-time business checks or re-apply one-time user-visible effects unless the contract explicitly permits it
 - Feature-flag, permission-gated, and role-gated paths must preserve the same core invariants as the primary path unless different behavior is explicitly intended
 
-## Output Rules
+## Finding Requirements
+
 - Report at most 7 findings.
-- Include reproducible failure scenario for Major/Blocker findings.
+- Include a reproducible failure scenario for Major/Blocker findings.
 - Potential edge-case findings must be grounded in a reachable code path or declared contract. Identify the triggering input, state, async event sequence, or lifecycle transition and the violated invariant or expected behavior.
-- Include `file:line` evidence for each finding.
-- Severity: `Blocker | Major | Minor`
-- Confidence: `High | Medium | Low`
 - Include a minimal, concrete fix.
-
-## Output Format
-
-Every finding must use this exact bullet format for downstream tooling:
-
-```text
-- [F-001] <Severity> | <Confidence> | <file:line> | <description>
-```
-
-Do NOT use markdown tables, numbered lists, or any other format for findings.

@@ -2,7 +2,7 @@
 name: bill-kotlin-code-review-api-contracts
 description: Use when reviewing Kotlin backend/server API boundaries including request validation, serialization, HTTP or RPC contracts, status-code mapping, and backward compatibility. Use when user mentions API contract, request validation, response serialization, status codes, or backward compatibility in Kotlin backend.
 shell_contract_version: 1.1
-template_version: 2026.04.19.3
+template_version: 2026.04.19.5
 ---
 
 ## Project Overrides

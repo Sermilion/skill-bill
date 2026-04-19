@@ -38,21 +38,9 @@ Use this specialist for shared Kotlin test-risk concerns across libraries, app l
 - Prefer real serializers/request objects at owned boundaries; mock downstream systems, not the contract itself
 - Verify negative-path coverage for malformed input, forbidden access, downstream failures, retries, and duplicate delivery where relevant
 
-## Output Rules
+## Finding Requirements
+
 - Report at most 7 findings.
 - Include a minimal test plan for top uncovered risks.
 - Report weak or useless tests only when they materially reduce regression confidence.
-- Include `file:line` evidence for each finding.
-- Severity: `Blocker | Major | Minor`
-- Confidence: `High | Medium | Low`
-- Include a minimal, concrete fix, which may be to rewrite or delete the test and replace it with a behavior-focused one.
-
-## Output Format
-
-Every finding must use this exact bullet format for downstream tooling:
-
-```text
-- [F-001] <Severity> | <Confidence> | <file:line> | <description>
-```
-
-Do NOT use markdown tables, numbered lists, or any other format for findings.
+- A minimal, concrete fix may be to rewrite or delete the test and replace it with a behavior-focused one.

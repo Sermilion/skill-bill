@@ -24,20 +24,8 @@ Use this specialist for backend/server Kotlin code routed through the built-in K
 - Pagination and filtering should preserve deterministic ordering and bounded result sizes
 - Serialization defaults must match the compatibility expectations of existing clients
 
-## Output Rules
+## Finding Requirements
+
 - Report at most 7 findings.
-- Include client-visible consequence for each finding.
-- Include `file:line` evidence for each finding.
-- Severity: `Blocker | Major | Minor`
-- Confidence: `High | Medium | Low`
+- Include the client-visible consequence for each finding.
 - Include a minimal, concrete fix.
-
-## Output Format
-
-Every finding must use this exact bullet format for downstream tooling:
-
-```text
-- [F-001] <Severity> | <Confidence> | <file:line> | <description>
-```
-
-Do NOT use markdown tables, numbered lists, or any other format for findings.

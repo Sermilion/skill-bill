@@ -26,15 +26,14 @@ skill-bill is a governed system for authoring, routing, validating, installing, 
 - The current shell contract version is 1.1 (SKILL-21); drift loud-fails pointing at `scripts/migrate_to_content_md.py`.
 - Code-review H2s: Description, Specialist Scope, Inputs, Outputs Contract, Execution, Execution Mode Reporting, Telemetry Ceremony Hooks.
 - Quality-check H2s: Description, Execution Steps, Fix Strategy, Execution, Execution Mode Reporting, Telemetry Ceremony Hooks.
-- SKILL.md is generated. Every governed skill has a sibling `content.md` holding the author-owned body; always edit `content.md` only.
+- SKILL.md is generated; every governed skill has a sibling `content.md` with the author-owned body. Edit `content.md` only. It holds author skill knowledge (signals, rubrics, routing tables, project rules); shell ceremony stays in SKILL.md. Taxonomy + blacklist in `orchestration/shell-content-contract/PLAYBOOK.md`.
 - Missing manifest, wrong version, missing file, missing section, missing `content.md`, or edited `## Execution` body must raise the named loud-fail exception.
 - Discovery is manifest-driven (`routing_signals`), not hard-coded.
 - `kmp` routes quality-check to `kotlin`. `bill-feature-implement`/`bill-feature-verify` remain pre-shell.
 
 ## Governed add-ons
 
-- Add-ons are pack-owned files, not standalone skills.
-- Keep them flat in the owning pack's `addons/` directory, use lowercase kebab-case names, and resolve them only after dominant-stack routing.
+- Add-ons are pack-owned files, not standalone skills. Keep them flat in the owning pack's `addons/` directory, use lowercase kebab-case names, and resolve them only after dominant-stack routing.
 - Runtime skills consume add-ons through sibling supporting files, report them as `Selected add-ons: ...`, and every add-on change needs validator plus routing-contract coverage.
 
 ## Non-negotiable rules
@@ -48,9 +47,9 @@ skill-bill is a governed system for authoring, routing, validating, installing, 
 
 ## Adding a new platform
 
-1. For code review, create the new pack root, add a conforming manifest and content, wire the sidecars, update the README catalog, extend pack tests, and run validation.
-2. For quality-check, register the pack's quality-check skill in the manifest, ship the five contract H2 sections, and wire the routing plus telemetry sidecars. The built-in `kmp` reference pack still falls back to `kotlin`.
-3. For pre-shell families (`feature-implement`, `feature-verify`), keep using the historic `skills/<platform>/` layout until those families are piloted.
+1. Code review: create pack root, add conforming manifest + content, wire sidecars, update README catalog, extend pack tests, run validation.
+2. Quality-check: register the pack's quality-check skill in the manifest, ship the five contract H2 sections, wire routing + telemetry sidecars. `kmp` still falls back to `kotlin`.
+3. Pre-shell families (`feature-implement`, `feature-verify`): keep the historic `skills/<platform>/` layout until those families are piloted.
 
 ## New-skill authoring
 
@@ -62,8 +61,7 @@ skill-bill is a governed system for authoring, routing, validating, installing, 
 
 ## SKILL.md vs. content.md (v1.1)
 
-- SKILL.md: generated shell with version-stamped frontmatter and a byte-identical `## Execution` body.
-- `content.md`: free-form author-editable body. Open with `skill-bill edit <name>` (`$VISUAL` → `$EDITOR` → print path).
+- SKILL.md: generated shell with version-stamped frontmatter and a byte-identical `## Execution` body. Open `content.md` with `skill-bill edit <name>`.
 - `skill-bill upgrade` regenerates stale shells and leaves `content.md` untouched. `skill-bill doctor` reports missing content.md (error) and template drift (warning).
 - Migrate v1.0 with `scripts/migrate_to_content_md.py` (idempotent, backup-first, per-skill rollback).
 
@@ -73,11 +71,7 @@ Prefer `bill-quality-check` routing. Always document an explicit fallback when a
 
 ## Design bias
 
-- stable base commands
-- platform depth behind the router
-- explicit overrides
-- validator-backed rules
-- tests for accept + reject paths
+- stable base commands; platform depth behind the router; explicit overrides; validator-backed rules; tests for accept + reject paths.
 
 ## Validation commands
 

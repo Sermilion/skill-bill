@@ -58,6 +58,7 @@ from skill_bill.scaffold_template import (  # noqa: E402
 )
 from skill_bill.shell_content_contract import (  # noqa: E402
   CANONICAL_EXECUTION_BODY,
+  CEREMONY_FREE_FORM_H2S,
   CEREMONY_SECTIONS,
   CONTENT_BODY_FILENAME,
   REQUIRED_CONTENT_SECTIONS,
@@ -179,8 +180,8 @@ def _extract_author_content(
   """Split a v1.0 SKILL.md into (content_body, free_form_count, edited_count).
 
   - Free-form H2s (anything not in the family's required set and not in
-    :data:`CEREMONY_SECTIONS`) flow into content.md so authored prose
-    survives.
+    :data:`CEREMONY_SECTIONS` or :data:`CEREMONY_FREE_FORM_H2S`) flow into
+    content.md so authored prose survives.
   - Required H2s whose body diverges from the current scaffolder default
     are also appended so author edits are preserved. Pre-SKILL-21 v1.0
     packs used a different default body; the ceremony-leakage fix
@@ -189,11 +190,18 @@ def _extract_author_content(
   - Ceremony sections (:data:`CEREMONY_SECTIONS`) are shell-owned and
     never copied to ``content.md``. The shell regeneration step emits
     them afresh.
+  - Free-form ceremony headings (:data:`CEREMONY_FREE_FORM_H2S`) are
+    shell-owned by taxonomy even though the loader does not demand
+    them. The migration script drops these headings + their bodies so
+    author-owned content.md carries only author knowledge (signals,
+    rubrics, routing tables, project-specific rules) and never the
+    shell's output contract / orchestration / telemetry ceremony.
   """
   from skill_bill.scaffold_template import render_default_section
 
   required_for_family = REQUIRED_SECTIONS_BY_FAMILY[family]
   ceremony_headings = set(CEREMONY_SECTIONS)
+  ceremony_free_form_headings = set(CEREMONY_FREE_FORM_H2S)
 
   frontmatter = parse_skill_frontmatter(skill_file)
   plan = infer_plan_from_skill_file(skill_file, frontmatter)
@@ -211,6 +219,8 @@ def _extract_author_content(
   edited = 0
   for heading, body in sections:
     if heading in ceremony_headings:
+      continue
+    if heading in ceremony_free_form_headings:
       continue
     if heading not in required_for_family:
       kept.append(body.rstrip() + "\n")

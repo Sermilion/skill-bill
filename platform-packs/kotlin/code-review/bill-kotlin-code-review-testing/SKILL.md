@@ -2,7 +2,7 @@
 name: bill-kotlin-code-review-testing
 description: Use when reviewing test coverage quality, real test value, regression protection, and test reliability risks in Kotlin code. Use when user mentions test quality, test coverage, mock setup, or test reliability in Kotlin code.
 shell_contract_version: 1.1
-template_version: 2026.04.19.3
+template_version: 2026.04.19.5
 ---
 
 ## Project Overrides

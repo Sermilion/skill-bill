@@ -604,8 +604,15 @@ class ScaffoldHappyPathsTest(unittest.TestCase):
       / "bill-kmp-quality-check"
       / "SKILL.md"
     ).read_text(encoding="utf-8")
-    self.assertIn("TODO: author the execution steps", quality_body)
-    self.assertIn("TODO: author the fix strategy", quality_body)
+    # SKILL-21 pass-2: quality-check Execution Steps + Fix Strategy default
+    # bodies now point at the sibling content.md (the pack owns the actual
+    # steps + fix strategy) and reference the stack-routing sidecar so the
+    # validator finds the required supporting-file mention in the SKILL.md
+    # shell itself.
+    self.assertNotIn("TODO: author the execution steps", quality_body)
+    self.assertNotIn("TODO: author the fix strategy", quality_body)
+    self.assertIn("stack-routing.md", quality_body)
+    self.assertIn("sibling `content.md`", quality_body)
 
   def test_pre_shell_family_emits_interim_note(self) -> None:
     # SKILL-16 promoted quality-check onto the shell+content contract, so the

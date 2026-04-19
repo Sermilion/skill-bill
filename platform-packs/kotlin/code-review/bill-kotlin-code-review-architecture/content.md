@@ -29,19 +29,7 @@ Use this specialist for shared Kotlin architectural concerns across libraries, a
 - Background/async entry points should reuse the same business services as synchronous entry points instead of duplicating workflow logic
 - Avoid `kotlin.Result` and `Any` in core architecture contracts unless the project explicitly standardizes on them
 
-## Output Rules
+## Finding Requirements
+
 - Report at most 7 findings.
-- Include `file:line` evidence for each finding.
-- Severity: `Blocker | Major | Minor`
-- Confidence: `High | Medium | Low`
 - Include a minimal, concrete fix.
-
-## Output Format
-
-Every finding must use this exact bullet format for downstream tooling:
-
-```text
-- [F-001] <Severity> | <Confidence> | <file:line> | <description>
-```
-
-Do NOT use markdown tables, numbered lists, or any other format for findings.

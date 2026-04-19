@@ -54,6 +54,10 @@ v1.1 splits the governance shell from the author-owned skill body:
   drift is upgrade-actionable only (not a runtime failure).
 - `content.md` has no H2 requirement, no frontmatter requirement, and no
   minimum length. The loader validates only that it exists.
+- `content.md` carries **only** author-owned skill knowledge: signals,
+  rubrics, routing tables, project-specific rules, classification cues,
+  add-on selection rules, and per-specialist scope heuristics. See the
+  content.md taxonomy below for the split rule.
 - `## Project Overrides` is shell governance, not author content. The
   section records the overrides precedence rule (per-skill overrides >
   project-wide overrides > built-in defaults) and lives in SKILL.md for
@@ -61,6 +65,51 @@ v1.1 splits the governance shell from the author-owned skill body:
   code-review-area specialists, and shelled quality-check overrides.
   Authors must not copy the heading into `content.md`; the migration
   script and scaffolder refuse to emit it there.
+
+### content.md taxonomy (pass 2)
+
+The split rule for `content.md` vs `SKILL.md` is mechanical:
+
+- **SKILL.md / shell owns** — anything the skill-bill framework
+  maintains: output contracts (session/run IDs, severity/confidence
+  scales, risk-register row format, verdict format), orchestration
+  (delegation/inline mode descriptions, scope-determination bullet
+  lists), telemetry sidecar pointers, learnings resolution, sidecar
+  file references (`stack-routing.md`, `review-orchestrator.md`,
+  `review-delegation.md`, `telemetry-contract.md`,
+  `specialist-contract.md`, `shell-content-contract.md`), and
+  `## Project Overrides` precedence.
+- **content.md / author owns** — skill-specific signal markers,
+  classification cues (`build.gradle*`, `@Composable`, etc.),
+  specialist routing tables, add-on selection rules, per-specialist
+  scope heuristics, review rubrics (Focus / Ignore / Applicability),
+  and `## Project-Specific Rules` blocks.
+
+The following H2 headings are free-form ceremony (not in the
+required-section set, but shell-owned by taxonomy). The migration
+script's blacklist drops them on the floor rather than copying them
+into `content.md`; the hygiene test walks every shipped `content.md`
+and fails if any reappears:
+
+- `## Setup` (generic scope-determination bullet list)
+- `## Additional Resources` (sidecar-file pointers)
+- `## Local Review Learnings`
+- `## Output Format` (generic risk-register row format)
+- `## Output Rules` (severity/confidence scale restatements)
+- `## Review Output` (session/run ID + telemetry pointers)
+- `## Delegated Mode` / `## Inline Mode` (shell shape descriptors)
+- `## Routing Rules`
+- `## Shared Stack Detection`
+- `## Execution Contract`
+- `## Overview` (when it duplicates SKILL.md `## Description`)
+
+`### Telemetry` and `### Implementation Mode Notes` are also shell
+ceremony and must not appear in `content.md`.
+
+The blacklist is canonicalized in
+`skill_bill.shell_content_contract.CEREMONY_FREE_FORM_H2S`. Add new
+ceremony headings there (not in ad-hoc string lists) so the migration
+script, the scaffolder, and the hygiene test stay in lockstep.
 
 ## Required Platform Manifest (`platform.yaml`)
 

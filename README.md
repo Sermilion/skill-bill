@@ -413,10 +413,18 @@ Skill Bill v1.1 splits every governed skill into two sibling files:
   built-in defaults). `## Project Overrides` is shell governance, not
   author content — it lives in SKILL.md exclusively. Authors do not edit
   this file directly.
-- **`content.md`** — user-owned, free-form skill body. No required H2s,
-  no frontmatter requirement, no minimum length, and no shell ceremony
-  (`## Project Overrides`, `## Execution`, `## Execution Mode Reporting`,
-  `## Telemetry Ceremony Hooks` all stay in SKILL.md). Open it with
+- **`content.md`** — user-owned, free-form skill body. Carries **only**
+  author-owned skill knowledge: signals, rubrics, routing tables,
+  project-specific rules, classification cues, add-on selection rules,
+  and per-specialist scope heuristics. No required H2s, no frontmatter
+  requirement, no minimum length, and no shell ceremony. The shell owns
+  output contracts (session/run IDs, severity/confidence scales,
+  risk-register format), orchestration (delegation/inline mode,
+  scope-determination bullet lists), telemetry and learnings pointers,
+  sidecar-file references, and `## Project Overrides` — none of that
+  belongs in `content.md`. See
+  `orchestration/shell-content-contract/PLAYBOOK.md` for the full
+  taxonomy and ceremony blacklist. Open it with
   `skill-bill edit <skill-name>`; it opens in `$VISUAL` → `$EDITOR`, or
   prints the path when neither is set.
 

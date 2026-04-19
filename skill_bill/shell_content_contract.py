@@ -119,6 +119,36 @@ CEREMONY_SECTIONS: tuple[str, ...] = (
   "## Telemetry Ceremony Hooks",
 )
 
+# Free-form ceremony H2 sections that authors sometimes carry in v1.0
+# SKILL.md files but that belong to the shell, not content.md. These
+# headings are not part of the required-section set, so the loader does
+# not demand them, but the migration script and the scaffolder must drop
+# them on the floor rather than copy them into content.md. The hygiene
+# test in :mod:`tests.test_content_md_hygiene` also walks every shipped
+# content.md and fails if any of these headings reappears.
+#
+# Taxonomy: the shell is skill-bill's responsibility (output contracts,
+# session/run IDs, severity/confidence scales, risk-register format,
+# telemetry sidecar pointers, learnings resolution, execution-mode
+# descriptions, scope-determination bullet lists, sidecar pointers).
+# content.md is the author's responsibility (signals, rubrics, routing
+# tables, project-specific rules). Anything on this list is shell
+# ceremony that leaked into a content body and must be scrubbed.
+CEREMONY_FREE_FORM_H2S: tuple[str, ...] = (
+  "## Setup",
+  "## Additional Resources",
+  "## Local Review Learnings",
+  "## Output Format",
+  "## Output Rules",
+  "## Review Output",
+  "## Delegated Mode",
+  "## Inline Mode",
+  "## Routing Rules",
+  "## Shared Stack Detection",
+  "## Execution Contract",
+  "## Overview",
+)
+
 # Filename of the author-owned content body that must sit next to every
 # governed SKILL.md under v1.1. The loader raises
 # :class:`MissingContentBodyFileError` when the sibling is missing.
@@ -796,6 +826,7 @@ def _collect_top_level_h2_headings(text: str) -> set[str]:
 __all__ = [
   "APPROVED_CODE_REVIEW_AREAS",
   "CANONICAL_EXECUTION_BODY",
+  "CEREMONY_FREE_FORM_H2S",
   "CEREMONY_SECTIONS",
   "CONTENT_BODY_FILENAME",
   "ContractVersionMismatchError",

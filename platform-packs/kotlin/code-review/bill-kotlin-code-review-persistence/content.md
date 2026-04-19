@@ -25,20 +25,8 @@ Use this specialist for backend/server persistence code routed through the built
 - Do not hold persistence transactions open while waiting on remote I/O
 - Bulk operations should preserve correctness, not just speed; verify partial-failure behavior
 
-## Output Rules
+## Finding Requirements
+
 - Report at most 7 findings.
-- Include data-loss or consistency consequence for each Major/Blocker.
-- Include `file:line` evidence for each finding.
-- Severity: `Blocker | Major | Minor`
-- Confidence: `High | Medium | Low`
+- Include the data-loss or consistency consequence for each Major/Blocker.
 - Include a minimal, concrete fix.
-
-## Output Format
-
-Every finding must use this exact bullet format for downstream tooling:
-
-```text
-- [F-001] <Severity> | <Confidence> | <file:line> | <description>
-```
-
-Do NOT use markdown tables, numbered lists, or any other format for findings.

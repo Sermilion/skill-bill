@@ -2,7 +2,7 @@
 name: bill-kotlin-quality-check
 description: Run ./gradlew check and systematically fix all issues without using suppressions. Use when running Gradle checks, fixing lint errors, formatting issues, test failures, or deprecation warnings in Gradle/Kotlin projects. Fixes issues properly at the root cause instead of suppressing them. Use when user mentions gradlew check, Kotlin lint, ktfmt, detekt, or fix Gradle warnings.
 shell_contract_version: 1.1
-template_version: 2026.04.19.3
+template_version: 2026.04.19.5
 ---
 
 ## Project Overrides
@@ -15,15 +15,15 @@ Precedence for this skill: matching `.agents/skill-overrides.md` section > `AGEN
 
 ## Description
 
-Use when validating Kotlin changes with the shared quality-check contract.
+Use when validating Kotlin changes with the shared quality-check contract. Stack detection uses the sibling `stack-routing.md` playbook.
 
 ## Execution Steps
 
-TODO: author the execution steps section for `bill-kotlin-quality-check`.
+Stack detection uses the sibling `stack-routing.md` playbook. The per-pack execution steps live in the sibling `content.md`.
 
 ## Fix Strategy
 
-TODO: author the fix strategy section for `bill-kotlin-quality-check`.
+Fix strategy is pack-owned. See the sibling `content.md` for the pack's priority order, never-suppress rules, and code style guidelines.
 
 ## Execution
 

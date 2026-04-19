@@ -27,20 +27,8 @@
 - Screens must handle loading, content, error, and empty states
 - Error messages come from UI (string resources), not ViewModel
 
-## Output Rules
+## Finding Requirements
+
 - Report at most 7 findings.
-- Include user-visible consequence for each finding.
-- Include `file:line` evidence for each finding.
-- Severity: `Blocker | Major | Minor`
-- Confidence: `High | Medium | Low`
+- Include a user-visible consequence for each finding.
 - Include a minimal, concrete fix.
-
-## Output Format
-
-Every finding must use this exact bullet format for downstream tooling:
-
-```text
-- [F-001] <Severity> | <Confidence> | <file:line> | <description>
-```
-
-Do NOT use markdown tables, numbered lists, or any other format for findings.

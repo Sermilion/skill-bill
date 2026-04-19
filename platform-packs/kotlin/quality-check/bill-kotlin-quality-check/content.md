@@ -1,12 +1,3 @@
-## Overview
-
-Run `./gradlew check` (or the repo's equivalent wrapper) against the current Gradle/Kotlin project and systematically fix every structural, formatting, lint, deprecation, logic, or test failure touched by the current unit of work without suppressing or deferring issues. This is the `kotlin` leaf behind the shared `bill-quality-check` shell; the shell routes into this pack via the `declared_quality_check_file` manifest key on the `kotlin` platform pack, and it is also the fallback route for `kmp` work today.
-
-## Additional Resources
-
-- For shared stack-routing signals and tie-breakers, see [stack-routing.md](stack-routing.md).
-- For the shared telemetry contract, see [telemetry-contract.md](telemetry-contract.md).
-
 ## Procedure
 
 1. **Determine changed files**: Use `git diff --name-only` (against the base branch or HEAD) to identify files changed in the current unit of work
@@ -81,7 +72,3 @@ These issues require file operations and should be fixed before other issues:
 - Extract related params into:
   - `data class` - for variables
   - `interface` - for navigation/action lambdas
-
-## Output Format
-
-Show issue count by category, report each fix with file:line, display final `./gradlew check` result, and summarize all changes.

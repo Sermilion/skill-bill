@@ -2,7 +2,7 @@
 name: bill-kotlin-code-review-security
 description: Use when reviewing secrets handling, auth/session safety, sensitive data exposure, and transport/storage security in Kotlin code. Use when user mentions secrets, auth tokens, encryption, sensitive data, or security review in Kotlin code.
 shell_contract_version: 1.1
-template_version: 2026.04.19.3
+template_version: 2026.04.19.5
 ---
 
 ## Project Overrides

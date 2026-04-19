@@ -97,8 +97,14 @@ def infer_skill_description(context: ScaffoldTemplateContext) -> str:
 
   if family == "quality-check":
     if label:
-      return f"Use when validating {label} changes with the shared quality-check contract."
-    return "Use when validating changes with the shared quality-check contract."
+      return (
+        f"Use when validating {label} changes with the shared quality-check "
+        "contract. Stack detection uses the sibling `stack-routing.md` playbook."
+      )
+    return (
+      "Use when validating changes with the shared quality-check contract. "
+      "Stack detection uses the sibling `stack-routing.md` playbook."
+    )
 
   if family == "feature-implement":
     if label:
@@ -434,6 +440,16 @@ def render_outputs_contract_section(context: ScaffoldTemplateContext) -> str:
     return (
       "## Outputs Contract\n"
       "\n"
+      "Reports a Summary block followed by a Risk Register. The Summary "
+      "exposes the shell-owned output identifiers so downstream triage "
+      "and telemetry (owned by the shared router shell) can parse them:\n"
+      "\n"
+      "- `Review session ID: <review-session-id>`\n"
+      "- `Review run ID: <review-run-id>`\n"
+      "- `Detected review scope: <staged changes / unstaged changes / "
+      "working tree / commit range / PR diff / files>`\n"
+      "- `Applied learnings: none | <learning references>`\n"
+      "\n"
       "- Structured review with a risk register (CRITICAL / HIGH / MEDIUM / LOW).\n"
       "- Delegated mode: per-specialist findings aggregated under area headings.\n"
       "- Inline mode: findings grouped by concern (architecture, correctness, "
@@ -545,6 +561,21 @@ def render_default_section(section_name: str, context: ScaffoldTemplateContext) 
   if section_name in _DEFAULT_SECTION_RENDERERS:
     renderer = _DEFAULT_SECTION_RENDERERS[section_name]
     return renderer(context)  # type: ignore[operator]
+
+  if context.family == "quality-check" and section_name == "## Execution Steps":
+    return (
+      "## Execution Steps\n"
+      "\n"
+      "Stack detection uses the sibling `stack-routing.md` playbook. "
+      "The per-pack execution steps live in the sibling `content.md`.\n"
+    )
+  if context.family == "quality-check" and section_name == "## Fix Strategy":
+    return (
+      "## Fix Strategy\n"
+      "\n"
+      "Fix strategy is pack-owned. See the sibling `content.md` for the "
+      "pack's priority order, never-suppress rules, and code style guidelines.\n"
+    )
 
   humanized = section_name.removeprefix("## ").strip()
   return (

@@ -34,20 +34,8 @@ Use this specialist for shared Kotlin performance risks across libraries, app la
 - Watch for duplicate serialization, repeated auth lookups, or repeated config parsing inside hot paths
 - Flag cache stampede or thundering-herd patterns only when they can realistically spike load or latency
 
-## Output Rules
+## Finding Requirements
+
 - Report at most 7 findings.
-- Include expected impact statement (latency/memory/battery/startup/throughput) per finding.
-- Include `file:line` evidence for each finding.
-- Severity: `Blocker | Major | Minor`
-- Confidence: `High | Medium | Low`
+- Include an expected impact statement (latency/memory/battery/startup/throughput) per finding.
 - Include a minimal, concrete fix.
-
-## Output Format
-
-Every finding must use this exact bullet format for downstream tooling:
-
-```text
-- [F-001] <Severity> | <Confidence> | <file:line> | <description>
-```
-
-Do NOT use markdown tables, numbered lists, or any other format for findings.

@@ -26,20 +26,8 @@ Use this specialist for backend/server Kotlin code routed through the built-in K
 - Logging, metrics, and tracing should include enough contextual identifiers to debug failures without leaking secrets or PII
 - Startup and shutdown hooks must initialize and close long-lived resources predictably
 
-## Output Rules
+## Finding Requirements
+
 - Report at most 7 findings.
-- Include production failure scenario for each Major/Blocker.
-- Include `file:line` evidence for each finding.
-- Severity: `Blocker | Major | Minor`
-- Confidence: `High | Medium | Low`
+- Include a production failure scenario for each Major/Blocker.
 - Include a minimal, concrete fix.
-
-## Output Format
-
-Every finding must use this exact bullet format for downstream tooling:
-
-```text
-- [F-001] <Severity> | <Confidence> | <file:line> | <description>
-```
-
-Do NOT use markdown tables, numbered lists, or any other format for findings.

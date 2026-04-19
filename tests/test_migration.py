@@ -309,6 +309,134 @@ class MigrationCoverageTest(unittest.TestCase):
     self.assertIn("## Project Overrides", baseline_shell)
     self.assertIn(".agents/skill-overrides.md", baseline_shell)
 
+  def test_migration_scrubs_ceremony_free_form_h2_blacklist(self) -> None:
+    """Pass 2: free-form ceremony H2s never flow into content.md.
+
+    The pass-1 fix dropped ``## Project Overrides`` because it is a
+    required-section ceremony owned by the scaffolder. Pass 2 extends
+    the scrub to a taxonomy blacklist of free-form shell ceremony
+    (Setup, Additional Resources, Local Review Learnings, Output
+    Format, Output Rules, Review Output, Delegated Mode, Inline Mode,
+    Routing Rules, Shared Stack Detection, Execution Contract,
+    Overview). All of these belong in SKILL.md or the shell runtime,
+    never in the author-owned content.md.
+    """
+    blacklist_body = """\
+## Setup
+
+Generic scope determination bullet list.
+
+## Additional Resources
+
+- [stack-routing.md](stack-routing.md)
+
+## Local Review Learnings
+
+Apply only active learnings.
+
+## Output Format
+
+```text
+- [F-001] <Severity> | <Confidence> | <file:line> | <description>
+```
+
+## Output Rules
+
+Severity: Blocker | Major | Minor. Confidence: High | Medium | Low.
+
+## Review Output
+
+Review session ID: <id>
+
+## Delegated Mode
+
+Stub delegated mode.
+
+## Inline Mode
+
+Stub inline mode.
+
+## Routing Rules
+
+Stub routing rules.
+
+## Shared Stack Detection
+
+Stub shared stack detection.
+
+## Execution Contract
+
+Stub execution contract.
+
+## Overview
+
+Overview duplicates description.
+
+## Author Section
+
+Author-owned prose that must survive.
+"""
+    v1_0_with_blacklist = (
+      "---\n"
+      "name: bill-kotlin-code-review-architecture\n"
+      "description: Fixture legacy area with ceremony leakage.\n"
+      "---\n"
+      "\n"
+      "## Description\n"
+      "Author-edited description.\n"
+      "\n"
+      "## Specialist Scope\n"
+      "Fixture specialist scope.\n"
+      "\n"
+      "## Inputs\n"
+      "Fixture inputs.\n"
+      "\n"
+      "## Outputs Contract\n"
+      "Fixture outputs contract.\n"
+      "\n"
+      "## Execution Mode Reporting\n"
+      "Fixture execution mode reporting.\n"
+      "\n"
+      "## Telemetry Ceremony Hooks\n"
+      "Fixture telemetry hooks.\n"
+      "\n"
+      + blacklist_body
+    )
+    area_dir = (
+      self.repo
+      / "platform-packs"
+      / "kotlin"
+      / "code-review"
+      / "bill-kotlin-code-review-architecture"
+    )
+    (area_dir / "SKILL.md").write_text(v1_0_with_blacklist, encoding="utf-8")
+
+    migrate_to_content_md.migrate(self.repo, force=True, strict=False, yes=True)
+
+    area_content = (area_dir / "content.md").read_text(encoding="utf-8")
+    blacklisted_headings = (
+      "## Setup",
+      "## Additional Resources",
+      "## Local Review Learnings",
+      "## Output Format",
+      "## Output Rules",
+      "## Review Output",
+      "## Delegated Mode",
+      "## Inline Mode",
+      "## Routing Rules",
+      "## Shared Stack Detection",
+      "## Execution Contract",
+      "## Overview",
+    )
+    for heading in blacklisted_headings:
+      self.assertNotIn(
+        heading,
+        area_content,
+        f"blacklisted heading {heading!r} leaked into content.md",
+      )
+    self.assertIn("## Author Section", area_content)
+    self.assertIn("Author-owned prose that must survive", area_content)
+
   def test_migration_skips_required_sections_matching_current_template(self) -> None:
     """Ceremony-leakage fix: required H2 bodies that match the current
     scaffolder default are NOT copied into content.md.

@@ -25,20 +25,8 @@ Use this specialist for shared security risks across Kotlin libraries, app layer
 - Verify authenticity and integrity checks for new external entry points, signed callbacks, or inter-service trust boundaries
 - Verify that sensitive stored data receives the protection level the contract or platform requires
 
-## Output Rules
+## Finding Requirements
+
 - Report at most 7 findings.
-- Include abuse scenario for each Major/Blocker.
-- Include `file:line` evidence for each finding.
-- Severity: `Blocker | Major | Minor`
-- Confidence: `High | Medium | Low`
+- Include an abuse scenario for each Major/Blocker.
 - Include a minimal, concrete fix.
-
-## Output Format
-
-Every finding must use this exact bullet format for downstream tooling:
-
-```text
-- [F-001] <Severity> | <Confidence> | <file:line> | <description>
-```
-
-Do NOT use markdown tables, numbered lists, or any other format for findings.

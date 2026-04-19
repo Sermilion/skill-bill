@@ -2,7 +2,7 @@
 name: bill-kmp-code-review
 description: Use when conducting a thorough Android/KMP PR code review. Preserve mobile review depth by running the appropriate Kotlin baseline review layer first, then add Android/KMP-specific specialists such as UI and UX/accessibility. Produces a structured review with risk register and prioritized action items. Use when user mentions Android review, KMP review, mobile review, or asks to review Android/KMP changes.
 shell_contract_version: 1.1
-template_version: 2026.04.19.3
+template_version: 2026.04.19.5
 ---
 
 ## Project Overrides
@@ -33,6 +33,13 @@ Out of scope: quality-check work (lint, format, tests) and platform behavior gov
 - Platform manifest `platform.yaml` for routing signals and declared specialists.
 
 ## Outputs Contract
+
+Reports a Summary block followed by a Risk Register. The Summary exposes the shell-owned output identifiers so downstream triage and telemetry (owned by the shared router shell) can parse them:
+
+- `Review session ID: <review-session-id>`
+- `Review run ID: <review-run-id>`
+- `Detected review scope: <staged changes / unstaged changes / working tree / commit range / PR diff / files>`
+- `Applied learnings: none | <learning references>`
 
 - Structured review with a risk register (CRITICAL / HIGH / MEDIUM / LOW).
 - Delegated mode: per-specialist findings aggregated under area headings.
