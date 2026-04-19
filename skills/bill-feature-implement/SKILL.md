@@ -9,12 +9,7 @@ End-to-end feature implementation from design doc to verified code (spec → pla
 
 ## Project Overrides
 
-If `.agents/skill-overrides.md` exists in the project root and contains a `## bill-feature-implement` section, read that section and apply it as the highest-priority instruction for this skill. The matching section may refine or replace parts of the default workflow below.
-
-If an `AGENTS.md` file exists in the project root, apply it as project-wide guidance.
-
-Precedence for this skill: matching `.agents/skill-overrides.md` section > `AGENTS.md` > built-in defaults. When you read another skill inline, also apply that skill's matching section from `.agents/skill-overrides.md` when present.
-
+Follow the shell ceremony in [shell-ceremony.md](shell-ceremony.md).
 ## Orchestrator vs subagent split
 
 | Step | Where it runs | Why |

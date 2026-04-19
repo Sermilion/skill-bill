@@ -42,8 +42,16 @@ FEATURE_IMPLEMENT = read("skills/bill-feature-implement/SKILL.md") + "\n" + read
 CODE_REVIEW = read("skills/bill-code-review/SKILL.md")
 QUALITY_CHECK = read("skills/bill-quality-check/SKILL.md")
 PR_DESCRIPTION = read("skills/bill-pr-description/SKILL.md")
-KOTLIN_CODE_REVIEW = read("platform-packs/kotlin/code-review/bill-kotlin-code-review/SKILL.md")
-KMP_CODE_REVIEW = read("platform-packs/kmp/code-review/bill-kmp-code-review/SKILL.md")
+KOTLIN_CODE_REVIEW = (
+  read("platform-packs/kotlin/code-review/bill-kotlin-code-review/SKILL.md")
+  + "\n"
+  + read("platform-packs/kotlin/code-review/bill-kotlin-code-review/content.md")
+)
+KMP_CODE_REVIEW = (
+  read("platform-packs/kmp/code-review/bill-kmp-code-review/SKILL.md")
+  + "\n"
+  + read("platform-packs/kmp/code-review/bill-kmp-code-review/content.md")
+)
 KMP_ANDROID_COMPOSE_EDGE_TO_EDGE = read("platform-packs/kmp/addons/android-compose-edge-to-edge.md")
 KMP_ANDROID_COMPOSE_ADAPTIVE = read("platform-packs/kmp/addons/android-compose-adaptive-layouts.md")
 KMP_ANDROID_COMPOSE_IMPLEMENTATION = read("platform-packs/kmp/addons/android-compose-implementation.md")
@@ -56,7 +64,11 @@ KMP_ANDROID_DESIGN_SYSTEM_IMPLEMENTATION = read("platform-packs/kmp/addons/andro
 KMP_ANDROID_DESIGN_SYSTEM_REVIEW = read("platform-packs/kmp/addons/android-design-system-review.md")
 KMP_ANDROID_R8_IMPLEMENTATION = read("platform-packs/kmp/addons/android-r8-implementation.md")
 KMP_ANDROID_R8_REVIEW = read("platform-packs/kmp/addons/android-r8-review.md")
-KMP_COMPOSE_UI_REVIEW = read("platform-packs/kmp/code-review/bill-kmp-code-review-ui/SKILL.md")
+KMP_COMPOSE_UI_REVIEW = (
+  read("platform-packs/kmp/code-review/bill-kmp-code-review-ui/SKILL.md")
+  + "\n"
+  + read("platform-packs/kmp/code-review/bill-kmp-code-review-ui/content.md")
+)
 STACK_ROUTING_PLAYBOOK = read("orchestration/stack-routing/PLAYBOOK.md")
 REVIEW_ORCHESTRATOR_PLAYBOOK = read("orchestration/review-orchestrator/PLAYBOOK.md")
 REVIEW_DELEGATION_PLAYBOOK = read("orchestration/review-delegation/PLAYBOOK.md")

@@ -7,12 +7,7 @@ description: Use when updating module/package/area agent/history.md files with r
 
 ## Project Overrides
 
-If `.agents/skill-overrides.md` exists in the project root and contains a `## bill-boundary-history` section, read that section and apply it as the highest-priority instruction for this skill. The matching section may refine or replace parts of the default workflow below.
-
-If an `AGENTS.md` file exists in the project root, apply it as project-wide guidance.
-
-Precedence for this skill: matching `.agents/skill-overrides.md` section > `AGENTS.md` > built-in defaults.
-
+Follow the shell ceremony in [shell-ceremony.md](shell-ceremony.md).
 ## Inputs Required
 
 - Feature name

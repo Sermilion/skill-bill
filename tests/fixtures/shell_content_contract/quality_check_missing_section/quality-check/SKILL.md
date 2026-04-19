@@ -1,18 +1,16 @@
 ---
-name: quality_check_missing_section-quality-check
+name: quality-check
 description: Fixture quality-check content missing the Fix Strategy section.
 ---
 
-# Fixture Quality Check
+## Descriptor
 
-## Description
-Fixture description.
+Governed skill: `quality-check`
+Family: `quality-check`
+Platform pack: `quality_check_missing_section` (Quality Check Missing Section Fixture)
+Description: Use when validating Quality Check Missing Section Fixture changes with the shared quality-check contract.
 
-## Execution Steps
-Fixture execution steps.
+## Execution
 
-## Execution Mode Reporting
-Fixture execution mode reporting.
+Follow the instructions in [content.md](content.md).
 
-## Telemetry Ceremony Hooks
-Fixture telemetry hooks.

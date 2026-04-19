@@ -2,7 +2,7 @@
 
 A governed system for portable AI-agent behavior: stable base commands, shared orchestration, validator-backed contracts, cross-agent installers, scaffolding, and local-first telemetry that keep one source of truth from drifting as the repo grows.
 
-Skill Bill is a governance product, not a prompt dump. This repo ships the shared orchestration playbooks under `orchestration/`, validators and CLI/MCP runtime under `skill_bill/` and `scripts/`, cross-agent installers, the `bill-skill-scaffold` authoring path, SQLite-backed telemetry, and stable base shells such as `bill-code-review` and `bill-quality-check`. The shell+content contract is versioned at `orchestration/shell-content-contract/PLAYBOOK.md`.
+Skill Bill is a governance product, not a prompt dump. This repo ships the shared orchestration playbooks under `orchestration/`, validators and CLI/MCP runtime under `skill_bill/` and `scripts/`, cross-agent installers, the `bill-skill-scaffold` authoring path, SQLite-backed telemetry, and stable base shells such as `bill-code-review` and `bill-quality-check`. Governed pack skills now use a thin `SKILL.md` wrapper plus sibling `content.md` and `shell-ceremony.md` sidecars; the shell+content contract is versioned at `orchestration/shell-content-contract/PLAYBOOK.md`.
 
 The in-repo first-party reference packs are intentionally narrow: `kotlin` and `kmp` live under `platform-packs/` as the built-in examples of the governed pack model. If your team needs another stack, author or fork a separate platform pack with the scaffolder instead of treating this repo as the permanent home for every ecosystem.
 

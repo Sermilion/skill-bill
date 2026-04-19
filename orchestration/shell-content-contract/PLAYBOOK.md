@@ -5,11 +5,11 @@ description: Versioned schema contract between the governed code-review shell an
 
 # Shared Shell Content Contract
 
-This is the canonical shell+content contract. The governed code-review shell
-(`skills/bill-code-review/SKILL.md`) owns ceremony, orchestration, output
-structure, telemetry, and contract enforcement. Platform packs under
-`platform-packs/<platform>/` own reviewer reasoning. This file specifies the
-boundary between the two.
+This is the canonical shell+content contract. Governed platform-pack skills now
+use a thin wrapper `SKILL.md` plus sibling sidecars: `content.md` for
+platform-authored execution content and `shell-ceremony.md` for shared
+project-overrides, execution-mode reporting, and telemetry rules. This file
+specifies that boundary.
 
 Skills consume this file through sibling symlinks (e.g. `shell-content-contract.md`
 inside the shell skill directory), so changes here propagate to every linked
@@ -24,8 +24,8 @@ The current shell contract version is **`1.0`**.
 
 - The shell pins its target version. Platform packs must declare the same version.
 - Any platform pack whose `contract_version` does not equal the shell's version
-  must cause the shell loader to fail loudly with a migration message that
-  includes both versions and the offending pack slug.
+  must cause the shell loader to fail loudly with a message that includes both
+  versions and the offending pack slug.
 - Contract versions follow `MAJOR.MINOR`. Major changes are breaking; minor
   changes are additive and do not break existing packs.
 
@@ -59,6 +59,10 @@ Required top-level fields:
     orchestrator-equivalent skill content).
   - `areas` — object mapping each entry of `declared_code_review_areas` to
     its content file path.
+- `area_metadata` — object mapping each entry of `declared_code_review_areas`
+  to descriptor metadata used to auto-render the governed `## Descriptor`
+  section. Required sub-fields:
+  - `focus` — non-empty string describing the area's review focus.
 - `governs_addons` — optional boolean. Packs that own governed add-ons must
   set this to `true`. Defaults to `false` when omitted. (Used by internal
   tooling; does not affect the shell's loud-fail behavior.)
@@ -83,17 +87,21 @@ platform pack root.
 Each declared content file must be a Markdown file with a YAML frontmatter
 block (`---` ... `---`) and must contain all of the following H2 sections:
 
-- `## Description`
-- `## Specialist Scope`
-- `## Inputs`
-- `## Outputs Contract`
-- `## Execution Mode Reporting`
-- `## Telemetry Ceremony Hooks`
+- `## Descriptor`
+- `## Execution`
+- `## Ceremony`
 
 Section order is not enforced, but each section heading must appear exactly as
-written (case-sensitive, H2 only).
+written (case-sensitive, H2 only). The `## Descriptor` section is scaffolded
+from skill context plus `area_metadata` and is loader-validated for exact-body
+drift.
 
-Content files may include additional H2 sections beyond the required set.
+Each governed skill directory must also contain:
+
+- `content.md` — platform-authored execution content referenced by the thin
+  `## Execution` pointer in `SKILL.md`.
+- `shell-ceremony.md` — shared ceremony sidecar, usually a sibling symlink to
+  `orchestration/shell-content-contract/shell-ceremony.md`.
 
 ## Required Content File (quality-check)
 
@@ -101,16 +109,9 @@ When a platform pack declares the optional `declared_quality_check_file`
 top-level key, the referenced Markdown file must contain all of the
 following H2 sections:
 
-- `## Description`
-- `## Execution Steps`
-- `## Fix Strategy`
-- `## Execution Mode Reporting`
-- `## Telemetry Ceremony Hooks`
-
-The quality-check content contract is intentionally narrower than the
-code-review contract: the shared `bill-quality-check` shell is horizontal
-and does not require the `## Specialist Scope`, `## Inputs`, or
-`## Outputs Contract` sections.
+- `## Descriptor`
+- `## Execution`
+- `## Ceremony`
 
 Section order is not enforced, but each section heading must appear
 exactly as written (case-sensitive, H2 only). Content files may include
@@ -135,10 +136,30 @@ is ever permitted.
 - A declared content file is missing one of the required H2 sections →
   `MissingRequiredSectionError`. The message must include the missing
   section heading and the file path.
+- A governed skill is missing its sibling `content.md` →
+  `MissingContentFileError`.
+- A governed skill is missing its sibling `shell-ceremony.md` →
+  `MissingShellCeremonyFileError`.
+- A governed skill's `## Descriptor` body drifts from the scaffolded render
+  derived from skill context plus `area_metadata` →
+  `InvalidDescriptorSectionError`.
 
 Every error message must name the specific artifact at fault (pack slug,
 file path, section heading, or version string) so operators can repair the
 issue without guessing.
+
+### Loud-Fail Order
+
+Loader precedence is authoritative and must stay stable:
+
+1. Manifest presence and YAML validity.
+2. Manifest schema validation.
+3. Contract-version mismatch.
+4. Declared `SKILL.md` file presence.
+5. Required governed H2 section presence.
+6. Sibling `content.md` presence.
+7. Sibling `shell-ceremony.md` presence.
+8. `## Descriptor` body drift.
 
 ### Loud-Fail Rules (quality-check)
 
@@ -150,9 +171,15 @@ optional `declared_quality_check_file` key:
 - The file referenced by `declared_quality_check_file` does not exist →
   `MissingContentFileError`. The message must include the pack slug and the
   resolved file path.
-- The declared quality-check content file is missing one of the required H2
+- The declared quality-check `SKILL.md` is missing one of the required H2
   sections listed above → `MissingRequiredSectionError`. The message must
   include the missing section heading and the file path.
+- The governed quality-check skill is missing sibling `content.md` →
+  `MissingContentFileError`.
+- The governed quality-check skill is missing sibling `shell-ceremony.md` →
+  `MissingShellCeremonyFileError`.
+- The governed quality-check skill's `## Descriptor` body drifts →
+  `InvalidDescriptorSectionError`.
 
 Calling `load_quality_check_content` on a pack whose
 `declared_quality_check_file` is `None` also raises

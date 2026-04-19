@@ -1,18 +1,18 @@
 """Scaffolder-owned section templates (SKILL-15).
 
-These templates render the two scaffolder-owned H2 sections that MUST be
-byte-identical across every specialist in a family:
+These templates render the scaffolder-owned governed sections that MUST stay
+byte-identical across every governed specialist:
 
-- ``## Execution Mode Reporting``
-- ``## Telemetry Ceremony Hooks``
+- ``## Execution``
+- ``## Ceremony``
 
-Every other section is authored by humans and may vary per skill. Keeping the
-scaffolder-owned sections in one place (and emitted from stored templates)
-guarantees that a family's specialists share the exact same ceremony contract.
+Governed skills also auto-render ``## Descriptor`` from scaffold context plus
+manifest-owned area metadata so drift can be detected later by the loader.
+Every other section is authored by humans and may vary per skill.
 
 One default per slot: every required H2 section has exactly one default body
-here. Callers extend the skill by editing the authored sections, not the
-scaffolder-owned ones; regenerating from the same payload yields byte-identical
+here. Callers extend the skill by editing authored sidecars, not the governed
+pointer sections; regenerating from the same payload yields byte-identical
 output.
 """
 
@@ -24,10 +24,7 @@ import re
 
 # Compiled once at import-time because :func:`extract_scaffolder_owned`
 # is invoked from validator paths that may loop over hundreds of skill files.
-_SCAFFOLDER_OWNED_HEADINGS: tuple[str, ...] = (
-  "## Execution Mode Reporting",
-  "## Telemetry Ceremony Hooks",
-)
+_SCAFFOLDER_OWNED_HEADINGS: tuple[str, ...] = ("## Execution", "## Ceremony")
 
 _H2_PATTERN = re.compile(r"^##\s+[^\n]+$", re.MULTILINE)
 
@@ -52,6 +49,13 @@ class ScaffoldTemplateContext:
   display_name: str = ""
 
 
+@dataclass(frozen=True)
+class DescriptorMetadata:
+  """Manifest-owned descriptor hints for governed skills."""
+
+  area_focus: str = ""
+
+
 _AREA_DESCRIPTION_PHRASES: dict[str, str] = {
   "architecture": "architecture, boundaries, and dependency direction",
   "performance": "performance risks on hot paths, blocking I/O, and resource usage",
@@ -66,7 +70,16 @@ _AREA_DESCRIPTION_PHRASES: dict[str, str] = {
 }
 
 
-def infer_skill_description(context: ScaffoldTemplateContext) -> str:
+def default_area_focus(area: str) -> str:
+  """Return the canonical manifest-backed focus text for an approved area."""
+  return _AREA_DESCRIPTION_PHRASES.get(area, f"{area.replace('-', ' ')} risks")
+
+
+def infer_skill_description(
+  context: ScaffoldTemplateContext,
+  *,
+  area_focus: str = "",
+) -> str:
   """Synthesize a one-line description from the context signals.
 
   The scaffolder calls this wherever a description has not been supplied by
@@ -80,7 +93,7 @@ def infer_skill_description(context: ScaffoldTemplateContext) -> str:
 
   if family == "code-review":
     if area:
-      phrase = _AREA_DESCRIPTION_PHRASES.get(area, f"{area.replace('-', ' ')} risks")
+      phrase = area_focus or default_area_focus(area)
       if label:
         return f"Use when reviewing {label} changes for {phrase}."
       return f"Use when reviewing changes for {phrase}."
@@ -117,37 +130,57 @@ def infer_skill_description(context: ScaffoldTemplateContext) -> str:
   return "Use for cross-stack work."
 
 
-def render_project_overrides(context: ScaffoldTemplateContext) -> str:
-  """Render the ``## Project Overrides`` section body.
+def render_descriptor_section(
+  context: ScaffoldTemplateContext,
+  *,
+  metadata: DescriptorMetadata | None = None,
+) -> str:
+  """Render the governed ``## Descriptor`` section.
 
-  Skills that land under ``skills/`` (horizontal and pre-shell platform
-  overrides) are validated by :func:`validate_skill_file` in
-  ``scripts/validate_agent_configs.py``, which requires the literal
-  ``## Project Overrides`` heading and a reference to
-  ``.agents/skill-overrides.md``. The block here mirrors the wording used
-  by existing skills (see e.g. ``skills/bill-skill-scaffold``)
-  and encodes the precedence: a matching ``## <skill-name>`` section in
-  ``.agents/skill-overrides.md`` beats ``AGENTS.md``, which beats the
-  built-in defaults below.
-
-  Platform-pack skills (shelled overrides, code-review-area specialists)
-  are validated by the lighter :func:`validate_platform_pack_skill_file`
-  and intentionally do NOT receive this section, to keep platform-pack
-  skills lean.
+  The descriptor is intentionally deterministic so the loader can recompute it
+  from scaffold context and manifest metadata and loud-fail on drift.
   """
-  skill_name = context.skill_name or "this skill"
+  metadata = metadata or DescriptorMetadata()
+  description = infer_skill_description(context, area_focus=metadata.area_focus)
+  lines = [
+    "## Descriptor",
+    "",
+    f"Governed skill: `{context.skill_name}`",
+    f"Family: `{context.family}`",
+  ]
+  if context.platform:
+    label = context.display_name or context.platform
+    lines.append(f"Platform pack: `{context.platform}` ({label})")
+  if context.area:
+    lines.append(f"Area: `{context.area}`")
+  lines.append(f"Description: {description}")
+  return "\n".join(lines) + "\n"
+
+
+CANONICAL_EXECUTION_SECTION = (
+  "## Execution\n"
+  "\n"
+  "Follow the instructions in [content.md](content.md).\n"
+)
+
+
+CANONICAL_CEREMONY_SECTION = (
+  "## Ceremony\n"
+  "\n"
+  "Follow the shell ceremony in [shell-ceremony.md](shell-ceremony.md).\n"
+)
+
+
+def render_project_overrides(context: ScaffoldTemplateContext) -> str:
+  """Render the thin ``## Project Overrides`` pointer for root-level skills."""
+  del context
   return (
     "## Project Overrides\n"
     "\n"
-    f"If `.agents/skill-overrides.md` exists in the project root and contains a "
-    f"`## {skill_name}` section, read that section and apply it as the highest-priority "
-    "instruction for this skill. The matching section may refine or replace parts of the "
-    "default workflow below.\n"
+    "Follow the shell ceremony in [shell-ceremony.md](shell-ceremony.md).\n"
     "\n"
-    "If an `AGENTS.md` file exists in the project root, apply it as project-wide guidance.\n"
-    "\n"
-    f"Precedence for this skill: matching `.agents/skill-overrides.md` section > "
-    "`AGENTS.md` > built-in defaults.\n"
+    "If `.agents/skill-overrides.md` exists in the project root and contains a matching section, "
+    "read that section and apply it as the highest-priority instruction for this skill.\n"
   )
 
 
@@ -449,6 +482,8 @@ _DEFAULT_SECTION_RENDERERS: dict[str, object] = {
   "## Outputs Contract": render_outputs_contract_section,
   "## Execution Mode Reporting": render_execution_mode_reporting,
   "## Telemetry Ceremony Hooks": render_telemetry_ceremony_hooks,
+  "## Execution": lambda _context: CANONICAL_EXECUTION_SECTION,
+  "## Ceremony": lambda _context: CANONICAL_CEREMONY_SECTION,
 }
 
 
@@ -500,9 +535,14 @@ def extract_scaffolder_owned(markdown_text: str) -> dict[str, str]:
 
 __all__ = [
   "ScaffoldTemplateContext",
+  "CANONICAL_CEREMONY_SECTION",
+  "CANONICAL_EXECUTION_SECTION",
+  "DescriptorMetadata",
+  "default_area_focus",
   "extract_scaffolder_owned",
   "infer_skill_description",
   "render_default_section",
+  "render_descriptor_section",
   "render_delegated_mode_section",
   "render_description_section",
   "render_execution_mode_reporting",

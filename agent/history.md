@@ -1,3 +1,12 @@
+## [2026-04-19] collapse-skill-md-to-shared-ceremony
+Areas: orchestration/shell-content-contract/, skill_bill/, scripts/, skills/, platform-packs/, docs/, tests/
+- Collapsed the governed shell contract to `Descriptor` / `Execution` / `Ceremony`, with `SKILL.md` reduced to a thin wrapper and authored execution moved into sibling `content.md`. reusable
+- Added shared `shell-ceremony.md`, descriptor drift validation, manifest `area_metadata`, and loud-fail checks for missing ceremony/content sidecars so governed skills now share one ceremony source of truth. reusable
+- Updated the scaffolder, manifest editor, sidecar registry, repo docs, and in-repo pack fixtures to generate and validate the new shape, including platform-specific pre-shell feature stubs receiving the same shell-ceremony and telemetry sidecars as the root feature skills. reusable
+- Controlled behavior stayed stable: README/catalog validation, `agnix --strict`, `validate_agent_configs.py`, and the full unit suite all pass after the reshape.
+Feature flag: N/A
+Acceptance criteria: 20/20 implemented
+
 ## [2026-04-18] flatten-canonical-skills-out-of-skills-base
 Areas: skills/, scripts/, skill_bill/, README.md, AGENTS.md, docs/, tests/
 - Moved canonical user-facing skills out of `skills/base/` and into `skills/<bill-skill>/`, leaving `skills/<platform>/...` only for legacy pre-shell platform overrides. reusable

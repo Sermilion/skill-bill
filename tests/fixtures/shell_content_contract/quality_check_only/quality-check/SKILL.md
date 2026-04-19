@@ -1,21 +1,19 @@
 ---
-name: quality_check_only-quality-check
+name: quality-check
 description: Fixture quality-check content with all five required sections.
 ---
 
-# Fixture Quality Check
+## Descriptor
 
-## Description
-Fixture description.
+Governed skill: `quality-check`
+Family: `quality-check`
+Platform pack: `quality_check_only` (Quality Check Only Fixture)
+Description: Use when validating Quality Check Only Fixture changes with the shared quality-check contract.
 
-## Execution Steps
-Fixture execution steps.
+## Execution
 
-## Fix Strategy
-Fixture fix strategy.
+Follow the instructions in [content.md](content.md).
 
-## Execution Mode Reporting
-Fixture execution mode reporting.
+## Ceremony
 
-## Telemetry Ceremony Hooks
-Fixture telemetry hooks.
+Follow the shell ceremony in [shell-ceremony.md](shell-ceremony.md).

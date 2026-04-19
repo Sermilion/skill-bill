@@ -422,6 +422,13 @@ def validate_no_inline_telemetry_contract_drift(root: Path, issues: list[str]) -
 
 def validate_skill_file(skill_name: str, skill_file: Path, issues: list[str]) -> None:
   text = skill_file.read_text(encoding="utf-8")
+  shell_ceremony_file = skill_file.parent / "shell-ceremony.md"
+  shell_ceremony_text = (
+    shell_ceremony_file.read_text(encoding="utf-8")
+    if shell_ceremony_file.is_file()
+    else ""
+  )
+  combined_text = text if not shell_ceremony_text else f"{text}\n{shell_ceremony_text}"
   frontmatter_match = FRONTMATTER_PATTERN.match(text)
   if not frontmatter_match:
     issues.append(f"{skill_file}: missing YAML frontmatter block")
@@ -444,8 +451,10 @@ def validate_skill_file(skill_name: str, skill_file: Path, issues: list[str]) ->
   if PROJECT_OVERRIDES_HEADING not in text:
     issues.append(f"{skill_file}: missing '{PROJECT_OVERRIDES_HEADING}' section")
 
-  if SKILL_OVERRIDE_FILE not in text:
-    issues.append(f"{skill_file}: missing reference to '{SKILL_OVERRIDE_FILE}'")
+  if SKILL_OVERRIDE_FILE not in combined_text:
+    issues.append(
+      f"{skill_file}: missing reference to '{SKILL_OVERRIDE_FILE}' in the skill or its shell ceremony sidecar"
+    )
 
   validate_runtime_supporting_files(skill_name, text, skill_file, issues)
   validate_portable_review_wording(skill_name, text, skill_file, issues)
@@ -461,8 +470,14 @@ def validate_runtime_supporting_files(
   if not required_files:
     return
 
+  content_text = ""
+  content_file = skill_file.parent / "content.md"
+  if content_file.is_file():
+    content_text = content_file.read_text(encoding="utf-8")
+  combined_text = text if not content_text else f"{text}\n{content_text}"
+
   for pattern, message in EXTERNAL_PLAYBOOK_REFERENCE_PATTERNS:
-    match = pattern.search(text)
+    match = pattern.search(combined_text)
     if match:
       issues.append(f"{skill_file}: {message}; found '{match.group(0)}'")
 
@@ -472,11 +487,11 @@ def validate_runtime_supporting_files(
       skill_name == "bill-feature-implement"
       and file_name in ADDON_SUPPORTING_FILE_TARGETS
     ):
-      if file_name not in text and "matching pack-owned add-on supporting files" not in text:
+      if file_name not in combined_text and "matching pack-owned add-on supporting files" not in combined_text:
         issues.append(
           f"{skill_file}: must reference local supporting file '{file_name}' or describe pack-owned add-on support-file selection"
         )
-    elif file_name not in text:
+    elif file_name not in combined_text:
       issues.append(f"{skill_file}: must reference local supporting file '{file_name}'")
     if not supporting_file.exists():
       issues.append(f"{skill_file}: supporting file '{file_name}' is missing")
@@ -490,31 +505,37 @@ def validate_portable_review_wording(
   skill_file: Path,
   issues: list[str],
 ) -> None:
-  if skill_name == "bill-code-review" and REVIEW_SESSION_ID_PLACEHOLDER not in text:
+  content_text = ""
+  content_file = skill_file.parent / "content.md"
+  if content_file.is_file():
+    content_text = content_file.read_text(encoding="utf-8")
+  combined_text = text if not content_text else f"{text}\n{content_text}"
+
+  if skill_name == "bill-code-review" and REVIEW_SESSION_ID_PLACEHOLDER not in combined_text:
     issues.append(f"{skill_file}: shared code-review router must expose '{REVIEW_SESSION_ID_PLACEHOLDER}'")
-  if skill_name == "bill-code-review" and REVIEW_SESSION_ID_FORMAT not in text:
+  if skill_name == "bill-code-review" and REVIEW_SESSION_ID_FORMAT not in combined_text:
     issues.append(
       f"{skill_file}: shared code-review router must define the review session id format '{REVIEW_SESSION_ID_FORMAT}'"
     )
-  if skill_name == "bill-code-review" and REVIEW_RUN_ID_PLACEHOLDER not in text:
+  if skill_name == "bill-code-review" and REVIEW_RUN_ID_PLACEHOLDER not in combined_text:
     issues.append(f"{skill_file}: shared code-review router must expose '{REVIEW_RUN_ID_PLACEHOLDER}'")
-  if skill_name == "bill-code-review" and REVIEW_RUN_ID_FORMAT not in text:
+  if skill_name == "bill-code-review" and REVIEW_RUN_ID_FORMAT not in combined_text:
     issues.append(f"{skill_file}: shared code-review router must define the review run id format '{REVIEW_RUN_ID_FORMAT}'")
-  if skill_name == "bill-code-review" and APPLIED_LEARNINGS_PLACEHOLDER not in text:
+  if skill_name == "bill-code-review" and APPLIED_LEARNINGS_PLACEHOLDER not in combined_text:
     issues.append(f"{skill_file}: shared code-review router must expose '{APPLIED_LEARNINGS_PLACEHOLDER}'")
 
   if skill_name not in PORTABLE_REVIEW_SKILLS:
     return
 
-  if REVIEW_SESSION_ID_PLACEHOLDER not in text:
+  if REVIEW_SESSION_ID_PLACEHOLDER not in combined_text:
     issues.append(f"{skill_file}: portable review skills must expose '{REVIEW_SESSION_ID_PLACEHOLDER}'")
-  if REVIEW_RUN_ID_PLACEHOLDER not in text:
+  if REVIEW_RUN_ID_PLACEHOLDER not in combined_text:
     issues.append(f"{skill_file}: portable review skills must expose '{REVIEW_RUN_ID_PLACEHOLDER}'")
-  if APPLIED_LEARNINGS_PLACEHOLDER not in text:
+  if APPLIED_LEARNINGS_PLACEHOLDER not in combined_text:
     issues.append(f"{skill_file}: portable review skills must expose '{APPLIED_LEARNINGS_PLACEHOLDER}'")
 
   for pattern, message in NON_PORTABLE_REVIEW_PATTERNS:
-    match = pattern.search(text)
+    match = pattern.search(combined_text)
     if match:
       issues.append(f"{skill_file}: {message}; found '{match.group(0)}'")
 

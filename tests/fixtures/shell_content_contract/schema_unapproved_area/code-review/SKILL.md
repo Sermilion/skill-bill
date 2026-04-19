@@ -1,24 +1,19 @@
 ---
-name: schema_unapproved_area-code-review
+name: code-review
 description: Fixture baseline used to reject unapproved entries in declared_code_review_areas.
 ---
 
-# Schema Unapproved Area
+## Descriptor
 
-## Description
-Fixture description.
+Governed skill: `code-review`
+Family: `code-review`
+Platform pack: `schema_unapproved_area` (Schema Unapproved Area Fixture Pack)
+Description: Use when reviewing Schema Unapproved Area Fixture Pack changes across code-review specialists.
 
-## Specialist Scope
-Fixture specialist scope.
+## Execution
 
-## Inputs
-Fixture inputs.
+Follow the instructions in [content.md](content.md).
 
-## Outputs Contract
-Fixture outputs contract.
+## Ceremony
 
-## Execution Mode Reporting
-Fixture execution mode reporting.
-
-## Telemetry Ceremony Hooks
-Fixture telemetry hooks.
+Follow the shell ceremony in [shell-ceremony.md](shell-ceremony.md).

@@ -45,7 +45,12 @@ from skill_bill.scaffold_exceptions import (  # noqa: E402
   ScaffoldValidatorError,
   SkillAlreadyExistsError,
 )
-from skill_bill.scaffold_template import extract_scaffolder_owned  # noqa: E402
+from skill_bill.scaffold_template import (  # noqa: E402
+  DescriptorMetadata,
+  ScaffoldTemplateContext,
+  extract_scaffolder_owned,
+  render_descriptor_section,
+)
 
 
 FIXTURES_ROOT = ROOT / "tests" / "fixtures" / "scaffold"
@@ -86,6 +91,10 @@ declared_files:
   baseline: code-review/bill-kotlin-code-review/SKILL.md
   areas:
     architecture: code-review/bill-kotlin-code-review-architecture/SKILL.md
+
+area_metadata:
+  architecture:
+    focus: "architecture, boundaries, and dependency direction"
 """
 
 _KMP_MANIFEST = """\
@@ -109,24 +118,58 @@ declared_files:
   baseline: code-review/bill-kmp-code-review/SKILL.md
   areas:
     ui: code-review/bill-kmp-code-review-ui/SKILL.md
+
+area_metadata:
+  ui:
+    focus: "UI correctness and framework usage"
 """
 
 
-def _seed_skill_file(path: Path) -> None:
-  """Write a minimal six-section SKILL.md at ``path``."""
-  path.parent.mkdir(parents=True, exist_ok=True)
-  path.write_text(
+def _seed_governed_skill(
+  repo: Path,
+  skill_dir: Path,
+  *,
+  platform: str,
+  display_name: str,
+  family: str,
+  area: str = "",
+  area_focus: str = "",
+) -> None:
+  """Write a minimal governed skill directory in the new thin-shell shape."""
+  skill_dir.mkdir(parents=True, exist_ok=True)
+  skill_name = skill_dir.name
+  descriptor = render_descriptor_section(
+    ScaffoldTemplateContext(
+      skill_name=skill_name,
+      family=family,
+      platform=platform,
+      area=area,
+      display_name=display_name,
+    ),
+    metadata=DescriptorMetadata(area_focus=area_focus),
+  )
+  (skill_dir / "SKILL.md").write_text(
     "---\n"
-    f"name: {path.parent.name}\n"
+    f"name: {skill_name}\n"
     "description: Fixture content.\n"
     "---\n\n"
+    f"{descriptor}\n"
+    "## Execution\n\n"
+    "Follow the instructions in [content.md](content.md).\n\n"
+    "## Ceremony\n\n"
+    "Follow the shell ceremony in [shell-ceremony.md](shell-ceremony.md).\n",
+    encoding="utf-8",
+  )
+  (skill_dir / "content.md").write_text(
+    "# Fixture Content\n\n"
     "## Description\n.\n\n"
     "## Specialist Scope\n.\n\n"
     "## Inputs\n.\n\n"
-    "## Outputs Contract\n.\n\n"
-    "## Execution Mode Reporting\n.\n\n"
-    "## Telemetry Ceremony Hooks\n.\n",
+    "## Outputs Contract\n.\n",
     encoding="utf-8",
+  )
+  (skill_dir / "shell-ceremony.md").symlink_to(
+    repo / "orchestration" / "shell-content-contract" / "shell-ceremony.md"
   )
 
 
@@ -138,6 +181,27 @@ def _build_seed_repo(tmp_path: Path) -> Path:
   """
   repo = tmp_path / "repo"
   (repo / "skills").mkdir(parents=True)
+  shell_ceremony = repo / "orchestration" / "shell-content-contract" / "shell-ceremony.md"
+  shell_ceremony.parent.mkdir(parents=True, exist_ok=True)
+  shell_ceremony.write_text(
+    "## Project Overrides\n\n"
+    "If `.agents/skill-overrides.md` exists in the project root and contains a matching section, "
+    "read that section and apply it as the highest-priority instruction for this skill.\n\n"
+    "## Inputs\n\n"
+    "Fixture shell ceremony inputs.\n\n"
+    "## Execution Mode Reporting\n\n"
+    "Execution mode: inline | delegated\n\n"
+    "## Telemetry Ceremony Hooks\n\n"
+    "Follow `telemetry-contract.md` when it is present.\n",
+    encoding="utf-8",
+  )
+  telemetry_contract = repo / "orchestration" / "telemetry-contract" / "PLAYBOOK.md"
+  telemetry_contract.parent.mkdir(parents=True, exist_ok=True)
+  telemetry_contract.write_text(
+    "# Telemetry Contract\n\n"
+    "Fixture telemetry contract.\n",
+    encoding="utf-8",
+  )
   # Seed a minimal base capability directory so the repo-level validator
   # (``validate_platform_skill_name``) can resolve pre-shell platform
   # overrides like ``bill-php-feature-verify`` without tripping on missing
@@ -147,16 +211,40 @@ def _build_seed_repo(tmp_path: Path) -> Path:
   kotlin_pack_root = repo / "platform-packs" / "kotlin"
   kotlin_pack_root.mkdir(parents=True)
   (kotlin_pack_root / "platform.yaml").write_text(_KOTLIN_MANIFEST, encoding="utf-8")
-  _seed_skill_file(kotlin_pack_root / "code-review" / "bill-kotlin-code-review" / "SKILL.md")
-  _seed_skill_file(
-    kotlin_pack_root / "code-review" / "bill-kotlin-code-review-architecture" / "SKILL.md"
+  _seed_governed_skill(
+    repo,
+    kotlin_pack_root / "code-review" / "bill-kotlin-code-review",
+    platform="kotlin",
+    display_name="Kotlin",
+    family="code-review",
+  )
+  _seed_governed_skill(
+    repo,
+    kotlin_pack_root / "code-review" / "bill-kotlin-code-review-architecture",
+    platform="kotlin",
+    display_name="Kotlin",
+    family="code-review",
+    area="architecture",
+    area_focus="architecture, boundaries, and dependency direction",
   )
   kmp_pack_root = repo / "platform-packs" / "kmp"
   kmp_pack_root.mkdir(parents=True)
   (kmp_pack_root / "platform.yaml").write_text(_KMP_MANIFEST, encoding="utf-8")
-  _seed_skill_file(kmp_pack_root / "code-review" / "bill-kmp-code-review" / "SKILL.md")
-  _seed_skill_file(
-    kmp_pack_root / "code-review" / "bill-kmp-code-review-ui" / "SKILL.md"
+  _seed_governed_skill(
+    repo,
+    kmp_pack_root / "code-review" / "bill-kmp-code-review",
+    platform="kmp",
+    display_name="KMP",
+    family="code-review",
+  )
+  _seed_governed_skill(
+    repo,
+    kmp_pack_root / "code-review" / "bill-kmp-code-review-ui",
+    platform="kmp",
+    display_name="KMP",
+    family="code-review",
+    area="ui",
+    area_focus="UI correctness and framework usage",
   )
   # No scripts/validate_agent_configs.py in the scratch repo; the scaffolder
   # skips the validator in that case. Tests that want to exercise validator
@@ -250,6 +338,9 @@ class ScaffoldHappyPathsTest(unittest.TestCase):
     # validate_platform_pack_skill_file and intentionally do NOT get the
     # Project Overrides boilerplate — keep them lean.
     body = skill_md.read_text(encoding="utf-8")
+    self.assertIn("## Descriptor", body)
+    self.assertIn("## Execution", body)
+    self.assertIn("## Ceremony", body)
     self.assertNotIn("## Project Overrides", body)
 
   def test_platform_pack(self) -> None:
@@ -291,23 +382,35 @@ class ScaffoldHappyPathsTest(unittest.TestCase):
     self.assertTrue(quality_skill.is_file())
     self.assertTrue(feature_implement_skill.is_file())
     self.assertTrue(feature_verify_skill.is_file())
+    self.assertTrue((feature_implement_skill.parent / "shell-ceremony.md").exists())
+    self.assertTrue((feature_implement_skill.parent / "telemetry-contract.md").exists())
+    self.assertTrue((feature_verify_skill.parent / "shell-ceremony.md").exists())
+    self.assertTrue((feature_verify_skill.parent / "telemetry-contract.md").exists())
 
     review_body = review_skill.read_text(encoding="utf-8")
+    review_content = (review_skill.parent / "content.md").read_text(encoding="utf-8")
     quality_body = quality_skill.read_text(encoding="utf-8")
+    quality_content = (quality_skill.parent / "content.md").read_text(encoding="utf-8")
     feature_implement_body = feature_implement_skill.read_text(encoding="utf-8")
     feature_verify_body = feature_verify_skill.read_text(encoding="utf-8")
-    self.assertIn("## Additional Resources", review_body)
-    self.assertIn("[stack-routing.md](stack-routing.md)", review_body)
-    self.assertIn("[review-orchestrator.md](review-orchestrator.md)", review_body)
-    self.assertIn("[review-delegation.md](review-delegation.md)", review_body)
-    self.assertIn("[telemetry-contract.md](telemetry-contract.md)", review_body)
+    self.assertIn("## Descriptor", review_body)
+    self.assertIn("## Execution", review_body)
+    self.assertIn("## Ceremony", review_body)
+    self.assertIn("## Additional Resources", review_content)
+    self.assertIn("[stack-routing.md](stack-routing.md)", review_content)
+    self.assertIn("[review-orchestrator.md](review-orchestrator.md)", review_content)
+    self.assertIn("[review-delegation.md](review-delegation.md)", review_content)
+    self.assertIn("[telemetry-contract.md](telemetry-contract.md)", review_content)
     self.assertNotIn("## Project Overrides", review_body)
 
-    self.assertIn("## Additional Resources", quality_body)
-    self.assertIn("[stack-routing.md](stack-routing.md)", quality_body)
-    self.assertIn("[telemetry-contract.md](telemetry-contract.md)", quality_body)
-    self.assertNotIn("## Specialist Scope", quality_body)
-    self.assertNotIn("## Outputs Contract", quality_body)
+    self.assertIn("## Descriptor", quality_body)
+    self.assertIn("## Execution", quality_body)
+    self.assertIn("## Ceremony", quality_body)
+    self.assertIn("## Description", quality_content)
+    self.assertIn("## Execution Steps", quality_content)
+    self.assertIn("## Fix Strategy", quality_content)
+    self.assertNotIn("## Specialist Scope", quality_content)
+    self.assertNotIn("## Outputs Contract", quality_content)
     self.assertIn("## Project Overrides", feature_implement_body)
     self.assertIn("## Project Overrides", feature_verify_body)
     self.assertTrue(
@@ -317,19 +420,10 @@ class ScaffoldHappyPathsTest(unittest.TestCase):
       any("Thin feature-implement and feature-verify stubs" in note for note in result.notes)
     )
 
-    self.assertEqual(
-      sorted(path.name for path in result.symlinks),
-      sorted(
-        [
-          "review-delegation.md",
-          "review-orchestrator.md",
-          "stack-routing.md",
-          "telemetry-contract.md",
-          "stack-routing.md",
-          "telemetry-contract.md",
-        ]
-      ),
-    )
+    symlink_names = sorted(path.name for path in result.symlinks)
+    self.assertIn("shell-ceremony.md", symlink_names)
+    self.assertIn("stack-routing.md", symlink_names)
+    self.assertIn("telemetry-contract.md", symlink_names)
     self.assertTrue(any("Quality-check scaffolded by default." in note for note in result.notes))
 
   def test_platform_pack_full_skeleton(self) -> None:
@@ -358,13 +452,15 @@ class ScaffoldHappyPathsTest(unittest.TestCase):
       )
       self.assertTrue(skill_md.is_file())
       body = skill_md.read_text(encoding="utf-8")
-      self.assertIn("## Description", body)
+      self.assertIn("## Descriptor", body)
+      self.assertIn("## Execution", body)
+      self.assertIn("## Ceremony", body)
       self.assertNotIn("## Additional Resources", body)
 
     self.assertTrue(
       any("Full skeleton scaffolded with" in note for note in result.notes)
     )
-    expected_created_files = 5 + len(scaffold_module.APPROVED_CODE_REVIEW_AREAS)
+    expected_created_files = 7 + (2 * len(scaffold_module.APPROVED_CODE_REVIEW_AREAS))
     self.assertEqual(len(result.created_files), expected_created_files)
 
   def test_add_on_flat(self) -> None:
@@ -394,7 +490,7 @@ class ScaffoldHappyPathsTest(unittest.TestCase):
       / "kotlin"
       / "code-review"
       / "bill-kotlin-code-review-performance"
-      / "SKILL.md"
+      / "content.md"
     ).read_text(encoding="utf-8")
     self.assertIn("## Description", area_body)
     self.assertNotIn("TODO: author the description", area_body)
@@ -441,23 +537,18 @@ class ScaffoldHappyPathsTest(unittest.TestCase):
       / "java"
       / "code-review"
       / "bill-java-code-review"
-      / "SKILL.md"
+      / "content.md"
     ).read_text(encoding="utf-8")
     self.assertIn("## Delegated Mode", baseline_body)
     self.assertIn("## Inline Mode", baseline_body)
     self.assertIn("declared_code_review_areas", baseline_body)
-    # Specialist Scope must now mention both modes.
     self.assertIn("Delegated", baseline_body)
     self.assertIn("Inline", baseline_body)
-    # Dual-mode sections must sit between Outputs Contract and Execution
-    # Mode Reporting so the runtime-mode narrative flows naturally.
     outputs_index = baseline_body.index("## Outputs Contract")
     delegated_index = baseline_body.index("## Delegated Mode")
     inline_index = baseline_body.index("## Inline Mode")
-    exec_mode_index = baseline_body.index("## Execution Mode Reporting")
     self.assertLess(outputs_index, delegated_index)
     self.assertLess(delegated_index, inline_index)
-    self.assertLess(inline_index, exec_mode_index)
 
     quality_body = (
       self.repo
@@ -465,7 +556,7 @@ class ScaffoldHappyPathsTest(unittest.TestCase):
       / "java"
       / "quality-check"
       / "bill-java-quality-check"
-      / "SKILL.md"
+      / "content.md"
     ).read_text(encoding="utf-8")
     self.assertNotIn("## Delegated Mode", quality_body)
     self.assertNotIn("## Inline Mode", quality_body)
@@ -484,7 +575,7 @@ class ScaffoldHappyPathsTest(unittest.TestCase):
       / "java"
       / "code-review"
       / "bill-java-code-review-performance"
-      / "SKILL.md"
+      / "content.md"
     ).read_text(encoding="utf-8")
     self.assertNotIn("## Delegated Mode", area_body)
     self.assertNotIn("## Inline Mode", area_body)
@@ -510,7 +601,7 @@ class ScaffoldHappyPathsTest(unittest.TestCase):
       / "kotlin"
       / "code-review"
       / "bill-kotlin-code-review-security"
-      / "SKILL.md"
+      / "content.md"
     ).read_text(encoding="utf-8")
     self.assertNotIn("TODO: author the specialist scope", area_body)
     self.assertNotIn("TODO: author the inputs", area_body)
@@ -551,7 +642,7 @@ class ScaffoldHappyPathsTest(unittest.TestCase):
       / "kmp"
       / "quality-check"
       / "bill-kmp-quality-check"
-      / "SKILL.md"
+      / "content.md"
     ).read_text(encoding="utf-8")
     self.assertIn("TODO: author the execution steps", quality_body)
     self.assertIn("TODO: author the fix strategy", quality_body)
@@ -579,6 +670,8 @@ class ScaffoldHappyPathsTest(unittest.TestCase):
     body = skill_md.read_text(encoding="utf-8")
     self.assertIn("## Project Overrides", body)
     self.assertIn(".agents/skill-overrides.md", body)
+    self.assertTrue((skill_md.parent / "shell-ceremony.md").exists())
+    self.assertTrue((skill_md.parent / "telemetry-contract.md").exists())
 
   def test_shelled_quality_check_family(self) -> None:
     """SKILL-16: quality-check is shelled — scaffolder lands SKILL.md in the pack
@@ -611,18 +704,15 @@ class ScaffoldHappyPathsTest(unittest.TestCase):
     )
 
     body = skill_md.read_text(encoding="utf-8")
-    # Shelled quality-check content contract requires these five H2s; the
-    # three code-review-specific ones (Specialist Scope, Inputs, Outputs
-    # Contract) MUST NOT be required here.
-    self.assertIn("## Description", body)
-    self.assertIn("## Execution Steps", body)
-    self.assertIn("## Fix Strategy", body)
-    self.assertIn("## Execution Mode Reporting", body)
-    self.assertIn("## Telemetry Ceremony Hooks", body)
-    self.assertNotIn("## Specialist Scope", body)
-    self.assertNotIn("## Outputs Contract", body)
-    # Platform-pack skills go through the lighter validator and do not get
-    # Project Overrides boilerplate — keep them lean.
+    content = (skill_md.parent / "content.md").read_text(encoding="utf-8")
+    self.assertIn("## Descriptor", body)
+    self.assertIn("## Execution", body)
+    self.assertIn("## Ceremony", body)
+    self.assertIn("## Description", content)
+    self.assertIn("## Execution Steps", content)
+    self.assertIn("## Fix Strategy", content)
+    self.assertNotIn("## Specialist Scope", content)
+    self.assertNotIn("## Outputs Contract", content)
     self.assertNotIn("## Project Overrides", body)
 
   def test_shelled_quality_check_rollback_on_manifest_write_failure(self) -> None:
@@ -680,6 +770,8 @@ class ScaffoldHappyPathsTest(unittest.TestCase):
     skill_md = (
       self.repo / "skills" / "php" / "bill-php-feature-verify" / "SKILL.md"
     )
+    self.assertTrue((skill_md.parent / "shell-ceremony.md").exists())
+    self.assertTrue((skill_md.parent / "telemetry-contract.md").exists())
 
     validate_skill_file = _load_validate_skill_file()
     issues: list[str] = []
@@ -950,7 +1042,7 @@ class ScaffolderOwnedSectionsIdenticalTest(unittest.TestCase):
     body_b = (specialist_b.skill_path / "SKILL.md").read_text(encoding="utf-8")
     owned_a = extract_scaffolder_owned(body_a)
     owned_b = extract_scaffolder_owned(body_b)
-    self.assertEqual(set(owned_a), {"## Execution Mode Reporting", "## Telemetry Ceremony Hooks"})
+    self.assertEqual(set(owned_a), {"## Execution", "## Ceremony"})
     self.assertEqual(owned_a, owned_b)
 
 

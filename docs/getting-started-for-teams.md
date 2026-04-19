@@ -90,7 +90,7 @@ Strict structure, enforced by the validator:
 
 1. Copy `platform-packs/<platform>/` (e.g. `platform-packs/kotlin/`) into your team's own checkout.
 2. Edit the `platform.yaml` manifest to declare the `routing_signals`, `declared_code_review_areas`, and `declared_files` you want to ship. Keep `contract_version: "1.0"` in lockstep with the shell.
-3. Edit or add per-area content files. Each declared file must contain the six required H2 sections: Description, Specialist Scope, Inputs, Outputs Contract, Execution Mode Reporting, Telemetry Ceremony Hooks. The shell refuses to run with a named error if any required piece is missing — no silent fallback.
+3. Edit or add per-area governed skill directories. Each declared `SKILL.md` must stay a thin wrapper with the three required H2 sections `Descriptor`, `Execution`, and `Ceremony`, and each governed directory must also contain sibling `content.md` and `shell-ceremony.md`. The shell refuses to run with a named error if any required piece is missing — no silent fallback.
 4. Point your local install at the forked pack and re-run `./install.sh`.
 
 The contract is documented in `orchestration/shell-content-contract/PLAYBOOK.md`.
@@ -115,7 +115,7 @@ skill-bill new-skill --payload /tmp/payload.json
 
 The scaffolder:
 
-- creates `platform-packs/java/platform.yaml` plus baseline `code-review` and `quality-check` content files, and thin `skills/java/bill-java-feature-implement/` / `skills/java/bill-java-feature-verify/` stubs.
+- creates `platform-packs/java/platform.yaml` plus governed baseline `code-review` and `quality-check` skill directories (`SKILL.md` + `content.md` + `shell-ceremony.md`), and thin `skills/java/bill-java-feature-implement/` / `skills/java/bill-java-feature-verify/` stubs.
 - applies the built-in Java routing preset automatically, including the governed manifest fields and required H2 sections.
 - wires the sibling supporting files needed by the generated skills.
 - installs the new skills into every detected agent.
@@ -157,13 +157,13 @@ skill-bill new-skill --payload /tmp/payload.json
 
 The scaffolder:
 
-- creates `platform-packs/kotlin/code-review/bill-kotlin-code-review-api-contracts/SKILL.md` with the six required H2 sections (two scaffolder-owned ceremony sections are identical across every specialist in the family; the other four are stubbed for authoring).
+- creates `platform-packs/kotlin/code-review/bill-kotlin-code-review-api-contracts/SKILL.md` as a governed three-section wrapper plus sibling `content.md` and `shell-ceremony.md`. The authored execution body is stubbed in `content.md`; the ceremony sidecar is shared.
 - appends `api-contracts` to `declared_code_review_areas` and to `declared_files.areas` in `platform-packs/kotlin/platform.yaml`, preserving key order and best-effort comments.
 - wires sibling supporting-file symlinks for the skill (stack-routing, review-orchestrator, review-delegation, telemetry-contract) from `scripts/skill_repo_contracts.py::RUNTIME_SUPPORTING_FILES`.
 - runs `scripts/validate_agent_configs.py`. If validation fails, every change is rolled back and the validator error is surfaced verbatim.
 - installs the new skill into every detected agent. If none is detected, the scaffolder notes that you should run `./install.sh` to bootstrap agent paths.
 
-Edit the four authored sections (`## Description`, `## Specialist Scope`, `## Inputs`, `## Outputs Contract`) afterwards. Do not edit the scaffolder-owned sections — the contract treats them as identical across the family.
+Edit the authored execution sections in `content.md` afterwards. Keep the generated `SKILL.md` wrapper and `shell-ceremony.md` sidecar intact unless you are intentionally changing the shared contract.
 
 The full payload schema, including the new `platform-pack` kind, lives in `orchestration/shell-content-contract/SCAFFOLD_PAYLOAD.md`.
 

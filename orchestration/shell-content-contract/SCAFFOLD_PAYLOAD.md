@@ -39,8 +39,8 @@ Every payload MUST include:
     rendered `platform.yaml`.
   - `"code-review-area"` — placed under
     `platform-packs/<slug>/code-review/<name>/SKILL.md` plus additions to
-    `declared_code_review_areas` and `declared_files.areas` in the owning
-    `platform.yaml`.
+    `declared_code_review_areas`, `declared_files.areas`, and
+    `area_metadata` in the owning `platform.yaml`.
   - `"add-on"` — placed at `platform-packs/<platform>/addons/<name>.md` (flat; no
     sub-directory).
 - `name` — the canonical `bill-...` slug for the new skill. For
@@ -80,7 +80,9 @@ Every payload MUST include:
   - `starter` creates the pack root, baseline `code-review`, default
     `quality-check`, and thin `feature-implement` / `feature-verify` stubs.
   - `full` also creates bare specialist stubs for every approved
-    code-review area and registers them in the generated manifest.
+    code-review area and registers them in the generated manifest, including
+    the `area_metadata` entries used to auto-render governed `## Descriptor`
+    sections.
 - `governs_addons` — optional boolean for `platform-pack`. Defaults to
   `false`.
 - `repo_root` — absolute path override used by tests. Defaults to the
@@ -170,7 +172,7 @@ approved code-review area (`architecture`, `performance`,
 `platform-correctness`, `security`, `testing`, `api-contracts`,
 `persistence`, `reliability`, `ui`, `ux-accessibility`). The generated
 files are intentionally minimal so the user can enrich the authored
-sections afterwards.
+sidecars afterwards.
 
 ### Code-review area
 
