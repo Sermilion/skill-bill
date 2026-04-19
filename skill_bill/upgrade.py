@@ -14,7 +14,7 @@ from skill_bill.scaffold_template import (
   render_descriptor_section,
   render_project_overrides,
 )
-from skill_bill.shell_content_contract import discover_platform_packs
+from skill_bill.shell_content_contract import discover_platform_pack_manifests
 
 
 FRONTMATTER_PATTERN = re.compile(r"\A---\n.*?\n---\n*", re.DOTALL)
@@ -88,7 +88,7 @@ def _render_horizontal_targets(repo_root: Path) -> dict[Path, str]:
 
 def _render_governed_targets(repo_root: Path) -> dict[Path, str]:
   rendered: dict[Path, str] = {}
-  for pack in discover_platform_packs(repo_root / "platform-packs"):
+  for pack in discover_platform_pack_manifests(repo_root / "platform-packs"):
     baseline_path = pack.declared_files["baseline"]
     if isinstance(baseline_path, Path):
       rendered[baseline_path] = _render_governed_wrapper(

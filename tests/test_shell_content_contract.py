@@ -9,6 +9,7 @@ error message.
 from __future__ import annotations
 
 from pathlib import Path
+import re
 import shutil
 import sys
 import tempfile
@@ -110,6 +111,26 @@ class ShellContentContractLoaderTest(unittest.TestCase):
     message = str(context.exception)
     self.assertIn("schema_governs_addons_wrong_type", message)
     self.assertIn("governs_addons", message)
+
+  def test_rejects_missing_area_metadata(self) -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+      fixture_root = Path(tmpdir) / "valid_pack"
+      shutil.copytree(FIXTURES_ROOT / "valid_pack", fixture_root, symlinks=True)
+      manifest_path = fixture_root / "platform.yaml"
+      manifest_text = manifest_path.read_text(encoding="utf-8")
+      manifest_text = re.sub(
+        r"(?ms)^area_metadata:\n(?:  [^\n]+\n|    [^\n]+\n)*",
+        "",
+        manifest_text,
+      )
+      manifest_path.write_text(manifest_text, encoding="utf-8")
+
+      with self.assertRaises(InvalidManifestSchemaError) as context:
+        load_platform_pack(fixture_root)
+
+    message = str(context.exception)
+    self.assertIn("valid_pack", message)
+    self.assertIn("area_metadata", message)
 
   # --- Additional contract-error coverage (A-003, P-001) -----------------
 

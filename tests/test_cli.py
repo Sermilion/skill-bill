@@ -24,15 +24,6 @@ description: Fixture content.
 ---
 """
 
-_DESCRIPTOR = """\
-## Descriptor
-
-Governed skill: `{name}`
-Family: `{family}`
-Platform pack: `kotlin` (Kotlin)
-{area_line}Description: {description}
-"""
-
 _OLD_PROJECT_OVERRIDES = """\
 ## Project Overrides
 
@@ -73,22 +64,20 @@ def _governed_skill_body(
   description: str,
   area: str = "",
 ) -> str:
-  area_line = f"Area: `{area}`\n" if area else ""
+  del family
+  area_scope = "Scoped to one approved code-review area." if area else "Baseline orchestrator for platform review."
   return (
     _GOVERNED_FRONTMATTER.format(name=name)
     + "\n"
-    + _DESCRIPTOR.format(
-      name=name,
-      family=family,
-      area_line=area_line,
-      description=description,
-    )
+    + "# Legacy Governed Wrapper\n\n"
+    + _OLD_PROJECT_OVERRIDES
     + "\n"
-    + "## Execution\n\n"
-    + "Follow the instructions in [content.md](content.md).\n\n"
-    + "## Ceremony\n\n"
-    + "Follow the shell ceremony in [shell-ceremony.md](shell-ceremony.md).\n\n"
-    + "When telemetry applies, follow [telemetry-contract.md](telemetry-contract.md).\n\n"
+    + f"## Description\n\n{description}\n\n"
+    + f"## Specialist Scope\n\n{area_scope}\n\n"
+    + "## Inputs\n\nLegacy inputs.\n\n"
+    + "## Outputs Contract\n\nLegacy outputs.\n\n"
+    + "## Execution Mode Reporting\n\nExecution mode: inline | delegated\n\n"
+    + "## Telemetry Ceremony Hooks\n\nFollow `telemetry-contract.md` when it is present.\n\n"
     + "## Old Boilerplate\n\n"
     + "This stale wrapper section should be removed by upgrade.\n"
   )
