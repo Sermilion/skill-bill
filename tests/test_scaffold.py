@@ -79,7 +79,7 @@ def _load_validate_skill_file():
 
 _KOTLIN_MANIFEST = """\
 platform: kotlin
-contract_version: "1.0"
+contract_version: "1.1"
 display_name: Kotlin
 
 routing_signals:
@@ -103,7 +103,7 @@ area_metadata:
 
 _KMP_MANIFEST = """\
 platform: kmp
-contract_version: "1.0"
+contract_version: "1.1"
 display_name: KMP
 
 routing_signals:
@@ -1309,7 +1309,7 @@ class NewSkillInteractivePromptTest(unittest.TestCase):
       repo_root = Path(tmpdir)
       (repo_root / "platform-packs" / "kmp").mkdir(parents=True)
       (repo_root / "platform-packs" / "kmp" / "platform.yaml").write_text(
-        "contract_version: '1.0'\n",
+        "contract_version: '1.1'\n",
         encoding="utf-8",
       )
       with mock.patch(
@@ -1340,7 +1340,7 @@ class NewSkillInteractivePromptTest(unittest.TestCase):
       repo_root = Path(tmpdir)
       (repo_root / "platform-packs" / "kmp").mkdir(parents=True)
       (repo_root / "platform-packs" / "kmp" / "platform.yaml").write_text(
-        "contract_version: '1.0'\n",
+        "contract_version: '1.1'\n",
         encoding="utf-8",
       )
       with mock.patch(

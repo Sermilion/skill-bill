@@ -49,6 +49,8 @@ KOTLIN_CODE_REVIEW = (
   + "\n"
   + read("platform-packs/kotlin/code-review/bill-kotlin-code-review/shell-ceremony.md")
   + "\n"
+  + read("platform-packs/kotlin/code-review/bill-kotlin-code-review/review-scope.md")
+  + "\n"
   + read("platform-packs/kotlin/code-review/bill-kotlin-code-review/review-orchestrator.md")
 )
 KMP_CODE_REVIEW = (
@@ -57,6 +59,8 @@ KMP_CODE_REVIEW = (
   + read("platform-packs/kmp/code-review/bill-kmp-code-review/content.md")
   + "\n"
   + read("platform-packs/kmp/code-review/bill-kmp-code-review/shell-ceremony.md")
+  + "\n"
+  + read("platform-packs/kmp/code-review/bill-kmp-code-review/review-scope.md")
   + "\n"
   + read("platform-packs/kmp/code-review/bill-kmp-code-review/review-orchestrator.md")
 )

@@ -218,6 +218,16 @@ def render_project_overrides(context: ScaffoldTemplateContext) -> str:
   )
 
 
+def render_skill_frontmatter(skill_name: str, description: str) -> str:
+  """Render canonical skill frontmatter."""
+  return (
+    "---\n"
+    f"name: {skill_name}\n"
+    f"description: {description}\n"
+    "---\n"
+  )
+
+
 def render_execution_mode_reporting(context: ScaffoldTemplateContext) -> str:
   """Render the ``## Execution Mode Reporting`` section body.
 
@@ -509,6 +519,35 @@ def render_inline_mode_section(context: ScaffoldTemplateContext) -> str:
   )
 
 
+def render_content_body(
+  context: ScaffoldTemplateContext,
+  *,
+  description: str = "",
+  content_body: str | None = None,
+) -> str:
+  """Render a governed ``content.md`` body or placeholder."""
+  if content_body is not None:
+    body = content_body.rstrip() + "\n"
+  else:
+    sections: list[str] = []
+    if description:
+      sections.append(f"## Description\n\n{description}\n")
+    sections.append(
+      "TODO: author the governed content body. Keep shell metadata, telemetry rules, "
+      "and other shared ceremony in `SKILL.md` or shared sidecars, not here.\n"
+    )
+    body = "\n".join(sections)
+
+  title = "Content"
+  if context.family == "quality-check":
+    title = "Quality-Check Content"
+  elif context.family == "code-review" and context.area:
+    title = f"{context.area.replace('-', ' ').title()} Content"
+  elif context.family == "code-review":
+    title = "Review Content"
+  return f"# {title}\n\n{body.rstrip()}\n"
+
+
 _DEFAULT_SECTION_RENDERERS: dict[str, object] = {
   "## Description": render_description_section,
   "## Specialist Scope": render_specialist_scope_section,
@@ -626,6 +665,8 @@ def extract_scaffolder_owned(markdown_text: str) -> dict[str, str]:
 
 
 __all__ = [
+  "render_content_body",
+  "render_skill_frontmatter",
   "ScaffoldTemplateContext",
   "CANONICAL_CEREMONY_SECTION",
   "CANONICAL_EXECUTION_SECTION",

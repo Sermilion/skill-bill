@@ -19,6 +19,7 @@ import re
 
 from skill_bill.constants import SHELL_CONTRACT_VERSION
 from skill_bill.scaffold_template import (
+  CANONICAL_EXECUTION_SECTION,
   DescriptorMetadata,
   ScaffoldTemplateContext,
   default_area_focus,
@@ -69,20 +70,34 @@ REQUIRED_GOVERNED_SECTIONS: tuple[str, ...] = (
   "## Execution",
   "## Ceremony",
 )
-REQUIRED_CONTENT_SECTIONS: tuple[str, ...] = REQUIRED_GOVERNED_SECTIONS
-REQUIRED_QUALITY_CHECK_SECTIONS: tuple[str, ...] = REQUIRED_GOVERNED_SECTIONS
-CEREMONY_FREE_FORM_H2S: tuple[str, ...] = (
-  "## Project Overrides",
-  "## Execution",
-  "## Ceremony",
+CEREMONY_SECTIONS: tuple[str, ...] = REQUIRED_GOVERNED_SECTIONS
+REQUIRED_CONTENT_SECTIONS: tuple[str, ...] = (
   "## Description",
   "## Specialist Scope",
   "## Inputs",
   "## Outputs Contract",
-  "## Delegated Mode",
-  "## Inline Mode",
   "## Execution Mode Reporting",
   "## Telemetry Ceremony Hooks",
+)
+REQUIRED_QUALITY_CHECK_SECTIONS: tuple[str, ...] = REQUIRED_CONTENT_SECTIONS
+CONTENT_BODY_FILENAME: str = "content.md"
+CANONICAL_EXECUTION_BODY: str = CANONICAL_EXECUTION_SECTION
+CEREMONY_FREE_FORM_H2S: tuple[str, ...] = (
+  "## Setup",
+  "## Additional Resources",
+  "## Local Review Learnings",
+  "## Output Format",
+  "## Output Rules",
+  "## Review Output",
+  "## Delegated Mode",
+  "## Inline Mode",
+  "## Routing Rules",
+  "## Shared Stack Detection",
+  "## Execution Contract",
+  "## Overview",
+  "## Project Overrides",
+  "## Execution",
+  "## Ceremony",
 )
 
 MANIFEST_FILENAME: str = "platform.yaml"
@@ -126,6 +141,10 @@ class MissingRequiredSectionError(ShellContentContractError):
 
 class InvalidDescriptorSectionError(ShellContentContractError):
   """Raised when a governed skill's ``## Descriptor`` section drifts."""
+
+
+class InvalidExecutionSectionError(ShellContentContractError):
+  """Raised when a governed skill's ``## Execution`` section drifts."""
 
 
 class MissingShellCeremonyFileError(ShellContentContractError):
@@ -208,6 +227,25 @@ def load_platform_manifest(pack_root: Path | str) -> PlatformPack:
     manifest_path=manifest_path,
     raw=raw,
   )
+
+
+def parse_skill_frontmatter(skill_file: Path | str) -> dict[str, str]:
+  """Parse simple YAML-like skill frontmatter into a string mapping."""
+  skill_path = Path(skill_file)
+  text = skill_path.read_text(encoding="utf-8")
+  if not text.startswith("---\n"):
+    return {}
+  try:
+    _, frontmatter_text, _ = text.split("\n---\n", 2)
+  except ValueError:
+    return {}
+  parsed: dict[str, str] = {}
+  for line in frontmatter_text.splitlines():
+    if ":" not in line:
+      continue
+    key, value = line.split(":", 1)
+    parsed[key.strip()] = value.strip()
+  return parsed
 
 
 def load_platform_pack(pack_root: Path | str) -> PlatformPack:
@@ -524,7 +562,7 @@ def _assert_governed_skill_ok(
   text = skill_path.read_text(encoding="utf-8")
   sections = _collect_top_level_h2_sections(text)
   headings = set(sections)
-  for required in REQUIRED_CONTENT_SECTIONS:
+  for required in REQUIRED_GOVERNED_SECTIONS:
     if required not in headings:
       raise MissingRequiredSectionError(
         f"Platform pack '{pack.slug}': skill file '{skill_path}' is missing "
@@ -589,7 +627,36 @@ def load_quality_check_content(pack: PlatformPack) -> Path:
     family="quality-check",
     area="",
   )
-  return file_path.with_name("content.md")
+  return file_path.with_name(CONTENT_BODY_FILENAME)
+
+
+def assert_execution_body_matches(
+  skill_file: Path | str,
+  *,
+  context_label: str,
+) -> None:
+  """Ensure a governed wrapper keeps the canonical Execution section."""
+  skill_path = Path(skill_file)
+  sections = _collect_top_level_h2_sections(skill_path.read_text(encoding="utf-8"))
+  execution = sections.get("## Execution")
+  if execution != CANONICAL_EXECUTION_BODY:
+    raise InvalidExecutionSectionError(
+      f"{context_label}: skill file '{skill_path}' has a drifted ## Execution section."
+    )
+
+
+def assert_content_md_sibling(
+  skill_file: Path | str,
+  *,
+  context_label: str,
+) -> None:
+  """Ensure a governed wrapper has a sibling ``content.md`` file."""
+  skill_path = Path(skill_file)
+  content_path = skill_path.with_name(CONTENT_BODY_FILENAME)
+  if not content_path.is_file():
+    raise MissingContentFileError(
+      f"{context_label}: expected sibling content file at '{content_path}'."
+    )
 
 
 def _collect_top_level_h2_sections(text: str) -> dict[str, str]:
@@ -639,9 +706,13 @@ def _render_expected_descriptor(
 
 __all__ = [
   "APPROVED_CODE_REVIEW_AREAS",
+  "CANONICAL_EXECUTION_BODY",
+  "CEREMONY_SECTIONS",
   "ContractVersionMismatchError",
   "CEREMONY_FREE_FORM_H2S",
+  "CONTENT_BODY_FILENAME",
   "InvalidDescriptorSectionError",
+  "InvalidExecutionSectionError",
   "InvalidManifestSchemaError",
   "MissingContentFileError",
   "MissingManifestError",
@@ -657,8 +728,11 @@ __all__ = [
   "ShellContentContractError",
   "discover_platform_packs",
   "discover_platform_pack_manifests",
+  "assert_content_md_sibling",
+  "assert_execution_body_matches",
   "load_platform_manifest",
   "load_platform_pack",
   "load_quality_check_content",
+  "parse_skill_frontmatter",
   "validate_platform_pack",
 ]

@@ -58,10 +58,12 @@ from skill_bill.scaffold_template import (
   infer_skill_description,
   render_default_section,
   render_descriptor_section,
+  render_skill_frontmatter,
   render_project_overrides,
 )
 from skill_bill.shell_content_contract import (
   APPROVED_CODE_REVIEW_AREAS,
+  load_platform_manifest,
   load_platform_pack,
 )
 
@@ -667,6 +669,62 @@ def _plan_add_on(payload: dict, repo_root: Path) -> dict[str, Any]:
   }
 
 
+def infer_plan_from_skill_file(skill_file: Path, frontmatter: dict[str, str]) -> dict[str, Any]:
+  """Infer the minimal scaffolder plan needed to re-render a governed wrapper."""
+  skill_file = skill_file.resolve()
+  skill_name = frontmatter.get("name") or skill_file.parent.name
+  parts = skill_file.parts
+  if "platform-packs" not in parts:
+    raise InvalidScaffoldPayloadError(
+      f"Cannot infer governed skill plan from '{skill_file}': expected a platform-pack skill."
+    )
+
+  root_index = parts.index("platform-packs")
+  try:
+    platform = parts[root_index + 1]
+    family = parts[root_index + 2]
+  except IndexError as error:
+    raise InvalidScaffoldPayloadError(
+      f"Cannot infer governed skill plan from '{skill_file}': expected "
+      "'platform-packs/<platform>/<family>/<skill>/SKILL.md'."
+    ) from error
+
+  if family not in {"code-review", "quality-check"}:
+    raise InvalidScaffoldPayloadError(
+      f"Cannot infer governed skill plan from '{skill_file}': unsupported family '{family}'."
+    )
+
+  area = ""
+  descriptor_metadata = {"area_focus": ""}
+  code_review_prefix = f"bill-{platform}-code-review-"
+  if family == "code-review" and skill_name.startswith(code_review_prefix):
+    area = skill_name.removeprefix(code_review_prefix)
+  try:
+    pack = load_platform_manifest(skill_file.parents[2])
+    display_name = pack.display_name or _derive_display_name(platform)
+    if area:
+      descriptor_metadata["area_focus"] = pack.area_metadata.get(area, default_area_focus(area))
+  except Exception:
+    display_name = _derive_display_name(platform)
+    if area:
+      descriptor_metadata["area_focus"] = default_area_focus(area)
+
+  return {
+    "kind": SKILL_KIND_PLATFORM_OVERRIDE_PILOTED,
+    "skill_name": skill_name,
+    "skill_path": skill_file.parent,
+    "skill_file": skill_file,
+    "family": family,
+    "platform": platform,
+    "area": area,
+    "is_shelled": True,
+    "display_name": display_name,
+    "descriptor_metadata": descriptor_metadata,
+    "notes": [],
+    "content_file": skill_file.with_name("content.md"),
+  }
+
+
 _PLANNERS: dict[str, Any] = {
   SKILL_KIND_HORIZONTAL: _plan_horizontal,
   SKILL_KIND_PLATFORM_OVERRIDE_PILOTED: _plan_platform_override_piloted,
@@ -691,12 +749,7 @@ def _render_skill_body(plan: dict[str, Any], payload: dict) -> str:
 
   description = _optional_string(payload, "description") or infer_skill_description(context)
 
-  front_matter = (
-    "---\n"
-    f"name: {plan['skill_name']}\n"
-    f"description: {description}\n"
-    "---\n"
-  )
+  front_matter = render_skill_frontmatter(plan["skill_name"], description)
 
   if plan["is_shelled"]:
     descriptor_section = render_descriptor_section(
@@ -1374,5 +1427,7 @@ __all__ = [
   "SKILL_KIND_PLATFORM_OVERRIDE_PILOTED",
   "SKILL_KIND_PLATFORM_PACK",
   "SUPPORTED_SKILL_KINDS",
+  "_render_skill_body",
+  "infer_plan_from_skill_file",
   "scaffold",
 ]

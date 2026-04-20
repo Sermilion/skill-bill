@@ -17,8 +17,10 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from skill_bill.scaffold_template import (  # noqa: E402
   DescriptorMetadata,
   ScaffoldTemplateContext,
+  render_ceremony_section,
   render_descriptor_section,
 )
+from skill_bill.constants import SHELL_CONTRACT_VERSION  # noqa: E402
 from skill_repo_contracts import (  # noqa: E402
   APPLIED_LEARNINGS_PLACEHOLDER,
   CHILD_METADATA_HANDOFF_RULE,
@@ -357,7 +359,7 @@ class ValidateAgentConfigsE2ETest(unittest.TestCase):
       self.write_platform_pack(
         repo_root,
         slug="fixture-pack",
-        contract_version="1.0",
+        contract_version=SHELL_CONTRACT_VERSION,
         areas=["architecture"],
       )
       result = self.run_validator(repo_root)
@@ -382,7 +384,7 @@ class ValidateAgentConfigsE2ETest(unittest.TestCase):
       self.write_platform_pack(
         repo_root,
         slug="broken-pack",
-        contract_version="1.0",
+        contract_version=SHELL_CONTRACT_VERSION,
         areas=[],
         skip_section="Descriptor",
       )
@@ -396,7 +398,7 @@ class ValidateAgentConfigsE2ETest(unittest.TestCase):
       self.write_platform_pack(
         repo_root,
         slug="java",
-        contract_version="1.0",
+        contract_version=SHELL_CONTRACT_VERSION,
         areas=[],
       )
       result = self.run_validator(repo_root)
@@ -531,7 +533,17 @@ class ValidateAgentConfigsE2ETest(unittest.TestCase):
     if skip_heading != "Execution":
       shell_lines.append("## Execution\n\nFollow the instructions in [content.md](content.md).\n")
     if skip_heading != "Ceremony":
-      shell_lines.append("## Ceremony\n\nFollow the shell ceremony in [shell-ceremony.md](shell-ceremony.md).\n")
+      shell_lines.append(
+        render_ceremony_section(
+          ScaffoldTemplateContext(
+            skill_name=skill_name,
+            family="code-review",
+            platform=platform,
+            area=area,
+            display_name=display_name,
+          )
+        ).rstrip()
+      )
     (skill_dir / "SKILL.md").write_text("\n\n".join(shell_lines) + "\n", encoding="utf-8")
     content_sections = [
       ("Description", "Fixture description."),
@@ -595,10 +607,11 @@ class ValidateAgentConfigsE2ETest(unittest.TestCase):
       self.write_review_delegation_playbook(repo_root)
       self.write_telemetry_contract_playbook(repo_root)
       self.write_shell_content_contract_playbook(repo_root)
+      self.write_review_scope_playbook(repo_root)
       self.write_platform_pack(
         repo_root,
         slug="kmp",
-        contract_version="1.0",
+        contract_version=SHELL_CONTRACT_VERSION,
         areas=[],
       )
       self.write_governed_addons(repo_root)
@@ -752,6 +765,32 @@ class ValidateAgentConfigsE2ETest(unittest.TestCase):
         ## GLM
 
         Every delegated worker must receive the current `review_session_id` and `review_run_id` when they already exist.
+        """
+      ),
+      encoding="utf-8",
+    )
+
+  def write_review_scope_playbook(self, repo_root: Path) -> None:
+    path = repo_root / "orchestration" / "review-scope" / "PLAYBOOK.md"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+      textwrap.dedent(
+        """\
+        ---
+        name: review-scope
+        description: Single source of truth for shared review scope selection.
+        ---
+
+        # Shared Review Scope Contract
+
+        Supported review scopes:
+
+        - Specific files (list paths)
+        - Git commits (hashes/range)
+        - Staged changes (`git diff --cached`; index only)
+        - Unstaged changes (`git diff`; working tree only)
+        - Combined working tree (`git diff --cached` + `git diff`) only when the caller explicitly asks for all local changes
+        - Entire PR
         """
       ),
       encoding="utf-8",

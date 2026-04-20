@@ -26,7 +26,7 @@ skill-bill is a governed system for authoring, routing, validating, installing, 
 - That does **not** mean every new platform belongs in this repo's built-in surface. Keep the shipped first-party set intentionally narrow unless the platform is meant to be maintained here as a reference pack.
 - This repo ships `kotlin` and `kmp` as the first-party reference implementations for the governed pack model.
 - Each pack ships a manifest. The schema lives in the shell-content-contract playbook under `orchestration/`.
-- The current shell contract version is 1.0. Keep it locked across the shell and every pack; version drift must loud-fail.
+- The current shell contract version is 1.1. Keep it locked across the shell and every pack; version drift must loud-fail.
 - Follow `orchestration/shell-content-contract/PLAYBOOK.md` for governed skill shape.
 - Missing manifest, wrong version, missing content file, or missing section must raise the named loud-fail exceptions. Do not add silent fallback.
 - Discovery is manifest-driven. The shells, routing playbook, and validator read `routing_signals` from pack manifests instead of hard-coding platform names.

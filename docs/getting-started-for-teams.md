@@ -94,7 +94,7 @@ Important policy:
 - Treat the shipped `kotlin` and `kmp` packs as first-party references; create or fork other stacks separately unless you explicitly want to maintain them here.
 
 1. Copy `platform-packs/<platform>/` (e.g. `platform-packs/kotlin/`) into your team's own checkout.
-2. Edit the `platform.yaml` manifest to declare the `routing_signals`, `declared_code_review_areas`, and `declared_files` you want to ship. Keep `contract_version: "1.0"` in lockstep with the shell.
+2. Edit the `platform.yaml` manifest to declare the `routing_signals`, `declared_code_review_areas`, and `declared_files` you want to ship. Keep `contract_version: "1.1"` in lockstep with the shell.
 3. Edit or add per-area governed skill directories. Each declared `SKILL.md` must stay a thin wrapper with the three required H2 sections `Descriptor`, `Execution`, and `Ceremony`, and each governed directory must also contain sibling `content.md` and `shell-ceremony.md`. The shell refuses to run with a named error if any required piece is missing — no silent fallback.
 4. Point your local install at the forked pack and re-run `./install.sh`.
 
@@ -172,7 +172,7 @@ Edit the authored execution sections in `content.md` afterwards. Keep the genera
 
 The full payload schema, including the new `platform-pack` kind, lives in `orchestration/shell-content-contract/SCAFFOLD_PAYLOAD.md`.
 
-SKILL-14 piloted the shell+content split on `bill-code-review`. SKILL-16 piloted it on `bill-quality-check` via an additive optional `declared_quality_check_file` manifest key (the shell contract version stays `1.0`). `bill-feature-implement` and `bill-feature-verify` remain pre-shell for now and still land under `skills/<platform>/` when scaffolded.
+SKILL-14 piloted the shell+content split on `bill-code-review`. SKILL-16 piloted it on `bill-quality-check` via an additive optional `declared_quality_check_file` manifest key (the shell contract version stays `1.1`). `bill-feature-implement` and `bill-feature-verify` remain pre-shell for now and still land under `skills/<platform>/` when scaffolded.
 
 ## What to expect from review output
 

@@ -110,7 +110,7 @@ def _build_upgrade_repo(tmp_path: Path) -> Path:
   (pack_root / "platform.yaml").write_text(
     """\
 platform: kotlin
-contract_version: "1.0"
+contract_version: "1.1"
 display_name: Kotlin
 
 routing_signals:
@@ -244,7 +244,7 @@ class NewAddonCliTest(unittest.TestCase):
     (pack_root / "platform.yaml").write_text(
       """\
 platform: kmp
-contract_version: "1.0"
+contract_version: "1.1"
 display_name: KMP
 
 routing_signals:
