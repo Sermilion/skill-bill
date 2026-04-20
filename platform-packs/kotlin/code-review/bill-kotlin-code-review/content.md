@@ -44,15 +44,15 @@ Architecture review is relevant for every non-trivial change.
 
 ### Step 3: Analyze the diff and select additional specialist reviews
 
-| Signal in the diff | Specialist review to run |
-|---------------------|--------------------------|
+| Signal in the diff                                                                                                                                                  | Specialist review to run                       |
+|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------|
 | `launch`, `Flow`, `StateFlow`, `viewModelScope`, `LifecycleOwner`, `DispatcherProvider`, `Mutex`, `Semaphore`, `suspend fun`, coroutine scopes, concurrent mutation | `bill-kotlin-code-review-platform-correctness` |
-| Auth, tokens, keys, passwords, encryption, HTTP clients, interceptors, sensitive data | `bill-kotlin-code-review-security` |
-| Heavy computation, blocking I/O, retry/polling loops, bulk data processing, redundant I/O | `bill-kotlin-code-review-performance` |
-| Test files modified (`*Test.kt`), new test classes, mock setup changes, coverage-padding or tautological tests | `bill-kotlin-code-review-testing` |
-| Routes/controllers, request/response DTOs, serializers, content negotiation, validation, status-code mapping, OpenAPI/schema changes | `bill-kotlin-code-review-api-contracts` |
-| Repositories/DAOs, SQL, ORM mappings, transactions, migrations, optimistic locking, upserts, bulk writes | `bill-kotlin-code-review-persistence` |
-| Timeouts, retries, circuit breakers, queues, schedulers, idempotency, caching, metrics, tracing, startup/shutdown lifecycle | `bill-kotlin-code-review-reliability` |
+| Auth, tokens, keys, passwords, encryption, HTTP clients, interceptors, sensitive data                                                                               | `bill-kotlin-code-review-security`             |
+| Heavy computation, blocking I/O, retry/polling loops, bulk data processing, redundant I/O                                                                           | `bill-kotlin-code-review-performance`          |
+| Test files modified (`*Test.kt`), new test classes, mock setup changes, coverage-padding or tautological tests                                                      | `bill-kotlin-code-review-testing`              |
+| Routes/controllers, request/response DTOs, serializers, content negotiation, validation, status-code mapping, OpenAPI/schema changes                                | `bill-kotlin-code-review-api-contracts`        |
+| Repositories/DAOs, SQL, ORM mappings, transactions, migrations, optimistic locking, upserts, bulk writes                                                            | `bill-kotlin-code-review-persistence`          |
+| Timeouts, retries, circuit breakers, queues, schedulers, idempotency, caching, metrics, tracing, startup/shutdown lifecycle                                         | `bill-kotlin-code-review-reliability`          |
 
 ### Step 4: Apply minimum
 

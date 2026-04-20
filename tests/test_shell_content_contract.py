@@ -105,13 +105,6 @@ class ShellContentContractLoaderTest(unittest.TestCase):
     self.assertIn("laravel", message)
     self.assertIn("declared area", message)
 
-  def test_rejects_non_boolean_governs_addons(self) -> None:
-    with self.assertRaises(InvalidManifestSchemaError) as context:
-      load_platform_pack(FIXTURES_ROOT / "schema_governs_addons_wrong_type")
-    message = str(context.exception)
-    self.assertIn("schema_governs_addons_wrong_type", message)
-    self.assertIn("governs_addons", message)
-
   def test_rejects_missing_area_metadata(self) -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
       fixture_root = Path(tmpdir) / "valid_pack"

@@ -102,7 +102,7 @@ A single `feature-implement` run chains 10-12 skill invocations:
 
 Small, low-risk review scopes may stay inline in one thread. Larger or higher-risk scopes use delegated review passes and report the chosen execution mode explicitly.
 
-After stack routing, a platform pack may apply governed add-ons from `platform-packs/<platform>/addons/`. These remain pack-owned metadata such as `Selected add-ons: android-compose, android-navigation, android-interop, android-design-system, android-r8` for KMP Android work. They are not extra slash commands and are not counted in the skill catalog.
+After stack routing, a platform pack may apply governed add-ons from `platform-packs/<platform>/addons/`. These are pack-owned supporting files, not standalone skills or extra slash commands. Routed platform skills in that same pack may reference them from their sibling `content.md` files to enrich the already-selected skill, and they continue to surface as metadata such as `Selected add-ons: android-compose, android-navigation, android-interop, android-design-system, android-r8` for KMP Android work.
 
 The current `kmp` pilot uses:
 - `android-compose-implementation.md`

@@ -139,7 +139,6 @@ PLATFORM_PACK_PRESETS: dict[str, dict[str, Any]] = {
       "tie_breakers": [
         "Prefer Java when Maven metadata or Java source markers dominate generic JVM signals."
       ],
-      "addon_signals": [],
     },
   },
   "php": {
@@ -149,7 +148,6 @@ PLATFORM_PACK_PRESETS: dict[str, dict[str, Any]] = {
       "tie_breakers": [
         "Prefer PHP when Composer metadata or .php source files dominate mixed backend signals."
       ],
-      "addon_signals": [],
     },
   },
 }
@@ -345,7 +343,6 @@ def platform_pack_preset(platform: str) -> dict[str, Any] | None:
     "routing_signals": {
       "strong": list(routing_signals["strong"]),
       "tie_breakers": list(routing_signals.get("tie_breakers", [])),
-      "addon_signals": list(routing_signals.get("addon_signals", [])),
     },
   }
 
@@ -356,14 +353,11 @@ def _resolve_platform_pack_defaults(payload: dict, platform: str) -> dict[str, A
 
   strong_signals = _optional_explicit_string_list_from_mapping(routing_signals, "strong")
   tie_breakers = _optional_explicit_string_list_from_mapping(routing_signals, "tie_breakers")
-  addon_signals = _optional_explicit_string_list_from_mapping(routing_signals, "addon_signals")
 
   if strong_signals is None and preset is not None:
     strong_signals = list(preset["routing_signals"]["strong"])
   if tie_breakers is None and preset is not None:
     tie_breakers = list(preset["routing_signals"]["tie_breakers"])
-  if addon_signals is None and preset is not None:
-    addon_signals = list(preset["routing_signals"]["addon_signals"])
 
   if not strong_signals:
     if preset is None:
@@ -386,7 +380,6 @@ def _resolve_platform_pack_defaults(payload: dict, platform: str) -> dict[str, A
     "routing_signals": {
       "strong": strong_signals,
       "tie_breakers": tie_breakers or [],
-      "addon_signals": addon_signals or [],
     },
     "preset_used": preset is not None and routing_signals is None,
   }
@@ -514,10 +507,8 @@ def _plan_platform_pack(payload: dict, repo_root: Path) -> dict[str, Any]:
   skeleton_mode = _platform_pack_skeleton_mode(payload)
   strong_signals = defaults["routing_signals"]["strong"]
   tie_breakers = defaults["routing_signals"]["tie_breakers"]
-  addon_signals = defaults["routing_signals"]["addon_signals"]
   display_name = defaults["display_name"]
   description = _optional_string(payload, "description")
-  governs_addons = _optional_bool(payload, "governs_addons", default=False)
 
   baseline_name = _require_canonical_name(
     payload,
@@ -582,9 +573,7 @@ def _plan_platform_pack(payload: dict, repo_root: Path) -> dict[str, Any]:
     "routing_signals": {
       "strong": strong_signals,
       "tie_breakers": tie_breakers,
-      "addon_signals": addon_signals,
     },
-    "governs_addons": governs_addons,
     "manifest_path": manifest_path,
     "baseline_skill_name": baseline_name,
     "baseline_skill_path": baseline_skill_path,
@@ -663,7 +652,6 @@ def _plan_add_on(payload: dict, repo_root: Path) -> dict[str, Any]:
       f"Platform pack '{platform}' does not exist at '{pack_root}'. "
       "Create a conforming platform.yaml before adding a governed add-on into it."
     )
-
   addons_root = pack_root / "addons"
   skill_file = addons_root / f"{name}.md"
   return {
@@ -789,6 +777,10 @@ def _render_governed_content_body(plan: dict[str, Any], payload: dict) -> str:
 
 
 def _render_addon_body(plan: dict[str, Any], payload: dict) -> str:
+  explicit_body = _optional_string(payload, "body")
+  if explicit_body:
+    return explicit_body if explicit_body.endswith("\n") else f"{explicit_body}\n"
+
   platform = plan["platform"]
   display_name = plan.get("display_name") or (
     _derive_display_name(platform) if platform else ""
@@ -911,7 +903,6 @@ def _create_platform_pack(
     display_name=plan["display_name"],
     strong_signals=plan["routing_signals"]["strong"],
     tie_breakers=plan["routing_signals"]["tie_breakers"],
-    addon_signals=plan["routing_signals"]["addon_signals"],
     declared_code_review_areas=list(plan["specialist_areas"]),
     baseline_content_path=baseline_skill_path.relative_to(pack_root).joinpath("SKILL.md").as_posix(),
     declared_area_files={
@@ -920,7 +911,6 @@ def _create_platform_pack(
     },
     declared_quality_check_file=quality_check_skill_path.relative_to(pack_root).joinpath("SKILL.md").as_posix(),
     area_metadata=plan["specialist_area_metadata"],
-    governs_addons=plan["governs_addons"],
   )
   _stage_file(txn, manifest_path, manifest_content)
   baseline_plan = {

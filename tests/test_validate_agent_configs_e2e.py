@@ -494,7 +494,6 @@ class ValidateAgentConfigsE2ETest(unittest.TestCase):
       "routing_signals": {
         "strong": [f".{slug}"],
         "tie_breakers": [],
-        "addon_signals": [],
       },
       "declared_code_review_areas": areas,
       "declared_files": declared_files,

@@ -148,7 +148,6 @@ class RoutingSignals:
 
   strong: tuple[str, ...]
   tie_breakers: tuple[str, ...]
-  addon_signals: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -166,7 +165,6 @@ class PlatformPack:
   declared_code_review_areas: tuple[str, ...]
   declared_files: dict[str, Path] = field(hash=False)
   area_metadata: dict[str, str] = field(hash=False)
-  governs_addons: bool = False
   display_name: str | None = None
   notes: str | None = None
   declared_quality_check_file: Path | None = None
@@ -363,9 +361,6 @@ def _build_pack(
   routing_signals = RoutingSignals(
     strong=_as_string_tuple(slug, routing_raw.get("strong"), "routing_signals.strong"),
     tie_breakers=_as_string_tuple(slug, routing_raw.get("tie_breakers"), "routing_signals.tie_breakers"),
-    addon_signals=_as_string_tuple(
-      slug, routing_raw.get("addon_signals", []), "routing_signals.addon_signals"
-    ),
   )
 
   declared_areas_raw = raw.get("declared_code_review_areas")
@@ -458,12 +453,6 @@ def _build_pack(
       )
     area_metadata[area] = focus
 
-  governs_addons_raw = raw.get("governs_addons", False)
-  if not isinstance(governs_addons_raw, bool):
-    raise InvalidManifestSchemaError(
-      f"Platform pack '{slug}': 'governs_addons' must be a boolean."
-    )
-
   display_name_raw = raw.get("display_name")
   if display_name_raw is not None and not isinstance(display_name_raw, str):
     raise InvalidManifestSchemaError(
@@ -495,7 +484,6 @@ def _build_pack(
     declared_code_review_areas=tuple(declared_areas),
     declared_files=declared_files,
     area_metadata=area_metadata,
-    governs_addons=governs_addons_raw,
     display_name=display_name_raw,
     notes=notes_raw,
     declared_quality_check_file=declared_quality_check_path,

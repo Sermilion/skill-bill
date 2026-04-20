@@ -66,7 +66,7 @@ Every payload MUST include:
   `ux-accessibility`.
 - `routing_signals` — required for `platform-pack` only when the platform
   does not have a built-in preset. Must be a mapping with a non-empty
-  `strong` list and optional `tie_breakers` / `addon_signals` lists. For
+  `strong` list and optional `tie_breakers` list. For
   known platforms such as `java` and `php`, the scaffolder can infer these
   defaults.
 
@@ -83,16 +83,9 @@ Every payload MUST include:
     code-review area and registers them in the generated manifest, including
     the `area_metadata` entries used to auto-render governed `## Descriptor`
     sections.
-- `governs_addons` — optional boolean for `platform-pack`. Defaults to
-  `false`.
-- `content_body` — optional free-form Markdown body written verbatim to the
-  sibling `content.md` file. When present, the scaffolder trims trailing
-  whitespace and writes the body plus a single trailing newline. When absent,
-  a minimal deterministic placeholder is written so the validator passes and
-  the author has a starting point. Only applies to kinds that produce a
-  `SKILL.md` (`horizontal`, `platform-override-piloted`, `platform-pack`,
-  `code-review-area`); the `add-on` kind is a flat file and does not get a
-  `content.md` sibling.
+- `body` — optional string for `add-on`. When provided, the scaffolder
+  writes this markdown body verbatim to the target add-on file instead of
+  rendering the default placeholder template.
 - `repo_root` — absolute path override used by tests. Defaults to the
   current working directory.
 

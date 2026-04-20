@@ -17,7 +17,7 @@ All filesystem work happens in `skill_bill/scaffold.py`; this skill never edits 
 
 ## Decision Tree
 
-Internally, the scaffolder still maps requests to exactly one of these five kinds:
+Internally, the scaffolder still maps skill requests to exactly one of these four kinds:
 
 1. **horizontal** — capability works across stacks (e.g. `bill-pr-description`).
    - Destination: `skills/<name>/SKILL.md`.
@@ -33,8 +33,7 @@ Internally, the scaffolder still maps requests to exactly one of these five kind
 4. **code-review-area** — a specialist for one approved code-review area inside an existing platform pack.
    - Approved areas: `architecture`, `performance`, `platform-correctness`, `security`, `testing`, `api-contracts`, `persistence`, `reliability`, `ui`, `ux-accessibility`.
    - Destination: `platform-packs/<slug>/code-review/<name>/SKILL.md` + manifest edits.
-5. **add-on** — a pack-owned supporting asset, not a standalone skill.
-   - Destination: `platform-packs/<platform>/addons/<name>.md` (flat, no sub-directory).
+Governed add-ons are pack-owned supporting files, not skills. Author them through the dedicated `skill-bill new-addon` CLI flow rather than this skill.
 
 Refuse to invent a new family or code-review area inline. New platforms are allowed only through the `platform-pack` kind. If the user asks for a new family or unapproved area, ask them to first update `skill_bill/constants.py::PRE_SHELL_FAMILIES` or the approved-area list in the same change they submit the skill in.
 
@@ -69,8 +68,7 @@ Refuse to invent a new family or code-review area inline. New platforms are allo
        1. Baseline
        2. Baseline + Code Review Specialists
        3. Code-Review Specialist
-       4. Add-On
-       5. Platform Override
+       4. Platform Override
        ```
 
    - Do not show the non-platform options after the user has already chosen a concrete platform unless they ask to switch to a cross-stack skill.
@@ -80,7 +78,7 @@ Refuse to invent a new family or code-review area inline. New platforms are allo
      - baseline `bill-<platform>-code-review`
      - baseline `bill-<platform>-quality-check`
    - Only ask follow-ups that are still missing:
-     - skill name for horizontal, add-on, specialist, or override scaffolds
+     - skill name for horizontal, specialist, or override scaffolds
      - family for platform overrides
      - area for code-review specialists
      - description or display name only when the user explicitly wants to customize them before scaffolding

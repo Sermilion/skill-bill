@@ -355,7 +355,7 @@ def version_command(args: argparse.Namespace) -> int:
   return 0
 
 
-def new_skill_command(args: argparse.Namespace) -> int:
+def _run_scaffold_command(payload: dict, args: argparse.Namespace) -> int:
   from skill_bill import scaffold as _scaffold
   from skill_bill import scaffold_domain as _scaffold_domain
   from skill_bill.config import load_telemetry_settings
@@ -386,25 +386,6 @@ def new_skill_command(args: argparse.Namespace) -> int:
     MissingSupportingFileTargetError: 5,
     ScaffoldRollbackError: 6,
   }
-
-  if args.payload and args.interactive:
-    raise ValueError("--payload and --interactive are mutually exclusive.")
-
-  if args.payload:
-    payload_path = args.payload
-    if payload_path == "-":
-      payload_text = sys.stdin.read()
-    else:
-      with open(payload_path, encoding="utf-8") as stream:
-        payload_text = stream.read()
-    try:
-      payload = json.loads(payload_text)
-    except json.JSONDecodeError as error:
-      raise ValueError(f"Invalid JSON payload: {error}") from error
-  elif args.interactive:
-    payload = _prompt_new_skill_interactively()
-  else:
-    raise ValueError("Either --payload or --interactive is required.")
 
   session_id = _scaffold_domain.generate_new_skill_session_id()
   canonical_skill_name = _scaffold_identity(payload)
@@ -468,6 +449,29 @@ def new_skill_command(args: argparse.Namespace) -> int:
   return 0
 
 
+def new_skill_command(args: argparse.Namespace) -> int:
+  if args.payload and args.interactive:
+    raise ValueError("--payload and --interactive are mutually exclusive.")
+
+  if args.payload:
+    payload_path = args.payload
+    if payload_path == "-":
+      payload_text = sys.stdin.read()
+    else:
+      with open(payload_path, encoding="utf-8") as stream:
+        payload_text = stream.read()
+    try:
+      payload = json.loads(payload_text)
+    except json.JSONDecodeError as error:
+      raise ValueError(f"Invalid JSON payload: {error}") from error
+  elif args.interactive:
+    payload = _prompt_new_skill_interactively()
+  else:
+    raise ValueError("Either --payload or --interactive is required.")
+
+  return _run_scaffold_command(payload, args)
+
+
 def _prompt_nonempty(prompt: str) -> str:
   while True:
     value = input(prompt).strip()
@@ -502,6 +506,40 @@ def _platform_pack_exists(platform: str, *, repo_root: Path | None = None) -> bo
   return (root / "platform-packs" / platform / "platform.yaml").exists()
 
 
+def _normalize_addon_body(text: str) -> str:
+  if not text.strip():
+    raise ValueError("Add-on body must be non-empty.")
+  return text if text.endswith("\n") else f"{text}\n"
+
+
+def _read_text_input(path: str) -> str:
+  if path == "-":
+    return sys.stdin.read()
+  return Path(path).read_text(encoding="utf-8")
+
+
+def _prompt_multiline(prompt: str, *, terminator: str = "END") -> str:
+  while True:
+    print(prompt)
+    lines: list[str] = []
+    while True:
+      line = input()
+      if line == terminator:
+        break
+      lines.append(line)
+    if any(line.strip() for line in lines):
+      return "\n".join(lines)
+    print("Add-on body must include at least one non-empty line.")
+
+
+def _build_addon_markdown(name: str, description: str, body: str) -> str:
+  parts = [f"# {name}", ""]
+  if description:
+    parts.extend([description, ""])
+  parts.append(body.rstrip("\n"))
+  return _normalize_addon_body("\n".join(parts))
+
+
 def _prompt_new_skill_interactively(*, repo_root: Path | None = None) -> dict:
   """Collect the interactive payload without an LLM.
 
@@ -528,16 +566,14 @@ def _prompt_new_skill_interactively(*, repo_root: Path | None = None) -> dict:
     print("1. Baseline")
     print("2. Baseline + Code Review Specialists")
     print("3. Code-Review Specialist")
-    print("4. Add-On")
-    print("5. Platform Override")
+    print("4. Platform Override")
     selection = _prompt_choice(
-      "Choose 1-5: ",
+      "Choose 1-4: ",
       {
         "1": "platform-pack-starter",
         "2": "platform-pack-full",
         "3": "code-review-area",
-        "4": "add-on",
-        "5": "platform-override-piloted",
+        "4": "platform-override-piloted",
       },
     )
   else:
@@ -574,7 +610,6 @@ def _prompt_new_skill_interactively(*, repo_root: Path | None = None) -> dict:
       payload["routing_signals"] = {
         "strong": [item.strip() for item in strong_signals.split(",") if item.strip()],
         "tie_breakers": [],
-        "addon_signals": [],
       }
       tie_breakers = input("Tie-breakers (comma-separated, optional): ").strip()
       if tie_breakers:
@@ -586,10 +621,6 @@ def _prompt_new_skill_interactively(*, repo_root: Path | None = None) -> dict:
         f"Using built-in routing preset for '{platform}' "
         f"({', '.join(preset['routing_signals']['strong'])})."
       )
-    payload["governs_addons"] = _prompt_yes_no(
-      "Should this platform pack govern add-ons?",
-      default=False,
-    )
     return payload
 
   if selection == "platform-override-piloted":
@@ -619,15 +650,52 @@ def _prompt_new_skill_interactively(*, repo_root: Path | None = None) -> dict:
       payload["description"] = description
     return payload
 
-  if selection == "add-on":
-    payload["kind"] = "add-on"
-    payload["name"] = _prompt_nonempty("Add-on slug (no bill- prefix): ")
-    description = input("One-line description (optional): ").strip()
-    if description:
-      payload["description"] = description
-    return payload
-
   return payload
+
+
+def _prompt_new_addon_interactively(*, repo_root: Path | None = None) -> dict:
+  payload: dict = {
+    "scaffold_payload_version": "1.0",
+    "kind": "add-on",
+  }
+  platform = _prompt_nonempty("Platform name: ").strip()
+  if not _platform_pack_exists(platform, repo_root=repo_root):
+    raise ValueError(
+      f"Platform pack '{platform}' does not exist. Create the pack before adding governed add-ons."
+    )
+  name = _prompt_nonempty("Add-on slug (no bill- prefix): ").strip()
+  description = input("One-line description (optional): ").strip()
+  body = _prompt_multiline(
+    "Enter add-on markdown content. Finish with a line containing only END."
+  )
+  payload["platform"] = platform
+  payload["name"] = name
+  payload["body"] = _build_addon_markdown(name, description, body)
+  return payload
+
+
+def new_addon_command(args: argparse.Namespace) -> int:
+  if args.interactive:
+    if any(value is not None for value in (args.platform, args.name, args.body, args.body_file)):
+      raise ValueError("--interactive cannot be combined with --platform, --name, --body, or --body-file.")
+    payload = _prompt_new_addon_interactively()
+    return _run_scaffold_command(payload, args)
+
+  if not args.platform or not args.name:
+    raise ValueError("--platform and --name are required unless --interactive is used.")
+
+  if bool(args.body) == bool(args.body_file):
+    raise ValueError("Provide exactly one of --body or --body-file unless --interactive is used.")
+
+  body_source = args.body if args.body is not None else _read_text_input(args.body_file)
+  payload = {
+    "scaffold_payload_version": "1.0",
+    "kind": "add-on",
+    "platform": args.platform,
+    "name": args.name,
+    "body": _normalize_addon_body(body_source),
+  }
+  return _run_scaffold_command(payload, args)
 
 
 def _scaffold_identity(payload: dict) -> str:
@@ -942,7 +1010,7 @@ def build_parser() -> argparse.ArgumentParser:
   new_skill_parser.add_argument(
     "--interactive",
     action="store_true",
-    help="Collect the payload via four no-LLM prompts (kind, name, platform, area).",
+    help="Collect a skill scaffold payload via interactive prompts.",
   )
   new_skill_parser.add_argument(
     "--dry-run",
@@ -951,6 +1019,40 @@ def build_parser() -> argparse.ArgumentParser:
   )
   new_skill_parser.add_argument("--format", choices=("text", "json"), default="text")
   new_skill_parser.set_defaults(handler=new_skill_command)
+
+  new_addon_parser = subparsers.add_parser(
+    "new-addon",
+    help="Create a governed add-on file inside an existing platform pack.",
+  )
+  new_addon_parser.add_argument(
+    "--platform",
+    help="Owning platform slug. Required unless --interactive is used.",
+  )
+  new_addon_parser.add_argument(
+    "--name",
+    help="Add-on slug (without a bill- prefix). Required unless --interactive is used.",
+  )
+  body_group = new_addon_parser.add_mutually_exclusive_group()
+  body_group.add_argument(
+    "--body",
+    help="Complete markdown body to write to the add-on file.",
+  )
+  body_group.add_argument(
+    "--body-file",
+    help="Path to a markdown file to copy into the add-on (or '-' for stdin).",
+  )
+  new_addon_parser.add_argument(
+    "--interactive",
+    action="store_true",
+    help="Prompt for platform, add-on slug, and markdown content.",
+  )
+  new_addon_parser.add_argument(
+    "--dry-run",
+    action="store_true",
+    help="Plan the scaffold and report the operations without touching disk.",
+  )
+  new_addon_parser.add_argument("--format", choices=("text", "json"), default="text")
+  new_addon_parser.set_defaults(handler=new_addon_command)
 
   install_parser = subparsers.add_parser(
     "install",
@@ -996,6 +1098,13 @@ def main(argv: list[str] | None = None) -> int:
   except ValueError as error:
     print(str(error), file=sys.stderr)
     return 1
+  except Exception as error:
+    from skill_bill.shell_content_contract import ShellContentContractError
+
+    if isinstance(error, ShellContentContractError):
+      print(str(error), file=sys.stderr)
+      return 1
+    raise
 
 
 if __name__ == "__main__":

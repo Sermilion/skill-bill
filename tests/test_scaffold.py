@@ -81,14 +81,12 @@ _KOTLIN_MANIFEST = """\
 platform: kotlin
 contract_version: "1.0"
 display_name: Kotlin
-governs_addons: false
 
 routing_signals:
   strong:
     - ".kt"
   tie_breakers:
     - "fallback tie-breaker"
-  addon_signals: []
 
 declared_code_review_areas:
   - architecture
@@ -107,15 +105,12 @@ _KMP_MANIFEST = """\
 platform: kmp
 contract_version: "1.0"
 display_name: KMP
-governs_addons: true
 
 routing_signals:
   strong:
     - "androidMain"
   tie_breakers:
     - "prefer KMP for multiplatform fixtures"
-  addon_signals:
-    - "android-compose"
 
 declared_code_review_areas:
   - ui
@@ -556,6 +551,19 @@ class ScaffoldHappyPathsTest(unittest.TestCase):
     self.assertEqual(result.kind, "add-on")
     addon_md = self.repo / "platform-packs" / "kmp" / "addons" / "android-new-addon.md"
     self.assertTrue(addon_md.is_file())
+
+  def test_add_on_uses_explicit_body_when_provided(self) -> None:
+    body = "# android-new-addon\n\nPack-owned guidance.\n"
+    scaffold(
+      self._payload(
+        kind="add-on",
+        name="android-new-addon",
+        platform="kmp",
+        body=body,
+      )
+    )
+    addon_md = self.repo / "platform-packs" / "kmp" / "addons" / "android-new-addon.md"
+    self.assertEqual(addon_md.read_text(encoding="utf-8"), body)
 
   def test_description_section_inferred_no_todo(self) -> None:
     """Governed descriptions now live in the thin shell descriptor, not content."""
@@ -1189,7 +1197,6 @@ class NewSkillInteractivePromptTest(unittest.TestCase):
         "1",      # baseline
         "",       # display name
         "",       # description
-        "n",      # governs add-ons?
       ],
     ):
       payload = _prompt_new_skill_interactively()
@@ -1197,7 +1204,6 @@ class NewSkillInteractivePromptTest(unittest.TestCase):
     self.assertEqual(payload["kind"], "platform-pack")
     self.assertEqual(payload["platform"], "java")
     self.assertEqual(payload["skeleton_mode"], "starter")
-    self.assertFalse(payload["governs_addons"])
 
   def test_platform_pack_prompt_uses_php_preset_without_signal_prompt(self) -> None:
     from skill_bill.cli import _prompt_new_skill_interactively
@@ -1209,7 +1215,6 @@ class NewSkillInteractivePromptTest(unittest.TestCase):
         "1",      # baseline
         "",       # display name
         "",       # description
-        "n",      # governs add-ons?
       ],
     ):
       payload = _prompt_new_skill_interactively()
@@ -1218,7 +1223,6 @@ class NewSkillInteractivePromptTest(unittest.TestCase):
     self.assertEqual(payload["platform"], "php")
     self.assertEqual(payload["skeleton_mode"], "starter")
     self.assertNotIn("routing_signals", payload)
-    self.assertFalse(payload["governs_addons"])
 
   def test_platform_pack_prompt_maps_specialists_to_full(self) -> None:
     from skill_bill.cli import _prompt_new_skill_interactively
@@ -1232,7 +1236,6 @@ class NewSkillInteractivePromptTest(unittest.TestCase):
         "",          # description
         "pyproject.toml,setup.py",  # strong signals
         "",          # tie-breakers
-        "y",         # governs add-ons?
       ],
     ):
       payload = _prompt_new_skill_interactively()
@@ -1244,7 +1247,6 @@ class NewSkillInteractivePromptTest(unittest.TestCase):
       payload["routing_signals"]["strong"],
       ["pyproject.toml", "setup.py"],
     )
-    self.assertTrue(payload["governs_addons"])
 
   def test_existing_platform_prompt_branches_to_specialist(self) -> None:
     from skill_bill.cli import _prompt_new_skill_interactively
@@ -1272,6 +1274,92 @@ class NewSkillInteractivePromptTest(unittest.TestCase):
     self.assertEqual(payload["platform"], "php")
     self.assertEqual(payload["area"], "security")
     self.assertEqual(payload["description"], "Review PHP security risks.")
+
+  def test_existing_platform_prompt_branches_to_platform_override(self) -> None:
+    from skill_bill.cli import _prompt_new_skill_interactively
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+      repo_root = Path(tmpdir)
+      (repo_root / "platform-packs" / "php").mkdir(parents=True)
+      (repo_root / "platform-packs" / "php" / "platform.yaml").write_text(
+        "shell_contract_version: '1.0'\n",
+        encoding="utf-8",
+      )
+      with mock.patch(
+        "builtins.input",
+        side_effect=[
+          "php",            # platform
+          "4",              # platform override
+          "quality-check",  # family
+          "",               # derived name
+          "Run PHP quality checks.",  # description
+        ],
+      ):
+        payload = _prompt_new_skill_interactively(repo_root=repo_root)
+
+    self.assertEqual(payload["kind"], "platform-override-piloted")
+    self.assertEqual(payload["platform"], "php")
+    self.assertEqual(payload["family"], "quality-check")
+    self.assertEqual(payload["description"], "Run PHP quality checks.")
+
+  def test_new_addon_prompt_builds_markdown_body(self) -> None:
+    from skill_bill.cli import _prompt_new_addon_interactively
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+      repo_root = Path(tmpdir)
+      (repo_root / "platform-packs" / "kmp").mkdir(parents=True)
+      (repo_root / "platform-packs" / "kmp" / "platform.yaml").write_text(
+        "contract_version: '1.0'\n",
+        encoding="utf-8",
+      )
+      with mock.patch(
+        "builtins.input",
+        side_effect=[
+          "kmp",                 # platform
+          "android-compose",     # add-on slug
+          "Compose guidance.",   # description
+          "First body line.",    # body
+          "Second body line.",   # body
+          "END",                 # terminator
+        ],
+      ):
+        payload = _prompt_new_addon_interactively(repo_root=repo_root)
+
+    self.assertEqual(payload["kind"], "add-on")
+    self.assertEqual(payload["platform"], "kmp")
+    self.assertEqual(payload["name"], "android-compose")
+    self.assertEqual(
+      payload["body"],
+      "# android-compose\n\nCompose guidance.\n\nFirst body line.\nSecond body line.\n",
+    )
+
+  def test_new_addon_prompt_reprompts_until_body_is_non_empty(self) -> None:
+    from skill_bill.cli import _prompt_new_addon_interactively
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+      repo_root = Path(tmpdir)
+      (repo_root / "platform-packs" / "kmp").mkdir(parents=True)
+      (repo_root / "platform-packs" / "kmp" / "platform.yaml").write_text(
+        "contract_version: '1.0'\n",
+        encoding="utf-8",
+      )
+      with mock.patch(
+        "builtins.input",
+        side_effect=[
+          "kmp",              # platform
+          "android-compose",  # add-on slug
+          "",                 # description
+          "END",              # empty body attempt
+          "Real body line.",  # second body attempt
+          "END",              # terminator
+        ],
+      ):
+        payload = _prompt_new_addon_interactively(repo_root=repo_root)
+
+    self.assertEqual(
+      payload["body"],
+      "# android-compose\n\nReal body line.\n",
+    )
 
 
 class AgentDetectionTest(unittest.TestCase):

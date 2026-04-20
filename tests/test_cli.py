@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest import mock
 
@@ -14,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from skill_bill.cli import main  # noqa: E402
+from skill_bill.shell_content_contract import PyYAMLMissingError  # noqa: E402
 from skill_bill.upgrade import upgrade_skill_wrappers  # noqa: E402
 
 
@@ -110,14 +112,12 @@ def _build_upgrade_repo(tmp_path: Path) -> Path:
 platform: kotlin
 contract_version: "1.0"
 display_name: Kotlin
-governs_addons: false
 
 routing_signals:
   strong:
     - ".kt"
   tie_breakers:
     - "fixture tie-breaker"
-  addon_signals: []
 
 declared_code_review_areas:
   - architecture
@@ -232,3 +232,114 @@ class UpgradeCliTest(unittest.TestCase):
 
     self.assertEqual(baseline_before, baseline_skill.read_bytes())
     self.assertEqual(horizontal_before, horizontal_skill.read_bytes())
+
+
+class NewAddonCliTest(unittest.TestCase):
+  def setUp(self) -> None:
+    self._tmpdir = tempfile.TemporaryDirectory()
+    self.addCleanup(self._tmpdir.cleanup)
+    self.repo = Path(self._tmpdir.name) / "repo"
+    pack_root = self.repo / "platform-packs" / "kmp"
+    pack_root.mkdir(parents=True, exist_ok=True)
+    (pack_root / "platform.yaml").write_text(
+      """\
+platform: kmp
+contract_version: "1.0"
+display_name: KMP
+
+routing_signals:
+  strong:
+    - "androidMain"
+  tie_breakers:
+    - "prefer KMP for multiplatform fixtures"
+
+declared_code_review_areas:
+  - ui
+
+declared_files:
+  baseline: code-review/bill-kmp-code-review/SKILL.md
+  areas:
+    ui: code-review/bill-kmp-code-review-ui/SKILL.md
+
+area_metadata:
+  ui:
+    focus: "UI correctness and framework usage"
+""",
+      encoding="utf-8",
+    )
+
+  def test_new_addon_writes_markdown_body_to_pack_addons_dir(self) -> None:
+    stdout = io.StringIO()
+    with (
+      contextlib.redirect_stdout(stdout),
+      mock.patch("pathlib.Path.cwd", return_value=self.repo),
+      mock.patch("skill_bill.scaffold._run_validator", return_value=None),
+      mock.patch("skill_bill.scaffold._perform_install", return_value=([], [])),
+      mock.patch(
+        "skill_bill.config.load_telemetry_settings",
+        return_value=SimpleNamespace(level="anonymous"),
+      ),
+    ):
+      exit_code = main(
+        [
+          "new-addon",
+          "--platform",
+          "kmp",
+          "--name",
+          "android-compose",
+          "--body",
+          "# android-compose\n\nUse this add-on.\n",
+          "--format",
+          "json",
+        ]
+      )
+
+    self.assertEqual(exit_code, 0)
+    payload = json.loads(stdout.getvalue())
+    self.assertEqual(payload["kind"], "add-on")
+    addon_path = self.repo / "platform-packs" / "kmp" / "addons" / "android-compose.md"
+    self.assertEqual(Path(payload["skill_path"]).resolve(), addon_path.parent.resolve())
+    self.assertEqual(
+      addon_path.read_text(encoding="utf-8"),
+      "# android-compose\n\nUse this add-on.\n",
+    )
+
+  def test_new_addon_requires_body_source_when_not_interactive(self) -> None:
+    stderr = io.StringIO()
+    with contextlib.redirect_stderr(stderr):
+      exit_code = main(
+        [
+          "new-addon",
+          "--platform",
+          "kmp",
+          "--name",
+          "android-compose",
+        ]
+      )
+
+    self.assertEqual(exit_code, 1)
+    self.assertIn("Provide exactly one of --body or --body-file", stderr.getvalue())
+
+  def test_new_addon_surfaces_contract_errors_without_traceback(self) -> None:
+    stderr = io.StringIO()
+    with (
+      contextlib.redirect_stderr(stderr),
+      mock.patch(
+        "skill_bill.scaffold.scaffold",
+        side_effect=PyYAMLMissingError("PyYAML is required to load platform packs."),
+      ),
+    ):
+      exit_code = main(
+        [
+          "new-addon",
+          "--platform",
+          "kmp",
+          "--name",
+          "android-compose",
+          "--body",
+          "# android-compose\n\nUse this add-on.\n",
+        ]
+      )
+
+    self.assertEqual(exit_code, 1)
+    self.assertEqual(stderr.getvalue().strip(), "PyYAML is required to load platform packs.")

@@ -46,8 +46,6 @@ Required top-level fields:
   - `tie_breakers` — list of strings describing post-detection rules that
     disambiguate this platform against overlapping ones (e.g. Kotlin vs. KMP
     vs. backend-Kotlin).
-  - `addon_signals` — optional list of signal hints used by governed add-ons
-    that belong to this platform. May be an empty list.
 - `declared_code_review_areas` — list of area slugs. Each entry must be one of
   the approved areas: `architecture`, `performance`, `platform-correctness`,
   `security`, `testing`, `api-contracts`, `persistence`, `reliability`, `ui`,
@@ -63,10 +61,6 @@ Required top-level fields:
   to descriptor metadata used to auto-render the governed `## Descriptor`
   section. Required sub-fields:
   - `focus` — non-empty string describing the area's review focus.
-- `governs_addons` — optional boolean. Packs that own governed add-ons must
-  set this to `true`. Defaults to `false` when omitted. (Used by internal
-  tooling; does not affect the shell's loud-fail behavior.)
-
 Optional top-level fields:
 
 - `display_name` — human-readable label for installers and docs.
@@ -102,6 +96,22 @@ Each governed skill directory must also contain:
   `## Execution` pointer in `SKILL.md`.
 - `shell-ceremony.md` — shared ceremony sidecar, usually a sibling symlink to
   `orchestration/shell-content-contract/shell-ceremony.md`.
+
+## Governed Add-On Consumption
+
+Governed add-ons are pack-owned supporting files under
+`platform-packs/<platform>/addons/`. They are not standalone skills, routed
+entry points, or cross-pack assets.
+
+After stack routing selects a platform pack, any platform-owned governed skill
+in that same pack may reference the pack's add-ons from its sibling
+`content.md` as supporting guidance.
+
+- Add-on selection happens after stack routing, never before it.
+- Add-ons enrich the already-routed platform skill; they do not bypass that
+  skill or create a new command surface.
+- Specialist or child skills inside the same pack may consume already-selected
+  add-ons, but they must still treat them as subordinate supporting files.
 
 ## Required Content File (quality-check)
 

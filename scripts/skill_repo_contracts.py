@@ -21,14 +21,11 @@ ADDON_DIRECTORY_NAME = "addons"
 ADDON_IMPLEMENTATION_SUFFIX = "-implementation.md"
 ADDON_REVIEW_SUFFIX = "-review.md"
 ADDON_REPORTING_LINE = "Selected add-ons: none | <add-on slugs>"
-# TODO(SKILL-14 follow-up): migrate GOVERNED_STACK_ADDONS to discovery from
-# platform-packs/<slug>/platform.yaml (using the `governs_addons: true` flag
-# and the declared `addon_signals`). The SKILL-14 pilot intentionally scopes
-# add-on discovery out: AC9 (manifest-driven routing) covers **routing
-# playbooks and the validator**, and `GOVERNED_STACK_ADDONS` is an internal
-# implementation detail of add-on sidecar wiring. Promoting it to discovery
-# is mechanical but touches every skill sidecar graph, which is bigger than
-# this pilot. Tracking in SKILL-15.
+# TODO(SKILL-14 follow-up): replace GOVERNED_STACK_ADDONS with discovery from
+# pack-owned add-on files or routed skill supporting content. The SKILL-14
+# pilot intentionally scoped add-on discovery out: AC9 (manifest-driven
+# routing) covers routing playbooks and the validator, while
+# GOVERNED_STACK_ADDONS remains an internal sidecar-wiring table.
 GOVERNED_STACK_ADDONS: dict[str, tuple[str, ...]] = {
   "kmp": (
     "android-compose",

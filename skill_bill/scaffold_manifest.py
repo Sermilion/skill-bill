@@ -243,13 +243,11 @@ def render_platform_pack_manifest(
   display_name: str,
   strong_signals: list[str],
   tie_breakers: list[str] | None = None,
-  addon_signals: list[str] | None = None,
   declared_code_review_areas: list[str] | None = None,
   baseline_content_path: str,
   declared_area_files: dict[str, str] | None = None,
   declared_quality_check_file: str | None = None,
   area_metadata: dict[str, str] | None = None,
-  governs_addons: bool = False,
   notes: str | None = None,
 ) -> str:
   """Render a canonical ``platform.yaml`` for a newly scaffolded pack.
@@ -262,13 +260,11 @@ def render_platform_pack_manifest(
   declared_area_files = declared_area_files or {}
   area_metadata = area_metadata or {}
   tie_breakers = tie_breakers or []
-  addon_signals = addon_signals or []
 
   lines: list[str] = [
     f"platform: {_yaml_scalar(platform)}",
     f"contract_version: {_yaml_scalar(SHELL_CONTRACT_VERSION)}",
     f"display_name: {_yaml_scalar(display_name)}",
-    f"governs_addons: {'true' if governs_addons else 'false'}",
     "",
     "routing_signals:",
     "  strong:",
@@ -278,8 +274,6 @@ def render_platform_pack_manifest(
     "  tie_breakers: []" if not tie_breakers else "  tie_breakers:"
   )
   lines.extend(f"    - {_yaml_scalar(entry)}" for entry in tie_breakers)
-  lines.append("  addon_signals: []" if not addon_signals else "  addon_signals:")
-  lines.extend(f"    - {_yaml_scalar(entry)}" for entry in addon_signals)
   lines.extend(
     [
       "",

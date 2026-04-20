@@ -6,7 +6,6 @@ routing_signals:
   - .fixture
   tie_breakers:
   - Prefer valid_pack when generic markers dominate.
-  addon_signals: []
 declared_code_review_areas:
 - architecture
 declared_files:

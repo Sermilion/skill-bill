@@ -1,7 +1,6 @@
 platform: kotlin
 contract_version: "1.1"
 display_name: Kotlin
-governs_addons: false
 
 routing_signals:
   strong:
@@ -11,7 +10,6 @@ routing_signals:
   tie_breakers:
     - "If Android/KMP markers (androidMain, iosMain, AndroidManifest.xml, expect/actual) are present, prefer the KMP pack."
     - "Otherwise route generic Kotlin/JVM libraries, CLIs, shared utilities, and backend/server Kotlin work to this pack."
-  addon_signals: []
 
 declared_code_review_areas:
   - architecture
