@@ -57,6 +57,7 @@ from skill_bill.scaffold_template import (
   default_area_focus,
   infer_skill_description,
   render_default_section,
+  render_content_body,
   render_descriptor_section,
   render_skill_frontmatter,
   render_project_overrides,
@@ -799,35 +800,24 @@ def _render_skill_body(plan: dict[str, Any], payload: dict) -> str:
 
 def _render_governed_content_body(plan: dict[str, Any], payload: dict) -> str:
   """Render the authored `content.md` body for governed platform-pack skills."""
-  sections: list[str] = []
-  if plan["family"] == "quality-check":
-    sections.extend(
-      [
-        "## Execution Steps\n\nTODO: author the execution steps for "
-        f"`{plan['skill_name']}`.\n",
-        "## Fix Strategy\n\nTODO: author the fix strategy for "
-        f"`{plan['skill_name']}`.\n",
-      ]
-    )
-  elif plan["family"] == "code-review" and not plan["area"]:
-    sections.append(
-      "TODO: author the governed content body. Keep shell metadata, telemetry rules, and "
-      "other shared ceremony in `SKILL.md` or shared sidecars, not here.\n"
-    )
-  else:
-    sections.append(
-      "TODO: author the governed content body. Keep shell metadata, telemetry rules, and "
-      "other shared ceremony in `SKILL.md` or shared sidecars, not here.\n"
-    )
-
-  title = "Content"
-  if plan["family"] == "quality-check":
-    title = "Quality-Check Content"
-  elif plan["family"] == "code-review" and plan["area"]:
-    title = f"{plan['area'].replace('-', ' ').title()} Content"
-  elif plan["family"] == "code-review":
-    title = "Review Content"
-  return f"# {title}\n\n" + "\n".join(sections)
+  platform = plan["platform"]
+  display_name = plan.get("display_name") or (
+    _derive_display_name(platform) if platform else ""
+  )
+  context = ScaffoldTemplateContext(
+    skill_name=plan["skill_name"],
+    family=plan["family"],
+    platform=platform,
+    area=plan["area"],
+    display_name=display_name,
+  )
+  description = _optional_string(payload, "description") or infer_skill_description(context)
+  content_body = _optional_string(payload, "content_body") or None
+  return render_content_body(
+    context,
+    description=description,
+    content_body=content_body,
+  )
 
 
 def _render_addon_body(plan: dict[str, Any], payload: dict) -> str:
