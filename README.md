@@ -422,9 +422,12 @@ Skill Bill v1.1 splits every governed skill into two sibling files:
   skill", this is usually the file they mean. Open it with
   `skill-bill edit <skill-name>`; by default it walks each authored H2
   section in the terminal with replace / append / clear / skip actions.
-  Pass `--editor` to hand off to `$VISUAL` or `$EDITOR`, or `--body-file`
-  to replace `content.md` from stdin or another path. The command then
-  regenerates the wrapper and reruns validation.
+  Pass `--section <heading>` to target one section, `--editor` to hand
+  off to `$VISUAL` or `$EDITOR`, or `--body-file` to replace the full
+  body (or one targeted section) from stdin or another path. For scripted
+  or agent-authored writes, use `skill-bill fill <skill-name> --body-file`
+  or `--body`; it writes `content.md`, regenerates the wrapper, and
+  reruns validation without manual file editing.
 - **`SKILL.md`** — generated governance shell. Agents execute through
   this file, but authors normally should not edit it directly. It carries
   frontmatter (`name`, `description`), the required governed H2 set, a
@@ -476,17 +479,25 @@ Preferred path:
 
 - from inside an AI agent, run `/bill-create-skill`. The skill starts with plain-language intake, gathers only the missing authoring details, previews the inferred scaffold, then subprocess-calls `skill-bill new --payload <tempfile>` to materialize it.
 - outside an agent (scripts, CI, teams piloting a new platform), run `skill-bill new --interactive` for the same plain-language bootstrap flow, or pass a JSON payload file with `skill-bill new --payload ./payload.json`.
+- when you want one command that scaffolds and drops directly into authoring, use `skill-bill create-and-fill --interactive` (or `--payload`). It is only for one content-managed skill at a time; use `skill-bill new` for platform-pack bootstrap flows.
 
 Terminal-first loop for one concrete skill:
 
 1. `skill-bill new --interactive`
-2. `skill-bill edit <skill-name>`
-3. `skill-bill list`
-4. `skill-bill validate --skill-name <skill-name>`
-5. `skill-bill render --skill-name <skill-name>` when wrapper templates change
+2. `skill-bill show <skill-name>`
+3. `skill-bill edit <skill-name>` or `skill-bill fill <skill-name> --body-file -`
+4. `skill-bill doctor skill <skill-name>`
+5. `skill-bill validate --skill-name <skill-name>`
+6. `skill-bill render --skill-name <skill-name>` when wrapper templates change
 
 `skill-bill new-skill` and `skill-bill upgrade` remain supported as the
 lower-level command names behind `new` and `render`.
+
+Additional authoring helpers:
+
+- `skill-bill show <skill-name>` gives a stable read path for humans and agents: section headings, completion status, drift status, and recommended next commands.
+- `skill-bill explain [<skill-name>]` explains the governed boundary between `content.md`, generated `SKILL.md`, and shared sidecars.
+- `skill-bill doctor skill <skill-name>` runs isolated validation and returns a plain-language diagnosis plus the next commands to run.
 
 For governed skills, the interactive flow can seed an initial `content.md`
 body so the authored behavior is captured at scaffold time instead of being

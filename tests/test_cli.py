@@ -397,6 +397,233 @@ class AuthoringCliTest(unittest.TestCase):
       any("unresolved TODO/FIXME placeholder" in issue for issue in payload["issues"])
     )
 
+  def test_show_reports_section_status_and_recommended_commands(self) -> None:
+    content_file = (
+      self.repo
+      / "platform-packs"
+      / "kotlin"
+      / "code-review"
+      / "bill-kotlin-code-review"
+      / "content.md"
+    )
+    content_file.write_text(
+      "# Review Content\n\n## Review Focus\n\nCurrent focus.\n\n## Review Guidance\n\nTODO: add guidance.\n",
+      encoding="utf-8",
+    )
+
+    stdout = io.StringIO()
+    with contextlib.redirect_stdout(stdout):
+      exit_code = main(
+        [
+          "show",
+          "bill-kotlin-code-review",
+          "--repo-root",
+          str(self.repo),
+          "--content",
+          "none",
+          "--format",
+          "json",
+        ]
+      )
+
+    self.assertEqual(exit_code, 0)
+    payload = json.loads(stdout.getvalue())
+    self.assertEqual(payload["completion_status"], "draft")
+    self.assertEqual(
+      [section["heading"] for section in payload["sections"]],
+      ["Review Focus", "Review Guidance"],
+    )
+    self.assertTrue(
+      any(command.startswith("skill-bill edit bill-kotlin-code-review") for command in payload["recommended_commands"])
+    )
+
+  def test_fill_updates_single_section_and_regenerates_wrapper(self) -> None:
+    target_dir = (
+      self.repo
+      / "platform-packs"
+      / "kotlin"
+      / "code-review"
+      / "bill-kotlin-code-review"
+    )
+    content_file = target_dir / "content.md"
+    content_file.write_text(
+      "# Review Content\n\n## Review Focus\n\nCurrent focus.\n\n## Review Guidance\n\nTODO: fill this in.\n",
+      encoding="utf-8",
+    )
+
+    stdout = io.StringIO()
+    with (
+      contextlib.redirect_stdout(stdout),
+      mock.patch("skill_bill.upgrade._run_validator", return_value=None),
+    ):
+      exit_code = main(
+        [
+          "fill",
+          "bill-kotlin-code-review",
+          "--repo-root",
+          str(self.repo),
+          "--section",
+          "Review Guidance",
+          "--body",
+          "- Check auth flows and secret handling.",
+          "--format",
+          "json",
+        ]
+      )
+
+    self.assertEqual(exit_code, 0)
+    payload = json.loads(stdout.getvalue())
+    self.assertEqual(payload["updated_section"], "Review Guidance")
+    rendered = content_file.read_text(encoding="utf-8")
+    self.assertIn("- Check auth flows and secret handling.", rendered)
+    self.assertIn("## Review Focus", rendered)
+    self.assertIn("Current focus.", rendered)
+    self.assertTrue(payload["wrapper_regenerated"])
+
+  def test_edit_can_target_single_section(self) -> None:
+    target_dir = (
+      self.repo
+      / "platform-packs"
+      / "kotlin"
+      / "code-review"
+      / "bill-kotlin-code-review"
+    )
+    content_file = target_dir / "content.md"
+    content_file.write_text(
+      "# Review Content\n\n## Review Focus\n\nLeave me alone.\n\n## Review Guidance\n\nOld guidance.\n",
+      encoding="utf-8",
+    )
+
+    stdout = io.StringIO()
+    with (
+      contextlib.redirect_stdout(stdout),
+      mock.patch("skill_bill.upgrade._run_validator", return_value=None),
+      mock.patch(
+        "builtins.input",
+        side_effect=[
+          "r",
+          "Updated targeted guidance.",
+          ".done",
+        ],
+      ),
+    ):
+      exit_code = main(
+        [
+          "edit",
+          "bill-kotlin-code-review",
+          "--repo-root",
+          str(self.repo),
+          "--section",
+          "Review Guidance",
+          "--format",
+          "json",
+        ]
+      )
+
+    self.assertEqual(exit_code, 0)
+    output = stdout.getvalue()
+    payload = json.loads(output[output.index("{"):])
+    self.assertEqual(payload["updated_section"], "Review Guidance")
+    rendered = content_file.read_text(encoding="utf-8")
+    self.assertIn("Updated targeted guidance.", rendered)
+    self.assertIn("## Review Focus", rendered)
+    self.assertIn("Leave me alone.", rendered)
+
+  def test_doctor_skill_reports_plain_language_diagnosis(self) -> None:
+    content_file = (
+      self.repo
+      / "platform-packs"
+      / "kotlin"
+      / "code-review"
+      / "bill-kotlin-code-review"
+      / "content.md"
+    )
+    content_file.write_text("# Review Content\n\nTODO: unresolved\n", encoding="utf-8")
+
+    stdout = io.StringIO()
+    with contextlib.redirect_stdout(stdout):
+      exit_code = main(
+        [
+          "doctor",
+          "skill",
+          "bill-kotlin-code-review",
+          "--repo-root",
+          str(self.repo),
+          "--content",
+          "none",
+          "--format",
+          "json",
+        ]
+      )
+
+    self.assertEqual(exit_code, 1)
+    payload = json.loads(stdout.getvalue())
+    self.assertEqual(payload["status"], "fail")
+    self.assertIn("Validation found contract or content issues", payload["diagnosis"])
+    self.assertTrue(
+      any(command.startswith("skill-bill edit bill-kotlin-code-review") for command in payload["recommended_commands"])
+    )
+
+  def test_create_and_fill_scaffolds_one_skill_and_writes_authored_body(self) -> None:
+    payload_path = self.repo / "payload.json"
+    payload_path.write_text(
+      json.dumps(
+        {
+          "scaffold_payload_version": "1.0",
+          "kind": "code-review-area",
+          "platform": "kotlin",
+          "area": "security",
+        }
+      ),
+      encoding="utf-8",
+    )
+    body_path = self.repo / "body.md"
+    body_path.write_text(
+      "## Focus\n\nReview Kotlin security-sensitive changes.\n\n"
+      "## Review Triggers\n\n- Auth, tokens, secrets.\n\n"
+      "## Review Guidance\n\n- Check secret handling and auth boundaries.\n",
+      encoding="utf-8",
+    )
+    upgrade_skill_wrappers(self.repo, validate=False)
+
+    stdout = io.StringIO()
+    with (
+      contextlib.redirect_stdout(stdout),
+      mock.patch("pathlib.Path.cwd", return_value=self.repo),
+      mock.patch("skill_bill.scaffold._run_validator", return_value=None),
+      mock.patch("skill_bill.scaffold._perform_install", return_value=([], [])),
+      mock.patch("skill_bill.upgrade._run_validator", return_value=None),
+      mock.patch(
+        "skill_bill.config.load_telemetry_settings",
+        return_value=SimpleNamespace(level="anonymous"),
+      ),
+    ):
+      exit_code = main(
+        [
+          "create-and-fill",
+          "--payload",
+          str(payload_path),
+          "--body-file",
+          str(body_path),
+          "--format",
+          "json",
+        ]
+      )
+
+    self.assertEqual(exit_code, 0)
+    payload = json.loads(stdout.getvalue())
+    self.assertEqual(payload["scaffold"]["skill_name"], "bill-kotlin-code-review-security")
+    self.assertEqual(payload["authoring"]["completion_status"], "complete")
+    content_file = (
+      self.repo
+      / "platform-packs"
+      / "kotlin"
+      / "code-review"
+      / "bill-kotlin-code-review-security"
+      / "content.md"
+    )
+    self.assertIn("Review Kotlin security-sensitive changes.", content_file.read_text(encoding="utf-8"))
+
 
 class NewAddonCliTest(unittest.TestCase):
   def setUp(self) -> None:

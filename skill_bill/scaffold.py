@@ -405,6 +405,26 @@ def _ordered_approved_code_review_areas() -> tuple[str, ...]:
   return tuple(sorted(APPROVED_CODE_REVIEW_AREAS))
 
 
+def _platform_pack_specialist_areas(payload: dict) -> list[str] | None:
+  raw = payload.get("specialist_areas")
+  if raw is None:
+    return None
+  if not isinstance(raw, list) or not all(isinstance(item, str) and item for item in raw):
+    raise InvalidScaffoldPayloadError(
+      "Scaffold payload field 'specialist_areas' must be a list of non-empty strings when provided."
+    )
+
+  approved = set(_ordered_approved_code_review_areas())
+  requested = {item for item in raw}
+  unknown = sorted(requested - approved)
+  if unknown:
+    raise InvalidScaffoldPayloadError(
+      f"Scaffold payload field 'specialist_areas' contains unknown areas {unknown}; "
+      f"approved areas: {sorted(approved)}."
+    )
+  return [area for area in _ordered_approved_code_review_areas() if area in requested]
+
+
 def _require_canonical_name(payload: dict, *, default_name: str) -> str:
   provided = _optional_string(payload, "name")
   if not provided:
@@ -511,6 +531,11 @@ def _plan_platform_pack(payload: dict, repo_root: Path) -> dict[str, Any]:
   platform = _require_string(payload, "platform")
   defaults = _resolve_platform_pack_defaults(payload, platform)
   skeleton_mode = _platform_pack_skeleton_mode(payload)
+  selected_specialist_areas = _platform_pack_specialist_areas(payload)
+  if selected_specialist_areas is not None and "skeleton_mode" in payload:
+    raise InvalidScaffoldPayloadError(
+      "Scaffold payload may not provide both 'skeleton_mode' and 'specialist_areas'; choose one specialist selection mode."
+    )
   strong_signals = defaults["routing_signals"]["strong"]
   tie_breakers = defaults["routing_signals"]["tie_breakers"]
   display_name = defaults["display_name"]
@@ -531,9 +556,13 @@ def _plan_platform_pack(payload: dict, repo_root: Path) -> dict[str, Any]:
   quality_check_skill_path = pack_root / "quality-check" / quality_check_name
   manifest_path = pack_root / "platform.yaml"
   specialist_areas = (
-    list(_ordered_approved_code_review_areas())
-    if skeleton_mode == PLATFORM_PACK_SKELETON_FULL
-    else []
+    selected_specialist_areas
+    if selected_specialist_areas is not None
+    else (
+      list(_ordered_approved_code_review_areas())
+      if skeleton_mode == PLATFORM_PACK_SKELETON_FULL
+      else []
+    )
   )
   specialist_skill_names = {
     area: f"bill-{platform}-code-review-{area}"
@@ -557,7 +586,12 @@ def _plan_platform_pack(payload: dict, repo_root: Path) -> dict[str, Any]:
       0,
       f"Applied built-in platform preset for '{platform}'. Override 'routing_signals' only when the defaults need adjustment.",
     )
-  if skeleton_mode == PLATFORM_PACK_SKELETON_FULL:
+  if selected_specialist_areas is not None:
+    notes.insert(
+      1 if defaults["preset_used"] else 0,
+      f"Custom skeleton scaffolded with {len(specialist_areas)} approved code-review area stubs.",
+    )
+  elif skeleton_mode == PLATFORM_PACK_SKELETON_FULL:
     notes.insert(
       1 if defaults["preset_used"] else 0,
       f"Full skeleton scaffolded with {len(specialist_areas)} approved code-review area stubs.",

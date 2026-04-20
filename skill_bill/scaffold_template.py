@@ -552,7 +552,7 @@ def _render_governed_content_starter(
   if context.family == "quality-check":
     summary = description or infer_skill_description(context)
     return (
-      f"## Scope\n\n{summary}\n\n"
+      f"## Purpose\n\n{summary}\n\n"
       "## Execution Steps\n\n"
       "1. Determine the files in scope for the current unit of work.\n"
       "2. Run the platform's quality-check entrypoint and capture the failures.\n"
@@ -581,11 +581,10 @@ def _render_governed_content_starter(
   summary = description or infer_skill_description(context)
   return (
     f"## Review Focus\n\n{summary}\n\n"
-    "## Project Signals\n\n"
-    "- List the modules, file patterns, frameworks, or product areas that should bias this skill.\n"
-    "- Capture any repo-specific routing cues that do not belong in the shared shell.\n\n"
     "## Review Guidance\n\n"
     "- Document the project-specific risks, heuristics, and judgment calls this skill should apply.\n"
+    "- Call out any local modules, file patterns, frameworks, or product areas that should bias review.\n"
+    "- Capture repo-specific routing cues here only when they matter to review behavior after selection.\n"
     "- Keep shell ceremony, output formatting rules, and telemetry mechanics out of this file.\n"
     "- Reference governed add-ons here only when they enrich an already-routed platform skill.\n"
   )

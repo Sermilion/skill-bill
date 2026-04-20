@@ -78,6 +78,13 @@ class GovernedSkillTarget:
   content_file: Path
 
 
+@dataclass(frozen=True)
+class ScaffoldCommandOutcome:
+  exit_code: int
+  result: object | None
+  payload: dict[str, object] | None
+
+
 def import_review_command(args: argparse.Namespace) -> int:
   text, source_path = read_input(args.input)
   review = parse_review(text)
@@ -371,7 +378,7 @@ def version_command(args: argparse.Namespace) -> int:
   return 0
 
 
-def _run_scaffold_command(payload: dict, args: argparse.Namespace) -> int:
+def _execute_scaffold_command(payload: dict, args: argparse.Namespace) -> ScaffoldCommandOutcome:
   from skill_bill import scaffold as _scaffold
   from skill_bill import scaffold_domain as _scaffold_domain
   from skill_bill.config import load_telemetry_settings
@@ -429,7 +436,11 @@ def _run_scaffold_command(payload: dict, args: argparse.Namespace) -> int:
     # every failure mode into exit code 1 and throw away the typed contract
     # the exit_code_map exposes to callers.
     print(str(error), file=sys.stderr)
-    return exit_code_map.get(type(error), 1)
+    return ScaffoldCommandOutcome(
+      exit_code=exit_code_map.get(type(error), 1),
+      result=None,
+      payload=None,
+    )
   # Non-ScaffoldError exceptions (real bugs) propagate so the user gets a
   # traceback instead of a silently-collapsed "user error".
 
@@ -445,8 +456,10 @@ def _run_scaffold_command(payload: dict, args: argparse.Namespace) -> int:
     level=level,
   )
 
-  emit(
-    {
+  return ScaffoldCommandOutcome(
+    exit_code=0,
+    result=result,
+    payload={
       "session_id": session_id,
       "kind": result.kind,
       "skill_name": result.skill_name,
@@ -460,9 +473,17 @@ def _run_scaffold_command(payload: dict, args: argparse.Namespace) -> int:
       "started_payload": started_payload,
       "finished_payload": finished_payload,
     },
-    args.format,
   )
-  return 0
+
+
+def _run_scaffold_command(payload: dict, args: argparse.Namespace) -> int:
+  outcome = _execute_scaffold_command(payload, args)
+  if outcome.payload is not None:
+    emit(
+      outcome.payload,
+      args.format,
+    )
+  return outcome.exit_code
 
 
 def new_skill_command(args: argparse.Namespace) -> int:
@@ -515,6 +536,60 @@ def _prompt_choice(prompt: str, choices: dict[str, str]) -> str:
     if raw in choices:
       return choices[raw]
     print(f"Choose one of: {', '.join(choices)}")
+
+
+def _prompt_choice_with_default(
+  prompt: str,
+  choices: dict[str, str],
+  *,
+  default: str,
+) -> str:
+  if default not in choices:
+    raise ValueError(f"Unknown default choice '{default}'.")
+  while True:
+    raw = input(prompt).strip().lower()
+    if not raw:
+      return choices[default]
+    if raw in choices:
+      return choices[raw]
+    print(f"Choose one of: {', '.join(choices)}")
+
+
+def _prompt_code_review_area_subset() -> list[str]:
+  from skill_bill.scaffold import APPROVED_CODE_REVIEW_AREAS
+
+  ordered_areas = sorted(APPROVED_CODE_REVIEW_AREAS)
+  print("Available approved areas:")
+  for index, area in enumerate(ordered_areas, start=1):
+    print(f"{index}. {area}")
+
+  index_map = {str(index): area for index, area in enumerate(ordered_areas, start=1)}
+  area_map = {area: area for area in ordered_areas}
+  while True:
+    raw = _prompt_nonempty(
+      "Choose areas (comma-separated names or numbers): "
+    ).strip().lower()
+    resolved: set[str] = set()
+    invalid: list[str] = []
+    for item in (part.strip() for part in raw.split(",")):
+      if not item:
+        continue
+      if item in {"all", "*"}:
+        return ordered_areas
+      if item in {"none", "0"}:
+        return []
+      area = index_map.get(item) or area_map.get(item)
+      if area is None:
+        invalid.append(item)
+        continue
+      resolved.add(area)
+    if invalid:
+      print(f"Unknown areas: {', '.join(invalid)}")
+      continue
+    if not resolved:
+      print("Choose at least one area, or enter 'none'.")
+      continue
+    return [area for area in ordered_areas if area in resolved]
 
 
 def _platform_pack_exists(platform: str, *, repo_root: Path | None = None) -> bool:
@@ -704,6 +779,177 @@ def _content_completion_status(text: str) -> str:
   return "complete"
 
 
+def _normalize_section_heading(section_name: str) -> str:
+  heading = section_name.strip()
+  if not heading:
+    raise ValueError("Section name must be non-empty.")
+  if heading.startswith("## "):
+    return heading
+  return f"## {heading}"
+
+
+def _section_heading_label(section_name: str) -> str:
+  return _normalize_section_heading(section_name).removeprefix("## ").strip()
+
+
+def _preview_text(text: str, *, limit: int = 200) -> str:
+  collapsed = " ".join(line.strip() for line in text.splitlines() if line.strip())
+  if len(collapsed) <= limit:
+    return collapsed
+  return collapsed[: limit - 1].rstrip() + "…"
+
+
+def _section_payloads(text: str) -> list[dict[str, object]]:
+  _prefix, sections = _parse_content_sections(text)
+  payload: list[dict[str, object]] = []
+  for heading, body in sections:
+    payload.append(
+      {
+        "heading": heading.removeprefix("## ").strip(),
+        "status": _section_completion_status(body),
+        "line_count": len([line for line in body.splitlines() if line.strip()]),
+        "preview": _preview_text(body),
+      }
+    )
+  return payload
+
+
+def _replace_section_body(text: str, section_name: str, new_body: str) -> str:
+  prefix, sections = _parse_content_sections(text)
+  normalized = _normalize_section_heading(section_name)
+  replacement = new_body.rstrip()
+  updated_sections: list[tuple[str, str]] = []
+  matched = False
+  for heading, body in sections:
+    if heading == normalized:
+      updated_sections.append((heading, replacement))
+      matched = True
+      continue
+    updated_sections.append((heading, body))
+  if not matched:
+    available = ", ".join(heading.removeprefix("## ").strip() for heading, _body in sections)
+    raise ValueError(
+      f"Unknown content section '{_section_heading_label(section_name)}'. "
+      f"Available sections: {available}."
+    )
+  return _render_content_sections(prefix, updated_sections)
+
+
+def _full_content_title(target: GovernedSkillTarget) -> str:
+  existing = target.content_file.read_text(encoding="utf-8")
+  for line in existing.splitlines():
+    stripped = line.strip()
+    if stripped.startswith("# "):
+      return stripped
+    if stripped:
+      break
+  return "# Content"
+
+
+def _coerce_full_content_text(target: GovernedSkillTarget, body_text: str) -> str:
+  stripped = body_text.strip()
+  if not stripped:
+    raise ValueError("Filled content must be non-empty.")
+  if stripped.startswith("# "):
+    rendered = stripped
+  else:
+    rendered = f"{_full_content_title(target)}\n\n{stripped}"
+  return rendered.rstrip() + "\n"
+
+
+def _resolve_content_managed_target(repo_root: Path, skill_name: str) -> GovernedSkillTarget:
+  editable_targets = _discover_content_managed_skill_targets(repo_root)
+  target = editable_targets.get(skill_name)
+  if target is None:
+    raise ValueError(
+      f"Skill '{skill_name}' is not a content-managed skill with a sibling content.md file."
+    )
+  return target
+
+
+def _build_recommended_commands(
+  repo_root: Path,
+  target: GovernedSkillTarget,
+  *,
+  completion_status: str,
+  generation_drift: bool,
+  issues: list[str] | None = None,
+) -> list[str]:
+  commands: list[str] = [
+    f"skill-bill show {target.skill_name} --repo-root {shlex.quote(str(repo_root))}",
+  ]
+  if completion_status != "complete":
+    commands.append(
+      f"skill-bill edit {target.skill_name} --repo-root {shlex.quote(str(repo_root))}"
+    )
+  if generation_drift:
+    commands.append(
+      f"skill-bill render --repo-root {shlex.quote(str(repo_root))} --skill-name {target.skill_name}"
+    )
+  if issues:
+    commands.append(
+      f"skill-bill validate --repo-root {shlex.quote(str(repo_root))} --skill-name {target.skill_name}"
+    )
+
+  deduped: list[str] = []
+  seen: set[str] = set()
+  for command in commands:
+    if command in seen:
+      continue
+    deduped.append(command)
+    seen.add(command)
+  return deduped
+
+
+def _skill_status_payload(
+  repo_root: Path,
+  target: GovernedSkillTarget,
+  *,
+  content_mode: str = "preview",
+  issues: list[str] | None = None,
+) -> dict[str, object]:
+  from skill_bill.upgrade import render_upgrade_targets
+
+  content_text = target.content_file.read_text(encoding="utf-8")
+  rendered_targets = render_upgrade_targets(
+    repo_root,
+    skill_names=[target.skill_name],
+  )
+  generation_drift = (
+    rendered_targets.get(target.skill_file) is not None
+    and target.skill_file.read_text(encoding="utf-8")
+    != rendered_targets[target.skill_file]
+  )
+  completion_status = _content_completion_status(content_text)
+  payload: dict[str, object] = {
+    "skill_name": target.skill_name,
+    "package": target.package,
+    "platform": target.platform,
+    "family": target.family,
+    "area": target.area,
+    "skill_file": str(target.skill_file),
+    "content_file": str(target.content_file),
+    "completion_status": completion_status,
+    "generation_drift": generation_drift,
+    "section_count": len(_parse_content_sections(content_text)[1]),
+    "sections": _section_payloads(content_text),
+    "recommended_commands": _build_recommended_commands(
+      repo_root,
+      target,
+      completion_status=completion_status,
+      generation_drift=generation_drift,
+      issues=issues or [],
+    ),
+  }
+  if content_mode == "preview":
+    payload["content_preview"] = _preview_text(content_text, limit=400)
+  elif content_mode == "full":
+    payload["content"] = content_text
+  if issues is not None:
+    payload["issues"] = issues
+  return payload
+
+
 def _render_multiline_section_input(prompt: str, *, terminator: str = ".done") -> str:
   print(prompt)
   lines: list[str] = []
@@ -726,6 +972,33 @@ def _prompt_edit_action() -> str:
       "d": "done",
     },
   )
+
+
+def _prompt_single_section_edit(heading: str, body: str) -> tuple[str, dict[str, str]]:
+  status = _section_completion_status(body)
+  print(f"{heading} [{status}]")
+  print(body.rstrip() or "(empty)")
+  action = _prompt_edit_action()
+  if action in {"done", "skip"}:
+    updated = body
+  elif action == "clear":
+    updated = ""
+  else:
+    prompt = (
+      f"Enter text for {heading}. Finish with '.done'."
+      if action == "replace"
+      else f"Append text for {heading}. Finish with '.done'."
+    )
+    entered = _render_multiline_section_input(prompt)
+    if action == "replace":
+      updated = entered
+    else:
+      existing = body.rstrip()
+      updated = entered if not existing else f"{existing}\n\n{entered}".rstrip()
+  return updated, {
+    "heading": heading.removeprefix("## ").strip(),
+    "status": _section_completion_status(updated),
+  }
 
 
 def _edit_content_guided(content_file: Path) -> tuple[str, list[dict[str, str]]]:
@@ -775,6 +1048,30 @@ def _edit_content_guided(content_file: Path) -> tuple[str, list[dict[str, str]]]
     for heading, body in updated_sections
   ]
   return rendered, section_payload
+
+
+def _edit_single_section_guided(content_file: Path, section_name: str) -> tuple[str, list[dict[str, str]]]:
+  text = content_file.read_text(encoding="utf-8")
+  prefix, sections = _parse_content_sections(text)
+  normalized = _normalize_section_heading(section_name)
+  updated_sections: list[tuple[str, str]] = []
+  matched = False
+  payload: list[dict[str, str]] = []
+  for heading, body in sections:
+    if heading != normalized:
+      updated_sections.append((heading, body))
+      continue
+    matched = True
+    updated_body, section_payload = _prompt_single_section_edit(heading, body)
+    updated_sections.append((heading, updated_body))
+    payload.append(section_payload)
+  if not matched:
+    available = ", ".join(heading.removeprefix("## ").strip() for heading, _body in sections)
+    raise ValueError(
+      f"Unknown content section '{_section_heading_label(section_name)}'. "
+      f"Available sections: {available}."
+    )
+  return _render_content_sections(prefix, updated_sections), payload
 
 
 def _load_validator_module(repo_root: Path):
@@ -836,6 +1133,28 @@ def _read_text_input(path: str) -> str:
   if path == "-":
     return sys.stdin.read()
   return Path(path).read_text(encoding="utf-8")
+
+
+def _mutate_content_managed_skill(
+  repo_root: Path,
+  target: GovernedSkillTarget,
+  replacement_text: str,
+) -> object:
+  from skill_bill.upgrade import upgrade_skill_wrappers
+
+  content_before = target.content_file.read_bytes()
+  wrapper_before = target.skill_file.read_bytes()
+  try:
+    target.content_file.write_text(replacement_text, encoding="utf-8")
+    return upgrade_skill_wrappers(
+      repo_root,
+      skill_names=[target.skill_name],
+      validate=True,
+    )
+  except Exception:
+    target.content_file.write_bytes(content_before)
+    target.skill_file.write_bytes(wrapper_before)
+    raise
 
 
 def _prompt_multiline(prompt: str, *, terminator: str = "END") -> str:
@@ -909,11 +1228,23 @@ def _prompt_new_skill_interactively(*, repo_root: Path | None = None) -> dict:
   if selection.startswith("platform-pack"):
     payload["kind"] = "platform-pack"
     payload["platform"] = platform
-    include_specialists = _prompt_yes_no(
-      "Include the approved code-review specialist stubs?",
-      default=True,
+    print("Code-review specialist stubs:")
+    print("1. None")
+    print("2. Custom subset")
+    print("3. All")
+    specialist_mode = _prompt_choice_with_default(
+      "Choose 1-3 [default 3]: ",
+      {
+        "1": "none",
+        "2": "custom",
+        "3": "all",
+      },
+      default="3",
     )
-    payload["skeleton_mode"] = "full" if include_specialists else "starter"
+    if specialist_mode == "none":
+      payload["skeleton_mode"] = "starter"
+    elif specialist_mode == "custom":
+      payload["specialist_areas"] = _prompt_code_review_area_subset()
     display_name = input("Display name (blank to derive from slug): ").strip()
     if display_name:
       payload["display_name"] = display_name
@@ -1047,6 +1378,15 @@ def _scaffold_identity(payload: dict) -> str:
   return ""
 
 
+def _payload_creates_content_managed_skill(payload: dict) -> bool:
+  kind = str(payload.get("kind", ""))
+  if kind == "code-review-area":
+    return True
+  if kind == "platform-override-piloted":
+    return str(payload.get("family", "")) in {"code-review", "quality-check"}
+  return False
+
+
 def install_agent_path_command(args: argparse.Namespace) -> int:
   """Print the canonical install directory for a given agent.
 
@@ -1095,6 +1435,11 @@ def install_link_skill_command(args: argparse.Namespace) -> int:
 
 
 def doctor_command(args: argparse.Namespace) -> int:
+  if getattr(args, "subject", "") == "skill":
+    if not args.skill_name:
+      raise ValueError("doctor skill requires a skill name.")
+    return doctor_skill_command(args)
+
   db_path = resolve_db_path(args.db)
   try:
     settings = load_telemetry_settings()
@@ -1115,8 +1460,6 @@ def doctor_command(args: argparse.Namespace) -> int:
 
 
 def list_command(args: argparse.Namespace) -> int:
-  from skill_bill.upgrade import render_upgrade_targets
-
   repo_root = Path(args.repo_root).resolve()
   targets = _discover_content_managed_skill_targets(repo_root)
   if args.skill_name:
@@ -1132,30 +1475,10 @@ def list_command(args: argparse.Namespace) -> int:
       if skill_name in selected_names
     }
 
-  rendered_targets = render_upgrade_targets(
-    repo_root,
-    skill_names=targets.keys(),
-  )
   payload_skills: list[dict[str, object]] = []
   for skill_name, target in sorted(targets.items()):
-    content_text = target.content_file.read_text(encoding="utf-8")
-    payload_skills.append(
-      {
-        "skill_name": skill_name,
-        "package": target.package,
-        "platform": target.platform,
-        "family": target.family,
-        "area": target.area,
-        "completion_status": _content_completion_status(content_text),
-        "generation_drift": (
-          rendered_targets.get(target.skill_file) is not None
-          and target.skill_file.read_text(encoding="utf-8")
-          != rendered_targets[target.skill_file]
-        ),
-        "skill_file": str(target.skill_file),
-        "content_file": str(target.content_file),
-      }
-    )
+    del skill_name
+    payload_skills.append(_skill_status_payload(repo_root, target, content_mode="none"))
 
   emit(
     {
@@ -1168,16 +1491,90 @@ def list_command(args: argparse.Namespace) -> int:
   return 0
 
 
+def show_command(args: argparse.Namespace) -> int:
+  repo_root = Path(args.repo_root).resolve()
+  target = _resolve_content_managed_target(repo_root, args.skill_name)
+  emit(_skill_status_payload(repo_root, target, content_mode=args.content), args.format)
+  return 0
+
+
+def explain_command(args: argparse.Namespace) -> int:
+  payload: dict[str, object] = {
+    "explanation": (
+      "Governed skills split author-owned behavior into content.md and generated runtime "
+      "wiring into SKILL.md. Use CLI commands to keep that boundary intact."
+    ),
+    "editable_surface": ["content.md"],
+    "generated_surface": ["SKILL.md"],
+    "governed_sidecars": ["shell-ceremony.md"],
+    "normal_workflow": [
+      "skill-bill new --interactive",
+      "skill-bill edit <skill-name>",
+      "skill-bill validate --skill-name <skill-name>",
+      "skill-bill render --skill-name <skill-name>",
+    ],
+    "notes": [
+      "Author behavior changes in content.md.",
+      "Regenerate wrappers with render instead of hand-editing SKILL.md.",
+      "Use show or doctor skill to inspect completion, drift, and next commands.",
+    ],
+  }
+  if args.skill_name:
+    repo_root = Path(args.repo_root).resolve()
+    target = _resolve_content_managed_target(repo_root, args.skill_name)
+    payload["skill"] = {
+      "skill_name": target.skill_name,
+      "skill_file": str(target.skill_file),
+      "content_file": str(target.content_file),
+      "recommended_commands": _build_recommended_commands(
+        repo_root,
+        target,
+        completion_status=_content_completion_status(
+          target.content_file.read_text(encoding="utf-8")
+        ),
+        generation_drift=_skill_status_payload(repo_root, target, content_mode="none")[
+          "generation_drift"
+        ],
+      ),
+    }
+  emit(payload, args.format)
+  return 0
+
+
 def validate_command(args: argparse.Namespace) -> int:
   repo_root = Path(args.repo_root).resolve()
   if args.skill_name:
     issues = _validate_selected_skills(repo_root, args.skill_name)
+    suggested_commands: list[str] = []
+    for skill_name in args.skill_name:
+      try:
+        target = _resolve_content_managed_target(repo_root, skill_name)
+      except ValueError:
+        continue
+      suggested_commands.extend(
+        _build_recommended_commands(
+          repo_root,
+          target,
+          completion_status=_content_completion_status(
+            target.content_file.read_text(encoding="utf-8")
+          ),
+          generation_drift=_skill_status_payload(repo_root, target, content_mode="none")[
+            "generation_drift"
+          ],
+          issues=issues,
+        )
+      )
+    deduped_commands: list[str] = []
+    for command in suggested_commands:
+      if command not in deduped_commands:
+        deduped_commands.append(command)
     payload = {
       "repo_root": str(repo_root),
       "mode": "selected",
       "skill_names": args.skill_name,
       "status": "pass" if not issues else "fail",
       "issues": issues,
+      "suggested_commands": deduped_commands,
     }
     emit(payload, args.format)
     return 0 if not issues else 1
@@ -1202,6 +1599,31 @@ def validate_command(args: argparse.Namespace) -> int:
     args.format,
   )
   return result.returncode
+
+
+def doctor_skill_command(args: argparse.Namespace) -> int:
+  repo_root = Path(args.repo_root).resolve()
+  target = _resolve_content_managed_target(repo_root, args.skill_name)
+  issues = _validate_selected_skills(repo_root, [target.skill_name])
+  payload = _skill_status_payload(
+    repo_root,
+    target,
+    content_mode=args.content,
+    issues=issues,
+  )
+  if issues:
+    status = "fail"
+    diagnosis = "Validation found contract or content issues that should be fixed before use."
+  elif payload["completion_status"] != "complete" or payload["generation_drift"]:
+    status = "warn"
+    diagnosis = "The skill is usable but still needs authoring cleanup or wrapper regeneration."
+  else:
+    status = "pass"
+    diagnosis = "The skill is complete, wrapper-aligned, and passes isolated validation."
+  payload["status"] = status
+  payload["diagnosis"] = diagnosis
+  emit(payload, args.format)
+  return 0 if status == "pass" else 1
 
 
 def upgrade_command(args: argparse.Namespace) -> int:
@@ -1244,45 +1666,74 @@ def _edit_content_via_editor(content_file: Path) -> bool:
   return True
 
 
-def edit_command(args: argparse.Namespace) -> int:
-  from skill_bill.upgrade import upgrade_skill_wrappers
+def _fill_content_text(
+  target: GovernedSkillTarget,
+  *,
+  body: str,
+  section_name: str | None = None,
+) -> str:
+  if section_name:
+    current = target.content_file.read_text(encoding="utf-8")
+    return _replace_section_body(current, section_name, body)
+  return _coerce_full_content_text(target, body)
 
+
+def fill_command(args: argparse.Namespace) -> int:
   repo_root = Path(args.repo_root).resolve()
-  editable_targets = _discover_content_managed_skill_targets(repo_root)
-  target = editable_targets.get(args.skill_name)
-  if target is None:
-    raise ValueError(
-      f"Skill '{args.skill_name}' is not a content-managed skill with a sibling content.md file."
-    )
+  target = _resolve_content_managed_target(repo_root, args.skill_name)
+  body = args.body if args.body is not None else _read_text_input(args.body_file)
+  replacement = _fill_content_text(
+    target,
+    body=body,
+    section_name=args.section,
+  )
+  upgrade_result = _mutate_content_managed_skill(repo_root, target, replacement)
+  emit(
+    {
+      **_skill_status_payload(repo_root, target, content_mode="none"),
+      "updated_section": (
+        _section_heading_label(args.section) if args.section else None
+      ),
+      "wrapper_regenerated": str(target.skill_file) in {
+        str(path) for path in upgrade_result.regenerated_files
+      },
+      "validator_ran": True,
+    },
+    args.format,
+  )
+  return 0
 
-  content_before = target.content_file.read_bytes()
-  wrapper_before = target.skill_file.read_bytes()
+
+def edit_command(args: argparse.Namespace) -> int:
+  repo_root = Path(args.repo_root).resolve()
+  target = _resolve_content_managed_target(repo_root, args.skill_name)
   used_editor = False
   guided_sections: list[dict[str, str]] = []
 
-  try:
-    if args.body_file:
-      target.content_file.write_text(
-        _read_text_input(args.body_file),
-        encoding="utf-8",
-      )
-    elif args.editor:
-      used_editor = _edit_content_via_editor(target.content_file)
-      if not used_editor:
-        raise ValueError("No $VISUAL or $EDITOR is configured.")
-    else:
-      replacement, guided_sections = _edit_content_guided(target.content_file)
-      target.content_file.write_text(replacement, encoding="utf-8")
+  if args.editor and args.section:
+    raise ValueError("--editor cannot be combined with --section.")
 
-    upgrade_result = upgrade_skill_wrappers(
-      repo_root,
-      skill_names=[target.skill_name],
-      validate=True,
+  if args.body_file:
+    body_text = _read_text_input(args.body_file)
+    replacement = _fill_content_text(
+      target,
+      body=body_text,
+      section_name=args.section,
     )
-  except Exception:
-    target.content_file.write_bytes(content_before)
-    target.skill_file.write_bytes(wrapper_before)
-    raise
+  elif args.editor:
+    used_editor = _edit_content_via_editor(target.content_file)
+    if not used_editor:
+      raise ValueError("No $VISUAL or $EDITOR is configured.")
+    replacement = target.content_file.read_text(encoding="utf-8")
+  elif args.section:
+    replacement, guided_sections = _edit_single_section_guided(
+      target.content_file,
+      args.section,
+    )
+  else:
+    replacement, guided_sections = _edit_content_guided(target.content_file)
+
+  upgrade_result = _mutate_content_managed_skill(repo_root, target, replacement)
 
   emit(
     {
@@ -1295,6 +1746,9 @@ def edit_command(args: argparse.Namespace) -> int:
       "content_file": str(target.content_file),
       "used_editor": used_editor,
       "guided_sections": guided_sections,
+      "updated_section": (
+        _section_heading_label(args.section) if args.section else None
+      ),
       "completion_status": _content_completion_status(
         target.content_file.read_text(encoding="utf-8")
       ),
@@ -1302,6 +1756,80 @@ def edit_command(args: argparse.Namespace) -> int:
         str(path) for path in upgrade_result.regenerated_files
       },
       "validator_ran": True,
+    },
+    args.format,
+  )
+  return 0
+
+
+def create_and_fill_command(args: argparse.Namespace) -> int:
+  if args.payload and args.interactive:
+    raise ValueError("--payload and --interactive are mutually exclusive.")
+  if args.body is not None and args.body_file is not None:
+    raise ValueError("--body and --body-file are mutually exclusive.")
+
+  if args.payload:
+    payload_path = args.payload
+    if payload_path == "-":
+      payload_text = sys.stdin.read()
+    else:
+      with open(payload_path, encoding="utf-8") as stream:
+        payload_text = stream.read()
+    try:
+      payload = json.loads(payload_text)
+    except json.JSONDecodeError as error:
+      raise ValueError(f"Invalid JSON payload: {error}") from error
+  elif args.interactive:
+    payload = _prompt_new_skill_interactively()
+  else:
+    raise ValueError("Either --payload or --interactive is required.")
+
+  if not _payload_creates_content_managed_skill(payload):
+    raise ValueError(
+      "create-and-fill is only available for one content-managed skill at a time "
+      "(code-review areas and shelled platform overrides). "
+      "Use `skill-bill new` for horizontal skills, pre-shell overrides, or platform packs."
+    )
+
+  outcome = _execute_scaffold_command(payload, args)
+  if outcome.exit_code != 0:
+    return outcome.exit_code
+  if args.dry_run:
+    emit(outcome.payload or {}, args.format)
+    return 0
+  if outcome.result is None:
+    raise RuntimeError("Scaffolder reported success without a result payload.")
+
+  repo_root = Path.cwd().resolve()
+  target = _resolve_content_managed_target(repo_root, outcome.result.skill_name)
+  guided_sections: list[dict[str, str]] = []
+  used_editor = False
+  if args.body is not None or args.body_file:
+    replacement = _fill_content_text(
+      target,
+      body=args.body if args.body is not None else _read_text_input(args.body_file),
+    )
+  elif args.editor:
+    used_editor = _edit_content_via_editor(target.content_file)
+    if not used_editor:
+      raise ValueError("No $VISUAL or $EDITOR is configured.")
+    replacement = target.content_file.read_text(encoding="utf-8")
+  else:
+    replacement, guided_sections = _edit_content_guided(target.content_file)
+
+  upgrade_result = _mutate_content_managed_skill(repo_root, target, replacement)
+  emit(
+    {
+      "scaffold": outcome.payload,
+      "authoring": {
+        **_skill_status_payload(repo_root, target, content_mode="none"),
+        "used_editor": used_editor,
+        "guided_sections": guided_sections,
+        "wrapper_regenerated": str(target.skill_file) in {
+          str(path) for path in upgrade_result.regenerated_files
+        },
+        "validator_ran": True,
+      },
     },
     args.format,
   )
@@ -1483,6 +2011,28 @@ def build_parser() -> argparse.ArgumentParser:
   version_parser.set_defaults(handler=version_command)
 
   doctor_parser = subparsers.add_parser("doctor", help="Check skill-bill installation health.")
+  doctor_parser.add_argument(
+    "subject",
+    nargs="?",
+    choices=("skill",),
+    help="Optional diagnostic subject. Use `skill` for one governed skill.",
+  )
+  doctor_parser.add_argument(
+    "skill_name",
+    nargs="?",
+    help="Governed skill name when diagnosing one skill.",
+  )
+  doctor_parser.add_argument(
+    "--repo-root",
+    default=".",
+    help="Repo root to inspect when using `doctor skill`.",
+  )
+  doctor_parser.add_argument(
+    "--content",
+    choices=("none", "preview", "full"),
+    default="preview",
+    help="How much content.md text to include when using `doctor skill`.",
+  )
   doctor_parser.add_argument("--format", choices=("text", "json"), default="text")
   doctor_parser.set_defaults(handler=doctor_command)
 
@@ -1502,6 +2052,42 @@ def build_parser() -> argparse.ArgumentParser:
   )
   list_parser.add_argument("--format", choices=("text", "json"), default="text")
   list_parser.set_defaults(handler=list_command)
+
+  show_parser = subparsers.add_parser(
+    "show",
+    help="Show one content-managed skill with section status, drift, and recommended next commands.",
+  )
+  show_parser.add_argument("skill_name", help="Governed skill name to inspect.")
+  show_parser.add_argument(
+    "--repo-root",
+    default=".",
+    help="Repo root to inspect. Defaults to the current working directory.",
+  )
+  show_parser.add_argument(
+    "--content",
+    choices=("none", "preview", "full"),
+    default="preview",
+    help="How much content.md text to include.",
+  )
+  show_parser.add_argument("--format", choices=("text", "json"), default="text")
+  show_parser.set_defaults(handler=show_command)
+
+  explain_parser = subparsers.add_parser(
+    "explain",
+    help="Explain the governed authoring boundary and the CLI workflow for content-managed skills.",
+  )
+  explain_parser.add_argument(
+    "skill_name",
+    nargs="?",
+    help="Optional governed skill name to explain with concrete paths.",
+  )
+  explain_parser.add_argument(
+    "--repo-root",
+    default=".",
+    help="Repo root to inspect when explaining one skill.",
+  )
+  explain_parser.add_argument("--format", choices=("text", "json"), default="text")
+  explain_parser.set_defaults(handler=explain_command)
 
   validate_parser = subparsers.add_parser(
     "validate",
@@ -1583,8 +2169,38 @@ def build_parser() -> argparse.ArgumentParser:
     action="store_true",
     help="Open content.md in $VISUAL or $EDITOR instead of using guided section editing.",
   )
+  edit_parser.add_argument(
+    "--section",
+    help="Optional authored H2 section name to edit in isolation.",
+  )
   edit_parser.add_argument("--format", choices=("text", "json"), default="text")
   edit_parser.set_defaults(handler=edit_command)
+
+  fill_parser = subparsers.add_parser(
+    "fill",
+    help="Write authored content into content.md, regenerate the wrapper, and validate the result.",
+  )
+  fill_parser.add_argument("skill_name", help="Governed skill name to fill.")
+  fill_parser.add_argument(
+    "--repo-root",
+    default=".",
+    help="Repo root to edit. Defaults to the current working directory.",
+  )
+  fill_group = fill_parser.add_mutually_exclusive_group(required=True)
+  fill_group.add_argument(
+    "--body",
+    help="Body text to write. If it does not start with '# ', the command preserves the existing H1 title.",
+  )
+  fill_group.add_argument(
+    "--body-file",
+    help="Read body text from a file path or '-' for stdin.",
+  )
+  fill_parser.add_argument(
+    "--section",
+    help="Optional authored H2 section name to replace instead of replacing the full body.",
+  )
+  fill_parser.add_argument("--format", choices=("text", "json"), default="text")
+  fill_parser.set_defaults(handler=fill_command)
 
   new_skill_parser = subparsers.add_parser(
     "new-skill",
@@ -1627,6 +2243,41 @@ def build_parser() -> argparse.ArgumentParser:
   )
   new_parser.add_argument("--format", choices=("text", "json"), default="text")
   new_parser.set_defaults(handler=new_skill_command)
+
+  create_and_fill_parser = subparsers.add_parser(
+    "create-and-fill",
+    help="Scaffold one governed skill, then immediately author content.md and validate it.",
+  )
+  create_and_fill_parser.add_argument(
+    "--payload",
+    help="Path to a JSON payload file (or '-' for stdin).",
+  )
+  create_and_fill_parser.add_argument(
+    "--interactive",
+    action="store_true",
+    help="Collect a skill scaffold payload via interactive prompts.",
+  )
+  create_and_fill_parser.add_argument(
+    "--dry-run",
+    action="store_true",
+    help="Plan the scaffold and report the operations without touching disk.",
+  )
+  create_and_fill_group = create_and_fill_parser.add_mutually_exclusive_group()
+  create_and_fill_group.add_argument(
+    "--body",
+    help="Optional authored body to write after scaffolding.",
+  )
+  create_and_fill_group.add_argument(
+    "--body-file",
+    help="Optional file path (or '-' for stdin) to read the authored body from after scaffolding.",
+  )
+  create_and_fill_group.add_argument(
+    "--editor",
+    action="store_true",
+    help="Open the newly scaffolded content.md in $VISUAL or $EDITOR after scaffolding.",
+  )
+  create_and_fill_parser.add_argument("--format", choices=("text", "json"), default="text")
+  create_and_fill_parser.set_defaults(handler=create_and_fill_command)
 
   new_addon_parser = subparsers.add_parser(
     "new-addon",
