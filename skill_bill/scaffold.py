@@ -30,7 +30,7 @@ an interim-location note.
 
 from __future__ import annotations
 
-import subprocess
+import importlib.util
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -64,8 +64,10 @@ from skill_bill.scaffold_template import (
 )
 from skill_bill.shell_content_contract import (
   APPROVED_CODE_REVIEW_AREAS,
+  ShellContentContractError,
   load_platform_manifest,
   load_platform_pack,
+  load_quality_check_content,
 )
 
 
@@ -1161,22 +1163,105 @@ def _stage_sidecar_symlinks(txn: _ScaffoldTransaction, plan: dict[str, Any], rep
   )
 
 
-def _run_validator(repo_root: Path) -> None:
-  """Invoke ``scripts/validate_agent_configs.py`` and raise on failure."""
+def _load_validator_module(repo_root: Path):
+  """Load ``scripts/validate_agent_configs.py`` as an importable module."""
   script_path = repo_root / "scripts" / "validate_agent_configs.py"
   if not script_path.is_file():
+    return None
+
+  scripts_dir = str(script_path.parent)
+  repo_root_str = str(repo_root)
+  sys.path.insert(0, scripts_dir)
+  sys.path.insert(0, repo_root_str)
+  try:
+    spec = importlib.util.spec_from_file_location(
+      "_skill_bill_scaffold_validator",
+      script_path,
+    )
+    if spec is None or spec.loader is None:
+      raise ScaffoldValidatorError(
+        f"Validator failed after scaffolding: could not load '{script_path}'."
+      )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+  finally:
+    for entry in (repo_root_str, scripts_dir):
+      if entry in sys.path:
+        sys.path.remove(entry)
+
+
+def _append_selected_skill_issues(
+  *,
+  repo_root: Path,
+  validator: Any,
+  skill_names: list[str],
+  issues: list[str],
+) -> None:
+  """Validate only the governed skills touched by the current scaffold."""
+  discovery_issues: list[str] = []
+  skill_files = validator.discover_skill_files(repo_root, discovery_issues)
+  platform_pack_skill_files = validator.discover_platform_pack_skill_files(repo_root)
+
+  for skill_name in skill_names:
+    if skill_name in skill_files:
+      validator.validate_skill_file(skill_name, skill_files[skill_name], issues)
+      continue
+    if skill_name in platform_pack_skill_files:
+      validator.validate_platform_pack_skill_file(
+        skill_name,
+        platform_pack_skill_files[skill_name],
+        issues,
+      )
+      continue
+    issues.append(f"Unknown skill '{skill_name}'.")
+
+
+def _run_validator(repo_root: Path, plan: dict[str, Any]) -> None:
+  """Validate only the artifacts touched by the current scaffold transaction."""
+  validator = _load_validator_module(repo_root)
+  if validator is None:
     return
 
-  result = subprocess.run(
-    [sys.executable, str(script_path)],
-    cwd=str(repo_root),
-    capture_output=True,
-    text=True,
-  )
-  if result.returncode != 0:
+  issues: list[str] = []
+  touched_skill_names: list[str] = []
+  touched_pack_roots: list[Path] = []
+
+  if plan["kind"] == SKILL_KIND_PLATFORM_PACK:
+    touched_skill_names.append(plan["baseline_skill_name"])
+    touched_skill_names.append(plan["quality_check_skill_name"])
+    touched_skill_names.extend(plan["specialist_skill_names"].values())
+    touched_pack_roots.append(repo_root / "platform-packs" / plan["platform"])
+  elif plan["kind"] == SKILL_KIND_ADD_ON:
+    validator.validate_addon_file(plan["skill_file"], repo_root, issues)
+    touched_pack_roots.append(repo_root / "platform-packs" / plan["platform"])
+  else:
+    touched_skill_names.append(plan["skill_name"])
+    if plan["is_shelled"]:
+      touched_pack_roots.append(repo_root / "platform-packs" / plan["platform"])
+
+  if touched_skill_names:
+    _append_selected_skill_issues(
+      repo_root=repo_root,
+      validator=validator,
+      skill_names=touched_skill_names,
+      issues=issues,
+    )
+
+  for pack_root in touched_pack_roots:
+    try:
+      pack = load_platform_pack(pack_root)
+      if pack.declared_quality_check_file is not None:
+        load_quality_check_content(pack)
+    except ShellContentContractError as error:
+      issues.append(f"{pack_root.relative_to(repo_root)}: {error}")
+
+  if issues:
+    rendered_issues = "\n".join(f"- {issue}" for issue in issues)
     raise ScaffoldValidatorError(
-      f"Validator failed after scaffolding (exit {result.returncode}):\n"
-      f"{result.stderr or result.stdout}"
+      "Validator failed after scaffolding (exit 1):\n"
+      "Agent-config validation failed:\n"
+      f"{rendered_issues}"
     )
 
 
@@ -1368,7 +1453,7 @@ def scaffold(payload: dict, *, dry_run: bool = False) -> ScaffoldResult:
       manifest_edits = []
       _created_files, symlinks = _create_platform_pack(txn, plan, repo_root)
       created_files = _created_files
-      _run_validator(repo_root)
+      _run_validator(repo_root, plan)
       install_targets, install_notes = _perform_install(txn, plan)
     else:
       if plan["kind"] == SKILL_KIND_ADD_ON:
@@ -1388,7 +1473,7 @@ def scaffold(payload: dict, *, dry_run: bool = False) -> ScaffoldResult:
       symlinks = _stage_sidecar_symlinks(txn, plan, repo_root)
       created_files = list(txn.created_paths)
 
-      _run_validator(repo_root)
+      _run_validator(repo_root, plan)
       install_targets, install_notes = _perform_install(txn, plan)
   except ScaffoldValidatorError:
     _rollback(txn)

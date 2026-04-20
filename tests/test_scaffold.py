@@ -77,6 +77,17 @@ def _load_validate_skill_file():
   return validate_skill_file
 
 
+def _install_validator_fixture(repo: Path) -> None:
+  """Copy the repo validator scripts into a scratch scaffold repo."""
+  scripts_dir = repo / "scripts"
+  scripts_dir.mkdir(parents=True, exist_ok=True)
+  for script_name in ("validate_agent_configs.py", "skill_repo_contracts.py"):
+    (scripts_dir / script_name).write_text(
+      (ROOT / "scripts" / script_name).read_text(encoding="utf-8"),
+      encoding="utf-8",
+    )
+
+
 _KOTLIN_MANIFEST = """\
 platform: kotlin
 contract_version: "1.1"
@@ -237,6 +248,12 @@ def _build_seed_repo(tmp_path: Path) -> Path:
   review_delegation.parent.mkdir(parents=True, exist_ok=True)
   review_delegation.write_text(
     "# Review Delegation\n\nFixture delegation contract.\n",
+    encoding="utf-8",
+  )
+  review_scope = repo / "orchestration" / "review-scope" / "PLAYBOOK.md"
+  review_scope.parent.mkdir(parents=True, exist_ok=True)
+  review_scope.write_text(
+    "# Review Scope\n\nFixture scope contract.\n",
     encoding="utf-8",
   )
   stack_routing = repo / "orchestration" / "stack-routing" / "PLAYBOOK.md"
@@ -506,6 +523,31 @@ class ScaffoldHappyPathsTest(unittest.TestCase):
       any("Applied built-in platform preset for 'php'." in note for note in result.notes)
     )
     self.assertIn(GOVERNED_CONTENT_AUTHORING_NOTE, result.notes)
+
+  def test_platform_pack_validation_ignores_unrelated_existing_pack_drift(self) -> None:
+    _install_validator_fixture(self.repo)
+    drifted_skill = (
+      self.repo
+      / "platform-packs"
+      / "kmp"
+      / "code-review"
+      / "bill-kmp-code-review"
+      / "SKILL.md"
+    )
+    drifted_skill.write_text(
+      drifted_skill.read_text(encoding="utf-8") + "\nDrift injected outside the new php pack.\n",
+      encoding="utf-8",
+    )
+
+    result = scaffold(
+      self._payload(
+        kind="platform-pack",
+        platform="php",
+      )
+    )
+
+    self.assertEqual(result.kind, "platform-pack")
+    self.assertTrue((self.repo / "platform-packs" / "php" / "platform.yaml").is_file())
 
   def test_platform_pack_defaults_to_full_skeleton(self) -> None:
     result = scaffold(
