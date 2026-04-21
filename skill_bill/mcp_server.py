@@ -14,6 +14,7 @@ from skill_bill.config import load_telemetry_settings, telemetry_is_enabled
 from skill_bill.constants import LEARNING_SCOPE_PRECEDENCE
 from skill_bill.db import open_db, resolve_db_path
 from skill_bill.feature_implement import (
+  continue_workflow,
   build_workflow_resume_payload,
   build_workflow_payload,
   build_workflow_summary_payload,
@@ -451,6 +452,31 @@ def feature_implement_workflow_resume(workflow_id: str) -> dict:
     }
   payload["status"] = "ok"
   payload["db_path"] = str(db_path)
+  return payload
+
+
+@mcp.tool()
+def feature_implement_workflow_continue(workflow_id: str) -> dict:
+  """Reopen a resumable workflow and return a recovered continuation brief."""
+  with open_db(sync=False) as (connection, db_path):
+    payload = continue_workflow(connection, workflow_id)
+  if not payload:
+    return {
+      "status": "error",
+      "workflow_id": workflow_id,
+      "error": f"Unknown workflow_id '{workflow_id}'.",
+    }
+  payload["db_path"] = str(db_path)
+  if payload["continue_status"] == "blocked":
+    payload["status"] = "error"
+    missing_artifacts = payload.get("missing_artifacts", [])
+    assert isinstance(missing_artifacts, list)
+    payload["error"] = (
+      "Cannot continue workflow until the missing artifacts are restored: "
+      + ", ".join(str(value) for value in missing_artifacts)
+    )
+    return payload
+  payload["status"] = "ok"
   return payload
 
 

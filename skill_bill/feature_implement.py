@@ -544,6 +544,60 @@ _WORKFLOW_RESUME_ACTIONS: dict[str, str] = {
 }
 
 
+_WORKFLOW_STEP_LABELS: dict[str, str] = {
+  "assess": "Step 1: Collect Design Doc + Assess Size",
+  "create_branch": "Step 1b: Create Feature Branch",
+  "preplan": "Step 2: Pre-Planning",
+  "plan": "Step 3: Create Implementation Plan",
+  "implement": "Step 4: Execute Plan",
+  "review": "Step 5: Code Review",
+  "audit": "Step 6: Completeness Audit",
+  "validate": "Step 6b: Quality Check",
+  "write_history": "Step 7: Boundary History",
+  "commit_push": "Step 8: Commit and Push",
+  "pr_description": "Step 9: PR Description",
+  "finish": "Finish",
+}
+
+
+def _workflow_continue_artifact_keys(
+  *,
+  resume_step_id: str,
+  artifacts: dict[str, object],
+) -> list[str]:
+  ordered_keys: list[str] = []
+  for key in ("assessment", "branch"):
+    if key in artifacts:
+      ordered_keys.append(key)
+  for key in _WORKFLOW_REQUIRED_ARTIFACTS_BY_STEP.get(resume_step_id, []):
+    if key in artifacts and key not in ordered_keys:
+      ordered_keys.append(key)
+  return ordered_keys
+
+
+def _build_workflow_continuation_brief(
+  *,
+  workflow_id: str,
+  resume_step_id: str,
+  continue_status: str,
+  next_action: str,
+  artifact_keys: list[str],
+) -> str:
+  step_label = _WORKFLOW_STEP_LABELS.get(resume_step_id, resume_step_id)
+  artifact_list = ", ".join(artifact_keys) if artifact_keys else "none"
+  return (
+    f"Resume `bill-feature-implement` workflow `{workflow_id}` from "
+    f"`{step_label}` (`{resume_step_id}`). "
+    "Follow the normal step instructions in "
+    "`skills/bill-feature-implement/SKILL.md` and "
+    "`skills/bill-feature-implement/reference.md`. "
+    f"Use the recovered `step_artifacts` in this payload ({artifact_list}) "
+    "instead of reconstructing prior context from chat history. "
+    f"Workflow activation status: `{continue_status}`. "
+    f"Next action: {next_action}"
+  )
+
+
 def build_workflow_resume_payload(
   connection: sqlite3.Connection,
   workflow_id: str,
@@ -607,6 +661,116 @@ def build_workflow_resume_payload(
     "missing_artifacts": missing_artifacts,
     "can_resume": can_resume,
     "next_action": next_action,
+  })
+  return payload
+
+
+def continue_workflow(
+  connection: sqlite3.Connection,
+  workflow_id: str,
+) -> dict[str, object]:
+  payload = build_workflow_resume_payload(connection, workflow_id)
+  if not payload:
+    return {}
+
+  workflow_status_before = str(payload["workflow_status"])
+  resume_mode = str(payload["resume_mode"])
+  resume_step_id = str(payload["resume_step_id"])
+  current_step_id = str(payload["current_step_id"])
+  next_action = str(payload["next_action"])
+  artifacts = payload["artifacts"]
+  steps = payload["steps"]
+  can_resume = bool(payload["can_resume"])
+  assert isinstance(artifacts, dict)
+  assert isinstance(steps, list)
+
+  artifact_keys = _workflow_continue_artifact_keys(
+    resume_step_id=resume_step_id,
+    artifacts=artifacts,
+  )
+  step_artifacts = {
+    key: artifacts[key]
+    for key in artifact_keys
+  }
+  assessment = artifacts.get("assessment")
+  branch = artifacts.get("branch")
+  assessment_summary = assessment if isinstance(assessment, dict) else {}
+  branch_name = ""
+  if isinstance(branch, dict):
+    branch_name = str(branch.get("branch_name", "")).strip()
+  elif isinstance(branch, str):
+    branch_name = branch.strip()
+
+  continue_status = "blocked"
+  if resume_mode == "done":
+    continue_status = "done"
+  elif can_resume:
+    steps_by_id = {
+      str(step.get("step_id", "")): step
+      for step in steps
+      if isinstance(step, dict) and step.get("step_id")
+    }
+    current_step = steps_by_id.get(resume_step_id, {})
+    current_attempt_count = int(current_step.get("attempt_count", 0) or 0)
+    already_running = (
+      workflow_status_before == "running"
+      and current_step_id == resume_step_id
+      and current_step.get("status") == "running"
+    )
+    continue_status = "already_running" if already_running else "reopened"
+    if not already_running:
+      next_attempt_count = max(current_attempt_count + 1, 1)
+      save_workflow_state(
+        connection,
+        workflow_id=workflow_id,
+        workflow_status="running",
+        current_step_id=resume_step_id,
+        step_updates=[
+          {
+            "step_id": resume_step_id,
+            "status": "running",
+            "attempt_count": next_attempt_count,
+          }
+        ],
+        artifacts_patch=None,
+        session_id=str(payload["session_id"]),
+      )
+      payload = build_workflow_resume_payload(connection, workflow_id)
+      if not payload:
+        return {}
+      artifacts = payload["artifacts"]
+      assert isinstance(artifacts, dict)
+      step_artifacts = {
+        key: artifacts[key]
+        for key in artifact_keys
+        if key in artifacts
+      }
+      assessment = artifacts.get("assessment")
+      branch = artifacts.get("branch")
+      assessment_summary = assessment if isinstance(assessment, dict) else {}
+      branch_name = ""
+      if isinstance(branch, dict):
+        branch_name = str(branch.get("branch_name", "")).strip()
+      elif isinstance(branch, str):
+        branch_name = branch.strip()
+
+  payload.update({
+    "workflow_status_before_continue": workflow_status_before,
+    "continue_status": continue_status,
+    "continue_step_id": resume_step_id,
+    "continue_step_label": _WORKFLOW_STEP_LABELS.get(resume_step_id, resume_step_id),
+    "step_artifact_keys": artifact_keys,
+    "step_artifacts": step_artifacts,
+    "feature_name": str(assessment_summary.get("feature_name", "") or ""),
+    "feature_size": str(assessment_summary.get("feature_size", "") or ""),
+    "branch_name": branch_name,
+    "continuation_brief": _build_workflow_continuation_brief(
+      workflow_id=workflow_id,
+      resume_step_id=resume_step_id,
+      continue_status=continue_status,
+      next_action=next_action,
+      artifact_keys=artifact_keys,
+    ),
   })
   return payload
 

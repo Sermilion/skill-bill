@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from skill_bill.mcp_server import (
+  feature_implement_workflow_continue,
   feature_implement_workflow_get,
   feature_implement_workflow_latest,
   feature_implement_workflow_list,
@@ -194,6 +195,59 @@ class FeatureImplementWorkflowStateTest(unittest.TestCase):
     self.assertFalse(result["can_resume"])
     self.assertIn("implementation_summary", result["missing_artifacts"])
     self.assertIn("review_result", result["required_artifacts"])
+
+  def test_continue_reopens_failed_workflow_and_returns_handoff(self) -> None:
+    opened = feature_implement_workflow_open(session_id="fis-20260421-000006-test")
+    workflow_id = opened["workflow_id"]
+    feature_implement_workflow_update(
+      workflow_id=workflow_id,
+      workflow_status="failed",
+      current_step_id="audit",
+      step_updates=[
+        {"step_id": "assess", "status": "completed", "attempt_count": 1},
+        {"step_id": "create_branch", "status": "completed", "attempt_count": 1},
+        {"step_id": "preplan", "status": "completed", "attempt_count": 1},
+        {"step_id": "plan", "status": "completed", "attempt_count": 1},
+        {"step_id": "implement", "status": "completed", "attempt_count": 1},
+        {"step_id": "review", "status": "completed", "attempt_count": 1},
+        {"step_id": "audit", "status": "failed", "attempt_count": 1},
+      ],
+      artifacts_patch={
+        "assessment": {"feature_name": "workflow pilot", "feature_size": "MEDIUM"},
+        "branch": {"branch_name": "feat/SKILL-1-workflow-pilot"},
+        "implementation_summary": {"files_modified": 3},
+        "review_result": {"iteration": 1},
+      },
+    )
+    result = feature_implement_workflow_continue(workflow_id)
+    self.assertEqual(result["status"], "ok")
+    self.assertEqual(result["continue_status"], "reopened")
+    self.assertEqual(result["workflow_status_before_continue"], "failed")
+    self.assertEqual(result["workflow_status"], "running")
+    self.assertEqual(result["current_step_id"], "audit")
+    self.assertEqual(result["step_artifact_keys"], ["assessment", "branch", "implementation_summary", "review_result"])
+    self.assertIn("Resume `bill-feature-implement` workflow", result["continuation_brief"])
+
+    steps_by_id = {step["step_id"]: step for step in result["steps"]}
+    self.assertEqual(steps_by_id["audit"]["status"], "running")
+    self.assertEqual(steps_by_id["audit"]["attempt_count"], 2)
+
+  def test_continue_errors_when_required_artifacts_are_missing(self) -> None:
+    opened = feature_implement_workflow_open()
+    workflow_id = opened["workflow_id"]
+    feature_implement_workflow_update(
+      workflow_id=workflow_id,
+      workflow_status="failed",
+      current_step_id="validate",
+      step_updates=[
+        {"step_id": "validate", "status": "failed", "attempt_count": 1},
+      ],
+    )
+    result = feature_implement_workflow_continue(workflow_id)
+    self.assertEqual(result["status"], "error")
+    self.assertEqual(result["continue_status"], "blocked")
+    self.assertIn("audit_report", result["missing_artifacts"])
+    self.assertIn("Cannot continue workflow", result["error"])
 
   def test_update_unknown_workflow_errors(self) -> None:
     result = feature_implement_workflow_update(

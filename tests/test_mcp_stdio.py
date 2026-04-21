@@ -36,6 +36,7 @@ EXPECTED_TOOLS = {
   "feature_implement_workflow_get",
   "feature_implement_workflow_latest",
   "feature_implement_workflow_list",
+  "feature_implement_workflow_continue",
   "feature_implement_workflow_open",
   "feature_implement_workflow_resume",
   "feature_implement_workflow_update",

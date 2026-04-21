@@ -33,6 +33,13 @@ The orchestrator must maintain:
 - `feature_implement_workflow_update`
 - `feature_implement_workflow_get`
 
+### Operational recovery tools
+
+External callers may inspect and reactivate persisted runs through:
+
+- `feature_implement_workflow_resume` — dry-run recovery summary
+- `feature_implement_workflow_continue` — re-open a resumable run and emit a recovered continuation brief
+
 ### Canonical step ids
 
 Use these exact step ids when updating workflow state:

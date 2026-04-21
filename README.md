@@ -133,7 +133,7 @@ Skill Bill keeps **skills** and **workflows** separate on purpose:
 - skills are the reusable user-facing units: routing, rubrics, stack depth, and standalone execution
 - workflows are the small set of top-level orchestrators that need durable step state, explicit artifact handoff, retry/resume rules, and parent-owned telemetry
 
-The first workflow-contract pilot is `bill-feature-implement`. It still presents as one stable command, but its internal step graph now has a governed home under `orchestration/workflow-contract/PLAYBOOK.md` instead of living only in skill prose.
+The first workflow-contract pilot is `bill-feature-implement`. It still presents as one stable command, but its internal step graph now has a governed home under `orchestration/workflow-contract/PLAYBOOK.md` instead of living only in skill prose. The pilot now exposes discovery, resume, and continue surfaces through `skill-bill workflow ...` and matching MCP tools, so interrupted runs can be reactivated from persisted state instead of being reconstructed from chat history.
 
 ## Reference platform packs
 

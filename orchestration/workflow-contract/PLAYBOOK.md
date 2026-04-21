@@ -167,6 +167,7 @@ The first runtime-facing pilot uses dedicated MCP tools for
 - `feature_implement_workflow_update`
 - `feature_implement_workflow_get`
 - `feature_implement_workflow_resume`
+- `feature_implement_workflow_continue`
 
 These tools persist workflow state independently of telemetry settings. The
 existing `feature_implement_started` and `feature_implement_finished` tools
@@ -177,6 +178,7 @@ The CLI exposes the same recovery surface through:
 
 - `skill-bill workflow show <workflow-id>`
 - `skill-bill workflow resume <workflow-id>`
+- `skill-bill workflow continue <workflow-id>`
 
 ## Pilot: `bill-feature-implement`
 

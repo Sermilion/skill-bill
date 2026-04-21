@@ -31,6 +31,7 @@ from skill_bill.feature_implement import (
   build_workflow_payload,
   build_workflow_resume_payload,
   build_workflow_summary_payload,
+  continue_workflow,
   fetch_latest_workflow,
   list_workflows,
 )
@@ -1528,6 +1529,47 @@ def workflow_resume_command(args: argparse.Namespace) -> int:
   return 0
 
 
+def workflow_continue_command(args: argparse.Namespace) -> int:
+  with open_db(args.db, sync=False) as (connection, db_path):
+    workflow_id = _resolve_requested_workflow_id(connection, args.workflow_id, args.latest)
+    if workflow_id is None:
+      emit(
+        {
+          "status": "error",
+          "error": "No feature-implement workflows found.",
+          "db_path": str(db_path),
+        },
+        args.format,
+      )
+      return 1
+    payload = continue_workflow(connection, workflow_id)
+  if not payload:
+    emit(
+      {
+        "status": "error",
+        "workflow_id": workflow_id,
+        "error": f"Unknown workflow_id '{workflow_id}'.",
+        "db_path": str(db_path),
+      },
+      args.format,
+    )
+    return 1
+  payload["db_path"] = str(db_path)
+  if payload["continue_status"] == "blocked":
+    payload["status"] = "error"
+    missing_artifacts = payload.get("missing_artifacts", [])
+    assert isinstance(missing_artifacts, list)
+    payload["error"] = (
+      "Cannot continue workflow until the missing artifacts are restored: "
+      + ", ".join(str(value) for value in missing_artifacts)
+    )
+    emit(payload, args.format)
+    return 1
+  payload["status"] = "ok"
+  emit(payload, args.format)
+  return 0
+
+
 def workflow_list_command(args: argparse.Namespace) -> int:
   with open_db(args.db, sync=False) as (connection, db_path):
     rows = list_workflows(connection, limit=args.limit)
@@ -2177,6 +2219,19 @@ def build_parser() -> argparse.ArgumentParser:
   )
   workflow_resume_parser.add_argument("--format", choices=("text", "json"), default="text")
   workflow_resume_parser.set_defaults(handler=workflow_resume_command)
+
+  workflow_continue_parser = workflow_subparsers.add_parser(
+    "continue",
+    help="Activate a resumable workflow and emit a recovered continuation brief.",
+  )
+  workflow_continue_parser.add_argument("workflow_id", nargs="?", help="Workflow id to continue.")
+  workflow_continue_parser.add_argument(
+    "--latest",
+    action="store_true",
+    help="Resolve the most recently updated workflow automatically.",
+  )
+  workflow_continue_parser.add_argument("--format", choices=("text", "json"), default="text")
+  workflow_continue_parser.set_defaults(handler=workflow_continue_command)
 
   list_parser = subparsers.add_parser(
     "list",
