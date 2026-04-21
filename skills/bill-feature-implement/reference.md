@@ -139,6 +139,38 @@ When the workflow errors:
 Workflow state is independent of telemetry. Do not skip workflow-state writes
 just because telemetry is disabled.
 
+## Continuation Mode Contract
+
+When an external caller invokes `feature_implement_workflow_continue`, the
+returned payload becomes the supported re-entry contract for
+`bill-feature-implement`.
+
+The continuation payload includes:
+
+- `skill_name` — always `bill-feature-implement`
+- `continuation_mode` — currently `resume_existing_workflow`
+- `continue_status` — `reopened`, `already_running`, `blocked`, or `done`
+- `continue_step_id` and `continue_step_label`
+- `continue_step_directive` — the step-specific rule for the resumed phase
+- `reference_sections` — the exact governed sections to re-read before
+  resuming
+- `step_artifacts` — the recovered structured artifacts that should replace
+  chat-history reconstruction
+- `session_summary` — saved Step 1 metadata when a telemetry session exists
+- `continuation_brief` — short human-facing summary
+- `continuation_entry_prompt` — a paste-ready prompt for an orchestrator or AI
+  caller
+
+Re-entry rules:
+
+- Do not open a new workflow when continuing an existing run.
+- Keep using the same `workflow_id` and `session_id`.
+- Treat `step_artifacts` as authoritative inputs for the resumed phase.
+- Skip earlier completed steps unless the normal workflow loops send work
+  backwards.
+- After the resumed step completes, continue the standard `bill-feature-implement`
+  sequence from that point onward.
+
 ## Pre-planning subagent briefing
 
 Launch via the `Agent` tool with `subagent_type: "general-purpose"`.

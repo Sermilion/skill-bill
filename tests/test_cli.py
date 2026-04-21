@@ -880,7 +880,10 @@ class WorkflowCliTest(unittest.TestCase):
     self.assertEqual(payload["continue_status"], "reopened")
     self.assertEqual(payload["workflow_status"], "running")
     self.assertEqual(payload["continue_step_id"], "audit")
+    self.assertEqual(payload["skill_name"], "bill-feature-implement")
+    self.assertIn("SKILL.md :: Continuation Mode", payload["reference_sections"])
     self.assertIn("continuation_brief", payload)
+    self.assertIn("continuation_entry_prompt", payload)
 
   def test_workflow_continue_errors_when_artifacts_are_missing(self) -> None:
     opened = feature_implement_workflow_open()

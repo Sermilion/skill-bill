@@ -174,6 +174,12 @@ existing `feature_implement_started` and `feature_implement_finished` tools
 remain telemetry-owned; they are linked to workflow state via `session_id`
 rather than replaced by it.
 
+`feature_implement_workflow_continue` is the first activation tool in the pilot:
+it does not execute the workflow itself, but it re-opens resumable state and
+returns a governed continuation payload for `bill-feature-implement`, including
+the resumed step id, recovered artifacts, reference sections to read, and a
+paste-ready continuation prompt.
+
 The CLI exposes the same recovery surface through:
 
 - `skill-bill workflow show <workflow-id>`

@@ -222,11 +222,17 @@ class FeatureImplementWorkflowStateTest(unittest.TestCase):
     result = feature_implement_workflow_continue(workflow_id)
     self.assertEqual(result["status"], "ok")
     self.assertEqual(result["continue_status"], "reopened")
+    self.assertEqual(result["skill_name"], "bill-feature-implement")
+    self.assertEqual(result["continuation_mode"], "resume_existing_workflow")
     self.assertEqual(result["workflow_status_before_continue"], "failed")
     self.assertEqual(result["workflow_status"], "running")
     self.assertEqual(result["current_step_id"], "audit")
     self.assertEqual(result["step_artifact_keys"], ["assessment", "branch", "implementation_summary", "review_result"])
+    self.assertIn("SKILL.md :: Continuation Mode", result["reference_sections"])
+    self.assertIn("Resume at the completeness audit", result["continue_step_directive"])
+    self.assertIsInstance(result["session_summary"], dict)
     self.assertIn("Resume `bill-feature-implement` workflow", result["continuation_brief"])
+    self.assertIn("Use `bill-feature-implement` in continuation mode.", result["continuation_entry_prompt"])
 
     steps_by_id = {step["step_id"]: step for step in result["steps"]}
     self.assertEqual(steps_by_id["audit"]["status"], "running")

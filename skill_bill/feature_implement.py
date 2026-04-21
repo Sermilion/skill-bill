@@ -560,6 +560,81 @@ _WORKFLOW_STEP_LABELS: dict[str, str] = {
 }
 
 
+_WORKFLOW_CONTINUATION_REFERENCE_SECTIONS: dict[str, list[str]] = {
+  "assess": [
+    "SKILL.md :: Workflow State",
+    "SKILL.md :: Step 1: Collect Design Doc + Assess Size (orchestrator)",
+  ],
+  "create_branch": [
+    "SKILL.md :: Workflow State",
+    "SKILL.md :: Step 1b: Create Feature Branch (orchestrator)",
+  ],
+  "preplan": [
+    "SKILL.md :: Continuation Mode",
+    "SKILL.md :: Step 2: Pre-Planning (subagent)",
+    "reference.md :: Pre-planning subagent briefing",
+  ],
+  "plan": [
+    "SKILL.md :: Continuation Mode",
+    "SKILL.md :: Step 3: Create Implementation Plan (subagent)",
+    "reference.md :: Planning subagent briefing",
+  ],
+  "implement": [
+    "SKILL.md :: Continuation Mode",
+    "SKILL.md :: Step 4: Execute Plan (subagent)",
+    "reference.md :: Implementation subagent briefing",
+  ],
+  "review": [
+    "SKILL.md :: Continuation Mode",
+    "SKILL.md :: Step 5: Code Review (orchestrator)",
+    "reference.md :: Fix-loop briefing (used by Step 5 review loop)",
+  ],
+  "audit": [
+    "SKILL.md :: Continuation Mode",
+    "SKILL.md :: Step 6: Completeness Audit (subagent)",
+    "reference.md :: Completeness audit subagent briefing",
+  ],
+  "validate": [
+    "SKILL.md :: Continuation Mode",
+    "SKILL.md :: Step 6b: Final Validation Gate (subagent)",
+    "reference.md :: Quality-check subagent briefing",
+  ],
+  "write_history": [
+    "SKILL.md :: Continuation Mode",
+    "SKILL.md :: Step 7: Write Boundary History (orchestrator)",
+  ],
+  "commit_push": [
+    "SKILL.md :: Continuation Mode",
+    "SKILL.md :: Step 8: Commit and Push (orchestrator)",
+  ],
+  "pr_description": [
+    "SKILL.md :: Continuation Mode",
+    "SKILL.md :: Step 9: Generate PR Description (subagent)",
+    "reference.md :: PR-description subagent briefing",
+  ],
+  "finish": [
+    "SKILL.md :: Telemetry: Record Finished",
+    "reference.md :: Workflow State Contract",
+  ],
+}
+
+
+_WORKFLOW_CONTINUATION_DIRECTIVES: dict[str, str] = {
+  "assess": "Reconstruct the Step 1 assessment from the saved assessment artifact, confirm it with the user if needed, then reopen the normal flow from create_branch.",
+  "create_branch": "Do not rerun Step 1 discovery. Reuse the saved assessment artifact, create or verify the feature branch, persist the branch artifact, then continue into preplan.",
+  "preplan": "Skip Steps 1 and 1b. Reuse the saved assessment and branch artifacts as the contract and branch context, then spawn the pre-planning subagent with those recovered inputs.",
+  "plan": "Skip the discovery steps. Reuse the saved assessment and preplan_digest artifacts, then spawn the planning subagent from that recovered context.",
+  "implement": "Do not re-plan unless the recovered plan proves invalid. Reuse the saved plan and preplan_digest artifacts, then resume the implementation subagent from Step 4.",
+  "review": "Do not re-run implementation first unless the review loop sends work back. Start from the latest implementation_summary artifact and run Step 5 inline in the orchestrator.",
+  "audit": "Resume at the completeness audit using the latest implementation_summary and review_result artifacts. Only loop back to planning if the audit actually finds gaps.",
+  "validate": "Resume the final validation gate from the latest audit_report artifact, then continue the normal finalization sequence without pausing unless validation fails.",
+  "write_history": "Skip directly to boundary history writing using the persisted implementation_summary and validation_result artifacts, then continue with commit and PR creation.",
+  "commit_push": "Do not revisit earlier steps. Verify the persisted implementation_summary, validation_result, and history_result artifacts are still current, then run commit/push.",
+  "pr_description": "Resume directly at PR creation using the saved branch and implementation_summary artifacts, then finish the workflow and telemetry sequence.",
+  "finish": "Do not re-execute work. Close the workflow cleanly by inspecting pr_result and final telemetry state, then emit only the terminal summary if anything is still missing.",
+}
+
+
 def _workflow_continue_artifact_keys(
   *,
   resume_step_id: str,
@@ -595,6 +670,44 @@ def _build_workflow_continuation_brief(
     "instead of reconstructing prior context from chat history. "
     f"Workflow activation status: `{continue_status}`. "
     f"Next action: {next_action}"
+  )
+
+
+def _build_workflow_continuation_entry_prompt(
+  *,
+  workflow_id: str,
+  session_id: str,
+  resume_step_id: str,
+  continue_status: str,
+  artifact_keys: list[str],
+  next_action: str,
+  feature_name: str,
+  feature_size: str,
+  branch_name: str,
+  session_summary: dict[str, object],
+) -> str:
+  references = "; ".join(_WORKFLOW_CONTINUATION_REFERENCE_SECTIONS.get(resume_step_id, []))
+  directive = _WORKFLOW_CONTINUATION_DIRECTIVES.get(
+    resume_step_id,
+    "Resume the workflow from the recovered current step using the persisted artifacts as authoritative context.",
+  )
+  artifact_list = ", ".join(artifact_keys) if artifact_keys else "none"
+  spec_summary = str(session_summary.get("spec_summary", "") or "")
+  return (
+    "Use `bill-feature-implement` in continuation mode.\n"
+    f"Workflow id: {workflow_id}\n"
+    f"Session id: {session_id or '(none)'}\n"
+    f"Continue status: {continue_status}\n"
+    f"Resume step: {resume_step_id} ({_WORKFLOW_STEP_LABELS.get(resume_step_id, resume_step_id)})\n"
+    f"Feature: {feature_name or '(unknown)'}\n"
+    f"Feature size: {feature_size or '(unknown)'}\n"
+    f"Branch: {branch_name or '(unknown)'}\n"
+    f"Recovered artifacts: {artifact_list}\n"
+    f"Spec summary: {spec_summary or '(none saved)'}\n"
+    f"Reference sections: {references or 'normal step instructions only'}\n"
+    "Rules: do not rerun already-completed steps unless the workflow loop explicitly sends work backwards; treat `step_artifacts` as authoritative; keep the same `workflow_id` and `session_id`; after the resumed step, continue the normal sequence defined by `bill-feature-implement`.\n"
+    f"Step directive: {directive}\n"
+    f"Immediate next action: {next_action}"
   )
 
 
@@ -700,6 +813,12 @@ def continue_workflow(
     branch_name = str(branch.get("branch_name", "")).strip()
   elif isinstance(branch, str):
     branch_name = branch.strip()
+  session_id = str(payload["session_id"] or "")
+  session_summary: dict[str, object] = {}
+  if session_id:
+    session_row = fetch_session(connection, session_id)
+    if session_row is not None:
+      session_summary = build_started_payload(connection, session_id, "full")
 
   continue_status = "blocked"
   if resume_mode == "done":
@@ -755,21 +874,41 @@ def continue_workflow(
         branch_name = branch.strip()
 
   payload.update({
+    "skill_name": "bill-feature-implement",
+    "continuation_mode": "resume_existing_workflow",
     "workflow_status_before_continue": workflow_status_before,
     "continue_status": continue_status,
     "continue_step_id": resume_step_id,
     "continue_step_label": _WORKFLOW_STEP_LABELS.get(resume_step_id, resume_step_id),
+    "continue_step_directive": _WORKFLOW_CONTINUATION_DIRECTIVES.get(
+      resume_step_id,
+      "Resume the workflow from the current step using the recovered artifacts as authoritative context.",
+    ),
+    "reference_sections": list(_WORKFLOW_CONTINUATION_REFERENCE_SECTIONS.get(resume_step_id, [])),
     "step_artifact_keys": artifact_keys,
     "step_artifacts": step_artifacts,
     "feature_name": str(assessment_summary.get("feature_name", "") or ""),
     "feature_size": str(assessment_summary.get("feature_size", "") or ""),
     "branch_name": branch_name,
+    "session_summary": session_summary,
     "continuation_brief": _build_workflow_continuation_brief(
       workflow_id=workflow_id,
       resume_step_id=resume_step_id,
       continue_status=continue_status,
       next_action=next_action,
       artifact_keys=artifact_keys,
+    ),
+    "continuation_entry_prompt": _build_workflow_continuation_entry_prompt(
+      workflow_id=workflow_id,
+      session_id=session_id,
+      resume_step_id=resume_step_id,
+      continue_status=continue_status,
+      artifact_keys=artifact_keys,
+      next_action=next_action,
+      feature_name=str(assessment_summary.get("feature_name", "") or ""),
+      feature_size=str(assessment_summary.get("feature_size", "") or ""),
+      branch_name=branch_name,
+      session_summary=session_summary,
     ),
   })
   return payload

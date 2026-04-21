@@ -64,6 +64,29 @@ Workflow-state rules:
   [reference.md](reference.md). Do not invent prose-only handoffs when a
   structured artifact exists.
 
+## Continuation Mode
+
+When an external caller re-enters this skill using the payload returned by
+`feature_implement_workflow_continue`, treat that payload as the authoritative
+continuation contract for the resumed run.
+
+Continuation-mode rules:
+
+- Keep the same `workflow_id` and `session_id`; do not open a new workflow.
+- Use `continue_step_id` as the starting point.
+- Use `step_artifacts` and `session_summary` as authoritative recovered
+  context; do not reconstruct earlier phases from chat history unless the step
+  explicitly requires user confirmation.
+- Read the `reference_sections` listed in the continuation payload before
+  resuming work.
+- Skip already-completed earlier steps unless the normal workflow loop sends
+  work backwards (for example review back to implement, or audit back to plan).
+- After the resumed step completes, continue the normal sequence defined below.
+- If `continue_status` is `done`, do not rerun the workflow; summarize the
+  terminal state instead.
+- If `continue_status` is `blocked`, stop and restore the missing artifacts
+  named by the workflow payload before continuing.
+
 ## Step 1: Collect Design Doc + Assess Size (orchestrator)
 
 Ask the user for:

@@ -201,6 +201,8 @@ class FeatureImplementRoutingContractTest(unittest.TestCase):
   def test_feature_implement_uses_workflow_state_tools(self) -> None:
     self.assertIn("feature_implement_workflow_open", FEATURE_IMPLEMENT)
     self.assertIn("feature_implement_workflow_update", FEATURE_IMPLEMENT)
+    self.assertIn("feature_implement_workflow_continue", FEATURE_IMPLEMENT)
+    self.assertIn("## Continuation Mode", FEATURE_IMPLEMENT)
     self.assertIn("`assessment`", FEATURE_IMPLEMENT)
     self.assertIn("`preplan_digest`", FEATURE_IMPLEMENT)
     self.assertIn("`implementation_summary`", FEATURE_IMPLEMENT)
