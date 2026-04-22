@@ -1,6 +1,6 @@
 ## [2026-04-22] kotlin-runtime-port phase 1
 Areas: runtime-kotlin/, docs/migrations/SKILL-27-kotlin-runtime-port.md, agent/history.md
-- Added a standalone JVM-only `runtime-kotlin/` Gradle module with local wrapper scripts, JDK 17 toolchain setup, version-catalog dependency management, and a package scaffold for future CLI, MCP, DB, telemetry, workflow, scaffold, and install ports. reusable
+- Added a standalone JVM-only `runtime-kotlin/` Gradle module with local wrapper scripts, JDK 17 toolchain setup, version-catalog dependency management, a local `build-logic/` included build, and a package scaffold for future CLI, MCP, DB, telemetry, workflow, scaffold, and install ports. reusable
 - Added shared Kotlin contract/error primitives plus initial smoke tests so later subsystem ports can reuse one local foundation instead of inventing per-area scaffolding. reusable
 - Wired module-local quality gates from day one: 2-space Kotlin formatting via `.editorconfig`, `spotless` for formatting, and `detekt` for static analysis, all validated through the wrapper-based Gradle path. reusable
 - Recorded the Phase 1 carryover in `docs/migrations/SKILL-27-kotlin-runtime-port.md`, keeping Python as the active runtime source of truth and pointing the next session at Phase 2 persistence work.

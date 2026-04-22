@@ -1,3 +1,12 @@
+pluginManagement {
+  includeBuild("build-logic")
+
+  repositories {
+    gradlePluginPortal()
+    mavenCentral()
+  }
+}
+
 rootProject.name = "runtime-kotlin"
 
 dependencyResolutionManagement {

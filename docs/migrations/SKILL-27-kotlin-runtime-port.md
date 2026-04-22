@@ -348,6 +348,10 @@ Completed in this session:
 - created `runtime-kotlin/` as an isolated JVM-only Gradle module with local
   wrapper scripts, `settings.gradle.kts`, `build.gradle.kts`,
   `gradle/libs.versions.toml`, and JDK 17 toolchain discipline
+- split shared Gradle policy into a local `build-logic/` included build with
+  convention plugins so the runtime foundation now matches the reference
+  project's build-hygiene shape more closely without pulling in KMP/mobile
+  complexity
 - added module-local quality tooling for the Kotlin runtime foundation:
   `.editorconfig` with 2-space indentation, `spotless` for formatting, and
   `detekt` for static analysis without code suppressions
@@ -366,6 +370,8 @@ Contracts now covered by Kotlin:
 - module build contract for a standalone JVM-only Gradle runtime
 - JDK 17 toolchain and version-catalog dependency management for the Kotlin
   runtime foundation
+- shared build logic / convention plugin contract inside
+  `runtime-kotlin/build-logic/`
 - Kotlin quality gate contract for 2-space formatting plus `spotless` and
   `detekt` enforcement inside `runtime-kotlin/`
 - local contract/error scaffolding for later subsystem ports
