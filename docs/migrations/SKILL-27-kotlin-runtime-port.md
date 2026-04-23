@@ -3,10 +3,10 @@
 ## Status
 
 - Issue: `SKILL-27`
-- Phase: `1 - Runtime foundation`
+- Phase: `2 - Persistence core`
 - Runtime source of truth: Python
-- Kotlin ownership: build foundation and shared scaffolding only
-- Last updated: `2026-04-22`
+- Kotlin ownership: build foundation, shared scaffolding, and persistence core
+- Last updated: `2026-04-23`
 
 ## Purpose
 
@@ -421,3 +421,60 @@ The next session should:
 
 Do not start review, CLI, or MCP porting before the persistence primitives are
 in place.
+
+## Phase 2 Results
+
+Completed in this session:
+
+- replaced the `runtime-kotlin` DB marker with a small persistence foundation
+  centered on `DatabaseRuntime`, `DatabasePaths`, schema bootstrap, additive
+  column migrations, and legacy feedback-event normalization
+- chose raw SQLite over Room for this phase by adding `org.xerial:sqlite-jdbc`
+  to the JVM runtime module; this keeps the Kotlin port close to
+  `skill_bill/db.py` and avoids introducing KSP, DAO/entity modeling, or
+  coroutine-first persistence APIs before the schema and migration contract is
+  stable
+- mirrored the Python DB path contract in Kotlin, including CLI override,
+  `SKILL_BILL_REVIEW_DB`, default path under `~/.skill-bill/`, and `~`
+  expansion semantics
+- carried over the SQLite schema and foundational migrations needed by the
+  current runtime contract, including review-run session backfill and legacy
+  `feedback_events` migration into the current finding outcome enum set
+- added row-level Kotlin stores for representative Phase 2 primitives only:
+  telemetry outbox rows and feature workflow persistence rows
+- added parity-oriented Kotlin tests for path resolution, fresh schema
+  bootstrap, additive migrations/backfills, telemetry outbox lifecycle, and
+  feature workflow row round-trips
+
+Contracts now covered by Kotlin:
+
+- SQLite path resolution parity for the runtime DB location
+- idempotent database bootstrap and schema creation for the current local
+  runtime tables and indexes
+- additive persistence migration contract for legacy review-run and
+  feedback-event rows
+- representative row-level persistence primitives for telemetry outbox storage
+  and feature workflow state storage
+
+Runtime source of truth after Phase 2:
+
+- Python remains the active source of truth for production CLI, MCP, telemetry
+  sync, review, learning, workflow, scaffold, and install behavior
+- Kotlin now owns the local persistence foundation in `runtime-kotlin/`,
+  but not the higher-level runtime behaviors that consume it
+
+Validation run in this session:
+
+- `cd runtime-kotlin && ./gradlew check detekt spotlessCheck`
+
+## Phase 2 Exit Result
+
+Checkpoint status:
+
+- the Kotlin runtime now boots and migrates its local SQLite schema under the
+  existing quality gates
+- the persistence foundation is covered by focused Kotlin tests for path
+  resolution, schema creation, migration behavior, telemetry outbox rows, and
+  workflow rows
+- higher-level consumers of the persistence layer have not been ported yet, so
+  Python remains the behavioral oracle above the row-contract layer

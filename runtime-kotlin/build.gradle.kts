@@ -14,6 +14,7 @@ val buildLogicDetekt = gradle.includedBuild("build-logic").task(":convention:det
 val buildLogicSpotlessCheck = gradle.includedBuild("build-logic").task(":convention:spotlessCheck")
 
 dependencies {
+  implementation(libs.sqlite.jdbc)
   testImplementation(libs.junit.jupiter)
   testImplementation(libs.kotlin.test)
 }
