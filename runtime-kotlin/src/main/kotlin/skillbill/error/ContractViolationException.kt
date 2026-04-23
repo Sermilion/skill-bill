@@ -9,6 +9,6 @@ class ContractViolationException(
   cause: Throwable? = null,
 ) :
   SkillBillRuntimeException(
-      message = "Contract '${contract.name}' (${contract.version}) violation: $detail",
-      cause = cause,
-    )
+    message = "Contract '${contract.name}' (${contract.version}) violation: $detail",
+    cause = cause,
+  )

@@ -356,7 +356,7 @@ Completed in this session:
   `.editorconfig` with 2-space indentation, `spotless` for formatting, and
   `detekt` for static analysis without code suppressions
 - added the initial Kotlin package scaffold for future subsystem ports:
-  `cli`, `mcp`, `db`, `telemetry`, `review`, `learnings`,
+  `cli`, `launcher`, `mcp`, `db`, `telemetry`, `review`, `learnings`,
   `workflow.implement`, `workflow.verify`, `scaffold`, `contracts`, `install`,
   and `error`
 - added shared contract/error scaffolding so later ports can share a stable
@@ -375,6 +375,9 @@ Contracts now covered by Kotlin:
 - Kotlin quality gate contract for 2-space formatting plus `spotless` and
   `detekt` enforcement inside `runtime-kotlin/`
 - local contract/error scaffolding for later subsystem ports
+- aggregated runtime verification so root `runtime-kotlin` checks also execute
+  the included `build-logic` build's `check`, `spotlessCheck`, and `detekt`
+  tasks
 
 Runtime source of truth after Phase 1:
 
