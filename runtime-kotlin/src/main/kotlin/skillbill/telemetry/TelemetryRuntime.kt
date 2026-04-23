@@ -13,6 +13,8 @@ object TelemetryRuntime {
     userHome = userHome,
   )
 
-  fun telemetryIsEnabled(environment: Map<String, String> = System.getenv()): Boolean =
-    TelemetryConfigRuntime.telemetryIsEnabled(environment)
+  fun telemetryIsEnabled(
+    environment: Map<String, String> = System.getenv(),
+    userHome: Path = Path.of(System.getProperty("user.home")),
+  ): Boolean = TelemetryConfigRuntime.telemetryIsEnabled(environment, userHome)
 }

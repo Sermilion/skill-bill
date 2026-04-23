@@ -3,9 +3,9 @@
 ## Status
 
 - Issue: `SKILL-27`
-- Phase: `3 - Review domain`
+- Phase: `4 - Surface integration`
 - Runtime source of truth: Python
-- Kotlin ownership: build foundation, shared scaffolding, persistence core, and review-domain services
+- Kotlin ownership: build foundation, shared scaffolding, persistence core, review-domain services, and in-module CLI/MCP surface adapters
 - Last updated: `2026-04-23`
 
 ## Purpose
@@ -570,21 +570,69 @@ Checkpoint status:
   unported, so Python remains the source of truth for those externally visible
   surfaces
 
+## Phase 4 - Surface Integration
+
+What changed in this phase:
+
+- replaced the `runtime-kotlin` CLI and MCP marker interfaces with real Kotlin
+  adapter objects for the review/learnings/stats/telemetry slice
+- added Kotlin-side output shaping so the new CLI surface can emit the same
+  representative `text` and sorted pretty `json` payload forms as the current
+  Python surface for imported reviews, triage, learnings resolution, telemetry
+  status/stats, doctor, and version
+- added missing telemetry config mutation helpers in Kotlin for
+  `telemetry enable`, `disable`, and `set-level`
+- added Kotlin parity tests for representative CLI and MCP surface contracts,
+  including telemetry-disabled skip behavior and orchestrated review child-step
+  semantics
+
+Contracts now covered by Kotlin:
+
+- in-module CLI command behavior for the review/learnings/stats/telemetry slice
+  under `skillbill.cli.CliRuntime`
+- in-module MCP payload behavior for `import_review`, `triage_findings`,
+  `resolve_learnings`, `review_stats`, feature stats, telemetry proxy/stats,
+  and `doctor` under `skillbill.mcp.McpRuntime`
+- representative text/json output shaping for the surfaced Phase 4 command and
+  tool family
+
+Runtime source of truth after Phase 4:
+
+- Python remains the active source of truth for production `skill-bill` and
+  `skill-bill-mcp` entrypoints, workflow-runtime orchestration, governed
+  loader/scaffolder behavior, install/upgrade behavior, and any cutover or
+  launcher wiring between runtimes
+- Kotlin now owns the review/learnings/stats/telemetry service layer plus the
+  real in-module CLI and MCP adapters inside `runtime-kotlin/`
+- Python remains the behavioral oracle for any user-visible shell contract that
+  is not yet actually cut over to the Kotlin runtime
+
+Validation run in this session:
+
+- `cd runtime-kotlin && ./gradlew test`
+
+## Phase 4 Exit Result
+
+Checkpoint status:
+
+- the Kotlin runtime now contains real CLI and MCP surfaces for the
+  review/learnings/stats/telemetry slice instead of markers only
+- representative Kotlin parity tests cover both CLI output shape and MCP
+  payload/orchestration semantics for the surfaced slice
+- production Python entrypoints are still not cut over, so Python remains the
+  source of truth for externally invoked CLI/MCP behavior until a later
+  launcher/cutover phase intentionally flips that boundary
+
 ## Next Session Start
 
-Start with `Phase 4 - Surface integration`.
+Start with `Phase 5 - Workflow runtime`.
 
 The next session should:
 
-1. map the Kotlin review-domain services onto stable CLI entrypoints without
-   changing command names, argument shapes, or output contracts
-2. wire the same Kotlin service layer into the MCP tool surfaces while
-   preserving existing request/response field names and orchestrated child-step
-   semantics
-3. keep workflow-runtime, governed loader/scaffolder, and install behavior out
-   of scope unless a separate phase explicitly pulls them forward
-4. continue treating Python as the oracle for any user-visible surface that is
-   not yet covered by Kotlin parity evidence
-
-Do not widen Phase 4 into workflow-runtime or scaffolder migration work before
-the CLI and MCP surface contracts are stable.
+1. port `bill-feature-implement` and `bill-feature-verify` workflow runtime
+   state and continuation payload behavior into `runtime-kotlin/`
+2. keep production Python entrypoints, loader/scaffolder, install behavior,
+   and launcher/cutover wiring out of scope until workflow-runtime parity is
+   in place
+3. continue treating Python as the oracle for any external contract that is not
+   yet explicitly flipped to Kotlin

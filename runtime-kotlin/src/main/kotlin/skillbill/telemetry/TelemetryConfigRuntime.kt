@@ -99,8 +99,12 @@ object TelemetryConfigRuntime {
     )
   }
 
-  fun telemetryIsEnabled(environment: Map<String, String> = System.getenv()): Boolean =
-    runCatching { loadTelemetrySettings(environment = environment).enabled }.getOrDefault(false)
+  fun telemetryIsEnabled(
+    environment: Map<String, String> = System.getenv(),
+    userHome: Path = Path.of(System.getProperty("user.home")),
+  ): Boolean = runCatching {
+    loadTelemetrySettings(environment = environment, userHome = userHome).enabled
+  }.getOrDefault(false)
 }
 
 private data class MutableTelemetrySettings(

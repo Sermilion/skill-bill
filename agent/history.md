@@ -1,3 +1,12 @@
+## [2026-04-23] kotlin-runtime-port phase 4
+Areas: runtime-kotlin/, docs/migrations/SKILL-27-kotlin-runtime-port.md, .feature-specs/SKILL-27-surface-integration/
+- Replaced the marker-only `runtime-kotlin` CLI and MCP surfaces with real adapters for the review/learnings/stats/telemetry slice while keeping command/tool names, payload fields, and orchestrated review semantics aligned with the Python oracle. reusable
+- Split the CLI port into command-support files (`CliReviewCommands`, `CliLearningCommands`, `CliTelemetryCommands`, output/helpers) so later phases can extend the surfaced command tree without rebuilding one monolith. reusable
+- Added Kotlin-side telemetry config mutation helpers plus parity tests for representative CLI outputs, MCP payloads, remote-stats proxy traffic, and alternate `userHome` config resolution. reusable
+- Known limit: production `skill-bill` / `skill-bill-mcp` entrypoints, workflow runtime, loader/scaffolder, install behavior, and launcher/cutover wiring remain Python-owned after this phase.
+Feature flag: N/A
+Acceptance criteria: 5/5 implemented
+
 ## [2026-04-22] kotlin-runtime-port phase 1
 Areas: runtime-kotlin/, docs/migrations/SKILL-27-kotlin-runtime-port.md, agent/history.md
 - Added a standalone JVM-only `runtime-kotlin/` Gradle module with local wrapper scripts, JDK 17 toolchain setup, version-catalog dependency management, a local `build-logic/` included build, and a package scaffold for future CLI, MCP, DB, telemetry, workflow, scaffold, and install ports. reusable
