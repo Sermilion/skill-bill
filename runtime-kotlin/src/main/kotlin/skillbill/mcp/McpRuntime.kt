@@ -2,6 +2,7 @@ package skillbill.mcp
 
 import skillbill.SkillBillVersion
 import skillbill.db.DatabaseRuntime
+import skillbill.learnings.LearningScope
 import skillbill.learnings.LearningsRuntime
 import skillbill.learnings.learningPayload
 import skillbill.learnings.learningSummaryPayload
@@ -18,8 +19,6 @@ import skillbill.telemetry.TelemetryHttpRuntime
 import skillbill.telemetry.TelemetryRemoteStatsRuntime
 import java.nio.file.Files
 import java.nio.file.Path
-
-private val learningScopePrecedence = listOf("skill", "repo", "global")
 
 data class McpRuntimeContext(
   val requester: HttpRequester = TelemetryHttpRuntime.defaultHttpRequester,
@@ -125,7 +124,7 @@ object McpRuntime {
           "db_path" to openDb.dbPath.toString(),
           "repo_scope_key" to repoScopeKey,
           "skill_name" to skillName,
-          "scope_precedence" to learningScopePrecedence,
+          "scope_precedence" to LearningScope.precedenceWireNames(),
           "applied_learnings" to summarizeAppliedLearnings(payloadEntries),
           "learnings" to payloadEntries,
         ).also { payload ->

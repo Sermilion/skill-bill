@@ -4,11 +4,11 @@ import skillbill.review.FeedbackTelemetryOptions
 import skillbill.telemetry.TelemetryConfigRuntime
 import skillbill.telemetry.TelemetrySettings
 
-internal fun payloadResult(payload: Map<String, Any?>, format: String): CliExecutionResult =
+internal fun payloadResult(payload: Map<String, Any?>, format: CliFormat): CliExecutionResult =
   CliExecutionResult(exitCode = 0, stdout = CliOutput.emit(payload, format), payload = payload)
 
-internal fun parseFormat(cursor: ArgumentCursor): String {
-  var format = "text"
+internal fun parseFormat(cursor: ArgumentCursor): CliFormat {
+  var format = CliFormat.TEXT
   while (cursor.hasNext()) {
     when (val token = cursor.take()) {
       "--format" -> format = requireFormat(cursor.requireValue(token))
@@ -18,16 +18,16 @@ internal fun parseFormat(cursor: ArgumentCursor): String {
   return format
 }
 
-internal fun parseSingleFormat(cursor: ArgumentCursor, commandName: String): String {
+internal fun parseSingleFormat(cursor: ArgumentCursor, commandName: String): CliFormat {
   val format = parseFormat(cursor)
   cursor.rejectExtraArguments(commandName)
   return format
 }
 
-internal fun requireFormat(rawValue: String): String {
-  require(rawValue in setOf("text", "json")) { "--format must be one of: text, json." }
-  return rawValue
-}
+internal fun parseFormatOnlyArgs(cursor: ArgumentCursor, commandName: String): FormatOnlyArgs =
+  FormatOnlyArgs(parseSingleFormat(cursor, commandName))
+
+internal fun requireFormat(rawValue: String): CliFormat = CliFormat.fromWireName(rawValue)
 
 internal fun loadTelemetrySettings(context: CliRuntimeContext): TelemetrySettings =
   TelemetryConfigRuntime.loadTelemetrySettings(

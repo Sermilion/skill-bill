@@ -1,5 +1,6 @@
 package skillbill.review
 
+import skillbill.learnings.LearningScope
 import skillbill.learnings.LearningsRuntime
 import java.sql.Connection
 
@@ -44,7 +45,7 @@ fun filterReviewFinishedSummary(summary: Map<String, Any?>, level: String): Map<
 }
 
 fun buildLearningsSection(connection: Connection, reviewSessionId: String, level: String): Map<String, Any?> {
-  val defaultScopeCounts = mapOf("global" to 0, "repo" to 0, "skill" to 0)
+  val defaultScopeCounts = LearningScope.emptyScopeCounts()
   val learningsData =
     if (reviewSessionId.isEmpty()) {
       null

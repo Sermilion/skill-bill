@@ -22,8 +22,9 @@ fun learningSummaryPayload(payload: Map<String, Any?>): Map<String, Any?> = mapO
   "rule_text" to payload["rule_text"],
 )
 
-fun scopeCounts(payloads: List<Map<String, Any?>>): Map<String, Int> = mapOf(
-  "global" to payloads.count { it["scope"] == "global" },
-  "repo" to payloads.count { it["scope"] == "repo" },
-  "skill" to payloads.count { it["scope"] == "skill" },
-)
+fun scopeCounts(payloads: List<Map<String, Any?>>): Map<String, Int> = LearningScope.emptyScopeCounts().apply {
+  payloads.forEach { payload ->
+    val scope = LearningScope.fromWireNameOrNull(payload["scope"]?.toString()) ?: return@forEach
+    put(scope.wireName, getValue(scope.wireName) + 1)
+  }
+}

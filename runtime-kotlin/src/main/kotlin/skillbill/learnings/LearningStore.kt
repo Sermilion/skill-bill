@@ -4,7 +4,7 @@ import skillbill.review.LearningRecord
 import java.sql.Connection
 
 data class CreateLearningRequest(
-  val scope: String,
+  val scope: LearningScope,
   val scopeKey: String,
   val title: String,
   val ruleText: String,
@@ -15,7 +15,7 @@ data class CreateLearningRequest(
 
 data class UpdateLearningRequest(
   val learningId: Int,
-  val scope: String?,
+  val scope: LearningScope?,
   val scopeKey: String?,
   val title: String?,
   val ruleText: String?,
@@ -62,7 +62,7 @@ object LearningStore {
       ) VALUES (?, ?, ?, ?, ?, 'active', ?, ?)
       """.trimIndent(),
     ).use { statement ->
-      statement.setString(PARAM_ONE, validatedScope)
+      statement.setString(PARAM_ONE, validatedScope.wireName)
       statement.setString(PARAM_TWO, validatedScopeKey)
       statement.setString(PARAM_THREE, request.title.trim())
       statement.setString(PARAM_FOUR, request.ruleText.trim())
@@ -141,7 +141,7 @@ object LearningStore {
 
   fun editLearning(connection: Connection, request: UpdateLearningRequest): LearningRecord {
     val current = getLearning(connection, request.learningId)
-    val nextScope = request.scope ?: current.scope
+    val nextScope = request.scope ?: LearningScope.fromWireName(current.scope)
     val nextScopeKey = request.scopeKey ?: current.scopeKey
     val (validatedScope, validatedScopeKey) = LearningsRuntime.validateLearningScope(nextScope, nextScopeKey)
     val nextTitle = request.title?.trim() ?: current.title
@@ -162,7 +162,7 @@ object LearningStore {
       WHERE id = ?
       """.trimIndent(),
     ).use { statement ->
-      statement.setString(PARAM_ONE, validatedScope)
+      statement.setString(PARAM_ONE, validatedScope.wireName)
       statement.setString(PARAM_TWO, validatedScopeKey)
       statement.setString(PARAM_THREE, nextTitle)
       statement.setString(PARAM_FOUR, nextRuleText)

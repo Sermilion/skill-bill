@@ -1,22 +1,10 @@
 package skillbill.cli
 
-import skillbill.telemetry.HttpRequester
-import skillbill.telemetry.TelemetryHttpRuntime
-import java.nio.file.Path
+typealias CliExecutionResult = skillbill.cli.models.CliExecutionResult
+typealias CliRuntimeContext = skillbill.cli.models.CliRuntimeContext
+typealias CliFormat = skillbill.cli.models.CliFormat
 
-data class CliExecutionResult(
-  val exitCode: Int,
-  val stdout: String,
-  val payload: Map<String, Any?>? = null,
-)
-
-data class CliRuntimeContext(
-  val dbPathOverride: String? = null,
-  val stdinText: String? = null,
-  val environment: Map<String, String> = System.getenv(),
-  val userHome: Path = Path.of(System.getProperty("user.home")),
-  val requester: HttpRequester = TelemetryHttpRuntime.defaultHttpRequester,
-)
+internal typealias FormatOnlyArgs = skillbill.cli.models.FormatOnlyArgs
 
 internal class ArgumentCursor(arguments: List<String>) {
   private val args = arguments.toList()

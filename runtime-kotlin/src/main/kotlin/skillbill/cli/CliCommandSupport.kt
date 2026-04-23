@@ -1,6 +1,7 @@
 package skillbill.cli
 
 import skillbill.db.DatabaseRuntime
+import skillbill.learnings.LearningScope
 import skillbill.learnings.learningPayload
 import skillbill.learnings.learningSummaryPayload
 import skillbill.learnings.scopeCounts
@@ -8,14 +9,13 @@ import skillbill.review.LearningRecord
 import skillbill.review.NumberedFinding
 import skillbill.telemetry.TelemetrySettings
 import skillbill.telemetry.telemetrySyncTarget
-
-internal val learningScopePrecedence = listOf("skill", "repo", "global")
+import java.sql.Connection
 
 internal fun featureStatsPayloadResult(
   dbOverride: String?,
   context: CliRuntimeContext,
-  format: String,
-  payloadBuilder: (java.sql.Connection) -> Map<String, Any?>,
+  format: CliFormat,
+  payloadBuilder: (Connection) -> Map<String, Any?>,
 ): CliExecutionResult = DatabaseRuntime.openDb(dbOverride, context.environment, context.userHome).use { openDb ->
   payloadResult(
     linkedMapOf<String, Any?>().apply {
@@ -35,7 +35,7 @@ internal fun findingPayload(finding: NumberedFinding): Map<String, Any?> = linke
   "description" to finding.description,
 )
 
-internal fun learningRecordResult(dbPath: String, record: LearningRecord, format: String): CliExecutionResult =
+internal fun learningRecordResult(dbPath: String, record: LearningRecord, format: CliFormat): CliExecutionResult =
   payloadResult(
     linkedMapOf<String, Any?>().apply {
       putAll(learningPayload(record))
@@ -54,7 +54,7 @@ internal fun learningsResolvePayload(
   "db_path" to dbPath,
   "repo_scope_key" to repoScopeKey,
   "skill_name" to skillName,
-  "scope_precedence" to learningScopePrecedence,
+  "scope_precedence" to LearningScope.precedenceWireNames(),
   "applied_learnings" to CliOutput.summarizeAppliedLearnings(payloadEntries),
   "learnings" to payloadEntries,
 ).also { payload ->

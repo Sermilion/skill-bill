@@ -7,6 +7,7 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import skillbill.contracts.JsonSupport
+import skillbill.learnings.LearningScope
 
 @OptIn(ExperimentalSerializationApi::class)
 private val cliPrettyJson =
@@ -17,10 +18,9 @@ private val cliPrettyJson =
   }
 
 internal object CliOutput {
-  fun emit(payload: Map<String, Any?>, outputFormat: String): String = when (outputFormat) {
-    "json" -> prettyJson(payload)
-    "text" -> emitText(payload)
-    else -> throw IllegalArgumentException("Unsupported output format '$outputFormat'.")
+  fun emit(payload: Map<String, Any?>, outputFormat: CliFormat): String = when (outputFormat) {
+    CliFormat.JSON -> prettyJson(payload)
+    CliFormat.TEXT -> emitText(payload)
   }
 
   fun numberedFindings(reviewRunId: String, numberedFindings: List<Map<String, Any?>>): String = buildString {
@@ -59,10 +59,10 @@ internal object CliOutput {
   fun resolvedLearnings(
     repoScopeKey: String?,
     skillName: String?,
-    scopePrecedence: List<String>,
+    scopePrecedence: List<LearningScope>,
     entries: List<Map<String, Any?>>,
   ): String = buildString {
-    appendLine("scope_precedence: ${scopePrecedence.joinToString(" > ")}")
+    appendLine("scope_precedence: ${scopePrecedence.joinToString(" > ") { it.wireName }}")
     repoScopeKey?.let { appendLine("repo_scope_key: $it") }
     skillName?.let { appendLine("skill_name: $it") }
     appendLine("applied_learnings: ${summarizeAppliedLearnings(entries)}")

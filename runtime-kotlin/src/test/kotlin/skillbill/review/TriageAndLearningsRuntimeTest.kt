@@ -3,6 +3,7 @@ package skillbill.review
 import skillbill.SAMPLE_REVIEW
 import skillbill.contracts.JsonSupport
 import skillbill.learnings.CreateLearningRequest
+import skillbill.learnings.LearningScope
 import skillbill.learnings.LearningStore
 import skillbill.learnings.LearningsRuntime
 import skillbill.learnings.learningPayload
@@ -40,13 +41,13 @@ class TriageAndLearningsRuntimeTest {
       val telemetryPayload = rejectFinding(connection, review.reviewRunId, "F-002", "Keep the current prompt wording.")
       assertEquals("rvs-20260402-001", telemetryPayload?.get("review_session_id"))
 
-      val globalId = addLearning(connection, review.reviewRunId, "global", "", "Prefer explicit wording")
-      val repoId = addLearning(connection, review.reviewRunId, "repo", "skill-bill", "Repo phrasing")
+      val globalId = addLearning(connection, review.reviewRunId, LearningScope.GLOBAL, "", "Prefer explicit wording")
+      val repoId = addLearning(connection, review.reviewRunId, LearningScope.REPO, "skill-bill", "Repo phrasing")
       val skillId =
         addLearning(
           connection,
           review.reviewRunId,
-          "skill",
+          LearningScope.SKILL,
           "bill-kotlin-code-review",
           "Review skill phrasing",
         )
@@ -97,7 +98,7 @@ private fun rejectFinding(
 private fun addLearning(
   connection: java.sql.Connection,
   reviewRunId: String,
-  scope: String,
+  scope: LearningScope,
   scopeKey: String,
   title: String,
 ): Int = LearningStore.addLearning(

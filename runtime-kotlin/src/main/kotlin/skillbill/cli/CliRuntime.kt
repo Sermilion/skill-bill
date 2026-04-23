@@ -1,23 +1,33 @@
 package skillbill.cli
 
+private val versionCliCommand =
+  leafCommand(
+    name = "version",
+    parse = { cursor -> parseFormatOnlyArgs(cursor, "version") },
+  ) { args, _, _ ->
+    payloadResult(linkedMapOf("version" to skillbill.SkillBillVersion.VALUE), args.format)
+  }
+
+private val rootCliCommand =
+  commandGroup(
+    name = "phase-4",
+    children =
+    buildList {
+      addAll(reviewCliCommands)
+      add(learningsCliCommand)
+      add(telemetryCliCommand)
+      add(versionCliCommand)
+      add(doctorCliCommand)
+    },
+    unknownCommandMessage = { token -> "Unsupported Phase 4 CLI command '$token'." },
+  )
+
 object CliRuntime {
   fun run(arguments: List<String>, context: CliRuntimeContext = CliRuntimeContext()): CliExecutionResult {
     val cursor = ArgumentCursor(arguments)
     val dbOverride = parseGlobalDbOverride(cursor, context.dbPathOverride)
     val command = cursor.take()
-    return when (command) {
-      "import-review" -> importReviewCommand(cursor, context, dbOverride)
-      "record-feedback" -> recordFeedbackCommand(cursor, context, dbOverride)
-      "triage" -> triageCommand(cursor, context, dbOverride)
-      "stats" -> reviewStatsCommand(cursor, context, dbOverride)
-      "implement-stats", "feature-implement-stats" -> featureImplementStatsCommand(cursor, context, dbOverride)
-      "verify-stats", "feature-verify-stats" -> featureVerifyStatsCommand(cursor, context, dbOverride)
-      "learnings" -> learningsCommand(cursor, context, dbOverride)
-      "telemetry" -> telemetryCommand(cursor, context, dbOverride)
-      "version" -> payloadResult(linkedMapOf("version" to skillbill.SkillBillVersion.VALUE), parseFormat(cursor))
-      "doctor" -> doctorCommand(cursor, context, dbOverride)
-      else -> throw IllegalArgumentException("Unsupported Phase 4 CLI command '$command'.")
-    }
+    return rootCliCommand.dispatch(command, CliInvocation(cursor, context, dbOverride))
   }
 }
 

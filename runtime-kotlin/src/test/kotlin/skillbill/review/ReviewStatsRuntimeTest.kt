@@ -3,6 +3,7 @@ package skillbill.review
 import skillbill.SAMPLE_REVIEW
 import skillbill.contracts.JsonSupport
 import skillbill.learnings.CreateLearningRequest
+import skillbill.learnings.LearningScope
 import skillbill.learnings.LearningStore
 import skillbill.learnings.LearningsRuntime
 import skillbill.learnings.learningPayload
@@ -123,7 +124,7 @@ private fun cacheSkillLearning(connection: java.sql.Connection, reviewRunId: Str
       connection = connection,
       request =
       CreateLearningRequest(
-        scope = "skill",
+        scope = LearningScope.SKILL,
         scopeKey = "bill-kotlin-code-review",
         title = "Match wording",
         ruleText = "Keep wording aligned with routed skill output.",

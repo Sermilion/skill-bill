@@ -12,24 +12,12 @@ data class LearningSourceValidation(
 )
 
 object LearningsRuntime {
-  val learningScopes: List<String> = listOf("global", "repo", "skill")
   val learningStatuses: List<String> = listOf("active", "disabled")
   private val rejectedFindingOutcomeTypes = listOf("fix_rejected", "false_positive")
   private const val REJECTED_OUTCOME_FIRST_PARAM_INDEX: Int = 3
 
-  fun validateLearningScope(scope: String, scopeKey: String): Pair<String, String> {
-    require(scope in learningScopes) {
-      "Learning scope must be one of ${learningScopes.joinToString(", ")}."
-    }
-    val normalizedScopeKey = scopeKey.trim()
-    if (scope == "global") {
-      return scope to ""
-    }
-    require(normalizedScopeKey.isNotEmpty()) {
-      "Learning scope '$scope' requires a non-empty --scope-key."
-    }
-    return scope to normalizedScopeKey
-  }
+  fun validateLearningScope(scope: LearningScope, scopeKey: String): Pair<LearningScope, String> =
+    scope to scope.normalizeScopeKey(scopeKey)
 
   fun validateLearningSource(
     connection: Connection,
@@ -101,14 +89,14 @@ object LearningsRuntime {
   ): Triple<String?, String?, List<LearningRecord>> {
     val normalizedRepoScopeKey = normalizeOptionalLookupValue(repoScopeKey, "--repo")
     val normalizedSkillName = normalizeOptionalLookupValue(skillName, "--skill")
-    val scopeClauses = mutableListOf("scope = 'global'")
+    val scopeClauses = mutableListOf("scope = '${LearningScope.GLOBAL.wireName}'")
     val parameters = mutableListOf<String>()
     if (normalizedRepoScopeKey != null) {
-      scopeClauses += "(scope = 'repo' AND scope_key = ?)"
+      scopeClauses += "(scope = '${LearningScope.REPO.wireName}' AND scope_key = ?)"
       parameters += normalizedRepoScopeKey
     }
     if (normalizedSkillName != null) {
-      scopeClauses += "(scope = 'skill' AND scope_key = ?)"
+      scopeClauses += "(scope = '${LearningScope.SKILL.wireName}' AND scope_key = ?)"
       parameters += normalizedSkillName
     }
 
@@ -131,11 +119,7 @@ object LearningsRuntime {
         WHERE status = 'active'
           AND (${scopeClauses.joinToString(" OR ")})
         ORDER BY
-          CASE scope
-            WHEN 'skill' THEN 0
-            WHEN 'repo' THEN 1
-            ELSE 2
-          END,
+          ${learningScopeOrderClause("scope")},
           id
         """.trimIndent(),
       ).use { statement ->
@@ -185,6 +169,14 @@ object LearningsRuntime {
         decodeSessionLearnings(resultSet.getString("learnings_json"))
       }
     }
+}
+
+private fun learningScopeOrderClause(columnName: String): String = buildString {
+  appendLine("CASE $columnName")
+  LearningScope.precedence.forEachIndexed { index, scope ->
+    appendLine("  WHEN '${scope.wireName}' THEN $index")
+  }
+  append("  ELSE ${LearningScope.precedence.size}\nEND")
 }
 
 private fun decodeSessionLearnings(rawJson: String): Map<String, Any?>? = JsonSupport.parseObjectOrNull(rawJson)?.let {
