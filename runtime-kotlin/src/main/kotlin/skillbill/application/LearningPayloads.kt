@@ -1,22 +1,10 @@
-package skillbill.app
+package skillbill.application
 
 import skillbill.contracts.JsonSupport
 import skillbill.learnings.LearningScope
 import skillbill.learnings.learningSummaryPayload
 import skillbill.learnings.scopeCounts
 import skillbill.review.LearningRecord
-import skillbill.review.NumberedFinding
-import skillbill.telemetry.TelemetrySettings
-import skillbill.telemetry.telemetrySyncTarget
-
-internal fun findingPayload(finding: NumberedFinding): Map<String, Any?> = linkedMapOf(
-  "number" to finding.number,
-  "finding_id" to finding.findingId,
-  "severity" to finding.severity,
-  "confidence" to finding.confidence,
-  "location" to finding.location,
-  "description" to finding.description,
-)
 
 internal fun learningRecordPayload(dbPath: String, record: LearningRecord): Map<String, Any?> =
   linkedMapOf<String, Any?>().apply {
@@ -53,24 +41,5 @@ internal fun learningsSessionJson(skillName: String?, payloadEntries: List<Map<S
     ),
   )
 
-internal fun telemetryMutationPayload(settings: TelemetrySettings, clearedEvents: Int): Map<String, Any?> = linkedMapOf(
-  "config_path" to settings.configPath.toString(),
-  "telemetry_enabled" to settings.enabled,
-  "telemetry_level" to settings.level,
-  "sync_target" to telemetrySyncTarget(settings),
-  "remote_configured" to settings.proxyUrl.isNotBlank(),
-  "proxy_configured" to (settings.customProxyUrl != null),
-  "proxy_url" to settings.proxyUrl,
-  "custom_proxy_url" to settings.customProxyUrl,
-  "install_id" to settings.installId,
-  "cleared_events" to clearedEvents,
-)
-
 internal fun summarizeAppliedLearnings(entries: List<Map<String, Any?>>): String =
   if (entries.isEmpty()) "none" else entries.joinToString(", ") { it["reference"].toString() }
-
-internal fun mapWorkflow(workflow: String): String = when (workflow) {
-  "verify" -> "bill-feature-verify"
-  "implement" -> "bill-feature-implement"
-  else -> throw IllegalArgumentException("workflow must be one of: verify, implement.")
-}
