@@ -153,6 +153,30 @@ class McpRuntimeTest {
   }
 
   @Test
+  fun `resolve learnings returns stable payload when telemetry is enabled`() {
+    val tempDir = Files.createTempDirectory("skillbill-mcp-learnings")
+    val env = enabledTelemetryEnvironment(tempDir)
+    seedLearningScenario(tempDir, env)
+
+    val result =
+      McpRuntime.resolveLearnings(
+        skill = "bill-kotlin-code-review",
+        reviewSessionId = "rvs-20260402-001",
+        context = McpRuntimeContext(environment = env, userHome = tempDir),
+      )
+
+    assertEquals("bill-kotlin-code-review", result["skill_name"])
+    assertEquals(listOf("skill", "repo", "global"), result["scope_precedence"])
+    assertEquals("L-001", result["applied_learnings"])
+    assertEquals("rvs-20260402-001", result["review_session_id"])
+    val entries = result["learnings"] as List<*>
+    val firstEntry = entries.first() as Map<*, *>
+    assertEquals("L-001", firstEntry["reference"])
+    assertEquals("skill", firstEntry["scope"])
+    assertEquals("Keep wording aligned", firstEntry["title"])
+  }
+
+  @Test
   fun `mcp import review honors overridden user home when resolving telemetry config`() {
     val tempDir = Files.createTempDirectory("skillbill-mcp-user-home")
     Files.createDirectories(tempDir.resolve(".skill-bill"))
@@ -289,6 +313,61 @@ private fun writeMcpTelemetryConfig(tempDir: Path, level: String): Path {
     """.trimIndent() + "\n",
   )
   return configPath
+}
+
+private fun seedLearningScenario(tempDir: Path, env: Map<String, String>) {
+  val dbPath = tempDir.resolve("metrics.db")
+  assertMcpCliSuccess(
+    CliRuntime.run(
+      listOf("--db", dbPath.toString(), "import-review", "-", "--format", "json"),
+      CliRuntimeContext(environment = env, userHome = tempDir, stdinText = SAMPLE_REVIEW.trimIndent()),
+    ),
+  )
+  assertMcpCliSuccess(
+    CliRuntime.run(
+      listOf(
+        "--db",
+        dbPath.toString(),
+        "triage",
+        "--run-id",
+        "rvw-20260402-001",
+        "--decision",
+        "2 reject - intentional",
+        "--format",
+        "json",
+      ),
+      CliRuntimeContext(environment = env, userHome = tempDir),
+    ),
+  )
+  assertMcpCliSuccess(
+    CliRuntime.run(
+      listOf(
+        "--db",
+        dbPath.toString(),
+        "learnings",
+        "add",
+        "--scope",
+        "skill",
+        "--scope-key",
+        "bill-kotlin-code-review",
+        "--title",
+        "Keep wording aligned",
+        "--rule",
+        "Update the installer prompt when routing text changes.",
+        "--from-run",
+        "rvw-20260402-001",
+        "--from-finding",
+        "F-002",
+        "--format",
+        "json",
+      ),
+      CliRuntimeContext(environment = env, userHome = tempDir),
+    ),
+  )
+}
+
+private fun assertMcpCliSuccess(result: skillbill.cli.CliExecutionResult) {
+  assertEquals(0, result.exitCode, result.stdout)
 }
 
 private fun mcpTelemetryRequester(capturedRequests: MutableList<Map<String, Any?>>): HttpRequester =

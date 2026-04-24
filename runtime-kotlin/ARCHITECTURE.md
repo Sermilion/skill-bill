@@ -73,12 +73,15 @@ useful for the next refactors:
 - MCP workflow calls must use application services rather than reaching
   directly into DB, review, telemetry runtime implementations, or learning
   stores
+- learning application use cases return typed results; CLI and MCP map those
+  results to JSON-compatible payloads at their adapter boundaries
 - future `skillbill.domain.*` packages are protected from infrastructure
   imports as soon as they appear
 
 ## Near-Term Refactor Order
 
-1. Replace application-layer `Map<String, Any?>` results with typed results.
+1. Continue replacing non-learning application-layer `Map<String, Any?>`
+   results with typed results.
 2. Introduce repository and unit-of-work ports.
 3. Move pure domain models/rules away from JDBC-shaped runtime objects.
 4. Put telemetry config, HTTP, and filesystem behavior behind explicit ports.

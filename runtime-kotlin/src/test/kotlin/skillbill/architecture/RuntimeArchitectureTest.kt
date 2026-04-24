@@ -21,6 +21,7 @@ class RuntimeArchitectureTest {
     assertContains(architecture, "Current Package Ownership")
     assertContains(architecture, "Boundary Rules")
     assertContains(architecture, "MCP workflow calls must use application services")
+    assertContains(architecture, "learning application use cases return typed results")
   }
 
   @Test
@@ -96,6 +97,23 @@ class RuntimeArchitectureTest {
         "skillbill.telemetry.TelemetryRemoteStatsRuntime",
       ),
     )
+  }
+
+  @Test
+  fun `learning service exposes typed results instead of map payloads`() {
+    val serviceSource = Files.readString(sourceRoot.resolve("skillbill/application/LearningService.kt"))
+    val mapReturningLearningFunctions =
+      Regex("""fun\s+(list|show|resolve|add|edit|setStatus|delete)\s*\([^)]*\)\s*:\s*Map<""")
+        .findAll(serviceSource)
+        .map { match -> match.groupValues[1] }
+        .toList()
+
+    assertTrue(
+      mapReturningLearningFunctions.isEmpty(),
+      "LearningService functions still return Map payloads: ${mapReturningLearningFunctions.joinToString()}",
+    )
+    assertContains(serviceSource, "LearningListResult")
+    assertContains(serviceSource, "LearningResolveResult")
   }
 
   @Test

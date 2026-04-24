@@ -100,7 +100,7 @@ object McpRuntime {
         "learnings" to emptyList<Map<String, Any?>>(),
       )
     }
-    return services.learningService.resolve(repo, skill, reviewSessionId, dbOverride = null)
+    return services.learningService.resolve(repo, skill, reviewSessionId, dbOverride = null).toMcpPayload()
   }
 
   fun reviewStats(reviewRunId: String? = null, context: McpRuntimeContext = McpRuntimeContext()): Map<String, Any?> =
