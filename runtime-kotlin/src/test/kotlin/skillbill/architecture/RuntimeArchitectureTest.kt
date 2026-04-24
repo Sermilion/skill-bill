@@ -20,7 +20,7 @@ class RuntimeArchitectureTest {
     assertContains(architecture, "-> application use cases")
     assertContains(architecture, "Current Package Ownership")
     assertContains(architecture, "Boundary Rules")
-    assertContains(architecture, "MCP is intentionally left as a transitional exception")
+    assertContains(architecture, "MCP workflow calls must use application services")
   }
 
   @Test
@@ -78,6 +78,22 @@ class RuntimeArchitectureTest {
         "skillbill.telemetry.TelemetrySyncRuntime",
         "skillbill.learnings.LearningStore",
         "skillbill.learnings.LearningsRuntime",
+      ),
+    )
+  }
+
+  @Test
+  fun `mcp workflow calls delegate to application instead of low level runtimes`() {
+    assertNoBannedImports(
+      files = sourceFiles().filter { file -> file.relativePath.startsWith("skillbill/mcp/") },
+      bannedImports =
+      listOf(
+        "skillbill.db",
+        "skillbill.review",
+        "skillbill.learnings.LearningStore",
+        "skillbill.learnings.LearningsRuntime",
+        "skillbill.telemetry.TelemetryConfigRuntime",
+        "skillbill.telemetry.TelemetryRemoteStatsRuntime",
       ),
     )
   }

@@ -1,6 +1,9 @@
 package skillbill.mcp
 
 import skillbill.SAMPLE_REVIEW
+import skillbill.cli.CliRuntime
+import skillbill.cli.CliRuntimeContext
+import skillbill.contracts.JsonSupport
 import skillbill.db.DatabaseRuntime
 import skillbill.telemetry.CONFIG_ENVIRONMENT_KEY
 import skillbill.telemetry.HttpRequester
@@ -17,6 +20,23 @@ import kotlin.test.assertTrue
 
 class McpRuntimeTest {
   @Test
+  fun `version matches cli system service payload`() {
+    val tempDir = Files.createTempDirectory("skillbill-mcp-version")
+    val env = disabledTelemetryEnvironment(tempDir)
+    val cliResult =
+      CliRuntime.run(
+        listOf("version", "--format", "json"),
+        CliRuntimeContext(environment = env, userHome = tempDir),
+      )
+
+    assertEquals(0, cliResult.exitCode, cliResult.stdout)
+    assertEquals(
+      decodeJsonObject(cliResult.stdout),
+      McpRuntime.version(McpRuntimeContext(environment = env, userHome = tempDir)),
+    )
+  }
+
+  @Test
   fun `doctor returns version and db info`() {
     val tempDir = Files.createTempDirectory("skillbill-mcp-doctor")
     val env = disabledTelemetryEnvironment(tempDir)
@@ -28,6 +48,24 @@ class McpRuntimeTest {
     assertFalse(result["db_exists"] as Boolean)
     assertEquals(false, result["telemetry_enabled"])
     assertEquals("off", result["telemetry_level"])
+  }
+
+  @Test
+  fun `doctor matches cli shared system service payload`() {
+    val tempDir = Files.createTempDirectory("skillbill-mcp-cli-shared-doctor")
+    val env = disabledTelemetryEnvironment(tempDir)
+    val dbPath = tempDir.resolve("metrics.db")
+    val cliResult =
+      CliRuntime.run(
+        listOf("--db", dbPath.toString(), "doctor", "--format", "json"),
+        CliRuntimeContext(environment = env, userHome = tempDir),
+      )
+
+    assertEquals(0, cliResult.exitCode, cliResult.stdout)
+    assertEquals(
+      decodeJsonObject(cliResult.stdout),
+      McpRuntime.doctor(McpRuntimeContext(environment = env, userHome = tempDir)),
+    )
   }
 
   @Test
@@ -289,3 +327,11 @@ private fun mcpTelemetryRequester(capturedRequests: MutableList<Map<String, Any?
         )
     }
   }
+
+private fun decodeJsonObject(rawJson: String): Map<String, Any?> {
+  val parsed = JsonSupport.parseObjectOrNull(rawJson)
+  require(parsed != null) { "Expected JSON object but got: $rawJson" }
+  val decoded = JsonSupport.anyToStringAnyMap(JsonSupport.jsonElementToValue(parsed))
+  require(decoded != null) { "Expected decoded JSON object but got: $rawJson" }
+  return decoded
+}

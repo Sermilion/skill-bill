@@ -23,8 +23,9 @@ di
 
 - `skillbill.cli`: Clikt command tree, option validation, shell completion,
   terminal text rendering, and CLI JSON output.
-- `skillbill.mcp`: MCP-facing adapter surface. This is transitional; Phase 1
-  should route overlapping workflows through `skillbill.application`.
+- `skillbill.mcp`: MCP-facing adapter surface. It delegates overlapping
+  workflows to `skillbill.application` and keeps MCP-specific orchestration
+  metadata at the adapter boundary.
 - `skillbill.application`: reusable runtime use cases for CLI, MCP, and future
   entry points.
 - `skillbill.di`: Kotlin-Inject composition roots and providers.
@@ -59,30 +60,28 @@ These are the stable dependency rules the runtime should converge toward.
 6. JSON maps and terminal strings are boundary concerns. Internal use cases
    should move toward typed input and output models.
 
-## Phase 0 Guardrails
+## Architecture Guardrails
 
-Phase 0 intentionally enforces only boundaries that are true today and useful
-for the next refactor:
+The current test guardrails enforce the boundaries that are true today and
+useful for the next refactors:
 
 - the architecture document must exist and name the package ownership rules
 - `RuntimeModule` must declare the current top-level runtime package surfaces
 - application services must remain independent from entry-point frameworks
 - CLI workflow commands must use application services rather than reaching
   directly into DB, review, telemetry, or learning stores
+- MCP workflow calls must use application services rather than reaching
+  directly into DB, review, telemetry runtime implementations, or learning
+  stores
 - future `skillbill.domain.*` packages are protected from infrastructure
   imports as soon as they appear
 
-MCP is intentionally left as a transitional exception in Phase 0 because Phase
-1 is dedicated to routing MCP through the application layer.
-
 ## Near-Term Refactor Order
 
-1. Route MCP through application use cases.
-2. Replace application-layer `Map<String, Any?>` results with typed results.
-3. Introduce repository and unit-of-work ports.
-4. Move pure domain models/rules away from JDBC-shaped runtime objects.
-5. Put telemetry config, HTTP, and filesystem behavior behind explicit ports.
-6. Add versioned database migrations.
-7. Add contract DTOs and golden output fixtures.
-8. Split Gradle modules only after package boundaries are proven.
-
+1. Replace application-layer `Map<String, Any?>` results with typed results.
+2. Introduce repository and unit-of-work ports.
+3. Move pure domain models/rules away from JDBC-shaped runtime objects.
+4. Put telemetry config, HTTP, and filesystem behavior behind explicit ports.
+5. Add versioned database migrations.
+6. Add contract DTOs and golden output fixtures.
+7. Split Gradle modules only after package boundaries are proven.
