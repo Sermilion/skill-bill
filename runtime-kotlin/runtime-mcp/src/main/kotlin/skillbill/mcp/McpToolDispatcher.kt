@@ -9,6 +9,8 @@ object McpToolDispatcher {
   private val nativeHandlers: Map<String, McpToolHandler> =
     mapOf(
       "doctor" to { McpRuntime.doctor() },
+      "feature_implement_finished" to ::featureImplementFinished,
+      "feature_implement_started" to ::featureImplementStarted,
       "feature_implement_stats" to { McpRuntime.featureImplementStats() },
       "feature_implement_workflow_continue" to { workflowContinue(WorkflowFamilyKind.IMPLEMENT, it) },
       "feature_implement_workflow_get" to { workflowGet(WorkflowFamilyKind.IMPLEMENT, it) },
@@ -17,6 +19,8 @@ object McpToolDispatcher {
       "feature_implement_workflow_open" to { workflowOpen(WorkflowFamilyKind.IMPLEMENT, it) },
       "feature_implement_workflow_resume" to { workflowResume(WorkflowFamilyKind.IMPLEMENT, it) },
       "feature_implement_workflow_update" to { workflowUpdate(WorkflowFamilyKind.IMPLEMENT, it) },
+      "feature_verify_finished" to ::featureVerifyFinished,
+      "feature_verify_started" to ::featureVerifyStarted,
       "feature_verify_stats" to { McpRuntime.featureVerifyStats() },
       "feature_verify_workflow_continue" to { workflowContinue(WorkflowFamilyKind.VERIFY, it) },
       "feature_verify_workflow_get" to { workflowGet(WorkflowFamilyKind.VERIFY, it) },
@@ -27,6 +31,9 @@ object McpToolDispatcher {
       "feature_verify_workflow_update" to { workflowUpdate(WorkflowFamilyKind.VERIFY, it) },
       "import_review" to ::importReview,
       "new_skill_scaffold" to ::newSkillScaffold,
+      "pr_description_generated" to ::prDescriptionGenerated,
+      "quality_check_finished" to ::qualityCheckFinished,
+      "quality_check_started" to ::qualityCheckStarted,
       "resolve_learnings" to ::resolveLearnings,
       "review_stats" to { McpRuntime.reviewStats(it.optionalString("review_run_id")) },
       "telemetry_proxy_capabilities" to { McpRuntime.telemetryProxyCapabilities() },
@@ -36,23 +43,8 @@ object McpToolDispatcher {
 
   fun call(toolName: String, arguments: Map<String, Any?>): Map<String, Any?> =
     nativeHandlers[toolName]?.invoke(arguments)
-      ?: legacyToolPayload(toolName, arguments)
       ?: error("Unknown MCP tool '$toolName'.")
 }
-
-private fun legacyToolPayload(toolName: String, arguments: Map<String, Any?>): Map<String, Any?>? =
-  if (toolName in legacyPythonToolNames) LegacyPythonMcpBridge.call(toolName, arguments) else null
-
-private val legacyPythonToolNames: Set<String> =
-  setOf(
-    "feature_implement_finished",
-    "feature_implement_started",
-    "feature_verify_finished",
-    "feature_verify_started",
-    "pr_description_generated",
-    "quality_check_finished",
-    "quality_check_started",
-  )
 
 internal fun importReview(arguments: Map<String, Any?>): Map<String, Any?> = McpRuntime.importReview(
   reviewText = arguments.string("review_text"),
