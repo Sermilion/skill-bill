@@ -7,6 +7,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -69,6 +70,12 @@ class McpStdioServerTest {
         "pr_description_generated",
         "quality_check_finished",
         "quality_check_started",
+        "readian_auth_status",
+        "readian_get_article",
+        "readian_get_recommendations",
+        "readian_get_today_feed",
+        "readian_mark_story_status",
+        "readian_save_candidate",
         "resolve_learnings",
         "review_stats",
         "telemetry_proxy_capabilities",
@@ -207,6 +214,71 @@ class McpStdioServerTest {
     assertEquals(2, recorded.size)
     assertEquals("fix_applied", requireNotNull(JsonSupport.anyToStringAnyMap(recorded[0]))["outcome_type"])
     assertEquals("fix_rejected", requireNotNull(JsonSupport.anyToStringAnyMap(recorded[1]))["outcome_type"])
+  }
+
+  @Test
+  fun `readian feed tools return auth required when boundary is unavailable`() {
+    val tempDir = Files.createTempDirectory("skillbill-readian-auth-required")
+    val context = McpRuntimeContext(environment = emptyMap(), userHome = tempDir)
+
+    val response =
+      decodeResponse(
+        McpStdioServer.handleLine(
+          toolCallRequest(
+            id = 1,
+            name = "readian_get_today_feed",
+            arguments = mapOf("beat" to "pc-games"),
+          ),
+          context,
+        ),
+      )
+    val result = response.map("result")
+    val payload = toolPayload(result)
+
+    assertEquals(false, result["isError"], payload.toString())
+    assertEquals("auth_required", payload["status"])
+    assertEquals(true, payload["auth_required"])
+    assertEquals("readian_get_today_feed", payload["tool"])
+    assertEquals(
+      "auth_required",
+      requireNotNull(JsonSupport.anyToStringAnyMap(payload["error"]))["code"],
+    )
+  }
+
+  @Test
+  fun `readian tool responses redact token and session material from log safe payloads`() {
+    val tempDir = Files.createTempDirectory("skillbill-readian-redaction")
+    val context =
+      McpRuntimeContext(
+        environment = mapOf("SKILL_BILL_READIAN_AUTHENTICATED" to "true"),
+        userHome = tempDir,
+      )
+
+    val response =
+      decodeResponse(
+        McpStdioServer.handleLine(
+          toolCallRequest(
+            id = 2,
+            name = "readian_save_candidate",
+            arguments = mapOf(
+              "candidate_id" to "candidate-1",
+              "refresh_token" to "readian_rt_supersecret",
+              "notes" to "authorization=readian_token_should_not_leak Bearer abc.def.ghi",
+              "nested" to mapOf("session_cookie" to "readian_session_supersecret"),
+            ),
+          ),
+          context,
+        ),
+      )
+    val payload = toolPayload(response.map("result"))
+    val serialized = JsonSupport.mapToJsonString(payload)
+
+    assertEquals("ok", payload["status"])
+    assertFalse(serialized.contains("readian_rt_supersecret"), serialized)
+    assertFalse(serialized.contains("readian_token_should_not_leak"), serialized)
+    assertFalse(serialized.contains("readian_session_supersecret"), serialized)
+    assertFalse(serialized.contains("abc.def.ghi"), serialized)
+    assertTrue(serialized.contains("[REDACTED]"), serialized)
   }
 }
 
