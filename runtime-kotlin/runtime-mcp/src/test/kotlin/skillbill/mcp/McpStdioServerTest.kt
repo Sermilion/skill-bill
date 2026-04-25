@@ -80,6 +80,68 @@ class McpStdioServerTest {
   }
 
   @Test
+  fun `feature implement started tool advertises required assessment arguments`() {
+    val schema = toolSchema("feature_implement_started")
+    val properties = requireNotNull(JsonSupport.anyToStringAnyMap(schema["properties"]))
+
+    assertEquals(
+      listOf(
+        "feature_size",
+        "acceptance_criteria_count",
+        "open_questions_count",
+        "spec_input_types",
+        "spec_word_count",
+        "rollout_needed",
+      ),
+      schema["required"],
+    )
+    assertEquals(
+      listOf("SMALL", "MEDIUM", "LARGE"),
+      requireNotNull(JsonSupport.anyToStringAnyMap(properties["feature_size"]))["enum"],
+    )
+  }
+
+  @Test
+  fun `feature implement workflow update schema requires attempt counts in every step update`() {
+    val schema = toolSchema("feature_implement_workflow_update")
+    val properties = requireNotNull(JsonSupport.anyToStringAnyMap(schema["properties"]))
+    val workflowStatus = requireNotNull(JsonSupport.anyToStringAnyMap(properties["workflow_status"]))
+    val currentStep = requireNotNull(JsonSupport.anyToStringAnyMap(properties["current_step_id"]))
+    val stepUpdates = requireNotNull(JsonSupport.anyToStringAnyMap(properties["step_updates"]))
+    val stepItem = requireNotNull(JsonSupport.anyToStringAnyMap(stepUpdates["items"]))
+    val stepProperties = requireNotNull(JsonSupport.anyToStringAnyMap(stepItem["properties"]))
+    val stepId = requireNotNull(JsonSupport.anyToStringAnyMap(stepProperties["step_id"]))
+    val attemptCount = requireNotNull(JsonSupport.anyToStringAnyMap(stepProperties["attempt_count"]))
+
+    assertEquals(listOf("workflow_id", "workflow_status", "current_step_id"), schema["required"])
+    assertEquals(listOf("step_id", "status", "attempt_count"), stepItem["required"])
+    assertTrue((workflowStatus["enum"] as List<*>).contains("blocked"))
+    assertTrue((currentStep["enum"] as List<*>).contains("create_branch"))
+    assertTrue((stepId["enum"] as List<*>).contains("commit_push"))
+    assertEquals("integer", attemptCount["type"])
+  }
+
+  @Test
+  fun `feature verify workflow update schema requires attempt counts in every step update`() {
+    val schema = toolSchema("feature_verify_workflow_update")
+    val properties = requireNotNull(JsonSupport.anyToStringAnyMap(schema["properties"]))
+    val workflowStatus = requireNotNull(JsonSupport.anyToStringAnyMap(properties["workflow_status"]))
+    val currentStep = requireNotNull(JsonSupport.anyToStringAnyMap(properties["current_step_id"]))
+    val stepUpdates = requireNotNull(JsonSupport.anyToStringAnyMap(properties["step_updates"]))
+    val stepItem = requireNotNull(JsonSupport.anyToStringAnyMap(stepUpdates["items"]))
+    val stepProperties = requireNotNull(JsonSupport.anyToStringAnyMap(stepItem["properties"]))
+    val stepStatus = requireNotNull(JsonSupport.anyToStringAnyMap(stepProperties["status"]))
+    val attemptCount = requireNotNull(JsonSupport.anyToStringAnyMap(stepProperties["attempt_count"]))
+
+    assertEquals(listOf("workflow_id", "workflow_status", "current_step_id"), schema["required"])
+    assertEquals(listOf("step_id", "status", "attempt_count"), stepItem["required"])
+    assertTrue((workflowStatus["enum"] as List<*>).contains("abandoned"))
+    assertTrue((currentStep["enum"] as List<*>).contains("verdict"))
+    assertTrue((stepStatus["enum"] as List<*>).contains("skipped"))
+    assertEquals("integer", attemptCount["type"])
+  }
+
+  @Test
   fun `tools call wraps native payloads as text content`() {
     val response =
       decodeResponse(
@@ -185,6 +247,21 @@ private fun toolPayload(result: Map<String, Any?>): Map<String, Any?> {
   val content = result["content"] as List<*>
   val textContent = requireNotNull(JsonSupport.anyToStringAnyMap(content.first()))
   return decodeStdioJsonObject(textContent["text"].toString())
+}
+
+private fun toolSchema(name: String): Map<String, Any?> {
+  val response =
+    decodeResponse(
+      McpStdioServer.handleLine(
+        """{"jsonrpc":"2.0","id":"tools","method":"tools/list","params":{}}""",
+      ),
+    )
+  val tools = response.map("result")["tools"] as List<*>
+  val tool =
+    tools
+      .map { entry -> requireNotNull(JsonSupport.anyToStringAnyMap(entry)) }
+      .first { entry -> entry["name"] == name }
+  return requireNotNull(JsonSupport.anyToStringAnyMap(tool["inputSchema"]))
 }
 
 private fun decodeToolArguments(rawJson: String): Map<String, Any?> {
