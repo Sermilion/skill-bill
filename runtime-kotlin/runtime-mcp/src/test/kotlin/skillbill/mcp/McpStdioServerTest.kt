@@ -37,10 +37,42 @@ class McpStdioServerTest {
     val tools = response.map("result")["tools"] as List<*>
     val names = tools.map { tool -> requireNotNull(JsonSupport.anyToStringAnyMap(tool))["name"] }
 
-    assertEquals(McpToolRegistry.tools.map(McpToolSpec::name), names)
-    assertTrue("doctor" in names)
-    assertTrue("feature_implement_workflow_continue" in names)
-    assertTrue("quality_check_finished" in names)
+    assertEquals(
+      listOf(
+        "doctor",
+        "feature_implement_finished",
+        "feature_implement_stats",
+        "feature_implement_started",
+        "feature_implement_workflow_get",
+        "feature_implement_workflow_latest",
+        "feature_implement_workflow_list",
+        "feature_implement_workflow_continue",
+        "feature_implement_workflow_open",
+        "feature_implement_workflow_resume",
+        "feature_implement_workflow_update",
+        "feature_verify_finished",
+        "feature_verify_stats",
+        "feature_verify_started",
+        "feature_verify_workflow_get",
+        "feature_verify_workflow_latest",
+        "feature_verify_workflow_list",
+        "feature_verify_workflow_continue",
+        "feature_verify_workflow_open",
+        "feature_verify_workflow_resume",
+        "feature_verify_workflow_update",
+        "import_review",
+        "new_skill_scaffold",
+        "pr_description_generated",
+        "quality_check_finished",
+        "quality_check_started",
+        "resolve_learnings",
+        "review_stats",
+        "telemetry_proxy_capabilities",
+        "telemetry_remote_stats",
+        "triage_findings",
+      ),
+      names,
+    )
   }
 
   @Test
