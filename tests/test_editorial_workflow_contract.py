@@ -19,7 +19,7 @@ from scripts.validate_agent_configs import (  # noqa: E402
 )
 
 
-EDITORIAL_SKILL_DIR = ROOT / "skills" / "bill-gaming-editorial-desk"
+EDITORIAL_SKILL_DIR = ROOT / "skills" / "bill-editorial-assignment-desk"
 
 
 class EditorialWorkflowContractTest(unittest.TestCase):
@@ -29,7 +29,7 @@ class EditorialWorkflowContractTest(unittest.TestCase):
     issues: list[str] = []
 
     validate_skill_file(
-      "bill-gaming-editorial-desk",
+      "bill-editorial-assignment-desk",
       EDITORIAL_SKILL_DIR / "SKILL.md",
       issues,
     )
@@ -40,7 +40,7 @@ class EditorialWorkflowContractTest(unittest.TestCase):
   def test_rejects_missing_required_editorial_skill_sections(self) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
       temp_root = Path(temp_dir)
-      target_dir = temp_root / "skills" / "bill-gaming-editorial-desk"
+      target_dir = temp_root / "skills" / "bill-editorial-assignment-desk"
       shutil.copytree(EDITORIAL_SKILL_DIR, target_dir, symlinks=True)
       skill_file = target_dir / "SKILL.md"
       skill_file.write_text(
@@ -74,6 +74,42 @@ class EditorialWorkflowContractTest(unittest.TestCase):
       "missing_primary_sources",
     ):
       self.assertIn(marker, reference)
+
+  def test_readian_mcp_install_setup_is_pinned(self) -> None:
+    skill = (EDITORIAL_SKILL_DIR / "SKILL.md").read_text(encoding="utf-8")
+    content = (EDITORIAL_SKILL_DIR / "content.md").read_text(encoding="utf-8")
+    combined = f"{skill}\n{content}"
+
+    for marker in (
+      "Node.js 18+",
+      "Java 21+",
+      "npm install -g @readian/mcp-client",
+      "readian-mcp status",
+      "\"mcpServers\"",
+      "\"args\": [\"stdio\"]",
+      "which readian-mcp",
+      "readian-mcp login --identifier <my-readian-username-or-email>",
+      "Do not publish, tag, or release",
+      "Trusted Publishing",
+    ):
+      self.assertIn(marker, combined)
+
+  def test_editorial_intake_requires_story_intent_and_execution_language(self) -> None:
+    skill = (EDITORIAL_SKILL_DIR / "SKILL.md").read_text(encoding="utf-8")
+    content = (EDITORIAL_SKILL_DIR / "content.md").read_text(encoding="utf-8")
+    combined = f"{skill}\n{content}"
+
+    for marker in (
+      "what the journalist wants to write about today",
+      "execution language",
+      "story_intent",
+      "execution_language",
+      "Do not start with a broad feed by default",
+      "Do not fetch a broad feed by default",
+      "Call `readian_get_spotlight` only",
+      "Write the story pack in `editorial_profile.execution_language`",
+    ):
+      self.assertIn(marker, combined)
 
   def test_candidate_ranking_output_contract_markers_are_pinned(self) -> None:
     reference = (EDITORIAL_SKILL_DIR / "reference.md").read_text(encoding="utf-8")

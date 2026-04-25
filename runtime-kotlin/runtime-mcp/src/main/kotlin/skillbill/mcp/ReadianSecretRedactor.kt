@@ -8,7 +8,15 @@ object ReadianSecretRedactor {
       "(access|refresh|session|auth|authorization|cookie|token|credential|password|secret)",
       RegexOption.IGNORE_CASE,
     )
-  private val publicBoundaryKeys = setOf("auth_required", "authenticated", "credential_handling")
+  private val publicBoundaryKeys =
+    setOf(
+      "access_expires_at_epoch_ms",
+      "auth_required",
+      "auth_source",
+      "authenticated",
+      "credential_handling",
+      "refreshed",
+    )
   private val bearerPattern = Regex("(?i)Bearer\\s+[A-Za-z0-9._~+/=-]+")
   private val jwtPattern = Regex("\\beyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\b")
   private val readianSecretPattern =

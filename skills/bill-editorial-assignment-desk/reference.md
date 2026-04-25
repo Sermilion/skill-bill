@@ -1,4 +1,4 @@
-# Gaming Editorial Desk Reference
+# Editorial Assignment Desk Reference
 
 ## Candidate Ranking Output Contract
 
@@ -46,7 +46,7 @@ Every meaningful claim must be classified under exactly one source status:
 
 - `confirmed_fact`: directly supported by a primary source.
 - `reputable_reporting`: reported by a reputable outlet but not confirmed by a primary source.
-- `community_claim`: claimed by players/community sources and not independently verified.
+- `community_claim`: claimed by public/community sources and not independently verified.
 - `rumor`: informal claim with weak sourcing.
 - `leak`: non-public or unofficial material that may have legal, embargo, or attribution risk.
 - `speculation`: inference or prediction, not evidence.

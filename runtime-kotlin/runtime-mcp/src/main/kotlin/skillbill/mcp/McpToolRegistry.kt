@@ -47,8 +47,8 @@ object McpToolRegistry {
       "quality_check_started",
       "readian_auth_status",
       "readian_get_article",
-      "readian_get_recommendations",
-      "readian_get_today_feed",
+      "readian_get_articles_for_topic_query",
+      "readian_get_spotlight",
       "readian_mark_story_status",
       "readian_save_candidate",
       "resolve_learnings",
@@ -88,8 +88,9 @@ object McpToolRegistry {
       "quality_check_started" to "Record start of a quality-check session.",
       "readian_auth_status" to "Report whether the Readian MCP boundary has an authenticated session.",
       "readian_get_article" to "Fetch a Readian article through the authenticated MCP boundary.",
-      "readian_get_recommendations" to "Fetch Readian recommendations through the authenticated MCP boundary.",
-      "readian_get_today_feed" to "Fetch today's Readian feed through the authenticated MCP boundary.",
+      "readian_get_articles_for_topic_query" to
+        "Fetch Readian articles for a topic query through the authenticated MCP boundary.",
+      "readian_get_spotlight" to "Fetch Readian Spotlight articles through the authenticated MCP boundary.",
       "readian_mark_story_status" to "Mark story status through the authenticated Readian MCP boundary.",
       "readian_save_candidate" to "Save an editorial candidate through the authenticated Readian MCP boundary.",
       "resolve_learnings" to "Resolve active learnings for a review context.",
@@ -151,6 +152,23 @@ object McpToolRegistry {
         required = listOf("article_id"),
         properties = mapOf(
           "article_id" to stringSchema(description = "Readian article id to fetch."),
+        ),
+      ),
+      "readian_get_articles_for_topic_query" to objectSchema(
+        required = listOf("topic_query"),
+        properties = mapOf(
+          "topic_query" to stringSchema(description = "Topic query to resolve against subscribed Readian topics."),
+          "date" to stringSchema(description = "Optional local date filter in YYYY-MM-DD form."),
+          "start_date" to stringSchema(description = "Optional inclusive local start date in YYYY-MM-DD form."),
+          "end_date" to stringSchema(description = "Optional inclusive local end date in YYYY-MM-DD form."),
+          "subscribed_only" to booleanSchema(description = "Whether to restrict matching to subscribed topics."),
+          "limit" to integerSchema(description = "Maximum number of articles to return."),
+        ),
+      ),
+      "readian_get_spotlight" to objectSchema(
+        properties = mapOf(
+          "date" to stringSchema(description = "Optional local date filter in YYYY-MM-DD form."),
+          "limit" to integerSchema(description = "Maximum number of Spotlight articles to return."),
         ),
       ),
       "readian_save_candidate" to objectSchema(

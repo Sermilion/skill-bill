@@ -1,8 +1,8 @@
 ## [2026-04-25] editorial-workflows-readian
-Areas: skills/bill-gaming-editorial-desk/, runtime-kotlin/runtime-mcp/, scripts/, tests/, README.md
-- Added the first non-coding governed workflow as `bill-gaming-editorial-desk`: a skill-only Readian-backed gaming editorial desk with stable step ids/artifacts, candidate-board pause, and story-pack boundary. reusable
+Areas: skills/bill-editorial-assignment-desk/, runtime-kotlin/runtime-mcp/, scripts/, tests/, README.md
+- Added the first non-coding governed workflow as `bill-editorial-assignment-desk`: a skill-only Readian-backed editorial assignment desk with stable step ids/artifacts, candidate-board pause, and story-pack boundary. reusable
 - Established editorial contracts for ranking, source verification, social signal, ethics/risk, and selected story packs without introducing platform packs or durable editorial workflow state yet. reusable
-- Added Readian MCP boundary tools plus recursive secret redaction so auth/session material stays below MCP and unauthenticated calls return `auth_required`. reusable
+- Aligned Readian MCP boundary tools with the real client fetch modes (`readian_get_spotlight`, `readian_get_articles_for_topic_query`) plus recursive secret redaction so auth/session material stays below MCP and unauthenticated calls return `auth_required`. reusable
 - Validator and tests now pin editorial workflow markers, source/ranking contract markers, Readian auth-required behavior, token redaction, and README catalog presence.
 Feature flag: N/A
 Acceptance criteria: 15/15 implemented

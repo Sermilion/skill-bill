@@ -1,9 +1,9 @@
 ---
-name: bill-gaming-editorial-desk
-description: Use when running a governed daily editorial assignment desk for gaming journalism from Readian recommendations through candidate selection and source-backed story packs.
+name: bill-editorial-assignment-desk
+description: Use when running a governed editorial assignment desk from Readian recommendations through candidate selection and source-backed story packs.
 ---
 
-# Gaming Editorial Desk
+# Editorial Assignment Desk
 
 ## Project Overrides
 
@@ -21,12 +21,39 @@ Read [reference.md](reference.md) for the source verification, candidate ranking
 
 ## Readian MCP Boundary
 
+Before calling Readian tools, ensure the Readian MCP client is installed and visible to the MCP host. If the `readian` MCP server or the required Readian MCP tools are not available, run the local setup gate before continuing:
+
+1. Verify prerequisites: Node.js 18+ and Java 21+.
+2. Install the published npm package when `readian-mcp` is missing: `npm install -g @readian/mcp-client`.
+3. Verify the installed command: `readian-mcp status`.
+4. Configure the MCP host with a local stdio server:
+
+```json
+{
+  "mcpServers": {
+    "readian": {
+      "command": "readian-mcp",
+      "args": ["stdio"]
+    }
+  }
+}
+```
+
+If the MCP host cannot resolve global npm binaries, use the absolute path from `which readian-mcp` as the `command`.
+
+If `readian-mcp status` reports that authentication is missing, pause and tell the user to authenticate through the Readian MCP client, for example: `readian-mcp login --identifier <my-readian-username-or-email>`. Do not ask for passwords, tokens, cookies, auth headers, refresh tokens, session ids, or browser storage in chat.
+
+Do not publish, tag, or release anything while setting up this workflow. `@readian/mcp-client@0.1.0` is already published, and Trusted Publishing is configured for future GitHub Actions releases.
+
 Use Readian only through MCP tools:
 
 - `readian_auth_status`
-- `readian_get_today_feed`
-- `readian_get_recommendations`
+- `readian_get_spotlight`
+- `readian_get_articles_for_topic_query`
 - `readian_get_article`
+
+Optional follow-up tools may be used only when the installed Readian MCP client exposes them:
+
 - `readian_save_candidate`
 - `readian_mark_story_status`
 
@@ -65,7 +92,7 @@ Step id: `collect_editorial_profile`
 
 Primary artifact: `editorial_profile`
 
-Capture the journalist's beat constraints, target audience, region/timezone, preferred article types, excluded topics, source standards, and deadline. Keep the artifact concise and avoid storing private credentials or account material.
+Start by asking what the journalist wants to write about today and which language the workflow should use for user-facing outputs. If the user already provided a topic, entity, beat, vertical, region, time window, or execution language in the current conversation, use those values and ask only for missing editorial constraints that materially affect candidate selection. Keep the artifact concise and avoid storing private credentials or account material.
 
 ## Step 2: Fetch Feed Candidates
 
@@ -73,7 +100,7 @@ Step id: `fetch_feed_candidates`
 
 Primary artifact: `raw_feed_digest`
 
-Call `readian_auth_status` first. If authentication is available, call `readian_get_today_feed` and, when useful, `readian_get_recommendations`. If Readian returns `auth_required`, pause instead of falling back to direct API access or credential handling.
+Do not fetch a broad feed by default. If `editorial_profile.story_intent` is missing and the user did not explicitly ask for a general assignment-desk scan, pause and ask what they want to write about before checking Readian authentication or fetching feed candidates. Run the Readian MCP setup gate first if the MCP tools are unavailable. Then call `readian_auth_status`. If authentication is available, call `readian_get_articles_for_topic_query` for the story intent, beat, or vertical, using subscribed-topic access by default. Call `readian_get_spotlight` only for an explicit general scan or as supplementary context for a topic-anchored fetch. If Readian returns `auth_required`, pause instead of falling back to direct API access or credential handling.
 
 ## Step 3: Cluster Stories
 
@@ -121,7 +148,7 @@ Step id: `present_candidate_board`
 
 Primary artifact: `candidate_board`
 
-Build the candidate board from the ranked, verified, social-signal, and ethics/risk artifacts. Include why each candidate matters, the recommended angle, source confidence, unsupported claims, missing primary sources, social caveats, risk status, estimated effort, and suggested next action.
+Build the candidate board from the ranked, verified, social-signal, and ethics/risk artifacts. Include why each candidate matters, the recommended angle, source confidence, unsupported claims, missing primary sources, social caveats, risk status, estimated effort, and suggested next action. Write user-facing summaries, rationales, caveats, and suggested next actions in `editorial_profile.execution_language`.
 
 ## Candidate Selection Pause
 
@@ -133,7 +160,7 @@ Step id: `build_selected_story_pack`
 
 Primary artifact: `selected_story_pack`
 
-For each selected candidate, build a source-backed story pack using the Selected Story Pack Output Contract in [reference.md](reference.md). Include verified facts, source links, key points, unanswered questions, risk notes, and suggested structure.
+For each selected candidate, build a source-backed story pack using the Selected Story Pack Output Contract in [reference.md](reference.md). Include verified facts, source links, key points, unanswered questions, risk notes, and suggested structure. Write the story pack in `editorial_profile.execution_language`, while preserving source names, titles, quoted snippets, and proper nouns as needed for accurate attribution.
 
 ## Story Pack Boundary
 

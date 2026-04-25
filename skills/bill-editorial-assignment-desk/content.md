@@ -1,12 +1,18 @@
-# Gaming Editorial Desk Content
+# Editorial Assignment Desk Content
 
 ## Step 1: Collect Editorial Profile
 
-Ask only for editorial constraints needed for today's assignment desk: beat focus, target audience, preferred article types, excluded topics, deadline, region/timezone, and source standards. If the user provides a Readian account detail, tell them that authentication belongs inside the Readian MCP boundary and do not store it.
+Start by asking what the journalist wants to write about today and which language the workflow should use for user-facing outputs. If the user already provided a topic, entity, beat, vertical, region, time window, or execution language in the current conversation, use those values and ask only for missing editorial constraints that materially affect candidate selection.
+
+Do not start with a broad feed by default. The first feed pass must be anchored to the journalist-stated story intent unless they explicitly ask for a general assignment-desk scan.
+
+Ask only for editorial constraints needed for today: story_intent, execution language, beat or vertical focus, target audience, preferred article types, excluded topics, deadline, region/timezone, and source standards. If the user provides a Readian account detail, tell them that authentication belongs inside the Readian MCP boundary and do not store it.
 
 The `editorial_profile` artifact must include:
 
-- beat_focus
+- story_intent
+- execution_language
+- beat_or_vertical_focus
 - audience
 - article_type_preferences
 - exclusions
@@ -16,11 +22,35 @@ The `editorial_profile` artifact must include:
 
 ## Step 2: Fetch Feed Candidates
 
-Call `readian_auth_status` before any feed tool. If it returns `auth_required`, stop the workflow and report the auth pause. Do not ask for credentials or use direct HTTP requests.
+Before calling any feed tool, confirm the `editorial_profile` has a concrete `story_intent` unless the user explicitly requested a general assignment-desk scan. If `story_intent` is missing, pause and ask what the journalist wants to write about before checking Readian authentication or fetching any feed candidates.
 
-When authenticated, call `readian_get_today_feed` first. Use `readian_get_recommendations` only when the first feed is too thin, too broad, or the profile asks for a narrower recommendation pass.
+Before calling any feed tool, confirm the Readian MCP server and required tools are available. If they are missing, run the setup gate:
 
-The `raw_feed_digest` artifact must summarize source item ids, titles, source names, URLs when available, timestamps, and any Readian ranking metadata. Redact secret-looking keys or values before writing the artifact.
+1. Verify Node.js 18+ and Java 21+.
+2. If `readian-mcp` is missing, run `npm install -g @readian/mcp-client`.
+3. Verify with `readian-mcp status`.
+4. Configure the MCP host with the local stdio server:
+
+```json
+{
+  "mcpServers": {
+    "readian": {
+      "command": "readian-mcp",
+      "args": ["stdio"]
+    }
+  }
+}
+```
+
+If global npm binaries are not visible to the MCP host, use the absolute path from `which readian-mcp` as the `command`. Do not publish, tag, or release anything; `@readian/mcp-client@0.1.0` is already published and Trusted Publishing is configured for future GitHub Actions releases.
+
+Call `readian_auth_status` before any feed tool. If it returns `auth_required`, stop the workflow and tell the user to authenticate through the Readian MCP client, for example with `readian-mcp login --identifier <my-readian-username-or-email>`. Do not ask for credentials or use direct HTTP requests.
+
+When authenticated, call `readian_get_articles_for_topic_query` for the story intent, beat, or vertical, using subscribed-topic matching by default. Call `readian_get_spotlight` only when the user explicitly requested a general assignment-desk scan or when a topic-anchored fetch needs supplementary broader context.
+
+Use Spotlight and topic-query results together only when both are relevant to the stated story intent. Keep the feed source visible per item so later ranking can distinguish broad editorial interest from topic-specific coverage.
+
+The `raw_feed_digest` artifact must summarize feed source, source item ids, titles, source names, URLs when available, timestamps, and any Readian ranking metadata. Redact secret-looking keys or values before writing the artifact.
 
 ## Step 3: Cluster Stories
 
@@ -101,6 +131,8 @@ The `ethics_risk_report` artifact must include blockers, warnings, notes, requir
 
 Build the `candidate_board` only after ranking, source verification, social signal, and ethics/risk checks are complete for the shortlisted candidates.
 
+Write user-facing summaries, rationales, caveats, and suggested next actions in the `editorial_profile.execution_language`. Keep source titles, outlet names, proper nouns, and short source snippets in their original language unless translation is needed for clarity.
+
 The board must include:
 
 - candidate_id
@@ -141,6 +173,8 @@ For each selected candidate, produce `selected_story_pack` with:
 - optional_seo_social_packaging
 
 Keep the story pack evidence-first. It may include outline structure and key points, but it must not become a full article draft.
+
+Write the story pack in the `editorial_profile.execution_language`, while preserving source names, titles, quoted snippets, and proper nouns as needed for accurate attribution.
 
 ## Step 10: Finish
 

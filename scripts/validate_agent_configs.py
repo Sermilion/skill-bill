@@ -483,7 +483,7 @@ WORKFLOW_DRIVEN_SKILLS: tuple[tuple[str, tuple[str, ...], tuple[str, ...]], ...]
 )
 EDITORIAL_WORKFLOW_SKILLS: tuple[tuple[str, tuple[str, ...], tuple[str, ...], tuple[str, ...]], ...] = (
   (
-    "skills/bill-gaming-editorial-desk",
+    "skills/bill-editorial-assignment-desk",
     ("SKILL.md",),
     (
       "## Readian MCP Boundary",
@@ -511,12 +511,19 @@ EDITORIAL_WORKFLOW_SKILLS: tuple[tuple[str, tuple[str, ...], tuple[str, ...], tu
       "`candidate_board`",
       "`selected_story_pack`",
       "readian_auth_status",
-      "readian_get_today_feed",
-      "readian_get_recommendations",
+      "readian_get_spotlight",
+      "readian_get_articles_for_topic_query",
       "readian_get_article",
       "readian_save_candidate",
       "readian_mark_story_status",
       "auth_required",
+      "@readian/mcp-client",
+      "npm install -g @readian/mcp-client",
+      "readian-mcp status",
+      "\"mcpServers\"",
+      "\"args\": [\"stdio\"]",
+      "which readian-mcp",
+      "Do not publish, tag, or release",
     ),
     (
       "candidate_ranking_contract_v1",
