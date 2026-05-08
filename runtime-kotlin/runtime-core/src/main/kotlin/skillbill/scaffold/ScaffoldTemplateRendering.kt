@@ -1,5 +1,9 @@
 package skillbill.scaffold
 
+import skillbill.error.SkillBillRuntimeException
+
+private val FRONTMATTER_BLOCK_LEADING = Regex("""(?s)\A---\n.*?\n---\n""")
+
 private val AREA_DESCRIPTION_PHRASES: Map<String, String> =
   mapOf(
     "architecture" to "architecture, boundaries, and dependency direction",
@@ -67,8 +71,28 @@ internal fun renderDescriptorSection(context: TemplateContext, areaFocus: String
 }
 
 internal fun renderContentBody(context: TemplateContext, description: String, contentBody: String? = null): String {
-  val body = contentBody?.trimEnd()?.plus("\n") ?: renderGovernedContentStarter(context, description)
-  return "# ${contentTitle(context)}\n\n${body.trimEnd()}\n"
+  val resolvedDescription = description.ifBlank { inferSkillDescription(context) }
+  // Reject caller-supplied bodies that already carry a YAML frontmatter block. We always render
+  // a fresh canonical frontmatter from `context`/`description`, so accepting an inline one would
+  // silently produce two stacked `---` blocks (the validator regex matches the first; the second
+  // becomes body content). Fail fast with a clear error instead.
+  contentBody?.let { raw ->
+    if (FRONTMATTER_BLOCK_LEADING.containsMatchIn(raw.trimStart())) {
+      throw SkillBillRuntimeException(
+        "renderContentBody received a content body that already starts with a YAML frontmatter " +
+          "block; pass the body without frontmatter so the canonical block can be rendered " +
+          "from context.",
+      )
+    }
+  }
+  val body = contentBody?.trimEnd()?.plus("\n") ?: renderGovernedContentStarter(context, resolvedDescription)
+  return buildString {
+    append(renderFrontmatter(context.skillName, resolvedDescription))
+    appendLine()
+    appendLine("# ${contentTitle(context)}")
+    appendLine()
+    appendLine(body.trimEnd())
+  }
 }
 
 internal fun renderSkillBody(context: TemplateContext, description: String, areaFocus: String = ""): String =
