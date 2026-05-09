@@ -111,6 +111,8 @@ object RepoValidationRuntime {
     issues += validateRepoNativeAgents(root).issues
     issues += validatePlatformPackPointers(root).issues
     issues += validatePointerTargetParityIssues(root)
+    issues += validateGovernedSkillDrift(root).issues
+    issues += validateGeneratedArtifactGuard(root).issues
 
     return RepoValidationReport(
       issues = issues.sorted(),

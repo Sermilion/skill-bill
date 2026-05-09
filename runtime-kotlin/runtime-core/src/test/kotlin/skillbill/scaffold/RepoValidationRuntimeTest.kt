@@ -359,6 +359,67 @@ class RepoValidationRuntimeTest {
   }
 
   @Test
+  fun `repo validation includes governed skill drift issues`() {
+    val repoRoot = Files.createTempDirectory("skillbill-runtime-drift-wiring")
+    val skillDir = repoRoot.resolve("skills/bill-runtime-drift")
+    Files.createDirectories(skillDir)
+    Files.writeString(
+      skillDir.resolve("content.md"),
+      """
+      ---
+      name: bill-runtime-drift
+      description: Runtime drift wiring fixture.
+      ---
+
+      # Runtime Drift Fixture
+      """.trimIndent() + "\n",
+    )
+    Files.writeString(skillDir.resolve("SKILL.md"), "stale wrapper\n")
+
+    val report = RepoValidationRuntime.validateRepo(repoRoot)
+
+    assertFalse(report.passed)
+    assertTrue(
+      report.issues.any {
+        it.contains("skills/bill-runtime-drift/SKILL.md") &&
+          it.contains("governed SKILL.md output drifted")
+      },
+      report.issues.joinToString("\n"),
+    )
+  }
+
+  @Test
+  fun `repo validation includes generated artifact guard issues`() {
+    val repoRoot = Files.createTempDirectory("skillbill-runtime-guard-wiring")
+    createRepoValidationSkillFixture(repoRoot)
+    val generatedSkillDir = repoRoot.resolve("skills/bill-new-generated")
+    Files.createDirectories(generatedSkillDir)
+    Files.writeString(
+      generatedSkillDir.resolve("content.md"),
+      """
+      ---
+      name: bill-new-generated
+      description: New generated wrapper fixture.
+      ---
+
+      # New Generated Fixture
+      """.trimIndent() + "\n",
+    )
+    Files.writeString(generatedSkillDir.resolve("SKILL.md"), "generated wrapper\n")
+
+    val report = RepoValidationRuntime.validateRepo(repoRoot)
+
+    assertFalse(report.passed)
+    assertTrue(
+      report.issues.any {
+        it.contains("skills/bill-new-generated/SKILL.md") &&
+          it.contains("newly committed governed SKILL.md output is not allowed")
+      },
+      report.issues.joinToString("\n"),
+    )
+  }
+
+  @Test
   fun `repo validation rejects checked-in generated junie native agent artifact`() {
     val repoRoot = Files.createTempDirectory("skillbill-native-agent-junie-checked-in")
     createRepoValidationSkillFixture(repoRoot)

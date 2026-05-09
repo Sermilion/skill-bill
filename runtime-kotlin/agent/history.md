@@ -1,3 +1,13 @@
+## [2026-05-09] drift-and-agent-config-guards
+Areas: runtime-core scaffold validation/rendering, runtime-cli validation task, runtime Gradle lifecycle, agent-config validation
+- `RepoValidationRuntime.validateRepo` now runs `validateGovernedSkillDrift`: discovers content-managed targets once, renders each `AuthoringTarget` twice in memory, compares emitted SKILL.md bytes to disk, and fails on unresolved platform.yaml pointer targets. reusable
+- `renderAuthoringTarget(repoRoot, target)` overload avoids per-skill rediscovery during repeated-render checks; keep render stdout deterministic (`SKILL.md` block first, pointer blocks in manifest order) when adding future render surfaces. reusable
+- `GeneratedArtifactGuard` grandfather-lists the current committed generated SKILL.md wrappers and pointer files, uses `git ls-files` when available so untracked local fixtures stay ignored, and fails newly tracked governed SKILL.md/platform pointer outputs. reusable
+- `runtime-cli:check` depends on `validateAgentConfigs`, so `(cd runtime-kotlin && ./gradlew check)` exercises the same Kotlin-backed path as `scripts/validate_agent_configs`; tests pin repo-validation, CLI, Gradle wiring, git-index behavior, platform-pack wrapper coverage, and stale-wrapper drift.
+- Known limit: this is a guard for future deletion policy, not cleanup; current committed wrappers/pointers remain allowed until the retirement subtask removes them.
+Feature flag: N/A
+Acceptance criteria: 8/8 implemented
+
 ## [2026-05-09] render-cli-output
 Areas: runtime-cli scaffold commands, runtime-core scaffold rendering, runtime CLI/core tests
 - `skill-bill render <skill-id>` is now a read-only stdout surface, separate from `upgrade`; `--dry-run` is accepted as the same no-write preview path.
