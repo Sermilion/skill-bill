@@ -1,3 +1,13 @@
+## [2026-05-09] render-snapshots-final-validation
+Areas: runtime-core scaffold render snapshot tests, runtime-core test-support, runtime Gradle test wiring
+- Added resource-backed render snapshots for a standalone governed skill (`bill-pr-description`), `bill-kotlin-code-review`, and `bill-kmp-code-review-ui`; snapshots exercise `renderAuthoringTarget` output instead of duplicating wrapper/pointer formatting logic. reusable
+- `AuthoringRenderSnapshotTest` asserts repeated in-memory renders are byte-identical and derives expected platform pointer headers from `platform.yaml`, so pointer block order remains manifest-declaration order even though pointer write paths sort independently. reusable
+- Added `SnapshotAssertions` with deterministic `-Pupdate-snapshots` support, LF normalization, fixture-path failure messages, and containment checks that reject escaped `../` paths before read/write. reusable
+- KMP UI native-agent coverage snapshots the provider-neutral source at `platform-packs/kmp/code-review/bill-kmp-code-review/native-agents/bill-kmp-code-review-ui.md`, not the specialist directory, matching the governed native-agent source layout.
+- Validation note: stale Gradle configuration cache can false-fail this area; clearing cache and rerunning the gate produced a clean pass with no source edits.
+Feature flag: N/A
+Acceptance criteria: 4/4 implemented
+
 ## [2026-05-09] drift-and-agent-config-guards
 Areas: runtime-core scaffold validation/rendering, runtime-cli validation task, runtime Gradle lifecycle, agent-config validation
 - `RepoValidationRuntime.validateRepo` now runs `validateGovernedSkillDrift`: discovers content-managed targets once, renders each `AuthoringTarget` twice in memory, compares emitted SKILL.md bytes to disk, and fails on unresolved platform.yaml pointer targets. reusable
