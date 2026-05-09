@@ -674,8 +674,6 @@ private fun renderContentSheet(plan: ScaffoldPlan): String = renderContentBody(
 private fun renderDeclaredPackContentSheet(plan: ScaffoldPlan): String = renderContentBody(
   skillContext(plan),
   description = effectiveDescription(plan),
-  governedSections = true,
-  areaFocus = areaFocus(plan),
 )
 
 private fun skillContext(plan: ScaffoldPlan): TemplateContext = TemplateContext(
@@ -1005,7 +1003,7 @@ private fun stagePlatformPackSkills(
   stageFile(
     txn,
     baselineSkillPath.resolve("content.md"),
-    renderContentBody(baselineContext, baselineDescription, governedSections = true),
+    renderContentBody(baselineContext, baselineDescription),
   )
 
   val qualityCheckContext =
@@ -1015,7 +1013,7 @@ private fun stagePlatformPackSkills(
   stageFile(
     txn,
     qualityCheckSkillPath.resolve("content.md"),
-    renderContentBody(qualityCheckContext, qualityCheckDescription, governedSections = true),
+    renderContentBody(qualityCheckContext, qualityCheckDescription),
   )
 
   plan.specialistAreas.forEach { area ->
@@ -1037,7 +1035,7 @@ private fun stagePlatformPackArea(
   stageFile(
     txn,
     areaPath.resolve("content.md"),
-    renderContentBody(areaContext, areaDescription, governedSections = true, areaFocus = defaultAreaFocus(area)),
+    renderContentBody(areaContext, areaDescription),
   )
   return emptyList()
 }
