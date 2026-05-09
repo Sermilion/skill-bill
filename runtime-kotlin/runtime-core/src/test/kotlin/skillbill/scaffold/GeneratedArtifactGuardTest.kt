@@ -21,14 +21,20 @@ class GeneratedArtifactGuardTest {
   }
 
   @Test
-  fun `guard remains dormant for grandfathered generated outputs`() {
+  fun `guard remains dormant when source tree has no generated outputs`() {
     val repoRoot = tempRoot.resolve("baseline-repo")
-    writeGovernedSkillOutput(repoRoot, "skills/bill-code-review")
-    writePointerFixture(
-      repoRoot = repoRoot,
-      pack = "kotlin",
-      skillRelativeDir = "quality-check/bill-kotlin-quality-check",
-      pointerName = "shell-ceremony.md",
+    val skillDir = repoRoot.resolve("skills/bill-code-review")
+    Files.createDirectories(skillDir)
+    Files.writeString(
+      skillDir.resolve("content.md"),
+      """
+      ---
+      name: bill-code-review
+      description: Authored source without generated wrapper.
+      ---
+
+      # Fixture Body
+      """.trimIndent() + "\n",
     )
 
     val report = validateGeneratedArtifactGuard(repoRoot)
@@ -47,7 +53,7 @@ class GeneratedArtifactGuardTest {
     assertTrue(
       report.issues.any {
         it.contains("skills/bill-new-skill/SKILL.md") &&
-          it.contains("newly committed governed SKILL.md output is not allowed")
+          it.contains("committed governed SKILL.md output is not allowed")
       },
       report.issues.joinToString("\n"),
     )
@@ -67,7 +73,7 @@ class GeneratedArtifactGuardTest {
     assertTrue(
       report.issues.any {
         it.contains("platform-packs/fixturepack/code-review/bill-fixturepack-code-review/SKILL.md") &&
-          it.contains("newly committed governed SKILL.md output is not allowed")
+          it.contains("committed governed SKILL.md output is not allowed")
       },
       report.issues.joinToString("\n"),
     )
@@ -89,7 +95,7 @@ class GeneratedArtifactGuardTest {
     assertTrue(
       report.issues.any {
         it.contains("platform-packs/fixturepack/code-review/bill-fixturepack-code-review/shell-ceremony.md") &&
-          it.contains("newly committed platform.yaml pointer file is not allowed")
+          it.contains("committed platform.yaml pointer file is not allowed")
       },
       report.issues.joinToString("\n"),
     )
@@ -110,7 +116,7 @@ class GeneratedArtifactGuardTest {
     assertTrue(
       report.issues.any {
         it.contains("skills/bill-tracked-generated/SKILL.md") &&
-          it.contains("newly committed governed SKILL.md output is not allowed")
+          it.contains("committed governed SKILL.md output is not allowed")
       },
       report.issues.joinToString("\n"),
     )
@@ -156,7 +162,7 @@ class GeneratedArtifactGuardTest {
       declared_code_review_areas: []
 
       declared_files:
-        baseline: code-review/bill-$pack-code-review/SKILL.md
+        baseline: code-review/bill-$pack-code-review/content.md
 
       area_metadata: {}
 

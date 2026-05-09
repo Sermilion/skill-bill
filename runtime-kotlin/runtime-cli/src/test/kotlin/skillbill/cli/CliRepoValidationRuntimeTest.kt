@@ -85,6 +85,6 @@ class CliRepoValidationRuntimeTest {
 
     assertEquals(1, result.exitCode)
     assertContains(result.stdout, "\"status\": \"failed\"")
-    assertTrue(result.stdout.contains("newly committed governed SKILL.md output is not allowed"), result.stdout)
+    assertTrue(result.stdout.contains("committed governed SKILL.md output is not allowed"), result.stdout)
   }
 }

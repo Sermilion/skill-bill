@@ -155,7 +155,7 @@ internal fun stageInstalledSkill(
     log.info(
       "stageInstalledSkill reuse=true skill=$skillName hash=$contentHash dir=$finalStagingDir",
     )
-    return reuseInstallStaging(skillName, resolvedSource, finalStagingDir, contentHash)
+    return reuseInstallStaging(skillName, resolvedSource, finalStagingDir, contentHash, pointers)
   }
   log.info(
     "stageInstalledSkill reuse=false skill=$skillName hash=$contentHash dir=$finalStagingDir",

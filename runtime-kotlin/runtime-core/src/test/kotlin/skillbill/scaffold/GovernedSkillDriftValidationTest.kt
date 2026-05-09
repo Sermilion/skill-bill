@@ -38,7 +38,6 @@ class GovernedSkillDriftValidationTest {
     val skillDir = repoRoot.resolve("skills/bill-bad-content")
     Files.createDirectories(skillDir)
     Files.writeString(skillDir.resolve("content.md"), "# Missing frontmatter\n")
-    Files.writeString(skillDir.resolve("SKILL.md"), "stale\n")
 
     val report = validateGovernedSkillDrift(repoRoot)
 
@@ -69,7 +68,7 @@ class GovernedSkillDriftValidationTest {
   }
 
   @Test
-  fun `drift validation reports stale on disk SKILL_md output`() {
+  fun `drift validation does not compare rendered output to source tree SKILL_md`() {
     val repoRoot = tempRoot.resolve("stale-wrapper-repo")
     val skillDir = repoRoot.resolve("skills/bill-stale-wrapper")
     Files.createDirectories(skillDir)
@@ -84,18 +83,10 @@ class GovernedSkillDriftValidationTest {
       # Fresh Authored Body
       """.trimIndent() + "\n",
     )
-    Files.writeString(skillDir.resolve("SKILL.md"), "stale wrapper\n")
 
     val report = validateGovernedSkillDrift(repoRoot)
 
-    assertFalse(report.passed)
-    assertTrue(
-      report.issues.any {
-        it.contains("skills/bill-stale-wrapper/SKILL.md") &&
-          it.contains("governed SKILL.md output drifted")
-      },
-      report.issues.joinToString("\n"),
-    )
+    assertTrue(report.passed, report.issues.joinToString("\n"))
   }
 
   @Test
@@ -139,9 +130,8 @@ class GovernedSkillDriftValidationTest {
       # Fixture Body
       """.trimIndent() + "\n",
     )
-    Files.writeString(skillDir.resolve("SKILL.md"), "placeholder\n")
     val target = resolveTarget(repoRoot, skillName)
-    Files.writeString(skillDir.resolve("SKILL.md"), renderWrapper(target))
+    renderWrapper(target)
   }
 
   private fun writePlatformSkillWithPointer(targetExists: Boolean): Path {
@@ -165,9 +155,8 @@ class GovernedSkillDriftValidationTest {
       """.trimIndent() + "\n",
     )
     Files.writeString(packRoot.resolve("platform.yaml"), platformManifest())
-    Files.writeString(skillDir.resolve("SKILL.md"), "placeholder\n")
     val target = resolveTarget(repoRoot, "bill-fixturepack-code-review")
-    Files.writeString(skillDir.resolve("SKILL.md"), renderWrapper(target))
+    renderWrapper(target)
     return repoRoot
   }
 
@@ -182,7 +171,7 @@ class GovernedSkillDriftValidationTest {
     declared_code_review_areas: []
 
     declared_files:
-      baseline: code-review/bill-fixturepack-code-review/SKILL.md
+      baseline: code-review/bill-fixturepack-code-review/content.md
 
     area_metadata: {}
 

@@ -48,7 +48,7 @@ private fun validateTargetRender(
     issues += "${displayPath(root, target.contentFile)}: governed skill '${target.skillName}' render is not " +
       "byte-identical when repeated in memory"
   }
-  validateWrapperDrift(root, target, first, issues)
+  validateRenderOutput(root, target, first, issues)
 }
 
 private fun renderTarget(
@@ -64,7 +64,7 @@ private fun renderTarget(
     null
   }
 
-private fun validateWrapperDrift(
+private fun validateRenderOutput(
   root: Path,
   target: AuthoringTarget,
   rendered: AuthoringRenderResult,
@@ -74,15 +74,9 @@ private fun validateWrapperDrift(
   if (wrapper == null) {
     issues += "${displayPath(root, target.contentFile)}: governed skill '${target.skillName}' render did not emit " +
       "a SKILL.md block"
-    return
-  }
-  if (!Files.isRegularFile(target.skillFile)) {
-    issues += "${displayPath(root, target.skillFile)}: governed SKILL.md output is missing on disk"
-    return
-  }
-  val actual = Files.readString(target.skillFile)
-  if (actual != wrapper.content) {
-    issues += "${displayPath(root, target.skillFile)}: governed SKILL.md output drifted from content.md render"
+  } else if (wrapper.content.isBlank()) {
+    issues += "${displayPath(root, target.contentFile)}: governed skill '${target.skillName}' render emitted an " +
+      "empty SKILL.md block"
   }
 }
 

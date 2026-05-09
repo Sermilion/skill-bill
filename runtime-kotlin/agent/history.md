@@ -1,3 +1,11 @@
+## [2026-05-09] generated-skill-artifact-source-contract
+Areas: runtime-core scaffold loader/render/validation/install, runtime-cli validation, runtime-core tests
+- `ShellContentLoader` now treats platform.yaml-declared governed files as exact `content.md` paths with governed frontmatter plus Descriptor/Execution/Ceremony H2s; generated wrapper body-shape validation was removed from the declared-source path. reusable
+- `GeneratedArtifactGuard` no longer grandfather-lists committed wrappers/pointers, and `GovernedSkillDriftValidation` compares deterministic in-memory render output instead of requiring source `SKILL.md` files. reusable
+- Install staging excludes stale source generated artifacts on both rebuild and cache-hit paths, then renders `SKILL.md`/pointers into the install cache without mutating source. reusable
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
 ## [2026-05-09] render-snapshots-final-validation
 Areas: runtime-core scaffold render snapshot tests, runtime-core test-support, runtime Gradle test wiring
 - Added resource-backed render snapshots for a standalone governed skill (`bill-pr-description`), `bill-kotlin-code-review`, and `bill-kmp-code-review-ui`; snapshots exercise `renderAuthoringTarget` output instead of duplicating wrapper/pointer formatting logic. reusable
