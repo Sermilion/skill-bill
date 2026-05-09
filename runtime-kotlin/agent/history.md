@@ -1,3 +1,12 @@
+## [2026-05-09] render-cli-output
+Areas: runtime-cli scaffold commands, runtime-core scaffold rendering, runtime CLI/core tests
+- `skill-bill render <skill-id>` is now a read-only stdout surface, separate from `upgrade`; `--dry-run` is accepted as the same no-write preview path.
+- Runtime-core owns `renderAuthoringTarget`, which emits `SKILL.md` from `renderWrapper` plus pointer blocks from `renderPointer`; platform-pack pointer blocks preserve `platform.yaml` declaration order instead of `PointerOperations.regenerate` write-path sorting. reusable
+- Separator headers are deterministic LF text (`SKILL.md` first, then pointer files), while source `SKILL.md` and pointer files remain untouched.
+- Known test limit: CLI coverage proves no-write/dry-run equivalence on a horizontal fixture; platform pointer order is pinned at the core renderer boundary.
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented
+
 ## [2026-05-09] install-staging-pipeline
 Areas: runtime-core install (new InstallStaging.kt, InstallStagingIO.kt, InstallStagingIdentity.kt; rewired InstallPrimitives.installSkill), runtime-core scaffold (ScaffoldService.performInstall threads repoRoot + hoists discoverPlatformPackManifests), runtime-domain install/model (added RenderedSkill DTO)
 - Content-managed install now stages into `~/.skill-bill/installed-skills/<slug>-<16hex>/` (cache root outside repo, mirroring SKILL-38 native-agent shape) and symlinks the staging dir; source tree is never written to. Authored files copied verbatim, SKILL.md from `renderWrapper(target)`, pointer files from `renderPointer(repoRoot, packRoot, spec)`. Atomic-move promotion via `Files.createTempDirectory` + `Files.move(ATOMIC_MOVE/REPLACE_EXISTING)` with `AtomicMoveNotSupportedException` swap-and-cleanup fallback. reusable
