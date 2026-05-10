@@ -45,23 +45,23 @@ The installer builds the Kotlin CLI and MCP distributions, verifies the packaged
 
 Supported install targets:
 
-| Agent | Install path |
-|-------|--------------|
-| GitHub Copilot | `~/.copilot/skills/` |
-| Claude Code | `~/.claude/commands/` |
-| Claude Code (native subagent markdown) | `~/.claude/agents/` |
-| OpenAI Codex (skills) | `~/.codex/skills/` or `~/.agents/skills/` |
-| OpenAI Codex (native subagent TOMLs) | `~/.codex/agents/` |
-| OpenCode (skills) | `~/.config/opencode/skills/` |
-| OpenCode (native subagent markdown) | `~/.config/opencode/agents/` |
-| JetBrains Junie (skills) | `~/.junie/skills/` |
-| JetBrains Junie (native subagent markdown) | `~/.junie/agents/` |
+| Agent                                      | Install path                              |
+|--------------------------------------------|-------------------------------------------|
+| GitHub Copilot                             | `~/.copilot/skills/`                      |
+| Claude Code                                | `~/.claude/commands/`                     |
+| Claude Code (native subagent markdown)     | `~/.claude/agents/`                       |
+| OpenAI Codex (skills)                      | `~/.codex/skills/` or `~/.agents/skills/` |
+| OpenAI Codex (native subagent TOMLs)       | `~/.codex/agents/`                        |
+| OpenCode (skills)                          | `~/.config/opencode/skills/`              |
+| OpenCode (native subagent markdown)        | `~/.config/opencode/agents/`              |
+| JetBrains Junie (skills)                   | `~/.junie/skills/`                        |
+| JetBrains Junie (native subagent markdown) | `~/.junie/agents/`                        |
 
 Using GLM as a model in Claude Code? Skill Bill installs to the Claude Code commands directory — no separate target needed. GLM is a model, not a harness.
 
 Installed skills are symlinks to rendered staging directories under `~/.skill-bill/installed-skills/`. Re-run `./install.sh` after changing the checkout so installed agents pick up refreshed `SKILL.md` wrappers, support pointer files, and content hashes.
 
-On Claude, Codex, OpenCode, and Junie, orchestrators that delegate to specialists also install native subagent definitions for supported runtime surfaces. Native subagent sources live as provider-neutral `native-agents/agents.yaml` bundles or standalone `native-agents/<name>.md` files. Install renders those sources into `~/.skill-bill/native-agents/` before linking Claude markdown into `~/.claude/agents/`, Codex TOMLs into `~/.codex/agents/`, OpenCode markdown into `~/.config/opencode/agents/`, and Junie markdown into `~/.junie/agents/`; generated provider files are not checked into the repo. `~/.agents/agents/` is only a Skill Bill compatibility path for Codex homes without a `.codex` root, not the primary documented Codex custom-agent location. Claude and Junie use Markdown/YAML custom-subagent frontmatter, Codex resolves spawn instructions by TOML `name`, and OpenCode resolves by filename-derived agent name and supports manual `@<name>` invocation. Today this covers the `bill-kmp-code-review` specialists, the `bill-kotlin-code-review` specialists, and the `bill-feature-implement` workflow phases (pre-planning, planning, implementation, implementation-fix, completeness-audit, quality-check, pr-description). `bill-feature-verify` has no verify-specific native subagents; it delegates review through `bill-code-review` and keeps feature-flag, completeness, and verdict audits inline. Parsing tolerance for `RESULT:` blocks across runtimes is documented inline in `skills/bill-feature-implement/content.md`.
+On Claude, Codex, OpenCode, and Junie, orchestrators that delegate to specialists also install native subagent definitions for supported runtime surfaces. Native subagent sources live as provider-neutral `native-agents/agents.yaml` bundles or standalone `native-agents/<name>.md` files. Install renders those sources into `~/.skill-bill/native-agents/` before linking Claude markdown into `~/.claude/agents/`, Codex TOMLs into `~/.codex/agents/`, OpenCode markdown into `~/.config/opencode/agents/`, and Junie markdown into `~/.junie/agents/`; generated provider files are not checked into the repo. `~/.agents/agents/` is only a Skill Bill compatibility path for Codex homes without a `.codex` root, not the primary documented Codex custom-agent location. Claude and Junie use Markdown/YAML custom-subagent frontmatter, Codex resolves spawn instructions by TOML `name`, and OpenCode resolves by filename-derived agent name and supports manual `@<name>` invocation. Today this covers the `bill-kmp-code-review` specialists, the `bill-kotlin-code-review` specialists, the `bill-php-code-review` specialists, and the `bill-feature-implement` workflow phases (pre-planning, planning, implementation, implementation-fix, completeness-audit, quality-check, pr-description). `bill-feature-verify` has no verify-specific native subagents; it delegates review through `bill-code-review` and keeps feature-flag, completeness, and verdict audits inline. Parsing tolerance for `RESULT:` blocks across runtimes is documented inline in `skills/bill-feature-implement/content.md`.
 
 ## Runtime Model
 
@@ -150,57 +150,58 @@ The bundled workflows are production-usable defaults, not a lock-in boundary. A 
 
 Skill Bill is the governance system: routing, manifests, shell contracts, validation, installer behavior, workflow state, telemetry, and authoring rules.
 
-The shipped `kotlin` and `kmp` platform packs are reference packs. They are real, validated, ready to use, and useful examples, but they are not the product boundary. Teams can fork, replace, or add conforming packs as long as discovery stays manifest-driven and the shell contract version remains locked.
+The shipped platform packs are reference packs. They are real, validated, ready to use, and useful examples, but they are not the product boundary. Teams can fork, replace, or add conforming packs as long as discovery stays manifest-driven and the shell contract version remains locked.
 
 Reference packs currently shipped:
 
 - `kotlin`: Kotlin baseline review and quality-check behavior
 - `kmp`: Kotlin baseline plus Android/KMP review depth and governed add-ons
+- `php`: PHP backend/service review and quality-check behavior
 
 ## Common CLI Surfaces
 
 Review and telemetry:
 
-| Command | Purpose |
-|---------|---------|
-| `skill-bill import-review` | Import review output into the local SQLite store |
-| `skill-bill record-feedback` | Record feedback for imported findings |
-| `skill-bill triage` | Record triage decisions |
-| `skill-bill stats` | Show review acceptance metrics |
-| `skill-bill implement-stats` | Show local `bill-feature-implement` metrics |
-| `skill-bill verify-stats` | Show local `bill-feature-verify` metrics |
+| Command                       | Purpose                                             |
+|-------------------------------|-----------------------------------------------------|
+| `skill-bill import-review`    | Import review output into the local SQLite store    |
+| `skill-bill record-feedback`  | Record feedback for imported findings               |
+| `skill-bill triage`           | Record triage decisions                             |
+| `skill-bill stats`            | Show review acceptance metrics                      |
+| `skill-bill implement-stats`  | Show local `bill-feature-implement` metrics         |
+| `skill-bill verify-stats`     | Show local `bill-feature-verify` metrics            |
 | `skill-bill telemetry status` | Show telemetry configuration and pending sync state |
-| `skill-bill telemetry sync` | Flush queued telemetry |
+| `skill-bill telemetry sync`   | Flush queued telemetry                              |
 
 Workflow state:
 
-| Command | Purpose |
-|---------|---------|
-| `skill-bill workflow list` | List persisted implement workflows |
-| `skill-bill workflow show` | Show one implement workflow |
-| `skill-bill workflow resume` | Build a resume/recovery explanation |
-| `skill-bill workflow continue` | Reopen a resumable implement workflow |
-| `skill-bill verify-workflow list` | List persisted verify workflows |
-| `skill-bill verify-workflow show` | Show one verify workflow |
-| `skill-bill verify-workflow resume` | Build a verify resume/recovery explanation |
-| `skill-bill verify-workflow continue` | Reopen a resumable verify workflow |
+| Command                               | Purpose                                    |
+|---------------------------------------|--------------------------------------------|
+| `skill-bill workflow list`            | List persisted implement workflows         |
+| `skill-bill workflow show`            | Show one implement workflow                |
+| `skill-bill workflow resume`          | Build a resume/recovery explanation        |
+| `skill-bill workflow continue`        | Reopen a resumable implement workflow      |
+| `skill-bill verify-workflow list`     | List persisted verify workflows            |
+| `skill-bill verify-workflow show`     | Show one verify workflow                   |
+| `skill-bill verify-workflow resume`   | Build a verify resume/recovery explanation |
+| `skill-bill verify-workflow continue` | Reopen a resumable verify workflow         |
 
 Authoring and install:
 
-| Command | Purpose |
-|---------|---------|
-| `skill-bill list` | List content-managed skills |
-| `skill-bill show <skill>` | Inspect one governed skill |
-| `skill-bill explain [skill]` | Explain the governed authoring boundary |
-| `skill-bill validate` | Run repo or targeted governed-skill validation |
-| `skill-bill render` | Render generated wrappers to stdout or install output without writing generated files into source |
-| `skill-bill fill <skill>` | Write authored `content.md` text and validate |
-| `skill-bill new --payload <file>` | Scaffold a governed skill or platform pack |
-| `skill-bill new-addon` | Create a pack-owned add-on |
-| `skill-bill doctor` | Show local install and telemetry health |
-| `skill-bill install agent-path <agent>` | Print an agent install path |
-| `skill-bill install detect-agents` | List detected agents |
-| `skill-bill install link-skill` | Render one skill into staging and symlink it into a target path |
+| Command                                 | Purpose                                                                                           |
+|-----------------------------------------|---------------------------------------------------------------------------------------------------|
+| `skill-bill list`                       | List content-managed skills                                                                       |
+| `skill-bill show <skill>`               | Inspect one governed skill                                                                        |
+| `skill-bill explain [skill]`            | Explain the governed authoring boundary                                                           |
+| `skill-bill validate`                   | Run repo or targeted governed-skill validation                                                    |
+| `skill-bill render`                     | Render generated wrappers to stdout or install output without writing generated files into source |
+| `skill-bill fill <skill>`               | Write authored `content.md` text and validate                                                     |
+| `skill-bill new --payload <file>`       | Scaffold a governed skill or platform pack                                                        |
+| `skill-bill new-addon`                  | Create a pack-owned add-on                                                                        |
+| `skill-bill doctor`                     | Show local install and telemetry health                                                           |
+| `skill-bill install agent-path <agent>` | Print an agent install path                                                                       |
+| `skill-bill install detect-agents`      | List detected agents                                                                              |
+| `skill-bill install link-skill`         | Render one skill into staging and symlink it into a target path                                   |
 
 ## External Author Dry Run
 
