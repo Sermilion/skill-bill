@@ -28,6 +28,8 @@ internal fun applyInstallPlan(plan: InstallPlan): InstallApplyResult {
       status = InstallApplyStatus.FAILURE,
       skills = emptyList(),
       nativeAgents = emptyList(),
+      telemetryOutcome = skippedTelemetryOutcome(plan, "Skipped because install preflight failed."),
+      mcpRegistrationOutcomes = skippedMcpRegistrationOutcomes(plan, "Skipped because install preflight failed."),
       warnings = warnings,
       failures = failures,
       windowsSymlinkOutcome = windowsOutcome,
@@ -50,10 +52,22 @@ internal fun applyInstallPlan(plan: InstallPlan): InstallApplyResult {
     emptyList()
   }
   val finalWindowsOutcome = windowsOutcome.withSymlinkFailureState(failures)
+  val telemetryOutcome = if (failures.isEmpty()) {
+    applyTelemetryIntent(plan, warnings)
+  } else {
+    skippedTelemetryOutcome(plan, "Skipped because install apply failed.")
+  }
+  val mcpRegistrationOutcomes = if (failures.isEmpty()) {
+    applyMcpRegistrationIntent(plan, warnings)
+  } else {
+    skippedMcpRegistrationOutcomes(plan, "Skipped because install apply failed.")
+  }
   return InstallApplyResult(
     status = aggregateApplyStatus(warnings, failures),
     skills = appliedSkills,
     nativeAgents = nativeAgents,
+    telemetryOutcome = telemetryOutcome,
+    mcpRegistrationOutcomes = mcpRegistrationOutcomes,
     warnings = warnings,
     failures = failures,
     windowsSymlinkOutcome = finalWindowsOutcome,

@@ -1,3 +1,12 @@
+## [2026-05-16] telemetry-mcp-adapter-wiring
+Areas: runtime-kotlin/runtime-domain install model, runtime-kotlin/runtime-core install apply, runtime-kotlin/runtime-core launcher MCP registration, runtime-kotlin/runtime-application telemetry
+- Shared `InstallOperations.applyInstall` now executes typed telemetry intent through existing anonymous/full/off semantics and returns `InstallTelemetryApplyOutcome` instead of requiring shell-output parsing. reusable
+- Apply executes or skips typed MCP registration intent per supported `InstallAgent`, returns per-agent `McpRegistrationApplyOutcome`, and keeps MCP/telemetry setup failures as structured non-fatal warnings like `install.sh`. reusable
+- Apply side effects use the plan-owned home with an empty environment so ambient telemetry env vars cannot redirect the shared install contract; legacy launcher `glm` support remains outside `InstallAgent.supportedIds`.
+- Focused tests cover telemetry full/off/success/skip/failure, MCP success/skip/failure, and warning aggregation; CLI command migration and desktop setup UI remain deferred.
+Feature flag: N/A
+Acceptance criteria: 5/5 implemented
+
 ## [2026-05-16] apply-staging-agent-links
 Areas: runtime-kotlin/runtime-domain install model, runtime-kotlin/runtime-core install, runtime-kotlin/runtime-core nativeagent, runtime-kotlin/runtime-cli install
 - Added typed `InstallOperations.applyInstall` and structured apply outcomes for staging, skill links, native-agent links, Windows symlink states, telemetry/MCP intent carry-through.

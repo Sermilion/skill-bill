@@ -157,6 +157,11 @@ data class ApplyFixture(
   fun request(
     selectedPlatforms: Set<String> = emptySet(),
     agents: Set<InstallAgent> = setOf(InstallAgent.CODEX, InstallAgent.CLAUDE),
+    telemetryLevel: InstallTelemetryLevel = InstallTelemetryLevel.ANONYMOUS,
+    mcpRegistrationChoice: McpRegistrationChoice = McpRegistrationChoice(
+      register = true,
+      runtimeMcpBin = home.resolve(".skill-bill/runtime/runtime-mcp/bin/runtime-mcp"),
+    ),
     windowsSymlinkPreflight: WindowsSymlinkPreflight = WindowsSymlinkPreflight(
       state = WindowsSymlinkPreflightState.NOT_WINDOWS,
       decision = WindowsSymlinkDecision.NOT_REQUIRED,
@@ -189,11 +194,8 @@ data class ApplyFixture(
         mode = platformSelectionMode,
         selectedSlugs = selectedPlatforms,
       ),
-      telemetryLevel = InstallTelemetryLevel.ANONYMOUS,
-      mcpRegistrationChoice = McpRegistrationChoice(
-        register = true,
-        runtimeMcpBin = home.resolve(".skill-bill/runtime/runtime-mcp/bin/runtime-mcp"),
-      ),
+      telemetryLevel = telemetryLevel,
+      mcpRegistrationChoice = mcpRegistrationChoice,
       runtimeDistributionInputs = RuntimeDistributionInputs(
         runtimeInstallRoot = home.resolve(".skill-bill/runtime"),
       ),

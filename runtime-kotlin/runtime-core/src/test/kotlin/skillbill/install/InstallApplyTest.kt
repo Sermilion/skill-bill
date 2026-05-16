@@ -6,7 +6,10 @@ import skillbill.install.model.InstallApplyIssueKind
 import skillbill.install.model.InstallApplyStatus
 import skillbill.install.model.InstallPlanSkillKind
 import skillbill.install.model.InstallSkillStagingStatus
+import skillbill.install.model.InstallTelemetryApplyStatus
 import skillbill.install.model.InstallTelemetryLevel
+import skillbill.install.model.McpRegistrationApplyStatus
+import skillbill.install.model.McpRegistrationChoice
 import skillbill.install.model.NativeAgentApplyStatus
 import skillbill.install.model.NativeAgentProviderId
 import skillbill.install.model.WindowsSymlinkDecision
@@ -36,7 +39,13 @@ class InstallApplyTest : InstallApplyTestSupport() {
     assertEquals(InstallApplyStatus.SUCCESS, result.status)
     assertTrue(result.failures.isEmpty(), "unexpected failures: ${result.failures}")
     assertEquals(InstallTelemetryLevel.ANONYMOUS, result.telemetryLevel)
+    assertEquals(InstallTelemetryApplyStatus.SUCCESS, result.telemetryOutcome.status)
     assertTrue(result.mcpRegistrationIntent.register)
+    assertEquals(
+      setOf(InstallAgent.CODEX, InstallAgent.CLAUDE),
+      result.mcpRegistrationOutcomes.map { outcome -> outcome.agent }.toSet(),
+    )
+    assertTrue(result.mcpRegistrationOutcomes.all { outcome -> outcome.status == McpRegistrationApplyStatus.SUCCESS })
     val skillsByName = result.skills.associateBy { skill -> skill.skillName }
     assertEquals(
       setOf(
@@ -78,6 +87,136 @@ class InstallApplyTest : InstallApplyTestSupport() {
     assertFalse(Files.exists(fixture.home.resolve(".skill-bill/native-agents"), LinkOption.NOFOLLOW_LINKS))
     assertFalse(result.nativeAgents.any { native -> native.provider == NativeAgentProviderId.OPENCODE })
     assertFalse(result.nativeAgents.any { native -> native.provider == NativeAgentProviderId.JUNIE })
+  }
+
+  @Test
+  fun `apply configures full telemetry as a structured success outcome`() {
+    val fixture = setupApplyFixture()
+    val plan = InstallOperations.planInstall(
+      fixture.request(
+        agents = setOf(InstallAgent.CODEX),
+        telemetryLevel = InstallTelemetryLevel.FULL,
+      ),
+    )
+
+    val result = InstallOperations.applyInstall(plan)
+
+    assertEquals(InstallApplyStatus.SUCCESS, result.status)
+    assertEquals(InstallTelemetryLevel.FULL, result.telemetryOutcome.level)
+    assertEquals(InstallTelemetryApplyStatus.SUCCESS, result.telemetryOutcome.status)
+    assertTrue(Files.readString(fixture.home.resolve(".skill-bill/config.json")).contains("\"level\":\"full\""))
+  }
+
+  @Test
+  fun `apply disables existing telemetry config as a structured success outcome`() {
+    val fixture = setupApplyFixture()
+    val configPath = fixture.home.resolve(".skill-bill/config.json")
+    Files.createDirectories(configPath.parent)
+    Files.writeString(
+      configPath,
+      """
+      |{"install_id":"existing","telemetry":{"level":"anonymous","proxy_url":"https://example.invalid","batch_size":10}}
+      |
+      """.trimMargin(),
+    )
+    val plan = InstallOperations.planInstall(
+      fixture.request(
+        agents = setOf(InstallAgent.CODEX),
+        telemetryLevel = InstallTelemetryLevel.OFF,
+      ),
+    )
+
+    val result = InstallOperations.applyInstall(plan)
+
+    assertEquals(InstallApplyStatus.SUCCESS, result.status)
+    assertEquals(InstallTelemetryApplyStatus.SUCCESS, result.telemetryOutcome.status)
+    assertFalse(Files.exists(configPath), "off should remove existing telemetry config")
+  }
+
+  @Test
+  fun `apply skips telemetry off when there is no existing telemetry state`() {
+    val fixture = setupApplyFixture()
+    val configPath = fixture.home.resolve(".skill-bill/config.json")
+    val plan = InstallOperations.planInstall(
+      fixture.request(
+        agents = setOf(InstallAgent.CODEX),
+        telemetryLevel = InstallTelemetryLevel.OFF,
+      ),
+    )
+
+    val result = InstallOperations.applyInstall(plan)
+
+    assertEquals(InstallApplyStatus.SUCCESS, result.status)
+    assertEquals(InstallTelemetryApplyStatus.SKIPPED, result.telemetryOutcome.status)
+    assertFalse(Files.exists(configPath), "off should not materialize telemetry config")
+  }
+
+  @Test
+  fun `apply maps telemetry setup failure to a structured warning outcome`() {
+    val fixture = setupApplyFixture()
+    val configPath = fixture.home.resolve(".skill-bill/config.json")
+    Files.createDirectories(configPath.parent)
+    Files.writeString(configPath, "{\n  \"telemetry\": \n")
+    val plan = InstallOperations.planInstall(
+      fixture.request(
+        agents = setOf(InstallAgent.CODEX),
+        telemetryLevel = InstallTelemetryLevel.FULL,
+      ),
+    )
+
+    val result = InstallOperations.applyInstall(plan)
+
+    assertEquals(InstallApplyStatus.WARNING, result.status)
+    assertEquals(InstallTelemetryApplyStatus.FAILED, result.telemetryOutcome.status)
+    assertTrue(
+      result.warnings.any { warning ->
+        warning.kind == InstallApplyIssueKind.TELEMETRY_APPLY_FAILED
+      },
+    )
+    assertEquals("{\n  \"telemetry\": \n", Files.readString(configPath))
+  }
+
+  @Test
+  fun `apply skips MCP registration when plan intent opts out`() {
+    val fixture = setupApplyFixture()
+    val plan = InstallOperations.planInstall(
+      fixture.request(
+        agents = setOf(InstallAgent.CODEX),
+        mcpRegistrationChoice = McpRegistrationChoice(register = false),
+      ),
+    )
+
+    val result = InstallOperations.applyInstall(plan)
+
+    assertEquals(InstallApplyStatus.SUCCESS, result.status)
+    assertEquals(listOf(InstallAgent.CODEX), result.mcpRegistrationOutcomes.map { outcome -> outcome.agent })
+    assertTrue(result.mcpRegistrationOutcomes.all { outcome -> outcome.status == McpRegistrationApplyStatus.SKIPPED })
+    assertFalse(Files.exists(fixture.home.resolve(".codex/config.toml")))
+  }
+
+  @Test
+  fun `apply maps MCP registration failure to a structured warning outcome`() {
+    val fixture = setupApplyFixture()
+    val configPath = fixture.home.resolve(".config/opencode/opencode.json")
+    Files.createDirectories(configPath.parent)
+    Files.writeString(configPath, "{\n  \"theme\": \"opencode\",\n  \"mcp\": \n")
+    val plan = InstallOperations.planInstall(
+      fixture.request(
+        agents = setOf(InstallAgent.OPENCODE),
+      ),
+    )
+
+    val result = InstallOperations.applyInstall(plan)
+
+    assertEquals(InstallApplyStatus.WARNING, result.status)
+    assertEquals(McpRegistrationApplyStatus.FAILED, result.mcpRegistrationOutcomes.single().status)
+    assertTrue(
+      result.warnings.any { warning ->
+        warning.kind == InstallApplyIssueKind.MCP_REGISTRATION_FAILED &&
+          warning.agent == InstallAgent.OPENCODE
+      },
+    )
+    assertEquals("{\n  \"theme\": \"opencode\",\n  \"mcp\": \n", Files.readString(configPath))
   }
 
   @Test

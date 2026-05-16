@@ -205,6 +205,8 @@ enum class InstallApplyIssueKind {
   STAGING_FAILED,
   SKILL_LINK_FAILED,
   NATIVE_AGENT_LINK_FAILED,
+  TELEMETRY_APPLY_FAILED,
+  MCP_REGISTRATION_FAILED,
   WINDOWS_SYMLINK_PRECHECK_FAILED,
   WINDOWS_SYMLINK_WARNING,
 }
@@ -299,10 +301,42 @@ data class NativeAgentApplyOutcome(
   val issue: InstallApplyIssue? = null,
 )
 
+enum class InstallTelemetryApplyStatus {
+  SUCCESS,
+  SKIPPED,
+  FAILED,
+}
+
+data class InstallTelemetryApplyOutcome(
+  val level: InstallTelemetryLevel,
+  val status: InstallTelemetryApplyStatus,
+  val configPath: Path? = null,
+  val clearedEvents: Int = 0,
+  val message: String = "",
+  val issue: InstallApplyIssue? = null,
+)
+
+enum class McpRegistrationApplyStatus {
+  SUCCESS,
+  SKIPPED,
+  FAILED,
+}
+
+data class McpRegistrationApplyOutcome(
+  val agent: InstallAgent,
+  val status: McpRegistrationApplyStatus,
+  val configPath: Path? = null,
+  val changed: Boolean = false,
+  val message: String = "",
+  val issue: InstallApplyIssue? = null,
+)
+
 data class InstallApplyResult(
   val status: InstallApplyStatus,
   val skills: List<InstallAppliedSkill>,
   val nativeAgents: List<NativeAgentApplyOutcome>,
+  val telemetryOutcome: InstallTelemetryApplyOutcome,
+  val mcpRegistrationOutcomes: List<McpRegistrationApplyOutcome>,
   val warnings: List<InstallApplyIssue>,
   val failures: List<InstallApplyIssue>,
   val windowsSymlinkOutcome: WindowsSymlinkApplyOutcome,
