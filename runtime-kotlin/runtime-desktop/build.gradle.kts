@@ -9,6 +9,14 @@ plugins {
 val repoRoot = rootProject.projectDir.parentFile
 val desktopAppResourcesDir = layout.buildDirectory.dir("generated/desktop-app-resources")
 val runtimeResourceDirName = "skill-bill-runtime"
+val runtimeCliInstallDir =
+  rootProject.layout.projectDirectory.dir(
+    "runtime-cli/build/install/runtime-cli",
+  )
+val runtimeMcpInstallDir =
+  rootProject.layout.projectDirectory.dir(
+    "runtime-mcp/build/install/runtime-mcp",
+  )
 
 fun CopySpec.excludeGeneratedSkillBillArtifacts() {
   exclude("**/SKILL.md")
@@ -32,10 +40,10 @@ val prepareDesktopRuntimeBundle by tasks.registering(Sync::class) {
 
   into(desktopAppResourcesDir.map { dir -> dir.dir(runtimeResourceDirName).asFile })
 
-  from(project(":runtime-cli").layout.buildDirectory.dir("install/runtime-cli")) {
+  from(runtimeCliInstallDir) {
     into("runtime-cli")
   }
-  from(project(":runtime-mcp").layout.buildDirectory.dir("install/runtime-mcp")) {
+  from(runtimeMcpInstallDir) {
     into("runtime-mcp")
   }
   from(repoRoot.resolve("skills")) {
