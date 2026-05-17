@@ -483,11 +483,11 @@ private fun List<SkillBillTreeItem>.isSelectedSkill(selectedTreeItemId: String?)
 
 private fun TreeItemKind.isRenderableTreeItemKind(): Boolean = when (this) {
   TreeItemKind.SKILL,
-  TreeItemKind.PLATFORM_PACK,
   TreeItemKind.ADD_ON,
   TreeItemKind.NATIVE_AGENT,
   -> true
   TreeItemKind.GROUP,
+  TreeItemKind.PLATFORM_PACK,
   TreeItemKind.GENERATED_ARTIFACT,
   TreeItemKind.PLACEHOLDER,
   -> false

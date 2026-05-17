@@ -519,7 +519,7 @@ class SkillBillViewModel(
     // consistent slice even if refresh()/openRepo() rewrites changesSnapshot between reads.
     val capturedSnapshot = changesSnapshot
     val resolvedSelectedFile = selectedChangedFilePath?.let { path ->
-      capturedSnapshot.files.firstOrNull { file -> file.path == path }
+      capturedSnapshot.skillContentFiles.firstOrNull { file -> file.path == path }
     }
     val state = SkillBillState(
       selectedRepoPath = session?.repoPath,
@@ -1006,7 +1006,7 @@ class SkillBillViewModel(
       return currentState
     }
     val file = changesSnapshot.files.firstOrNull { it.path == path } ?: return currentState
-    if (file.isGenerated) {
+    if (!file.isSkillContent) {
       currentState = createState()
       return currentState
     }
@@ -1374,7 +1374,7 @@ class SkillBillViewModel(
     // If the previously-selected changed file is no longer in the new snapshot, clear it so the diff
     // pane does not stay attached to a stale path.
     val stillExists = selectedChangedFilePath?.let { path ->
-      result.snapshot.files.any { it.path == path }
+      result.snapshot.skillContentFiles.any { it.path == path }
     } ?: false
     if (!stillExists) {
       selectedChangedFilePath = null
@@ -1399,7 +1399,7 @@ class SkillBillViewModel(
     // F-201: capture the snapshot once so the lookup is consistent even if a parallel refresh swaps
     // changesSnapshot before we resolve the file.
     val captured = changesSnapshot
-    val file = captured.files.firstOrNull { it.path == path } ?: run {
+    val file = captured.skillContentFiles.firstOrNull { it.path == path } ?: run {
       selectedChangedFilePath = null
       selectedDiff = ""
       selectedDiffStaged = false
@@ -1603,7 +1603,7 @@ class SkillBillViewModel(
       return null
     }
     val selectedPaths = selectedPublishPaths
-      .filter { path -> changesSnapshot.files.any { file -> file.path == path && !file.isGenerated } }
+      .filter { path -> changesSnapshot.files.any { file -> file.path == path && file.isSkillContent } }
       .sorted()
     activePublishToken += 1
     publishBusy = true
@@ -2014,7 +2014,7 @@ class SkillBillViewModel(
 
   private fun hasCommitInputs(): Boolean = currentSession?.isRecognizedSkillBillRepo == true &&
     commitMessage.isNotBlank() &&
-    changesSnapshot.files.any { it.group == ChangedFileGroup.STAGED && !it.isGenerated }
+    changesSnapshot.files.any { it.group == ChangedFileGroup.STAGED && it.isSkillContent }
 
   private fun canPublish(): Boolean = publishDisabledReason() == null
 
@@ -2024,6 +2024,9 @@ class SkillBillViewModel(
     }
     if (busyOperation != null || changesBusy || publishBusy || commitBusy || commitValidationRunning || pushBusy) {
       return "Repository operation is already running."
+    }
+    if (changesSnapshot.nonSkillContentFiles.isNotEmpty()) {
+      return "Repository has non-content.md changes. Resolve or stash those files before publishing from Skill Bill."
     }
     val hasLocalSelection = selectedPublishPaths.isNotEmpty()
     val hasUnpushedCommit = publishingStatus.hasUnpushedCommits
@@ -2051,13 +2054,12 @@ class SkillBillViewModel(
   }
 
   private fun stagedAuthoredPaths(snapshot: ChangesSnapshot): Set<String> = snapshot.files
-    .filter { file -> file.group == ChangedFileGroup.STAGED && !file.isGenerated }
+    .filter { file -> file.group == ChangedFileGroup.STAGED && file.isSkillContent }
     .map { file -> file.path }
     .toSet()
 
   private fun reconcilePublishSelection(snapshot: ChangesSnapshot) {
-    val selectablePaths = snapshot.files
-      .filterNot(ChangedFile::isGenerated)
+    val selectablePaths = snapshot.skillContentFiles
       .map(ChangedFile::path)
       .toSet()
     selectedPublishPaths =
@@ -2805,11 +2807,11 @@ private fun isRenderableKind(kind: String?): Boolean = when (kind) {
 
 private fun TreeItemKind.isRenderableTreeItemKind(): Boolean = when (this) {
   TreeItemKind.SKILL,
-  TreeItemKind.PLATFORM_PACK,
   TreeItemKind.ADD_ON,
   TreeItemKind.NATIVE_AGENT,
   -> true
   TreeItemKind.GROUP,
+  TreeItemKind.PLATFORM_PACK,
   TreeItemKind.GENERATED_ARTIFACT,
   TreeItemKind.PLACEHOLDER,
   -> false

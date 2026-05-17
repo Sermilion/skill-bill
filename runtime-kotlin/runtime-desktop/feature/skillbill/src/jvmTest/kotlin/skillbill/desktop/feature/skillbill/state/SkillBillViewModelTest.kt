@@ -1103,6 +1103,7 @@ class SkillBillViewModelTest {
       scriptedSummariesByTreeItemId = mapOf(
         "skill-one" to passedRenderSummary("skills/one/SKILL.md"),
         "skill-two" to passedRenderSummary("skills/two/SKILL.md"),
+        "skill-three" to passedRenderSummary("platform-packs/kotlin/code-review/bill-kotlin-code-review/content.md"),
         "addon" to passedRenderSummary("platform-packs/kotlin/addons/addon.md"),
         "agent" to passedRenderSummary("skills/bill-alpha/native-agents/agent.md"),
       ),
@@ -1117,7 +1118,15 @@ class SkillBillViewModelTest {
             kind = TreeItemKind.GROUP,
             children = listOf(
               SkillBillTreeItem(id = "skill-one", label = "Skill One", kind = TreeItemKind.SKILL),
-              SkillBillTreeItem(id = "skill-two", label = "Skill Two", kind = TreeItemKind.PLATFORM_PACK),
+              SkillBillTreeItem(id = "skill-two", label = "Skill Two", kind = TreeItemKind.SKILL),
+              SkillBillTreeItem(
+                id = "platform:kotlin",
+                label = "kotlin",
+                kind = TreeItemKind.PLATFORM_PACK,
+                children = listOf(
+                  SkillBillTreeItem(id = "skill-three", label = "Skill Three", kind = TreeItemKind.SKILL),
+                ),
+              ),
               SkillBillTreeItem(id = "addon", label = "Addon", kind = TreeItemKind.ADD_ON),
               SkillBillTreeItem(id = "agent", label = "Agent", kind = TreeItemKind.NATIVE_AGENT),
               SkillBillTreeItem(id = "generated", label = "SKILL.md", kind = TreeItemKind.GENERATED_ARTIFACT),
@@ -1132,10 +1141,11 @@ class SkillBillViewModelTest {
     val finished = viewModel.finishRender(viewModel.runRender(request))
 
     assertEquals(RenderRunState.PASSED, finished.render.state)
-    assertEquals(listOf("skill-one", "skill-two", "addon", "agent"), renderGateway.requestedTreeItemIds)
-    assertEquals(4, finished.render.generatedArtifacts.size)
+    assertEquals(listOf("skill-one", "skill-two", "skill-three", "addon", "agent"), renderGateway.requestedTreeItemIds)
+    assertEquals(5, finished.render.generatedArtifacts.size)
     assertTrue(finished.render.blocks.any { it.header == "===== render target: Skill One (skill-one) =====" })
     assertFalse(renderGateway.requestedTreeItemIds.contains("generated"))
+    assertFalse(renderGateway.requestedTreeItemIds.contains("platform:kotlin"))
   }
 
   @Test

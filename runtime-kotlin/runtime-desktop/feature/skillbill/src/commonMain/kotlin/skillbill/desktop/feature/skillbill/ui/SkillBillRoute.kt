@@ -102,20 +102,11 @@ fun SkillBillRoute(
       val outcome = withContext(Dispatchers.Default) {
         openCompareUrlSafely(url = url, browserLauncher = browserLauncher)
       }
-      when (outcome) {
-        BrowserLaunchOutcome.Opened -> {
-          if (recentlyCopiedKey == url) {
-            recentlyCopiedKey = null
-          }
-          recentlyOpenedCompareUrlKey = url
+      if (outcome == BrowserLaunchOutcome.Opened) {
+        if (recentlyCopiedKey == url) {
+          recentlyCopiedKey = null
         }
-        is BrowserLaunchOutcome.Failed -> {
-          if (recentlyOpenedCompareUrlKey == url) {
-            recentlyOpenedCompareUrlKey = null
-          }
-          clipboardManager.setText(AnnotatedString(url))
-          recentlyCopiedKey = url
-        }
+        recentlyOpenedCompareUrlKey = url
       }
     }
   }
@@ -731,20 +722,11 @@ fun SkillBillRoute(
         val outcome = withContext(Dispatchers.Default) {
           openCompareUrlSafely(url = url, browserLauncher = browserLauncher)
         }
-        when (outcome) {
-          BrowserLaunchOutcome.Opened -> {
-            if (recentlyCopiedKey == url) {
-              recentlyCopiedKey = null
-            }
-            recentlyOpenedCompareUrlKey = url
+        if (outcome == BrowserLaunchOutcome.Opened) {
+          if (recentlyCopiedKey == url) {
+            recentlyCopiedKey = null
           }
-          is BrowserLaunchOutcome.Failed -> {
-            if (recentlyOpenedCompareUrlKey == url) {
-              recentlyOpenedCompareUrlKey = null
-            }
-            clipboardManager.setText(AnnotatedString(url))
-            recentlyCopiedKey = url
-          }
+          recentlyOpenedCompareUrlKey = url
         }
       }
     },
@@ -866,16 +848,8 @@ internal fun executeGeneratedArtifactSelection(
   return true
 }
 
-internal fun handleCompareUrlActivation(
-  url: String,
-  browserLauncher: BrowserLauncher,
-  copyUrl: (String) -> Unit,
-): BrowserLaunchOutcome {
-  val outcome = openCompareUrlSafely(url = url, browserLauncher = browserLauncher)
-  if (outcome is BrowserLaunchOutcome.Failed) {
-    copyUrl(url)
-  }
-  return outcome
+internal fun handleCompareUrlActivation(url: String, browserLauncher: BrowserLauncher): BrowserLaunchOutcome {
+  return openCompareUrlSafely(url = url, browserLauncher = browserLauncher)
 }
 
 internal fun openCompareUrlSafely(url: String, browserLauncher: BrowserLauncher): BrowserLaunchOutcome = try {

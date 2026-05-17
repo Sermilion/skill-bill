@@ -92,6 +92,17 @@ compose.desktop {
       packageName = "SkillBill"
       packageVersion = "1.0.0"
       includeAllModules = true
+
+      val iconsDir = layout.projectDirectory.dir("icons")
+      macOS {
+        iconFile.set(iconsDir.file("icon.icns").asFile)
+      }
+      windows {
+        iconFile.set(iconsDir.file("icon.ico").asFile)
+      }
+      linux {
+        iconFile.set(iconsDir.file("icon.png").asFile)
+      }
     }
   }
 }
