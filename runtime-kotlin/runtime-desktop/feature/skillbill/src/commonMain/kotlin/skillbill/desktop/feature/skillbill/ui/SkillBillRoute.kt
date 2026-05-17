@@ -823,6 +823,9 @@ fun SkillBillRoute(
       onFinish = {
         state = viewModel.finishFirstRunSetup()
       },
+      onDismiss = {
+        state = viewModel.dismissFirstRunSetup()
+      },
     ),
     recentlyCopiedKey = recentlyCopiedKey,
     recentlyOpenedCompareUrlKey = recentlyOpenedCompareUrlKey,

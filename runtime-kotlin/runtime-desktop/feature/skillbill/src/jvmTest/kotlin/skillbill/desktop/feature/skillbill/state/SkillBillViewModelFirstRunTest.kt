@@ -167,6 +167,45 @@ class SkillBillViewModelFirstRunTest {
     assertFalse(discovered.firstRunSetup?.registerMcp ?: true)
   }
 
+  @Test
+  fun `setup wizard can be dismissed while idle`() {
+    val viewModel = newViewModel(
+      firstRunGateway = FakeDesktopFirstRunGateway(
+        discoveryResult = FirstRunDiscoveryResult.Success(discovery()),
+        planResult = FirstRunPlanResult.Planned(plan()),
+        applyResult = FirstRunApplyResult.Applied(
+          FirstRunInstallOutcome(status = FirstRunInstallStatus.SUCCESS, title = "Setup completed."),
+        ),
+      ),
+      preferenceStore = FakeDesktopPreferenceStore(),
+    )
+
+    assertNotNull(viewModel.state().firstRunSetup)
+    val dismissed = viewModel.dismissFirstRunSetup()
+
+    assertNull(dismissed.firstRunSetup)
+  }
+
+  @Test
+  fun `setup wizard dismiss is ignored while busy`() {
+    val viewModel = newViewModel(
+      firstRunGateway = FakeDesktopFirstRunGateway(
+        discoveryResult = FirstRunDiscoveryResult.Success(discovery()),
+        planResult = FirstRunPlanResult.Planned(plan()),
+        applyResult = FirstRunApplyResult.Applied(
+          FirstRunInstallOutcome(status = FirstRunInstallStatus.SUCCESS, title = "Setup completed."),
+        ),
+      ),
+      preferenceStore = FakeDesktopPreferenceStore(),
+    )
+
+    assertNotNull(viewModel.beginFirstRunDiscovery())
+    val dismissed = viewModel.dismissFirstRunSetup()
+
+    assertNotNull(dismissed.firstRunSetup)
+    assertTrue(dismissed.firstRunSetup?.busy ?: false)
+  }
+
   private fun newViewModel(
     firstRunGateway: FakeDesktopFirstRunGateway,
     preferenceStore: FakeDesktopPreferenceStore,

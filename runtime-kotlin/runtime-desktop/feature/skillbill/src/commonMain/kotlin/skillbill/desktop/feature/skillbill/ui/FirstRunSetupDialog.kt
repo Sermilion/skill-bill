@@ -50,6 +50,7 @@ data class FirstRunSetupCallbacks(
   val onApply: () -> Unit,
   val onRetry: () -> Unit,
   val onFinish: () -> Unit,
+  val onDismiss: () -> Unit,
 )
 
 private val SetupBackdrop = Color.Black.copy(alpha = 0.72f)
@@ -70,7 +71,8 @@ fun FirstRunSetupDialog(state: FirstRunSetupState, callbacks: FirstRunSetupCallb
     modifier = Modifier
       .fillMaxSize()
       .background(SetupBackdrop)
-      .semantics { contentDescription = "First-run setup wizard" },
+      .semantics { contentDescription = "First-run setup wizard" }
+      .clickable(enabled = !state.busy, role = Role.Button, onClick = callbacks.onDismiss),
   ) {
     Column(
       modifier = Modifier
@@ -79,9 +81,11 @@ fun FirstRunSetupDialog(state: FirstRunSetupState, callbacks: FirstRunSetupCallb
         .heightIn(max = 700.dp)
         .clip(RoundedCornerShape(8.dp))
         .border(1.dp, SetupLine, RoundedCornerShape(8.dp))
-        .background(SetupPanel),
+        .background(SetupPanel)
+        // Block dismiss-on-outside-tap when the user interacts inside the panel.
+        .clickable(enabled = false, onClick = {}),
     ) {
-      SetupHeader(state)
+      SetupHeader(state = state, onDismiss = callbacks.onDismiss)
       HorizontalDivider(color = SetupLine)
       Column(
         modifier = Modifier
@@ -109,19 +113,31 @@ fun FirstRunSetupDialog(state: FirstRunSetupState, callbacks: FirstRunSetupCallb
 }
 
 @Composable
-private fun SetupHeader(state: FirstRunSetupState) {
-  Column(
+private fun SetupHeader(state: FirstRunSetupState, onDismiss: () -> Unit) {
+  Row(
     modifier = Modifier
       .fillMaxWidth()
       .padding(horizontal = 18.dp, vertical = 14.dp),
-    verticalArrangement = Arrangement.spacedBy(8.dp),
+    horizontalArrangement = Arrangement.spacedBy(12.dp),
+    verticalAlignment = Alignment.Top,
   ) {
-    Text(text = "Skill Bill setup", color = SetupText, fontSize = 16.sp, fontWeight = FontWeight.Medium)
-    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-      FirstRunSetupStep.entries.forEach { step ->
-        StepPill(step = step, selected = step == state.step)
+    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+      Text(text = "Skill Bill setup", color = SetupText, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+      Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        FirstRunSetupStep.entries.forEach { step ->
+          StepPill(step = step, selected = step == state.step)
+        }
       }
     }
+    Text(
+      text = "x",
+      color = if (state.busy) SetupSteel.copy(alpha = 0.55f) else SetupSteel,
+      fontSize = 14.sp,
+      modifier = Modifier
+        .semantics { contentDescription = "Dismiss setup wizard" }
+        .clickable(enabled = !state.busy, role = Role.Button, onClick = onDismiss)
+        .padding(horizontal = 6.dp, vertical = 2.dp),
+    )
   }
 }
 

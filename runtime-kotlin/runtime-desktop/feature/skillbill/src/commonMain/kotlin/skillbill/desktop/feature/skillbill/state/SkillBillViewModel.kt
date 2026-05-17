@@ -803,6 +803,16 @@ class SkillBillViewModel(
     return currentState
   }
 
+  fun dismissFirstRunSetup(): SkillBillState {
+    val setup = firstRunSetup ?: return currentState
+    if (setup.busy) {
+      return currentState
+    }
+    firstRunSetup = null
+    currentState = createState()
+    return currentState
+  }
+
   fun retryFirstRunSetup(): SkillBillState {
     val setup = firstRunSetup ?: return currentState
     firstRunSetup = setup.copy(

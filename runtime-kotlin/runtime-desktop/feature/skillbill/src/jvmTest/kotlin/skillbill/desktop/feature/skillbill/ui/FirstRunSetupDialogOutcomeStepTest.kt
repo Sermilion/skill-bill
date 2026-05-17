@@ -2,7 +2,9 @@ package skillbill.desktop.feature.skillbill.ui
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.runComposeUiTest
 import skillbill.desktop.core.domain.model.FirstRunInstallDetail
 import skillbill.desktop.core.domain.model.FirstRunInstallDetailSeverity
@@ -12,6 +14,7 @@ import skillbill.desktop.core.domain.model.FirstRunSetupState
 import skillbill.desktop.core.domain.model.FirstRunSetupStep
 import skillbill.desktop.core.domain.model.FirstRunTelemetryLevel
 import kotlin.test.Test
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalTestApi::class)
 class FirstRunSetupDialogOutcomeStepTest {
@@ -107,6 +110,21 @@ class FirstRunSetupDialogOutcomeStepTest {
     onNodeWithText("Retry").assertIsDisplayed()
   }
 
+  @Test
+  fun `setup dialog exposes dismiss action`() = runComposeUiTest {
+    var dismissed = false
+    setContent {
+      FirstRunSetupDialog(
+        state = FirstRunSetupState(),
+        callbacks = noOpCallbacks.copy(onDismiss = { dismissed = true }),
+      )
+    }
+
+    onNodeWithContentDescription("Dismiss setup wizard").assertIsDisplayed().performClick()
+
+    assertTrue(dismissed)
+  }
+
   private fun resultState(outcome: FirstRunInstallOutcome): FirstRunSetupState = FirstRunSetupState(
     step = FirstRunSetupStep.RESULT,
     selectedAgentIds = setOf("codex"),
@@ -125,6 +143,7 @@ class FirstRunSetupDialogOutcomeStepTest {
       onApply = {},
       onRetry = {},
       onFinish = {},
+      onDismiss = {},
     )
   }
 }

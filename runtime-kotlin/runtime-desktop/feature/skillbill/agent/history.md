@@ -4,7 +4,7 @@
 Areas: runtime-desktop/feature/skillbill, runtime-desktop/core/domain
 - Added a repo-scoped `Install` toolbar command and command-palette action that reopens the Skill Bill setup wizard after first-run completion, so changed skills/packs/agent links can be reapplied without deleting desktop preferences.
 - Reused the existing first-run setup state machine and stored preferences as defaults; discovery still refreshes detected agents and platform packs before apply.
-- Dialog overlap rule: setup relaunch is disabled while busy, publishing, first-run setup, or scaffold wizard state is active.
+- Dialog overlap rule: setup relaunch is disabled while busy, publishing, first-run setup, or scaffold wizard state is active; the setup dialog itself can be dismissed while idle and keeps close disabled during discovery/install.
 Feature flag: N/A
 Acceptance criteria: manual reinstall path available from app
 
