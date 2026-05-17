@@ -1,5 +1,13 @@
 # SkillBill desktop feature — history
 
+## [2026-05-17] SKILL-45 final-integration-docs-validation
+Areas: runtime-desktop first-run wizard docs, runtime-desktop packaging docs, desktop validation evidence
+- Documented the first-run wizard as a thin desktop adapter over `DesktopFirstRunGateway` and shared install plan/apply, including agent/platform/telemetry/MCP choices and structured Windows symlink outcomes.
+- Documented native package tasks and host limits for DMG/MSI/Deb/RPM plus Arch/CachyOS RPM or loose-distribution fallback; packaged runtime lookup remains `skill-bill-runtime` app resources or explicit override. reusable
+- Existing tests cover wizard state, outcome rendering, gateway mapping, runtime asset lookup, and packaging task wiring; final pass added traceability rather than new desktop behavior.
+Feature flag: N/A
+Acceptance criteria: 8/8 implemented
+
 ## [2026-05-17] SKILL-45 desktop-first-run-wizard
 Areas: runtime-desktop/feature/skillbill, runtime-desktop/core/domain, runtime-desktop/core/data, runtime-desktop/core/datastore, runtime-desktop/core/testing
 - Added first-run setup flow for agent selection/detection, platform-pack selection from dynamic discovery, telemetry level, MCP registration, and structured install outcomes.

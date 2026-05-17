@@ -1,3 +1,11 @@
+## [2026-05-17] final-integration-docs-validation
+Areas: runtime-kotlin runtime-core install, runtime-cli install, runtime-desktop packaging/runtime lookup, docs
+- Final SKILL-45 integration kept the runtime install contract unchanged: CLI, install.sh, and desktop all route through typed install plan/apply instead of parsing shell output. reusable
+- Documentation now names package tasks, app-resource runtime bundle lookup, `~/.skill-bill/installed-skills` staging, telemetry anonymous/full/off, MCP intent, and Windows Developer Mode/elevated-shell guidance.
+- Coverage audit found existing focused tests for plan/apply, shell delegation argv, dynamic platform selection, telemetry/MCP, Windows symlink outcomes, desktop gateway state, runtime asset lookup, and package task wiring; no new test files were needed.
+Feature flag: N/A
+Acceptance criteria: 8/8 implemented
+
 ## [2026-05-17] desktop-packaging-runtime-bundling
 Areas: runtime-kotlin/runtime-desktop packaging, runtime-desktop/core/data first-run gateway, runtime-cli installDist, runtime-mcp installDist
 - Desktop packages now stage a loose `skill-bill-runtime` app-resource bundle from authored `skills`, dynamic `platform-packs`, `orchestration`, and packaged runtime-cli/runtime-mcp installDist outputs. reusable
