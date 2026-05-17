@@ -251,10 +251,29 @@ fun SkillBillRoute(
   }
 
   fun canStartRepoScopedAction(): Boolean = state.busyOperation == null &&
+    state.firstRunSetup == null &&
     !state.publishBusy &&
     !state.commitBusy &&
     !state.commitValidationRunning &&
     !state.pushBusy
+
+  fun runFirstRunDiscovery() {
+    val request = viewModel.beginFirstRunDiscovery() ?: return
+    state = viewModel.state()
+    coroutineScope.launch {
+      val response = withContext(Dispatchers.Default) { viewModel.runFirstRunDiscovery(request) }
+      state = viewModel.finishFirstRunDiscovery(response)
+    }
+  }
+
+  fun runFirstRunApply() {
+    val request = viewModel.beginFirstRunApply() ?: return
+    state = viewModel.state()
+    coroutineScope.launch {
+      val response = withContext(Dispatchers.Default) { viewModel.runFirstRunApply(request) }
+      state = viewModel.finishFirstRunApply(response)
+    }
+  }
 
   fun runTreeItemSelection(itemId: String) {
     if (canStartRepoScopedAction()) {
@@ -286,6 +305,12 @@ fun SkillBillRoute(
     if (state.selectedRepoPath != null && state.repoStatus.state == RepoLoadState.LOADED) {
       runGitRefresh()
       loadHistory()
+    }
+  }
+
+  LaunchedEffect(viewModel, state.firstRunSetup) {
+    if (state.firstRunSetup != null) {
+      runFirstRunDiscovery()
     }
   }
 
@@ -762,6 +787,33 @@ fun SkillBillRoute(
       },
       onDismiss = {
         state = viewModel.dismissScaffoldWizard()
+      },
+    ),
+    firstRunSetupCallbacks = FirstRunSetupCallbacks(
+      onAgentSelectionChanged = { agentId, selected ->
+        state = viewModel.selectFirstRunAgent(agentId, selected)
+      },
+      onPlatformSelectionChanged = { slug, selected ->
+        state = viewModel.selectFirstRunPlatform(slug, selected)
+      },
+      onTelemetryChanged = { level ->
+        state = viewModel.selectFirstRunTelemetry(level)
+      },
+      onMcpRegistrationChanged = { register ->
+        state = viewModel.setFirstRunMcpRegistration(register)
+      },
+      onBack = {
+        state = viewModel.retreatFirstRunStep()
+      },
+      onNext = {
+        state = viewModel.advanceFirstRunStep()
+      },
+      onApply = ::runFirstRunApply,
+      onRetry = {
+        state = viewModel.retryFirstRunSetup()
+      },
+      onFinish = {
+        state = viewModel.finishFirstRunSetup()
       },
     ),
     recentlyCopiedKey = recentlyCopiedKey,

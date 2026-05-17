@@ -1,5 +1,15 @@
 # SkillBill desktop feature — history
 
+## [2026-05-17] SKILL-45 desktop-first-run-wizard
+Areas: runtime-desktop/feature/skillbill, runtime-desktop/core/domain, runtime-desktop/core/data, runtime-desktop/core/datastore, runtime-desktop/core/testing
+- Added first-run setup flow for agent selection/detection, platform-pack selection from dynamic discovery, telemetry level, MCP registration, and structured install outcomes.
+- Reused begin/run/finish ViewModel token pattern; wizard state is explicit domain state and testable without launching the desktop app.
+- Desktop install gateway calls shared `InstallOperations.planInstall/applyInstall` and maps typed success/warning/failure details instead of parsing shell output.
+- Reusable: `DesktopFirstRunGateway`, `FirstRunSetupModels`, `FakeDesktopFirstRunGateway`, and outcome-step UI tests cover selection, telemetry, MCP, gateway mapping, and result rendering.
+- Known limitation: review left a Minor UX gap where discovery failure on the Agents step has no in-wizard retry button.
+Feature flag: N/A
+Acceptance criteria: 9/9 implemented
+
 ## [2026-05-15] SKILL-44 create-pr-publishing
 Areas: runtime-desktop/feature/skillbill, runtime-desktop/core/domain, runtime-desktop/core/data, runtime-desktop/core/testing
 - Replaced raw Git-style change publishing with a governed `Publish Changes` flow that groups files by Skill Bill concepts, keeps Git status secondary, and defaults generated/read-only artifacts out of selection.

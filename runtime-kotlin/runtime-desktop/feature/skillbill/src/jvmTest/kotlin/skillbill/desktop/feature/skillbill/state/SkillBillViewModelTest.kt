@@ -339,6 +339,8 @@ class SkillBillViewModelTest {
       renderGateway = FakeRenderGateway(),
       recentRepoRepository = recentRepoRepository,
       scaffoldGateway = skillbill.desktop.core.testing.scaffold.FakeScaffoldGateway(),
+      firstRunGateway = defaultFirstRunGateway(),
+      desktopPreferenceStore = completedFirstRunStore(),
     )
 
     val state = viewModel.selectRepoPath("/not-skill-bill")
@@ -373,6 +375,8 @@ class SkillBillViewModelTest {
       renderGateway = FakeRenderGateway(),
       recentRepoRepository = FakeRecentRepoRepository(),
       scaffoldGateway = skillbill.desktop.core.testing.scaffold.FakeScaffoldGateway(),
+      firstRunGateway = defaultFirstRunGateway(),
+      desktopPreferenceStore = completedFirstRunStore(),
     )
     viewModel.selectRepoPath("/repo")
     skillTreeService.items =
@@ -1806,6 +1810,8 @@ class SkillBillViewModelTest {
     recentRepoRepository: FakeRecentRepoRepository = FakeRecentRepoRepository(),
     scaffoldGateway: skillbill.desktop.core.domain.service.RuntimeScaffoldGateway =
       skillbill.desktop.core.testing.scaffold.FakeScaffoldGateway(),
+    firstRunGateway: skillbill.desktop.core.domain.service.DesktopFirstRunGateway = defaultFirstRunGateway(),
+    desktopPreferenceStore: skillbill.desktop.core.datastore.DesktopPreferenceStore = completedFirstRunStore(),
   ): SkillBillViewModel = SkillBillViewModel(
     repoSessionService = repoSessionService,
     skillTreeService = skillTreeService,
@@ -1816,8 +1822,32 @@ class SkillBillViewModelTest {
     renderGateway = renderGateway,
     recentRepoRepository = recentRepoRepository,
     scaffoldGateway = scaffoldGateway,
+    firstRunGateway = firstRunGateway,
+    desktopPreferenceStore = desktopPreferenceStore,
   )
 }
+
+private fun defaultFirstRunGateway(): skillbill.desktop.core.domain.service.DesktopFirstRunGateway =
+  skillbill.desktop.core.testing.install.FakeDesktopFirstRunGateway(
+    discoveryResult = skillbill.desktop.core.domain.model.FirstRunDiscoveryResult.Success(
+      skillbill.desktop.core.domain.model.FirstRunSetupDiscovery(
+        agents = emptyList(),
+        platformPacks = emptyList(),
+      ),
+    ),
+    planResult = skillbill.desktop.core.domain.model.FirstRunPlanResult.Failed("not scripted"),
+    applyResult = skillbill.desktop.core.domain.model.FirstRunApplyResult.Failed(
+      skillbill.desktop.core.domain.model.FirstRunInstallOutcome(
+        status = skillbill.desktop.core.domain.model.FirstRunInstallStatus.FAILURE,
+        title = "not scripted",
+      ),
+    ),
+  )
+
+private fun completedFirstRunStore(): skillbill.desktop.core.datastore.DesktopPreferenceStore =
+  skillbill.desktop.core.testing.FakeDesktopPreferenceStore(
+    initialFirstRunPreferences = skillbill.desktop.core.datastore.DesktopFirstRunPreferences(completed = true),
+  )
 
 private fun paletteActions(
   selectTreeItem: (String) -> Unit = {},

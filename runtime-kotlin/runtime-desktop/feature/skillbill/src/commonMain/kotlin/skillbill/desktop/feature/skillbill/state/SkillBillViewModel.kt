@@ -2,6 +2,8 @@ package skillbill.desktop.feature.skillbill.state
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.desktop.core.common.di.ScreenScope
+import skillbill.desktop.core.datastore.DesktopFirstRunPreferences
+import skillbill.desktop.core.datastore.DesktopPreferenceStore
 import skillbill.desktop.core.domain.model.AuthoredContentDocument
 import skillbill.desktop.core.domain.model.AuthoringSaveResult
 import skillbill.desktop.core.domain.model.ChangedFile
@@ -12,6 +14,16 @@ import skillbill.desktop.core.domain.model.DirtyEditorPrompt
 import skillbill.desktop.core.domain.model.DirtyEditorPromptReason
 import skillbill.desktop.core.domain.model.DockTab
 import skillbill.desktop.core.domain.model.EditorPlaceholder
+import skillbill.desktop.core.domain.model.FirstRunApplyResult
+import skillbill.desktop.core.domain.model.FirstRunDiscoveryResult
+import skillbill.desktop.core.domain.model.FirstRunInstallOutcome
+import skillbill.desktop.core.domain.model.FirstRunInstallStatus
+import skillbill.desktop.core.domain.model.FirstRunPlanResult
+import skillbill.desktop.core.domain.model.FirstRunSetupDiscovery
+import skillbill.desktop.core.domain.model.FirstRunSetupRequest
+import skillbill.desktop.core.domain.model.FirstRunSetupState
+import skillbill.desktop.core.domain.model.FirstRunSetupStep
+import skillbill.desktop.core.domain.model.FirstRunTelemetryLevel
 import skillbill.desktop.core.domain.model.GitOperationResult
 import skillbill.desktop.core.domain.model.GitPublishingStatus
 import skillbill.desktop.core.domain.model.GitPushTarget
@@ -42,6 +54,7 @@ import skillbill.desktop.core.domain.model.ValidationIssue
 import skillbill.desktop.core.domain.model.ValidationRunState
 import skillbill.desktop.core.domain.model.ValidationSummary
 import skillbill.desktop.core.domain.service.AuthoringGateway
+import skillbill.desktop.core.domain.service.DesktopFirstRunGateway
 import skillbill.desktop.core.domain.service.GitGateway
 import skillbill.desktop.core.domain.service.PrPublishingGateway
 import skillbill.desktop.core.domain.service.RecentRepoRepository
@@ -64,6 +77,8 @@ class SkillBillViewModel(
   private val renderGateway: RenderGateway,
   private val recentRepoRepository: RecentRepoRepository,
   private val scaffoldGateway: RuntimeScaffoldGateway,
+  private val firstRunGateway: DesktopFirstRunGateway,
+  private val desktopPreferenceStore: DesktopPreferenceStore,
 ) {
   private var repoPathText: String = recentRepoRepository.recentRepoPath().orEmpty()
   private var currentSession: RepoSession? = null
@@ -129,6 +144,13 @@ class SkillBillViewModel(
   private var commandPaletteSelectedResultIndex: Int = 0
   private var scaffoldWizard: ScaffoldWizardState? = null
   private var activeScaffoldToken: Long = 0L
+  private var firstRunSetup: FirstRunSetupState? =
+    if (desktopPreferenceStore.firstRunPreferences.value.completed) {
+      null
+    } else {
+      desktopPreferenceStore.firstRunPreferences.value.toFirstRunSetupState()
+    }
+  private var activeFirstRunToken: Long = 0L
   private var currentState = createState()
 
   init {
@@ -557,11 +579,233 @@ class SkillBillViewModel(
     val wizardState = scaffoldWizard?.copy(
       dirtyRepoWarning = computeDirtyRepoWarning(capturedSnapshot),
     )
-    return state.copy(commandPalette = paletteState, scaffoldWizard = wizardState)
+    return state.copy(
+      commandPalette = paletteState,
+      scaffoldWizard = wizardState,
+      firstRunSetup = firstRunSetup,
+    )
   }
 
   private fun computeDirtyRepoWarning(snapshot: ChangesSnapshot): Boolean =
     snapshot.files.any { file -> file.group != ChangedFileGroup.GENERATED }
+
+  fun beginFirstRunDiscovery(): FirstRunDiscoveryRequest? {
+    val setup = firstRunSetup ?: return null
+    if (setup.busy || setup.discoveryLoaded || setup.errorMessage != null) {
+      return null
+    }
+    activeFirstRunToken += 1
+    firstRunSetup = setup.copy(busy = true, errorMessage = null)
+    currentState = createState()
+    return FirstRunDiscoveryRequest(token = activeFirstRunToken)
+  }
+
+  suspend fun runFirstRunDiscovery(request: FirstRunDiscoveryRequest): FirstRunDiscoveryResponse =
+    FirstRunDiscoveryResponse(
+      request = request,
+      result = firstRunGateway.discoverSetup(),
+    )
+
+  fun finishFirstRunDiscovery(response: FirstRunDiscoveryResponse): SkillBillState {
+    if (response.request.token != activeFirstRunToken) {
+      return currentState
+    }
+    val setup = firstRunSetup ?: return currentState
+    firstRunSetup = when (val result = response.result) {
+      is FirstRunDiscoveryResult.Success -> setup.applyDiscovery(
+        discovery = result.discovery,
+        preferences = desktopPreferenceStore.firstRunPreferences.value,
+      )
+      is FirstRunDiscoveryResult.Failed -> setup.copy(
+        busy = false,
+        errorMessage = result.message,
+      )
+    }
+    currentState = createState()
+    return currentState
+  }
+
+  fun selectFirstRunAgent(agentId: String, selected: Boolean): SkillBillState {
+    val setup = firstRunSetup ?: return currentState
+    if (setup.busy) {
+      return currentState
+    }
+    val selectedAgents = if (selected) {
+      setup.selectedAgentIds + agentId
+    } else {
+      setup.selectedAgentIds - agentId
+    }
+    firstRunSetup = setup.copy(
+      selectedAgentIds = selectedAgents,
+      agentOptions = setup.agentOptions.map { option ->
+        if (option.agentId == agentId) option.copy(selected = selected) else option
+      },
+      plan = null,
+      outcome = null,
+      errorMessage = null,
+    )
+    currentState = createState()
+    return currentState
+  }
+
+  fun selectFirstRunPlatform(slug: String, selected: Boolean): SkillBillState {
+    val setup = firstRunSetup ?: return currentState
+    if (setup.busy) {
+      return currentState
+    }
+    firstRunSetup = setup.copy(
+      selectedPlatformSlugs = if (selected) {
+        setup.selectedPlatformSlugs + slug
+      } else {
+        setup.selectedPlatformSlugs - slug
+      },
+      platformPacks = setup.platformPacks.map { pack ->
+        if (pack.slug == slug) pack.copy(selected = selected) else pack
+      },
+      plan = null,
+      outcome = null,
+      errorMessage = null,
+    )
+    currentState = createState()
+    return currentState
+  }
+
+  fun selectFirstRunTelemetry(level: FirstRunTelemetryLevel): SkillBillState {
+    val setup = firstRunSetup ?: return currentState
+    if (!setup.busy) {
+      firstRunSetup = setup.copy(telemetryLevel = level, plan = null, outcome = null, errorMessage = null)
+      currentState = createState()
+    }
+    return currentState
+  }
+
+  fun setFirstRunMcpRegistration(register: Boolean): SkillBillState {
+    val setup = firstRunSetup ?: return currentState
+    if (!setup.busy) {
+      firstRunSetup = setup.copy(registerMcp = register, plan = null, outcome = null, errorMessage = null)
+      currentState = createState()
+    }
+    return currentState
+  }
+
+  fun advanceFirstRunStep(): SkillBillState {
+    val setup = firstRunSetup ?: return currentState
+    if (!setup.canContinue || setup.step == FirstRunSetupStep.RESULT) {
+      return currentState
+    }
+    firstRunSetup = setup.copy(step = setup.step.next())
+    currentState = createState()
+    return currentState
+  }
+
+  fun retreatFirstRunStep(): SkillBillState {
+    val setup = firstRunSetup ?: return currentState
+    if (setup.busy) {
+      return currentState
+    }
+    firstRunSetup = setup.copy(step = setup.step.previous(), errorMessage = null)
+    currentState = createState()
+    return currentState
+  }
+
+  fun beginFirstRunApply(): FirstRunApplyRequest? {
+    val setup = firstRunSetup ?: return null
+    if (!setup.canContinue || setup.busy) {
+      return null
+    }
+    activeFirstRunToken += 1
+    firstRunSetup = setup.copy(
+      step = FirstRunSetupStep.APPLY,
+      busy = true,
+      errorMessage = null,
+      outcome = null,
+    )
+    currentState = createState()
+    return FirstRunApplyRequest(
+      token = activeFirstRunToken,
+      setupRequest = setup.request(),
+    )
+  }
+
+  suspend fun runFirstRunApply(request: FirstRunApplyRequest): FirstRunApplyResponse {
+    val planResult = firstRunGateway.planSetup(request.setupRequest)
+    val applyResult = when (planResult) {
+      is FirstRunPlanResult.Planned -> firstRunGateway.applySetup(planResult.plan)
+      is FirstRunPlanResult.Failed -> null
+    }
+    return FirstRunApplyResponse(
+      request = request,
+      planResult = planResult,
+      applyResult = applyResult,
+    )
+  }
+
+  fun finishFirstRunApply(response: FirstRunApplyResponse): SkillBillState {
+    if (response.request.token != activeFirstRunToken) {
+      return currentState
+    }
+    val setup = firstRunSetup ?: return currentState
+    val nextSetup = when (val planResult = response.planResult) {
+      is FirstRunPlanResult.Failed -> setup.copy(
+        step = FirstRunSetupStep.RESULT,
+        busy = false,
+        errorMessage = planResult.message,
+        outcome = FirstRunInstallOutcome(
+          status = FirstRunInstallStatus.FAILURE,
+          title = "Install planning failed.",
+        ),
+      )
+      is FirstRunPlanResult.Planned -> {
+        val outcome = when (val applyResult = response.applyResult) {
+          is FirstRunApplyResult.Applied -> applyResult.outcome
+          is FirstRunApplyResult.Failed -> applyResult.outcome
+          null -> FirstRunInstallOutcome(
+            status = FirstRunInstallStatus.FAILURE,
+            title = "Install did not run.",
+          )
+        }
+        setup.copy(
+          step = FirstRunSetupStep.RESULT,
+          busy = false,
+          plan = planResult.plan,
+          outcome = outcome,
+          errorMessage = outcome.takeIf { it.status == FirstRunInstallStatus.FAILURE }?.title,
+        )
+      }
+    }
+    firstRunSetup = nextSetup
+    val preferences = nextSetup.toPreferences()
+    if (nextSetup.outcome?.status == FirstRunInstallStatus.FAILURE) {
+      desktopPreferenceStore.saveFirstRunPreferences(preferences)
+    } else {
+      desktopPreferenceStore.markFirstRunCompleted(preferences)
+    }
+    currentState = createState()
+    return currentState
+  }
+
+  fun finishFirstRunSetup(): SkillBillState {
+    val setup = firstRunSetup ?: return currentState
+    if (setup.outcome?.status != FirstRunInstallStatus.FAILURE) {
+      firstRunSetup = null
+      busyOperation = null
+      currentState = createState()
+    }
+    return currentState
+  }
+
+  fun retryFirstRunSetup(): SkillBillState {
+    val setup = firstRunSetup ?: return currentState
+    firstRunSetup = setup.copy(
+      step = FirstRunSetupStep.AGENTS,
+      busy = false,
+      errorMessage = null,
+      plan = null,
+      outcome = null,
+    )
+    currentState = createState()
+    return currentState
+  }
 
   fun openCommandPalette(): SkillBillState {
     commandPaletteOpen = true
@@ -2457,6 +2701,83 @@ data class ScaffoldCatalogResponse(
   val kind: ScaffoldKind,
   val snapshot: ScaffoldCatalogSnapshot,
 )
+
+data class FirstRunDiscoveryRequest(
+  val token: Long,
+)
+
+data class FirstRunDiscoveryResponse(
+  val request: FirstRunDiscoveryRequest,
+  val result: FirstRunDiscoveryResult,
+)
+
+data class FirstRunApplyRequest(
+  val token: Long,
+  val setupRequest: FirstRunSetupRequest,
+)
+
+data class FirstRunApplyResponse(
+  val request: FirstRunApplyRequest,
+  val planResult: FirstRunPlanResult,
+  val applyResult: FirstRunApplyResult?,
+)
+
+private fun DesktopFirstRunPreferences.toFirstRunSetupState(): FirstRunSetupState = FirstRunSetupState(
+  selectedAgentIds = selectedAgentIds,
+  selectedPlatformSlugs = selectedPlatformSlugs,
+  telemetryLevel = FirstRunTelemetryLevel.fromId(telemetryLevelId),
+  registerMcp = registerMcp,
+)
+
+private fun FirstRunSetupState.applyDiscovery(
+  discovery: FirstRunSetupDiscovery,
+  preferences: DesktopFirstRunPreferences,
+): FirstRunSetupState {
+  val preferredAgents = preferences.selectedAgentIds.takeIf(Set<String>::isNotEmpty)
+  val selectedAgents = preferredAgents ?: discovery.agents
+    .filter { option -> option.selected }
+    .mapTo(mutableSetOf()) { option -> option.agentId }
+  val selectedPlatforms = preferences.selectedPlatformSlugs.ifEmpty { discovery.selectedPlatformSlugs }
+  return copy(
+    busy = false,
+    discoveryLoaded = true,
+    errorMessage = null,
+    agentOptions = discovery.agents.map { option ->
+      option.copy(selected = option.agentId in selectedAgents)
+    },
+    platformPacks = discovery.platformPacks.map { pack ->
+      pack.copy(selected = pack.slug in selectedPlatforms)
+    },
+    selectedAgentIds = selectedAgents,
+    selectedPlatformSlugs = selectedPlatforms,
+    telemetryLevel = FirstRunTelemetryLevel.fromId(preferences.telemetryLevelId),
+    registerMcp = preferences.registerMcp,
+  )
+}
+
+private fun FirstRunSetupState.toPreferences(): DesktopFirstRunPreferences = DesktopFirstRunPreferences(
+  completed = false,
+  selectedAgentIds = selectedAgentIds,
+  selectedPlatformSlugs = selectedPlatformSlugs,
+  telemetryLevelId = telemetryLevel.id,
+  registerMcp = registerMcp,
+)
+
+private fun FirstRunSetupStep.next(): FirstRunSetupStep = when (this) {
+  FirstRunSetupStep.AGENTS -> FirstRunSetupStep.PLATFORM_PACKS
+  FirstRunSetupStep.PLATFORM_PACKS -> FirstRunSetupStep.PREFERENCES
+  FirstRunSetupStep.PREFERENCES -> FirstRunSetupStep.APPLY
+  FirstRunSetupStep.APPLY -> FirstRunSetupStep.RESULT
+  FirstRunSetupStep.RESULT -> FirstRunSetupStep.RESULT
+}
+
+private fun FirstRunSetupStep.previous(): FirstRunSetupStep = when (this) {
+  FirstRunSetupStep.AGENTS -> FirstRunSetupStep.AGENTS
+  FirstRunSetupStep.PLATFORM_PACKS -> FirstRunSetupStep.AGENTS
+  FirstRunSetupStep.PREFERENCES -> FirstRunSetupStep.PLATFORM_PACKS
+  FirstRunSetupStep.APPLY -> FirstRunSetupStep.PREFERENCES
+  FirstRunSetupStep.RESULT -> FirstRunSetupStep.PREFERENCES
+}
 
 private fun isRenderableKind(kind: String?): Boolean = when (kind) {
   "horizontal skill", "platform pack skill", "add-on", "native agent" -> true

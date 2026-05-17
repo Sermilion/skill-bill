@@ -215,6 +215,7 @@ fun SkillBillFrame(
   onCommandPaletteExecuteResult: (CommandPaletteResult) -> Unit,
   onOpenScaffoldWizard: (ScaffoldKind) -> Unit,
   scaffoldWizardCallbacks: ScaffoldWizardCallbacks,
+  firstRunSetupCallbacks: FirstRunSetupCallbacks,
   // F-X-512: a transient key for "Copied" feedback. When non-null, any copy-affordance whose
   // value matches the key flashes its copied state until the route clears the key.
   recentlyCopiedKey: String? = null,
@@ -504,6 +505,9 @@ fun SkillBillFrame(
         canStartScaffoldAction = state.busyOperation == null && !publishingBusy,
         callbacks = scaffoldWizardCallbacks,
       )
+    }
+    state.firstRunSetup?.let { setup ->
+      FirstRunSetupDialog(state = setup, callbacks = firstRunSetupCallbacks)
     }
   }
 }
@@ -928,6 +932,7 @@ private fun BusyIndicator(busyOperation: SkillBillBusyOperation) {
     SkillBillBusyOperation.RENDER -> "Rendering..."
     SkillBillBusyOperation.SAVE -> "Saving..."
     SkillBillBusyOperation.SCAFFOLD -> "Scaffolding..."
+    SkillBillBusyOperation.FIRST_RUN_SETUP -> "Setting up..."
   }
   Row(
     modifier = Modifier.padding(start = 4.dp),

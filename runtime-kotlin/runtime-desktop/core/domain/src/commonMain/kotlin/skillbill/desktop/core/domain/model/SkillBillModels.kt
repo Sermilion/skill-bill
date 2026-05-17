@@ -68,6 +68,7 @@ data class SkillBillState(
   val dirtyEditorPrompt: DirtyEditorPrompt? = null,
   val commandPalette: CommandPaletteState = CommandPaletteState(),
   val scaffoldWizard: ScaffoldWizardState? = null,
+  val firstRunSetup: FirstRunSetupState? = null,
 )
 
 enum class DockTab {
@@ -178,6 +179,7 @@ enum class SkillBillBusyOperation {
   RENDER,
   SAVE,
   SCAFFOLD,
+  FIRST_RUN_SETUP,
 }
 
 data class CommandPaletteState(

@@ -445,6 +445,7 @@ private fun SkillBillBusyOperation.label(): String = when (this) {
   SkillBillBusyOperation.RENDER -> "render"
   SkillBillBusyOperation.SAVE -> "save"
   SkillBillBusyOperation.SCAFFOLD -> "scaffold"
+  SkillBillBusyOperation.FIRST_RUN_SETUP -> "setup"
 }
 
 private fun List<SkillBillTreeItem>.flattenPaletteTree(): List<SkillBillTreeItem> =
