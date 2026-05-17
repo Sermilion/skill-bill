@@ -46,6 +46,7 @@ import java.nio.file.Path
 class JvmDesktopFirstRunGateway : DesktopFirstRunGateway {
   internal var repoRootProvider: () -> Path = { Path.of(System.getProperty("user.dir")) }
   internal var homeProvider: () -> Path = { Path.of(System.getProperty("user.home")) }
+  internal var runtimeAssetsProvider: () -> DesktopRuntimeAssets = { JvmRuntimeAssetLocator(repoRootProvider).locate() }
   internal var planInstall: (InstallPlanRequest) -> InstallPlan = InstallOperations::planInstall
   internal var applyInstall: (InstallPlan) -> InstallApplyResult = InstallOperations::applyInstall
   internal var detectedAgentTargets: (
@@ -153,7 +154,8 @@ class JvmDesktopFirstRunGateway : DesktopFirstRunGateway {
   )
 
   private fun defaultRequest(home: Path, request: FirstRunSetupRequest): InstallPlanRequest {
-    val repoRoot = repoRootProvider().toAbsolutePath().normalize()
+    val runtimeAssets = runtimeAssetsProvider()
+    val repoRoot = runtimeAssets.repoRoot.toAbsolutePath().normalize()
     val selectedAgents = request.selectedAgentIds.mapTo(mutableSetOf(), InstallAgent::fromId)
     return InstallPlanRequest(
       repoRoot = repoRoot,
@@ -173,14 +175,22 @@ class JvmDesktopFirstRunGateway : DesktopFirstRunGateway {
       telemetryLevel = request.telemetryLevel.toInstallTelemetryLevel(),
       mcpRegistrationChoice = McpRegistrationChoice(
         register = request.registerMcp,
-        runtimeMcpBin = if (request.registerMcp) defaultRuntimeMcpBin(home) else null,
+        runtimeMcpBin = if (request.registerMcp) {
+          runtimeAssets.runtimeMcpBin() ?: defaultRuntimeMcpBin(home)
+        } else {
+          null
+        },
       ),
       runtimeDistributionInputs = RuntimeDistributionInputs(
         runtimeInstallRoot = home.resolve(".skill-bill/runtime"),
+        runtimeCliBuildDir = runtimeAssets.runtimeCliDir,
+        runtimeMcpBuildDir = runtimeAssets.runtimeMcpDir,
+        runtimeCliInstallDir = home.resolve(".skill-bill/runtime/runtime-cli"),
+        runtimeMcpInstallDir = home.resolve(".skill-bill/runtime/runtime-mcp"),
       ),
       targetPaths = InstallationTargetPaths(
-        skillsRoot = repoRoot.resolve("skills"),
-        platformPacksRoot = repoRoot.resolve("platform-packs"),
+        skillsRoot = runtimeAssets.skillsRoot,
+        platformPacksRoot = runtimeAssets.platformPacksRoot,
       ),
       windowsSymlinkPreflight = defaultWindowsSymlinkPreflight(),
       replaceExistingSkillBillLinks = true,

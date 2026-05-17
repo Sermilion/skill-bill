@@ -1,3 +1,12 @@
+## [2026-05-17] desktop-packaging-runtime-bundling
+Areas: runtime-kotlin/runtime-desktop packaging, runtime-desktop/core/data first-run gateway, runtime-cli installDist, runtime-mcp installDist
+- Desktop packages now stage a loose `skill-bill-runtime` app-resource bundle from authored `skills`, dynamic `platform-packs`, `orchestration`, and packaged runtime-cli/runtime-mcp installDist outputs. reusable
+- `JvmRuntimeAssetLocator` resolves runtime assets from dev checkouts, explicit `skillbill.runtime.assets.dir` / `SKILL_BILL_RUNTIME_ASSETS`, or Compose installed resources before the gateway builds shared install plans. reusable
+- First-run install planning now feeds resolved `skillsRoot`, `platformPacksRoot`, runtime distribution dirs, and packaged runtime-mcp bin into the existing typed install model while preserving `~/.skill-bill/installed-skills` staging and Windows symlink outcomes.
+- Packaging task wiring pins DMG/MSI/Deb/RPM targets and makes `prepareAppResources` plus package tasks depend on runtime bundle staging so native packages cannot race an empty app resource directory.
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented
+
 ## [2026-05-17] install-migration-validation
 Areas: runtime-kotlin/runtime-cli install tests, runtime-kotlin/runtime-core install/architecture tests, runtime-domain install model
 - Added final validation coverage for install migration contracts: CLI plan/apply payload mapping, manual/detected agents, telemetry anonymous/full/off, MCP intent, Windows symlink messages, and staging-cache boundaries.

@@ -34,6 +34,7 @@ import skillbill.install.model.PlannedPlatformPack
 import skillbill.install.model.WindowsSymlinkApplyOutcome
 import skillbill.install.model.WindowsSymlinkFallbackState
 import java.nio.file.Files
+import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -48,6 +49,7 @@ class JvmDesktopFirstRunGatewayTest {
     val gateway = JvmDesktopFirstRunGateway().apply {
       repoRootProvider = { root }
       homeProvider = { root.resolve("home") }
+      runtimeAssetsProvider = { root.runtimeAssets() }
       planInstall = { request ->
         capturedRequest = request
         request.toPlan()
@@ -72,9 +74,83 @@ class JvmDesktopFirstRunGatewayTest {
     assertFalse(request.mcpRegistrationChoice.register)
     assertEquals(root.resolve("skills").toAbsolutePath().normalize(), request.targetPaths.skillsRoot)
     assertEquals(root.resolve("platform-packs").toAbsolutePath().normalize(), request.targetPaths.platformPacksRoot)
+    assertEquals(
+      root.resolve("runtime-cli").toAbsolutePath().normalize(),
+      request.runtimeDistributionInputs.runtimeCliBuildDir,
+    )
+    assertEquals(
+      root.resolve("runtime-mcp").toAbsolutePath().normalize(),
+      request.runtimeDistributionInputs.runtimeMcpBuildDir,
+    )
+    assertEquals(
+      root.resolve("home/.skill-bill/runtime/runtime-cli"),
+      request.runtimeDistributionInputs.runtimeCliInstallDir,
+    )
+    assertEquals(
+      root.resolve("home/.skill-bill/runtime/runtime-mcp"),
+      request.runtimeDistributionInputs.runtimeMcpInstallDir,
+    )
     assertTrue(result.plan.platformPacks.single().selected)
     assertEquals(1, result.plan.baseSkillCount)
     assertEquals(1, result.plan.platformSkillCount)
+  }
+
+  @Test
+  fun `plan uses bundled runtime assets from installed app locations`() = runBlocking {
+    val root = Files.createTempDirectory("skillbill-installed-assets")
+    val bundledRoot = root.resolve("app-resources/skill-bill-runtime")
+    seedRuntimeAssetRoot(bundledRoot)
+    var capturedRequest: InstallPlanRequest? = null
+    val gateway = JvmDesktopFirstRunGateway().apply {
+      homeProvider = { root.resolve("home") }
+      runtimeAssetsProvider = {
+        JvmRuntimeAssetLocator(
+          userDirProvider = { root.resolve("elsewhere") },
+          propertyProvider = { name ->
+            if (name == JvmRuntimeAssetLocator.COMPOSE_RESOURCES_PROPERTY) {
+              root.resolve("app-resources").toString()
+            } else {
+              null
+            }
+          },
+          envProvider = { null },
+        ).locate()
+      }
+      planInstall = { request ->
+        capturedRequest = request
+        request.toPlan()
+      }
+    }
+
+    val result = gateway.planSetup(
+      FirstRunSetupRequest(
+        selectedAgentIds = setOf("codex"),
+        selectedPlatformSlugs = setOf("python"),
+        telemetryLevel = FirstRunTelemetryLevel.ANONYMOUS,
+        registerMcp = true,
+      ),
+    )
+
+    assertIs<FirstRunPlanResult.Planned>(result)
+    val request = checkNotNull(capturedRequest)
+    assertEquals(bundledRoot.toAbsolutePath().normalize(), request.repoRoot)
+    assertEquals(bundledRoot.resolve("skills").toAbsolutePath().normalize(), request.targetPaths.skillsRoot)
+    assertEquals(
+      bundledRoot.resolve("platform-packs").toAbsolutePath().normalize(),
+      request.targetPaths.platformPacksRoot,
+    )
+    assertEquals(
+      bundledRoot.resolve("runtime-cli").toAbsolutePath().normalize(),
+      request.runtimeDistributionInputs.runtimeCliBuildDir,
+    )
+    assertEquals(
+      bundledRoot.resolve("runtime-mcp").toAbsolutePath().normalize(),
+      request.runtimeDistributionInputs.runtimeMcpBuildDir,
+    )
+    assertEquals(
+      bundledRoot.resolve("runtime-mcp/bin/runtime-mcp").toAbsolutePath().normalize(),
+      request.mcpRegistrationChoice.runtimeMcpBin,
+    )
   }
 
   @Test
@@ -83,6 +159,7 @@ class JvmDesktopFirstRunGatewayTest {
     val gateway = JvmDesktopFirstRunGateway().apply {
       repoRootProvider = { root }
       homeProvider = { root.resolve("home") }
+      runtimeAssetsProvider = { root.runtimeAssets() }
       planInstall = { request -> request.toPlan() }
       applyInstall = { plan ->
         InstallApplyResult(
@@ -166,6 +243,76 @@ class JvmDesktopFirstRunGatewayTest {
   }
 }
 
+class JvmRuntimeAssetLocatorTest {
+  @Test
+  fun `locates development checkout by walking up from user dir`() {
+    val root = Files.createTempDirectory("skillbill-dev-runtime-assets")
+    seedRuntimeAssetRoot(root)
+    val nested = root.resolve("runtime-kotlin/runtime-desktop")
+    Files.createDirectories(nested)
+
+    val assets = JvmRuntimeAssetLocator(
+      userDirProvider = { nested },
+      propertyProvider = { null },
+      envProvider = { null },
+    ).locate()
+
+    assertEquals(root.toAbsolutePath().normalize(), assets.root)
+    assertEquals(root.resolve("skills").toAbsolutePath().normalize(), assets.skillsRoot)
+    assertEquals(root.resolve("platform-packs").toAbsolutePath().normalize(), assets.platformPacksRoot)
+    assertEquals(root.resolve("orchestration").toAbsolutePath().normalize(), assets.orchestrationRoot)
+  }
+
+  @Test
+  fun `locates installed bundle below compose resources directory`() {
+    val root = Files.createTempDirectory("skillbill-bundled-runtime-assets")
+    val bundledRoot = root.resolve("resources/skill-bill-runtime")
+    seedRuntimeAssetRoot(bundledRoot)
+
+    val assets = JvmRuntimeAssetLocator(
+      userDirProvider = { root.resolve("missing") },
+      propertyProvider = { name ->
+        if (name == JvmRuntimeAssetLocator.COMPOSE_RESOURCES_PROPERTY) {
+          root.resolve("resources").toString()
+        } else {
+          null
+        }
+      },
+      envProvider = { null },
+    ).locate()
+
+    assertEquals(bundledRoot.toAbsolutePath().normalize(), assets.root)
+    assertEquals(bundledRoot.resolve("runtime-cli").toAbsolutePath().normalize(), assets.runtimeCliDir)
+    assertEquals(bundledRoot.resolve("runtime-mcp").toAbsolutePath().normalize(), assets.runtimeMcpDir)
+    assertEquals(
+      bundledRoot.resolve("runtime-mcp/bin/runtime-mcp").toAbsolutePath().normalize(),
+      assets.runtimeMcpBin(),
+    )
+  }
+
+  @Test
+  fun `explicit runtime assets property wins over development lookup`() {
+    val devRoot = Files.createTempDirectory("skillbill-dev-runtime-assets")
+    val explicitRoot = Files.createTempDirectory("skillbill-explicit-runtime-assets")
+    seedRuntimeAssetRoot(devRoot)
+    seedRuntimeAssetRoot(explicitRoot)
+
+    val assets = JvmRuntimeAssetLocator(
+      userDirProvider = { devRoot.resolve("runtime-kotlin") },
+      propertyProvider = { name ->
+        if (name == JvmRuntimeAssetLocator.ASSETS_DIR_PROPERTY) {
+          explicitRoot.toString()
+        } else {
+          null
+        }
+      },
+      envProvider = { null },
+    ).locate()
+
+    assertEquals(explicitRoot.toAbsolutePath().normalize(), assets.root)
+  }
+}
+
 private fun InstallPlanRequest.toPlan(): InstallPlan {
   val agents = agentSelection.manualAgents.sortedBy(InstallAgent::id).map { agent ->
     InstallAgentTarget(
@@ -214,4 +361,28 @@ private fun InstallPlanRequest.toPlan(): InstallPlan {
     installationTargetPaths = targetPaths.copy(agentTargets = agents),
     windowsSymlinkPreflight = windowsSymlinkPreflight,
   )
+}
+
+private fun Path.runtimeAssets(): DesktopRuntimeAssets {
+  seedRuntimeAssetRoot(this)
+  return JvmRuntimeAssetLocator(
+    userDirProvider = { this },
+    propertyProvider = { null },
+    envProvider = { null },
+  ).locate()
+}
+
+private fun seedRuntimeAssetRoot(root: Path) {
+  Files.createDirectories(root.resolve("skills/bill-feature-implement"))
+  Files.createDirectories(root.resolve("platform-packs/kotlin"))
+  Files.createDirectories(root.resolve("platform-packs/python"))
+  Files.createDirectories(root.resolve("orchestration"))
+  Files.createDirectories(root.resolve("runtime-cli/bin"))
+  Files.createDirectories(root.resolve("runtime-mcp/bin"))
+  Files.createDirectories(root.resolve("runtime-kotlin/runtime-cli/build/install/runtime-cli/bin"))
+  Files.createDirectories(root.resolve("runtime-kotlin/runtime-mcp/build/install/runtime-mcp/bin"))
+  Files.writeString(root.resolve("skills/bill-feature-implement/content.md"), "# content\n")
+  Files.writeString(root.resolve("platform-packs/kotlin/platform.yaml"), "platform: kotlin\n")
+  Files.writeString(root.resolve("platform-packs/python/platform.yaml"), "platform: python\n")
+  Files.writeString(root.resolve("runtime-mcp/bin/runtime-mcp"), "#!/usr/bin/env bash\n")
 }

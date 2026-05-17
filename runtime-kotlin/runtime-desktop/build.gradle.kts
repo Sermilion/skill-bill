@@ -1,5 +1,54 @@
+import org.gradle.api.file.CopySpec
+import org.gradle.api.file.DuplicatesStrategy
+import org.gradle.api.tasks.Sync
+
 plugins {
   id("skillbill.kmp-application")
+}
+
+val repoRoot = rootProject.projectDir.parentFile
+val desktopAppResourcesDir = layout.buildDirectory.dir("generated/desktop-app-resources")
+val runtimeResourceDirName = "skill-bill-runtime"
+
+fun CopySpec.excludeGeneratedSkillBillArtifacts() {
+  exclude("**/SKILL.md")
+  exclude("**/shell-ceremony.md")
+  exclude("**/telemetry-contract.md")
+  exclude("**/stack-routing.md")
+  exclude("**/review-delegation.md")
+  exclude("**/review-routing.md")
+  exclude("**/quality-routing.md")
+  exclude("**/claude-agents/**")
+  exclude("**/codex-agents/**")
+  exclude("**/opencode-agents/**")
+  exclude("**/junie-agents/**")
+}
+
+val prepareDesktopRuntimeBundle by tasks.registering(Sync::class) {
+  group = "distribution"
+  description = "Stage authored Skill Bill runtime assets for desktop native packages."
+  duplicatesStrategy = DuplicatesStrategy.FAIL
+  dependsOn(":runtime-cli:installDist", ":runtime-mcp:installDist")
+
+  into(desktopAppResourcesDir.map { dir -> dir.dir(runtimeResourceDirName).asFile })
+
+  from(project(":runtime-cli").layout.buildDirectory.dir("install/runtime-cli")) {
+    into("runtime-cli")
+  }
+  from(project(":runtime-mcp").layout.buildDirectory.dir("install/runtime-mcp")) {
+    into("runtime-mcp")
+  }
+  from(repoRoot.resolve("skills")) {
+    into("skills")
+    excludeGeneratedSkillBillArtifacts()
+  }
+  from(repoRoot.resolve("platform-packs")) {
+    into("platform-packs")
+    excludeGeneratedSkillBillArtifacts()
+  }
+  from(repoRoot.resolve("orchestration")) {
+    into("orchestration")
+  }
 }
 
 kotlin {
@@ -33,14 +82,28 @@ compose.desktop {
     mainClass = "skillbill.desktop.MainKt"
 
     nativeDistributions {
+      appResourcesRootDir.set(desktopAppResourcesDir)
       targetFormats(
         org.jetbrains.compose.desktop.application.dsl.TargetFormat.Dmg,
         org.jetbrains.compose.desktop.application.dsl.TargetFormat.Msi,
         org.jetbrains.compose.desktop.application.dsl.TargetFormat.Deb,
+        org.jetbrains.compose.desktop.application.dsl.TargetFormat.Rpm,
       )
       packageName = "SkillBill"
       packageVersion = "1.0.0"
       includeAllModules = true
     }
   }
+}
+
+tasks.matching { task ->
+  task.name == "createDistributable" ||
+    task.name == "prepareAppResources" ||
+    task.name == "packageDistributionForCurrentOS" ||
+    task.name.startsWith("packageDmg") ||
+    task.name.startsWith("packageMsi") ||
+    task.name.startsWith("packageDeb") ||
+    task.name.startsWith("packageRpm")
+}.configureEach {
+  dependsOn(prepareDesktopRuntimeBundle)
 }
