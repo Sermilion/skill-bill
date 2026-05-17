@@ -1,5 +1,13 @@
 # SkillBill desktop feature — history
 
+## [2026-05-17] desktop install setup relaunch
+Areas: runtime-desktop/feature/skillbill, runtime-desktop/core/domain
+- Added a repo-scoped `Install` toolbar command and command-palette action that reopens the Skill Bill setup wizard after first-run completion, so changed skills/packs/agent links can be reapplied without deleting desktop preferences.
+- Reused the existing first-run setup state machine and stored preferences as defaults; discovery still refreshes detected agents and platform packs before apply.
+- Dialog overlap rule: setup relaunch is disabled while busy, publishing, first-run setup, or scaffold wizard state is active.
+Feature flag: N/A
+Acceptance criteria: manual reinstall path available from app
+
 ## [2026-05-17] SKILL-45 final-integration-docs-validation
 Areas: runtime-desktop first-run wizard docs, runtime-desktop packaging docs, desktop validation evidence
 - Documented the first-run wizard as a thin desktop adapter over `DesktopFirstRunGateway` and shared install plan/apply, including agent/platform/telemetry/MCP choices and structured Windows symlink outcomes.

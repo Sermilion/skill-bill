@@ -470,6 +470,12 @@ fun SkillBillRoute(
     }
   }
 
+  fun runInstallSetup() {
+    if (canStartRepoScopedAction()) {
+      state = viewModel.openFirstRunSetup()
+    }
+  }
+
   fun runScaffoldDryRun() {
     val request = viewModel.beginScaffoldDryRun()
     state = viewModel.state()
@@ -547,6 +553,7 @@ fun SkillBillRoute(
             runGitRefresh()
           }
         },
+        openInstallSetup = ::runInstallSetup,
         openScaffoldWizard = ::runOpenScaffoldWizard,
       ),
     )
@@ -594,6 +601,7 @@ fun SkillBillRoute(
     onValidateSelected = ::runValidateSelected,
     onRender = ::runRender,
     onRenderAll = ::runRenderAll,
+    onInstallSetup = ::runInstallSetup,
     onEditorDraftChanged = { draft ->
       state = viewModel.updateEditorDraft(draft)
     },

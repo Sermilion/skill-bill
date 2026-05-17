@@ -175,6 +175,7 @@ fun SkillBillFrame(
   onValidateSelected: () -> Unit,
   onRender: () -> Unit,
   onRenderAll: () -> Unit,
+  onInstallSetup: () -> Unit,
   onEditorDraftChanged: (String) -> Unit,
   onEditorSave: () -> Unit,
   onEditorRevert: () -> Unit,
@@ -327,6 +328,7 @@ fun SkillBillFrame(
         onValidateSelected = onValidateSelected,
         onRender = onRender,
         onRenderAll = onRenderAll,
+        onInstallSetup = onInstallSetup,
         inspectorVisible = inspectorVisible,
         onInspectorVisibilityToggle = { inspectorVisible = !inspectorVisible },
         onCommandPaletteOpen = onCommandPaletteOpen,
@@ -335,6 +337,12 @@ fun SkillBillFrame(
         validateSelectedEnabled = validateSelectedEnabled,
         renderEnabled = renderEnabled,
         renderAllEnabled = renderAllEnabled,
+        installSetupEnabled = state.selectedRepoPath != null &&
+          state.repoStatus.state == RepoLoadState.LOADED &&
+          state.busyOperation == null &&
+          !publishingBusy &&
+          state.scaffoldWizard == null &&
+          state.firstRunSetup == null,
         publishingBusy = publishingBusy,
         sourceControlLabel = state.sourceControl.branchLabel,
         readOnlyModeLabel = state.statusBar.readOnlyModeLabel,
@@ -521,6 +529,7 @@ private fun WorkspaceToolbar(
   onValidateSelected: () -> Unit,
   onRender: () -> Unit,
   onRenderAll: () -> Unit,
+  onInstallSetup: () -> Unit,
   inspectorVisible: Boolean,
   onInspectorVisibilityToggle: () -> Unit,
   onCommandPaletteOpen: () -> Unit,
@@ -529,6 +538,7 @@ private fun WorkspaceToolbar(
   validateSelectedEnabled: Boolean,
   renderEnabled: Boolean,
   renderAllEnabled: Boolean,
+  installSetupEnabled: Boolean,
   publishingBusy: Boolean,
   sourceControlLabel: String,
   readOnlyModeLabel: String,
@@ -587,6 +597,12 @@ private fun WorkspaceToolbar(
       marker = "ra",
       enabled = renderAllEnabled,
       onClick = onRenderAll,
+    )
+    ToolbarButton(
+      label = "Install",
+      marker = "in",
+      enabled = installSetupEnabled,
+      onClick = onInstallSetup,
     )
     NewScaffoldMenuButton(enabled = scaffoldEnabled, onOpenScaffoldWizard = onOpenScaffoldWizard)
     ToolbarDivider()

@@ -600,6 +600,15 @@ class SkillBillViewModel(
     return FirstRunDiscoveryRequest(token = activeFirstRunToken)
   }
 
+  fun openFirstRunSetup(): SkillBillState {
+    if (busyOperation != null || scaffoldWizard != null || firstRunSetup != null) {
+      return currentState
+    }
+    firstRunSetup = desktopPreferenceStore.firstRunPreferences.value.toFirstRunSetupState()
+    currentState = createState()
+    return currentState
+  }
+
   suspend fun runFirstRunDiscovery(request: FirstRunDiscoveryRequest): FirstRunDiscoveryResponse =
     FirstRunDiscoveryResponse(
       request = request,

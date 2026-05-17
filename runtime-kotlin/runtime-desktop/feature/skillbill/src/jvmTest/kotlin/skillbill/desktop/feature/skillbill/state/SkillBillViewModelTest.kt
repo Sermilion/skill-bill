@@ -1472,6 +1472,7 @@ class SkillBillViewModelTest {
     val renderAll = state.commandPalette.results.first { it.id == "command.render-all" }
     val showChanges = state.commandPalette.results.first { it.id == "command.show-changes" }
     val showHistory = state.commandPalette.results.first { it.id == "command.show-history" }
+    val installSetup = state.commandPalette.results.first { it.id == "command.install-setup" }
 
     assertFalse(validate.enabled)
     assertEquals("Open a valid Skill Bill repository first.", validate.disabledReason)
@@ -1485,6 +1486,8 @@ class SkillBillViewModelTest {
     assertEquals("Open a valid Skill Bill repository first.", showChanges.disabledReason)
     assertFalse(showHistory.enabled)
     assertEquals("Open a valid Skill Bill repository first.", showHistory.disabledReason)
+    assertFalse(installSetup.enabled)
+    assertEquals("Open a valid Skill Bill repository first.", installSetup.disabledReason)
   }
 
   @Test
@@ -1539,6 +1542,12 @@ class SkillBillViewModelTest {
       marker = "ra",
       action = CommandPaletteAction.RENDER_ALL,
     )
+    val installSetup = refresh.copy(
+      id = "command.install-setup",
+      title = "Install setup",
+      marker = "in",
+      action = CommandPaletteAction.INSTALL_SETUP,
+    )
     var openRepositoryCount = 0
     var refreshCount = 0
     var validateCount = 0
@@ -1547,6 +1556,7 @@ class SkillBillViewModelTest {
     var renderAllCount = 0
     var showChangesCount = 0
     var showHistoryCount = 0
+    var installSetupCount = 0
     val actions = paletteActions(
       openRepository = { openRepositoryCount += 1 },
       refresh = { refreshCount += 1 },
@@ -1556,6 +1566,7 @@ class SkillBillViewModelTest {
       renderAll = { renderAllCount += 1 },
       showChanges = { showChangesCount += 1 },
       showHistory = { showHistoryCount += 1 },
+      openInstallSetup = { installSetupCount += 1 },
     )
 
     assertTrue(executeCommandPaletteResult(openRepository, actions))
@@ -1566,6 +1577,7 @@ class SkillBillViewModelTest {
     assertTrue(executeCommandPaletteResult(renderAll, actions))
     assertTrue(executeCommandPaletteResult(showChanges, actions))
     assertTrue(executeCommandPaletteResult(showHistory, actions))
+    assertTrue(executeCommandPaletteResult(installSetup, actions))
 
     assertEquals(1, openRepositoryCount)
     assertEquals(1, refreshCount)
@@ -1575,6 +1587,7 @@ class SkillBillViewModelTest {
     assertEquals(1, renderAllCount)
     assertEquals(1, showChangesCount)
     assertEquals(1, showHistoryCount)
+    assertEquals(1, installSetupCount)
   }
 
   @Test
@@ -1585,6 +1598,7 @@ class SkillBillViewModelTest {
     val resultIds = viewModel.openCommandPalette().commandPalette.results.map { it.id }
 
     assertTrue("command.open-repository" in resultIds)
+    assertTrue("command.install-setup" in resultIds)
     assertTrue("command.show-changes" in resultIds)
     assertTrue("command.show-history" in resultIds)
   }
@@ -1861,6 +1875,7 @@ private fun paletteActions(
   showHistory: () -> Unit = {},
   save: () -> Unit = {},
   refreshGitStatus: () -> Unit = {},
+  openInstallSetup: () -> Unit = {},
   openScaffoldWizard: (skillbill.desktop.core.domain.model.ScaffoldKind) -> Unit = {},
 ): CommandPaletteActions = CommandPaletteActions(
   selectTreeItem = selectTreeItem,
@@ -1874,6 +1889,7 @@ private fun paletteActions(
   showHistory = showHistory,
   save = save,
   refreshGitStatus = refreshGitStatus,
+  openInstallSetup = openInstallSetup,
   openScaffoldWizard = openScaffoldWizard,
 )
 

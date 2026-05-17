@@ -1,6 +1,7 @@
 package skillbill.desktop.feature.skillbill.state
 
 import kotlinx.coroutines.runBlocking
+import skillbill.desktop.core.datastore.DesktopFirstRunPreferences
 import skillbill.desktop.core.domain.model.FirstRunAgentOption
 import skillbill.desktop.core.domain.model.FirstRunApplyResult
 import skillbill.desktop.core.domain.model.FirstRunDiscoveryResult
@@ -126,6 +127,44 @@ class SkillBillViewModelFirstRunTest {
     assertEquals("MCP registration failed.", failed.firstRunSetup?.outcome?.details?.single()?.message)
     assertEquals("codex", failed.firstRunSetup?.outcome?.details?.single()?.agentId)
     assertEquals(FirstRunSetupStep.AGENTS, viewModel.retryFirstRunSetup().firstRunSetup?.step)
+  }
+
+  @Test
+  fun `completed setup can be reopened for reinstall`() = runBlocking {
+    val preferences = FakeDesktopPreferenceStore(
+      initialFirstRunPreferences = DesktopFirstRunPreferences(
+        completed = true,
+        selectedAgentIds = setOf("claude"),
+        selectedPlatformSlugs = setOf("kotlin"),
+        telemetryLevelId = FirstRunTelemetryLevel.FULL.id,
+        registerMcp = false,
+      ),
+    )
+    val viewModel = newViewModel(
+      firstRunGateway = FakeDesktopFirstRunGateway(
+        discoveryResult = FirstRunDiscoveryResult.Success(discovery()),
+        planResult = FirstRunPlanResult.Planned(plan()),
+        applyResult = FirstRunApplyResult.Applied(
+          FirstRunInstallOutcome(status = FirstRunInstallStatus.SUCCESS, title = "Setup completed."),
+        ),
+      ),
+      preferenceStore = preferences,
+    )
+
+    assertNull(viewModel.state().firstRunSetup)
+    val reopened = assertNotNull(viewModel.openFirstRunSetup().firstRunSetup)
+    assertEquals(setOf("claude"), reopened.selectedAgentIds)
+    assertEquals(setOf("kotlin"), reopened.selectedPlatformSlugs)
+    assertEquals(FirstRunTelemetryLevel.FULL, reopened.telemetryLevel)
+    assertFalse(reopened.registerMcp)
+
+    val discoveryRequest = assertNotNull(viewModel.beginFirstRunDiscovery())
+    val discovered = viewModel.finishFirstRunDiscovery(viewModel.runFirstRunDiscovery(discoveryRequest))
+
+    assertEquals(setOf("claude"), discovered.firstRunSetup?.selectedAgentIds)
+    assertEquals(setOf("kotlin"), discovered.firstRunSetup?.selectedPlatformSlugs)
+    assertEquals(FirstRunTelemetryLevel.FULL, discovered.firstRunSetup?.telemetryLevel)
+    assertFalse(discovered.firstRunSetup?.registerMcp ?: true)
   }
 
   private fun newViewModel(
