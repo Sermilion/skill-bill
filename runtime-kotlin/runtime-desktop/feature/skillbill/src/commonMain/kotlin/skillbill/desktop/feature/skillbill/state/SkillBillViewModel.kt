@@ -243,7 +243,7 @@ class SkillBillViewModel(
     selectedTreeItemId?.let { selected -> expandedNodeIds = expandedNodeIds + ancestorIdsOf(selected) }
     if (selectedTreeItemId != previousSelectedTreeItemId) {
       // F-202: render output is keyed by tree-item id, so the prior selection's PASSED/FAILED
-      // summary must not bleed into a new selection. Mirror the refresh/repo-switch reset (F-103).
+      // summary must not bleed into a new selection. Mirror the repo-switch reset (F-103).
       resetRenderForSelectionChange()
     }
     loadEditorForSelection()
@@ -284,13 +284,7 @@ class SkillBillViewModel(
   }
 
   fun beginRefresh(): SkillBillState {
-    if (isEditorDirty()) {
-      dirtyEditorPrompt = DirtyEditorPrompt(reason = DirtyEditorPromptReason.REFRESH)
-      currentState = createState()
-      return currentState
-    }
     activeOperationToken += 1
-    busyOperation = SkillBillBusyOperation.REFRESH
     currentState = createState()
     return currentState
   }
@@ -300,7 +294,15 @@ class SkillBillViewModel(
       return currentState
     }
     val path = currentSession?.repoPath ?: repoPathText
-    currentState = finishRepoLoad(loadRepo(repoLoadRequest(repoPath = path, preserveSelection = true)))
+    return finishRefresh(loadRepo(repoLoadRequest(repoPath = path, preserveSelection = true)))
+  }
+
+  fun finishRefresh(result: RepoLoadResult): SkillBillState {
+    if (result.request.token != activeOperationToken) {
+      return currentState
+    }
+    applyRefreshResult(result)
+    currentState = createState()
     return currentState
   }
 
@@ -434,6 +436,39 @@ class SkillBillViewModel(
   private fun openRepo(repoPath: String, preserveSelection: Boolean): SkillBillState =
     finishRepoLoad(loadRepo(repoLoadRequest(repoPath = repoPath, preserveSelection = preserveSelection)))
 
+  private fun applyRefreshResult(result: RepoLoadResult) {
+    val request = result.request
+    val session = result.session
+    val sameRecognizedRepo =
+      request.preserveSelection &&
+        session.isRecognizedSkillBillRepo &&
+        request.previousRepoPath == session.repoPath
+    if (!sameRecognizedRepo) {
+      applyRepoLoadResult(result)
+      return
+    }
+
+    val loadedTreeItems = result.treeItems
+    val previousSelection = selectedTreeItemId
+    val preserveDirtyEditor = isEditorDirty()
+    currentSession = session
+    treeItems = loadedTreeItems
+    repoPathText = session.repoPath.ifBlank { request.repoPath }
+    selectedTreeItemId = request.previousSelection?.takeIf(::containsTreeItem)
+    expandedNodeIds = reconcileExpandedNodeIds(
+      request.previousExpandedNodeIds,
+      loadedTreeItems,
+      preserveExpansion = true,
+    )
+    busyOperation = null
+    if (selectedTreeItemId != previousSelection) {
+      resetRenderForSelectionChange()
+      loadEditorForSelection()
+    } else if (!preserveDirtyEditor) {
+      loadEditorForSelection()
+    }
+  }
+
   private fun applyRepoLoadResult(result: RepoLoadResult) {
     val request = result.request
     val session = result.session
@@ -451,13 +486,13 @@ class SkillBillViewModel(
     expandedNodeIds =
       reconcileExpandedNodeIds(request.previousExpandedNodeIds, loadedTreeItems, preserveSameRepoUi)
     busyOperation = null
-    // Reset validation on every successful refresh: on-disk state may have changed since the last run,
+    // Full repo-load resets validation: repo identity or validity may have changed since the last run,
     // so prior PASSED/FAILED results are no longer trustworthy. (F-103)
     validation = ValidationSummary.unavailable
-    // F-103: render output mirrors on-disk state and must also reset on refresh / repo-switch.
+    // F-103: render output mirrors full repo-load state and must reset on repo-switch.
     render = RenderSummary.unavailable
     activeDockTab = if (preserveSameRepoUi) activeDockTab else DockTab.Validation
-    // F-103: every per-snapshot git slice mirrors on-disk state and must reset on refresh / repo-switch.
+    // F-103: every per-snapshot git slice mirrors full repo-load state and must reset on repo-switch.
     // Invalidate any in-flight git work so a late finish cannot reseed the stale slice on the new repo.
     activeGitOperationToken += 1
     activeGitDiffToken += 1
@@ -1323,15 +1358,18 @@ class SkillBillViewModel(
   // separate `run` step so callers can hop to Dispatchers.Default, and uses a per-slice token so
   // stale finishes restore the previously captured snapshot (F-101).
 
-  fun beginGitRefresh(): GitRefreshRequest {
+  fun beginGitRefresh(quiet: Boolean = false): GitRefreshRequest {
     activeGitOperationToken += 1
     val previousSnapshot = changesSnapshot
-    changesBusy = true
+    if (!quiet) {
+      changesBusy = true
+    }
     currentState = createState()
     return GitRefreshRequest(
       token = activeGitOperationToken,
       session = currentSession,
       previousSnapshot = previousSnapshot,
+      quiet = quiet,
     )
   }
 
@@ -1828,9 +1866,11 @@ class SkillBillViewModel(
 
   // --- History ---
 
-  fun beginLoadHistory(limit: Int = DEFAULT_HISTORY_LIMIT): HistoryLoadRequest {
+  fun beginLoadHistory(limit: Int = DEFAULT_HISTORY_LIMIT, quiet: Boolean = false): HistoryLoadRequest {
     activeHistoryToken += 1
-    historyBusy = true
+    if (!quiet) {
+      historyBusy = true
+    }
     val previousHistory = history
     val previousError = historyErrorMessage
     currentState = createState()
@@ -1841,6 +1881,7 @@ class SkillBillViewModel(
       pathFilter = historyPathFilter,
       previousHistory = previousHistory,
       previousErrorMessage = previousError,
+      quiet = quiet,
     )
   }
 
@@ -2576,6 +2617,7 @@ data class GitRefreshRequest(
   val token: Long,
   val session: RepoSession?,
   val previousSnapshot: ChangesSnapshot,
+  val quiet: Boolean = false,
 )
 
 data class GitRefreshResult(
@@ -2685,6 +2727,7 @@ data class HistoryLoadRequest(
   val pathFilter: String?,
   val previousHistory: List<CommitEntry>,
   val previousErrorMessage: String?,
+  val quiet: Boolean = false,
 )
 
 data class HistoryLoadResult(

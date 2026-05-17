@@ -192,7 +192,7 @@ class SkillBillViewModelTest {
   }
 
   @Test
-  fun `dirty refresh prompts before reloading tree data`() {
+  fun `dirty refresh runs quietly and keeps draft while reloading tree data`() {
     val repoSessionService = CountingRepoSessionService()
     val authoringGateway = FakeAuthoringGateway().apply {
       putDocument("skill-one", "one\n")
@@ -202,16 +202,19 @@ class SkillBillViewModelTest {
     viewModel.selectTreeItem("skill-one")
     viewModel.updateEditorDraft("dirty\n")
 
-    val prompted = viewModel.beginRefresh()
-    val discarded = viewModel.discardDirtyEditorPrompt()
+    val started = viewModel.beginRefresh()
+    authoringGateway.putDocument("skill-one", "reloaded\n")
+    val refreshed = viewModel.finishRefresh()
 
-    assertEquals(listOf("/repo"), repoSessionService.openedRepoPaths)
-    assertEquals(DirtyEditorPromptReason.REFRESH, prompted.dirtyEditorPrompt?.reason)
-    assertEquals(SkillBillBusyOperation.REFRESH, discarded.busyOperation)
+    assertEquals(listOf("/repo", "/repo"), repoSessionService.openedRepoPaths)
+    assertNull(started.dirtyEditorPrompt)
+    assertNull(started.busyOperation)
+    assertTrue(refreshed.editor.dirty)
+    assertEquals("dirty\n", refreshed.editor.draftContent)
   }
 
   @Test
-  fun `draft changes are ignored while repo refresh is in flight`() {
+  fun `draft changes are preserved while quiet repo refresh is in flight`() {
     val authoringGateway = FakeAuthoringGateway().apply {
       putDocument("skill-one", "saved\n")
     }
@@ -223,13 +226,13 @@ class SkillBillViewModelTest {
     val request = viewModel.repoLoadRequest(repoPath = "/repo", preserveSelection = true)
     val editedDuringRefresh = viewModel.updateEditorDraft("draft after refresh started\n")
     authoringGateway.putDocument("skill-one", "reloaded\n")
-    val refreshed = viewModel.finishRepoLoad(viewModel.loadRepo(request))
+    val refreshed = viewModel.finishRefresh(viewModel.loadRepo(request))
 
-    assertEquals(SkillBillBusyOperation.REFRESH, refreshState.busyOperation)
-    assertFalse(editedDuringRefresh.editor.dirty)
-    assertEquals("saved\n", editedDuringRefresh.editor.draftContent)
-    assertFalse(refreshed.editor.dirty)
-    assertEquals("reloaded\n", refreshed.editor.draftContent)
+    assertNull(refreshState.busyOperation)
+    assertTrue(editedDuringRefresh.editor.dirty)
+    assertEquals("draft after refresh started\n", editedDuringRefresh.editor.draftContent)
+    assertTrue(refreshed.editor.dirty)
+    assertEquals("draft after refresh started\n", refreshed.editor.draftContent)
   }
 
   @Test
@@ -514,7 +517,7 @@ class SkillBillViewModelTest {
   }
 
   @Test
-  fun `begin and finish refresh expose busy state around runtime reload`() {
+  fun `begin and finish refresh quietly reload runtime data`() {
     val repoSessionService = CountingRepoSessionService()
     val viewModel = newViewModel(repoSessionService = repoSessionService)
     viewModel.selectRepoPath("/repo")
@@ -522,7 +525,7 @@ class SkillBillViewModelTest {
 
     val busy = viewModel.beginRefresh()
 
-    assertEquals(SkillBillBusyOperation.REFRESH, busy.busyOperation)
+    assertNull(busy.busyOperation)
     assertEquals(emptyList(), repoSessionService.openedRepoPaths)
 
     val refreshed = viewModel.finishRefresh()
@@ -878,8 +881,7 @@ class SkillBillViewModelTest {
     viewModel.beginRefresh()
     val state = viewModel.finishValidate(staleResult)
 
-    // Refresh operation is still in flight; validation should not have overwritten its busy state.
-    assertEquals(SkillBillBusyOperation.REFRESH, state.busyOperation)
+    assertEquals(SkillBillBusyOperation.VALIDATE, state.busyOperation)
     // F-101: the stale finish must unwind the RUNNING validation marker; otherwise the validation
     // slice would stay stuck on RUNNING after the unrelated operation completes.
     assertEquals(ValidationRunState.UNAVAILABLE, state.validation.state)
@@ -988,12 +990,11 @@ class SkillBillViewModelTest {
     // F-101: the stale finish must unwind RUNNING back to the previous-summary captured at
     // beginValidate time (PASSED in this scenario), not leave validation stuck on RUNNING.
     assertEquals(ValidationRunState.PASSED, afterStale.validation.state)
-    // Refresh is still the in-flight op.
-    assertEquals(SkillBillBusyOperation.REFRESH, afterStale.busyOperation)
+    assertEquals(SkillBillBusyOperation.VALIDATE, afterStale.busyOperation)
   }
 
   @Test
-  fun `successful refresh on same repo resets validation to UNAVAILABLE`() {
+  fun `successful refresh on same repo preserves validation state`() {
     val passedSummary = ValidationSummary(state = ValidationRunState.PASSED)
     val validationGateway = FakeValidationGateway(scriptedSummary = passedSummary)
     val viewModel = newViewModel(validationGateway = validationGateway)
@@ -1004,9 +1005,7 @@ class SkillBillViewModelTest {
 
     val refreshed = viewModel.refresh()
 
-    // F-103: a refresh re-reads on-disk state; the prior validation result is now stale and must
-    // be cleared even when the repo path is unchanged.
-    assertEquals(ValidationRunState.UNAVAILABLE, refreshed.validation.state)
+    assertEquals(ValidationRunState.PASSED, refreshed.validation.state)
   }
 
   @Test
@@ -1238,14 +1237,13 @@ class SkillBillViewModelTest {
     val afterStale = viewModel.finishRender(staleResult)
 
     // F-101: stale finish must unwind RUNNING back to the previous-summary captured at beginRender
-    // time (PASSED in this scenario). Refresh has not yet completed, so refresh's reset-to-UNAVAILABLE
-    // has not landed; the stale finish must restore PASSED rather than leave the slice on RUNNING.
+    // time (PASSED in this scenario). Refresh is still in flight and must not leave RUNNING behind.
     assertEquals(RenderRunState.PASSED, afterStale.render.state)
-    assertEquals(SkillBillBusyOperation.REFRESH, afterStale.busyOperation)
+    assertEquals(SkillBillBusyOperation.RENDER, afterStale.busyOperation)
   }
 
   @Test
-  fun `refresh resets render summary to UNAVAILABLE even with prior PASSED state`() {
+  fun `refresh on same repo preserves render summary with prior PASSED state`() {
     val renderGateway = FakeRenderGateway(
       scriptedSummary = RenderSummary(state = RenderRunState.PASSED, durationMillis = 5L),
     )
@@ -1260,7 +1258,7 @@ class SkillBillViewModelTest {
 
     val refreshed = viewModel.refresh()
 
-    assertEquals(RenderRunState.UNAVAILABLE, refreshed.render.state)
+    assertEquals(RenderRunState.PASSED, refreshed.render.state)
   }
 
   @Test

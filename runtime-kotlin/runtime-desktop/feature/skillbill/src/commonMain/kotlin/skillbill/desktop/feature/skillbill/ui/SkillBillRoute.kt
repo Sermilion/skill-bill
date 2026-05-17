@@ -68,18 +68,22 @@ fun SkillBillRoute(
   // Centralized git refresh fan-out. AC10: every editing/validation/scaffold/render seam funnels
   // through this single entry point so the Changes tab always reflects on-disk state. begin/run/finish
   // captures all VM fields on the caller dispatcher before hopping to Dispatchers.Default (F-102).
-  fun runGitRefresh() {
-    val request = viewModel.beginGitRefresh()
-    state = viewModel.state()
+  fun runGitRefresh(quiet: Boolean = false) {
+    val request = viewModel.beginGitRefresh(quiet = quiet)
+    if (!quiet) {
+      state = viewModel.state()
+    }
     coroutineScope.launch {
       val result = withContext(Dispatchers.Default) { viewModel.runGitRefresh(request) }
       state = viewModel.finishGitRefresh(result)
     }
   }
 
-  fun loadHistory() {
-    val request = viewModel.beginLoadHistory()
-    state = viewModel.state()
+  fun loadHistory(quiet: Boolean = false) {
+    val request = viewModel.beginLoadHistory(quiet = quiet)
+    if (!quiet) {
+      state = viewModel.state()
+    }
     coroutineScope.launch {
       val result = withContext(Dispatchers.Default) { viewModel.runLoadHistory(request) }
       state = viewModel.finishLoadHistory(result)
@@ -150,7 +154,7 @@ fun SkillBillRoute(
         val result = withContext(Dispatchers.Default) { viewModel.runSaveEditor(request) }
         state = viewModel.finishSaveEditor(result)
         if (result.result.success) {
-          runGitRefresh()
+          runGitRefresh(quiet = true)
         }
       }
     }
@@ -176,6 +180,20 @@ fun SkillBillRoute(
     }
   }
 
+  fun runRefreshLoad() {
+    val request = viewModel.repoLoadRequest(
+      repoPath = state.selectedRepoPath ?: state.repoPathText,
+      preserveSelection = true,
+    )
+    coroutineScope.launch {
+      val result = withContext(Dispatchers.Default) { viewModel.loadRepo(request) }
+      state = viewModel.finishRefresh(result)
+      // AC10: manual/filesystem refreshes refresh git status + history without resetting UI slices.
+      runGitRefresh(quiet = true)
+      loadHistory(quiet = true)
+    }
+  }
+
   fun runChooseRepoDirectory() {
     val repoPath = chooseRepoDirectory(state.repoPathText)
     if (repoPath.isNullOrBlank()) {
@@ -184,8 +202,8 @@ fun SkillBillRoute(
       state = viewModel.beginSelectRepoPath(repoPath)
       if (state.dirtyEditorPrompt == null && state.busyOperation == SkillBillBusyOperation.OPEN_REPO) {
         runRepoLoad(preserveSelection = false, repoPath = state.repoPathText) {
-          runGitRefresh()
-          loadHistory()
+          runGitRefresh(quiet = true)
+          loadHistory(quiet = true)
         }
       }
     }
@@ -200,24 +218,19 @@ fun SkillBillRoute(
         val selected = state.selectedTreeItemId
         if (selected != null && selected != previousSelection) {
           viewModel.setHistoryPathFilter(state.editor.authoredPath)
-          loadHistory()
+          loadHistory(quiet = true)
           state = viewModel.state()
           onSourceRouteSelected(selected)
         }
       }
       DirtyEditorPromptReason.REFRESH -> {
-        if (state.busyOperation == SkillBillBusyOperation.REFRESH) {
-          runRepoLoad(preserveSelection = true) {
-            runGitRefresh()
-            loadHistory()
-          }
-        }
+        runRefreshLoad()
       }
       DirtyEditorPromptReason.REPO_SWITCH -> {
         if (state.busyOperation == SkillBillBusyOperation.OPEN_REPO) {
           runRepoLoad(preserveSelection = false, repoPath = state.repoPathText) {
-            runGitRefresh()
-            loadHistory()
+            runGitRefresh(quiet = true)
+            loadHistory(quiet = true)
           }
         }
       }
@@ -275,7 +288,7 @@ fun SkillBillRoute(
         // selected tree item. Falls back to no filter when the selection has no authored path.
         val authoredPath = state.editor.authoredPath
         viewModel.setHistoryPathFilter(authoredPath)
-        loadHistory()
+        loadHistory(quiet = true)
         state = viewModel.state()
         state.selectedTreeItemId?.let(onSourceRouteSelected)
       }
@@ -294,8 +307,8 @@ fun SkillBillRoute(
 
   LaunchedEffect(viewModel) {
     if (state.selectedRepoPath != null && state.repoStatus.state == RepoLoadState.LOADED) {
-      runGitRefresh()
-      loadHistory()
+      runGitRefresh(quiet = true)
+      loadHistory(quiet = true)
     }
   }
 
@@ -309,17 +322,7 @@ fun SkillBillRoute(
     if (canStartRepoScopedAction()) {
       state = viewModel.beginRefresh()
       if (state.dirtyEditorPrompt == null) {
-        val request = viewModel.repoLoadRequest(
-          repoPath = state.selectedRepoPath ?: state.repoPathText,
-          preserveSelection = true,
-        )
-        coroutineScope.launch {
-          val result = withContext(Dispatchers.Default) { viewModel.loadRepo(request) }
-          state = viewModel.finishRepoLoad(result)
-          // AC10: manual refresh refreshes git status + history.
-          runGitRefresh()
-          loadHistory()
-        }
+        runRefreshLoad()
       }
     }
   }
@@ -363,7 +366,7 @@ fun SkillBillRoute(
         if (canAutoRefreshGitStatus(state)) {
           pendingRepoFileChangeKind = null
           pendingRepoFileChangeRefresh = false
-          runGitRefresh()
+          runGitRefresh(quiet = true)
         }
       }
       RepoFileChangeKind.RepoSnapshot -> {
@@ -388,7 +391,7 @@ fun SkillBillRoute(
         val result = withContext(Dispatchers.Default) { viewModel.runValidate(request) }
         state = viewModel.finishValidate(result)
         // AC10: validation may touch on-disk state via scripts; refresh git status afterwards.
-        runGitRefresh()
+        runGitRefresh(quiet = true)
       }
     }
   }
@@ -400,7 +403,7 @@ fun SkillBillRoute(
       coroutineScope.launch {
         val result = withContext(Dispatchers.Default) { viewModel.runValidate(request) }
         state = viewModel.finishValidate(result)
-        runGitRefresh()
+        runGitRefresh(quiet = true)
       }
     }
   }
@@ -415,7 +418,7 @@ fun SkillBillRoute(
         val result = withContext(Dispatchers.Default) { viewModel.runRender(request) }
         state = viewModel.finishRender(result)
         // AC10: render generates SKILL.md and pointer artifacts; refresh git status afterwards.
-        runGitRefresh()
+        runGitRefresh(quiet = true)
       }
     }
   }
@@ -427,7 +430,7 @@ fun SkillBillRoute(
       coroutineScope.launch {
         val result = withContext(Dispatchers.Default) { viewModel.runRender(request) }
         state = viewModel.finishRender(result)
-        runGitRefresh()
+        runGitRefresh(quiet = true)
       }
     }
   }
@@ -514,8 +517,8 @@ fun SkillBillRoute(
           // runRepoLoad) calls BOTH runGitRefresh() AND loadHistory() as a fan-out. The scaffold-success
           // path was previously skipping loadHistory(), leaving the History tab reflecting pre-scaffold
           // state until the next refresh. Align with the standard fan-out.
-          runGitRefresh()
-          loadHistory()
+          runGitRefresh(quiet = true)
+          loadHistory(quiet = true)
         }
       }
     }
@@ -573,8 +576,8 @@ fun SkillBillRoute(
         if (state.dirtyEditorPrompt == null) {
           runRepoLoad(preserveSelection = false, repoPath = state.repoPathText) {
             // AC10: after a successful repo switch we want a fresh status snapshot + history.
-            runGitRefresh()
-            loadHistory()
+            runGitRefresh(quiet = true)
+            loadHistory(quiet = true)
           }
         }
       }
@@ -742,7 +745,7 @@ fun SkillBillRoute(
     },
     onClearHistoryPathFilter = {
       viewModel.setHistoryPathFilter(null)
-      loadHistory()
+      loadHistory(quiet = true)
       state = viewModel.state()
     },
     onCommandPaletteOpen = {

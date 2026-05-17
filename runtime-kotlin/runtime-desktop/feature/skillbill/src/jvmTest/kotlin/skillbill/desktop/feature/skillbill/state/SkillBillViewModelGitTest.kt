@@ -66,6 +66,24 @@ class SkillBillViewModelGitTest {
   }
 
   @Test
+  fun `quiet git refresh updates changes without exposing busy state`() {
+    val gitGateway = FakeGitGateway(
+      initialSnapshot = ChangesSnapshot(
+        files = listOf(ChangedFile(path = "skills/x.md", group = ChangedFileGroup.UNSTAGED, statusCode = "M")),
+      ),
+    )
+    val viewModel = newViewModel(gitGateway = gitGateway)
+    viewModel.selectRepoPath("/repo")
+
+    val request = viewModel.beginGitRefresh(quiet = true)
+    assertFalse(viewModel.state().changesBusy)
+    val state = viewModel.finishGitRefresh(viewModel.runGitRefresh(request))
+
+    assertFalse(state.changesBusy)
+    assertEquals(1, state.changes.files.size)
+  }
+
+  @Test
   fun `stale finishGitRefresh after a newer changes-slice op keeps current state (F-A01)`() {
     val gitGateway = FakeGitGateway(
       initialSnapshot = ChangesSnapshot(
@@ -275,6 +293,22 @@ class SkillBillViewModelGitTest {
     assertEquals(1, filtered.history.size)
     assertEquals("alpha", filtered.history.single().subject)
     assertEquals("skills/a.md", gitGateway.lastRecentCommitsPathFilter)
+  }
+
+  @Test
+  fun `quiet history load updates commits without exposing busy state`() {
+    val gitGateway = FakeGitGateway(
+      scriptedCommits = listOf(commitEntry(subject = "alpha", paths = listOf("skills/a.md"))),
+    )
+    val viewModel = newViewModel(gitGateway = gitGateway)
+    viewModel.selectRepoPath("/repo")
+
+    val request = viewModel.beginLoadHistory(quiet = true)
+    assertFalse(viewModel.state().historyBusy)
+    val state = viewModel.finishLoadHistory(viewModel.runLoadHistory(request))
+
+    assertFalse(state.historyBusy)
+    assertEquals(listOf("alpha"), state.history.map { it.subject })
   }
 
   @Test

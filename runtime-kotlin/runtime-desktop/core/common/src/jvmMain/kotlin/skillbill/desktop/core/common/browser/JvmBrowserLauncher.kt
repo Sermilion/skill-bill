@@ -52,15 +52,14 @@ class JvmBrowserLauncher : BrowserLauncher {
     }
   }
 
-  private fun tryOpenWithPlatformCommand(url: String): Boolean =
-    platformOpenCommands(url).any { command ->
-      try {
-        commandAccess.launch(command)
-        true
-      } catch (_: Exception) {
-        false
-      }
+  private fun tryOpenWithPlatformCommand(url: String): Boolean = platformOpenCommands(url).any { command ->
+    try {
+      commandAccess.launch(command)
+      true
+    } catch (_: Exception) {
+      false
     }
+  }
 }
 
 internal interface BrowserDesktopAccess {
