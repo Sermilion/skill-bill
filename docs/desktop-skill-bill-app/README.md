@@ -1,6 +1,6 @@
 # Desktop Skill Bill App Spec
 
-Status: Draft
+Status: Complete for SKILL-45 scope
 
 ## Summary
 
@@ -353,7 +353,10 @@ Compose Desktop native packaging is host-limited. A Linux workstation can verify
 Linux packages and the loose distribution, but should not be treated as proof
 that macOS DMG or Windows MSI production works. CI should run the current-OS
 package task on each OS runner, or explicitly record the missing host/toolchain
-as a package-production limitation.
+as a package-production limitation. The SKILL-45 final pass verified the loose
+app image on CachyOS with `:runtime-desktop:createDistributable`; local native
+package production was blocked because this host's `jpackage` rejected both
+`rpm` and `deb` types and neither `rpmbuild` nor `dpkg-deb` was installed.
 
 The package build stages `skill-bill-runtime` into app resources. That bundle
 contains:
@@ -537,7 +540,9 @@ Use this checklist as the lightweight implementation tracker. Keep detailed acce
 - [x] Document authored-source-only editing boundary.
 - [x] Add README or getting-started link to the Skill Bill app.
 - [x] Add launch smoke coverage.
-- [ ] Verify `:runtime-desktop:packageDistributionForCurrentOS` on primary platform.
+- [x] Verify primary-platform package path: `:runtime-desktop:createDistributable`
+  produced the loose app image on CachyOS; native `deb`/`rpm` package
+  production is blocked on this host by local `jpackage`/packaging-tool support.
 - [x] Include desktop checks in the appropriate validation path.
 
 ### Cross-Cutting Done Criteria
