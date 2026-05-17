@@ -73,6 +73,32 @@ class InstallPlanBuilderTest {
   }
 
   @Test
+  fun `selected platform planning is driven by newly discovered pack manifests with base skills included`() {
+    val fixture = setupPlanFixture()
+    seedPlatformPack(fixture.repoRoot, slug = "python", areaNames = listOf("security"))
+
+    val plan = InstallOperations.planInstall(
+      fixture.request(
+        platformPackSelection = PlatformPackSelection(
+          mode = PlatformPackSelectionMode.SELECTED,
+          selectedSlugs = setOf("python"),
+        ),
+      ),
+    )
+
+    assertEquals(listOf("kmp", "kotlin", "python"), plan.discoveredPlatformPacks.map { pack -> pack.slug })
+    assertEquals(listOf("python"), plan.selectedPlatformSlugs)
+    val skillsByName = plan.skills.associateBy { skill -> skill.name }
+    assertEquals(InstallPlanSkillKind.BASE, skillsByName.getValue("bill-code-review").kind)
+    assertEquals(InstallPlanSkillKind.BASE, skillsByName.getValue("bill-quality-check").kind)
+    assertEquals(InstallPlanSkillKind.PLATFORM_PACK, skillsByName.getValue("bill-python-code-review").kind)
+    assertEquals(InstallPlanSkillKind.PLATFORM_PACK, skillsByName.getValue("bill-python-code-review-security").kind)
+    assertEquals(InstallPlanSkillKind.PLATFORM_PACK, skillsByName.getValue("bill-python-quality-check").kind)
+    assertFalse(skillsByName.containsKey("bill-kotlin-code-review"))
+    assertFalse(skillsByName.containsKey("bill-kmp-code-review"))
+  }
+
+  @Test
   fun `manual agent selection resolves target paths and MCP intent without executing registration`() {
     val fixture = setupPlanFixture()
     val claudeTarget = fixture.home.resolve("manual-claude")

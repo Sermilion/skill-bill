@@ -1,3 +1,12 @@
+## [2026-05-17] install-migration-validation
+Areas: runtime-kotlin/runtime-cli install tests, runtime-kotlin/runtime-core install/architecture tests, runtime-domain install model
+- Added final validation coverage for install migration contracts: CLI plan/apply payload mapping, manual/detected agents, telemetry anonymous/full/off, MCP intent, Windows symlink messages, and staging-cache boundaries.
+- Future CLI install tests should keep driving `CliRuntime` JSON payloads instead of adding filesystem behavior to CLI adapters. reusable
+- Dynamic platform coverage now includes a newly discovered `python` pack in plan-builder and install.sh delegation tests so selected-platform behavior is not tied to the built-in pack set.
+- Staging assertions now pin rendered `SKILL.md` and support pointers under `~/.skill-bill/installed-skills`, preserving the generated-output boundary.
+Feature flag: N/A
+Acceptance criteria: 8/8 implemented
+
 ## [2026-05-17] install-sh-runtime-delegation
 Areas: install.sh, runtime-kotlin/runtime-cli install commands, runtime-kotlin/runtime-core install apply/native-agent cleanup
 - `install.sh` now owns prompting/runtime distribution only and delegates typed install apply to the durable runtime CLI, including manual/detected agents, platform modes, telemetry, MCP, runtime dirs, and replacement cleanup. reusable

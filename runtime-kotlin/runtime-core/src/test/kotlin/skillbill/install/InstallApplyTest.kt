@@ -633,6 +633,10 @@ class InstallApplyTest : InstallApplyTestSupport() {
     assertEquals(InstallApplyStatus.WARNING, result.status)
     assertEquals(WindowsSymlinkFallbackState.PROCEEDING, result.windowsSymlinkOutcome.fallbackState)
     assertEquals(
+      "Windows symlink support was not confirmed.",
+      result.windowsSymlinkOutcome.preflight.message,
+    )
+    assertEquals(
       WindowsSymlinkPreflightState.REQUIRES_ELEVATION_OR_DEVELOPER_MODE,
       result.windowsSymlinkOutcome.preflight.state,
     )
@@ -646,7 +650,8 @@ class InstallApplyTest : InstallApplyTestSupport() {
     )
     assertTrue(
       result.warnings.any { warning ->
-        warning.message == "Windows symlink support was not confirmed." &&
+        warning.kind == InstallApplyIssueKind.WINDOWS_SYMLINK_WARNING &&
+          warning.message == "Windows symlink support was not confirmed." &&
           warning.guidance.orEmpty().contains("Developer Mode")
       },
     )

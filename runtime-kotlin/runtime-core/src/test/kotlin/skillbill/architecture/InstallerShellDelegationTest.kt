@@ -93,6 +93,25 @@ class InstallerShellDelegationTest {
   }
 
   @Test
+  fun `installer shell selected platform argv comes from discovered platform manifests`() {
+    val run = runInstallerShell(input = "1\ncodex\npython\nfull\nregister\n")
+
+    assertEquals(
+      expectedApplyArgs(
+        ExpectedApply(run, agentMode = "manual", platformMode = "selected", telemetry = "full", mcp = "register"),
+      ) + listOf(
+        "--agent",
+        "codex",
+        "--agent-target",
+        "codex=${run.home.resolve("agent-targets/codex")}",
+        "--platform",
+        "python",
+      ),
+      run.applyArgs,
+    )
+  }
+
+  @Test
   fun `installer shell builds detected all-platform runtime apply argv`() {
     val run = runInstallerShell(input = "detected\nall\nanonymous\nregister\n")
 
@@ -114,6 +133,7 @@ class InstallerShellDelegationTest {
     Files.createDirectories(repoRoot.resolve("skills"))
     seedInstallerPlatformPack(repoRoot, "kmp")
     seedInstallerPlatformPack(repoRoot, "kotlin")
+    seedInstallerPlatformPack(repoRoot, "python")
     seedInstallerRuntime(repoRoot)
 
     val process = ProcessBuilder("bash", repoRoot.resolve("install.sh").toString())
