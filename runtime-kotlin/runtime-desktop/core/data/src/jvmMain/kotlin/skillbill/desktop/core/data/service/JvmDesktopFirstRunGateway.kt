@@ -66,7 +66,7 @@ class JvmDesktopFirstRunGateway : DesktopFirstRunGateway {
     Files.list(stagingRoot).use { entries ->
       entries.anyMatch { entry: Path ->
         !entry.fileName.toString().startsWith(".") &&
-        Files.isDirectory(entry, LinkOption.NOFOLLOW_LINKS) &&
+          Files.isDirectory(entry, LinkOption.NOFOLLOW_LINKS) &&
           Files.isRegularFile(entry.resolve("SKILL.md"), LinkOption.NOFOLLOW_LINKS) &&
           Files.isRegularFile(entry.resolve(".content-hash"), LinkOption.NOFOLLOW_LINKS)
       }
