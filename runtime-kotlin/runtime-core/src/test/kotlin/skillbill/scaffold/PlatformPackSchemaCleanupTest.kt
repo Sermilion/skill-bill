@@ -1,8 +1,12 @@
 package skillbill.scaffold
 
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
+import skillbill.error.InvalidInstallPlanSchemaError
 import skillbill.error.InvalidManifestSchemaError
 import skillbill.error.InvalidWorkflowStateSchemaError
+import skillbill.install.model.INSTALL_PLAN_CONTRACT_VERSION
+import skillbill.install.model.InstallPlanSchemaPaths
+import skillbill.install.model.InstallPlanSchemaValidator
 import skillbill.workflow.WORKFLOW_STATE_CONTRACT_VERSION
 import skillbill.workflow.WorkflowStateSchemaPaths
 import skillbill.workflow.assertWorkflowStateSchemaIdentity
@@ -116,6 +120,57 @@ class PlatformPackSchemaCleanupTest {
     val node = YAMLMapper().readTree(Files.readString(schemaPath))
     // Must not throw.
     assertWorkflowStateSchemaIdentity(node)
+  }
+
+  // -----------------------------------------------------------------------
+  // SKILL-48 Subtask 2b — install-plan schema classpath-shadow guard
+  // -----------------------------------------------------------------------
+
+  @Test
+  fun `install-plan schema classpath shadow with mismatched id loud-fails`() {
+    val mismatchedIdYaml = """
+      ${'$'}schema: "https://json-schema.org/draft/2020-12/schema"
+      ${'$'}id: "https://malicious.example/shadow-install-plan.yaml"
+      type: object
+      properties:
+        contract_version:
+          const: "$INSTALL_PLAN_CONTRACT_VERSION"
+    """.trimIndent()
+
+    val error = assertFailsWith<InvalidInstallPlanSchemaError> {
+      InstallPlanSchemaValidator.assertIdentity(mismatchedIdYaml)
+    }
+    val reason = error.reason
+    assertContains(reason, "https://malicious.example/shadow-install-plan.yaml")
+    assertContains(reason, InstallPlanSchemaPaths.EXPECTED_SCHEMA_ID)
+  }
+
+  @Test
+  fun `install-plan schema classpath shadow with mismatched contract_version const loud-fails`() {
+    val mismatchedConstYaml = """
+      ${'$'}schema: "https://json-schema.org/draft/2020-12/schema"
+      ${'$'}id: "${InstallPlanSchemaPaths.EXPECTED_SCHEMA_ID}"
+      type: object
+      properties:
+        contract_version:
+          const: "9.99"
+    """.trimIndent()
+
+    val error = assertFailsWith<InvalidInstallPlanSchemaError> {
+      InstallPlanSchemaValidator.assertIdentity(mismatchedConstYaml)
+    }
+    val reason = error.reason
+    assertContains(reason, "9.99")
+    assertContains(reason, INSTALL_PLAN_CONTRACT_VERSION)
+  }
+
+  @Test
+  fun `install-plan canonical schema on disk passes identity assertion`() {
+    val schemaPath: Path = skillbill.testing.repoRootFromTest()
+      .resolve(InstallPlanSchemaPaths.REPO_RELATIVE_PATH)
+    val yamlText = Files.readString(schemaPath)
+    // Must not throw.
+    InstallPlanSchemaValidator.assertIdentity(yamlText)
   }
 
   // -----------------------------------------------------------------------

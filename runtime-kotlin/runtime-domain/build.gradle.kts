@@ -62,16 +62,43 @@ val copyWorkflowStateSchema =
     }
   }
 
+// SKILL-48 Subtask 2b: copy the canonical install-plan JSON Schema into
+// the runtime-domain resources at build time. Mirrors the workflow-state
+// Copy task above (same `inputs.file` + `doFirst` pattern so the
+// configuration cache stays warm). Path strings must mirror
+// `InstallPlanSchemaPaths.REPO_RELATIVE_PATH` and
+// `InstallPlanSchemaPaths.CLASSPATH_RESOURCE`.
+val canonicalInstallPlanSchemaPath: String =
+  rootProject.projectDir.parentFile
+    .resolve("orchestration/contracts/install-plan-schema.yaml")
+    .absolutePath
+
+val copyInstallPlanSchema =
+  tasks.register<Copy>("copyInstallPlanSchema") {
+    val schemaPath = canonicalInstallPlanSchemaPath
+    from(schemaPath)
+    into(layout.buildDirectory.dir("generated/skillbill-contracts/skillbill/contracts"))
+    inputs.file(schemaPath)
+    doFirst {
+      require(File(schemaPath).exists()) {
+        "SKILL-48: canonical install-plan schema is missing at $schemaPath. " +
+          "Run from the repo root and ensure the schema file exists."
+      }
+    }
+  }
+
 sourceSets.named("main") {
   resources.srcDir(layout.buildDirectory.dir("generated/skillbill-contracts"))
 }
 
 tasks.named("processResources") {
   dependsOn(copyWorkflowStateSchema)
+  dependsOn(copyInstallPlanSchema)
 }
 
 tasks.named("processTestResources") {
   dependsOn(copyWorkflowStateSchema)
+  dependsOn(copyInstallPlanSchema)
 }
 
 tasks.withType<Test>().configureEach {

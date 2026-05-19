@@ -30,6 +30,25 @@ class InvalidWorkflowStateSchemaError(
   cause: Throwable? = null,
 ) : ShellContentContractException(message, cause)
 
+/**
+ * SKILL-48 Subtask 2b: surfaced when an `InstallPlan` wire payload fails
+ * the canonical `orchestration/contracts/install-plan-schema.yaml` Draft
+ * 2020-12 schema. The composed message carries the dotted field path of
+ * the first offending value so callers and tests can pinpoint the
+ * regression without parsing raw networknt validator output. Mirrors
+ * [InvalidWorkflowStateSchemaError]; the dedicated subclass keeps
+ * install-plan parse-seam failures distinguishable from workflow-state
+ * and platform-pack failures in logs and tests.
+ */
+class InvalidInstallPlanSchemaError(
+  val fieldPath: String,
+  val reason: String,
+  cause: Throwable? = null,
+) : ShellContentContractException(
+  "Install plan fails schema validation at '${fieldPath.ifBlank { "<root>" }}': $reason",
+  cause,
+)
+
 class ContractVersionMismatchError(
   message: String,
   cause: Throwable? = null,
