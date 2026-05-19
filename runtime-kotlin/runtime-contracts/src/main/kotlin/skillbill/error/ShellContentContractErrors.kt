@@ -70,6 +70,30 @@ class InvalidNativeAgentCompositionSchemaError(
   cause,
 )
 
+/**
+ * SKILL-48 Subtask 2d: surfaced when a telemetry event envelope fails
+ * the canonical `orchestration/contracts/telemetry-event-schema.yaml`
+ * Draft 2020-12 schema. The composed message carries the dotted
+ * `fieldPath` of the first offending value AND the offending
+ * `eventName` (nullable: unknown-event-name violations may report a
+ * null name) so callers and tests can grep telemetry parse-seam
+ * regressions by event name without parsing raw networknt validator
+ * output. Mirrors [InvalidInstallPlanSchemaError]; the dedicated
+ * subclass keeps telemetry parse-seam failures distinguishable from
+ * install-plan, workflow-state, native-agent composition, and
+ * platform-pack failures in logs and tests.
+ */
+class InvalidTelemetryEventSchemaError(
+  val fieldPath: String,
+  val eventName: String?,
+  val reason: String,
+  cause: Throwable? = null,
+) : ShellContentContractException(
+  "Telemetry event '${eventName ?: "<unknown>"}' fails schema validation at " +
+    "'${fieldPath.ifBlank { "<root>" }}': $reason",
+  cause,
+)
+
 class ContractVersionMismatchError(
   message: String,
   cause: Throwable? = null,
