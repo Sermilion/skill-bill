@@ -3,10 +3,14 @@ package skillbill.scaffold
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.error.InvalidInstallPlanSchemaError
 import skillbill.error.InvalidManifestSchemaError
+import skillbill.error.InvalidNativeAgentCompositionSchemaError
 import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.install.model.INSTALL_PLAN_CONTRACT_VERSION
 import skillbill.install.model.InstallPlanSchemaPaths
 import skillbill.install.model.InstallPlanSchemaValidator
+import skillbill.nativeagent.NATIVE_AGENT_COMPOSITION_CONTRACT_VERSION
+import skillbill.nativeagent.NativeAgentCompositionSchemaPaths
+import skillbill.nativeagent.NativeAgentCompositionSchemaValidator
 import skillbill.workflow.WORKFLOW_STATE_CONTRACT_VERSION
 import skillbill.workflow.WorkflowStateSchemaPaths
 import skillbill.workflow.assertWorkflowStateSchemaIdentity
@@ -171,6 +175,56 @@ class PlatformPackSchemaCleanupTest {
     val yamlText = Files.readString(schemaPath)
     // Must not throw.
     InstallPlanSchemaValidator.assertIdentity(yamlText)
+  }
+
+  // -----------------------------------------------------------------------
+  // SKILL-48 Subtask 2c — native-agent composition schema classpath-shadow
+  // guard (mirrors 2a/2b)
+  // -----------------------------------------------------------------------
+
+  @Test
+  fun `native-agent composition schema classpath shadow with mismatched id loud-fails`() {
+    val mismatchedIdYaml = """
+      ${'$'}schema: "https://json-schema.org/draft/2020-12/schema"
+      ${'$'}id: "https://malicious.example/shadow-native-agent-composition.yaml"
+      ${'$'}defs:
+        contractVersion:
+          const: "$NATIVE_AGENT_COMPOSITION_CONTRACT_VERSION"
+    """.trimIndent()
+
+    val error = assertFailsWith<InvalidNativeAgentCompositionSchemaError> {
+      NativeAgentCompositionSchemaValidator.assertIdentity(mismatchedIdYaml)
+    }
+    val reason = error.reason
+    assertContains(reason, "https://malicious.example/shadow-native-agent-composition.yaml")
+    assertContains(reason, NativeAgentCompositionSchemaPaths.EXPECTED_SCHEMA_ID)
+  }
+
+  @Test
+  fun `native-agent composition schema classpath shadow with mismatched contract_version const loud-fails`() {
+    val mismatchedConstYaml = """
+      ${'$'}schema: "https://json-schema.org/draft/2020-12/schema"
+      ${'$'}id: "${NativeAgentCompositionSchemaPaths.EXPECTED_SCHEMA_ID}"
+      ${'$'}defs:
+        contractVersion:
+          const: "9.99"
+    """.trimIndent()
+
+    val error = assertFailsWith<InvalidNativeAgentCompositionSchemaError> {
+      NativeAgentCompositionSchemaValidator.assertIdentity(mismatchedConstYaml)
+    }
+    val reason = error.reason
+    assertContains(reason, "9.99")
+    assertContains(reason, NATIVE_AGENT_COMPOSITION_CONTRACT_VERSION)
+  }
+
+  @Test
+  fun `native-agent composition canonical schema on disk passes identity assertion`() {
+    val schemaPath: Path = skillbill.testing.repoRootFromTest()
+      .resolve(NativeAgentCompositionSchemaPaths.REPO_RELATIVE_PATH)
+    val yamlText = Files.readString(schemaPath)
+    // Must not throw.
+    NativeAgentCompositionSchemaValidator.assertIdentity(yamlText)
   }
 
   // -----------------------------------------------------------------------

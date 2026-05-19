@@ -49,6 +49,27 @@ class InvalidInstallPlanSchemaError(
   cause,
 )
 
+/**
+ * SKILL-48 Subtask 2c: surfaced when a native-agent composition source
+ * fails the canonical
+ * `orchestration/contracts/native-agent-composition-schema.yaml` Draft
+ * 2020-12 schema. The composed message carries the source label (the
+ * on-disk path or another caller-supplied identifier) and the
+ * collected violation messages so callers and tests can pinpoint the
+ * regression without parsing raw networknt validator output. Mirrors
+ * [InvalidInstallPlanSchemaError]; the dedicated subclass keeps
+ * native-agent parse-seam failures distinguishable from install-plan,
+ * workflow-state, and platform-pack failures in logs and tests.
+ */
+class InvalidNativeAgentCompositionSchemaError(
+  val sourceLabel: String,
+  val reason: String,
+  cause: Throwable? = null,
+) : ShellContentContractException(
+  "Native agent composition source '${sourceLabel.ifBlank { "<unknown>" }}' fails schema validation: $reason",
+  cause,
+)
+
 class ContractVersionMismatchError(
   message: String,
   cause: Throwable? = null,
