@@ -116,7 +116,7 @@ private fun buildPack(slug: String, packRoot: Path, manifestPath: Path, raw: Any
   // areas-equal-declared, area-metadata-keys-subset-declared,
   // pointers-unique-name-per-dir).
   val manifest = requireManifestMap(slug, manifestPath, raw)
-  validateAgainstCanonicalSchema(slug, manifest)
+  val typedManifest = validateAgainstCanonicalSchema(slug, manifest)
 
   val declaredPlatform = requireStringField(manifest, slug, "platform")
   if (declaredPlatform != slug) {
@@ -137,6 +137,24 @@ private fun buildPack(slug: String, packRoot: Path, manifestPath: Path, raw: Any
   val declaredQualityCheckFile = parseOptionalPath(manifest, slug, "declared_quality_check_file", packRoot)
   val pointers = parsePointers(manifest, slug)
 
+  // SKILL-48 Subtask 3: anchored top-level keys (those the runtime consumes by name) are
+  // already captured in the typed fields above. Every remaining top-level YAML key flows
+  // verbatim into `customFields` so repo authors can extend `platform.yaml` with
+  // fork-specific fields without patching the canonical schema or the Kotlin runtime.
+  // The anchored set is sourced from the schema (`x-runtime-anchored: true`) — never
+  // hardcoded here — so the schema stays the single source of truth.
+  val anchoredKeys = anchoredTopLevelFieldNames()
+  val customFields: Map<String, Any?> = typedManifest.filterKeys { it !in anchoredKeys }
+
+  // SKILL-48 A5(b): required anchored fields (e.g. `platform`, `routing_signals`) catch typos
+  // via JSON Schema `required`, but OPTIONAL anchored fields (`display_name`, `notes`,
+  // `declared_files`, `declared_quality_check_file`, `area_metadata`, `pointers`) do not —
+  // a mis-spelled optional key would silently flow into `customFields` and the omitted
+  // anchored field would just default. Walk every customFields key and loud-fail when it is
+  // exactly one edit away from an anchored top-level field name. The check is case-sensitive
+  // and runs entirely in Kotlin so the canonical schema stays unchanged.
+  guardAgainstAnchoredFieldTypos(slug, manifestPath, customFields.keys, anchoredKeys)
+
   return PlatformManifest(
     slug = slug,
     packRoot = packRoot,
@@ -149,6 +167,7 @@ private fun buildPack(slug: String, packRoot: Path, manifestPath: Path, raw: Any
     notes = notes,
     declaredQualityCheckFile = declaredQualityCheckFile,
     pointers = pointers,
+    customFields = customFields,
   )
 }
 
@@ -157,13 +176,74 @@ private fun requireManifestMap(slug: String, manifestPath: Path, raw: Any?): Map
     "Platform pack '$slug': manifest '$manifestPath' must be a YAML mapping at the top level.",
   )
 
+// SKILL-48 A5(b): loud-fail when a top-level custom-field key looks like a typo of an
+// anchored field. Iterates `anchoredKeys` in its existing (schema-property) order so the
+// first near-match wins deterministically. Exact matches are skipped defensively — by
+// construction `customFields` has already filtered them out, but the guard makes the
+// intent explicit.
+private fun guardAgainstAnchoredFieldTypos(
+  slug: String,
+  manifestPath: Path,
+  customFieldKeys: Set<String>,
+  anchoredKeys: Set<String>,
+) {
+  for (key in customFieldKeys) {
+    for (anchored in anchoredKeys) {
+      if (key == anchored) continue
+      if (levenshtein1(key, anchored)) {
+        throw InvalidManifestSchemaError(
+          "Platform pack '$slug' ($manifestPath) has a top-level field '$key' that looks like a typo " +
+            "of the anchored field '$anchored' (did you mean '$anchored'?). Remove or rename the field — " +
+            "non-anchored fields flow through customFields, but anchored field names are reserved.",
+        )
+      }
+    }
+  }
+}
+
+// SKILL-48 A5(b): returns true iff `a` and `b` differ by exactly one edit
+// (insertion, deletion, or substitution). Case-sensitive. Equal strings return
+// false because they have edit distance 0, not 1.
+private fun levenshtein1(a: String, b: String): Boolean {
+  val lengthDelta = a.length - b.length
+  if (lengthDelta < -1 || lengthDelta > 1 || a == b) return false
+  return if (a.length == b.length) substitutionMatches(a, b) else insertionOrDeletionMatches(a, b)
+}
+
+// Substitution case (equal lengths): exactly one position must differ.
+private fun substitutionMatches(a: String, b: String): Boolean {
+  val diffs = a.indices.count { a[it] != b[it] }
+  return diffs == 1
+}
+
+// Insertion/deletion case (lengths differ by 1): align the shorter string
+// inside the longer string and allow one skipped character in the longer one.
+private fun insertionOrDeletionMatches(a: String, b: String): Boolean {
+  val longer = if (a.length > b.length) a else b
+  val shorter = if (a.length > b.length) b else a
+  var i = 0
+  var j = 0
+  var skipped = false
+  while (i < longer.length && j < shorter.length) {
+    if (longer[i] == shorter[j]) {
+      i++
+      j++
+      continue
+    }
+    if (skipped) return false
+    skipped = true
+    i++
+  }
+  return true
+}
+
 // SKILL-47: shared validator instance. The validator caches its compiled
 // schema; loading it once amortizes the cost across every pack load.
 private val canonicalSchemaValidator: PlatformPackSchemaValidator by lazy {
   CanonicalPlatformPackSchemaValidator()
 }
 
-private fun validateAgainstCanonicalSchema(slug: String, manifest: Map<*, *>) {
+private fun validateAgainstCanonicalSchema(slug: String, manifest: Map<*, *>): Map<String, Any?> {
   // SKILL-48 C2: the validator's tightened signature requires `Map<String, Any?>`.
   // The YAML parser may legitimately surface non-string keys (e.g. `true:` or `1:` at
   // the top level). Convert them with a loud-fail so we never silently drop entries.
@@ -178,6 +258,9 @@ private fun validateAgainstCanonicalSchema(slug: String, manifest: Map<*, *>) {
     stringKey to value
   }
   canonicalSchemaValidator.validate(typedManifest, slug)
+  // SKILL-48 Subtask 3: callers reuse the validated typed map to derive `customFields` so
+  // we do not re-walk the raw `Map<*, *>` and re-do the key shape check.
+  return typedManifest
 }
 
 private fun parseRoutingSignals(manifest: Map<*, *>, slug: String): RoutingSignals {

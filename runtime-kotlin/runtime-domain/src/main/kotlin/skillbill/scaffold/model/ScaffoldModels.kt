@@ -38,6 +38,13 @@ data class PlatformManifest(
   val notes: String? = null,
   val declaredQualityCheckFile: Path? = null,
   val pointers: List<PointerSpec> = emptyList(),
+  /**
+   * SKILL-48 Subtask 3: carries every non-anchored top-level field from `platform.yaml`
+   * verbatim. Intentionally untyped (`Map<String, Any?>`) so repo authors can add
+   * fork-specific keys to the canonical schema without runtime support being added first;
+   * generating Kotlin types for these fields is out of scope.
+   */
+  val customFields: Map<String, Any?> = emptyMap(),
 ) {
   /**
    * SKILL-47/SKILL-48 contract: stable identifier of the pack's code-review baseline shell.

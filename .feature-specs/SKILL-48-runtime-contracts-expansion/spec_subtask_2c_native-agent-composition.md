@@ -1,6 +1,6 @@
 # SKILL-48 Subtask 2c — `native-agent-composition-schema.yaml`
 
-Status: Not started
+Status: Complete
 
 Parent spec: [spec_subtask_2_runtime-contracts.md](./spec_subtask_2_runtime-contracts.md)
 Grandparent: [spec.md](./spec.md)

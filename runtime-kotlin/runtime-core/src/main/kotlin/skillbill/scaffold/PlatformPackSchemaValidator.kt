@@ -266,6 +266,45 @@ private fun loadSchema(): JsonSchema {
   return factory.getSchema(jsonText)
 }
 
+/**
+ * SKILL-48 Subtask 3: returns the set of top-level property names whose
+ * `x-runtime-anchored: true` marker designates them as fields the runtime
+ * consumes by name (read by `ShellContentLoader.buildPack` into typed
+ * `PlatformManifest` fields).
+ *
+ * Used by two callers:
+ *
+ *  - `ShellContentLoader.buildPack` to compute `PlatformManifest.customFields`
+ *    by filtering out anchored keys from the parsed YAML.
+ *  - `PlatformPackSchemaAnchoredBijectionTest` to assert schema↔Kotlin parity
+ *    in both directions.
+ *
+ * Loud-fails (via [InvalidManifestSchemaError]) if the canonical schema cannot
+ * be loaded, mirroring [loadSchema]'s behavior. The first access triggers the
+ * computation (and any loud-fail); subsequent accesses return the cached set
+ * because the bundled schema is immutable at runtime.
+ */
+internal fun anchoredTopLevelFieldNames(): Set<String> = ANCHORED_TOP_LEVEL_FIELD_NAMES
+
+private val ANCHORED_TOP_LEVEL_FIELD_NAMES: Set<String> by lazy {
+  val yamlText = readSchemaText()
+  val yamlNode: JsonNode = YAMLMapper().readTree(yamlText)
+  val properties = yamlNode.path("properties")
+  if (properties.isMissingNode || !properties.isObject) {
+    throw InvalidManifestSchemaError(
+      "Canonical platform-pack schema is missing a top-level 'properties' object; cannot derive " +
+        "the anchored top-level field set.",
+    )
+  }
+  val anchored = linkedSetOf<String>()
+  properties.fields().forEach { (name, definition) ->
+    if (definition.path("x-runtime-anchored").asBoolean(false)) {
+      anchored += name
+    }
+  }
+  anchored
+}
+
 // SKILL-48 C7: package-internal so tests can drive the assertion with synthesized YAML nodes
 // without round-tripping through the classpath-loaded schema (which is bundled by Gradle and
 // always matches at test time).

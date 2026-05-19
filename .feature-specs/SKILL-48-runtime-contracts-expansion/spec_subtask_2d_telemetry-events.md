@@ -1,6 +1,6 @@
 # SKILL-48 Subtask 2d — `telemetry-event-schema.yaml`
 
-Status: In Progress
+Status: Complete
 
 Parent spec: [spec_subtask_2_runtime-contracts.md](./spec_subtask_2_runtime-contracts.md)
 Grandparent: [spec.md](./spec.md)
