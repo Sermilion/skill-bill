@@ -116,7 +116,7 @@ private fun buildPack(slug: String, packRoot: Path, manifestPath: Path, raw: Any
   // areas-equal-declared, area-metadata-keys-subset-declared,
   // pointers-unique-name-per-dir).
   val manifest = requireManifestMap(slug, manifestPath, raw)
-  validateAgainstCanonicalSchema(slug, packRoot, raw)
+  validateAgainstCanonicalSchema(slug, manifest)
 
   val declaredPlatform = requireStringField(manifest, slug, "platform")
   if (declaredPlatform != slug) {
@@ -163,8 +163,21 @@ private val canonicalSchemaValidator: PlatformPackSchemaValidator by lazy {
   CanonicalPlatformPackSchemaValidator()
 }
 
-private fun validateAgainstCanonicalSchema(slug: String, @Suppress("UNUSED_PARAMETER") packRoot: Path, raw: Any?) {
-  canonicalSchemaValidator.validate(raw, slug)
+private fun validateAgainstCanonicalSchema(slug: String, manifest: Map<*, *>) {
+  // SKILL-48 C2: the validator's tightened signature requires `Map<String, Any?>`.
+  // The YAML parser may legitimately surface non-string keys (e.g. `true:` or `1:` at
+  // the top level). Convert them with a loud-fail so we never silently drop entries.
+  val typedManifest: Map<String, Any?> = manifest.entries.associate { (key, value) ->
+    val stringKey = key as? String
+      ?: run {
+        val keyType = key?.let { it::class.simpleName } ?: "null"
+        throw InvalidManifestSchemaError(
+          "Platform pack '$slug': manifest top-level keys must be strings, but found '$key' ($keyType).",
+        )
+      }
+    stringKey to value
+  }
+  canonicalSchemaValidator.validate(typedManifest, slug)
 }
 
 private fun parseRoutingSignals(manifest: Map<*, *>, slug: String): RoutingSignals {
@@ -214,7 +227,10 @@ private fun parseDeclaredFiles(
         "Platform pack '$slug': 'declared_files.baseline' must be a non-empty path string when present.",
       )
     }
-    requireDeclaredContentPath(slug, "declared_files.baseline", it)
+    // SKILL-48 C1: the `content.md`-suffix check on this field is owned by the canonical
+    // schema (`declared_files.baseline.pattern: "(^|/)content\\.md$"`); no Kotlin-side
+    // duplicate is needed because callers reach this only through `loadPlatformPack` /
+    // `loadPlatformManifest`, both of which run the schema validator first.
     packRoot.resolve(it).normalize()
   }
 
@@ -228,7 +244,8 @@ private fun parseDeclaredFiles(
       ?: throw InvalidManifestSchemaError(
         "Platform pack '$slug': 'declared_files.areas' entries must be string->string.",
       )
-    requireDeclaredContentPath(slug, "declared_files.areas.$area", relativePath)
+    // SKILL-48 C1: `content.md`-suffix is owned by the canonical schema
+    // (`declared_files.areas.additionalProperties.pattern: "(^|/)content\\.md$"`).
     area to packRoot.resolve(relativePath).normalize()
   }
 
@@ -343,16 +360,10 @@ private fun parsePointerEntry(slug: String, skillRelativeDir: String, entry: Map
     ?: throw InvalidManifestSchemaError(
       "Platform pack '$slug': 'pointers[$skillRelativeDir]' entry '$name' is missing string field 'target'.",
     )
-  if (!name.endsWith(".md")) {
-    throw InvalidManifestSchemaError(
-      "Platform pack '$slug': pointer name '$name' under '$skillRelativeDir' must end with '.md'.",
-    )
-  }
-  if (".." in name || "/" in name) {
-    throw InvalidManifestSchemaError(
-      "Platform pack '$slug': pointer name '$name' under '$skillRelativeDir' must be a bare filename (no '..' or '/').",
-    )
-  }
+  // SKILL-48 C1: the `.md`-suffix, no-`..`, and no-`/` checks on `name` are already enforced
+  // by the canonical schema's pointer `name` pattern (`^[^/\\\\]+\\.md$` plus `not: { pattern: "\\.\\." }`).
+  // Removing them here drops duplicated Kotlin-side validation; the schema validator's loud-fail
+  // message names the same field path so the failure UX does not regress.
   if (target.isBlank()) {
     throw InvalidManifestSchemaError(
       "Platform pack '$slug': pointer '$name' under '$skillRelativeDir' must declare a non-empty 'target'.",
@@ -362,6 +373,12 @@ private fun parsePointerEntry(slug: String, skillRelativeDir: String, entry: Map
   return PointerSpec(skillRelativeDir = skillRelativeDir, name = name, target = target)
 }
 
+// SKILL-48 C1: kept on purpose. The canonical schema's pointer `name` pattern guards bare
+// filenames, but it does NOT fully express the semantics enforced below for the skill-relative
+// directory key and pointer target: absolute-vs-relative paths, `..` segment rejection, and
+// JVM-`Path` parsability. Keeping these as Kotlin checks preserves defense-in-depth for any
+// future caller that bypasses the schema validator and lets us surface richer, field-specific
+// error messages than the generic schema-validator output.
 private fun requireSafePointerSubpath(slug: String, value: String, label: String) {
   if (value.startsWith("/") || value.startsWith("\\")) {
     throw InvalidManifestSchemaError(
@@ -390,6 +407,9 @@ private fun requireSafePointerSubpath(slug: String, value: String, label: String
   }
 }
 
+// SKILL-48 C1: kept on purpose for the same reasons as `requireSafePointerSubpath` — schema
+// expresses `target` as a non-empty string, but absolute-path / `..`-segment / Path parsability
+// semantics live here so we can produce field-named loud-fail messages.
 private fun requireSafePointerTarget(slug: String, skillRelativeDir: String, name: String, target: String) {
   if (target.startsWith("/") || target.startsWith("\\")) {
     throw InvalidManifestSchemaError(
@@ -429,16 +449,9 @@ private fun parseOptionalPath(manifest: Map<*, *>, slug: String, key: String, pa
   if (value.isBlank()) {
     throw InvalidManifestSchemaError("Platform pack '$slug': '$key' must be a non-empty path string when provided.")
   }
-  requireDeclaredContentPath(slug, key, value)
+  // SKILL-48 C1: `content.md`-suffix for `declared_quality_check_file` is owned by the schema
+  // (`pattern: "(^|/)content\\.md$"`).
   return packRoot.resolve(value).normalize()
-}
-
-private fun requireDeclaredContentPath(slug: String, key: String, value: String) {
-  if (!value.replace('\\', '/').endsWith("/$CONTENT_BODY_FILENAME") && value != CONTENT_BODY_FILENAME) {
-    throw InvalidManifestSchemaError(
-      "Platform pack '$slug': '$key' must point directly at '$CONTENT_BODY_FILENAME' but was '$value'.",
-    )
-  }
 }
 
 private fun requireMappingField(manifest: Map<*, *>, slug: String, key: String): Map<*, *> = manifest[key] as? Map<*, *>

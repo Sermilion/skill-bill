@@ -4,6 +4,7 @@ import skillbill.desktop.core.domain.model.RenderRunState
 import skillbill.desktop.core.domain.model.RepoLoadState
 import skillbill.desktop.core.domain.model.TreeItemKind
 import skillbill.scaffold.PlatformPackSchemaPaths
+import skillbill.testing.repoRootFromTest
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
@@ -141,18 +142,5 @@ class RuntimeRepoBrowserContractsGroupTest {
       """.trimMargin(),
     )
     return repo
-  }
-
-  private fun repoRootFromTest(): Path {
-    var current = Path.of("").toAbsolutePath().normalize()
-    while (current.parent != null) {
-      val hasSettings = Files.isRegularFile(current.resolve("runtime-kotlin/settings.gradle.kts"))
-      val hasContracts = Files.isDirectory(current.resolve("orchestration/contracts"))
-      if (hasSettings && hasContracts) {
-        return current
-      }
-      current = current.parent
-    }
-    error("Could not locate skill-bill repo root from ${Path.of("").toAbsolutePath().normalize()}")
   }
 }

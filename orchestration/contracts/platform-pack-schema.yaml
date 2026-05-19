@@ -106,6 +106,7 @@ properties:
           strong signal.
   declared_code_review_areas:
     type: array
+    uniqueItems: true
     items:
       $ref: "#/$defs/codeReviewArea"
     description: >
