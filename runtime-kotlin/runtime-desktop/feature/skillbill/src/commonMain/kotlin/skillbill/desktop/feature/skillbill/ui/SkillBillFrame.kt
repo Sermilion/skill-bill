@@ -93,7 +93,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+import skillbill.desktop.core.designsystem.SkillBillDiffTokens
 import skillbill.desktop.core.designsystem.SkillBillMetrics
+import skillbill.desktop.core.designsystem.SkillBillTheme
+import skillbill.desktop.core.designsystem.YamlSyntaxColors
 import skillbill.desktop.core.domain.model.ChangedFile
 import skillbill.desktop.core.domain.model.ChangedFileGroup
 import skillbill.desktop.core.domain.model.ChangesSnapshot
@@ -145,6 +148,37 @@ private val NavigationPaneMaxWidth = 540.dp
 private val NavigationPaneResizeHandleWidth = 7.dp
 private val BottomDockMinHeight = 132.dp
 private val BottomDockResizeHandleHeight = 7.dp
+
+internal data class CodePaneColors(
+  val background: Color,
+  val editorText: Color,
+  val editorCursor: Color,
+  val lineNumber: Color,
+  val flaggedBackground: Color,
+  val yaml: YamlSyntaxColors,
+  val yamlFallback: Color,
+  val diff: SkillBillDiffTokens,
+)
+
+@Composable
+internal fun codePaneColors(): CodePaneColors = CodePaneColors(
+  background = SkillBillTheme.colors.background,
+  editorText = SkillBillTheme.textFieldTokens.text,
+  editorCursor = SkillBillTheme.textFieldTokens.cursor,
+  lineNumber = SkillBillTheme.colors.onSurfaceVariant,
+  flaggedBackground = SkillBillTheme.semanticTones.errorBanner.container,
+  yaml = SkillBillTheme.syntaxTokens.yaml,
+  yamlFallback = SkillBillTheme.syntaxTokens.yaml.scalar,
+  diff = SkillBillTheme.diffTokens,
+)
+
+internal fun diffColorForLine(line: String, tokens: SkillBillDiffTokens): Color = when {
+  line.startsWith("+++") || line.startsWith("---") -> tokens.metadata
+  line.startsWith("@@") -> tokens.hunk
+  line.startsWith("+") -> tokens.addition
+  line.startsWith("-") -> tokens.deletion
+  else -> tokens.context
+}
 
 private fun Dp.coerceNavigationPaneWidth(): Dp = when {
   this < NavigationPaneMinWidth -> NavigationPaneMinWidth
@@ -2341,6 +2375,7 @@ private fun CodeEditor(
   modifier: Modifier = Modifier,
 ) {
   var dismissedSaveErrorDialogKey by remember { mutableStateOf<String?>(null) }
+  val codePaneColors = codePaneColors()
   Column(
     modifier =
     modifier
@@ -2373,6 +2408,7 @@ private fun CodeEditor(
         Modifier
           .weight(1f)
           .fillMaxWidth()
+          .background(codePaneColors.background)
           .verticalScroll(rememberScrollState()),
       ) {
         BasicTextField(
@@ -2380,12 +2416,12 @@ private fun CodeEditor(
           onValueChange = onDraftChanged,
           enabled = editorInputEnabled && !editor.saveInProgress,
           textStyle = androidx.compose.ui.text.TextStyle(
-            color = WorkspaceText.copy(alpha = 0.92f),
+            color = codePaneColors.editorText,
             fontSize = 12.5.sp,
             fontFamily = FontFamily.Monospace,
             lineHeight = 20.sp,
           ),
-          cursorBrush = SolidColor(WorkspaceYellow),
+          cursorBrush = SolidColor(codePaneColors.editorCursor),
           modifier =
           Modifier
             .fillMaxWidth()
@@ -2395,11 +2431,12 @@ private fun CodeEditor(
     } else {
       val rawText = (editor.content ?: editor.detail).ifBlank { "No source selected" }
       val lines = rawText.lines()
+      val yamlSyntaxColors = SkillBillTheme.syntaxTokens.yaml
       // SKILL-47 AC6 — apply YAML-aware highlighting only for kind=contract
       // documents (the platform-pack schema viewer). Other read-only docs
       // (markdown, generated output, etc.) keep the existing SyntaxText path.
       val highlightedLines: List<AnnotatedString>? = if (editor.kind == "contract") {
-        remember(rawText) { highlightYaml(rawText, contractYamlColors).splitIntoLines() }
+        remember(rawText, yamlSyntaxColors) { highlightYaml(rawText, yamlSyntaxColors).splitIntoLines() }
       } else {
         null
       }
@@ -2409,15 +2446,16 @@ private fun CodeEditor(
         Modifier
           .weight(1f)
           .fillMaxWidth()
+          .background(codePaneColors.background)
           .verticalScroll(rememberScrollState()),
       ) {
         if (highlightedLines != null) {
           highlightedLines.forEachIndexed { index, annotated ->
-            CodeLineAnnotated(number = index + 1, content = annotated)
+            CodeLineAnnotated(number = index + 1, content = annotated, colors = codePaneColors)
           }
         } else {
           lines.forEachIndexed { index, line ->
-            CodeLine(number = index + 1, line = line, flagged = false)
+            CodeLine(number = index + 1, line = line, flagged = false, colors = codePaneColors)
           }
         }
       }
@@ -2600,16 +2638,16 @@ private fun DirtyEditorPromptBanner(prompt: DirtyEditorPrompt, onDiscard: () -> 
 }
 
 @Composable
-private fun CodeLine(number: Int, line: String, flagged: Boolean) {
+private fun CodeLine(number: Int, line: String, flagged: Boolean, colors: CodePaneColors) {
   Row(
     modifier =
     Modifier
       .fillMaxWidth()
-      .background(if (flagged) WorkspaceRed.copy(alpha = 0.10f) else Color.Transparent),
+      .background(if (flagged) colors.flaggedBackground else Color.Transparent),
   ) {
     Text(
       text = number.toString(),
-      color = WorkspaceSteel,
+      color = colors.lineNumber,
       fontSize = 12.sp,
       fontFamily = FontFamily.Monospace,
       modifier =
@@ -2623,7 +2661,7 @@ private fun CodeLine(number: Int, line: String, flagged: Boolean) {
       modifier = Modifier.padding(start = 12.dp, top = 4.dp, bottom = 3.dp, end = 16.dp),
       verticalAlignment = Alignment.CenterVertically,
     ) {
-      SyntaxText(line = line)
+      SyntaxText(line = line, colors = colors)
       if (flagged) {
         Row(
           modifier = Modifier.padding(start = 12.dp),
@@ -2637,20 +2675,6 @@ private fun CodeLine(number: Int, line: String, flagged: Boolean) {
     }
   }
 }
-
-// SKILL-47 AC6 — color palette used by the YAML-aware schema viewer. The
-// runtime-desktop module does not yet expose a semantic-token palette, so we
-// reuse the existing WorkspaceXxx values that already drive the editor pane.
-// All colors are private vals declared at the top of this file, which means
-// follow-up theme work (light/dark variants, MaterialTheme.colorScheme
-// adoption) can swap them in one place.
-private val contractYamlColors: YamlSyntaxColors = YamlSyntaxColors(
-  comment = WorkspaceSteel,
-  key = WorkspaceYellow,
-  string = WorkspaceGreen,
-  marker = WorkspaceAmber,
-  scalar = WorkspaceText.copy(alpha = 0.9f),
-)
 
 /**
  * Splits a highlighted [AnnotatedString] into one [AnnotatedString] per source
@@ -2673,11 +2697,11 @@ internal fun AnnotatedString.splitIntoLines(): List<AnnotatedString> {
 }
 
 @Composable
-private fun CodeLineAnnotated(number: Int, content: AnnotatedString) {
+private fun CodeLineAnnotated(number: Int, content: AnnotatedString, colors: CodePaneColors) {
   Row(modifier = Modifier.fillMaxWidth()) {
     Text(
       text = number.toString(),
-      color = WorkspaceSteel,
+      color = colors.lineNumber,
       fontSize = 12.sp,
       fontFamily = FontFamily.Monospace,
       modifier =
@@ -2695,7 +2719,7 @@ private fun CodeLineAnnotated(number: Int, content: AnnotatedString) {
         text = if (content.text.isEmpty()) AnnotatedString(" ") else content,
         // Fallback color for any character without an explicit span (default
         // unstyled scalar text).
-        color = WorkspaceText.copy(alpha = 0.9f),
+        color = colors.yamlFallback,
         fontSize = 12.5.sp,
         fontFamily = FontFamily.Monospace,
         lineHeight = 20.sp,
@@ -2706,12 +2730,12 @@ private fun CodeLineAnnotated(number: Int, content: AnnotatedString) {
 }
 
 @Composable
-private fun SyntaxText(line: String) {
+private fun SyntaxText(line: String, colors: CodePaneColors) {
   val keyMatch = Regex("^(\\s*)([A-Za-z0-9_-]+):(.*)$").matchEntire(line)
   if (line.trimStart().startsWith("#")) {
     Text(
       text = line,
-      color = WorkspaceSteel,
+      color = colors.yaml.comment,
       fontSize = 12.5.sp,
       fontFamily = FontFamily.Monospace,
       lineHeight = 20.sp,
@@ -2719,12 +2743,12 @@ private fun SyntaxText(line: String) {
     )
   } else if (keyMatch != null) {
     Row {
-      Text(keyMatch.groupValues[1], color = WorkspaceText, fontSize = 12.5.sp, fontFamily = FontFamily.Monospace)
-      Text(keyMatch.groupValues[2], color = WorkspaceYellow, fontSize = 12.5.sp, fontFamily = FontFamily.Monospace)
-      Text(":", color = WorkspaceSteel, fontSize = 12.5.sp, fontFamily = FontFamily.Monospace)
+      Text(keyMatch.groupValues[1], color = colors.yaml.scalar, fontSize = 12.5.sp, fontFamily = FontFamily.Monospace)
+      Text(keyMatch.groupValues[2], color = colors.yaml.key, fontSize = 12.5.sp, fontFamily = FontFamily.Monospace)
+      Text(":", color = colors.yaml.marker, fontSize = 12.5.sp, fontFamily = FontFamily.Monospace)
       Text(
         keyMatch.groupValues[3],
-        color = WorkspaceText.copy(alpha = 0.9f),
+        color = colors.yaml.scalar,
         fontSize = 12.5.sp,
         fontFamily = FontFamily.Monospace,
       )
@@ -2732,7 +2756,7 @@ private fun SyntaxText(line: String) {
   } else {
     Text(
       text = line,
-      color = WorkspaceText.copy(alpha = 0.9f),
+      color = colors.yaml.scalar,
       fontSize = 12.5.sp,
       fontFamily = FontFamily.Monospace,
       lineHeight = 20.sp,
@@ -4570,9 +4594,10 @@ private fun ChangesDiffPane(
   modifier: Modifier = Modifier,
 ) {
   val horizontalScrollState = rememberScrollState()
+  val codePaneColors = codePaneColors()
   // F-U04: padding lives on the scroll content so the horizontal indicator can sit flush against
   // the panel bottom instead of floating above the left-pane indicator.
-  Box(modifier = modifier.background(WorkspaceBackground)) {
+  Box(modifier = modifier.background(codePaneColors.background)) {
     Column(
       modifier = Modifier
         .fillMaxSize()
@@ -4583,7 +4608,7 @@ private fun ChangesDiffPane(
       if (selectedChangedFile == null) {
         Text(
           text = "Select a changed file to view its diff.",
-          color = WorkspaceSteel,
+          color = codePaneColors.lineNumber,
           fontSize = 11.sp,
         )
         return@Column
@@ -4591,7 +4616,7 @@ private fun ChangesDiffPane(
       Column(modifier = Modifier.horizontalScroll(horizontalScrollState)) {
         Text(
           text = selectedChangedFile.displayPath(),
-          color = WorkspaceMuted,
+          color = codePaneColors.diff.metadata,
           fontSize = 11.sp,
           fontFamily = FontFamily.Monospace,
           modifier = Modifier.padding(bottom = 6.dp),
@@ -4599,11 +4624,11 @@ private fun ChangesDiffPane(
           softWrap = false,
         )
         if (selectedDiffBusy) {
-          Text(text = "Loading diff...", color = WorkspaceSteel, fontSize = 11.sp)
+          Text(text = "Loading diff...", color = codePaneColors.lineNumber, fontSize = 11.sp)
           return@Column
         }
         if (selectedDiff.isBlank()) {
-          Text(text = "(no diff available)", color = WorkspaceSteel, fontSize = 11.sp)
+          Text(text = "(no diff available)", color = codePaneColors.lineNumber, fontSize = 11.sp)
           return@Column
         }
         // F-601 mirror: shared horizontalScroll lets long diff lines stay reachable without clipping.
@@ -4612,7 +4637,7 @@ private fun ChangesDiffPane(
         selectedDiff.lines().forEach { line ->
           Text(
             text = line,
-            color = diffLineColor(line),
+            color = diffColorForLine(line, codePaneColors.diff),
             fontSize = 12.sp,
             fontFamily = FontFamily.Monospace,
             softWrap = false,
@@ -4630,14 +4655,6 @@ private fun ChangesDiffPane(
       )
     }
   }
-}
-
-private fun diffLineColor(line: String): Color = when {
-  line.startsWith("+++") || line.startsWith("---") -> WorkspaceMuted
-  line.startsWith("@@") -> WorkspaceAmber
-  line.startsWith("+") -> WorkspaceGreen
-  line.startsWith("-") -> WorkspaceRed
-  else -> WorkspaceText.copy(alpha = 0.85f)
 }
 
 @Composable

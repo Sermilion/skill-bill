@@ -2,6 +2,7 @@ package skillbill.desktop.feature.skillbill.ui
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
+import skillbill.desktop.core.designsystem.YamlSyntaxColors
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
