@@ -1,5 +1,15 @@
 # SkillBill desktop feature — history
 
+## [2026-05-20] SKILL-49 material3-theme-adoption-helpers-guardrails
+Areas: runtime-desktop/feature/skillbill, runtime-desktop/core/designsystem
+- Feature UI no longer authors raw Compose colors; workspace constants now reference core/designsystem tokens, with `SkillBillTransparent`, `SkillBillColor`, and `SkillBillOnYellow` covering transparent/type/primary-yellow foreground seams. reusable
+- YAML highlighting keeps the SKILL-47 regex tokenizer unchanged but consumes `SkillBillTheme.syntaxTokens.yaml`; tests use design-system-owned fixtures instead of feature-local `Color` palettes.
+- Unified diff rendering keeps prefix classification in feature UI as `DiffLineRole` and maps roles to `SkillBillTheme.diffTokens` at render time, preserving the feature/design-system boundary. reusable
+- `DesktopColorTokenBoundaryTest` scans runtime-desktop Kotlin source sets under `/src/` outside `core/designsystem` (including `jvmMain`) and fails on raw `Color(0x...)`, `Color.Black/White/Transparent`, or direct Compose `Color` imports.
+- Known limitation: full repo `./gradlew check` remains blocked by untouched `runtime-cli` failures; scoped desktop/KMP validation passes.
+Feature flag: N/A
+Acceptance criteria: 4/4 implemented
+
 ## [2026-05-19] SKILL-47 platform-pack-schema-source-of-truth (desktop schema viewer)
 Areas: runtime-desktop/feature/skillbill, runtime-desktop/core/domain, runtime-desktop/core/data
 - New `TreeItemKind.CONTRACT` exposes runtime contracts (today: `orchestration/contracts/platform-pack-schema.yaml`) as a top-level "Contracts" group under the Skill Bill tree. CONTRACT leaves are read-only (`editable=false`, `readOnlyLabel="RO"`, `readOnlyReason` explains the contract is edited as a repo file), inherit the SKILL-44 subtask-03 read-only `SelectionDetail.contentFile` flow (no second loader), and are excluded from the SKILL-46 right-click-delete predicate via the existing `else -> null` in `resolveDeletionTarget`. Every exhaustive `when (TreeItemKind)` (CommandPaletteBuilder, SkillBillViewModel.isRenderableTreeItemKind, SkillBillFrame markerFor / row icon, ConfirmDeletionDialog kind label) was updated; CONTRACT renders as marker `ct` and is non-renderable. reusable

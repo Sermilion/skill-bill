@@ -19,6 +19,7 @@ private const val DISABLED_CONTENT_ALPHA = 0.70f
 val SkillBillYellow = Color(0xFFF4C430)
 internal val SkillBillYellowDeep = Color(0xFFC99717)
 internal val SkillBillInk = Color(0xFF0B0B0D)
+val SkillBillOnYellow = SkillBillInk
 
 // SKILL-46 follow-up F-609: the colors below were `internal`; widening to module-public so the
 // feature module's dialogs can converge on a single design-system source-of-truth rather than
@@ -40,6 +41,7 @@ val SkillBillSteelDark = Color(0xFF6F7882)
 val SkillBillGreen = Color(0xFF60D394)
 val SkillBillRed = Color(0xFFFF5F57)
 val SkillBillAmber = Color(0xFFFFBD2E)
+val SkillBillTransparent = Color.Transparent
 internal val SkillBillMacGreen = Color(0xFF28C840)
 internal val SkillBillHeroGold = Color(0xFFE1AF1D)
 internal val SkillBillNodeText = Color(0xFFF5E8AE)

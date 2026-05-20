@@ -25,7 +25,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -55,31 +54,31 @@ data class FirstRunSetupCallbacks(
 )
 
 @Composable
-private fun setupRaisedColor(): Color = SkillBillTheme.colors.surfaceVariant
+private fun setupRaisedColor() = SkillBillTheme.colors.surfaceVariant
 
 @Composable
-private fun setupLineColor(): Color = SkillBillTheme.semanticTones.dialog.border
+private fun setupLineColor() = SkillBillTheme.semanticTones.dialog.border
 
 @Composable
-private fun setupTextColor(): Color = SkillBillTheme.semanticTones.dialog.content
+private fun setupTextColor() = SkillBillTheme.semanticTones.dialog.content
 
 @Composable
-private fun setupMutedColor(): Color = SkillBillTheme.colors.onSurfaceVariant
+private fun setupMutedColor() = SkillBillTheme.colors.onSurfaceVariant
 
 @Composable
-private fun setupSteelColor(): Color = SkillBillTheme.colors.onSurfaceVariant
+private fun setupSteelColor() = SkillBillTheme.colors.onSurfaceVariant
 
 @Composable
-private fun setupYellowColor(): Color = SkillBillTheme.colors.primary
+private fun setupYellowColor() = SkillBillTheme.colors.primary
 
 @Composable
-private fun setupOnYellowColor(): Color = SkillBillTheme.colors.onPrimary
+private fun setupOnYellowColor() = SkillBillTheme.colors.onPrimary
 
 @Composable
-private fun setupAmberColor(): Color = SkillBillTheme.semanticTones.warningBanner.content
+private fun setupAmberColor() = SkillBillTheme.semanticTones.warningBanner.content
 
 @Composable
-private fun setupRedColor(): Color = SkillBillTheme.colors.error
+private fun setupRedColor() = SkillBillTheme.colors.error
 
 @Composable
 fun FirstRunSetupDialog(state: FirstRunSetupState, callbacks: FirstRunSetupCallbacks) {
@@ -311,7 +310,11 @@ private fun ToggleRow(label: String, selected: Boolean, enabled: Boolean, detail
     horizontalArrangement = Arrangement.spacedBy(10.dp),
     verticalAlignment = Alignment.CenterVertically,
   ) {
-    Text(text = if (selected) "[x]" else "[ ]", color = if (selected) setupYellowColor() else setupSteelColor(), fontSize = 12.sp)
+    Text(
+      text = if (selected) "[x]" else "[ ]",
+      color = if (selected) setupYellowColor() else setupSteelColor(),
+      fontSize = 12.sp,
+    )
     Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
       Text(text = label, color = setupTextColor(), fontSize = 12.sp, fontWeight = FontWeight.Medium)
       Text(text = detail, color = setupMutedColor(), fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)

@@ -63,7 +63,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.key.Key
@@ -93,9 +92,24 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+import skillbill.desktop.core.designsystem.SkillBillAmber
+import skillbill.desktop.core.designsystem.SkillBillBlack
+import skillbill.desktop.core.designsystem.SkillBillColor
 import skillbill.desktop.core.designsystem.SkillBillDiffTokens
+import skillbill.desktop.core.designsystem.SkillBillFrameColor
+import skillbill.desktop.core.designsystem.SkillBillGreen
+import skillbill.desktop.core.designsystem.SkillBillLine
 import skillbill.desktop.core.designsystem.SkillBillMetrics
+import skillbill.desktop.core.designsystem.SkillBillMuted
+import skillbill.desktop.core.designsystem.SkillBillOnYellow
+import skillbill.desktop.core.designsystem.SkillBillPanel
+import skillbill.desktop.core.designsystem.SkillBillPanelRaised
+import skillbill.desktop.core.designsystem.SkillBillRed
+import skillbill.desktop.core.designsystem.SkillBillSteelDark
+import skillbill.desktop.core.designsystem.SkillBillText
 import skillbill.desktop.core.designsystem.SkillBillTheme
+import skillbill.desktop.core.designsystem.SkillBillTransparent
+import skillbill.desktop.core.designsystem.SkillBillYellow
 import skillbill.desktop.core.designsystem.YamlSyntaxColors
 import skillbill.desktop.core.domain.model.ChangedFile
 import skillbill.desktop.core.domain.model.ChangedFileGroup
@@ -131,18 +145,19 @@ import skillbill.desktop.core.domain.model.ValidationRunState
 import skillbill.desktop.core.domain.model.ValidationSeverity
 import skillbill.desktop.core.domain.model.ValidationSummary
 
-private val WorkspaceBackground = Color(0xFF050506)
-private val WorkspacePanel = Color(0xFF121216)
-private val WorkspaceRaised = Color(0xFF15151A)
-private val WorkspaceSidebar = Color(0xFF0D0D10)
-private val WorkspaceLine = Color(0xFF2A2A31)
-private val WorkspaceMuted = Color(0xFFB7B1A0)
-private val WorkspaceSteel = Color(0xFF6F7882)
-private val WorkspaceText = Color(0xFFF6F3E7)
-private val WorkspaceYellow = Color(0xFFF4C430)
-private val WorkspaceGreen = Color(0xFF60D394)
-private val WorkspaceRed = Color(0xFFFF5F57)
-private val WorkspaceAmber = Color(0xFFFFBD2E)
+private val WorkspaceBackground = SkillBillBlack
+private val WorkspacePanel = SkillBillPanel
+private val WorkspaceRaised = SkillBillPanelRaised
+private val WorkspaceSidebar = SkillBillFrameColor
+private val WorkspaceLine = SkillBillLine
+private val WorkspaceMuted = SkillBillMuted
+private val WorkspaceSteel = SkillBillSteelDark
+private val WorkspaceText = SkillBillText
+private val WorkspaceYellow = SkillBillYellow
+private val WorkspaceOnYellow = SkillBillOnYellow
+private val WorkspaceGreen = SkillBillGreen
+private val WorkspaceRed = SkillBillRed
+private val WorkspaceAmber = SkillBillAmber
 private val NavigationPaneMinWidth = 220.dp
 private val NavigationPaneMaxWidth = 540.dp
 private val NavigationPaneResizeHandleWidth = 7.dp
@@ -150,13 +165,13 @@ private val BottomDockMinHeight = 132.dp
 private val BottomDockResizeHandleHeight = 7.dp
 
 internal data class CodePaneColors(
-  val background: Color,
-  val editorText: Color,
-  val editorCursor: Color,
-  val lineNumber: Color,
-  val flaggedBackground: Color,
+  val background: SkillBillColor,
+  val editorText: SkillBillColor,
+  val editorCursor: SkillBillColor,
+  val lineNumber: SkillBillColor,
+  val flaggedBackground: SkillBillColor,
   val yaml: YamlSyntaxColors,
-  val yamlFallback: Color,
+  val yamlFallback: SkillBillColor,
   val diff: SkillBillDiffTokens,
 )
 
@@ -172,12 +187,30 @@ internal fun codePaneColors(): CodePaneColors = CodePaneColors(
   diff = SkillBillTheme.diffTokens,
 )
 
-internal fun diffColorForLine(line: String, tokens: SkillBillDiffTokens): Color = when {
-  line.startsWith("+++") || line.startsWith("---") -> tokens.metadata
-  line.startsWith("@@") -> tokens.hunk
-  line.startsWith("+") -> tokens.addition
-  line.startsWith("-") -> tokens.deletion
-  else -> tokens.context
+internal enum class DiffLineRole {
+  Metadata,
+  Hunk,
+  Addition,
+  Deletion,
+  Context,
+}
+
+internal fun workspacePrimaryControlForeground(): SkillBillColor = WorkspaceOnYellow
+
+internal fun diffRoleForLine(line: String): DiffLineRole = when {
+  line.startsWith("+++") || line.startsWith("---") -> DiffLineRole.Metadata
+  line.startsWith("@@") -> DiffLineRole.Hunk
+  line.startsWith("+") -> DiffLineRole.Addition
+  line.startsWith("-") -> DiffLineRole.Deletion
+  else -> DiffLineRole.Context
+}
+
+private fun diffColorForRole(role: DiffLineRole, tokens: SkillBillDiffTokens) = when (role) {
+  DiffLineRole.Metadata -> tokens.metadata
+  DiffLineRole.Hunk -> tokens.hunk
+  DiffLineRole.Addition -> tokens.addition
+  DiffLineRole.Deletion -> tokens.deletion
+  DiffLineRole.Context -> tokens.context
 }
 
 private fun Dp.coerceNavigationPaneWidth(): Dp = when {
@@ -602,7 +635,7 @@ private fun WorkspaceToolbar(
       .fillMaxWidth()
       .height(40.dp)
       .background(WorkspaceBackground)
-      .border(BorderStroke(0.dp, Color.Transparent))
+      .border(BorderStroke(0.dp, SkillBillTransparent))
       .padding(horizontal = 12.dp),
     verticalAlignment = Alignment.CenterVertically,
   ) {
@@ -696,7 +729,7 @@ private fun ToolbarButton(
   val foreground =
     when {
       !enabled -> WorkspaceSteel
-      primary -> Color(0xFF0B0B0D)
+      primary -> workspacePrimaryControlForeground()
       else -> WorkspaceText
     }
   val border = if (primary) WorkspaceYellow else WorkspaceLine
@@ -766,7 +799,7 @@ private fun ToolbarSidePanelButton(
 }
 
 @Composable
-private fun SidePanelIcon(tint: Color, panelVisible: Boolean) {
+private fun SidePanelIcon(tint: SkillBillColor, panelVisible: Boolean) {
   Canvas(modifier = Modifier.size(width = 15.dp, height = 14.dp)) {
     val strokeWidth = 1.4.dp.toPx()
     val cornerInset = strokeWidth / 2f
@@ -829,7 +862,7 @@ private fun DockVisibilityButton(
 }
 
 @Composable
-private fun BottomPanelIcon(tint: Color, panelVisible: Boolean) {
+private fun BottomPanelIcon(tint: SkillBillColor, panelVisible: Boolean) {
   Canvas(modifier = Modifier.size(width = 15.dp, height = 14.dp)) {
     val strokeWidth = 1.4.dp.toPx()
     val cornerInset = strokeWidth / 2f
@@ -895,7 +928,7 @@ private fun AcceleratorTooltip(label: String, acceleratorLabel: String?, content
 @Composable
 private fun ToolbarStatusItem(label: String, marker: String, primary: Boolean = false) {
   val background = if (primary) WorkspaceYellow else WorkspaceRaised
-  val foreground = if (primary) Color(0xFF0B0B0D) else WorkspaceText
+  val foreground = if (primary) workspacePrimaryControlForeground() else WorkspaceText
   val border = if (primary) WorkspaceYellow else WorkspaceLine
   Row(
     modifier =
@@ -1099,7 +1132,7 @@ private fun CommandPaletteOverlay(
     Box(
       modifier = Modifier
         .fillMaxSize()
-        .background(Color.Black.copy(alpha = 0.42f))
+        .background(SkillBillTheme.semanticTones.scrim)
         .clickable(role = Role.Button, onClick = onDismiss),
     )
     Column(
@@ -1216,7 +1249,7 @@ private fun CommandPaletteResultRow(result: CommandPaletteResult, selected: Bool
   val background =
     when {
       selected -> WorkspaceYellow.copy(alpha = 0.14f)
-      else -> Color.Transparent
+      else -> SkillBillTransparent
     }
   val titleColor =
     when {
@@ -1429,7 +1462,7 @@ private fun NavigationPane(
       Modifier
         .fillMaxWidth()
         .height(35.dp)
-        .border(BorderStroke(0.dp, Color.Transparent))
+        .border(BorderStroke(0.dp, SkillBillTransparent))
         .background(WorkspaceSidebar)
         .padding(horizontal = 12.dp),
       verticalAlignment = Alignment.CenterVertically,
@@ -1465,7 +1498,7 @@ private fun RepositorySelector(
     modifier =
     Modifier
       .fillMaxWidth()
-      .border(BorderStroke(0.dp, Color.Transparent))
+      .border(BorderStroke(0.dp, SkillBillTransparent))
       .padding(horizontal = 12.dp, vertical = 10.dp),
   ) {
     LabelText("Repository")
@@ -1621,7 +1654,7 @@ private fun NavGroup(
   onShowContextMenu: (SkillBillTreeItem) -> Unit = {},
 ) {
   val selected = selectedNodeId == group.id
-  val rowBackground = if (selected) WorkspaceYellow.copy(alpha = 0.15f) else Color.Transparent
+  val rowBackground = if (selected) WorkspaceYellow.copy(alpha = 0.15f) else SkillBillTransparent
   val iconTint = if (selected) WorkspaceYellow else WorkspaceSteel
   val textColor =
     when {
@@ -1662,7 +1695,7 @@ private fun NavGroup(
         Modifier
           .width(3.dp)
           .fillMaxHeight()
-          .background(if (selected) WorkspaceYellow else Color.Transparent),
+          .background(if (selected) WorkspaceYellow else SkillBillTransparent),
       )
       Text(text = if (expanded) "v" else ">", color = iconTint, fontSize = 12.sp)
       MiniIcon(text = markerFor(group.kind), tint = iconTint)
@@ -1733,7 +1766,7 @@ private fun NavTreeNode(
   val rowBackground = when {
     selected -> WorkspaceYellow.copy(alpha = 0.15f)
     open -> WorkspaceYellow.copy(alpha = 0.06f)
-    else -> Color.Transparent
+    else -> SkillBillTransparent
   }
   val iconTint = if (selected || open) WorkspaceYellow else WorkspaceSteel
   val textAlpha =
@@ -1784,7 +1817,7 @@ private fun NavTreeNode(
       Modifier
         .width(3.dp)
         .fillMaxHeight()
-        .background(if (selected) WorkspaceYellow else Color.Transparent),
+        .background(if (selected) WorkspaceYellow else SkillBillTransparent),
     )
     Spacer(modifier = Modifier.width((22 + depth * 16).dp))
     if (expandable) {
@@ -2312,13 +2345,15 @@ private fun EditorTab(
         selected = active
       },
   ) {
-    Box(modifier = Modifier.fillMaxWidth().height(2.dp).background(if (active) WorkspaceYellow else Color.Transparent))
+    Box(
+      modifier = Modifier.fillMaxWidth().height(2.dp).background(if (active) WorkspaceYellow else SkillBillTransparent),
+    )
     Row(
       modifier =
       Modifier
         .weight(1f)
         .fillMaxWidth()
-        .border(BorderStroke(0.dp, Color.Transparent))
+        .border(BorderStroke(0.dp, SkillBillTransparent))
         .padding(horizontal = 10.dp),
       verticalAlignment = Alignment.CenterVertically,
       horizontalArrangement = Arrangement.spacedBy(7.dp),
@@ -2541,7 +2576,7 @@ private fun EditorActionButton(
   val foreground =
     when {
       !enabled -> WorkspaceSteel
-      primary -> Color(0xFF0B0B0D)
+      primary -> workspacePrimaryControlForeground()
       else -> WorkspaceText
     }
   AcceleratorTooltip(label = label, acceleratorLabel = acceleratorLabel) {
@@ -2643,7 +2678,7 @@ private fun CodeLine(number: Int, line: String, flagged: Boolean, colors: CodePa
     modifier =
     Modifier
       .fillMaxWidth()
-      .background(if (flagged) colors.flaggedBackground else Color.Transparent),
+      .background(if (flagged) colors.flaggedBackground else SkillBillTransparent),
   ) {
     Text(
       text = number.toString(),
@@ -2653,7 +2688,7 @@ private fun CodeLine(number: Int, line: String, flagged: Boolean, colors: CodePa
       modifier =
       Modifier
         .width(50.dp)
-        .border(BorderStroke(0.dp, Color.Transparent))
+        .border(BorderStroke(0.dp, SkillBillTransparent))
         .padding(top = 4.dp, end = 10.dp),
       maxLines = 1,
     )
@@ -2707,7 +2742,7 @@ private fun CodeLineAnnotated(number: Int, content: AnnotatedString, colors: Cod
       modifier =
       Modifier
         .width(50.dp)
-        .border(BorderStroke(0.dp, Color.Transparent))
+        .border(BorderStroke(0.dp, SkillBillTransparent))
         .padding(top = 4.dp, end = 10.dp),
       maxLines = 1,
     )
@@ -2779,7 +2814,7 @@ private fun InspectorPane(
       .width(SkillBillMetrics.inspectorPaneWidth)
       .fillMaxHeight()
       .background(WorkspaceBackground)
-      .border(BorderStroke(0.dp, Color.Transparent)),
+      .border(BorderStroke(0.dp, SkillBillTransparent)),
   ) {
     InspectorHeader(editor = editor)
     Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {
@@ -2929,7 +2964,7 @@ private fun GeneratedArtifactRow(
     if (enabled && hovered) {
       WorkspaceRaised.copy(alpha = 0.65f)
     } else {
-      Color.Transparent
+      SkillBillTransparent
     }
   val labelAlpha = if (enabled) 1f else 0.55f
   Row(
@@ -3306,7 +3341,9 @@ private fun DockTabButton(tab: DockTab, badge: String?, active: Boolean, enabled
         }
       },
   ) {
-    Box(modifier = Modifier.fillMaxWidth().height(2.dp).background(if (active) WorkspaceYellow else Color.Transparent))
+    Box(
+      modifier = Modifier.fillMaxWidth().height(2.dp).background(if (active) WorkspaceYellow else SkillBillTransparent),
+    )
     Row(
       modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 10.dp),
       verticalAlignment = Alignment.CenterVertically,
@@ -3922,7 +3959,7 @@ private fun CompareUrlRow(url: String, showCopied: Boolean, showOpened: Boolean,
     if (hovered || focused) {
       WorkspaceRaised.copy(alpha = 0.65f)
     } else {
-      Color.Transparent
+      SkillBillTransparent
     }
   Row(
     modifier =
@@ -4329,7 +4366,7 @@ private fun GovernedChangedFileRow(
     ChangedFileGroup.UNTRACKED -> Tone.Error
     ChangedFileGroup.GENERATED -> Tone.Warning
   }
-  val background = if (selected) WorkspaceYellow.copy(alpha = 0.12f) else Color.Transparent
+  val background = if (selected) WorkspaceYellow.copy(alpha = 0.12f) else SkillBillTransparent
   Row(
     modifier =
     Modifier
@@ -4371,7 +4408,7 @@ private fun GovernedChangedFileRow(
             RoundedCornerShape(2.dp),
           )
           .background(
-            if (selectedForPublish) WorkspaceYellow.copy(alpha = 0.22f) else Color.Transparent,
+            if (selectedForPublish) WorkspaceYellow.copy(alpha = 0.22f) else SkillBillTransparent,
             RoundedCornerShape(2.dp),
           ),
       )
@@ -4473,7 +4510,7 @@ private fun ChangedFileRow(
     ChangedFileGroup.UNTRACKED -> Tone.Error
     ChangedFileGroup.GENERATED -> Tone.Warning
   }
-  val background = if (selected) WorkspaceYellow.copy(alpha = 0.12f) else Color.Transparent
+  val background = if (selected) WorkspaceYellow.copy(alpha = 0.12f) else SkillBillTransparent
   Row(
     modifier =
     Modifier
@@ -4637,7 +4674,7 @@ private fun ChangesDiffPane(
         selectedDiff.lines().forEach { line ->
           Text(
             text = line,
-            color = diffColorForLine(line, codePaneColors.diff),
+            color = diffColorForRole(diffRoleForLine(line), codePaneColors.diff),
             fontSize = 12.sp,
             fontFamily = FontFamily.Monospace,
             softWrap = false,
@@ -5227,7 +5264,7 @@ private fun TableRow(
     Modifier
       .fillMaxWidth()
       .height(30.dp)
-      .border(BorderStroke(0.dp, Color.Transparent))
+      .border(BorderStroke(0.dp, SkillBillTransparent))
       .then(
         if (onClick == null) {
           Modifier
@@ -5400,7 +5437,7 @@ private fun StatusDot(level: ValidationLevel?) {
 }
 
 @Composable
-private fun MiniIcon(text: String, tint: Color) {
+private fun MiniIcon(text: String, tint: SkillBillColor) {
   Box(
     modifier =
     Modifier
@@ -5440,7 +5477,7 @@ private enum class Tone {
 }
 
 @Composable
-private fun Tone.color(): Color = when (this) {
+private fun Tone.color(): SkillBillColor = when (this) {
   Tone.Neutral -> WorkspaceMuted
   Tone.Success -> WorkspaceGreen
   Tone.Warning -> WorkspaceAmber

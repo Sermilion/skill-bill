@@ -2,6 +2,8 @@ package skillbill.desktop.core.designsystem
 
 import androidx.compose.ui.graphics.Color
 
+typealias SkillBillColor = Color
+
 data class SkillBillTextFieldTokens(
   val text: Color,
   val disabledText: Color,

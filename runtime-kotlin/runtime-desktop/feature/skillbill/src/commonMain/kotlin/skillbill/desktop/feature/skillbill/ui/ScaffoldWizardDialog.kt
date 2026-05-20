@@ -27,7 +27,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -60,31 +59,31 @@ data class ScaffoldWizardCallbacks(
 )
 
 @Composable
-private fun scaffoldBackdropColor(): Color = SkillBillTheme.semanticTones.scrim
+private fun scaffoldBackdropColor() = SkillBillTheme.semanticTones.scrim
 
 @Composable
-private fun scaffoldPanelColor(): Color = SkillBillTheme.semanticTones.dialog.container
+private fun scaffoldPanelColor() = SkillBillTheme.semanticTones.dialog.container
 
 @Composable
-private fun scaffoldLineColor(): Color = SkillBillTheme.semanticTones.dialog.border
+private fun scaffoldLineColor() = SkillBillTheme.semanticTones.dialog.border
 
 @Composable
-private fun scaffoldTextColor(): Color = SkillBillTheme.semanticTones.dialog.content
+private fun scaffoldTextColor() = SkillBillTheme.semanticTones.dialog.content
 
 @Composable
-private fun scaffoldMutedColor(): Color = SkillBillTheme.colors.onSurfaceVariant
+private fun scaffoldMutedColor() = SkillBillTheme.colors.onSurfaceVariant
 
 @Composable
-private fun scaffoldSteelColor(): Color = SkillBillTheme.colors.onSurfaceVariant
+private fun scaffoldSteelColor() = SkillBillTheme.colors.onSurfaceVariant
 
 @Composable
-private fun scaffoldYellowColor(): Color = SkillBillTheme.colors.primary
+private fun scaffoldYellowColor() = SkillBillTheme.colors.primary
 
 @Composable
-private fun scaffoldOnYellowColor(): Color = SkillBillTheme.colors.onPrimary
+private fun scaffoldOnYellowColor() = SkillBillTheme.colors.onPrimary
 
 @Composable
-private fun scaffoldRaisedColor(): Color = SkillBillTheme.colors.surfaceVariant
+private fun scaffoldRaisedColor() = SkillBillTheme.colors.surfaceVariant
 
 @Composable
 fun ScaffoldWizardDialog(

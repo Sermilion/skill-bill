@@ -1,8 +1,8 @@
 package skillbill.desktop.core.designsystem
 
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.runComposeUiTest
-import androidx.compose.ui.graphics.Color
 import kotlin.math.pow
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -22,6 +22,7 @@ class SkillBillThemeTokensTest {
     assertReadable(SkillBillLightColorScheme.onSurface, SkillBillLightColorScheme.surface)
     assertReadable(SkillBillLightColorScheme.primary, SkillBillLightColorScheme.surface)
     assertReadable(SkillBillLightColorScheme.onPrimary, SkillBillLightColorScheme.primary)
+    assertReadable(SkillBillOnYellow, SkillBillYellow)
     assertReadable(SkillBillDarkColorScheme.onBackground, SkillBillDarkColorScheme.background)
     assertReadable(SkillBillDarkColorScheme.onSurface, SkillBillDarkColorScheme.surface)
     assertReadable(SkillBillDarkColorScheme.onPrimary, SkillBillDarkColorScheme.primary)

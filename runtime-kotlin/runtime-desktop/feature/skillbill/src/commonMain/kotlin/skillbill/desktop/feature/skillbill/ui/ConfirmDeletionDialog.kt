@@ -31,7 +31,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.disabled
@@ -42,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import skillbill.desktop.core.designsystem.SkillBillTheme
+import skillbill.desktop.core.designsystem.SkillBillTransparent
 import skillbill.desktop.core.domain.model.ConfirmDeletionState
 import skillbill.desktop.core.domain.model.DesktopAgentSymlinkProvider
 import skillbill.desktop.core.domain.model.DesktopManifestEditKind
@@ -72,22 +72,22 @@ data class ConfirmDeletionCallbacks(
 }
 
 @Composable
-private fun dialogLineColor(): Color = SkillBillTheme.semanticTones.dialog.border
+private fun dialogLineColor() = SkillBillTheme.semanticTones.dialog.border
 
 @Composable
-private fun dialogTextColor(): Color = SkillBillTheme.semanticTones.dialog.content
+private fun dialogTextColor() = SkillBillTheme.semanticTones.dialog.content
 
 @Composable
-private fun dialogMutedColor(): Color = SkillBillTheme.colors.onSurfaceVariant
+private fun dialogMutedColor() = SkillBillTheme.colors.onSurfaceVariant
 
 @Composable
-private fun dialogSteelColor(): Color = SkillBillTheme.colors.onSurfaceVariant
+private fun dialogSteelColor() = SkillBillTheme.colors.onSurfaceVariant
 
 @Composable
-private fun dialogYellowColor(): Color = SkillBillTheme.colors.primary
+private fun dialogYellowColor() = SkillBillTheme.colors.primary
 
 @Composable
-private fun dialogRedColor(): Color = SkillBillTheme.colors.error
+private fun dialogRedColor() = SkillBillTheme.colors.error
 
 /**
  * SKILL-46 follow-up F-601/F-715: every user-facing string in [ConfirmDeletionDialog] lives in one
@@ -432,7 +432,7 @@ private fun AcknowledgmentCheckbox(checked: Boolean, enabled: Boolean, onChecked
         // F-704: 18 dp visible checkbox (was 14) — meets a comfortable touch/keyboard target.
         .size(18.dp)
         .border(1.dp, if (enabled) dialogYellowColor() else dialogSteelColor(), RoundedCornerShape(2.dp))
-        .background(if (checked) dialogYellowColor() else Color.Transparent),
+        .background(if (checked) dialogYellowColor() else SkillBillTransparent),
     )
     Text(
       text = ConfirmDeletionStrings.ACKNOWLEDGE_CHECKBOX_LABEL,
