@@ -26,6 +26,36 @@ data class PointerSpec(
   val target: String,
 )
 
+enum class CodeReviewCompositionScope(val wireValue: String) {
+  SameReviewScope("same-review-scope"),
+  ;
+
+  companion object {
+    fun fromWireValue(value: String): CodeReviewCompositionScope? = entries.firstOrNull { it.wireValue == value }
+  }
+}
+
+enum class CodeReviewCompositionMode(val wireValue: String) {
+  KmpBaseline("kmp-baseline"),
+  ;
+
+  companion object {
+    fun fromWireValue(value: String): CodeReviewCompositionMode? = entries.firstOrNull { it.wireValue == value }
+  }
+}
+
+data class CodeReviewBaselineLayer(
+  val platform: String,
+  val skill: String,
+  val scope: CodeReviewCompositionScope,
+  val required: Boolean,
+  val mode: CodeReviewCompositionMode,
+)
+
+data class CodeReviewComposition(
+  val baselineLayers: List<CodeReviewBaselineLayer>,
+)
+
 data class PlatformManifest(
   val slug: String,
   val packRoot: Path,
@@ -37,6 +67,7 @@ data class PlatformManifest(
   val displayName: String? = null,
   val notes: String? = null,
   val declaredQualityCheckFile: Path? = null,
+  val codeReviewComposition: CodeReviewComposition? = null,
   val pointers: List<PointerSpec> = emptyList(),
   /**
    * SKILL-48 Subtask 3: carries every non-anchored top-level field from `platform.yaml`
