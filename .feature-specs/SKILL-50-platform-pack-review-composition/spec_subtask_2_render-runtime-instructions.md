@@ -1,6 +1,6 @@
 # SKILL-50 Subtask 2 — Render runtime composition instructions
 
-Status: Proposed
+Status: Complete
 
 Parent spec: [spec.md](./spec.md)
 

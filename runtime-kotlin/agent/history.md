@@ -1,3 +1,12 @@
+## [2026-05-22] SKILL-50 render-runtime-composition-instructions
+Areas: runtime-kotlin/runtime-core/scaffold, runtime-kotlin/runtime-domain/scaffold/model, platform-packs/kmp, platform-packs/kotlin
+- Generated `SKILL.md` render output now carries manifest-declared code-review composition before authored execution guidance; `AuthoringTarget` receives `PlatformManifest.codeReviewComposition` only for pack baseline skills. reusable
+- KMP rendered snapshots pin the generated Review Composition section and required baseline metadata; a fixture pack without composition pins omission so empty/noisy sections do not regress.
+- KMP/Kotlin review content now treats `kmp-baseline` as manifest-declared mode, not a caller-name exception; the KMP authored body focuses on local specialist behavior after generated baseline instructions.
+- Render/install source hygiene remains enforced by render-output tests: no source-tree `SKILL.md` wrappers or generated pointer files are written during render.
+Feature flag: N/A
+Acceptance criteria: 9/9 implemented
+
 ## [2026-05-21] SKILL-50 schema-loader-contract
 Areas: orchestration/contracts, runtime-kotlin/runtime-core/scaffold, runtime-kotlin/runtime-domain/scaffold/model, platform-packs/kmp
 - `platform-pack-schema.yaml` now has anchored `code_review_composition.baseline_layers` for code-review composition; nested layer objects stay strict, `scope` is `"same-review-scope"`, and `required` is explicit. reusable: runtime-consumed top-level pack fields still start in schema with `x-runtime-anchored: true`.
