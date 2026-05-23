@@ -25,6 +25,8 @@ import skillbill.ports.persistence.model.WorkflowStateRecord
 import skillbill.ports.telemetry.TelemetryClient
 import skillbill.ports.telemetry.TelemetryConfigStore
 import skillbill.ports.telemetry.TelemetrySettingsProvider
+import skillbill.ports.workflow.WorkflowGitOperations
+import skillbill.ports.workflow.model.WorkflowGitOperationResult
 import skillbill.review.model.FeedbackRequest
 import skillbill.review.model.FeedbackTelemetryOptions
 import skillbill.review.model.ImportedReview
@@ -439,6 +441,167 @@ class ApplicationPersistencePortTest {
   }
 
   @Test
+  fun `workflow service continues decomposed parent issue key by starting first dependency-complete subtask`() {
+    val tempDir = Files.createTempDirectory("skillbill-app-decomposition-start")
+    val parentSpec = tempDir.resolve(".feature-specs/SKILL-51-demo/spec.md")
+    val subtaskOne = parentSpec.parent.resolve("spec_subtask_1_foundation.md")
+    val subtaskTwo = parentSpec.parent.resolve("spec_subtask_2_runtime.md")
+    writeSpecs(parentSpec, subtaskOne, subtaskTwo)
+    val workflowRepository = InMemoryWorkflowStateRepository()
+    val git = FakeWorkflowGitOperations()
+    val service = WorkflowService(FakeDatabaseSessionFactory(workflows = workflowRepository), git)
+    createDecompositionWorkflow(service, parentSpec, subtaskOne, subtaskTwo)
+
+    val continued = service.continueWorkflow(WorkflowFamilyKind.IMPLEMENT, "SKILL-51", dbOverride = null)
+
+    val manifest = DecompositionManifestCodec.load(parentSpec.parent.resolve("decomposition-manifest.yaml"))
+    assertEquals("ok", continued["status"])
+    assertEquals(1, continued["decomposition_subtask_id"])
+    assertEquals("in_progress", manifest.subtasks.first { it.id == 1 }.status)
+    assertEquals(listOf("feat/SKILL-51-demo@main"), git.checkouts)
+  }
+
+  @Test
+  fun `workflow service records same branch subtask commit before starting next subtask`() {
+    val tempDir = Files.createTempDirectory("skillbill-app-decomposition-commit")
+    val parentSpec = tempDir.resolve(".feature-specs/SKILL-51-demo/spec.md")
+    val subtaskOne = parentSpec.parent.resolve("spec_subtask_1_foundation.md")
+    val subtaskTwo = parentSpec.parent.resolve("spec_subtask_2_runtime.md")
+    writeSpecs(parentSpec, subtaskOne, subtaskTwo)
+    val workflowRepository = InMemoryWorkflowStateRepository()
+    val git = FakeWorkflowGitOperations(commitSha = "abc123")
+    val service = WorkflowService(FakeDatabaseSessionFactory(workflows = workflowRepository), git)
+    createDecompositionWorkflow(service, parentSpec, subtaskOne, subtaskTwo)
+    val first = service.continueWorkflow(WorkflowFamilyKind.IMPLEMENT, "SKILL-51", dbOverride = null)
+    markDecompositionSubtaskComplete(service, first["workflow_id"] as String, subtaskOne)
+
+    val continued = service.continueWorkflow(WorkflowFamilyKind.IMPLEMENT, "SKILL-51", dbOverride = null)
+
+    val manifest = DecompositionManifestCodec.load(parentSpec.parent.resolve("decomposition-manifest.yaml"))
+    assertEquals("ok", continued["status"])
+    assertEquals(2, continued["decomposition_subtask_id"])
+    assertEquals("abc123", manifest.subtasks.first { it.id == 1 }.commitSha)
+    assertEquals(listOf("SKILL-51 subtask 1: foundation"), git.commits)
+  }
+
+  @Test
+  fun `workflow service records blocked status when same branch subtask commit fails`() {
+    val tempDir = Files.createTempDirectory("skillbill-app-decomposition-commit-fails")
+    val parentSpec = tempDir.resolve(".feature-specs/SKILL-51-demo/spec.md")
+    val subtaskOne = parentSpec.parent.resolve("spec_subtask_1_foundation.md")
+    val subtaskTwo = parentSpec.parent.resolve("spec_subtask_2_runtime.md")
+    writeSpecs(parentSpec, subtaskOne, subtaskTwo)
+    val workflowRepository = InMemoryWorkflowStateRepository()
+    val service = WorkflowService(
+      FakeDatabaseSessionFactory(workflows = workflowRepository),
+      FakeWorkflowGitOperations(commitError = "missing git identity"),
+    )
+    createDecompositionWorkflow(service, parentSpec, subtaskOne, subtaskTwo)
+    val first = service.continueWorkflow(WorkflowFamilyKind.IMPLEMENT, "SKILL-51", dbOverride = null)
+    markDecompositionSubtaskComplete(service, first["workflow_id"] as String, subtaskOne)
+
+    val continued = service.continueWorkflow(WorkflowFamilyKind.IMPLEMENT, "SKILL-51", dbOverride = null)
+
+    val manifest = DecompositionManifestCodec.load(parentSpec.parent.resolve("decomposition-manifest.yaml"))
+    val blocked = manifest.subtasks.first { it.id == 1 }
+    assertEquals("error", continued["status"])
+    assertEquals("blocked", continued["continue_status"])
+    assertEquals("missing git identity", continued["blocked_reason"])
+    assertEquals("blocked", manifest.status)
+    assertEquals("blocked", blocked.status)
+    assertEquals("missing git identity", blocked.blockedReason)
+    assertEquals("commit_push", blocked.lastResumableStep)
+    assertEquals(null, blocked.commitSha)
+  }
+
+  @Test
+  fun `workflow service checks stacked subtask branch base before starting subtask`() {
+    val tempDir = Files.createTempDirectory("skillbill-app-decomposition-stacked")
+    val parentSpec = tempDir.resolve(".feature-specs/SKILL-51-demo/spec.md")
+    val subtaskOne = parentSpec.parent.resolve("spec_subtask_1_foundation.md")
+    val subtaskTwo = parentSpec.parent.resolve("spec_subtask_2_runtime.md")
+    writeSpecs(parentSpec, subtaskOne, subtaskTwo)
+    val workflowRepository = InMemoryWorkflowStateRepository()
+    val git = FakeWorkflowGitOperations()
+    val service = WorkflowService(FakeDatabaseSessionFactory(workflows = workflowRepository), git)
+    createDecompositionWorkflow(
+      service = service,
+      parentSpec = parentSpec,
+      subtaskOne = subtaskOne,
+      subtaskTwo = subtaskTwo,
+      executionModel = "stacked_branches",
+    )
+
+    val continued = service.continueWorkflow(WorkflowFamilyKind.IMPLEMENT, "SKILL-51", dbOverride = null)
+
+    assertEquals("ok", continued["status"])
+    assertEquals(listOf("feat/SKILL-51-demo-1@main"), git.checkouts)
+    assertEquals(listOf("feat/SKILL-51-demo-1@main"), git.baseValidations)
+  }
+
+  @Test
+  fun `workflow service stops issue key continuation on blocked subtask reason`() {
+    val tempDir = Files.createTempDirectory("skillbill-app-decomposition-blocked")
+    val parentSpec = tempDir.resolve(".feature-specs/SKILL-51-demo/spec.md")
+    val subtaskOne = parentSpec.parent.resolve("spec_subtask_1_foundation.md")
+    val subtaskTwo = parentSpec.parent.resolve("spec_subtask_2_runtime.md")
+    writeSpecs(parentSpec, subtaskOne, subtaskTwo)
+    val workflowRepository = InMemoryWorkflowStateRepository()
+    val service = WorkflowService(
+      FakeDatabaseSessionFactory(workflows = workflowRepository),
+      FakeWorkflowGitOperations(),
+    )
+    val workflowId = createDecompositionWorkflow(service, parentSpec, subtaskOne, subtaskTwo)
+    markDecompositionSubtaskBlocked(service, workflowId, subtaskOne)
+
+    val continued = service.continueWorkflow(WorkflowFamilyKind.IMPLEMENT, "SKILL-51", dbOverride = null)
+
+    assertEquals("error", continued["status"])
+    assertEquals("blocked", continued["continue_status"])
+    assertEquals("Validation failed.", continued["blocked_reason"])
+    assertEquals(1, continued["decomposition_subtask_id"])
+  }
+
+  @Test
+  fun `workflow service resumes in-progress decomposed subtask by issue key`() {
+    val tempDir = Files.createTempDirectory("skillbill-app-decomposition-resume")
+    val parentSpec = tempDir.resolve(".feature-specs/SKILL-51-demo/spec.md")
+    val subtaskOne = parentSpec.parent.resolve("spec_subtask_1_foundation.md")
+    val subtaskTwo = parentSpec.parent.resolve("spec_subtask_2_runtime.md")
+    writeSpecs(parentSpec, subtaskOne, subtaskTwo)
+    val workflowRepository = InMemoryWorkflowStateRepository()
+    val service = WorkflowService(
+      FakeDatabaseSessionFactory(workflows = workflowRepository),
+      FakeWorkflowGitOperations(),
+    )
+    createDecompositionWorkflow(service, parentSpec, subtaskOne, subtaskTwo)
+    val first = service.continueWorkflow(WorkflowFamilyKind.IMPLEMENT, "SKILL-51", dbOverride = null)
+    val subtaskWorkflowId = first["workflow_id"] as String
+    service.update(
+      WorkflowFamilyKind.IMPLEMENT,
+      WorkflowUpdateRequest(
+        workflowId = subtaskWorkflowId,
+        workflowStatus = "running",
+        currentStepId = "validate",
+        stepUpdates = listOf(mapOf("step_id" to "validate", "status" to "running", "attempt_count" to 1)),
+        artifactsPatch = mapOf(
+          "audit_report" to mapOf("gap_count" to 0),
+          "validation_result" to mapOf("passed" to false),
+        ),
+      ),
+      dbOverride = null,
+    )
+
+    val continued = service.continueWorkflow(WorkflowFamilyKind.IMPLEMENT, "SKILL-51", dbOverride = null)
+
+    assertEquals("ok", continued["status"])
+    assertEquals("already_running", continued["continue_status"])
+    assertEquals(subtaskWorkflowId, continued["workflow_id"])
+    assertEquals("validate", continued["continue_step_id"])
+    assertEquals(1, continued["decomposition_subtask_id"])
+  }
+
+  @Test
   fun `workflow service owns verify prior steps done resume and reopened continuation`() {
     val workflowRepository = InMemoryWorkflowStateRepository()
     val database = FakeDatabaseSessionFactory(workflows = workflowRepository)
@@ -770,7 +933,16 @@ private object NoopWorkflowStateRepository : WorkflowStateRepository {
 
 private fun Map<String, Any?>.steps(): List<Map<*, *>> = (this["steps"] as List<*>).map { step -> step as Map<*, *> }
 
-private fun createDecompositionWorkflow(service: WorkflowService, parentSpec: Path, subtaskSpec: Path): String {
+private fun createDecompositionWorkflow(service: WorkflowService, parentSpec: Path, subtaskSpec: Path): String =
+  createDecompositionWorkflow(service, parentSpec, subtaskSpec, null)
+
+private fun createDecompositionWorkflow(
+  service: WorkflowService,
+  parentSpec: Path,
+  subtaskOne: Path,
+  subtaskTwo: Path?,
+  executionModel: String = "same_branch_commit_per_subtask",
+): String {
   val opened = service.open(WorkflowFamilyKind.IMPLEMENT, sessionId = "fis-001", dbOverride = null)
   val workflowId = opened["workflow_id"] as String
   service.update(
@@ -780,7 +952,7 @@ private fun createDecompositionWorkflow(service: WorkflowService, parentSpec: Pa
       workflowStatus = "running",
       currentStepId = "plan",
       stepUpdates = listOf(mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1)),
-      artifactsPatch = decompositionPlanPatch(parentSpec, subtaskSpec),
+      artifactsPatch = decompositionPlanPatch(parentSpec, subtaskOne, subtaskTwo, executionModel),
     ),
     dbOverride = null,
   )
@@ -820,24 +992,69 @@ private fun markDecompositionSubtaskSkipped(service: WorkflowService, workflowId
   )
 }
 
-private fun decompositionPlanPatch(parentSpec: Path, subtaskSpec: Path): Map<String, Any?> = mapOf(
-  "branch" to mapOf("branch" to "feat/SKILL-51-demo"),
-  "plan" to
-    mapOf(
-      "mode" to "decompose",
-      "parent_spec_path" to parentSpec.toString(),
-      "recommended_first_subtask_id" to 1,
-      "subtasks" to
-        listOf(
-          mapOf(
-            "id" to 1,
-            "name" to "foundation",
-            "spec_path" to subtaskSpec.toString(),
-            "depends_on" to emptyList<Int>(),
-          ),
-        ),
+private fun markDecompositionSubtaskComplete(service: WorkflowService, workflowId: String, subtaskSpec: Path) {
+  service.update(
+    WorkflowFamilyKind.IMPLEMENT,
+    WorkflowUpdateRequest(
+      workflowId = workflowId,
+      workflowStatus = "completed",
+      currentStepId = "pr_description",
+      stepUpdates = listOf(mapOf("step_id" to "pr_description", "status" to "completed", "attempt_count" to 1)),
+      artifactsPatch = mapOf("assessment" to mapOf("spec_path" to subtaskSpec.toString())),
     ),
-)
+    dbOverride = null,
+  )
+}
+
+private fun decompositionPlanPatch(
+  parentSpec: Path,
+  subtaskSpec: Path,
+  subtaskTwo: Path? = null,
+  executionModel: String = "same_branch_commit_per_subtask",
+): Map<String, Any?> {
+  val subtasks = mutableListOf(
+    mapOf(
+      "id" to 1,
+      "name" to "foundation",
+      "spec_path" to subtaskSpec.toString(),
+      "depends_on" to emptyList<Int>(),
+    ),
+  )
+  if (subtaskTwo != null) {
+    subtasks += mapOf(
+      "id" to 2,
+      "name" to "runtime",
+      "spec_path" to subtaskTwo.toString(),
+      "depends_on" to listOf(1),
+    )
+  }
+  val plan = linkedMapOf<String, Any?>(
+    "mode" to "decompose",
+    "parent_spec_path" to parentSpec.toString(),
+    "recommended_first_subtask_id" to 1,
+    "subtasks" to subtasks,
+  )
+  if (executionModel == "stacked_branches") {
+    plan["execution_model"] = "stacked_branches"
+    plan["base_branch"] = "main"
+    plan["stack_branches"] = listOf(
+      mapOf("subtask_id" to 1, "branch" to "feat/SKILL-51-demo-1", "base_branch" to "main"),
+      mapOf("subtask_id" to 2, "branch" to "feat/SKILL-51-demo-2", "base_branch" to "feat/SKILL-51-demo-1"),
+    ).take(subtasks.size)
+  }
+  return mapOf(
+    "branch" to mapOf("branch" to "feat/SKILL-51-demo"),
+    "plan" to plan,
+  )
+}
+
+private fun writeSpecs(parentSpec: Path, vararg subtasks: Path) {
+  Files.createDirectories(parentSpec.parent)
+  Files.writeString(parentSpec, "# Parent")
+  subtasks.forEach { subtask ->
+    Files.writeString(subtask, "---\nstatus: Pending\n---\n\n# Subtask")
+  }
+}
 
 private fun statusLine(path: Path): String =
   Files.readAllLines(path).first { it.startsWith("status: ") }.removePrefix("status: ")
@@ -881,6 +1098,40 @@ private class InMemoryWorkflowStateRepository(
 
   override fun getFeatureVerifySessionSummary(sessionId: String): FeatureVerifySessionSummary? =
     verifySessionSummary?.takeIf { it.sessionId == sessionId }
+}
+
+private class FakeWorkflowGitOperations(
+  private val commitSha: String = "commit-sha",
+  private val commitError: String = "",
+) : WorkflowGitOperations {
+  val checkouts = mutableListOf<String>()
+  val baseValidations = mutableListOf<String>()
+  val commits = mutableListOf<String>()
+
+  override fun checkoutBranch(repoRoot: Path, branch: String, baseBranch: String?): WorkflowGitOperationResult {
+    checkouts += "$branch@${baseBranch.orEmpty()}"
+    return WorkflowGitOperationResult(status = "ok", value = branch)
+  }
+
+  override fun currentBranch(repoRoot: Path): WorkflowGitOperationResult =
+    WorkflowGitOperationResult(status = "ok", value = checkouts.lastOrNull()?.substringBefore("@").orEmpty())
+
+  override fun createCommit(repoRoot: Path, message: String): WorkflowGitOperationResult {
+    commits += message
+    if (commitError.isNotBlank()) {
+      return WorkflowGitOperationResult(status = "error", error = commitError)
+    }
+    return WorkflowGitOperationResult(status = "ok", value = commitSha)
+  }
+
+  override fun validateBranchBase(
+    repoRoot: Path,
+    branch: String,
+    expectedBaseBranch: String,
+  ): WorkflowGitOperationResult {
+    baseValidations += "$branch@$expectedBaseBranch"
+    return WorkflowGitOperationResult(status = "ok", value = expectedBaseBranch)
+  }
 }
 
 private fun learningRecord(id: Int, title: String = "Learning $id"): LearningRecord = LearningRecord(

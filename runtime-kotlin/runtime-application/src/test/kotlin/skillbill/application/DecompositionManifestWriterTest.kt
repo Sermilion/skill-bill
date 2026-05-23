@@ -123,6 +123,62 @@ class DecompositionManifestWriterTest {
   }
 
   @Test
+  fun `runtime update projects completed subtask status and commit sha from durable runtime`() {
+    val repoRoot = Files.createTempDirectory("skillbill-runtime-completed-projection")
+    val parentSpecPath = repoRoot.resolve(".feature-specs/SKILL-51-decomposition/spec.md")
+    val subtaskSpec = parentSpecPath.parent.resolve("spec_subtask_1_foundation.md")
+    Files.createDirectories(parentSpecPath.parent)
+    Files.writeString(parentSpecPath, "# Parent spec\n")
+    Files.writeString(
+      subtaskSpec,
+      """
+      ---
+      status: In Progress
+      ---
+
+      # Foundation
+      """.trimIndent(),
+    )
+    val initial = DecompositionManifestWriter.writeIfDecomposed(
+      DecompositionManifestWriteRequest(
+        repoRoot = repoRoot,
+        parentSpecPath = parentSpecPath,
+        planningResult = decompositionPlan(parentSpecPath),
+        baseBranch = "main",
+        featureBranch = "feature/SKILL-51-decomposition",
+      ),
+    )
+    assertNotNull(initial)
+    val completed = initial.manifest.copy(
+      subtasks = initial.manifest.subtasks.map { subtask ->
+        if (subtask.id == 1) {
+          subtask.copy(status = "complete", commitSha = "commit-subtask-1", workflowId = "wfl-subtask-1")
+        } else {
+          subtask
+        }
+      },
+    )
+
+    val result = DecompositionManifestWriter.writeFromWorkflowUpdate(
+      repoRoot = repoRoot,
+      existingArtifactsJson = durableRuntimeArtifactsJson(completed, subtaskSpec),
+      artifactsPatch = null,
+      runtimeUpdate = DecompositionManifestRuntimeUpdate(
+        workflowId = "wfl-subtask-1",
+        workflowStatus = "completed",
+        currentStepId = "complete",
+        stepUpdates = listOf(mapOf("step_id" to "complete", "status" to "completed", "attempt_count" to 1)),
+      ),
+    )
+
+    assertNotNull(result)
+    val subtask = result.manifest.subtasks.single { it.id == 1 }
+    assertEquals("complete", subtask.status)
+    assertEquals("commit-subtask-1", subtask.commitSha)
+    assertContains(Files.readString(subtaskSpec), "status: Complete")
+  }
+
+  @Test
   fun `runtime update with explicit unmatched spec path does not fall back to current subtask`() {
     val repoRoot = Files.createTempDirectory("skillbill-runtime-unmatched-spec")
     val parentSpecPath = repoRoot.resolve(".feature-specs/SKILL-51-decomposition/spec.md")

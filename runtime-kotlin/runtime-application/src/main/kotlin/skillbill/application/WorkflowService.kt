@@ -8,6 +8,8 @@ import skillbill.ports.persistence.DatabaseSessionFactory
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.persistence.WorkflowStateRepository
 import skillbill.ports.persistence.model.WorkflowStateRecord
+import skillbill.ports.workflow.NoopWorkflowGitOperations
+import skillbill.ports.workflow.WorkflowGitOperations
 import skillbill.workflow.WorkflowEngine
 import skillbill.workflow.implement.FeatureImplementWorkflowDefinition
 import skillbill.workflow.model.WorkflowDefinition
@@ -23,6 +25,7 @@ import kotlin.random.Random
 @Inject
 class WorkflowService(
   private val database: DatabaseSessionFactory,
+  private val gitOperations: WorkflowGitOperations = NoopWorkflowGitOperations,
 ) {
   fun open(
     kind: WorkflowFamilyKind,
@@ -115,31 +118,16 @@ class WorkflowService(
     val payload = database.transaction(dbOverride) { unitOfWork ->
       val family = kind.workflowFamily()
       var record = family.get(unitOfWork.workflowStates, workflowId)
-        ?: return@transaction unknownWorkflowPayload(workflowId, unitOfWork.dbPath.toString())
-      val sessionSummary = family.sessionSummary(unitOfWork.workflowStates, record.sessionId.orEmpty())
-      var decision = WorkflowEngine.continueDecision(family.definition, record, sessionSummary)
-      if (decision.shouldReopen) {
-        val continueStatus = decision.payload["continue_status"]
-        val reopenInput = decision.toReopenInput(record.sessionId)
-        val runtimeInput = family.withDecompositionRuntime(record, reopenInput, workflowId)
-        val reopened = WorkflowEngine.updateRecord(
-          family.definition,
-          record,
-          runtimeInput.input,
-        )
-        family.save(unitOfWork.workflowStates, reopened)
-        record = family.get(unitOfWork.workflowStates, workflowId) ?: reopened
-        if (runtimeInput.updated) {
-          projectionArtifactsJson = record.artifactsJson
-        }
-        val refreshedPayload =
-          LinkedHashMap(
-            WorkflowEngine.continueDecision(family.definition, record, sessionSummary).payload,
-          )
-        refreshedPayload["continue_status"] = continueStatus
-        decision = decision.copy(payload = refreshedPayload)
+      if (record == null && family == WorkflowFamily.IMPLEMENT) {
+        val resolved =
+          DecompositionWorkflowContinuation(gitOperations).continueDecomposedParentByIssueKey(workflowId, unitOfWork)
+        projectionArtifactsJson = resolved.projectionArtifactsJson ?: projectionArtifactsJson
+        return@transaction resolved.payload
       }
-      continuePayload(decision.payload, unitOfWork)
+      record ?: return@transaction unknownWorkflowPayload(workflowId, unitOfWork.dbPath.toString())
+      continueExistingWorkflow(family, record, workflowId, unitOfWork).also { result ->
+        projectionArtifactsJson = result.projectionArtifactsJson ?: projectionArtifactsJson
+      }.payload
     }
     projectionArtifactsJson?.let { artifactsJson ->
       DecompositionManifestWriter.writeProjectionFromWorkflowState(Path.of("").toAbsolutePath(), artifactsJson)
@@ -160,7 +148,7 @@ private fun WorkflowUpdateRequest.toWorkflowUpdateInput(): WorkflowUpdateInput =
   sessionId = sessionId,
 )
 
-private fun skillbill.workflow.model.WorkflowContinueDecision.toReopenInput(sessionId: String): WorkflowUpdateInput =
+internal fun skillbill.workflow.model.WorkflowContinueDecision.toReopenInput(sessionId: String): WorkflowUpdateInput =
   WorkflowUpdateInput(
     workflowStatus = "running",
     currentStepId = resumeStepId,
@@ -176,7 +164,7 @@ private fun skillbill.workflow.model.WorkflowContinueDecision.toReopenInput(sess
     sessionId = sessionId,
   )
 
-private fun WorkflowFamily.withDecompositionRuntime(
+internal fun WorkflowFamily.withDecompositionRuntime(
   existing: WorkflowStateSnapshot,
   input: WorkflowUpdateInput,
   workflowId: String,
@@ -205,17 +193,17 @@ private fun WorkflowFamily.withDecompositionRuntime(
   } ?: DecompositionRuntimeInput(input = input, updated = false)
 }
 
-private data class DecompositionRuntimeInput(
+internal data class DecompositionRuntimeInput(
   val input: WorkflowUpdateInput,
   val updated: Boolean,
 )
 
-private fun ok(payload: Map<String, Any?>, unitOfWork: UnitOfWork): Map<String, Any?> = LinkedHashMap(payload).apply {
+internal fun ok(payload: Map<String, Any?>, unitOfWork: UnitOfWork): Map<String, Any?> = LinkedHashMap(payload).apply {
   put("status", "ok")
   put("db_path", unitOfWork.dbPath.toString())
 }
 
-private fun unknownWorkflowPayload(workflowId: String, dbPath: String? = null): Map<String, Any?> =
+internal fun unknownWorkflowPayload(workflowId: String, dbPath: String? = null): Map<String, Any?> =
   LinkedHashMap<String, Any?>().apply {
     put("status", "error")
     put("workflow_id", workflowId)
@@ -226,7 +214,7 @@ private fun unknownWorkflowPayload(workflowId: String, dbPath: String? = null): 
 private fun errorPayload(workflowId: String, error: String): Map<String, Any?> =
   linkedMapOf("status" to "error", "workflow_id" to workflowId, "error" to error)
 
-private fun continuePayload(payload: Map<String, Any?>, unitOfWork: UnitOfWork): Map<String, Any?> =
+internal fun continuePayload(payload: Map<String, Any?>, unitOfWork: UnitOfWork): Map<String, Any?> =
   LinkedHashMap(payload).apply {
     put("db_path", unitOfWork.dbPath.toString())
     if (this["continue_status"] == "blocked") {
@@ -242,7 +230,7 @@ private fun continuePayload(payload: Map<String, Any?>, unitOfWork: UnitOfWork):
     }
   }
 
-private fun generateWorkflowId(prefix: String): String {
+internal fun generateWorkflowId(prefix: String): String {
   val now = OffsetDateTime.now(ZoneOffset.UTC)
   val suffix = (1..WORKFLOW_ID_SUFFIX_LENGTH).map { SUFFIX_CHARS[Random.nextInt(SUFFIX_CHARS.length)] }
     .joinToString("")
@@ -252,12 +240,12 @@ private fun generateWorkflowId(prefix: String): String {
 
 private fun Int.twoDigits(): String = toString().padStart(2, '0')
 
-private fun WorkflowFamilyKind.workflowFamily(): WorkflowFamily = when (this) {
+internal fun WorkflowFamilyKind.workflowFamily(): WorkflowFamily = when (this) {
   WorkflowFamilyKind.IMPLEMENT -> WorkflowFamily.IMPLEMENT
   WorkflowFamilyKind.VERIFY -> WorkflowFamily.VERIFY
 }
 
-private enum class WorkflowFamily(
+internal enum class WorkflowFamily(
   val definition: WorkflowDefinition,
   val humanName: String,
 ) {

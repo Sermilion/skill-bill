@@ -310,7 +310,10 @@ The orchestrator must maintain:
 External callers may inspect and reactivate persisted runs through:
 
 - `feature_implement_workflow_resume` — dry-run recovery summary
-- `feature_implement_workflow_continue` — re-open a resumable run and emit a recovered continuation brief
+- `feature_implement_workflow_continue` — re-open a resumable run and emit a recovered continuation brief.
+  For decomposed parent features, callers may pass the parent issue key
+  (for example `SKILL-51`) instead of naming a subtask workflow id; the
+  runtime resolves the parent manifest and selects the current subtask.
 
 ### Canonical step ids
 
@@ -446,6 +449,18 @@ Re-entry rules:
   backwards.
 - After the resumed step completes, continue the standard `bill-feature-implement`
   sequence from that point onward.
+- For decomposed parent features, `continue <issue-key>` resumes the
+  in-progress subtask at its last durable workflow step. If none is in
+  progress, it starts the first pending subtask whose dependencies are complete.
+- If the selected decomposition path is blocked, report the blocked reason and
+  stop. Do not skip to a later dependent subtask unless the manifest explicitly
+  marks that dependency as optional and skipped.
+- Decomposed execution defaults to `same_branch_commit_per_subtask`: all
+  subtasks run on the parent feature branch, and each completed subtask must
+  produce its own commit before the runtime advances to the next subtask.
+- `stacked_branches` is an explicit parent manifest opt-in. In stacked mode the
+  runtime uses the declared subtask branch and base relationship, and must stop
+  instead of advancing when the current branch/base does not match the manifest.
 
 ## Pre-planning subagent briefing
 
@@ -559,6 +574,15 @@ Decomposition rules:
 - Order subtasks by dependency and identify the first subtask to run.
 - The decomposition manifest uses `execution_model: same_branch_commit_per_subtask` by default with one parent feature branch and no stack branches. Use `execution_model: stacked_branches` only as an explicit opt-in and then declare one stack branch per subtask in subtask order.
 - The manifest must declare `contract_version`, `parent_spec_path`, ordered `subtasks`, dependency ids, each subtask `spec_path`, `execution_model`, `base_branch`, either `feature_branch` or ordered `stack_branches`, and `current_subtask_intent` derived from the recommended first/current subtask.
+- Same-branch decompositions advance one subtask at a time on the parent feature
+  branch. Each completed subtask gets an individual commit before the next
+  pending dependency-complete subtask starts.
+- Stacked decompositions are opt-in only. Every subtask must declare its branch
+  and expected base in stack order so continuation can check out the right branch
+  and reject advancement onto the wrong base.
+- Blocked subtasks are sticky: continuation reports the blocked reason and stops
+  unless a later subtask's dependency marks the blocked dependency both optional
+  and skipped.
 
 Return exactly one RESULT: block as your final message, containing valid JSON with this shape:
 

@@ -1,3 +1,13 @@
+## [2026-05-23] SKILL-51 decomposition-workflow-state-continuation-branching
+Areas: runtime-kotlin/runtime-application/workflow, runtime-kotlin/runtime-domain/workflow, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-mcp, runtime-kotlin/runtime-infra-fs
+- Parent issue-key continuation now resolves decomposed feature parents from durable `artifacts.decomposition_runtime`, then resumes an in-progress subtask or starts the first dependency-complete pending subtask without requiring a subtask path. reusable
+- `DecompositionContinuationSelector` centralizes dependency/blocked/optional-skipped selection semantics; blocked dependencies stop continuation with the stored reason unless the dependency is explicitly optional+skipped. reusable
+- `WorkflowGitOperations` is the application port for branch checkout, commit creation, and stacked branch base validation; production DI uses `GitWorkflowGitOperations`, while CLI/MCP tests inject explicit fakes.
+- Same-branch mode records an individual subtask commit before advancing; branch/commit failures persist the subtask and parent as blocked with `blocked_reason` so resume decisions stay durable.
+- CLI and MCP continue paths accept either `workflow_id` or issue key for implement workflows, preserving existing single-workflow continuation behavior.
+Feature flag: N/A
+Acceptance criteria: 10/10 implemented
+
 ## [2026-05-23] SKILL-51 decomposition-workflow-state-runtime-state
 Areas: orchestration/contracts, runtime-kotlin/runtime-domain/workflow, runtime-kotlin/runtime-application/workflow, runtime-kotlin/runtime-core/application tests
 - `decomposition-manifest-schema.yaml` now carries parent/subtask runtime state: parent `status`, and per-subtask `branch`, `commit_sha`, `workflow_id`, `review_result`, `audit_result`, `validation_result`, `blocked_reason`, and `last_resumable_step`. The Kotlin model/codec/wire-map emit the same fields under the existing validator-backed manifest contract. reusable
