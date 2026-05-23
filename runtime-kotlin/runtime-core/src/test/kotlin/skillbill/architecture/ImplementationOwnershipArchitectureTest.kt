@@ -113,6 +113,149 @@ class ImplementationOwnershipArchitectureTest {
     )
   }
 
+  @Test
+  fun `runtime core is composition only and not an implementation umbrella`() {
+    val runtimeCoreBuild = runtimeRoot.resolve("runtime-core/build.gradle.kts").readText()
+    val forbiddenApiDependencies = listOf(
+      ":runtime-contracts",
+      ":runtime-infra-fs",
+      ":runtime-infra-http",
+      ":runtime-infra-sqlite",
+    ).filter { dependency -> runtimeCoreBuild.contains("api(project(\"$dependency\"))") }
+    assertEquals(
+      emptyList(),
+      forbiddenApiDependencies,
+      "runtime-core must not re-export contract or concrete implementation modules as adapter API.",
+    )
+
+    val allowedPackages = setOf("skillbill", "skillbill.di")
+    val runtimeCorePackages = kotlinFilesUnder(runtimeRoot.resolve("runtime-core/src/main/kotlin"))
+      .mapNotNull(::packageName)
+      .toSet()
+    assertEquals(
+      allowedPackages,
+      runtimeCorePackages,
+      "runtime-core source must stay limited to module metadata and DI composition.",
+    )
+
+    val bannedImplementationImports = listOf(
+      "skillbill.install",
+      "skillbill.launcher",
+      "skillbill.nativeagent",
+      "skillbill.scaffold",
+      "skillbill.skillremove",
+      "skillbill.workflow",
+    )
+    val violations = kotlinFilesUnder(runtimeRoot.resolve("runtime-core/src/main/kotlin"))
+      .flatMap { sourceFile ->
+        sourceFile.readText().lineSequence()
+          .mapNotNull { line -> line.trim().removePrefix("import ").takeIf { line.trim().startsWith("import ") } }
+          .filter { importedName -> bannedImplementationImports.any(importedName::startsWith) }
+          .map { importedName -> "${runtimeRoot.relativize(sourceFile)} imports $importedName" }
+      }
+      .sorted()
+    assertEquals(emptyList(), violations, "runtime-core must not import moved implementation packages.")
+  }
+
+  @Test
+  fun `infrastructure modules do not depend on adapters or runtime core`() {
+    val forbiddenProjectDependencies = listOf(":runtime-core", ":runtime-cli", ":runtime-mcp", ":runtime-desktop")
+    val violations = listOf("runtime-infra-fs", "runtime-infra-http", "runtime-infra-sqlite")
+      .flatMap { module ->
+        val build = runtimeRoot.resolve("$module/build.gradle.kts").readText()
+        forbiddenProjectDependencies
+          .filter { dependency -> build.contains("project(\"$dependency\")") }
+          .map { dependency -> "$module depends on $dependency" }
+      }
+    assertEquals(
+      emptyList(),
+      violations,
+      "Infrastructure modules must not depend on runtime-core or adapter entrypoints.",
+    )
+  }
+
+  @Test
+  fun `cli mcp and desktop data declare direct runtime dependencies beside runtime core`() {
+    val adapterDependencies = mapOf(
+      "runtime-cli/build.gradle.kts" to listOf(
+        ":runtime-application",
+        ":runtime-contracts",
+        ":runtime-core",
+        ":runtime-domain",
+        ":runtime-infra-fs",
+        ":runtime-infra-http",
+        ":runtime-ports",
+      ),
+      "runtime-mcp/build.gradle.kts" to listOf(
+        ":runtime-application",
+        ":runtime-contracts",
+        ":runtime-core",
+        ":runtime-domain",
+        ":runtime-infra-fs",
+        ":runtime-infra-http",
+        ":runtime-ports",
+      ),
+      "runtime-desktop/core/data/build.gradle.kts" to listOf(
+        ":runtime-application",
+        ":runtime-core",
+        ":runtime-domain",
+        ":runtime-infra-fs",
+        ":runtime-ports",
+      ),
+    )
+
+    val missing = adapterDependencies.flatMap { (relativeBuildFile, dependencies) ->
+      val build = runtimeRoot.resolve(relativeBuildFile).readText()
+      dependencies
+        .filterNot { dependency -> build.contains("project(\"$dependency\")") }
+        .map { dependency -> "$relativeBuildFile is missing direct dependency $dependency" }
+    }
+    assertEquals(
+      emptyList(),
+      missing,
+      "Adapters must declare direct runtime dependencies instead of using core as API.",
+    )
+
+    val umbrellaApiViolations = listOf("runtime-cli/build.gradle.kts", "runtime-mcp/build.gradle.kts")
+      .filter { relativeBuildFile ->
+        runtimeRoot.resolve(relativeBuildFile).readText().contains("api(project(\":runtime-core\"))")
+      }
+    assertEquals(
+      emptyList(),
+      umbrellaApiViolations,
+      "CLI and MCP must not expose runtime-core as a broad API umbrella.",
+    )
+  }
+
+  @Test
+  fun `cli mcp and desktop adapters do not import concrete runtime implementations`() {
+    val adapterSourceRoots = listOf(
+      "runtime-cli/src/main/kotlin",
+      "runtime-mcp/src/main/kotlin",
+      "runtime-desktop/core/data/src/commonMain/kotlin",
+      "runtime-desktop/core/data/src/jvmMain/kotlin",
+      "runtime-desktop/core/domain/src/commonMain/kotlin",
+      "runtime-desktop/feature/skillbill/src/commonMain/kotlin",
+      "runtime-desktop/feature/skillbill/src/jvmMain/kotlin",
+    )
+    val violations = adapterSourceRoots
+      .map { sourceRoot -> runtimeRoot.resolve(sourceRoot) }
+      .flatMap(::kotlinFilesUnder)
+      .flatMap { sourceFile ->
+        sourceFile.runtimeImplementationImports().map { importedName ->
+          "${runtimeRoot.relativize(sourceFile)} imports $importedName"
+        }
+      }
+      .sorted()
+
+    assertEquals(
+      emptyList(),
+      violations,
+      "CLI, MCP, and Desktop adapters must go through application services and ports instead of " +
+        "concrete install, scaffold, native-agent, launcher, validation, or filesystem implementations.",
+    )
+  }
+
   private fun forbiddenSourcePackages(moduleSourceRoots: List<String>): Set<String> = moduleSourceRoots
     .map { sourceRoot -> runtimeRoot.resolve(sourceRoot) }
     .flatMap(::kotlinFilesUnder)
@@ -144,4 +287,25 @@ class ImplementationOwnershipArchitectureTest {
       }
     }
     .toList()
+
+  private fun Path.runtimeImplementationImports(): List<String> = readText()
+    .lineSequence()
+    .mapNotNull { line -> line.trim().removePrefix("import ").takeIf { line.trim().startsWith("import ") } }
+    .filter(::isRuntimeImplementationImport)
+    .toList()
+
+  private fun isRuntimeImplementationImport(importedName: String): Boolean {
+    val forbiddenPrefixes = listOf(
+      "skillbill.infrastructure.fs.",
+      "skillbill.nativeagent.",
+      "skillbill.launcher.",
+      "skillbill.skillremove.",
+    )
+    val importsForbiddenRoot = forbiddenPrefixes.any(importedName::startsWith)
+    val importsInstallImplementation = importedName.startsWith("skillbill.install.") &&
+      !importedName.startsWith("skillbill.install.model.")
+    val importsScaffoldImplementation = importedName.startsWith("skillbill.scaffold.") &&
+      !importedName.startsWith("skillbill.scaffold.model.")
+    return importsForbiddenRoot || importsInstallImplementation || importsScaffoldImplementation
+  }
 }

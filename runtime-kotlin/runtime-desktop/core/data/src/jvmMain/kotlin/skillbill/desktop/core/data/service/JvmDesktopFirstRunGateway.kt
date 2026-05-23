@@ -3,6 +3,7 @@ package skillbill.desktop.core.data.service
 import kotlinx.coroutines.CancellationException
 import me.tatarka.inject.annotations.Inject
 import skillbill.desktop.core.common.di.UserScope
+import skillbill.desktop.core.data.di.DesktopRuntimeInstallServices
 import skillbill.desktop.core.domain.model.FirstRunAgentOption
 import skillbill.desktop.core.domain.model.FirstRunApplyResult
 import skillbill.desktop.core.domain.model.FirstRunDiscoveryResult
@@ -19,9 +20,6 @@ import skillbill.desktop.core.domain.model.FirstRunSetupDiscovery
 import skillbill.desktop.core.domain.model.FirstRunSetupRequest
 import skillbill.desktop.core.domain.model.FirstRunTelemetryLevel
 import skillbill.desktop.core.domain.service.DesktopFirstRunGateway
-import skillbill.di.RuntimeComponent
-import skillbill.di.create
-import skillbill.install.InstallOperations
 import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallAgentSelection
 import skillbill.install.model.InstallAgentSelectionMode
@@ -40,7 +38,6 @@ import skillbill.install.model.RuntimeDistributionInputs
 import skillbill.install.model.WindowsSymlinkDecision
 import skillbill.install.model.WindowsSymlinkPreflight
 import skillbill.install.model.WindowsSymlinkPreflightState
-import skillbill.model.RuntimeContext
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 import java.nio.file.Files
 import java.nio.file.LinkOption
@@ -52,14 +49,18 @@ class JvmDesktopFirstRunGateway : DesktopFirstRunGateway {
   internal var repoRootProvider: () -> Path = { Path.of(System.getProperty("user.dir")) }
   internal var homeProvider: () -> Path = { Path.of(System.getProperty("user.home")) }
   internal var runtimeAssetsProvider: () -> DesktopRuntimeAssets = { JvmRuntimeAssetLocator(repoRootProvider).locate() }
-  internal var planInstall: (InstallPlanRequest) -> InstallPlan = InstallOperations::planInstall
+  internal var planInstall: (InstallPlanRequest) -> InstallPlan = { request ->
+    DesktopRuntimeInstallServices.forHome(request.home).installService.planInstall(request)
+  }
   internal var applyInstall: (InstallPlan) -> InstallApplyResult = { plan ->
-    val runtimeComponent = RuntimeComponent::class.create(RuntimeContext(userHome = plan.request.home))
-    InstallOperations.applyInstall(plan, runtimeComponent.telemetryLevelMutator)
+    val services = DesktopRuntimeInstallServices.forHome(plan.request.home)
+    services.installService.applyInstall(plan, services.telemetryLevelMutator)
   }
   internal var detectedAgentTargets: (
     Path,
-  ) -> List<skillbill.install.model.AgentTarget> = InstallOperations::detectAgentTargets
+  ) -> List<skillbill.install.model.AgentTarget> = { home ->
+    DesktopRuntimeInstallServices.forHome(home).installAgentService.detectAgentTargets(home)
+  }
 
   override fun hasExistingInstall(): Boolean = runCatching {
     val stagingRoot = homeProvider()

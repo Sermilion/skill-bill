@@ -1,3 +1,12 @@
+## [2026-05-23] SKILL-52 adapter-composition-wiring
+Areas: runtime-kotlin/runtime-core, runtime-kotlin/runtime-application, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-mcp, runtime-kotlin/runtime-desktop/core/data
+- Runtime install, scaffold, repo-validation, MCP-registration, native-agent, and skill-remove entry points now flow through application services plus port interfaces; `runtime-core` remains the composition root that binds concrete adapters. reusable
+- Filesystem implementations live behind explicit infra-fs gateways, with typed port models for install, scaffold catalog/render, and repo validation instead of aggregate adapter bags or raw maps. reusable
+- CLI, MCP, and Desktop declare honest direct Gradle dependencies instead of relying on runtime-core as a broad API umbrella; architecture tests guard runtime-core contents and infra module dependency direction. reusable
+- Desktop first-run and skill-remove seams preserve caller-provided home binding through injected application services, including telemetry config and symlink preview behavior.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
 ## [2026-05-23] SKILL-52 implementation-ownership
 Areas: runtime-kotlin/runtime-core, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-application, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-desktop/core/data
 - Install, scaffold, native-agent, launcher, skill-remove, and workflow runtime-surface implementation ownership moved out of `runtime-core`; `runtime-core` now stays a compatibility umbrella/DI composition layer through Gradle `api` edges. reusable

@@ -131,9 +131,9 @@ class SkillRemoveJvmFileSystem(
     cascadedSkillNames: List<String>,
   ): List<AgentSymlinkUnlink> = when (val target = request.target) {
     is SkillRemovalTarget.HorizontalSkill ->
-      agentUnlinksForSkills(repoRoot(request), cascadedSkillNames)
+      agentUnlinksForSkills(request, cascadedSkillNames)
     is SkillRemovalTarget.PlatformPack ->
-      agentUnlinksForPlatform(repoRoot(request), target.platform)
+      agentUnlinksForPlatform(request, target.platform)
     is SkillRemovalTarget.AddOn -> emptyList()
   }
 
@@ -244,7 +244,7 @@ class SkillRemoveJvmFileSystem(
       //    symlinks intact. F-RUNCATCHING-SILENT/F-001-ARCH: errors per provider are collected
       //    and thrown as SkillBillRollbackException so the gateway maps to
       //    `Failed(rollbackComplete=false)` honestly rather than silently swallowing failures.
-      val symlinks = unlinkProviderAgents(repoRoot, request.target)
+      val symlinks = unlinkProviderAgents(request)
       unlinkedSymlinks += symlinks.map { it.toString().replace('\\', '/') }
 
       return AppliedCascade(
@@ -275,6 +275,11 @@ class SkillRemoveJvmFileSystem(
 
   private fun repoRoot(request: SkillRemovalRequest): Path =
     Path.of(request.repoRootAbsolutePath).toAbsolutePath().normalize()
+
+  private fun userHome(request: SkillRemovalRequest): Path =
+    request.userHomeAbsolutePath?.let { Path.of(it).toAbsolutePath().normalize() }
+      ?: home
+      ?: Path.of(System.getProperty("user.home")).toAbsolutePath().normalize()
 
   private fun horizontalCascadePaths(repoRoot: Path, cascadedSkillNames: List<String>): List<String> {
     val out = linkedSetOf<String>()
@@ -427,8 +432,11 @@ class SkillRemoveJvmFileSystem(
     parts[ADDON_FOLDER_SEGMENT] == "addons" &&
     parts[ADDON_FILE_SEGMENT].endsWith(".md")
 
-  private fun agentUnlinksForSkills(repoRoot: Path, cascadedSkillNames: List<String>): List<AgentSymlinkUnlink> {
-    val resolvedHome = home ?: Path.of(System.getProperty("user.home"))
+  private fun agentUnlinksForSkills(
+    request: SkillRemovalRequest,
+    cascadedSkillNames: List<String>,
+  ): List<AgentSymlinkUnlink> {
+    val resolvedHome = userHome(request)
     val out = mutableListOf<AgentSymlinkUnlink>()
     cascadedSkillNames.forEach { name ->
       AgentSymlinkProvider.values().forEach { provider ->
@@ -443,8 +451,8 @@ class SkillRemoveJvmFileSystem(
     return out
   }
 
-  private fun agentUnlinksForPlatform(repoRoot: Path, platform: String): List<AgentSymlinkUnlink> {
-    val resolvedHome = home ?: Path.of(System.getProperty("user.home"))
+  private fun agentUnlinksForPlatform(request: SkillRemovalRequest, platform: String): List<AgentSymlinkUnlink> {
+    val resolvedHome = userHome(request)
     val out = mutableListOf<AgentSymlinkUnlink>()
     AgentSymlinkProvider.values().forEach { provider ->
       val homeDirs = nativeProvider(provider).homeAgentDirs(resolvedHome)
@@ -478,8 +486,10 @@ class SkillRemoveJvmFileSystem(
    * for the UI dossier but the executor consults the install primitives directly so we never
    * duplicate traversal logic between the two.
    */
-  private fun unlinkProviderAgents(repoRoot: Path, target: SkillRemovalTarget): List<Path> {
-    val resolvedHome = home ?: Path.of(System.getProperty("user.home"))
+  private fun unlinkProviderAgents(request: SkillRemovalRequest): List<Path> {
+    val repoRoot = repoRoot(request)
+    val target = request.target
+    val resolvedHome = userHome(request)
     val platformPacksRoot = repoRoot.resolve("platform-packs")
     val skillsRoot = repoRoot.resolve("skills")
     val selectedPlatforms: List<String>? = when (target) {

@@ -9,7 +9,7 @@ base_branch: "main"
 feature_branch: "feat/SKILL-52-full-hexagonal-runtime-architecture"
 stack_branches: []
 current_subtask_intent:
-  subtask_id: 2
+  subtask_id: 3
   action: "start"
 subtasks:
 - id: 1
@@ -161,9 +161,9 @@ subtasks:
 - id: 2
   name: "Implementation Ownership"
   spec_path: ".feature-specs/SKILL-52-full-hexagonal-runtime-architecture/spec_subtask_2_implementation-ownership.md"
-  status: "in_progress"
+  status: "complete"
   branch: "feat/SKILL-52-full-hexagonal-runtime-architecture"
-  commit_sha: null
+  commit_sha: "5dff340"
   workflow_id: "wfl-20260523-180325-xy14"
   review_result:
     review_iterations: 3
@@ -307,7 +307,7 @@ subtasks:
       failing_check_names: []
       unsupported_reason: ""
   blocked_reason: null
-  last_resumable_step: "commit_push"
+  last_resumable_step: "finish"
   dependencies:
   - subtask_id: 1
     optional: false
@@ -315,15 +315,153 @@ subtasks:
 - id: 3
   name: "Adapter And Composition Wiring"
   spec_path: ".feature-specs/SKILL-52-full-hexagonal-runtime-architecture/spec_subtask_3_adapter-composition-wiring.md"
-  status: "pending"
-  branch: null
+  status: "in_progress"
+  branch: "feat/SKILL-52-full-hexagonal-runtime-architecture"
   commit_sha: null
-  workflow_id: null
-  review_result: null
-  audit_result: null
-  validation_result: null
+  workflow_id: "wfl-20260523-190302-2cgu"
+  review_result:
+    review_iterations: 3
+    status: "approved"
+    routed_skill: "bill-kotlin-code-review"
+    review_session_id: "rvs-skill-52-adapter-composition-wiring"
+    review_run_id: "rvw-20260523-205900-s52a"
+    detected_stack: "kotlin"
+    execution_mode: "delegated"
+    review_scope: "working tree diff on feat/SKILL-52-full-hexagonal-runtime-architecture\
+      \ for SKILL-52 subtask 3"
+    initial_findings_fixed:
+    - "aggregate RuntimeAdapters service-locator port"
+    - "desktop default RuntimeComponent process-home ownership"
+    - "CLI remove --home binding regression"
+    - "desktop first-run telemetry home binding regression"
+    - "missing desktop first-run home regression coverage"
+    - "adapter concrete implementation import architecture coverage gap"
+    - "untyped scaffold render port DTO"
+    - "hidden desktop runtime component helper"
+    - "untyped piloted platform pack catalog projection"
+    - "CLI remove --home regression test gap"
+    final_verdict: "approve"
+    finding_count: 0
+    telemetry_payload:
+      total_findings: 0
+      accepted_findings: 0
+      unresolved_findings: 0
+      accepted_rate: 0.0
+      accepted_finding_details: []
+      rejected_finding_details: []
+      review_run_id: "rvw-20260523-205900-s52a"
+      review_session_id: "rvs-skill-52-adapter-composition-wiring"
+      routed_skill: "bill-kotlin-code-review"
+      review_subskills: []
+      review_scope: "working tree diff on feat/SKILL-52-full-hexagonal-runtime-architecture\
+        \ for SKILL-52 subtask 3"
+      review_platform: "kotlin"
+      execution_mode: "delegated"
+      review_finished_at: "2026-05-23 20:14:51"
+      learnings:
+        applied_count: 0
+        applied_references: []
+        applied_summary: "none"
+        scope_counts:
+          global: 0
+          repo: 0
+          skill: 0
+        entries: []
+      skill: "bill-code-review"
+  audit_result:
+    pass: true
+    per_criterion:
+    - id: 1
+      criterion: "runtime-core contains composition/runtime assembly only and no install,\
+        \ scaffold, native-agent, launcher, workflow wrapper, or other implementation\
+        \ packages."
+      verdict: "pass"
+      evidence:
+      - "runtime-kotlin/runtime-core/src/main/kotlin/skillbill/RuntimeModule.kt:1"
+      - "runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/RuntimeComponent.kt:56"
+      - "runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/ImplementationOwnershipArchitectureTest.kt:117"
+      - "runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/ImplementationOwnershipArchitectureTest.kt:131"
+    - id: 2
+      criterion: "CLI and MCP no longer rely on runtime-core as a broad API umbrella\
+        \ where direct dependencies are the honest contract."
+      verdict: "pass"
+      evidence:
+      - "runtime-kotlin/runtime-core/build.gradle.kts:12"
+      - "runtime-kotlin/runtime-core/build.gradle.kts:15"
+      - "runtime-kotlin/runtime-cli/build.gradle.kts:9"
+      - "runtime-kotlin/runtime-mcp/build.gradle.kts:11"
+      - "runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/ImplementationOwnershipArchitectureTest.kt:178"
+    - id: 3
+      criterion: "Infrastructure modules do not depend on CLI, MCP, Desktop, or runtime-core."
+      verdict: "pass"
+      evidence:
+      - "runtime-kotlin/runtime-infra-fs/build.gradle.kts:8"
+      - "runtime-kotlin/runtime-infra-http/build.gradle.kts:6"
+      - "runtime-kotlin/runtime-infra-sqlite/build.gradle.kts:6"
+      - "runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/ImplementationOwnershipArchitectureTest.kt:161"
+    - id: 4
+      criterion: "CLI, MCP, Desktop, launcher, and script entry-point behavior is\
+        \ preserved."
+      verdict: "pass"
+      evidence:
+      - "runtime-kotlin/runtime-cli/src/main/kotlin/skillbill/cli/SkillBillCommand.kt:29"
+      - "runtime-kotlin/runtime-cli/build.gradle.kts:25"
+      - "runtime-kotlin/runtime-mcp/build.gradle.kts:40"
+      - "runtime-kotlin/runtime-mcp/src/main/kotlin/skillbill/mcp/Main.kt:3"
+      - "runtime-kotlin/runtime-desktop/src/jvmMain/kotlin/skillbill/desktop/Main.kt:12"
+      - "runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/FileSystemInstallGateway.kt:89"
+      - "runtime-kotlin/runtime-cli/src/test/kotlin/skillbill/cli/RemoveCliCommandTest.kt:61"
+      - "runtime-kotlin/runtime-desktop/core/data/src/jvmTest/kotlin/skillbill/desktop/core/data/service/JvmDesktopFirstRunGatewayTest.kt:189"
+    - id: 5
+      criterion: "Adapter wiring goes through application use cases and ports rather\
+        \ than bypassing boundaries, with only composition-root exceptions documented."
+      verdict: "pass"
+      evidence:
+      - "runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/RuntimeComponent.kt:61"
+      - "runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/RuntimeComponent.kt:83"
+      - "runtime-kotlin/runtime-application/src/main/kotlin/skillbill/application/InstallService.kt:11"
+      - "runtime-kotlin/runtime-application/src/main/kotlin/skillbill/application/ScaffoldService.kt:10"
+      - "runtime-kotlin/runtime-ports/src/main/kotlin/skillbill/ports/install/InstallGateways.kt:15"
+      - "runtime-kotlin/runtime-ports/src/main/kotlin/skillbill/ports/scaffold/ScaffoldGateways.kt:12"
+      - "runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/FileSystemInstallGateway.kt:21"
+      - "runtime-kotlin/runtime-desktop/core/data/src/jvmMain/kotlin/skillbill/desktop/core/data/di/DesktopRuntimeApplicationServices.kt:19"
+      - "runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/ImplementationOwnershipArchitectureTest.kt:231"
+    - id: 6
+      criterion: "Repo validation for this subtask passes through bill-quality-check\
+        \ or the equivalent routed Kotlin checks."
+      verdict: "pass"
+      evidence:
+      - "runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/ImplementationOwnershipArchitectureTest.kt:23"
+      - "runtime-kotlin/runtime-cli/src/test/kotlin/skillbill/cli/RemoveCliCommandTest.kt:61"
+      - "runtime-kotlin/runtime-desktop/core/data/src/jvmTest/kotlin/skillbill/desktop/core/data/service/JvmDesktopFirstRunGatewayTest.kt:189"
+      - "command: ./gradlew :runtime-cli:test --tests skillbill.cli.RemoveCliCommandTest\
+        \ :runtime-core:test --tests skillbill.architecture.ImplementationOwnershipArchitectureTest\
+        \ :runtime-desktop:core:data:jvmTest -> BUILD SUCCESSFUL"
+    gaps: []
+  validation_result:
+    validation_result: "pass"
+    routed_skill: "bill-kotlin-quality-check"
+    detected_stack: "kotlin"
+    initial_failure_count: 2
+    final_failure_count: 0
+    iterations: 4
+    validation_command: "(cd runtime-kotlin && ./gradlew check)"
+    fixes_applied: "Fixed ktlint formatting failures by wrapping overlong DesktopRuntimeApplicationServices\
+      \ constructor defaults and applying required ScaffoldCliCommands map formatting."
+    telemetry_payload:
+      routed_skill: "bill-kotlin-quality-check"
+      detected_stack: "kotlin"
+      scope_type: "branch_diff"
+      initial_failure_count: 2
+      final_failure_count: 0
+      iterations: 4
+      result: "pass"
+      duration_seconds: 140
+      skill: "bill-quality-check"
+      failing_check_names: []
+      unsupported_reason: ""
   blocked_reason: null
-  last_resumable_step: null
+  last_resumable_step: "commit_push"
   dependencies:
   - subtask_id: 2
     optional: false

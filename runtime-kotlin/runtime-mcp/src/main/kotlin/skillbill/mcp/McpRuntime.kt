@@ -254,7 +254,7 @@ object McpWorkflowRuntime {
   ): Map<String, Any?> = services(context).workflowService.continueWorkflow(kind, workflowId, dbOverride = null)
 }
 
-private fun services(context: McpRuntimeContext, stdinText: String? = null): McpRuntimeServices {
+internal fun services(context: McpRuntimeContext, stdinText: String? = null): McpRuntimeServices {
   val runtimeComponent = RuntimeComponent::class.create(context.toRuntimeContext(stdinText))
   return McpComponent::class.create(runtimeComponent).services
 }
