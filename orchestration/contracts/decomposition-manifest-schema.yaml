@@ -53,6 +53,11 @@ $defs:
       - blocked
       - complete
       - skipped
+  runtimeResult:
+    type:
+      - object
+      - "null"
+    additionalProperties: true
   dependency:
     type: object
     additionalProperties: false
@@ -75,6 +80,14 @@ $defs:
       - name
       - spec_path
       - status
+      - branch
+      - commit_sha
+      - workflow_id
+      - review_result
+      - audit_result
+      - validation_result
+      - blocked_reason
+      - last_resumable_step
       - dependencies
     properties:
       id:
@@ -87,6 +100,37 @@ $defs:
         minLength: 1
       status:
         $ref: "#/$defs/subtaskStatus"
+      branch:
+        type:
+          - string
+          - "null"
+        minLength: 1
+      commit_sha:
+        type:
+          - string
+          - "null"
+        minLength: 1
+      workflow_id:
+        type:
+          - string
+          - "null"
+        minLength: 1
+      review_result:
+        $ref: "#/$defs/runtimeResult"
+      audit_result:
+        $ref: "#/$defs/runtimeResult"
+      validation_result:
+        $ref: "#/$defs/runtimeResult"
+      blocked_reason:
+        type:
+          - string
+          - "null"
+        minLength: 1
+      last_resumable_step:
+        type:
+          - string
+          - "null"
+        minLength: 1
       dependencies:
         type: array
         items:
@@ -148,6 +192,8 @@ properties:
   parent_spec_path:
     type: string
     minLength: 1
+  status:
+    $ref: "#/$defs/subtaskStatus"
   execution_model:
     $ref: "#/$defs/executionModel"
   base_branch:
@@ -199,3 +245,8 @@ x-coherence-checks:
       Subtask ids must be unique and the array order is the execution
       order. Writers preserve the planning order instead of sorting by
       title or path.
+  execution-model-immutability:
+    description: >
+      Writers may change execution_model before any subtask starts. Once
+      a subtask records runtime state, changing execution_model must fail
+      loudly with a typed error and a manual-migration message.

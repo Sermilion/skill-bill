@@ -38,6 +38,7 @@ import skillbill.telemetry.model.QualityCheckFinishedRecord
 import skillbill.telemetry.model.QualityCheckStartedRecord
 import skillbill.telemetry.model.RemoteStatsRequest
 import skillbill.telemetry.model.TelemetrySettings
+import skillbill.workflow.DecompositionManifestCodec
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
@@ -291,6 +292,36 @@ class ApplicationPersistencePortTest {
     val manifest = parentSpec.parent.resolve("decomposition-manifest.yaml")
     assertTrue(Files.isRegularFile(manifest), "Decomposition manifest should be written beside parent spec.")
     assertTrue(Files.readString(manifest).contains("same_branch_commit_per_subtask"))
+  }
+
+  @Test
+  fun `workflow service updates decomposition subtask runtime status for blocked and skipped outcomes`() {
+    val tempDir = Files.createTempDirectory("skillbill-app-decomposition-state")
+    val parentSpec = tempDir.resolve(".feature-specs/SKILL-51-demo/spec.md")
+    val subtaskSpec = parentSpec.parent.resolve("spec_subtask_1_foundation.md")
+    Files.createDirectories(parentSpec.parent)
+    Files.writeString(parentSpec, "# Parent")
+    Files.writeString(subtaskSpec, "---\nstatus: Pending\n---\n\n# Subtask")
+    val workflowRepository = InMemoryWorkflowStateRepository()
+    val database = FakeDatabaseSessionFactory(workflows = workflowRepository)
+    val service = WorkflowService(database)
+    val workflowId = createDecompositionWorkflow(service, parentSpec, subtaskSpec)
+
+    markDecompositionSubtaskBlocked(service, workflowId, subtaskSpec)
+
+    val blockedManifest = DecompositionManifestCodec.load(parentSpec.parent.resolve("decomposition-manifest.yaml"))
+    val blockedSubtask = blockedManifest.subtasks.single()
+    assertEquals("blocked", blockedSubtask.status)
+    assertEquals("Validation failed.", blockedSubtask.blockedReason)
+    assertEquals("validate", blockedSubtask.lastResumableStep)
+    assertEquals("Blocked", statusLine(subtaskSpec))
+
+    markDecompositionSubtaskSkipped(service, workflowId, subtaskSpec)
+
+    val skippedManifest = DecompositionManifestCodec.load(parentSpec.parent.resolve("decomposition-manifest.yaml"))
+    assertEquals("skipped", skippedManifest.subtasks.single().status)
+    assertEquals("none", skippedManifest.currentSubtaskIntent.action)
+    assertEquals("Skipped", statusLine(subtaskSpec))
   }
 
   @Test
@@ -624,6 +655,78 @@ private object NoopWorkflowStateRepository : WorkflowStateRepository {
 }
 
 private fun Map<String, Any?>.steps(): List<Map<*, *>> = (this["steps"] as List<*>).map { step -> step as Map<*, *> }
+
+private fun createDecompositionWorkflow(service: WorkflowService, parentSpec: Path, subtaskSpec: Path): String {
+  val opened = service.open(WorkflowFamilyKind.IMPLEMENT, sessionId = "fis-001", dbOverride = null)
+  val workflowId = opened["workflow_id"] as String
+  service.update(
+    WorkflowFamilyKind.IMPLEMENT,
+    WorkflowUpdateRequest(
+      workflowId = workflowId,
+      workflowStatus = "running",
+      currentStepId = "plan",
+      stepUpdates = listOf(mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1)),
+      artifactsPatch = decompositionPlanPatch(parentSpec, subtaskSpec),
+    ),
+    dbOverride = null,
+  )
+  return workflowId
+}
+
+private fun markDecompositionSubtaskBlocked(service: WorkflowService, workflowId: String, subtaskSpec: Path) {
+  service.update(
+    WorkflowFamilyKind.IMPLEMENT,
+    WorkflowUpdateRequest(
+      workflowId = workflowId,
+      workflowStatus = "blocked",
+      currentStepId = "validate",
+      stepUpdates = listOf(mapOf("step_id" to "validate", "status" to "blocked", "attempt_count" to 1)),
+      artifactsPatch =
+      mapOf(
+        "assessment" to mapOf("spec_path" to subtaskSpec.toString()),
+        "validation_result" to mapOf("passed" to false),
+        "blocked_reason" to "Validation failed.",
+      ),
+    ),
+    dbOverride = null,
+  )
+}
+
+private fun markDecompositionSubtaskSkipped(service: WorkflowService, workflowId: String, subtaskSpec: Path) {
+  service.update(
+    WorkflowFamilyKind.IMPLEMENT,
+    WorkflowUpdateRequest(
+      workflowId = workflowId,
+      workflowStatus = "running",
+      currentStepId = "pr_description",
+      stepUpdates = listOf(mapOf("step_id" to "pr_description", "status" to "skipped", "attempt_count" to 1)),
+      artifactsPatch = mapOf("assessment" to mapOf("spec_path" to subtaskSpec.toString())),
+    ),
+    dbOverride = null,
+  )
+}
+
+private fun decompositionPlanPatch(parentSpec: Path, subtaskSpec: Path): Map<String, Any?> = mapOf(
+  "branch" to mapOf("branch" to "feat/SKILL-51-demo"),
+  "plan" to
+    mapOf(
+      "mode" to "decompose",
+      "parent_spec_path" to parentSpec.toString(),
+      "recommended_first_subtask_id" to 1,
+      "subtasks" to
+        listOf(
+          mapOf(
+            "id" to 1,
+            "name" to "foundation",
+            "spec_path" to subtaskSpec.toString(),
+            "depends_on" to emptyList<Int>(),
+          ),
+        ),
+    ),
+)
+
+private fun statusLine(path: Path): String =
+  Files.readAllLines(path).first { it.startsWith("status: ") }.removePrefix("status: ")
 
 private class InMemoryWorkflowStateRepository(
   private val implementSessionSummary: FeatureImplementSessionSummary? = null,

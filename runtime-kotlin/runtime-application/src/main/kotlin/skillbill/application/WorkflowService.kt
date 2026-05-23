@@ -1,6 +1,7 @@
 package skillbill.application
 
 import me.tatarka.inject.annotations.Inject
+import skillbill.application.model.DecompositionManifestRuntimeUpdate
 import skillbill.application.model.WorkflowFamilyKind
 import skillbill.application.model.WorkflowUpdateRequest
 import skillbill.ports.persistence.DatabaseSessionFactory
@@ -56,6 +57,12 @@ class WorkflowService(
           repoRoot = Path.of("").toAbsolutePath(),
           existingArtifactsJson = existing.artifactsJson,
           artifactsPatch = input.artifactsPatch,
+          runtimeUpdate = DecompositionManifestRuntimeUpdate(
+            workflowId = request.workflowId,
+            workflowStatus = input.workflowStatus,
+            currentStepId = input.currentStepId,
+            stepUpdates = input.stepUpdates,
+          ),
         )
       }
       family.save(unitOfWork.workflowStates, WorkflowEngine.updateRecord(family.definition, existing, input))
@@ -113,7 +120,11 @@ class WorkflowService(
       var decision = WorkflowEngine.continueDecision(family.definition, record, sessionSummary)
       if (decision.shouldReopen) {
         val continueStatus = decision.payload["continue_status"]
-        val reopened = WorkflowEngine.updateRecord(family.definition, record, decision.toReopenInput(record.sessionId))
+        val reopened = WorkflowEngine.updateRecord(
+          family.definition,
+          record,
+          decision.toReopenInput(record.sessionId),
+        )
         family.save(unitOfWork.workflowStates, reopened)
         record = family.get(unitOfWork.workflowStates, workflowId) ?: reopened
         val refreshedPayload =

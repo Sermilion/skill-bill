@@ -16,6 +16,13 @@ object DecompositionManifestCodec {
 
   fun load(path: Path): DecompositionManifest = decodeYaml(Files.readString(path), path.toString())
 
+  fun decodeMap(wireMap: Map<String, Any?>, sourceLabel: String = "<in-memory>"): DecompositionManifest {
+    DecompositionManifestSchemaValidator.validate(wireMap, sourceLabel)
+    val manifest = wireMap.toDecompositionManifest(sourceLabel)
+    validateCoherence(manifest, sourceLabel)
+    return manifest
+  }
+
   fun validate(manifest: DecompositionManifest, sourceLabel: String = "<in-memory>") {
     DecompositionManifestSchemaValidator.validate(manifest.toWireMap(), sourceLabel)
     validateCoherence(manifest, sourceLabel)
@@ -120,6 +127,14 @@ private fun Map<String, Any?>.toDecompositionManifest(sourceLabel: String): Deco
       name = item.stringValue("name", sourceLabel),
       specPath = item.stringValue("spec_path", sourceLabel),
       status = item.stringValue("status", sourceLabel),
+      branch = item.nullableStringValue("branch", sourceLabel),
+      commitSha = item.nullableStringValue("commit_sha", sourceLabel),
+      workflowId = item.nullableStringValue("workflow_id", sourceLabel),
+      reviewResult = item.nullableMapValue("review_result", sourceLabel),
+      auditResult = item.nullableMapValue("audit_result", sourceLabel),
+      validationResult = item.nullableMapValue("validation_result", sourceLabel),
+      blockedReason = item.nullableStringValue("blocked_reason", sourceLabel),
+      lastResumableStep = item.nullableStringValue("last_resumable_step", sourceLabel),
       dependencies = item.listValue("dependencies").mapIndexed { depIndex, dep ->
         val dependency = dep.asMap(sourceLabel, "subtasks[$index].dependencies[$depIndex]")
         DecompositionDependency(
@@ -130,12 +145,13 @@ private fun Map<String, Any?>.toDecompositionManifest(sourceLabel: String): Deco
       },
     )
   }
-  val current = requiredMap("current_subtask_intent", sourceLabel)
+  val current = this["current_subtask_intent"].asMap(sourceLabel, "current_subtask_intent")
   return DecompositionManifest(
     contractVersion = stringValue("contract_version", sourceLabel),
     issueKey = stringValue("issue_key", sourceLabel),
     featureName = stringValue("feature_name", sourceLabel),
     parentSpecPath = stringValue("parent_spec_path", sourceLabel),
+    status = nullableStringValue("status", sourceLabel) ?: "pending",
     executionModel = executionModel,
     baseBranch = stringValue("base_branch", sourceLabel),
     featureBranch = nullableStringValue("feature_branch", sourceLabel),
@@ -155,9 +171,6 @@ private fun Map<String, Any?>.toDecompositionManifest(sourceLabel: String): Deco
   )
 }
 
-private fun Map<String, Any?>.requiredMap(key: String, sourceLabel: String): Map<String, Any?> =
-  this[key].asMap(sourceLabel, key)
-
 private fun Map<String, Any?>.stringValue(key: String, sourceLabel: String): String = when (val value = this[key]) {
   is String -> value
   else -> invalidDecompositionManifest(sourceLabel, "$key must be a string.")
@@ -168,6 +181,16 @@ private fun Map<String, Any?>.nullableStringValue(key: String, sourceLabel: Stri
     null -> null
     is String -> value
     else -> invalidDecompositionManifest(sourceLabel, "$key must be a string or null.")
+  }
+
+private fun Map<String, Any?>.nullableMapValue(key: String, sourceLabel: String): Map<String, Any?>? =
+  when (val value = this[key]) {
+    null -> null
+    is Map<*, *> -> value.entries.associateTo(LinkedHashMap<String, Any?>()) { (mapKey, mapValue) ->
+      val stringKey = mapKey as? String ?: invalidDecompositionManifest(sourceLabel, "$key contains a non-string key.")
+      stringKey to mapValue
+    }
+    else -> invalidDecompositionManifest(sourceLabel, "$key must be an object or null.")
   }
 
 private fun Map<String, Any?>.intValue(key: String, sourceLabel: String): Int = this[key].asInt(sourceLabel, key)

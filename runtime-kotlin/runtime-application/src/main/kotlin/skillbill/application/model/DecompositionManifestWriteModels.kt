@@ -16,6 +16,15 @@ data class DecompositionManifestWriteRequest(
   val currentSubtaskId: Int? = null,
 )
 
+data class DecompositionManifestRuntimeUpdate(
+  val workflowId: String = "",
+  val workflowStatus: String = "",
+  val currentStepId: String = "",
+  val stepUpdates: List<Map<String, Any?>>? = null,
+  val artifactsPatch: Map<String, Any?>? = null,
+  val existingArtifacts: Map<String, Any?> = emptyMap(),
+)
+
 data class DecompositionManifestWriteResult(
   val manifestPath: Path,
   val manifest: DecompositionManifest,

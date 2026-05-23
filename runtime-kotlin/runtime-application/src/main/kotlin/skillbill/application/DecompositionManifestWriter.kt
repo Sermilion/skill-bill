@@ -1,8 +1,8 @@
 package skillbill.application
 
+import skillbill.application.model.DecompositionManifestRuntimeUpdate
 import skillbill.application.model.DecompositionManifestWriteRequest
 import skillbill.application.model.DecompositionManifestWriteResult
-import skillbill.contracts.JsonSupport
 import skillbill.workflow.DecompositionManifestCodec
 import skillbill.workflow.model.CurrentSubtaskIntent
 import skillbill.workflow.model.DecompositionExecutionModel
@@ -18,33 +18,18 @@ object DecompositionManifestWriter {
     repoRoot: Path,
     existingArtifactsJson: String,
     artifactsPatch: Map<String, Any?>?,
+    runtimeUpdate: DecompositionManifestRuntimeUpdate? = null,
   ): DecompositionManifestWriteResult? {
+    val existingArtifacts = decodeArtifacts(existingArtifactsJson)
+    val update = (runtimeUpdate ?: DecompositionManifestRuntimeUpdate()).copy(
+      artifactsPatch = artifactsPatch,
+      existingArtifacts = existingArtifacts,
+    )
     val plan = artifactsPatch?.get("plan").asStringAnyMapOrNull()
-    return if (plan == null || plan["mode"] != DECOMPOSITION_MODE) {
-      null
+    return if (plan != null && plan["mode"] == DECOMPOSITION_MODE) {
+      writeFromDecompositionPlan(repoRoot, plan, artifactsPatch, existingArtifacts)
     } else {
-      val existingArtifacts = JsonSupport.parseObjectOrNull(existingArtifactsJson)
-        ?.let(JsonSupport::jsonElementToValue)
-        ?.let(JsonSupport::anyToStringAnyMap)
-        .orEmpty()
-      val parentSpecPath = Path.of(parentSpecPath(plan))
-      val branchName = branchName(artifactsPatch?.get("branch")).ifBlank { branchName(existingArtifacts["branch"]) }
-      val executionModel = executionModel(plan)
-      writeIfDecomposed(
-        DecompositionManifestWriteRequest(
-          repoRoot = repoRoot,
-          parentSpecPath = parentSpecPath,
-          planningResult = plan,
-          baseBranch = plan["base_branch"]?.toString()?.takeIf(String::isNotBlank) ?: "main",
-          featureBranch = when (executionModel) {
-            DecompositionExecutionModel.SAME_BRANCH_COMMIT_PER_SUBTASK ->
-              branchName.ifBlank { defaultFeatureBranch(parentSpecPath) }
-            DecompositionExecutionModel.STACKED_BRANCHES -> null
-          },
-          executionModel = executionModel,
-          stackBranches = parseStackBranches(plan),
-        ),
-      )
+      updateExistingManifest(repoRoot, update)
     }
   }
 
@@ -61,15 +46,73 @@ object DecompositionManifestWriter {
     return write(request)
   }
 
-  fun write(request: DecompositionManifestWriteRequest): DecompositionManifestWriteResult {
+  fun write(
+    request: DecompositionManifestWriteRequest,
+    runtimeUpdate: DecompositionManifestRuntimeUpdate? = null,
+  ): DecompositionManifestWriteResult {
     val manifestPath = resolvedParentSpecPath(request.repoRoot, request.parentSpecPath)
       .parent
       .resolve(DECOMPOSITION_MANIFEST_FILENAME)
+    val existing = loadManifestOrNull(manifestPath)
     val manifest = request.toManifest()
+      .assertExecutionModelCanReplace(existing, manifestPath)
+      .withPreservedRuntimeState(existing)
+      .let { candidate ->
+        runtimeUpdate?.let { candidate.withRuntimeUpdate(request.repoRoot, it) } ?: candidate
+      }
     val yaml = DecompositionManifestCodec.encodeYaml(manifest)
     writeDecompositionManifestText(manifestPath, yaml)
     val loaded = DecompositionManifestCodec.load(manifestPath)
+    projectCurrentSubtaskStatus(request.repoRoot, loaded)
     return DecompositionManifestWriteResult(manifestPath = manifestPath, manifest = loaded)
+  }
+
+  private fun writeFromDecompositionPlan(
+    repoRoot: Path,
+    plan: Map<String, Any?>,
+    artifactsPatch: Map<String, Any?>?,
+    existingArtifacts: Map<String, Any?>,
+  ): DecompositionManifestWriteResult {
+    val parentSpecPath = Path.of(parentSpecPath(plan))
+    val branchName = branchName(artifactsPatch?.get("branch")).ifBlank { branchName(existingArtifacts["branch"]) }
+    val executionModel = executionModel(plan)
+    return write(
+      DecompositionManifestWriteRequest(
+        repoRoot = repoRoot,
+        parentSpecPath = parentSpecPath,
+        planningResult = plan,
+        baseBranch = plan["base_branch"]?.toString()?.takeIf(String::isNotBlank) ?: "main",
+        featureBranch = when (executionModel) {
+          DecompositionExecutionModel.SAME_BRANCH_COMMIT_PER_SUBTASK ->
+            branchName.ifBlank { defaultFeatureBranch(parentSpecPath) }
+          DecompositionExecutionModel.STACKED_BRANCHES -> null
+        },
+        executionModel = executionModel,
+        stackBranches = parseStackBranches(plan),
+      ),
+    )
+  }
+
+  private fun updateExistingManifest(
+    repoRoot: Path,
+    runtimeUpdate: DecompositionManifestRuntimeUpdate,
+  ): DecompositionManifestWriteResult? {
+    val manifestPath = manifestPathFromArtifacts(
+      repoRoot = repoRoot,
+      artifactsPatch = runtimeUpdate.artifactsPatch,
+      existingArtifacts = runtimeUpdate.existingArtifacts,
+    )
+    val existing = manifestPath?.let(::loadManifestOrNull)
+    return if (manifestPath == null || existing == null) {
+      null
+    } else {
+      val updated = existing.withRuntimeUpdate(repoRoot, runtimeUpdate)
+      val yaml = DecompositionManifestCodec.encodeYaml(updated)
+      writeDecompositionManifestText(manifestPath, yaml)
+      val loaded = DecompositionManifestCodec.load(manifestPath)
+      projectCurrentSubtaskStatus(repoRoot, loaded)
+      DecompositionManifestWriteResult(manifestPath = manifestPath, manifest = loaded)
+    }
   }
 
   private fun DecompositionManifestWriteRequest.toManifest(): DecompositionManifest {

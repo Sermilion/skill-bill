@@ -1,13 +1,18 @@
 package skillbill.application
 
+import skillbill.application.model.DecompositionManifestRuntimeUpdate
 import skillbill.application.model.DecompositionManifestWriteRequest
+import skillbill.error.InvalidDecompositionManifestSchemaError
 import skillbill.workflow.DecompositionManifestCodec
 import skillbill.workflow.WorkflowEngine
 import skillbill.workflow.implement.FeatureImplementWorkflowDefinition
+import skillbill.workflow.model.DecompositionExecutionModel
 import skillbill.workflow.model.WorkflowUpdateInput
 import java.nio.file.Files
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -40,6 +45,8 @@ class DecompositionManifestWriterTest {
     assertEquals(emptyList(), loaded.stackBranches)
     assertEquals(1, loaded.currentSubtaskIntent.subtaskId)
     assertEquals("start", loaded.currentSubtaskIntent.action)
+    assertEquals(null, loaded.subtasks.first().workflowId)
+    assertEquals(null, loaded.subtasks.first().reviewResult)
   }
 
   @Test
@@ -62,6 +69,132 @@ class DecompositionManifestWriterTest {
       listOf("feature/SKILL-51-01-foundation", "feature/SKILL-51-02-runtime"),
       result.manifest.stackBranches.map { it.branch },
     )
+  }
+
+  @Test
+  fun `workflow update records runtime state on matching subtask and projects markdown status`() {
+    val repoRoot = Files.createTempDirectory("skillbill-runtime-state")
+    val parentSpecPath = repoRoot.resolve(".feature-specs/SKILL-51-decomposition/spec.md")
+    val secondSubtaskSpec = parentSpecPath.parent.resolve("spec_subtask_2_runtime.md")
+    Files.createDirectories(parentSpecPath.parent)
+    Files.writeString(parentSpecPath, "# Parent spec\n")
+    Files.writeString(
+      secondSubtaskSpec,
+      """
+      ---
+      status: Pending
+      ---
+
+      # Runtime
+      """.trimIndent(),
+    )
+    DecompositionManifestWriter.writeIfDecomposed(
+      DecompositionManifestWriteRequest(
+        repoRoot = repoRoot,
+        parentSpecPath = parentSpecPath,
+        planningResult = decompositionPlan(parentSpecPath),
+        baseBranch = "main",
+        featureBranch = "feature/SKILL-51-decomposition",
+      ),
+    )
+
+    val result = DecompositionManifestWriter.writeFromWorkflowUpdate(
+      repoRoot = repoRoot,
+      existingArtifactsJson = runtimeArtifactsJson(secondSubtaskSpec),
+      artifactsPatch = mapOf("review_result" to mapOf("finding_count" to 0)),
+      runtimeUpdate = DecompositionManifestRuntimeUpdate(
+        workflowId = "wfl-subtask-2",
+        workflowStatus = "running",
+        currentStepId = "audit",
+        stepUpdates = listOf(mapOf("step_id" to "review", "status" to "completed", "attempt_count" to 1)),
+      ),
+    )
+
+    assertNotNull(result)
+    val runtimeSubtask = result.manifest.subtasks.single { it.id == 2 }
+    assertEquals("in_progress", runtimeSubtask.status)
+    assertEquals("feature/SKILL-51-decomposition", runtimeSubtask.branch)
+    assertEquals("wfl-subtask-2", runtimeSubtask.workflowId)
+    assertEquals(mapOf("finding_count" to 0), runtimeSubtask.reviewResult)
+    assertEquals("audit", runtimeSubtask.lastResumableStep)
+    assertContains(Files.readString(secondSubtaskSpec), "status: In Progress")
+  }
+
+  @Test
+  fun `execution model can change before any subtask starts`() {
+    val repoRoot = Files.createTempDirectory("skillbill-model-change-before-start")
+    val parentSpecPath = repoRoot.resolve(".feature-specs/SKILL-51-decomposition/spec.md")
+    Files.createDirectories(parentSpecPath.parent)
+    Files.writeString(parentSpecPath, "# Parent spec\n")
+    DecompositionManifestWriter.writeIfDecomposed(
+      DecompositionManifestWriteRequest(
+        repoRoot = repoRoot,
+        parentSpecPath = parentSpecPath,
+        planningResult = decompositionPlan(parentSpecPath),
+        baseBranch = "main",
+        featureBranch = "feature/SKILL-51-decomposition",
+      ),
+    )
+
+    val changed = DecompositionManifestWriter.writeIfDecomposed(
+      DecompositionManifestWriteRequest(
+        repoRoot = repoRoot,
+        parentSpecPath = parentSpecPath,
+        planningResult = stackedDecompositionPlan(parentSpecPath),
+        baseBranch = "main",
+        featureBranch = null,
+        executionModel = DecompositionExecutionModel.STACKED_BRANCHES,
+        stackBranches = parseStackBranches(stackedDecompositionPlan(parentSpecPath)),
+      ),
+    )
+
+    assertNotNull(changed)
+    assertEquals("stacked_branches", changed.manifest.executionModel.wireValue)
+  }
+
+  @Test
+  fun `execution model change after subtask starts fails with manual migration message`() {
+    val repoRoot = Files.createTempDirectory("skillbill-model-change-after-start")
+    val parentSpecPath = repoRoot.resolve(".feature-specs/SKILL-51-decomposition/spec.md")
+    Files.createDirectories(parentSpecPath.parent)
+    Files.writeString(parentSpecPath, "# Parent spec\n")
+    DecompositionManifestWriter.writeIfDecomposed(
+      DecompositionManifestWriteRequest(
+        repoRoot = repoRoot,
+        parentSpecPath = parentSpecPath,
+        planningResult = decompositionPlan(parentSpecPath),
+        baseBranch = "main",
+        featureBranch = "feature/SKILL-51-decomposition",
+      ),
+    )
+    DecompositionManifestWriter.writeFromWorkflowUpdate(
+      repoRoot = repoRoot,
+      existingArtifactsJson = runtimeArtifactsJson(parentSpecPath.parent.resolve("spec_subtask_1_foundation.md")),
+      artifactsPatch = null,
+      runtimeUpdate = DecompositionManifestRuntimeUpdate(
+        workflowId = "wfl-subtask-1",
+        workflowStatus = "running",
+        currentStepId = "implement",
+        stepUpdates = listOf(mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1)),
+      ),
+    )
+
+    val error = assertFailsWith<InvalidDecompositionManifestSchemaError> {
+      DecompositionManifestWriter.writeIfDecomposed(
+        DecompositionManifestWriteRequest(
+          repoRoot = repoRoot,
+          parentSpecPath = parentSpecPath,
+          planningResult = stackedDecompositionPlan(parentSpecPath),
+          baseBranch = "main",
+          featureBranch = null,
+          executionModel = DecompositionExecutionModel.STACKED_BRANCHES,
+          stackBranches = parseStackBranches(stackedDecompositionPlan(parentSpecPath)),
+        ),
+      )
+    }
+
+    assertContains(error.reason, "execution_model cannot change after decomposition execution has begun")
+    assertContains(error.reason, "manually migrate")
   }
 
   @Test
@@ -107,32 +240,36 @@ class DecompositionManifestWriterTest {
     assertEquals(mapOf("mode" to "implement", "task_count" to 1), artifacts["plan"])
   }
 
-  private fun decompositionPlan(): Map<String, Any?> = linkedMapOf(
+  private fun decompositionPlan(
+    parentSpecPath: java.nio.file.Path = java.nio.file.Path.of(".feature-specs/SKILL-51-decomposition/spec.md"),
+  ): Map<String, Any?> = linkedMapOf(
     "mode" to "decompose",
-    "parent_spec_path" to ".feature-specs/SKILL-51-decomposition/spec.md",
+    "parent_spec_path" to parentSpecPath.toString(),
     "recommended_first_subtask_id" to 1,
     "subtasks" to
       listOf(
         linkedMapOf(
           "id" to 1,
           "name" to "Foundation",
-          "spec_path" to ".feature-specs/SKILL-51-decomposition/spec_subtask_1_foundation.md",
+          "spec_path" to parentSpecPath.parent.resolve("spec_subtask_1_foundation.md").toString(),
           "depends_on" to emptyList<Int>(),
           "scope" to "Create contract foundation",
         ),
         linkedMapOf(
           "id" to 2,
           "name" to "Runtime",
-          "spec_path" to ".feature-specs/SKILL-51-decomposition/spec_subtask_2_runtime.md",
+          "spec_path" to parentSpecPath.parent.resolve("spec_subtask_2_runtime.md").toString(),
           "depends_on" to listOf(1),
           "scope" to "Wire runtime writer",
         ),
       ),
   )
 
-  private fun stackedDecompositionPlan(): Map<String, Any?> = linkedMapOf(
+  private fun stackedDecompositionPlan(
+    parentSpecPath: java.nio.file.Path = java.nio.file.Path.of(".feature-specs/SKILL-51-decomposition/spec.md"),
+  ): Map<String, Any?> = linkedMapOf(
     "mode" to "decompose",
-    "parent_spec_path" to ".feature-specs/SKILL-51-decomposition/spec.md",
+    "parent_spec_path" to parentSpecPath.toString(),
     "execution_model" to "stacked_branches",
     "recommended_first_subtask_id" to 1,
     "stack_branches" to
@@ -149,15 +286,19 @@ class DecompositionManifestWriterTest {
         linkedMapOf(
           "id" to 1,
           "name" to "Foundation",
-          "spec_path" to ".feature-specs/SKILL-51-decomposition/spec_subtask_1_foundation.md",
+          "spec_path" to parentSpecPath.parent.resolve("spec_subtask_1_foundation.md").toString(),
           "depends_on" to emptyList<Int>(),
         ),
         linkedMapOf(
           "id" to 2,
           "name" to "Runtime",
-          "spec_path" to ".feature-specs/SKILL-51-decomposition/spec_subtask_2_runtime.md",
+          "spec_path" to parentSpecPath.parent.resolve("spec_subtask_2_runtime.md").toString(),
           "depends_on" to listOf(1),
         ),
       ),
   )
+
+  private fun runtimeArtifactsJson(subtaskSpec: java.nio.file.Path): String =
+    """{"assessment":{"spec_path":"${subtaskSpec.toString().replace("\\", "\\\\")}"},""" +
+      """"branch":{"branch":"feature/SKILL-51-decomposition"}}"""
 }

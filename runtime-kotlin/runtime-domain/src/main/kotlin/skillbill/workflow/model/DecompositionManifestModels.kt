@@ -17,8 +17,26 @@ data class DecompositionSubtask(
   val name: String,
   val specPath: String,
   val status: String = "pending",
+  val branch: String? = null,
+  val commitSha: String? = null,
+  val workflowId: String? = null,
+  val reviewResult: Map<String, Any?>? = null,
+  val auditResult: Map<String, Any?>? = null,
+  val validationResult: Map<String, Any?>? = null,
+  val blockedReason: String? = null,
+  val lastResumableStep: String? = null,
   val dependencies: List<DecompositionDependency> = emptyList(),
-)
+) {
+  fun hasStarted(): Boolean = status != "pending" ||
+    branch != null ||
+    commitSha != null ||
+    workflowId != null ||
+    reviewResult != null ||
+    auditResult != null ||
+    validationResult != null ||
+    blockedReason != null ||
+    lastResumableStep != null
+}
 
 data class DecompositionDependency(
   val subtaskId: Int,
@@ -42,6 +60,7 @@ data class DecompositionManifest(
   val issueKey: String,
   val featureName: String,
   val parentSpecPath: String,
+  val status: String = "pending",
   val executionModel: DecompositionExecutionModel = DecompositionExecutionModel.SAME_BRANCH_COMMIT_PER_SUBTASK,
   val baseBranch: String,
   val featureBranch: String?,
