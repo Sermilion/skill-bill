@@ -42,6 +42,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class ApplicationPersistencePortTest {
   @Test
@@ -243,6 +244,53 @@ class ApplicationPersistencePortTest {
     assertEquals(listOf("markdown_file"), sessionSummary["spec_input_types"])
     assertEquals("workflow-runtime", sessionSummary["feature_name"])
     assertEquals("Port workflow runtime", sessionSummary["spec_summary"])
+  }
+
+  @Test
+  fun `workflow service writes decomposition manifest when implement plan decomposes`() {
+    val tempDir = Files.createTempDirectory("skillbill-app-decomposition")
+    val parentSpec = tempDir.resolve(".feature-specs/SKILL-51-demo/spec.md")
+    Files.createDirectories(parentSpec.parent)
+    Files.writeString(parentSpec, "# Parent")
+    val workflowRepository = InMemoryWorkflowStateRepository()
+    val database = FakeDatabaseSessionFactory(workflows = workflowRepository)
+    val service = WorkflowService(database)
+    val opened = service.open(WorkflowFamilyKind.IMPLEMENT, sessionId = "fis-001", dbOverride = null)
+    val workflowId = opened["workflow_id"] as String
+
+    service.update(
+      WorkflowFamilyKind.IMPLEMENT,
+      WorkflowUpdateRequest(
+        workflowId = workflowId,
+        workflowStatus = "running",
+        currentStepId = "plan",
+        stepUpdates = listOf(mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1)),
+        artifactsPatch =
+        mapOf(
+          "branch" to mapOf("branch" to "feat/SKILL-51-demo"),
+          "plan" to
+            mapOf(
+              "mode" to "decompose",
+              "parent_spec_path" to parentSpec.toString(),
+              "recommended_first_subtask_id" to 1,
+              "subtasks" to
+                listOf(
+                  mapOf(
+                    "id" to 1,
+                    "name" to "foundation",
+                    "spec_path" to parentSpec.parent.resolve("spec_subtask_1_foundation.md").toString(),
+                    "depends_on" to emptyList<Int>(),
+                  ),
+                ),
+            ),
+        ),
+      ),
+      dbOverride = null,
+    )
+
+    val manifest = parentSpec.parent.resolve("decomposition-manifest.yaml")
+    assertTrue(Files.isRegularFile(manifest), "Decomposition manifest should be written beside parent spec.")
+    assertTrue(Files.readString(manifest).contains("same_branch_commit_per_subtask"))
   }
 
   @Test

@@ -13,6 +13,7 @@ import skillbill.workflow.model.WorkflowDefinition
 import skillbill.workflow.model.WorkflowStateSnapshot
 import skillbill.workflow.model.WorkflowUpdateInput
 import skillbill.workflow.verify.FeatureVerifyWorkflowDefinition
+import java.nio.file.Path
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import kotlin.random.Random
@@ -50,6 +51,13 @@ class WorkflowService(
     return database.transaction(dbOverride) { unitOfWork ->
       val existing = family.get(unitOfWork.workflowStates, request.workflowId)
         ?: return@transaction unknownWorkflowPayload(request.workflowId)
+      if (family == WorkflowFamily.IMPLEMENT) {
+        DecompositionManifestWriter.writeFromWorkflowUpdate(
+          repoRoot = Path.of("").toAbsolutePath(),
+          existingArtifactsJson = existing.artifactsJson,
+          artifactsPatch = input.artifactsPatch,
+        )
+      }
       family.save(unitOfWork.workflowStates, WorkflowEngine.updateRecord(family.definition, existing, input))
       val updated = family.get(unitOfWork.workflowStates, request.workflowId) ?: existing
       ok(WorkflowEngine.fullPayload(family.definition, updated), unitOfWork)
