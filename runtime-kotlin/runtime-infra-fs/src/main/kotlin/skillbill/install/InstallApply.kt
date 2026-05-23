@@ -15,10 +15,14 @@ import skillbill.install.model.WindowsSymlinkApplyOutcome
 import skillbill.install.model.WindowsSymlinkDecision
 import skillbill.install.model.WindowsSymlinkFallbackState
 import skillbill.install.model.WindowsSymlinkPreflightState
+import skillbill.ports.telemetry.TelemetryLevelMutator
 import skillbill.scaffold.model.PlatformManifest
 import java.nio.file.Path
 
-internal fun applyInstallPlan(plan: InstallPlan): InstallApplyResult {
+internal fun applyInstallPlan(
+  plan: InstallPlan,
+  telemetryLevelMutator: TelemetryLevelMutator? = null,
+): InstallApplyResult {
   val warnings = mutableListOf<InstallApplyIssue>()
   val failures = mutableListOf<InstallApplyIssue>()
   val windowsOutcome = windowsSymlinkApplyOutcome(plan)
@@ -55,7 +59,7 @@ internal fun applyInstallPlan(plan: InstallPlan): InstallApplyResult {
   }
   val finalWindowsOutcome = windowsOutcome.withSymlinkFailureState(failures)
   val telemetryOutcome = if (failures.isEmpty()) {
-    applyTelemetryIntent(plan, warnings)
+    applyTelemetryIntent(plan, warnings, telemetryLevelMutator)
   } else {
     skippedTelemetryOutcome(plan, "Skipped because install apply failed.")
   }

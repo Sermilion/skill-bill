@@ -1,3 +1,12 @@
+## [2026-05-23] SKILL-52 implementation-ownership
+Areas: runtime-kotlin/runtime-core, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-application, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-desktop/core/data
+- Install, scaffold, native-agent, launcher, skill-remove, and workflow runtime-surface implementation ownership moved out of `runtime-core`; `runtime-core` now stays a compatibility umbrella/DI composition layer through Gradle `api` edges. reusable
+- Concrete filesystem implementations live in `runtime-infra-fs`; architecture coverage rejects moved infra packages depending on runtime-core, CLI, MCP, Desktop, HTTP, or SQLite sibling adapters. reusable
+- Install telemetry apply now crosses a `TelemetryLevelMutator` port to application-owned mutation, preserving config validation and transactional outbox clearing while CLI rebinding honors parsed `--home`/`--db`. reusable
+- Source/generated boundaries remain guarded after the move: rendered `SKILL.md`, support pointers, provider-native outputs, install staging, and desktop packaging artifacts stay generated.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
 ## [2026-05-23] SKILL-52 domain-contract-foundation
 Areas: runtime-kotlin/runtime-domain, runtime-kotlin/runtime-application, runtime-kotlin/runtime-contracts, runtime-kotlin/runtime-core/architecture, orchestration/contracts
 - Runtime contract/schema validators and classpath schema resources for install-plan, workflow-state, and decomposition-manifest now live in `runtime-contracts`; domain code consumes typed validated seams rather than owning schema convenience APIs. reusable

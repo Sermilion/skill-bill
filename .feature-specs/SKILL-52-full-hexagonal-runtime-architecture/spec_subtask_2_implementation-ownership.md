@@ -2,6 +2,10 @@
 
 Parent overview: [spec.md](spec.md)
 
+## Status
+
+Complete
+
 ## Scope
 
 Move implementation ownership out of `runtime-core` after the domain/application/contract seams are prepared.

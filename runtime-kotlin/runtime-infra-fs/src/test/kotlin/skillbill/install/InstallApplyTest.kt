@@ -118,6 +118,31 @@ class InstallApplyTest : InstallApplyTestSupport() {
   }
 
   @Test
+  fun `apply fails telemetry setup when existing config remains invalid after level write`() {
+    val fixture = setupApplyFixture()
+    val configPath = fixture.home.resolve(".skill-bill/config.json")
+    Files.createDirectories(configPath.parent)
+    Files.writeString(
+      configPath,
+      """{"install_id":"existing","telemetry":{"level":"anonymous","proxy_url":"","batch_size":"bad"}}""",
+    )
+    val plan = InstallOperations.planInstall(
+      fixture.request(
+        agents = setOf(InstallAgent.CODEX),
+        telemetryLevel = InstallTelemetryLevel.FULL,
+      ),
+    )
+
+    val result = InstallOperations.applyInstall(plan)
+
+    assertEquals(InstallApplyStatus.WARNING, result.status)
+    assertEquals(InstallTelemetryApplyStatus.FAILED, result.telemetryOutcome.status)
+    assertEquals(configPath, result.telemetryOutcome.configPath)
+    assertNotNull(result.telemetryOutcome.issue)
+    assertContains(result.telemetryOutcome.issue?.message.orEmpty(), "telemetry.batch_size must be an integer.")
+  }
+
+  @Test
   fun `apply disables existing telemetry config as a structured success outcome`() {
     val fixture = setupApplyFixture()
     val configPath = fixture.home.resolve(".skill-bill/config.json")

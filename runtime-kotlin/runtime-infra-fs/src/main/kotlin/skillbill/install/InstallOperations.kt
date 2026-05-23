@@ -4,6 +4,7 @@ import skillbill.install.model.AgentTarget
 import skillbill.install.model.InstallApplyResult
 import skillbill.install.model.InstallPlan
 import skillbill.install.model.InstallPlanRequest
+import skillbill.ports.telemetry.TelemetryLevelMutator
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -11,7 +12,8 @@ import java.nio.file.Path
 object InstallOperations {
   fun planInstall(request: InstallPlanRequest): InstallPlan = buildInstallPlan(request)
 
-  fun applyInstall(plan: InstallPlan): InstallApplyResult = applyInstallPlan(plan)
+  fun applyInstall(plan: InstallPlan, telemetryLevelMutator: TelemetryLevelMutator? = null): InstallApplyResult =
+    applyInstallPlan(plan, telemetryLevelMutator)
 
   fun agentPath(agent: String, home: Path? = null): Path {
     require(agent in SUPPORTED_AGENTS) {

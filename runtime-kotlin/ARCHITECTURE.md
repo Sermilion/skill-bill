@@ -33,9 +33,13 @@ di
 - `runtime-infra-sqlite`: SQLite schema, migrations, stores, repositories, and
   SQL-backed review helpers.
 - `runtime-infra-http`: telemetry HTTP client/requester and HTTP wire mapping.
-- `runtime-infra-fs`: telemetry config file adapter.
-- `runtime-core`: Kotlin-Inject composition root, module metadata, active
-  workflow surface declarations, and remaining reserved runtime surfaces.
+- `runtime-infra-fs`: filesystem/process adapters for telemetry config,
+  install plan/apply, install staging, governed scaffold/load/render,
+  native-agent rendering/linking, launcher MCP registration, and skill-remove
+  filesystem cascades.
+- `runtime-core`: Kotlin-Inject composition root and module metadata. It
+  remains a compatibility umbrella for CLI/MCP/Desktop callers while concrete
+  implementation packages live in their owning layers.
 - `runtime-cli`: Clikt command tree, terminal rendering, JSON output, help, and
   completion surfaces.
 - `runtime-desktop`: optional Compose Multiplatform JVM desktop Skill Bill app
@@ -64,7 +68,8 @@ di
   `skillbill.application.model`.
 - `skillbill.model`: shared runtime model types that are not owned by a narrower
   domain area, currently `RuntimeContext`.
-- `skillbill.di`: Kotlin-Inject composition roots and providers.
+- `skillbill.di`: Kotlin-Inject composition roots and providers, owned by
+  `runtime-core`.
 - `skillbill.ports`: internal port contracts for persistence sessions,
   repositories, telemetry settings/config/client abstractions, and later
   filesystem/time abstractions. Port DTOs/results live under
@@ -73,7 +78,9 @@ di
   adapters own JDBC connection/session behavior and table-shaped repository
   implementations, including SQL-backed review persistence, stats, and review
   telemetry state; HTTP adapters own telemetry relay request/response details;
-  filesystem adapters own telemetry config file reads and writes.
+  filesystem adapters own telemetry config reads/writes plus repo-local file
+  mutation surfaces for install, scaffold, native-agent output, launcher MCP
+  registration, and skill-remove.
 - `skillbill.db`: SQLite schema, migrations, connection bootstrap, and current
   JDBC stores.
 - `skillbill.review`: pure review parsing, triage decision normalization, and
@@ -91,21 +98,31 @@ di
   Mapping from application/domain/port models into contract DTOs belongs in
   application or adapter-owned packages.
 - `skillbill.error`: runtime exception taxonomy.
-- `skillbill.workflow.*`: active durable workflow state/runtime surfaces for
-  feature-implement and feature-verify. State behavior is owned by
-  `skillbill.application.WorkflowService`, modeled in `runtime-domain`, mapped
-  through `runtime-contracts`, and persisted through workflow repository ports
-  backed by the existing SQLite tables.
+- `skillbill.workflow.*`: active durable workflow runtime-surface metadata for
+  feature-implement and feature-verify, owned by `runtime-application`. State
+  behavior is owned by `skillbill.application.WorkflowService`, modeled in
+  `runtime-domain`, mapped through `runtime-contracts`, and persisted through
+  workflow repository ports backed by the existing SQLite tables.
 - `skillbill.install`: active Kotlin-owned install primitives for agent-path
-  detection, skill symlink installation, and install rollback support. The
-  shell installer is Kotlin-owned and handled by the packaged runtime.
-- `skillbill.scaffold`: active Kotlin-owned governed loader and scaffold
-  mutation surface, including manifest discovery, scaffold planning, symlink
-  wiring, and rollback primitives.
-- `skillbill.launcher`: active packaged-runtime launch surface. The installed
-  `skill-bill` script enters the Kotlin CLI through the launcher, and
-  `skill-bill-mcp` enters the Kotlin stdio server. MCP telemetry lifecycle
-  tools are Kotlin-native.
+  detection, planning, staging, symlink installation, native-agent linking,
+  telemetry/MCP install side effects, and rollback support. The concrete
+  implementation is owned by `runtime-infra-fs`; install-plan models and schema
+  validation remain in `runtime-domain` / `runtime-contracts`.
+- `skillbill.scaffold`: governed loader and scaffold mutation surface,
+  including manifest discovery, scaffold planning, symlink wiring, validation,
+  and rollback primitives. Concrete repo-local filesystem behavior is owned by
+  `runtime-infra-fs`.
+- `skillbill.nativeagent`: provider-neutral native-agent source parsing,
+  composition, validation, provider rendering, and generated-output linking,
+  owned by `runtime-infra-fs`.
+- `skillbill.launcher`: active packaged-runtime launch and MCP registration
+  surface, owned by `runtime-infra-fs`. The installed `skill-bill` script
+  enters the Kotlin CLI through the launcher, and `skill-bill-mcp` enters the
+  Kotlin stdio server. MCP telemetry lifecycle tools are Kotlin-native.
+- `skillbill.skillremove`: runtime-domain owns the pure removal service and
+  filesystem port; `runtime-infra-fs` owns `SkillRemoveJvmFileSystem`, the
+  concrete adapter that mutates manifests, README catalog entries, generated
+  artifacts, provider-native outputs, and agent links.
 
 ## Boundary Rules
 
@@ -185,6 +202,10 @@ useful for the next refactors:
 - workflow-state, install-plan, and decomposition-manifest schema validators
   and schema resource copy tasks live in `runtime-contracts`; domain workflow
   code performs pure model and wire-map conversion
+- concrete install, scaffold, native-agent, launcher, and skill-remove
+  implementation packages no longer live in `runtime-core`; their JVM
+  filesystem/process adapters and schema resources live in `runtime-infra-fs`,
+  with `runtime-core` re-exporting that module for current adapter compatibility
 - decomposition manifest application projection has a documented temporary
   SKILL-52 filesystem blocker until an injected manifest storage port exists
 - SQLite schema changes are represented as append-only versioned database migrations

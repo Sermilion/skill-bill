@@ -9,15 +9,15 @@ base_branch: "main"
 feature_branch: "feat/SKILL-52-full-hexagonal-runtime-architecture"
 stack_branches: []
 current_subtask_intent:
-  subtask_id: 0
-  action: "none"
+  subtask_id: 2
+  action: "start"
 subtasks:
 - id: 1
   name: "Domain And Contract Foundation"
   spec_path: ".feature-specs/SKILL-52-full-hexagonal-runtime-architecture/spec_subtask_1_domain-contract-foundation.md"
   status: "complete"
   branch: "feat/SKILL-52-full-hexagonal-runtime-architecture"
-  commit_sha: null
+  commit_sha: "a3d1ffb"
   workflow_id: "wfl-20260523-160128-8b4k"
   review_result:
     routed_skill: "bill-kotlin-code-review"
@@ -161,15 +161,153 @@ subtasks:
 - id: 2
   name: "Implementation Ownership"
   spec_path: ".feature-specs/SKILL-52-full-hexagonal-runtime-architecture/spec_subtask_2_implementation-ownership.md"
-  status: "pending"
-  branch: null
+  status: "in_progress"
+  branch: "feat/SKILL-52-full-hexagonal-runtime-architecture"
   commit_sha: null
-  workflow_id: null
-  review_result: null
-  audit_result: null
-  validation_result: null
+  workflow_id: "wfl-20260523-180325-xy14"
+  review_result:
+    review_iterations: 3
+    status: "approved"
+    routed_skill: "bill-kotlin-code-review"
+    review_session_id: "rvs-skill-52-implementation-ownership"
+    review_run_id: "rvw-20260523-183100-s52i"
+    detected_stack: "kotlin"
+    execution_mode: "delegated"
+    review_scope: "working tree diff on feat/SKILL-52-full-hexagonal-runtime-architecture"
+    initial_findings_fixed:
+    - "runtime-infra-fs direct SQLite adapter dependency"
+    - "missing AC3 architecture guard for forbidden infra dependencies/imports"
+    - "install telemetry enable skipped post-write validation"
+    - "install telemetry disable cleared outbox outside transaction"
+    - "CLI install apply telemetry used stale RuntimeContext for --home/--db overrides"
+    final_verdict: "approve"
+    finding_count: 0
+    telemetry_payload:
+      total_findings: 0
+      accepted_findings: 0
+      unresolved_findings: 0
+      accepted_rate: 0.0
+      accepted_finding_details: []
+      rejected_finding_details: []
+      review_run_id: "rvw-20260523-183100-s52i"
+      review_session_id: "rvs-skill-52-implementation-ownership"
+      routed_skill: "bill-kotlin-code-review"
+      review_subskills: []
+      review_scope: "working tree diff on feat/SKILL-52-full-hexagonal-runtime-architecture"
+      review_platform: "kotlin"
+      execution_mode: "delegated"
+      review_finished_at: "2026-05-23 18:47:03"
+      learnings:
+        applied_count: 0
+        applied_references: []
+        applied_summary: "none"
+        scope_counts:
+          global: 0
+          repo: 0
+          skill: 0
+        entries: []
+      skill: "bill-code-review"
+  audit_result:
+    pass: true
+    per_criterion:
+    - id: 1
+      criterion: "runtime-core no longer owns implementation packages moved in this\
+        \ subtask."
+      verdict: "pass"
+      evidence:
+      - "runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/ImplementationOwnershipArchitectureTest.kt:23"
+      - "runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/ImplementationOwnershipArchitectureTest.kt:31"
+      - "runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/RuntimeComponent.kt:26"
+      - "runtime-kotlin/runtime-core/build.gradle.kts:11"
+    - id: 2
+      criterion: "Every package moved out of runtime-core lands in a correct existing\
+        \ layer or has a narrowly scoped new top-level module justification."
+      verdict: "pass"
+      evidence:
+      - "runtime-kotlin/ARCHITECTURE.md:36"
+      - "runtime-kotlin/ARCHITECTURE.md:40"
+      - "runtime-kotlin/ARCHITECTURE.md:101"
+      - "runtime-kotlin/ARCHITECTURE.md:106"
+      - "runtime-kotlin/ARCHITECTURE.md:111"
+      - "runtime-kotlin/ARCHITECTURE.md:115"
+      - "runtime-kotlin/ARCHITECTURE.md:118"
+      - "runtime-kotlin/ARCHITECTURE.md:122"
+      - "runtime-kotlin/docs/architecture/gradle-module-split-evaluation.md:95"
+    - id: 3
+      criterion: "Infrastructure modules touched by this subtask implement ports and\
+        \ avoid CLI, MCP, Desktop, and runtime-core dependencies."
+      verdict: "pass"
+      evidence:
+      - "runtime-kotlin/runtime-infra-fs/build.gradle.kts:8"
+      - "runtime-kotlin/runtime-infra-sqlite/build.gradle.kts:6"
+      - "runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/FileTelemetryConfigStore.kt:6"
+      - "runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/FileTelemetryConfigStore.kt:16"
+      - "runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/GitWorkflowGitOperations.kt:4"
+      - "runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/GitWorkflowGitOperations.kt:12"
+      - "runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/ImplementationOwnershipArchitectureTest.kt:61"
+    - id: 4
+      criterion: "Source/generated boundaries remain intact for skill rendering, support\
+        \ pointers, native-agent generation, install staging, and desktop packaging."
+      verdict: "pass"
+      evidence:
+      - "docs/skill-source-generation.md:113"
+      - "docs/skill-source-generation.md:120"
+      - "runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/scaffold/AuthoringRender.kt:12"
+      - "runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/install/InstallSupportPointerRendering.kt:9"
+      - "runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/nativeagent/NativeAgentOperations.kt:93"
+      - "runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/install/InstallStaging.kt:163"
+      - "runtime-kotlin/runtime-infra-fs/src/test/kotlin/skillbill/install/InstallPlanContractCoverageTest.kt:62"
+      - "runtime-kotlin/runtime-infra-fs/src/test/kotlin/skillbill/scaffold/RepoValidationRuntimeTest.kt:561"
+      - "runtime-kotlin/runtime-infra-fs/src/test/kotlin/skillbill/scaffold/RepoValidationRuntimeTest.kt:582"
+      - "runtime-kotlin/runtime-infra-fs/src/test/kotlin/skillbill/scaffold/RepoValidationRuntimeTest.kt:615"
+      - "runtime-kotlin/runtime-desktop/core/data/src/jvmMain/kotlin/skillbill/desktop/core/data/service/JvmDesktopFirstRunGateway.kt:64"
+    - id: 5
+      criterion: "Existing runtime behavior for moved install, scaffold, native-agent,\
+        \ launcher, skill-remove, and workflow wrapper paths is preserved."
+      verdict: "pass"
+      evidence:
+      - "runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/install/InstallOperations.kt:12"
+      - "runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/scaffold/AuthoringRender.kt:52"
+      - "runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/install/InstallNativeAgentOperations.kt:34"
+      - "runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/launcher/McpRegistrationOperations.kt:6"
+      - "runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/skillremove/SkillRemoveJvmFileSystem.kt:61"
+      - "runtime-kotlin/runtime-application/src/main/kotlin/skillbill/workflow/implement/FeatureImplementWorkflowRuntime.kt:7"
+      - "runtime-kotlin/runtime-application/src/main/kotlin/skillbill/workflow/verify/FeatureVerifyWorkflowRuntime.kt:7"
+      - "runtime-kotlin/runtime-cli/src/test/kotlin/skillbill/cli/CliInstallPlanApplyRuntimeTest.kt:78"
+      - "runtime-kotlin/runtime-infra-fs/src/test/kotlin/skillbill/install/InstallApplyTest.kt:45"
+      - "runtime-kotlin/runtime-infra-fs/src/test/kotlin/skillbill/install/InstallApplyTest.kt:350"
+      - "runtime-kotlin/runtime-infra-fs/src/test/kotlin/skillbill/install/InstallApplyTest.kt:481"
+    - id: 6
+      criterion: "Repo validation for this subtask passes through bill-quality-check\
+        \ or the equivalent routed Kotlin checks."
+      verdict: "pass"
+      evidence:
+      - "command:(cd runtime-kotlin && ./gradlew check) -> BUILD SUCCESSFUL"
+      - "runtime-kotlin/runtime-infra-fs/build.gradle.kts:3"
+      - "runtime-kotlin/runtime-core/build.gradle.kts:3"
+    gaps: []
+    audit_iterations: 1
+  validation_result:
+    validation_result: "pass"
+    routed_skill: "bill-kotlin-quality-check"
+    detected_stack: "kotlin"
+    initial_failure_count: 0
+    final_failure_count: 0
+    fixes_applied: "None; initial Gradle quality gate passed."
+    telemetry_payload:
+      routed_skill: "bill-kotlin-quality-check"
+      detected_stack: "kotlin"
+      scope_type: "branch_diff"
+      initial_failure_count: 0
+      final_failure_count: 0
+      iterations: 1
+      result: "pass"
+      duration_seconds: 1
+      skill: "bill-quality-check"
+      failing_check_names: []
+      unsupported_reason: ""
   blocked_reason: null
-  last_resumable_step: null
+  last_resumable_step: "commit_push"
   dependencies:
   - subtask_id: 1
     optional: false

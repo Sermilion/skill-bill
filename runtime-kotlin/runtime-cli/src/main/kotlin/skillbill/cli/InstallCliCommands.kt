@@ -8,6 +8,8 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.choice
 import me.tatarka.inject.annotations.Inject
+import skillbill.di.RuntimeComponent
+import skillbill.di.create
 import skillbill.install.InstallCleanupOperations
 import skillbill.install.InstallNativeAgentOperations
 import skillbill.install.InstallOperations
@@ -18,6 +20,7 @@ import skillbill.install.model.InstallAgentSelection
 import skillbill.install.model.InstallAgentSelectionMode
 import skillbill.install.model.InstallAgentTarget
 import skillbill.install.model.InstallAgentTargetSource
+import skillbill.install.model.InstallPlan
 import skillbill.install.model.InstallPlanRequest
 import skillbill.install.model.InstallTelemetryLevel
 import skillbill.install.model.InstallationTargetPaths
@@ -29,6 +32,8 @@ import skillbill.install.model.WindowsSymlinkDecision
 import skillbill.install.model.WindowsSymlinkPreflight
 import skillbill.install.model.WindowsSymlinkPreflightState
 import skillbill.launcher.McpRegistrationOperations
+import skillbill.model.RuntimeContext
+import skillbill.ports.telemetry.TelemetryLevelMutator
 import java.nio.file.Path
 
 internal fun completeNativeAgentLinkOutcome(state: CliRunState, outcome: NativeAgentLinkOutcome) {
@@ -60,11 +65,20 @@ class InstallPlanCommand(
 @Inject
 class InstallApplyCommand(
   private val state: CliRunState,
+  private val runtimeContext: RuntimeContext,
 ) : InstallRequestCommand("apply", "Apply a governed Skill Bill install through the shared runtime contract.") {
   override fun run() {
     val plan = InstallOperations.planInstall(toRequest(state))
-    val result = InstallOperations.applyInstall(plan)
+    val result = InstallOperations.applyInstall(plan, telemetryLevelMutator(plan))
     state.complete(installApplyPayload(plan, result), format, exitCode = if (result.failures.isEmpty()) 0 else 1)
+  }
+
+  private fun telemetryLevelMutator(plan: InstallPlan): TelemetryLevelMutator {
+    val reboundContext = runtimeContext.copy(
+      dbPathOverride = state.dbOverride ?: runtimeContext.dbPathOverride,
+      userHome = plan.request.home,
+    )
+    return RuntimeComponent::class.create(reboundContext).telemetryLevelMutator
   }
 }
 
