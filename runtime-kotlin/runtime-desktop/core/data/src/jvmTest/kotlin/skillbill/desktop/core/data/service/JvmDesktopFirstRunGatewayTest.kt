@@ -4,8 +4,10 @@ import kotlinx.coroutines.runBlocking
 import skillbill.desktop.core.domain.model.FirstRunApplyResult
 import skillbill.desktop.core.domain.model.FirstRunInstallStatus
 import skillbill.desktop.core.domain.model.FirstRunPlanResult
+import skillbill.desktop.core.domain.model.FirstRunPlatformSelectionMode
 import skillbill.desktop.core.domain.model.FirstRunSetupRequest
 import skillbill.desktop.core.domain.model.FirstRunTelemetryLevel
+import skillbill.infrastructure.fs.FileSystemInstallSelectionPersistence
 import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallAgentSelectionMode
 import skillbill.install.model.InstallAgentTarget
@@ -24,15 +26,22 @@ import skillbill.install.model.InstallSkillStagingStatus
 import skillbill.install.model.InstallStagingIntent
 import skillbill.install.model.InstallTelemetryApplyOutcome
 import skillbill.install.model.InstallTelemetryApplyStatus
+import skillbill.install.model.InstallTelemetryLevel
 import skillbill.install.model.McpRegistrationApplyOutcome
 import skillbill.install.model.McpRegistrationApplyStatus
+import skillbill.install.model.McpRegistrationChoice
 import skillbill.install.model.McpRegistrationIntent
 import skillbill.install.model.NativeAgentApplyOutcome
 import skillbill.install.model.NativeAgentApplyStatus
 import skillbill.install.model.NativeAgentProviderId
 import skillbill.install.model.PlannedPlatformPack
+import skillbill.install.model.PlatformPackSelection
+import skillbill.install.model.PlatformPackSelectionMode
+import skillbill.install.model.SharedInstallSelection
 import skillbill.install.model.WindowsSymlinkApplyOutcome
 import skillbill.install.model.WindowsSymlinkFallbackState
+import skillbill.ports.install.selection.model.ReadLatestSuccessfulInstallSelectionRequest
+import skillbill.ports.install.selection.model.WriteLatestSuccessfulInstallSelectionRequest
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
@@ -68,6 +77,61 @@ class JvmDesktopFirstRunGatewayTest {
     }
 
     assertFalse(gateway.hasExistingInstall())
+  }
+
+  @Test
+  fun `latest reusable setup request reads shared install selection`() {
+    val home = Files.createTempDirectory("skillbill-first-run-shared-selection")
+    FileSystemInstallSelectionPersistence().writeLatestSuccessfulSelection(
+      WriteLatestSuccessfulInstallSelectionRequest(
+        installHome = home,
+        selection = SharedInstallSelection(
+          selectedAgents = setOf(InstallAgent.CLAUDE, InstallAgent.CODEX),
+          platformPackSelection = PlatformPackSelection(
+            mode = PlatformPackSelectionMode.SELECTED,
+            selectedSlugs = setOf("kotlin"),
+          ),
+          telemetryLevel = InstallTelemetryLevel.FULL,
+          mcpRegistrationChoice = McpRegistrationChoice(register = false),
+        ),
+      ),
+    )
+    val gateway = JvmDesktopFirstRunGateway().apply {
+      homeProvider = { home }
+    }
+
+    val request = gateway.latestReusableSetupRequest()
+
+    assertEquals(setOf("claude", "codex"), request?.selectedAgentIds)
+    assertEquals(setOf("kotlin"), request?.selectedPlatformSlugs)
+    assertEquals(FirstRunPlatformSelectionMode.SELECTED, request?.platformSelectionMode)
+    assertEquals(FirstRunTelemetryLevel.FULL, request?.telemetryLevel)
+    assertFalse(request?.registerMcp ?: true)
+  }
+
+  @Test
+  fun `latest reusable setup request migrates legacy fallback into shared store`() {
+    val home = Files.createTempDirectory("skillbill-first-run-legacy-selection")
+    val legacy = FirstRunSetupRequest(
+      selectedAgentIds = setOf("codex"),
+      selectedPlatformSlugs = setOf("kotlin"),
+      telemetryLevel = FirstRunTelemetryLevel.OFF,
+      registerMcp = false,
+    )
+    val store = FileSystemInstallSelectionPersistence()
+    val gateway = JvmDesktopFirstRunGateway().apply {
+      homeProvider = { home }
+    }
+
+    val request = gateway.latestReusableSetupRequest(legacy)
+    val migrated = store.readLatestSuccessfulSelection(ReadLatestSuccessfulInstallSelectionRequest(home)).selection
+
+    assertEquals(legacy, request)
+    assertEquals(setOf(InstallAgent.CODEX), migrated.selectedAgents)
+    assertEquals(PlatformPackSelectionMode.SELECTED, migrated.platformPackSelection.mode)
+    assertEquals(setOf("kotlin"), migrated.platformPackSelection.selectedSlugs)
+    assertEquals(InstallTelemetryLevel.OFF, migrated.telemetryLevel)
+    assertFalse(migrated.mcpRegistrationChoice.register)
   }
 
   @Test

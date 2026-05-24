@@ -76,10 +76,10 @@ class LocalDesktopPreferenceStore : DesktopPreferenceStore {
 
   private fun persistFirstRunPreferences(preferences: DesktopFirstRunPreferences) {
     properties.setProperty(KEY_FIRST_RUN_COMPLETED, preferences.completed.toString())
-    properties.setProperty(KEY_FIRST_RUN_AGENTS, preferences.selectedAgentIds.toPropertyValue())
-    properties.setProperty(KEY_FIRST_RUN_PLATFORMS, preferences.selectedPlatformSlugs.toPropertyValue())
-    properties.setProperty(KEY_FIRST_RUN_TELEMETRY, preferences.telemetryLevelId)
-    properties.setProperty(KEY_FIRST_RUN_MCP, preferences.registerMcp.toString())
+    properties.remove(KEY_FIRST_RUN_AGENTS)
+    properties.remove(KEY_FIRST_RUN_PLATFORMS)
+    properties.remove(KEY_FIRST_RUN_TELEMETRY)
+    properties.remove(KEY_FIRST_RUN_MCP)
     firstRunState.value = preferences
     saveProperties()
   }
@@ -104,5 +104,3 @@ private fun String?.toSetProperty(): Set<String> = this
   ?.filter(String::isNotEmpty)
   ?.toSet()
   .orEmpty()
-
-private fun Set<String>.toPropertyValue(): String = sorted().joinToString(",")

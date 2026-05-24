@@ -57,7 +57,7 @@ class LocalDesktopPreferenceStoreTest {
   }
 
   @Test
-  fun `first run preferences persist to desktop properties`() {
+  fun `first run completion persists without rewriting install choices`() {
     withTemporaryStore {
       val store = LocalDesktopPreferenceStore()
 
@@ -72,19 +72,45 @@ class LocalDesktopPreferenceStoreTest {
 
       val reloaded = LocalDesktopPreferenceStore().firstRunPreferences.value
       assertTrue(reloaded.completed)
-      assertEquals(setOf("claude", "codex"), reloaded.selectedAgentIds)
-      assertEquals(setOf("kotlin"), reloaded.selectedPlatformSlugs)
-      assertEquals("full", reloaded.telemetryLevelId)
-      assertFalse(reloaded.registerMcp)
+      assertEquals(emptySet(), reloaded.selectedAgentIds)
+      assertEquals(emptySet(), reloaded.selectedPlatformSlugs)
+      assertEquals("anonymous", reloaded.telemetryLevelId)
+      assertTrue(reloaded.registerMcp)
     }
   }
 
-  private fun withTemporaryStore(block: () -> Unit) {
+  @Test
+  fun `legacy first run install choices still load from desktop properties`() {
+    withTemporaryStorePath { preferencesPath ->
+      Files.createDirectories(preferencesPath.parent)
+      Files.writeString(
+        preferencesPath,
+        """
+        |firstRun.completed=true
+        |firstRun.agents=codex,claude
+        |firstRun.platforms=kotlin
+        |firstRun.telemetry=full
+        |firstRun.mcp=false
+        |
+        """.trimMargin(),
+      )
+
+      val loaded = LocalDesktopPreferenceStore().firstRunPreferences.value
+
+      assertTrue(loaded.completed)
+      assertEquals(setOf("claude", "codex"), loaded.selectedAgentIds)
+      assertEquals(setOf("kotlin"), loaded.selectedPlatformSlugs)
+      assertEquals("full", loaded.telemetryLevelId)
+      assertFalse(loaded.registerMcp)
+    }
+  }
+
+  private fun withTemporaryStorePath(block: (Path) -> Unit) {
     val originalPath = System.getProperty(PREFERENCES_PATH_PROPERTY)
     val preferencesPath = Files.createTempDirectory("skillbill-desktop-test").resolve("desktop.properties")
     System.setProperty(PREFERENCES_PATH_PROPERTY, preferencesPath.toString())
     try {
-      block()
+      block(preferencesPath)
     } finally {
       if (originalPath == null) {
         System.clearProperty(PREFERENCES_PATH_PROPERTY)
@@ -92,6 +118,10 @@ class LocalDesktopPreferenceStoreTest {
         System.setProperty(PREFERENCES_PATH_PROPERTY, originalPath)
       }
     }
+  }
+
+  private fun withTemporaryStore(block: () -> Unit) {
+    withTemporaryStorePath { block() }
   }
 
   private companion object {

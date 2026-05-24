@@ -1,3 +1,11 @@
+## [2026-05-24] SKILL-53 desktop-adapter-migration
+Areas: runtime-kotlin/runtime-desktop/core/domain, runtime-kotlin/runtime-desktop/core/data, runtime-kotlin/runtime-desktop/core/datastore, runtime-kotlin/runtime-desktop/feature/skillbill
+- Desktop first-run and post-publish reinstall replay now flow through `DesktopFirstRunGateway.latestReusableSetupRequest`, backed by the shared `InstallSelectionPersistencePort`; no CLI or shell dependency was added. reusable
+- `LocalDesktopPreferenceStore` keeps desktop-owned completion/recent-repo state, removes reusable install-choice keys on new writes, and still loads legacy `firstRun.*` keys as a migration fallback. reusable
+- Desktop request models now preserve platform pack selection mode (`NONE`, `SELECTED`, `ALL`) so shared install-selection replay can round-trip all-pack installs.
+Feature flag: N/A
+Acceptance criteria: 5/5 implemented
+
 ## [2026-05-24] SKILL-53 cli-shell-persistence
 Areas: runtime-kotlin/runtime-application install service, runtime-kotlin/runtime-cli install apply, install.sh runtime delegation
 - `InstallService.applyInstall` now persists `SharedInstallSelection` through `InstallSelectionPersistencePort` only after non-failure typed apply results, keeping CLI/shell writes outside desktop modules. reusable

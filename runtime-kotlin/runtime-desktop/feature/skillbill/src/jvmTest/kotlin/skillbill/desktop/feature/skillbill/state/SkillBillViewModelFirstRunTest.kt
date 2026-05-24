@@ -104,7 +104,7 @@ class SkillBillViewModelFirstRunTest {
     assertEquals(1, gateway.applyCallCount)
     assertEquals(FirstRunInstallStatus.WARNING, applied.firstRunSetup?.outcome?.status)
     assertTrue(preferences.firstRunPreferences.value.completed)
-    assertEquals(setOf("claude", "codex"), preferences.firstRunPreferences.value.selectedAgentIds)
+    assertEquals(emptySet(), preferences.firstRunPreferences.value.selectedAgentIds)
 
     val finished = viewModel.finishFirstRunSetup()
     assertNull(finished.firstRunSetup)

@@ -9,7 +9,7 @@ base_branch: "main"
 feature_branch: "feat/SKILL-53-shared-runtime-install-architecture"
 stack_branches: []
 current_subtask_intent:
-  subtask_id: 3
+  subtask_id: 4
   action: "start"
 subtasks:
 - id: 1
@@ -220,15 +220,77 @@ subtasks:
 - id: 3
   name: "desktop-adapter-migration"
   spec_path: ".feature-specs/SKILL-53-shared-runtime-install-architecture/spec_subtask_3_desktop-adapter-migration.md"
-  status: "pending"
-  branch: null
+  status: "complete"
+  branch: "feat/SKILL-53-shared-runtime-install-architecture"
   commit_sha: null
   workflow_id: null
-  review_result: null
-  audit_result: null
-  validation_result: null
+  review_result:
+    review_iterations: 1
+    result: "passed_no_blocker_major_findings"
+    remaining_blocker_major_findings: 0
+    remaining_minor_findings: 0
+    initial_findings: []
+    fixes_applied: []
+    review_telemetry_note: "Workflow state was unavailable for SKILL-53 continuation in this local Codex run; review was performed inline against the working-tree diff without bill-code-review import telemetry."
+  audit_result:
+    pass: true
+    per_criterion:
+    - id: 1
+      criterion: "Desktop first-run setup uses shared install-selection persistence for reusable install choices."
+      verdict: "pass"
+      evidence:
+      - "runtime-kotlin/runtime-desktop/feature/skillbill/src/commonMain/kotlin/skillbill/desktop/feature/skillbill/state/SkillBillViewModel.kt:2258"
+      - "runtime-kotlin/runtime-desktop/core/data/src/jvmMain/kotlin/skillbill/desktop/core/data/service/JvmDesktopFirstRunGateway.kt:234"
+      - "runtime-kotlin/runtime-desktop/core/data/src/jvmMain/kotlin/skillbill/desktop/core/data/di/DesktopRuntimeApplicationServices.kt:58"
+    - id: 2
+      criterion: "Desktop post-publish reinstall uses the shared install-selection persistence instead of owning or reading a separate desktop install preference format."
+      verdict: "pass"
+      evidence:
+      - "runtime-kotlin/runtime-desktop/feature/skillbill/src/commonMain/kotlin/skillbill/desktop/feature/skillbill/state/SkillBillViewModel.kt:2248"
+      - "runtime-kotlin/runtime-desktop/feature/skillbill/src/jvmTest/kotlin/skillbill/desktop/feature/skillbill/state/SkillBillViewModelGitTest.kt:1374"
+      - "runtime-kotlin/runtime-desktop/feature/skillbill/src/jvmTest/kotlin/skillbill/desktop/feature/skillbill/state/SkillBillViewModelGitTest.kt:1492"
+    - id: 3
+      criterion: "Existing desktop-only preferences such as recent repo path and UI-only state remain desktop-owned."
+      verdict: "pass"
+      evidence:
+      - "runtime-kotlin/runtime-desktop/core/datastore/src/jvmMain/kotlin/skillbill/desktop/core/datastore/LocalDesktopPreferenceStore.kt:34"
+      - "runtime-kotlin/runtime-desktop/core/datastore/src/jvmMain/kotlin/skillbill/desktop/core/datastore/LocalDesktopPreferenceStore.kt:77"
+      - "runtime-kotlin/runtime-desktop/core/datastore/src/jvmTest/kotlin/skillbill/desktop/core/datastore/LocalDesktopPreferenceStoreTest.kt:60"
+    - id: 4
+      criterion: "Existing desktop preference files with legacy firstRun.* install keys migrate or adapt into the shared install-selection record."
+      verdict: "pass"
+      evidence:
+      - "runtime-kotlin/runtime-desktop/core/datastore/src/jvmMain/kotlin/skillbill/desktop/core/datastore/LocalDesktopPreferenceStore.kt:69"
+      - "runtime-kotlin/runtime-desktop/core/data/src/jvmMain/kotlin/skillbill/desktop/core/data/service/JvmDesktopFirstRunGateway.kt:242"
+      - "runtime-kotlin/runtime-desktop/core/data/src/jvmTest/kotlin/skillbill/desktop/core/data/service/JvmDesktopFirstRunGatewayTest.kt:112"
+      - "runtime-kotlin/runtime-desktop/core/datastore/src/jvmTest/kotlin/skillbill/desktop/core/datastore/LocalDesktopPreferenceStoreTest.kt:83"
+    - id: 5
+      criterion: "Desktop JVM code depends only on shared runtime APIs for install selection, not CLI or shell behavior."
+      verdict: "pass"
+      evidence:
+      - "runtime-kotlin/runtime-desktop/core/data/src/jvmMain/kotlin/skillbill/desktop/core/data/di/DesktopRuntimeApplicationServices.kt:15"
+      - "runtime-kotlin/runtime-desktop/core/data/src/jvmMain/kotlin/skillbill/desktop/core/data/service/JvmDesktopFirstRunGateway.kt:44"
+      - "runtime-kotlin/runtime-desktop/core/domain/src/commonMain/kotlin/skillbill/desktop/core/domain/service/DesktopFirstRunGateway.kt:12"
+    gaps: []
+  validation_result:
+    validation_result: "pass"
+    routed_skill: "bill-kotlin-quality-check"
+    detected_stack: "kotlin"
+    initial_failure_count: 2
+    final_failure_count: 0
+    fixes_applied: "Applied :runtime-desktop:core:data:spotlessApply and :runtime-desktop:feature:skillbill:spotlessApply after full check exposed only formatting drift; focused desktop JVM tests and full repo validation pass."
+    telemetry_payload:
+      routed_skill: "bill-kotlin-quality-check"
+      detected_stack: "kotlin"
+      scope_type: "working_tree"
+      initial_failure_count: 2
+      final_failure_count: 0
+      iterations: 3
+      result: "pass"
+      duration_seconds: 12
+      skill: "bill-quality-check"
   blocked_reason: null
-  last_resumable_step: null
+  last_resumable_step: "finish"
   dependencies:
   - subtask_id: 1
     optional: false
