@@ -3,7 +3,7 @@ contract_version: "0.1"
 issue_key: "SKILL"
 feature_name: "52.1-hexagonal-runtime-hardening"
 parent_spec_path: ".feature-specs/SKILL-52.1-hexagonal-runtime-hardening/spec.md"
-status: "in_progress"
+status: "blocked"
 execution_model: "same_branch_commit_per_subtask"
 base_branch: "main"
 feature_branch: "feat/SKILL-52.1-hexagonal-runtime-hardening"
@@ -15,7 +15,7 @@ subtasks:
 - id: 1
   name: "typed-boundary-foundation"
   spec_path: ".feature-specs/SKILL-52.1-hexagonal-runtime-hardening/spec_subtask_1_typed-boundary-foundation.md"
-  status: "in_progress"
+  status: "blocked"
   branch: "feat/SKILL-52.1-hexagonal-runtime-hardening"
   commit_sha: null
   workflow_id: "wfl-20260524-055555-ule6"
@@ -67,8 +67,14 @@ subtasks:
     iterations: 1
     fixes_applied: "none"
     goldens_byte_diff_zero: true
-  blocked_reason: null
-  last_resumable_step: "write_history"
+  blocked_reason: "git commit -m SKILL subtask 1: typed-boundary-foundation failed\
+    \ with exit code 1: On branch feat/SKILL-52.1-hexagonal-runtime-hardening\nYour\
+    \ branch is up to date with 'origin/feat/SKILL-52.1-hexagonal-runtime-hardening'.\n\
+    \nChanges not staged for commit:\n  (use \"git add <file>...\" to update what\
+    \ will be committed)\n  (use \"git restore <file>...\" to discard changes in working\
+    \ directory)\n\tmodified:   .feature-specs/SKILL-52.1-hexagonal-runtime-hardening/decomposition-manifest.yaml\n\
+    \nno changes added to commit (use \"git add\" and/or \"git commit -a\")"
+  last_resumable_step: "commit_push"
   dependencies: []
 - id: 2
   name: "scaffold-policy-extraction"
