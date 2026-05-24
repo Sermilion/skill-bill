@@ -3,14 +3,14 @@ contract_version: "0.1"
 issue_key: "SKILL-52"
 feature_name: "full-hexagonal-runtime-architecture"
 parent_spec_path: ".feature-specs/SKILL-52-full-hexagonal-runtime-architecture/spec.md"
-status: "in_progress"
+status: "complete"
 execution_model: "same_branch_commit_per_subtask"
 base_branch: "main"
 feature_branch: "feat/SKILL-52-full-hexagonal-runtime-architecture"
 stack_branches: []
 current_subtask_intent:
-  subtask_id: 4
-  action: "start"
+  subtask_id: 0
+  action: "none"
 subtasks:
 - id: 1
   name: "Domain And Contract Foundation"
@@ -469,9 +469,9 @@ subtasks:
 - id: 4
   name: "Architecture Enforcement And Validation"
   spec_path: ".feature-specs/SKILL-52-full-hexagonal-runtime-architecture/spec_subtask_4_architecture-enforcement-validation.md"
-  status: "in_progress"
+  status: "complete"
   branch: "feat/SKILL-52-full-hexagonal-runtime-architecture"
-  commit_sha: null
+  commit_sha: "79347a2"
   workflow_id: "wfl-20260524-041905-97a9"
   review_result:
     status: "completed"
@@ -621,7 +621,7 @@ subtasks:
       failing_check_names: []
       unsupported_reason: ""
   blocked_reason: null
-  last_resumable_step: "commit_push"
+  last_resumable_step: "finish"
   dependencies:
   - subtask_id: 3
     optional: false
