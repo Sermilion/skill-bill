@@ -1,7 +1,11 @@
 # SKILL-53 — Shared runtime install architecture
 
-Status: Draft
+Status: In Progress
 Issue key: SKILL-53
+
+## Sources
+
+- User-provided feature brief for SKILL-53 shared-runtime-install-architecture.
 
 ## Context
 

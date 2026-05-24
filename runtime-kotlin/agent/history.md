@@ -1,3 +1,12 @@
+## [2026-05-24] SKILL-53 shared-install-selection-foundation
+Areas: runtime-kotlin/runtime-domain install model, runtime-kotlin/runtime-ports install selection port, runtime-kotlin/runtime-infra-fs install-selection persistence, runtime-kotlin/runtime-contracts errors, runtime-kotlin/runtime-core DI
+- Shared install selection now lives outside desktop as `SharedInstallSelection` plus `InstallSelectionPersistencePort`; requests carry explicit `installHome` so CLI/Desktop callers can persist the intended runtime install state. reusable
+- `FileSystemInstallSelectionPersistence` stores canonical v1 JSON at `<installHome>/.skill-bill/install-selection.json` with atomic temp-file replacement, a 64 KiB read guard, and typed missing/unreadable/malformed errors. reusable
+- Parser locks install-selection invariants: selected platform slugs must match mode, slugs and MCP bin paths cannot be blank, and canonical JSON shape has fixture coverage.
+- `InstallApplyResult.resolvedInstalledAgents` is computed from status+skill links only: empty on failure, CREATED/SKIPPED agents on success/warning, keeping future persistence from storing stale requested agents. reusable
+Feature flag: N/A
+Acceptance criteria: 5/5 implemented
+
 ## [2026-05-24] SKILL-52.1 final-validation-and-contract-lock
 Areas: runtime-kotlin/ARCHITECTURE.md, runtime-kotlin/runtime-core architecture tests, runtime-kotlin/runtime-domain, runtime-kotlin/runtime-application, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-mcp, runtime-kotlin/runtime-desktop/core/data
 - SKILL-52.1 closes with architecture documentation and tests aligned on raw-map open-boundary parity, inert `Path` handling outside adapters/composition, install-policy ownership with dual install-plan validation, and the narrowed runtime-core public ABI edge. reusable
