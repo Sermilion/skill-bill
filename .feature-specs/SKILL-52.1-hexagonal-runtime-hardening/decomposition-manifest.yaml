@@ -9,7 +9,7 @@ base_branch: "main"
 feature_branch: "feat/SKILL-52.1-hexagonal-runtime-hardening"
 stack_branches: []
 current_subtask_intent:
-  subtask_id: 2
+  subtask_id: 3
   action: "start"
 subtasks:
 - id: 1
@@ -73,15 +73,109 @@ subtasks:
 - id: 2
   name: "scaffold-ports-and-pure-policy"
   spec_path: ".feature-specs/SKILL-52.1-hexagonal-runtime-hardening/spec_subtask_2_scaffold-ports-and-pure-policy.md"
-  status: "pending"
-  branch: null
-  commit_sha: null
-  workflow_id: null
-  review_result: null
-  audit_result: null
-  validation_result: null
+  status: "complete"
+  branch: "feat/SKILL-52.1-hexagonal-runtime-hardening"
+  commit_sha: "d92ac9a"
+  workflow_id: "wfl-20260524-090650-c8ql"
+  review_result:
+    review_session_id: "rvs-skill52-1-sub2-20260524"
+    review_run_id: "rvw-20260524-095000-s52b"
+    routed_skill: "bill-kotlin-code-review"
+    detected_stack: "kotlin"
+    execution_mode: "delegated"
+    specialists_run:
+    - "architecture"
+    - "platform-correctness"
+    - "testing"
+    - "api-contracts"
+    - "testing-iter2"
+    iterations: 2
+    iteration_1_findings: 13
+    iteration_1_blockers: 0
+    iteration_1_majors: 1
+    iteration_1_minors: 12
+    iteration_1_nits: 3
+    iteration_2_findings: 0
+    iteration_2_verdict: "approve"
+    fix_loop_completed: true
+    applied_learnings: "none"
+    telemetry_payload_captured: true
+    fixes_applied: 12
+    fixes_deferred_subtask_3:
+    - "F-003 ScaffoldManifestPersistencePort capability-mixing"
+    key_fixes:
+    - "F-001 fixture-based negative test for scaffold-policy import regex (subtask-1\
+      \ F-007 pattern replicated)"
+    - "F-002 deleted duplicate sharedContractNote in infra-fs"
+    - "F-004 SHELL_CONTRACT_VERSION aliased to PLATFORM_PACK_SHELL_CONTRACT_VERSION\
+      \ (single source of truth)"
+    - "F-005 deleted private require* helpers in infra-fs ScaffoldService"
+    - "F-006/F-007 deleted unused dead request data classes"
+    - "F-008 removed phantom UnsupportedScaffoldService.kt allow-list entry"
+    - "F-009 added baseline_layers branch golden in PlatformPackManifestPolicyTest"
+    - "F-010 added optionalSpecialistSubagents type-shape negatives"
+    - "F-011 added skeleton_mode out-of-range + mutual-exclusion negatives"
+    - "F-012 strengthened parseBaselineLayerPayload field-prefix assertions"
+    - "F-013 added blank-string negative coverage"
+  audit_result:
+    pass: true
+    per_criterion_count: 8
+    verdict: "all_pass"
+    iterations: 1
+    gaps: []
+    evidence_anchors:
+      AC1: "runtime-domain/scaffold/policy/*.kt with focused unit tests; 11 functions\
+        \ extracted; IO-coupled validators stay in infra-fs"
+      AC2: "21 Files.* calls retained in infra-fs ScaffoldService.kt:265-1047; runtime-domain\
+        \ has zero Files.*"
+      AC3: "5 capability ports under ports/scaffold/<capability>/, 5 FileSystem<Capability>\
+        \ adapters"
+      AC4: "rollback test bodies unchanged; only single-line import additions in 3\
+        \ infra-fs tests"
+      AC5: "ImplementationOwnershipArchitectureTest.kt:347 production scan + :383\
+        \ iter-2 fixture-based regex test"
+      AC6: "ARCHITECTURE.md:438 new section + 18 legacy allow-list entries preserved\
+        \ verbatim"
+      AC7: "no CLI/MCP files touched in diff"
+      AC8: "implementation reported BUILD SUCCESSFUL; Step 6b authoritative rerun"
+  validation_result:
+    result: "pass"
+    routed_skill: "bill-kotlin-quality-check"
+    detected_stack: "kotlin"
+    scope_type: "branch_diff"
+    initial_failure_count: 3
+    final_failure_count: 0
+    iterations: 2
+    duration_seconds: 120
+    failing_check_names:
+    - "runtime-ports:spotlessKotlin"
+    - "runtime-ports:detekt"
+    - "runtime-domain:detekt"
+    fixes_applied: "Threaded typed ScaffoldPlatformPackLoadRequest through ScaffoldSourceLoaderPort\
+      \ + FileSystemScaffoldSourceLoader (resolves spotless standard:filename and\
+      \ detekt MatchingDeclarationName on ScaffoldSourceLoaderModels.kt; also strengthens\
+      \ typed boundary in line with api-contracts feedback). Extracted helpers in\
+      \ PlatformPackManifestPolicyTest baseline-layers test (resolves detekt LongMethod\
+      \ 68>60). No suppressions."
+    telemetry_child_step:
+      tool: "quality_check_finished"
+      routed_skill: "bill-kotlin-quality-check"
+      detected_stack: "kotlin"
+      scope_type: "branch_diff"
+      initial_failure_count: 3
+      final_failure_count: 0
+      iterations: 2
+      result: "pass"
+      duration_seconds: 120
+      skill: "bill-quality-check"
+      failing_check_names:
+      - "runtime-ports:spotlessKotlin"
+      - "runtime-ports:detekt"
+      - "runtime-domain:detekt"
+      unsupported_reason: ""
+      mode: "orchestrated"
   blocked_reason: null
-  last_resumable_step: null
+  last_resumable_step: "finish"
   dependencies:
   - subtask_id: 1
     optional: false
