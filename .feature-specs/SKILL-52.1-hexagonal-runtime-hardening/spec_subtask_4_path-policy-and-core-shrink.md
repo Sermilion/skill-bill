@@ -1,5 +1,6 @@
 # SKILL-52.1 Subtask 4 — Path Policy + Runtime-Core Shrink
 
+Status: Complete
 Parent spec: [.feature-specs/SKILL-52.1-hexagonal-runtime-hardening/spec.md](./spec.md)
 Issue key: SKILL-52.1
 Subtask order: 4 of 5

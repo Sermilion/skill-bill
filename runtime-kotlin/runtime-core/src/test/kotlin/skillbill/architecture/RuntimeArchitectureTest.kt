@@ -130,6 +130,67 @@ class RuntimeArchitectureTest {
   }
 
   @Test
+  fun `domain and ports avoid JDBC HTTP and entrypoint frameworks`() {
+    val domainAndPortFiles =
+      sourceFiles()
+        .filter { file ->
+          file.relativePath.startsWith("runtime-domain/src/main/kotlin/") ||
+            file.relativePath.startsWith("runtime-ports/src/main/kotlin/")
+        }
+
+    assertNoBannedImports(
+      files = domainAndPortFiles,
+      bannedImports = boundaryFrameworkImports,
+    )
+    assertNoBannedSourceReferences(
+      files = domainAndPortFiles,
+      bannedReferences = boundaryFrameworkSourceReferences,
+      description = "JDBC, HTTP, or entrypoint framework dependency",
+    )
+  }
+
+  @Test
+  fun `application domain and ports use Path only as an inert value type`() {
+    val architecture = Files.readString(runtimeRoot.resolve("ARCHITECTURE.md"))
+    assertContains(architecture, "`java.nio.file.Path` is allowed")
+    assertContains(architecture, "only as an inert value type")
+    assertContains(architecture, "home-directory expansion")
+    assertContains(architecture, "`System.getenv`")
+    assertContains(architecture, "`System.getProperty`")
+
+    val boundaryFiles =
+      sourceFiles()
+        .filter { file ->
+          file.relativePath.startsWith("runtime-application/src/main/kotlin/") ||
+            file.relativePath.startsWith("runtime-domain/src/main/kotlin/") ||
+            file.relativePath.startsWith("runtime-ports/src/main/kotlin/")
+        }
+    val pathImportingFiles = boundaryFiles.filter { file -> "java.nio.file.Path" in file.imports }
+    assertTrue(
+      pathImportingFiles.isNotEmpty(),
+      "The architecture intentionally allows java.nio.file.Path as a value type; the test must " +
+        "exercise at least one current application/domain/port Path model or contract.",
+    )
+    assertNoBannedSourceReferences(
+      files = boundaryFiles,
+      bannedReferences = processAccessSourceReferences,
+      description = "process or home-directory lookup",
+    )
+    assertNoBannedSourceReferences(
+      files = boundaryFiles,
+      bannedReferences = homeExpansionSourceReferences,
+      description = "home-directory path expansion",
+    )
+
+    val reviewParsingPatterns = Files.readString(sourcePath("skillbill/review/ReviewParsingPatterns.kt"))
+    assertTrue(
+      "expandAndNormalizePath" !in reviewParsingPatterns,
+      "ReviewParsingPatterns must stay pure string/regex parsing; filesystem path normalization belongs " +
+        "to the adapter input seam.",
+    )
+  }
+
+  @Test
   fun `learnings domain owns learning records without persistence dependencies`() {
     assertNoBannedImports(
       files = sourceFiles().filter { it.packageName.startsWith("skillbill.learnings") },
@@ -1275,6 +1336,52 @@ class RuntimeArchitectureTest {
         "kotlin.io.path.outputStream",
         "kotlin.io.path.bufferedReader",
         "kotlin.io.path.bufferedWriter",
+      )
+    val processAccessSourceReferences: List<String> =
+      listOf(
+        "System.getenv",
+        "System.getProperty",
+      )
+    val boundaryFrameworkImports: List<String> =
+      listOf(
+        "com.github.ajalt.clikt",
+        "com.zaxxer.hikari",
+        "io.ktor.client",
+        "java.net.HttpURLConnection",
+        "java.net.URL",
+        "java.net.URLConnection",
+        "java.net.http",
+        "java.sql",
+        "javax.sql",
+        "okhttp3",
+        "org.http4k",
+        "org.jooq",
+        "org.sqlite",
+        "retrofit2",
+      )
+    val boundaryFrameworkSourceReferences: List<String> =
+      listOf(
+        "com.github.ajalt.clikt",
+        "com.zaxxer.hikari",
+        "HttpURLConnection",
+        "io.ktor.client",
+        "java.net.HttpURLConnection",
+        "java.net.URL",
+        "java.net.URLConnection",
+        "java.net.http",
+        "java.sql",
+        "javax.sql",
+        "okhttp3",
+        "org.http4k",
+        "org.jooq",
+        "org.sqlite",
+        "retrofit2",
+      )
+    val homeExpansionSourceReferences: List<String> =
+      listOf(
+        "== \"~\"",
+        ".startsWith(\"~/\")",
+        ".removePrefix(\"~/\")",
       )
     val packagePattern: Regex = Regex("^package\\s+([A-Za-z0-9_.]+)", RegexOption.MULTILINE)
     val importPattern: Regex = Regex("^import\\s+([A-Za-z0-9_.*]+)", RegexOption.MULTILINE)

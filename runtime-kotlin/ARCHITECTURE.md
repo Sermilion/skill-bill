@@ -50,6 +50,20 @@ runtime-core
   skill-remove filesystem cascades.
 - `runtime-core`: `RuntimeModule`, Kotlin-Inject component definitions, and DI
   providers. It may know concrete adapters only inside composition code.
+  `runtime-core` publishes only the generated Kotlin-Inject ABI edges that its
+  public `RuntimeComponent` exposes today: `runtime-application` service types
+  and `runtime-ports` context/port types. It does not publish `runtime-domain`,
+  `runtime-contracts`, or concrete infrastructure modules as API dependencies.
+  Because those generated service and port types have their own public
+  signatures, the transitive public ABI closure is currently
+  runtime-application, runtime-ports, runtime-domain, and runtime-contracts;
+  that closure is tested and must not grow into infrastructure or entrypoint
+  modules.
+  Downstream entry adapters and tests still declare the modules they use
+  directly instead of treating `runtime-core` as a broad dependency umbrella.
+  If Kotlin-Inject ever requires another generated ABI edge to be public, the
+  exact edge and generated type must be documented here and mirrored by an
+  architecture test.
 - `runtime-cli`: Clikt command tree, option validation, terminal rendering,
   JSON output, help, completion surfaces, and CLI runtime context creation.
 - `runtime-desktop`: optional Compose Multiplatform JVM desktop app. It owns
@@ -399,10 +413,18 @@ runtime-ports
     applies prospectively: new public declarations cannot join the
     legacy raw-map surface without being added to both the allow-list
     constant and this section in the same change.
-12. Public data, enum, and sealed declarations in application, domain, and port
+12. `java.nio.file.Path` is allowed in application, domain, and port public
+    models and contracts only as an inert value type: callers may carry,
+    compare, resolve, normalize, and render path values as data. Filesystem IO,
+    home-directory expansion, `System.getProperty`, and process environment
+    reads are adapter or composition concerns. Application/domain/port code must
+    not call `Files`, `kotlin.io.path` IO helpers, `System.getenv`, or
+    `System.getProperty`, and domain review parsing must stay limited to pure
+    string and regex parsing.
+13. Public data, enum, and sealed declarations in application, domain, and port
     modules live under explicit `model` packages. Services, runtimes, and port
     interfaces import those models instead of declaring public models inline.
-13. SQLite schema changes are append-only versioned migrations recorded in
+14. SQLite schema changes are append-only versioned migrations recorded in
     `schema_migrations`.
 
 The subsystem package set is:
@@ -555,8 +577,9 @@ The architecture tests enforce the following rules:
   `RuntimeModule.declaredSubsystemPackages`, Gradle settings, and smoke tests
   describe the same module and subsystem graph.
 - `runtime-core` contains only `skillbill` and `skillbill.di` source packages.
-- `runtime-core` does not re-export contract or concrete infrastructure modules
-  as adapter API.
+- `runtime-core` does not directly re-export contract or concrete
+  infrastructure modules as adapter API, and its transitive API closure stays
+  limited to the documented Kotlin-Inject generated ABI closure.
 - Top-level runtime modules do not depend upward, on desktop modules, or on
   sibling concrete adapters where forbidden.
 - Infrastructure modules do not depend on runtime-core, CLI, MCP, desktop, or

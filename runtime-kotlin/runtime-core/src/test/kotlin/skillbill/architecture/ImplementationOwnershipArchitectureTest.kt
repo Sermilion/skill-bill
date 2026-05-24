@@ -116,17 +116,7 @@ class ImplementationOwnershipArchitectureTest {
   @Test
   fun `runtime core is composition only and not an implementation umbrella`() {
     val runtimeCoreBuild = runtimeRoot.resolve("runtime-core/build.gradle.kts").readText()
-    val forbiddenApiDependencies = listOf(
-      ":runtime-contracts",
-      ":runtime-infra-fs",
-      ":runtime-infra-http",
-      ":runtime-infra-sqlite",
-    ).filter { dependency -> runtimeCoreBuild.contains("api(project(\"$dependency\"))") }
-    assertEquals(
-      emptyList(),
-      forbiddenApiDependencies,
-      "runtime-core must not re-export contract or concrete implementation modules as adapter API.",
-    )
+    assertNoRuntimeCorePublicProjectEdges(runtimeCoreBuild)
 
     val allowedPackages = setOf("skillbill", "skillbill.di")
     val runtimeCoreSourceFiles = kotlinFilesUnder(runtimeRoot.resolve("runtime-core/src/main/kotlin"))
@@ -169,6 +159,10 @@ class ImplementationOwnershipArchitectureTest {
       }
       .sorted()
     assertEquals(emptyList(), violations, "runtime-core must not import moved implementation packages.")
+  }
+
+  private fun assertNoRuntimeCorePublicProjectEdges(runtimeCoreBuild: String) {
+    assertRuntimeCorePublicProjectEdges(runtimeRoot, runtimeCoreBuild)
   }
 
   @Test
@@ -226,6 +220,9 @@ class ImplementationOwnershipArchitectureTest {
         "skillbill.infrastructure",
       ),
       "runtime-domain/src/main/kotlin" to listOf(
+        "com.github.ajalt.clikt",
+        "java.net.http",
+        "java.sql",
         "skillbill.application",
         "skillbill.cli",
         "skillbill.desktop",
@@ -236,6 +233,9 @@ class ImplementationOwnershipArchitectureTest {
         "skillbill.ports",
       ),
       "runtime-ports/src/main/kotlin" to listOf(
+        "com.github.ajalt.clikt",
+        "java.net.http",
+        "java.sql",
         "skillbill.application",
         "skillbill.cli",
         "skillbill.desktop",
@@ -707,23 +707,4 @@ class ImplementationOwnershipArchitectureTest {
     .mapNotNull { line -> line.trim().removePrefix("import ").takeIf { line.trim().startsWith("import ") } }
     .filter(::isRuntimeImplementationImport)
     .toList()
-
-  private fun isRuntimeImplementationImport(importedName: String): Boolean {
-    val forbiddenPrefixes = listOf(
-      "skillbill.db.",
-      "skillbill.infrastructure.",
-      "skillbill.infrastructure.fs.",
-      "skillbill.infrastructure.http.",
-      "skillbill.infrastructure.sqlite.",
-      "skillbill.nativeagent.",
-      "skillbill.launcher.",
-      "skillbill.skillremove.",
-    )
-    val importsForbiddenRoot = forbiddenPrefixes.any(importedName::startsWith)
-    val importsInstallImplementation = importedName.startsWith("skillbill.install.") &&
-      !importedName.startsWith("skillbill.install.model.")
-    val importsScaffoldImplementation = importedName.startsWith("skillbill.scaffold.") &&
-      !importedName.startsWith("skillbill.scaffold.model.")
-    return importsForbiddenRoot || importsInstallImplementation || importsScaffoldImplementation
-  }
 }
