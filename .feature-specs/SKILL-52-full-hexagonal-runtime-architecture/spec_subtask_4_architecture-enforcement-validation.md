@@ -2,6 +2,10 @@
 
 Parent overview: [spec.md](spec.md)
 
+## Status
+
+Complete
+
 ## Scope
 
 Lock the final graph into documentation, runtime module metadata, architecture tests, and repository validation after the code movement is complete.

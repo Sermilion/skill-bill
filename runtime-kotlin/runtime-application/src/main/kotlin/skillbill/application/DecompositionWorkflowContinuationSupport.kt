@@ -3,6 +3,8 @@ package skillbill.application
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.persistence.WorkflowStateRepository
 import skillbill.ports.persistence.model.WorkflowStateRecord
+import skillbill.ports.workflow.DecompositionManifestFileStore
+import skillbill.ports.workflow.UnavailableDecompositionManifestFileStore
 import skillbill.workflow.WorkflowEngine
 import skillbill.workflow.model.CurrentSubtaskIntent
 import skillbill.workflow.model.DecompositionExecutionModel
@@ -16,6 +18,7 @@ internal fun continueExistingWorkflow(
   initialRecord: WorkflowStateSnapshot,
   workflowId: String,
   unitOfWork: UnitOfWork,
+  fileStore: DecompositionManifestFileStore = UnavailableDecompositionManifestFileStore,
 ): ContinuationResult {
   var record = initialRecord
   val sessionSummary = family.sessionSummary(unitOfWork.workflowStates, record.sessionId.orEmpty())
@@ -23,7 +26,12 @@ internal fun continueExistingWorkflow(
   var projectionArtifactsJson: String? = null
   if (decision.shouldReopen) {
     val continueStatus = decision.payload["continue_status"]
-    val runtimeInput = family.withDecompositionRuntime(record, decision.toReopenInput(record.sessionId), workflowId)
+    val runtimeInput = family.withDecompositionRuntime(
+      record,
+      decision.toReopenInput(record.sessionId),
+      workflowId,
+      fileStore,
+    )
     val reopened = WorkflowEngine.updateRecord(family.definition, record, runtimeInput.input)
     family.save(unitOfWork.workflowStates, reopened)
     record = family.get(unitOfWork.workflowStates, workflowId) ?: reopened

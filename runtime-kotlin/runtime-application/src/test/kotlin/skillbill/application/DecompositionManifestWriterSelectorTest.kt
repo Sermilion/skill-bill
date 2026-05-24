@@ -17,7 +17,7 @@ class DecompositionManifestWriterSelectorTest {
     Files.writeString(parentSpecPath, "# Parent spec\n")
 
     val invalidCurrent = assertFailsWith<InvalidDecompositionManifestSchemaError> {
-      DecompositionManifestWriter.writeIfDecomposed(
+      writeIfDecomposed(
         DecompositionManifestWriteRequest(
           repoRoot = repoRoot,
           parentSpecPath = parentSpecPath,
@@ -28,7 +28,7 @@ class DecompositionManifestWriterSelectorTest {
       )
     }
     val invalidRecommended = assertFailsWith<InvalidDecompositionManifestSchemaError> {
-      DecompositionManifestWriter.writeIfDecomposed(
+      writeIfDecomposed(
         DecompositionManifestWriteRequest(
           repoRoot = repoRoot,
           parentSpecPath = parentSpecPath,

@@ -1,6 +1,5 @@
 package skillbill.architecture
 
-import skillbill.RuntimeModule
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
@@ -11,8 +10,6 @@ import kotlin.test.assertTrue
 class RuntimeArchitectureTest {
   private val readianMcpRuntime = "runtime-mcp/src/main/kotlin/skillbill/mcp/ReadianMcpRuntime.kt"
   private val mcpScaffoldRuntime = "runtime-mcp/src/main/kotlin/skillbill/mcp/McpScaffoldRuntime.kt"
-  private val decompositionManifestFileWrites =
-    "runtime-application/src/main/kotlin/skillbill/application/DecompositionManifestFileWrites.kt"
   private val runtimeRoot: Path =
     Path.of("").toAbsolutePath().normalize().let { workingDir ->
       if (workingDir.fileName.toString().startsWith("runtime-")) {
@@ -48,67 +45,6 @@ class RuntimeArchitectureTest {
       runtimeRoot.resolve("runtime-mcp/src/main/kotlin"),
       runtimeRoot.resolve("runtime-ports/src/main/kotlin"),
     )
-
-  @Test
-  fun `architecture document declares package ownership and dependency direction`() {
-    val architecture = Files.readString(runtimeRoot.resolve("ARCHITECTURE.md"))
-
-    assertContains(architecture, "cli / mcp")
-    assertContains(architecture, "-> application use cases")
-    assertContains(architecture, "Current Package Ownership")
-    assertContains(architecture, "Boundary Rules")
-    assertContains(architecture, "MCP workflow calls must use application services")
-    assertContains(architecture, "learning application use cases return typed results")
-    assertContains(architecture, "repository and unit-of-work ports")
-    assertContains(architecture, "LearningRecord is owned by the learnings domain")
-    assertContains(architecture, "review parsing and triage decision normalization are pure surfaces")
-    assertContains(architecture, "SQL-backed review persistence")
-    assertContains(architecture, "TelemetrySettingsProvider")
-    assertContains(architecture, "TelemetryConfigStore")
-    assertContains(architecture, "TelemetryClient")
-    assertContains(architecture, "telemetry proxy payload mapping belongs with the HTTP adapter")
-    assertContains(architecture, "schema_migrations")
-    assertContains(architecture, "versioned database migrations")
-    assertContains(architecture, "contract DTOs")
-    assertContains(architecture, "runtime/schema parse-seam validators")
-    assertContains(architecture, "Temporary SKILL-52 blocker")
-    assertContains(architecture, "typed CLI presenter models")
-    assertContains(architecture, "RuntimeSurfaceContract")
-    assertContains(architecture, "RuntimeContext")
-    assertContains(architecture, "skillbill.model")
-    assertContains(architecture, "`model` packages")
-    assertContains(architecture, "runtime-ports")
-    assertContains(architecture, "gradle-module-split-evaluation.md")
-  }
-
-  @Test
-  fun `runtime module declares current package boundaries`() {
-    assertEquals(
-      setOf(
-        "skillbill.application",
-        "skillbill.cli",
-        "skillbill.contracts",
-        "skillbill.db",
-        "skillbill.desktop",
-        "skillbill.di",
-        "skillbill.error",
-        "skillbill.install",
-        "skillbill.infrastructure",
-        "skillbill.launcher",
-        "skillbill.learnings",
-        "skillbill.mcp",
-        "skillbill.model",
-        "skillbill.nativeagent",
-        "skillbill.ports",
-        "skillbill.review",
-        "skillbill.scaffold",
-        "skillbill.telemetry",
-        "skillbill.workflow.implement",
-        "skillbill.workflow.verify",
-      ),
-      RuntimeModule.declaredSubsystemPackages.toSet(),
-    )
-  }
 
   @Test
   fun `runtime cli check task depends on validate agent configs`() {
@@ -151,10 +87,11 @@ class RuntimeArchitectureTest {
 
   @Test
   fun `application services use persistence ports instead of sqlite infrastructure`() {
+    val applicationFiles = sourceFiles()
+      .filter { it.packageName.startsWith("skillbill.application") }
     val applicationPersistenceBannedImports =
       listOf(
         "java.sql",
-        "java.nio.file.Files",
         "skillbill.db",
         "skillbill.infrastructure",
         "skillbill.review.ReviewRuntime",
@@ -165,15 +102,29 @@ class RuntimeArchitectureTest {
         "skillbill.telemetry.TelemetryRemoteStatsRuntime",
       )
     assertNoBannedImports(
-      files =
-      sourceFiles()
-        .filter { it.packageName.startsWith("skillbill.application") }
-        .filterNot { it.relativePath == decompositionManifestFileWrites },
+      files = applicationFiles,
       bannedImports = applicationPersistenceBannedImports,
     )
+  }
+
+  @Test
+  fun `application domain and ports avoid direct file IO`() {
+    val boundaryFiles =
+      sourceFiles()
+        .filter { file ->
+          file.relativePath.startsWith("runtime-application/src/main/kotlin/") ||
+            file.relativePath.startsWith("runtime-domain/src/main/kotlin/") ||
+            file.relativePath.startsWith("runtime-ports/src/main/kotlin/")
+        }
+
     assertNoBannedImports(
-      files = listOf(sourceFile(runtimeRoot.resolve(decompositionManifestFileWrites))),
-      bannedImports = applicationPersistenceBannedImports - "java.nio.file.Files",
+      files = boundaryFiles,
+      bannedImports = directFileIoImports,
+    )
+    assertNoBannedSourceReferences(
+      files = boundaryFiles,
+      bannedReferences = directFileIoSourceReferences,
+      description = "direct file IO dependency",
     )
   }
 
@@ -209,8 +160,11 @@ class RuntimeArchitectureTest {
           val source = Files.readString(runtimeRoot.resolve(file.relativePath))
           publicModelDeclarationPattern
             .findAll(source)
-            .filter { ".model" !in file.packageName }
-            .map { match -> "${file.relativePath} declares ${match.groupValues[2]} outside a model package" }
+            .filter { !file.packageName.split('.').contains("model") }
+            .map { match ->
+              val lineNumber = source.substring(0, match.range.first).count { it == '\n' } + 1
+              "${file.relativePath}:$lineNumber declares ${match.groupValues.last()} outside a model package"
+            }
         }
         .toList()
 
@@ -414,14 +368,17 @@ class RuntimeArchitectureTest {
   }
 
   @Test
-  fun `decomposition manifest application filesystem access has explicit temporary blocker coverage`() {
+  fun `decomposition manifest application projection declares final parse seam ownership`() {
     val architecture = Files.readString(runtimeRoot.resolve("ARCHITECTURE.md"))
     val projectionIo = Files.readString(sourcePath("skillbill/application/DecompositionManifestFileWrites.kt"))
 
-    assertContains(architecture, "Temporary SKILL-52 blocker: decomposition manifest projection")
-    assertContains(architecture, "injected manifest storage port")
-    assertContains(projectionIo, "Temporary SKILL-52 blocker")
-    assertContains(projectionIo, "manifest storage port")
+    assertContains(architecture, "Decomposition-manifest schema validation is owned by")
+    assertContains(architecture, "skillbill.application.DecompositionManifestFileWrites")
+    assertContains(architecture, "skillbill.ports.workflow.DecompositionManifestFileStore")
+    assertContains(architecture, "FileSystemDecompositionManifestFileStore")
+    assertContains(projectionIo, "Decomposition manifest parse/emission seam")
+    assertContains(projectionIo, "DecompositionManifestSchemaValidator.validateYamlText")
+    assertContains(projectionIo, "DecompositionManifestFileStore")
   }
 
   @Test
@@ -580,13 +537,19 @@ class RuntimeArchitectureTest {
       files.flatMap { file ->
         file.source.lines().flatMapIndexed { index, line ->
           bannedReferences
-            .filter(line::contains)
+            .filter { reference -> line.containsBannedReference(reference) }
             .map { reference ->
               "${file.relativePath}:${index + 1} contains $description $reference"
             }
         }
       }
     assertTrue(violations.isEmpty(), violations.joinToString(separator = "\n"))
+  }
+
+  private fun String.containsBannedReference(reference: String): Boolean = if (reference == "Files.") {
+    Regex("""\bFiles\.""").containsMatchIn(this)
+  } else {
+    reference in this
   }
 
   private fun assertMcpScaffoldRuntimeOnlyUsesFilesForRepoRootDiscovery(mcpFiles: List<SourceFile>) {
@@ -661,11 +624,42 @@ class RuntimeArchitectureTest {
   )
 
   private companion object {
+    val directFileIoImports: List<String> =
+      listOf(
+        "java.io.File",
+        "java.nio.file.Files",
+        "kotlin.io.path",
+        "kotlin.io.path.readText",
+        "kotlin.io.path.writeText",
+        "kotlin.io.path.inputStream",
+        "kotlin.io.path.outputStream",
+        "kotlin.io.path.bufferedReader",
+        "kotlin.io.path.bufferedWriter",
+      )
+    val directFileIoSourceReferences: List<String> =
+      listOf(
+        "java.io.File",
+        "java.nio.file.Files",
+        "Files.",
+        ".toFile()",
+        ".readText()",
+        ".writeText()",
+        ".inputStream()",
+        ".outputStream()",
+        ".bufferedReader()",
+        ".bufferedWriter()",
+        "kotlin.io.path.readText",
+        "kotlin.io.path.writeText",
+        "kotlin.io.path.inputStream",
+        "kotlin.io.path.outputStream",
+        "kotlin.io.path.bufferedReader",
+        "kotlin.io.path.bufferedWriter",
+      )
     val packagePattern: Regex = Regex("^package\\s+([A-Za-z0-9_.]+)", RegexOption.MULTILINE)
     val importPattern: Regex = Regex("^import\\s+([A-Za-z0-9_.*]+)", RegexOption.MULTILINE)
     val publicModelDeclarationPattern: Regex =
       Regex(
-        "^\\s*(data\\s+class|enum\\s+class|sealed\\s+(?:class|interface))\\s+([A-Za-z0-9_]+)",
+        "^\\s*(?:public\\s+)?(data\\s+class|enum\\s+class|sealed\\s+(?:class|interface))\\s+([A-Za-z0-9_]+)",
         RegexOption.MULTILINE,
       )
   }

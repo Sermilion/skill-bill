@@ -19,7 +19,7 @@ class DecompositionManifestCommitProjectionTest {
     val subtaskSpec = parentSpecPath.parent.resolve("spec_subtask_1_foundation.md")
     Files.createDirectories(parentSpecPath.parent)
     Files.writeString(parentSpecPath, "# Parent spec\n")
-    val initial = DecompositionManifestWriter.writeIfDecomposed(
+    val initial = writeIfDecomposed(
       DecompositionManifestWriteRequest(
         repoRoot = repoRoot,
         parentSpecPath = parentSpecPath,
@@ -30,7 +30,7 @@ class DecompositionManifestCommitProjectionTest {
     )
     assertNotNull(initial)
 
-    val result = DecompositionManifestWriter.writeFromWorkflowUpdate(
+    val result = writeFromWorkflowUpdate(
       repoRoot = repoRoot,
       existingArtifactsJson = durableRuntimeArtifactsJson(initial.manifest, subtaskSpec),
       artifactsPatch = mapOf("commit_push_result" to mapOf("commit_sha" to "commit-subtask-1")),

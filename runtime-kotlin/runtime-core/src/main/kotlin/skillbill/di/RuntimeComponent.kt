@@ -20,12 +20,14 @@ import skillbill.application.TelemetryService
 import skillbill.application.UnsupportedScaffoldService
 import skillbill.application.WorkflowService
 import skillbill.domain.skillremove.SkillRemoveFileSystem
+import skillbill.infrastructure.fs.FileSystemDecompositionManifestFileStore
 import skillbill.infrastructure.fs.FileSystemInstallAgentGateway
 import skillbill.infrastructure.fs.FileSystemInstallGateway
 import skillbill.infrastructure.fs.FileSystemMcpRegistrationGateway
 import skillbill.infrastructure.fs.FileSystemNativeAgentInstallGateway
 import skillbill.infrastructure.fs.FileSystemRepoSourceDiscoveryGateway
 import skillbill.infrastructure.fs.FileSystemRepoValidationGateway
+import skillbill.infrastructure.fs.FileSystemReviewInputSource
 import skillbill.infrastructure.fs.FileSystemScaffoldCatalogGateway
 import skillbill.infrastructure.fs.FileSystemScaffoldGateway
 import skillbill.infrastructure.fs.FileSystemSkillRemoveFileSystem
@@ -33,6 +35,7 @@ import skillbill.infrastructure.fs.FileSystemUnsupportedScaffoldGateway
 import skillbill.infrastructure.fs.FileTelemetryConfigStore
 import skillbill.infrastructure.fs.GitWorkflowGitOperations
 import skillbill.infrastructure.http.HttpTelemetryClient
+import skillbill.infrastructure.http.JdkHttpRequester
 import skillbill.infrastructure.sqlite.SQLiteDatabaseSessionFactory
 import skillbill.model.RuntimeContext
 import skillbill.ports.install.InstallAgentGateway
@@ -40,6 +43,7 @@ import skillbill.ports.install.InstallPlanGateway
 import skillbill.ports.install.McpRegistrationGateway
 import skillbill.ports.install.NativeAgentInstallGateway
 import skillbill.ports.persistence.DatabaseSessionFactory
+import skillbill.ports.review.ReviewInputSource
 import skillbill.ports.scaffold.RepoSourceDiscoveryGateway
 import skillbill.ports.scaffold.ScaffoldCatalogGateway
 import skillbill.ports.scaffold.ScaffoldGateway
@@ -48,7 +52,9 @@ import skillbill.ports.telemetry.TelemetryClient
 import skillbill.ports.telemetry.TelemetryConfigStore
 import skillbill.ports.telemetry.TelemetryLevelMutator
 import skillbill.ports.telemetry.TelemetrySettingsProvider
+import skillbill.ports.telemetry.UnconfiguredHttpRequester
 import skillbill.ports.validation.RepoValidationGateway
+import skillbill.ports.workflow.DecompositionManifestFileStore
 import skillbill.ports.workflow.NoopWorkflowGitOperations
 import skillbill.ports.workflow.WorkflowGitOperations
 import skillbill.telemetry.DefaultTelemetrySettingsProvider
@@ -56,7 +62,7 @@ import skillbill.telemetry.DefaultTelemetrySettingsProvider
 @Component
 @Suppress("TooManyFunctions")
 abstract class RuntimeComponent(
-  @get:Provides val runtimeContext: RuntimeContext,
+  private val inputRuntimeContext: RuntimeContext,
 ) {
   /*
    * Composition-root exception: RuntimeComponent is the only runtime-core surface allowed to
@@ -64,6 +70,13 @@ abstract class RuntimeComponent(
    * application services and ports exposed below instead of importing these implementations
    * through runtime-core as an umbrella module.
    */
+  @Provides
+  fun runtimeContext(): RuntimeContext = if (inputRuntimeContext.requester === UnconfiguredHttpRequester) {
+    inputRuntimeContext.copy(requester = JdkHttpRequester)
+  } else {
+    inputRuntimeContext
+  }
+
   @Provides
   internal fun databaseSessionFactory(factory: SQLiteDatabaseSessionFactory): DatabaseSessionFactory = factory
 
@@ -111,11 +124,19 @@ abstract class RuntimeComponent(
   internal fun repoValidationGateway(gateway: FileSystemRepoValidationGateway): RepoValidationGateway = gateway
 
   @Provides
+  internal fun reviewInputSource(source: FileSystemReviewInputSource): ReviewInputSource = source
+
+  @Provides
   internal fun skillRemoveFileSystem(fileSystem: FileSystemSkillRemoveFileSystem): SkillRemoveFileSystem = fileSystem
 
   @Provides
   internal fun workflowGitOperations(context: RuntimeContext, git: GitWorkflowGitOperations): WorkflowGitOperations =
     if (context.workflowGitOperations === NoopWorkflowGitOperations) git else context.workflowGitOperations
+
+  @Provides
+  internal fun decompositionManifestFileStore(
+    store: FileSystemDecompositionManifestFileStore,
+  ): DecompositionManifestFileStore = store
 
   abstract val installService: InstallService
   abstract val installAgentService: InstallAgentService

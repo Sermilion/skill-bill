@@ -1,3 +1,12 @@
+## [2026-05-24] SKILL-52 architecture-enforcement-validation
+Areas: runtime-kotlin/ARCHITECTURE.md, runtime-kotlin/runtime-core/architecture tests, runtime-kotlin/runtime-application, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-infra-sqlite
+- `ARCHITECTURE.md`, `RuntimeModule`, Gradle settings, and architecture tests now pin the final hexagonal graph with runtime-core as composition only and runtime-contracts owning schema validators at parse seams. reusable
+- Decomposition manifest file writes and review input loading moved behind explicit ports, with filesystem adapters in infra-fs; SQLite review runtime no longer owns file input helpers. reusable
+- Architecture coverage now rejects non-composition runtime-core packages, forbidden layer imports, adapter bypasses, public app/domain/port models outside `model`, and direct file IO in app/domain/ports. reusable
+- Full validation passed after clearing generated Gradle configuration cache: `./gradlew check`, `skill-bill validate`, `scripts/validate_agent_configs`, and `npx --yes agnix --strict .`.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
 ## [2026-05-23] SKILL-52 adapter-composition-wiring
 Areas: runtime-kotlin/runtime-core, runtime-kotlin/runtime-application, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-mcp, runtime-kotlin/runtime-desktop/core/data
 - Runtime install, scaffold, repo-validation, MCP-registration, native-agent, and skill-remove entry points now flow through application services plus port interfaces; `runtime-core` remains the composition root that binds concrete adapters. reusable

@@ -2,26 +2,21 @@ package skillbill.application
 
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.workflow.DecompositionManifestSchemaValidator
+import skillbill.ports.workflow.DecompositionManifestFileStore
 import skillbill.workflow.DecompositionManifestCodec
 import skillbill.workflow.model.DecompositionManifest
 import skillbill.workflow.toWireMap
-import java.nio.file.AtomicMoveNotSupportedException
-import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.StandardCopyOption.ATOMIC_MOVE
-import java.nio.file.StandardCopyOption.REPLACE_EXISTING
 
 private val decompositionManifestYamlMapper: YAMLMapper by lazy { YAMLMapper() }
 
 /**
- * Temporary SKILL-52 blocker: decomposition manifest projection still writes repo-local
- * files from the application layer because workflow projection is driven by static helpers
- * used by CLI, MCP, and tests. A later SKILL-52 adapter/composition subtask should introduce
- * an injected manifest storage port and move these `Files` calls behind the runtime-core
- * infrastructure boundary.
+ * Decomposition manifest parse/emission seam. This is where workflow artifact maps and
+ * repo-local YAML text from the workflow file-store port are schema-validated before
+ * callers persist or return them.
  */
-fun loadDecompositionManifest(path: Path): DecompositionManifest {
-  val yamlText = Files.readString(path)
+fun loadDecompositionManifest(path: Path, fileStore: DecompositionManifestFileStore): DecompositionManifest {
+  val yamlText = fileStore.readText(path)
   val wireMap = DecompositionManifestSchemaValidator.validateYamlText(yamlText, path.toString())
   return DecompositionManifestCodec.decodeMap(wireMap, path.toString())
 }
@@ -50,27 +45,16 @@ fun encodeDecompositionManifestYaml(manifest: DecompositionManifest, sourceLabel
   return yamlText
 }
 
-fun writeDecompositionManifestText(target: Path, content: String) {
-  writeTextAtomically(target, content)
+fun writeDecompositionManifestText(target: Path, content: String, fileStore: DecompositionManifestFileStore) {
+  fileStore.writeTextAtomically(target, content)
 }
 
-fun projectDecompositionSpecStatus(target: Path, status: String) {
-  if (!Files.isRegularFile(target)) {
+fun projectDecompositionSpecStatus(target: Path, status: String, fileStore: DecompositionManifestFileStore) {
+  if (!fileStore.isRegularFile(target)) {
     return
   }
-  val projected = projectStatus(Files.readString(target), status)
-  writeTextAtomically(target, projected)
-}
-
-private fun writeTextAtomically(target: Path, content: String) {
-  Files.createDirectories(target.parent)
-  val temp = Files.createTempFile(target.parent, "${target.fileName}.", ".tmp")
-  Files.writeString(temp, content)
-  try {
-    Files.move(temp, target, REPLACE_EXISTING, ATOMIC_MOVE)
-  } catch (_: AtomicMoveNotSupportedException) {
-    Files.move(temp, target, REPLACE_EXISTING)
-  }
+  val projected = projectStatus(fileStore.readText(target), status)
+  fileStore.writeTextAtomically(target, projected)
 }
 
 private fun projectStatus(text: String, status: String): String {

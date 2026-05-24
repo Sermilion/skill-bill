@@ -129,13 +129,27 @@ class ImplementationOwnershipArchitectureTest {
     )
 
     val allowedPackages = setOf("skillbill", "skillbill.di")
-    val runtimeCorePackages = kotlinFilesUnder(runtimeRoot.resolve("runtime-core/src/main/kotlin"))
-      .mapNotNull(::packageName)
-      .toSet()
+    val runtimeCoreSourceFiles = kotlinFilesUnder(runtimeRoot.resolve("runtime-core/src/main/kotlin"))
+    val runtimeCorePackages = runtimeCoreSourceFiles.mapNotNull(::packageName).toSet()
     assertEquals(
       allowedPackages,
       runtimeCorePackages,
       "runtime-core source must stay limited to module metadata and DI composition.",
+    )
+    val nonCompositionPackages = runtimeCoreSourceFiles
+      .mapNotNull { sourceFile ->
+        val sourcePackage = packageName(sourceFile) ?: return@mapNotNull null
+        if (sourcePackage in allowedPackages) {
+          null
+        } else {
+          "${runtimeRoot.relativize(sourceFile)} declares package $sourcePackage"
+        }
+      }
+      .sorted()
+    assertEquals(
+      emptyList(),
+      nonCompositionPackages,
+      "runtime-core must reject every non-composition package beyond skillbill and skillbill.di.",
     )
 
     val bannedImplementationImports = listOf(
@@ -158,6 +172,32 @@ class ImplementationOwnershipArchitectureTest {
   }
 
   @Test
+  fun `runtime core imports concrete infrastructure only from composition files`() {
+    val runtimeCoreSourceFiles = kotlinFilesUnder(runtimeRoot.resolve("runtime-core/src/main/kotlin"))
+    val compositionFiles = setOf(
+      runtimeRoot.resolve("runtime-core/src/main/kotlin/skillbill/di/RuntimeComponent.kt"),
+    )
+    val concreteInfrastructureViolations = runtimeCoreSourceFiles
+      .filterNot { sourceFile -> sourceFile in compositionFiles }
+      .flatMap { sourceFile ->
+        sourceFile.importsForbiddenBy(
+          setOf(
+            "skillbill.db",
+            "skillbill.infrastructure",
+          ),
+        ).map { forbiddenImport ->
+          "${runtimeRoot.relativize(sourceFile)} imports $forbiddenImport"
+        }
+      }
+      .sorted()
+    assertEquals(
+      emptyList(),
+      concreteInfrastructureViolations,
+      "runtime-core may import concrete infrastructure only from explicit DI composition files.",
+    )
+  }
+
+  @Test
   fun `infrastructure modules do not depend on adapters or runtime core`() {
     val forbiddenProjectDependencies = listOf(":runtime-core", ":runtime-cli", ":runtime-mcp", ":runtime-desktop")
     val violations = listOf("runtime-infra-fs", "runtime-infra-http", "runtime-infra-sqlite")
@@ -171,6 +211,53 @@ class ImplementationOwnershipArchitectureTest {
       emptyList(),
       violations,
       "Infrastructure modules must not depend on runtime-core or adapter entrypoints.",
+    )
+  }
+
+  @Test
+  fun `application domain and ports do not import adapters infrastructure or composition roots`() {
+    val layerRules = mapOf(
+      "runtime-application/src/main/kotlin" to listOf(
+        "skillbill.cli",
+        "skillbill.desktop",
+        "skillbill.mcp",
+        "skillbill.db",
+        "skillbill.di",
+        "skillbill.infrastructure",
+      ),
+      "runtime-domain/src/main/kotlin" to listOf(
+        "skillbill.application",
+        "skillbill.cli",
+        "skillbill.desktop",
+        "skillbill.mcp",
+        "skillbill.db",
+        "skillbill.di",
+        "skillbill.infrastructure",
+        "skillbill.ports",
+      ),
+      "runtime-ports/src/main/kotlin" to listOf(
+        "skillbill.application",
+        "skillbill.cli",
+        "skillbill.desktop",
+        "skillbill.mcp",
+        "skillbill.db",
+        "skillbill.di",
+        "skillbill.infrastructure",
+      ),
+    )
+
+    val violations = layerRules.flatMap { (sourceRoot, forbiddenPrefixes) ->
+      kotlinFilesUnder(runtimeRoot.resolve(sourceRoot)).flatMap { sourceFile ->
+        sourceFile.importsForbiddenBy(forbiddenPrefixes.toSet()).map { forbiddenImport ->
+          "${runtimeRoot.relativize(sourceFile)} imports $forbiddenImport"
+        }
+      }
+    }.sorted()
+
+    assertEquals(
+      emptyList(),
+      violations,
+      "Application, domain, and port layers must not import adapters, infrastructure, or DI composition roots.",
     )
   }
 
@@ -296,7 +383,11 @@ class ImplementationOwnershipArchitectureTest {
 
   private fun isRuntimeImplementationImport(importedName: String): Boolean {
     val forbiddenPrefixes = listOf(
+      "skillbill.db.",
+      "skillbill.infrastructure.",
       "skillbill.infrastructure.fs.",
+      "skillbill.infrastructure.http.",
+      "skillbill.infrastructure.sqlite.",
       "skillbill.nativeagent.",
       "skillbill.launcher.",
       "skillbill.skillremove.",

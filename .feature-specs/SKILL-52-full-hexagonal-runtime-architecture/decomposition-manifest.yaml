@@ -9,7 +9,7 @@ base_branch: "main"
 feature_branch: "feat/SKILL-52-full-hexagonal-runtime-architecture"
 stack_branches: []
 current_subtask_intent:
-  subtask_id: 3
+  subtask_id: 4
   action: "start"
 subtasks:
 - id: 1
@@ -315,9 +315,9 @@ subtasks:
 - id: 3
   name: "Adapter And Composition Wiring"
   spec_path: ".feature-specs/SKILL-52-full-hexagonal-runtime-architecture/spec_subtask_3_adapter-composition-wiring.md"
-  status: "in_progress"
+  status: "complete"
   branch: "feat/SKILL-52-full-hexagonal-runtime-architecture"
-  commit_sha: null
+  commit_sha: "9ccb877"
   workflow_id: "wfl-20260523-190302-2cgu"
   review_result:
     review_iterations: 3
@@ -461,7 +461,7 @@ subtasks:
       failing_check_names: []
       unsupported_reason: ""
   blocked_reason: null
-  last_resumable_step: "commit_push"
+  last_resumable_step: "finish"
   dependencies:
   - subtask_id: 2
     optional: false
@@ -469,15 +469,159 @@ subtasks:
 - id: 4
   name: "Architecture Enforcement And Validation"
   spec_path: ".feature-specs/SKILL-52-full-hexagonal-runtime-architecture/spec_subtask_4_architecture-enforcement-validation.md"
-  status: "pending"
-  branch: null
+  status: "in_progress"
+  branch: "feat/SKILL-52-full-hexagonal-runtime-architecture"
   commit_sha: null
-  workflow_id: null
-  review_result: null
-  audit_result: null
-  validation_result: null
+  workflow_id: "wfl-20260524-041905-97a9"
+  review_result:
+    status: "completed"
+    review_session_id: "rvs-skill-52-architecture-enforcement-validation"
+    review_run_id: "rvw-20260524-051500-s52v"
+    routed_skill: "bill-kotlin-code-review"
+    detected_stack: "kotlin"
+    execution_mode: "delegated"
+    review_iterations: 3
+    fix_loops: 3
+    verdict: "proceed after fixes"
+    final_review_findings:
+    - id: "F-001"
+      severity: "Major"
+      confidence: "High"
+      summary: "ReviewRuntime still owned review input loading and direct Files.readString\
+        \ behavior inside the SQLite persistence adapter."
+      resolution: "Removed ReviewRuntime.readInput and left review input loading behind\
+        \ ReviewInputSource/FileSystemReviewInputSource; updated ARCHITECTURE.md ownership\
+        \ text."
+    - id: "F-002"
+      severity: "Medium"
+      confidence: "High"
+      summary: "Direct file IO architecture guard missed java.io.File, Path.toFile(),\
+        \ and kotlin.io.path wildcard/prefix patterns."
+      resolution: "Broadened RuntimeArchitectureTest direct file IO guard to reject\
+        \ java.io.File, kotlin.io.path prefix imports, toFile(), and common Kotlin\
+        \ path extension calls in application/domain/ports."
+    verification:
+    - "./gradlew :runtime-core:test --tests \"skillbill.architecture.RuntimeArchitectureTest\"\
+      \ --tests \"skillbill.architecture.RuntimeArchitectureDocumentationTest\" :runtime-infra-sqlite:test\
+      \ --tests \"skillbill.review.ReviewRuntimeTest\""
+    telemetry:
+      transport: "mcp"
+      imported: true
+      triaged: true
+      review_findings_imported: 1
+      triage_unresolved_findings: 0
+      telemetry_payload:
+        total_findings: 1
+        accepted_findings: 1
+        unresolved_findings: 0
+        accepted_rate: 1.0
+        review_run_id: "rvw-20260524-051500-s52v"
+        review_session_id: "rvs-skill-52-architecture-enforcement-validation"
+        routed_skill: "bill-kotlin-code-review"
+        review_platform: "kotlin"
+        execution_mode: "delegated"
+        skill: "bill-code-review"
+  audit_result:
+    pass: true
+    audit_iterations: 1
+    per_criterion:
+    - id: 1
+      criterion: "runtime-kotlin/ARCHITECTURE.md defines the final full hexagonal\
+        \ graph, responsibilities, and forbidden dependencies without transitional\
+        \ language that permits mixed ownership."
+      verdict: "pass"
+      evidence:
+      - "runtime-kotlin/ARCHITECTURE.md:5"
+      - "runtime-kotlin/ARCHITECTURE.md:25"
+      - "runtime-kotlin/ARCHITECTURE.md:88"
+      - "runtime-kotlin/ARCHITECTURE.md:149"
+      - "runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/RuntimeArchitectureDocumentationTest.kt:21"
+    - id: 2
+      criterion: "RuntimeModule.declaredGradleModules, RuntimeModule.declaredSubsystemPackages,\
+        \ Gradle settings, and architecture tests match the final graph."
+      verdict: "pass"
+      evidence:
+      - "runtime-kotlin/runtime-core/src/main/kotlin/skillbill/RuntimeModule.kt:8"
+      - "runtime-kotlin/runtime-core/src/main/kotlin/skillbill/RuntimeModule.kt:33"
+      - "runtime-kotlin/settings.gradle.kts:25"
+      - "runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/RuntimeArchitectureDocumentationTest.kt:100"
+      - "runtime-kotlin/runtime-mcp/src/test/kotlin/skillbill/RuntimeModuleSmokeTest.kt:22"
+    - id: 3
+      criterion: "Architecture tests fail on listed boundary violations, including\
+        \ non-composition packages in runtime-core, forbidden layer imports, adapter\
+        \ bypasses, and public app/domain/port models outside model packages."
+      verdict: "pass"
+      evidence:
+      - "runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/ImplementationOwnershipArchitectureTest.kt:117"
+      - "runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/ImplementationOwnershipArchitectureTest.kt:174"
+      - "runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/ImplementationOwnershipArchitectureTest.kt:217"
+      - "runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/ImplementationOwnershipArchitectureTest.kt:317"
+      - "runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/RuntimeArchitectureTest.kt:110"
+      - "runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/RuntimeArchitectureTest.kt:150"
+    - id: 4
+      criterion: "Runtime contract/schema validation ownership is described at the\
+        \ owning parse seam in architecture coverage."
+      verdict: "pass"
+      evidence:
+      - "runtime-kotlin/ARCHITECTURE.md:218"
+      - "runtime-kotlin/ARCHITECTURE.md:224"
+      - "runtime-kotlin/ARCHITECTURE.md:232"
+      - "runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/RuntimeArchitectureTest.kt:326"
+      - "runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/RuntimeArchitectureTest.kt:370"
+      - "runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/DecompositionManifestArchitectureTest.kt:31"
+    - id: 5
+      criterion: "Existing runtime behavior remains preserved after final enforcement."
+      verdict: "pass"
+      evidence:
+      - "runtime-kotlin/runtime-application/src/main/kotlin/skillbill/application/ReviewService.kt:19"
+      - "runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/FileSystemReviewInputSource.kt:8"
+      - "runtime-kotlin/runtime-application/src/main/kotlin/skillbill/application/WorkflowService.kt:25"
+      - "runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/RuntimeComponent.kt:126"
+      - "runtime-kotlin/runtime-core/src/test/kotlin/skillbill/application/WorkflowServiceRuntimeComponentTest.kt:15"
+      - "runtime-kotlin/runtime-application/src/test/kotlin/skillbill/application/DecompositionManifestWriterTest.kt:22"
+      - "runtime-kotlin/runtime-infra-sqlite/src/test/kotlin/skillbill/review/ReviewRuntimeTest.kt:12"
+    - id: 6
+      criterion: "Full validation passes with (cd runtime-kotlin && ./gradlew check),\
+        \ skill-bill validate, scripts/validate_agent_configs, and npx --yes agnix\
+        \ --strict ."
+      verdict: "pass"
+      evidence:
+      - "command: (cd runtime-kotlin && ./gradlew check) -> BUILD SUCCESSFUL after\
+        \ clearing generated Gradle configuration cache"
+      - "command: skill-bill validate -> status: pass"
+      - "command: scripts/validate_agent_configs -> Agent-config validation passed"
+      - "command: npx --yes agnix --strict . -> No issues found"
+    gaps: []
+    closed_gaps:
+    - "Initial audit saw stale Gradle configuration-cache/Spotless failure for ./gradlew\
+      \ check; removed generated runtime-kotlin/.gradle/configuration-cache and exact\
+      \ command passed."
+  validation_result:
+    validation_result: "pass"
+    routed_skill: "bill-kotlin-quality-check"
+    detected_stack: "kotlin"
+    initial_failure_count: 0
+    final_failure_count: 0
+    fixes_applied: "None; all validation commands passed without changes."
+    commands_run:
+    - "(cd runtime-kotlin && ./gradlew check)"
+    - "skill-bill validate"
+    - "scripts/validate_agent_configs"
+    - "npx --yes agnix --strict ."
+    telemetry_payload:
+      routed_skill: "bill-kotlin-quality-check"
+      detected_stack: "kotlin"
+      scope_type: "working_tree"
+      initial_failure_count: 0
+      final_failure_count: 0
+      iterations: 1
+      result: "pass"
+      duration_seconds: 27
+      skill: "bill-quality-check"
+      failing_check_names: []
+      unsupported_reason: ""
   blocked_reason: null
-  last_resumable_step: null
+  last_resumable_step: "commit_push"
   dependencies:
   - subtask_id: 3
     optional: false

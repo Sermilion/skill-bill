@@ -1,6 +1,8 @@
 package skillbill.application
 
 import skillbill.ports.persistence.UnitOfWork
+import skillbill.ports.workflow.DecompositionManifestFileStore
+import skillbill.ports.workflow.UnavailableDecompositionManifestFileStore
 import skillbill.ports.workflow.WorkflowGitOperations
 import skillbill.workflow.DecompositionContinuationSelector
 import skillbill.workflow.WorkflowEngine
@@ -11,6 +13,7 @@ import skillbill.workflow.model.WorkflowUpdateInput
 
 internal class DecompositionWorkflowContinuation(
   private val gitOperations: WorkflowGitOperations,
+  private val fileStore: DecompositionManifestFileStore = UnavailableDecompositionManifestFileStore,
 ) {
   fun continueDecomposedParentByIssueKey(issueKey: String, unitOfWork: UnitOfWork): ContinuationResult {
     val parentRecord = unitOfWork.workflowStates
@@ -68,7 +71,7 @@ internal class DecompositionWorkflowContinuation(
       missingSubtaskWorkflowPayload(selection, unitOfWork)
     } else {
       val alignedRecord = alignSubtaskResumeStep(record, selection.resumeStepId, unitOfWork)
-      continueExistingWorkflow(WorkflowFamily.IMPLEMENT, alignedRecord, selection.workflowId, unitOfWork)
+      continueExistingWorkflow(WorkflowFamily.IMPLEMENT, alignedRecord, selection.workflowId, unitOfWork, fileStore)
         .withDecompositionFields(selection.subtask.id, selection.subtask.specPath)
     }
   }
@@ -136,7 +139,7 @@ internal class DecompositionWorkflowContinuation(
     WorkflowFamily.IMPLEMENT.save(unitOfWork.workflowStates, started)
     persistParentDecompositionRuntime(parentRecord, updatedManifest, unitOfWork)
     val saved = WorkflowFamily.IMPLEMENT.get(unitOfWork.workflowStates, workflowId) ?: started
-    return continueExistingWorkflow(WorkflowFamily.IMPLEMENT, saved, workflowId, unitOfWork)
+    return continueExistingWorkflow(WorkflowFamily.IMPLEMENT, saved, workflowId, unitOfWork, fileStore)
       .withProjection(updatedManifest)
       .withDecompositionFields(selection.subtask.id, selection.subtask.specPath)
   }
