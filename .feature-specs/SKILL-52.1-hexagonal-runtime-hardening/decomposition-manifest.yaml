@@ -9,8 +9,8 @@ base_branch: "main"
 feature_branch: "feat/SKILL-52.1-hexagonal-runtime-hardening"
 stack_branches: []
 current_subtask_intent:
-  subtask_id: 4
-  action: "resume"
+  subtask_id: 5
+  action: "start"
 subtasks:
 - id: 1
   name: "typed-boundary-foundation"
@@ -327,15 +327,27 @@ subtasks:
 - id: 4
   name: "install-policy-extraction"
   spec_path: ".feature-specs/SKILL-52.1-hexagonal-runtime-hardening/spec_subtask_3_install-policy-extraction.md"
-  status: "blocked"
+  status: "complete"
   branch: "feat/SKILL-52.1-hexagonal-runtime-hardening"
-  commit_sha: null
+  commit_sha: "7bfbe9a"
   workflow_id: "wfl-20260524-114234-ex4i"
-  review_result: null
-  audit_result: null
-  validation_result: null
-  blocked_reason: "Decomposed into nested child manifest .feature-specs/SKILL-52.1-hexagonal-runtime-hardening/install-policy-extraction/decomposition-manifest.yaml; complete nested subtasks before resuming parent subtask."
-  last_resumable_step: "plan"
+  review_result:
+    nested_manifest: ".feature-specs/SKILL-52.1-hexagonal-runtime-hardening/install-policy-extraction/decomposition-manifest.yaml"
+    child_workflows:
+    - "wfl-20260524-120003-jhue"
+    - "wfl-20260524-132601-u4fi"
+    - "wfl-20260524-150908-jz8c"
+    final_verdict: "approve"
+  audit_result:
+    pass: true
+    verdict: "all_pass"
+    nested_manifest: ".feature-specs/SKILL-52.1-hexagonal-runtime-hardening/install-policy-extraction/decomposition-manifest.yaml"
+  validation_result:
+    result: "pass"
+    routed_skill: "bill-kotlin-quality-check"
+    nested_manifest: ".feature-specs/SKILL-52.1-hexagonal-runtime-hardening/install-policy-extraction/decomposition-manifest.yaml"
+  blocked_reason: null
+  last_resumable_step: "finish"
   dependencies:
   - subtask_id: 1
     optional: false
