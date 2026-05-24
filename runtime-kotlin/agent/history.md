@@ -122,6 +122,13 @@ Areas: runtime-kotlin/runtime-domain, runtime-kotlin/runtime-application, runtim
 Feature flag: N/A
 Acceptance criteria: 6/6 implemented
 
+## [2026-05-24] SKILL-53 decomposition-manifest-commit-projection
+Areas: runtime-kotlin/runtime-application, runtime-kotlin/runtime-infra-fs, skills/bill-feature-implement
+- Same-branch subtask commits now include staged `decomposition-manifest.yaml` status/current-intent projections; the previous infra Git adapter behavior that unstaged manifest projections before committing was removed. reusable
+- Git-tracked decomposition manifests intentionally project `commit_sha: null`; subtask commit SHAs remain durable workflow runtime state because a commit cannot contain its own final SHA without changing that SHA. reusable
+Feature flag: N/A
+Acceptance criteria: internal defect fix
+
 ## [2026-05-23] SKILL-51 decomposition-workflow-state-validation-projection
 Areas: runtime-kotlin/runtime-application/workflow, runtime-kotlin/runtime-domain/workflow, runtime-kotlin/runtime-core application tests, skills/bill-feature-implement
 - Parent decomposition projection now updates the parent spec status in addition to subtask frontmatter, and Markdown `## Status` sections are projected when present. reusable
