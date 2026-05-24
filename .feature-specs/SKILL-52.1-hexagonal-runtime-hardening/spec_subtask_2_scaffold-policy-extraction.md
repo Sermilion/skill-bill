@@ -1,8 +1,28 @@
-# SKILL-52.1 Subtask 2 — Scaffold Policy Extraction
+# SKILL-52.1 Subtask 2 — Scaffold Policy Extraction (SUPERSEDED)
+
+> **SUPERSEDED.** This subtask was too large for one reliable feature-implement run.
+> It has been split into two smaller subtasks. Do **not** plan against this spec —
+> use the new specs instead:
+>
+> - [`spec_subtask_2_scaffold-ports-and-pure-policy.md`](./spec_subtask_2_scaffold-ports-and-pure-policy.md)
+>   — capability ports, typed request/result models, and genuinely pure-policy
+>   extraction into `runtime-domain`.
+> - [`spec_subtask_3_scaffold-raw-map-elimination.md`](./spec_subtask_3_scaffold-raw-map-elimination.md)
+>   — `ScaffoldGateway` raw-map elimination with byte-equivalent CLI/MCP mappers,
+>   IO-coupled validator carve into capability-aligned adapter classes, and
+>   allow-list cleanup.
+>
+> The decomposition manifest at `decomposition-manifest.yaml` reflects the new
+> 6-subtask ordering. The original 8 acceptance criteria below are now covered
+> collectively by the two new specs (see each new spec's "Acceptance criteria"
+> section for the explicit AC mapping). Content below is retained for historical
+> reference only.
+
+---
 
 Parent spec: [.feature-specs/SKILL-52.1-hexagonal-runtime-hardening/spec.md](./spec.md)
 Issue key: SKILL-52.1
-Subtask order: 2 of 5
+Subtask order: 2 of 5 (historical — see superseded notice above)
 Depends on: subtask 1 (typed boundary foundation + raw-map arch test must be in place).
 Branch model: same-branch (`feat/SKILL-52.1-hexagonal-runtime-hardening`); commit on completion before subtask 3.
 
