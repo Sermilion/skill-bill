@@ -20,6 +20,10 @@ import skillbill.ports.persistence.model.WorkflowStateRecord
 import skillbill.ports.workflow.UnavailableDecompositionManifestFileStore
 import skillbill.workflow.WorkflowEngine
 import skillbill.workflow.implement.FeatureImplementWorkflowDefinition
+import skillbill.workflow.model.CurrentSubtaskIntent
+import skillbill.workflow.model.DecompositionExecutionModel
+import skillbill.workflow.model.DecompositionManifest
+import skillbill.workflow.model.DecompositionSubtask
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -170,6 +174,32 @@ class WorkflowServiceTest {
     }
   }
 
+  @Test
+  fun `decomposed parent lookup ignores child workflows that only carry runtime projection`() {
+    val workflows = InMemoryWorkflowStates()
+    val childRuntime = decompositionRuntime(status = "blocked")
+    val parentRuntime = decompositionRuntime(status = "in_progress")
+    workflows.saveFeatureImplementWorkflow(
+      workflowRecord(
+        workflowId = "wfl-child",
+        artifactsPatch = mapOf(DECOMPOSITION_RUNTIME_ARTIFACT_KEY to encodeDecompositionManifestMap(childRuntime)),
+      ),
+    )
+    workflows.saveFeatureImplementWorkflow(
+      workflowRecord(
+        workflowId = "wfl-parent",
+        artifactsPatch = mapOf(
+          "plan" to mapOf("mode" to "decompose"),
+          DECOMPOSITION_RUNTIME_ARTIFACT_KEY to encodeDecompositionManifestMap(parentRuntime),
+        ),
+      ),
+    )
+
+    val selected = workflows.findDecomposedParentWorkflow("SKILL-52.1")
+
+    assertEquals("wfl-parent", selected?.workflowId)
+  }
+
   private fun newService(): WorkflowService {
     val workflows = InMemoryWorkflowStates()
     return WorkflowService(
@@ -178,6 +208,42 @@ class WorkflowServiceTest {
     )
   }
 }
+
+private fun workflowRecord(workflowId: String, artifactsPatch: Map<String, Any?>): WorkflowStateRecord {
+  val definition = FeatureImplementWorkflowDefinition.definition
+  val opened = WorkflowEngine.openRecord(definition, workflowId, "fis-001", "assess")
+  return WorkflowEngine.updateRecord(
+    definition,
+    opened,
+    skillbill.workflow.model.WorkflowUpdateInput(
+      workflowStatus = "running",
+      currentStepId = "plan",
+      stepUpdates = null,
+      artifactsPatch = artifactsPatch,
+      sessionId = "fis-001",
+    ),
+  ).toRecord()
+}
+
+private fun decompositionRuntime(status: String): DecompositionManifest = DecompositionManifest(
+  issueKey = "SKILL-52.1",
+  featureName = "install-policy-extraction",
+  parentSpecPath = ".feature-specs/SKILL-52.1-hexagonal-runtime-hardening/spec_subtask_3_install-policy.md",
+  status = status,
+  executionModel = DecompositionExecutionModel.SAME_BRANCH_COMMIT_PER_SUBTASK,
+  baseBranch = "main",
+  featureBranch = "feat/SKILL-52.1-hexagonal-runtime-hardening",
+  currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "resume"),
+  subtasks = listOf(
+    DecompositionSubtask(
+      id = 1,
+      name = "install-policy-foundation",
+      specPath = ".feature-specs/SKILL-52.1-hexagonal-runtime-hardening/install-policy/spec_subtask_1.md",
+      status = status,
+      workflowId = "wfl-child",
+    ),
+  ),
+)
 
 private class FakeDatabaseSessionFactory(
   private val workflowStates: WorkflowStateRepository,

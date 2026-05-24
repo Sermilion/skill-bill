@@ -13,6 +13,7 @@ import skillbill.application.model.WorkflowUpdateRequest
 import skillbill.application.model.WorkflowUpdateResult
 import skillbill.boundary.OpenBoundaryMap
 import skillbill.ports.persistence.DatabaseSessionFactory
+import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.persistence.WorkflowStateRepository
 import skillbill.ports.persistence.model.WorkflowStateRecord
 import skillbill.ports.workflow.DecompositionManifestFileStore
@@ -88,6 +89,7 @@ class WorkflowService(
       val updated = family.get(unitOfWork.workflowStates, request.workflowId) ?: updatedRecord
       if (runtimeInput.updated) {
         projectionArtifactsJson = updated.artifactsJson
+        syncDecompositionParentRuntime(family, updated, request.workflowId, unitOfWork)
       }
       WorkflowUpdateResult.Ok(
         workflowId = updated.workflowId,
@@ -202,6 +204,21 @@ class WorkflowService(
       )
     }
     return result
+  }
+}
+
+private fun syncDecompositionParentRuntime(
+  family: WorkflowFamily,
+  updated: WorkflowStateSnapshot,
+  workflowId: String,
+  unitOfWork: UnitOfWork,
+) {
+  val manifest = updated.decompositionRuntime()
+  if (family == WorkflowFamily.IMPLEMENT && manifest != null) {
+    unitOfWork.workflowStates.findDecomposedParentWorkflowForRuntime(manifest)
+      ?.toSnapshot()
+      ?.takeUnless { it.workflowId == workflowId }
+      ?.let { parent -> persistParentDecompositionRuntime(parent, manifest, unitOfWork) }
   }
 }
 

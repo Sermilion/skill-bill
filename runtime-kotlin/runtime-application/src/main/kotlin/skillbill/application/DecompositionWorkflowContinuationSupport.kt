@@ -2,8 +2,6 @@ package skillbill.application
 
 import skillbill.application.model.WorkflowContinueResult
 import skillbill.ports.persistence.UnitOfWork
-import skillbill.ports.persistence.WorkflowStateRepository
-import skillbill.ports.persistence.model.WorkflowStateRecord
 import skillbill.ports.workflow.DecompositionManifestFileStore
 import skillbill.ports.workflow.UnavailableDecompositionManifestFileStore
 import skillbill.workflow.WorkflowEngine
@@ -51,10 +49,6 @@ internal fun continueExistingWorkflow(
     projectionArtifactsJson,
   )
 }
-
-internal fun WorkflowStateSnapshot.decompositionRuntime(): DecompositionManifest? =
-  decodeArtifacts(artifactsJson)[DECOMPOSITION_RUNTIME_ARTIFACT_KEY].asStringAnyMapOrNull()
-    ?.let { decodeDecompositionManifestMap(it, DECOMPOSITION_RUNTIME_ARTIFACT_KEY) }
 
 internal fun alignSubtaskResumeStep(
   record: WorkflowStateSnapshot,
@@ -138,10 +132,3 @@ internal fun DecompositionManifest.baseForSubtask(subtaskId: Int): String? = whe
 }
 
 internal fun repoRoot(): Path = Path.of("").toAbsolutePath()
-
-internal fun WorkflowStateRepository.findDecomposedParentWorkflow(issueKey: String): WorkflowStateRecord? {
-  val normalizedIssueKey = issueKey.trim()
-  return listFeatureImplementWorkflows(Int.MAX_VALUE).firstOrNull { row ->
-    row.toSnapshot().decompositionRuntime()?.issueKey == normalizedIssueKey
-  }
-}
