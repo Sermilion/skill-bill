@@ -1,3 +1,12 @@
+## [2026-05-24] SKILL-52.1 install-contract-validation
+Areas: runtime-kotlin/runtime-domain install wire maps, runtime-kotlin/runtime-infra-fs install builder, runtime-kotlin/runtime-cli install JSON, runtime-kotlin/runtime-core architecture tests, runtime-kotlin/ARCHITECTURE.md
+- `validateInstallPlanWireSnapshot(plan)` is now the shared install-plan wire validation helper used at both approved seams: builder return and CLI JSON emission; keep the dual seam per the 2026-05-19 decision. reusable
+- CLI install plan/apply byte-equivalence coverage now compares stdout against static golden payload maps built from fixture paths, not decoded actual output; use this pattern when guarding JSON order/shape. reusable
+- Adapter ownership coverage rejects install planner/validator policy via direct FQN, alias import, wildcard import, and unapproved validation-helper usage; relativized paths are normalized to `/` for cross-platform allow-list checks.
+- `install.sh` and MCP install envelopes were intentionally left unchanged; full Gradle validation passed after focused review fixes.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
 ## [2026-05-24] SKILL-52.1 install-capability-ports-and-adapters
 Areas: runtime-kotlin/runtime-ports install ports, runtime-kotlin/runtime-application InstallService, runtime-kotlin/runtime-infra-fs filesystem install adapters, runtime-kotlin/runtime-core DI + architecture tests
 - The retired monolithic install gateway was split into capability ports for planning facts/materialization/staging/apply/link/agent/native-agent/MCP, each with one `*Request` input and `*Result` output model; mirror this shape for remaining runtime seams. reusable

@@ -1,6 +1,5 @@
 package skillbill.install
 
-import skillbill.contracts.install.InstallPlanSchemaValidator
 import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallAgentDefaultTarget
 import skillbill.install.model.InstallAgentTarget
@@ -14,7 +13,7 @@ import skillbill.install.model.InstallPlatformSkillMaterializationRequest
 import skillbill.install.model.InstallPolicyInput
 import skillbill.install.model.InstallStagingIntent
 import skillbill.install.model.InstallStagingPathIntent
-import skillbill.install.model.buildInstallPlanWireMap
+import skillbill.install.model.validateInstallPlanWireSnapshot
 import skillbill.install.policy.InstallPlanPolicy
 import skillbill.ports.install.plan.model.InstallPlanningFacts
 import skillbill.scaffold.model.PlatformManifest
@@ -36,7 +35,7 @@ internal fun buildInstallPlan(request: InstallPlanRequest): InstallPlan {
   // unknown agent id slipping through a future builder change)
   // loud-fails with `InvalidInstallPlanSchemaError` before the plan is
   // handed to the apply pipeline.
-  InstallPlanSchemaValidator.validate(buildInstallPlanWireMap(plan))
+  validateInstallPlanWireSnapshot(plan)
   return plan
 }
 

@@ -486,11 +486,14 @@ typed snapshots before calling the policy.
 
 The install-plan wire map remains the schema source of truth at both existing
 seams. `buildInstallPlan` still calls
-`InstallPlanSchemaValidator.validate(buildInstallPlanWireMap(plan))`, and the
-CLI emission boundary still revalidates the same helper output. New install
-policy APIs must use typed request/result/snapshot models and must not add
-public raw `Map<String, Any?>` returns outside the documented open-boundary
-allow-list.
+`validateInstallPlanWireSnapshot(plan)`, and the CLI emission boundary still
+revalidates the same helper output before emitting `installPlanPayload` or the
+planning prefix of `installApplyPayload`. New install policy APIs must use typed
+request/result/snapshot models and must not add public raw `Map<String, Any?>`
+returns outside the documented open-boundary allow-list. Adapter modules may
+call the shared wire-snapshot validator only at the approved builder and CLI
+emission seams; they must not import the schema validator directly or declare
+install planner/validator policy.
 
 ## Scaffold Capability Ports And Pure-Policy Ownership (SKILL-52.1 subtask 2)
 

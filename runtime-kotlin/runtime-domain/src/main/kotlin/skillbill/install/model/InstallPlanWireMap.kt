@@ -3,6 +3,7 @@ package skillbill.install.model
 import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.install.INSTALL_PLAN_CONTRACT_VERSION
 import skillbill.contracts.install.InstallPlanSchemaPaths
+import skillbill.contracts.install.InstallPlanSchemaValidator
 
 /**
  * SKILL-48 Subtask 2b: single source of truth for the install-plan
@@ -64,6 +65,10 @@ fun buildInstallPlanWireMap(plan: InstallPlan): Map<String, Any?> = mapOf(
   "windows_symlink_preflight" to windowsPreflightWireMap(plan.windowsSymlinkPreflight),
   "replace_existing_skill_bill_links" to plan.request.replaceExistingSkillBillLinks,
 )
+
+fun validateInstallPlanWireSnapshot(plan: InstallPlan) {
+  InstallPlanSchemaValidator.validate(buildInstallPlanWireMap(plan))
+}
 
 private fun agentTargetWireMap(target: InstallAgentTarget): Map<String, Any?> = mapOf(
   "agent" to target.agent.id,

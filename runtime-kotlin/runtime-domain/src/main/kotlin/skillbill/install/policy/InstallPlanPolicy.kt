@@ -1,6 +1,5 @@
 package skillbill.install.policy
 
-import skillbill.contracts.install.InstallPlanSchemaValidator
 import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallAgentSelectionMode
 import skillbill.install.model.InstallAgentTarget
@@ -21,7 +20,7 @@ import skillbill.install.model.McpRegistrationIntent
 import skillbill.install.model.PlannedPlatformPack
 import skillbill.install.model.PlatformPackSelection
 import skillbill.install.model.PlatformPackSelectionMode
-import skillbill.install.model.buildInstallPlanWireMap
+import skillbill.install.model.validateInstallPlanWireSnapshot
 
 object InstallPlanPolicy {
   fun validateRequest(input: InstallPolicyInput): InstallPolicyValidationResult {
@@ -74,7 +73,7 @@ object InstallPlanPolicy {
   }
 
   fun validateInstallPlanSnapshot(plan: InstallPlan): InstallPolicyValidationResult {
-    InstallPlanSchemaValidator.validate(buildInstallPlanWireMap(plan))
+    validateInstallPlanWireSnapshot(plan)
     return InstallPolicyValidationResult(InstallPolicyValidationStatus.VALID)
   }
 
