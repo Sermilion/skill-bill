@@ -9,8 +9,8 @@ base_branch: "main"
 feature_branch: "feat/SKILL-52.1-hexagonal-runtime-hardening"
 stack_branches: []
 current_subtask_intent:
-  subtask_id: 0
-  action: "none"
+  subtask_id: 4
+  action: "start"
 subtasks:
 - id: 1
   name: "typed-boundary-foundation"
@@ -185,7 +185,7 @@ subtasks:
   spec_path: ".feature-specs/SKILL-52.1-hexagonal-runtime-hardening/spec_subtask_3_scaffold-raw-map-elimination.md"
   status: "complete"
   branch: "feat/SKILL-52.1-hexagonal-runtime-hardening"
-  commit_sha: null
+  commit_sha: "143e4c7"
   workflow_id: "wfl-20260524-102450-fo9n"
   review_result:
     review_session_id: "rvs-skill52-1-sub3-20260524"
