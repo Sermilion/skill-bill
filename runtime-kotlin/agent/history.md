@@ -1,3 +1,12 @@
+## [2026-05-24] SKILL-52.1 install-policy-foundation
+Areas: runtime-kotlin/runtime-domain install policy/model, runtime-kotlin/runtime-infra-fs install builder, runtime-kotlin/runtime-core architecture tests, runtime-kotlin/ARCHITECTURE.md
+- Install request validation and pure plan construction now live in `skillbill.install.policy` over typed snapshots (`InstallPolicyInput`, `InstallPlatformPackSnapshot`, detected/default agent targets) and produce `InstallPlanDraft`; no public raw-map policy API was added. reusable
+- `runtime-infra-fs` still owns discovery, platform schema parsing, agent/path probing, pointer realpath checks, content hashing, staging paths, symlink/native-agent/MCP/apply mechanics, Windows preflight, and rollback; it converts those facts into snapshots before policy execution. reusable
+- Builder and CLI install-plan schema validation remain dual-seam: builder still validates `buildInstallPlanWireMap(plan)` through `InstallPlanSchemaValidator`, and CLI emission still revalidates the same wire helper.
+- Architecture coverage now blocks install policy from importing filesystem/process or infra-fs install implementation mechanics; follow this pattern when extracting the remaining install seams.
+Feature flag: N/A
+Acceptance criteria: 5/5 implemented
+
 ## [2026-05-24] SKILL-52.1 scaffold-raw-map-elimination
 Areas: runtime-kotlin/runtime-ports, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-application, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-mcp, runtime-kotlin/runtime-core/architecture tests + DI, runtime-kotlin/ARCHITECTURE.md, runtime-kotlin/runtime-desktop/core/data
 - Eight `ScaffoldGateway` raw-map producers (`list`, `show`, `explain`, `validate`, `upgrade`, `fill`, `saveExactContent`, `editWithBodyFile`) now return typed `Scaffold*Result` models under `runtime-ports/.../scaffold/<capability>/model/`, each lifting stable top-level scalars plus a single `@OpenBoundaryMap`-annotated `payload: Map<String, Any?>` field; `init { require(...) }` invariants enforce typed/payload consistency at construction. Mirror this triad shape for any future raw-map seam. reusable

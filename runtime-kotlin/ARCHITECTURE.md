@@ -467,6 +467,31 @@ skillbill.workflow.verify
   tool registry is the event-name source of truth. The owning parse seam is the
   MCP telemetry tool input validator in `runtime-mcp`.
 
+## Install Policy Ownership (SKILL-52.1 install-policy-foundation)
+
+Install request validation and pure install-plan construction live in
+`skillbill.install.policy` inside `runtime-domain`. The policy consumes typed
+snapshots from `skillbill.install.model`: discovered base skills, platform pack
+skills, detected agent targets, and default agent target paths. It resolves
+selected platforms, planned skills, agent targets, MCP registration intent, and
+the typed `InstallPlanDraft` without touching filesystem, process execution,
+staging hashes, symlink checks, binary discovery, or rollback mechanics.
+
+`runtime-infra-fs` remains the owner of filesystem/process mechanics: platform
+manifest discovery and schema parsing, base-skill directory scans, agent
+detection/default path probing, pointer realpath validation, content hashing,
+staging path computation, symlink/native-agent/MCP/apply side effects, Windows
+preflight, and rollback behavior. The infra builder converts those facts into
+typed snapshots before calling the policy.
+
+The install-plan wire map remains the schema source of truth at both existing
+seams. `buildInstallPlan` still calls
+`InstallPlanSchemaValidator.validate(buildInstallPlanWireMap(plan))`, and the
+CLI emission boundary still revalidates the same helper output. New install
+policy APIs must use typed request/result/snapshot models and must not add
+public raw `Map<String, Any?>` returns outside the documented open-boundary
+allow-list.
+
 ## Scaffold Capability Ports And Pure-Policy Ownership (SKILL-52.1 subtask 2)
 
 The scaffold pipeline is being decomposed from the single legacy
