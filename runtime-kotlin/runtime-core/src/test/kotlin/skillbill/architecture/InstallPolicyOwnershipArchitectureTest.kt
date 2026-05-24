@@ -53,7 +53,7 @@ class InstallPolicyOwnershipArchitectureTest {
       "import java.io.File",
       "import java.nio.file.Files",
       "import java.lang.ProcessBuilder",
-      "import skillbill.infrastructure.fs.FileSystemInstallGateway",
+      "import skillbill.infrastructure.fs.FileSystemInstallPlanningFacts",
       "import skillbill.install.InstallOperations",
       "import skillbill.install.InstallPlanBuilder",
       "import skillbill.install.computeInstallContentHash",

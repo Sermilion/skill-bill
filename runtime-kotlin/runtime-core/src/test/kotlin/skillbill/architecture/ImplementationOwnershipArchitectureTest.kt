@@ -315,6 +315,42 @@ class ImplementationOwnershipArchitectureTest {
   }
 
   @Test
+  fun `runtime core binds install capability adapters directly`() {
+    val component = runtimeRoot
+      .resolve("runtime-core/src/main/kotlin/skillbill/di/RuntimeComponent.kt")
+      .readText()
+
+    listOf(
+      "FileSystemInstallPlanningFacts",
+      "FileSystemInstallPlatformSkillMaterialization",
+      "FileSystemInstallStagingIntent",
+      "FileSystemInstallApplyExecution",
+      "FileSystemInstallSkillLink",
+      "FileSystemInstallAgentTargets",
+      "FileSystemInstallNativeAgentLinks",
+      "FileSystemInstallMcpRegistration",
+    ).forEach { adapterName ->
+      assertTrue(
+        adapterName in component,
+        "RuntimeComponent must bind direct install capability adapter $adapterName.",
+      )
+    }
+
+    listOf(
+      "InstallPlanGateway",
+      "FileSystemInstallGateway",
+      "InstallAgentGateway",
+      "NativeAgentInstallGateway",
+      "McpRegistrationGateway",
+    ).forEach { retiredName ->
+      assertTrue(
+        retiredName !in component,
+        "RuntimeComponent must not bind retired install gateway $retiredName.",
+      )
+    }
+  }
+
+  @Test
   fun `cli mcp and desktop adapters do not import concrete runtime implementations`() {
     val adapterSourceRoots = listOf(
       "runtime-cli/src/main/kotlin",

@@ -21,10 +21,14 @@ import skillbill.application.UnsupportedScaffoldService
 import skillbill.application.WorkflowService
 import skillbill.domain.skillremove.SkillRemoveFileSystem
 import skillbill.infrastructure.fs.FileSystemDecompositionManifestFileStore
-import skillbill.infrastructure.fs.FileSystemInstallAgentGateway
-import skillbill.infrastructure.fs.FileSystemInstallGateway
-import skillbill.infrastructure.fs.FileSystemMcpRegistrationGateway
-import skillbill.infrastructure.fs.FileSystemNativeAgentInstallGateway
+import skillbill.infrastructure.fs.FileSystemInstallAgentTargets
+import skillbill.infrastructure.fs.FileSystemInstallApplyExecution
+import skillbill.infrastructure.fs.FileSystemInstallMcpRegistration
+import skillbill.infrastructure.fs.FileSystemInstallNativeAgentLinks
+import skillbill.infrastructure.fs.FileSystemInstallPlanningFacts
+import skillbill.infrastructure.fs.FileSystemInstallPlatformSkillMaterialization
+import skillbill.infrastructure.fs.FileSystemInstallSkillLink
+import skillbill.infrastructure.fs.FileSystemInstallStagingIntent
 import skillbill.infrastructure.fs.FileSystemRepoSourceDiscoveryGateway
 import skillbill.infrastructure.fs.FileSystemRepoValidationGateway
 import skillbill.infrastructure.fs.FileSystemReviewInputSource
@@ -43,10 +47,14 @@ import skillbill.infrastructure.http.HttpTelemetryClient
 import skillbill.infrastructure.http.JdkHttpRequester
 import skillbill.infrastructure.sqlite.SQLiteDatabaseSessionFactory
 import skillbill.model.RuntimeContext
-import skillbill.ports.install.InstallAgentGateway
-import skillbill.ports.install.InstallPlanGateway
-import skillbill.ports.install.McpRegistrationGateway
-import skillbill.ports.install.NativeAgentInstallGateway
+import skillbill.ports.install.agent.InstallAgentTargetPort
+import skillbill.ports.install.apply.InstallApplyExecutionPort
+import skillbill.ports.install.link.InstallSkillLinkPort
+import skillbill.ports.install.mcp.InstallMcpRegistrationPort
+import skillbill.ports.install.nativeagent.InstallNativeAgentLinkPort
+import skillbill.ports.install.plan.InstallPlanningFactsPort
+import skillbill.ports.install.plan.InstallPlatformSkillMaterializationPort
+import skillbill.ports.install.plan.InstallStagingIntentPort
 import skillbill.ports.persistence.DatabaseSessionFactory
 import skillbill.ports.review.ReviewInputSource
 import skillbill.ports.scaffold.RepoSourceDiscoveryGateway
@@ -104,17 +112,32 @@ abstract class RuntimeComponent(
   internal fun telemetryLevelMutator(service: TelemetryLevelMutationService): TelemetryLevelMutator = service
 
   @Provides
-  internal fun installPlanGateway(gateway: FileSystemInstallGateway): InstallPlanGateway = gateway
+  internal fun installPlanningFactsPort(adapter: FileSystemInstallPlanningFacts): InstallPlanningFactsPort = adapter
 
   @Provides
-  internal fun installAgentGateway(gateway: FileSystemInstallAgentGateway): InstallAgentGateway = gateway
+  internal fun installPlatformSkillMaterializationPort(
+    adapter: FileSystemInstallPlatformSkillMaterialization,
+  ): InstallPlatformSkillMaterializationPort = adapter
 
   @Provides
-  internal fun nativeAgentInstallGateway(gateway: FileSystemNativeAgentInstallGateway): NativeAgentInstallGateway =
-    gateway
+  internal fun installStagingIntentPort(adapter: FileSystemInstallStagingIntent): InstallStagingIntentPort = adapter
 
   @Provides
-  internal fun mcpRegistrationGateway(gateway: FileSystemMcpRegistrationGateway): McpRegistrationGateway = gateway
+  internal fun installApplyExecutionPort(adapter: FileSystemInstallApplyExecution): InstallApplyExecutionPort = adapter
+
+  @Provides
+  internal fun installSkillLinkPort(adapter: FileSystemInstallSkillLink): InstallSkillLinkPort = adapter
+
+  @Provides
+  internal fun installAgentTargetPort(adapter: FileSystemInstallAgentTargets): InstallAgentTargetPort = adapter
+
+  @Provides
+  internal fun installNativeAgentLinkPort(adapter: FileSystemInstallNativeAgentLinks): InstallNativeAgentLinkPort =
+    adapter
+
+  @Provides
+  internal fun installMcpRegistrationPort(adapter: FileSystemInstallMcpRegistration): InstallMcpRegistrationPort =
+    adapter
 
   @Provides
   internal fun scaffoldGateway(gateway: FileSystemScaffoldGateway): ScaffoldGateway = gateway

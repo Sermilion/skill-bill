@@ -4,6 +4,8 @@ Parent overview: [../spec.md](../spec.md)
 Immediate parent spec: [../spec_subtask_3_install-policy-extraction.md](../spec_subtask_3_install-policy-extraction.md)  
 Issue key: SKILL-52.1  
 Branch model: same-branch (`feat/SKILL-52.1-hexagonal-runtime-hardening`); commit on completion before child subtask 3.
+Status: Complete
+Sources: parent decomposition context; subtask briefing for child 2 of 3; accepted feature criteria.
 
 ## Scope
 
@@ -52,4 +54,3 @@ Recommended local focus before the full check:
 ## Recommended Next Prompt
 
 Run `bill-feature-implement` on `.feature-specs/SKILL-52.1-hexagonal-runtime-hardening/install-policy-extraction/spec_subtask_2_install-capability-ports-and-adapters.md`.
-

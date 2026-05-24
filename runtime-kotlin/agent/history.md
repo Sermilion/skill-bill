@@ -1,3 +1,12 @@
+## [2026-05-24] SKILL-52.1 install-capability-ports-and-adapters
+Areas: runtime-kotlin/runtime-ports install ports, runtime-kotlin/runtime-application InstallService, runtime-kotlin/runtime-infra-fs filesystem install adapters, runtime-kotlin/runtime-core DI + architecture tests
+- The retired monolithic install gateway was split into capability ports for planning facts/materialization/staging/apply/link/agent/native-agent/MCP, each with one `*Request` input and `*Result` output model; mirror this shape for remaining runtime seams. reusable
+- `InstallService` now orchestrates InstallPlanPolicy plus capability ports directly while infra-fs still owns filesystem snapshots, staging, symlinks, MCP config mutation, native-agent links, Windows preflight, and rollback mechanics. reusable
+- Planning carries one platform manifest snapshot through materialization and staging; do not rediscover packs mid-plan or carry duplicate snapshot representations that can drift under concurrent repo changes.
+- Architecture coverage now rejects retired install gateway names, raw public install port maps, and port functions that lack typed request/result signatures; keep fixture-strength scanners when extending this guard.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
 ## [2026-05-24] SKILL-52.1 install-policy-foundation
 Areas: runtime-kotlin/runtime-domain install policy/model, runtime-kotlin/runtime-infra-fs install builder, runtime-kotlin/runtime-core architecture tests, runtime-kotlin/ARCHITECTURE.md
 - Install request validation and pure plan construction now live in `skillbill.install.policy` over typed snapshots (`InstallPolicyInput`, `InstallPlatformPackSnapshot`, detected/default agent targets) and produce `InstallPlanDraft`; no public raw-map policy API was added. reusable

@@ -528,6 +528,117 @@ class RuntimeArchitectureTest {
   }
 
   @Test
+  fun `install ports expose typed capability APIs instead of retired gateways`() {
+    val installPortFiles = sourceFiles()
+      .filter { sourceFile ->
+        sourceFile.relativePath.startsWith(
+          "runtime-ports/src/main/kotlin/skillbill/ports/install/",
+        )
+      }
+    assertTrue(installPortFiles.isNotEmpty(), "Install capability ports must exist.")
+
+    val sourceText = installPortFiles.joinToString(separator = "\n", transform = SourceFile::source)
+    listOf(
+      "interface InstallPlanningFactsPort",
+      "interface InstallPlatformSkillMaterializationPort",
+      "interface InstallStagingIntentPort",
+      "interface InstallApplyExecutionPort",
+      "interface InstallSkillLinkPort",
+      "interface InstallAgentTargetPort",
+      "interface InstallNativeAgentLinkPort",
+      "interface InstallMcpRegistrationPort",
+    ).forEach { expectedDeclaration ->
+      assertContains(sourceText, expectedDeclaration)
+    }
+
+    listOf(
+      "InstallPlanGateway",
+      "InstallAgentGateway",
+      "NativeAgentInstallGateway",
+      "McpRegistrationGateway",
+      "Map<String, Any?>",
+      "Map<String, *>",
+      "MutableMap<String, Any?>",
+    ).forEach { forbiddenText ->
+      assertTrue(
+        forbiddenText !in sourceText,
+        "Install port public surface must not contain retired/raw-map shape '$forbiddenText'.",
+      )
+    }
+
+    val nonRequestResultSignatures = installPortFiles
+      .filter { sourceFile -> sourceFile.relativePath.endsWith("Port.kt") }
+      .flatMap { sourceFile ->
+        installPortFunctionSignatures(sourceFile).mapNotNull { signature ->
+          if (signature.hasSingleRequestParameter && signature.hasResultReturn) null else signature.render()
+        }
+      }
+    assertTrue(
+      nonRequestResultSignatures.isEmpty(),
+      "Install capability port functions must accept exactly one *Request model and return a *Result model.\n" +
+        nonRequestResultSignatures.joinToString(separator = "\n"),
+    )
+  }
+
+  private fun installPortFunctionSignatures(sourceFile: SourceFile): List<InstallPortFunctionSignature> {
+    val lines = sourceFile.source.lines()
+    return lines.mapIndexedNotNull { index, line ->
+      val match = portFunctionStartPattern.find(line.trim()) ?: return@mapIndexedNotNull null
+      val signatureText = collectFunctionSignature(lines, index)
+      val parsed = portFunctionSignaturePattern.find(signatureText)
+      val functionName = match.groupValues[1]
+      val parameters = parsed?.groupValues?.get(2).orEmpty().trim()
+      val returnType = parsed?.groupValues?.get(3).orEmpty()
+      val parameterTypes = parameters.split(",")
+        .map(String::trim)
+        .filter(String::isNotBlank)
+        .map { parameter -> parameter.substringAfter(":").trim().substringAfterLast(".") }
+      InstallPortFunctionSignature(
+        sourcePath = sourceFile.relativePath,
+        functionName = functionName,
+        parameters = parameters,
+        returnType = returnType,
+        hasSingleRequestParameter = parameterTypes.size == 1 && parameterTypes.single().endsWith("Request"),
+        hasResultReturn = returnType.substringBefore("<").substringAfterLast(".").endsWith("Result"),
+      )
+    }
+  }
+
+  private fun collectFunctionSignature(lines: List<String>, startIndex: Int): String {
+    val signature = StringBuilder()
+    var openParens = 0
+    var sawParen = false
+    var index = startIndex
+    var shouldStop = false
+    while (index < lines.size && !shouldStop) {
+      val current = lines[index]
+      signature.append(current.trim()).append(' ')
+      current.forEach { char ->
+        when (char) {
+          '(' -> {
+            openParens += 1
+            sawParen = true
+          }
+          ')' -> openParens -= 1
+        }
+      }
+      if (sawParen && openParens == 0) {
+        val text = signature.toString()
+        shouldStop = hasFunctionSignatureTerminator(text)
+        val nextLine = lines.getOrNull(index + 1)?.trim().orEmpty()
+        if (!nextLine.startsWith(":")) shouldStop = true
+      }
+      index += 1
+    }
+    return signature.toString()
+  }
+
+  private fun hasFunctionSignatureTerminator(text: String): Boolean =
+    containsReturnTypeSeparator(text) || " =" in text || text.trim().endsWith("{")
+
+  private fun containsReturnTypeSeparator(text: String): Boolean = "):" in text || ") :" in text
+
+  @Test
   fun `open-boundary allow-list documents required exceptions`() {
     val architecture = Files.readString(runtimeRoot.resolve("ARCHITECTURE.md"))
     val documentedEntries = parseArchitectureAllowList(architecture)
@@ -985,6 +1096,17 @@ class RuntimeArchitectureTest {
     val source: String,
   )
 
+  private data class InstallPortFunctionSignature(
+    val sourcePath: String,
+    val functionName: String,
+    val parameters: String,
+    val returnType: String,
+    val hasSingleRequestParameter: Boolean,
+    val hasResultReturn: Boolean,
+  ) {
+    fun render(): String = "$sourcePath::$functionName($parameters): ${returnType.ifBlank { "<missing>" }}"
+  }
+
   private companion object {
     /**
      * SKILL-52.1 — curated open-boundary allow-list for the raw-map
@@ -1156,6 +1278,9 @@ class RuntimeArchitectureTest {
       )
     val packagePattern: Regex = Regex("^package\\s+([A-Za-z0-9_.]+)", RegexOption.MULTILINE)
     val importPattern: Regex = Regex("^import\\s+([A-Za-z0-9_.*]+)", RegexOption.MULTILINE)
+    val portFunctionStartPattern: Regex = Regex("^fun\\s+([A-Za-z0-9_]+)\\s*\\(")
+    val portFunctionSignaturePattern: Regex =
+      Regex("fun\\s+([A-Za-z0-9_]+)\\s*\\((.*?)\\)\\s*:\\s*([A-Za-z0-9_.<>]+)")
     val publicModelDeclarationPattern: Regex =
       Regex(
         "^\\s*(?:public\\s+)?(data\\s+class|enum\\s+class|sealed\\s+(?:class|interface))\\s+([A-Za-z0-9_]+)",
