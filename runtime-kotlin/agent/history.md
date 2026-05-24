@@ -1,3 +1,11 @@
+## [2026-05-24] SKILL-52.1 final-validation-and-contract-lock
+Areas: runtime-kotlin/ARCHITECTURE.md, runtime-kotlin/runtime-core architecture tests, runtime-kotlin/runtime-domain, runtime-kotlin/runtime-application, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-mcp, runtime-kotlin/runtime-desktop/core/data
+- SKILL-52.1 closes with architecture documentation and tests aligned on raw-map open-boundary parity, inert `Path` handling outside adapters/composition, install-policy ownership with dual install-plan validation, and the narrowed runtime-core public ABI edge. reusable
+- The runtime-core shrink rule is now explicit: generated Kotlin-Inject ABI edges are the only retained public runtime-core surface, and architecture tests must reject growth into infrastructure or entrypoint modules. reusable
+- Final validation passed with `skill-bill validate`, `scripts/validate_agent_configs`, `npx --yes agnix --strict .`, and `(cd runtime-kotlin && ./gradlew check)`.
+Feature flag: N/A
+Acceptance criteria: 9/9 implemented
+
 ## [2026-05-24] SKILL-52.1 path-policy-and-core-shrink
 Areas: runtime-kotlin/ARCHITECTURE.md, runtime-kotlin/runtime-core, runtime-kotlin/runtime-domain, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-infra-http, runtime-kotlin/runtime-infra-sqlite, runtime-kotlin/runtime-desktop/core/data
 - Path policy is now explicit: application/domain/ports may carry `java.nio.file.Path` only as inert data; Files IO, home expansion, `System.getenv`, and `System.getProperty` belong at adapter/composition seams. reusable

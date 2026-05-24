@@ -9,8 +9,8 @@ base_branch: "main"
 feature_branch: "feat/SKILL-52.1-hexagonal-runtime-hardening"
 stack_branches: []
 current_subtask_intent:
-  subtask_id: 0
-  action: "none"
+  subtask_id: 6
+  action: "start"
 subtasks:
 - id: 1
   name: "typed-boundary-foundation"
@@ -532,15 +532,167 @@ subtasks:
 - id: 6
   name: "final-validation-and-contract-lock"
   spec_path: ".feature-specs/SKILL-52.1-hexagonal-runtime-hardening/spec_subtask_5_final-validation-and-contract-lock.md"
-  status: "pending"
-  branch: null
+  status: "in_progress"
+  branch: "feat/SKILL-52.1-hexagonal-runtime-hardening"
   commit_sha: null
-  workflow_id: null
-  review_result: null
-  audit_result: null
-  validation_result: null
+  workflow_id: "wfl-20260524-170101-0nwq"
+  review_result:
+    review_session_id: "rvs-skill52-1-final-validation-20260524"
+    review_run_id: "rvw-20260524-171300-s52final"
+    routed_skill: "bill-code-review"
+    detected_stack: "documentation/governance"
+    execution_mode: "inline-orchestrator"
+    iterations: 1
+    initial_findings: 1
+    initial_blockers: 0
+    initial_majors: 1
+    final_findings: 0
+    final_verdict: "approve"
+    fix_loop_completed: true
+    accepted_findings:
+    - finding_id: "F-001"
+      severity: "Major"
+      confidence: "High"
+      outcome_type: "fix_applied"
+      location: "runtime-kotlin/agent/decisions.md:25"
+      description: "Corrected dual install-plan validation decision wording from CLI/MCP\
+        \ JSON emission to CLI JSON emission."
+    telemetry_payload:
+      total_findings: 0
+      accepted_findings: 0
+      unresolved_findings: 0
+      accepted_rate: 0.0
+      accepted_finding_details: []
+      rejected_finding_details: []
+      review_run_id: "rvw-20260524-171300-s52final"
+      review_session_id: "rvs-skill52-1-final-validation-20260524"
+      routed_skill: null
+      review_subskills: []
+      review_scope: ""
+      review_platform: "documentation/governance"
+      execution_mode: null
+      review_finished_at: "2026-05-24 17:12:01"
+      learnings:
+        applied_count: 0
+        applied_references: []
+        applied_summary: "none"
+        scope_counts:
+          global: 0
+          repo: 0
+          skill: 0
+        entries: []
+      skill: "bill-code-review"
+  audit_result:
+    pass: true
+    per_criterion:
+    - id: 1
+      criterion: "(cd runtime-kotlin && ./gradlew check) passes from a clean state."
+      verdict: "pass"
+      evidence:
+      - "command: (cd runtime-kotlin && ./gradlew check) -> exit 0; BUILD SUCCESSFUL"
+      - "command: (cd runtime-kotlin && ./gradlew clean check) -> exit 0; BUILD SUCCESSFUL\
+        \ in 8s"
+    - id: 2
+      criterion: "skill-bill validate passes."
+      verdict: "pass"
+      evidence:
+      - "command: skill-bill validate -> exit 0; status: pass; issues: []"
+    - id: 3
+      criterion: "scripts/validate_agent_configs passes."
+      verdict: "pass"
+      evidence:
+      - "command: scripts/validate_agent_configs -> exit 0; Agent-config validation\
+        \ passed"
+    - id: 4
+      criterion: "npx --yes agnix --strict . passes."
+      verdict: "pass"
+      evidence:
+      - "command: npx --yes agnix --strict . -> exit 0; No issues found"
+    - id: 5
+      criterion: "No generated support pointers, SKILL.md wrappers, native-agent outputs,\
+        \ or install staging artifacts are committed."
+      verdict: "pass"
+      evidence:
+      - "command: git status --short -> only .feature-specs/SKILL-52.1-hexagonal-runtime-hardening/decomposition-manifest.yaml,\
+        \ agent/history.md, runtime-kotlin/agent/decisions.md, runtime-kotlin/agent/history.md\
+        \ modified"
+      - "command: git ls-files forbidden SKILL.md/native-output/staging patterns ->\
+        \ empty"
+      - "command: git ls-files --others --exclude-standard forbidden SKILL.md/native-output/staging\
+        \ patterns -> empty"
+      - "command: git ls-files forbidden support-pointer filename patterns -> empty"
+    - id: 6
+      criterion: "Boundary history is updated for the touched modules with reusable,\
+        \ high-signal entries (no churn-only entries)."
+      verdict: "pass"
+      evidence:
+      - "agent/history.md:1"
+      - "agent/history.md:3"
+      - "agent/history.md:4"
+      - "runtime-kotlin/agent/history.md:1"
+      - "runtime-kotlin/agent/history.md:3"
+      - "runtime-kotlin/agent/history.md:4"
+    - id: 7
+      criterion: "Architecture decisions are recorded in agent/decisions.md for: Path\
+        \ policy, install-plan dual-validation seam preservation, any retained narrow\
+        \ runtime-core public edge."
+      verdict: "pass"
+      evidence:
+      - "runtime-kotlin/agent/decisions.md:7"
+      - "runtime-kotlin/agent/decisions.md:13"
+      - "runtime-kotlin/agent/decisions.md:21"
+      - "runtime-kotlin/agent/decisions.md:27"
+      - "runtime-kotlin/agent/decisions.md:34"
+      - "runtime-kotlin/agent/decisions.md:40"
+    - id: 8
+      criterion: "runtime-kotlin/ARCHITECTURE.md documents all new rules introduced\
+        \ by SKILL-52.1 (raw-map exceptions, Path policy, runtime-core shrink rule)."
+      verdict: "pass"
+      evidence:
+      - "runtime-kotlin/ARCHITECTURE.md:51"
+      - "runtime-kotlin/ARCHITECTURE.md:53"
+      - "runtime-kotlin/ARCHITECTURE.md:60"
+      - "runtime-kotlin/ARCHITECTURE.md:206"
+      - "runtime-kotlin/ARCHITECTURE.md:221"
+      - "runtime-kotlin/ARCHITECTURE.md:416"
+      - "runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/RuntimeArchitectureDocumentationTest.kt:61"
+    - id: 9
+      criterion: "Parent ACs 1-12 are collectively satisfied across the 5 subtasks\
+        \ (verified by green arch tests + golden tests + validation suite)."
+      verdict: "pass"
+      evidence:
+      - "command: (cd runtime-kotlin && ./gradlew clean check) -> exit 0; BUILD SUCCESSFUL"
+      - "runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/RuntimeArchitectureTest.kt:153"
+      - "runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/RuntimeArchitectureTest.kt:573"
+      - "runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/RuntimeArchitectureTest.kt:703"
+      - "runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/ImplementationOwnershipArchitectureTest.kt:117"
+      - "runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/RuntimeImplementationImportRules.kt:52"
+      - "runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/InstallPolicyOwnershipArchitectureTest.kt:24"
+      - "runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/InstallPolicyOwnershipArchitectureTest.kt:83"
+      - "runtime-kotlin/runtime-cli/src/test/kotlin/skillbill/cli/CliInstallPlanApplyRuntimeTest.kt:322"
+      - "command: skill-bill validate -> exit 0"
+      - "command: scripts/validate_agent_configs -> exit 0"
+      - "command: npx --yes agnix --strict . -> exit 0"
+    gaps: []
+  validation_result:
+    validation_result: "pass"
+    routed_skill: "bill-kotlin-quality-check"
+    detected_stack: "kotlin"
+    initial_failure_count: 0
+    final_failure_count: 0
+    fixes_applied: "No fixes applied; all required gates passed on first run."
+    telemetry_payload:
+      routed_skill: "bill-kotlin-quality-check"
+      detected_stack: "kotlin"
+      scope_type: "branch_diff"
+      initial_failure_count: 0
+      final_failure_count: 0
+      iterations: 1
+      result: "pass"
+      duration_seconds: 5
+      skill: "bill-quality-check"
   blocked_reason: null
-  last_resumable_step: null
+  last_resumable_step: "commit_push"
   dependencies:
   - subtask_id: 1
     optional: false
