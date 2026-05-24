@@ -1,3 +1,14 @@
+## [2026-05-24] SKILL-52.1 typed-boundary-foundation
+Areas: runtime-kotlin/ARCHITECTURE.md, runtime-kotlin/runtime-core/architecture tests, runtime-kotlin/runtime-application, runtime-kotlin/runtime-domain, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-mcp
+- New raw-map architecture-test guard fails loudly on any public `Map<String, Any?>` / `Map<String, *>` / `MutableMap<String, Any?>` declaration in runtime-application/domain/ports unless allow-listed by FQN or marked `@OpenBoundaryMap`; pair this with a fixture-based negative test so the scanner is itself regression-proof. reusable
+- `@OpenBoundaryMap` lives in a neutral `skillbill.boundary` package inside runtime-domain so application and ports can both import it without circular deps. reusable
+- ARCHITECTURE.md is the source of truth: HTML-comment markers (`<!-- allow-list:start -->` … `:end -->`) wrap the Open-Boundary Allow-List section so a two-direction parity test parses bullets out of the doc instead of self-referential hardcoded lists. reusable
+- WorkflowService public methods now return typed sealed `WorkflowXxxResult` models from `skillbill.application.model.WorkflowResults`; WorkflowEngine exposes typed `snapshotView`/`summaryView`/`resumeView`/`continueDecision` plus open-boundary `*Map` serializers consumed by parallel `WorkflowCliResultMappers` and `WorkflowMcpResultMappers`. `WorkflowEngine.validatedSnapshotMap` stays private to preserve the `InvalidWorkflowStateSchemaError` loud-fail seam. reusable
+- Legacy raw-map allow-list entries are grouped by which follow-up subtask (2 scaffold / 3 install / 4 telemetry+review) will retire them, so cleanup PRs are mechanical.
+- Pitfalls to avoid in subtasks 2-4: short-name allow-list lookup, blanket `*.model` package skip in source scanners, wire-mapper triplication (the test-only mapper invites drift — assert on typed result fields instead), and silent envelope-field additions on error paths (cover both error variants with explicit wire-shape regression tests).
+Feature flag: N/A
+Acceptance criteria: 8/8 implemented
+
 ## [2026-05-24] SKILL-52 architecture-enforcement-validation
 Areas: runtime-kotlin/ARCHITECTURE.md, runtime-kotlin/runtime-core/architecture tests, runtime-kotlin/runtime-application, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-infra-sqlite
 - `ARCHITECTURE.md`, `RuntimeModule`, Gradle settings, and architecture tests now pin the final hexagonal graph with runtime-core as composition only and runtime-contracts owning schema validators at parse seams. reusable

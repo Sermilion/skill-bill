@@ -500,9 +500,8 @@ class DecompositionManifestWriterTest {
       ),
     )
 
-    val payload = WorkflowEngine.fullPayload(definition, updated)
-    val artifacts = payload["artifacts"] as Map<*, *>
-    assertEquals(mapOf("mode" to "implement", "task_count" to 1), artifacts["plan"])
+    val snapshot = WorkflowEngine.snapshotView(definition, updated)
+    assertEquals(mapOf("mode" to "implement", "task_count" to 1), snapshot.artifacts["plan"])
   }
 
   @Test

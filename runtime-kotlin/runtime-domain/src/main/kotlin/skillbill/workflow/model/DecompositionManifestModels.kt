@@ -1,5 +1,6 @@
 package skillbill.workflow.model
 
+import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.workflow.DECOMPOSITION_MANIFEST_CONTRACT_VERSION
 
 enum class DecompositionExecutionModel(val wireValue: String) {
@@ -20,8 +21,11 @@ data class DecompositionSubtask(
   val branch: String? = null,
   val commitSha: String? = null,
   val workflowId: String? = null,
+  @OpenBoundaryMap("Subtask review result snapshot (caller-supplied JSON passthrough)")
   val reviewResult: Map<String, Any?>? = null,
+  @OpenBoundaryMap("Subtask audit result snapshot (caller-supplied JSON passthrough)")
   val auditResult: Map<String, Any?>? = null,
+  @OpenBoundaryMap("Subtask validation result snapshot (caller-supplied JSON passthrough)")
   val validationResult: Map<String, Any?>? = null,
   val blockedReason: String? = null,
   val lastResumableStep: String? = null,

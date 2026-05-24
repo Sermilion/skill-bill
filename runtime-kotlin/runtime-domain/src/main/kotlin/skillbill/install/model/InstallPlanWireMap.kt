@@ -1,5 +1,6 @@
 package skillbill.install.model
 
+import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.install.INSTALL_PLAN_CONTRACT_VERSION
 import skillbill.contracts.install.InstallPlanSchemaPaths
 
@@ -16,6 +17,7 @@ import skillbill.contracts.install.InstallPlanSchemaPaths
  * [INSTALL_PLAN_CONTRACT_VERSION] so a schema bump only requires
  * editing the schema YAML and [InstallPlanSchemaPaths].
  */
+@OpenBoundaryMap("Wire-shape serializer for install plan")
 fun buildInstallPlanWireMap(plan: InstallPlan): Map<String, Any?> = mapOf(
   "status" to "planned",
   "contract_version" to INSTALL_PLAN_CONTRACT_VERSION,
