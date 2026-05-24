@@ -151,6 +151,11 @@ data class FirstRunSetupState(
     .map { option -> option.agentId }
     .toSet(),
   val selectedPlatformSlugs: Set<String> = emptySet(),
+  val platformSelectionMode: FirstRunPlatformSelectionMode = if (selectedPlatformSlugs.isEmpty()) {
+    FirstRunPlatformSelectionMode.NONE
+  } else {
+    FirstRunPlatformSelectionMode.SELECTED
+  },
   val telemetryLevel: FirstRunTelemetryLevel = FirstRunTelemetryLevel.default,
   val registerMcp: Boolean = true,
   val discoveryLoaded: Boolean = false,
@@ -174,6 +179,7 @@ data class FirstRunSetupState(
     selectedPlatformSlugs = selectedPlatformSlugs,
     telemetryLevel = telemetryLevel,
     registerMcp = registerMcp,
+    platformSelectionMode = platformSelectionMode,
   )
 }
 

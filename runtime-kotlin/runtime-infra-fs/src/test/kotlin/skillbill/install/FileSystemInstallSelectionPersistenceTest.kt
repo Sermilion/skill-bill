@@ -19,6 +19,7 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 
 class FileSystemInstallSelectionPersistenceTest {
   @Test
@@ -165,6 +166,82 @@ class FileSystemInstallSelectionPersistenceTest {
   }
 
   @Test
+  fun `write rejects platform selections that read parser would reject`() {
+    val home = Files.createTempDirectory("skillbill-install-selection-write-invariants")
+    val store = FileSystemInstallSelectionPersistence()
+    val validSelection = selection(selectedAgents = setOf(InstallAgent.CLAUDE))
+    store.writeLatestSuccessfulSelection(
+      WriteLatestSuccessfulInstallSelectionRequest(installHome = home, selection = validSelection),
+    )
+
+    val invalidSelections = mapOf(
+      "selected mode with empty slugs" to selection(
+        platformPackSelection = PlatformPackSelection(mode = PlatformPackSelectionMode.SELECTED),
+      ),
+      "all mode with selected slugs" to selection(
+        platformPackSelection = PlatformPackSelection(
+          mode = PlatformPackSelectionMode.ALL,
+          selectedSlugs = setOf("kotlin"),
+        ),
+      ),
+    )
+
+    invalidSelections.forEach { (caseName, invalidSelection) ->
+      assertFailsWith<MalformedInstallSelectionRecordError>(caseName) {
+        store.writeLatestSuccessfulSelection(
+          WriteLatestSuccessfulInstallSelectionRequest(installHome = home, selection = invalidSelection),
+        )
+      }
+    }
+    assertEquals(
+      validSelection,
+      store.readLatestSuccessfulSelection(ReadLatestSuccessfulInstallSelectionRequest(home)).selection,
+    )
+  }
+
+  @Test
+  fun `canonical record round trips manual and detected reusable selections`() {
+    val cases = mapOf(
+      "manual single-agent opt out" to selection(
+        selectedAgents = setOf(InstallAgent.CODEX),
+        telemetryLevel = InstallTelemetryLevel.OFF,
+        mcpRegistrationChoice = McpRegistrationChoice(register = false, runtimeMcpBin = null),
+      ),
+      "detected multi-agent registration" to selection(
+        selectedAgents = setOf(InstallAgent.CLAUDE, InstallAgent.OPENCODE),
+        platformPackSelection = PlatformPackSelection(PlatformPackSelectionMode.ALL),
+        telemetryLevel = InstallTelemetryLevel.ANONYMOUS,
+        mcpRegistrationChoice = McpRegistrationChoice(
+          register = true,
+          runtimeMcpBin = Path.of("/runtime-mcp/bin/runtime-mcp"),
+        ),
+      ),
+    )
+    val store = FileSystemInstallSelectionPersistence()
+
+    cases.forEach { (caseName, expectedSelection) ->
+      val home = Files.createTempDirectory("skillbill-install-selection-$caseName")
+
+      store.writeLatestSuccessfulSelection(
+        WriteLatestSuccessfulInstallSelectionRequest(installHome = home, selection = expectedSelection),
+      )
+
+      assertEquals(
+        expectedSelection,
+        store.readLatestSuccessfulSelection(ReadLatestSuccessfulInstallSelectionRequest(home)).selection,
+        caseName,
+      )
+      val emittedPayload = JsonSupport.anyToStringAnyMap(
+        JsonSupport.parseObjectOrNull(Files.readString(home.resolve(".skill-bill/install-selection.json")))
+          ?.let(JsonSupport::jsonElementToValue),
+      ).orEmpty()
+      assertFalse("recentRepoPath" in emittedPayload, caseName)
+      assertFalse("firstRun.agents" in emittedPayload, caseName)
+      assertEquals("1.0", emittedPayload["contract_version"], caseName)
+    }
+  }
+
+  @Test
   fun `missing install selection record fails loudly`() {
     val home = Files.createTempDirectory("skillbill-install-selection-missing")
     val store = FileSystemInstallSelectionPersistence()
@@ -203,6 +280,33 @@ class FileSystemInstallSelectionPersistenceTest {
     assertFailsWith<UnreadableInstallSelectionRecordError> {
       store.readLatestSuccessfulSelection(ReadLatestSuccessfulInstallSelectionRequest(home))
     }
+  }
+
+  @Test
+  fun `oversized install selection write fails without replacing previous record`() {
+    val home = Files.createTempDirectory("skillbill-install-selection-oversized-write")
+    val store = FileSystemInstallSelectionPersistence()
+    val previousSelection = selection(selectedAgents = setOf(InstallAgent.CLAUDE))
+    store.writeLatestSuccessfulSelection(
+      WriteLatestSuccessfulInstallSelectionRequest(installHome = home, selection = previousSelection),
+    )
+    val oversizedSelection = selection(
+      platformPackSelection = PlatformPackSelection(
+        mode = PlatformPackSelectionMode.SELECTED,
+        selectedSlugs = (1..900).mapTo(mutableSetOf()) { index -> "slug-$index-${"a".repeat(80)}" },
+      ),
+    )
+
+    assertFailsWith<UnreadableInstallSelectionRecordError> {
+      store.writeLatestSuccessfulSelection(
+        WriteLatestSuccessfulInstallSelectionRequest(installHome = home, selection = oversizedSelection),
+      )
+    }
+
+    assertEquals(
+      previousSelection,
+      store.readLatestSuccessfulSelection(ReadLatestSuccessfulInstallSelectionRequest(home)).selection,
+    )
   }
 
   @Test

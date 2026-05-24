@@ -737,12 +737,14 @@ class SkillBillViewModel(
     if (setup.busy) {
       return currentState
     }
+    val selectedPlatformSlugs = if (selected) {
+      setup.selectedPlatformSlugs + slug
+    } else {
+      setup.selectedPlatformSlugs - slug
+    }
     firstRunSetup = setup.copy(
-      selectedPlatformSlugs = if (selected) {
-        setup.selectedPlatformSlugs + slug
-      } else {
-        setup.selectedPlatformSlugs - slug
-      },
+      selectedPlatformSlugs = selectedPlatformSlugs,
+      platformSelectionMode = selectedPlatformSlugs.toFirstRunPlatformSelectionMode(),
       platformPacks = setup.platformPacks.map { pack ->
         if (pack.slug == slug) pack.copy(selected = selected) else pack
       },
@@ -3414,6 +3416,7 @@ data class PostPublishReinstallResponse(
 private fun FirstRunSetupRequest.toFirstRunSetupState(): FirstRunSetupState = FirstRunSetupState(
   selectedAgentIds = selectedAgentIds,
   selectedPlatformSlugs = selectedPlatformSlugs,
+  platformSelectionMode = platformSelectionMode,
   telemetryLevel = telemetryLevel,
   registerMcp = registerMcp,
 )
@@ -3444,9 +3447,17 @@ private fun FirstRunSetupState.applyDiscovery(
     },
     selectedAgentIds = selectedAgents,
     selectedPlatformSlugs = selectedPlatforms,
+    platformSelectionMode = preferredRequest?.platformSelectionMode
+      ?: selectedPlatforms.toFirstRunPlatformSelectionMode(),
     telemetryLevel = preferredRequest?.telemetryLevel ?: FirstRunTelemetryLevel.default,
     registerMcp = preferredRequest?.registerMcp ?: true,
   )
+}
+
+private fun Set<String>.toFirstRunPlatformSelectionMode(): FirstRunPlatformSelectionMode = if (isEmpty()) {
+  FirstRunPlatformSelectionMode.NONE
+} else {
+  FirstRunPlatformSelectionMode.SELECTED
 }
 
 private fun DesktopFirstRunPreferences.toLegacySetupRequestOrNull(): FirstRunSetupRequest? {

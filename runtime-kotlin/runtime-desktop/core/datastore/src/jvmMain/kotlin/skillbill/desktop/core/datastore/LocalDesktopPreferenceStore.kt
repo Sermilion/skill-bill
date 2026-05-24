@@ -75,12 +75,13 @@ class LocalDesktopPreferenceStore : DesktopPreferenceStore {
   )
 
   private fun persistFirstRunPreferences(preferences: DesktopFirstRunPreferences) {
+    val persistedPreferences = DesktopFirstRunPreferences(completed = preferences.completed)
     properties.setProperty(KEY_FIRST_RUN_COMPLETED, preferences.completed.toString())
     properties.remove(KEY_FIRST_RUN_AGENTS)
     properties.remove(KEY_FIRST_RUN_PLATFORMS)
     properties.remove(KEY_FIRST_RUN_TELEMETRY)
     properties.remove(KEY_FIRST_RUN_MCP)
-    firstRunState.value = preferences
+    firstRunState.value = persistedPreferences
     saveProperties()
   }
 

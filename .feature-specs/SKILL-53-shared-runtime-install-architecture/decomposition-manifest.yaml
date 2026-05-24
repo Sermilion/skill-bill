@@ -3,14 +3,14 @@ contract_version: "0.2"
 issue_key: "SKILL-53"
 feature_name: "shared-runtime-install-architecture"
 parent_spec_path: ".feature-specs/SKILL-53-shared-runtime-install-architecture/spec.md"
-status: "in_progress"
+status: "complete"
 execution_model: "same_branch_commit_per_subtask"
 base_branch: "main"
 feature_branch: "feat/SKILL-53-shared-runtime-install-architecture"
 stack_branches: []
 current_subtask_intent:
-  subtask_id: 4
-  action: "start"
+  subtask_id: 0
+  action: "none"
 subtasks:
 - id: 1
   name: "shared-install-selection-foundation"
@@ -19,123 +19,6 @@ subtasks:
   branch: "feat/SKILL-53-shared-runtime-install-architecture"
   commit_sha: null
   workflow_id: "wfl-20260524-180427-jhmn"
-  review_result:
-    review_iterations: 3
-    result: "passed_after_fixes"
-    remaining_blocker_major_findings: 0
-    remaining_minor_findings: 0
-    initial_findings:
-    - "Major: persistence request lacked explicit install home/scope"
-    - "Major: direct non-atomic write to latest install-selection record"
-    - "Major: no size guard before reading latest install-selection record"
-    - "Major: resolvedInstalledAgents could include partial failed apply data"
-    - "Major: platform_pack_selection invariants were not enforced"
-    - "Major: tests missed overwrite/MCP opt-out, resolved-agent edge cases, infra-fs\
-      \ boundary, and malformed record cases"
-    fixes_applied:
-    - "Read/write requests now carry explicit installHome and filesystem adapter resolves\
-      \ path per operation."
-    - "Latest record writes now use same-directory temp file plus ATOMIC_MOVE/REPLACE_EXISTING\
-      \ fallback."
-    - "Read path rejects records over 64 KiB before loading/parsing."
-    - "resolvedInstalledAgents is a computed property derived from status and skills,\
-      \ empty for FAILURE and CREATED/SKIPPED links only otherwise."
-    - "Parser rejects invalid platform_pack_selection cross-field states, blank selected\
-      \ slugs, and blank runtime_mcp_bin."
-    - "Tests cover canonical v1 JSON read/write shape, overwrite with MCP opt-out,\
-      \ alternate install home, malformed records, resolved-agent edge cases, and\
-      \ runtime-infra-fs desktop boundary."
-    review_telemetry_note: "Specialist review was orchestrated inline in Codex; no\
-      \ bill-code-review run id was emitted, so import_review was not called to avoid\
-      \ synthesizing a review-run id."
-  audit_result:
-    pass: true
-    per_criterion:
-    - id: 1
-      criterion: "A shared runtime install-selection model exists outside runtime-desktop:*\
-        \ and is usable by both CLI and desktop JVM code."
-      verdict: "pass"
-      evidence:
-      - "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/install/model/SharedInstallSelection.kt:3"
-      - "runtime-kotlin/runtime-ports/src/main/kotlin/skillbill/ports/install/selection/InstallSelectionPersistencePort.kt:8"
-      - "runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/RuntimeComponent.kt:172"
-      - "runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/RuntimeComponent.kt:250"
-      - "runtime-kotlin/runtime-cli/build.gradle.kts:11"
-      - "runtime-kotlin/runtime-desktop/core/data/build.gradle.kts:14"
-      - "runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/InstallSelectionRuntimeBoundaryTest.kt:38"
-    - id: 2
-      criterion: "A shared persistence implementation writes and reads latest successful\
-        \ install choices, including selected agents, selected platform packs, telemetry\
-        \ level, and MCP registration choice."
-      verdict: "pass"
-      evidence:
-      - "runtime-kotlin/runtime-ports/src/main/kotlin/skillbill/ports/install/selection/InstallSelectionPersistencePort.kt:9"
-      - "runtime-kotlin/runtime-ports/src/main/kotlin/skillbill/ports/install/selection/InstallSelectionPersistencePort.kt:13"
-      - "runtime-kotlin/runtime-ports/src/main/kotlin/skillbill/ports/install/selection/model/InstallSelectionPersistenceModels.kt:6"
-      - "runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/FileSystemInstallSelectionPersistence.kt:21"
-      - "runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/FileSystemInstallSelectionWire.kt:11"
-      - "runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/FileSystemInstallSelectionParser.kt:20"
-      - "runtime-kotlin/runtime-infra-fs/src/test/kotlin/skillbill/install/FileSystemInstallSelectionPersistenceTest.kt:25"
-      - "runtime-kotlin/runtime-infra-fs/src/test/kotlin/skillbill/install/FileSystemInstallSelectionPersistenceTest.kt:50"
-      - "runtime-kotlin/runtime-infra-fs/src/test/kotlin/skillbill/install/FileSystemInstallSelectionPersistenceTest.kt:132"
-    - id: 3
-      criterion: "The shared model does not include desktop-only preferences such\
-        \ as recent repo path or UI-only state."
-      verdict: "pass"
-      evidence:
-      - "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/install/model/SharedInstallSelection.kt:3"
-      - "runtime-kotlin/runtime-domain/src/test/kotlin/skillbill/install/model/SharedInstallSelectionModelTest.kt:9"
-      - "runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/FileSystemInstallSelectionWire.kt:31"
-      - "runtime-kotlin/runtime-desktop/core/datastore/src/commonMain/kotlin/skillbill/desktop/core/datastore/DesktopPreferenceStore.kt:13"
-      - "runtime-kotlin/runtime-desktop/core/datastore/src/jvmMain/kotlin/skillbill/desktop/core/datastore/LocalDesktopPreferenceStore.kt:87"
-      - "runtime-kotlin/runtime-infra-fs/src/test/kotlin/skillbill/install/FileSystemInstallSelectionPersistenceTest.kt:180"
-    - id: 4
-      criterion: "The persistence implementation follows existing runtime loud-fail\
-        \ conventions for unreadable or malformed shared install-selection records."
-      verdict: "pass"
-      evidence:
-      - "runtime-kotlin/runtime-contracts/src/main/kotlin/skillbill/error/ShellContentContractErrors.kt:114"
-      - "runtime-kotlin/runtime-contracts/src/main/kotlin/skillbill/error/ShellContentContractErrors.kt:122"
-      - "runtime-kotlin/runtime-contracts/src/main/kotlin/skillbill/error/ShellContentContractErrors.kt:130"
-      - "runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/FileSystemInstallSelectionPersistence.kt:37"
-      - "runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/FileSystemInstallSelectionPersistence.kt:63"
-      - "runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/FileSystemInstallSelectionParser.kt:12"
-      - "runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/FileSystemInstallSelectionValidation.kt:7"
-      - "runtime-kotlin/runtime-infra-fs/src/test/kotlin/skillbill/install/FileSystemInstallSelectionPersistenceTest.kt:168"
-      - "runtime-kotlin/runtime-infra-fs/src/test/kotlin/skillbill/install/FileSystemInstallSelectionPersistenceTest.kt:180"
-      - "runtime-kotlin/runtime-infra-fs/src/test/kotlin/skillbill/install/FileSystemInstallSelectionPersistenceTest.kt:195"
-      - "runtime-kotlin/runtime-infra-fs/src/test/kotlin/skillbill/install/FileSystemInstallSelectionPersistenceTest.kt:208"
-      - "runtime-kotlin/runtime-infra-fs/src/test/kotlin/skillbill/install/FileSystemInstallSelectionPersistenceTest.kt:244"
-    - id: 5
-      criterion: "Any typed seam needed to prefer resolved installed agents from successful\
-        \ apply results is present without wiring CLI or desktop behavior yet."
-      verdict: "pass"
-      evidence:
-      - "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/install/model/InstallModels.kt:271"
-      - "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/install/model/InstallModels.kt:277"
-      - "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/install/model/InstallModels.kt:284"
-      - "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/install/model/InstallModels.kt:361"
-      - "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/install/model/InstallModels.kt:373"
-      - "runtime-kotlin/runtime-domain/src/test/kotlin/skillbill/install/model/SharedInstallSelectionModelTest.kt:18"
-    gaps: []
-  validation_result:
-    validation_result: "pass"
-    routed_skill: "bill-kotlin-quality-check"
-    detected_stack: "kotlin"
-    initial_failure_count: 1
-    final_failure_count: 0
-    fixes_applied: "Applied :runtime-infra-fs:spotlessApply to fix Kotlin import ordering\
-      \ in FileSystemInstallSelectionPersistenceTest.kt."
-    telemetry_payload:
-      routed_skill: "bill-kotlin-quality-check"
-      detected_stack: "kotlin"
-      scope_type: "working_tree"
-      initial_failure_count: 1
-      final_failure_count: 0
-      iterations: 2
-      result: "pass"
-      duration_seconds: 38
-      skill: "bill-quality-check"
   blocked_reason: null
   last_resumable_step: "finish"
   dependencies: []
@@ -146,71 +29,6 @@ subtasks:
   branch: "feat/SKILL-53-shared-runtime-install-architecture"
   commit_sha: null
   workflow_id: null
-  review_result:
-    review_iterations: 1
-    result: "passed_no_blocker_major_findings"
-    remaining_blocker_major_findings: 0
-    remaining_minor_findings: 0
-    initial_findings: []
-    fixes_applied: []
-    review_telemetry_note: "Workflow state was unavailable for SKILL-53 continuation in this local Codex run; review was performed inline against the working-tree diff without bill-code-review import telemetry."
-  audit_result:
-    pass: true
-    per_criterion:
-    - id: 1
-      criterion: "`skill-bill install apply` can persist latest successful install choices without introducing a dependency on desktop modules."
-      verdict: "pass"
-      evidence:
-      - "runtime-kotlin/runtime-application/src/main/kotlin/skillbill/application/InstallService.kt:70"
-      - "runtime-kotlin/runtime-application/src/main/kotlin/skillbill/application/InstallService.kt:97"
-      - "runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/RuntimeComponent.kt:172"
-    - id: 2
-      criterion: "`install.sh` delegates persistence through the runtime CLI or shared runtime API after successful apply and does not hand-write desktop preference internals."
-      verdict: "pass"
-      evidence:
-      - "install.sh:890"
-      - "install.sh:924"
-      - "runtime-kotlin/runtime-application/src/main/kotlin/skillbill/application/InstallService.kt:97"
-    - id: 3
-      criterion: "Detected-agent installs persist the actual resolved installed agents when available from the typed apply result."
-      verdict: "pass"
-      evidence:
-      - "runtime-kotlin/runtime-application/src/main/kotlin/skillbill/application/InstallService.kt:101"
-      - "runtime-kotlin/runtime-application/src/test/kotlin/skillbill/application/InstallServiceTest.kt:89"
-      - "runtime-kotlin/runtime-cli/src/test/kotlin/skillbill/cli/CliInstallPlanApplyRuntimeTest.kt:259"
-    - id: 4
-      criterion: "Manual agent selections, selected platform packs, telemetry level, and MCP opt-out choices persist through the shared store."
-      verdict: "pass"
-      evidence:
-      - "runtime-kotlin/runtime-application/src/main/kotlin/skillbill/application/InstallService.kt:104"
-      - "runtime-kotlin/runtime-application/src/main/kotlin/skillbill/application/InstallService.kt:112"
-      - "runtime-kotlin/runtime-cli/src/test/kotlin/skillbill/cli/CliInstallPlanApplyRuntimeTest.kt:108"
-      - "runtime-kotlin/runtime-cli/src/test/kotlin/skillbill/cli/CliInstallPlanApplyRuntimeTest.kt:259"
-    - id: 5
-      criterion: "Failed install attempts are not persisted as completed reusable selections."
-      verdict: "pass"
-      evidence:
-      - "runtime-kotlin/runtime-application/src/main/kotlin/skillbill/application/InstallService.kt:92"
-      - "runtime-kotlin/runtime-application/src/test/kotlin/skillbill/application/InstallServiceTest.kt:133"
-      - "runtime-kotlin/runtime-cli/src/test/kotlin/skillbill/cli/CliInstallPlanApplyRuntimeTest.kt:284"
-    gaps: []
-  validation_result:
-    validation_result: "pass"
-    routed_skill: "bill-kotlin-quality-check"
-    detected_stack: "kotlin"
-    initial_failure_count: 1
-    final_failure_count: 0
-    fixes_applied: "Applied :runtime-application:spotlessApply after focused tests exposed only formatting drift; focused application and CLI tests plus spotless checks pass."
-    telemetry_payload:
-      routed_skill: "bill-kotlin-quality-check"
-      detected_stack: "kotlin"
-      scope_type: "working_tree"
-      initial_failure_count: 1
-      final_failure_count: 0
-      iterations: 2
-      result: "pass"
-      duration_seconds: 9
-      skill: "bill-quality-check"
   blocked_reason: null
   last_resumable_step: "finish"
   dependencies:
@@ -224,71 +42,6 @@ subtasks:
   branch: "feat/SKILL-53-shared-runtime-install-architecture"
   commit_sha: null
   workflow_id: null
-  review_result:
-    review_iterations: 1
-    result: "passed_no_blocker_major_findings"
-    remaining_blocker_major_findings: 0
-    remaining_minor_findings: 0
-    initial_findings: []
-    fixes_applied: []
-    review_telemetry_note: "Workflow state was unavailable for SKILL-53 continuation in this local Codex run; review was performed inline against the working-tree diff without bill-code-review import telemetry."
-  audit_result:
-    pass: true
-    per_criterion:
-    - id: 1
-      criterion: "Desktop first-run setup uses shared install-selection persistence for reusable install choices."
-      verdict: "pass"
-      evidence:
-      - "runtime-kotlin/runtime-desktop/feature/skillbill/src/commonMain/kotlin/skillbill/desktop/feature/skillbill/state/SkillBillViewModel.kt:2258"
-      - "runtime-kotlin/runtime-desktop/core/data/src/jvmMain/kotlin/skillbill/desktop/core/data/service/JvmDesktopFirstRunGateway.kt:234"
-      - "runtime-kotlin/runtime-desktop/core/data/src/jvmMain/kotlin/skillbill/desktop/core/data/di/DesktopRuntimeApplicationServices.kt:58"
-    - id: 2
-      criterion: "Desktop post-publish reinstall uses the shared install-selection persistence instead of owning or reading a separate desktop install preference format."
-      verdict: "pass"
-      evidence:
-      - "runtime-kotlin/runtime-desktop/feature/skillbill/src/commonMain/kotlin/skillbill/desktop/feature/skillbill/state/SkillBillViewModel.kt:2248"
-      - "runtime-kotlin/runtime-desktop/feature/skillbill/src/jvmTest/kotlin/skillbill/desktop/feature/skillbill/state/SkillBillViewModelGitTest.kt:1374"
-      - "runtime-kotlin/runtime-desktop/feature/skillbill/src/jvmTest/kotlin/skillbill/desktop/feature/skillbill/state/SkillBillViewModelGitTest.kt:1492"
-    - id: 3
-      criterion: "Existing desktop-only preferences such as recent repo path and UI-only state remain desktop-owned."
-      verdict: "pass"
-      evidence:
-      - "runtime-kotlin/runtime-desktop/core/datastore/src/jvmMain/kotlin/skillbill/desktop/core/datastore/LocalDesktopPreferenceStore.kt:34"
-      - "runtime-kotlin/runtime-desktop/core/datastore/src/jvmMain/kotlin/skillbill/desktop/core/datastore/LocalDesktopPreferenceStore.kt:77"
-      - "runtime-kotlin/runtime-desktop/core/datastore/src/jvmTest/kotlin/skillbill/desktop/core/datastore/LocalDesktopPreferenceStoreTest.kt:60"
-    - id: 4
-      criterion: "Existing desktop preference files with legacy firstRun.* install keys migrate or adapt into the shared install-selection record."
-      verdict: "pass"
-      evidence:
-      - "runtime-kotlin/runtime-desktop/core/datastore/src/jvmMain/kotlin/skillbill/desktop/core/datastore/LocalDesktopPreferenceStore.kt:69"
-      - "runtime-kotlin/runtime-desktop/core/data/src/jvmMain/kotlin/skillbill/desktop/core/data/service/JvmDesktopFirstRunGateway.kt:242"
-      - "runtime-kotlin/runtime-desktop/core/data/src/jvmTest/kotlin/skillbill/desktop/core/data/service/JvmDesktopFirstRunGatewayTest.kt:112"
-      - "runtime-kotlin/runtime-desktop/core/datastore/src/jvmTest/kotlin/skillbill/desktop/core/datastore/LocalDesktopPreferenceStoreTest.kt:83"
-    - id: 5
-      criterion: "Desktop JVM code depends only on shared runtime APIs for install selection, not CLI or shell behavior."
-      verdict: "pass"
-      evidence:
-      - "runtime-kotlin/runtime-desktop/core/data/src/jvmMain/kotlin/skillbill/desktop/core/data/di/DesktopRuntimeApplicationServices.kt:15"
-      - "runtime-kotlin/runtime-desktop/core/data/src/jvmMain/kotlin/skillbill/desktop/core/data/service/JvmDesktopFirstRunGateway.kt:44"
-      - "runtime-kotlin/runtime-desktop/core/domain/src/commonMain/kotlin/skillbill/desktop/core/domain/service/DesktopFirstRunGateway.kt:12"
-    gaps: []
-  validation_result:
-    validation_result: "pass"
-    routed_skill: "bill-kotlin-quality-check"
-    detected_stack: "kotlin"
-    initial_failure_count: 2
-    final_failure_count: 0
-    fixes_applied: "Applied :runtime-desktop:core:data:spotlessApply and :runtime-desktop:feature:skillbill:spotlessApply after full check exposed only formatting drift; focused desktop JVM tests and full repo validation pass."
-    telemetry_payload:
-      routed_skill: "bill-kotlin-quality-check"
-      detected_stack: "kotlin"
-      scope_type: "working_tree"
-      initial_failure_count: 2
-      final_failure_count: 0
-      iterations: 3
-      result: "pass"
-      duration_seconds: 12
-      skill: "bill-quality-check"
   blocked_reason: null
   last_resumable_step: "finish"
   dependencies:
@@ -301,15 +54,12 @@ subtasks:
 - id: 4
   name: "validation-contract-lock"
   spec_path: ".feature-specs/SKILL-53-shared-runtime-install-architecture/spec_subtask_4_validation-contract-lock.md"
-  status: "pending"
-  branch: null
+  status: "complete"
+  branch: "feat/SKILL-53-shared-runtime-install-architecture"
   commit_sha: null
-  workflow_id: null
-  review_result: null
-  audit_result: null
-  validation_result: null
+  workflow_id: "wfl-20260524-201006-cw93"
   blocked_reason: null
-  last_resumable_step: null
+  last_resumable_step: "finish"
   dependencies:
   - subtask_id: 1
     optional: false

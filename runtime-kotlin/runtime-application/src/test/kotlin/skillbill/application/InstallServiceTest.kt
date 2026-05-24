@@ -132,6 +132,74 @@ class InstallServiceTest {
   }
 
   @Test
+  fun `apply install persists manual selected platforms and mcp opt out`() {
+    val repoRoot = Path.of("/tmp/skillbill-install-service-manual-repo")
+    val home = Path.of("/tmp/skillbill-install-service-manual-home")
+    val request = request(repoRoot, home).copy(
+      platformPackSelection = PlatformPackSelection(
+        mode = PlatformPackSelectionMode.SELECTED,
+        selectedSlugs = setOf("kotlin"),
+      ),
+      telemetryLevel = InstallTelemetryLevel.OFF,
+      mcpRegistrationChoice = McpRegistrationChoice(register = false, runtimeMcpBin = null),
+    )
+    val plan = installPlan(
+      request = request,
+      agents = listOf(
+        InstallAgentTarget(InstallAgent.CODEX, home.resolve(".codex/skills"), InstallAgentTargetSource.MANUAL),
+        InstallAgentTarget(InstallAgent.CLAUDE, home.resolve(".claude/commands"), InstallAgentTargetSource.MANUAL),
+      ),
+      selectedPlatformSlugs = listOf("kotlin"),
+    )
+    val selectionPort = RecordingInstallSelectionPersistencePort()
+    val service = serviceForApply(
+      result = successfulApplyResult(plan, resolvedAgent = null),
+      selectionPort = selectionPort,
+    )
+
+    service.applyInstall(plan)
+
+    val selection = selectionPort.writeRequests.single().selection
+    assertEquals(setOf(InstallAgent.CLAUDE, InstallAgent.CODEX), selection.selectedAgents)
+    assertEquals(PlatformPackSelectionMode.SELECTED, selection.platformPackSelection.mode)
+    assertEquals(setOf("kotlin"), selection.platformPackSelection.selectedSlugs)
+    assertEquals(InstallTelemetryLevel.OFF, selection.telemetryLevel)
+    assertEquals(McpRegistrationChoice(register = false, runtimeMcpBin = null), selection.mcpRegistrationChoice)
+  }
+
+  @Test
+  fun `apply install persists detected planned agents when result has no resolved agents`() {
+    val repoRoot = Path.of("/tmp/skillbill-install-service-detected-repo")
+    val home = Path.of("/tmp/skillbill-install-service-detected-home")
+    val request = request(repoRoot, home).copy(
+      agentSelection = InstallAgentSelection(mode = InstallAgentSelectionMode.DETECTED),
+    )
+    val plan = installPlan(
+      request = request,
+      agents = listOf(
+        InstallAgentTarget(InstallAgent.CLAUDE, home.resolve(".claude/commands"), InstallAgentTargetSource.DETECTED),
+        InstallAgentTarget(
+          InstallAgent.OPENCODE,
+          home.resolve(".config/opencode/skills"),
+          InstallAgentTargetSource.DETECTED,
+        ),
+      ),
+    )
+    val selectionPort = RecordingInstallSelectionPersistencePort()
+    val service = serviceForApply(
+      result = successfulApplyResult(plan, resolvedAgent = null),
+      selectionPort = selectionPort,
+    )
+
+    service.applyInstall(plan)
+
+    assertEquals(
+      setOf(InstallAgent.CLAUDE, InstallAgent.OPENCODE),
+      selectionPort.writeRequests.single().selection.selectedAgents,
+    )
+  }
+
+  @Test
   fun `apply install does not persist failed selections`() {
     val repoRoot = Path.of("/tmp/skillbill-install-service-failed-repo")
     val home = Path.of("/tmp/skillbill-install-service-failed-home")
@@ -188,11 +256,12 @@ class InstallServiceTest {
     agents: List<InstallAgentTarget> = listOf(
       InstallAgentTarget(InstallAgent.CODEX, request.home.resolve(".codex/skills"), InstallAgentTargetSource.MANUAL),
     ),
+    selectedPlatformSlugs: List<String> = emptyList(),
   ): skillbill.install.model.InstallPlan = skillbill.install.model.InstallPlan(
     request = request,
     agents = agents,
     discoveredPlatformPacks = emptyList(),
-    selectedPlatformSlugs = emptyList(),
+    selectedPlatformSlugs = selectedPlatformSlugs,
     skills = listOf(
       InstallPlanSkill(
         name = "bill-code-review",

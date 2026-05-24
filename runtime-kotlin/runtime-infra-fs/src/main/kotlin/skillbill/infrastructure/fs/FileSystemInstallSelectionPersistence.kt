@@ -29,7 +29,13 @@ class FileSystemInstallSelectionPersistence : InstallSelectionPersistencePort {
   ): WriteLatestSuccessfulInstallSelectionResult {
     val selectionPath = selectionPath(request.installHome)
     selectionPath.parent?.let(Files::createDirectories)
-    writeInstallSelectionRecord(selectionPath, request.selection.toInstallSelectionJson() + "\n")
+    val payload = request.selection.toInstallSelectionJson()
+    val durablePayload = payload + "\n"
+    if (durablePayload.toByteArray(StandardCharsets.UTF_8).size > MAX_INSTALL_SELECTION_RECORD_BYTES) {
+      throw UnreadableInstallSelectionRecordError(selectionPath.toString())
+    }
+    parseInstallSelectionPayload(selectionPath, payload)
+    writeInstallSelectionRecord(selectionPath, durablePayload)
     return WriteLatestSuccessfulInstallSelectionResult(path = selectionPath)
   }
 }

@@ -1,6 +1,6 @@
 # SKILL-53 — Shared runtime install architecture
 
-Status: In Progress
+Status: Complete
 Issue key: SKILL-53
 
 ## Sources

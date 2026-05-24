@@ -80,6 +80,57 @@ class LocalDesktopPreferenceStoreTest {
   }
 
   @Test
+  fun `first run completion removes legacy install choices while preserving desktop state`() {
+    withTemporaryStorePath { preferencesPath ->
+      Files.createDirectories(preferencesPath.parent)
+      Files.writeString(
+        preferencesPath,
+        """
+        |recentRepoPath=/repo
+        |firstRun.completed=false
+        |firstRun.agents=codex,claude
+        |firstRun.platforms=kotlin
+        |firstRun.telemetry=full
+        |firstRun.mcp=false
+        |
+        """.trimMargin(),
+      )
+      val store = LocalDesktopPreferenceStore()
+
+      store.markFirstRunCompleted(
+        DesktopFirstRunPreferences(
+          selectedAgentIds = setOf("codex"),
+          selectedPlatformSlugs = setOf("kotlin"),
+          telemetryLevelId = "off",
+          registerMcp = false,
+        ),
+      )
+
+      val persisted = Files.readString(preferencesPath)
+      assertTrue(persisted.contains("recentRepoPath=/repo"))
+      assertTrue(persisted.contains("firstRun.completed=true"))
+      assertFalse(persisted.contains("firstRun.agents"))
+      assertFalse(persisted.contains("firstRun.platforms"))
+      assertFalse(persisted.contains("firstRun.telemetry"))
+      assertFalse(persisted.contains("firstRun.mcp"))
+
+      assertTrue(store.firstRunPreferences.value.completed)
+      assertEquals(emptySet(), store.firstRunPreferences.value.selectedAgentIds)
+      assertEquals(emptySet(), store.firstRunPreferences.value.selectedPlatformSlugs)
+      assertEquals("anonymous", store.firstRunPreferences.value.telemetryLevelId)
+      assertTrue(store.firstRunPreferences.value.registerMcp)
+
+      val reloaded = LocalDesktopPreferenceStore()
+      assertEquals("/repo", reloaded.recentRepoPath.value)
+      assertTrue(reloaded.firstRunPreferences.value.completed)
+      assertEquals(emptySet(), reloaded.firstRunPreferences.value.selectedAgentIds)
+      assertEquals(emptySet(), reloaded.firstRunPreferences.value.selectedPlatformSlugs)
+      assertEquals("anonymous", reloaded.firstRunPreferences.value.telemetryLevelId)
+      assertTrue(reloaded.firstRunPreferences.value.registerMcp)
+    }
+  }
+
+  @Test
   fun `legacy first run install choices still load from desktop properties`() {
     withTemporaryStorePath { preferencesPath ->
       Files.createDirectories(preferencesPath.parent)

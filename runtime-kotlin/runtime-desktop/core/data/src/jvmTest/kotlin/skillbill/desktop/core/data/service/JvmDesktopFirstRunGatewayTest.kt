@@ -110,6 +110,44 @@ class JvmDesktopFirstRunGatewayTest {
   }
 
   @Test
+  fun `latest reusable setup request prefers shared selection over legacy fallback`() {
+    val home = Files.createTempDirectory("skillbill-first-run-shared-before-legacy")
+    val store = FileSystemInstallSelectionPersistence()
+    store.writeLatestSuccessfulSelection(
+      WriteLatestSuccessfulInstallSelectionRequest(
+        installHome = home,
+        selection = SharedInstallSelection(
+          selectedAgents = setOf(InstallAgent.OPENCODE),
+          platformPackSelection = PlatformPackSelection(mode = PlatformPackSelectionMode.ALL),
+          telemetryLevel = InstallTelemetryLevel.OFF,
+          mcpRegistrationChoice = McpRegistrationChoice(register = false),
+        ),
+      ),
+    )
+    val legacy = FirstRunSetupRequest(
+      selectedAgentIds = setOf("codex"),
+      selectedPlatformSlugs = setOf("kotlin"),
+      telemetryLevel = FirstRunTelemetryLevel.FULL,
+      registerMcp = true,
+    )
+    val gateway = JvmDesktopFirstRunGateway().apply {
+      homeProvider = { home }
+    }
+
+    val request = gateway.latestReusableSetupRequest(legacy)
+    val persisted = store.readLatestSuccessfulSelection(ReadLatestSuccessfulInstallSelectionRequest(home)).selection
+
+    assertEquals(setOf("opencode"), request?.selectedAgentIds)
+    assertEquals(emptySet(), request?.selectedPlatformSlugs)
+    assertEquals(FirstRunPlatformSelectionMode.ALL, request?.platformSelectionMode)
+    assertEquals(FirstRunTelemetryLevel.OFF, request?.telemetryLevel)
+    assertFalse(request?.registerMcp ?: true)
+    assertEquals(setOf(InstallAgent.OPENCODE), persisted.selectedAgents)
+    assertEquals(PlatformPackSelectionMode.ALL, persisted.platformPackSelection.mode)
+    assertFalse(persisted.mcpRegistrationChoice.register)
+  }
+
+  @Test
   fun `latest reusable setup request migrates legacy fallback into shared store`() {
     val home = Files.createTempDirectory("skillbill-first-run-legacy-selection")
     val legacy = FirstRunSetupRequest(

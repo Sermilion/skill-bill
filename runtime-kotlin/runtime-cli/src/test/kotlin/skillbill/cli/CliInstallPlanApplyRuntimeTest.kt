@@ -278,6 +278,28 @@ class CliInstallPlanApplyRuntimeTest {
   }
 
   @Test
+  fun `install apply persists manual selected platforms and mcp registration choice`() {
+    val fixture = installPlanApplyFixture()
+    val runtimeMcpBin = fixture.home.resolve(".skill-bill/runtime/runtime-mcp/bin/runtime-mcp")
+
+    val result = CliRuntime.run(
+      manualSelectedPlatformRegisterMcpApplyArguments(fixture, runtimeMcpBin),
+      CliRuntimeContext(userHome = fixture.home),
+    )
+
+    assertEquals(0, result.exitCode, result.stdout)
+    val selection = readInstallSelection(fixture.home)
+    assertEquals(setOf("codex"), (selection["selected_agents"] as List<*>).toSet())
+    val platformSelection = selection.mapValue("platform_pack_selection")
+    assertEquals("selected", platformSelection["mode"])
+    assertEquals(listOf("kotlin"), platformSelection["selected_slugs"])
+    assertEquals("full", selection["telemetry_level"])
+    val mcp = selection.mapValue("mcp_registration")
+    assertEquals(true, mcp["register"])
+    assertEquals(runtimeMcpBin.toString(), mcp["runtime_mcp_bin"])
+  }
+
+  @Test
   fun `install apply parses replace existing flag and removes legacy managed targets`() {
     val fixture = installPlanApplyFixture()
     val targetDir = fixture.home.resolve("manual-targets/codex")
@@ -514,6 +536,34 @@ class CliInstallPlanApplyRuntimeTest {
     "off",
     "--mcp",
     "skip",
+    "--format",
+    "json",
+  )
+
+  private fun manualSelectedPlatformRegisterMcpApplyArguments(
+    fixture: InstallPlanApplyFixture,
+    runtimeMcpBin: Path,
+  ): List<String> = listOf(
+    "install",
+    "apply",
+    "--repo-root",
+    fixture.repoRoot.toString(),
+    "--agent-mode",
+    "manual",
+    "--agent",
+    "codex",
+    "--agent-target",
+    "codex=${fixture.home.resolve("manual-targets/codex")}",
+    "--platform-mode",
+    "selected",
+    "--platform",
+    "kotlin",
+    "--telemetry",
+    "full",
+    "--mcp",
+    "register",
+    "--runtime-mcp-bin",
+    runtimeMcpBin.toString(),
     "--format",
     "json",
   )

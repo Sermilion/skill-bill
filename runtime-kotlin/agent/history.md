@@ -1,3 +1,12 @@
+## [2026-05-24] SKILL-53 validation-contract-lock
+Areas: runtime-kotlin/runtime-cli, runtime-kotlin/runtime-application, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-desktop, runtime-kotlin/runtime-core architecture tests
+- Final SKILL-53 coverage locks CLI install persistence, detected/manual agent replay, MCP opt-out, desktop legacy preference migration, and install.sh runtime delegation without adding desktop dependencies. reusable
+- `FileSystemInstallSelectionPersistence` now validates write payloads through the same parser and UTF-8 size guard as reads, preserving the prior durable record on invalid or oversized writes. reusable
+- Desktop replay preserves `PlatformSelectionMode.ALL`; completed desktop preferences normalize live and durable state back to desktop-owned fields only.
+- Decomposition manifests must not carry review/audit/validation payloads; workflow artifacts own those results while git-tracked manifests keep runtime projection fields only.
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented
+
 ## [2026-05-24] SKILL-53 desktop-adapter-migration
 Areas: runtime-kotlin/runtime-desktop/core/domain, runtime-kotlin/runtime-desktop/core/data, runtime-kotlin/runtime-desktop/core/datastore, runtime-kotlin/runtime-desktop/feature/skillbill
 - Desktop first-run and post-publish reinstall replay now flow through `DesktopFirstRunGateway.latestReusableSetupRequest`, backed by the shared `InstallSelectionPersistencePort`; no CLI or shell dependency was added. reusable
