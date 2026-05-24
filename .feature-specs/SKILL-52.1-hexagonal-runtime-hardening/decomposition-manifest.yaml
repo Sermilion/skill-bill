@@ -10,7 +10,7 @@ feature_branch: "feat/SKILL-52.1-hexagonal-runtime-hardening"
 stack_branches: []
 current_subtask_intent:
   subtask_id: 4
-  action: "start"
+  action: "resume"
 subtasks:
 - id: 1
   name: "typed-boundary-foundation"
@@ -327,15 +327,15 @@ subtasks:
 - id: 4
   name: "install-policy-extraction"
   spec_path: ".feature-specs/SKILL-52.1-hexagonal-runtime-hardening/spec_subtask_3_install-policy-extraction.md"
-  status: "pending"
-  branch: null
+  status: "blocked"
+  branch: "feat/SKILL-52.1-hexagonal-runtime-hardening"
   commit_sha: null
-  workflow_id: null
+  workflow_id: "wfl-20260524-114234-ex4i"
   review_result: null
   audit_result: null
   validation_result: null
-  blocked_reason: null
-  last_resumable_step: null
+  blocked_reason: "Decomposed into nested child manifest .feature-specs/SKILL-52.1-hexagonal-runtime-hardening/install-policy-extraction/decomposition-manifest.yaml; complete nested subtasks before resuming parent subtask."
+  last_resumable_step: "plan"
   dependencies:
   - subtask_id: 1
     optional: false
