@@ -3,14 +3,14 @@ contract_version: "0.2"
 issue_key: "SKILL-52.2"
 feature_name: "runtime-boundary-closure"
 parent_spec_path: ".feature-specs/SKILL-52.2-runtime-boundary-closure/spec.md"
-status: "in_progress"
+status: "complete"
 execution_model: "same_branch_commit_per_subtask"
 base_branch: "main"
 feature_branch: "feat/SKILL-52.2-runtime-boundary-closure"
 stack_branches: []
 current_subtask_intent:
-  subtask_id: 4
-  action: "start"
+  subtask_id: 0
+  action: "none"
 subtasks:
 - id: 1
   name: "boundary-inventory-and-contract-targets"
@@ -51,12 +51,12 @@ subtasks:
 - id: 4
   name: "workflow-schema-ownership"
   spec_path: ".feature-specs/SKILL-52.2-runtime-boundary-closure/spec_subtask_4_workflow-schema-ownership.md"
-  status: "in_progress"
+  status: "complete"
   branch: "feat/SKILL-52.2-runtime-boundary-closure"
   commit_sha: null
   workflow_id: "wfl-20260525-125237-b045"
   blocked_reason: null
-  last_resumable_step: "commit_push"
+  last_resumable_step: "finish"
   dependencies:
   - subtask_id: 1
     optional: false
@@ -64,12 +64,12 @@ subtasks:
 - id: 5
   name: "adapter-dependency-and-desktop-convergence"
   spec_path: ".feature-specs/SKILL-52.2-runtime-boundary-closure/spec_subtask_5_adapter-dependency-and-desktop-convergence.md"
-  status: "pending"
+  status: "complete"
   branch: "feat/SKILL-52.2-runtime-boundary-closure"
   commit_sha: null
-  workflow_id: null
+  workflow_id: "wfl-20260525-140210-fpxi"
   blocked_reason: null
-  last_resumable_step: null
+  last_resumable_step: "finish"
   dependencies:
   - subtask_id: 2
     optional: false
