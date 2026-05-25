@@ -68,3 +68,18 @@ Out of scope:
 (cd runtime-kotlin && ./gradlew :runtime-infra-fs:test --tests '*Scaffold*')
 ```
 
+## Implementation Notes
+
+- Raw-map scanner walks only `runtime-application`, `runtime-domain`, and
+  `runtime-ports` source roots — confirmed in
+  `runtime-core/src/test/kotlin/skillbill/architecture/RuntimeArchitectureTest.kt`
+  `findRawMapViolations` source-root list. Therefore the parser helpers in
+  `runtime-contracts/src/main/kotlin/skillbill/contracts/scaffold/wire/ScaffoldPayloadParseSupport.kt`
+  are public top-level functions and do **not** require allow-list entries.
+- Migration uses an overload bridge: a typed
+  `scaffold(request: ScaffoldCommandRequest, dryRun)` overload is added on the
+  port + application + infra-fs surfaces while the legacy raw-map overload is
+  preserved. Adapters flip to the typed overload; once all callers are migrated,
+  Phase 5 atomically deletes the raw-map overload and the 11 scaffold input
+  raw-map allow-list rows.
+

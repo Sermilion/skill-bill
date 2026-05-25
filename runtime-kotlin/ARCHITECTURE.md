@@ -311,17 +311,6 @@ runtime-ports
     - `skillbill.application.DecompositionManifestWriter.manifestFromWorkflowUpdate`
     - `skillbill.application.DecompositionManifestWriter.maybeWriteFromWorkflowUpdate`
     - `skillbill.application.WorkflowFamily.sessionSummary`
-    - `skillbill.application.ScaffoldService.scaffold`
-    - `skillbill.ports.scaffold.ScaffoldGateway.scaffold`
-    - `skillbill.scaffold.policy.requireString`
-    - `skillbill.scaffold.policy.requireStringOrDefault`
-    - `skillbill.scaffold.policy.validatePayloadVersion`
-    - `skillbill.scaffold.policy.detectKind`
-    - `skillbill.scaffold.policy.optionalSpecialistSubagents`
-    - `skillbill.scaffold.policy.rejectLeafSubagentSpecialists`
-    - `skillbill.scaffold.policy.rejectBaselineLayersForNonPlatformPack`
-    - `skillbill.scaffold.policy.resolvePlatformPackSelection`
-    - `skillbill.scaffold.policy.resolvePlatformPackDefaults`
     - `skillbill.application.SystemService.doctor`
     - `skillbill.application.SystemService.version`
     - `skillbill.application.lifecycleOkPayload`
@@ -664,10 +653,6 @@ Categories:
 
 ### must_type_now
 
-- `skillbill.application.ScaffoldService.scaffold` [subtask 2] — replace
-  raw-map payload with typed scaffold payload DTO.
-- `skillbill.ports.scaffold.ScaffoldGateway.scaffold` [subtask 2] — retire
-  raw-map seam in lockstep with `ScaffoldService.scaffold`.
 - `skillbill.application.SystemService.doctor` [subtask 3] — typed doctor
   result DTO.
 - `skillbill.application.SystemService.version` [subtask 3] — typed version
@@ -846,24 +831,4 @@ category without reshaping the marker block._
 - `skillbill.application.DecompositionManifestWriter.maybeWriteFromWorkflowUpdate`
   [subtask 4] — decomposition manifest writer entrypoint; postponed with
   the workflow family.
-- `skillbill.scaffold.policy.requireString` [subtask 2] — pure-policy
-  entrypoint accepts the wire payload `Map<String, Any?>`; retired together
-  with the legacy `ScaffoldGateway` raw-map surface.
-- `skillbill.scaffold.policy.requireStringOrDefault` [subtask 2] — same
-  rationale as above.
-- `skillbill.scaffold.policy.validatePayloadVersion` [subtask 2] — same
-  rationale as above.
-- `skillbill.scaffold.policy.detectKind` [subtask 2] — same rationale as
-  above.
-- `skillbill.scaffold.policy.optionalSpecialistSubagents` [subtask 2] —
-  same rationale as above.
-- `skillbill.scaffold.policy.rejectLeafSubagentSpecialists` [subtask 2] —
-  same rationale as above.
-- `skillbill.scaffold.policy.rejectBaselineLayersForNonPlatformPack`
-  [subtask 2] — same rationale as above.
-- `skillbill.scaffold.policy.resolvePlatformPackSelection` [subtask 2] —
-  same rationale as above.
-- `skillbill.scaffold.policy.resolvePlatformPackDefaults` [subtask 2] —
-  same rationale as above.
-
 <!-- skill-52-2-inventory:end -->

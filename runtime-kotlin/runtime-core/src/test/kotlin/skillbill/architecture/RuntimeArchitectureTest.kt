@@ -1459,28 +1459,19 @@ class RuntimeArchitectureTest {
       "skillbill.application.DecompositionManifestWriter.manifestFromWorkflowUpdate",
       "skillbill.application.DecompositionManifestWriter.maybeWriteFromWorkflowUpdate",
       "skillbill.application.WorkflowFamily.sessionSummary",
-      // SKILL-52.1 subtask 3: the 8 raw-map producer FQNs on `ScaffoldGateway`,
-      // `runtime-infra-fs.ScaffoldService`, and `runtime-application.ScaffoldService` are
-      // RETIRED — each producer now returns a typed result model under
-      // `skillbill.ports.scaffold.{catalog,repo,source}.model`. The remaining typed-DTO
-      // open-boundary `payload` fields are listed near the bottom of this allow-list with
-      // the `@OpenBoundaryMap`-annotated typed-DTO entries. `scaffold(...)` still accepts
-      // a raw-map payload — that entry stays as the documented input-side seam until
-      // subtask 4 introduces a typed scaffold payload DTO.
-      "skillbill.application.ScaffoldService.scaffold",
-      "skillbill.ports.scaffold.ScaffoldGateway.scaffold",
-      // SKILL-52.1 subtask 2 documented seams (pure-policy entrypoints that accept the wire
-      // payload Map<String, Any?>). Retired together with the legacy ScaffoldGateway raw-map
-      // surface above by subtask 4, which introduces a typed scaffold payload DTO.
-      "skillbill.scaffold.policy.requireString",
-      "skillbill.scaffold.policy.requireStringOrDefault",
-      "skillbill.scaffold.policy.validatePayloadVersion",
-      "skillbill.scaffold.policy.detectKind",
-      "skillbill.scaffold.policy.optionalSpecialistSubagents",
-      "skillbill.scaffold.policy.rejectLeafSubagentSpecialists",
-      "skillbill.scaffold.policy.rejectBaselineLayersForNonPlatformPack",
-      "skillbill.scaffold.policy.resolvePlatformPackSelection",
-      "skillbill.scaffold.policy.resolvePlatformPackDefaults",
+      // SKILL-52.2 subtask 2: the 11 scaffold input raw-map allow-list entries — the two public
+      // application + port `scaffold(payload, dryRun)` overloads on
+      // `skillbill.application.ScaffoldService` / `skillbill.ports.scaffold.ScaffoldGateway`
+      // PLUS the 9 raw-map policy helpers under `skillbill.scaffold.policy` (`requireString`,
+      // `requireStringOrDefault`, `validatePayloadVersion`, `detectKind`,
+      // `optionalSpecialistSubagents`, `rejectLeafSubagentSpecialists`,
+      // `rejectBaselineLayersForNonPlatformPack`, `resolvePlatformPackSelection`,
+      // `resolvePlatformPackDefaults`) — are RETIRED. The two public overloads now accept a
+      // typed `ScaffoldCommandRequest`; CLI / MCP / Desktop adapters parse to the typed model
+      // at the adapter boundary. The 9 policy helpers were either inlined into the adapter
+      // parsers (CLI / MCP / Desktop) or relocated as `internal` raw-map helpers inside
+      // `runtime-infra-fs` (see `runtime-infra-fs/.../scaffold/ScaffoldPayloadMapPolicy.kt`),
+      // which the raw-map architecture scanner does not walk.
       // Subtask 3 will remove (install policy extraction):
       "skillbill.application.SystemService.doctor",
       "skillbill.application.SystemService.version",
