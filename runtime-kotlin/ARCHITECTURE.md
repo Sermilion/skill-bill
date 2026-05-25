@@ -618,3 +618,252 @@ The architecture tests enforce the following rules:
   exceptions` (the latter asserts ARCHITECTURE.md and the curated
   allow-list constant stay in sync). New exceptions MUST be added to both
   the allow-list constant and ARCHITECTURE.md in the same change.
+
+## SKILL-52.2 — Runtime boundary closure inventory
+
+This section classifies every current public raw-map declaration in
+`runtime-application`, `runtime-domain`, and `runtime-ports` into one of
+four SKILL-52.2 retirement categories. It is the planning ledger for the
+remaining SKILL-52.2 subtasks (2–5).
+
+The FQNs below are sourced from, and stay in strict-set parity with, the
+canonical SKILL-52.1 Open-Boundary Allow-List declared above between the
+`<!-- open-boundary-allowlist:start -->` / `<!-- open-boundary-allowlist:end -->`
+markers and the `RAW_MAP_OPEN_BOUNDARY_ALLOWLIST` companion constant in
+`runtime-core/src/test/kotlin/skillbill/architecture/RuntimeArchitectureTest.kt`.
+The architecture test
+`SKILL-52.2 inventory classifies every public raw-map declaration exactly once`
+parses this section and asserts that union(inventory FQNs) ==
+union(findRawMapViolations ∪ findAnnotatedOpenBoundaryDeclarations) across
+`runtime-application`, `runtime-domain`, and `runtime-ports`.
+
+The subtask ids tagged below (subtask 2, subtask 3, subtask 4, subtask 5) refer
+to SKILL-52.2 subtasks — they intentionally do NOT match the SKILL-52.1 subtask
+numbering used inside the allow-list comments above.
+
+Categories:
+
+- `must_type_now` — public raw-map producer that MUST be replaced with a typed
+  DTO during SKILL-52.2. Every entry carries its owning SKILL-52.2 subtask id.
+- `open_extension` (`@OpenBoundaryMap`) — typed-DTO field/function intentionally
+  modelled as an open boundary. The raw-map shape is the documented extension
+  point and is guarded by the `@OpenBoundaryMap` annotation parity check.
+- `private_serializer` — private/internal raw-map declaration that already
+  lives behind a typed seam (serialization scratch space). These are NOT
+  present in the SKILL-52.1 allow-list (which tracks only public surfaces) and
+  therefore contribute no FQNs to this inventory; the category is retained as
+  a planning slot so future audits can attach private serializer FQNs without
+  reshaping the markers.
+- `postponed_with_reason` — public raw-map surface whose retirement is
+  deliberately deferred beyond SKILL-52.2 (workflow-engine snapshot codec,
+  decomposition manifest codec/writer entrypoints, scaffold-policy
+  pure-policy entrypoints). Every entry carries its owning SKILL-52.2 subtask
+  id; the "reason" is the postponement note in the bullet.
+
+<!-- skill-52-2-inventory:start -->
+
+### must_type_now
+
+- `skillbill.application.ScaffoldService.scaffold` [subtask 2] — replace
+  raw-map payload with typed scaffold payload DTO.
+- `skillbill.ports.scaffold.ScaffoldGateway.scaffold` [subtask 2] — retire
+  raw-map seam in lockstep with `ScaffoldService.scaffold`.
+- `skillbill.application.SystemService.doctor` [subtask 3] — typed doctor
+  result DTO.
+- `skillbill.application.SystemService.version` [subtask 3] — typed version
+  result DTO.
+- `skillbill.application.lifecycleOkPayload` [subtask 3] — typed lifecycle
+  payload DTO.
+- `skillbill.application.lifecycleSkippedPayload` [subtask 3] — typed
+  lifecycle payload DTO.
+- `skillbill.application.lifecycleErrorPayload` [subtask 3] — typed
+  lifecycle payload DTO.
+- `skillbill.application.orchestratedStartedSkippedPayload` [subtask 3] —
+  typed orchestrated payload DTO.
+- `skillbill.application.orchestratedPayload` [subtask 3] — typed
+  orchestrated payload DTO.
+- `skillbill.application.LifecycleTelemetryService.featureImplementStarted`
+  [subtask 3] — typed telemetry event DTO.
+- `skillbill.application.LifecycleTelemetryService.featureImplementFinished`
+  [subtask 3] — typed telemetry event DTO.
+- `skillbill.application.LifecycleTelemetryService.qualityCheckStarted`
+  [subtask 3] — typed telemetry event DTO.
+- `skillbill.application.LifecycleTelemetryService.qualityCheckFinished`
+  [subtask 3] — typed telemetry event DTO.
+- `skillbill.application.LifecycleTelemetryService.featureVerifyStarted`
+  [subtask 3] — typed telemetry event DTO.
+- `skillbill.application.LifecycleTelemetryService.featureVerifyFinished`
+  [subtask 3] — typed telemetry event DTO.
+- `skillbill.application.LifecycleTelemetryService.prDescriptionGenerated`
+  [subtask 3] — typed telemetry event DTO.
+- `skillbill.application.ReviewService.previewImport` [subtask 3] — typed
+  review result DTO.
+- `skillbill.application.ReviewService.importReview` [subtask 3] — typed
+  review result DTO.
+- `skillbill.application.ReviewService.reviewFinishedTelemetryPayload`
+  [subtask 3] — typed review-telemetry payload DTO.
+- `skillbill.application.ReviewService.recordFeedback` [subtask 3] — typed
+  feedback result DTO.
+- `skillbill.application.ReviewService.telemetryPayload` [subtask 3] —
+  typed review-telemetry payload DTO.
+- `skillbill.application.ReviewService.reviewStats` [subtask 3] — typed
+  review stats DTO.
+- `skillbill.application.ReviewService.featureImplementStats` [subtask 3] —
+  typed feature-implement stats DTO.
+- `skillbill.application.ReviewService.featureVerifyStats` [subtask 3] —
+  typed feature-verify stats DTO.
+- `skillbill.application.telemetryPayload` [subtask 3] — typed telemetry
+  payload DTO.
+- `skillbill.application.TelemetryService.status` [subtask 3] — typed
+  telemetry status DTO.
+- `skillbill.application.TelemetryService.setLevel` [subtask 3] — typed
+  telemetry status DTO.
+- `skillbill.application.TelemetryService.capabilities` [subtask 3] —
+  typed telemetry capabilities DTO.
+- `skillbill.application.TelemetryService.remoteStats` [subtask 3] —
+  typed telemetry remote-stats DTO.
+- `skillbill.telemetry.defaultLocalTelemetryConfig` [subtask 3] — typed
+  telemetry config DTO.
+- `skillbill.telemetry.validateRemoteStatsCapabilities` [subtask 3] —
+  typed telemetry capabilities validation result.
+- `skillbill.telemetry.TelemetryConfigRuntime.defaultLocalConfig`
+  [subtask 3] — typed telemetry config DTO.
+- `skillbill.telemetry.TelemetryConfigRuntime.readLocalConfig` [subtask 3]
+  — typed telemetry config DTO.
+- `skillbill.telemetry.TelemetryConfigRuntime.ensureLocalConfig`
+  [subtask 3] — typed telemetry config DTO.
+- `skillbill.telemetry.TelemetryHttpRuntime.fetchProxyCapabilities`
+  [subtask 3] — typed telemetry capabilities DTO.
+- `skillbill.telemetry.TelemetryHttpRuntime.fetchRemoteStats` [subtask 3]
+  — typed telemetry remote-stats DTO.
+- `skillbill.telemetry.TelemetrySyncRuntime.syncResultPayload` [subtask 3]
+  — typed telemetry sync result DTO.
+- `skillbill.telemetry.TelemetrySyncRuntime.telemetryStatusPayload`
+  [subtask 3] — typed telemetry status DTO.
+- `skillbill.ports.persistence.ReviewRepository.updateReviewFinishedTelemetryState`
+  [subtask 3] — typed review-telemetry persistence DTO.
+- `skillbill.ports.persistence.ReviewRepository.recordFeedback` [subtask 3]
+  — typed feedback persistence DTO.
+- `skillbill.ports.persistence.ReviewRepository.reviewStatsPayload`
+  [subtask 3] — typed review stats persistence DTO.
+- `skillbill.ports.persistence.ReviewRepository.featureImplementStatsPayload`
+  [subtask 3] — typed feature-implement stats persistence DTO.
+- `skillbill.ports.persistence.ReviewRepository.featureVerifyStatsPayload`
+  [subtask 3] — typed feature-verify stats persistence DTO.
+- `skillbill.ports.telemetry.TelemetryClient.fetchProxyCapabilities`
+  [subtask 3] — typed telemetry capabilities port.
+- `skillbill.ports.telemetry.TelemetryClient.fetchRemoteStats` [subtask 3]
+  — typed telemetry remote-stats port.
+- `skillbill.ports.telemetry.TelemetryConfigStore.read` [subtask 3] —
+  typed telemetry config port.
+- `skillbill.ports.telemetry.TelemetryConfigStore.ensure` [subtask 3] —
+  typed telemetry config port.
+- `skillbill.ports.telemetry.TelemetryConfigStore.write` [subtask 3] —
+  typed telemetry config port.
+- `skillbill.learnings.learningPayload` [subtask 5] — typed learnings
+  payload DTO.
+- `skillbill.learnings.learningSummaryPayload` [subtask 5] — typed
+  learnings summary DTO.
+- `skillbill.learnings.scopeCounts` [subtask 5] — typed learnings scope
+  counts DTO.
+- `skillbill.learnings.learningSessionJson` [subtask 5] — typed learnings
+  session DTO.
+- `skillbill.learnings.summarizeLearningReferences` [subtask 5] — typed
+  learnings reference summary DTO.
+- `skillbill.learnings.learningEntryPayload` [subtask 5] — typed learnings
+  entry DTO.
+
+### open_extension (@OpenBoundaryMap)
+
+- `skillbill.workflow.WorkflowEngine.snapshotMap`
+- `skillbill.workflow.WorkflowEngine.summaryMap`
+- `skillbill.workflow.WorkflowEngine.resumeMap`
+- `skillbill.workflow.WorkflowEngine.continueMap`
+- `skillbill.application.WorkflowFamily.sessionSummary`
+- `skillbill.application.model.WorkflowUpdateRequest.stepUpdates`
+- `skillbill.application.model.WorkflowUpdateRequest.artifactsPatch`
+- `skillbill.application.model.FeatureImplementFinishedRequest.childSteps`
+- `skillbill.application.model.TelemetrySyncPayload.payload`
+- `skillbill.application.model.TriageResult.payload`
+- `skillbill.application.model.TriageResult.telemetryPayload`
+- `skillbill.application.model.DecompositionManifestWriteRequest.planningResult`
+- `skillbill.application.model.DecompositionManifestRuntimeUpdate.stepUpdates`
+- `skillbill.application.model.DecompositionManifestRuntimeUpdate.artifactsPatch`
+- `skillbill.application.model.DecompositionManifestRuntimeUpdate.existingArtifacts`
+- `skillbill.install.model.buildInstallPlanWireMap`
+- `skillbill.scaffold.model.PlatformManifest.customFields`
+- `skillbill.ports.scaffold.catalog.model.ScaffoldListResult.payload`
+- `skillbill.ports.scaffold.catalog.model.ScaffoldShowResult.payload`
+- `skillbill.ports.scaffold.catalog.model.ScaffoldExplainResult.payload`
+- `skillbill.ports.scaffold.repo.model.ScaffoldValidateResult.payload`
+- `skillbill.ports.scaffold.repo.model.ScaffoldUpgradeResult.payload`
+- `skillbill.ports.scaffold.source.model.ScaffoldFillResult.payload`
+- `skillbill.ports.scaffold.source.model.ScaffoldSaveExactContentResult.payload`
+- `skillbill.ports.scaffold.source.model.ScaffoldEditWithBodyFileResult.payload`
+- `skillbill.telemetry.model.FeatureImplementFinishedRecord.childSteps`
+- `skillbill.workflow.model.WorkflowSnapshotView.artifacts`
+- `skillbill.workflow.model.WorkflowContinueView.stepArtifacts`
+- `skillbill.workflow.model.WorkflowContinueView.extraFields`
+- `skillbill.workflow.model.WorkflowContinueView.sessionSummary`
+- `skillbill.workflow.model.WorkflowUpdateInput.stepUpdates`
+- `skillbill.workflow.model.WorkflowUpdateInput.artifactsPatch`
+- `skillbill.ports.validation.model.RepoValidationReport.toPayload`
+- `skillbill.ports.validation.model.ReleaseRefMetadata.toPayload`
+
+### private_serializer
+
+_None — the SKILL-52.1 allow-list tracks only public open-boundary surfaces.
+Private/internal serializer scratch space (e.g. `WorkflowEngine.validatedSnapshotMap`,
+`DecompositionManifestCodec` private extensions, `DecompositionManifestWriterSupport`
+internals, `baseStatusPayload`, `telemetryMutationPayload`, internal helpers in
+`TelemetryHttpRuntime` and `DefaultTelemetrySettingsProvider`) is intentionally
+out-of-scope for the public-surface architecture scanner and therefore not
+enumerated here. Future audits MAY attach private serializer FQNs to this
+category without reshaping the marker block._
+
+### postponed_with_reason
+
+- `skillbill.workflow.WorkflowEngine.continueDecision` [subtask 4] —
+  workflow-engine continue-decision raw-map `sessionSummary` parameter
+  stays a wire-shape seam until the workflow-snapshot typed-DTO pass.
+- `skillbill.workflow.DecompositionManifestCodec.decodeMap` [subtask 4] —
+  decomposition manifest codec entrypoint; retired together with the
+  workflow-snapshot typed-DTO pass.
+- `skillbill.workflow.toWireMap` [subtask 4] — workflow wire-map encoder;
+  retired together with the workflow-snapshot typed-DTO pass.
+- `skillbill.application.decodeDecompositionManifestMap` [subtask 4] —
+  decomposition manifest decode entrypoint; postponed with the workflow
+  family.
+- `skillbill.application.encodeDecompositionManifestMap` [subtask 4] —
+  decomposition manifest encode entrypoint; postponed with the workflow
+  family.
+- `skillbill.application.DecompositionManifestWriter.writeFromWorkflowUpdate`
+  [subtask 4] — decomposition manifest writer entrypoint; postponed with
+  the workflow family.
+- `skillbill.application.DecompositionManifestWriter.manifestFromWorkflowUpdate`
+  [subtask 4] — decomposition manifest writer entrypoint; postponed with
+  the workflow family.
+- `skillbill.application.DecompositionManifestWriter.maybeWriteFromWorkflowUpdate`
+  [subtask 4] — decomposition manifest writer entrypoint; postponed with
+  the workflow family.
+- `skillbill.scaffold.policy.requireString` [subtask 2] — pure-policy
+  entrypoint accepts the wire payload `Map<String, Any?>`; retired together
+  with the legacy `ScaffoldGateway` raw-map surface.
+- `skillbill.scaffold.policy.requireStringOrDefault` [subtask 2] — same
+  rationale as above.
+- `skillbill.scaffold.policy.validatePayloadVersion` [subtask 2] — same
+  rationale as above.
+- `skillbill.scaffold.policy.detectKind` [subtask 2] — same rationale as
+  above.
+- `skillbill.scaffold.policy.optionalSpecialistSubagents` [subtask 2] —
+  same rationale as above.
+- `skillbill.scaffold.policy.rejectLeafSubagentSpecialists` [subtask 2] —
+  same rationale as above.
+- `skillbill.scaffold.policy.rejectBaselineLayersForNonPlatformPack`
+  [subtask 2] — same rationale as above.
+- `skillbill.scaffold.policy.resolvePlatformPackSelection` [subtask 2] —
+  same rationale as above.
+- `skillbill.scaffold.policy.resolvePlatformPackDefaults` [subtask 2] —
+  same rationale as above.
+
+<!-- skill-52-2-inventory:end -->

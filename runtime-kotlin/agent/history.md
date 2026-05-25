@@ -1,3 +1,13 @@
+## [2026-05-25] SKILL-52.2 boundary-inventory-and-contract-targets
+Areas: runtime-kotlin/ARCHITECTURE.md, runtime-kotlin/runtime-core architecture tests, runtime-kotlin/runtime-domain (SkillRemoveFileSystem KDoc)
+- New `<!-- skill-52-2-inventory:start/end -->` section in ARCHITECTURE.md classifies every public raw-map FQN into four retirement categories (must_type_now, open_extension, private_serializer, postponed_with_reason) and tags must-type/postponed entries with their SKILL-52.2 subtask owner (2..5). reusable
+- `RuntimeArchitectureTest` now parses the new marker block and enforces strict-set parity with `RAW_MAP_OPEN_BOUNDARY_ALLOWLIST`, no-duplicate FQNs, `@OpenBoundaryMap`-annotated declarations placed in `open_extension`, and a subtask-id range check; a synthetic-fixture test guards the inventory parser per the SKILL-52.1 F-007 pattern. reusable
+- WorkflowEngine snapshotMap/summaryMap/resumeMap/continueMap and WorkflowFamily.sessionSummary are `@OpenBoundaryMap`-annotated so they belong in `open_extension`, not postponed; continueDecision (unannotated) stays postponed.
+- `SkillRemoveFileSystem` KDoc now points at `runtime-infra-fs/.../SkillRemoveJvmFileSystem.kt` instead of the stale `runtime-core` location.
+- Any future allow-list edit MUST update the inventory in the same change; strict-set parity is enforced both ways.
+Feature flag: N/A
+Acceptance criteria: 5/5 implemented
+
 ## [2026-05-24] SKILL-53 validation-contract-lock
 Areas: runtime-kotlin/runtime-cli, runtime-kotlin/runtime-application, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-desktop, runtime-kotlin/runtime-core architecture tests
 - Final SKILL-53 coverage locks CLI install persistence, detected/manual agent replay, MCP opt-out, desktop legacy preference migration, and install.sh runtime delegation without adding desktop dependencies. reusable
