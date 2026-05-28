@@ -24,9 +24,11 @@ runtime-core
 
 ## Gradle Modules
 
-- `runtime-contracts`: contract DTOs, JSON helpers, runtime surface contracts,
-  contract-version constants, runtime/schema parse-seam validators, schema
-  resource copy tasks, and runtime exception types.
+- `runtime-contracts`: contract DTOs, JSON/ordered-map helpers, runtime surface
+  contracts, `*SchemaPaths` constants, `*_CONTRACT_VERSION` constants, and the
+  `skillbill.error` runtime exception taxonomy. It no longer owns the JSON-Schema
+  validators or their schema-resource copy tasks; those moved to
+  `runtime-infra-fs` (see below).
 - `runtime-domain`: pure learning, review, telemetry, workflow, install-plan,
   scaffold, and skill-remove models/rules. Public domain data types live in
   area-owned `model` packages.
@@ -48,7 +50,12 @@ runtime-core
   install plan/apply, install staging, governed scaffold/load/render,
   repo validation, native-agent rendering/linking, launcher MCP registration,
   git workflow operations, decomposition-manifest file storage, and
-  skill-remove filesystem cascades.
+  skill-remove filesystem cascades. It also owns the concrete JSON-Schema
+  validators (`InstallPlanSchemaValidator`, `WorkflowStateSchemaValidator` /
+  `CanonicalWorkflowStateSchemaValidator`, `DecompositionManifestSchemaValidator`,
+  and the `DecompositionManifestCoherenceValidator`) plus their schema-resource
+  copy tasks (`copyInstallPlanSchema`, `copyWorkflowStateSchema`,
+  `copyDecompositionManifestSchema`), reached only through domain-neutral ports.
 - `runtime-core`: `RuntimeModule`, Kotlin-Inject component definitions, and DI
   providers. It may know concrete adapters only inside composition code.
   `runtime-core` publishes only the generated Kotlin-Inject ABI edges that its
@@ -159,8 +166,14 @@ runtime-ports
   there when both application and infrastructure need the same boundary
   contract.
 - `skillbill.contracts.*`: contract DTOs, JSON helpers, runtime surface
-  contracts, and schema validators. Mapping from application/domain/port models
-  into contract DTOs belongs in application or adapter-owned packages.
+  contracts, `*SchemaPaths` constants, and `*_CONTRACT_VERSION` constants.
+  Mapping from application/domain/port models into contract DTOs belongs in
+  application or adapter-owned packages. This package now spans two modules: the
+  DTOs, helpers, and constants compile in `runtime-contracts`, and the schema
+  validator classes under `skillbill.contracts.install` and
+  `skillbill.contracts.workflow` compile into `runtime-infra-fs`. The package
+  name is retained on the moved validators to preserve their classpath resource
+  paths and import compatibility (recorded in `agent/decisions.md` 2026-05-28).
 - `skillbill.error`: runtime exception taxonomy.
 - `skillbill.workflow` and `skillbill.workflow.model`: pure workflow engine,
   workflow definitions, decomposition manifest codec, wire-map conversion, and
@@ -348,6 +361,9 @@ runtime-ports
     - `skillbill.workflow.WorkflowEngine.continueMap`
     - `skillbill.workflow.WorkflowEngine.continueDecision`
     - `skillbill.workflow.WorkflowSnapshotValidator.validate`
+    - `skillbill.install.model.InstallPlanWireValidator.validate`
+    - `skillbill.workflow.DecompositionManifestValidator.validate`
+    - `skillbill.workflow.DecompositionManifestValidator.validateYamlText`
     - `skillbill.workflow.DecompositionManifestCodec.decodeMap`
     - `skillbill.workflow.toWireMap`
     - `skillbill.application.decodeDecompositionManifestMap`
@@ -457,17 +473,20 @@ skillbill.workflow.verify
 
 ## Runtime Contract And Schema Seams
 
-- Runtime contract schemas live in `orchestration/contracts/`. JVM validators,
-  contract-version constants, typed schema errors, and classpath resource copy
-  tasks live in `runtime-contracts` unless a schema is owned by a single
-  adapter surface.
+- Runtime contract schemas live in `orchestration/contracts/`. The
+  `*SchemaPaths` constants and `*_CONTRACT_VERSION` constants stay in
+  `runtime-contracts`. The JVM JSON-Schema validators, their typed schema
+  errors, and their classpath-resource copy tasks live in `runtime-infra-fs`,
+  reached only through the domain-neutral ports `InstallPlanWireValidator`,
+  `DecompositionManifestValidator`, and `WorkflowSnapshotValidator`.
 - Workflow-state schema validation is owned by
   `skillbill.contracts.workflow.WorkflowStateSchemaValidator` (its default
-  implementation `CanonicalWorkflowStateSchemaValidator`). The runtime-domain
-  workflow engine MUST NOT import that validator directly — instead it depends
-  on the domain-owned port `skillbill.workflow.WorkflowSnapshotValidator`,
-  which the application boundary wires via
-  `skillbill.application.workflow.WorkflowSnapshotValidatorAdapter`. The
+  implementation `CanonicalWorkflowStateSchemaValidator`), compiled into
+  `runtime-infra-fs`. The runtime-domain workflow engine MUST NOT import that
+  validator directly — instead it depends on the domain-owned port
+  `skillbill.workflow.WorkflowSnapshotValidator`, which the composition root
+  wires to the infra adapter
+  `skillbill.infrastructure.fs.WorkflowSnapshotValidatorInfraAdapter`. The
   owning read seam is still `skillbill.workflow.WorkflowEngine`; durable record
   mapping stays pure and the next engine read rejects drift. Architecture
   tests forbid any `skillbill.contracts.workflow.*SchemaValidator*` or
@@ -478,15 +497,20 @@ skillbill.workflow.verify
   `DECOMPOSITION_MANIFEST_CONTRACT_VERSION` constant, and the typed
   `InvalidWorkflowStateSchemaError`.)
 - Install-plan schema validation is owned by
-  `skillbill.contracts.install.InstallPlanSchemaValidator`. The owning seams
-  are install-plan building and CLI/MCP emission through the install
-  application and filesystem adapter path.
+  `skillbill.contracts.install.InstallPlanSchemaValidator`, compiled into
+  `runtime-infra-fs` and reached through the domain-owned port
+  `skillbill.install.model.InstallPlanWireValidator`. The owning seams are
+  install-plan building and CLI/MCP emission, both of which validate through the
+  injected port rather than importing the validator directly.
 - Decomposition-manifest schema validation is owned by
-  `skillbill.contracts.workflow.DecompositionManifestSchemaValidator`. The
-  owning parse/emission seam is
-  `skillbill.application.DecompositionManifestFileWrites`, which validates
-  YAML text and in-memory maps before workflow artifacts are persisted or
-  returned. Repo-local manifest text persistence is owned by
+  `skillbill.contracts.workflow.DecompositionManifestSchemaValidator` (paired
+  with `DecompositionManifestCoherenceValidator`), compiled into
+  `runtime-infra-fs` and reached through the domain-owned port
+  `skillbill.workflow.DecompositionManifestValidator`. The owning parse/emission
+  seam is `skillbill.application.DecompositionManifestFileWrites`, which
+  validates YAML text and in-memory maps through that port before workflow
+  artifacts are persisted or returned. Repo-local manifest text persistence is
+  owned by
   `skillbill.infrastructure.fs.FileSystemDecompositionManifestFileStore`
   behind `skillbill.ports.workflow.DecompositionManifestFileStore`.
 - Platform-pack manifest schema validation is owned by
@@ -702,6 +726,9 @@ Categories:
 - `skillbill.workflow.WorkflowEngine.resumeMap`
 - `skillbill.workflow.WorkflowEngine.continueMap`
 - `skillbill.workflow.WorkflowSnapshotValidator.validate`
+- `skillbill.install.model.InstallPlanWireValidator.validate`
+- `skillbill.workflow.DecompositionManifestValidator.validate`
+- `skillbill.workflow.DecompositionManifestValidator.validateYamlText`
 - `skillbill.application.WorkflowFamily.sessionSummary`
 - `skillbill.application.model.WorkflowUpdateRequest.stepUpdates`
 - `skillbill.application.model.WorkflowUpdateRequest.artifactsPatch`

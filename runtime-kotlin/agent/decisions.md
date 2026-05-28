@@ -121,3 +121,51 @@ pattern is intentional for install-plan.
   `interface + Canonical*` shape. This is acceptable while the validator has a
   single in-process consumer; revisit (lift to an interface + canonical impl)
   when a second consumer needs to substitute a fake.
+
+## 2026-05-28 — Schema validators move from runtime-contracts to runtime-infra-fs, reached through domain ports
+
+**Context.** SKILL-52.3 closes the runtime hexagon leak: the foundational
+`runtime-contracts` leaf owned three networknt + Jackson + filesystem schema
+validators (`InstallPlanSchemaValidator`, `WorkflowStateSchemaValidator` /
+`CanonicalWorkflowStateSchemaValidator`, `DecompositionManifestSchemaValidator`)
+plus the `DecompositionManifestCoherenceValidator`, and `runtime-domain` install
+policy invoked the concrete install-plan validator at runtime. A contract leaf
+and the domain should not own infrastructure-grade schema loading.
+
+**Decision.** Move all three schema validators and the coherence validator into
+`runtime-infra-fs` — the module that already owns `PlatformPackSchemaValidator`
+and `NativeAgentCompositionSchemaValidator`. Reach them only through
+domain-owned ports that generalize the existing `WorkflowSnapshotValidator`
+pattern: `InstallPlanWireValidator` (runtime-domain `skillbill.install.model`)
+and `DecompositionManifestValidator` (runtime-domain `skillbill.workflow`).
+Wire each port to an infra-fs adapter through `RuntimeComponent` with
+`@Provides @JvmSynthetic internal`, exactly like every other infra adapter.
+The pure `*SchemaPaths` and `*_CONTRACT_VERSION` constants stay in
+`runtime-contracts`; the networknt + Jackson dependencies and the three schema
+`Copy` tasks move with the validators to `runtime-infra-fs`. The library choice
+is unchanged.
+
+**Reason.** Keeping `Path`-free constants in contracts preserves the single
+source of truth for schema locations while removing infrastructure ownership
+from the contract leaf and the domain. Routing every validator through a
+domain-owned port keeps the three validators reached uniformly and lets the
+composition root own the concrete wiring, so `runtime-domain`'s runtime closure
+no longer pulls networknt/Jackson transitively.
+
+**Supersedes.**
+
+- 2026-05-24 "Preserve dual install-plan validation after policy extraction" —
+  dual-seam coverage (builder + CLI emission) is preserved, but neither seam may
+  live inside `runtime-domain`; both now validate through the injected
+  `InstallPlanWireValidator` port.
+- 2026-05-18 "Platform-pack manifest validation moves to a canonical JSON
+  Schema" added the validator dependencies to `runtime-core`; they later moved
+  to `runtime-contracts`. This subtask moves all schema validators to
+  `runtime-infra-fs`, the module that already owns the platform-pack validator.
+
+**Note.** The infra-side adapters live in `runtime-infra-fs`, not
+`runtime-application`, because the application layer cannot depend on infra
+without inverting the hexagon. The former `runtime-application`
+`WorkflowSnapshotValidatorAdapter` is superseded by
+`WorkflowSnapshotValidatorInfraAdapter`. Final source-of-truth wording for the
+schema files themselves is deferred to subtask 5.
