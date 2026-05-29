@@ -1622,16 +1622,6 @@ class RuntimeArchitectureTest {
       "skillbill.telemetry.model.TelemetryConfigDocument.payload",
       "skillbill.telemetry.model.TelemetryProxyCapabilities.additionalFields",
       "skillbill.telemetry.model.TelemetryRemoteStatsResult.metrics",
-      // SKILL-52.1 subtask 3 — typed scaffold result models that carry the legacy raw-map
-      // wire payload through a single `@OpenBoundaryMap`-annotated `payload` field.
-      "skillbill.ports.scaffold.catalog.model.ScaffoldListResult.payload",
-      "skillbill.ports.scaffold.catalog.model.ScaffoldShowResult.payload",
-      "skillbill.ports.scaffold.catalog.model.ScaffoldExplainResult.payload",
-      "skillbill.ports.scaffold.repo.model.ScaffoldValidateResult.payload",
-      "skillbill.ports.scaffold.repo.model.ScaffoldUpgradeResult.payload",
-      "skillbill.ports.scaffold.source.model.ScaffoldFillResult.payload",
-      "skillbill.ports.scaffold.source.model.ScaffoldSaveExactContentResult.payload",
-      "skillbill.ports.scaffold.source.model.ScaffoldEditWithBodyFileResult.payload",
       "skillbill.telemetry.model.FeatureImplementFinishedRecord.childSteps",
       "skillbill.workflow.model.WorkflowSnapshotView.artifacts",
       "skillbill.workflow.model.WorkflowContinueView.stepArtifacts",

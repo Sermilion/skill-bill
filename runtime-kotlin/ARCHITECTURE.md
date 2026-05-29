@@ -333,14 +333,16 @@ runtime-ports
     (the return value is unused beyond signalling success), `validate`
     consumes the typed `ScaffoldValidateResult.status` field for the
     pass/fail decision, and `list` consumes a typed
-    `List<AuthoredSkillEntry>` projected by a dedicated mapper. Any
-    remaining raw-shape decoding (issue strings on `ScaffoldValidateResult.payload`,
-    structural list entries on `ScaffoldListResult.payload`) is contained
-    in `runtime-desktop:core:data/.../service/mapper/` files that take
-    the typed result as the receiver. The
-    `RuntimeDesktopGatewayPolicyTest` architecture test scans
-    `RuntimeRepoBrowserService.kt` for raw-map `.payload[`/
-    `.payload.toSelected` patterns and fails on any regression.
+    `List<AuthoredSkillEntry>` projected by a dedicated mapper. SKILL-52.3
+    subtask 3 then retired the `@OpenBoundaryMap` `payload` fields on the
+    scaffold result DTOs entirely, so the desktop
+    `runtime-desktop:core:data/.../service/mapper/` files
+    (`ScaffoldListResultMapper`, `ValidationSummaryMapper`) now consume the
+    typed `ScaffoldListResult.skills` / `ScaffoldValidateResult.status` +
+    `issues` fields directly with no raw-map indexing. The
+    `RuntimeDesktopGatewayPolicyTest` architecture test forbids raw-map
+    `.payload[` reads in the desktop service/mapper sources outright and
+    fails on any regression.
 
     Service/gateway PUBLIC APIs MAY NOT return raw `Map<String, Any?>`.
     Once a producer is typed (subtask 3 retired the eight
@@ -349,9 +351,13 @@ runtime-ports
     re-adding a raw-map return type at the service/gateway level
     requires an explicit allow-list entry AND a documented rationale.
     The pattern's exemplars are `PlatformManifest.customFields` (open
-    boundary for schema custom fields), `WorkflowSnapshotView.artifacts`
-    (durable workflow artifacts passthrough), and the eight scaffold
-    typed-result-model `payload` fields enumerated below.
+    boundary for schema custom fields) and `WorkflowSnapshotView.artifacts`
+    (durable workflow artifacts passthrough). The eight scaffold
+    typed-result-model `payload` fields that SKILL-52.1 subtask 3 left as
+    exemplars were retired in SKILL-52.3 subtask 3: each `Scaffold*Result`
+    DTO is now fully typed and the wire map is rebuilt in the adapter
+    mappers (`runtime-cli` `ScaffoldCliResultMappers`, desktop
+    `ScaffoldListResultMapper` / `ValidationSummaryMapper`).
 
     <!-- open-boundary-allowlist:start -->
 
@@ -404,14 +410,6 @@ runtime-ports
     - `skillbill.telemetry.model.TelemetryConfigDocument.payload`
     - `skillbill.telemetry.model.TelemetryProxyCapabilities.additionalFields`
     - `skillbill.telemetry.model.TelemetryRemoteStatsResult.metrics`
-    - `skillbill.ports.scaffold.catalog.model.ScaffoldListResult.payload`
-    - `skillbill.ports.scaffold.catalog.model.ScaffoldShowResult.payload`
-    - `skillbill.ports.scaffold.catalog.model.ScaffoldExplainResult.payload`
-    - `skillbill.ports.scaffold.repo.model.ScaffoldValidateResult.payload`
-    - `skillbill.ports.scaffold.repo.model.ScaffoldUpgradeResult.payload`
-    - `skillbill.ports.scaffold.source.model.ScaffoldFillResult.payload`
-    - `skillbill.ports.scaffold.source.model.ScaffoldSaveExactContentResult.payload`
-    - `skillbill.ports.scaffold.source.model.ScaffoldEditWithBodyFileResult.payload`
     - `skillbill.telemetry.model.FeatureImplementFinishedRecord.childSteps`
     - `skillbill.workflow.model.WorkflowSnapshotView.artifacts`
     - `skillbill.workflow.model.WorkflowContinueView.stepArtifacts`
@@ -742,14 +740,6 @@ Categories:
 - `skillbill.telemetry.model.TelemetryConfigDocument.payload`
 - `skillbill.telemetry.model.TelemetryProxyCapabilities.additionalFields`
 - `skillbill.telemetry.model.TelemetryRemoteStatsResult.metrics`
-- `skillbill.ports.scaffold.catalog.model.ScaffoldListResult.payload`
-- `skillbill.ports.scaffold.catalog.model.ScaffoldShowResult.payload`
-- `skillbill.ports.scaffold.catalog.model.ScaffoldExplainResult.payload`
-- `skillbill.ports.scaffold.repo.model.ScaffoldValidateResult.payload`
-- `skillbill.ports.scaffold.repo.model.ScaffoldUpgradeResult.payload`
-- `skillbill.ports.scaffold.source.model.ScaffoldFillResult.payload`
-- `skillbill.ports.scaffold.source.model.ScaffoldSaveExactContentResult.payload`
-- `skillbill.ports.scaffold.source.model.ScaffoldEditWithBodyFileResult.payload`
 - `skillbill.telemetry.model.FeatureImplementFinishedRecord.childSteps`
 - `skillbill.workflow.model.WorkflowSnapshotView.artifacts`
 - `skillbill.workflow.model.WorkflowContinueView.stepArtifacts`
