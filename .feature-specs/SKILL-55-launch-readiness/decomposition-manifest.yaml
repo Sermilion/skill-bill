@@ -9,7 +9,7 @@ base_branch: "main"
 feature_branch: "feat/SKILL-55-launch-readiness"
 stack_branches: []
 current_subtask_intent:
-  subtask_id: 5
+  subtask_id: 6
   action: "start"
 subtasks:
 - id: 1
@@ -64,12 +64,12 @@ subtasks:
 - id: 5
   name: "front-door-readme-and-demo"
   spec_path: ".feature-specs/SKILL-55-launch-readiness/spec_subtask_5_front-door-readme-and-demo.md"
-  status: "pending"
-  branch: null
+  status: "complete"
+  branch: "feat/SKILL-55-launch-readiness"
   commit_sha: null
-  workflow_id: null
+  workflow_id: "wfl-20260529-183253-dpvc"
   blocked_reason: null
-  last_resumable_step: null
+  last_resumable_step: "finish"
   dependencies:
   - subtask_id: 4
     optional: false

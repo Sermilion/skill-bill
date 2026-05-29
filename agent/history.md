@@ -1,3 +1,14 @@
+## [2026-05-29] SKILL-55 subtask 5 front-door-readme-and-demo
+Areas: README.md, docs/getting-started.md, docs/assets/ (demo placeholder + storyboard + capture instructions)
+- README front door rebuilt by REORDERING (drop nothing): hero+H1 → one-sentence jargon-free hook → demo asset → ≤60s prebuilt quickstart → split prerequisites → complexity-objection paragraph; the 11-capability deep dive / architecture / reference-pack / validation all moved below the fold. reusable
+- Demo asset convention: binary capture is produced out-of-band, so commit a real on-disk placeholder SVG (agnix --strict fails on a referenced-but-missing asset) plus a storyboard.md and capture-instructions.md that name the canonical swap-in filename (docs/assets/skill-bill-demo.gif). The missing binary is explicitly called out, never silently omitted. reusable
+- Install docs now lead with the prebuilt default; from-source/Gradle (+JDK) is the opt-in path. README and getting-started reconciled so the pinned-install path uses install.sh `--release TAG` / `SKILL_BILL_RELEASE_TAG`, not `git clone --branch`. Prebuilt prereqs documented as curl/tar/unzip/shasum — NO JDK, NO gh.
+- Spec/reality correction carried from subtask 4: there is NO `skill-bill desktop install` subcommand; the documented add-it-later one-liner is `./install.sh --desktop-app-only`. Do not reintroduce the fictional subcommand. reusable
+- PRESERVE-EXACTLY landmarks for any README restructure: the 5 "Start here" docs links and the `| Skill | Purpose |` backtick-wrapped alphabetical `/bill-*` catalog table — the scaffold append path (ReadmeCatalogEdits.kt / ReadmeCatalogAppendTest) and scripts/validate_agent_configs depend on that exact shape; never renumber, re-sort, or change backtick style. reusable
+- Docs-only validation is repo-native (`npx --yes agnix --strict .` + `scripts/validate_agent_configs`); bill-quality-check's Kotlin/KMP routing does not cover a Markdown-only diff.
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented (subtask scope)
+
 ## [2026-05-29] SKILL-55 subtask 4 install-prebuilt-first
 Areas: install.sh (repo-root installer), uninstall.sh, runtime-kotlin/runtime-core InstallerShellDelegationTest
 - install.sh now fetches + checksum-verifies the prebuilt per-OS runtime images by DEFAULT (no JDK, no Gradle); `--from-source` restores the old Gradle path and is also the automatic fallback when no asset matches the host token. Seam: new `install_runtime_distributions` dispatcher in front of the existing `build_kotlin_runtime_distributions`; unpacked image dirs feed the EXISTING `install_packaged_runtime_distribution` (cp→.tmp + atomic mv) unchanged. reusable
