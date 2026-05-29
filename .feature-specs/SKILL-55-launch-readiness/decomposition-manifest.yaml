@@ -3,14 +3,14 @@ contract_version: "0.2"
 issue_key: "SKILL-55"
 feature_name: "launch-readiness"
 parent_spec_path: ".feature-specs/SKILL-55-launch-readiness/spec.md"
-status: "in_progress"
+status: "complete"
 execution_model: "same_branch_commit_per_subtask"
 base_branch: "main"
 feature_branch: "feat/SKILL-55-launch-readiness"
 stack_branches: []
 current_subtask_intent:
   subtask_id: 6
-  action: "start"
+  action: "complete"
 subtasks:
 - id: 1
   name: "self-contained-runtime-images"
@@ -77,12 +77,12 @@ subtasks:
 - id: 6
   name: "launch-kit"
   spec_path: ".feature-specs/SKILL-55-launch-readiness/spec_subtask_6_launch-kit.md"
-  status: "pending"
-  branch: null
+  status: "complete"
+  branch: "feat/SKILL-55-launch-readiness"
   commit_sha: null
-  workflow_id: null
+  workflow_id: "wfl-20260529-190149-2hbx"
   blocked_reason: null
-  last_resumable_step: null
+  last_resumable_step: "finish"
   dependencies:
   - subtask_id: 5
     optional: false

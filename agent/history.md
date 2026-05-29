@@ -1,3 +1,13 @@
+## [2026-05-29] SKILL-55 subtask 6 launch-kit
+Areas: .feature-specs/SKILL-55-launch-readiness/launch-kit/ (Reddit drafts, subreddit plan, objection FAQ, Product Hunt kit, go/no-go checklist, sequencing note)
+- Capstone of the SKILL-55 launch-readiness decomposition (subtasks 1-6 now complete): assets-and-plan-only, 7 Markdown files, no code/installer change. Kit lives in-repo so it versions with the product and the go/no-go gate stays honest against what actually shipped. reusable
+- Launch/marketing copy MUST be accuracy-gated against shipped reality — treat it like docs, not aspiration. Anchor every kit file to a single ground-truth fact sheet (launch-kit/README.md) and forbid stating unshipped features as shipped. reusable
+- Live accuracy traps for skill-bill launch copy (all enforced here): installers are UNSIGNED v1 so the Gatekeeper/SmartScreen "won't open" FAQ is load-bearing (steps verbatim from runtime-kotlin/agent/decisions.md, Linux has no gate); the demo is a placeholder SVG, the real GIF is not recorded, so any "demo video" is PLANNED/storyboarded only; there is NO `skill-bill desktop install` subcommand (`./install.sh --desktop-app-only`); no public release tag is cut yet and .rpm/.dmg/.msi extraction is CI-unexercised, so the go/no-go checklist keeps those gates OPEN, never pre-checked. reusable
+- Sequencing: Reddit first (narrative-led soft launch to sharpen the pitch) once go/no-go open items clear; Product Hunt later as the artifact-gated set-piece (all-OS prebuilt artifacts live + verified clean-machine install + recorded demo). reusable
+- Docs-only validation is repo-native (`npx --yes agnix --strict .` + `scripts/validate_agent_configs`); both passed clean. agnix --strict fails on a referenced-but-missing asset, so the kit links only to on-disk assets (placeholder SVG, storyboard, capture-instructions), never the unrecorded GIF.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented (subtask scope)
+
 ## [2026-05-29] SKILL-55 subtask 5 front-door-readme-and-demo
 Areas: README.md, docs/getting-started.md, docs/assets/ (demo placeholder + storyboard + capture instructions)
 - README front door rebuilt by REORDERING (drop nothing): hero+H1 → one-sentence jargon-free hook → demo asset → ≤60s prebuilt quickstart → split prerequisites → complexity-objection paragraph; the 11-capability deep dive / architecture / reference-pack / validation all moved below the fold. reusable
