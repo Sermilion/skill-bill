@@ -9,7 +9,7 @@ base_branch: "main"
 feature_branch: "feat/SKILL-55-launch-readiness"
 stack_branches: []
 current_subtask_intent:
-  subtask_id: 4
+  subtask_id: 5
   action: "start"
 subtasks:
 - id: 1
@@ -51,12 +51,12 @@ subtasks:
 - id: 4
   name: "install-prebuilt-first"
   spec_path: ".feature-specs/SKILL-55-launch-readiness/spec_subtask_4_install-prebuilt-first.md"
-  status: "pending"
-  branch: null
+  status: "complete"
+  branch: "feat/SKILL-55-launch-readiness"
   commit_sha: null
-  workflow_id: null
+  workflow_id: "wfl-20260529-165425-dwyk"
   blocked_reason: null
-  last_resumable_step: null
+  last_resumable_step: "finish"
   dependencies:
   - subtask_id: 3
     optional: false
