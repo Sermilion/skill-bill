@@ -9,8 +9,8 @@ base_branch: "main"
 feature_branch: "feat/SKILL-55-launch-readiness"
 stack_branches: []
 current_subtask_intent:
-  subtask_id: 0
-  action: "none"
+  subtask_id: 3
+  action: "start"
 subtasks:
 - id: 1
   name: "self-contained-runtime-images"
@@ -25,12 +25,12 @@ subtasks:
 - id: 2
   name: "desktop-app-installers"
   spec_path: ".feature-specs/SKILL-55-launch-readiness/spec_subtask_2_desktop-app-installers.md"
-  status: "pending"
-  branch: null
+  status: "complete"
+  branch: "feat/SKILL-55-launch-readiness"
   commit_sha: null
-  workflow_id: null
+  workflow_id: "wfl-20260529-125256-4aas"
   blocked_reason: null
-  last_resumable_step: null
+  last_resumable_step: "finish"
   dependencies: []
 - id: 3
   name: "ci-release-pipeline"

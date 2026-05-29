@@ -1,4 +1,5 @@
 import dev.skillbill.runtime.buildlogic.RuntimeImageExtension
+import dev.skillbill.runtime.buildlogic.writeSha256Sidecar
 import org.beryx.runtime.BaseTask
 import org.beryx.runtime.data.RuntimePluginExtension
 import org.gradle.api.Plugin
@@ -12,7 +13,6 @@ import org.gradle.kotlin.dsl.getByType
 import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.withType
 import java.io.File
-import java.security.MessageDigest
 
 /**
  * SKILL-55 subtask 1 (F-004 + F-005 + F-006 + F-008): hoists the previously verbatim-
@@ -59,8 +59,6 @@ class RuntimeImageConventionPlugin : Plugin<Project> {
       "Badass Runtime is not configuration-cache compatible (serializes Gradle model objects)."
 
     const val UNSUPPORTED_HOST_SEGMENT = "unsupported-host"
-
-    const val SHA256_BUFFER_BYTES = 64 * 1024
   }
 
   override fun apply(target: Project) {
@@ -167,18 +165,10 @@ class RuntimeImageConventionPlugin : Plugin<Project> {
       outputs.file(checksumPath)
       notCompatibleWithConfigurationCache("Sidecar follows the not-cacheable runtimeZip task.")
       doLast {
-        val archive = File(archivePath)
-        val digest = MessageDigest.getInstance("SHA-256")
-        archive.inputStream().use { stream ->
-          val buffer = ByteArray(SHA256_BUFFER_BYTES)
-          while (true) {
-            val read = stream.read(buffer)
-            if (read < 0) break
-            digest.update(buffer, 0, read)
-          }
-        }
-        val hex = digest.digest().joinToString("") { byteValue -> "%02x".format(byteValue) }
-        File(checksumPath).writeText("$hex  ${archive.name}\n")
+        // F-001: delegate to the shared sidecar writer so the `<hex>  <name>\n` format
+        // stays byte-identical with runtime-desktop's installer sidecars. The sidecar it
+        // writes (<archive>.sha256) is exactly the declared `checksumPath` output above.
+        writeSha256Sidecar(File(archivePath))
       }
     }
   }
