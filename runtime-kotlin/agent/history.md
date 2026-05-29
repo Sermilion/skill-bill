@@ -1,3 +1,14 @@
+## [2026-05-29] SKILL-56 subtask 1 headless-continuation-contract
+Areas: runtime-kotlin/runtime-application, runtime-kotlin/runtime-domain, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-mcp, orchestration/contracts, skills/bill-feature-implement
+- Added issue-key goal continuation for decomposed feature-implement parents with optional `subtask_id` constraint; domain selector now has a terminal-subtask outcome so retrying a completed requested subtask is idempotent while later work remains. reusable
+- New subtask workflows start at `preplan` with `assessment`/`branch`/`goal_continuation` artifacts already persisted; interactive feature-implement still owns confirmation and PR creation.
+- Goal-continuation outcomes are typed in application results and mapped to stable CLI/MCP wire fields: `issue_key`, `subtask_id`, `status`, `commit_sha`, `workflow_id`, `blocked_reason`, `last_resumable_step`. reusable
+- PR-suppressed completion treats completed `commit_push` plus nonblank `commit_push_result.commit_sha` as terminal success; missing commit SHA blocks loudly instead of duplicating later commit advancement.
+- MCP `feature_implement_workflow_continue` now accepts strict integer `subtask_id`; telemetry event schema mirrors the registry input schema to keep parity tests green.
+- Headless exercise recorded in the subtask spec: installed runtime must be refreshed before launcher adapters depend on new options; durable workflow state is authoritative, not stdout or git-tracked manifest projections.
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented (subtask scope)
+
 ## [2026-05-29] SKILL-55 subtask 2 desktop-app-installers
 Areas: runtime-kotlin/runtime-desktop, runtime-kotlin/build-logic/convention, runtime-kotlin/agent/decisions.md, runtime-kotlin/README.md
 - Turned the existing Compose `nativeDistributions` (`packageDmg/Msi/Deb/Rpm`) into canonically-named, checksummed per-OS installers. jpackage AND the Compose Dmg validator (eager at config time) reject qualified/non-numeric versions, and macOS requires MAJOR>=1: derive a jpackage-legal `MAJOR.MINOR.PATCH` from `project.version` via the new pure `dev.skillbill.runtime.buildlogic.toJpackageVersion` (strips `-SNAPSHOT`/qualifier, pads, leading-digit run per component), plus a macOS-only `toMacAppVersion` that bumps a zero major to 1 (`0.1.0`->`1.1.0`). reusable
