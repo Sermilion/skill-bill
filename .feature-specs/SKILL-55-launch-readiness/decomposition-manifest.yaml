@@ -9,8 +9,8 @@ base_branch: "main"
 feature_branch: "feat/SKILL-55-launch-readiness"
 stack_branches: []
 current_subtask_intent:
-  subtask_id: 2
-  action: "start"
+  subtask_id: 0
+  action: "none"
 subtasks:
 - id: 1
   name: "self-contained-runtime-images"
