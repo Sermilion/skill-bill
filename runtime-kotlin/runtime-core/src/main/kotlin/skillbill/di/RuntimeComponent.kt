@@ -2,6 +2,7 @@ package skillbill.di
 
 import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Provides
+import skillbill.application.AgentRunService
 import skillbill.application.InstallAgentService
 import skillbill.application.InstallService
 import skillbill.application.LearningService
@@ -51,7 +52,9 @@ import skillbill.infrastructure.http.HttpTelemetryClient
 import skillbill.infrastructure.http.JdkHttpRequester
 import skillbill.infrastructure.sqlite.SQLiteDatabaseSessionFactory
 import skillbill.install.model.InstallPlanWireValidator
+import skillbill.launcher.FileSystemAgentRunLauncher
 import skillbill.model.RuntimeContext
+import skillbill.ports.agentrun.AgentRunLauncher
 import skillbill.ports.install.agent.InstallAgentTargetPort
 import skillbill.ports.install.apply.InstallApplyExecutionPort
 import skillbill.ports.install.link.InstallSkillLinkPort
@@ -177,6 +180,10 @@ abstract class RuntimeComponent(
 
   @Provides
   @JvmSynthetic
+  internal fun agentRunLauncher(adapter: FileSystemAgentRunLauncher): AgentRunLauncher = adapter
+
+  @Provides
+  @JvmSynthetic
   internal fun installSelectionPersistencePort(
     adapter: FileSystemInstallSelectionPersistence,
   ): InstallSelectionPersistencePort = adapter
@@ -272,6 +279,7 @@ abstract class RuntimeComponent(
     adapter
 
   abstract val installService: InstallService
+  abstract val agentRunService: AgentRunService
   abstract val installAgentService: InstallAgentService
   abstract val installSelectionPersistencePort: InstallSelectionPersistencePort
   abstract val learningService: LearningService

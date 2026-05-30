@@ -1,3 +1,13 @@
+## [2026-05-30] SKILL-56 subtask 2 agent-agnostic-launcher
+Areas: runtime-kotlin/runtime-ports, runtime-kotlin/runtime-application, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-core
+- Added `AgentRunLauncher` as a technology-neutral port with typed launch request/outcome models; launcher outcomes are process facts only and never infer subtask success from stdout. reusable
+- Added `AgentRunService` to resolve configured override before invoked `bill-goal` agent via `InstallAgent`; unknown agents fail before launch and supported agents without headless paths return explicit unsupported outcomes.
+- Infra-fs owns fresh-process spawning, command construction, environment inheritance, bounded UTF-8 stdout/stderr capture, timeout destroy+wait, and spawn-failure mapping; keep all process/env work out of application/domain/ports. reusable
+- Headless adapters currently cover Claude, Codex, and OpenCode; Copilot and Junie are deliberately unsupported until a proven headless skill-run path exists.
+- RuntimeComponent exposes the service and architecture/surface tests lock the composition-only binding plus launcher operation surface.
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented (subtask scope)
+
 ## [2026-05-29] SKILL-56 subtask 1 headless-continuation-contract
 Areas: runtime-kotlin/runtime-application, runtime-kotlin/runtime-domain, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-mcp, orchestration/contracts, skills/bill-feature-implement
 - Added issue-key goal continuation for decomposed feature-implement parents with optional `subtask_id` constraint; domain selector now has a terminal-subtask outcome so retrying a completed requested subtask is idempotent while later work remains. reusable

@@ -9,8 +9,8 @@ base_branch: "main"
 feature_branch: "feat/SKILL-56-agent-independent-goal-runner"
 stack_branches: []
 current_subtask_intent:
-  subtask_id: 2
-  action: "start"
+  subtask_id: 0
+  action: "none"
 subtasks:
 - id: 1
   name: "headless-continuation-contract"
@@ -25,12 +25,12 @@ subtasks:
 - id: 2
   name: "agent-agnostic-launcher"
   spec_path: ".feature-specs/SKILL-56-agent-independent-goal-runner/spec_subtask_2_agent-agnostic-launcher.md"
-  status: "pending"
-  branch: null
+  status: "complete"
+  branch: "feat/SKILL-56-agent-independent-goal-runner"
   commit_sha: null
-  workflow_id: null
+  workflow_id: "wfl-20260530-074310-dm7q"
   blocked_reason: null
-  last_resumable_step: null
+  last_resumable_step: "finish"
   dependencies:
   - subtask_id: 1
     optional: false
