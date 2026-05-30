@@ -33,7 +33,7 @@ class AgentRunLauncherTest {
     assertContains(request.command.last(), "bill-feature-implement")
     assertContains(
       request.command.last(),
-      "skill-bill --db /tmp/skillbill-agent-run/metrics.db workflow continue SKILL-56 --subtask-id 2",
+      "skill-bill --db /tmp/skillbill-agent-run/metrics.db workflow continue SKILL-56 --subtask-id 2 --format json",
     )
     assertTrue(request.inheritEnvironment)
     assertEquals(emptyMap(), request.environment)
@@ -53,6 +53,10 @@ class AgentRunLauncherTest {
     assertFalse(request.command.any { value -> "First execute this exact command" in value })
     assertContains(requireNotNull(request.stdinText), "First execute this exact command")
     assertContains(requireNotNull(request.stdinText), "Return exactly the `RESULT:` block")
+    assertContains(
+      requireNotNull(request.stdinText),
+      "Never call `skill-bill workflow update` just to mark blocked.",
+    )
     assertTrue(request.inheritEnvironment)
   }
 
@@ -86,7 +90,7 @@ class AgentRunLauncherTest {
     assertContains(request.command.last(), "First execute this exact command")
     assertContains(
       request.command.last(),
-      "skill-bill --db /tmp/skillbill-agent-run/metrics.db workflow continue SKILL-56 --subtask-id 2",
+      "skill-bill --db /tmp/skillbill-agent-run/metrics.db workflow continue SKILL-56 --subtask-id 2 --format json",
     )
     assertTrue(request.inheritEnvironment)
   }

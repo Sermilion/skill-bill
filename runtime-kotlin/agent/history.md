@@ -1,3 +1,11 @@
+## [2026-05-30] SKILL-57 subtask 1 continuation-prompt-and-parent-lineage-hardening
+Areas: runtime-kotlin/runtime-application (decomposition workflow lookup), runtime-kotlin/runtime-infra-fs launcher prompt contract, related runtime tests
+- Goal-continuation child workflows now opt out of decomposed-parent lookup even when their artifacts still include `plan.mode=decompose`; parent issue-key continuation selects true parent lineage instead of accidentally reselecting a child workflow record. reusable
+- The launcher continuation prompt contract now hard-requires JSON workflow continuation (`skill-bill ... workflow continue ... --format json`) and explicitly forbids using workflow-update as a synthetic blocked marker; durable `continue_status=blocked|done` is authoritative and must terminate the run. reusable
+- Regression tests lock both behaviors: workflow-service coverage for child-vs-parent lineage selection and launcher command/prompt assertions for `--format json` plus the non-forced-blocking instruction text.
+Feature flag: N/A
+Acceptance criteria: 3/3 implemented (subtask continuation fix scope)
+
 ## [2026-05-30] SKILL-56 subtask 4 cli-and-bill-goal-skill
 Areas: runtime-kotlin/runtime-cli, runtime-kotlin/runtime-application, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-core, skills/bill-goal
 - Added the foreground `skill-bill goal` command and read-only `goal status` surface over the subtask-3 `GoalRunner`/status projection; CLI remains a thin adapter with text/payload mapping only. reusable

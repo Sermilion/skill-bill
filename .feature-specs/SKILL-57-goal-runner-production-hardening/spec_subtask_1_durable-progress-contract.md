@@ -30,6 +30,14 @@ In scope:
 - Add a workflow progress write/read seam in the runtime application layer.
 - Persist progress events in durable workflow state without changing terminal
   status semantics.
+- Make workflow reads authoritative and inspectable while a parent goal is
+  running. `workflow get <workflow_id>` must keep resolving active child
+  workflows by id, and missing-workflow diagnostics must include the db path and
+  nearest relevant workflow rows.
+- Define monotonic step-transition semantics for workflow updates. Moving
+  `current_step_id` to an earlier step is allowed only when the update records
+  explicit loop-back metadata; otherwise the update is rejected or ignored with
+  a durable diagnostic.
 - Bound retained progress history so workflow rows cannot grow without limit.
 - Include progress events in resume/continue payloads only where useful:
   latest event in summary, bounded history for diagnostics.
@@ -58,6 +66,15 @@ Out of scope:
    no progress events exist.
 7. Tests cover the new contract in `runtime-domain`, `runtime-application`, and
    any CLI/MCP seam added for progress writes.
+8. `workflow get <workflow_id>` reliably returns active child workflows during a
+   parent `bill-goal` run. If a row is missing, the error reports the db path,
+   requested workflow id, and nearest matching rows by issue/subtask/session
+   metadata when available.
+9. Current-step updates are monotonic by default. A sequence like
+   `commit_push -> finish -> audit -> finish` is impossible unless the `audit`
+   transition is persisted as an intentional loop-back with a reason.
+10. Tests cover stale/regressive updates, intentional loop-back updates, and
+    status/progress reads after terminal `finish`.
 
 ## Validation
 

@@ -36,6 +36,9 @@ In scope:
   - optional explicit degraded mode: allow inline phase execution, record
     `degraded_mode` progress, and include degraded-mode metadata in terminal
     outcome.
+- Require every subagent-spawn failure or parent-forced inline continuation to
+  produce a durable capability/supervision record that names the agent, missing
+  or failed capability, phase, continuation mode, and user-visible reason.
 - Document manual smoke evidence for real installed agents where CI cannot
   execute their binaries.
 - Update `bill-goal` and `bill-feature-implement` docs/skill content so users
@@ -64,6 +67,9 @@ Out of scope:
 6. Manual smoke documentation records real-agent evidence for Claude, Codex,
    Opencode, and Junie on a decomposed test manifest.
 7. Existing installs and interactive skills remain unaffected.
+8. A parent-forced inline continuation after subagent failure is never silent:
+   status, progress history, terminal outcome metadata, and final report all
+   include degraded-mode context.
 
 ## Validation
 
