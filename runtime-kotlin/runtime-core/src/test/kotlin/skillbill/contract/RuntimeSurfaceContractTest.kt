@@ -24,6 +24,7 @@ class RuntimeSurfaceContractTest {
         "select-mcp-runtime",
         "register-mcp",
         "unregister-mcp",
+        "launch-agent-run",
       ),
     )
   }
@@ -36,6 +37,8 @@ class RuntimeSurfaceContractTest {
       ownerPackage = "skillbill.install",
       supportedOperations =
       listOf(
+        "plan-install",
+        "apply-install",
         "agent-path",
         "detect-agents",
         "codex-agents-path",

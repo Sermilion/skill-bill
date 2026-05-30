@@ -63,13 +63,17 @@ class RuntimeModuleSmokeTest {
       expectedSubsystemPackages -
         setOf(
           "skillbill.application",
+          "skillbill.boundary",
           "skillbill.contracts",
           "skillbill.desktop",
           "skillbill.di",
+          "skillbill.domain.skillremove",
           "skillbill.error",
           "skillbill.infrastructure",
           "skillbill.model",
           "skillbill.ports",
+          "skillbill.skillremove",
+          "skillbill.workflow",
         ),
       runtimeSurfacePackages,
     )
@@ -111,6 +115,7 @@ class RuntimeModuleSmokeTest {
     val expectedSubsystemPackages: Set<String> =
       setOf(
         "skillbill.application",
+        "skillbill.boundary",
         "skillbill.cli",
         "skillbill.desktop",
         "skillbill.di",
@@ -123,6 +128,7 @@ class RuntimeModuleSmokeTest {
         "skillbill.learnings",
         "skillbill.ports",
         "skillbill.infrastructure",
+        "skillbill.domain.skillremove",
         "skillbill.workflow.implement",
         "skillbill.workflow.verify",
         "skillbill.scaffold",
@@ -130,6 +136,8 @@ class RuntimeModuleSmokeTest {
         "skillbill.install",
         "skillbill.nativeagent",
         "skillbill.error",
+        "skillbill.skillremove",
+        "skillbill.workflow",
       )
     val runtimeSurfaces =
       listOf(

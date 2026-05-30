@@ -2,6 +2,10 @@ package skillbill.desktop.core.data.service
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.desktop.core.common.di.UserScope
+import skillbill.desktop.core.data.di.DesktopRuntimeApplicationServices
+import skillbill.desktop.core.data.service.mapper.authoredSkillEntries
+import skillbill.desktop.core.data.service.mapper.toSelectedValidationSummary
+import skillbill.desktop.core.data.service.mapper.toValidationSummary
 import skillbill.desktop.core.domain.model.AuthoredContentDocument
 import skillbill.desktop.core.domain.model.AuthoringSaveResult
 import skillbill.desktop.core.domain.model.EditorPlaceholder
@@ -15,9 +19,7 @@ import skillbill.desktop.core.domain.model.RepoSession
 import skillbill.desktop.core.domain.model.SkillBillTreeItem
 import skillbill.desktop.core.domain.model.SkillBillTreeItemMetadata
 import skillbill.desktop.core.domain.model.TreeItemKind
-import skillbill.desktop.core.domain.model.ValidationIssue
 import skillbill.desktop.core.domain.model.ValidationRunState
-import skillbill.desktop.core.domain.model.ValidationSeverity
 import skillbill.desktop.core.domain.model.ValidationSummary
 import skillbill.desktop.core.domain.service.AuthoringGateway
 import skillbill.desktop.core.domain.service.RenderGateway
@@ -25,46 +27,50 @@ import skillbill.desktop.core.domain.service.RepoSessionService
 import skillbill.desktop.core.domain.service.SkillTreeService
 import skillbill.desktop.core.domain.service.ValidationGateway
 import skillbill.error.SkillBillRuntimeException
-import skillbill.nativeagent.NativeAgentSource
-import skillbill.nativeagent.discoverNativeAgentSourceFiles
-import skillbill.nativeagent.parseNativeAgentSourceFile
-import skillbill.nativeagent.renderComposedNativeAgentSource
-import skillbill.nativeagent.renderNativeAgentSource
-import skillbill.scaffold.AuthoringOperations
-import skillbill.scaffold.AuthoringRenderResult
-import skillbill.scaffold.RepoValidationIssue
-import skillbill.scaffold.RepoValidationIssueSeverity
-import skillbill.scaffold.RepoValidationReport
-import skillbill.scaffold.RepoValidationRuntime
-import skillbill.scaffold.discoverGeneratedArtifactFiles
-import skillbill.scaffold.discoverGovernedAddonFiles
-import skillbill.scaffold.renderAuthoringTarget
+import skillbill.ports.scaffold.model.NativeAgentSourceProjection
+import skillbill.ports.scaffold.model.ScaffoldRenderResult
+import skillbill.ports.scaffold.source.model.ScaffoldSaveExactContentResult
+import skillbill.ports.validation.model.RepoValidationReport
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 import java.nio.file.Files
 import java.nio.file.InvalidPathException
 import java.nio.file.LinkOption
 import java.nio.file.Path
 import java.security.MessageDigest
-import kotlin.io.path.isDirectory
 import kotlin.io.path.relativeTo
 
 @Inject
 @SingleIn(UserScope::class)
-class RuntimeRepoBrowserService :
+class RuntimeRepoBrowserService(
+  private val runtimeServices: DesktopRuntimeApplicationServices =
+    DesktopRuntimeApplicationServices.forCurrentUserHome(),
+) :
   RepoSessionService,
   SkillTreeService,
   AuthoringGateway,
   ValidationGateway,
   RenderGateway {
+  private val scaffoldService get() = runtimeServices.scaffoldService
+  private val repoSourceDiscoveryService get() = runtimeServices.repoSourceDiscoveryService
+  private val repoValidationService get() = runtimeServices.repoValidationService
+
   // F-107: validator is a functional seam tests can swap to drive the onFailure branch of validate()
   // without needing to physically corrupt a repo on disk.
-  internal var validator: (Path) -> RepoValidationReport = RepoValidationRuntime::validateRepo
+  internal var validator: (Path) -> RepoValidationReport = { root -> repoValidationService.validateRepo(root) }
 
   // Mirror of F-107 for render. Tests swap this to drive the runtime-failure branch of render()
   // without needing to physically corrupt the on-disk source.
-  internal var renderer: (Path, String) -> AuthoringRenderResult = ::renderAuthoringTarget
-  internal var authoringSaver: (Path, String, String) -> Map<String, Any?> = { root, skillName, body ->
-    AuthoringOperations.fill(root, skillName, body, sectionName = null)
+  internal var renderer: (Path, String) -> ScaffoldRenderResult = { root, skillName ->
+    scaffoldService.render(root, skillName)
+  }
+
+  // SKILL-52.2 subtask 5: returns the typed `ScaffoldSaveExactContentResult`
+  // instead of reaching into its `.payload` raw map. The actual return value is
+  // unused at the call site (the success/failure signal is the absence of an
+  // exception); the typed receiver lets tests still swap in throwing or
+  // succeeding fakes without re-introducing raw-map indexing in service code.
+  internal var authoringSaver: (Path, String, String) -> ScaffoldSaveExactContentResult = { root, skillName, body ->
+    scaffoldService.saveExactContent(root, skillName, body)
   }
   internal var sourceFileSaver: (Path, String) -> Unit = { sourceFile, body ->
     Files.writeString(sourceFile, body)
@@ -205,7 +211,7 @@ class RuntimeRepoBrowserService :
     val detail = capturedSnapshot.selections[treeItemId]?.takeIf { it.repoToken == capturedSnapshot.repoToken }
       ?: return ValidationSummary.unavailable
     val skillName = detail.skillName ?: return ValidationSummary.unavailable
-    return runCatching { AuthoringOperations.validate(root, listOf(skillName)).toSelectedValidationSummary(root) }
+    return runCatching { scaffoldService.validate(root, listOf(skillName)).toSelectedValidationSummary(root) }
       .getOrElse { error ->
         ValidationSummary(
           state = ValidationRunState.FAILED,
@@ -263,8 +269,13 @@ class RuntimeRepoBrowserService :
   private fun renderSkill(root: Path, detail: SelectionDetail): RenderOutcome {
     val skillName = detail.skillName ?: error("Skill selection is missing a skill name.")
     val result = renderer(root, skillName)
-    val blocks = result.blocks.map { block -> RenderBlock(header = block.header, content = block.content) }
-    val artifacts = result.blocks.mapNotNull { block -> generatedArtifactFromHeader(block.header) }
+    val blocks = result.blocks.map { block ->
+      RenderBlock(
+        header = block.header,
+        content = block.content,
+      )
+    }
+    val artifacts = blocks.mapNotNull { block -> generatedArtifactFromHeader(block.header) }
     return RenderOutcome(blocks = blocks, generatedArtifacts = artifacts)
   }
 
@@ -283,11 +294,11 @@ class RuntimeRepoBrowserService :
         generatedArtifacts = emptyList(),
       )
     }
-    val agents = parseNativeAgentSourceFile(contentFile)
+    val agents = repoSourceDiscoveryService.parseNativeAgentSourceFile(contentFile)
     val blocks = agents.map { agent ->
       RenderBlock(
         header = "===== native-agent: $relative:${agent.name} =====",
-        content = renderNativeAgentSource(agent),
+        content = repoSourceDiscoveryService.renderNativeAgentSource(agent),
       )
     }
     return RenderOutcome(blocks = blocks, generatedArtifacts = emptyList())
@@ -345,7 +356,7 @@ class RuntimeRepoBrowserService :
   }
 
   private fun validateRoot(root: Path): RepoLoadStatus {
-    if (!Files.isDirectory(root, LinkOption.NOFOLLOW_LINKS)) {
+    if (!Files.isDirectory(root)) {
       return RepoLoadStatus(
         state = RepoLoadState.INVALID,
         message = "Selected path is not a directory: $root",
@@ -358,7 +369,7 @@ class RuntimeRepoBrowserService :
       )
     }
 
-    return runCatching { RepoValidationRuntime.validateRepo(root) }
+    return runCatching { repoValidationService.validateRepo(root) }
       .fold(
         onSuccess = { report ->
           RepoLoadStatus(
@@ -409,24 +420,27 @@ class RuntimeRepoBrowserService :
     repoToken: String,
     selections: MutableMap<String, SelectionDetail>,
   ): AuthoredSkillGroups {
-    val payload = AuthoringOperations.list(root, emptyList())
-    val skills = payload["skills"] as? List<*> ?: emptyList<Any?>()
+    // SKILL-52.3 subtask 3: typed authored-skill entries from the mapper. The
+    // `ScaffoldListResult.payload` open boundary was retired; the result now carries a
+    // typed `List<ScaffoldSkillStatus>` and `mapper/ScaffoldListResultMapper.kt` is a
+    // 1:1 typed projection with no raw-map indexing.
+    val entries = scaffoldService.list(root, emptyList()).authoredSkillEntries()
     val horizontal = mutableListOf<SkillBillTreeItem>()
     val platformChildren = linkedMapOf<String, MutableList<SkillBillTreeItem>>()
-    skills.filterIsInstance<Map<*, *>>().forEach { skill ->
-      val skillName = skill.string("skill_name") ?: return@forEach
-      val platform = skill.string("platform").orEmpty()
-      val family = skill.string("family").orEmpty()
-      val area = skill.string("area").orEmpty()
-      val contentFile = skill.string("content_file").orEmpty()
-      val status = skill.string("completion_status").orEmpty()
+    entries.forEach { entry ->
+      val skillName = entry.skillName
+      val platform = entry.platform
+      val family = entry.family
+      val area = entry.area
+      val contentFile = entry.contentFile
+      val status = entry.completionStatus
       val kind = if (platform.isBlank()) "horizontal skill" else "platform pack skill"
       val id = selectionId(repoToken, "skill:$skillName")
       val metadata =
         SkillBillTreeItemMetadata(
           skillName = skillName,
           kind = kind,
-          packageName = skill.string("package"),
+          packageName = entry.packageName,
           platform = platform.takeIf(String::isNotBlank),
           family = family.takeIf(String::isNotBlank),
           area = area.takeIf(String::isNotBlank),
@@ -495,10 +509,10 @@ class RuntimeRepoBrowserService :
     selections: MutableMap<String, SelectionDetail>,
   ): List<SkillBillTreeItem> {
     val addonsByPlatform = linkedMapOf<String, MutableList<SkillBillTreeItem>>()
-    discoverGovernedAddonFiles(root)
+    repoSourceDiscoveryService.discoverGovernedAddonFiles(root)
       .forEach { addonFile ->
         val addon = addonFile.addonPath
-        val relative = addon.relativeTo(root).portablePath()
+        val relative = relativePath(root, addon)
         val id = selectionId(repoToken, "addon:$relative")
         selections[id] =
           SelectionDetail(
@@ -538,13 +552,13 @@ class RuntimeRepoBrowserService :
     repoToken: String,
     selections: MutableMap<String, SelectionDetail>,
   ): List<SkillBillTreeItem> {
-    val leaves = discoverNativeAgentSourceFiles(
+    val leaves = repoSourceDiscoveryService.discoverNativeAgentSourceFiles(
       platformPacksRoot = root.resolve("platform-packs"),
       skillsRoot = root.resolve("skills"),
     )
       .flatMap { sourceFile ->
-        val relative = sourceFile.relativeTo(root).portablePath()
-        runCatching { parseNativeAgentSourceFile(sourceFile) }
+        val relative = relativePath(root, sourceFile)
+        runCatching { repoSourceDiscoveryService.parseNativeAgentSourceFile(sourceFile) }
           .fold(
             onSuccess = { agents ->
               agents.map { agent ->
@@ -557,7 +571,7 @@ class RuntimeRepoBrowserService :
                     detail = "Provider-neutral native-agent source.",
                     kind = "native agent",
                     authoredPath = relative,
-                    status = agent.composition?.kind?.wireValue ?: "authored",
+                    status = agent.compositionKindWireValue ?: "authored",
                     contentFile = sourceFile,
                     contentOverride = renderDisplayNativeAgentSource(root, agent),
                     editable = false,
@@ -571,7 +585,7 @@ class RuntimeRepoBrowserService :
                     label = displayLabelForNativeAgent(agent.name, relative, groupPath),
                     kind = TreeItemKind.NATIVE_AGENT,
                     authoredPath = relative,
-                    status = agent.composition?.kind?.wireValue ?: "authored",
+                    status = agent.compositionKindWireValue ?: "authored",
                     editable = false,
                     readOnlyLabel = READ_ONLY_LABEL,
                     metadata = SkillBillTreeItemMetadata(kind = "native agent"),
@@ -621,9 +635,9 @@ class RuntimeRepoBrowserService :
     return groupNativeAgentLeaves(repoToken, leaves)
   }
 
-  private fun renderDisplayNativeAgentSource(root: Path, agent: NativeAgentSource): String =
-    runCatching { renderComposedNativeAgentSource(root, agent) }
-      .getOrDefault(renderNativeAgentSource(agent))
+  private fun renderDisplayNativeAgentSource(root: Path, agent: NativeAgentSourceProjection): String =
+    runCatching { repoSourceDiscoveryService.renderComposedNativeAgentSource(root, agent) }
+      .getOrDefault(repoSourceDiscoveryService.renderNativeAgentSource(agent))
 
   private fun groupNativeAgentLeaves(repoToken: String, leaves: List<NativeAgentTreeLeaf>): List<SkillBillTreeItem> {
     val root = MutableNativeAgentGroup(label = "", path = emptyList())
@@ -707,9 +721,9 @@ class RuntimeRepoBrowserService :
     repoToken: String,
     selections: MutableMap<String, SelectionDetail>,
   ): List<SkillBillTreeItem> {
-    return discoverGeneratedArtifactFiles(root).map { generated ->
+    return repoSourceDiscoveryService.discoverGeneratedArtifactFiles(root).map { generated ->
       val artifact = generated.path
-      val relative = artifact.relativeTo(root).portablePath()
+      val relative = relativePath(root, artifact)
       val id = selectionId(repoToken, "generated:$relative")
       selections[id] =
         SelectionDetail(
@@ -740,11 +754,11 @@ class RuntimeRepoBrowserService :
   private fun generatedArtifactsForSkill(root: Path, contentFile: Path): List<GeneratedArtifactDetail> {
     val skillDir = contentFile.parent ?: return emptyList()
     val normalizedSkillDir = skillDir.toAbsolutePath().normalize()
-    return discoverGeneratedArtifactFiles(root)
+    return repoSourceDiscoveryService.discoverGeneratedArtifactFiles(root)
       .filter { artifact -> artifact.path.toAbsolutePath().normalize().parent == normalizedSkillDir }
       .map { artifact ->
         GeneratedArtifactDetail(
-          path = artifact.path.relativeTo(root).portablePath(),
+          path = relativePath(root, artifact.path),
           reason = artifact.reason,
         )
       }
@@ -903,7 +917,7 @@ private fun invalidSession(repoPath: String, message: String): RepoSession = Rep
 )
 
 private fun looksLikeSkillBillRepo(root: Path): Boolean =
-  root.resolve("skills").isDirectory() || root.resolve("platform-packs").isDirectory()
+  Files.isDirectory(root.resolve("skills")) || Files.isDirectory(root.resolve("platform-packs"))
 
 private fun isAuthoredContentFile(contentFile: Path?): Boolean = contentFile?.fileName?.toString() == "content.md"
 
@@ -918,11 +932,31 @@ private fun group(id: String, label: String, children: List<SkillBillTreeItem>):
     )
   }
 
-private fun Map<*, *>.string(key: String): String? = this[key] as? String
+private fun relativePath(root: Path, path: String): String = relativePath(root, Path.of(path))
 
-private fun relativePath(root: Path, path: String): String =
-  runCatching { Path.of(path).toAbsolutePath().normalize().relativeTo(root).portablePath() }
-    .getOrDefault(path.replace('\\', '/'))
+private fun relativePath(root: Path, path: Path): String {
+  val absoluteRoot = root.toAbsolutePath().normalize()
+  val absolutePath = path.toAbsolutePath().normalize()
+  relativeToRootOrNull(absoluteRoot, absolutePath)?.let { relative ->
+    return relative.portablePath()
+  }
+
+  val realRelative = runCatching {
+    val realRoot = root.toRealPath()
+    val realPath =
+      if (Files.exists(absolutePath, LinkOption.NOFOLLOW_LINKS)) {
+        absolutePath.toRealPath()
+      } else {
+        absolutePath
+      }
+    relativeToRootOrNull(realRoot, realPath)?.portablePath()
+  }.getOrNull()
+
+  return realRelative ?: path.portablePath()
+}
+
+private fun relativeToRootOrNull(root: Path, path: Path): Path? =
+  if (path.startsWith(root)) path.relativeTo(root) else null
 
 private fun Path.portablePath(): String = toString().replace('\\', '/')
 
@@ -933,36 +967,6 @@ private fun repoToken(root: Path): String {
 }
 
 private fun selectionId(repoToken: String, localId: String): String = "repo:$repoToken|$localId"
-
-private fun RepoValidationIssueSeverity.toDomain(): ValidationSeverity = when (this) {
-  RepoValidationIssueSeverity.ERROR -> ValidationSeverity.ERROR
-  RepoValidationIssueSeverity.WARNING -> ValidationSeverity.WARNING
-  RepoValidationIssueSeverity.INFO -> ValidationSeverity.INFO
-}
-
-private fun RepoValidationReport.toValidationSummary(root: Path): ValidationSummary = ValidationSummary(
-  state = if (passed) ValidationRunState.PASSED else ValidationRunState.FAILED,
-  issues = structuredIssues.map { issue -> issue.toValidationIssue(root) },
-)
-
-private fun Map<String, Any?>.toSelectedValidationSummary(root: Path): ValidationSummary {
-  val status = this["status"] as? String
-  val rawIssues = this["issues"] as? List<*> ?: emptyList<Any?>()
-  return ValidationSummary(
-    state = if (status == "pass") ValidationRunState.PASSED else ValidationRunState.FAILED,
-    issues = rawIssues
-      .filterIsInstance<String>()
-      .map { rawIssue -> RepoValidationIssue.fromRawIssue(rawIssue).toValidationIssue(root) },
-  )
-}
-
-private fun RepoValidationIssue.toValidationIssue(root: Path): ValidationIssue = ValidationIssue(
-  severity = severity.toDomain(),
-  code = code,
-  message = message,
-  sourcePath = sourcePath?.let { path -> normalizeSourcePath(root, path) },
-  exceptionName = exceptionName,
-)
 
 private fun normalizeSourcePath(root: Path, sourcePath: String): String {
   val trimmed = sourcePath.trim()

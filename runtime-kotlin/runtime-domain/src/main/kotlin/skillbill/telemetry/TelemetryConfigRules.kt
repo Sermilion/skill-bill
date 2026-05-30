@@ -1,15 +1,18 @@
 package skillbill.telemetry
 
-import java.util.UUID
+import skillbill.telemetry.model.TelemetryConfigDocument
 
-fun defaultLocalTelemetryConfig(): Map<String, Any?> = mapOf(
-  "install_id" to UUID.randomUUID().toString(),
-  "telemetry" to
-    mapOf(
-      "level" to "anonymous",
-      "proxy_url" to "",
-      "batch_size" to DEFAULT_TELEMETRY_BATCH_SIZE,
-    ),
+fun defaultLocalTelemetryConfig(installId: String): TelemetryConfigDocument = TelemetryConfigDocument(
+  payload =
+  mapOf(
+    "install_id" to installId,
+    "telemetry" to
+      mapOf(
+        "level" to "anonymous",
+        "proxy_url" to "",
+        "batch_size" to DEFAULT_TELEMETRY_BATCH_SIZE,
+      ),
+  ),
 )
 
 fun parseTelemetryBoolValue(rawValue: String, name: String): Boolean = when (rawValue.trim().lowercase()) {

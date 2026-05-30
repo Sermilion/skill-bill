@@ -2,7 +2,9 @@
 
 package skillbill.mcp
 
-import skillbill.scaffold.scaffold
+import skillbill.di.RuntimeComponent
+import skillbill.di.create
+import skillbill.mcp.scaffold.parseMcpScaffoldCommandRequest
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.LocalDate
@@ -19,7 +21,14 @@ object McpScaffoldRuntime {
     val sessionId = generateNewSkillSessionId()
     val repoRoot = findRepoRoot()
     return try {
-      val result = scaffold(payload + ("repo_root" to repoRoot.toString()), dryRun = dryRun)
+      // SKILL-52.2 subtask 2: parse JSON-RPC args at the MCP adapter boundary into a typed
+      // request and call the typed application overload so the application + port surface no
+      // longer accepts a raw `Map<String, Any?>` from MCP.
+      val request = parseMcpScaffoldCommandRequest(payload + ("repo_root" to repoRoot.toString()))
+      val result =
+        RuntimeComponent::class.create(context.toRuntimeContext())
+          .scaffoldService
+          .scaffold(request, dryRun)
       val outcome = if (dryRun) "dry-run" else "success"
       val baseTelemetryPayload =
         mapOf(

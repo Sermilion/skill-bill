@@ -68,6 +68,18 @@ data class SkillBillState(
   val dirtyEditorPrompt: DirtyEditorPrompt? = null,
   val commandPalette: CommandPaletteState = CommandPaletteState(),
   val scaffoldWizard: ScaffoldWizardState? = null,
+  val firstRunSetup: FirstRunSetupState? = null,
+  val postPublishReinstall: PostPublishReinstallState? = null,
+  /** SKILL-46: non-null while the tree-context-menu Delete dialog is on screen. */
+  val confirmDeletion: ConfirmDeletionState? = null,
+  /** SKILL-46 AC8: post-delete output of scripts/validate_agent_configs piped into the dock console. */
+  val validateAgentConfigs: ValidateAgentConfigsSummary = ValidateAgentConfigsSummary.empty,
+  /**
+   * F-CROSS-REPO-LOCK: separate slot from [confirmDeletion] so a partial-mutation post-mortem
+   * (rollback failed) survives a stale-token finish, a dialog dismiss, AND a repo switch. Only an
+   * explicit user acknowledgement clears the slot. The route renders this as a top-level banner.
+   */
+  val partialMutationPostMortem: PartialMutationPostMortem? = null,
 )
 
 enum class DockTab {
@@ -178,6 +190,27 @@ enum class SkillBillBusyOperation {
   RENDER,
   SAVE,
   SCAFFOLD,
+  FIRST_RUN_SETUP,
+
+  /**
+   * SKILL-46: Holds the busy slot while the tree-context-menu "Delete..." preview/execute
+   * triplet is in flight. F-401: must be released in both `dismissConfirmDeletion` AND the
+   * stale-token branches of `finishRemoval*` so an interrupted delete never wedges the UI.
+   */
+  DELETE,
+
+  /**
+   * SKILL-46 AC8: holds the slot while `scripts/validate_agent_configs` runs after a successful
+   * deletion. Distinct from VALIDATE (which is the in-process repo validator) so the dock can
+   * surface a different running label.
+   */
+  VALIDATE_AGENT_CONFIGS,
+
+  /**
+   * Replays the latest completed desktop setup selection after publishing governed source changes,
+   * so refreshed installed skills take effect without reopening the full setup wizard.
+   */
+  REINSTALL,
 }
 
 data class CommandPaletteState(
@@ -220,6 +253,7 @@ enum class CommandPaletteAction {
   SHOW_HISTORY,
   SAVE,
   REFRESH_GIT_STATUS,
+  INSTALL_SETUP,
   NEW_HORIZONTAL_SKILL,
   NEW_PLATFORM_PACK,
   NEW_PLATFORM_OVERRIDE,
@@ -379,7 +413,36 @@ data class ChangedFile(
   val statusCode: String,
   // Whether this file is a generated artifact (cannot be opened in editable mode).
   val isGenerated: Boolean = group == ChangedFileGroup.GENERATED,
-)
+) {
+  val isSkillContent: Boolean
+    get() {
+      val normalized = path.trim().replace('\\', '/')
+      return !isGenerated && isUserVisibleManagedSource(normalized)
+    }
+
+  val isSkillBillManagedSource: Boolean
+    get() = !isGenerated && isSkillBillManagedSource(path.trim().replace('\\', '/'))
+}
+
+private fun isSkillBillManagedSource(path: String): Boolean = isUserVisibleManagedSource(path) ||
+  isPlatformPackManifestSource(path) ||
+  isSkillClassManifestSource(path) ||
+  path == "README.md"
+
+private fun isUserVisibleManagedSource(path: String): Boolean =
+  isAuthoredContentSource(path) || isGovernedAddonSource(path)
+
+private fun isAuthoredContentSource(path: String): Boolean =
+  path.endsWith("/content.md") && (path.startsWith("skills/") || path.startsWith("platform-packs/"))
+
+private fun isGovernedAddonSource(path: String): Boolean =
+  path.startsWith("platform-packs/") && path.contains("/addons/") && path.endsWith(".md")
+
+private fun isPlatformPackManifestSource(path: String): Boolean =
+  path.startsWith("platform-packs/") && path.endsWith("/platform.yaml")
+
+private fun isSkillClassManifestSource(path: String): Boolean =
+  path.startsWith("orchestration/skill-classes/") && path.endsWith(".yaml")
 
 enum class GovernedChangeConcept(val label: String) {
   SKILLS("Skills"),
@@ -430,6 +493,19 @@ data class ChangesSnapshot(
   val isFailed: Boolean = false,
   val governedGroups: List<GovernedChangeGroup> = classifyGovernedChanges(files),
 ) {
+  val skillContentFiles: List<ChangedFile> get() = files.filter(ChangedFile::isSkillContent)
+
+  val skillBillManagedSourceFiles: List<ChangedFile> get() = files.filter(ChangedFile::isSkillBillManagedSource)
+
+  val hiddenManagedSourceFiles: List<ChangedFile> get() = skillBillManagedSourceFiles.filterNot(
+    ChangedFile::isSkillContent,
+  )
+
+  val nonSkillContentFiles: List<ChangedFile> get() = files.filterNot(ChangedFile::isSkillBillManagedSource)
+
+  val skillContentGovernedGroups: List<GovernedChangeGroup>
+    get() = classifyGovernedChanges(skillContentFiles)
+
   companion object {
     val empty: ChangesSnapshot = ChangesSnapshot()
 

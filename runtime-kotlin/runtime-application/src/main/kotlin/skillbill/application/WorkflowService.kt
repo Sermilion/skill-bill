@@ -1,18 +1,33 @@
 package skillbill.application
 
 import me.tatarka.inject.annotations.Inject
+import skillbill.application.model.DecompositionManifestRuntimeUpdate
+import skillbill.application.model.WorkflowContinueResult
 import skillbill.application.model.WorkflowFamilyKind
+import skillbill.application.model.WorkflowGetResult
+import skillbill.application.model.WorkflowLatestResult
+import skillbill.application.model.WorkflowListResult
+import skillbill.application.model.WorkflowOpenResult
+import skillbill.application.model.WorkflowResumeResult
 import skillbill.application.model.WorkflowUpdateRequest
+import skillbill.application.model.WorkflowUpdateResult
+import skillbill.boundary.OpenBoundaryMap
 import skillbill.ports.persistence.DatabaseSessionFactory
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.persistence.WorkflowStateRepository
 import skillbill.ports.persistence.model.WorkflowStateRecord
+import skillbill.ports.workflow.DecompositionManifestFileStore
+import skillbill.ports.workflow.NoopWorkflowGitOperations
+import skillbill.ports.workflow.WorkflowGitOperations
+import skillbill.workflow.DecompositionManifestValidator
 import skillbill.workflow.WorkflowEngine
+import skillbill.workflow.WorkflowSnapshotValidator
 import skillbill.workflow.implement.FeatureImplementWorkflowDefinition
 import skillbill.workflow.model.WorkflowDefinition
 import skillbill.workflow.model.WorkflowStateSnapshot
 import skillbill.workflow.model.WorkflowUpdateInput
 import skillbill.workflow.verify.FeatureVerifyWorkflowDefinition
+import java.nio.file.Path
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import kotlin.random.Random
@@ -20,103 +35,217 @@ import kotlin.random.Random
 @Inject
 class WorkflowService(
   private val database: DatabaseSessionFactory,
+  private val gitOperations: WorkflowGitOperations = NoopWorkflowGitOperations,
+  private val decompositionManifestFileStore: DecompositionManifestFileStore,
+  private val workflowSnapshotValidator: WorkflowSnapshotValidator,
+  private val decompositionManifestValidator: DecompositionManifestValidator,
 ) {
+  // SKILL-52.3 Subtask 1: the workflow engine and the decomposition
+  // manifest seams receive their schema-validator dependencies at the
+  // application boundary as injected domain-owned ports. The application
+  // owns this wiring so `runtime-domain` and `runtime-application` never
+  // import the concrete schema validators (now owned by
+  // `runtime-infra-fs`). The validator caches the compiled JSON Schema
+  // instance, so a single shared engine amortises schema parse + compile
+  // cost across every call.
+  private val engine: WorkflowEngine = WorkflowEngine(workflowSnapshotValidator)
   fun open(
     kind: WorkflowFamilyKind,
     sessionId: String = "",
     currentStepId: String? = null,
     dbOverride: String? = null,
-  ): Map<String, Any?> {
+  ): WorkflowOpenResult {
     val family = kind.workflowFamily()
     val stepId = currentStepId ?: family.definition.defaultInitialStepId
     val workflowId = generateWorkflowId(family.definition.workflowIdPrefix)
     WorkflowEngine.validateOpen(family.definition, stepId)?.let { error ->
-      return errorPayload(workflowId, error)
+      return WorkflowOpenResult.Error(workflowId, error)
     }
     return database.transaction(dbOverride) { unitOfWork ->
-      val record = WorkflowEngine.openRecord(family.definition, workflowId, sessionId, stepId)
+      val record = engine.openRecord(family.definition, workflowId, sessionId, stepId)
       family.save(unitOfWork.workflowStates, record)
       val saved = family.get(unitOfWork.workflowStates, workflowId) ?: record
-      ok(WorkflowEngine.fullPayload(family.definition, saved), unitOfWork)
+      WorkflowOpenResult.Ok(
+        workflowId = saved.workflowId,
+        dbPath = unitOfWork.dbPath.toString(),
+        snapshot = engine.snapshotView(family.definition, saved),
+      )
     }
   }
 
-  fun update(kind: WorkflowFamilyKind, request: WorkflowUpdateRequest, dbOverride: String? = null): Map<String, Any?> {
+  fun update(
+    kind: WorkflowFamilyKind,
+    request: WorkflowUpdateRequest,
+    dbOverride: String? = null,
+  ): WorkflowUpdateResult {
     val family = kind.workflowFamily()
     val input = request.toWorkflowUpdateInput()
     WorkflowEngine.validateUpdate(family.definition, input)?.let { error ->
-      return errorPayload(request.workflowId, error)
+      return WorkflowUpdateResult.Error(request.workflowId, error)
     }
-    return database.transaction(dbOverride) { unitOfWork ->
+    var projectionArtifactsJson: String? = null
+    val result = database.transaction(dbOverride) { unitOfWork ->
       val existing = family.get(unitOfWork.workflowStates, request.workflowId)
-        ?: return@transaction unknownWorkflowPayload(request.workflowId)
-      family.save(unitOfWork.workflowStates, WorkflowEngine.updateRecord(family.definition, existing, input))
-      val updated = family.get(unitOfWork.workflowStates, request.workflowId) ?: existing
-      ok(WorkflowEngine.fullPayload(family.definition, updated), unitOfWork)
+        ?: return@transaction WorkflowUpdateResult.Error(
+          request.workflowId,
+          "Unknown workflow_id '${request.workflowId}'.",
+        )
+      val runtimeInput = family.withDecompositionRuntime(
+        existing,
+        input,
+        request.workflowId,
+        decompositionManifestValidator,
+        decompositionManifestFileStore,
+      )
+      val effectiveInput = runtimeInput.input
+      val updatedRecord = engine.updateRecord(family.definition, existing, effectiveInput)
+      family.save(unitOfWork.workflowStates, updatedRecord)
+      val updated = family.get(unitOfWork.workflowStates, request.workflowId) ?: updatedRecord
+      if (runtimeInput.updated) {
+        projectionArtifactsJson = updated.artifactsJson
+        engine.syncDecompositionParentRuntime(
+          family,
+          updated,
+          request.workflowId,
+          unitOfWork,
+          decompositionManifestValidator,
+        )
+      }
+      WorkflowUpdateResult.Ok(
+        workflowId = updated.workflowId,
+        dbPath = unitOfWork.dbPath.toString(),
+        snapshot = engine.snapshotView(family.definition, updated),
+      )
     }
+    projectionArtifactsJson?.let { artifactsJson ->
+      DecompositionManifestWriter.writeProjectionFromWorkflowState(
+        Path.of("").toAbsolutePath(),
+        artifactsJson,
+        decompositionManifestValidator,
+        decompositionManifestFileStore,
+      )
+    }
+    return result
   }
 
-  fun get(kind: WorkflowFamilyKind, workflowId: String, dbOverride: String? = null): Map<String, Any?> =
+  fun get(kind: WorkflowFamilyKind, workflowId: String, dbOverride: String? = null): WorkflowGetResult =
     database.read(dbOverride) { unitOfWork ->
       val family = kind.workflowFamily()
       val record = family.get(unitOfWork.workflowStates, workflowId)
-        ?: return@read unknownWorkflowPayload(workflowId, unitOfWork.dbPath.toString())
-      ok(WorkflowEngine.fullPayload(family.definition, record), unitOfWork)
-    }
-
-  fun list(kind: WorkflowFamilyKind, limit: Int = DEFAULT_LIST_LIMIT, dbOverride: String? = null): Map<String, Any?> =
-    database.read(dbOverride) { unitOfWork ->
-      val family = kind.workflowFamily()
-      val rows = family.list(unitOfWork.workflowStates, limit)
-      linkedMapOf(
-        "status" to "ok",
-        "db_path" to unitOfWork.dbPath.toString(),
-        "workflow_count" to rows.size,
-        "workflows" to rows.map { WorkflowEngine.summaryPayload(family.definition, it) },
+        ?: return@read WorkflowGetResult.Error(
+          workflowId,
+          "Unknown workflow_id '$workflowId'.",
+          unitOfWork.dbPath.toString(),
+        )
+      WorkflowGetResult.Ok(
+        workflowId = record.workflowId,
+        dbPath = unitOfWork.dbPath.toString(),
+        snapshot = engine.snapshotView(family.definition, record),
       )
     }
 
-  fun latest(kind: WorkflowFamilyKind, dbOverride: String? = null): Map<String, Any?> =
+  fun list(kind: WorkflowFamilyKind, limit: Int = DEFAULT_LIST_LIMIT, dbOverride: String? = null): WorkflowListResult =
+    database.read(dbOverride) { unitOfWork ->
+      val family = kind.workflowFamily()
+      val rows = family.list(unitOfWork.workflowStates, limit)
+      WorkflowListResult(
+        dbPath = unitOfWork.dbPath.toString(),
+        workflowCount = rows.size,
+        workflows = rows.map { engine.summaryView(family.definition, it) },
+      )
+    }
+
+  fun latest(kind: WorkflowFamilyKind, dbOverride: String? = null): WorkflowLatestResult =
     database.read(dbOverride) { unitOfWork ->
       val family = kind.workflowFamily()
       val record = family.latest(unitOfWork.workflowStates)
-        ?: return@read linkedMapOf(
-          "status" to "error",
-          "error" to "No ${family.humanName} workflows found.",
-          "db_path" to unitOfWork.dbPath.toString(),
+        ?: return@read WorkflowLatestResult.Error(
+          dbPath = unitOfWork.dbPath.toString(),
+          error = "No ${family.humanName} workflows found.",
         )
-      ok(WorkflowEngine.summaryPayload(family.definition, record), unitOfWork)
+      WorkflowLatestResult.Ok(
+        dbPath = unitOfWork.dbPath.toString(),
+        summary = engine.summaryView(family.definition, record),
+      )
     }
 
-  fun resume(kind: WorkflowFamilyKind, workflowId: String, dbOverride: String? = null): Map<String, Any?> =
+  fun resume(kind: WorkflowFamilyKind, workflowId: String, dbOverride: String? = null): WorkflowResumeResult =
     database.read(dbOverride) { unitOfWork ->
       val family = kind.workflowFamily()
       val record = family.get(unitOfWork.workflowStates, workflowId)
-        ?: return@read unknownWorkflowPayload(workflowId, unitOfWork.dbPath.toString())
-      ok(WorkflowEngine.resumePayload(family.definition, record), unitOfWork)
+        ?: return@read WorkflowResumeResult.Error(
+          workflowId,
+          "Unknown workflow_id '$workflowId'.",
+          unitOfWork.dbPath.toString(),
+        )
+      WorkflowResumeResult.Ok(
+        workflowId = record.workflowId,
+        dbPath = unitOfWork.dbPath.toString(),
+        resume = engine.resumeView(family.definition, record),
+      )
     }
 
-  fun continueWorkflow(kind: WorkflowFamilyKind, workflowId: String, dbOverride: String? = null): Map<String, Any?> =
-    database.transaction(dbOverride) { unitOfWork ->
+  fun continueWorkflow(
+    kind: WorkflowFamilyKind,
+    workflowId: String,
+    subtaskId: Int? = null,
+    dbOverride: String? = null,
+  ): WorkflowContinueResult {
+    var projectionArtifactsJson: String? = null
+    val result = database.transaction(dbOverride) { unitOfWork ->
       val family = kind.workflowFamily()
       var record = family.get(unitOfWork.workflowStates, workflowId)
-        ?: return@transaction unknownWorkflowPayload(workflowId, unitOfWork.dbPath.toString())
-      val sessionSummary = family.sessionSummary(unitOfWork.workflowStates, record.sessionId.orEmpty())
-      var decision = WorkflowEngine.continueDecision(family.definition, record, sessionSummary)
-      if (decision.shouldReopen) {
-        val continueStatus = decision.payload["continue_status"]
-        val reopened = WorkflowEngine.updateRecord(family.definition, record, decision.toReopenInput(record.sessionId))
-        family.save(unitOfWork.workflowStates, reopened)
-        record = family.get(unitOfWork.workflowStates, workflowId) ?: reopened
-        val refreshedPayload =
-          LinkedHashMap(
-            WorkflowEngine.continueDecision(family.definition, record, sessionSummary).payload,
-          )
-        refreshedPayload["continue_status"] = continueStatus
-        decision = decision.copy(payload = refreshedPayload)
+      if (record == null && family == WorkflowFamily.IMPLEMENT) {
+        val resolved =
+          DecompositionWorkflowContinuation(
+            engine,
+            gitOperations,
+            decompositionManifestValidator,
+            decompositionManifestFileStore,
+          ).continueDecomposedParentByIssueKey(workflowId, unitOfWork, subtaskId)
+        projectionArtifactsJson = resolved.projectionArtifactsJson ?: projectionArtifactsJson
+        return@transaction resolved.result
       }
-      continuePayload(decision.payload, unitOfWork)
+      record ?: return@transaction WorkflowContinueResult.UnknownWorkflow(
+        dbPath = unitOfWork.dbPath.toString(),
+        workflowId = workflowId,
+      )
+      engine.continueExistingWorkflow(
+        family,
+        record,
+        unitOfWork,
+        decompositionManifestValidator,
+        decompositionManifestFileStore,
+      ).also { continuation ->
+        projectionArtifactsJson = continuation.projectionArtifactsJson ?: projectionArtifactsJson
+      }.result
     }
+    projectionArtifactsJson?.let { artifactsJson ->
+      DecompositionManifestWriter.writeProjectionFromWorkflowState(
+        Path.of("").toAbsolutePath(),
+        artifactsJson,
+        decompositionManifestValidator,
+        decompositionManifestFileStore,
+      )
+    }
+    return result
+  }
+}
+
+private fun WorkflowEngine.syncDecompositionParentRuntime(
+  family: WorkflowFamily,
+  updated: WorkflowStateSnapshot,
+  workflowId: String,
+  unitOfWork: UnitOfWork,
+  validator: DecompositionManifestValidator,
+) {
+  val manifest = updated.decompositionRuntime(validator)
+  if (family == WorkflowFamily.IMPLEMENT && manifest != null) {
+    unitOfWork.workflowStates.findDecomposedParentWorkflowForRuntime(manifest, validator)
+      ?.toSnapshot()
+      ?.takeUnless { it.workflowId == workflowId }
+      ?.let { parent -> persistParentDecompositionRuntime(parent, manifest, unitOfWork, validator) }
+  }
 }
 
 private const val DEFAULT_LIST_LIMIT: Int = 20
@@ -131,7 +260,7 @@ private fun WorkflowUpdateRequest.toWorkflowUpdateInput(): WorkflowUpdateInput =
   sessionId = sessionId,
 )
 
-private fun skillbill.workflow.model.WorkflowContinueDecision.toReopenInput(sessionId: String): WorkflowUpdateInput =
+internal fun skillbill.workflow.model.WorkflowContinueDecision.toReopenInput(sessionId: String): WorkflowUpdateInput =
   WorkflowUpdateInput(
     workflowStatus = "running",
     currentStepId = resumeStepId,
@@ -147,39 +276,48 @@ private fun skillbill.workflow.model.WorkflowContinueDecision.toReopenInput(sess
     sessionId = sessionId,
   )
 
-private fun ok(payload: Map<String, Any?>, unitOfWork: UnitOfWork): Map<String, Any?> = LinkedHashMap(payload).apply {
-  put("status", "ok")
-  put("db_path", unitOfWork.dbPath.toString())
+internal fun WorkflowFamily.withDecompositionRuntime(
+  existing: WorkflowStateSnapshot,
+  input: WorkflowUpdateInput,
+  workflowId: String,
+  validator: DecompositionManifestValidator,
+  fileStore: DecompositionManifestFileStore,
+): DecompositionRuntimeInput = if (this != WorkflowFamily.IMPLEMENT) {
+  DecompositionRuntimeInput(input = input, updated = false)
+} else {
+  DecompositionManifestWriter.manifestFromWorkflowUpdate(
+    repoRoot = Path.of("").toAbsolutePath(),
+    existingArtifactsJson = existing.artifactsJson,
+    artifactsPatch = input.artifactsPatch,
+    validator = validator,
+    runtimeUpdate = DecompositionManifestRuntimeUpdate(
+      workflowId = workflowId,
+      workflowStatus = input.workflowStatus,
+      currentStepId = input.currentStepId,
+      stepUpdates = input.stepUpdates,
+    ),
+    fileStore = fileStore,
+  )?.let { manifest ->
+    DecompositionRuntimeInput(
+      input = input.copy(
+        artifactsPatch = LinkedHashMap(input.artifactsPatch.orEmpty()).apply {
+          put(
+            DECOMPOSITION_RUNTIME_ARTIFACT_KEY,
+            encodeDecompositionManifestMap(manifest, validator, DECOMPOSITION_RUNTIME_ARTIFACT_KEY),
+          )
+        },
+      ),
+      updated = true,
+    )
+  } ?: DecompositionRuntimeInput(input = input, updated = false)
 }
 
-private fun unknownWorkflowPayload(workflowId: String, dbPath: String? = null): Map<String, Any?> =
-  LinkedHashMap<String, Any?>().apply {
-    put("status", "error")
-    put("workflow_id", workflowId)
-    put("error", "Unknown workflow_id '$workflowId'.")
-    dbPath?.let { put("db_path", it) }
-  }
+internal data class DecompositionRuntimeInput(
+  val input: WorkflowUpdateInput,
+  val updated: Boolean,
+)
 
-private fun errorPayload(workflowId: String, error: String): Map<String, Any?> =
-  linkedMapOf("status" to "error", "workflow_id" to workflowId, "error" to error)
-
-private fun continuePayload(payload: Map<String, Any?>, unitOfWork: UnitOfWork): Map<String, Any?> =
-  LinkedHashMap(payload).apply {
-    put("db_path", unitOfWork.dbPath.toString())
-    if (this["continue_status"] == "blocked") {
-      val missingArtifacts = this["missing_artifacts"] as? List<*> ?: emptyList<Any?>()
-      put("status", "error")
-      put(
-        "error",
-        "Cannot continue workflow until the missing artifacts are restored: " +
-          missingArtifacts.joinToString { it.toString() },
-      )
-    } else {
-      put("status", "ok")
-    }
-  }
-
-private fun generateWorkflowId(prefix: String): String {
+internal fun generateWorkflowId(prefix: String): String {
   val now = OffsetDateTime.now(ZoneOffset.UTC)
   val suffix = (1..WORKFLOW_ID_SUFFIX_LENGTH).map { SUFFIX_CHARS[Random.nextInt(SUFFIX_CHARS.length)] }
     .joinToString("")
@@ -189,12 +327,12 @@ private fun generateWorkflowId(prefix: String): String {
 
 private fun Int.twoDigits(): String = toString().padStart(2, '0')
 
-private fun WorkflowFamilyKind.workflowFamily(): WorkflowFamily = when (this) {
+internal fun WorkflowFamilyKind.workflowFamily(): WorkflowFamily = when (this) {
   WorkflowFamilyKind.IMPLEMENT -> WorkflowFamily.IMPLEMENT
   WorkflowFamilyKind.VERIFY -> WorkflowFamily.VERIFY
 }
 
-private enum class WorkflowFamily(
+internal enum class WorkflowFamily(
   val definition: WorkflowDefinition,
   val humanName: String,
 ) {
@@ -224,6 +362,13 @@ private enum class WorkflowFamily(
     VERIFY -> repository.latestFeatureVerifyWorkflow()
   }?.toSnapshot()
 
+  /**
+   * SKILL-52.1 open-boundary: durable workflow session summary lookup.
+   * Returns the raw repository-supplied map verbatim; the typed
+   * [skillbill.workflow.model.WorkflowContinueView.sessionSummary]
+   * carries it through to the wire-shape map.
+   */
+  @OpenBoundaryMap("Durable workflow session summary passthrough")
   fun sessionSummary(repository: WorkflowStateRepository, sessionId: String): Map<String, Any?> {
     if (sessionId.isBlank()) {
       return emptyMap()

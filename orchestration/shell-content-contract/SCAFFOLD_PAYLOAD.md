@@ -89,9 +89,30 @@ Every payload MUST include:
     code-review area and registers them in the generated manifest, including
     the `area_metadata` entries used to auto-render governed `## Descriptor`
     sections.
+- `baseline_layers` — optional list for `platform-pack` only. When present,
+  the scaffolder writes `code_review_composition.baseline_layers` into the
+  new pack's `platform.yaml`. Each entry must include:
+  - `platform` — existing referenced platform pack slug.
+  - `skill` — existing code-review skill from the referenced pack.
+  - `scope` — currently only `same-review-scope`.
+  - `required` — explicit boolean.
+  - `mode` — currently only `kmp-baseline`, supported only for
+    `kotlin/bill-kotlin-code-review`.
+  Supplying this field for any kind other than `platform-pack` raises
+  `InvalidScaffoldPayloadError`. Invalid references fail before mutation:
+  missing referenced pack, missing referenced skill, unsupported `mode`,
+  unsupported `scope`, self-reference to the new pack, and duplicate
+  `platform` + `skill` layers are rejected.
 - `body` — optional string for `add-on`. When provided, the scaffolder
   writes this markdown body verbatim to the target add-on file instead of
   rendering the default placeholder template.
+- `consumer_skill_dirs` — optional list for `add-on`. Each entry is a
+  declared platform-pack-relative skill directory such as
+  `code-review/bill-kmp-code-review-ui`. The scaffolder rejects directories
+  that are not declared by the pack manifest, then registers the new add-on in
+  `platform.yaml` by adding generated pointer entries and `addon_usage`
+  entries for these consumers. When omitted, the scaffolder defaults to the
+  owning pack's baseline code-review skill, if one exists.
 - `repo_root` — absolute path override used by tests. Defaults to the
   current working directory.
 - `subagent_specialists` — list of specialist subagent names to scaffold
@@ -210,6 +231,35 @@ This creates only the baseline Java pack without the approved specialist
 stubs. Direct payload callers can still opt into `starter`, but the
 user-facing intake defaults to `full`. The generated files are intentionally
 minimal so the user can enrich the authored `content.md` files afterwards.
+
+### Platform pack with baseline review composition
+
+```json
+{
+  "scaffold_payload_version": "1.0",
+  "kind": "platform-pack",
+  "platform": "kmp",
+  "display_name": "KMP",
+  "routing_signals": {
+    "strong": ["kotlin(\"multiplatform\")", "androidMain", "iosMain"]
+  },
+  "baseline_layers": [
+    {
+      "platform": "kotlin",
+      "skill": "bill-kotlin-code-review",
+      "scope": "same-review-scope",
+      "required": true,
+      "mode": "kmp-baseline"
+    }
+  ]
+}
+```
+
+Dry-run and execute use this same payload shape. In dry-run mode, CLI output
+includes the planned `platform.yaml` edit so users and agents can inspect the
+`code_review_composition.baseline_layers` block before mutation. Payloads that
+omit `baseline_layers` remain valid and generate no
+`code_review_composition` section.
 
 ### Governed skill with concrete authored content
 

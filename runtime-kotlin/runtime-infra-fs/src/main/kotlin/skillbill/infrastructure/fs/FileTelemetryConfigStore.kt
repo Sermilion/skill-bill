@@ -5,26 +5,30 @@ import skillbill.contracts.JsonSupport
 import skillbill.model.RuntimeContext
 import skillbill.ports.telemetry.TelemetryConfigStore
 import skillbill.telemetry.CONFIG_ENVIRONMENT_KEY
+import skillbill.telemetry.INSTALL_ID_ENVIRONMENT_KEY
 import skillbill.telemetry.STATE_DIR_ENVIRONMENT_KEY
 import skillbill.telemetry.defaultLocalTelemetryConfig
-import skillbill.telemetry.expandAndNormalizeTelemetryPath
+import skillbill.telemetry.model.TelemetryConfigDocument
 import skillbill.telemetry.parseTelemetryBoolValue
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.UUID
 
 @Inject
 class FileTelemetryConfigStore(
   private val context: RuntimeContext,
 ) : TelemetryConfigStore {
-  override fun stateDir(): Path = resolveTelemetryStateDir(context.environment, context.userHome)
+  private val resolvedContext = context.withProcessDefaults()
 
-  override fun configPath(): Path = resolveTelemetryConfigPath(context.environment, context.userHome)
+  override fun stateDir(): Path = resolveTelemetryStateDir(resolvedContext.environment, resolvedContext.userHome)
 
-  override fun read(): Map<String, Any?>? = readTelemetryConfigFile(configPath())
+  override fun configPath(): Path = resolveTelemetryConfigPath(resolvedContext.environment, resolvedContext.userHome)
 
-  override fun ensure(): Map<String, Any?> = ensureTelemetryConfigFile(configPath())
+  override fun read(): TelemetryConfigDocument? = readTelemetryConfigFile(configPath())
 
-  override fun write(payload: Map<String, Any?>) = writeTelemetryConfigFile(configPath(), payload)
+  override fun ensure(): TelemetryConfigDocument = ensureTelemetryConfigFile(configPath(), resolvedContext.environment)
+
+  override fun write(document: TelemetryConfigDocument) = writeTelemetryConfigFile(configPath(), document)
 
   override fun delete(): Boolean = Files.deleteIfExists(configPath())
 }
@@ -43,33 +47,59 @@ internal fun resolveTelemetryConfigPath(
   expandAndNormalizeTelemetryPath(it, userHome)
 } ?: userHome.resolve(".skill-bill").resolve("config.json").toAbsolutePath().normalize()
 
-internal fun readTelemetryConfigFile(path: Path): Map<String, Any?>? {
+private fun expandAndNormalizeTelemetryPath(rawPath: String, userHome: Path): Path {
+  val normalized =
+    when {
+      rawPath == "~" -> userHome.toString()
+      rawPath.startsWith("~/") -> userHome.resolve(rawPath.removePrefix("~/")).toString()
+      else -> rawPath
+    }
+  return Path.of(normalized).toAbsolutePath().normalize()
+}
+
+internal fun readTelemetryConfigFile(path: Path): TelemetryConfigDocument? {
   if (!Files.exists(path)) {
     return null
   }
   val rawPayload = JsonSupport.parseObjectOrNull(Files.readString(path))
     ?: throw IllegalArgumentException("Telemetry config at '$path' is not valid JSON.")
-  return JsonSupport.anyToStringAnyMap(JsonSupport.jsonElementToValue(rawPayload))
+  val payload = JsonSupport.anyToStringAnyMap(JsonSupport.jsonElementToValue(rawPayload))
     ?: throw IllegalArgumentException("Telemetry config at '$path' must contain a JSON object.")
+  return TelemetryConfigDocument(payload)
 }
 
-internal fun ensureTelemetryConfigFile(path: Path): Map<String, Any?> {
+/**
+ * SKILL-52.3: the random install-id seed is an effect, so it is resolved here in infra-fs rather
+ * than inside the pure [defaultLocalTelemetryConfig]. We prefer an explicitly injected
+ * [INSTALL_ID_ENVIRONMENT_KEY] env value (keeps deterministic test/CI installs stable) and only
+ * mint a fresh [UUID] when none is supplied. The minted/injected id is a FALLBACK only:
+ * [normalizedInstallId] still prefers an existing persisted `install_id`, so a fresh id is written
+ * only on first install.
+ */
+internal fun ensureTelemetryConfigFile(
+  path: Path,
+  environment: Map<String, String> = System.getenv(),
+): TelemetryConfigDocument {
   path.parent?.let(Files::createDirectories)
   val existing = readTelemetryConfigFile(path)
-  val payload = (existing?.toMutableMap() ?: mutableMapOf())
-  val defaults = defaultLocalTelemetryConfig()
+  val payload = (existing?.payload?.toMutableMap() ?: mutableMapOf())
+  val fallbackInstallId =
+    environment[INSTALL_ID_ENVIRONMENT_KEY]?.trim()?.takeIf(String::isNotBlank)
+      ?: UUID.randomUUID().toString()
+  val defaults = defaultLocalTelemetryConfig(fallbackInstallId).payload
   val telemetry = normalizedTelemetryMap(payload, defaults)
   payload["install_id"] = normalizedInstallId(payload, defaults)
   payload["telemetry"] = telemetry
-  if (!Files.exists(path) || existing != payload) {
-    writeTelemetryConfigFile(path, payload)
+  val document = TelemetryConfigDocument(payload)
+  if (!Files.exists(path) || existing != document) {
+    writeTelemetryConfigFile(path, document)
   }
-  return payload
+  return document
 }
 
-internal fun writeTelemetryConfigFile(path: Path, payload: Map<String, Any?>) {
+internal fun writeTelemetryConfigFile(path: Path, document: TelemetryConfigDocument) {
   path.parent?.let(Files::createDirectories)
-  Files.writeString(path, JsonSupport.mapToJsonString(payload) + "\n")
+  Files.writeString(path, JsonSupport.mapToJsonString(document.payload) + "\n")
 }
 
 private fun normalizedInstallId(payload: MutableMap<String, Any?>, defaults: Map<String, Any?>): String =

@@ -2,6 +2,7 @@ package skillbill.desktop.core.testing
 
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import skillbill.desktop.core.datastore.DesktopFirstRunPreferences
 import skillbill.desktop.core.datastore.DesktopPreferenceStore
 import skillbill.desktop.core.domain.model.AuthoredContentDocument
 import skillbill.desktop.core.domain.model.AuthoringSaveResult
@@ -46,7 +47,18 @@ class FakeSkillTreeService(
   private val items: List<SkillBillTreeItem>,
   var generatedArtifactIdsByPath: Map<String, String> = emptyMap(),
 ) : SkillTreeService {
-  override fun treeFor(session: RepoSession?): List<SkillBillTreeItem> = items
+  /**
+   * F-004-TESTING: counter incremented every time [treeFor] is called. Tests assert this to prove
+   * that a Success removal triggered exactly one tree re-scan via `beginRefreshAfterScaffold` /
+   * `loadRepo` and a Failed removal did not.
+   */
+  var refreshCount: Int = 0
+    private set
+
+  override fun treeFor(session: RepoSession?): List<SkillBillTreeItem> {
+    refreshCount += 1
+    return items
+  }
 
   @Suppress("UNUSED_PARAMETER")
   override fun resolveGeneratedArtifactTreeItemId(session: RepoSession?, artifactPath: String): String? =
@@ -123,6 +135,7 @@ class FakeGitGateway(
   var throwOnCommits: Throwable? = null,
   var throwOnStage: Throwable? = null,
   var throwOnUnstage: Throwable? = null,
+  var throwOnDiscard: Throwable? = null,
   var throwOnCommit: Throwable? = null,
   var throwOnPush: Throwable? = null,
   var throwOnPublishingStatus: Throwable? = null,
@@ -152,6 +165,9 @@ class FakeGitGateway(
   var unstageCallCount: Int = 0
     private set
 
+  var discardCallCount: Int = 0
+    private set
+
   var publishingStatusCallCount: Int = 0
     private set
 
@@ -171,6 +187,9 @@ class FakeGitGateway(
     private set
 
   var lastUnstagedPaths: List<String> = emptyList()
+    private set
+
+  var lastDiscardedPaths: List<String> = emptyList()
     private set
 
   var lastRecentCommitsPathFilter: String? = null
@@ -260,6 +279,15 @@ class FakeGitGateway(
       }
     }
     scriptedSnapshot = scriptedSnapshot.copy(files = mutated)
+    return snapshotFor(session)
+  }
+
+  @Suppress("UNUSED_PARAMETER")
+  override fun discard(session: RepoSession?, paths: List<String>): ChangesSnapshot {
+    discardCallCount += 1
+    lastDiscardedPaths = paths
+    throwOnDiscard?.let { throw it }
+    scriptedSnapshot = scriptedSnapshot.copy(files = scriptedSnapshot.files.filterNot { file -> file.path in paths })
     return snapshotFor(session)
   }
 
@@ -384,11 +412,18 @@ class FakeRenderGateway(
   }
 }
 
-class FakeDesktopPreferenceStore(initialRepoPath: String? = null) : DesktopPreferenceStore {
+class FakeDesktopPreferenceStore(
+  initialRepoPath: String? = null,
+  initialFirstRunPreferences: DesktopFirstRunPreferences = DesktopFirstRunPreferences(),
+) : DesktopPreferenceStore {
   private val recentRepoPathState = MutableStateFlow(initialRepoPath)
+  private val firstRunState = MutableStateFlow(initialFirstRunPreferences)
 
   override val recentRepoPath: StateFlow<String?>
     get() = recentRepoPathState
+
+  override val firstRunPreferences: StateFlow<DesktopFirstRunPreferences>
+    get() = firstRunState
 
   override fun rememberRepoPath(repoPath: String) {
     recentRepoPathState.value = repoPath.trim().takeIf(String::isNotEmpty)
@@ -396,6 +431,14 @@ class FakeDesktopPreferenceStore(initialRepoPath: String? = null) : DesktopPrefe
 
   override fun clearRecentRepoPath() {
     recentRepoPathState.value = null
+  }
+
+  override fun saveFirstRunPreferences(preferences: DesktopFirstRunPreferences) {
+    firstRunState.value = preferences
+  }
+
+  override fun markFirstRunCompleted(preferences: DesktopFirstRunPreferences) {
+    firstRunState.value = preferences.copy(completed = true)
   }
 }
 

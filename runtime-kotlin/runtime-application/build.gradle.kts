@@ -10,4 +10,5 @@ dependencies {
   implementation(libs.kotlin.inject.runtime)
   testImplementation(libs.junit.jupiter)
   testImplementation(libs.kotlin.test)
+  testImplementation(libs.jackson.dataformat.yaml)
 }

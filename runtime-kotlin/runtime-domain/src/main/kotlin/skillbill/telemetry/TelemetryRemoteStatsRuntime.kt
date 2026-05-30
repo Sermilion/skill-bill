@@ -1,16 +1,16 @@
 package skillbill.telemetry
 
 import skillbill.telemetry.model.RemoteStatsRequest
+import skillbill.telemetry.model.TelemetryProxyCapabilities
 import skillbill.telemetry.model.TelemetrySettings
 import java.time.LocalDate
-import java.time.ZoneOffset
 
 object TelemetryRemoteStatsRuntime {
   fun parseRemoteStatsWindow(
     since: String = "",
     dateFrom: String = "",
     dateTo: String = "",
-    today: LocalDate = LocalDate.now(ZoneOffset.UTC),
+    today: LocalDate,
   ): Pair<String, String> = skillbill.telemetry.parseRemoteStatsWindow(since, dateFrom, dateTo, today)
 }
 
@@ -18,7 +18,7 @@ fun parseRemoteStatsWindow(
   since: String = "",
   dateFrom: String = "",
   dateTo: String = "",
-  today: LocalDate = LocalDate.now(ZoneOffset.UTC),
+  today: LocalDate,
 ): Pair<String, String> {
   require(dateFrom.isBlank() || since.isBlank()) {
     "Use either since or date_from/date_to, not both."
@@ -43,18 +43,15 @@ fun validateRemoteStatsRequest(request: RemoteStatsRequest) {
 fun validateRemoteStatsCapabilities(
   request: RemoteStatsRequest,
   settings: TelemetrySettings,
-  capabilities: Map<String, Any?>,
+  capabilities: TelemetryProxyCapabilities,
 ) {
-  require(capabilities["supports_stats"] == true) {
-    val capabilitiesUrl =
-      capabilities["capabilities_url"]
-        ?: settings.proxyUrl.trimEnd('/') + "/capabilities"
+  require(capabilities.supportsStats) {
+    val capabilitiesUrl = capabilities.capabilitiesUrl.ifBlank {
+      settings.proxyUrl.trimEnd('/') + "/capabilities"
+    }
     "Configured telemetry proxy does not support remote stats yet. Capabilities URL: $capabilitiesUrl"
   }
-  val supportedWorkflows =
-    (capabilities["supported_workflows"] as? List<*>)
-      ?.filterIsInstance<String>()
-      .orEmpty()
+  val supportedWorkflows = capabilities.supportedWorkflows
   require(supportedWorkflows.isEmpty() || request.workflow in supportedWorkflows) {
     "Configured telemetry proxy does not support workflow '${request.workflow}'. " +
       "Supported workflows: ${supportedWorkflows.joinToString(", ")}."

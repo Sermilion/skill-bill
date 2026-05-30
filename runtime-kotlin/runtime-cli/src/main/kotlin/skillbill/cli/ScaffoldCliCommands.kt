@@ -13,12 +13,14 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.choice
 import me.tatarka.inject.annotations.Inject
+import skillbill.application.InstallAgentService
+import skillbill.application.InstallService
+import skillbill.application.ScaffoldService
+import skillbill.application.UnsupportedScaffoldService
+import skillbill.cli.scaffold.parseScaffoldCommandRequest
 import skillbill.contracts.JsonSupport
 import skillbill.error.SkillBillRuntimeException
-import skillbill.install.InstallOperations
-import skillbill.scaffold.AuthoringOperations
-import skillbill.scaffold.renderAuthoringTarget
-import skillbill.scaffold.scaffold
+import skillbill.ports.scaffold.model.ScaffoldRenderResult
 import java.nio.file.Path
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -67,6 +69,8 @@ class ScaffoldTopLevelCommands(
 
 @Inject
 class InstallTopLevelCommands(
+  planCommand: InstallPlanCommand,
+  applyCommand: InstallApplyCommand,
   agentPathCommand: InstallAgentPathCommand,
   detectAgentsCommand: InstallDetectAgentsCommand,
   linkSkillCommand: InstallLinkSkillCommand,
@@ -92,6 +96,8 @@ class InstallTopLevelCommands(
       "Install-side primitives (agent paths, symlinks, native subagents, MCP registration).",
     ) {}
       .subcommands(
+        planCommand,
+        applyCommand,
         agentPathCommand,
         detectAgentsCommand,
         linkSkillCommand,
@@ -116,6 +122,7 @@ class InstallTopLevelCommands(
 @Inject
 class ListSkillsCommand(
   private val state: CliRunState,
+  private val scaffoldService: ScaffoldService,
 ) : DocumentedCliCommand("list", "List content-managed skills and their authoring status.") {
   private val repoRoot by option(
     "--repo-root",
@@ -131,7 +138,7 @@ class ListSkillsCommand(
   override fun run() {
     state.result =
       authoringResult(format) {
-        AuthoringOperations.list(Path.of(repoRoot), skillNames)
+        scaffoldService.list(Path.of(repoRoot), skillNames).toCliMap()
       }
   }
 }
@@ -139,6 +146,7 @@ class ListSkillsCommand(
 @Inject
 class ShowSkillCommand(
   private val state: CliRunState,
+  private val scaffoldService: ScaffoldService,
 ) : DocumentedCliCommand(
   "show",
   "Show one content-managed skill with section status, drift, and recommended next commands.",
@@ -157,7 +165,7 @@ class ShowSkillCommand(
   override fun run() {
     state.result =
       authoringResult(format) {
-        AuthoringOperations.show(Path.of(repoRoot), skillName, content)
+        scaffoldService.show(Path.of(repoRoot), skillName, content).toCliMap()
       }
   }
 }
@@ -165,6 +173,7 @@ class ShowSkillCommand(
 @Inject
 class ExplainSkillCommand(
   private val state: CliRunState,
+  private val scaffoldService: ScaffoldService,
 ) : DocumentedCliCommand(
   "explain",
   "Explain the governed authoring boundary and the CLI workflow for content-managed skills.",
@@ -176,7 +185,7 @@ class ExplainSkillCommand(
   override fun run() {
     state.result =
       authoringResult(format) {
-        AuthoringOperations.explain(Path.of(repoRoot), skillName)
+        scaffoldService.explain(Path.of(repoRoot), skillName).toCliMap()
       }
   }
 }
@@ -184,6 +193,7 @@ class ExplainSkillCommand(
 @Inject
 class ValidateSkillCommand(
   private val state: CliRunState,
+  private val scaffoldService: ScaffoldService,
 ) : DocumentedCliCommand("validate", "Run the repo validator, or validate specific skills only.") {
   private val repoRoot by option(
     "--repo-root",
@@ -199,7 +209,7 @@ class ValidateSkillCommand(
   override fun run() {
     state.result =
       authoringResult(format, successExitCode = { payload -> if (payload["status"] == "pass") 0 else 1 }) {
-        AuthoringOperations.validate(Path.of(repoRoot), skillNames)
+        scaffoldService.validate(Path.of(repoRoot), skillNames).toCliMap()
       }
   }
 }
@@ -207,11 +217,13 @@ class ValidateSkillCommand(
 @Inject
 class UpgradeSkillsCommand(
   private val state: CliRunState,
-) : WrapperRegenerationCommand("upgrade", state)
+  scaffoldService: ScaffoldService,
+) : WrapperRegenerationCommand("upgrade", state, scaffoldService)
 
 @Inject
 class RenderSkillsCommand(
   private val state: CliRunState,
+  private val scaffoldService: ScaffoldService,
 ) : DocumentedCliCommand("render", "Render scaffold-managed files to stdout without writing to disk.") {
   private val skillName by argument(help = "Governed skill name to render.")
   private val repoRoot by option(
@@ -223,13 +235,14 @@ class RenderSkillsCommand(
     .flag(default = false)
 
   override fun run() {
-    completeRenderText(state, Path.of(repoRoot), skillName, dryRun)
+    completeRenderText(state, Path.of(repoRoot), skillName, dryRun, scaffoldService)
   }
 }
 
 open class WrapperRegenerationCommand(
   name: String,
   private val state: CliRunState,
+  private val scaffoldService: ScaffoldService,
 ) : DocumentedCliCommand(name, "Validate governed render output and regenerate native-agent artifacts.") {
   private val repoRoot by option(
     "--repo-root",
@@ -247,7 +260,7 @@ open class WrapperRegenerationCommand(
   override fun run() {
     state.result =
       authoringResult(format) {
-        AuthoringOperations.upgrade(Path.of(repoRoot), skillNames, validate = !skipValidate)
+        scaffoldService.upgrade(Path.of(repoRoot), skillNames, validate = !skipValidate).toCliMap()
       }
   }
 }
@@ -255,6 +268,8 @@ open class WrapperRegenerationCommand(
 @Inject
 class EditSkillCommand(
   private val state: CliRunState,
+  private val scaffoldService: ScaffoldService,
+  private val unsupportedScaffoldService: UnsupportedScaffoldService,
 ) : DocumentedCliCommand("edit", "Edit a content-managed skill's authored content.md and validate render output.") {
   private val skillName by argument(help = "Governed skill name to edit.")
   private val repoRoot by option("--repo-root", help = "Repo root to edit. Defaults to the current working directory.")
@@ -269,26 +284,28 @@ class EditSkillCommand(
       when {
         editor ->
           unsupportedNativeScaffoldResult(
-            AuthoringOperations.retiredEditorMessage(
+            unsupportedScaffoldService.retiredUnsupportedMessage(
               "edit --editor",
               "skill-bill fill $skillName --body-file <file>",
+              editor = true,
             ),
             format,
           )
         bodyFile != null ->
           authoringResult(format) {
-            AuthoringOperations.editWithBodyFile(
+            scaffoldService.editWithBodyFile(
               Path.of(repoRoot),
               skillName,
               readCliTextFile(bodyFile.orEmpty(), state),
               section,
-            )
+            ).toCliMap()
           }
         else ->
           unsupportedNativeScaffoldResult(
-            AuthoringOperations.retiredInteractiveMessage(
+            unsupportedScaffoldService.retiredUnsupportedMessage(
               "edit",
               "skill-bill fill $skillName --body-file <file>",
+              editor = false,
             ),
             format,
           )
@@ -299,6 +316,7 @@ class EditSkillCommand(
 @Inject
 class FillSkillCommand(
   private val state: CliRunState,
+  private val scaffoldService: ScaffoldService,
 ) : DocumentedCliCommand("fill", "Write authored content into content.md and validate render output.") {
   private val skillName by argument(help = "Governed skill name to fill.")
   private val repoRoot by option("--repo-root", help = "Repo root to edit. Defaults to the current working directory.")
@@ -315,12 +333,12 @@ class FillSkillCommand(
         body == null && bodyFile == null -> errorResult("Either --body or --body-file is required.", format)
         else ->
           authoringResult(format) {
-            AuthoringOperations.fill(
+            scaffoldService.fill(
               Path.of(repoRoot),
               skillName,
               body ?: readCliTextFile(bodyFile.orEmpty(), state),
               section,
-            )
+            ).toCliMap()
           }
       }
   }
@@ -329,6 +347,8 @@ class FillSkillCommand(
 @Inject
 class NewSkillCommand(
   private val state: CliRunState,
+  private val scaffoldService: ScaffoldService,
+  private val unsupportedScaffoldService: UnsupportedScaffoldService,
 ) : DocumentedCliCommand("new-skill", "Scaffold a new skill from a payload file or interactive prompts.") {
   private val payload by option("--payload", help = "Path to a JSON payload file (or '-' for stdin).")
   private val interactive by option("--interactive", help = "Collect a skill scaffold payload via interactive prompts.")
@@ -341,14 +361,15 @@ class NewSkillCommand(
     state.result =
       if (interactive) {
         unsupportedNativeScaffoldResult(
-          AuthoringOperations.retiredInteractiveMessage(
+          unsupportedScaffoldService.retiredUnsupportedMessage(
             "new-skill --interactive",
             "skill-bill new-skill --payload <file>",
+            editor = false,
           ),
           format,
         )
       } else {
-        runNativeScaffoldPayload(payload, dryRun, format, state)
+        runNativeScaffoldPayload(payload, dryRun, format, state, scaffoldService)
       }
   }
 }
@@ -356,6 +377,8 @@ class NewSkillCommand(
 @Inject
 class NewCommand(
   private val state: CliRunState,
+  private val scaffoldService: ScaffoldService,
+  private val unsupportedScaffoldService: UnsupportedScaffoldService,
 ) : DocumentedCliCommand("new", "Alias for new-skill: scaffold one skill from a payload file or interactive prompts.") {
   private val payload by option("--payload", help = "Path to a JSON payload file (or '-' for stdin).")
   private val interactive by option("--interactive", help = "Collect a skill scaffold payload via interactive prompts.")
@@ -368,14 +391,15 @@ class NewCommand(
     state.result =
       if (interactive) {
         unsupportedNativeScaffoldResult(
-          AuthoringOperations.retiredInteractiveMessage(
+          unsupportedScaffoldService.retiredUnsupportedMessage(
             "new --interactive",
             "skill-bill new --payload <file>",
+            editor = false,
           ),
           format,
         )
       } else {
-        runNativeScaffoldPayload(payload, dryRun, format, state)
+        runNativeScaffoldPayload(payload, dryRun, format, state, scaffoldService)
       }
   }
 }
@@ -383,6 +407,8 @@ class NewCommand(
 @Inject
 class CreateAndFillCommand(
   private val state: CliRunState,
+  private val scaffoldService: ScaffoldService,
+  private val unsupportedScaffoldService: UnsupportedScaffoldService,
 ) : DocumentedCliCommand(
   "create-and-fill",
   "Scaffold one governed skill, then immediately author content.md and validate it.",
@@ -393,19 +419,39 @@ class CreateAndFillCommand(
   private val dryRun by option("--dry-run", help = "Plan the scaffold and report the operations without touching disk.")
     .flag(default = false)
   private val body by option("--body", help = "Optional authored body to write after scaffolding.")
-  private val bodyFile by option("--body-file", help = "Optional file path (or '-') to read the authored body from.")
-  private val editor by option("--editor", help = "Open the scaffolded content.md in \$VISUAL or \$EDITOR.")
+  private val bodyFile by option(
+    "--body-file",
+    help = "Optional file path (or '-') to read the authored body from.",
+  )
+  private val editor by option(
+    "--editor",
+    help = "Open the scaffolded content.md in \$VISUAL or \$EDITOR.",
+  )
     .flag(default = false)
   private val format by formatOption()
 
   override fun run() {
-    state.result = createAndFillResult(payload, interactive, dryRun, body, bodyFile, editor, format, state)
+    state.result =
+      createAndFillResult(
+        payload,
+        interactive,
+        dryRun,
+        body,
+        bodyFile,
+        editor,
+        format,
+        state,
+        scaffoldService,
+        unsupportedScaffoldService,
+      )
   }
 }
 
 @Inject
 class NewAddonCommand(
   private val state: CliRunState,
+  private val scaffoldService: ScaffoldService,
+  private val unsupportedScaffoldService: UnsupportedScaffoldService,
 ) : DocumentedCliCommand("new-addon", "Create a governed add-on file inside an existing platform pack.") {
   private val platform by option("--platform", help = "Owning platform slug. Required unless --interactive is used.")
   private val name by option(
@@ -414,6 +460,11 @@ class NewAddonCommand(
   )
   private val body by option("--body", help = "Complete markdown body to write to the add-on file.")
   private val bodyFile by option("--body-file", help = "Path to a markdown file to copy into the add-on (or '-').")
+  private val consumerSkillDirs by option(
+    "--consumer-skill-dir",
+    help = "Skill-relative directory to register as an add-on consumer. May be repeated. " +
+      "Defaults to the pack baseline code-review skill.",
+  ).multiple()
   private val interactive by option("--interactive", help = "Prompt for platform, add-on slug, and markdown content.")
     .flag(default = false)
   private val dryRun by option("--dry-run", help = "Plan the scaffold and report the operations without touching disk.")
@@ -424,16 +475,22 @@ class NewAddonCommand(
     state.result =
       if (interactive) {
         unsupportedNativeScaffoldResult(
-          AuthoringOperations.retiredInteractiveMessage(
+          unsupportedScaffoldService.retiredUnsupportedMessage(
             "new-addon --interactive",
             "skill-bill new-addon --platform <platform> --name <name> --body-file <file>",
+            editor = false,
           ),
           format,
         )
       } else if (body != null && bodyFile != null) {
         errorResult("--body and --body-file are mutually exclusive.", format)
       } else {
-        runNativeScaffoldPayload(newAddonPayload(platform, name, body, bodyFile, state), dryRun, format)
+        runNativeScaffoldPayload(
+          newAddonPayload(platform, name, body, bodyFile, consumerSkillDirs, state),
+          dryRun,
+          format,
+          scaffoldService,
+        )
       }
   }
 }
@@ -441,11 +498,12 @@ class NewAddonCommand(
 @Inject
 class InstallAgentPathCommand(
   private val state: CliRunState,
+  private val installAgentService: InstallAgentService,
 ) : DocumentedCliCommand("agent-path", "Print the canonical install directory for a given agent.") {
   private val agent by argument(help = "Agent name.")
 
   override fun run() {
-    val path = InstallOperations.agentPath(agent, state.userHome)
+    val path = installAgentService.agentPath(agent, state.userHome)
     state.result = CliExecutionResult(exitCode = 0, stdout = "$path\n")
   }
 }
@@ -453,10 +511,11 @@ class InstallAgentPathCommand(
 @Inject
 class InstallDetectAgentsCommand(
   private val state: CliRunState,
+  private val installAgentService: InstallAgentService,
 ) : DocumentedCliCommand("detect-agents", "List detected agents as 'name\\tpath' lines.") {
   override fun run() {
     val output =
-      InstallOperations.detectAgentTargets(state.userHome)
+      installAgentService.detectAgentTargets(state.userHome)
         .joinToString(separator = "") { target -> "${target.name}\t${target.path}\n" }
     state.result = CliExecutionResult(exitCode = 0, stdout = output)
   }
@@ -465,6 +524,7 @@ class InstallDetectAgentsCommand(
 @Inject
 class InstallLinkSkillCommand(
   private val state: CliRunState,
+  private val installService: InstallService,
 ) : DocumentedCliCommand(
   "link-skill",
   "Symlink a skill DIRECTORY into an agent's install directory.",
@@ -478,7 +538,7 @@ class InstallLinkSkillCommand(
   )
 
   override fun run() {
-    InstallOperations.linkSkill(
+    installService.linkSkill(
       source = Path.of(source),
       targetDir = Path.of(targetDir),
       agent = agent,
@@ -494,6 +554,7 @@ private fun runNativeScaffoldPayload(
   dryRun: Boolean,
   format: CliFormat,
   state: CliRunState,
+  scaffoldService: ScaffoldService,
   transform: (Map<String, *>) -> Map<String, *> = { it },
 ): CliExecutionResult {
   val payload =
@@ -504,27 +565,43 @@ private fun runNativeScaffoldPayload(
     } catch (error: IllegalArgumentException) {
       return errorResult(error.message.orEmpty(), format)
     }
-  return runNativeScaffoldPayload(payload, dryRun, format)
+  return runNativeScaffoldPayload(payload, dryRun, format, scaffoldService)
 }
 
-private fun runNativeScaffoldPayload(payload: Map<String, *>, dryRun: Boolean, format: CliFormat): CliExecutionResult {
+private fun runNativeScaffoldPayload(
+  payload: Map<String, *>,
+  dryRun: Boolean,
+  format: CliFormat,
+  scaffoldService: ScaffoldService,
+): CliExecutionResult {
   val sessionId = generateScaffoldSessionId()
   val payloadWithRepoRoot = if ((payload["repo_root"] as? String).isNullOrBlank()) {
     payload + ("repo_root" to findRepoRoot().toString())
   } else {
     payload
   }
+  // SKILL-52.2 subtask 2: parse the raw map at the CLI adapter boundary and call the typed
+  // overload so the application + port surface no longer accepts a raw `Map<String, Any?>`.
+  // Materialise the inbound `Map<String, *>` into the `Map<String, Any?>` shape the parser
+  // accepts; the keys are already strings — only the value variance widens.
+  val typedPayload: Map<String, Any?> = payloadWithRepoRoot.mapValues { (_, value) -> value }
   val result =
     try {
-      scaffold(payloadWithRepoRoot, dryRun = dryRun)
+      val request = parseScaffoldCommandRequest(typedPayload)
+      scaffoldService.scaffold(request, dryRun = dryRun)
     } catch (error: SkillBillRuntimeException) {
       return errorResult(error.message.orEmpty(), format)
     }
+  val created = result.run { createdFiles }.map { path -> path.toString() }
   val presentation =
     mapOf(
       "status" to "ok",
       "session_id" to sessionId,
       "skill_path" to result.skillPath.toString(),
+      "dry_run" to dryRun,
+      "created_files" to created,
+      "manifest_edits" to result.manifestEdits.map { path -> path.toString() },
+      "manifest_edit_previews" to result.manifestPreviews.mapKeys { (path, _) -> path.toString() },
       "notes" to result.notes,
     )
   return CliExecutionResult(
@@ -543,11 +620,14 @@ private fun createAndFillResult(
   editor: Boolean,
   format: CliFormat,
   state: CliRunState,
+  scaffoldService: ScaffoldService,
+  unsupportedScaffoldService: UnsupportedScaffoldService,
 ): CliExecutionResult = when {
   interactive || payload == null -> unsupportedNativeScaffoldResult(
-    AuthoringOperations.retiredInteractiveMessage(
+    unsupportedScaffoldService.retiredUnsupportedMessage(
       "create-and-fill",
       "skill-bill create-and-fill --payload <file> --body-file <file>",
+      editor = false,
     ),
     format,
   )
@@ -556,7 +636,7 @@ private fun createAndFillResult(
     format,
   )
   body != null && bodyFile != null -> errorResult("--body and --body-file are mutually exclusive.", format)
-  else -> runNativeScaffoldPayload(payload, dryRun, format, state) { scaffoldPayload ->
+  else -> runNativeScaffoldPayload(payload, dryRun, format, state, scaffoldService) { scaffoldPayload ->
     createAndFillScaffoldPayload(scaffoldPayload, body, bodyFile, state)
   }
 }
@@ -591,14 +671,32 @@ private fun authoringResult(
   errorResult(error.message.orEmpty(), format)
 }
 
-private fun completeRenderText(state: CliRunState, repoRoot: Path, skillName: String, dryRun: Boolean) = try {
-  val rendered = renderAuthoringTarget(repoRoot, skillName)
-  state.completeText(rendered.stdout, rendered.payload + mapOf("dry_run" to dryRun))
+private fun completeRenderText(
+  state: CliRunState,
+  repoRoot: Path,
+  skillName: String,
+  dryRun: Boolean,
+  scaffoldService: ScaffoldService,
+) = try {
+  val rendered = scaffoldService.render(repoRoot, skillName)
+  state.completeText(rendered.stdout, rendered.toCliPayload(dryRun))
 } catch (error: SkillBillRuntimeException) {
   state.result = errorResult(error.message.orEmpty(), CliFormat.TEXT)
 } catch (error: IllegalArgumentException) {
   state.result = errorResult(error.message.orEmpty(), CliFormat.TEXT)
 }
+
+private fun ScaffoldRenderResult.toCliPayload(dryRun: Boolean): Map<String, Any?> = mapOf(
+  "repo_root" to repoRoot.toString(),
+  "skill_name" to skillName,
+  "blocks" to blocks.map { block ->
+    mapOf(
+      "header" to block.header,
+      "content" to block.content,
+    )
+  },
+  "dry_run" to dryRun,
+)
 
 private fun unsupportedNativeScaffoldResult(message: String, format: CliFormat): CliExecutionResult {
   val presentation =
@@ -639,14 +737,18 @@ private fun newAddonPayload(
   name: String?,
   body: String?,
   bodyFile: String?,
+  consumerSkillDirs: List<String>,
   state: CliRunState,
-): Map<String, String> = mapOf(
-  "scaffold_payload_version" to "1.0",
-  "kind" to "add-on",
-  "platform" to platform.orEmpty(),
-  "name" to name.orEmpty(),
-  "body" to (body ?: bodyFile?.let { path -> readCliTextFile(path, state) }).orEmpty(),
-)
+): Map<String, Any> = buildMap {
+  put("scaffold_payload_version", "1.0")
+  put("kind", "add-on")
+  put("platform", platform.orEmpty())
+  put("name", name.orEmpty())
+  put("body", (body ?: bodyFile?.let { path -> readCliTextFile(path, state) }).orEmpty())
+  if (consumerSkillDirs.isNotEmpty()) {
+    put("consumer_skill_dirs", consumerSkillDirs)
+  }
+}
 
 private fun readCliTextFile(path: String, state: CliRunState): String =
   if (path == "-") state.stdinText.orEmpty() else Path.of(path).toFile().readText()

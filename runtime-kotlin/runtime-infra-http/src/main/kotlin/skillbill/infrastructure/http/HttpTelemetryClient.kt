@@ -8,10 +8,13 @@ import skillbill.model.RuntimeContext
 import skillbill.ports.persistence.model.TelemetryOutboxRecord
 import skillbill.ports.telemetry.HttpRequester
 import skillbill.ports.telemetry.TelemetryClient
+import skillbill.ports.telemetry.UnconfiguredHttpRequester
 import skillbill.ports.telemetry.model.HttpResponse
 import skillbill.telemetry.TELEMETRY_PROXY_CONTRACT_VERSION
 import skillbill.telemetry.TELEMETRY_PROXY_STATS_TOKEN_ENVIRONMENT_KEY
 import skillbill.telemetry.model.RemoteStatsRequest
+import skillbill.telemetry.model.TelemetryProxyCapabilities
+import skillbill.telemetry.model.TelemetryRemoteStatsResult
 import skillbill.telemetry.model.TelemetrySettings
 import skillbill.telemetry.parseRemoteStatsWindow
 import skillbill.telemetry.validateRemoteStatsCapabilities
@@ -20,6 +23,9 @@ import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse.BodyHandlers
+import java.nio.file.Path
+import java.time.LocalDate
+import java.time.ZoneOffset
 
 object JdkHttpRequester : HttpRequester {
   override fun execute(method: String, url: String, bodyJson: String?, headers: Map<String, String>): HttpResponse {
@@ -37,10 +43,18 @@ object JdkHttpRequester : HttpRequester {
 class HttpTelemetryClient(
   private val context: RuntimeContext,
 ) : TelemetryClient {
+  private val resolvedContext = context.withProcessDefaults()
+
   constructor(
     requester: HttpRequester,
     environment: Map<String, String> = System.getenv(),
-  ) : this(RuntimeContext(environment = environment, requester = requester))
+  ) : this(requester, environment, Path.of(System.getProperty("user.home")))
+
+  constructor(
+    requester: HttpRequester,
+    environment: Map<String, String>,
+    userHome: Path,
+  ) : this(RuntimeContext(environment = environment, userHome = userHome, requester = requester))
 
   override fun sendBatch(settings: TelemetrySettings, rows: List<TelemetryOutboxRecord>) {
     require(settings.proxyUrl.isNotBlank()) { "Telemetry relay URL is not configured." }
@@ -54,19 +68,19 @@ class HttpTelemetryClient(
       url = settings.proxyUrl,
       payload = telemetryProxyBatchPayload(settings, rows).toPayload(),
       errorContext = errorContext,
-      requester = context.requester,
+      requester = resolvedContext.requester,
     )
   }
 
-  override fun fetchProxyCapabilities(settings: TelemetrySettings): Map<String, Any?> {
+  override fun fetchProxyCapabilities(settings: TelemetrySettings): TelemetryProxyCapabilities {
     require(settings.proxyUrl.isNotBlank()) { "Telemetry relay URL is not configured." }
     val capabilitiesUrl = settings.proxyUrl.trimEnd('/') + "/capabilities"
     return try {
       requestJsonGet(
         url = capabilitiesUrl,
         errorContext = "Telemetry proxy capabilities request",
-        headers = proxyAuthHeaders(context.environment),
-        requester = context.requester,
+        headers = proxyAuthHeaders(resolvedContext.environment),
+        requester = resolvedContext.requester,
       ).toMutableMap().apply {
         putIfAbsent("contract_version", TELEMETRY_PROXY_CONTRACT_VERSION)
         putIfAbsent("source", "remote_proxy")
@@ -75,10 +89,10 @@ class HttpTelemetryClient(
         putIfAbsent("supports_ingest", true)
         putIfAbsent("supports_stats", false)
         putIfAbsent("supported_workflows", emptyList<String>())
-      }
+      }.toTelemetryProxyCapabilities()
     } catch (error: HttpFailureException) {
       if (error.statusCode == HTTP_NOT_FOUND || error.statusCode == HTTP_METHOD_NOT_ALLOWED) {
-        defaultProxyCapabilities(settings.proxyUrl, capabilitiesUrl)
+        defaultProxyCapabilities(settings.proxyUrl, capabilitiesUrl).toTelemetryProxyCapabilities()
       } else {
         throw IllegalArgumentException(
           error.message ?: "Telemetry proxy capabilities request failed.",
@@ -88,13 +102,13 @@ class HttpTelemetryClient(
     }
   }
 
-  override fun fetchRemoteStats(settings: TelemetrySettings, request: RemoteStatsRequest): Map<String, Any?> {
+  override fun fetchRemoteStats(settings: TelemetrySettings, request: RemoteStatsRequest): TelemetryRemoteStatsResult {
     validateRemoteStatsRequest(request)
     require(settings.proxyUrl.isNotBlank()) {
       "Telemetry relay URL is not configured."
     }
     val (resolvedDateFrom, resolvedDateTo) =
-      parseRemoteStatsWindow(request.since, request.dateFrom, request.dateTo)
+      parseRemoteStatsWindow(request.since, request.dateFrom, request.dateTo, LocalDate.now(ZoneOffset.UTC))
     val capabilities = fetchProxyCapabilities(settings)
     validateRemoteStatsCapabilities(
       request = request,
@@ -113,19 +127,25 @@ class HttpTelemetryClient(
           groupBy = request.groupBy,
         ).toPayload(),
         errorContext = "Remote telemetry stats request",
-        headers = proxyAuthHeaders(context.environment),
-        requester = context.requester,
+        headers = proxyAuthHeaders(resolvedContext.environment),
+        requester = resolvedContext.requester,
       ).toMutableMap()
+    val responseCapabilitiesPresent = payload.containsKey("capabilities")
     payload.putIfAbsent("workflow", request.workflow)
     payload.putIfAbsent("date_from", resolvedDateFrom)
     payload.putIfAbsent("date_to", resolvedDateTo)
     payload.putIfAbsent("source", "remote_proxy")
     payload.putIfAbsent("stats_url", statsUrl)
-    payload.putIfAbsent("capabilities", capabilities)
+    if (!payload.containsKey("capabilities")) {
+      payload["capabilities"] = capabilities
+    }
     if (request.groupBy.isNotBlank()) {
       payload.putIfAbsent("group_by", request.groupBy)
     }
-    return payload
+    return payload.toTelemetryRemoteStatsResult(
+      capabilities = capabilities,
+      preserveResponseCapabilities = responseCapabilitiesPresent,
+    )
   }
 }
 
@@ -219,6 +239,26 @@ private fun bodyPublisher(bodyJson: String?): HttpRequest.BodyPublisher = if (bo
   HttpRequest.BodyPublishers.noBody()
 } else {
   HttpRequest.BodyPublishers.ofString(bodyJson)
+}
+
+private fun RuntimeContext.withProcessDefaults(): RuntimeContext {
+  val withUserHome =
+    if (userHome == RuntimeContext.UnspecifiedUserHome) {
+      copy(userHome = Path.of(System.getProperty("user.home")).toAbsolutePath().normalize())
+    } else {
+      copy(userHome = userHome.toAbsolutePath().normalize())
+    }
+  return if (withUserHome.environment === RuntimeContext.UnspecifiedEnvironment) {
+    withUserHome.copy(environment = System.getenv())
+  } else {
+    withUserHome
+  }.let { context ->
+    if (context.requester === UnconfiguredHttpRequester) {
+      context.copy(requester = JdkHttpRequester)
+    } else {
+      context
+    }
+  }
 }
 
 private const val HTTP_OK_MIN: Int = 200

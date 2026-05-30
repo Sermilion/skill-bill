@@ -32,16 +32,51 @@ cd ~/Development/skill-bill
 ./install.sh
 ```
 
-For a pinned install:
+The default `./install.sh` is the **prebuilt** path: it downloads and checksum-verifies the prebuilt release runtime images for your host, so it needs no JDK and no Gradle build. Supported prebuilt hosts are `macos-arm64`, `macos-x64`, `windows-x64`, and `linux-x64`; any other host auto-falls back to a from-source build.
+
+For a pinned install, use the `--release TAG` mechanism (or the `SKILL_BILL_RELEASE_TAG` environment variable) instead of cloning a specific branch:
 
 ```bash
-TAG=v0.x.y
-git clone --branch "$TAG" --depth 1 https://github.com/Sermilion/skill-bill.git ~/Development/skill-bill
-cd ~/Development/skill-bill
-./install.sh
+./install.sh --release v0.x.y
+# or, equivalently:
+SKILL_BILL_RELEASE_TAG=v0.x.y ./install.sh
 ```
 
-The installer builds the Kotlin CLI and MCP distributions, copies the packaged runtime into `~/.skill-bill/runtime/`, verifies the installed bin scripts, installs `skill-bill` and `skill-bill-mcp` launchers into `${SKILL_BILL_BIN_DIR:-~/.local/bin}`, renders selected skills into staging, then links those staged skills into detected agent directories. MCP registrations point at the installed runtime copy so Gradle cleanup or IDE rebuilds inside the checkout do not break agent startup. If that launcher directory is not on `PATH`, install finishes with an explicit warning.
+`--release` pins the prebuilt artifacts to a specific release tag. It is ignored under `--from-source`, where the runtime is built from your current checkout.
+
+On the default prebuilt path the installer fetches and checksum-verifies the Kotlin CLI and MCP distribution images from the matching GitHub release — it does **not** build them locally. With `--from-source` the installer instead builds the Kotlin CLI and MCP distributions with Gradle (JDK required). Either way it then copies the packaged runtime into `~/.skill-bill/runtime/`, verifies the installed bin scripts, installs `skill-bill` and `skill-bill-mcp` launchers into `${SKILL_BILL_BIN_DIR:-~/.local/bin}`, renders selected skills into staging, then links those staged skills into detected agent directories. MCP registrations point at the installed runtime copy so Gradle cleanup or IDE rebuilds inside the checkout do not break agent startup. If that launcher directory is not on `PATH`, install finishes with an explicit warning.
+
+`./install.sh` collects install choices and delegates the durable work to the
+packaged runtime command `skill-bill install apply`. The shell script still owns
+bootstrap prompts and runtime distribution installation, but the runtime owns
+planning, staging, symlink/native-agent linking, telemetry configuration, MCP
+registration, replacement cleanup, and structured failure reporting.
+
+Installer prompts cover:
+
+- agent selection: manual or detected `copilot`, `claude`, `codex`,
+  `opencode`, and `junie`
+- platform packs: all packs, selected packs, or base skills only; selected
+  packs are discovered from `platform-packs/` manifests
+- telemetry: `anonymous`, `full`, or `off`
+
+MCP registration is always applied for supported agent config entries so guided
+workflows, learnings, telemetry, and workflow resume are available after
+install.
+
+Base skills are always included. Optional platform packs add their declared
+review and quality-check skills after manifest validation. All installed
+content-managed skills are rendered into `~/.skill-bill/installed-skills/` and
+agent entries link to that staging cache, not directly to source directories.
+When a platform pack declares `code_review_composition.baseline_layers`, the
+rendered baseline review skill includes review-composition instructions so the
+referenced baseline layer runs before pack-local specialists.
+
+On Windows, Skill Bill uses explicit symlink preflight outcomes. If symlink
+support is not available, install output tells the operator to enable Developer
+Mode, run an elevated shell, or rerun after fixing the target filesystem. The
+runtime preserves user-owned files and reports a structured failure rather than
+silently replacing non-Skill-Bill content.
 
 Supported install targets:
 
@@ -61,7 +96,7 @@ Using GLM as a model in Claude Code? Skill Bill installs to the Claude Code comm
 
 Installed skills are symlinks to rendered staging directories under `~/.skill-bill/installed-skills/`. Re-run `./install.sh` after changing the checkout so installed agents pick up refreshed `SKILL.md` wrappers, support pointer files, and content hashes.
 
-On Claude, Codex, OpenCode, and Junie, orchestrators that delegate to specialists also install native subagent definitions for supported runtime surfaces. Native subagent sources live as provider-neutral `native-agents/agents.yaml` bundles or standalone `native-agents/<name>.md` files. Install renders those sources into `~/.skill-bill/native-agents/` before linking Claude markdown into `~/.claude/agents/`, Codex TOMLs into `~/.codex/agents/`, OpenCode markdown into `~/.config/opencode/agents/`, and Junie markdown into `~/.junie/agents/`; generated provider files are not checked into the repo. `~/.agents/agents/` is only a Skill Bill compatibility path for Codex homes without a `.codex` root, not the primary documented Codex custom-agent location. Claude and Junie use Markdown/YAML custom-subagent frontmatter, Codex resolves spawn instructions by TOML `name`, and OpenCode resolves by filename-derived agent name and supports manual `@<name>` invocation. Today this covers the `bill-kmp-code-review` specialists, the `bill-kotlin-code-review` specialists, the `bill-php-code-review` specialists, and the `bill-feature-implement` workflow phases (pre-planning, planning, implementation, implementation-fix, completeness-audit, quality-check, pr-description). `bill-feature-verify` has no verify-specific native subagents; it delegates review through `bill-code-review` and keeps feature-flag, completeness, and verdict audits inline. Parsing tolerance for `RESULT:` blocks across runtimes is documented inline in `skills/bill-feature-implement/content.md`.
+On Claude, Codex, OpenCode, and Junie, orchestrators that delegate to specialists also install native subagent definitions for supported runtime surfaces. Native subagent sources live as provider-neutral `native-agents/agents.yaml` bundles or standalone `native-agents/<name>.md` files. New and rendered neutral sources include `contract_version: "0.1"`; the parser still accepts older unpinned sources so existing repos can migrate gradually. Install renders those sources into `~/.skill-bill/native-agents/` before linking Claude markdown into `~/.claude/agents/`, Codex TOMLs into `~/.codex/agents/`, OpenCode markdown into `~/.config/opencode/agents/`, and Junie markdown into `~/.junie/agents/`; generated provider files are not checked into the repo. `~/.agents/agents/` is only a Skill Bill compatibility path for Codex homes without a `.codex` root, not the primary documented Codex custom-agent location. Claude and Junie use Markdown/YAML custom-subagent frontmatter, Codex resolves spawn instructions by TOML `name`, and OpenCode resolves by filename-derived agent name and supports manual `@<name>` invocation. Today this covers the `bill-kmp-code-review` specialists, the `bill-kotlin-code-review` specialists, and the `bill-feature-implement` workflow phases (pre-planning, planning, implementation, implementation-fix, completeness-audit, quality-check, pr-description). `bill-feature-verify` has no verify-specific native subagents; it delegates review through `bill-code-review` and keeps feature-flag, completeness, and verdict audits inline. Parsing tolerance for `RESULT:` blocks across runtimes is documented inline in `skills/bill-feature-implement/content.md`.
 
 ## Runtime Model
 
@@ -70,10 +105,102 @@ Normal use is Kotlin-only:
 - `skill-bill` launches the packaged Kotlin CLI distribution.
 - `skill-bill-mcp` launches the packaged Kotlin stdio MCP distribution.
 - The installer registers MCP shims to the packaged Kotlin server.
-- Gradle is only used by maintainers to build and validate the runtime, not by installed commands during normal use.
+- Gradle is not used by the default prebuilt install or by installed commands during normal use; it is needed only by maintainers building/validating the runtime and by the opt-in `./install.sh --from-source` install path.
 - Repo validation commands are Kotlin-backed. The legacy maintainer stack is no longer required for current install, validation, or maintainer workflows.
 
 If a packaged Kotlin distribution is missing, launcher behavior fails closed with install/build guidance. It does not silently run Gradle and does not fall back to a legacy runtime.
+
+## Desktop App
+
+The optional Skill Bill desktop app lives in `runtime-kotlin/runtime-desktop`.
+It is a Compose Desktop client over the same runtime contracts used by the CLI;
+it does not implement separate governance, manifest parsing, scaffold rules, or
+install staging.
+
+The canonical install path is still `./install.sh`. The script installs the
+runtime, agent links, telemetry, MCP registration, and, when selected, a
+per-user desktop app for the current host:
+
+```bash
+./install.sh --with-desktop-app
+```
+
+Use `--no-desktop-app` for a CLI-only install, or `--desktop-app-dir <path>` to
+override the app install root. The desktop app install uses the loose
+`prepareDesktopAppDistributable` output so the same script can work from macOS,
+Linux, and Windows shells. Native DMG/MSI/DEB/RPM outputs are release artifacts,
+not the only supported install path.
+
+Uninstall is symmetric for the per-user app install:
+
+```bash
+./uninstall.sh
+```
+
+If you installed the app with a custom root, pass the same path back to the
+uninstaller:
+
+```bash
+./uninstall.sh --desktop-app-dir <path>
+```
+
+Run from source:
+
+```bash
+cd runtime-kotlin
+./gradlew :runtime-desktop:run
+```
+
+Build a loose desktop distribution:
+
+```bash
+cd runtime-kotlin
+./gradlew :runtime-desktop:prepareDesktopAppDistributable
+```
+
+Build a native package for the current host:
+
+```bash
+cd runtime-kotlin
+./gradlew :runtime-desktop:packageDistributionForCurrentOS
+```
+
+Specific package tasks are available when the host OS and native packaging
+toolchain support them:
+
+| Host        | Package task                         | Output intent                              |
+|-------------|--------------------------------------|--------------------------------------------|
+| macOS       | `:runtime-desktop:packageDmg`         | DMG desktop installer                       |
+| Windows     | `:runtime-desktop:packageMsi`         | MSI desktop installer                       |
+| Linux       | `:runtime-desktop:packageDeb`         | Debian/Ubuntu-style package                 |
+| Linux       | `:runtime-desktop:packageRpm`         | RPM package, the Arch/CachyOS-friendly path |
+| Any desktop | `:runtime-desktop:prepareDesktopAppDistributable` | Loose app directory fallback     |
+
+Compose Desktop native packaging is host-limited: a Linux workstation should not
+be expected to produce the macOS DMG or Windows MSI locally. For Arch/CachyOS,
+try the RPM task first when the local packaging tools are present; otherwise use
+the loose distributable or `packageDistributionForCurrentOS` output.
+
+The package build stages a `skill-bill-runtime` app-resource bundle containing
+the packaged `runtime-cli`, packaged `runtime-mcp`, authored `skills/`, dynamic
+`platform-packs/`, and `orchestration/`. The installed desktop app locates that
+bundle from app resources, or an explicit `skillbill.runtime.assets.dir` /
+`SKILL_BILL_RUNTIME_ASSETS` override, and feeds those paths into the same
+install plan/apply backend.
+
+On first launch, the setup wizard asks for:
+
+- agents: detected or manually selected supported agents
+- platform packs: dynamically discovered packs, with base skills always included
+- telemetry: `anonymous`, `full`, or `off`, matching CLI behavior
+
+The wizard always includes MCP registration for supported agent config files.
+
+The wizard writes through shared install plan/apply behavior and preserves the
+governed source boundary. Authored `content.md`, manifests, add-ons, and
+provider-neutral native-agent sources remain source; generated `SKILL.md`,
+support pointer files, provider-native agent files, install staging, and native
+package outputs remain generated artifacts.
 
 ## First Checks
 
@@ -126,7 +253,7 @@ Strict and loud-fail guarantees:
 
 - MCP tools publish strict schemas for priority workflow, telemetry, review, learning, scaffold, and workflow-state tools. Unknown top-level arguments are rejected before handler dispatch when the schema is strict.
 - Shell and platform-pack fixtures enforce the governed contract version, manifest shape, declared files, generated wrapper sections, and generated support pointers.
-- Scaffold and validation commands operate on structured manifests and `content.md` source files; invalid payloads, source-shape violations, or render drift fail the command.
+- Scaffold and validation commands operate on structured manifests and `content.md` source files; invalid payloads, source-shape violations, or render drift fail the command. `skill-bill new --payload <file> --dry-run` previews planned files and manifest edits, including platform-pack baseline composition blocks, and `skill-bill show <skill>` exposes manifest-declared review composition for inspection. Legacy platform-pack payloads without `baseline_layers` continue to produce manifests with no composition section.
 - `install link-skill` creates real symlinks to staged rendered skill directories and is covered by Kotlin CLI tests.
 
 Model-mediated guarantees:
@@ -156,7 +283,6 @@ Reference packs currently shipped:
 
 - `kotlin`: Kotlin baseline review and quality-check behavior
 - `kmp`: Kotlin baseline plus Android/KMP review depth and governed add-ons
-- `php`: PHP backend/service review and quality-check behavior
 
 ## Common CLI Surfaces
 
@@ -172,16 +298,20 @@ Review and telemetry:
 | `skill-bill verify-stats`     | Show local `bill-feature-verify` metrics            |
 | `skill-bill telemetry status` | Show telemetry configuration and pending sync state |
 | `skill-bill telemetry sync`   | Flush queued telemetry                              |
+| `skill-bill telemetry capabilities` | Show configured proxy capabilities            |
+| `skill-bill telemetry stats`  | Fetch aggregate remote workflow stats from the proxy |
 
 Workflow state:
 
 | Command                               | Purpose                                    |
 |---------------------------------------|--------------------------------------------|
 | `skill-bill workflow list`            | List persisted implement workflows         |
+| `skill-bill workflow latest`          | Show the latest implement workflow         |
 | `skill-bill workflow show`            | Show one implement workflow                |
 | `skill-bill workflow resume`          | Build a resume/recovery explanation        |
 | `skill-bill workflow continue`        | Reopen a resumable implement workflow      |
 | `skill-bill verify-workflow list`     | List persisted verify workflows            |
+| `skill-bill verify-workflow latest`   | Show the latest verify workflow            |
 | `skill-bill verify-workflow show`     | Show one verify workflow                   |
 | `skill-bill verify-workflow resume`   | Build a verify resume/recovery explanation |
 | `skill-bill verify-workflow continue` | Reopen a resumable verify workflow         |
@@ -196,12 +326,16 @@ Authoring and install:
 | `skill-bill validate`                   | Run repo or targeted governed-skill validation                                                    |
 | `skill-bill render`                     | Render generated wrappers to stdout or install output without writing generated files into source |
 | `skill-bill fill <skill>`               | Write authored `content.md` text and validate                                                     |
+| `skill-bill upgrade`                    | Validate governed render output and regenerate native-agent artifacts through runtime guardrails   |
 | `skill-bill new --payload <file>`       | Scaffold a governed skill or platform pack                                                        |
+| `skill-bill create-and-fill`            | Scaffold and immediately author one content-managed skill                                         |
 | `skill-bill new-addon`                  | Create a pack-owned add-on                                                                        |
+| `skill-bill remove`                     | Remove a horizontal skill, platform pack, or governed add-on with cleanup                         |
 | `skill-bill doctor`                     | Show local install and telemetry health                                                           |
 | `skill-bill install agent-path <agent>` | Print an agent install path                                                                       |
 | `skill-bill install detect-agents`      | List detected agents                                                                              |
 | `skill-bill install link-skill`         | Render one skill into staging and symlink it into a target path                                   |
+| `skill-bill validate-agent-configs`     | Run the agent-config/catalog/workflow-contract validator                                          |
 
 ## External Author Dry Run
 
@@ -246,11 +380,13 @@ Primary MCP groups:
 
 - review and learning tools: `import_review`, `triage_findings`, `resolve_learnings`, `review_stats`
 - telemetry tools: `telemetry_proxy_capabilities`, `telemetry_remote_stats`
-- implement workflow tools: `feature_implement_started`, `feature_implement_workflow_open`, `feature_implement_workflow_update`, `feature_implement_workflow_get`, `feature_implement_workflow_continue`, `feature_implement_finished`
-- verify workflow tools: `feature_verify_started`, `feature_verify_workflow_open`, `feature_verify_workflow_update`, `feature_verify_workflow_get`, `feature_verify_workflow_continue`, `feature_verify_finished`
+- workflow stats tools: `feature_implement_stats`, `feature_verify_stats`
+- implement workflow tools: `feature_implement_started`, `feature_implement_workflow_open`, `feature_implement_workflow_update`, `feature_implement_workflow_list`, `feature_implement_workflow_latest`, `feature_implement_workflow_get`, `feature_implement_workflow_resume`, `feature_implement_workflow_continue`, `feature_implement_finished`
+- verify workflow tools: `feature_verify_started`, `feature_verify_workflow_open`, `feature_verify_workflow_update`, `feature_verify_workflow_list`, `feature_verify_workflow_latest`, `feature_verify_workflow_get`, `feature_verify_workflow_resume`, `feature_verify_workflow_continue`, `feature_verify_finished`
 - quality and PR tools: `quality_check_started`, `quality_check_finished`, `pr_description_generated`
 - scaffold tool: `new_skill_scaffold`
 - health tool: `doctor`
+- optional Readian bridge tools when configured: `readian_auth_status`, `readian_get_article`, `readian_get_articles_for_topic_query`, `readian_get_spotlight`, `readian_mark_story_status`, `readian_save_candidate`
 
 ## Validation Gate
 

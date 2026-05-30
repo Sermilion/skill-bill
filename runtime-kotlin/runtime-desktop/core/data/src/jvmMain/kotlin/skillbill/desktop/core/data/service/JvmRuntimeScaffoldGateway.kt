@@ -3,6 +3,12 @@ package skillbill.desktop.core.data.service
 import kotlinx.coroutines.CancellationException
 import me.tatarka.inject.annotations.Inject
 import skillbill.desktop.core.common.di.UserScope
+import skillbill.desktop.core.data.di.DesktopRuntimeApplicationServices
+import skillbill.desktop.core.domain.model.BaselineReviewCompositionEdge
+import skillbill.desktop.core.domain.model.BaselineReviewLayerSuggestion
+import skillbill.desktop.core.domain.model.BaselineReviewPackOption
+import skillbill.desktop.core.domain.model.BaselineReviewSkillOption
+import skillbill.desktop.core.domain.model.ManifestEditPreview
 import skillbill.desktop.core.domain.model.PilotedPlatformPackEntry
 import skillbill.desktop.core.domain.model.PlatformPackPresetEntry
 import skillbill.desktop.core.domain.model.RepoSession
@@ -14,9 +20,8 @@ import skillbill.desktop.core.domain.model.ScaffoldRunResult
 import skillbill.desktop.core.domain.service.RuntimeScaffoldGateway
 import skillbill.error.ScaffoldRollbackError
 import skillbill.error.SkillBillRuntimeException
-import skillbill.scaffold.ScaffoldCatalog
 import skillbill.scaffold.model.ScaffoldResult
-import skillbill.scaffold.scaffold
+import skillbill.scaffold.model.command.ScaffoldCommandRequest
 import software.amazon.lastmile.kotlin.inject.anvil.SingleIn
 import java.nio.file.InvalidPathException
 import java.nio.file.Path
@@ -40,41 +45,54 @@ import java.nio.file.Path
  */
 @Inject
 @SingleIn(UserScope::class)
-class JvmRuntimeScaffoldGateway : RuntimeScaffoldGateway {
+class JvmRuntimeScaffoldGateway(
+  private val runtimeServices: DesktopRuntimeApplicationServices =
+    DesktopRuntimeApplicationServices.forCurrentUserHome(),
+) : RuntimeScaffoldGateway {
+  private val scaffoldCatalogService get() = runtimeServices.scaffoldCatalogService
+
   // F-107: scaffolder is a functional seam tests can swap to drive the runtime without exercising
   // the real on-disk scaffolder. Kept off the primary constructor so the public ABI of this
   // gateway does not leak `runtime-core` types into the umbrella module's KSP classpath — the
   // umbrella depends on `core:data` via `implementation`, which would otherwise force an
   // `api(:runtime-core)` leak to keep `ScaffoldResult` resolvable to KSP. See
   // RuntimeRepoBrowserService for the same pattern.
-  internal var scaffolder: (Map<String, Any?>, Boolean) -> ScaffoldResult = ::scaffold
+  // SKILL-52.2 subtask 2: typed sealed → sealed seam. The gateway no longer hands a
+  // `Map<String, Any?>` to the runtime — it materialises a typed [ScaffoldCommandRequest] at the
+  // adapter boundary and calls the typed application overload. Tests substitute the seam to
+  // drive the gateway without touching the on-disk runtime.
+  internal var scaffolder: (ScaffoldCommandRequest, Boolean) -> ScaffoldResult = { request, dryRun ->
+    runtimeServices.scaffoldService.scaffold(request, dryRun)
+  }
 
   override suspend fun catalogSnapshot(session: RepoSession?): ScaffoldCatalogSnapshot {
     val piloted = pilotedPlatformPacks(session)
+    val baselineCatalog = baselineReviewCatalog(session)
     return ScaffoldCatalogSnapshot(
-      approvedCodeReviewAreas = ScaffoldCatalog.approvedCodeReviewAreas.sorted(),
-      preShellFamilies = ScaffoldCatalog.preShellFamilies.sorted(),
-      shelledFamilies = ScaffoldCatalog.shelledFamilies.sorted(),
-      platformPackPresets = ScaffoldCatalog.platformPackPresets
+      approvedCodeReviewAreas = scaffoldCatalogService.approvedCodeReviewAreas().sorted(),
+      preShellFamilies = scaffoldCatalogService.preShellFamilies().sorted(),
+      shelledFamilies = scaffoldCatalogService.shelledFamilies().sorted(),
+      platformPackPresets = scaffoldCatalogService.platformPackPresets()
         .map { (slug, display) -> PlatformPackPresetEntry(platform = slug, displayName = display) }
         .sortedBy { it.platform },
       pilotedPlatformPacks = piloted,
-      scaffoldPayloadVersion = ScaffoldCatalog.scaffoldPayloadVersion,
+      baselineReviewPacks = baselineCatalog.packs,
+      baselineReviewCompositionEdges = baselineCatalog.edges,
+      baselineReviewLayerSuggestions = baselineCatalog.suggestions,
+      scaffoldPayloadVersion = scaffoldCatalogService.scaffoldPayloadVersion(),
     )
   }
 
+  private data class DesktopBaselineCatalog(
+    val packs: List<BaselineReviewPackOption> = emptyList(),
+    val edges: List<BaselineReviewCompositionEdge> = emptyList(),
+    val suggestions: List<BaselineReviewLayerSuggestion> = emptyList(),
+  )
+
   private fun pilotedPlatformPacks(session: RepoSession?): List<PilotedPlatformPackEntry> {
-    val repoPath = session?.takeIf { it.isRecognizedSkillBillRepo }?.repoPath?.trim().orEmpty()
-    if (repoPath.isEmpty()) {
-      return emptyList()
-    }
-    val packsRoot = try {
-      Path.of(repoPath).toAbsolutePath().normalize().resolve("platform-packs")
-    } catch (_: InvalidPathException) {
-      return emptyList()
-    }
+    val packsRoot = platformPacksRoot(session) ?: return emptyList()
     return try {
-      ScaffoldCatalog.discoverPilotedPlatformPacks(packsRoot)
+      scaffoldCatalogService.discoverPilotedPlatformPacks(packsRoot)
         .map { pack ->
           PilotedPlatformPackEntry(
             platform = pack.slug,
@@ -84,6 +102,61 @@ class JvmRuntimeScaffoldGateway : RuntimeScaffoldGateway {
         .sortedBy { it.platform }
     } catch (_: SkillBillRuntimeException) {
       emptyList()
+    }
+  }
+
+  private fun baselineReviewCatalog(session: RepoSession?): DesktopBaselineCatalog {
+    val packsRoot = platformPacksRoot(session) ?: return DesktopBaselineCatalog()
+    return try {
+      val catalog = scaffoldCatalogService.discoverBaselineReviewCatalog(packsRoot)
+      DesktopBaselineCatalog(
+        packs = catalog.packs.map { pack ->
+          BaselineReviewPackOption(
+            platform = pack.platform,
+            displayName = pack.displayName,
+            strongRoutingSignals = pack.strongRoutingSignals,
+            skills = pack.skills.map { skill ->
+              BaselineReviewSkillOption(
+                name = skill.name,
+                supportedModes = skill.supportedModes,
+                supportedScopes = skill.supportedScopes,
+              )
+            },
+          )
+        },
+        edges = catalog.compositionEdges.map { edge ->
+          BaselineReviewCompositionEdge(
+            sourcePlatform = edge.sourcePlatform,
+            targetPlatform = edge.targetPlatform,
+            targetSkill = edge.targetSkill,
+          )
+        },
+        suggestions = catalog.layerSuggestions.map { suggestion ->
+          BaselineReviewLayerSuggestion(
+            label = suggestion.label,
+            triggerSignals = suggestion.triggerSignals,
+            platform = suggestion.platform,
+            skill = suggestion.skill,
+            scope = suggestion.scope,
+            required = suggestion.required,
+            mode = suggestion.mode,
+          )
+        },
+      )
+    } catch (_: SkillBillRuntimeException) {
+      DesktopBaselineCatalog()
+    }
+  }
+
+  private fun platformPacksRoot(session: RepoSession?): Path? {
+    val repoPath = session?.takeIf { it.isRecognizedSkillBillRepo }?.repoPath?.trim().orEmpty()
+    if (repoPath.isEmpty()) {
+      return null
+    }
+    return try {
+      Path.of(repoPath).toAbsolutePath().normalize().resolve("platform-packs")
+    } catch (_: InvalidPathException) {
+      null
     }
   }
 
@@ -100,7 +173,7 @@ class JvmRuntimeScaffoldGateway : RuntimeScaffoldGateway {
   // propagates verbatim. JVM Errors (OOM/StackOverflow/LinkageError) are NOT caught.
   @Suppress("TooGenericExceptionCaught")
   private fun invoke(payload: ScaffoldPayload, dryRun: Boolean): ScaffoldRunResult = try {
-    val result = scaffolder(payload.toContractMap(), dryRun)
+    val result = scaffolder(payload.toCommandRequest(), dryRun)
     if (dryRun) {
       ScaffoldRunResult.Preview(planned = result.toPlan())
     } else {
@@ -134,6 +207,9 @@ private fun ScaffoldResult.toPlan(): ScaffoldPlan = ScaffoldPlan(
   skillPath = skillPath.toPortableString(),
   createdFiles = createdFiles.map(Path::toPortableString),
   manifestEdits = manifestEdits.map(Path::toPortableString),
+  manifestPreviews = manifestPreviews.entries
+    .sortedBy { (path, _) -> path.toPortableString() }
+    .map { (path, preview) -> ManifestEditPreview(path = path.toPortableString(), content = preview) },
   symlinks = symlinks.map(Path::toPortableString),
   installTargets = installTargets.map(Path::toPortableString),
   notes = notes,

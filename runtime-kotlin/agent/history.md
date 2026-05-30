@@ -1,3 +1,566 @@
+## [2026-05-30] SKILL-56 subtask 4 cli-and-bill-goal-skill
+Areas: runtime-kotlin/runtime-cli, runtime-kotlin/runtime-application, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-core, skills/bill-goal
+- Added the foreground `skill-bill goal` command and read-only `goal status` surface over the subtask-3 `GoalRunner`/status projection; CLI remains a thin adapter with text/payload mapping only. reusable
+- Live child stdout/stderr teeing is a narrow `AgentRunOutputSink` carried through request models into infra-fs `JvmAgentRunProcessRunner`; captured bounded output remains intact and process IO stays outside application/domain. reusable
+- `GoalRunnerRunEvent` gives the CLI readable per-subtask progress without parsing workflow internals or changing loop semantics; stop reports still use workflow-store outcomes as authority.
+- Added canonical `skills/bill-goal/content.md` plus README catalog row; source remains content.md-only and install/render sync produced agent links without committing generated wrappers.
+- E2E evidence uses fake `codex`/`gh` executables to exercise the real foreground driver, fresh process per subtask, manifest advancement, final PR call, and forced-failure stop report; it does not claim hosted-agent/GitHub coverage.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented (subtask scope)
+
+## [2026-05-30] SKILL-56 subtask 3 goal-runner-service
+Areas: runtime-kotlin/runtime-domain, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-application, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-core
+- Added `GoalRunner` as the parent loop over decomposed manifests: select dependency-ready subtasks, launch one fresh agent process per subtask, reconcile process facts with workflow-store outcomes, and advance manifest runtime state. reusable
+- Goal-runner success is workflow-store authoritative: completed PR-suppressed subtask workflows must expose `commit_push_result.commit_sha`; stdout remains diagnostic only and missing terminal state blocks the parent.
+- Added typed goal-runner ports for manifest state, workflow outcome reads, subtask launching, and final goal PR creation; domain policy stays pure while application adapts to launcher/workflow/PR ports. reusable
+- Added status projection for complete/pending/blocked counts, current subtask/step, and active agent so the CLI front can render status without re-parsing workflow internals. reusable
+- Known limitation: CLI/bill-goal entrypoint and human progress rendering remain subtask 4; this subtask wires service/composition and the gh-backed PR port only.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented (subtask scope)
+
+## [2026-05-30] SKILL-56 subtask 2 agent-agnostic-launcher
+Areas: runtime-kotlin/runtime-ports, runtime-kotlin/runtime-application, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-core
+- Added `AgentRunLauncher` as a technology-neutral port with typed launch request/outcome models; launcher outcomes are process facts only and never infer subtask success from stdout. reusable
+- Added `AgentRunService` to resolve configured override before invoked `bill-goal` agent via `InstallAgent`; unknown agents fail before launch and supported agents without headless paths return explicit unsupported outcomes.
+- Infra-fs owns fresh-process spawning, command construction, environment inheritance, bounded UTF-8 stdout/stderr capture, timeout destroy+wait, and spawn-failure mapping; keep all process/env work out of application/domain/ports. reusable
+- Headless adapters currently cover Claude, Codex, and OpenCode; Copilot and Junie are deliberately unsupported until a proven headless skill-run path exists.
+- RuntimeComponent exposes the service and architecture/surface tests lock the composition-only binding plus launcher operation surface.
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented (subtask scope)
+
+## [2026-05-29] SKILL-56 subtask 1 headless-continuation-contract
+Areas: runtime-kotlin/runtime-application, runtime-kotlin/runtime-domain, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-mcp, orchestration/contracts, skills/bill-feature-implement
+- Added issue-key goal continuation for decomposed feature-implement parents with optional `subtask_id` constraint; domain selector now has a terminal-subtask outcome so retrying a completed requested subtask is idempotent while later work remains. reusable
+- New subtask workflows start at `preplan` with `assessment`/`branch`/`goal_continuation` artifacts already persisted; interactive feature-implement still owns confirmation and PR creation.
+- Goal-continuation outcomes are typed in application results and mapped to stable CLI/MCP wire fields: `issue_key`, `subtask_id`, `status`, `commit_sha`, `workflow_id`, `blocked_reason`, `last_resumable_step`. reusable
+- PR-suppressed completion treats completed `commit_push` plus nonblank `commit_push_result.commit_sha` as terminal success; missing commit SHA blocks loudly instead of duplicating later commit advancement.
+- MCP `feature_implement_workflow_continue` now accepts strict integer `subtask_id`; telemetry event schema mirrors the registry input schema to keep parity tests green.
+- Headless exercise recorded in the subtask spec: installed runtime must be refreshed before launcher adapters depend on new options; durable workflow state is authoritative, not stdout or git-tracked manifest projections.
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented (subtask scope)
+
+## [2026-05-29] SKILL-55 subtask 2 desktop-app-installers
+Areas: runtime-kotlin/runtime-desktop, runtime-kotlin/build-logic/convention, runtime-kotlin/agent/decisions.md, runtime-kotlin/README.md
+- Turned the existing Compose `nativeDistributions` (`packageDmg/Msi/Deb/Rpm`) into canonically-named, checksummed per-OS installers. jpackage AND the Compose Dmg validator (eager at config time) reject qualified/non-numeric versions, and macOS requires MAJOR>=1: derive a jpackage-legal `MAJOR.MINOR.PATCH` from `project.version` via the new pure `dev.skillbill.runtime.buildlogic.toJpackageVersion` (strips `-SNAPSHOT`/qualifier, pads, leading-digit run per component), plus a macOS-only `toMacAppVersion` that bumps a zero major to 1 (`0.1.0`->`1.1.0`). reusable
+- The canonical artifact FILENAME (`SkillBill-<full project.version>-<os>-<arch>.<ext>`) uses the un-stripped version uniformly across all OSes and is the SINGLE source of truth for subtask 3/4 resolution; the macOS *embedded* `--app-version` deliberately diverges (`1.1.0`). Recorded as a dated decision in `agent/decisions.md` — resolve on the filename, never embedded metadata.
+- The SHA-256 sidecar contract (`<hex>  <name>\n`, 64KiB streaming buffer) is now ONE shared build-logic helper `Sha256Sidecar.kt` consumed by BOTH `RuntimeImageConventionPlugin` (image zips) and `runtime-desktop` (installers); hoisted from copy-paste during code review (F-001) so the format stays byte-identical across artifact kinds. reusable
+- Installer naming reuses subtask 1's `resolveHostRuntimeToken` token contract (no duplicate os/arch detection); the rename+sha256 Gradle tasks mirror subtask 1's pattern: per-task `notCompatibleWithConfigurationCache`, all paths resolved to Strings OUTSIDE `doLast`, null host token = config-time lifecycle log + execution-time `GradleException` (never config-time `error()`). reusable
+- build-logic is a SEPARATE included build: its first test source set needs an explicit `testRuntimeOnly("org.junit.platform:junit-platform-launcher")` (not added implicitly) and `compileTestKotlin`+`Test` opted out of the config cache (Kotlin 2.4.0-Beta2 + Gradle 9.3 serializes the Kotlin daemon error-file/profile as a File where a Property is expected) — main-source compile is unaffected, global config cache stays warm. reusable
+- Pitfall: jpackage cannot cross-compile — locally only the Linux host's `.deb`/`.rpm` are reproducible, and a host without `dpkg-deb`/`rpmbuild` cannot build them at all (verified app-image + bundled JRE under `lib/runtime` + 5 staged `skill-bill-runtime/*` subdirs instead; GUI launch not exercised headless); `.dmg`/`.msi` build on CI (subtask 3). From-source `prepareDesktopAppDistributable` / `install.sh --with-desktop-app` path preserved unchanged.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented (subtask scope)
+
+## [2026-05-29] SKILL-55 subtask 1 self-contained-runtime-images
+Areas: runtime-kotlin/build-logic/convention, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-mcp, runtime-kotlin/gradle/libs.versions.toml, runtime-kotlin/README.md
+- Self-contained, no-JDK per-OS images of `runtime-cli`/`runtime-mcp` via the Badass **Runtime** plugin (`org.beryx.runtime` 2.0.1), NOT Badass JLink (`org.beryx.jlink`): JLink hard-requires a `module-info.java` and cannot link these non-modular Kotlin apps. Badass Runtime wraps the existing `application` installDist, so installDist + the desktop bundling consumer (`runtime-desktop:95`) are untouched and `bin/runtime-cli`/`bin/runtime-mcp` launchers are preserved (the symlink targets subtask 4 consumes). reusable
+- All image wiring lives in ONE class-based convention plugin `skillbill.runtime-image` (`RuntimeImageConventionPlugin`) with a typed `RuntimeImageExtension` (`imageBaseName`, `runtimeTargetTokens`, `hostRuntimeToken: String?`); consumers just `apply` it and set `imageBaseName`. This replaced verbatim per-module duplication and a stringly-typed `apply(from=)+extra[...]` script. Pattern: hoist cross-cutting Gradle image/packaging wiring into a build-logic convention plugin + typed extension rather than duplicating `runtime{}` blocks; subtasks 3/4 consume the typed token contract. reusable
+- Non-modular jlink needs an explicit `additive` module set (jdeps can't resolve kotlin-inject/kotlinx.serialization automatic modules). `java.net.http` MUST be included — the telemetry HTTP client (`runtime-infra-http`) uses it and the `version`/stdio smoke test never exercises that path, so a missing module would only crash at first telemetry call. reusable
+- Badass Runtime tasks are NOT configuration-cache compatible: opt every `org.beryx.runtime.BaseTask` (and the plain sha256 sidecar task) out via `notCompatibleWithConfigurationCache`; the entry is discarded for image builds while `check`/`installDist` keep a warm config cache. Keep the link toolchain a lazy `Provider` (don't `.get()` at config time) so unrelated builds don't provision JDK17. reusable
+- Unsupported-arch hosts (e.g. arm64 Linux) are an OPTIONAL known-gap target: `resolveHostRuntimeToken()` returns null and logs, NOT `error()` at config time — a config-time throw would block `./gradlew check`/IDE sync on that arch. Image tasks fail loudly only when actually invoked on an unsupported host. reusable
+- Archive names derive from `project.version` + a canonical `<os>-<arch>` token (`{macos-arm64,macos-x64,windows-x64,linux-x64}`) with a `.sha256` sidecar; build outputs stay under `build/`. Cross-OS jlink can't cross-compile: only the host (linux-x64) image is locally reproducible; macOS/Windows are CI builds (subtask 3). Verified locally: clean-env (`env -i`, no JDK) `runtime-cli version` runs, `java.net.http` present in image, MCP telemetry schema bundled in the image jar.
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented (subtask scope)
+
+## [2026-05-29] SKILL-52.3 subtask-5 enforcement-hardening-and-final-lock
+Areas: runtime-kotlin/runtime-core architecture tests, runtime-kotlin/ARCHITECTURE.md, runtime-kotlin/agent/decisions.md
+- Added a source-TEXT inline-FQN ban (complements the import-only guard) over runtime-application/-domain/-ports for adapter/infra/composition prefixes: catches `skillbill.infrastructure.fs.Foo()` written with NO import. Scanner skips `import`/`package` lines and matches each prefix as a dotted token `\bprefix\.`; cross-layer prefixes (skillbill.application/ports) are deliberately excluded to avoid same-layer false positives. Synthetic-fixture positive control included. reusable
+- AC2: added `runtime-desktop/core/data/src/jvmMain/kotlin` + `feature/skillbill/src/jvmMain/kotlin` to `RuntimeArchitectureTest.sourceRoots` so the central import/raw-map scanners walk the desktop gateway source (both verified clean: only skillbill.*.model[.command]/application/ports/error/di/model imports). reusable
+- AC3: the `*SchemaValidator`/`*CoherenceValidator` import ban predicate now lives in `RuntimeImplementationImportRules.kt` as `isSchemaOrCoherenceValidatorImport` (simple-name endsWith), self-tested in `RuntimeImplementationImportRulesTest`; new guard applies it across runtime-domain install/+workflow/ AND runtime-application main. Validator PORTS (InstallPlanWireValidator/DecompositionManifestValidator/WorkflowSnapshotValidator) are allowed — they are the sanctioned reach. reusable
+- AC4: `runtime-contracts` purity LOCK — new test bans networknt/Jackson/`java.nio.file.Files` over BOTH parsed imports and source text (reuses the `Files.` regex in `containsBannedReference`), with a synthetic fixture asserting each banned reference fires. reusable
+- Verified (no new test needed): all six `*SchemaContractVersionTest` map their `*_CONTRACT_VERSION` to `properties.contract_version.const`; `TELEMETRY_PROXY_CONTRACT_VERSION` + `INSTALL_SELECTION_CONTRACT_VERSION` have NO canonical schema file so are correctly out of scope.
+- Docs: added Boundary Rule 5 contracts-purity clause; recorded the external-schema source-of-truth decision (canonical `../orchestration/contracts/*.yaml`, build-time Copy into infra-fs ×5 + mcp ×1, config-cache-friendly doFirst loud-fail, parity guarantee) + superseded the stale 2026-05-19 dual-seam mechanics. The open-boundary three-place lockstep (allow-list block + RAW_MAP_OPEN_BOUNDARY_ALLOWLIST + SKILL-52.2 inventory) and RuntimeModule/fenced lists were already reconciled by subtasks 1-4 — no code retired this subtask, so any reduction would break parity (verified no-op). reusable
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented
+
+## [2026-05-29] SKILL-52.3 subtask-4 application-wire-seam-and-open-boundary-reconciliation
+Areas: runtime-kotlin/runtime-application, runtime-kotlin/runtime-ports (workflow), runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-mcp, runtime-kotlin/runtime-core architecture tests, runtime-kotlin/ARCHITECTURE.md
+- Removed the last direct Jackson edge from `runtime-application`: decomposition-manifest YAML serialization moved out of `DecompositionManifestFileWrites` behind a new `DecompositionManifestFileStore.encodeManifestYaml(wireMap)` port method, implemented in infra-fs `FileSystemDecompositionManifestFileStore` (owns `YAMLMapper`). Mirrors the subtask-1 decode port (`DecompositionManifestValidator`) — encode+decode now both cross the same port seam. reusable
+- Ordering invariant to preserve: build validated wireMap via `encodeDecompositionManifestMap` (validate) -> `fileStore.encodeManifestYaml` (serialize) -> `validator.validateYamlText` (revalidate). Keep `encodeDecompositionManifestMap` in runtime-application — `DecompositionManifestArchitectureTest` asserts the application seam owns it and NO LONGER names `YAMLMapper`, while the infra-store seam does. reusable
+- The new port method takes `Map<String,Any?>`, so it tripped the raw-map scanner (which walks runtime-ports, NOT infra-fs); resolved by `@OpenBoundaryMap` + a documented allow-list row, accepted as the symmetric mirror of the decode port rather than a typed `writeManifest(model)`. reusable
+- Reconciliation: typed `SystemService.doctor`/`version` to return `DoctorContract`/`VersionContract` (.toPayload() pushed into CLI+MCP adapters, byte-equivalent); relabeled 5 lifecycle payload helpers + 7 `LifecycleTelemetryService` methods as `@OpenBoundaryMap` accepted permanent open boundaries. Deleted all four future-tense "Subtask N will remove" allow-list literals. reusable
+- Pitfall reaffirmed (see subtask-3): the THREE-place lockstep — `RAW_MAP_OPEN_BOUNDARY_ALLOWLIST` constant + ARCHITECTURE.md open-boundary marker block + SKILL-52.2 inventory ledger — must move in strict-set parity; open_extension inventory entries carry NO `[subtask N]` tag, gated categories must. reusable
+- Known limitation: `jackson.dataformat.yaml` stays as `testImplementation` in runtime-application/build.gradle.kts (a pre-existing subtask-1 decode test fake + the new encode test fake both construct `YAMLMapper`); production edge is gone. Subtask 5 owns a jackson-import-ban enforcement test and may tighten AC1 wording to "no production Jackson dependency".
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
+## [2026-05-29] SKILL-52.3 subtask-3 scaffold-typed-result-closure
+Areas: runtime-kotlin/runtime-ports (scaffold {catalog,repo,source}.model), runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-desktop/core/data, runtime-kotlin/runtime-core architecture tests, runtime-kotlin/ARCHITECTURE.md
+- Closed the 8 `Scaffold*Result` port DTOs (List/Show/Explain/Validate/Upgrade/Fill/SaveExactContent/EditWithBodyFile) that SKILL-52.1 left dual-representation: dropped the `payload: Map<String,Any?>` field + the `init{}` desync `require` blocks + `@OpenBoundaryMap`, lifting every payload key to a typed field. This is the closure SKILL-52.1 (2026-05-24) explicitly deferred. reusable
+- Wire-shape (JSON) emission now lives ONLY in adapter mappers: `runtime-cli/ScaffoldCliResultMappers.kt` (+ extracted `ScaffoldCliWireMaps.kt` `internal` `toWireMap` helpers, split to dodge detekt `TooManyFunctions`) and desktop `service/mapper/{ScaffoldListResultMapper,ValidationSummaryMapper}.kt`; infra-fs producers return typed records via new `scaffold/AuthoringResults.kt`. New port model `scaffold/model/ScaffoldSkillStatus.kt`. `ScaffoldService` (runtime-application) stays a pure pass-through — do NOT map wire there (triplication pitfall). reusable
+- Pitfall: byte-equivalence risk is wire-map key ORDER, not just the key set. The adapter mapper must rebuild the `LinkedHashMap` in EXACT producer insertion order (highest risk: validate selected-mode inserts `skill_names` after `mode` + `suggested_commands` at tail; edit keeps bookkeeping keys before status keys). No scaffold byte-golden exists — order is now locked by `runtime-cli/.../ScaffoldCliResultMappersTest.kt` asserting `.keys.toList()`. reusable
+- Pitfall: ARCHITECTURE.md carries TWO allow-list blocks (the open-boundary marker block AND the SKILL-52.2 inventory ledger) in strict-set parity with `RAW_MAP_OPEN_BOUNDARY_ALLOWLIST` in `RuntimeArchitectureTest`; the 8 rows must be removed from all THREE in lockstep or the parity test fails. reusable
+- `RuntimeDesktopGatewayPolicyTest` tightened: the mapper-file exemption is gone, so `.payload[` is now forbidden across the entire desktop jvmMain service tree (mappers consume typed fields). reusable
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
+## [2026-05-29] SKILL-52.3 subtask-2 domain-effect-purity
+Areas: runtime-kotlin/runtime-domain, runtime-kotlin/runtime-application, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-infra-http, runtime-kotlin/runtime-core architecture tests
+- Made `runtime-domain` effect-free (no entropy/clock/JVM-logging). General pattern: when a pure-layer function reads an injected concern, push the read to the adapter that already owns it rather than inventing a new port — pick the smallest behavior-preserving move. reusable
+- install-id: `defaultLocalTelemetryConfig(installId: String)` is now pure; the random fallback is minted in `FileTelemetryConfigStore.ensureTelemetryConfigFile` (infra-fs, which already reads env + Files). `normalizedInstallId` still prefers any persisted value, so a fresh UUID is written only on first install with no `SKILL_BILL_INSTALL_ID` env — persisted config stays byte-equivalent. reusable
+- clock: dropped the `today = LocalDate.now(ZoneOffset.UTC)` default from BOTH `parseRemoteStatsWindow` overloads (object + top-level — keep signatures aligned); sole caller `HttpTelemetryClient.fetchRemoteStats` (infra-http) reads the clock once and passes `today`. reusable
+- logging: moved SkillRemove begin/failure/success `log.info` into adapter `SkillRemoveJvmFileSystem.applyCascade` (already holds a `Logger`); duplicated the path-sanitized `describeTargetForLog` (emits skill:/platform:/addon: slugs, never absolute paths). Behavior subtlety: the removed domain inner `catch(Throwable)` was log-then-rethrow only, so the adapter's `catch(Exception)` failure-log no longer fires for JVM `Error` — intentional, matches the F-ERROR-PROPAGATE design; not observable via the typed `SkillRemovalResult`. reusable
+- enforcement: new `RuntimeArchitectureTest` ban scans `runtime-domain/src/main/kotlin/` ONLY via `assertNoBannedSourceReferences` (source-text scan catches inline FQNs, not just imports) for UUID.randomUUID/LocalDate.now/Instant.now/System.currentTimeMillis/System.nanoTime/Clock.system/java.util.logging. Do NOT widen to infra-fs/http — they legitimately use these. reusable
+- Pitfall: a new standalone helper fn in `FileTelemetryConfigStore` tripped detekt `TooManyFunctions` (file already at the 10-fn limit); fold the logic into an existing function instead of suppressing.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
+## [2026-05-28] SKILL-52.3 subtask-1 schema-validator-extraction
+Areas: runtime-kotlin/runtime-contracts, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-domain, runtime-kotlin/runtime-application, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-core, ARCHITECTURE.md
+- The three JSON-Schema validators (`InstallPlanSchemaValidator`, `WorkflowStateSchemaValidator`/`CanonicalWorkflowStateSchemaValidator`, `DecompositionManifestSchemaValidator`) + `DecompositionManifestCoherenceValidator` moved out of the `runtime-contracts` pure leaf into `runtime-infra-fs`; reached only through two new domain-neutral ports `InstallPlanWireValidator` (skillbill.install.model) and `DecompositionManifestValidator` (skillbill.workflow), built on the SKILL-52.2 `WorkflowSnapshotValidator` template (which is the canonical pattern for inverting an infra concern out of a pure layer). reusable
+- Port→adapter delegate impls MUST live in `runtime-infra-fs`, NOT `runtime-application`: `RuntimeGradleModuleLayeringTest` forbids application→infra-fs, so the old application-side `WorkflowSnapshotValidatorAdapter` only worked while the validator lived in contracts. `WorkflowSnapshotValidator` was retrofitted into `RuntimeComponent` DI for uniformity (`WorkflowSnapshotValidatorInfraAdapter`). reusable
+- CLI cannot inject a domain validator port (leaks onto the CLI compile graph + runtime-core public ABI); route CLI install-plan validation through a thin application method (`InstallService.validateInstallPlanWire`) instead. reusable
+- Moved validator classes intentionally KEEP package `skillbill.contracts.*` while compiling into `runtime-infra-fs`, preserving classpath schema-resource paths + import compatibility (see agent/decisions.md 2026-05-28). The 3 schema Copy tasks + networknt/jackson deps moved contracts→infra-fs with identical generated output dir + unchanged `../orchestration/contracts` source. reusable
+- Pitfall: threading new ports through `@Inject` services + the decomposition continuation web trips detekt `LongParameterList`; bundle related ports into an `@Inject` holder (`InstallPlanningPorts`) and prefer `WorkflowEngine` extension functions over extra params. reusable
+- Known limitation: `DecompositionManifestFileWrites` still uses Jackson `YAMLMapper` for serialization (deliberately deferred to subtask 4); subtask 5 owns the external-schema source-of-truth decision.
+Feature flag: N/A
+Acceptance criteria: 8/8 implemented
+## [2026-05-25] SKILL-52.2 adapter-dependency-and-desktop-convergence
+Areas: runtime-kotlin/runtime-cli, runtime-kotlin/runtime-mcp, runtime-kotlin/runtime-desktop/core/data, runtime-kotlin/runtime-core architecture tests, runtime-kotlin/ARCHITECTURE.md
+- Per-adapter Gradle dependency allow-lists pinned by new `RuntimeAdapterDependencyAllowlistTest`: `runtime-cli`/`runtime-mcp`/`runtime-desktop:core:data` jvmMain drop `runtime-infra-fs` and `runtime-infra-http` from their main-source `project(...)` set; infrastructure adapters resolve through `RuntimeComponent` (kotlin-inject) instead. `runtime-desktop:core:data` jvmMain gains an explicit `runtime-contracts` edge so its direct `skillbill.error.*` imports stop relying on transitive runtime-application API. reusable
+- Three remaining service-level raw-map `.payload` reads in `RuntimeRepoBrowserService.kt` (saveExactContent, validate, list) are lifted to typed runtime-application result consumption. `saveExactContent`'s `authoringSaver` now returns the typed `ScaffoldSaveExactContentResult` (the value is discarded — success is signalled by absence-of-exception); `validate` consumes `ScaffoldValidateResult.status` for the pass/fail decision; `list` consumes a typed `List<AuthoredSkillEntry>` projected by `service/mapper/ScaffoldListResultMapper.kt`. Remaining raw-shape decoding (legacy issue strings, structural list entries) is contained in `service/mapper/` extension files that take the typed result as the receiver, so the boundary inventory can locate the seam. Pattern: when a typed result still carries an `@OpenBoundaryMap payload` field, extract any service-level `.payload` indexing into a dedicated adapter-side mapper that receives the typed result. reusable
+- New `RuntimeDesktopGatewayPolicyTest` scans `runtime-desktop:core:data` jvmMain service code for `.payload[`, `.payload.toSelected`, and `.payload as? Map` patterns and fails on any regression; mapper files in the explicit whitelist are exempt because they receive the typed result and only contain the legacy-shape translation step. reusable
+- `RuntimeCoreCompositionOnlyTest` pins `runtime-core`'s `api(project(...))` set to `runtime-application + runtime-ports` and the `implementation(project(...))` set to `runtime-domain + runtime-contracts + runtime-infra-{fs,http,sqlite}`; the test fails if any infrastructure or entrypoint module ever appears as `api(...)`, locking the composition-only contract documented in ARCHITECTURE.md §Gradle Modules. reusable
+- ARCHITECTURE.md §Gradle Modules adapter paragraphs and the SKILL-52.1 §Deferred desktop debt note are reconciled with the new tests; the historical "third reader" footnote at L314-326 now marks the desktop debt closed and points readers at `RuntimeDesktopGatewayPolicyTest`. The SKILL-52.2 inventory marker block needs no edits — the three lifted reads were inside the desktop adapter, never on the application/domain/ports raw-map allow-list. reusable
+- No retained-exception edges were needed: every dropped Gradle dep was unused outside test sources, and every concrete-import allow-list entry is justified by a direct `skillbill.*` import in main code. `runtime-desktop:feature:skillbill` already declared no upstream runtime-application/domain/ports/contracts edges and stays that way.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
+## [2026-05-25] SKILL-52.2 workflow-schema-ownership
+Areas: runtime-kotlin/runtime-domain, runtime-kotlin/runtime-application, runtime-kotlin/runtime-core architecture tests, runtime-kotlin/ARCHITECTURE.md
+- `WorkflowEngine` no longer imports `skillbill.contracts.workflow.*SchemaValidator`; schema validation goes through a domain-owned `WorkflowSnapshotValidator` port and an application-side `WorkflowSnapshotValidatorAdapter` that wraps `CanonicalWorkflowStateSchemaValidator`. The port carries `@OpenBoundaryMap` because it gates the canonical map envelope. reusable
+- `WorkflowEngine` moved from `object` to `class WorkflowEngine(schemaValidator)`; the stateless helpers (`validateOpen`, `validateUpdate`, `snapshotMap`, `summaryMap`, `resumeMap`, `continueMap`) stay on the companion object so `WorkflowEngine::summaryMap` method references in `runtime-cli`/`runtime-mcp` workflow result mappers keep working unchanged. Pattern: when refactoring a runtime singleton to inject a port, keep stateless wire-shape helpers on the companion to preserve adapter-side method references and CLI/MCP byte-equivalence. reusable
+- All 8 loud-fail `InvalidWorkflowStateSchemaError` throw sites are byte-identical (openRecord/updateRecord via validatedSnapshotMap; snapshotView/summaryView/resumeView; decodeSteps/decodeObject/parseDurableJson; snapshotViewFromMap attempt_count exactness). The SKILL-48 2a invariant ("`toSnapshot` deliberately does not validate; the next read seam loud-fails") is preserved verbatim.
+- Internal helpers (`continueExistingWorkflow`, `alignSubtaskResumeStep`, `persistParentDecompositionRuntime`, `blockedBranchStartResult`) became extension functions on `WorkflowEngine` to keep `detekt` `LongParameterList=6` honored without suppressions when the engine had to be threaded through.
+- `ARCHITECTURE.md` narrows the `runtime-domain -> runtime-contracts` edge to non-validator helpers/constants/errors and adds `WorkflowSnapshotValidator.validate` to the open-boundary allowlist. New architecture test forbids `skillbill.contracts.workflow.*SchemaValidator*` and `skillbill.contracts.*Mapper` imports under `runtime-domain/.../skillbill/workflow/` source.
+Feature flag: N/A
+Acceptance criteria: 5/5 implemented
+
+## [2026-05-25] SKILL-52.2 review-telemetry-typed-boundaries
+Areas: runtime-kotlin/runtime-application, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-domain, runtime-kotlin/runtime-infra-{sqlite,http,fs}, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-mcp, runtime-kotlin/runtime-core architecture tests, runtime-kotlin/ARCHITECTURE.md
+- ReviewService and ReviewRepository now expose typed review/stat/triage models; CLI/MCP map payloads are rebuilt only in adapter mapper files. reusable
+- TelemetryClient, TelemetryConfigStore, and TelemetryService now expose typed capability/status/sync/stats models, with `TelemetryConfigDocument` as the explicit open config document type. reusable
+- Review-finished JSON projection lives at the port telemetry boundary and `runtime-ports` publishes `runtime-contracts` as an API dependency because `JsonPayloadContract` is in the public port ABI.
+- Remote `/stats` responses preserve explicit `capabilities: null`; default proxy capabilities are inserted only when the key is absent, with CLI/MCP regression coverage.
+- Telemetry sync uses short database sessions around outbox reads/writes instead of holding a transaction across remote I/O.
+- ARCHITECTURE.md inventory and architecture tests remove retired review/telemetry raw-map public APIs and keep lifecycle telemetry raw-map cleanup postponed to subtask 4.
+Feature flag: N/A
+Acceptance criteria: 5/5 implemented
+
+## [2026-05-25] SKILL-52.2 scaffold-typed-command-boundary
+Areas: runtime-kotlin/runtime-application, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-domain, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-mcp, runtime-kotlin/runtime-desktop/core/data, runtime-kotlin/runtime-core architecture tests
+- `ScaffoldGateway.scaffold` and `ScaffoldService.scaffold` are typed-only now: `scaffold(request: ScaffoldCommandRequest, dryRun: Boolean)`. Sealed model lives at `runtime-domain/skillbill.scaffold.model.command` (the `.model.*` package keeps it adapter-importable under `RuntimeImplementationImportRules`). reusable
+- Per-adapter raw-map parsers in `runtime-cli/skillbill.cli.scaffold` and `runtime-mcp/skillbill.mcp.scaffold` (split into 3 files each for detekt thresholds); desktop maps sealed `ScaffoldPayload -> ScaffoldCommandRequest` with no `Map` round-trip. Wire-mappers stay out of `runtime-application` (the recurring triplication pitfall). reusable
+- Generic raw-map extraction primitives in `runtime-contracts/skillbill.contracts.scaffold.wire.ScaffoldPayloadParseSupport` — the architecture raw-map scanner only walks application/domain/ports, so contracts-side helpers do NOT need allow-list entries. reusable
+- Internal typed->raw bridge `runtime-infra-fs/.../scaffold/ScaffoldCommandRequestRawPayload.kt` (split into 5 per-kind appenders) re-materializes the typed request for the existing orchestrator path; preserves AC4 byte-equivalence trivially. Phase-5 elimination of this round-trip is deferred (still inside infra, never crosses a public boundary). reusable
+- 9 raw-map policy helpers RELOCATED from `runtime-domain.scaffold.policy` to `runtime-infra-fs.scaffold.ScaffoldPayloadMapPolicy*` as `internal` (no rewrite required because the scanner does not walk infra); 11 scaffold entries removed from `RAW_MAP_OPEN_BOUNDARY_ALLOWLIST` and ARCHITECTURE.md inventory in lockstep.
+- Wire-error invariants enforced AT THE ADAPTER BOUNDARY: `routing_signals.strong/tie_breakers` loud-fail on present-but-non-list; empty `baseline_layers: []` loud-fails with the exact `failBaselineLayersEmpty` wording; desktop `toRuntimeBaselineLayer(index)` throws `InvalidScaffoldPayloadError` (a `SkillBillRuntimeException`) so the gateway reports `rollbackComplete = true`. Drop `op` from contracts-side helper error messages to keep CLI/MCP/legacy error strings byte-equivalent.
+- `ScaffoldStandaloneEntrypoint` retained for in-module tests only; the adapter-import rule (`skillbill.scaffold.*` outside `.model.*` is forbidden in CLI/MCP/Desktop) already quarantines it.
+Feature flag: N/A
+Acceptance criteria: 5/5 implemented
+
+## [2026-05-25] SKILL-52.2 boundary-inventory-and-contract-targets
+Areas: runtime-kotlin/ARCHITECTURE.md, runtime-kotlin/runtime-core architecture tests, runtime-kotlin/runtime-domain (SkillRemoveFileSystem KDoc)
+- New `<!-- skill-52-2-inventory:start/end -->` section in ARCHITECTURE.md classifies every public raw-map FQN into four retirement categories (must_type_now, open_extension, private_serializer, postponed_with_reason) and tags must-type/postponed entries with their SKILL-52.2 subtask owner (2..5). reusable
+- `RuntimeArchitectureTest` now parses the new marker block and enforces strict-set parity with `RAW_MAP_OPEN_BOUNDARY_ALLOWLIST`, no-duplicate FQNs, `@OpenBoundaryMap`-annotated declarations placed in `open_extension`, and a subtask-id range check; a synthetic-fixture test guards the inventory parser per the SKILL-52.1 F-007 pattern. reusable
+- WorkflowEngine snapshotMap/summaryMap/resumeMap/continueMap and WorkflowFamily.sessionSummary are `@OpenBoundaryMap`-annotated so they belong in `open_extension`, not postponed; continueDecision (unannotated) stays postponed.
+- `SkillRemoveFileSystem` KDoc now points at `runtime-infra-fs/.../SkillRemoveJvmFileSystem.kt` instead of the stale `runtime-core` location.
+- Any future allow-list edit MUST update the inventory in the same change; strict-set parity is enforced both ways.
+Feature flag: N/A
+Acceptance criteria: 5/5 implemented
+
+## [2026-05-24] SKILL-53 validation-contract-lock
+Areas: runtime-kotlin/runtime-cli, runtime-kotlin/runtime-application, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-desktop, runtime-kotlin/runtime-core architecture tests
+- Final SKILL-53 coverage locks CLI install persistence, detected/manual agent replay, MCP opt-out, desktop legacy preference migration, and install.sh runtime delegation without adding desktop dependencies. reusable
+- `FileSystemInstallSelectionPersistence` now validates write payloads through the same parser and UTF-8 size guard as reads, preserving the prior durable record on invalid or oversized writes. reusable
+- Desktop replay preserves `PlatformSelectionMode.ALL`; completed desktop preferences normalize live and durable state back to desktop-owned fields only.
+- Decomposition manifests must not carry review/audit/validation payloads; workflow artifacts own those results while git-tracked manifests keep runtime projection fields only.
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented
+
+## [2026-05-24] SKILL-53 desktop-adapter-migration
+Areas: runtime-kotlin/runtime-desktop/core/domain, runtime-kotlin/runtime-desktop/core/data, runtime-kotlin/runtime-desktop/core/datastore, runtime-kotlin/runtime-desktop/feature/skillbill
+- Desktop first-run and post-publish reinstall replay now flow through `DesktopFirstRunGateway.latestReusableSetupRequest`, backed by the shared `InstallSelectionPersistencePort`; no CLI or shell dependency was added. reusable
+- `LocalDesktopPreferenceStore` keeps desktop-owned completion/recent-repo state, removes reusable install-choice keys on new writes, and still loads legacy `firstRun.*` keys as a migration fallback. reusable
+- Desktop request models now preserve platform pack selection mode (`NONE`, `SELECTED`, `ALL`) so shared install-selection replay can round-trip all-pack installs.
+Feature flag: N/A
+Acceptance criteria: 5/5 implemented
+
+## [2026-05-24] SKILL-53 cli-shell-persistence
+Areas: runtime-kotlin/runtime-application install service, runtime-kotlin/runtime-cli install apply, install.sh runtime delegation
+- `InstallService.applyInstall` now persists `SharedInstallSelection` through `InstallSelectionPersistencePort` only after non-failure typed apply results, keeping CLI/shell writes outside desktop modules. reusable
+- Persisted agents prefer `InstallApplyResult.resolvedInstalledAgents` and fall back to planned agents only when the apply result has no stronger evidence. reusable
+- CLI coverage now asserts manual/detected selections, platform mode, telemetry level, MCP opt-out, and failure non-persistence through the canonical `install-selection.json` record.
+Feature flag: N/A
+Acceptance criteria: 5/5 implemented
+
+## [2026-05-24] SKILL-53 shared-install-selection-foundation
+Areas: runtime-kotlin/runtime-domain install model, runtime-kotlin/runtime-ports install selection port, runtime-kotlin/runtime-infra-fs install-selection persistence, runtime-kotlin/runtime-contracts errors, runtime-kotlin/runtime-core DI
+- Shared install selection now lives outside desktop as `SharedInstallSelection` plus `InstallSelectionPersistencePort`; requests carry explicit `installHome` so CLI/Desktop callers can persist the intended runtime install state. reusable
+- `FileSystemInstallSelectionPersistence` stores canonical v1 JSON at `<installHome>/.skill-bill/install-selection.json` with atomic temp-file replacement, a 64 KiB read guard, and typed missing/unreadable/malformed errors. reusable
+- Parser locks install-selection invariants: selected platform slugs must match mode, slugs and MCP bin paths cannot be blank, and canonical JSON shape has fixture coverage.
+- `InstallApplyResult.resolvedInstalledAgents` is computed from status+skill links only: empty on failure, CREATED/SKIPPED agents on success/warning, keeping future persistence from storing stale requested agents. reusable
+Feature flag: N/A
+Acceptance criteria: 5/5 implemented
+
+## [2026-05-24] SKILL-52.1 final-validation-and-contract-lock
+Areas: runtime-kotlin/ARCHITECTURE.md, runtime-kotlin/runtime-core architecture tests, runtime-kotlin/runtime-domain, runtime-kotlin/runtime-application, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-mcp, runtime-kotlin/runtime-desktop/core/data
+- SKILL-52.1 closes with architecture documentation and tests aligned on raw-map open-boundary parity, inert `Path` handling outside adapters/composition, install-policy ownership with dual install-plan validation, and the narrowed runtime-core public ABI edge. reusable
+- The runtime-core shrink rule is now explicit: generated Kotlin-Inject ABI edges are the only retained public runtime-core surface, and architecture tests must reject growth into infrastructure or entrypoint modules. reusable
+- Final validation passed with `skill-bill validate`, `scripts/validate_agent_configs`, `npx --yes agnix --strict .`, and `(cd runtime-kotlin && ./gradlew check)`.
+Feature flag: N/A
+Acceptance criteria: 9/9 implemented
+
+## [2026-05-24] SKILL-52.1 path-policy-and-core-shrink
+Areas: runtime-kotlin/ARCHITECTURE.md, runtime-kotlin/runtime-core, runtime-kotlin/runtime-domain, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-infra-http, runtime-kotlin/runtime-infra-sqlite, runtime-kotlin/runtime-desktop/core/data
+- Path policy is now explicit: application/domain/ports may carry `java.nio.file.Path` only as inert data; Files IO, home expansion, `System.getenv`, and `System.getProperty` belong at adapter/composition seams. reusable
+- `RuntimeContext` defaults are pure sentinels; `RuntimeComponent` and public concrete adapters resolve process defaults locally, with `HttpTelemetryClient` also resolving `UnconfiguredHttpRequester` to `JdkHttpRequester`. reusable
+- Review and telemetry `~/...` expansion moved out of domain helpers into fs adapters, with adapter tests for context-bound review home and telemetry env-path expansion.
+- `runtime-core` now publishes only generated Kotlin-Inject ABI edges (`runtime-application`, `runtime-ports` direct; documented transitive closure through domain/contracts) and architecture tests reject closure growth into infra/entrypoint modules. reusable
+- Boundary tests now ban broader JDBC/HTTP/Clikt/framework APIs, process/home lookup, direct file IO, runtime-core implementation packages, and adapter imports of low-level implementation packages.
+Feature flag: N/A
+Acceptance criteria: 8/8 implemented
+
+## [2026-05-24] SKILL-52.1 install-contract-validation
+Areas: runtime-kotlin/runtime-domain install wire maps, runtime-kotlin/runtime-infra-fs install builder, runtime-kotlin/runtime-cli install JSON, runtime-kotlin/runtime-core architecture tests, runtime-kotlin/ARCHITECTURE.md
+- `validateInstallPlanWireSnapshot(plan)` is now the shared install-plan wire validation helper used at both approved seams: builder return and CLI JSON emission; keep the dual seam per the 2026-05-19 decision. reusable
+- CLI install plan/apply byte-equivalence coverage now compares stdout against static golden payload maps built from fixture paths, not decoded actual output; use this pattern when guarding JSON order/shape. reusable
+- Adapter ownership coverage rejects install planner/validator policy via direct FQN, alias import, wildcard import, and unapproved validation-helper usage; relativized paths are normalized to `/` for cross-platform allow-list checks.
+- `install.sh` and MCP install envelopes were intentionally left unchanged; full Gradle validation passed after focused review fixes.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
+## [2026-05-24] SKILL-52.1 install-capability-ports-and-adapters
+Areas: runtime-kotlin/runtime-ports install ports, runtime-kotlin/runtime-application InstallService, runtime-kotlin/runtime-infra-fs filesystem install adapters, runtime-kotlin/runtime-core DI + architecture tests
+- The retired monolithic install gateway was split into capability ports for planning facts/materialization/staging/apply/link/agent/native-agent/MCP, each with one `*Request` input and `*Result` output model; mirror this shape for remaining runtime seams. reusable
+- `InstallService` now orchestrates InstallPlanPolicy plus capability ports directly while infra-fs still owns filesystem snapshots, staging, symlinks, MCP config mutation, native-agent links, Windows preflight, and rollback mechanics. reusable
+- Planning carries one platform manifest snapshot through materialization and staging; do not rediscover packs mid-plan or carry duplicate snapshot representations that can drift under concurrent repo changes.
+- Architecture coverage now rejects retired install gateway names, raw public install port maps, and port functions that lack typed request/result signatures; keep fixture-strength scanners when extending this guard.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
+## [2026-05-24] SKILL-52.1 install-policy-foundation
+Areas: runtime-kotlin/runtime-domain install policy/model, runtime-kotlin/runtime-infra-fs install builder, runtime-kotlin/runtime-core architecture tests, runtime-kotlin/ARCHITECTURE.md
+- Install request validation and pure plan construction now live in `skillbill.install.policy` over typed snapshots (`InstallPolicyInput`, `InstallPlatformPackSnapshot`, detected/default agent targets) and produce `InstallPlanDraft`; no public raw-map policy API was added. reusable
+- `runtime-infra-fs` still owns discovery, platform schema parsing, agent/path probing, pointer realpath checks, content hashing, staging paths, symlink/native-agent/MCP/apply mechanics, Windows preflight, and rollback; it converts those facts into snapshots before policy execution. reusable
+- Builder and CLI install-plan schema validation remain dual-seam: builder still validates `buildInstallPlanWireMap(plan)` through `InstallPlanSchemaValidator`, and CLI emission still revalidates the same wire helper.
+- Architecture coverage now blocks install policy from importing filesystem/process or infra-fs install implementation mechanics; follow this pattern when extracting the remaining install seams.
+Feature flag: N/A
+Acceptance criteria: 5/5 implemented
+
+## [2026-05-24] SKILL-52.1 scaffold-raw-map-elimination
+Areas: runtime-kotlin/runtime-ports, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-application, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-mcp, runtime-kotlin/runtime-core/architecture tests + DI, runtime-kotlin/ARCHITECTURE.md, runtime-kotlin/runtime-desktop/core/data
+- Eight `ScaffoldGateway` raw-map producers (`list`, `show`, `explain`, `validate`, `upgrade`, `fill`, `saveExactContent`, `editWithBodyFile`) now return typed `Scaffold*Result` models under `runtime-ports/.../scaffold/<capability>/model/`, each lifting stable top-level scalars plus a single `@OpenBoundaryMap`-annotated `payload: Map<String, Any?>` field; `init { require(...) }` invariants enforce typed/payload consistency at construction. Mirror this triad shape for any future raw-map seam. reusable
+- `FileSystemScaffoldGateway` lifts via `requireScalar<T>(op, key)` / `requireInt(op, key)` helpers throwing `InvalidScaffoldPayloadError` with op + key + expected/got type; `requireInt` tolerates `Number` widening for JSON round-trips. Never replace these with raw `as` casts. reusable
+- New `FileSystemScaffoldOrchestrator` (`@Inject` DI-bound) replaces the prior file-static `FileSystemScaffold*` singletons inside `skillbill.scaffold.ScaffoldService.kt`; carved IO-coupled validators (`validateBaselineLayerPayloadReferences`, `validateScaffold`, `plannedAuthoringTarget`, `resolveAddonConsumerSkillDirs`, `validateAddonConsumerSkillDir`, `optionalBaselineLayers`) live as `internal fun` on the existing capability adapters. Orchestrator injects concrete adapters (NOT port interfaces) because these validators are internal-on-adapter, not port-level. Test-only `ScaffoldStandaloneEntrypoint.scaffold(...)` wrapper keeps the legacy in-tree test call shape without singletons.
+- 16 of 18 scaffold raw-map allow-list entries removed from `RuntimeArchitectureTest.RAW_MAP_OPEN_BOUNDARY_ALLOWLIST` + ARCHITECTURE.md `<!-- open-boundary-allowlist:start/end -->` markers; 2 retained for `scaffold(...)` INPUT (subtask 4). 8 new typed-model `payload` FQN entries added. New `LEGACY_FORBIDDEN_TOP_LEVEL_REGEX` (modifier-agnostic — catches `private/internal/bare/public fun` and ktfmt-wrapped multilines) replaces brittle substring checks. Gateway raw-map producer regex now `DOT_MATCHES_ALL` with wrapped-signature fixture, replicating the subtask-1 F-007 fixture-based-scanner pattern.
+- CLI mapper (`ScaffoldCliResultMappers.kt`) lives in `runtime-cli` adapter only; `runtime-application/ScaffoldService.kt` is a pure pass-through with no wire-mapping. `ScaffoldMcpResultMappers.kt` was created then deleted because `McpScaffoldRuntime` only exposes typed `newSkillScaffold(...)` today — when MCP gains raw-map endpoints, re-introduce the mapper alongside that wiring with a smoke test. ARCHITECTURE.md "Typed-Result-Model Open-Boundary Pattern" section documents both the doctrine and the MCP deletion rationale.
+- Deferred to subtask 4 (with doc note in ARCHITECTURE.md): `RuntimeRepoBrowserService` desktop adapter still reads `.payload` directly — third reader of the open-boundary map, must be migrated when typed list/show/validate structural fields are lifted; `ScaffoldShowResult.completion_status` typed lift; `ScaffoldValidateStatus` sealed/enum (CLI exit-code branches on raw string today); generalized `scaffoldApplicationServiceFileNames` filename allow-list; `scaffold(...)` INPUT raw-map allow-list entries.
+- Pitfalls to avoid: (a) wire-mapper triplication keeps re-appearing — adapter modules only, never `runtime-application`; (b) do NOT relax the typed-result `init` invariants to a softer check; (c) do NOT replace `requireScalar`/`requireInt` with raw `as` casts; (d) keep `ScaffoldStandaloneEntrypoint.scaffold(...)` test-only (F-016 residual — tighten to `internal` once spotless compat verified); (e) gateway raw-map regex companion-object extraction would let fixture and prod assertion share a single constant (F-018 residual — apply when next subtask touches that file).
+Feature flag: N/A
+Acceptance criteria: 8/8 implemented (AC5 carries an accepted spec-literal-vs-intent interpretation: MCP mapper file deletion accepted because MCP currently has no raw-map endpoints to map)
+
+## [2026-05-24] SKILL-52.1 scaffold-ports-and-pure-policy
+Areas: runtime-kotlin/runtime-ports, runtime-kotlin/runtime-domain, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-application, runtime-kotlin/runtime-core/di + architecture tests, runtime-kotlin/ARCHITECTURE.md
+- Five capability-named scaffold ports replace the prior monolithic `ScaffoldGateways.kt`: `ScaffoldSourceLoaderPort`, `ScaffoldManifestPersistencePort`, `ScaffoldGeneratedStagingPort`, `ScaffoldInstallLinkPort`, `ScaffoldRepoValidationPort`, each with typed request/result data classes under `ports/scaffold/<capability>/model/` (TelemetryLevelMutator shape). `FileSystem<Capability>` adapters in `runtime-infra-fs` delegate into existing `skillbill.scaffold.AuthoringOperations` / `scaffold(...)` without splitting the 1358-LOC `ScaffoldService.kt`. reusable
+- Eleven pure-policy functions moved into `runtime-domain/skillbill/scaffold/policy/` (`ScaffoldPayloadPolicy`, `ScaffoldSubagentPolicy`, `PlatformPackPolicy`, `PlatformPackManifestPolicy`, `ScaffoldPolicyConstants`, `ScaffoldPolicySupport`); shrank `runtime-infra-fs/ScaffoldService.kt` by 363 LOC and `ScaffoldManifestEdits.kt` by 117 LOC. IO-coupled validators (`validateBaselineLayerPayloadReferences`, `validateScaffold`, `resolveAddonConsumerSkillDirs`, `validateAddonConsumerSkillDir`, `plannedAuthoringTarget`, `optionalBaselineLayers`) intentionally stay in infra-fs — deferred to subtask 3 alongside `ScaffoldGateway` raw-map elimination and removal of the 18 legacy scaffold allow-list entries. reusable
+- New `ImplementationOwnershipArchitectureTest.scaffoldPolicyPackagesMustNotImportInfraFs` scans `runtime-domain/scaffold/policy/*` + scaffold-related application services and forbids `skillbill.infrastructure.fs.*` or `skillbill.scaffold.{ScaffoldService|FileSystem.*}` imports. Paired with a fixture-based negative regex test (replicating subtask-1 F-007 pattern) so a future regex regression loud-fails instead of silently passing. reusable
+- `SHELL_CONTRACT_VERSION` in infra-fs is now a `get()` alias of `PLATFORM_PACK_SHELL_CONTRACT_VERSION` in `runtime-domain/scaffold/policy/PlatformPackManifestPolicy.kt`, same pattern used earlier for `SCAFFOLD_PAYLOAD_VERSION`. Single source of truth across the alias chain.
+- Pitfalls to avoid in subtask 3: ScaffoldManifestPersistencePort currently mixes pure rendering (`renderPlatformPackManifest`, `renderGovernedAddonRegistrationPreview`) with IO persistence on one capability surface — defer reshape until consumers exist; loud-fail at parse seams when threading typed requests so existing `InvalidScaffoldPayloadError`/`ScaffoldPayloadVersionMismatchError`/`UnknownSkillKindError` throws are preserved; detekt `ThrowsCount`/`LongMethod` are fixed at root cause via private `failXxx(...): Nothing` helpers and test-helper extraction, never with suppressions.
+Feature flag: N/A
+Acceptance criteria: 8/8 implemented
+
+## [2026-05-24] SKILL-52.1 typed-boundary-foundation
+Areas: runtime-kotlin/ARCHITECTURE.md, runtime-kotlin/runtime-core/architecture tests, runtime-kotlin/runtime-application, runtime-kotlin/runtime-domain, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-mcp
+- New raw-map architecture-test guard fails loudly on any public `Map<String, Any?>` / `Map<String, *>` / `MutableMap<String, Any?>` declaration in runtime-application/domain/ports unless allow-listed by FQN or marked `@OpenBoundaryMap`; pair this with a fixture-based negative test so the scanner is itself regression-proof. reusable
+- `@OpenBoundaryMap` lives in a neutral `skillbill.boundary` package inside runtime-domain so application and ports can both import it without circular deps. reusable
+- ARCHITECTURE.md is the source of truth: HTML-comment markers (`<!-- allow-list:start -->` … `:end -->`) wrap the Open-Boundary Allow-List section so a two-direction parity test parses bullets out of the doc instead of self-referential hardcoded lists. reusable
+- WorkflowService public methods now return typed sealed `WorkflowXxxResult` models from `skillbill.application.model.WorkflowResults`; WorkflowEngine exposes typed `snapshotView`/`summaryView`/`resumeView`/`continueDecision` plus open-boundary `*Map` serializers consumed by parallel `WorkflowCliResultMappers` and `WorkflowMcpResultMappers`. `WorkflowEngine.validatedSnapshotMap` stays private to preserve the `InvalidWorkflowStateSchemaError` loud-fail seam. reusable
+- Legacy raw-map allow-list entries are grouped by which follow-up subtask (2 scaffold / 3 install / 4 telemetry+review) will retire them, so cleanup PRs are mechanical.
+- Pitfalls to avoid in subtasks 2-4: short-name allow-list lookup, blanket `*.model` package skip in source scanners, wire-mapper triplication (the test-only mapper invites drift — assert on typed result fields instead), and silent envelope-field additions on error paths (cover both error variants with explicit wire-shape regression tests).
+Feature flag: N/A
+Acceptance criteria: 8/8 implemented
+
+## [2026-05-24] SKILL-52 architecture-enforcement-validation
+Areas: runtime-kotlin/ARCHITECTURE.md, runtime-kotlin/runtime-core/architecture tests, runtime-kotlin/runtime-application, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-infra-sqlite
+- `ARCHITECTURE.md`, `RuntimeModule`, Gradle settings, and architecture tests now pin the final hexagonal graph with runtime-core as composition only and runtime-contracts owning schema validators at parse seams. reusable
+- Decomposition manifest file writes and review input loading moved behind explicit ports, with filesystem adapters in infra-fs; SQLite review runtime no longer owns file input helpers. reusable
+- Architecture coverage now rejects non-composition runtime-core packages, forbidden layer imports, adapter bypasses, public app/domain/port models outside `model`, and direct file IO in app/domain/ports. reusable
+- Full validation passed after clearing generated Gradle configuration cache: `./gradlew check`, `skill-bill validate`, `scripts/validate_agent_configs`, and `npx --yes agnix --strict .`.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
+## [2026-05-23] SKILL-52 adapter-composition-wiring
+Areas: runtime-kotlin/runtime-core, runtime-kotlin/runtime-application, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-mcp, runtime-kotlin/runtime-desktop/core/data
+- Runtime install, scaffold, repo-validation, MCP-registration, native-agent, and skill-remove entry points now flow through application services plus port interfaces; `runtime-core` remains the composition root that binds concrete adapters. reusable
+- Filesystem implementations live behind explicit infra-fs gateways, with typed port models for install, scaffold catalog/render, and repo validation instead of aggregate adapter bags or raw maps. reusable
+- CLI, MCP, and Desktop declare honest direct Gradle dependencies instead of relying on runtime-core as a broad API umbrella; architecture tests guard runtime-core contents and infra module dependency direction. reusable
+- Desktop first-run and skill-remove seams preserve caller-provided home binding through injected application services, including telemetry config and symlink preview behavior.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
+## [2026-05-23] SKILL-52 implementation-ownership
+Areas: runtime-kotlin/runtime-core, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-application, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-desktop/core/data
+- Install, scaffold, native-agent, launcher, skill-remove, and workflow runtime-surface implementation ownership moved out of `runtime-core`; `runtime-core` now stays a compatibility umbrella/DI composition layer through Gradle `api` edges. reusable
+- Concrete filesystem implementations live in `runtime-infra-fs`; architecture coverage rejects moved infra packages depending on runtime-core, CLI, MCP, Desktop, HTTP, or SQLite sibling adapters. reusable
+- Install telemetry apply now crosses a `TelemetryLevelMutator` port to application-owned mutation, preserving config validation and transactional outbox clearing while CLI rebinding honors parsed `--home`/`--db`. reusable
+- Source/generated boundaries remain guarded after the move: rendered `SKILL.md`, support pointers, provider-native outputs, install staging, and desktop packaging artifacts stay generated.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
+## [2026-05-23] SKILL-52 domain-contract-foundation
+Areas: runtime-kotlin/runtime-domain, runtime-kotlin/runtime-application, runtime-kotlin/runtime-contracts, runtime-kotlin/runtime-core/architecture, orchestration/contracts
+- Runtime contract/schema validators and classpath schema resources for install-plan, workflow-state, and decomposition-manifest now live in `runtime-contracts`; domain code consumes typed validated seams rather than owning schema convenience APIs. reusable
+- `DecompositionManifestCodec` is pure model/wire-map conversion; application seams own YAML/file/artifact validation through `load/decode/encodeDecompositionManifest*`, including validated `decomposition_runtime` artifact emission. reusable
+- `WorkflowEngine` read seams loud-fail malformed durable JSON, wrong top-level shapes, blank persisted workflow contract fields, and non-exact/oversized integers with typed workflow schema errors.
+- Same-branch decomposition still creates subtask commits before advancing, but `GitWorkflowGitOperations.createCommit` leaves live `decomposition-manifest.yaml` projections uncommitted so parent bookkeeping can continue across the full decomposition run. reusable
+- Architecture coverage now bans domain workflow schema/YAML seams and raw application `decomposition_runtime` wire emission; the remaining application `Files` projection is documented as a temporary SKILL-52 blocker for later storage-port work.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
+## [2026-05-24] SKILL-53 decomposition-manifest-commit-projection
+Areas: runtime-kotlin/runtime-application, runtime-kotlin/runtime-infra-fs, skills/bill-feature-implement
+- Same-branch subtask commits now include staged `decomposition-manifest.yaml` status/current-intent projections; the previous infra Git adapter behavior that unstaged manifest projections before committing was removed. reusable
+- Git-tracked decomposition manifests intentionally project `commit_sha: null`; subtask commit SHAs remain durable workflow runtime state because a commit cannot contain its own final SHA without changing that SHA. reusable
+Feature flag: N/A
+Acceptance criteria: internal defect fix
+
+## [2026-05-23] SKILL-51 decomposition-workflow-state-validation-projection
+Areas: runtime-kotlin/runtime-application/workflow, runtime-kotlin/runtime-domain/workflow, runtime-kotlin/runtime-core application tests, skills/bill-feature-implement
+- Parent decomposition projection now updates the parent spec status in addition to subtask frontmatter, and Markdown `## Status` sections are projected when present. reusable
+- Final all-subtasks completion coverage asserts parent/subtask manifest state, commit advancement, and human-readable spec projection in one application-level flow.
+- `bill-feature-implement` provider-neutral planning agents now carry the same decomposition manifest/execution-model guidance as governed `content.md`; source install was refreshed with `./install.sh`.
+Feature flag: N/A
+Acceptance criteria: 16/16 implemented
+
+## [2026-05-23] SKILL-51 decomposition-workflow-state-continuation-branching
+Areas: runtime-kotlin/runtime-application/workflow, runtime-kotlin/runtime-domain/workflow, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-mcp, runtime-kotlin/runtime-infra-fs
+- Parent issue-key continuation now resolves decomposed feature parents from durable `artifacts.decomposition_runtime`, then resumes an in-progress subtask or starts the first dependency-complete pending subtask without requiring a subtask path. reusable
+- `DecompositionContinuationSelector` centralizes dependency/blocked/optional-skipped selection semantics; blocked dependencies stop continuation with the stored reason unless the dependency is explicitly optional+skipped. reusable
+- `WorkflowGitOperations` is the application port for branch checkout, commit creation, and stacked branch base validation; production DI uses `GitWorkflowGitOperations`, while CLI/MCP tests inject explicit fakes.
+- Same-branch mode records an individual subtask commit before advancing; branch/commit failures persist the subtask and parent as blocked with `blocked_reason` so resume decisions stay durable.
+- CLI and MCP continue paths accept either `workflow_id` or issue key for implement workflows, preserving existing single-workflow continuation behavior.
+Feature flag: N/A
+Acceptance criteria: 10/10 implemented
+
+## [2026-05-23] SKILL-51 decomposition-workflow-state-runtime-state
+Areas: orchestration/contracts, runtime-kotlin/runtime-domain/workflow, runtime-kotlin/runtime-application/workflow, runtime-kotlin/runtime-core/application tests
+- `decomposition-manifest-schema.yaml` now carries parent/subtask runtime state: parent `status`, and per-subtask `branch`, `commit_sha`, `workflow_id`, `blocked_reason`, and `last_resumable_step`. Review/audit/validation result payloads stay in workflow telemetry/artifacts, not the decomposition manifest. reusable
+- `WorkflowService.update` persists `artifacts.decomposition_runtime` first, then writes `decomposition-manifest.yaml` / subtask frontmatter as a post-save human-readable projection; ordinary single-spec workflows still do not create decomposition runtime or manifests. reusable
+- Execution-model changes are allowed while every subtask is still pending. Once any subtask has recorded runtime state, `DecompositionManifestWriter` rejects an `execution_model` change with `InvalidDecompositionManifestSchemaError` and a manual-migration/reset message. reusable
+- Subtask status projection covers implementation/review/audit/validation/PR-description blocked/skipped/complete events, but explicit unmatched `assessment.spec_path` no-ops rather than falling back to current intent; continuation selection and branch/commit advancement remain deferred to SKILL-51 subtasks 3/4.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
+## [2026-05-23] SKILL-51 decomposition-workflow-state-foundation
+Areas: orchestration/contracts, runtime-kotlin/runtime-domain/workflow, runtime-kotlin/runtime-application/workflow, runtime-kotlin/runtime-contracts/error, skills/bill-feature-implement
+- New runtime contract `orchestration/contracts/decomposition-manifest-schema.yaml` defines the parent manifest for decomposed feature work; `DECOMPOSITION_MANIFEST_CONTRACT_VERSION` and classpath copy wiring mirror the workflow/install-plan schema pattern. reusable
+- `DecompositionManifestCodec`, `DecompositionManifestCoherenceValidator`, and `DecompositionManifestWireMap` provide schema-backed YAML load/write mapping plus Kotlin cross-field checks for dependency order, same-branch defaults, stacked branch opt-in, and current subtask intent. reusable
+- `WorkflowService` now writes a validated `decomposition-manifest.yaml` only for implement workflow updates whose plan artifact has `mode=decompose`; ordinary single-spec `mode=implement` updates remain manifest-free.
+- Authored `bill-feature-implement/content.md` now makes decomposition manifest creation part of the terminal planning-mode contract; generated skill installs were refreshed with `./install.sh`.
+- Known limitation: branch checkout/commits, parent continuation, stack advancement, and subtask status transitions remain deferred to later SKILL-51 subtasks.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
+## [2026-05-22] SKILL-50 render-runtime-composition-instructions
+Areas: runtime-kotlin/runtime-core/scaffold, runtime-kotlin/runtime-domain/scaffold/model, platform-packs/kmp, platform-packs/kotlin
+- Generated `SKILL.md` render output now carries manifest-declared code-review composition before authored execution guidance; `AuthoringTarget` receives `PlatformManifest.codeReviewComposition` only for pack baseline skills. reusable
+- KMP rendered snapshots pin the generated Review Composition section and required baseline metadata; a fixture pack without composition pins omission so empty/noisy sections do not regress.
+- KMP/Kotlin review content now treats `kmp-baseline` as manifest-declared mode, not a caller-name exception; the KMP authored body focuses on local specialist behavior after generated baseline instructions.
+- Render/install source hygiene remains enforced by render-output tests: no source-tree `SKILL.md` wrappers or generated pointer files are written during render.
+Feature flag: N/A
+Acceptance criteria: 9/9 implemented
+
+## [2026-05-21] SKILL-50 schema-loader-contract
+Areas: orchestration/contracts, runtime-kotlin/runtime-core/scaffold, runtime-kotlin/runtime-domain/scaffold/model, platform-packs/kmp
+- `platform-pack-schema.yaml` now has anchored `code_review_composition.baseline_layers` for code-review composition; nested layer objects stay strict, `scope` is `"same-review-scope"`, and `required` is explicit. reusable: runtime-consumed top-level pack fields still start in schema with `x-runtime-anchored: true`.
+- `PlatformManifest` now carries typed `CodeReviewComposition` / `CodeReviewBaselineLayer` values; `code_review_composition` is filtered out of `customFields` like other anchored fields.
+- `ShellContentLoader` parses composition in `buildPack` and validates references after manifests are loaded; collection discovery validates all packs, and `loadPlatformPack` validates the reachable composition closure so single-pack callers cannot bypass missing-target, duplicate, self-reference, or cycle failures. reusable
+- `kmp-baseline` mode is intentionally narrow: accepted only for `kotlin/bill-kotlin-code-review`, not for same-named skills in other packs or Kotlin specialist skills.
+- KMP's manifest declares the Kotlin baseline layer; this only records the contract source of truth and does not generate runtime `SKILL.md` instructions yet.
+- Regression coverage lives in `PlatformPackCompositionTest`, plus anchored bijection/customFields tests; cleanup test now skips migrated source paths that no longer exist.
+Feature flag: N/A
+Acceptance criteria: 13/13 implemented
+
+## [2026-05-19] SKILL-48 subtask-3 per-repo-schema-customization
+Areas: orchestration/contracts, runtime-kotlin/runtime-core/scaffold, runtime-kotlin/runtime-domain/scaffold/model, AGENTS.md
+- `orchestration/contracts/platform-pack-schema.yaml` now treats the TOP-LEVEL mapping as the per-repo extension surface: `additionalProperties: true` at root. Every TOP-LEVEL field the Kotlin runtime consumes by name carries `x-runtime-anchored: true` (10 total: `platform`, `contract_version`, `display_name`, `notes`, `routing_signals`, `declared_code_review_areas`, `declared_files`, `area_metadata`, `declared_quality_check_file`, `pointers`). Nested objects (`routing_signals`, `declared_files`, `area_metadata.<area>`, `$defs.codeReviewArea`, `pointers` entries) stay strict (`additionalProperties: false`) — per-repo extensions only relax the top-level mapping. reusable: the `x-runtime-anchored` marker is exclusive to platform-pack-schema; other runtime contracts (telemetry/workflow/install/native-agent) stay runtime-anchored end-to-end.
+- New file-level helper in `PlatformPackSchemaValidator.kt`: `internal fun anchoredTopLevelFieldNames(): Set<String>` delegating to a file-private `ANCHORED_TOP_LEVEL_FIELD_NAMES: Set<String>` `by lazy { ... }`. Single parse of the bundled YAML; lazy init throws `InvalidManifestSchemaError` if the schema is missing the top-level `properties` node. Schema is the single source of truth — Kotlin never hardcodes the anchored set. reusable: any future schema that needs a "list of anchored property names" can mirror this lazy + JsonNode.asBoolean(false) pattern.
+- `PlatformManifest` (`runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/scaffold/model/ScaffoldModels.kt`) gains `customFields: Map<String, Any?> = emptyMap()`. Default keeps the only construction site (`ShellContentLoader.buildPack`) and every named-arg consumer compiling unchanged. Intentionally untyped per the parent spec — pack authors get raw SnakeYAML-parsed values, no code-gen.
+- `validateAgainstCanonicalSchema` in `ShellContentLoader.kt` now RETURNS the validated `Map<String, Any?>` (the typed manifest map). `buildPack` reuses it to derive `customFields = typedManifest.filterKeys { it !in anchoredKeys }`. This avoids re-walking the raw `Map<*, *>` and re-doing the non-string-key shape check.
+- A5(b) is enforced in Kotlin, not the schema. Required anchored fields (`platform`, `contract_version`, `routing_signals`, `declared_code_review_areas`) catch typos via JSON Schema `required`; OPTIONAL anchored fields (`display_name`, `notes`, `declared_files`, `declared_quality_check_file`, `area_metadata`, `pointers`) would otherwise slip silently into `customFields` because top-level `additionalProperties` is now `true`. File-private `guardAgainstAnchoredFieldTypos` in `ShellContentLoader.kt` walks every customFields key against the anchored set and loud-fails with `InvalidManifestSchemaError("...top-level field '<key>' that looks like a typo of the anchored field '<anchored>' (did you mean '<anchored>'?)...")`. Edit-distance computed by file-private `levenshtein1` split into `substitutionMatches` + `insertionOrDeletionMatches` helpers to satisfy detekt `NestedBlockDepth`/`ReturnCount` at root (no suppressions). reusable: typo-guard pattern fits any future "additive open object" schema where named keys remain reserved.
+- Bijection test `PlatformPackSchemaAnchoredBijectionTest` (mirrors `TelemetryEventInputSchemaParityTest` two-direction shape) curates the Kotlin side via an `expectedAnchoredFields` constant rather than reflecting `PlatformManifest` properties — YAML snake_case vs Kotlin camelCase + derived properties (e.g. `routedSkillName`) make 1:1 reflection brittle. Failure message names the asymmetric difference (which side is missing what). reusable: curated-constant + two-direction parity is the right fit when a mechanical mapping is non-trivial.
+- A5(b) coverage: TWO tests in `PlatformPackSchemaViolationsTest.kt` — `SKILL-48 nested anchored block typo fails loudly` (typo `baselin` under `declared_files`; fires via nested `additionalProperties: false`) and `SKILL-48 Subtask 3 typo on anchored top-level field fails loudly with field path` (top-level `declared_filez:`; fires via the Kotlin Levenshtein guard, message asserts BOTH the offending key AND the suggested anchored field). Defense in depth: keep both.
+- `PlatformPackCustomFieldsRoundTripTest` covers A5(a). Fork-specific keys `custom_thing` (nested map) and `another_custom` (string) round-trip via `customFields` verbatim. The boring path (stock manifest → empty `customFields`) is also pinned to guard against accidental anchored leak.
+- AGENTS.md "Governed platform packs" section now documents the per-repo customization contract inline (single bullet — covers top-level extension, x-runtime-anchored, customFields, loud-fail on optional-anchored typos, nested strictness, intentional untyped Map). Pairs with subtask-2's "every schema under orchestration/contracts/" rule in the same section.
+- Reviewer-deferred Nits (none blocking): F-004 (`PlatformPackCustomFieldsRoundTripTest.newTempPackRoot` doesn't register cleanup — switch to `@TempDir`), F-005 (`PlatformPackSchemaAnchoredBijectionTest.expectedAnchoredFields` could be derived by grepping `buildPack` source). Reviewer triage record: rvw-20260519-174330-s48c.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
+## [2026-05-19] SKILL-48 runtime-contracts-2d telemetry-event-schema
+Areas: orchestration/contracts, runtime-kotlin/runtime-mcp/mcp, runtime-kotlin/runtime-contracts/error, runtime-kotlin/runtime-mcp build, runtime-kotlin/runtime-mcp tests
+- FIFTH runtime contract under the same architecture as 2a/2b/2c: `orchestration/contracts/telemetry-event-schema.yaml` (Draft 2020-12) is the SSOT for every MCP `tools/call` envelope. `TELEMETRY_EVENT_CONTRACT_VERSION` ("1.0.0") + `TelemetryEventSchemaPaths` (`runtime-kotlin/runtime-mcp/src/main/kotlin/skillbill/mcp/TelemetryEventSchemaPaths.kt`) pin the const; `TelemetryEventSchemaContractVersionTest` pins the constant ↔ top-level YAML `contract_version` ↔ EXPECTED_SCHEMA_ID ↔ every per-branch `contract_version.const`. reusable
+- Validator placement DEVIATES from 2a/2b/2c: `TelemetryEventSchemaValidator` (`runtime-kotlin/runtime-mcp/src/main/kotlin/skillbill/mcp/TelemetryEventSchemaValidator.kt`) lives in `runtime-mcp` because `McpToolRegistry.toolNames` + `inputSchemas` is the source-of-truth for event names and the parity test must co-locate. Gradle `copyTelemetryEventSchema` therefore lives in `runtime-mcp/build.gradle.kts`. Side effect: outbound emit seams in `runtime-application`/`runtime-infra-*` cannot reuse this validator without inverting the module graph — schema validates *MCP envelopes*, not *outbound telemetry*. Worth a follow-up to lift validator + Paths into `runtime-contracts` (typed error already lives there) if a non-MCP emitter ever needs to validate.
+- 37-event discriminated-union pattern: top-level `oneOf` + `$defs/<event>Event` keyed on `event_name.const` (mirrors 2a's workflow_name-keyed precedent). Strict events mirror `McpToolRegistry.inputSchemas` exactly; events that fall through to `openObjectSchema()` get a branch with `additionalProperties: true`; passthrough events declare properties+required even though additionalProperties is open. Top-level `additionalProperties: false` is INTENTIONALLY OMITTED: per-branch consts + oneOf+discriminator enforce shape, and a top-level closed-object would double-reject payload fields already accepted by a branch. Documented in `x-coherence-checks`. reusable
+- Parity test (`TelemetryEventInputSchemaParityTest`) walks `McpToolRegistry.tools` DYNAMICALLY (no hard-coded count) in BOTH directions — Kotlin→YAML (every tool has a branch) and YAML→Kotlin (every branch maps to a known tool). Enforces event_name const + additionalProperties policy + property keys + required keys. Per-property TYPE equivalence is NOT enforced (documented tradeoff); the `TelemetryEventSchemaValidatesAllEventsTest` representative-payload check catches type drift incidentally via networknt validation.
+- Classpath-shadow guard CANNOT extend `PlatformPackSchemaCleanupTest.kt` (the runtime-core canonical home) because runtime-core does not depend on runtime-mcp and importing the validator would invert the module graph. Resolution: sibling `TelemetryEventSchemaCleanupTest.kt` in `runtime-mcp/src/test`. The pattern now lives in two places — runtime-core's cleanup test for schemas in `runtime-core`/`runtime-domain`; runtime-mcp's cleanup test for schemas owned by `runtime-mcp`. reusable: cleanup-test placement follows the validator's home module.
+- McpStdioServer catch ladder WIDENED uniformly: removed the narrow `InvalidTelemetryEventSchemaError` arm; added `catch (ShellContentContractException)` parent arm (subsumes the four typed schema errors — install-plan, workflow-state, native-agent-composition, telemetry-event) + final defensive `catch (Exception)`. `Throwable` was rejected via review F-101: java.lang.Error subtypes (OOM, NoClassDefFoundError, AssertionError) and future coroutine `CancellationException` must propagate to crash the process. reusable: this is now the canonical catch ladder for the MCP stdio loop.
+- Unified argument-shape error contract: `validateStrictArguments` failures (formerly JSON-RPC `-32602 INVALID_PARAMS`) now route through MCP `isError=true` (200-OK with error payload), matching the schema validator's surface. Both paths produce the same transport shape for any "request structurally invalid for the named tool" fault. Documented in `x-coherence-checks.argument-shape-failures-surface`; `-32602` is now reserved for transport-level protocol violations only. reusable
+- F-002 audit (committed as comment near `TelemetryEventSchemaValidator.validate(...)` in `McpToolDispatcher.kt`): every in-tree native emitter supplies all required schema fields. The dispatcher has exactly ONE production caller (`McpStdioServer.callToolResult`) which threads JSON-RPC arguments straight through; handler-level defaults (`arguments.int(name, 0)`, `arguments.string(name) -> ""`, `arguments.boolean(name) -> false`) construct typed models AFTER schema validation already accepted the payload — they don't mask missing required keys from real emitters. Loud-fail at the dispatcher seam is safe without a WARN-and-pass phase.
+- `loadSchema()` wraps any non-typed cause (`JsonParseException`, `IOException`, networknt compile failure) in `InvalidTelemetryEventSchemaError(fieldPath="<root>", eventName=null, reason=..., cause=original)` so a corrupted classpath YAML surfaces as a typed error through the widened catch ladder rather than dying on the stdio loop. Detekt rule `InstanceOfCheckForException` forced splitting the `try { ... } catch (Throwable) { if (is InvalidTelemetryEventSchemaError) ...}` into two typed catch blocks (typed rethrow first, generic wrap second). reusable: any future schema validator should mirror this two-arm wrapping pattern.
+- RuntimeArchitectureTest enforces NO `java.nio.file.Files` usage in `runtime-mcp` adapters: the validator relies solely on the classpath resource bundled by `copyTelemetryEventSchema`; the on-disk schema-walk fallback was removed. KDoc that incidentally mentioned the banned FQN was rephrased because the architecture test scans source text including comments. reusable: rule applies to any future MCP-adapter-owned validator.
+- Reviewer-deferred Minor/Nit follow-ups (none blocking): F-005 (telemetryEnvelope strips reserved keys from envelope but not arguments — asymmetric stripping), F-006 (parity test short-circuits for passthrough additionalProperties:true), F-007 (per-field enum sets not compared; validates-all picks enum.first()), F-008 (no end-to-end dispatcher-seam negative test), F-009 (formatValidationReason iterates violations uncapped — exception message can balloon), F-010 (unknown-event_name assertion uses near-tautological "schema" signal), F-011 (open-event additionalProperties:true never exercised in a test), F-012 (assertIdentity doesn't check per-branch contract_version.const), F-013 (validator not warmed at process start), F-014 (validator placement vs outbound emit seams), F-015 (cleanup-test pattern split across two files), F-016 (OpenAPI-3 `discriminator` keyword is ignored by networknt — move to `x-discriminator` or document), F-017 (open events lack documentation hints), F-018 (InvalidTelemetryEventSchemaError message embeds free-form networknt reason; not version-stable), F-019 (loadSchema YAML→JSON-string round-trip), F-020 (Regex compiled per-segment on failure path), F-021 (cleanup test does not exercise real loadSchema classpath path), F-022 (x-coherence-checks named rules not contract-tested), F-102 (lazy SEVERE log claim of boot-time signal is inaccurate — fires on first validate). Reviewer triage record: rvw-20260519-162500-a2d4.
+Feature flag: N/A
+Acceptance criteria: 10/10 implemented
+
+## [2026-05-19] SKILL-48 runtime-contracts-2c native-agent-composition-schema
+Areas: orchestration/contracts, runtime-kotlin/runtime-core/nativeagent, runtime-kotlin/runtime-contracts/error, runtime-kotlin/runtime-core build, runtime-kotlin/runtime-core scaffold tests
+- FOURTH runtime contract under the same architecture as 2a/2b: `orchestration/contracts/native-agent-composition-schema.yaml` (Draft 2020-12) is the SSOT for the native-agent envelope. `NATIVE_AGENT_COMPOSITION_CONTRACT_VERSION` ("0.1") + `NativeAgentCompositionSchemaPaths` (`runtime-kotlin/runtime-core/src/main/kotlin/skillbill/nativeagent/NativeAgentCompositionSchemaPaths.kt`) pin the const; parity test pins schema const ↔ Kotlin constant ↔ EXPECTED_SCHEMA_ID. reusable
+- Validator placement DEVIATES from 2a/2b: `NativeAgentCompositionSchemaValidator` (`runtime-kotlin/runtime-core/src/main/kotlin/skillbill/nativeagent/NativeAgentCompositionSchemaValidator.kt`) lives in `runtime-core` (NOT `runtime-domain`) because its only callers are `parseNativeAgentBundle` / `parseNativeAgentSourceFile` already in runtime-core; matches the in-module `PlatformPackSchemaValidator` precedent. Gradle `copyNativeAgentCompositionSchema` therefore lives in `runtime-core/build.gradle.kts` next to `copyPlatformPackSchema` — Copy-task placement rule: live in the same module as the validator that loads the classpath resource. reusable
+- DUAL-SEAM rationale DIVERGES from 2b: 2b validated at builder + CLI emission (two emission seams); 2c validates at two SOURCE-format seams — bundle YAML (`parseNativeAgentBundle`) and single-md frontmatter (`parseNativeAgentSourceFile` → `parseNativeAgentSourceText`). Two on-disk wire formats, one schema, two parse paths.
+- Schema dual-shape via top-level `oneOf` + `$defs/agentEntry`: Branch A = bundle `{agents: [agentEntry, ...] (minItems 1), contract_version?}`, Branch B = single-md frontmatter (inlined agentEntry + optional contract_version). Dispatch is reliable: both branches use `additionalProperties: false`; bundle envelope can only match A, single-md can only match B, ambiguous documents fail "matches 0 of 2".
+- CRITICAL DESIGN DECISION (Option a): top-level `contract_version` is OPTIONAL on every envelope (not in `required`); the `const` only enforces value when the key is present. Existing fixtures across `skills/**/native-agents/` and `platform-packs/**/native-agents/` carry NO `contract_version` today and validate clean. `parseSimpleFrontmatter` whitelist in `NativeAgentSource.kt` was expanded to accept `contract_version` so future writes including it don't get rejected by the parser. Schema describes what is emitted today. reusable: "optional-pin, const-when-present" pattern is the right fit for migrating an existing on-disk format toward a runtime contract without forcing a fleet rewrite.
+- VALIDATOR-RUNS-AFTER-MANUAL-CHECKS deviation: schema validation fires AFTER existing `require(...)` checks in both seams (defense-in-depth backstop), NOT before. Rationale: preserves 12 existing parser tests that pin `IllegalArgumentException` messages naming the offending key. Today the typed `InvalidNativeAgentCompositionSchemaError` is observable in practice only on `contract_version` const drift (every other envelope violation trips the manual `require` first). Dedicated `NativeAgentCompositionSchemaViolationsTest` bypasses the manual checks and calls the validator directly so AC4/AC5 typed-error contracts are still proven. Open question: should AC4 expect the typed error on every envelope violation, or is "schema-layer = contract_version-only backstop" the intended semantics? Worth a one-line AGENTS.md policy.
+- SINGLE-MD seam asymmetry: bundle seam passes raw YAML text to the validator; single-md seam validates a hand-built `JsonNode` constructed from the parsed frontmatter map via `validateParsedNode`. Necessary because the simple line-by-line frontmatter parser tolerates descriptions containing colons that Jackson's general YAML parser would reject as ambiguous. Side effect: schema's `additionalProperties: false` on Branch B can never catch an unknown frontmatter key the schema doesn't already know about — the parser's manual whitelist is the only defense. Two parallel sources of truth for "allowed single-md keys" — keep them in lockstep. reusable: when a custom parser deliberately accepts looser input than a general YAML parser would, the schema layer cannot police what the parser never surfaces.
+- Error class `InvalidNativeAgentCompositionSchemaError` (`runtime-kotlin/runtime-contracts/src/main/kotlin/skillbill/error/ShellContentContractErrors.kt`) mirrors `InvalidInstallPlanSchemaError`'s shape (`sourceLabel`/`fieldPath` + `reason` + cause) — typed properties, not just message.
+- Gradle `copyNativeAgentCompositionSchema` reuses the F-101 String-capture + `inputs.file` + `doFirst { require(File(path).exists()) }` pattern from 2a/2b; configuration cache reused on re-run. Schema auto-listed in desktop "Contracts" tree via 2a's `Files.list(orchestration/contracts/*.yaml)` — no desktop code edit needed.
+- Classpath-shadow guard block added to `PlatformPackSchemaCleanupTest.kt` (NOT a new file) — that file is now the canonical home for per-schema shadow assertions across all four runtime contracts. reusable: extend, don't duplicate.
+- Schema enum strings quoted (`- "governed-content"`) per 2b's SnakeYAML YAML-1.1 boolean-coercion pitfall. Continues to apply to any new enum in `orchestration/contracts/*.yaml`.
+- Reviewer-deferred Minor/Nit follow-ups (none blocking): F-001 (single-md JsonNode bypass risk vs `additionalProperties: false`), F-002 (AC4 typed-error coverage = contract_version-only in practice — needs AGENTS.md policy), F-003 (Branch A/B inline property parity test), F-004 (per-violation tests for `name` regex / `description` minLength / `agents` minItems), F-005 (direct-validator pass in `NativeAgentCompositionValidatesExistingBundlesTest` to disambiguate parser vs schema failures), F-006 (single-md missing-name violation case), F-007 (extract shared `SchemaLoader<E>` helper to deduplicate across the three validators), F-008/F-009 (document Copy-task placement and validator-ordering policies once centrally), F-010 (strengthen `unknown_top_level_property` assertion), F-011 (require fixtures to quote `contract_version: "0.1"` to avoid cross-envelope Double-vs-string divergence).
+Feature flag: N/A
+Acceptance criteria: 8/8 implemented
+
+## [2026-05-19] SKILL-48 runtime-contracts-2b install-plan-schema
+Areas: orchestration/contracts, runtime-kotlin/runtime-domain/install, runtime-kotlin/runtime-contracts/error, runtime-kotlin/runtime-cli/install, runtime-kotlin/runtime-core/install, runtime-kotlin/runtime-domain build
+- THIRD runtime contract landed under the same architecture as 2a: `orchestration/contracts/install-plan-schema.yaml` (Draft 2020-12) is the SSOT for the install-plan wire payload. `INSTALL_PLAN_CONTRACT_VERSION` + `InstallPlanSchemaPaths` (`runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/install/model/InstallPlanSchemaPaths.kt`) pin the const; parity test pins schema const ↔ Kotlin constant. reusable
+- Validator placement mirrors 2a: `InstallPlanSchemaValidator` (`runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/install/model/InstallPlanSchemaValidator.kt`) lives in `runtime-domain` next to `InstallModels.kt`. Module-public `assertIdentity(yamlText)` enables cross-module shadow-guard tests; classpath-shadow guard rejects mismatched `$id` or `contract_version.const`. Bounded WARN log + SEVERE on schema-load failure preserved.
+- Shared wire-map helper `buildInstallPlanWireMap` (`runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/install/model/InstallPlanWireMap.kt`) is the single source of the install-plan wire shape. DELIBERATELY DIVERGES from 2a single-seam pattern: validates at BOTH `buildInstallPlan` (`runtime-kotlin/runtime-core/src/main/kotlin/skillbill/install/InstallPlanBuilder.kt`) AND CLI emission (`installPlanPayload` in `runtime-kotlin/runtime-cli/src/main/kotlin/skillbill/cli/InstallCliPayloads.kt`) per AC4 — decision recorded in `runtime-kotlin/agent/decisions.md`. Adds `contract_version` to the wire shape — observably the only key change. reusable
+- Schema YAML pitfall: SnakeYAML follows YAML 1.1 and coerces bare `off`/`on`/`yes`/`no` to booleans, so an enum authored as `- off` advertises `[..., false]` while the runtime emits the string `"off"` — silent contract drift that loud-fails only at validation. ALWAYS quote enum string values in `orchestration/contracts/*.yaml` (`- "off"`). reusable
+- Error class `InvalidInstallPlanSchemaError` (`runtime-kotlin/runtime-contracts/src/main/kotlin/skillbill/error/ShellContentContractErrors.kt`) carries `fieldPath` + `reason` as typed properties (not just message), so tests can assert the offending location without parsing strings.
+- Gradle `copyInstallPlanSchema` Copy task in `runtime-kotlin/runtime-domain/build.gradle.kts` reuses the configuration-cache-friendly `inputs.file + doFirst` pattern from 2a; both `processResources` and `processTestResources` now depend on it. Schema auto-listed in desktop "Contracts" tree via 2a's `Files.list(orchestration/contracts/*.yaml)` — no desktop code edit needed.
+Feature flag: N/A
+Acceptance criteria: 8/8 implemented
+
+## [2026-05-19] SKILL-48 runtime-contracts-2a workflow-state-and-auto-listing
+Areas: orchestration/contracts, runtime-kotlin/runtime-domain/workflow, runtime-kotlin/runtime-contracts/error, runtime-kotlin/runtime-application/workflow, runtime-kotlin/runtime-desktop/core/data, runtime-kotlin/runtime-domain build
+- Extended the platform-pack schema architecture to a SECOND runtime contract: `orchestration/contracts/workflow-state-schema.yaml` (Draft 2020-12) is now the SSOT for `WorkflowStateSnapshot`; `WORKFLOW_STATE_CONTRACT_VERSION` pins it; parity test pins schema const ↔ Kotlin constant ↔ `FeatureImplement/VerifyWorkflowDefinition.contractVersion` (three sources). reusable
+- Per-skill enum divergence handled via JSON Schema `oneOf` keyed on `workflow_name` const, not flat enum. FeatureImplement (12 steps / 6 statuses incl. `blocked`) and FeatureVerify (8 steps / 5 statuses) each get a `$defs` branch. Adding a third workflow family later requires editing three coupled sites (top enum + new $defs branch + new oneOf entry). reusable
+- Validator placement DEVIATES from the platform-pack mirror: `WorkflowStateSchemaValidator` lives in `runtime-domain/workflow` (not `runtime-core/scaffold`) because `WorkflowEngine` is its primary consumer and `runtime-core` already api-depends on `runtime-domain`. Tests still live in `runtime-core/src/test/kotlin/skillbill/scaffold/` via existing `testFixtures` capability. `assertWorkflowStateSchemaIdentity` is module-public (not internal) for cross-module shadow-guard test access.
+- F-101 follow-up adopted day one: `runtime-domain/build.gradle.kts` Copy task uses `inputs.file(schemaPath)` + `doFirst { require(file.exists()) {...} }` — NO configure-time `File.exists()` reads. Configuration cache reused on every run. reusable: this is now the canonical pattern for any future `orchestration/contracts/*.yaml` Copy task.
+- Desktop auto-listing: `RuntimeRepoBrowserService.loadContracts` switched from a hard-coded single leaf to `Files.list(orchestration/contracts/*.yaml)` sorted alphabetically, with label derivation by suffix-strip + dash-replace + title-case of first character. Wrapped in `runCatching` so an IO failure on the contracts dir degrades ONLY the Contracts group, not the whole repo tree. New YAMLs surface automatically with no code change. reusable
+- Observability: validator emits a bounded WARN log on validation failure (slug + first 1-2 dotted field paths + offending values + violation count) before throwing `InvalidWorkflowStateSchemaError`, plus SEVERE on schema-load failure naming the classpath resource. Loud-fail preserved; payload bodies never logged.
+- Backward-compat: read-seam loud-fail intentionally rejects pre-existing durable rows whose `workflow_status`/`current_step_id` no longer match the new per-skill enums; operators recover by deleting/migrating affected rows. AGENTS.md D2 B-half rule paragraph + `WorkflowRecordMapping.toSnapshot` KDoc document the recipe.
+- Pre-existing bug surfaced and fixed in `FeatureVerifyWorkflowRuntimeTest`: it was constructing `workflow_status="blocked"` for the verify family which has no such status. Rewritten to `workflow_status="running"` with `step.status="blocked"` (the actual scenario the test exercises — continueDecision reopening a blocked step). No production code path produces the invalid combination; the validator now prevents future regressions.
+- `WorkflowRecordMapping.toSnapshot` is intentionally non-validating; every consumer in `WorkflowService` (open/update/get/list/latest/resume/continue) funnels through `WorkflowEngine.{full,summary,resume}Payload` which validates BEFORE returning. KDoc documents the seam-coverage invariant.
+- Reviewer-deferred Minor/Nit follow-ups: F-001 (drop two internal const-val aliases mirroring PlatformPackSchemaValidator anti-pattern), F-002 (architecture test pinning seam-coverage invariant), F-004 (parity test pinning workflow_name enum ⊇ oneOf branch consts), F-204 (assertContains dotted path on more violation tests), F-302 narrow runCatching catch from Throwable to Exception, F-501 E2E unreadable-dir test for Contracts group degradation, F-502 narrow loadSchema catch from Throwable to Exception.
+Feature flag: N/A
+Acceptance criteria: 9/9 implemented
+
+## [2026-05-19] SKILL-48 skill47-cleanup
+Areas: runtime-kotlin/runtime-core/scaffold, runtime-kotlin/runtime-domain/scaffold, runtime-kotlin/runtime-desktop (core/data, feature/skillbill), orchestration/contracts, runtime-kotlin/runtime-core build
+- Cross-boundary validator signature tightened: `PlatformPackSchemaValidator.validate(parsedYaml: Map<String, Any?>, slug: String)` replaces the legacy `Any?` form; `ShellContentLoader.validateAgainstCanonicalSchema` now loud-fails (reusing `InvalidManifestSchemaError`) on non-String top-level YAML keys before reaching the validator. Pattern: push shape/type invariants into the SHAPE-check helper at the boundary, not into the next layer.
+- New classpath-shadow guard: `assertSchemaIdentity` (called from the lazy schema load) verifies the loaded YAML's `$id` matches `PlatformPackSchemaPaths.EXPECTED_SCHEMA_ID` AND its `contract_version.const` matches the Kotlin `SHELL_CONTRACT_VERSION`. Either mismatch throws `InvalidManifestSchemaError` naming both values. Downstream JARs shipping a stale classpath copy now loud-fail at first validator use. reusable: same `EXPECTED_*` + `$id`+`const` pattern transfers to any future schema bundled via classpath.
+- Build-time guard: `runtime-core/build.gradle.kts` configure-time `require(canonicalPlatformPackSchema.exists())` makes a misconfigured build fail before any task runs (caveat: this is a configuration-cache-unfriendly `File.exists()` read; a follow-up should move it to `copyPlatformPackSchema.doFirst {}` or declare it as a tracked `inputs.file` — see F-101 / SKILL-48 follow-ups).
+- Schema-vs-Kotlin SSOT split clarified (C1): deleted the duplicated Kotlin `content.md`-suffix and pointer-name `.md`/`..`/`/` checks; kept `requireSafePointerSubpath` and `requireSafePointerTarget` because the schema does NOT express absolute-vs-relative or full path/`..`-segment semantics. Each kept guard now carries a comment explaining the duplication rationale. reusable: shape stays in YAML, semantic invariants stay in Kotlin with documented "why-kept" comments.
+- `declared_code_review_areas` gets `uniqueItems: true`; duplicate areas are now rejected at the schema layer rather than silently deduped downstream via `toSet()`.
+- Shared test helper consolidated via `java-test-fixtures` on runtime-core: `skillbill.testing.repoRootFromTest()` (in `src/testFixtures/kotlin/skillbill/testing/RepoRoot.kt`) replaces five local copies. runtime-desktop KMP leaf modules (core/data, feature/skillbill) consume it through the `dev.skillbill:runtime-core-test-fixtures` capability dependency — the `testFixtures(project(...))` shorthand is unavailable under the KMP DSL. reusable: capability-dep pattern for any future test-support shared across runtime-core ↔ KMP-leaf modules.
+- KDoc on `PlatformManifest.routedSkillName` and `DeclaredFiles.baseline` documents the intentional nullable contract: nullable means absent/not-applicable at the manifest layer; consumers MUST NOT re-narrow (no `!!`, no platform-side defaulting hiding absence).
+- Reviewer-deferred follow-ups (all Minor; not blocking): F-101 (move configure-time `require` to `doFirst`); F-103 (distinguish missing / non-text / empty in `assertSchemaIdentity` error message); F-205 (replace C8 hardcoded scan list with a glob walk over `runtime-kotlin/**/src/{test,jvmTest}/**/*.kt`).
+Feature flag: N/A
+Acceptance criteria: 8/8 implemented
+
+## [2026-05-19] SKILL-47 platform-pack-schema-source-of-truth
+Areas: runtime-kotlin/runtime-core/scaffold, runtime-kotlin/runtime-domain/scaffold, orchestration/contracts, runtime-kotlin/runtime-core build
+- `orchestration/contracts/platform-pack-schema.yaml` is the single canonical JSON Schema (Draft 2020-12, authored in YAML) describing `platform-packs/<slug>/platform.yaml`. New fields land in the schema first; the parser consumes it. reusable
+- `ShellContentLoader.buildPack` delegates shape validation to `CanonicalPlatformPackSchemaValidator` (lazy singleton, JsonSchema cached). SnakeYAML → Jackson `JsonNode` bridge; networknt 1.5.x runs the validation. Errors are reformatted to typed `InvalidManifestSchemaError` messages that NAME the offending field path (AC8). Contract-version `const` violation surfaces directly as `ContractVersionMismatchError` from the validator — loud-fail uniform across `loadPlatformManifest` and `loadPlatformPack`.
+- Five cross-field rules stay in Kotlin as named coherence checks, listed verbatim in the schema's `x-coherence-checks` prose block: `slug-parity`, `areas-require-baseline`, `areas-equal-declared` (bijection both directions), `area-metadata-keys-subset-declared`, `pointers-unique-name-per-dir`. Schema-only rules (type, enum, `content.md` suffix pattern, pointer name/target pattern) live exclusively in the YAML.
+- Code-review area enum is declared once under `$defs/codeReviewArea` and `$ref`'d from `declared_code_review_areas.items`, `declared_files.areas.propertyNames`, `area_metadata.propertyNames`. `PlatformPackSchemaContractVersionTest` asserts BOTH `contract_version` parity vs `SHELL_CONTRACT_VERSION` AND `$defs/codeReviewArea/enum` parity vs `APPROVED_CODE_REVIEW_AREAS` (both directions) — neither can drift.
+- `PlatformPackSchemaPaths { REPO_RELATIVE_PATH; CLASSPATH_RESOURCE }` is the single source of truth for the schema location. Build-time Gradle Copy task lands the canonical YAML into runtime-core resources under `skillbill/contracts/`; runtime loader tries classpath first, falls back to walking up from a path hint. Desktop, validator, and tests all reference the constant — no hardcoded path strings.
+- `DeclaredFiles.baseline` and `PlatformManifest.routedSkillName` widened to nullable; the in-progress branch relaxations (`baseline` / `declared_files` / `area_metadata` all optional) are preserved by schema + parser. `parseDeclaredFiles` returns `null` for fully-omitted blocks; `areas-require-baseline` coherence still gates non-empty `areas`. Every consumer was updated to null-check.
+- Tests: `PlatformPackSchemaValidatesExistingPacksTest` proves the schema validates both shipped packs as-is; `PlatformPackSchemaViolationsTest` has one discrete test per documented violation including the 5 named coherence rules and split pointer cases (name-without-.md, name-with-.., target-with-..); `PlatformPackSchemaContractVersionTest` pins both parity invariants.
+- Reusable: schema-first validation pattern (`x-coherence-checks` prose + Kotlin enforcement); single `PlatformPackSchemaPaths` object pattern when a shared path constant needs to cross module boundaries; build-time `Copy` task to expose a repo-root contract on the runtime classpath; networknt + Jackson + SnakeYAML stack for validating YAML via JSON Schema.
+Feature flag: N/A
+Acceptance criteria: 8/8 implemented
+
+## [2026-05-17] final-integration-docs-validation
+Areas: runtime-kotlin runtime-core install, runtime-cli install, runtime-desktop packaging/runtime lookup, docs
+- Final SKILL-45 integration kept the runtime install contract unchanged: CLI, install.sh, and desktop all route through typed install plan/apply instead of parsing shell output. reusable
+- Documentation now names package tasks, app-resource runtime bundle lookup, `~/.skill-bill/installed-skills` staging, telemetry anonymous/full/off, MCP intent, and Windows Developer Mode/elevated-shell guidance.
+- Coverage audit found existing focused tests for plan/apply, shell delegation argv, dynamic platform selection, telemetry/MCP, Windows symlink outcomes, desktop gateway state, runtime asset lookup, and package task wiring; no new test files were needed.
+Feature flag: N/A
+Acceptance criteria: 8/8 implemented
+
+## [2026-05-17] desktop-packaging-runtime-bundling
+Areas: runtime-kotlin/runtime-desktop packaging, runtime-desktop/core/data first-run gateway, runtime-cli installDist, runtime-mcp installDist
+- Desktop packages now stage a loose `skill-bill-runtime` app-resource bundle from authored `skills`, dynamic `platform-packs`, `orchestration`, and packaged runtime-cli/runtime-mcp installDist outputs. reusable
+- `JvmRuntimeAssetLocator` resolves runtime assets from dev checkouts, explicit `skillbill.runtime.assets.dir` / `SKILL_BILL_RUNTIME_ASSETS`, or Compose installed resources before the gateway builds shared install plans. reusable
+- First-run install planning now feeds resolved `skillsRoot`, `platformPacksRoot`, runtime distribution dirs, and packaged runtime-mcp bin into the existing typed install model while preserving `~/.skill-bill/installed-skills` staging and Windows symlink outcomes.
+- Packaging task wiring pins DMG/MSI/Deb/RPM targets and makes `prepareAppResources` plus package tasks depend on runtime bundle staging so native packages cannot race an empty app resource directory.
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented
+
+## [2026-05-17] install-migration-validation
+Areas: runtime-kotlin/runtime-cli install tests, runtime-kotlin/runtime-core install/architecture tests, runtime-domain install model
+- Added final validation coverage for install migration contracts: CLI plan/apply payload mapping, manual/detected agents, telemetry anonymous/full/off, MCP intent, Windows symlink messages, and staging-cache boundaries.
+- Future CLI install tests should keep driving `CliRuntime` JSON payloads instead of adding filesystem behavior to CLI adapters. reusable
+- Dynamic platform coverage now includes a newly discovered `python` pack in plan-builder and install.sh delegation tests so selected-platform behavior is not tied to the built-in pack set.
+- Staging assertions now pin rendered `SKILL.md` and support pointers under `~/.skill-bill/installed-skills`, preserving the generated-output boundary.
+Feature flag: N/A
+Acceptance criteria: 8/8 implemented
+
+## [2026-05-17] install-sh-runtime-delegation
+Areas: install.sh, runtime-kotlin/runtime-cli install commands, runtime-kotlin/runtime-core install apply/native-agent cleanup
+- `install.sh` now owns prompting/runtime distribution only and delegates typed install apply to the durable runtime CLI, including manual/detected agents, platform modes, telemetry, MCP, runtime dirs, and replacement cleanup. reusable
+- Runtime apply gained `replaceExistingSkillBillLinks` cleanup for current and legacy Skill Bill links so base-only or selected reinstall removes stale platform and renamed skill entries before relinking staged skills. reusable
+- Native-agent replacement cleanup now unlinks manifest-declared deselected platform agents from both current staged output and the legacy generated cache before linking selected provider artifacts.
+- Regression coverage moved shell argv execution and replacement cleanup into focused tests; future install.sh changes should assert the single `install apply` argv rather than reintroducing shell-owned install loops.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
+## [2026-05-17] runtime-cli-install-plan-apply
+Areas: runtime-kotlin/runtime-cli install commands, runtime-kotlin/runtime-core install plan/apply contract
+- Added stable `skill-bill install plan` and `skill-bill install apply` entrypoints that build `InstallPlanRequest`, call `InstallOperations.planInstall` / `applyInstall`, and keep CLI handlers as thin parse/render adapters. reusable
+- CLI inputs now cover detected/manual `copilot`, `claude`, `codex`, `opencode`, `junie`, platform pack none/selected/all, telemetry anonymous/full/off, MCP registration choices, and Windows symlink preflight state.
+- Plan/apply JSON/text payloads are rendered from structured runtime outcomes, including base-skill inclusion, dynamic platform discovery, MCP/telemetry intent, warnings/failures, and Windows symlink guidance.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
+## [2026-05-16] validation-contract-coverage
+Areas: runtime-kotlin/runtime-core install plan/apply tests, runtime-kotlin/runtime-cli install tests, runtime-domain install model
+- Added final regression coverage for shared install plan/apply contracts: plan inputs/outputs, dynamic platform discovery, base-skill inclusion, staging-cache/source immutability, telemetry levels, MCP intent/outcomes, and Windows symlink guidance.
+- New focused `InstallPlanContractCoverageTest` keeps plan assertions at the typed contract boundary without applying side effects; future install changes should extend this instead of parsing CLI text. reusable
+- Apply coverage now asserts telemetry/MCP no-side-effect behavior on preflight failure and selected all-agent behavior distinguishes Copilot skill links from Claude/Codex/OpenCode/Junie native-agent providers.
+- Validation loop fixed Spotless formatting after review/audit and confirmed the Kotlin Gradle gate passes; remaining known limitation is Minor follow-up to strengthen all-agent MCP config-file assertions.
+Feature flag: N/A
+Acceptance criteria: 9/9 implemented
+
+## [2026-05-16] telemetry-mcp-adapter-wiring
+Areas: runtime-kotlin/runtime-domain install model, runtime-kotlin/runtime-core install apply, runtime-kotlin/runtime-core launcher MCP registration, runtime-kotlin/runtime-application telemetry
+- Shared `InstallOperations.applyInstall` now executes typed telemetry intent through existing anonymous/full/off semantics and returns `InstallTelemetryApplyOutcome` instead of requiring shell-output parsing. reusable
+- Apply executes or skips typed MCP registration intent per supported `InstallAgent`, returns per-agent `McpRegistrationApplyOutcome`, and keeps MCP/telemetry setup failures as structured non-fatal warnings like `install.sh`. reusable
+- Apply side effects use the plan-owned home with an empty environment so ambient telemetry env vars cannot redirect the shared install contract; legacy launcher `glm` support remains outside `InstallAgent.supportedIds`.
+- Focused tests cover telemetry full/off/success/skip/failure, MCP success/skip/failure, and warning aggregation; CLI command migration and desktop setup UI remain deferred.
+Feature flag: N/A
+Acceptance criteria: 5/5 implemented
+
+## [2026-05-16] apply-staging-agent-links
+Areas: runtime-kotlin/runtime-domain install model, runtime-kotlin/runtime-core install, runtime-kotlin/runtime-core nativeagent, runtime-kotlin/runtime-cli install
+- Added typed `InstallOperations.applyInstall` and structured apply outcomes for staging, skill links, native-agent links, Windows symlink states, telemetry/MCP intent carry-through.
+- Apply validates planned staging hash/dir before linking and fails stale plans instead of installing changed source; native-agent apply renders only selected planned skill roots. reusable
+- Native-agent apply reuses render/link operations with request/override objects, materializes apply-time provider artifacts under `~/.skill-bill/installed-skills`, and preserves legacy generated-cache links only for replacement. reusable
+- Symlink replacement uses temp-link then non-overwriting move, preserves user-owned files/symlinks, and reports structured failures with Developer Mode/elevated shell guidance.
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented
+
+## [2026-05-16] shared-install-plan-contract-builder
+Areas: runtime-core install plan/build, runtime-domain install model, runtime-core contract/tests
+- SKILL-45 subtask 1 added a pure typed install-plan API (`InstallPlanRequest` -> `InstallPlan`) plus `InstallOperations.planInstall`; it models agent/platform/telemetry/MCP/runtime/target/staging/Windows-preflight intent without applying symlinks, rendering staging output, or registering MCP. reusable
+- Supported install agents are locked to `copilot`, `claude`, `codex`, `opencode`, `junie`; the plan builder asserts runtime primitive drift so legacy GLM cannot re-enter through install planning. reusable
+- Platform packs are discovered through governed `discoverPlatformPacks`, not raw manifest loading; bad contract versions, missing declared content, duplicate skill names/manifest slots, escaped declared content paths, and pointer targets escaping through symlinked parents must loud-fail during planning. reusable
+- Base skills must be represented and must fail if the skills root is missing, empty, or contains `bill-*` directories without `content.md`; future apply/staging work must preserve content-hash parity with the plan, especially for custom `skillsRoot` support pointers.
+- Test coverage lives in `InstallPlanBuilderTest` for selected/all/unknown packs, multi-area packs, manual and supplied/detected targets, no home/source mutation, staging root under `~/.skill-bill/installed-skills`, Windows decision/message, pointer target escapes, and base-skill loud-fails.
+Feature flag: N/A
+Acceptance criteria: 9/9 implemented
+
 ## [2026-05-11] state-repo-controls-tree-polish
 Areas: runtime-desktop core data/domain/testing, feature skillbill UI/state
 - Split repo browser state into typed path text, current session/tree, selected item, expanded groups, busy operation, and status-bar model so UI reads one coherent source of truth. reusable

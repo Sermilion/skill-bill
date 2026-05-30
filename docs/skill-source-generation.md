@@ -63,6 +63,14 @@ Platform packs use their own source layout:
 Platform pack pointer files declared by `platform.yaml` are generated output,
 not source files.
 
+Pack-owned add-ons are consumed through `platform.yaml` `addon_usage`, not
+hand-authored skill prose. The manifest maps a skill-relative directory to the
+add-on entry pointer and optional companion pointers the installed skill may
+open after stack routing. The renderer turns that contract into a generated
+`## Governed Add-Ons` wrapper section, and the loader rejects add-on usage that
+does not reference generated pointers targeting the same pack's `addons/`
+directory.
+
 ## `content.md`
 
 `content.md` is the only authored skill body for governed skills. It owns:
@@ -109,7 +117,7 @@ the loop.
 - the authored body rendered into `## Execution`
 - generated ceremony text in `## Ceremony`
 
-The renderer is implemented in `runtime-kotlin/runtime-core` around
+The renderer is implemented in `runtime-kotlin/runtime-infra-fs` around
 `AuthoringRender.kt` and supporting scaffold renderers.
 
 Important rules:
@@ -146,6 +154,11 @@ If a skill needs a new support file:
 3. Add validator and install-staging coverage.
 4. Do not add the pointer file under `skills/<skill>/`.
 
+If a platform-pack skill needs governed add-ons, declare their generated
+pointer filenames in the pack's `addon_usage` block. Keep add-on selection
+cues and topic indexes in the pack-owned add-on files, not duplicated in
+`content.md`.
+
 ## Install Staging
 
 Content-managed skills install through staging.
@@ -176,6 +189,14 @@ source skill directory.
 Re-run `./install.sh` after source, renderer, or support pointer changes so
 installed agents receive a fresh staging hash.
 
+The terminal installer and desktop first-run wizard both use this same
+runtime-owned install plan/apply path. Their choices may change which agents,
+platform packs, telemetry level, or MCP registrations are applied, but they do
+not change the governed source shape. Base skills remain part of every install;
+optional platform packs are selected from manifests; generated wrappers,
+support pointers, provider-native agent files, and packaged desktop outputs
+remain install/render artifacts instead of authored source.
+
 ## Native-Agent Generation
 
 Provider-neutral native-agent sources live under `native-agents/` in source
@@ -196,6 +217,12 @@ compose: governed-content
 is composed from the matching governed `content.md`, producing a self-contained
 provider artifact at install time. The generated artifact must not depend on
 repo-local `content.md` at runtime.
+
+Newly scaffolded and rendered provider-neutral sources include a top-level
+`contract_version: "0.1"` pin. The native-agent schema keeps that key optional
+for legacy parsing tolerance, but when it is present the value is pinned to
+`NATIVE_AGENT_COMPOSITION_CONTRACT_VERSION` by schema validation and parity
+tests.
 
 Install renders provider-specific artifacts into the Skill Bill native-agents
 cache, then links them into runtime-specific directories:
@@ -226,7 +253,9 @@ Supported scaffold kinds:
 - `horizontal`: creates `skills/<name>/content.md`
 - `platform-pack`: creates `platform-packs/<slug>/platform.yaml`, baseline
   code-review content, quality-check content, and optional specialist content
-  stubs
+  stubs. Payloads may also declare `baseline_layers`; the scaffolder validates
+  those references before mutation and writes them as
+  `code_review_composition.baseline_layers` in the new manifest.
 - `platform-override-piloted`: creates a governed platform override or
   pre-shell source depending on family
 - `code-review-area`: creates one approved specialist content file and
@@ -235,6 +264,14 @@ Supported scaffold kinds:
 
 Scaffolding writes source files only. It does not stage generated `SKILL.md`
 wrappers or support pointer files into source.
+
+Use `skill-bill new --payload <file> --dry-run` to inspect planned files and
+manifest edits before mutation. For platform-pack composition payloads, dry-run
+output includes a preview of the generated `platform.yaml` block. After
+creation, `skill-bill show <baseline-skill>` surfaces any manifest-declared
+review composition so users and agents can understand which baseline review
+layers run. Legacy platform-pack payloads that omit `baseline_layers` remain
+valid and generate no `code_review_composition` section.
 
 When `subagent_specialists` are requested for orchestrator scaffolds, the
 scaffolder writes `native-agents/agents.yaml` stubs. Render and install output

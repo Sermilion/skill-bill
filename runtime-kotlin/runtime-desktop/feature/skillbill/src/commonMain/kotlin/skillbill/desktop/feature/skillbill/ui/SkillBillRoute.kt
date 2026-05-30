@@ -20,14 +20,18 @@ import skillbill.desktop.core.common.browser.BrowserLaunchFailure
 import skillbill.desktop.core.common.browser.BrowserLaunchOutcome
 import skillbill.desktop.core.common.browser.BrowserLauncher
 import skillbill.desktop.core.domain.model.CommandPaletteResult
+import skillbill.desktop.core.domain.model.DesktopSkillRemovalTarget
 import skillbill.desktop.core.domain.model.DirtyEditorPromptReason
 import skillbill.desktop.core.domain.model.DockTab
+import skillbill.desktop.core.domain.model.FirstRunPlanResult
 import skillbill.desktop.core.domain.model.GitOperationResult
 import skillbill.desktop.core.domain.model.RepoLoadState
 import skillbill.desktop.core.domain.model.ScaffoldKind
 import skillbill.desktop.core.domain.model.SkillBillBusyOperation
+import skillbill.desktop.core.domain.model.SkillBillState
 import skillbill.desktop.core.ui.di.rememberScreenComponent
 import skillbill.desktop.feature.skillbill.di.SkillBillComponent
+import skillbill.desktop.feature.skillbill.state.PostPublishReinstallResponse
 import skillbill.desktop.feature.skillbill.state.PublishRunResult
 
 @Suppress("DEPRECATION")
@@ -44,6 +48,9 @@ fun SkillBillRoute(
   val coroutineScope = rememberCoroutineScope()
   val clipboardManager = LocalClipboardManager.current
   var state by remember(viewModel, selectedSourceId) { mutableStateOf(viewModel.state(selectedSourceId)) }
+  var repoFileChangePulse by remember(viewModel) { mutableStateOf(0) }
+  var pendingRepoFileChangeKind by remember(viewModel) { mutableStateOf<RepoFileChangeKind?>(null) }
+  var pendingRepoFileChangeRefresh by remember(viewModel) { mutableStateOf(false) }
   // F-X-512: transient "copied" feedback. We set this key when a copy callback fires, and a
   // LaunchedEffect keyed on this state clears it after a short delay so the UI flashes "copied".
   var recentlyCopiedKey by remember { mutableStateOf<String?>(null) }
@@ -64,18 +71,22 @@ fun SkillBillRoute(
   // Centralized git refresh fan-out. AC10: every editing/validation/scaffold/render seam funnels
   // through this single entry point so the Changes tab always reflects on-disk state. begin/run/finish
   // captures all VM fields on the caller dispatcher before hopping to Dispatchers.Default (F-102).
-  fun runGitRefresh() {
-    val request = viewModel.beginGitRefresh()
-    state = viewModel.state()
+  fun runGitRefresh(quiet: Boolean = false) {
+    val request = viewModel.beginGitRefresh(quiet = quiet)
+    if (!quiet) {
+      state = viewModel.state()
+    }
     coroutineScope.launch {
       val result = withContext(Dispatchers.Default) { viewModel.runGitRefresh(request) }
       state = viewModel.finishGitRefresh(result)
     }
   }
 
-  fun loadHistory() {
-    val request = viewModel.beginLoadHistory()
-    state = viewModel.state()
+  fun loadHistory(quiet: Boolean = false) {
+    val request = viewModel.beginLoadHistory(quiet = quiet)
+    if (!quiet) {
+      state = viewModel.state()
+    }
     coroutineScope.launch {
       val result = withContext(Dispatchers.Default) { viewModel.runLoadHistory(request) }
       state = viewModel.finishLoadHistory(result)
@@ -98,20 +109,11 @@ fun SkillBillRoute(
       val outcome = withContext(Dispatchers.Default) {
         openCompareUrlSafely(url = url, browserLauncher = browserLauncher)
       }
-      when (outcome) {
-        BrowserLaunchOutcome.Opened -> {
-          if (recentlyCopiedKey == url) {
-            recentlyCopiedKey = null
-          }
-          recentlyOpenedCompareUrlKey = url
+      if (outcome == BrowserLaunchOutcome.Opened) {
+        if (recentlyCopiedKey == url) {
+          recentlyCopiedKey = null
         }
-        is BrowserLaunchOutcome.Failed -> {
-          if (recentlyOpenedCompareUrlKey == url) {
-            recentlyOpenedCompareUrlKey = null
-          }
-          clipboardManager.setText(AnnotatedString(url))
-          recentlyCopiedKey = url
-        }
+        recentlyOpenedCompareUrlKey = url
       }
     }
   }
@@ -147,6 +149,33 @@ fun SkillBillRoute(
     }
   }
 
+  fun runPostPublishReinstall() {
+    val request = viewModel.beginPostPublishReinstall()
+    state = viewModel.state()
+    if (request != null) {
+      coroutineScope.launch {
+        var finished = false
+        try {
+          val response = withContext(Dispatchers.Default) { viewModel.runPostPublishReinstall(request) }
+          state = viewModel.finishPostPublishReinstall(response)
+          finished = true
+        } finally {
+          if (!finished) {
+            withContext(NonCancellable) {
+              state = viewModel.finishPostPublishReinstall(
+                PostPublishReinstallResponse(
+                  request = request,
+                  planResult = FirstRunPlanResult.Failed("Reinstall was cancelled."),
+                  applyResult = null,
+                ),
+              )
+            }
+          }
+        }
+      }
+    }
+  }
+
   fun runEditorSave() {
     val request = viewModel.beginSaveEditor()
     state = viewModel.state()
@@ -155,7 +184,7 @@ fun SkillBillRoute(
         val result = withContext(Dispatchers.Default) { viewModel.runSaveEditor(request) }
         state = viewModel.finishSaveEditor(result)
         if (result.result.success) {
-          runGitRefresh()
+          runGitRefresh(quiet = true)
         }
       }
     }
@@ -181,6 +210,20 @@ fun SkillBillRoute(
     }
   }
 
+  fun runRefreshLoad() {
+    val request = viewModel.repoLoadRequest(
+      repoPath = state.selectedRepoPath ?: state.repoPathText,
+      preserveSelection = true,
+    )
+    coroutineScope.launch {
+      val result = withContext(Dispatchers.Default) { viewModel.loadRepo(request) }
+      state = viewModel.finishRefresh(result)
+      // AC10: manual/filesystem refreshes refresh git status + history without resetting UI slices.
+      runGitRefresh(quiet = true)
+      loadHistory(quiet = true)
+    }
+  }
+
   fun runChooseRepoDirectory() {
     val repoPath = chooseRepoDirectory(state.repoPathText)
     if (repoPath.isNullOrBlank()) {
@@ -189,8 +232,8 @@ fun SkillBillRoute(
       state = viewModel.beginSelectRepoPath(repoPath)
       if (state.dirtyEditorPrompt == null && state.busyOperation == SkillBillBusyOperation.OPEN_REPO) {
         runRepoLoad(preserveSelection = false, repoPath = state.repoPathText) {
-          runGitRefresh()
-          loadHistory()
+          runGitRefresh(quiet = true)
+          loadHistory(quiet = true)
         }
       }
     }
@@ -205,24 +248,19 @@ fun SkillBillRoute(
         val selected = state.selectedTreeItemId
         if (selected != null && selected != previousSelection) {
           viewModel.setHistoryPathFilter(state.editor.authoredPath)
-          loadHistory()
+          loadHistory(quiet = true)
           state = viewModel.state()
           onSourceRouteSelected(selected)
         }
       }
       DirtyEditorPromptReason.REFRESH -> {
-        if (state.busyOperation == SkillBillBusyOperation.REFRESH) {
-          runRepoLoad(preserveSelection = true) {
-            runGitRefresh()
-            loadHistory()
-          }
-        }
+        runRefreshLoad()
       }
       DirtyEditorPromptReason.REPO_SWITCH -> {
         if (state.busyOperation == SkillBillBusyOperation.OPEN_REPO) {
           runRepoLoad(preserveSelection = false, repoPath = state.repoPathText) {
-            runGitRefresh()
-            loadHistory()
+            runGitRefresh(quiet = true)
+            loadHistory(quiet = true)
           }
         }
       }
@@ -247,10 +285,30 @@ fun SkillBillRoute(
   }
 
   fun canStartRepoScopedAction(): Boolean = state.busyOperation == null &&
+    state.firstRunSetup == null &&
+    state.postPublishReinstall == null &&
     !state.publishBusy &&
     !state.commitBusy &&
     !state.commitValidationRunning &&
     !state.pushBusy
+
+  fun runFirstRunDiscovery() {
+    val request = viewModel.beginFirstRunDiscovery() ?: return
+    state = viewModel.state()
+    coroutineScope.launch {
+      val response = withContext(Dispatchers.Default) { viewModel.runFirstRunDiscovery(request) }
+      state = viewModel.finishFirstRunDiscovery(response)
+    }
+  }
+
+  fun runFirstRunApply() {
+    val request = viewModel.beginFirstRunApply() ?: return
+    state = viewModel.state()
+    coroutineScope.launch {
+      val response = withContext(Dispatchers.Default) { viewModel.runFirstRunApply(request) }
+      state = viewModel.finishFirstRunApply(response)
+    }
+  }
 
   fun runTreeItemSelection(itemId: String) {
     if (canStartRepoScopedAction()) {
@@ -261,7 +319,7 @@ fun SkillBillRoute(
         // selected tree item. Falls back to no filter when the selection has no authored path.
         val authoredPath = state.editor.authoredPath
         viewModel.setHistoryPathFilter(authoredPath)
-        loadHistory()
+        loadHistory(quiet = true)
         state = viewModel.state()
         state.selectedTreeItemId?.let(onSourceRouteSelected)
       }
@@ -280,8 +338,14 @@ fun SkillBillRoute(
 
   LaunchedEffect(viewModel) {
     if (state.selectedRepoPath != null && state.repoStatus.state == RepoLoadState.LOADED) {
-      runGitRefresh()
-      loadHistory()
+      runGitRefresh(quiet = true)
+      loadHistory(quiet = true)
+    }
+  }
+
+  LaunchedEffect(viewModel, state.firstRunSetup) {
+    if (state.firstRunSetup != null) {
+      runFirstRunDiscovery()
     }
   }
 
@@ -289,18 +353,61 @@ fun SkillBillRoute(
     if (canStartRepoScopedAction()) {
       state = viewModel.beginRefresh()
       if (state.dirtyEditorPrompt == null) {
-        val request = viewModel.repoLoadRequest(
-          repoPath = state.selectedRepoPath ?: state.repoPathText,
-          preserveSelection = true,
-        )
-        coroutineScope.launch {
-          val result = withContext(Dispatchers.Default) { viewModel.loadRepo(request) }
-          state = viewModel.finishRepoLoad(result)
-          // AC10: manual refresh refreshes git status + history.
-          runGitRefresh()
-          loadHistory()
+        runRefreshLoad()
+      }
+    }
+  }
+
+  LaunchedEffect(state.selectedRepoPath, state.repoStatus.state) {
+    val repoPath = state.selectedRepoPath ?: return@LaunchedEffect
+    if (state.repoStatus.state != RepoLoadState.LOADED) {
+      return@LaunchedEffect
+    }
+    observeRepoFileChanges(repoPath).collect { changeKind ->
+      pendingRepoFileChangeKind = mergeRepoFileChangeKind(pendingRepoFileChangeKind, changeKind)
+      repoFileChangePulse += 1
+    }
+  }
+
+  LaunchedEffect(repoFileChangePulse) {
+    if (repoFileChangePulse > 0) {
+      delay(REPO_CHANGE_REFRESH_DEBOUNCE_MILLIS)
+      pendingRepoFileChangeRefresh = true
+    }
+  }
+
+  LaunchedEffect(
+    pendingRepoFileChangeRefresh,
+    pendingRepoFileChangeKind,
+    state.selectedRepoPath,
+    state.repoStatus.state,
+    state.busyOperation,
+    state.changesBusy,
+    state.editor.saveInProgress,
+    state.publishBusy,
+    state.commitBusy,
+    state.commitValidationRunning,
+    state.pushBusy,
+  ) {
+    if (!pendingRepoFileChangeRefresh) {
+      return@LaunchedEffect
+    }
+    when (pendingRepoFileChangeKind) {
+      RepoFileChangeKind.GitStatus -> {
+        if (canAutoRefreshGitStatus(state)) {
+          pendingRepoFileChangeKind = null
+          pendingRepoFileChangeRefresh = false
+          runGitRefresh(quiet = true)
         }
       }
+      RepoFileChangeKind.RepoSnapshot -> {
+        if (canAutoRefreshRepoSnapshot(state)) {
+          pendingRepoFileChangeKind = null
+          pendingRepoFileChangeRefresh = false
+          runRefresh()
+        }
+      }
+      null -> pendingRepoFileChangeRefresh = false
     }
   }
 
@@ -315,7 +422,7 @@ fun SkillBillRoute(
         val result = withContext(Dispatchers.Default) { viewModel.runValidate(request) }
         state = viewModel.finishValidate(result)
         // AC10: validation may touch on-disk state via scripts; refresh git status afterwards.
-        runGitRefresh()
+        runGitRefresh(quiet = true)
       }
     }
   }
@@ -327,7 +434,7 @@ fun SkillBillRoute(
       coroutineScope.launch {
         val result = withContext(Dispatchers.Default) { viewModel.runValidate(request) }
         state = viewModel.finishValidate(result)
-        runGitRefresh()
+        runGitRefresh(quiet = true)
       }
     }
   }
@@ -342,7 +449,7 @@ fun SkillBillRoute(
         val result = withContext(Dispatchers.Default) { viewModel.runRender(request) }
         state = viewModel.finishRender(result)
         // AC10: render generates SKILL.md and pointer artifacts; refresh git status afterwards.
-        runGitRefresh()
+        runGitRefresh(quiet = true)
       }
     }
   }
@@ -354,7 +461,7 @@ fun SkillBillRoute(
       coroutineScope.launch {
         val result = withContext(Dispatchers.Default) { viewModel.runRender(request) }
         state = viewModel.finishRender(result)
-        runGitRefresh()
+        runGitRefresh(quiet = true)
       }
     }
   }
@@ -385,6 +492,12 @@ fun SkillBillRoute(
         val response = withContext(Dispatchers.Default) { viewModel.runOpenScaffoldWizard(request) }
         state = viewModel.finishOpenScaffoldWizard(response)
       }
+    }
+  }
+
+  fun runInstallSetup() {
+    if (canStartRepoScopedAction()) {
+      state = viewModel.openFirstRunSetup()
     }
   }
 
@@ -435,8 +548,98 @@ fun SkillBillRoute(
           // runRepoLoad) calls BOTH runGitRefresh() AND loadHistory() as a fan-out. The scaffold-success
           // path was previously skipping loadHistory(), leaving the History tab reflecting pre-scaffold
           // state until the next refresh. Align with the standard fan-out.
-          runGitRefresh()
-          loadHistory()
+          runGitRefresh(quiet = true)
+          loadHistory(quiet = true)
+        }
+      }
+    }
+  }
+
+  // -------------------------------------------------------------------------------------------
+  // SKILL-46: tree-context-menu Delete dialog wiring.
+  // -------------------------------------------------------------------------------------------
+
+  fun runPreviewRemoval() {
+    val request = viewModel.beginPreviewRemoval() ?: return
+    state = viewModel.state()
+    coroutineScope.launch {
+      var finished = false
+      try {
+        val result = withContext(Dispatchers.Default) { viewModel.runPreviewRemoval(request) }
+        state = viewModel.finishPreviewRemoval(request, result)
+        finished = true
+      } finally {
+        // F-401-PLAT mirror: on cancellation/exception, finish with a Failed-cancelled result so
+        // the DELETE busy slot ALWAYS releases. Otherwise the dialog stays stuck on
+        // "Computing removal cascade..." forever.
+        if (!finished) {
+          withContext(NonCancellable) {
+            state = viewModel.finishPreviewRemoval(
+              request,
+              skillbill.desktop.core.domain.model.DesktopSkillRemovalResult.Failed(
+                exceptionName = "CancellationException",
+                exceptionMessage = "Preview was cancelled.",
+                rollbackComplete = true,
+              ),
+            )
+          }
+        }
+      }
+    }
+  }
+
+  fun runExecuteRemoval() {
+    val request = viewModel.beginExecuteRemoval() ?: return
+    state = viewModel.state()
+    coroutineScope.launch {
+      var finished = false
+      try {
+        val result = withContext(Dispatchers.Default) { viewModel.runExecuteRemoval(request) }
+        state = viewModel.finishExecuteRemoval(request, result)
+        finished = true
+        // F-407-plat mirror: gate the success fan-out on post-finish state, NOT a local result var.
+        val accepted = state.confirmDeletion?.executionResult as?
+          skillbill.desktop.core.domain.model.DesktopSkillRemovalResult.Success
+        if (accepted != null) {
+          // 1) Refresh the tree so the deleted node disappears (AC8a).
+          val refreshRequest = viewModel.beginRefreshAfterScaffold()
+          state = viewModel.state()
+          val refreshResult = withContext(Dispatchers.Default) { viewModel.loadRepo(refreshRequest) }
+          state = viewModel.finishRefreshAfterScaffold(refreshResult)
+          // 2) Dismiss the dialog.
+          state = viewModel.dismissConfirmDeletion()
+          // 3) Trigger validate_agent_configs into the dock console (AC8b).
+          //    F-711: surface the Console dock tab BEFORE running the script so the user sees the
+          //    output stream in real time. F-003-RELIABILITY-CANCEL: dispatch on IO so the
+          //    runInterruptible wait in the JVM `actual` honors coroutine cancellation.
+          state = viewModel.showValidateAgentConfigsConsole()
+          val repoRoot = state.selectedRepoPath
+          if (!repoRoot.isNullOrBlank()) {
+            val lines = withContext(Dispatchers.IO) { runValidateAgentConfigs(repoRoot) }
+            state = viewModel.appendValidateAgentConfigsLines(lines.outputLines)
+            state = viewModel.finishValidateAgentConfigs(lines.exitCode)
+          } else {
+            state = viewModel.finishValidateAgentConfigs(0)
+          }
+          // 4) Standard refresh fan-out.
+          runGitRefresh(quiet = true)
+          loadHistory(quiet = true)
+        }
+      } finally {
+        // F-401-PLAT: on cancellation/exception, finish with a Failed-cancelled result so the
+        // DELETE busy slot ALWAYS releases. The dialog will reflect "cancelled" rather than
+        // leaving "Deleting…" forever.
+        if (!finished) {
+          withContext(NonCancellable) {
+            state = viewModel.finishExecuteRemoval(
+              request,
+              skillbill.desktop.core.domain.model.DesktopSkillRemovalResult.Failed(
+                exceptionName = "CancellationException",
+                exceptionMessage = "Deletion was cancelled.",
+                rollbackComplete = true,
+              ),
+            )
+          }
         }
       }
     }
@@ -465,6 +668,7 @@ fun SkillBillRoute(
             runGitRefresh()
           }
         },
+        openInstallSetup = ::runInstallSetup,
         openScaffoldWizard = ::runOpenScaffoldWizard,
       ),
     )
@@ -493,8 +697,8 @@ fun SkillBillRoute(
         if (state.dirtyEditorPrompt == null) {
           runRepoLoad(preserveSelection = false, repoPath = state.repoPathText) {
             // AC10: after a successful repo switch we want a fresh status snapshot + history.
-            runGitRefresh()
-            loadHistory()
+            runGitRefresh(quiet = true)
+            loadHistory(quiet = true)
           }
         }
       }
@@ -512,6 +716,7 @@ fun SkillBillRoute(
     onValidateSelected = ::runValidateSelected,
     onRender = ::runRender,
     onRenderAll = ::runRenderAll,
+    onInstallSetup = ::runInstallSetup,
     onEditorDraftChanged = { draft ->
       state = viewModel.updateEditorDraft(draft)
     },
@@ -587,6 +792,18 @@ fun SkillBillRoute(
         }
       }
     },
+    onDiscardChangedFile = { path ->
+      if (canStartRepoScopedAction()) {
+        val request = viewModel.beginDiscardChangedFile(path)
+        if (request != null) {
+          state = viewModel.state()
+          coroutineScope.launch {
+            val result = withContext(Dispatchers.Default) { viewModel.runStage(request) }
+            state = viewModel.finishGitRefresh(result)
+          }
+        }
+      }
+    },
     onRefreshGit = {
       if (canStartRepoScopedAction()) {
         runGitRefresh()
@@ -641,20 +858,11 @@ fun SkillBillRoute(
         val outcome = withContext(Dispatchers.Default) {
           openCompareUrlSafely(url = url, browserLauncher = browserLauncher)
         }
-        when (outcome) {
-          BrowserLaunchOutcome.Opened -> {
-            if (recentlyCopiedKey == url) {
-              recentlyCopiedKey = null
-            }
-            recentlyOpenedCompareUrlKey = url
+        if (outcome == BrowserLaunchOutcome.Opened) {
+          if (recentlyCopiedKey == url) {
+            recentlyCopiedKey = null
           }
-          is BrowserLaunchOutcome.Failed -> {
-            if (recentlyOpenedCompareUrlKey == url) {
-              recentlyOpenedCompareUrlKey = null
-            }
-            clipboardManager.setText(AnnotatedString(url))
-            recentlyCopiedKey = url
-          }
+          recentlyOpenedCompareUrlKey = url
         }
       }
     },
@@ -670,7 +878,7 @@ fun SkillBillRoute(
     },
     onClearHistoryPathFilter = {
       viewModel.setHistoryPathFilter(null)
-      loadHistory()
+      loadHistory(quiet = true)
       state = viewModel.state()
     },
     onCommandPaletteOpen = {
@@ -695,6 +903,18 @@ fun SkillBillRoute(
       onFormChanged = { transform ->
         state = viewModel.updateScaffoldForm(transform)
       },
+      onAddBaselineLayer = {
+        state = viewModel.addScaffoldBaselineLayer()
+      },
+      onAddSuggestedBaselineLayer = {
+        state = viewModel.addSuggestedScaffoldBaselineLayer()
+      },
+      onEditBaselineLayer = { index, transform ->
+        state = viewModel.editScaffoldBaselineLayer(index, transform)
+      },
+      onRemoveBaselineLayer = { index ->
+        state = viewModel.removeScaffoldBaselineLayer(index)
+      },
       onDirtyOverrideChanged = { override ->
         state = viewModel.setScaffoldDirtyOverride(override)
       },
@@ -707,6 +927,62 @@ fun SkillBillRoute(
         state = viewModel.dismissScaffoldWizard()
       },
     ),
+    onShowDeleteContextMenu = onShowDeleteContextMenu@{ node ->
+      // SKILL-46: resolve a tree node to a DesktopSkillRemovalTarget. Built-ins (.bill-shared,
+      // kotlin, kmp) never show Delete in the dialog — the route enforces this by short-circuiting
+      // before opening the dialog. Platform-pack synthetic group nodes (id `platform:<slug>`)
+      // resolve target=platform-packs/<slug>/ directly from node id since no SelectionDetail exists.
+      val target = resolveDeletionTarget(node) ?: return@onShowDeleteContextMenu
+      if (target.isBuiltIn()) return@onShowDeleteContextMenu
+      state = viewModel.showConfirmDeletion(target)
+      // Kick off the preview triplet immediately so the user sees the dossier ASAP.
+      runPreviewRemoval()
+    },
+    confirmDeletionCallbacks = ConfirmDeletionCallbacks(
+      onAcknowledgedChanged = { acknowledged ->
+        state = viewModel.setRemovalAcknowledged(acknowledged)
+      },
+      onConfirmDelete = ::runExecuteRemoval,
+      onDismiss = {
+        state = viewModel.dismissConfirmDeletion()
+      },
+      onAcknowledgeFailure = {
+        state = viewModel.acknowledgeRemovalFailure()
+      },
+    ),
+    firstRunSetupCallbacks = FirstRunSetupCallbacks(
+      onAgentSelectionChanged = { agentId, selected ->
+        state = viewModel.selectFirstRunAgent(agentId, selected)
+      },
+      onPlatformSelectionChanged = { slug, selected ->
+        state = viewModel.selectFirstRunPlatform(slug, selected)
+      },
+      onTelemetryChanged = { level ->
+        state = viewModel.selectFirstRunTelemetry(level)
+      },
+      onBack = {
+        state = viewModel.retreatFirstRunStep()
+      },
+      onNext = {
+        state = viewModel.advanceFirstRunStep()
+      },
+      onApply = ::runFirstRunApply,
+      onRetry = {
+        state = viewModel.retryFirstRunSetup()
+      },
+      onFinish = {
+        state = viewModel.finishFirstRunSetup()
+      },
+      onDismiss = {
+        state = viewModel.dismissFirstRunSetup()
+      },
+    ),
+    postPublishReinstallCallbacks = PostPublishReinstallCallbacks(
+      onReinstall = ::runPostPublishReinstall,
+      onDismiss = {
+        state = viewModel.dismissPostPublishReinstall()
+      },
+    ),
     recentlyCopiedKey = recentlyCopiedKey,
     recentlyOpenedCompareUrlKey = recentlyOpenedCompareUrlKey,
   )
@@ -715,6 +991,27 @@ fun SkillBillRoute(
 // F-X-512: duration in milliseconds the "copied" affordance stays visible before the route clears
 // the key. Kept conservative so the affordance is visible but not distracting.
 private const val COPY_FEEDBACK_DURATION_MILLIS: Long = 1500L
+private const val REPO_CHANGE_REFRESH_DEBOUNCE_MILLIS: Long = 500L
+
+internal fun canAutoRefreshGitStatus(state: SkillBillState): Boolean = state.selectedRepoPath != null &&
+  state.repoStatus.state == RepoLoadState.LOADED &&
+  state.busyOperation == null &&
+  state.postPublishReinstall == null &&
+  !state.changesBusy &&
+  !state.publishBusy &&
+  !state.commitBusy &&
+  !state.commitValidationRunning &&
+  !state.pushBusy
+
+internal fun canAutoRefreshRepoSnapshot(state: SkillBillState): Boolean =
+  canAutoRefreshGitStatus(state) && !state.editor.saveInProgress
+
+internal fun mergeRepoFileChangeKind(current: RepoFileChangeKind?, next: RepoFileChangeKind): RepoFileChangeKind =
+  when {
+    current == RepoFileChangeKind.RepoSnapshot -> RepoFileChangeKind.RepoSnapshot
+    next == RepoFileChangeKind.RepoSnapshot -> RepoFileChangeKind.RepoSnapshot
+    else -> RepoFileChangeKind.GitStatus
+  }
 
 internal fun executeGeneratedArtifactSelection(
   artifactPath: String,
@@ -726,20 +1023,66 @@ internal fun executeGeneratedArtifactSelection(
   return true
 }
 
-internal fun handleCompareUrlActivation(
-  url: String,
-  browserLauncher: BrowserLauncher,
-  copyUrl: (String) -> Unit,
-): BrowserLaunchOutcome {
-  val outcome = openCompareUrlSafely(url = url, browserLauncher = browserLauncher)
-  if (outcome is BrowserLaunchOutcome.Failed) {
-    copyUrl(url)
-  }
-  return outcome
+internal fun handleCompareUrlActivation(url: String, browserLauncher: BrowserLauncher): BrowserLaunchOutcome {
+  return openCompareUrlSafely(url = url, browserLauncher = browserLauncher)
 }
 
 internal fun openCompareUrlSafely(url: String, browserLauncher: BrowserLauncher): BrowserLaunchOutcome = try {
   browserLauncher.openCompareUrl(url)
 } catch (exception: Exception) {
   BrowserLaunchOutcome.Failed(BrowserLaunchFailure.LaunchFailed(exception.message))
+}
+
+/**
+ * SKILL-46: maps a SkillBillTreeItem to the corresponding DesktopSkillRemovalTarget.
+ *
+ * - SKILL → HorizontalSkill OR a platform-override (when the metadata carries a platform); both
+ *   route through HorizontalSkill because the cascading logic in the domain service walks the
+ *   filesystem either way.
+ * - PLATFORM_PACK → synthetic group node whose id encodes the platform slug.
+ * - ADD_ON → addon path stored as the tree row's `authoredPath`.
+ * Built-ins (`.bill-shared`, `kotlin`, `kmp`) are filtered out at the caller via [isBuiltIn].
+ */
+internal fun resolveDeletionTarget(
+  node: skillbill.desktop.core.domain.model.SkillBillTreeItem,
+): skillbill.desktop.core.domain.model.DesktopSkillRemovalTarget? {
+  val kind = node.kind
+  return when (kind) {
+    skillbill.desktop.core.domain.model.TreeItemKind.SKILL -> {
+      val skillName = node.metadata?.skillName ?: return null
+      skillbill.desktop.core.domain.model.DesktopSkillRemovalTarget.HorizontalSkill(skillName = skillName)
+    }
+    skillbill.desktop.core.domain.model.TreeItemKind.PLATFORM_PACK -> {
+      // The platform pack tree id is `repo:<token>|platform:<slug>`. Extract the slug.
+      val rawId = node.id.substringAfterLast('|', missingDelimiterValue = "")
+      val slug = if (rawId.startsWith("platform:")) rawId.removePrefix("platform:") else node.label
+      if (slug.isBlank()) {
+        null
+      } else {
+        skillbill.desktop.core.domain.model.DesktopSkillRemovalTarget.PlatformPack(platform = slug)
+      }
+    }
+    skillbill.desktop.core.domain.model.TreeItemKind.ADD_ON -> {
+      val path = node.authoredPath ?: return null
+      skillbill.desktop.core.domain.model.DesktopSkillRemovalTarget.AddOn(relativePath = path)
+    }
+    else -> null
+  }
+}
+
+/**
+ * F-606: shared with the right-click filter via [DesktopSkillRemovalTarget.isBuiltInName]; the
+ * domain layer mirrors the same set under
+ * `skillbill.domain.skillremove.model.SkillRemovalTarget.BUILT_IN_NAMES` so all three enforcement
+ * surfaces (modifier, route, domain refusal policy) always agree.
+ */
+internal fun DesktopSkillRemovalTarget.isBuiltIn(): Boolean = when (this) {
+  // SKILL-49: horizontal skills protect `.bill-shared`, `kotlin` / `kmp` pre-shells, and every
+  // `bill-*` product skill. Platform packs only protect `.bill-shared` — `kotlin` / `kmp` are
+  // user-removable because the platform-pack tree is the user-extension surface.
+  is DesktopSkillRemovalTarget.HorizontalSkill ->
+    DesktopSkillRemovalTarget.isProtectedHorizontalName(skillName)
+  is DesktopSkillRemovalTarget.PlatformPack ->
+    DesktopSkillRemovalTarget.isProtectedPlatformName(platform)
+  is DesktopSkillRemovalTarget.AddOn -> false
 }

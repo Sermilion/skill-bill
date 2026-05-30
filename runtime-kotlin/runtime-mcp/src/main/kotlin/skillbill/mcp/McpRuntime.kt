@@ -11,28 +11,33 @@ import skillbill.application.model.QualityCheckFinishedRequest
 import skillbill.application.model.QualityCheckStartedRequest
 import skillbill.application.model.WorkflowFamilyKind
 import skillbill.application.model.WorkflowUpdateRequest
+import skillbill.application.toReviewFinishedTelemetryPayload
 import skillbill.contracts.mcp.McpLearningsSkippedContract
 import skillbill.contracts.mcp.McpOrchestratedPayloadContract
 import skillbill.contracts.mcp.McpReviewImportSkippedContract
 import skillbill.contracts.mcp.McpTriageSkippedContract
 import skillbill.di.RuntimeComponent
 import skillbill.di.create
-import skillbill.infrastructure.http.JdkHttpRequester
 import skillbill.model.RuntimeContext
 import skillbill.ports.telemetry.HttpRequester
+import skillbill.ports.telemetry.UnconfiguredHttpRequester
+import skillbill.ports.workflow.NoopWorkflowGitOperations
+import skillbill.ports.workflow.WorkflowGitOperations
 import skillbill.telemetry.model.RemoteStatsRequest
 import java.nio.file.Path
 
 data class McpRuntimeContext(
-  val requester: HttpRequester = JdkHttpRequester,
+  val requester: HttpRequester = UnconfiguredHttpRequester,
   val environment: Map<String, String> = System.getenv(),
   val userHome: Path = Path.of(System.getProperty("user.home")),
+  val workflowGitOperations: WorkflowGitOperations = NoopWorkflowGitOperations,
 ) {
   fun toRuntimeContext(stdinText: String? = null): RuntimeContext = RuntimeContext(
     stdinText = stdinText,
     environment = environment,
     userHome = userHome,
     requester = requester,
+    workflowGitOperations = workflowGitOperations,
   )
 }
 
@@ -47,20 +52,22 @@ object McpRuntime {
       val preview = services.reviewService.previewImport("-")
       return McpReviewImportSkippedContract(
         reason = "telemetry is disabled",
-        reviewRunId = preview["review_run_id"] as? String,
-        findingCount = preview["finding_count"],
+        reviewRunId = preview.reviewRunId,
+        findingCount = preview.findingCount,
       ).toPayload()
     }
-    val payload =
+    val importResult =
       services.reviewService
         .importReview("-", dbOverride = null, finishZeroFindingTelemetry = !orchestrated)
-        .toMutableMap()
+    val payload = importResult.toMcpMap().toMutableMap()
     val result = if (orchestrated) {
-      val reviewRunId = payload["review_run_id"] as String
+      val reviewRunId = importResult.preview.reviewRunId
       services.reviewService.markOrchestrated(reviewRunId, dbOverride = null)
       val telemetryPayload =
-        if (payload["finding_count"] == 0) {
+        if (importResult.preview.findingCount == 0) {
           services.reviewService.reviewFinishedTelemetryPayload(reviewRunId, dbOverride = null)
+            ?.toReviewFinishedTelemetryPayload()
+            ?.toPayload()
         } else {
           null
         }
@@ -95,11 +102,11 @@ object McpRuntime {
       )
     val payload = if (orchestrated) {
       McpOrchestratedPayloadContract(
-        basePayload = result.payload,
-        telemetryPayload = result.telemetryPayload,
+        basePayload = result.toMcpMap(),
+        telemetryPayload = result.telemetry?.toReviewFinishedTelemetryPayload()?.toPayload(),
       ).toPayload()
     } else {
-      result.payload
+      result.toMcpMap()
     }
     services.telemetryService.autoSync()
     return payload
@@ -119,13 +126,13 @@ object McpRuntime {
   }
 
   fun reviewStats(reviewRunId: String? = null, context: McpRuntimeContext = McpRuntimeContext()): Map<String, Any?> =
-    services(context).reviewService.reviewStats(reviewRunId, dbOverride = null)
+    services(context).reviewService.reviewStats(reviewRunId, dbOverride = null).toMcpMap()
 
   fun featureImplementStats(context: McpRuntimeContext = McpRuntimeContext()): Map<String, Any?> =
-    services(context).reviewService.featureImplementStats(dbOverride = null)
+    services(context).reviewService.featureImplementStats(dbOverride = null).toMcpMap()
 
   fun featureVerifyStats(context: McpRuntimeContext = McpRuntimeContext()): Map<String, Any?> =
-    services(context).reviewService.featureVerifyStats(dbOverride = null)
+    services(context).reviewService.featureVerifyStats(dbOverride = null).toMcpMap()
 
   fun featureImplementStarted(
     request: FeatureImplementStartedRequest,
@@ -175,16 +182,16 @@ object McpRuntime {
   fun telemetryRemoteStats(
     request: RemoteStatsRequest,
     context: McpRuntimeContext = McpRuntimeContext(),
-  ): Map<String, Any?> = services(context).telemetryService.remoteStats(request)
+  ): Map<String, Any?> = services(context).telemetryService.remoteStats(request).toMcpMap()
 
   fun telemetryProxyCapabilities(context: McpRuntimeContext = McpRuntimeContext()): Map<String, Any?> =
-    services(context).telemetryService.capabilities()
+    services(context).telemetryService.capabilities().toMcpMap()
 
   fun version(context: McpRuntimeContext = McpRuntimeContext()): Map<String, Any?> =
-    services(context).systemService.version()
+    services(context).systemService.version().toPayload()
 
   fun doctor(context: McpRuntimeContext = McpRuntimeContext()): Map<String, Any?> =
-    services(context).systemService.doctor(dbOverride = null)
+    services(context).systemService.doctor(dbOverride = null).toPayload()
 
   fun newSkillScaffold(
     payload: Map<String, Any?>,
@@ -210,7 +217,7 @@ object McpWorkflowRuntime {
     sessionId = sessionId,
     currentStepId = currentStepId,
     dbOverride = null,
-  )
+  ).toMcpMap()
 
   fun update(
     kind: WorkflowFamilyKind,
@@ -220,37 +227,43 @@ object McpWorkflowRuntime {
     kind,
     request,
     dbOverride = null,
-  )
+  ).toMcpMap()
 
   fun get(
     kind: WorkflowFamilyKind,
     workflowId: String,
     context: McpRuntimeContext = McpRuntimeContext(),
-  ): Map<String, Any?> = services(context).workflowService.get(kind, workflowId, dbOverride = null)
+  ): Map<String, Any?> = services(context).workflowService.get(kind, workflowId, dbOverride = null).toMcpMap()
 
   fun list(
     kind: WorkflowFamilyKind,
     limit: Int = 20,
     context: McpRuntimeContext = McpRuntimeContext(),
-  ): Map<String, Any?> = services(context).workflowService.list(kind, limit, dbOverride = null)
+  ): Map<String, Any?> = services(context).workflowService.list(kind, limit, dbOverride = null).toMcpMap()
 
   fun latest(kind: WorkflowFamilyKind, context: McpRuntimeContext = McpRuntimeContext()): Map<String, Any?> =
-    services(context).workflowService.latest(kind, dbOverride = null)
+    services(context).workflowService.latest(kind, dbOverride = null).toMcpMap()
 
   fun resume(
     kind: WorkflowFamilyKind,
     workflowId: String,
     context: McpRuntimeContext = McpRuntimeContext(),
-  ): Map<String, Any?> = services(context).workflowService.resume(kind, workflowId, dbOverride = null)
+  ): Map<String, Any?> = services(context).workflowService.resume(kind, workflowId, dbOverride = null).toMcpMap()
 
   fun continueWorkflow(
     kind: WorkflowFamilyKind,
     workflowId: String,
     context: McpRuntimeContext = McpRuntimeContext(),
-  ): Map<String, Any?> = services(context).workflowService.continueWorkflow(kind, workflowId, dbOverride = null)
+    subtaskId: Int? = null,
+  ): Map<String, Any?> = services(context).workflowService.continueWorkflow(
+    kind,
+    workflowId,
+    subtaskId = subtaskId,
+    dbOverride = null,
+  ).toMcpMap()
 }
 
-private fun services(context: McpRuntimeContext, stdinText: String? = null): McpRuntimeServices {
+internal fun services(context: McpRuntimeContext, stdinText: String? = null): McpRuntimeServices {
   val runtimeComponent = RuntimeComponent::class.create(context.toRuntimeContext(stdinText))
   return McpComponent::class.create(runtimeComponent).services
 }

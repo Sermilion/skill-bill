@@ -1,5 +1,114 @@
 # SkillBill desktop feature — history
 
+## [2026-05-23] SKILL-51 auto-reinstall-after-publish
+Areas: runtime-desktop/feature/skillbill, runtime-desktop/core/domain, runtime-desktop/core/data, runtime-desktop/core/datastore
+- Successful desktop publish/push now opens a post-publish reinstall prompt when completed setup preferences include reusable agent selections; declining leaves the publish result intact.
+- Reinstall reuses the latest saved setup request, runs the existing typed first-run plan/apply gateway, and reports success/warning/failure in dialog state without reopening the wizard.
+- Reusable: setup preferences now preserve MCP registration choice end-to-end, so future install replay paths can use `DesktopFirstRunPreferences` as the source of truth.
+- Tests cover prompt gating, saved preference replay, gateway MCP mapping, success persistence, and failure retaining the publish link.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
+## [2026-05-23] SKILL-48 desktop repo-browser path normalization
+Areas: runtime-desktop/feature/skillbill, runtime-desktop/core/data
+- RuntimeRepoBrowserService now derives displayed/tree paths against the selected repo root first, then falls back to real-path containment, so discovery results returned via resolved paths still render as repo-relative IDs and authored paths. reusable
+- Repo open intentionally accepts a symlinked checkout directory, while source/editing rules remain unchanged: native-agent sources and generated artifacts stay read-only, and governed content/add-ons remain the editable surfaces.
+Feature flag: N/A
+Acceptance criteria: 4/4 implemented
+
+## [2026-05-22] SKILL-50 desktop-wizard-baseline-layer-authoring
+Areas: runtime-desktop/feature/skillbill, runtime-desktop/core/domain, runtime-desktop/core/data, runtime-core/scaffold, runtime-domain/scaffold
+- Platform-pack scaffold wizard can author baseline review layers through catalog-backed controls, add/edit/remove state, default `same-review-scope`, default `required=true`, and form validation before Plan/Run.
+- Runtime-core owns the baseline review catalog projection: eligible baseline packs, declared review skills, supported modes/scopes, composition edges, and Kotlin baseline suggestions flow through `RuntimeScaffoldGateway`; desktop does not duplicate manifest semantics or write `platform.yaml`.
+- Dry-run plans now carry `manifest_edit_previews`; wizard UI keeps YAML collapsed behind a detail control while showing governed manifest-edit summaries first.
+- Reusable: validation errors live on `ScaffoldWizardState.validationErrors` instead of `ScaffoldRunResult.Failed`, preserving the runtime-failure/rollback contract for actual scaffold calls only.
+- Reusable tests cover real manifest composition-edge projection, gateway catalog mapping, payload parity, validation failures/cycles, Kotlin suggestion eligibility, and Compose callback wiring for baseline controls.
+Feature flag: N/A
+Acceptance criteria: 12/12 implemented
+
+## [2026-05-21] hide-runtime-contracts-from-desktop-tree
+Areas: runtime-desktop/feature/skillbill, runtime-desktop/core/domain, runtime-desktop/core/data
+- Runtime contract YAMLs under `orchestration/contracts/` are internal implementation details and are no longer surfaced as desktop tree rows; `TreeItemKind.CONTRACT`, contract rendering, and the single-target contract render no-op were removed.
+- `RuntimeRepoBrowserContractsGroupTest` now flattens the full tree and asserts no descendant label, authored path, or metadata kind exposes contract rows, including newly added contract YAML files. reusable
+- The contract-only YAML annotated renderer was deleted with its orphaned tests; read-only editor rendering returns to the shared `CodeLine`/`SyntaxText` path for real user-facing rows.
+- The command search hint no longer advertises `contract id`; keep search placeholder text aligned with actual palette/tree destinations.
+Feature flag: N/A
+Acceptance criteria: 4/4 review findings fixed
+
+## [2026-05-20] SKILL-49 material3-theme-adoption-frame-validation
+Areas: runtime-desktop/feature/skillbill, runtime-desktop/core/designsystem, runtime-desktop app boundary
+- `SkillBillFrame` now consumes `SkillBillTheme.frameTokens`, `textFieldTokens`, `semanticTones`, `syntaxTokens`, and `diffTokens` instead of local `Workspace*`/`Tone` palettes or raw frame color imports.
+- Reusable: `SkillBillFrameTokens` and `SkillBillStatusToneTokens` centralize frame backgrounds, foregrounds, status tones, primary controls, and transparent seams for future desktop frame surfaces.
+- Reusable tests: `SkillBillFrameTokenWiringTest` blocks raw frame color imports in the frame; `SkillBillThemeTokensTest` checks frame token light/dark distinction and readable contrast on background/panel/raised containers.
+- Review catch: dark `frame.subtle` must meet text contrast on raised/panel surfaces, not only on the root background.
+- Known limitation: full repo `./gradlew check` remains blocked by untouched `runtime-cli` RemoveCliCommandTest spotless/detekt issues; scoped desktop/Kotlin validation passes.
+Feature flag: N/A
+Acceptance criteria: 11/11 implemented
+
+## [2026-05-20] SKILL-49 material3-theme-adoption-dialogs-small-surfaces
+Areas: runtime-desktop/feature/skillbill, runtime-desktop/core/designsystem
+- Dialog/setup surfaces now consume `SkillBillTheme.semanticTones` and `SkillBillTheme.colors` directly instead of per-file local color helper palettes.
+- `ScaffoldWizardDialog` BasicTextField wrapper maps text, disabled text/container/border, focused border, regular border, and cursor through `SkillBillTheme.textFieldTokens`. reusable
+- Confirm deletion success/error, first-run setup status, and scaffold warning/success/error banners use semantic tone containers/content/borders while preserving existing state/callback behavior.
+- Follow-up note: a Minor review item remains for replacing `onSurfaceVariant.copy(alpha = 0.55f)` on the disabled first-run close glyph if a general disabled-content token is added later.
+- Known limitation: full repo `./gradlew check` remains blocked by untouched `runtime-cli` RemoveCliCommandTest spotless/detekt issues; scoped desktop/KMP validation passes.
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented
+
+## [2026-05-20] SKILL-49 material3-theme-adoption-helpers-guardrails
+Areas: runtime-desktop/feature/skillbill, runtime-desktop/core/designsystem
+- Feature UI no longer authors raw Compose colors; workspace constants now reference core/designsystem tokens, with `SkillBillTransparent`, `SkillBillColor`, and `SkillBillOnYellow` covering transparent/type/primary-yellow foreground seams. reusable
+- YAML highlighting keeps the SKILL-47 regex tokenizer unchanged but consumes `SkillBillTheme.syntaxTokens.yaml`; tests use design-system-owned fixtures instead of feature-local `Color` palettes.
+- Unified diff rendering keeps prefix classification in feature UI as `DiffLineRole` and maps roles to `SkillBillTheme.diffTokens` at render time, preserving the feature/design-system boundary. reusable
+- `DesktopColorTokenBoundaryTest` scans runtime-desktop Kotlin source sets under `/src/` outside `core/designsystem` (including `jvmMain`) and fails on raw `Color(0x...)`, `Color.Black/White/Transparent`, or direct Compose `Color` imports.
+- Known limitation: full repo `./gradlew check` remains blocked by untouched `runtime-cli` failures; scoped desktop/KMP validation passes.
+Feature flag: N/A
+Acceptance criteria: 4/4 implemented
+
+## [2026-05-18] SKILL-46 tree-context-menu-delete
+Areas: runtime-desktop/feature/skillbill, runtime-desktop/core/domain, runtime-desktop/core/data, runtime-desktop/core/testing, runtime-domain, runtime-core, runtime-cli
+- Right-click on left-panel tree rows of kind SKILL / PLATFORM_PACK / ADD_ON opens a Material3 `DropdownMenu` with a single `Delete…` item that triggers a checkbox-gated confirmation dialog. Two-step gesture is intentional (right-click → menu → dialog); collapsing it to one click changes the destructive-UX contract.
+- Right-click is wired via a `Modifier.pointerInput` extension that consumes both Press and Release of `PointerButton.Secondary` (drain Release to keep `combinedClickable` from firing selection); state for the dropdown is hoisted per-row via `remember(node.id) { mutableStateOf(false) }`. Modifier ALSO filters `node.editable` and `DesktopSkillRemovalTarget.isBuiltInName(identifier)` so built-ins (`.bill-shared` / `kotlin` / `kmp`) never reach the dialog. Built-in name set is the single source of truth in `runtime-domain` consumed by modifier, route, and CLI refusal alike.
+- Removal uses a new sibling gateway: `RuntimeSkillRemoveGateway` interface in `core/domain/service/` and `JvmRuntimeSkillRemoveGateway` impl in `core/data` — NOT bolted onto `RuntimeRepoBrowserService` (continues SKILL-44 subtask-08 god-class rule). Single `SkillRemoveRequest` payload reused for both `preview` and `execute`. Catch posture: rethrow `CancellationException` first, catch `SkillBillRuntimeException` mapping `rollbackComplete` from typed subclass, catch generic `Exception` forcing `rollbackComplete=false`, let `Error` propagate; `@Suppress("TooGenericExceptionCaught")` scoped to the single function. Gateway constructor uses an `internal var serviceFactory` seam (NOT a `() -> SkillRemove` constructor lambda) to satisfy the KSP/ABI rule.
+- ViewModel triplets (`beginPreviewRemoval` / suspend `runPreviewRemoval` / `finishPreviewRemoval` and matching execute) capture VM state into an immutable request on Main BEFORE the `Dispatchers.Default` hop. Success fan-out gates on POST-finish `state.confirmDeletion?.executionResult is Success`, never a local result var (handles mid-flight dismiss). `busyOperation = DELETE` is released in `dismissConfirmDeletion` AND in stale-token branches of `finishRemoval*` (F-401 invariant). `Failed(rollbackComplete=false)` sets `partialMutationLocked=true` on the dialog AND populates a VM-scoped `partialMutationPostMortem` slot that survives dismiss/repo-switch — only `acknowledgeRemovalFailure` clears either.
+- Route fan-out launches preview/execute via `coroutineScope.launch { try { withContext(Dispatchers.Default) { … } } finally { withContext(NonCancellable) { finishRemoval*(cancelled = true) } } }` so cancellation always releases the busy slot (F-401). On Success the route runs `beginRefreshAfterScaffold → loadRepo → finishRefreshAfterScaffold`, switches `activeDockTab = DockTab.Console`, fires the validate-agent-configs subprocess via `runInterruptible(Dispatchers.IO)`, then `runGitRefresh(quiet=true)` + `loadHistory(quiet=true)`. Skips reselect (deleted node is gone).
+- `ValidateAgentConfigsRunner.jvm.kt` JVM-side subprocess hardening (mirrors SKILL-44 subtask-05): `redirectErrorStream(true)`, daemon stdout drain into 8 MiB cap, UTF-8, prefix-based scrub of every `GIT_CONFIG*` and `GIT_TRACE*` env var plus `GIT_DIR/WORK_TREE/INDEX_FILE/EXTERNAL_DIFF/PAGER/EDITOR/SSH_COMMAND/ASKPASS`, sets `GIT_TERMINAL_PROMPT=0`. `runInterruptible(Dispatchers.IO)` lets coroutine cancellation interrupt the blocking `process.waitFor`; finally-block calls `process.destroyForcibly()` to avoid zombie gradle daemons.
+- F-S01 path-traversal: domain-layer `TargetValidation.validateOrRefuse(request)` runs BEFORE every FS call in both `previewRemoval` and `executeRemoval`. Single producer used by CLI and desktop. Rules: skillName/platform must match `[A-Za-z0-9._-]+`, not equal `.` or `..`, not start with `-`; AddOn `relativePath` must be non-absolute, contain no `..`, contain no `\\`, and the resolved normalized path must lie under `<repoRoot>/platform-packs/`. Refusals throw `SkillRemovalRefusedException(reason=INVALID_TARGET)` and never hit disk.
+- F-S04 path-disclosure: `SkillRemoveErrorSanitizer.sanitize(message, repoRootAbsolutePath)` relativizes absolute paths in surfaced exception messages to repo-relative form; unrelativizable absolute paths become `<external path>`. Gateway applies it on `Failed.exceptionMessage` BEFORE the dialog/CLI sees it.
+- Cascade ordering: applyCascade is (1) stash manifests+README, (2) apply manifest edits, (3) apply README edits, (4) stash file trees + delete listed paths, (5) unlink agent symlinks across Claude/Codex/Opencode/Junie via `InstallNativeAgentOperations.unlink*Agents`. Symlinks LAST so a throw at any earlier step leaves agent homes untouched. Per-provider unlink failures are accumulated (no `runCatching` swallow) and a `SkillBillRollbackException` is thrown if any failed so the gateway maps to `Failed(rollbackComplete=false)` honestly. Rollback restores manifests/README/files from byte stash; symlinks never need rolling back.
+- README catalog edits return a `ReadmeEditOutcome` sealed type (`Applied` / `LandmarksMissing(reason)`); landmark-missing outcomes propagate via `AppliedCascade.readmeWarnings: List<ReadmeCatalogWarning>` to the dialog as a non-fatal warning section underneath success.
+- Confirmation dialog (`ConfirmDeletionDialog.kt`) lists every `preview.filesystemPaths` / `manifestEdits` / `agentSymlinkUnlinks` / `cascadedSkillNames` so the user audits the full cascade. AC5 gate: `state.deleteEnabled = preview != null && acknowledged && !executeBusy && !partialMutationLocked`. A11y: `Modifier.semantics(mergeDescendants=true) { paneTitle; isTraversalGroup }` on the inner panel; `heading()` on the title; `Modifier.toggleable(role=Role.Checkbox, stateDescription="Checked"/"Not checked")` on the acknowledgment row; `FocusRequester` + `LaunchedEffect.requestFocus()` lands focus on Cancel; `onPreviewKeyEvent` binds Escape→dismiss and Enter→dismiss (never auto-confirm destructive); Delete button uses filled-red background + trash glyph (not color-only); failed banner has red border and recovery copy ("Run `scripts/validate_agent_configs` and inspect the Console tab").
+- Tests cover: per-scope `previewRemoval` (HorizontalSkill cascade, PlatformPack paired tree + 4 providers, AddOn) + refusal paths (.bill-shared / kotlin / kmp / acceptance-with-allowShipped); `executeRemoval` Failed-with-rollbackComplete=false; manifest-edit idempotency (2nd call no-op); ReadmeCatalogEdits Applied + LandmarksMissing fallback; ViewModel right-click→preview→confirm→execute→Success with refreshCount assertion; ConfirmDeletionState deleteEnabled permutations; CLI --dry-run no-FS-mutation + refusal exit codes. State-snapshot-style (no ComposeTestRule).
+- Reusable: every fix-loop pattern surfaced here is general — single-throw via `String?`-returning `nameProblem`/`addOnPathProblem` for ThrowsCount cleanup; prefix-based env scrub for `GIT_CONFIG_COUNT/KEY_<n>/VALUE_<n>/PARAMETERS` hardening; `runInterruptible(Dispatchers.IO)` + finally destroyForcibly for any blocking subprocess; per-row state in tree composables via `var x by remember(id) { mutableStateOf(...) }`; sibling-gateway pattern with `internal var serviceFactory` test seam.
+Feature flag: N/A
+Acceptance criteria: 9/9 implemented
+
+## [2026-05-17] desktop install setup relaunch
+Areas: runtime-desktop/feature/skillbill, runtime-desktop/core/domain
+- Added a repo-scoped `Install` toolbar command and command-palette action that reopens the Skill Bill setup wizard after first-run completion, so changed skills/packs/agent links can be reapplied without deleting desktop preferences.
+- Reused the existing first-run setup state machine and stored preferences as defaults; discovery still refreshes detected agents and platform packs before apply.
+- Dialog overlap rule: setup relaunch is disabled while busy, publishing, first-run setup, or scaffold wizard state is active; the setup dialog itself can be dismissed while idle and keeps close disabled during discovery/install.
+Feature flag: N/A
+Acceptance criteria: manual reinstall path available from app
+
+## [2026-05-17] SKILL-45 final-integration-docs-validation
+Areas: runtime-desktop first-run wizard docs, runtime-desktop packaging docs, desktop validation evidence
+- Documented the first-run wizard as a thin desktop adapter over `DesktopFirstRunGateway` and shared install plan/apply, including agent/platform/telemetry/MCP choices and structured Windows symlink outcomes.
+- Documented native package tasks and host limits for DMG/MSI/Deb/RPM plus Arch/CachyOS RPM or loose-distribution fallback; packaged runtime lookup remains `skill-bill-runtime` app resources or explicit override. reusable
+- Existing tests cover wizard state, outcome rendering, gateway mapping, runtime asset lookup, and packaging task wiring; final pass added traceability rather than new desktop behavior.
+Feature flag: N/A
+Acceptance criteria: 8/8 implemented
+
+## [2026-05-17] SKILL-45 desktop-first-run-wizard
+Areas: runtime-desktop/feature/skillbill, runtime-desktop/core/domain, runtime-desktop/core/data, runtime-desktop/core/datastore, runtime-desktop/core/testing
+- Added first-run setup flow for agent selection/detection, platform-pack selection from dynamic discovery, telemetry level, MCP registration, and structured install outcomes.
+- Reused begin/run/finish ViewModel token pattern; wizard state is explicit domain state and testable without launching the desktop app.
+- Desktop install gateway calls shared `InstallOperations.planInstall/applyInstall` and maps typed success/warning/failure details instead of parsing shell output.
+- Reusable: `DesktopFirstRunGateway`, `FirstRunSetupModels`, `FakeDesktopFirstRunGateway`, and outcome-step UI tests cover selection, telemetry, MCP, gateway mapping, and result rendering.
+- Known limitation: review left a Minor UX gap where discovery failure on the Agents step has no in-wizard retry button.
+Feature flag: N/A
+Acceptance criteria: 9/9 implemented
+
 ## [2026-05-15] SKILL-44 create-pr-publishing
 Areas: runtime-desktop/feature/skillbill, runtime-desktop/core/domain, runtime-desktop/core/data, runtime-desktop/core/testing
 - Replaced raw Git-style change publishing with a governed `Publish Changes` flow that groups files by Skill Bill concepts, keeps Git status secondary, and defaults generated/read-only artifacts out of selection.

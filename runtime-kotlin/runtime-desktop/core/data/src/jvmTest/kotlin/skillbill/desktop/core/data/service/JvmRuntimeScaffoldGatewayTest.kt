@@ -11,6 +11,8 @@ import skillbill.error.InvalidScaffoldPayloadError
 import skillbill.error.MissingRequiredSectionError
 import skillbill.error.ScaffoldRollbackError
 import skillbill.scaffold.model.ScaffoldResult
+import skillbill.scaffold.model.command.ScaffoldCommandRequest
+import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -22,13 +24,14 @@ import kotlin.test.assertTrue
 class JvmRuntimeScaffoldGatewayTest {
 
   // F-004: Preview/Success is distinguished by the `dryRun` input flag, NOT by scanning notes.
+  // SKILL-52.2 subtask 2: scaffolder seam now receives a typed `ScaffoldCommandRequest`.
   @Test
   fun `dryRun produces Preview when scaffolder is invoked with dryRun true`() = runBlocking {
-    var capturedPayload: Map<String, Any?>? = null
+    var capturedRequest: ScaffoldCommandRequest? = null
     var capturedDryRun: Boolean? = null
     val gateway = JvmRuntimeScaffoldGateway().apply {
-      scaffolder = { payload, dryRun ->
-        capturedPayload = payload
+      scaffolder = { request, dryRun ->
+        capturedRequest = request
         capturedDryRun = dryRun
         ScaffoldResult(
           kind = "horizontal",
@@ -52,10 +55,9 @@ class JvmRuntimeScaffoldGatewayTest {
     assertEquals("bill-foo", preview.planned.skillName)
     assertEquals(1, preview.planned.createdFiles.size)
     assertEquals(true, capturedDryRun)
-    val map = checkNotNull(capturedPayload)
-    assertEquals("1.0", map["scaffold_payload_version"])
-    assertEquals("horizontal", map["kind"])
-    assertEquals("bill-foo", map["name"])
+    val request = checkNotNull(capturedRequest) as ScaffoldCommandRequest.HorizontalSkill
+    assertEquals("1.0", request.scaffoldPayloadVersion)
+    assertEquals("bill-foo", request.name)
   }
 
   // F-004: execute returns Success even when the runtime ALSO emits a "dry run" marker note. The
@@ -88,14 +90,16 @@ class JvmRuntimeScaffoldGatewayTest {
     assertTrue(success.result.createdFiles.any { it.endsWith("platform.yaml") })
   }
 
+  // SKILL-52.2 subtask 2: parity asserts the typed `ScaffoldCommandRequest` (not a raw map) is
+  // identical across dry-run/execute for every kind, preserving the original AC2 intent.
   @Test
   fun `payload parity holds between dry-run and execute for every kind`() = runBlocking {
-    val recorded = mutableListOf<Map<String, Any?>>()
+    val recorded = mutableListOf<ScaffoldCommandRequest>()
     val gateway = JvmRuntimeScaffoldGateway().apply {
-      scaffolder = { payload, _ ->
-        recorded += payload
+      scaffolder = { request, _ ->
+        recorded += request
         ScaffoldResult(
-          kind = payload["kind"] as String,
+          kind = "stub",
           skillName = "bill-x",
           skillPath = Path.of("/tmp/x"),
         )
@@ -114,8 +118,8 @@ class JvmRuntimeScaffoldGatewayTest {
       gateway.execute(payload)
     }
     val pairs = recorded.chunked(2)
-    pairs.forEach { (dryMap, executeMap) ->
-      assertEquals(dryMap, executeMap, "dry-run and execute payloads must be identical (AC2)")
+    pairs.forEach { (dryRequest, executeRequest) ->
+      assertEquals(dryRequest, executeRequest, "dry-run and execute requests must be identical (AC2)")
     }
   }
 
@@ -203,6 +207,7 @@ class JvmRuntimeScaffoldGatewayTest {
     assertTrue(snapshot.shelledFamilies.contains("code-review"))
     assertTrue(snapshot.platformPackPresets.any { it.platform == "java" })
     assertTrue(snapshot.pilotedPlatformPacks.isEmpty())
+    assertTrue(snapshot.baselineReviewPacks.isEmpty())
   }
 
   @Test
@@ -216,7 +221,83 @@ class JvmRuntimeScaffoldGatewayTest {
 
     val snapshot = gateway.catalogSnapshot(session)
     assertTrue(snapshot.pilotedPlatformPacks.isEmpty())
+    assertTrue(snapshot.baselineReviewPacks.isEmpty())
     assertTrue(snapshot.approvedCodeReviewAreas.isNotEmpty())
+  }
+
+  @Test
+  fun `catalog snapshot maps baseline review catalog from manifests`() = runBlocking {
+    val repoRoot = Files.createTempDirectory("skillbill-baseline-catalog")
+    val packsRoot = repoRoot.resolve("platform-packs")
+    Files.createDirectories(packsRoot.resolve("kotlin"))
+    Files.createDirectories(packsRoot.resolve("docs"))
+    Files.writeString(
+      packsRoot.resolve("kotlin/platform.yaml"),
+      """
+      platform: kotlin
+      contract_version: "1.1"
+      display_name: Kotlin
+      routing_signals:
+        strong:
+          - ".kt"
+        tie_breakers: []
+      declared_code_review_areas: []
+      declared_files:
+        baseline: code-review/bill-kotlin-code-review/content.md
+        areas: {}
+      area_metadata: {}
+      """.trimIndent(),
+    )
+    Files.writeString(
+      packsRoot.resolve("docs/platform.yaml"),
+      """
+      platform: docs
+      contract_version: "1.1"
+      display_name: Docs
+      routing_signals:
+        strong:
+          - "docs/"
+        tie_breakers: []
+      declared_code_review_areas: []
+      area_metadata: {}
+      """.trimIndent(),
+    )
+    val gateway = JvmRuntimeScaffoldGateway()
+    val session = RepoSession(
+      repoPath = repoRoot.toString(),
+      isRecognizedSkillBillRepo = true,
+      loadStatus = RepoLoadStatus(state = RepoLoadState.LOADED, message = "Loaded"),
+    )
+
+    val snapshot = gateway.catalogSnapshot(session)
+
+    assertEquals(listOf("docs", "kotlin"), snapshot.pilotedPlatformPacks.map { it.platform })
+    assertEquals(listOf("kotlin"), snapshot.baselineReviewPacks.map { it.platform })
+    val kotlinSkill = snapshot.baselineReviewPacks.single().skills.single { it.name == "bill-kotlin-code-review" }
+    assertEquals(listOf("kmp-baseline"), kotlinSkill.supportedModes)
+    assertEquals(listOf("same-review-scope"), kotlinSkill.supportedScopes)
+  }
+
+  @Test
+  fun `dryRun maps manifest previews into scaffold plan`() = runBlocking {
+    val gateway = JvmRuntimeScaffoldGateway().apply {
+      scaffolder = { _, _ ->
+        ScaffoldResult(
+          kind = "platform-pack",
+          skillName = "bill-kmp-code-review",
+          skillPath = Path.of("/repo/platform-packs/kmp"),
+          manifestPreviews = mapOf(
+            Path.of("/repo/platform-packs/kmp/platform.yaml") to "code_review_composition:\n  baseline_layers: []\n",
+          ),
+        )
+      }
+    }
+
+    val result = gateway.dryRun(ScaffoldPayload.PlatformPack(platform = "kmp"))
+
+    val preview = result as ScaffoldRunResult.Preview
+    assertEquals(1, preview.planned.manifestPreviews.size)
+    assertTrue(preview.planned.manifestPreviews.single().content.contains("code_review_composition"))
   }
 
   @Test

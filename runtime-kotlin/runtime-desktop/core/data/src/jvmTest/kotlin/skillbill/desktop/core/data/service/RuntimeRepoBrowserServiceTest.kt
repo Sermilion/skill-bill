@@ -6,6 +6,7 @@ import skillbill.desktop.core.domain.model.RepoSession
 import skillbill.desktop.core.domain.model.TreeItemKind
 import skillbill.desktop.core.domain.model.ValidationRunState
 import skillbill.error.SkillBillRuntimeException
+import java.nio.file.FileSystemException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.security.MessageDigest
@@ -72,6 +73,58 @@ class RuntimeRepoBrowserServiceTest {
   }
 
   @Test
+  fun `native agent source rows stay repo relative when selected repo path is a symlink`() {
+    val repo = seedRepo("runtime-tree-symlink-target")
+    val linkParent = Files.createTempDirectory("skillbill-desktop-runtime-tree-link")
+    val repoLink = linkParent.resolve("repo-link")
+    val symlinkCreated = try {
+      Files.createSymbolicLink(repoLink, repo)
+      true
+    } catch (_: UnsupportedOperationException) {
+      false
+    } catch (_: FileSystemException) {
+      false
+    } catch (_: SecurityException) {
+      false
+    }
+    if (!symlinkCreated) {
+      return
+    }
+    val service = RuntimeRepoBrowserService()
+
+    val session = service.open(repoLink.toString())
+    assertEquals(RepoLoadState.LOADED, session.loadStatus.state, session.loadStatus.message)
+    val flattened = service.treeFor(session).flatten()
+    val treeSummary = flattened.joinToString("\n") { item ->
+      "${item.kind} ${item.label} ${item.authoredPath.orEmpty()} ${item.id}"
+    }
+
+    val sourceAgent = assertNotNull(
+      flattened.singleOrNull {
+        it.id.hasLocalId("native-agent:skills/bill-alpha/native-agents/alpha-agent.md:alpha-agent")
+      },
+      treeSummary,
+    )
+    val platformAgent = assertNotNull(
+      flattened.singleOrNull {
+        it.id.hasLocalId(
+          "native-agent:" +
+            "platform-packs/kotlin/code-review/bill-kotlin-code-review/native-agents/bill-kotlin-code-review-ui.md:" +
+            "bill-kotlin-code-review-ui",
+        )
+      },
+      treeSummary,
+    )
+    assertEquals("agent", sourceAgent.label)
+    assertEquals("skills/bill-alpha/native-agents/alpha-agent.md", sourceAgent.authoredPath)
+    assertEquals("ui", platformAgent.label)
+    assertEquals(
+      "platform-packs/kotlin/code-review/bill-kotlin-code-review/native-agents/bill-kotlin-code-review-ui.md",
+      platformAgent.authoredPath,
+    )
+  }
+
+  @Test
   fun `selected skill detail maps name kind authored path status and generated metadata`() {
     val repo = seedRepo("runtime-selection")
     val service = RuntimeRepoBrowserService()
@@ -105,18 +158,21 @@ class RuntimeRepoBrowserServiceTest {
   }
 
   @Test
-  fun `saving governed skill uses authoring operation and reloads saved text`() {
+  fun `saving governed skill writes exact editor text and reloads saved text`() {
     val repo = seedRepo("authoring-save")
     val service = RuntimeRepoBrowserService()
     val session = service.open(repo.toString())
     val skillId = service.treeForSessionLocalId(session, "skill:bill-alpha")
+    val before = service.loadDocument(session, skillId).text
+    val edited = before.replace("Alpha guidance.", "Saved exact editor body.")
 
-    val result = service.saveDocument(session, skillId, "# Rewritten\n\nSaved body.\n")
+    val result = service.saveDocument(session, skillId, edited)
     val document = service.loadDocument(session, skillId)
 
     assertTrue(result.success, result.runtimeErrorMessage.orEmpty())
-    assertTrue(document.text.contains("Saved body."))
-    assertTrue(Files.readString(repo.resolve("skills/bill-alpha/content.md")).contains("Saved body."))
+    assertEquals(edited, document.text)
+    assertEquals(edited, Files.readString(repo.resolve("skills/bill-alpha/content.md")))
+    assertFalse(document.text.contains("$before\n$edited"))
   }
 
   @Test
@@ -131,7 +187,11 @@ class RuntimeRepoBrowserServiceTest {
     val nativeAgentBefore = Files.readString(repo.resolve("skills/bill-alpha/native-agents/alpha-agent.md"))
 
     val skillDocument = service.loadDocument(session, skillItem.id)
-    val skillResult = service.saveDocument(session, skillItem.id, "# Rewritten\n\nSaved content.md body.\n")
+    val skillResult = service.saveDocument(
+      session,
+      skillItem.id,
+      skillDocument.text.replace("Alpha guidance.", "Saved content.md body."),
+    )
     val addonDocument = service.loadDocument(session, addonItem.id)
     val addonResult = service.saveDocument(session, addonItem.id, "# Tracing\n\nUpdated add-on guidance.\n")
     val nativeAgentBody = """
@@ -172,6 +232,22 @@ class RuntimeRepoBrowserServiceTest {
 
     assertFalse(result.success)
     assertEquals("runtime said no", result.runtimeErrorMessage)
+    assertEquals(before, Files.readString(repo.resolve("skills/bill-alpha/content.md")))
+  }
+
+  @Test
+  fun `malformed governed skill content is rejected and source is rolled back`() {
+    val repo = seedRepo("authoring-save-malformed-content")
+    val before = Files.readString(repo.resolve("skills/bill-alpha/content.md"))
+    val service = RuntimeRepoBrowserService()
+    val session = service.open(repo.toString())
+    val skillId = service.treeForSessionLocalId(session, "skill:bill-alpha")
+    val malformed = before.replace("\n---\n\n# alpha", "\n--- dfsdf\n\n# alpha")
+
+    val result = service.saveDocument(session, skillId, malformed)
+
+    assertFalse(result.success)
+    assertTrue(result.runtimeErrorMessage.orEmpty().contains("Validator failed after content update"))
     assertEquals(before, Files.readString(repo.resolve("skills/bill-alpha/content.md")))
   }
 

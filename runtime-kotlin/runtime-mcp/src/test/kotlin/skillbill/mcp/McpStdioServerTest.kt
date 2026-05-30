@@ -157,6 +157,23 @@ class McpStdioServerTest {
       listOf("pending", "running", "completed", "failed", "abandoned", "blocked"),
       tools.schemaFor("feature_implement_workflow_update").properties().enumFor("workflow_status"),
     )
+    assertEquals(
+      setOf("workflow_id", "issue_key", "subtask_id"),
+      tools.schemaFor("feature_implement_workflow_continue").properties().keys,
+    )
+    assertEquals(
+      "integer",
+      tools.schemaFor("feature_implement_workflow_continue").properties().map("subtask_id")["type"],
+    )
+    tools.schemaFor("telemetry_remote_stats").assertRequired("workflow")
+    assertEquals(
+      listOf("verify", "implement", "bill-feature-verify", "bill-feature-implement"),
+      tools.schemaFor("telemetry_remote_stats").properties().enumFor("workflow"),
+    )
+    assertEquals(
+      listOf("", "day", "week"),
+      tools.schemaFor("telemetry_remote_stats").properties().enumFor("group_by"),
+    )
     tools.schemaFor("new_skill_scaffold").assertRequired("payload")
     tools.schemaFor("import_review").assertRequired("review_text")
     tools.schemaFor("triage_findings").assertRequired("review_run_id", "decisions")
@@ -180,6 +197,12 @@ class McpStdioServerTest {
 
   @Test
   fun `strict tools reject unknown arguments at the stdio boundary`() {
+    // F-003 (review-run rvw-20260519-162500-a2d4): unknown-argument
+    // violations are now surfaced as MCP `isError=true` results so the
+    // strict-args gate and the schema-validator inside
+    // `McpToolDispatcher` share a single transport shape. See
+    // `x-coherence-checks.argument-shape-failures-surface` in
+    // `orchestration/contracts/telemetry-event-schema.yaml`.
     val response =
       decodeResponse(
         McpStdioServer.handleLine(
@@ -190,14 +213,19 @@ class McpStdioServerTest {
           ),
         ),
       )
-    val error = response.map("error")
+    val result = response.map("result")
+    val errorPayload = toolPayload(result)
 
-    assertEquals(-32602, error["code"])
-    assertContains(error["message"].toString(), "Unknown argument(s) for resolve_learnings: unexpected")
+    assertEquals(true, result["isError"])
+    assertEquals("resolve_learnings", errorPayload["tool"])
+    assertContains(errorPayload["error"].toString(), "Unknown argument(s) for resolve_learnings: unexpected")
   }
 
   @Test
   fun `strict tools reject unknown nested arguments at the stdio boundary`() {
+    // F-003 (review-run rvw-20260519-162500-a2d4): nested unknown
+    // arguments also surface via `isError=true` for a consistent
+    // client contract; see the sibling test above.
     val response =
       decodeResponse(
         McpStdioServer.handleLine(
@@ -220,10 +248,11 @@ class McpStdioServerTest {
           ),
         ),
       )
-    val error = response.map("error")
+    val result = response.map("result")
+    val errorPayload = toolPayload(result)
 
-    assertEquals(-32602, error["code"])
-    assertContains(error["message"].toString(), "step_updates[0].unexpected")
+    assertEquals(true, result["isError"])
+    assertContains(errorPayload["error"].toString(), "step_updates[0].unexpected")
   }
 
   @Test

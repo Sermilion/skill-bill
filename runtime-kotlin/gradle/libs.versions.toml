@@ -1,4 +1,5 @@
 [versions]
+beryxRuntime = "2.0.1"
 detekt = "1.23.8"
 clikt = "5.1.0"
 compose = "1.10.3"
@@ -9,6 +10,8 @@ kotlinInjectAnvil = "0.1.7"
 kotlinx-coroutines = "1.10.2"
 ksp = "2.3.7"
 kotlinx-serialization = "1.7.3"
+jackson = "2.18.2"
+jsonSchemaValidator = "1.5.6"
 junit = "5.11.3"
 room3 = "3.0.0-alpha01"
 snakeyaml = "2.3"
@@ -17,12 +20,14 @@ sqlite-jdbc = "3.53.0.0"
 spotless = "6.25.0"
 
 [libraries]
+beryx-runtime-gradle-plugin = { module = "org.beryx:badass-runtime-plugin", version.ref = "beryxRuntime" }
 clikt = { module = "com.github.ajalt.clikt:clikt", version.ref = "clikt" }
 compose-foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "compose" }
 compose-material = { module = "org.jetbrains.compose.material:material", version.ref = "compose" }
 compose-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "composeMaterial3" }
 compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "compose" }
 compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "compose" }
+compose-ui-test = { module = "org.jetbrains.compose.ui:ui-test", version.ref = "compose" }
 detekt-gradle-plugin = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version.ref = "detekt" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin.jvm:org.jetbrains.kotlin.jvm.gradle.plugin", version.ref = "kotlin" }
@@ -38,12 +43,16 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 room3-compiler = { module = "androidx.room3:room3-compiler", version.ref = "room3" }
 room3-runtime = { module = "androidx.room3:room3-runtime", version.ref = "room3" }
+jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "jackson" }
+jackson-dataformat-yaml = { module = "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml", version.ref = "jackson" }
+json-schema-validator = { module = "com.networknt:json-schema-validator", version.ref = "jsonSchemaValidator" }
 snakeyaml = { module = "org.yaml:snakeyaml", version.ref = "snakeyaml" }
 sqlite = { module = "androidx.sqlite:sqlite", version.ref = "sqlite" }
 sqlite-jdbc = { module = "org.xerial:sqlite-jdbc", version.ref = "sqlite-jdbc" }
 spotless-gradle-plugin = { module = "com.diffplug.spotless:spotless-plugin-gradle", version.ref = "spotless" }
 
 [plugins]
+beryx-runtime = { id = "org.beryx.runtime", version.ref = "beryxRuntime" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "compose" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
