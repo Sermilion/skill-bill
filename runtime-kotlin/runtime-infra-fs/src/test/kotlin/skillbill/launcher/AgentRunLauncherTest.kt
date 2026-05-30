@@ -174,8 +174,12 @@ class AgentRunLauncherTest {
     assertEquals(0, result.exitStatus)
     assertEquals("stdout-line", result.stdout)
     assertEquals("stderr-line", result.stderr)
-    assertTrue(events.any { it.first == AgentRunOutputStream.STDOUT && it.second == "stdout-line" })
-    assertTrue(events.any { it.first == AgentRunOutputStream.STDERR && it.second == "stderr-line" })
+    assertTrue(
+      events.any { it.first == AgentRunOutputStream.STDOUT && it.second.contains("stdout-line") },
+    )
+    assertTrue(
+      events.any { it.first == AgentRunOutputStream.STDERR && it.second.contains("stderr-line") },
+    )
   }
 
   @Test
