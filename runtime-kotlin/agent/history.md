@@ -1,3 +1,13 @@
+## [2026-05-30] SKILL-56 subtask 3 goal-runner-service
+Areas: runtime-kotlin/runtime-domain, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-application, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-core
+- Added `GoalRunner` as the parent loop over decomposed manifests: select dependency-ready subtasks, launch one fresh agent process per subtask, reconcile process facts with workflow-store outcomes, and advance manifest runtime state. reusable
+- Goal-runner success is workflow-store authoritative: completed PR-suppressed subtask workflows must expose `commit_push_result.commit_sha`; stdout remains diagnostic only and missing terminal state blocks the parent.
+- Added typed goal-runner ports for manifest state, workflow outcome reads, subtask launching, and final goal PR creation; domain policy stays pure while application adapts to launcher/workflow/PR ports. reusable
+- Added status projection for complete/pending/blocked counts, current subtask/step, and active agent so the CLI front can render status without re-parsing workflow internals. reusable
+- Known limitation: CLI/bill-goal entrypoint and human progress rendering remain subtask 4; this subtask wires service/composition and the gh-backed PR port only.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented (subtask scope)
+
 ## [2026-05-30] SKILL-56 subtask 2 agent-agnostic-launcher
 Areas: runtime-kotlin/runtime-ports, runtime-kotlin/runtime-application, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-core
 - Added `AgentRunLauncher` as a technology-neutral port with typed launch request/outcome models; launcher outcomes are process facts only and never infer subtask success from stdout. reusable
