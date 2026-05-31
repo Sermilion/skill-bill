@@ -3,14 +3,14 @@ contract_version: "0.2"
 issue_key: "SKILL-58"
 feature_name: "goal-runner-operational-reliability"
 parent_spec_path: ".feature-specs/SKILL-58-goal-runner-operational-reliability/spec.md"
-status: "in_progress"
+status: "complete"
 execution_model: "same_branch_commit_per_subtask"
 base_branch: "main"
 feature_branch: "main"
 stack_branches: []
 current_subtask_intent:
-  subtask_id: 4
-  action: "start"
+  subtask_id: 0
+  action: "none"
 subtasks:
 - id: 1
   name: "goal-reset-recovery"
@@ -51,7 +51,7 @@ subtasks:
 - id: 4
   name: "runtime-consistency-and-validation"
   spec_path: ".feature-specs/SKILL-58-goal-runner-operational-reliability/spec_subtask_4_runtime-consistency-and-validation.md"
-  status: "in_progress"
+  status: "complete"
   branch: "feat/SKILL-58-goal-runner-operational-reliability"
   commit_sha: null
   workflow_id: "wfl-20260531-064438-ujdd"
