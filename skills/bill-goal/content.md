@@ -7,6 +7,9 @@ description: Use when a user asks to complete a larger implementation goal throu
 
 `bill-goal` is the interactive front door for a goal that may need multiple decomposed implementation subtasks. It decides whether decomposition is necessary, asks for exactly one confirmation before starting any automated loop, and hands confirmed decompositions to the local `skill-bill goal` driver.
 
+`bill-goal` is runtime workflow behavior with durable state; this `content.md`
+is only the trigger surface for that runtime.
+
 `bill-goal` does not own spec-writing logic. When decomposition artifacts are
 missing, it must reuse the shared feature-spec preparation path exposed through
 `bill-feature-spec`.

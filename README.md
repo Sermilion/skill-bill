@@ -347,7 +347,7 @@ Routing, validation, and installation are manifest-driven, so the system accepts
 | `/bill-feature-implement` | End-to-end feature workflow from spec through review and validation |
 | `/bill-feature-spec` | Standalone feature-spec preparation (single-spec or decomposed) reused by feature and goal workflows |
 | `/bill-feature-verify` | Verify a PR against a task spec or design doc |
-| `/bill-goal` | Interactively decompose larger goals and hand confirmed runs to the foreground goal loop |
+| `/bill-goal` | Trigger surface for runtime goal-loop behavior with durable workflow state |
 | `/bill-grill-plan` | Stress-test a plan or design by walking the decision tree |
 | `/bill-pr-description` | Generate a PR title, description, and QA steps |
 | `/bill-pr-review-fix` | Resolve PR review comments end-to-end with an approval gate and reply automation |

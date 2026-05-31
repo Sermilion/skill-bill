@@ -32,6 +32,7 @@ class FeatureSpecSkillWiringContractTest {
     val featureSpecContent = Files.readString(repoRootFromTest().resolve("skills/bill-feature-spec/content.md"))
 
     assertContains(content, "invoke `bill-feature-spec` in this session")
+    assertContains(content, "`bill-goal` is runtime workflow behavior with durable state; this `content.md`")
     assertContains(content, "`skill-bill goal <issue_key>` remains consumer-only")
     assertContains(featureSpecContent, "`skill-bill goal <issue_key>` is consumer-only")
     assertContains(content, "Ask one confirmation question")
