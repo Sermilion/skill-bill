@@ -1,5 +1,5 @@
 ---
-name: bill-php-quality-check
+name: bill-php-code-quality-check
 description: Run PHP project quality checks and systematically fix issues in changed files without suppressions, including tests, linting, static analysis, architecture checks, and dependency audits.
 ---
 

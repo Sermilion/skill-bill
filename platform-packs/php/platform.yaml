@@ -62,7 +62,7 @@ area_metadata:
   ux-accessibility:
     focus: "UX correctness and accessibility"
 
-declared_quality_check_file: quality-check/bill-php-quality-check/content.md
+declared_quality_check_file: quality-check/bill-php-code-quality-check/content.md
 
 # Pointer files are generated into render/install output from this block.
 pointers:
@@ -151,7 +151,7 @@ pointers:
       target: orchestration/shell-content-contract/shell-ceremony.md
     - name: telemetry-contract.md
       target: orchestration/telemetry-contract/PLAYBOOK.md
-  quality-check/bill-php-quality-check:
+  quality-check/bill-php-code-quality-check:
     - name: shell-ceremony.md
       target: orchestration/shell-content-contract/shell-ceremony.md
     - name: stack-routing.md
