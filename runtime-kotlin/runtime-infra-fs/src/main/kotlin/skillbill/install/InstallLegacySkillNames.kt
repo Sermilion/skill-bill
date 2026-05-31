@@ -26,7 +26,10 @@ private val renamedSkillPairs: List<Pair<String, String>> = listOf(
   "bill-kotlin-feature-implement" to "bill-feature-task",
   "bill-feature-implement-agentic" to "bill-feature-task",
   "bill-kotlin-feature-verify" to "bill-feature-verify",
-  "bill-gcheck" to "bill-quality-check",
+  "bill-quality-check" to "bill-code-quality-check",
+  "bill-kotlin-quality-check" to "bill-kotlin-code-quality-check",
+  "bill-php-quality-check" to "bill-php-code-quality-check",
+  "bill-gcheck" to "bill-code-quality-check",
 )
 
 private val retiredSkillNames: List<String> = listOf(

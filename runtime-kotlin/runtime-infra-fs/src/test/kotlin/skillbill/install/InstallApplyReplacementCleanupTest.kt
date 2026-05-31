@@ -24,7 +24,7 @@ class InstallApplyReplacementCleanupTest : InstallApplyTestSupport() {
     InstallOperations.applyInstall(selectedPlatformPlan)
     val targetDir = fixture.home.resolve("agent-skill-targets/codex")
     assertTrue(Files.isSymbolicLink(targetDir.resolve("bill-kotlin-code-review")))
-    assertTrue(Files.isSymbolicLink(targetDir.resolve("bill-kotlin-quality-check")))
+    assertTrue(Files.isSymbolicLink(targetDir.resolve("bill-kotlin-code-quality-check")))
 
     val baseOnlyReplacementPlan = InstallOperations.planInstall(
       fixture.request(
@@ -37,9 +37,9 @@ class InstallApplyReplacementCleanupTest : InstallApplyTestSupport() {
 
     assertEquals(InstallApplyStatus.SUCCESS, result.status)
     assertTrue(Files.isSymbolicLink(targetDir.resolve("bill-code-review")))
-    assertTrue(Files.isSymbolicLink(targetDir.resolve("bill-quality-check")))
+    assertTrue(Files.isSymbolicLink(targetDir.resolve("bill-code-quality-check")))
     assertFalse(Files.exists(targetDir.resolve("bill-kotlin-code-review"), LinkOption.NOFOLLOW_LINKS))
-    assertFalse(Files.exists(targetDir.resolve("bill-kotlin-quality-check"), LinkOption.NOFOLLOW_LINKS))
+    assertFalse(Files.exists(targetDir.resolve("bill-kotlin-code-quality-check"), LinkOption.NOFOLLOW_LINKS))
   }
 
   @Test
@@ -49,7 +49,7 @@ class InstallApplyReplacementCleanupTest : InstallApplyTestSupport() {
     Files.createDirectories(targetDir)
     val legacySourceLink = targetDir.resolve("bill-code-review")
     createSymlinkOrSkip(legacySourceLink, fixture.repoRoot.resolve("skills/bill-code-review"))
-    val legacyManagedDir = targetDir.resolve("bill-quality-check")
+    val legacyManagedDir = targetDir.resolve("bill-code-quality-check")
     Files.createDirectories(legacyManagedDir)
     Files.writeString(legacyManagedDir.resolve(".skill-bill-install"), "")
     Files.writeString(legacyManagedDir.resolve("SKILL.md"), "old managed install")
@@ -91,6 +91,21 @@ class InstallApplyReplacementCleanupTest : InstallApplyTestSupport() {
     Files.createDirectories(legacyManagedDir)
     Files.writeString(legacyManagedDir.resolve(".skill-bill-install"), "")
     Files.writeString(legacyManagedDir.resolve("SKILL.md"), "old managed install")
+    val oldQualityCheckLink = targetDir.resolve("bill-quality-check")
+    createSymlinkOrSkip(
+      oldQualityCheckLink,
+      fixture.repoRoot.resolve("skills/bill-code-quality-check"),
+    )
+    val oldKotlinQualityCheckLink = targetDir.resolve("bill-kotlin-quality-check")
+    createSymlinkOrSkip(
+      oldKotlinQualityCheckLink,
+      fixture.repoRoot.resolve("platform-packs/kotlin/quality-check/bill-kotlin-code-quality-check"),
+    )
+    val oldPhpQualityCheckLink = targetDir.resolve("bill-php-quality-check")
+    createSymlinkOrSkip(
+      oldPhpQualityCheckLink,
+      fixture.repoRoot.resolve("platform-packs/php/quality-check/bill-php-code-quality-check"),
+    )
     val featureImplementLink = targetDir.resolve("bill-feature-implement")
     createSymlinkOrSkip(
       featureImplementLink,
@@ -132,6 +147,9 @@ class InstallApplyReplacementCleanupTest : InstallApplyTestSupport() {
     assertEquals(InstallApplyStatus.SUCCESS, result.status)
     assertFalse(Files.exists(legacySourceLink, LinkOption.NOFOLLOW_LINKS))
     assertFalse(Files.exists(legacyManagedDir, LinkOption.NOFOLLOW_LINKS))
+    assertFalse(Files.exists(oldQualityCheckLink, LinkOption.NOFOLLOW_LINKS))
+    assertFalse(Files.exists(oldKotlinQualityCheckLink, LinkOption.NOFOLLOW_LINKS))
+    assertFalse(Files.exists(oldPhpQualityCheckLink, LinkOption.NOFOLLOW_LINKS))
     assertFalse(Files.exists(featureImplementLink, LinkOption.NOFOLLOW_LINKS))
     assertFalse(Files.exists(agenticFeatureImplementLink, LinkOption.NOFOLLOW_LINKS))
     assertFalse(Files.exists(skillScaffoldManagedDir, LinkOption.NOFOLLOW_LINKS))
@@ -139,7 +157,7 @@ class InstallApplyReplacementCleanupTest : InstallApplyTestSupport() {
     assertFalse(Files.exists(grillPlanLink, LinkOption.NOFOLLOW_LINKS))
     assertFalse(Files.exists(skillRemoveLink, LinkOption.NOFOLLOW_LINKS))
     assertTrue(Files.isSymbolicLink(targetDir.resolve("bill-code-review")))
-    assertTrue(Files.isSymbolicLink(targetDir.resolve("bill-quality-check")))
+    assertTrue(Files.isSymbolicLink(targetDir.resolve("bill-code-quality-check")))
   }
 
   @Test
