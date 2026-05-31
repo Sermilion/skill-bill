@@ -27,3 +27,33 @@ data class FeatureSpecPreparationDecision(
   val nonGoals: List<String>,
   val mode: FeatureSpecPreparationMode,
 )
+
+data class FeatureSpecSubtaskPreparation(
+  val id: Int,
+  val name: String,
+  val scope: String,
+  val acceptanceCriteria: List<String>,
+  val nonGoals: List<String>,
+  val dependencyNotes: String,
+  val validationStrategy: String,
+  val nextPath: String,
+  val dependsOn: List<Int> = emptyList(),
+)
+
+data class FeatureSpecWriteRequest(
+  val decision: FeatureSpecPreparationDecision,
+  val featureName: String,
+  val parentSpecOverview: String,
+  val validationStrategy: String,
+  val subtasks: List<FeatureSpecSubtaskPreparation> = emptyList(),
+  val baseBranch: String = "main",
+  val featureBranch: String = "",
+)
+
+data class FeatureSpecWriteResult(
+  val mode: FeatureSpecPreparationMode,
+  val parentSpecPath: String,
+  val featureImplementPath: String,
+  val decompositionManifestPath: String?,
+  val subtaskSpecPaths: List<String>,
+)
