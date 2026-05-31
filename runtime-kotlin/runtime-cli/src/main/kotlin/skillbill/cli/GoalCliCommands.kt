@@ -73,7 +73,11 @@ class GoalRunCommand(
       return
     }
     val runIssueKey = issueKey ?: throw UsageError("issue_key is required for goal run.")
-    val presenter = GoalRunPresenter(state, liveOutput = !noLiveOutput)
+    val presenter = GoalRunPresenter(
+      issueKey = runIssueKey,
+      state = state,
+      liveOutput = !noLiveOutput,
+    )
     val report = goalRunner.run(
       GoalRunnerRunRequest(
         issueKey = runIssueKey,
@@ -159,11 +163,32 @@ class GoalResetCommand(
 }
 
 private class GoalRunPresenter(
+  private val issueKey: String,
   private val state: CliRunState,
   private val liveOutput: Boolean,
 ) {
+  private var activeSubtaskId: Int? = null
+  private var activeStepId: String? = null
+  private var lastLivenessClass: String = GOAL_LIVENESS_IDLE
+  private var sawRawChildOutputSinceLastHeartbeat: Boolean = false
+
   fun eventSink(): skillbill.application.model.GoalRunnerEventSink =
     skillbill.application.model.GoalRunnerEventSink { event ->
+      when (event) {
+        is GoalRunnerRunEvent.SubtaskStarted -> {
+          activeSubtaskId = event.subtaskId
+          activeStepId = "preplan"
+          lastLivenessClass = GOAL_LIVENESS_IDLE
+          sawRawChildOutputSinceLastHeartbeat = false
+        }
+        is GoalRunnerRunEvent.SubtaskCompleted -> {
+          activeSubtaskId = event.subtaskId
+          activeStepId = "commit_push"
+          lastLivenessClass = GOAL_LIVENESS_DURABLE_PROGRESS
+          sawRawChildOutputSinceLastHeartbeat = false
+        }
+        else -> Unit
+      }
       state.liveStdout(event.progressLine())
     }
 
@@ -171,13 +196,66 @@ private class GoalRunPresenter(
     AgentRunOutputSink.NONE
   } else {
     AgentRunOutputSink { stream, text ->
-      if (!includeRawChildOutput && "skill-bill:" !in text) {
+      if (includeRawChildOutput) {
+        when (stream) {
+          AgentRunOutputStream.STDOUT -> state.liveStdout(text)
+          AgentRunOutputStream.STDERR -> state.liveStderr(text)
+        }
         return@AgentRunOutputSink
       }
-      when (stream) {
-        AgentRunOutputStream.STDOUT -> state.liveStdout(text)
-        AgentRunOutputStream.STDERR -> state.liveStderr(text)
+      handleStructuredProgressText(text)
+    }
+  }
+
+  private fun handleStructuredProgressText(text: String) {
+    text.lines().forEach { rawLine ->
+      val line = rawLine.trim()
+      if (line.isBlank()) {
+        return@forEach
       }
+      when {
+        line.startsWith("skill-bill: workflow progress:") -> handleWorkflowProgressLine(line)
+        line.startsWith("skill-bill: file activity observed;") -> lastLivenessClass = GOAL_LIVENESS_FILE_ACTIVITY
+        line.startsWith("skill-bill: status heartbeat") -> emitStructuredHeartbeat()
+        !line.startsWith("skill-bill:") -> sawRawChildOutputSinceLastHeartbeat = true
+      }
+    }
+  }
+
+  private fun handleWorkflowProgressLine(line: String) {
+    val label = line.substringAfter("skill-bill: workflow progress:").trim()
+    parseSubtaskAndStepFromLabel(label)
+    lastLivenessClass = when {
+      "durable_progress" in label -> GOAL_LIVENESS_DURABLE_PROGRESS
+      "file activity" in label.lowercase() -> GOAL_LIVENESS_FILE_ACTIVITY
+      else -> lastLivenessClass
+    }
+  }
+
+  private fun emitStructuredHeartbeat() {
+    val heartbeatLiveness = when {
+      lastLivenessClass == GOAL_LIVENESS_DURABLE_PROGRESS -> GOAL_LIVENESS_DURABLE_PROGRESS
+      lastLivenessClass == GOAL_LIVENESS_FILE_ACTIVITY -> GOAL_LIVENESS_FILE_ACTIVITY
+      sawRawChildOutputSinceLastHeartbeat -> GOAL_LIVENESS_OUTPUT_ONLY
+      else -> GOAL_LIVENESS_IDLE
+    }
+    val subtask = activeSubtaskId?.toString() ?: "unknown"
+    val step = activeStepId ?: "unknown"
+    state.liveStdout(
+      "goal $issueKey: heartbeat subtask=$subtask step=$step liveness=$heartbeatLiveness\n",
+    )
+    sawRawChildOutputSinceLastHeartbeat = false
+    if (heartbeatLiveness != GOAL_LIVENESS_DURABLE_PROGRESS) {
+      lastLivenessClass = heartbeatLiveness
+    }
+  }
+
+  private fun parseSubtaskAndStepFromLabel(label: String) {
+    GOAL_SUBTASK_REGEX.find(label)?.groupValues?.getOrNull(1)?.toIntOrNull()?.let { subtaskId ->
+      activeSubtaskId = subtaskId
+    }
+    GOAL_STEP_REGEX.find(label)?.groupValues?.getOrNull(1)?.let { stepId ->
+      activeStepId = stepId
     }
   }
 }
@@ -189,7 +267,15 @@ private fun GoalRunnerRunEvent.progressLine(): String = when (this) {
   is GoalRunnerRunEvent.SubtaskStopped ->
     "goal $issueKey: subtask $subtaskId stopped ($reason): $blockedReason\n"
   is GoalRunnerRunEvent.Completed -> buildString {
-    append("goal $issueKey: complete")
+    append("goal $issueKey: completion confirmed")
+    append(" complete=")
+    append(completedCount)
+    append(" pending=")
+    append(pendingCount)
+    append(" blocked=")
+    append(blockedCount)
+    append(" pr_status=")
+    append(pullRequestStatus)
     pullRequestUrl?.let { append(" ($it)") }
     append('\n')
   }
@@ -201,6 +287,9 @@ private fun GoalRunnerRunReport.toGoalRunCliMap(): Map<String, Any?> = when (thi
     "issue_key" to issueKey,
     "attempted_subtasks" to attemptedSubtasks,
     "subtasks_completed" to subtasksCompleted,
+    "subtasks_pending" to subtasksPending,
+    "subtasks_blocked" to subtasksBlocked,
+    "pull_request_status" to pullRequestStatus,
     "pull_request_url" to pullRequestUrl,
   )
   is GoalRunnerRunReport.Stopped -> linkedMapOf(
@@ -220,6 +309,9 @@ private fun goalRunText(payload: Map<String, Any?>): String = buildString {
   appendLine("status: ${payload["status"]}")
   appendLine("attempted_subtasks: ${(payload["attempted_subtasks"] as? List<*>).orEmpty().joinToString()}")
   payload["subtasks_completed"]?.let { appendLine("subtasks_completed: $it") }
+  payload["subtasks_pending"]?.let { appendLine("subtasks_pending: $it") }
+  payload["subtasks_blocked"]?.let { appendLine("subtasks_blocked: $it") }
+  payload["pull_request_status"]?.let { appendLine("pull_request_status: $it") }
   payload["pull_request_url"]?.let { appendLine("pull_request_url: $it") }
   payload["subtask_id"]?.let { appendLine("subtask_id: $it") }
   payload["reason"]?.let { appendLine("reason: $it") }
@@ -312,32 +404,16 @@ private fun goalResetText(payload: Map<String, Any?>): String = buildString {
     appendLine("before: status=${before["status"]}; current_subtask=${before["current_subtask"] ?: "none"}")
     appendLine("after: status=${after["status"]}; current_subtask=${after["current_subtask"] ?: "none"}")
     appendLine("before_subtasks:")
-    appendSubtaskLines(this, before["subtasks"] as? List<*>)
+    appendGoalResetSubtaskLines(this, before["subtasks"] as? List<*>)
     appendLine("after_subtasks:")
-    appendSubtaskLines(this, after["subtasks"] as? List<*>)
+    appendGoalResetSubtaskLines(this, after["subtasks"] as? List<*>)
   }
 }
-
-private fun appendSubtaskLines(builder: StringBuilder, subtasks: List<*>?) {
-  subtasks.orEmpty().forEach { raw ->
-    val subtask = raw as? Map<*, *> ?: return@forEach
-    builder.append("  - ")
-    builder.append("id=")
-    builder.append(subtask["id"])
-    builder.append("; status=")
-    builder.append(subtask["status"])
-    builder.append("; workflow_id=")
-    builder.append(subtask["workflow_id"] ?: "none")
-    builder.append("; commit_sha=")
-    builder.append(subtask["commit_sha"] ?: "none")
-    builder.append("; blocked_reason=")
-    builder.append(subtask["blocked_reason"] ?: "none")
-    builder.append("; last_resumable_step=")
-    builder.append(subtask["last_resumable_step"] ?: "none")
-    builder.append('\n')
-  }
-}
-
-private fun Map<String, Any?>.goalResetExitCode(): Int = if (this["status"] == "ok") 0 else 1
 
 private const val DEFAULT_GOAL_AGENT = "codex"
+private const val GOAL_LIVENESS_DURABLE_PROGRESS = "durable_progress"
+private const val GOAL_LIVENESS_FILE_ACTIVITY = "file_activity"
+private const val GOAL_LIVENESS_OUTPUT_ONLY = "output_only"
+private const val GOAL_LIVENESS_IDLE = "idle"
+private val GOAL_SUBTASK_REGEX = Regex("""\bsubtask\s+(\d+)\b""")
+private val GOAL_STEP_REGEX = Regex("""\bstep\s+([a-zA-Z0-9_-]+)\b""")

@@ -151,14 +151,41 @@ class CliGoalRuntimeTest {
     assertEquals(0, result.exitCode, result.stdout)
     assertContains(result.stdout, "status: complete")
     assertContains(result.stdout, "attempted_subtasks: 1, 2")
+    assertContains(result.stdout, "subtasks_pending: 0")
+    assertContains(result.stdout, "subtasks_blocked: 0")
+    assertContains(result.stdout, "pull_request_status: opened")
     assertContains(result.stdout, "pull_request_url: https://github.com/example/skill-bill/pull/901")
     assertEquals(listOf(1, 2), launcher.requests.map { it.skillRunRequest.subtaskId })
     assertContains(liveStdout.toString(), "goal SKILL-901: subtask 1 start")
     assertContains(liveStdout.toString(), "child-1-stdout")
-    assertContains(liveStdout.toString(), "goal SKILL-901: complete")
+    assertContains(liveStdout.toString(), "goal SKILL-901: completion confirmed")
     assertContains(liveStderr.toString(), "child-1-stderr")
     assertEquals(listOf(null, null), launcher.requests.map { it.skillRunRequest.timeout })
     assertEquals(1, fixture.pullRequests.requests.size)
+  }
+
+  @Test
+  fun `goal default live output emits structured heartbeat and hides raw child output`() {
+    val fixture = goalFixture(subtaskCount = 1)
+    val liveStdout = StringBuilder()
+    val liveStderr = StringBuilder()
+
+    val result = CliRuntime.run(
+      fixture.goalCommand(),
+      fixture.context(
+        launcher = GoalFixtureAgentRunLauncher(fixture),
+        liveStdout = { liveStdout.append(it) },
+        liveStderr = { liveStderr.append(it) },
+      ),
+    )
+
+    assertEquals(0, result.exitCode, result.stdout)
+    assertContains(
+      liveStdout.toString(),
+      "goal SKILL-901: heartbeat subtask=1 step=implement liveness=durable_progress",
+    )
+    assertEquals(false, liveStdout.toString().contains("child-1-stdout"), liveStdout.toString())
+    assertEquals(false, liveStderr.toString().contains("child-1-stderr"), liveStderr.toString())
   }
 
   @Test
@@ -415,6 +442,16 @@ private class GoalFixtureAgentRunLauncher(
     val subtaskId = requireNotNull(request.skillRunRequest.subtaskId)
     request.skillRunRequest.outputSink.write(AgentRunOutputStream.STDOUT, "child-$subtaskId-stdout\n")
     request.skillRunRequest.outputSink.write(AgentRunOutputStream.STDERR, "child-$subtaskId-stderr\n")
+    request.skillRunRequest.outputSink.write(
+      AgentRunOutputStream.STDERR,
+      "skill-bill: workflow progress: subtask $subtaskId " +
+        "workflow wfl-$subtaskId step implement durable_progress step=implement\n",
+    )
+    request.skillRunRequest.outputSink.write(
+      AgentRunOutputStream.STDERR,
+      "skill-bill: status heartbeat (90s): child run still active; workflow: " +
+        "subtask $subtaskId workflow wfl-$subtaskId step implement durable_progress\n",
+    )
     val dbPath = requireNotNull(request.skillRunRequest.dbPathOverride)
     val workflowId = startSubtaskWorkflow(subtaskId, dbPath)
     if (subtaskId == failSubtask) {
