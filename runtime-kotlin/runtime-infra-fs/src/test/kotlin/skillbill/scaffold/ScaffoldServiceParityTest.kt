@@ -182,6 +182,10 @@ class ScaffoldServiceParityTest {
       repo.resolve("platform-packs/php/code-review/bill-php-code-review-security/content.md"),
       pack.declaredFiles.areas.getValue("security"),
     )
+    val subagentNote = result.notes.single { note -> note.startsWith("Subagent bundle emitted:") }
+    assertContains(subagentNote, "content.md files")
+    assertFalse("native-agents/agents.yaml" in subagentNote)
+    assertFalse("TODO" in subagentNote)
   }
 
   @Test
