@@ -1,3 +1,12 @@
+## [2026-06-01] SKILL-61 subtask 3 cli-watch-status-diff-ux
+Areas: runtime-kotlin/runtime-cli, runtime-kotlin/runtime-application, runtime-kotlin/runtime-domain, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-infra-fs
+- Goal foreground output now emits default `goal_observability:` lines at the existing bounded heartbeat cadence while keeping raw child stdout/stderr hidden unless `--debug-child-output` is explicit. reusable
+- `goal status` and read-only `goal watch` render latest durable observability, optional diff stat, and explicit selected diff hunks as stable line-oriented records; watch refreshes status without launching child implementation runs. reusable
+- Selected diff hunk support is routed through `WorkflowGitOperations` with shared hunk/line/byte budgets across staged and unstaged reads; git output is drained asynchronously and huge lines are truncated within bounds to avoid pipe stalls. reusable
+- CLI tests now assert help/cost copy, diff-hunk option propagation, raw-output filtering, watch no-launch behavior, and large-output git drain regressions.
+Feature flag: N/A
+Acceptance criteria: 8/8 implemented
+
 ## [2026-06-01] SKILL-61 subtask 2 runtime-supervisor-worker-boundary
 Areas: runtime-kotlin/runtime-domain, runtime-kotlin/runtime-application, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-core
 - GoalRunner now emits lifecycle observability for subtask start/resume, phase/progress, heartbeat, file activity, worker output summaries, block, completion, and failure while keeping workflow-store state authoritative for active subtask, step, checkpoint, and terminal status. reusable

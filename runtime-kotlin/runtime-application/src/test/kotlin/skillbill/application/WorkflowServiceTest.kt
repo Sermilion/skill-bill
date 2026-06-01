@@ -245,6 +245,7 @@ class WorkflowServiceTest {
     assertEquals("editing runtime files", latest["activity_summary"])
     assertEquals(opened.workflowId, latest["workflow_id"])
     assertEquals(7, latest["sequence_number"])
+    assertEquals(mapOf("files_changed" to 0, "insertions" to 0, "deletions" to 0), latest["diff_stat"])
     assertEquals(1, history.size)
     assertTrue(ok.snapshot.artifacts.containsKey("progress_event"))
   }

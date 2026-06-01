@@ -7,6 +7,7 @@ import skillbill.application.model.GoalRunnerResetSnapshot
 import skillbill.application.model.GoalRunnerResetSubtaskSnapshot
 import skillbill.application.model.GoalRunnerStatusRequest
 import skillbill.goalrunner.model.GoalRunnerStatusProjection
+import skillbill.goalrunner.model.GoalRunnerStatusProjectionExtras
 import skillbill.goalrunner.model.GoalRunnerStatusProjector
 import skillbill.goalrunner.model.GoalRunnerStoredOutcome
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
@@ -14,6 +15,9 @@ import skillbill.install.model.InstallAgent
 import skillbill.ports.goalrunner.GoalRunnerManifestStore
 import skillbill.ports.goalrunner.GoalRunnerWorkflowOutcomeStore
 import skillbill.ports.goalrunner.model.GoalRunnerManifestState
+import skillbill.ports.workflow.NoopWorkflowGitOperations
+import skillbill.ports.workflow.WorkflowGitOperations
+import skillbill.ports.workflow.model.WorkflowSelectedDiffHunksRequest
 import skillbill.workflow.model.CurrentSubtaskIntent
 import skillbill.workflow.model.DecompositionManifest
 import skillbill.workflow.model.DecompositionSubtask
@@ -22,6 +26,7 @@ import skillbill.workflow.model.DecompositionSubtask
 class GoalRunnerStatusService(
   private val manifestStore: GoalRunnerManifestStore,
   private val outcomeStore: GoalRunnerWorkflowOutcomeStore,
+  private val gitOperations: WorkflowGitOperations = NoopWorkflowGitOperations,
 ) {
   fun status(request: GoalRunnerStatusRequest): GoalRunnerStatusProjection? {
     val effectiveAgent = request.configuredAgentOverrideId
@@ -47,11 +52,45 @@ class GoalRunnerStatusService(
         GoalRunnerStatusProjector.project(
           manifest = state.manifest,
           activeAgent = effectiveAgent.id,
-          currentStepOverride = progress?.currentStepId,
-          latestLivenessSignal = progress?.latestLivenessSignal,
-          latestObservabilityEvent = progress?.latestGoalObservabilityEvent?.toStatusMap(),
+          extras = GoalRunnerStatusProjectionExtras(
+            currentStepOverride = progress?.currentStepId,
+            latestLivenessSignal = progress?.latestLivenessSignal,
+            latestObservabilityEvent = progress?.latestGoalObservabilityEvent?.toStatusMap(),
+            requestedDiffStat = request.requestedDiffStat(),
+            selectedDiffHunks = request.requestedSelectedDiffHunks(),
+          ),
         )
       }
+  }
+
+  fun statusRefresh(request: GoalRunnerStatusRequest): GoalRunnerStatusProjection? = status(request)
+
+  private fun GoalRunnerStatusRequest.requestedDiffStat() = if (includeDiffStat) {
+    repoRoot
+      ?.let(gitOperations::worktreeActivity)
+      ?.takeIf { result -> result.ok }
+      ?.diffStat
+  } else {
+    null
+  }
+
+  private fun GoalRunnerStatusRequest.requestedSelectedDiffHunks() = if (selectedDiffHunkPaths.isNotEmpty()) {
+    repoRoot
+      ?.let { root ->
+        gitOperations.selectedDiffHunks(
+          root,
+          WorkflowSelectedDiffHunksRequest(
+            paths = selectedDiffHunkPaths,
+            maxHunks = selectedDiffMaxHunks,
+            maxLines = selectedDiffMaxLines,
+            maxBytes = selectedDiffMaxBytes,
+          ),
+        )
+      }
+      ?.takeIf { result -> result.ok }
+      ?.selectedDiffHunks
+  } else {
+    null
   }
 
   private fun persistReconciledManifestIfChanged(

@@ -39,6 +39,8 @@ import skillbill.ports.telemetry.TelemetrySettingsProvider
 import skillbill.ports.workflow.NoopWorkflowGitOperations
 import skillbill.ports.workflow.WorkflowGitOperations
 import skillbill.ports.workflow.model.WorkflowGitOperationResult
+import skillbill.ports.workflow.model.WorkflowSelectedDiffHunksRequest
+import skillbill.ports.workflow.model.WorkflowSelectedDiffHunksResult
 import skillbill.ports.workflow.model.WorkflowWorktreeActivityResult
 import skillbill.review.model.FeatureImplementWorkflowStats
 import skillbill.review.model.FeatureVerifyWorkflowStats
@@ -1420,6 +1422,11 @@ private class FakeWorkflowGitOperations(
 
   override fun worktreeActivity(repoRoot: Path): WorkflowWorktreeActivityResult =
     WorkflowWorktreeActivityResult(status = "ok")
+
+  override fun selectedDiffHunks(
+    repoRoot: Path,
+    request: WorkflowSelectedDiffHunksRequest,
+  ): WorkflowSelectedDiffHunksResult = WorkflowSelectedDiffHunksResult(status = "ok")
 }
 
 private fun learningRecord(id: Int, title: String = "Learning $id"): LearningRecord = LearningRecord(

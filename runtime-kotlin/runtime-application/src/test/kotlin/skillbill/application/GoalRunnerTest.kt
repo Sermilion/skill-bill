@@ -16,6 +16,7 @@ import skillbill.ports.goalrunner.GoalPullRequestPort
 import skillbill.ports.goalrunner.GoalRunnerManifestStore
 import skillbill.ports.goalrunner.GoalRunnerSubtaskLauncher
 import skillbill.ports.goalrunner.GoalRunnerWorkflowOutcomeStore
+import skillbill.ports.goalrunner.model.GoalObservabilityProgressEvent
 import skillbill.ports.goalrunner.model.GoalPullRequestRequest
 import skillbill.ports.goalrunner.model.GoalPullRequestResult
 import skillbill.ports.goalrunner.model.GoalRunnerManifestState
@@ -24,11 +25,14 @@ import skillbill.ports.goalrunner.model.GoalRunnerSubtaskLaunchRequest
 import skillbill.ports.goalrunner.model.GoalRunnerWorkflowProgress
 import skillbill.ports.workflow.WorkflowGitOperations
 import skillbill.ports.workflow.model.WorkflowGitOperationResult
+import skillbill.ports.workflow.model.WorkflowSelectedDiffHunksRequest
+import skillbill.ports.workflow.model.WorkflowSelectedDiffHunksResult
 import skillbill.ports.workflow.model.WorkflowWorktreeActivityResult
 import skillbill.workflow.model.CurrentSubtaskIntent
 import skillbill.workflow.model.DecompositionDependency
 import skillbill.workflow.model.DecompositionManifest
 import skillbill.workflow.model.DecompositionSubtask
+import skillbill.workflow.model.GoalObservabilityDiffStat
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertContains
@@ -408,6 +412,53 @@ class GoalRunnerTest {
     assertEquals("implement", status.currentStep)
     assertEquals("codex", status.activeAgent)
     assertEquals("durable_progress step=implement attempt=1", status.latestLivenessSignal)
+  }
+
+  @Test
+  fun `status projection includes latest observability and requested diff stat when present`() {
+    val store = InMemoryGoalManifestStore(
+      manifest = manifest(subtaskCount = 1)
+        .copy(status = "in_progress", currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "resume"))
+        .withWorkflowId(1, "wfl-1"),
+    )
+    val outcomes = RecordingOutcomeStore()
+    outcomes.progresses["wfl-1"] = GoalRunnerWorkflowProgress(
+      workflowId = "wfl-1",
+      workflowStatus = "running",
+      currentStepId = "implement",
+      progressToken = "child-progress-token",
+      latestGoalObservabilityEvent = GoalObservabilityProgressEvent(
+        issueKey = "SKILL-56",
+        subtaskId = 1,
+        workflowPhase = "implement",
+        workerRole = "phase_subagent",
+        livenessClass = "durable_progress",
+        activitySummary = "editing runtime files",
+        sequenceNumber = 42,
+        timestamp = "2026-06-01T00:00:00Z",
+      ),
+    )
+    val service = GoalRunnerStatusService(
+      manifestStore = store,
+      outcomeStore = outcomes,
+      gitOperations = StatusDiffGitOperations,
+    )
+
+    val status = service.status(
+      GoalRunnerStatusRequest(
+        issueKey = "SKILL-56",
+        invokedAgentId = "codex",
+        repoRoot = Path.of("."),
+        includeDiffStat = true,
+      ),
+    )
+
+    requireNotNull(status)
+    assertEquals("implement", status.latestObservabilityEvent?.get("workflow_phase"))
+    assertEquals(42, status.latestObservabilityEvent?.get("sequence_number"))
+    assertEquals(2, status.requestedDiffStat?.filesChanged)
+    assertEquals(5, status.requestedDiffStat?.insertions)
+    assertEquals(1, status.requestedDiffStat?.deletions)
   }
 
   @Test
@@ -1038,6 +1089,41 @@ private class FixedBranchGitOperations(
 
   override fun worktreeActivity(repoRoot: Path): WorkflowWorktreeActivityResult =
     WorkflowWorktreeActivityResult(status = "ok")
+
+  override fun selectedDiffHunks(
+    repoRoot: Path,
+    request: WorkflowSelectedDiffHunksRequest,
+  ): WorkflowSelectedDiffHunksResult = WorkflowSelectedDiffHunksResult(status = "ok")
+}
+
+private object StatusDiffGitOperations : WorkflowGitOperations {
+  override fun checkoutBranch(repoRoot: Path, branch: String, baseBranch: String?): WorkflowGitOperationResult =
+    WorkflowGitOperationResult(status = "ok", value = branch)
+
+  override fun currentBranch(repoRoot: Path): WorkflowGitOperationResult =
+    WorkflowGitOperationResult(status = "ok", value = "main")
+
+  override fun createCommit(repoRoot: Path, message: String): WorkflowGitOperationResult =
+    WorkflowGitOperationResult(status = "ok", value = "sha-test")
+
+  override fun validateBranchBase(
+    repoRoot: Path,
+    branch: String,
+    expectedBaseBranch: String,
+  ): WorkflowGitOperationResult = WorkflowGitOperationResult(status = "ok", value = expectedBaseBranch)
+
+  override fun worktreeStatus(repoRoot: Path): WorkflowGitOperationResult =
+    WorkflowGitOperationResult(status = "ok", value = "")
+
+  override fun worktreeActivity(repoRoot: Path): WorkflowWorktreeActivityResult = WorkflowWorktreeActivityResult(
+    status = "ok",
+    diffStat = GoalObservabilityDiffStat(filesChanged = 2, insertions = 5, deletions = 1),
+  )
+
+  override fun selectedDiffHunks(
+    repoRoot: Path,
+    request: WorkflowSelectedDiffHunksRequest,
+  ): WorkflowSelectedDiffHunksResult = WorkflowSelectedDiffHunksResult(status = "ok")
 }
 
 private class RecordingGitOperations(
@@ -1075,6 +1161,11 @@ private class RecordingGitOperations(
 
   override fun worktreeActivity(repoRoot: Path): WorkflowWorktreeActivityResult =
     WorkflowWorktreeActivityResult(status = "ok")
+
+  override fun selectedDiffHunks(
+    repoRoot: Path,
+    request: WorkflowSelectedDiffHunksRequest,
+  ): WorkflowSelectedDiffHunksResult = WorkflowSelectedDiffHunksResult(status = "ok")
 }
 
 private fun manifest(subtaskCount: Int): DecompositionManifest = DecompositionManifest(

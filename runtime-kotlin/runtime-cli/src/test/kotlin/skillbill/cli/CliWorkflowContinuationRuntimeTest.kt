@@ -3,6 +3,8 @@ package skillbill.cli
 import skillbill.contracts.JsonSupport
 import skillbill.ports.workflow.WorkflowGitOperations
 import skillbill.ports.workflow.model.WorkflowGitOperationResult
+import skillbill.ports.workflow.model.WorkflowSelectedDiffHunksRequest
+import skillbill.ports.workflow.model.WorkflowSelectedDiffHunksResult
 import skillbill.ports.workflow.model.WorkflowWorktreeActivityResult
 import java.nio.file.Files
 import java.nio.file.Path
@@ -164,4 +166,9 @@ private object TestWorkflowGitOperations : WorkflowGitOperations {
 
   override fun worktreeActivity(repoRoot: Path): WorkflowWorktreeActivityResult =
     WorkflowWorktreeActivityResult(status = "ok")
+
+  override fun selectedDiffHunks(
+    repoRoot: Path,
+    request: WorkflowSelectedDiffHunksRequest,
+  ): WorkflowSelectedDiffHunksResult = WorkflowSelectedDiffHunksResult(status = "ok")
 }

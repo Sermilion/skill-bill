@@ -1718,6 +1718,7 @@ class RuntimeArchitectureTest {
       "skillbill.workflow.model.goalObservabilityLatestEventFromArtifacts",
       "skillbill.workflow.model.goalObservabilityHistoryFromArtifacts",
       "skillbill.goalrunner.model.GoalRunnerStatusProjection.latestObservabilityEvent",
+      "skillbill.goalrunner.model.GoalRunnerStatusProjectionExtras.latestObservabilityEvent",
       "skillbill.goalrunner.model.GoalRunnerStatusProjector.project",
       // SKILL-52.2 subtask 2: the 11 scaffold input raw-map allow-list entries — the two public
       // application + port `scaffold(payload, dryRun)` overloads on

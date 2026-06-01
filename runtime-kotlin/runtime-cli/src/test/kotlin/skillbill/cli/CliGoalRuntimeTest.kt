@@ -12,7 +12,12 @@ import skillbill.ports.goalrunner.model.GoalPullRequestRequest
 import skillbill.ports.goalrunner.model.GoalPullRequestResult
 import skillbill.ports.workflow.WorkflowGitOperations
 import skillbill.ports.workflow.model.WorkflowGitOperationResult
+import skillbill.ports.workflow.model.WorkflowSelectedDiffHunksRequest
+import skillbill.ports.workflow.model.WorkflowSelectedDiffHunksResult
 import skillbill.ports.workflow.model.WorkflowWorktreeActivityResult
+import skillbill.workflow.model.GoalObservabilityDiffStat
+import skillbill.workflow.model.GoalObservabilitySelectedDiffHunk
+import skillbill.workflow.model.GoalObservabilitySelectedDiffHunks
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
@@ -28,7 +33,25 @@ class CliGoalRuntimeTest {
     assertEquals(0, result.exitCode, result.stdout)
     assertContains(result.stdout, "Run a decomposed goal in the foreground.")
     assertContains(result.stdout, "status")
+    assertContains(result.stdout, "watch")
     assertContains(result.stdout, "reset")
+    assertContains(result.stdout, "--debug-child-output")
+    assertContains(result.stdout, "raw child streams hidden")
+  }
+
+  @Test
+  fun `goal status help documents diff observability cost controls`() {
+    val status = CliRuntime.run(listOf("goal", "status", "--help"), CliRuntimeContext())
+    val watch = CliRuntime.run(listOf("goal", "watch", "--help"), CliRuntimeContext())
+
+    assertEquals(0, status.exitCode, status.stdout)
+    assertContains(status.stdout, "--diff-stat")
+    assertContains(status.stdout, "Runs git diff --numstat once")
+    assertContains(status.stdout, "--diff-hunk")
+    assertContains(status.stdout, "noisier")
+    assertEquals(0, watch.exitCode, watch.stdout)
+    assertContains(watch.stdout, "--interval-seconds")
+    assertContains(watch.stdout, "repeated git cost")
   }
 
   @Test
@@ -187,10 +210,155 @@ class CliGoalRuntimeTest {
       liveStdout.toString(),
       "goal SKILL-901: heartbeat subtask=1 step=implement liveness=durable_progress",
     )
+    assertContains(
+      liveStdout.toString(),
+      "goal_observability: issue_key=SKILL-901 subtask_id=1 workflow_phase=implement " +
+        "worker_role=foreground liveness_class=durable_progress sequence_number=1",
+    )
     assertContains(liveStdout.toString(), "goal SKILL-901: runtime executable=")
     assertContains(liveStdout.toString(), "version=0.1.0 build_id=0.1.0")
     assertEquals(false, liveStdout.toString().contains("child-1-stdout"), liveStdout.toString())
     assertEquals(false, liveStderr.toString().contains("child-1-stderr"), liveStderr.toString())
+  }
+
+  @Test
+  fun `goal status includes latest observability and requested diff lines`() {
+    val fixture = goalFixture(subtaskCount = 1)
+    val gitOperations = RecordingGoalTestWorkflowGitOperations()
+    val childWorkflowId = startRunningGoalChild(fixture)
+    runGoalJson(
+      workflowUpdateCommand(
+        WorkflowUpdateFixture(
+          dbPath = fixture.dbPath,
+          workflowId = childWorkflowId,
+          currentStep = "implement",
+          stepUpdates = """[{"step_id":"implement","status":"running","attempt_count":1}]""",
+          artifactsPatch = jsonString(
+            mapOf(
+              "progress_event" to mapOf(
+                "step_id" to "implement",
+                "attempt_count" to 1,
+                "source" to "phase_subagent",
+                "kind" to "durable_progress",
+                "message" to "editing runtime files",
+                "sequence" to 8,
+                "timestamp" to "2026-06-01T00:00:00Z",
+              ),
+            ),
+          ),
+        ),
+      ),
+      fixture.context(launcher = NoopGoalTestAgentRunLauncher),
+    )
+
+    val status = CliRuntime.run(
+      listOf(
+        "--db",
+        fixture.dbPath.toString(),
+        "goal",
+        "status",
+        "SKILL-901",
+        "--agent",
+        "codex",
+        "--repo-root",
+        fixture.tempDir.toString(),
+        "--diff-stat",
+        "--diff-hunk",
+        "runtime-kotlin/runtime-cli/src/main/kotlin/skillbill/cli/GoalCliCommands.kt",
+        "--diff-hunk-max-hunks",
+        "2",
+        "--diff-hunk-max-lines",
+        "3",
+        "--diff-hunk-max-bytes",
+        "40",
+      ),
+      fixture.context(launcher = NoopGoalTestAgentRunLauncher, workflowGitOperations = gitOperations),
+    )
+
+    assertEquals(0, status.exitCode, status.stdout)
+    assertContains(status.stdout, "latest_observability: phase=implement role=phase_subagent")
+    assertContains(status.stdout, "diff_stat: files_changed=1 insertions=2 deletions=1")
+    assertContains(status.stdout, "selected_diff_hunks: count=1 truncated=false")
+    assertContains(status.stdout, "selected_diff_line: hunk_index=1 line_index=2")
+    assertEquals(Triple(2, 3, 40), gitOperations.selectedDiffRequests.single().limits())
+  }
+
+  @Test
+  fun `goal watch passes selected diff bounds to every refresh`() {
+    val fixture = goalFixture(subtaskCount = 1)
+    val gitOperations = RecordingGoalTestWorkflowGitOperations()
+
+    val watch = CliRuntime.run(
+      listOf(
+        "--db",
+        fixture.dbPath.toString(),
+        "goal",
+        "watch",
+        "SKILL-901",
+        "--agent",
+        "codex",
+        "--repo-root",
+        fixture.tempDir.toString(),
+        "--interval-seconds",
+        "0",
+        "--max-refreshes",
+        "2",
+        "--diff-hunk",
+        "runtime-kotlin/runtime-cli/src/main/kotlin/skillbill/cli/GoalCliCommands.kt",
+        "--diff-hunk-max-hunks",
+        "4",
+        "--diff-hunk-max-lines",
+        "5",
+        "--diff-hunk-max-bytes",
+        "60",
+      ),
+      fixture.context(launcher = NoopGoalTestAgentRunLauncher, workflowGitOperations = gitOperations),
+    )
+
+    assertEquals(0, watch.exitCode, watch.stdout)
+    assertEquals(2, gitOperations.selectedDiffRequests.size)
+    gitOperations.selectedDiffRequests.forEach { request ->
+      assertEquals(4, request.maxHunks)
+      assertEquals(5, request.maxLines)
+      assertEquals(60, request.maxBytes)
+    }
+  }
+
+  @Test
+  fun `goal watch refreshes read-only status without launching child runs`() {
+    val fixture = goalFixture(subtaskCount = 1)
+    val launcher = GoalFixtureAgentRunLauncher(fixture)
+    val liveStdout = StringBuilder()
+
+    val watch = CliRuntime.run(
+      listOf(
+        "--db",
+        fixture.dbPath.toString(),
+        "goal",
+        "watch",
+        "SKILL-901",
+        "--agent",
+        "codex",
+        "--repo-root",
+        fixture.tempDir.toString(),
+        "--interval-seconds",
+        "0",
+        "--max-refreshes",
+        "2",
+        "--diff-stat",
+      ),
+      fixture.context(launcher = launcher, liveStdout = { liveStdout.append(it) }),
+    )
+
+    assertEquals(0, watch.exitCode, watch.stdout)
+    assertContains(liveStdout.toString(), "watch_refresh: index=1 status=ok")
+    assertEquals(false, watch.stdout.contains("watch_refresh: index=1 status=ok"), watch.stdout)
+    assertContains(watch.stdout, "watch_refresh: index=2 status=ok")
+    assertContains(liveStdout.toString(), "watch_diff_stat: index=1 files_changed=1 insertions=2 deletions=1")
+    assertContains(watch.stdout, "watch_diff_stat: index=2 files_changed=1 insertions=2 deletions=1")
+    assertEquals(null, watch.payload?.get("refreshes"))
+    assertEquals(2, (watch.payload?.get("latest_refresh") as? Map<*, *>)?.get("refresh_index"))
+    assertEquals(emptyList(), launcher.requests)
   }
 
   @Test
@@ -414,9 +582,10 @@ private data class GoalCliFixture(
     launcher: AgentRunLauncher,
     liveStdout: (String) -> Unit = {},
     liveStderr: (String) -> Unit = {},
+    workflowGitOperations: WorkflowGitOperations = GoalTestWorkflowGitOperations,
   ): CliRuntimeContext = CliRuntimeContext(
     userHome = tempDir,
-    workflowGitOperations = GoalTestWorkflowGitOperations,
+    workflowGitOperations = workflowGitOperations,
     agentRunLauncher = launcher,
     goalPullRequestPort = pullRequests,
     liveStdout = liveStdout,
@@ -658,6 +827,41 @@ private object GoalTestWorkflowGitOperations : WorkflowGitOperations {
   override fun worktreeStatus(repoRoot: Path): WorkflowGitOperationResult =
     WorkflowGitOperationResult(status = "ok", value = "")
 
-  override fun worktreeActivity(repoRoot: Path): WorkflowWorktreeActivityResult =
-    WorkflowWorktreeActivityResult(status = "ok")
+  override fun worktreeActivity(repoRoot: Path): WorkflowWorktreeActivityResult = WorkflowWorktreeActivityResult(
+    status = "ok",
+    diffStat = GoalObservabilityDiffStat(filesChanged = 1, insertions = 2, deletions = 1),
+  )
+
+  override fun selectedDiffHunks(
+    repoRoot: Path,
+    request: WorkflowSelectedDiffHunksRequest,
+  ): WorkflowSelectedDiffHunksResult = WorkflowSelectedDiffHunksResult(
+    status = "ok",
+    selectedDiffHunks = GoalObservabilitySelectedDiffHunks(
+      hunks = listOf(
+        GoalObservabilitySelectedDiffHunk(
+          path = request.paths.firstOrNull().orEmpty(),
+          staged = false,
+          header = "@@ -1 +1 @@",
+          lines = listOf("-old", "+new"),
+          truncated = false,
+        ),
+      ),
+      truncated = false,
+    ),
+  )
 }
+
+private class RecordingGoalTestWorkflowGitOperations : WorkflowGitOperations by GoalTestWorkflowGitOperations {
+  val selectedDiffRequests: MutableList<WorkflowSelectedDiffHunksRequest> = mutableListOf()
+
+  override fun selectedDiffHunks(
+    repoRoot: Path,
+    request: WorkflowSelectedDiffHunksRequest,
+  ): WorkflowSelectedDiffHunksResult {
+    selectedDiffRequests += request
+    return GoalTestWorkflowGitOperations.selectedDiffHunks(repoRoot, request)
+  }
+}
+
+private fun WorkflowSelectedDiffHunksRequest.limits(): Triple<Int, Int, Int> = Triple(maxHunks, maxLines, maxBytes)

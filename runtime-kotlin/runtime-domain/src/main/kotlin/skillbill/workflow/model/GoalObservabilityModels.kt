@@ -30,6 +30,19 @@ data class GoalObservabilityFileDiffStat(
   val deletions: Int,
 )
 
+data class GoalObservabilitySelectedDiffHunk(
+  val path: String,
+  val staged: Boolean,
+  val header: String,
+  val lines: List<String>,
+  val truncated: Boolean,
+)
+
+data class GoalObservabilitySelectedDiffHunks(
+  val hunks: List<GoalObservabilitySelectedDiffHunk> = emptyList(),
+  val truncated: Boolean = false,
+)
+
 data class GoalObservabilityEvent(
   val issueKey: String,
   val subtaskId: Int,

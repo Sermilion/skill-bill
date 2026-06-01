@@ -3,11 +3,17 @@ package skillbill.infrastructure.fs
 import me.tatarka.inject.annotations.Inject
 import skillbill.ports.workflow.WorkflowGitOperations
 import skillbill.ports.workflow.model.WorkflowGitOperationResult
+import skillbill.ports.workflow.model.WorkflowSelectedDiffHunksRequest
+import skillbill.ports.workflow.model.WorkflowSelectedDiffHunksResult
 import skillbill.ports.workflow.model.WorkflowWorktreeActivityResult
 import skillbill.workflow.model.GoalObservabilityChangedFileSummary
 import skillbill.workflow.model.GoalObservabilityDiffStat
+import skillbill.workflow.model.GoalObservabilitySelectedDiffHunk
+import skillbill.workflow.model.GoalObservabilitySelectedDiffHunks
+import java.io.IOException
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
+import kotlin.concurrent.thread
 
 private const val GIT_TIMEOUT_SECONDS = 30L
 
@@ -74,27 +80,53 @@ class GitWorkflowGitOperations : WorkflowGitOperations {
     )
   }
 
+  override fun selectedDiffHunks(
+    repoRoot: Path,
+    request: WorkflowSelectedDiffHunksRequest,
+  ): WorkflowSelectedDiffHunksResult {
+    if (request.paths.isEmpty() || (!request.includeStaged && !request.includeUnstaged)) {
+      return WorkflowSelectedDiffHunksResult(status = "ok")
+    }
+    val chunks = mutableListOf<GoalObservabilitySelectedDiffHunk>()
+    val results = mutableListOf<WorkflowSelectedDiffHunksResult>()
+    val budget = SelectedDiffBudget(request)
+    if (request.includeUnstaged) {
+      results += appendSelectedDiffHunks(repoRoot, request, staged = false, chunks = chunks, budget = budget)
+    }
+    if (
+      request.includeStaged &&
+      results.all(WorkflowSelectedDiffHunksResult::ok) &&
+      results.none { result -> result.selectedDiffHunks.truncated }
+    ) {
+      results += appendSelectedDiffHunks(repoRoot, request, staged = true, chunks = chunks, budget = budget)
+    }
+    val errorResult = results.firstOrNull { result -> !result.ok }
+    return errorResult ?: WorkflowSelectedDiffHunksResult(
+      status = "ok",
+      selectedDiffHunks = GoalObservabilitySelectedDiffHunks(
+        hunks = chunks,
+        truncated = results.any { result -> result.selectedDiffHunks.truncated },
+      ),
+    )
+  }
+
   private fun runGit(repoRoot: Path, vararg args: String): WorkflowGitOperationResult = runGit(repoRoot, args.toList())
 
   private fun runGit(repoRoot: Path, args: List<String>): WorkflowGitOperationResult {
-    val process = ProcessBuilder(listOf("git", "-C", repoRoot.toString()) + args)
-      .redirectErrorStream(true)
-      .start()
-    val finished = process.waitFor(GIT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-    val output = process.inputStream.bufferedReader().readText().trim()
-    if (!finished) {
-      process.destroyForcibly()
-      return WorkflowGitOperationResult(
+    val result = runGitProcess(repoRoot, args)
+    return when {
+      result.timedOut -> WorkflowGitOperationResult(
         status = "error",
         error = "git ${args.joinToString(" ")} timed out after ${GIT_TIMEOUT_SECONDS}s.",
       )
-    }
-    return if (process.exitValue() == 0) {
-      WorkflowGitOperationResult(status = "ok", value = output)
-    } else {
-      WorkflowGitOperationResult(
+      result.readFailure != null -> WorkflowGitOperationResult(
         status = "error",
-        error = "git ${args.joinToString(" ")} failed with exit code ${process.exitValue()}: $output",
+        error = result.readFailure.message.orEmpty(),
+      )
+      result.exitCode == 0 -> WorkflowGitOperationResult(status = "ok", value = result.output)
+      else -> WorkflowGitOperationResult(
+        status = "error",
+        error = "git ${args.joinToString(" ")} failed with exit code ${result.exitCode}: ${result.output}",
       )
     }
   }
@@ -119,24 +151,53 @@ private fun runCatchingDiffStat(repoRoot: Path, vararg args: String): GoalObserv
 }
 
 private fun runGitForActivity(repoRoot: Path, args: List<String>): WorkflowGitOperationResult {
-  val process = ProcessBuilder(listOf("git", "-C", repoRoot.toString()) + args)
-    .redirectErrorStream(true)
-    .start()
-  val finished = process.waitFor(GIT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-  val output = process.inputStream.bufferedReader().readText().trim()
-  if (!finished) {
-    process.destroyForcibly()
-    return WorkflowGitOperationResult(
+  val result = runGitProcess(repoRoot, args)
+  return when {
+    result.timedOut -> WorkflowGitOperationResult(
       status = "error",
       error = "git ${args.joinToString(" ")} timed out after ${GIT_TIMEOUT_SECONDS}s.",
     )
-  }
-  return if (process.exitValue() == 0) {
-    WorkflowGitOperationResult(status = "ok", value = output)
-  } else {
-    WorkflowGitOperationResult(status = "error", error = output)
+    result.readFailure != null -> WorkflowGitOperationResult(
+      status = "error",
+      error = result.readFailure.message.orEmpty(),
+    )
+    result.exitCode == 0 -> WorkflowGitOperationResult(status = "ok", value = result.output)
+    else -> WorkflowGitOperationResult(status = "error", error = result.output)
   }
 }
+
+private fun runGitProcess(repoRoot: Path, args: List<String>): GitProcessResult {
+  val process = ProcessBuilder(listOf("git", "-C", repoRoot.toString()) + args)
+    .redirectErrorStream(true)
+    .start()
+  val output = StringBuilder()
+  var readFailure: IOException? = null
+  val outputThread = thread(start = true, name = "skill-bill-git-output") {
+    try {
+      process.inputStream.bufferedReader().use { reader ->
+        output.append(reader.readText())
+      }
+    } catch (error: IOException) {
+      readFailure = error
+    }
+  }
+  val finished = process.waitFor(GIT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+  return if (!finished) {
+    process.destroyForcibly()
+    closeInputAndJoin(process, outputThread)
+    GitProcessResult(output = output.toString().trim(), readFailure = readFailure, timedOut = true)
+  } else {
+    outputThread.join()
+    GitProcessResult(output = output.toString().trim(), readFailure = readFailure, exitCode = process.exitValue())
+  }
+}
+
+private data class GitProcessResult(
+  val output: String,
+  val readFailure: IOException?,
+  val timedOut: Boolean = false,
+  val exitCode: Int = -1,
+)
 
 private fun parseChangedFileSummary(statusOutput: String): GoalObservabilityChangedFileSummary {
   var added = 0
@@ -192,8 +253,289 @@ private fun parseDiffStat(numstatOutput: String): GoalObservabilityDiffStat {
   return GoalObservabilityDiffStat(filesChanged = filesChanged, insertions = insertions, deletions = deletions)
 }
 
+private fun appendSelectedDiffHunks(
+  repoRoot: Path,
+  request: WorkflowSelectedDiffHunksRequest,
+  staged: Boolean,
+  chunks: MutableList<GoalObservabilitySelectedDiffHunk>,
+  budget: SelectedDiffBudget,
+): WorkflowSelectedDiffHunksResult {
+  val args = if (staged) {
+    listOf("diff", "--cached", "--unified=3", "--") + request.paths
+  } else {
+    listOf("diff", "--unified=3", "--") + request.paths
+  }
+  val result = readSelectedDiffHunks(
+    repoRoot = repoRoot,
+    args = args,
+    staged = staged,
+    budget = budget,
+  )
+  if (!result.ok) {
+    return WorkflowSelectedDiffHunksResult(status = "error", error = result.error)
+  }
+  chunks += result.hunks.hunks
+  return WorkflowSelectedDiffHunksResult(status = "ok", selectedDiffHunks = result.hunks)
+}
+
+private fun readSelectedDiffHunks(
+  repoRoot: Path,
+  args: List<String>,
+  staged: Boolean,
+  budget: SelectedDiffBudget,
+): SelectedDiffReadResult {
+  val process = ProcessBuilder(listOf("git", "-C", repoRoot.toString()) + args)
+    .redirectErrorStream(true)
+    .start()
+  val parser = SelectedDiffHunkParser(staged, budget)
+  val errorOutput = StringBuilder()
+  var readFailure: IOException? = null
+  val outputThread = thread(start = true, name = "skill-bill-selected-diff-output") {
+    try {
+      process.inputStream.bufferedReader().use { reader ->
+        var keepReading = true
+        while (keepReading) {
+          val line = reader.readBoundedDiffLine(budget.readLineMaxBytes)
+          if (line == null) {
+            keepReading = false
+          } else {
+            line.appendTo(errorOutput)
+            parser.consume(line.text, line.truncated)
+            if (parser.truncated) {
+              process.destroyForcibly()
+              keepReading = false
+            }
+          }
+        }
+      }
+    } catch (error: IOException) {
+      if (!parser.truncated) {
+        readFailure = error
+      }
+    }
+  }
+  val finished = process.waitFor(GIT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+  val result = if (!finished) {
+    process.destroyForcibly()
+    closeInputAndJoin(process, outputThread)
+    SelectedDiffReadResult(
+      status = "error",
+      error = "git ${args.joinToString(" ")} timed out after ${GIT_TIMEOUT_SECONDS}s.",
+    )
+  } else {
+    outputThread.join()
+    val failure = readFailure
+    val parsed = parser.result()
+    when {
+      failure != null -> SelectedDiffReadResult(status = "error", error = failure.message.orEmpty())
+      !parsed.truncated && process.exitValue() != 0 ->
+        SelectedDiffReadResult(status = "error", error = errorOutput.toString().trim())
+      else -> SelectedDiffReadResult(status = "ok", hunks = parsed)
+    }
+  }
+  return result
+}
+
+private data class SelectedDiffReadResult(
+  val status: String,
+  val hunks: GoalObservabilitySelectedDiffHunks = GoalObservabilitySelectedDiffHunks(),
+  val error: String = "",
+) {
+  val ok: Boolean get() = status == "ok"
+}
+
+private fun closeInputAndJoin(process: Process, outputThread: Thread) {
+  outputThread.join(GIT_OUTPUT_THREAD_JOIN_MILLIS)
+  if (outputThread.isAlive) {
+    process.inputStream.close()
+    outputThread.join(GIT_OUTPUT_THREAD_JOIN_MILLIS)
+  }
+}
+
+private data class BoundedDiffLine(
+  val text: String,
+  val truncated: Boolean,
+) {
+  fun appendTo(output: StringBuilder) {
+    if (output.length >= GIT_ERROR_OUTPUT_LIMIT) {
+      return
+    }
+    val remaining = GIT_ERROR_OUTPUT_LIMIT - output.length
+    if (text.length + 1 <= remaining) {
+      output.append(text).append('\n')
+    } else {
+      output.append(text.take(remaining))
+    }
+  }
+}
+
+private fun java.io.BufferedReader.readBoundedDiffLine(maxBytes: Int): BoundedDiffLine? {
+  val line = StringBuilder()
+  var bytes = 0
+  var sawContent = false
+  var truncated = false
+  var complete = false
+  while (!complete) {
+    val next = read()
+    when {
+      next == -1 -> complete = true
+      next.toChar() == '\n' -> {
+        sawContent = true
+        complete = true
+      }
+      else -> {
+        sawContent = true
+        val char = next.toChar()
+        val charBytes = char.toString().toByteArray().size
+        if (bytes + charBytes > maxBytes) {
+          truncated = true
+          complete = true
+        } else {
+          line.append(char)
+          bytes += charBytes
+        }
+      }
+    }
+  }
+  return if (sawContent) BoundedDiffLine(line.toString(), truncated = truncated) else null
+}
+
+private class SelectedDiffBudget(
+  request: WorkflowSelectedDiffHunksRequest,
+) {
+  private val maxHunks = request.maxHunks
+  private val maxLines = request.maxLines
+  val maxBytes = request.maxBytes
+  val readLineMaxBytes = maxOf(maxBytes, GIT_SELECTED_DIFF_MIN_READ_LINE_BYTES)
+  var hunkCount: Int = 0
+    private set
+  private var lineCount: Int = 0
+  private var byteCount: Int = 0
+
+  fun canStartHunk(): Boolean = hunkCount < maxHunks
+
+  fun recordHunk() {
+    hunkCount += 1
+  }
+
+  fun tryRecordLine(line: String): SelectedDiffLineRecord {
+    val nextBytes = line.toByteArray().size + 1
+    if (lineCount >= maxLines || byteCount + nextBytes > maxBytes) {
+      return tryRecordTruncatedLine(line)
+    }
+    lineCount += 1
+    byteCount += nextBytes
+    return SelectedDiffLineRecord(line = line, truncated = false)
+  }
+
+  private fun tryRecordTruncatedLine(line: String): SelectedDiffLineRecord {
+    var recordedLine: String? = null
+    val remainingLineBytes = maxBytes - byteCount - 1
+    if (lineCount < maxLines && remainingLineBytes > 0) {
+      val truncatedLine = utf8Prefix(line, remainingLineBytes)
+      if (truncatedLine.isNotEmpty() || line.isEmpty()) {
+        lineCount += 1
+        byteCount += truncatedLine.toByteArray().size + 1
+        recordedLine = truncatedLine
+      }
+    }
+    return SelectedDiffLineRecord(line = recordedLine, truncated = true)
+  }
+
+  private fun utf8Prefix(line: String, maxBytes: Int): String {
+    val prefix = StringBuilder()
+    var bytes = 0
+    for (char in line) {
+      val charBytes = char.toString().toByteArray().size
+      if (bytes + charBytes > maxBytes) {
+        break
+      }
+      prefix.append(char)
+      bytes += charBytes
+    }
+    return prefix.toString()
+  }
+}
+
+private data class SelectedDiffLineRecord(
+  val line: String? = null,
+  val truncated: Boolean,
+)
+
+private class SelectedDiffHunkParser(
+  private val staged: Boolean,
+  private val budget: SelectedDiffBudget,
+) {
+  private val hunks = mutableListOf<GoalObservabilitySelectedDiffHunk>()
+  private val currentLines = mutableListOf<String>()
+  private var currentPath = ""
+  private var currentHeader: String? = null
+  var truncated: Boolean = false
+    private set
+
+  fun consume(line: String, lineTruncated: Boolean = false) {
+    if (lineTruncated) {
+      truncated = true
+    }
+    when {
+      line.startsWith("diff --git ") -> startFile(line)
+      line.startsWith("@@") -> startHunk(line)
+      currentHeader != null && !line.startsWith("\\ No newline at end of file") -> appendLine(line, lineTruncated)
+    }
+  }
+
+  fun result(): GoalObservabilitySelectedDiffHunks {
+    flushCurrent()
+    return GoalObservabilitySelectedDiffHunks(hunks = hunks, truncated = truncated)
+  }
+
+  private fun startFile(line: String) {
+    flushCurrent()
+    currentPath = line.substringAfter(" b/", missingDelimiterValue = "")
+  }
+
+  private fun startHunk(line: String) {
+    flushCurrent()
+    if (!budget.canStartHunk()) {
+      truncated = true
+    } else {
+      currentHeader = line
+    }
+  }
+
+  private fun appendLine(line: String, lineTruncated: Boolean) {
+    val record = budget.tryRecordLine(line)
+    val recordedLine = record.line
+    if (recordedLine != null) {
+      currentLines += recordedLine
+    }
+    if (lineTruncated || record.truncated) {
+      truncated = true
+    }
+  }
+
+  private fun flushCurrent() {
+    val header = currentHeader
+    if (header != null && currentPath.isNotBlank()) {
+      budget.recordHunk()
+      hunks += GoalObservabilitySelectedDiffHunk(
+        path = currentPath,
+        staged = staged,
+        header = header,
+        lines = currentLines.toList(),
+        truncated = truncated,
+      )
+    }
+    currentHeader = null
+    currentLines.clear()
+  }
+}
+
 private const val GIT_STATUS_MIN_LENGTH = 4
 private const val GIT_STATUS_CODE_LENGTH = 2
 private const val GIT_STATUS_PATH_OFFSET = 3
 private const val GIT_CHANGED_FILE_SAMPLE_LIMIT = 10
 private const val GIT_NUMSTAT_PART_LIMIT = 3
+private const val GIT_ERROR_OUTPUT_LIMIT = 4_000
+private const val GIT_SELECTED_DIFF_MIN_READ_LINE_BYTES = 4_096
+private const val GIT_OUTPUT_THREAD_JOIN_MILLIS = 1_000L

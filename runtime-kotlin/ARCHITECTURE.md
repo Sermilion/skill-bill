@@ -400,6 +400,7 @@ runtime-ports
     - `skillbill.workflow.model.goalObservabilityLatestEventFromArtifacts`
     - `skillbill.workflow.model.goalObservabilityHistoryFromArtifacts`
     - `skillbill.goalrunner.model.GoalRunnerStatusProjection.latestObservabilityEvent`
+    - `skillbill.goalrunner.model.GoalRunnerStatusProjectionExtras.latestObservabilityEvent`
     - `skillbill.goalrunner.model.GoalRunnerStatusProjector.project`
     - `skillbill.application.lifecycleOkPayload`
     - `skillbill.application.lifecycleSkippedPayload`
@@ -753,6 +754,7 @@ Categories:
 - `skillbill.workflow.model.goalObservabilityLatestEventFromArtifacts`
 - `skillbill.workflow.model.goalObservabilityHistoryFromArtifacts`
 - `skillbill.goalrunner.model.GoalRunnerStatusProjection.latestObservabilityEvent`
+- `skillbill.goalrunner.model.GoalRunnerStatusProjectionExtras.latestObservabilityEvent`
 - `skillbill.goalrunner.model.GoalRunnerStatusProjector.project`
 - `skillbill.application.model.WorkflowUpdateRequest.stepUpdates`
 - `skillbill.application.model.WorkflowUpdateRequest.artifactsPatch`

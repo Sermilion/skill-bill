@@ -1,9 +1,12 @@
 package skillbill.ports.workflow
 
 import skillbill.ports.workflow.model.WorkflowGitOperationResult
+import skillbill.ports.workflow.model.WorkflowSelectedDiffHunksRequest
+import skillbill.ports.workflow.model.WorkflowSelectedDiffHunksResult
 import skillbill.ports.workflow.model.WorkflowWorktreeActivityResult
 import skillbill.workflow.model.GoalObservabilityChangedFileSummary
 import skillbill.workflow.model.GoalObservabilityDiffStat
+import skillbill.workflow.model.GoalObservabilitySelectedDiffHunks
 import java.nio.file.Path
 
 private const val HASH_RADIX_HEX: Int = 16
@@ -20,6 +23,8 @@ interface WorkflowGitOperations {
   fun worktreeStatus(repoRoot: Path): WorkflowGitOperationResult
 
   fun worktreeActivity(repoRoot: Path): WorkflowWorktreeActivityResult
+
+  fun selectedDiffHunks(repoRoot: Path, request: WorkflowSelectedDiffHunksRequest): WorkflowSelectedDiffHunksResult
 }
 
 object NoopWorkflowGitOperations : WorkflowGitOperations {
@@ -54,5 +59,13 @@ object NoopWorkflowGitOperations : WorkflowGitOperations {
       untracked = 0,
     ),
     diffStat = GoalObservabilityDiffStat(filesChanged = 0, insertions = 0, deletions = 0),
+  )
+
+  override fun selectedDiffHunks(
+    repoRoot: Path,
+    request: WorkflowSelectedDiffHunksRequest,
+  ): WorkflowSelectedDiffHunksResult = WorkflowSelectedDiffHunksResult(
+    status = "ok",
+    selectedDiffHunks = GoalObservabilitySelectedDiffHunks(),
   )
 }

@@ -3,6 +3,8 @@ package skillbill.goalrunner.model
 import skillbill.boundary.OpenBoundaryMap
 import skillbill.workflow.model.DecompositionManifest
 import skillbill.workflow.model.DecompositionSubtask
+import skillbill.workflow.model.GoalObservabilityDiffStat
+import skillbill.workflow.model.GoalObservabilitySelectedDiffHunks
 
 enum class GoalRunnerTerminalStatus {
   COMPLETE,
@@ -147,6 +149,17 @@ data class GoalRunnerStatusProjection(
   val latestLivenessSignal: String? = null,
   @OpenBoundaryMap("Compact latest goal observability event passthrough for goal status rendering")
   val latestObservabilityEvent: Map<String, Any?>? = null,
+  val requestedDiffStat: GoalObservabilityDiffStat? = null,
+  val selectedDiffHunks: GoalObservabilitySelectedDiffHunks? = null,
+)
+
+data class GoalRunnerStatusProjectionExtras(
+  val currentStepOverride: String? = null,
+  val latestLivenessSignal: String? = null,
+  @OpenBoundaryMap("Compact latest goal observability event passthrough for goal status rendering")
+  val latestObservabilityEvent: Map<String, Any?>? = null,
+  val requestedDiffStat: GoalObservabilityDiffStat? = null,
+  val selectedDiffHunks: GoalObservabilitySelectedDiffHunks? = null,
 )
 
 object GoalRunnerStatusProjector {
@@ -154,9 +167,7 @@ object GoalRunnerStatusProjector {
   fun project(
     manifest: DecompositionManifest,
     activeAgent: String? = null,
-    currentStepOverride: String? = null,
-    latestLivenessSignal: String? = null,
-    latestObservabilityEvent: Map<String, Any?>? = null,
+    extras: GoalRunnerStatusProjectionExtras = GoalRunnerStatusProjectionExtras(),
   ): GoalRunnerStatusProjection {
     val currentSubtask = manifest.subtasks.firstOrNull { it.id == manifest.currentSubtaskIntent.subtaskId }
     return GoalRunnerStatusProjection(
@@ -165,10 +176,12 @@ object GoalRunnerStatusProjector {
       pendingCount = manifest.subtasks.count { it.status !in setOf("complete", "skipped", "blocked") },
       blockedCount = manifest.subtasks.count { it.status == "blocked" },
       currentSubtaskId = currentSubtask?.id,
-      currentStep = currentStepOverride?.takeIf(String::isNotBlank) ?: currentSubtask?.lastResumableStep,
+      currentStep = extras.currentStepOverride?.takeIf(String::isNotBlank) ?: currentSubtask?.lastResumableStep,
       activeAgent = activeAgent?.takeIf(String::isNotBlank),
-      latestLivenessSignal = latestLivenessSignal?.takeIf(String::isNotBlank),
-      latestObservabilityEvent = latestObservabilityEvent,
+      latestLivenessSignal = extras.latestLivenessSignal?.takeIf(String::isNotBlank),
+      latestObservabilityEvent = extras.latestObservabilityEvent,
+      requestedDiffStat = extras.requestedDiffStat,
+      selectedDiffHunks = extras.selectedDiffHunks,
     )
   }
 }

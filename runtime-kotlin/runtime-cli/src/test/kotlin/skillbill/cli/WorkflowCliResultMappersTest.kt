@@ -4,6 +4,9 @@ import skillbill.application.model.WorkflowGetResult
 import skillbill.contracts.workflow.GoalObservabilityEventSchemaValidator
 import skillbill.error.InvalidGoalObservabilityEventSchemaError
 import skillbill.workflow.GoalObservabilityEventValidator
+import skillbill.workflow.model.GoalObservabilityDiffStat
+import skillbill.workflow.model.GoalObservabilitySelectedDiffHunk
+import skillbill.workflow.model.GoalObservabilitySelectedDiffHunks
 import skillbill.workflow.model.WorkflowSnapshotView
 import skillbill.workflow.model.WorkflowStepState
 import kotlin.test.Test
@@ -12,6 +15,31 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 
 class WorkflowCliResultMappersTest {
+  @Test
+  fun `goal diff mapper exposes bounded selected hunk wire shape`() {
+    val diffStat = GoalObservabilityDiffStat(filesChanged = 1, insertions = 2, deletions = 1).toGoalDiffStatCliMap()
+    val hunks = GoalObservabilitySelectedDiffHunks(
+      hunks = listOf(
+        GoalObservabilitySelectedDiffHunk(
+          path = "runtime.txt",
+          staged = false,
+          header = "@@ -1 +1 @@",
+          lines = listOf("-old", "+new"),
+          truncated = false,
+        ),
+      ),
+      truncated = false,
+    ).toGoalSelectedDiffHunksCliMap()
+
+    assertEquals(1, diffStat["files_changed"])
+    assertEquals(2, diffStat["insertions"])
+    assertEquals(1, diffStat["deletions"])
+    assertEquals(false, hunks["truncated"])
+    val firstHunk = (hunks["hunks"] as List<*>).single() as Map<*, *>
+    assertEquals("runtime.txt", firstHunk["path"])
+    assertEquals(listOf("-old", "+new"), firstHunk["lines"])
+  }
+
   @Test
   fun `workflow mapper exposes compact goal observability summary without heavy fields`() {
     val mapped = WorkflowGetResult.Ok(
