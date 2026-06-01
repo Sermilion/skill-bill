@@ -15,6 +15,7 @@ data class GoalRunnerRunRequest(
   val progressIdleTimeout: Duration = DEFAULT_GOAL_PROGRESS_IDLE_TIMEOUT,
   val outputSink: AgentRunOutputSink = AgentRunOutputSink.NONE,
   val eventSink: GoalRunnerEventSink = GoalRunnerEventSink.NONE,
+  val observabilitySequenceStart: Int = DEFAULT_GOAL_OBSERVABILITY_SEQUENCE_START,
 ) {
   init {
     require(issueKey.isNotBlank()) { "issueKey is required." }
@@ -24,6 +25,7 @@ data class GoalRunnerRunRequest(
       require(maxWallClockTimeout.isPositive()) { "timeout must be positive when provided." }
     }
     require(progressIdleTimeout.isPositive()) { "progressIdleTimeout must be positive." }
+    require(observabilitySequenceStart >= 0) { "observabilitySequenceStart must be non-negative." }
   }
 }
 
@@ -61,6 +63,7 @@ sealed interface GoalRunnerRunEvent {
 }
 
 val DEFAULT_GOAL_PROGRESS_IDLE_TIMEOUT: Duration = 30.minutes
+const val DEFAULT_GOAL_OBSERVABILITY_SEQUENCE_START: Int = 10_000
 
 fun interface GoalRunnerEventSink {
   fun emit(event: GoalRunnerRunEvent)

@@ -25,12 +25,12 @@ subtasks:
 - id: 2
   name: "runtime-supervisor-worker-boundary"
   spec_path: ".feature-specs/SKILL-61-goal-observability/spec_subtask_2_runtime-supervisor-worker-boundary.md"
-  status: "pending"
-  branch: null
+  status: "complete"
+  branch: "feat/SKILL-61-goal-observability"
   commit_sha: null
-  workflow_id: null
+  workflow_id: "wfl-20260601-105539-utpp"
   blocked_reason: null
-  last_resumable_step: null
+  last_resumable_step: "commit_push"
   dependencies:
   - subtask_id: 1
     optional: false

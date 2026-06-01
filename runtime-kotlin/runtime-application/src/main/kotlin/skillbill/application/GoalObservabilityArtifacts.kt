@@ -1,5 +1,6 @@
 package skillbill.application
 
+import skillbill.ports.goalrunner.model.GoalRunnerObservabilityRecordRequest
 import skillbill.workflow.GoalObservabilityEventValidator
 import skillbill.workflow.model.GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY
 import skillbill.workflow.model.GOAL_OBSERVABILITY_RUN_HISTORY_ARTIFACT_KEY
@@ -22,6 +23,11 @@ internal object GoalObservabilityArtifacts {
     val worktreeActivity: GoalObservabilityWorktreeActivity? = null,
   )
 
+  internal data class RuntimeEventInput(
+    val artifacts: Map<String, Any?>,
+    val request: GoalRunnerObservabilityRecordRequest,
+  )
+
   private data class RequiredProgressFields(
     val progressEvent: Map<*, *>,
     val issueKey: String,
@@ -31,17 +37,42 @@ internal object GoalObservabilityArtifacts {
 
   fun patchForProgressEvent(input: ProgressInput, validator: GoalObservabilityEventValidator): Map<String, Any?>? =
     eventFrom(input)?.let { event ->
-      val eventMap = event.toArtifactMap()
-      validator.validate(eventMap, GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY)
-      val history = goalObservabilityHistoryFromArtifacts(input.artifacts, validator).append(event).toArtifactList()
-      history.forEachIndexed { index, item ->
-        validator.validate(item, "$GOAL_OBSERVABILITY_RUN_HISTORY_ARTIFACT_KEY[$index]")
-      }
-      linkedMapOf(
-        GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY to eventMap,
-        GOAL_OBSERVABILITY_RUN_HISTORY_ARTIFACT_KEY to history,
-      )
+      patchForEvent(input.artifacts, event, validator)
     }
+
+  fun patchForRuntimeEvent(input: RuntimeEventInput, validator: GoalObservabilityEventValidator): Map<String, Any?> =
+    patchForEvent(
+      artifacts = input.artifacts,
+      event = GoalObservabilityEvent(
+        issueKey = input.request.issueKey,
+        subtaskId = input.request.subtaskId,
+        workflowId = input.request.workflowId,
+        workflowPhase = input.request.workflowPhase,
+        workerRole = input.request.workerRole,
+        livenessClass = input.request.livenessClass,
+        activitySummary = input.request.activitySummary,
+        timestamp = input.request.timestamp,
+        sequenceNumber = input.request.sequenceNumber,
+      ),
+      validator = validator,
+    )
+
+  private fun patchForEvent(
+    artifacts: Map<String, Any?>,
+    event: GoalObservabilityEvent,
+    validator: GoalObservabilityEventValidator,
+  ): Map<String, Any?> {
+    val eventMap = event.toArtifactMap()
+    validator.validate(eventMap, GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY)
+    val history = goalObservabilityHistoryFromArtifacts(artifacts, validator).append(event).toArtifactList()
+    history.forEachIndexed { index, item ->
+      validator.validate(item, "$GOAL_OBSERVABILITY_RUN_HISTORY_ARTIFACT_KEY[$index]")
+    }
+    return linkedMapOf(
+      GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY to eventMap,
+      GOAL_OBSERVABILITY_RUN_HISTORY_ARTIFACT_KEY to history,
+    )
+  }
 
   private fun eventFrom(input: ProgressInput): GoalObservabilityEvent? {
     val fields = requiredProgressFields(input) ?: return null

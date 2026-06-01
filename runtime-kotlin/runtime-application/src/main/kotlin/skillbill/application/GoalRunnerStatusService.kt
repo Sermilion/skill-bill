@@ -79,9 +79,16 @@ class GoalRunnerStatusService(
   fun reset(request: GoalRunnerResetRequest): GoalRunnerResetResult? {
     val loaded = manifestStore.loadByIssueKey(request.issueKey, request.dbPathOverride, request.repoRoot)
       ?: return null
-    val before = loaded.manifest.toResetSnapshot()
-    val resetManifest = loaded.manifest.resetManifest(request.hard)
-    val saved = manifestStore.save(loaded.copy(manifest = resetManifest), request.dbPathOverride)
+    outcomeStore.reconcileAuthoritativeOutcomes(
+      issueKey = loaded.manifest.issueKey,
+      activeWorkflowIds = emptySet(),
+      allowInactiveReconciliation = true,
+      dbPathOverride = request.dbPathOverride,
+    )
+    val latest = manifestStore.loadByIssueKey(request.issueKey, request.dbPathOverride, request.repoRoot) ?: loaded
+    val before = latest.manifest.toResetSnapshot()
+    val resetManifest = latest.manifest.resetManifest(request.hard)
+    val saved = manifestStore.save(latest.copy(manifest = resetManifest), request.dbPathOverride)
     return GoalRunnerResetResult(
       issueKey = saved.manifest.issueKey,
       mode = if (request.hard) "hard" else "soft",

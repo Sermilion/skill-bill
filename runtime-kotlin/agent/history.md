@@ -1,3 +1,12 @@
+## [2026-06-01] SKILL-61 subtask 2 runtime-supervisor-worker-boundary
+Areas: runtime-kotlin/runtime-domain, runtime-kotlin/runtime-application, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-core
+- GoalRunner now emits lifecycle observability for subtask start/resume, phase/progress, heartbeat, file activity, worker output summaries, block, completion, and failure while keeping workflow-store state authoritative for active subtask, step, checkpoint, and terminal status. reusable
+- Added a structured worker-subtask request parser and typed outcomes (`accepted`, `queued`, `rejected`, `requires_operator_confirmation`); free-form child text remains diagnostic and never schedules work directly. reusable
+- Accepted worker-requested work appends runtime-visible sibling subtasks through existing decomposition manifest state; request audit persistence is written before manifest mutation so failures do not create hidden partial state.
+- Status/reset/completion paths reconcile latest observability without destructive status reads and clear or terminal-mark stale active-worker state, preserving SKILL-58 stale-running hygiene.
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented (subtask scope)
+
 ## [2026-06-01] SKILL-61 subtask 1 goal-observability-event-contract
 Areas: orchestration/contracts, runtime-kotlin/runtime-domain, runtime-kotlin/runtime-application, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-mcp, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-core
 - Added a schema-backed `goal_observability_latest_event` / bounded `goal_observability_run_history` contract in workflow artifacts; the event carries issue/subtask, phase, worker role, liveness, activity, timestamp, sequence, changed-file summary, diff stat, and optional heavy file fields. reusable

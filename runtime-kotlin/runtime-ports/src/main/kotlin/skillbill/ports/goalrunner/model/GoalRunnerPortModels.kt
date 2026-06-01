@@ -27,6 +27,30 @@ data class GoalRunnerWorkflowProgress(
   val lastSnapshotUpdatedAt: String? = null,
 )
 
+data class GoalRunnerObservabilityRecordRequest(
+  val workflowId: String,
+  val issueKey: String,
+  val subtaskId: Int,
+  val workflowPhase: String,
+  val workerRole: String,
+  val livenessClass: String,
+  val activitySummary: String,
+  val sequenceNumber: Int,
+  val timestamp: String,
+) {
+  init {
+    require(workflowId.isNotBlank()) { "workflowId is required." }
+    require(issueKey.isNotBlank()) { "issueKey is required." }
+    require(subtaskId > 0) { "subtaskId must be positive." }
+    require(workflowPhase.isNotBlank()) { "workflowPhase is required." }
+    require(workerRole.isNotBlank()) { "workerRole is required." }
+    require(livenessClass.isNotBlank()) { "livenessClass is required." }
+    require(activitySummary.isNotBlank()) { "activitySummary is required." }
+    require(sequenceNumber >= 0) { "sequenceNumber must be non-negative." }
+    require(timestamp.isNotBlank()) { "timestamp is required." }
+  }
+}
+
 data class GoalRunnerProgressEvent(
   val stepId: String,
   val attemptCount: Int,

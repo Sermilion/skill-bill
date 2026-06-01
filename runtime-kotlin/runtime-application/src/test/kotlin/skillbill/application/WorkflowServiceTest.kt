@@ -9,6 +9,9 @@ import skillbill.application.model.WorkflowUpdateResult
 import skillbill.error.InvalidGoalObservabilityEventSchemaError
 import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
+import skillbill.goalrunner.model.GoalRunnerWorkerSubtaskRequest
+import skillbill.goalrunner.model.GoalRunnerWorkerSubtaskRequestOutcome
+import skillbill.goalrunner.model.GoalRunnerWorkerSubtaskRequestRejectionReason
 import skillbill.ports.persistence.DatabaseSessionFactory
 import skillbill.ports.persistence.LearningRepository
 import skillbill.ports.persistence.LifecycleTelemetryRepository
@@ -240,6 +243,7 @@ class WorkflowServiceTest {
     assertEquals("phase_subagent", latest["worker_role"])
     assertEquals("durable_progress", latest["liveness_class"])
     assertEquals("editing runtime files", latest["activity_summary"])
+    assertEquals(opened.workflowId, latest["workflow_id"])
     assertEquals(7, latest["sequence_number"])
     assertEquals(1, history.size)
     assertTrue(ok.snapshot.artifacts.containsKey("progress_event"))
@@ -835,6 +839,65 @@ class WorkflowGoalRunnerOutcomeStoreTest {
   }
 
   @Test
+  fun `goal runner outcome store appends worker subtask request outcomes`() {
+    val workflows = InMemoryWorkflowStates()
+    workflows.saveFeatureImplementWorkflow(workflowRecord("wfl-child", emptyMap()))
+    val store = WorkflowGoalRunnerOutcomeStore(
+      database = FakeDatabaseSessionFactory(workflows),
+      workflowSnapshotValidator = testWorkflowSnapshotValidator,
+    )
+    val acceptedRequest = GoalRunnerWorkerSubtaskRequest(
+      name = "Accepted follow up",
+      specPath = ".feature-specs/SKILL-61/spec_subtask_2_accepted.md",
+      sourceStream = "stdout",
+    )
+    val confirmationRequest = GoalRunnerWorkerSubtaskRequest(
+      name = "Confirm follow up",
+      specPath = ".feature-specs/SKILL-61/spec_subtask_3_confirm.md",
+      requiresOperatorConfirmation = true,
+      sourceStream = "stderr",
+    )
+
+    val recorded = store.recordWorkerSubtaskRequestOutcomes(
+      workflowId = "wfl-child",
+      outcomes = listOf(
+        GoalRunnerWorkerSubtaskRequestOutcome.Accepted(
+          request = acceptedRequest,
+          subtask = DecompositionSubtask(
+            id = 2,
+            name = "Accepted follow up",
+            specPath = ".feature-specs/SKILL-61/spec_subtask_2_accepted.md",
+          ),
+        ),
+        GoalRunnerWorkerSubtaskRequestOutcome.Rejected(
+          sourceStream = "stdout",
+          reason = GoalRunnerWorkerSubtaskRequestRejectionReason.UNSAFE_PATH,
+          message = "unsafe path",
+        ),
+        GoalRunnerWorkerSubtaskRequestOutcome.RequiresOperatorConfirmation(
+          request = confirmationRequest,
+          reason = "needs approval",
+        ),
+      ),
+      dbPathOverride = null,
+    )
+
+    assertTrue(recorded)
+    val saved = requireNotNull(workflows.getFeatureImplementWorkflow("wfl-child")).toSnapshot()
+    val artifacts = decodeWorkflowArtifactsForTest(saved.artifactsJson)
+    val outcomes = artifacts["goal_worker_subtask_request_outcomes"] as List<*>
+    val accepted = outcomes[0] as Map<*, *>
+    val rejected = outcomes[1] as Map<*, *>
+    val confirmation = outcomes[2] as Map<*, *>
+    assertEquals("accepted", accepted["status"])
+    assertEquals(2, accepted["subtask_id"])
+    assertEquals("rejected", rejected["status"])
+    assertEquals("unsafe_path", rejected["reason"])
+    assertEquals("requires_operator_confirmation", confirmation["status"])
+    assertEquals("needs approval", confirmation["reason"])
+  }
+
+  @Test
   fun `subtask resume alignment keeps later running step over stale manifest step`() {
     val workflows = InMemoryWorkflowStates()
     val definition = FeatureImplementWorkflowDefinition.definition
@@ -877,6 +940,15 @@ private fun decodeWorkflowStepsForTest(stepsJson: String): Map<String, String> {
     val item = raw as Map<*, *>
     item["step_id"].toString() to item["status"].toString()
   }
+}
+
+private fun decodeWorkflowArtifactsForTest(artifactsJson: String): Map<String, Any?> {
+  val element = skillbill.contracts.JsonSupport.json.parseToJsonElement(artifactsJson)
+  return requireNotNull(
+    skillbill.contracts.JsonSupport.anyToStringAnyMap(
+      skillbill.contracts.JsonSupport.jsonElementToValue(element),
+    ),
+  )
 }
 
 private val testWorkflowEngine: WorkflowEngine = WorkflowEngine(testWorkflowSnapshotValidator)

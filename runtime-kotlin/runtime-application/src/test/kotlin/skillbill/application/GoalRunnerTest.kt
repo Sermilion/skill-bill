@@ -1,5 +1,6 @@
 package skillbill.application
 
+import skillbill.application.model.GoalRunnerResetRequest
 import skillbill.application.model.GoalRunnerRunRequest
 import skillbill.application.model.GoalRunnerStatusRequest
 import skillbill.goalrunner.model.GoalRunnerRunReport
@@ -7,6 +8,7 @@ import skillbill.goalrunner.model.GoalRunnerStopReason
 import skillbill.goalrunner.model.GoalRunnerStoredOutcome
 import skillbill.goalrunner.model.GoalRunnerSupervisionEvent
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
+import skillbill.goalrunner.model.GoalRunnerWorkerSubtaskRequestOutcome
 import skillbill.install.model.InstallAgent
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
@@ -17,6 +19,7 @@ import skillbill.ports.goalrunner.GoalRunnerWorkflowOutcomeStore
 import skillbill.ports.goalrunner.model.GoalPullRequestRequest
 import skillbill.ports.goalrunner.model.GoalPullRequestResult
 import skillbill.ports.goalrunner.model.GoalRunnerManifestState
+import skillbill.ports.goalrunner.model.GoalRunnerObservabilityRecordRequest
 import skillbill.ports.goalrunner.model.GoalRunnerSubtaskLaunchRequest
 import skillbill.ports.goalrunner.model.GoalRunnerWorkflowProgress
 import skillbill.ports.workflow.WorkflowGitOperations
@@ -31,6 +34,7 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.minutes
 
 class GoalRunnerTest {
@@ -207,6 +211,47 @@ class GoalRunnerTest {
     assertEquals(2, launcher.requests.size)
     assertEquals("complete", store.manifest.status)
     assertEquals("sha-1", store.manifest.subtasks.single().commitSha)
+  }
+
+  @Test
+  fun `missing terminal retry uses retry launch output for worker requests`() {
+    val store = InMemoryGoalManifestStore(manifest = manifest(subtaskCount = 1))
+    val outcomes = RecordingOutcomeStore()
+    var launches = 0
+    val launcher = RecordingSubtaskLauncher { request ->
+      val subtaskId = requireNotNull(request.skillRunRequest.subtaskId)
+      store.mutate { current -> current.withWorkflowId(subtaskId, "wfl-$subtaskId") }
+      if (subtaskId == 1) {
+        launches += 1
+        if (launches == 2) {
+          outcomes["wfl-$subtaskId"] = completeOutcome(subtaskId)
+        }
+        launchFacts(
+          stdout = workerSubtaskRequestJson(
+            name = if (launches == 1) "Stale first follow up" else "Retry follow up",
+            specPath = if (launches == 1) {
+              ".feature-specs/SKILL-56-goal/spec_subtask_2_stale_first.md"
+            } else {
+              ".feature-specs/SKILL-56-goal/spec_subtask_2_retry_follow_up.md"
+            },
+          ),
+        )
+      } else {
+        outcomes["wfl-$subtaskId"] = completeOutcome(subtaskId)
+        launchFacts()
+      }
+    }
+    val runner = GoalRunner(store, launcher, outcomes, RecordingPullRequestPort())
+
+    val report = runner.run(runRequest())
+
+    val completed = assertIs<GoalRunnerRunReport.Completed>(report)
+    assertEquals(listOf(1, 2), completed.attemptedSubtasks)
+    assertEquals("Retry follow up", store.manifest.subtasks.single { it.id == 2 }.name)
+    assertTrue(store.manifest.subtasks.none { it.name == "Stale first follow up" })
+    val accepted = outcomes.workerSubtaskRequestOutcomes.first().outcomes.single()
+    assertIs<GoalRunnerWorkerSubtaskRequestOutcome.Accepted>(accepted)
+    assertEquals("Retry follow up", accepted.request.name)
   }
 
   @Test
@@ -596,6 +641,208 @@ class GoalRunnerTest {
   )
 }
 
+class GoalRunnerObservabilityTest {
+  @Test
+  fun `runner records lifecycle observability from runtime supervision`() {
+    val store = InMemoryGoalManifestStore(manifest = manifest(subtaskCount = 1))
+    val outcomes = RecordingOutcomeStore()
+    val launcher = RecordingSubtaskLauncher { request ->
+      val subtaskId = requireNotNull(request.skillRunRequest.subtaskId)
+      store.mutate { current -> current.withWorkflowId(subtaskId, "wfl-$subtaskId") }
+      outcomes["wfl-$subtaskId"] = completeOutcome(subtaskId)
+      launchFacts(stdout = "worker summary")
+    }
+    val runner = GoalRunner(store, launcher, outcomes, RecordingPullRequestPort())
+
+    val report = runner.run(runRequest())
+
+    assertIs<GoalRunnerRunReport.Completed>(report)
+    val classes = outcomes.observabilityRecords.map { it.livenessClass }
+    assertContains(classes, "subtask_start")
+    assertContains(classes, "worker_output_summary")
+    assertContains(classes, "completion")
+    assertEquals(setOf("wfl-1"), outcomes.observabilityRecords.map { it.workflowId }.toSet())
+  }
+
+  @Test
+  fun `observability store false does not block terminal completion`() {
+    val store = InMemoryGoalManifestStore(manifest = manifest(subtaskCount = 1))
+    val outcomes = RecordingOutcomeStore()
+    outcomes.observabilityRecordResult = false
+    val launcher = RecordingSubtaskLauncher { request ->
+      val subtaskId = requireNotNull(request.skillRunRequest.subtaskId)
+      store.mutate { current -> current.withWorkflowId(subtaskId, "wfl-$subtaskId") }
+      outcomes["wfl-$subtaskId"] = completeOutcome(subtaskId)
+      launchFacts(stdout = "worker summary")
+    }
+    val runner = GoalRunner(store, launcher, outcomes, RecordingPullRequestPort())
+
+    val report = runner.run(runRequest())
+
+    assertIs<GoalRunnerRunReport.Completed>(report)
+    assertEquals(1, launcher.requests.size)
+    assertEquals("complete", store.manifest.status)
+  }
+
+  @Test
+  fun `observability store exception does not block terminal completion`() {
+    val store = InMemoryGoalManifestStore(manifest = manifest(subtaskCount = 1))
+    val outcomes = RecordingOutcomeStore()
+    outcomes.throwOnObservabilityRecord = true
+    val launcher = RecordingSubtaskLauncher { request ->
+      val subtaskId = requireNotNull(request.skillRunRequest.subtaskId)
+      store.mutate { current -> current.withWorkflowId(subtaskId, "wfl-$subtaskId") }
+      outcomes["wfl-$subtaskId"] = completeOutcome(subtaskId)
+      launchFacts(stdout = "worker summary")
+    }
+    val runner = GoalRunner(store, launcher, outcomes, RecordingPullRequestPort())
+
+    val report = runner.run(runRequest())
+
+    assertIs<GoalRunnerRunReport.Completed>(report)
+    assertEquals(1, launcher.requests.size)
+    assertEquals("complete", store.manifest.status)
+  }
+
+  @Test
+  fun `observability progress exception does not block terminal completion`() {
+    val store = InMemoryGoalManifestStore(manifest = manifest(subtaskCount = 1))
+    val outcomes = RecordingOutcomeStore()
+    outcomes.throwOnProgress = true
+    val launcher = RecordingSubtaskLauncher { request ->
+      val subtaskId = requireNotNull(request.skillRunRequest.subtaskId)
+      store.mutate { current -> current.withWorkflowId(subtaskId, "wfl-$subtaskId") }
+      outcomes["wfl-$subtaskId"] = completeOutcome(subtaskId)
+      launchFacts(stdout = "worker summary")
+    }
+    val runner = GoalRunner(store, launcher, outcomes, RecordingPullRequestPort())
+
+    val report = runner.run(runRequest())
+
+    assertIs<GoalRunnerRunReport.Completed>(report)
+    assertEquals(1, launcher.requests.size)
+    assertEquals("complete", store.manifest.status)
+  }
+
+  @Test
+  fun `accepted worker subtask request becomes visible sibling work`() {
+    val store = InMemoryGoalManifestStore(manifest = manifest(subtaskCount = 1))
+    val outcomes = RecordingOutcomeStore()
+    val launcher = RecordingSubtaskLauncher { request ->
+      val subtaskId = requireNotNull(request.skillRunRequest.subtaskId)
+      store.mutate { current -> current.withWorkflowId(subtaskId, "wfl-$subtaskId") }
+      outcomes["wfl-$subtaskId"] = completeOutcome(subtaskId)
+      val stdout = if (subtaskId == 1) {
+        workerSubtaskRequestJson(
+          name = "Worker follow up",
+          specPath = ".feature-specs/SKILL-56-goal/spec_subtask_2_worker_follow_up.md",
+        )
+      } else {
+        ""
+      }
+      launchFacts(stdout = stdout)
+    }
+    val runner = GoalRunner(store, launcher, outcomes, RecordingPullRequestPort())
+
+    val report = runner.run(runRequest())
+
+    val completed = assertIs<GoalRunnerRunReport.Completed>(report)
+    assertEquals(listOf(1, 2), completed.attemptedSubtasks)
+    assertEquals(listOf(1, 2), launcher.requests.map { it.skillRunRequest.subtaskId })
+    assertEquals("Worker follow up", store.manifest.subtasks.single { it.id == 2 }.name)
+    val outcome = outcomes.workerSubtaskRequestOutcomes.single().outcomes.single()
+    assertIs<GoalRunnerWorkerSubtaskRequestOutcome.Accepted>(outcome)
+  }
+
+  @Test
+  fun `accepted worker subtask request is not made visible when audit persistence fails`() {
+    val store = InMemoryGoalManifestStore(manifest = manifest(subtaskCount = 1))
+    val outcomes = RecordingOutcomeStore()
+    outcomes.workerSubtaskRequestOutcomeRecordResult = false
+    val launcher = RecordingSubtaskLauncher { request ->
+      val subtaskId = requireNotNull(request.skillRunRequest.subtaskId)
+      store.mutate { current -> current.withWorkflowId(subtaskId, "wfl-$subtaskId") }
+      outcomes["wfl-$subtaskId"] = completeOutcome(subtaskId)
+      launchFacts(
+        stdout = workerSubtaskRequestJson(
+          name = "Unaudited follow up",
+          specPath = ".feature-specs/SKILL-56-goal/spec_subtask_2_unaudited_follow_up.md",
+        ),
+      )
+    }
+    val runner = GoalRunner(store, launcher, outcomes, RecordingPullRequestPort())
+
+    val report = runner.run(runRequest())
+
+    val stopped = assertIs<GoalRunnerRunReport.Stopped>(report)
+    assertEquals(GoalRunnerStopReason.BLOCKED, stopped.stop.reason)
+    assertContains(stopped.stop.blockedReason, "audit could not be recorded")
+    assertEquals(1, store.manifest.subtasks.size)
+    assertEquals("blocked", store.manifest.subtasks.single().status)
+    assertTrue(outcomes.workerSubtaskRequestOutcomes.isEmpty())
+  }
+
+  @Test
+  fun `confirmation-required worker request blocks without creating hidden child state`() {
+    val store = InMemoryGoalManifestStore(manifest = manifest(subtaskCount = 1))
+    val outcomes = RecordingOutcomeStore()
+    val launcher = RecordingSubtaskLauncher { request ->
+      val subtaskId = requireNotNull(request.skillRunRequest.subtaskId)
+      store.mutate { current -> current.withWorkflowId(subtaskId, "wfl-$subtaskId") }
+      outcomes["wfl-$subtaskId"] = completeOutcome(subtaskId)
+      launchFacts(
+        stdout = workerSubtaskRequestJson(
+          name = "Needs approval",
+          specPath = ".feature-specs/SKILL-56-goal/spec_subtask_2_needs_approval.md",
+          requiresOperatorConfirmation = true,
+        ),
+      )
+    }
+    val runner = GoalRunner(store, launcher, outcomes, RecordingPullRequestPort())
+
+    val report = runner.run(runRequest())
+
+    val stopped = assertIs<GoalRunnerRunReport.Stopped>(report)
+    assertEquals(GoalRunnerStopReason.BLOCKED, stopped.stop.reason)
+    assertContains(stopped.stop.blockedReason, "operator confirmation")
+    assertEquals(1, store.manifest.subtasks.size)
+    assertEquals("blocked", store.manifest.subtasks.single().status)
+    val outcome = outcomes.workerSubtaskRequestOutcomes.single().outcomes.single()
+    assertIs<GoalRunnerWorkerSubtaskRequestOutcome.RequiresOperatorConfirmation>(outcome)
+  }
+
+  @Test
+  fun `reset reconciles active worker state before clearing manifest projection`() {
+    val store = InMemoryGoalManifestStore(
+      manifest = manifest(subtaskCount = 1)
+        .copy(status = "in_progress", currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "resume"))
+        .withWorkflowId(1, "wfl-active"),
+    )
+    val outcomes = RecordingOutcomeStore()
+    val service = GoalRunnerStatusService(store, outcomes)
+
+    val reset = service.reset(
+      GoalRunnerResetRequest(
+        issueKey = "SKILL-56",
+        hard = false,
+      ),
+    )
+
+    requireNotNull(reset)
+    assertEquals(ReconcileRequest("SKILL-56", emptySet(), true, null), outcomes.lastReconcileRequest)
+    assertEquals("pending", store.manifest.subtasks.single().status)
+    assertEquals(null, store.manifest.subtasks.single().workflowId)
+    assertEquals(CurrentSubtaskIntent(subtaskId = 1, action = "start"), store.manifest.currentSubtaskIntent)
+  }
+
+  private fun runRequest(): GoalRunnerRunRequest = GoalRunnerRunRequest(
+    issueKey = "SKILL-56",
+    repoRoot = Path.of("/tmp/skillbill-goal-runner"),
+    invokedAgentId = "claude",
+    dbPathOverride = "/tmp/skillbill-goal-runner/metrics.db",
+  )
+}
+
 private class InMemoryGoalManifestStore(
   manifest: DecompositionManifest,
 ) : GoalRunnerManifestStore {
@@ -653,7 +900,14 @@ private class RecordingOutcomeStore : GoalRunnerWorkflowOutcomeStore {
   private val outcomes: MutableMap<String, GoalRunnerStoredOutcome> = mutableMapOf()
   val progresses: MutableMap<String, GoalRunnerWorkflowProgress> = mutableMapOf()
   val blockedWorkflows: MutableList<BlockedWorkflow> = mutableListOf()
+  val observabilityRecords: MutableList<GoalRunnerObservabilityRecordRequest> = mutableListOf()
+  val workerSubtaskRequestOutcomes: MutableList<WorkerSubtaskRequestOutcomeRecord> = mutableListOf()
   val authoritativeOutcomesBySubtask: MutableMap<Int, GoalRunnerStoredOutcome> = mutableMapOf()
+  var observabilityRecordResult: Boolean = true
+  var throwOnObservabilityRecord: Boolean = false
+  var throwOnProgress: Boolean = false
+  var workerSubtaskRequestOutcomeRecordResult: Boolean = true
+  var throwOnWorkerSubtaskRequestOutcomeRecord: Boolean = false
   var lastReconcileRequest: ReconcileRequest? = null
 
   operator fun set(workflowId: String, outcome: GoalRunnerStoredOutcome) {
@@ -688,8 +942,38 @@ private class RecordingOutcomeStore : GoalRunnerWorkflowOutcomeStore {
     return "implement"
   }
 
-  override fun progress(workflowId: String, dbPathOverride: String?): GoalRunnerWorkflowProgress? =
-    progresses[workflowId]
+  override fun progress(workflowId: String, dbPathOverride: String?): GoalRunnerWorkflowProgress? {
+    if (throwOnProgress) {
+      error("progress read failed")
+    }
+    return progresses[workflowId]
+  }
+
+  override fun recordObservabilityEvent(
+    request: GoalRunnerObservabilityRecordRequest,
+    dbPathOverride: String?,
+  ): Boolean {
+    if (throwOnObservabilityRecord) {
+      error("observability persistence failed")
+    }
+    observabilityRecords += request
+    return observabilityRecordResult
+  }
+
+  override fun recordWorkerSubtaskRequestOutcomes(
+    workflowId: String,
+    outcomes: List<GoalRunnerWorkerSubtaskRequestOutcome>,
+    dbPathOverride: String?,
+  ): Boolean {
+    if (throwOnWorkerSubtaskRequestOutcomeRecord) {
+      error("worker subtask request outcome persistence failed")
+    }
+    if (!workerSubtaskRequestOutcomeRecordResult) {
+      return false
+    }
+    workerSubtaskRequestOutcomes += WorkerSubtaskRequestOutcomeRecord(workflowId, outcomes)
+    return workerSubtaskRequestOutcomeRecordResult
+  }
 }
 
 private data class BlockedWorkflow(
@@ -704,6 +988,11 @@ private data class ReconcileRequest(
   val activeWorkflowIds: Set<String>,
   val allowInactiveReconciliation: Boolean,
   val dbPathOverride: String?,
+)
+
+private data class WorkerSubtaskRequestOutcomeRecord(
+  val workflowId: String,
+  val outcomes: List<GoalRunnerWorkerSubtaskRequestOutcome>,
 )
 
 private class RecordingSubtaskLauncher(
@@ -813,11 +1102,29 @@ private fun completeOutcome(subtaskId: Int): GoalRunnerStoredOutcome = GoalRunne
   suppressPr = true,
 )
 
-private fun launchFacts(timedOut: Boolean = false): AgentRunLaunchFacts = AgentRunLaunchFacts(
+private fun workerSubtaskRequestJson(
+  name: String,
+  specPath: String,
+  requiresOperatorConfirmation: Boolean = false,
+): String {
+  val payload = listOf(
+    """"kind":"skill_bill_subtask_request"""",
+    """"name":"$name"""",
+    """"spec_path":"$specPath"""",
+    """"requires_operator_confirmation":$requiresOperatorConfirmation""",
+  ).joinToString(prefix = "{", postfix = "}")
+  return "SKILL_BILL_SUBTASK_REQUEST: $payload"
+}
+
+private fun launchFacts(
+  timedOut: Boolean = false,
+  stdout: String = "diagnostic only",
+  stderr: String = "",
+): AgentRunLaunchFacts = AgentRunLaunchFacts(
   agent = InstallAgent.CLAUDE,
   exitStatus = if (timedOut) null else 0,
-  stdout = "diagnostic only",
-  stderr = "",
+  stdout = stdout,
+  stderr = stderr,
   timedOut = timedOut,
   spawnFailed = false,
 )
