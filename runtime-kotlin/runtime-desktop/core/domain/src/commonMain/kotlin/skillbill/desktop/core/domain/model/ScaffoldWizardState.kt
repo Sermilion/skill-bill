@@ -64,7 +64,6 @@ data class ScaffoldWizardFormFields(
   val subagentSpecialists: List<String> = emptyList(),
   val suppressSubagents: Boolean = false,
   val contentBody: String = "",
-  val addonBody: String = "",
 )
 
 data class ScaffoldBaselineLayerForm(

@@ -489,11 +489,14 @@ class NewAddonCommand(
     "--name",
     help = "Add-on slug (without a bill- prefix).",
   )
-  private val body by option("--body", help = "Complete markdown body to write to the add-on file.")
-  private val bodyFile by option("--body-file", help = "Path to a markdown file to copy into the add-on (or '-').")
+  private val body by option("--body", help = "Advanced/scripted: complete markdown body to write to the add-on file.")
+  private val bodyFile by option(
+    "--body-file",
+    help = "Advanced/scripted: markdown file to copy into the add-on (or '-').",
+  )
   private val consumerSkillDirs by option(
     "--consumer-skill-dir",
-    help = "Skill-relative directory to register as an add-on consumer. May be repeated. " +
+    help = "Advanced/scripted: skill-relative directory to register as an add-on consumer. May be repeated. " +
       "Defaults to the pack baseline code-review skill.",
   ).multiple()
   private val interactive by option("--interactive", help = "Retired in SKILL-32; use explicit options instead.")
@@ -508,7 +511,7 @@ class NewAddonCommand(
         unsupportedNativeScaffoldResult(
           unsupportedScaffoldService.retiredUnsupportedMessage(
             "new-addon --interactive",
-            "skill-bill new-addon --platform <platform> --name <name> --body-file <file>",
+            "skill-bill new-addon --platform <platform> --name <name>",
             editor = false,
           ),
           format,
@@ -707,10 +710,6 @@ private fun addOnWizardPayload(state: CliRunState): Map<String, Any?> = buildMap
   put("platform", promptRequired(state, "Platform slug"))
   put("name", promptRequired(state, "Add-on name"))
   promptOptional(state, "Description").ifNotBlank { description -> put("description", description) }
-  promptOptional(state, "Body").ifNotBlank { body -> put("body", body) }
-  promptOptional(state, "Consumer skill dirs, comma-separated").ifNotBlank { dirs ->
-    put("consumer_skill_dirs", dirs.split(",").map { it.trim() }.filter { it.isNotEmpty() })
-  }
 }
 
 private fun MutableMap<String, Any?>.putScaffoldBase(kind: String) {
@@ -1072,7 +1071,8 @@ private fun newAddonPayload(
   put("kind", "add-on")
   put("platform", platform.orEmpty())
   put("name", name.orEmpty())
-  put("body", (body ?: bodyFile?.let { path -> readCliTextFile(path, state) }).orEmpty())
+  (body ?: bodyFile?.let { path -> readCliTextFile(path, state) })
+    ?.let { addonBody -> put("body", addonBody) }
   if (consumerSkillDirs.isNotEmpty()) {
     put("consumer_skill_dirs", consumerSkillDirs)
   }

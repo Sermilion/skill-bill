@@ -256,7 +256,8 @@ Supported scaffold kinds:
   every approved code-review area. Payloads may also declare `baseline_layers`;
   the scaffolder validates those references before mutation and writes them as
   `code_review_composition.baseline_layers` in the new manifest.
-- `add-on`: creates one pack-owned add-on under `platform-packs/<slug>/addons/`
+- `add-on`: creates one pack-owned skeleton add-on under
+  `platform-packs/<slug>/addons/`
 
 Retired partial scaffold kinds are rejected for new creation:
 `platform-override-piloted`, `platform-override`, `override`,
@@ -279,6 +280,20 @@ layers run. New platform-pack scaffolds are full packs; remove unwanted focus
 areas afterward through governed removal paths. Legacy platform-pack payloads
 that omit `baseline_layers` remain valid and generate no
 `code_review_composition` section.
+
+For add-ons, the normal wizard creates a skeleton markdown file and registers
+the generated pointer through the owning pack's `platform.yaml` `addon_usage`.
+It does not ask for body text or raw consumer directories. The authoring
+sequence is: create the skeleton, edit
+`platform-packs/<slug>/addons/<name>.md`, then validate/render/install through
+the normal repo checks. Scripted payloads may still provide `body` or
+`consumer_skill_dirs` for deterministic automation. Omitted consumers default
+to the owning pack baseline when one exists, otherwise to the pack's only
+manifest-declared skill directory; packs with no unambiguous default require
+scripted `consumer_skill_dirs` and fail before any add-on file or manifest
+mutation. These fields are advanced inputs and explicit consumers are validated
+before any add-on file or manifest mutation.
+Do not hand-author per-skill add-on usage tables in `content.md`.
 
 When `subagent_specialists` are requested for orchestrator scaffolds, the
 scaffolder writes `native-agents/agents.yaml` stubs. Render and install output

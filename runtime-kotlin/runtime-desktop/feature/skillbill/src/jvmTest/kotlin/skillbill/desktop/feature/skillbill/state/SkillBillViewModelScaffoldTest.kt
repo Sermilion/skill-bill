@@ -410,6 +410,34 @@ class SkillBillViewModelScaffoldTest {
     assertEquals("/repo", gateway.lastDryRunPayload?.toContractMap()?.get("repo_root"))
   }
 
+  @Test
+  fun `add-on wizard payload omits body so runtime creates skeleton`() = runBlocking {
+    val gateway = FakeScaffoldGateway().apply {
+      scriptDryRun(
+        ScaffoldKind.ADD_ON,
+        ScaffoldRunResult.Preview(
+          planned = ScaffoldPlan(
+            kind = "add-on",
+            skillName = "review-helper",
+            skillPath = "/repo/platform-packs/kotlin/addons",
+          ),
+        ),
+      )
+    }
+    val viewModel = newViewModel(scaffoldGateway = gateway)
+    viewModel.selectRepoPath("/repo")
+    openWizard(viewModel, ScaffoldKind.ADD_ON)
+    viewModel.updateScaffoldForm { it.copy(name = "review-helper", platform = "kotlin", description = "d") }
+
+    val request = assertNotNull(viewModel.beginScaffoldDryRun())
+    viewModel.runScaffoldDryRun(request)
+
+    val contract = assertNotNull(gateway.lastDryRunPayload).toContractMap()
+    assertEquals("add-on", contract["kind"])
+    assertFalse("body" in contract)
+    assertFalse("consumer_skill_dirs" in contract)
+  }
+
   // F-T03: per-kind exhaustive payload map asserted against a golden derived from
   // SCAFFOLD_PAYLOAD.md so the wizard contract surface is enforced (not just spot-checked).
   @Test

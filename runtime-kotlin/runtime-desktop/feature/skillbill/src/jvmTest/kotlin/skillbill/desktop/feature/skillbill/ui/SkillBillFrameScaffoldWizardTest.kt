@@ -227,6 +227,33 @@ class SkillBillFrameScaffoldWizardTest {
 
   @OptIn(ExperimentalTestApi::class)
   @Test
+  fun `add-on wizard does not render body field`() = runComposeUiTest {
+    setContent {
+      ScaffoldWizardDialog(
+        state = ScaffoldWizardState(kind = ScaffoldKind.ADD_ON),
+        canStartScaffoldAction = true,
+        callbacks = ScaffoldWizardCallbacks(
+          onSelectKind = {},
+          onFormChanged = {},
+          onAddBaselineLayer = {},
+          onAddSuggestedBaselineLayer = {},
+          onEditBaselineLayer = { _, _ -> },
+          onRemoveBaselineLayer = {},
+          onDirtyOverrideChanged = {},
+          onPlan = {},
+          onRun = {},
+          onAcknowledgeFailure = {},
+          onDismiss = {},
+        ),
+      )
+    }
+
+    assertTrue(onAllNodesWithText("Body").fetchSemanticsNodes().isEmpty())
+    assertTrue(onAllNodesWithText("Consumer skill dirs").fetchSemanticsNodes().isEmpty())
+  }
+
+  @OptIn(ExperimentalTestApi::class)
+  @Test
   fun `baseline layer controls wire add suggested remove required mode and scope callbacks`() = runComposeUiTest {
     var addLayerCalls = 0
     var addSuggestedCalls = 0

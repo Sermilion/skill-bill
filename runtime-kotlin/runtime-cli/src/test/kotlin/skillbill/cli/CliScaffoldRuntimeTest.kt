@@ -68,6 +68,44 @@ class CliScaffoldRuntimeTest {
   }
 
   @Test
+  fun `new add-on wizard creates skeleton plan without body or raw consumer prompts`() {
+    val tempDir = Files.createTempDirectory("skillbill-cli-scaffold-addon-wizard")
+    val liveStdout = StringBuilder()
+    val result =
+      CliRuntime.run(
+        listOf("new", "--dry-run", "--format", "json"),
+        CliRuntimeContext(
+          stdinText = listOf("3", "kotlin", "cli-addon", "").joinToString("\n"),
+          userHome = tempDir,
+          liveStdout = { liveStdout.append(it) },
+        ),
+      )
+    val payload = decodeJsonObject(result.stdout)
+    val output = liveStdout.toString()
+    val preview = platformManifestPreview(payload)
+
+    assertEquals(0, result.exitCode, result.stdout)
+    assertEquals("ok", payload.stringValue("status"))
+    assertTrue(
+      Path.of(payload.stringValue("skill_path"))
+        .endsWith(Path.of("platform-packs", "kotlin", "addons")),
+    )
+    assertContains(payload["manifest_edits"].toString(), "platform-packs/kotlin/platform.yaml")
+    assertContains(preview, "  code-review/bill-kotlin-code-review:")
+    assertContains(preview, "    - name: \"cli-addon.md\"")
+    assertContains(preview, "addon_usage:")
+    assertContains(preview, "    - slug: \"cli-addon\"")
+    assertFalse("Body:" in output)
+    assertFalse("Consumer skill dirs" in output)
+    assertTrue(
+      payload["notes"]?.jsonArray.orEmpty().any {
+        "edit the generated add-on body" in it.jsonPrimitive.content
+      },
+      "Expected edit note in ${payload["notes"]}",
+    )
+  }
+
+  @Test
   fun `new platform pack wizard explains built-in routing presets and accepts blank override`() {
     val tempDir = Files.createTempDirectory("skillbill-cli-scaffold-java-preset")
     val liveStdout = StringBuilder()

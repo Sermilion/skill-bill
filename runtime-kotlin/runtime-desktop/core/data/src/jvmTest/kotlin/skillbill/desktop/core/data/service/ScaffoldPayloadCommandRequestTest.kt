@@ -189,4 +189,18 @@ class ScaffoldPayloadCommandRequestTest {
     assertEquals("grill it", request.description)
     assertEquals("## grill", request.body)
   }
+
+  @Test
+  fun `AddOn payload without body maps to skeleton request`() {
+    val request = ScaffoldPayload.AddOn(
+      name = "bill-grill",
+      platform = "kotlin",
+      description = "grill it",
+      body = null,
+    ).toCommandRequest() as ScaffoldCommandRequest.AddOn
+
+    assertEquals("bill-grill", request.name)
+    assertNull(request.body)
+    assertNull(request.consumerSkillDirs)
+  }
 }

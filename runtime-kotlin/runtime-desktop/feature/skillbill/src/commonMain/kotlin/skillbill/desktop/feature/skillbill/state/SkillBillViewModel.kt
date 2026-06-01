@@ -3155,7 +3155,6 @@ class SkillBillViewModel(
           name = fields.name.trim(),
           platform = fields.platform.trim(),
           description = fields.description.trim(),
-          body = fields.addonBody.takeIf { it.isNotBlank() },
         )
       }
     }

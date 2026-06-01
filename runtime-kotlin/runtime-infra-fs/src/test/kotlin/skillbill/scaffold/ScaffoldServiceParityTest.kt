@@ -358,14 +358,20 @@ class ScaffoldServiceParityTest {
         "add-on",
         "platform" to "kotlin",
         "name" to "review-helper",
-        "body" to "# Review Helper\n\nUse after routed Kotlin review.",
       ),
     )
     val manifestPath = repo.resolve("platform-packs/kotlin/platform.yaml")
     val manifest = Files.readString(manifestPath)
+    val addonBody = Files.readString(repo.resolve("platform-packs/kotlin/addons/review-helper.md"))
 
     assertEquals(listOf(repo.resolve("platform-packs/kotlin/addons/review-helper.md")), result.createdFiles)
     assertEquals(listOf(manifestPath), result.manifestEdits)
+    assertContains(addonBody, "# review-helper")
+    assertContains(addonBody, "TODO: replace this placeholder with the add-on guidance body.")
+    assertTrue(
+      result.notes.any { note -> "edit the generated add-on body" in note },
+      "Expected edit note in ${result.notes}",
+    )
     assertContains(manifest, "pointers:")
     assertContains(manifest, "  code-review/bill-kotlin-code-review:")
     assertContains(manifest, "    - name: \"review-helper.md\"")
@@ -415,6 +421,46 @@ class ScaffoldServiceParityTest {
     assertContains(manifest, "    - name: \"testing-helper.md\"")
     assertContains(manifest, "    - slug: \"testing-helper\"")
     assertFalse("  code-review/bill-kotlin-code-review:\n    - slug: \"testing-helper\"" in manifest)
+  }
+
+  @Test
+  fun `add-on scaffold preserves explicit scripted body`() = withIsolatedUserHome {
+    val repo = seedRepo()
+
+    scaffold(
+      payload(
+        repo,
+        "add-on",
+        "platform" to "kotlin",
+        "name" to "scripted-helper",
+        "body" to "# Scripted Helper\n\nUse this deterministic body.",
+      ),
+    )
+
+    assertEquals(
+      "# Scripted Helper\n\nUse this deterministic body.\n",
+      Files.readString(repo.resolve("platform-packs/kotlin/addons/scripted-helper.md")),
+    )
+  }
+
+  @Test
+  fun `add-on scaffold treats explicit blank scripted body as present`() = withIsolatedUserHome {
+    val repo = seedRepo()
+
+    scaffold(
+      payload(
+        repo,
+        "add-on",
+        "platform" to "kotlin",
+        "name" to "blank-helper",
+        "body" to "",
+      ),
+    )
+
+    assertEquals(
+      "\n",
+      Files.readString(repo.resolve("platform-packs/kotlin/addons/blank-helper.md")),
+    )
   }
 
   @Test

@@ -415,14 +415,6 @@ private fun WizardForm(state: ScaffoldWizardState, callbacks: ScaffoldWizardCall
           callbacks.onFormChanged { it.copy(platform = value) }
         },
       )
-      TextFieldRow(
-        label = "Body",
-        value = fields.addonBody,
-        enabled = !state.busy,
-        onValueChanged = { value ->
-          callbacks.onFormChanged { it.copy(addonBody = value) }
-        },
-      )
     }
   }
 }

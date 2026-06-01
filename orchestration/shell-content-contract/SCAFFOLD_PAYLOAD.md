@@ -85,16 +85,24 @@ removable.
   missing referenced pack, missing referenced skill, unsupported `mode`,
   unsupported `scope`, self-reference to the new pack, and duplicate
   `platform` + `skill` layers are rejected.
-- `body` — optional string for `add-on`. When provided, the scaffolder
-  writes this markdown body verbatim to the target add-on file instead of
-  rendering the default placeholder template.
-- `consumer_skill_dirs` — optional list for `add-on`. Each entry is a
-  declared platform-pack-relative skill directory such as
+- `body` — advanced/scripted string for `add-on`. Normal `skill-bill new` and
+  desktop creation omit this field so the scaffolder writes a skeleton markdown
+  file with a TODO body placeholder. When provided by a scripted payload, the
+  scaffolder treats the value as present, including blank strings, and writes
+  that markdown body to the target add-on file with the repo-standard trailing
+  newline instead of rendering the skeleton.
+- `consumer_skill_dirs` — advanced/scripted list for `add-on`. Normal
+  `skill-bill new` and desktop creation omit this field so the scaffolder uses
+  the owning pack's baseline code-review skill when one exists, otherwise the
+  pack's only manifest-declared skill directory. If the pack has no
+  unambiguous default, add-on scaffold fails before mutation and scripted
+  `consumer_skill_dirs` is required. Each scripted entry is a declared
+  platform-pack-relative skill directory such as
   `code-review/bill-kmp-code-review-ui`. The scaffolder rejects directories
-  that are not declared by the pack manifest, then registers the new add-on in
-  `platform.yaml` by adding generated pointer entries and `addon_usage`
-  entries for these consumers. When omitted, the scaffolder defaults to the
-  owning pack's baseline code-review skill, if one exists.
+  that are unsafe, missing, or not declared by the pack manifest before any file
+  or manifest mutation, then registers the new add-on in `platform.yaml` by
+  adding generated pointer entries and `addon_usage` entries for these
+  consumers.
 - `repo_root` — absolute path override used by tests. Defaults to the
   current working directory.
 - `subagent_specialists` — list of specialist subagent names to scaffold
@@ -225,6 +233,11 @@ omit `baseline_layers` remain valid and generate no
 ```
 
 ### Add-on
+
+Normal add-on authoring is a two-step source workflow: create the skeleton,
+edit `platform-packs/<platform>/addons/<name>.md`, then run the normal
+validate/render/install checks for the repo. `addon_usage` registration stays in
+`platform.yaml`; do not add per-skill add-on selection tables to `content.md`.
 
 ```json
 {

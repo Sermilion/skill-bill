@@ -1,5 +1,5 @@
 ---
-status: Pending
+status: Complete
 ---
 
 # SKILL-63 Subtask 3 - Add-On Skeleton Wizard

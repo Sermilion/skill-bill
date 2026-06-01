@@ -1,5 +1,5 @@
 ---
-status: In Progress
+status: Complete
 ---
 
 # SKILL-63 - scaffold-simplification
