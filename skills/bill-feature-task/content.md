@@ -49,7 +49,7 @@ Continuation-mode rules:
 - After the resumed step completes, continue the normal sequence defined below.
 - If `continue_status` is `done`, do not rerun the workflow; summarize the terminal state instead.
 - If `continue_status` is `blocked`, stop and restore the missing artifacts named by the workflow payload before continuing.
-- `workflow continue` is an activation/reopen command, not a read-only inspection command. Use `workflow show <workflow-id> --format json` for read-only full-state inspection, including the complete durable `artifacts` map.
+- `workflow continue` is a mutating activation/reopen command (it re-opens resumable state), not a read-only inspection command. Its compact continuation output is the default child-session context. Use `workflow show <workflow-id> --format json` for read-only full-state inspection, including the complete durable `artifacts` map, and fetch full state only when explicitly needed.
 
 ## Retry, Resume, and Review Reuse
 
@@ -79,6 +79,7 @@ Goal-continuation rules:
 - Set `goal_continuation.suppress_pr=true`. Run the normal implementation, review, audit, validation, history, and commit steps, then suppress `pr_description` so the parent goal runner can open one PR for the whole goal.
 - Treat a completed `commit_push` step as the terminal success signal for this entry when PR suppression is active. Persist the subtask outcome in durable workflow state; stdout is diagnostic only.
 - The structured outcome fields are `issue_key`, `subtask_id`, `status`, `commit_sha`, `workflow_id`, `blocked_reason`, and `last_resumable_step`. Runtime state is authoritative; git-tracked `decomposition-manifest.yaml` projections may omit runtime-only commit SHAs.
+- To explain why a subtask retried, stopped, or blocked, read the append-only attempt ledger (`goal_attempt_ledger`) on the child workflow via read-only `workflow show`; its `action`, `blocked_reason`, `stop_reason`, and `final_reconciled_result` fields are sufficient without scraping any provider session log. Caveat (not a Skill Bill contract): provider-reported total token counts can be dominated by cached input replay, so treat them as a diagnostic signal — Skill Bill optimizes payload size and session behavior, not provider cache accounting. See `orchestration/workflow-contract/PLAYBOOK.md` for detail.
 - Interactive `bill-feature-task` behavior is unchanged: direct user runs still perform Step 1 confirmation and create a PR in Step 9.
 
 ## Shared Feature-Spec Preparation Path

@@ -1568,14 +1568,16 @@ private fun workerSubtaskRequestJson(
 
 internal fun launchFacts(
   timedOut: Boolean = false,
+  interrupted: Boolean = false,
   stdout: String = "diagnostic only",
   stderr: String = "",
 ): AgentRunLaunchFacts = AgentRunLaunchFacts(
   agent = InstallAgent.CLAUDE,
-  exitStatus = if (timedOut) null else 0,
+  exitStatus = if (timedOut || interrupted) null else 0,
   stdout = stdout,
   stderr = stderr,
   timedOut = timedOut,
+  interrupted = interrupted,
   spawnFailed = false,
 )
 

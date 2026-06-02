@@ -676,6 +676,77 @@ class CliGoalRuntimeTest {
   }
 }
 
+/**
+ * SKILL-64 Subtask 4 (AC3): transition-only monitoring coverage. Kept in its own
+ * class so it does not push the broad [CliGoalRuntimeTest] over the detekt
+ * LargeClass threshold.
+ */
+class CliGoalTransitionMonitoringTest {
+  @Test
+  @Suppress("LongMethod")
+  fun `goal run transition stream omits heartbeat chatter while reporting starts blocked failed and completion`() {
+    // A multi-subtask run with a failing subtask must emit goal_event lines ONLY
+    // on meaningful changes (goal_started, subtask start, subtask completion,
+    // blocked/failed stop) while routine heartbeat chatter is excluded from the
+    // transition stream, and sparse liveness (the structured
+    // heartbeat/observability lines) is still reported. The goal_event count must
+    // be materially less than the routine heartbeat count.
+    val fixture = goalFixture(subtaskCount = 2)
+    val liveStdout = StringBuilder()
+    // Each child emits many routine heartbeats; the transition stream must not
+    // grow with them.
+    val launcher = GoalFixtureAgentRunLauncher(fixture, failSubtask = 2, heartbeatChatterCount = 8)
+
+    val result = CliRuntime.run(
+      fixture.goalCommand(),
+      fixture.context(
+        launcher = launcher,
+        liveStdout = { liveStdout.append(it) },
+      ),
+    )
+
+    assertEquals(1, result.exitCode, result.stdout)
+    val output = liveStdout.toString()
+
+    // Starts, phase transitions, and completion are all reported on the
+    // transition stream.
+    assertContains(output, "event_kind=goal_started")
+    assertContains(output, "event_kind=subtask_completed")
+    // Blocked/failed terminal state for the failing subtask is reported.
+    assertContains(output, "event_kind=subtask_stopped")
+    assertContains(output, "current_status=failed")
+
+    // Distinct sequence space (>= 20000), not the observability 10000/1-based space.
+    val goalEventLines = output.lines().filter { it.startsWith("goal_event:") }
+    val goalEventSequences = goalEventLines
+      .mapNotNull { Regex("""sequence_number=(\d+)""").find(it)?.groupValues?.get(1)?.toInt() }
+    assertTrue(goalEventSequences.isNotEmpty(), output)
+    assertTrue(
+      goalEventSequences.all { it >= 20_000 },
+      "goal_event sequence space must be distinct: $goalEventSequences",
+    )
+
+    // Routine heartbeat chatter is NOT promoted to the transition stream, and
+    // sparse liveness is still reported via the structured heartbeat lines.
+    val heartbeatCount = output.lines().count { it.startsWith("goal SKILL-901: heartbeat") }
+    val observabilityCount = output.lines().count { it.startsWith("goal_observability:") }
+    assertTrue(heartbeatCount > 0, output)
+    assertTrue(observabilityCount > 0, output)
+    assertTrue(
+      goalEventLines.none { it.contains("heartbeat") },
+      "goal_event transition lines must never carry routine heartbeat chatter: $goalEventLines",
+    )
+    // Materially less: the transition stream is far smaller than the routine
+    // heartbeat chatter (16 heartbeats across two subtasks vs. a handful of
+    // transitions).
+    assertTrue(
+      goalEventLines.size < heartbeatCount,
+      "goal_event count (${goalEventLines.size}) must be materially less than " +
+        "heartbeat count ($heartbeatCount): $output",
+    )
+  }
+}
+
 private fun startRunningGoalChild(fixture: GoalCliFixture): String = runGoalJson(
   listOf(
     "--db",
@@ -818,6 +889,11 @@ private class GoalFixtureAgentRunLauncher(
   private val fixture: GoalCliFixture,
   private val failSubtask: Int? = null,
   private val noTerminalSubtask: Int? = null,
+  // SKILL-64 Subtask 4 (AC3): number of routine status-heartbeat lines each
+  // child emits. The default is 1 (legacy behavior); transition-monitoring
+  // tests raise it to prove the goal_event transition stream stays far smaller
+  // than the routine heartbeat chatter.
+  private val heartbeatChatterCount: Int = 1,
 ) : AgentRunLauncher {
   val requests: MutableList<AgentRunLaunchRequest> = mutableListOf()
 
@@ -831,11 +907,13 @@ private class GoalFixtureAgentRunLauncher(
       "skill-bill: workflow progress: subtask $subtaskId " +
         "workflow wfl-$subtaskId step implement durable_progress step=implement\n",
     )
-    request.skillRunRequest.outputSink.write(
-      AgentRunOutputStream.STDERR,
-      "skill-bill: status heartbeat (90s): child run still active; workflow: " +
-        "subtask $subtaskId workflow wfl-$subtaskId step implement durable_progress\n",
-    )
+    repeat(heartbeatChatterCount) {
+      request.skillRunRequest.outputSink.write(
+        AgentRunOutputStream.STDERR,
+        "skill-bill: status heartbeat (90s): child run still active; workflow: " +
+          "subtask $subtaskId workflow wfl-$subtaskId step implement durable_progress\n",
+      )
+    }
     val dbPath = requireNotNull(request.skillRunRequest.dbPathOverride)
     val workflowId = startSubtaskWorkflow(subtaskId, dbPath)
     if (subtaskId == failSubtask) {

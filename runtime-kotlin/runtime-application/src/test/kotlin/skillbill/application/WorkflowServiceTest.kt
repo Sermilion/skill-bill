@@ -680,6 +680,87 @@ class WorkflowServiceTest {
   }
 }
 
+/**
+ * SKILL-64 Subtask 4 (AC1, AC2): the compact workflow-update acknowledgement
+ * byte-budget regression. Kept in its own class so it does not push the broad
+ * [WorkflowServiceTest] over the detekt LargeClass threshold.
+ */
+class WorkflowUpdateAcknowledgementBudgetTest {
+  @Test
+  fun `compact update acknowledgement stays under byte ceiling and omits full durable state`() {
+    // A workflow update with a representative LARGE artifacts_patch must return a
+    // compact typed acknowledgement, not a full snapshot. The serialized ack
+    // stays under a named ceiling and carries only the documented compact fields
+    // + read-only full-state guidance — never the full durable artifacts map or
+    // the full per-step list.
+    val service = newAckBudgetService()
+    val opened = assertIs<WorkflowOpenResult.Ok>(service.open(WorkflowFamilyKind.IMPLEMENT, sessionId = "fis-001"))
+    val updated = service.update(
+      WorkflowFamilyKind.IMPLEMENT,
+      WorkflowUpdateRequest(
+        workflowId = opened.workflowId,
+        workflowStatus = "running",
+        currentStepId = "implement",
+        stepUpdates = listOf(mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1)),
+        artifactsPatch = mapOf(
+          "plan" to mapOf("mode" to "implement", "body" to "x".repeat(12000)),
+          "preplan_digest" to mapOf("risk" to "low", "notes" to "y".repeat(8000)),
+        ),
+        sessionId = "fis-001",
+      ),
+    )
+
+    val ok = assertIs<WorkflowUpdateResult.Ok>(updated)
+    val ack = ok.acknowledgement
+    assertEquals("ok", ack.status)
+    assertEquals(opened.workflowId, ack.workflowId)
+    assertEquals("running", ack.workflowStatus)
+    assertEquals("implement", ack.currentStepId)
+    assertEquals(listOf("implement"), ack.updatedStepIds)
+    assertEquals(listOf("plan", "preplan_digest"), ack.updatedArtifactKeys)
+
+    // Build the compact ack wire shape (typed ack map + result-level db_path) and
+    // assert it stays under the ceiling. A regression that echoes the full
+    // durable artifacts map back in the ack would blow past it.
+    val ackMap = WorkflowEngine.updateAcknowledgementMap(ack) + mapOf("db_path" to ok.dbPath)
+    val serialized = skillbill.contracts.JsonSupport.mapToJsonString(ackMap)
+    val byteSize = serialized.toByteArray(Charsets.UTF_8).size
+    assertTrue(
+      byteSize < COMPACT_UPDATE_ACK_PAYLOAD_BYTE_CEILING,
+      "Compact update acknowledgement was $byteSize bytes, exceeding the " +
+        "$COMPACT_UPDATE_ACK_PAYLOAD_BYTE_CEILING ceiling; the full durable state was likely echoed back.",
+    )
+    // The ack carries only documented compact fields + read-only guidance.
+    assertEquals(
+      setOf(
+        "status",
+        "workflow_id",
+        "workflow_name",
+        "workflow_status",
+        "current_step_id",
+        "updated_step_ids",
+        "updated_artifact_keys",
+        "read_only_full_state_guidance",
+        "db_path",
+      ),
+      ackMap.keys,
+    )
+    // The full durable artifacts map and the full per-step list must NOT appear.
+    assertFalse(serialized.contains("\"artifacts\""))
+    assertFalse(serialized.contains("\"steps\""))
+    assertFalse(serialized.contains("x".repeat(2000)))
+    assertFalse(serialized.contains("y".repeat(2000)))
+    assertTrue(ack.readOnlyFullStateGuidance.isNotBlank())
+  }
+
+  private fun newAckBudgetService(): WorkflowService = WorkflowService(
+    database = FakeDatabaseSessionFactory(InMemoryWorkflowStates()),
+    decompositionManifestFileStore = UnavailableDecompositionManifestFileStore,
+    workflowSnapshotValidator = testWorkflowSnapshotValidator,
+    decompositionManifestValidator = testDecompositionManifestValidator,
+  )
+}
+
 class WorkflowGoalRunnerOutcomeStoreTest {
   @Test
   fun `goal runner outcome store reads durable blocked continuation outcome`() {
@@ -1323,6 +1404,14 @@ class WorkflowGoalRunnerOutcomeStoreTest {
     assertEquals("running", steps.getValue("implement"))
   }
 }
+
+/**
+ * SKILL-64 Subtask 4 (AC1, AC2): named ceiling for the compact workflow-update
+ * acknowledgement. The compact ack carries only summary fields + read-only
+ * guidance, so it stays tiny regardless of how large the persisted artifacts
+ * are; echoing the full durable state back would blow past this.
+ */
+private const val COMPACT_UPDATE_ACK_PAYLOAD_BYTE_CEILING = 1024
 
 private fun decodeWorkflowStepsForTest(stepsJson: String): Map<String, String> {
   val element = skillbill.contracts.JsonSupport.json.parseToJsonElement(stepsJson)

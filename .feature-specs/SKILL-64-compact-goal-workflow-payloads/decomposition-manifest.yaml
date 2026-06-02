@@ -3,7 +3,7 @@ contract_version: "0.2"
 issue_key: "SKILL-64"
 feature_name: "compact-goal-workflow-payloads"
 parent_spec_path: ".feature-specs/SKILL-64-compact-goal-workflow-payloads/spec.md"
-status: "in_progress"
+status: "complete"
 execution_model: "same_branch_commit_per_subtask"
 base_branch: "main"
 feature_branch: "feat/SKILL-64-compact-goal-workflow-payloads"
@@ -54,12 +54,12 @@ subtasks:
 - id: 4
   name: "validation-docs-payload-budgets"
   spec_path: ".feature-specs/SKILL-64-compact-goal-workflow-payloads/spec_subtask_4_validation-docs-payload-budgets.md"
-  status: "pending"
+  status: "complete"
   branch: "feat/SKILL-64-compact-goal-workflow-payloads"
   commit_sha: null
-  workflow_id: null
+  workflow_id: "wfl-20260602-123507-dr8d"
   blocked_reason: null
-  last_resumable_step: null
+  last_resumable_step: "commit_push"
   dependencies:
   - subtask_id: 3
     optional: false
