@@ -309,14 +309,14 @@ Workflow state:
 |---------------------------------------|--------------------------------------------|
 | `skill-bill workflow list`            | List persisted implement workflows         |
 | `skill-bill workflow latest`          | Show the latest implement workflow         |
-| `skill-bill workflow show`            | Show one implement workflow                |
+| `skill-bill workflow show`            | Show one implement workflow, including full durable state |
 | `skill-bill workflow resume`          | Build a resume/recovery explanation        |
-| `skill-bill workflow continue`        | Reopen a resumable implement workflow      |
+| `skill-bill workflow continue`        | Reopen a resumable implement workflow and emit compact continuation guidance |
 | `skill-bill verify-workflow list`     | List persisted verify workflows            |
 | `skill-bill verify-workflow latest`   | Show the latest verify workflow            |
-| `skill-bill verify-workflow show`     | Show one verify workflow                   |
+| `skill-bill verify-workflow show`     | Show one verify workflow, including full durable state |
 | `skill-bill verify-workflow resume`   | Build a verify resume/recovery explanation |
-| `skill-bill verify-workflow continue` | Reopen a resumable verify workflow         |
+| `skill-bill verify-workflow continue` | Reopen a resumable verify workflow and emit compact continuation guidance |
 
 Authoring and install:
 

@@ -1,3 +1,12 @@
+## [2026-06-02] SKILL-64 subtask 1 compact-continuation-contract
+Areas: runtime-kotlin/runtime-domain, runtime-kotlin/runtime-application, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-mcp, docs, skills/bill-feature-task
+- `workflow continue` remains the mutating activation/reopen path, but default CLI/MCP output now uses compact continuation fields instead of full snapshots/artifacts; `workflow show` is the read-only full-state fallback. reusable
+- Compact current-step artifact summaries inline small required artifacts and omit/truncate large or non-current artifacts with metadata; prompts must reference `current_step_artifacts` and send omitted keys to `workflow show`. reusable
+- CLI/MCP adapters render `read_only_full_state_command` with the resolved `--db` path; domain owns only the typed compact view and loud-fail validation still happens before projection.
+- Install sync was intentionally skipped during goal-continuation; refresh local installs outside continuation if governed generated output needs updating.
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented
+
 ## [2026-06-01] SKILL-63 subtask 3 add-on-skeleton-wizard
 Areas: runtime-kotlin/runtime-cli, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-desktop, docs
 - Normal add-on creation now creates an editable skeleton instead of asking for body text; CLI/desktop wizard payloads omit body and raw consumer dirs, and scaffold notes point users to edit the generated add-on file. reusable

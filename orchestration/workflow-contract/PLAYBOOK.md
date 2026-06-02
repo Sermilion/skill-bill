@@ -184,9 +184,12 @@ linked to workflow state via `session_id` rather than replaced by it.
 
 `feature_implement_workflow_continue` is the first activation tool in the pilot:
 it does not execute the workflow itself, but it re-opens resumable state and
-returns a governed continuation payload for `bill-feature-task`, including
-the resumed step id, recovered artifacts, reference sections to read, and a
-paste-ready continuation prompt.
+returns a governed compact continuation payload for `bill-feature-task`,
+including the resumed step id, required and available artifact keys, compact
+current-step artifact summaries, reference sections to read, and a paste-ready
+continuation prompt. The compact payload omits the full workflow snapshot and
+full durable `artifacts` map by default. Use `workflow show` as the read-only
+full-state inspection path when complete durable state is needed.
 
 The CLI exposes the same recovery surface through:
 

@@ -57,6 +57,45 @@ data class WorkflowResumeView(
   val nextAction: String,
 )
 
+data class WorkflowContinuationArtifactSummary(
+  val key: String,
+  val present: Boolean,
+  val inline: Boolean,
+  val sizeBytes: Int?,
+  /**
+   * Caller-supplied artifact JSON when the compact continuation payload can
+   * inline it. This is intentionally open-boundary because artifact schemas
+   * are owned by workflow callers, not this projection model.
+   */
+  @OpenBoundaryMap("Inline compact continuation artifact value (caller-supplied JSON)")
+  val value: Any?,
+  val preview: String?,
+  val truncated: Boolean,
+  val omitted: Boolean,
+  val omissionReason: String?,
+)
+
+data class WorkflowCompactContinueView(
+  val workflowId: String,
+  val skillName: String,
+  val continueStatus: String,
+  val workflowStatusBeforeContinue: String,
+  val startedAt: String,
+  val updatedAt: String,
+  val resumeStepId: String,
+  val resumeStepLabel: String,
+  val continueStepDirective: String,
+  val referenceSections: List<String>,
+  val requiredArtifactKeys: List<String>,
+  val availableArtifactKeys: List<String>,
+  val missingArtifactKeys: List<String>,
+  val currentStepArtifacts: List<WorkflowContinuationArtifactSummary>,
+  val omittedArtifactKeys: List<String>,
+  val continuationBrief: String,
+  val continuationEntryPrompt: String,
+  val readOnlyFullStateGuidance: String,
+)
+
 data class WorkflowContinueView(
   val resume: WorkflowResumeView,
   val skillName: String,
@@ -90,4 +129,5 @@ data class WorkflowContinueView(
   val sessionSummary: Map<String, Any?>,
   val continuationBrief: String,
   val continuationEntryPrompt: String,
+  val compact: WorkflowCompactContinueView,
 )

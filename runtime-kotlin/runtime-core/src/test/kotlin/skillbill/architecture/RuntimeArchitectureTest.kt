@@ -1682,6 +1682,8 @@ class RuntimeArchitectureTest {
       "skillbill.workflow.WorkflowEngine.summaryMap",
       "skillbill.workflow.WorkflowEngine.resumeMap",
       "skillbill.workflow.WorkflowEngine.continueMap",
+      "skillbill.workflow.WorkflowEngine.compactContinueMap",
+      "skillbill.workflow.model.WorkflowContinuationArtifactSummary.value",
       // SKILL-52.2 subtask 4: domain-owned workflow-snapshot validator port.
       // The map is the canonical schema-validated wire snapshot envelope; the
       // port stays raw-map at the validation seam because the schema itself

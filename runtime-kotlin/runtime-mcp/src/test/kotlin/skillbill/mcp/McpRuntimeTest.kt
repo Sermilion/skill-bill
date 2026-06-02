@@ -559,6 +559,7 @@ class McpRuntimeTest {
     assertEquals(listOf("plan"), resumed["missing_artifacts"])
     assertEquals("error", continued["status"])
     assertEquals("blocked", continued["continue_status"])
+    assertCompactContinuationPayload(continued, "implement")
   }
 
   @Test
@@ -609,7 +610,23 @@ class McpRuntimeTest {
     assertEquals("resume", resumed["resume_mode"])
     assertEquals("ok", continued["status"])
     assertEquals("reopened", continued["continue_status"])
+    assertEquals("running", continued["workflow_status_before_continue"])
+    assertEquals(
+      "skill-bill --db '${tempDir.resolve("metrics.db").toAbsolutePath().normalize()}' verify-workflow show " +
+        "'$workflowId' --format json",
+      continued["read_only_full_state_command"],
+    )
+    assertCompactContinuationPayload(continued, "verdict")
   }
+}
+
+private fun assertCompactContinuationPayload(payload: Map<String, *>, resumeStepId: String) {
+  assertEquals(resumeStepId, payload["resume_step_id"])
+  assertTrue(payload.containsKey("current_step_artifacts"))
+  assertTrue(payload.containsKey("read_only_full_state_command"))
+  assertFalse(payload.containsKey("workflow"))
+  assertFalse(payload.containsKey("artifacts"))
+  assertFalse(payload.containsKey("steps"))
 }
 
 private fun markVerifyWorkflowVerdictBlocked(workflowId: String, context: McpRuntimeContext): Map<String, *> =

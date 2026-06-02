@@ -41,13 +41,14 @@ When an external caller re-enters this skill using the payload returned by `feat
 Continuation-mode rules:
 
 - Keep the same `workflow_id` and `session_id`; do not open a new workflow.
-- Use `continue_step_id` as the starting point.
-- Use `step_artifacts` and `session_summary` as authoritative recovered context; do not reconstruct earlier phases from chat history unless the step explicitly requires user confirmation.
+- Use `resume_step_id` / `continue_step_id` as the starting point.
+- Use `current_step_artifacts` as authoritative recovered context; inline values are complete, while summarized values carry explicit size, preview, truncation, and omission metadata. Do not reconstruct earlier phases from chat history unless the step explicitly requires user confirmation.
 - Read the `reference_sections` listed in the continuation payload before resuming work.
 - Skip already-completed earlier steps unless the normal workflow loop sends work backwards (for example review back to implement, or audit back to plan).
 - After the resumed step completes, continue the normal sequence defined below.
 - If `continue_status` is `done`, do not rerun the workflow; summarize the terminal state instead.
 - If `continue_status` is `blocked`, stop and restore the missing artifacts named by the workflow payload before continuing.
+- `workflow continue` is an activation/reopen command, not a read-only inspection command. Use `workflow show <workflow-id> --format json` for read-only full-state inspection, including the complete durable `artifacts` map.
 
 ## Goal-Continuation Entry (non-interactive)
 
@@ -450,27 +451,33 @@ When an external caller invokes `feature_implement_workflow_continue`, the
 returned payload becomes the supported re-entry contract for
 `bill-feature-task`.
 
-The continuation payload includes:
+The compact continuation payload includes:
 
 - `skill_name` — always `bill-feature-task`
-- `continuation_mode` — currently `resume_existing_workflow`
 - `continue_status` — `reopened`, `already_running`, `blocked`, or `done`
-- `continue_step_id` and `continue_step_label`
+- `resume_step_id` / `continue_step_id` and the matching step label
 - `continue_step_directive` — the step-specific rule for the resumed phase
-- `reference_sections` — the exact governed sections to re-read before
-  resuming
-- `step_artifacts` — the recovered structured artifacts that should replace
-  chat-history reconstruction
-- `session_summary` — saved Step 1 metadata when a telemetry session exists
+- `required_artifact_keys`, `available_artifact_keys`, and
+  `missing_artifact_keys`
+- `current_step_artifacts` — compact summaries for the required current-step
+  artifacts. Small artifacts are inline; large artifacts include size,
+  preview, truncation, and omission metadata instead of the full value.
+- `omitted_artifact_keys` — available durable artifacts omitted from the
+  compact current-step summaries
 - `continuation_brief` — short human-facing summary
 - `continuation_entry_prompt` — a paste-ready prompt for an orchestrator or AI
   caller
+- `read_only_full_state_command` and `read_only_full_state_guidance` — the
+  read-only `workflow show` fallback for complete state
 
 Re-entry rules:
 
 - Do not open a new workflow when continuing an existing run.
 - Keep using the same `workflow_id` and `session_id`.
-- Treat `step_artifacts` as authoritative inputs for the resumed phase.
+- Treat inline `current_step_artifacts` values as authoritative inputs for the
+  resumed phase. If an artifact is summarized or omitted because it is large,
+  inspect full state with the payload's `read_only_full_state_command` only as
+  needed.
 - Skip earlier completed steps unless the normal workflow loops send work
   backwards.
 - After the resumed step completes, continue the standard `bill-feature-task`

@@ -38,6 +38,7 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -162,10 +163,18 @@ class WorkflowServiceTest {
     val standard = assertIs<WorkflowContinueResult.Standard>(continued)
     assertEquals("blocked", standard.view.continueStatus)
     assertEquals(listOf("plan"), standard.view.resume.missingArtifacts)
+    assertEquals(listOf("plan"), standard.view.compact.missingArtifactKeys)
+    val missingSummary = standard.view.compact.currentStepArtifacts.single { it.key == "plan" }
+    assertFalse(missingSummary.present)
+    assertEquals("missing_required_artifact", missingSummary.omissionReason)
+    assertEquals(
+      "Use workflow show for read-only full-state inspection, including the complete durable artifacts map.",
+      standard.view.compact.readOnlyFullStateGuidance,
+    )
   }
 
   @Test
-  fun `InvalidWorkflowStateSchemaError loud-fails through WorkflowService get`() {
+  fun `InvalidWorkflowStateSchemaError loud-fails through WorkflowService get and continue before projection`() {
     // SKILL-52.3 subtask 1: the concrete workflow-state schema validator now
     // lives in `runtime-infra-fs` and is reached through the injected
     // `WorkflowSnapshotValidator` port. This test pins the seam contract: the
@@ -193,6 +202,9 @@ class WorkflowServiceTest {
     )
     assertFailsWith<InvalidWorkflowStateSchemaError> {
       service.get(WorkflowFamilyKind.IMPLEMENT, "wfl-loud")
+    }
+    assertFailsWith<InvalidWorkflowStateSchemaError> {
+      service.continueWorkflow(WorkflowFamilyKind.IMPLEMENT, "wfl-loud")
     }
   }
 
@@ -1140,7 +1152,7 @@ private fun decompositionRuntime(status: String): DecompositionManifest = Decomp
   ),
 )
 
-private class FakeDatabaseSessionFactory(
+internal class FakeDatabaseSessionFactory(
   private val workflowStates: WorkflowStateRepository,
   private val fakeDbPath: Path = Path.of("/fake/metrics.db"),
 ) : DatabaseSessionFactory {
@@ -1163,7 +1175,7 @@ private class FakeDatabaseSessionFactory(
   }
 }
 
-private class InMemoryWorkflowStates : WorkflowStateRepository {
+internal class InMemoryWorkflowStates : WorkflowStateRepository {
   private val implement = mutableMapOf<String, WorkflowStateRecord>()
   private val verify = mutableMapOf<String, WorkflowStateRecord>()
 
