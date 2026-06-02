@@ -209,6 +209,42 @@ class WorkflowServiceTest {
   }
 
   @Test
+  fun `InvalidWorkflowStateSchemaError loud-fails through WorkflowService update before acknowledgement`() {
+    val workflows = InMemoryWorkflowStates()
+    val opened = testWorkflowEngine.openRecord(
+      FeatureImplementWorkflowDefinition.definition,
+      "wfl-update-loud",
+      "fis-001",
+      "assess",
+    ).toRecord()
+    workflows.saveFeatureImplementWorkflow(opened)
+    val loudFailValidator = object : WorkflowSnapshotValidator {
+      override fun validate(snapshot: Map<String, Any?>, slug: String): Unit =
+        throw InvalidWorkflowStateSchemaError("Workflow '$slug': snapshot fails schema validation at '<root>'.")
+    }
+    val service = WorkflowService(
+      database = FakeDatabaseSessionFactory(workflows),
+      decompositionManifestFileStore = UnavailableDecompositionManifestFileStore,
+      workflowSnapshotValidator = loudFailValidator,
+      decompositionManifestValidator = testDecompositionManifestValidator,
+    )
+
+    assertFailsWith<InvalidWorkflowStateSchemaError> {
+      service.update(
+        WorkflowFamilyKind.IMPLEMENT,
+        WorkflowUpdateRequest(
+          workflowId = "wfl-update-loud",
+          workflowStatus = "running",
+          currentStepId = "preplan",
+          stepUpdates = listOf(mapOf("step_id" to "preplan", "status" to "running", "attempt_count" to 1)),
+          artifactsPatch = mapOf("assessment" to mapOf("ok" to true), "branch" to mapOf("ok" to true)),
+          sessionId = "",
+        ),
+      )
+    }
+  }
+
+  @Test
   fun `progress event update persists goal observability latest and bounded history artifacts`() {
     val workflows = InMemoryWorkflowStates()
     val service = WorkflowService(
@@ -248,19 +284,11 @@ class WorkflowServiceTest {
     )
 
     val ok = assertIs<WorkflowUpdateResult.Ok>(updated)
-    val latest = ok.snapshot.artifacts["goal_observability_latest_event"] as Map<*, *>
-    val history = ok.snapshot.artifacts["goal_observability_run_history"] as List<*>
-    assertEquals("SKILL-61", latest["issue_key"])
-    assertEquals(1, latest["subtask_id"])
-    assertEquals("implement", latest["workflow_phase"])
-    assertEquals("phase_subagent", latest["worker_role"])
-    assertEquals("durable_progress", latest["liveness_class"])
-    assertEquals("editing runtime files", latest["activity_summary"])
-    assertEquals(opened.workflowId, latest["workflow_id"])
-    assertEquals(7, latest["sequence_number"])
-    assertEquals(mapOf("files_changed" to 0, "insertions" to 0, "deletions" to 0), latest["diff_stat"])
-    assertEquals(1, history.size)
-    assertTrue(ok.snapshot.artifacts.containsKey("progress_event"))
+    assertProgressEventAcknowledgement(ok)
+    val persisted = assertIs<WorkflowGetResult.Ok>(
+      service.get(WorkflowFamilyKind.IMPLEMENT, opened.workflowId),
+    )
+    assertPersistedProgressEventArtifacts(persisted, opened.workflowId)
   }
 
   @Test
@@ -1107,6 +1135,37 @@ private fun decodeWorkflowArtifactsForTest(artifactsJson: String): Map<String, A
       skillbill.contracts.JsonSupport.jsonElementToValue(element),
     ),
   )
+}
+
+private fun assertProgressEventAcknowledgement(ok: WorkflowUpdateResult.Ok) {
+  assertEquals("running", ok.acknowledgement.workflowStatus)
+  assertEquals("implement", ok.acknowledgement.currentStepId)
+  assertEquals(listOf("implement"), ok.acknowledgement.updatedStepIds)
+  assertEquals(
+    listOf(
+      "goal_continuation",
+      "goal_observability_latest_event",
+      "goal_observability_run_history",
+      "progress_event",
+    ),
+    ok.acknowledgement.updatedArtifactKeys,
+  )
+}
+
+private fun assertPersistedProgressEventArtifacts(persisted: WorkflowGetResult.Ok, workflowId: String) {
+  val latest = persisted.snapshot.artifacts["goal_observability_latest_event"] as Map<*, *>
+  val history = persisted.snapshot.artifacts["goal_observability_run_history"] as List<*>
+  assertEquals("SKILL-61", latest["issue_key"])
+  assertEquals(1, latest["subtask_id"])
+  assertEquals("implement", latest["workflow_phase"])
+  assertEquals("phase_subagent", latest["worker_role"])
+  assertEquals("durable_progress", latest["liveness_class"])
+  assertEquals("editing runtime files", latest["activity_summary"])
+  assertEquals(workflowId, latest["workflow_id"])
+  assertEquals(7, latest["sequence_number"])
+  assertEquals(mapOf("files_changed" to 0, "insertions" to 0, "deletions" to 0), latest["diff_stat"])
+  assertEquals(1, history.size)
+  assertTrue(persisted.snapshot.artifacts.containsKey("progress_event"))
 }
 
 private val testWorkflowEngine: WorkflowEngine = WorkflowEngine(testWorkflowSnapshotValidator)

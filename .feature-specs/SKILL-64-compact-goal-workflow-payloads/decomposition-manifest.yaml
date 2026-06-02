@@ -25,12 +25,12 @@ subtasks:
 - id: 2
   name: "compact-workflow-update-acks"
   spec_path: ".feature-specs/SKILL-64-compact-goal-workflow-payloads/spec_subtask_2_compact-workflow-update-acks.md"
-  status: "pending"
+  status: "complete"
   branch: "feat/SKILL-64-compact-goal-workflow-payloads"
   commit_sha: null
-  workflow_id: null
+  workflow_id: "wfl-20260602-074114-80ib"
   blocked_reason: null
-  last_resumable_step: null
+  last_resumable_step: "commit_push"
   dependencies:
   - subtask_id: 1
     optional: false

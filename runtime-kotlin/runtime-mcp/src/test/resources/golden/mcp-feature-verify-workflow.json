@@ -24,32 +24,20 @@
     "db_path": "<DB_PATH>"
   },
   "update": {
+    "status": "ok",
     "workflow_id": "<WORKFLOW_ID>",
-    "session_id": "",
     "workflow_name": "bill-feature-verify",
-    "contract_version": "0.1",
     "workflow_status": "running",
     "current_step_id": "verdict",
-    "steps": [
-      {"step_id": "collect_inputs", "status": "completed", "attempt_count": 1},
-      {"step_id": "extract_criteria", "status": "completed", "attempt_count": 1},
-      {"step_id": "gather_diff", "status": "completed", "attempt_count": 1},
-      {"step_id": "feature_flag_audit", "status": "completed", "attempt_count": 1},
-      {"step_id": "code_review", "status": "running", "attempt_count": 1},
-      {"step_id": "completeness_audit", "status": "pending", "attempt_count": 0},
-      {"step_id": "verdict", "status": "blocked", "attempt_count": 1},
-      {"step_id": "finish", "status": "pending", "attempt_count": 0}
+    "updated_step_ids": ["verdict"],
+    "updated_artifact_keys": [
+      "completeness_audit_result",
+      "criteria_summary",
+      "diff_summary",
+      "review_result"
     ],
-    "artifacts": {
-      "criteria_summary": {},
-      "diff_summary": {},
-      "review_result": {},
-      "completeness_audit_result": {}
-    },
-    "started_at": "<STARTED_AT>",
-    "updated_at": "<UPDATED_AT>",
-    "finished_at": "",
-    "status": "ok",
+    "read_only_full_state_guidance": "Update returns a compact acknowledgement. Use explicit read-only workflow get/show for full state, including steps and the complete durable artifacts map.",
+    "read_only_full_state_command": "skill-bill --db '<DB_PATH>' verify-workflow show '<WORKFLOW_ID>' --format json",
     "db_path": "<DB_PATH>"
   },
   "list": {

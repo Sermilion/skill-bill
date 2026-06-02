@@ -530,10 +530,10 @@ class McpRuntimeTest {
     val got = McpWorkflowRuntime.get(WorkflowFamilyKind.IMPLEMENT, workflowId, context)
     val resumed = McpWorkflowRuntime.resume(WorkflowFamilyKind.IMPLEMENT, workflowId, context)
     val continued = McpWorkflowRuntime.continueWorkflow(WorkflowFamilyKind.IMPLEMENT, workflowId, context)
-    val updatedAt = updated["updated_at"].toString()
+    val updatedAt = got["updated_at"].toString()
 
     assertSqliteTimestampShape(updatedAt, "implement updated_at")
-    assertEquals(opened["started_at"], updated["started_at"])
+    assertEquals(opened["started_at"], got["started_at"])
     assertTrue(updatedAt >= opened["started_at"].toString())
 
     assertGoldenPayload(
@@ -550,7 +550,7 @@ class McpRuntimeTest {
       "<DB_PATH>" to tempDir.resolve("metrics.db").toAbsolutePath().normalize().toString(),
       "<WORKFLOW_ID>" to workflowId,
       "<STARTED_AT>" to opened["started_at"].toString(),
-      "<UPDATED_AT>" to updated["updated_at"].toString(),
+      "<UPDATED_AT>" to got["updated_at"].toString(),
     )
     assertEquals("blocked", updated["workflow_status"])
     assertEquals(1, listed["workflow_count"])
@@ -604,6 +604,7 @@ class McpRuntimeTest {
       "<UPDATED_AT>" to got["updated_at"].toString(),
       "<CONTINUED_AT>" to continued["updated_at"].toString(),
     )
+    assertCompactUpdateAcknowledgementPayload(updated, "verdict")
     assertEquals(1, listed["workflow_count"])
     assertEquals(workflowId, latest["workflow_id"])
     assertEquals("verdict", got["current_step_id"])
@@ -618,6 +619,17 @@ class McpRuntimeTest {
     )
     assertCompactContinuationPayload(continued, "verdict")
   }
+}
+
+private fun assertCompactUpdateAcknowledgementPayload(payload: Map<String, *>, updatedStepId: String) {
+  assertEquals("ok", payload["status"])
+  assertEquals(listOf(updatedStepId), payload["updated_step_ids"])
+  assertTrue(payload.containsKey("updated_artifact_keys"))
+  assertTrue(payload.containsKey("read_only_full_state_command"))
+  assertTrue(payload.containsKey("read_only_full_state_guidance"))
+  assertFalse(payload.containsKey("artifacts"))
+  assertFalse(payload.containsKey("steps"))
+  assertFalse(payload.containsKey("session_id"))
 }
 
 private fun assertCompactContinuationPayload(payload: Map<String, *>, resumeStepId: String) {

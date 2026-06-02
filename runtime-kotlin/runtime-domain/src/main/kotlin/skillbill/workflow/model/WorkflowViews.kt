@@ -45,6 +45,17 @@ data class WorkflowSummaryView(
   val finishedAt: String,
 )
 
+data class WorkflowUpdateAcknowledgementView(
+  val status: String,
+  val workflowId: String,
+  val workflowName: String,
+  val workflowStatus: String,
+  val currentStepId: String,
+  val updatedStepIds: List<String>,
+  val updatedArtifactKeys: List<String>,
+  val readOnlyFullStateGuidance: String,
+)
+
 data class WorkflowResumeView(
   val snapshot: WorkflowSnapshotView,
   val resumeMode: String,

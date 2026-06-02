@@ -28,31 +28,15 @@
     "db_path": "<DB_PATH>"
   },
   "update": {
+    "status": "ok",
     "workflow_id": "<WORKFLOW_ID>",
-    "session_id": "fis-20260425-mcp",
     "workflow_name": "bill-feature-task",
-    "contract_version": "0.1",
     "workflow_status": "blocked",
     "current_step_id": "implement",
-    "steps": [
-      {"step_id": "assess", "status": "running", "attempt_count": 1},
-      {"step_id": "create_branch", "status": "pending", "attempt_count": 0},
-      {"step_id": "preplan", "status": "pending", "attempt_count": 0},
-      {"step_id": "plan", "status": "pending", "attempt_count": 0},
-      {"step_id": "implement", "status": "blocked", "attempt_count": 1},
-      {"step_id": "review", "status": "pending", "attempt_count": 0},
-      {"step_id": "audit", "status": "pending", "attempt_count": 0},
-      {"step_id": "validate", "status": "pending", "attempt_count": 0},
-      {"step_id": "write_history", "status": "pending", "attempt_count": 0},
-      {"step_id": "commit_push", "status": "pending", "attempt_count": 0},
-      {"step_id": "pr_description", "status": "pending", "attempt_count": 0},
-      {"step_id": "finish", "status": "pending", "attempt_count": 0}
-    ],
-    "artifacts": {"preplan_digest": {"ok": true}},
-    "started_at": "<STARTED_AT>",
-    "updated_at": "<UPDATED_AT>",
-    "finished_at": "",
-    "status": "ok",
+    "updated_step_ids": ["implement"],
+    "updated_artifact_keys": ["preplan_digest"],
+    "read_only_full_state_guidance": "Update returns a compact acknowledgement. Use explicit read-only workflow get/show for full state, including steps and the complete durable artifacts map.",
+    "read_only_full_state_command": "skill-bill --db '<DB_PATH>' workflow show '<WORKFLOW_ID>' --format json",
     "db_path": "<DB_PATH>"
   },
   "list": {

@@ -28,6 +28,7 @@ Workflow-state rules:
   - `step_updates` for the steps whose status changed
   - `artifacts_patch` for the structured artifact produced by that phase
 - Workflow state is independent of telemetry settings. Persist it even when `feature_implement_started` or `feature_implement_finished` returns `status: skipped`.
+- `feature_implement_workflow_update` returns a compact acknowledgement by default: status, workflow id/status, current step id, updated step ids, updated artifact keys, db path, and read-only full-state guidance. It does not return the full durable artifact map; use `feature_implement_workflow_get` or `workflow show` for explicit read-only full-state inspection.
 - Follow the detailed per-phase briefing contracts in the inline reference sections below. Do not invent prose-only handoffs when a structured artifact exists.
 
 Stable step ids: `assess`, `create_branch`, `preplan`, `plan`, `implement`, `review`, `audit`, `validate`, `write_history`, `commit_push`, `pr_description`, `finish`. Stable artifact names: `assessment`, `branch`, `preplan_digest`, `plan`, `implementation_summary`, `review_result`, `audit_report`, `validation_result`, `history_result`, `commit_push_result`, `pr_result`.
@@ -415,6 +416,7 @@ After every major phase boundary:
 - set the new `current_step_id`
 - pass only the changed steps in `step_updates`
 - merge the new structured artifact through `artifacts_patch`
+- treat the response as a compact acknowledgement only; if a caller needs the complete steps or durable `artifacts` map after the write, call `feature_implement_workflow_get` or `workflow show` explicitly.
 
 When a loop sends work backwards:
 

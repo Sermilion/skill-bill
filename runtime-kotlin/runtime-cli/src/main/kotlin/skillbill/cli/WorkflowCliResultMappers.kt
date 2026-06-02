@@ -39,11 +39,15 @@ internal fun WorkflowOpenResult.toCliMap(
   )
 }
 
-internal fun WorkflowUpdateResult.toCliMap(
-  goalObservabilityEventValidator: GoalObservabilityEventValidator,
-): Map<String, Any?> = when (this) {
-  is WorkflowUpdateResult.Ok -> workflowSnapshotCliMap(snapshot, goalObservabilityEventValidator).apply {
-    put("status", "ok")
+internal fun WorkflowUpdateResult.toCliMap(): Map<String, Any?> = when (this) {
+  is WorkflowUpdateResult.Ok -> LinkedHashMap(WorkflowEngine.updateAcknowledgementMap(acknowledgement)).apply {
+    val workflowCommand = if (acknowledgement.workflowName == "bill-feature-verify") "verify-workflow" else "workflow"
+    val quotedDbPath = "'${dbPath.replace("'", "'\"'\"'")}'"
+    val quotedWorkflowId = "'${acknowledgement.workflowId.replace("'", "'\"'\"'")}'"
+    put(
+      "read_only_full_state_command",
+      "skill-bill --db $quotedDbPath $workflowCommand show $quotedWorkflowId --format json",
+    )
     put("db_path", dbPath)
   }
   is WorkflowUpdateResult.Error -> linkedMapOf<String, Any?>(

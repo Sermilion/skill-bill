@@ -182,6 +182,14 @@ existing `feature_implement_started` / `_finished` and
 `feature_verify_started` / `_finished` tools remain telemetry-owned; they are
 linked to workflow state via `session_id` rather than replaced by it.
 
+Workflow update tools return compact acknowledgements by default after the
+validated update has been persisted. The acknowledgement includes write status,
+workflow id/status, current step id, updated step ids, updated artifact keys,
+database path, and read-only full-state guidance. It intentionally omits full
+steps and durable artifacts; callers that need complete state should use the
+read-only `*_workflow_get` MCP tools or CLI `workflow show` /
+`verify-workflow show`.
+
 `feature_implement_workflow_continue` is the first activation tool in the pilot:
 it does not execute the workflow itself, but it re-opens resumable state and
 returns a governed compact continuation payload for `bill-feature-task`,

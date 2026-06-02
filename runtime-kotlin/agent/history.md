@@ -1,3 +1,13 @@
+## [2026-06-02] SKILL-64 subtask 2 compact-workflow-update-acks
+Areas: runtime-kotlin/runtime-domain, runtime-kotlin/runtime-application, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-mcp, orchestration/workflow-contract
+- `workflow update` now returns a typed compact acknowledgement by default (status, workflow_id, workflow_name, workflow_status, current_step_id, updated_step_ids, updated_artifact_keys, db_path) instead of a full snapshot; `workflow show`/`get` stay the read-only full-state path. reusable
+- The acknowledgement is produced only after `WorkflowEngine.validateUpdate` passes, the transaction saves, and the service re-reads persisted state — never from stdout or an unpersisted projection; loud-fail validation still precedes projection. reusable
+- Domain owns the transport-neutral acknowledgement view (carries `workflow_name`, no presentation fields); CLI/MCP adapters render `read_only_full_state_command`/`db_path` with the resolved `--db` path, mirroring the subtask 1 compact-continue pattern. reusable
+- MCP goldens (`mcp-feature-implement-workflow.json`, `mcp-feature-verify-workflow.json`) deliberately updated to the compact default; added CLI runtime + service + CLI/MCP mapper coverage asserting compact shape and unchanged read-only full-state.
+- Install sync intentionally skipped during goal-continuation after editing skills/bill-feature-task/content.md; refresh local installs outside continuation if generated output needs updating.
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented
+
 ## [2026-06-02] SKILL-64 subtask 1 compact-continuation-contract
 Areas: runtime-kotlin/runtime-domain, runtime-kotlin/runtime-application, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-mcp, docs, skills/bill-feature-task
 - `workflow continue` remains the mutating activation/reopen path, but default CLI/MCP output now uses compact continuation fields instead of full snapshots/artifacts; `workflow show` is the read-only full-state fallback. reusable

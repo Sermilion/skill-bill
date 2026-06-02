@@ -20,6 +20,7 @@ import skillbill.workflow.model.WorkflowSnapshotView
 import skillbill.workflow.model.WorkflowStateSnapshot
 import skillbill.workflow.model.WorkflowStepState
 import skillbill.workflow.model.WorkflowSummaryView
+import skillbill.workflow.model.WorkflowUpdateAcknowledgementView
 import skillbill.workflow.model.WorkflowUpdateInput
 import java.math.BigDecimal
 import java.math.BigInteger
@@ -143,6 +144,22 @@ class WorkflowEngine(private val schemaValidator: WorkflowSnapshotValidator) {
       finishedAt = map["finished_at"] as String,
     )
   }
+
+  fun updateAcknowledgementView(
+    snapshot: WorkflowSnapshotView,
+    input: WorkflowUpdateInput,
+  ): WorkflowUpdateAcknowledgementView = WorkflowUpdateAcknowledgementView(
+    status = "ok",
+    workflowId = snapshot.workflowId,
+    workflowName = snapshot.workflowName,
+    workflowStatus = snapshot.workflowStatus,
+    currentStepId = snapshot.currentStepId,
+    updatedStepIds = input.stepUpdates.orEmpty().mapNotNull { it["step_id"] as? String },
+    updatedArtifactKeys = input.artifactsPatch.orEmpty().keys.sorted(),
+    readOnlyFullStateGuidance =
+    "Update returns a compact acknowledgement. Use explicit read-only workflow get/show for full state, " +
+      "including steps and the complete durable artifacts map.",
+  )
 
   fun resumeView(definition: WorkflowDefinition, record: WorkflowStateSnapshot): WorkflowResumeView {
     val snapshot = snapshotView(definition, record)
@@ -404,6 +421,18 @@ class WorkflowEngine(private val schemaValidator: WorkflowSnapshotValidator) {
       "omitted_artifact_keys" to view.omittedArtifactKeys,
       "continuation_brief" to view.continuationBrief,
       "continuation_entry_prompt" to view.continuationEntryPrompt,
+      "read_only_full_state_guidance" to view.readOnlyFullStateGuidance,
+    )
+
+    @OpenBoundaryMap("Compact wire-shape ordered workflow-update acknowledgement map for CLI/MCP adapters")
+    fun updateAcknowledgementMap(view: WorkflowUpdateAcknowledgementView): Map<String, Any?> = linkedMapOf(
+      "status" to view.status,
+      "workflow_id" to view.workflowId,
+      "workflow_name" to view.workflowName,
+      "workflow_status" to view.workflowStatus,
+      "current_step_id" to view.currentStepId,
+      "updated_step_ids" to view.updatedStepIds,
+      "updated_artifact_keys" to view.updatedArtifactKeys,
       "read_only_full_state_guidance" to view.readOnlyFullStateGuidance,
     )
 
