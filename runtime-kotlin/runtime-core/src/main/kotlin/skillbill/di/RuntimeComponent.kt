@@ -27,6 +27,7 @@ import skillbill.application.WorkflowGoalRunnerOutcomeStore
 import skillbill.application.WorkflowService
 import skillbill.domain.skillremove.SkillRemoveFileSystem
 import skillbill.infrastructure.fs.DecompositionManifestValidatorAdapter
+import skillbill.infrastructure.fs.FeatureTaskRuntimePhaseOutputValidatorAdapter
 import skillbill.infrastructure.fs.FileSystemDecompositionManifestFileStore
 import skillbill.infrastructure.fs.FileSystemInstallAgentTargets
 import skillbill.infrastructure.fs.FileSystemInstallApplyExecution
@@ -98,6 +99,7 @@ import skillbill.ports.workflow.NoopWorkflowGitOperations
 import skillbill.ports.workflow.WorkflowGitOperations
 import skillbill.telemetry.DefaultTelemetrySettingsProvider
 import skillbill.workflow.DecompositionManifestValidator
+import skillbill.workflow.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.workflow.GoalObservabilityEventValidator
 import skillbill.workflow.GoalProgressEventValidator
 import skillbill.workflow.WorkflowSnapshotValidator
@@ -312,6 +314,16 @@ abstract class RuntimeComponent(
   @JvmSynthetic
   internal fun workflowSnapshotValidator(adapter: WorkflowSnapshotValidatorInfraAdapter): WorkflowSnapshotValidator =
     adapter
+
+  // SKILL-65 Subtask 1: experimental feature-task-runtime per-phase output
+  // validator port, bound to the infra-fs adapter that owns the networknt
+  // JSON-Schema check. The runtime phase loop (a later subtask) calls this port
+  // at the per-phase completion seam, mirroring decompositionManifestValidator.
+  @Provides
+  @JvmSynthetic
+  internal fun featureTaskRuntimePhaseOutputValidator(
+    adapter: FeatureTaskRuntimePhaseOutputValidatorAdapter,
+  ): FeatureTaskRuntimePhaseOutputValidator = adapter
 
   @Provides
   @JvmSynthetic

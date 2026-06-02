@@ -48,6 +48,24 @@ class InvalidDecompositionManifestSchemaError(
 )
 
 /**
+ * SKILL-65 Subtask 1: surfaced when a feature-task-runtime phase output fails
+ * the canonical
+ * `orchestration/contracts/feature-task-runtime-phase-output-schema.yaml`
+ * Draft 2020-12 schema. The composed message carries the source label
+ * (the phase id or another caller-supplied identifier) and the violation
+ * reason so the per-phase progression gate fails loudly without conflating
+ * this contract with decomposition-manifest or workflow-state failures.
+ */
+class InvalidFeatureTaskRuntimePhaseOutputSchemaError(
+  val sourceLabel: String,
+  val reason: String,
+  cause: Throwable? = null,
+) : ShellContentContractException(
+  "Feature-task-runtime phase output '${sourceLabel.ifBlank { "<unknown>" }}' fails schema validation: $reason",
+  cause,
+)
+
+/**
  * SKILL-48 Subtask 2b: surfaced when an `InstallPlan` wire payload fails
  * the canonical `orchestration/contracts/install-plan-schema.yaml` Draft
  * 2020-12 schema. The composed message carries the dotted field path of

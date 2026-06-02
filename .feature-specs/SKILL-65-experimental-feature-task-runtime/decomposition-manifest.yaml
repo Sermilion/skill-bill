@@ -3,24 +3,24 @@ contract_version: "0.2"
 issue_key: "SKILL-65"
 feature_name: "experimental-feature-task-runtime"
 parent_spec_path: ".feature-specs/SKILL-65-experimental-feature-task-runtime/spec.md"
-status: "pending"
+status: "in_progress"
 execution_model: "same_branch_commit_per_subtask"
 base_branch: "main"
 feature_branch: "feat/SKILL-65-experimental-feature-task-runtime"
 stack_branches: []
 current_subtask_intent:
-  subtask_id: 1
-  action: "start"
+  subtask_id: 0
+  action: "none"
 subtasks:
 - id: 1
   name: "phase-workflow-definition-and-handoff-contract"
   spec_path: ".feature-specs/SKILL-65-experimental-feature-task-runtime/spec_subtask_1_phase-workflow-definition-and-handoff-contract.md"
-  status: "pending"
-  branch: null
+  status: "complete"
+  branch: "feat/SKILL-65-experimental-feature-task-runtime"
   commit_sha: null
-  workflow_id: null
+  workflow_id: "wfl-20260602-133218-lrhu"
   blocked_reason: null
-  last_resumable_step: null
+  last_resumable_step: "commit_push"
   dependencies: []
 - id: 2
   name: "runtime-phase-state-persistence"

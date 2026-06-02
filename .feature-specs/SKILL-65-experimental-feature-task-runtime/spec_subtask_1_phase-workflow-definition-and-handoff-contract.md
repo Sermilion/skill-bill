@@ -1,5 +1,5 @@
 ---
-status: Draft
+status: Complete
 ---
 
 # SKILL-65 Subtask 1 - Phase Workflow Definition + Handoff Contract
