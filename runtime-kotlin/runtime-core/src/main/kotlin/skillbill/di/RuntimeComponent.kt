@@ -5,6 +5,7 @@ import me.tatarka.inject.annotations.Provides
 import skillbill.application.AgentRunGoalRunnerSubtaskLauncher
 import skillbill.application.AgentRunService
 import skillbill.application.FeatureTaskRuntimePhaseRecorder
+import skillbill.application.FeatureTaskRuntimeRunner
 import skillbill.application.GoalRunner
 import skillbill.application.GoalRunnerStatusService
 import skillbill.application.InstallAgentService
@@ -347,6 +348,13 @@ abstract class RuntimeComponent(
   // SKILL-65 Subtask 2: live application-layer write seam for feature-task-runtime
   // per-phase persistence + the append-only phase attempt/event ledger.
   abstract val featureTaskRuntimePhaseRecorder: FeatureTaskRuntimePhaseRecorder
+
+  // SKILL-65 Subtask 3 (AC1, AC9): the deterministic feature-task-runtime
+  // phase-loop runner. It reuses the already-bound GoalRunnerSubtaskLauncher,
+  // FeatureTaskRuntimePhaseRecorder, and FeatureTaskRuntimePhaseOutputValidator
+  // — no new @Provides port import is introduced, so the
+  // ImplementationOwnershipArchitectureTest allow-list needs no extension.
+  abstract val featureTaskRuntimeRunner: FeatureTaskRuntimeRunner
   abstract val goalRunner: GoalRunner
   abstract val goalRunnerStatusService: GoalRunnerStatusService
   abstract val installAgentService: InstallAgentService

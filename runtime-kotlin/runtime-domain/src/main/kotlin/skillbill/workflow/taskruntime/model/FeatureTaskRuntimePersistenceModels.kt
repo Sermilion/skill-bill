@@ -32,6 +32,15 @@ const val FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY: String = "feature_task
 const val FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT: Int = 200
 
 /**
+ * SKILL-65 Subtask 3 (AC2, AC7, AC8): durable per-phase launch briefing store.
+ * The assembled three-layer briefing is persisted here, keyed by phase id, BEFORE
+ * the phase agent is launched, so the briefing is the durable handoff a consumer
+ * (Subtask 4's surface) reads rather than dead computation. Each entry is the
+ * latest briefing assembled for that phase.
+ */
+const val FEATURE_TASK_RUNTIME_PHASE_BRIEFINGS_ARTIFACT_KEY: String = "feature_task_runtime_phase_briefings"
+
+/**
  * AC3: the durable per-phase record. One entry per phase id captures the
  * runtime-owned facts about that phase's latest persisted state: its status,
  * attempt count, the runtime-minted start/finish timestamps and duration, the
