@@ -31,7 +31,10 @@ import skillbill.ports.persistence.WorkflowStateRepository
 import skillbill.ports.persistence.model.FeatureImplementSessionSummary
 import skillbill.ports.persistence.model.FeatureVerifySessionSummary
 import skillbill.ports.persistence.model.WorkflowStateRecord
+import skillbill.ports.workflow.NoopWorkflowGitOperations
 import skillbill.ports.workflow.UnavailableDecompositionManifestFileStore
+import skillbill.ports.workflow.WorkflowGitOperations
+import skillbill.ports.workflow.model.WorkflowGitOperationResult
 import skillbill.workflow.GoalObservabilityEventValidator
 import skillbill.workflow.GoalProgressEventValidator
 import skillbill.workflow.WorkflowEngine
@@ -677,6 +680,111 @@ class WorkflowServiceTest {
         goalObservabilityEventValidator = testGoalObservabilityEventValidator,
       ),
     )
+  }
+}
+
+// SKILL-65: a git port that measures a concrete HEAD SHA, used to prove the
+// runtime backfills a dropped goal-continuation commit SHA from git ground
+// truth. Delegates every other operation to the no-op port.
+private object HeadShaGitOperations : WorkflowGitOperations by NoopWorkflowGitOperations {
+  override fun headCommitSha(repoRoot: Path): WorkflowGitOperationResult =
+    WorkflowGitOperationResult(status = "ok", value = "measured-head-sha")
+}
+
+/**
+ * SKILL-65: the goal runner must own the terminal commit SHA as git ground truth
+ * rather than trusting an agent to self-report it. These regressions pin the
+ * recovery path that unblocked the stuck SKILL-65 run, kept in their own class
+ * so they do not push [WorkflowGoalRunnerOutcomeStoreTest] over the detekt
+ * LargeClass threshold.
+ */
+class GoalRunnerCommitShaRecoveryTest {
+  // commit_push completed under suppress_pr but the agent dropped the commit SHA
+  // from its self-reported artifact. With a repo root supplied, the store
+  // backfills the terminal SHA from measured git HEAD instead of blocking.
+  @Test
+  fun `goal runner outcome store backfills missing commit sha from measured git head`() {
+    val workflows = InMemoryWorkflowStates()
+    workflows.saveFeatureImplementWorkflow(commitPushCompletedWithoutCommitSha("wfl-child"))
+    val store = WorkflowGoalRunnerOutcomeStore(
+      database = FakeDatabaseSessionFactory(workflows),
+      workflowSnapshotValidator = testWorkflowSnapshotValidator,
+      gitOperations = HeadShaGitOperations,
+    )
+
+    val outcome = store.terminalOutcome("wfl-child", "SKILL-52.1", 1, repoRoot = Path.of("."))
+
+    requireNotNull(outcome)
+    assertEquals(GoalRunnerTerminalStatus.COMPLETE, outcome.status)
+    assertEquals("measured-head-sha", outcome.commitSha)
+  }
+
+  // When commit_push completed but git itself reports no usable HEAD (no-op or
+  // failed measurement), the gate must still block loudly rather than fabricate
+  // a completion.
+  @Test
+  fun `goal runner outcome store stays blocked when measured git head is unavailable`() {
+    val workflows = InMemoryWorkflowStates()
+    workflows.saveFeatureImplementWorkflow(commitPushCompletedWithoutCommitSha("wfl-child"))
+    val store = WorkflowGoalRunnerOutcomeStore(
+      database = FakeDatabaseSessionFactory(workflows),
+      workflowSnapshotValidator = testWorkflowSnapshotValidator,
+      gitOperations = NoopWorkflowGitOperations,
+    )
+
+    val outcome = store.terminalOutcome("wfl-child", "SKILL-52.1", 1, repoRoot = Path.of("."))
+
+    requireNotNull(outcome)
+    assertEquals(GoalRunnerTerminalStatus.NO_TERMINAL_STORE_OUTCOME, outcome.status)
+  }
+
+  // Read-only callers (e.g. goal status) pass no repo root, so the store must
+  // never measure git or mutate — it reports the unresolved terminal state even
+  // when a real git adapter is wired.
+  @Test
+  fun `goal runner outcome store does not measure git head without a repo root`() {
+    val workflows = InMemoryWorkflowStates()
+    workflows.saveFeatureImplementWorkflow(commitPushCompletedWithoutCommitSha("wfl-child"))
+    val store = WorkflowGoalRunnerOutcomeStore(
+      database = FakeDatabaseSessionFactory(workflows),
+      workflowSnapshotValidator = testWorkflowSnapshotValidator,
+      gitOperations = HeadShaGitOperations,
+    )
+
+    val outcome = store.terminalOutcome("wfl-child", "SKILL-52.1", 1, repoRoot = null)
+
+    requireNotNull(outcome)
+    assertEquals(GoalRunnerTerminalStatus.NO_TERMINAL_STORE_OUTCOME, outcome.status)
+  }
+
+  // commit_push step completed under a goal-continuation suppress_pr workflow,
+  // but neither a goal_continuation_outcome nor a commit_push_result.commit_sha
+  // artifact is present — the exact shape that produced SKILL-65's stuck run.
+  private fun commitPushCompletedWithoutCommitSha(workflowId: String): WorkflowStateRecord {
+    val opened = testWorkflowEngine.openRecord(
+      FeatureImplementWorkflowDefinition.definition,
+      workflowId,
+      "fis-no-sha",
+      "preplan",
+    )
+    val completed = testWorkflowEngine.updateRecord(
+      FeatureImplementWorkflowDefinition.definition,
+      opened,
+      skillbill.workflow.model.WorkflowUpdateInput(
+        workflowStatus = "running",
+        currentStepId = "commit_push",
+        stepUpdates = listOf(mapOf("step_id" to "commit_push", "status" to "completed", "attempt_count" to 1)),
+        artifactsPatch = mapOf(
+          "goal_continuation" to mapOf(
+            "issue_key" to "SKILL-52.1",
+            "subtask_id" to 1,
+            "suppress_pr" to true,
+          ),
+        ),
+        sessionId = "fis-no-sha",
+      ),
+    )
+    return completed.toRecord()
   }
 }
 

@@ -780,6 +780,9 @@ internal class GoalRunnerLaunchReconciler(
           issueKey = state.manifest.issueKey,
           subtaskId = subtaskId,
           dbPathOverride = request.dbPathOverride,
+          // SKILL-65: let the store recover a dropped goal-continuation commit
+          // SHA from this repo's measured HEAD instead of blocking the subtask.
+          repoRoot = request.repoRoot,
         )
       }
 

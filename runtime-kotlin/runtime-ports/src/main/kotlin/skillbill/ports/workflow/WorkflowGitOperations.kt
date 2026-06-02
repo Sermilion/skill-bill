@@ -18,6 +18,12 @@ interface WorkflowGitOperations {
 
   fun createCommit(repoRoot: Path, message: String): WorkflowGitOperationResult
 
+  // SKILL-65: runtime-measured HEAD commit SHA. Lets the goal runner read the
+  // terminal commit as ground truth from git instead of trusting an agent to
+  // self-report it into a free-form artifact (the SKILL-33 dropped-mandate
+  // failure mode applied to the commit SHA).
+  fun headCommitSha(repoRoot: Path): WorkflowGitOperationResult
+
   fun validateBranchBase(repoRoot: Path, branch: String, expectedBaseBranch: String): WorkflowGitOperationResult
 
   fun worktreeStatus(repoRoot: Path): WorkflowGitOperationResult
@@ -38,6 +44,12 @@ object NoopWorkflowGitOperations : WorkflowGitOperations {
     status = "ok",
     value = "recorded:${message.hashCode().toUInt().toString(HASH_RADIX_HEX)}",
   )
+
+  // SKILL-65: the no-op git port measures nothing, so it returns a blank SHA.
+  // The runtime-measured fallback therefore stays inert unless a real git
+  // adapter is wired, preserving existing artifact-only resolution behavior.
+  override fun headCommitSha(repoRoot: Path): WorkflowGitOperationResult =
+    WorkflowGitOperationResult(status = "ok", value = "")
 
   override fun validateBranchBase(
     repoRoot: Path,

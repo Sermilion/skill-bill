@@ -26,6 +26,9 @@ import skillbill.ports.goalrunner.model.GoalRunnerSessionAccountingRecordRequest
 import skillbill.ports.goalrunner.model.GoalRunnerWorkflowProgress
 import skillbill.ports.persistence.DatabaseSessionFactory
 import skillbill.ports.workflow.DecompositionManifestFileStore
+import skillbill.ports.workflow.NoopWorkflowGitOperations
+import skillbill.ports.workflow.WorkflowGitOperations
+import skillbill.ports.workflow.model.WorkflowGitOperationResult
 import skillbill.workflow.DecompositionManifestValidator
 import skillbill.workflow.GoalObservabilityEventValidator
 import skillbill.workflow.GoalProgressEventValidator
@@ -208,6 +211,11 @@ class WorkflowGoalRunnerOutcomeStore(
   private val workflowSnapshotValidator: WorkflowSnapshotValidator,
   private val goalObservabilityEventValidator: GoalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
   private val goalProgressEventValidator: GoalProgressEventValidator = NoopGoalProgressEventValidator,
+  // SKILL-65: ground-truth git read used to recover the terminal commit SHA when
+  // an agent completes commit_push under suppress_pr but omits the SHA from its
+  // self-reported artifact. Defaults to the no-op port so existing call sites
+  // and tests keep artifact-only behavior until a real adapter is wired.
+  private val gitOperations: WorkflowGitOperations = NoopWorkflowGitOperations,
 ) : GoalRunnerWorkflowOutcomeStore {
   private val engine: WorkflowEngine = WorkflowEngine(workflowSnapshotValidator)
 
@@ -257,6 +265,7 @@ class WorkflowGoalRunnerOutcomeStore(
     issueKey: String,
     subtaskId: Int,
     dbPathOverride: String?,
+    repoRoot: Path?,
   ): GoalRunnerStoredOutcome? = database.read(dbPathOverride) { unitOfWork ->
     val snapshot = WorkflowFamily.IMPLEMENT.get(unitOfWork.workflowStates, workflowId) ?: return@read null
     engine.snapshotView(WorkflowFamily.IMPLEMENT.definition, snapshot)
@@ -265,7 +274,14 @@ class WorkflowGoalRunnerOutcomeStore(
     if (goalContinuation.issueKey != issueKey || goalContinuation.subtaskId != subtaskId) {
       return@read null
     }
-    terminalOutcomeFor(snapshot, artifacts, goalContinuation)
+    // SKILL-65: this read is the single per-workflow resolution the goal runner
+    // uses to decide subtask completion. Pass a lazy HEAD-measuring resolver so a
+    // dropped self-reported SHA does not block a subtask that actually committed.
+    // The measurement is a side-effect-free `git rev-parse HEAD`; nothing is
+    // persisted here, so the read-only status contract is preserved.
+    terminalOutcomeFor(snapshot, artifacts, goalContinuation) {
+      repoRoot?.let { root -> gitOperations.headCommitSha(root).measuredCommitSha() }
+    }
   }
 
   override fun markBlocked(
@@ -593,6 +609,10 @@ private fun terminalOutcomeFor(
   snapshot: WorkflowStateSnapshot,
   artifacts: Map<String, Any?>,
   goalContinuation: GoalContinuation,
+  // SKILL-65: lazily supplies a runtime-measured HEAD commit SHA. Only invoked
+  // when commit_push completed under suppress_pr yet the agent left commit_sha
+  // blank, so the measurement cost is paid solely on the recovery path.
+  measuredCommitSha: () -> String? = { null },
 ): GoalRunnerStoredOutcome? = goalContinuationOutcome(
   artifacts = artifacts,
   issueKey = goalContinuation.issueKey,
@@ -601,6 +621,7 @@ private fun terminalOutcomeFor(
 )?.copy(workflowId = snapshot.workflowId) ?: run {
   val steps = decodeWorkflowSteps(snapshot.stepsJson)
   val commitSha = commitShaFrom(artifacts)
+    ?: if (commitPushCompletedUnderSuppressPr(steps, goalContinuation.suppressPr)) measuredCommitSha() else null
   terminalStatus(snapshot, steps, goalContinuation.suppressPr, commitSha)?.let { status ->
     GoalRunnerStoredOutcome(
       status = status,
@@ -687,7 +708,7 @@ private fun terminalStatus(
   suppressPr: Boolean,
   commitSha: String?,
 ): GoalRunnerTerminalStatus? = when {
-  suppressPr && steps.any { it.stepId == "commit_push" && it.status == "completed" } ->
+  commitPushCompletedUnderSuppressPr(steps, suppressPr) ->
     if (commitSha.isNullOrBlank()) {
       GoalRunnerTerminalStatus.NO_TERMINAL_STORE_OUTCOME
     } else {
@@ -711,6 +732,17 @@ private fun blockedReasonFrom(
 
 private fun commitShaFrom(artifacts: Map<String, Any?>): String? =
   (artifacts["commit_push_result"] as? Map<*, *>)?.get("commit_sha")?.toString()?.takeIf(String::isNotBlank)
+
+// SKILL-65: the goal-continuation "commit_push is terminal" condition, shared by
+// terminalStatus and the runtime-measured-SHA recovery so both agree on exactly
+// when a missing commit SHA may be backfilled from git HEAD.
+private fun commitPushCompletedUnderSuppressPr(steps: List<WorkflowStepState>, suppressPr: Boolean): Boolean =
+  suppressPr && steps.any { it.stepId == "commit_push" && it.status == "completed" }
+
+// SKILL-65: normalize a git-port HEAD read into a usable SHA, or null when the
+// port measured nothing (no-op adapter) or failed. Null keeps the prior
+// presence-gated NO_TERMINAL_STORE_OUTCOME behavior intact.
+private fun WorkflowGitOperationResult.measuredCommitSha(): String? = value.trim().takeIf { ok && it.isNotBlank() }
 
 // SKILL-64 Subtask 3 (F-D01): soft-decode the highest sequence_number in a
 // bounded history/ledger artifact list. Malformed entries are skipped rather

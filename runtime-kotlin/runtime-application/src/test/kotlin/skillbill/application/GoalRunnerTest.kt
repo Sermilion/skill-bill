@@ -1299,6 +1299,7 @@ internal class RecordingOutcomeStore : GoalRunnerWorkflowOutcomeStore {
     issueKey: String,
     subtaskId: Int,
     dbPathOverride: String?,
+    repoRoot: Path?,
   ): GoalRunnerStoredOutcome? = outcomes[workflowId]
 
   override fun markBlocked(
@@ -1437,6 +1438,9 @@ private class FixedBranchGitOperations(
   override fun createCommit(repoRoot: Path, message: String): WorkflowGitOperationResult =
     WorkflowGitOperationResult(status = "ok", value = "sha-test")
 
+  override fun headCommitSha(repoRoot: Path): WorkflowGitOperationResult =
+    WorkflowGitOperationResult(status = "ok", value = "sha-test")
+
   override fun validateBranchBase(
     repoRoot: Path,
     branch: String,
@@ -1463,6 +1467,9 @@ private object StatusDiffGitOperations : WorkflowGitOperations {
     WorkflowGitOperationResult(status = "ok", value = "main")
 
   override fun createCommit(repoRoot: Path, message: String): WorkflowGitOperationResult =
+    WorkflowGitOperationResult(status = "ok", value = "sha-test")
+
+  override fun headCommitSha(repoRoot: Path): WorkflowGitOperationResult =
     WorkflowGitOperationResult(status = "ok", value = "sha-test")
 
   override fun validateBranchBase(
@@ -1503,6 +1510,9 @@ private class RecordingGitOperations(
     WorkflowGitOperationResult(status = "ok", value = currentBranch)
 
   override fun createCommit(repoRoot: Path, message: String): WorkflowGitOperationResult =
+    WorkflowGitOperationResult(status = "ok", value = "sha-test")
+
+  override fun headCommitSha(repoRoot: Path): WorkflowGitOperationResult =
     WorkflowGitOperationResult(status = "ok", value = "sha-test")
 
   override fun validateBranchBase(

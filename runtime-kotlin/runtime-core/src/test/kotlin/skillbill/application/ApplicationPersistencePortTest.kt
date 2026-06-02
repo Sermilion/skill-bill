@@ -1409,6 +1409,9 @@ private class FakeWorkflowGitOperations(
     return WorkflowGitOperationResult(status = "ok", value = commitSha)
   }
 
+  override fun headCommitSha(repoRoot: Path): WorkflowGitOperationResult =
+    WorkflowGitOperationResult(status = "ok", value = commitSha)
+
   override fun validateBranchBase(
     repoRoot: Path,
     branch: String,
