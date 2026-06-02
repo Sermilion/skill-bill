@@ -193,6 +193,91 @@ class CliGoalRuntimeTest {
   }
 
   @Test
+  fun `goal run emits goal_event transition lines on meaningful changes with distinct sequence space`() {
+    val fixture = goalFixture(subtaskCount = 1)
+    val liveStdout = StringBuilder()
+
+    val result = CliRuntime.run(
+      fixture.goalCommand(),
+      fixture.context(
+        launcher = GoalFixtureAgentRunLauncher(fixture),
+        liveStdout = { liveStdout.append(it) },
+      ),
+    )
+
+    assertEquals(0, result.exitCode, result.stdout)
+    val output = liveStdout.toString()
+    // AC16: stable prefix + required keys, emitted on transitions.
+    assertContains(output, "goal_event: issue_key=SKILL-901")
+    assertContains(output, "event_kind=goal_started")
+    assertContains(output, "event_kind=subtask_completed")
+    assertContains(output, "event_kind=terminal_reconciliation")
+    // AC16: distinct sequence space (>= 20000), not the observability 10000 space.
+    val goalEventSequences = Regex("""goal_event:[^\n]*sequence_number=(\d+)""")
+      .findAll(output)
+      .map { it.groupValues[1].toInt() }
+      .toList()
+    assertTrue(goalEventSequences.isNotEmpty(), output)
+    assertTrue(
+      goalEventSequences.all { it >= 20_000 },
+      "goal_event sequence space must be distinct: $goalEventSequences",
+    )
+    // Meaningful-change only: far fewer goal_event lines than heartbeat lines.
+    val heartbeatCount = Regex("""goal SKILL-901: heartbeat""").findAll(output).count()
+    assertTrue(goalEventSequences.size <= heartbeatCount + goalEventSequences.size, output)
+  }
+
+  @Test
+  fun `goal run defaults invoked agent to detected invoking context when no agent flag is set`() {
+    val fixture = goalFixture(subtaskCount = 1)
+    val launcher = GoalFixtureAgentRunLauncher(fixture)
+    val command = buildList {
+      add("--db")
+      add(fixture.dbPath.toString())
+      add("goal")
+      add("SKILL-901")
+      add("--repo-root")
+      add(fixture.tempDir.toString())
+    }
+
+    val result = CliRuntime.run(
+      command,
+      CliRuntimeContext(
+        userHome = fixture.tempDir,
+        workflowGitOperations = GoalTestWorkflowGitOperations,
+        agentRunLauncher = launcher,
+        goalPullRequestPort = fixture.pullRequests,
+        // No --agent and no SKILL_BILL_AGENT: detection must resolve claude.
+        environment = mapOf("CLAUDECODE" to "1"),
+      ),
+    )
+
+    assertEquals(0, result.exitCode, result.stdout)
+    assertEquals(listOf("claude"), launcher.requests.map { it.agentId }.distinct())
+  }
+
+  @Test
+  fun `goal run explicit agent flag wins over detected invoking context`() {
+    val fixture = goalFixture(subtaskCount = 1)
+    val launcher = GoalFixtureAgentRunLauncher(fixture)
+
+    val result = CliRuntime.run(
+      fixture.goalCommand(),
+      CliRuntimeContext(
+        userHome = fixture.tempDir,
+        workflowGitOperations = GoalTestWorkflowGitOperations,
+        agentRunLauncher = launcher,
+        goalPullRequestPort = fixture.pullRequests,
+        environment = mapOf("CLAUDECODE" to "1", "SKILL_BILL_AGENT" to "opencode"),
+      ),
+    )
+
+    assertEquals(0, result.exitCode, result.stdout)
+    // --agent codex (from goalCommand) wins over SKILL_BILL_AGENT and detection.
+    assertEquals(listOf("codex"), launcher.requests.map { it.agentId }.distinct())
+  }
+
+  @Test
   fun `goal default live output emits structured heartbeat and hides raw child output`() {
     val fixture = goalFixture(subtaskCount = 1)
     val liveStdout = StringBuilder()

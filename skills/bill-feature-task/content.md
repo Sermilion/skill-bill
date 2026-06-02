@@ -51,6 +51,20 @@ Continuation-mode rules:
 - If `continue_status` is `blocked`, stop and restore the missing artifacts named by the workflow payload before continuing.
 - `workflow continue` is an activation/reopen command, not a read-only inspection command. Use `workflow show <workflow-id> --format json` for read-only full-state inspection, including the complete durable `artifacts` map.
 
+## Retry, Resume, and Review Reuse
+
+On retry or resume, durable workflow state is the single source of authority. Avoid re-injecting prior plans, reviews, implementation summaries, or unrelated decomposition artifacts into the resumed run:
+
+- Treat `current_step_artifacts` as the bounded recovered context. Pull only the artifacts the resumed step needs; do not re-paste prior plans, full prior review reports, prior implementation RESULT summaries, or sibling-subtask decomposition artifacts into history.
+- When an artifact is summarized or omitted with size/truncation metadata, work from the summary and fetch the specific omitted slice read-only only if the resumed step genuinely needs it. Prefer scoped reads over full re-injection.
+- Resume context is bounded: do not reconstruct earlier phases from chat history unless the step explicitly requires user confirmation.
+
+Review and fix-loop reuse (AC5):
+
+- Inside the same subtask fix loop, a prior clean specialist review result may be reused without rerunning that specialist when the relevant changed files and risk areas have not changed since that result was produced.
+- Rerun a specialist when the fix touched files or risk areas that specialist owns, or when its prior risk assessment is no longer valid for the current diff.
+- Never remove, downgrade, or make optional the full per-subtask review and validation, and never suppress a required review specialist when relevant risk changed. Reuse is an optimization within an unchanged risk surface, not a way to skip required review.
+
 ## Goal-Continuation Entry (non-interactive)
 
 External goal runners may invoke `feature_implement_workflow_continue` / `skill-bill workflow continue` with a decomposed parent `issue_key` and, optionally, `subtask_id`. This is a non-interactive entry for exactly one runnable decomposed subtask.

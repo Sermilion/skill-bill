@@ -1,3 +1,14 @@
+## [2026-06-02] SKILL-64 subtask 3 goal-runner-integration
+Areas: runtime-kotlin/runtime-domain, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-application, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-contracts, runtime-kotlin/runtime-mcp, runtime-kotlin/runtime-cli, orchestration/contracts, skills/bill-feature-goal
+- Goal-runner liveness is now deterministic from declared, durable, monotonic `GoalProgressEvent`s + process liveness; the legacy mtime/stdout idle heuristic survives only as a fallback when no declared event exists. Taxonomy `working/progressing/idle/unresponsive` lives in a pure domain classifier. reusable
+- Declared progress is emitted SUPERVISOR-side: `JvmAgentRunProcessRunner` ProcessLifecycleEmitter emits operation_started/heartbeat(gated to status-heartbeat cadence, not per-250ms-tick)/completed from the child process lifecycle (no phase-agent self-report), persisted via `GoalRunnerProgressEventEmitter`→`recordProgressEvent` and read back next tick by `declaredProgressProbe`. reusable
+- Dead-seam trap: a write seam with no production caller passes unit tests but is dead in prod — completeness audit caught `recordProgressEvent` having zero `src/main` callers; guard wiring with an end-to-end test that drives emit→store→probe in ONE run. reusable
+- Patterns reused: distinct watermark-seeded sequence space per stream (progress vs observability vs ledger vs accounting, seeded from persisted max so resumes stay monotonic); schema validator wired at the durable write seam via a runtime-domain port + DI (mirror GoalObservabilityEventValidator); single-source `appendBoundedHistoryBySequence` retention; best-effort writes log-but-never-fail; operation deadline anchored to FIRST operation observation (incl. heartbeat), never process start. reusable
+- New `goal_event:` transition stream (stable prefix + key=value, monotonic, meaningful-change-only); invoking-agent child defaulting order (--agent-override > --agent > SKILL_BILL_AGENT > detected context > documented last-resort); new `goal-progress-event-schema.yaml` follows the 6-step contract recipe.
+- Install sync intentionally skipped (goal-continuation mandate) after editing skills/* and runtime source; refresh local installs outside continuation if generated output needs updating.
+Feature flag: N/A
+Acceptance criteria: 25/25 implemented
+
 ## [2026-06-02] SKILL-64 subtask 2 compact-workflow-update-acks
 Areas: runtime-kotlin/runtime-domain, runtime-kotlin/runtime-application, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-mcp, orchestration/workflow-contract
 - `workflow update` now returns a typed compact acknowledgement by default (status, workflow_id, workflow_name, workflow_status, current_step_id, updated_step_ids, updated_artifact_keys, db_path) instead of a full snapshot; `workflow show`/`get` stay the read-only full-state path. reusable
