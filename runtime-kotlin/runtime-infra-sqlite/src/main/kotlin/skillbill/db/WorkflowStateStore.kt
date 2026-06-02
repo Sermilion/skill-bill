@@ -1,6 +1,9 @@
 package skillbill.db
 
 import skillbill.contracts.JsonSupport
+import skillbill.ports.persistence.FeatureImplementWorkflowStateRepository
+import skillbill.ports.persistence.FeatureTaskRuntimeWorkflowStateRepository
+import skillbill.ports.persistence.FeatureVerifyWorkflowStateRepository
 import skillbill.ports.persistence.WorkflowStateRepository
 import skillbill.ports.persistence.model.FeatureImplementSessionSummary
 import skillbill.ports.persistence.model.FeatureVerifySessionSummary
@@ -23,9 +26,26 @@ private const val UPDATE_TERMINAL_PARAMETER_INDEX: Int = 11
 
 private val terminalWorkflowStatuses: Set<String> = setOf("completed", "failed", "abandoned")
 
+/**
+ * SQLite-backed [WorkflowStateRepository]. The interface is composed from one
+ * capability sub-interface per workflow family; this store delegates each to a
+ * small per-family implementer (`by`) that shares the connection. Delegation
+ * keeps the store's own method surface empty so no single class crosses the
+ * detekt `TooManyFunctions` threshold while each family's persistence stays
+ * cohesive. The feature-task-runtime family (SKILL-65 Subtask 2) reuses the
+ * generic workflow-row helpers against its own table; IMPLEMENT/VERIFY storage
+ * is untouched.
+ */
 class WorkflowStateStore(
   private val connection: Connection,
-) : WorkflowStateRepository {
+) : WorkflowStateRepository,
+  FeatureImplementWorkflowStateRepository by FeatureImplementWorkflowStateStore(connection),
+  FeatureVerifyWorkflowStateRepository by FeatureVerifyWorkflowStateStore(connection),
+  FeatureTaskRuntimeWorkflowStateRepository by FeatureTaskRuntimeWorkflowStateStore(connection)
+
+private class FeatureImplementWorkflowStateStore(
+  private val connection: Connection,
+) : FeatureImplementWorkflowStateRepository {
   override fun saveFeatureImplementWorkflow(row: WorkflowStateRecord) {
     connection.upsertWorkflowRow(
       tableName = "feature_implement_workflows",
@@ -34,29 +54,13 @@ class WorkflowStateStore(
     )
   }
 
-  override fun saveFeatureVerifyWorkflow(row: WorkflowStateRecord) {
-    connection.upsertWorkflowRow(
-      tableName = "feature_verify_workflows",
-      row = row,
-      defaultContractVersion = DbConstants.FEATURE_VERIFY_WORKFLOW_CONTRACT_VERSION,
-    )
-  }
-
   override fun getFeatureImplementWorkflow(workflowId: String): WorkflowStateRecord? =
     connection.getWorkflowRow("feature_implement_workflows", workflowId)
-
-  override fun getFeatureVerifyWorkflow(workflowId: String): WorkflowStateRecord? =
-    connection.getWorkflowRow("feature_verify_workflows", workflowId)
 
   override fun listFeatureImplementWorkflows(limit: Int): List<WorkflowStateRecord> =
     connection.listWorkflowRows("feature_implement_workflows", limit)
 
-  override fun listFeatureVerifyWorkflows(limit: Int): List<WorkflowStateRecord> =
-    connection.listWorkflowRows("feature_verify_workflows", limit)
-
   override fun latestFeatureImplementWorkflow(): WorkflowStateRecord? = listFeatureImplementWorkflows(1).firstOrNull()
-
-  override fun latestFeatureVerifyWorkflow(): WorkflowStateRecord? = listFeatureVerifyWorkflows(1).firstOrNull()
 
   override fun getFeatureImplementSessionSummary(sessionId: String): FeatureImplementSessionSummary? =
     connection.prepareStatement(
@@ -97,6 +101,26 @@ class WorkflowStateStore(
         )
       }
     }
+}
+
+private class FeatureVerifyWorkflowStateStore(
+  private val connection: Connection,
+) : FeatureVerifyWorkflowStateRepository {
+  override fun saveFeatureVerifyWorkflow(row: WorkflowStateRecord) {
+    connection.upsertWorkflowRow(
+      tableName = "feature_verify_workflows",
+      row = row,
+      defaultContractVersion = DbConstants.FEATURE_VERIFY_WORKFLOW_CONTRACT_VERSION,
+    )
+  }
+
+  override fun getFeatureVerifyWorkflow(workflowId: String): WorkflowStateRecord? =
+    connection.getWorkflowRow("feature_verify_workflows", workflowId)
+
+  override fun listFeatureVerifyWorkflows(limit: Int): List<WorkflowStateRecord> =
+    connection.listWorkflowRows("feature_verify_workflows", limit)
+
+  override fun latestFeatureVerifyWorkflow(): WorkflowStateRecord? = listFeatureVerifyWorkflows(1).firstOrNull()
 
   override fun getFeatureVerifySessionSummary(sessionId: String): FeatureVerifySessionSummary? =
     connection.prepareStatement(
@@ -123,6 +147,32 @@ class WorkflowStateStore(
         )
       }
     }
+}
+
+// SKILL-65 Subtask 2 (AC2): feature-task-runtime family persistence. Reuses the
+// generic workflow-row upsert/get/list helpers against a dedicated table with
+// the same column shape as feature_implement_workflows; existing families are
+// untouched. Per-phase records + the append-only phase ledger ride inside the
+// row's artifacts_json (written by the application recorder).
+private class FeatureTaskRuntimeWorkflowStateStore(
+  private val connection: Connection,
+) : FeatureTaskRuntimeWorkflowStateRepository {
+  override fun saveFeatureTaskRuntimeWorkflow(row: WorkflowStateRecord) {
+    connection.upsertWorkflowRow(
+      tableName = "feature_task_runtime_workflows",
+      row = row,
+      defaultContractVersion = DbConstants.FEATURE_TASK_RUNTIME_WORKFLOW_CONTRACT_VERSION,
+    )
+  }
+
+  override fun getFeatureTaskRuntimeWorkflow(workflowId: String): WorkflowStateRecord? =
+    connection.getWorkflowRow("feature_task_runtime_workflows", workflowId)
+
+  override fun listFeatureTaskRuntimeWorkflows(limit: Int): List<WorkflowStateRecord> =
+    connection.listWorkflowRows("feature_task_runtime_workflows", limit)
+
+  override fun latestFeatureTaskRuntimeWorkflow(): WorkflowStateRecord? =
+    listFeatureTaskRuntimeWorkflows(1).firstOrNull()
 }
 
 private fun Connection.upsertWorkflowRow(tableName: String, row: WorkflowStateRecord, defaultContractVersion: String) {

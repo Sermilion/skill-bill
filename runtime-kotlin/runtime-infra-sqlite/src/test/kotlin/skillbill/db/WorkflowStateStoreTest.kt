@@ -1,12 +1,29 @@
 package skillbill.db
 
+import skillbill.contracts.workflow.WORKFLOW_STATE_CONTRACT_VERSION
 import java.nio.file.Files
 import java.sql.Connection
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 class WorkflowStateStoreTest {
+  @Test
+  fun `feature task runtime table contract version default matches schema contract version const`() {
+    // SKILL-65 Subtask 2 (F-005): the contract_version persisted by the table
+    // default MUST equal the schema's WORKFLOW_STATE_CONTRACT_VERSION that the
+    // validator checks. Pinning them together makes a future schema bump that
+    // forgets the table default a build break rather than a production failure
+    // rejecting persisted runtime rows.
+    assertEquals(
+      WORKFLOW_STATE_CONTRACT_VERSION,
+      DbConstants.FEATURE_TASK_RUNTIME_WORKFLOW_CONTRACT_VERSION,
+      "FEATURE_TASK_RUNTIME_WORKFLOW_CONTRACT_VERSION must equal WORKFLOW_STATE_CONTRACT_VERSION " +
+        "($WORKFLOW_STATE_CONTRACT_VERSION).",
+    )
+  }
+
   @Test
   fun `feature implement workflow rows round trip with updated json payloads`() {
     val dbPath = Files.createTempDirectory("runtime-kotlin-db-workflows").resolve("metrics.db")
@@ -143,6 +160,74 @@ class WorkflowStateStoreTest {
   }
 
   @Test
+  fun `feature task runtime workflow rows round trip with per-phase records and appended ledger`() {
+    // SKILL-65 Subtask 2 (AC2, AC3, AC4, AC5): the dedicated family table stores
+    // per-phase records (status/attempt/started_at/finished_at/duration/resolved
+    // agent id/output artifact) AND the append-only phase ledger inside
+    // artifacts_json; both survive store -> read with the runtime-minted
+    // timestamps/durations and resolved agent id intact.
+    val dbPath = Files.createTempDirectory("runtime-kotlin-db-task-runtime").resolve("metrics.db")
+
+    DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
+      val store = WorkflowStateStore(connection)
+      val artifactsJson = taskRuntimeArtifactsJson
+
+      val initialRow =
+        WorkflowStateRow(
+          workflowId = "wftr-001",
+          sessionId = "ftr-001",
+          workflowName = "feature-task-runtime",
+          contractVersion = "",
+          workflowStatus = "running",
+          currentStepId = "plan",
+          stepsJson = """[{"step_id":"plan","status":"completed"}]""",
+          artifactsJson = artifactsJson,
+          startedAt = null,
+          updatedAt = null,
+          finishedAt = null,
+        )
+
+      store.saveFeatureTaskRuntimeWorkflow(initialRow)
+
+      val saved = assertNotNull(store.getFeatureTaskRuntimeWorkflow("wftr-001"))
+      assertEquals(DbConstants.FEATURE_TASK_RUNTIME_WORKFLOW_CONTRACT_VERSION, saved.contractVersion)
+      assertEquals("feature-task-runtime", saved.workflowName)
+      assertEquals("plan", saved.currentStepId)
+      assertEquals(artifactsJson, saved.artifactsJson)
+
+      // The new family is isolated from IMPLEMENT/VERIFY storage.
+      assertEquals(null, store.getFeatureImplementWorkflow("wftr-001"))
+      assertEquals(null, store.getFeatureVerifyWorkflow("wftr-001"))
+    }
+  }
+
+  @Test
+  fun `feature task runtime workflow lists and latest use updated timestamp then rowid ordering`() {
+    val dbPath = Files.createTempDirectory("runtime-kotlin-db-task-runtime-list").resolve("metrics.db")
+
+    DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
+      val store = WorkflowStateStore(connection)
+
+      listOf("wftr-001", "wftr-002", "wftr-003").forEachIndexed { index, workflowId ->
+        store.saveFeatureTaskRuntimeWorkflow(
+          workflowRow(
+            workflowId = workflowId,
+            sessionId = "ftr-00$index",
+            workflowName = "feature-task-runtime",
+            currentStepId = "plan",
+          ),
+        )
+      }
+
+      assertEquals(listOf("wftr-003", "wftr-002"), store.listFeatureTaskRuntimeWorkflows(2).map { it.workflowId })
+      assertEquals("wftr-003", store.latestFeatureTaskRuntimeWorkflow()?.workflowId)
+      // No cross-family leakage from the dedicated table.
+      assertTrue(store.listFeatureImplementWorkflows(10).isEmpty())
+      assertTrue(store.listFeatureVerifyWorkflows(10).isEmpty())
+    }
+  }
+
+  @Test
   fun `workflow session summaries preserve started payload shape`() {
     val dbPath = Files.createTempDirectory("runtime-kotlin-db-workflow-sessions").resolve("metrics.db")
 
@@ -164,6 +249,42 @@ class WorkflowStateStoreTest {
     }
   }
 }
+
+private val taskRuntimeArtifactsJson: String =
+  """
+  {
+    "feature_task_runtime_phase_records": {
+      "plan": {
+        "phase_id": "plan",
+        "status": "completed",
+        "attempt_count": 1,
+        "started_at": "2026-06-02T10:00:00Z",
+        "finished_at": "2026-06-02T10:01:30Z",
+        "duration_millis": 90000,
+        "resolved_agent_id": "agent-plan-1",
+        "output_artifact": "{\"contract_version\":\"0.1\",\"plan\":\"ok\"}"
+      }
+    },
+    "feature_task_runtime_phase_ledger": [
+      {
+        "action": "start",
+        "sequence_number": 0,
+        "timestamp": "2026-06-02T10:00:00Z",
+        "phase_id": "plan",
+        "attempt_count": 1,
+        "resolved_agent_id": "agent-plan-1"
+      },
+      {
+        "action": "complete",
+        "sequence_number": 1,
+        "timestamp": "2026-06-02T10:01:30Z",
+        "phase_id": "plan",
+        "attempt_count": 1,
+        "resolved_agent_id": "agent-plan-1"
+      }
+    ]
+  }
+  """.trimIndent()
 
 private fun insertFeatureImplementSession(connection: Connection) {
   connection.prepareStatement(

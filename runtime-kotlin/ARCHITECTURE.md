@@ -413,6 +413,10 @@ runtime-ports
     - `skillbill.goalrunner.model.GoalSessionAccountingHistory.toArtifactList`
     - `skillbill.goalrunner.model.GoalAttemptLedgerEntry.toArtifactMap`
     - `skillbill.goalrunner.model.GoalAttemptLedger.toArtifactList`
+    - `skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord.toArtifactMap`
+    - `skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord.fromArtifactMap`
+    - `skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerEntry.toArtifactMap`
+    - `skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerEntry.fromArtifactMap`
     - `skillbill.application.lifecycleOkPayload`
     - `skillbill.application.lifecycleSkippedPayload`
     - `skillbill.application.lifecycleErrorPayload`
@@ -791,6 +795,10 @@ Categories:
 - `skillbill.goalrunner.model.GoalSessionAccountingHistory.toArtifactList`
 - `skillbill.goalrunner.model.GoalAttemptLedgerEntry.toArtifactMap`
 - `skillbill.goalrunner.model.GoalAttemptLedger.toArtifactList`
+- `skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord.toArtifactMap`
+- `skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord.fromArtifactMap`
+- `skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerEntry.toArtifactMap`
+- `skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerEntry.fromArtifactMap`
 - `skillbill.application.model.WorkflowUpdateRequest.stepUpdates`
 - `skillbill.application.model.WorkflowUpdateRequest.artifactsPatch`
 - `skillbill.application.model.FeatureImplementFinishedRequest.childSteps`

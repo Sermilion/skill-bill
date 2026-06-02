@@ -17,6 +17,7 @@ internal object DatabaseSchema {
       "feature_implement_sessions",
       "feature_implement_workflows",
       "feature_verify_workflows",
+      "feature_task_runtime_workflows",
     )
 
   val indexNames: Set<String> =
@@ -224,6 +225,24 @@ internal object DatabaseSchema {
         session_id TEXT NOT NULL DEFAULT '',
         workflow_name TEXT NOT NULL DEFAULT 'bill-feature-verify',
         contract_version TEXT NOT NULL DEFAULT '${DbConstants.FEATURE_VERIFY_WORKFLOW_CONTRACT_VERSION}',
+        workflow_status TEXT NOT NULL DEFAULT 'pending',
+        current_step_id TEXT NOT NULL DEFAULT '',
+        steps_json TEXT NOT NULL DEFAULT '',
+        artifacts_json TEXT NOT NULL DEFAULT '',
+        started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        finished_at TEXT
+      )
+      """.trimIndent(),
+      // SKILL-65 Subtask 2 (AC2): experimental feature-task-runtime workflow rows.
+      // Same column shape as feature_implement_workflows. Created idempotently by
+      // createBaseSchema — no schema_migrations entry/migration is required.
+      """
+      CREATE TABLE IF NOT EXISTS feature_task_runtime_workflows (
+        workflow_id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL DEFAULT '',
+        workflow_name TEXT NOT NULL DEFAULT 'feature-task-runtime',
+        contract_version TEXT NOT NULL DEFAULT '${DbConstants.FEATURE_TASK_RUNTIME_WORKFLOW_CONTRACT_VERSION}',
         workflow_status TEXT NOT NULL DEFAULT 'pending',
         current_step_id TEXT NOT NULL DEFAULT '',
         steps_json TEXT NOT NULL DEFAULT '',

@@ -20,17 +20,17 @@ subtasks:
   commit_sha: null
   workflow_id: "wfl-20260602-133218-lrhu"
   blocked_reason: null
-  last_resumable_step: "commit_push"
+  last_resumable_step: "finish"
   dependencies: []
 - id: 2
   name: "runtime-phase-state-persistence"
   spec_path: ".feature-specs/SKILL-65-experimental-feature-task-runtime/spec_subtask_2_runtime-phase-state-persistence.md"
-  status: "pending"
-  branch: null
+  status: "complete"
+  branch: "feat/SKILL-65-experimental-feature-task-runtime"
   commit_sha: null
-  workflow_id: null
+  workflow_id: "wfl-20260602-183432-6g35"
   blocked_reason: null
-  last_resumable_step: null
+  last_resumable_step: "commit_push"
   dependencies:
   - subtask_id: 1
     optional: false

@@ -29,6 +29,7 @@ import skillbill.workflow.implement.FeatureImplementWorkflowDefinition
 import skillbill.workflow.model.WorkflowDefinition
 import skillbill.workflow.model.WorkflowStateSnapshot
 import skillbill.workflow.model.WorkflowUpdateInput
+import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.verify.FeatureVerifyWorkflowDefinition
 import java.nio.file.Path
 import java.time.OffsetDateTime
@@ -388,6 +389,10 @@ private fun Int.twoDigits(): String = toString().padStart(2, '0')
 internal fun WorkflowFamilyKind.workflowFamily(): WorkflowFamily = when (this) {
   WorkflowFamilyKind.IMPLEMENT -> WorkflowFamily.IMPLEMENT
   WorkflowFamilyKind.VERIFY -> WorkflowFamily.VERIFY
+  // SKILL-65 Subtask 2 (AC1): the experimental runtime-driven feature-task
+  // pipeline. Delegates to its own persistence methods; IMPLEMENT/VERIFY stay
+  // untouched.
+  WorkflowFamilyKind.TASK_RUNTIME -> WorkflowFamily.TASK_RUNTIME
 }
 
 internal enum class WorkflowFamily(
@@ -396,28 +401,35 @@ internal enum class WorkflowFamily(
 ) {
   IMPLEMENT(FeatureImplementWorkflowDefinition.definition, "feature-implement"),
   VERIFY(FeatureVerifyWorkflowDefinition.definition, "feature-verify"),
+
+  // SKILL-65 Subtask 2 (AC1): bound to the Subtask 1 phase-workflow definition.
+  TASK_RUNTIME(FeatureTaskRuntimePhaseWorkflowDefinition.definition, "feature-task-runtime"),
   ;
 
   fun save(repository: WorkflowStateRepository, record: WorkflowStateSnapshot) {
     when (this) {
       IMPLEMENT -> repository.saveFeatureImplementWorkflow(record.toRecord())
       VERIFY -> repository.saveFeatureVerifyWorkflow(record.toRecord())
+      TASK_RUNTIME -> repository.saveFeatureTaskRuntimeWorkflow(record.toRecord())
     }
   }
 
   fun get(repository: WorkflowStateRepository, workflowId: String): WorkflowStateSnapshot? = when (this) {
     IMPLEMENT -> repository.getFeatureImplementWorkflow(workflowId)
     VERIFY -> repository.getFeatureVerifyWorkflow(workflowId)
+    TASK_RUNTIME -> repository.getFeatureTaskRuntimeWorkflow(workflowId)
   }?.toSnapshot()
 
   fun list(repository: WorkflowStateRepository, limit: Int): List<WorkflowStateSnapshot> = when (this) {
     IMPLEMENT -> repository.listFeatureImplementWorkflows(limit)
     VERIFY -> repository.listFeatureVerifyWorkflows(limit)
+    TASK_RUNTIME -> repository.listFeatureTaskRuntimeWorkflows(limit)
   }.map(WorkflowStateRecord::toSnapshot)
 
   fun latest(repository: WorkflowStateRepository): WorkflowStateSnapshot? = when (this) {
     IMPLEMENT -> repository.latestFeatureImplementWorkflow()
     VERIFY -> repository.latestFeatureVerifyWorkflow()
+    TASK_RUNTIME -> repository.latestFeatureTaskRuntimeWorkflow()
   }?.toSnapshot()
 
   /**
@@ -434,6 +446,9 @@ internal enum class WorkflowFamily(
     return when (this) {
       IMPLEMENT -> repository.getFeatureImplementSessionSummary(sessionId)?.toPayload().orEmpty()
       VERIFY -> repository.getFeatureVerifySessionSummary(sessionId)?.toPayload().orEmpty()
+      // SKILL-65 Subtask 2 (AC1): the runtime family has no session-summary
+      // record; the continuation view carries an empty summary map.
+      TASK_RUNTIME -> emptyMap()
     }
   }
 }

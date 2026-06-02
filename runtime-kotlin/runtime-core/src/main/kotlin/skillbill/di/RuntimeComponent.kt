@@ -4,6 +4,7 @@ import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Provides
 import skillbill.application.AgentRunGoalRunnerSubtaskLauncher
 import skillbill.application.AgentRunService
+import skillbill.application.FeatureTaskRuntimePhaseRecorder
 import skillbill.application.GoalRunner
 import skillbill.application.GoalRunnerStatusService
 import skillbill.application.InstallAgentService
@@ -342,6 +343,10 @@ abstract class RuntimeComponent(
 
   abstract val installService: InstallService
   abstract val agentRunService: AgentRunService
+
+  // SKILL-65 Subtask 2: live application-layer write seam for feature-task-runtime
+  // per-phase persistence + the append-only phase attempt/event ledger.
+  abstract val featureTaskRuntimePhaseRecorder: FeatureTaskRuntimePhaseRecorder
   abstract val goalRunner: GoalRunner
   abstract val goalRunnerStatusService: GoalRunnerStatusService
   abstract val installAgentService: InstallAgentService

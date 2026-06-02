@@ -16,4 +16,9 @@ data class WorkflowUpdateRequest(
 enum class WorkflowFamilyKind {
   IMPLEMENT,
   VERIFY,
+
+  // SKILL-65 Subtask 2: the experimental runtime-driven feature-task pipeline
+  // (`FeatureTaskRuntimePhaseWorkflowDefinition`). Distinct from IMPLEMENT and
+  // never altering IMPLEMENT/VERIFY storage.
+  TASK_RUNTIME,
 }

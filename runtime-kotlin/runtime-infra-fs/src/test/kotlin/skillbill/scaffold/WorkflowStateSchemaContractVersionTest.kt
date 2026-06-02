@@ -7,6 +7,7 @@ import skillbill.contracts.workflow.WORKFLOW_STATE_CONTRACT_VERSION
 import skillbill.contracts.workflow.WorkflowStateSchemaPaths
 import skillbill.testing.repoRootFromTest
 import skillbill.workflow.implement.FeatureImplementWorkflowDefinition
+import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.verify.FeatureVerifyWorkflowDefinition
 import java.nio.file.Files
 import kotlin.test.Test
@@ -106,6 +107,25 @@ class WorkflowStateSchemaContractVersionTest {
     assertBranchStatusesMatch(branch, definition.workflowStatuses, "featureVerifyBranch")
     assertBranchCurrentStepIdsMatch(branch, definition.stepIds.toSet(), "featureVerifyBranch")
     assertBranchStepsStepIdMatch(branch, definition.stepIds.toSet(), "featureVerifyBranch")
+  }
+
+  /**
+   * SKILL-65 Subtask 2: pins the same schema<->definition enum parity for the
+   * feature-task-runtime branch. `WorkflowEngine.updateRecord` validates every
+   * persisted runtime snapshot against this schema branch, so a future desync
+   * between [FeatureTaskRuntimePhaseWorkflowDefinition] and the schema branch must
+   * break the build here rather than silently reject legitimate runtime-family
+   * writes in production.
+   */
+  @Test
+  fun `featureTaskRuntime branch enums match FeatureTaskRuntimePhaseWorkflowDefinition`() {
+    val schema = loadSchemaNode()
+    val branch = schema.path("\$defs").path("featureTaskRuntimeBranch")
+    val definition = FeatureTaskRuntimePhaseWorkflowDefinition.definition
+
+    assertBranchStatusesMatch(branch, definition.workflowStatuses, "featureTaskRuntimeBranch")
+    assertBranchCurrentStepIdsMatch(branch, definition.stepIds.toSet(), "featureTaskRuntimeBranch")
+    assertBranchStepsStepIdMatch(branch, definition.stepIds.toSet(), "featureTaskRuntimeBranch")
   }
 
   private fun loadSchemaNode(): JsonNode {

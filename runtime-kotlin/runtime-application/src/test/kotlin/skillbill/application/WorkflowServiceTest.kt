@@ -1700,6 +1700,7 @@ internal class FakeDatabaseSessionFactory(
 internal class InMemoryWorkflowStates : WorkflowStateRepository {
   private val implement = mutableMapOf<String, WorkflowStateRecord>()
   private val verify = mutableMapOf<String, WorkflowStateRecord>()
+  private val taskRuntime = mutableMapOf<String, WorkflowStateRecord>()
 
   override fun saveFeatureImplementWorkflow(row: WorkflowStateRecord) {
     implement[row.workflowId] = row
@@ -1716,4 +1717,11 @@ internal class InMemoryWorkflowStates : WorkflowStateRepository {
   override fun latestFeatureVerifyWorkflow(): WorkflowStateRecord? = verify.values.lastOrNull()
   override fun getFeatureImplementSessionSummary(sessionId: String): FeatureImplementSessionSummary? = null
   override fun getFeatureVerifySessionSummary(sessionId: String): FeatureVerifySessionSummary? = null
+  override fun saveFeatureTaskRuntimeWorkflow(row: WorkflowStateRecord) {
+    taskRuntime[row.workflowId] = row
+  }
+  override fun getFeatureTaskRuntimeWorkflow(workflowId: String): WorkflowStateRecord? = taskRuntime[workflowId]
+  override fun listFeatureTaskRuntimeWorkflows(limit: Int): List<WorkflowStateRecord> =
+    taskRuntime.values.toList().take(limit)
+  override fun latestFeatureTaskRuntimeWorkflow(): WorkflowStateRecord? = taskRuntime.values.lastOrNull()
 }

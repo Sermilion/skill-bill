@@ -1740,6 +1740,14 @@ class RuntimeArchitectureTest {
       // the retention helper prunes the same artifact-map lists in place.
       "skillbill.workflow.GoalProgressEventValidator.validate",
       "skillbill.workflow.model.appendBoundedHistoryBySequence",
+      // SKILL-65 subtask 2: feature-task-runtime per-phase record + append-only
+      // phase attempt/event ledger maps are durable workflow-artifact/schema
+      // seams (they ride inside the family workflow row's artifacts_json),
+      // mirroring the SKILL-64 goal attempt-ledger open boundaries above.
+      "skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord.toArtifactMap",
+      "skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord.fromArtifactMap",
+      "skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerEntry.toArtifactMap",
+      "skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerEntry.fromArtifactMap",
       // SKILL-52.2 subtask 2: the 11 scaffold input raw-map allow-list entries — the two public
       // application + port `scaffold(payload, dryRun)` overloads on
       // `skillbill.application.ScaffoldService` / `skillbill.ports.scaffold.ScaffoldGateway`
