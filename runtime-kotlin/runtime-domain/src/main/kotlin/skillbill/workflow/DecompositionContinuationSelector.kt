@@ -13,10 +13,8 @@ object DecompositionContinuationSelector {
     val firstPending = manifest.subtasks.firstOrNull { it.status == "pending" && dependenciesComplete(manifest, it) }
     val blocked = manifest.subtasks.firstOrNull { it.status == "blocked" }
     val unconstrained = when {
-      // SKILL-65: an in_progress subtask with no workflow_id was marked started
-      // but never had a durable workflow opened (orphaned handoff). Re-open it
-      // fresh instead of trying to resume a workflow that does not exist, which
-      // would otherwise block the goal indefinitely.
+      // Orphaned handoff: marked started but no durable workflow opened. Re-open fresh
+      // rather than resuming a workflow that does not exist, which would block the goal.
       inProgress != null && inProgress.workflowId.isNullOrBlank() -> DecompositionContinuationSelection.Start(
         subtask = inProgress,
         branchPlan = manifest.branchPlanFor(inProgress.id),

@@ -21,33 +21,10 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 
 /**
- * SKILL-65 Subtask 3 (AC1-AC4, AC7, AC8): the deterministic feature-task-runtime
- * phase-loop runner.
- *
- * Modeled on [GoalRunner]'s while-loop, but iterating the runtime definition's
- * ordered `stepIds` (`plan -> implement -> review -> audit -> validate`) instead
- * of decomposition subtasks. For each phase it:
- *
- *  - (resume, AC7) skips already-complete phases from persisted per-phase records
- *    and restores prior outputs into the handoff store;
- *  - (handoff, AC2/AC8) assembles the three-layer handoff from the STATIC phase
- *    declaration plus the run-invariants, then LOUD-FAILS when a required
- *    upstream output declared in `consumedUpstreamPhaseIds` is missing rather
- *    than launching the phase blind;
- *  - (agent, AC6) resolves the effective per-phase agent and launches exactly one
- *    agent synchronously through the existing [GoalRunnerSubtaskLauncher] port —
- *    no new process/CLI adapter;
- *  - (schema gate, AC3) validates the captured output via
- *    [FeatureTaskRuntimePhaseOutputValidator]; on failure it NEVER marks the
- *    phase complete and either re-runs within the bounded fix loop
- *    ([FeatureTaskRuntimeFixLoopPolicy]) or blocks the run loudly/observably;
- *  - (persist, AC4) on valid output records the per-phase state (status, attempt
- *    count, resolved agent id, finished, output artifact) through
- *    [FeatureTaskRuntimePhaseRecorder] — the live production caller of that write
- *    seam — then advances.
- *
- * Observability events and the append-only attempt ledger are wired through
- * [FeatureTaskRuntimeRunObservability] (Subtask 3, Task 5).
+ * Runs the feature-task-runtime phase loop deterministically: for each ordered phase it
+ * resolves the agent, assembles and persists the handoff, launches one agent synchronously,
+ * gates the output through schema validation with a bounded fix loop, and persists per-phase
+ * state, resuming from persisted records and blocking loudly on missing upstreams or failures.
  */
 @Inject
 class FeatureTaskRuntimeRunner(
@@ -83,8 +60,6 @@ class FeatureTaskRuntimeRunner(
     )
   }
 
-  // AC2/AC7/AC8: assemble the handoff from the static declaration, loud-fail on a
-  // missing required upstream, then run the bounded attempt/fix loop for one phase.
   private fun runPhase(
     phaseId: String,
     request: FeatureTaskRuntimeRunRequest,
@@ -118,9 +93,6 @@ class FeatureTaskRuntimeRunner(
   ): PhaseOutcome {
     val agentId = run.resolvedAgent.resolvedAgentId
     var iteration = state.nextIteration(run.phaseId)
-    // The first attempt of this run emits START (or RESUME); each bounded re-run
-    // emits exactly one FIX_LOOP_ITERATION. Either way, every loop iteration emits
-    // exactly one launch marker, so launch count == fix-loop attempt count.
     observability.started(run.phaseId, agentId, iteration, iteration == 1 && state.hasPriorRecord(run.phaseId))
     while (true) {
       attemptOnce(run, state, iteration, observability)?.let { return it }
@@ -137,16 +109,9 @@ class FeatureTaskRuntimeRunner(
     }
   }
 
-  // One bounded attempt: persist RUNNING, launch+reconcile, and on a captured
-  // schema-valid output persist COMPLETED. Returns a terminal [PhaseOutcome] when
-  // the phase completes or hits a distinct infrastructure failure; null when the
-  // output was schema-invalid and the caller should consult the fix-loop policy.
-  //
-  // F-C2: an infrastructure failure (spawn failure / timeout / interrupt /
-  // non-zero exit) is NOT a recoverable bad-output fix-loop iteration. It blocks
-  // distinctly with a launch-failure reason rather than being laundered through
-  // the schema gate (which would otherwise misreport it as schema-invalid output
-  // or burn the bounded fix-loop budget on retries that cannot succeed).
+  // Returns null only on schema-invalid output (caller consults the fix-loop policy). An
+  // infrastructure failure must block distinctly rather than be laundered through the schema
+  // gate, which would misreport it as bad output and burn the fix-loop budget on doomed retries.
   private fun attemptOnce(
     run: PhaseRun,
     state: RunState,
@@ -177,7 +142,6 @@ class FeatureTaskRuntimeRunner(
     return PhaseOutcome.completed(FeatureTaskRuntimePhaseOutput(run.phaseId, iteration, outputText))
   }
 
-  // AC4: the live production caller of the per-phase recorder write seam.
   private fun persistPhase(run: PhaseRun, iteration: Int, status: String, finished: Boolean, outputArtifact: String?) {
     recorder.recordPhaseState(
       FeatureTaskRuntimePhaseStateRequest(
@@ -193,12 +157,8 @@ class FeatureTaskRuntimeRunner(
     )
   }
 
-  // AC1/AC2/AC8 + F-C1: assemble the static three-layer briefing (run-invariants
-  // every phase, latest-iteration upstream outputs, derived context) and PERSIST
-  // it durably per phase BEFORE launching, so the briefing is the durable handoff
-  // a consumer reads (Subtask 4's surface) rather than dead computation. Then
-  // launch exactly one agent through the existing launcher port and reconcile the
-  // launch facts. The launched agent never selects its own inputs.
+  // Persist the briefing before launching so it is a durable handoff a consumer can read
+  // back, not dead computation thrown away after the launch.
   private fun launchAndCapture(run: PhaseRun, state: RunState): LaunchResult {
     val handoff = FeatureTaskRuntimeHandoffContract.assembleHandoff(
       declaration = run.declaration,
@@ -222,11 +182,6 @@ class FeatureTaskRuntimeRunner(
     return reconcileLaunch(run.phaseId, outcome)
   }
 
-  // F-C2: reconcile launch facts, mirroring the GoalRunner outcome-reconciliation
-  // intent. An infrastructure failure (spawn failure / timeout / interrupt /
-  // non-zero exit, or an unsupported-agent launch) is surfaced as a DISTINCT
-  // block reason that names the launch failure — never as captured output handed
-  // to the schema gate.
   private fun reconcileLaunch(phaseId: String, outcome: AgentRunLaunchOutcome): LaunchResult = when (outcome) {
     is UnsupportedAgentRunLaunch -> LaunchResult.infraFailure(
       "Feature-task-runtime phase '$phaseId' could not launch an agent: ${outcome.reason}",
@@ -246,7 +201,6 @@ class FeatureTaskRuntimeRunner(
     else -> null
   }
 
-  // AC3: schema gate. True when the output validates; false when it is rejected.
   private fun validates(phaseId: String, outputText: String): Boolean = try {
     outputValidator.validatePhaseOutputText(outputText, sourceLabel = phaseId)
     true
@@ -254,8 +208,6 @@ class FeatureTaskRuntimeRunner(
     false
   }
 
-  // One phase's immutable run context, threaded through the attempt loop to keep
-  // helper signatures within the parameter-count budget.
   private data class PhaseRun(
     val phaseId: String,
     val declaration: FeatureTaskRuntimePhaseDeclaration,
@@ -263,9 +215,6 @@ class FeatureTaskRuntimeRunner(
     val request: FeatureTaskRuntimeRunRequest,
   )
 
-  // F-C2: the reconciled result of one launch attempt — either the captured agent
-  // stdout (which then flows into the schema gate) or a distinct infrastructure
-  // failure that blocks the run loudly without touching the schema gate.
   private sealed interface LaunchResult {
     private data class Captured(val stdout: String) : LaunchResult
     private data class InfraFailure(val reason: String) : LaunchResult
@@ -283,10 +232,8 @@ class FeatureTaskRuntimeRunner(
     private data class Completed(val output: FeatureTaskRuntimePhaseOutput) : PhaseOutcome
     private data class Blocked(val reason: String) : PhaseOutcome
 
-    /** The completed output when this is a completion, else null. */
     val completedOutput: FeatureTaskRuntimePhaseOutput? get() = (this as? Completed)?.output
 
-    /** The blocked reason when this is a block, else null. */
     val blockedReason: String? get() = (this as? Blocked)?.reason
 
     companion object {
@@ -295,13 +242,9 @@ class FeatureTaskRuntimeRunner(
     }
   }
 
-  // Per-run handoff store seeded from persisted per-phase records (AC7 resume):
-  //  - `completed` is derived from each record's STATUS, so a phase marked
-  //    complete is skipped even if (corruptly) it left no output artifact;
-  //  - `outputs` carries only records that actually persisted a validated output
-  //    artifact, so a complete-but-output-less upstream is ABSENT from the handoff
-  //    and triggers the loud missing-upstream block rather than launching blind.
-  // Mutated only on the single run thread.
+  // `completed` is derived from record status while `outputs` carries only records with a
+  // validated artifact, so a complete-but-output-less upstream is absent from the handoff and
+  // triggers a loud missing-upstream block instead of a blind launch. Single-threaded.
   private class RunState(initialRecords: Map<String, FeatureTaskRuntimePhaseRecord>) {
     private val outputs: MutableList<FeatureTaskRuntimePhaseOutput> =
       initialRecords.values.mapNotNull(::recordToOutput).toMutableList()
@@ -334,8 +277,6 @@ class FeatureTaskRuntimeRunner(
   }
 }
 
-// A persisted per-phase record contributes a handoff output only when it carries
-// a validated output artifact; the record's attempt count is its iteration.
 private fun recordToOutput(record: FeatureTaskRuntimePhaseRecord): FeatureTaskRuntimePhaseOutput? =
   record.outputArtifact?.let { artifact ->
     FeatureTaskRuntimePhaseOutput(
@@ -349,7 +290,6 @@ private fun phaseDeclaration(phaseId: String): FeatureTaskRuntimePhaseDeclaratio
   FeatureTaskRuntimePhaseWorkflowDefinition.phaseDeclarations[phaseId]
     ?: error("No phase declaration for runtime phase '$phaseId'.")
 
-// AC7: a declared upstream dependency with no resolved output blocks the run.
 private fun missingUpstream(
   declaration: FeatureTaskRuntimePhaseDeclaration,
   recordedOutputs: List<FeatureTaskRuntimePhaseOutput>,

@@ -1,26 +1,17 @@
 package skillbill.workflow.taskruntime.model
 
 /**
- * SKILL-65 Subtask 1: domain models for the feature-task-runtime inter-phase
- * handoff contract.
- *
- * The handoff is an accumulating, schema-validated artifact store over the
- * phase DAG — not a baton passed from phase N-1 to phase N. A phase pulls its
- * statically-declared upstream dependency set (often more than the immediately
- * previous phase), always receives the run-invariants, and optionally receives
- * statically-declared derived context. Nothing here lets the executing agent
- * choose its own inputs at runtime; dependency and context declarations are
- * design-time properties of the phase definition.
+ * Domain models for the inter-phase handoff contract. The handoff is an
+ * accumulating, schema-validated artifact store over the phase DAG — not a baton
+ * passed from phase N-1 to phase N. A phase pulls its declared upstream dependency
+ * set, always receives the run-invariants, and optionally receives declared derived
+ * context, all design-time properties the executing agent cannot change at runtime.
  */
 
 /**
- * Layer 1 of the handoff: run-invariants injected by the runtime into EVERY
- * phase regardless of what the phase "needs".
- *
- * AC4/AC5: every field is a required non-null primitive. There is no nullable
- * or default-valued member and no factory that can omit one, so the absence of
- * any run-invariant is a compile-time/construction-time loud failure rather
- * than a silently-dropped optional input.
+ * Layer 1 of the handoff: run-invariants injected into every phase. Every field is
+ * required and non-null with no omitting factory, so a missing run-invariant fails
+ * loudly at construction rather than being silently dropped.
  */
 data class FeatureTaskRuntimeRunInvariants(
   /** Reference (path) to the governed spec the run implements. */

@@ -285,9 +285,6 @@ abstract class RuntimeComponent(
   @JvmSynthetic
   internal fun reviewInputSource(source: FileSystemReviewInputSource): ReviewInputSource = source
 
-  // SKILL-65 Subtask 4 (AC1, AC2): the run-invariants spec read seam, bound to
-  // the infra-fs adapter that owns the spec file read + parse. The CLI delegates
-  // here so the CLI module never performs raw file IO.
   @Provides
   @JvmSynthetic
   internal fun featureTaskRuntimeRunInvariantsSource(
@@ -329,10 +326,6 @@ abstract class RuntimeComponent(
   internal fun workflowSnapshotValidator(adapter: WorkflowSnapshotValidatorInfraAdapter): WorkflowSnapshotValidator =
     adapter
 
-  // SKILL-65 Subtask 1: experimental feature-task-runtime per-phase output
-  // validator port, bound to the infra-fs adapter that owns the networknt
-  // JSON-Schema check. The runtime phase loop (a later subtask) calls this port
-  // at the per-phase completion seam, mirroring decompositionManifestValidator.
   @Provides
   @JvmSynthetic
   internal fun featureTaskRuntimePhaseOutputValidator(
@@ -356,26 +349,12 @@ abstract class RuntimeComponent(
 
   abstract val installService: InstallService
   abstract val agentRunService: AgentRunService
-
-  // SKILL-65 Subtask 2: live application-layer write seam for feature-task-runtime
-  // per-phase persistence + the append-only phase attempt/event ledger.
   abstract val featureTaskRuntimePhaseRecorder: FeatureTaskRuntimePhaseRecorder
-
-  // SKILL-65 Subtask 3 (AC1, AC9): the deterministic feature-task-runtime
-  // phase-loop runner. It reuses the already-bound GoalRunnerSubtaskLauncher,
-  // FeatureTaskRuntimePhaseRecorder, and FeatureTaskRuntimePhaseOutputValidator
-  // — no new @Provides port import is introduced, so the
-  // ImplementationOwnershipArchitectureTest allow-list needs no extension.
   abstract val featureTaskRuntimeRunner: FeatureTaskRuntimeRunner
-
-  // SKILL-65 Subtask 4 (AC1): the read-only feature-task-runtime status service.
-  // It reuses the already-bound FeatureTaskRuntimePhaseRecorder read seam only —
-  // no new @Provides port import is introduced.
   abstract val featureTaskRuntimeStatusService: FeatureTaskRuntimeStatusService
 
-  // SKILL-65 Subtask 4 (AC1, AC2): expose the run-invariants spec read seam as a
-  // pre-built object so the CLI command consuming it does not re-resolve the
-  // infra-fs adapter type (which is not on the CLI's compile classpath).
+  // Exposed as a pre-built object so the CLI consumer need not resolve the infra-fs adapter type,
+  // which is not on the CLI module's compile classpath.
   abstract val featureTaskRuntimeRunInvariantsSource: FeatureTaskRuntimeRunInvariantsSource
   abstract val goalRunner: GoalRunner
   abstract val goalRunnerStatusService: GoalRunnerStatusService

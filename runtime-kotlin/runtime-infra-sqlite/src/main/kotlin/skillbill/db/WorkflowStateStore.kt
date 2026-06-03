@@ -27,14 +27,9 @@ private const val UPDATE_TERMINAL_PARAMETER_INDEX: Int = 11
 private val terminalWorkflowStatuses: Set<String> = setOf("completed", "failed", "abandoned")
 
 /**
- * SQLite-backed [WorkflowStateRepository]. The interface is composed from one
- * capability sub-interface per workflow family; this store delegates each to a
- * small per-family implementer (`by`) that shares the connection. Delegation
- * keeps the store's own method surface empty so no single class crosses the
- * detekt `TooManyFunctions` threshold while each family's persistence stays
- * cohesive. The feature-task-runtime family (SKILL-65 Subtask 2) reuses the
- * generic workflow-row helpers against its own table; IMPLEMENT/VERIFY storage
- * is untouched.
+ * SQLite-backed [WorkflowStateRepository]. Delegates each per-family capability
+ * interface to a small implementer sharing the connection, so no single class
+ * crosses the detekt `TooManyFunctions` threshold.
  */
 class WorkflowStateStore(
   private val connection: Connection,
@@ -149,11 +144,6 @@ private class FeatureVerifyWorkflowStateStore(
     }
 }
 
-// SKILL-65 Subtask 2 (AC2): feature-task-runtime family persistence. Reuses the
-// generic workflow-row upsert/get/list helpers against a dedicated table with
-// the same column shape as feature_implement_workflows; existing families are
-// untouched. Per-phase records + the append-only phase ledger ride inside the
-// row's artifacts_json (written by the application recorder).
 private class FeatureTaskRuntimeWorkflowStateStore(
   private val connection: Connection,
 ) : FeatureTaskRuntimeWorkflowStateRepository {

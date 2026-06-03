@@ -11,13 +11,6 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 
-/**
- * SKILL-65 Subtask 4 (AC1, AC2): CLI command coverage for the experimental
- * `feature-task-runtime` group. Mirrors `CliGoalRuntimeTest`: it asserts the
- * `--help` registration of run/status/resume, option validation, the
- * agent-default resolution order, and delegation to the application runner +
- * status service via in-test doubles (no real agent process).
- */
 class CliFeatureTaskRuntimeRuntimeTest {
   @Test
   fun `feature-task-runtime command registers run status and resume`() {
@@ -61,7 +54,6 @@ class CliFeatureTaskRuntimeRuntimeTest {
     assertEquals(0, result.exitCode, result.stdout)
     assertContains(result.stdout, "status: complete")
     assertContains(result.stdout, "completed_phases: plan, implement, review, audit, validate")
-    // The runner launched exactly one agent per ordered phase, in order.
     assertEquals(listOf("codex"), launcher.requests.map { it.agentId }.distinct())
     assertEquals(5, launcher.requests.size)
   }
@@ -77,7 +69,6 @@ class CliFeatureTaskRuntimeRuntimeTest {
     )
 
     assertEquals(0, result.exitCode, result.stdout)
-    // No --agent / SKILL_BILL_AGENT: detection must resolve claude.
     assertEquals(listOf("claude"), launcher.requests.map { it.agentId }.distinct())
   }
 
@@ -87,7 +78,6 @@ class CliFeatureTaskRuntimeRuntimeTest {
     val launcher = RecordingPhaseLauncher()
 
     val result = CliRuntime.run(
-      // No --agent: SKILL_BILL_AGENT must win over the CLAUDECODE detection marker.
       fixture.runCommand(),
       fixture.context(launcher, environment = mapOf("CLAUDECODE" to "1", "SKILL_BILL_AGENT" to "opencode")),
     )
@@ -102,8 +92,6 @@ class CliFeatureTaskRuntimeRuntimeTest {
     val launcher = RecordingPhaseLauncher()
 
     val result = CliRuntime.run(
-      // No --agent, no SKILL_BILL_AGENT, no detectable invoking-agent marker:
-      // the documented last-resort default codex must be used.
       fixture.runCommand(),
       fixture.context(launcher, environment = emptyMap()),
     )
@@ -132,20 +120,16 @@ class CliFeatureTaskRuntimeRuntimeTest {
     val launcher = RecordingPhaseLauncher()
 
     val result = CliRuntime.run(
-      // Default agent codex for every phase, but the plan phase is pinned to claude.
       fixture.runCommand(extra = listOf("--agent", "codex", "--phase-agent", "plan=claude")),
       fixture.context(launcher),
     )
 
     assertEquals(0, result.exitCode, result.stdout)
-    // The runner launches the ordered phases one-per-launch, so launch index maps
-    // to phase id (plan, implement, review, audit, validate).
     val orderedPhases = listOf("plan", "implement", "review", "audit", "validate")
     val agentByPhase = orderedPhases.mapIndexed { index, phaseId ->
       phaseId to launcher.requests[index].agentId
     }.toMap()
     assertEquals(5, launcher.requests.size, result.stdout)
-    // plan diverges to its assigned agent; every other phase keeps the default.
     assertEquals("claude", agentByPhase["plan"], result.stdout)
     assertEquals(
       listOf("codex", "codex", "codex", "codex"),
@@ -190,9 +174,8 @@ class CliFeatureTaskRuntimeRuntimeTest {
       fixture.context(launcher),
     )
 
-    // The non-positive timeout is rejected as a clean usage error BEFORE any phase
-    // is launched or any durable workflow row is opened.
     assertEquals(1, result.exitCode, result.stdout)
+    // Rejected before any phase launch or durable workflow row open.
     assertEquals(emptyList(), launcher.requests, result.stdout)
   }
 
@@ -234,8 +217,7 @@ class CliFeatureTaskRuntimeRuntimeTest {
   @Test
   fun `feature-task-runtime status reports a blocked phase derived from the ledger`() {
     val fixture = runtimeFixture()
-    // Plan completes (launch 0 valid); implement never validates and blocks after
-    // the bounded fix loop, recording only an append-only ledger BLOCKED entry.
+    // Plan completes (launch 0 valid); implement never validates and blocks after the bounded fix loop.
     val launcher = RecordingPhaseLauncher(invalidFromLaunchIndex = 1)
     val run = CliRuntime.run(fixture.runCommand(extra = listOf("--agent", "codex")), fixture.context(launcher))
     assertEquals(1, run.exitCode, run.stdout)
@@ -251,7 +233,6 @@ class CliFeatureTaskRuntimeRuntimeTest {
     assertContains(status.stdout, "status: ok")
     assertContains(status.stdout, "complete: 1")
     assertContains(status.stdout, "blocked: 1")
-    // The blocked phase is the current phase, not silently reported as running.
     assertContains(status.stdout, "current_phase: implement")
     assertContains(status.stdout, "phase: id=plan status=completed")
     assertContains(status.stdout, "phase: id=implement status=blocked")
@@ -283,7 +264,7 @@ class CliFeatureTaskRuntimeRuntimeTest {
 
     assertEquals(0, resume.exitCode, resume.stdout)
     assertContains(resume.stdout, "status: complete")
-    // Every phase was already complete; resume must not launch any agent again.
+    // Already-complete phases must not be relaunched on resume.
     assertEquals(launchesAfterRun, launcher.requests.size)
   }
 }
@@ -338,29 +319,10 @@ private fun runtimeFixture(): FeatureTaskRuntimeCliFixture {
   )
 }
 
-// A stateful fake that returns one schema-valid phase output per launch. The
-// phase-output schema constrains shape (contract version, status, summary,
-// produced_outputs) but not the phase id, so a single well-formed payload
-// validates for every ordered phase, letting the happy-path run complete.
-//
-// F-009: the runner launches the ordered runtime phases deterministically
-// (plan -> implement -> review -> audit -> validate), one launch per phase, so the
-// Nth launch corresponds to the Nth ordered phase. The launcher echoes THAT phase
-// id back into the emitted payload (instead of a constant "plan") only so the
-// fixture is self-describing per launch; it does NOT add wrong-phase-output
-// regression protection, because the runner labels validation with its own
-// phaseId and never parses or cross-checks the agent-supplied phase_id (the
-// canonical phase-output schema constrains phase_id only as a non-empty string).
-// Phase ordering and the one-launch-per-phase invariant are asserted directly by
-// the happy-path test (completed_phases order + requests.size == 5).
-// AgentRunLaunchRequest carries no phase id, so launch order is the only
-// deterministic source the test double has.
-//
-// F-008: when [invalidFromLaunchIndex] is set, every launch at or after that index
-// returns a schema-INVALID payload. With index 1, the plan phase (launch 0)
-// completes and the implement phase (launch 1+) never validates, so the runner
-// exhausts its bounded fix loop and blocks at implement — exercising the
-// ledger-derived blocked status projection (F-001).
+// Returns one schema-valid phase output per launch. AgentRunLaunchRequest carries no phase id, so
+// the test double infers the phase from launch order. The echoed phase_id is only cosmetic: it adds
+// no wrong-phase regression protection, since the runner labels validation with its own phaseId and
+// never cross-checks the agent-supplied phase_id.
 private class RecordingPhaseLauncher(
   private val invalidFromLaunchIndex: Int? = null,
 ) : AgentRunLauncher {

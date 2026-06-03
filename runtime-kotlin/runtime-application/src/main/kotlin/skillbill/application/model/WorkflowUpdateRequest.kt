@@ -17,8 +17,7 @@ enum class WorkflowFamilyKind {
   IMPLEMENT,
   VERIFY,
 
-  // SKILL-65 Subtask 2: the experimental runtime-driven feature-task pipeline
-  // (`FeatureTaskRuntimePhaseWorkflowDefinition`). Distinct from IMPLEMENT and
-  // never altering IMPLEMENT/VERIFY storage.
+  // Experimental runtime-driven feature-task pipeline; distinct storage, never alters
+  // IMPLEMENT/VERIFY.
   TASK_RUNTIME,
 }

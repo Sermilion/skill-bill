@@ -109,14 +109,6 @@ class WorkflowStateSchemaContractVersionTest {
     assertBranchStepsStepIdMatch(branch, definition.stepIds.toSet(), "featureVerifyBranch")
   }
 
-  /**
-   * SKILL-65 Subtask 2: pins the same schema<->definition enum parity for the
-   * feature-task-runtime branch. `WorkflowEngine.updateRecord` validates every
-   * persisted runtime snapshot against this schema branch, so a future desync
-   * between [FeatureTaskRuntimePhaseWorkflowDefinition] and the schema branch must
-   * break the build here rather than silently reject legitimate runtime-family
-   * writes in production.
-   */
   @Test
   fun `featureTaskRuntime branch enums match FeatureTaskRuntimePhaseWorkflowDefinition`() {
     val schema = loadSchemaNode()

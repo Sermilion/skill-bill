@@ -285,3 +285,63 @@ phase "needs."
   the SKILL-64 compaction projection directly?
 - Should resume restore each phase's briefing from persisted upstream outputs
   only, or also re-validate prior outputs against current schemas on resume?
+
+## Promote / Kill Criterion (Authoritative)
+
+This is the single authoritative source for the `feature-task-runtime`
+promote/kill decision (SKILL-65 Subtask 5, AC3). Other docs (notably
+`runtime-kotlin/ARCHITECTURE.md`, the skill catalog, and root
+`agent/decisions.md`) point here and must not restate the rule, so the experiment
+cannot drift into permanent dual maintenance.
+
+**Deciding evidence.** The decision is made only on the dated evidence produced
+by the reproducible same-spec comparison procedure in
+`runtime-kotlin/docs/architecture/feature-task-runtime-comparison.md`: the
+per-phase timing tables, the runtime-owned-vs-self-reported observability
+classification, the state-reliability/resume outcomes, the token/session cost
+deltas, and the per-criterion output-quality table. A decision may not be made on
+impressions or on a single run; it requires comparison evidence across at least
+**three** representative governed specs run through both paths under the rules in
+that procedure (no gate weakened, model held constant for quality).
+
+**Who decides.** The skill-bill maintainer (repository owner) decides, on that
+evidence. No automated routing change is implied by this rule; promotion or
+retirement is an explicit maintainer action.
+
+**Promote** `feature-task-runtime` to replace the prose orchestrator only when
+the evidence shows ALL of:
+
+1. **Output quality on par or better** — across the evaluated specs, the
+   runtime-driven path satisfies the same acceptance criteria and passes the same
+   unmodified maintainer gate as `bill-feature-task`, with no criterion regressing
+   from satisfied to partial/missing.
+2. **Materially better observability** — per-phase timings, agent id, status, and
+   attempt count are runtime-owned ground truth (not self-reported) on every
+   phase, plus the append-only attempt ledger, with no field silently absent.
+3. **Better or equal state reliability** — resume reliably skips completed phases,
+   never loses or silently re-runs completed work, and the validity gate (not
+   mere presence) blocks invalid/fabricated artifacts loudly. A missing required
+   upstream output blocks rather than running blind.
+4. **Acceptable cost** — the token/session cost delta from per-phase agent
+   fan-out is within a maintainer-accepted bound for the quality/observability
+   gained.
+
+On promotion, `bill-feature-task` is migrated/retired in a follow-up; the dual
+state ends.
+
+**Kill** (retire `feature-task-runtime`) when the evidence shows ANY of:
+
+1. Output quality regresses relative to `bill-feature-task` on the evaluated specs
+   and the gap is not closable without weakening a gate.
+2. The observability/state-reliability advantage does not materialize in practice
+   (e.g. runtime-owned fields are not meaningfully more trustworthy or complete).
+3. The cost or operational overhead is disproportionate to the gain.
+
+On a kill decision, the experimental command, skill, and workflow family are
+removed; the experiment does not linger.
+
+**No indefinite dual maintenance.** Maintaining both `bill-feature-task` and
+`feature-task-runtime` indefinitely is explicitly forbidden. The experiment is
+time- and evidence-bounded: once the comparison evidence across the evaluated
+specs is in hand, the maintainer must record a promote or kill decision rather
+than leave both paths in permanent parallel maintenance.

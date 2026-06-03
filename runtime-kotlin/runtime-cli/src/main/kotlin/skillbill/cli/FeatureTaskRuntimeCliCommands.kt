@@ -30,14 +30,8 @@ import java.nio.file.Path
 import kotlin.time.Duration.Companion.minutes
 
 /**
- * SKILL-65 Subtask 4 (AC1, AC2, AC6): the experimental `feature-task-runtime` CLI
- * command group (`run` / `status` / `resume`).
- *
- * Mirrors `GoalCliCommands`: every command only validates input and delegates to
- * an application service ([FeatureTaskRuntimeRunner] /
- * [FeatureTaskRuntimeStatusService] / [WorkflowService]). It imports no concrete
- * infrastructure and performs no raw file IO — the run-invariants spec read is
- * delegated to the injected [FeatureTaskRuntimeRunInvariantsSource] port.
+ * Each command only validates input and delegates to an application service; the spec read goes
+ * through the injected [FeatureTaskRuntimeRunInvariantsSource] port so this module performs no file IO.
  */
 @Inject
 class FeatureTaskRuntimeRunCommand(
@@ -195,8 +189,6 @@ class FeatureTaskRuntimeResumeCommand(
   }
 }
 
-// SKILL-65 Subtask 4 (AC2): monitor mode tees phase transition events to the
-// terminal; the default keeps the run quiet. The sink never drives orchestration.
 private fun runtimeRunEventSink(
   state: CliRunState,
   monitor: Boolean,
@@ -220,9 +212,6 @@ private fun skillbill.application.model.FeatureTaskRuntimeRunEvent.runtimeProgre
     "feature-task-runtime $workflowId: phase $phaseId blocked attempt=$attemptCount: $blockedReason\n"
 }
 
-// SKILL-65 Subtask 4 (AC2): per-phase agent map parse. Each entry is phase=agent;
-// the resolved map is handed to FeatureTaskRuntimeAgentAssignment, which loud-fails
-// on blank phase ids or agent ids.
 private fun parsePhaseAgents(rawAssignments: List<String>): Map<String, String> {
   val parsed = LinkedHashMap<String, String>()
   rawAssignments.forEach { assignment ->
@@ -243,16 +232,12 @@ private fun parsePhaseAgents(rawAssignments: List<String>): Map<String, String> 
   return parsed
 }
 
-// SKILL-65 Subtask 4 (AC2): mirror GoalCliCommands.resolveInvokedAgentId — the
-// invoking agent is the documented default. No hardcoded codex except the same
-// documented last-resort default the goal surface uses when nothing else resolves.
 private fun resolveInvokedRuntimeAgentId(explicitAgent: String?, environment: Map<String, String>): String =
   explicitAgent?.takeIf(String::isNotBlank)
     ?: environment["SKILL_BILL_AGENT"]?.takeIf(String::isNotBlank)
     ?: InvokingAgentContextResolver.detect(environment)?.id
     ?: DEFAULT_RUNTIME_AGENT
 
-// SKILL-65 Subtask 4 (AC6): compact-ack run result mapper.
 private fun FeatureTaskRuntimeRunReport.toRuntimeRunCliMap(): Map<String, Any?> = when (this) {
   is FeatureTaskRuntimeRunReport.Completed -> linkedMapOf(
     "status" to "complete",
@@ -281,7 +266,6 @@ private fun runtimeRunText(payload: Map<String, Any?>): String = buildString {
   payload["blocked_reason"]?.let { appendLine("blocked_reason: $it") }
 }
 
-// SKILL-65 Subtask 4 (AC6): compact read-only status result mapper.
 private fun FeatureTaskRuntimeStatusProjection?.toRuntimeStatusCliMap(workflowId: String): Map<String, Any?> =
   this?.let {
     linkedMapOf<String, Any?>(
@@ -329,6 +313,5 @@ private fun runtimeStatusText(payload: Map<String, Any?>): String = buildString 
   }
 }
 
-// Documented last-resort default, identical to the goal surface, used only when no
-// explicit flag, env, or detected invoking-agent context is available.
+// Last-resort default used only when no explicit flag, env, or detected invoking-agent context resolves.
 private const val DEFAULT_RUNTIME_AGENT = "codex"

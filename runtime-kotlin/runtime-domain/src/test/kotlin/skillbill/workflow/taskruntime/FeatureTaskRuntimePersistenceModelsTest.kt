@@ -46,8 +46,6 @@ class FeatureTaskRuntimePersistenceModelsTest {
 
   @Test
   fun `per-phase record decode loud-fails on missing required field`() {
-    // AC6: a malformed persisted record must loud-fail with a typed schema error,
-    // never best-effort parse.
     val malformed = mapOf(
       "phase_id" to "plan",
       "status" to "completed",
@@ -122,8 +120,6 @@ class FeatureTaskRuntimePersistenceModelsTest {
 
   @Test
   fun `append-only ledger keeps monotonic sequence order and prunes oldest beyond the limit`() {
-    // AC4: the ledger reuses the shared bounded sequence-ordered retention helper;
-    // appends stay monotonic and the oldest entries are pruned first.
     var ledger = emptyList<Map<String, Any?>>()
     (0 until FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT + 3).forEach { index ->
       val entry = FeatureTaskRuntimePhaseLedgerEntry(

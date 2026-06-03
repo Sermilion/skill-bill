@@ -6,23 +6,9 @@ import skillbill.application.model.FeatureTaskRuntimeRunRequest
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerAction
 
 /**
- * SKILL-65 Subtask 3 (AC4): the per-phase observability + attempt-ledger sink for
- * one feature-task-runtime run.
- *
- * Modeled on the `GoalRunnerObservabilityEmitter` / `GoalRunnerLedgerRecorder`
- * style: at each phase boundary it (1) emits a typed
- * [FeatureTaskRuntimeRunEvent] to the run request's thin event sink and (2)
- * appends a [FeatureTaskRuntimePhaseLedgerAction] entry to the durable
- * append-only ledger via [FeatureTaskRuntimePhaseRecorder.appendLedgerEntry].
- * The recorder mints the timestamp and the monotonic sequence, so this class
- * never sources time or ordering.
- *
- * Ledger actions:
- *  - `START`  on a fresh phase attempt;
- *  - `RESUME` when the first attempt is a resume of persisted state;
- *  - `FIX_LOOP_ITERATION` on each bounded re-run (carrying `fixLoopIteration`);
- *  - `BLOCKED` on a schema-gate / missing-upstream / exhausted-budget failure;
- *  - `COMPLETE` on a phase that passed its schema gate.
+ * Per-phase observability and attempt-ledger sink for one run: at each phase boundary it emits a
+ * typed [FeatureTaskRuntimeRunEvent] to the run's event sink and appends a ledger entry. The
+ * recorder mints the timestamp and monotonic sequence, so this class never sources time or order.
  */
 internal class FeatureTaskRuntimeRunObservability(
   private val recorder: FeatureTaskRuntimePhaseRecorder,

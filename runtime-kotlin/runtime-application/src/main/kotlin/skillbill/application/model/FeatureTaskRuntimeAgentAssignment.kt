@@ -1,23 +1,13 @@
 package skillbill.application.model
 
 /**
- * SKILL-65 Subtask 3 (AC6): static per-phase agent assignment for the
- * feature-task-runtime pipeline.
- *
- * Carries the design-time per-phase agent map (phase id -> configured agent id)
- * plus an optional run-wide [override] that wins over everything at the launch
- * seam. There is intentionally no API that lets a running agent choose its own
- * per-phase assignment; the map is a property of the run request.
- *
- * The resolution order is owned by [skillbill.application.FeatureTaskRuntimeAgentResolver]
- * and mirrors the SKILL-64 precedent (`GoalCliCommands.resolveInvokedAgentId`):
- * the invoking agent is the documented default — there is NO hardcoded `codex`
- * fallback.
+ * Static per-phase agent assignment: a design-time phase-id-to-agent map plus an optional run-wide
+ * [override] that wins at the launch seam. A running agent cannot choose its own assignment; the
+ * map is a property of the run request. Resolution order lives in
+ * [skillbill.application.FeatureTaskRuntimeAgentResolver].
  */
 data class FeatureTaskRuntimeAgentAssignment(
-  /** Phase id -> configured agent id for that phase. Entries must be non-blank. */
   val perPhaseAgentIds: Map<String, String> = emptyMap(),
-  /** Optional run-wide override applied to EVERY phase at the launch seam. */
   val override: String? = null,
 ) {
   init {
@@ -37,24 +27,13 @@ data class FeatureTaskRuntimeAgentAssignment(
   }
 }
 
-/**
- * SKILL-65 Subtask 3 (AC6): the resolved effective agent ids for one phase. The
- * runner feeds [invokedAgentId] / [configuredAgentOverrideId] to the existing
- * `AgentRunService` (which resolves `override ?: invoked` at the launch seam)
- * and stamps [resolvedAgentId] onto the per-phase record/ledger.
- */
+/** The resolved effective agent ids for one phase. */
 data class FeatureTaskRuntimeResolvedPhaseAgent(
   val phaseId: String,
-  /** The non-override side of the resolution (per-phase -> invoked -> env -> default). */
   val invokedAgentId: String,
-  /** The run-wide override, when one was supplied; wins at the launch seam. */
   val configuredAgentOverrideId: String?,
 ) {
-  /**
-   * The agent that will actually execute the phase: the override when present,
-   * otherwise the resolved invoked agent. This is the value recorded as the
-   * per-phase `resolved_agent_id`.
-   */
+  /** The agent that actually executes the phase: the override when present, else the invoked. */
   val resolvedAgentId: String = configuredAgentOverrideId ?: invokedAgentId
 
   init {

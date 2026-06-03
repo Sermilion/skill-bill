@@ -5,14 +5,9 @@ import skillbill.ports.persistence.model.FeatureVerifySessionSummary
 import skillbill.ports.persistence.model.WorkflowStateRecord
 
 /**
- * Durable workflow-state persistence, composed from one capability interface
- * per workflow family. The composition keeps each family's method surface
- * cohesive and small enough that no single interface crosses the detekt
- * `TooManyFunctions` threshold, while [WorkflowStateRepository] remains the
- * single port adapters implement and callers depend on.
- *
- * No infrastructure types leak through this surface: every method speaks only
- * the port-owned [WorkflowStateRecord] / session-summary models.
+ * Durable workflow-state persistence, split into one capability interface per
+ * family so no single interface crosses the detekt `TooManyFunctions`
+ * threshold. This remains the single port adapters implement.
  */
 interface WorkflowStateRepository :
   FeatureImplementWorkflowStateRepository,
@@ -44,12 +39,9 @@ interface FeatureVerifyWorkflowStateRepository {
 }
 
 /**
- * SKILL-65 Subtask 2 (AC1, AC2): family-specific persistence for the
- * experimental feature-task-runtime pipeline. Reuses the existing
- * [WorkflowStateRecord] port model (which carries `stepsJson`/`artifactsJson`),
- * so per-phase records and the append-only phase ledger ride inside the same
- * durable artifacts envelope as the other families. There is intentionally no
- * session-summary method for this family.
+ * Persistence for the experimental feature-task-runtime pipeline. Per-phase
+ * records and the append-only phase ledger ride inside the [WorkflowStateRecord]
+ * artifacts envelope; there is intentionally no session-summary method.
  */
 interface FeatureTaskRuntimeWorkflowStateRepository {
   fun saveFeatureTaskRuntimeWorkflow(row: WorkflowStateRecord)

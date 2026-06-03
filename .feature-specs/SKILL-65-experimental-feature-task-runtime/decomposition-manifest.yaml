@@ -3,7 +3,7 @@ contract_version: "0.2"
 issue_key: "SKILL-65"
 feature_name: "experimental-feature-task-runtime"
 parent_spec_path: ".feature-specs/SKILL-65-experimental-feature-task-runtime/spec.md"
-status: "in_progress"
+status: "complete"
 execution_model: "same_branch_commit_per_subtask"
 base_branch: "main"
 feature_branch: "feat/SKILL-65-experimental-feature-task-runtime"
@@ -67,12 +67,12 @@ subtasks:
 - id: 5
   name: "comparison-harness-and-promote-kill-criteria"
   spec_path: ".feature-specs/SKILL-65-experimental-feature-task-runtime/spec_subtask_5_comparison-harness-and-promote-kill-criteria.md"
-  status: "pending"
-  branch: null
+  status: "complete"
+  branch: "feat/SKILL-65-experimental-feature-task-runtime"
   commit_sha: null
-  workflow_id: null
+  workflow_id: "wfl-20260603-063935-rzwc"
   blocked_reason: null
-  last_resumable_step: null
+  last_resumable_step: "commit_push"
   dependencies:
   - subtask_id: 4
     optional: false

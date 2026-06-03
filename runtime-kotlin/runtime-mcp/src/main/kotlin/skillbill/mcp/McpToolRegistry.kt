@@ -309,7 +309,6 @@ object McpToolRegistry {
       "feature_task_runtime_workflow_resume" to workflowIdSchema(),
       "feature_task_runtime_workflow_update" to workflowUpdateSchema(
         workflowStatusEnum = listOf("pending", "running", "completed", "failed", "abandoned", "blocked"),
-        // AC3: the runtime phase ids (plan, implement, review, audit, validate).
         stepIdEnum = FeatureTaskRuntimePhaseWorkflowDefinition.definition.stepIds,
       ),
       "import_review" to objectSchema(

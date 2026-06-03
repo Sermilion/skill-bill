@@ -683,25 +683,13 @@ class WorkflowServiceTest {
   }
 }
 
-// SKILL-65: a git port that measures a concrete HEAD SHA, used to prove the
-// runtime backfills a dropped goal-continuation commit SHA from git ground
-// truth. Delegates every other operation to the no-op port.
 private object HeadShaGitOperations : WorkflowGitOperations by NoopWorkflowGitOperations {
   override fun headCommitSha(repoRoot: Path): WorkflowGitOperationResult =
     WorkflowGitOperationResult(status = "ok", value = "measured-head-sha")
 }
 
-/**
- * SKILL-65: the goal runner must own the terminal commit SHA as git ground truth
- * rather than trusting an agent to self-report it. These regressions pin the
- * recovery path that unblocked the stuck SKILL-65 run, kept in their own class
- * so they do not push [WorkflowGoalRunnerOutcomeStoreTest] over the detekt
- * LargeClass threshold.
- */
+/** Kept separate from [WorkflowGoalRunnerOutcomeStoreTest] to stay under the detekt LargeClass threshold. */
 class GoalRunnerCommitShaRecoveryTest {
-  // commit_push completed under suppress_pr but the agent dropped the commit SHA
-  // from its self-reported artifact. With a repo root supplied, the store
-  // backfills the terminal SHA from measured git HEAD instead of blocking.
   @Test
   fun `goal runner outcome store backfills missing commit sha from measured git head`() {
     val workflows = InMemoryWorkflowStates()
@@ -719,9 +707,6 @@ class GoalRunnerCommitShaRecoveryTest {
     assertEquals("measured-head-sha", outcome.commitSha)
   }
 
-  // The runner path must DURABLY persist the measured completion: a later
-  // read-only call (no repo root, no git measurement) must still see COMPLETE,
-  // proving the verdict survived rather than living only in memory.
   @Test
   fun `goal runner outcome store durably persists the measured completion`() {
     val workflows = InMemoryWorkflowStates()
@@ -732,9 +717,7 @@ class GoalRunnerCommitShaRecoveryTest {
       gitOperations = HeadShaGitOperations,
     )
 
-    // Runner path measures HEAD and persists the completion.
     store.terminalOutcome("wfl-child", "SKILL-52.1", 1, repoRoot = Path.of("."))
-    // Read-only path (no repo root, no git) now resolves COMPLETE from durable state.
     val durable = store.terminalOutcome("wfl-child", "SKILL-52.1", 1, repoRoot = null)
 
     requireNotNull(durable)
@@ -742,9 +725,6 @@ class GoalRunnerCommitShaRecoveryTest {
     assertEquals("measured-head-sha", durable.commitSha)
   }
 
-  // When commit_push completed but git itself reports no usable HEAD (no-op or
-  // failed measurement), the gate must still block loudly rather than fabricate
-  // a completion.
   @Test
   fun `goal runner outcome store stays blocked when measured git head is unavailable`() {
     val workflows = InMemoryWorkflowStates()
@@ -761,9 +741,6 @@ class GoalRunnerCommitShaRecoveryTest {
     assertEquals(GoalRunnerTerminalStatus.NO_TERMINAL_STORE_OUTCOME, outcome.status)
   }
 
-  // Read-only callers (e.g. goal status) pass no repo root, so the store must
-  // never measure git or mutate — it reports the unresolved terminal state even
-  // when a real git adapter is wired.
   @Test
   fun `goal runner outcome store does not measure git head without a repo root`() {
     val workflows = InMemoryWorkflowStates()
@@ -780,9 +757,6 @@ class GoalRunnerCommitShaRecoveryTest {
     assertEquals(GoalRunnerTerminalStatus.NO_TERMINAL_STORE_OUTCOME, outcome.status)
   }
 
-  // commit_push step completed under a goal-continuation suppress_pr workflow,
-  // but neither a goal_continuation_outcome nor a commit_push_result.commit_sha
-  // artifact is present — the exact shape that produced SKILL-65's stuck run.
   private fun commitPushCompletedWithoutCommitSha(workflowId: String): WorkflowStateRecord {
     val opened = testWorkflowEngine.openRecord(
       FeatureImplementWorkflowDefinition.definition,

@@ -3,11 +3,8 @@ package skillbill.application.model
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerAction
 
 /**
- * SKILL-65 Subtask 2 (AC3, AC5): application-layer request to persist one
- * feature-task-runtime per-phase record. Carries only runtime-owned facts plus
- * the validated phase output artifact; the runtime (the recorder) mints the
- * start/finish timestamps and computes the duration, so NO timestamp or
- * duration ever crosses this boundary from an agent.
+ * Request to persist one per-phase record. Carries only runtime-owned facts plus the validated
+ * output artifact; the recorder mints timestamps and duration, so none ever crosses from an agent.
  */
 data class FeatureTaskRuntimePhaseStateRequest(
   val workflowId: String,
@@ -20,10 +17,8 @@ data class FeatureTaskRuntimePhaseStateRequest(
 )
 
 /**
- * SKILL-65 Subtask 2 (AC4, AC5): application-layer request to append one phase
- * attempt/event ledger entry. The recorder mints the timestamp and assigns the
- * monotonic sequence number from the persisted watermark, so the caller never
- * supplies time or ordering.
+ * Request to append one phase ledger entry. The recorder mints the timestamp and the monotonic
+ * sequence, so the caller never supplies time or ordering.
  */
 data class FeatureTaskRuntimePhaseLedgerRequest(
   val workflowId: String,

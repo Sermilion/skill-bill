@@ -6,25 +6,12 @@ import java.math.BigDecimal
 import java.math.BigInteger
 
 /**
- * SKILL-65 Subtask 2: effect-free per-phase persistence + append-only phase
- * attempt/event ledger domain models for the feature-task-runtime pipeline.
- *
- * These models ride inside the family workflow row's `artifacts_json` envelope
- * (the existing `WorkflowStateRecord` carries it), keyed by
- * [FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY] and
- * [FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY].
- *
- * Effect-purity (mirrors the SKILL-64 goal accounting/ledger models): there is
- * NO clock, random, or logging here. The runtime (application layer) mints every
- * timestamp/duration and passes it in, so the domain never sources time
- * (AC5). The map<->model (de)serialization conforms to the `artifacts_json`
- * key shape, loud-fails on malformed maps with a typed
- * [InvalidWorkflowStateSchemaError] consistent with the `WorkflowEngine` read
- * seam, and introduces NO best-effort parsing (AC6).
- *
- * Append/prune for the ledger reuses the single domain helper
- * `skillbill.workflow.model.appendBoundedHistoryBySequence` at the durable write
- * seam (the application layer), so this file does not duplicate that logic.
+ * Effect-free per-phase persistence and append-only phase ledger models. They ride
+ * inside the workflow row's `artifacts_json` envelope. There is no clock, random, or
+ * logging here: the application layer mints every timestamp/duration and passes it in.
+ * Map decode loud-fails on malformed maps with a typed [InvalidWorkflowStateSchemaError]
+ * and does no best-effort parsing. Ledger append/prune reuses the shared
+ * `appendBoundedHistoryBySequence` helper at the durable write seam.
  */
 
 const val FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY: String = "feature_task_runtime_phase_records"
@@ -32,25 +19,16 @@ const val FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY: String = "feature_task
 const val FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT: Int = 200
 
 /**
- * SKILL-65 Subtask 3 (AC2, AC7, AC8): durable per-phase launch briefing store.
- * The assembled three-layer briefing is persisted here, keyed by phase id, BEFORE
- * the phase agent is launched, so the briefing is the durable handoff a consumer
- * (Subtask 4's surface) reads rather than dead computation. Each entry is the
- * latest briefing assembled for that phase.
+ * Durable per-phase launch briefing store. The assembled briefing is persisted, keyed
+ * by phase id, before the phase agent is launched, so it is a durable handoff a consumer
+ * reads rather than dead computation. Each entry is the latest briefing for that phase.
  */
 const val FEATURE_TASK_RUNTIME_PHASE_BRIEFINGS_ARTIFACT_KEY: String = "feature_task_runtime_phase_briefings"
 
 /**
- * AC3: the durable per-phase record. One entry per phase id captures the
- * runtime-owned facts about that phase's latest persisted state: its status,
- * attempt count, the runtime-minted start/finish timestamps and duration, the
- * resolved agent id, and the validated phase output artifact (the JSON/YAML
- * text already passed the per-phase output validator before reaching here).
- *
- * Effect-free: every timestamp/duration is supplied by the caller, never read
- * from a clock. `finishedAt`/`durationMillis`/`outputArtifact` are nullable
- * because a phase may be persisted while still running (started but not yet
- * finished); a finished phase MUST carry all three.
+ * Durable per-phase record: one entry per phase id holding its latest persisted state.
+ * `finishedAt`/`durationMillis`/`outputArtifact` are nullable because a phase may be
+ * persisted while still running; a finished phase carries all three.
  */
 data class FeatureTaskRuntimePhaseRecord(
   val phaseId: String,
@@ -89,11 +67,7 @@ data class FeatureTaskRuntimePhaseRecord(
   }
 
   companion object {
-    /**
-     * AC6: strict decode of one per-phase record map. Loud-fails with a typed
-     * [InvalidWorkflowStateSchemaError] on any missing/malformed required field;
-     * no best-effort parsing or silent defaulting of required values.
-     */
+    /** Strict decode; loud-fails on any missing or malformed required field. */
     @OpenBoundaryMap("Feature-task-runtime per-phase record decode from the durable workflow-artifact map")
     fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimePhaseRecord = FeatureTaskRuntimePhaseRecord(
       phaseId = raw.requireStringField("phase_id"),
@@ -108,11 +82,7 @@ data class FeatureTaskRuntimePhaseRecord(
   }
 }
 
-/**
- * AC4: actions for the append-only phase attempt/event ledger. The set covers
- * phase start, resume, retry, fix-loop iteration, blocked, and complete events
- * (consistent with the SKILL-64 goal attempt-ledger intent).
- */
+/** Actions for the append-only phase attempt/event ledger. */
 enum class FeatureTaskRuntimePhaseLedgerAction(val wireValue: String) {
   START("start"),
   RESUME("resume"),
@@ -132,11 +102,8 @@ enum class FeatureTaskRuntimePhaseLedgerAction(val wireValue: String) {
 }
 
 /**
- * AC4: one append-only phase ledger entry. Carries a monotonic
- * [sequenceNumber], a runtime-minted [timestamp], the [phaseId], the [action],
- * and runtime-owned facts (attempt count, resolved agent id, an optional
- * fix-loop iteration index, and an optional blocked reason). Effect-free:
- * timestamps are minted in the application layer (AC5), never here.
+ * One append-only phase ledger entry with a monotonic [sequenceNumber] and an
+ * application-minted [timestamp].
  */
 data class FeatureTaskRuntimePhaseLedgerEntry(
   val action: FeatureTaskRuntimePhaseLedgerAction,
@@ -178,11 +145,7 @@ data class FeatureTaskRuntimePhaseLedgerEntry(
   }
 
   companion object {
-    /**
-     * AC6: strict decode of one ledger entry map. Loud-fails with a typed
-     * [InvalidWorkflowStateSchemaError] on any missing/malformed required field;
-     * no best-effort parsing.
-     */
+    /** Strict decode; loud-fails on any missing or malformed required field. */
     @OpenBoundaryMap("Feature-task-runtime phase ledger entry decode from the durable workflow-artifact map")
     fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimePhaseLedgerEntry =
       FeatureTaskRuntimePhaseLedgerEntry(
@@ -198,12 +161,8 @@ data class FeatureTaskRuntimePhaseLedgerEntry(
   }
 }
 
-// SKILL-65 Subtask 2 (AC6): strict, loud-failing field decoders shared by the
-// per-phase record and ledger entry. Every helper throws the typed
-// InvalidWorkflowStateSchemaError on a missing/wrong-typed required value; the
-// optional variants return null only when the key is absent and still loud-fail
-// on a present-but-malformed value. This is the schema-error path of the
-// WorkflowEngine read seam — never best-effort.
+// Strict field decoders. The optional variants return null only when the key is
+// absent; a present-but-malformed value still loud-fails rather than defaulting.
 
 private fun Map<String, Any?>.requireStringField(key: String): String {
   val value = this[key]

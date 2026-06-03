@@ -389,9 +389,6 @@ private fun Int.twoDigits(): String = toString().padStart(2, '0')
 internal fun WorkflowFamilyKind.workflowFamily(): WorkflowFamily = when (this) {
   WorkflowFamilyKind.IMPLEMENT -> WorkflowFamily.IMPLEMENT
   WorkflowFamilyKind.VERIFY -> WorkflowFamily.VERIFY
-  // SKILL-65 Subtask 2 (AC1): the experimental runtime-driven feature-task
-  // pipeline. Delegates to its own persistence methods; IMPLEMENT/VERIFY stay
-  // untouched.
   WorkflowFamilyKind.TASK_RUNTIME -> WorkflowFamily.TASK_RUNTIME
 }
 
@@ -401,8 +398,6 @@ internal enum class WorkflowFamily(
 ) {
   IMPLEMENT(FeatureImplementWorkflowDefinition.definition, "feature-implement"),
   VERIFY(FeatureVerifyWorkflowDefinition.definition, "feature-verify"),
-
-  // SKILL-65 Subtask 2 (AC1): bound to the Subtask 1 phase-workflow definition.
   TASK_RUNTIME(FeatureTaskRuntimePhaseWorkflowDefinition.definition, "feature-task-runtime"),
   ;
 
@@ -446,8 +441,7 @@ internal enum class WorkflowFamily(
     return when (this) {
       IMPLEMENT -> repository.getFeatureImplementSessionSummary(sessionId)?.toPayload().orEmpty()
       VERIFY -> repository.getFeatureVerifySessionSummary(sessionId)?.toPayload().orEmpty()
-      // SKILL-65 Subtask 2 (AC1): the runtime family has no session-summary
-      // record; the continuation view carries an empty summary map.
+      // The runtime family has no session-summary record.
       TASK_RUNTIME -> emptyMap()
     }
   }

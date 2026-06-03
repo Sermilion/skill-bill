@@ -211,10 +211,8 @@ class WorkflowGoalRunnerOutcomeStore(
   private val workflowSnapshotValidator: WorkflowSnapshotValidator,
   private val goalObservabilityEventValidator: GoalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
   private val goalProgressEventValidator: GoalProgressEventValidator = NoopGoalProgressEventValidator,
-  // SKILL-65: ground-truth git read used to recover the terminal commit SHA when
-  // an agent completes commit_push under suppress_pr but omits the SHA from its
-  // self-reported artifact. Defaults to the no-op port so existing call sites
-  // and tests keep artifact-only behavior until a real adapter is wired.
+  // Ground-truth git read to recover the terminal commit SHA when an agent completes
+  // commit_push under suppress_pr but omits the SHA. No-op default keeps artifact-only behavior.
   private val gitOperations: WorkflowGitOperations = NoopWorkflowGitOperations,
 ) : GoalRunnerWorkflowOutcomeStore {
   private val engine: WorkflowEngine = WorkflowEngine(workflowSnapshotValidator)
@@ -267,17 +265,14 @@ class WorkflowGoalRunnerOutcomeStore(
     dbPathOverride: String?,
     repoRoot: Path?,
   ): GoalRunnerStoredOutcome? = if (repoRoot == null) {
-    // SKILL-65: read-only callers (e.g. goal status) pass no repo root. Resolve
-    // strictly from durable artifacts; never measure git or mutate state.
+    // No repo root means a read-only caller (e.g. goal status): resolve from durable
+    // artifacts only, never measuring git or mutating state.
     database.read(dbPathOverride) { unitOfWork ->
       resolveTerminalOutcome(unitOfWork.workflowStates, workflowId, issueKey, subtaskId) { null }
     }
   } else {
-    // SKILL-65: the goal runner supplies the repo root. When commit_push completed
-    // under suppress_pr but the agent dropped the self-reported SHA, recover it
-    // from measured git HEAD (ground truth, the SKILL-33 defense) AND durably
-    // persist the commit_push-terminal completion as a goal_continuation_outcome,
-    // so status, reconciliation, and the subtask handoff all agree afterward.
+    // With a repo root, recover a dropped SHA from measured HEAD and durably persist the
+    // completion so status, reconciliation, and the subtask handoff all agree afterward.
     database.transaction(dbPathOverride) { unitOfWork ->
       resolveTerminalOutcome(unitOfWork.workflowStates, workflowId, issueKey, subtaskId) {
         gitOperations.headCommitSha(repoRoot).measuredCommitSha()
@@ -302,13 +297,9 @@ class WorkflowGoalRunnerOutcomeStore(
       ?.let { continuation -> terminalOutcomeFor(snapshot, artifacts, continuation, measuredCommitSha) }
   }
 
-  // SKILL-65: durably record a commit_push-terminal COMPLETE whose SHA was
-  // recovered from measured git HEAD. Writing goal_continuation_outcome makes the
-  // verdict authoritative (read first by terminalOutcomeFor), so the workflow row
-  // being stranded at a later step no longer reverts the subtask to blocked.
-  // Idempotent and narrowly gated: only when the outcome is COMPLETE, the SHA is
-  // present, the agent artifact had no SHA (so it was measured), and no durable
-  // outcome exists yet.
+  // Writing goal_continuation_outcome makes the verdict authoritative (read first by
+  // terminalOutcomeFor), so a workflow row stranded at a later step no longer reverts the
+  // subtask to blocked. Idempotent: only backfills a measured COMPLETE not yet recorded.
   private fun persistMeasuredCompletion(
     workflowStates: skillbill.ports.persistence.WorkflowStateRepository,
     workflowId: String,
@@ -321,8 +312,6 @@ class WorkflowGoalRunnerOutcomeStore(
     }
     val record = WorkflowFamily.IMPLEMENT.get(workflowStates, workflowId) ?: return
     val artifacts = decodeArtifacts(record.artifactsJson)
-    // Only backfill when no durable outcome exists yet AND the agent artifact had
-    // no SHA (so this SHA was measured from git). Idempotent across repeated reads.
     val needsBackfill = goalContinuationOutcome(artifacts, issueKey, subtaskId, outcome.suppressPr) == null &&
       commitShaFrom(artifacts).isNullOrBlank()
     if (needsBackfill) {
@@ -675,9 +664,7 @@ private fun terminalOutcomeFor(
   snapshot: WorkflowStateSnapshot,
   artifacts: Map<String, Any?>,
   goalContinuation: GoalContinuation,
-  // SKILL-65: lazily supplies a runtime-measured HEAD commit SHA. Only invoked
-  // when commit_push completed under suppress_pr yet the agent left commit_sha
-  // blank, so the measurement cost is paid solely on the recovery path.
+  // Lazily measures HEAD only on the recovery path, so the cost is paid solely there.
   measuredCommitSha: () -> String? = { null },
 ): GoalRunnerStoredOutcome? = goalContinuationOutcome(
   artifacts = artifacts,
@@ -799,15 +786,9 @@ private fun blockedReasonFrom(
 private fun commitShaFrom(artifacts: Map<String, Any?>): String? =
   (artifacts["commit_push_result"] as? Map<*, *>)?.get("commit_sha")?.toString()?.takeIf(String::isNotBlank)
 
-// SKILL-65: the goal-continuation "commit_push is terminal" condition, shared by
-// terminalStatus and the runtime-measured-SHA recovery so both agree on exactly
-// when a missing commit SHA may be backfilled from git HEAD.
 private fun commitPushCompletedUnderSuppressPr(steps: List<WorkflowStepState>, suppressPr: Boolean): Boolean =
   suppressPr && steps.any { it.stepId == "commit_push" && it.status == "completed" }
 
-// SKILL-65: normalize a git-port HEAD read into a usable SHA, or null when the
-// port measured nothing (no-op adapter) or failed. Null keeps the prior
-// presence-gated NO_TERMINAL_STORE_OUTCOME behavior intact.
 private fun WorkflowGitOperationResult.measuredCommitSha(): String? = value.trim().takeIf { ok && it.isNotBlank() }
 
 // SKILL-64 Subtask 3 (F-D01): soft-decode the highest sequence_number in a

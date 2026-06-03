@@ -62,9 +62,8 @@ class FeatureTaskRuntimeStatusServiceTest {
   fun `phase whose latest ledger entry is blocked is reported blocked and current`() {
     val harness = statusHarness()
     harness.recorder.ensureWorkflowOpen(WORKFLOW_ID, SESSION_ID)
-    // Plan completed; implement is left at `running` by the runner but the ledger's
-    // newest entry for implement is BLOCKED (the runner records the block only as a
-    // ledger entry, never as a blocked per-phase record).
+    // The runner records a block only in the ledger, leaving the per-phase record at
+    // `running`; status must derive the blocked state from the newest ledger entry.
     harness.recordRunning("implement", attemptCount = 3)
     harness.recordCompleted("plan", attemptCount = 1)
     harness.recordLedger(FeatureTaskRuntimePhaseLedgerAction.START, "implement", attemptCount = 1)
@@ -86,8 +85,6 @@ class FeatureTaskRuntimeStatusServiceTest {
     val harness = statusHarness()
     harness.recorder.ensureWorkflowOpen(WORKFLOW_ID, SESSION_ID)
     harness.recordRunning("implement", attemptCount = 4)
-    // Blocked, then resumed: the newest ledger entry (RESUME) wins, so implement is
-    // back in-flight (running), not blocked.
     harness.recordLedger(FeatureTaskRuntimePhaseLedgerAction.BLOCKED, "implement", attemptCount = 3)
     harness.recordLedger(FeatureTaskRuntimePhaseLedgerAction.RESUME, "implement", attemptCount = 4)
 

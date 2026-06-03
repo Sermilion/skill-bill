@@ -722,12 +722,6 @@ class WorkflowEngine(private val schemaValidator: WorkflowSnapshotValidator) {
       )
     }
 
-    // F-002: the resume content.md path is derived from the workflow definition's
-    // skillName via a small lookup rather than a binary if/else, so a new workflow
-    // family (e.g. the experimental feature-task-runtime, whose skillName is
-    // `feature-task-runtime` but whose skill ships as `bill-feature-task-runtime`)
-    // routes to its own content.md instead of silently falling into the verify
-    // branch. An unmapped skillName falls back to its own `skills/<skillName>/content.md`.
     private fun continuationContentPath(skillName: String): String =
       CONTINUATION_CONTENT_PATHS[skillName] ?: "skills/$skillName/content.md"
 
@@ -826,12 +820,8 @@ class WorkflowEngine(private val schemaValidator: WorkflowSnapshotValidator) {
 private const val COMPACT_ARTIFACT_INLINE_MAX_BYTES = 4096
 private const val COMPACT_ARTIFACT_PREVIEW_CHARS = 1024
 
-// F-002: definition-driven map of workflow-definition skillName -> the resume
-// content.md the continuation guidance should point at. Keyed by the workflow
-// definition's `skillName`; the feature-task-runtime family's runtime skillName
-// is `feature-task-runtime` but the shipped skill is `bill-feature-task-runtime`,
-// so it must map explicitly rather than relying on a default. Any unmapped
-// skillName falls back to `skills/<skillName>/content.md`.
+// Maps a definition's skillName to its resume content.md. feature-task-runtime needs
+// an explicit entry because its shipped skill dir (bill-feature-task-runtime) differs.
 private val CONTINUATION_CONTENT_PATHS: Map<String, String> = mapOf(
   "bill-feature-task" to "skills/bill-feature-task/content.md",
   "bill-feature-verify" to "skills/bill-feature-verify/content.md",

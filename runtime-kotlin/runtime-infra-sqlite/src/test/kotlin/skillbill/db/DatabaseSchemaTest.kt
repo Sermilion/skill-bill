@@ -33,8 +33,6 @@ class DatabaseSchemaTest {
         DatabaseSchema.indexNames.all { it in indexes },
         "Missing indexes: ${DatabaseSchema.indexNames - indexes}",
       )
-      // SKILL-65 Subtask 2 (AC2, AC7): the new feature-task-runtime family table
-      // is registered AND created by the idempotent base schema (no migration).
       assertTrue(
         "feature_task_runtime_workflows" in DatabaseSchema.tableNames,
         "feature_task_runtime_workflows must be registered in DatabaseSchema.tableNames.",

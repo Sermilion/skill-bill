@@ -7,20 +7,9 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 /**
- * SKILL-65 Subtask 4 (AC1, AC2): the filesystem adapter that reads a governed
- * feature-task-runtime spec and extracts the run-invariants.
- *
- * This is the ONLY place the run-invariants spec read touches the filesystem; the
- * CLI delegates here so the CLI module stays free of raw file IO. The parse is
- * deliberately narrow and loud:
- *
- *  - [FeatureTaskRuntimeRunInvariants.specReference] is the normalized spec path.
- *  - The acceptance criteria are the numbered list items under the spec's
- *    `## Acceptance Criteria` heading (multi-line items are joined). The domain
- *    model loud-fails when this list is empty, so a spec with no acceptance
- *    criteria cannot start a run.
- *  - Mandates/overrides are the bullet items under a `## Mandates` /
- *    `## Mandates and Overrides` heading when present, else an empty list.
+ * Reads a governed feature-task-runtime spec and extracts its run-invariants.
+ * The sole filesystem read for the spec, so the CLI module can stay free of raw
+ * file IO.
  */
 @Inject
 class FileSystemFeatureTaskRuntimeRunInvariantsSource : FeatureTaskRuntimeRunInvariantsSource {
@@ -37,8 +26,6 @@ class FileSystemFeatureTaskRuntimeRunInvariantsSource : FeatureTaskRuntimeRunInv
     )
   }
 
-  // Extracts the numbered-list items under the first matching heading, joining
-  // continuation lines into one criterion each.
   private fun parseNumberedSection(specText: String, headings: Set<String>): List<String> {
     val body = sectionBody(specText, headings) ?: return emptyList()
     val items = mutableListOf<StringBuilder>()
@@ -54,7 +41,6 @@ class FileSystemFeatureTaskRuntimeRunInvariantsSource : FeatureTaskRuntimeRunInv
     return items.map { it.toString().trim() }.filter(String::isNotBlank)
   }
 
-  // Extracts the bullet-list items under the first matching heading.
   private fun parseBulletSection(specText: String, headings: Set<String>): List<String> {
     val body = sectionBody(specText, headings) ?: return emptyList()
     val items = mutableListOf<StringBuilder>()
@@ -70,8 +56,6 @@ class FileSystemFeatureTaskRuntimeRunInvariantsSource : FeatureTaskRuntimeRunInv
     return items.map { it.toString().trim() }.filter(String::isNotBlank)
   }
 
-  // Returns the text between the first matching `## <heading>` line and the next
-  // `## ` heading (or end of file), or null when no heading matches.
   private fun sectionBody(specText: String, headings: Set<String>): String? {
     val lines = specText.lines()
     val startIndex = lines.indexOfFirst { line -> line.headingTitle()?.lowercase() in headings }

@@ -21,7 +21,6 @@ class FeatureTaskRuntimeHandoffContractTest {
       listOf(
         FeatureTaskRuntimePhaseOutput("review", iteration = 1, payload = "review-v1"),
         FeatureTaskRuntimePhaseOutput("implement", iteration = 1, payload = "impl-v1"),
-        // Fix loop re-runs implement, then review again with higher iterations.
         FeatureTaskRuntimePhaseOutput("implement", iteration = 2, payload = "impl-v2"),
         FeatureTaskRuntimePhaseOutput("review", iteration = 2, payload = "review-v2"),
       )
@@ -53,7 +52,6 @@ class FeatureTaskRuntimeHandoffContractTest {
         FeatureTaskRuntimePhaseOutput("implement", iteration = 1, payload = "impl-v1"),
         FeatureTaskRuntimePhaseOutput("implement", iteration = 2, payload = "impl-v2"),
         FeatureTaskRuntimePhaseOutput("review", iteration = 1, payload = "review-v1"),
-        // An output for a phase NOT in audit's dependency set must be ignored.
         FeatureTaskRuntimePhaseOutput("validate", iteration = 1, payload = "validate-v1"),
       )
     val resolved = FeatureTaskRuntimeHandoffContract.resolveUpstreamOutputs(auditDeclaration, recorded)

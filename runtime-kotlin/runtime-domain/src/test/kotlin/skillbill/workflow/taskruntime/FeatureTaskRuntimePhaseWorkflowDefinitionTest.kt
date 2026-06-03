@@ -42,8 +42,6 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionTest {
 
   @Test
   fun `per-phase dependency-set resolution over the DAG matches declarations`() {
-    // The DAG: plan has no upstream; implement<-plan; review<-implement;
-    // audit<-plan,implement,review; validate<-implement,audit.
     assertEquals(emptyList(), dependenciesOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN))
     assertEquals(
       listOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN),

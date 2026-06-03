@@ -11,11 +11,8 @@ import kotlin.test.assertTrue
 class WorkflowStateStoreTest {
   @Test
   fun `feature task runtime table contract version default matches schema contract version const`() {
-    // SKILL-65 Subtask 2 (F-005): the contract_version persisted by the table
-    // default MUST equal the schema's WORKFLOW_STATE_CONTRACT_VERSION that the
-    // validator checks. Pinning them together makes a future schema bump that
-    // forgets the table default a build break rather than a production failure
-    // rejecting persisted runtime rows.
+    // Pin the table default to the validator's schema version so a future
+    // schema bump that forgets it breaks the build, not production writes.
     assertEquals(
       WORKFLOW_STATE_CONTRACT_VERSION,
       DbConstants.FEATURE_TASK_RUNTIME_WORKFLOW_CONTRACT_VERSION,
@@ -161,11 +158,6 @@ class WorkflowStateStoreTest {
 
   @Test
   fun `feature task runtime workflow rows round trip with per-phase records and appended ledger`() {
-    // SKILL-65 Subtask 2 (AC2, AC3, AC4, AC5): the dedicated family table stores
-    // per-phase records (status/attempt/started_at/finished_at/duration/resolved
-    // agent id/output artifact) AND the append-only phase ledger inside
-    // artifacts_json; both survive store -> read with the runtime-minted
-    // timestamps/durations and resolved agent id intact.
     val dbPath = Files.createTempDirectory("runtime-kotlin-db-task-runtime").resolve("metrics.db")
 
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
@@ -195,7 +187,6 @@ class WorkflowStateStoreTest {
       assertEquals("plan", saved.currentStepId)
       assertEquals(artifactsJson, saved.artifactsJson)
 
-      // The new family is isolated from IMPLEMENT/VERIFY storage.
       assertEquals(null, store.getFeatureImplementWorkflow("wftr-001"))
       assertEquals(null, store.getFeatureVerifyWorkflow("wftr-001"))
     }
@@ -221,7 +212,6 @@ class WorkflowStateStoreTest {
 
       assertEquals(listOf("wftr-003", "wftr-002"), store.listFeatureTaskRuntimeWorkflows(2).map { it.workflowId })
       assertEquals("wftr-003", store.latestFeatureTaskRuntimeWorkflow()?.workflowId)
-      // No cross-family leakage from the dedicated table.
       assertTrue(store.listFeatureImplementWorkflows(10).isEmpty())
       assertTrue(store.listFeatureVerifyWorkflows(10).isEmpty())
     }

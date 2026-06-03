@@ -39,10 +39,8 @@ interface GoalRunnerWorkflowOutcomeStore {
     issueKey: String,
     subtaskId: Int,
     dbPathOverride: String? = null,
-    // SKILL-65: when non-null, the store may resolve a missing goal-continuation
-    // commit SHA from this repo's measured HEAD (ground truth) instead of
-    // blocking on a self-reported SHA the agent dropped. Read-only callers (e.g.
-    // status) pass null to keep their no-mutation contract intact.
+    // When non-null, a missing commit SHA may be resolved from measured HEAD.
+    // Read-only callers pass null to keep their no-mutation contract.
     repoRoot: Path? = null,
   ): GoalRunnerStoredOutcome?
 

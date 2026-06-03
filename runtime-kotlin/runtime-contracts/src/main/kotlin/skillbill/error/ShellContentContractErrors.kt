@@ -48,13 +48,9 @@ class InvalidDecompositionManifestSchemaError(
 )
 
 /**
- * SKILL-65 Subtask 1: surfaced when a feature-task-runtime phase output fails
- * the canonical
- * `orchestration/contracts/feature-task-runtime-phase-output-schema.yaml`
- * Draft 2020-12 schema. The composed message carries the source label
- * (the phase id or another caller-supplied identifier) and the violation
- * reason so the per-phase progression gate fails loudly without conflating
- * this contract with decomposition-manifest or workflow-state failures.
+ * Surfaced when a feature-task-runtime phase output fails the canonical
+ * phase-output schema. The message carries the source label and violation
+ * reason.
  */
 class InvalidFeatureTaskRuntimePhaseOutputSchemaError(
   val sourceLabel: String,

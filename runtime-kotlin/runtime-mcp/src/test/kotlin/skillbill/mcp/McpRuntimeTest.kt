@@ -621,12 +621,8 @@ class McpRuntimeTest {
   }
 }
 
-/**
- * SKILL-65 Subtask 4 (AC3, AC6): MCP golden coverage for the EXPERIMENTAL
- * feature-task-runtime workflow family. Kept in its own class so it does not push
- * [McpRuntimeTest] over the detekt LargeClass threshold, mirroring the
- * separate-class pattern used elsewhere in the suite.
- */
+// Kept in its own class so it does not push McpRuntimeTest over the detekt
+// LargeClass threshold.
 class McpFeatureTaskRuntimeWorkflowTest {
   @Test
   fun `mcp workflow methods cover experimental feature-task-runtime verbs`() {

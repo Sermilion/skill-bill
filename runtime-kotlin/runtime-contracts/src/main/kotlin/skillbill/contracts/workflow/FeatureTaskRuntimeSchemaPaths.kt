@@ -1,11 +1,8 @@
 package skillbill.contracts.workflow
 
 /**
- * SKILL-65 Subtask 1: pinned runtime-side mirror of the canonical
- * feature-task-runtime phase-output schema's `contract_version`. The parity
- * test fails the build if this constant and the schema's
- * `properties.contract_version.const` diverge. To bump the contract, edit
- * BOTH sites in the same change.
+ * Runtime-side mirror of the schema's `contract_version`; a parity test fails
+ * the build if they diverge. Bump both sites together.
  */
 const val FEATURE_TASK_RUNTIME_CONTRACT_VERSION: String = "0.1"
 

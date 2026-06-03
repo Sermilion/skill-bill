@@ -17,7 +17,6 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorTest {
 
   @Test
   fun `well-formed phase output passes validation`() {
-    // No exception means success.
     FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(wellFormed, "plan")
   }
 

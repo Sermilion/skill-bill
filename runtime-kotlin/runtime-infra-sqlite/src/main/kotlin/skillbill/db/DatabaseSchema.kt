@@ -234,9 +234,6 @@ internal object DatabaseSchema {
         finished_at TEXT
       )
       """.trimIndent(),
-      // SKILL-65 Subtask 2 (AC2): experimental feature-task-runtime workflow rows.
-      // Same column shape as feature_implement_workflows. Created idempotently by
-      // createBaseSchema — no schema_migrations entry/migration is required.
       """
       CREATE TABLE IF NOT EXISTS feature_task_runtime_workflows (
         workflow_id TEXT PRIMARY KEY,

@@ -21,15 +21,9 @@ private val featureTaskRuntimePhaseOutputLog: Logger =
   Logger.getLogger("skillbill.contracts.workflow.FeatureTaskRuntimePhaseOutputSchemaValidator")
 
 /**
- * SKILL-65 Subtask 1: parse-seam validator for feature-task-runtime per-phase
- * output payloads.
- *
- * Mirrors [DecompositionManifestSchemaValidator]: schema validation is owned by
- * `runtime-infra-fs`, and the rest of the runtime reaches it only through the
- * domain-owned `FeatureTaskRuntimePhaseOutputValidator` port. The runtime calls
- * this at the per-phase completion seam to raise the progression gate from
- * PRESENCE to VALIDITY. Well-formed output passes; empty `{}`, malformed input,
- * and any schema violation fail loudly with
+ * Schema validator for feature-task-runtime per-phase output payloads, reached
+ * by the runtime only through the domain-owned port. Empty `{}`, malformed
+ * input, and any schema violation fail with
  * [InvalidFeatureTaskRuntimePhaseOutputSchemaError].
  */
 object FeatureTaskRuntimePhaseOutputSchemaValidator {

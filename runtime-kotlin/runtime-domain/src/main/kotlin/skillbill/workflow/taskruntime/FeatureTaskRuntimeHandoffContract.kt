@@ -7,28 +7,16 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeResolvedUpstreamOu
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRunInvariants
 
 /**
- * SKILL-65 Subtask 1: pure-domain resolution of the three-layer feature-task-
- * runtime handoff.
- *
- * Layer 1 (run-invariants) is always injected; its type
- * ([FeatureTaskRuntimeRunInvariants]) makes absence a loud construction-time
- * failure. Layer 2 (declared upstream outputs) is resolved here as the LATEST
- * iteration of each statically-declared dependency, supporting fix loops that
- * re-run an upstream phase. Layer 3 (derived context) is taken verbatim from
- * the phase's static declaration.
- *
- * Every function is pure and deterministic so it is unit-testable without any
- * runtime/process/IO dependency. There is no entry point that lets a running
- * agent select its own inputs: a phase's dependency set and derived context are
- * read only from [FeatureTaskRuntimePhaseDeclaration].
+ * Pure, deterministic resolution of the three-layer phase handoff: always-injected
+ * run-invariants, the latest iteration of each statically-declared upstream output
+ * (so fix loops re-running a phase are picked up), and statically-declared derived
+ * context. A running agent cannot select its own inputs; they come only from the
+ * phase declaration.
  */
 object FeatureTaskRuntimeHandoffContract {
   /**
-   * Selects the latest-iteration output for each producing phase from a flat
-   * list of recorded outputs (which may contain repeated outputs per phase from
-   * fix loops). Ties on [FeatureTaskRuntimePhaseOutput.iteration] keep the
-   * last-recorded entry, so callers that append in chronological order get the
-   * most recent result.
+   * Latest-iteration output per producing phase. On an iteration tie the last-recorded
+   * entry wins, so callers appending chronologically get the most recent result.
    */
   fun selectLatestOutputsByPhase(
     recordedOutputs: List<FeatureTaskRuntimePhaseOutput>,
@@ -44,11 +32,9 @@ object FeatureTaskRuntimeHandoffContract {
   }
 
   /**
-   * Resolves the statically-declared upstream dependency set for [declaration]
-   * against the [recordedOutputs] store, selecting the latest iteration of each
-   * declared producing phase. A declared dependency with no recorded output is
-   * omitted from the result; callers (the runtime loop, a later subtask) decide
-   * whether a missing required upstream blocks the run.
+   * Latest output for each upstream dependency declared by [declaration]. A declared
+   * dependency with no recorded output is omitted; callers decide whether a missing
+   * required upstream blocks the run.
    */
   fun resolveUpstreamOutputs(
     declaration: FeatureTaskRuntimePhaseDeclaration,
@@ -62,11 +48,7 @@ object FeatureTaskRuntimeHandoffContract {
     return FeatureTaskRuntimeResolvedUpstreamOutputs(resolved)
   }
 
-  /**
-   * Assembles the full three-layer handoff for one phase: always-present
-   * run-invariants, the resolved latest upstream outputs, and the statically-
-   * declared derived-context keys.
-   */
+  /** Assembles the full three-layer handoff for one phase. */
   fun assembleHandoff(
     declaration: FeatureTaskRuntimePhaseDeclaration,
     runInvariants: FeatureTaskRuntimeRunInvariants,

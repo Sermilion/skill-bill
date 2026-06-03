@@ -10,36 +10,23 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerEntry
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 
 /**
- * SKILL-65 Subtask 4 (AC1): the read-only feature-task-runtime status service.
- *
- * Mirrors [GoalRunnerStatusService] in shape — it is a thin application read seam
- * that projects durable state into a typed, read-only projection without any
- * orchestration. It reuses the recorder's strict read seam
- * ([FeatureTaskRuntimePhaseRecorder.loadPhaseRecords]) as its ONLY durable
- * dependency: no new infrastructure import, no file IO, and no resume logic
- * (resume is the runner's resumable `run()`). The projection orders phases by the
- * runtime definition's `stepIds`, derives complete/pending/blocked counts, and
- * reports the first not-yet-complete phase as the current phase.
+ * Read-only status service that projects durable per-phase records and the ledger into a typed
+ * projection: phases ordered by the definition's `stepIds`, complete/pending/blocked counts, and
+ * the first not-yet-complete phase as the current phase. No orchestration, no resume logic.
  */
 @Inject
 class FeatureTaskRuntimeStatusService(
   private val recorder: FeatureTaskRuntimePhaseRecorder,
 ) {
   /**
-   * Projects the read-only status for the requested runtime workflow. Returns
-   * null only when the workflow row does not exist (the recorder read seam
-   * returns null), distinguishing "no such runtime workflow" from "workflow
-   * exists but no phase has produced a record yet" (an empty record map projects
-   * every phase as pending).
+   * Projects the read-only status. Returns null only when the workflow row is absent,
+   * distinguishing "no such workflow" from "workflow exists but no phase has a record yet"
+   * (an empty record map projects every phase as pending).
    */
   fun status(request: FeatureTaskRuntimeStatusRequest): FeatureTaskRuntimeStatusProjection? {
     val records = recorder.loadPhaseRecords(request.workflowId, request.dbPathOverride) ?: return null
-    // F-001: the runner persists only `running`/`completed` per-phase records and
-    // records a block solely as an append-only ledger entry (action=BLOCKED). The
-    // status projection therefore derives blocked-ness from the ledger so a phase
-    // that blocked is distinguishable from one merely in-flight. A phase is blocked
-    // when its newest ledger entry is BLOCKED (any later START/RESUME/COMPLETE for
-    // that phase supersedes the block on a resumed run).
+    // A block is recorded only in the ledger, never in a per-phase record, so blocked-ness is
+    // derived here to tell a blocked phase from one merely in-flight.
     val ledger = recorder.loadPhaseLedger(request.workflowId, request.dbPathOverride).orEmpty()
     val blockedPhaseIds = blockedPhaseIds(ledger)
     val phases = FeatureTaskRuntimePhaseWorkflowDefinition.definition.stepIds.map { phaseId ->
@@ -51,15 +38,12 @@ class FeatureTaskRuntimeStatusService(
       completeCount = phases.count { it.status == STATUS_COMPLETED },
       pendingCount = phases.count { it.status !in TERMINAL_PHASE_STATUSES },
       blockedCount = phases.count { it.status == STATUS_BLOCKED },
-      // F-001: the current phase is the first not-yet-complete phase, including a
-      // phase the ledger reports as blocked (which otherwise reads as `running`).
       currentPhaseId = phases.firstOrNull { it.status != STATUS_COMPLETED }?.phaseId,
     )
   }
 
-  // F-001: per phase, the newest ledger entry (highest sequence number) decides
-  // whether that phase is currently blocked. A blocked phase whose run was later
-  // resumed (START/RESUME/COMPLETE recorded after the block) is no longer blocked.
+  // A phase is blocked when its newest ledger entry is BLOCKED; a later entry from a resumed
+  // run supersedes the block.
   private fun blockedPhaseIds(ledger: List<FeatureTaskRuntimePhaseLedgerEntry>): Set<String> = ledger
     .groupBy { it.phaseId }
     .filterValues { entries ->
@@ -73,9 +57,8 @@ class FeatureTaskRuntimeStatusService(
   ): FeatureTaskRuntimePhaseStatus = if (this == null) {
     FeatureTaskRuntimePhaseStatus(
       phaseId = phaseId,
-      // F-001: a phase with no per-phase record can still be blocked when the
-      // block happened before any `running` record was persisted (e.g. a
-      // missing-upstream block surfaced at handoff assembly).
+      // A phase with no record can still be blocked when the block happened before any `running`
+      // record was persisted (e.g. a missing-upstream block at handoff assembly).
       status = if (blocked) STATUS_BLOCKED else STATUS_PENDING,
       attemptCount = 0,
       resolvedAgentId = null,
@@ -84,9 +67,8 @@ class FeatureTaskRuntimeStatusService(
   } else {
     FeatureTaskRuntimePhaseStatus(
       phaseId = phaseId,
-      // F-001: the durable record is left at `running` on a block; the ledger is
-      // the authority that reclassifies it as blocked. A completed record always
-      // wins over a stale block (its ledger COMPLETE supersedes any prior BLOCKED).
+      // The record is left at `running` on a block; the ledger reclassifies it as blocked, but a
+      // completed record always wins over a stale block.
       status = if (blocked && status != STATUS_COMPLETED) STATUS_BLOCKED else status,
       attemptCount = attemptCount,
       resolvedAgentId = resolvedAgentId,

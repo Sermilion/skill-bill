@@ -5,18 +5,13 @@ import skillbill.workflow.model.WorkflowDefinition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseDeclaration
 
 /**
- * SKILL-65 Subtask 1: the runtime-driven feature-task pipeline definition.
+ * The experimental runtime-driven feature-task pipeline definition, fully independent
+ * from `FeatureImplementWorkflowDefinition`.
  *
- * This is an experimental capability distinct from `bill-feature-task`. It is
- * fully independent from `FeatureImplementWorkflowDefinition` — it has its own
- * skill/workflow name, id prefix, contract version, and reduced phase set — and
- * touches none of that definition's consumers.
- *
- * The phase set is a DAG, not a chain. `requiredArtifactsByStep` encodes each
- * phase's statically-declared upstream dependency set (the producing-phase ids
- * whose latest output the phase consumes). The companion
- * [phaseDeclarations] adds the layer-3 derived-context declarations that the
- * `WorkflowDefinition` shape cannot express.
+ * The phase set is a DAG, not a chain: `requiredArtifactsByStep` encodes each phase's
+ * upstream dependency set (the producing-phase ids whose latest output it consumes).
+ * [phaseDeclarations] adds the derived-context declarations that the `WorkflowDefinition`
+ * shape cannot express.
  */
 object FeatureTaskRuntimePhaseWorkflowDefinition {
   const val PHASE_PLAN: String = "plan"
@@ -51,7 +46,6 @@ object FeatureTaskRuntimePhaseWorkflowDefinition {
       PHASE_AUDIT to "Phase 4: Completeness Audit",
       PHASE_VALIDATE to "Phase 5: Quality Validation",
     ),
-    // The DAG: each phase consumes the LATEST output of these producing phases.
     requiredArtifactsByStep =
     mapOf(
       PHASE_PLAN to emptyList(),
@@ -76,11 +70,9 @@ object FeatureTaskRuntimePhaseWorkflowDefinition {
   )
 
   /**
-   * Static, design-time per-phase declarations: the consumed upstream phase ids
-   * (mirroring [WorkflowDefinition.requiredArtifactsByStep]) plus the layer-3
-   * derived-context keys. `review` is the only phase that statically declares a
-   * derived `diff` context. There is intentionally no API that lets a running
-   * agent add to or choose these.
+   * Per-phase declarations: consumed upstream phase ids (mirroring
+   * [WorkflowDefinition.requiredArtifactsByStep]) plus derived-context keys.
+   * `review` is the only phase that declares a derived `diff` context.
    */
   val phaseDeclarations: Map<String, FeatureTaskRuntimePhaseDeclaration> =
     definition.stepIds.associateWith { phaseId ->
