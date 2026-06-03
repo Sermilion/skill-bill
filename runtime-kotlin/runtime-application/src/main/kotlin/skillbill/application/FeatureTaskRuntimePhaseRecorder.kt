@@ -178,6 +178,24 @@ class FeatureTaskRuntimePhaseRecorder(
     }
 
   /**
+   * F-001: strict read seam for the durable append-only phase attempt/event
+   * ledger, mirroring [loadPhaseRecords]. The runner only ever persists `running`
+   * then `completed` per-phase records and records a block as an append-only
+   * ledger entry (action=BLOCKED) — never a blocked per-phase record. The status
+   * service therefore needs to read this ledger to distinguish a phase that
+   * blocked from one merely in-flight. An absent ledger key legitimately yields an
+   * empty list; a present-but-malformed entry loud-fails via the domain model's
+   * typed [skillbill.error.InvalidWorkflowStateSchemaError] (no best-effort
+   * decode). Returns null only when the workflow row does not exist.
+   */
+  fun loadPhaseLedger(workflowId: String, dbOverride: String? = null): List<FeatureTaskRuntimePhaseLedgerEntry>? =
+    database.read(dbOverride) { unitOfWork ->
+      val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+        ?: return@read null
+      phaseLedgerFrom(decodeArtifacts(record.artifactsJson))
+    }
+
+  /**
    * SKILL-65 Subtask 3 (AC1): ensures a runtime workflow row exists for the
    * phase loop, opening one at the definition's initial step when absent. Reuses
    * [WorkflowEngine.openRecord] for validated construction. Idempotent: returns

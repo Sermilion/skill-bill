@@ -54,12 +54,12 @@ subtasks:
 - id: 4
   name: "cli-mcp-surface-and-experimental-skill"
   spec_path: ".feature-specs/SKILL-65-experimental-feature-task-runtime/spec_subtask_4_cli-mcp-surface-and-experimental-skill.md"
-  status: "pending"
-  branch: null
+  status: "complete"
+  branch: "feat/SKILL-65-experimental-feature-task-runtime"
   commit_sha: null
-  workflow_id: null
+  workflow_id: "wfl-20260602-203354-tp6f"
   blocked_reason: null
-  last_resumable_step: null
+  last_resumable_step: "commit_push"
   dependencies:
   - subtask_id: 3
     optional: false

@@ -1,5 +1,5 @@
 ---
-status: Draft
+status: Complete
 ---
 
 # SKILL-65 Subtask 4 - CLI, MCP Surface, and Experimental Skill

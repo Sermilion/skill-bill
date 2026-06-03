@@ -6,6 +6,7 @@ import skillbill.application.AgentRunGoalRunnerSubtaskLauncher
 import skillbill.application.AgentRunService
 import skillbill.application.FeatureTaskRuntimePhaseRecorder
 import skillbill.application.FeatureTaskRuntimeRunner
+import skillbill.application.FeatureTaskRuntimeStatusService
 import skillbill.application.GoalRunner
 import skillbill.application.GoalRunnerStatusService
 import skillbill.application.InstallAgentService
@@ -31,6 +32,7 @@ import skillbill.domain.skillremove.SkillRemoveFileSystem
 import skillbill.infrastructure.fs.DecompositionManifestValidatorAdapter
 import skillbill.infrastructure.fs.FeatureTaskRuntimePhaseOutputValidatorAdapter
 import skillbill.infrastructure.fs.FileSystemDecompositionManifestFileStore
+import skillbill.infrastructure.fs.FileSystemFeatureTaskRuntimeRunInvariantsSource
 import skillbill.infrastructure.fs.FileSystemInstallAgentTargets
 import skillbill.infrastructure.fs.FileSystemInstallApplyExecution
 import skillbill.infrastructure.fs.FileSystemInstallMcpRegistration
@@ -90,6 +92,7 @@ import skillbill.ports.scaffold.manifest.ScaffoldManifestPersistencePort
 import skillbill.ports.scaffold.repo.ScaffoldRepoValidationPort
 import skillbill.ports.scaffold.source.ScaffoldSourceLoaderPort
 import skillbill.ports.scaffold.staging.ScaffoldGeneratedStagingPort
+import skillbill.ports.taskruntime.FeatureTaskRuntimeRunInvariantsSource
 import skillbill.ports.telemetry.TelemetryClient
 import skillbill.ports.telemetry.TelemetryConfigStore
 import skillbill.ports.telemetry.TelemetryLevelMutator
@@ -282,6 +285,15 @@ abstract class RuntimeComponent(
   @JvmSynthetic
   internal fun reviewInputSource(source: FileSystemReviewInputSource): ReviewInputSource = source
 
+  // SKILL-65 Subtask 4 (AC1, AC2): the run-invariants spec read seam, bound to
+  // the infra-fs adapter that owns the spec file read + parse. The CLI delegates
+  // here so the CLI module never performs raw file IO.
+  @Provides
+  @JvmSynthetic
+  internal fun featureTaskRuntimeRunInvariantsSource(
+    adapter: FileSystemFeatureTaskRuntimeRunInvariantsSource,
+  ): FeatureTaskRuntimeRunInvariantsSource = adapter
+
   @Provides
   @JvmSynthetic
   internal fun skillRemoveFileSystem(fileSystem: FileSystemSkillRemoveFileSystem): SkillRemoveFileSystem = fileSystem
@@ -355,6 +367,16 @@ abstract class RuntimeComponent(
   // — no new @Provides port import is introduced, so the
   // ImplementationOwnershipArchitectureTest allow-list needs no extension.
   abstract val featureTaskRuntimeRunner: FeatureTaskRuntimeRunner
+
+  // SKILL-65 Subtask 4 (AC1): the read-only feature-task-runtime status service.
+  // It reuses the already-bound FeatureTaskRuntimePhaseRecorder read seam only —
+  // no new @Provides port import is introduced.
+  abstract val featureTaskRuntimeStatusService: FeatureTaskRuntimeStatusService
+
+  // SKILL-65 Subtask 4 (AC1, AC2): expose the run-invariants spec read seam as a
+  // pre-built object so the CLI command consuming it does not re-resolve the
+  // infra-fs adapter type (which is not on the CLI's compile classpath).
+  abstract val featureTaskRuntimeRunInvariantsSource: FeatureTaskRuntimeRunInvariantsSource
   abstract val goalRunner: GoalRunner
   abstract val goalRunnerStatusService: GoalRunnerStatusService
   abstract val installAgentService: InstallAgentService

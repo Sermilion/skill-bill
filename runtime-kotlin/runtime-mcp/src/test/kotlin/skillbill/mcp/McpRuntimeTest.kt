@@ -621,6 +621,73 @@ class McpRuntimeTest {
   }
 }
 
+/**
+ * SKILL-65 Subtask 4 (AC3, AC6): MCP golden coverage for the EXPERIMENTAL
+ * feature-task-runtime workflow family. Kept in its own class so it does not push
+ * [McpRuntimeTest] over the detekt LargeClass threshold, mirroring the
+ * separate-class pattern used elsewhere in the suite.
+ */
+class McpFeatureTaskRuntimeWorkflowTest {
+  @Test
+  fun `mcp workflow methods cover experimental feature-task-runtime verbs`() {
+    val tempDir = Files.createTempDirectory("skillbill-mcp-task-runtime-workflow")
+    val env = disabledTelemetryEnvironment(tempDir)
+    val context = McpRuntimeContext(environment = env, userHome = tempDir)
+    val opened = McpWorkflowRuntime.open(
+      WorkflowFamilyKind.TASK_RUNTIME,
+      sessionId = "ftr-20260603-mcp",
+      context = context,
+    )
+    val workflowId = opened["workflow_id"] as String
+    assertWorkflowIdShape(workflowId, "wftr")
+    assertSqliteTimestampShape(opened["started_at"].toString(), "task-runtime started_at")
+    assertEquals(opened["started_at"], opened["updated_at"])
+
+    val updated = McpWorkflowRuntime.update(
+      WorkflowFamilyKind.TASK_RUNTIME,
+      WorkflowUpdateRequest(
+        workflowId = workflowId,
+        workflowStatus = "running",
+        currentStepId = "implement",
+        stepUpdates = listOf(mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1)),
+        artifactsPatch = mapOf("feature_task_runtime_phase_records" to emptyMap<String, Nothing?>()),
+      ),
+      context,
+    )
+    val listed = McpWorkflowRuntime.list(WorkflowFamilyKind.TASK_RUNTIME, context = context)
+    val latest = McpWorkflowRuntime.latest(WorkflowFamilyKind.TASK_RUNTIME, context)
+    val got = McpWorkflowRuntime.get(WorkflowFamilyKind.TASK_RUNTIME, workflowId, context)
+    val resumed = McpWorkflowRuntime.resume(WorkflowFamilyKind.TASK_RUNTIME, workflowId, context)
+    val continued = McpWorkflowRuntime.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, workflowId, context)
+
+    assertSqliteTimestampShape(got["updated_at"].toString(), "task-runtime updated_at")
+    assertEquals(opened["started_at"], got["started_at"])
+    assertTrue(got["updated_at"].toString() >= opened["started_at"].toString())
+
+    assertGoldenPayload(
+      "mcp-feature-task-runtime-workflow.json",
+      mapOf(
+        "open" to opened,
+        "update" to updated,
+        "list" to listed,
+        "latest" to latest,
+        "get" to got,
+        "resume" to resumed,
+        "continue" to continued,
+      ),
+      "<DB_PATH>" to tempDir.resolve("metrics.db").toAbsolutePath().normalize().toString(),
+      "<WORKFLOW_ID>" to workflowId,
+      "<STARTED_AT>" to opened["started_at"].toString(),
+      "<UPDATED_AT>" to got["updated_at"].toString(),
+    )
+    assertCompactUpdateAcknowledgementPayload(updated, "implement")
+    assertEquals(1, listed["workflow_count"])
+    assertEquals(workflowId, latest["workflow_id"])
+    assertEquals(workflowId, got["workflow_id"])
+    assertEquals("feature-task-runtime", got["workflow_name"])
+  }
+}
+
 private fun assertCompactUpdateAcknowledgementPayload(payload: Map<String, *>, updatedStepId: String) {
   assertEquals("ok", payload["status"])
   assertEquals(listOf(updatedStepId), payload["updated_step_ids"])

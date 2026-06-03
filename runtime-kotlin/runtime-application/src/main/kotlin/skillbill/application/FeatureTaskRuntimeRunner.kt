@@ -215,6 +215,7 @@ class FeatureTaskRuntimeRunner(
           issueKey = run.request.issueKey,
           repoRoot = run.request.repoRoot,
           dbPathOverride = run.request.dbPathOverride,
+          timeout = run.request.timeout,
         ),
       ),
     )

@@ -2,6 +2,7 @@ package skillbill.application.model
 
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRunInvariants
 import java.nio.file.Path
+import kotlin.time.Duration
 
 /**
  * SKILL-65 Subtask 3 (AC1, AC4, AC6, AC7, AC8): the request that drives one
@@ -24,6 +25,8 @@ data class FeatureTaskRuntimeRunRequest(
   val environment: Map<String, String> = emptyMap(),
   val dbPathOverride: String? = null,
   val repoRoot: Path,
+  /** Optional per-phase wall-clock cap forwarded to each phase agent launch. */
+  val timeout: Duration? = null,
   val eventSink: FeatureTaskRuntimeRunEventSink = FeatureTaskRuntimeRunEventSink.NONE,
 ) {
   init {
