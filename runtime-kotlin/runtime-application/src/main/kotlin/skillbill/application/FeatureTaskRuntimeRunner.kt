@@ -34,9 +34,12 @@ class FeatureTaskRuntimeRunner(
   private val recorder: FeatureTaskRuntimePhaseRecorder,
   private val runInvariantsStore: FeatureTaskRuntimeRunInvariantsStore,
   private val outputValidator: FeatureTaskRuntimePhaseOutputValidator,
-  private val branchSetupRunner: FeatureTaskRuntimeBranchSetupRunner,
-  private val planningStopper: FeatureTaskRuntimePlanningStopper,
+  private val phaseGates: FeatureTaskRuntimePhaseGates,
 ) {
+  private val branchSetupRunner get() = phaseGates.branchSetupRunner
+  private val planningStopper get() = phaseGates.planningStopper
+  private val lifecycleTelemetry get() = phaseGates.lifecycleTelemetry
+
   fun run(request: FeatureTaskRuntimeRunRequest): FeatureTaskRuntimeRunReport {
     recorder.ensureWorkflowOpen(request.workflowId, request.sessionId, request.dbPathOverride)
     val durableRunInvariants = runInvariantsStore.resolve(
@@ -48,15 +51,39 @@ class FeatureTaskRuntimeRunner(
     runRequest.eventSink.emit(
       FeatureTaskRuntimeRunEvent.RunStarted(runRequest.workflowId, runRequest.runInvariants.featureSize.name),
     )
+    // Runtime-owned lifecycle telemetry: the runtime mints and emits the started/finished events from
+    // its own per-phase records (AC4), never the agent. Per-phase records and ledger remain the
+    // authoritative observability source and are unchanged; this telemetry is additive (AC6). Every
+    // telemetry call is failure-isolated (logged, never swallowed silently) so a telemetry fault can
+    // neither abort the run nor falsely-fail a successful run, and the run exception always propagates.
+    // The telemetry seam owns failure isolation: started/finished/finishedError each log on failure and
+    // never throw, so a telemetry fault can neither abort the run nor falsely-fail a successful run.
+    val telemetrySessionId = lifecycleTelemetry.started(runRequest)
     val observability = FeatureTaskRuntimeRunObservability(recorder, runRequest)
-    val state = RunState(recorder.loadPhaseRecords(runRequest.workflowId, runRequest.dbPathOverride).orEmpty())
-    val loop = RunLoop(runRequest, state, observability)
-    for (phaseId in FeatureTaskRuntimePhaseWorkflowDefinition.definition.stepIds) {
-      if (loop.advance(phaseId)) {
-        break
-      }
+    // Best-effort per-phase outcomes for the finished events; resolved lazily inside the telemetry
+    // seam's failure isolation so even loading them cannot abort or falsely-fail the run.
+    val phaseOutcomes = {
+      recorder.loadPhaseRecords(runRequest.workflowId, runRequest.dbPathOverride)
+        .orEmpty()
+        .mapValues { (_, record) -> record.status }
     }
-    return loop.report()
+    val report = runCatching {
+      val state = RunState(recorder.loadPhaseRecords(runRequest.workflowId, runRequest.dbPathOverride).orEmpty())
+      val loop = RunLoop(runRequest, state, observability)
+      for (phaseId in FeatureTaskRuntimePhaseWorkflowDefinition.definition.stepIds) {
+        if (loop.advance(phaseId)) {
+          break
+        }
+      }
+      loop.report()
+    }.onFailure { error ->
+      // An exception escaping the loop (recorder write, launcher RuntimeException, validator
+      // non-schema error) would otherwise leave a dangling started-but-never-finished session.
+      // Emit the error terminal from best-effort per-phase records, then rethrow the original.
+      lifecycleTelemetry.finishedError(telemetrySessionId, phaseOutcomes, runRequest.dbPathOverride)
+    }.getOrThrow()
+    lifecycleTelemetry.finished(telemetrySessionId, report, phaseOutcomes, runRequest.dbPathOverride)
+    return report
   }
 
   // Drives the ordered phase loop for one run, owning the run-scoped resolved branch so the loop

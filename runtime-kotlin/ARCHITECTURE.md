@@ -434,6 +434,8 @@ runtime-ports
     - `skillbill.application.orchestratedPayload`
     - `skillbill.application.LifecycleTelemetryService.featureImplementStarted`
     - `skillbill.application.LifecycleTelemetryService.featureImplementFinished`
+    - `skillbill.application.LifecycleTelemetryService.featureTaskRuntimeStarted`
+    - `skillbill.application.LifecycleTelemetryService.featureTaskRuntimeFinished`
     - `skillbill.application.LifecycleTelemetryService.qualityCheckStarted`
     - `skillbill.application.LifecycleTelemetryService.qualityCheckFinished`
     - `skillbill.application.LifecycleTelemetryService.featureVerifyStarted`
@@ -872,6 +874,8 @@ Categories:
 - `skillbill.application.orchestratedPayload`
 - `skillbill.application.LifecycleTelemetryService.featureImplementStarted`
 - `skillbill.application.LifecycleTelemetryService.featureImplementFinished`
+- `skillbill.application.LifecycleTelemetryService.featureTaskRuntimeStarted`
+- `skillbill.application.LifecycleTelemetryService.featureTaskRuntimeFinished`
 - `skillbill.application.LifecycleTelemetryService.qualityCheckStarted`
 - `skillbill.application.LifecycleTelemetryService.qualityCheckFinished`
 - `skillbill.application.LifecycleTelemetryService.featureVerifyStarted`

@@ -284,7 +284,7 @@ class FeatureTaskRuntimeDecomposeTerminalRecorder(
       WorkflowFamily.TASK_RUNTIME.definition,
       record,
       WorkflowUpdateInput(
-        workflowStatus = "abandoned",
+        workflowStatus = "completed",
         currentStepId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN,
         stepUpdates = null,
         artifactsPatch = mapOf(FEATURE_TASK_RUNTIME_DECOMPOSE_TERMINAL_ARTIFACT_KEY to terminal.toArtifactMap()),

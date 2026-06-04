@@ -1,3 +1,13 @@
+## [2026-06-04] SKILL-65.1 subtask 6 lifecycle-telemetry-and-stats
+Areas: orchestration/contracts, runtime-kotlin/runtime-application, runtime-kotlin/runtime-domain, runtime-kotlin/runtime-infra-sqlite, runtime-kotlin/runtime-mcp, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-ports
+- Feature-task-runtime now has additive lifecycle telemetry (`feature_task_runtime_started`/`finished`) plus stats/remote-stats surfaces; per-phase records and ledger remain the source of truth. reusable
+- Runtime-owned emission lives in `FeatureTaskRuntimeLifecycleTelemetry`: started is emitted at run open, finished/error derives completion status, completed phases, and phase outcomes from durable runtime phase records, never agent self-report. reusable
+- Persistence mirrors implement/verify lifecycle families through `LifecycleTelemetryService` -> `LifecycleTelemetryRepository` -> `LifecycleTelemetryStore` and idempotent SQLite save/emit support for `feature_task_runtime_sessions`. reusable
+- Stats pattern: add the family to MCP registry/dispatcher, CLI stats alias, `remoteStatsWorkflows`, `TelemetrySupport.mapWorkflow`, and focused MCP/CLI/runtime tests together to avoid a half-exposed surface.
+- No schema migration bump; `feature_task_runtime_sessions` remains part of idempotent base schema creation. Install sync skipped by goal-continuation rule.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
 ## [2026-06-04] SKILL-65.1 subtask 5 decomposition-mode-and-planning-stop
 Areas: runtime-kotlin/runtime-domain, runtime-kotlin/runtime-application, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-contracts
 - Feature-task-runtime `plan` phase can now emit a `mode: decompose` terminal outcome (typed via `FeatureTaskRuntimePlanOutcome`/`FeatureTaskRuntimePlanOutcomeDecoders`) that stops the run at planning (durable status `abandoned`, not `failed`) instead of advancing to implement. reusable

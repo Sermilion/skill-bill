@@ -588,6 +588,8 @@ class CliGoalRuntimeTest {
 
     assertEquals(1, result.exitCode, result.stdout)
     assertContains(result.stdout, "reason: no_terminal_store_outcome")
+    assertContains(result.stdout, "check provider limits")
+    assertContains(result.stdout, "last_resumable_step")
     assertContains(result.stdout, "workflow_id: ")
     val workflowId = result.stdout.lines().single { it.startsWith("workflow_id:") }.substringAfter(":").trim()
     val child = runGoalJson(

@@ -69,7 +69,7 @@ subtasks:
   commit_sha: null
   workflow_id: "wfl-20260604-111923-he9m"
   blocked_reason: null
-  last_resumable_step: "commit_push"
+  last_resumable_step: "finish"
   dependencies:
   - subtask_id: 2
     optional: false
@@ -77,12 +77,12 @@ subtasks:
 - id: 6
   name: "lifecycle-telemetry-and-stats"
   spec_path: ".feature-specs/SKILL-65.1-runtime-feature-task-parity/spec_subtask_6_lifecycle-telemetry-and-stats.md"
-  status: "pending"
-  branch: null
+  status: "complete"
+  branch: "feat/SKILL-65.1-runtime-feature-task-parity"
   commit_sha: null
-  workflow_id: null
+  workflow_id: "wfl-20260604-124708-ibkm"
   blocked_reason: null
-  last_resumable_step: null
+  last_resumable_step: "commit_push"
   dependencies:
   - subtask_id: 3
     optional: false

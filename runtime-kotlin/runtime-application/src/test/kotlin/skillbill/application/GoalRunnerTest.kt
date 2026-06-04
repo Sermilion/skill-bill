@@ -48,7 +48,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import kotlin.time.Duration.Companion.minutes
 
 class GoalRunnerTest {
   @Test
@@ -182,11 +181,13 @@ class GoalRunnerTest {
     assertEquals(GoalRunnerStopReason.NO_TERMINAL_STORE_OUTCOME, stopped.stop.reason)
     assertEquals(1, stopped.stop.subtaskId)
     assertEquals("wfl-1", stopped.stop.workflowId)
+    assertContains(stopped.stop.blockedReason, "check provider limits")
+    assertContains(stopped.stop.blockedReason, "last_resumable_step")
     assertEquals("blocked", store.manifest.subtasks.single { it.id == 1 }.status)
     assertEquals(listOf("wfl-1"), outcomes.blockedWorkflows.map { it.workflowId })
     assertEquals(2, launcher.requests.size)
     assertEquals(null, launcher.requests.first().skillRunRequest.timeout)
-    assertEquals(30.minutes, launcher.requests.first().skillRunRequest.progressIdleTimeout)
+    assertEquals(null, launcher.requests.first().skillRunRequest.progressIdleTimeout)
     // SKILL-64 Subtask 3 (F-PF01): the legacy progress probe and the declared
     // probe now share one per-tick read. A fresh launch request (= a fresh
     // per-tick reader) resolves the current store state in a single read, so set

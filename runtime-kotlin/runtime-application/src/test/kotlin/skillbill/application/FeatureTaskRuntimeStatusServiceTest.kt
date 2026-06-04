@@ -191,6 +191,9 @@ class FeatureTaskRuntimeStatusServiceTest {
       terminal.subtaskSpecPaths,
     )
     assertEquals(2, terminal.subtaskCount)
+    assertEquals(0, projection.pendingCount)
+    assertEquals(0, projection.blockedCount)
+    assertNull(projection.currentPhaseId)
   }
 
   @Test

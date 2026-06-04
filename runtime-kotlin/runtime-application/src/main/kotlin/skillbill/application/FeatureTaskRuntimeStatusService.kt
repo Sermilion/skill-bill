@@ -39,14 +39,20 @@ class FeatureTaskRuntimeStatusService(
     val phases = FeatureTaskRuntimePhaseWorkflowDefinition.definition.stepIds.map { phaseId ->
       records[phaseId].toPhaseStatus(phaseId, blocked = phaseId in blockedPhaseIds)
     }
+    val terminalDecomposeRecorded = decomposeTerminal != null
     return FeatureTaskRuntimeStatusProjection(
       workflowId = request.workflowId,
       featureSize = runInvariantsStore.resolve(request.workflowId, request.dbPathOverride)?.featureSize?.name,
       phases = phases,
       completeCount = phases.count { it.status == STATUS_COMPLETED },
-      pendingCount = phases.count { it.status !in TERMINAL_PHASE_STATUSES },
-      blockedCount = phases.count { it.status == STATUS_BLOCKED },
-      currentPhaseId = phases.firstOrNull { it.status != STATUS_COMPLETED }?.phaseId,
+      pendingCount = if (terminalDecomposeRecorded) 0 else phases.count { it.status !in TERMINAL_PHASE_STATUSES },
+      blockedCount = if (terminalDecomposeRecorded) 0 else phases.count { it.status == STATUS_BLOCKED },
+      currentPhaseId =
+      if (terminalDecomposeRecorded) {
+        null
+      } else {
+        phases.firstOrNull { it.status != STATUS_COMPLETED }?.phaseId
+      },
       resolvedBranch = recorder.loadResolvedBranch(request.workflowId, request.dbPathOverride)?.branch,
       decomposeTerminal = decomposeTerminal?.let {
         FeatureTaskRuntimeDecomposeTerminalStatus(

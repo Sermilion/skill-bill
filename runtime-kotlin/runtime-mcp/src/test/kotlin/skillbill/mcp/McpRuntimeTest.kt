@@ -127,6 +127,24 @@ class McpRuntimeTest {
   }
 
   @Test
+  fun `feature task runtime lifecycle and stats aggregate through mcp tools`() {
+    val tempDir = Files.createTempDirectory("skillbill-mcp-runtime")
+    val context = McpRuntimeContext(environment = enabledTelemetryEnvironment(tempDir), userHome = tempDir)
+
+    recordFeatureTaskRuntimeLifecycle(context)
+    val stats = McpToolDispatcher.call("feature_task_runtime_stats", emptyMap(), context)
+
+    assertEquals("feature-task-runtime", stats["workflow"])
+    assertEquals(1, stats["total_runs"])
+    assertEquals(1, stats["finished_runs"])
+    assertEquals(1, stats["completed_runs"])
+    val completionStatusCounts = stats["completion_status_counts"] as Map<*, *>
+    assertEquals(1, completionStatusCounts["completed"])
+    assertEquals(0, completionStatusCounts["error"])
+    assertEquals(mapOf("SMALL" to 0, "MEDIUM" to 1, "LARGE" to 0), stats["feature_size_counts"])
+  }
+
+  @Test
   fun `standalone zero finding import emits review finished telemetry`() {
     val tempDir = Files.createTempDirectory("skillbill-mcp-zero-finding-import")
     val env = enabledTelemetryEnvironment(tempDir)
@@ -931,6 +949,32 @@ private fun recordFeatureImplementLifecycle(context: McpRuntimeContext) {
       boundaryHistoryValue = "medium",
       planDeviationNotes = "",
       childSteps = listOf(mapOf("skill" to "bill-code-check", "result" to "pass")),
+    ),
+    context,
+  )
+}
+
+private fun recordFeatureTaskRuntimeLifecycle(context: McpRuntimeContext) {
+  val started =
+    McpToolDispatcher.call(
+      "feature_task_runtime_started",
+      mapOf(
+        "feature_size" to "MEDIUM",
+        "issue_key" to "SKILL-65.1",
+        "feature_name" to "lifecycle-telemetry-and-stats",
+      ),
+      context,
+    )
+  McpToolDispatcher.call(
+    "feature_task_runtime_finished",
+    mapOf(
+      "session_id" to started["session_id"] as String,
+      "completion_status" to "completed",
+      "completed_phase_ids" to listOf("preplan", "plan", "implement"),
+      "phase_outcomes" to mapOf("preplan" to "completed", "plan" to "completed", "implement" to "completed"),
+      "last_incomplete_phase" to "",
+      "blocked_reason" to "",
+      "resolved_branch" to "feat/SKILL-65.1",
     ),
     context,
   )

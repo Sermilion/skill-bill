@@ -25,11 +25,15 @@ import skillbill.ports.persistence.WorkflowStateRepository
 import skillbill.ports.persistence.model.FeatureImplementSessionSummary
 import skillbill.ports.persistence.model.FeatureVerifySessionSummary
 import skillbill.ports.persistence.model.WorkflowStateRecord
+import skillbill.ports.telemetry.TelemetrySettingsProvider
 import skillbill.ports.workflow.WorkflowGitOperations
 import skillbill.ports.workflow.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.model.WorkflowSelectedDiffHunksRequest
 import skillbill.ports.workflow.model.WorkflowSelectedDiffHunksResult
 import skillbill.ports.workflow.model.WorkflowWorktreeActivityResult
+import skillbill.telemetry.model.FeatureTaskRuntimeFinishedRecord
+import skillbill.telemetry.model.FeatureTaskRuntimeStartedRecord
+import skillbill.telemetry.model.TelemetrySettings
 import skillbill.workflow.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.workflow.WorkflowSnapshotValidator
 import skillbill.workflow.model.GoalObservabilityChangedFileSummary
@@ -68,6 +72,105 @@ class FeatureTaskRuntimeRunnerTest {
       ALL_PHASES,
       harness.launchOrder(),
     )
+  }
+
+  @Test
+  fun `runtime emits started on open and finished completed from its own per-phase records`() {
+    val harness = telemetryRunnerHarness()
+
+    val report = harness.runner.run(harness.request)
+
+    assertIs<FeatureTaskRuntimeRunReport.Completed>(report)
+    assertEquals(1, harness.lifecycle.startedRecords.size)
+    val started = harness.lifecycle.startedRecords.single()
+    assertEquals("MEDIUM", started.featureSize)
+    assertEquals(ISSUE_KEY, started.issueKey)
+    assertEquals(1, harness.lifecycle.finishedRecords.size)
+    val finished = harness.lifecycle.finishedRecords.single()
+    assertEquals(started.sessionId, finished.sessionId)
+    assertEquals("completed", finished.completionStatus)
+    assertEquals(ALL_PHASES, finished.completedPhaseIds)
+    assertEquals(ALL_PHASES.associateWith { "completed" }, finished.phaseOutcomes)
+  }
+
+  @Test
+  fun `runtime lifecycle telemetry honors run db override`() {
+    val dbOverride = "/tmp/skillbill-runtime-override.db"
+    val harness = telemetryRunnerHarness(runtimeConfig = RuntimeHarnessConfig(dbPathOverride = dbOverride))
+
+    val report = harness.runner.run(harness.request)
+
+    assertIs<FeatureTaskRuntimeRunReport.Completed>(report)
+    assertTrue(harness.database.transactionDbOverrides.isNotEmpty())
+    assertTrue(harness.database.transactionDbOverrides.all { it == dbOverride })
+    assertEquals(SESSION_ID, harness.lifecycle.startedRecords.single().sessionId)
+    assertEquals(SESSION_ID, harness.lifecycle.finishedRecords.single().sessionId)
+  }
+
+  @Test
+  fun `runtime emits finished blocked with last incomplete phase from its own per-phase records`() {
+    val harness = telemetryRunnerHarness(launcher = RuntimeRecordingLauncher { spawnFailedFacts() })
+
+    val report = harness.runner.run(harness.request)
+
+    assertIs<FeatureTaskRuntimeRunReport.Blocked>(report)
+    val finished = harness.lifecycle.finishedRecords.single()
+    assertEquals("blocked", finished.completionStatus)
+    assertEquals("preplan", finished.lastIncompletePhase)
+    assertTrue(finished.blockedReason.isNotBlank())
+  }
+
+  @Test
+  fun `runtime emits finished decomposed at planning from its own per-phase records`() {
+    // F-004: the only end-to-end coverage of completionStatusOf(Decomposed) -> decomposed_at_planning.
+    val repoRoot = Files.createTempDirectory("skillbill-runtime-telemetry-decompose")
+    val harness = telemetryRunnerHarness(
+      launcher = RuntimeRecordingLauncher { request ->
+        val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
+        facts(if (phaseId == "plan") DECOMPOSE_PLAN_OUTPUT else validJsonOutput(phaseId))
+      },
+      runtimeConfig = RuntimeHarnessConfig(repoRoot = repoRoot, useRealDecompositionPlanner = true),
+    )
+
+    val report = harness.runner.run(harness.request)
+
+    assertIs<FeatureTaskRuntimeRunReport.Decomposed>(report)
+    val finished = harness.lifecycle.finishedRecords.single()
+    assertEquals("decomposed_at_planning", finished.completionStatus)
+    assertEquals(listOf("preplan", "plan"), finished.completedPhaseIds)
+  }
+
+  @Test
+  fun `runtime emits finished error and rethrows when an exception escapes the run loop`() {
+    // F-002/F-004: an exception escaping the loop must close the started session with the error
+    // completion bucket (failure-isolated) while the original exception still propagates.
+    val boom = RuntimeException("launcher exploded")
+    val harness = telemetryRunnerHarness(launcher = RuntimeRecordingLauncher { throw boom })
+
+    val thrown = assertFailsWith<RuntimeException> { harness.runner.run(harness.request) }
+
+    assertEquals(boom, thrown)
+    assertEquals(1, harness.lifecycle.startedRecords.size)
+    val finished = harness.lifecycle.finishedRecords.single()
+    assertEquals("error", finished.completionStatus)
+    assertEquals(harness.lifecycle.startedRecords.single().sessionId, finished.sessionId)
+  }
+
+  @Test
+  fun `runtime finished error emits even when phase outcome loading fails`() {
+    val lifecycle = RecordingLifecycleTelemetryRepository()
+    val database = RuntimeFakeDatabaseSessionFactory(InMemoryRuntimeWorkflowRepository(), lifecycle)
+    val telemetry = FeatureTaskRuntimeLifecycleTelemetry(
+      LifecycleTelemetryService(database, EnabledRuntimeTelemetrySettingsProvider),
+    )
+
+    telemetry.finishedError(SESSION_ID, phaseOutcomes = { error("phase load failed") }, dbOverride = null)
+
+    val finished = lifecycle.finishedRecords.single()
+    assertEquals(SESSION_ID, finished.sessionId)
+    assertEquals("error", finished.completionStatus)
+    assertEquals(emptyMap(), finished.phaseOutcomes)
+    assertEquals(emptyList(), finished.completedPhaseIds)
   }
 
   @Test
@@ -692,7 +795,7 @@ class FeatureTaskRuntimeRunnerPersistenceTest {
   }
 
   @Test
-  fun `decompose plan writes shared feature specs records terminal abandoned status and skips implement`() {
+  fun `decompose plan writes shared feature specs records terminal completed status and skips implement`() {
     val repoRoot = Files.createTempDirectory("skillbill-runtime-decompose")
     val harness = runnerHarness(
       launcher = RuntimeRecordingLauncher { request ->
@@ -730,7 +833,7 @@ class FeatureTaskRuntimeRunnerPersistenceTest {
     decomposed.subtaskSpecPaths.forEach { path -> assertTrue(Files.isRegularFile(repoRoot.resolve(path))) }
 
     val row = requireNotNull(harness.repository.getFeatureTaskRuntimeWorkflow(WORKFLOW_ID))
-    assertEquals("abandoned", row.workflowStatus)
+    assertEquals("completed", row.workflowStatus)
     assertEquals("plan", row.currentStepId)
     val artifacts = harness.repository.taskRuntimeArtifacts(WORKFLOW_ID)
     assertTrue(artifacts.containsKey(FEATURE_TASK_RUNTIME_DECOMPOSE_TERMINAL_ARTIFACT_KEY))
@@ -1490,7 +1593,25 @@ private data class RuntimeHarnessConfig(
   val environment: Map<String, String> = emptyMap(),
   val useRealDecompositionPlanner: Boolean = false,
   val eventSink: FeatureTaskRuntimeRunEventSink? = null,
+  val dbPathOverride: String? = null,
 )
+
+private fun disabledRuntimeLifecycleTelemetry(database: DatabaseSessionFactory): FeatureTaskRuntimeLifecycleTelemetry =
+  FeatureTaskRuntimeLifecycleTelemetry(
+    LifecycleTelemetryService(database, DisabledRuntimeTelemetrySettingsProvider),
+  )
+
+private object DisabledRuntimeTelemetrySettingsProvider : TelemetrySettingsProvider {
+  override fun load(materialize: Boolean): TelemetrySettings = TelemetrySettings(
+    configPath = Path.of("/fake/config.json"),
+    level = "off",
+    enabled = false,
+    installId = "",
+    proxyUrl = "",
+    customProxyUrl = null,
+    batchSize = 50,
+  )
+}
 
 private fun smallRuntimeConfig(): RuntimeHarnessConfig = RuntimeHarnessConfig(
   branchSetup = BranchSetupTestConfig(featureSize = FeatureTaskRuntimeFeatureSize.SMALL),
@@ -1527,8 +1648,7 @@ private fun runnerHarness(
     recorder,
     runInvariantsStore,
     validator,
-    branchSetupRunner,
-    planningStopper,
+    FeatureTaskRuntimePhaseGates(branchSetupRunner, planningStopper, disabledRuntimeLifecycleTelemetry(database)),
   )
   // Always capture events; a caller-supplied sink is chained after the capture.
   val captured = mutableListOf<FeatureTaskRuntimeRunEvent>()
@@ -1561,6 +1681,66 @@ private fun runnerHarness(
     runtimeConfig.branchSetup.gitOperations,
   )
   return RunnerHarness(launcher, io, runner, captured, runRequest)
+}
+
+private class TelemetryRunnerHarness(
+  val runner: FeatureTaskRuntimeRunner,
+  val lifecycle: RecordingLifecycleTelemetryRepository,
+  val request: FeatureTaskRuntimeRunRequest,
+  val database: RuntimeFakeDatabaseSessionFactory,
+)
+
+private fun telemetryRunnerHarness(
+  launcher: RuntimeRecordingLauncher = RuntimeRecordingLauncher { facts(VALID_OUTPUT) },
+  validator: FeatureTaskRuntimePhaseOutputValidator = AlwaysValidValidator,
+  runtimeConfig: RuntimeHarnessConfig = RuntimeHarnessConfig(),
+): TelemetryRunnerHarness {
+  val repository = InMemoryRuntimeWorkflowRepository()
+  val lifecycle = RecordingLifecycleTelemetryRepository()
+  val database = RuntimeFakeDatabaseSessionFactory(repository, lifecycle)
+  val recorder = FeatureTaskRuntimePhaseRecorder(database, NoopWorkflowSnapshotValidator)
+  val decomposeTerminalRecorder =
+    FeatureTaskRuntimeDecomposeTerminalRecorder(database, NoopWorkflowSnapshotValidator)
+  val runInvariantsStore = FeatureTaskRuntimeRunInvariantsStore(database, NoopWorkflowSnapshotValidator)
+  val branchSetupRunner = FeatureTaskRuntimeBranchSetupRunner(recorder, runtimeConfig.branchSetup.gitOperations)
+  val decompositionPlanner = if (runtimeConfig.useRealDecompositionPlanner) {
+    testDecompositionPlanner()
+  } else {
+    noOpDecompositionPlanner()
+  }
+  val planningStopper = FeatureTaskRuntimePlanningStopper(
+    validator,
+    decompositionPlanner,
+    decomposeTerminalRecorder,
+  )
+  val runner = FeatureTaskRuntimeRunner(
+    launcher,
+    recorder,
+    runInvariantsStore,
+    validator,
+    FeatureTaskRuntimePhaseGates(
+      branchSetupRunner,
+      planningStopper,
+      FeatureTaskRuntimeLifecycleTelemetry(
+        LifecycleTelemetryService(database, EnabledRuntimeTelemetrySettingsProvider),
+      ),
+    ),
+  )
+  val request = FeatureTaskRuntimeRunRequest(
+    issueKey = ISSUE_KEY,
+    workflowId = WORKFLOW_ID,
+    sessionId = SESSION_ID,
+    runInvariants = FeatureTaskRuntimeRunInvariants(
+      specReference = runtimeConfig.branchSetup.specReference,
+      featureSize = runtimeConfig.branchSetup.featureSize,
+      acceptanceCriteria = listOf("AC-1", "AC-2"),
+      mandatesAndOverrides = listOf("mandate-X"),
+    ),
+    invokedAgentId = INVOKED_AGENT,
+    dbPathOverride = runtimeConfig.dbPathOverride,
+    repoRoot = runtimeConfig.repoRoot,
+  )
+  return TelemetryRunnerHarness(runner, lifecycle, request, database)
 }
 
 private fun noOpDecompositionPlanner(): FeatureTaskRuntimeDecompositionPlanner = FeatureTaskRuntimeDecompositionPlanner(
@@ -1896,8 +2076,10 @@ private fun FeatureTaskRuntimePhaseRecorder.recordPhaseStateForTest(
 
 private class RuntimeFakeDatabaseSessionFactory(
   private val repository: InMemoryRuntimeWorkflowRepository,
+  private val lifecycle: LifecycleTelemetryRepository? = null,
 ) : DatabaseSessionFactory {
   private val dbPath = Path.of("/fake/metrics.db")
+  val transactionDbOverrides = mutableListOf<String?>()
 
   override fun resolveDbPath(dbOverride: String?): Path = dbPath
 
@@ -1905,16 +2087,70 @@ private class RuntimeFakeDatabaseSessionFactory(
 
   override fun <T> read(dbOverride: String?, block: (UnitOfWork) -> T): T = block(unitOfWork())
 
-  override fun <T> transaction(dbOverride: String?, block: (UnitOfWork) -> T): T = block(unitOfWork())
+  override fun <T> transaction(dbOverride: String?, block: (UnitOfWork) -> T): T {
+    transactionDbOverrides += dbOverride
+    return block(unitOfWork())
+  }
 
   private fun unitOfWork(): UnitOfWork = object : UnitOfWork {
     override val dbPath: Path = this@RuntimeFakeDatabaseSessionFactory.dbPath
     override val reviews: ReviewRepository get() = error("unused")
     override val learnings: LearningRepository get() = error("unused")
-    override val lifecycleTelemetry: LifecycleTelemetryRepository get() = error("unused")
+    override val lifecycleTelemetry: LifecycleTelemetryRepository
+      get() = lifecycle ?: error("unused")
     override val telemetryOutbox: TelemetryOutboxRepository get() = error("unused")
     override val workflowStates: WorkflowStateRepository = repository
   }
+}
+
+private object EnabledRuntimeTelemetrySettingsProvider : TelemetrySettingsProvider {
+  override fun load(materialize: Boolean): TelemetrySettings = TelemetrySettings(
+    configPath = Path.of("/fake/config.json"),
+    level = "full",
+    enabled = true,
+    installId = "install-1",
+    proxyUrl = "",
+    customProxyUrl = null,
+    batchSize = 50,
+  )
+}
+
+private class RecordingLifecycleTelemetryRepository : LifecycleTelemetryRepository {
+  val startedRecords = mutableListOf<FeatureTaskRuntimeStartedRecord>()
+  val finishedRecords = mutableListOf<FeatureTaskRuntimeFinishedRecord>()
+
+  override fun featureTaskRuntimeStarted(record: FeatureTaskRuntimeStartedRecord, level: String) {
+    startedRecords += record
+  }
+
+  override fun featureTaskRuntimeFinished(record: FeatureTaskRuntimeFinishedRecord, level: String) {
+    finishedRecords += record
+  }
+
+  override fun featureImplementStarted(
+    record: skillbill.telemetry.model.FeatureImplementStartedRecord,
+    level: String,
+  ) = error("unused")
+
+  override fun featureImplementFinished(
+    record: skillbill.telemetry.model.FeatureImplementFinishedRecord,
+    level: String,
+  ) = error("unused")
+
+  override fun qualityCheckStarted(record: skillbill.telemetry.model.QualityCheckStartedRecord, level: String) =
+    error("unused")
+
+  override fun qualityCheckFinished(record: skillbill.telemetry.model.QualityCheckFinishedRecord, level: String) =
+    error("unused")
+
+  override fun featureVerifyStarted(record: skillbill.telemetry.model.FeatureVerifyStartedRecord, level: String) =
+    error("unused")
+
+  override fun featureVerifyFinished(record: skillbill.telemetry.model.FeatureVerifyFinishedRecord, level: String) =
+    error("unused")
+
+  override fun prDescriptionGenerated(record: skillbill.telemetry.model.PrDescriptionGeneratedRecord, level: String) =
+    error("unused")
 }
 
 private class InMemoryRuntimeWorkflowRepository : WorkflowStateRepository {
