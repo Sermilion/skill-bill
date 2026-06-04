@@ -9,8 +9,8 @@ base_branch: "main"
 feature_branch: "feat/SKILL-65.1-runtime-feature-task-parity"
 stack_branches: []
 current_subtask_intent:
-  subtask_id: 1
-  action: "complete"
+  subtask_id: 2
+  action: "start"
 subtasks:
 - id: 1
   name: "runtime-run-setup-and-feature-branch"
