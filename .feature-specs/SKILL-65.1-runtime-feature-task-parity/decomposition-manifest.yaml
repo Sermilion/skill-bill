@@ -3,7 +3,7 @@ contract_version: "0.2"
 issue_key: "SKILL-65.1"
 feature_name: "runtime-feature-task-parity"
 parent_spec_path: ".feature-specs/SKILL-65.1-runtime-feature-task-parity/spec.md"
-status: "in_progress"
+status: "complete"
 execution_model: "same_branch_commit_per_subtask"
 base_branch: "main"
 feature_branch: "feat/SKILL-65.1-runtime-feature-task-parity"
@@ -96,12 +96,12 @@ subtasks:
 - id: 7
   name: "goal-runner-cooperation-and-continuation"
   spec_path: ".feature-specs/SKILL-65.1-runtime-feature-task-parity/spec_subtask_7_goal-runner-cooperation-and-continuation.md"
-  status: "pending"
-  branch: null
+  status: "complete"
+  branch: "feat/SKILL-65.1-runtime-feature-task-parity"
   commit_sha: null
-  workflow_id: null
+  workflow_id: "wfl-20260604-161424-h103"
   blocked_reason: null
-  last_resumable_step: null
+  last_resumable_step: "commit_push"
   dependencies:
   - subtask_id: 1
     optional: false

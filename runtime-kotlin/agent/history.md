@@ -1,3 +1,13 @@
+## [2026-06-04] SKILL-65.1 subtask 7 goal-runner-cooperation-and-continuation
+Areas: runtime-kotlin/runtime-application, runtime-kotlin/runtime-domain, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-core, runtime-kotlin/ARCHITECTURE.md
+- Feature-task-runtime now accepts explicit goal-continuation context (parent issue, subtask id, goal branch, suppress PR), reuses the supplied branch, skips decompose, omits `pr`, and treats `commit_push` as terminal. reusable
+- Durable runtime goal-continuation artifacts mirror implement flow: `goal_continuation`, `goal_continuation_outcome`, and skipped `install_sync_result`; stdout stays diagnostic.
+- Goal-runner reconciliation now handles task-runtime workflow families, recovers missing-`RESULT:` prefix terminal JSON into durable artifacts, and records ledger diagnostics (`missing_result_prefix`, `malformed_result_json`, `no_terminal_workflow_state`, `child_process_failed`). reusable
+- Testing gotcha: keep one integration-style gate proving goal-continuation branch reuse/no PR/commit terminal and direct runtime branch creation/PR phase together; separate unit tests missed this AC6 gap.
+- Open-boundary gotcha: any new public raw-map recovery seam needs `@OpenBoundaryMap`, `RAW_MAP_OPEN_BOUNDARY_ALLOWLIST`, and `ARCHITECTURE.md` parity in the same change.
+Feature flag: N/A
+Acceptance criteria: 9/9 implemented
+
 ## [2026-06-04] SKILL-65.1 subtask 6 lifecycle-telemetry-and-stats
 Areas: orchestration/contracts, runtime-kotlin/runtime-application, runtime-kotlin/runtime-domain, runtime-kotlin/runtime-infra-sqlite, runtime-kotlin/runtime-mcp, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-ports
 - Feature-task-runtime now has additive lifecycle telemetry (`feature_task_runtime_started`/`finished`) plus stats/remote-stats surfaces; per-phase records and ledger remain the source of truth. reusable

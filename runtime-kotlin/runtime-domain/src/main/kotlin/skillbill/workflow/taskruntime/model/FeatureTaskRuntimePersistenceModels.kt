@@ -24,6 +24,8 @@ const val FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT: Int = 200
  * the same branch and never creates a duplicate or divergent one.
  */
 const val FEATURE_TASK_RUNTIME_RESOLVED_BRANCH_ARTIFACT_KEY: String = "feature_task_runtime_resolved_branch"
+const val FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY: String = "goal_continuation"
+const val FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_OUTCOME_ARTIFACT_KEY: String = "goal_continuation_outcome"
 
 /**
  * The durable resolved feature branch for one run. [branch] is the non-default feature branch the
@@ -55,6 +57,62 @@ data class FeatureTaskRuntimeResolvedBranch(
       baseBranch = raw.optionalStringField("base_branch"),
       created = raw.optionalBooleanField("created") ?: false,
     )
+  }
+}
+
+data class FeatureTaskRuntimeGoalContinuationArtifact(
+  val issueKey: String,
+  val subtaskId: Int,
+  val suppressPr: Boolean,
+  val goalBranch: String,
+  val parentWorkflowId: String? = null,
+) {
+  init {
+    require(issueKey.isNotBlank()) { "FeatureTaskRuntimeGoalContinuationArtifact.issueKey must be non-blank." }
+    require(subtaskId > 0) { "FeatureTaskRuntimeGoalContinuationArtifact.subtaskId must be positive." }
+    require(goalBranch.isNotBlank()) { "FeatureTaskRuntimeGoalContinuationArtifact.goalBranch must be non-blank." }
+  }
+
+  @OpenBoundaryMap("Feature-task-runtime goal-continuation artifact map at the durable workflow-artifact seam")
+  fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
+    "issue_key" to issueKey,
+    "subtask_id" to subtaskId,
+    "suppress_pr" to suppressPr,
+    "goal_branch" to goalBranch,
+  ).apply {
+    parentWorkflowId?.let { put("parent_workflow_id", it) }
+  }
+}
+
+data class FeatureTaskRuntimeGoalContinuationOutcome(
+  val issueKey: String,
+  val subtaskId: Int,
+  val status: String,
+  val workflowId: String,
+  val commitSha: String? = null,
+  val blockedReason: String? = null,
+  val lastResumableStep: String,
+) {
+  init {
+    require(issueKey.isNotBlank()) { "FeatureTaskRuntimeGoalContinuationOutcome.issueKey must be non-blank." }
+    require(subtaskId > 0) { "FeatureTaskRuntimeGoalContinuationOutcome.subtaskId must be positive." }
+    require(status.isNotBlank()) { "FeatureTaskRuntimeGoalContinuationOutcome.status must be non-blank." }
+    require(workflowId.isNotBlank()) { "FeatureTaskRuntimeGoalContinuationOutcome.workflowId must be non-blank." }
+    require(lastResumableStep.isNotBlank()) {
+      "FeatureTaskRuntimeGoalContinuationOutcome.lastResumableStep must be non-blank."
+    }
+  }
+
+  @OpenBoundaryMap("Feature-task-runtime goal-continuation outcome artifact map at the durable workflow-artifact seam")
+  fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
+    "issue_key" to issueKey,
+    "subtask_id" to subtaskId,
+    "status" to status,
+    "workflow_id" to workflowId,
+    "last_resumable_step" to lastResumableStep,
+  ).apply {
+    commitSha?.let { put("commit_sha", it) }
+    blockedReason?.let { put("blocked_reason", it) }
   }
 }
 

@@ -326,23 +326,99 @@ class CliFeatureTaskRuntimeRuntimeTest {
   }
 
   @Test
-  fun `feature-task-runtime goal-continuation environment skips decomposition branch`() {
+  fun `feature-task-runtime explicit goal-continuation skips decomposition and pr`() {
     val fixture = runtimeFixture(specFileName = "spec_subtask_5_runtime.md")
     val launcher = RecordingPhaseLauncher(decomposePlan = true)
 
     val result = CliRuntime.run(
-      fixture.runCommand(extra = listOf("--agent", "codex")),
-      fixture.context(
-        launcher,
-        environment = mapOf("SKILL_BILL_GOAL_CONTINUATION" to "1", "SKILL_BILL_GOAL_SUBTASK_ID" to "5"),
+      fixture.runCommand(
+        extra = listOf(
+          "--agent",
+          "codex",
+          "--goal-parent-issue-key",
+          "SKILL-650",
+          "--goal-subtask-id",
+          "5",
+          "--goal-branch",
+          "feat/existing-runtime-branch",
+          "--suppress-pr",
+        ),
       ),
+      fixture.context(launcher),
     )
 
     assertEquals(0, result.exitCode, result.stdout)
     assertContains(result.stdout, "status: complete")
-    assertEquals(ALL_PHASES, launcher.requests.map { phaseIdFromPrompt(it.skillRunRequest.promptOverride.orEmpty()) })
-    val planPrompt = requireNotNull(launcher.requests[1].skillRunRequest.promptOverride)
-    assertContains(planPrompt, "already executing one governed decomposed subtask")
+    assertContains(result.stdout, "subtask_outcome:")
+    assertEquals(
+      ALL_PHASES.filterNot { it == "pr" },
+      launcher.requests.map { phaseIdFromPrompt(it.skillRunRequest.promptOverride.orEmpty()) },
+    )
+  }
+
+  @Test
+  fun `feature-task-runtime goal continuation reuses branch while direct run creates branch and opens pr phase`() {
+    val goalFixture = runtimeFixture(specFileName = "spec_subtask_5_runtime.md")
+    val goalLauncher = RecordingPhaseLauncher(decomposePlan = true)
+    val goalGit = FakeRuntimeGitOperations(currentBranchValue = "feat/pre-created-runtime-branch")
+
+    val goalRun = CliRuntime.run(
+      goalFixture.runCommand(
+        extra = listOf(
+          "--agent",
+          "codex",
+          "--goal-parent-issue-key",
+          "SKILL-650",
+          "--goal-subtask-id",
+          "5",
+          "--goal-branch",
+          "feat/pre-created-runtime-branch",
+          "--goal-parent-workflow-id",
+          "wfl-parent",
+          "--suppress-pr",
+        ),
+      ),
+      goalFixture.context(goalLauncher, workflowGitOperations = goalGit),
+    )
+
+    assertEquals(0, goalRun.exitCode, goalRun.stdout)
+    assertContains(goalRun.stdout, "status: complete")
+    assertContains(goalRun.stdout, "resolved_branch: feat/pre-created-runtime-branch")
+    assertContains(
+      goalRun.stdout,
+      "completed_phases: preplan, plan, implement, review, audit, validate, write_history, commit_push",
+    )
+    assertContains(goalRun.stdout, "subtask_outcome:")
+    assertContains(goalRun.stdout, "  last_resumable_step: commit_push")
+    assertEquals(emptyList(), goalGit.checkoutBranches, goalRun.stdout)
+    assertEquals(
+      ALL_PHASES.filterNot { it == "pr" },
+      goalLauncher.requests.map { phaseIdFromPrompt(it.skillRunRequest.promptOverride.orEmpty()) },
+      goalRun.stdout,
+    )
+
+    val directFixture = runtimeFixture()
+    val directLauncher = RecordingPhaseLauncher()
+    val directGit = FakeRuntimeGitOperations(currentBranchValue = "main")
+
+    val directRun = CliRuntime.run(
+      directFixture.runCommand(extra = listOf("--agent", "codex")),
+      directFixture.context(directLauncher, workflowGitOperations = directGit),
+    )
+
+    assertEquals(0, directRun.exitCode, directRun.stdout)
+    assertContains(directRun.stdout, "status: complete")
+    assertContains(directRun.stdout, "resolved_branch: feat/SKILL-650-runtime")
+    assertContains(
+      directRun.stdout,
+      "completed_phases: preplan, plan, implement, review, audit, validate, write_history, commit_push, pr",
+    )
+    assertEquals(listOf("feat/SKILL-650-runtime"), directGit.checkoutBranches, directRun.stdout)
+    assertEquals(
+      ALL_PHASES,
+      directLauncher.requests.map { phaseIdFromPrompt(it.skillRunRequest.promptOverride.orEmpty()) },
+      directRun.stdout,
+    )
   }
 
   @Test

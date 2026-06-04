@@ -70,6 +70,20 @@ internal object FeatureTaskRuntimeBranchSetup {
     } ?: FeatureTaskRuntimeBranchDecision.invalid(requireNotNull(target.invalidReason))
   }
 
+  fun goalContinuationDecision(goalBranch: String): FeatureTaskRuntimeBranchDecision {
+    val normalized = goalBranch.trim()
+    val protected = protectedBranchName(normalized)
+    return when {
+      normalized.isBlank() -> FeatureTaskRuntimeBranchDecision.invalid(
+        "Goal-continuation branch is blank; refusing to run file-mutating phases.",
+      )
+      protected != null -> FeatureTaskRuntimeBranchDecision.invalid(
+        "Goal-continuation branch '$protected' is protected; refusing to run file-mutating phases.",
+      )
+      else -> FeatureTaskRuntimeBranchDecision.resolved(branch = normalized, baseBranch = null, create = false)
+    }
+  }
+
   /** The protected branch name when [branch] is one of the protected defaults, else null. */
   fun protectedBranchName(branch: String?): String? = branch
     ?.trim()

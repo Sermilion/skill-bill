@@ -1274,6 +1274,7 @@ internal class RecordingOutcomeStore : GoalRunnerWorkflowOutcomeStore {
   val observabilityRecords: MutableList<GoalRunnerObservabilityRecordRequest> = mutableListOf()
   val workerSubtaskRequestOutcomes: MutableList<WorkerSubtaskRequestOutcomeRecord> = mutableListOf()
   val authoritativeOutcomesBySubtask: MutableMap<Int, GoalRunnerStoredOutcome> = mutableMapOf()
+  val recoveredMissingResultPrefixOutputs: MutableList<RecoveredMissingResultPrefixOutput> = mutableListOf()
   var observabilityRecordResult: Boolean = true
   var throwOnObservabilityRecord: Boolean = false
   var throwOnProgress: Boolean = false
@@ -1309,6 +1310,23 @@ internal class RecordingOutcomeStore : GoalRunnerWorkflowOutcomeStore {
     repoRoot: Path,
     dbPathOverride: String?,
   ): GoalRunnerStoredOutcome? = outcomes[workflowId]
+
+  override fun recoverMissingResultPrefixOutput(
+    workflowId: String,
+    issueKey: String,
+    subtaskId: Int,
+    output: Map<String, Any?>,
+    dbPathOverride: String?,
+  ): GoalRunnerStoredOutcome? {
+    recoveredMissingResultPrefixOutputs += RecoveredMissingResultPrefixOutput(
+      workflowId = workflowId,
+      issueKey = issueKey,
+      subtaskId = subtaskId,
+      output = output,
+      dbPathOverride = dbPathOverride,
+    )
+    return outcomes[workflowId]
+  }
 
   override fun markBlocked(
     workflowId: String,
@@ -1400,6 +1418,14 @@ internal data class BlockedWorkflow(
   val blockedReason: String,
   val lastResumableStep: String,
   val supervisionEvent: GoalRunnerSupervisionEvent?,
+)
+
+internal data class RecoveredMissingResultPrefixOutput(
+  val workflowId: String,
+  val issueKey: String,
+  val subtaskId: Int,
+  val output: Map<String, Any?>,
+  val dbPathOverride: String?,
 )
 
 internal data class ReconcileRequest(

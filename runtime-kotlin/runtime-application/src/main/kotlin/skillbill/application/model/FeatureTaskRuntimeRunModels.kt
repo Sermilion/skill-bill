@@ -20,6 +20,8 @@ data class FeatureTaskRuntimeRunRequest(
   val repoRoot: Path,
   /** Optional per-phase wall-clock cap forwarded to each phase agent launch. */
   val timeout: Duration? = null,
+  /** Present only for non-interactive goal-runner continuation children. */
+  val goalContinuation: FeatureTaskRuntimeGoalContinuationContext? = null,
   val eventSink: FeatureTaskRuntimeRunEventSink = FeatureTaskRuntimeRunEventSink.NONE,
 ) {
   init {
@@ -28,6 +30,23 @@ data class FeatureTaskRuntimeRunRequest(
     require(invokedAgentId.isNotBlank()) {
       "FeatureTaskRuntimeRunRequest.invokedAgentId is required; it is the documented default agent."
     }
+  }
+}
+
+data class FeatureTaskRuntimeGoalContinuationContext(
+  val parentIssueKey: String,
+  val subtaskId: Int,
+  val goalBranch: String,
+  val suppressPr: Boolean,
+  val parentWorkflowId: String? = null,
+  val lastResumableStep: String? = null,
+) {
+  init {
+    require(parentIssueKey.isNotBlank()) { "parentIssueKey is required." }
+    require(subtaskId > 0) { "subtaskId must be positive." }
+    require(goalBranch.isNotBlank()) { "goalBranch is required." }
+    parentWorkflowId?.let { require(it.isNotBlank()) { "parentWorkflowId must be non-blank when provided." } }
+    lastResumableStep?.let { require(it.isNotBlank()) { "lastResumableStep must be non-blank when provided." } }
   }
 }
 
@@ -49,6 +68,7 @@ sealed interface FeatureTaskRuntimeRunReport {
     override val featureSize: String,
     val completedPhaseIds: List<String>,
     override val resolvedBranch: String?,
+    val subtaskOutcome: FeatureTaskRuntimeSubtaskOutcome? = null,
   ) : FeatureTaskRuntimeRunReport
 
   data class Blocked(
@@ -59,6 +79,7 @@ sealed interface FeatureTaskRuntimeRunReport {
     val blockedReason: String,
     val completedPhaseIds: List<String>,
     override val resolvedBranch: String?,
+    val subtaskOutcome: FeatureTaskRuntimeSubtaskOutcome? = null,
   ) : FeatureTaskRuntimeRunReport {
     init {
       require(lastIncompletePhase.isNotBlank()) {
@@ -93,6 +114,24 @@ sealed interface FeatureTaskRuntimeRunReport {
         "FeatureTaskRuntimeRunReport.Decomposed.subtaskSpecPaths must not be empty."
       }
     }
+  }
+}
+
+data class FeatureTaskRuntimeSubtaskOutcome(
+  val issueKey: String,
+  val subtaskId: Int,
+  val status: String,
+  val commitSha: String?,
+  val workflowId: String,
+  val blockedReason: String?,
+  val lastResumableStep: String,
+) {
+  init {
+    require(issueKey.isNotBlank()) { "issueKey is required." }
+    require(subtaskId > 0) { "subtaskId must be positive." }
+    require(status.isNotBlank()) { "status is required." }
+    require(workflowId.isNotBlank()) { "workflowId is required." }
+    require(lastResumableStep.isNotBlank()) { "lastResumableStep is required." }
   }
 }
 

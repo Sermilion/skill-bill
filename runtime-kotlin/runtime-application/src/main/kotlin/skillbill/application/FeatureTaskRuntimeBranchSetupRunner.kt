@@ -35,7 +35,27 @@ class FeatureTaskRuntimeBranchSetupRunner(
     val persisted = recorder.loadResolvedBranch(request.workflowId, request.dbPathOverride)
     return when {
       persisted != null -> reattachPersisted(request, observability, persisted.branch, current.value)
+      request.goalContinuation != null -> reattachGoalContinuationBranch(request, observability, current.value)
       else -> resolveAndEstablish(request, observability, current.value)
+    }
+  }
+
+  private fun reattachGoalContinuationBranch(
+    request: FeatureTaskRuntimeRunRequest,
+    observability: FeatureTaskRuntimeRunObservability,
+    currentBranch: String,
+  ): FeatureTaskRuntimeBranchSetupOutcome {
+    val decision = FeatureTaskRuntimeBranchSetup.goalContinuationDecision(
+      requireNotNull(request.goalContinuation).goalBranch,
+    )
+    return when (decision) {
+      is FeatureTaskRuntimeBranchDecisionInvalid ->
+        FeatureTaskRuntimeBranchSetupOutcome.blocked(branchSetupDeriveBlockedReason(decision.reason))
+      is FeatureTaskRuntimeBranchDecisionResolved -> {
+        val blockedReason = reattachBlockedReason(request, decision.branch, currentBranch)
+        blockedReason?.let(FeatureTaskRuntimeBranchSetupOutcome::blocked)
+          ?: establishBranch(request, observability, decision.branch, baseBranch = null, created = false)
+      }
     }
   }
 

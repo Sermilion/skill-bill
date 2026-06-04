@@ -1,6 +1,7 @@
 package skillbill.application
 
 import skillbill.application.model.FeatureTaskRuntimeAgentAssignment
+import skillbill.application.model.FeatureTaskRuntimeGoalContinuationContext
 import skillbill.application.model.FeatureTaskRuntimeRunEvent
 import skillbill.application.model.FeatureTaskRuntimeRunEventSink
 import skillbill.application.model.FeatureTaskRuntimeRunReport
@@ -843,30 +844,50 @@ class FeatureTaskRuntimeRunnerPersistenceTest {
   }
 
   @Test
-  fun `goal-continuation run suppresses decompose outcome and advances to implement`() {
+  fun `goal-continuation run suppresses decompose and pr then completes at commit push`() {
     val repoRoot = Files.createTempDirectory("skillbill-runtime-goal-subtask")
     val harness = runnerHarness(
       launcher = RuntimeRecordingLauncher { request ->
         val prompt = requireNotNull(request.skillRunRequest.promptOverride)
         val phaseId = phaseIdFromPrompt(prompt)
-        if (phaseId == "plan") {
-          assertContains(prompt, "already executing one governed decomposed subtask")
-        }
         facts(if (phaseId == "plan") DECOMPOSE_PLAN_OUTPUT else validJsonOutput(phaseId))
       },
       agentAssignment = phasePerAgentAssignment(),
       runtimeConfig = RuntimeHarnessConfig(
         repoRoot = repoRoot,
-        environment = mapOf("SKILL_BILL_GOAL_CONTINUATION" to "1", "SKILL_BILL_GOAL_SUBTASK_ID" to "5"),
+        goalContinuation = FeatureTaskRuntimeGoalContinuationContext(
+          parentIssueKey = ISSUE_KEY,
+          subtaskId = 5,
+          goalBranch = "feat/existing-runtime-branch",
+          suppressPr = true,
+          parentWorkflowId = "wfl-parent",
+        ),
         useRealDecompositionPlanner = true,
       ),
     )
 
     val report = harness.runner.run(harness.request())
 
-    assertIs<FeatureTaskRuntimeRunReport.Completed>(report)
-    assertEquals(ALL_PHASES, harness.launchedPhaseOrder())
+    val completed = assertIs<FeatureTaskRuntimeRunReport.Completed>(report)
+    assertEquals(ALL_PHASES.filterNot { it == "pr" }, harness.launchedPhaseOrder())
+    assertEquals("commit_push", completed.subtaskOutcome?.lastResumableStep)
     assertNull(harness.decomposeTerminalRecorder.loadDecomposeTerminal(WORKFLOW_ID))
+    val artifacts = harness.repository.taskRuntimeArtifacts(WORKFLOW_ID)
+    assertEquals(
+      mapOf(
+        "issue_key" to ISSUE_KEY,
+        "subtask_id" to 5,
+        "suppress_pr" to true,
+        "goal_branch" to "feat/existing-runtime-branch",
+        "parent_workflow_id" to "wfl-parent",
+      ),
+      artifacts["goal_continuation"],
+    )
+    val outcome = artifacts["goal_continuation_outcome"] as Map<*, *>
+    assertEquals("complete", outcome["status"])
+    assertEquals("commit-runtime-1", outcome["commit_sha"])
+    assertEquals("commit_push", outcome["last_resumable_step"])
+    assertEquals("skipped", (artifacts["install_sync_result"] as Map<*, *>)["status"])
   }
 
   @Test
@@ -1591,6 +1612,7 @@ private data class RuntimeHarnessConfig(
   val branchSetup: BranchSetupTestConfig = BranchSetupTestConfig(),
   val repoRoot: Path = Path.of("/tmp/repo"),
   val environment: Map<String, String> = emptyMap(),
+  val goalContinuation: FeatureTaskRuntimeGoalContinuationContext? = null,
   val useRealDecompositionPlanner: Boolean = false,
   val eventSink: FeatureTaskRuntimeRunEventSink? = null,
   val dbPathOverride: String? = null,
@@ -1629,6 +1651,7 @@ private fun runnerHarness(
   val repository = InMemoryRuntimeWorkflowRepository()
   val database = RuntimeFakeDatabaseSessionFactory(repository)
   val recorder = FeatureTaskRuntimePhaseRecorder(database, NoopWorkflowSnapshotValidator)
+  val goalContinuationRecorder = FeatureTaskRuntimeGoalContinuationRecorder(database, NoopWorkflowSnapshotValidator)
   val decomposeTerminalRecorder =
     FeatureTaskRuntimeDecomposeTerminalRecorder(database, NoopWorkflowSnapshotValidator)
   val runInvariantsStore = FeatureTaskRuntimeRunInvariantsStore(database, NoopWorkflowSnapshotValidator)
@@ -1646,6 +1669,7 @@ private fun runnerHarness(
   val runner = FeatureTaskRuntimeRunner(
     launcher,
     recorder,
+    goalContinuationRecorder,
     runInvariantsStore,
     validator,
     FeatureTaskRuntimePhaseGates(branchSetupRunner, planningStopper, disabledRuntimeLifecycleTelemetry(database)),
@@ -1671,6 +1695,7 @@ private fun runnerHarness(
     environment = runtimeConfig.environment,
     dbPathOverride = null,
     repoRoot = runtimeConfig.repoRoot,
+    goalContinuation = runtimeConfig.goalContinuation,
     eventSink = sink,
   )
   val io = RunnerHarnessIo(
@@ -1699,6 +1724,7 @@ private fun telemetryRunnerHarness(
   val lifecycle = RecordingLifecycleTelemetryRepository()
   val database = RuntimeFakeDatabaseSessionFactory(repository, lifecycle)
   val recorder = FeatureTaskRuntimePhaseRecorder(database, NoopWorkflowSnapshotValidator)
+  val goalContinuationRecorder = FeatureTaskRuntimeGoalContinuationRecorder(database, NoopWorkflowSnapshotValidator)
   val decomposeTerminalRecorder =
     FeatureTaskRuntimeDecomposeTerminalRecorder(database, NoopWorkflowSnapshotValidator)
   val runInvariantsStore = FeatureTaskRuntimeRunInvariantsStore(database, NoopWorkflowSnapshotValidator)
@@ -1716,6 +1742,7 @@ private fun telemetryRunnerHarness(
   val runner = FeatureTaskRuntimeRunner(
     launcher,
     recorder,
+    goalContinuationRecorder,
     runInvariantsStore,
     validator,
     FeatureTaskRuntimePhaseGates(
@@ -1788,9 +1815,15 @@ private fun validJsonOutput(phaseId: String): String = """
     "phase_id": "$phaseId",
     "status": "completed",
     "summary": "Phase produced a validated output.",
-    "produced_outputs": {"tasks": ["task-1"]}
+    "produced_outputs": ${validProducedOutputs(phaseId)}
   }
 """.trimIndent()
+
+private fun validProducedOutputs(phaseId: String): String = if (phaseId == "commit_push") {
+  """{"commit_push_result": {"commit_sha": "commit-runtime-1"}}"""
+} else {
+  """{"tasks": ["task-1"]}"""
+}
 
 private val DECOMPOSE_PLAN_OUTPUT: String = """
   {

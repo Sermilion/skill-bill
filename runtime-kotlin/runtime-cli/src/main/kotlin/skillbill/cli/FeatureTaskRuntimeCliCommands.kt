@@ -16,6 +16,7 @@ import skillbill.application.FeatureTaskRuntimeRunner
 import skillbill.application.FeatureTaskRuntimeStatusService
 import skillbill.application.WorkflowService
 import skillbill.application.model.FeatureTaskRuntimeAgentAssignment
+import skillbill.application.model.FeatureTaskRuntimeGoalContinuationContext
 import skillbill.application.model.FeatureTaskRuntimePhaseStatus
 import skillbill.application.model.FeatureTaskRuntimeRunEvent
 import skillbill.application.model.FeatureTaskRuntimeRunEventSink
@@ -69,6 +70,30 @@ abstract class FeatureTaskRuntimePhaseAgentCommand(
     "--phase-agent",
     help = "Per-phase agent assignment as phase=agent (e.g. --phase-agent plan=claude). Repeatable.",
   ).multiple()
+  protected val goalParentIssueKey by option(
+    "--goal-parent-issue-key",
+    help = "Parent decomposed issue key for non-interactive goal-continuation runtime runs.",
+  )
+  protected val goalSubtaskId by option(
+    "--goal-subtask-id",
+    help = "Subtask id for non-interactive goal-continuation runtime runs.",
+  ).int()
+  protected val goalBranch by option(
+    "--goal-branch",
+    help = "Pre-created goal branch to reuse for non-interactive goal-continuation runtime runs.",
+  )
+  protected val goalParentWorkflowId by option(
+    "--goal-parent-workflow-id",
+    help = "Optional parent workflow id for non-interactive goal-continuation runtime runs.",
+  )
+  protected val goalLastResumableStep by option(
+    "--goal-last-resumable-step",
+    help = "Optional durable resume step supplied by the goal runner.",
+  )
+  protected val suppressPr by option(
+    "--suppress-pr",
+    help = "Suppress the runtime PR phase. Required with goal-continuation options.",
+  ).flag(default = false)
 
   protected fun executeRuntimeRun(
     deps: FeatureTaskRuntimeRunDependencies,
@@ -92,11 +117,39 @@ abstract class FeatureTaskRuntimePhaseAgentCommand(
         dbPathOverride = state.dbOverride,
         repoRoot = repoRoot?.let(Path::of) ?: Path.of("").toAbsolutePath().normalize(),
         timeout = maxWallClockMinutes?.minutes,
+        goalContinuation = parseGoalContinuationContext(),
         eventSink = runtimeRunEventSink(state, monitor),
       ),
     )
     val payload = report.toRuntimeRunCliMap()
     state.completeText(runtimeRunText(payload), payload, exitCode = payload.runtimeRunExitCode())
+  }
+
+  private fun parseGoalContinuationContext(): FeatureTaskRuntimeGoalContinuationContext? {
+    val supplied = listOf(goalParentIssueKey, goalSubtaskId, goalBranch).count { it != null } +
+      if (suppressPr) 1 else 0
+    if (supplied == 0) {
+      return null
+    }
+    val missing = goalContinuationMissingFields()
+    if (missing.isNotEmpty()) {
+      throw UsageError("${missing.joinToString()} required with goal-continuation options.")
+    }
+    return FeatureTaskRuntimeGoalContinuationContext(
+      parentIssueKey = requireNotNull(goalParentIssueKey),
+      subtaskId = requireNotNull(goalSubtaskId),
+      goalBranch = requireNotNull(goalBranch),
+      suppressPr = true,
+      parentWorkflowId = goalParentWorkflowId?.takeIf(String::isNotBlank),
+      lastResumableStep = goalLastResumableStep?.takeIf(String::isNotBlank),
+    )
+  }
+
+  private fun goalContinuationMissingFields(): List<String> = buildList {
+    if (goalParentIssueKey.isNullOrBlank()) add("--goal-parent-issue-key is")
+    if (goalSubtaskId == null) add("--goal-subtask-id is")
+    if (goalBranch.isNullOrBlank()) add("--goal-branch is")
+    if (!suppressPr) add("--suppress-pr is")
   }
 }
 
@@ -269,7 +322,7 @@ private fun FeatureTaskRuntimeRunReport.toRuntimeRunCliMap(): Map<String, Any?> 
     "feature_size" to featureSize,
     "resolved_branch" to resolvedBranch,
     "completed_phases" to completedPhaseIds,
-  )
+  ).withSubtaskOutcome(subtaskOutcome)
   is FeatureTaskRuntimeRunReport.Blocked -> linkedMapOf(
     "status" to "blocked",
     "issue_key" to issueKey,
@@ -279,7 +332,7 @@ private fun FeatureTaskRuntimeRunReport.toRuntimeRunCliMap(): Map<String, Any?> 
     "last_incomplete_phase" to lastIncompletePhase,
     "blocked_reason" to blockedReason,
     "completed_phases" to completedPhaseIds,
-  )
+  ).withSubtaskOutcome(subtaskOutcome)
   is FeatureTaskRuntimeRunReport.Decomposed -> linkedMapOf(
     "status" to "decomposed",
     "issue_key" to issueKey,
@@ -296,6 +349,27 @@ private fun FeatureTaskRuntimeRunReport.toRuntimeRunCliMap(): Map<String, Any?> 
   )
 }
 
+private fun Map<String, Any?>.withSubtaskOutcome(
+  outcome: skillbill.application.model.FeatureTaskRuntimeSubtaskOutcome?,
+): Map<String, Any?> = if (outcome == null) {
+  this
+} else {
+  LinkedHashMap(this).apply {
+    put(
+      "subtask_outcome",
+      linkedMapOf(
+        "issue_key" to outcome.issueKey,
+        "subtask_id" to outcome.subtaskId,
+        "status" to outcome.status,
+        "commit_sha" to outcome.commitSha,
+        "workflow_id" to outcome.workflowId,
+        "blocked_reason" to outcome.blockedReason,
+        "last_resumable_step" to outcome.lastResumableStep,
+      ),
+    )
+  }
+}
+
 private fun Map<String, Any?>.runtimeRunExitCode(): Int = if (isTerminalSuccessStatus()) 0 else 1
 
 private fun Map<String, Any?>.isTerminalSuccessStatus(): Boolean = this["status"] in setOf("complete", "decomposed")
@@ -309,6 +383,16 @@ private fun runtimeRunText(payload: Map<String, Any?>): String = buildString {
   appendLine("completed_phases: ${(payload["completed_phases"] as? List<*>).orEmpty().joinToString()}")
   payload["last_incomplete_phase"]?.let { appendLine("last_incomplete_phase: $it") }
   payload["blocked_reason"]?.let { appendLine("blocked_reason: $it") }
+  (payload["subtask_outcome"] as? Map<*, *>)?.let { outcome ->
+    appendLine("subtask_outcome:")
+    appendLine("  issue_key: ${outcome["issue_key"]}")
+    appendLine("  subtask_id: ${outcome["subtask_id"]}")
+    appendLine("  status: ${outcome["status"]}")
+    appendLine("  commit_sha: ${outcome["commit_sha"] ?: "none"}")
+    appendLine("  workflow_id: ${outcome["workflow_id"]}")
+    appendLine("  last_resumable_step: ${outcome["last_resumable_step"]}")
+    outcome["blocked_reason"]?.let { appendLine("  blocked_reason: $it") }
+  }
   payload["reason"]?.let { appendLine("decomposition_reason: $it") }
   payload["subtask_count"]?.let { appendLine("subtask_count: $it") }
   payload["parent_spec_path"]?.let { appendLine("parent_spec_path: $it") }
