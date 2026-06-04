@@ -7,6 +7,7 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerAction
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerEntry
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeResolvedBranch
+import skillbill.workflow.taskruntime.model.featureTaskRuntimeRunInvariantsFromArtifactMap
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -163,6 +164,20 @@ class FeatureTaskRuntimePersistenceModelsTest {
   fun `unknown ledger action loud-fails with a typed schema error`() {
     assertFailsWith<InvalidWorkflowStateSchemaError> {
       FeatureTaskRuntimePhaseLedgerAction.fromWire("teleport")
+    }
+  }
+
+  @Test
+  fun `run-invariants decode loud-fails with typed schema error on unknown feature size`() {
+    val malformed = mapOf(
+      "spec_reference" to ".feature-specs/SKILL-65/spec.md",
+      "feature_size" to "HUGE",
+      "acceptance_criteria" to listOf("AC-1"),
+      "mandates_and_overrides" to emptyList<String>(),
+    )
+
+    assertFailsWith<InvalidWorkflowStateSchemaError> {
+      featureTaskRuntimeRunInvariantsFromArtifactMap(malformed)
     }
   }
 

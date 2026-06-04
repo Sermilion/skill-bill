@@ -28,6 +28,7 @@ data class FeatureTaskRuntimePhaseStatus(
  */
 data class FeatureTaskRuntimeStatusProjection(
   val workflowId: String,
+  val featureSize: String?,
   val phases: List<FeatureTaskRuntimePhaseStatus>,
   val completeCount: Int,
   val pendingCount: Int,

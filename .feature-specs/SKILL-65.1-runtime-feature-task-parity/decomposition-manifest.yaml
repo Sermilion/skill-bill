@@ -9,8 +9,8 @@ base_branch: "main"
 feature_branch: "feat/SKILL-65.1-runtime-feature-task-parity"
 stack_branches: []
 current_subtask_intent:
-  subtask_id: 4
-  action: "start"
+  subtask_id: 0
+  action: "none"
 subtasks:
 - id: 1
   name: "runtime-run-setup-and-feature-branch"
@@ -48,12 +48,12 @@ subtasks:
 - id: 4
   name: "size-assessment-and-ceremony-scaling"
   spec_path: ".feature-specs/SKILL-65.1-runtime-feature-task-parity/spec_subtask_4_size-assessment-and-ceremony-scaling.md"
-  status: "pending"
-  branch: null
+  status: "complete"
+  branch: "feat/SKILL-65.1-runtime-feature-task-parity"
   commit_sha: null
-  workflow_id: null
+  workflow_id: "wfl-20260604-104552-6mnc"
   blocked_reason: null
-  last_resumable_step: null
+  last_resumable_step: "commit_push"
   dependencies:
   - subtask_id: 2
     optional: false

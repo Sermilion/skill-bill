@@ -108,6 +108,7 @@ class CliFeatureTaskRuntimeRuntimeTest {
 
     assertEquals(0, result.exitCode, result.stdout)
     assertContains(result.stdout, "status: complete")
+    assertContains(result.stdout, "feature_size: SMALL")
     assertContains(
       result.stdout,
       "completed_phases: preplan, plan, implement, review, audit, validate, write_history, commit_push, pr",
@@ -249,6 +250,7 @@ class CliFeatureTaskRuntimeRuntimeTest {
     )
 
     assertEquals(0, result.exitCode, result.stdout)
+    assertContains(result.stdout, "feature_size: SMALL")
     assertTrue(launcher.requests.isNotEmpty(), result.stdout)
     launcher.requests.forEach { request ->
       assertEquals(5.minutes, request.skillRunRequest.timeout, result.stdout)
@@ -271,6 +273,7 @@ class CliFeatureTaskRuntimeRuntimeTest {
     assertEquals(0, result.exitCode, result.stdout)
     val streamed = live.toString()
     assertContains(streamed, "phase plan started")
+    assertContains(streamed, "run started feature_size=SMALL")
     assertContains(streamed, "phase plan completed")
     assertContains(streamed, "phase review fix_loop")
     assertContains(streamed, "phase review completed")
@@ -291,6 +294,7 @@ class CliFeatureTaskRuntimeRuntimeTest {
 
     assertEquals(0, status.exitCode, status.stdout)
     assertContains(status.stdout, "status: ok")
+    assertContains(status.stdout, "feature_size: SMALL")
     assertContains(status.stdout, "complete: ${ALL_PHASES.size}")
     assertContains(status.stdout, "pending: 0")
     assertContains(status.stdout, "blocked: 0")
@@ -309,6 +313,7 @@ class CliFeatureTaskRuntimeRuntimeTest {
 
     assertEquals(1, status.exitCode, status.stdout)
     assertContains(status.stdout, "status: not_found")
+    assertContains(status.stdout, "feature_size: unknown")
   }
 
   @Test
@@ -333,6 +338,7 @@ class CliFeatureTaskRuntimeRuntimeTest {
 
     assertEquals(0, status.exitCode, status.stdout)
     assertContains(status.stdout, "status: ok")
+    assertContains(status.stdout, "feature_size: SMALL")
     assertContains(status.stdout, "complete: 2")
     assertContains(status.stdout, "blocked: 1")
     assertContains(status.stdout, "current_phase: implement")
@@ -401,6 +407,7 @@ class CliFeatureTaskRuntimeRuntimeTest {
 
     assertEquals(0, resume.exitCode, resume.stdout)
     assertContains(resume.stdout, "status: complete")
+    assertContains(resume.stdout, "feature_size: SMALL")
     // Every phase was already complete after the first run, so the resume launches nothing.
     assertEquals(emptyList(), resumeLauncher.requests, resume.stdout)
   }
@@ -447,6 +454,8 @@ private fun runtimeFixture(): FeatureTaskRuntimeCliFixture {
     specPath,
     """
     # SKILL-650 runtime spec
+
+    Feature size: SMALL
 
     ## Acceptance Criteria
 

@@ -4,6 +4,7 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.application.model.FeatureTaskRuntimeFixLoopDecision
 import skillbill.application.model.FeatureTaskRuntimePhaseStateRequest
 import skillbill.application.model.FeatureTaskRuntimeResolvedPhaseAgent
+import skillbill.application.model.FeatureTaskRuntimeRunEvent
 import skillbill.application.model.FeatureTaskRuntimeRunReport
 import skillbill.application.model.FeatureTaskRuntimeRunRequest
 import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
@@ -30,14 +31,24 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 class FeatureTaskRuntimeRunner(
   private val subtaskLauncher: GoalRunnerSubtaskLauncher,
   private val recorder: FeatureTaskRuntimePhaseRecorder,
+  private val runInvariantsStore: FeatureTaskRuntimeRunInvariantsStore,
   private val outputValidator: FeatureTaskRuntimePhaseOutputValidator,
   private val branchSetupRunner: FeatureTaskRuntimeBranchSetupRunner,
 ) {
   fun run(request: FeatureTaskRuntimeRunRequest): FeatureTaskRuntimeRunReport {
     recorder.ensureWorkflowOpen(request.workflowId, request.sessionId, request.dbPathOverride)
-    val observability = FeatureTaskRuntimeRunObservability(recorder, request)
-    val state = RunState(recorder.loadPhaseRecords(request.workflowId, request.dbPathOverride).orEmpty())
-    val loop = RunLoop(request, state, observability)
+    val durableRunInvariants = runInvariantsStore.resolve(
+      workflowId = request.workflowId,
+      dbOverride = request.dbPathOverride,
+      proposed = request.runInvariants,
+    ) ?: request.runInvariants
+    val runRequest = request.copy(runInvariants = durableRunInvariants)
+    runRequest.eventSink.emit(
+      FeatureTaskRuntimeRunEvent.RunStarted(runRequest.workflowId, runRequest.runInvariants.featureSize.name),
+    )
+    val observability = FeatureTaskRuntimeRunObservability(recorder, runRequest)
+    val state = RunState(recorder.loadPhaseRecords(runRequest.workflowId, runRequest.dbPathOverride).orEmpty())
+    val loop = RunLoop(runRequest, state, observability)
     for (phaseId in FeatureTaskRuntimePhaseWorkflowDefinition.definition.stepIds) {
       if (loop.advance(phaseId)) {
         break
@@ -86,6 +97,7 @@ class FeatureTaskRuntimeRunner(
       return FeatureTaskRuntimeRunReport.Completed(
         issueKey = request.issueKey,
         workflowId = request.workflowId,
+        featureSize = request.runInvariants.featureSize.name,
         completedPhaseIds = state.completedPhaseIds(),
         resolvedBranch = branch,
       )
@@ -144,6 +156,7 @@ class FeatureTaskRuntimeRunner(
       blocked = FeatureTaskRuntimeRunReport.Blocked(
         issueKey = request.issueKey,
         workflowId = request.workflowId,
+        featureSize = request.runInvariants.featureSize.name,
         lastIncompletePhase = phaseId,
         blockedReason = reason,
         completedPhaseIds = state.completedPhaseIds(),
@@ -161,7 +174,7 @@ class FeatureTaskRuntimeRunner(
   ): PhaseOutcome {
     val run = PhaseRun(
       phaseId = phaseId,
-      declaration = phaseDeclaration(phaseId),
+      declaration = phaseDeclaration(phaseId, request.runInvariants.featureSize),
       resolvedAgent = FeatureTaskRuntimeAgentResolver.resolve(
         phaseId = phaseId,
         assignment = request.agentAssignment,
@@ -537,9 +550,10 @@ private fun recordToOutput(record: FeatureTaskRuntimePhaseRecord): FeatureTaskRu
     )
   }
 
-private fun phaseDeclaration(phaseId: String): FeatureTaskRuntimePhaseDeclaration =
-  FeatureTaskRuntimePhaseWorkflowDefinition.phaseDeclarations[phaseId]
-    ?: error("No phase declaration for runtime phase '$phaseId'.")
+private fun phaseDeclaration(
+  phaseId: String,
+  featureSize: skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFeatureSize,
+): FeatureTaskRuntimePhaseDeclaration = FeatureTaskRuntimePhaseWorkflowDefinition.phaseDeclaration(phaseId, featureSize)
 
 private fun missingUpstream(
   declaration: FeatureTaskRuntimePhaseDeclaration,

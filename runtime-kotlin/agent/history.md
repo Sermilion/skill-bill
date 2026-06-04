@@ -1,3 +1,12 @@
+## [2026-06-04] SKILL-65.1 subtask 4 size-assessment-and-ceremony-scaling
+Areas: runtime-kotlin/runtime-domain, runtime-kotlin/runtime-application, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-core
+- Feature-task-runtime now resolves `feature_size` once from governed spec input, defaults omitted size to `MEDIUM`, persists run invariants in workflow artifacts, and reuses the durable value on resume. reusable
+- Ceremony scaling is definition-owned: SMALL maps to light preplan/current-unit review/light audit; MEDIUM/LARGE map to full preplan/branch-diff review/full per-criterion audit. Gates remain mandatory. reusable
+- Prompt/briefing/status/monitor outputs all carry `feature_size`; partial-resume tests prove a stored SMALL run launches review with `current_unit_of_work` even if the resumed request proposes LARGE.
+- Gotcha: explicit malformed `feature_size` must fail instead of defaulting, and malformed durable enum values must throw `InvalidWorkflowStateSchemaError`, not generic argument errors.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
 ## [2026-06-04] SKILL-65.1 subtask 3 post-validate-history-commit-pr-phases
 Areas: runtime-kotlin/runtime-domain, runtime-kotlin/runtime-application, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-mcp, orchestration/contracts
 - Feature-task-runtime phase DAG now runs through `write_history -> commit_push -> pr` after validate, with `pr` as `completedTerminalSummaryArtifact` and PR-derived diff context. reusable

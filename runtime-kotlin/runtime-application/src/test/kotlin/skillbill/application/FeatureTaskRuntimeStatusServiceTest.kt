@@ -14,7 +14,9 @@ import skillbill.ports.persistence.model.FeatureImplementSessionSummary
 import skillbill.ports.persistence.model.FeatureVerifySessionSummary
 import skillbill.ports.persistence.model.WorkflowStateRecord
 import skillbill.workflow.WorkflowSnapshotValidator
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFeatureSize
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerAction
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRunInvariants
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -46,11 +48,13 @@ class FeatureTaskRuntimeStatusServiceTest {
   fun `workflow with no phase records projects every phase pending`() {
     val harness = statusHarness()
     harness.recorder.ensureWorkflowOpen(WORKFLOW_ID, SESSION_ID)
+    harness.recordRunInvariants(FeatureTaskRuntimeFeatureSize.LARGE)
 
     val projection = requireNotNull(
       harness.service.status(FeatureTaskRuntimeStatusRequest(workflowId = WORKFLOW_ID)),
     )
 
+    assertEquals("LARGE", projection.featureSize)
     assertEquals(0, projection.completeCount)
     assertEquals(9, projection.pendingCount)
     assertEquals(0, projection.blockedCount)
@@ -153,15 +157,29 @@ class FeatureTaskRuntimeStatusServiceTest {
     assertNull(projection.resolvedBranch)
   }
 
+  @Test
+  fun `projection feature size is null before run invariants are persisted`() {
+    val harness = statusHarness()
+    harness.recorder.ensureWorkflowOpen(WORKFLOW_ID, SESSION_ID)
+
+    val projection = requireNotNull(
+      harness.service.status(FeatureTaskRuntimeStatusRequest(workflowId = WORKFLOW_ID)),
+    )
+
+    assertNull(projection.featureSize)
+  }
+
   private fun statusHarness(): StatusHarness {
     val repository = StatusInMemoryWorkflowRepository()
     val database = StatusFakeDatabaseSessionFactory(repository)
     val recorder = FeatureTaskRuntimePhaseRecorder(database, StatusNoopSnapshotValidator)
-    return StatusHarness(recorder, FeatureTaskRuntimeStatusService(recorder))
+    val runInvariantsStore = FeatureTaskRuntimeRunInvariantsStore(database, StatusNoopSnapshotValidator)
+    return StatusHarness(recorder, runInvariantsStore, FeatureTaskRuntimeStatusService(recorder, runInvariantsStore))
   }
 
   private class StatusHarness(
     val recorder: FeatureTaskRuntimePhaseRecorder,
+    val runInvariantsStore: FeatureTaskRuntimeRunInvariantsStore,
     val service: FeatureTaskRuntimeStatusService,
   ) {
     fun recordRunning(phaseId: String, attemptCount: Int) = recorder.recordPhaseState(
@@ -212,6 +230,19 @@ class FeatureTaskRuntimeStatusServiceTest {
           blockedReason = if (action == FeatureTaskRuntimePhaseLedgerAction.BLOCKED) "fix loop exhausted" else null,
         ),
       )
+
+    fun recordRunInvariants(featureSize: FeatureTaskRuntimeFeatureSize) {
+      runInvariantsStore.resolve(
+        workflowId = WORKFLOW_ID,
+        proposed =
+        FeatureTaskRuntimeRunInvariants(
+          specReference = ".feature-specs/SKILL-65/spec.md",
+          featureSize = featureSize,
+          acceptanceCriteria = listOf("AC-1"),
+          mandatesAndOverrides = emptyList(),
+        ),
+      )
+    }
   }
 
   private companion object {

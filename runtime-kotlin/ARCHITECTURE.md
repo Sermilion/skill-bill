@@ -419,6 +419,8 @@ runtime-ports
     - `skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerEntry.fromArtifactMap`
     - `skillbill.workflow.taskruntime.model.FeatureTaskRuntimeResolvedBranch.toArtifactMap`
     - `skillbill.workflow.taskruntime.model.FeatureTaskRuntimeResolvedBranch.fromArtifactMap`
+    - `skillbill.workflow.taskruntime.model.toArtifactMap`
+    - `skillbill.workflow.taskruntime.model.featureTaskRuntimeRunInvariantsFromArtifactMap`
     - `skillbill.application.model.FeatureTaskRuntimePhaseLaunchBriefing.toArtifactMap`
     - `skillbill.application.model.FeatureTaskRuntimePhaseLaunchBriefing.fromArtifactMap`
     - `skillbill.application.lifecycleOkPayload`
@@ -830,6 +832,8 @@ Categories:
 - `skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerEntry.fromArtifactMap`
 - `skillbill.workflow.taskruntime.model.FeatureTaskRuntimeResolvedBranch.toArtifactMap`
 - `skillbill.workflow.taskruntime.model.FeatureTaskRuntimeResolvedBranch.fromArtifactMap`
+- `skillbill.workflow.taskruntime.model.toArtifactMap`
+- `skillbill.workflow.taskruntime.model.featureTaskRuntimeRunInvariantsFromArtifactMap`
 - `skillbill.application.model.FeatureTaskRuntimePhaseLaunchBriefing.toArtifactMap`
 - `skillbill.application.model.FeatureTaskRuntimePhaseLaunchBriefing.fromArtifactMap`
 - `skillbill.application.model.WorkflowUpdateRequest.stepUpdates`

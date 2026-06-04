@@ -38,6 +38,7 @@ data class FeatureTaskRuntimeRunRequest(
 sealed interface FeatureTaskRuntimeRunReport {
   val issueKey: String
   val workflowId: String
+  val featureSize: String
 
   /** The non-default feature branch the run was pinned to, or null when not yet resolved. */
   val resolvedBranch: String?
@@ -45,6 +46,7 @@ sealed interface FeatureTaskRuntimeRunReport {
   data class Completed(
     override val issueKey: String,
     override val workflowId: String,
+    override val featureSize: String,
     val completedPhaseIds: List<String>,
     override val resolvedBranch: String?,
   ) : FeatureTaskRuntimeRunReport
@@ -52,6 +54,7 @@ sealed interface FeatureTaskRuntimeRunReport {
   data class Blocked(
     override val issueKey: String,
     override val workflowId: String,
+    override val featureSize: String,
     val lastIncompletePhase: String,
     val blockedReason: String,
     val completedPhaseIds: List<String>,
@@ -72,6 +75,13 @@ sealed interface FeatureTaskRuntimeRunReport {
 sealed interface FeatureTaskRuntimeRunEvent {
   val workflowId: String
   val phaseId: String
+
+  data class RunStarted(
+    override val workflowId: String,
+    val featureSize: String,
+  ) : FeatureTaskRuntimeRunEvent {
+    override val phaseId: String = "run"
+  }
 
   /**
    * Emitted once when the runtime establishes the run's feature branch before the first

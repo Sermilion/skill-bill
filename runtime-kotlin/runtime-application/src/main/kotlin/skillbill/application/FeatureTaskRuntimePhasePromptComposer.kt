@@ -2,6 +2,7 @@ package skillbill.application
 
 import skillbill.application.model.FeatureTaskRuntimePhaseLaunchBriefing
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFeatureSize
 
 /**
  * Pure composer of the full prompt a feature-task-runtime phase agent receives. The persisted
@@ -15,6 +16,7 @@ object FeatureTaskRuntimePhasePromptComposer {
     require(issueKey.isNotBlank()) { "issueKey is required to compose a phase prompt." }
     return listOf(
       header(issueKey, briefing.phaseId),
+      ceremonyDirective(briefing),
       briefing.briefingText,
       outputContract(briefing.phaseId),
     ).joinToString(separator = "\n\n")
@@ -31,6 +33,34 @@ object FeatureTaskRuntimePhasePromptComposer {
 
       Phase: $phaseId ($label)
       Task: $directive
+    """.trimIndent()
+  }
+
+  private fun ceremonyDirective(briefing: FeatureTaskRuntimePhaseLaunchBriefing): String {
+    val featureSize = FeatureTaskRuntimeFeatureSize.fromWire(briefing.featureSize)
+    val scaling = FeatureTaskRuntimePhaseWorkflowDefinition.ceremonyScaling(featureSize)
+    val phaseSpecific = when (briefing.phaseId) {
+      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN ->
+        "Apply ${scaling.preplanCeremony.promptLabel}. Keep the gate real: identify concrete scope, " +
+          "affected boundaries, risks, and unknowns at the requested depth."
+      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW ->
+        "Apply ${scaling.reviewScope.promptLabel}. Keep the review gate real: inspect the implemented " +
+          "change for defects and report concrete file references."
+      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT ->
+        "Apply ${scaling.auditCeremony.promptLabel}. Keep the audit gate real: verify acceptance " +
+          "criteria and report concrete gaps."
+      else ->
+        "Use the resolved feature size for ceremony expectations; all runtime gates remain mandatory."
+    }
+    return """
+      ## Runtime ceremony scaling
+      feature_size: ${featureSize.name}
+      preplan_ceremony: ${scaling.preplanCeremony.wireValue}
+      review_scope: ${scaling.reviewScope.wireValue}
+      audit_ceremony: ${scaling.auditCeremony.wireValue}
+      $phaseSpecific
+      Scaling changes scope and verbosity only; it must not skip or weaken review, audit, validation,
+      schema, branch, history, commit, or PR gates.
     """.trimIndent()
   }
 
@@ -55,8 +85,8 @@ object FeatureTaskRuntimePhasePromptComposer {
   // One imperative task directive per phase; the briefing carries the spec-specific scope.
   private val phaseDirectives: Map<String, String> = mapOf(
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN to
-      "Produce a pre-planning digest covering scope, affected boundaries, risks/unknowns, " +
-      "and rollout need. Do not modify repository files during this phase. Emit a " +
+      "Produce the scaled pre-planning digest for the resolved feature size. Do not modify " +
+      "repository files during this phase. Emit a " +
       "schema-valid produced_outputs object containing the digest for the downstream plan phase.",
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN to
       "Produce an ordered implementation plan that satisfies every acceptance criterion, using " +
@@ -65,11 +95,10 @@ object FeatureTaskRuntimePhasePromptComposer {
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT to
       "Execute the upstream plan output: make the repository changes it describes.",
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW to
-      "Review the implemented changes against the acceptance criteria and report defects " +
-      "with concrete file references.",
+      "Review the implemented changes at the encoded review scope against the acceptance criteria " +
+      "and report defects with concrete file references.",
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT to
-      "Verify every acceptance criterion is concretely satisfied by the implemented changes " +
-      "and report any gaps.",
+      "Run the encoded completeness audit ceremony and report any acceptance-criterion gaps.",
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE to
       "Run the repository validation gate relevant to the change and report the pass/fail " +
       "results.",

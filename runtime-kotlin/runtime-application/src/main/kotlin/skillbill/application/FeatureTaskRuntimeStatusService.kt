@@ -17,6 +17,7 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 @Inject
 class FeatureTaskRuntimeStatusService(
   private val recorder: FeatureTaskRuntimePhaseRecorder,
+  private val runInvariantsStore: FeatureTaskRuntimeRunInvariantsStore,
 ) {
   /**
    * Projects the read-only status. Returns null only when the workflow row is absent,
@@ -37,6 +38,7 @@ class FeatureTaskRuntimeStatusService(
     }
     return FeatureTaskRuntimeStatusProjection(
       workflowId = request.workflowId,
+      featureSize = runInvariantsStore.resolve(request.workflowId, request.dbPathOverride)?.featureSize?.name,
       phases = phases,
       completeCount = phases.count { it.status == STATUS_COMPLETED },
       pendingCount = phases.count { it.status !in TERMINAL_PHASE_STATUSES },

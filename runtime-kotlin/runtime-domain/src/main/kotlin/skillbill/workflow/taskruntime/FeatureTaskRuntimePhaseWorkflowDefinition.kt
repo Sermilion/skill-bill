@@ -2,7 +2,12 @@ package skillbill.workflow.taskruntime
 
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
 import skillbill.workflow.model.WorkflowDefinition
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeAuditCeremony
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeCeremonyScaling
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFeatureSize
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseDeclaration
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePreplanCeremony
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeReviewScope
 
 /**
  * The experimental runtime-driven feature-task pipeline definition, fully independent
@@ -104,4 +109,35 @@ object FeatureTaskRuntimePhaseWorkflowDefinition {
         derivedContextKeys = if (phaseId in setOf(PHASE_REVIEW, PHASE_PR)) listOf("diff") else emptyList(),
       )
     }
+
+  fun ceremonyScaling(featureSize: FeatureTaskRuntimeFeatureSize): FeatureTaskRuntimeCeremonyScaling =
+    when (featureSize) {
+      FeatureTaskRuntimeFeatureSize.SMALL -> FeatureTaskRuntimeCeremonyScaling(
+        preplanCeremony = FeatureTaskRuntimePreplanCeremony.LIGHT,
+        reviewScope = FeatureTaskRuntimeReviewScope.CURRENT_UNIT_OF_WORK,
+        auditCeremony = FeatureTaskRuntimeAuditCeremony.LIGHT,
+      )
+      FeatureTaskRuntimeFeatureSize.MEDIUM,
+      FeatureTaskRuntimeFeatureSize.LARGE,
+      -> FeatureTaskRuntimeCeremonyScaling(
+        preplanCeremony = FeatureTaskRuntimePreplanCeremony.FULL,
+        reviewScope = FeatureTaskRuntimeReviewScope.BRANCH_DIFF,
+        auditCeremony = FeatureTaskRuntimeAuditCeremony.FULL_PER_CRITERION,
+      )
+    }
+
+  fun phaseDeclaration(
+    phaseId: String,
+    featureSize: FeatureTaskRuntimeFeatureSize,
+  ): FeatureTaskRuntimePhaseDeclaration {
+    val base = phaseDeclarations[phaseId] ?: error("No phase declaration for runtime phase '$phaseId'.")
+    if (phaseId != PHASE_REVIEW) {
+      return base
+    }
+    val reviewKey = when (ceremonyScaling(featureSize).reviewScope) {
+      FeatureTaskRuntimeReviewScope.CURRENT_UNIT_OF_WORK -> "current_unit_of_work"
+      FeatureTaskRuntimeReviewScope.BRANCH_DIFF -> "diff"
+    }
+    return base.copy(derivedContextKeys = listOf(reviewKey))
+  }
 }

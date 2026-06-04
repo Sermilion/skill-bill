@@ -215,6 +215,8 @@ private fun runtimeRunEventSink(state: CliRunState, monitor: Boolean): FeatureTa
 }
 
 private fun FeatureTaskRuntimeRunEvent.runtimeProgressLine(): String = when (this) {
+  is FeatureTaskRuntimeRunEvent.RunStarted ->
+    "feature-task-runtime $workflowId: run started feature_size=$featureSize\n"
   is FeatureTaskRuntimeRunEvent.BranchResolved ->
     "feature-task-runtime $workflowId: branch ${if (reused) "reused" else "created"} $branch\n"
   is FeatureTaskRuntimeRunEvent.BranchSetupBlocked ->
@@ -261,6 +263,7 @@ private fun FeatureTaskRuntimeRunReport.toRuntimeRunCliMap(): Map<String, Any?> 
     "status" to "complete",
     "issue_key" to issueKey,
     "workflow_id" to workflowId,
+    "feature_size" to featureSize,
     "resolved_branch" to resolvedBranch,
     "completed_phases" to completedPhaseIds,
   )
@@ -268,6 +271,7 @@ private fun FeatureTaskRuntimeRunReport.toRuntimeRunCliMap(): Map<String, Any?> 
     "status" to "blocked",
     "issue_key" to issueKey,
     "workflow_id" to workflowId,
+    "feature_size" to featureSize,
     "resolved_branch" to resolvedBranch,
     "last_incomplete_phase" to lastIncompletePhase,
     "blocked_reason" to blockedReason,
@@ -281,6 +285,7 @@ private fun runtimeRunText(payload: Map<String, Any?>): String = buildString {
   appendLine("feature-task-runtime: ${payload["issue_key"]}")
   appendLine("workflow_id: ${payload["workflow_id"]}")
   appendLine("status: ${payload["status"]}")
+  appendLine("feature_size: ${payload["feature_size"]}")
   appendLine("resolved_branch: ${payload["resolved_branch"] ?: "none"}")
   appendLine("completed_phases: ${(payload["completed_phases"] as? List<*>).orEmpty().joinToString()}")
   payload["last_incomplete_phase"]?.let { appendLine("last_incomplete_phase: $it") }
@@ -292,6 +297,7 @@ private fun FeatureTaskRuntimeStatusProjection?.toRuntimeStatusCliMap(workflowId
     linkedMapOf<String, Any?>(
       "status" to "ok",
       "workflow_id" to it.workflowId,
+      "feature_size" to it.featureSize,
       "complete_count" to it.completeCount,
       "pending_count" to it.pendingCount,
       "blocked_count" to it.blockedCount,
@@ -302,6 +308,7 @@ private fun FeatureTaskRuntimeStatusProjection?.toRuntimeStatusCliMap(workflowId
   } ?: linkedMapOf(
     "status" to "not_found",
     "workflow_id" to workflowId,
+    "feature_size" to null,
     "complete_count" to 0,
     "pending_count" to 0,
     "blocked_count" to 0,
@@ -323,6 +330,7 @@ private fun Map<String, Any?>.runtimeStatusExitCode(): Int = if (this["status"] 
 private fun runtimeStatusText(payload: Map<String, Any?>): String = buildString {
   appendLine("feature-task-runtime: ${payload["workflow_id"]}")
   appendLine("status: ${payload["status"]}")
+  appendLine("feature_size: ${payload["feature_size"] ?: "unknown"}")
   appendLine("complete: ${payload["complete_count"]}")
   appendLine("pending: ${payload["pending_count"]}")
   appendLine("blocked: ${payload["blocked_count"]}")

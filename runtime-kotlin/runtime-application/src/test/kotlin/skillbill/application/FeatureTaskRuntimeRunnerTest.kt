@@ -35,6 +35,7 @@ import skillbill.workflow.model.GoalObservabilityDiffStat
 import skillbill.workflow.model.GoalObservabilitySelectedDiffHunks
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFeatureSize
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerAction
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeResolvedBranch
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRunInvariants
@@ -69,6 +70,7 @@ class FeatureTaskRuntimeRunnerTest {
   fun `each phase briefing includes unconditional run-invariants latest upstream and derived diff for review`() {
     val invariants = FeatureTaskRuntimeRunInvariants(
       specReference = SPEC_REFERENCE,
+      featureSize = FeatureTaskRuntimeFeatureSize.SMALL,
       acceptanceCriteria = listOf("AC-1", "AC-2"),
       mandatesAndOverrides = listOf("mandate-X"),
     )
@@ -81,7 +83,10 @@ class FeatureTaskRuntimeRunnerTest {
 
     val briefings = ALL_PHASES.associateWith { phaseId ->
       val declaration =
-        skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition.phaseDeclarations.getValue(phaseId)
+        skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition.phaseDeclaration(
+          phaseId,
+          invariants.featureSize,
+        )
       val handoff = skillbill.workflow.taskruntime.FeatureTaskRuntimeHandoffContract.assembleHandoff(
         declaration = declaration,
         runInvariants = invariants,
@@ -92,7 +97,9 @@ class FeatureTaskRuntimeRunnerTest {
 
     briefings.forEach { (phaseId, briefing) ->
       assertEquals(SPEC_REFERENCE, briefing.specReference, "spec reference for $phaseId")
+      assertEquals("SMALL", briefing.featureSize, "feature size for $phaseId")
       assertEquals(listOf("AC-1", "AC-2"), briefing.acceptanceCriteria, "criteria for $phaseId")
+      assertContains(briefing.briefingText, "feature_size: SMALL")
       assertContains(briefing.briefingText, SPEC_REFERENCE)
       assertContains(briefing.briefingText, "mandate-X")
     }
@@ -100,8 +107,8 @@ class FeatureTaskRuntimeRunnerTest {
     assertEquals(PREPLAN_OUTPUT, briefings.getValue("plan").upstreamOutputsByPhaseId.getValue("preplan"))
     assertTrue(briefings.getValue("implement").upstreamOutputsByPhaseId.containsKey("plan"))
     assertEquals(PLAN_OUTPUT, briefings.getValue("implement").upstreamOutputsByPhaseId.getValue("plan"))
-    assertEquals(listOf("diff"), briefings.getValue("review").derivedContextKeys)
-    assertContains(briefings.getValue("review").briefingText, "diff")
+    assertEquals(listOf("current_unit_of_work"), briefings.getValue("review").derivedContextKeys)
+    assertContains(briefings.getValue("review").briefingText, "current_unit_of_work")
     assertEquals(listOf("diff"), briefings.getValue("pr").derivedContextKeys)
     assertContains(briefings.getValue("pr").briefingText, "diff")
   }
@@ -483,8 +490,10 @@ class FeatureTaskRuntimeRunnerTest {
 
     briefings.forEach { (phaseId, briefing) ->
       assertEquals(SPEC_REFERENCE, briefing.specReference, "spec reference for $phaseId")
+      assertEquals("MEDIUM", briefing.featureSize, "feature size for $phaseId")
       assertEquals(listOf("AC-1", "AC-2"), briefing.acceptanceCriteria, "criteria for $phaseId")
       assertEquals(listOf("mandate-X"), briefing.mandatesAndOverrides, "mandates for $phaseId")
+      assertContains(briefing.briefingText, "feature_size: MEDIUM")
       assertContains(briefing.briefingText, SPEC_REFERENCE)
       assertContains(briefing.briefingText, "mandate-X")
     }
@@ -555,6 +564,8 @@ class FeatureTaskRuntimeRunnerTest {
       }
       assertContains(prompt, "# Feature-task-runtime phase briefing")
       assertContains(prompt, "phase: $phaseId")
+      assertContains(prompt, "feature_size: MEDIUM")
+      assertContains(prompt, "Scaling changes scope and verbosity only")
       assertContains(prompt, SPEC_REFERENCE)
       assertContains(prompt, "mandate-X")
       assertContains(prompt, "Required final output")
@@ -565,6 +576,56 @@ class FeatureTaskRuntimeRunnerTest {
         "phase prompt for '$phaseId' must not instruct the goal-continuation flow",
       )
     }
+  }
+
+  @Test
+  fun `resume preserves durable feature size instead of re-resolving from changed request inputs`() {
+    val harness = runnerHarness(
+      branchSetup = BranchSetupTestConfig(featureSize = FeatureTaskRuntimeFeatureSize.SMALL),
+    )
+    assertIs<FeatureTaskRuntimeRunReport.Completed>(harness.runner.run(harness.request()))
+
+    val changedRequest = harness.request().copy(
+      runInvariants = harness.request().runInvariants.copy(featureSize = FeatureTaskRuntimeFeatureSize.LARGE),
+    )
+    val resumed = assertIs<FeatureTaskRuntimeRunReport.Completed>(harness.runner.run(changedRequest))
+
+    assertEquals("SMALL", resumed.featureSize)
+    val projection = requireNotNull(
+      FeatureTaskRuntimeStatusService(harness.recorder, harness.runInvariantsStore)
+        .status(FeatureTaskRuntimeStatusRequest(WORKFLOW_ID)),
+    )
+    assertEquals("SMALL", projection.featureSize)
+  }
+
+  @Test
+  fun `partial resume launches review with durable small size and current unit scope`() {
+    val harness = runnerHarness(
+      agentAssignment = phasePerAgentAssignment(),
+      branchSetup = BranchSetupTestConfig(featureSize = FeatureTaskRuntimeFeatureSize.SMALL),
+    )
+    harness.seedPhase("preplan", "completed", 1, INVOKED_AGENT, PREPLAN_OUTPUT)
+    harness.seedPhase("plan", "completed", 1, INVOKED_AGENT, PLAN_OUTPUT)
+    harness.seedPhase("implement", "completed", 1, INVOKED_AGENT, IMPLEMENT_OUTPUT)
+    harness.runInvariantsStore.resolve(WORKFLOW_ID, proposed = harness.request().runInvariants)
+
+    val changedRequest = harness.request().copy(
+      runInvariants = harness.request().runInvariants.copy(featureSize = FeatureTaskRuntimeFeatureSize.LARGE),
+    )
+    val resumed = assertIs<FeatureTaskRuntimeRunReport.Completed>(harness.runner.run(changedRequest))
+
+    assertEquals("SMALL", resumed.featureSize)
+    assertEquals(
+      listOf("review", "audit", "validate", "write_history", "commit_push", "pr"),
+      harness.launchedPhaseOrder(),
+    )
+    val reviewPrompt = requireNotNull(harness.launcher.requests.first().skillRunRequest.promptOverride)
+    assertContains(reviewPrompt, "feature_size: SMALL")
+    assertContains(reviewPrompt, "review_scope: current_unit_of_work")
+    assertContains(reviewPrompt, "current-unit-of-work review scope")
+    val reviewBriefing = requireNotNull(harness.recorder.loadPhaseBriefings(WORKFLOW_ID).orEmpty()["review"])
+    assertEquals("SMALL", reviewBriefing.featureSize)
+    assertEquals(listOf("current_unit_of_work"), reviewBriefing.derivedContextKeys)
   }
 
   @Test
@@ -903,7 +964,7 @@ class FeatureTaskRuntimeBranchSetupRunnerTest {
     // Durable status projection: the branch-setup block is no longer invisible (blockedCount=0,
     // implement merely running/pending); it surfaces as a first-class blocked phase with its reason.
     val status = requireNotNull(
-      FeatureTaskRuntimeStatusService(harness.recorder)
+      FeatureTaskRuntimeStatusService(harness.recorder, harness.runInvariantsStore)
         .status(FeatureTaskRuntimeStatusRequest(WORKFLOW_ID)),
     )
     assertEquals(1, status.blockedCount)
@@ -967,7 +1028,8 @@ class FeatureTaskRuntimeBranchSetupRunnerTest {
     assertTrue(observedPreLaunchRecord, "the stale branch-setup block must remain durable until real phase launch")
     // No phase is reported blocked once setup recovers.
     val status = requireNotNull(
-      FeatureTaskRuntimeStatusService(harness.recorder).status(FeatureTaskRuntimeStatusRequest(WORKFLOW_ID)),
+      FeatureTaskRuntimeStatusService(harness.recorder, harness.runInvariantsStore)
+        .status(FeatureTaskRuntimeStatusRequest(WORKFLOW_ID)),
     )
     assertEquals(0, status.blockedCount)
   }
@@ -1053,6 +1115,7 @@ private fun phasePerAgentAssignment(): FeatureTaskRuntimeAgentAssignment =
 // within the parameter budget.
 private class RunnerHarnessIo(
   val recorder: FeatureTaskRuntimePhaseRecorder,
+  val runInvariantsStore: FeatureTaskRuntimeRunInvariantsStore,
   val repository: InMemoryRuntimeWorkflowRepository,
   val gitOperations: RecordingWorkflowGitOperations,
 )
@@ -1065,6 +1128,7 @@ private class RunnerHarness(
   private val runRequest: FeatureTaskRuntimeRunRequest,
 ) {
   val recorder: FeatureTaskRuntimePhaseRecorder get() = io.recorder
+  val runInvariantsStore: FeatureTaskRuntimeRunInvariantsStore get() = io.runInvariantsStore
   val repository: InMemoryRuntimeWorkflowRepository get() = io.repository
   val gitOperations: RecordingWorkflowGitOperations get() = io.gitOperations
 
@@ -1150,6 +1214,7 @@ private const val BRANCH_SETUP_AGENT_ID = "branch-setup"
 private data class BranchSetupTestConfig(
   val gitOperations: RecordingWorkflowGitOperations = RecordingWorkflowGitOperations(),
   val specReference: String = SPEC_REFERENCE,
+  val featureSize: FeatureTaskRuntimeFeatureSize = FeatureTaskRuntimeFeatureSize.MEDIUM,
 )
 
 private fun runnerHarness(
@@ -1162,8 +1227,9 @@ private fun runnerHarness(
   val repository = InMemoryRuntimeWorkflowRepository()
   val database = RuntimeFakeDatabaseSessionFactory(repository)
   val recorder = FeatureTaskRuntimePhaseRecorder(database, NoopWorkflowSnapshotValidator)
+  val runInvariantsStore = FeatureTaskRuntimeRunInvariantsStore(database, NoopWorkflowSnapshotValidator)
   val branchSetupRunner = FeatureTaskRuntimeBranchSetupRunner(recorder, branchSetup.gitOperations)
-  val runner = FeatureTaskRuntimeRunner(launcher, recorder, validator, branchSetupRunner)
+  val runner = FeatureTaskRuntimeRunner(launcher, recorder, runInvariantsStore, validator, branchSetupRunner)
   // Always capture events; a caller-supplied sink is chained after the capture.
   val captured = mutableListOf<FeatureTaskRuntimeRunEvent>()
   val sink = FeatureTaskRuntimeRunEventSink { event ->
@@ -1176,6 +1242,7 @@ private fun runnerHarness(
     sessionId = SESSION_ID,
     runInvariants = FeatureTaskRuntimeRunInvariants(
       specReference = branchSetup.specReference,
+      featureSize = branchSetup.featureSize,
       acceptanceCriteria = listOf("AC-1", "AC-2"),
       mandatesAndOverrides = listOf("mandate-X"),
     ),
@@ -1186,7 +1253,7 @@ private fun runnerHarness(
     repoRoot = Path.of("/tmp/repo"),
     eventSink = sink,
   )
-  val io = RunnerHarnessIo(recorder, repository, branchSetup.gitOperations)
+  val io = RunnerHarnessIo(recorder, runInvariantsStore, repository, branchSetup.gitOperations)
   return RunnerHarness(launcher, io, runner, captured, runRequest)
 }
 
