@@ -45,6 +45,17 @@ Areas: runtime-kotlin/runtime-cli, runtime-kotlin/runtime-mcp, orchestration/con
 Feature flag: N/A
 Acceptance criteria: 6/6 implemented
 
+## [2026-06-04] SKILL-66 subtask 1 goal-telemetry-contract-and-schema
+Areas: orchestration/contracts, runtime-kotlin/runtime-mcp
+- `telemetry-event-schema.yaml` gains three strict runtime-internal emission branches (`goalStartedEvent`/`goalSubtaskFinishedEvent`/`goalFinishedEvent`) + a `goalStatsEvent`, following implement/verify field conventions: ISO-8601 `minLength:1` timestamps, bounded int32 counts/durations, two shared status enums (`goalSubtaskStatusEnum` complete/blocked/skipped, `goalFinishedStatusEnum` completed/blocked), `blocked_reason: type:[string,null]`. reusable
+- New family pattern: emission events are runtime-internal (NO tool/handler) and intentionally absent from `toolNames`; only `goal_stats` is a registered tool. Encode this carve-out in `x-coherence-checks` (amend `toolnames-membership` + add a `goal-telemetry-emission-events` entry) and in a `runtimeInternalEmissionEvents` allow-list relaxing the branch→tool parity assertion. reusable
+- `goal_stats` registered in `McpToolRegistry` toolNames/descriptions/inputSchemas with `goalStatsSchema()` (strict, no required, optional since/date_from/date_to/group_by[""/day/week]) mirroring `feature_implement_stats`/`feature_verify_stats`. No dispatcher handler — wiring deferred to subtask 4 (registry/dispatcher tests stay green with no handler since nativeHandlers is never cross-checked against toolNames). reusable
+- Per-family parity test precedent: new `GoalTelemetryEmissionEventParityTest` asserts branch shape/consts/required keysets, validates representative envelopes incl. `blocked_reason` null AND string (networknt Draft 2020-12 accepts the union), and locks the not-a-tool / is-a-tool invariants.
+- No `contract_version` / `TELEMETRY_EVENT_CONTRACT_VERSION` bump — additive branches need none under the schema's own rules. Gotcha: avoid `/*` inside Kotlin KDoc — block comments nest and break compilation.
+>>>>>>> b6b2128a (SKILL-66.1: goal telemetry contract & schema)
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
 ## [2026-06-04] SKILL-65.1 subtask 7 goal-runner-cooperation-and-continuation
 Areas: runtime-kotlin/runtime-application, runtime-kotlin/runtime-domain, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-core, runtime-kotlin/ARCHITECTURE.md
 - Feature-task-runtime now accepts explicit goal-continuation context (parent issue, subtask id, goal branch, suppress PR), reuses the supplied branch, skips decompose, omits `pr`, and treats `commit_push` as terminal. reusable

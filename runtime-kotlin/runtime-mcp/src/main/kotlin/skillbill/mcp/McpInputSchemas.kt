@@ -66,6 +66,15 @@ internal fun remoteStatsSchema(): Map<String, Any?> = objectSchema(
   ),
 )
 
+internal fun goalStatsSchema(): Map<String, Any?> = objectSchema(
+  properties = mapOf(
+    "since" to stringSchema(),
+    "date_from" to stringSchema(),
+    "date_to" to stringSchema(),
+    "group_by" to stringSchema(enum = listOf("", "day", "week")),
+  ),
+)
+
 internal fun stringSchema(enum: List<String> = emptyList()): Map<String, Any?> = if (enum.isEmpty()) {
   mapOf("type" to "string")
 } else {

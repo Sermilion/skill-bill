@@ -133,6 +133,16 @@ class McpStdioServerTest {
       listOf("", "day", "week"),
       tools.schemaFor("telemetry_remote_stats").properties().enumFor("group_by"),
     )
+    assertEquals(false, tools.schemaFor("goal_stats")["additionalProperties"])
+    assertEquals(emptyList<String>(), tools.schemaFor("goal_stats")["required"])
+    assertEquals(
+      setOf("since", "date_from", "date_to", "group_by"),
+      tools.schemaFor("goal_stats").properties().keys,
+    )
+    assertEquals(
+      listOf("", "day", "week"),
+      tools.schemaFor("goal_stats").properties().enumFor("group_by"),
+    )
     tools.schemaFor("new_skill_scaffold").assertRequired("payload")
     tools.schemaFor("import_review").assertRequired("review_text")
     tools.schemaFor("triage_findings").assertRequired("review_run_id", "decisions")
@@ -648,6 +658,7 @@ private val expectedToolInventory =
     "feature_task_runtime_workflow_open",
     "feature_task_runtime_workflow_resume",
     "feature_task_runtime_workflow_update",
+    "goal_stats",
     "import_review",
     "new_skill_scaffold",
     "pr_description_generated",
