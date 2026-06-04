@@ -39,10 +39,14 @@ sealed interface FeatureTaskRuntimeRunReport {
   val issueKey: String
   val workflowId: String
 
+  /** The non-default feature branch the run was pinned to, or null when not yet resolved. */
+  val resolvedBranch: String?
+
   data class Completed(
     override val issueKey: String,
     override val workflowId: String,
     val completedPhaseIds: List<String>,
+    override val resolvedBranch: String?,
   ) : FeatureTaskRuntimeRunReport
 
   data class Blocked(
@@ -51,6 +55,7 @@ sealed interface FeatureTaskRuntimeRunReport {
     val lastIncompletePhase: String,
     val blockedReason: String,
     val completedPhaseIds: List<String>,
+    override val resolvedBranch: String?,
   ) : FeatureTaskRuntimeRunReport {
     init {
       require(lastIncompletePhase.isNotBlank()) {
@@ -67,6 +72,32 @@ sealed interface FeatureTaskRuntimeRunReport {
 sealed interface FeatureTaskRuntimeRunEvent {
   val workflowId: String
   val phaseId: String
+
+  /**
+   * Emitted once when the runtime establishes the run's feature branch before the first
+   * file-mutating phase. [created] is true when the runtime created and switched to the branch,
+   * false when it reused an already-checked-out non-default branch (including a resume re-attach).
+   */
+  data class BranchResolved(
+    override val workflowId: String,
+    override val phaseId: String,
+    val branch: String,
+    val created: Boolean,
+    val reused: Boolean,
+  ) : FeatureTaskRuntimeRunEvent
+
+  /**
+   * Emitted once when the runtime fails to establish the run's feature branch (missing/dirty git,
+   * denied/non-landing checkout, unreadable HEAD, a deleted or unverifiable persisted branch, a
+   * protected/wrong landed branch, or a branch that could not be durably recorded). Symmetric with
+   * [PhaseBlocked]: the same block is also persisted as a durable blocked record and a ledger entry
+   * so the failure is visible to status queries and the audit trail, not only the event stream.
+   */
+  data class BranchSetupBlocked(
+    override val workflowId: String,
+    override val phaseId: String,
+    val blockedReason: String,
+  ) : FeatureTaskRuntimeRunEvent
 
   data class PhaseStarted(
     override val workflowId: String,

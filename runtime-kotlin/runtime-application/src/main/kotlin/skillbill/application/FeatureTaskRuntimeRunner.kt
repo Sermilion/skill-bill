@@ -31,33 +31,126 @@ class FeatureTaskRuntimeRunner(
   private val subtaskLauncher: GoalRunnerSubtaskLauncher,
   private val recorder: FeatureTaskRuntimePhaseRecorder,
   private val outputValidator: FeatureTaskRuntimePhaseOutputValidator,
+  private val branchSetupRunner: FeatureTaskRuntimeBranchSetupRunner,
 ) {
   fun run(request: FeatureTaskRuntimeRunRequest): FeatureTaskRuntimeRunReport {
     recorder.ensureWorkflowOpen(request.workflowId, request.sessionId, request.dbPathOverride)
     val observability = FeatureTaskRuntimeRunObservability(recorder, request)
     val state = RunState(recorder.loadPhaseRecords(request.workflowId, request.dbPathOverride).orEmpty())
-    val orderedPhases = FeatureTaskRuntimePhaseWorkflowDefinition.definition.stepIds
-    for (phaseId in orderedPhases) {
-      if (state.isComplete(phaseId)) {
-        continue
+    val loop = RunLoop(request, state, observability)
+    for (phaseId in FeatureTaskRuntimePhaseWorkflowDefinition.definition.stepIds) {
+      if (loop.advance(phaseId)) {
+        break
       }
-      val outcome = runPhase(phaseId, request, state, observability)
-      outcome.blockedReason?.let { reason ->
-        return FeatureTaskRuntimeRunReport.Blocked(
-          issueKey = request.issueKey,
-          workflowId = request.workflowId,
-          lastIncompletePhase = phaseId,
-          blockedReason = reason,
-          completedPhaseIds = state.completedPhaseIds(),
-        )
-      }
-      state.recordCompleted(requireNotNull(outcome.completedOutput))
     }
-    return FeatureTaskRuntimeRunReport.Completed(
-      issueKey = request.issueKey,
-      workflowId = request.workflowId,
-      completedPhaseIds = state.completedPhaseIds(),
-    )
+    return loop.report()
+  }
+
+  // Drives the ordered phase loop for one run, owning the run-scoped resolved branch so the loop
+  // body stays a single advance() call. The resolved branch is null until the first file-mutating
+  // phase forces setup, which re-attaches the persisted branch on resume (never force-switching) so
+  // a re-run never creates a second or divergent branch.
+  private inner class RunLoop(
+    private val request: FeatureTaskRuntimeRunRequest,
+    private val state: RunState,
+    private val observability: FeatureTaskRuntimeRunObservability,
+  ) {
+    private var resolvedBranch: String? = null
+    private var blocked: FeatureTaskRuntimeRunReport.Blocked? = null
+
+    // Advances one phase: skips already-complete phases, guarantees the feature branch before a
+    // file-mutating phase (the non-mutating plan phase may precede setup), then launches the phase.
+    // Returns true when the run is now blocked and the loop must stop.
+    fun advance(phaseId: String): Boolean {
+      if (state.isComplete(phaseId)) {
+        return false
+      }
+      val reason = establishBranchIfNeeded(phaseId) ?: runPhaseFor(phaseId)
+      return reason?.let { blockAt(phaseId, it) } ?: false
+    }
+
+    // Runs the phase and records its completed output; returns a blocked reason when it blocks.
+    private fun runPhaseFor(phaseId: String): String? {
+      val outcome = runPhase(phaseId, request, state, observability)
+      outcome.blockedReason?.let { return it }
+      state.recordCompleted(requireNotNull(outcome.completedOutput))
+      return null
+    }
+
+    fun report(): FeatureTaskRuntimeRunReport {
+      blocked?.let { return it }
+      // A resume whose file-mutating phases were all already complete never re-enters setup this
+      // run; surface the durably-persisted branch so the report still names it.
+      val branch = resolvedBranch
+        ?: recorder.loadResolvedBranch(request.workflowId, request.dbPathOverride)?.branch
+      return FeatureTaskRuntimeRunReport.Completed(
+        issueKey = request.issueKey,
+        workflowId = request.workflowId,
+        completedPhaseIds = state.completedPhaseIds(),
+        resolvedBranch = branch,
+      )
+    }
+
+    // Returns a blocked reason when a file-mutating phase cannot get a feature branch, else null.
+    // A branch-setup block is made first-class and symmetric with the per-phase block path: it
+    // persists a durable blocked per-phase record and emits the typed branch-setup-blocked
+    // observability event + ledger entry so the failure is visible to status queries and the audit
+    // trail, not lost in the in-memory report alone.
+    private fun establishBranchIfNeeded(phaseId: String): String? {
+      if (!isFileMutating(phaseId)) {
+        return null
+      }
+      val setup = branchSetupRunner.ensureFeatureBranch(request, observability)
+      return setup.blockedReason?.also { reason -> persistBranchSetupBlock(phaseId, reason) } ?: run {
+        resolvedBranch = requireNotNull(setup.establishedBranch)
+        clearRecoveredBranchSetupBlock(phaseId)
+        null
+      }
+    }
+
+    // Branch setup recovered on resume (the operator fixed the transient git condition). A prior
+    // branch-setup-origin blocked record persisted under "implement" would otherwise be seen by
+    // preLaunchBlock and permanently re-block the phase without launching the agent. Clear it only
+    // in-memory so the stale durable block remains intact until the real phase launch atomically
+    // overwrites it with that phase agent's running record. Genuine phase-agent blocks are untouched.
+    private fun clearRecoveredBranchSetupBlock(phaseId: String) {
+      if (!state.hasBranchSetupBlock(phaseId)) {
+        return
+      }
+      state.clearBranchSetupBlock(phaseId)
+    }
+
+    // Mirrors blockAndPersist for the branch-setup step: persists a durable terminal blocked
+    // per-phase record (so blocked-ness survives ledger pruning and surfaces in status queries) and
+    // emits the typed branch-setup-blocked observability event plus its ledger entry.
+    private fun persistBranchSetupBlock(phaseId: String, reason: String) {
+      recorder.recordPhaseState(
+        FeatureTaskRuntimePhaseStateRequest(
+          workflowId = request.workflowId,
+          phaseId = phaseId,
+          status = STATUS_BLOCKED,
+          attemptCount = 1,
+          resolvedAgentId = BRANCH_SETUP_AGENT_ID,
+          finished = false,
+          outputArtifact = null,
+          blockedReason = reason,
+        ),
+        request.dbPathOverride,
+      )
+      observability.branchSetupBlocked(phaseId, BRANCH_SETUP_AGENT_ID, reason)
+    }
+
+    private fun blockAt(phaseId: String, reason: String): Boolean {
+      blocked = FeatureTaskRuntimeRunReport.Blocked(
+        issueKey = request.issueKey,
+        workflowId = request.workflowId,
+        lastIncompletePhase = phaseId,
+        blockedReason = reason,
+        completedPhaseIds = state.completedPhaseIds(),
+        resolvedBranch = resolvedBranch,
+      )
+      return true
+    }
   }
 
   private fun runPhase(
@@ -313,13 +406,25 @@ class FeatureTaskRuntimeRunner(
     private val priorRecords: MutableSet<String> = initialRecords.keys.toMutableSet()
 
     // Durable per-phase attempt count from the loaded record (0 when no record exists).
-    private val persistedAttemptCounts: Map<String, Int> =
-      initialRecords.mapValues { (_, record) -> record.attemptCount }
+    private val persistedAttemptCounts: MutableMap<String, Int> =
+      initialRecords.mapValues { (_, record) -> record.attemptCount }.toMutableMap()
 
-    // Phases already persisted with a durable terminal blocked record.
-    private val blockedRecords: Map<String, String> = initialRecords
-      .filterValues { it.status == STATUS_BLOCKED }
+    // Phases already persisted with a durable genuine-phase-agent blocked record. Branch-setup-origin
+    // blocked records (resolvedAgentId == BRANCH_SETUP_AGENT_ID) are deliberately excluded: branch
+    // setup is re-attemptable on resume, so a recoverable branch-setup failure must never short-circuit
+    // a real phase launch once setup succeeds. Genuine per-phase agent blocks still re-block on resume.
+    private val blockedRecords: MutableMap<String, String> = initialRecords
+      .filterValues { it.status == STATUS_BLOCKED && it.resolvedAgentId != BRANCH_SETUP_AGENT_ID }
       .mapValues { (_, record) -> record.blockedReason.orEmpty() }
+      .toMutableMap()
+
+    // Phases carrying a durable branch-setup-origin blocked record from a prior run. Tracked
+    // separately from blockedRecords (which only holds genuine phase-agent blocks) so the runner
+    // can supersede the stale durable record once branch setup recovers on resume.
+    private val branchSetupBlockedPhases: MutableSet<String> = initialRecords
+      .filterValues { it.status == STATUS_BLOCKED && it.resolvedAgentId == BRANCH_SETUP_AGENT_ID }
+      .keys
+      .toMutableSet()
 
     fun outputs(): List<FeatureTaskRuntimePhaseOutput> = outputs.toList()
 
@@ -330,6 +435,20 @@ class FeatureTaskRuntimeRunner(
     // The durable per-phase record's blocked reason, when the phase already exhausted its
     // budget on a prior run, so resume re-blocks immediately instead of relaunching the agent.
     fun persistedBlockedReason(phaseId: String): String? = blockedRecords[phaseId]
+
+    // True when the phase carries a stale branch-setup-origin blocked record from a prior run that
+    // must be superseded now that branch setup has recovered.
+    fun hasBranchSetupBlock(phaseId: String): Boolean = phaseId in branchSetupBlockedPhases
+
+    // Branch setup succeeded for the phase this run, so any prior branch-setup-origin block is
+    // recovered: forget it in-memory so the phase resumes normally. (The durable record is
+    // superseded back to a running state by the runner before the phase launches.)
+    fun clearBranchSetupBlock(phaseId: String) {
+      branchSetupBlockedPhases.remove(phaseId)
+      // The branch-setup block recorded an attemptCount but the phase agent never launched, so the
+      // phase must resume at iteration 1, not be charged for the branch-setup attempt.
+      persistedAttemptCounts.remove(phaseId)
+    }
 
     // Resume the bounded fix loop from durable state: the next attempt is one past the greater
     // of the persisted record's attempt count and the latest validated output iteration. A phase
@@ -354,6 +473,14 @@ class FeatureTaskRuntimeRunner(
     const val STATUS_RUNNING = "running"
     const val STATUS_COMPLETED = "completed"
     const val STATUS_BLOCKED = "blocked"
+
+    // Branch setup is a distinct pre-implement step with no resolved phase agent; this sentinel
+    // attributes its durable blocked record and ledger entry rather than a real agent id.
+    const val BRANCH_SETUP_AGENT_ID = "branch-setup"
+
+    // The plan phase is non-file-mutating (it produces a plan, touches no working tree); every
+    // later phase mutates or depends on a working tree pinned to the feature branch.
+    fun isFileMutating(phaseId: String): Boolean = phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN
 
     // Bound on the validator detail appended to a persisted blocked reason so a pathological
     // multi-violation reason cannot bloat the durable record or the CLI progress line.

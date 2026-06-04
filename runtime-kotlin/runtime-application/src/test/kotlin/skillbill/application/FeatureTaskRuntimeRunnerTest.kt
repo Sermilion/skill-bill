@@ -5,6 +5,7 @@ import skillbill.application.model.FeatureTaskRuntimeRunEvent
 import skillbill.application.model.FeatureTaskRuntimeRunEventSink
 import skillbill.application.model.FeatureTaskRuntimeRunReport
 import skillbill.application.model.FeatureTaskRuntimeRunRequest
+import skillbill.application.model.FeatureTaskRuntimeStatusRequest
 import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.install.model.InstallAgent
@@ -22,10 +23,20 @@ import skillbill.ports.persistence.WorkflowStateRepository
 import skillbill.ports.persistence.model.FeatureImplementSessionSummary
 import skillbill.ports.persistence.model.FeatureVerifySessionSummary
 import skillbill.ports.persistence.model.WorkflowStateRecord
+import skillbill.ports.workflow.WorkflowGitOperations
+import skillbill.ports.workflow.model.WorkflowGitOperationResult
+import skillbill.ports.workflow.model.WorkflowSelectedDiffHunksRequest
+import skillbill.ports.workflow.model.WorkflowSelectedDiffHunksResult
+import skillbill.ports.workflow.model.WorkflowWorktreeActivityResult
 import skillbill.workflow.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.workflow.WorkflowSnapshotValidator
+import skillbill.workflow.model.GoalObservabilityChangedFileSummary
+import skillbill.workflow.model.GoalObservabilityDiffStat
+import skillbill.workflow.model.GoalObservabilitySelectedDiffHunks
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerAction
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeResolvedBranch
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRunInvariants
 import java.nio.file.Path
 import kotlin.test.Test
@@ -557,10 +568,420 @@ class FeatureTaskRuntimeRunnerTest {
   }
 }
 
+// Branch-setup establishment, resume re-attach, loud-fail blocks, durability/visibility, and
+// resolved-branch idempotency through the runner, kept in a sibling class so the runner test class
+// stays within its size budget while sharing the same file-private run harness. (Pure branch-setup
+// decision logic lives in FeatureTaskRuntimeBranchSetupTest.)
+class FeatureTaskRuntimeBranchSetupRunnerTest {
+  @Test
+  fun `starts on default branch creates and switches to the feature branch before implement`() {
+    val git = RecordingWorkflowGitOperations(currentBranchValue = "main")
+    val harness = runnerHarness(branchSetup = BranchSetupTestConfig(git, CONVENTION_SPEC_REFERENCE))
+
+    val report = harness.runner.run(harness.request())
+
+    val completed = assertIs<FeatureTaskRuntimeRunReport.Completed>(report)
+    assertEquals(EXPECTED_FEATURE_BRANCH, completed.resolvedBranch)
+    assertEquals(
+      listOf(RecordingWorkflowGitOperations.CheckoutCall(EXPECTED_FEATURE_BRANCH, "main")),
+      git.checkoutCalls,
+    )
+    val resolved = requireNotNull(harness.recorder.loadResolvedBranch(WORKFLOW_ID))
+    assertEquals(EXPECTED_FEATURE_BRANCH, resolved.branch)
+    assertTrue(resolved.created)
+    val branchEvent = assertIs<FeatureTaskRuntimeRunEvent.BranchResolved>(
+      harness.events.first { it is FeatureTaskRuntimeRunEvent.BranchResolved },
+    )
+    assertTrue(branchEvent.created)
+    // The plan phase (non-file-mutating) precedes branch setup; the create happens before implement.
+    assertEquals(listOf("plan", "implement", "review", "audit", "validate"), harness.launchOrder())
+  }
+
+  @Test
+  fun `starts on a non-default branch reuses it without checking out a new branch`() {
+    val git = RecordingWorkflowGitOperations(currentBranchValue = "feat/pre-created")
+    val harness = runnerHarness(branchSetup = BranchSetupTestConfig(git, CONVENTION_SPEC_REFERENCE))
+
+    val report = harness.runner.run(harness.request())
+
+    val completed = assertIs<FeatureTaskRuntimeRunReport.Completed>(report)
+    assertEquals("feat/pre-created", completed.resolvedBranch)
+    assertTrue(git.checkoutCalls.isEmpty(), "reuse must not check out a new branch")
+    val resolved = requireNotNull(harness.recorder.loadResolvedBranch(WORKFLOW_ID))
+    assertEquals("feat/pre-created", resolved.branch)
+    assertEquals(false, resolved.created)
+  }
+
+  @Test
+  fun `cannot establish a feature branch blocks loudly and launches no file-mutating phase`() {
+    val git = RecordingWorkflowGitOperations(
+      currentBranchValue = "main",
+      checkoutResult = WorkflowGitOperationResult(status = "error", error = "checkout exploded"),
+    )
+    val harness = runnerHarness(branchSetup = BranchSetupTestConfig(git, CONVENTION_SPEC_REFERENCE))
+
+    val report = harness.runner.run(harness.request())
+
+    val blocked = assertIs<FeatureTaskRuntimeRunReport.Blocked>(report)
+    assertEquals("implement", blocked.lastIncompletePhase)
+    assertContains(blocked.blockedReason, EXPECTED_FEATURE_BRANCH)
+    assertContains(blocked.blockedReason, "checkout exploded")
+    assertContains(blocked.blockedReason, "default branch")
+    // plan launched (non-mutating), but no file-mutating phase ever launched.
+    assertEquals(listOf("plan"), harness.launchOrder())
+    assertTrue(harness.launchOrder().none { it != "plan" })
+  }
+
+  @Test
+  fun `unreadable current branch blocks loudly and launches no file-mutating phase`() {
+    val git = RecordingWorkflowGitOperations(
+      currentBranchResult = WorkflowGitOperationResult(status = "error", error = "git HEAD unreadable"),
+    )
+    val harness = runnerHarness(branchSetup = BranchSetupTestConfig(git, CONVENTION_SPEC_REFERENCE))
+
+    val report = harness.runner.run(harness.request())
+
+    val blocked = assertIs<FeatureTaskRuntimeRunReport.Blocked>(report)
+    assertEquals("implement", blocked.lastIncompletePhase)
+    assertContains(blocked.blockedReason, "git HEAD unreadable")
+    assertContains(blocked.blockedReason, "default branch")
+    assertTrue(git.checkoutCalls.isEmpty(), "an unreadable current branch must never check out")
+    assertEquals(listOf("plan"), harness.launchOrder())
+    assertTrue(
+      harness.launchOrder().none { it != "plan" },
+      "no file-mutating phase may launch when the current branch is unreadable",
+    )
+  }
+
+  @Test
+  fun `resume on default with a persisted branch re-attaches via exactly one checkout to it`() {
+    // HEAD on main alone would trigger create+checkout of the convention branch; the persisted
+    // branch must drive the decision, producing exactly one checkout to it and no second/divergent
+    // branch. A divergent value proves the persisted load (not a fresh resolution) decided.
+    val persistedBranch = "feat/persisted-resume-branch"
+    val git = RecordingWorkflowGitOperations(currentBranchValue = "main")
+    val harness = runnerHarness(branchSetup = BranchSetupTestConfig(git, CONVENTION_SPEC_REFERENCE))
+    harness.seedResolvedBranch(persistedBranch, baseBranch = "main", created = true)
+    harness.seedPhase("plan", "completed", 1, INVOKED_AGENT, PLAN_OUTPUT)
+
+    val report = harness.runner.run(harness.request())
+
+    val completed = assertIs<FeatureTaskRuntimeRunReport.Completed>(report)
+    assertEquals(persistedBranch, completed.resolvedBranch)
+    assertEquals(
+      listOf(RecordingWorkflowGitOperations.CheckoutCall(persistedBranch, null)),
+      git.checkoutCalls,
+      "re-attach on default must perform exactly one checkout, targeting the persisted branch",
+    )
+    assertTrue(
+      git.checkoutCalls.none { it.branch == EXPECTED_FEATURE_BRANCH },
+      "re-attach must not create the freshly-resolved convention branch",
+    )
+    val branchEvent = assertIs<FeatureTaskRuntimeRunEvent.BranchResolved>(
+      harness.events.first { it is FeatureTaskRuntimeRunEvent.BranchResolved },
+    )
+    assertEquals(persistedBranch, branchEvent.branch)
+    assertTrue(branchEvent.reused)
+    assertEquals(false, branchEvent.created)
+    assertEquals(persistedBranch, requireNotNull(harness.recorder.loadResolvedBranch(WORKFLOW_ID)).branch)
+  }
+
+  @Test
+  fun `resume already on the persisted branch re-attaches without any checkout`() {
+    val persistedBranch = "feat/persisted-resume-branch"
+    val git = RecordingWorkflowGitOperations(currentBranchValue = persistedBranch)
+    val harness = runnerHarness(branchSetup = BranchSetupTestConfig(git, CONVENTION_SPEC_REFERENCE))
+    harness.seedResolvedBranch(persistedBranch, baseBranch = "main", created = true)
+    harness.seedPhase("plan", "completed", 1, INVOKED_AGENT, PLAN_OUTPUT)
+
+    val report = harness.runner.run(harness.request())
+
+    val completed = assertIs<FeatureTaskRuntimeRunReport.Completed>(report)
+    assertEquals(persistedBranch, completed.resolvedBranch)
+    assertTrue(git.checkoutCalls.isEmpty(), "HEAD already on the persisted branch must not check out")
+    val branchEvent = assertIs<FeatureTaskRuntimeRunEvent.BranchResolved>(
+      harness.events.first { it is FeatureTaskRuntimeRunEvent.BranchResolved },
+    )
+    assertEquals(persistedBranch, branchEvent.branch)
+    assertTrue(branchEvent.reused)
+    assertEquals(false, branchEvent.created)
+    assertEquals(persistedBranch, requireNotNull(harness.recorder.loadResolvedBranch(WORKFLOW_ID)).branch)
+  }
+
+  @Test
+  fun `resume whose persisted branch no longer exists blocks loudly and creates no branch`() {
+    val persistedBranch = "feat/deleted-between-runs"
+    val git = RecordingWorkflowGitOperations(
+      currentBranchValue = "main",
+      existingBranches = emptySet(),
+    )
+    val harness = runnerHarness(branchSetup = BranchSetupTestConfig(git, CONVENTION_SPEC_REFERENCE))
+    harness.seedResolvedBranch(persistedBranch, baseBranch = "main", created = true)
+    harness.seedPhase("plan", "completed", 1, INVOKED_AGENT, PLAN_OUTPUT)
+
+    val report = harness.runner.run(harness.request())
+
+    val blocked = assertIs<FeatureTaskRuntimeRunReport.Blocked>(report)
+    assertEquals("implement", blocked.lastIncompletePhase)
+    assertContains(blocked.blockedReason, persistedBranch)
+    assertContains(blocked.blockedReason, "no longer exists")
+    assertEquals(listOf(persistedBranch), git.branchExistsCalls)
+    assertTrue(
+      git.checkoutCalls.isEmpty(),
+      "a missing persisted branch must never check out (would create a divergent branch): ${git.checkoutCalls}",
+    )
+    val launchedMutating = harness.launchOrder().filter { it != "plan" }
+    assertTrue(launchedMutating.isEmpty(), "no file-mutating phase may launch when re-attach fails: $launchedMutating")
+  }
+
+  @Test
+  fun `resume blocks loudly when persisted branch existence cannot be verified`() {
+    val persistedBranch = "feat/existence-unreadable"
+    val git = RecordingWorkflowGitOperations(
+      currentBranchValue = "main",
+      branchExistsResult = WorkflowGitOperationResult(status = "error", error = "rev-parse exploded"),
+    )
+    val harness = runnerHarness(branchSetup = BranchSetupTestConfig(git, CONVENTION_SPEC_REFERENCE))
+    harness.seedResolvedBranch(persistedBranch, baseBranch = "main", created = true)
+    harness.seedPhase("plan", "completed", 1, INVOKED_AGENT, PLAN_OUTPUT)
+
+    val report = harness.runner.run(harness.request())
+
+    val blocked = assertIs<FeatureTaskRuntimeRunReport.Blocked>(report)
+    assertEquals("implement", blocked.lastIncompletePhase)
+    assertContains(blocked.blockedReason, persistedBranch)
+    assertContains(blocked.blockedReason, "rev-parse exploded")
+    assertTrue(git.checkoutCalls.isEmpty(), "an unverifiable persisted branch must never check out")
+    assertTrue(harness.launchOrder().none { it != "plan" })
+  }
+
+  @Test
+  fun `checkout that lands on a different branch blocks loudly and launches no file-mutating phase`() {
+    val git = RecordingWorkflowGitOperations(
+      currentBranchValue = "main",
+      landedBranchAfterCheckout = "feat/wrong-landing",
+    )
+    val harness = runnerHarness(branchSetup = BranchSetupTestConfig(git, CONVENTION_SPEC_REFERENCE))
+
+    val report = harness.runner.run(harness.request())
+
+    val blocked = assertIs<FeatureTaskRuntimeRunReport.Blocked>(report)
+    assertEquals("implement", blocked.lastIncompletePhase)
+    assertContains(blocked.blockedReason, "feat/wrong-landing")
+    assertContains(blocked.blockedReason, EXPECTED_FEATURE_BRANCH)
+    assertTrue(blocked.blockedReason.contains("HEAD is on"))
+    val launchedMutating = harness.launchOrder().filter { it != "plan" }
+    assertTrue(
+      launchedMutating.isEmpty(),
+      "no file-mutating phase may launch when HEAD lands on the wrong branch: $launchedMutating",
+    )
+  }
+
+  @Test
+  fun `checkout that lands on a protected branch blocks loudly and launches no file-mutating phase`() {
+    // A corrupt persisted branch name that is itself protected: the checkout reports landing on it
+    // (landed == target), so the post-checkout guard must reject it via the protected-branch arm
+    // rather than the wrong-branch arm.
+    val protectedPersisted = "main"
+    val git = RecordingWorkflowGitOperations(currentBranchValue = "feat/pre-created")
+    val harness = runnerHarness(branchSetup = BranchSetupTestConfig(git, CONVENTION_SPEC_REFERENCE))
+    harness.seedResolvedBranch(protectedPersisted, baseBranch = "main", created = false)
+    harness.seedPhase("plan", "completed", 1, INVOKED_AGENT, PLAN_OUTPUT)
+
+    val report = harness.runner.run(harness.request())
+
+    val blocked = assertIs<FeatureTaskRuntimeRunReport.Blocked>(report)
+    assertEquals("implement", blocked.lastIncompletePhase)
+    assertContains(blocked.blockedReason, "protected branch")
+    assertContains(blocked.blockedReason, "main")
+    val launchedMutating = harness.launchOrder().filter { it != "plan" }
+    assertTrue(
+      launchedMutating.isEmpty(),
+      "no file-mutating phase may launch when HEAD lands on a protected branch: $launchedMutating",
+    )
+  }
+
+  @Test
+  fun `resume already on a protected persisted branch blocks loudly and launches no file-mutating phase`() {
+    // Same corrupt persisted branch as the checkout-protected test, but HEAD is already on the
+    // protected branch. The no-op re-attach path must still reject it before launching implement.
+    val git = RecordingWorkflowGitOperations(currentBranchValue = "main")
+    val harness = runnerHarness(branchSetup = BranchSetupTestConfig(git, CONVENTION_SPEC_REFERENCE))
+    harness.seedResolvedBranch("main", baseBranch = "main", created = false)
+    harness.seedPhase("plan", "completed", 1, INVOKED_AGENT, PLAN_OUTPUT)
+
+    val report = harness.runner.run(harness.request())
+
+    val blocked = assertIs<FeatureTaskRuntimeRunReport.Blocked>(report)
+    assertEquals("implement", blocked.lastIncompletePhase)
+    assertContains(blocked.blockedReason, "protected branch")
+    assertContains(blocked.blockedReason, "main")
+    assertTrue(git.checkoutCalls.isEmpty(), "already-on-protected re-attach must not check out")
+    val launchedMutating = harness.launchOrder().filter { it != "plan" }
+    assertTrue(
+      launchedMutating.isEmpty(),
+      "no file-mutating phase may launch when persisted branch is protected: $launchedMutating",
+    )
+  }
+
+  @Test
+  fun `no file-mutating phase launches while on the default branch`() {
+    val git = RecordingWorkflowGitOperations(
+      currentBranchValue = "main",
+      checkoutResult = WorkflowGitOperationResult(status = "error", error = "denied"),
+    )
+    val harness = runnerHarness(branchSetup = BranchSetupTestConfig(git, CONVENTION_SPEC_REFERENCE))
+
+    harness.runner.run(harness.request())
+
+    val launchedMutating = harness.launchOrder().filter { it != "plan" }
+    assertTrue(launchedMutating.isEmpty(), "no file-mutating phase may launch on the default branch: $launchedMutating")
+  }
+
+  @Test
+  fun `branch-setup block is durably visible to status, observability, and the ledger`() {
+    val git = RecordingWorkflowGitOperations(
+      currentBranchValue = "main",
+      checkoutResult = WorkflowGitOperationResult(status = "error", error = "checkout exploded"),
+    )
+    val harness = runnerHarness(branchSetup = BranchSetupTestConfig(git, CONVENTION_SPEC_REFERENCE))
+
+    val report = harness.runner.run(harness.request())
+
+    val blocked = assertIs<FeatureTaskRuntimeRunReport.Blocked>(report)
+    assertEquals("implement", blocked.lastIncompletePhase)
+
+    // Durable status projection: the branch-setup block is no longer invisible (blockedCount=0,
+    // implement merely running/pending); it surfaces as a first-class blocked phase with its reason.
+    val status = requireNotNull(
+      FeatureTaskRuntimeStatusService(harness.recorder)
+        .status(FeatureTaskRuntimeStatusRequest(WORKFLOW_ID)),
+    )
+    assertEquals(1, status.blockedCount)
+    val implementStatus = status.phases.single { it.phaseId == "implement" }
+    assertEquals("blocked", implementStatus.status)
+
+    val implementRecord = requireNotNull(harness.recorder.loadPhaseRecords(WORKFLOW_ID).orEmpty()["implement"])
+    assertEquals("blocked", implementRecord.status)
+    assertContains(requireNotNull(implementRecord.blockedReason), "checkout exploded")
+
+    // Typed observability event mirrors the per-phase block path.
+    val event = assertIs<FeatureTaskRuntimeRunEvent.BranchSetupBlocked>(
+      harness.events.single { it is FeatureTaskRuntimeRunEvent.BranchSetupBlocked },
+    )
+    assertEquals("implement", event.phaseId)
+    assertContains(event.blockedReason, "checkout exploded")
+
+    // Append-only ledger carries the blocked entry for the audit trail.
+    val ledgerEntry = requireNotNull(harness.recorder.loadPhaseLedger(WORKFLOW_ID).orEmpty())
+      .single { it.action == FeatureTaskRuntimePhaseLedgerAction.BLOCKED }
+    assertEquals("implement", ledgerEntry.phaseId)
+    assertContains(requireNotNull(ledgerEntry.blockedReason), "checkout exploded")
+  }
+
+  @Test
+  fun `resume after a recoverable branch-setup block re-attempts setup and launches the implement phase`() {
+    // F-002: a prior run blocked at branch setup (transient git error) and persisted a blocked
+    // record under "implement" keyed to the branch-setup sentinel agent. The operator fixes the git
+    // condition and resumes; branch setup now succeeds, so the stale block must be superseded and the
+    // implement phase must actually launch rather than re-block forever.
+    val git = RecordingWorkflowGitOperations(currentBranchValue = "main")
+    lateinit var harness: RunnerHarness
+    var observedPreLaunchRecord = false
+    harness = runnerHarness(
+      branchSetup = BranchSetupTestConfig(git, CONVENTION_SPEC_REFERENCE),
+      agentAssignment = phasePerAgentAssignment(),
+      eventSink = FeatureTaskRuntimeRunEventSink { event ->
+        if (event is FeatureTaskRuntimeRunEvent.PhaseStarted && event.phaseId == "implement") {
+          val preLaunchRecord = requireNotNull(harness.recorder.loadPhaseRecords(WORKFLOW_ID).orEmpty()["implement"])
+          assertEquals("blocked", preLaunchRecord.status)
+          assertEquals(BRANCH_SETUP_AGENT_ID, preLaunchRecord.resolvedAgentId)
+          observedPreLaunchRecord = true
+        }
+      },
+    )
+    harness.seedPhase("plan", "completed", 1, phaseAgent("plan"), PLAN_OUTPUT)
+    harness.seedBranchSetupBlockedPhase("implement", "checkout exploded on the prior run")
+
+    val report = harness.runner.run(harness.request())
+
+    val completed = assertIs<FeatureTaskRuntimeRunReport.Completed>(report)
+    assertEquals(EXPECTED_FEATURE_BRANCH, completed.resolvedBranch)
+    // The implement phase (and every later file-mutating phase) launched: the poison is cleared.
+    assertEquals(listOf("implement", "review", "audit", "validate"), harness.launchedPhaseOrder())
+    // The durable record is superseded back to a completed implement-agent record, not left blocked.
+    val implementRecord = requireNotNull(harness.recorder.loadPhaseRecords(WORKFLOW_ID).orEmpty()["implement"])
+    assertEquals("completed", implementRecord.status)
+    assertEquals(phaseAgent("implement"), implementRecord.resolvedAgentId)
+    assertEquals(1, implementRecord.attemptCount)
+    assertTrue(observedPreLaunchRecord, "the stale branch-setup block must remain durable until real phase launch")
+    // No phase is reported blocked once setup recovers.
+    val status = requireNotNull(
+      FeatureTaskRuntimeStatusService(harness.recorder).status(FeatureTaskRuntimeStatusRequest(WORKFLOW_ID)),
+    )
+    assertEquals(0, status.blockedCount)
+  }
+
+  @Test
+  fun `later file-mutating phases reattach when a prior phase leaves HEAD on the default branch`() {
+    val git = RecordingWorkflowGitOperations(currentBranchValue = "main")
+    val launcher = RuntimeRecordingLauncher { request ->
+      if (request.invokedAgentId == phaseAgent("implement")) {
+        git.currentBranchValue = "main"
+      }
+      facts(VALID_OUTPUT)
+    }
+    val harness = runnerHarness(
+      launcher = launcher,
+      branchSetup = BranchSetupTestConfig(git, CONVENTION_SPEC_REFERENCE),
+      agentAssignment = phasePerAgentAssignment(),
+    )
+
+    val report = harness.runner.run(harness.request())
+
+    val completed = assertIs<FeatureTaskRuntimeRunReport.Completed>(report)
+    assertEquals(EXPECTED_FEATURE_BRANCH, completed.resolvedBranch)
+    assertEquals(listOf("plan", "implement", "review", "audit", "validate"), harness.launchOrder())
+    assertEquals(
+      listOf(
+        RecordingWorkflowGitOperations.CheckoutCall(EXPECTED_FEATURE_BRANCH, "main"),
+        RecordingWorkflowGitOperations.CheckoutCall(EXPECTED_FEATURE_BRANCH, null),
+      ),
+      git.checkoutCalls,
+      "review must reattach to the persisted branch after implement leaves HEAD on main",
+    )
+  }
+
+  @Test
+  fun `recordResolvedBranch is a non-overwriting no-op once a branch is persisted`() {
+    val harness = runnerHarness()
+    harness.recorder.ensureWorkflowOpen(WORKFLOW_ID, SESSION_ID)
+    val first = FeatureTaskRuntimeResolvedBranch(branch = "feat/first-branch", baseBranch = "main", created = true)
+    val divergent =
+      FeatureTaskRuntimeResolvedBranch(branch = "feat/divergent-branch", baseBranch = "develop", created = false)
+
+    assertTrue(harness.recorder.recordResolvedBranch(WORKFLOW_ID, first))
+    // A second record with divergent values must be a no-op that never overwrites the first, so a
+    // resume/re-run can never force a second or divergent branch for the same run.
+    assertTrue(harness.recorder.recordResolvedBranch(WORKFLOW_ID, divergent))
+
+    val persisted = requireNotNull(harness.recorder.loadResolvedBranch(WORKFLOW_ID))
+    assertEquals("feat/first-branch", persisted.branch)
+    assertEquals("main", persisted.baseBranch)
+    assertEquals(true, persisted.created)
+  }
+}
+
 private const val WORKFLOW_ID = "wftr-20260602-test-0001"
 private const val SESSION_ID = "ftr-test-001"
 private const val ISSUE_KEY = "SKILL-65"
 private const val SPEC_REFERENCE = ".feature-specs/SKILL-65/spec.md"
+
+// A spec whose parent directory follows the `{ISSUE_KEY}-{feature-name}` convention so the
+// derived feature branch is `feat/{ISSUE_KEY}-{feature-name}` (GoalRunnerTest-style assertion).
+private const val CONVENTION_SPEC_REFERENCE =
+  ".feature-specs/SKILL-65-runtime-feature-task-parity/spec_subtask_1.md"
+private const val EXPECTED_FEATURE_BRANCH = "feat/SKILL-65-runtime-feature-task-parity"
 private const val INVOKED_AGENT = "claude-code"
 private const val VALID_OUTPUT = """{"contract_version":"0.1"}"""
 private const val PLAN_OUTPUT = """{"plan":"do-the-thing"}"""
@@ -575,14 +996,25 @@ private fun phaseAgent(phaseId: String): String = "agent-$phaseId"
 private fun phasePerAgentAssignment(): FeatureTaskRuntimeAgentAssignment =
   FeatureTaskRuntimeAgentAssignment(perPhaseAgentIds = ALL_PHASES.associateWith(::phaseAgent))
 
-private class RunnerHarness(
-  val launcher: RuntimeRecordingLauncher,
+// Bundles the persistence + git collaborators a harness exposes so the harness constructor stays
+// within the parameter budget.
+private class RunnerHarnessIo(
   val recorder: FeatureTaskRuntimePhaseRecorder,
   val repository: InMemoryRuntimeWorkflowRepository,
+  val gitOperations: RecordingWorkflowGitOperations,
+)
+
+private class RunnerHarness(
+  val launcher: RuntimeRecordingLauncher,
+  val io: RunnerHarnessIo,
   val runner: FeatureTaskRuntimeRunner,
   val events: MutableList<FeatureTaskRuntimeRunEvent>,
   private val runRequest: FeatureTaskRuntimeRunRequest,
 ) {
+  val recorder: FeatureTaskRuntimePhaseRecorder get() = io.recorder
+  val repository: InMemoryRuntimeWorkflowRepository get() = io.repository
+  val gitOperations: RecordingWorkflowGitOperations get() = io.gitOperations
+
   // Launch order recovered from the event stream: each launch is preceded by a
   // PhaseStarted or a PhaseFixLoopIteration carrying the phase id.
   fun launchOrder(): List<String> = events.mapNotNull { event ->
@@ -607,6 +1039,19 @@ private class RunnerHarness(
     recorder.recordPhaseStateForTest(phaseId, status, attemptCount, agentId, outputArtifact)
   }
 
+  // Seeds the durable run-scoped resolved branch, simulating a prior run that already established it.
+  fun seedResolvedBranch(branch: String, baseBranch: String?, created: Boolean) {
+    recorder.ensureWorkflowOpen(WORKFLOW_ID, SESSION_ID)
+    recorder.recordResolvedBranch(
+      WORKFLOW_ID,
+      skillbill.workflow.taskruntime.model.FeatureTaskRuntimeResolvedBranch(
+        branch = branch,
+        baseBranch = baseBranch,
+        created = created,
+      ),
+    )
+  }
+
   // Seeds a durable terminal blocked per-phase record (the marker that survives ledger pruning).
   fun seedBlockedPhase(phaseId: String, attemptCount: Int, agentId: String, blockedReason: String) {
     recorder.ensureWorkflowOpen(WORKFLOW_ID, SESSION_ID)
@@ -624,19 +1069,48 @@ private class RunnerHarness(
     )
   }
 
+  // Seeds a durable branch-setup-origin blocked record (keyed to the branch-setup sentinel agent),
+  // modelling a prior run that blocked while establishing the feature branch for the phase.
+  fun seedBranchSetupBlockedPhase(phaseId: String, blockedReason: String) {
+    recorder.ensureWorkflowOpen(WORKFLOW_ID, SESSION_ID)
+    recorder.recordPhaseState(
+      skillbill.application.model.FeatureTaskRuntimePhaseStateRequest(
+        workflowId = WORKFLOW_ID,
+        phaseId = phaseId,
+        status = "blocked",
+        attemptCount = 1,
+        resolvedAgentId = BRANCH_SETUP_AGENT_ID,
+        finished = false,
+        outputArtifact = null,
+        blockedReason = blockedReason,
+      ),
+    )
+  }
+
   fun request(): FeatureTaskRuntimeRunRequest = runRequest
 }
+
+// Mirrors the runner's branch-setup sentinel agent id so tests can seed a branch-setup-origin block.
+private const val BRANCH_SETUP_AGENT_ID = "branch-setup"
+
+// Bundles the branch-setup-relevant test inputs so runnerHarness stays within the parameter budget.
+private data class BranchSetupTestConfig(
+  val gitOperations: RecordingWorkflowGitOperations = RecordingWorkflowGitOperations(),
+  val specReference: String = SPEC_REFERENCE,
+)
 
 private fun runnerHarness(
   launcher: RuntimeRecordingLauncher = RuntimeRecordingLauncher { facts(VALID_OUTPUT) },
   validator: FeatureTaskRuntimePhaseOutputValidator = AlwaysValidValidator,
   agentAssignment: FeatureTaskRuntimeAgentAssignment = FeatureTaskRuntimeAgentAssignment(),
   eventSink: FeatureTaskRuntimeRunEventSink? = null,
+  branchSetup: BranchSetupTestConfig = BranchSetupTestConfig(),
 ): RunnerHarness {
   val repository = InMemoryRuntimeWorkflowRepository()
   val database = RuntimeFakeDatabaseSessionFactory(repository)
   val recorder = FeatureTaskRuntimePhaseRecorder(database, NoopWorkflowSnapshotValidator)
-  val runner = FeatureTaskRuntimeRunner(launcher, recorder, validator)
+  val branchSetupRunner = FeatureTaskRuntimeBranchSetupRunner(recorder, branchSetup.gitOperations)
+  val runner = FeatureTaskRuntimeRunner(launcher, recorder, validator, branchSetupRunner)
   // Always capture events; a caller-supplied sink is chained after the capture.
   val captured = mutableListOf<FeatureTaskRuntimeRunEvent>()
   val sink = FeatureTaskRuntimeRunEventSink { event ->
@@ -648,7 +1122,7 @@ private fun runnerHarness(
     workflowId = WORKFLOW_ID,
     sessionId = SESSION_ID,
     runInvariants = FeatureTaskRuntimeRunInvariants(
-      specReference = SPEC_REFERENCE,
+      specReference = branchSetup.specReference,
       acceptanceCriteria = listOf("AC-1", "AC-2"),
       mandatesAndOverrides = listOf("mandate-X"),
     ),
@@ -659,7 +1133,8 @@ private fun runnerHarness(
     repoRoot = Path.of("/tmp/repo"),
     eventSink = sink,
   )
-  return RunnerHarness(launcher, recorder, repository, runner, captured, runRequest)
+  val io = RunnerHarnessIo(recorder, repository, branchSetup.gitOperations)
+  return RunnerHarness(launcher, io, runner, captured, runRequest)
 }
 
 private fun facts(stdout: String): AgentRunLaunchOutcome = AgentRunLaunchFacts(
@@ -713,6 +1188,87 @@ private class ThrowingValidator(private val failPhases: Set<String>) : FeatureTa
 
 private object AlwaysValidValidator : FeatureTaskRuntimePhaseOutputValidator {
   override fun validatePhaseOutputText(phaseOutputText: String, sourceLabel: String) = Unit
+}
+
+// Records every checkout, with configurable currentBranch/checkoutBranch results. The default
+// currentBranch reports an already-feature branch so existing tests never enter the create path;
+// branch-setup tests override these to drive starts-on-default / cannot-establish / resume cases.
+private class RecordingWorkflowGitOperations(
+  var currentBranchValue: String = "feat/existing-runtime-branch",
+  var currentBranchResult: WorkflowGitOperationResult? = null,
+  var checkoutResult: WorkflowGitOperationResult? = null,
+  // When set, a successful checkout updates the working-tree branch the next currentBranch read
+  // reports, modelling git HEAD actually moving so the runner's post-checkout re-confirmation sees
+  // the landed branch. Defaults to the checkout target.
+  var landedBranchAfterCheckout: String? = null,
+  // Branch names the repository reports as existing. null models every queried branch as existing
+  // (the common case for re-attach tests); a concrete set models a repository where the persisted
+  // branch may have been deleted. branchExistsResult overrides with a raw result for error cases.
+  var existingBranches: Set<String>? = null,
+  var branchExistsResult: WorkflowGitOperationResult? = null,
+) : WorkflowGitOperations {
+  data class CheckoutCall(val branch: String, val baseBranch: String?)
+
+  val checkoutCalls = mutableListOf<CheckoutCall>()
+  val branchExistsCalls = mutableListOf<String>()
+  var currentBranchCalls: Int = 0
+
+  override fun checkoutBranch(repoRoot: Path, branch: String, baseBranch: String?): WorkflowGitOperationResult {
+    checkoutCalls += CheckoutCall(branch, baseBranch)
+    val result = checkoutResult ?: WorkflowGitOperationResult(status = "ok", value = branch)
+    if (result.ok) {
+      currentBranchValue = landedBranchAfterCheckout ?: branch
+    }
+    return result
+  }
+
+  override fun branchExists(repoRoot: Path, branch: String): WorkflowGitOperationResult {
+    branchExistsCalls += branch
+    branchExistsResult?.let { return it }
+    val exists = existingBranches?.contains(branch.trim()) ?: true
+    return WorkflowGitOperationResult(status = "ok", value = exists.toString())
+  }
+
+  override fun currentBranch(repoRoot: Path): WorkflowGitOperationResult {
+    currentBranchCalls++
+    return currentBranchResult ?: WorkflowGitOperationResult(status = "ok", value = currentBranchValue)
+  }
+
+  override fun createCommit(repoRoot: Path, message: String): WorkflowGitOperationResult =
+    WorkflowGitOperationResult(status = "ok", value = "recorded")
+
+  override fun headCommitSha(repoRoot: Path): WorkflowGitOperationResult =
+    WorkflowGitOperationResult(status = "ok", value = "")
+
+  override fun validateBranchBase(
+    repoRoot: Path,
+    branch: String,
+    expectedBaseBranch: String,
+  ): WorkflowGitOperationResult = WorkflowGitOperationResult(status = "ok", value = expectedBaseBranch)
+
+  override fun worktreeStatus(repoRoot: Path): WorkflowGitOperationResult =
+    WorkflowGitOperationResult(status = "ok", value = "")
+
+  override fun worktreeActivity(repoRoot: Path): WorkflowWorktreeActivityResult = WorkflowWorktreeActivityResult(
+    status = "ok",
+    changedFileSummary = GoalObservabilityChangedFileSummary(
+      total = 0,
+      added = 0,
+      modified = 0,
+      deleted = 0,
+      renamed = 0,
+      untracked = 0,
+    ),
+    diffStat = GoalObservabilityDiffStat(filesChanged = 0, insertions = 0, deletions = 0),
+  )
+
+  override fun selectedDiffHunks(
+    repoRoot: Path,
+    request: WorkflowSelectedDiffHunksRequest,
+  ): WorkflowSelectedDiffHunksResult = WorkflowSelectedDiffHunksResult(
+    status = "ok",
+    selectedDiffHunks = GoalObservabilitySelectedDiffHunks(),
+  )
 }
 
 // The runner only drives openRecord/updateRecord (no snapshotView casts), so a

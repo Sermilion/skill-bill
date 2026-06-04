@@ -19,6 +19,46 @@ const val FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY: String = "feature_task
 const val FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT: Int = 200
 
 /**
+ * Durable run-scoped resolved feature branch. The runtime resolves a non-default feature branch
+ * before any file-mutating phase runs and persists it here exactly once, so resume re-attaches to
+ * the same branch and never creates a duplicate or divergent one.
+ */
+const val FEATURE_TASK_RUNTIME_RESOLVED_BRANCH_ARTIFACT_KEY: String = "feature_task_runtime_resolved_branch"
+
+/**
+ * The durable resolved feature branch for one run. [branch] is the non-default feature branch the
+ * run is pinned to; [baseBranch] is the branch it was created from (null when the run reused an
+ * already-checked-out branch rather than creating one).
+ */
+data class FeatureTaskRuntimeResolvedBranch(
+  val branch: String,
+  val baseBranch: String? = null,
+  val created: Boolean = false,
+) {
+  init {
+    require(branch.isNotBlank()) { "FeatureTaskRuntimeResolvedBranch.branch must be non-blank." }
+  }
+
+  @OpenBoundaryMap("Feature-task-runtime resolved-branch artifact map at the durable workflow-artifact seam")
+  fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
+    "branch" to branch,
+    "created" to created,
+  ).apply {
+    baseBranch?.let { put("base_branch", it) }
+  }
+
+  companion object {
+    /** Strict decode; loud-fails on a missing or malformed required field. */
+    @OpenBoundaryMap("Feature-task-runtime resolved-branch decode from the durable workflow-artifact map")
+    fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeResolvedBranch = FeatureTaskRuntimeResolvedBranch(
+      branch = raw.requireStringField("branch"),
+      baseBranch = raw.optionalStringField("base_branch"),
+      created = raw.optionalBooleanField("created") ?: false,
+    )
+  }
+}
+
+/**
  * Durable per-phase launch briefing store. The assembled briefing is persisted, keyed
  * by phase id, before the phase agent is launched, so it is a durable handoff a consumer
  * reads rather than dead computation. Each entry is the latest briefing for that phase.
@@ -223,6 +263,16 @@ private fun Map<String, Any?>.optionalIntField(key: String): Int? {
   return this[key].asExactIntOrNull()
     ?: throw InvalidWorkflowStateSchemaError(
       "Feature-task-runtime artifact field '$key' must decode to an integer when present.",
+    )
+}
+
+private fun Map<String, Any?>.optionalBooleanField(key: String): Boolean? {
+  if (!containsKey(key) || this[key] == null) {
+    return null
+  }
+  return this[key] as? Boolean
+    ?: throw InvalidWorkflowStateSchemaError(
+      "Feature-task-runtime artifact field '$key' must decode to a boolean when present.",
     )
 }
 

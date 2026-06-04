@@ -42,6 +42,7 @@ class FeatureTaskRuntimeStatusService(
       pendingCount = phases.count { it.status !in TERMINAL_PHASE_STATUSES },
       blockedCount = phases.count { it.status == STATUS_BLOCKED },
       currentPhaseId = phases.firstOrNull { it.status != STATUS_COMPLETED }?.phaseId,
+      resolvedBranch = recorder.loadResolvedBranch(request.workflowId, request.dbPathOverride)?.branch,
     )
   }
 

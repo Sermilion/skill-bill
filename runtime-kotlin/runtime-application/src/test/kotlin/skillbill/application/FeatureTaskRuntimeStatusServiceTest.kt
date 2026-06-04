@@ -116,6 +116,38 @@ class FeatureTaskRuntimeStatusServiceTest {
     assertEquals("implement", projection.currentPhaseId)
   }
 
+  @Test
+  fun `projection surfaces the durable resolved feature branch`() {
+    val harness = statusHarness()
+    harness.recorder.ensureWorkflowOpen(WORKFLOW_ID, SESSION_ID)
+    harness.recorder.recordResolvedBranch(
+      WORKFLOW_ID,
+      skillbill.workflow.taskruntime.model.FeatureTaskRuntimeResolvedBranch(
+        branch = "feat/SKILL-65-runtime-feature-task-parity",
+        baseBranch = "main",
+        created = true,
+      ),
+    )
+
+    val projection = requireNotNull(
+      harness.service.status(FeatureTaskRuntimeStatusRequest(workflowId = WORKFLOW_ID)),
+    )
+
+    assertEquals("feat/SKILL-65-runtime-feature-task-parity", projection.resolvedBranch)
+  }
+
+  @Test
+  fun `projection resolved branch is null before branch setup`() {
+    val harness = statusHarness()
+    harness.recorder.ensureWorkflowOpen(WORKFLOW_ID, SESSION_ID)
+
+    val projection = requireNotNull(
+      harness.service.status(FeatureTaskRuntimeStatusRequest(workflowId = WORKFLOW_ID)),
+    )
+
+    assertNull(projection.resolvedBranch)
+  }
+
   private fun statusHarness(): StatusHarness {
     val repository = StatusInMemoryWorkflowRepository()
     val database = StatusFakeDatabaseSessionFactory(repository)

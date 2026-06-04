@@ -1,3 +1,12 @@
+## [2026-06-04] SKILL-65.1 subtask 1 runtime-run-setup-and-feature-branch
+Areas: runtime-kotlin/runtime-application, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-domain, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-ports, runtime-kotlin/ARCHITECTURE.md
+- Feature-task-runtime now establishes a non-default feature branch before every file-mutating phase, persists the resolved branch in workflow artifacts, and reports it through run/resume/status/monitor output. reusable
+- Branch setup blocks remain durable as `branch-setup` records until the real phase launch overwrites them, so crash recovery does not erase blocked source-of-truth or consume phase attempts. reusable
+- `WorkflowGitOperations.branchExists` distinguishes absent branches from fatal git failures; resume reattaches to the persisted branch and refuses missing, protected, or unverifiable branches loudly. reusable
+- Runner revalidates/reattaches before each mutating phase so a prior agent leaving HEAD on `main` cannot make later phases edit the default branch.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
 ## [2026-06-03] SKILL-65 subtask 5 comparison-harness-and-promote-kill-criteria
 Areas: runtime-kotlin/runtime-application, runtime-kotlin/docs, runtime-kotlin/ARCHITECTURE.md, skills/bill-feature-task-runtime (docs only), .feature-specs/SKILL-65-*, agent/decisions.md, README.md
 - AC2 guardrail tests for feature-task-runtime: runtime-owned per-phase record fields (timestamps/agent-id/status asserted over runner-persisted `FeatureTaskRuntimePhaseRecord`, NOT hand-constructed values); a no-advance-without-validated-output regression over `FeatureTaskRuntimeFixLoopPolicy` Block paths (incl. the `require(currentIteration>=1)` floor and `MAX_FIX_LOOP_ITERATIONS=3` cap); and a per-phase handoff payload byte budget. reusable

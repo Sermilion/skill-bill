@@ -40,6 +40,27 @@ feature.
 6. An end-to-end integration validation gate demonstrates a goal-driven run:
    pre-created branch reused, no decomposition, PR suppressed, `commit_push`
    terminal — and a direct run: own branch, PR opened.
+7. **Subtask-timeout resumability** (observed in the first SKILL-65.1 run): a
+   goal-driven runtime subtask that hits the goal runner's per-subtask
+   wall-clock budget must leave durable, phase-accurate resumable state and, on
+   the goal's next attempt, **continue from `last_resumable_step` without redoing
+   already-completed phases** — net forward progress per attempt, no busy-loop
+   restart from `preplan`. If a single subtask genuinely cannot finish inside one
+   budget window, the budget must be either configurable per goal/subtask or
+   large enough for a real feature-task subtask, and a timeout must surface a
+   clear, actionable `blocked_reason` (it already does) **plus** a resumable
+   workflow row the next attempt advances from rather than repeats.
+
+## Observed Issue — first run (2026-06-04)
+
+The first `skill-bill goal SKILL-65.1 --agent claude` run created the feature
+branch and progressed `preplan -> plan -> implement -> review` (with a couple of
+implement/review cycles), then stopped: `subtask 1 stopped (timeout)` at
+`current_step=review`, `workflow_id=wfl-20260604-075221-eylh`,
+`last_resumable_step=review`. Liveness was `file_activity` throughout, so the
+child was making progress, not hung — the per-subtask time budget simply
+expired before a terminal workflow-store outcome. AC 7 above exists to make this
+case resume-safe (forward progress on the next attempt) rather than a restart.
 
 ## Non-Goals
 

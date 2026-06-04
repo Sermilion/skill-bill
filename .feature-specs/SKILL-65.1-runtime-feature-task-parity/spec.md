@@ -126,6 +126,11 @@ decomposition, suppress PR when driven by the goal).
   blocks loudly with an actionable reason rather than silently completing.
 - All git-touching behavior is idempotent across resume (no duplicate branch, no
   second PR, no changes left on the default branch).
+- Subtask-timeout resumability: a goal-driven runtime subtask that hits the goal
+  runner's per-subtask wall-clock budget must resume from `last_resumable_step`
+  with net forward progress (no restart from `preplan`) — observed in the first
+  SKILL-65.1 run (subtask 1 timed out at `review`); addressed under subtask 7
+  AC 7.
 - Changes stay confined to the `feature-task-runtime` family; the architecture
   ownership tests (`ImplementationOwnershipArchitectureTest`,
   `RuntimeArchitectureTest`) keep passing.

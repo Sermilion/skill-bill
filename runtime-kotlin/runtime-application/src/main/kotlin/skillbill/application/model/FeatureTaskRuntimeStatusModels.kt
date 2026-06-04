@@ -34,4 +34,6 @@ data class FeatureTaskRuntimeStatusProjection(
   val blockedCount: Int,
   /** First not-yet-complete phase in definition order, or null when all complete. */
   val currentPhaseId: String?,
+  /** The run's resolved feature branch, or null when branch setup has not run yet. */
+  val resolvedBranch: String? = null,
 )

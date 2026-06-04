@@ -5,6 +5,14 @@ import skillbill.ports.agentrun.AgentRunLauncher
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
 import skillbill.ports.agentrun.model.AgentRunLaunchRequest
+import skillbill.ports.workflow.WorkflowGitOperations
+import skillbill.ports.workflow.model.WorkflowGitOperationResult
+import skillbill.ports.workflow.model.WorkflowSelectedDiffHunksRequest
+import skillbill.ports.workflow.model.WorkflowSelectedDiffHunksResult
+import skillbill.ports.workflow.model.WorkflowWorktreeActivityResult
+import skillbill.workflow.model.GoalObservabilityChangedFileSummary
+import skillbill.workflow.model.GoalObservabilityDiffStat
+import skillbill.workflow.model.GoalObservabilitySelectedDiffHunks
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
@@ -43,6 +51,49 @@ class CliFeatureTaskRuntimeRuntimeTest {
     )
     assertEquals(1, missingSpec.exitCode, missingSpec.stdout)
     assertContains(missingSpec.stdout, "spec_path is required")
+  }
+
+  @Test
+  fun `feature-task-runtime run reports the resolved feature branch in text and status without a new flag`() {
+    val fixture = runtimeFixture()
+    val launcher = RecordingPhaseLauncher()
+    // Start on the default branch so the runtime creates+switches to the convention feature branch.
+    val git = FakeRuntimeGitOperations(currentBranchValue = "main")
+
+    val run = CliRuntime.run(
+      fixture.runCommand(extra = listOf("--agent", "codex")),
+      fixture.context(launcher, workflowGitOperations = git),
+    )
+
+    assertEquals(0, run.exitCode, run.stdout)
+    assertContains(run.stdout, "status: complete")
+    assertContains(run.stdout, "resolved_branch: feat/SKILL-650-runtime")
+    assertEquals(listOf("feat/SKILL-650-runtime"), git.checkoutBranches)
+    val workflowId = run.stdout.lines().single { it.startsWith("workflow_id:") }.substringAfter(":").trim()
+
+    val status = CliRuntime.run(
+      listOf("--db", fixture.dbPath.toString(), "feature-task-runtime", "status", workflowId),
+      fixture.context(launcher),
+    )
+
+    assertEquals(0, status.exitCode, status.stdout)
+    assertContains(status.stdout, "resolved_branch: feat/SKILL-650-runtime")
+  }
+
+  @Test
+  fun `feature-task-runtime monitor streams the branch-resolution line`() {
+    val fixture = runtimeFixture()
+    val launcher = RecordingPhaseLauncher()
+    val git = FakeRuntimeGitOperations(currentBranchValue = "main")
+    val live = StringBuilder()
+
+    val result = CliRuntime.run(
+      fixture.runCommand(extra = listOf("--agent", "codex", "--monitor")),
+      fixture.context(launcher, liveStdout = { live.append(it) }, workflowGitOperations = git),
+    )
+
+    assertEquals(0, result.exitCode, result.stdout)
+    assertContains(live.toString(), "branch created feat/SKILL-650-runtime")
   }
 
   @Test
@@ -358,11 +409,16 @@ private data class FeatureTaskRuntimeCliFixture(
     launcher: AgentRunLauncher,
     environment: Map<String, String> = emptyMap(),
     liveStdout: (String) -> Unit = {},
+    // Defaults to an already-checked-out feature branch so the runtime reuses it (no checkout) and
+    // existing completion/blocked expectations stand; branch-setup tests override this to start on
+    // the default branch. The real git adapter is bypassed because the tempDir is not a git repo.
+    workflowGitOperations: WorkflowGitOperations = FakeRuntimeGitOperations(),
   ): CliRuntimeContext = CliRuntimeContext(
     userHome = tempDir,
     agentRunLauncher = launcher,
     environment = environment,
     liveStdout = liveStdout,
+    workflowGitOperations = workflowGitOperations,
   )
 
   fun runCommand(extra: List<String> = emptyList()): List<String> = buildList {
@@ -459,4 +515,64 @@ private class RecordingPhaseLauncher(
         tasks: ["task-1"]
     """.trimIndent()
   }
+}
+
+// Records checkouts and reports a configurable current branch so branch-setup is exercised through
+// the CLI without a real git repo. The default reports an existing feature branch (reuse path).
+private class FakeRuntimeGitOperations(
+  private var currentBranchValue: String = "feat/pre-created-runtime-branch",
+  private val checkoutResult: WorkflowGitOperationResult? = null,
+) : WorkflowGitOperations {
+  val checkoutBranches: MutableList<String> = mutableListOf()
+
+  override fun checkoutBranch(repoRoot: Path, branch: String, baseBranch: String?): WorkflowGitOperationResult {
+    checkoutBranches += branch
+    val result = checkoutResult ?: WorkflowGitOperationResult(status = "ok", value = branch)
+    if (result.ok) {
+      currentBranchValue = branch
+    }
+    return result
+  }
+
+  override fun branchExists(repoRoot: Path, branch: String): WorkflowGitOperationResult =
+    WorkflowGitOperationResult(status = "ok", value = "true")
+
+  override fun currentBranch(repoRoot: Path): WorkflowGitOperationResult =
+    WorkflowGitOperationResult(status = "ok", value = currentBranchValue)
+
+  override fun createCommit(repoRoot: Path, message: String): WorkflowGitOperationResult =
+    WorkflowGitOperationResult(status = "ok", value = "recorded")
+
+  override fun headCommitSha(repoRoot: Path): WorkflowGitOperationResult =
+    WorkflowGitOperationResult(status = "ok", value = "")
+
+  override fun validateBranchBase(
+    repoRoot: Path,
+    branch: String,
+    expectedBaseBranch: String,
+  ): WorkflowGitOperationResult = WorkflowGitOperationResult(status = "ok", value = expectedBaseBranch)
+
+  override fun worktreeStatus(repoRoot: Path): WorkflowGitOperationResult =
+    WorkflowGitOperationResult(status = "ok", value = "")
+
+  override fun worktreeActivity(repoRoot: Path): WorkflowWorktreeActivityResult = WorkflowWorktreeActivityResult(
+    status = "ok",
+    changedFileSummary = GoalObservabilityChangedFileSummary(
+      total = 0,
+      added = 0,
+      modified = 0,
+      deleted = 0,
+      renamed = 0,
+      untracked = 0,
+    ),
+    diffStat = GoalObservabilityDiffStat(filesChanged = 0, insertions = 0, deletions = 0),
+  )
+
+  override fun selectedDiffHunks(
+    repoRoot: Path,
+    request: WorkflowSelectedDiffHunksRequest,
+  ): WorkflowSelectedDiffHunksResult = WorkflowSelectedDiffHunksResult(
+    status = "ok",
+    selectedDiffHunks = GoalObservabilitySelectedDiffHunks(),
+  )
 }
