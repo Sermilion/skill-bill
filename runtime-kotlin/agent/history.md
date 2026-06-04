@@ -1,3 +1,14 @@
+## [2026-06-04] SKILL-65.1 subtask 5 decomposition-mode-and-planning-stop
+Areas: runtime-kotlin/runtime-domain, runtime-kotlin/runtime-application, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-contracts
+- Feature-task-runtime `plan` phase can now emit a `mode: decompose` terminal outcome (typed via `FeatureTaskRuntimePlanOutcome`/`FeatureTaskRuntimePlanOutcomeDecoders`) that stops the run at planning (durable status `abandoned`, not `failed`) instead of advancing to implement. reusable
+- The stop writes parent `spec.md` + ordered `spec_subtask_*.md` + `decomposition-manifest.yaml` through the SHARED `FeatureSpecPreparationWriter` path (no one-off writer) and surfaces the terminal (subtask count + "work the first subtask first" guidance) in status/--monitor. reusable
+- Goal-continuation runs skip decomposition via a single shared `isGoalContinuationRun` predicate (`FeatureTaskRuntimeGoalContinuation.kt`) consumed by both the runner prompt `suppressDecomposition` flag and the stopper; keep it one source of truth to avoid drift. reusable
+- Resume gotcha: the decompose determination must be resume-safe. PLAN is durably persisted `completed` before the stop runs, so a PLAN-complete-on-entry resume must re-evaluate the stop (reconstructing the recorded terminal idempotently) or the run silently falls through to implement. reusable
+- Crash gotcha: guard the whole decompose parse+write path into a durable Blocked. Writer business-rule rejections (duplicate/descending subtask ids, bad depends_on) throw `InvalidFeatureSpecPreparationRequestError` which extends `SkillBillRuntimeException`, NOT `IllegalArgumentException`; catch the shared base + `IOException` or an invalid package crashes `run()`. reusable
+- No phase-output schema or `FEATURE_TASK_RUNTIME_CONTRACT_VERSION` bump; the decompose package rides inside the existing open `produced_outputs` under `status: completed`.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
 ## [2026-06-04] SKILL-65.1 subtask 4 size-assessment-and-ceremony-scaling
 Areas: runtime-kotlin/runtime-domain, runtime-kotlin/runtime-application, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-core
 - Feature-task-runtime now resolves `feature_size` once from governed spec input, defaults omitted size to `MEDIUM`, persists run invariants in workflow artifacts, and reuses the durable value on resume. reusable

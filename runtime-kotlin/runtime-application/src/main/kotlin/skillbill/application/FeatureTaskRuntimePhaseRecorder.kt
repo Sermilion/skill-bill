@@ -14,12 +14,14 @@ import skillbill.workflow.model.WorkflowStateSnapshot
 import skillbill.workflow.model.WorkflowUpdateInput
 import skillbill.workflow.model.appendBoundedHistoryBySequence
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_DECOMPOSE_TERMINAL_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_BRIEFINGS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_STATUS_BLOCKED
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_RESOLVED_BRANCH_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDecomposeTerminal
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerEntry
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeResolvedBranch
@@ -264,6 +266,43 @@ class FeatureTaskRuntimePhaseRecorder(
   }
 }
 
+@Inject
+class FeatureTaskRuntimeDecomposeTerminalRecorder(
+  private val database: DatabaseSessionFactory,
+  private val workflowSnapshotValidator: WorkflowSnapshotValidator,
+) {
+  private val engine: WorkflowEngine = WorkflowEngine(workflowSnapshotValidator)
+
+  fun recordDecomposeTerminal(
+    workflowId: String,
+    terminal: FeatureTaskRuntimeDecomposeTerminal,
+    dbOverride: String? = null,
+  ): Boolean = database.transaction(dbOverride) { unitOfWork ->
+    val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+      ?: return@transaction false
+    val updated = engine.updateRecord(
+      WorkflowFamily.TASK_RUNTIME.definition,
+      record,
+      WorkflowUpdateInput(
+        workflowStatus = "abandoned",
+        currentStepId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN,
+        stepUpdates = null,
+        artifactsPatch = mapOf(FEATURE_TASK_RUNTIME_DECOMPOSE_TERMINAL_ARTIFACT_KEY to terminal.toArtifactMap()),
+        sessionId = record.sessionId.orEmpty(),
+      ),
+    )
+    WorkflowFamily.TASK_RUNTIME.save(unitOfWork.workflowStates, updated)
+    true
+  }
+
+  fun loadDecomposeTerminal(workflowId: String, dbOverride: String? = null): FeatureTaskRuntimeDecomposeTerminal? =
+    database.read(dbOverride) { unitOfWork ->
+      val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+        ?: return@read null
+      decomposeTerminalFrom(decodeArtifacts(record.artifactsJson))
+    }
+}
+
 // Coarse workflow-row status mirrors the phase transition: a blocked phase blocks the row, the
 // final phase completing completes it, every other transition keeps it running. The per-phase
 // records map remains the detailed source of truth.
@@ -312,6 +351,15 @@ private fun resolvedBranchFrom(artifacts: Map<String, Any?>): FeatureTaskRuntime
       "Feature-task-runtime artifact '$FEATURE_TASK_RUNTIME_RESOLVED_BRANCH_ARTIFACT_KEY' must decode to a map.",
     )
   return FeatureTaskRuntimeResolvedBranch.fromArtifactMap(entryMap)
+}
+
+private fun decomposeTerminalFrom(artifacts: Map<String, Any?>): FeatureTaskRuntimeDecomposeTerminal? {
+  val raw = artifacts[FEATURE_TASK_RUNTIME_DECOMPOSE_TERMINAL_ARTIFACT_KEY] ?: return null
+  val entryMap = JsonSupport.anyToStringAnyMap(raw)
+    ?: schemaError(
+      "Feature-task-runtime artifact '$FEATURE_TASK_RUNTIME_DECOMPOSE_TERMINAL_ARTIFACT_KEY' must decode to a map.",
+    )
+  return FeatureTaskRuntimeDecomposeTerminal.fromArtifactMap(entryMap)
 }
 
 private fun phaseLedgerFrom(artifacts: Map<String, Any?>): List<FeatureTaskRuntimePhaseLedgerEntry> {

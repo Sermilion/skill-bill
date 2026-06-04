@@ -158,6 +158,54 @@ class FeatureTaskRuntimeStatusServiceTest {
   }
 
   @Test
+  fun `projection surfaces the durable decompose terminal with subtask count and guidance fields`() {
+    // T-F001 / AC4: a durable decompose-terminal record projects into the status as a non-null
+    // decomposeTerminal carrying the reason, manifest/subtask paths, and the derived subtask count.
+    val harness = statusHarness()
+    harness.recorder.ensureWorkflowOpen(WORKFLOW_ID, SESSION_ID)
+    harness.decomposeTerminalRecorder.recordDecomposeTerminal(
+      WORKFLOW_ID,
+      skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDecomposeTerminal(
+        reason = "Plan needs ordered subtasks.",
+        parentSpecPath = ".feature-specs/SKILL-65-runtime/spec.md",
+        decompositionManifestPath = ".feature-specs/SKILL-65-runtime/decomposition-manifest.yaml",
+        subtaskSpecPaths = listOf(
+          ".feature-specs/SKILL-65-runtime/spec_subtask_1_domain.md",
+          ".feature-specs/SKILL-65-runtime/spec_subtask_2_runtime.md",
+        ),
+      ),
+    )
+
+    val projection = requireNotNull(
+      harness.service.status(FeatureTaskRuntimeStatusRequest(workflowId = WORKFLOW_ID)),
+    )
+
+    val terminal = requireNotNull(projection.decomposeTerminal)
+    assertEquals("Plan needs ordered subtasks.", terminal.reason)
+    assertEquals(".feature-specs/SKILL-65-runtime/decomposition-manifest.yaml", terminal.decompositionManifestPath)
+    assertEquals(
+      listOf(
+        ".feature-specs/SKILL-65-runtime/spec_subtask_1_domain.md",
+        ".feature-specs/SKILL-65-runtime/spec_subtask_2_runtime.md",
+      ),
+      terminal.subtaskSpecPaths,
+    )
+    assertEquals(2, terminal.subtaskCount)
+  }
+
+  @Test
+  fun `projection decompose terminal is null when no decompose stop was recorded`() {
+    val harness = statusHarness()
+    harness.recorder.ensureWorkflowOpen(WORKFLOW_ID, SESSION_ID)
+
+    val projection = requireNotNull(
+      harness.service.status(FeatureTaskRuntimeStatusRequest(workflowId = WORKFLOW_ID)),
+    )
+
+    assertNull(projection.decomposeTerminal)
+  }
+
+  @Test
   fun `projection feature size is null before run invariants are persisted`() {
     val harness = statusHarness()
     harness.recorder.ensureWorkflowOpen(WORKFLOW_ID, SESSION_ID)
@@ -173,12 +221,19 @@ class FeatureTaskRuntimeStatusServiceTest {
     val repository = StatusInMemoryWorkflowRepository()
     val database = StatusFakeDatabaseSessionFactory(repository)
     val recorder = FeatureTaskRuntimePhaseRecorder(database, StatusNoopSnapshotValidator)
+    val decomposeTerminalRecorder = FeatureTaskRuntimeDecomposeTerminalRecorder(database, StatusNoopSnapshotValidator)
     val runInvariantsStore = FeatureTaskRuntimeRunInvariantsStore(database, StatusNoopSnapshotValidator)
-    return StatusHarness(recorder, runInvariantsStore, FeatureTaskRuntimeStatusService(recorder, runInvariantsStore))
+    return StatusHarness(
+      recorder,
+      decomposeTerminalRecorder,
+      runInvariantsStore,
+      FeatureTaskRuntimeStatusService(recorder, runInvariantsStore, decomposeTerminalRecorder),
+    )
   }
 
   private class StatusHarness(
     val recorder: FeatureTaskRuntimePhaseRecorder,
+    val decomposeTerminalRecorder: FeatureTaskRuntimeDecomposeTerminalRecorder,
     val runInvariantsStore: FeatureTaskRuntimeRunInvariantsStore,
     val service: FeatureTaskRuntimeStatusService,
   ) {

@@ -280,6 +280,72 @@ class CliFeatureTaskRuntimeRuntimeTest {
   }
 
   @Test
+  fun `feature-task-runtime run and monitor surface decomposed planning stop`() {
+    val fixture = runtimeFixture()
+    val launcher = RecordingPhaseLauncher(decomposePlan = true)
+    val live = StringBuilder()
+
+    val result = CliRuntime.run(
+      fixture.runCommand(extra = listOf("--agent", "codex", "--monitor")),
+      fixture.context(launcher, liveStdout = { live.append(it) }),
+    )
+
+    assertEquals(0, result.exitCode, result.stdout)
+    assertContains(result.stdout, "status: decomposed")
+    assertContains(result.stdout, "subtask_count: 2")
+    assertContains(result.stdout, "decomposition_manifest_path:")
+    assertContains(result.stdout, "Work the first subtask first")
+    assertContains(live.toString(), "decomposed at planning into 2 subtasks")
+    val launchedPhases = launcher.requests.map { request ->
+      phaseIdFromPrompt(request.skillRunRequest.promptOverride.orEmpty())
+    }
+    assertEquals(
+      listOf("preplan", "plan"),
+      launchedPhases,
+    )
+  }
+
+  @Test
+  fun `feature-task-runtime status reconstructs decomposed summary from durable state`() {
+    val fixture = runtimeFixture()
+    val launcher = RecordingPhaseLauncher(decomposePlan = true)
+    val run = CliRuntime.run(fixture.runCommand(extra = listOf("--agent", "codex")), fixture.context(launcher))
+    assertEquals(0, run.exitCode, run.stdout)
+    val workflowId = run.stdout.lines().single { it.startsWith("workflow_id:") }.substringAfter(":").trim()
+
+    val status = CliRuntime.run(
+      listOf("--db", fixture.dbPath.toString(), "feature-task-runtime", "status", workflowId),
+      fixture.context(RecordingPhaseLauncher()),
+    )
+
+    assertEquals(0, status.exitCode, status.stdout)
+    assertContains(status.stdout, "decomposition_reason: Plan needs ordered subtasks.")
+    assertContains(status.stdout, "subtask_count: 2")
+    assertContains(status.stdout, "decomposition_manifest_path:")
+    assertContains(status.stdout, "Work the first subtask first")
+  }
+
+  @Test
+  fun `feature-task-runtime goal-continuation environment skips decomposition branch`() {
+    val fixture = runtimeFixture(specFileName = "spec_subtask_5_runtime.md")
+    val launcher = RecordingPhaseLauncher(decomposePlan = true)
+
+    val result = CliRuntime.run(
+      fixture.runCommand(extra = listOf("--agent", "codex")),
+      fixture.context(
+        launcher,
+        environment = mapOf("SKILL_BILL_GOAL_CONTINUATION" to "1", "SKILL_BILL_GOAL_SUBTASK_ID" to "5"),
+      ),
+    )
+
+    assertEquals(0, result.exitCode, result.stdout)
+    assertContains(result.stdout, "status: complete")
+    assertEquals(ALL_PHASES, launcher.requests.map { phaseIdFromPrompt(it.skillRunRequest.promptOverride.orEmpty()) })
+    val planPrompt = requireNotNull(launcher.requests[1].skillRunRequest.promptOverride)
+    assertContains(planPrompt, "already executing one governed decomposed subtask")
+  }
+
+  @Test
   fun `feature-task-runtime status reports per-phase projection after a completed run`() {
     val fixture = runtimeFixture()
     val launcher = RecordingPhaseLauncher()
@@ -446,9 +512,9 @@ private data class FeatureTaskRuntimeCliFixture(
   }
 }
 
-private fun runtimeFixture(): FeatureTaskRuntimeCliFixture {
+private fun runtimeFixture(specFileName: String = "spec.md"): FeatureTaskRuntimeCliFixture {
   val tempDir = Files.createTempDirectory("skillbill-cli-feature-task-runtime")
-  val specPath = tempDir.resolve(".feature-specs/SKILL-650-runtime/spec.md")
+  val specPath = tempDir.resolve(".feature-specs/SKILL-650-runtime/$specFileName")
   Files.createDirectories(specPath.parent)
   Files.writeString(
     specPath,
@@ -474,6 +540,11 @@ private fun runtimeFixture(): FeatureTaskRuntimeCliFixture {
   )
 }
 
+private val PHASE_LINE = Regex("^Phase: ([a-z_-]+) ", setOf(RegexOption.MULTILINE))
+
+private fun phaseIdFromPrompt(prompt: String): String =
+  PHASE_LINE.find(prompt)?.groupValues?.get(1) ?: error("Prompt did not contain a phase header: $prompt")
+
 // Returns one schema-valid phase output per launch. The delivered prompt pins the runtime phase,
 // so the test double reads that phase id and echoes it back in the validated output.
 private class RecordingPhaseLauncher(
@@ -481,6 +552,7 @@ private class RecordingPhaseLauncher(
   // When set, review launches before this global launch index emit invalid output and later review
   // launches emit valid output, driving an invalid-then-valid review fix-loop retry.
   private val invalidReviewUntilLaunchIndex: Int? = null,
+  private val decomposePlan: Boolean = false,
 ) : AgentRunLauncher {
   val requests: MutableList<AgentRunLaunchRequest> = mutableListOf()
 
@@ -490,10 +562,15 @@ private class RecordingPhaseLauncher(
     val invalid = (invalidFromLaunchIndex?.let { launchIndex >= it } ?: false) ||
       isInvalidReviewRetry(launchIndex)
     val phaseId = phaseIdFromPrompt(request.skillRunRequest.promptOverride.orEmpty())
+    val stdout = when {
+      invalid -> INVALID_PHASE_OUTPUT
+      decomposePlan && phaseId == "plan" -> DECOMPOSE_PLAN_OUTPUT
+      else -> validPhaseOutput(phaseId)
+    }
     return AgentRunLaunchFacts(
       agent = InstallAgent.fromNormalizedId(request.agentId, label = "agentId"),
       exitStatus = 0,
-      stdout = if (invalid) INVALID_PHASE_OUTPUT else validPhaseOutput(phaseId),
+      stdout = stdout,
       stderr = "",
       timedOut = false,
       spawnFailed = false,
@@ -507,11 +584,6 @@ private class RecordingPhaseLauncher(
   }
 
   private companion object {
-    private val PHASE_LINE = Regex("^Phase: ([a-z_-]+) ", setOf(RegexOption.MULTILINE))
-
-    fun phaseIdFromPrompt(prompt: String): String =
-      PHASE_LINE.find(prompt)?.groupValues?.get(1) ?: error("Prompt did not contain a phase header: $prompt")
-
     // Missing the required status/summary/produced_outputs fields, so the per-phase
     // output validator rejects it and the runner never marks the phase complete.
     val INVALID_PHASE_OUTPUT =
@@ -527,6 +599,48 @@ private class RecordingPhaseLauncher(
       summary: "Phase produced a validated output."
       produced_outputs:
         tasks: ["task-1"]
+    """.trimIndent()
+
+    val DECOMPOSE_PLAN_OUTPUT: String = """
+      {
+        "contract_version": "0.1",
+        "phase_id": "plan",
+        "status": "completed",
+        "summary": "Plan needs ordered subtasks.",
+        "produced_outputs": {
+          "mode": "decompose",
+          "reason": "Plan needs ordered subtasks.",
+          "feature_name": "runtime cli decomposition",
+          "parent_spec_overview": "Split the CLI runtime work into ordered subtasks.",
+          "validation_strategy": "bill-code-check",
+          "base_branch": "main",
+          "feature_branch": "feat/SKILL-650-runtime-cli-decomposition",
+          "subtasks": [
+            {
+              "id": 1,
+              "name": "first",
+              "scope": "First subtask.",
+              "acceptance_criteria": ["First criterion."],
+              "non_goals": [],
+              "dependency_notes": "First.",
+              "validation_strategy": "unit tests",
+              "next_path": "Work subtask 2.",
+              "depends_on": []
+            },
+            {
+              "id": 2,
+              "name": "second",
+              "scope": "Second subtask.",
+              "acceptance_criteria": ["Second criterion."],
+              "non_goals": [],
+              "dependency_notes": "Depends on first.",
+              "validation_strategy": "unit tests",
+              "next_path": "Finish.",
+              "depends_on": [1]
+            }
+          ]
+        }
+      }
     """.trimIndent()
   }
 }

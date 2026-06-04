@@ -37,4 +37,14 @@ data class FeatureTaskRuntimeStatusProjection(
   val currentPhaseId: String?,
   /** The run's resolved feature branch, or null when branch setup has not run yet. */
   val resolvedBranch: String? = null,
+  val decomposeTerminal: FeatureTaskRuntimeDecomposeTerminalStatus? = null,
 )
+
+data class FeatureTaskRuntimeDecomposeTerminalStatus(
+  val reason: String,
+  val parentSpecPath: String,
+  val decompositionManifestPath: String,
+  val subtaskSpecPaths: List<String>,
+) {
+  val subtaskCount: Int get() = subtaskSpecPaths.size
+}

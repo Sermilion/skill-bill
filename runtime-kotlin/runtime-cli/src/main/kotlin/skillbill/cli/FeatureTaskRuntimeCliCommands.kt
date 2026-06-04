@@ -230,6 +230,9 @@ private fun FeatureTaskRuntimeRunEvent.runtimeProgressLine(): String = when (thi
     "feature-task-runtime $workflowId: phase $phaseId completed agent=$resolvedAgentId attempt=$attemptCount\n"
   is FeatureTaskRuntimeRunEvent.PhaseBlocked ->
     "feature-task-runtime $workflowId: phase $phaseId blocked attempt=$attemptCount: $blockedReason\n"
+  is FeatureTaskRuntimeRunEvent.DecomposedAtPlanning ->
+    "feature-task-runtime $workflowId: decomposed at planning into $subtaskCount subtasks: $reason. " +
+      "Work the first subtask first.\n"
 }
 
 private fun parsePhaseAgents(rawAssignments: List<String>): Map<String, String> {
@@ -277,9 +280,25 @@ private fun FeatureTaskRuntimeRunReport.toRuntimeRunCliMap(): Map<String, Any?> 
     "blocked_reason" to blockedReason,
     "completed_phases" to completedPhaseIds,
   )
+  is FeatureTaskRuntimeRunReport.Decomposed -> linkedMapOf(
+    "status" to "decomposed",
+    "issue_key" to issueKey,
+    "workflow_id" to workflowId,
+    "feature_size" to featureSize,
+    "resolved_branch" to resolvedBranch,
+    "reason" to reason,
+    "completed_phases" to completedPhaseIds,
+    "parent_spec_path" to parentSpecPath,
+    "decomposition_manifest_path" to decompositionManifestPath,
+    "subtask_spec_paths" to subtaskSpecPaths,
+    "subtask_count" to subtaskSpecPaths.size,
+    "guidance" to DECOMPOSE_GUIDANCE,
+  )
 }
 
-private fun Map<String, Any?>.runtimeRunExitCode(): Int = if (this["status"] == "complete") 0 else 1
+private fun Map<String, Any?>.runtimeRunExitCode(): Int = if (isTerminalSuccessStatus()) 0 else 1
+
+private fun Map<String, Any?>.isTerminalSuccessStatus(): Boolean = this["status"] in setOf("complete", "decomposed")
 
 private fun runtimeRunText(payload: Map<String, Any?>): String = buildString {
   appendLine("feature-task-runtime: ${payload["issue_key"]}")
@@ -290,6 +309,12 @@ private fun runtimeRunText(payload: Map<String, Any?>): String = buildString {
   appendLine("completed_phases: ${(payload["completed_phases"] as? List<*>).orEmpty().joinToString()}")
   payload["last_incomplete_phase"]?.let { appendLine("last_incomplete_phase: $it") }
   payload["blocked_reason"]?.let { appendLine("blocked_reason: $it") }
+  payload["reason"]?.let { appendLine("decomposition_reason: $it") }
+  payload["subtask_count"]?.let { appendLine("subtask_count: $it") }
+  payload["parent_spec_path"]?.let { appendLine("parent_spec_path: $it") }
+  payload["decomposition_manifest_path"]?.let { appendLine("decomposition_manifest_path: $it") }
+  (payload["subtask_spec_paths"] as? List<*>).orEmpty().forEach { appendLine("subtask_spec_path: $it") }
+  payload["guidance"]?.let { appendLine("guidance: $it") }
 }
 
 private fun FeatureTaskRuntimeStatusProjection?.toRuntimeStatusCliMap(workflowId: String): Map<String, Any?> =
@@ -303,6 +328,16 @@ private fun FeatureTaskRuntimeStatusProjection?.toRuntimeStatusCliMap(workflowId
       "blocked_count" to it.blockedCount,
       "current_phase" to it.currentPhaseId,
       "resolved_branch" to it.resolvedBranch,
+      "decompose_terminal" to it.decomposeTerminal?.let { terminal ->
+        linkedMapOf(
+          "reason" to terminal.reason,
+          "parent_spec_path" to terminal.parentSpecPath,
+          "decomposition_manifest_path" to terminal.decompositionManifestPath,
+          "subtask_spec_paths" to terminal.subtaskSpecPaths,
+          "subtask_count" to terminal.subtaskCount,
+          "guidance" to DECOMPOSE_GUIDANCE,
+        )
+      },
       "phases" to it.phases.map(FeatureTaskRuntimePhaseStatus::toRuntimePhaseStatusCliMap),
     )
   } ?: linkedMapOf(
@@ -314,6 +349,7 @@ private fun FeatureTaskRuntimeStatusProjection?.toRuntimeStatusCliMap(workflowId
     "blocked_count" to 0,
     "current_phase" to null,
     "resolved_branch" to null,
+    "decompose_terminal" to null,
     "phases" to emptyList<Map<String, Any?>>(),
   )
 
@@ -336,6 +372,14 @@ private fun runtimeStatusText(payload: Map<String, Any?>): String = buildString 
   appendLine("blocked: ${payload["blocked_count"]}")
   appendLine("current_phase: ${payload["current_phase"] ?: "none"}")
   appendLine("resolved_branch: ${payload["resolved_branch"] ?: "none"}")
+  (payload["decompose_terminal"] as? Map<*, *>)?.let { terminal ->
+    appendLine("decomposition_reason: ${terminal["reason"]}")
+    appendLine("subtask_count: ${terminal["subtask_count"]}")
+    appendLine("parent_spec_path: ${terminal["parent_spec_path"]}")
+    appendLine("decomposition_manifest_path: ${terminal["decomposition_manifest_path"]}")
+    (terminal["subtask_spec_paths"] as? List<*>).orEmpty().forEach { appendLine("subtask_spec_path: $it") }
+    appendLine("guidance: ${terminal["guidance"]}")
+  }
   (payload["phases"] as? List<*>).orEmpty().forEach { rawPhase ->
     val phase = rawPhase as? Map<*, *> ?: return@forEach
     appendLine(
@@ -347,3 +391,6 @@ private fun runtimeStatusText(payload: Map<String, Any?>): String = buildString 
 
 // Last-resort default used only when no explicit flag, env, or detected invoking-agent context resolves.
 private const val DEFAULT_RUNTIME_AGENT = "codex"
+
+private const val DECOMPOSE_GUIDANCE: String =
+  "Work the first subtask first, then continue through the ordered spec_subtask_*.md files."

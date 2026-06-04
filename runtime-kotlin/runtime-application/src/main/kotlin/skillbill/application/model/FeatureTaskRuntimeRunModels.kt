@@ -69,6 +69,42 @@ sealed interface FeatureTaskRuntimeRunReport {
       }
     }
   }
+
+  data class Decomposed(
+    override val issueKey: String,
+    override val workflowId: String,
+    override val featureSize: String,
+    val reason: String,
+    val completedPhaseIds: List<String>,
+    val parentSpecPath: String,
+    val decompositionManifestPath: String,
+    val subtaskSpecPaths: List<String>,
+    override val resolvedBranch: String?,
+  ) : FeatureTaskRuntimeRunReport {
+    init {
+      require(reason.isNotBlank()) { "FeatureTaskRuntimeRunReport.Decomposed.reason must be non-blank." }
+      require(parentSpecPath.isNotBlank()) {
+        "FeatureTaskRuntimeRunReport.Decomposed.parentSpecPath must be non-blank."
+      }
+      require(decompositionManifestPath.isNotBlank()) {
+        "FeatureTaskRuntimeRunReport.Decomposed.decompositionManifestPath must be non-blank."
+      }
+      require(subtaskSpecPaths.isNotEmpty()) {
+        "FeatureTaskRuntimeRunReport.Decomposed.subtaskSpecPaths must not be empty."
+      }
+    }
+  }
+}
+
+/** The plan-phase stop decision: continue the loop, terminate decomposed, or block loudly. */
+sealed interface FeatureTaskRuntimePlanningStopDecision {
+  data object Proceed : FeatureTaskRuntimePlanningStopDecision
+
+  data class Decomposed(
+    val report: FeatureTaskRuntimeRunReport.Decomposed,
+  ) : FeatureTaskRuntimePlanningStopDecision
+
+  data class Blocked(val reason: String) : FeatureTaskRuntimePlanningStopDecision
 }
 
 /** Typed observability events emitted at phase boundaries. */
@@ -138,6 +174,15 @@ sealed interface FeatureTaskRuntimeRunEvent {
     val resolvedAgentId: String,
     val attemptCount: Int,
     val blockedReason: String,
+  ) : FeatureTaskRuntimeRunEvent
+
+  data class DecomposedAtPlanning(
+    override val workflowId: String,
+    override val phaseId: String,
+    val reason: String,
+    val subtaskCount: Int,
+    val parentSpecPath: String,
+    val decompositionManifestPath: String,
   ) : FeatureTaskRuntimeRunEvent
 }
 

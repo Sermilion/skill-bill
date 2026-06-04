@@ -1,6 +1,7 @@
 package skillbill.application
 
 import me.tatarka.inject.annotations.Inject
+import skillbill.application.model.FeatureTaskRuntimeDecomposeTerminalStatus
 import skillbill.application.model.FeatureTaskRuntimePhaseStatus
 import skillbill.application.model.FeatureTaskRuntimeStatusProjection
 import skillbill.application.model.FeatureTaskRuntimeStatusRequest
@@ -18,6 +19,7 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 class FeatureTaskRuntimeStatusService(
   private val recorder: FeatureTaskRuntimePhaseRecorder,
   private val runInvariantsStore: FeatureTaskRuntimeRunInvariantsStore,
+  private val decomposeTerminalRecorder: FeatureTaskRuntimeDecomposeTerminalRecorder,
 ) {
   /**
    * Projects the read-only status. Returns null only when the workflow row is absent,
@@ -26,6 +28,7 @@ class FeatureTaskRuntimeStatusService(
    */
   fun status(request: FeatureTaskRuntimeStatusRequest): FeatureTaskRuntimeStatusProjection? {
     val records = recorder.loadPhaseRecords(request.workflowId, request.dbPathOverride) ?: return null
+    val decomposeTerminal = decomposeTerminalRecorder.loadDecomposeTerminal(request.workflowId, request.dbPathOverride)
     // Blocked-ness is derived primarily from the DURABLE per-phase records (a blocked phase
     // persists a terminal `blocked` record that survives ledger pruning); the append-only ledger
     // is supplementary detail only. A later non-blocked ledger entry from a resumed run can still
@@ -45,6 +48,14 @@ class FeatureTaskRuntimeStatusService(
       blockedCount = phases.count { it.status == STATUS_BLOCKED },
       currentPhaseId = phases.firstOrNull { it.status != STATUS_COMPLETED }?.phaseId,
       resolvedBranch = recorder.loadResolvedBranch(request.workflowId, request.dbPathOverride)?.branch,
+      decomposeTerminal = decomposeTerminal?.let {
+        FeatureTaskRuntimeDecomposeTerminalStatus(
+          reason = it.reason,
+          parentSpecPath = it.parentSpecPath,
+          decompositionManifestPath = it.decompositionManifestPath,
+          subtaskSpecPaths = it.subtaskSpecPaths,
+        )
+      },
     )
   }
 

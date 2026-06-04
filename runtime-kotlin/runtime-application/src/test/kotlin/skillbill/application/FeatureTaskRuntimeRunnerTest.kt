@@ -8,6 +8,8 @@ import skillbill.application.model.FeatureTaskRuntimeRunRequest
 import skillbill.application.model.FeatureTaskRuntimeStatusRequest
 import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import skillbill.error.InvalidWorkflowStateSchemaError
+import skillbill.featurespec.model.FeatureSpecPreparationDecision
+import skillbill.featurespec.model.FeatureSpecPreparationMode
 import skillbill.install.model.InstallAgent
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
@@ -33,12 +35,14 @@ import skillbill.workflow.WorkflowSnapshotValidator
 import skillbill.workflow.model.GoalObservabilityChangedFileSummary
 import skillbill.workflow.model.GoalObservabilityDiffStat
 import skillbill.workflow.model.GoalObservabilitySelectedDiffHunks
+import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_DECOMPOSE_TERMINAL_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFeatureSize
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerAction
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeResolvedBranch
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRunInvariants
+import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertContains
@@ -478,7 +482,12 @@ class FeatureTaskRuntimeRunnerTest {
     assertEquals("implement", blockedEntry["phase_id"])
     assertTrue((blockedEntry["blocked_reason"] as String).isNotBlank())
   }
+}
 
+// Persistence, resume, decompose, and observability behaviour of the runner, split from
+// FeatureTaskRuntimeRunnerTest so each class stays within its size budget while sharing the same
+// file-private run harness.
+class FeatureTaskRuntimeRunnerPersistenceTest {
   @Test
   fun `persists per-phase briefing durably with run-invariants upstream and review diff`() {
     val harness = runnerHarness()
@@ -528,6 +537,7 @@ class FeatureTaskRuntimeRunnerTest {
         if (request.invokedAgentId == phaseAgent("review")) timedOutFacts() else facts(VALID_OUTPUT)
       },
       agentAssignment = phasePerAgentAssignment(),
+      runtimeConfig = RuntimeHarnessConfig(useRealDecompositionPlanner = true),
     )
 
     val report = harness.runner.run(harness.request())
@@ -581,7 +591,7 @@ class FeatureTaskRuntimeRunnerTest {
   @Test
   fun `resume preserves durable feature size instead of re-resolving from changed request inputs`() {
     val harness = runnerHarness(
-      branchSetup = BranchSetupTestConfig(featureSize = FeatureTaskRuntimeFeatureSize.SMALL),
+      runtimeConfig = smallRuntimeConfig(),
     )
     assertIs<FeatureTaskRuntimeRunReport.Completed>(harness.runner.run(harness.request()))
 
@@ -592,7 +602,11 @@ class FeatureTaskRuntimeRunnerTest {
 
     assertEquals("SMALL", resumed.featureSize)
     val projection = requireNotNull(
-      FeatureTaskRuntimeStatusService(harness.recorder, harness.runInvariantsStore)
+      FeatureTaskRuntimeStatusService(
+        harness.recorder,
+        harness.runInvariantsStore,
+        harness.decomposeTerminalRecorder,
+      )
         .status(FeatureTaskRuntimeStatusRequest(WORKFLOW_ID)),
     )
     assertEquals("SMALL", projection.featureSize)
@@ -602,7 +616,7 @@ class FeatureTaskRuntimeRunnerTest {
   fun `partial resume launches review with durable small size and current unit scope`() {
     val harness = runnerHarness(
       agentAssignment = phasePerAgentAssignment(),
-      branchSetup = BranchSetupTestConfig(featureSize = FeatureTaskRuntimeFeatureSize.SMALL),
+      runtimeConfig = smallRuntimeConfig(),
     )
     harness.seedPhase("preplan", "completed", 1, INVOKED_AGENT, PREPLAN_OUTPUT)
     harness.seedPhase("plan", "completed", 1, INVOKED_AGENT, PLAN_OUTPUT)
@@ -676,6 +690,220 @@ class FeatureTaskRuntimeRunnerTest {
       assertEquals(phaseAgent(phaseId), record.resolvedAgentId, "resolved agent id for $phaseId")
     }
   }
+
+  @Test
+  fun `decompose plan writes shared feature specs records terminal abandoned status and skips implement`() {
+    val repoRoot = Files.createTempDirectory("skillbill-runtime-decompose")
+    val harness = runnerHarness(
+      launcher = RuntimeRecordingLauncher { request ->
+        val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
+        facts(if (phaseId == "plan") DECOMPOSE_PLAN_OUTPUT else validJsonOutput(phaseId))
+      },
+      agentAssignment = phasePerAgentAssignment(),
+      runtimeConfig = RuntimeHarnessConfig(repoRoot = repoRoot, useRealDecompositionPlanner = true),
+    )
+
+    val report = harness.runner.run(harness.request())
+
+    val decomposed = assertIs<FeatureTaskRuntimeRunReport.Decomposed>(report)
+    assertEquals(listOf("preplan", "plan"), decomposed.completedPhaseIds)
+    assertEquals(2, decomposed.subtaskSpecPaths.size)
+    assertEquals(listOf("preplan", "plan"), harness.launchedPhaseOrder())
+    assertTrue(harness.launchedPhaseOrder().none { it == "implement" })
+    // AC3: a spec.md parent and ordered spec_subtask_1*.md then spec_subtask_2*.md.
+    assertTrue(
+      decomposed.parentSpecPath.endsWith("spec.md"),
+      "parent spec path must end with spec.md: ${decomposed.parentSpecPath}",
+    )
+    val firstSubtaskName = Path.of(decomposed.subtaskSpecPaths[0]).fileName.toString()
+    val secondSubtaskName = Path.of(decomposed.subtaskSpecPaths[1]).fileName.toString()
+    assertTrue(
+      firstSubtaskName.startsWith("spec_subtask_1") && firstSubtaskName.endsWith(".md"),
+      "first subtask spec must be spec_subtask_1*.md: $firstSubtaskName",
+    )
+    assertTrue(
+      secondSubtaskName.startsWith("spec_subtask_2") && secondSubtaskName.endsWith(".md"),
+      "second subtask spec must be spec_subtask_2*.md: $secondSubtaskName",
+    )
+    assertTrue(Files.isRegularFile(repoRoot.resolve(decomposed.parentSpecPath)))
+    assertTrue(Files.isRegularFile(repoRoot.resolve(decomposed.decompositionManifestPath)))
+    decomposed.subtaskSpecPaths.forEach { path -> assertTrue(Files.isRegularFile(repoRoot.resolve(path))) }
+
+    val row = requireNotNull(harness.repository.getFeatureTaskRuntimeWorkflow(WORKFLOW_ID))
+    assertEquals("abandoned", row.workflowStatus)
+    assertEquals("plan", row.currentStepId)
+    val artifacts = harness.repository.taskRuntimeArtifacts(WORKFLOW_ID)
+    assertTrue(artifacts.containsKey(FEATURE_TASK_RUNTIME_DECOMPOSE_TERMINAL_ARTIFACT_KEY))
+    val terminal = requireNotNull(harness.decomposeTerminalRecorder.loadDecomposeTerminal(WORKFLOW_ID))
+    assertEquals(decomposed.decompositionManifestPath, terminal.decompositionManifestPath)
+    assertContains(terminal.reason, "needs ordered subtasks")
+  }
+
+  @Test
+  fun `goal-continuation run suppresses decompose outcome and advances to implement`() {
+    val repoRoot = Files.createTempDirectory("skillbill-runtime-goal-subtask")
+    val harness = runnerHarness(
+      launcher = RuntimeRecordingLauncher { request ->
+        val prompt = requireNotNull(request.skillRunRequest.promptOverride)
+        val phaseId = phaseIdFromPrompt(prompt)
+        if (phaseId == "plan") {
+          assertContains(prompt, "already executing one governed decomposed subtask")
+        }
+        facts(if (phaseId == "plan") DECOMPOSE_PLAN_OUTPUT else validJsonOutput(phaseId))
+      },
+      agentAssignment = phasePerAgentAssignment(),
+      runtimeConfig = RuntimeHarnessConfig(
+        repoRoot = repoRoot,
+        environment = mapOf("SKILL_BILL_GOAL_CONTINUATION" to "1", "SKILL_BILL_GOAL_SUBTASK_ID" to "5"),
+        useRealDecompositionPlanner = true,
+      ),
+    )
+
+    val report = harness.runner.run(harness.request())
+
+    assertIs<FeatureTaskRuntimeRunReport.Completed>(report)
+    assertEquals(ALL_PHASES, harness.launchedPhaseOrder())
+    assertNull(harness.decomposeTerminalRecorder.loadDecomposeTerminal(WORKFLOW_ID))
+  }
+
+  @Test
+  fun `resume of a durably complete decompose plan reports decomposed without advancing to implement`() {
+    // PC-F001 (resume fall-through): PLAN is durably completed as a non-goal-continuation decompose
+    // outcome, but the process crashed before the decompose terminal was observed. A re-run must
+    // re-derive the decompose stop and terminate at planning, never advancing to implement.
+    val repoRoot = Files.createTempDirectory("skillbill-runtime-decompose-resume")
+    val harness = runnerHarness(
+      agentAssignment = phasePerAgentAssignment(),
+      runtimeConfig = RuntimeHarnessConfig(repoRoot = repoRoot, useRealDecompositionPlanner = true),
+    )
+    harness.seedPhase("preplan", "completed", 1, phaseAgent("preplan"), PREPLAN_OUTPUT)
+    harness.seedPhase("plan", "completed", 1, phaseAgent("plan"), DECOMPOSE_PLAN_OUTPUT)
+
+    val report = harness.runner.run(harness.request())
+
+    val decomposed = assertIs<FeatureTaskRuntimeRunReport.Decomposed>(report)
+    assertEquals(2, decomposed.subtaskSpecPaths.size)
+    // The implement agent must never launch: a decompose terminal must not advance the run.
+    assertTrue(harness.launchedPhaseOrder().none { it == "implement" })
+    assertTrue(harness.launchedPhaseOrder().isEmpty(), "no phase agent relaunches on a complete-plan resume")
+    val terminal = requireNotNull(harness.decomposeTerminalRecorder.loadDecomposeTerminal(WORKFLOW_ID))
+    assertContains(terminal.reason, "needs ordered subtasks")
+  }
+
+  @Test
+  fun `resume reconstructs an already-recorded decompose terminal without rewriting specs`() {
+    // PC-F001 (idempotent resume): when a decompose terminal is already durably recorded, the resume
+    // reconstructs the Decomposed report from it rather than re-running the shared prep write path.
+    val repoRoot = Files.createTempDirectory("skillbill-runtime-decompose-idempotent")
+    val firstHarness = runnerHarness(
+      launcher = RuntimeRecordingLauncher { request ->
+        val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
+        facts(if (phaseId == "plan") DECOMPOSE_PLAN_OUTPUT else validJsonOutput(phaseId))
+      },
+      agentAssignment = phasePerAgentAssignment(),
+      runtimeConfig = RuntimeHarnessConfig(repoRoot = repoRoot, useRealDecompositionPlanner = true),
+    )
+    val first = assertIs<FeatureTaskRuntimeRunReport.Decomposed>(firstHarness.runner.run(firstHarness.request()))
+    // Only the write path (resolveFromPlanOutput) emits DecomposedAtPlanning; the loadDecomposeTerminal
+    // early-return reconstruction path does not. A single emission across BOTH runs therefore proves
+    // the resume bypassed the writer rather than re-running the shared prep write path.
+    val emissionsAfterFirst = firstHarness.events.count { it is FeatureTaskRuntimeRunEvent.DecomposedAtPlanning }
+    assertEquals(1, emissionsAfterFirst, "the first run writes the decomposition and emits exactly once")
+
+    val resumed = assertIs<FeatureTaskRuntimeRunReport.Decomposed>(firstHarness.runner.run(firstHarness.request()))
+    assertEquals(first.decompositionManifestPath, resumed.decompositionManifestPath)
+    assertEquals(first.subtaskSpecPaths, resumed.subtaskSpecPaths)
+    assertTrue(resumed.subtaskSpecPaths.isNotEmpty())
+    val emissionsAfterResume = firstHarness.events.count { it is FeatureTaskRuntimeRunEvent.DecomposedAtPlanning }
+    assertEquals(
+      1,
+      emissionsAfterResume,
+      "the resume reconstructs from the recorded terminal and must NOT re-emit (i.e. must not re-run the writer)",
+    )
+  }
+
+  @Test
+  fun `malformed decompose package blocks loudly instead of throwing or advancing`() {
+    // PC-F001 (crash guard): a plan envelope declaring mode=decompose but with a malformed package
+    // (a subtask missing required fields) must produce a diagnosable Blocked outcome, not crash.
+    val repoRoot = Files.createTempDirectory("skillbill-runtime-decompose-malformed")
+    val harness = runnerHarness(
+      launcher = RuntimeRecordingLauncher { request ->
+        val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
+        facts(if (phaseId == "plan") MALFORMED_DECOMPOSE_PLAN_OUTPUT else validJsonOutput(phaseId))
+      },
+      agentAssignment = phasePerAgentAssignment(),
+      runtimeConfig = RuntimeHarnessConfig(repoRoot = repoRoot, useRealDecompositionPlanner = true),
+    )
+
+    val report = harness.runner.run(harness.request())
+
+    val blocked = assertIs<FeatureTaskRuntimeRunReport.Blocked>(report)
+    assertEquals("plan", blocked.lastIncompletePhase)
+    assertContains(blocked.blockedReason, "malformed decomposition package")
+    assertTrue(harness.launchedPhaseOrder().none { it == "implement" })
+    // The block is durable and visible to status: the plan phase carries a terminal blocked record.
+    val planRecord = requireNotNull(harness.recorder.loadPhaseRecords(WORKFLOW_ID).orEmpty()["plan"])
+    assertEquals("blocked", planRecord.status)
+    assertTrue(requireNotNull(planRecord.blockedReason).isNotBlank())
+    assertNull(harness.decomposeTerminalRecorder.loadDecomposeTerminal(WORKFLOW_ID))
+  }
+
+  @Test
+  fun `decoder-valid but writer-invalid decompose package blocks loudly on a fresh run`() {
+    // PC-F001 residual: a plan envelope declaring mode=decompose with a package the typed decoder
+    // accepts (every required field present + correctly typed) but the writer rejects on a
+    // business rule (subtask ids descend [2, 1]) throws InvalidFeatureSpecPreparationRequestError
+    // from the write path. That exception extends SkillBillRuntimeException (NOT
+    // IllegalArgumentException) and previously escaped resolve()'s catch and crashed run(). It must
+    // now produce a diagnosable Blocked terminal, never an uncaught throw, and never launch implement.
+    val repoRoot = Files.createTempDirectory("skillbill-runtime-decompose-writer-invalid")
+    val harness = runnerHarness(
+      launcher = RuntimeRecordingLauncher { request ->
+        val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
+        facts(if (phaseId == "plan") WRITER_INVALID_DECOMPOSE_PLAN_OUTPUT else validJsonOutput(phaseId))
+      },
+      agentAssignment = phasePerAgentAssignment(),
+      runtimeConfig = RuntimeHarnessConfig(repoRoot = repoRoot, useRealDecompositionPlanner = true),
+    )
+
+    val report = harness.runner.run(harness.request())
+
+    val blocked = assertIs<FeatureTaskRuntimeRunReport.Blocked>(report)
+    assertEquals("plan", blocked.lastIncompletePhase)
+    assertContains(blocked.blockedReason, "malformed decomposition package")
+    assertTrue(harness.launchedPhaseOrder().none { it == "implement" })
+    val planRecord = requireNotNull(harness.recorder.loadPhaseRecords(WORKFLOW_ID).orEmpty()["plan"])
+    assertEquals("blocked", planRecord.status)
+    assertTrue(requireNotNull(planRecord.blockedReason).isNotBlank())
+    assertNull(harness.decomposeTerminalRecorder.loadDecomposeTerminal(WORKFLOW_ID))
+  }
+
+  @Test
+  fun `decoder-valid but writer-invalid decompose package blocks loudly on a plan-complete resume`() {
+    // PC-F001 residual (resume): same writer-rejected package, but PLAN is already durably complete
+    // (crash after PLAN before the terminal was observed). The resume re-derives the decompose stop
+    // from the persisted output and must Block, never crash or advance to implement.
+    val repoRoot = Files.createTempDirectory("skillbill-runtime-decompose-writer-invalid-resume")
+    val harness = runnerHarness(
+      agentAssignment = phasePerAgentAssignment(),
+      runtimeConfig = RuntimeHarnessConfig(repoRoot = repoRoot, useRealDecompositionPlanner = true),
+    )
+    harness.seedPhase("preplan", "completed", 1, phaseAgent("preplan"), PREPLAN_OUTPUT)
+    harness.seedPhase("plan", "completed", 1, phaseAgent("plan"), WRITER_INVALID_DECOMPOSE_PLAN_OUTPUT)
+
+    val report = harness.runner.run(harness.request())
+
+    val blocked = assertIs<FeatureTaskRuntimeRunReport.Blocked>(report)
+    assertEquals("plan", blocked.lastIncompletePhase)
+    assertContains(blocked.blockedReason, "malformed decomposition package")
+    assertTrue(harness.launchedPhaseOrder().isEmpty(), "no phase agent relaunches on a complete-plan resume")
+    assertTrue(harness.launchedPhaseOrder().none { it == "implement" })
+    val planRecord = requireNotNull(harness.recorder.loadPhaseRecords(WORKFLOW_ID).orEmpty()["plan"])
+    assertEquals("blocked", planRecord.status)
+    assertTrue(requireNotNull(planRecord.blockedReason).isNotBlank())
+    assertNull(harness.decomposeTerminalRecorder.loadDecomposeTerminal(WORKFLOW_ID))
+  }
 }
 
 // Branch-setup establishment, resume re-attach, loud-fail blocks, durability/visibility, and
@@ -686,7 +914,9 @@ class FeatureTaskRuntimeBranchSetupRunnerTest {
   @Test
   fun `starts on default branch creates and switches to the feature branch before implement`() {
     val git = RecordingWorkflowGitOperations(currentBranchValue = "main")
-    val harness = runnerHarness(branchSetup = BranchSetupTestConfig(git, CONVENTION_SPEC_REFERENCE))
+    val harness = runnerHarness(
+      runtimeConfig = conventionRuntimeConfig(git),
+    )
 
     val report = harness.runner.run(harness.request())
 
@@ -710,7 +940,9 @@ class FeatureTaskRuntimeBranchSetupRunnerTest {
   @Test
   fun `starts on a non-default branch reuses it without checking out a new branch`() {
     val git = RecordingWorkflowGitOperations(currentBranchValue = "feat/pre-created")
-    val harness = runnerHarness(branchSetup = BranchSetupTestConfig(git, CONVENTION_SPEC_REFERENCE))
+    val harness = runnerHarness(
+      runtimeConfig = conventionRuntimeConfig(git),
+    )
 
     val report = harness.runner.run(harness.request())
 
@@ -728,7 +960,9 @@ class FeatureTaskRuntimeBranchSetupRunnerTest {
       currentBranchValue = "main",
       checkoutResult = WorkflowGitOperationResult(status = "error", error = "checkout exploded"),
     )
-    val harness = runnerHarness(branchSetup = BranchSetupTestConfig(git, CONVENTION_SPEC_REFERENCE))
+    val harness = runnerHarness(
+      runtimeConfig = conventionRuntimeConfig(git),
+    )
 
     val report = harness.runner.run(harness.request())
 
@@ -747,7 +981,9 @@ class FeatureTaskRuntimeBranchSetupRunnerTest {
     val git = RecordingWorkflowGitOperations(
       currentBranchResult = WorkflowGitOperationResult(status = "error", error = "git HEAD unreadable"),
     )
-    val harness = runnerHarness(branchSetup = BranchSetupTestConfig(git, CONVENTION_SPEC_REFERENCE))
+    val harness = runnerHarness(
+      runtimeConfig = conventionRuntimeConfig(git),
+    )
 
     val report = harness.runner.run(harness.request())
 
@@ -770,7 +1006,9 @@ class FeatureTaskRuntimeBranchSetupRunnerTest {
     // branch. A divergent value proves the persisted load (not a fresh resolution) decided.
     val persistedBranch = "feat/persisted-resume-branch"
     val git = RecordingWorkflowGitOperations(currentBranchValue = "main")
-    val harness = runnerHarness(branchSetup = BranchSetupTestConfig(git, CONVENTION_SPEC_REFERENCE))
+    val harness = runnerHarness(
+      runtimeConfig = conventionRuntimeConfig(git),
+    )
     harness.seedResolvedBranch(persistedBranch, baseBranch = "main", created = true)
     harness.seedPhase("plan", "completed", 1, INVOKED_AGENT, PLAN_OUTPUT)
 
@@ -800,7 +1038,9 @@ class FeatureTaskRuntimeBranchSetupRunnerTest {
   fun `resume already on the persisted branch re-attaches without any checkout`() {
     val persistedBranch = "feat/persisted-resume-branch"
     val git = RecordingWorkflowGitOperations(currentBranchValue = persistedBranch)
-    val harness = runnerHarness(branchSetup = BranchSetupTestConfig(git, CONVENTION_SPEC_REFERENCE))
+    val harness = runnerHarness(
+      runtimeConfig = conventionRuntimeConfig(git),
+    )
     harness.seedResolvedBranch(persistedBranch, baseBranch = "main", created = true)
     harness.seedPhase("plan", "completed", 1, INVOKED_AGENT, PLAN_OUTPUT)
 
@@ -825,7 +1065,9 @@ class FeatureTaskRuntimeBranchSetupRunnerTest {
       currentBranchValue = "main",
       existingBranches = emptySet(),
     )
-    val harness = runnerHarness(branchSetup = BranchSetupTestConfig(git, CONVENTION_SPEC_REFERENCE))
+    val harness = runnerHarness(
+      runtimeConfig = conventionRuntimeConfig(git),
+    )
     harness.seedResolvedBranch(persistedBranch, baseBranch = "main", created = true)
     harness.seedPhase("plan", "completed", 1, INVOKED_AGENT, PLAN_OUTPUT)
 
@@ -851,7 +1093,9 @@ class FeatureTaskRuntimeBranchSetupRunnerTest {
       currentBranchValue = "main",
       branchExistsResult = WorkflowGitOperationResult(status = "error", error = "rev-parse exploded"),
     )
-    val harness = runnerHarness(branchSetup = BranchSetupTestConfig(git, CONVENTION_SPEC_REFERENCE))
+    val harness = runnerHarness(
+      runtimeConfig = conventionRuntimeConfig(git),
+    )
     harness.seedResolvedBranch(persistedBranch, baseBranch = "main", created = true)
     harness.seedPhase("plan", "completed", 1, INVOKED_AGENT, PLAN_OUTPUT)
 
@@ -871,7 +1115,9 @@ class FeatureTaskRuntimeBranchSetupRunnerTest {
       currentBranchValue = "main",
       landedBranchAfterCheckout = "feat/wrong-landing",
     )
-    val harness = runnerHarness(branchSetup = BranchSetupTestConfig(git, CONVENTION_SPEC_REFERENCE))
+    val harness = runnerHarness(
+      runtimeConfig = conventionRuntimeConfig(git),
+    )
 
     val report = harness.runner.run(harness.request())
 
@@ -894,7 +1140,9 @@ class FeatureTaskRuntimeBranchSetupRunnerTest {
     // rather than the wrong-branch arm.
     val protectedPersisted = "main"
     val git = RecordingWorkflowGitOperations(currentBranchValue = "feat/pre-created")
-    val harness = runnerHarness(branchSetup = BranchSetupTestConfig(git, CONVENTION_SPEC_REFERENCE))
+    val harness = runnerHarness(
+      runtimeConfig = conventionRuntimeConfig(git),
+    )
     harness.seedResolvedBranch(protectedPersisted, baseBranch = "main", created = false)
     harness.seedPhase("plan", "completed", 1, INVOKED_AGENT, PLAN_OUTPUT)
 
@@ -916,7 +1164,9 @@ class FeatureTaskRuntimeBranchSetupRunnerTest {
     // Same corrupt persisted branch as the checkout-protected test, but HEAD is already on the
     // protected branch. The no-op re-attach path must still reject it before launching implement.
     val git = RecordingWorkflowGitOperations(currentBranchValue = "main")
-    val harness = runnerHarness(branchSetup = BranchSetupTestConfig(git, CONVENTION_SPEC_REFERENCE))
+    val harness = runnerHarness(
+      runtimeConfig = conventionRuntimeConfig(git),
+    )
     harness.seedResolvedBranch("main", baseBranch = "main", created = false)
     harness.seedPhase("plan", "completed", 1, INVOKED_AGENT, PLAN_OUTPUT)
 
@@ -940,7 +1190,9 @@ class FeatureTaskRuntimeBranchSetupRunnerTest {
       currentBranchValue = "main",
       checkoutResult = WorkflowGitOperationResult(status = "error", error = "denied"),
     )
-    val harness = runnerHarness(branchSetup = BranchSetupTestConfig(git, CONVENTION_SPEC_REFERENCE))
+    val harness = runnerHarness(
+      runtimeConfig = conventionRuntimeConfig(git),
+    )
 
     harness.runner.run(harness.request())
 
@@ -954,7 +1206,9 @@ class FeatureTaskRuntimeBranchSetupRunnerTest {
       currentBranchValue = "main",
       checkoutResult = WorkflowGitOperationResult(status = "error", error = "checkout exploded"),
     )
-    val harness = runnerHarness(branchSetup = BranchSetupTestConfig(git, CONVENTION_SPEC_REFERENCE))
+    val harness = runnerHarness(
+      runtimeConfig = conventionRuntimeConfig(git),
+    )
 
     val report = harness.runner.run(harness.request())
 
@@ -964,7 +1218,11 @@ class FeatureTaskRuntimeBranchSetupRunnerTest {
     // Durable status projection: the branch-setup block is no longer invisible (blockedCount=0,
     // implement merely running/pending); it surfaces as a first-class blocked phase with its reason.
     val status = requireNotNull(
-      FeatureTaskRuntimeStatusService(harness.recorder, harness.runInvariantsStore)
+      FeatureTaskRuntimeStatusService(
+        harness.recorder,
+        harness.runInvariantsStore,
+        harness.decomposeTerminalRecorder,
+      )
         .status(FeatureTaskRuntimeStatusRequest(WORKFLOW_ID)),
     )
     assertEquals(1, status.blockedCount)
@@ -999,16 +1257,19 @@ class FeatureTaskRuntimeBranchSetupRunnerTest {
     lateinit var harness: RunnerHarness
     var observedPreLaunchRecord = false
     harness = runnerHarness(
-      branchSetup = BranchSetupTestConfig(git, CONVENTION_SPEC_REFERENCE),
       agentAssignment = phasePerAgentAssignment(),
-      eventSink = FeatureTaskRuntimeRunEventSink { event ->
-        if (event is FeatureTaskRuntimeRunEvent.PhaseStarted && event.phaseId == "implement") {
-          val preLaunchRecord = requireNotNull(harness.recorder.loadPhaseRecords(WORKFLOW_ID).orEmpty()["implement"])
-          assertEquals("blocked", preLaunchRecord.status)
-          assertEquals(BRANCH_SETUP_AGENT_ID, preLaunchRecord.resolvedAgentId)
-          observedPreLaunchRecord = true
-        }
-      },
+      runtimeConfig = RuntimeHarnessConfig(
+        branchSetup = BranchSetupTestConfig(git, CONVENTION_SPEC_REFERENCE),
+        eventSink = FeatureTaskRuntimeRunEventSink { event ->
+          if (event is FeatureTaskRuntimeRunEvent.PhaseStarted && event.phaseId == "implement") {
+            val preLaunchRecord =
+              requireNotNull(harness.recorder.loadPhaseRecords(WORKFLOW_ID).orEmpty()["implement"])
+            assertEquals("blocked", preLaunchRecord.status)
+            assertEquals(BRANCH_SETUP_AGENT_ID, preLaunchRecord.resolvedAgentId)
+            observedPreLaunchRecord = true
+          }
+        },
+      ),
     )
     harness.seedPhase("plan", "completed", 1, phaseAgent("plan"), PLAN_OUTPUT)
     harness.seedPhase("preplan", "completed", 1, phaseAgent("preplan"), PREPLAN_OUTPUT)
@@ -1028,7 +1289,11 @@ class FeatureTaskRuntimeBranchSetupRunnerTest {
     assertTrue(observedPreLaunchRecord, "the stale branch-setup block must remain durable until real phase launch")
     // No phase is reported blocked once setup recovers.
     val status = requireNotNull(
-      FeatureTaskRuntimeStatusService(harness.recorder, harness.runInvariantsStore)
+      FeatureTaskRuntimeStatusService(
+        harness.recorder,
+        harness.runInvariantsStore,
+        harness.decomposeTerminalRecorder,
+      )
         .status(FeatureTaskRuntimeStatusRequest(WORKFLOW_ID)),
     )
     assertEquals(0, status.blockedCount)
@@ -1045,8 +1310,8 @@ class FeatureTaskRuntimeBranchSetupRunnerTest {
     }
     val harness = runnerHarness(
       launcher = launcher,
-      branchSetup = BranchSetupTestConfig(git, CONVENTION_SPEC_REFERENCE),
       agentAssignment = phasePerAgentAssignment(),
+      runtimeConfig = conventionRuntimeConfig(git),
     )
 
     val report = harness.runner.run(harness.request())
@@ -1115,6 +1380,7 @@ private fun phasePerAgentAssignment(): FeatureTaskRuntimeAgentAssignment =
 // within the parameter budget.
 private class RunnerHarnessIo(
   val recorder: FeatureTaskRuntimePhaseRecorder,
+  val decomposeTerminalRecorder: FeatureTaskRuntimeDecomposeTerminalRecorder,
   val runInvariantsStore: FeatureTaskRuntimeRunInvariantsStore,
   val repository: InMemoryRuntimeWorkflowRepository,
   val gitOperations: RecordingWorkflowGitOperations,
@@ -1128,6 +1394,7 @@ private class RunnerHarness(
   private val runRequest: FeatureTaskRuntimeRunRequest,
 ) {
   val recorder: FeatureTaskRuntimePhaseRecorder get() = io.recorder
+  val decomposeTerminalRecorder: FeatureTaskRuntimeDecomposeTerminalRecorder get() = io.decomposeTerminalRecorder
   val runInvariantsStore: FeatureTaskRuntimeRunInvariantsStore get() = io.runInvariantsStore
   val repository: InMemoryRuntimeWorkflowRepository get() = io.repository
   val gitOperations: RecordingWorkflowGitOperations get() = io.gitOperations
@@ -1217,45 +1484,109 @@ private data class BranchSetupTestConfig(
   val featureSize: FeatureTaskRuntimeFeatureSize = FeatureTaskRuntimeFeatureSize.MEDIUM,
 )
 
+private data class RuntimeHarnessConfig(
+  val branchSetup: BranchSetupTestConfig = BranchSetupTestConfig(),
+  val repoRoot: Path = Path.of("/tmp/repo"),
+  val environment: Map<String, String> = emptyMap(),
+  val useRealDecompositionPlanner: Boolean = false,
+  val eventSink: FeatureTaskRuntimeRunEventSink? = null,
+)
+
+private fun smallRuntimeConfig(): RuntimeHarnessConfig = RuntimeHarnessConfig(
+  branchSetup = BranchSetupTestConfig(featureSize = FeatureTaskRuntimeFeatureSize.SMALL),
+)
+
+private fun conventionRuntimeConfig(git: RecordingWorkflowGitOperations): RuntimeHarnessConfig =
+  RuntimeHarnessConfig(branchSetup = BranchSetupTestConfig(git, CONVENTION_SPEC_REFERENCE))
+
 private fun runnerHarness(
   launcher: RuntimeRecordingLauncher = RuntimeRecordingLauncher { facts(VALID_OUTPUT) },
   validator: FeatureTaskRuntimePhaseOutputValidator = AlwaysValidValidator,
   agentAssignment: FeatureTaskRuntimeAgentAssignment = FeatureTaskRuntimeAgentAssignment(),
-  eventSink: FeatureTaskRuntimeRunEventSink? = null,
-  branchSetup: BranchSetupTestConfig = BranchSetupTestConfig(),
+  runtimeConfig: RuntimeHarnessConfig = RuntimeHarnessConfig(),
 ): RunnerHarness {
   val repository = InMemoryRuntimeWorkflowRepository()
   val database = RuntimeFakeDatabaseSessionFactory(repository)
   val recorder = FeatureTaskRuntimePhaseRecorder(database, NoopWorkflowSnapshotValidator)
+  val decomposeTerminalRecorder =
+    FeatureTaskRuntimeDecomposeTerminalRecorder(database, NoopWorkflowSnapshotValidator)
   val runInvariantsStore = FeatureTaskRuntimeRunInvariantsStore(database, NoopWorkflowSnapshotValidator)
-  val branchSetupRunner = FeatureTaskRuntimeBranchSetupRunner(recorder, branchSetup.gitOperations)
-  val runner = FeatureTaskRuntimeRunner(launcher, recorder, runInvariantsStore, validator, branchSetupRunner)
+  val branchSetupRunner = FeatureTaskRuntimeBranchSetupRunner(recorder, runtimeConfig.branchSetup.gitOperations)
+  val decompositionPlanner = if (runtimeConfig.useRealDecompositionPlanner) {
+    testDecompositionPlanner()
+  } else {
+    noOpDecompositionPlanner()
+  }
+  val planningStopper = FeatureTaskRuntimePlanningStopper(
+    validator,
+    decompositionPlanner,
+    decomposeTerminalRecorder,
+  )
+  val runner = FeatureTaskRuntimeRunner(
+    launcher,
+    recorder,
+    runInvariantsStore,
+    validator,
+    branchSetupRunner,
+    planningStopper,
+  )
   // Always capture events; a caller-supplied sink is chained after the capture.
   val captured = mutableListOf<FeatureTaskRuntimeRunEvent>()
   val sink = FeatureTaskRuntimeRunEventSink { event ->
     captured += event
-    eventSink?.emit(event)
+    runtimeConfig.eventSink?.emit(event)
   }
   val runRequest = FeatureTaskRuntimeRunRequest(
     issueKey = ISSUE_KEY,
     workflowId = WORKFLOW_ID,
     sessionId = SESSION_ID,
     runInvariants = FeatureTaskRuntimeRunInvariants(
-      specReference = branchSetup.specReference,
-      featureSize = branchSetup.featureSize,
+      specReference = runtimeConfig.branchSetup.specReference,
+      featureSize = runtimeConfig.branchSetup.featureSize,
       acceptanceCriteria = listOf("AC-1", "AC-2"),
       mandatesAndOverrides = listOf("mandate-X"),
     ),
     invokedAgentId = INVOKED_AGENT,
     agentAssignment = agentAssignment,
-    environment = emptyMap(),
+    environment = runtimeConfig.environment,
     dbPathOverride = null,
-    repoRoot = Path.of("/tmp/repo"),
+    repoRoot = runtimeConfig.repoRoot,
     eventSink = sink,
   )
-  val io = RunnerHarnessIo(recorder, runInvariantsStore, repository, branchSetup.gitOperations)
+  val io = RunnerHarnessIo(
+    recorder,
+    decomposeTerminalRecorder,
+    runInvariantsStore,
+    repository,
+    runtimeConfig.branchSetup.gitOperations,
+  )
   return RunnerHarness(launcher, io, runner, captured, runRequest)
 }
+
+private fun noOpDecompositionPlanner(): FeatureTaskRuntimeDecompositionPlanner = FeatureTaskRuntimeDecompositionPlanner(
+  preparationRuntime = FeatureSpecPreparationRuntime { intake ->
+    FeatureSpecPreparationDecision(
+      issueKey = intake.issueKey,
+      intendedOutcome = intake.intendedOutcome,
+      acceptanceCriteria = intake.acceptanceCriteria,
+      constraints = intake.constraints,
+      nonGoals = intake.nonGoals,
+      mode = FeatureSpecPreparationMode.SINGLE_SPEC,
+    )
+  },
+  preparationWriter = FeatureSpecPreparationWriter(
+    decompositionManifestValidator = testDecompositionManifestValidator,
+    fileStore = TestDecompositionManifestFileStore,
+  ),
+)
+
+private fun testDecompositionPlanner(): FeatureTaskRuntimeDecompositionPlanner = FeatureTaskRuntimeDecompositionPlanner(
+  preparationRuntime = FeatureSpecPreparationRuntime(),
+  preparationWriter = FeatureSpecPreparationWriter(
+    decompositionManifestValidator = testDecompositionManifestValidator,
+    fileStore = TestDecompositionManifestFileStore,
+  ),
+)
 
 private fun facts(stdout: String): AgentRunLaunchOutcome = AgentRunLaunchFacts(
   agent = InstallAgent.CLAUDE,
@@ -1265,6 +1596,154 @@ private fun facts(stdout: String): AgentRunLaunchOutcome = AgentRunLaunchFacts(
   timedOut = false,
   spawnFailed = false,
 )
+
+private val PHASE_LINE = Regex("^Phase: ([a-z_-]+) ", setOf(RegexOption.MULTILINE))
+
+private fun phaseIdFromPrompt(prompt: String): String =
+  PHASE_LINE.find(prompt)?.groupValues?.get(1) ?: error("Prompt did not contain a phase header: $prompt")
+
+private fun validJsonOutput(phaseId: String): String = """
+  {
+    "contract_version": "0.1",
+    "phase_id": "$phaseId",
+    "status": "completed",
+    "summary": "Phase produced a validated output.",
+    "produced_outputs": {"tasks": ["task-1"]}
+  }
+""".trimIndent()
+
+private val DECOMPOSE_PLAN_OUTPUT: String = """
+  {
+    "contract_version": "0.1",
+    "phase_id": "plan",
+    "status": "completed",
+    "summary": "Plan needs ordered subtasks.",
+    "produced_outputs": {
+      "mode": "decompose",
+      "reason": "Plan needs ordered subtasks.",
+      "feature_name": "runtime decomposition parity",
+      "parent_spec_overview": "Split the runtime work into ordered subtasks.",
+      "validation_strategy": "bill-code-check",
+      "base_branch": "main",
+      "feature_branch": "feat/SKILL-65-runtime-decomposition-parity",
+      "subtasks": [
+        {
+          "id": 1,
+          "name": "domain contracts",
+          "scope": "Add typed plan outcome detection.",
+          "acceptance_criteria": ["Detect decompose mode."],
+          "non_goals": [],
+          "dependency_notes": "First subtask.",
+          "validation_strategy": "unit tests",
+          "next_path": "Work subtask 2 next.",
+          "depends_on": []
+        },
+        {
+          "id": 2,
+          "name": "runtime stop",
+          "scope": "Stop after writing decomposition.",
+          "acceptance_criteria": ["Do not advance to implement."],
+          "non_goals": [],
+          "dependency_notes": "Depends on subtask 1.",
+          "validation_strategy": "unit tests",
+          "next_path": "Return to the parent workflow.",
+          "depends_on": [1]
+        }
+      ]
+    }
+  }
+""".trimIndent()
+
+// A plan envelope that declares mode=decompose but emits a malformed package: the second subtask
+// is missing its required `name`, so the typed projection loud-fails at parse. The runtime must
+// turn this into a Blocked outcome rather than letting the exception escape run().
+private val MALFORMED_DECOMPOSE_PLAN_OUTPUT: String = """
+  {
+    "contract_version": "0.1",
+    "phase_id": "plan",
+    "status": "completed",
+    "summary": "Plan needs ordered subtasks.",
+    "produced_outputs": {
+      "mode": "decompose",
+      "reason": "Plan needs ordered subtasks.",
+      "feature_name": "runtime decomposition parity",
+      "parent_spec_overview": "Split the runtime work into ordered subtasks.",
+      "validation_strategy": "bill-code-check",
+      "base_branch": "main",
+      "feature_branch": "feat/SKILL-65-runtime-decomposition-parity",
+      "subtasks": [
+        {
+          "id": 1,
+          "name": "domain contracts",
+          "scope": "Add typed plan outcome detection.",
+          "acceptance_criteria": ["Detect decompose mode."],
+          "non_goals": [],
+          "dependency_notes": "First subtask.",
+          "validation_strategy": "unit tests",
+          "next_path": "Work subtask 2 next.",
+          "depends_on": []
+        },
+        {
+          "id": 2,
+          "scope": "Stop after writing decomposition.",
+          "acceptance_criteria": ["Do not advance to implement."],
+          "non_goals": [],
+          "dependency_notes": "Depends on subtask 1.",
+          "validation_strategy": "unit tests",
+          "next_path": "Return to the parent workflow.",
+          "depends_on": [1]
+        }
+      ]
+    }
+  }
+""".trimIndent()
+
+// A plan envelope that declares mode=decompose with a DECODER-VALID package (every subtask carries
+// all required fields with correct types) but is WRITER-INVALID: the subtask ids descend [2, 1], so
+// the typed decoder accepts it while FeatureSpecPreparationWriter.validateDecomposedSubtasks rejects
+// the non-ascending order with InvalidFeatureSpecPreparationRequestError. The runtime must turn this
+// writer business-rule rejection into a Blocked outcome rather than letting it escape run().
+private val WRITER_INVALID_DECOMPOSE_PLAN_OUTPUT: String = """
+  {
+    "contract_version": "0.1",
+    "phase_id": "plan",
+    "status": "completed",
+    "summary": "Plan needs ordered subtasks.",
+    "produced_outputs": {
+      "mode": "decompose",
+      "reason": "Plan needs ordered subtasks.",
+      "feature_name": "runtime decomposition parity",
+      "parent_spec_overview": "Split the runtime work into ordered subtasks.",
+      "validation_strategy": "bill-code-check",
+      "base_branch": "main",
+      "feature_branch": "feat/SKILL-65-runtime-decomposition-parity",
+      "subtasks": [
+        {
+          "id": 2,
+          "name": "runtime stop",
+          "scope": "Stop after writing decomposition.",
+          "acceptance_criteria": ["Do not advance to implement."],
+          "non_goals": [],
+          "dependency_notes": "Listed first but ids descend.",
+          "validation_strategy": "unit tests",
+          "next_path": "Return to the parent workflow.",
+          "depends_on": []
+        },
+        {
+          "id": 1,
+          "name": "domain contracts",
+          "scope": "Add typed plan outcome detection.",
+          "acceptance_criteria": ["Detect decompose mode."],
+          "non_goals": [],
+          "dependency_notes": "Listed second; out of ascending order.",
+          "validation_strategy": "unit tests",
+          "next_path": "Work subtask 2 next.",
+          "depends_on": []
+        }
+      ]
+    }
+  }
+""".trimIndent()
 
 // An infrastructure spawn failure (no exit status, empty stdout).
 private fun spawnFailedFacts(): AgentRunLaunchOutcome = AgentRunLaunchFacts(

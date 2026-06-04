@@ -3,6 +3,7 @@ package skillbill.application
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.model.FeatureTaskRuntimeFixLoopDecision
 import skillbill.application.model.FeatureTaskRuntimePhaseStateRequest
+import skillbill.application.model.FeatureTaskRuntimePlanningStopDecision
 import skillbill.application.model.FeatureTaskRuntimeResolvedPhaseAgent
 import skillbill.application.model.FeatureTaskRuntimeRunEvent
 import skillbill.application.model.FeatureTaskRuntimeRunReport
@@ -34,6 +35,7 @@ class FeatureTaskRuntimeRunner(
   private val runInvariantsStore: FeatureTaskRuntimeRunInvariantsStore,
   private val outputValidator: FeatureTaskRuntimePhaseOutputValidator,
   private val branchSetupRunner: FeatureTaskRuntimeBranchSetupRunner,
+  private val planningStopper: FeatureTaskRuntimePlanningStopper,
 ) {
   fun run(request: FeatureTaskRuntimeRunRequest): FeatureTaskRuntimeRunReport {
     recorder.ensureWorkflowOpen(request.workflowId, request.sessionId, request.dbPathOverride)
@@ -68,33 +70,98 @@ class FeatureTaskRuntimeRunner(
   ) {
     private var resolvedBranch: String? = null
     private var blocked: FeatureTaskRuntimeRunReport.Blocked? = null
+    private var decomposed: FeatureTaskRuntimeRunReport.Decomposed? = null
 
     // Advances one phase: skips already-complete phases, guarantees the feature branch before a
     // file-mutating phase (preplan/plan may precede setup), then launches the phase.
-    // Returns true when the run is now blocked and the loop must stop.
+    // Returns true when the run is now blocked, decomposed, or the loop must otherwise stop.
     fun advance(phaseId: String): Boolean {
-      if (state.isComplete(phaseId)) {
-        return false
+      // For an already-complete PLAN, re-evaluate the decompose determination on resume before
+      // advancing, so a crash after PLAN persisted completed but before the decompose terminal was
+      // observed never silently advances to implement (AC2). Idempotent: a recorded terminal is
+      // reconstructed, never duplicate-written.
+      val reason = if (state.isComplete(phaseId)) {
+        state.outputFor(phaseId)
+          ?.takeIf { phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN }
+          ?.let { applyPlanningStop(phaseId, it) }
+      } else {
+        establishBranchIfNeeded(phaseId) ?: runPhaseFor(phaseId)
       }
-      val reason = establishBranchIfNeeded(phaseId) ?: runPhaseFor(phaseId)
-      return reason?.let { blockAt(phaseId, it) } ?: false
+      return when {
+        decomposed != null -> true
+        reason != null -> blockAt(phaseId, reason)
+        else -> false
+      }
     }
 
     // Runs the phase and records its completed output; returns a blocked reason when it blocks.
     private fun runPhaseFor(phaseId: String): String? {
       val outcome = runPhase(phaseId, request, state, observability)
-      outcome.blockedReason?.let { return it }
-      state.recordCompleted(requireNotNull(outcome.completedOutput))
-      return null
+      return outcome.blockedReason ?: run {
+        val completedOutput = requireNotNull(outcome.completedOutput)
+        state.recordCompleted(completedOutput)
+        applyPlanningStop(phaseId, completedOutput)
+      }
+    }
+
+    // Resolves the plan-phase stop for the given PLAN output, whether freshly completed or re-read on
+    // resume. Sets `decomposed` on a decompose terminal and persists a durable block on a malformed
+    // package; returns the blocked reason when the run must block, else null.
+    private fun applyPlanningStop(phaseId: String, planOutput: FeatureTaskRuntimePhaseOutput): String? {
+      if (phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN) {
+        return null
+      }
+      return when (val decision = resolvePlanningStop(planOutput)) {
+        is FeatureTaskRuntimePlanningStopDecision.Proceed -> null
+        is FeatureTaskRuntimePlanningStopDecision.Decomposed -> {
+          decomposed = decision.report
+          null
+        }
+        is FeatureTaskRuntimePlanningStopDecision.Blocked -> {
+          persistPlanningStopBlock(phaseId, decision.reason)
+          decision.reason
+        }
+      }
+    }
+
+    private fun resolvePlanningStop(
+      planOutput: FeatureTaskRuntimePhaseOutput,
+    ): FeatureTaskRuntimePlanningStopDecision = planningStopper.resolve(
+      request = request,
+      completedOutput = planOutput,
+      completedPhaseIds = state.completedPhaseIds(),
+      resolvedBranch = resolvedBranch,
+    )
+
+    // Persists a durable terminal blocked record for the plan phase and emits the blocked
+    // observability/ledger event so a malformed-decompose block is visible to status and the audit
+    // trail, consistent with every other phase block, rather than living only in the in-memory report.
+    private fun persistPlanningStopBlock(phaseId: String, reason: String) {
+      val resolvedAgentId = FeatureTaskRuntimeAgentResolver.resolve(
+        phaseId = phaseId,
+        assignment = request.agentAssignment,
+        invokedAgentId = request.invokedAgentId,
+      ).resolvedAgentId
+      recorder.recordPhaseState(
+        FeatureTaskRuntimePhaseStateRequest(
+          workflowId = request.workflowId,
+          phaseId = phaseId,
+          status = STATUS_BLOCKED,
+          attemptCount = 1,
+          resolvedAgentId = resolvedAgentId,
+          finished = false,
+          outputArtifact = null,
+          blockedReason = reason,
+        ),
+        request.dbPathOverride,
+      )
+      observability.blocked(phaseId, resolvedAgentId, 1, reason)
     }
 
     fun report(): FeatureTaskRuntimeRunReport {
-      blocked?.let { return it }
-      // A resume whose file-mutating phases were all already complete never re-enters setup this
-      // run; surface the durably-persisted branch so the report still names it.
       val branch = resolvedBranch
         ?: recorder.loadResolvedBranch(request.workflowId, request.dbPathOverride)?.branch
-      return FeatureTaskRuntimeRunReport.Completed(
+      return decomposed ?: blocked ?: FeatureTaskRuntimeRunReport.Completed(
         issueKey = request.issueKey,
         workflowId = request.workflowId,
         featureSize = request.runInvariants.featureSize.name,
@@ -341,7 +408,11 @@ class FeatureTaskRuntimeRunner(
           repoRoot = run.request.repoRoot,
           dbPathOverride = run.request.dbPathOverride,
           timeout = run.request.timeout,
-          promptOverride = FeatureTaskRuntimePhasePromptComposer.compose(run.request.issueKey, briefing),
+          promptOverride = FeatureTaskRuntimePhasePromptComposer.compose(
+            issueKey = run.request.issueKey,
+            briefing = briefing,
+            suppressDecomposition = isGoalContinuationRun(run.request),
+          ),
         ),
       ),
     )
@@ -412,10 +483,19 @@ class FeatureTaskRuntimeRunner(
   // records (not just outputs) are retained so the bounded fix loop resumes from the durable
   // attempt count rather than resetting to iteration 1 on resume/crash. Single-threaded.
   private class RunState(initialRecords: Map<String, FeatureTaskRuntimePhaseRecord>) {
-    private val outputs: MutableList<FeatureTaskRuntimePhaseOutput> =
-      initialRecords.values.mapNotNull(::recordToOutput).toMutableList()
+    // A legacy PLAN completed without its now-required PREPLAN predecessor is invalidated up front so
+    // the loop re-runs PLAN rather than honouring a pre-PREPLAN completion.
     private val completed: MutableSet<String> =
-      initialRecords.values.filter { it.status == STATUS_COMPLETED }.map { it.phaseId }.toMutableSet()
+      initialRecords.values
+        .filter { it.status == STATUS_COMPLETED }
+        .map { it.phaseId }
+        .toMutableSet()
+        .also(::invalidateLegacyPlanWithoutPreplan)
+    private val outputs: MutableList<FeatureTaskRuntimePhaseOutput> =
+      initialRecords.values
+        .mapNotNull(::recordToOutput)
+        .filterNot { it.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN && it.phaseId !in completed }
+        .toMutableList()
     private val priorRecords: MutableSet<String> = initialRecords.keys.toMutableSet()
 
     // Durable per-phase attempt count from the loaded record (0 when no record exists).
@@ -439,21 +519,11 @@ class FeatureTaskRuntimeRunner(
       .keys
       .toMutableSet()
 
-    init {
-      invalidateLegacyPlanWithoutPreplan()
-    }
-
-    private fun invalidateLegacyPlanWithoutPreplan() {
-      val plan = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN
-      val preplan = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN
-      if (plan !in completed || preplan in completed) {
-        return
-      }
-      completed.remove(plan)
-      outputs.removeAll { it.phaseId == plan }
-    }
-
     fun outputs(): List<FeatureTaskRuntimePhaseOutput> = outputs.toList()
+
+    // The latest validated output for the phase (highest iteration), or null when none is present.
+    fun outputFor(phaseId: String): FeatureTaskRuntimePhaseOutput? =
+      outputs.filter { it.phaseId == phaseId }.maxByOrNull { it.iteration }
 
     fun isComplete(phaseId: String): Boolean = phaseId in completed
 
@@ -539,6 +609,16 @@ private fun infraFailureReason(phaseId: String, facts: AgentRunLaunchFacts): Str
   facts.exitStatus != null && facts.exitStatus != 0 ->
     "Feature-task-runtime phase '$phaseId' agent exited with non-zero status ${facts.exitStatus}."
   else -> null
+}
+
+// Drops a legacy PLAN completion that predates the now-required PREPLAN phase so the loop re-runs
+// PLAN rather than honouring a pre-PREPLAN completion.
+private fun invalidateLegacyPlanWithoutPreplan(completed: MutableSet<String>) {
+  val plan = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN
+  val preplan = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN
+  if (plan in completed && preplan !in completed) {
+    completed.remove(plan)
+  }
 }
 
 private fun recordToOutput(record: FeatureTaskRuntimePhaseRecord): FeatureTaskRuntimePhaseOutput? =

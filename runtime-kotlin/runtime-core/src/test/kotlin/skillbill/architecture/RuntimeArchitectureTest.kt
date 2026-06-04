@@ -1741,6 +1741,7 @@ class RuntimeArchitectureTest {
       "skillbill.workflow.GoalProgressEventValidator.validate",
       "skillbill.workflow.model.appendBoundedHistoryBySequence",
       // Durable artifact-map seams riding inside the family workflow row's artifacts_json.
+      "skillbill.workflow.FeatureTaskRuntimePhaseOutputValidator.validateAndReadPhaseOutput",
       "skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord.toArtifactMap",
       "skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord.fromArtifactMap",
       "skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerEntry.toArtifactMap",
@@ -1749,6 +1750,9 @@ class RuntimeArchitectureTest {
       "skillbill.workflow.taskruntime.model.FeatureTaskRuntimeResolvedBranch.fromArtifactMap",
       "skillbill.workflow.taskruntime.model.toArtifactMap",
       "skillbill.workflow.taskruntime.model.featureTaskRuntimeRunInvariantsFromArtifactMap",
+      "skillbill.workflow.taskruntime.model.featureTaskRuntimeDecomposePlanOutcomeOrNull",
+      "skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDecomposeTerminal.toArtifactMap",
+      "skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDecomposeTerminal.fromArtifactMap",
       "skillbill.application.model.FeatureTaskRuntimePhaseLaunchBriefing.toArtifactMap",
       "skillbill.application.model.FeatureTaskRuntimePhaseLaunchBriefing.fromArtifactMap",
       // SKILL-52.2 subtask 2: the 11 scaffold input raw-map allow-list entries — the two public

@@ -64,12 +64,12 @@ subtasks:
 - id: 5
   name: "decomposition-mode-and-planning-stop"
   spec_path: ".feature-specs/SKILL-65.1-runtime-feature-task-parity/spec_subtask_5_decomposition-mode-and-planning-stop.md"
-  status: "pending"
-  branch: null
+  status: "complete"
+  branch: "feat/SKILL-65.1-runtime-feature-task-parity"
   commit_sha: null
-  workflow_id: null
+  workflow_id: "wfl-20260604-111923-he9m"
   blocked_reason: null
-  last_resumable_step: null
+  last_resumable_step: "commit_push"
   dependencies:
   - subtask_id: 2
     optional: false

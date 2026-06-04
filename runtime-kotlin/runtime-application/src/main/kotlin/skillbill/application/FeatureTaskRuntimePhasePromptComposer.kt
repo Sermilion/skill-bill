@@ -12,14 +12,19 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFeatureSize
  * never produce schema-valid phase output.
  */
 object FeatureTaskRuntimePhasePromptComposer {
-  fun compose(issueKey: String, briefing: FeatureTaskRuntimePhaseLaunchBriefing): String {
+  fun compose(
+    issueKey: String,
+    briefing: FeatureTaskRuntimePhaseLaunchBriefing,
+    suppressDecomposition: Boolean = false,
+  ): String {
     require(issueKey.isNotBlank()) { "issueKey is required to compose a phase prompt." }
     return listOf(
       header(issueKey, briefing.phaseId),
       ceremonyDirective(briefing),
+      goalContinuationDirective(briefing.phaseId, suppressDecomposition),
       briefing.briefingText,
       outputContract(briefing.phaseId),
-    ).joinToString(separator = "\n\n")
+    ).filter(String::isNotBlank).joinToString(separator = "\n\n")
   }
 
   private fun header(issueKey: String, phaseId: String): String {
@@ -81,6 +86,18 @@ object FeatureTaskRuntimePhasePromptComposer {
       phases
     No other top-level fields are allowed.
   """.trimIndent()
+
+  private fun goalContinuationDirective(phaseId: String, suppressDecomposition: Boolean): String {
+    if (!suppressDecomposition || phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN) {
+      return ""
+    }
+    return """
+      ## Goal-continuation planning constraint
+      This run is already executing one governed decomposed subtask. Do not propose or emit a new
+      decomposition package in the plan phase. Produce an implementable single-subtask plan for the
+      current spec; `produced_outputs.mode` must not be "decompose".
+    """.trimIndent()
+  }
 
   // One imperative task directive per phase; the briefing carries the spec-specific scope.
   private val phaseDirectives: Map<String, String> = mapOf(

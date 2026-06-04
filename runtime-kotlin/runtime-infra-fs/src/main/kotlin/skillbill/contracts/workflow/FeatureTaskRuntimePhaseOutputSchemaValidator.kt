@@ -57,6 +57,13 @@ object FeatureTaskRuntimePhaseOutputSchemaValidator {
     validate(parsed, sourceLabel)
   }
 
+  fun validateAndReadPhaseOutput(phaseOutputText: String, sourceLabel: String): Map<String, Any?> {
+    val node = readPhaseOutputObjectNode(phaseOutputText, sourceLabel)
+    val parsed = phaseOutputObjectNodeToMap(node, sourceLabel)
+    validate(parsed, sourceLabel)
+    return parsed
+  }
+
   // Agents launched via `claude --print` (and peers) emit a final message, not a bare payload:
   // the JSON object is commonly wrapped in a ``` fence or trailed by a closing remark. Try the
   // most-specific candidate first and fall back to the raw text so a genuinely payload-less or
