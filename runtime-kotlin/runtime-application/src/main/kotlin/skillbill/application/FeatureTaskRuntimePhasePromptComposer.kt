@@ -25,9 +25,9 @@ object FeatureTaskRuntimePhasePromptComposer {
     val directive = phaseDirectives[phaseId] ?: error("No phase directive for runtime phase '$phaseId'.")
     return """
       You are executing exactly one phase of the EXPERIMENTAL skill-bill feature-task-runtime
-      loop (preplan -> plan -> implement -> review -> audit -> validate) for issue $issueKey. The runtime
-      owns the loop; do not run other phases, do not open or continue any other skill-bill
-      workflow, and do not call `skill-bill workflow continue`.
+      loop (preplan -> plan -> implement -> review -> audit -> validate -> write_history -> commit_push -> pr)
+      for issue $issueKey. The runtime owns the loop; do not run other phases, do not open
+      or continue any other skill-bill workflow, and do not call `skill-bill workflow continue`.
 
       Phase: $phaseId ($label)
       Task: $directive
@@ -73,5 +73,18 @@ object FeatureTaskRuntimePhasePromptComposer {
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE to
       "Run the repository validation gate relevant to the change and report the pass/fail " +
       "results.",
+    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_WRITE_HISTORY to
+      "Invoke bill-boundary-history inline and apply its write/skip rules for the implemented " +
+      "runtime change. Emit a produced_outputs object containing history_result with whether " +
+      "history was written or skipped and the affected path when written.",
+    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_COMMIT_PUSH to
+      "Stage and commit the implemented, reviewed, audited, validated, and history-updated " +
+      "changes on the resolved feature branch, then push the branch. Emit commit_push_result " +
+      "with the commit SHA, branch name, and pushed status. If goal-continuation suppresses PR, " +
+      "this successful phase is the terminal success signal for the goal subtask.",
+    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PR to
+      "Invoke bill-pr-description, honor any repo-native PR template, create or reuse the open " +
+      "pull request for the branch idempotently, and emit pr_result with the PR URL/number, " +
+      "title, and whether a new PR was created.",
   )
 }

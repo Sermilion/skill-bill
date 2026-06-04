@@ -12,7 +12,10 @@
       {"step_id": "implement", "status": "pending", "attempt_count": 0},
       {"step_id": "review", "status": "pending", "attempt_count": 0},
       {"step_id": "audit", "status": "pending", "attempt_count": 0},
-      {"step_id": "validate", "status": "pending", "attempt_count": 0}
+      {"step_id": "validate", "status": "pending", "attempt_count": 0},
+      {"step_id": "write_history", "status": "pending", "attempt_count": 0},
+      {"step_id": "commit_push", "status": "pending", "attempt_count": 0},
+      {"step_id": "pr", "status": "pending", "attempt_count": 0}
     ],
     "artifacts": {},
     "started_at": "<STARTED_AT>",
@@ -77,7 +80,10 @@
       {"step_id": "implement", "status": "running", "attempt_count": 1},
       {"step_id": "review", "status": "pending", "attempt_count": 0},
       {"step_id": "audit", "status": "pending", "attempt_count": 0},
-      {"step_id": "validate", "status": "pending", "attempt_count": 0}
+      {"step_id": "validate", "status": "pending", "attempt_count": 0},
+      {"step_id": "write_history", "status": "pending", "attempt_count": 0},
+      {"step_id": "commit_push", "status": "pending", "attempt_count": 0},
+      {"step_id": "pr", "status": "pending", "attempt_count": 0}
     ],
     "artifacts": {
       "feature_task_runtime_phase_records": {
@@ -139,7 +145,10 @@
       {"step_id": "implement", "status": "running", "attempt_count": 1},
       {"step_id": "review", "status": "pending", "attempt_count": 0},
       {"step_id": "audit", "status": "pending", "attempt_count": 0},
-      {"step_id": "validate", "status": "pending", "attempt_count": 0}
+      {"step_id": "validate", "status": "pending", "attempt_count": 0},
+      {"step_id": "write_history", "status": "pending", "attempt_count": 0},
+      {"step_id": "commit_push", "status": "pending", "attempt_count": 0},
+      {"step_id": "pr", "status": "pending", "attempt_count": 0}
     ],
     "artifacts": {
       "feature_task_runtime_phase_records": {

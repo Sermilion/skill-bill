@@ -1,3 +1,12 @@
+## [2026-06-04] SKILL-65.1 subtask 3 post-validate-history-commit-pr-phases
+Areas: runtime-kotlin/runtime-domain, runtime-kotlin/runtime-application, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-mcp, orchestration/contracts
+- Feature-task-runtime phase DAG now runs through `write_history -> commit_push -> pr` after validate, with `pr` as `completedTerminalSummaryArtifact` and PR-derived diff context. reusable
+- Phase directives delegate boundary history, commit/push, and PR creation to the per-phase agent contract; `commit_push` is the durable suppress-PR hook for goal-continuation until subtask 7 wires policy. reusable
+- Workflow-state and telemetry step-id schemas mirror the new task-runtime phase ids; no phase-output schema or `FEATURE_TASK_RUNTIME_CONTRACT_VERSION` bump.
+- Gotcha: test doubles parsing phase headers must accept underscores for `write_history`/`commit_push`; keep phase-list assertions derived from the runtime definition where possible. reusable
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
 ## [2026-06-04] SKILL-65.1 subtask 2 preplan-phase
 Areas: runtime-kotlin/runtime-domain, runtime-kotlin/runtime-application, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-mcp, runtime-kotlin/runtime-infra-fs, orchestration/contracts
 - Feature-task-runtime phase DAG now starts `preplan -> plan -> implement -> review -> audit -> validate`; `PHASE_PREPLAN` is the default initial step, non-file-mutating, has exact labels/resume action/schema enum parity, and `plan` consumes the preplan output. reusable

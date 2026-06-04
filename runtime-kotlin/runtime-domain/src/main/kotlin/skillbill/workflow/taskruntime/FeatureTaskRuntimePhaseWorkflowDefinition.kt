@@ -20,6 +20,9 @@ object FeatureTaskRuntimePhaseWorkflowDefinition {
   const val PHASE_REVIEW: String = "review"
   const val PHASE_AUDIT: String = "audit"
   const val PHASE_VALIDATE: String = "validate"
+  const val PHASE_WRITE_HISTORY: String = "write_history"
+  const val PHASE_COMMIT_PUSH: String = "commit_push"
+  const val PHASE_PR: String = "pr"
 
   val definition: WorkflowDefinition = WorkflowDefinition(
     skillName = "feature-task-runtime",
@@ -39,6 +42,9 @@ object FeatureTaskRuntimePhaseWorkflowDefinition {
       PHASE_REVIEW,
       PHASE_AUDIT,
       PHASE_VALIDATE,
+      PHASE_WRITE_HISTORY,
+      PHASE_COMMIT_PUSH,
+      PHASE_PR,
     ),
     stepLabels =
     mapOf(
@@ -48,6 +54,9 @@ object FeatureTaskRuntimePhaseWorkflowDefinition {
       PHASE_REVIEW to "Phase 4: Code Review",
       PHASE_AUDIT to "Phase 5: Completeness Audit",
       PHASE_VALIDATE to "Phase 6: Quality Validation",
+      PHASE_WRITE_HISTORY to "Phase 7: Boundary History",
+      PHASE_COMMIT_PUSH to "Phase 8: Commit and Push",
+      PHASE_PR to "Phase 9: Pull Request",
     ),
     requiredArtifactsByStep =
     mapOf(
@@ -57,6 +66,9 @@ object FeatureTaskRuntimePhaseWorkflowDefinition {
       PHASE_REVIEW to listOf(PHASE_IMPLEMENT),
       PHASE_AUDIT to listOf(PHASE_PLAN, PHASE_IMPLEMENT, PHASE_REVIEW),
       PHASE_VALIDATE to listOf(PHASE_IMPLEMENT, PHASE_AUDIT),
+      PHASE_WRITE_HISTORY to listOf(PHASE_IMPLEMENT, PHASE_VALIDATE),
+      PHASE_COMMIT_PUSH to listOf(PHASE_IMPLEMENT, PHASE_VALIDATE, PHASE_WRITE_HISTORY),
+      PHASE_PR to listOf(PHASE_IMPLEMENT, PHASE_COMMIT_PUSH),
     ),
     resumeActions =
     mapOf(
@@ -66,25 +78,30 @@ object FeatureTaskRuntimePhaseWorkflowDefinition {
       PHASE_REVIEW to "Resume code review from the latest implement output and the derived diff context.",
       PHASE_AUDIT to "Resume the completeness audit from the latest plan, implement, and review outputs.",
       PHASE_VALIDATE to "Resume quality validation from the latest implement and audit outputs.",
+      PHASE_WRITE_HISTORY to
+        "Resume boundary history writing from the latest implement and validate outputs.",
+      PHASE_COMMIT_PUSH to
+        "Resume commit/push after verifying implement, validate, and write_history outputs are current.",
+      PHASE_PR to "Resume PR creation from the latest implement output, commit output, and derived diff context.",
     ),
     continuationReferenceSections = emptyMap(),
     continuationDirectives = emptyMap(),
     continuationArtifactOrder = emptyList(),
     openPriorStepsCompleted = false,
-    completedTerminalSummaryArtifact = PHASE_VALIDATE,
+    completedTerminalSummaryArtifact = PHASE_PR,
   )
 
   /**
    * Per-phase declarations: consumed upstream phase ids (mirroring
    * [WorkflowDefinition.requiredArtifactsByStep]) plus derived-context keys.
-   * `review` is the only phase that declares a derived `diff` context.
+   * `review` and `pr` declare derived `diff` context for branch-diff inspection.
    */
   val phaseDeclarations: Map<String, FeatureTaskRuntimePhaseDeclaration> =
     definition.stepIds.associateWith { phaseId ->
       FeatureTaskRuntimePhaseDeclaration(
         phaseId = phaseId,
         consumedUpstreamPhaseIds = definition.requiredArtifactsByStep[phaseId].orEmpty(),
-        derivedContextKeys = if (phaseId == PHASE_REVIEW) listOf("diff") else emptyList(),
+        derivedContextKeys = if (phaseId in setOf(PHASE_REVIEW, PHASE_PR)) listOf("diff") else emptyList(),
       )
     }
 }

@@ -280,6 +280,9 @@ $defs:
       - review
       - audit
       - validate
+      - write_history
+      - commit_push
+      - pr
   stepUpdateTaskRuntimeShape:
     type: object
     additionalProperties: false

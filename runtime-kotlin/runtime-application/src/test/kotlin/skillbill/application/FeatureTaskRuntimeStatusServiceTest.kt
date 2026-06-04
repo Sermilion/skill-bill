@@ -52,11 +52,11 @@ class FeatureTaskRuntimeStatusServiceTest {
     )
 
     assertEquals(0, projection.completeCount)
-    assertEquals(6, projection.pendingCount)
+    assertEquals(9, projection.pendingCount)
     assertEquals(0, projection.blockedCount)
     assertEquals("preplan", projection.currentPhaseId)
     assertEquals(
-      listOf("pending", "pending", "pending", "pending", "pending", "pending"),
+      listOf("pending", "pending", "pending", "pending", "pending", "pending", "pending", "pending", "pending"),
       projection.phases.map { it.status },
     )
   }

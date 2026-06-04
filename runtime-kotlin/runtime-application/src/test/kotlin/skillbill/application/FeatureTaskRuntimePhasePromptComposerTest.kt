@@ -38,6 +38,9 @@ class FeatureTaskRuntimePhasePromptComposerTest {
     val preplanPrompt = FeatureTaskRuntimePhasePromptComposer.compose(ISSUE_KEY, briefingFor("preplan"))
     val planPrompt = FeatureTaskRuntimePhasePromptComposer.compose(ISSUE_KEY, briefingFor("plan"))
     val implementPrompt = FeatureTaskRuntimePhasePromptComposer.compose(ISSUE_KEY, briefingFor("implement"))
+    val historyPrompt = FeatureTaskRuntimePhasePromptComposer.compose(ISSUE_KEY, briefingFor("write_history"))
+    val commitPrompt = FeatureTaskRuntimePhasePromptComposer.compose(ISSUE_KEY, briefingFor("commit_push"))
+    val prPrompt = FeatureTaskRuntimePhasePromptComposer.compose(ISSUE_KEY, briefingFor("pr"))
 
     assertContains(preplanPrompt, "pre-planning digest")
     assertContains(preplanPrompt, "scope, affected boundaries, risks/unknowns")
@@ -51,6 +54,13 @@ class FeatureTaskRuntimePhasePromptComposerTest {
       !implementPrompt.contains("Do not modify repository files during this phase."),
       "implement must not carry the plan directive",
     )
+    assertContains(historyPrompt, "bill-boundary-history")
+    assertContains(historyPrompt, "history_result")
+    assertContains(commitPrompt, "commit_push_result")
+    assertContains(commitPrompt, "terminal success signal")
+    assertContains(prPrompt, "bill-pr-description")
+    assertContains(prPrompt, "create or reuse the open")
+    assertContains(prPrompt, "pr_result")
   }
 
   @Test

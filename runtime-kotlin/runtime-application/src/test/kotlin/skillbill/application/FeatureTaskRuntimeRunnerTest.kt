@@ -49,7 +49,7 @@ import kotlin.test.assertTrue
 
 class FeatureTaskRuntimeRunnerTest {
   @Test
-  fun `runs phases deterministically in preplan plan implement review audit validate order`() {
+  fun `runs phases deterministically through terminal pr phase order`() {
     val harness = runnerHarness(agentAssignment = phasePerAgentAssignment())
     val report = harness.runner.run(harness.request())
 
@@ -102,6 +102,8 @@ class FeatureTaskRuntimeRunnerTest {
     assertEquals(PLAN_OUTPUT, briefings.getValue("implement").upstreamOutputsByPhaseId.getValue("plan"))
     assertEquals(listOf("diff"), briefings.getValue("review").derivedContextKeys)
     assertContains(briefings.getValue("review").briefingText, "diff")
+    assertEquals(listOf("diff"), briefings.getValue("pr").derivedContextKeys)
+    assertContains(briefings.getValue("pr").briefingText, "diff")
   }
 
   @Test
@@ -233,8 +235,11 @@ class FeatureTaskRuntimeRunnerTest {
     val report = harness.runner.run(harness.request())
 
     assertIs<FeatureTaskRuntimeRunReport.Completed>(report)
-    assertEquals(listOf("review", "audit", "validate"), harness.launchedPhaseOrder())
-    assertEquals(listOf("review", "audit", "validate"), harness.launchOrder())
+    assertEquals(
+      listOf("review", "audit", "validate", "write_history", "commit_push", "pr"),
+      harness.launchedPhaseOrder(),
+    )
+    assertEquals(listOf("review", "audit", "validate", "write_history", "commit_push", "pr"), harness.launchOrder())
 
     val briefings = harness.recorder.loadPhaseBriefings(WORKFLOW_ID).orEmpty()
     val reviewBriefing = requireNotNull(briefings["review"]) { "review briefing must be persisted" }
@@ -243,6 +248,12 @@ class FeatureTaskRuntimeRunnerTest {
     assertEquals(PLAN_OUTPUT, auditBriefing.upstreamOutputsByPhaseId["plan"])
     assertEquals(IMPLEMENT_OUTPUT, auditBriefing.upstreamOutputsByPhaseId["implement"])
     assertEquals(VALID_OUTPUT, auditBriefing.upstreamOutputsByPhaseId["review"])
+    val historyBriefing = requireNotNull(briefings["write_history"]) { "history briefing must be persisted" }
+    assertEquals(IMPLEMENT_OUTPUT, historyBriefing.upstreamOutputsByPhaseId["implement"])
+    val commitBriefing = requireNotNull(briefings["commit_push"]) { "commit briefing must be persisted" }
+    assertTrue(commitBriefing.upstreamOutputsByPhaseId.containsKey("write_history"))
+    val prBriefing = requireNotNull(briefings["pr"]) { "pr briefing must be persisted" }
+    assertTrue(prBriefing.upstreamOutputsByPhaseId.containsKey("commit_push"))
   }
 
   @Test
@@ -253,7 +264,10 @@ class FeatureTaskRuntimeRunnerTest {
     val report = harness.runner.run(harness.request())
 
     assertIs<FeatureTaskRuntimeRunReport.Completed>(report)
-    assertEquals(listOf("plan", "implement", "review", "audit", "validate"), harness.launchedPhaseOrder())
+    assertEquals(
+      listOf("plan", "implement", "review", "audit", "validate", "write_history", "commit_push", "pr"),
+      harness.launchedPhaseOrder(),
+    )
     assertTrue(harness.launchedPhaseOrder().none { it == "preplan" })
     val planBriefing = requireNotNull(harness.recorder.loadPhaseBriefings(WORKFLOW_ID).orEmpty()["plan"])
     assertEquals(PREPLAN_OUTPUT, planBriefing.upstreamOutputsByPhaseId["preplan"])
@@ -373,7 +387,7 @@ class FeatureTaskRuntimeRunnerTest {
     assertIs<FeatureTaskRuntimeRunReport.Completed>(report)
     val row = requireNotNull(harness.repository.getFeatureTaskRuntimeWorkflow(WORKFLOW_ID))
     assertEquals("completed", row.workflowStatus)
-    assertEquals("validate", row.currentStepId)
+    assertEquals("pr", row.currentStepId)
   }
 
   @Test
@@ -944,7 +958,7 @@ class FeatureTaskRuntimeBranchSetupRunnerTest {
     val completed = assertIs<FeatureTaskRuntimeRunReport.Completed>(report)
     assertEquals(EXPECTED_FEATURE_BRANCH, completed.resolvedBranch)
     // The implement phase (and every later file-mutating phase) launched: the poison is cleared.
-    assertEquals(listOf("implement", "review", "audit", "validate"), harness.launchedPhaseOrder())
+    assertEquals(ALL_PHASES.filterNot(NON_FILE_MUTATING_PHASES::contains), harness.launchedPhaseOrder())
     // The durable record is superseded back to a completed implement-agent record, not left blocked.
     val implementRecord = requireNotNull(harness.recorder.loadPhaseRecords(WORKFLOW_ID).orEmpty()["implement"])
     assertEquals("completed", implementRecord.status)
@@ -1024,7 +1038,8 @@ private const val PREPLAN_OUTPUT = """{"preplan_digest":"scope-boundaries-risks-
 private const val PLAN_OUTPUT = """{"plan":"do-the-thing"}"""
 private const val IMPLEMENT_OUTPUT = """{"implement":"done"}"""
 
-private val ALL_PHASES = listOf("preplan", "plan", "implement", "review", "audit", "validate")
+private val ALL_PHASES =
+  listOf("preplan", "plan", "implement", "review", "audit", "validate", "write_history", "commit_push", "pr")
 private val NON_FILE_MUTATING_PHASES = setOf("preplan", "plan")
 
 // A distinct invoking agent per phase so a captured launch request is

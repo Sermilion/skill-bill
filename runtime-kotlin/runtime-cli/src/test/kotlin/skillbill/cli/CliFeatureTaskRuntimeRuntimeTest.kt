@@ -108,9 +108,12 @@ class CliFeatureTaskRuntimeRuntimeTest {
 
     assertEquals(0, result.exitCode, result.stdout)
     assertContains(result.stdout, "status: complete")
-    assertContains(result.stdout, "completed_phases: preplan, plan, implement, review, audit, validate")
+    assertContains(
+      result.stdout,
+      "completed_phases: preplan, plan, implement, review, audit, validate, write_history, commit_push, pr",
+    )
     assertEquals(listOf("codex"), launcher.requests.map { it.agentId }.distinct())
-    assertEquals(6, launcher.requests.size)
+    assertEquals(ALL_PHASES.size, launcher.requests.size)
   }
 
   @Test
@@ -184,10 +187,10 @@ class CliFeatureTaskRuntimeRuntimeTest {
     val agentByPhase = orderedPhases.mapIndexed { index, phaseId ->
       phaseId to launcher.requests[index].agentId
     }.toMap()
-    assertEquals(6, launcher.requests.size, result.stdout)
+    assertEquals(ALL_PHASES.size, launcher.requests.size, result.stdout)
     assertEquals("claude", agentByPhase["plan"], result.stdout)
     assertEquals(
-      listOf("codex", "codex", "codex", "codex", "codex"),
+      orderedPhases.filter { it != "plan" }.map { "codex" },
       orderedPhases.filter { it != "plan" }.map { agentByPhase.getValue(it) },
       result.stdout,
     )
@@ -288,7 +291,7 @@ class CliFeatureTaskRuntimeRuntimeTest {
 
     assertEquals(0, status.exitCode, status.stdout)
     assertContains(status.stdout, "status: ok")
-    assertContains(status.stdout, "complete: 6")
+    assertContains(status.stdout, "complete: ${ALL_PHASES.size}")
     assertContains(status.stdout, "pending: 0")
     assertContains(status.stdout, "blocked: 0")
     assertContains(status.stdout, "current_phase: none")
@@ -363,8 +366,11 @@ class CliFeatureTaskRuntimeRuntimeTest {
 
     assertEquals(0, result.exitCode, result.stdout)
     assertContains(result.stdout, "status: complete")
-    assertContains(result.stdout, "completed_phases: preplan, plan, implement, review, audit, validate")
-    assertEquals(6, launcher.requests.size)
+    assertContains(
+      result.stdout,
+      "completed_phases: preplan, plan, implement, review, audit, validate, write_history, commit_push, pr",
+    )
+    assertEquals(ALL_PHASES.size, launcher.requests.size)
   }
 
   @Test
@@ -492,7 +498,7 @@ private class RecordingPhaseLauncher(
   }
 
   private companion object {
-    private val PHASE_LINE = Regex("^Phase: ([a-z-]+) ", setOf(RegexOption.MULTILINE))
+    private val PHASE_LINE = Regex("^Phase: ([a-z_-]+) ", setOf(RegexOption.MULTILINE))
 
     fun phaseIdFromPrompt(prompt: String): String =
       PHASE_LINE.find(prompt)?.groupValues?.get(1) ?: error("Prompt did not contain a phase header: $prompt")
@@ -516,7 +522,8 @@ private class RecordingPhaseLauncher(
   }
 }
 
-private val ALL_PHASES = listOf("preplan", "plan", "implement", "review", "audit", "validate")
+private val ALL_PHASES =
+  listOf("preplan", "plan", "implement", "review", "audit", "validate", "write_history", "commit_push", "pr")
 
 // Records checkouts and reports a configurable current branch so branch-setup is exercised through
 // the CLI without a real git repo. The default reports an existing feature branch (reuse path).

@@ -33,6 +33,9 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionTest {
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW,
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE,
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_WRITE_HISTORY,
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_COMMIT_PUSH,
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PR,
       )
     assertEquals(expectedOrder, definition.stepIds)
     assertEquals(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN, definition.defaultInitialStepId)
@@ -44,6 +47,9 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionTest {
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW to "Phase 4: Code Review",
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT to "Phase 5: Completeness Audit",
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE to "Phase 6: Quality Validation",
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_WRITE_HISTORY to "Phase 7: Boundary History",
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_COMMIT_PUSH to "Phase 8: Commit and Push",
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PR to "Phase 9: Pull Request",
       ),
       definition.stepLabels,
     )
@@ -84,6 +90,28 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionTest {
       ),
       dependenciesOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE),
     )
+    assertEquals(
+      listOf(
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE,
+      ),
+      dependenciesOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_WRITE_HISTORY),
+    )
+    assertEquals(
+      listOf(
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE,
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_WRITE_HISTORY,
+      ),
+      dependenciesOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_COMMIT_PUSH),
+    )
+    assertEquals(
+      listOf(
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_COMMIT_PUSH,
+      ),
+      dependenciesOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PR),
+    )
   }
 
   @Test
@@ -98,7 +126,7 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionTest {
   }
 
   @Test
-  fun `phase declarations mirror the dependency set and only review declares derived diff context`() {
+  fun `phase declarations mirror the dependency set and review plus pr declare derived diff context`() {
     val declarations = FeatureTaskRuntimePhaseWorkflowDefinition.phaseDeclarations
     definition.stepIds.forEach { phaseId ->
       val declaration = declarations.getValue(phaseId)
@@ -109,12 +137,24 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionTest {
       declarations.getValue(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW).derivedContextKeys,
     )
     assertEquals(
+      listOf("diff"),
+      declarations.getValue(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PR).derivedContextKeys,
+    )
+    assertEquals(
       emptyList(),
       declarations.getValue(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN).derivedContextKeys,
     )
     assertEquals(
       emptyList(),
       declarations.getValue(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN).derivedContextKeys,
+    )
+  }
+
+  @Test
+  fun `terminal summary artifact is pr`() {
+    assertEquals(
+      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PR,
+      definition.completedTerminalSummaryArtifact,
     )
   }
 
