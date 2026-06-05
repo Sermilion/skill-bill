@@ -10,17 +10,17 @@ feature_branch: "feat/SKILL-66-feature-goal-telemetry"
 stack_branches: []
 current_subtask_intent:
   subtask_id: 2
-  action: "start"
+  action: "resume"
 subtasks:
 - id: 1
   name: "goal-telemetry-contract-and-schema"
   spec_path: ".feature-specs/SKILL-66-feature-goal-telemetry/spec_subtask_1_goal-telemetry-contract-and-schema.md"
   status: "complete"
   branch: null
-  commit_sha: "b8abad36"
-  workflow_id: null
+  commit_sha: null
+  workflow_id: "wftr-20260605-183629-zxg9"
   blocked_reason: null
-  last_resumable_step: null
+  last_resumable_step: "commit_push"
   dependencies: []
 - id: 2
   name: "goal-telemetry-persistence"
