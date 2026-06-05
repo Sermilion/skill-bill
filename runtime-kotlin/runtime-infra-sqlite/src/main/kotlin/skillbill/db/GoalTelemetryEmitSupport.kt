@@ -4,13 +4,6 @@ import skillbill.telemetry.model.GoalSubtaskFinishedRecord
 import java.sql.Connection
 import java.sql.ResultSet
 
-// SKILL-66 Subtask 2: goal telemetry outbox emit. The generic lifecycle emit
-// helpers are `session_id`-keyed, so goal rows (keyed by `workflow_id`, and the
-// subtask events by the composite `(issue_key, subtask_id, workflow_id)`) get
-// dedicated `*_event_emitted_at`-guarded variants. Each event is enqueued at
-// most once: a resumed run that re-writes an already-emitted row is a no-op,
-// satisfying the AC#4 no-double-count guarantee.
-
 fun emitGoalStarted(connection: Connection, workflowId: String, level: String) {
   val row = goalRunSessionRow(connection, workflowId) ?: return
   if (row.stringOrEmpty("started_event_emitted_at").isNotBlank()) {

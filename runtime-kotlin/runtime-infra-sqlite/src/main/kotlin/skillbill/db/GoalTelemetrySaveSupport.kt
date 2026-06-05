@@ -116,13 +116,6 @@ private fun insertGoalFinished(connection: Connection, record: GoalFinishedRecor
   }
 }
 
-/**
- * Resume-safe insert: the composite PRIMARY KEY
- * `(issue_key, subtask_id, workflow_id)` plus `ON CONFLICT DO NOTHING` means a
- * subtask that already recorded a terminal outcome within this run segment is
- * not re-written. Returns `true` when a new row was inserted, `false` on a
- * resume-duplicate no-op — the emit path uses this to avoid double-counting.
- */
 fun saveGoalSubtaskFinished(connection: Connection, record: GoalSubtaskFinishedRecord): Boolean =
   connection.prepareStatement(
     """

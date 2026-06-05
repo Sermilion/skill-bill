@@ -7,11 +7,6 @@ import skillbill.telemetry.model.GoalFinishedRecord
 import skillbill.telemetry.model.GoalStartedRecord
 import skillbill.telemetry.model.GoalSubtaskFinishedRecord
 
-// SKILL-66 Subtask 2: goal telemetry request -> record mappers follow the same
-// identity-style `toRecord()` pattern as the lifecycle mappers; kept in their
-// own file so neither this nor LifecycleTelemetryRecordMappers grows past the
-// per-file function budget.
-
 fun GoalStartedRequest.toRecord(): GoalStartedRecord = GoalStartedRecord(
   issueKey = issueKey,
   featureName = featureName,

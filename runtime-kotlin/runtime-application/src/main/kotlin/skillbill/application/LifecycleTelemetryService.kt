@@ -141,13 +141,6 @@ class LifecycleTelemetryService(
     }
   }
 
-  // SKILL-66 Subtask 3 (AC3, AC4): goal lifecycle emission flows through the
-  // same enabledStandaloneResult -> database.transaction seam as every other
-  // family. When telemetry is enabled a repository write that throws propagates
-  // out of these methods, failing the goal run loudly (parent AC5); when
-  // disabled the seam is a silent no-op with no write and no throw. The Unit
-  // return keeps GoalRunner free of the MCP/CLI event bag and off the raw-map
-  // boundary surface. See decisions.md (2026-06-05).
   override fun goalStarted(request: GoalStartedRequest, dbOverride: String?) {
     enabledStandaloneResult(request.workflowId) { settings ->
       database.transaction(dbOverride) { unitOfWork ->

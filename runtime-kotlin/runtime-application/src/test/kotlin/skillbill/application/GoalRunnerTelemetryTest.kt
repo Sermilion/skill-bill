@@ -23,13 +23,6 @@ import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-// SKILL-66 Subtask 3 (AC7): application tests with a fake launcher and a fixed
-// clock asserting exact goal-telemetry event counts and payload contents for a
-// clean completed run, a run blocked mid-subtask, a resumed run completing the
-// remaining subtasks (no double-count), a run with a skipped subtask, and a
-// telemetry write failure (loud-fail). AC5 byte-equivalence (NONE produces
-// identical runtime behavior) is guarded by a dedicated test plus the rest of
-// GoalRunnerTest, which all run with the NONE-default emitter.
 class GoalRunnerTelemetryTest {
   @Test
   fun `clean completed run emits one started two subtask finished and one finished`() {
@@ -134,16 +127,11 @@ class GoalRunnerTelemetryTest {
     val report = runner.run(runRequest())
 
     assertIs<GoalRunnerRunReport.Completed>(report)
-    // Resume must be flagged and the prior-segment terminals (subtasks 1 and 2)
-    // must NOT re-emit goal_subtask_finished — only subtask 3 reaches terminal
-    // status within this segment.
     assertTrue(telemetry.started.single().resumed)
     assertEquals(listOf(3), telemetry.subtaskFinished.map { it.subtaskId })
     assertEquals("complete", telemetry.subtaskFinished.single().status)
     assertEquals("wfl-3", telemetry.subtaskFinished.single().workflowId)
 
-    // goal_finished counts reflect the FINAL manifest (all three complete),
-    // proving per-segment subtask events and the segment summary are independent.
     val finished = telemetry.finished.single()
     assertEquals("completed", finished.status)
     assertEquals(3, finished.subtasksComplete)
@@ -157,8 +145,6 @@ class GoalRunnerTelemetryTest {
     val outcomes = RecordingOutcomeStore()
     val launcher = RecordingSubtaskLauncher { request ->
       val subtaskId = requireNotNull(request.skillRunRequest.subtaskId)
-      // Subtask 2 is marked skipped by an external manifest projection while
-      // subtask 1 runs — a transition the loop itself never makes.
       store.mutate { current ->
         current.withWorkflowId(subtaskId, "wfl-$subtaskId").withSkippedSubtaskState(2)
       }
@@ -174,8 +160,6 @@ class GoalRunnerTelemetryTest {
     assertEquals(setOf(1, 2), telemetry.subtaskFinished.map { it.subtaskId }.toSet())
     val skipped = telemetry.subtaskFinished.single { it.subtaskId == 2 }
     assertEquals("skipped", skipped.status)
-    // A never-launched subtask has no child workflow id; the emitter falls back
-    // to a stable per-subtask id so dedup keys stay deterministic.
     assertEquals("SKILL-56:subtask:2", skipped.workflowId)
     assertEquals(0L, skipped.durationMs)
 
@@ -195,8 +179,6 @@ class GoalRunnerTelemetryTest {
 
     val failure = assertFailsWith<TelemetryWriteFailure> { runner.run(runRequest()) }
     assertEquals(TelemetryEvent.STARTED, failure.event)
-    // Loud-fail: the error is not swallowed, retried, or downgraded — no later
-    // goal events are emitted and the run does not return a report.
     assertTrue(telemetry.subtaskFinished.isEmpty())
     assertTrue(telemetry.finished.isEmpty())
   }

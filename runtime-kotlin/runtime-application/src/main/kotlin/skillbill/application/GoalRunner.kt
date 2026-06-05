@@ -48,8 +48,6 @@ class GoalRunner(
   private val outcomeStore: GoalRunnerWorkflowOutcomeStore,
   private val pullRequestPort: GoalPullRequestPort,
   private val gitOperations: WorkflowGitOperations = NoopWorkflowGitOperations,
-  // SKILL-66 Subtask 3: defaulted so the existing positional test constructors
-  // keep compiling and AC5 byte-equivalence holds for runs without telemetry.
   private val telemetry: GoalLifecycleTelemetryEmitter = GoalLifecycleTelemetryEmitter.NONE,
   private val clock: java.time.Clock = java.time.Clock.systemUTC(),
 ) {
@@ -63,10 +61,6 @@ class GoalRunner(
     val observability = GoalRunnerObservabilityEmitter(outcomeStore, request)
     val ledger = GoalRunnerLedgerRecorder(outcomeStore, request)
     var terminalReport: GoalRunnerRunReport? = preflightPolicyBlockedReport(state, request, ledger)
-    // SKILL-66 Subtask 3 (AC1): construct the per-segment telemetry collaborator
-    // inside the same terminalReport == null gate as the Started event so a
-    // preflight-blocked run emits no goal telemetry, and emit goal_started right
-    // after the Started event so it pairs with that loop-start signal.
     val telemetryEmitter = if (terminalReport == null) {
       request.eventSink.emit(GoalRunnerRunEvent.Started(state.manifest.issueKey))
       GoalRunnerTelemetryEmitter(telemetry, clock, state, request.dbPathOverride).also { it.goalStarted() }
@@ -89,18 +83,10 @@ class GoalRunner(
           terminalReport = result.report
         }
       }
-      // SKILL-66 Subtask 3 (AC1): emit goal_subtask_finished for any subtask that
-      // reached terminal status during this iteration.
-      telemetryEmitter?.sweepTerminal(state.manifest, attempted)
+      telemetryEmitter?.emitNewlyTerminalSubtasks(state.manifest, attempted)
     }
     val finalReport = terminalReport
-    // SKILL-66 Subtask 3 (AC1, AC4): a final sweep catches any terminal subtask
-    // not yet emitted, then goal_finished closes the segment. A telemetry write
-    // failure here propagates and fails the run loudly — it is not swallowed.
-    telemetryEmitter?.let { emitter ->
-      emitter.sweepTerminal(state.manifest, attempted)
-      emitter.goalFinished(state.manifest, finalReport)
-    }
+    closeGoalTelemetrySegment(telemetryEmitter, state, finalReport, attempted)
     if (finalReport is GoalRunnerRunReport.Completed) {
       request.eventSink.emit(
         GoalRunnerRunEvent.Completed(
@@ -114,6 +100,18 @@ class GoalRunner(
       )
     }
     return finalReport
+  }
+
+  private fun closeGoalTelemetrySegment(
+    telemetryEmitter: GoalRunnerTelemetryEmitter?,
+    state: GoalRunnerManifestState,
+    finalReport: GoalRunnerRunReport,
+    attempted: List<Int>,
+  ) {
+    telemetryEmitter?.let { emitter ->
+      emitter.emitNewlyTerminalSubtasks(state.manifest, attempted)
+      emitter.goalFinished(state.manifest, finalReport)
+    }
   }
 
   private fun blockedSelectionIteration(
@@ -235,9 +233,6 @@ class GoalRunner(
     }
   }
 
-  // SKILL-64 Subtask 3 (AC24): emit SubtaskStarted seeded with the authoritative
-  // durable step when a workflow already exists (resume), never a hardcoded
-  // 'preplan' label.
   private fun emitSubtaskStarted(
     attemptedState: GoalRunnerManifestState,
     subtaskId: Int,
@@ -245,9 +240,6 @@ class GoalRunner(
     request: GoalRunnerRunRequest,
     telemetryEmitter: GoalRunnerTelemetryEmitter?,
   ) {
-    // SKILL-66 Subtask 3 (AC2): stamp the subtask launch time from the runtime
-    // clock seam so goal_subtask_finished.started_at/duration never derive from
-    // agent-supplied timing.
     telemetryEmitter?.markSubtaskStarted(subtaskId)
     val currentStepId = attemptedState.manifest.subtasks
       .firstOrNull { it.id == subtaskId }
@@ -448,7 +440,6 @@ class GoalRunner(
         activitySummary = "Subtask $subtaskId completed with commit ${reconciled.commitSha}.",
       ),
     )
-    // AC10/AC11: terminal done check + final reconciled outcome for this subtask.
     ledger.recordLedgerEntry(
       GoalRunnerLedgerContext(
         workflowId = reconciled.workflowId,
@@ -476,8 +467,6 @@ class GoalRunner(
       repoRoot = request.repoRoot,
       dbPathOverride = request.dbPathOverride,
     )
-    // AC10/AC11: final reconciled outcome ledger entry at goal finalization,
-    // anchored to the last attempted subtask's workflow when one exists.
     state.manifest.subtasks
       .lastOrNull { subtask -> !subtask.workflowId.isNullOrBlank() }
       ?.let { subtask ->
@@ -573,8 +562,6 @@ class GoalRunner(
       )
     }
     val saved = manifestStore.save(state.copy(manifest = blockedManifest), request.dbPathOverride)
-    // AC10/AC11: policy block before any child launch, anchored to the parent
-    // decomposed workflow id (no child workflow exists yet).
     ledger.recordLedgerEntry(
       GoalRunnerLedgerContext(
         workflowId = saved.parentWorkflowId,
@@ -677,10 +664,6 @@ class GoalRunner(
   )
 }
 
-// SKILL-64 Subtask 3: launch-reconciliation collaborator extracted from
-// GoalRunner to keep the orchestrator class within size limits. Owns the
-// compact-continuation launch request construction (AC4) and the
-// no-terminal-outcome recheck/retry loop.
 @Suppress("TooManyFunctions")
 internal class GoalRunnerLaunchReconciler(
   private val manifestStore: GoalRunnerManifestStore,
@@ -692,9 +675,6 @@ internal class GoalRunnerLaunchReconciler(
     subtaskId: Int,
     request: GoalRunnerRunRequest,
   ): GoalRunnerSubtaskLaunchRequest {
-    // SKILL-64 Subtask 3 (F-PF01): one per-tick reader shared by both probes so
-    // a single loadByIssueKey + progress() read serves the legacy progress
-    // token/label and the declared-progress event each tick.
     val tickReader = GoalRunnerTickProgressReader(
       manifestStore = manifestStore,
       outcomeStore = outcomeStore,
@@ -702,11 +682,6 @@ internal class GoalRunnerLaunchReconciler(
       subtaskId = subtaskId,
       request = request,
     )
-    // SKILL-64 Subtask 3 (AC21, AC25, F-D01): seed the supervisor-side
-    // declared-progress emitter from the persisted max goal_progress sequence so
-    // a resume run stays monotonic. The child workflow id is resolved mid-run
-    // from the same per-tick reader (F-PF01); emission is a no-op until it is
-    // known. A write failure never fails the run (the emitter logs best-effort).
     val progressWatermark = runCatching {
       outcomeStore.ledgerSequenceWatermarks(issueKey, request.dbPathOverride).maxProgressSequence
     }.getOrNull()
@@ -831,10 +806,6 @@ internal class GoalRunnerLaunchReconciler(
     subtaskId: Int,
     request: GoalRunnerRunRequest,
   ): GoalRunnerLaunchReconciliation {
-    // SKILL-64 Subtask 3 (AC4): retry reuses the same compact continuation
-    // launch request. It re-derives context from durable workflow state via
-    // `workflow continue` and never re-injects prior plans, reviews, or
-    // implementation summaries; durable state stays the single authority.
     val retryLaunchOutcome = subtaskLauncher.launch(
       subtaskLaunchRequest(attemptedState.manifest.issueKey, subtaskId, request),
     )
@@ -891,7 +862,6 @@ internal class GoalRunnerLaunchReconciler(
     val manifestWorkflowId = state.manifest.subtasks.firstOrNull { it.id == subtaskId }?.workflowId
       ?.takeIf(String::isNotBlank)
     if (manifestWorkflowId != null) {
-      // Lets the store recover a dropped commit SHA from measured HEAD instead of blocking the subtask.
       return outcomeStore.recoverAndPersistTerminalOutcome(
         workflowId = manifestWorkflowId,
         issueKey = state.manifest.issueKey,
@@ -900,11 +870,6 @@ internal class GoalRunnerLaunchReconciler(
         dbPathOverride = request.dbPathOverride,
       )
     }
-    // SKILL-68 (AC3): the manifest may not yet carry the child workflowId (e.g. a crash before the
-    // advance persisted). Rather than silently no-op solely because the manifest field is null, fall
-    // back to the manifest-workflowId-independent reconciliation, which scans continuation children by
-    // issueKey+subtaskId and, given a repo root, measures HEAD + backfills a recoverable
-    // complete-without-SHA child before returning its authoritative outcome.
     return outcomeStore.reconcileAuthoritativeOutcomes(
       issueKey = state.manifest.issueKey,
       repoRoot = request.repoRoot,
@@ -1021,14 +986,6 @@ private data class GoalRunnerProgressState(
   val childProgress: GoalRunnerWorkflowProgress?,
 )
 
-// SKILL-64 Subtask 3 (F-PF01): the legacy progress probe and the additive
-// declared-progress probe used to each run loadByIssueKey (full-table scan) +
-// outcomeStore.progress() (full artifacts decode) every 250ms tick, doubling
-// the per-tick DB work. This shared reader resolves the subtask + child
-// progress ONCE per tick and memoizes it for a window just under the poll
-// cadence, so both probes feed from a single read without changing the 250ms
-// cadence. It is created fresh per launch and only ever read on the single
-// supervisor poll thread.
 private class GoalRunnerTickProgressReader(
   private val manifestStore: GoalRunnerManifestStore,
   private val outcomeStore: GoalRunnerWorkflowOutcomeStore,
@@ -1065,9 +1022,8 @@ private class GoalRunnerTickProgressReader(
   }
 
   private companion object {
-    // Just under the 250ms supervisor poll cadence so all probe-method calls
-    // within a single tick reuse one read, while the next tick refreshes.
-    const val TICK_MEMO_WINDOW_NANOS: Long = 200_000_000L
+    const val SUPERVISOR_POLL_CADENCE_NANOS: Long = 250_000_000L
+    const val TICK_MEMO_WINDOW_NANOS: Long = SUPERVISOR_POLL_CADENCE_NANOS - 50_000_000L
   }
 }
 
@@ -1097,10 +1053,6 @@ private class GoalRunnerWorkflowProgressProbe(
   }
 }
 
-// SKILL-64 Subtask 3 (AC20-AC23): supervisor read seam exposing the latest
-// declared progress event plus a process-alive signal to the deterministic
-// liveness classifier inside the process runner. Feeds from the same per-tick
-// reader as the legacy progress probe (F-PF01) so the two probes share one read.
 private fun declaredProgressProbe(
   reader: GoalRunnerTickProgressReader,
 ): skillbill.ports.agentrun.model.AgentRunDeclaredProgressProbe =
@@ -1317,9 +1269,6 @@ private data class LaunchRecordingContext(
   val launchReconciliation: GoalRunnerLaunchReconciliation,
 )
 
-// AC10/AC11 + AC6/AC7: record launch lifecycle observability, the child
-// activation/resume ledger entry, and best-effort session accounting in one
-// top-level seam (kept out of the GoalRunner class body to bound its size).
 private fun recordLaunchObservabilityLedgerAndAccounting(
   context: LaunchRecordingContext,
   progress: GoalRunnerWorkflowProgress?,

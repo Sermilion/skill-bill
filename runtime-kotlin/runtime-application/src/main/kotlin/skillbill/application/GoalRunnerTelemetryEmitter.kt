@@ -10,16 +10,6 @@ import java.time.Clock
 import java.time.Duration
 import java.time.Instant
 
-// SKILL-66 Subtask 3 (AC3): application seam for goal lifecycle telemetry
-// emission. GoalRunner depends on this interface only, never on the
-// persistence/MCP/Clikt/JDBC concretes that back it (RuntimeArchitectureTest
-// boundary gate). LifecycleTelemetryService is the production implementation;
-// NONE is the default/test no-op so the positional GoalRunner test constructors
-// keep compiling and AC5 byte-equivalence holds for runs without telemetry.
-//
-// SKILL-66 Subtask 3 (AC4): the production implementation propagates an enabled
-// write failure out of these methods — they do not swallow, retry, or downgrade
-// a telemetry failure to a log line. See decisions.md (2026-06-05).
 interface GoalLifecycleTelemetryEmitter {
   fun goalStarted(request: GoalStartedRequest, dbOverride: String?)
 
@@ -38,22 +28,6 @@ interface GoalLifecycleTelemetryEmitter {
   }
 }
 
-/**
- * SKILL-66 Subtask 3: per-run goal lifecycle telemetry collaborator, beside
- * [GoalRunnerObservabilityEmitter] / [GoalRunnerLedgerRecorder] and following
- * that decomposition style.
- *
- * It emits exactly one `goal_started` per run segment, exactly one
- * `goal_subtask_finished` per subtask reaching terminal status within the
- * current segment (never for subtasks already terminal when the segment began),
- * and exactly one `goal_finished` per segment at terminal outcome.
- *
- * All timing derives from the injected [clock] seam — no agent-supplied timing
- * enters any payload (AC2). The per-segment run-session id
- * (`<parentWorkflowId>:seg:<segmentStartedAt>`) is unique per segment and never
- * collides with the stable child `wfl-N` ids, so the per-segment emit-once
- * guard holds across resume segments (AC1/AC6).
- */
 internal class GoalRunnerTelemetryEmitter(
   private val telemetry: GoalLifecycleTelemetryEmitter,
   private val clock: Clock,
@@ -64,13 +38,11 @@ internal class GoalRunnerTelemetryEmitter(
   private val segmentWorkflowId: String = "${state.parentWorkflowId}:seg:$segmentStartedAt"
   private val resumed: Boolean = state.manifest.subtasks.any { it.hasStarted() }
 
-  // Subtasks already terminal when this segment began: a resumed run must never
-  // re-emit goal_subtask_finished for work completed in an earlier segment.
-  private val priorTerminal: Set<Int> = state.manifest.subtasks
+  private val subtasksTerminalAtSegmentStart: Set<Int> = state.manifest.subtasks
     .filter { it.status in TERMINAL_STATUSES }
     .map { it.id }
     .toSet()
-  private val emittedThisSegment: MutableSet<Int> = mutableSetOf()
+  private val subtasksEmittedThisSegment: MutableSet<Int> = mutableSetOf()
   private val subtaskStartedAt: MutableMap<Int, String> = mutableMapOf()
 
   fun goalStarted() {
@@ -91,19 +63,14 @@ internal class GoalRunnerTelemetryEmitter(
     subtaskStartedAt.putIfAbsent(subtaskId, clock.instant().toString())
   }
 
-  // Centralized transition-detector: emit exactly one goal_subtask_finished for
-  // each subtask that is terminal now, was not terminal when the segment began,
-  // and has not already been emitted this segment. This uniformly covers
-  // complete, blocked, and projection-driven skipped — the last of which no
-  // per-emit-site hook in the loop could catch (the loop never sets "skipped").
-  fun sweepTerminal(manifest: DecompositionManifest, attempted: List<Int>) {
+  fun emitNewlyTerminalSubtasks(manifest: DecompositionManifest, attempted: List<Int>) {
     val finishedAtInstant = clock.instant()
     val finishedAt = finishedAtInstant.toString()
     manifest.subtasks
       .filter { it.status in TERMINAL_STATUSES }
-      .filter { it.id !in priorTerminal && it.id !in emittedThisSegment }
+      .filter { it.id !in subtasksTerminalAtSegmentStart && it.id !in subtasksEmittedThisSegment }
       .forEach { subtask ->
-        emittedThisSegment += subtask.id
+        subtasksEmittedThisSegment += subtask.id
         val startedAt = subtaskStartedAt[subtask.id] ?: finishedAt
         telemetry.goalSubtaskFinished(
           GoalSubtaskFinishedRequest(
