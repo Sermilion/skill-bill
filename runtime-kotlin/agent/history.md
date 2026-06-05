@@ -1,3 +1,12 @@
+## [2026-06-05] SKILL-67.3 goal-runner-direct-runtime-coupling
+Areas: runtime-kotlin/runtime-application, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-ports
+- Goal child launches now bypass prose skill prompts and spawn `skill-bill feature-task run|resume <issue_key> <spec_path>` directly, always carrying `--goal-parent-issue-key`, `--goal-subtask-id`, `--goal-branch`, `--suppress-pr`, and the resolved `--agent`. reusable
+- `SkillRunGoalContinuationContext` now carries `specPath` and optional `childWorkflowId`; presence of the child workflow id selects runtime `resume`, so completed runtime phases are skipped by the runtime instead of re-entering `workflow continue`.
+- Goal outcome/progress/history seams resolve the owning workflow family (`IMPLEMENT` or `TASK_RUNTIME`) before reads/writes, so task-runtime child rows support terminal gating, worker-request audit artifacts, stale reconciliation, and status/watch projections. reusable
+- Prompt overrides remain the phase-agent path; only default goal-continuation child launches are converted to direct runtime commands.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
 ## [2026-06-05] SKILL-67.2 skill-promotion-and-legacy-deprecation
 Areas: runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-domain, runtime-kotlin/runtime-mcp
 - Promoted the runtime skill to canonical `bill-feature-task` and demoted the prose orchestrator to `bill-feature-task-legacy`; added `bill-feature-task-runtime`->`bill-feature-task` to `InstallLegacySkillNames.renamedSkillPairs` (priors retained). The alias value may equal a real installed skill — safe because `legacySkillBillCleanupNames` consumes only the oldName key. reusable
