@@ -466,6 +466,8 @@ $defs:
           - bill-feature-verify
           - bill-feature-task
           - feature-task-runtime
+          - goal
+          - bill-feature-goal
       since:
         type: string
       date_from:

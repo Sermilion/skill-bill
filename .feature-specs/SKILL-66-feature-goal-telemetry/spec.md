@@ -266,10 +266,13 @@ error; it is never swallowed.
   `goal_finished` carry a per-segment run-session id
   (`<parentWorkflowId>:seg:<segmentStartedAt>`), distinct from the per-subtask
   child ids, so "exactly one per segment" holds across resumes.
-- Does `telemetry_proxy_capabilities` enumerate workflow families explicitly
+- **RESOLVED (Subtask 5).** Does `telemetry_proxy_capabilities` enumerate workflow families explicitly
   (requiring a change) or advertise capabilities generically (no change)?
-  Subtask 5 resolves this from code, not assumption.
-- Should `goal-stats` live as a top-level CLI command (matching
-  `implement-stats`/`verify-stats`) or as `skill-bill goal stats` under the
-  goal group? (Leaning: top-level `goal-stats` for parity; the goal group
-  stays runtime-only.)
+  → **Generic — no change needed.** `validateRemoteStatsCapabilities` in `TelemetryRemoteStatsRuntime.kt`
+  takes `supportedWorkflows` verbatim from the proxy HTTP response; the guard is
+  `supportedWorkflows.isEmpty() || request.workflow in supportedWorkflows`. The local code never
+  hard-codes a family list.
+- **RESOLVED (Subtask 4).** Should `goal-stats` live as a top-level CLI command (matching
+  `implement-stats`/`verify-stats`) or as `skill-bill goal stats` under the goal group?
+  → **Top-level `goal-stats`**, matching `implement-stats`/`verify-stats` parity. Implemented via
+  `GoalStatsCommand` in `ReviewCliCommands.kt`.

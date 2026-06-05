@@ -1,3 +1,18 @@
+## [2026-06-05] SKILL-66 subtask 5 remote-stats-integration-and-validation-gate
+Areas: runtime-kotlin/runtime-mcp, runtime-kotlin/runtime-domain, runtime-kotlin/runtime-core, orchestration/contracts
+- Extended `McpToolDispatcher.mapRemoteStatsWorkflow` with `"goal" -> "bill-feature-goal"` mapping and `"bill-feature-goal"` passthrough; error message updated to enumerate all accepted values.
+- Extended `McpInputSchemas.remoteStatsWorkflowSchema` and `telemetry-event-schema.yaml` workflow enum atomically (bidirectional parity enforced by `TelemetryEventInputSchemaParityTest`).
+- Added `"bill-feature-goal"` to `TelemetryConstants.remoteStatsWorkflows` so `validateRemoteStatsRequest` accepts it after dispatcher mapping.
+- Added two new `McpTelemetryRuntimeTest` tests: `"goal"` alias maps to `"bill-feature-goal"` (verified in request body) and `"bill-feature-goal"` passes through unchanged; `goalAwareTelemetryRequester` helper added.
+- Updated `McpStdioServerTest` workflow enum assertion to include `"goal"` and `"bill-feature-goal"`.
+- Added `goalStarted`/`goalSubtaskFinished`/`goalFinished` to both `LifecycleTelemetryService` method lists in `ARCHITECTURE.md` and to `RAW_MAP_OPEN_BOUNDARY_ALLOWLIST` in `RuntimeArchitectureTest`.
+- Open question RESOLVED: `telemetry_proxy_capabilities` is generic — `validateRemoteStatsCapabilities` is driven entirely by the proxy HTTP response (`supportedWorkflows` from wire); no local family enumeration. No code change needed.
+- AC4 confirmed no-op: `TelemetrySyncRuntime.syncTelemetry`/`syncEnabledTelemetry` have no family-specific branching; goal events flow through the same outbox path as all lifecycle events.
+- Spec open questions marked RESOLVED in `.feature-specs/SKILL-66-feature-goal-telemetry/spec.md`.
+- Full validation gate: `skill-bill validate` pass, `./gradlew check` pass, `npx agnix --strict .` pass, `scripts/validate_agent_configs` pass.
+Feature flag: N/A
+Acceptance criteria: 5/5 implemented
+
 ## [2026-06-05] SKILL-68 goal-subtask-commit-sha-completion
 Areas: runtime-kotlin/runtime-application, runtime-kotlin/runtime-ports
 - New `FeatureTaskRuntimeGoalContinuationOutcomeSupport`: under `suppress_pr`, resolves commit SHA from `commit_push` phase payload first, then measures git HEAD once via `WorkflowGitOperations`; records `status=complete` iff non-blank SHA found, else `status=blocked` with explicit `blocked_reason` and `last_resumable_step=commit_push`. reusable
