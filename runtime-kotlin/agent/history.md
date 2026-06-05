@@ -9,6 +9,17 @@ Areas: runtime-kotlin/runtime-application, runtime-kotlin/runtime-ports
 Feature flag: N/A
 Acceptance criteria: 8/8 implemented
 
+## [2026-06-05] SKILL-66 subtask 4 goal-stats-mcp-and-cli-surface
+Areas: runtime-kotlin/runtime-domain, runtime-kotlin/runtime-infra-sqlite, runtime-kotlin/runtime-application, runtime-kotlin/runtime-mcp, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-core
+- Added `GoalBlockedSubtaskSummary` data class and `topBlockedSubtasks` field to `GoalWorkflowStats`; `GoalSubtaskRow` extended with `subtaskId`/`subtaskName`/`issueKey`/`blockedReason?` and `buildGoalStats()` populates the blocked summary from DB rows. reusable
+- Added `GoalStatsResult` application result and `ReviewService.goalStats()` method; `ReviewStatsContractMappers.toGoalStatsPayload()` serializes the full chain (GoalWorkflowStats → GoalRunSummary → GoalBlockedSubtaskSummary). reusable
+- Wired the full goal-stats surface: `McpRuntime.goalStats()`, `McpToolDispatcher` `"goal_stats"` entry, `GoalStatsCommand` CLI command added to `FeatureStatsCommands`; MCP and CLI mapper extensions follow the existing `implement_stats`/`verify_stats` conventions. reusable
+- CLI `goal-stats` follows the same `--format` option and human-readable/JSON discipline as `implement-stats`/`verify-stats`; graceful empty-store output matches existing commands' behavior (no fabricated zero-rates without a "no runs recorded" signal).
+- `@file:Suppress("TooManyFunctions")` added on `McpInputSchemas.kt` and `ReviewStatsContractMappers.kt` per existing project precedent — 11-function detekt limit breached at a pre-existing boundary condition.
+- Tests: 3 new `GoalTelemetryStoreTest` (topBlockedSubtasks assertions), 4 new `ApplicationPersistencePortTest` (service + all-blocked/all-skipped/single-run edge cases), 2 new `McpStdioServerTest` (`goal_stats` populated + empty), 3 new `CliRuntimeTest` (`goal-stats` human-readable + JSON + empty).
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
 ## [2026-06-05] SKILL-67 validation-gate-rename-sweep
 Areas: runtime-cli, runtime-infra-fs/install, feature-task runtime tests
 - Added regression coverage that a goal-continuation `feature-task` child reports task-runtime status and resumes a completed child without relaunching phases.

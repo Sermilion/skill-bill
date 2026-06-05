@@ -77,6 +77,7 @@ object McpToolDispatcher {
         { arguments, context -> workflowResume(WorkflowFamilyKind.TASK_RUNTIME, arguments, context) },
       "feature_task_runtime_workflow_update" to
         { arguments, context -> workflowUpdate(WorkflowFamilyKind.TASK_RUNTIME, arguments, context) },
+      "goal_stats" to { _, context -> McpRuntime.goalStats(context) },
       "import_review" to ::importReview,
       "new_skill_scaffold" to ::newSkillScaffold,
       "pr_description_generated" to ::prDescriptionGenerated,

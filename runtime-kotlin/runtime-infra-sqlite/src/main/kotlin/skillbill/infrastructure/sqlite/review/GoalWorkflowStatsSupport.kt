@@ -1,5 +1,6 @@
 package skillbill.infrastructure.sqlite.review
 
+import skillbill.review.model.GoalBlockedSubtaskSummary
 import skillbill.review.model.GoalRunSummary
 import skillbill.review.model.GoalWorkflowStats
 import java.sql.Connection
@@ -55,6 +56,17 @@ fun buildGoalStats(runRows: List<Map<String, Any?>>, subtaskRows: List<Map<Strin
         subtaskTotal = run.subtaskTotal,
       )
     },
+    topBlockedSubtasks = subtasks
+      .filter { it.status == "blocked" }
+      .map { s ->
+        GoalBlockedSubtaskSummary(
+          subtaskId = s.subtaskId,
+          subtaskName = s.subtaskName,
+          issueKey = s.issueKey,
+          blockedReason = s.blockedReason ?: "",
+          attemptCount = s.attemptCount,
+        )
+      },
   )
 }
 
@@ -71,6 +83,10 @@ internal data class GoalRunRow(
 )
 
 internal data class GoalSubtaskRow(
+  val subtaskId: Int,
+  val subtaskName: String,
+  val issueKey: String,
+  val blockedReason: String?,
   val status: String,
   val durationMs: Long,
   val attemptCount: Int,
@@ -102,13 +118,13 @@ private fun parseGoalSubtaskRow(row: Map<String, Any?>): GoalSubtaskRow {
   val identity =
     "goal_subtask_events[issue_key=${row["issue_key"] ?: "<null>"}, " +
       "subtask_id=${row["subtask_id"] ?: "<null>"}, workflow_id=${row["workflow_id"] ?: "<null>"}]"
-  row.requireNonBlankString("issue_key", identity)
-  row.requireNonBlankString("workflow_id", identity)
-  row.requirePositiveInt("subtask_id", identity)
-  row.requirePresentString("subtask_name", identity)
   row.requireNonBlankString("started_at", identity)
   row.requireNonBlankString("finished_at", identity)
   return GoalSubtaskRow(
+    subtaskId = row.requirePositiveInt("subtask_id", identity),
+    subtaskName = row.requirePresentString("subtask_name", identity),
+    issueKey = row.requireNonBlankString("issue_key", identity),
+    blockedReason = row["blocked_reason"]?.toString(),
     status = row.requireEnum("status", goalSubtaskStatuses, identity),
     durationMs = row.requireNonNegativeLong("duration_ms", identity),
     attemptCount = row.requireNonNegativeInt("attempt_count", identity),

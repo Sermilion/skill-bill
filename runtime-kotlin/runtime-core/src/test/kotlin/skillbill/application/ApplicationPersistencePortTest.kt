@@ -5,6 +5,7 @@ import skillbill.application.model.FeatureTaskRuntimePhaseLedgerRequest
 import skillbill.application.model.FeatureTaskRuntimePhaseStateRequest
 import skillbill.application.model.GoalFinishedRequest
 import skillbill.application.model.GoalStartedRequest
+import skillbill.application.model.GoalStatsResult
 import skillbill.application.model.GoalSubtaskFinishedRequest
 import skillbill.application.model.WorkflowContinueResult
 import skillbill.application.model.WorkflowFamilyKind
@@ -55,6 +56,7 @@ import skillbill.review.model.FeatureTaskRuntimeWorkflowStats
 import skillbill.review.model.FeatureVerifyWorkflowStats
 import skillbill.review.model.FeedbackRequest
 import skillbill.review.model.FeedbackTelemetryOptions
+import skillbill.review.model.GoalBlockedSubtaskSummary
 import skillbill.review.model.GoalRunSummary
 import skillbill.review.model.GoalWorkflowStats
 import skillbill.review.model.ImportedReview
@@ -1204,11 +1206,147 @@ class ApplicationPersistencePortTest {
           resumed = false,
           subtaskTotal = 4,
         ),
+        topBlockedSubtasks = emptyList(),
       )
     val repository: WorkflowStatsRepository = FakeGoalStatsRepository(expected)
 
     assertEquals(expected, repository.goalStats())
     assertEquals("wf-goal-9", repository.goalStats().mostRecentRun?.workflowId)
+  }
+
+  @Test
+  fun `review service goalStats returns GoalStatsResult from seeded repository`() {
+    val blockedSummary = GoalBlockedSubtaskSummary(
+      subtaskId = 2,
+      subtaskName = "persistence",
+      issueKey = "SKILL-66",
+      blockedReason = "validation failed",
+      attemptCount = 3,
+    )
+    val seededStats = GoalWorkflowStats(
+      totalRuns = 1,
+      finishedRuns = 1,
+      inProgressRuns = 0,
+      completionStatusCounts = mapOf("completed" to 0, "blocked" to 1),
+      completedRuns = 0,
+      completedRate = 0.0,
+      blockedRuns = 1,
+      blockedRate = 1.0,
+      subtaskOutcomeCounts = mapOf("complete" to 0, "blocked" to 1, "skipped" to 0),
+      totalSubtaskEvents = 1,
+      averageRunDurationMs = 1_200_000.0,
+      averageSubtaskDurationMs = 240_000.0,
+      averageAttemptCount = 3.0,
+      mostRecentRun = null,
+      topBlockedSubtasks = listOf(blockedSummary),
+    )
+    val database = FakeDatabaseSessionFactory(reviews = FakeGoalStatsReviewRepository(seededStats))
+    val service = ReviewService(
+      RuntimeContext(environment = emptyMap(), userHome = Files.createTempDirectory("skillbill-app-goal")),
+      database,
+      FakeTelemetrySettingsProvider(enabled = false),
+      FakeReviewInputSource,
+    )
+
+    val result: GoalStatsResult = service.goalStats(dbOverride = null)
+
+    assertEquals(listOf("read"), database.calls)
+    assertEquals("/fake/metrics.db", result.dbPath)
+    assertEquals(seededStats, result.stats)
+    assertEquals(1, result.stats.topBlockedSubtasks.size)
+    assertEquals("validation failed", result.stats.topBlockedSubtasks.single().blockedReason)
+  }
+
+  @Test
+  fun `goal stats all-blocked store has blocked rate 1 and non-empty topBlockedSubtasks`() {
+    val blockedEntry = GoalBlockedSubtaskSummary(
+      subtaskId = 1,
+      subtaskName = "implement",
+      issueKey = "SKILL-99",
+      blockedReason = "compile error",
+      attemptCount = 2,
+    )
+    val allBlockedStats = GoalWorkflowStats(
+      totalRuns = 1,
+      finishedRuns = 1,
+      inProgressRuns = 0,
+      completionStatusCounts = mapOf("completed" to 0, "blocked" to 1),
+      completedRuns = 0,
+      completedRate = 0.0,
+      blockedRuns = 1,
+      blockedRate = 1.0,
+      subtaskOutcomeCounts = mapOf("complete" to 0, "blocked" to 1, "skipped" to 0),
+      totalSubtaskEvents = 1,
+      averageRunDurationMs = 60_000.0,
+      averageSubtaskDurationMs = 60_000.0,
+      averageAttemptCount = 2.0,
+      mostRecentRun = null,
+      topBlockedSubtasks = listOf(blockedEntry),
+    )
+
+    assertEquals(1.0, allBlockedStats.blockedRate)
+    assertEquals(0.0, allBlockedStats.completedRate)
+    assertEquals(1, allBlockedStats.topBlockedSubtasks.size)
+    assertEquals("compile error", allBlockedStats.topBlockedSubtasks.single().blockedReason)
+  }
+
+  @Test
+  fun `goal stats all-skipped subtasks has empty topBlockedSubtasks`() {
+    val allSkippedStats = GoalWorkflowStats(
+      totalRuns = 1,
+      finishedRuns = 1,
+      inProgressRuns = 0,
+      completionStatusCounts = mapOf("completed" to 1, "blocked" to 0),
+      completedRuns = 1,
+      completedRate = 1.0,
+      blockedRuns = 0,
+      blockedRate = 0.0,
+      subtaskOutcomeCounts = mapOf("complete" to 0, "blocked" to 0, "skipped" to 3),
+      totalSubtaskEvents = 3,
+      averageRunDurationMs = 100_000.0,
+      averageSubtaskDurationMs = 0.0,
+      averageAttemptCount = 0.0,
+      mostRecentRun = null,
+      topBlockedSubtasks = emptyList(),
+    )
+
+    assertEquals(3, allSkippedStats.subtaskOutcomeCounts["skipped"])
+    assertTrue(allSkippedStats.topBlockedSubtasks.isEmpty())
+  }
+
+  @Test
+  fun `goal stats single-run store has non-null mostRecentRun and totalRuns equals 1`() {
+    val singleRunSummary = GoalRunSummary(
+      workflowId = "wf-single",
+      issueKey = "SKILL-1",
+      featureName = "single run feature",
+      status = "completed",
+      startedAt = "2026-06-05T10:00:00Z",
+      finishedAt = "2026-06-05T10:30:00Z",
+      durationMs = 1_800_000L,
+      resumed = false,
+      subtaskTotal = 2,
+    )
+    val singleRunStats = GoalWorkflowStats(
+      totalRuns = 1,
+      finishedRuns = 1,
+      inProgressRuns = 0,
+      completionStatusCounts = mapOf("completed" to 1, "blocked" to 0),
+      completedRuns = 1,
+      completedRate = 1.0,
+      blockedRuns = 0,
+      blockedRate = 0.0,
+      subtaskOutcomeCounts = mapOf("complete" to 2, "blocked" to 0, "skipped" to 0),
+      totalSubtaskEvents = 2,
+      averageRunDurationMs = 1_800_000.0,
+      averageSubtaskDurationMs = 900_000.0,
+      averageAttemptCount = 1.0,
+      mostRecentRun = singleRunSummary,
+      topBlockedSubtasks = emptyList(),
+    )
+
+    assertEquals(1, singleRunStats.totalRuns)
+    assertEquals("wf-single", requireNotNull(singleRunStats.mostRecentRun).workflowId)
   }
 }
 
@@ -1346,6 +1484,42 @@ private class RecordingGoalLifecycleTelemetryRepository : LifecycleTelemetryRepo
 private class FakeGoalStatsRepository(
   private val stats: GoalWorkflowStats,
 ) : WorkflowStatsRepository {
+  override fun featureImplementStats(): FeatureImplementWorkflowStats = error("Unexpected featureImplementStats")
+
+  override fun featureVerifyStats(): FeatureVerifyWorkflowStats = error("Unexpected featureVerifyStats")
+
+  override fun featureTaskRuntimeStats(): FeatureTaskRuntimeWorkflowStats = error("Unexpected featureTaskRuntimeStats")
+
+  override fun goalStats(): GoalWorkflowStats = stats
+}
+
+private class FakeGoalStatsReviewRepository(
+  private val stats: GoalWorkflowStats,
+) : ReviewRepository {
+  override fun saveImportedReview(review: ImportedReview, sourcePath: String?) = error("Unexpected saveImportedReview")
+
+  override fun markOrchestrated(runId: String) = error("Unexpected markOrchestrated")
+
+  override fun updateReviewFinishedTelemetryState(
+    runId: String,
+    enabled: Boolean,
+    level: String,
+  ): ReviewFinishedTelemetry? = error("Unexpected updateReviewFinishedTelemetryState")
+
+  override fun recordFeedback(
+    request: FeedbackRequest,
+    telemetryOptions: FeedbackTelemetryOptions,
+  ): ReviewFinishedTelemetry? = error("Unexpected recordFeedback")
+
+  override fun fetchNumberedFindings(runId: String): List<NumberedFinding> = error("Unexpected fetchNumberedFindings")
+
+  override fun findingExists(runId: String, findingId: String): Boolean = error("Unexpected findingExists")
+
+  override fun latestRejectedLearningSourceOutcome(runId: String, findingId: String): RejectedLearningSourceOutcome? =
+    error("Unexpected latestRejectedLearningSourceOutcome")
+
+  override fun reviewStats(runId: String?): ReviewRepositoryStatsSnapshot = error("Unexpected reviewStats")
+
   override fun featureImplementStats(): FeatureImplementWorkflowStats = error("Unexpected featureImplementStats")
 
   override fun featureVerifyStats(): FeatureVerifyWorkflowStats = error("Unexpected featureVerifyStats")

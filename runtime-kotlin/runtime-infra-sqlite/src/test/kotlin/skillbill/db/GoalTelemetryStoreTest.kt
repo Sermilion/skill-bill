@@ -60,6 +60,73 @@ class GoalTelemetryStoreTest {
       assertEquals(3, mostRecent.subtaskTotal)
 
       assertOutboxEmittedOncePerEvent(connection)
+
+      assertEquals(1, stats.topBlockedSubtasks.size)
+      val blocked = stats.topBlockedSubtasks.single()
+      assertEquals(2, blocked.subtaskId)
+      assertEquals("validation failed", blocked.blockedReason)
+      assertEquals(2, blocked.attemptCount)
+    }
+  }
+
+  @Test
+  fun `top blocked subtasks is empty when no subtasks are blocked`() {
+    withConnection { connection ->
+      val store = LifecycleTelemetryStore(connection)
+      finishedRun(store, "wf-a", startedAt = "2026-06-04T08:00:00Z", status = "completed", durationMs = 100_000)
+      finishedRun(store, "wf-b", startedAt = "2026-06-04T09:00:00Z", status = "completed", durationMs = 200_000)
+
+      val stats = ReviewStatsRuntime.goalStats(connection)
+
+      assertTrue(stats.topBlockedSubtasks.isEmpty())
+    }
+  }
+
+  @Test
+  fun `top blocked subtasks lists all blocked entries across runs`() {
+    withConnection { connection ->
+      val store = LifecycleTelemetryStore(connection)
+
+      store.goalStarted(startedRecord("wf-x", subtaskTotal = 1, resumed = false), level = "full")
+      store.goalSubtaskFinished(
+        subtask(id = 1, status = "blocked", durationMs = 60_000, attempts = 1, blockedReason = "test failure"),
+        "full",
+      )
+      store.goalFinished(
+        GoalFinishedRecord(
+          issueKey = "SKILL-66",
+          workflowId = "wf-x",
+          status = "blocked",
+          startedAt = "2026-06-04T10:00:00Z",
+          finishedAt = "2026-06-04T10:01:00Z",
+          durationMs = 60_000,
+          subtasksComplete = 0,
+          subtasksBlocked = 1,
+          subtasksSkipped = 0,
+        ),
+        level = "full",
+      )
+
+      store.goalStarted(startedRecord("wf-y", subtaskTotal = 1, resumed = false), level = "full")
+      store.goalSubtaskFinished(
+        GoalSubtaskFinishedRecord(
+          issueKey = "SKILL-77",
+          workflowId = "wf-y",
+          subtaskId = 3,
+          subtaskName = "subtask-3",
+          status = "blocked",
+          startedAt = "2026-06-04T11:00:00Z",
+          finishedAt = "2026-06-04T11:02:00Z",
+          durationMs = 120_000,
+          attemptCount = 2,
+          blockedReason = "compile error",
+        ),
+        "full",
+      )
+
+      val stats = ReviewStatsRuntime.goalStats(connection)
+
+      assertEquals(2, stats.topBlockedSubtasks.size)
     }
   }
 

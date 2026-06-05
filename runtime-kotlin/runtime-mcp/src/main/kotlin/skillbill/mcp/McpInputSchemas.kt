@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions")
+
 package skillbill.mcp
 
 internal val emptyObjectSchema: Map<String, Any?> = McpToolSpec.strictObjectSchema()

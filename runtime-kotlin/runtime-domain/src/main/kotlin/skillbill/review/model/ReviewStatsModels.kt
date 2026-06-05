@@ -138,6 +138,14 @@ data class FeatureVerifyWorkflowStats(
   val averageDurationSeconds: Double,
 )
 
+data class GoalBlockedSubtaskSummary(
+  val subtaskId: Int,
+  val subtaskName: String,
+  val issueKey: String,
+  val blockedReason: String,
+  val attemptCount: Int,
+)
+
 // SKILL-66 Subtask 2: per-run summary used for the most-recent-run lookup in
 // goal stats. `finishedAt`/`status` are blank until the run finishes.
 data class GoalRunSummary(
@@ -170,4 +178,5 @@ data class GoalWorkflowStats(
   val averageSubtaskDurationMs: Double,
   val averageAttemptCount: Double,
   val mostRecentRun: GoalRunSummary?,
+  val topBlockedSubtasks: List<GoalBlockedSubtaskSummary>,
 )
