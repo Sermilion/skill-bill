@@ -1,3 +1,12 @@
+## [2026-06-05] SKILL-67 subtask 4 dispatcher-docs-and-recorded-promote-decision
+Areas: skills/bill-feature, README.md, AGENTS.md, runtime-kotlin/ARCHITECTURE.md, .feature-specs/SKILL-65-*, .feature-specs/SKILL-67-*, agent/decisions.md
+- `bill-feature` now explicitly dispatches single-spec work only to canonical runtime-backed `bill-feature-task`, dispatches decomposed work to `bill-feature-goal`, and names `bill-feature-task-legacy` as non-dispatch fallback. reusable
+- Promote decision source-of-truth stays in SKILL-65 parent spec: the dated 2026-06-05 maintainer decision was recorded under the existing authoritative section; root decisions, README, ARCHITECTURE, and AGENTS remain pointers instead of duplicating the rule. reusable
+- Deprecation window source-of-truth stays in SKILL-67 parent spec as `SKILL-67 One-Release Legacy Compatibility Window`; docs should point there rather than restating window mechanics. reusable
+- Validation/audit pattern for promotion docs: pair `skill-bill validate`, `npx --yes agnix --strict .`, `scripts/validate_agent_configs`, `git diff --check`, and scoped grep audits for legacy dispatch, experimental wording, and single authoritative criterion/window sources.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented (subtask scope)
+
 ## [2026-06-05] SKILL-67 subtask 2 skill-promotion-and-legacy-deprecation
 Areas: skills/bill-feature-task, skills/bill-feature-task-legacy, skills/bill-feature-task-runtime (removed), install.sh, uninstall.sh, README.md
 - Promoted `skills/bill-feature-task-runtime/content.md` to canonical `skills/bill-feature-task/content.md` (EXPERIMENTAL framing stripped, commands now `skill-bill feature-task`), git-moved the former prose orchestrator + its `native-agents/agents.yaml` to `skills/bill-feature-task-legacy/` with a loud DEPRECATED banner + canonical pointer + removal-window note, and removed the emptied runtime dir. reusable

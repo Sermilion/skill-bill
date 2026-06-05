@@ -43,10 +43,8 @@ Implement on one branch with a commit per subtask:
 
 - The authoritative promote/kill criterion in
   `.feature-specs/SKILL-65-experimental-feature-task-runtime/spec.md`
-  ("Promote / Kill Criterion (Authoritative)") states: a promote decision is an
-  explicit maintainer action; on promotion, `bill-feature-task` is
-  migrated/retired in a follow-up and the dual state ends; indefinite dual
-  maintenance is forbidden. SKILL-67 is that follow-up.
+  ("Promote / Kill Criterion (Authoritative)") is the single source for the
+  criterion and recorded promote decision. SKILL-67 executes that decision.
 - The pointer entry in root `agent/decisions.md`
   (`[2026-06-03] feature-task-runtime-promote-kill-criterion-pointer`) names the
   same single authoritative source and says it is revisited "when the maintainer
@@ -227,11 +225,13 @@ runtime's durable per-phase state and runtime-owned observability.
 This is the authoritative home for the window (subtask 4 records it; no other doc
 restates it):
 
-- For the window, three surfaces stay alive and functional but deprecated:
+- Window name: **SKILL-67 One-Release Legacy Compatibility Window**.
+- For this window, three surfaces stay alive and functional but deprecated:
   `bill-feature-task-legacy` (skill), the `feature_implement_*` MCP/workflow
   family, and the `feature-task-runtime` / `feature_task_runtime_*` aliases.
 - The legacy skill depends on the `feature_implement_*` family, so the two must be
-  retired **together** in the same follow-up; neither may outlive the other.
+  retired **together** in the same follow-up; neither may outlive the other or
+  remain alive past the window.
 - At window close a scheduled follow-up removes the legacy skill and the
   `feature_implement_*` family and drops the deprecated aliases. That removal is
   out of scope here.
@@ -244,9 +244,6 @@ renamed CLI/MCP/skill surface, and confirms no gate was weakened.
 
 ## Open Questions
 
-- Exact length of the deprecation window (one release? N weeks?) — to be fixed
-  when subtask 4 writes the contract; default to "one release cycle" unless the
-  maintainer sets a date.
 - Canonical MCP tool spelling for stats/started/finished (`feature_task_started`
   vs reusing `feature_implement_*` semantics) — resolved in subtask 1 against the
   telemetry-event contract; default to `feature_task_*` mirroring the command.
