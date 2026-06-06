@@ -27,6 +27,32 @@ data class ReviewFindingStats(
   val rejectedFindingDetails: List<ReviewFindingDetail>,
 )
 
+data class ReviewHealthStats(
+  val totalReviewPayloadRecords: Int,
+  val includedReviewPayloadRecords: Int,
+  val standaloneReviewPayloadRecords: Int,
+  val embeddedReviewPayloadRecords: Int,
+  val malformedReviewPayloadRecords: Int,
+  val dataQualityDebtRecords: Int,
+  val totalFindings: Int,
+  val averageFindings: Double,
+  val medianFindings: Double,
+  val p90Findings: Double,
+  val acceptedFindings: Int,
+  val rejectedFindings: Int,
+  val unresolvedFindings: Int,
+  val acceptedRate: Double,
+  val rejectedRate: Double,
+  val unresolvedRate: Double,
+  val severityCounts: Map<String, Int>,
+  val confidenceCounts: Map<String, Int>,
+  val latestOutcomeCounts: Map<String, Int>,
+  val issueCategoryCounts: Map<String, Int>,
+  val platformCounts: Map<String, Int>,
+  val scopeCounts: Map<String, Int>,
+  val sourceCounts: Map<String, Int>,
+)
+
 data class ReviewFinishedFindingStats(
   val totalFindings: Int,
   val acceptedFindings: Int,
@@ -70,7 +96,47 @@ data class ReviewFinishedTelemetry(
 
 data class ReviewStatsSnapshot(
   val stats: ReviewFindingStats,
+  val health: ReviewHealthStats,
   val reviewRunId: String?,
+)
+
+data class FeatureImplementChildStepCoverageStats(
+  val runsWithChildSteps: Int,
+  val reviewChildStepRuns: Int,
+  val qualityCheckChildStepRuns: Int,
+  val prDescriptionChildStepRuns: Int,
+  val malformedChildStepRuns: Int,
+  val childStepCoverageRate: Double,
+)
+
+data class FeatureSizeOutcomeStats(
+  val totalRuns: Int,
+  val completedRuns: Int,
+  val completedRate: Double,
+  val abandonedAtPlanningRuns: Int,
+  val abandonedAtPlanningRate: Double,
+  val abandonedAtImplementationRuns: Int,
+  val abandonedAtImplementationRate: Double,
+  val abandonedAtReviewRuns: Int,
+  val abandonedAtReviewRate: Double,
+  val errorRuns: Int,
+  val errorRate: Double,
+  val openRuns: Int,
+  val averageDurationSeconds: Double,
+  val medianDurationSeconds: Double,
+  val p90DurationSeconds: Double,
+)
+
+data class LargeFeatureHealthStats(
+  val denominatorRuns: Int,
+  val completedRuns: Int,
+  val abandonedRuns: Int,
+  val errorRuns: Int,
+  val unhealthyRuns: Int,
+  val unhealthyRate: Double,
+  val overallUnhealthyRate: Double,
+  val recommendationThreshold: Double,
+  val recommendation: String,
 )
 
 data class FeatureImplementWorkflowStats(
@@ -91,10 +157,16 @@ data class FeatureImplementWorkflowStats(
   val abandonedAtImplementationRuns: Int,
   val abandonedAtReviewRuns: Int,
   val errorRuns: Int,
+  val errorRate: Double,
   val normalDurationRuns: Int,
   val syntheticZeroDurationRuns: Int,
   val longRunningDurationRuns: Int,
   val invalidDurationRuns: Int,
+  val medianDurationSeconds: Double,
+  val p90DurationSeconds: Double,
+  val childStepCoverage: FeatureImplementChildStepCoverageStats,
+  val featureSizeOutcomeStats: Map<String, FeatureSizeOutcomeStats>,
+  val largeFeatureHealth: LargeFeatureHealthStats,
   val featureSizeCounts: Map<String, Int>,
   val completionStatusCounts: Map<String, Int>,
   val auditResultCounts: Map<String, Int>,

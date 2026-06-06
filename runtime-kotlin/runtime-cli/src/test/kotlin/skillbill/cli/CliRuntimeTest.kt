@@ -170,12 +170,19 @@ class CliRuntimeTest {
     assertEquals(2, statsPayload["total_findings"])
     assertEquals(1, statsPayload["accepted_findings"])
     assertEquals(1, statsPayload["unresolved_findings"])
+    val reviewHealth = statsPayload["health"] as Map<*, *>
+    assertEquals(1, reviewHealth["total_review_payload_records"])
+    assertEquals(mapOf("standalone" to 1, "embedded" to 0, "malformed" to 0), reviewHealth["source_counts"])
 
     val implementAliasPayload =
       runJson("--db", dbPath.toString(), "feature-implement-stats", "--format", "json")
     val verifyAliasPayload =
       runJson("--db", dbPath.toString(), "feature-verify-stats", "--format", "json")
     assertEquals("bill-feature-task", implementAliasPayload["workflow"])
+    assertEquals(0.0, implementAliasPayload["median_duration_seconds"])
+    assertTrue("child_step_coverage" in implementAliasPayload)
+    assertTrue("feature_size_outcome_stats" in implementAliasPayload)
+    assertTrue("large_feature_health" in implementAliasPayload)
     assertEquals("bill-feature-verify", verifyAliasPayload["workflow"])
   }
 

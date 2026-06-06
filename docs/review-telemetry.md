@@ -491,6 +491,100 @@ Mirror to local stats:
 - `average_audit_iterations` = average on finished `audit_iterations`
 - `average_duration_seconds` = average on finished `duration_seconds`
 
+### Health stat defaults
+
+Local health views use a rolling last-60-days window when a date range is not supplied by the caller. They exclude `source = test` and `source = synthetic` telemetry from health denominators by default. Excluded and malformed records are still reported as data-quality debt so dashboards do not hide instrumentation problems.
+
+Review health combines two review payload sources:
+
+- standalone `skillbill_review_finished` events
+- embedded code-review entries inside `skillbill_feature_implement_finished.child_steps`
+
+Do not attempt to de-duplicate standalone and embedded review payloads unless a stable shared key is present. Local stats report `source_counts` for `standalone`, `embedded`, and `malformed`. Rejected findings mean reviewer feedback explicitly rejected or marked a finding false positive. Unresolved findings mean the latest finding outcome is missing or not accepted/rejected.
+
+Feature-implement health uses production rows with valid `fis-*` session ids as the denominator. It reports `source_counts`, excluded non-production rows, malformed session ids, unknown sources, duplicate terminal finished calls, invalid durations, synthetic zero-duration runs, long-running durations, and malformed `child_steps` as exclusion or data-quality signals. Duration averages, medians, and p90 values use only normal production durations.
+
+Large-feature health is segmented by `feature_size`. `LARGE` runs report completion, abandonment, error, open-run, and duration summaries separately. The deterministic recommendation threshold is any non-zero unhealthy `LARGE` rate (`>= 0.001`) that is at least the overall unhealthy rate; in that case, dashboards should recommend decomposing large features or blocking earlier before implementation.
+
+### PostHog query patterns
+
+Use these named HogQL patterns as dashboard starting points. Keep them close to the local stats definitions rather than copying exploratory SQL from a one-off analysis.
+
+`review_health_last_60_days`:
+
+```sql
+SELECT
+  source,
+  count() AS review_payload_records,
+  avg(total_findings) AS average_findings,
+  quantile(0.5)(total_findings) AS median_findings,
+  quantile(0.9)(total_findings) AS p90_findings,
+  sum(accepted_findings) AS accepted_findings,
+  sum(rejected_findings) AS rejected_findings,
+  sum(unresolved_findings) AS unresolved_findings
+FROM (
+  SELECT
+    'standalone' AS source,
+    toInt(properties.total_findings) AS total_findings,
+    toInt(properties.accepted_findings) AS accepted_findings,
+    toInt(properties.rejected_findings) AS rejected_findings,
+    toInt(properties.unresolved_findings) AS unresolved_findings
+  FROM events
+  WHERE event = 'skillbill_review_finished'
+    AND timestamp >= now() - INTERVAL 60 DAY
+  UNION ALL
+  SELECT
+    'embedded' AS source,
+    JSONExtractInt(child_raw, 'total_findings') AS total_findings,
+    JSONExtractInt(child_raw, 'accepted_findings') AS accepted_findings,
+    JSONExtractInt(child_raw, 'rejected_findings') AS rejected_findings,
+    JSONExtractInt(child_raw, 'unresolved_findings') AS unresolved_findings
+  FROM events
+  ARRAY JOIN JSONExtractArrayRaw(toString(properties.child_steps)) AS child_raw
+  WHERE event = 'skillbill_feature_implement_finished'
+    AND timestamp >= now() - INTERVAL 60 DAY
+    AND JSONExtractString(child_raw, 'skill') LIKE '%code-review%'
+)
+GROUP BY source
+```
+
+`feature_implement_health_last_60_days`:
+
+```sql
+SELECT
+  properties.feature_size AS feature_size,
+  count() AS denominator_runs,
+  countIf(properties.completion_status = 'completed') AS completed_runs,
+  countIf(properties.completion_status IN ('abandoned_at_planning', 'abandoned_at_implementation', 'abandoned_at_review')) AS abandoned_runs,
+  countIf(properties.completion_status = 'error') AS error_runs,
+  quantile(0.5)(toInt(properties.duration_seconds)) AS median_duration_seconds,
+  quantile(0.9)(toInt(properties.duration_seconds)) AS p90_duration_seconds
+FROM events
+WHERE event = 'skillbill_feature_implement_finished'
+  AND timestamp >= now() - INTERVAL 60 DAY
+  AND coalesce(properties.source, 'production') = 'production'
+  AND match(toString(properties.session_id), '^fis-[A-Za-z0-9][A-Za-z0-9_-]*$')
+  AND toInt(properties.duration_seconds) > 0
+  AND toInt(properties.duration_seconds) < 86400
+GROUP BY properties.feature_size
+```
+
+`feature_implement_data_quality_debt_last_60_days`:
+
+```sql
+SELECT
+  countIf(NOT match(toString(properties.session_id), '^fis-[A-Za-z0-9][A-Za-z0-9_-]*$')) AS malformed_session_id_runs,
+  countIf(coalesce(properties.source, 'production') NOT IN ('production', 'test', 'synthetic')) AS unknown_source_runs,
+  countIf(coalesce(properties.source, 'production') IN ('test', 'synthetic')) AS excluded_non_production_runs,
+  countIf(toInt(properties.duplicate_terminal_finished_events) > 0) AS duplicate_terminal_finished_events,
+  countIf(coalesce(properties.source, 'production') = 'production' AND toInt(properties.duration_seconds) = 0) AS invalid_duration_runs,
+  countIf(coalesce(properties.source, 'production') = 'synthetic' AND toInt(properties.duration_seconds) = 0) AS synthetic_zero_duration_runs,
+  countIf(toInt(properties.duration_seconds) >= 86400) AS long_running_duration_runs
+FROM events
+WHERE event = 'skillbill_feature_implement_finished'
+  AND timestamp >= now() - INTERVAL 60 DAY
+```
+
 ### Alignment rule
 
 If a PostHog chart disagrees with local CLI/MCP stats for the same date range, treat the local stats command as the contract and fix the chart definition first.

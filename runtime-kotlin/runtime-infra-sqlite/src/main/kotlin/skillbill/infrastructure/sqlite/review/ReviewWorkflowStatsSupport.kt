@@ -106,10 +106,6 @@ fun buildFeatureVerifyStats(rows: List<Map<String, Any?>>): FeatureVerifyWorkflo
 fun buildFeatureImplementStats(rows: List<Map<String, Any?>>): FeatureImplementWorkflowStats {
   val finishedRows = finishedRows(rows)
   val healthStats = buildFeatureImplementHealthStats(rows, finishedRows)
-  val rolloutNeededRuns = rows.count { it.booleanValue("rollout_needed") }
-  val featureFlagUsedRuns = finishedRows.count { it.booleanValue("feature_flag_used") }
-  val prCreatedRuns = finishedRows.count { it.booleanValue("pr_created") }
-  val boundaryHistoryWrittenRuns = finishedRows.count { it.booleanValue("boundary_history_written") }
   val averages = buildFeatureImplementAverageStats(rows, finishedRows, healthStats.normalDurations)
   return FeatureImplementWorkflowStats(
     totalRuns = rows.size,
@@ -129,24 +125,31 @@ fun buildFeatureImplementStats(rows: List<Map<String, Any?>>): FeatureImplementW
     abandonedAtImplementationRuns = healthStats.abandonedAtImplementationRuns,
     abandonedAtReviewRuns = healthStats.abandonedAtReviewRuns,
     errorRuns = healthStats.errorRuns,
+    errorRate = healthStats.errorRate,
     normalDurationRuns = healthStats.normalDurationRuns,
     syntheticZeroDurationRuns = healthStats.syntheticZeroDurationRuns,
     longRunningDurationRuns = healthStats.longRunningDurationRuns,
     invalidDurationRuns = healthStats.invalidDurationRuns,
+    medianDurationSeconds = healthStats.medianDurationSeconds,
+    p90DurationSeconds = healthStats.p90DurationSeconds,
+    childStepCoverage = healthStats.childStepCoverage,
+    featureSizeOutcomeStats = healthStats.featureSizeOutcomeStats,
+    largeFeatureHealth = healthStats.largeFeatureHealth,
     featureSizeCounts = countValues(rows, "feature_size", featureSizes),
     completionStatusCounts = countValues(finishedRows, "completion_status", completionStatuses),
     auditResultCounts = countValues(finishedRows, "audit_result", auditResults),
     validationResultCounts = countValues(finishedRows, "validation_result", validationResults),
     featureFlagPatternCounts = countValues(finishedRows, "feature_flag_pattern", featureFlagPatterns),
     boundaryHistoryValueCounts = countValues(finishedRows, "boundary_history_value", historySignalValues),
-    rolloutNeededRuns = rolloutNeededRuns,
-    rolloutNeededRate = rate(rolloutNeededRuns, rows.size),
-    featureFlagUsedRuns = featureFlagUsedRuns,
-    featureFlagUsedRate = rate(featureFlagUsedRuns, finishedRows.size),
-    prCreatedRuns = prCreatedRuns,
-    prCreatedRate = rate(prCreatedRuns, finishedRows.size),
-    boundaryHistoryWrittenRuns = boundaryHistoryWrittenRuns,
-    boundaryHistoryWrittenRate = rate(boundaryHistoryWrittenRuns, finishedRows.size),
+    rolloutNeededRuns = rows.count { it.booleanValue("rollout_needed") },
+    rolloutNeededRate = rate(rows.count { it.booleanValue("rollout_needed") }, rows.size),
+    featureFlagUsedRuns = finishedRows.count { it.booleanValue("feature_flag_used") },
+    featureFlagUsedRate = rate(finishedRows.count { it.booleanValue("feature_flag_used") }, finishedRows.size),
+    prCreatedRuns = finishedRows.count { it.booleanValue("pr_created") },
+    prCreatedRate = rate(finishedRows.count { it.booleanValue("pr_created") }, finishedRows.size),
+    boundaryHistoryWrittenRuns = finishedRows.count { it.booleanValue("boundary_history_written") },
+    boundaryHistoryWrittenRate =
+    rate(finishedRows.count { it.booleanValue("boundary_history_written") }, finishedRows.size),
     averageAcceptanceCriteriaCount = averages.acceptanceCriteriaCount,
     averageSpecWordCount = averages.specWordCount,
     averageReviewIterations = averages.reviewIterations,

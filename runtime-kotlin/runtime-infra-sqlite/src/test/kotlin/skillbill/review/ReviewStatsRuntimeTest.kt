@@ -4,6 +4,7 @@ import skillbill.SAMPLE_REVIEW
 import skillbill.contracts.JsonSupport
 import skillbill.db.LifecycleTelemetryStore
 import skillbill.db.TelemetryOutboxStore
+import skillbill.db.listJson
 import skillbill.infrastructure.sqlite.SQLiteLearningStore
 import skillbill.infrastructure.sqlite.review.ReviewRuntime
 import skillbill.infrastructure.sqlite.review.ReviewStatsRuntime
@@ -38,6 +39,54 @@ class ReviewStatsRuntimeTest {
       assertEquals(2, stats.totalFindings)
       assertEquals(1, stats.acceptedFindings)
       assertEquals(1, stats.rejectedFindings)
+    }
+  }
+
+  @Test
+  fun `statsSnapshot aggregates standalone and embedded review health`() {
+    val (_, connection) = tempDbConnection("review-health-stats")
+    connection.use {
+      val review = importReviewedSample(connection)
+      seedMixedReviewHealth(connection, review.reviewRunId)
+
+      val health = ReviewStatsRuntime.statsSnapshot(connection, reviewRunId = null).health
+
+      assertEquals(3, health.totalReviewPayloadRecords)
+      assertEquals(2, health.includedReviewPayloadRecords)
+      assertEquals(1, health.standaloneReviewPayloadRecords)
+      assertEquals(1, health.embeddedReviewPayloadRecords)
+      assertEquals(1, health.malformedReviewPayloadRecords)
+      assertEquals(4, health.totalFindings)
+      assertEquals(2.0, health.averageFindings)
+      assertEquals(2.0, health.medianFindings)
+      assertEquals(2.0, health.p90Findings)
+      assertEquals(2, health.acceptedFindings)
+      assertEquals(1, health.rejectedFindings)
+      assertEquals(1, health.unresolvedFindings)
+      assertEquals(0.5, health.acceptedRate)
+      assertEquals(0.25, health.rejectedRate)
+      assertEquals(0.25, health.unresolvedRate)
+      assertEquals(2, health.severityCounts["Major"])
+      assertEquals(1, health.confidenceCounts["high"])
+      assertEquals(1, health.latestOutcomeCounts["fix_rejected"])
+      assertEquals(1, health.issueCategoryCounts["testing"])
+      assertEquals(2, health.platformCounts["kotlin"])
+      assertEquals(1, health.scopeCounts["branch_diff"])
+      assertEquals(mapOf("standalone" to 1, "embedded" to 1, "malformed" to 1), health.sourceCounts)
+    }
+  }
+
+  @Test
+  fun `statsSnapshot returns zero health defaults for empty store`() {
+    val (_, connection) = tempDbConnection("review-health-empty")
+    connection.use {
+      val health = ReviewStatsRuntime.statsSnapshot(connection, reviewRunId = null).health
+
+      assertEquals(0, health.totalReviewPayloadRecords)
+      assertEquals(0, health.includedReviewPayloadRecords)
+      assertEquals(0.0, health.acceptedRate)
+      assertEquals(mapOf("standalone" to 0, "embedded" to 0, "malformed" to 0), health.sourceCounts)
+      assertEquals(mapOf("Blocker" to 0, "Major" to 0, "Minor" to 0), health.severityCounts)
     }
   }
 
@@ -188,6 +237,38 @@ class ReviewStatsRuntimeTest {
       assertEquals(1, stats.invalidDurationRuns)
       assertEquals(5, stats.normalDurationRuns)
       assertEquals(240.0, stats.averageDurationSeconds)
+      assertEquals(180.0, stats.medianDurationSeconds)
+      assertEquals(456.0, stats.p90DurationSeconds)
+    }
+  }
+
+  @Test
+  fun `feature implement stats report child step coverage and large feature segmentation`() {
+    val (_, connection) = tempDbConnection("feature-implement-size-health")
+    connection.use {
+      seedFeatureImplementSizeHealth(connection)
+
+      val stats = ReviewStatsRuntime.featureImplementStats(connection)
+
+      assertEquals(4, stats.validHealthDenominatorRuns)
+      assertEquals(2, stats.childStepCoverage.runsWithChildSteps)
+      assertEquals(1, stats.childStepCoverage.reviewChildStepRuns)
+      assertEquals(1, stats.childStepCoverage.qualityCheckChildStepRuns)
+      assertEquals(1, stats.childStepCoverage.prDescriptionChildStepRuns)
+      assertEquals(1, stats.childStepCoverage.malformedChildStepRuns)
+      assertEquals(0.5, stats.childStepCoverage.childStepCoverageRate)
+      val largeStats = stats.featureSizeOutcomeStats.getValue("LARGE")
+      assertEquals(2, largeStats.totalRuns)
+      assertEquals(1, largeStats.completedRuns)
+      assertEquals(1, largeStats.errorRuns)
+      assertEquals(0.5, largeStats.errorRate)
+      assertEquals(2, stats.largeFeatureHealth.denominatorRuns)
+      assertEquals(1, stats.largeFeatureHealth.unhealthyRuns)
+      assertEquals(0.5, stats.largeFeatureHealth.unhealthyRate)
+      assertEquals(
+        "Decompose large features or block earlier before implementation when LARGE runs show abandonment or errors.",
+        stats.largeFeatureHealth.recommendation,
+      )
     }
   }
 
@@ -477,6 +558,127 @@ private fun insertFeatureImplementSession(connection: java.sql.Connection) {
         1,
         '2026-04-23 10:00:00',
         '2026-04-23 10:10:00'
+      )
+      """.trimIndent(),
+    )
+  }
+}
+
+private fun seedMixedReviewHealth(connection: java.sql.Connection, reviewRunId: String) {
+  ReviewStatsRuntime.updateReviewFinishedTelemetryState(connection, reviewRunId, enabled = true, level = "full")
+  insertFeatureImplementSessionWithChildSteps(
+    connection,
+    FeatureImplementSessionFixture(
+      sessionId = "fis-review-child",
+      featureSize = "LARGE",
+      completionStatus = "completed",
+      childSteps = listOf(embeddedReviewChildStep()),
+    ),
+  )
+  insertMalformedFeatureImplementChildSteps(connection, "fis-malformed-review-child")
+}
+
+private fun embeddedReviewChildStep(): Map<String, Any?> = mapOf(
+  "skill" to "bill-kotlin-code-review",
+  "review_run_id" to "rvw-embedded",
+  "review_session_id" to "rvs-embedded",
+  "platform_slug" to "kotlin",
+  "scope_type" to "branch_diff",
+  "total_findings" to 2,
+  "accepted_findings" to 1,
+  "rejected_findings" to 0,
+  "unresolved_findings" to 1,
+  "accepted_finding_details" to listOf(
+    mapOf(
+      "finding_id" to "F-EMBEDDED-1",
+      "issue_category" to "testing",
+      "severity" to "Major",
+      "confidence" to "high",
+      "outcome_type" to "finding_accepted",
+    ),
+  ),
+  "rejected_finding_details" to emptyList<Map<String, Any?>>(),
+  "latest_outcome_counts" to mapOf("finding_accepted" to 1),
+)
+
+private fun seedFeatureImplementSizeHealth(connection: java.sql.Connection) {
+  insertFeatureImplementSessionWithChildSteps(
+    connection,
+    FeatureImplementSessionFixture(
+      sessionId = "fis-large-completed",
+      featureSize = "LARGE",
+      completionStatus = "completed",
+      childSteps = listOf(
+        mapOf("skill" to "bill-code-check", "result" to "pass", "iterations" to 1),
+        mapOf("skill" to "bill-pr-description", "pr_created" to true),
+      ),
+    ),
+  )
+  insertFeatureImplementSessionWithChildSteps(
+    connection,
+    FeatureImplementSessionFixture(
+      sessionId = "fis-large-error",
+      featureSize = "LARGE",
+      completionStatus = "error",
+      childSteps = listOf(mapOf("skill" to "bill-kotlin-code-review", "rejected_findings" to 1)),
+    ),
+  )
+  insertFeatureImplementSessionWithChildSteps(
+    connection,
+    FeatureImplementSessionFixture(
+      sessionId = "fis-medium-open",
+      featureSize = "MEDIUM",
+      completionStatus = "",
+      childSteps = emptyList(),
+      finishedAt = null,
+    ),
+  )
+  insertMalformedFeatureImplementChildSteps(connection, "fis-malformed-child")
+}
+
+private data class FeatureImplementSessionFixture(
+  val sessionId: String,
+  val featureSize: String,
+  val completionStatus: String,
+  val childSteps: List<Map<String, Any?>>,
+  val finishedAt: String? = "2026-04-23 10:05:00",
+)
+
+private fun insertFeatureImplementSessionWithChildSteps(
+  connection: java.sql.Connection,
+  fixture: FeatureImplementSessionFixture,
+) {
+  connection.prepareStatement(
+    """
+    INSERT INTO feature_implement_sessions (
+      session_id,
+      source,
+      feature_size,
+      completion_status,
+      child_steps_json,
+      started_at,
+      finished_at
+    ) VALUES (?, 'production', ?, ?, ?, '2026-04-23 10:00:00', ?)
+    """.trimIndent(),
+  ).use { statement ->
+    statement.setString(1, fixture.sessionId)
+    statement.setString(2, fixture.featureSize)
+    statement.setString(3, fixture.completionStatus)
+    statement.setString(4, listJson(fixture.childSteps))
+    statement.setString(5, fixture.finishedAt)
+    statement.executeUpdate()
+  }
+}
+
+private fun insertMalformedFeatureImplementChildSteps(connection: java.sql.Connection, sessionId: String) {
+  connection.createStatement().use { statement ->
+    statement.executeUpdate(
+      """
+      INSERT INTO feature_implement_sessions (
+        session_id, source, feature_size, completion_status, child_steps_json, started_at, finished_at
+      ) VALUES (
+        '$sessionId', 'production', 'SMALL', 'completed', '{not json',
+        '2026-04-23 10:00:00', '2026-04-23 10:01:00'
       )
       """.trimIndent(),
     )

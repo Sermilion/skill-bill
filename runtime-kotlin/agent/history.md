@@ -1,3 +1,14 @@
+## [2026-06-06] SKILL-69 stats-remote-query-guidance-and-docs
+Areas: runtime-kotlin/runtime-domain, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-application, runtime-kotlin/runtime-infra-sqlite, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-mcp, docs
+- Review stats now aggregate standalone review-finished telemetry plus embedded feature-implement review payloads, with source breakdowns and malformed/excluded payload debt.
+- Feature-implement health stats now report production valid-session rates, deduped terminal metrics, child-step coverage, duration percentiles, and feature-size segmentation. reusable
+- New SQLite support helpers split payload loading, health aggregation, percentiles, child-step stats, and size-health stats to keep stats surfaces composable. reusable
+- CLI/MCP JSON mapping carries the additive health fields through shared application payload contracts; focused runtime, CLI, and MCP tests cover the new shape.
+- Docs add production-filter defaults, data-quality debt guidance, large-feature health recommendations, and PostHog-ready HogQL query patterns without requiring copied exploratory SQL.
+- Known limitation: validate passed executable gates, but prior audit output still reported A-001 through A-004 acceptance gaps for downstream routing.
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented per implement phase; audit caveat above
+
 ## [2026-06-06] SKILL-69 feature-implement-lifecycle-telemetry-health
 Areas: runtime-kotlin/runtime-application, runtime-kotlin/runtime-domain, runtime-kotlin/runtime-infra-sqlite, runtime-kotlin/runtime-mcp, orchestration/contracts
 - Feature-implement lifecycle telemetry now persists source classification so stats can filter synthetic/test runs by default without hard-coded install/session ids.

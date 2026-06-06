@@ -110,6 +110,12 @@ class McpRuntimeTest {
     assertEquals(mapOf("SMALL" to 0, "MEDIUM" to 1, "LARGE" to 0), implementStats["feature_size_counts"])
     assertEquals(0.0, implementStats["pr_created_rate"])
     assertEquals(4.0, implementStats["average_tasks_completed"])
+    assertTrue("child_step_coverage" in implementStats)
+    assertTrue("feature_size_outcome_stats" in implementStats)
+    assertTrue("large_feature_health" in implementStats)
+    val childStepCoverage = implementStats["child_step_coverage"] as Map<*, *>
+    assertEquals(1, childStepCoverage["runs_with_child_steps"])
+    assertEquals(1, childStepCoverage["quality_check_child_step_runs"])
     val implementCompletionStatusCounts = implementStats["completion_status_counts"] as Map<*, *>
     assertEquals(1, implementCompletionStatusCounts["completed"])
     assertEquals(0, implementCompletionStatusCounts["error"])
@@ -1145,10 +1151,16 @@ private fun featureImplementStatsKeys(): Set<String> = setOf(
   "abandoned_at_implementation_runs",
   "abandoned_at_review_runs",
   "error_runs",
+  "error_rate",
   "normal_duration_runs",
   "synthetic_zero_duration_runs",
   "long_running_duration_runs",
   "invalid_duration_runs",
+  "median_duration_seconds",
+  "p90_duration_seconds",
+  "child_step_coverage",
+  "feature_size_outcome_stats",
+  "large_feature_health",
   "feature_size_counts",
   "completion_status_counts",
   "audit_result_counts",
