@@ -88,3 +88,45 @@ This is a lightweight file-level classification (names + imports), not a full re
 - Keep findings attributed to each layer before merging and deduplicating them into the final review.
 
 If no KMP-only triggers match but Android/KMP signals are clearly present, keep the baseline review output and state that no extra KMP-only specialist was needed for this scope.
+
+---
+
+## Parallel Review
+
+> This section executes only when a `parallel_review:<agent_id>` modifier is forwarded in the invocation args. If the modifier is absent, skip this section entirely and present the Step 4 output as the final review.
+
+### 5.1 — Validate the modifier
+
+1. Extract `<agent_id>` from `parallel_review:<agent_id>`.
+2. Validate:
+   - `<agent_id>` must not be blank.
+   - `<agent_id>` must be one of: `copilot`, `claude`, `codex`, `opencode`, `junie`.
+   - `<agent_id>` must not duplicate the invoking agent's own id.
+3. If any check fails, stop before launching any review lane and output:
+   > Error: unsupported parallel_review agent id. Supported agents: copilot, claude, codex, opencode, junie.
+
+### 5.2 — Default lane
+
+The Step 4 KMP specialist fan-out is the default lane. It runs as-is: same selected specialists, same scoped file lists, same briefing. No changes to Steps 1–4.
+
+### 5.3 — Alternative lane
+
+Dispatch the alternative lane via the Agent tool:
+- Provide the same diff source, the same selected specialist set, and the same per-specialist briefings used by the default lane.
+- The alternative lane must not receive the default lane's findings as prompt input; each lane starts from the same state.
+- Label the agent call with `<agent_id>`.
+
+When the execution context supports parallel Agent tool calls, run the default and alternative lanes concurrently. Emit a one-line note:
+> Parallel review: default lane (claude) and alternative lane (codex) ran concurrently.
+
+If concurrency is unavailable, run sequentially and note:
+> Parallel review: default lane (claude) ran first; alternative lane (codex) ran sequentially.
+
+### 5.4 — Merge and present findings
+
+Combine both lanes into one risk register using the existing F-XXX format:
+
+- Append `[<agent_id>]` provenance after each finding code: `F-001 [codex] Blocker …`
+- When both lanes surface the same finding independently, coalesce into one entry with both ids: `F-001 [codex, claude] Blocker …`
+- Maintain severity ordering and risk-register structure identical to the non-parallel output.
+- List coalesced findings before single-lane findings within the same severity tier.
