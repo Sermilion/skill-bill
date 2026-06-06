@@ -1,7 +1,7 @@
 # SKILL-70 - ad hoc parallel review agent
 
 Created: 2026-06-06
-Status: in_progress
+Status: complete
 Issue key: SKILL-70
 Mode: decomposed
 Parent: follow-up from discussion on 2026-06-06 about running an
@@ -11,7 +11,7 @@ independent parallel code-review pass with an alternative agent for a single
 ## Subtasks
 
 1. `spec_subtask_1_feature-task-parallel-review.md` — ad hoc parallel review in the feature-task runtime (complete)
-2. `spec_subtask_2_standalone-code-review-parallel-review.md` — parallel review modifier for standalone bill-code-review skills (pending)
+2. `spec_subtask_2_standalone-code-review-parallel-review.md` — parallel review modifier for standalone bill-code-review skills (complete)
 
 ## Sources
 
