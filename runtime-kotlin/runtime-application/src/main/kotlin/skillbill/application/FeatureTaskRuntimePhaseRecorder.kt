@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions")
+
 package skillbill.application
 
 import me.tatarka.inject.annotations.Inject
@@ -15,16 +17,20 @@ import skillbill.workflow.model.WorkflowUpdateInput
 import skillbill.workflow.model.appendBoundedHistoryBySequence
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_DECOMPOSE_TERMINAL_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PARALLEL_REVIEW_REQUEST_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_BRIEFINGS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_STATUS_BLOCKED
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_RESOLVED_BRANCH_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_REVIEW_LANES_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDecomposeTerminal
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeParallelReviewArtifact
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerEntry
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeResolvedBranch
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeReviewLaneRecord
 import java.time.Duration
 import java.time.Instant
 
@@ -205,6 +211,60 @@ class FeatureTaskRuntimePhaseRecorder(
       phaseRecordsFrom(decodeArtifacts(record.artifactsJson))
     }
 
+  fun recordParallelReviewRequest(
+    workflowId: String,
+    artifact: FeatureTaskRuntimeParallelReviewArtifact,
+    dbOverride: String? = null,
+  ): Boolean = database.transaction(dbOverride) { unitOfWork ->
+    val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+      ?: return@transaction false
+    persistPatch(
+      unitOfWork.workflowStates,
+      record,
+      mapOf(FEATURE_TASK_RUNTIME_PARALLEL_REVIEW_REQUEST_ARTIFACT_KEY to artifact.toArtifactMap()),
+    )
+    true
+  }
+
+  fun loadParallelReviewRequest(
+    workflowId: String,
+    dbOverride: String? = null,
+  ): FeatureTaskRuntimeParallelReviewArtifact? = database.read(dbOverride) { unitOfWork ->
+    val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+      ?: return@read null
+    parallelReviewRequestFrom(decodeArtifacts(record.artifactsJson))
+  }
+
+  fun recordReviewLaneState(
+    workflowId: String,
+    lane: FeatureTaskRuntimeReviewLaneRecord,
+    dbOverride: String? = null,
+  ): Boolean = database.transaction(dbOverride) { unitOfWork ->
+    val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+      ?: return@transaction false
+    val artifacts = decodeArtifacts(record.artifactsJson)
+    val existing = reviewLanesFrom(artifacts)
+    val updated = LinkedHashMap(existing).apply { put(lane.laneId, lane) }
+    persistPatch(
+      unitOfWork.workflowStates,
+      record,
+      mapOf(
+        FEATURE_TASK_RUNTIME_REVIEW_LANES_ARTIFACT_KEY to
+          updated.mapValues { (_, value) -> value.toArtifactMap() },
+      ),
+    )
+    true
+  }
+
+  fun loadReviewLaneRecords(
+    workflowId: String,
+    dbOverride: String? = null,
+  ): Map<String, FeatureTaskRuntimeReviewLaneRecord>? = database.read(dbOverride) { unitOfWork ->
+    val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+      ?: return@read null
+    reviewLanesFrom(decodeArtifacts(record.artifactsJson))
+  }
+
   /**
    * Strict read of the append-only phase ledger. A block is recorded both as a durable terminal
    * per-phase record (so blocked-ness survives ledger pruning) and as a ledger entry; this read
@@ -352,6 +412,21 @@ private fun resolvedBranchFrom(artifacts: Map<String, Any?>): FeatureTaskRuntime
     )
   return FeatureTaskRuntimeResolvedBranch.fromArtifactMap(entryMap)
 }
+
+private fun parallelReviewRequestFrom(artifacts: Map<String, Any?>): FeatureTaskRuntimeParallelReviewArtifact? {
+  val raw = artifacts[FEATURE_TASK_RUNTIME_PARALLEL_REVIEW_REQUEST_ARTIFACT_KEY] ?: return null
+  val entryMap = JsonSupport.anyToStringAnyMap(raw)
+    ?: schemaError(
+      "Feature-task-runtime artifact '$FEATURE_TASK_RUNTIME_PARALLEL_REVIEW_REQUEST_ARTIFACT_KEY' must decode " +
+        "to a map.",
+    )
+  return FeatureTaskRuntimeParallelReviewArtifact.fromArtifactMap(entryMap)
+}
+
+private fun reviewLanesFrom(artifacts: Map<String, Any?>): Map<String, FeatureTaskRuntimeReviewLaneRecord> =
+  decodeStrictKeyedArtifactMap(artifacts, FEATURE_TASK_RUNTIME_REVIEW_LANES_ARTIFACT_KEY) { _, laneMap ->
+    FeatureTaskRuntimeReviewLaneRecord.fromArtifactMap(laneMap)
+  }
 
 private fun decomposeTerminalFrom(artifacts: Map<String, Any?>): FeatureTaskRuntimeDecomposeTerminal? {
   val raw = artifacts[FEATURE_TASK_RUNTIME_DECOMPOSE_TERMINAL_ARTIFACT_KEY] ?: return null

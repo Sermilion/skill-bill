@@ -17,6 +17,9 @@ import java.math.BigInteger
 const val FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY: String = "feature_task_runtime_phase_records"
 const val FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY: String = "feature_task_runtime_phase_ledger"
 const val FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT: Int = 200
+const val FEATURE_TASK_RUNTIME_PARALLEL_REVIEW_REQUEST_ARTIFACT_KEY: String =
+  "feature_task_runtime_parallel_review_request"
+const val FEATURE_TASK_RUNTIME_REVIEW_LANES_ARTIFACT_KEY: String = "feature_task_runtime_review_lanes"
 
 /**
  * Durable run-scoped resolved feature branch. The runtime resolves a non-default feature branch
@@ -57,6 +60,103 @@ data class FeatureTaskRuntimeResolvedBranch(
       baseBranch = raw.optionalStringField("base_branch"),
       created = raw.optionalBooleanField("created") ?: false,
     )
+  }
+}
+
+data class FeatureTaskRuntimeParallelReviewArtifact(
+  val requested: Boolean,
+  val defaultReviewAgentId: String,
+  val alternativeReviewAgentId: String,
+  val laneCount: Int,
+) {
+  init {
+    require(defaultReviewAgentId.isNotBlank()) {
+      "FeatureTaskRuntimeParallelReviewArtifact.defaultReviewAgentId must be non-blank."
+    }
+    require(alternativeReviewAgentId.isNotBlank()) {
+      "FeatureTaskRuntimeParallelReviewArtifact.alternativeReviewAgentId must be non-blank."
+    }
+    require(laneCount >= 1) { "FeatureTaskRuntimeParallelReviewArtifact.laneCount must be >= 1." }
+  }
+
+  @OpenBoundaryMap("Feature-task-runtime parallel-review request artifact map at the durable workflow-artifact seam")
+  fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
+    "requested" to requested,
+    "default_review_agent_id" to defaultReviewAgentId,
+    "alternative_review_agent_id" to alternativeReviewAgentId,
+    "lane_count" to laneCount,
+  )
+
+  companion object {
+    @OpenBoundaryMap("Feature-task-runtime parallel-review request decode from durable workflow artifacts")
+    fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeParallelReviewArtifact =
+      FeatureTaskRuntimeParallelReviewArtifact(
+        requested = raw.requireBooleanField("requested"),
+        defaultReviewAgentId = raw.requireStringField("default_review_agent_id"),
+        alternativeReviewAgentId = raw.requireStringField("alternative_review_agent_id"),
+        laneCount = raw.requireIntField("lane_count"),
+      )
+  }
+}
+
+data class FeatureTaskRuntimeReviewLaneRecord(
+  val laneId: String,
+  val agentId: String,
+  val status: String,
+  val attemptCount: Int,
+  val startedAt: String,
+  val firstStartedAt: String = startedAt,
+  val finishedAt: String? = null,
+  val durationMillis: Long? = null,
+  val outputArtifact: String? = null,
+  val blockedReason: String? = null,
+  val findingCount: Int = 0,
+) {
+  init {
+    require(laneId.isNotBlank()) { "FeatureTaskRuntimeReviewLaneRecord.laneId must be non-blank." }
+    require(agentId.isNotBlank()) { "FeatureTaskRuntimeReviewLaneRecord.agentId must be non-blank." }
+    require(status.isNotBlank()) { "FeatureTaskRuntimeReviewLaneRecord.status must be non-blank." }
+    require(attemptCount >= 1) { "FeatureTaskRuntimeReviewLaneRecord.attemptCount must be >= 1." }
+    require(startedAt.isNotBlank()) { "FeatureTaskRuntimeReviewLaneRecord.startedAt must be non-blank." }
+    require(firstStartedAt.isNotBlank()) { "FeatureTaskRuntimeReviewLaneRecord.firstStartedAt must be non-blank." }
+    require(findingCount >= 0) { "FeatureTaskRuntimeReviewLaneRecord.findingCount must be non-negative." }
+    durationMillis?.let { require(it >= 0) { "FeatureTaskRuntimeReviewLaneRecord.durationMillis must be >= 0." } }
+  }
+
+  @OpenBoundaryMap("Feature-task-runtime review-lane artifact map at the durable workflow-artifact seam")
+  fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
+    "lane_id" to laneId,
+    "agent_id" to agentId,
+    "status" to status,
+    "attempt_count" to attemptCount,
+    "started_at" to startedAt,
+    "first_started_at" to firstStartedAt,
+    "finding_count" to findingCount,
+  ).apply {
+    finishedAt?.let { put("finished_at", it) }
+    durationMillis?.let { put("duration_millis", it) }
+    outputArtifact?.let { put("output_artifact", it) }
+    blockedReason?.let { put("blocked_reason", it) }
+  }
+
+  companion object {
+    @OpenBoundaryMap("Feature-task-runtime review-lane decode from durable workflow artifacts")
+    fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeReviewLaneRecord {
+      val startedAt = raw.requireStringField("started_at")
+      return FeatureTaskRuntimeReviewLaneRecord(
+        laneId = raw.requireStringField("lane_id"),
+        agentId = raw.requireStringField("agent_id"),
+        status = raw.requireStringField("status"),
+        attemptCount = raw.requireIntField("attempt_count"),
+        startedAt = startedAt,
+        firstStartedAt = raw.optionalStringField("first_started_at") ?: startedAt,
+        finishedAt = raw.optionalStringField("finished_at"),
+        durationMillis = raw.optionalLongField("duration_millis"),
+        outputArtifact = raw.optionalStringField("output_artifact"),
+        blockedReason = raw.optionalStringField("blocked_reason"),
+        findingCount = raw.optionalIntField("finding_count") ?: 0,
+      )
+    }
   }
 }
 
@@ -331,6 +431,18 @@ private fun Map<String, Any?>.optionalBooleanField(key: String): Boolean? {
   return this[key] as? Boolean
     ?: throw InvalidWorkflowStateSchemaError(
       "Feature-task-runtime artifact field '$key' must decode to a boolean when present.",
+    )
+}
+
+private fun Map<String, Any?>.requireBooleanField(key: String): Boolean {
+  if (!containsKey(key) || this[key] == null) {
+    throw InvalidWorkflowStateSchemaError(
+      "Feature-task-runtime artifact map is missing required boolean field '$key'.",
+    )
+  }
+  return this[key] as? Boolean
+    ?: throw InvalidWorkflowStateSchemaError(
+      "Feature-task-runtime artifact field '$key' must decode to a boolean.",
     )
 }
 

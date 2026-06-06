@@ -24,6 +24,18 @@ Clarify the user's feature request enough to identify:
 
 If the issue key is missing, stop and ask for it. Do not invent one.
 
+Preserve supported ad hoc modifiers as run-scoped downstream inputs. The canonical parallel review
+modifier is `parallel_review:<agent_id>`:
+
+- For `single_spec` dispatch, pass it through to `bill-feature-task` / the canonical feature-task
+  runtime as `--parallel-review-agent <agent_id>`.
+- Do not translate it into `--phase-agent review=<agent_id>`; per-phase review assignment remains the
+  default review lane assignment.
+- For `decomposed` dispatch, do not implicitly inherit it into every child; only child feature-task
+  invocations that explicitly receive the modifier should use it.
+- Reject more than one `parallel_review:*` modifier unless the downstream runtime explicitly supports
+  a bounded list.
+
 ## Prepare Spec
 
 Always invoke `bill-feature-spec` first in the current session. Do not write spec artifacts directly and do not fork spec-preparation logic.

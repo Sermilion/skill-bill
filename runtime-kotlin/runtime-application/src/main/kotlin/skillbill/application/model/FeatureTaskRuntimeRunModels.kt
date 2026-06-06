@@ -22,6 +22,7 @@ data class FeatureTaskRuntimeRunRequest(
   val timeout: Duration? = null,
   /** Present only for non-interactive goal-runner continuation children. */
   val goalContinuation: FeatureTaskRuntimeGoalContinuationContext? = null,
+  val parallelReview: FeatureTaskRuntimeParallelReviewRequest? = null,
   val eventSink: FeatureTaskRuntimeRunEventSink = FeatureTaskRuntimeRunEventSink.NONE,
 ) {
   init {
@@ -29,6 +30,16 @@ data class FeatureTaskRuntimeRunRequest(
     require(workflowId.isNotBlank()) { "FeatureTaskRuntimeRunRequest.workflowId is required." }
     require(invokedAgentId.isNotBlank()) {
       "FeatureTaskRuntimeRunRequest.invokedAgentId is required; it is the documented default agent."
+    }
+  }
+}
+
+data class FeatureTaskRuntimeParallelReviewRequest(
+  val alternativeAgentId: String,
+) {
+  init {
+    require(alternativeAgentId.isNotBlank()) {
+      "FeatureTaskRuntimeParallelReviewRequest.alternativeAgentId must be non-blank."
     }
   }
 }
@@ -222,6 +233,24 @@ sealed interface FeatureTaskRuntimeRunEvent {
     val subtaskCount: Int,
     val parentSpecPath: String,
     val decompositionManifestPath: String,
+  ) : FeatureTaskRuntimeRunEvent
+
+  data class ReviewLaneStarted(
+    override val workflowId: String,
+    override val phaseId: String,
+    val laneId: String,
+    val agentId: String,
+    val attemptCount: Int,
+  ) : FeatureTaskRuntimeRunEvent
+
+  data class ReviewLaneCompleted(
+    override val workflowId: String,
+    override val phaseId: String,
+    val laneId: String,
+    val agentId: String,
+    val attemptCount: Int,
+    val findingCount: Int,
+    val blocked: Boolean,
   ) : FeatureTaskRuntimeRunEvent
 }
 

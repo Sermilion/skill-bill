@@ -18,6 +18,7 @@ class DatabaseMigrationsTest {
         1 to "add-review-workflow-session-columns",
         2 to "normalize-feedback-event-outcomes",
         3 to "add-goal-telemetry-tables",
+        4 to "add-parallel-review-telemetry-columns",
       ),
       migrationDefinitions,
     )
@@ -128,6 +129,31 @@ class DatabaseMigrationsTest {
       assertTrue("'fix_rejected'" in schemaSql)
       assertEquals("fix_rejected", migratedEventType)
       assertEquals(DatabaseMigrations.migrations.size, migrationRows(connection).size)
+    }
+  }
+
+  @Test
+  fun `ensureDatabase adds parallel review telemetry columns with defaults`() {
+    val dbPath = Files.createTempDirectory("runtime-kotlin-db-migrations").resolve("parallel-review.db")
+
+    DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
+      val columns = tableColumns(connection = connection, tableName = "feature_task_runtime_sessions")
+
+      assertTrue("parallel_review_requested" in columns)
+      assertTrue("default_review_agent_id" in columns)
+      assertTrue("alternative_review_agent_id" in columns)
+      assertTrue("review_lane_count" in columns)
+      assertTrue("review_lane_statuses" in columns)
+      assertTrue("merged_review_finding_count" in columns)
+      assertTrue("accepted_review_finding_count" in columns)
+      assertTrue("rejected_review_finding_count" in columns)
+      assertTrue("unresolved_review_finding_count" in columns)
+      assertNotNull(
+        migrationRows(connection).singleOrNull { row ->
+          row.version == 4 && row.name == "add-parallel-review-telemetry-columns"
+        },
+        "Migration version 4 add-parallel-review-telemetry-columns should be recorded.",
+      )
     }
   }
 

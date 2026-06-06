@@ -1028,6 +1028,26 @@ $defs:
         type: string
       resolved_branch:
         type: string
+      parallel_review_requested:
+        type: boolean
+      default_review_agent_id:
+        type: string
+      alternative_review_agent_id:
+        type: string
+      review_lane_count:
+        type: integer
+      review_lane_statuses:
+        type: array
+        items:
+          $ref: "#/$defs/freeObjectShape"
+      merged_review_finding_count:
+        type: integer
+      accepted_review_finding_count:
+        type: integer
+      rejected_review_finding_count:
+        type: integer
+      unresolved_review_finding_count:
+        type: integer
 
   # SKILL-67 Subtask 1 (AC3): canonical feature_task_* started/finished branches
   # mirroring featureTaskRuntimeStartedEvent / featureTaskRuntimeFinishedEvent.
@@ -1093,6 +1113,26 @@ $defs:
         type: string
       resolved_branch:
         type: string
+      parallel_review_requested:
+        type: boolean
+      default_review_agent_id:
+        type: string
+      alternative_review_agent_id:
+        type: string
+      review_lane_count:
+        type: integer
+      review_lane_statuses:
+        type: array
+        items:
+          $ref: "#/$defs/freeObjectShape"
+      merged_review_finding_count:
+        type: integer
+      accepted_review_finding_count:
+        type: integer
+      rejected_review_finding_count:
+        type: integer
+      unresolved_review_finding_count:
+        type: integer
 
   featureVerifyWorkflowContinueEvent:
     type: object

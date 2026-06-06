@@ -12,6 +12,7 @@ import skillbill.application.model.QualityCheckStartedRequest
 import skillbill.telemetry.model.FeatureImplementFinishedRecord
 import skillbill.telemetry.model.FeatureImplementStartedRecord
 import skillbill.telemetry.model.FeatureTaskRuntimeFinishedRecord
+import skillbill.telemetry.model.FeatureTaskRuntimeReviewLaneTelemetryRecord
 import skillbill.telemetry.model.FeatureTaskRuntimeStartedRecord
 import skillbill.telemetry.model.FeatureVerifyFinishedRecord
 import skillbill.telemetry.model.FeatureVerifyStartedRecord
@@ -74,6 +75,22 @@ fun FeatureTaskRuntimeFinishedRequest.toRecord(): FeatureTaskRuntimeFinishedReco
   lastIncompletePhase = lastIncompletePhase,
   blockedReason = blockedReason,
   resolvedBranch = resolvedBranch,
+  parallelReviewRequested = parallelReviewRequested,
+  defaultReviewAgentId = defaultReviewAgentId,
+  alternativeReviewAgentId = alternativeReviewAgentId,
+  reviewLaneCount = reviewLaneCount,
+  reviewLaneStatuses = reviewLaneStatuses.map { lane ->
+    FeatureTaskRuntimeReviewLaneTelemetryRecord(
+      laneId = lane.laneId,
+      agentId = lane.agentId,
+      status = lane.status,
+      findingCount = lane.findingCount,
+    )
+  },
+  mergedReviewFindingCount = mergedReviewFindingCount,
+  acceptedReviewFindingCount = acceptedReviewFindingCount,
+  rejectedReviewFindingCount = rejectedReviewFindingCount,
+  unresolvedReviewFindingCount = unresolvedReviewFindingCount,
 )
 
 fun QualityCheckStartedRequest.toRecord(sessionId: String): QualityCheckStartedRecord = QualityCheckStartedRecord(

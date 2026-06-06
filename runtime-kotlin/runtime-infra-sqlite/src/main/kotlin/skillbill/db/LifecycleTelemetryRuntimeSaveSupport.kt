@@ -50,10 +50,20 @@ private fun updateFeatureTaskRuntimeStarted(connection: Connection, record: Feat
 fun saveFeatureTaskRuntimeFinished(connection: Connection, record: FeatureTaskRuntimeFinishedRecord) {
   val completedPhaseIdsJson = listJson(record.completedPhaseIds)
   val phaseOutcomesJson = JsonSupport.mapToJsonString(record.phaseOutcomes)
+  val laneStatusesJson = listJson(
+    record.reviewLaneStatuses.map { lane ->
+      linkedMapOf<String, Any?>(
+        "lane_id" to lane.laneId,
+        "agent_id" to lane.agentId,
+        "status" to lane.status,
+        "finding_count" to lane.findingCount,
+      )
+    },
+  )
   if (rowExists(connection, "feature_task_runtime_sessions", record.sessionId)) {
-    updateFeatureTaskRuntimeFinished(connection, record, completedPhaseIdsJson, phaseOutcomesJson)
+    updateFeatureTaskRuntimeFinished(connection, record, completedPhaseIdsJson, phaseOutcomesJson, laneStatusesJson)
   } else {
-    insertFeatureTaskRuntimeFinished(connection, record, completedPhaseIdsJson, phaseOutcomesJson)
+    insertFeatureTaskRuntimeFinished(connection, record, completedPhaseIdsJson, phaseOutcomesJson, laneStatusesJson)
   }
 }
 
@@ -62,6 +72,7 @@ private fun updateFeatureTaskRuntimeFinished(
   record: FeatureTaskRuntimeFinishedRecord,
   completedPhaseIdsJson: String,
   phaseOutcomesJson: String,
+  laneStatusesJson: String,
 ) {
   connection.prepareStatement(
     """
@@ -72,6 +83,15 @@ private fun updateFeatureTaskRuntimeFinished(
       last_incomplete_phase = ?,
       blocked_reason = ?,
       resolved_branch = ?,
+      parallel_review_requested = ?,
+      default_review_agent_id = ?,
+      alternative_review_agent_id = ?,
+      review_lane_count = ?,
+      review_lane_statuses = ?,
+      merged_review_finding_count = ?,
+      accepted_review_finding_count = ?,
+      rejected_review_finding_count = ?,
+      unresolved_review_finding_count = ?,
       finished_at = CURRENT_TIMESTAMP
     WHERE session_id = ?
     """.trimIndent(),
@@ -83,6 +103,15 @@ private fun updateFeatureTaskRuntimeFinished(
       record.lastIncompletePhase,
       record.blockedReason,
       record.resolvedBranch,
+      if (record.parallelReviewRequested) 1 else 0,
+      record.defaultReviewAgentId,
+      record.alternativeReviewAgentId,
+      record.reviewLaneCount,
+      laneStatusesJson,
+      record.mergedReviewFindingCount,
+      record.acceptedReviewFindingCount,
+      record.rejectedReviewFindingCount,
+      record.unresolvedReviewFindingCount,
       record.sessionId,
     )
     statement.executeUpdate()
@@ -94,14 +123,20 @@ private fun insertFeatureTaskRuntimeFinished(
   record: FeatureTaskRuntimeFinishedRecord,
   completedPhaseIdsJson: String,
   phaseOutcomesJson: String,
+  laneStatusesJson: String,
 ) {
   connection.prepareStatement(
     """
     INSERT INTO feature_task_runtime_sessions (
       session_id, completion_status, completed_phase_ids,
       phase_outcomes, last_incomplete_phase, blocked_reason,
-      resolved_branch, finished_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      resolved_branch,
+      parallel_review_requested, default_review_agent_id,
+      alternative_review_agent_id, review_lane_count, review_lane_statuses,
+      merged_review_finding_count, accepted_review_finding_count,
+      rejected_review_finding_count, unresolved_review_finding_count,
+      finished_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     """.trimIndent(),
   ).use { statement ->
     statement.bind(
@@ -112,6 +147,15 @@ private fun insertFeatureTaskRuntimeFinished(
       record.lastIncompletePhase,
       record.blockedReason,
       record.resolvedBranch,
+      if (record.parallelReviewRequested) 1 else 0,
+      record.defaultReviewAgentId,
+      record.alternativeReviewAgentId,
+      record.reviewLaneCount,
+      laneStatusesJson,
+      record.mergedReviewFindingCount,
+      record.acceptedReviewFindingCount,
+      record.rejectedReviewFindingCount,
+      record.unresolvedReviewFindingCount,
     )
     statement.executeUpdate()
   }

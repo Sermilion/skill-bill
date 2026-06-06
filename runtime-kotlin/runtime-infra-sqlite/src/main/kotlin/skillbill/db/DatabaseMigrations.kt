@@ -21,6 +21,11 @@ internal object DatabaseMigrations {
         name = "add-goal-telemetry-tables",
         operation = GoalTelemetryMigration::apply,
       ),
+      DatabaseMigration(
+        version = 4,
+        name = "add-parallel-review-telemetry-columns",
+        operation = ParallelReviewTelemetryMigration::apply,
+      ),
     ).also(::requireDeterministicMigrations)
 
   fun apply(connection: Connection) {

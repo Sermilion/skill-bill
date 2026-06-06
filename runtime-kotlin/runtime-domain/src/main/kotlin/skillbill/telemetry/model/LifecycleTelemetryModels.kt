@@ -56,6 +56,22 @@ data class FeatureTaskRuntimeFinishedRecord(
   val lastIncompletePhase: String,
   val blockedReason: String,
   val resolvedBranch: String,
+  val parallelReviewRequested: Boolean = false,
+  val defaultReviewAgentId: String = "",
+  val alternativeReviewAgentId: String = "",
+  val reviewLaneCount: Int = 1,
+  val reviewLaneStatuses: List<FeatureTaskRuntimeReviewLaneTelemetryRecord> = emptyList(),
+  val mergedReviewFindingCount: Int = 0,
+  val acceptedReviewFindingCount: Int = 0,
+  val rejectedReviewFindingCount: Int = 0,
+  val unresolvedReviewFindingCount: Int = 0,
+)
+
+data class FeatureTaskRuntimeReviewLaneTelemetryRecord(
+  val laneId: String,
+  val agentId: String,
+  val status: String,
+  val findingCount: Int,
 )
 
 data class QualityCheckStartedRecord(

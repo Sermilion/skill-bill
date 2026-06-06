@@ -37,7 +37,25 @@ data class FeatureTaskRuntimeStatusProjection(
   val currentPhaseId: String?,
   /** The run's resolved feature branch, or null when branch setup has not run yet. */
   val resolvedBranch: String? = null,
+  val parallelReview: FeatureTaskRuntimeParallelReviewStatus? = null,
   val decomposeTerminal: FeatureTaskRuntimeDecomposeTerminalStatus? = null,
+)
+
+data class FeatureTaskRuntimeParallelReviewStatus(
+  val requested: Boolean,
+  val defaultReviewAgentId: String,
+  val alternativeReviewAgentId: String,
+  val laneCount: Int,
+  val lanes: List<FeatureTaskRuntimeReviewLaneStatus>,
+)
+
+data class FeatureTaskRuntimeReviewLaneStatus(
+  val laneId: String,
+  val agentId: String,
+  val status: String,
+  val attemptCount: Int,
+  val findingCount: Int,
+  val blockedReason: String?,
 )
 
 data class FeatureTaskRuntimeDecomposeTerminalStatus(

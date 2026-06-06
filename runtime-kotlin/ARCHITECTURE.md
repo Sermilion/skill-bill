@@ -420,6 +420,10 @@ runtime-ports
     - `skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerEntry.fromArtifactMap`
     - `skillbill.workflow.taskruntime.model.FeatureTaskRuntimeResolvedBranch.toArtifactMap`
     - `skillbill.workflow.taskruntime.model.FeatureTaskRuntimeResolvedBranch.fromArtifactMap`
+    - `skillbill.workflow.taskruntime.model.FeatureTaskRuntimeParallelReviewArtifact.toArtifactMap`
+    - `skillbill.workflow.taskruntime.model.FeatureTaskRuntimeParallelReviewArtifact.fromArtifactMap`
+    - `skillbill.workflow.taskruntime.model.FeatureTaskRuntimeReviewLaneRecord.toArtifactMap`
+    - `skillbill.workflow.taskruntime.model.FeatureTaskRuntimeReviewLaneRecord.fromArtifactMap`
     - `skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationArtifact.toArtifactMap`
     - `skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationOutcome.toArtifactMap`
     - `skillbill.ports.goalrunner.GoalRunnerTerminalOutcomeStore.recoverMissingResultPrefixOutput`
@@ -843,6 +847,10 @@ Categories:
 - `skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerEntry.fromArtifactMap`
 - `skillbill.workflow.taskruntime.model.FeatureTaskRuntimeResolvedBranch.toArtifactMap`
 - `skillbill.workflow.taskruntime.model.FeatureTaskRuntimeResolvedBranch.fromArtifactMap`
+- `skillbill.workflow.taskruntime.model.FeatureTaskRuntimeParallelReviewArtifact.toArtifactMap`
+- `skillbill.workflow.taskruntime.model.FeatureTaskRuntimeParallelReviewArtifact.fromArtifactMap`
+- `skillbill.workflow.taskruntime.model.FeatureTaskRuntimeReviewLaneRecord.toArtifactMap`
+- `skillbill.workflow.taskruntime.model.FeatureTaskRuntimeReviewLaneRecord.fromArtifactMap`
 - `skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationArtifact.toArtifactMap`
 - `skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationOutcome.toArtifactMap`
 - `skillbill.ports.goalrunner.GoalRunnerTerminalOutcomeStore.recoverMissingResultPrefixOutput`

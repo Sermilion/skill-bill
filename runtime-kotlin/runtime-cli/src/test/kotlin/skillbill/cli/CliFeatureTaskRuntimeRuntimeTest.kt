@@ -22,6 +22,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.minutes
 
+@Suppress("LargeClass")
 class CliFeatureTaskRuntimeRuntimeTest {
   @Test
   fun `feature-task command registers run status and resume`() {
@@ -35,6 +36,7 @@ class CliFeatureTaskRuntimeRuntimeTest {
     // The documented explicit `run` form is a real subcommand, not a misparsed positional.
     assertContains(help.stdout, "explicit form")
     assertContains(help.stdout, "--phase-agent")
+    assertContains(help.stdout, "--parallel-review-agent")
     assertContains(help.stdout, "--agent-override")
     assertContains(help.stdout, "--monitor")
     assertContains(help.stdout, "--max-wall-clock-minutes")
@@ -282,6 +284,72 @@ class CliFeatureTaskRuntimeRuntimeTest {
       orderedPhases.filter { it != "plan" }.map { "codex" },
       orderedPhases.filter { it != "plan" }.map { agentByPhase.getValue(it) },
       result.stdout,
+    )
+  }
+
+  @Test
+  fun `feature-task-runtime parallel review option adds an alternative review lane`() {
+    val fixture = runtimeFixture()
+    val launcher = RecordingPhaseLauncher()
+
+    val result = CliRuntime.run(
+      fixture.runCommand(extra = listOf("--agent", "codex", "--parallel-review-agent", "claude")),
+      fixture.context(launcher),
+    )
+
+    assertEquals(0, result.exitCode, result.stdout)
+    val reviewRequests = launcher.requests.filter {
+      phaseIdFromPrompt(it.skillRunRequest.promptOverride.orEmpty()) == "review"
+    }
+    assertEquals(setOf("codex", "claude"), reviewRequests.map { it.agentId }.toSet())
+    val workflowId = result.stdout.lines().single { it.startsWith("workflow_id:") }.substringAfter(":").trim()
+    val status = CliRuntime.run(
+      listOf("--db", fixture.dbPath.toString(), "feature-task", "status", workflowId),
+      fixture.context(RecordingPhaseLauncher()),
+    )
+    assertEquals(0, status.exitCode, status.stdout)
+    assertContains(status.stdout, "parallel_review:")
+    assertContains(status.stdout, "default_review_agent_id: codex")
+    assertContains(status.stdout, "alternative_review_agent_id: claude")
+    assertContains(status.stdout, "lane_count: 2")
+  }
+
+  @Test
+  fun `feature-task-runtime phase agent review remains default lane for parallel review`() {
+    val fixture = runtimeFixture()
+    val launcher = RecordingPhaseLauncher()
+
+    val result = CliRuntime.run(
+      fixture.runCommand(
+        extra = listOf("--agent", "codex", "--phase-agent", "review=claude", "--parallel-review-agent", "opencode"),
+      ),
+      fixture.context(launcher),
+    )
+
+    assertEquals(0, result.exitCode, result.stdout)
+    val reviewAgents = launcher.requests
+      .filter { phaseIdFromPrompt(it.skillRunRequest.promptOverride.orEmpty()) == "review" }
+      .map { it.agentId }
+      .toSet()
+    assertEquals(setOf("claude", "opencode"), reviewAgents)
+  }
+
+  @Test
+  fun `feature-task-runtime duplicate parallel review agent is rejected before review launch`() {
+    val fixture = runtimeFixture()
+    val launcher = RecordingPhaseLauncher()
+
+    val result = CliRuntime.run(
+      fixture.runCommand(extra = listOf("--agent", "codex", "--parallel-review-agent", "codex")),
+      fixture.context(launcher),
+    )
+
+    assertEquals(1, result.exitCode, result.stdout)
+    assertContains(result.stdout, "duplicates the default")
+    assertTrue(
+      launcher.requests.none {
+        phaseIdFromPrompt(it.skillRunRequest.promptOverride.orEmpty()) == "review"
+      },
     )
   }
 
@@ -777,8 +845,11 @@ private class RecordingPhaseLauncher(
   val requests: MutableList<AgentRunLaunchRequest> = mutableListOf()
 
   override fun launch(request: AgentRunLaunchRequest): AgentRunLaunchOutcome {
-    val launchIndex = requests.size
-    requests += request
+    val launchIndex = synchronized(requests) {
+      val index = requests.size
+      requests += request
+      index
+    }
     val invalid = (invalidFromLaunchIndex?.let { launchIndex >= it } ?: false) ||
       isInvalidReviewRetry(launchIndex)
     val phaseId = phaseIdFromPrompt(request.skillRunRequest.promptOverride.orEmpty())

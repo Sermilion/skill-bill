@@ -2,6 +2,7 @@ package skillbill.application
 
 import skillbill.application.model.FeatureTaskRuntimeAgentAssignment
 import skillbill.application.model.FeatureTaskRuntimeGoalContinuationContext
+import skillbill.application.model.FeatureTaskRuntimeParallelReviewRequest
 import skillbill.application.model.FeatureTaskRuntimeRunEvent
 import skillbill.application.model.FeatureTaskRuntimeRunEventSink
 import skillbill.application.model.FeatureTaskRuntimeRunReport
@@ -42,11 +43,14 @@ import skillbill.workflow.model.GoalObservabilityChangedFileSummary
 import skillbill.workflow.model.GoalObservabilityDiffStat
 import skillbill.workflow.model.GoalObservabilitySelectedDiffHunks
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_DECOMPOSE_TERMINAL_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PARALLEL_REVIEW_REQUEST_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_REVIEW_LANES_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFeatureSize
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerAction
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeResolvedBranch
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeReviewLaneRecord
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRunInvariants
 import java.nio.file.Files
 import java.nio.file.Path
@@ -58,6 +62,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+@Suppress("LargeClass")
 class FeatureTaskRuntimeRunnerTest {
   @Test
   fun `runs phases deterministically through terminal pr phase order`() {
@@ -93,6 +98,28 @@ class FeatureTaskRuntimeRunnerTest {
     assertEquals("completed", finished.completionStatus)
     assertEquals(ALL_PHASES, finished.completedPhaseIds)
     assertEquals(ALL_PHASES.associateWith { "completed" }, finished.phaseOutcomes)
+  }
+
+  @Test
+  fun `runtime lifecycle telemetry carries parallel review dimensions`() {
+    val harness = telemetryRunnerHarness(
+      launcher = RuntimeRecordingLauncher { request ->
+        val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
+        facts(if (phaseId == "review") reviewOutputFor(request.invokedAgentId) else validJsonOutput(phaseId))
+      },
+    )
+
+    val report = harness.runner.run(harness.request.parallelReviewRequest("codex", "claude"))
+
+    assertIs<FeatureTaskRuntimeRunReport.Completed>(report)
+    val finished = harness.lifecycle.finishedRecords.single()
+    assertEquals(true, finished.parallelReviewRequested)
+    assertEquals("codex", finished.defaultReviewAgentId)
+    assertEquals("claude", finished.alternativeReviewAgentId)
+    assertEquals(2, finished.reviewLaneCount)
+    assertEquals(2, finished.reviewLaneStatuses.size)
+    assertEquals(1, finished.mergedReviewFindingCount)
+    assertEquals(1, finished.unresolvedReviewFindingCount)
   }
 
   @Test
@@ -319,6 +346,214 @@ class FeatureTaskRuntimeRunnerTest {
     ALL_PHASES.forEach { phaseId ->
       assertEquals("opencode", records.getValue(phaseId).resolvedAgentId, "override must win for $phaseId")
     }
+  }
+
+  @Test
+  fun `parallel review with default codex launches codex and claude review lanes in one attempt`() {
+    val harness = runnerHarness(
+      launcher = RuntimeRecordingLauncher { request ->
+        val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
+        facts(if (phaseId == "review") reviewOutputFor(request.invokedAgentId) else validJsonOutput(phaseId))
+      },
+    )
+    harness.seedPhase("preplan", "completed", 1, "codex", PREPLAN_OUTPUT)
+    harness.seedPhase("plan", "completed", 1, "codex", PLAN_OUTPUT)
+    harness.seedPhase("implement", "completed", 1, "codex", IMPLEMENT_OUTPUT)
+
+    val report = harness.runner.run(harness.request().parallelReviewRequest("codex", "claude"))
+
+    assertIs<FeatureTaskRuntimeRunReport.Completed>(report)
+    val reviewRequests = harness.launcher.requests.filter {
+      phaseIdFromPrompt(requireNotNull(it.skillRunRequest.promptOverride)) == "review"
+    }
+    assertEquals(setOf("codex", "claude"), reviewRequests.map { it.invokedAgentId }.toSet())
+    val artifacts = harness.repository.taskRuntimeArtifacts(WORKFLOW_ID)
+    assertTrue(artifacts.containsKey(FEATURE_TASK_RUNTIME_PARALLEL_REVIEW_REQUEST_ARTIFACT_KEY))
+    @Suppress("UNCHECKED_CAST")
+    val lanes = artifacts[FEATURE_TASK_RUNTIME_REVIEW_LANES_ARTIFACT_KEY] as Map<String, Map<String, Any?>>
+    assertEquals(setOf("default", "alternative"), lanes.keys)
+  }
+
+  @Test
+  fun `per-phase review assignment remains default lane while parallel review adds alternative`() {
+    val harness = runnerHarness(
+      launcher = RuntimeRecordingLauncher { request ->
+        val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
+        facts(if (phaseId == "review") reviewOutputFor(request.invokedAgentId) else validJsonOutput(phaseId))
+      },
+      agentAssignment = FeatureTaskRuntimeAgentAssignment(perPhaseAgentIds = mapOf("review" to "claude")),
+    )
+    harness.seedPhase("preplan", "completed", 1, "codex", PREPLAN_OUTPUT)
+    harness.seedPhase("plan", "completed", 1, "codex", PLAN_OUTPUT)
+    harness.seedPhase("implement", "completed", 1, "codex", IMPLEMENT_OUTPUT)
+
+    harness.runner.run(harness.request().parallelReviewRequest("codex", "codex"))
+
+    val reviewAgents = harness.launcher.requests
+      .filter { phaseIdFromPrompt(requireNotNull(it.skillRunRequest.promptOverride)) == "review" }
+      .map { it.invokedAgentId }
+      .toSet()
+    assertEquals(setOf("claude", "codex"), reviewAgents)
+  }
+
+  @Test
+  fun `parallel review duplicate agents are rejected before launching review lanes`() {
+    val harness = runnerHarness()
+    harness.seedPhase("preplan", "completed", 1, "codex", PREPLAN_OUTPUT)
+    harness.seedPhase("plan", "completed", 1, "codex", PLAN_OUTPUT)
+    harness.seedPhase("implement", "completed", 1, "codex", IMPLEMENT_OUTPUT)
+
+    val report = harness.runner.run(harness.request().parallelReviewRequest("codex", "codex"))
+
+    val blocked = assertIs<FeatureTaskRuntimeRunReport.Blocked>(report)
+    assertEquals("review", blocked.lastIncompletePhase)
+    assertContains(blocked.blockedReason, "duplicates the default")
+    assertTrue(
+      harness.launcher.requests.none {
+        phaseIdFromPrompt(requireNotNull(it.skillRunRequest.promptOverride)) == "review"
+      },
+    )
+  }
+
+  @Test
+  fun `parallel review merge preserves lane provenance for findings from either lane`() {
+    val harness = runnerHarness(
+      launcher = RuntimeRecordingLauncher { request ->
+        val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
+        facts(
+          if (phaseId == "review") {
+            reviewOutputFor(request.invokedAgentId, duplicate = true)
+          } else {
+            validJsonOutput(phaseId)
+          },
+        )
+      },
+    )
+    harness.seedPhase("preplan", "completed", 1, "codex", PREPLAN_OUTPUT)
+    harness.seedPhase("plan", "completed", 1, "codex", PLAN_OUTPUT)
+    harness.seedPhase("implement", "completed", 1, "codex", IMPLEMENT_OUTPUT)
+
+    harness.runner.run(harness.request().parallelReviewRequest("codex", "claude"))
+
+    val reviewOutput = requireNotNull(
+      harness.recorder.loadPhaseRecords(WORKFLOW_ID).orEmpty()["review"]?.outputArtifact,
+    )
+    assertContains(reviewOutput, "\"lane_id\":\"default\"")
+    assertContains(reviewOutput, "\"lane_id\":\"alternative\"")
+    assertContains(reviewOutput, "\"agent_id\":\"codex\"")
+    assertContains(reviewOutput, "\"agent_id\":\"claude\"")
+    assertContains(reviewOutput, "\"source_finding_id\":\"shared-finding\"")
+  }
+
+  @Test
+  fun `parallel review resume does not relaunch completed lane outputs`() {
+    val harness = runnerHarness(
+      launcher = RuntimeRecordingLauncher { request ->
+        val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
+        facts(if (phaseId == "review") reviewOutputFor(request.invokedAgentId) else validJsonOutput(phaseId))
+      },
+    )
+    harness.seedPhase("preplan", "completed", 1, "codex", PREPLAN_OUTPUT)
+    harness.seedPhase("plan", "completed", 1, "codex", PLAN_OUTPUT)
+    harness.seedPhase("implement", "completed", 1, "codex", IMPLEMENT_OUTPUT)
+    val request = harness.request().parallelReviewRequest("codex", "claude")
+    assertIs<FeatureTaskRuntimeRunReport.Completed>(harness.runner.run(request))
+    val launchCount = harness.launcher.requests.size
+
+    assertIs<FeatureTaskRuntimeRunReport.Completed>(harness.runner.run(request))
+
+    assertEquals(launchCount, harness.launcher.requests.size)
+  }
+
+  @Test
+  fun `parallel review resume relaunches only missing lane from partial attempt`() {
+    val harness = runnerHarness(
+      launcher = RuntimeRecordingLauncher { request ->
+        val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
+        facts(if (phaseId == "review") reviewOutputFor(request.invokedAgentId) else validJsonOutput(phaseId))
+      },
+    )
+    harness.seedPhase("preplan", "completed", 1, "codex", PREPLAN_OUTPUT)
+    harness.seedPhase("plan", "completed", 1, "codex", PLAN_OUTPUT)
+    harness.seedPhase("implement", "completed", 1, "codex", IMPLEMENT_OUTPUT)
+    harness.seedPhase("review", "running", 1, "codex", outputArtifact = null)
+    harness.recorder.recordParallelReviewRequest(
+      WORKFLOW_ID,
+      skillbill.workflow.taskruntime.model.FeatureTaskRuntimeParallelReviewArtifact(
+        requested = true,
+        defaultReviewAgentId = "codex",
+        alternativeReviewAgentId = "claude",
+        laneCount = 2,
+      ),
+    )
+    harness.recorder.recordReviewLaneState(
+      WORKFLOW_ID,
+      FeatureTaskRuntimeReviewLaneRecord(
+        laneId = "default",
+        agentId = "codex",
+        status = "completed",
+        attemptCount = 1,
+        startedAt = "2026-01-01T00:00:00Z",
+        finishedAt = "2026-01-01T00:00:01Z",
+        outputArtifact = reviewOutputFor("codex"),
+        findingCount = 1,
+      ),
+    )
+
+    val report = harness.runner.run(harness.request().parallelReviewRequest("codex", "claude"))
+
+    assertIs<FeatureTaskRuntimeRunReport.Completed>(report)
+    val reviewRequests = harness.launcher.requests.filter {
+      phaseIdFromPrompt(requireNotNull(it.skillRunRequest.promptOverride)) == "review"
+    }
+    assertEquals(listOf("claude"), reviewRequests.map { it.invokedAgentId })
+    val reviewRecord = requireNotNull(harness.recorder.loadPhaseRecords(WORKFLOW_ID).orEmpty()["review"])
+    assertEquals(1, reviewRecord.attemptCount)
+  }
+
+  @Test
+  fun `unknown alternative agent id blocks before launch`() {
+    val harness = runnerHarness()
+    harness.seedPhase("preplan", "completed", 1, "codex", PREPLAN_OUTPUT)
+    harness.seedPhase("plan", "completed", 1, "codex", PLAN_OUTPUT)
+    harness.seedPhase("implement", "completed", 1, "codex", IMPLEMENT_OUTPUT)
+
+    val report = harness.runner.run(harness.request().parallelReviewRequest("codex", "not-a-known-agent"))
+
+    val blocked = assertIs<FeatureTaskRuntimeRunReport.Blocked>(report)
+    assertEquals("review", blocked.lastIncompletePhase)
+    assertContains(blocked.blockedReason, "parallel_review_unavailable")
+    assertTrue(
+      harness.launcher.requests.none {
+        phaseIdFromPrompt(requireNotNull(it.skillRunRequest.promptOverride)) == "review"
+      },
+    )
+  }
+
+  @Test
+  fun `one lane finding and one lane no-finding merge into one actionable review result`() {
+    val harness = runnerHarness(
+      launcher = RuntimeRecordingLauncher { request ->
+        val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
+        facts(if (phaseId == "review") reviewOutputFor(request.invokedAgentId) else validJsonOutput(phaseId))
+      },
+    )
+    harness.seedPhase("preplan", "completed", 1, "codex", PREPLAN_OUTPUT)
+    harness.seedPhase("plan", "completed", 1, "codex", PLAN_OUTPUT)
+    harness.seedPhase("implement", "completed", 1, "codex", IMPLEMENT_OUTPUT)
+
+    // codex returns one finding; claude returns empty findings (see reviewOutputFor)
+    harness.runner.run(harness.request().parallelReviewRequest("codex", "claude"))
+
+    val reviewOutput = requireNotNull(
+      harness.recorder.loadPhaseRecords(WORKFLOW_ID).orEmpty()["review"]?.outputArtifact,
+    )
+    assertContains(reviewOutput, "\"lane_id\":\"default\"")
+    assertContains(reviewOutput, "\"lane_id\":\"alternative\"")
+    assertContains(reviewOutput, "\"agent_id\":\"codex\"")
+    assertContains(reviewOutput, "\"agent_id\":\"claude\"")
+    // The codex finding survives; the claude lane contributes nothing
+    assertContains(reviewOutput, "codex-finding")
   }
 
   @Test
@@ -1957,6 +2192,40 @@ private fun validProducedOutputs(phaseId: String): String = if (phaseId == "comm
   """{"tasks": ["task-1"]}"""
 }
 
+private fun FeatureTaskRuntimeRunRequest.parallelReviewRequest(
+  invokedAgentId: String,
+  alternativeAgentId: String,
+): FeatureTaskRuntimeRunRequest = copy(
+  invokedAgentId = invokedAgentId,
+  parallelReview = FeatureTaskRuntimeParallelReviewRequest(alternativeAgentId),
+)
+
+private fun reviewOutputFor(agentId: String, duplicate: Boolean = false): String {
+  val findings = when {
+    agentId == "claude" && !duplicate -> "[]"
+    else -> """
+      [
+        {
+          "id": "${if (duplicate) "shared-finding" else "$agentId-finding"}",
+          "severity": "major",
+          "message": "Review finding from $agentId"
+        }
+      ]
+    """.trimIndent()
+  }
+  return """
+    {
+      "contract_version": "0.1",
+      "phase_id": "review",
+      "status": "completed",
+      "summary": "Review completed.",
+      "produced_outputs": {
+        "findings": $findings
+      }
+    }
+  """.trimIndent()
+}
+
 // A commit_push phase output that completes without emitting a commit_sha, modelling the
 // goal-continuation SHA-drop the SKILL-68 capture-at-source path must recover from.
 private val COMMIT_PUSH_NO_SHA_OUTPUT: String = """
@@ -2159,7 +2428,9 @@ private class RuntimeRecordingLauncher(
   val requests = mutableListOf<GoalRunnerSubtaskLaunchRequest>()
 
   override fun launch(request: GoalRunnerSubtaskLaunchRequest): AgentRunLaunchOutcome {
-    requests += request
+    synchronized(requests) {
+      requests += request
+    }
     return handler(request)
   }
 }

@@ -55,7 +55,49 @@ data class FeatureTaskRuntimeFinishedRequest(
   val lastIncompletePhase: String,
   val blockedReason: String,
   val resolvedBranch: String,
+  val parallelReviewRequested: Boolean = false,
+  val defaultReviewAgentId: String = "",
+  val alternativeReviewAgentId: String = "",
+  val reviewLaneCount: Int = 1,
+  val reviewLaneStatuses: List<FeatureTaskRuntimeReviewLaneTelemetry> = emptyList(),
+  val mergedReviewFindingCount: Int = 0,
+  val acceptedReviewFindingCount: Int = 0,
+  val rejectedReviewFindingCount: Int = 0,
+  val unresolvedReviewFindingCount: Int = 0,
 )
+
+data class FeatureTaskRuntimeReviewLaneTelemetry(
+  val laneId: String,
+  val agentId: String,
+  val status: String,
+  val findingCount: Int,
+)
+
+data class FeatureTaskRuntimeParallelReviewTelemetry(
+  val requested: Boolean,
+  val defaultReviewAgentId: String,
+  val alternativeReviewAgentId: String,
+  val laneCount: Int,
+  val laneStatuses: List<FeatureTaskRuntimeReviewLaneTelemetry>,
+  val mergedFindingCount: Int,
+  val acceptedFindingCount: Int,
+  val rejectedFindingCount: Int,
+  val unresolvedFindingCount: Int,
+) {
+  companion object {
+    val NONE = FeatureTaskRuntimeParallelReviewTelemetry(
+      requested = false,
+      defaultReviewAgentId = "",
+      alternativeReviewAgentId = "",
+      laneCount = 1,
+      laneStatuses = emptyList(),
+      mergedFindingCount = 0,
+      acceptedFindingCount = 0,
+      rejectedFindingCount = 0,
+      unresolvedFindingCount = 0,
+    )
+  }
+}
 
 data class QualityCheckStartedRequest(
   val routedSkill: String,

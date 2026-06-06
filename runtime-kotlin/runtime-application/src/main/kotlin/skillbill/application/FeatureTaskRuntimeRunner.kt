@@ -3,14 +3,18 @@ package skillbill.application
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.model.FeatureTaskRuntimeFixLoopDecision
 import skillbill.application.model.FeatureTaskRuntimeGoalContinuationContext
+import skillbill.application.model.FeatureTaskRuntimeParallelReviewTelemetry
 import skillbill.application.model.FeatureTaskRuntimePhaseStateRequest
 import skillbill.application.model.FeatureTaskRuntimePlanningStopDecision
 import skillbill.application.model.FeatureTaskRuntimeResolvedPhaseAgent
+import skillbill.application.model.FeatureTaskRuntimeReviewLaneTelemetry
 import skillbill.application.model.FeatureTaskRuntimeRunEvent
 import skillbill.application.model.FeatureTaskRuntimeRunReport
 import skillbill.application.model.FeatureTaskRuntimeRunRequest
 import skillbill.application.model.FeatureTaskRuntimeSubtaskOutcome
+import skillbill.contracts.JsonSupport
 import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
+import skillbill.install.model.InstallAgent
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
 import skillbill.ports.agentrun.model.SkillRunRequest
@@ -23,9 +27,14 @@ import skillbill.workflow.taskruntime.FeatureTaskRuntimeHandoffContract
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationArtifact
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationOutcome
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeParallelReviewArtifact
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseDeclaration
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeReviewLaneRecord
+import java.time.Duration
+import java.time.Instant
+import java.util.concurrent.CompletableFuture
 
 /**
  * Runs the feature-task-runtime phase loop deterministically: for each ordered phase it
@@ -34,6 +43,7 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
  * state, resuming from persisted records and blocking loudly on missing upstreams or failures.
  */
 @Inject
+@Suppress("TooManyFunctions", "ReturnCount", "LargeClass")
 class FeatureTaskRuntimeRunner(
   private val subtaskLauncher: GoalRunnerSubtaskLauncher,
   private val recorder: FeatureTaskRuntimePhaseRecorder,
@@ -92,7 +102,13 @@ class FeatureTaskRuntimeRunner(
     }.getOrThrow()
     val terminalReport =
       persistGoalContinuationOutcome(goalContinuationRecorder, recorder, phaseGates.gitOperations, runRequest, report)
-    lifecycleTelemetry.finished(telemetrySessionId, terminalReport, phaseOutcomes, runRequest.dbPathOverride)
+    lifecycleTelemetry.finished(
+      telemetrySessionId,
+      terminalReport,
+      phaseOutcomes,
+      runRequest.dbPathOverride,
+      parallelReviewTelemetry = { parallelReviewTelemetry(recorder, runRequest) },
+    )
     return terminalReport
   }
 
@@ -325,6 +341,11 @@ class FeatureTaskRuntimeRunner(
     state: RunState,
     observability: FeatureTaskRuntimeRunObservability,
   ): PhaseOutcome {
+    if (run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW &&
+      run.request.parallelReview != null
+    ) {
+      return runParallelReviewPhaseAttempts(run, state, observability)
+    }
     val agentId = run.resolvedAgent.resolvedAgentId
     var iteration = state.nextIteration(run.phaseId)
     // The resumed iteration may already exceed the bounded budget (e.g. a fix-loop phase that
@@ -395,6 +416,300 @@ class FeatureTaskRuntimeRunner(
       return AttemptResult.settled(blockAndPersist(run, iteration, reason, observability))
     }
     return gateOutput(run, iteration, requireNotNull(launch.capturedStdout), observability)
+  }
+
+  private fun runParallelReviewPhaseAttempts(
+    run: PhaseRun,
+    state: RunState,
+    observability: FeatureTaskRuntimeRunObservability,
+  ): PhaseOutcome {
+    val laneSet = resolveParallelReviewLaneSet(run)
+      ?: return blockAndPersist(
+        run,
+        1,
+        "parallel_review_unavailable: invalid parallel review request.",
+        observability,
+      )
+    laneSet.blockedReason?.let { reason ->
+      return blockAndPersist(run, state.nextIteration(run.phaseId), reason, observability)
+    }
+    val lanes = requireNotNull(laneSet.lanes)
+    var iteration = initialParallelReviewIteration(run, state)
+    FeatureTaskRuntimeFixLoopPolicy.blockReasonIfBudgetExhausted(run.phaseId, iteration)?.let { reason ->
+      return blockAndPersist(run, iteration, reason, observability)
+    }
+    recorder.recordParallelReviewRequest(
+      run.request.workflowId,
+      FeatureTaskRuntimeParallelReviewArtifact(
+        requested = true,
+        defaultReviewAgentId = lanes.default.agentId,
+        alternativeReviewAgentId = lanes.alternative.agentId,
+        laneCount = lanes.all.size,
+      ),
+      run.request.dbPathOverride,
+    )
+    observability.started(run.phaseId, run.resolvedAgent.resolvedAgentId, iteration, state.hasPriorRecord(run.phaseId))
+    var outcome: PhaseOutcome? = null
+    while (outcome == null) {
+      val attempt = attemptParallelReviewOnce(run, state, iteration, lanes, observability)
+      outcome = attempt.settledOutcome
+        ?: when (val decision = FeatureTaskRuntimeFixLoopPolicy.decideAfterFailure(run.phaseId, iteration)) {
+          is FeatureTaskRuntimeFixLoopDecision.Retry -> {
+            iteration = decision.nextIteration
+            observability.fixLoopIteration(
+              run.phaseId,
+              run.resolvedAgent.resolvedAgentId,
+              decision.nextIteration,
+              decision.fixLoopIteration,
+            )
+            null
+          }
+          is FeatureTaskRuntimeFixLoopDecision.Block -> blockAndPersist(
+            run,
+            iteration,
+            withSchemaGateDetail(decision.blockedReason, requireNotNull(attempt.schemaInvalidReason)),
+            observability,
+          )
+        }
+    }
+    return outcome
+  }
+
+  private fun attemptParallelReviewOnce(
+    run: PhaseRun,
+    state: RunState,
+    iteration: Int,
+    lanes: ParallelReviewLaneSet,
+    observability: FeatureTaskRuntimeRunObservability,
+  ): AttemptResult {
+    persistPhase(run, iteration, STATUS_RUNNING, finished = false, outputArtifact = null)
+    val handoff = FeatureTaskRuntimeHandoffContract.assembleHandoff(
+      declaration = run.declaration,
+      runInvariants = run.request.runInvariants,
+      recordedOutputs = state.outputs(),
+    )
+    val briefing = FeatureTaskRuntimePhaseBriefingAssembler.assemble(handoff)
+    recorder.recordPhaseBriefing(run.request.workflowId, briefing, run.request.dbPathOverride)
+    val existing = recorder.loadReviewLaneRecords(run.request.workflowId, run.request.dbPathOverride).orEmpty()
+    val completed = existing.filterValues { lane ->
+      lane.attemptCount == iteration &&
+        lane.status == STATUS_COMPLETED &&
+        lane.outputArtifact != null &&
+        laneOutputSchemaValid(lane)
+    }
+    val missing = lanes.all.filter { lane -> completed[lane.laneId] == null }
+    val launched = if (missing.isEmpty()) {
+      emptyList()
+    } else {
+      launchReviewLanesConcurrently(run, briefing, iteration, missing)
+    }
+    launched.firstOrNull { it.infraFailureReason != null }?.let { failed ->
+      return AttemptResult.settled(
+        blockAndPersist(
+          run,
+          iteration,
+          "Feature-task-runtime parallel review lane '${failed.lane.laneId}' failed: " +
+            requireNotNull(failed.infraFailureReason),
+          observability,
+        ),
+      )
+    }
+    launched.firstOrNull { it.schemaInvalidReason != null }?.let { invalid ->
+      return AttemptResult.schemaInvalid(
+        "parallel review lane '${invalid.lane.laneId}' produced schema-invalid output: " +
+          requireNotNull(invalid.schemaInvalidReason),
+      )
+    }
+    val laneRecords = recorder.loadReviewLaneRecords(run.request.workflowId, run.request.dbPathOverride).orEmpty()
+    val completedLaneRecords = lanes.all.mapNotNull { lane -> laneRecords[lane.laneId] }
+    if (completedLaneRecords.size != lanes.all.size) {
+      return AttemptResult.schemaInvalid("parallel review did not record all lane outputs for attempt $iteration.")
+    }
+    val mergedOutput = mergeReviewLaneOutputs(run.phaseId, iteration, completedLaneRecords)
+    return gateOutput(run, iteration, mergedOutput, observability)
+  }
+
+  private fun initialParallelReviewIteration(run: PhaseRun, state: RunState): Int {
+    val laneAttempt = recorder.loadReviewLaneRecords(run.request.workflowId, run.request.dbPathOverride)
+      .orEmpty()
+      .values
+      .maxOfOrNull { it.attemptCount }
+    return laneAttempt ?: state.nextIteration(run.phaseId)
+  }
+
+  private fun laneOutputSchemaValid(lane: FeatureTaskRuntimeReviewLaneRecord): Boolean = runCatching {
+    outputValidator.validatePhaseOutputText(requireNotNull(lane.outputArtifact), sourceLabel = "review")
+  }.isSuccess
+
+  private fun launchReviewLanesConcurrently(
+    run: PhaseRun,
+    briefing: skillbill.application.model.FeatureTaskRuntimePhaseLaunchBriefing,
+    iteration: Int,
+    lanes: List<ParallelReviewLane>,
+  ): List<ParallelReviewLaneLaunchResult> {
+    val futures = lanes.map { lane ->
+      CompletableFuture.supplyAsync {
+        launchReviewLane(run, briefing, iteration, lane)
+      }
+    }
+    return futures.map { future -> future.get() }
+  }
+
+  @Suppress("LongMethod")
+  private fun launchReviewLane(
+    run: PhaseRun,
+    briefing: skillbill.application.model.FeatureTaskRuntimePhaseLaunchBriefing,
+    iteration: Int,
+    lane: ParallelReviewLane,
+  ): ParallelReviewLaneLaunchResult {
+    val startedAt = Instant.now().toString()
+    recordReviewLaneState(
+      run.request,
+      run.request.workflowId,
+      FeatureTaskRuntimeReviewLaneRecord(
+        laneId = lane.laneId,
+        agentId = lane.agentId,
+        status = STATUS_RUNNING,
+        attemptCount = iteration,
+        startedAt = startedAt,
+      ),
+    )
+    run.request.eventSink.emit(
+      FeatureTaskRuntimeRunEvent.ReviewLaneStarted(
+        workflowId = run.request.workflowId,
+        phaseId = run.phaseId,
+        laneId = lane.laneId,
+        agentId = lane.agentId,
+        attemptCount = iteration,
+      ),
+    )
+    val outcome = subtaskLauncher.launch(
+      GoalRunnerSubtaskLaunchRequest(
+        invokedAgentId = lane.agentId,
+        configuredAgentOverrideId = null,
+        skillRunRequest = SkillRunRequest(
+          issueKey = run.request.issueKey,
+          repoRoot = run.request.repoRoot,
+          dbPathOverride = run.request.dbPathOverride,
+          timeout = run.request.timeout,
+          promptOverride = FeatureTaskRuntimePhasePromptComposer.compose(
+            issueKey = run.request.issueKey,
+            briefing = briefing,
+            suppressDecomposition = isGoalContinuationRun(run.request),
+          ),
+        ),
+      ),
+    )
+    val launch = reconcileLaunch(run.phaseId, outcome)
+    launch.infraFailureReason?.let { reason ->
+      recordReviewLaneBlocked(run, lane, iteration, startedAt, reason)
+      run.request.eventSink.emit(
+        FeatureTaskRuntimeRunEvent.ReviewLaneCompleted(
+          workflowId = run.request.workflowId,
+          phaseId = run.phaseId,
+          laneId = lane.laneId,
+          agentId = lane.agentId,
+          attemptCount = iteration,
+          findingCount = 0,
+          blocked = true,
+        ),
+      )
+      return ParallelReviewLaneLaunchResult(lane, infraFailureReason = reason)
+    }
+    val output = requireNotNull(launch.capturedStdout)
+    val validationReason = runCatching {
+      outputValidator.validatePhaseOutputText(output, sourceLabel = "review")
+    }.exceptionOrNull()?.let { error ->
+      (error as? InvalidFeatureTaskRuntimePhaseOutputSchemaError)?.reason ?: error.message.orEmpty()
+    }
+    if (validationReason != null) {
+      recordReviewLaneBlocked(run, lane, iteration, startedAt, validationReason)
+      run.request.eventSink.emit(
+        FeatureTaskRuntimeRunEvent.ReviewLaneCompleted(
+          workflowId = run.request.workflowId,
+          phaseId = run.phaseId,
+          laneId = lane.laneId,
+          agentId = lane.agentId,
+          attemptCount = iteration,
+          findingCount = 0,
+          blocked = true,
+        ),
+      )
+      return ParallelReviewLaneLaunchResult(lane, schemaInvalidReason = validationReason)
+    }
+    recordReviewLaneCompleted(run, lane, iteration, startedAt, output)
+    val completedFindingCount = extractReviewFindings(output).size
+    run.request.eventSink.emit(
+      FeatureTaskRuntimeRunEvent.ReviewLaneCompleted(
+        workflowId = run.request.workflowId,
+        phaseId = run.phaseId,
+        laneId = lane.laneId,
+        agentId = lane.agentId,
+        attemptCount = iteration,
+        findingCount = completedFindingCount,
+        blocked = false,
+      ),
+    )
+    return ParallelReviewLaneLaunchResult(lane)
+  }
+
+  private fun recordReviewLaneCompleted(
+    run: PhaseRun,
+    lane: ParallelReviewLane,
+    iteration: Int,
+    startedAt: String,
+    output: String,
+  ) {
+    val finishedAt = Instant.now().toString()
+    recordReviewLaneState(
+      run.request,
+      run.request.workflowId,
+      FeatureTaskRuntimeReviewLaneRecord(
+        laneId = lane.laneId,
+        agentId = lane.agentId,
+        status = STATUS_COMPLETED,
+        attemptCount = iteration,
+        startedAt = startedAt,
+        finishedAt = finishedAt,
+        durationMillis = reviewLaneDurationMillis(startedAt, finishedAt),
+        outputArtifact = output,
+        findingCount = extractReviewFindings(output).size,
+      ),
+    )
+  }
+
+  private fun recordReviewLaneBlocked(
+    run: PhaseRun,
+    lane: ParallelReviewLane,
+    iteration: Int,
+    startedAt: String,
+    reason: String,
+  ) {
+    val finishedAt = Instant.now().toString()
+    recordReviewLaneState(
+      run.request,
+      run.request.workflowId,
+      FeatureTaskRuntimeReviewLaneRecord(
+        laneId = lane.laneId,
+        agentId = lane.agentId,
+        status = STATUS_BLOCKED,
+        attemptCount = iteration,
+        startedAt = startedAt,
+        finishedAt = finishedAt,
+        durationMillis = reviewLaneDurationMillis(startedAt, finishedAt),
+        blockedReason = reason,
+      ),
+    )
+  }
+
+  private fun recordReviewLaneState(
+    request: FeatureTaskRuntimeRunRequest,
+    workflowId: String,
+    lane: FeatureTaskRuntimeReviewLaneRecord,
+  ) {
+    synchronized(recorder) {
+      recorder.recordReviewLaneState(workflowId, lane, request.dbPathOverride)
+    }
   }
 
   private fun gateOutput(
@@ -473,11 +788,137 @@ class FeatureTaskRuntimeRunner(
       ?: LaunchResult.captured(outcome.stdout)
   }
 
+  private fun resolveParallelReviewLaneSet(run: PhaseRun): ParallelReviewLaneSetResolution? {
+    val alternative = run.request.parallelReview ?: return null
+    val defaultAgentId = normalizeSupportedAgent(run.resolvedAgent.resolvedAgentId)
+      ?: return ParallelReviewLaneSetResolution.blocked(
+        "parallel_review_unavailable: default review agent '${run.resolvedAgent.resolvedAgentId}' is not supported.",
+      )
+    val alternativeAgentId = normalizeSupportedAgent(alternative.alternativeAgentId)
+      ?: return ParallelReviewLaneSetResolution.blocked(
+        "parallel_review_unavailable: alternative review agent '${alternative.alternativeAgentId}' is not supported.",
+      )
+    if (defaultAgentId == alternativeAgentId) {
+      return ParallelReviewLaneSetResolution.blocked(
+        "parallel_review_unavailable: alternative review agent '$alternativeAgentId' duplicates the default " +
+          "review lane agent.",
+      )
+    }
+    return ParallelReviewLaneSetResolution.lanes(
+      ParallelReviewLaneSet(
+        default = ParallelReviewLane(DEFAULT_REVIEW_LANE_ID, defaultAgentId),
+        alternative = ParallelReviewLane(ALTERNATIVE_REVIEW_LANE_ID, alternativeAgentId),
+      ),
+    )
+  }
+
+  private fun normalizeSupportedAgent(agentId: String): String? =
+    runCatching { InstallAgent.fromNormalizedId(agentId).id }.getOrNull()
+
+  private fun mergeReviewLaneOutputs(
+    phaseId: String,
+    iteration: Int,
+    lanes: List<FeatureTaskRuntimeReviewLaneRecord>,
+  ): String {
+    val findings = lanes.flatMap { lane ->
+      extractReviewFindings(requireNotNull(lane.outputArtifact)).map { finding ->
+        val sourceId = finding.sourceFindingId
+        linkedMapOf<String, Any?>(
+          "lane_id" to lane.laneId,
+          "agent_id" to lane.agentId,
+          "source_finding_id" to sourceId,
+          "contributing_agents" to listOf(lane.agentId),
+          "finding" to finding.payload,
+        )
+      }
+    }
+    return JsonSupport.mapToJsonString(
+      linkedMapOf(
+        "contract_version" to "0.1",
+        "phase_id" to phaseId,
+        "status" to "completed",
+        "summary" to "Merged ${lanes.size} parallel review lane output(s) for attempt $iteration.",
+        "produced_outputs" to linkedMapOf(
+          "parallel_review" to linkedMapOf(
+            "requested" to true,
+            "lane_count" to lanes.size,
+            "lanes" to lanes.map { lane ->
+              linkedMapOf(
+                "lane_id" to lane.laneId,
+                "agent_id" to lane.agentId,
+                "status" to lane.status,
+                "finding_count" to lane.findingCount,
+              )
+            },
+            "merged_finding_count" to findings.size,
+            "accepted_count" to 0,
+            "rejected_count" to 0,
+            "unresolved_count" to findings.size,
+          ),
+          "findings" to findings,
+        ),
+      ),
+    )
+  }
+
+  private fun extractReviewFindings(output: String): List<ReviewFindingPayload> {
+    val root = JsonSupport.parseObjectOrNull(output)
+      ?.let(JsonSupport::jsonElementToValue)
+      ?.let(JsonSupport::anyToStringAnyMap)
+      ?: return emptyList()
+    val produced = JsonSupport.anyToStringAnyMap(root["produced_outputs"]) ?: return emptyList()
+    val rawFindings = produced["findings"] as? List<*> ?: return emptyList()
+    return rawFindings.mapIndexedNotNull { index, raw ->
+      val payload = JsonSupport.anyToStringAnyMap(raw) ?: return@mapIndexedNotNull null
+      val id = (payload["id"] as? String)?.takeIf(String::isNotBlank)
+        ?: (payload["finding_id"] as? String)?.takeIf(String::isNotBlank)
+        ?: (payload["source_finding_id"] as? String)?.takeIf(String::isNotBlank)
+        ?: "finding-${index + 1}"
+      ReviewFindingPayload(sourceFindingId = id, payload = payload)
+    }
+  }
+
   private data class PhaseRun(
     val phaseId: String,
     val declaration: FeatureTaskRuntimePhaseDeclaration,
     val resolvedAgent: FeatureTaskRuntimeResolvedPhaseAgent,
     val request: FeatureTaskRuntimeRunRequest,
+  )
+
+  private data class ParallelReviewLane(
+    val laneId: String,
+    val agentId: String,
+  )
+
+  private data class ParallelReviewLaneSet(
+    val default: ParallelReviewLane,
+    val alternative: ParallelReviewLane,
+  ) {
+    val all: List<ParallelReviewLane> = listOf(default, alternative)
+  }
+
+  private data class ParallelReviewLaneSetResolution(
+    val lanes: ParallelReviewLaneSet? = null,
+    val blockedReason: String? = null,
+  ) {
+    companion object {
+      fun lanes(lanes: ParallelReviewLaneSet): ParallelReviewLaneSetResolution =
+        ParallelReviewLaneSetResolution(lanes = lanes)
+
+      fun blocked(reason: String): ParallelReviewLaneSetResolution =
+        ParallelReviewLaneSetResolution(blockedReason = reason)
+    }
+  }
+
+  private data class ParallelReviewLaneLaunchResult(
+    val lane: ParallelReviewLane,
+    val infraFailureReason: String? = null,
+    val schemaInvalidReason: String? = null,
+  )
+
+  private data class ReviewFindingPayload(
+    val sourceFindingId: String,
+    val payload: Map<String, Any?>,
   )
 
   private sealed interface LaunchResult {
@@ -619,6 +1060,8 @@ class FeatureTaskRuntimeRunner(
     // Branch setup is a distinct pre-implement step with no resolved phase agent; this sentinel
     // attributes its durable blocked record and ledger entry rather than a real agent id.
     const val BRANCH_SETUP_AGENT_ID = "branch-setup"
+    const val DEFAULT_REVIEW_LANE_ID = "default"
+    const val ALTERNATIVE_REVIEW_LANE_ID = "alternative"
 
     // Preplan and plan are non-file-mutating; every later phase mutates or depends on a working
     // tree pinned to the feature branch.
@@ -673,6 +1116,35 @@ private fun persistGoalContinuationContext(
       dbOverride = request.dbPathOverride,
     )
   }
+}
+
+private fun parallelReviewTelemetry(
+  recorder: FeatureTaskRuntimePhaseRecorder,
+  request: FeatureTaskRuntimeRunRequest,
+): FeatureTaskRuntimeParallelReviewTelemetry {
+  val parallel = recorder.loadParallelReviewRequest(request.workflowId, request.dbPathOverride)
+    ?: return FeatureTaskRuntimeParallelReviewTelemetry.NONE
+  val lanes = recorder.loadReviewLaneRecords(request.workflowId, request.dbPathOverride).orEmpty().values
+    .sortedBy { it.laneId }
+  val mergedCount = lanes.sumOf { it.findingCount }
+  return FeatureTaskRuntimeParallelReviewTelemetry(
+    requested = parallel.requested,
+    defaultReviewAgentId = parallel.defaultReviewAgentId,
+    alternativeReviewAgentId = parallel.alternativeReviewAgentId,
+    laneCount = parallel.laneCount,
+    laneStatuses = lanes.map { lane ->
+      FeatureTaskRuntimeReviewLaneTelemetry(
+        laneId = lane.laneId,
+        agentId = lane.agentId,
+        status = lane.status,
+        findingCount = lane.findingCount,
+      )
+    },
+    mergedFindingCount = mergedCount,
+    acceptedFindingCount = 0,
+    rejectedFindingCount = 0,
+    unresolvedFindingCount = mergedCount,
+  )
 }
 
 private fun persistGoalContinuationOutcome(
@@ -737,6 +1209,9 @@ private fun infraFailureReason(phaseId: String, facts: AgentRunLaunchFacts): Str
     "Feature-task-runtime phase '$phaseId' agent exited with non-zero status ${facts.exitStatus}."
   else -> null
 }
+
+private fun reviewLaneDurationMillis(startedAt: String, finishedAt: String): Long =
+  Duration.between(Instant.parse(startedAt), Instant.parse(finishedAt)).toMillis().coerceAtLeast(0)
 
 // Drops a legacy PLAN completion that predates the now-required PREPLAN phase so the loop re-runs
 // PLAN rather than honouring a pre-PREPLAN completion.

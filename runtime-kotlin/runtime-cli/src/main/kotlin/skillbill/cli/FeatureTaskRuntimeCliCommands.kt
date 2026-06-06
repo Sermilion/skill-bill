@@ -17,7 +17,9 @@ import skillbill.application.FeatureTaskRuntimeStatusService
 import skillbill.application.WorkflowService
 import skillbill.application.model.FeatureTaskRuntimeAgentAssignment
 import skillbill.application.model.FeatureTaskRuntimeGoalContinuationContext
+import skillbill.application.model.FeatureTaskRuntimeParallelReviewRequest
 import skillbill.application.model.FeatureTaskRuntimePhaseStatus
+import skillbill.application.model.FeatureTaskRuntimeReviewLaneStatus
 import skillbill.application.model.FeatureTaskRuntimeRunEvent
 import skillbill.application.model.FeatureTaskRuntimeRunEventSink
 import skillbill.application.model.FeatureTaskRuntimeRunReport
@@ -70,6 +72,10 @@ abstract class FeatureTaskRuntimePhaseAgentCommand(
     "--phase-agent",
     help = "Per-phase agent assignment as phase=agent (e.g. --phase-agent plan=claude). Repeatable.",
   ).multiple()
+  protected val parallelReviewAgent by option(
+    "--parallel-review-agent",
+    help = "Add one alternative review lane with this supported agent; does not replace --phase-agent review=agent.",
+  )
   protected val goalParentIssueKey by option(
     "--goal-parent-issue-key",
     help = "Parent decomposed issue key for non-interactive goal-continuation runtime runs.",
@@ -118,6 +124,7 @@ abstract class FeatureTaskRuntimePhaseAgentCommand(
         repoRoot = repoRoot?.let(Path::of) ?: Path.of("").toAbsolutePath().normalize(),
         timeout = maxWallClockMinutes?.minutes,
         goalContinuation = parseGoalContinuationContext(),
+        parallelReview = parseParallelReviewRequest(),
         eventSink = runtimeRunEventSink(state, monitor),
       ),
     )
@@ -143,6 +150,14 @@ abstract class FeatureTaskRuntimePhaseAgentCommand(
       parentWorkflowId = goalParentWorkflowId?.takeIf(String::isNotBlank),
       lastResumableStep = goalLastResumableStep?.takeIf(String::isNotBlank),
     )
+  }
+
+  private fun parseParallelReviewRequest(): FeatureTaskRuntimeParallelReviewRequest? {
+    val agentId = parallelReviewAgent ?: return null
+    if (agentId.isBlank()) {
+      throw UsageError("--parallel-review-agent requires a non-blank agent id.")
+    }
+    return FeatureTaskRuntimeParallelReviewRequest(agentId.trim())
   }
 
   private fun goalContinuationMissingFields(): List<String> = buildList {
@@ -397,6 +412,11 @@ private fun FeatureTaskRuntimeRunEvent.runtimeProgressLine(): String = when (thi
   is FeatureTaskRuntimeRunEvent.DecomposedAtPlanning ->
     "feature-task-runtime $workflowId: decomposed at planning into $subtaskCount subtasks: $reason. " +
       "Work the first subtask first.\n"
+  is FeatureTaskRuntimeRunEvent.ReviewLaneStarted ->
+    "feature-task-runtime $workflowId: phase $phaseId lane $laneId started agent=$agentId attempt=$attemptCount\n"
+  is FeatureTaskRuntimeRunEvent.ReviewLaneCompleted ->
+    "feature-task-runtime $workflowId: phase $phaseId lane $laneId " +
+      "completed agent=$agentId attempt=$attemptCount findings=$findingCount\n"
 }
 
 private fun parsePhaseAgents(rawAssignments: List<String>): Map<String, String> {
@@ -523,6 +543,15 @@ private fun FeatureTaskRuntimeStatusProjection?.toRuntimeStatusCliMap(workflowId
       "blocked_count" to it.blockedCount,
       "current_phase" to it.currentPhaseId,
       "resolved_branch" to it.resolvedBranch,
+      "parallel_review" to it.parallelReview?.let { parallel ->
+        linkedMapOf(
+          "requested" to parallel.requested,
+          "default_review_agent_id" to parallel.defaultReviewAgentId,
+          "alternative_review_agent_id" to parallel.alternativeReviewAgentId,
+          "lane_count" to parallel.laneCount,
+          "lanes" to parallel.lanes.map(FeatureTaskRuntimeReviewLaneStatus::toRuntimeReviewLaneStatusCliMap),
+        )
+      },
       "decompose_terminal" to it.decomposeTerminal?.let { terminal ->
         linkedMapOf(
           "reason" to terminal.reason,
@@ -544,6 +573,7 @@ private fun FeatureTaskRuntimeStatusProjection?.toRuntimeStatusCliMap(workflowId
     "blocked_count" to 0,
     "current_phase" to null,
     "resolved_branch" to null,
+    "parallel_review" to null,
     "decompose_terminal" to null,
     "phases" to emptyList<Map<String, Any?>>(),
   )
@@ -554,6 +584,15 @@ private fun FeatureTaskRuntimePhaseStatus.toRuntimePhaseStatusCliMap(): Map<Stri
   "attempt_count" to attemptCount,
   "resolved_agent_id" to resolvedAgentId,
   "finished" to finished,
+)
+
+private fun FeatureTaskRuntimeReviewLaneStatus.toRuntimeReviewLaneStatusCliMap(): Map<String, Any?> = linkedMapOf(
+  "lane_id" to laneId,
+  "agent_id" to agentId,
+  "status" to status,
+  "attempt_count" to attemptCount,
+  "finding_count" to findingCount,
+  "blocked_reason" to blockedReason,
 )
 
 private fun Map<String, Any?>.runtimeStatusExitCode(): Int = if (this["status"] == "ok") 0 else 1
@@ -567,6 +606,21 @@ private fun runtimeStatusText(payload: Map<String, Any?>): String = buildString 
   appendLine("blocked: ${payload["blocked_count"]}")
   appendLine("current_phase: ${payload["current_phase"] ?: "none"}")
   appendLine("resolved_branch: ${payload["resolved_branch"] ?: "none"}")
+  (payload["parallel_review"] as? Map<*, *>)?.let { parallel ->
+    appendLine("parallel_review:")
+    appendLine("  requested: ${parallel["requested"]}")
+    appendLine("  default_review_agent_id: ${parallel["default_review_agent_id"]}")
+    appendLine("  alternative_review_agent_id: ${parallel["alternative_review_agent_id"]}")
+    appendLine("  lane_count: ${parallel["lane_count"]}")
+    (parallel["lanes"] as? List<*>).orEmpty().forEach { rawLane ->
+      val lane = rawLane as? Map<*, *> ?: return@forEach
+      appendLine(
+        "  lane: id=${lane["lane_id"]} status=${lane["status"]} agent=${lane["agent_id"]} " +
+          "attempt=${lane["attempt_count"]} findings=${lane["finding_count"]}",
+      )
+      lane["blocked_reason"]?.let { appendLine("    blocked_reason: $it") }
+    }
+  }
   (payload["decompose_terminal"] as? Map<*, *>)?.let { terminal ->
     appendLine("decomposition_reason: ${terminal["reason"]}")
     appendLine("subtask_count: ${terminal["subtask_count"]}")

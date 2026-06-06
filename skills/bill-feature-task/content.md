@@ -59,7 +59,11 @@ invoking agent — not a hardcoded default — drives the phase runs. Only use
 `--agent-override` when the user explicitly selected a different agent;
 `--agent-override` wins over `--agent`. An optional repeatable
 `--phase-agent <phase-id>=<agent-id>` (for example `--phase-agent plan=claude`)
-assigns a specific agent to one phase.
+assigns a specific agent to one phase. An optional `--parallel-review-agent <agent_id>`
+runs a second independent review lane concurrently alongside the default lane; the
+runtime merges both lanes' findings and feeds the combined result into the fix-loop
+policy. Do not use this with the same agent id as `--agent` or the resolved review
+agent — the runtime rejects duplicates before launch.
 
 Do not ask the user to run this command manually. Keep the run in the foreground
 unless the user asks otherwise; pass `--monitor` to tee phase transitions to the

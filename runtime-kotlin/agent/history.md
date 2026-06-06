@@ -1,3 +1,13 @@
+## [2026-06-06] SKILL-70 ad-hoc-parallel-review-agent
+Areas: runtime-kotlin/runtime-cli, runtime-kotlin/runtime-application, runtime-kotlin/runtime-domain, runtime-kotlin/runtime-infra-sqlite, orchestration/contracts, skills/bill-feature-task, skills/bill-feature
+- Feature-task runs now accept run-scoped `parallel_review:<agent_id>` / `--parallel-review-agent` input that adds an alternative review lane without replacing default review agent resolution.
+- Review attempts persist default and alternative lane outputs separately; resume relaunches only missing lanes; findings merge into the fix-loop result with `lane_id`/`agent_id`/`source_finding_id` provenance. reusable
+- Parallel-review telemetry (9 new SQLite columns via migration v4), status/show projection, and bill-feature/bill-feature-task dispatch guidance carry requested/default/alternative/lane/merged-review dimensions. reusable
+- Validation passed: `skill-bill validate`, `./gradlew check` (258 tasks), `npx agnix --strict .` (0 errors), and `validateAgentConfigs` (40 skills, 12 add-ons, 3 packs, 27 native agents).
+- Boundary rule: CLI parsing at CLI edge; application/domain models carry run options and lane state; provider launch details stay behind the agent-run port.
+Feature flag: N/A
+Acceptance criteria: 14/14 implemented
+
 ## [2026-06-06] SKILL-69 stats-remote-query-guidance-and-docs
 Areas: runtime-kotlin/runtime-domain, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-application, runtime-kotlin/runtime-infra-sqlite, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-mcp, docs
 - Review stats now aggregate standalone review-finished telemetry plus embedded feature-implement review payloads, with source breakdowns and malformed/excluded payload debt.

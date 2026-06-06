@@ -2,6 +2,7 @@ package skillbill.application
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.model.FeatureTaskRuntimeFinishedRequest
+import skillbill.application.model.FeatureTaskRuntimeParallelReviewTelemetry
 import skillbill.application.model.FeatureTaskRuntimeRunReport
 import skillbill.application.model.FeatureTaskRuntimeRunRequest
 import skillbill.application.model.FeatureTaskRuntimeStartedRequest
@@ -40,11 +41,15 @@ class FeatureTaskRuntimeLifecycleTelemetry(
     report: FeatureTaskRuntimeRunReport,
     phaseOutcomes: () -> Map<String, String>,
     dbOverride: String?,
+    parallelReviewTelemetry: () -> FeatureTaskRuntimeParallelReviewTelemetry = {
+      FeatureTaskRuntimeParallelReviewTelemetry.NONE
+    },
   ) {
     if (telemetrySessionId.isBlank()) {
       return
     }
     isolate("finished", Unit) {
+      val parallel = parallelReviewTelemetry()
       lifecycleTelemetryService.featureTaskRuntimeFinished(
         FeatureTaskRuntimeFinishedRequest(
           sessionId = telemetrySessionId,
@@ -54,6 +59,15 @@ class FeatureTaskRuntimeLifecycleTelemetry(
           lastIncompletePhase = (report as? FeatureTaskRuntimeRunReport.Blocked)?.lastIncompletePhase.orEmpty(),
           blockedReason = (report as? FeatureTaskRuntimeRunReport.Blocked)?.blockedReason.orEmpty(),
           resolvedBranch = report.resolvedBranch.orEmpty(),
+          parallelReviewRequested = parallel.requested,
+          defaultReviewAgentId = parallel.defaultReviewAgentId,
+          alternativeReviewAgentId = parallel.alternativeReviewAgentId,
+          reviewLaneCount = parallel.laneCount,
+          reviewLaneStatuses = parallel.laneStatuses,
+          mergedReviewFindingCount = parallel.mergedFindingCount,
+          acceptedReviewFindingCount = parallel.acceptedFindingCount,
+          rejectedReviewFindingCount = parallel.rejectedFindingCount,
+          unresolvedReviewFindingCount = parallel.unresolvedFindingCount,
         ),
         dbOverride = dbOverride,
       )

@@ -2,7 +2,9 @@ package skillbill.application
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.model.FeatureTaskRuntimeDecomposeTerminalStatus
+import skillbill.application.model.FeatureTaskRuntimeParallelReviewStatus
 import skillbill.application.model.FeatureTaskRuntimePhaseStatus
+import skillbill.application.model.FeatureTaskRuntimeReviewLaneStatus
 import skillbill.application.model.FeatureTaskRuntimeStatusProjection
 import skillbill.application.model.FeatureTaskRuntimeStatusRequest
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
@@ -54,6 +56,7 @@ class FeatureTaskRuntimeStatusService(
         phases.firstOrNull { it.status != STATUS_COMPLETED }?.phaseId
       },
       resolvedBranch = recorder.loadResolvedBranch(request.workflowId, request.dbPathOverride)?.branch,
+      parallelReview = parallelReviewStatus(request),
       decomposeTerminal = decomposeTerminal?.let {
         FeatureTaskRuntimeDecomposeTerminalStatus(
           reason = it.reason,
@@ -101,6 +104,27 @@ class FeatureTaskRuntimeStatusService(
       attemptCount = attemptCount,
       resolvedAgentId = resolvedAgentId,
       finished = finishedAt != null,
+    )
+  }
+
+  private fun parallelReviewStatus(request: FeatureTaskRuntimeStatusRequest): FeatureTaskRuntimeParallelReviewStatus? {
+    val parallelReview = recorder.loadParallelReviewRequest(request.workflowId, request.dbPathOverride) ?: return null
+    val lanes = recorder.loadReviewLaneRecords(request.workflowId, request.dbPathOverride).orEmpty()
+    return FeatureTaskRuntimeParallelReviewStatus(
+      requested = parallelReview.requested,
+      defaultReviewAgentId = parallelReview.defaultReviewAgentId,
+      alternativeReviewAgentId = parallelReview.alternativeReviewAgentId,
+      laneCount = parallelReview.laneCount,
+      lanes = lanes.values.sortedBy { lane -> lane.laneId }.map { lane ->
+        FeatureTaskRuntimeReviewLaneStatus(
+          laneId = lane.laneId,
+          agentId = lane.agentId,
+          status = lane.status,
+          attemptCount = lane.attemptCount,
+          findingCount = lane.findingCount,
+          blockedReason = lane.blockedReason,
+        )
+      },
     )
   }
 

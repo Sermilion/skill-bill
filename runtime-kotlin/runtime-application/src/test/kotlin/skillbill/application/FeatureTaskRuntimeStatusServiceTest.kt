@@ -220,6 +220,50 @@ class FeatureTaskRuntimeStatusServiceTest {
     assertNull(projection.featureSize)
   }
 
+  @Test
+  fun `parallel review projection includes request and per-lane status`() {
+    val harness = statusHarness()
+    harness.recorder.ensureWorkflowOpen(WORKFLOW_ID, SESSION_ID)
+    harness.recorder.recordParallelReviewRequest(
+      WORKFLOW_ID,
+      skillbill.workflow.taskruntime.model.FeatureTaskRuntimeParallelReviewArtifact(
+        requested = true,
+        defaultReviewAgentId = "codex",
+        alternativeReviewAgentId = "claude",
+        laneCount = 2,
+      ),
+    )
+    harness.recorder.recordReviewLaneState(
+      WORKFLOW_ID,
+      skillbill.workflow.taskruntime.model.FeatureTaskRuntimeReviewLaneRecord(
+        laneId = "default",
+        agentId = "codex",
+        status = "completed",
+        attemptCount = 1,
+        startedAt = "2026-01-01T00:00:00Z",
+        finishedAt = "2026-01-01T00:00:01Z",
+        outputArtifact = null,
+        findingCount = 1,
+      ),
+    )
+
+    val projection = requireNotNull(
+      harness.service.status(FeatureTaskRuntimeStatusRequest(workflowId = WORKFLOW_ID)),
+    )
+
+    val parallelReview = requireNotNull(projection.parallelReview)
+    assertEquals(true, parallelReview.requested)
+    assertEquals("codex", parallelReview.defaultReviewAgentId)
+    assertEquals("claude", parallelReview.alternativeReviewAgentId)
+    assertEquals(2, parallelReview.laneCount)
+    assertEquals(1, parallelReview.lanes.size)
+    val lane = parallelReview.lanes.first()
+    assertEquals("default", lane.laneId)
+    assertEquals("codex", lane.agentId)
+    assertEquals("completed", lane.status)
+    assertEquals(1, lane.findingCount)
+  }
+
   private fun statusHarness(): StatusHarness {
     val repository = StatusInMemoryWorkflowRepository()
     val database = StatusFakeDatabaseSessionFactory(repository)
