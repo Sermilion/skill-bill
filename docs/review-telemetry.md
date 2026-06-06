@@ -113,7 +113,7 @@ Telemetry has three levels:
 | Level | What is sent |
 |-------|-------------|
 | `off` | Nothing. No events are queued or sent. |
-| `anonymous` | Aggregate counts, finding ids with severity/confidence/outcome type, anonymized learning references. No file paths, descriptions, notes, or learning content. |
+| `anonymous` | Aggregate counts, finding ids with issue category/severity/confidence/outcome type, anonymized learning references. No file paths, descriptions, notes, or learning content. |
 | `full` | Everything in `anonymous` plus: finding descriptions/titles, file locations, rejection notes, and learning content (title, rule text). Useful for teams that want actionable detail. |
 
 The default level is `anonymous`. Existing configs with `telemetry.enabled: true` are migrated to `anonymous`; `enabled: false` becomes `off`.
@@ -124,7 +124,7 @@ The telemetry model emits a single event per review lifecycle:
 
 - one `skillbill_review_finished` event when a review lifecycle becomes fully resolved (all findings triaged)
 
-The finished event carries: total/accepted/unresolved finding counts, accepted/rejected finding details, a nested `learnings` object, routed skill, review platform, normalized review scope type, execution mode, specialist reviews, and a distinct canonical `review_session_id` field so related telemetry can be grouped together in PostHog. The detail within finding and learning entries depends on the telemetry level (see table above). `unresolved_findings` is the count of findings whose latest outcome is not terminal yet; the finished event is emitted only once that count reaches zero. If a later import materially changes the review and reopens unresolved findings, Skill Bill clears the finish marker and emits a fresh event the next time the review becomes fully resolved.
+The finished event carries: total/accepted/rejected/unresolved finding counts, accepted/rejected rates, accepted/rejected finding details, a nested `learnings` object, routed skill, original review platform/scope labels, normalized `platform_slug` and `scope_type`, execution mode, specialist reviews, and a distinct canonical `review_session_id` field so related telemetry can be grouped together in PostHog. Finding details always include `issue_category`, `severity`, `confidence`, and `outcome_type`; file locations, descriptions, and rejection notes are included only at `full` level. `unresolved_findings` is the count of findings whose latest outcome is not terminal yet; the finished event is emitted only once that count reaches zero. If a later import materially changes the review and reopens unresolved findings, Skill Bill clears the finish marker and emits a fresh event the next time the review becomes fully resolved.
 
 When `learnings resolve` is called with `--review-session-id`, the resolved learnings are cached locally and included in the matching `skillbill_review_finished` event when it fires.
 
@@ -174,6 +174,11 @@ When the parent's finished event fires, it embeds each collected `telemetry_payl
       "total_findings": 7,
       "accepted_findings": 6,
       "rejected_findings": 1,
+      "unresolved_findings": 0,
+      "accepted_rate": 0.86,
+      "rejected_rate": 0.14,
+      "platform_slug": "kotlin",
+      "scope_type": "branch_diff",
       ...
     },
     {

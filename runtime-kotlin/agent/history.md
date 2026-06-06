@@ -1,3 +1,23 @@
+## [2026-06-06] SKILL-69 feature-implement-lifecycle-telemetry-health
+Areas: runtime-kotlin/runtime-application, runtime-kotlin/runtime-domain, runtime-kotlin/runtime-infra-sqlite, runtime-kotlin/runtime-mcp, orchestration/contracts
+- Feature-implement lifecycle telemetry now persists source classification so stats can filter synthetic/test runs by default without hard-coded install/session ids.
+- Health stats dedupe terminal finished events by `session_id`, flag duplicate terminal emissions, exclude malformed or blank session ids from rates, and count them as data-quality debt. reusable
+- Duration reporting separates normal, synthetic zero-duration, and resumed/long-running buckets; open started-only sessions remain open instead of being counted as failed.
+- Child-step validation enforces canonical non-blank skills and complete review, quality-check, and PR-description payload fields under telemetry-level rules. reusable
+- SQLite schema/migrations, MCP payload threading, contract schema, and regression tests cover source classes, duplicate terminals, malformed ids, open sessions, duration buckets, and required child-step fields.
+Feature flag: N/A
+Acceptance criteria: 9/9 implemented
+
+## [2026-06-06] SKILL-69 review-telemetry-contract-and-categories
+Areas: runtime-kotlin/runtime-domain, runtime-kotlin/runtime-application, runtime-kotlin/runtime-infra-sqlite, runtime-kotlin/runtime-mcp, runtime-kotlin/runtime-ports, docs, orchestration/telemetry-contract
+- Review telemetry now carries terminal rejected finding counts/rate, platform/scope dimensions, and category-aware accepted/rejected finding details instead of deriving rejected counts from remote-query complement math.
+- New `ReviewIssueCategory` taxonomy resolves categories from explicit finding data, routed specialist/area labels, and fallback classifier paths; persist the category with findings so standalone/orchestrated finished payloads share one source. reusable
+- Review stats/payload mapping preserves full/anonymous/off level behavior while allowing anonymous-safe category data; platform/scope labels normalize known values and pass custom labels without hard-coded rejection.
+- SQLite review persistence adds category storage and migration coverage; MCP golden/runtime tests exercise orchestrated payload shape.
+- Known limitation: validate phase has not passed yet; detekt failures and audit gaps for AC4/AC5 remain for downstream phases to resolve before commit/PR.
+Feature flag: N/A
+Acceptance criteria: 4/6 implemented
+
 ## [2026-06-05] SKILL-66 subtask 5 remote-stats-integration-and-validation-gate
 Areas: runtime-kotlin/runtime-mcp, runtime-kotlin/runtime-domain, runtime-kotlin/runtime-core, orchestration/contracts
 - Extended `McpToolDispatcher.mapRemoteStatsWorkflow` with `"goal" -> "bill-feature-goal"` mapping and `"bill-feature-goal"` passthrough; error message updated to enumerate all accepted values.

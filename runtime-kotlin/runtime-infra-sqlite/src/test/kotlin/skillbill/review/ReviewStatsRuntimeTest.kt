@@ -18,6 +18,8 @@ import skillbill.ports.telemetry.model.toReviewFinishedTelemetryPayload
 import skillbill.review.model.FeedbackRequest
 import skillbill.review.model.FeedbackTelemetryOptions
 import skillbill.review.model.ImportedReview
+import skillbill.telemetry.model.FeatureImplementFinishedRecord
+import skillbill.telemetry.model.FeatureImplementStartedRecord
 import skillbill.telemetry.model.FeatureTaskRuntimeFinishedRecord
 import skillbill.telemetry.model.FeatureTaskRuntimeStartedRecord
 import skillbill.tempDbConnection
@@ -65,9 +67,14 @@ class ReviewStatsRuntimeTest {
       assertEquals("unstaged changes", anonymousPayload.reviewScope)
       assertEquals(review.reviewRunId, anonymousPayload.reviewRunId)
       assertEquals(review.reviewRunId, fullPayload.reviewRunId)
+      assertEquals("kotlin", anonymousPayload.platformSlug)
+      assertEquals("unstaged_changes", anonymousPayload.scopeType)
+      assertEquals(1, anonymousPayload.findingStats.rejectedFindings)
+      assertEquals(0.5, anonymousPayload.findingStats.rejectedRate)
       assertTrue(anonymousPayload.findingStats.acceptedFindingDetails.isNotEmpty())
       val anonymousRejectedFinding = anonymousPayload.findingStats.rejectedFindingDetails.single()
       val fullRejectedFinding = fullPayload.findingStats.rejectedFindingDetails.single()
+      assertEquals("behavior_correctness", anonymousRejectedFinding.issueCategory)
       assertEquals("", anonymousRejectedFinding.description)
       assertEquals("", anonymousRejectedFinding.note)
       assertEquals("Installer prompt wording is inconsistent with the new flow.", fullRejectedFinding.description)
@@ -80,6 +87,11 @@ class ReviewStatsRuntimeTest {
         (fullSerializedPayload["rejected_finding_details"] as List<*>).single() as Map<*, *>
       assertEquals(false, "description" in anonymousSerializedRejectedFinding)
       assertEquals(false, "note" in anonymousSerializedRejectedFinding)
+      assertEquals("behavior_correctness", anonymousSerializedRejectedFinding["issue_category"])
+      assertEquals(1, anonymousSerializedPayload["rejected_findings"])
+      assertEquals(0.5, anonymousSerializedPayload["rejected_rate"])
+      assertEquals("kotlin", anonymousSerializedPayload["platform_slug"])
+      assertEquals("unstaged_changes", anonymousSerializedPayload["scope_type"])
       assertEquals(
         "Installer prompt wording is inconsistent with the new flow.",
         fullSerializedRejectedFinding["description"],
@@ -89,6 +101,30 @@ class ReviewStatsRuntimeTest {
       assertEquals(1, serializedLearnings["applied_count"])
       assertEquals(listOf("L-001"), serializedLearnings["applied_references"])
       assertEquals("L-001", serializedLearnings["applied_summary"])
+    }
+  }
+
+  @Test
+  fun `review-finished payload keeps zero finding rejected rate at zero`() {
+    val (_, connection) = tempDbConnection("review-zero-finding-payload")
+    connection.use {
+      val review = ReviewParser.parseReview(ZERO_FINDING_REVIEW.trimIndent())
+      ReviewRuntime.saveImportedReview(connection, review, sourcePath = null)
+
+      val payload =
+        ReviewStatsRuntime.buildReviewFinishedPayload(
+          connection = connection,
+          reviewRunId = review.reviewRunId,
+          level = "anonymous",
+        ).toReviewFinishedTelemetryPayload().toPayload()
+
+      assertEquals(0, payload["total_findings"])
+      assertEquals(0, payload["rejected_findings"])
+      assertEquals(0.0, payload["rejected_rate"])
+      assertEquals(emptyList<Map<String, Any?>>(), payload["accepted_finding_details"])
+      assertEquals(emptyList<Map<String, Any?>>(), payload["rejected_finding_details"])
+      assertEquals("unknown", payload["platform_slug"])
+      assertEquals("branch_diff", payload["scope_type"])
     }
   }
 
@@ -103,6 +139,92 @@ class ReviewStatsRuntimeTest {
 
       assertEquals(1, implementStats.totalRuns)
       assertEquals(1, implementStats.featureSizeCounts["MEDIUM"])
+    }
+  }
+
+  @Test
+  fun `feature implement stats separate source health data quality and duration buckets`() {
+    val (_, connection) = tempDbConnection("feature-implement-health-stats")
+    connection.use {
+      insertFeatureImplementSession(connection)
+      connection.createStatement().use { statement ->
+        statement.executeUpdate(
+          """
+          INSERT INTO feature_implement_sessions (
+            session_id, source, feature_size, completion_status, started_at, finished_at
+          ) VALUES
+            ('fis-open', 'production', 'SMALL', '', '2026-04-23 10:00:00', NULL),
+            ('fis-error', 'production', 'SMALL', 'error', '2026-04-23 10:00:00', '2026-04-23 10:01:00'),
+            ('fis-plan', 'production', 'SMALL', 'abandoned_at_planning', '2026-04-23 10:00:00', '2026-04-23 10:02:00'),
+            ('fis-impl', 'production', 'SMALL', 'abandoned_at_implementation', '2026-04-23 10:00:00', '2026-04-23 10:03:00'),
+            ('fis-review', 'production', 'SMALL', 'abandoned_at_review', '2026-04-23 10:00:00', '2026-04-23 10:04:00'),
+            ('fis-synthetic', 'synthetic', 'SMALL', 'completed', '2026-04-23 10:00:00', '2026-04-23 10:00:00'),
+            ('fis-test', 'test', 'SMALL', 'completed', '2026-04-23 10:00:00', '2026-04-23 10:05:00'),
+            ('bad-session', 'production', 'SMALL', 'completed', '2026-04-23 10:00:00', '2026-04-23 10:05:00'),
+            ('fis-unknown-source', 'fixture', 'SMALL', 'completed', '2026-04-23 10:00:00', '2026-04-23 10:05:00'),
+            ('fis-long', 'production', 'SMALL', 'completed', '2026-04-23 10:00:00', '2026-04-25 10:00:00'),
+            ('fis-invalid-duration', 'production', 'SMALL', 'completed', '2026-04-23 10:00:00', '2026-04-23 10:00:00')
+          """.trimIndent(),
+        )
+      }
+
+      val stats = ReviewStatsRuntime.featureImplementStats(connection)
+
+      assertEquals(12, stats.rawRunCount)
+      assertEquals(9, stats.sourceCounts["production"])
+      assertEquals(1, stats.sourceCounts["test"])
+      assertEquals(1, stats.sourceCounts["synthetic"])
+      assertEquals(8, stats.validHealthDenominatorRuns)
+      assertEquals(1, stats.openRuns)
+      assertEquals(3, stats.completedRuns)
+      assertEquals(1, stats.errorRuns)
+      assertEquals(1, stats.abandonedAtPlanningRuns)
+      assertEquals(1, stats.abandonedAtImplementationRuns)
+      assertEquals(1, stats.abandonedAtReviewRuns)
+      assertEquals(1, stats.malformedSessionIdRuns)
+      assertEquals(1, stats.unknownSourceRuns)
+      assertEquals(1, stats.syntheticZeroDurationRuns)
+      assertEquals(1, stats.longRunningDurationRuns)
+      assertEquals(1, stats.invalidDurationRuns)
+      assertEquals(5, stats.normalDurationRuns)
+      assertEquals(240.0, stats.averageDurationSeconds)
+    }
+  }
+
+  @Test
+  fun `feature implement duplicate terminal calls increment accounting without duplicate outbox events`() {
+    val (_, connection) = tempDbConnection("feature-implement-duplicate-terminal")
+    connection.use {
+      val store = LifecycleTelemetryStore(connection)
+      val outbox = TelemetryOutboxStore(connection)
+      store.featureImplementStarted(
+        FeatureImplementStartedRecord(
+          sessionId = "fis-duplicate",
+          issueKeyProvided = true,
+          issueKeyType = "other",
+          specInputTypes = listOf("raw_text"),
+          specWordCount = 100,
+          featureSize = "SMALL",
+          featureName = "duplicate-terminal",
+          rolloutNeeded = false,
+          acceptanceCriteriaCount = 1,
+          openQuestionsCount = 0,
+          specSummary = "Duplicate terminal test.",
+        ),
+        level = "anonymous",
+      )
+      val finished = featureImplementFinishedRecord("fis-duplicate")
+      store.featureImplementFinished(finished, level = "anonymous")
+      store.featureImplementFinished(finished, level = "anonymous")
+
+      val pending = outbox.listPending(limit = null)
+      assertEquals(
+        listOf("skillbill_feature_implement_started", "skillbill_feature_implement_finished"),
+        pending.map { it.eventName },
+      )
+      val stats = ReviewStatsRuntime.featureImplementStats(connection)
+      assertEquals(1, stats.duplicateTerminalFinishedEvents)
+      assertEquals(2, stats.dataQualityDebtRuns)
     }
   }
 
@@ -296,6 +418,19 @@ private fun cacheSkillLearning(connection: java.sql.Connection, reviewRunId: Str
   )
 }
 
+private const val ZERO_FINDING_REVIEW: String =
+  """
+  Routed to: bill-code-review
+  Review session ID: rvs-20260402-zero
+  Review run ID: rvw-20260402-zero
+  Detected review scope: branch diff
+  Detected stack: unknown
+  Execution mode: inline
+
+  ### 2. Risk Register
+  No findings.
+  """
+
 private fun insertFeatureImplementSession(connection: java.sql.Connection) {
   connection.createStatement().use { statement ->
     statement.executeUpdate(
@@ -347,6 +482,29 @@ private fun insertFeatureImplementSession(connection: java.sql.Connection) {
     )
   }
 }
+
+private fun featureImplementFinishedRecord(sessionId: String): FeatureImplementFinishedRecord =
+  FeatureImplementFinishedRecord(
+    sessionId = sessionId,
+    completionStatus = "completed",
+    planCorrectionCount = 0,
+    planTaskCount = 1,
+    planPhaseCount = 1,
+    featureFlagUsed = false,
+    featureFlagPattern = "none",
+    filesCreated = 0,
+    filesModified = 1,
+    tasksCompleted = 1,
+    reviewIterations = 1,
+    auditResult = "all_pass",
+    auditIterations = 1,
+    validationResult = "pass",
+    boundaryHistoryWritten = false,
+    boundaryHistoryValue = "none",
+    prCreated = false,
+    planDeviationNotes = "",
+    childSteps = emptyList(),
+  )
 
 private fun insertFeatureVerifySession(connection: java.sql.Connection) {
   connection.createStatement().use { statement ->

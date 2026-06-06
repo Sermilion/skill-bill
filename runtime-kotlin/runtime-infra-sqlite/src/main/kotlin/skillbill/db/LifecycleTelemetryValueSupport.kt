@@ -10,8 +10,12 @@ fun featureImplementFinishedValues(
 ): List<Any?> = buildList {
   if (includeSessionFirst) {
     add(record.sessionId)
+    add(record.source)
   }
   add(record.completionStatus)
+  if (!includeSessionFirst) {
+    add(record.source)
+  }
   add(record.planCorrectionCount)
   add(record.planTaskCount)
   add(record.planPhaseCount)

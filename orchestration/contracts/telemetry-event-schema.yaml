@@ -509,6 +509,13 @@ $defs:
           - SMALL
           - MEDIUM
           - LARGE
+      source:
+        type: string
+        enum:
+          - production
+          - test
+          - synthetic
+          - unknown
       acceptance_criteria_count:
         type: integer
       open_questions_count:
@@ -565,6 +572,13 @@ $defs:
         const: "1.0.0"
       session_id:
         type: string
+      source:
+        type: string
+        enum:
+          - production
+          - test
+          - synthetic
+          - unknown
       completion_status:
         type: string
         enum:

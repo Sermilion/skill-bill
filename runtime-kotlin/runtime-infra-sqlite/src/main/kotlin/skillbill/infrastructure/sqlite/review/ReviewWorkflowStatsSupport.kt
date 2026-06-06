@@ -105,22 +105,34 @@ fun buildFeatureVerifyStats(rows: List<Map<String, Any?>>): FeatureVerifyWorkflo
 
 fun buildFeatureImplementStats(rows: List<Map<String, Any?>>): FeatureImplementWorkflowStats {
   val finishedRows = finishedRows(rows)
+  val healthStats = buildFeatureImplementHealthStats(rows, finishedRows)
   val rolloutNeededRuns = rows.count { it.booleanValue("rollout_needed") }
   val featureFlagUsedRuns = finishedRows.count { it.booleanValue("feature_flag_used") }
   val prCreatedRuns = finishedRows.count { it.booleanValue("pr_created") }
   val boundaryHistoryWrittenRuns = finishedRows.count { it.booleanValue("boundary_history_written") }
-  val acceptanceCriteriaCounts = rows.mapNotNull { it.intValue("acceptance_criteria_count") }
-  val specWordCounts = rows.mapNotNull { it.intValue("spec_word_count") }
-  val reviewIterations = finishedRows.mapNotNull { it.intValue("review_iterations") }
-  val auditIterations = finishedRows.mapNotNull { it.intValue("audit_iterations") }
-  val filesCreated = finishedRows.mapNotNull { it.intValue("files_created") }
-  val filesModified = finishedRows.mapNotNull { it.intValue("files_modified") }
-  val tasksCompleted = finishedRows.mapNotNull { it.intValue("tasks_completed") }
-  val durations = finishedRows.map(::durationSeconds).filter { it > 0 }
+  val averages = buildFeatureImplementAverageStats(rows, finishedRows, healthStats.normalDurations)
   return FeatureImplementWorkflowStats(
     totalRuns = rows.size,
     finishedRuns = finishedRows.size,
     inProgressRuns = rows.size - finishedRows.size,
+    rawRunCount = rows.size,
+    sourceCounts = healthStats.sourceCounts,
+    validHealthDenominatorRuns = healthStats.validHealthDenominatorRuns,
+    dataQualityDebtRuns = healthStats.dataQualityDebtRuns,
+    malformedSessionIdRuns = healthStats.malformedSessionIdRuns,
+    unknownSourceRuns = healthStats.unknownSourceRuns,
+    duplicateTerminalFinishedEvents = healthStats.duplicateTerminalFinishedEvents,
+    openRuns = healthStats.openRuns,
+    completedRuns = healthStats.completedRuns,
+    completedRate = healthStats.completedRate,
+    abandonedAtPlanningRuns = healthStats.abandonedAtPlanningRuns,
+    abandonedAtImplementationRuns = healthStats.abandonedAtImplementationRuns,
+    abandonedAtReviewRuns = healthStats.abandonedAtReviewRuns,
+    errorRuns = healthStats.errorRuns,
+    normalDurationRuns = healthStats.normalDurationRuns,
+    syntheticZeroDurationRuns = healthStats.syntheticZeroDurationRuns,
+    longRunningDurationRuns = healthStats.longRunningDurationRuns,
+    invalidDurationRuns = healthStats.invalidDurationRuns,
     featureSizeCounts = countValues(rows, "feature_size", featureSizes),
     completionStatusCounts = countValues(finishedRows, "completion_status", completionStatuses),
     auditResultCounts = countValues(finishedRows, "audit_result", auditResults),
@@ -135,14 +147,14 @@ fun buildFeatureImplementStats(rows: List<Map<String, Any?>>): FeatureImplementW
     prCreatedRate = rate(prCreatedRuns, finishedRows.size),
     boundaryHistoryWrittenRuns = boundaryHistoryWrittenRuns,
     boundaryHistoryWrittenRate = rate(boundaryHistoryWrittenRuns, finishedRows.size),
-    averageAcceptanceCriteriaCount = average(acceptanceCriteriaCounts),
-    averageSpecWordCount = average(specWordCounts),
-    averageReviewIterations = average(reviewIterations),
-    averageAuditIterations = average(auditIterations),
-    averageFilesCreated = average(filesCreated),
-    averageFilesModified = average(filesModified),
-    averageTasksCompleted = average(tasksCompleted),
-    averageDurationSeconds = average(durations),
+    averageAcceptanceCriteriaCount = averages.acceptanceCriteriaCount,
+    averageSpecWordCount = averages.specWordCount,
+    averageReviewIterations = averages.reviewIterations,
+    averageAuditIterations = averages.auditIterations,
+    averageFilesCreated = averages.filesCreated,
+    averageFilesModified = averages.filesModified,
+    averageTasksCompleted = averages.tasksCompleted,
+    averageDurationSeconds = averages.durationSeconds,
   )
 }
 
