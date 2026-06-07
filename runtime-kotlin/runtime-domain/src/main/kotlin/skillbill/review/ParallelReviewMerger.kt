@@ -88,15 +88,12 @@ object ParallelReviewMerger {
   private fun tokens(description: String): Set<String> =
     description.lowercase().split(Regex("[^a-z0-9]+")).filter { it.isNotEmpty() }.toSet()
 
-  // Jaccard similarity = |intersection| / |union|. Edge rules:
-  //  - both sets empty -> 1.0 (identical/empty descriptions on the same file still coalesce,
-  //    preserving exact-match behaviour).
-  //  - union empty otherwise -> 0.0 (unreachable given the both-empty case, kept for safety).
-  //  - disjoint non-empty sets -> 0.0.
+  // Jaccard similarity = |intersection| / |union|. Empty union means both sets are empty, which
+  // returns 1.0 so identical/empty descriptions on the same file still coalesce (preserving
+  // exact-match behaviour); disjoint non-empty sets yield 0.0 from the ratio.
   private fun jaccard(a: Set<String>, b: Set<String>): Double {
-    if (a.isEmpty() && b.isEmpty()) return 1.0
     val union = a union b
-    if (union.isEmpty()) return 0.0
+    if (union.isEmpty()) return 1.0
     return (a intersect b).size.toDouble() / union.size.toDouble()
   }
 
