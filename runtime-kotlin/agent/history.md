@@ -1,3 +1,15 @@
+## [2026-06-07] SKILL-71 subtask 1 repo-local-config-foundation
+Areas: runtime-kotlin/runtime-domain, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-core
+- Domain-owned `RepoLocalConfigPort` (runtime-ports, domain-only deps) + `FileSystemRepoLocalConfig` adapter reads `.skill-bill/config.yaml`; app code does no raw file IO, no Clikt/MCP/JDBC on the boundary; DI bound in `RuntimeComponent`. reusable
+- `RepoLocalConfigResolution.resolve` is the single precedence helper (explicit arg > config > built-in default); a missing config file returns `defaults()` with no error. reusable
+- Malformed YAML / invalid value for a known key loud-fails via typed `MalformedRepoLocalConfigError` / `UnreadableRepoLocalConfigError` naming file + offending key/value; document-root key renders as `<root>`. reusable
+- Install scaffolds default config-if-absent + anchored `/.skill-bill/` gitignore-if-absent idempotently via `InstallApplyRepoLocalConfig` (warning-not-failure; never clobbers a user-edited config or duplicates the entry). reusable
+- `RepoLocalConfigKey` registry + typed accessors expose `spec_type` and `code_review_parallel_agent`; schema open to future keys — adding one touches only the enum + an accessor. Values are parsed/exposed but NOT yet consumed (consumption is subtasks 3/5). reusable
+- Gate gotcha: ktfmt-required braces pushed `ParallelReviewMerger.merge()` to detekt `LongMethod=60` while HEAD's compact form failed ktfmt — both states were red; resolved by a behavior-identical `toCandidate()` extraction (no suppression), not by reverting.
+- Known limitation (F-001, non-blocking): the `.skill-bill/config.yaml` path literal is duplicated between the install scaffolder and the reader; consolidate post-merge.
+Feature flag: N/A
+Acceptance criteria: 5/5 implemented
+
 ## [2026-06-07] SKILL-70.1 parallel-review-large-diff
 Areas: runtime-kotlin/runtime-domain, skills/bill-code-review
 - `ParallelReviewMerger` now coalesces findings by same file path (from location, `substringBeforeLast(':')`) AND Jaccard token-overlap of descriptions, replacing the exact `location|description` key. reusable

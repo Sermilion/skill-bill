@@ -45,6 +45,7 @@ import skillbill.infrastructure.fs.FileSystemInstallPlatformSkillMaterialization
 import skillbill.infrastructure.fs.FileSystemInstallSelectionPersistence
 import skillbill.infrastructure.fs.FileSystemInstallSkillLink
 import skillbill.infrastructure.fs.FileSystemInstallStagingIntent
+import skillbill.infrastructure.fs.FileSystemRepoLocalConfig
 import skillbill.infrastructure.fs.FileSystemRepoSourceDiscoveryGateway
 import skillbill.infrastructure.fs.FileSystemRepoValidationGateway
 import skillbill.infrastructure.fs.FileSystemReviewInputSource
@@ -72,6 +73,7 @@ import skillbill.install.model.InstallPlanWireValidator
 import skillbill.launcher.FileSystemAgentRunLauncher
 import skillbill.model.RuntimeContext
 import skillbill.ports.agentrun.AgentRunLauncher
+import skillbill.ports.config.RepoLocalConfigPort
 import skillbill.ports.diff.DiffResolverPort
 import skillbill.ports.goalrunner.GoalPullRequestPort
 import skillbill.ports.goalrunner.GoalRunnerManifestStore
@@ -247,6 +249,10 @@ abstract class RuntimeComponent(
   internal fun installSelectionPersistencePort(
     adapter: FileSystemInstallSelectionPersistence,
   ): InstallSelectionPersistencePort = adapter
+
+  @Provides
+  @JvmSynthetic
+  internal fun repoLocalConfigPort(adapter: FileSystemRepoLocalConfig): RepoLocalConfigPort = adapter
 
   @Provides
   @JvmSynthetic
