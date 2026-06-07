@@ -96,11 +96,9 @@ class ParallelCodeReviewRunnerTest {
   fun `lane1 timedOut produces lane1Success false`() {
     val tempDir = createGitRepo()
     createStagedFile(tempDir)
-    var callCount = 0
     val launcher = GoalRunnerSubtaskLauncher { request ->
-      callCount++
       val agent = InstallAgent.fromNormalizedId(request.invokedAgentId, label = "agentId")
-      if (callCount == 1) {
+      if (request.invokedAgentId == "claude") {
         AgentRunLaunchFacts(
           agent = agent,
           exitStatus = null,
@@ -134,11 +132,9 @@ class ParallelCodeReviewRunnerTest {
   fun `lane1 spawnFailed produces lane1Success false`() {
     val tempDir = createGitRepo()
     createStagedFile(tempDir)
-    var callCount = 0
     val launcher = GoalRunnerSubtaskLauncher { request ->
-      callCount++
       val agent = InstallAgent.fromNormalizedId(request.invokedAgentId, label = "agentId")
-      if (callCount == 1) {
+      if (request.invokedAgentId == "claude") {
         AgentRunLaunchFacts(
           agent = agent,
           exitStatus = null,
