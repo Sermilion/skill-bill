@@ -175,6 +175,80 @@ class ParallelReviewMergerTest {
   }
 
   @Test
+  fun `fuzzy match on same file coalesces when token overlap above threshold`() {
+    val lane1Output = "- [F-001] Major | High | Auth.kt:42 | token exposed in logs"
+    val lane2Output = "- [F-001] Major | High | Auth.kt:42 | token exposed in logs here"
+
+    val result = ParallelReviewMerger.merge(
+      laneResult("claude", lane1Output),
+      laneResult("codex", lane2Output),
+    )
+
+    assertEquals(1, result.findings.size)
+    assertEquals(listOf("claude", "codex"), result.findings[0].agentIds)
+    assertContains(result.formattedOutput, "[claude, codex]")
+  }
+
+  @Test
+  fun `same description on different files is never coalesced`() {
+    val lane1Output = "- [F-001] Major | High | A.kt:1 | token exposed in logs"
+    val lane2Output = "- [F-001] Major | High | B.kt:1 | token exposed in logs"
+
+    val result = ParallelReviewMerger.merge(
+      laneResult("claude", lane1Output),
+      laneResult("codex", lane2Output),
+    )
+
+    assertEquals(2, result.findings.size)
+    assertEquals(1, result.findings[0].agentIds.size)
+    assertEquals(1, result.findings[1].agentIds.size)
+  }
+
+  @Test
+  fun `same file with disjoint descriptions below threshold is not coalesced`() {
+    val lane1Output = "- [F-001] Major | High | Auth.kt:7 | token exposed in logs"
+    val lane2Output = "- [F-001] Major | High | Auth.kt:7 | null pointer dereference here"
+
+    val result = ParallelReviewMerger.merge(
+      laneResult("claude", lane1Output),
+      laneResult("codex", lane2Output),
+    )
+
+    assertEquals(2, result.findings.size)
+    assertEquals(1, result.findings[0].agentIds.size)
+    assertEquals(1, result.findings[1].agentIds.size)
+  }
+
+  @Test
+  fun `same file with partial overlap below threshold is not coalesced`() {
+    // tokens: {token,exposed,in,logs,here} vs {token,missing,csrf,header,on,post} -> 1/10 = 0.1 < 0.6
+    val lane1Output = "- [F-001] Major | High | Auth.kt:7 | token exposed in logs here"
+    val lane2Output = "- [F-001] Major | High | Auth.kt:7 | token missing csrf header on post"
+
+    val result = ParallelReviewMerger.merge(
+      laneResult("claude", lane1Output),
+      laneResult("codex", lane2Output),
+    )
+
+    assertEquals(2, result.findings.size)
+  }
+
+  @Test
+  fun `severity disagreement on fuzzy-coalesced pair resolves to higher severity`() {
+    val lane1Output = "- [F-001] Minor | Low | Auth.kt:42 | token exposed in logs"
+    val lane2Output = "- [F-001] Major | High | Auth.kt:42 | token exposed in logs here"
+
+    val result = ParallelReviewMerger.merge(
+      laneResult("claude", lane1Output),
+      laneResult("codex", lane2Output),
+    )
+
+    assertEquals(1, result.findings.size)
+    assertEquals(ParallelReviewSeverity.MAJOR, result.findings[0].severity)
+    assertEquals(listOf("claude", "codex"), result.findings[0].agentIds)
+  }
+
+  @Test
   fun `coalesced finding format matches spec AC12`() {
     val finding = "- [F-001] Major | High | Auth.kt:10 | Token logged"
 

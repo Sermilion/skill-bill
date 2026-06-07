@@ -21,7 +21,63 @@ When the argument is absent, fall through to normal shell behaviour: scope detec
 
 Determine the diff scope from the caller's request using the same labels as the normal flow: `staged`, `unstaged`, `branch` (default), or `pr`. Resolve the diff text for that scope.
 
-## Lane 2: Background Subprocess
+## Lane 2: Routing Capability Table
+
+This table is the single source of truth for lane 2 routing. Update the values here to retune
+behaviour — the routing steps below read from this table, so no routing prose changes when an
+agent gains stdin support or the threshold moves.
+
+| Agent      | stdin-pipe supported? | Within-threshold path                 |
+| ---------- | --------------------- | ------------------------------------- |
+| `claude`   | yes                   | `claude -p < /tmp/lane2-prompt.txt`   |
+| `codex`    | yes                   | `codex exec - < /tmp/lane2-prompt.txt`|
+| `opencode` | no                    | CLI delegation (always)               |
+| `copilot`  | no                    | CLI delegation (always)               |
+| `junie`    | no                    | CLI delegation (always)               |
+
+- `LANE2_DIFF_BYTE_THRESHOLD = 200 KB (204800 bytes)` — the diff byte count above which even a
+  stdin-capable agent is routed to CLI delegation. Documented here so it can be changed without
+  touching the routing logic.
+- Agents marked "no" under stdin-pipe (`opencode`, `copilot`, `junie`) **always** use CLI
+  delegation regardless of diff size — their previous `$(cat ...)` shell-argument form breaks
+  above `ARG_MAX` (~200 KB, `E2BIG`) on most shells, so it is no longer their route.
+
+## Lane 2: Size Guard and Routing Decision
+
+Before composing `LANE_2_PROMPT`, measure the **byte count of the resolved diff text**:
+
+```bash
+DIFF_BYTES=$(wc -c < /tmp/lane2-diff.txt)
+```
+
+Then decide the lane 2 path, in this order:
+
+1. **Agent is not stdin-capable** (`opencode`, `copilot`, `junie` per the table) → **CLI delegation
+   path, always**, regardless of `DIFF_BYTES`.
+2. **Else `DIFF_BYTES > LANE2_DIFF_BYTE_THRESHOLD` (204800)** → emit a notice
+   (`Parallel lane: <agent> diff ${DIFF_BYTES}B exceeds ${LANE2_DIFF_BYTE_THRESHOLD}B — delegating to code-review-parallel CLI`)
+   and take the **CLI delegation path**.
+3. **Else** (stdin-capable agent, diff within threshold) → take the **stdin-pipe path** below.
+
+### CLI delegation path
+
+Delegate **both lanes** to the in-process CLI, which resolves the diff and builds the prompt
+through `AgentRunLauncher` with no shell argument (no `$(cat ...)` expansion, so no `ARG_MAX`
+limit) and merges findings internally:
+
+```bash
+skill-bill code-review-parallel \
+  --agent1 <lane1-agent-id> \
+  --agent2 <lane2-agent-id> \
+  --scope <scope> \
+  --repo-root <repo-root>
+```
+
+On this path the inline lane-1 review, the stdin lane-2 subprocess, and the separate
+`skill-bill code-review-merge` step below are **superseded** — `code-review-parallel` runs both
+lanes and merges in-process. Display its merged output as the final review result.
+
+### stdin-pipe path
 
 Build a self-contained `LANE_2_PROMPT` that includes:
 1. The full diff text.
@@ -38,7 +94,7 @@ cat > /tmp/lane2-prompt.txt << 'PROMPT_EOF'
 PROMPT_EOF
 ```
 
-Then launch lane 2 in the background using the Bash tool with `run_in_background: true`, redirecting output to a temp file:
+Then launch lane 2 in the background using the Bash tool with `run_in_background: true`, redirecting output to a temp file. Use the within-threshold path from the capability table for the resolved agent:
 
 ### claude
 ```bash
@@ -50,20 +106,8 @@ claude -p < /tmp/lane2-prompt.txt > /tmp/lane2-review.txt 2>&1
 codex exec - < /tmp/lane2-prompt.txt > /tmp/lane2-review.txt 2>&1
 ```
 
-### opencode
-```bash
-opencode run "$(cat /tmp/lane2-prompt.txt)" > /tmp/lane2-review.txt 2>&1
-```
-
-### copilot
-```bash
-gh copilot explain "$(cat /tmp/lane2-prompt.txt)" > /tmp/lane2-review.txt 2>&1
-```
-
-### junie
-```bash
-junie run "$(cat /tmp/lane2-prompt.txt)" > /tmp/lane2-review.txt 2>&1
-```
+`opencode`, `copilot`, and `junie` have no stdin-pipe path: per the capability table they take the
+CLI delegation path above and never reach this section.
 
 If the CLI exits with "stdin is not a terminal", "not a tty", or a similar rejection, try passing the prompt as a positional argument instead: `<agent> "<prompt>"`. If the agent CLI is not found in `PATH` or all invocation attempts fail, abort lane 2, skip the merge step, and report `Parallel lane: <agent> unavailable — <reason>` in the summary. Continue with lane 1 results only.
 

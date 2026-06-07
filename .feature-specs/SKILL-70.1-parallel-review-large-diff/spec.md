@@ -1,5 +1,5 @@
 ---
-status: Pending
+status: Complete
 ---
 
 # SKILL-70.1 — parallel review: large-diff robustness
@@ -40,35 +40,27 @@ register with separate provenance labels, increasing noise rather than boosting 
 
 ## Acceptance Criteria
 
-### Skill content — size guard and CLI delegation
-
-1. The skill measures the diff byte count before writing the lane 2 prompt.
-2. When the diff exceeds a documented threshold (default: 200 KB), the skill emits a notice and
+1. (Skill content — size guard) The skill measures the diff byte count before writing the lane 2 prompt.
+2. (Skill content — size guard) When the diff exceeds a documented threshold (default: 200 KB), the skill emits a notice and
    delegates both lanes to `skill-bill code-review-parallel --agent1 <lane1> --agent2 <lane2>
    --scope <scope> --repo-root <root>` instead of the inline bash subprocess path.
-3. When the diff is within the threshold, the existing stdin-pipe path is used for agents that
+3. (Skill content — size guard) When the diff is within the threshold, the existing stdin-pipe path is used for agents that
    support it (claude: `claude -p < file`, codex: `codex exec - < file`).
-4. Agents that do not support stdin-pipe (opencode, copilot, junie) always delegate to the CLI
+4. (Skill content — size guard) Agents that do not support stdin-pipe (opencode, copilot, junie) always delegate to the CLI
    path regardless of diff size, and the skill documents this explicitly per-agent.
-5. The threshold value and the per-agent stdin-pipe support flag are documented in the skill
+5. (Skill content — size guard) The threshold value and the per-agent stdin-pipe support flag are documented in the skill
    content so they can be updated without touching the routing logic.
-
-### Merger — fuzzier dedup
-
-6. The `ParallelReviewMerger` coalesces two findings as duplicates when they share the same
+6. (Merger — fuzzier dedup) The `ParallelReviewMerger` coalesces two findings as duplicates when they share the same
    file path (extracted from the location field) AND their descriptions have a token-overlap
    ratio (Jaccard on word sets) above a documented threshold (e.g. 0.6).
-7. Findings at different file paths are never coalesced regardless of description similarity.
-8. Severity disagreement on a coalesced pair still resolves to the higher severity (existing
+7. (Merger — fuzzier dedup) Findings at different file paths are never coalesced regardless of description similarity.
+8. (Merger — fuzzier dedup) Severity disagreement on a coalesced pair still resolves to the higher severity (existing
    behaviour preserved).
-9. `ParallelReviewMergerTest` covers: exact-match (existing), fuzzy-match coalescing,
+9. (Merger — fuzzier dedup) `ParallelReviewMergerTest` covers: exact-match (existing), fuzzy-match coalescing,
    same-description-different-file not coalesced, token-overlap below threshold not coalesced.
-10. The fuzzy threshold is a named constant in `ParallelReviewMerger`, not a magic number.
-
-### No regression
-
-11. All existing `ParallelReviewMergerTest` and `CliCodeReviewMergeRuntimeTest` tests pass.
-12. `skill-bill validate` passes after content changes.
+10. (Merger — fuzzier dedup) The fuzzy threshold is a named constant in `ParallelReviewMerger`, not a magic number.
+11. (No regression) All existing `ParallelReviewMergerTest` and `CliCodeReviewMergeRuntimeTest` tests pass.
+12. (No regression) `skill-bill validate` passes after content changes.
 
 ## Out of Scope
 
