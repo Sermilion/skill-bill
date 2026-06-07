@@ -1,5 +1,5 @@
 ---
-status: Draft
+status: Complete
 ---
 
 # SKILL-71 Subtask 2 - Persisted Spec-Source Contract

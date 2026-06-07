@@ -4,6 +4,7 @@ import me.tatarka.inject.annotations.Component
 import me.tatarka.inject.annotations.Provides
 import skillbill.application.AgentRunGoalRunnerSubtaskLauncher
 import skillbill.application.AgentRunService
+import skillbill.application.ConfigResolutionService
 import skillbill.application.FeatureTaskRuntimePhaseRecorder
 import skillbill.application.FeatureTaskRuntimeRunner
 import skillbill.application.FeatureTaskRuntimeStatusService
@@ -380,6 +381,10 @@ abstract class RuntimeComponent(
     adapter
 
   abstract val parallelCodeReviewRunner: ParallelCodeReviewRunner
+
+  // Exposed as a pre-built object so the CLI consumer need not resolve the infra-fs
+  // RepoLocalConfigPort adapter type, which is not on the CLI module's compile classpath.
+  abstract val configResolutionService: ConfigResolutionService
   abstract val installService: InstallService
   abstract val agentRunService: AgentRunService
   abstract val featureTaskRuntimePhaseRecorder: FeatureTaskRuntimePhaseRecorder

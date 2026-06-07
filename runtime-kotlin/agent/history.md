@@ -1,3 +1,14 @@
+## [2026-06-07] SKILL-71 subtask 3 feature-spec-linear-mode
+Areas: runtime-kotlin/runtime-application, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-core, skills/bill-feature-spec
+- `ConfigResolutionService` (runtime-application) is a thin `resolveSpecType(repoRoot, explicit)` over `RepoLocalConfigPort` + the single `RepoLocalConfigResolution.resolve` helper (precedence explicit>config>LOCAL); lets `MalformedRepoLocalConfigError` propagate for loud-fail. reusable
+- Read-only `config resolve-spec-type` CLI command (`--arg`/`--repo-root`) under a NEW `config` parent group; group is structured so subtask 5 can add `resolve-parallel-agent` reusing the same port. reusable
+- `ConfigResolutionService` exposed as a pre-built `abstract val` on `RuntimeComponent` because the infra-fs `RepoLocalConfigPort` adapter type is off the CLI compile classpath (KSP) — follow the `featureTaskRuntimeRunInvariantsSource` precedent for any future app service the CLI must reach. reusable
+- Config read + unrecognized-`--arg` failures both map via the shared `ShellContentContractException` base to exit 1.
+- `bill-feature-spec` content.md gains Service/Spec Source Mode + Linear Mode Preparation (7-step no-partial-state: MCP/auth check BEFORE any issue create or artifact write, parent issue tagged `task` w/ parent spec desc, per-subtask sub-issues tagged `task`, adopt parent key as issue key/dir/manifest, stamp `spec_source: linear` + per-subtask `linear_issue_id`, orphan-parent loud-fail) + Local Mode; diff is strictly additive so AC6 local byte-for-byte path holds. reusable
+- `bill-feature` intentionally NOT modified — `service:` honored on direct `bill-feature-spec` invocation only; NO runtime Linear client/GraphQL/token, Linear access is agent-side MCP only.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
 ## [2026-06-07] SKILL-71 subtask 2 persisted-spec-source-contract
 Areas: orchestration/contracts, runtime-kotlin/runtime-contracts, runtime-kotlin/runtime-domain
 - decomposition-manifest schema gains optional top-level `spec_source` (`$defs.specSource` enum local|linear, default local) + optional per-subtask `linear_issue_id` ([string,null], minLength 1); both non-required so existing 0.2-era manifests stay valid; `additionalProperties:false` preserved at both levels. reusable

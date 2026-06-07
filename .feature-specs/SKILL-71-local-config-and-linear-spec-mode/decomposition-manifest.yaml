@@ -9,7 +9,7 @@ base_branch: "main"
 feature_branch: "feat/SKILL-71-local-config-and-linear-spec-mode"
 stack_branches: []
 current_subtask_intent:
-  subtask_id: 2
+  subtask_id: 3
   action: "start"
 subtasks:
 - id: 1
@@ -25,12 +25,12 @@ subtasks:
 - id: 2
   name: "persisted-spec-source-contract"
   spec_path: ".feature-specs/SKILL-71-local-config-and-linear-spec-mode/spec_subtask_2_persisted-spec-source-contract.md"
-  status: "pending"
+  status: "complete"
   branch: null
   commit_sha: null
-  workflow_id: null
+  workflow_id: "wftr-20260607-173700-wej5"
   blocked_reason: null
-  last_resumable_step: null
+  last_resumable_step: "commit_push"
   dependencies: []
 - id: 3
   name: "feature-spec-linear-mode"
