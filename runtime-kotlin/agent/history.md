@@ -1,3 +1,13 @@
+## [2026-06-07] SKILL-70 parallel-code-review-runtime
+Areas: runtime-kotlin/runtime-cli, runtime-kotlin/runtime-domain, runtime-kotlin/runtime-application, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-ports
+- `ParallelCodeReviewRunner` runs two `GoalRunnerSubtaskLauncher` lanes via a fixed 2-thread executor; both receive the same diff+prompt, results merged after both complete. reusable
+- `ParallelReviewMerger` coalesces findings by exact `location|description` key (case-insensitive); higher severity wins on disagreement; coalesced findings sort before single-lane within same tier. reusable
+- `DiffResolverPort` / `FileSystemDiffResolver` owns git/gh subprocess invocation; scope (staged/unstaged/branch/pr) and stack (manifest-driven) resolved in runner before prompt assembly.
+- Known limitation: merger re-parses `rawOutput` and ignores `findings` field — failed-lane suppression is broken. Fix in SKILL-70.1.
+- Known limitation: `FileSystemDiffResolver.runProcess` has no subprocess timeout; stalled git/gh outlives executor interrupt. Fix in SKILL-70.1.
+Feature flag: N/A
+Acceptance criteria: 9/9 implemented (parallel review is additive beyond SKILL-70 spec scope)
+
 ## [2026-06-06] SKILL-69 stats-remote-query-guidance-and-docs
 Areas: runtime-kotlin/runtime-domain, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-application, runtime-kotlin/runtime-infra-sqlite, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-mcp, docs
 - Review stats now aggregate standalone review-finished telemetry plus embedded feature-implement review payloads, with source breakdowns and malformed/excluded payload debt.

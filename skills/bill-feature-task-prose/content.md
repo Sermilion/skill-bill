@@ -198,7 +198,7 @@ Step id: `review`
 
 Primary artifact: `review_result`
 
-Run `bill-code-review` inline in the orchestrator through the active skill runtime. Scope: current unit of work for SMALL, branch diff for MEDIUM/LARGE. Do not wrap `bill-code-review` in an additional subagent — it already spawns specialist subagents internally.
+Run `bill-code-review` inline in the orchestrator through the active skill runtime. Scope: current unit of work for SMALL, branch diff for MEDIUM/LARGE. Do not wrap `bill-code-review` in an additional subagent — it already spawns specialist subagents internally. When `parallel-review:<agent>` was passed to this skill, invoke `bill-code-review` with `parallel:<agent>` so a second review lane runs alongside the primary review.
 
 Review loop:
 

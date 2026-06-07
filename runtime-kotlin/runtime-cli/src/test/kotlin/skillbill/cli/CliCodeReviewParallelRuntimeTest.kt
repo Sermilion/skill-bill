@@ -7,6 +7,7 @@ import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
 import skillbill.ports.agentrun.model.AgentRunLaunchRequest
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -237,10 +238,11 @@ private class NoOpAgentRunLauncher : AgentRunLauncher {
 }
 
 private class ParallelReviewSuccessLauncher : AgentRunLauncher {
-  var launchCount = 0
+  private val count = AtomicInteger(0)
+  val launchCount: Int get() = count.get()
 
   override fun launch(request: AgentRunLaunchRequest): AgentRunLaunchOutcome {
-    launchCount++
+    count.incrementAndGet()
     return AgentRunLaunchFacts(
       agent = InstallAgent.fromNormalizedId(request.agentId, label = "agentId"),
       exitStatus = 0,

@@ -23,6 +23,7 @@ Gather enough to identify and confirm the run:
 - the issue key
 - the governed spec path the run implements
 - the agent currently executing this skill
+- the parallel review agent (from args as `parallel-review:<agent>`; absent when not provided)
 
 If the issue key or spec path is missing, stop and ask for it. Do not invent
 either one. The runtime sources the run-invariants (spec reference, acceptance
@@ -52,6 +53,8 @@ skill:
 ```bash
 skill-bill feature-task run <issue_key> <spec_path> --agent <currently-executing-agent>
 ```
+
+Append `--parallel-review-agent <agent>` when `parallel-review:<agent>` was passed to this skill.
 
 Always pass `--agent` set to the agent currently running this skill (for example
 `claude` from Claude Code, `codex` from Codex, `opencode` from OpenCode), so the

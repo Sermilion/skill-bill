@@ -18,10 +18,11 @@ Gather enough to identify and confirm the run:
 - the governed spec path the run implements
 - the agent currently executing this skill
 - the mode (from args as `mode:prose` or `mode:runtime`; default to `prose` when absent)
+- the parallel review agent (from args as `parallel-review:<agent>`; absent when not provided)
 
 If the issue key or spec path is missing, stop and ask for it. Do not invent either one.
 
-Parse the mode from args before presenting the confirmation gate. If no mode arg is provided, resolve the mode to `prose`.
+Parse the mode and `parallel-review:<agent>` from args before presenting the confirmation gate. If no mode arg is provided, resolve the mode to `prose`.
 
 ## Single Confirmation Gate
 
@@ -30,6 +31,7 @@ Present one concise confirmation that includes:
 - the issue key and spec path
 - the agent that will run each phase, including any explicit override
 - the resolved mode: show `prose (default)` when the mode was not specified, `prose` when explicitly set, or `runtime` when `mode:runtime` was passed
+- the parallel review agent when `parallel-review:<agent>` was passed, or `none` otherwise
 
 Ask exactly one confirmation question: whether to proceed with the selected mode.
 
@@ -42,11 +44,11 @@ After confirmation, invoke the delegated skill via the Skill tool — do not sea
 When mode is `prose` or unspecified:
 
 - Invoke `bill-feature-task-prose` via the Skill tool.
-- Forward `--agent`, `--agent-override`, and `--phase-agent` identically from the args received by this router.
+- Forward `--agent`, `--agent-override`, `--phase-agent`, and `parallel-review:<agent>` identically from the args received by this router.
 
 When mode is `runtime`:
 
 - Invoke `bill-feature-task-runtime` via the Skill tool.
-- Forward `--agent`, `--agent-override`, and `--phase-agent` identically from the args received by this router.
+- Forward `--agent`, `--agent-override`, `--phase-agent`, and `parallel-review:<agent>` identically from the args received by this router.
 
 Do not add a second confirmation gate on top of the delegated skill's own behavior. Delegate immediately after this router's own gate clears. The delegated skill owns its own intake, confirmation, and execution logic.

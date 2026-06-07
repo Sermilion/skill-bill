@@ -464,6 +464,8 @@ class FeatureTaskRuntimeRunner(
             issueKey = run.request.issueKey,
             briefing = briefing,
             suppressDecomposition = isGoalContinuationRun(run.request),
+            parallelReviewAgent = run.request.parallelReviewAgent
+              ?.takeIf { run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW },
           ),
         ),
       ),

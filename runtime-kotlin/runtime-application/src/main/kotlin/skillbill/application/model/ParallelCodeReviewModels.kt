@@ -19,6 +19,17 @@ data class ParallelCodeReviewResult(
   val lane2Success: Boolean,
 )
 
+data class ParallelCodeReviewMergeRequest(
+  val lane1AgentId: String,
+  val lane1RawOutput: String,
+  val lane2AgentId: String,
+  val lane2RawOutput: String,
+)
+
+data class ParallelCodeReviewMergeResult(
+  val formattedOutput: String,
+)
+
 class DiffResolutionException(message: String) : RuntimeException(message)
 
 class UsageValidationException(message: String) : RuntimeException(message)
