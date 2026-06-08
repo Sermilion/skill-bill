@@ -59,6 +59,7 @@ import skillbill.infrastructure.fs.FileSystemScaffoldManifestPersistence
 import skillbill.infrastructure.fs.FileSystemScaffoldRepoValidation
 import skillbill.infrastructure.fs.FileSystemScaffoldSourceLoader
 import skillbill.infrastructure.fs.FileSystemSkillRemoveFileSystem
+import skillbill.infrastructure.fs.FileSystemSpecScratchStore
 import skillbill.infrastructure.fs.FileSystemUnsupportedScaffoldGateway
 import skillbill.infrastructure.fs.FileTelemetryConfigStore
 import skillbill.infrastructure.fs.GhGoalPullRequestPort
@@ -110,6 +111,7 @@ import skillbill.ports.telemetry.UnconfiguredHttpRequester
 import skillbill.ports.validation.RepoValidationGateway
 import skillbill.ports.workflow.DecompositionManifestFileStore
 import skillbill.ports.workflow.NoopWorkflowGitOperations
+import skillbill.ports.workflow.SpecScratchStore
 import skillbill.ports.workflow.WorkflowGitOperations
 import skillbill.telemetry.DefaultTelemetrySettingsProvider
 import skillbill.workflow.DecompositionManifestValidator
@@ -338,6 +340,10 @@ abstract class RuntimeComponent(
   internal fun decompositionManifestFileStore(
     store: FileSystemDecompositionManifestFileStore,
   ): DecompositionManifestFileStore = store
+
+  @Provides
+  @JvmSynthetic
+  internal fun specScratchStore(store: FileSystemSpecScratchStore): SpecScratchStore = store
 
   // SKILL-52.3 Subtask 1: validator ports now bind to infra-fs adapters
   // (the module that owns the concrete networknt + Jackson schema

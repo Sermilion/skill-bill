@@ -1,5 +1,5 @@
 ---
-status: Draft
+status: Complete
 ---
 
 # SKILL-71 Subtask 3 - bill-feature-spec Linear Mode

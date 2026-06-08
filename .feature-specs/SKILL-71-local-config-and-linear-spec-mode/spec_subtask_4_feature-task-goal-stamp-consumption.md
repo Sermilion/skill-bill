@@ -1,5 +1,5 @@
 ---
-status: Draft
+status: Complete
 ---
 
 # SKILL-71 Subtask 4 - feature-task and goal Stamp Consumption

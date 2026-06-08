@@ -91,6 +91,22 @@ foreground driver directly in the current agent session, always passing
 skill-bill goal <issue_key> --agent <currently-executing-agent>
 ```
 
+### Rehydrate a missing linear-mode spec before launch/resume
+
+The goal's spec source is an artifact stamp read from the
+`decomposition-manifest.yaml` `spec_source` field, defaulting to `local`. For
+`spec_source: local`, no rehydrate is needed and no Linear MCP call is made.
+
+For `spec_source: linear`, linear-mode goals delete each subtask's spec scratch
+incrementally on success (subtask spec after its commit, parent spec + manifest
+after the final subtask), so on a resume an earlier-subtask spec being absent is
+normal and healthy — do not rehydrate it. Before launching/resuming, only when a
+*still-needed* spec (the parent spec or a not-yet-complete subtask's spec) is
+missing, rehydrate it first: fetch the parent issue by `issue_key` and each
+needed subtask by its `linear_issue_id` via the Linear MCP, rewrite those local
+files, then launch. Rehydrate is agent-side MCP only; the `skill-bill goal`
+runtime gains no Linear dependency.
+
 Always pass `--agent` set to the agent currently running this skill (for example
 `claude` from Claude Code, `codex` from Codex, `opencode` from OpenCode), so the
 invoking agent — not a hardcoded default — drives child subtask runs. Only use
