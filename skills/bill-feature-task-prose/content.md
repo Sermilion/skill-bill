@@ -81,6 +81,7 @@ Goal-continuation rules:
 - The structured outcome fields are `issue_key`, `subtask_id`, `status`, `commit_sha`, `workflow_id`, `blocked_reason`, and `last_resumable_step`. Runtime state is authoritative; git-tracked `decomposition-manifest.yaml` projections may omit runtime-only commit SHAs.
 - To explain why a subtask retried, stopped, or blocked, read the append-only attempt ledger (`goal_attempt_ledger`) on the child workflow via read-only `workflow show`; its `action`, `blocked_reason`, `stop_reason`, and `final_reconciled_result` fields are sufficient without scraping any provider session log. Caveat (not a Skill Bill contract): provider-reported total token counts can be dominated by cached input replay, so treat them as a diagnostic signal — Skill Bill optimizes payload size and session behavior, not provider cache accounting. See `orchestration/workflow-contract/PLAYBOOK.md` for detail.
 - Interactive `bill-feature-task` behavior is unchanged: direct user runs still perform Step 1 confirmation and create a PR in Step 9.
+- The `bill-feature-goal` `mode:prose` orchestrator is the loop driver that enters this worker contract per subtask via `skill-bill workflow continue <issue_key> --subtask-id <id>` / `feature_implement_workflow_continue`.
 
 ## Shared Feature-Spec Preparation Path
 
