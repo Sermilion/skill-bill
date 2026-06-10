@@ -136,6 +136,7 @@ data class SkillBillTreeItem(
   val editable: Boolean = true,
   val readOnlyLabel: String? = null,
   val metadata: SkillBillTreeItemMetadata? = null,
+  val baselineModified: Boolean = false,
   val children: List<SkillBillTreeItem> = emptyList(),
 )
 

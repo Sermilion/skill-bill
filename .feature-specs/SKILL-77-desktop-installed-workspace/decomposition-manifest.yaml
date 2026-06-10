@@ -10,7 +10,7 @@ base_branch: "main"
 feature_branch: "feat/SKILL-77-desktop-installed-workspace"
 stack_branches: []
 current_subtask_intent:
-  subtask_id: 4
+  subtask_id: 5
   action: "start"
 subtasks:
 - id: 1
@@ -58,12 +58,12 @@ subtasks:
 - id: 4
   name: "Baseline locally-modified indicators"
   spec_path: ".feature-specs/SKILL-77-desktop-installed-workspace/spec_subtask_4_baseline-modified-indicators.md"
-  status: "pending"
-  branch: null
+  status: "complete"
+  branch: "feat/SKILL-77-desktop-installed-workspace"
   commit_sha: null
-  workflow_id: null
+  workflow_id: "wfl-20260610-184155-5l7w"
   blocked_reason: null
-  last_resumable_step: null
+  last_resumable_step: "finish"
   linear_issue_id: null
   dependencies:
   - subtask_id: 1
