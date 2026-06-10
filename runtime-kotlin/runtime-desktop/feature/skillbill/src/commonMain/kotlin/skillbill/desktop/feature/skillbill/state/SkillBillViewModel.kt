@@ -91,6 +91,9 @@ class SkillBillViewModel(
   private val skillRemoveGateway: RuntimeSkillRemoveGateway,
   private val installedWorkspaceLocator: InstalledWorkspaceLocator,
 ) {
+  private val installedWorkspaceRoot: String? =
+    installedWorkspaceLocator.locate().takeIf { it.availability }?.path?.takeIf { it.isNotBlank() }
+  private val normalizedInstalledWorkspaceRoot: String? = installedWorkspaceRoot?.let(::normalizeRepoPath)
   private var repoPathText: String = recentRepoRepository.recentRepoPath().orEmpty()
   private var currentSession: RepoSession? = null
   private var treeItems: List<SkillBillTreeItem> = emptyList()
@@ -182,7 +185,9 @@ class SkillBillViewModel(
   private var currentState = createState()
 
   init {
-    if (repoPathText.isNotBlank()) {
+    if (installedWorkspaceRoot != null) {
+      currentState = openRepo(installedWorkspaceRoot, preserveSelection = false)
+    } else if (repoPathText.isNotBlank()) {
       currentState = openRepo(repoPathText, preserveSelection = false)
     }
   }
@@ -247,6 +252,23 @@ class SkillBillViewModel(
       state.selectedRepoPath?.let(recentRepoRepository::rememberRepoPath)
     }
     return state
+  }
+
+  fun beginReturnToInstalledWorkspace(): SkillBillState {
+    val installedRoot = installedWorkspaceRoot ?: return currentState
+    if (isEditorDirty()) {
+      dirtyEditorPrompt = DirtyEditorPrompt(
+        reason = DirtyEditorPromptReason.RETURN_TO_INSTALLED_WORKSPACE,
+        targetRepoPath = installedRoot,
+      )
+      currentState = createState()
+      return currentState
+    }
+    repoPathText = installedRoot
+    activeOperationToken += 1
+    busyOperation = SkillBillBusyOperation.OPEN_REPO
+    currentState = createState()
+    return currentState
   }
 
   fun selectTreeItem(itemId: String): SkillBillState {
@@ -464,6 +486,12 @@ class SkillBillViewModel(
   private fun openRepo(repoPath: String, preserveSelection: Boolean): SkillBillState =
     finishRepoLoad(loadRepo(repoLoadRequest(repoPath = repoPath, preserveSelection = preserveSelection)))
 
+  private fun isInstalledWorkspaceRoot(repoPath: String?): Boolean {
+    val normalizedRoot = normalizedInstalledWorkspaceRoot ?: return false
+    val candidate = repoPath?.takeIf { it.isNotBlank() }?.let(::normalizeRepoPath) ?: return false
+    return candidate == normalizedRoot
+  }
+
   private fun applyRefreshResult(result: RepoLoadResult) {
     val request = result.request
     val session = result.session
@@ -636,6 +664,8 @@ class SkillBillViewModel(
       pushErrorMessage = pushErrorMessage,
       pushStatusErrorMessage = publishingStatus.errorMessage,
       canonicalPushConfirmationRequired = canonicalPushConfirmationRequired,
+      canReturnToInstalledWorkspace =
+      installedWorkspaceRoot != null && !isInstalledWorkspaceRoot(session?.repoPath),
       dirtyEditorPrompt = dirtyEditorPrompt,
     )
     val paletteState = buildCommandPaletteState(
@@ -1042,6 +1072,10 @@ class SkillBillViewModel(
       DirtyEditorPromptReason.REPO_SWITCH -> {
         resetEditorDocument()
         prompt.targetRepoPath?.let(::beginSelectRepoPath)
+      }
+      DirtyEditorPromptReason.RETURN_TO_INSTALLED_WORKSPACE -> {
+        resetEditorDocument()
+        beginReturnToInstalledWorkspace()
       }
       DirtyEditorPromptReason.CHOOSE_DIRECTORY -> {
         resetEditorDocument()
@@ -3483,6 +3517,8 @@ private fun FirstRunSetupStep.previous(): FirstRunSetupStep = when (this) {
   FirstRunSetupStep.APPLY -> FirstRunSetupStep.PREFERENCES
   FirstRunSetupStep.RESULT -> FirstRunSetupStep.PREFERENCES
 }
+
+private fun normalizeRepoPath(repoPath: String): String = repoPath.trim().trimEnd('/').ifEmpty { "/" }
 
 private fun isRenderableKind(kind: String?): Boolean = when (kind) {
   "horizontal skill", "platform pack skill", "add-on", "native agent" -> true

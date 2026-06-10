@@ -1,5 +1,15 @@
 # SkillBill desktop feature — history
 
+## [2026-06-10] SKILL-77 default-open installed workspace + picker coexistence (subtask 2)
+Areas: runtime-desktop/feature/skillbill, runtime-desktop/core/domain
+- App now default-opens the installed workspace at startup: `SkillBillViewModel.init` consults `InstalledWorkspaceLocator` first and `openRepo`s `~/.skill-bill` when available, else falls back to the existing recent-path branch (AC2 unchanged). Installed-open wins over a set recent path.
+- Recents isolation is structural: `openRepo`/`finishRepoLoad` never call `rememberRepoPath` — only the picker's `finishSelectRepoPath` does. So default-open and switch-back leave a clone's remembered recent path intact. Do NOT route installed-workspace loads through `finishSelectRepoPath`. reusable
+- Switch-back affordance: new `beginReturnToInstalledWorkspace()` + "Open installed" toolbar button. It MUST mirror the async repo-switch contract — load on `Dispatchers.Default` via the Route (never sync on the Compose thread), guard unsaved edits with a dedicated `DirtyEditorPromptReason.RETURN_TO_INSTALLED_WORKSPACE` (the generic `REPO_SWITCH` discard path writes recents — wrong here), and follow up with `runGitRefresh(quiet)+loadHistory(quiet)`. These were all review-caught Majors; copy the pattern for any future repo-switch action. reusable
+- Installed-session detection = normalized string path-equality (`normalizeRepoPath`) against the locator root, surfaced as `SkillBillState.canReturnToInstalledWorkspace`; subtasks 3/4 branch on it. Known limitation: not realpath/symlink-aware (deferred).
+- A11y: toolbar buttons whose label differs from intent must pass an explicit `contentDescription` ("Open installed" vs the adjacent "Install").
+Feature flag: N/A
+Acceptance criteria: 5/5 implemented
+
 ## [2026-06-10] SKILL-77 installed-workspace locator (subtask 1)
 Areas: runtime-desktop/core/domain, runtime-desktop/core/data, runtime-desktop/core/testing, runtime-desktop/feature/skillbill
 - New `InstalledWorkspaceLocator` domain seam (interface in core/domain/service, `JvmInstalledWorkspaceLocator` in core/data/service) resolves `~/.skill-bill` and reports availability via `Files.isDirectory(skills) || Files.isDirectory(platform-packs)` — same recognition rule as `RuntimeRepoBrowserService.looksLikeSkillBillRepo` (kept as a duplicate predicate this subtask; consolidation deferred). reusable

@@ -65,6 +65,7 @@ data class SkillBillState(
   val pushErrorMessage: String? = null,
   val pushStatusErrorMessage: String? = null,
   val canonicalPushConfirmationRequired: Boolean = false,
+  val canReturnToInstalledWorkspace: Boolean = false,
   val dirtyEditorPrompt: DirtyEditorPrompt? = null,
   val commandPalette: CommandPaletteState = CommandPaletteState(),
   val scaffoldWizard: ScaffoldWizardState? = null,
@@ -382,6 +383,7 @@ enum class DirtyEditorPromptReason {
   REFRESH,
   REPO_SWITCH,
   CHOOSE_DIRECTORY,
+  RETURN_TO_INSTALLED_WORKSPACE,
 }
 
 data class SourceControlStatus(
