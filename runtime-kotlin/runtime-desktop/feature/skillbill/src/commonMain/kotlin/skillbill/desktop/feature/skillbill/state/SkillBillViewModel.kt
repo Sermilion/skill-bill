@@ -63,6 +63,7 @@ import skillbill.desktop.core.domain.model.ValidationSummary
 import skillbill.desktop.core.domain.service.AuthoringGateway
 import skillbill.desktop.core.domain.service.DesktopFirstRunGateway
 import skillbill.desktop.core.domain.service.GitGateway
+import skillbill.desktop.core.domain.service.InstalledWorkspaceLocator
 import skillbill.desktop.core.domain.service.PrPublishingGateway
 import skillbill.desktop.core.domain.service.RecentRepoRepository
 import skillbill.desktop.core.domain.service.RenderGateway
@@ -88,6 +89,7 @@ class SkillBillViewModel(
   private val firstRunGateway: DesktopFirstRunGateway,
   private val desktopPreferenceStore: DesktopPreferenceStore,
   private val skillRemoveGateway: RuntimeSkillRemoveGateway,
+  private val installedWorkspaceLocator: InstalledWorkspaceLocator,
 ) {
   private var repoPathText: String = recentRepoRepository.recentRepoPath().orEmpty()
   private var currentSession: RepoSession? = null

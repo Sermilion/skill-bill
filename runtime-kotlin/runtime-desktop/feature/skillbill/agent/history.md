@@ -1,5 +1,14 @@
 # SkillBill desktop feature — history
 
+## [2026-06-10] SKILL-77 installed-workspace locator (subtask 1)
+Areas: runtime-desktop/core/domain, runtime-desktop/core/data, runtime-desktop/core/testing, runtime-desktop/feature/skillbill
+- New `InstalledWorkspaceLocator` domain seam (interface in core/domain/service, `JvmInstalledWorkspaceLocator` in core/data/service) resolves `~/.skill-bill` and reports availability via `Files.isDirectory(skills) || Files.isDirectory(platform-packs)` — same recognition rule as `RuntimeRepoBrowserService.looksLikeSkillBillRepo` (kept as a duplicate predicate this subtask; consolidation deferred). reusable
+- Home is an injectable `internal var homeProvider` seam (NOT a constructor lambda — KSP/ABI rule) mirroring `JvmDesktopFirstRunGateway.homeProvider`, so install-output and default-open resolve the same root; bound `@SingleIn(UserScope::class)` via `@Provides` in `JvmDataBindings`.
+- `FakeInstalledWorkspaceLocator` added in core/testing (settable result + `locateCallCount`) — reuse for subtask 2 auto-open interaction tests. reusable
+- `InstalledWorkspaceLocator` is constructor-injected into `SkillBillViewModel` but intentionally unused here; auto-open wiring lands in subtask 2.
+Feature flag: N/A
+Acceptance criteria: 4/4 implemented
+
 ## [2026-05-23] SKILL-51 auto-reinstall-after-publish
 Areas: runtime-desktop/feature/skillbill, runtime-desktop/core/domain, runtime-desktop/core/data, runtime-desktop/core/datastore
 - Successful desktop publish/push now opens a post-publish reinstall prompt when completed setup preferences include reusable agent selections; declining leaves the publish result intact.

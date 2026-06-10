@@ -1688,6 +1688,7 @@ class SkillBillViewModelGitTest {
     firstRunGateway = firstRunGateway,
     desktopPreferenceStore = desktopPreferenceStore,
     skillRemoveGateway = skillbill.desktop.core.testing.skillremove.FakeSkillRemoveGateway(),
+    installedWorkspaceLocator = skillbill.desktop.core.testing.workspace.FakeInstalledWorkspaceLocator(),
   )
 
   private fun commitEntry(

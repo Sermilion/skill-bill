@@ -345,6 +345,7 @@ class SkillBillViewModelTest {
       firstRunGateway = defaultFirstRunGateway(),
       desktopPreferenceStore = completedFirstRunStore(),
       skillRemoveGateway = skillbill.desktop.core.testing.skillremove.FakeSkillRemoveGateway(),
+      installedWorkspaceLocator = skillbill.desktop.core.testing.workspace.FakeInstalledWorkspaceLocator(),
     )
 
     val state = viewModel.selectRepoPath("/not-skill-bill")
@@ -382,6 +383,7 @@ class SkillBillViewModelTest {
       firstRunGateway = defaultFirstRunGateway(),
       desktopPreferenceStore = completedFirstRunStore(),
       skillRemoveGateway = skillbill.desktop.core.testing.skillremove.FakeSkillRemoveGateway(),
+      installedWorkspaceLocator = skillbill.desktop.core.testing.workspace.FakeInstalledWorkspaceLocator(),
     )
     viewModel.selectRepoPath("/repo")
     skillTreeService.items =
@@ -1851,6 +1853,7 @@ class SkillBillViewModelTest {
     firstRunGateway = firstRunGateway,
     desktopPreferenceStore = desktopPreferenceStore,
     skillRemoveGateway = skillRemoveGateway,
+    installedWorkspaceLocator = skillbill.desktop.core.testing.workspace.FakeInstalledWorkspaceLocator(),
   )
 }
 

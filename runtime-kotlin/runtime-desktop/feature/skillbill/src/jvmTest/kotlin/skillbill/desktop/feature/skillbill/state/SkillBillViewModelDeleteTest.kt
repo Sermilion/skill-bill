@@ -193,6 +193,7 @@ class SkillBillViewModelDeleteTest {
         initialFirstRunPreferences = skillbill.desktop.core.datastore.DesktopFirstRunPreferences(completed = true),
       ),
       skillRemoveGateway = skillRemoveGateway,
+      installedWorkspaceLocator = skillbill.desktop.core.testing.workspace.FakeInstalledWorkspaceLocator(),
     )
     viewModel.selectRepoPath("/repo")
     return viewModel
