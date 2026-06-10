@@ -1,5 +1,5 @@
 ---
-status: In Progress
+status: Complete
 ---
 
 # SKILL-77 - desktop installed workspace

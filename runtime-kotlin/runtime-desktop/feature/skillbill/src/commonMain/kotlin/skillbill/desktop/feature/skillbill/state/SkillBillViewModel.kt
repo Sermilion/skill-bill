@@ -6,6 +6,7 @@ import skillbill.desktop.core.datastore.DesktopFirstRunPreferences
 import skillbill.desktop.core.datastore.DesktopPreferenceStore
 import skillbill.desktop.core.domain.model.AuthoredContentDocument
 import skillbill.desktop.core.domain.model.AuthoringSaveResult
+import skillbill.desktop.core.domain.model.BaselineReviewLayerSuggestion
 import skillbill.desktop.core.domain.model.ChangedFile
 import skillbill.desktop.core.domain.model.ChangedFileGroup
 import skillbill.desktop.core.domain.model.ChangesSnapshot
@@ -20,6 +21,8 @@ import skillbill.desktop.core.domain.model.DockTab
 import skillbill.desktop.core.domain.model.EditorPlaceholder
 import skillbill.desktop.core.domain.model.FirstRunApplyResult
 import skillbill.desktop.core.domain.model.FirstRunDiscoveryResult
+import skillbill.desktop.core.domain.model.FirstRunInstallDetail
+import skillbill.desktop.core.domain.model.FirstRunInstallDetailSeverity
 import skillbill.desktop.core.domain.model.FirstRunInstallOutcome
 import skillbill.desktop.core.domain.model.FirstRunInstallStatus
 import skillbill.desktop.core.domain.model.FirstRunPlanResult
@@ -32,7 +35,9 @@ import skillbill.desktop.core.domain.model.FirstRunTelemetryLevel
 import skillbill.desktop.core.domain.model.GitOperationResult
 import skillbill.desktop.core.domain.model.GitPublishingStatus
 import skillbill.desktop.core.domain.model.GitPushTarget
+import skillbill.desktop.core.domain.model.PartialMutationPostMortem
 import skillbill.desktop.core.domain.model.PostPublishReinstallState
+import skillbill.desktop.core.domain.model.PrPublishingErrorType
 import skillbill.desktop.core.domain.model.PrPublishingRequest
 import skillbill.desktop.core.domain.model.PrPublishingResult
 import skillbill.desktop.core.domain.model.ProvisionResult
@@ -58,6 +63,7 @@ import skillbill.desktop.core.domain.model.SkillBillState
 import skillbill.desktop.core.domain.model.SkillBillStatusBar
 import skillbill.desktop.core.domain.model.SkillBillTreeItem
 import skillbill.desktop.core.domain.model.TreeItemKind
+import skillbill.desktop.core.domain.model.ValidateAgentConfigsSummary
 import skillbill.desktop.core.domain.model.ValidationIssue
 import skillbill.desktop.core.domain.model.ValidationRunState
 import skillbill.desktop.core.domain.model.ValidationSummary
@@ -94,9 +100,9 @@ class SkillBillViewModel(
   private val installedWorkspaceLocator: InstalledWorkspaceLocator,
   private val installedWorkspaceGitProvisioner: InstalledWorkspaceGitProvisioner,
 ) {
-  private val installedWorkspaceRoot: String? =
+  private var installedWorkspaceRoot: String? =
     installedWorkspaceLocator.locate().takeIf { it.availability }?.path?.takeIf { it.isNotBlank() }
-  private val normalizedInstalledWorkspaceRoot: String? = installedWorkspaceRoot?.let(::normalizeRepoPath)
+  private var normalizedInstalledWorkspaceRoot: String? = installedWorkspaceRoot?.let(::normalizeRepoPath)
   private var repoPathText: String = recentRepoRepository.recentRepoPath().orEmpty()
   private var currentSession: RepoSession? = null
   private var treeItems: List<SkillBillTreeItem> = emptyList()
@@ -171,10 +177,10 @@ class SkillBillViewModel(
   // F-CROSS-REPO-LOCK: persistent post-mortem slot, separate from confirmDeletion so it survives
   // a stale-token finish, dialog dismiss, AND a repo switch. Only acknowledgeRemovalFailure()
   // clears it.
-  private var partialMutationPostMortem: skillbill.desktop.core.domain.model.PartialMutationPostMortem? = null
+  private var partialMutationPostMortem: PartialMutationPostMortem? = null
   private var activeRemovalToken: Long = 0L
-  private var validateAgentConfigsSummary: skillbill.desktop.core.domain.model.ValidateAgentConfigsSummary =
-    skillbill.desktop.core.domain.model.ValidateAgentConfigsSummary.empty
+  private var validateAgentConfigsSummary: ValidateAgentConfigsSummary =
+    ValidateAgentConfigsSummary.empty
   private var activeValidateAgentConfigsToken: Long = 0L
   private var firstRunSetup: FirstRunSetupState? =
     if (desktopPreferenceStore.firstRunPreferences.value.completed || firstRunGateway.hasExistingInstall()) {
@@ -193,7 +199,8 @@ class SkillBillViewModel(
   private var currentState = createState()
 
   init {
-    if (installedWorkspaceRoot != null) {
+    val capturedInstalledRoot = installedWorkspaceRoot
+    if (capturedInstalledRoot != null) {
       // NOTE(F-CRITICAL-1): provision() runs synchronously here. In the AlreadyProvisioned fast
       // path (rev-parse exits 0 and top-level == root) this completes in < 100 ms. In the
       // first-open path, up to 6 sequential git sub-processes (each with a 5-second timeout) are
@@ -201,8 +208,8 @@ class SkillBillViewModel(
       // created synchronously by the DI graph before the Compose route is attached), so there is
       // no safe async entry point here. This known limitation is tracked for a follow-up refactor
       // that will move provisioning to a LaunchedEffect on the route.
-      val provisionResult = installedWorkspaceGitProvisioner.provision(installedWorkspaceRoot)
-      currentState = openRepo(installedWorkspaceRoot, preserveSelection = false)
+      val provisionResult = installedWorkspaceGitProvisioner.provision(capturedInstalledRoot)
+      currentState = openRepo(capturedInstalledRoot, preserveSelection = false)
       // AC4: apply the provision error AFTER openRepo so the repo-load reset does not clobber it.
       // The error is surfaced via changesSnapshot.errorMessage; the session and editor still work.
       val provisionError = when (provisionResult) {
@@ -621,7 +628,7 @@ class SkillBillViewModel(
     // to the previous repo; clear both so a repo-switch never bleeds stale state.
     confirmDeletion = null
     activeRemovalToken += 1
-    validateAgentConfigsSummary = skillbill.desktop.core.domain.model.ValidateAgentConfigsSummary.empty
+    validateAgentConfigsSummary = ValidateAgentConfigsSummary.empty
     activeValidateAgentConfigsToken += 1
     loadEditorForSelection()
   }
@@ -928,10 +935,20 @@ class SkillBillViewModel(
 
   fun finishFirstRunSetup(): SkillBillState {
     val setup = firstRunSetup ?: return currentState
+    if (setup.busy) return currentState
     if (setup.outcome?.status != FirstRunInstallStatus.FAILURE) {
       firstRunSetup = null
       busyOperation = null
-      currentState = createState()
+      if (installedWorkspaceRoot == null) {
+        val freshRoot = installedWorkspaceLocator.locate().takeIf { it.availability }?.path?.takeIf { it.isNotBlank() }
+        installedWorkspaceRoot = freshRoot
+        normalizedInstalledWorkspaceRoot = freshRoot?.let(::normalizeRepoPath)
+      }
+      currentState = if (installedWorkspaceRoot != null) {
+        openRepo(installedWorkspaceRoot!!, preserveSelection = false)
+      } else {
+        createState()
+      }
     }
     return currentState
   }
@@ -1769,10 +1786,10 @@ class SkillBillViewModel(
         status = FirstRunInstallStatus.FAILURE,
         title = "Reinstall planning failed.",
         details = listOf(
-          skillbill.desktop.core.domain.model.FirstRunInstallDetail(
+          FirstRunInstallDetail(
             label = "Install",
             message = planResult.message,
-            severity = skillbill.desktop.core.domain.model.FirstRunInstallDetailSeverity.ERROR,
+            severity = FirstRunInstallDetailSeverity.ERROR,
           ),
         ),
       )
@@ -1945,7 +1962,7 @@ class SkillBillViewModel(
       )
     }.getOrElse { error ->
       PrPublishingResult.Failed(
-        type = skillbill.desktop.core.domain.model.PrPublishingErrorType.PROVIDER,
+        type = PrPublishingErrorType.PROVIDER,
         message = describe(error),
       )
     }
@@ -2578,9 +2595,7 @@ class SkillBillViewModel(
     }
   }
 
-  private fun skillbill.desktop.core.domain.model.BaselineReviewLayerSuggestion.matches(
-    fields: ScaffoldWizardFormFields,
-  ): Boolean {
+  private fun BaselineReviewLayerSuggestion.matches(fields: ScaffoldWizardFormFields): Boolean {
     val haystack = (
       listOf(fields.platform, fields.displayName, fields.description) +
         fields.strongRoutingSignals +
@@ -2832,12 +2847,12 @@ class SkillBillViewModel(
     if (result !is DesktopSkillRemovalResult.Failed || result.rollbackComplete) return
     val target = request.payload.target
     val label = when (target) {
-      is skillbill.desktop.core.domain.model.DesktopSkillRemovalTarget.HorizontalSkill -> target.skillName
-      is skillbill.desktop.core.domain.model.DesktopSkillRemovalTarget.PlatformPack ->
+      is DesktopSkillRemovalTarget.HorizontalSkill -> target.skillName
+      is DesktopSkillRemovalTarget.PlatformPack ->
         "platform pack '${target.platform}'"
-      is skillbill.desktop.core.domain.model.DesktopSkillRemovalTarget.AddOn -> target.relativePath
+      is DesktopSkillRemovalTarget.AddOn -> target.relativePath
     }
-    partialMutationPostMortem = skillbill.desktop.core.domain.model.PartialMutationPostMortem(
+    partialMutationPostMortem = PartialMutationPostMortem(
       targetLabel = label,
       exceptionName = result.exceptionName,
       exceptionMessage = result.exceptionMessage,
@@ -2852,7 +2867,7 @@ class SkillBillViewModel(
   fun showValidateAgentConfigsConsole(): SkillBillState {
     activeDockTab = DockTab.Console
     activeValidateAgentConfigsToken += 1
-    validateAgentConfigsSummary = skillbill.desktop.core.domain.model.ValidateAgentConfigsSummary(
+    validateAgentConfigsSummary = ValidateAgentConfigsSummary(
       lines = emptyList(),
       exitCode = null,
       running = true,

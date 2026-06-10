@@ -1,5 +1,14 @@
 # SkillBill desktop feature — history
 
+## [2026-06-10] SKILL-77 first-run handoff and end-to-end validation (subtask 5)
+Areas: runtime-desktop/feature/skillbill
+- `finishFirstRunSetup` on success now calls `installedWorkspaceLocator.locate()` once when `installedWorkspaceRoot == null` (the install ran AFTER VM construction, so the construction-time val was null), then updates `installedWorkspaceRoot` and `normalizedInstalledWorkspaceRoot` vars before calling `openRepo`. If the locate result is still null, falls back to `createState()` unchanged. reusable
+- Stale-cache rule: any locator or gateway val that resolves at construction can be null when a post-construction install creates the directory. Pattern: check the cached var, re-query only when null, update the var so all downstream predicates (`isInstalledWorkspaceRoot`, `beginReturnToInstalledWorkspace`, `createState`) see the fresh value without repeated I/O. reusable
+- Busy-guard required on `finishFirstRunSetup`: the null-outcome path passes the FAILURE check, so the guard must match `dismissFirstRunSetup` (check `setup.busy` before touching any state). Missing this allows mid-flight teardown of in-progress apply, causing `finishFirstRunApply` to find null and discard its result silently.
+- `installedWorkspaceRoot` and `normalizedInstalledWorkspaceRoot` promoted to `var` to support post-first-run cache update; smart-cast requires a local `val` copy in `init` where the property is checked.
+Feature flag: N/A
+Acceptance criteria: 4/4 implemented
+
 ## [2026-06-10] SKILL-77 git provisioning and graceful degradation (subtask 3)
 Areas: runtime-desktop/feature/skillbill, runtime-desktop/core/data, runtime-desktop/core/domain
 - SkillBillViewModel.init provisions git for the installed workspace by calling InstalledWorkspaceGitProvisioner.provision() immediately after InstalledWorkspaceLocator.locate() resolves a root; GitUnavailable or Failed sets changesSnapshot.errorMessage and still opens the session (AC4 degraded mode). Known limitation: both calls block the UI thread at construction time; async follow-up deferred.
