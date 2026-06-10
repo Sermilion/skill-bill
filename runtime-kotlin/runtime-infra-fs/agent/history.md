@@ -14,6 +14,14 @@ Areas: runtime-infra-fs/install, runtime-domain/install/model, runtime-ports/ins
 Feature flag: N/A
 Acceptance criteria: subtask-2 AC-3/5/6/7/8/9 implemented + covered
 
+## [2026-06-10] SKILL-76 migration + parity closeout (subtask 3)
+Areas: runtime-infra-fs/install (tests), README
+- Migration to the copied-source model needed NO new production code: `--replace-existing-skill-bill-links` (`InstallSymlinkReplacement.createManagedSymlinkWithGuidance(replaceExisting=true)` + `readSymlinkTargetOrNull`) already repoints a clone-pointing managed agent link onto the copy and leaves no dangling clone link. Locked by an `InstallApplyReplacementCleanupTest` case that seeds a link into a sibling clone and asserts the repoint resolves under `~/.skill-bill/installed-skills` with zero surviving links into the clone (AC-10)
+- The SKILL-74 claude multi-profile fan-out, SKILL-75 per-profile MCP registration, and `CLAUDE_CONFIG_DIR` honoring are all SOURCE-LOCATION-AGNOSTIC: they key off `home`, not `--repo-root`. Moving `--repo-root` to the copy changed nothing. Pattern for locking this: a `copiedSourceFixture` that copies the seed repoRoot under `~/.skill-bill` and re-runs the existing multi-root assertions, plus a guard that `repoRoot.startsWith(home/.skill-bill)` — proves the invariant without forking the fan-out (AC-11)
+- AC-4/AC-12 gap closed: the non-content-managed fallback test previously could only prove verbatim pass-through; strengthened to materialize an identically-named skill in a sibling clone and assert the fallback target resolves under the copy and NEVER into the clone
+Feature flag: N/A
+Acceptance criteria: subtask-3 AC-10/AC-11/AC-12 verified + covered; AC-3 clone-deletable guarantee documented
+
 ## [2026-06-09] SKILL-74 auto-detect-claude-profiles
 Areas: runtime-infra-fs/install, runtime-infra-fs/nativeagent, runtime-domain/install/policy, runtime-cli, install.sh, uninstall.sh
 - `claudeConfigRoots(home, environment)` in `ClaudeConfigPaths.kt` is the single source of truth for the claude profile set: default `~/.claude` first, then marker-filtered top-level `$HOME/.claude-<name>` dirs (markers `.claude.json`/`.credentials.json`/`commands`/`agents`/`history.jsonl`), then a distinct non-blank `CLAUDE_CONFIG_DIR`; deduped by normalized abs path. The single-root `claudeConfigRoot` stays for AC9 (`agent-path claude`/`claude-agents-path` return only the active root)

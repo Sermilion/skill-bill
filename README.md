@@ -255,7 +255,16 @@ symlink preflight outcomes.
 the whole `orchestration/` tree) into `~/.skill-bill/` as **real files**, and the
 runtime is repointed at that copy. This makes the install self-contained: once an
 install succeeds you can delete the clone and Skill Bill keeps resolving from the
-copy under `~/.skill-bill/` — the clone is **not required** at runtime.
+copy under `~/.skill-bill/` — the clone is **not required** at runtime. Every
+installed skill (content-managed and non-content-managed alike), the staged outputs,
+and the per-profile agent links all resolve under `~/.skill-bill/`, never back into
+the clone.
+
+The one operation that still uses a source checkout is **re-running the installer
+itself**: `./install.sh` lives in the checkout, and a reinstall stages that
+checkout's source as the upstream side of the reconcile. This is by design, not an
+accidental coupling — a *running* installation never needs the clone; only the act
+of installing again does.
 
 On a **reinstall**, the installer never blindly overwrites your copy. It first
 stages the clone's source into candidate dirs, then runs `skill-bill install
