@@ -33,7 +33,7 @@ conflict policy, and the interactive both-changed prompt with pre-swap abort.
    domain model; the hash-compare logic should be unit-testable in
    `runtime-infra-fs`. Loud-fail typed errors — reconciliation aborts, never silent.
 
-3. **Baseline manifest persistence.** Store `$HOME/.skill-bill/skill-baselines.json`
+3. **Baseline manifest persistence.** Store `$HOME/.skill-bill/baseline-manifest.json`
    mapping skill-relative-path → last-copied-in upstream content hash, written
    through a `runtime-infra-fs` adapter behind a domain port (no FS IO in
    domain/application). Refresh on `adopt` / `new-upstream` / accepted-`conflict`;

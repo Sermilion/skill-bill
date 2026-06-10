@@ -1,5 +1,5 @@
 ---
-status: In Progress
+status: Complete
 ---
 
 # SKILL-76 - self-contained skill source of truth
@@ -209,20 +209,29 @@ future issue.
    stop the whole install, change nothing). Without a TTY any conflict aborts with a
    clear message. Conflict detection happens BEFORE the atomic swap so an abort leaves
    the existing installation fully intact. All conflicts are reported in the summary.
-2. **Closure of copied repo-root files.** Planning must enumerate the exact set of
-   files the runtime plan/apply reads relative to `--repo-root` (skills, platform
-   packs, `platform.yaml`, any manifests / shared content) so the copied
-   `~/.skill-bill` tree is complete enough to serve as `--repo-root` with the clone
-   absent. Determines AC-3.
-3. **Reinstall-without-clone.** Confirm whether a reinstall can run entirely from the
-   copied tree (clone absent) or whether some step still needs the clone; if the
-   latter, document the requirement explicitly per AC-3.
-4. **Baseline storage + algorithm.** Where the per-skill baseline manifest lives
-   under `~/.skill-bill`, its format, and reuse of the existing content-hash util
-   (vs. a new hash). Should align with the existing `{slug}-{hash}` staging hash.
-5. **Migration trigger.** How the first copied-source install detects and supersedes
-   a pre-existing repo-symlinked installation (AC-10) — e.g. detect agent symlinks
-   pointing into the clone and repoint them — without clobbering user state.
+2. **Closure of copied repo-root files.** RESOLVED — subtask 1 copies the full
+   read-closure into `~/.skill-bill`: `skills/`, `platform-packs/`, and the whole
+   `orchestration/` tree (carrying `skill-classes/*.yaml`, every `PLAYBOOK.md` /
+   `specialist-contract.md` / `shell-ceremony.md`, and the `android-*.md` support
+   targets inlined at render time) as REAL files; `orchestration/contracts/*.yaml`
+   is loaded as a classpath resource, not copied. The copy serves as `--repo-root`
+   with the clone absent.
+3. **Reinstall-without-clone.** RESOLVED — a *running* installation never needs the
+   clone (all skills/staging/agent links resolve under `~/.skill-bill`). The one
+   operation still using a source checkout is re-running `./install.sh` itself (the
+   script and the upstream side of the reconcile live in the checkout) — documented
+   explicitly in the README per AC-3, by design, not accidental.
+4. **Baseline storage + algorithm.** RESOLVED — `~/.skill-bill/baseline-manifest.json`
+   (`{contract_version, baselines: {sorted skill-rel-path → 16-hex}}`), written via a
+   `runtime-infra-fs` adapter behind a domain port (atomic temp + ATOMIC_MOVE,
+   sorted keys for byte-stable idempotent writes). Reuses `computeInstallContentHash`
+   — the SAME hash that keys the `{slug}-{hash}` staging leaf — never a second scheme.
+   Survives the pre-install wipe via the uninstall.sh preserve-mode allowlist.
+5. **Migration trigger.** RESOLVED — no new detection code needed: the existing
+   `--replace-existing-skill-bill-links` flag (already passed by install.sh) drives
+   `InstallSymlinkReplacement.createManagedSymlinkWithGuidance(replaceExisting=true)`,
+   which reads the old target and repoints any clone-pointing managed link onto the
+   copy with no dangling clone link left. Asserted by `InstallApplyReplacementCleanupTest`.
 6. **Default vs. opt-in.** RESOLVED — copied-source is the default immediately. NO
    transition flag / escape hatch. (Runtime already proves the pattern; AC-10 covers
    migration.)
