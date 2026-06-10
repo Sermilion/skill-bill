@@ -344,6 +344,60 @@ class InstallStagingTest {
     )
   }
 
+  @Test
+  fun `content-managed staging target resolves under the home cache outside the source repoRoot`() {
+    // SKILL-76 AC-2: install.sh copies authored source into ~/.skill-bill and repoints
+    // --repo-root/--skills/--platform-packs at that COPY. Here `repoRoot` models the copy.
+    // resolveStagedSymlinkTarget must route a content-managed skill into the home staging cache
+    // (keyed off the copy's source), never back into the source repoRoot. This exercises the
+    // dispatcher's content-managed branch; it cannot prove "never a sibling clone" because no
+    // clone path is ever injected into the SUT.
+    val fixture = setupFixture()
+
+    val target = resolveStagedSymlinkTarget(
+      resolvedSkill = fixture.skillDir,
+      repoRoot = fixture.repoRoot,
+      home = fixture.home,
+      manifests = fixture.pointerSpecs.map { it.first }.distinct(),
+    ).toAbsolutePath().normalize()
+
+    assertTrue(
+      target.startsWith(fixture.home.resolve(".skill-bill/installed-skills").toAbsolutePath().normalize()),
+      "content-managed staging target $target must resolve under the home cache",
+    )
+    assertFalse(
+      target.startsWith(fixture.repoRoot.toAbsolutePath().normalize()),
+      "content-managed staging target $target unexpectedly resolves inside the source repoRoot ${fixture.repoRoot}",
+    )
+  }
+
+  @Test
+  fun `non-content-managed fallback returns the injected copy skill dir verbatim`() {
+    // SKILL-76 AC-4: skills with no content.md fall back to a direct source symlink. The fallback
+    // returns the injected resolvedSkill verbatim, which the install flow derives from --skills
+    // (the COPY under ~/.skill-bill after the repoint). This case can only prove the verbatim
+    // pass-through; it cannot prove "never the clone" because no clone path is injected into the SUT.
+    val repoRoot = Files.createTempDirectory("skillbill-fallback-copy-repo").also(tempDirs::add)
+    val home = Files.createTempDirectory("skillbill-fallback-copy-home").also(tempDirs::add)
+    // A legacy, non-content-managed skill dir under the copy: no content.md present.
+    val copySkillDir = repoRoot.resolve("skills/legacy-link-skill")
+    Files.createDirectories(copySkillDir)
+    Files.writeString(copySkillDir.resolve("SKILL.md"), "# legacy ad-hoc skill\n")
+    assertFalse(isContentManagedSkill(copySkillDir), "fixture must be non-content-managed (no content.md)")
+
+    val target = resolveStagedSymlinkTarget(
+      resolvedSkill = copySkillDir,
+      repoRoot = repoRoot,
+      home = home,
+    ).toAbsolutePath().normalize()
+
+    assertEquals(
+      copySkillDir.toAbsolutePath().normalize(),
+      target,
+      "non-content-managed fallback must return the injected copy skill dir verbatim",
+    )
+  }
+
   // ---------------------------------------------------------------------------------------------
   // Fixture builder
   // ---------------------------------------------------------------------------------------------

@@ -621,7 +621,12 @@ run_pre_install_uninstall() {
   printf "${CYAN}━━━ Pre-install cleanup ━━━${NC}\n"
   echo ""
   info "Running uninstall.sh first so every install starts from a clean slate."
-  bash "$uninstall_script"
+  # PRESERVE the copied-in self-contained source (skills/, platform-packs/,
+  # orchestration/ + the reserved baseline-manifest path) across the pre-install
+  # wipe, while still clearing runtime/, installed-skills/, and *.db state DBs.
+  # This flag is ONLY set for the install-driven pre-install uninstall; an
+  # explicit ./uninstall.sh (flag unset) still fully removes ~/.skill-bill.
+  SKILL_BILL_PRESERVE_SOURCE_ON_WIPE=1 bash "$uninstall_script"
 }
 
 locate_packaged_runtime_bin() {
@@ -649,6 +654,37 @@ install_packaged_runtime_distribution() {
   cp -R "$source_dir" "$tmp_dir"
   rm -rf "$target_dir"
   mv "$tmp_dir" "$target_dir"
+}
+
+# Copy the clone's authored skill/platform/orchestration source into the
+# Skill Bill state dir as REAL files (not symlinks) BEFORE any skill linking,
+# so that deleting the clone after a successful install leaves a fully
+# functional install. Uses the same atomic copy idiom as
+# install_packaged_runtime_distribution (rm -rf tmp; cp -R src tmp; rm -rf
+# target; mv tmp target). Only authored source lives in these trees:
+# content.md, native-agents/, platform.yaml. Generated SKILL.md wrappers and
+# support pointers are render OUTPUT into installed-skills staging and never
+# appear under the clone's skills/, so an unfiltered cp -R is source-safe.
+copy_in_authored_source() {
+  info "Copying authored skill source into: $SKILL_BILL_STATE_DIR"
+  mkdir -p "$SKILL_BILL_STATE_DIR"
+  install_packaged_runtime_distribution \
+    "$SKILLS_DIR" \
+    "$SKILL_BILL_STATE_DIR/skills" \
+    "skills source"
+  install_packaged_runtime_distribution \
+    "$PLATFORM_PACKS_DIR" \
+    "$SKILL_BILL_STATE_DIR/platform-packs" \
+    "platform-packs source"
+  install_packaged_runtime_distribution \
+    "$PLUGIN_DIR/orchestration" \
+    "$SKILL_BILL_STATE_DIR/orchestration" \
+    "orchestration source"
+  # RESERVED SEAM (subtask 2): the baseline manifest produced from this copied
+  # source will live at "$SKILL_BILL_STATE_DIR/baseline-manifest.json". The
+  # pre-install wipe (uninstall.sh preserve-mode) and this copy-in both treat
+  # that path as part of the preserved self-contained source set.
+  ok "Authored source copied into $SKILL_BILL_STATE_DIR"
 }
 
 install_packaged_runtime_distributions() {
@@ -1781,9 +1817,9 @@ build_runtime_install_args() {
   RUNTIME_INSTALL_ARGS=(
     install
     apply
-    --repo-root "$PLUGIN_DIR"
-    --skills "$SKILLS_DIR"
-    --platform-packs "$PLATFORM_PACKS_DIR"
+    --repo-root "$SKILL_BILL_STATE_DIR"
+    --skills "$SKILL_BILL_STATE_DIR/skills"
+    --platform-packs "$SKILL_BILL_STATE_DIR/platform-packs"
     --agent-mode "$AGENT_SELECTION_MODE"
     --platform-mode "$PLATFORM_SELECTION_MODE"
     --telemetry "$TELEMETRY_LEVEL"
@@ -1927,6 +1963,7 @@ run_full_install() {
     replay_last_install_selection
   fi
   run_pre_install_uninstall
+  copy_in_authored_source
   install_runtime_distributions
   if [[ "$REUSE_LAST_SELECTION" -ne 1 ]]; then
     build_platform_packages
