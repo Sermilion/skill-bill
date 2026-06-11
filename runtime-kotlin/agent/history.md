@@ -1,3 +1,12 @@
+## [2026-06-11] SKILL-52.4 application-env-seam
+Areas: runtime-kotlin/runtime-application, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-core
+- Runtime-application timing, diagnostics, and parallel review lane execution now route through ports; keep direct `Thread.sleep`, JDK logging, `getLogger`, executor, and threading APIs outside application main. reusable
+- `RuntimeTimingPort`, `RuntimeDiagnostics`, and `ParallelReviewLaneRunner` are the seams; infra-fs owns the JDK adapters and runtime-core owns DI wiring. reusable
+- `GoalRunner.waitForLateTerminalOutcome` is synthetic-time testable with no wall-clock delay; production constants stay in the real timing adapter.
+- The runtime-application architecture scan is non-vacuous over all main Kotlin files, including progress, ledger, telemetry, and gate collaborators.
+Feature flag: N/A
+Acceptance criteria: 4/4 implemented
+
 ## [2026-06-11] SKILL-52.4 enforcement-gates
 Areas: runtime-kotlin/runtime-core, runtime-kotlin/runtime-domain, runtime-kotlin/runtime-application, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-mcp, runtime-kotlin/ARCHITECTURE.md
 - Runtime package ownership is now complete-enforced: every declared main Kotlin source root must map to `RuntimeModule.declaredSubsystemPackages`; keep `RuntimeModule`, `RuntimeArchitectureDocumentationTest`, MCP smoke literals, and ARCHITECTURE package blocks in lockstep. reusable

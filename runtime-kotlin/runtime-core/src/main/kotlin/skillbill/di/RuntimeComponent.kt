@@ -71,6 +71,9 @@ import skillbill.infrastructure.fs.GitWorkflowGitOperations
 import skillbill.infrastructure.fs.GoalObservabilityEventValidatorAdapter
 import skillbill.infrastructure.fs.GoalProgressEventValidatorAdapter
 import skillbill.infrastructure.fs.InstallPlanWireValidatorAdapter
+import skillbill.infrastructure.fs.JdkParallelReviewLaneRunner
+import skillbill.infrastructure.fs.JdkRuntimeDiagnostics
+import skillbill.infrastructure.fs.JdkRuntimeTimingPort
 import skillbill.infrastructure.fs.WorkflowSnapshotValidatorInfraAdapter
 import skillbill.infrastructure.http.HttpTelemetryClient
 import skillbill.infrastructure.http.JdkHttpRequester
@@ -80,6 +83,7 @@ import skillbill.launcher.FileSystemAgentRunLauncher
 import skillbill.model.RuntimeContext
 import skillbill.ports.agentrun.AgentRunLauncher
 import skillbill.ports.config.RepoLocalConfigPort
+import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.diff.DiffResolverPort
 import skillbill.ports.goalrunner.GoalPullRequestPort
 import skillbill.ports.goalrunner.GoalRunnerManifestStore
@@ -99,6 +103,7 @@ import skillbill.ports.install.reconcile.InstallReconcileApplyPort
 import skillbill.ports.install.reconcile.InstallReconcilePort
 import skillbill.ports.install.selection.InstallSelectionPersistencePort
 import skillbill.ports.persistence.DatabaseSessionFactory
+import skillbill.ports.review.ParallelReviewLaneRunner
 import skillbill.ports.review.ReviewInputSource
 import skillbill.ports.review.ReviewRubricPort
 import skillbill.ports.scaffold.RepoSourceDiscoveryGateway
@@ -116,6 +121,7 @@ import skillbill.ports.telemetry.TelemetryConfigStore
 import skillbill.ports.telemetry.TelemetryLevelMutator
 import skillbill.ports.telemetry.TelemetrySettingsProvider
 import skillbill.ports.telemetry.UnconfiguredHttpRequester
+import skillbill.ports.time.RuntimeTimingPort
 import skillbill.ports.validation.RepoValidationGateway
 import skillbill.ports.workflow.DecompositionManifestFileStore
 import skillbill.ports.workflow.NoopWorkflowGitOperations
@@ -263,6 +269,18 @@ abstract class RuntimeComponent(
   @Provides
   @JvmSynthetic
   internal fun runtimeClock(): java.time.Clock = java.time.Clock.systemUTC()
+
+  @Provides
+  @JvmSynthetic
+  internal fun runtimeTimingPort(adapter: JdkRuntimeTimingPort): RuntimeTimingPort = adapter
+
+  @Provides
+  @JvmSynthetic
+  internal fun runtimeDiagnostics(adapter: JdkRuntimeDiagnostics): RuntimeDiagnostics = adapter
+
+  @Provides
+  @JvmSynthetic
+  internal fun parallelReviewLaneRunner(adapter: JdkParallelReviewLaneRunner): ParallelReviewLaneRunner = adapter
 
   @Provides
   @JvmSynthetic

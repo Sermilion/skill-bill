@@ -119,6 +119,37 @@ class RuntimeArchitectureTest {
   }
 
   @Test
+  fun `runtime application owns no direct timing logging or threading environment APIs`() {
+    val applicationMainFiles = sourceFilesIn(runtimeRoot.resolve("runtime-application/src/main/kotlin"))
+    assertTrue(applicationMainFiles.isNotEmpty(), "runtime-application main source scan must be non-vacuous.")
+    assertNoBannedImports(
+      files = applicationMainFiles,
+      bannedImports = listOf(
+        "java.util.logging",
+        "java.util.concurrent",
+      ),
+    )
+    assertNoBannedSourceReferences(
+      files = applicationMainFiles,
+      bannedReferences = listOf(
+        "Thread.sleep",
+        "Thread.currentThread",
+        "Thread(",
+        ".interrupt()",
+        ".getLogger(",
+        "java.util.logging",
+        "java.util.concurrent",
+        "Executors",
+        "Executor",
+        "Future",
+        "Callable",
+        "TimeUnit",
+      ),
+      description = "environment API reference",
+    )
+  }
+
+  @Test
   fun `application domain and ports avoid direct file IO`() {
     val boundaryFiles =
       sourceFiles()
