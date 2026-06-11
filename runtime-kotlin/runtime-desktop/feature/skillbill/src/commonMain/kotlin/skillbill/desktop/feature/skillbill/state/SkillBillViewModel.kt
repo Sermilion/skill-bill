@@ -67,10 +67,9 @@ class SkillBillViewModel(
   private val skillRemoveGateway: RuntimeSkillRemoveGateway,
   private val installedWorkspaceLocator: InstalledWorkspaceLocator,
 ) {
-  private var installedWorkspaceRoot: String? =
-    installedWorkspaceLocator.locate().takeIf { it.availability }?.path?.takeIf { it.isNotBlank() }
-  private var normalizedInstalledWorkspaceRoot: String? = installedWorkspaceRoot?.let(::normalizeRepoPath)
-  private var repoPathText: String = recentRepoRepository.recentRepoPath().orEmpty()
+  private var installedWorkspaceRoot: String? = null
+  private var normalizedInstalledWorkspaceRoot: String? = null
+  private var repoPathText: String = ""
   private var currentSession: RepoSession? = null
   private var treeItems: List<SkillBillTreeItem> = emptyList()
   private var selectedTreeItemId: String? = null
@@ -105,17 +104,9 @@ class SkillBillViewModel(
       latestInstallSetupRequest()?.toFirstRunSetupState() ?: FirstRunSetupState()
     }
   private var activeFirstRunToken: Long = 0L
+  private var startupRequested: Boolean = false
 
   private var currentState = createState()
-
-  init {
-    val capturedInstalledRoot = installedWorkspaceRoot
-    if (capturedInstalledRoot != null) {
-      currentState = openRepo(capturedInstalledRoot, preserveSelection = false)
-    } else if (repoPathText.isNotBlank()) {
-      currentState = openRepo(repoPathText, preserveSelection = false)
-    }
-  }
 
   fun state(selectedTreeItemId: String? = currentState.selectedTreeItemId): SkillBillState {
     val resolvedSelection = selectedTreeItemId?.takeIf(::containsTreeItem)
@@ -171,10 +162,14 @@ class SkillBillViewModel(
   }
 
   fun finishSelectRepoPath(result: RepoLoadResult): SkillBillState {
+    return finishRepoLoad(result)
+  }
+
+  suspend fun finishSelectRepoPathAndRemember(result: RepoLoadResult): SkillBillState {
     val active = result.request.token == activeOperationToken
-    val state = finishRepoLoad(result)
+    val state = finishSelectRepoPath(result)
     if (active && state.repoStatus.state == RepoLoadState.LOADED) {
-      state.selectedRepoPath?.let(recentRepoRepository::rememberRepoPath)
+      state.selectedRepoPath?.let { repoPath -> recentRepoRepository.rememberRepoPath(repoPath) }
     }
     return state
   }
@@ -365,6 +360,58 @@ class SkillBillViewModel(
 
   private fun openRepo(repoPath: String, preserveSelection: Boolean): SkillBillState =
     finishRepoLoad(loadRepo(repoLoadRequest(repoPath = repoPath, preserveSelection = preserveSelection)))
+
+  fun beginStartup(): StartupRequest? {
+    if (startupRequested) {
+      return null
+    }
+    startupRequested = true
+    activeOperationToken += 1
+    busyOperation = SkillBillBusyOperation.OPEN_REPO
+    currentState = createState()
+    return StartupRequest(token = activeOperationToken)
+  }
+
+  suspend fun runStartup(request: StartupRequest): StartupResult {
+    val installedRoot = installedWorkspaceLocator.locate().takeIf { it.availability }?.path?.takeIf { it.isNotBlank() }
+    val recentRepoPath = recentRepoRepository.recentRepoPath().orEmpty()
+    val targetRepoPath = installedRoot ?: recentRepoPath.takeIf { it.isNotBlank() }
+    val repoLoadResult = targetRepoPath?.let { repoPath ->
+      loadRepo(
+        RepoLoadRequest(
+          token = request.token,
+          repoPath = repoPath,
+          preserveSelection = false,
+          previousRepoPath = null,
+          previousSelection = null,
+          previousExpandedNodeIds = emptySet(),
+        ),
+      )
+    }
+    return StartupResult(
+      request = request,
+      installedWorkspaceRoot = installedRoot,
+      recentRepoPath = recentRepoPath,
+      repoLoadResult = repoLoadResult,
+    )
+  }
+
+  fun finishStartup(result: StartupResult): SkillBillState {
+    if (result.request.token != activeOperationToken) {
+      return currentState
+    }
+    installedWorkspaceRoot = result.installedWorkspaceRoot
+    normalizedInstalledWorkspaceRoot = installedWorkspaceRoot?.let(::normalizeRepoPath)
+    val loadResult = result.repoLoadResult
+    if (loadResult != null) {
+      applyRepoLoadResult(loadResult)
+    } else {
+      repoPathText = result.recentRepoPath
+      busyOperation = null
+    }
+    currentState = createState()
+    return currentState
+  }
 
   private fun isInstalledWorkspaceRoot(repoPath: String?): Boolean {
     val normalizedRoot = normalizedInstalledWorkspaceRoot ?: return false
@@ -1725,6 +1772,17 @@ data class RepoLoadResult(
   val request: RepoLoadRequest,
   val session: RepoSession,
   val treeItems: List<SkillBillTreeItem>,
+)
+
+data class StartupRequest(
+  val token: Long,
+)
+
+data class StartupResult(
+  val request: StartupRequest,
+  val installedWorkspaceRoot: String?,
+  val recentRepoPath: String,
+  val repoLoadResult: RepoLoadResult?,
 )
 
 data class EditorSaveRequest(

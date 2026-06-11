@@ -62,7 +62,7 @@ class RuntimeRepoBrowserService(
   // sessions only. Returns empty for clone sessions and an absent baseline manifest. Tests
   // swap this seam to drive the decoration without a real installed workspace on disk.
   internal var baselineModifiedResolver: (Path) -> Set<String> = { root ->
-    installedWorkspaceBaselineService.modifiedSkillRelativePaths(root)
+    installedWorkspaceBaselineService.modifiedSkillRelativePaths(root.toString())
   }
 
   private var snapshot: RepoBrowserSnapshot = RepoBrowserSnapshot.empty
