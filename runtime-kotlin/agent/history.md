@@ -1,3 +1,12 @@
+## [2026-06-12] SKILL-52.4 tier4-records
+Areas: runtime-kotlin/agent, runtime-kotlin/runtime-core, runtime-kotlin/ARCHITECTURE.md, .feature-specs/SKILL-52.4-hexagon-leak-closure-followups
+- Recorded F16/F17 runtime boundary decisions with revisit triggers; retain split runtime-contracts packages for resource-path stability and keep infra-fs unsplit until a real second adapter boundary emerges.
+- RuntimeEnforcementHardeningArchitectureTest now rejects new `skillbill.contracts.*` validator types in runtime-contracts main source; contract validators belong outside that module. reusable
+- ARCHITECTURE documents `toPayload()` as the only sanctioned presentation-in-ports shape, bounded by the open-boundary allow-list.
+- Filed F15 adapter-mapper migration and F18 CLI/MCP policy-result mapper consolidation follow-up specs, and registered them in the decomposition manifest.
+Feature flag: N/A
+Acceptance criteria: 2/2 implemented
+
 ## [2026-06-12] SKILL-52.4 god-object-decomposition
 Areas: runtime-kotlin/runtime-desktop/core/data, runtime-kotlin/runtime-desktop/feature/skillbill, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-core, runtime-kotlin/runtime-application, runtime-kotlin/runtime-infra-*
 - RuntimeRepoBrowserService is now a small compatibility facade over session, tree, authoring, store, model, and presenter collaborators; keep repo-browser ownership split by operation type. reusable

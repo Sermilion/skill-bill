@@ -175,7 +175,7 @@ runtime-ports
   validator classes under `skillbill.contracts.install` and
   `skillbill.contracts.workflow` compile into `runtime-infra-fs`. The package
   name is retained on the moved validators to preserve their classpath resource
-  paths and import compatibility (recorded in `agent/decisions.md` 2026-05-28).
+  paths and import compatibility (recorded in `agent/decisions.md` 2026-06-12).
 - `skillbill.error`: runtime exception taxonomy.
 - `skillbill.workflow` and `skillbill.workflow.model`: pure workflow engine,
   workflow definitions, decomposition manifest codec, wire-map conversion, and
@@ -299,6 +299,16 @@ runtime-ports
     helpers, lifecycle telemetry payloads, etc.) that pre-date the
     typed-DTO conversion. Entries are grouped by which follow-up
     subtask owns their removal so the work stays scoped:
+
+    Port-model `toPayload` is the only sanctioned presentation-in-ports
+    shape and is grandfathered for compatibility, not a pattern for new
+    port DTOs. The current bounded examples are
+    `RepoValidationReport.toPayload`, `ReleaseRefMetadata.toPayload`,
+    and the review-finished telemetry payload family
+    (`ReviewFinishedTelemetryPayload.toPayload` plus its private nested
+    mappers). Any retained presentation-in-ports shape must remain
+    documented here and mirrored by the architecture guard allow-list
+    when it is a public raw-map boundary.
 
     - **Workflow scope (SKILL-52.1 documented open boundaries):**
       open-boundary serializer helpers, contracts wire-map facades,

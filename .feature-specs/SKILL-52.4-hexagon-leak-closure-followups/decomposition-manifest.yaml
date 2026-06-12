@@ -4,14 +4,14 @@ issue_key: "SKILL-52.4"
 feature_name: "hexagon-leak-closure-followups"
 parent_spec_path: ".feature-specs/SKILL-52.4-hexagon-leak-closure-followups/spec.md"
 spec_source: "local"
-status: "blocked"
+status: "in_progress"
 execution_model: "same_branch_commit_per_subtask"
 base_branch: "main"
 feature_branch: "feat/SKILL-52.4-hexagon-leak-closure-followups"
 stack_branches: []
 current_subtask_intent:
-  subtask_id: 4
-  action: "blocked"
+  subtask_id: 5
+  action: "start"
 subtasks:
 - id: 1
   name: "enforcement-gates"
@@ -55,14 +55,12 @@ subtasks:
 - id: 4
   name: "god-object-decomposition"
   spec_path: ".feature-specs/SKILL-52.4-hexagon-leak-closure-followups/spec_subtask_4_god-object-decomposition.md"
-  status: "blocked"
+  status: "complete"
   branch: null
   commit_sha: null
   workflow_id: "wftr-20260611-201237-nwwm"
-  blocked_reason: "Goal status reconciliation closed stale running child 'wftr-20260611-201237-nwwm'\
-    \ for issue 'SKILL-52.4' subtask 4 in favor of authoritative blocked workflow\
-    \ 'wftr-20260612-052833-p5yk'."
-  last_resumable_step: "audit"
+  blocked_reason: null
+  last_resumable_step: "commit_push"
   linear_issue_id: null
   dependencies:
   - subtask_id: 1
