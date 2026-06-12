@@ -4,14 +4,14 @@ issue_key: "SKILL-52.4"
 feature_name: "hexagon-leak-closure-followups"
 parent_spec_path: ".feature-specs/SKILL-52.4-hexagon-leak-closure-followups/spec.md"
 spec_source: "local"
-status: "in_progress"
+status: "complete"
 execution_model: "same_branch_commit_per_subtask"
 base_branch: "main"
 feature_branch: "feat/SKILL-52.4-hexagon-leak-closure-followups"
 stack_branches: []
 current_subtask_intent:
-  subtask_id: 5
-  action: "start"
+  subtask_id: 0
+  action: "none"
 subtasks:
 - id: 1
   name: "enforcement-gates"
@@ -72,12 +72,12 @@ subtasks:
 - id: 5
   name: "tier4-records-guard"
   spec_path: ".feature-specs/SKILL-52.4-hexagon-leak-closure-followups/spec_subtask_5_tier4-records.md"
-  status: "pending"
+  status: "complete"
   branch: null
   commit_sha: null
-  workflow_id: null
+  workflow_id: "wftr-20260612-063109-yuol"
   blocked_reason: null
-  last_resumable_step: null
+  last_resumable_step: "commit_push"
   linear_issue_id: null
   dependencies:
   - subtask_id: 1
