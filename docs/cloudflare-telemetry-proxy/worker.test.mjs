@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { validateStatsRequest, capabilitiesPayload } from "./worker.js";
+import { validateStatsRequest, capabilitiesPayload, transformBatch } from "./worker.js";
 
 const VALID_DATE_RANGE = { date_from: "2026-05-01", date_to: "2026-06-01" };
 const INGEST_SCHEMA_ERROR_FRAGMENT = "event_name must be the constant value";
@@ -65,5 +65,42 @@ describe("capabilitiesPayload", () => {
     const caps = capabilitiesPayload({ POSTHOG_API_KEY: "key" });
     assert.deepEqual(caps.supported_workflows, []);
     assert.equal(caps.supports_stats, false);
+  });
+});
+
+describe("transformBatch", () => {
+  const baseEvent = (event, props = {}) => ({
+    event,
+    distinct_id: "user-1",
+    properties: props,
+  });
+
+  it("renames skillbill_runtime_exception to $exception", () => {
+    const batch = [baseEvent("skillbill_runtime_exception", { error_type: "RuntimeException", error_message: "bad" })];
+    const result = transformBatch(batch);
+    assert.equal(result[0].event, "$exception");
+  });
+
+  it("maps error_type to $exception_type and error_message to $exception_message", () => {
+    const batch = [baseEvent("skillbill_runtime_exception", { error_type: "IllegalStateException", error_message: "state error" })];
+    const result = transformBatch(batch);
+    assert.equal(result[0].properties.$exception_type, "IllegalStateException");
+    assert.equal(result[0].properties.$exception_message, "state error");
+  });
+
+  it("preserves original workflow_phase in transformed event properties", () => {
+    const batch = [baseEvent("skillbill_runtime_exception", { workflow_phase: "my_tool", error_type: "RuntimeException", error_message: "fail" })];
+    const result = transformBatch(batch);
+    assert.equal(result[0].properties.workflow_phase, "my_tool");
+  });
+
+  it("does not transform non-exception events", () => {
+    const batch = [
+      baseEvent("skillbill_feature_implement_started", { session_id: "fis-123" }),
+      baseEvent("skillbill_runtime_exception", { error_type: "RuntimeException", error_message: "oops" }),
+    ];
+    const result = transformBatch(batch);
+    assert.equal(result[0].event, "skillbill_feature_implement_started");
+    assert.equal(result[1].event, "$exception");
   });
 });

@@ -18,6 +18,7 @@ private val completionStatuses =
     "abandoned_at_implementation",
     "abandoned_at_review",
     "error",
+    "stale",
   )
 private val validationResults = listOf("pass", "fail", "skipped", "not_reached")
 private val featureFlagPatterns = listOf("simple_conditional", "di_switch", "legacy", "none")
