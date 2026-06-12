@@ -21,33 +21,41 @@ internal fun cleanupExistingSkillBillLinks(
     .map(InstallPlanSkill::name)
     .distinct()
   val legacyNames = legacySkillBillCleanupNames(cleanupSkillNames)
-  val installedSkillsRoot = installedSkillsCacheRoot(plan.request.home)
+  val cleanupContext = InstallCleanupContext(
+    skillNames = cleanupSkillNames,
+    legacyNames = legacyNames,
+    installedSkillsRoot = installedSkillsCacheRoot(plan.request.home),
+  )
   plan.agents.forEach { agentTarget ->
-    cleanupOneTarget(agentTarget.agent, agentTarget.path, cleanupSkillNames, legacyNames, installedSkillsRoot, failures)
+    cleanupOneTarget(agentTarget.agent, agentTarget.path, cleanupContext, failures)
     // Migration: before SKILL-bill installed Claude skills into `<root>/skills`, it linked them into
     // the sibling `<root>/commands` slash-command dir. Sweep that legacy location so upgrading users
     // don't keep orphaned command symlinks pointing into the installed-skills cache.
     legacyClaudeCommandsDir(agentTarget.agent, agentTarget.path)?.let { legacyDir ->
-      cleanupOneTarget(agentTarget.agent, legacyDir, cleanupSkillNames, legacyNames, installedSkillsRoot, failures)
+      cleanupOneTarget(agentTarget.agent, legacyDir, cleanupContext, failures)
     }
   }
 }
 
+private data class InstallCleanupContext(
+  val skillNames: List<String>,
+  val legacyNames: List<String>,
+  val installedSkillsRoot: Path,
+)
+
 private fun cleanupOneTarget(
   agent: InstallAgent,
   targetDir: Path,
-  skillNames: List<String>,
-  legacyNames: List<String>,
-  installedSkillsRoot: Path,
+  cleanupContext: InstallCleanupContext,
   failures: MutableList<InstallApplyIssue>,
 ) {
   runCatching {
     InstallCleanupOperations.cleanupAgentTarget(
       targetDir = targetDir,
-      skillNames = skillNames,
-      legacyNames = legacyNames,
+      skillNames = cleanupContext.skillNames,
+      legacyNames = cleanupContext.legacyNames,
       managedInstallMarker = ".skill-bill-install",
-      installedSkillsRoot = installedSkillsRoot,
+      installedSkillsRoot = cleanupContext.installedSkillsRoot,
     )
   }.getOrElse { error ->
     failures.add(

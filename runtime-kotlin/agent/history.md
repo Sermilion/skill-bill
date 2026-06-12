@@ -1,3 +1,12 @@
+## [2026-06-12] SKILL-52.4 god-object-decomposition
+Areas: runtime-kotlin/runtime-desktop/core/data, runtime-kotlin/runtime-desktop/feature/skillbill, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-core, runtime-kotlin/runtime-application, runtime-kotlin/runtime-infra-*
+- RuntimeRepoBrowserService is now a small compatibility facade over session, tree, authoring, store, model, and presenter collaborators; keep repo-browser ownership split by operation type. reusable
+- SkillBillViewModel and SkillBillFrame are thin shells under the size target; state/controllers and UI panes own focused behavior while the shell retains SKILL-44 operation-token and busy-slot invariants. reusable
+- RuntimeContext is composed once at the root from EnvironmentContext, TransportContext, WorkflowOpsContext, and OptionalCallbacks; consumers should request only the sub-context they actually use. reusable
+- Golden, MCP, install-plan, workflow snapshot, and desktop behavior surfaces stayed byte-identical; upstream audit still carried a behavior-preservation caveat for downstream review.
+Feature flag: N/A
+Acceptance criteria: 4/4 implemented per implement/validate phases
+
 ## [2026-06-11] SKILL-52.4 application-env-seam
 Areas: runtime-kotlin/runtime-application, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-core
 - Runtime-application timing, diagnostics, and parallel review lane execution now route through ports; keep direct `Thread.sleep`, JDK logging, `getLogger`, executor, and threading APIs outside application main. reusable

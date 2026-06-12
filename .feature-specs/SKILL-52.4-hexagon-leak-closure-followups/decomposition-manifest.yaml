@@ -10,7 +10,7 @@ base_branch: "main"
 feature_branch: "feat/SKILL-52.4-hexagon-leak-closure-followups"
 stack_branches: []
 current_subtask_intent:
-  subtask_id: 2
+  subtask_id: 4
   action: "blocked"
 subtasks:
 - id: 1
@@ -27,14 +27,12 @@ subtasks:
 - id: 2
   name: "application-env-seam"
   spec_path: ".feature-specs/SKILL-52.4-hexagon-leak-closure-followups/spec_subtask_2_application-env-seam.md"
-  status: "blocked"
+  status: "complete"
   branch: null
   commit_sha: null
   workflow_id: "wftr-20260611-190203-cryo"
-  blocked_reason: "Phase output reported status 'failed'. Ran the SKILL-52.4 validate-phase\
-    \ repository gates. Three gates passed and the Kotlin Gradle check failed on a\
-    \ detekt max-line-length violation."
-  last_resumable_step: "validate"
+  blocked_reason: null
+  last_resumable_step: "commit_push"
   linear_issue_id: null
   dependencies:
   - subtask_id: 1
@@ -43,12 +41,12 @@ subtasks:
 - id: 3
   name: "desktop-boundary-leaks"
   spec_path: ".feature-specs/SKILL-52.4-hexagon-leak-closure-followups/spec_subtask_3_desktop-boundary-leaks.md"
-  status: "pending"
+  status: "complete"
   branch: null
   commit_sha: null
-  workflow_id: null
+  workflow_id: "wftr-20260611-192221-44ly"
   blocked_reason: null
-  last_resumable_step: null
+  last_resumable_step: "commit_push"
   linear_issue_id: null
   dependencies:
   - subtask_id: 1
@@ -57,12 +55,14 @@ subtasks:
 - id: 4
   name: "god-object-decomposition"
   spec_path: ".feature-specs/SKILL-52.4-hexagon-leak-closure-followups/spec_subtask_4_god-object-decomposition.md"
-  status: "pending"
+  status: "blocked"
   branch: null
   commit_sha: null
-  workflow_id: null
-  blocked_reason: null
-  last_resumable_step: null
+  workflow_id: "wftr-20260611-201237-nwwm"
+  blocked_reason: "Goal status reconciliation closed stale running child 'wftr-20260611-201237-nwwm'\
+    \ for issue 'SKILL-52.4' subtask 4 in favor of authoritative blocked workflow\
+    \ 'wftr-20260612-052833-p5yk'."
+  last_resumable_step: "audit"
   linear_issue_id: null
   dependencies:
   - subtask_id: 1
