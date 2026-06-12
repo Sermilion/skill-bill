@@ -917,3 +917,5 @@ export default {
     return forwardBatch(env, batch);
   },
 };
+
+export { validateStatsRequest, capabilitiesPayload };
