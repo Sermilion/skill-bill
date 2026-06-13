@@ -43,7 +43,7 @@ subtasks:
   spec_path: ".feature-specs/SKILL-82-install-from-release/spec_subtask_3_smoke-test-and-readme.md"
   status: "complete"
   branch: "feat/SKILL-82-install-from-release"
-  commit_sha: null
+  commit_sha: "8c7b364194788f5a5058fb06823edf6c4ff63e77"
   workflow_id: "wfl-20260613-091547-xn89"
   blocked_reason: null
   last_resumable_step: null
