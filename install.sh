@@ -101,6 +101,10 @@ Options:
                            overwrite the local copy with the upstream version
                            instead of keeping local. Useful for non-interactive
                            installs: curl ... | bash -s -- --prefer-upstream
+  --clean                  Wipe ~/.skill-bill/skills/, ~/.skill-bill/platform-packs/,
+                           and ~/.skill-bill/orchestration/ before staging the
+                           candidate tree. Useful for a clean-slate install. Composable
+                           with --prefer-upstream.
 USAGE
 }
 
@@ -436,6 +440,97 @@ list_release_asset_names() {
   # one "name":"<asset>" per asset inside the "assets" array.
   printf '%s' "$json" | grep -o '"name"[[:space:]]*:[[:space:]]*"[^"]*"' \
     | sed -E 's/.*:[[:space:]]*"([^"]*)"/\1/'
+}
+
+# Resolve the skills bundle asset name for the current release.
+# Queries list_release_asset_names (offline or GitHub API) and returns the
+# first filename matching skill-bill-skills-*.tar.gz. Fails loudly when not found.
+resolve_skills_bundle_asset_name() {
+  local names name
+  if ! names="$(list_release_asset_names)"; then
+    err "Failed to list release assets while resolving skills bundle name."
+    return 1
+  fi
+  while IFS= read -r name; do
+    [[ -n "$name" ]] || continue
+    case "$name" in
+      skill-bill-skills-*.tar.gz)
+        printf '%s' "$name"
+        return 0
+        ;;
+    esac
+  done <<< "$names"
+  err "No skill-bill-skills-*.tar.gz asset found in release."
+  return 1
+}
+
+# Bootstrap PLUGIN_DIR from a GitHub release when SKILLS_DIR is absent (headless install).
+# When SKILLS_DIR already exists the local tree wins and this function is a no-op.
+# When it is absent: print an info line, resolve the bundle asset name, fetch and verify
+# the .tar.gz, extract into a subdir of PREBUILT_WORK_DIR, then re-point PLUGIN_DIR,
+# SKILLS_DIR, and PLATFORM_PACKS_DIR to the extracted root.
+bundle_bootstrap_if_needed() {
+  if [[ -d "$SKILLS_DIR" ]]; then
+    return 0
+  fi
+
+  info "SKILLS_DIR not found — fetching skills bundle from release."
+  check_prebuilt_dependencies || return 1
+  init_prebuilt_work_dir
+
+  local asset_name
+  if ! asset_name="$(resolve_skills_bundle_asset_name)"; then
+    err "Cannot proceed without a skills bundle."
+    return 1
+  fi
+
+  local asset_path
+  if ! asset_path="$(fetch_release_asset "$asset_name")"; then
+    err "Failed to fetch skills bundle: $asset_name"
+    return 1
+  fi
+
+  verify_sha256 "$asset_path" || return 1
+
+  local extract_dir
+  extract_dir="$PREBUILT_WORK_DIR/skills-bundle"
+  mkdir -p "$extract_dir"
+  tar -xzf "$asset_path" -C "$extract_dir"
+
+  if [[ -d "$extract_dir/skills" ]]; then
+    PLUGIN_DIR="$extract_dir"
+  else
+    local subdir
+    subdir="$(find "$extract_dir" -mindepth 2 -maxdepth 2 -type d -name skills -print 2>/dev/null | head -n1)"
+    if [[ -n "$subdir" ]]; then
+      PLUGIN_DIR="$(dirname "$subdir")"
+    else
+      err "Skills bundle layout is unrecognised: no skills/ directory found under $extract_dir"
+      return 1
+    fi
+  fi
+  SKILLS_DIR="$PLUGIN_DIR/skills"
+  PLATFORM_PACKS_DIR="$PLUGIN_DIR/platform-packs"
+
+  ok "Skills bundle extracted; PLUGIN_DIR set to: $PLUGIN_DIR"
+}
+
+# Wipe the three skill-state subdirectories when --clean was passed.
+# Runs after bundle_bootstrap_if_needed and before copy_in_authored_source.
+clean_install_state_if_requested() {
+  if [[ "$CLEAN_INSTALL" -ne 1 ]]; then
+    return 0
+  fi
+  if [[ -z "$SKILL_BILL_STATE_DIR" ]]; then
+    err "--clean: SKILL_BILL_STATE_DIR is empty; refusing to wipe."
+    return 1
+  fi
+  info "--clean: wiping prior skill state under $SKILL_BILL_STATE_DIR"
+  rm -rf \
+    "$SKILL_BILL_STATE_DIR/skills" \
+    "$SKILL_BILL_STATE_DIR/platform-packs" \
+    "$SKILL_BILL_STATE_DIR/orchestration"
+  ok "Prior skill state wiped."
 }
 
 # Resolve the prebuilt asset filenames for this host by SUFFIX matching, not by
@@ -2243,6 +2338,8 @@ run_full_install() {
     build_platform_packages
     replay_last_install_selection
   fi
+  bundle_bootstrap_if_needed
+  clean_install_state_if_requested
   run_pre_install_uninstall
   copy_in_authored_source
   install_runtime_distributions

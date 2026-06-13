@@ -1,3 +1,15 @@
+## [2026-06-13] SKILL-82 subtask 2 install-bootstrap-and-clean
+Areas: install.sh
+- `bundle_bootstrap_if_needed()`: when `SKILLS_DIR` is absent at startup, prints info line, calls `check_prebuilt_dependencies`, resolves the skills bundle asset name via `resolve_skills_bundle_asset_name()` (uses `list_release_asset_names` → respects `SKILL_BILL_RELEASE_DIR` offline seam), fetches + verifies `.tar.gz` via `fetch_release_asset`/`verify_sha256`, extracts to `$PREBUILT_WORK_DIR/skills-bundle`, re-points `PLUGIN_DIR`/`SKILLS_DIR`/`PLATFORM_PACKS_DIR` as plain globals in the parent shell. When `SKILLS_DIR` exists: no-op (local tree wins). reusable
+- `resolve_skills_bundle_asset_name()`: walks `list_release_asset_names` output and returns first `skill-bill-skills-*.tar.gz` match; fails loudly if absent. reusable
+- `clean_install_state_if_requested()`: when `CLEAN_INSTALL=1`, guards `SKILL_BILL_STATE_DIR` non-empty, then `rm -rf` `skills/`, `platform-packs/`, `orchestration/` under state dir. reusable
+- Call order in `run_full_install()`: `bundle_bootstrap_if_needed` → `clean_install_state_if_requested` → `run_pre_install_uninstall` → `copy_in_authored_source`. Both calls sit between the reuse-selection block and `run_pre_install_uninstall`.
+- Post-extract layout validation: after `tar -xzf`, checks `$extract_dir/skills` exists; falls back to `find -mindepth 2 -maxdepth 2 -name skills`; fails loudly with recognisable error if neither layout found. reusable
+- `--clean` documented in `usage()` with "Composable with --prefer-upstream" note; no mutual-exclusion guard — both flags are independent. reusable
+- Pitfall: tar layout is flat (`skills/ platform-packs/ orchestration/ uninstall.sh` at root, no versioned top-level dir) — confirmed from `release.yml` tar command. Bundle-PLUGIN_DIR reassignment works because all downstream callers (`copy_in_authored_source`, `stage_authored_candidate`) consume `SKILLS_DIR`/`PLATFORM_PACKS_DIR` globals in the same process. reusable
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented
+
 ## [2026-06-13] SKILL-82 subtask 1 commit-and-release-bundle
 Areas: install.sh, README.md
 - `--prefer-upstream` flag: auto-accepts upstream for all conflicts without prompting; `PREFER_UPSTREAM=0` variable + parser arm + usage text. reusable

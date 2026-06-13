@@ -27,12 +27,12 @@ subtasks:
 - id: 2
   name: "install.sh headless bootstrap and --clean flag"
   spec_path: ".feature-specs/SKILL-82-install-from-release/spec_subtask_2_install-bootstrap-and-clean.md"
-  status: "pending"
-  branch: null
+  status: "complete"
+  branch: "feat/SKILL-82-install-from-release"
   commit_sha: null
-  workflow_id: null
+  workflow_id: "wfl-20260613-074729-z77j"
   blocked_reason: null
-  last_resumable_step: null
+  last_resumable_step: "commit_push"
   linear_issue_id: null
   dependencies:
   - subtask_id: 1
