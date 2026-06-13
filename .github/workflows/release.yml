@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - "v*.*.*"
+      - "[0-9]*.*.*"
   # AC6: a maintainer can stage a real, downloadable asset set for subtask 4
   # testing without cutting a tag. The staging_version input names the assets and
   # the (pre)release; see RELEASING.md "Staging a release for downstream testing".
