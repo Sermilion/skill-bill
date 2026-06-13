@@ -1,3 +1,12 @@
+## [2026-06-13] SKILL-82 subtask 1 commit-and-release-bundle
+Areas: install.sh, README.md
+- `--prefer-upstream` flag: auto-accepts upstream for all conflicts without prompting; `PREFER_UPSTREAM=0` variable + parser arm + usage text. reusable
+- `--clean` flag stub: `CLEAN_INSTALL=0` variable + parser arm only; wipe logic deferred to subtask 2.
+- No-TTY conflict behavior changed: abort→warn-and-keep-local; `accept_conflicts` stays 0, install continues; warn message MUST contain substring "no TTY is attached to prompt" (asserted by InstallerShellReconcileTest:153,201). reusable
+- README: replaced `git clone && ./install.sh` quickstart with `curl -fsSL .../install.sh | bash` one-liner in Quickstart and Install details sections. reusable
+Feature flag: N/A
+Acceptance criteria: 1/4 parent ACs (install.sh + README; bundle download bootstrap in subtask 2, smoke test in subtask 3)
+
 ## [2026-06-11] WE-4435 prose-runtime workflow-store clarification
 Areas: skills/bill-feature-task-prose, runtime-kotlin/ARCHITECTURE.md, docs
 - Corrected current-state wording: `bill-feature-task-prose` is a first-class parallel implementation mode, not legacy; the `feature_implement_*` MCP tools and `feature_implement_workflows` store are stable prose-mode durable state. reusable
