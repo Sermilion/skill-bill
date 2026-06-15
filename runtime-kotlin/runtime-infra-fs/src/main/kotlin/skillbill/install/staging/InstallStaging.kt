@@ -144,9 +144,21 @@ internal fun computeInstallContentHash(
   digest.update(newline)
   applicablePointers
     .sortedWith(compareBy({ it.second.skillRelativeDir }, { it.second.name }))
-    .forEach { (_, spec) ->
+    .forEach { (manifest, spec) ->
       val line = "${spec.skillRelativeDir}|${spec.name}|${spec.target}"
       digest.update(line.toByteArray(StandardCharsets.UTF_8))
+      digest.update(newline)
+      val repoRoot = manifest.packRoot.toAbsolutePath().normalize().parent?.parent
+        ?: error("Platform pack '${manifest.slug}' root '${manifest.packRoot}' has no repo root parent.")
+      val targetFile = repoRoot.resolve(spec.target).normalize()
+      require(targetFile.startsWith(repoRoot)) {
+        "Pointer '${spec.name}' under '${spec.skillRelativeDir}' targets '${spec.target}' outside repoRoot '$repoRoot'."
+      }
+      require(Files.isRegularFile(targetFile, LinkOption.NOFOLLOW_LINKS)) {
+        "Pointer '${spec.name}' under '${spec.skillRelativeDir}' targets '${spec.target}' " +
+          "which does not exist at '$targetFile'."
+      }
+      digest.update(Files.readAllBytes(targetFile))
       digest.update(newline)
     }
   generatedSupportPointers
