@@ -428,6 +428,7 @@ $defs:
       - preplan
       - plan
       - implement
+      - implement_fix
       - review
       - audit
       - validate
@@ -1022,6 +1023,8 @@ $defs:
           type: string
       phase_outcomes:
         $ref: "#/$defs/freeObjectShape"
+      review_fix_iteration_count:
+        type: integer
       last_incomplete_phase:
         type: string
       blocked_reason:
@@ -1087,6 +1090,8 @@ $defs:
           type: string
       phase_outcomes:
         $ref: "#/$defs/freeObjectShape"
+      review_fix_iteration_count:
+        type: integer
       last_incomplete_phase:
         type: string
       blocked_reason:

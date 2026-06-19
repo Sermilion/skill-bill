@@ -72,10 +72,15 @@ data class FeatureTaskRuntimeBackwardEdge(
  * The full transition topology: the ordered forward pipeline (default forward edge = next index) and
  * the set of backward edges. An edge-free declaration is behaviorally identical to a strict forward
  * pipeline.
+ *
+ * [loopOnlyPhaseIds] are phases the forward edge skips: they sit in the pipeline only as backward-edge
+ * destinations (e.g. a remediation `implement_fix` phase) and are never reached by forward advance, so
+ * a clean run never launches them. An empty set leaves the forward advance strictly index+1.
  */
 data class FeatureTaskRuntimeTransitionDeclaration(
   val forwardPhaseIds: List<String>,
   val backwardEdges: List<FeatureTaskRuntimeBackwardEdge> = emptyList(),
+  val loopOnlyPhaseIds: Set<String> = emptySet(),
 ) {
   init {
     require(forwardPhaseIds.isNotEmpty()) {
@@ -86,6 +91,9 @@ data class FeatureTaskRuntimeTransitionDeclaration(
     }
     require(forwardPhaseIds.toSet().size == forwardPhaseIds.size) {
       "FeatureTaskRuntimeTransitionDeclaration.forwardPhaseIds must be distinct."
+    }
+    require(loopOnlyPhaseIds.all { it in forwardPhaseIds }) {
+      "FeatureTaskRuntimeTransitionDeclaration.loopOnlyPhaseIds must be a subset of forwardPhaseIds."
     }
     backwardEdges.forEach { edge ->
       require(edge.fromPhaseId in forwardPhaseIds) {

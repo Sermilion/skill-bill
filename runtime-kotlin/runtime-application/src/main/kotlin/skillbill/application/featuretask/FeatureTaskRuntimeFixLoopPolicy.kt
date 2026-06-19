@@ -4,15 +4,15 @@ import skillbill.application.model.FeatureTaskRuntimeFixLoopDecision
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 
 /**
- * Pure bounded fix-loop policy. Every fix-loop phase (`preplan`, `plan`, `implement`, `review`,
- * `audit`, `validate`) re-runs on a failed schema gate; each re-run is a higher iteration so the
- * latest output always wins. `implement` participates under the mutating-phase idempotency contract:
- * a mutating phase re-runs/resumes safely because it is given the intended-state plan inputs plus the
- * current working tree and MUST reconcile the tree to target — treating an already-applied change as
- * a no-op rather than blindly re-applying it — so a re-entry never double-applies a mutation. That
- * contract is what makes bounding `implement` safe; the schema gate verifies the reconciliation is
- * reported rather than assumed. Validation is intentionally unbounded because validation failures are
- * repair work, not a reason to stop the task. Other fix-loop phases are bounded by
+ * Pure bounded fix-loop policy. Every fix-loop phase (`preplan`, `plan`, `implement`, `implement_fix`,
+ * `review`, `audit`, `validate`) re-runs on a failed schema gate; each re-run is a higher iteration so
+ * the latest output always wins. `implement` and `implement_fix` participate under the mutating-phase
+ * idempotency contract: a mutating phase re-runs/resumes safely because it is given the intended-state
+ * inputs plus the current working tree and MUST reconcile the tree to target — treating an
+ * already-applied change as a no-op rather than blindly re-applying it — so a re-entry never
+ * double-applies a mutation. That contract is what makes bounding them safe; the schema gate verifies
+ * the reconciliation is reported rather than assumed. Validation is intentionally unbounded because
+ * validation failures are repair work, not a reason to stop the task. Other fix-loop phases are bounded by
  * [MAX_FIX_LOOP_ITERATIONS]. The first run is iteration 1; the fix-loop index is `iteration - 1`.
  */
 object FeatureTaskRuntimeFixLoopPolicy {
@@ -23,6 +23,7 @@ object FeatureTaskRuntimeFixLoopPolicy {
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN,
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN,
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,
+    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT_FIX,
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW,
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE,

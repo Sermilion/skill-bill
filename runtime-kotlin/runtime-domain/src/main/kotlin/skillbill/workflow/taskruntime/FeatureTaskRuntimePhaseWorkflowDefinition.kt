@@ -4,12 +4,14 @@ import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
 import skillbill.workflow.model.WorkflowDefinition
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeAuditCeremony
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeBackwardEdge
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeCeremonyScaling
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFeatureSize
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseDeclaration
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePreplanCeremony
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeReviewScope
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeTransitionDeclaration
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
 
 /**
  * The experimental runtime-driven feature-task pipeline definition, fully independent
@@ -24,6 +26,7 @@ object FeatureTaskRuntimePhaseWorkflowDefinition {
   const val PHASE_PREPLAN: String = "preplan"
   const val PHASE_PLAN: String = "plan"
   const val PHASE_IMPLEMENT: String = "implement"
+  const val PHASE_IMPLEMENT_FIX: String = "implement_fix"
   const val PHASE_REVIEW: String = "review"
   const val PHASE_AUDIT: String = "audit"
   const val PHASE_VALIDATE: String = "validate"
@@ -31,12 +34,17 @@ object FeatureTaskRuntimePhaseWorkflowDefinition {
   const val PHASE_COMMIT_PUSH: String = "commit_push"
   const val PHASE_PR: String = "pr"
 
+  // The M1 review->implement_fix remediation loop id, named once so durable accounting and telemetry
+  // (the finished-event review-fix iteration count) reference the same loop the backward edge mints.
+  const val REVIEW_FIX_LOOP_ID: String = "review_fix"
+
   // Mutating phases reconcile the working tree to an intended target state. They are the phases the
   // idempotency contract governs: re-entering or resuming one must converge to target, treating an
-  // already-applied change as a no-op rather than re-applying it. Today only `implement` mutates from
-  // intended-state plan inputs; a future `implement_fix` joins this set, so callers MUST consult this
-  // predicate rather than hardcoding a single phase id.
-  private val MUTATING_PHASES: Set<String> = setOf(PHASE_IMPLEMENT)
+  // already-applied change as a no-op rather than re-applying it. `implement` mutates from
+  // intended-state plan inputs; `implement_fix` reconciles the current tree against the review
+  // findings on the `review_fix` loop. Callers MUST consult this predicate rather than hardcoding a
+  // single phase id.
+  private val MUTATING_PHASES: Set<String> = setOf(PHASE_IMPLEMENT, PHASE_IMPLEMENT_FIX)
 
   fun isMutatingPhase(phaseId: String): Boolean = phaseId in MUTATING_PHASES
 
@@ -55,6 +63,7 @@ object FeatureTaskRuntimePhaseWorkflowDefinition {
       PHASE_PREPLAN,
       PHASE_PLAN,
       PHASE_IMPLEMENT,
+      PHASE_IMPLEMENT_FIX,
       PHASE_REVIEW,
       PHASE_AUDIT,
       PHASE_VALIDATE,
@@ -67,6 +76,7 @@ object FeatureTaskRuntimePhaseWorkflowDefinition {
       PHASE_PREPLAN to "Phase 1: Pre-plan",
       PHASE_PLAN to "Phase 2: Plan",
       PHASE_IMPLEMENT to "Phase 3: Implement",
+      PHASE_IMPLEMENT_FIX to "Phase 3b: Implement Fix",
       PHASE_REVIEW to "Phase 4: Code Review",
       PHASE_AUDIT to "Phase 5: Completeness Audit",
       PHASE_VALIDATE to "Phase 6: Quality Validation",
@@ -79,6 +89,7 @@ object FeatureTaskRuntimePhaseWorkflowDefinition {
       PHASE_PREPLAN to emptyList(),
       PHASE_PLAN to listOf(PHASE_PREPLAN),
       PHASE_IMPLEMENT to listOf(PHASE_PLAN),
+      PHASE_IMPLEMENT_FIX to listOf(PHASE_PLAN, PHASE_IMPLEMENT, PHASE_REVIEW),
       PHASE_REVIEW to listOf(PHASE_IMPLEMENT),
       PHASE_AUDIT to listOf(PHASE_PLAN, PHASE_IMPLEMENT, PHASE_REVIEW),
       PHASE_VALIDATE to listOf(PHASE_IMPLEMENT, PHASE_AUDIT),
@@ -91,6 +102,9 @@ object FeatureTaskRuntimePhaseWorkflowDefinition {
       PHASE_PREPLAN to "Re-run the preplan phase from the run-invariants, then persist the validated digest output.",
       PHASE_PLAN to "Resume planning from the latest preplan digest, then persist the validated plan output.",
       PHASE_IMPLEMENT to "Resume implementation from the latest plan output, then persist the validated output.",
+      PHASE_IMPLEMENT_FIX to
+        "Resume the implement-fix phase from the latest review findings, reconciling the current tree, " +
+        "then persist the validated output.",
       PHASE_REVIEW to "Resume code review from the latest implement output and the derived diff context.",
       PHASE_AUDIT to "Resume the completeness audit from the latest plan, implement, and review outputs.",
       PHASE_VALIDATE to "Resume quality validation from the latest implement and audit outputs.",
@@ -127,12 +141,27 @@ object FeatureTaskRuntimePhaseWorkflowDefinition {
     }
 
   /**
-   * Forward-only transition topology: the ordered [stepIds] pipeline with an EMPTY backward-edge
-   * set. The edge-free declaration is behaviorally identical to today's strict forward loop; real
-   * backward edges (the remediation loops) are added by later subtasks.
+   * Transition topology: the ordered [stepIds] forward pipeline plus the M1 `review_fix` backward
+   * edge. `implement_fix` sits between `implement` and `review` in the pipeline but is loop-only —
+   * the forward edge skips it, so a clean run advances `implement` -> `review` and never launches a
+   * fix. A `review` `changes_requested` verdict reopens the `[implement_fix, review]` span (the
+   * backward destination precedes the source), bounded at 3 review->fix iterations; the first
+   * `approved` verdict advances to `audit`.
    */
   val transitions: FeatureTaskRuntimeTransitionDeclaration =
-    FeatureTaskRuntimeTransitionDeclaration(forwardPhaseIds = definition.stepIds)
+    FeatureTaskRuntimeTransitionDeclaration(
+      forwardPhaseIds = definition.stepIds,
+      backwardEdges = listOf(
+        FeatureTaskRuntimeBackwardEdge(
+          fromPhaseId = PHASE_REVIEW,
+          triggeringVerdict = FeatureTaskRuntimeVerdict.CHANGES_REQUESTED,
+          destinationPhaseId = PHASE_IMPLEMENT_FIX,
+          loopId = REVIEW_FIX_LOOP_ID,
+          perEdgeCap = 3,
+        ),
+      ),
+      loopOnlyPhaseIds = setOf(PHASE_IMPLEMENT_FIX),
+    )
 
   fun ceremonyScaling(featureSize: FeatureTaskRuntimeFeatureSize): FeatureTaskRuntimeCeremonyScaling =
     when (featureSize) {

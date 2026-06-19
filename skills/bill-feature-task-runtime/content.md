@@ -104,6 +104,34 @@ persist `validate` as blocked; they are fed back to the validation agent to fix
 and rerun, the same way code-review findings are fixed before the workflow
 continues. Treat the durable workflow state as authoritative over any prose.
 
+## Review-driven implement-fix loop
+
+The runtime closes a bounded remediation loop around `review`. The `review`
+phase emits a structured verdict derived from its findings: `approved` when no
+unresolved Blocker or Major findings remain, or `changes_requested` when any are
+present. The runtime evaluates that verdict — prose alone cannot advance past a
+Blocker/Major finding.
+
+- On `approved`, the run advances to `audit` (a clean run never launches a fix).
+- On `changes_requested`, the runtime takes a backward edge to a dedicated
+  `implement_fix` phase, which addresses the carried review findings on the
+  current working tree as incremental reconciliation (not a plan re-application),
+  then re-runs `review`. This `review` → `implement_fix` → `review` cycle is
+  capped at 3 iterations via a durable per-edge counter. The first `approved`
+  verdict in the loop advances the run to `audit`.
+- If the loop exhausts its cap without an `approved` verdict, the run blocks
+  loudly rather than advancing: it records a durable terminal blocked phase plus
+  an observability/ledger event carrying the loop id `review_fix`, the iteration
+  count, and the unresolved findings. It never advances to `audit` on unresolved
+  Blocker/Major findings. Surface this block like any other blocked gate.
+
+The loop is crash-safe: a death during `implement_fix` or a re-`review` resumes
+at the correct phase and iteration with no double-applied mutations, and a loop
+that already burned its cap re-blocks on resume rather than re-entering past the
+cap. Each `implement_fix` launch and re-`review` carries the `review_fix` loop id
+and iteration in the ledger and status output, and finished telemetry reflects
+the review-fix iteration count.
+
 ## Status and Resume
 
 Status is read-only and never starts a run:

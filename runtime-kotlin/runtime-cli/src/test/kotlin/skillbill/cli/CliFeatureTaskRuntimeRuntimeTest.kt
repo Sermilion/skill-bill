@@ -561,11 +561,16 @@ class CliFeatureTaskRuntimeRuntimeTest {
     assertEquals(0, status.exitCode, status.stdout)
     assertContains(status.stdout, "status: ok")
     assertContains(status.stdout, "feature_size: SMALL")
+    // A clean run launches the nine forward phases; the loop-only implement_fix is never launched, so
+    // it stays pending in the durable projection even on a fully forward-completed run (SKILL-85 M1).
     assertContains(status.stdout, "complete: ${ALL_PHASES.size}")
-    assertContains(status.stdout, "pending: 0")
+    assertContains(status.stdout, "pending: 1")
     assertContains(status.stdout, "blocked: 0")
-    assertContains(status.stdout, "current_phase: none")
     assertContains(status.stdout, "phase: id=plan status=completed")
+    assertContains(status.stdout, "phase: id=implement_fix status=pending")
+    // SKILL-85 Subtask 4 (F-005): a fully forward-completed run reports no current phase — the
+    // loop-only implement_fix (still pending) must NOT be projected as the current phase to operators.
+    assertContains(status.stdout, "current_phase: none")
   }
 
   @Test
@@ -907,6 +912,9 @@ private class RecordingPhaseLauncher(
       """.trimIndent()
 
     fun validPhaseOutput(phaseId: String): String {
+      // A clean review must emit a verification signal (an empty findings array affirms no blocking
+      // findings) or the runtime review gate blocks it (SKILL-85 Subtask 4 F-003).
+      val producedOutputs = if (phaseId == "review") "findings: []" else """tasks: ["task-1"]"""
       val base =
         """
         contract_version: "0.1"
@@ -914,7 +922,7 @@ private class RecordingPhaseLauncher(
         status: "completed"
         summary: "Phase produced a validated output."
         produced_outputs:
-          tasks: ["task-1"]
+          $producedOutputs
         """.trimIndent()
       if (phaseId != "implement") {
         return base

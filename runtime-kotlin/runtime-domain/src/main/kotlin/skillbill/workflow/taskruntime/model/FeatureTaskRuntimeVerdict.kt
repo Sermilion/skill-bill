@@ -24,6 +24,15 @@ data class FeatureTaskRuntimeVerdict(
     /** The default verdict for a phase with no verifying output: always progresses forward. */
     val ADVANCE: FeatureTaskRuntimeVerdict = FeatureTaskRuntimeVerdict("advance")
 
+    /** A review verdict with no unresolved Blocker/Major findings: the run advances past review. */
+    val APPROVED: FeatureTaskRuntimeVerdict = FeatureTaskRuntimeVerdict("approved")
+
+    /**
+     * A review verdict carrying unresolved Blocker/Major findings: the run takes the `review_fix`
+     * backward edge to the `implement_fix` phase to reconcile them on the current tree.
+     */
+    val CHANGES_REQUESTED: FeatureTaskRuntimeVerdict = FeatureTaskRuntimeVerdict("changes_requested")
+
     fun fromWire(value: String): FeatureTaskRuntimeVerdict =
       value.takeIf(String::isNotBlank)?.let(::FeatureTaskRuntimeVerdict)
         ?: throw InvalidWorkflowStateSchemaError(

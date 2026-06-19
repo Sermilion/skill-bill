@@ -56,6 +56,9 @@ data class FeatureTaskRuntimeFinishedRecord(
   val lastIncompletePhase: String,
   val blockedReason: String,
   val resolvedBranch: String,
+  // The durable review-fix loop iteration count, so finished telemetry reflects the review->fix
+  // iteration count (AC6). Zero when the loop never fired.
+  val reviewFixIterationCount: Int = 0,
 )
 
 data class QualityCheckStartedRecord(

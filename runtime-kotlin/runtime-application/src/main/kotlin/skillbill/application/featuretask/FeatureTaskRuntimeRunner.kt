@@ -30,8 +30,12 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationAr
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationOutcome
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeNextPhase
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseDeclaration
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerAction
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeReviewFinding
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeReviewSeverity
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeReviewVerdict
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeTransitionDeclaration
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
 
@@ -96,23 +100,56 @@ class FeatureTaskRuntimeRunner(
         .orEmpty()
         .mapValues { (_, record) -> record.status }
     }
+    // The durable review-fix loop iteration count for the finished telemetry (AC6): the highest
+    // `review_fix` per-edge watermark from the LOOP_EDGE ledger (0 when the loop never fired).
+    // Sourced from the runtime's own durable ledger, never agent-self-reported, and resolved lazily
+    // inside the telemetry seam's failure isolation so loading it cannot abort or falsely-fail the run.
+    val reviewFixIterationCount = { loadReviewFixIterationCount(runRequest) }
+    val transitions = transitionsFor(runRequest)
     val report = runCatching {
-      val state = RunState(recorder.loadPhaseRecords(runRequest.workflowId, runRequest.dbPathOverride).orEmpty())
-      val loop = RunLoop(runRequest, state, observability, specSource)
+      val state = RunState(
+        recorder.loadPhaseRecords(runRequest.workflowId, runRequest.dbPathOverride).orEmpty(),
+        transitions,
+      )
+      val loop = RunLoop(runRequest, state, observability, specSource, transitions)
       loop.drive()
       loop.report()
     }.onFailure { error ->
       // An exception escaping the loop (recorder write, launcher RuntimeException, validator
       // non-schema error) would otherwise leave a dangling started-but-never-finished session.
       // Emit the error terminal from best-effort per-phase records, then rethrow the original.
-      lifecycleTelemetry.finishedError(telemetrySessionId, phaseOutcomes, runRequest.dbPathOverride)
+      lifecycleTelemetry.finishedError(
+        telemetrySessionId,
+        phaseOutcomes,
+        reviewFixIterationCount,
+        runRequest.dbPathOverride,
+      )
     }.getOrThrow()
     val terminalReport =
       persistGoalContinuationOutcome(goalContinuationRecorder, recorder, phaseGates.gitOperations, runRequest, report)
     phaseGates.specGate.deleteSingleSpecScratchOnTerminalSuccess(runRequest, terminalReport, specSource)
-    lifecycleTelemetry.finished(telemetrySessionId, terminalReport, phaseOutcomes, runRequest.dbPathOverride)
+    lifecycleTelemetry.finished(
+      telemetrySessionId,
+      terminalReport,
+      phaseOutcomes,
+      reviewFixIterationCount,
+      runRequest.dbPathOverride,
+    )
     return terminalReport
   }
+
+  // The highest durable `review_fix` per-edge iteration recorded on the LOOP_EDGE ledger (0 when the
+  // loop never fired): the runtime-owned review->fix iteration count for finished telemetry (AC6).
+  private fun loadReviewFixIterationCount(request: FeatureTaskRuntimeRunRequest): Int =
+    recorder.loadPhaseLedger(request.workflowId, request.dbPathOverride)
+      .orEmpty()
+      .filter {
+        it.action == FeatureTaskRuntimePhaseLedgerAction.LOOP_EDGE &&
+          it.loopId == FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID
+      }
+      .mapNotNull { it.edgeIteration }
+      .maxOrNull()
+      ?: 0
 
   // Drives the ordered phase loop for one run, owning the run-scoped resolved branch so the loop
   // body stays a single advance() call. The resolved branch is null until the first file-mutating
@@ -124,19 +161,16 @@ class FeatureTaskRuntimeRunner(
     private val state: RunState,
     private val observability: FeatureTaskRuntimeRunObservability,
     private val specSource: SpecSource,
+    // The forward-only production declaration, truncated to the goal-continuation boundary, or the
+    // test-only synthetic cyclic override. The single orchestration seam consumes this declaration
+    // rather than iterating a fixed list; an edge-free declaration is the strict forward pipeline.
+    // Resolved once in run() so RunState reconstructs its per-visit budget baselines from the same
+    // topology the driver loops on.
+    private val transitions: FeatureTaskRuntimeTransitionDeclaration,
   ) {
     private var resolvedBranch: String? = null
     private var blocked: FeatureTaskRuntimeRunReport.Blocked? = null
     private var decomposed: FeatureTaskRuntimeRunReport.Decomposed? = null
-
-    // The forward-only production declaration, truncated to the goal-continuation boundary, or the
-    // test-only synthetic cyclic override. The single orchestration seam consumes this declaration
-    // rather than iterating a fixed list; an edge-free declaration is the strict forward pipeline.
-    private val transitions: FeatureTaskRuntimeTransitionDeclaration =
-      request.transitionsOverride ?: FeatureTaskRuntimeTransitionDeclaration(
-        forwardPhaseIds = phasesFor(request),
-        backwardEdges = FeatureTaskRuntimePhaseWorkflowDefinition.transitions.backwardEdges,
-      )
 
     // The pending backward-edge re-entry to feed the next phase launch, set when an edge fires:
     // the driving verdict plus the runtime-minted loop id and per-edge iteration. Null on a forward
@@ -489,7 +523,13 @@ class FeatureTaskRuntimeRunner(
     // iteration count, and the unresolved verdict in the reason, consistent with every other block
     // path. Reuses blockAndPersist so the terminal blocked record and observability.blocked agree.
     private fun blockOnCapExhaustion(phaseId: String, transition: FeatureTaskRuntimeNextPhase.TerminalBlock) {
-      val reason = capExhaustionReason(transition.loopId, transition.edgeIteration, transition.unresolvedVerdict)
+      val unresolvedFindings = state.unresolvedReviewFindings(phaseId)
+      val reason = capExhaustionReason(
+        transition.loopId,
+        transition.edgeIteration,
+        transition.unresolvedVerdict,
+        unresolvedFindings,
+      )
       val run = PhaseRun(
         phaseId = phaseId,
         declaration = phaseDeclaration(phaseId, request.runInvariants.featureSize),
@@ -524,10 +564,24 @@ class FeatureTaskRuntimeRunner(
       " Refusing to re-enter a mutating phase on a dirty, non-reconcilable tree."
 
   // The bounded fix-loop block reason shape, applied to a backward-edge cap: loud, with the loop id,
-  // the exhausted iteration count, and the unresolved verdict.
-  private fun capExhaustionReason(loopId: String, edgeIteration: Int, verdict: FeatureTaskRuntimeVerdict): String =
-    "Backward-edge loop '$loopId' exhausted its per-edge cap after $edgeIteration iteration(s) with the " +
-      "verdict '${verdict.wireValue}' still unresolved; the run blocks rather than re-entering past the cap."
+  // the exhausted iteration count, the unresolved verdict, and the unresolved Blocker/Major findings
+  // that drove the loop so the operator sees exactly what never converged.
+  private fun capExhaustionReason(
+    loopId: String,
+    edgeIteration: Int,
+    verdict: FeatureTaskRuntimeVerdict,
+    unresolvedFindings: List<FeatureTaskRuntimeReviewFinding> = emptyList(),
+  ): String {
+    val findingsSuffix = if (unresolvedFindings.isEmpty()) {
+      ""
+    } else {
+      " Unresolved findings: " +
+        unresolvedFindings.joinToString("; ") { "[${it.severity.wireValue}] ${it.message}" } + "."
+    }
+    return "Backward-edge loop '$loopId' exhausted its per-edge cap after $edgeIteration iteration(s) with the " +
+      "verdict '${verdict.wireValue}' still unresolved; the run blocks rather than re-entering past the cap." +
+      findingsSuffix
+  }
 
   private sealed interface PhaseSettlement {
     private data object Stopped : PhaseSettlement
@@ -629,18 +683,23 @@ class FeatureTaskRuntimeRunner(
     // thus byte-for-byte unchanged on a forward launch). Now that implement is a bounded fix loop,
     // an exhausted-budget or schema-gate (incl. the reconciliation-gate rejection) block on a
     // re-entered mutating phase routes through this same loop-context-preserving path.
-    FeatureTaskRuntimeFixLoopPolicy.blockReasonIfBudgetExhausted(run.phaseId, iteration)?.let { reason ->
-      return blockAndPersistInPhase(run, iteration, reason, observability)
-    }
+    // The budget index is RELATIVE to the current visit (a backward-edge re-visit restarts it), while
+    // `iteration` stays the durable monotonic attempt index recorded per attempt. Within a single
+    // visit they advance in lockstep, so the visit base is a fixed offset between them.
+    val budgetBaseOffset = iteration - state.fixLoopIterationFor(run.phaseId, iteration)
+    FeatureTaskRuntimeFixLoopPolicy
+      .blockReasonIfBudgetExhausted(run.phaseId, iteration - budgetBaseOffset)
+      ?.let { reason -> return blockAndPersistInPhase(run, iteration, reason, observability) }
     observability.started(run.phaseId, agentId, iteration, iteration > 1 || state.hasPriorRecord(run.phaseId))
     var outcome: PhaseOutcome? = null
     while (outcome == null) {
       val attempt = attemptOnce(run, state, iteration, observability)
+      val decision = FeatureTaskRuntimeFixLoopPolicy.decideAfterFailure(run.phaseId, iteration - budgetBaseOffset)
       outcome = attempt.settledOutcome
-        ?: when (val decision = FeatureTaskRuntimeFixLoopPolicy.decideAfterFailure(run.phaseId, iteration)) {
+        ?: when (decision) {
           is FeatureTaskRuntimeFixLoopDecision.Retry -> {
-            iteration = decision.nextIteration
-            observability.fixLoopIteration(run.phaseId, agentId, decision.nextIteration, decision.fixLoopIteration)
+            iteration += 1
+            observability.fixLoopIteration(run.phaseId, agentId, iteration, decision.fixLoopIteration)
             null
           }
           is FeatureTaskRuntimeFixLoopDecision.Block -> blockAndPersistInPhase(
@@ -739,7 +798,13 @@ class FeatureTaskRuntimeRunner(
         // proven it reconciled the tree to target; the idempotency contract is verified, not assumed,
         // so route the silent skip through the SAME loud schema-gate failure path as bad output. The
         // fix loop then retries and ultimately blocks rather than advancing on an unverified mutation.
-      } ?: mutatingReconciliationGateReason(run.phaseId, outputMap)?.let(AttemptResult::schemaInvalid) ?: run {
+        // A review that reports `completed` but carries NEITHER a structured verdict NOR a findings
+        // array has not emitted any verification signal: prose alone must not advance past a
+        // Blocker/Major (AC1). Route the missing signal through the SAME loud schema-gate failure path
+        // so the fix loop retries and ultimately blocks rather than silently advancing to audit. An
+        // explicit empty findings array or an explicit verdict still legitimately advances.
+      } ?: mutatingReconciliationGateReason(run.phaseId, outputMap)?.let(AttemptResult::schemaInvalid)
+        ?: reviewVerificationSignalGateReason(run.phaseId, outputMap)?.let(AttemptResult::schemaInvalid) ?: run {
         persistPhase(run, iteration, STATUS_COMPLETED, finished = true, outputArtifact = outputText)
         observability.completed(run.phaseId, run.resolvedAgent.resolvedAgentId, iteration)
         AttemptResult.settled(
@@ -873,7 +938,10 @@ class FeatureTaskRuntimeRunner(
   // records (not just outputs) are retained so the bounded fix loop resumes from the durable
   // attempt count rather than resetting to iteration 1 on resume/crash. Single-threaded.
   @Suppress("TooManyFunctions") // the single in-memory resume/loop state projection
-  private class RunState(private val initialRecords: Map<String, FeatureTaskRuntimePhaseRecord>) {
+  private class RunState(
+    private val initialRecords: Map<String, FeatureTaskRuntimePhaseRecord>,
+    private val transitions: FeatureTaskRuntimeTransitionDeclaration,
+  ) {
     // A legacy PLAN completed without its now-required PREPLAN predecessor is invalidated up front so
     // the loop re-runs PLAN rather than honouring a pre-PREPLAN completion.
     private val completed: MutableSet<String> =
@@ -924,6 +992,21 @@ class FeatureTaskRuntimeRunner(
     // re-fire against a stale durable snapshot once the live machine owns the loop.
     private val liveClaimedLoops: MutableSet<String> = mutableSetOf()
 
+    // Per-phase same-phase fix-loop budget baseline: the attempt watermark a backward-edge re-visit
+    // starts from, so the schema-retry budget restarts each visit (the cross-visit bound is the
+    // per-edge backward cap). 0 for a phase that has never been re-entered.
+    //
+    // Reconstructed from durable state on resume: live reopenForReentry resets this base on every
+    // edge fire, but that map is in-memory only, so after a crash a re-entered phase would otherwise
+    // start from an empty base and the per-visit budget index would degrade to the absolute monotonic
+    // attempt_count — prematurely re-blocking a loop (e.g. a re-entered review whose attempt_count
+    // already accrued across review_fix visits) instead of resuming to convergence (AC5). For every
+    // fired loop (a durable per-edge watermark exists and the live machine has not yet claimed it),
+    // seed each non-completed phase in the reopened span (destination through source) from its durable
+    // attempt watermark, mirroring reopenForReentry's base = nextIteration - 1. The within-visit
+    // schema-retry budget still bounds at MAX_FIX_LOOP_ITERATIONS; attempt_count stays monotonic.
+    private val fixLoopBudgetBaseByPhase: MutableMap<String, Int> = reconstructFixLoopBudgetBases()
+
     fun outputs(): List<FeatureTaskRuntimePhaseOutput> = outputs.toList()
 
     // The durable per-phase record as loaded at resume (null when none); carries the latest edge
@@ -943,15 +1026,100 @@ class FeatureTaskRuntimeRunner(
 
     // A backward edge re-enters the phase: drop its completed marker so the driver relaunches it.
     // Its prior validated output stays in `outputs` so latest-iteration resolution still works.
+    // Reset the same-phase fix-loop budget baseline to the current attempt watermark: a backward-edge
+    // re-visit is a FRESH verification (e.g. a re-review), not a schema-retry of the prior visit, so it
+    // must restart the per-visit schema-retry budget. The durable attempt_count stays monotonic for
+    // telemetry; the cross-visit bound is the per-edge backward cap, not the same-phase budget.
     fun reopenForReentry(phaseId: String) {
       completed.remove(phaseId)
+      fixLoopBudgetBaseByPhase[phaseId] = maxOf(nextIteration(phaseId) - 1, 0)
     }
 
-    // The verdict the transition function reads, derived from the phase's latest completed output:
-    // a top-level `verdict` wire string when present, else the default ADVANCE for a phase with no
-    // verifying output. Concrete verdict schemas are added in later subtasks.
-    fun verdictFor(phaseId: String): FeatureTaskRuntimeVerdict =
-      outputFor(phaseId)?.let(::verdictFromOutput) ?: FeatureTaskRuntimeVerdict.ADVANCE
+    // The 1-based same-phase fix-loop iteration relative to the current visit's budget baseline, so the
+    // schema-retry budget counts only attempts within this visit, not backward-edge re-visits.
+    fun fixLoopIterationFor(phaseId: String, absoluteIteration: Int): Int =
+      absoluteIteration - (fixLoopBudgetBaseByPhase[phaseId] ?: 0)
+
+    // Resume reconstruction of the per-visit budget baselines (see fixLoopBudgetBaseByPhase). For every
+    // backward edge whose loop durably fired (a per-edge watermark exists), seed each non-completed
+    // phase in the reopened span (destination through source) from its durable attempt watermark,
+    // mirroring reopenForReentry. A completed phase is excluded: it does not re-enter runPhaseAttempts,
+    // so its baseline is irrelevant and a live edge fire will reset it through reopenForReentry anyway.
+    private fun reconstructFixLoopBudgetBases(): MutableMap<String, Int> {
+      val bases = mutableMapOf<String, Int>()
+      transitions.backwardEdges.forEach { edge ->
+        if ((edgeIterationByLoop[edge.loopId] ?: 0) <= 0) {
+          return@forEach
+        }
+        reopenedSpan(edge).forEach { phaseId ->
+          if (phaseId !in completed) {
+            bases[phaseId] = maxOf(nextIteration(phaseId) - 1, 0)
+          }
+        }
+      }
+      return bases
+    }
+
+    // The forward span an edge reopens, destination through source inclusive (mirrors the live
+    // recordBackwardEdge span); falls back to the destination alone when the indices do not bracket.
+    private fun reopenedSpan(edge: FeatureTaskRuntimeBackwardEdge): List<String> {
+      val destinationIndex = transitions.forwardPhaseIds.indexOf(edge.destinationPhaseId)
+      val sourceIndex = transitions.forwardPhaseIds.indexOf(edge.fromPhaseId)
+      return if (destinationIndex in 0..sourceIndex) {
+        transitions.forwardPhaseIds.subList(destinationIndex, sourceIndex + 1)
+      } else {
+        listOf(edge.destinationPhaseId)
+      }
+    }
+
+    // The verdict the transition function reads, derived from the phase's latest completed output. A
+    // top-level `verdict` wire string is honored for any phase; the `review` phase additionally
+    // CLASSIFIES from its carried findings so prose alone cannot advance past a Blocker/Major (any
+    // unresolved Blocker/Major forces CHANGES_REQUESTED). A phase with no verifying output is ADVANCE.
+    fun verdictFor(phaseId: String): FeatureTaskRuntimeVerdict {
+      val output = outputFor(phaseId) ?: return FeatureTaskRuntimeVerdict.ADVANCE
+      val outputObject = JsonSupport.parseObjectOrNull(output.payload)
+        ?.let(JsonSupport::jsonElementToValue)
+        ?.let(JsonSupport::anyToStringAnyMap)
+      val wireVerdict = (outputObject?.get("verdict") as? String)
+        ?.takeIf(String::isNotBlank)
+        ?.let(FeatureTaskRuntimeVerdict::fromWire)
+      if (phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW) {
+        val reviewVerdict = reviewVerdictFrom(outputObject)
+        if (reviewVerdict?.unresolvedFindings?.isNotEmpty() == true) {
+          return FeatureTaskRuntimeVerdict.CHANGES_REQUESTED
+        }
+        return wireVerdict ?: reviewVerdict?.verdict ?: FeatureTaskRuntimeVerdict.ADVANCE
+      }
+      return wireVerdict ?: FeatureTaskRuntimeVerdict.ADVANCE
+    }
+
+    // The structured review verdict decoded from a parsed review output's `produced_outputs.findings`
+    // array (each entry a `{severity, message}` map). Null when no findings array is present, so the
+    // caller falls back to the wire verdict / ADVANCE. The raw map never leaves this seam: it is
+    // decoded straight into the domain finding/verdict types.
+    fun reviewVerdictFrom(outputObject: Map<String, Any?>?): FeatureTaskRuntimeReviewVerdict? {
+      val findingsRaw = outputObject?.get("produced_outputs")
+        ?.let(JsonSupport::anyToStringAnyMap)
+        ?.get("findings") as? List<*>
+        ?: return null
+      val findings = findingsRaw.mapNotNull { entry ->
+        val map = JsonSupport.anyToStringAnyMap(entry) ?: return@mapNotNull null
+        val severity = (map["severity"] as? String)?.takeIf(String::isNotBlank) ?: return@mapNotNull null
+        val message = (map["message"] as? String)?.takeIf(String::isNotBlank) ?: return@mapNotNull null
+        FeatureTaskRuntimeReviewFinding(FeatureTaskRuntimeReviewSeverity.fromWire(severity), message)
+      }
+      return FeatureTaskRuntimeReviewVerdict(findings)
+    }
+
+    // The unresolved Blocker/Major findings the phase's latest review output carries (empty when none).
+    fun unresolvedReviewFindings(phaseId: String): List<FeatureTaskRuntimeReviewFinding> = outputFor(phaseId)
+      ?.let { JsonSupport.parseObjectOrNull(it.payload) }
+      ?.let(JsonSupport::jsonElementToValue)
+      ?.let(JsonSupport::anyToStringAnyMap)
+      ?.let(::reviewVerdictFrom)
+      ?.unresolvedFindings
+      .orEmpty()
 
     // The latest validated output for the phase (highest iteration), or null when none is present.
     fun outputFor(phaseId: String): FeatureTaskRuntimePhaseOutput? =
@@ -1016,6 +1184,21 @@ class FeatureTaskRuntimeRunner(
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN,
     )
 
+    // The transition declaration the run loops on: the test-only synthetic override, or the
+    // forward-only production declaration truncated to the goal-continuation boundary. Resolved once
+    // per run so the driver and the resume-time RunState reconstruction share one topology.
+    fun transitionsFor(request: FeatureTaskRuntimeRunRequest): FeatureTaskRuntimeTransitionDeclaration =
+      request.transitionsOverride ?: phasesFor(request).let { phases ->
+        FeatureTaskRuntimeTransitionDeclaration(
+          forwardPhaseIds = phases,
+          backwardEdges = FeatureTaskRuntimePhaseWorkflowDefinition.transitions.backwardEdges,
+          // Carry the loop-only set (intersected with the possibly goal-truncated pipeline) so the
+          // forward edge skips implement_fix on a clean run instead of launching it inline.
+          loopOnlyPhaseIds = FeatureTaskRuntimePhaseWorkflowDefinition.transitions.loopOnlyPhaseIds
+            .filter { it in phases }.toSet(),
+        )
+      }
+
     fun phasesFor(request: FeatureTaskRuntimeRunRequest): List<String> {
       val phases = FeatureTaskRuntimePhaseWorkflowDefinition.definition.stepIds
       return if (isGoalContinuationRun(request)) {
@@ -1046,6 +1229,29 @@ class FeatureTaskRuntimeRunner(
           "reconciled the working tree to target: produced_outputs must carry 'reconciled_state' (or a " +
           "'reconciled' entry) with 'reconciled' set to true. The idempotency contract is verified, not " +
           "assumed; a silent skip fails the schema gate."
+      }
+    }
+
+    // Verifies the review phase emitted a verification signal from a `completed` output rather than
+    // assuming silence means approval: a review MUST carry EITHER a top-level `verdict` string OR a
+    // `produced_outputs.findings` array (even an empty one). A review reporting NEITHER falls through
+    // to ADVANCE in verdictFor, silently advancing past a possible Blocker/Major (the inverse of AC1),
+    // so route the both-absent case through the schema-gate failure path. Returns null for every
+    // non-review phase and whenever either signal is present. Pure: no IO, no mutation.
+    private fun reviewVerificationSignalGateReason(phaseId: String, outputMap: Map<String, Any?>): String? {
+      if (phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW) {
+        return null
+      }
+      val hasVerdict = (outputMap["verdict"] as? String)?.isNotBlank() == true
+      val producedOutputs = outputMap["produced_outputs"] as? Map<*, *>
+      val hasFindingsArray = producedOutputs?.containsKey("findings") == true && producedOutputs["findings"] is List<*>
+      return if (hasVerdict || hasFindingsArray) {
+        null
+      } else {
+        "Review phase reported 'completed' without a verification signal: the output must carry either a " +
+          "top-level 'verdict' or a 'produced_outputs.findings' array (an explicit empty array affirms no " +
+          "blocking findings). A review that emits neither cannot advance past a possible Blocker/Major; " +
+          "the schema gate fails rather than silently advancing to audit."
       }
     }
 
@@ -1194,18 +1400,6 @@ private fun recordToOutput(record: FeatureTaskRuntimePhaseRecord): FeatureTaskRu
       payload = artifact,
     )
   }
-
-// Derives the transition verdict from a phase output: the top-level `verdict` wire string when the
-// phase emits one (the generic seam concrete review/audit verdict schemas plug into in later
-// subtasks), else the default ADVANCE for a phase with no verifying output.
-private fun verdictFromOutput(output: FeatureTaskRuntimePhaseOutput): FeatureTaskRuntimeVerdict {
-  val verdictValue = JsonSupport.parseObjectOrNull(output.payload)
-    ?.let(JsonSupport::jsonElementToValue)
-    ?.let(JsonSupport::anyToStringAnyMap)
-    ?.get("verdict") as? String
-  return verdictValue?.takeIf(String::isNotBlank)?.let(FeatureTaskRuntimeVerdict::fromWire)
-    ?: FeatureTaskRuntimeVerdict.ADVANCE
-}
 
 private fun phaseDeclaration(
   phaseId: String,

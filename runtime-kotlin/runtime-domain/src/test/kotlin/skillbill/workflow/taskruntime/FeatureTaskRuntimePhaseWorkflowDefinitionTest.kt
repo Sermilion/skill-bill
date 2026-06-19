@@ -3,6 +3,7 @@ package skillbill.workflow.taskruntime
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
 import skillbill.workflow.implement.FeatureImplementWorkflowDefinition
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -33,6 +34,7 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionTest {
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN,
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN,
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT_FIX,
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW,
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE,
@@ -47,6 +49,7 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionTest {
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN to "Phase 1: Pre-plan",
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN to "Phase 2: Plan",
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT to "Phase 3: Implement",
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT_FIX to "Phase 3b: Implement Fix",
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW to "Phase 4: Code Review",
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT to "Phase 5: Completeness Audit",
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE to "Phase 6: Quality Validation",
@@ -118,14 +121,42 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionTest {
   }
 
   @Test
-  fun `every declared dependency references an earlier phase forming a valid DAG`() {
+  fun `every forward phase's declared dependency references an earlier phase forming a valid DAG`() {
     val order = definition.stepIds
+    val loopOnly = FeatureTaskRuntimePhaseWorkflowDefinition.transitions.loopOnlyPhaseIds
     definition.stepIds.forEachIndexed { index, phaseId ->
+      // Loop-only phases (e.g. implement_fix) are backward-edge destinations: they legitimately
+      // consume their backward source (review), which is forward-later, so the strict-earlier
+      // invariant applies only to the forward pipeline.
+      if (phaseId in loopOnly) return@forEachIndexed
       dependenciesOf(phaseId).forEach { upstream ->
         val upstreamIndex = order.indexOf(upstream)
         assertTrue(upstreamIndex in 0 until index, "$phaseId depends on $upstream which is not strictly earlier")
       }
     }
+  }
+
+  @Test
+  fun `implement_fix is a loop-only mutating phase reached only by the declared review_fix backward edge`() {
+    val def = FeatureTaskRuntimePhaseWorkflowDefinition
+    assertTrue(def.isMutatingPhase(def.PHASE_IMPLEMENT_FIX))
+    assertTrue(def.isMutatingPhase(def.PHASE_IMPLEMENT))
+    val transitions = def.transitions
+    assertEquals(setOf(def.PHASE_IMPLEMENT_FIX), transitions.loopOnlyPhaseIds)
+    val edge = transitions.backwardEdges.single()
+    assertEquals(def.PHASE_REVIEW, edge.fromPhaseId)
+    assertEquals(def.PHASE_IMPLEMENT_FIX, edge.destinationPhaseId)
+    assertEquals("review_fix", edge.loopId)
+    assertEquals(3, edge.perEdgeCap)
+    assertEquals(FeatureTaskRuntimeVerdict.CHANGES_REQUESTED, edge.triggeringVerdict)
+    // The backward destination precedes its source so the reopened span includes review (re-review leg).
+    val ids = transitions.forwardPhaseIds
+    assertTrue(ids.indexOf(edge.destinationPhaseId) < ids.indexOf(edge.fromPhaseId))
+    // The fix phase consumes the plan, the latest implement output, and the review findings.
+    assertEquals(
+      listOf(def.PHASE_PLAN, def.PHASE_IMPLEMENT, def.PHASE_REVIEW),
+      dependenciesOf(def.PHASE_IMPLEMENT_FIX),
+    )
   }
 
   @Test

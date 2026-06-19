@@ -94,3 +94,17 @@ properties:
       `null` is not a valid value.
     type: string
     minLength: 1
+  verdict:
+    description: >
+      Optional structured verdict emitted by a verifying phase (e.g. `review`)
+      that the runtime reads to decide whether to advance or take a remediation
+      backward edge. For `review` the values are `approved` (no unresolved
+      Blocker/Major findings) or `changes_requested` (Blocker/Major findings
+      present); the runtime classifies the verdict from the carried review
+      findings, which travel inside `produced_outputs` (e.g. a `findings` array
+      of severity/message entries) and are forwarded into the `implement_fix`
+      handoff. Either absent (not set) or a non-empty string; `null` is not a
+      valid value. This field is additive and optional — existing phase outputs
+      that omit it still validate — so the contract_version is unchanged.
+    type: string
+    minLength: 1

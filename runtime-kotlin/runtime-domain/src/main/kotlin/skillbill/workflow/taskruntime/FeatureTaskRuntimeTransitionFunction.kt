@@ -17,8 +17,9 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
  *   loop id and the incremented iteration.
  * - The same edge at its cap yields a [FeatureTaskRuntimeNextPhase.TerminalBlock] carrying the loop
  *   id, the iteration count, and the unresolved verdict.
- * - Otherwise the default forward edge fires: the next forward index, or
- *   [FeatureTaskRuntimeNextPhase.TerminalAdvance] at the pipeline end.
+ * - Otherwise the default forward edge fires: the next forward index whose phase is not loop-only
+ *   (loop-only phases are reachable only as backward-edge destinations), or
+ *   [FeatureTaskRuntimeNextPhase.TerminalAdvance] when no such phase remains.
  *
  * There is no clock, random, or IO here; the executor in runtime-application owns counter minting and
  * persistence.
@@ -67,8 +68,9 @@ object FeatureTaskRuntimeTransitionFunction {
     require(index >= 0) {
       "Feature-task-runtime transition: phase '$currentPhaseId' is not in the forward pipeline."
     }
-    val nextIndex = index + 1
-    return if (nextIndex < declaration.forwardPhaseIds.size) {
+    val nextIndex = (index + 1 until declaration.forwardPhaseIds.size)
+      .firstOrNull { declaration.forwardPhaseIds[it] !in declaration.loopOnlyPhaseIds }
+    return if (nextIndex != null) {
       FeatureTaskRuntimeNextPhase.Next(phaseId = declaration.forwardPhaseIds[nextIndex])
     } else {
       FeatureTaskRuntimeNextPhase.TerminalAdvance

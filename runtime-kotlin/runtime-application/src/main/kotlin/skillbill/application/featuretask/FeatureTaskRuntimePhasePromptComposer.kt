@@ -107,8 +107,8 @@ object FeatureTaskRuntimePhasePromptComposer {
   }
 
   // Emitted only for mutating phases (see [FeatureTaskRuntimePhaseWorkflowDefinition.isMutatingPhase]):
-  // implement now, a future implement_fix later. The directive is empty for every other phase so their
-  // prompts stay byte-for-byte unchanged.
+  // implement and implement_fix. The directive is empty for every other phase so their prompts stay
+  // byte-for-byte unchanged.
   private fun mutatingPhaseIdempotencyDirective(phaseId: String): String {
     if (!FeatureTaskRuntimePhaseWorkflowDefinition.isMutatingPhase(phaseId)) {
       return ""
@@ -181,6 +181,12 @@ object FeatureTaskRuntimePhasePromptComposer {
       "Reconcile the repository to the intended state the upstream plan output describes: make the " +
       "changes it specifies, treating any already-applied change as a no-op. See the mutating-phase " +
       "idempotency contract below.",
+    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT_FIX to
+      "Address the carried review Blocker/Major findings on the CURRENT working tree as incremental " +
+      "reconciliation: fix exactly those findings using the review findings, the latest implement " +
+      "output, and the intended state from the briefing. Do NOT re-apply the plan from scratch and do " +
+      "not expand scope beyond the findings. Treat any fix already present as a no-op. See the " +
+      "mutating-phase idempotency contract below.",
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW to
       "Review the implemented changes at the encoded review scope against the acceptance criteria " +
       "and report defects with concrete file references.",

@@ -58,12 +58,12 @@ subtasks:
 - id: 4
   name: "review-driven-implement-fix-loop"
   spec_path: ".feature-specs/SKILL-85-runtime-remediation-loops/spec_subtask_4_review-driven-implement-fix-loop.md"
-  status: "pending"
+  status: "complete"
   branch: "feat/SKILL-85-runtime-remediation-loops"
   commit_sha: null
-  workflow_id: null
+  workflow_id: "wfl-20260619-100529-tzd2"
   blocked_reason: null
-  last_resumable_step: null
+  last_resumable_step: "commit_push"
   linear_issue_id: null
   dependencies:
   - subtask_id: 1

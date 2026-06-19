@@ -1,5 +1,5 @@
 ---
-status: Draft
+status: Complete
 ---
 
 # SKILL-85 Subtask 4 - M1: Review-Driven Implement-Fix Loop
