@@ -2,6 +2,7 @@ package skillbill.workflow.taskruntime
 
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
 import skillbill.workflow.model.WorkflowDefinition
+import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeAuditCeremony
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeCeremonyScaling
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFeatureSize
@@ -93,8 +94,12 @@ object FeatureTaskRuntimePhaseWorkflowDefinition {
     continuationDirectives = emptyMap(),
     continuationArtifactOrder = emptyList(),
     openPriorStepsCompleted = false,
-    completedTerminalSummaryArtifact = PHASE_PR,
+    // The per-phase records store is always persisted for a completed run, whereas no top-level
+    // `pr` artifact is ever written; point the completed-run summary pointer at the store that
+    // actually exists so resumeView's "done" next-action dereferences real persisted state.
+    completedTerminalSummaryArtifact = FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY,
     workflowMode = "runtime",
+    requiredArtifactPresenceResolver = FeatureTaskRuntimeRequiredArtifactPresenceResolver,
   )
 
   /**

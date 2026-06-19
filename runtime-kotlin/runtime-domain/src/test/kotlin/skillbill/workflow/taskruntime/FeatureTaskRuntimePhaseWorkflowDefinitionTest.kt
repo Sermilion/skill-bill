@@ -2,6 +2,7 @@ package skillbill.workflow.taskruntime
 
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
 import skillbill.workflow.implement.FeatureImplementWorkflowDefinition
+import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -153,9 +154,9 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionTest {
   }
 
   @Test
-  fun `terminal summary artifact is pr`() {
+  fun `terminal summary artifact points at the always-persisted per-phase records store`() {
     assertEquals(
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PR,
+      FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY,
       definition.completedTerminalSummaryArtifact,
     )
   }

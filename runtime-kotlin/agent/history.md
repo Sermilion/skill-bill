@@ -1,3 +1,12 @@
+## [2026-06-19] SKILL-85.1 runtime-resume-and-state-model-integrity
+Areas: runtime-kotlin/runtime-domain, runtime-kotlin/runtime-application, .feature-specs/SKILL-85-runtime-remediation-loops
+- The runtime feature-task family now advances the shared per-step `steps[]` model in lockstep with its private phase records, so the generic resume gate, `_resume`/`_continue` tools, and goal-runner reconciliation operate on truthful state instead of an all-`pending` array. reusable
+- Required-upstream presence is resolved via a domain-owned `fun interface RequiredArtifactPresenceResolver` on `WorkflowDefinition` (Option B): the DEFAULT keeps `snapshot.artifacts.containsKey` so the prose IMPLEMENT/VERIFY families stay byte-for-byte unchanged, while the runtime definition binds a resolver that reads `feature_task_runtime_phase_records` (present iff record status==completed; loud-fail on corrupt). No raw-Map open boundary; `RuntimeArchitectureTest` untouched. reusable
+- `blockedStepId` and the terminal-status step-fallback now derive from the truthful `steps[]` via `firstUnfinishedStepId`, scoped to TASK_RUNTIME only, so a crashed runtime row lacking `goal_continuation_outcome` reconciles correctly instead of mis-defaulting to `preplan`.
+- Regression `FeatureTaskRuntimeResumeGateTest` reproduces the original wedge: completed preplan/plan records with a dead process now report `can_resume = true` and resume at `implement`.
+Feature flag: N/A
+Acceptance criteria: 9/9 implemented per audit; full `./gradlew check` BUILD SUCCESSFUL on subtask scope
+
 ## [2026-06-15] SKILL-84 update-check-slash-command
 Areas: runtime-kotlin/runtime-application, runtime-kotlin/runtime-cli, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-core, skills/bill-update-check, skills/bill-feature*
 - Added `skill-bill update-check` backed by the installed runtime version source and GitHub Releases lookup; JSON/text output maps up_to_date, update_available, ahead_of_release, and soft unknown states.
