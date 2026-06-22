@@ -105,10 +105,10 @@ class JvmAgentRunProcessRunner : AgentRunProcessRunner {
       runCatching { process.waitFor(DESTROY_WAIT_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS) }
         .onFailure { error -> if (error is InterruptedException) interrupted = true }
     }
-    runCatching { ptyMasterCloseable?.close() }
-      .onFailure { System.err.println("skill-bill: failed to close PTY master fd: ${it.message}") }
     stdout.join()
     stderr.join()
+    runCatching { ptyMasterCloseable?.close() }
+      .onFailure { System.err.println("skill-bill: failed to close PTY master fd: ${it.message}") }
     val terminalOutcome = when {
       interrupted -> GoalProgressOutcome.CANCELLED
       finished -> GoalProgressOutcome.SUCCEEDED
