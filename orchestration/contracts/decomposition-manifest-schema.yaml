@@ -180,6 +180,7 @@ $defs:
           - resume
           - blocked
           - none
+          - complete
 required:
   - contract_version
   - issue_key
