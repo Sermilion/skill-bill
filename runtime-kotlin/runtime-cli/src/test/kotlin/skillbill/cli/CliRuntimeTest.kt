@@ -968,7 +968,6 @@ class CliRuntimeTest {
       CliRuntimeContext(),
     )
     val payload = decodeJsonObject(result.stdout)
-
     assertEquals(0, result.exitCode)
     assertEquals("bill-goal-run", payload["workflow"])
     assertEquals(1, payload["total_runs"])
