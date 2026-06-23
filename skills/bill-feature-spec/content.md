@@ -144,7 +144,7 @@ For `decomposed`:
 Write the manifest file directly from the template below. Fill every placeholder with values from the planning subagent's decomposition RESULT; do not leave any placeholder literal in the written file.
 
 ```yaml
-contract_version: "0.3"
+contract_version: "0.4"
 issue_key: "ISSUE-KEY"          # string, required
 feature_name: "feature-name"    # string, required
 parent_spec_path: ".feature-specs/ISSUE-KEY-feature-name/spec.md"  # string, required
