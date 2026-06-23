@@ -9,6 +9,10 @@ description: Cut a new Skill Bill release: generate a user-facing changelog from
 
 This skill produces a curated user-facing changelog from commits since the last release, presents it for review, then creates and pushes an annotated semver tag. Pushing the tag kicks off the GitHub Release workflow that builds per-OS installer assets and publishes the GitHub Release.
 
+## Intake
+
+Parse the optional bump-type argument: `param:patch`, `param:minor`, or `param:major`. When present, skip the version-suggestion step (step 6) and apply the provided bump type directly. When absent, follow the normal suggestion flow.
+
 ## Steps
 
 ### 1. Pre-flight checks
@@ -82,14 +86,16 @@ Show the draft changelog to the user. Ask for any edits or corrections before pr
 
 ### 6. Determine the next version
 
-Suggest a version bump based on RELEASING.md versioning policy:
+If a bump type was provided via `param:` intake, apply it directly and show the resulting version string without asking for a suggestion.
+
+Otherwise, suggest a bump based on RELEASING.md versioning policy:
 - `patch` — docs-only, validator fixes, non-breaking tooling fixes
 - `minor` — new skills, new commands, new runtime behavior, new user-visible capability
 - `major` — intentional breaking changes to taxonomy, install behavior, or stable entry points
 
 Skill Bill stays pre-1.0 until the install surface and taxonomy feel settled, so most releases are `minor` or `patch`.
 
-Present the suggested version and ask the user to confirm or override.
+Either way, show the computed version (e.g. `v0.4.0`) and ask the user to confirm or override before proceeding.
 
 ### 7. Create the annotated tag
 
