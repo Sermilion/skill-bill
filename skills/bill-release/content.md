@@ -1,13 +1,13 @@
 ---
 name: bill-release
-description: Cut a new Skill Bill release: generate a user-facing changelog from commits since the last tag, confirm with the user, then create and push the annotated semver tag to trigger the GitHub Release workflow. Requires bump:patch, bump:minor, or bump:major. Use when user mentions cut a release, new release, release skill-bill, create release tag, or bump version.
+description: Cut a release for any tag-driven repo: generate a user-facing changelog from commits since the last tag, confirm with the user, then create and push an annotated semver tag. Requires bump:patch, bump:minor, or bump:major. Use when user mentions cut a release, new release, create release tag, or bump version.
 ---
 
 # Release Skill Content
 
 ## Overview
 
-This skill produces a curated user-facing changelog from commits since the last release, presents it for review, then creates and pushes an annotated semver tag. Pushing the tag kicks off the GitHub Release workflow that builds per-OS installer assets and publishes the GitHub Release.
+This skill produces a curated user-facing changelog from commits since the last release, presents it for review, then creates and pushes an annotated semver tag. Pushing the tag triggers whatever CI/CD or release workflow the repo has wired to tag events.
 
 ## Intake
 
@@ -17,12 +17,12 @@ Require a bump-type argument: `bump:patch`, `bump:minor`, or `bump:major`. If it
 
 ### 1. Pre-flight checks
 
-Confirm the working tree is clean and the local `main` branch is up to date:
+Confirm the working tree is clean and the current branch is up to date with its remote:
 
 ```bash
 git status --short
 git fetch origin
-git log HEAD..origin/main --oneline
+git log HEAD..@{u} --oneline
 ```
 
 If uncommitted changes exist or commits remain to pull, surface them and ask the user how to proceed before continuing.
@@ -49,7 +49,7 @@ git log <prev-tag>..HEAD --merges --format="PR: %s%n%b"
 
 ### 4. Generate the changelog draft
 
-Categorize the commits using editorial judgment. Read RELEASING.md (versioning policy) and the commit messages to understand what is user-facing, important, or internal.
+Categorize the commits using editorial judgment. If the repo has a RELEASING.md or CHANGELOG.md, read it first for project-specific versioning policy. Use commit messages to determine what is user-facing, important, or internal.
 
 **Categories:**
 
@@ -104,7 +104,7 @@ Confirm with the user before pushing (this is irreversible and triggers the rele
 git push origin vX.Y.Z
 ```
 
-After pushing, tell the user to watch the `Release` GitHub Actions workflow — it builds per-OS installer assets and publishes the GitHub Release automatically.
+After pushing, remind the user to watch any CI/CD workflow wired to the tag (e.g. a GitHub Actions release workflow) for build and publish status.
 
 ## Rules
 
