@@ -1,6 +1,6 @@
 ---
 name: bill-release
-description: Cut a new Skill Bill release: generate a user-facing changelog from commits since the last tag, confirm with the user, then create and push the annotated semver tag to trigger the GitHub Release workflow. Use when user mentions cut a release, new release, release skill-bill, create release tag, or bump version.
+description: Cut a new Skill Bill release: generate a user-facing changelog from commits since the last tag, confirm with the user, then create and push the annotated semver tag to trigger the GitHub Release workflow. Requires bump:patch, bump:minor, or bump:major. Use when user mentions cut a release, new release, release skill-bill, create release tag, or bump version.
 ---
 
 # Release Skill Content
@@ -11,7 +11,7 @@ This skill produces a curated user-facing changelog from commits since the last 
 
 ## Intake
 
-Require a bump-type argument: `param:patch`, `param:minor`, or `param:major`. If it is absent or not one of those three values, stop and ask the user which bump type to use before proceeding. Do not guess or suggest a default.
+Require a bump-type argument: `bump:patch`, `bump:minor`, or `bump:major`. If it is absent or not one of those three values, stop and ask the user which bump type to use before proceeding. Do not guess or suggest a default.
 
 ## Steps
 
