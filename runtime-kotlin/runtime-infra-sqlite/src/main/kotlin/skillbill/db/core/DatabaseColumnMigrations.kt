@@ -30,12 +30,8 @@ internal object DatabaseColumnMigrations {
       "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'goal_run_sessions'",
     ).use { statement -> statement.executeQuery().use { resultSet -> resultSet.next() } }
     if (goalRunSessionsExists) {
-      ensureGoalRunSessionsColumns(connection)
+      ensureColumn(connection, "goal_run_sessions", "mode", "TEXT NOT NULL DEFAULT 'runtime'")
     }
-  }
-
-  private fun ensureGoalRunSessionsColumns(connection: Connection) {
-    ensureColumn(connection, "goal_run_sessions", "mode", "TEXT NOT NULL DEFAULT 'runtime'")
   }
 
   private fun ensureFeatureTaskRuntimeSessionColumns(connection: Connection) {

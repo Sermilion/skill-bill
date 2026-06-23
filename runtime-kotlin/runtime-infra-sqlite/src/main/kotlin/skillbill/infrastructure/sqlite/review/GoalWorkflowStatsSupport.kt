@@ -29,21 +29,6 @@ fun buildGoalStats(runRows: List<Map<String, Any?>>, subtaskRows: List<Map<Strin
   val completedRuns = finished.count { it.status == "completed" }
   val blockedRuns = finished.count { it.status == "blocked" }
   val mostRecent = runs.maxByOrNull { it.startedAt }
-  val byMode = runs.groupBy { it.mode }.mapValues { (_, modeRuns) ->
-    val modeFinished = modeRuns.filter { it.finishedAt.isNotBlank() }
-    val modeCompleted = modeFinished.count { it.status == "completed" }
-    val modeBlocked = modeFinished.count { it.status == "blocked" }
-    GoalModeStats(
-      totalRuns = modeRuns.size,
-      finishedRuns = modeFinished.size,
-      inProgressRuns = modeRuns.size - modeFinished.size,
-      completedRuns = modeCompleted,
-      completedRate = rate(modeCompleted, modeFinished.size),
-      blockedRuns = modeBlocked,
-      blockedRate = rate(modeBlocked, modeFinished.size),
-      averageRunDurationMs = averageMillis(modeFinished.map { it.durationMs }),
-    )
-  }
   return GoalWorkflowStats(
     totalRuns = runs.size,
     finishedRuns = finished.size,
@@ -83,9 +68,26 @@ fun buildGoalStats(runRows: List<Map<String, Any?>>, subtaskRows: List<Map<Strin
           attemptCount = s.attemptCount,
         )
       },
-    byMode = byMode,
+    byMode = buildByModeStats(runs),
   )
 }
+
+private fun buildByModeStats(runs: List<GoalRunRow>): Map<String, GoalModeStats> =
+  runs.groupBy { it.mode }.mapValues { (_, modeRuns) ->
+    val modeFinished = modeRuns.filter { it.finishedAt.isNotBlank() }
+    val modeCompleted = modeFinished.count { it.status == "completed" }
+    val modeBlocked = modeFinished.count { it.status == "blocked" }
+    GoalModeStats(
+      totalRuns = modeRuns.size,
+      finishedRuns = modeFinished.size,
+      inProgressRuns = modeRuns.size - modeFinished.size,
+      completedRuns = modeCompleted,
+      completedRate = rate(modeCompleted, modeFinished.size),
+      blockedRuns = modeBlocked,
+      blockedRate = rate(modeBlocked, modeFinished.size),
+      averageRunDurationMs = averageMillis(modeFinished.map { it.durationMs }),
+    )
+  }
 
 internal data class GoalRunRow(
   val workflowId: String,

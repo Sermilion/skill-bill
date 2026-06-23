@@ -916,53 +916,7 @@ class CliRuntimeTest {
   fun `goal-stats --format json emits stable payload`() {
     val tempDir = Files.createTempDirectory("skillbill-cli-goal-stats-json")
     val dbPath = tempDir.resolve("metrics.db")
-
-    DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
-      val store = LifecycleTelemetryStore(connection)
-      store.goalStarted(
-        skillbill.telemetry.model.GoalStartedRecord(
-          issueKey = "SKILL-66",
-          featureName = "goal telemetry",
-          workflowId = "wf-cli-1",
-          subtaskTotal = 1,
-          resumed = false,
-          startedAt = "2026-06-05T10:00:00Z",
-          mode = "runtime",
-        ),
-        level = "full",
-      )
-      store.goalSubtaskFinished(
-        skillbill.telemetry.model.GoalSubtaskFinishedRecord(
-          issueKey = "SKILL-66",
-          workflowId = "wf-cli-1",
-          subtaskId = 1,
-          subtaskName = "implement",
-          status = "blocked",
-          startedAt = "2026-06-05T10:00:00Z",
-          finishedAt = "2026-06-05T10:05:00Z",
-          durationMs = 300_000,
-          attemptCount = 2,
-          blockedReason = "compile error",
-        ),
-        "full",
-      )
-      store.goalFinished(
-        skillbill.telemetry.model.GoalFinishedRecord(
-          issueKey = "SKILL-66",
-          workflowId = "wf-cli-1",
-          status = "blocked",
-          startedAt = "2026-06-05T10:00:00Z",
-          finishedAt = "2026-06-05T10:10:00Z",
-          durationMs = 600_000,
-          subtasksComplete = 0,
-          subtasksBlocked = 1,
-          subtasksSkipped = 0,
-          mode = "runtime",
-        ),
-        level = "full",
-      )
-    }
-
+    seedGoalStatsDb(dbPath)
     val result = CliRuntime.run(
       listOf("--db", dbPath.toString(), "goal-stats", "--format", "json"),
       CliRuntimeContext(),
@@ -1158,6 +1112,54 @@ private fun assertFeatureStatsAliases(dbPath: Path, context: CliRuntimeContext) 
   assertTrue("feature_size_outcome_stats" in implementAliasPayload)
   assertTrue("large_feature_health" in implementAliasPayload)
   assertEquals("bill-feature-verify", verifyAliasPayload["workflow"])
+}
+
+private fun seedGoalStatsDb(dbPath: Path) {
+  DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
+    val store = LifecycleTelemetryStore(connection)
+    store.goalStarted(
+      skillbill.telemetry.model.GoalStartedRecord(
+        issueKey = "SKILL-66",
+        featureName = "goal telemetry",
+        workflowId = "wf-cli-1",
+        subtaskTotal = 1,
+        resumed = false,
+        startedAt = "2026-06-05T10:00:00Z",
+        mode = "runtime",
+      ),
+      level = "full",
+    )
+    store.goalSubtaskFinished(
+      skillbill.telemetry.model.GoalSubtaskFinishedRecord(
+        issueKey = "SKILL-66",
+        workflowId = "wf-cli-1",
+        subtaskId = 1,
+        subtaskName = "implement",
+        status = "blocked",
+        startedAt = "2026-06-05T10:00:00Z",
+        finishedAt = "2026-06-05T10:05:00Z",
+        durationMs = 300_000,
+        attemptCount = 2,
+        blockedReason = "compile error",
+      ),
+      "full",
+    )
+    store.goalFinished(
+      skillbill.telemetry.model.GoalFinishedRecord(
+        issueKey = "SKILL-66",
+        workflowId = "wf-cli-1",
+        status = "blocked",
+        startedAt = "2026-06-05T10:00:00Z",
+        finishedAt = "2026-06-05T10:10:00Z",
+        durationMs = 600_000,
+        subtasksComplete = 0,
+        subtasksBlocked = 1,
+        subtasksSkipped = 0,
+        mode = "runtime",
+      ),
+      level = "full",
+    )
+  }
 }
 
 private fun writeTelemetryConfig(tempDir: Path, level: String): Path {
