@@ -973,8 +973,7 @@ class CliRuntimeTest {
     assertEquals(1, payload["total_runs"])
     assertEquals(1.0, payload["blocked_rate"])
     assertEquals(dbPath.toAbsolutePath().normalize().toString(), payload["db_path"])
-    val topBlocked = payload["top_blocked_subtasks"] as List<*>
-    assertEquals(1, topBlocked.size)
+    assertEquals(1, (payload["top_blocked_subtasks"] as List<*>).size)
   }
 
   @Test
