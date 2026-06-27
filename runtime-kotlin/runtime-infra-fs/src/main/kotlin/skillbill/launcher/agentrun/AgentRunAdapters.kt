@@ -73,7 +73,8 @@ class ProcessAgentRunAdapter(
 fun headlessAgentRunAdapters(processRunner: AgentRunProcessRunner): Map<InstallAgent, AgentRunAdapter> = listOf(
   ClaudeAgentRunCommandBuilder(),
   CodexAgentRunCommandBuilder(),
-  OpencodeAgentRunCommandBuilder(),
+  // opencode is prose-only and intentionally NOT registered, so the launcher yields
+  // UnsupportedAgentRunLaunch for it (mirroring copilot) — no runtime phase can spawn it.
   JunieAgentRunCommandBuilder(),
 ).associate { builder ->
   builder.agent to ProcessAgentRunAdapter(

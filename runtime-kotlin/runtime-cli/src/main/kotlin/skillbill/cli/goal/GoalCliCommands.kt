@@ -27,6 +27,8 @@ import skillbill.contracts.system.RuntimeProvenanceContract
 import skillbill.goalrunner.model.GoalRunnerRunReport
 import skillbill.goalrunner.model.GoalRunnerStatusProjection
 import skillbill.install.model.InvokingAgentContextResolver
+import skillbill.install.model.OPENCODE_RUNTIME_REFUSAL_MESSAGE
+import skillbill.install.model.isOpencodeAgent
 import skillbill.ports.agentrun.model.AgentRunOutputSink
 import skillbill.ports.agentrun.model.AgentRunOutputStream
 import skillbill.ports.workflow.model.DEFAULT_SELECTED_DIFF_MAX_BYTES
@@ -85,6 +87,10 @@ class GoalRunCommand(
       return
     }
     val runIssueKey = issueKey ?: throw UsageError("issue_key is required for goal run.")
+    // opencode is prose-only: refuse before any child subprocess is spawned.
+    if (listOf(resolveInvokedAgentId(agent, state.environment), agentOverride).any { isOpencodeAgent(it) }) {
+      throw UsageError(OPENCODE_RUNTIME_REFUSAL_MESSAGE)
+    }
     val presenter = GoalRunPresenter(
       issueKey = runIssueKey,
       state = state,

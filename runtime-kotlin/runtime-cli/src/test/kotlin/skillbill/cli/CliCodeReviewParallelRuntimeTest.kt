@@ -212,12 +212,13 @@ class CliCodeReviewParallelRuntimeTest {
         tempDir.toString(),
       ),
       CliRuntimeContext(
-        environment = System.getenv() + mapOf("SKILL_BILL_AGENT" to "opencode"),
+        environment = System.getenv() + mapOf("SKILL_BILL_AGENT" to "junie"),
         agentRunLauncher = launcher,
       ),
     )
 
-    // agent1 resolves to opencode, but agent2 is claude so no duplicate error
+    // SKILL-95: opencode is prose-only, so agent1 now resolves to junie (a supported runtime agent);
+    // agent2 is claude so no duplicate error.
     assertEquals(0, result.exitCode, result.stdout)
     assertFalse(launcher.agentIds.isEmpty())
   }

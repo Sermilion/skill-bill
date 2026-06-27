@@ -4,6 +4,63 @@ This file records architectural and implementation decisions that span the
 `runtime-kotlin/` boundary. Each entry is dated and explains the trade-off,
 not the implementation detail.
 
+## 2026-06-27 — opencode is prose-only: runtime mode refuses whenever the resolved agent is opencode
+
+Context: A real run (NEWS-141, workflow `wftr-20260626-193556-a4lk`) proved the
+runtime-driven phase loop is non-viable under opencode for two independent
+reasons: (A) the Kotlin runtime driver runs the whole phase loop synchronously in
+one foreground process, but opencode's Bash tool hard-kills foreground commands
+at 120 000 ms — a single phase (preplan) took ~241 s, so the driver is guillotined
+before even one phase completes; and (B) even with a longer budget, the nested
+`opencode run` emits valid contract JSON that the runtime never captures back (the
+opencode builder used `usePtyStdio=true` + opencode's formatted/TUI output, so the
+phase-output JSON cannot be parsed out of the ANSI stream), leaving the phase
+`running` and wedging the loop. opencode is the highest-churn, lowest-usage
+runtime target, so fixing either bug is not worth it.
+
+Decision: opencode is prose-only. Runtime mode refuses, loudly and at the
+boundary, whenever the resolved runtime agent is opencode by ANY route — host-agent
+detection, `SKILL_BILL_AGENT=opencode`, `--agent opencode`, `--phase-agent
+<phase>=opencode`, `--agent-override opencode`, and `--parallel-review-agent
+opencode` on the feature-task CLI, plus the invoked agent and `--agent-override`
+on the goal CLI — failing fast before opening a workflow, resolving a branch, or
+spawning a phase. Enforcement is defense-in-depth over two layers sharing one
+centralized predicate and message (`skillbill.install.model.isOpencodeAgent` +
+`OPENCODE_RUNTIME_REFUSAL_MESSAGE`): (L1) the runtime CLI preflights throw a
+`UsageError` with the actionable message naming both prose alternatives
+(`bill-feature-task-prose` / `bill-feature-goal mode:prose`); (L2) the launcher
+source-disablement — `OpencodeAgentRunCommandBuilder` is removed and opencode is
+intentionally not registered in `headlessAgentRunAdapters`, so
+`FileSystemAgentRunLauncher` yields `UnsupportedAgentRunLaunch` for it (mirroring
+copilot) as an unbypassable backstop even if a CLI guard is bypassed. The
+refusal message is centralized in `runtime-domain` (a plain const is inert data,
+allowed by the 2026-05-24 boundary decision) so both CLI layers emit byte-identical
+wording; the launcher keeps its generic backstop reason.
+
+Reason: opencode stays fully usable in prose mode, which runs the identical
+governed phase loop in-session with none of the 120s-kill / PTY-harvest problems.
+Failing loudly with an actionable message (instead of silently degrading or
+wedging) tells the user exactly which path to take. The host-agent DETECTION
+(`InvokingAgentContextResolver`) and the `InstallAgent` enum are intentionally
+retained: opencode must stay detectable (to refuse) and installable/scaffoldable
+(MCP into `~/.config/opencode`, generated opencode agents); only the runtime
+LAUNCH path is disabled. No app-layer guard is added (`AgentRunService` /
+`FeatureTaskRuntimeRunner` / `GoalRunner` are unguarded) so their
+resolution/recording tests stay green and the launcher backstop remains the single
+spawner chokepoint. As an intended consequence of the global registry removal,
+opencode is also disabled for `bill-code-review-parallel` runtime (a parallel-review
+subprocess hits the same 120s-kill/PTY-harvest wall); it relies on the launcher
+backstop's generic message only.
+
+Non-goals: no change to opencode install/scaffold/MCP, prose orchestration, or
+telemetry (all byte-for-byte unchanged); no change to runtime support for claude,
+codex, or junie; no removal of opencode from detection or the install enum; no
+schema/data migration and no feature flag (refusal-only).
+
+Revisit when: opencode gains a non-TTY harvestable headless mode and a foreground
+budget longer than 120s, at which point re-registering an opencode runtime adapter
+and dropping the preflights becomes viable.
+
 ## 2026-06-26 — SQLite runs in WAL with a busy_timeout for concurrent runs
 
 Context: All runtimes share one global SQLite file (`~/.skill-bill/review-metrics.db`),
