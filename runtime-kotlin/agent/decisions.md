@@ -20,9 +20,9 @@ runtime target, so fixing either bug is not worth it.
 
 Decision: opencode is prose-only. Runtime mode refuses, loudly and at the
 boundary, whenever the resolved runtime agent is opencode by ANY route — host-agent
-detection, `SKILL_BILL_AGENT=opencode`, `--agent opencode`, `--phase-agent
-<phase>=opencode`, `--agent-override opencode`, and `--parallel-review-agent
-opencode` on the feature-task CLI, plus the invoked agent and `--agent-override`
+detection, `SKILL_BILL_AGENT=opencode`, `--agent opencode`,
+`--phase-agent plan=opencode`, `--agent-override opencode`, and
+`--parallel-review-agent opencode` on the feature-task CLI, plus the invoked agent and `--agent-override`
 on the goal CLI — failing fast before opening a workflow, resolving a branch, or
 spawning a phase. The single source of truth is one domain set,
 `skillbill.install.model.RUNTIME_REFUSED_AGENTS` (`{OPENCODE}`), with the predicate
