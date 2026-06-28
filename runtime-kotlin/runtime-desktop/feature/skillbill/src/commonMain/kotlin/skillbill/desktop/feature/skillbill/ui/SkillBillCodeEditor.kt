@@ -35,6 +35,28 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
+import dev.skillbill.designsystem.generated.resources.Res
+import dev.skillbill.designsystem.generated.resources.accelerator_save
+import dev.skillbill.designsystem.generated.resources.editor_cancel
+import dev.skillbill.designsystem.generated.resources.editor_contract_missing_field
+import dev.skillbill.designsystem.generated.resources.editor_dirty_prompt_choose_directory
+import dev.skillbill.designsystem.generated.resources.editor_dirty_prompt_refresh
+import dev.skillbill.designsystem.generated.resources.editor_dirty_prompt_repo_switch
+import dev.skillbill.designsystem.generated.resources.editor_dirty_prompt_return_installed
+import dev.skillbill.designsystem.generated.resources.editor_dirty_prompt_selection_change
+import dev.skillbill.designsystem.generated.resources.editor_discard
+import dev.skillbill.designsystem.generated.resources.editor_generated_artifact_read_only
+import dev.skillbill.designsystem.generated.resources.editor_modified
+import dev.skillbill.designsystem.generated.resources.editor_no_source_selected
+import dev.skillbill.designsystem.generated.resources.editor_ok
+import dev.skillbill.designsystem.generated.resources.editor_read_only
+import dev.skillbill.designsystem.generated.resources.editor_read_only_browser
+import dev.skillbill.designsystem.generated.resources.editor_revert
+import dev.skillbill.designsystem.generated.resources.editor_save
+import dev.skillbill.designsystem.generated.resources.editor_save_blocked
+import dev.skillbill.designsystem.generated.resources.editor_saved
+import dev.skillbill.designsystem.generated.resources.editor_saving
+import org.jetbrains.compose.resources.stringResource
 import skillbill.desktop.core.designsystem.SkillBillComponentShapes
 import skillbill.desktop.core.designsystem.SkillBillDimens
 import skillbill.desktop.core.designsystem.SkillBillMetrics
@@ -43,7 +65,8 @@ import skillbill.desktop.core.designsystem.SkillBillTypeStyles
 import skillbill.desktop.core.domain.model.DirtyEditorPrompt
 import skillbill.desktop.core.domain.model.DirtyEditorPromptReason
 import skillbill.desktop.core.domain.model.EditorPlaceholder
-import skillbill.desktop.core.domain.model.SkillBillAcceleratorLabels
+
+private const val YAML_COLON_SEPARATOR = ":"
 
 @Composable
 internal fun CodeEditor(
@@ -111,7 +134,7 @@ internal fun CodeEditor(
         )
       }
     } else {
-      val rawText = (editor.content ?: editor.detail).ifBlank { "No source selected" }
+      val rawText = (editor.content ?: editor.detail).ifBlank { stringResource(Res.string.editor_no_source_selected) }
       val lines = rawText.lines()
       ReadOnlyBanner(editor)
       Column(
@@ -136,14 +159,14 @@ private fun SaveErrorDialog(message: String, onDismiss: () -> Unit) {
   AlertDialog(
     onDismissRequest = onDismiss,
     title = {
-      Text(text = "Save blocked", color = dialogTone.content)
+      Text(text = stringResource(Res.string.editor_save_blocked), color = dialogTone.content)
     },
     text = {
       Text(text = message, color = dialogTone.content)
     },
     confirmButton = {
       TextButton(onClick = onDismiss) {
-        Text(text = "OK")
+        Text(text = stringResource(Res.string.editor_ok))
       }
     },
     containerColor = dialogTone.container,
@@ -166,11 +189,11 @@ private fun EditorCommandBar(editor: EditorPlaceholder, onSave: () -> Unit, onRe
   ) {
     Text(
       text = if (editor.dirty) {
-        "Modified"
+        stringResource(Res.string.editor_modified)
       } else if (editor.editable) {
-        "Saved"
+        stringResource(Res.string.editor_saved)
       } else {
-        "Read-only"
+        stringResource(Res.string.editor_read_only)
       },
       color = if (editor.dirty) SkillBillTheme.frameTokens.primary else SkillBillTheme.frameTokens.muted,
       style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
@@ -179,15 +202,21 @@ private fun EditorCommandBar(editor: EditorPlaceholder, onSave: () -> Unit, onRe
       overflow = TextOverflow.Ellipsis,
     )
     EditorActionButton(
-      label = if (editor.saveInProgress) "Saving..." else "Save",
+      label = if (editor.saveInProgress) {
+        stringResource(
+          Res.string.editor_saving,
+        )
+      } else {
+        stringResource(Res.string.editor_save)
+      },
       marker = "sv",
       enabled = editor.editable && editor.dirty && !editor.saveInProgress,
       primary = editor.dirty,
-      acceleratorLabel = SkillBillAcceleratorLabels.SAVE,
+      acceleratorLabel = stringResource(Res.string.accelerator_save),
       onClick = onSave,
     )
     EditorActionButton(
-      label = "Revert",
+      label = stringResource(Res.string.editor_revert),
       marker = "rv",
       enabled = editor.editable && editor.dirty && !editor.saveInProgress,
       onClick = onRevert,
@@ -253,9 +282,12 @@ private fun ReadOnlyBanner(editor: EditorPlaceholder) {
     MiniIcon(text = "ro", tint = SkillBillTheme.frameTokens.primary)
     Text(
       text = if (editor.kind == "generated artifact") {
-        editor.readOnlyReason ?: "Generated artifact is ${editor.readOnlyLabel ?: "read-only"}"
+        editor.readOnlyReason ?: stringResource(
+          Res.string.editor_generated_artifact_read_only,
+          editor.readOnlyLabel ?: stringResource(Res.string.editor_read_only),
+        )
       } else {
-        editor.readOnlyReason ?: "Read-only browser"
+        editor.readOnlyReason ?: stringResource(Res.string.editor_read_only_browser)
       },
       color = SkillBillTheme.frameTokens.muted,
       style = MaterialTheme.typography.labelSmall,
@@ -293,12 +325,12 @@ private fun SaveErrorBanner(message: String) {
 private fun DirtyEditorPromptBanner(prompt: DirtyEditorPrompt, onDiscard: () -> Unit, onCancel: () -> Unit) {
   val warningTone = SkillBillTheme.semanticTones.warningBanner
   val message = when (prompt.reason) {
-    DirtyEditorPromptReason.SELECTION_CHANGE -> "Discard unsaved edits before changing selection?"
-    DirtyEditorPromptReason.REFRESH -> "Discard unsaved edits before refreshing?"
-    DirtyEditorPromptReason.REPO_SWITCH -> "Discard unsaved edits before switching repositories?"
-    DirtyEditorPromptReason.CHOOSE_DIRECTORY -> "Discard unsaved edits before choosing another repository?"
+    DirtyEditorPromptReason.SELECTION_CHANGE -> stringResource(Res.string.editor_dirty_prompt_selection_change)
+    DirtyEditorPromptReason.REFRESH -> stringResource(Res.string.editor_dirty_prompt_refresh)
+    DirtyEditorPromptReason.REPO_SWITCH -> stringResource(Res.string.editor_dirty_prompt_repo_switch)
+    DirtyEditorPromptReason.CHOOSE_DIRECTORY -> stringResource(Res.string.editor_dirty_prompt_choose_directory)
     DirtyEditorPromptReason.RETURN_TO_INSTALLED_WORKSPACE ->
-      "Discard unsaved edits before opening the installed workspace?"
+      stringResource(Res.string.editor_dirty_prompt_return_installed)
   }
   Row(
     modifier = Modifier.fillMaxWidth().background(
@@ -316,8 +348,19 @@ private fun DirtyEditorPromptBanner(prompt: DirtyEditorPrompt, onDiscard: () -> 
       maxLines = 1,
       overflow = TextOverflow.Ellipsis,
     )
-    EditorActionButton(label = "Discard", marker = "ds", enabled = true, primary = true, onClick = onDiscard)
-    EditorActionButton(label = "Cancel", marker = "cn", enabled = true, onClick = onCancel)
+    EditorActionButton(
+      label = stringResource(Res.string.editor_discard),
+      marker = "ds",
+      enabled = true,
+      primary = true,
+      onClick = onDiscard,
+    )
+    EditorActionButton(
+      label = stringResource(Res.string.editor_cancel),
+      marker = "cn",
+      enabled = true,
+      onClick = onCancel,
+    )
   }
 }
 
@@ -358,7 +401,7 @@ private fun CodeLine(number: Int, line: String, flagged: Boolean, colors: CodePa
         ) {
           MiniIcon(text = "x", tint = SkillBillTheme.frameTokens.status.error)
           Text(
-            text = "contract: missing field",
+            text = stringResource(Res.string.editor_contract_missing_field),
             color = SkillBillTheme.frameTokens.status.error,
             style = SkillBillTypeStyles.codeCaption,
           )
@@ -382,7 +425,7 @@ private fun SyntaxText(line: String, colors: CodePaneColors) {
     Row {
       Text(keyMatch.groupValues[1], color = colors.yaml.scalar, style = SkillBillTypeStyles.code)
       Text(keyMatch.groupValues[2], color = colors.yaml.key, style = SkillBillTypeStyles.code)
-      Text(":", color = colors.yaml.marker, style = SkillBillTypeStyles.code)
+      Text(YAML_COLON_SEPARATOR, color = colors.yaml.marker, style = SkillBillTypeStyles.code)
       Text(
         keyMatch.groupValues[3],
         color = colors.yaml.scalar,

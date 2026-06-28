@@ -48,6 +48,57 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
+import dev.skillbill.designsystem.generated.resources.Res
+import dev.skillbill.designsystem.generated.resources.scaffold_ack_dirty_repo_cd
+import dev.skillbill.designsystem.generated.resources.scaffold_acknowledge_partial_mutation
+import dev.skillbill.designsystem.generated.resources.scaffold_add_layer
+import dev.skillbill.designsystem.generated.resources.scaffold_add_on_name
+import dev.skillbill.designsystem.generated.resources.scaffold_add_suggested_prefix
+import dev.skillbill.designsystem.generated.resources.scaffold_baseline_pack
+import dev.skillbill.designsystem.generated.resources.scaffold_baseline_section
+import dev.skillbill.designsystem.generated.resources.scaffold_baseline_skill
+import dev.skillbill.designsystem.generated.resources.scaffold_cancel
+import dev.skillbill.designsystem.generated.resources.scaffold_code_review_area
+import dev.skillbill.designsystem.generated.resources.scaffold_description
+import dev.skillbill.designsystem.generated.resources.scaffold_dialog_cd
+import dev.skillbill.designsystem.generated.resources.scaffold_dismiss_cd
+import dev.skillbill.designsystem.generated.resources.scaffold_dismiss_error
+import dev.skillbill.designsystem.generated.resources.scaffold_display_name
+import dev.skillbill.designsystem.generated.resources.scaffold_dry_run_plan
+import dev.skillbill.designsystem.generated.resources.scaffold_family
+import dev.skillbill.designsystem.generated.resources.scaffold_hide_manifest_yaml
+import dev.skillbill.designsystem.generated.resources.scaffold_label_input_cd
+import dev.skillbill.designsystem.generated.resources.scaffold_layer_number
+import dev.skillbill.designsystem.generated.resources.scaffold_manifest_edit_previews
+import dev.skillbill.designsystem.generated.resources.scaffold_mode
+import dev.skillbill.designsystem.generated.resources.scaffold_no_baseline_layers
+import dev.skillbill.designsystem.generated.resources.scaffold_no_baseline_packs
+import dev.skillbill.designsystem.generated.resources.scaffold_option_cd
+import dev.skillbill.designsystem.generated.resources.scaffold_owning_platform_pack
+import dev.skillbill.designsystem.generated.resources.scaffold_plan_dry_run
+import dev.skillbill.designsystem.generated.resources.scaffold_planning
+import dev.skillbill.designsystem.generated.resources.scaffold_platform
+import dev.skillbill.designsystem.generated.resources.scaffold_platform_preset
+import dev.skillbill.designsystem.generated.resources.scaffold_platform_slug
+import dev.skillbill.designsystem.generated.resources.scaffold_prefix_field_cd
+import dev.skillbill.designsystem.generated.resources.scaffold_preview_install_targets
+import dev.skillbill.designsystem.generated.resources.scaffold_preview_manifest_edits
+import dev.skillbill.designsystem.generated.resources.scaffold_preview_notes
+import dev.skillbill.designsystem.generated.resources.scaffold_preview_planned_files
+import dev.skillbill.designsystem.generated.resources.scaffold_preview_symlinks
+import dev.skillbill.designsystem.generated.resources.scaffold_remove_layer
+import dev.skillbill.designsystem.generated.resources.scaffold_required
+import dev.skillbill.designsystem.generated.resources.scaffold_required_cd
+import dev.skillbill.designsystem.generated.resources.scaffold_run
+import dev.skillbill.designsystem.generated.resources.scaffold_running
+import dev.skillbill.designsystem.generated.resources.scaffold_scope
+import dev.skillbill.designsystem.generated.resources.scaffold_select_kind_cd
+import dev.skillbill.designsystem.generated.resources.scaffold_show_manifest_yaml
+import dev.skillbill.designsystem.generated.resources.scaffold_skill_name
+import dev.skillbill.designsystem.generated.resources.scaffold_skill_name_helper
+import dev.skillbill.designsystem.generated.resources.scaffold_title_prefix
+import dev.skillbill.designsystem.generated.resources.scaffold_validation_title
+import org.jetbrains.compose.resources.stringResource
 import skillbill.desktop.core.designsystem.SkillBillComponentShapes
 import skillbill.desktop.core.designsystem.SkillBillDimens
 import skillbill.desktop.core.designsystem.SkillBillMetrics
@@ -60,31 +111,7 @@ import skillbill.desktop.core.domain.model.ScaffoldRunResult
 import skillbill.desktop.core.domain.model.ScaffoldWizardFormFields
 import skillbill.desktop.core.domain.model.ScaffoldWizardState
 
-/**
- * Centralized wizard copy. This module does not currently expose stringResource, so local string
- * objects are the existing desktop style for keeping user-facing labels in one place.
- */
-private object ScaffoldWizardStrings {
-  const val BASELINE_SECTION = "Baseline review layers"
-  const val NO_BASELINE_LAYERS = "(none)"
-  const val NO_BASELINE_PACKS = "No baseline review packs available"
-  const val ADD_LAYER = "Add layer"
-  const val ADD_SUGGESTED_BASELINE_PREFIX = "Add"
-  const val REMOVE_LAYER = "Remove"
-  const val BASELINE_PACK = "Baseline pack"
-  const val BASELINE_SKILL = "Baseline skill"
-  const val MODE = "Mode"
-  const val SCOPE = "Scope"
-  const val REQUIRED = "Required"
-  const val REQUIRED_CONTENT_DESCRIPTION = "Required baseline layer"
-  const val VALIDATION_TITLE = "Fix form validation"
-  const val MANIFEST_EDIT_PREVIEWS = "Manifest edit previews"
-  const val SHOW_MANIFEST_YAML = "Show manifest YAML"
-  const val HIDE_MANIFEST_YAML = "Hide manifest YAML"
-  const val SKILL_NAME_LABEL = "Skill name"
-  const val SKILL_NAME_PREFIX = "bill-"
-  const val SKILL_NAME_HELPER = "Skill name will be prefixed with bill-."
-}
+private const val SKILL_NAME_PREFIX = "bill-"
 
 /**
  * Public callbacks the dialog needs to drive the view model. Hoisting the callbacks here keeps
@@ -112,11 +139,12 @@ fun ScaffoldWizardDialog(
   callbacks: ScaffoldWizardCallbacks,
 ) {
   val semanticTones = SkillBillTheme.semanticTones
+  val dialogContentDescription = stringResource(Res.string.scaffold_dialog_cd)
   Box(
     modifier = Modifier
       .fillMaxSize()
       .background(semanticTones.scrim)
-      .semantics { contentDescription = "Scaffold wizard" }
+      .semantics { contentDescription = dialogContentDescription }
       // Pointer-only outside-tap dismiss. Do NOT use clickable + Role.Button here: that makes the
       // scrim keyboard-focusable, and pressing Enter/Space while focus has drifted to it fires
       // onDismiss mid-typing.
@@ -194,17 +222,18 @@ private fun WizardHeader(kind: ScaffoldKind, onDismiss: () -> Unit) {
     horizontalArrangement = Arrangement.spacedBy(SkillBillDimens.spacingXl),
   ) {
     Text(
-      text = "New ${kind.displayLabel}",
+      text = stringResource(Res.string.scaffold_title_prefix, kind.displayLabel),
       color = dialogTone.content,
       style = MaterialTheme.typography.titleSmall,
       modifier = Modifier.weight(1f),
     )
+    val dismissCd = stringResource(Res.string.scaffold_dismiss_cd)
     Text(
       text = "x",
       color = colors.onSurfaceVariant,
       style = MaterialTheme.typography.titleSmall,
       modifier = Modifier
-        .semantics { contentDescription = "Dismiss scaffold wizard" }
+        .semantics { contentDescription = dismissCd }
         .clickable(role = Role.Button, onClick = onDismiss)
         .padding(horizontal = SkillBillDimens.padMd, vertical = SkillBillDimens.padXs),
     )
@@ -226,6 +255,7 @@ private fun KindPicker(selected: ScaffoldKind, onSelect: (ScaffoldKind) -> Unit,
           isSelected -> colors.onPrimary
           else -> dialogTone.content
         }
+        val kindCd = stringResource(Res.string.scaffold_select_kind_cd, kind.displayLabel)
         Text(
           text = kind.displayLabel,
           color = foregroundColor,
@@ -234,7 +264,7 @@ private fun KindPicker(selected: ScaffoldKind, onSelect: (ScaffoldKind) -> Unit,
             .clip(SkillBillComponentShapes.control)
             .border(SkillBillDimens.hairline, dialogTone.border, SkillBillComponentShapes.control)
             .background(backgroundColor)
-            .semantics { contentDescription = "Select wizard kind ${kind.displayLabel}" }
+            .semantics { contentDescription = kindCd }
             .clickable(enabled = enabled, role = Role.Button) { onSelect(kind) }
             .padding(horizontal = SkillBillDimens.padXl, vertical = SkillBillDimens.padMd),
         )
@@ -248,6 +278,7 @@ private fun DirtyRepoWarning(override: Boolean, enabled: Boolean, onOverrideChan
   val tone = SkillBillTheme.semanticTones.warningBanner
   val colors = SkillBillTheme.colors
   val dialogTone = SkillBillTheme.semanticTones.dialog
+  val acknowledgeCd = stringResource(Res.string.scaffold_ack_dirty_repo_cd)
   Column(
     modifier = Modifier
       .fillMaxWidth()
@@ -272,7 +303,7 @@ private fun DirtyRepoWarning(override: Boolean, enabled: Boolean, onOverrideChan
       verticalAlignment = Alignment.CenterVertically,
       horizontalArrangement = Arrangement.spacedBy(SkillBillDimens.spacingLg),
       modifier = Modifier
-        .semantics { contentDescription = "Acknowledge dirty repository warning" }
+        .semantics { contentDescription = acknowledgeCd }
         .clickable(enabled = enabled, role = Role.Checkbox) { onOverrideChanged(!override) },
     ) {
       Text(text = if (override) "[x]" else "[ ]", color = tone.content, style = MaterialTheme.typography.bodySmall)
@@ -291,8 +322,8 @@ private fun WizardForm(state: ScaffoldWizardState, callbacks: ScaffoldWizardCall
   when (state.kind) {
     ScaffoldKind.HORIZONTAL_SKILL -> {
       PrefixedTextFieldRow(
-        label = ScaffoldWizardStrings.SKILL_NAME_LABEL,
-        prefix = ScaffoldWizardStrings.SKILL_NAME_PREFIX,
+        label = stringResource(Res.string.scaffold_skill_name),
+        prefix = SKILL_NAME_PREFIX,
         value = fields.name,
         enabled = !state.busy,
         onValueChanged = { value ->
@@ -300,12 +331,12 @@ private fun WizardForm(state: ScaffoldWizardState, callbacks: ScaffoldWizardCall
         },
       )
       Text(
-        text = ScaffoldWizardStrings.SKILL_NAME_HELPER,
+        text = stringResource(Res.string.scaffold_skill_name_helper),
         color = SkillBillTheme.colors.onSurfaceVariant,
         style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
       )
       TextFieldRow(
-        label = "Description",
+        label = stringResource(Res.string.scaffold_description),
         value = fields.description,
         enabled = !state.busy,
         onValueChanged = { value ->
@@ -315,7 +346,7 @@ private fun WizardForm(state: ScaffoldWizardState, callbacks: ScaffoldWizardCall
     }
     ScaffoldKind.PLATFORM_PACK -> {
       PresetPicker(
-        label = "Platform preset",
+        label = stringResource(Res.string.scaffold_platform_preset),
         options = state.optionCatalog.platformPackPresets.map { it.platform to it.displayName },
         selected = fields.platform,
         enabled = !state.busy,
@@ -324,7 +355,7 @@ private fun WizardForm(state: ScaffoldWizardState, callbacks: ScaffoldWizardCall
         },
       )
       TextFieldRow(
-        label = "Platform slug",
+        label = stringResource(Res.string.scaffold_platform_slug),
         value = fields.platform,
         enabled = !state.busy,
         onValueChanged = { value ->
@@ -332,7 +363,7 @@ private fun WizardForm(state: ScaffoldWizardState, callbacks: ScaffoldWizardCall
         },
       )
       TextFieldRow(
-        label = "Display name",
+        label = stringResource(Res.string.scaffold_display_name),
         value = fields.displayName,
         enabled = !state.busy,
         onValueChanged = { value ->
@@ -343,7 +374,7 @@ private fun WizardForm(state: ScaffoldWizardState, callbacks: ScaffoldWizardCall
     }
     ScaffoldKind.PLATFORM_OVERRIDE_PILOTED -> {
       PresetPicker(
-        label = "Platform",
+        label = stringResource(Res.string.scaffold_platform),
         options = state.optionCatalog.pilotedPlatformPacks.map { it.platform to it.displayName },
         selected = fields.platform,
         enabled = !state.busy,
@@ -352,7 +383,7 @@ private fun WizardForm(state: ScaffoldWizardState, callbacks: ScaffoldWizardCall
         },
       )
       PresetPicker(
-        label = "Family",
+        label = stringResource(Res.string.scaffold_family),
         options = (state.optionCatalog.shelledFamilies + state.optionCatalog.preShellFamilies)
           .map { family -> family to family },
         selected = fields.family,
@@ -362,7 +393,7 @@ private fun WizardForm(state: ScaffoldWizardState, callbacks: ScaffoldWizardCall
         },
       )
       TextFieldRow(
-        label = "Description",
+        label = stringResource(Res.string.scaffold_description),
         value = fields.description,
         enabled = !state.busy,
         onValueChanged = { value ->
@@ -372,7 +403,7 @@ private fun WizardForm(state: ScaffoldWizardState, callbacks: ScaffoldWizardCall
     }
     ScaffoldKind.CODE_REVIEW_AREA -> {
       PresetPicker(
-        label = "Platform",
+        label = stringResource(Res.string.scaffold_platform),
         options = state.optionCatalog.pilotedPlatformPacks.map { it.platform to it.displayName },
         selected = fields.platform,
         enabled = !state.busy,
@@ -381,7 +412,7 @@ private fun WizardForm(state: ScaffoldWizardState, callbacks: ScaffoldWizardCall
         },
       )
       PresetPicker(
-        label = "Code-review area",
+        label = stringResource(Res.string.scaffold_code_review_area),
         options = state.optionCatalog.approvedCodeReviewAreas.map { area -> area to area },
         selected = fields.area,
         enabled = !state.busy,
@@ -390,7 +421,7 @@ private fun WizardForm(state: ScaffoldWizardState, callbacks: ScaffoldWizardCall
         },
       )
       TextFieldRow(
-        label = "Description",
+        label = stringResource(Res.string.scaffold_description),
         value = fields.description,
         enabled = !state.busy,
         onValueChanged = { value ->
@@ -400,7 +431,7 @@ private fun WizardForm(state: ScaffoldWizardState, callbacks: ScaffoldWizardCall
     }
     ScaffoldKind.ADD_ON -> {
       TextFieldRow(
-        label = "Add-on name",
+        label = stringResource(Res.string.scaffold_add_on_name),
         value = fields.name,
         enabled = !state.busy,
         onValueChanged = { value ->
@@ -408,7 +439,7 @@ private fun WizardForm(state: ScaffoldWizardState, callbacks: ScaffoldWizardCall
         },
       )
       PresetPicker(
-        label = "Owning platform pack",
+        label = stringResource(Res.string.scaffold_owning_platform_pack),
         options = state.optionCatalog.pilotedPlatformPacks.map { it.platform to it.displayName },
         selected = fields.platform,
         enabled = !state.busy,
@@ -425,10 +456,10 @@ private fun BaselineLayerControls(state: ScaffoldWizardState, callbacks: Scaffol
   val fields = state.formFields
   val hasBaselinePacks = state.optionCatalog.baselineReviewPacks.isNotEmpty()
   Column(verticalArrangement = Arrangement.spacedBy(SkillBillDimens.spacingLg)) {
-    SectionLabel(ScaffoldWizardStrings.BASELINE_SECTION)
+    SectionLabel(stringResource(Res.string.scaffold_baseline_section))
     if (fields.baselineLayers.isEmpty()) {
       Text(
-        text = ScaffoldWizardStrings.NO_BASELINE_LAYERS,
+        text = stringResource(Res.string.scaffold_no_baseline_layers),
         color = SkillBillTheme.colors.onSurfaceVariant,
         style = MaterialTheme.typography.labelSmall,
       )
@@ -445,21 +476,22 @@ private fun BaselineLayerControls(state: ScaffoldWizardState, callbacks: Scaffol
     }
     if (!hasBaselinePacks) {
       Text(
-        text = ScaffoldWizardStrings.NO_BASELINE_PACKS,
+        text = stringResource(Res.string.scaffold_no_baseline_packs),
         color = SkillBillTheme.colors.onSurfaceVariant,
         style = MaterialTheme.typography.labelSmall,
       )
     }
     Row(horizontalArrangement = Arrangement.spacedBy(SkillBillDimens.spacingLg)) {
       InlineButton(
-        label = ScaffoldWizardStrings.ADD_LAYER,
+        label = stringResource(Res.string.scaffold_add_layer),
         enabled = !state.busy && hasBaselinePacks,
         onClick = callbacks.onAddBaselineLayer,
       )
       if (state.baselineLayerSuggestion != null) {
+        val suggestedLabel = stringResource(Res.string.scaffold_add_suggested_prefix) + " " +
+          state.baselineLayerSuggestionLabel.orEmpty()
         InlineButton(
-          label = "${ScaffoldWizardStrings.ADD_SUGGESTED_BASELINE_PREFIX} " +
-            state.baselineLayerSuggestionLabel.orEmpty(),
+          label = suggestedLabel,
           enabled = !state.busy,
           onClick = callbacks.onAddSuggestedBaselineLayer,
         )
@@ -490,19 +522,19 @@ private fun BaselineLayerEditor(
       horizontalArrangement = Arrangement.spacedBy(SkillBillDimens.spacingLg),
     ) {
       Text(
-        text = "Layer ${index + 1}",
+        text = stringResource(Res.string.scaffold_layer_number, index + 1),
         color = SkillBillTheme.semanticTones.dialog.content,
         style = MaterialTheme.typography.bodySmall,
         modifier = Modifier.weight(1f),
       )
       InlineButton(
-        label = ScaffoldWizardStrings.REMOVE_LAYER,
+        label = stringResource(Res.string.scaffold_remove_layer),
         enabled = !state.busy,
         onClick = { callbacks.onRemoveBaselineLayer(index) },
       )
     }
     PresetPicker(
-      label = ScaffoldWizardStrings.BASELINE_PACK,
+      label = stringResource(Res.string.scaffold_baseline_pack),
       options = state.optionCatalog.baselineReviewPacks.map { option -> option.platform to option.displayName },
       selected = layer.platform,
       enabled = !state.busy,
@@ -520,7 +552,7 @@ private fun BaselineLayerEditor(
       },
     )
     PresetPicker(
-      label = ScaffoldWizardStrings.BASELINE_SKILL,
+      label = stringResource(Res.string.scaffold_baseline_skill),
       options = pack?.skills.orEmpty().map { option -> option.name to option.name },
       selected = layer.skill,
       enabled = !state.busy && pack != null,
@@ -556,7 +588,7 @@ private fun ModeAndScopeRow(
   Row(horizontalArrangement = Arrangement.spacedBy(SkillBillDimens.spacingLg), verticalAlignment = Alignment.Top) {
     Box(modifier = Modifier.weight(1f)) {
       PresetPicker(
-        label = ScaffoldWizardStrings.MODE,
+        label = stringResource(Res.string.scaffold_mode),
         options = skill?.supportedModes.orEmpty().map { mode -> mode to mode },
         selected = layer.mode,
         enabled = enabled,
@@ -567,7 +599,7 @@ private fun ModeAndScopeRow(
     }
     Box(modifier = Modifier.weight(1f)) {
       PresetPicker(
-        label = ScaffoldWizardStrings.SCOPE,
+        label = stringResource(Res.string.scaffold_scope),
         options = skill?.supportedScopes.orEmpty().map { scope -> scope to scope },
         selected = layer.scope,
         enabled = enabled,
@@ -588,17 +620,18 @@ private fun ModeAndScopeRow(
 
 @Composable
 private fun RequiredToggle(required: Boolean, enabled: Boolean, onToggle: () -> Unit) {
+  val requiredCd = stringResource(Res.string.scaffold_required_cd)
   Column(
     verticalArrangement = Arrangement.spacedBy(SkillBillDimens.spacingSm),
     horizontalAlignment = Alignment.CenterHorizontally,
   ) {
-    SectionLabel(ScaffoldWizardStrings.REQUIRED)
+    SectionLabel(stringResource(Res.string.scaffold_required))
     Checkbox(
       checked = required,
       enabled = enabled,
       onCheckedChange = { onToggle() },
       modifier = Modifier.semantics {
-        contentDescription = ScaffoldWizardStrings.REQUIRED_CONTENT_DESCRIPTION
+        contentDescription = requiredCd
       },
     )
   }
@@ -625,6 +658,7 @@ private fun TextFieldRow(label: String, value: String, enabled: Boolean, onValue
   }
   val textColor = if (enabled) textFieldTokens.text else textFieldTokens.disabledText
   val containerColor = if (enabled) textFieldTokens.container else textFieldTokens.disabledContainer
+  val inputCd = stringResource(Res.string.scaffold_label_input_cd, label)
   Column(verticalArrangement = Arrangement.spacedBy(SkillBillDimens.spacingSm)) {
     SectionLabel(label)
     Box(
@@ -635,7 +669,7 @@ private fun TextFieldRow(label: String, value: String, enabled: Boolean, onValue
         .border(SkillBillDimens.hairline, borderColor, SkillBillComponentShapes.control)
         .background(containerColor)
         .padding(horizontal = SkillBillDimens.padLg, vertical = SkillBillDimens.padMd)
-        .semantics { contentDescription = "$label input" },
+        .semantics { contentDescription = inputCd },
     ) {
       BasicTextField(
         value = value,
@@ -675,6 +709,7 @@ private fun PrefixedTextFieldRow(
   val containerColor = if (enabled) textFieldTokens.container else textFieldTokens.disabledContainer
   val focusRequester = remember { FocusRequester() }
   val rowClickInteractionSource = remember { MutableInteractionSource() }
+  val prefixFieldCd = stringResource(Res.string.scaffold_prefix_field_cd, label, prefix)
   Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(SkillBillDimens.spacingSm)) {
     SectionLabel(label)
     Row(
@@ -691,7 +726,7 @@ private fun PrefixedTextFieldRow(
           indication = null,
         ) { focusRequester.requestFocus() }
         .padding(horizontal = SkillBillDimens.padLg, vertical = SkillBillDimens.padMd)
-        .semantics(mergeDescendants = true) { contentDescription = "$label, prefix $prefix" },
+        .semantics(mergeDescendants = true) { contentDescription = prefixFieldCd },
     ) {
       Text(
         text = prefix,
@@ -750,6 +785,7 @@ private fun PresetPicker(
             isSelected -> colors.onPrimary
             else -> dialogTone.content
           }
+          val optionCd = stringResource(Res.string.scaffold_option_cd, label, display)
           Text(
             text = display,
             color = foregroundColor,
@@ -758,7 +794,7 @@ private fun PresetPicker(
               .clip(SkillBillComponentShapes.control)
               .border(SkillBillDimens.hairline, dialogTone.border, SkillBillComponentShapes.control)
               .background(backgroundColor)
-              .semantics { contentDescription = "$label option $display" }
+              .semantics { contentDescription = optionCd }
               .clickable(enabled = enabled, role = Role.Button) { onSelected(value) }
               .padding(horizontal = SkillBillDimens.padXl, vertical = SkillBillDimens.padMd),
           )
@@ -781,16 +817,16 @@ private fun PlanPreview(plan: skillbill.desktop.core.domain.model.ScaffoldPlan) 
     verticalArrangement = Arrangement.spacedBy(SkillBillDimens.spacingMd),
   ) {
     Text(
-      text = "Dry-run plan",
+      text = stringResource(Res.string.scaffold_dry_run_plan),
       color = tone.content,
       style = MaterialTheme.typography.bodySmall,
     )
-    PreviewSection(label = "Planned files", lines = plan.createdFiles)
-    PreviewSection(label = "Manifest edits", lines = plan.manifestEdits)
+    PreviewSection(label = stringResource(Res.string.scaffold_preview_planned_files), lines = plan.createdFiles)
+    PreviewSection(label = stringResource(Res.string.scaffold_preview_manifest_edits), lines = plan.manifestEdits)
     ManifestPreviewSection(plan.manifestPreviews)
-    PreviewSection(label = "Symlinks", lines = plan.symlinks)
-    PreviewSection(label = "Install targets", lines = plan.installTargets)
-    PreviewSection(label = "Notes", lines = plan.notes)
+    PreviewSection(label = stringResource(Res.string.scaffold_preview_symlinks), lines = plan.symlinks)
+    PreviewSection(label = stringResource(Res.string.scaffold_preview_install_targets), lines = plan.installTargets)
+    PreviewSection(label = stringResource(Res.string.scaffold_preview_notes), lines = plan.notes)
   }
 }
 
@@ -801,7 +837,7 @@ private fun ManifestPreviewSection(previews: List<skillbill.desktop.core.domain.
   val dialogTone = SkillBillTheme.semanticTones.dialog
   Column(verticalArrangement = Arrangement.spacedBy(SkillBillDimens.spacingSm)) {
     Text(
-      text = ScaffoldWizardStrings.MANIFEST_EDIT_PREVIEWS,
+      text = stringResource(Res.string.scaffold_manifest_edit_previews),
       color = colors.onSurfaceVariant,
       style = SkillBillTypeStyles.codeCaption.copy(fontFamily = FontFamily.Monospace),
     )
@@ -816,9 +852,9 @@ private fun ManifestPreviewSection(previews: List<skillbill.desktop.core.domain.
       )
       InlineButton(
         label = if (expanded) {
-          ScaffoldWizardStrings.HIDE_MANIFEST_YAML
+          stringResource(Res.string.scaffold_hide_manifest_yaml)
         } else {
-          ScaffoldWizardStrings.SHOW_MANIFEST_YAML
+          stringResource(Res.string.scaffold_show_manifest_yaml)
         },
         enabled = true,
         onClick = { expanded = !expanded },
@@ -879,7 +915,7 @@ private fun ValidationBanner(errors: List<String>) {
     verticalArrangement = Arrangement.spacedBy(SkillBillDimens.spacingSm),
   ) {
     Text(
-      text = ScaffoldWizardStrings.VALIDATION_TITLE,
+      text = stringResource(Res.string.scaffold_validation_title),
       color = tone.content,
       style = MaterialTheme.typography.bodySmall,
     )
@@ -1024,7 +1060,13 @@ private fun WizardFooter(
       // assistive tech — understand they are accepting that the repo may be in an inconsistent
       // state before scaffolding resumes. The clean-rollback case (rollbackComplete == true)
       // keeps the original "Dismiss error" wording since no safety lock is engaged.
-      val acknowledgeLabel = if (partialMutationLock) "Acknowledge partial mutation" else "Dismiss error"
+      val acknowledgeLabel = if (partialMutationLock) {
+        stringResource(
+          Res.string.scaffold_acknowledge_partial_mutation,
+        )
+      } else {
+        stringResource(Res.string.scaffold_dismiss_error)
+      }
       FooterButton(
         label = acknowledgeLabel,
         enabled = !state.busy,
@@ -1033,19 +1075,25 @@ private fun WizardFooter(
       )
     }
     FooterButton(
-      label = "Cancel",
+      label = stringResource(Res.string.scaffold_cancel),
       enabled = !state.busy,
       primary = false,
       onClick = onDismiss,
     )
     FooterButton(
-      label = if (state.busy) "Planning..." else "Plan (dry run)",
+      label = if (state.busy) {
+        stringResource(
+          Res.string.scaffold_planning,
+        )
+      } else {
+        stringResource(Res.string.scaffold_plan_dry_run)
+      },
       enabled = planEnabled,
       primary = false,
       onClick = onPlan,
     )
     FooterButton(
-      label = if (state.busy) "Running..." else "Run",
+      label = if (state.busy) stringResource(Res.string.scaffold_running) else stringResource(Res.string.scaffold_run),
       enabled = runEnabled,
       primary = true,
       onClick = onRun,

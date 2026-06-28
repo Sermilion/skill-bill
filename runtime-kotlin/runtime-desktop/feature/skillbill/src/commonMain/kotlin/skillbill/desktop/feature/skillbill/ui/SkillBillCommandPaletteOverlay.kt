@@ -42,6 +42,12 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
+import dev.skillbill.designsystem.generated.resources.Res
+import dev.skillbill.designsystem.generated.resources.command_palette_kind_command
+import dev.skillbill.designsystem.generated.resources.command_palette_kind_source
+import dev.skillbill.designsystem.generated.resources.command_palette_no_matches
+import dev.skillbill.designsystem.generated.resources.command_palette_search_placeholder
+import org.jetbrains.compose.resources.stringResource
 import skillbill.desktop.core.designsystem.SkillBillComponentShapes
 import skillbill.desktop.core.designsystem.SkillBillDimens
 import skillbill.desktop.core.designsystem.SkillBillTheme
@@ -138,7 +144,7 @@ private fun CommandPaletteInput(query: String, onQueryChanged: (String) -> Unit,
     Box(modifier = Modifier.weight(1f)) {
       if (query.isBlank()) {
         Text(
-          text = "Search commands and source items",
+          text = stringResource(Res.string.command_palette_search_placeholder),
           color = textFieldTokens.placeholder,
           style = MaterialTheme.typography.titleSmall,
           maxLines = 1,
@@ -169,7 +175,7 @@ private fun CommandPaletteResults(
   Column(modifier = modifier.padding(vertical = SkillBillDimens.padMd)) {
     if (palette.results.isEmpty()) {
       Text(
-        text = "No matching commands",
+        text = stringResource(Res.string.command_palette_no_matches),
         color = SkillBillTheme.frameTokens.subtle,
         style = MaterialTheme.typography.bodySmall,
         modifier = Modifier.padding(horizontal = SkillBillDimens.pad4xl, vertical = SkillBillDimens.pad2xl),
@@ -230,22 +236,25 @@ private fun CommandPaletteResultRow(result: CommandPaletteResult, selected: Bool
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(SkillBillDimens.spacingLg),
       ) {
+        val titleText = result.titleRes?.let { stringResource(it) } ?: result.title
         Text(
-          text = result.title,
+          text = titleText,
           color = titleColor,
           style = SkillBillTypeStyles.body13,
           maxLines = 1,
           overflow = TextOverflow.Ellipsis,
           modifier = Modifier.weight(1f),
         )
-        result.acceleratorLabel?.let { acceleratorLabel ->
-          CommandPaletteAcceleratorLabel(acceleratorLabel)
+        result.acceleratorLabelRes?.let { res ->
+          CommandPaletteAcceleratorLabel(stringResource(res))
         }
         CommandPaletteKindLabel(result.kind)
       }
+      val subtitleText = result.subtitleRes?.let { stringResource(it) } ?: result.subtitle
+      val disabledText = result.disabledReasonRes?.let { stringResource(it) }
       Text(
-        text = result.disabledReason ?: result.subtitle,
-        color = if (result.disabledReason == null) subtitleColor else SkillBillTheme.frameTokens.status.warning,
+        text = disabledText ?: subtitleText,
+        color = if (result.disabledReasonRes == null) subtitleColor else SkillBillTheme.frameTokens.status.warning,
         style = MaterialTheme.typography.labelSmall,
         maxLines = 2,
         overflow = TextOverflow.Ellipsis,
@@ -266,12 +275,12 @@ private fun CommandPaletteAcceleratorLabel(label: String) {
 
 @Composable
 private fun CommandPaletteKindLabel(kind: CommandPaletteResultKind) {
-  val label = when (kind) {
-    CommandPaletteResultKind.COMMAND -> "command"
-    CommandPaletteResultKind.TREE_ITEM -> "source"
+  val kindLabel = when (kind) {
+    CommandPaletteResultKind.COMMAND -> stringResource(Res.string.command_palette_kind_command)
+    CommandPaletteResultKind.TREE_ITEM -> stringResource(Res.string.command_palette_kind_source)
   }
   Text(
-    text = label,
+    text = kindLabel,
     color = SkillBillTheme.frameTokens.subtle,
     style = SkillBillTypeStyles.caption.copy(fontFamily = FontFamily.Monospace),
     maxLines = 1,

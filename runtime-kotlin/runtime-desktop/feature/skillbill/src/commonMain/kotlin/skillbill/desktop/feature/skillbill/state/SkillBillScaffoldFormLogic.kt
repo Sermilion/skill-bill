@@ -94,40 +94,40 @@ private fun validateBaselineLayers(wizard: ScaffoldWizardState): List<String> = 
   val seen = mutableSetOf<Pair<String, String>>()
 
   wizard.formFields.baselineLayers.forEachIndexed { index, layer ->
-    val label = "Baseline layer ${index + 1}"
+    val layerLabel = "Baseline layer ${index + 1}"
     val platform = layer.platform.trim()
     val skillName = layer.skill.trim()
     if (platform.isBlank()) {
-      add("$label: baseline pack is required.")
+      add("$layerLabel: baseline pack is required.")
       return@forEachIndexed
     }
     val pack = packsBySlug[platform]
     if (pack == null) {
-      add("$label: baseline pack '$platform' is not available or has no declared code-review baseline.")
+      add("$layerLabel: baseline pack '$platform' is not available or has no declared code-review baseline.")
       return@forEachIndexed
     }
     if (skillName.isBlank()) {
-      add("$label: baseline skill is required.")
+      add("$layerLabel: baseline skill is required.")
       return@forEachIndexed
     }
     val skill = pack.skills.firstOrNull { it.name == skillName }
     if (skill == null) {
-      add("$label: baseline skill '$skillName' is not declared by pack '$platform'.")
+      add("$layerLabel: baseline skill '$skillName' is not declared by pack '$platform'.")
       return@forEachIndexed
     }
     if (layer.mode !in skill.supportedModes) {
-      add("$label: mode '${layer.mode}' is not supported by '$platform/$skillName'.")
+      add("$layerLabel: mode '${layer.mode}' is not supported by '$platform/$skillName'.")
     }
     if (layer.scope !in skill.supportedScopes) {
-      add("$label: scope '${layer.scope}' is not supported by '$platform/$skillName'.")
+      add("$layerLabel: scope '${layer.scope}' is not supported by '$platform/$skillName'.")
     }
     if (!seen.add(platform to skillName)) {
-      add("$label: duplicate baseline layer '$platform/$skillName'.")
+      add("$layerLabel: duplicate baseline layer '$platform/$skillName'.")
     }
     if (newPlatform.isNotBlank() && platform == newPlatform) {
-      add("$label: baseline layer self-references the new platform pack '$newPlatform'.")
+      add("$layerLabel: baseline layer self-references the new platform pack '$newPlatform'.")
     } else if (newPlatform.isNotBlank() && compositionPathExists(catalog, from = platform, to = newPlatform)) {
-      add("$label: adding '$newPlatform -> $platform' would create a code-review composition cycle.")
+      add("$layerLabel: adding '$newPlatform -> $platform' would create a code-review composition cycle.")
     }
   }
 }

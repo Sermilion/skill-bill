@@ -1,5 +1,6 @@
 package skillbill.desktop.feature.skillbill.state
-
+import dev.skillbill.designsystem.generated.resources.Res
+import dev.skillbill.designsystem.generated.resources.first_run_install_planning_failed
 import kotlinx.coroutines.runBlocking
 import skillbill.desktop.core.domain.model.BaselineReviewCompositionEdge
 import skillbill.desktop.core.domain.model.BaselineReviewLayerSuggestion
@@ -953,7 +954,7 @@ class SkillBillViewModelScaffoldTest {
         applyResult = skillbill.desktop.core.domain.model.FirstRunApplyResult.Failed(
           skillbill.desktop.core.domain.model.FirstRunInstallOutcome(
             status = skillbill.desktop.core.domain.model.FirstRunInstallStatus.FAILURE,
-            title = "not scripted",
+            titleRes = Res.string.first_run_install_planning_failed,
           ),
         ),
       ),

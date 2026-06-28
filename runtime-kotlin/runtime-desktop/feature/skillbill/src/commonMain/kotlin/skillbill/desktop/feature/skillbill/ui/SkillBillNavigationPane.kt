@@ -42,13 +42,18 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import dev.skillbill.designsystem.generated.resources.Res
+import dev.skillbill.designsystem.generated.resources.accelerator_repo_open
+import dev.skillbill.designsystem.generated.resources.nav_file_mode
+import dev.skillbill.designsystem.generated.resources.nav_open_repo_tooltip
+import dev.skillbill.designsystem.generated.resources.nav_repository
+import org.jetbrains.compose.resources.stringResource
 import skillbill.desktop.core.designsystem.SkillBillComponentShapes
 import skillbill.desktop.core.designsystem.SkillBillDimens
 import skillbill.desktop.core.designsystem.SkillBillTheme
 import skillbill.desktop.core.designsystem.SkillBillTypeStyles
 import skillbill.desktop.core.domain.model.RepoLoadState
 import skillbill.desktop.core.domain.model.RepoLoadStatus
-import skillbill.desktop.core.domain.model.SkillBillAcceleratorLabels
 import skillbill.desktop.core.domain.model.SkillBillBusyOperation
 import skillbill.desktop.core.domain.model.SkillBillTreeItem
 
@@ -153,7 +158,7 @@ internal fun NavigationPane(
       // as a labeled status row (no clickable, no Role.Button) mirroring StatusItem in the bottom
       // status bar, so accessibility semantics match real behavior.
       RepositoryStatusItem(
-        label = "File mode",
+        label = stringResource(Res.string.nav_file_mode),
         statusText = readOnlyModeLabel,
         marker = fileModeMarker(readOnlyModeLabel),
         enabled = !busy,
@@ -205,7 +210,7 @@ private fun RepositorySelector(
       .border(BorderStroke(SkillBillDimens.borderNone, SkillBillTheme.frameTokens.transparent))
       .padding(horizontal = SkillBillDimens.pad2xl, vertical = SkillBillDimens.spacingXl),
   ) {
-    LabelText("Repository")
+    LabelText(stringResource(Res.string.nav_repository))
     Row(
       modifier =
       Modifier
@@ -255,7 +260,10 @@ private fun RepositorySelector(
           },
       )
       // F-U05 / F-X-501: enlarge hit target and announce intent for the text-as-button actions.
-      AcceleratorTooltip(label = "Open repository at path", acceleratorLabel = SkillBillAcceleratorLabels.REPO_OPEN) {
+      AcceleratorTooltip(
+        label = stringResource(Res.string.nav_open_repo_tooltip),
+        acceleratorLabel = stringResource(Res.string.accelerator_repo_open),
+      ) {
         Text(
           text = if (busy) "Busy" else "Open",
           color = if (busy) SkillBillTheme.frameTokens.subtle else SkillBillTheme.frameTokens.primary,

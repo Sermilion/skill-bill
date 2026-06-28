@@ -39,6 +39,11 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
+import dev.skillbill.designsystem.generated.resources.Res
+import dev.skillbill.designsystem.generated.resources.inspector_generated_artifacts
+import dev.skillbill.designsystem.generated.resources.inspector_metadata
+import dev.skillbill.designsystem.generated.resources.inspector_repository_validation
+import org.jetbrains.compose.resources.stringResource
 import skillbill.desktop.core.designsystem.SkillBillComponentShapes
 import skillbill.desktop.core.designsystem.SkillBillDimens
 import skillbill.desktop.core.designsystem.SkillBillMetrics
@@ -69,7 +74,7 @@ internal fun InspectorPane(
   ) {
     InspectorHeader(editor = editor)
     Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-      InspectorSection(title = "Metadata", marker = "mt") {
+      InspectorSection(title = stringResource(Res.string.inspector_metadata), marker = "mt") {
         KeyValueRow("name", editor.skillName ?: editor.title)
         KeyValueRow("kind", editor.kind ?: "none")
         KeyValueRow("authored path", editor.authoredPath ?: "-")
@@ -87,7 +92,7 @@ internal fun InspectorPane(
         )
       }
       InspectorSection(
-        title = "Repository validation",
+        title = stringResource(Res.string.inspector_repository_validation),
         marker = "vl",
         badge = repoStatus.issueCount.takeIf { it > 0 }?.toString(),
       ) {
@@ -99,7 +104,7 @@ internal fun InspectorPane(
       }
       val artifactsForInspector: List<GeneratedArtifactDetail> = editor.generatedArtifacts
       InspectorSection(
-        title = "Generated artifacts",
+        title = stringResource(Res.string.inspector_generated_artifacts),
         marker = "gn",
         badge = artifactsForInspector.size.takeIf { it > 0 }?.toString(),
       ) {

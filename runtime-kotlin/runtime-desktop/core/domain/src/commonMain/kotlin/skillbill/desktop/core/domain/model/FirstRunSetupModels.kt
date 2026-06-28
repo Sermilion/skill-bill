@@ -1,5 +1,7 @@
 package skillbill.desktop.core.domain.model
 
+import org.jetbrains.compose.resources.StringResource
+
 enum class FirstRunSetupStep {
   AGENTS,
   PLATFORM_PACKS,
@@ -122,7 +124,7 @@ data class FirstRunInstallDetail(
 
 data class FirstRunInstallOutcome(
   val status: FirstRunInstallStatus,
-  val title: String,
+  val titleRes: StringResource,
   val details: List<FirstRunInstallDetail> = emptyList(),
 )
 

@@ -32,13 +32,22 @@ import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
+import dev.skillbill.designsystem.generated.resources.Res
+import dev.skillbill.designsystem.generated.resources.accelerator_refresh
+import dev.skillbill.designsystem.generated.resources.toolbar_back
+import dev.skillbill.designsystem.generated.resources.toolbar_hide_details
+import dev.skillbill.designsystem.generated.resources.toolbar_install
+import dev.skillbill.designsystem.generated.resources.toolbar_open_installed
+import dev.skillbill.designsystem.generated.resources.toolbar_open_installed_cd
+import dev.skillbill.designsystem.generated.resources.toolbar_refresh
+import dev.skillbill.designsystem.generated.resources.toolbar_show_details
+import org.jetbrains.compose.resources.stringResource
 import skillbill.desktop.core.designsystem.SkillBillColor
 import skillbill.desktop.core.designsystem.SkillBillComponentShapes
 import skillbill.desktop.core.designsystem.SkillBillDimens
 import skillbill.desktop.core.designsystem.SkillBillMetrics
 import skillbill.desktop.core.designsystem.SkillBillTheme
 import skillbill.desktop.core.domain.model.ScaffoldKind
-import skillbill.desktop.core.domain.model.SkillBillAcceleratorLabels
 import skillbill.desktop.core.domain.model.SkillBillBusyOperation
 import skillbill.desktop.core.domain.model.SkillBillStatusBar
 
@@ -74,27 +83,32 @@ internal fun WorkspaceToolbar(
     verticalAlignment = Alignment.CenterVertically,
   ) {
     if (canNavigateBack) {
-      ToolbarButton(label = "Back", marker = "<", enabled = !busy, onClick = onNavigateBack)
+      ToolbarButton(
+        label = stringResource(Res.string.toolbar_back),
+        marker = "<",
+        enabled = !busy,
+        onClick = onNavigateBack,
+      )
       Spacer(modifier = Modifier.width(SkillBillDimens.spacingLg))
       ToolbarDivider()
     }
     ToolbarButton(
-      label = "Refresh",
+      label = stringResource(Res.string.toolbar_refresh),
       marker = "rf",
       enabled = !busy,
-      acceleratorLabel = SkillBillAcceleratorLabels.REFRESH,
+      acceleratorLabel = stringResource(Res.string.accelerator_refresh),
       onClick = onRefresh,
     )
     ToolbarButton(
-      label = "Install",
+      label = stringResource(Res.string.toolbar_install),
       marker = "in",
       enabled = installSetupEnabled,
       onClick = onInstallSetup,
     )
     ToolbarButton(
-      label = "Open installed",
+      label = stringResource(Res.string.toolbar_open_installed),
       marker = "iw",
-      contentDescription = "Open installed workspace",
+      contentDescription = stringResource(Res.string.toolbar_open_installed_cd),
       enabled = returnToInstalledWorkspaceEnabled,
       onClick = onReturnToInstalledWorkspace,
     )
@@ -114,7 +128,13 @@ internal fun WorkspaceToolbar(
     CommandSearchButton(onClick = onCommandPaletteOpen)
     Spacer(modifier = Modifier.width(SkillBillDimens.spacingXl))
     ToolbarSidePanelButton(
-      contentDescription = if (inspectorVisible) "Hide details panel" else "Show details panel",
+      contentDescription = if (inspectorVisible) {
+        stringResource(
+          Res.string.toolbar_hide_details,
+        )
+      } else {
+        stringResource(Res.string.toolbar_show_details)
+      },
       selected = inspectorVisible,
       enabled = !busy,
       onClick = onInspectorVisibilityToggle,

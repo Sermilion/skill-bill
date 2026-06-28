@@ -39,6 +39,11 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
+import dev.skillbill.designsystem.generated.resources.Res
+import dev.skillbill.designsystem.generated.resources.nav_tree_delete
+import dev.skillbill.designsystem.generated.resources.nav_tree_item_status_cd
+import dev.skillbill.designsystem.generated.resources.nav_tree_toggle_group_cd
+import org.jetbrains.compose.resources.stringResource
 import skillbill.desktop.core.designsystem.SkillBillComponentShapes
 import skillbill.desktop.core.designsystem.SkillBillDimens
 import skillbill.desktop.core.designsystem.SkillBillMetrics
@@ -79,6 +84,7 @@ internal fun NavGroup(
   // `Delete…` item). The menu is rendered at the end of the Row so it anchors to this row's
   // bounds; clicking the item triggers the actual confirmation dialog via `onShowContextMenu`.
   var menuExpanded by remember(group.id) { mutableStateOf(false) }
+  val toggleGroupCd = stringResource(Res.string.nav_tree_toggle_group_cd, group.label)
   Column(modifier = Modifier.padding(horizontal = SkillBillDimens.padSm, vertical = SkillBillDimens.hairline)) {
     Row(
       modifier =
@@ -92,7 +98,7 @@ internal fun NavGroup(
         // sibling rows; selection state stays on the row for tree semantics.
         .semantics {
           this.selected = selected
-          this.contentDescription = "Toggle group ${group.label}"
+          this.contentDescription = toggleGroupCd
           this.role = Role.Button
         }
         .clickable(enabled = enabled, role = Role.Button) { onNodeExpandedToggled(group.id) }
@@ -126,7 +132,7 @@ internal fun NavGroup(
         onDismissRequest = { menuExpanded = false },
       ) {
         DropdownMenuItem(
-          text = { Text("Delete…") },
+          text = { Text(stringResource(Res.string.nav_tree_delete)) },
           onClick = {
             menuExpanded = false
             onShowContextMenu(group)
@@ -264,7 +270,7 @@ private fun NavTreeNode(
       onDismissRequest = { menuExpanded = false },
     ) {
       DropdownMenuItem(
-        text = { Text("Delete…") },
+        text = { Text(stringResource(Res.string.nav_tree_delete)) },
         onClick = {
           menuExpanded = false
           onShowContextMenu(node)
@@ -322,6 +328,7 @@ internal fun RepositoryStatusItem(label: String, statusText: String, marker: Str
   } else {
     SkillBillTheme.frameTokens.subtle
   }
+  val itemContentDescription = stringResource(Res.string.nav_tree_item_status_cd, label, statusText)
   Row(
     modifier =
     Modifier
@@ -333,7 +340,7 @@ internal fun RepositoryStatusItem(label: String, statusText: String, marker: Str
       // F-X-901-G: merge child Text/MiniIcon semantics into one node so screen readers announce
       // "<label>: <status>" once rather than three separate fragments.
       .semantics(mergeDescendants = true) {
-        this.contentDescription = "$label: $statusText"
+        this.contentDescription = itemContentDescription
       },
     verticalAlignment = Alignment.CenterVertically,
     horizontalArrangement = Arrangement.spacedBy(SkillBillDimens.spacingLg),

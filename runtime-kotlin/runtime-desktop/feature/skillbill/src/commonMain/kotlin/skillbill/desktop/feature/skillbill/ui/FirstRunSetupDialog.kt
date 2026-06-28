@@ -29,6 +29,21 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import dev.skillbill.designsystem.generated.resources.Res
+import dev.skillbill.designsystem.generated.resources.first_run_back
+import dev.skillbill.designsystem.generated.resources.first_run_cd
+import dev.skillbill.designsystem.generated.resources.first_run_dismiss_cd
+import dev.skillbill.designsystem.generated.resources.first_run_done
+import dev.skillbill.designsystem.generated.resources.first_run_mcp_register
+import dev.skillbill.designsystem.generated.resources.first_run_mcp_skip
+import dev.skillbill.designsystem.generated.resources.first_run_next
+import dev.skillbill.designsystem.generated.resources.first_run_retry
+import dev.skillbill.designsystem.generated.resources.first_run_setup_issue
+import dev.skillbill.designsystem.generated.resources.first_run_summary_agents
+import dev.skillbill.designsystem.generated.resources.first_run_summary_mcp
+import dev.skillbill.designsystem.generated.resources.first_run_summary_platform_packs
+import dev.skillbill.designsystem.generated.resources.first_run_summary_telemetry
+import org.jetbrains.compose.resources.stringResource
 import skillbill.desktop.core.designsystem.SkillBillComponentShapes
 import skillbill.desktop.core.designsystem.SkillBillDimens
 import skillbill.desktop.core.designsystem.SkillBillSurfaceTone
@@ -56,11 +71,12 @@ data class FirstRunSetupCallbacks(
 @Composable
 fun FirstRunSetupDialog(state: FirstRunSetupState, callbacks: FirstRunSetupCallbacks) {
   val semanticTones = SkillBillTheme.semanticTones
+  val dialogContentDescription = stringResource(Res.string.first_run_cd)
   Box(
     modifier = Modifier
       .fillMaxSize()
       .background(semanticTones.scrim)
-      .semantics { contentDescription = "First-run setup wizard" }
+      .semantics { contentDescription = dialogContentDescription }
       .clickable(enabled = !state.busy, role = Role.Button, onClick = callbacks.onDismiss),
   ) {
     Column(
@@ -85,7 +101,11 @@ fun FirstRunSetupDialog(state: FirstRunSetupState, callbacks: FirstRunSetupCallb
         verticalArrangement = Arrangement.spacedBy(SkillBillDimens.spacing2xl),
       ) {
         state.errorMessage?.let { message ->
-          SetupBanner(title = "Setup issue", message = message, tone = semanticTones.warningBanner)
+          SetupBanner(
+            title = stringResource(Res.string.first_run_setup_issue),
+            message = message,
+            tone = semanticTones.warningBanner,
+          )
         }
         when (state.step) {
           FirstRunSetupStep.AGENTS -> AgentSelectionStep(state, callbacks)
@@ -120,12 +140,13 @@ private fun SetupHeader(state: FirstRunSetupState, onDismiss: () -> Unit) {
         }
       }
     }
+    val dismissContentDescription = stringResource(Res.string.first_run_dismiss_cd)
     Text(
       text = "x",
       color = if (state.busy) colors.onSurfaceVariant.copy(alpha = 0.55f) else colors.onSurfaceVariant,
       style = MaterialTheme.typography.titleSmall,
       modifier = Modifier
-        .semantics { contentDescription = "Dismiss setup wizard" }
+        .semantics { contentDescription = dismissContentDescription }
         .clickable(enabled = !state.busy, role = Role.Button, onClick = onDismiss)
         .padding(horizontal = SkillBillDimens.padMd, vertical = SkillBillDimens.padXs),
     )
@@ -226,15 +247,27 @@ private fun PreferencesStep(state: FirstRunSetupState, callbacks: FirstRunSetupC
 @Composable
 private fun ApplyStep(state: FirstRunSetupState) {
   SectionTitle("Ready")
-  SummaryLine(label = "Agents", value = state.selectedAgentIds.sorted().joinToString(", "))
   SummaryLine(
-    label = "Platform packs",
+    label = stringResource(Res.string.first_run_summary_agents),
+    value = state.selectedAgentIds.sorted().joinToString(", "),
+  )
+  SummaryLine(
+    label = stringResource(Res.string.first_run_summary_platform_packs),
     value = state.selectedPlatformSlugs.sorted().joinToString(", ").ifBlank {
       "none"
     },
   )
-  SummaryLine(label = "Telemetry", value = state.telemetryLevel.id)
-  SummaryLine(label = "MCP", value = if (state.registerMcp) "register" else "skip")
+  SummaryLine(label = stringResource(Res.string.first_run_summary_telemetry), value = state.telemetryLevel.id)
+  SummaryLine(
+    label = stringResource(Res.string.first_run_summary_mcp),
+    value = if (state.registerMcp) {
+      stringResource(
+        Res.string.first_run_mcp_register,
+      )
+    } else {
+      stringResource(Res.string.first_run_mcp_skip)
+    },
+  )
 }
 
 @Composable
@@ -253,7 +286,7 @@ private fun OutcomeStep(state: FirstRunSetupState) {
     FirstRunInstallStatus.WARNING -> SkillBillTheme.semanticTones.warningBanner
     FirstRunInstallStatus.FAILURE -> SkillBillTheme.semanticTones.errorBanner
   }
-  SetupBanner(title = outcome.title, message = outcome.status.name.lowercase(), tone = tone)
+  SetupBanner(title = stringResource(outcome.titleRes), message = outcome.status.name.lowercase(), tone = tone)
   outcome.details.forEach { detail -> DetailRow(detail) }
 }
 
@@ -268,13 +301,18 @@ private fun SetupFooter(state: FirstRunSetupState, callbacks: FirstRunSetupCallb
   ) {
     val showBack = state.step != FirstRunSetupStep.AGENTS && state.step != FirstRunSetupStep.RESULT
     if (showBack) {
-      SetupButton(label = "Back", enabled = !state.busy, onClick = callbacks.onBack)
+      SetupButton(label = stringResource(Res.string.first_run_back), enabled = !state.busy, onClick = callbacks.onBack)
     }
     when (state.step) {
       FirstRunSetupStep.AGENTS,
       FirstRunSetupStep.PLATFORM_PACKS,
       FirstRunSetupStep.PREFERENCES,
-      -> SetupButton(label = "Next", enabled = state.canContinue, primary = true, onClick = callbacks.onNext)
+      -> SetupButton(
+        label = stringResource(Res.string.first_run_next),
+        enabled = state.canContinue,
+        primary = true,
+        onClick = callbacks.onNext,
+      )
       FirstRunSetupStep.APPLY -> SetupButton(
         label = if (state.busy) "Installing..." else "Install",
         enabled = state.canContinue,
@@ -283,9 +321,19 @@ private fun SetupFooter(state: FirstRunSetupState, callbacks: FirstRunSetupCallb
       )
       FirstRunSetupStep.RESULT -> {
         if (state.outcome?.status == FirstRunInstallStatus.FAILURE) {
-          SetupButton(label = "Retry", enabled = !state.busy, primary = true, onClick = callbacks.onRetry)
+          SetupButton(
+            label = stringResource(Res.string.first_run_retry),
+            enabled = !state.busy,
+            primary = true,
+            onClick = callbacks.onRetry,
+          )
         } else {
-          SetupButton(label = "Done", enabled = !state.busy, primary = true, onClick = callbacks.onFinish)
+          SetupButton(
+            label = stringResource(Res.string.first_run_done),
+            enabled = !state.busy,
+            primary = true,
+            onClick = callbacks.onFinish,
+          )
         }
       }
     }

@@ -39,7 +39,10 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
+import dev.skillbill.designsystem.generated.resources.Res
+import dev.skillbill.designsystem.generated.resources.editor_tab_close_cd
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
 import skillbill.desktop.core.designsystem.SkillBillComponentShapes
 import skillbill.desktop.core.designsystem.SkillBillDimens
 import skillbill.desktop.core.designsystem.SkillBillTheme
@@ -293,6 +296,7 @@ private fun EditorTab(
         )
       }
       if (closeEnabled) {
+        val closeCd = stringResource(Res.string.editor_tab_close_cd, tab.title)
         Text(
           text = "x",
           color = if (active) SkillBillTheme.frameTokens.muted else SkillBillTheme.frameTokens.subtle,
@@ -301,7 +305,7 @@ private fun EditorTab(
             .size(SkillBillDimens.iconLg)
             .clip(SkillBillComponentShapes.previewConsole)
             .clickable(role = Role.Button, onClick = onClosed)
-            .semantics { contentDescription = "Close ${tab.title}" },
+            .semantics { contentDescription = closeCd },
           maxLines = 1,
         )
       }
