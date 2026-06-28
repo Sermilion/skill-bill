@@ -23,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -41,6 +42,8 @@ import skillbill.desktop.core.domain.model.ScaffoldKind
 import skillbill.desktop.core.domain.model.SkillBillAcceleratorLabels
 import skillbill.desktop.core.domain.model.SkillBillBusyOperation
 import skillbill.desktop.core.domain.model.SkillBillStatusBar
+
+private const val DISABLED_BUTTON_ALPHA = 0.4f
 
 @Composable
 internal fun WorkspaceToolbar(
@@ -147,6 +150,7 @@ internal fun ToolbarButton(
       Modifier
         .height(28.dp)
         .padding(end = 6.dp)
+        .alpha(if (enabled) 1f else DISABLED_BUTTON_ALPHA)
         .clip(RoundedCornerShape(6.dp))
         .border(1.dp, border, RoundedCornerShape(6.dp))
         .background(background)
