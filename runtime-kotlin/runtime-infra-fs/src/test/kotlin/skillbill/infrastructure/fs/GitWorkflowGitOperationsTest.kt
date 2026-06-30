@@ -332,7 +332,12 @@ class GitWorkflowGitOperationsTest {
   }
 
   private fun git(repoRoot: Path, vararg args: String): String {
-    val process = ProcessBuilder(listOf("git", "-C", repoRoot.toString()) + args)
+    // Force-disable signing so a host's global commit.gpgsign=true (common on dev
+    // machines and self-hosted CI runners) does not fail these throwaway-repo
+    // commits when gpg is unavailable in the process environment.
+    val process = ProcessBuilder(
+      listOf("git", "-c", "commit.gpgsign=false", "-c", "tag.gpgsign=false", "-C", repoRoot.toString()) + args,
+    )
       .redirectErrorStream(true)
       .start()
     val output = process.inputStream.bufferedReader().readText().trim()

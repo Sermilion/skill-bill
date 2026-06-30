@@ -255,6 +255,7 @@ class InstallerShellDelegationTest {
 
   @Test
   fun `prebuilt default installs runtime from staged release without gradle`() {
+    assumeLinuxHost()
     val run = runPrebuiltInstaller(releaseValid = true)
 
     assertEquals(0, run.exitCode, run.output)
@@ -292,6 +293,7 @@ class InstallerShellDelegationTest {
 
   @Test
   fun `from-source keeps gradle skip-build install behavior`() {
+    assumeLinuxHost()
     // --from-source with the SKILL_BILL_SKIP_RUNTIME_DISTRIBUTION_BUILD escape hatch
     // must still route through the durable copy path, never the prebuilt fetch.
     val run = runInstallerShell(input = "1\ncopilot\nbase only\noff\nskip\n", fromSource = true)
@@ -302,6 +304,7 @@ class InstallerShellDelegationTest {
 
   @Test
   fun `prebuilt auto-falls back to source when host token has no matching asset`() {
+    assumeLinuxHost()
     // A staged release dir with NO assets for this host forces the explicit
     // auto-fallback message and the source build path.
     val run = runPrebuiltInstaller(releaseValid = true, options = PrebuiltOptions(omitRuntimeAssets = true))
@@ -312,6 +315,7 @@ class InstallerShellDelegationTest {
 
   @Test
   fun `display gating defaults headless to no and explicit flag forces install`() {
+    assumeLinuxHost()
     // Headless (no DISPLAY/WAYLAND_DISPLAY), non-interactive → desktop default no.
     val headless = runPrebuiltInstaller(releaseValid = true)
     assertEquals(0, headless.exitCode, headless.output)
@@ -325,6 +329,7 @@ class InstallerShellDelegationTest {
 
   @Test
   fun `interactive headless empty input defaults desktop app to no`() {
+    assumeLinuxHost()
     // A TTY-attached but headless session (no DISPLAY/WAYLAND_DISPLAY): pressing
     // Enter at the desktop prompt must resolve to the gated default (skip), not the
     // old hardcoded install. Driven under a real PTY via `script`.
@@ -356,6 +361,7 @@ class InstallerShellDelegationTest {
 
   @Test
   fun `install plan summary is printed before any mutation`() {
+    assumeLinuxHost()
     // Do NOT set SKILL_BILL_SKIP_PREINSTALL_UNINSTALL: the plan must print before
     // the pre-install uninstall mutates anything.
     val run = runPrebuiltInstaller(releaseValid = true, options = PrebuiltOptions(skipPreinstallUninstall = false))
@@ -713,6 +719,17 @@ class InstallerShellDelegationTest {
     org.junit.jupiter.api.Assumptions.assumeTrue(
       hostTokenForTests() == "linux-x64",
       "desktop-extract assertions require a linux-x64 host with ar/tar",
+    )
+  }
+
+  // These scenarios assert the Linux installer flow: headless $DISPLAY/$WAYLAND_DISPLAY
+  // desktop gating (macOS/Windows always default desktop=yes) and the no-desktop
+  // prebuilt/from-source paths. They run on the Linux CI leg and skip on other OSes,
+  // where install.sh legitimately behaves differently.
+  private fun assumeLinuxHost() {
+    org.junit.jupiter.api.Assumptions.assumeTrue(
+      System.getProperty("os.name").lowercase().startsWith("linux"),
+      "installer flow assertions assume Linux host behavior; skipping on ${System.getProperty("os.name")}",
     )
   }
 
