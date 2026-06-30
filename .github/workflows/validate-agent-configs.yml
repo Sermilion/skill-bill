@@ -6,7 +6,10 @@ on:
 
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    # Self-hosted Mac mini for trusted runs (push, same-repo PRs); fork PRs fall
+    # back to a GitHub-hosted runner so untrusted code never executes on the
+    # self-hosted host (this is a public repo).
+    runs-on: ${{ (github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork) && fromJSON('["ubuntu-latest"]') || fromJSON('["self-hosted","macmini"]') }}
 
     steps:
       - name: Check out repository
@@ -16,6 +19,15 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+
+      # Pin JDK 17 explicitly: the self-hosted host's default java is newer, and
+      # the project targets 17. setup-java provisions it into the runner tool cache.
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
 
       - name: Run Kotlin runtime checks
         run: (cd runtime-kotlin && ./gradlew check)
