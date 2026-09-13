@@ -96,15 +96,6 @@ data class FeatureTaskRuntimeValidationEvidence(
         if (result.keys.any { it !is String }) {
           invalid(sourceLabel, "results[$index] has a non-string key.")
         }
-        val unknownResultKeys = result.keys
-          .filterIsInstance<String>()
-          .toSet() - setOf(
-          ValidationEvidencePayloadKeys.COMMAND,
-          ValidationEvidencePayloadKeys.EXIT_CODE,
-        )
-        if (unknownResultKeys.isNotEmpty()) {
-          invalid(sourceLabel, "results[$index] has unknown keys ${unknownResultKeys.sorted()}.")
-        }
         val command = result[ValidationEvidencePayloadKeys.COMMAND] as? String
           ?: invalid(sourceLabel, "results[$index].command must be a string.")
         val exitCode = result[ValidationEvidencePayloadKeys.EXIT_CODE].asIntegerOrNull()

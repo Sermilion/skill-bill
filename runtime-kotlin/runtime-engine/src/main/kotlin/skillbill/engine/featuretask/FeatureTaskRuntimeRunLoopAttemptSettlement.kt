@@ -4,13 +4,11 @@ import skillbill.application.diagnostics.model.FeatureTaskRuntimeRejectedOutputW
 import skillbill.application.diagnostics.model.RejectedOutputDiagnosticRequest
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.workflow.ValidationEvidencePayloadKeys
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeCommitPushHandoffInvalid
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeCommitPushHandoffValid
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeSubtaskFinalisationBlocked
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeSubtaskFinaliseRequest
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeSubtaskFinalised
-import skillbill.engine.featuretask.validation.durableValidationChangedPaths
 import skillbill.error.FeatureTaskRuntimePhaseOutputFailureKind
 import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import skillbill.error.InvalidFeatureTaskRuntimeValidationEvidenceSchemaError
@@ -24,7 +22,6 @@ import skillbill.workflow.taskruntime.model.CorrectiveRepairCapturedResponse
 import skillbill.workflow.taskruntime.model.CorrectiveRepairDiagnosticLocator
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeCorrectiveRepairContext
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationEvidence
 import skillbill.workflow.taskruntime.model.NormalizedFeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.requireAcceptedOutput
 
@@ -170,24 +167,38 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
   ): AttemptResult {
     val run = args.run
     val iteration = args.iteration
-    val normalizedOutput = args.output.normalizedOutput
-    val repairEvidence = args.output.repairEvidence
-    val observability = args.output.observability
-    val fileManifest = args.output.fileManifest
-    val captured = args.output.captured
     val attested = FeatureTaskRuntimeRunLoopOutputVerification.attestAbsentGateValidationReceipt(
       runLoop,
       run,
-      normalizedOutput,
+      args.output.normalizedOutput,
     )
-    val outputMap = attested.envelope
     val capture = ValidatedOutputCapture(
       run = run,
       iteration = iteration,
-      captured = captured,
-      repairEvidence = repairEvidence,
-      fileManifest = fileManifest,
+      captured = args.output.captured,
+      repairEvidence = args.output.repairEvidence,
+      fileManifest = args.output.fileManifest,
     )
+    try {
+      requireValidationEvidenceForValidateSettlement(runLoop, run, attested.envelope)
+      return settleValidatedOutputWithEvidence(runLoop, capture, attested)
+    } catch (error: InvalidFeatureTaskRuntimeValidationEvidenceSchemaError) {
+      return rejectValidatedOutput(
+        runLoop,
+        capture,
+        attested.envelope,
+        "validation-evidence",
+        error.message.orEmpty(),
+      )
+    }
+  }
+
+  private fun settleValidatedOutputWithEvidence(
+    runLoop: FeatureTaskRuntimeRunLoop,
+    capture: ValidatedOutputCapture,
+    attested: NormalizedFeatureTaskRuntimePhaseOutput,
+  ): AttemptResult {
+    val outputMap = attested.envelope
     fun reject(rule: String, detail: String): AttemptResult =
       FeatureTaskRuntimeRunLoopAttemptSettlement.rejectValidatedOutput(
         runLoop,
@@ -202,7 +213,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
       outputMap,
       ::reject,
     )?.let { return it }
-    FeatureTaskRuntimeRunLoopOutputVerification.firstValidatedOutputRejection(run.phaseId, outputMap)?.let { (
+    FeatureTaskRuntimeRunLoopOutputVerification.firstValidatedOutputRejection(capture.run.phaseId, outputMap)?.let { (
       rule,
       reason,
     ),
@@ -211,10 +222,10 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
     }
     val fingerprintResolution = FeatureTaskRuntimeRunLoopAttemptSettlement.resolveRepositoryFingerprint(
       runLoop,
-      run,
-      iteration,
+      capture.run,
+      capture.iteration,
       runLoop.observability,
-      fileManifest,
+      capture.fileManifest,
     )
     fingerprintResolution.blocked?.let { return it }
     return FeatureTaskRuntimeRunLoopAttemptSettlement.settleValidatedOutputAfterFingerprint(
@@ -223,7 +234,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
         capture = capture,
         outputMap = outputMap,
         attested = attested,
-        repairEvidence = repairEvidence,
+        repairEvidence = capture.repairEvidence,
         observability = runLoop.observability,
         repositoryFingerprint = fingerprintResolution.fingerprint,
         reject = ::reject,
@@ -292,27 +303,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
     run: PhaseRun,
     envelope: Map<String, Any?>,
   ) {
-    if (run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE) return
-    val produced = JsonCodec.anyToStringAnyMap(envelope[SharedPayloadKeys.PRODUCED_OUTPUTS])
-    val result = JsonCodec.anyToStringAnyMap(
-      produced?.get(ValidationEvidencePayloadKeys.VALIDATION_RESULT),
-    )
-    val evidence = JsonCodec.anyToStringAnyMap(
-      result?.get(ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE),
-    )?.let { raw -> FeatureTaskRuntimeValidationEvidence.fromArtifactMap(raw, run.phaseId) }
-      ?: throw InvalidFeatureTaskRuntimeValidationEvidenceSchemaError(
-        run.phaseId,
-        "runtime-owned validation evidence is missing.",
-      )
-    evidence.requireSuccessfulCommand(
-      FeatureTaskRuntimeRunLoopValidationGate.requiredValidationCommand(
-        runLoop = runLoop,
-        run = run,
-        evidence = evidence,
-        changedPaths = durableValidationChangedPaths(runLoop.recorder, run.request.workflowId),
-      ),
-      run.phaseId,
-    )
+    requireValidationEvidenceForValidateSettlement(runLoop, run, envelope)
   }
 
   private fun clearAndRecordPersistedEvidenceFailure(
