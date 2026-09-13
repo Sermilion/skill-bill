@@ -113,7 +113,32 @@ class GoalRunnerChildRepairWedgeApplyLoop(
           engine = engine,
           decompositionManifestValidator = decompositionManifestValidator,
         )
+      GoalRunnerWedgeClass.STALE_CHILD_WORKER_LEASE ->
+        applyStaleChildWorkerLease(wedgeClass, state, workflowStates)
+      GoalRunnerWedgeClass.STALE_EXECUTION_LEASE,
+      GoalRunnerWedgeClass.STALE_RUNNER_INTERRUPTED_PAUSE,
+      -> Unit
     }
+  }
+
+  private fun applyStaleChildWorkerLease(
+    wedgeClass: GoalRunnerWedgeClass,
+    state: ApplyState,
+    workflowStates: WorkflowStateRepository,
+  ) {
+    val ownership = workflowStates.getFeatureTaskRuntimeWorkerOwnership(state.request.workflowId) ?: return
+    if (
+      !workflowStates.releaseFeatureTaskRuntimeWorkerIfExpired(
+        state.request.workflowId,
+        ownership.ownerToken,
+        ownership.generation,
+        state.clock.instant().toString(),
+      )
+    ) {
+      return
+    }
+    val priorValue = state.request.wedgeFindings.firstOrNull { it.wedgeClass == wedgeClass }?.currentValue
+    recordChildRepairWedge(state, wedgeClass, priorValue = priorValue, newValue = null)
   }
 
   private fun applyMissingValidationDepth(wedgeClass: GoalRunnerWedgeClass, state: ApplyState) {
@@ -188,6 +213,9 @@ fun unreachableReviewFailedSha(wedgeClass: GoalRunnerWedgeClass, review: GoalSub
     GoalRunnerWedgeClass.MISSING_QUALITY_GATE_SELECTION,
     GoalRunnerWedgeClass.STALE_BLOCKED_CONTINUATION_OUTCOME,
     GoalRunnerWedgeClass.COMPLETED_UPSTREAM_MISSING_OUTPUT,
+    GoalRunnerWedgeClass.STALE_CHILD_WORKER_LEASE,
+    GoalRunnerWedgeClass.STALE_EXECUTION_LEASE,
+    GoalRunnerWedgeClass.STALE_RUNNER_INTERRUPTED_PAUSE,
     -> null
   }
 
@@ -243,6 +271,9 @@ internal fun healedUnreachableReviewState(
   GoalRunnerWedgeClass.MISSING_QUALITY_GATE_SELECTION,
   GoalRunnerWedgeClass.STALE_BLOCKED_CONTINUATION_OUTCOME,
   GoalRunnerWedgeClass.COMPLETED_UPSTREAM_MISSING_OUTPUT,
+  GoalRunnerWedgeClass.STALE_CHILD_WORKER_LEASE,
+  GoalRunnerWedgeClass.STALE_EXECUTION_LEASE,
+  GoalRunnerWedgeClass.STALE_RUNNER_INTERRUPTED_PAUSE,
   -> null
 }
 

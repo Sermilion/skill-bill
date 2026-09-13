@@ -220,6 +220,19 @@ class InMemoryWorkflowStates : WorkflowStateRepository {
   override fun getFeatureTaskRuntimeWorkerOwnership(workflowId: String): FeatureTaskRuntimeWorkerOwnership? =
     workerOwnershipById[workflowId]
 
+  override fun releaseFeatureTaskRuntimeWorkerIfExpired(
+    workflowId: String,
+    ownerToken: String,
+    generation: Long,
+    nowInstant: String,
+  ): Boolean {
+    val current = workerOwnershipById[workflowId] ?: return false
+    if (current.ownerToken != ownerToken || current.generation != generation) return false
+    if (Instant.parse(current.expiresAt).isAfter(Instant.parse(nowInstant))) return false
+    workerOwnershipById.remove(workflowId)
+    return true
+  }
+
   override fun reconcileFeatureTaskRuntimeCrashedWorker(
     workflowId: String,
     ownerToken: String,

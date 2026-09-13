@@ -23,7 +23,7 @@ class GoalRunnerChildRepairOperations(
   private val clock: Clock,
 ) : GoalRunnerChildRepairRunnerPort {
   private val engine = WorkflowEngine(workflowSnapshotValidator)
-  private val wedgeDiagnosis = GoalRunnerChildRepairWedgeDiagnosis(gitOperations)
+  private val wedgeDiagnosis = GoalRunnerChildRepairWedgeDiagnosis(gitOperations, clock)
   private val wedgeApplyLoop = GoalRunnerChildRepairWedgeApplyLoop(
     engine,
     gitOperations,

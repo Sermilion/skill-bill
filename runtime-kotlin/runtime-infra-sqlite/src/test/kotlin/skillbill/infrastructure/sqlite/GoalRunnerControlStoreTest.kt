@@ -1,6 +1,8 @@
 package skillbill.infrastructure.sqlite
 
 import skillbill.error.InvalidWorkflowStateSchemaError
+import skillbill.goalrunner.model.GOAL_PAUSE_REASON_OPERATOR_STOP
+import skillbill.goalrunner.model.GOAL_PAUSE_REASON_RUNNER_INTERRUPTED
 import skillbill.goalrunner.model.GoalRunnerControlState
 import skillbill.goalrunner.model.GoalRunnerExecutionLease
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
@@ -52,6 +54,47 @@ class GoalRunnerControlStoreTest {
           check(rows.getString("out_of_band_acceptances_json").contains("commit_sha"))
         }
       }
+    }
+  }
+
+  @Test
+  fun `runner interrupted pause fields clear to defaults`() {
+    val dbPath = Files.createTempDirectory("skillbill-goal-runner-interrupted-clear").resolve("metrics.db")
+
+    DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
+      val store = GoalRunnerControlStore(connection)
+      val interrupted = GoalRunnerControlState(
+        pauseRequested = true,
+        pauseConsumed = true,
+        paused = true,
+        pauseReason = GOAL_PAUSE_REASON_RUNNER_INTERRUPTED,
+        pausedAt = "2026-08-02T09:59:00Z",
+      )
+      store.persistControlState("parent-interrupted", interrupted)
+      val cleared = store.clearRunnerInterruptedPause("parent-interrupted")
+
+      assertEquals(GoalRunnerControlState(), cleared)
+      assertEquals(GoalRunnerControlState(), store.controlState("parent-interrupted"))
+    }
+  }
+
+  @Test
+  fun `operator stop pause rows remain untouched when only runner interrupted would be cleared`() {
+    val dbPath = Files.createTempDirectory("skillbill-goal-operator-stop-preserved").resolve("metrics.db")
+
+    DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
+      val store = GoalRunnerControlStore(connection)
+      val operatorStop = GoalRunnerControlState(
+        pauseRequested = true,
+        pauseConsumed = true,
+        paused = true,
+        pauseReason = GOAL_PAUSE_REASON_OPERATOR_STOP,
+        pausedAt = "2026-08-02T09:00:00Z",
+      )
+      store.persistControlState("parent-stop", operatorStop)
+
+      assertEquals(operatorStop, store.clearRunnerInterruptedPause("parent-stop"))
+      assertEquals(operatorStop, store.controlState("parent-stop"))
     }
   }
 

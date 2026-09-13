@@ -72,6 +72,13 @@ interface GoalRunnerManifestExecutionCommands {
   fun heartbeatExecutionLease(parentWorkflowId: String, lease: GoalRunnerExecutionLease): Boolean
 
   fun releaseExecutionLease(parentWorkflowId: String, ownerToken: String, generation: Long): Boolean
+
+  fun releaseExecutionLeaseIfExpired(
+    parentWorkflowId: String,
+    ownerToken: String,
+    generation: Long,
+    nowInstant: String,
+  ): Boolean
 }
 
 interface GoalRunnerManifestControlWrites {
@@ -84,6 +91,8 @@ interface GoalRunnerManifestControlWrites {
   fun authorizePlanningLaunch(parentWorkflowId: String): AgentRunSpawnAuthorization?
 
   fun persistControlState(parentWorkflowId: String, state: GoalRunnerControlState): GoalRunnerControlState
+
+  fun clearRunnerInterruptedPause(parentWorkflowId: String): GoalRunnerControlState
 
   fun persistReviewMode(parentWorkflowId: String, mode: CodeReviewExecutionMode): CodeReviewExecutionMode
 

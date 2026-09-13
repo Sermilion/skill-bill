@@ -1,3 +1,14 @@
+## [2026-09-13] Issue 342 — Repair lease and pause clearance
+Areas: runtime-kotlin/{runtime-engine/runtime-cli/runtime-ports}/goalrunner
+- Added durable stale parent execution-lease, stale child worker-lease, and runner-interrupted pause wedge diagnosis and repair.
+- Repair apply clears stale leases and pause residue only without a live unexpired owner, preserves operator_stop, and retains LIVE_LEASE_REFUSED safety semantics.
+- CLI inspect and apply output names wedge classes and affected workflow ids without exposing storage tables.
+- Pattern: keep parent and child wedge diagnosis/apply flows explicit and reuse the existing live-owner refusal boundary. reusable
+- Regression coverage includes engine and CLI fixtures matching the issue 342 manual database workaround.
+- Limitation: contract-version hard reset, review-base recovery, and existing child phase-output wedge behavior remain outside this change.
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented
+
 ## [2026-09-13] Issue 341 — Validate evidence integrity
 Areas: orchestration/contracts, runtime-kotlin/{runtime-domain,runtime-engine,runtime-infra-fs,runtime-infra-sqlite}
 - Validation settlement now consumes schema-backed command and exit-code evidence, requires the required command to exit `0`, and keeps red or missing evidence incomplete across persistence and resume.

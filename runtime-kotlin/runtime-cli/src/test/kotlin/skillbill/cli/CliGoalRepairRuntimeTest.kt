@@ -14,6 +14,7 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -34,6 +35,9 @@ class CliGoalRepairRuntimeTest {
     assertContains(result.stdout, "remediation_base_sha")
     assertContains(result.stdout, "goal_continuation_outcome")
     assertContains(result.stdout, "completed upstream")
+    assertContains(result.stdout, "stale_execution_lease")
+    assertContains(result.stdout, "stale_child_worker_lease")
+    assertContains(result.stdout, "stale_runner_interrupted_pause")
     // Clikt wraps help across lines; normalize whitespace so mid-phrase wraps do not flake.
     val help = result.stdout.replace(Regex("\\s+"), " ")
     assertContains(help, "Does not touch")
@@ -147,6 +151,69 @@ class CliGoalRepairRuntimeTest {
     val artifacts = readChildArtifacts(fixture, childWorkflowId)
     assertTrue(artifacts.contains("\"validation_depth\""))
     assertTrue(artifacts.contains("goal_child_repair_evidence"))
+  }
+
+  @Test
+  fun `goal repair inspect reports stale lease and pause wedges seeded like issue 342`() {
+    val fixture = goalFixture(subtaskCount = 1)
+    val launcher = GoalFixtureAgentRunLauncher(fixture)
+    CliRuntime.run(fixture.goalCommand(), fixture.context(launcher = launcher))
+    val childWorkflowId = resolveCompletedChildWorkflowId(fixture)
+    seedIssue342StaleParentControlState(fixture)
+    seedExpiredWorkerLease(fixture, childWorkflowId)
+
+    val result = CliRuntime.run(
+      listOf(
+        "--db",
+        fixture.dbPath.toString(),
+        "goal",
+        "repair",
+        "SKILL-901",
+        "--repo-root",
+        fixture.tempDir.toString(),
+      ),
+      fixture.context(launcher = NoopGoalTestAgentRunLauncher),
+    )
+
+    assertEquals(2, result.exitCode, result.stdout)
+    assertContains(result.stdout, "status: inspected")
+    assertContains(result.stdout, "stale_execution_lease")
+    assertContains(result.stdout, "stale_child_worker_lease")
+    assertContains(result.stdout, "stale_runner_interrupted_pause")
+  }
+
+  @Test
+  fun `goal repair apply clears stale lease and pause wedges seeded like issue 342`() {
+    val fixture = goalFixture(subtaskCount = 1)
+    val launcher = GoalFixtureAgentRunLauncher(fixture)
+    CliRuntime.run(fixture.goalCommand(), fixture.context(launcher = launcher))
+    val childWorkflowId = resolveCompletedChildWorkflowId(fixture)
+    seedIssue342StaleParentControlState(fixture)
+    seedExpiredWorkerLease(fixture, childWorkflowId)
+
+    val result = CliRuntime.run(
+      listOf(
+        "--db",
+        fixture.dbPath.toString(),
+        "goal",
+        "repair",
+        "SKILL-901",
+        "--repo-root",
+        fixture.tempDir.toString(),
+        "--apply",
+      ),
+      fixture.context(launcher = NoopGoalTestAgentRunLauncher),
+    )
+
+    assertEquals(0, result.exitCode, result.stdout)
+    assertContains(result.stdout, "status: repaired")
+    assertEquals(0, workerLeaseRowCount(fixture, childWorkflowId))
+    val controlState = JsonCodec.anyToStringAnyMap(
+      JsonCodec.jsonElementToValue(requireNotNull(JsonCodec.parseObjectOrNull(parentControlStateJson(fixture)))),
+    ).orEmpty()
+    assertNull(controlState["execution_lease"])
+    assertFalse(controlState["pause_reason"] == "runner_interrupted")
+    assertEquals(false, controlState["paused"])
   }
 
   @Test

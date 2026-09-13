@@ -1,5 +1,6 @@
 package skillbill.ports.goalrunner.runner
 
+import skillbill.goalrunner.model.GOAL_PAUSE_REASON_RUNNER_INTERRUPTED
 import skillbill.goalrunner.model.GoalPlanningStatusSnapshot
 import skillbill.goalrunner.model.GoalRunnerControlState
 import skillbill.goalrunner.model.GoalRunnerExecutionLease
@@ -15,6 +16,7 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerScopedReplanOptions
 import skillbill.ports.goalrunner.runner.model.GoalRunnerScopedReplanWriteResult
 import skillbill.review.context.model.CodeReviewExecutionMode
 import java.nio.file.Path
+import java.time.Instant
 
 abstract class GoalRunnerManifestStoreDefaults : GoalRunnerManifestStore {
   override fun readByIssueKey(issueKey: String, repoRoot: Path?): GoalRunnerManifestState? =
@@ -42,6 +44,18 @@ abstract class GoalRunnerManifestStoreDefaults : GoalRunnerManifestStore {
 
   override fun executionLease(parentWorkflowId: String): GoalRunnerExecutionLease? = null
 
+  override fun releaseExecutionLeaseIfExpired(
+    parentWorkflowId: String,
+    ownerToken: String,
+    generation: Long,
+    nowInstant: String,
+  ): Boolean {
+    val lease = executionLease(parentWorkflowId) ?: return false
+    if (lease.ownerToken != ownerToken || lease.generation != generation) return false
+    if (Instant.parse(lease.expiresAt).isAfter(Instant.parse(nowInstant))) return false
+    return releaseExecutionLease(parentWorkflowId, ownerToken, generation)
+  }
+
   override fun controlState(parentWorkflowId: String): GoalRunnerControlState = GoalRunnerControlState()
 
   override fun bindRepositoryIdentity(parentWorkflowId: String, repositoryIdentity: String): GoalRunnerControlState {
@@ -65,6 +79,21 @@ abstract class GoalRunnerManifestStoreDefaults : GoalRunnerManifestStore {
 
   override fun persistControlState(parentWorkflowId: String, state: GoalRunnerControlState): GoalRunnerControlState =
     state
+
+  override fun clearRunnerInterruptedPause(parentWorkflowId: String): GoalRunnerControlState {
+    val state = controlState(parentWorkflowId)
+    if (state.pauseReason != GOAL_PAUSE_REASON_RUNNER_INTERRUPTED) return state
+    return persistControlState(
+      parentWorkflowId,
+      state.copy(
+        paused = false,
+        pauseRequested = false,
+        pauseConsumed = false,
+        pauseReason = null,
+        pausedAt = null,
+      ),
+    )
+  }
 
   override fun planningStatus(
     parentWorkflowId: String,

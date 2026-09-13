@@ -16,6 +16,7 @@ import skillbill.ports.taskruntime.model.FeatureTaskRuntimeProcessIdentity
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeProcessInspection
 import java.time.Clock
 import java.time.Duration
+import java.time.Instant
 
 interface GoalRunnerExecutionCoordinator {
   fun <T> runOwned(parentWorkflowId: String, block: () -> T): T
@@ -70,6 +71,9 @@ class DefaultGoalRunnerExecutionCoordinator(
         "another goal runner claimed the execution lease before this run could start",
       )
     }
+    if (existing != null && leaseIsExpired(existing)) {
+      clearStalePauseOrReleaseLease(parentWorkflowId, lease)
+    }
     val plan = FeatureTaskRuntimeHeartbeatPlan(
       label = parentWorkflowId,
       intervalSeconds = HEARTBEAT_SECONDS,
@@ -86,8 +90,6 @@ class DefaultGoalRunnerExecutionCoordinator(
         )
       }
     }
-    // Registered only for the span this process owns the lease: a runner killed from outside records
-    // why it stopped, so an operator stop is never indistinguishable from a crash.
     val shutdownHookRegistration = shutdownHookPort.register {
       recordInterruption(parentWorkflowId)
     }
@@ -102,11 +104,26 @@ class DefaultGoalRunnerExecutionCoordinator(
         lease.generation,
       )
     }
-    // Checked after the block rather than inside the finally so a failing block reports its own cause.
     heartbeat.fencingLostReason()?.let { reason ->
       throw GoalRunnerExecutionAlreadyRunningException(parentWorkflowId, reason)
     }
     return result
+  }
+
+  private fun clearStalePauseOrReleaseLease(parentWorkflowId: String, lease: GoalRunnerExecutionLease) {
+    val failure = runCatching {
+      clearStaleRunnerInterruptedPause(parentWorkflowId)
+    }.exceptionOrNull()
+    if (failure != null) {
+      runCatching {
+        manifestStore.releaseExecutionLease(
+          parentWorkflowId,
+          lease.ownerToken,
+          lease.generation,
+        )
+      }.onFailure { failure.addSuppressed(it) }
+      throw failure
+    }
   }
 
   /**
@@ -132,7 +149,15 @@ class DefaultGoalRunnerExecutionCoordinator(
     )
   }
 
+  private fun leaseIsExpired(lease: GoalRunnerExecutionLease): Boolean =
+    !Instant.parse(lease.expiresAt).isAfter(clock.instant())
+
+  private fun clearStaleRunnerInterruptedPause(parentWorkflowId: String) {
+    manifestStore.clearRunnerInterruptedPause(parentWorkflowId)
+  }
+
   private fun reclaimableOwnerToken(parentWorkflowId: String, existing: GoalRunnerExecutionLease): String {
+    if (leaseIsExpired(existing)) return existing.ownerToken
     val ownership = existing.asWorkerOwnership(parentWorkflowId)
     return when (supervisor.inspect(ownership)) {
       FeatureTaskRuntimeProcessInspection.NotRunning -> existing.ownerToken

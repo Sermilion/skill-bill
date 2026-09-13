@@ -237,13 +237,15 @@ class GoalRepairCommand(
   private val inputs: CliRunInputs,
 ) : DocumentedCliCommand(
   "repair",
-  "Inspect or clear known goal-child resume wedges without discarding completed work. " +
+  "Inspect or clear known goal resume wedges without discarding completed work. " +
     "Default is inspect-only; pass --apply to act. " +
-    "Clears: missing validation_depth on the continuation artifact; unreachable stored " +
-    "review_base_sha; unreachable stored remediation_base_sha; stale blocked " +
-    "goal_continuation_outcome; completed upstream phase records missing settled output for a " +
-    "blocked consumer. Does not touch: completed commit shas, review pass history, " +
-    "audit repair state, planning checkpoints, or anything goal reset/replan/accept own.",
+    "Clears: stale_execution_lease on the parent goal runner; stale_child_worker_lease on a " +
+    "child workflow; stale_runner_interrupted_pause residue on parent controls; missing " +
+    "validation_depth on the continuation artifact; unreachable stored review_base_sha; " +
+    "unreachable stored remediation_base_sha; stale blocked goal_continuation_outcome; " +
+    "completed upstream phase records missing settled output for a blocked consumer. " +
+    "Does not touch: completed commit shas, review pass history, audit repair state, " +
+    "planning checkpoints, or anything goal reset/replan/accept own.",
 ) {
   private val issueKey by argument(help = "Parent issue key for the decomposed goal.")
   private val subtaskId by option(

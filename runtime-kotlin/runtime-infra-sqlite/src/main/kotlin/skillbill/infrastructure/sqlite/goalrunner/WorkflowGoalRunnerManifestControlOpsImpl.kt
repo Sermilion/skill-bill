@@ -15,6 +15,9 @@ internal class WorkflowGoalRunnerManifestControlOpsImpl(
   override fun persistControlState(parentWorkflowId: String, state: GoalRunnerControlState): GoalRunnerControlState =
     ctx.controls.persistControlState(parentWorkflowId, state)
 
+  override fun clearRunnerInterruptedPause(parentWorkflowId: String): GoalRunnerControlState =
+    ctx.controls.clearRunnerInterruptedPause(parentWorkflowId)
+
   override fun bindRepositoryIdentity(parentWorkflowId: String, repositoryIdentity: String): GoalRunnerControlState =
     ctx.controls.bindRepositoryIdentity(parentWorkflowId, repositoryIdentity)
 

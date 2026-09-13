@@ -14,15 +14,19 @@ import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeHandoffEnvelopeVa
 import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeHandoffFoundationValidator
 import skillbill.engine.featuretask.featureTaskRuntimePhaseRecorder
 import skillbill.engine.goalrunner.GOAL_CHILD_REPAIR_EVIDENCE_ARTIFACT_KEY
+import skillbill.engine.goalrunner.GoalRunnerStatusService
 import skillbill.engine.goalrunner.GoalRunnerStatusTestPorts
 import skillbill.engine.goalrunner.OutcomeStoreTestArtifactPorts
 import skillbill.engine.goalrunner.PASSED_CONTINUATION_OUTCOME
+import skillbill.engine.goalrunner.PASSED_PARENT_EXECUTION_LEASE
+import skillbill.engine.goalrunner.PASSED_PARENT_PAUSE_STATE
 import skillbill.engine.goalrunner.PASSED_PHASE_OUTPUT_CONTRACT
 import skillbill.engine.goalrunner.PASSED_QUALITY_GATE_SELECTION
 import skillbill.engine.goalrunner.PASSED_REMEDIATION_BASE
 import skillbill.engine.goalrunner.PASSED_REVIEW_BASE
 import skillbill.engine.goalrunner.PASSED_UPSTREAM_OUTPUT
 import skillbill.engine.goalrunner.PASSED_VALIDATION_DEPTH
+import skillbill.engine.goalrunner.PASSED_WORKER_LEASE
 import skillbill.engine.goalrunner.model.GoalRunnerChildWedgeDiagnosisRequest
 import skillbill.engine.goalrunner.model.GoalRunnerChildWedgeRepairRequest
 import skillbill.engine.goalrunner.model.GoalRunnerRepairRequest
@@ -30,15 +34,20 @@ import skillbill.engine.goalrunner.model.GoalRunnerRepairStatus
 import skillbill.engine.goalrunner.model.GoalRunnerWedgeClass
 import skillbill.engine.goalrunner.testGoalRunnerStatusService
 import skillbill.engine.goalrunner.testWorkflowGoalRunnerOutcomeStore
+import skillbill.goalrunner.model.GOAL_PAUSE_REASON_OPERATOR_STOP
+import skillbill.goalrunner.model.GOAL_PAUSE_REASON_RUNNER_INTERRUPTED
 import skillbill.goalrunner.model.GoalRunnerControlState
 import skillbill.goalrunner.model.GoalRunnerExecutionLease
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerLeaseState
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
+import skillbill.ports.goalrunner.persistence.GoalRunnerChildRepairStore
 import skillbill.ports.goalrunner.runner.GoalRunnerManifestStoreDefaults
+import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowOutcomeStore
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.ports.taskruntime.FeatureTaskRuntimeWorkerSupervisor
 import skillbill.ports.taskruntime.NoopFeatureTaskRuntimeHeartbeat
+import skillbill.ports.taskruntime.NoopFeatureTaskRuntimeWorkerSupervisor
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeHeartbeatPlan
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeHeartbeatTick
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeProcessIdentity
@@ -192,6 +201,7 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
         PASSED_CONTINUATION_OUTCOME,
         PASSED_UPSTREAM_OUTPUT,
         PASSED_PHASE_OUTPUT_CONTRACT,
+        PASSED_WORKER_LEASE,
       ),
       diagnosis.passedChecks,
     )
@@ -1071,6 +1081,312 @@ internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {
   }
 }
 
+internal class GoalRunnerRepairLeaseClearanceTest : GoalRunnerRepairFixtures() {
+  @Test
+  fun `inspect reports stale parent lease child lease and runner interrupted pause`() {
+    val workflows = InMemoryWorkflowStates()
+    val workflowId = "wftr-repair-issue-342"
+    workflows.saveFeatureTaskRuntimeWorkflow(
+      repairChildRecord(
+        RepairChildRecordArgs(
+          workflowId = workflowId,
+          continuation = continuationMap(includeValidationDepth = true),
+          reviewState = healthyReviewState(),
+        ),
+      ),
+    )
+    workflows.seedWorkerOwnership(expiredChildWorkerOwnership(workflowId))
+    val store = repairStore(workflows, git = ReachableGit())
+    val service = issue342RepairService(
+      Issue342RepairServiceContext(workflows, workflowId, store, issue342StaleParentControlState()),
+    )
+
+    val result = service.repair(
+      GoalRunnerRepairRequest(issueKey = ISSUE_KEY, apply = false, repoRoot = Path.of(".")),
+    )
+
+    assertEquals(GoalRunnerRepairStatus.INSPECTED, result.status)
+    assertEquals(
+      setOf(
+        GoalRunnerWedgeClass.STALE_EXECUTION_LEASE,
+        GoalRunnerWedgeClass.STALE_RUNNER_INTERRUPTED_PAUSE,
+      ),
+      result.parentWedges.map { it.wedgeClass }.toSet(),
+    )
+    assertEquals(
+      GoalRunnerWedgeClass.STALE_CHILD_WORKER_LEASE,
+      result.diagnoses.single().wedges.single().wedgeClass,
+    )
+    assertTrue(PASSED_PARENT_EXECUTION_LEASE !in result.parentPassedChecks)
+    assertTrue(PASSED_PARENT_PAUSE_STATE !in result.parentPassedChecks)
+  }
+
+  @Test
+  fun `apply clears stale parent lease child lease and runner interrupted pause`() {
+    val workflows = InMemoryWorkflowStates()
+    val workflowId = "wftr-repair-issue-342-apply"
+    workflows.saveFeatureTaskRuntimeWorkflow(
+      repairChildRecord(
+        RepairChildRecordArgs(
+          workflowId = workflowId,
+          continuation = continuationMap(includeValidationDepth = true),
+          reviewState = healthyReviewState(),
+        ),
+      ),
+    )
+    workflows.seedWorkerOwnership(expiredChildWorkerOwnership(workflowId))
+    val store = repairStore(workflows, git = ReachableGit())
+    val manifestStore = MutableRepairManifestStore(workflowId, issue342StaleParentControlState())
+    val service = issue342RepairService(
+      Issue342RepairServiceContext(
+        workflows,
+        workflowId,
+        store,
+        issue342StaleParentControlState(),
+        manifestStore = manifestStore,
+      ),
+    )
+
+    val result = service.repair(
+      GoalRunnerRepairRequest(issueKey = ISSUE_KEY, apply = true, repoRoot = Path.of(".")),
+    )
+
+    assertEquals(GoalRunnerRepairStatus.REPAIRED, result.status)
+    assertNull(manifestStore.controlStateValue.executionLease)
+    assertEquals(GoalRunnerControlState(), manifestStore.controlStateValue.clearPauseFields())
+    assertNull(workflows.getFeatureTaskRuntimeWorkerOwnership(workflowId))
+    assertEquals(
+      setOf(
+        GoalRunnerWedgeClass.STALE_EXECUTION_LEASE,
+        GoalRunnerWedgeClass.STALE_RUNNER_INTERRUPTED_PAUSE,
+        GoalRunnerWedgeClass.STALE_CHILD_WORKER_LEASE,
+      ),
+      result.appliedRepairs.map { it.wedgeClass }.toSet(),
+    )
+  }
+
+  @Test
+  fun `apply refuses when unexpired child lease is present under ambiguous inspection`() {
+    val workflows = InMemoryWorkflowStates()
+    val workflowId = "wftr-repair-live-unexpired-ambiguous"
+    workflows.saveFeatureTaskRuntimeWorkflow(
+      repairChildRecord(
+        RepairChildRecordArgs(
+          workflowId = workflowId,
+          continuation = continuationMap(includeValidationDepth = false),
+          reviewState = healthyReviewState(),
+        ),
+      ),
+    )
+    workflows.seedWorkerOwnership(
+      expiredChildWorkerOwnership(workflowId).copy(expiresAt = "2999-01-01T00:01:00Z"),
+    )
+    val beforeJson = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson
+    val store = repairStore(workflows, git = ReachableGit())
+    val service = issue342RepairService(
+      Issue342RepairServiceContext(
+        workflows,
+        workflowId,
+        store,
+        GoalRunnerControlState(),
+        workerSupervisor = AmbiguousInspectionSupervisor,
+      ),
+    )
+
+    val result = service.repair(
+      GoalRunnerRepairRequest(issueKey = ISSUE_KEY, apply = true, repoRoot = Path.of(".")),
+    )
+
+    assertEquals(GoalRunnerRepairStatus.LIVE_LEASE_REFUSED, result.status)
+    assertEquals(workflowId, result.liveLeaseWorkflowId)
+    assertEquals(beforeJson, requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson)
+  }
+
+  @Test
+  fun `scoped repair does not clear parent lease or pause wedges`() {
+    val workflows = InMemoryWorkflowStates()
+    val workflowId = "wftr-repair-scoped-parent-state"
+    workflows.saveFeatureTaskRuntimeWorkflow(
+      repairChildRecord(
+        RepairChildRecordArgs(
+          workflowId = workflowId,
+          continuation = continuationMap(includeValidationDepth = true),
+          reviewState = healthyReviewState(),
+        ),
+      ),
+    )
+    val parentState = issue342StaleParentControlState()
+    val store = repairStore(workflows, git = ReachableGit())
+    val manifestStore = MutableRepairManifestStore(workflowId, parentState)
+    val service = issue342RepairService(
+      Issue342RepairServiceContext(
+        workflows,
+        workflowId,
+        store,
+        parentState,
+        manifestStore = manifestStore,
+      ),
+    )
+
+    val result = service.repair(
+      GoalRunnerRepairRequest(
+        issueKey = ISSUE_KEY,
+        apply = true,
+        subtaskId = 1,
+        repoRoot = Path.of("."),
+      ),
+    )
+
+    assertEquals(GoalRunnerRepairStatus.NOT_WEDGED, result.status)
+    assertEquals(parentState, manifestStore.controlStateValue)
+    assertTrue(result.parentWedges.isEmpty())
+  }
+
+  @Test
+  fun `apply preserves operator_stop pause while clearing runner interrupted residue`() {
+    val workflows = InMemoryWorkflowStates()
+    val workflowId = "wftr-repair-operator-stop"
+    workflows.saveFeatureTaskRuntimeWorkflow(
+      repairChildRecord(
+        RepairChildRecordArgs(
+          workflowId = workflowId,
+          continuation = continuationMap(includeValidationDepth = true),
+          reviewState = healthyReviewState(),
+        ),
+      ),
+    )
+    val operatorStop = GoalRunnerControlState(
+      pauseRequested = true,
+      pauseConsumed = true,
+      paused = true,
+      pauseReason = GOAL_PAUSE_REASON_OPERATOR_STOP,
+      pausedAt = "2000-01-01T00:00:00Z",
+      executionLease = issue342ExpiredExecutionLease(),
+    )
+    val store = repairStore(workflows, git = ReachableGit())
+    val manifestStore = MutableRepairManifestStore(workflowId, operatorStop)
+    val service = issue342RepairService(
+      Issue342RepairServiceContext(
+        workflows,
+        workflowId,
+        store,
+        operatorStop,
+        manifestStore = manifestStore,
+      ),
+    )
+
+    val result = service.repair(
+      GoalRunnerRepairRequest(issueKey = ISSUE_KEY, apply = true, repoRoot = Path.of(".")),
+    )
+
+    assertEquals(GoalRunnerRepairStatus.REPAIRED, result.status)
+    assertNull(manifestStore.controlStateValue.executionLease)
+    assertEquals(operatorStop.clearExecutionLease(), manifestStore.controlStateValue)
+    assertTrue(result.appliedRepairs.none { it.wedgeClass == GoalRunnerWedgeClass.STALE_RUNNER_INTERRUPTED_PAUSE })
+  }
+
+  private fun issue342RepairService(context: Issue342RepairServiceContext): GoalRunnerStatusService {
+    val database = FakeDatabaseSessionFactory(context.workflows)
+    val phaseRecorder = featureTaskRuntimePhaseRecorder(
+      database,
+      testWorkflowSnapshotValidator,
+      AcceptingFeatureTaskRuntimeHandoffEnvelopeValidator,
+      AcceptingFeatureTaskRuntimeHandoffFoundationValidator,
+      testHarnessClock,
+      NoopRuntimeDiagnostics,
+    )
+    return testGoalRunnerStatusService(
+      manifestStore = context.manifestStore,
+      outcomeStore = context.store,
+      phaseRecorder = phaseRecorder,
+      ports = GoalRunnerStatusTestPorts(
+        workerSupervisor = context.workerSupervisor,
+        childRepairStore = context.store as GoalRunnerChildRepairStore,
+      ),
+    )
+  }
+
+  private data class Issue342RepairServiceContext(
+    val workflows: InMemoryWorkflowStates,
+    val workflowId: String,
+    val store: GoalRunnerWorkflowOutcomeStore,
+    val controlState: GoalRunnerControlState,
+    val manifestStore: MutableRepairManifestStore = MutableRepairManifestStore(workflowId, controlState),
+    val workerSupervisor: FeatureTaskRuntimeWorkerSupervisor = NoopFeatureTaskRuntimeWorkerSupervisor,
+  )
+
+  private fun issue342StaleParentControlState(): GoalRunnerControlState = GoalRunnerControlState(
+    pauseRequested = true,
+    pauseConsumed = true,
+    paused = true,
+    pauseReason = GOAL_PAUSE_REASON_RUNNER_INTERRUPTED,
+    pausedAt = "2000-01-01T00:00:00Z",
+    executionLease = issue342ExpiredExecutionLease(),
+  )
+
+  private fun issue342ExpiredExecutionLease(): GoalRunnerExecutionLease = GoalRunnerExecutionLease(
+    generation = 1,
+    ownerToken = "parent-owner",
+    hostIdentity = "host",
+    bootIdentity = "boot",
+    pid = 42,
+    processBirthToken = "birth",
+    heartbeatAt = "2000-01-01T00:00:00Z",
+    expiresAt = "2000-01-01T00:00:30Z",
+  )
+
+  private fun expiredChildWorkerOwnership(workflowId: String): FeatureTaskRuntimeWorkerOwnership =
+    FeatureTaskRuntimeWorkerOwnership(
+      workflowId = workflowId,
+      generation = 1,
+      ownerToken = "child-owner",
+      hostIdentity = "host",
+      bootIdentity = "boot",
+      pid = 43,
+      processBirthToken = "birth",
+      leaseState = FeatureTaskRuntimeWorkerLeaseState.ACTIVE,
+      heartbeatAt = "2000-01-01T00:00:00Z",
+      expiresAt = "2000-01-01T00:00:30Z",
+      phaseId = "implement",
+      phaseAttempt = 1,
+    )
+
+  private fun GoalRunnerControlState.clearPauseFields(): GoalRunnerControlState = copy(
+    paused = false,
+    pauseRequested = false,
+    pauseConsumed = false,
+    pauseReason = null,
+    pausedAt = null,
+  )
+
+  private fun GoalRunnerControlState.clearExecutionLease(): GoalRunnerControlState = copy(
+    executionLease = null,
+    activeDurationAsOf = null,
+    subtaskActiveDurationAsOf = null,
+  )
+
+  private object AmbiguousInspectionSupervisor : FeatureTaskRuntimeWorkerSupervisor {
+    override fun currentProcess(): FeatureTaskRuntimeProcessIdentity =
+      FeatureTaskRuntimeProcessIdentity("host", "boot", 1, "birth")
+
+    override fun inspect(ownership: FeatureTaskRuntimeWorkerOwnership) =
+      FeatureTaskRuntimeProcessInspection.OwnershipMismatch("the existing process owner is ambiguous")
+
+    override fun awaitExit(ownership: FeatureTaskRuntimeWorkerOwnership, timeout: Duration) = Unit
+
+    override fun terminateGracefully(ownership: FeatureTaskRuntimeWorkerOwnership) = true
+
+    override fun terminateForcibly(ownership: FeatureTaskRuntimeWorkerOwnership) = true
+
+    override fun pause(durationMillis: Long) = Unit
+
+    override fun startHeartbeat(
+      plan: FeatureTaskRuntimeHeartbeatPlan,
+      heartbeat: () -> FeatureTaskRuntimeHeartbeatTick,
+    ) = NoopFeatureTaskRuntimeHeartbeat
+  }
+}
+
 internal abstract class GoalRunnerRepairFixtures {
 
   protected fun seedRepairParent(workflows: InMemoryWorkflowStates, childWorkflowId: String) {
@@ -1264,8 +1580,16 @@ internal abstract class GoalRunnerRepairFixtures {
   )
 
   protected class RepairManifestStore(
+    childWorkflowId: String,
+    controlState: GoalRunnerControlState = GoalRunnerControlState(),
+  ) : MutableRepairManifestStore(childWorkflowId, controlState)
+
+  protected open class MutableRepairManifestStore(
     private val childWorkflowId: String,
+    initialControlState: GoalRunnerControlState = GoalRunnerControlState(),
   ) : GoalRunnerManifestStoreDefaults() {
+    var controlStateValue: GoalRunnerControlState = initialControlState
+
     override fun loadByIssueKey(issueKey: String, repoRoot: Path?): GoalRunnerManifestState = GoalRunnerManifestState(
       parentWorkflowId = "wfl-parent",
       dbPath = "/tmp/repair.db",
@@ -1288,9 +1612,31 @@ internal abstract class GoalRunnerRepairFixtures {
           ),
         ),
       ),
-      controlState = GoalRunnerControlState(),
+      controlState = controlStateValue,
       repoRoot = repoRoot,
     )
+
+    override fun controlState(parentWorkflowId: String): GoalRunnerControlState = controlStateValue
+
+    override fun executionLease(parentWorkflowId: String): GoalRunnerExecutionLease? = controlStateValue.executionLease
+
+    override fun persistControlState(parentWorkflowId: String, state: GoalRunnerControlState): GoalRunnerControlState {
+      controlStateValue = state
+      return state
+    }
+
+    override fun clearRunnerInterruptedPause(parentWorkflowId: String): GoalRunnerControlState {
+      val state = controlStateValue
+      if (state.pauseReason != GOAL_PAUSE_REASON_RUNNER_INTERRUPTED) return state
+      controlStateValue = state.copy(
+        paused = false,
+        pauseRequested = false,
+        pauseConsumed = false,
+        pauseReason = null,
+        pausedAt = null,
+      )
+      return controlStateValue
+    }
 
     override fun save(state: GoalRunnerManifestState): GoalRunnerManifestState = state
 
@@ -1302,7 +1648,16 @@ internal abstract class GoalRunnerRepairFixtures {
 
     override fun heartbeatExecutionLease(parentWorkflowId: String, lease: GoalRunnerExecutionLease): Boolean = true
 
-    override fun releaseExecutionLease(parentWorkflowId: String, ownerToken: String, generation: Long): Boolean = true
+    override fun releaseExecutionLease(parentWorkflowId: String, ownerToken: String, generation: Long): Boolean {
+      val current = controlStateValue.executionLease ?: return false
+      if (current.ownerToken != ownerToken || current.generation != generation) return false
+      controlStateValue = controlStateValue.copy(
+        executionLease = null,
+        activeDurationAsOf = null,
+        subtaskActiveDurationAsOf = null,
+      )
+      return true
+    }
   }
 
   protected class ReachableGit(

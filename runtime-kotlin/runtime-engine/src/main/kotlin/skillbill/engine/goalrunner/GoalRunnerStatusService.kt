@@ -54,6 +54,7 @@ class GoalRunnerStatusService(
     childRepairStore = childRepairStore,
     repositoryRoot = repositoryRoot,
     repositoryEnclosingRootPort = repositoryEnclosingRootPort,
+    clock = clock,
   )
 
   private val acceptanceCoordinator = GoalRunnerAcceptanceCoordinator(

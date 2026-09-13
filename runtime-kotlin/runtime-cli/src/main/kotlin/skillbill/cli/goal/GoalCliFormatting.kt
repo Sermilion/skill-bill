@@ -33,6 +33,14 @@ internal fun GoalRunnerRepairResult.toGoalRepairCliMap(): Map<String, Any?> = li
   "parent_workflow_id" to parentWorkflowId,
   "refusal_reason" to refusalReason,
   "live_lease_workflow_id" to liveLeaseWorkflowId,
+  "parent_passed_checks" to parentPassedChecks,
+  "parent_wedges" to parentWedges.map { wedge ->
+    linkedMapOf(
+      "wedge_class" to wedge.wedgeClass.wireValue,
+      "field" to wedge.field,
+      "current_value" to wedge.currentValue,
+    )
+  },
   "diagnoses" to diagnoses.map { diagnosis ->
     linkedMapOf(
       SharedPayloadKeys.SUBTASK_ID to diagnosis.subtaskId,
@@ -76,9 +84,23 @@ internal fun goalRepairText(payload: Map<String, Any?>): String = buildString {
   payload["parent_workflow_id"]?.let { appendLine("parent_workflow_id: $it") }
   payload["refusal_reason"]?.let { appendLine("refusal_reason: $it") }
   payload["live_lease_workflow_id"]?.let { appendLine("live_lease_workflow_id: $it") }
+  appendGoalRepairParentWedges(this, payload["parent_wedges"] as? List<*>)
+  (payload["parent_passed_checks"] as? List<*>).orEmpty().takeIf { it.isNotEmpty() }?.let { checks ->
+    appendLine("parent_passed_checks: ${checks.joinToString(",")}")
+  }
   appendLine("diagnoses:")
   appendGoalRepairDiagnoses(this, payload["diagnoses"] as? List<*>)
   appendGoalRepairAppliedRepairs(this, payload["applied_repairs"] as? List<*>)
+}
+
+private fun appendGoalRepairParentWedges(builder: StringBuilder, wedges: List<*>?) {
+  wedges.orEmpty().forEach { raw ->
+    val wedge = raw as? Map<*, *> ?: return@forEach
+    builder.appendLine(
+      "parent_wedge: class=${wedge["wedge_class"]}; field=${wedge["field"]}; " +
+        "current_value=${wedge["current_value"] ?: "absent"}",
+    )
+  }
 }
 
 private fun appendGoalRepairDiagnoses(builder: StringBuilder, diagnoses: List<*>?) {
