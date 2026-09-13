@@ -219,6 +219,10 @@ $defs:
             description: Compact identifier only; newlines and embedded bodies are rejected by the validator.
 
 x-coherence-checks:
+  - id: retired-prior-gap-memory
+    description: >-
+      prior_gap_memory is not a deliverable handoff source. The source_ref pattern excludes it;
+      FeatureTaskRuntimeHandoffSourceRef.fromWire and the projection validator reject it loudly.
   - id: unique-projection-names
     description: >-
       Projection names are unique within one envelope. Enforced by

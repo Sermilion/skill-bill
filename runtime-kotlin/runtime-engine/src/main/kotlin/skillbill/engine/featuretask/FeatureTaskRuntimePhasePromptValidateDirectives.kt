@@ -1,9 +1,7 @@
 package skillbill.engine.featuretask
 
-import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseLaunchBriefing
 import skillbill.engine.featuretask.validation.model.ValidationFindingSetProjection
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffProjectionValue
 private const val VALIDATE_PHASE_FORBIDDEN_EXTRAS: String =
   "Do not run `skill-bill validate`, `npx agnix`, `scripts/validate_agent_configs`, or any other " +
     "repo-root checklist. Those commands are not this phase. "
@@ -118,9 +116,9 @@ internal fun phaseTaskDirective(phaseId: String, args: PhaseTaskDirectiveArgs = 
       )
     }
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT ->
-      auditPhaseTaskDirective(args.acceptanceCriteria)
+      auditPhaseTaskDirective()
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT ->
-      implementPhaseTaskDirective(args.acceptanceCriteria)
+      implementPhaseTaskDirective()
     else -> phaseDirectives[phaseId] ?: error("No phase directive for runtime phase '$phaseId'.")
   }
 
@@ -203,8 +201,6 @@ fun validationGateFindingsDirective(
   return lines.joinToString("\n")
 }
 
-fun auditNoEarlierAuditLine(briefing: FeatureTaskRuntimePhaseLaunchBriefing): String =
+fun auditNoEarlierAuditLine(): String =
   "      Every audit invocation re-checks the complete listed criterion set from scratch against the\n" +
     "      current tree. Prior partial checks, provider sessions, and repair receipts do not skip checks.\n"
-
-fun auditRoundScopeAddendum(briefing: FeatureTaskRuntimePhaseLaunchBriefing): String = ""

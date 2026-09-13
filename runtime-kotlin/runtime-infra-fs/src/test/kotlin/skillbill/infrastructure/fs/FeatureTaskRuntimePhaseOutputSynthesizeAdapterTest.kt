@@ -11,6 +11,48 @@ import kotlin.test.assertTrue
 
 class FeatureTaskRuntimePhaseOutputSynthesizeAdapterTest {
   @Test
+  fun `removed audit verdict cannot become approval through a satisfied criterion in prose`() {
+    listOf(
+      "\"verdict\": \"gaps_found\",",
+      "",
+    ).forEach { verdictField ->
+      val raw = """
+        {
+          "contract_version": "$FEATURE_TASK_RUNTIME_CONTRACT_VERSION",
+          "phase_id": "audit",
+          "status": "completed",
+          "summary": "AC-1 satisfied, AC-2 still gaps_found.",
+          $verdictField
+          "produced_outputs": { "value": "AC-2 is missing error handling." }
+        }
+      """.trimIndent()
+
+      val result = FeatureTaskRuntimePhaseOutputValidatorAdapter().validatePhaseOutput(raw, "audit")
+
+      assertIs<FeatureTaskRuntimePhaseOutputValidationResult.Rejected>(result)
+    }
+  }
+
+  @Test
+  fun `audit failure without disposition returns rejection instead of escaping validation`() {
+    listOf("blocked", "failed").forEach { status ->
+      val raw = """
+        {
+          "contract_version": "$FEATURE_TASK_RUNTIME_CONTRACT_VERSION",
+          "phase_id": "audit",
+          "status": "$status",
+          "summary": "Planning inputs are unreadable.",
+          "produced_outputs": { "value": "Cannot read the planning input." }
+        }
+      """.trimIndent()
+
+      val result = FeatureTaskRuntimePhaseOutputValidatorAdapter().validatePhaseOutput(raw, "audit")
+
+      assertIs<FeatureTaskRuntimePhaseOutputValidationResult.Rejected>(result)
+    }
+  }
+
+  @Test
   fun `implement implementation_receipt sibling is accepted via synthesizer`() {
     val raw =
       """

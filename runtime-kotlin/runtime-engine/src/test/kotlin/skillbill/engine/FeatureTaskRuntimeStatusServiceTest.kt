@@ -38,6 +38,7 @@ import skillbill.ports.workflow.model.FeatureVerifySessionSummary
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.workflow.engine.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDecomposeTerminal
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDiagnosticFailureClass
@@ -61,20 +62,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/**
- * F-001 / F-008: unit coverage for [FeatureTaskRuntimeStatusService]'s projection
- * branches that the CLI surface cannot reach directly:
- *
- *  - a workflow row that exists but has NO per-phase records yet projects status
- *    `ok` with every phase pending and the first phase as current (distinct from
- *    the null/not_found case);
- *  - a phase whose newest append-only ledger entry is BLOCKED is reclassified as
- *    blocked even though the runner leaves its durable per-phase record at
- *    `running` (the runner never persists a blocked per-phase record).
- *
- * Uses a minimal in-memory recorder seam so the projection is exercised against
- * real persisted artifacts without a database.
- */
 class FeatureTaskRuntimeStatusServiceTest {
   @Test
   fun `null projection for an unknown workflow id`() {
@@ -208,10 +195,6 @@ class FeatureTaskRuntimeStatusServiceTest {
 
   @Test
   fun `a settle that advances the attempt or swaps the agent does not inherit the prior launch pair`() {
-    // Two pre-launch seams that never call the launcher: a cap-exhaustion block writes the *next*
-    // attempt, and a branch-setup block writes under a non-agent id. Both leave launchOutcomeKnown
-    // false, so without the identity gate they inherit the prior attempt's pair and the record — and
-    // the IDE popup reading it — asserts a model that attempt provably never launched.
     listOf(
       "advanced attempt" to Pair(2, "claude"),
       "swapped agent" to Pair(1, "branch-setup"),
@@ -289,8 +272,6 @@ class FeatureTaskRuntimeStatusServiceTest {
   fun `phase whose latest ledger entry is blocked is reported blocked and current`() {
     val harness = statusHarness()
     harness.recorder.ensureWorkflowOpen(WORKFLOW_ID, SESSION_ID)
-    // The runner records a block only in the ledger, leaving the per-phase record at
-    // `running`; status must derive the blocked state from the newest ledger entry.
     harness.recordRunning("implement", attemptCount = 3)
     harness.recordCompleted("preplan", attemptCount = 1)
     harness.recordCompleted("plan", attemptCount = 1)
@@ -395,14 +376,11 @@ class FeatureTaskRuntimeStatusServiceTest {
 
   @Test
   fun `phase with a durable blocked record is reported blocked even when the ledger has no blocked entry`() {
-    // F-002: blocked-ness derives primarily from the durable per-phase record, so it survives even
-    // when the append-only ledger's BLOCKED entry has been pruned by the retention cap.
     val harness = statusHarness()
     harness.recorder.ensureWorkflowOpen(WORKFLOW_ID, SESSION_ID)
     harness.recordCompleted("preplan", attemptCount = 1)
     harness.recordCompleted("plan", attemptCount = 1)
     harness.recordBlocked("implement", attemptCount = 3, "fix loop exhausted")
-    // Ledger carries only a START (the BLOCKED entry was pruned away); the durable record stands.
     harness.recordLedger(FeatureTaskRuntimePhaseLedgerAction.START, "implement", attemptCount = 1)
 
     val projection = requireNotNull(
@@ -488,8 +466,6 @@ class FeatureTaskRuntimeStatusServiceTest {
 
   @Test
   fun `projection surfaces the durable decompose terminal with subtask count and guidance fields`() {
-    // T-F001 / AC4: a durable decompose-terminal record projects into the status as a non-null
-    // decomposeTerminal carrying the reason, manifest/subtask paths, and the derived subtask count.
     val harness = statusHarness()
     harness.recorder.ensureWorkflowOpen(WORKFLOW_ID, SESSION_ID)
     harness.decomposeTerminalRecorder.recordDecomposeTerminal(
@@ -551,9 +527,6 @@ class FeatureTaskRuntimeStatusServiceTest {
 
   @Test
   fun `fully forward completed run does not project the loop-only implement_fix as current`() {
-    // SKILL-85 Subtask 4 (F-005/F-006): a clean forward run completes every phase except the loop-only
-    // implement_fix (never launched on a clean run, so permanently pending). currentPhaseId must skip
-    // it rather than report a never-run loop-only phase; with no other incomplete phase it reports none.
     val harness = statusHarness()
     harness.recorder.ensureWorkflowOpen(WORKFLOW_ID, SESSION_ID)
     listOf(
@@ -655,9 +628,6 @@ class FeatureTaskRuntimeStatusAttributionTest {
   fun `attribution rolls up a multi-agent recovery handoff to order-stable participants and resuming finalizer`() {
     val harness = statusHarness()
     harness.recorder.ensureWorkflowOpen(WORKFLOW_ID, SESSION_ID)
-    // codex starts, hits a limit; claude resumes and completes.
-    // A phase record for the completed implement phase carries claude as its resolvedAgentId,
-    // exercising the phase-record sweep path in agentAttributionFromPhaseState.
     harness.recordLedger(START, "implement", attemptCount = 1, resolvedAgentId = "codex")
     harness.recordLedger(RESUME, "implement", attemptCount = 2, resolvedAgentId = "claude")
     harness.recordCompleted("implement", attemptCount = 2, resolvedAgentId = "claude")
@@ -666,7 +636,6 @@ class FeatureTaskRuntimeStatusAttributionTest {
     val attribution = harness.attribution()
 
     assertEquals("claude", attribution.finalizingAgentId)
-    // codex contributed via ledger (START); claude contributed via both ledger (RESUME/COMPLETE) and phase record.
     assertEquals(listOf("codex", "claude"), attribution.participatingAgentIds)
   }
 
@@ -685,17 +654,14 @@ class FeatureTaskRuntimeStatusAttributionTest {
 
   @Test
   fun `attribution falls back to the durable terminal phase record when the ledger terminal entry is pruned`() {
-    // The 200-cap ledger may prune the COMPLETE/BLOCKED entry; the durable blocked record carries the finalizer.
     val harness = statusHarness()
     harness.recorder.ensureWorkflowOpen(WORKFLOW_ID, SESSION_ID)
     harness.recordBlocked("implement", attemptCount = 3, blockedReason = "exhausted", resolvedAgentId = "claude")
-    // Ledger carries only a non-terminal START (the BLOCKED entry was pruned away).
     harness.recordLedger(START, "implement", attemptCount = 1, resolvedAgentId = "codex")
 
     val attribution = harness.attribution()
 
     assertEquals("claude", attribution.finalizingAgentId)
-    // Participants still include the pruned-ledger record agent via the phase-record sweep.
     assertEquals(listOf("codex", "claude"), attribution.participatingAgentIds)
   }
 
@@ -754,6 +720,36 @@ class FeatureTaskRuntimeStatusAttributionTest {
     assertEquals(IdeStatusCurrentPhaseExecutionKind.PASS, execution.kind)
     assertEquals(1, execution.count)
     assertNull(execution.total)
+  }
+
+  @Test
+  fun `legacy blocked audit gap record projects pending not blocked`() {
+    val harness = statusHarness()
+    harness.recorder.ensureWorkflowOpen(WORKFLOW_ID, SESSION_ID)
+    listOf("preplan", "plan", "implement").forEach { harness.recordCompleted(it, attemptCount = 1) }
+    harness.recorder.recordPhaseState(
+      FeatureTaskRuntimePhaseStateRequest(
+        workflowId = WORKFLOW_ID,
+        phaseId = "audit",
+        status = "blocked",
+        attemptCount = 1,
+        resolvedAgentId = "claude",
+        finished = false,
+        outputArtifact = null,
+        blockedReason = "legacy audit-gap block",
+        loopId = FeatureTaskRuntimePhaseWorkflowDefinition.AUDIT_GAP_LOOP_ID,
+        edgeIteration = 1,
+      ),
+    )
+    harness.recordLedger(BLOCKED, "audit", attemptCount = 1)
+
+    val projection = requireNotNull(
+      harness.service.status(FeatureTaskRuntimeStatusRequest(workflowId = WORKFLOW_ID)),
+    )
+
+    assertEquals(0, projection.blockedCount)
+    assertEquals("pending", projection.phases.single { it.phaseId == "audit" }.status)
+    assertEquals("audit", projection.currentPhaseId)
   }
 
   @Test

@@ -48,22 +48,19 @@ fun FeatureTaskRuntimeStatusService.buildStatusProjection(
   decomposeTerminal: FeatureTaskRuntimeDecomposeTerminal?,
   ledger: List<FeatureTaskRuntimePhaseLedgerEntry>,
 ): FeatureTaskRuntimeStatusProjection {
-  val normalizedRecords = FeatureTaskRuntimeRunStateReconstruction.normalizeInitialRecordsForStatelessAudit(records)
-  val legacyAuditGapPhaseIds = records
-    .filterValues(FeatureTaskRuntimeRunStateReconstruction::hasLegacyAuditGapLineage)
-    .keys
+  val statelessAuditInputs = FeatureTaskRuntimeRunStateReconstruction.normalizeForStatelessAudit(records, ledger)
+  val normalizedRecords = statelessAuditInputs.records
+  val normalizedLedger = statelessAuditInputs.ledger
   val durableBlockedPhaseIds = normalizedRecords
     .filterValues { record ->
-      record.status.workflowStepStatus() == WorkflowStepStatus.BLOCKED &&
-        !FeatureTaskRuntimeRunStateReconstruction.isLegacyAuditGapPersistedBlock(record)
+      record.status.workflowStepStatus() == WorkflowStepStatus.BLOCKED
     }
     .keys
   val blockedPhaseIds = (
     durableBlockedPhaseIds +
-      ledgerBlockedPhaseIds(ledger, durableBlockedPhaseIds)
-    ).filterNot { it in legacyAuditGapPhaseIds }
-    .toSet()
-  val phases = phaseStatuses(normalizedRecords, blockedPhaseIds, ledger)
+      ledgerBlockedPhaseIds(normalizedLedger, durableBlockedPhaseIds)
+    ).toSet()
+  val phases = phaseStatuses(normalizedRecords, blockedPhaseIds, normalizedLedger)
   val terminalDecomposeRecorded = decomposeTerminal != null
   val qualityGateSelection = recorder
     .loadGoalContinuationQualityGateSelection(request.workflowId)
@@ -72,7 +69,7 @@ fun FeatureTaskRuntimeStatusService.buildStatusProjection(
     terminalDecomposeRecorded,
     normalizedRecords,
     phases,
-    ledger,
+    normalizedLedger,
     qualityGateSelection,
   )
   val gateRunCount = gateRunCountFor(request, currentPhaseId)
@@ -84,7 +81,7 @@ fun FeatureTaskRuntimeStatusService.buildStatusProjection(
       currentPhaseId = currentPhaseId,
       gateRunCount = gateRunCount,
       records = normalizedRecords,
-      ledger = ledger,
+      ledger = normalizedLedger,
       decomposeTerminal = decomposeTerminal,
     ),
   )

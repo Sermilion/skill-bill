@@ -85,7 +85,6 @@ private fun producedOutputsAddendum(
         "      Required example: {\"finding_id\":\"F-001\",\"disposition\":\"verified\"}."
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT -> auditProducedOutputsAddendum(
       verdict = verdict,
-      briefing = briefing,
     )
     else -> ""
   }
@@ -129,7 +128,7 @@ private fun commitFocusedAccountingAddendum(): String =
     "      path, or diff text. An INLINE or non-commit-sequence pass OMITS the key entirely rather\n" +
     "      than fabricating a sequence identity; never invent or guess a digest or a count."
 
-private fun auditProducedOutputsAddendum(verdict: String, briefing: FeatureTaskRuntimePhaseLaunchBriefing): String =
+private fun auditProducedOutputsAddendum(verdict: String): String =
   "\n    - This is a VERIFYING phase. Ignore the optional-verdict bullet above: for audit, top-level " +
     "\"$verdict\" is REQUIRED and must be satisfied when status is completed.\n" +
     "      REJECTED: omitting verdict; gaps_found or any other string; nesting verdict only inside " +
@@ -142,7 +141,6 @@ private fun auditProducedOutputsAddendum(verdict: String, briefing: FeatureTaskR
     "every listed criterion has implementation and meaningful test coverage. Repair fixable gaps in " +
     "this same session before you emit satisfied. Use status blocked or failed with " +
     "failure_disposition when the criterion list is missing or an external dependency prevents repair.\n" +
-    auditNoEarlierAuditLine(briefing) +
+    auditNoEarlierAuditLine() +
     "      Inspect code and test coverage only: do not run builds, tests, or other commands as audit " +
-    "evidence. Validation owns test execution and failures." +
-    auditRoundScopeAddendum(briefing)
+    "evidence. Validation owns test execution and failures."

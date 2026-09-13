@@ -105,23 +105,22 @@ internal object FeatureTaskRuntimePhaseWorkflowGraph {
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN to
         "Resume planning from the latest preplan prose, then persist the validated planning prose output.",
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT to
-        "Resume implementation reconciliation from the immutable initial preplan and plan outputs when an " +
-        "audit-gap loop is active, then persist the validated output.",
+        "Resume implementation from the planned work and current repository, then persist the validated output.",
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT_FIX to
         "Resume the implement-fix phase from the latest verified findings, reconciling the " +
         "current tree, then persist the validated output.",
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT to
-        "Resume the completeness audit from the latest plan and implement outputs.",
+        "Start a fresh audit session, inspect every planned criterion against current code and tests, " +
+        "repair gaps in that session, and recheck the full list before terminal completion.",
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW to
-        "Resume code review from the latest implement and audit outputs and the derived " +
-        "diff context.",
+        "Resume code review over its repository scope after audit completes.",
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS to
         "Resume finding verification from the latest review output and in-flight dispositions " +
         "without re-running review.",
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD to
-        "Resume compile/build proof from the latest plan and audit outputs.",
+        "Resume compile/build proof from the plan after audit completes.",
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE to
-        "Resume quality validation from the latest plan and audit outputs.",
+        "Resume quality validation from the plan after audit completes.",
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_WRITE_HISTORY to
         "Resume boundary history writing from the latest implement and settled build or " +
         "validate output.",
@@ -136,9 +135,7 @@ internal object FeatureTaskRuntimePhaseWorkflowGraph {
     continuationDirectives = emptyMap(),
     continuationArtifactOrder = emptyList(),
     openPriorStepsCompleted = false,
-    // The per-phase records store is always persisted for a completed run, whereas no top-level
-    // `pr` artifact is ever written; point the completed-run summary pointer at the store that
-    // actually exists so resumeView's "done" next-action dereferences real persisted state.
+
     completedTerminalSummaryArtifact = FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY,
     workflowMode = "runtime",
     requiredArtifactPresenceResolver = FeatureTaskRuntimeRequiredArtifactPresenceResolver,

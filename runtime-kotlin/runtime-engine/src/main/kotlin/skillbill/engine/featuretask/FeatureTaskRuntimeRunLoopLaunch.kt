@@ -115,9 +115,7 @@ object FeatureTaskRuntimeRunLoopLaunch {
     val prepared = when (val preparation = prepareLaunchForCapture(runLoop, run, state, priorCorrection)) {
       is PreparedLaunchReady -> preparation.value
       is LaunchPreparationRejected -> return preparation.result
-      is LaunchMeasurementContextReady,
-      is ClosedCriterionRefsReady,
-      -> error("Unexpected launch preparation result.")
+      is LaunchMeasurementContextReady -> error("Unexpected launch preparation result.")
     }
     val (
       isReviewPhase,
@@ -189,27 +187,11 @@ object FeatureTaskRuntimeRunLoopLaunch {
     ) {
       is LaunchMeasurementContextReady -> resolution.value
       is LaunchPreparationRejected -> return resolution
-      is PreparedLaunchReady,
-      is ClosedCriterionRefsReady,
-      -> error("Unexpected launch measurement result.")
-    }
-    val durablyClosedCriterionRefs = when (
-      val resolution = FeatureTaskRuntimeRunLoopLaunch.resolveDurablyClosedCriterionRefs(
-        runLoop,
-        run,
-        state,
-        measurementContext,
-      )
-    ) {
-      is ClosedCriterionRefsReady -> resolution.value
-      is LaunchPreparationRejected -> return resolution
-      is PreparedLaunchReady,
-      is LaunchMeasurementContextReady,
-      -> error("Unexpected closed-criterion result.")
+      is PreparedLaunchReady -> error("Unexpected launch measurement result.")
     }
     return FeatureTaskRuntimeRunLoopLaunch.prepareDeclaredLaunch(
       runLoop,
-      DeclaredLaunchArgs(run, state, priorCorrection, durablyClosedCriterionRefs, measurementContext),
+      DeclaredLaunchArgs(run, state, priorCorrection, measurementContext),
     )
   }
 
@@ -380,13 +362,6 @@ object FeatureTaskRuntimeRunLoopLaunch {
     }
   }
 
-  internal fun resolveDurablyClosedCriterionRefs(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    run: PhaseRun,
-    state: FeatureTaskRuntimeRunState,
-    context: LaunchRejectionMeasurementContext,
-  ): LaunchPreparation = ClosedCriterionRefsReady(emptyList())
-
   internal fun prepareDeclaredLaunch(runLoop: FeatureTaskRuntimeRunLoop, args: DeclaredLaunchArgs): LaunchPreparation =
     FeatureTaskRuntimeRunLoopLaunch.prepareDeclaredLaunchBody(runLoop, args)
 
@@ -479,13 +454,12 @@ object FeatureTaskRuntimeRunLoopLaunch {
     val run = args.run
     val state = args.state
     val priorCorrection = args.priorCorrection
-    val durablyClosedCriterionRefs = args.durablyClosedCriterionRefs
     val context = args.context
     return try {
       PreparedLaunchReady(
         FeatureTaskRuntimeRunLoopOutputPersistence.prepareLaunch(
           runLoop,
-          PrepareLaunchArgs(run, state, priorCorrection, durablyClosedCriterionRefs, context.repositoryCheckpoint),
+          PrepareLaunchArgs(run, state, priorCorrection, context.repositoryCheckpoint),
         ),
       )
     } catch (error: InvalidFeatureTaskRuntimeHandoffProjectionError) {

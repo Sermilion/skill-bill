@@ -255,27 +255,18 @@ class FeatureTaskRuntimePhasePromptComposerContentTest {
   }
 
   @Test
-  fun `audit prompt scopes gaps to production and routes tests to validation`() {
-    val auditPrompt = composePromptForPhase("audit")
+  fun `audit requires meaningful test coverage and repairs without execution or handoff`() {
+    val prompt = composePromptForPhase("audit")
 
-    assertContains(auditPrompt, "TEST EXCLUSION", false, "audit makes the test-only exclusion explicit")
-    assertContains(auditPrompt, "NEVER unmet criteria", false, "audit rejects test-only findings")
-    assertAuditPromptNamesSignal(auditPrompt, "Validation owns test execution", "the test routing")
-    assertAuditPromptNamesSignal(
-      auditPrompt,
-      "production behavior or production",
-      "the production scope of an unmet criterion",
-    )
-  }
-
-  @Test
-  fun `audit prompt requires a complete blast-radius-aware fix plan in each gap note`() {
-    val auditPrompt = composePromptForPhase("audit")
-
-    assertContains(auditPrompt, "fix plan", false, "each gap note should guide the repair")
-    assertContains(auditPrompt, "blast radius", false, "audit should consider blast radius before naming a gap")
-    assertContains(auditPrompt, "free-form note prose", false, "plan quality is guidance, not a wire template")
-    assertContains(auditPrompt, "does not block on note length", false, "audit schema is recommendation only")
+    assertContains(prompt, "test cases whose assertions verify that behavior")
+    assertContains(prompt, "Missing implementation, missing tests")
+    assertContains(prompt, "mock-only interaction, or tautological assertion is not coverage")
+    assertContains(prompt, "Repair every fixable gap in this same agent session")
+    assertContains(prompt, "re-check the entire criterion list from the beginning")
+    assertContains(prompt, "Do not spawn subagents, invoke repair skills, or hand findings")
+    assertContains(prompt, "Validation owns test execution")
+    assertTrue(!prompt.contains("TEST EXCLUSION"))
+    assertTrue(!prompt.contains("free-form note prose"))
   }
 
   @Test
@@ -296,38 +287,6 @@ class FeatureTaskRuntimePhasePromptComposerContentTest {
   }
 
   @Test
-  fun `carried disposition observation enumeration failure names the closed token set`() {
-    val retry = composePhasePrompt(
-      PROMPT_COMPOSER_ISSUE_KEY,
-      promptComposerBriefingFor("audit"),
-    ) {
-      copy(
-        priorSchemaFailure =
-        "produced_outputs.carried_gap_dispositions[0].evidence.observation: does not have a value in the " +
-          "enumeration [\"resolution_verified\")",
-      )
-    }
-    assertContains(retry, "closed token", false, "the correction must say observation is not prose")
-    assertContains(retry, "resolution_verified or recurrence_verified", false, "the closed set must be named")
-    assertContains(retry, "Put the paragraph in summary only", false, "prose is redirected off observation")
-  }
-
-  @Test
-  fun `audit prompt separates blocking gaps from non blocking findings`() {
-    val auditPrompt = composePromptForPhase("audit")
-
-    assertContains(auditPrompt, "non_blocking_findings", false, "minor and nit findings have their own sink")
-    assertContains(auditPrompt, "non_blocking_findings", false, "audit preserves minor and nit findings")
-    assertContains(auditPrompt, "NEVER trigger gaps_found", false, "non-blocking findings cannot reopen implementation")
-    assertContains(
-      auditPrompt,
-      "\"acceptance_criterion_ref\":\"AC-004\"",
-      false,
-      "audit spells out the non-blocking finding shape instead of leaving it to the gap example",
-    )
-  }
-
-  @Test
   fun `non-verifying phases carry no verifying-signal addendum`() {
     listOf("preplan", "plan", "implement", "validate", "write_history", "commit_push", "pr").forEach { phaseId ->
       val prompt = composePromptForPhase(phaseId)
@@ -339,7 +298,7 @@ class FeatureTaskRuntimePhasePromptComposerContentTest {
   fun `a prior schema-gate failure is surfaced as a corrective directive on retry`() {
     val reason = "Audit phase reported 'completed' without a verification signal"
 
-    listOf("review", "audit").forEach { phaseId ->
+    listOf("review").forEach { phaseId ->
       val firstAttempt = composePromptForPhase(phaseId)
       val retry = composePhasePrompt(
         PROMPT_COMPOSER_ISSUE_KEY,

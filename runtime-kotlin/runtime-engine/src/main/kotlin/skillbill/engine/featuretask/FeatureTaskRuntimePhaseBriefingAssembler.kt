@@ -15,19 +15,6 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeSharedReviewEviden
 import skillbill.workflow.taskruntime.model.PhaseHandoffProjectionDeclaration
 import skillbill.workflow.taskruntime.model.PhaseHandoffProjectionShape
 
-/**
- * Per-phase allowlist of prompt-visible run invariants (AC-012). Run identity stays durable runtime
- * state on every briefing; this decides only what is *rendered* for a given phase.
- *
- * Identity, ceremony, and policy mandates reach every phase. The acceptance contract and review
- * policy reach only the phases that act on them. Finalization phases (history, commit, PR) describe
- * work already settled by audit and validate, so re-injecting the full acceptance contract there
- * only invites a finalization agent to relitigate criteria it has no authority over.
- *
- * Policy mandates are deliberately not part of that withholding. They are free-form operator
- * directives ("do not push to main", "PR targets develop") that govern exactly the irreversible
- * outward-facing phases, and this allowlist is their only delivery path.
- */
 object FeatureTaskRuntimeRunInvariantPromptAllowlist {
   private val IDENTITY_CEREMONY_AND_POLICY: Set<FeatureTaskRuntimeRunInvariantPromptField> = setOf(
     FeatureTaskRuntimeRunInvariantPromptField.SPEC_REFERENCE,
@@ -55,18 +42,6 @@ object FeatureTaskRuntimeRunInvariantPromptAllowlist {
   }
 }
 
-/**
- * Pure, deterministic assembler of the per-phase launch briefing from a resolved handoff.
- *
- * Layer 2 is no longer a payload map. The assembler hands the phase's static projection
- * declarations to [FeatureTaskRuntimeHandoffProjectionValidator], which validates shape and
- * contract without truncating. A phase either receives a whole validated projection or the launch
- * fails loudly with a typed error naming the projection.
- *
- * Run invariants are rendered through [FeatureTaskRuntimeRunInvariantPromptAllowlist]: identity
- * fields reach every phase, while acceptance-contract, policy, and review fields reach only the
- * phases that act on them. The typed fields stay on the briefing as durable state regardless.
- */
 object FeatureTaskRuntimePhaseBriefingAssembler {
   fun assemble(
     handoff: FeatureTaskRuntimePhaseHandoff,
@@ -119,7 +94,6 @@ object FeatureTaskRuntimePhaseBriefingAssembler {
       derivedContextKeys = handoff.derivedContextKeys,
       briefingText = briefingText,
       drivingVerdict = handoff.drivingVerdict?.wireValue,
-      durablyClosedCriterionRefs = handoff.durablyClosedCriterionRefs,
     )
   }
 

@@ -7,7 +7,6 @@ data class FeatureTaskRuntimeHandoffAssemblyRequest(
   val runInvariants: FeatureTaskRuntimeRunInvariants,
   val recordedOutputs: List<FeatureTaskRuntimePhaseOutput>,
   val drivingVerdict: FeatureTaskRuntimeVerdict? = null,
-  val durablyClosedCriterionRefs: List<String> = emptyList(),
   val repairLedger: FeatureTaskRuntimeRepairLedger? = null,
   val repositoryCheckpoint: FeatureTaskRuntimeRepositoryCheckpoint? = null,
   val expectedRepositoryCheckpoint: FeatureTaskRuntimeRepositoryCheckpoint? = null,

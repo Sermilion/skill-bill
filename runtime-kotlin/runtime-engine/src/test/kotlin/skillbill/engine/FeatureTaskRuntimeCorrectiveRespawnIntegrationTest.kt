@@ -1,7 +1,6 @@
 
 package skillbill.engine
 import skillbill.application.assertNoRawResponseSpan
-import skillbill.application.assertOmitsAuthorizedRepairSection
 import skillbill.application.diagnostics.model.RejectedOutputDiagnosticRequest
 import skillbill.application.realFeatureTaskRuntimePhaseOutputValidator
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
@@ -42,8 +41,6 @@ class FeatureTaskRuntimeCorrectiveRespawnIntegrationTest {
 
   @Test
   fun `schema-invalid result body and digest match the private diagnostic capture`() {
-    // Realistic bug: gateOutput records one capture diagnostically, then rebuilds Exact from a
-    // different string/hash so the authorized repair section disagrees with the diagnostic row.
     val rejectedBody = completedPhaseBody("0.5", "audit", rawSpan, """{"gaps":[]}""")
     var auditAttempts = 0
     val harness = runnerHarness(
@@ -59,7 +56,7 @@ class FeatureTaskRuntimeCorrectiveRespawnIntegrationTest {
     )
 
     val blocked = assertIs<FeatureTaskRuntimeRunReport.Blocked>(harness.runner.run(harness.request()))
-    assertContains(blocked.blockedReason, "cap=1")
+    assertContains(blocked.blockedReason, "does not participate in a fix loop")
 
     val diagnostic = harness.io.database.rejectedDiagnostics().single { it.metadata.phaseId == "audit" }
     assertEquals(rejectedBody.encodeToByteArray().toList(), diagnostic.payload?.toList())
@@ -68,7 +65,7 @@ class FeatureTaskRuntimeCorrectiveRespawnIntegrationTest {
   }
 
   @Test
-  fun `first launch has no repair context and matching retry carries only that attempts body`() {
+  fun `audit schema rejection cannot launch a second attempt or deliver a repair context`() {
     val firstBody = completedPhaseBody("0.5", "audit", "SKILL187-ATTEMPT-1", """{"gaps":[]}""")
     val secondBody = completedPhaseBody("0.5", "audit", "SKILL187-ATTEMPT-2", """{"gaps":[]}""")
     var auditAttempts = 0
@@ -102,7 +99,7 @@ class FeatureTaskRuntimeCorrectiveRespawnIntegrationTest {
     )
 
     val blocked = assertIs<FeatureTaskRuntimeRunReport.Blocked>(harness.runner.run(harness.request()))
-    assertContains(blocked.blockedReason, "cap=1")
+    assertContains(blocked.blockedReason, "does not participate in a fix loop")
 
     val prompts = auditPrompts(harness)
     assertEquals(1, prompts.size, "audit must reject once then block")
@@ -298,9 +295,6 @@ class FeatureTaskRuntimeCorrectiveRespawnIntegrationTest {
 
   @Test
   fun `invalid enum and compound artifact_ref rejections carry the captured body into the next launch`() {
-    // SKILL-16-style schema failures: unauthorized enum and semicolon-joined artifact_ref. The next
-    // launch must see the exact rejected body plus the payload-free constraint, then a corrected
-    // envelope must complete the phase.
     val invalidEnum = completedPhaseBody(
       "0.5",
       "audit",
@@ -349,9 +343,7 @@ class FeatureTaskRuntimeCorrectiveRespawnIntegrationTest {
   }
 
   @Test
-  fun `truncated capture keeps digest metadata and omits the exact body from the repair section`() {
-    // Realistic bug: truncated stdout is classified Exact from the retained excerpt, so the prompt
-    // claims completeness while digest/bytes still describe the full observed stream.
+  fun `truncated audit capture blocks without relaunching or exposing the body`() {
     val excerpt = completedPhaseBody(
       "0.5",
       "audit",
@@ -399,13 +391,13 @@ class FeatureTaskRuntimeCorrectiveRespawnIntegrationTest {
     )
 
     val blocked = assertIs<FeatureTaskRuntimeRunReport.Blocked>(harness.runner.run(harness.request()))
-    assertContains(blocked.blockedReason, "cap=1")
+    assertContains(blocked.blockedReason, "does not participate in a fix loop")
     assertEquals(1, auditAttempts)
     assertFalse(auditPrompts(harness).single().contains("SKILL187-TRUNCATED-EXCERPT"))
   }
 
   @Test
-  fun `a degraded diagnostic leaves no rod token on the authorized repair fallback`() {
+  fun `a degraded audit diagnostic blocks without a fabricated locator or relaunch`() {
     val excerpt = completedPhaseBody(
       "0.5",
       "audit",
@@ -468,7 +460,7 @@ class FeatureTaskRuntimeCorrectiveRespawnIntegrationTest {
     )
 
     val blocked = assertIs<FeatureTaskRuntimeRunReport.Blocked>(harness.runner.run(harness.request()))
-    assertContains(blocked.blockedReason, "cap=1")
+    assertContains(blocked.blockedReason, "does not participate in a fix loop")
     assertFalse(blocked.blockedReason.contains("rod_"), "degraded write must not fabricate a resolvable locator")
     assertEquals(1, auditAttempts)
   }
@@ -533,7 +525,13 @@ class FeatureTaskRuntimeCorrectiveRespawnIntegrationTest {
 
   @Test
   fun `audit inner value with extra keys does not block on phase-output-schema`() {
-    val rejectedBody = Skill187SyntheticAuditResponses.invalidCriterionShape()
+    val rejectedBody = completedPhaseBody(
+      FEATURE_TASK_RUNTIME_CONTRACT_VERSION,
+      "audit",
+      "All criteria have implementation and meaningful tests.",
+      """{"value":"{\"extra_key\":true}"}""",
+      "satisfied",
+    )
     var auditAttempts = 0
     val harness = runnerHarness(
       RuntimeHarnessConfig(
@@ -548,20 +546,12 @@ class FeatureTaskRuntimeCorrectiveRespawnIntegrationTest {
     )
 
     val report = harness.runner.run(harness.request())
-    assertTrue(
-      report is FeatureTaskRuntimeRunReport.Completed ||
-        report is FeatureTaskRuntimeRunReport.Blocked ||
-        report is FeatureTaskRuntimeRunReport.Paused,
-      "audit must settle through output-verification, not phase-output-schema",
-    )
+    assertIs<FeatureTaskRuntimeRunReport.Completed>(report)
     assertTrue(
       harness.io.database.rejectedDiagnostics().none { it.metadata.phaseId == "audit" },
       "schema-polish audit output must not record a phase-output-schema rejection",
     )
-    if (report is FeatureTaskRuntimeRunReport.Blocked) {
-      assertFalse(report.blockedReason.contains("phase-output-schema"))
-    }
-    assertTrue(auditAttempts >= 1)
+    assertEquals(1, auditAttempts)
   }
 
   private fun auditPrompts(harness: RunnerHarness): List<String> = harness.launcher.requests

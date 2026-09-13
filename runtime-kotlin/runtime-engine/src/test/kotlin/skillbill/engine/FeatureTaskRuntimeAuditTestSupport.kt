@@ -1,9 +1,5 @@
 package skillbill.engine
 
-import skillbill.ports.agentrun.model.AgentRunLaunchFacts
-import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
-import skillbill.ports.goalrunner.runner.model.GoalRunnerSubtaskLaunchRequest
-
 internal const val AUDIT_GAP_MESSAGE = "AC-002 acceptance criterion is not yet implemented"
 
 internal fun auditSatisfiedOutput(): String = """
@@ -45,12 +41,11 @@ internal fun auditBlockedOutput(reason: String): String = """
   }
 """.trimIndent()
 
-internal fun satisfiedAuditLauncher(): RuntimeRecordingLauncher =
-  RuntimeRecordingLauncher { request ->
-    val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
-    if (phaseId == "audit") {
-      facts(auditSatisfiedOutput())
-    } else {
-      facts(defaultPhaseOutput(request))
-    }
+internal fun satisfiedAuditLauncher(): RuntimeRecordingLauncher = RuntimeRecordingLauncher { request ->
+  val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
+  if (phaseId == "audit") {
+    facts(auditSatisfiedOutput())
+  } else {
+    facts(defaultPhaseOutput(request))
   }
+}

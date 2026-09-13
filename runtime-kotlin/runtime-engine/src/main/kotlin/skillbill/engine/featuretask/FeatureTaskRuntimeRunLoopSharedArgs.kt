@@ -330,7 +330,6 @@ internal data class DeclaredLaunchArgs(
   val run: PhaseRun,
   val state: FeatureTaskRuntimeRunState,
   val priorCorrection: PriorAttemptCorrection?,
-  val durablyClosedCriterionRefs: List<String>,
   val context: LaunchRejectionMeasurementContext,
 )
 
@@ -426,14 +425,12 @@ internal data class PrepareLaunchArgs(
   val run: PhaseRun,
   val state: FeatureTaskRuntimeRunState,
   val priorCorrection: PriorAttemptCorrection?,
-  val durablyClosedCriterionRefs: List<String>,
   val repositoryCheckpoint: FeatureTaskRuntimeRepositoryCheckpoint?,
 )
 
 internal data class AssembleLaunchHandoffArgs(
   val run: PhaseRun,
   val state: FeatureTaskRuntimeRunState,
-  val durablyClosedCriterionRefs: List<String>,
   val repositoryCheckpoint: FeatureTaskRuntimeRepositoryCheckpoint?,
   val resolvedBranchRecord: FeatureTaskRuntimeResolvedBranch?,
 )

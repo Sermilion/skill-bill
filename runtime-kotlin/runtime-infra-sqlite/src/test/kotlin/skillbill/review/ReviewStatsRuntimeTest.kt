@@ -352,16 +352,15 @@ class ReviewStatsRuntimeTest {
     )
   }
 
-  private fun featureTaskRuntimeFinishedRecord(): FeatureTaskRuntimeFinishedRecord =
-    FeatureTaskRuntimeFinishedRecord(
-      sessionId = "ftr-1",
-      completionStatus = "completed",
-      completedPhaseIds = listOf("preplan", "plan", "implement"),
-      phaseOutcomes = mapOf("preplan" to "completed", "plan" to "completed", "implement" to "completed"),
-      lastIncompletePhase = "completed",
-      blockedReason = "",
-      resolvedBranch = "feat/SKILL-65.1",
-    )
+  private fun featureTaskRuntimeFinishedRecord(): FeatureTaskRuntimeFinishedRecord = FeatureTaskRuntimeFinishedRecord(
+    sessionId = "ftr-1",
+    completionStatus = "completed",
+    completedPhaseIds = listOf("preplan", "plan", "implement"),
+    phaseOutcomes = mapOf("preplan" to "completed", "plan" to "completed", "implement" to "completed"),
+    lastIncompletePhase = "completed",
+    blockedReason = "",
+    resolvedBranch = "feat/SKILL-65.1",
+  )
 
   private fun assertFeatureTaskRuntimeFinishedPayload(finishedPayload: Map<String, Any?>?) {
     assertEquals("completed", finishedPayload?.get("completion_status")?.let { it.toString().trim('"') })

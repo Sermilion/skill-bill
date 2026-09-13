@@ -100,19 +100,18 @@ object McpToolRegistry {
         required = listOf("workflow_id", "phase_id", "attempt", "value"),
         properties = mapOf(
           SharedPayloadKeys.WORKFLOW_ID to stringSchema(minLength = 1),
-          SharedPayloadKeys.PHASE_ID to stringSchema(enum = listOf("preplan", "plan", "implement", "audit")),
+          SharedPayloadKeys.PHASE_ID to stringSchema(enum = listOf("preplan", "plan", "implement")),
           "attempt" to mapOf("type" to "integer", "minimum" to 1),
           SharedPayloadKeys.VALUE to stringSchema(minLength = 1),
           SharedPayloadKeys.PROMPT to stringSchema(minLength = 1),
           SharedPayloadKeys.SUMMARY to stringSchema(minLength = 1),
-          SharedPayloadKeys.VERDICT to stringSchema(enum = listOf("satisfied")),
         ),
       ),
       "feature_task_phase_block" to objectSchema(
         required = listOf("workflow_id", "phase_id", "attempt", "reason"),
         properties = mapOf(
           SharedPayloadKeys.WORKFLOW_ID to stringSchema(minLength = 1),
-          SharedPayloadKeys.PHASE_ID to stringSchema(enum = listOf("preplan", "plan", "implement", "audit")),
+          SharedPayloadKeys.PHASE_ID to stringSchema(enum = listOf("preplan", "plan", "implement")),
           "attempt" to mapOf("type" to "integer", "minimum" to 1),
           "reason" to stringSchema(minLength = 1),
           SharedPayloadKeys.FAILURE_DISPOSITION to stringSchema(

@@ -1,8 +1,11 @@
 package skillbill.engine
 
+import skillbill.application.realFeatureTaskRuntimePhaseOutputValidator
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_DELIVERED_PROJECTIONS_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_BRIEFINGS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerAction
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -29,24 +32,41 @@ class FeatureTaskRuntimeStatelessAuditTest {
   }
 
   @Test
+  fun `completed audit remains completed when obsolete audit progress is unreadable`() {
+    val harness = runnerHarness(RuntimeHarnessConfig(launcher = satisfiedAuditLauncher()))
+    assertIs<FeatureTaskRuntimeRunReport.Completed>(harness.runner.run(harness.request()))
+    val auditRecord = harness.recorder.loadPhaseRecords(WORKFLOW_ID)?.get("audit")
+    val auditLaunchCount = harness.launchedPromptPhaseOrder().count { it == "audit" }
+    val retiredProgressKey = "feature_task_runtime_audit_gap_progress"
+    harness.repository.replaceTaskRuntimeArtifacts(
+      WORKFLOW_ID,
+      harness.repository.taskRuntimeArtifacts(WORKFLOW_ID) + (retiredProgressKey to "unreadable old progress"),
+    )
+    assertIs<FeatureTaskRuntimeRunReport.Completed>(harness.runner.run(harness.request()))
+    assertEquals(auditLaunchCount, harness.launchedPromptPhaseOrder().count { it == "audit" })
+    assertEquals(auditRecord, harness.recorder.loadPhaseRecords(WORKFLOW_ID)?.get("audit"))
+    assertEquals("unreadable old progress", harness.repository.taskRuntimeArtifacts(WORKFLOW_ID)[retiredProgressKey])
+  }
+
+  @Test
   fun `gaps_found audit output is rejected and does not re-enter implement`() {
     var auditLaunches = 0
     val launcher = RuntimeRecordingLauncher { request ->
       val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
       if (phaseId == "audit") {
         auditLaunches += 1
-        facts(if (auditLaunches == 1) auditGapsFoundOutput() else auditSatisfiedOutput())
+        facts(auditGapsFoundOutput())
       } else {
         facts(defaultPhaseOutput(request))
       }
     }
-    val harness = runnerHarness(RuntimeHarnessConfig(launcher = launcher))
-    val report = harness.runner.run(harness.request())
-    assertTrue(
-      report is FeatureTaskRuntimeRunReport.Completed || report is FeatureTaskRuntimeRunReport.Blocked,
-      "removed gaps_found must not route to implement; terminal outcome is completion or block",
+    val harness = runnerHarness(
+      RuntimeHarnessConfig(launcher = launcher, validator = realFeatureTaskRuntimePhaseOutputValidator),
     )
-    assertTrue(auditLaunches >= 1, "audit must launch at least once")
+    val report = harness.runner.run(harness.request())
+    assertIs<FeatureTaskRuntimeRunReport.Blocked>(report)
+    assertEquals(1, auditLaunches)
+    assertTrue("review" !in harness.launchOrder())
     assertEquals(1, harness.launchedPromptPhaseOrder().count { it == "implement" })
     assertTrue(
       harness.recorder.loadPhaseLedger(WORKFLOW_ID).orEmpty()
@@ -59,14 +79,7 @@ class FeatureTaskRuntimeStatelessAuditTest {
     val harness = runnerHarness(RuntimeHarnessConfig(launcher = satisfiedAuditLauncher()))
     val report = harness.runner.run(harness.request())
     assertIs<FeatureTaskRuntimeRunReport.Completed>(report)
-  }
-
-  @Test
-  fun `legacy audit gap pause record does not block ordinary resume`() {
-    val harness = runnerHarness(RuntimeHarnessConfig(launcher = satisfiedAuditLauncher()))
-    harness.recorder.ensureWorkflowOpen(WORKFLOW_ID, SESSION_ID)
-    val report = harness.runner.run(harness.request())
-    assertIs<FeatureTaskRuntimeRunReport.Completed>(report)
+    assertTrue(harness.repository.taskRuntimeArtifacts(WORKFLOW_ID).keys.none { it.contains("audit_gap") })
   }
 
   @Test
@@ -80,7 +93,7 @@ class FeatureTaskRuntimeStatelessAuditTest {
     )
     val report = harness.runner.run(harness.request())
     assertIs<FeatureTaskRuntimeRunReport.Completed>(report)
-    assertEquals(1, harness.launchedPromptPhaseOrder().count { it == "implement" })
+    assertEquals(0, harness.launchedPromptPhaseOrder().count { it == "implement" })
     assertEquals(1, harness.launchedPromptPhaseOrder().count { it == "audit" })
   }
 
@@ -99,7 +112,9 @@ class FeatureTaskRuntimeStatelessAuditTest {
     val report = harness.runner.run(harness.request())
     assertIs<FeatureTaskRuntimeRunReport.Completed>(report)
     assertEquals(1, harness.launchedPromptPhaseOrder().count { it == "audit" })
-    assertTrue(harness.launchedPromptPhaseOrder().contains("review"))
+    val launched = harness.launchOrder()
+    assertEquals(1, launched.count { it == "review" })
+    assertTrue(launched.indexOf("audit") < launched.indexOf("review"))
   }
 
   @Test
@@ -175,6 +190,51 @@ class FeatureTaskRuntimeStatelessAuditTest {
   }
 
   @Test
+  fun `interrupted legacy implement remediation resumes the audit using retained implementation output`() {
+    val harness = runnerHarness(RuntimeHarnessConfig(launcher = satisfiedAuditLauncher()))
+    seedPlanningUpstreamPhases(harness)
+    harness.seedLoopEdge(
+      phaseId = "implement",
+      loopId = FeatureTaskRuntimePhaseWorkflowDefinition.AUDIT_GAP_LOOP_ID,
+      edgeIteration = 1,
+    )
+    harness.recorder.recordPhaseState(
+      FeatureTaskRuntimePhaseStateRequest(
+        workflowId = WORKFLOW_ID,
+        phaseId = "implement",
+        status = "blocked",
+        attemptCount = 2,
+        resolvedAgentId = "claude",
+        finished = false,
+        blockedReason = "Interrupted legacy gap repair",
+        loopId = FeatureTaskRuntimePhaseWorkflowDefinition.AUDIT_GAP_LOOP_ID,
+        edgeIteration = 1,
+      ),
+    )
+    val legacyArtifacts = mapOf(
+      "feature_task_runtime_audit_gap_pause" to "unreadable pause",
+      "feature_task_runtime_audit_gap_progress" to "unreadable progress",
+      "feature_task_runtime_audit_generations" to "dangling generation",
+    )
+    harness.repository.replaceTaskRuntimeArtifacts(
+      WORKFLOW_ID,
+      harness.repository.taskRuntimeArtifacts(WORKFLOW_ID) + legacyArtifacts + mapOf(
+        FEATURE_TASK_RUNTIME_PHASE_BRIEFINGS_ARTIFACT_KEY to mapOf("audit" to "retired unreadable briefing"),
+        FEATURE_TASK_RUNTIME_DELIVERED_PROJECTIONS_ARTIFACT_KEY to
+          mapOf("$WORKFLOW_ID|audit|1|plan#1|legacy" to "retired unreadable projection"),
+      ),
+    )
+    val result = harness.runner.run(harness.request())
+    assertIs<FeatureTaskRuntimeRunReport.Completed>(result)
+    assertEquals(0, harness.launchedPromptPhaseOrder().count { it == "implement" })
+    assertEquals(1, harness.launchedPromptPhaseOrder().count { it == "audit" })
+    val artifacts = harness.repository.taskRuntimeArtifacts(WORKFLOW_ID)
+    assertEquals(legacyArtifacts, artifacts.filterKeys { it in legacyArtifacts })
+    assertTrue(harness.recorder.loadPhaseBriefings(WORKFLOW_ID).orEmpty().keys.none { it == "audit" })
+    assertTrue(harness.recorder.loadDeliveredProjections(WORKFLOW_ID).orEmpty().keys.none { it == "audit" })
+  }
+
+  @Test
   fun `malformed audit output blocks after one agent session`() {
     var auditLaunches = 0
     val launcher = RuntimeRecordingLauncher { request ->
@@ -186,7 +246,9 @@ class FeatureTaskRuntimeStatelessAuditTest {
         facts(defaultPhaseOutput(request))
       }
     }
-    val harness = runnerHarness(RuntimeHarnessConfig(launcher = launcher))
+    val harness = runnerHarness(
+      RuntimeHarnessConfig(launcher = launcher, validator = realFeatureTaskRuntimePhaseOutputValidator),
+    )
     val report = harness.runner.run(harness.request())
     assertIs<FeatureTaskRuntimeRunReport.Blocked>(report)
     assertEquals(1, auditLaunches)

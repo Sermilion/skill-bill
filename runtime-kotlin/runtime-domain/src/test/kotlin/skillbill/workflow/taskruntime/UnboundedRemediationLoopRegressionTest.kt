@@ -1,10 +1,12 @@
 package skillbill.workflow.taskruntime
 
+import skillbill.error.FeatureTaskRuntimePhaseOrderViolationError
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeNextPhase
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeTransitionContext
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
@@ -28,13 +30,16 @@ class UnboundedRemediationLoopRegressionTest {
   )
 
   @Test
-  fun `gaps_found at audit advances forward without an audit_gap backward edge`() {
+  fun `gaps_found cannot advance to review or reenter implement at any iteration`() {
     listOf(0, 3, 11).forEach { consumed ->
-      val next = assertIs<FeatureTaskRuntimeNextPhase.Next>(
-        transition(def.PHASE_AUDIT, FeatureTaskRuntimeVerdict.GAPS_FOUND, consumed),
-      )
-      assertEquals(def.PHASE_REVIEW, next.phaseId, "Gap iteration ${consumed + 1} must advance forward to review.")
-      assertEquals(null, next.loopId)
+      assertFailsWith<FeatureTaskRuntimePhaseOrderViolationError> {
+        transition(
+          def.PHASE_AUDIT,
+          FeatureTaskRuntimeVerdict.GAPS_FOUND,
+          consumed,
+          mapOf(def.PHASE_AUDIT to FeatureTaskRuntimeVerdict.GAPS_FOUND),
+        )
+      }
     }
     assertTrue(transitions.backwardEdges.none { it.loopId == def.AUDIT_GAP_LOOP_ID })
   }

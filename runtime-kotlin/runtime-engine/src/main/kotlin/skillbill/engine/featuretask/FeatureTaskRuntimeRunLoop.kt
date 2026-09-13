@@ -7,7 +7,6 @@ import skillbill.engine.goalrunner.scopedChildRecoveryCommand
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
 import skillbill.workflow.decomposition.model.SpecSource
-import skillbill.workflow.goal.model.GoalSubtaskOperatorDecision
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
@@ -168,14 +167,13 @@ class FeatureTaskRuntimeRunLoop internal constructor(
     )
   }
 
-  fun applyOperatorDecision(decision: GoalSubtaskOperatorDecision): String? =
-    buildString {
-      append("Operator decisions over review remediation are removed; ")
-      append("the run advances to validate after one implement_fix round.")
-      request.goalContinuation?.let {
-        append(" Recover with: '${scopedChildRecoveryCommand(it.parentIssueKey, it.subtaskId)}'.")
-      }
+  fun applyOperatorDecision(): String? = buildString {
+    append("Operator decisions over review remediation are removed; ")
+    append("the run advances to validate after one implement_fix round.")
+    request.goalContinuation?.let {
+      append(" Recover with: '${scopedChildRecoveryCommand(it.parentIssueKey, it.subtaskId)}'.")
     }
+  }
 }
 
 internal class FeatureTaskRuntimeRunLoopSession(

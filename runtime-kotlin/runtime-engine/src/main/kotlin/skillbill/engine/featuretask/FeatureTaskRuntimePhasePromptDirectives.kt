@@ -10,10 +10,6 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeCorrectiveRepairCo
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePriorReviewContext
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairLedger
 
-// Phase-scoped prompt directives and the per-phase task directive table, split out of
-// FeatureTaskRuntimePhasePromptComposer so the composer object stays within its size budget.
-// Validate Task-line specialization lives in FeatureTaskRuntimePhasePromptValidateDirectives.
-
 fun implementationContinuationDirective(
   phaseId: String,
   continuation: FeatureTaskRuntimeImplementationContinuation?,
@@ -41,18 +37,6 @@ fun implementationContinuationDirective(
   """.trimIndent()
 }
 
-/**
- * Why the previous attempt at a phase must be corrected, kept typed rather than as a bare string.
- *
- * A schema-gate rejection and a retryable `blocked`/`failed` envelope both re-enter the same bounded
- * semantic budget, but they are different events and must not be prompted, reported or dispositioned
- * alike: only the first is a rejection. Threading one nullable string made them indistinguishable at
- * the composer seam, which is how a schema-valid terminal envelope came to be told it was rejected.
- *
- * [correctiveRepairContext] is schema-gate only: the authorized bounded repair projection of the
- * rejected response. Retryable-terminal and incomplete-work paths must not carry it, so they never
- * receive a raw-output repair section.
- */
 class PriorAttemptCorrection private constructor(
   private val reason: String,
   private val kind: Kind,
@@ -86,13 +70,6 @@ class PriorAttemptCorrection private constructor(
   }
 }
 
-/**
- * Emitted when the prior attempt's repair receipt left carried review findings out.
- *
- * Deliberately not the schema-correction directive: the receipt validated. Telling its author the
- * output was rejected invites a re-serialization of the same two entries, which is exactly what has
- * to stop happening — what is missing is repair work on the named findings, not a better document.
- */
 fun findingCoverageDirective(priorFindingCoverage: String?): String {
   if (priorFindingCoverage.isNullOrBlank()) return ""
   return """
@@ -106,13 +83,6 @@ fun findingCoverageDirective(priorFindingCoverage: String?): String {
   """.trimIndent()
 }
 
-/**
- * Emitted when the prior attempt ended in a retryable `blocked` or `failed` envelope.
- *
- * Deliberately not the schema-correction directive: that envelope validated. Telling its author the
- * output was rejected and must be re-emitted describes an event that did not happen and invites a
- * cosmetic re-serialization of the same blocked state instead of an attempt at the blocker itself.
- */
 fun terminalRetryDirective(priorTerminalFailure: String?): String {
   if (priorTerminalFailure.isNullOrBlank()) return ""
   return """
@@ -126,10 +96,6 @@ fun terminalRetryDirective(priorTerminalFailure: String?): String {
   """.trimIndent()
 }
 
-/**
- * Everything the review-execution directive needs to state the run's review depth and scope. These
- * travel together from [FeatureTaskRuntimePhasePromptComposer.compose] and are only ever read as a set.
- */
 internal data class ReviewExecutionDirectiveInputs(
   val codeReviewMode: CodeReviewExecutionMode,
   val goalSubtaskReviewInput: GoalSubtaskReviewInput?,
@@ -141,8 +107,6 @@ internal data class ReviewExecutionDirectiveInputs(
   val priorReviewContext: FeatureTaskRuntimePriorReviewContext? = null,
 )
 
-// Emits for every commit phase: the runtime and agent never stage feature specs. A human operator
-// may already have committed them; leave those HEAD files alone and leave remaining spec dirt local.
 fun commitExclusionDirective(phaseId: String, issueKey: String): String {
   if (phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_COMMIT_PUSH) {
     return ""
@@ -178,9 +142,6 @@ fun goalContinuationDirective(phaseId: String, suppressDecomposition: Boolean): 
     that prevents an implementable plan from being produced.
   """.trimIndent()
 }
-
-// One imperative task directive per phase; the briefing carries the spec-specific scope.
-// Validate Task-line specialization lives in FeatureTaskRuntimePhasePromptValidateDirectives.
 
 const val AUDIT_READONLY_EVIDENCE_SENTENCE: String =
   "All evidence is read-only repository facts: never run a build, a test, or any " +
@@ -289,8 +250,7 @@ val phaseDirectives: Map<String, String> = mapOf(
     "idempotently, and emit pr_result with the PR URL/number, title, and whether a new PR was created.",
 )
 
-fun auditPhaseTaskDirective(acceptanceCriteria: List<String> = emptyList()): String =
-  phaseDirectives.getValue(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT)
+fun auditPhaseTaskDirective(): String = phaseDirectives.getValue(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT)
 
-fun implementPhaseTaskDirective(acceptanceCriteria: List<String>): String =
+fun implementPhaseTaskDirective(): String =
   phaseDirectives.getValue(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT)

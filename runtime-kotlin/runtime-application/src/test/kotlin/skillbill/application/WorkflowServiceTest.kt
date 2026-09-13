@@ -3145,6 +3145,50 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
   }
 
   @Test
+  fun `regenerated parent planning does not block resume or replace child outputs`() {
+    val harness = hydrationHarness()
+    harness.store.saveNewChildWorkflow(harness.state, harness.setup)
+    val imported = requireNotNull(harness.workflows.getFeatureTaskRuntimeWorkflow(CHILD_ID))
+    val shared = requireNotNull(harness.preparations.shared)
+    val preplanPayload = shared.preplanPayload.replace("shared preplan prose", "updated preplan prose")
+    harness.preparations.shared = shared.copy(
+      preplanPayload = preplanPayload,
+      payloadSha256 = sha256HexUtf8(preplanPayload),
+    )
+    val plan = requireNotNull(harness.preparations.plans[1])
+    val planPayload = planPayload("updated-plan-one")
+    harness.preparations.plans[1] = plan.copy(
+      planPayload = planPayload,
+      payloadSha256 = sha256HexUtf8(planPayload),
+    )
+
+    harness.newStore().saveNewChildWorkflow(harness.state, harness.setup)
+
+    assertEquals(imported, harness.workflows.getFeatureTaskRuntimeWorkflow(CHILD_ID))
+  }
+
+  @Test
+  fun `spec edits do not block child hydration or rewrite imported planning on resume`() {
+    val harness = hydrationHarness()
+    val original = requireNotNull(harness.setup.planningHydration)
+    val changed = harness.setup.copy(
+      planningHydration = original.copy(
+        provenance = original.provenance.copy(parentSpecHash = "e".repeat(64)),
+        descriptor = original.descriptor.copy(subSpecHash = "f".repeat(64)),
+      ),
+    )
+
+    harness.store.saveNewChildWorkflow(harness.state, changed)
+    val imported = requireNotNull(harness.workflows.getFeatureTaskRuntimeWorkflow(CHILD_ID))
+
+    harness.newStore().saveNewChildWorkflow(harness.state, harness.setup)
+
+    val resumed = requireNotNull(harness.workflows.getFeatureTaskRuntimeWorkflow(CHILD_ID))
+    assertEquals(imported.artifactsJson, resumed.artifactsJson)
+    assertEquals("implement", resumed.currentStepId)
+  }
+
+  @Test
   fun `resume rejects a child whose import provenance no longer matches and names the divergence`() {
     val harness = hydrationHarness()
     harness.store.saveNewChildWorkflow(harness.state, harness.setup)
@@ -3211,7 +3255,7 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
 
     assertContains(
       error.message.orEmpty(),
-      "parent planning checkpoints are missing or differ from the imported payload digests",
+      "parent planning checkpoints are missing or have incompatible provenance",
     )
   }
 
@@ -3492,7 +3536,7 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
     preparations.plans[1] = planCheckpoint(1).let {
       when (variant) {
         "corrupt" -> it.copy(planPayload = it.planPayload + "corrupt")
-        "conflict" -> it.copy(provenance = it.provenance.copy(parentSpecHash = "f".repeat(64)))
+        "conflict" -> it.copy(provenance = it.provenance.copy(planningContractId = "different-planning-contract"))
         "projection_invalid" -> it.copy(
           planPayload = EMPTY_VALUE_PLAN_PAYLOAD,
           payloadSha256 = sha256HexUtf8(EMPTY_VALUE_PLAN_PAYLOAD),

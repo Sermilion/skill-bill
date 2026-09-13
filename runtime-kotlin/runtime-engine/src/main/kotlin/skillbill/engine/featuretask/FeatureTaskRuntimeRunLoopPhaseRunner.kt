@@ -17,7 +17,6 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeResolvedBranch
 import skillbill.workflow.taskruntime.model.requireAcceptedOutput
 
 object FeatureTaskRuntimeRunLoopPhaseRunner {
-  fun durablyClosedCriterionRefs(): List<String> = emptyList()
 
   internal fun runDeclaredReviewDriverCycle(
     runLoop: FeatureTaskRuntimeRunLoop,
@@ -61,12 +60,12 @@ object FeatureTaskRuntimeRunLoopPhaseRunner {
       PreLaunchBlock(nextIteration, reason, durable)
     }
     val missing = persisted ?: missingRequiredUpstream(run, state)?.let { missingIds ->
-        PreLaunchBlock(
-          1,
-          "Phase '${run.phaseId}' requires upstream output(s) ${missingIds.joinToString()} that are not " +
-            "present; the runtime blocks rather than launching the phase blind.",
-        )
-      }
+      PreLaunchBlock(
+        1,
+        "Phase '${run.phaseId}' requires upstream output(s) ${missingIds.joinToString()} that are not " +
+          "present; the runtime blocks rather than launching the phase blind.",
+      )
+    }
     return missing?.let { persistPreLaunchBlock(runLoop, run, observability, it) }
   }
 
@@ -175,11 +174,7 @@ object FeatureTaskRuntimeRunLoopPhaseRunner {
     val reenterableRecordRejection = args.reenterableRecordRejection
     val persistedReason = args.persistedReason
     val disposition = durable?.failureDisposition
-    val legacyAuditGapBlock = phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT &&
-      durable != null &&
-      FeatureTaskRuntimeRunStateReconstruction.isLegacyAuditGapPersistedBlock(durable)
     return when {
-      legacyAuditGapBlock -> true
       FeatureTaskRuntimeRunLoopPhaseAttempts.operatorReopenedPhase(runLoop, phaseId) -> true
       retryReviewPreparation -> true
       reenterableRecordRejection -> true

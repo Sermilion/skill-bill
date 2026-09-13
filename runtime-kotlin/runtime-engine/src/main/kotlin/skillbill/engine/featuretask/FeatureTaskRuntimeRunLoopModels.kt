@@ -313,8 +313,6 @@ internal data class LaunchMeasurementContextReady(
   val value: LaunchRejectionMeasurementContext,
 ) : LaunchPreparation
 
-internal data class ClosedCriterionRefsReady(val value: List<String>) : LaunchPreparation
-
 internal data class LaunchPreparationRejected(val result: LaunchResult) : LaunchPreparation
 
 internal data class PhaseRun(

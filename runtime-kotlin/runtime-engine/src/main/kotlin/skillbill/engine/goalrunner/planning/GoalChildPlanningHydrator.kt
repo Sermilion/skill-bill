@@ -113,10 +113,9 @@ class GoalChildPlanningHydrator(
     prepared: PreparedGoalPlanning,
   ) {
     val matches = listOf(
-      prepared.shared.provenance == request.provenance,
-      prepared.plan.provenance == request.provenance,
+      prepared.shared.provenance.copy(parentSpecHash = request.provenance.parentSpecHash) == request.provenance,
+      prepared.plan.provenance.copy(parentSpecHash = request.provenance.parentSpecHash) == request.provenance,
       prepared.plan.manifestOrder == request.descriptor.manifestOrder,
-      prepared.plan.subSpecHash == request.descriptor.subSpecHash,
     ).all { it }
     if (!matches) {
       throw IncompatibleGoalPlanningPreparationRecoveryError(
@@ -225,8 +224,6 @@ private class PreparedPlanningPayloadValidator(
     expectedDigest: String,
     workflowId: String,
   ): AcceptedFeatureTaskRuntimePhaseOutput {
-    // The digest check stays ahead of the projection gate so a corrupted payload still reports as a
-    // digest failure rather than as whatever the corruption made the projection look like.
     val originalDigest = sha256HexUtf8(payload)
     if (originalDigest != expectedDigest) {
       invalidPlanningPreparation(workflowId, "$phaseId.payload_sha256", "payload digest differs")
@@ -241,8 +238,6 @@ private class PreparedPlanningPayloadValidator(
       )
     }
     val decoded = accepted.normalizedOutput.envelope
-    // The projection gate is a no-op on a non-completed envelope, because a blocked or failed producer
-    // makes no projection claim. An import, by contrast, only ever admits a settled completed payload.
     if (
       decoded[SharedPayloadKeys.PHASE_ID] != phaseId ||
       decoded[SharedPayloadKeys.STATUS].workflowStepStatus() != WorkflowStepStatus.COMPLETED
@@ -270,10 +265,6 @@ private fun invalidPlanningPreparation(workflowId: String, fieldPath: String, re
 private class GoalChildPlanningImportMatcher(
   private val payloadValidator: PreparedPlanningPayloadValidator,
 ) {
-  // The identity of an import is its provenance, the parent-side checkpoints it was taken from,
-  // and the append-only ledger prefix proving it happened. Live phase records and steps are not
-  // part of that identity: a planning projection that fails its consumer gate re-enters the phase's
-  // own bounded fix loop, which legitimately rewrites attempt counts, resolved agent, and output.
   fun firstDivergence(
     unitOfWork: GoalRunnerPersistenceSession,
     existing: WorkflowStateSnapshot,
@@ -293,8 +284,8 @@ private class GoalChildPlanningImportMatcher(
     val provenanceDivergence = provenanceDivergence(expected, request)
     return when {
       provenanceDivergence != null -> provenanceDivergence
-      !preparedMatches(shared, plan, expected, request) ->
-        "parent planning checkpoints are missing or differ from the imported payload digests"
+      !preparedMatches(shared, plan, request) ->
+        "parent planning checkpoints are missing or have incompatible provenance"
       !ledgerMatches(artifacts) ->
         "phase ledger no longer opens with the goal planning import prefix"
       !planningPhasesSettled(artifacts, existing) ->
@@ -303,9 +294,6 @@ private class GoalChildPlanningImportMatcher(
     }
   }
 
-  // The child has already imported these records, so regenerating them would conflict with the import
-  // this matcher exists to protect. A projection rejection here is therefore terminal — but it stops with
-  // the offending record and its projection failure named, not with a generic read-failure reason.
   private fun validateAvailablePayloads(
     shared: SharedGoalPreplanCheckpoint?,
     plan: GoalSubtaskPlanCheckpoint?,
@@ -370,17 +358,13 @@ private class GoalChildPlanningImportMatcher(
   private fun preparedMatches(
     shared: SharedGoalPreplanCheckpoint?,
     plan: GoalSubtaskPlanCheckpoint?,
-    expected: Map<*, *>,
     request: GoalChildPlanningHydrationRequest,
   ): Boolean = listOf(
     shared != null,
     plan != null,
-    shared?.provenance == request.provenance,
-    plan?.provenance == request.provenance,
+    shared?.provenance?.copy(parentSpecHash = request.provenance.parentSpecHash) == request.provenance,
+    plan?.provenance?.copy(parentSpecHash = request.provenance.parentSpecHash) == request.provenance,
     plan?.manifestOrder == request.descriptor.manifestOrder,
-    plan?.subSpecHash == request.descriptor.subSpecHash,
-    shared?.payloadSha256 == expected["preplan_payload_sha256"],
-    plan?.payloadSha256 == expected["plan_payload_sha256"],
   ).all { it }
 
   private fun planningPhasesSettled(artifacts: Map<String, Any?>, existing: WorkflowStateSnapshot): Boolean {
@@ -395,9 +379,6 @@ private class GoalChildPlanningImportMatcher(
       stepsSettled(existing, expectedStepStatuses)
   }
 
-  // Expected step statuses mirror FeatureTaskRuntimePhaseRecorder.stepUpdatesFrom: a quarantined
-  // producer lands running/running, and blocked is an interrupt that the quarantine produces and the
-  // fix loop handles. Accepting a status the recorder cannot emit would admit forged state.
   private fun settledStepStatus(record: Map<*, *>?, phaseId: String): WorkflowStepStatus? {
     if (record == null || record[SharedPayloadKeys.PHASE_ID] != phaseId) return null
     return when (record[SharedPayloadKeys.STATUS].workflowStepStatus()) {
@@ -427,9 +408,6 @@ private class GoalChildPlanningImportMatcher(
     }
   }
 
-  // Expected step statuses mirror FeatureTaskRuntimePhaseRecorder.stepUpdatesFrom, which writes both
-  // the phase record and its step from one record set: a quarantined producer lands running/running,
-  // never running/completed. Accepting a status the recorder cannot emit would admit forged state.
   private fun stepsSettled(existing: WorkflowStateSnapshot, expected: Map<String, WorkflowStepStatus>): Boolean {
     val planningSteps = decodeWorkflowSteps(existing.stepsJson).filter { it.stepId in PLANNING_PHASE_IDS }
     return planningSteps.size == PLANNING_PHASE_IDS.size &&
@@ -445,8 +423,6 @@ private fun expectedProvenance(request: GoalChildPlanningHydrationRequest): Map<
   SharedPayloadKeys.SUBTASK_ID to request.descriptor.subtaskId,
   "manifest_order" to request.descriptor.manifestOrder,
   "governed_sub_spec_path" to request.descriptor.governedSubSpecPath,
-  "sub_spec_hash" to request.descriptor.subSpecHash,
-  "parent_spec_hash" to request.provenance.parentSpecHash,
   "decomposition_manifest_hash" to request.provenance.decompositionManifestHash,
   "planning_contract_id" to request.provenance.planningContractId,
   "planning_contract_version" to request.provenance.planningContractVersion,

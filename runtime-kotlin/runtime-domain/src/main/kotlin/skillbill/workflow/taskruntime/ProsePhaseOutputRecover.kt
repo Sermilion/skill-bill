@@ -2,6 +2,7 @@ package skillbill.workflow.taskruntime
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
 
 internal object ProsePhaseOutputRecover {
   private val LEGACY_VALUE_KEYS: List<String> = listOf(
@@ -63,11 +64,12 @@ internal object ProsePhaseOutputRecover {
 
   fun recoverAuditVerdict(parsed: Map<String, Any?>?, rawText: String): String? {
     val fromField = parsed?.get(SharedPayloadKeys.VERDICT)?.toString()?.trim()?.lowercase()
-    if (fromField in AUDIT_VERDICTS) return fromField
+    if (fromField != null) return fromField.takeIf { it in AUDIT_VERDICTS }
     val produced = JsonCodec.anyToStringAnyMap(parsed?.get(SharedPayloadKeys.PRODUCED_OUTPUTS))
     val fromProduced = produced?.get(SharedPayloadKeys.VERDICT)?.toString()?.trim()?.lowercase()
-    if (fromProduced in AUDIT_VERDICTS) return fromProduced
+    if (fromProduced != null) return fromProduced.takeIf { it in AUDIT_VERDICTS }
     val lower = rawText.lowercase()
+    if (FeatureTaskRuntimeVerdict.GAPS_FOUND.wireValue in lower) return null
     val hasSatisfied = Regex("""\bsatisfied\b""").containsMatchIn(lower)
     return if (hasSatisfied) "satisfied" else null
   }

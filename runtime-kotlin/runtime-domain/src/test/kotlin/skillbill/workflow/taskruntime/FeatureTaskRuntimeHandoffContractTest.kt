@@ -59,7 +59,6 @@ class FeatureTaskRuntimeHandoffContractTest {
     assertEquals(setOf("plan", "implement"), resolved.outputsByPhaseId.keys)
     assertEquals("impl-v2", resolved.outputsByPhaseId.getValue("implement").payload)
     assertTrue("validate" !in resolved.outputsByPhaseId)
-    // Audit runs before review under the audit-first order and no longer consumes review output.
     assertTrue("review" !in resolved.outputsByPhaseId)
   }
 
@@ -73,7 +72,7 @@ class FeatureTaskRuntimeHandoffContractTest {
   }
 
   @Test
-  fun `assembleHandoff carries run-invariants, resolved upstream, and derived context`() {
+  fun `review handoff carries run invariants and diff context without audit output`() {
     val reviewDeclaration =
       FeatureTaskRuntimePhaseWorkflowDefinition.phaseDeclarations
         .getValue(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW)
@@ -87,7 +86,7 @@ class FeatureTaskRuntimeHandoffContractTest {
     )
     assertEquals("review", handoff.phaseId)
     assertEquals(runInvariants, handoff.runInvariants)
-    assertEquals("audit-v3", handoff.upstreamOutputs.outputsByPhaseId.getValue("audit").payload)
+    assertTrue(handoff.upstreamOutputs.outputsByPhaseId.isEmpty())
     assertEquals(listOf("diff"), handoff.derivedContextKeys)
   }
 

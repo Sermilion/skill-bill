@@ -226,7 +226,6 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
   }
 
   internal fun completedPhaseRepositoryFingerprint(runLoop: FeatureTaskRuntimeRunLoop, run: PhaseRun) = if (
-    run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT ||
     run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT_FIX
   ) {
     runLoop.gitOperations.repositoryFingerprint(run.request.repoRoot)

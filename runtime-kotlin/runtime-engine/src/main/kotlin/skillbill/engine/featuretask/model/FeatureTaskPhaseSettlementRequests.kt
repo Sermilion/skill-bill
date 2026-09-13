@@ -17,4 +17,3 @@ data class FeatureTaskPhaseSettlementBlockRequest(
   val reason: String,
   val failureDisposition: String = "needs_user_action",
 )
-

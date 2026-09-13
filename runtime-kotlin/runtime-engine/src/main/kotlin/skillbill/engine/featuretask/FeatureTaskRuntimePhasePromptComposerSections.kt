@@ -4,34 +4,31 @@ import skillbill.engine.featuretask.model.FeatureTaskRuntimeImplementationContin
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhasePromptComposeInputs
 import skillbill.engine.featuretask.model.PhasePromptHeaderInputs
 
-fun phasePromptLeadingSections(inputs: FeatureTaskRuntimePhasePromptComposeInputs): List<String> =
-  listOf(
-    phasePromptHeader(
-      PhasePromptHeaderInputs(
-        issueKey = inputs.issueKey,
-        phaseId = inputs.briefing.phaseId,
-        agentRunValidateFallback = inputs.agentRunValidateFallback,
-        packCollectAllCommand = inputs.packCollectAllCommand,
-        packBuildCommand = inputs.packBuildCommand,
-        validationGateRepair = inputs.validationGateRepair,
-        validationGateTriage = inputs.validationGateTriage,
-        acceptanceCriteria = inputs.briefing.acceptanceCriteria,
-      ),
+fun phasePromptLeadingSections(inputs: FeatureTaskRuntimePhasePromptComposeInputs): List<String> = listOf(
+  phasePromptHeader(
+    PhasePromptHeaderInputs(
+      issueKey = inputs.issueKey,
+      phaseId = inputs.briefing.phaseId,
+      agentRunValidateFallback = inputs.agentRunValidateFallback,
+      packCollectAllCommand = inputs.packCollectAllCommand,
+      packBuildCommand = inputs.packBuildCommand,
+      validationGateRepair = inputs.validationGateRepair,
+      validationGateTriage = inputs.validationGateTriage,
+      acceptanceCriteria = inputs.briefing.acceptanceCriteria,
     ),
-    installedRuntimeAuthorityDirective(),
-    ceremonyDirective(inputs.briefing),
-    mutatingPhaseIdempotencyDirective(inputs.briefing.phaseId),
-    nonValidatePhaseValidationOwnershipDirective(
-      inputs.briefing.phaseId,
-      inputs.briefing.acceptanceCriteria,
-    ),
-    nonBuildPhaseBuildOwnershipDirective(
-      inputs.briefing.phaseId,
-      inputs.briefing.acceptanceCriteria,
-    ),
-    minimalismDisciplineDirective(inputs.briefing.phaseId),
-    testValueDisciplineDirective(inputs.briefing.phaseId),
-  )
+  ),
+  installedRuntimeAuthorityDirective(),
+  ceremonyDirective(inputs.briefing),
+  mutatingPhaseIdempotencyDirective(inputs.briefing.phaseId),
+  nonValidatePhaseValidationOwnershipDirective(
+    inputs.briefing.phaseId,
+  ),
+  nonBuildPhaseBuildOwnershipDirective(
+    inputs.briefing.phaseId,
+  ),
+  minimalismDisciplineDirective(inputs.briefing.phaseId),
+  testValueDisciplineDirective(inputs.briefing.phaseId),
+)
 
 fun phasePromptMiddleSections(inputs: FeatureTaskRuntimePhasePromptComposeInputs): List<String> = listOf(
   goalContinuationDirective(inputs.briefing.phaseId, inputs.suppressDecomposition),

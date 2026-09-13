@@ -18,22 +18,24 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeResolvedBranch
 
 fun schemaError(detail: String): Nothing = throw InvalidWorkflowStateSchemaError(detail)
 
-// Strict decode of a keyed artifact map. Corrupt state loud-fails rather than being coerced to
-// empty, which would otherwise turn it into a blind re-run / lost outputs on resume.
 fun <T> decodeStrictKeyedArtifactMap(
   artifacts: Map<String, Any?>,
   artifactKey: String,
+  ignoreEntry: (String) -> Boolean = { false },
   decodeEntry: (String, Map<String, Any?>) -> T,
 ): Map<String, T> {
   val raw = artifacts[artifactKey] ?: return emptyMap()
   val rawMap = raw as? Map<*, *>
     ?: schemaError("Feature-task-runtime artifact '$artifactKey' must decode to a map.")
-  return rawMap.entries.associate { (key, value) ->
-    val phaseId = key as? String
-      ?: schemaError("Feature-task-runtime artifact '$artifactKey' must have string keys; found '$key'.")
-    val entryMap = JsonCodec.anyToStringAnyMap(value)
-      ?: schemaError("Feature-task-runtime artifact '$artifactKey' entry for '$phaseId' must decode to a map.")
-    phaseId to decodeEntry(phaseId, entryMap)
+  return buildMap {
+    rawMap.forEach { (key, value) ->
+      val phaseId = key as? String
+        ?: schemaError("Feature-task-runtime artifact '$artifactKey' must have string keys; found '$key'.")
+      if (ignoreEntry(phaseId)) return@forEach
+      val entryMap = JsonCodec.anyToStringAnyMap(value)
+        ?: schemaError("Feature-task-runtime artifact '$artifactKey' entry for '$phaseId' must decode to a map.")
+      put(phaseId, decodeEntry(phaseId, entryMap))
+    }
   }
 }
 

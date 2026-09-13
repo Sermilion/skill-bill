@@ -4,7 +4,6 @@ import skillbill.application.review.RuntimeOwnedReviewMode
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_BLOCKER_SEVERITY
-import skillbill.workflow.goal.model.GoalSubtaskOperatorDecision
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeBackwardEdge
@@ -162,7 +161,7 @@ object FeatureTaskRuntimeRunLoopPlanningBranch {
     val specSource = args.specSource
     val reentry = args.reentry
     val phaseTokenAccumulator = args.phaseTokenAccumulator
-    val declaration = phaseDeclarationForRun(runLoop, phaseId, runLoop.state, reentry)
+    val declaration = phaseDeclarationForRun(runLoop, phaseId)
     val run = buildPhaseRun(
       runLoop,
       BuildPhaseRunArgs(phaseId, runLoop.request, declaration, runLoop.specSource, reentry),
@@ -179,8 +178,6 @@ object FeatureTaskRuntimeRunLoopPlanningBranch {
   internal fun phaseDeclarationForRun(
     runLoop: FeatureTaskRuntimeRunLoop,
     phaseId: String,
-    state: FeatureTaskRuntimeRunState,
-    reentry: PendingReentry?,
   ): FeatureTaskRuntimePhaseDeclaration {
     val declaration = phaseDeclaration(
       phaseId,

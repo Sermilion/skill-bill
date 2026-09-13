@@ -11,7 +11,9 @@ fun retryCorrectionDirective(
   priorSchemaFailure: String?,
   correctiveRepairContext: FeatureTaskRuntimeCorrectiveRepairContext?,
 ): String {
-  if (priorSchemaFailure.isNullOrBlank()) {
+  if (FeatureTaskRuntimePhaseWorkflowDefinition.singleAgentSessionOnly(briefing.phaseId) ||
+    priorSchemaFailure.isNullOrBlank()
+  ) {
     return ""
   }
   val base = """
@@ -43,7 +45,6 @@ fun retryCorrectionDirective(
   return base + structuralRepairNote + repairProjection +
     unparseableRootCorrection(priorSchemaFailure) +
     FeatureTaskRuntimeSchemaFailureCorrections.lengthViolation(priorSchemaFailure) +
-    FeatureTaskRuntimeSchemaFailureCorrections.closedEnumeration(priorSchemaFailure) +
     FeatureTaskRuntimeSchemaFailureCorrections.unreconciledReceipt(priorSchemaFailure)
 }
 
@@ -75,7 +76,6 @@ private fun retrySkeleton(briefing: FeatureTaskRuntimePhaseLaunchBriefing): Stri
 private fun verdictSkeletonLine(phaseId: String): String? {
   val verdict = FeatureTaskRuntimeVerificationSignalKeys.VERDICT
   return when (phaseId) {
-    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT -> "  \"$verdict\": \"satisfied\","
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW -> "  \"$verdict\": \"approved\","
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS -> "  \"$verdict\": \"findings_verified\","
     else -> null
@@ -84,7 +84,6 @@ private fun verdictSkeletonLine(phaseId: String): String? {
 
 private fun producedOutputsSkeletonEntry(briefing: FeatureTaskRuntimePhaseLaunchBriefing): String =
   when (briefing.phaseId) {
-    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT -> auditProducedOutputsSkeleton()
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW ->
       "\"${FeatureTaskRuntimeVerificationSignalKeys.REVIEW_FINDINGS}\": [], " +
         "\"${FeatureTaskRuntimeVerificationSignalKeys.REVIEW_RUN_ID}\": \"<the Review run ID this pass " +
@@ -94,8 +93,3 @@ private fun producedOutputsSkeletonEntry(briefing: FeatureTaskRuntimePhaseLaunch
         "{ \"finding_id\": \"F-001\", \"disposition\": \"verified\" } ]"
     else -> "\"result\": \"<concrete output for downstream phases>\""
   }
-
-private fun auditProducedOutputsSkeleton(): String {
-  val innerGaps = "\"gaps\":[],\"non_blocking_findings\":[]"
-  return "\"value\": \"{$innerGaps}\""
-}

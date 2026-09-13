@@ -17,27 +17,6 @@ const val FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_FIELD_ADOPTION_ARTIFACT_KEY: St
 const val FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT: Int = 200
 
 /**
- * Durable audit-gap progress artifact: the criterion refs and repository fingerprint of the most
- * recent completed gaps audit. The no-progress check reads its OLD value as the previous round and
- * overwrites it with the settling audit's refs+fingerprint, so a fresh process between audits
- * compares consecutive rounds instead of starting from an empty previous set.
- */
-const val FEATURE_TASK_RUNTIME_AUDIT_GAP_PROGRESS_ARTIFACT_KEY: String =
-  "feature_task_runtime_audit_gap_progress"
-
-const val AUDIT_GAP_PAUSE_KIND_NO_PROGRESS: String = "no_progress"
-const val AUDIT_GAP_PAUSE_KIND_WARN_THRESHOLD: String = "warn_threshold"
-const val AUDIT_GAP_PAUSE_DECISION_RETRY_FIX: String = "retry_fix"
-const val AUDIT_GAP_PAUSE_DECISION_ABANDON_SUBTASK: String = "abandon_subtask"
-
-/**
- * Durable audit-gap pause artifact: the pause the runtime minted at an audit->implement seam so the
- * tree stops being re-entered. The pause and its operator decision are the authority across a crash.
- */
-const val FEATURE_TASK_RUNTIME_AUDIT_GAP_PAUSE_ARTIFACT_KEY: String =
-  "feature_task_runtime_audit_gap_pause"
-
-/**
  * Durable append-only history of implementation ATTEMPTS, structurally separate from
  * [FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY]. The two keys must never merge: the phase-records
  * store is put()-replaced per phase id and therefore holds only the LATEST implement output, which

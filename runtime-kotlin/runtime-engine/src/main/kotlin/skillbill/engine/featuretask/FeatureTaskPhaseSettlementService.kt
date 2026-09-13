@@ -27,9 +27,10 @@ class FeatureTaskPhaseSettlementService(
       "phase_id must be a prose phase (preplan|plan|implement|audit)."
     }
     val verdict = when (request.phaseId) {
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT -> requireNotNull(request.verdict?.takeIf { it == "satisfied" }) {
-        "feature_task_phase_complete requires verdict=satisfied when phase_id=audit."
-      }
+      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT ->
+        requireNotNull(request.verdict?.takeIf { it == "satisfied" }) {
+          "feature_task_phase_complete requires verdict=satisfied when phase_id=audit."
+        }
       else -> request.verdict
     }
     val envelope = ProsePhaseOutputSynthesizer.envelopeFromSettlement(

@@ -18,10 +18,6 @@ import skillbill.workflow.taskruntime.model.requireAcceptedOutput
 object FeatureTaskRuntimeRunLoopDrive {
   internal fun resumedReentry(runLoop: FeatureTaskRuntimeRunLoop): PendingReentry? {
     val (loopId, reentry) = runLoop.state.latestInFlightReentry ?: return null
-    if (loopId == FeatureTaskRuntimePhaseWorkflowDefinition.AUDIT_GAP_LOOP_ID) {
-      runLoop.state.discardStaleReentry(loopId)
-      return null
-    }
     if (
       runLoop.state.spanBlockedByEntryGate(reentry.span) ||
       (

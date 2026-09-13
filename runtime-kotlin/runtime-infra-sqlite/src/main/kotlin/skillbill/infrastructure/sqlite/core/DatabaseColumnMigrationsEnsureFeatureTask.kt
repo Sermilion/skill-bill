@@ -39,26 +39,6 @@ internal fun ensureFeatureTaskRuntimeSessionLifecycleColumns(connection: Connect
     columnName = "review_fix_iteration_count",
     definition = "INTEGER NOT NULL DEFAULT 0",
   )
-  DatabaseColumnMigrationsEnsure.ensureColumn(
-    connection = connection,
-    tableName = "feature_task_runtime_sessions",
-    columnName = "audit_gap_iteration_count",
-    definition = "INTEGER NOT NULL DEFAULT 0",
-  )
-  listOf(
-    "audit_first_pass_convergence",
-    "audit_recurring_gap_count",
-    "audit_new_gap_count",
-    "audit_attempted_repair_item_count",
-    "audit_resolved_repair_item_count",
-  ).forEach { column ->
-    DatabaseColumnMigrationsEnsure.ensureColumn(
-      connection,
-      "feature_task_runtime_sessions",
-      column,
-      "INTEGER NOT NULL DEFAULT 0",
-    )
-  }
 }
 
 internal fun ensureFeatureTaskRuntimeSessionMetricColumns(connection: Connection) {

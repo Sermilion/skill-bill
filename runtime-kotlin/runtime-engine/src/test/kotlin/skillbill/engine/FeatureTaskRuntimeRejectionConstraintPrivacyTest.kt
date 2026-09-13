@@ -11,28 +11,13 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
-/**
- * SKILL-152 subtask 1 (AC-011). The feature carries validator constraint text into retry prompts, which
- * creates exactly one new way to leak: routing the value-bearing reason where only the payload-free one
- * belongs. These tests pin the split at the run-loop seam — the retry prompt receives the payload-free
- * constraint, the private diagnostic row receives the value-bearing reason, and no operator-facing surface
- * receives either.
- *
- * SKILL-187: when an authorized corrective-repair projection is present, raw response spans may appear
- * only inside that section; [assertNoRawResponseSpan] remains the contract for every other surface.
- * GateOutput-to-launch propagation of the exact capture is covered by the sentinel integration test below.
- *
- * The validator is a stand-in rather than the real schema because the split is a run-loop routing property:
- * the real validator's own dual-variant rendering is proven in
- * `FeatureTaskRuntimePhaseOutputSchemaValidatorTest`.
- */
 class FeatureTaskRuntimeRejectionConstraintPrivacyTest {
   private val rawSpan = "smuggled-response-body-fragment"
   private val valueBearingReason = "status: does not have a value in the enumeration — offending value: $rawSpan"
   private val payloadFreeConstraint = "status: does not have a value in the enumeration"
 
   @Test
-  fun `the retry prompt carries the payload-free constraint and no span of the raw response`() {
+  fun `audit schema rejection blocks without exposing the constraint or raw response`() {
     val harness = rejectingHarness { sourceLabel ->
       InvalidFeatureTaskRuntimePhaseOutputSchemaError(
         sourceLabel = sourceLabel,
@@ -42,7 +27,7 @@ class FeatureTaskRuntimeRejectionConstraintPrivacyTest {
     }
 
     val blocked = assertIs<FeatureTaskRuntimeRunReport.Blocked>(harness.runner.run(harness.request()))
-    assertContains(blocked.blockedReason, "cap=1")
+    assertContains(blocked.blockedReason, "does not participate in a fix loop")
     assertEquals(1, auditPrompts(harness).size)
     assertPrivateDiagnosticRejection(blocked.blockedReason, "phase-output-schema", rawSpan, payloadFreeConstraint)
     assertNoRawResponseSpan(blocked.blockedReason, rawSpan)
@@ -59,7 +44,7 @@ class FeatureTaskRuntimeRejectionConstraintPrivacyTest {
     }
 
     val blocked = assertIs<FeatureTaskRuntimeRunReport.Blocked>(harness.runner.run(harness.request()))
-    assertContains(blocked.blockedReason, "cap=1")
+    assertContains(blocked.blockedReason, "does not participate in a fix loop")
 
     val diagnostic = harness.io.database.rejectedDiagnostics().single { it.metadata.phaseId == "audit" }
     assertContains(diagnostic.metadata.reason, rawSpan)
@@ -110,9 +95,7 @@ class FeatureTaskRuntimeRejectionConstraintPrivacyTest {
   }
 
   @Test
-  fun `gateOutput rejection threads the captured response into the next launch repair section`() {
-    // Realistic bug: helpers/composer tests pass, but gateOutput drops correctiveRepairContext before
-    // PriorAttemptCorrection reaches the next launch, so the agent never sees the exact rejected body.
+  fun `audit schema rejection retains the exact diagnostic body without a second launch`() {
     val rejectedBody =
       "{\"contract_version\":\"0.5\",\"phase_id\":\"audit\",\"status\":\"completed\"," +
         "\"summary\":\"SKILL187-GATEOUTPUT-SENTINEL\",\"produced_outputs\":{\"gaps\":[]}}"
@@ -141,7 +124,7 @@ class FeatureTaskRuntimeRejectionConstraintPrivacyTest {
     )
 
     val blocked = assertIs<FeatureTaskRuntimeRunReport.Blocked>(harness.runner.run(harness.request()))
-    assertContains(blocked.blockedReason, "cap=1")
+    assertContains(blocked.blockedReason, "does not participate in a fix loop")
     assertEquals(1, auditAttempts)
     val diagnostic = harness.io.database.rejectedDiagnostics().single { it.metadata.phaseId == "audit" }
     assertEquals(rejectedBody.encodeToByteArray().toList(), diagnostic.payload?.toList())

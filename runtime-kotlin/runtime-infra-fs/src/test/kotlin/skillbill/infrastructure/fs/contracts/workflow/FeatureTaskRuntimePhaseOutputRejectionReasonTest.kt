@@ -30,7 +30,6 @@ class FeatureTaskRuntimePhaseOutputRejectionReasonTest {
       "the payload-free reason leaked the offending value: $payloadFree",
     )
     assertFalse(payloadFree.contains(" — offending value: "))
-    // Same rule and field-path content in both variants: only the values differ.
     assertContains(payloadFree, "status")
     assertContains(payloadFree, "enumeration")
     assertEquals("schema_invalid", error.failureCode)
@@ -38,7 +37,6 @@ class FeatureTaskRuntimePhaseOutputRejectionReasonTest {
 
   @Test
   fun `every reported violation keeps its rule and path in the payload-free variant`() {
-    // Two violations at once, so the multi-violation join is covered in both renderings.
     val envelope =
       """{"contract_version":"9.9","phase_id":"plan","status":"nope",""" +
         """"summary":"Plan output.","produced_outputs":{"value":"Plan prose."}}"""
@@ -81,7 +79,6 @@ class FeatureTaskRuntimePhaseOutputRejectionReasonTest {
     }
 
     val payloadFree = assertNotNull(error.payloadFreeReason)
-    // The prompt composer's unparseable-root correction keys on this prefix, so it must survive.
     assertContains(payloadFree, "Phase output is malformed")
     assertEquals(FeatureTaskRuntimePhaseOutputFailureKind.MALFORMED, error.failureKind)
     assertEquals("malformed", error.failureCode)
@@ -102,7 +99,7 @@ class FeatureTaskRuntimePhaseOutputRejectionReasonTest {
     val envelope =
       """{"contract_version":"$FEATURE_TASK_RUNTIME_CONTRACT_VERSION","phase_id":"audit",""" +
         """"status":"completed","summary":"audit",""" +
-        """"verdict":"gaps_found","produced_outputs":{"value":"$offendingValue"}}"""
+        """"verdict":"satisfied","produced_outputs":{"value":"$offendingValue"}}"""
 
     val error = assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
       FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(envelope, "audit")

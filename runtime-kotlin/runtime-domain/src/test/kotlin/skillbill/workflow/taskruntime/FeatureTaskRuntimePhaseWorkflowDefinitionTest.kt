@@ -131,7 +131,7 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionTest {
   }
 
   @Test
-  fun `phase declarations mirror the dependency set and pr is split off the review diff key`() {
+  fun `phase projections omit audit completion dependencies and pr owns its diff key`() {
     val declarations = FeatureTaskRuntimePhaseWorkflowDefinition.phaseDeclarations
     val def = FeatureTaskRuntimePhaseWorkflowDefinition
     definition.stepIds.forEach { phaseId ->
@@ -144,7 +144,8 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionTest {
           )
         else -> declarations.getValue(phaseId)
       }
-      assertEquals(phaseWorkflowDependenciesOf(phaseId), declaration.consumedUpstreamPhaseIds, phaseId)
+      val projectedDependencies = phaseWorkflowDependenciesOf(phaseId).filterNot { it == def.PHASE_AUDIT }
+      assertEquals(projectedDependencies, declaration.consumedUpstreamPhaseIds, phaseId)
     }
     assertEquals(
       listOf("diff"),

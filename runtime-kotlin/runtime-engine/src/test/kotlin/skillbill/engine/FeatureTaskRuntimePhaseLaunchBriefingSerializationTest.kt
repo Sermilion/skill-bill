@@ -15,6 +15,20 @@ import kotlin.test.assertFailsWith
 
 class FeatureTaskRuntimePhaseLaunchBriefingSerializationTest {
   @Test
+  fun `retired gap memory is ignored and omitted when a legacy briefing is saved again`() {
+    val briefing = briefing()
+    listOf(null, "obsolete gap notes", listOf("unreadable legacy memory")).forEach { memory ->
+      val legacy = briefing.toArtifactMap() +
+        (FeatureTaskRuntimeHandoffSourceRef.RETIRED_PRIOR_GAP_MEMORY_WIRE to memory)
+
+      val decoded = FeatureTaskRuntimePhaseLaunchBriefing.fromArtifactMap(legacy)
+
+      assertEquals(briefing, decoded)
+      assertEquals(briefing.toArtifactMap(), decoded.toArtifactMap())
+    }
+  }
+
+  @Test
   fun `a briefing round trips through the durable artifact map`() {
     val briefing = briefing()
 
@@ -66,6 +80,17 @@ class FeatureTaskRuntimePhaseLaunchBriefingSerializationTest {
         FeatureTaskRuntimePhaseLaunchBriefing.fromArtifactMap(incompatible)
       }
     }
+  }
+
+  @Test
+  fun `legacy criterion progress is ignored and never serialized into a fresh briefing`() {
+    val retiredField = "durably_closed_criterion_refs"
+    val original = briefing().toArtifactMap()
+    val restored = FeatureTaskRuntimePhaseLaunchBriefing.fromArtifactMap(
+      original + (retiredField to "unreadable retired progress"),
+    )
+    assertEquals(original, restored.toArtifactMap())
+    assertEquals(briefing().acceptanceCriteria, restored.acceptanceCriteria)
   }
 
   private fun briefing() = FeatureTaskRuntimePhaseLaunchBriefing(

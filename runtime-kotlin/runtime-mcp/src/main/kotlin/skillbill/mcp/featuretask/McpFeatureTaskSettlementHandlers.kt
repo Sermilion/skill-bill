@@ -17,7 +17,6 @@ internal fun featureTaskPhaseComplete(arguments: Map<String, Any?>, context: Mcp
       value = arguments.string("value"),
       prompt = arguments.optionalString("prompt"),
       summary = arguments.optionalString("summary"),
-      verdict = arguments.optionalString("verdict"),
     ),
   )
 
@@ -31,4 +30,3 @@ internal fun featureTaskPhaseBlock(arguments: Map<String, Any?>, context: McpRun
       failureDisposition = arguments.optionalString("failure_disposition") ?: "needs_user_action",
     ),
   )
-

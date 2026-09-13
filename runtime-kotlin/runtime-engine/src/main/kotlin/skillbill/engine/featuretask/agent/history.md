@@ -1,5 +1,15 @@
 # featuretask runtime boundary history
 
+## [2026-09-13] SKILL-241 stateless acceptance-criteria audit
+Areas: runtime-engine/featuretask, runtime-engine/goalrunner, runtime-domain/workflow/taskruntime, runtime-application/telemetry, runtime-cli/featuretask, runtime-infra-fs, runtime-infra-sqlite, runtime-ports, runtime-mcp, orchestration/contracts
+- Audit checks every planned criterion against implementation and meaningful test coverage, repairs gaps in one fresh session, and restarts the full inspection after interruption. Build and test execution remain with their existing phase owners.
+- Removed active audit-gap repair routing, audit-generation storage, progress telemetry, and downstream audit findings projections. Ordinary workflow bookkeeping and process diagnostics remain.
+- Resume and status share in-memory normalization of legacy audit records and ledger edges before deriving blocked state, reentries, and budgets. Ledger normalization remains idempotent when records are already normalized. reusable
+- Fresh databases omit migration 23 and audit-generation storage; existing databases may retain that legacy storage without audit reading or writing it. Compatibility decoders do not restore audit progress.
+- Limitation: completion still uses the terminal audit envelope. Remaining-AC result interpretation, sequential retries, and commits after each audit round belong to SKILL-242.
+Feature flag: N/A
+Acceptance criteria: 10 total in the referenced spec; the upstream receipt does not enumerate an implemented count. Remaining-AC retry semantics are deferred to SKILL-242.
+
 ## [2026-09-12] 0AC-16 — Evidence-backed validation settlement
 Areas: orchestration/contracts, runtime-kotlin/{runtime-cli,runtime-contracts,runtime-domain,runtime-engine,runtime-infra-fs}
 - Validation settlement now requires schema-valid command identity and integer exit-code evidence, with missing, malformed, or non-zero required results unable to advance completion.

@@ -2,10 +2,7 @@ package skillbill.engine.featuretask
 
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 
-fun nonValidatePhaseValidationOwnershipDirective(
-  phaseId: String,
-  acceptanceCriteria: List<String>,
-): String {
+fun nonValidatePhaseValidationOwnershipDirective(phaseId: String): String {
   if (phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE ||
     phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD
   ) {
@@ -23,10 +20,7 @@ fun nonValidatePhaseValidationOwnershipDirective(
   """.trimIndent()
 }
 
-fun nonBuildPhaseBuildOwnershipDirective(
-  phaseId: String,
-  acceptanceCriteria: List<String>,
-): String {
+fun nonBuildPhaseBuildOwnershipDirective(phaseId: String): String {
   if (phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD) {
     return ""
   }

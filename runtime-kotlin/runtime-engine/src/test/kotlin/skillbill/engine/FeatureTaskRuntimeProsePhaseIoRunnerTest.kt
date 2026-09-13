@@ -1,5 +1,5 @@
 package skillbill.engine
-import skillbill.application.assertGateBlockNamesRule
+import skillbill.application.assertPrivateDiagnosticRejection
 import skillbill.application.realFeatureTaskRuntimePhaseOutputValidator
 import skillbill.application.realPlanningProjectionValidator
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
@@ -76,7 +76,7 @@ class FeatureTaskRuntimeProsePhaseIoRunnerTest {
 
     assertEquals("audit", blocked.lastIncompletePhase)
     assertEquals(1, auditLaunches)
-    assertGateBlockNamesRule(blocked.blockedReason, "phase-output-schema")
+    assertPrivateDiagnosticRejection(blocked.blockedReason, "phase-output-schema")
     assertFalse(harness.launchOrder().contains("review"))
     assertFalse(harness.launchedPromptPhaseOrder().contains("implement"))
   }
@@ -96,12 +96,12 @@ class FeatureTaskRuntimeProsePhaseIoRunnerTest {
 
     val report = harness.runner.run(harness.request())
 
-    assertTrue(
-      report is FeatureTaskRuntimeRunReport.Blocked || report is FeatureTaskRuntimeRunReport.Completed,
-      report.toString(),
-    )
+    val blocked = assertIs<FeatureTaskRuntimeRunReport.Blocked>(report)
+    assertEquals("audit", blocked.lastIncompletePhase)
+    assertPrivateDiagnosticRejection(blocked.blockedReason, "phase-output-schema")
     assertEquals(1, auditLaunches)
-    assertEquals(1, harness.launchedPromptPhaseOrder().count { it == "implement" })
+    assertFalse(harness.launchedPromptPhaseOrder().contains("implement"))
+    assertFalse(harness.launchOrder().contains("review"))
     assertTrue(
       harness.recorder.loadPhaseLedger(WORKFLOW_ID).orEmpty()
         .none { it.loopId == "audit_gap" },

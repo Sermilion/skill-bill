@@ -13,7 +13,6 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class FeatureTaskRuntimePhaseWorkflowDefinitionProjectionTest {
@@ -112,11 +111,11 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionProjectionTest {
   fun `runtime projectors privately combine only the producers needed by finalization consumers`() {
     val def = FeatureTaskRuntimePhaseWorkflowDefinition
     assertEquals(
-      setOf(def.PHASE_PLAN, def.PHASE_AUDIT),
+      setOf(def.PHASE_PLAN),
       def.runtimeProjectorProducerPhaseIds(def.PHASE_VALIDATE),
     )
     assertEquals(
-      setOf(def.PHASE_PLAN, def.PHASE_AUDIT),
+      setOf(def.PHASE_PLAN),
       def.runtimeProjectorProducerPhaseIds(def.PHASE_BUILD),
     )
     assertEquals(

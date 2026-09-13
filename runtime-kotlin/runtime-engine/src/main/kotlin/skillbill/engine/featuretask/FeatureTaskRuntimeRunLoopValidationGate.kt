@@ -625,6 +625,7 @@ object FeatureTaskRuntimeRunLoopValidationGate {
     state: FeatureTaskRuntimeRunState,
     observability: FeatureTaskRuntimeRunObservability,
   ): PhaseOutcome? {
+    if (FeatureTaskRuntimePhaseWorkflowDefinition.singleAgentSessionOnly(run.phaseId)) return null
     val nonOutputAttempts = FeatureTaskRuntimeRunLoopPhaseAttempts.durableNonOutputAttempts(runLoop, run)
     val processFailures = nonOutputAttempts.filterNot(FeatureTaskRuntimeNonOutputAttempt::paused)
     val operatorReopened = FeatureTaskRuntimeRunLoopPhaseAttempts.operatorReopenedPhase(runLoop, run.phaseId)

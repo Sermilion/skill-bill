@@ -73,7 +73,7 @@ fun FeatureTaskRuntimeRunner.driveExecutePreparedRunLoop(
     diagnostics = diagnostics,
   )
   runRequest.operatorDecision?.let { decision ->
-    loop.applyOperatorDecision(decision)?.let { rejection ->
+    loop.applyOperatorDecision()?.let { rejection ->
       throw FeatureTaskRuntimeOperatorDecisionRejectedError(runRequest.workflowId, decision.wireValue, rejection)
     }
   }
@@ -87,7 +87,7 @@ private fun FeatureTaskRuntimeRunner.createExecutePreparedRunState(
 ): FeatureTaskRuntimeRunState = FeatureTaskRuntimeRunState(
   initialRecords = recorder.loadPhaseRecords(runRequest.workflowId).orEmpty(),
   transitions = transitions,
-  initialLedger = recorder.loadPhaseLedger(runRequest.workflowId).orEmpty(),
+  durableInitialLedger = recorder.loadPhaseLedger(runRequest.workflowId).orEmpty(),
   outputValidator = outputValidator,
   initialReviewGeneration = recorder.reconcileReviewGeneration(runRequest.workflowId),
   validationEvidenceCommandResolver = { validationEvidence ->

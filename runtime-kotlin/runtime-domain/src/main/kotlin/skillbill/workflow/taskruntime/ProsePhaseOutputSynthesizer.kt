@@ -36,21 +36,21 @@ object ProsePhaseOutputSynthesizer {
     if (parsed == null || !ProsePhaseOutputParse.identityCompatible(parsed, phaseId)) return null
     val status = ProsePhaseOutputParse.recoverStatus(parsed) ?: return null
     val valueAndVerdict = recoverableValueAndVerdict(parsed, phaseOutputText, phaseId, status) ?: return null
-    return SettlementEnvelopeRequest(
-      phaseId = phaseId,
-      status = status,
-      value = valueAndVerdict.first,
-      summary = ProsePhaseOutputRecover.recoverSummary(parsed, valueAndVerdict.first),
-      prompt = ProsePhaseOutputRecover.recoverPrompt(parsed),
-      verdict = valueAndVerdict.second,
-      failureDisposition = if (
-        status == SettlementStatus.BLOCKED.wireValue || status == SettlementStatus.FAILED.wireValue
-      ) {
-        ProsePhaseOutputRecover.recoverFailureDisposition(parsed)
-      } else {
-        null
-      },
-    )
+    val settledAsFailure = status == SettlementStatus.BLOCKED.wireValue || status == SettlementStatus.FAILED.wireValue
+    val failureDisposition = if (settledAsFailure) ProsePhaseOutputRecover.recoverFailureDisposition(parsed) else null
+    return if (phaseId == PHASE_AUDIT && settledAsFailure && failureDisposition == null) {
+      null
+    } else {
+      SettlementEnvelopeRequest(
+        phaseId = phaseId,
+        status = status,
+        value = valueAndVerdict.first,
+        summary = ProsePhaseOutputRecover.recoverSummary(parsed, valueAndVerdict.first),
+        prompt = ProsePhaseOutputRecover.recoverPrompt(parsed),
+        verdict = valueAndVerdict.second,
+        failureDisposition = failureDisposition,
+      )
+    }
   }
 
   private fun recoverableValueAndVerdict(

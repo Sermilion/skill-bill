@@ -186,12 +186,11 @@ object FeatureTaskRuntimeRunLoopOutputPersistence {
     val run = args.run
     val state = args.state
     val priorCorrection = args.priorCorrection
-    val durablyClosedCriterionRefs = args.durablyClosedCriterionRefs
     val repositoryCheckpoint = args.repositoryCheckpoint
     val resolvedBranchRecord = runLoop.recorder.loadResolvedBranch(run.request.workflowId)
     val handoff = assembleLaunchHandoff(
       runLoop,
-      AssembleLaunchHandoffArgs(run, state, durablyClosedCriterionRefs, repositoryCheckpoint, resolvedBranchRecord),
+      AssembleLaunchHandoffArgs(run, state, repositoryCheckpoint, resolvedBranchRecord),
     )
     runLoop.recorder.validateHandoffDeclarations(handoff.projectionDeclarations)
     val sharedEvidence = FeatureTaskRuntimeRunLoopOutputVerification.resolveSharedReviewEvidence(
@@ -206,11 +205,13 @@ object FeatureTaskRuntimeRunLoopOutputPersistence {
       run.request.agentAddonSelection,
       sharedEvidence?.reference,
     )
-    runLoop.recorder.recordPhaseBriefing(
-      run.request.workflowId,
-      briefing,
-      sharedEvidence?.measurement,
-    )
+    if (!FeatureTaskRuntimePhaseWorkflowDefinition.singleAgentSessionOnly(run.phaseId)) {
+      runLoop.recorder.recordPhaseBriefing(
+        run.request.workflowId,
+        briefing,
+        sharedEvidence?.measurement,
+      )
+    }
     val prompt = composeLaunchPrompt(
       runLoop,
       ComposeLaunchPromptArgs(run, state, handoff, priorCorrection, briefing),
@@ -225,7 +226,6 @@ object FeatureTaskRuntimeRunLoopOutputPersistence {
         runInvariants = args.run.request.runInvariants,
         recordedOutputs = args.state.outputs(),
         drivingVerdict = args.run.reentry?.drivingVerdict,
-        durablyClosedCriterionRefs = args.durablyClosedCriterionRefs,
         repairLedger = null,
         repositoryCheckpoint = args.repositoryCheckpoint,
         expectedRepositoryCheckpoint = expectedCheckpointForLaunch(args.run, args.repositoryCheckpoint)

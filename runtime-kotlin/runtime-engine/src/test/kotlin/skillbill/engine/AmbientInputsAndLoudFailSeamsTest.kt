@@ -18,18 +18,19 @@ import kotlin.test.assertTrue
 class AmbientInputsAndLoudFailSeamsTest {
   @Test
   fun `explicit resume reopens the requested phase and downstream phases`() {
-    val completed = listOf(
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN,
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN,
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW,
-    ).associateWith { phaseId ->
+    val completed = mapOf(
+      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN to PREPLAN_OUTPUT,
+      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN to PLAN_OUTPUT,
+      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT to auditSatisfiedOutput(),
+      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW to VALID_REVIEW_OUTPUT,
+    ).mapValues { (phaseId, output) ->
       FeatureTaskRuntimePhaseRecord(
         phaseId = phaseId,
         status = WorkflowStepStatus.COMPLETED,
         attemptCount = 1,
         startedAt = "2026-09-08T00:00:00Z",
         resolvedAgentId = "codex",
+        outputArtifact = output,
       )
     }
     val state = FeatureTaskRuntimeRunState(
@@ -37,6 +38,9 @@ class AmbientInputsAndLoudFailSeamsTest {
       transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
       outputValidator = AlwaysValidValidator,
     )
+
+    assertTrue(state.isComplete(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT))
+    assertTrue(state.isComplete(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW))
 
     state.reopenFromExplicitResume(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT)
 

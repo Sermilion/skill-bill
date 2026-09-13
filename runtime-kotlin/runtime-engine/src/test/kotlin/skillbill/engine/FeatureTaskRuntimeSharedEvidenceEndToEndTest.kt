@@ -17,30 +17,27 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeSharedEvidenceFile
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeSharedEvidenceHunkEntry
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeSharedEvidenceOutcome
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeSharedReviewEvidenceReference
-import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.createTempDirectory
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-/**
- * End-to-end coverage for SKILL-164 shared evidence: one derivation shared by audit, review, and
- * every review lane at an unchanged checkpoint, and audit_gap reuse vs checkpoint-change
- * re-derivation after a real working-tree remediation.
- */
 class FeatureTaskRuntimeSharedEvidenceEndToEndTest {
   @Test
   fun `implement to audit to review shares exactly one derivation at an unchanged checkpoint`() {
     val repoRoot = createTempDirectory("shared-evidence-e2e")
     val store = CountingSharedEvidenceStore()
     val diffResolver = CountingDiffResolver()
+    val launcher = defaultPhaseAwareLauncher()
     val harness = telemetryRunnerHarness(
       RuntimeHarnessConfig(
         repoRoot = repoRoot,
+        launcher = launcher,
         sharedEvidenceResolver = store,
         diffResolver = diffResolver,
       ),
@@ -48,7 +45,7 @@ class FeatureTaskRuntimeSharedEvidenceEndToEndTest {
 
     val report = harness.runner.run(harness.request)
     assertIs<FeatureTaskRuntimeRunReport.Completed>(report, report.toString())
-    assertUnchangedCheckpointSharing(harness, store, diffResolver)
+    assertUnchangedCheckpointSharing(harness, store, diffResolver, launcher)
     assertReviewLanesShareOneDerivation()
   }
 
@@ -93,26 +90,29 @@ class FeatureTaskRuntimeSharedEvidenceEndToEndTest {
     harness: TelemetryRunnerHarness,
     store: CountingSharedEvidenceStore,
     diffResolver: CountingDiffResolver,
+    launcher: RuntimeRecordingLauncher,
   ) {
     val briefings = assertNotNull(harness.recorder.loadPhaseBriefings(WORKFLOW_ID))
-    val auditEvidence = assertNotNull(sharedEvidencePath(briefings.getValue("audit")))
+    val auditPrompt = launcher.requests.map { requireNotNull(it.skillRunRequest.promptOverride) }
+      .single { phaseIdFromPrompt(it) == "audit" }
+    assertTrue("audit" !in briefings)
     val reviewEvidence = assertNotNull(sharedEvidencePath(briefings.getValue("review")))
-    assertEquals(auditEvidence, reviewEvidence, "audit and review must resolve the same stored artifact")
+    assertContains(auditPrompt, reviewEvidence)
 
     val measurements = harness.lifecycle.sharedEvidenceMeasurements
     assertEquals(
-      1,
+      0,
       measurements.count { it.outcome == FeatureTaskRuntimeSharedEvidenceOutcome.DERIVATION },
-      "exactly one derivation at an unchanged checkpoint: $measurements",
+      "audit derivation must not write stage telemetry: $measurements",
     )
     assertTrue(
       measurements.count { it.outcome == FeatureTaskRuntimeSharedEvidenceOutcome.REUSE } >= 1,
       "later consumers must reuse: $measurements",
     )
     assertEquals(
-      setOf("audit", "review"),
+      setOf("review"),
       measurements.map { it.consumerPhaseId }.toSet(),
-      "audit and review must each record a shared-evidence measurement",
+      "only review retains a shared-evidence measurement",
     )
     assertEquals(
       1,
@@ -124,17 +124,9 @@ class FeatureTaskRuntimeSharedEvidenceEndToEndTest {
       diffResolver.invocations <= store.derivationCount,
       "reuse path must not re-traverse the repository beyond the single derivation",
     )
-    // Review specialist lane bundles inherit the review phase's shared_review_evidence projection.
-    assertTrue(
-      listOf("review_lane_architecture", "review_lane_testing", "review_lane_security")
-        .map { reviewEvidence }
-        .all { it == auditEvidence },
-      "every review lane bundle must resolve to the same stored artifact as audit",
-    )
   }
 
   private fun assertReviewLanesShareOneDerivation() {
-    // Parallel-review lanes over one checkpoint share the derive-once store.
     val laneStore = CountingSharedEvidenceStore()
     val laneRequest = request("lane-checkpoint")
     val firstLane = laneStore.resolve(laneRequest, fixedDeriver("lane-base"))
@@ -215,10 +207,6 @@ private class CountingDiffResolver(
   }
 }
 
-/**
- * Fingerprint-keyed in-memory store that mirrors the production resolve outcomes so application
- * end-to-end tests stay free of an infra-fs dependency.
- */
 internal class CountingSharedEvidenceStore : FeatureTaskRuntimeSharedEvidenceResolverPort {
   private val stored = mutableMapOf<String, FeatureTaskRuntimeSharedEvidenceResolution>()
   var derivationCount: Int = 0
