@@ -42,8 +42,6 @@ object FeatureTaskRuntimePhaseWorkflowDefinition {
   // (the finished-event review-fix iteration count) reference the same loop the backward edge mints.
   const val REVIEW_FIX_LOOP_ID: String = "review_fix"
 
-  // The audit->implement remediation loop id, named once so durable accounting and telemetry
-  // (the finished-event audit-gap iteration count) reference the same loop the backward edge mints.
   const val AUDIT_GAP_LOOP_ID: String = "audit_gap"
 
   const val SEMANTIC_LOOP_WARNING_THRESHOLD: Int = 3
@@ -85,11 +83,12 @@ object FeatureTaskRuntimePhaseWorkflowDefinition {
     PHASE_REVIEW,
     PHASE_VERIFY_FINDINGS,
     PHASE_BUILD,
-    PHASE_AUDIT,
     PHASE_VALIDATE,
   )
 
   fun retriesOnInvalidOutput(phaseId: String): Boolean = phaseId in OUTPUT_RETRY_PHASES
+
+  fun singleAgentSessionOnly(phaseId: String): Boolean = phaseId == PHASE_AUDIT
 
   val definition: WorkflowDefinition = FeatureTaskRuntimePhaseWorkflowGraph.definition
 
@@ -107,7 +106,6 @@ object FeatureTaskRuntimePhaseWorkflowDefinition {
   object PhaseProjectionContract {
     const val VERSION: String = "0.1"
     const val PHASE_PROSE: String = "feature_task_runtime.phase_prose"
-    const val AUDIT_CLEARANCE: String = "feature_task_runtime.audit_clearance"
     const val REVIEW_CLEARANCE: String = "feature_task_runtime.review_clearance"
     const val REVIEW_REPAIR_REQUEST: String = "feature_task_runtime.review_repair_request"
     const val FINDINGS_VERIFICATION_INPUT: String = "feature_task_runtime.findings_verification_input"
@@ -123,14 +121,10 @@ object FeatureTaskRuntimePhaseWorkflowDefinition {
     const val COMMIT_REQUEST: String = "feature_task_runtime.commit_request"
     const val COMMIT_RECEIPT: String = "feature_task_runtime.commit_receipt"
     const val PR_REQUEST: String = "feature_task_runtime.pr_request"
-    const val PRIOR_GAP_MEMORY: String = "feature_task_runtime.prior_gap_memory"
   }
 
   fun phaseProjection(template: PhaseHandoffProjectionTemplate): PhaseHandoffProjectionDeclaration =
     FeatureTaskRuntimePhaseWorkflowProjectionDeclarations.phaseProjection(template)
-
-  fun auditRemediationProjections(): List<PhaseHandoffProjectionDeclaration> =
-    FeatureTaskRuntimePhaseWorkflowProjectionDeclarations.auditRemediationProjections()
 
   fun phaseProseDeclaration(
     consumerPhaseId: String,
@@ -161,18 +155,6 @@ object FeatureTaskRuntimePhaseWorkflowDefinition {
   /** The projection name the rewritten derived-context instructions point the agent at. */
   const val SHARED_REVIEW_EVIDENCE_PROJECTION_NAME: String = "shared_review_evidence"
 
-  /** The projection name the prior-gap-memory declaration delivers under. */
-  const val PRIOR_GAP_MEMORY_PROJECTION_NAME: String = "prior_gap_memory"
-
-  /**
-   * The runtime-derived prior-gap memory for an `audit_gap` remediation round, delivered to the
-   * implement re-entry and the audit that follows it. `required = false` is load-bearing for AC-004:
-   * absent memory must omit the projection rather than reject the launch of an in-flight workflow
-   * that predates the projection.
-   */
-  fun priorGapMemoryDeclaration(consumerPhaseId: String): PhaseHandoffProjectionDeclaration =
-    FeatureTaskRuntimePhaseWorkflowProjectionDeclarations.priorGapMemoryDeclaration(consumerPhaseId)
-
   /**
    * Private producer evidence that a runtime-owned projector may combine. These records are never
    * delivered directly; the consumer still sees only the closed declaration in
@@ -185,13 +167,10 @@ object FeatureTaskRuntimePhaseWorkflowDefinition {
     FeatureTaskRuntimePhaseWorkflowProjectionDeclarations.phaseDeclarations(definition)
 
   /**
-   * Transition topology: the ordered [stepIds] forward pipeline plus the M1 `review_fix` and M2
-   * `audit_gap` backward edges. The pipeline is audit-first: a clean run advances
-   * `implement` -> `audit` -> `review` -> `verify_findings` -> `validate`, skipping loop-only
-   * `implement_fix`.
-   *
-   * An audit `gaps_found` verdict reopens the `[implement, audit]` span to reconcile implementation
-   * against the failing criteria using the immutable initial planning context, then re-`audit`.
+   * Transition topology: the ordered [stepIds] forward pipeline plus the `review_fix` backward edge.
+   * The pipeline is audit-first: a clean run advances `implement` -> `audit` -> `review` ->
+   * `verify_findings` -> `validate`, skipping loop-only `implement_fix`. Audit is stateless: one
+   * agent session per invocation repairs gaps in-session and emits only terminal completion.
    *
    * A `verify_findings` `findings_verified` verdict takes the single bounded `review_fix` backward
    * edge to `implement_fix` (perEdgeCap 1, cap exhaustion ADVANCE). The run always advances to

@@ -81,8 +81,6 @@ import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticError.Conflict
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticRecord
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticSelector
 import skillbill.ports.diff.DiffResolverPort
-import skillbill.ports.featuretask.FeatureTaskRuntimeAuditGenerationRepository
-import skillbill.ports.featuretask.model.FeatureTaskRuntimeAuditGenerationRow
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeCrashReconciliationCandidate
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerLeaseState
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerLeaseState.TAKEOVER_RESERVED
@@ -1749,15 +1747,11 @@ internal class RuntimeFakeDatabaseSessionFactory(
     linkedMapOf<String, RejectedOutputDiagnosticRecord>()
   private val producerEvidence =
     linkedMapOf<ProducerEvidenceKey, ProducerOutputEvidence>()
-  private val auditGenerationRows = repository.auditGenerationRows
   private val reviewsPort: ReviewRepository = harnessReviewRepository()
   private val learningsPort: LearningRepository = noopPort(LearningRepository::class.java)
   private val telemetryReconciliationPort: TelemetryReconciliationRepository =
     noopPort(TelemetryReconciliationRepository::class.java)
   private val telemetryOutboxPort: TelemetryOutboxRepository = noopPort(TelemetryOutboxRepository::class.java)
-
-  fun auditGenerations(workflowId: String): List<FeatureTaskRuntimeAuditGenerationRow> =
-    auditGenerationRows.filter { it.workflowId == workflowId }.sortedBy { it.generationOrdinal }
 
   fun rejectedDiagnostics(): List<RejectedOutputDiagnosticRecord> = diagnosticRecords.values.toList()
 
@@ -1790,28 +1784,6 @@ internal class RuntimeFakeDatabaseSessionFactory(
       this@RuntimeFakeDatabaseSessionFactory.telemetryReconciliationPort
     override val telemetryOutbox: TelemetryOutboxRepository = this@RuntimeFakeDatabaseSessionFactory.telemetryOutboxPort
     override val workflowStates: WorkflowStateRepository = repository
-    override val featureTaskRuntimeAuditGenerations =
-      object : FeatureTaskRuntimeAuditGenerationRepository {
-        override fun append(row: FeatureTaskRuntimeAuditGenerationRow) {
-          require(
-            auditGenerationRows.none {
-              it.workflowId == row.workflowId && it.generationOrdinal == row.generationOrdinal
-            },
-          ) {
-            "generation ${row.generationOrdinal} already exists for ${row.workflowId}"
-          }
-          auditGenerationRows += row
-        }
-
-        override fun listOrdered(workflowId: String): List<FeatureTaskRuntimeAuditGenerationRow> =
-          auditGenerationRows.filter { it.workflowId == workflowId }.sortedBy { it.generationOrdinal }
-
-        override fun quarantineAll(workflowId: String): Int {
-          val removed = auditGenerationRows.count { it.workflowId == workflowId }
-          auditGenerationRows.removeAll { it.workflowId == workflowId }
-          return removed
-        }
-      }
     override val rejectedOutputDiagnosticPermissions =
       RejectedOutputDiagnosticPermissions { }
     override val rejectedOutputDiagnostics = object : RejectedOutputDiagnosticRepository {
@@ -1940,8 +1912,6 @@ private fun FeatureTaskRuntimeWorkerOwnership.matchesActiveOwnership(
 
 internal class InMemoryRuntimeWorkflowRepository : WorkflowStateRepository {
   private var workerOwnership: FeatureTaskRuntimeWorkerOwnership? = null
-
-  val auditGenerationRows = mutableListOf<FeatureTaskRuntimeAuditGenerationRow>()
 
   fun seedWorkerOwnership(ownership: FeatureTaskRuntimeWorkerOwnership) {
     workerOwnership = ownership

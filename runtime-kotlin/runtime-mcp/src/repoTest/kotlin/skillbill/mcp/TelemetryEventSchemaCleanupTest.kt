@@ -88,5 +88,6 @@ class TelemetryEventSchemaCleanupTest {
     assertFalse(defs.has("reviewAccountingUsage"))
     assertFalse(defs.has("boundedReviewAccounting"))
     assertFalse(reviewFinished.has("review_context_accounting"))
+    assertFalse(defs.has("featureTaskAuditSettleEvent"))
   }
 }

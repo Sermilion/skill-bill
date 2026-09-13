@@ -24,7 +24,7 @@ object FeatureTaskRuntimeOutputVerification {
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW -> reviewVerdict(outputObject, wireVerdict)
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS ->
         findingVerificationVerdict(wireVerdict)
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT -> auditVerdict(wireVerdict)
+      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT -> auditVerdict(wireVerdict, outputObject)
       else -> wireVerdict ?: FeatureTaskRuntimeVerdict.ADVANCE
     }
   }
@@ -79,9 +79,20 @@ private fun reviewVerdict(
   return reviewVerdict?.verdict ?: wireVerdict ?: FeatureTaskRuntimeVerdict.ADVANCE
 }
 
-private fun auditVerdict(wireVerdict: FeatureTaskRuntimeVerdict?): FeatureTaskRuntimeVerdict = when {
-  wireVerdict in FeatureTaskRuntimeVerdict.AUDIT_VERDICTS -> wireVerdict!!
-  else -> FeatureTaskRuntimeVerdict.GAPS_FOUND
+private fun auditVerdict(
+  wireVerdict: FeatureTaskRuntimeVerdict?,
+  outputObject: Map<String, Any?>?,
+): FeatureTaskRuntimeVerdict {
+  val status = (outputObject?.get(SharedPayloadKeys.STATUS) as? String)?.trim()?.lowercase()
+  if (status == "blocked" || status == "failed") {
+    require(wireVerdict == null) {
+      "blocked or failed audit phase output must omit verdict."
+    }
+    return FeatureTaskRuntimeVerdict.ADVANCE
+  }
+  return requireNotNull(wireVerdict?.takeIf { it in FeatureTaskRuntimeVerdict.AUDIT_VERDICTS }) {
+    "audit phase output is missing verdict or carries a removed audit verdict."
+  }
 }
 
 private fun reviewVerdictFrom(outputObject: Map<String, Any?>?): FeatureTaskRuntimeReviewVerdict? {

@@ -33,12 +33,6 @@ data class FeatureTaskRuntimePhaseStateRequest(
   val edgeIteration: Int? = null,
   val reviewPassNumber: Int? = null,
   /**
-   * Canonical refs of the acceptance criteria this audit was asked to verify: the declared set minus
-   * the criteria already durably closed. Runtime-derived, never agent-reported, and empty for every
-   * non-audit phase.
-   */
-  val auditScopeCriterionRefs: List<String> = emptyList(),
-  /**
    * The model/effort this attempt was launched *from*: the same resolved value the `--model` argument
    * is rendered from, stamped by the running write before the child is spawned. It is not a
    * post-spawn observation — a kill in the window before the spawn leaves it on a `running` record

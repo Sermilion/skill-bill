@@ -16,8 +16,6 @@ import skillbill.ports.diagnostics.model.ProducerOutputEvidence
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import skillbill.review.model.ReviewFindingVerdict
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeAuditGapPause
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeAuditGapProgress
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeCheckpointIdentity
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDeliveredProjectionRecord
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDiagnosticSignal
@@ -121,10 +119,6 @@ interface FeatureTaskRuntimePhaseBriefingApi {
 interface FeatureTaskRuntimePhaseGateApi {
   fun loadValidationGateProgress(workflowId: String): FeatureTaskRuntimeValidationGateProgress?
   fun persistValidationGateProgress(workflowId: String, progress: FeatureTaskRuntimeValidationGateProgress)
-  fun loadAuditGapProgress(workflowId: String): FeatureTaskRuntimeAuditGapProgress?
-  fun persistAuditGapProgress(workflowId: String, progress: FeatureTaskRuntimeAuditGapProgress)
-  fun loadAuditGapPause(workflowId: String): FeatureTaskRuntimeAuditGapPause?
-  fun persistAuditGapPause(workflowId: String, pause: FeatureTaskRuntimeAuditGapPause)
   fun loadBuildGateProgress(workflowId: String): FeatureTaskRuntimeValidationGateProgress?
   fun loadGoalContinuationQualityGateSelection(workflowId: String): FeatureTaskRuntimeQualityGateSelection?
   fun persistBuildGateProgress(workflowId: String, progress: FeatureTaskRuntimeValidationGateProgress)

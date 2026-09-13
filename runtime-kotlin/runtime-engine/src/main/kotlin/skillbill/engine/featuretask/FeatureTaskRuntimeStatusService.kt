@@ -1,7 +1,6 @@
 package skillbill.engine.featuretask
 
 import me.tatarka.inject.annotations.Inject
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeAuditRepairStatus
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeDecomposeTerminalStatus
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeDegradedDiagnosticStatus
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStatus
@@ -10,8 +9,6 @@ import skillbill.engine.featuretask.model.FeatureTaskRuntimeStatusRequest
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeAuditGapPause
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeAuditProgress
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDecomposeTerminal
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerAction
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerEntry
@@ -51,28 +48,32 @@ fun FeatureTaskRuntimeStatusService.buildStatusProjection(
   decomposeTerminal: FeatureTaskRuntimeDecomposeTerminal?,
   ledger: List<FeatureTaskRuntimePhaseLedgerEntry>,
 ): FeatureTaskRuntimeStatusProjection {
-  val auditRepairProgress = auditProgressFrom(records, ledger)
-  val durableBlockedPhaseIds =
-    records.filterValues { it.status.workflowStepStatus() == WorkflowStepStatus.BLOCKED }.keys
-  val blockedPhaseIds = durableBlockedPhaseIds + ledgerBlockedPhaseIds(ledger, durableBlockedPhaseIds)
-  val phases = phaseStatuses(records, blockedPhaseIds, ledger)
+  val normalizedRecords = FeatureTaskRuntimeRunStateReconstruction.normalizeInitialRecordsForStatelessAudit(records)
+  val legacyAuditGapPhaseIds = records
+    .filterValues(FeatureTaskRuntimeRunStateReconstruction::hasLegacyAuditGapLineage)
+    .keys
+  val durableBlockedPhaseIds = normalizedRecords
+    .filterValues { record ->
+      record.status.workflowStepStatus() == WorkflowStepStatus.BLOCKED &&
+        !FeatureTaskRuntimeRunStateReconstruction.isLegacyAuditGapPersistedBlock(record)
+    }
+    .keys
+  val blockedPhaseIds = (
+    durableBlockedPhaseIds +
+      ledgerBlockedPhaseIds(ledger, durableBlockedPhaseIds)
+    ).filterNot { it in legacyAuditGapPhaseIds }
+    .toSet()
+  val phases = phaseStatuses(normalizedRecords, blockedPhaseIds, ledger)
   val terminalDecomposeRecorded = decomposeTerminal != null
   val qualityGateSelection = recorder
     .loadGoalContinuationQualityGateSelection(request.workflowId)
     .orLegacyValidate()
   val currentPhaseId = resolveCurrentPhaseId(
     terminalDecomposeRecorded,
-    records,
+    normalizedRecords,
     phases,
     ledger,
     qualityGateSelection,
-  )
-  val auditGapPause = recorder.loadAuditGapPause(request.workflowId)
-  val effectiveAuditGapIteration = auditGapPause?.edgeIteration
-    ?: auditRepairProgress?.auditGapIterationCount
-    ?: ledgerAuditGapIterationCount(ledger)
-  val auditRepair = auditRepairStatus(
-    auditRepairProgress?.copy(auditGapIterationCount = effectiveAuditGapIteration),
   )
   val gateRunCount = gateRunCountFor(request, currentPhaseId)
   return statusProjectionFrom(
@@ -81,12 +82,9 @@ fun FeatureTaskRuntimeStatusService.buildStatusProjection(
       phases = phases,
       terminalDecomposeRecorded = terminalDecomposeRecorded,
       currentPhaseId = currentPhaseId,
-      auditRepair = auditRepair,
       gateRunCount = gateRunCount,
-      effectiveAuditGapIteration = effectiveAuditGapIteration,
-      records = records,
+      records = normalizedRecords,
       ledger = ledger,
-      auditGapPause = auditGapPause,
       decomposeTerminal = decomposeTerminal,
     ),
   )
@@ -97,12 +95,9 @@ private data class StatusProjectionParts(
   val phases: List<FeatureTaskRuntimePhaseStatus>,
   val terminalDecomposeRecorded: Boolean,
   val currentPhaseId: String?,
-  val auditRepair: FeatureTaskRuntimeAuditRepairStatus?,
   val gateRunCount: Int?,
-  val effectiveAuditGapIteration: Int,
   val records: Map<String, FeatureTaskRuntimePhaseRecord>,
   val ledger: List<FeatureTaskRuntimePhaseLedgerEntry>,
-  val auditGapPause: FeatureTaskRuntimeAuditGapPause?,
   val decomposeTerminal: FeatureTaskRuntimeDecomposeTerminal?,
 )
 
@@ -136,20 +131,18 @@ private fun FeatureTaskRuntimeStatusService.statusProjectionFrom(
       request.workflowId,
     ).finalizingAgentId,
     decomposeTerminal = decomposeTerminalStatus(parts.decomposeTerminal),
-    auditRepair = parts.auditRepair,
     gateRunCount = parts.gateRunCount,
     currentPhaseExecution = currentPhaseExecutionDeriver.derive(
       FeatureTaskRuntimeCurrentPhaseExecutionContext(
         currentPhaseId = parts.currentPhaseId,
         records = parts.records,
-        phases = phases,
+        phases = parts.phases,
         ledger = parts.ledger,
-        auditGapIterationCount = parts.effectiveAuditGapIteration,
         gateRunCount = parts.gateRunCount,
       ),
     ),
     degradedDiagnostic = degradedDiagnosticStatus(request.workflowId),
-    operatorDecisionPause = operatorDecisionPause(parts.records, parts.auditGapPause),
+    operatorDecisionPause = operatorDecisionPause(parts.records),
   )
 }
 
@@ -191,27 +184,3 @@ fun FeatureTaskRuntimeStatusService.decomposeTerminalStatus(
     subtaskSpecPaths = it.subtaskSpecPaths,
   )
 }
-
-fun FeatureTaskRuntimeStatusService.auditProgressFrom(
-  records: Map<String, FeatureTaskRuntimePhaseRecord>,
-  ledger: List<FeatureTaskRuntimePhaseLedgerEntry>,
-): FeatureTaskRuntimeAuditProgress? {
-  val auditRecord = records[FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT] ?: return null
-  return FeatureTaskRuntimeAuditConvergence.progressFrom(
-    auditRecord = auditRecord,
-    auditGapIterationCount = ledgerAuditGapIterationCount(ledger),
-  )
-}
-
-fun FeatureTaskRuntimeStatusService.auditRepairStatus(
-  progress: FeatureTaskRuntimeAuditProgress?,
-): FeatureTaskRuntimeAuditRepairStatus? = progress?.let {
-  FeatureTaskRuntimeAuditRepairStatus(
-    firstPassConvergence = it.firstPassConvergence,
-    auditGapIterationCount = it.auditGapIterationCount,
-  )
-}
-
-fun FeatureTaskRuntimeStatusService.ledgerAuditGapIterationCount(
-  ledger: List<FeatureTaskRuntimePhaseLedgerEntry>,
-): Int = FeatureTaskRuntimeAuditConvergence.auditGapIterationCount(ledger)

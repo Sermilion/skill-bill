@@ -1,6 +1,7 @@
 package skillbill.workflow.taskruntime
 
 import skillbill.contracts.JsonCodec
+import skillbill.workflow.taskruntime.model.SettlementEnvelopeRequest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -158,5 +159,21 @@ class ProsePhaseOutputSynthesizerTest {
 
     val envelope = assertNotNull(ProsePhaseOutputSynthesizer.trySynthesize(raw, "audit"))
     assertEquals("satisfied", envelope["verdict"])
+  }
+
+  @Test
+  fun `blocked audit external settlement omits verdict`() {
+    val envelope = ProsePhaseOutputSynthesizer.envelopeFromSettlement(
+      SettlementEnvelopeRequest(
+        phaseId = "audit",
+        status = "blocked",
+        value = "Planning criterion list unreadable.",
+        summary = "Audit blocked on external dependency.",
+        failureDisposition = "needs_user_action",
+      ),
+    )
+    assertEquals("blocked", envelope["status"])
+    assertNull(envelope["verdict"])
+    assertEquals("needs_user_action", envelope["failure_disposition"])
   }
 }

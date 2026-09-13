@@ -2,7 +2,6 @@
 package skillbill.engine
 
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeOperatorBlockRetry
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePriorGapMemory
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertFailsWith
@@ -205,62 +204,4 @@ class FeatureTaskRuntimePhasePromptComposerRetryTest {
     assertTrue(!retry.contains("exceeded -1 characters"), "the sentinel cap never reaches the prompt")
   }
 
-  @Test
-  fun `audit remediation names the audit prose it must implement in this invocation`() {
-    val auditGapPayload =
-      """{\"gaps\":[{\"criterion\":\"AC-004\",\"note\":\"gap four\"},""" +
-        """{\"criterion\":\"AC-005\",\"note\":\"gap five\"}],\"non_blocking_findings\":[]}"""
-    val auditOutput = """
-    {
-      "contract_version": "0.6",
-      "phase_id": "audit",
-      "status": "completed",
-      "summary": "Audit found gaps.",
-      "verdict": "gaps_found",
-      "produced_outputs": {
-        "value": "$auditGapPayload"
-      }
-    }
-    """.trimIndent()
-    val briefing = promptComposerBriefingFor(
-      "implement",
-      PromptComposerBriefingOptions(
-        auditGapReentry = true,
-        auditOutput = auditOutput,
-      ),
-    )
-
-    val prompt = composePhasePrompt(PROMPT_COMPOSER_ISSUE_KEY, briefing)
-
-    assertContains(prompt, "AUDIT-GAP REMEDIATION")
-    assertContains(prompt, "AC-004")
-    assertContains(prompt, "AC-005")
-    assertContains(prompt, "implementation_receipt JSON stuffed inside value")
-    assertTrue(!prompt.contains("repair_item_results"))
-  }
-
-  @Test
-  fun `audit_gap implement re-entry renders prior-gap directive but forward implement does not`() {
-    val memory = FeatureTaskRuntimePriorGapMemory(
-      round = 2,
-      priorAuditValues = listOf("""{"gaps":[{"criterion":"AC-002","note":"$AUDIT_GAP_MESSAGE"}]}"""),
-    )
-    val remediation = composePhasePrompt(
-      PROMPT_COMPOSER_ISSUE_KEY,
-      promptComposerBriefingFor(
-        "implement",
-        PromptComposerBriefingOptions(priorGapMemory = memory, auditGapReentry = true),
-      ),
-    )
-    assertContains(remediation, "Prior-gap memory — re-justify recurrence against prior audit prose")
-    assertContains(remediation, "AC-002")
-    assertContains(remediation, "prior_audit_values")
-
-    val forward = composePhasePrompt(
-      PROMPT_COMPOSER_ISSUE_KEY,
-      promptComposerBriefingFor("implement"),
-    )
-    assertTrue(!forward.contains("Prior-gap memory — re-justify recurrence against prior audit prose"))
-    assertTrue(!forward.contains("prior_gap_memory"))
-  }
 }

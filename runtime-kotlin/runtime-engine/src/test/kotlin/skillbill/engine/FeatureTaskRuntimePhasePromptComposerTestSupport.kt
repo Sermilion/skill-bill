@@ -15,7 +15,6 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeCorrectiveRepairCo
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFeatureSize
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffAssemblyRequest
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePriorGapMemory
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepositoryCheckpoint
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRunInvariants
 import kotlin.test.assertContains
@@ -52,8 +51,6 @@ internal fun promptComposerProjectionExampleCases() = listOf(
 
 internal data class PromptComposerBriefingOptions(
   val featureSize: FeatureTaskRuntimeFeatureSize = FeatureTaskRuntimeFeatureSize.MEDIUM,
-  val priorGapMemory: FeatureTaskRuntimePriorGapMemory? = null,
-  val auditGapReentry: Boolean = false,
   val auditOutput: String = validJsonOutput("audit"),
   val acceptanceCriteria: List<String> = listOf("AC-1"),
 )
@@ -69,13 +66,7 @@ internal fun promptComposerBriefingFor(
   options: PromptComposerBriefingOptions,
 ): FeatureTaskRuntimePhaseLaunchBriefing {
   val checkpoint = FeatureTaskRuntimeRepositoryCheckpoint(fingerprint = "fixture-checkpoint-1")
-  val declaration = if (options.auditGapReentry && phaseId == promptComposerImplementPhase) {
-    phaseDeclaration(phaseId, options.featureSize).copy(
-      projectionDeclarations = FeatureTaskRuntimePhaseWorkflowDefinition.auditRemediationProjections(),
-    )
-  } else {
-    phaseDeclaration(phaseId, options.featureSize)
-  }
+  val declaration = phaseDeclaration(phaseId, options.featureSize)
   return FeatureTaskRuntimePhaseBriefingAssembler.assemble(
     FeatureTaskRuntimeHandoffContract.assembleHandoff(
       FeatureTaskRuntimeHandoffAssemblyRequest(
@@ -100,7 +91,6 @@ internal fun promptComposerBriefingFor(
         repositoryCheckpoint = checkpoint,
         expectedRepositoryCheckpoint = checkpoint,
         validationDepth = ValidationDepth.DEFAULT,
-        priorGapMemory = options.priorGapMemory,
       ),
     ),
     planningProjectionValidator = realPlanningProjectionValidator,

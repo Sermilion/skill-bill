@@ -174,26 +174,9 @@ data class FeatureTaskRuntimePhaseHandoff(
    * resolved by the contract, never selected by the re-entered agent.
    */
   val drivingVerdict: FeatureTaskRuntimeVerdict? = null,
-  /**
-   * The failing acceptance criteria scoping an `audit_gap` implementation re-entry. The remediation
-   * addresses only these gaps rather than redoing settled content; empty for a forward launch
-   * or a non-audit-gap re-entry, preserving the existing forward-launch assembly.
-   */
-  val reentryGapCriteria: List<String> = emptyList(),
-  /**
-   * Canonical refs of the acceptance criteria already durably closed by a satisfied audit verdict.
-   * Carried only for the audit phase, which narrows its verified set to the remaining criteria; every
-   * other phase receives an empty list and its briefing is unchanged.
-   */
   val durablyClosedCriterionRefs: List<String> = emptyList(),
   val repairLedger: FeatureTaskRuntimeRepairLedger? = null,
   val recordedFindingVerdicts: List<ReviewFindingVerdict> = emptyList(),
-  /**
-   * The runtime-derived bounded prior-gap memory for an `audit_gap` remediation round, or null for a
-   * forward launch or an in-flight run with no comparable prior audit. Null omits the non-required
-   * declaration, so a predating in-flight workflow never fails this launch (AC-004).
-   */
-  val priorGapMemory: FeatureTaskRuntimePriorGapMemory? = null,
 )
 
 /**

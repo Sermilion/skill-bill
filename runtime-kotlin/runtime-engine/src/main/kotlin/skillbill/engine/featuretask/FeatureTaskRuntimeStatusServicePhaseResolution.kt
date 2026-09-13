@@ -5,7 +5,6 @@ import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStatus
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeAuditGapPause
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerAction
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerEntry
@@ -81,6 +80,7 @@ fun currentReentryPhaseId(
   ledger: List<FeatureTaskRuntimePhaseLedgerEntry>,
 ): String? {
   val edge = FeatureTaskRuntimePhaseWorkflowDefinition.transitions.backwardEdges
+    .filter { it.loopId != FeatureTaskRuntimePhaseWorkflowDefinition.AUDIT_GAP_LOOP_ID }
     .mapNotNull { declaration ->
       ledger
         .filter {
@@ -122,15 +122,7 @@ fun currentReentryPhaseId(
 
 fun operatorDecisionPause(
   records: Map<String, FeatureTaskRuntimePhaseRecord>,
-  auditGapPause: FeatureTaskRuntimeAuditGapPause?,
-): FeatureTaskRuntimeOperatorDecisionPause? {
-  auditGapPause?.takeIf { !it.grantConsumed }?.let { pause ->
-    return FeatureTaskRuntimeOperatorDecisionPause(
-      phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
-      reason = pause.reason,
-    )
-  }
-  return records.values
+): FeatureTaskRuntimeOperatorDecisionPause? = records.values
     .firstOrNull { record ->
       record.failureDisposition == FeatureTaskRuntimeFailureDisposition.NEEDS_USER_ACTION &&
         when (record.status.workflowStepStatus()) {
@@ -147,7 +139,6 @@ fun operatorDecisionPause(
         reason = record.blockedReason?.takeIf(String::isNotBlank),
       )
     }
-}
 
 fun latestContinuationKind(ledger: List<FeatureTaskRuntimePhaseLedgerEntry>, phaseId: String): String? = ledger
   .filter { it.phaseId == phaseId && it.action in CONTINUATION_KIND_ACTIONS }

@@ -907,7 +907,6 @@ internal object RuntimeArchitectureScanConstants {
     "skillbill.application.workflow.updateGoalParentForBlockedPhaseRetry",
     "skillbill.engine.featuretask.CompletedImplementationOutputArgs.outputMap",
     "skillbill.engine.featuretask.CompletionProjectionRejectionArgs.outputMap",
-    "skillbill.engine.featuretask.FeatureTaskPhaseSettlementService.auditSettle",
     "skillbill.engine.featuretask.FeatureTaskPhaseSettlementService.block",
     "skillbill.engine.featuretask.FeatureTaskPhaseSettlementService.complete",
     "skillbill.engine.featuretask.FeatureTaskPhaseSettlementService.findEnvelope",
@@ -927,7 +926,6 @@ internal object RuntimeArchitectureScanConstants {
     "skillbill.engine.featuretask.FeatureTaskRuntimeRunLoopDrive.completeReservedGoalReviewPass",
     "skillbill.engine.featuretask.FeatureTaskRuntimeRunLoopLaunch.outputEnvelopeOf",
     "skillbill.engine.featuretask.FeatureTaskRuntimeRunLoopOutputPersistence.persistRejectedVerificationFindings",
-    "skillbill.engine.featuretask.FeatureTaskRuntimeRunLoopOutputVerification.auditGapProgressPause",
     "skillbill.engine.featuretask.FeatureTaskRuntimeRunLoopOutputVerification." +
       "findingVerificationBoundaryBodyDeliveryDecision",
     "skillbill.engine.featuretask.FeatureTaskRuntimeRunLoopOutputVerification." +

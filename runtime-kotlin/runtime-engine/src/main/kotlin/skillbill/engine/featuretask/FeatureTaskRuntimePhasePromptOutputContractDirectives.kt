@@ -6,7 +6,6 @@ import skillbill.goalrunner.subtaskreview.FeatureTaskRuntimeVerificationSignalKe
 import skillbill.review.model.ReviewIssueCategory
 import skillbill.workflow.goal.model.GoalSubtaskCommitFocusedAccounting
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_AUDIT_NOTE_MAX_CHARS
 
 fun outputContract(briefing: FeatureTaskRuntimePhaseLaunchBriefing, agentRunValidateFallback: Boolean): String {
   val phaseId = briefing.phaseId
@@ -97,26 +96,6 @@ private fun mutatingProducedOutputsAddendum(
   agentRunValidateFallback: Boolean,
 ): String {
   val phaseId = briefing.phaseId
-  val remediation = if (!briefing.handoffEnvelope.projections.any { it.projectionName == "audit_prose" }) {
-    ""
-  } else if (acceptanceCriteriaRequireGateProof(briefing.acceptanceCriteria)) {
-    "\n    - This is AUDIT-GAP REMEDIATION with gate-proof acceptance criteria: read the audit_prose " +
-      "value as the complete finding inventory for the unmet criterion. Clear every finding from that " +
-      "inventory in this one invocation — never a sample batch, never defer peers to validate. Run " +
-      "only the gate commands Validation ownership allows; re-run that same gate once at the end to " +
-      "confirm. Respect blast radius so the repair does not open a new gap or regress a neighboring " +
-      "criterion. Then emit a non-blank value string carrying the updated implementation_receipt JSON " +
-      "stuffed inside value. If a criterion is genuinely unimplementable, leave through a blocked " +
-      "envelope naming it and why."
-  } else {
-    "\n    - This is AUDIT-GAP REMEDIATION: read the audit_prose value from the briefing as structured " +
-      "prose (gap report stuffed inside value). Follow every gap named there completely in this one " +
-      "invocation: execute the planned production change, respect blast radius, and check surrounding " +
-      "callers/contracts so the repair does not open a new gap or regress a neighboring criterion. Do " +
-      "not invent a narrower substitute plan. Then emit a non-blank value string carrying the updated " +
-      "implementation_receipt JSON stuffed inside value. If a criterion is genuinely unimplementable, " +
-      "leave through a blocked envelope naming it and why."
-  }
   val reconciliationRequirement =
     if (phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT) {
       ""
@@ -130,7 +109,7 @@ private fun mutatingProducedOutputsAddendum(
     FeatureTaskRuntimePhaseProjectionShapes.exampleFor(
       phaseId,
       agentRunValidateFallback,
-    ) + remediation
+    )
 }
 
 private fun commitFocusedAccountingAddendum(): String =
@@ -152,37 +131,18 @@ private fun commitFocusedAccountingAddendum(): String =
 
 private fun auditProducedOutputsAddendum(verdict: String, briefing: FeatureTaskRuntimePhaseLaunchBriefing): String =
   "\n    - This is a VERIFYING phase. Ignore the optional-verdict bullet above: for audit, top-level " +
-    "\"$verdict\" is REQUIRED. Copy exactly one token: satisfied | gaps_found.\n" +
-    "      REJECTED: omitting verdict; any other string; nesting verdict only inside produced_outputs.\n" +
+    "\"$verdict\" is REQUIRED and must be satisfied when status is completed.\n" +
+    "      REJECTED: omitting verdict; gaps_found or any other string; nesting verdict only inside " +
+    "produced_outputs.\n" +
     "      ACCEPTED root: {\"contract_version\":\"$FEATURE_TASK_RUNTIME_CONTRACT_VERSION\"," +
     "\"phase_id\":\"audit\",\"status\":\"completed\",\"verdict\":\"satisfied\"," +
     "\"summary\":\"<one sentence>\"," +
-    "\"produced_outputs\":{\"value\":\"{\\\"gaps\\\":[],\\\"non_blocking_findings\\\":[]}\"}}.\n" +
-    "      Emit a non-blank produced_outputs.value string. For satisfied, value may affirm every " +
-    "criterion is met (for example {\"gaps\":[],\"non_blocking_findings\":[]}). For gaps_found, " +
-    "stuff one entry per unmet criterion inside value, for example " +
-    "{\"gaps\":[{\"criterion\":\"AC-003\",\"note\":\"...\"}],\"non_blocking_findings\":[]}.\n" +
-    "      Recommended inner shape uses criterion plus note — free-form note prose; no required " +
-    "keywords or sections. The runtime does not block on note length, extra keys, or other inner " +
-    "schema polish; it reads only the envelope verdict to decide advance versus audit_gap re-entry.\n" +
-    "      criterion is AC-###. note is one dense line of at most " +
-    "$FEATURE_TASK_RUNTIME_AUDIT_NOTE_MAX_CHARS characters. Prefer notes that both name what is\n" +
-    "      missing and give implement enough of a fix plan to close the gap carefully: the intended\n" +
-    "      production change, blast radius on callers/DI/sibling phases/contracts, and how to avoid\n" +
-    "      regressing neighbors or opening a new gap. Prefer a complete correct plan over a narrow\n" +
-    "      patch. Never a diff hunk, a source body, or a line number.\n" +
-    "      Legacy sibling keys beside value (gaps, unmet_criteria, audit_repair_plan, and similar) " +
-    "are ignored; put planning guidance in value only.\n" +
+    "\"produced_outputs\":{\"value\":\"<short completion confirmation>\"}}.\n" +
+    "      Emit a non-blank produced_outputs.value string with a short completion confirmation after " +
+    "every listed criterion has implementation and meaningful test coverage. Repair fixable gaps in " +
+    "this same session before you emit satisfied. Use status blocked or failed with " +
+    "failure_disposition when the criterion list is missing or an external dependency prevents repair.\n" +
     auditNoEarlierAuditLine(briefing) +
-    "      Minor and nit findings belong only inside value under non_blocking_findings and they\n" +
-    "      NEVER trigger gaps_found by themselves: severity (minor or nit) is required, " +
-    "acceptance_criterion_ref and\n" +
-    "      message are expected. Example: {\"acceptance_criterion_ref\":\"AC-004\",\n" +
-    "       \"message\":\"Naming could be clearer\",\"severity\":\"nit\"}.\n" +
-    "      TEST EXCLUSION: missing tests, weak tests, incomplete test coverage, unrealistic fixtures,\n" +
-    "      insufficient assertions, and any other test-only concern are NEVER unmet criteria. Do not\n" +
-    "      inspect or assess test adequacy and do not cite test files. Validation owns test execution\n" +
-    "      and failures. Report only a concrete defect in production behavior or production\n" +
-    "      implementation; when no such defect is evidenced, emit satisfied even if test coverage is\n" +
-    "      absent or inadequate." +
+    "      Inspect code and test coverage only: do not run builds, tests, or other commands as audit " +
+    "evidence. Validation owns test execution and failures." +
     auditRoundScopeAddendum(briefing)

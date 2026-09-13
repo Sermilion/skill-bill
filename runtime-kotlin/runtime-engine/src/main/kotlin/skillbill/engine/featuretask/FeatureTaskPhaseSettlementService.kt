@@ -5,7 +5,6 @@ import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.ValidationEvidencePayloadKeys
-import skillbill.engine.featuretask.model.FeatureTaskPhaseSettlementAuditRequest
 import skillbill.engine.featuretask.model.FeatureTaskPhaseSettlementBlockRequest
 import skillbill.engine.featuretask.model.FeatureTaskPhaseSettlementCompleteRequest
 import skillbill.ports.featuretask.FeatureTaskPhaseSettlementRepository
@@ -27,8 +26,11 @@ class FeatureTaskPhaseSettlementService(
     require(ProsePhaseOutputSynthesizer.isProsePhase(request.phaseId)) {
       "phase_id must be a prose phase (preplan|plan|implement|audit)."
     }
-    require(request.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT) {
-      "Use feature_task_audit_settle for audit completions."
+    val verdict = when (request.phaseId) {
+      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT -> requireNotNull(request.verdict?.takeIf { it == "satisfied" }) {
+        "feature_task_phase_complete requires verdict=satisfied when phase_id=audit."
+      }
+      else -> request.verdict
     }
     val envelope = ProsePhaseOutputSynthesizer.envelopeFromSettlement(
       SettlementEnvelopeRequest(
@@ -37,6 +39,7 @@ class FeatureTaskPhaseSettlementService(
         value = request.value,
         summary = request.summary?.takeIf { it.any { ch -> !ch.isWhitespace() } } ?: truncateSummary(request.value),
         prompt = request.prompt,
+        verdict = verdict,
       ),
     )
     return persist(
@@ -55,6 +58,9 @@ class FeatureTaskPhaseSettlementService(
     require(ProsePhaseOutputSynthesizer.isProsePhase(request.phaseId)) {
       "phase_id must be a prose phase (preplan|plan|implement|audit)."
     }
+    require(request.failureDisposition.any { !it.isWhitespace() }) {
+      "feature_task_phase_block requires a non-blank failure_disposition."
+    }
     val envelope = ProsePhaseOutputSynthesizer.envelopeFromSettlement(
       SettlementEnvelopeRequest(
         phaseId = request.phaseId,
@@ -62,7 +68,6 @@ class FeatureTaskPhaseSettlementService(
         value = request.reason,
         summary = truncateSummary(request.reason),
         failureDisposition = request.failureDisposition,
-        verdict = if (request.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT) "gaps_found" else null,
       ),
     )
     return persist(
@@ -71,31 +76,6 @@ class FeatureTaskPhaseSettlementService(
         phaseId = request.phaseId,
         attempt = request.attempt,
         kind = KIND_BLOCK,
-        envelope = envelope,
-      ),
-    )
-  }
-
-  @OpenBoundaryMap("MCP feature_task_audit_settle acknowledgement wire map")
-  fun auditSettle(request: FeatureTaskPhaseSettlementAuditRequest): Map<String, Any?> {
-    require(request.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT) {
-      "feature_task_audit_settle requires phase_id=audit."
-    }
-    val envelope = ProsePhaseOutputSynthesizer.envelopeFromSettlement(
-      SettlementEnvelopeRequest(
-        phaseId = request.phaseId,
-        status = "completed",
-        value = request.value,
-        summary = request.summary?.takeIf { it.any { ch -> !ch.isWhitespace() } } ?: truncateSummary(request.value),
-        verdict = request.verdict,
-      ),
-    )
-    return persist(
-      PersistRequest(
-        workflowId = request.workflowId,
-        phaseId = request.phaseId,
-        attempt = request.attempt,
-        kind = KIND_AUDIT_SETTLE,
         envelope = envelope,
       ),
     )
@@ -164,7 +144,6 @@ class FeatureTaskPhaseSettlementService(
   companion object {
     val KIND_COMPLETE: FeatureTaskPhaseSettlementKind = FeatureTaskPhaseSettlementKind.Complete
     val KIND_BLOCK: FeatureTaskPhaseSettlementKind = FeatureTaskPhaseSettlementKind.Block
-    val KIND_AUDIT_SETTLE: FeatureTaskPhaseSettlementKind = FeatureTaskPhaseSettlementKind.AuditSettle
     private const val SUMMARY_MAX_CHARS: Int = 240
     private const val SUMMARY_ELLIPSIS_PREFIX: Int = 237
   }

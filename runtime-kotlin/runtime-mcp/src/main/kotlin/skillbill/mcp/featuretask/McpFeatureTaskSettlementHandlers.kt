@@ -1,6 +1,5 @@
 package skillbill.mcp.featuretask
 
-import skillbill.engine.featuretask.model.FeatureTaskPhaseSettlementAuditRequest
 import skillbill.engine.featuretask.model.FeatureTaskPhaseSettlementBlockRequest
 import skillbill.engine.featuretask.model.FeatureTaskPhaseSettlementCompleteRequest
 import skillbill.mcp.shared.McpRuntimeContext
@@ -18,6 +17,7 @@ internal fun featureTaskPhaseComplete(arguments: Map<String, Any?>, context: Mcp
       value = arguments.string("value"),
       prompt = arguments.optionalString("prompt"),
       summary = arguments.optionalString("summary"),
+      verdict = arguments.optionalString("verdict"),
     ),
   )
 
@@ -32,14 +32,3 @@ internal fun featureTaskPhaseBlock(arguments: Map<String, Any?>, context: McpRun
     ),
   )
 
-internal fun featureTaskAuditSettle(arguments: Map<String, Any?>, context: McpRuntimeContext): Map<String, Any?> =
-  services(context).featureTaskPhaseSettlementService.auditSettle(
-    FeatureTaskPhaseSettlementAuditRequest(
-      workflowId = arguments.string("workflow_id"),
-      phaseId = arguments.optionalString("phase_id") ?: "audit",
-      attempt = requireNotNull(arguments.optionalInt("attempt")) { "attempt is required." },
-      verdict = arguments.string("verdict"),
-      value = arguments.string("value"),
-      summary = arguments.optionalString("summary"),
-    ),
-  )

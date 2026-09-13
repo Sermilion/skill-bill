@@ -56,12 +56,11 @@ object FeatureTaskRuntimeRunLoopBackwardEdge {
     }
     runLoop.state.recordEdgeIteration(loopId, edgeIteration)
     runLoop.session.pendingReentry = PendingReentry(
-      destinationPhaseId,
-      loopId,
-      edgeIteration,
-      verdict,
-      emptyList(),
-      if (loopId == FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID) {
+      phaseId = destinationPhaseId,
+      loopId = loopId,
+      edgeIteration = edgeIteration,
+      drivingVerdict = verdict,
+      expectedRepositoryCheckpoint = if (loopId == FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID) {
         FeatureTaskRuntimeRunLoopDrive.reviewedCheckpointFingerprint(runLoop)
       } else {
         null
@@ -159,7 +158,7 @@ object FeatureTaskRuntimeRunLoopBackwardEdge {
             edge.fromPhaseId,
           )
         } == true
-    }?.copy(phaseId = phaseId, reentryGapCriteria = emptyList())
+    }?.copy(phaseId = phaseId)
     val outcome = FeatureTaskRuntimeRunLoopPlanningBranch.runPhase(
       runLoop,
       RunPhaseArgs(
@@ -187,39 +186,6 @@ object FeatureTaskRuntimeRunLoopBackwardEdge {
 
   internal fun isLoopDestination(runLoop: FeatureTaskRuntimeRunLoop, reentry: PendingReentry): Boolean =
     runLoop.transitions.backwardEdges.firstOrNull { it.loopId == reentry.loopId }?.destinationPhaseId == reentry.phaseId
-
-  internal fun blockInvalidAuditGapRecovery(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    reentry: PendingReentry,
-    reason: String,
-  ) {
-    val phaseId = reentry.phaseId
-    val resolvedAgentId = FeatureTaskRuntimeAgentResolver.resolve(
-      phaseId = phaseId,
-      assignment = runLoop.request.agentAssignment,
-      invokedAgentId = runLoop.request.invokedAgentId,
-    ).resolvedAgentId
-    val attempt = runLoop.state.nextIteration(phaseId)
-    val previous = runLoop.state.recordFor(phaseId)
-    runLoop.recorder.recordPhaseState(
-      FeatureTaskRuntimePhaseStateRequest(
-        workflowId = runLoop.request.workflowId,
-        phaseId = phaseId,
-        status = STATUS_BLOCKED,
-        attemptCount = attempt,
-        resolvedAgentId = resolvedAgentId,
-        finished = false,
-        outputArtifact = previous?.outputArtifact,
-        rejectedOutput = previous?.rejectedOutput,
-        blockedReason = reason,
-        failureDisposition = FeatureTaskRuntimeFailureDisposition.NEEDS_USER_ACTION,
-        loopId = reentry.loopId,
-        edgeIteration = reentry.edgeIteration,
-      ),
-    )
-    runLoop.observability.blocked(phaseId, resolvedAgentId, attempt, reason)
-    FeatureTaskRuntimeRunLoopPlanningBranch.blockAt(runLoop, phaseId, reason)
-  }
 
   fun applyPlanningStop(
     runLoop: FeatureTaskRuntimeRunLoop,

@@ -17,7 +17,6 @@ import skillbill.workflow.taskruntime.model.REPOSITORY_CHECKPOINT_FIELD
 
 internal object FeatureTaskRuntimeHandoffProjectionValueBuilder {
   private val phaseProjectionContractIds: Set<String> = setOf(
-    FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.AUDIT_CLEARANCE,
     FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.REVIEW_CLEARANCE,
     FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.REVIEW_REPAIR_REQUEST,
     FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.FINDINGS_VERIFICATION_INPUT,
@@ -59,8 +58,6 @@ internal object FeatureTaskRuntimeHandoffProjectionValueBuilder {
     val runtimeOwned = runtimeOwnedPhaseProjectionValues(inputs, declaration, produced, envelope)
     return declaration.declaredFieldNames.mapNotNull { name ->
       val value = runtimeOwned[name] ?: when {
-        declaration.projectionContractId ==
-          FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.AUDIT_CLEARANCE -> null
         name == "verdict" -> envelope[name]
         else -> resolveDeclaredPhaseField(produced, name)
       }
@@ -76,15 +73,6 @@ internal object FeatureTaskRuntimeHandoffProjectionValueBuilder {
     produced: Map<String, Any?>,
     envelope: Map<String, Any?>,
   ): Map<String, Any?> = when (declaration.projectionContractId) {
-    FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.AUDIT_CLEARANCE -> mapOf(
-      "clearance_status" to auditClearanceStatus(envelope),
-      "review_scope" to FeatureTaskRuntimePhaseWorkflowQueries
-        .ceremonyScaling(inputs.runInvariants.featureSize)
-        .reviewScope
-        .wireValue,
-      REPOSITORY_CHECKPOINT_FIELD to checkpointFingerprint(inputs),
-      SharedPayloadKeys.VERDICT to auditClearanceStatus(envelope),
-    )
     FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.REVIEW_REPAIR_REQUEST -> mapOf(
       "unresolved_blocker_findings" to verifiedFindingsProjection(inputs, produced),
       REPOSITORY_CHECKPOINT_FIELD to checkpointFingerprint(inputs),
@@ -143,9 +131,6 @@ internal object FeatureTaskRuntimeHandoffProjectionValueBuilder {
       ?.let { fields["directive"] = it }
     return fields
   }
-
-  private fun auditClearanceStatus(envelope: Map<String, Any?>): String? =
-    (envelope[SharedPayloadKeys.VERDICT] as? String)?.takeIf(String::isNotBlank)
 
   private fun verifiedFindingsProjection(
     inputs: FeatureTaskRuntimeHandoffProjectionInputs,

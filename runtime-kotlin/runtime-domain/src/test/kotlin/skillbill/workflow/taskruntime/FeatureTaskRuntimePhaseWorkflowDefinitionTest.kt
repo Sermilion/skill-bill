@@ -123,25 +123,11 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionTest {
   }
 
   @Test
-  fun `the audit_gap backward edge reopens implement-through-audit without planning and without a cap`() {
+  fun `audit has no backward edge and only review_fix remains`() {
     val def = FeatureTaskRuntimePhaseWorkflowDefinition
     val transitions = def.transitions
-    assertEquals(2, transitions.backwardEdges.size)
-    val edge = transitions.backwardEdges.single { it.loopId == def.AUDIT_GAP_LOOP_ID }
-    assertEquals(def.PHASE_AUDIT, edge.fromPhaseId)
-    assertEquals(def.PHASE_IMPLEMENT, edge.destinationPhaseId)
-    assertEquals("audit_gap", edge.loopId)
-    assertEquals(null, edge.perEdgeCap)
-    assertEquals(FeatureTaskRuntimeVerdict.GAPS_FOUND, edge.triggeringVerdict)
-    val ids = transitions.forwardPhaseIds
-    assertTrue(ids.indexOf(edge.destinationPhaseId) < ids.indexOf(edge.fromPhaseId))
-    assertTrue(
-      ids.subList(ids.indexOf(edge.destinationPhaseId), ids.indexOf(edge.fromPhaseId) + 1)
-        .any(def::isMutatingPhase),
-    )
-    val reopenedPhaseIds = ids.subList(ids.indexOf(edge.destinationPhaseId), ids.indexOf(edge.fromPhaseId) + 1)
-    assertTrue(def.PHASE_PREPLAN !in reopenedPhaseIds)
-    assertTrue(def.PHASE_PLAN !in reopenedPhaseIds)
+    assertEquals(1, transitions.backwardEdges.size)
+    assertTrue(transitions.backwardEdges.none { it.loopId == def.AUDIT_GAP_LOOP_ID })
   }
 
   @Test

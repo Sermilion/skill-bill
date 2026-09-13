@@ -134,16 +134,6 @@ class FeatureTaskRuntimeRunLoop internal constructor(
 
   fun drive() {
     FeatureTaskRuntimeRunLoopDrive.invalidateReviewGenerationIfNeeded(this)
-    FeatureTaskRuntimeRunLoopDrive.loadMigratedAuditGapPause(this)?.let { pause ->
-      if (FeatureTaskRuntimeRunLoopDrive.resolveAuditGapPauseDriveAction(
-          this,
-          pause,
-        ) == FeatureTaskRuntimeRunLoopDrive.AuditGapDriveAction.Stop
-      ) {
-        return
-      }
-    }
-    if (!FeatureTaskRuntimeRunLoopDrive.validateAuditGapResumeOrBlock(this)) return
     FeatureTaskRuntimeRunLoopDrive.runPhaseDriveLoop(this)
   }
 
@@ -157,11 +147,6 @@ class FeatureTaskRuntimeRunLoop internal constructor(
       if (carriedForward != null) {
         return carriedForward
       }
-    }
-    if (phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT && session.auditGapRetryResumePending) {
-      session.auditGapRetryResumePending = false
-      val carried = FeatureTaskRuntimeRunLoopDrive.settleCarriedForwardAuditGapAudit(this)
-      if (carried != null) return carried
     }
     val reason = FeatureTaskRuntimeRunLoopDrive.advancePhaseReason(this, phaseId)
     return FeatureTaskRuntimeRunLoopDrive.settleAdvanceOutcome(this, phaseId, reason)
@@ -183,19 +168,14 @@ class FeatureTaskRuntimeRunLoop internal constructor(
     )
   }
 
-  fun applyOperatorDecision(decision: GoalSubtaskOperatorDecision): String? {
-    val auditGapPause = recorder.loadAuditGapPause(request.workflowId)
-    if (auditGapPause != null) {
-      return FeatureTaskRuntimeRunLoopPlanningBranch.applyAuditGapPauseDecision(this, auditGapPause, decision)
-    }
-    return buildString {
+  fun applyOperatorDecision(decision: GoalSubtaskOperatorDecision): String? =
+    buildString {
       append("Operator decisions over review remediation are removed; ")
       append("the run advances to validate after one implement_fix round.")
       request.goalContinuation?.let {
         append(" Recover with: '${scopedChildRecoveryCommand(it.parentIssueKey, it.subtaskId)}'.")
       }
     }
-  }
 }
 
 internal class FeatureTaskRuntimeRunLoopSession(
@@ -207,7 +187,6 @@ internal class FeatureTaskRuntimeRunLoopSession(
   var checkpointOwnershipDecided: Boolean = false
   var blocked: FeatureTaskRuntimeRunReport.Blocked? = null
   var paused: FeatureTaskRuntimeRunReport.Paused? = null
-  var auditGapRetryResumePending: Boolean = false
   var decomposed: FeatureTaskRuntimeRunReport.Decomposed? = null
   var operatorBlockRetryCompleted: Boolean = false
   var pendingReentry: PendingReentry? = initialPendingReentry

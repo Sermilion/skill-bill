@@ -44,19 +44,6 @@ properties:
   driving_verdict:
     type: string
     minLength: 1
-  prior_gap_memory:
-    type: object
-    additionalProperties: false
-    required: [round, prior_audit_values]
-    properties:
-      round:
-        type: integer
-        minimum: 1
-      prior_audit_values:
-        type: array
-        items:
-          type: string
-          minLength: 1
   durably_closed_criterion_refs:
     type: array
     items: { type: string }

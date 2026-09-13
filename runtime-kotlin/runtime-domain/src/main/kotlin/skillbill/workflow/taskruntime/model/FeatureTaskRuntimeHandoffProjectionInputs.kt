@@ -20,12 +20,6 @@ data class FeatureTaskRuntimeHandoffProjectionInputs(
    * never reaches a filesystem to find one.
    */
   val sharedReviewEvidence: FeatureTaskRuntimeSharedReviewEvidenceReference? = null,
-  /**
-   * The runtime-derived bounded prior-gap memory for an `audit_gap` remediation round, or null when
-   * none is derivable (forward launches and in-flight runs that predate the projection). Null omits
-   * the non-required declaration rather than delivering it empty.
-   */
-  val priorGapMemory: FeatureTaskRuntimePriorGapMemory? = null,
   val repairLedger: FeatureTaskRuntimeRepairLedger? = null,
   val recordedFindingVerdicts: List<ReviewFindingVerdict> = emptyList(),
   /** Runtime-owned branch identity used only by bounded finalization request projectors. */

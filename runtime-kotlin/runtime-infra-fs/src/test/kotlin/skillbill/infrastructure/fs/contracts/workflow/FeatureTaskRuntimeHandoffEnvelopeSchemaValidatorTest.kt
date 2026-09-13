@@ -53,8 +53,10 @@ class FeatureTaskRuntimeHandoffEnvelopeSchemaValidatorTest {
   }
 
   @Test
-  fun `a delivered prior_gap_memory source ref passes the schema gate`() {
-    validator.validateEnvelope(priorGapMemoryEnvelope(), workflowId = "wftr-1")
+  fun `a delivered prior_gap_memory source ref is rejected by the schema gate`() {
+    assertFailsWith<InvalidFeatureTaskRuntimeHandoffProjectionError> {
+      validator.validateEnvelope(priorGapMemoryEnvelope(), workflowId = "wftr-1")
+    }
   }
 
   private fun priorGapMemoryEnvelope(): Map<String, Any?> = envelope().toMutableMap().apply {

@@ -2,7 +2,6 @@ package skillbill.ports.persistence
 
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticPermissions
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticRepository
-import skillbill.ports.featuretask.FeatureTaskRuntimeAuditGenerationRepository
 import skillbill.ports.goalrunner.GoalPlanningPreparationRepository
 import skillbill.ports.goalrunner.GoalRunnerControlRepository
 import skillbill.ports.goalrunner.GoalRunnerPersistenceSession
@@ -29,7 +28,6 @@ interface UnitOfWork : GoalRunnerPersistenceSession {
   override val goalPlanningPreparations: GoalPlanningPreparationRepository
   override val goalRunnerControls: GoalRunnerControlRepository
   val unaddressedFindings: UnaddressedFindingsRepository
-  val featureTaskRuntimeAuditGenerations: FeatureTaskRuntimeAuditGenerationRepository
   val agentActivityStamps: AgentActivityStampRepository
   val rejectedOutputDiagnostics: RejectedOutputDiagnosticRepository?
   val rejectedOutputDiagnosticPermissions: RejectedOutputDiagnosticPermissions?

@@ -141,7 +141,7 @@ with Clean Architecture, SOLID, or YAGNI.
 
 Feature-task continuation is repository-scoped and database-authoritative. At workflow creation, an immutable identity row binds the workflow id to a normalized issue key, canonical real-path Git-root identity, repository-relative governed spec path, persisted mode, and standalone/goal-child route scope. Read-only lookup never chooses among multiple eligible rows by timestamp.
 
-The feature `spec.md` remains the governed product contract; it is not a mutable workflow ledger. A sibling `decomposition-manifest.yaml` is the sole prepared-feature authority marker and always contains one or more executable subtasks; a bare `spec.md` is preparation intake. Continuation lookup remains authoritative and precedes artifact discovery. Pre-planning, planning, phase outputs, and the phase ledger remain durable database artifacts. Initial implementation continuation is hydrated from the completed `plan`. Audit-gap remediation reuses the immutable original completed `preplan` and `plan` outputs and never loops back to either planning phase. A `gaps_found` audit must produce a versioned, complete repair plan. That normalized plan is persisted before the backward edge, and remediation reconciles its dependency-ordered repair items with an exact terminal result set. Subsequent audits retain recurring gap identities, distinguish genuinely new gaps, and block equivalent non-progress loops without storing prompts, diffs, source bodies, or raw tool output. Review remediation is a single bounded round: `review` runs once, `changes_requested` may launch one `implement_fix` pass (`review_fix` cap 1, then advance to `validate`), and review does not run again after that fix.
+The feature `spec.md` remains the governed product contract; it is not a mutable workflow ledger. A sibling `decomposition-manifest.yaml` is the sole prepared-feature authority marker and always contains one or more executable subtasks; a bare `spec.md` is preparation intake. Continuation lookup remains authoritative and precedes artifact discovery. Pre-planning, planning, phase outputs, and the phase ledger remain durable database artifacts. Initial implementation continuation is hydrated from the completed `plan`. Audit is stateless: every invocation receives the complete planned acceptance-criteria list, inspects implementation and meaningful test coverage, repairs fixable gaps in the same agent session, re-checks the full list, and emits only terminal completion (`satisfied`) or an ordinary blocked/failed outcome with `failure_disposition` and no verdict. Audit performs no audit-specific persistence, does not route to `implement`, and does not hand findings to downstream phases. Legacy `gaps_found` records, inner gap payloads, and `audit_gap` loop markers are normalized in memory on resume without writing compatibility state; the audit-generation table migration remains for database-open compatibility only with no live append/list port. Retired `prior_gap_memory` projection declarations loud-fail at parse; `FeatureTaskRuntimePriorGapMemory.fromMap` stays decode-only for legacy rows. Review remediation is a single bounded round: `review` runs once, `changes_requested` may launch one `implement_fix` pass (`review_fix` cap 1, then advance to `validate`), and review does not run again after that fix.
 
 Decomposed goals execute discovery and preplan once at the parent, then persist a distinct immutable plan checkpoint for each ordered subtask. Normalized checkpoint tables are the continuation authority. Status reads only bounded fields: shared-preplan readiness, planned and total counts, first missing subtask, and a concise reason. Resume reuses compatible checkpoints; hard reset atomically invalidates planning and child continuation state.
 
@@ -594,7 +594,6 @@ runtime-ports
     - `skillbill.application.workflow.updateGoalParentForBlockedPhaseRetry`
     - `skillbill.engine.featuretask.CompletedImplementationOutputArgs.outputMap`
     - `skillbill.engine.featuretask.CompletionProjectionRejectionArgs.outputMap`
-    - `skillbill.engine.featuretask.FeatureTaskPhaseSettlementService.auditSettle`
     - `skillbill.engine.featuretask.FeatureTaskPhaseSettlementService.block`
     - `skillbill.engine.featuretask.FeatureTaskPhaseSettlementService.complete`
     - `skillbill.engine.featuretask.FeatureTaskPhaseSettlementService.findEnvelope`
@@ -614,7 +613,6 @@ runtime-ports
     - `skillbill.engine.featuretask.FeatureTaskRuntimeRunLoopDrive.completeReservedGoalReviewPass`
     - `skillbill.engine.featuretask.FeatureTaskRuntimeRunLoopLaunch.outputEnvelopeOf`
     - `skillbill.engine.featuretask.FeatureTaskRuntimeRunLoopOutputPersistence.persistRejectedVerificationFindings`
-    - `skillbill.engine.featuretask.FeatureTaskRuntimeRunLoopOutputVerification.auditGapProgressPause`
     - `skillbill.engine.featuretask.FeatureTaskRuntimeRunLoopOutputVerification.findingVerificationBoundaryBodyDeliveryDecision`
     - `skillbill.engine.featuretask.FeatureTaskRuntimeRunLoopOutputVerification.findingVerificationBoundaryDispositionGate`
     - `skillbill.engine.featuretask.FeatureTaskRuntimeRunLoopOutputVerification.findingVerificationBoundaryDispositionGateImpl`
@@ -1350,12 +1348,12 @@ When `FeatureTaskRuntimeRunLoop.launchAndCapture` catches
 blocks on first occurrence. Instead the consumer settles with the synthetic
 `RECORD_REJECTED` verdict, which drives the existing
 `FeatureTaskRuntimeTransitionFunction` over a pinned consumer→producer
-regeneration edge (`plan`→`preplan`, `implement`→`plan`, `audit`→`implement`,
-each with its own `regenerate_*` loop id and the `MAX_RECORD_REGENERATION_ATTEMPTS`
-cap). No parallel state machine is introduced: the same loop-id, edge-iteration,
-watermark, and crash-resume machinery the review-fix and audit-gap loops use
-bounds regeneration, so a crash mid-regeneration resumes the same cap sequence
-without reset.
+regeneration edge (`plan`→`preplan`, `implement`→`plan`, each with its own
+`regenerate_*` loop id and the `MAX_RECORD_REGENERATION_ATTEMPTS` cap). No
+parallel state machine is introduced: the same loop-id, edge-iteration,
+watermark, and crash-resume machinery the review-fix loop uses bounds
+regeneration, so a crash mid-regeneration resumes the same cap sequence without
+reset.
 
 Before the edge fires, the rejected record is appended to a durable, append-only
 quarantine store (`FEATURE_TASK_RUNTIME_QUARANTINED_RECORDS_ARTIFACT_KEY`,
@@ -1374,8 +1372,8 @@ a producing phase, or whose producer a goal-continuation truncation dropped from
 the resolved pipeline, blocks durably with an actionable reason rather than
 attempting an impossible re-entry. Static declaration/config drift
 (`InvalidFeatureTaskRuntimeHandoffProjectionError`), briefing byte-ceiling
-overflow, and an audit's own `audit_repair_state` drift keep their
-first-occurrence durable block: re-running a producer cannot fix them.
+overflow keep their first-occurrence durable block: re-running a producer cannot
+fix them.
 Out-of-band row deletion or migration is the corruption fallback for records the
 edge cannot regenerate. Per-run regeneration telemetry records activation counts,
 attempt counts, and outcome-class tallies on the
@@ -1848,7 +1846,6 @@ Categories:
 - `skillbill.application.workflow.updateGoalParentForBlockedPhaseRetry`
 - `skillbill.engine.featuretask.CompletedImplementationOutputArgs.outputMap`
 - `skillbill.engine.featuretask.CompletionProjectionRejectionArgs.outputMap`
-- `skillbill.engine.featuretask.FeatureTaskPhaseSettlementService.auditSettle`
 - `skillbill.engine.featuretask.FeatureTaskPhaseSettlementService.block`
 - `skillbill.engine.featuretask.FeatureTaskPhaseSettlementService.complete`
 - `skillbill.engine.featuretask.FeatureTaskPhaseSettlementService.findEnvelope`
@@ -1868,7 +1865,6 @@ Categories:
 - `skillbill.engine.featuretask.FeatureTaskRuntimeRunLoopDrive.completeReservedGoalReviewPass`
 - `skillbill.engine.featuretask.FeatureTaskRuntimeRunLoopLaunch.outputEnvelopeOf`
 - `skillbill.engine.featuretask.FeatureTaskRuntimeRunLoopOutputPersistence.persistRejectedVerificationFindings`
-- `skillbill.engine.featuretask.FeatureTaskRuntimeRunLoopOutputVerification.auditGapProgressPause`
 - `skillbill.engine.featuretask.FeatureTaskRuntimeRunLoopOutputVerification.findingVerificationBoundaryBodyDeliveryDecision`
 - `skillbill.engine.featuretask.FeatureTaskRuntimeRunLoopOutputVerification.findingVerificationBoundaryDispositionGate`
 - `skillbill.engine.featuretask.FeatureTaskRuntimeRunLoopOutputVerification.findingVerificationBoundaryDispositionGateImpl`

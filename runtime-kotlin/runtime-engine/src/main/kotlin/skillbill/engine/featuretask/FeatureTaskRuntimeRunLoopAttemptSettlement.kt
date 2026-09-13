@@ -522,16 +522,6 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
     val observability = args.observability
     val repositoryFingerprint = args.repositoryFingerprint
     val run = capture.run
-    FeatureTaskRuntimeRunLoopOutputVerification.auditGapProgressPause(
-      runLoop,
-      run,
-      outputMap,
-      repositoryFingerprint,
-      attested.canonicalJson,
-    )?.let { pause ->
-      FeatureTaskRuntimeRunLoopPlanningBranch.mintAuditGapPause(runLoop, pause, run.phaseId, attested.canonicalJson)
-      return AttemptResult.settled(PhaseOutcome.paused(pause.reason))
-    }
     terminalBlockedReasonFrom(run.phaseId, outputMap)?.let { reason ->
       return FeatureTaskRuntimeRunLoopOutputVerification.terminalOutputAttempt(
         runLoop,

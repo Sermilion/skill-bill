@@ -212,7 +212,7 @@ class FeatureTaskRuntimeRunnerTest {
   }
 
   @Test
-  fun `retryable review failure uses the bounded in-phase retry`() {
+  fun `retryable audit failure blocks after one agent session`() {
     var auditLaunches = 0
     val retryableFailure = """
       {
@@ -235,9 +235,9 @@ class FeatureTaskRuntimeRunnerTest {
       ),
     )
 
-    assertIs<FeatureTaskRuntimeRunReport.Completed>(harness.runner.run(harness.request()))
+    assertIs<FeatureTaskRuntimeRunReport.Blocked>(harness.runner.run(harness.request()))
 
-    assertEquals(2, auditLaunches)
+    assertEquals(1, auditLaunches)
   }
 
   @Test
@@ -1300,7 +1300,6 @@ class FeatureTaskRuntimeLifecycleTelemetryRunnerTest {
         telemetrySessionId = SESSION_ID,
         phaseOutcomes = { error("phase load failed") },
         reviewFixIterationCount = { 0 },
-        auditGapIterationCount = { 0 },
       ),
     )
 

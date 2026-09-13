@@ -2,14 +2,10 @@ package skillbill.engine.featuretask.model
 
 import skillbill.application.telemetry.model.FeatureTaskRuntimeFindingVerificationTelemetry
 import skillbill.application.telemetry.model.FeatureTaskRuntimeRegenerationTelemetry
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeAuditProgress
-
 data class FeatureTaskRuntimeFinishedTelemetryContext(
   val telemetrySessionId: String,
   val phaseOutcomes: () -> Map<String, String>,
   val reviewFixIterationCount: () -> Int,
-  val auditGapIterationCount: () -> Int,
-  val auditRepairProgress: () -> FeatureTaskRuntimeAuditProgress? = { null },
   val findingVerificationTelemetry: () -> FeatureTaskRuntimeFindingVerificationTelemetry = {
     FeatureTaskRuntimeFindingVerificationTelemetry()
   },

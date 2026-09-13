@@ -61,16 +61,16 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorTest {
   }
 
   @Test
-  fun `audit output carrying legacy sibling keys still validates`() {
+  fun `audit output carrying legacy sibling keys still validates when verdict is satisfied`() {
     val legacy =
       """
       contract_version: "0.6"
       phase_id: "audit"
       status: "completed"
-      summary: "One criterion remains unmet."
-      verdict: "gaps_found"
+      summary: "Every criterion met."
+      verdict: "satisfied"
       produced_outputs:
-        value: "{\"gaps\":[{\"criterion\":\"AC-001\",\"note\":\"gap\"}]}"
+        value: "{\"gaps\":[]}"
         failing_criteria:
           - acceptance_criterion_ref: "AC-001"
             message: "Integration coverage is missing."
@@ -458,14 +458,75 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
   }
 
   @Test
-  fun `malformed inner audit value still validates when envelope verdict and non-blank value are present`() {
+  fun `completed audit with removed gaps_found verdict fails validation`() {
+    val gapsFound =
+      """{"contract_version":"0.6","phase_id":"audit","status":"completed","summary":"audit",""" +
+        """"verdict":"gaps_found","produced_outputs":{"value":"{\"gaps\":[]}"}}"""
+    assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
+      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(gapsFound, "audit")
+    }
+  }
+
+  @Test
+  fun `blocked audit omits verdict and carries failure disposition`() {
+    val blocked =
+      """
+      contract_version: "0.6"
+      phase_id: "audit"
+      status: "blocked"
+      summary: "Planning criterion list unreadable."
+      failure_disposition: "needs_user_action"
+      produced_outputs:
+        value: "Planning criterion list unreadable."
+      """.trimIndent()
+
+    FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(blocked, "audit")
+  }
+
+  @Test
+  fun `blocked audit with verdict fails validation`() {
+    val blockedWithVerdict =
+      """
+      contract_version: "0.6"
+      phase_id: "audit"
+      status: "blocked"
+      summary: "External blocker."
+      failure_disposition: "needs_user_action"
+      verdict: "satisfied"
+      produced_outputs:
+        value: "External blocker."
+      """.trimIndent()
+
+    assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
+      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(blockedWithVerdict, "audit")
+    }
+  }
+
+  @Test
+  fun `blocked audit without failure disposition fails validation`() {
+    val blocked =
+      """
+      contract_version: "0.6"
+      phase_id: "audit"
+      status: "blocked"
+      summary: "Planning criterion list unreadable."
+      produced_outputs:
+        value: "Planning criterion list unreadable."
+      """.trimIndent()
+
+    assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
+      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(blocked, "audit")
+    }
+  }
+
+  @Test
+  fun `completed audit with satisfied verdict accepts malformed inner value`() {
     val malformedCases = listOf(
-      """"verdict":"gaps_found","produced_outputs":{"value":"AC-7 backtick `note` newline\nbreak"}""",
-      """"verdict":"gaps_found","produced_outputs":{"value":"${"x".repeat(1100)}"}""",
-      """"verdict":"gaps_found","produced_outputs":{"value":"{\"wrapper\":{\"gaps\":[{\"severity\":\"minor\"}]}}"}""",
-      """"verdict":"gaps_found","produced_outputs":{"value":"not-json prose still counts"}""",
+      """"verdict":"satisfied","produced_outputs":{"value":"AC-7 backtick `note` newline\nbreak"}""",
+      """"verdict":"satisfied","produced_outputs":{"value":"${"x".repeat(1100)}"}""",
+      """"verdict":"satisfied","produced_outputs":{"value":"{\"wrapper\":{\"gaps\":[{\"severity\":\"minor\"}]}}"}""",
+      """"verdict":"satisfied","produced_outputs":{"value":"not-json prose still counts"}""",
       """"verdict":"satisfied","produced_outputs":{"value":"looks like AC-003 gap text","gaps":[]}""",
-      """"verdict":"gaps_found","produced_outputs":{"value":"{\"gaps\":[]}","gaps":[{"criterion":"AC-001"}]}""",
     )
     malformedCases.forEach { suffix ->
       val envelope =
@@ -476,11 +537,6 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
 
   @Test
   fun `audit envelope verdict is not cross-checked against inner value shape`() {
-    val gapsFoundEmptyInner =
-      """{"contract_version":"0.6","phase_id":"audit","status":"completed","summary":"audit",""" +
-        """"verdict":"gaps_found","produced_outputs":{"value":"{\"gaps\":[]}"}}"""
-    FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(gapsFoundEmptyInner, "audit")
-
     val satisfiedGapLookingInner =
       """{"contract_version":"0.6","phase_id":"audit","status":"completed","summary":"audit",""" +
         """"verdict":"satisfied","produced_outputs":{"value":"AC-001: still missing wiring"}}"""
@@ -566,15 +622,15 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
       ```
       Corrected final answer:
       ```json
-      {"contract_version":"0.6","phase_id":"audit","status":"completed","summary":"one gap remains",
-       "verdict":"gaps_found",
-       "produced_outputs":{"value":"{\"gaps\":[{\"criterion\":\"AC-128\",\"note\":\"Rejected lanes are omitted from the aggregate.\"}]}"}}
+      {"contract_version":"0.6","phase_id":"audit","status":"completed","summary":"all criteria met",
+       "verdict":"satisfied",
+       "produced_outputs":{"value":"{\"gaps\":[]}"}}
       ```
       """.trimIndent()
 
     val normalized = FeatureTaskRuntimePhaseOutputValidatorAdapter().normalizePhaseOutput(draftThenReal, "audit")
 
-    assertEquals("gaps_found", normalized.envelope["verdict"])
+    assertEquals("satisfied", normalized.envelope["verdict"])
   }
 
   @Test
@@ -647,15 +703,14 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
 
   @Test
   fun `lenient audit normalization still extracts envelope verdict from prose output`() {
-    val innerValue = """{\"gaps\":[{\"criterion\":\"AC-001\",\"note\":\"the behavior is absent\",""" +
-      """\"severity\":\"blocker\"}]}"""
+    val innerValue = """{\"reconciliation_evidence\":{\"reconciled\":true}}"""
     val body =
-      """{"contract_version":"0.6","phase_id":"audit","status":"completed","summary":"lenient-gap",""" +
-        """"verdict":"gaps_found","produced_outputs":{"value":"$innerValue"}}"""
+      """{"contract_version":"0.6","phase_id":"audit","status":"completed","summary":"lenient-audit",""" +
+        """"verdict":"satisfied","produced_outputs":{"value":"$innerValue"}}"""
     val lenient = FeatureTaskRuntimePhaseOutputSchemaValidator.normalizeAuditPhaseOutputLenient(body, "audit")
 
     assertEquals("audit", lenient.envelope["phase_id"])
-    assertEquals("gaps_found", lenient.envelope["verdict"])
+    assertEquals("satisfied", lenient.envelope["verdict"])
   }
 
   @Test

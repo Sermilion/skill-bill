@@ -28,14 +28,7 @@ internal object FeatureTaskRuntimeHandoffProjectionEnvelopeWire {
     declaration: PhaseHandoffProjectionDeclaration,
     fields: List<FeatureTaskRuntimeHandoffProjectionField>,
   ): List<FeatureTaskRuntimeHandoffProjectionField> {
-    val carried = if (
-      declaration.projectionContractId ==
-      FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.AUDIT_CLEARANCE
-    ) {
-      null
-    } else {
-      receiptCarriedCheckpointFingerprint(fields)
-    }
+    val carried = receiptCarriedCheckpointFingerprint(fields)
     checkpointPolicyViolation(inputs, declaration)?.let { violation ->
       rejectFeatureTaskRuntimeHandoffProjection(
         inputs,

@@ -45,7 +45,6 @@ internal data class PendingReentry(
   val loopId: String,
   val edgeIteration: Int,
   val drivingVerdict: FeatureTaskRuntimeVerdict,
-  val reentryGapCriteria: List<String> = emptyList(),
   val expectedRepositoryCheckpoint: String? = null,
 )
 

@@ -7,7 +7,6 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffPromptVisib
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffSourceRef
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseDeclaration
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePlanningProjectionContract
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePriorGapMemory
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepositoryCheckpointPolicy
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeSharedReviewEvidenceReference
 import skillbill.workflow.taskruntime.model.PhaseHandoffProjectionDeclaration
@@ -45,23 +44,6 @@ internal object FeatureTaskRuntimePhaseWorkflowProjectionDeclarations {
         ),
       ),
     )
-
-  fun auditRemediationProjections(): List<PhaseHandoffProjectionDeclaration> = listOf(
-    phaseProseDeclaration(
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN,
-    ),
-    phaseProseDeclaration(
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,
-    ),
-    phaseProseDeclaration(
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
-      checkpointPolicy = FeatureTaskRuntimeRepositoryCheckpointPolicy.REFRESH_FROM_REPOSITORY,
-    ),
-    priorGapMemoryDeclaration(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT),
-  )
 
   fun phaseProseDeclaration(
     consumerPhaseId: String,
@@ -107,19 +89,6 @@ internal object FeatureTaskRuntimePhaseWorkflowProjectionDeclarations {
       delivery = PhaseHandoffProjectionDelivery(required = false),
     ),
   )
-
-  fun priorGapMemoryDeclaration(consumerPhaseId: String): PhaseHandoffProjectionDeclaration =
-    upstreamPlanningProjection(
-      UpstreamPlanningProjectionSpec(
-        consumerPhaseId = consumerPhaseId,
-        sourceRef = FeatureTaskRuntimeHandoffSourceRef.PriorGapMemory,
-        projectionName = FeatureTaskRuntimePhaseWorkflowDefinition.PRIOR_GAP_MEMORY_PROJECTION_NAME,
-        projectionContractId = FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.PRIOR_GAP_MEMORY,
-        declaredFieldNames = FeatureTaskRuntimePriorGapMemory.DECLARED_FIELD_NAMES,
-        projectionContractVersion = "0.2",
-        delivery = PhaseHandoffProjectionDelivery(required = false),
-      ),
-    )
 
   /**
    * Closed-world projection matrix for every phase. Every upstream edge has an explicit typed
@@ -175,17 +144,6 @@ internal object FeatureTaskRuntimePhaseWorkflowProjectionDeclarations {
       ),
     ),
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW to listOf(
-      phaseProjection(
-        PhaseHandoffProjectionTemplate(
-          consumerPhaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW,
-          producingPhaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
-          name = "audit_clearance",
-          contractId = FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.AUDIT_CLEARANCE,
-          fields = listOf("clearance_status", "review_scope", "repository_checkpoint"),
-          checkpointPolicy = FeatureTaskRuntimeRepositoryCheckpointPolicy.REFRESH_FROM_REPOSITORY,
-          required = true,
-        ),
-      ),
       sharedReviewEvidenceDeclaration(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW),
     ),
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE to listOf(
@@ -207,17 +165,6 @@ internal object FeatureTaskRuntimePhaseWorkflowProjectionDeclarations {
           required = true,
         ),
       ),
-      phaseProjection(
-        PhaseHandoffProjectionTemplate(
-          consumerPhaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE,
-          producingPhaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
-          name = "audit_clearance",
-          contractId = FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.AUDIT_CLEARANCE,
-          fields = listOf("verdict", "repository_checkpoint"),
-          checkpointPolicy = FeatureTaskRuntimeRepositoryCheckpointPolicy.REFRESH_FROM_REPOSITORY,
-          required = true,
-        ),
-      ),
     ),
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD to listOf(
       phaseProseDeclaration(
@@ -234,17 +181,6 @@ internal object FeatureTaskRuntimePhaseWorkflowProjectionDeclarations {
             "changed_paths",
             "repository_checkpoint",
           ),
-          checkpointPolicy = FeatureTaskRuntimeRepositoryCheckpointPolicy.REFRESH_FROM_REPOSITORY,
-          required = true,
-        ),
-      ),
-      phaseProjection(
-        PhaseHandoffProjectionTemplate(
-          consumerPhaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD,
-          producingPhaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
-          name = "audit_clearance",
-          contractId = FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.AUDIT_CLEARANCE,
-          fields = listOf("verdict", "repository_checkpoint"),
           checkpointPolicy = FeatureTaskRuntimeRepositoryCheckpointPolicy.REFRESH_FROM_REPOSITORY,
           required = true,
         ),
@@ -414,11 +350,9 @@ internal object FeatureTaskRuntimePhaseWorkflowProjectionDeclarations {
       )
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE -> setOf(
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN,
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
     )
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD -> setOf(
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN,
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
     )
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_WRITE_HISTORY -> setOf(
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,

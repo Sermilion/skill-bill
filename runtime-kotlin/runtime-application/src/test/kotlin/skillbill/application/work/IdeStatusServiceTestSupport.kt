@@ -28,7 +28,6 @@ import skillbill.goalrunner.model.GoalRunnerSupervisionEvent
 import skillbill.goalrunner.model.GoalRunnerWorkerSubtaskRequestOutcome
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
-import skillbill.ports.featuretask.EmptyFeatureTaskRuntimeAuditGenerationRepository
 import skillbill.ports.goalrunner.EmptyGoalPlanningPreparationRepository
 import skillbill.ports.goalrunner.EmptyGoalRunnerControlRepository
 import skillbill.ports.goalrunner.GoalRunnerControlRepository
@@ -442,7 +441,6 @@ internal class TrackingDatabase(
     override val telemetryOutbox: TelemetryOutboxRepository
       get() = error("Not exercised by IdeStatusServiceTest.")
     override val goalPlanningPreparations = EmptyGoalPlanningPreparationRepository
-    override val featureTaskRuntimeAuditGenerations = EmptyFeatureTaskRuntimeAuditGenerationRepository
   }
 }
 

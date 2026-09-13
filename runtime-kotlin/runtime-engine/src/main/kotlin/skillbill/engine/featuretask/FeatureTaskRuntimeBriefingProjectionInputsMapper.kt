@@ -13,7 +13,6 @@ fun briefingProjectionInputs(
   resolvedCheckpoint = inputs.handoff.repositoryCheckpoint,
   sharedReviewEvidence = inputs.sharedReviewEvidence,
   expectedCheckpoint = inputs.handoff.expectedRepositoryCheckpoint,
-  priorGapMemory = inputs.handoff.priorGapMemory,
   repairLedger = inputs.handoff.repairLedger,
   recordedFindingVerdicts = inputs.handoff.recordedFindingVerdicts,
   branchIdentity = inputs.handoff.branchIdentity,

@@ -54,7 +54,6 @@ data class FeatureTaskRuntimeStatusProjection(
    */
   val finalizingAgentId: String? = null,
   val decomposeTerminal: FeatureTaskRuntimeDecomposeTerminalStatus? = null,
-  val auditRepair: FeatureTaskRuntimeAuditRepairStatus? = null,
   /** Runtime-measured validation gate runs while validate is active; null when not yet started. */
   val gateRunCount: Int? = null,
   /**
@@ -100,10 +99,6 @@ data class FeatureTaskRuntimeDegradedDiagnosticStatus(
   }
 }
 
-data class FeatureTaskRuntimeAuditRepairStatus(
-  val firstPassConvergence: Boolean,
-  val auditGapIterationCount: Int,
-)
 
 data class FeatureTaskRuntimeDecomposeTerminalStatus(
   val reason: String,

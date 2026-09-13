@@ -73,6 +73,24 @@ class FeatureTaskPhaseSettlementServiceTest {
   }
 
   @Test
+  fun `blocked audit settlement omits verdict and stores failure disposition`() {
+    val service = FeatureTaskPhaseSettlementService(InMemoryFeatureTaskPhaseSettlementRepository(), testHarnessClock)
+    service.block(
+      FeatureTaskPhaseSettlementBlockRequest(
+        workflowId = "wftr-test",
+        phaseId = "audit",
+        attempt = 1,
+        reason = "Planning criterion list unreadable.",
+        failureDisposition = "needs_user_action",
+      ),
+    )
+    val envelope = assertNotNull(service.findEnvelope("wftr-test", "audit", 1))
+    assertEquals("blocked", envelope["status"])
+    assertNull(envelope["verdict"])
+    assertEquals("needs_user_action", envelope["failure_disposition"])
+  }
+
+  @Test
   fun `clear removes a stored settlement so findEnvelope returns null`() {
     val repo = InMemoryFeatureTaskPhaseSettlementRepository()
     val service = FeatureTaskPhaseSettlementService(repo, testHarnessClock)

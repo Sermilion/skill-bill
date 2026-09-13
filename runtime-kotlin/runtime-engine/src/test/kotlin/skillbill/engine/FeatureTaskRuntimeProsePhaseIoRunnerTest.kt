@@ -82,37 +82,30 @@ class FeatureTaskRuntimeProsePhaseIoRunnerTest {
   }
 
   @Test
-  fun `audit gaps_found with leftover sibling keys re-enters implement under the real validator`() {
+  fun `removed gaps_found audit verdict does not re-enter implement`() {
     var auditLaunches = 0
     val harness = seededThroughImplementHarness { phaseId ->
       when (phaseId) {
         "audit" -> {
           auditLaunches += 1
-          if (auditLaunches == 1) {
-            fatAudit(verdict = "gaps_found", value = GAPS_AUDIT_VALUE)
-          } else {
-            auditSatisfiedOutput()
-          }
+          fatAudit(verdict = "gaps_found", value = GAPS_AUDIT_VALUE)
         }
-        "implement" -> fatImplement()
         else -> validJsonOutput(phaseId)
       }
     }
 
     val report = harness.runner.run(harness.request())
 
-    assertIs<FeatureTaskRuntimeRunReport.Completed>(report, report.toString())
-    val launched = harness.launchedPromptPhaseOrder()
-    assertEquals(2, launched.count { it == "audit" })
-    assertEquals(1, launched.count { it == "implement" })
-    assertTrue(launched.indexOf("implement") > launched.indexOf("audit"))
-    assertTrue(harness.launchOrder().contains("review"))
     assertTrue(
-      harness.io.database.rejectedDiagnostics().none { it.metadata.phaseId == "audit" },
+      report is FeatureTaskRuntimeRunReport.Blocked || report is FeatureTaskRuntimeRunReport.Completed,
+      report.toString(),
     )
-    val loopEdges = harness.recorder.loadPhaseLedger(WORKFLOW_ID).orEmpty()
-      .filter { it.action == FeatureTaskRuntimePhaseLedgerAction.LOOP_EDGE && it.loopId == "audit_gap" }
-    assertEquals(listOf(1), loopEdges.mapNotNull { it.edgeIteration })
+    assertEquals(1, auditLaunches)
+    assertEquals(1, harness.launchedPromptPhaseOrder().count { it == "implement" })
+    assertTrue(
+      harness.recorder.loadPhaseLedger(WORKFLOW_ID).orEmpty()
+        .none { it.loopId == "audit_gap" },
+    )
   }
 
   private fun proseHarness(outputFor: (String) -> String): RunnerHarness = runnerHarness(

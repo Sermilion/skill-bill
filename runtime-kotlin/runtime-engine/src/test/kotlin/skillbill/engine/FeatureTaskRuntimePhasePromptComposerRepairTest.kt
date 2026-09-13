@@ -10,7 +10,6 @@ import skillbill.workflow.taskruntime.model.CorrectiveRepairCapturedResponse
 import skillbill.workflow.taskruntime.model.CorrectiveRepairDiagnosticLocator
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeCorrectiveRepairBudget
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeCorrectiveRepairContext
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePriorGapMemory
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertFailsWith
@@ -20,25 +19,11 @@ import kotlin.test.assertTrue
 class FeatureTaskRuntimePhasePromptComposerRepairTest {
 
   @Test
-  fun `audit after remediation requires re-justification while first audit keeps blank-slate wording`() {
-    val memory = FeatureTaskRuntimePriorGapMemory(
-      round = 2,
-      priorAuditValues = listOf("""{"gaps":[{"criterion":"AC-002","note":"$AUDIT_GAP_MESSAGE"}]}"""),
-    )
-    val remediation = composePhasePrompt(
-      PROMPT_COMPOSER_ISSUE_KEY,
-      promptComposerBriefingFor(
-        "audit",
-        PromptComposerBriefingOptions(priorGapMemory = memory, auditGapReentry = true),
-      ),
-    )
-    assertContains(remediation, "explicit re-justification")
-    assertContains(remediation, "prior_audit_values")
-    assertContains(remediation, "AC-002")
-    assertTrue(!remediation.contains("nothing to carry forward"))
-
-    val firstAudit = composePromptForPhase("audit")
-    assertContains(firstAudit, "nothing to carry forward")
+  fun `audit prompt always requires full-list recheck without prior-gap memory`() {
+    val auditPrompt = composePromptForPhase("audit")
+    assertContains(auditPrompt, "complete listed criterion set from scratch")
+    assertTrue(!auditPrompt.contains("prior_gap_memory"))
+    assertTrue(!auditPrompt.contains("Prior-gap memory"))
   }
 
   @Test

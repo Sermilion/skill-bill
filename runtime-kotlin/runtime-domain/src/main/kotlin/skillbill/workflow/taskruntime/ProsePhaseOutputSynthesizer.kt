@@ -12,7 +12,7 @@ import skillbill.workflow.taskruntime.model.SettlementStatus
 
 object ProsePhaseOutputSynthesizer {
   private val PROSE_PHASE_IDS: Set<String> = setOf(PHASE_PREPLAN, PHASE_PLAN, PHASE_IMPLEMENT, PHASE_AUDIT)
-  private val AUDIT_VERDICTS: Set<String> = setOf("satisfied", "gaps_found")
+  private val AUDIT_VERDICTS: Set<String> = setOf("satisfied")
 
   fun isProsePhase(phaseId: String): Boolean = phaseId in PROSE_PHASE_IDS
 
@@ -35,7 +35,7 @@ object ProsePhaseOutputSynthesizer {
     val parsed = ProsePhaseOutputParse.bestEffortParse(phaseOutputText)
     if (parsed == null || !ProsePhaseOutputParse.identityCompatible(parsed, phaseId)) return null
     val status = ProsePhaseOutputParse.recoverStatus(parsed) ?: return null
-    val valueAndVerdict = recoverableValueAndVerdict(parsed, phaseOutputText, phaseId) ?: return null
+    val valueAndVerdict = recoverableValueAndVerdict(parsed, phaseOutputText, phaseId, status) ?: return null
     return SettlementEnvelopeRequest(
       phaseId = phaseId,
       status = status,
@@ -57,12 +57,17 @@ object ProsePhaseOutputSynthesizer {
     parsed: Map<String, Any?>,
     phaseOutputText: String,
     phaseId: String,
+    status: String,
   ): Pair<String, String?>? {
     val existingValue = ProsePhaseOutputRecover.directValue(parsed)
     val value = existingValue ?: ProsePhaseOutputRecover.recoverLegacyValue(parsed) ?: return null
     if (existingValue != null && phaseId != PHASE_AUDIT) return null
     val verdict = if (phaseId == PHASE_AUDIT) {
-      ProsePhaseOutputRecover.recoverAuditVerdict(parsed, phaseOutputText) ?: return null
+      if (status == SettlementStatus.COMPLETED.wireValue) {
+        ProsePhaseOutputRecover.recoverAuditVerdict(parsed, phaseOutputText) ?: return null
+      } else {
+        null
+      }
     } else {
       null
     }
@@ -81,13 +86,22 @@ object ProsePhaseOutputSynthesizer {
       SharedPayloadKeys.SUMMARY to request.summary,
       SharedPayloadKeys.PRODUCED_OUTPUTS to produced,
     )
-    if (request.phaseId == PHASE_AUDIT) {
+    if (request.phaseId == PHASE_AUDIT && request.status == SettlementStatus.COMPLETED) {
       val resolved = requireNotNull(request.verdict?.takeIf { it in AUDIT_VERDICTS }) {
-        "audit settlement requires verdict in $AUDIT_VERDICTS."
+        "completed audit settlement requires verdict in $AUDIT_VERDICTS."
       }
       envelope[SharedPayloadKeys.VERDICT] = resolved
     }
     val settledAsFailure = request.status == SettlementStatus.BLOCKED || request.status == SettlementStatus.FAILED
+    if (
+      settledAsFailure &&
+      request.phaseId == PHASE_AUDIT &&
+      request.failureDisposition.isNullOrBlank()
+    ) {
+      require(false) {
+        "blocked or failed audit settlement requires failure_disposition."
+      }
+    }
     if (settledAsFailure && !request.failureDisposition.isNullOrBlank()) {
       envelope[SharedPayloadKeys.FAILURE_DISPOSITION] = request.failureDisposition
     }

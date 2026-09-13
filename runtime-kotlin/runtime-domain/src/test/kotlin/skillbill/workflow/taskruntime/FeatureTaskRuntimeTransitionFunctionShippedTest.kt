@@ -134,25 +134,6 @@ class FeatureTaskRuntimeTransitionFunctionShippedTest {
   }
 
   @Test
-  fun `the audit_gap edge still re-enters implement uncapped and never passes through review`() {
-    val def = FeatureTaskRuntimePhaseWorkflowDefinition
-    val edge = shipped.backwardEdges.single { it.loopId == def.AUDIT_GAP_LOOP_ID }
-    assertEquals(null, edge.perEdgeCap)
-    val reentry = assertIs<FeatureTaskRuntimeNextPhase.Next>(
-      transition(
-        def.PHASE_AUDIT,
-        FeatureTaskRuntimeVerdict.GAPS_FOUND,
-        edgeIterationCount = 42,
-        settledVerdicts = emptyMap(),
-      ),
-    )
-    assertEquals(def.PHASE_IMPLEMENT, reentry.phaseId)
-    assertEquals(def.AUDIT_GAP_LOOP_ID, reentry.loopId)
-    assertEquals(43, reentry.edgeIteration)
-    assertTrue(def.PHASE_REVIEW !in shipped.spanBetween(edge.destinationPhaseId, edge.fromPhaseId))
-  }
-
-  @Test
   fun `write_history and commit_push never originate a backward edge`() {
     val def = FeatureTaskRuntimePhaseWorkflowDefinition
     val fromPhases = shipped.backwardEdges.map { it.fromPhaseId }.toSet()

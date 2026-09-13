@@ -310,9 +310,9 @@ class ReviewStatsRuntimeTest {
     connection.use {
       val store = LifecycleTelemetryStore(connection)
       val outbox = TelemetryOutboxStore(connection)
-      persistFeatureTaskRuntimeTelemetryPair(store, includeAuditCounters = true)
+      persistFeatureTaskRuntimeTelemetryPair(store)
       store.featureTaskRuntimeFinished(
-        featureTaskRuntimeFinishedRecord(includeAuditCounters = false),
+        featureTaskRuntimeFinishedRecord(),
         level = "anonymous",
       )
 
@@ -324,7 +324,7 @@ class ReviewStatsRuntimeTest {
       val finishedPayload = JsonCodec.parseObjectOrNull(
         pending.single { it.eventName == "skillbill_feature_task_runtime_finished" }.payloadJson,
       )
-      assertFeatureTaskRuntimeFinishedPayload(finishedPayload, includeAuditCounters = true)
+      assertFeatureTaskRuntimeFinishedPayload(finishedPayload)
 
       val stats = ReviewStatsRuntime.featureTaskRuntimeStats(connection)
       assertEquals(1, stats.totalRuns)
@@ -336,7 +336,7 @@ class ReviewStatsRuntimeTest {
     }
   }
 
-  private fun persistFeatureTaskRuntimeTelemetryPair(store: LifecycleTelemetryStore, includeAuditCounters: Boolean) {
+  private fun persistFeatureTaskRuntimeTelemetryPair(store: LifecycleTelemetryStore) {
     store.featureTaskRuntimeStarted(
       FeatureTaskRuntimeStartedRecord(
         sessionId = "ftr-1",
@@ -347,56 +347,32 @@ class ReviewStatsRuntimeTest {
       level = "anonymous",
     )
     store.featureTaskRuntimeFinished(
-      featureTaskRuntimeFinishedRecord(includeAuditCounters = includeAuditCounters),
+      featureTaskRuntimeFinishedRecord(),
       level = "anonymous",
     )
   }
 
-  private fun featureTaskRuntimeFinishedRecord(includeAuditCounters: Boolean): FeatureTaskRuntimeFinishedRecord =
-    if (includeAuditCounters) {
-      FeatureTaskRuntimeFinishedRecord(
-        sessionId = "ftr-1",
-        completionStatus = "completed",
-        completedPhaseIds = listOf("preplan", "plan", "implement"),
-        phaseOutcomes = mapOf("preplan" to "completed", "plan" to "completed", "implement" to "completed"),
-        lastIncompletePhase = "completed",
-        blockedReason = "",
-        resolvedBranch = "feat/SKILL-65.1",
-        auditFirstPassConvergence = false,
-        auditRecurringGapCount = 1,
-        auditNewGapCount = 2,
-        auditAttemptedRepairItemCount = 4,
-        auditResolvedRepairItemCount = 3,
-        auditGapIterationCount = 2,
-      )
-    } else {
-      FeatureTaskRuntimeFinishedRecord(
-        sessionId = "ftr-1",
-        completionStatus = "completed",
-        completedPhaseIds = listOf("preplan", "plan", "implement"),
-        phaseOutcomes = mapOf("preplan" to "completed", "plan" to "completed", "implement" to "completed"),
-        lastIncompletePhase = "completed",
-        blockedReason = "",
-        resolvedBranch = "feat/SKILL-65.1",
-      )
-    }
+  private fun featureTaskRuntimeFinishedRecord(): FeatureTaskRuntimeFinishedRecord =
+    FeatureTaskRuntimeFinishedRecord(
+      sessionId = "ftr-1",
+      completionStatus = "completed",
+      completedPhaseIds = listOf("preplan", "plan", "implement"),
+      phaseOutcomes = mapOf("preplan" to "completed", "plan" to "completed", "implement" to "completed"),
+      lastIncompletePhase = "completed",
+      blockedReason = "",
+      resolvedBranch = "feat/SKILL-65.1",
+    )
 
-  private fun assertFeatureTaskRuntimeFinishedPayload(
-    finishedPayload: Map<String, Any?>?,
-    includeAuditCounters: Boolean,
-  ) {
+  private fun assertFeatureTaskRuntimeFinishedPayload(finishedPayload: Map<String, Any?>?) {
     assertEquals("completed", finishedPayload?.get("completion_status")?.let { it.toString().trim('"') })
     assertEquals("completed", finishedPayload?.get("last_incomplete_phase")?.let { it.toString().trim('"') })
     assertEquals("", finishedPayload?.get("blocked_reason")?.let { it.toString().trim('"') })
-    if (!includeAuditCounters) {
-      return
-    }
-    assertEquals("false", finishedPayload?.get("audit_first_pass_convergence")?.toString())
-    assertEquals("1", finishedPayload?.get("audit_recurring_gap_count")?.toString())
-    assertEquals("2", finishedPayload?.get("audit_new_gap_count")?.toString())
-    assertEquals("4", finishedPayload?.get("audit_attempted_repair_item_count")?.toString())
-    assertEquals("3", finishedPayload?.get("audit_resolved_repair_item_count")?.toString())
-    assertEquals("2", finishedPayload?.get("audit_gap_iteration_count")?.toString())
+    assertTrue(finishedPayload?.containsKey("audit_gap_iteration_count") != true)
+    assertTrue(finishedPayload?.containsKey("audit_first_pass_convergence") != true)
+    assertTrue(finishedPayload?.containsKey("audit_recurring_gap_count") != true)
+    assertTrue(finishedPayload?.containsKey("audit_new_gap_count") != true)
+    assertTrue(finishedPayload?.containsKey("audit_attempted_repair_item_count") != true)
+    assertTrue(finishedPayload?.containsKey("audit_resolved_repair_item_count") != true)
   }
 
   @Test

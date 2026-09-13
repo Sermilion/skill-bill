@@ -245,7 +245,7 @@ class FeatureTaskRuntimePhasePromptComposerContentTest {
     assertContains(reviewPrompt, "\"approved\" or \"changes_requested\"", false, "review names the verdict values")
     assertContains(auditPrompt, "VERIFYING phase", false, "audit names itself a verifying phase")
     assertAuditPromptNamesSignal(auditPrompt, "produced_outputs.value", "the audit prose signal")
-    assertAuditPromptNamesSignal(auditPrompt, "satisfied | gaps_found", "the verdict values")
+    assertAuditPromptNamesSignal(auditPrompt, "\"verdict\":\"satisfied\"", "the sole accepted audit completion verdict")
     assertAuditPromptNamesSignal(
       auditPrompt,
       "for audit, top-level \"verdict\" is REQUIRED",
@@ -276,15 +276,6 @@ class FeatureTaskRuntimePhasePromptComposerContentTest {
     assertContains(auditPrompt, "blast radius", false, "audit should consider blast radius before naming a gap")
     assertContains(auditPrompt, "free-form note prose", false, "plan quality is guidance, not a wire template")
     assertContains(auditPrompt, "does not block on note length", false, "audit schema is recommendation only")
-    assertContains(
-      composePhasePrompt(
-        PROMPT_COMPOSER_ISSUE_KEY,
-        promptComposerBriefingFor("implement", PromptComposerBriefingOptions(auditGapReentry = true)),
-      ),
-      "Follow every gap named there completely",
-      false,
-      "implement remediation should prefer the audit's plan",
-    )
   }
 
   @Test

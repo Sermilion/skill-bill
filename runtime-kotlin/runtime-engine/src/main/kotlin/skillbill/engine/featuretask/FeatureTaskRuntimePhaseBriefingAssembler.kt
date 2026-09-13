@@ -119,9 +119,7 @@ object FeatureTaskRuntimePhaseBriefingAssembler {
       derivedContextKeys = handoff.derivedContextKeys,
       briefingText = briefingText,
       drivingVerdict = handoff.drivingVerdict?.wireValue,
-      unresolvedAuditGapIds = handoff.reentryGapCriteria,
       durablyClosedCriterionRefs = handoff.durablyClosedCriterionRefs,
-      priorGapMemory = handoff.priorGapMemory,
     )
   }
 

@@ -128,6 +128,25 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
     val loop = context.loop
     val observability = context.observability
     val agentId = context.agentId
+    if (FeatureTaskRuntimePhaseWorkflowDefinition.singleAgentSessionOnly(run.phaseId)) {
+      return blockInPhase(
+        runLoop,
+        PhaseBlockRequest(
+          run = run,
+          attemptCount = loop.iteration,
+          reason = withSchemaGateDetail(
+            nonRetryingPhaseSchemaBlockReason(run.phaseId),
+            requireNotNull(attempt.schemaInvalidOperatorReason),
+          ),
+          observability = observability,
+          payload = BlockAndPersistPayload(
+            fileManifest = attempt.fileManifest,
+            rejectedOutput = attempt.rejectedOutput,
+          ),
+          failureDisposition = FeatureTaskRuntimeFailureDisposition.INVALID_OUTPUT,
+        ),
+      )
+    }
     loop.outputGateFailures += 1
     loop.malformedAttemptCount += 1
     val formatBlock = FeatureTaskRuntimeAttemptBudgets.outputGateBlockReason(

@@ -4,8 +4,6 @@ import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseLaunchBriefing
 import skillbill.engine.featuretask.validation.model.ValidationFindingSetProjection
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffProjectionValue
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePriorGapMemory
-
 private const val VALIDATE_PHASE_FORBIDDEN_EXTRAS: String =
   "Do not run `skill-bill validate`, `npx agnix`, `scripts/validate_agent_configs`, or any other " +
     "repo-root checklist. Those commands are not this phase. "
@@ -100,11 +98,9 @@ internal data class PhaseTaskDirectiveArgs(
   val agentRunValidateFallback: Boolean = false,
   val packCollectAllCommand: String? = null,
   val packBuildCommand: String? = null,
-  val priorGapMemory: FeatureTaskRuntimePriorGapMemory? = null,
   val validationGateRepair: Boolean = false,
   val validationGateTriage: Boolean = false,
   val acceptanceCriteria: List<String> = emptyList(),
-  val auditGapImplement: Boolean = false,
 )
 
 internal fun phaseTaskDirective(phaseId: String, args: PhaseTaskDirectiveArgs = PhaseTaskDirectiveArgs()): String =
@@ -122,9 +118,9 @@ internal fun phaseTaskDirective(phaseId: String, args: PhaseTaskDirectiveArgs = 
       )
     }
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT ->
-      auditPhaseTaskDirective(args.priorGapMemory, args.acceptanceCriteria)
+      auditPhaseTaskDirective(args.acceptanceCriteria)
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT ->
-      implementPhaseTaskDirective(args.auditGapImplement, args.acceptanceCriteria)
+      implementPhaseTaskDirective(args.acceptanceCriteria)
     else -> phaseDirectives[phaseId] ?: error("No phase directive for runtime phase '$phaseId'.")
   }
 
@@ -208,36 +204,7 @@ fun validationGateFindingsDirective(
 }
 
 fun auditNoEarlierAuditLine(briefing: FeatureTaskRuntimePhaseLaunchBriefing): String =
-  if (briefing.priorGapMemory == null) {
-    "      Every audit re-checks every listed criterion from scratch against the tree, so there is no\n" +
-      "      earlier audit to account for and nothing to carry forward except the notes you emit now.\n"
-  } else {
-    "      Every audit re-checks every listed criterion from scratch against the tree; when this\n" +
-      "      briefing carries prior-gap memory, earlier audit value strings in prior_audit_values are\n" +
-      "      context you must account for, and a repeated criterion needs an explicit re-justification (below).\n"
-  }
+  "      Every audit invocation re-checks the complete listed criterion set from scratch against the\n" +
+    "      current tree. Prior partial checks, provider sessions, and repair receipts do not skip checks.\n"
 
-fun auditRoundScopeAddendum(briefing: FeatureTaskRuntimePhaseLaunchBriefing): String {
-  val memoryBlock = briefing.priorGapMemory?.let { memory ->
-    buildString {
-      append("\n      Prior-gap memory (round ${memory.round}): prior audit value strings:\n")
-      memory.priorAuditValues.forEach { value -> append("        - $value\n") }
-      append("      When a gap repeats a criterion already named in a prior audit value, require explicit\n")
-      append("      re-justification: name what the prior implement claimed and why the tree still fails it.\n")
-    }
-  }.orEmpty()
-  val auditProse = briefing.handoffEnvelope.projections
-    .firstOrNull { it.projectionName == "audit_prose" }
-    ?.fields
-    ?.firstOrNull { it.name == "value" }
-    ?.value
-    ?.let { (it as? FeatureTaskRuntimeHandoffProjectionValue.Text)?.text }
-  val scopeBlock = if (auditProse.isNullOrBlank()) {
-    ""
-  } else {
-    "\n      The previous audit value reported gaps in structured prose. Start there, then still decide " +
-      "every listed criterion from the tree: a repair can regress a criterion an earlier audit passed, " +
-      "and a narrow patch can open a new sibling gap."
-  }
-  return memoryBlock + scopeBlock
-}
+fun auditRoundScopeAddendum(briefing: FeatureTaskRuntimePhaseLaunchBriefing): String = ""

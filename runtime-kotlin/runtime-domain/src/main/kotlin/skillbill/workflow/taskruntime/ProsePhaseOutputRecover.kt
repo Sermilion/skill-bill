@@ -10,7 +10,7 @@ internal object ProsePhaseOutputRecover {
     "preplanning_digest",
     "gaps",
   )
-  private val AUDIT_VERDICTS: Set<String> = setOf("satisfied", "gaps_found")
+  private val AUDIT_VERDICTS: Set<String> = setOf("satisfied")
   private const val SUMMARY_MAX_CHARS: Int = 240
   private const val SUMMARY_ELLIPSIS_PREFIX: Int = 237
 
@@ -69,12 +69,7 @@ internal object ProsePhaseOutputRecover {
     if (fromProduced in AUDIT_VERDICTS) return fromProduced
     val lower = rawText.lowercase()
     val hasSatisfied = Regex("""\bsatisfied\b""").containsMatchIn(lower)
-    val hasGaps = Regex("""\bgaps_found\b""").containsMatchIn(lower)
-    return when {
-      hasSatisfied && !hasGaps -> "satisfied"
-      hasGaps && !hasSatisfied -> "gaps_found"
-      else -> null
-    }
+    return if (hasSatisfied) "satisfied" else null
   }
 
   fun recoverFailureDisposition(parsed: Map<String, Any?>?): String? = parsed

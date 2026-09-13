@@ -53,8 +53,8 @@ class FeatureTaskRuntimeSharedEvidenceEndToEndTest {
   }
 
   @Test
-  fun `audit_gap re-entry reuses at an unchanged fingerprint and re-derives after the tree moves`() {
-    val repoRoot = createTempDirectory("shared-evidence-audit-gap")
+  fun `stateless audit records one checkpoint fingerprint for shared evidence`() {
+    val repoRoot = createTempDirectory("shared-evidence-stateless-audit")
     val store = CountingSharedEvidenceStore()
     val git = RecordingWorkflowGitOperations().also {
       it.headCommitShaValue = "a".repeat(40)
@@ -67,11 +67,12 @@ class FeatureTaskRuntimeSharedEvidenceEndToEndTest {
         branchSetup = BranchSetupTestConfig(gitOperations = git),
         sharedEvidenceResolver = store,
         diffResolver = CountingDiffResolver(),
-      ).copy(launcher = auditGapLauncher(repoRoot, git, fingerprintsAtAudit)),
+      ).copy(launcher = satisfiedAuditWithCheckpointLauncher(repoRoot, git, fingerprintsAtAudit)),
     )
 
     assertIs<FeatureTaskRuntimeRunReport.Completed>(harness.runner.run(harness.request()))
-    assertAuditGapCheckpointMovement(repoRoot, store, fingerprintsAtAudit)
+    assertEquals(1, fingerprintsAtAudit.size)
+    assertTrue(store.derivationCount >= 1, "at least one derivation must occur")
   }
 
   @Test
@@ -150,76 +151,25 @@ class FeatureTaskRuntimeSharedEvidenceEndToEndTest {
     )
   }
 
-  private fun auditGapLauncher(
+  private fun satisfiedAuditWithCheckpointLauncher(
     repoRoot: Path,
     git: RecordingWorkflowGitOperations,
     fingerprintsAtAudit: MutableList<String>,
-  ): RuntimeRecordingLauncher {
-    var implementLaunches = 0
-    return RuntimeRecordingLauncher { request ->
-      when (val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))) {
-        "implement" -> {
-          implementLaunches += 1
-          if (implementLaunches > 1) {
-            // Real working-tree remediation: write a new owned path so the checkpoint moves.
-            val remediation = repoRoot.resolve("src/Remediation.kt")
-            Files.createDirectories(remediation.parent)
-            Files.writeString(remediation, "fun remediated() = 1\n")
-            git.ownedPathsValue = listOf("src/A.kt", "src/Remediation.kt")
-            git.worktreeStatusValue = " M src/A.kt\n?? src/Remediation.kt"
-          }
-          facts(validJsonOutputForGitPhase(phaseId, git))
-        }
-        "audit" -> {
-          val fingerprint = git.repositoryFingerprintOperations
-            .repositoryCheckpointFingerprint(
-              repoRoot,
-              null,
-              git.headCommitShaValue,
-              git.ownedPathsValue,
-            ).value.orEmpty()
-          fingerprintsAtAudit += fingerprint
-          facts(
-            if (fingerprintsAtAudit.size == 1) {
-              auditGapsOutput()
-            } else {
-              auditSatisfiedOutput()
-            },
-          )
-        }
-        else -> facts(validJsonOutputForGitPhase(phaseId, git))
+  ): RuntimeRecordingLauncher = RuntimeRecordingLauncher { request ->
+    when (val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))) {
+      "audit" -> {
+        val fingerprint = git.repositoryFingerprintOperations
+          .repositoryCheckpointFingerprint(
+            repoRoot,
+            null,
+            git.headCommitShaValue,
+            git.ownedPathsValue,
+          ).value.orEmpty()
+        fingerprintsAtAudit += fingerprint
+        facts(auditSatisfiedOutput())
       }
+      else -> facts(validJsonOutputForGitPhase(phaseId, git))
     }
-  }
-
-  private fun assertAuditGapCheckpointMovement(
-    repoRoot: Path,
-    store: CountingSharedEvidenceStore,
-    fingerprintsAtAudit: List<String>,
-  ) {
-    assertTrue(Files.isRegularFile(repoRoot.resolve("src/Remediation.kt")), "remediation must write the tree")
-    assertEquals(2, fingerprintsAtAudit.size)
-    assertNotEquals(
-      fingerprintsAtAudit[0],
-      fingerprintsAtAudit[1],
-      "tree-moving remediation must move the checkpoint fingerprint: $fingerprintsAtAudit",
-    )
-    assertTrue(store.derivationCount >= 1, "at least one derivation must occur")
-    assertTrue(
-      store.outcomes.contains(FeatureTaskRuntimeSharedEvidenceResolveOutcome.REUSE) ||
-        store.outcomes.contains(FeatureTaskRuntimeSharedEvidenceResolveOutcome.CHECKPOINT_CHANGE_REDERIVATION),
-      "unchanged-checkpoint reuse or checkpoint-change re-derivation must appear: ${store.outcomes}",
-    )
-    assertTrue(
-      store.outcomes.contains(FeatureTaskRuntimeSharedEvidenceResolveOutcome.CHECKPOINT_CHANGE_REDERIVATION) ||
-        store.servedFingerprints.toSet().size >= 2,
-      "tree-moving remediation must re-derive at the new fingerprint: " +
-        "${store.outcomes} / ${store.servedFingerprints}",
-    )
-    assertTrue(
-      store.servedFingerprints.toSet().size >= 2,
-      "no stale artifact may be served across fingerprints: served=${store.servedFingerprints}",
-    )
   }
 
   private fun sharedEvidencePath(briefing: FeatureTaskRuntimePhaseLaunchBriefing): String? =

@@ -392,7 +392,6 @@ class StaleSessionReconcilerTest {
       blockedReason = "",
       resolvedBranch = "feat/SKILL-109",
       reviewFixIterationCount = 0,
-      auditGapIterationCount = 0,
       estimatedPhaseTokenBreakdownJson = null,
       estimatedTotalTokens = null,
     )

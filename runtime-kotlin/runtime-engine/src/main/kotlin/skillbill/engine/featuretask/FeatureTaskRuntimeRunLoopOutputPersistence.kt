@@ -225,8 +225,6 @@ object FeatureTaskRuntimeRunLoopOutputPersistence {
         runInvariants = args.run.request.runInvariants,
         recordedOutputs = args.state.outputs(),
         drivingVerdict = args.run.reentry?.drivingVerdict,
-        reentryGapCriteria = emptyList(),
-        priorGapMemory = FeatureTaskRuntimeRunLoopLaunch.priorGapMemoryFor(runLoop, args.run, args.state),
         durablyClosedCriterionRefs = args.durablyClosedCriterionRefs,
         repairLedger = null,
         repositoryCheckpoint = args.repositoryCheckpoint,
@@ -339,11 +337,6 @@ object FeatureTaskRuntimeRunLoopOutputPersistence {
       loopId = run.reentry?.loopId,
       edgeIteration = run.reentry?.edgeIteration,
       reviewPassNumber = reviewPassNumber(runLoop, run, runLoop.state),
-      auditScopeCriterionRefs = if (run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT) {
-        FeatureTaskRuntimeRunLoopPhaseRunner.openAuditCriterionRefs(runLoop)
-      } else {
-        emptyList()
-      },
       launchedModel = extras.launched?.modelOverride,
       launchedEffort = extras.launched?.persistedEffort,
       launchOutcomeKnown = extras.launched != null,

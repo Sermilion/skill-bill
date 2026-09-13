@@ -2,6 +2,8 @@ package skillbill.workflow.taskruntime.model
 
 import skillbill.boundary.OpenBoundaryMap
 
+const val FEATURE_TASK_RUNTIME_AUDIT_NOTE_MAX_CHARS: Int = 1024
+
 data class FeatureTaskRuntimePriorGapMemory(
   val round: Int,
   val priorAuditValues: List<String>,

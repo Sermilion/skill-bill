@@ -14,7 +14,6 @@ import skillbill.infrastructure.sqlite.review.upsertReviewAccounting
 import skillbill.infrastructure.sqlite.telemetry.LifecycleTelemetryStore
 import skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxStore
 import skillbill.infrastructure.sqlite.workflow.AgentActivityStampStore
-import skillbill.infrastructure.sqlite.workflow.FeatureTaskRuntimeAuditGenerationStore
 import skillbill.infrastructure.sqlite.workflow.GoalPlanningPreparationStore
 import skillbill.infrastructure.sqlite.workflow.GoalRunnerControlStore
 import skillbill.infrastructure.sqlite.workflow.WorkflowStateStore
@@ -27,7 +26,6 @@ import skillbill.learnings.model.RejectedLearningSourceOutcome
 import skillbill.learnings.model.UpdateLearningRequest
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticPermissions
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticRepository
-import skillbill.ports.featuretask.FeatureTaskRuntimeAuditGenerationRepository
 import skillbill.ports.goalrunner.GoalPlanningPreparationRepository
 import skillbill.ports.goalrunner.GoalRunnerControlRepository
 import skillbill.ports.goalrunner.UnaddressedFindingsRepository
@@ -76,9 +74,6 @@ class SQLiteUnitOfWork(
   override val goalRunnerControls: GoalRunnerControlRepository =
     GoalRunnerControlStore(connection)
   override val unaddressedFindings: UnaddressedFindingsRepository = SQLiteUnaddressedFindingsRepository(connection)
-  override val featureTaskRuntimeAuditGenerations:
-    FeatureTaskRuntimeAuditGenerationRepository =
-    FeatureTaskRuntimeAuditGenerationStore(connection)
   override val agentActivityStamps: AgentActivityStampRepository =
     AgentActivityStampStore(connection)
   override val rejectedOutputDiagnostics: RejectedOutputDiagnosticRepository =

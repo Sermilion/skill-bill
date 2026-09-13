@@ -1,6 +1,5 @@
 package skillbill.engine.featuretask
 
-import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
@@ -17,7 +16,7 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.model.requireAcceptedOutput
 
 class FeatureTaskRuntimeRunState(
-  val initialRecords: Map<String, FeatureTaskRuntimePhaseRecord>,
+  initialRecords: Map<String, FeatureTaskRuntimePhaseRecord>,
   val transitions: FeatureTaskRuntimeTransitionDeclaration,
   val initialLedger: List<FeatureTaskRuntimePhaseLedgerEntry> = emptyList(),
   val outputValidator: FeatureTaskRuntimePhaseOutputValidator,
@@ -26,6 +25,9 @@ class FeatureTaskRuntimeRunState(
     it?.results?.lastOrNull()?.command
   },
 ) {
+  val initialRecords: Map<String, FeatureTaskRuntimePhaseRecord> =
+    FeatureTaskRuntimeRunStateReconstruction.normalizeInitialRecordsForStatelessAudit(initialRecords)
+
   internal var reviewGeneration: Int = initialReviewGeneration
     private set
 
@@ -38,8 +40,11 @@ class FeatureTaskRuntimeRunState(
       initialLedger,
       initialRecords,
     ).filterKeys { loopId ->
-      !hasDurableReviewInvalidationTombstone ||
-        loopId != FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID
+      loopId != FeatureTaskRuntimePhaseWorkflowDefinition.AUDIT_GAP_LOOP_ID &&
+        (
+          !hasDurableReviewInvalidationTombstone ||
+            loopId != FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID
+          )
     }.toMutableMap()
 
   val gateInvalidatedPhases: MutableSet<String> = mutableSetOf()
@@ -52,6 +57,20 @@ class FeatureTaskRuntimeRunState(
       .map { it.phaseId }
       .toMutableSet()
       .also(::invalidateLegacyPlanWithoutPreplan)
+      .also {
+        FeatureTaskRuntimeRunStateReconstruction.invalidateLegacyRemovedAuditCompletion(
+          initialRecords,
+          it,
+          gateInvalidatedPhases,
+        )
+      }
+      .also {
+        FeatureTaskRuntimeRunStateReconstruction.invalidateDownstreamOfIncompleteAudit(
+          transitions,
+          it,
+          gateInvalidatedPhases,
+        )
+      }
       .also { FeatureTaskRuntimeRunStateReconstruction.invalidateIncompleteReentrySpans(inFlightReentries.values, it) }
       .also {
         FeatureTaskRuntimeRunStateReconstruction.invalidateUnsatisfiedGateSuccessors(
@@ -83,8 +102,9 @@ class FeatureTaskRuntimeRunState(
       .filterNot { it.phaseId in gateInvalidatedPhases }
       .toMutableList()
 
-  fun validatedRecordToOutput(record: FeatureTaskRuntimePhaseRecord): FeatureTaskRuntimePhaseOutput? =
-    record.outputArtifact?.let { artifact ->
+  fun validatedRecordToOutput(record: FeatureTaskRuntimePhaseRecord): FeatureTaskRuntimePhaseOutput? {
+    if (FeatureTaskRuntimeRunStateReconstruction.hasLegacyRemovedAuditVerdict(record)) return null
+    return record.outputArtifact?.let { artifact ->
       val accepted = try {
         outputValidator.validatePhaseOutput(artifact, record.phaseId).requireAcceptedOutput(record.phaseId)
       } catch (error: InvalidFeatureTaskRuntimePhaseOutputSchemaError) {
@@ -99,6 +119,8 @@ class FeatureTaskRuntimeRunState(
         repairEvidence = record.repairEvidence ?: accepted.repairEvidence,
       )
     }
+  }
+
   val priorRecords: MutableSet<String> = initialRecords.keys.toMutableSet()
   val phasesLaunchedThisProcess: MutableSet<String> = mutableSetOf()
   private val initialReviewRecord = initialRecords[FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW]
@@ -114,8 +136,10 @@ class FeatureTaskRuntimeRunState(
     initialRecords.mapValues { (_, record) -> record.attemptCount }.toMutableMap()
 
   val blockedRecords: MutableMap<String, String> = initialRecords
-    .filterValues {
-      it.status.workflowStepStatus() == WorkflowStepStatus.BLOCKED && it.resolvedAgentId != BRANCH_SETUP_AGENT_ID
+    .filterValues { record ->
+      record.status.workflowStepStatus() == WorkflowStepStatus.BLOCKED &&
+        record.resolvedAgentId != BRANCH_SETUP_AGENT_ID &&
+        !FeatureTaskRuntimeRunStateReconstruction.isLegacyAuditGapPersistedBlock(record)
     }
     .mapValues { (_, record) -> record.blockedReason.orEmpty() }
     .toMutableMap()
@@ -139,6 +163,7 @@ class FeatureTaskRuntimeRunState(
     .mapValues { (_, iterations) -> iterations.max() }
     .toMutableMap()
     .apply {
+      remove(FeatureTaskRuntimePhaseWorkflowDefinition.AUDIT_GAP_LOOP_ID)
       if (hasDurableReviewInvalidationTombstone) remove(FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID)
     }
 
@@ -343,34 +368,6 @@ class FeatureTaskRuntimeRunState(
     }
   }
 
-  val auditGapPlanningContextError: String?
-    get() = listOf(
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN,
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN,
-    ).firstNotNullOfOrNull(::planningContextError)
-
-  fun planningContextError(phaseId: String): String? {
-    val record = initialRecords[phaseId]
-    val output = outputFor(phaseId)
-    if (output == null || record?.status?.let { it != WorkflowStepStatus.COMPLETED } == true) {
-      return "Audit-gap remediation requires a valid completed original '$phaseId' output."
-    }
-    val validatedOutput = output.normalizedOutput?.envelope
-    return when {
-      validatedOutput == null ->
-        "Audit-gap remediation requires a valid completed original '$phaseId' output; " +
-          "its durable record carries no normalized output."
-      validatedOutput[SharedPayloadKeys.PHASE_ID] != phaseId ->
-        "Audit-gap remediation requires a valid completed original '$phaseId' output; " +
-          "the persisted record declares phase_id '${validatedOutput[SharedPayloadKeys.PHASE_ID]}'."
-      record?.loopId != null || record?.edgeIteration != null ->
-        "Audit-gap remediation cannot prove original planning-context identity because '$phaseId' " +
-          "carries legacy backward-edge metadata. Migrate or restart this experimental durable workflow; " +
-          "the runtime will not regenerate or silently reuse overwritten planning context."
-      else -> null
-    }
-  }
-
   fun advanceReviewGeneration(next: Int) {
     if (next > reviewGeneration) reviewGeneration = next
   }
@@ -398,10 +395,8 @@ class FeatureTaskRuntimeRunState(
 
   fun durableVerdictFor(phaseId: String): FeatureTaskRuntimeVerdict {
     val record = initialRecords[phaseId] ?: return verdictFor(phaseId)
-    return FeatureTaskRuntimeOutputVerification.verdictFor(
-      phaseId,
-      parsedOutput(validatedRecordToOutput(record)),
-    )
+    val output = validatedRecordToOutput(record) ?: return verdictFor(phaseId)
+    return FeatureTaskRuntimeOutputVerification.verdictFor(phaseId, parsedOutput(output))
   }
 }
 

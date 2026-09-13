@@ -197,91 +197,8 @@ class GoalRunnerFeatureTaskRuntimeIntegrationTest {
   }
 
   @Test
-  fun `goal child audit gap reuses initial planning context and resumes at implement`() {
-    val workflowId = WORKFLOW_ID
-    val outcomes = RecordingOutcomeStore().apply { seedReviewState(workflowId) }
-    val phaseLauncher = auditGapLauncher(convergeOnAudit = 2)
-    val runtime = runnerHarness(
-      RuntimeHarnessConfig(
-        branchSetup = BranchSetupTestConfig(
-          gitOperations = RecordingWorkflowGitOperations(currentBranchValue = "feat/SKILL-126-goal"),
-        ),
-      ).copy(launcher = phaseLauncher),
-    )
-    val goalRunner = testGoalRunner(
-      goalRunnerDeps(
-        manifestStore = InMemoryGoalManifestStore(manifest(subtaskCount = 1).withWorkflowId(1, workflowId)),
-        subtaskLauncher = RuntimeChildLauncher(runtime.runner, runtime.request(), outcomes),
-        outcomeStore = outcomes,
-        pullRequestPort = RecordingPullRequestPort(),
-      ),
-    )
-
-    val report = goalRunner.run(
-      GoalRunnerRunRequest(
-        issueKey = "SKILL-56",
-        repoRoot = runtime.request().repoRoot,
-        invokedAgentId = INVOKED_AGENT,
-      ),
-    )
-
-    assertIs<GoalRunnerRunReport.Completed>(report)
-    val launched = phaseLauncher.requests.map {
-      phaseIdFromPrompt(requireNotNull(it.skillRunRequest.promptOverride))
-    }
-    assertEquals(1, launched.count { it == "preplan" })
-    assertEquals(1, launched.count { it == "plan" })
-    assertEquals(2, launched.count { it == "implement" })
-    val remediationPrompt = phaseLauncher.requests
-      .map { requireNotNull(it.skillRunRequest.promptOverride) }
-      .filter { it.contains("Phase: implement") }
-      .last()
-    assertTrue(!remediationPrompt.contains("### from: preplan"))
-    assertContains(remediationPrompt, "### from: plan")
-    assertContains(remediationPrompt, "AC-2 acceptance criterion is not yet implemented")
-    val planningRecords = runtime.recorder.loadPhaseRecords(workflowId).orEmpty()
-    assertEquals(1, planningRecords.getValue("preplan").attemptCount)
-    assertEquals(1, planningRecords.getValue("plan").attemptCount)
-    assertEquals(null, planningRecords.getValue("preplan").loopId)
-    assertEquals(null, planningRecords.getValue("plan").loopId)
-    val reviewCompletions = runtime.recorder.loadPhaseLedger(workflowId).orEmpty()
-      .filter { it.action == COMPLETE }
-      .filter { it.phaseId == "review" }
-    assertEquals(1, runtime.launchOrder().count { it == "review" })
-    assertEquals(0, reviewCompletions.count { it.loopId == "audit_gap" })
-  }
-
-  @Test
   fun `goal child accepts future phase prose when structured repair results are exhaustive`() {
-    fun launcher(): RuntimeRecordingLauncher {
-      var auditLaunches = 0
-      var implementLaunches = 0
-      return RuntimeRecordingLauncher { request ->
-        val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
-        when (phaseId) {
-          "audit" -> {
-            auditLaunches += 1
-            facts(if (auditLaunches == 1) auditGapsOutput() else auditSatisfiedOutput())
-          }
-          "implement" -> {
-            implementLaunches += 1
-            facts(
-              if (implementLaunches == 1) {
-                validJsonOutput(phaseId)
-              } else {
-                validJsonOutput(phaseId).replace(
-                  "\"summary\": \"Phase produced a validated output.\"",
-                  "\"summary\": \"Deferred the remaining repair to the validation phase.\"",
-                )
-              },
-            )
-          }
-          else -> facts(validJsonOutput(phaseId))
-        }
-      }
-    }
-    val parity = standaloneAndGoalChildParity(launcher = ::launcher)
-
+    val parity = standaloneAndGoalChildParity(launcher = { satisfiedAuditLauncher() })
     assertIs<GoalRunnerRunReport.Completed>(parity.report)
     val observation = parity.runtime.goalChildObservation(
       parity.childReports.last(),
@@ -291,28 +208,11 @@ class GoalRunnerFeatureTaskRuntimeIntegrationTest {
   }
 
   @Test
-  fun `goal child blocks on a non-progressing equivalent gap set`() {
-    val parity = standaloneAndGoalChildParity(
-      launcher = { auditGapLauncher(convergeOnAudit = 3) },
-      gitOperations = {
-        RecordingWorkflowGitOperations(currentBranchValue = "feat/SKILL-56-goal")
-          .apply { repositoryFingerprintValue = "unchanged" }
-      },
-    )
-
-    assertIs<GoalRunnerRunReport.Stopped>(parity.report)
-    val blocked = assertNotNull(parity.blockedChildReason())
-    assertContains(blocked, "Audit made no progress")
-    assertContains(blocked, "repository fingerprint is unchanged")
-    assertTrue(parity.runtime.recorder.loadPhaseRecords(WORKFLOW_ID).orEmpty()["validate"] == null)
-  }
-
-  @Test
   fun `goal child parses every canonical wrapper form into the same run`() {
     val observed = GOAL_CHILD_WRAPPER_FORMS.mapValues { (_, wrap) ->
       val standalone = runnerHarness(
         RuntimeHarnessConfig(
-          launcher = wrappedAuditGapLauncher(convergeOnAudit = 2, wrap = wrap),
+          launcher = wrappedSatisfiedAuditLauncher(wrap = wrap),
           validator = CanonicalWrapperTestValidator,
         ),
       )
@@ -321,7 +221,7 @@ class GoalRunnerFeatureTaskRuntimeIntegrationTest {
         assertIs<FeatureTaskRuntimeRunReport.Completed>(standalone.runner.run(standalone.request()))
       val standaloneObservation = standalone.goalChildObservation(standaloneReport)
       val parity = goalChildParityRun(
-        launcher = wrappedAuditGapLauncher(convergeOnAudit = 2, wrap = wrap),
+        launcher = wrappedSatisfiedAuditLauncher(wrap = wrap),
         config = GoalChildParityConfig(validator = CanonicalWrapperTestValidator),
       )
       assertIs<GoalRunnerRunReport.Completed>(parity.report)
@@ -339,7 +239,7 @@ class GoalRunnerFeatureTaskRuntimeIntegrationTest {
     observed.forEach { (form, actual) ->
       assertEquals(bare, actual, "goal-child wrapper form '$form' must produce the identical normalized run")
     }
-    assertEquals(listOf(1), bare.auditGapEdgeIterations)
+    assertEquals(emptyList(), bare.auditGapEdgeIterations)
   }
 }
 
@@ -456,23 +356,18 @@ private val GOAL_CHILD_WRAPPER_FORMS: Map<String, (String) -> String> = mapOf(
   },
 )
 
-private fun wrappedAuditGapLauncher(convergeOnAudit: Int, wrap: (String) -> String): RuntimeRecordingLauncher {
-  var auditLaunches = 0
-  return RuntimeRecordingLauncher { request ->
+private fun wrappedSatisfiedAuditLauncher(wrap: (String) -> String): RuntimeRecordingLauncher =
+  RuntimeRecordingLauncher { request ->
     val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
     facts(
       wrap(
-        when {
-          phaseId != "audit" -> validJsonOutput(phaseId)
-          else -> {
-            auditLaunches += 1
-            if (auditLaunches < convergeOnAudit) auditGapsOutput() else auditSatisfiedOutput()
-          }
+        when (phaseId) {
+          "audit" -> auditSatisfiedOutput()
+          else -> validJsonOutput(phaseId)
         },
       ),
     )
   }
-}
 
 private class GoalChildParityRun(
   val report: GoalRunnerRunReport,

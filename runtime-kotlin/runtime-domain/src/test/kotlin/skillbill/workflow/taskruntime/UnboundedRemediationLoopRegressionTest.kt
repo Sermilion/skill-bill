@@ -6,7 +6,6 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class UnboundedRemediationLoopRegressionTest {
@@ -29,19 +28,15 @@ class UnboundedRemediationLoopRegressionTest {
   )
 
   @Test
-  fun `audit_gap topology stays uncapped and returns the Next edge above iteration three`() {
-    // The transition function is the topology: it still returns a Next edge at every gap iteration,
-    // and the edge's perEdgeCap stays null. The runtime (not this topology) applies the warn-threshold
-    // pause above iteration three; see FeatureTaskRuntimeLoopWarningThresholdTest and
-    // FeatureTaskRuntimeAuditGapLoopTest for the application-level pause expectation.
-    listOf(0, 3, 4, 11, 30).forEach { consumed ->
+  fun `gaps_found at audit advances forward without an audit_gap backward edge`() {
+    listOf(0, 3, 11).forEach { consumed ->
       val next = assertIs<FeatureTaskRuntimeNextPhase.Next>(
         transition(def.PHASE_AUDIT, FeatureTaskRuntimeVerdict.GAPS_FOUND, consumed),
       )
-      assertEquals(def.PHASE_IMPLEMENT, next.phaseId, "Gap iteration ${consumed + 1} must reopen implementation.")
-      assertEquals(def.AUDIT_GAP_LOOP_ID, next.loopId)
+      assertEquals(def.PHASE_REVIEW, next.phaseId, "Gap iteration ${consumed + 1} must advance forward to review.")
+      assertEquals(null, next.loopId)
     }
-    assertNull(transitions.backwardEdges.single { it.loopId == def.AUDIT_GAP_LOOP_ID }.perEdgeCap)
+    assertTrue(transitions.backwardEdges.none { it.loopId == def.AUDIT_GAP_LOOP_ID })
   }
 
   @Test
@@ -55,10 +50,10 @@ class UnboundedRemediationLoopRegressionTest {
   }
 
   @Test
-  fun `only audit_gap is uncapped among semantic remediation loops`() {
+  fun `review_fix is the only semantic remediation backward edge`() {
     assertEquals(
-      setOf(def.AUDIT_GAP_LOOP_ID),
-      transitions.backwardEdges.filter { it.perEdgeCap == null }.map { it.loopId }.toSet(),
+      setOf(def.REVIEW_FIX_LOOP_ID),
+      transitions.backwardEdges.map { it.loopId }.toSet(),
     )
     assertEquals(
       1,

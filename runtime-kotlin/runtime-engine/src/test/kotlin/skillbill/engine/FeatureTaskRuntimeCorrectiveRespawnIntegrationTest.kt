@@ -269,9 +269,7 @@ class FeatureTaskRuntimeCorrectiveRespawnIntegrationTest {
   }
 
   @Test
-  fun `retryable terminal launches omit the raw repair section at the run loop`() {
-    // Composer requires already prove mutual exclusion; this pins the run-loop routing so a
-    // schema-valid terminal envelope cannot accidentally carry a prior repair body.
+  fun `retryable terminal audit blocks after one agent session`() {
     var auditLaunches = 0
     val retryableFailure = """
       {
@@ -293,17 +291,9 @@ class FeatureTaskRuntimeCorrectiveRespawnIntegrationTest {
       ),
     )
 
-    assertIs<FeatureTaskRuntimeRunReport.Completed>(harness.runner.run(harness.request()))
-
-    val prompts = harness.launcher.requests
-      .map { requireNotNull(it.skillRunRequest.promptOverride) }
-      .filter { phaseIdFromPrompt(it) == "audit" }
-    assertTrue(prompts.size >= 2, "retryable terminal must re-enter audit")
-    val retry = prompts[1]
-    assertContains(retry, "reported a retryable block")
-    assertOmitsAuthorizedRepairSection(retry)
-    assertFalse(retry.contains("REJECTED by the schema gate"))
-    assertFalse(retry.contains("Untrusted prior phase output"))
+    assertIs<FeatureTaskRuntimeRunReport.Blocked>(harness.runner.run(harness.request()))
+    assertEquals(1, auditLaunches)
+    assertEquals(1, auditPrompts(harness).size)
   }
 
   @Test

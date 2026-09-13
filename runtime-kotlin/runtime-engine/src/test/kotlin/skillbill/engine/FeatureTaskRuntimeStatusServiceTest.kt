@@ -20,7 +20,6 @@ import skillbill.engine.featuretask.model.FeatureTaskRuntimeStatusRequest
 import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
-import skillbill.ports.featuretask.EmptyFeatureTaskRuntimeAuditGenerationRepository
 import skillbill.ports.goalrunner.EmptyGoalPlanningPreparationRepository
 import skillbill.ports.goalrunner.EmptyGoalRunnerControlRepository
 import skillbill.ports.learning.LearningRepository
@@ -416,7 +415,7 @@ class FeatureTaskRuntimeStatusServiceTest {
   }
 
   @Test
-  fun `ledger-only audit gap projects reopened implement as current`() {
+  fun `legacy audit gap loop edge does not reopen implement as current`() {
     val harness = statusHarness()
     harness.recorder.ensureWorkflowOpen(WORKFLOW_ID, SESSION_ID)
     listOf("preplan", "plan", "implement", "audit", "review")
@@ -432,7 +431,7 @@ class FeatureTaskRuntimeStatusServiceTest {
       harness.service.status(FeatureTaskRuntimeStatusRequest(workflowId = WORKFLOW_ID)),
     )
 
-    assertEquals("implement", projection.currentPhaseId)
+    assertEquals("verify_findings", projection.currentPhaseId)
   }
 
   @Test
@@ -734,7 +733,7 @@ class FeatureTaskRuntimeStatusAttributionTest {
   }
 
   @Test
-  fun `audit-gap reentry reports durable loop iteration and does not reset to zero`() {
+  fun `legacy audit gap loop edge does not override running audit as current`() {
     val harness = statusHarness()
     harness.recorder.ensureWorkflowOpen(WORKFLOW_ID, SESSION_ID)
     listOf("preplan", "plan", "implement").forEach { harness.recordCompleted(it, attemptCount = 1) }
@@ -749,17 +748,16 @@ class FeatureTaskRuntimeStatusAttributionTest {
     val projection = requireNotNull(
       harness.service.status(FeatureTaskRuntimeStatusRequest(workflowId = WORKFLOW_ID)),
     )
-    // Ledger-only reopen makes implement current; execution must carry the edge iteration.
-    assertEquals("implement", projection.currentPhaseId)
+    assertEquals("audit", projection.currentPhaseId)
     val execution = requireNotNull(projection.currentPhaseExecution)
-    assertEquals("implement", execution.phaseId)
-    assertEquals(IdeStatusCurrentPhaseExecutionKind.SEMANTIC_LOOP, execution.kind)
-    assertEquals(2, execution.count)
+    assertEquals("audit", execution.phaseId)
+    assertEquals(IdeStatusCurrentPhaseExecutionKind.PASS, execution.kind)
+    assertEquals(1, execution.count)
     assertNull(execution.total)
   }
 
   @Test
-  fun `audit after gap reports semantic loop from durable audit-gap iteration`() {
+  fun `audit after legacy gap record reports pass execution not semantic loop`() {
     val harness = statusHarness()
     harness.recorder.ensureWorkflowOpen(WORKFLOW_ID, SESSION_ID)
     listOf("preplan", "plan", "implement").forEach { harness.recordCompleted(it, attemptCount = 1) }
@@ -769,7 +767,6 @@ class FeatureTaskRuntimeStatusAttributionTest {
       loopId = "audit_gap",
       edgeIteration = 1,
     )
-    // After implement settles the reopen, audit is current again on loop 1.
     harness.recorder.recordPhaseState(
       FeatureTaskRuntimePhaseStateRequest(
         workflowId = WORKFLOW_ID,
@@ -790,7 +787,7 @@ class FeatureTaskRuntimeStatusAttributionTest {
     )
     assertEquals("audit", projection.currentPhaseId)
     val execution = requireNotNull(projection.currentPhaseExecution)
-    assertEquals(IdeStatusCurrentPhaseExecutionKind.SEMANTIC_LOOP, execution.kind)
+    assertEquals(IdeStatusCurrentPhaseExecutionKind.PASS, execution.kind)
     assertEquals(1, execution.count)
   }
 
@@ -1264,8 +1261,6 @@ private class StatusFakeDatabaseSessionFactory(
     override val workList = EmptyWorkListRepository
     override val goalPlanningPreparations = EmptyGoalPlanningPreparationRepository
     override val goalRunnerControls = EmptyGoalRunnerControlRepository
-    override val featureTaskRuntimeAuditGenerations =
-      EmptyFeatureTaskRuntimeAuditGenerationRepository
   }
 }
 

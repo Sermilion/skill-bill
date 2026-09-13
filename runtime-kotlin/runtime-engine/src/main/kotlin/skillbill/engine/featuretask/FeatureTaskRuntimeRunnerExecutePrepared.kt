@@ -25,8 +25,6 @@ fun FeatureTaskRuntimeRunner.buildExecutePreparedRunTelemetryContext(
       .mapValues { (_, record) -> record.status.wireValue }
   },
   reviewFixIterationCount = { loadReviewFixIterationCount(runRequest) },
-  auditGapIterationCount = { loadAuditGapIterationCount(runRequest) },
-  auditRepairProgress = { loadAuditRepairProgress(runRequest) },
   regenerationTelemetry = { loadRegenerationTelemetry(runRequest) },
   findingVerificationTelemetry = { loadFindingVerificationTelemetry(runRequest) },
   phaseTokenData = { serializeTokenData(phaseTokenAccumulator) },
