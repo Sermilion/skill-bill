@@ -3,6 +3,8 @@ package skillbill.engine.featuretask
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.ValidationEvidencePayloadKeys
+import skillbill.engine.featuretask.validation.durableValidationChangedPaths
+import skillbill.error.InvalidFeatureTaskRuntimeValidationEvidenceSchemaError
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
@@ -22,6 +24,41 @@ internal data class ValidationSettlementValidation(
   val validationEvidenceCommandResolver: (FeatureTaskRuntimeValidationEvidence?) -> String?,
   val durableVerdictFor: (String) -> FeatureTaskRuntimeVerdict,
 )
+
+internal fun requireValidationEvidenceForValidateSettlement(
+  runLoop: FeatureTaskRuntimeRunLoop,
+  run: PhaseRun,
+  envelope: Map<String, Any?>,
+) {
+  if (run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE) return
+  val evidence = validationEvidenceFromEnvelope(envelope, run.phaseId)
+    ?: throw InvalidFeatureTaskRuntimeValidationEvidenceSchemaError(
+      run.phaseId,
+      "runtime-owned validation evidence is missing.",
+    )
+  evidence.requireSuccessfulCommand(
+    FeatureTaskRuntimeRunLoopValidationGate.requiredValidationCommand(
+      runLoop = runLoop,
+      run = run,
+      evidence = evidence,
+      changedPaths = durableValidationChangedPaths(runLoop.recorder, run.request.workflowId),
+    ),
+    run.phaseId,
+  )
+}
+
+internal fun validationEvidenceFromEnvelope(
+  envelope: Map<String, Any?>,
+  sourceLabel: String,
+): FeatureTaskRuntimeValidationEvidence? {
+  val produced = JsonCodec.anyToStringAnyMap(envelope[SharedPayloadKeys.PRODUCED_OUTPUTS])
+  val result = JsonCodec.anyToStringAnyMap(
+    produced?.get(ValidationEvidencePayloadKeys.VALIDATION_RESULT),
+  )
+  return JsonCodec.anyToStringAnyMap(
+    result?.get(ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE),
+  )?.let { raw -> FeatureTaskRuntimeValidationEvidence.fromArtifactMap(raw, sourceLabel) }
+}
 
 internal fun invalidateIncompleteValidationSettlement(
   state: ValidationSettlementState,
@@ -45,13 +82,13 @@ internal fun invalidateIncompleteValidationSettlement(
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE,
       )
     }
-    val requiredCommand = validation.validationEvidenceCommandResolver(evidence)
-    if (requiredCommand != null) {
-      evidence?.requireSuccessfulCommand(
-        requiredCommand,
-        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE,
-      ) ?: return@runCatching false
-    }
+    val decodedEvidence = evidence ?: return@runCatching false
+    val requiredCommand = validation.validationEvidenceCommandResolver(decodedEvidence)
+      ?: return@runCatching false
+    decodedEvidence.requireSuccessfulCommand(
+      requiredCommand,
+      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE,
+    )
     true
   }.getOrDefault(false)
   if (!valid) {

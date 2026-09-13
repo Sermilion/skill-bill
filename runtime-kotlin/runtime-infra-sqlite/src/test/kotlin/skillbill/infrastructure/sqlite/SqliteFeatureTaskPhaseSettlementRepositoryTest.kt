@@ -1,9 +1,13 @@
 package skillbill.infrastructure.sqlite
 
+import skillbill.contracts.JsonCodec
+import skillbill.contracts.workflow.ValidationEvidencePayloadKeys
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
 import skillbill.model.EnvironmentContext
 import skillbill.ports.featuretask.model.FeatureTaskPhaseSettlement
 import skillbill.ports.featuretask.model.FeatureTaskPhaseSettlementKind
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationCommandResult
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationEvidence
 import java.nio.file.Files
 import java.sql.Connection
 import java.time.Instant
@@ -42,6 +46,54 @@ class SqliteFeatureTaskPhaseSettlementRepositoryTest {
     assertTrue(repo.delete("wftr-1", "implement", 1))
     assertNull(repo.find("wftr-1", "implement", 1))
     assertFalse(repo.delete("wftr-1", "implement", 1))
+  }
+
+  @Test
+  fun `validation evidence command and exit code survive sqlite round trip`() {
+    val dbPath = Files.createTempDirectory("phase-settlement-evidence").resolve("metrics.db")
+    DatabaseRuntime.ensureDatabase(dbPath).close()
+    val repo = SqliteFeatureTaskPhaseSettlementRepository(
+      SQLiteDatabaseSessionFactory(EnvironmentContext(dbPathOverride = dbPath.toString(), environment = emptyMap())),
+    )
+    val evidence = FeatureTaskRuntimeValidationEvidence(
+      listOf(FeatureTaskRuntimeValidationCommandResult("./gradlew check", 0)),
+    )
+    val envelopeJson = JsonCodec.mapToJsonString(
+      mapOf(
+        "status" to "completed",
+        "produced_outputs" to mapOf(
+          "value" to JsonCodec.mapToJsonString(
+            mapOf(ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE to evidence.toArtifactMap()),
+          ),
+        ),
+      ),
+    )
+    repo.upsert(
+      FeatureTaskPhaseSettlement(
+        workflowId = "wftr-evidence",
+        phaseId = "implement",
+        attempt = 1,
+        kind = FeatureTaskPhaseSettlementKind.Complete,
+        envelopeJson = envelopeJson,
+        recordedAt = Instant.now().toString(),
+      ),
+    )
+    val stored = requireNotNull(repo.find("wftr-evidence", "implement", 1))
+    val produced = JsonCodec.anyToStringAnyMap(
+      JsonCodec.parseObjectOrNull(stored.envelopeJson)
+        ?.let(JsonCodec::jsonElementToValue)
+        ?.let(JsonCodec::anyToStringAnyMap)
+        ?.get("produced_outputs"),
+    )
+    val value = (produced?.get("value") as? String)
+      ?.let(JsonCodec::parseObjectOrNull)
+      ?.let(JsonCodec::jsonElementToValue)
+      ?.let(JsonCodec::anyToStringAnyMap)
+    val results = JsonCodec.anyToStringAnyMap(value?.get(ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE))
+      ?.get(ValidationEvidencePayloadKeys.RESULTS) as? List<*>
+    val first = results?.first() as? Map<*, *>
+    assertEquals("./gradlew check", first?.get(ValidationEvidencePayloadKeys.COMMAND))
+    assertEquals(0, first?.get(ValidationEvidencePayloadKeys.EXIT_CODE))
   }
 
   @Test

@@ -69,6 +69,46 @@ class FeatureTaskRuntimeValidationEvidenceTest {
   }
 
   @Test
+  fun `provider extended result metadata stays admissible`() {
+    val restored = FeatureTaskRuntimeValidationEvidence.fromArtifactMap(
+      mapOf(
+        ValidationEvidencePayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_VALIDATION_EVIDENCE_CONTRACT_VERSION,
+        ValidationEvidencePayloadKeys.RESULTS to listOf(
+          mapOf(
+            ValidationEvidencePayloadKeys.COMMAND to "./gradlew check",
+            ValidationEvidencePayloadKeys.EXIT_CODE to 0,
+            "signal" to mapOf("provider" to listOf("opaque")),
+            "provider_metadata" to "opaque",
+          ),
+        ),
+      ),
+      "provider-extended",
+    )
+
+    assertEquals(0, restored.results.single().exitCode)
+    assertEquals("./gradlew check", restored.results.single().command)
+  }
+
+  @Test
+  fun `multiple command results preserve each identity and exit code`() {
+    val evidence = FeatureTaskRuntimeValidationEvidence(
+      listOf(
+        FeatureTaskRuntimeValidationCommandResult("./gradlew check", 1),
+        FeatureTaskRuntimeValidationCommandResult("./gradlew check --offline", 0),
+      ),
+    )
+
+    val restored = FeatureTaskRuntimeValidationEvidence.fromArtifactMap(
+      evidence.toArtifactMap(),
+      "multiple",
+    )
+
+    assertEquals(2, restored.results.size)
+    assertEquals(1, restored.results.first().exitCode)
+    assertEquals(0, restored.results.last().exitCode)
+  }
+
+  @Test
   fun `unsupported evidence version is actionable`() {
     assertFailsWith<InvalidFeatureTaskRuntimeValidationEvidenceSchemaError> {
       FeatureTaskRuntimeValidationEvidence.fromArtifactMap(

@@ -13,7 +13,7 @@ properties:
     maxItems: 50
     items:
       type: object
-      additionalProperties: false
+      additionalProperties: true
       required: [command, exit_code]
       properties:
         command:
