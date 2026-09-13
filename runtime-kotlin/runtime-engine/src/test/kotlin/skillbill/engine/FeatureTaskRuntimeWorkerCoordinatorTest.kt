@@ -121,6 +121,29 @@ class FeatureTaskRuntimeWorkerCoordinatorTest {
   }
 
   @Test
+  fun `expired unsupported inspection is reclaimed without terminating an unrelated process`() {
+    val repository = InMemoryRuntimeWorkflowRepository()
+    repository.seedWorkerOwnership(ownership(expiresAt = "2000-01-01T00:00:30Z"))
+    val supervisor = FakeWorkerSupervisor(
+      FeatureTaskRuntimeProcessInspection.Unsupported("Process inspection is unavailable on this host."),
+    )
+    val coordinator = FeatureTaskRuntimeWorkerCoordinator(
+      RuntimeFakeDatabaseSessionFactory(repository),
+      supervisor,
+      testHarnessClock,
+    )
+
+    coordinator.runOwned(WORKFLOW_ID) {
+      val replacement = requireNotNull(repository.getFeatureTaskRuntimeWorkerOwnership(WORKFLOW_ID))
+      assertEquals(2, replacement.generation)
+      assertNotEquals("old-owner-token-0001", replacement.ownerToken)
+    }
+
+    assertEquals(false, supervisor.gracefulTerminationRequested)
+    assertEquals(false, supervisor.forceTerminationRequested)
+  }
+
+  @Test
   fun `concurrent recovery contention permits only one lease transfer`() {
     val repository = InMemoryRuntimeWorkflowRepository()
     val stale = ownership()

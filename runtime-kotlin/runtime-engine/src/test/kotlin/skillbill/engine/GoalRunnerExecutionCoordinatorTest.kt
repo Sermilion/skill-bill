@@ -2,6 +2,8 @@ package skillbill.engine
 
 import skillbill.engine.goalrunner.DefaultGoalRunnerExecutionCoordinator
 import skillbill.engine.goalrunner.GoalRunnerExecutionAlreadyRunningException
+import skillbill.goalrunner.model.GOAL_PAUSE_REASON_OPERATOR_STOP
+import skillbill.goalrunner.model.GOAL_PAUSE_REASON_RUNNER_INTERRUPTED
 import skillbill.goalrunner.model.GoalRunnerControlState
 import skillbill.goalrunner.model.GoalRunnerExecutionLease
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
@@ -42,6 +44,119 @@ class GoalRunnerExecutionCoordinatorTest {
     }
 
     assertEquals("continued", result)
+    assertNull(store.executionLeaseValue)
+  }
+
+  @Test
+  fun `expired parent lease with ownership mismatch inspection reclaims and runs the goal body`() {
+    val store = InMemoryExecutionLeaseStore(
+      lease(generation = 1, ownerToken = "old-owner", expiresAt = expiredLeaseExpiresAt()),
+    )
+    val supervisor = FakeGoalSupervisor(
+      FeatureTaskRuntimeProcessInspection.OwnershipMismatch("Worker PID was reused by a different process."),
+    )
+    val coordinator = testCoordinator(store, supervisor)
+
+    val result = coordinator.runOwned("parent-1") {
+      assertEquals(2, requireNotNull(store.executionLeaseValue).generation)
+      "continued"
+    }
+
+    assertEquals("continued", result)
+    assertNull(store.executionLeaseValue)
+  }
+
+  @Test
+  fun `expired parent lease with unsupported inspection reclaims and runs the goal body`() {
+    val store = InMemoryExecutionLeaseStore(
+      lease(generation = 1, ownerToken = "old-owner", expiresAt = expiredLeaseExpiresAt()),
+    )
+    val supervisor = FakeGoalSupervisor(
+      FeatureTaskRuntimeProcessInspection.Unsupported("Process inspection is unavailable on this host."),
+    )
+    val coordinator = testCoordinator(store, supervisor)
+
+    val result = coordinator.runOwned("parent-1") {
+      assertEquals(2, requireNotNull(store.executionLeaseValue).generation)
+      "continued"
+    }
+
+    assertEquals("continued", result)
+    assertNull(store.executionLeaseValue)
+  }
+
+  @Test
+  fun `relaunch after expired lease reclaim clears runner interrupted pause residue`() {
+    val store = InMemoryExecutionLeaseStore(
+      lease(generation = 1, ownerToken = "old-owner", expiresAt = expiredLeaseExpiresAt()),
+    )
+    store.controlStateValue = GoalRunnerControlState(
+      pauseRequested = true,
+      pauseConsumed = true,
+      paused = true,
+      pauseReason = GOAL_PAUSE_REASON_RUNNER_INTERRUPTED,
+      pausedAt = "2026-08-02T09:59:00Z",
+    )
+    val coordinator = testCoordinator(
+      store,
+      FakeGoalSupervisor(FeatureTaskRuntimeProcessInspection.NotRunning),
+    )
+
+    coordinator.runOwned("parent-1") { "continued" }
+
+    assertEquals(GoalRunnerControlState(), store.controlStateValue)
+    assertEquals(1, store.persistControlStateCalls)
+  }
+
+  @Test
+  fun `operator stop pause reason is preserved when reclaiming an expired lease`() {
+    val store = InMemoryExecutionLeaseStore(
+      lease(generation = 1, ownerToken = "old-owner", expiresAt = expiredLeaseExpiresAt()),
+    )
+    store.controlStateValue = GoalRunnerControlState(
+      pauseRequested = true,
+      pauseConsumed = true,
+      paused = true,
+      pauseReason = GOAL_PAUSE_REASON_OPERATOR_STOP,
+      pausedAt = "2026-08-02T09:00:00Z",
+    )
+    val coordinator = testCoordinator(
+      store,
+      FakeGoalSupervisor(FeatureTaskRuntimeProcessInspection.NotRunning),
+    )
+
+    coordinator.runOwned("parent-1") { "continued" }
+
+    assertEquals(GOAL_PAUSE_REASON_OPERATOR_STOP, store.controlStateValue.pauseReason)
+    assertEquals("2026-08-02T09:00:00Z", store.controlStateValue.pausedAt)
+    assertTrue(store.controlStateValue.paused)
+    assertEquals(0, store.persistControlStateCalls)
+  }
+
+  @Test
+  fun `issue 342 expired lease with ambiguous inspection and runner interrupted pause relaunches without sqlite surgery`() {
+    val store = InMemoryExecutionLeaseStore(
+      lease(generation = 1, ownerToken = "old-owner", expiresAt = expiredLeaseExpiresAt()),
+    )
+    store.controlStateValue = GoalRunnerControlState(
+      pauseRequested = true,
+      pauseConsumed = true,
+      paused = true,
+      pauseReason = GOAL_PAUSE_REASON_RUNNER_INTERRUPTED,
+      pausedAt = "2026-08-02T09:59:00Z",
+    )
+    val supervisor = FakeGoalSupervisor(
+      FeatureTaskRuntimeProcessInspection.OwnershipMismatch("the existing process owner is ambiguous"),
+    )
+    val coordinator = testCoordinator(store, supervisor)
+
+    val result = coordinator.runOwned("parent-1") {
+      assertEquals(2, requireNotNull(store.executionLeaseValue).generation)
+      "goal body ran"
+    }
+
+    assertEquals("goal body ran", result)
+    assertEquals(GoalRunnerControlState(), store.controlStateValue)
     assertNull(store.executionLeaseValue)
   }
 
@@ -269,10 +384,17 @@ private class InMemoryExecutionLeaseStore(
   var executionLeaseValue: GoalRunnerExecutionLease? = initialLease
   var controlStateValue: GoalRunnerControlState = GoalRunnerControlState()
   val pauseNowCalls: MutableList<Triple<String, String, Boolean>> = mutableListOf()
+  var persistControlStateCalls: Int = 0
   var pauseNowFailure: (() -> Nothing)? = null
   var pauseNowBlocksForever: Boolean = false
 
   override fun controlState(parentWorkflowId: String): GoalRunnerControlState = controlStateValue
+
+  override fun persistControlState(parentWorkflowId: String, state: GoalRunnerControlState): GoalRunnerControlState {
+    persistControlStateCalls += 1
+    controlStateValue = state
+    return state
+  }
 
   override fun pauseNow(
     parentWorkflowId: String,
@@ -422,7 +544,15 @@ private fun recentBirthToken(): String = Instant.parse("2026-08-02T09:59:59Z").t
 
 private fun staleBirthToken(): String = Instant.parse("2026-08-02T09:54:00Z").toEpochMilli().toString()
 
-private fun lease(generation: Long, ownerToken: String, pid: Long = 100, processBirthToken: String = "birth-100") =
+private fun expiredLeaseExpiresAt(): String = "2026-08-02T09:59:30Z"
+
+private fun lease(
+  generation: Long,
+  ownerToken: String,
+  pid: Long = 100,
+  processBirthToken: String = "birth-100",
+  expiresAt: String = "2026-08-02T10:00:30Z",
+) =
   GoalRunnerExecutionLease(
     generation = generation,
     ownerToken = ownerToken,
@@ -431,5 +561,5 @@ private fun lease(generation: Long, ownerToken: String, pid: Long = 100, process
     pid = pid,
     processBirthToken = processBirthToken,
     heartbeatAt = "2026-08-02T09:59:00Z",
-    expiresAt = "2026-08-02T09:59:30Z",
+    expiresAt = expiresAt,
   )

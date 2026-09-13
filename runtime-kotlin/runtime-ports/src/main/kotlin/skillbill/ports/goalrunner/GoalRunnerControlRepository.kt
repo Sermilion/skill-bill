@@ -1,6 +1,7 @@
 package skillbill.ports.goalrunner
 
 import skillbill.goalrunner.model.GOAL_ACTIVE_HEARTBEAT_GAP_LIMIT_MS
+import skillbill.goalrunner.model.GOAL_PAUSE_REASON_RUNNER_INTERRUPTED
 import skillbill.goalrunner.model.GoalRunnerControlState
 import skillbill.goalrunner.model.GoalRunnerExecutionLease
 import skillbill.ports.goalrunner.runner.model.GoalRunnerOutOfBandAcceptance
@@ -12,6 +13,21 @@ interface GoalRunnerControlRepository {
   fun controlState(parentWorkflowId: String): GoalRunnerControlState
 
   fun persistControlState(parentWorkflowId: String, state: GoalRunnerControlState): GoalRunnerControlState
+
+  fun clearRunnerInterruptedPause(parentWorkflowId: String): GoalRunnerControlState {
+    val state = controlState(parentWorkflowId)
+    if (state.pauseReason != GOAL_PAUSE_REASON_RUNNER_INTERRUPTED) return state
+    return persistControlState(
+      parentWorkflowId,
+      state.copy(
+        paused = false,
+        pauseRequested = false,
+        pauseConsumed = false,
+        pauseReason = null,
+        pausedAt = null,
+      ),
+    )
+  }
 
   fun clearControlState(parentWorkflowId: String)
 

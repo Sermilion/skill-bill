@@ -1,5 +1,6 @@
 package skillbill.ports.goalrunner.runner
 
+import skillbill.goalrunner.model.GOAL_PAUSE_REASON_RUNNER_INTERRUPTED
 import skillbill.goalrunner.model.GoalPlanningStatusSnapshot
 import skillbill.goalrunner.model.GoalRunnerControlState
 import skillbill.goalrunner.model.GoalRunnerExecutionLease
@@ -65,6 +66,21 @@ abstract class GoalRunnerManifestStoreDefaults : GoalRunnerManifestStore {
 
   override fun persistControlState(parentWorkflowId: String, state: GoalRunnerControlState): GoalRunnerControlState =
     state
+
+  override fun clearRunnerInterruptedPause(parentWorkflowId: String): GoalRunnerControlState {
+    val state = controlState(parentWorkflowId)
+    if (state.pauseReason != GOAL_PAUSE_REASON_RUNNER_INTERRUPTED) return state
+    return persistControlState(
+      parentWorkflowId,
+      state.copy(
+        paused = false,
+        pauseRequested = false,
+        pauseConsumed = false,
+        pauseReason = null,
+        pausedAt = null,
+      ),
+    )
+  }
 
   override fun planningStatus(
     parentWorkflowId: String,

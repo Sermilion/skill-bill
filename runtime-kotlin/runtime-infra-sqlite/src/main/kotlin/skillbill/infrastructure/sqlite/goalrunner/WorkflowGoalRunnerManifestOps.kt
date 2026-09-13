@@ -69,6 +69,8 @@ internal interface GoalRunnerManifestControlCommands {
   fun authorizePlanningLaunch(parentWorkflowId: String): AgentRunSpawnAuthorization?
 
   fun persistControlState(parentWorkflowId: String, state: GoalRunnerControlState): GoalRunnerControlState
+
+  fun clearRunnerInterruptedPause(parentWorkflowId: String): GoalRunnerControlState
 }
 
 internal interface GoalRunnerManifestPersistenceCommands {

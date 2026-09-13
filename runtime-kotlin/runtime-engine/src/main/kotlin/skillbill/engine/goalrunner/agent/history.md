@@ -1,5 +1,14 @@
 # goalrunner boundary history
 
+## [2026-09-13] Issue 342 — Expired lease reclaim on relaunch
+Areas: runtime-kotlin/{runtime-engine/goalrunner, runtime-infra-sqlite/goalrunner, runtime-ports/goalrunner}
+- Expired parent and child leases now reclaim through the existing takeover path despite ambiguous process inspection, while unexpired live leases remain fail-closed.
+- Reclaim clears stale `runner_interrupted` control state without changing operator-stop pause state; coverage spans execution, worker recovery, and SQLite control persistence.
+- Pattern: use injected lease expiry as the confirmed-dead boundary and preserve generation-bump ownership semantics. reusable
+- Limitation: residual wedges outside expired-lease relaunch remain in the follow-up repair scope.
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented
+
 ## [2026-09-12] SKILL-340 subtask 2 — Repair apply SQLITE_BUSY lifecycle fix
 Areas: runtime-kotlin/{runtime-cli, runtime-engine/{featuretask,goalrunner}, runtime-infra-sqlite, runtime-ports}
 - Repair diagnoses are materialized before lease preflight, and inspect read scopes close before per-child apply transactions so `goal repair --apply` can persist wedge repairs without `SQLITE_BUSY`.

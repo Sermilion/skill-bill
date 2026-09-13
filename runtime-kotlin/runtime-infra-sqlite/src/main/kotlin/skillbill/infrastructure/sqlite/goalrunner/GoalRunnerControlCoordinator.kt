@@ -30,6 +30,11 @@ internal class GoalRunnerControlCoordinator(
       unitOfWork.goalRunnerControls.persistControlState(parentWorkflowId, state)
     }
 
+  fun clearRunnerInterruptedPause(parentWorkflowId: String): GoalRunnerControlState =
+    database.transaction { unitOfWork ->
+      unitOfWork.goalRunnerControls.clearRunnerInterruptedPause(parentWorkflowId)
+    }
+
   fun executionLease(parentWorkflowId: String): GoalRunnerExecutionLease? =
     database.read { unitOfWork -> unitOfWork.goalRunnerControls.executionLease(parentWorkflowId) }
 

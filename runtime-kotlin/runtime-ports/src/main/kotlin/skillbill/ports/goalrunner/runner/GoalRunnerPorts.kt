@@ -85,6 +85,8 @@ interface GoalRunnerManifestControlWrites {
 
   fun persistControlState(parentWorkflowId: String, state: GoalRunnerControlState): GoalRunnerControlState
 
+  fun clearRunnerInterruptedPause(parentWorkflowId: String): GoalRunnerControlState
+
   fun persistReviewMode(parentWorkflowId: String, mode: CodeReviewExecutionMode): CodeReviewExecutionMode
 
   fun persistReviewPolicy(parentWorkflowId: String, policy: GoalRunnerReviewPolicy): GoalRunnerReviewPolicy
