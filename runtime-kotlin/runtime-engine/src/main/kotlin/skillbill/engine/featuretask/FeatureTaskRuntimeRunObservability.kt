@@ -16,6 +16,7 @@ internal enum class FeatureTaskRuntimeContinuationKind(val wireValue: String) {
   VERIFIER_REENTRY("verifier_reentry"),
   ITEM_COVERAGE("item_coverage"),
   VERIFICATION_BODY_DELIVERY("verification_body_delivery"),
+  AUDIT_AC_RETRY("audit_ac_retry"),
   ;
 
   companion object {

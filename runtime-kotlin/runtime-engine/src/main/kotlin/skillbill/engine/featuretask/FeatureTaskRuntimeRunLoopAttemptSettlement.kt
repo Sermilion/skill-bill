@@ -614,11 +614,17 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
         fileManifest = capture.fileManifest,
       ),
     )?.let { return it }
+    FeatureTaskRuntimeRunLoopAuditRetry.settleCompletedAuditRound(
+      runLoop,
+      capture,
+      attested,
+      outputMap,
+    )?.let { return it }
     return finalizeValidatedOutputAcceptance(
       runLoop,
       FinalizeValidatedOutputAcceptanceArgs(
         capture = capture,
-        attested = attested,
+        attested = FeatureTaskRuntimeRunLoopAuditRetry.attestedAuditOutputForAcceptance(attested, outputMap),
         repairEvidence = repairEvidence,
         observability = runLoop.observability,
         repositoryFingerprint = repositoryFingerprint,

@@ -60,6 +60,7 @@ fun phasePromptTrailingSections(
   effectiveContinuation: FeatureTaskRuntimeImplementationContinuation?,
 ): List<String> = listOf(
   operatorBlockRetryDirective(inputs.briefing.phaseId, inputs.operatorBlockRetry),
+  auditRetryFocusDirective(inputs.auditRetryFocusHint),
   implementationContinuationDirective(inputs.briefing.phaseId, effectiveContinuation),
   retryCorrectionDirective(inputs.briefing, inputs.priorSchemaFailure, inputs.correctiveRepairContext),
   terminalRetryDirective(inputs.priorTerminalFailure),

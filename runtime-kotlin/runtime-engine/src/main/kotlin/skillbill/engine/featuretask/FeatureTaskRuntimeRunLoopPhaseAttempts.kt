@@ -69,6 +69,27 @@ object FeatureTaskRuntimeRunLoopPhaseAttempts {
     return null
   }
 
+  internal fun settleAuditRetry(runLoop: FeatureTaskRuntimeRunLoop, context: FixLoopBranchContext): PhaseOutcome? {
+    val run = context.run
+    val attempt = context.attempt
+    val loop = context.loop
+    val observability = context.observability
+    val agentId = context.agentId
+    val focusHint = requireNotNull(attempt.auditRetryFocusHint)
+    runLoop.session.auditRetryFocusHint = focusHint
+    loop.continuationSegmentCount += 1
+    loop.iteration += 1
+    loop.priorCorrection = null
+    runLoop.observability.continuation(
+      run.phaseId,
+      agentId,
+      loop.iteration,
+      loop.continuationSegmentCount,
+      FeatureTaskRuntimeContinuationKind.AUDIT_AC_RETRY,
+    )
+    return null
+  }
+
   internal fun settleFindingsOwed(runLoop: FeatureTaskRuntimeRunLoop, context: FixLoopBranchContext): PhaseOutcome? {
     val run = context.run
     val attempt = context.attempt

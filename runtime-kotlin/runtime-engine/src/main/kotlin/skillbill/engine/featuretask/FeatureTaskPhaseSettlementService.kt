@@ -10,6 +10,7 @@ import skillbill.engine.featuretask.model.FeatureTaskPhaseSettlementCompleteRequ
 import skillbill.ports.featuretask.FeatureTaskPhaseSettlementRepository
 import skillbill.ports.featuretask.model.FeatureTaskPhaseSettlement
 import skillbill.ports.featuretask.model.FeatureTaskPhaseSettlementKind
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeAuditRemainingAcInterpretation
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.ProsePhaseOutputSynthesizer
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationEvidence
@@ -28,9 +29,15 @@ class FeatureTaskPhaseSettlementService(
     }
     val verdict = when (request.phaseId) {
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT ->
-        requireNotNull(request.verdict?.takeIf { it == "satisfied" }) {
-          "feature_task_phase_complete requires verdict=satisfied when phase_id=audit."
-        }
+        request.verdict?.takeIf { it == "satisfied" }
+          ?: when (FeatureTaskRuntimeAuditRemainingAcInterpretation.interpret(request.value)) {
+            FeatureTaskRuntimeAuditRemainingAcInterpretation.Result.EmptyRemainingList -> "satisfied"
+            else -> null
+          }.let { resolved ->
+            requireNotNull(resolved) {
+              "feature_task_phase_complete requires an explicit empty remaining-criteria list or verdict=satisfied when phase_id=audit."
+            }
+          }
       else -> request.verdict
     }
     val envelope = ProsePhaseOutputSynthesizer.envelopeFromSettlement(

@@ -428,13 +428,11 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
   }
 
   @Test
-  fun `completed audit missing envelope verdict fails validation`() {
-    val missingVerdict =
+  fun `completed audit without envelope verdict accepts explicit empty remaining list`() {
+    val emptyRemainingList =
       """{"contract_version":"0.6","phase_id":"audit","status":"completed","summary":"audit",""" +
-        """"produced_outputs":{"value":"{\"gaps\":[]}"}}"""
-    assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(missingVerdict, "audit")
-    }
+        """"produced_outputs":{"value":"[]"}}"""
+    FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(emptyRemainingList, "audit")
   }
 
   @Test
