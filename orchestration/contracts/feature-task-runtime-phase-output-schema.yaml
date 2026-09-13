@@ -298,15 +298,14 @@ properties:
       runtime classifies the verdict from the carried review
       findings, which travel inside `produced_outputs` (e.g. a `findings` array
       of severity/message entries) and are forwarded into the `implement_fix`
-      handoff. For completed `audit` output the value is `satisfied` after
+      handoff. For completed `audit` output the remaining acceptance-criteria list lives in
+      `produced_outputs.value`; an explicit empty list `[]` completes audit after
       same-session inspection and repair of every planned acceptance criterion.
       Blocked or failed audit output omits verdict and carries
       `failure_disposition` instead. Either absent (not set) or a non-empty
-      string; `null` is not a valid value. The field itself is additive and
-      optional for non-audit phases — existing phase outputs that omit it still
-      validate — but completed `audit` constraints in `allOf` require
-      `satisfied`. Contract version `0.6` pins the stateless audit terminal
-      vocabulary; legacy `gaps_found` records must be regenerated.
+      string; `null` is not a valid value. Completed audit may omit this field when
+      `produced_outputs.value` carries an explicit empty list; the runtime stamps
+      `satisfied` internally for review entry. Legacy `gaps_found` records must be regenerated.
     type: string
     minLength: 1
 allOf:
@@ -316,7 +315,6 @@ allOf:
         status: { const: completed }
       required: [phase_id, status]
     then:
-      required: [verdict]
       properties:
         verdict: { enum: [satisfied] }
         produced_outputs:

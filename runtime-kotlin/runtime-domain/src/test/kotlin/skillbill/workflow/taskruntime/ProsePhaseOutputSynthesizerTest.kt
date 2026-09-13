@@ -37,6 +37,23 @@ class ProsePhaseOutputSynthesizerTest {
   }
 
   @Test
+  fun `audit with explicit empty remaining list synthesizes satisfied verdict`() {
+    val raw =
+      """
+      {
+        "contract_version": "0.6",
+        "phase_id": "audit",
+        "status": "completed",
+        "summary": "All good.",
+        "produced_outputs": { "value": "[]" }
+      }
+      """.trimIndent()
+
+    val envelope = assertNotNull(ProsePhaseOutputSynthesizer.trySynthesize(raw, "audit"))
+    assertEquals("satisfied", envelope["verdict"])
+  }
+
+  @Test
   fun `audit without recoverable verdict rejects`() {
     val raw =
       """

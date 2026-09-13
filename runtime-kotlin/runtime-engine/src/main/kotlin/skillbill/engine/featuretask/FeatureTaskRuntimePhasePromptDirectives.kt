@@ -222,9 +222,10 @@ val phaseDirectives: Map<String, String> = mapOf(
     "completed task id, a changed path, or reconciliation_evidence claiming reconciled. Repair every " +
     "fixable gap in this same agent session, then re-check the entire criterion list from the " +
     "beginning before you complete. Do not spawn subagents, invoke repair skills, or hand findings to " +
-    "another phase. Emit verdict satisfied only when every criterion has implementation and meaningful " +
-    "test coverage after repairs. A short completion confirmation inside produced_outputs.value is " +
-    "sufficient. Use status blocked or failed with a concrete failure_disposition when the planning " +
+    "another phase. End your final response with the remaining acceptance criteria only: emit an explicit " +
+    "empty list `[]` when every criterion has implementation and meaningful test coverage after repairs; " +
+    "otherwise emit the remaining criteria as plain text, bullets, or a numbered list without validating " +
+    "their structure. Use status blocked or failed with a concrete failure_disposition when the planning " +
     "criterion list is missing or unreadable or an external dependency prevents repair. " +
     AUDIT_READONLY_EVIDENCE_SENTENCE,
   FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE to RUNTIME_OWNED_VALIDATE_PHASE_TASK,

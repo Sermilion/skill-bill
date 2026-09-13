@@ -288,6 +288,8 @@ object FeatureTaskRuntimeRunLoopOutputPersistence {
         agentRunValidateFallback = run.agentRunValidateFallback,
         packCollectAllCommand = FeatureTaskRuntimeRunLoopValidationGate.packCollectAllCommand(runLoop, run),
         packBuildCommand = FeatureTaskRuntimeRunLoopValidationGate.packBuildCommand(runLoop, run),
+        auditRetryFocusHint = runLoop.session.auditRetryFocusHint
+          ?.takeIf { run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT },
       ),
     ) + FeatureTaskRuntimeRunLoopLaunch.verifyFindingsSpecIntentSection(runLoop, run)
   }

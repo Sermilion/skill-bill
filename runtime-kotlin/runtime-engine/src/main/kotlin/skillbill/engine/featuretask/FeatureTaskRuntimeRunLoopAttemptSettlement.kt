@@ -573,57 +573,56 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
     runLoop: FeatureTaskRuntimeRunLoop,
     args: SettleValidatedOutputAfterFingerprintArgs,
   ): AttemptResult {
-    val capture = args.capture
-    val outputMap = args.outputMap
-    val attested = args.attested
-    val repairEvidence = args.repairEvidence
-    val observability = args.observability
-    val repositoryFingerprint = args.repositoryFingerprint
-    val reject = args.reject
-    settleValidatedOutputPauseOrTerminal(
+    return settleValidatedOutputPauseOrTerminal(
       runLoop,
       SettleValidatedOutputPauseArgs(
-        capture = capture,
-        outputMap = outputMap,
-        attested = attested,
-        repairEvidence = repairEvidence,
+        capture = args.capture,
+        outputMap = args.outputMap,
+        attested = args.attested,
+        repairEvidence = args.repairEvidence,
         observability = runLoop.observability,
-        repositoryFingerprint = repositoryFingerprint,
+        repositoryFingerprint = args.repositoryFingerprint,
       ),
-    )?.let { return it }
-    val run = capture.run
-    FeatureTaskRuntimeRunLoopOutputVerification.completionProjectionRejection(
+    ) ?: FeatureTaskRuntimeRunLoopOutputVerification.completionProjectionRejection(
       runLoop,
       CompletionProjectionRejectionArgs(
-        run = run,
-        iteration = capture.iteration,
-        outputMap = outputMap,
-        normalizedOutput = attested,
-        repairEvidence = repairEvidence,
-        repositoryFingerprint = repositoryFingerprint,
+        run = args.capture.run,
+        iteration = args.capture.iteration,
+        outputMap = args.outputMap,
+        normalizedOutput = args.attested,
+        repairEvidence = args.repairEvidence,
+        repositoryFingerprint = args.repositoryFingerprint,
       ),
-    )?.let { (rule, reason) -> return reject(rule, reason) }
-    FeatureTaskRuntimeRunLoopRepairReceipt.settleCompletedImplementationOutput(
-      runLoop,
-      CompletedImplementationOutputArgs(
-        run = run,
-        outputMap = outputMap,
-        reject = reject,
-        iteration = capture.iteration,
-        observability = runLoop.observability,
-        fileManifest = capture.fileManifest,
-      ),
-    )?.let { return it }
-    return finalizeValidatedOutputAcceptance(
-      runLoop,
-      FinalizeValidatedOutputAcceptanceArgs(
-        capture = capture,
-        attested = attested,
-        repairEvidence = repairEvidence,
-        observability = runLoop.observability,
-        repositoryFingerprint = repositoryFingerprint,
-      ),
-    )
+    )?.let { (rule, reason) -> args.reject(rule, reason) }
+      ?: FeatureTaskRuntimeRunLoopRepairReceipt.settleCompletedImplementationOutput(
+        runLoop,
+        CompletedImplementationOutputArgs(
+          run = args.capture.run,
+          outputMap = args.outputMap,
+          reject = args.reject,
+          iteration = args.capture.iteration,
+          observability = runLoop.observability,
+          fileManifest = args.capture.fileManifest,
+        ),
+      )
+      ?: FeatureTaskRuntimeRunLoopAuditRetry.settleCompletedAuditRound(
+        runLoop,
+        args.capture,
+        args.outputMap,
+      )
+      ?: finalizeValidatedOutputAcceptance(
+        runLoop,
+        FinalizeValidatedOutputAcceptanceArgs(
+          capture = args.capture,
+          attested = FeatureTaskRuntimeRunLoopAuditRetry.attestedAuditOutputForAcceptance(
+            args.attested,
+            args.outputMap,
+          ),
+          repairEvidence = args.repairEvidence,
+          observability = runLoop.observability,
+          repositoryFingerprint = args.repositoryFingerprint,
+        ),
+      )
   }
 
   internal fun finalizeValidatedOutputAcceptance(

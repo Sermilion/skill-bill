@@ -7,7 +7,9 @@ import skillbill.goalrunner.subtaskreview.FeatureTaskRuntimeVerificationSignalKe
 import skillbill.review.ReviewFindingActionability
 import skillbill.review.model.ReviewClaimVerdict
 import skillbill.review.model.ReviewScopeDisposition
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeAuditRemainingAcInterpretation
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeAuditRemainingAcResult
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFindingVerificationDisposition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFindingVerificationVerdict
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeReviewFinding
@@ -89,6 +91,16 @@ private fun auditVerdict(
       "blocked or failed audit phase output must omit verdict."
     }
     return FeatureTaskRuntimeVerdict.ADVANCE
+  }
+  if (wireVerdict == FeatureTaskRuntimeVerdict.SATISFIED) {
+    return FeatureTaskRuntimeVerdict.SATISFIED
+  }
+  if (
+    FeatureTaskRuntimeAuditRemainingAcInterpretation.interpret(
+      FeatureTaskRuntimeOutputVerification.auditProseValue(outputObject),
+    ) is FeatureTaskRuntimeAuditRemainingAcResult.EmptyRemainingList
+  ) {
+    return FeatureTaskRuntimeVerdict.SATISFIED
   }
   return requireNotNull(wireVerdict?.takeIf { it in FeatureTaskRuntimeVerdict.AUDIT_VERDICTS }) {
     "audit phase output is missing verdict or carries a removed audit verdict."

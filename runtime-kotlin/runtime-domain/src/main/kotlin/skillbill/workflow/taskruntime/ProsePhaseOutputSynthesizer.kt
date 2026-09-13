@@ -7,6 +7,7 @@ import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition.
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeAuditRemainingAcResult
 import skillbill.workflow.taskruntime.model.SettlementEnvelopeRequest
 import skillbill.workflow.taskruntime.model.SettlementStatus
 
@@ -64,7 +65,11 @@ object ProsePhaseOutputSynthesizer {
     if (existingValue != null && phaseId != PHASE_AUDIT) return null
     val verdict = if (phaseId == PHASE_AUDIT) {
       if (status == SettlementStatus.COMPLETED.wireValue) {
-        ProsePhaseOutputRecover.recoverAuditVerdict(parsed, phaseOutputText) ?: return null
+        ProsePhaseOutputRecover.recoverAuditVerdict(parsed, phaseOutputText)
+          ?: when (FeatureTaskRuntimeAuditRemainingAcInterpretation.interpret(value)) {
+            FeatureTaskRuntimeAuditRemainingAcResult.EmptyRemainingList -> "satisfied"
+            else -> return null
+          }
       } else {
         null
       }
@@ -87,8 +92,13 @@ object ProsePhaseOutputSynthesizer {
       SharedPayloadKeys.PRODUCED_OUTPUTS to produced,
     )
     if (request.phaseId == PHASE_AUDIT && request.status == SettlementStatus.COMPLETED) {
-      val resolved = requireNotNull(request.verdict?.takeIf { it in AUDIT_VERDICTS }) {
-        "completed audit settlement requires verdict in $AUDIT_VERDICTS."
+      val resolved = request.verdict?.takeIf { it in AUDIT_VERDICTS }
+        ?: when (FeatureTaskRuntimeAuditRemainingAcInterpretation.interpret(request.value)) {
+          FeatureTaskRuntimeAuditRemainingAcResult.EmptyRemainingList -> "satisfied"
+          else -> null
+        }
+      requireNotNull(resolved) {
+        "completed audit settlement requires verdict in $AUDIT_VERDICTS or an explicit empty remaining-criteria list."
       }
       envelope[SharedPayloadKeys.VERDICT] = resolved
     }

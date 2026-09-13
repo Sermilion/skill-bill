@@ -245,13 +245,12 @@ class FeatureTaskRuntimePhasePromptComposerContentTest {
     assertContains(reviewPrompt, "\"approved\" or \"changes_requested\"", false, "review names the verdict values")
     assertContains(auditPrompt, "VERIFYING phase", false, "audit names itself a verifying phase")
     assertAuditPromptNamesSignal(auditPrompt, "produced_outputs.value", "the audit prose signal")
-    assertAuditPromptNamesSignal(auditPrompt, "\"verdict\":\"satisfied\"", "the sole accepted audit completion verdict")
+    assertAuditPromptNamesSignal(auditPrompt, "explicit empty list", "the remaining-criteria completion contract")
     assertAuditPromptNamesSignal(
       auditPrompt,
-      "for audit, top-level \"verdict\" is REQUIRED",
-      "the contradiction of the optional-verdict bullet",
+      "Ignore the optional-verdict bullet above for audit completion",
+      "the audit-specific completion rule",
     )
-    assertContains(auditPrompt, "\"verdict\": optional top-level string", false, "top-level verdict is documented")
   }
 
   @Test

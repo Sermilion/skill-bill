@@ -597,6 +597,11 @@ internal sealed interface AttemptResult {
     override val fileManifest: FeatureTaskRuntimePhaseFileManifest,
   ) : AttemptResult
 
+  data class AuditRetry(
+    val focusHint: String,
+    override val fileManifest: FeatureTaskRuntimePhaseFileManifest,
+  ) : AttemptResult
+
   val settledOutcome: PhaseOutcome? get() = (this as? Settled)?.outcome
   val schemaInvalidOperatorReason: String? get() = (this as? SchemaInvalid)?.operatorReason
   val schemaInvalidRetryReason: String? get() = (this as? SchemaInvalid)?.retryReason
@@ -608,6 +613,7 @@ internal sealed interface AttemptResult {
       is RetryableTerminal -> fileManifest
       is FindingsOwed -> fileManifest
       is BoundaryBodyDelivery -> fileManifest
+      is AuditRetry -> fileManifest
     }
   val rejectedOutput: String? get() = (this as? SchemaInvalid)?.rejectedOutput
   val malformedOutput: Boolean get() = (this as? SchemaInvalid)?.malformedOutput == true
@@ -622,6 +628,7 @@ internal sealed interface AttemptResult {
       is RetryableTerminal -> operatorReason
       is FindingsOwed -> operatorReason
       is BoundaryBodyDelivery -> null
+      is AuditRetry -> null
     }
 
   val semanticRetryReason: String?
@@ -632,6 +639,7 @@ internal sealed interface AttemptResult {
       is RetryableTerminal -> null
       is FindingsOwed -> null
       is BoundaryBodyDelivery -> null
+      is AuditRetry -> null
     }
 
   val retryableTerminalRetryReason: String? get() = (this as? RetryableTerminal)?.retryReason
@@ -653,6 +661,10 @@ internal sealed interface AttemptResult {
   val boundaryBodyDeliveryContinuationReason: String?
     get() = (this as? BoundaryBodyDelivery)?.continuationReason
 
+  val auditRetryFocusHint: String? get() = (this as? AuditRetry)?.focusHint
+
+  val auditRetryContinuation: Boolean get() = this is AuditRetry
+
   companion object {
     fun settled(outcome: PhaseOutcome): AttemptResult = Settled(outcome)
 
@@ -667,6 +679,9 @@ internal sealed interface AttemptResult {
       fileManifest: FeatureTaskRuntimePhaseFileManifest,
       normalizedOutput: NormalizedFeatureTaskRuntimePhaseOutput,
     ): AttemptResult = IncompleteWork(operatorReason, continuationReason, fileManifest, normalizedOutput)
+
+    fun auditRetry(focusHint: String, fileManifest: FeatureTaskRuntimePhaseFileManifest): AttemptResult =
+      AuditRetry(focusHint, fileManifest)
 
     fun unaccountedItems(
       phaseId: String,

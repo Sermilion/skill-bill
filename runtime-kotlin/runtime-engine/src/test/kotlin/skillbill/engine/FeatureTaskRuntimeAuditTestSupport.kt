@@ -8,12 +8,26 @@ internal fun auditSatisfiedOutput(): String = """
     "phase_id": "audit",
     "status": "completed",
     "summary": "Every acceptance criterion is met.",
-    "verdict": "satisfied",
     "produced_outputs": {
-      "value": "All planned acceptance criteria have implementation and meaningful test coverage."
+      "value": "[]"
     }
   }
 """.trimIndent()
+
+internal fun auditRemainingAcOutput(remainingText: String): String {
+  val escaped = remainingText.replace("\\", "\\\\").replace("\"", "\\\"")
+  return """
+  {
+    "contract_version": "0.6",
+    "phase_id": "audit",
+    "status": "completed",
+    "summary": "Audit found remaining acceptance criteria.",
+    "produced_outputs": {
+      "value": "$escaped"
+    }
+  }
+  """.trimIndent()
+}
 
 internal fun auditGapsFoundOutput(): String = """
   {

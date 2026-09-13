@@ -83,9 +83,7 @@ private fun producedOutputsAddendum(
         "invent hashes or reuse another finding's catalog. Concurrent worktree dirt outside the " +
         "review scope is ignored; settle dispositions for the reviewed findings only.\n" +
         "      Required example: {\"finding_id\":\"F-001\",\"disposition\":\"verified\"}."
-    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT -> auditProducedOutputsAddendum(
-      verdict = verdict,
-    )
+    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT -> auditProducedOutputsAddendum()
     else -> ""
   }
 }
@@ -128,19 +126,21 @@ private fun commitFocusedAccountingAddendum(): String =
     "      path, or diff text. An INLINE or non-commit-sequence pass OMITS the key entirely rather\n" +
     "      than fabricating a sequence identity; never invent or guess a digest or a count."
 
-private fun auditProducedOutputsAddendum(verdict: String): String =
-  "\n    - This is a VERIFYING phase. Ignore the optional-verdict bullet above: for audit, top-level " +
-    "\"$verdict\" is REQUIRED and must be satisfied when status is completed.\n" +
-    "      REJECTED: omitting verdict; gaps_found or any other string; nesting verdict only inside " +
-    "produced_outputs.\n" +
-    "      ACCEPTED root: {\"contract_version\":\"$FEATURE_TASK_RUNTIME_CONTRACT_VERSION\"," +
-    "\"phase_id\":\"audit\",\"status\":\"completed\",\"verdict\":\"satisfied\"," +
+private fun auditProducedOutputsAddendum(): String =
+  "\n    - This is a VERIFYING phase. Ignore the optional-verdict bullet above for audit completion: the " +
+    "runtime reads your completed final response from produced_outputs.value. Only an explicit empty list " +
+    "`[]` (ordinary whitespace or Markdown fencing allowed when the complete final response is exactly " +
+    "that empty list) completes audit; any other non-blank text starts one fresh audit retry with that " +
+    "text forwarded verbatim as a focus hint alongside the full planned criterion list.\n" +
+    "      REJECTED: a whitespace-only value; nesting the remaining-criteria list only inside summary.\n" +
+    "      ACCEPTED completed example root: {\"contract_version\":\"$FEATURE_TASK_RUNTIME_CONTRACT_VERSION\"," +
+    "\"phase_id\":\"audit\",\"status\":\"completed\"," +
     "\"summary\":\"<one sentence>\"," +
-    "\"produced_outputs\":{\"value\":\"<short completion confirmation>\"}}.\n" +
-    "      Emit a non-blank produced_outputs.value string with a short completion confirmation after " +
-    "every listed criterion has implementation and meaningful test coverage. Repair fixable gaps in " +
-    "this same session before you emit satisfied. Use status blocked or failed with " +
-    "failure_disposition when the criterion list is missing or an external dependency prevents repair.\n" +
+    "\"produced_outputs\":{\"value\":\"[]\"}} when every criterion is met, or " +
+    "\"produced_outputs\":{\"value\":\"- AC-002 still missing test coverage\"} when criteria remain.\n" +
+    "      Repair fixable gaps in this same session before you emit the final remaining-criteria response. " +
+    "Use status blocked or failed with failure_disposition when the criterion list is missing or an " +
+    "external dependency prevents repair.\n" +
     auditNoEarlierAuditLine() +
     "      Inspect code and test coverage only: do not run builds, tests, or other commands as audit " +
     "evidence. Validation owns test execution and failures."

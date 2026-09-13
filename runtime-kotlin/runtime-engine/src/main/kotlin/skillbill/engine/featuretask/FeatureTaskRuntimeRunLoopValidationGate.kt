@@ -573,6 +573,7 @@ object FeatureTaskRuntimeRunLoopValidationGate {
       ).coerceAtLeast(1)
     val crashResumed = state.resumedFromPriorProcess(run.phaseId)
     state.recordPhaseLaunched(run.phaseId)
+    FeatureTaskRuntimeRunLoopAuditRetry.clearRetryHintOnFreshLaunch(runLoop, run.phaseId)
     observability.started(
       run.phaseId,
       agentId,
@@ -667,6 +668,7 @@ object FeatureTaskRuntimeRunLoopValidationGate {
     val context = FixLoopBranchContext(run, attempt, loop, observability, agentId)
     val phaseAttempts = FeatureTaskRuntimeRunLoopPhaseAttempts
     return attempt.settledOutcome ?: when {
+      attempt.auditRetryContinuation -> phaseAttempts.settleAuditRetry(runLoop, context)
       attempt.incompleteWorkContinuationReason != null -> phaseAttempts.settleIncompleteWork(runLoop, context)
       attempt.boundaryBodyDeliveryContinuationReason != null ->
         phaseAttempts.settleBoundaryBodyDelivery(runLoop, context)
