@@ -36,7 +36,6 @@ object McpToolRegistry {
   private val toolNames: List<String> =
     listOf(
       "doctor",
-      "feature_task_audit_settle",
       "feature_task_phase_block",
       "feature_task_phase_complete",
       "feature_verify_finished",
@@ -66,12 +65,10 @@ object McpToolRegistry {
   private val descriptions: Map<String, String> =
     mapOf(
       "doctor" to "Check skill-bill installation health.",
-      "feature_task_audit_settle" to
-        "Settle a feature-task audit phase via durable settlement (preferred over stdout envelope).",
       "feature_task_phase_block" to
         "Durable-block a prose feature-task phase (preplan|plan|implement|audit).",
       "feature_task_phase_complete" to
-        "Complete a prose feature-task phase (preplan|plan|implement) via durable settlement.",
+        "Complete a prose feature-task phase (preplan|plan|implement|audit) via durable settlement.",
       "feature_verify_finished" to "Record completion of a feature-verify session.",
       "feature_verify_stats" to "Show aggregate bill-feature-verify metrics.",
       "feature_verify_started" to "Record start of a feature-verify session.",
@@ -114,7 +111,7 @@ object McpToolRegistry {
         required = listOf("workflow_id", "phase_id", "attempt", "reason"),
         properties = mapOf(
           SharedPayloadKeys.WORKFLOW_ID to stringSchema(minLength = 1),
-          SharedPayloadKeys.PHASE_ID to stringSchema(enum = listOf("preplan", "plan", "implement", "audit")),
+          SharedPayloadKeys.PHASE_ID to stringSchema(enum = listOf("preplan", "plan", "implement")),
           "attempt" to mapOf("type" to "integer", "minimum" to 1),
           "reason" to stringSchema(minLength = 1),
           SharedPayloadKeys.FAILURE_DISPOSITION to stringSchema(
@@ -126,17 +123,6 @@ object McpToolRegistry {
               "invalid_output",
             ),
           ),
-        ),
-      ),
-      "feature_task_audit_settle" to objectSchema(
-        required = listOf("workflow_id", "attempt", "verdict", "value"),
-        properties = mapOf(
-          SharedPayloadKeys.WORKFLOW_ID to stringSchema(minLength = 1),
-          SharedPayloadKeys.PHASE_ID to stringSchema(enum = listOf("audit")),
-          "attempt" to mapOf("type" to "integer", "minimum" to 1),
-          SharedPayloadKeys.VERDICT to stringSchema(enum = listOf("satisfied", "gaps_found")),
-          SharedPayloadKeys.VALUE to stringSchema(minLength = 1),
-          SharedPayloadKeys.SUMMARY to stringSchema(minLength = 1),
         ),
       ),
       "feature_verify_started" to objectSchema(

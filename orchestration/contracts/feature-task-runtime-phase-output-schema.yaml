@@ -298,35 +298,40 @@ properties:
       runtime classifies the verdict from the carried review
       findings, which travel inside `produced_outputs` (e.g. a `findings` array
       of severity/message entries) and are forwarded into the `implement_fix`
-      handoff.       For `audit` the values are `satisfied` (every acceptance criterion
-      met) or `gaps_found` (one or more acceptance criteria remain unmet). The
-      runtime reads only this envelope verdict to decide advance versus the
-      `audit_gap` backward edge; gap detail lives inside
-      `produced_outputs.value` as structured prose and is not cross-checked
-      against the verdict. Either absent (not set) or a non-empty string;
-      `null` is not a valid value. The field itself is additive and optional
-      for non-audit phases — existing phase outputs that omit it still validate
-      — but the `audit` phase constraints in `allOf` require a verdict in
-      `{satisfied, gaps_found}`. Contract version `0.5` pins the prose-centric
-      audit produced_outputs shape; workflows created under an earlier version
-      require a hard reset.
+      handoff. For completed `audit` output the value is `satisfied` after
+      same-session inspection and repair of every planned acceptance criterion.
+      Blocked or failed audit output omits verdict and carries
+      `failure_disposition` instead. Either absent (not set) or a non-empty
+      string; `null` is not a valid value. The field itself is additive and
+      optional for non-audit phases — existing phase outputs that omit it still
+      validate — but completed `audit` constraints in `allOf` require
+      `satisfied`. Contract version `0.6` pins the stateless audit terminal
+      vocabulary; legacy `gaps_found` records must be regenerated.
     type: string
     minLength: 1
 allOf:
   - if:
       properties:
         phase_id: { const: audit }
-      required: [phase_id]
-    then:
-      required: [verdict]
-      properties:
-        verdict: { enum: [satisfied, gaps_found] }
-  - if:
-      properties:
-        phase_id: { const: audit }
         status: { const: completed }
       required: [phase_id, status]
     then:
+      required: [verdict]
+      properties:
+        verdict: { enum: [satisfied] }
+        produced_outputs:
+          allOf:
+            - { $ref: "#/$defs/phaseProseProducedOutputs" }
+  - if:
+      properties:
+        phase_id: { const: audit }
+        status:
+          enum: [blocked, failed]
+      required: [phase_id, status]
+    then:
+      required: [failure_disposition]
+      not:
+        required: [verdict]
       properties:
         produced_outputs:
           allOf:

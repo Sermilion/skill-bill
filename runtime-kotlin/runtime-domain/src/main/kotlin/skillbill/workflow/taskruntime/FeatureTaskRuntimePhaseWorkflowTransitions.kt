@@ -34,15 +34,6 @@ internal object FeatureTaskRuntimePhaseWorkflowTransitions {
           capExhaustionBehavior = FeatureTaskRuntimeCapExhaustionBehavior.ADVANCE,
           capScope = FeatureTaskRuntimeBackwardEdgeCapScope.PER_SUBTASK,
         ),
-        FeatureTaskRuntimeBackwardEdge(
-          fromPhaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
-          triggeringVerdict = FeatureTaskRuntimeVerdict.GAPS_FOUND,
-          destinationPhaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,
-          loopId = FeatureTaskRuntimePhaseWorkflowDefinition.AUDIT_GAP_LOOP_ID,
-          perEdgeCap = null,
-          capScope = FeatureTaskRuntimeBackwardEdgeCapScope.PER_SUBTASK,
-          warnAfterIterations = FeatureTaskRuntimePhaseWorkflowDefinition.SEMANTIC_LOOP_WARNING_THRESHOLD,
-        ),
       ),
       loopOnlyPhaseIds = setOf(
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT_FIX,

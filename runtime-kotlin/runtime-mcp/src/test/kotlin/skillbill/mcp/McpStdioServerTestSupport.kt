@@ -106,7 +106,6 @@ private fun assertMiscToolSchemaCoverage(tools: List<*>) {
 internal val expectedToolInventory =
   listOf(
     "doctor",
-    "feature_task_audit_settle",
     "feature_task_phase_block",
     "feature_task_phase_complete",
     "feature_verify_finished",

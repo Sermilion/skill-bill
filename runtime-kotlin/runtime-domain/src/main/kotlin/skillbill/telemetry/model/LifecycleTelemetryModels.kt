@@ -15,17 +15,7 @@ data class FeatureTaskRuntimeFinishedRecord(
   val lastIncompletePhase: String,
   val blockedReason: String,
   val resolvedBranch: String,
-  // The durable review-fix loop iteration count, so finished telemetry reflects the review->fix
-  // iteration count (AC6). Zero when the loop never fired.
   val reviewFixIterationCount: Int = 0,
-  // The durable audit-gap loop iteration count, so finished telemetry reflects the audit->implement
-  // iteration count (AC7). Zero when the loop never fired.
-  val auditGapIterationCount: Int = 0,
-  val auditFirstPassConvergence: Boolean = false,
-  val auditRecurringGapCount: Int = 0,
-  val auditNewGapCount: Int = 0,
-  val auditAttemptedRepairItemCount: Int = 0,
-  val auditResolvedRepairItemCount: Int = 0,
   // SKILL-140: per-run quarantine-and-regenerate counters (AC-006). Counts only: how many times the
   // launch seam quarantined an upstream record, how many regeneration attempts fired across all
   // regeneration loops, and the outcome class tally. Never carries record contents.

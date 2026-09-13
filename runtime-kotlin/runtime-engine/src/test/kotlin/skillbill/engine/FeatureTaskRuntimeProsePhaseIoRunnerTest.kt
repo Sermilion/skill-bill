@@ -1,5 +1,5 @@
 package skillbill.engine
-import skillbill.application.assertGateBlockNamesRule
+import skillbill.application.assertPrivateDiagnosticRejection
 import skillbill.application.realFeatureTaskRuntimePhaseOutputValidator
 import skillbill.application.realPlanningProjectionValidator
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
@@ -76,43 +76,36 @@ class FeatureTaskRuntimeProsePhaseIoRunnerTest {
 
     assertEquals("audit", blocked.lastIncompletePhase)
     assertEquals(1, auditLaunches)
-    assertGateBlockNamesRule(blocked.blockedReason, "phase-output-schema")
+    assertPrivateDiagnosticRejection(blocked.blockedReason, "phase-output-schema")
     assertFalse(harness.launchOrder().contains("review"))
     assertFalse(harness.launchedPromptPhaseOrder().contains("implement"))
   }
 
   @Test
-  fun `audit gaps_found with leftover sibling keys re-enters implement under the real validator`() {
+  fun `removed gaps_found audit verdict does not re-enter implement`() {
     var auditLaunches = 0
     val harness = seededThroughImplementHarness { phaseId ->
       when (phaseId) {
         "audit" -> {
           auditLaunches += 1
-          if (auditLaunches == 1) {
-            fatAudit(verdict = "gaps_found", value = GAPS_AUDIT_VALUE)
-          } else {
-            auditSatisfiedOutput()
-          }
+          fatAudit(verdict = "gaps_found", value = GAPS_AUDIT_VALUE)
         }
-        "implement" -> fatImplement()
         else -> validJsonOutput(phaseId)
       }
     }
 
     val report = harness.runner.run(harness.request())
 
-    assertIs<FeatureTaskRuntimeRunReport.Completed>(report, report.toString())
-    val launched = harness.launchedPromptPhaseOrder()
-    assertEquals(2, launched.count { it == "audit" })
-    assertEquals(1, launched.count { it == "implement" })
-    assertTrue(launched.indexOf("implement") > launched.indexOf("audit"))
-    assertTrue(harness.launchOrder().contains("review"))
+    val blocked = assertIs<FeatureTaskRuntimeRunReport.Blocked>(report)
+    assertEquals("audit", blocked.lastIncompletePhase)
+    assertPrivateDiagnosticRejection(blocked.blockedReason, "phase-output-schema")
+    assertEquals(1, auditLaunches)
+    assertFalse(harness.launchedPromptPhaseOrder().contains("implement"))
+    assertFalse(harness.launchOrder().contains("review"))
     assertTrue(
-      harness.io.database.rejectedDiagnostics().none { it.metadata.phaseId == "audit" },
+      harness.recorder.loadPhaseLedger(WORKFLOW_ID).orEmpty()
+        .none { it.loopId == "audit_gap" },
     )
-    val loopEdges = harness.recorder.loadPhaseLedger(WORKFLOW_ID).orEmpty()
-      .filter { it.action == FeatureTaskRuntimePhaseLedgerAction.LOOP_EDGE && it.loopId == "audit_gap" }
-    assertEquals(listOf(1), loopEdges.mapNotNull { it.edgeIteration })
   }
 
   private fun proseHarness(outputFor: (String) -> String): RunnerHarness = runnerHarness(

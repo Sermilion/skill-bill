@@ -152,8 +152,8 @@ data class PhaseHandoffProjectionDeclaration(
         FeatureTaskRuntimeHandoffSourceRef.SharedReviewEvidence
       FeatureTaskRuntimeHandoffSourceRef.REPAIR_LEDGER_WIRE ->
         FeatureTaskRuntimeHandoffSourceRef.RepairLedger
-      FeatureTaskRuntimeHandoffSourceRef.PRIOR_GAP_MEMORY_WIRE ->
-        FeatureTaskRuntimeHandoffSourceRef.PriorGapMemory
+      FeatureTaskRuntimeHandoffSourceRef.RETIRED_PRIOR_GAP_MEMORY_WIRE ->
+        invalid()
       else -> invalid()
     }
 

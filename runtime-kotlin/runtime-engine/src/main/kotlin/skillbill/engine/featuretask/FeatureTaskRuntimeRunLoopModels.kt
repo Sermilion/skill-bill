@@ -45,7 +45,6 @@ internal data class PendingReentry(
   val loopId: String,
   val edgeIteration: Int,
   val drivingVerdict: FeatureTaskRuntimeVerdict,
-  val reentryGapCriteria: List<String> = emptyList(),
   val expectedRepositoryCheckpoint: String? = null,
 )
 
@@ -313,8 +312,6 @@ internal data class PreparedLaunchReady(val value: PreparedLaunch) : LaunchPrepa
 internal data class LaunchMeasurementContextReady(
   val value: LaunchRejectionMeasurementContext,
 ) : LaunchPreparation
-
-internal data class ClosedCriterionRefsReady(val value: List<String>) : LaunchPreparation
 
 internal data class LaunchPreparationRejected(val result: LaunchResult) : LaunchPreparation
 

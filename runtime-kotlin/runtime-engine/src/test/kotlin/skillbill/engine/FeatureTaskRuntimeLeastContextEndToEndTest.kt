@@ -25,11 +25,6 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-/**
- * Integrated closed-world proof over a complete runtime launch. Narrow suites exercise retries,
- * remediation, continuation, goal children, providers, and persistence failure modes; this matrix
- * pins the common boundary they all use so those surfaces cannot drift to different context shapes.
- */
 class FeatureTaskRuntimeLeastContextEndToEndTest {
   @Test
   fun `every forward consumer receives exactly its declared bounded projection and no private evidence`() {
@@ -51,16 +46,17 @@ class FeatureTaskRuntimeLeastContextEndToEndTest {
 
     val briefings = assertNotNull(harness.recorder.loadPhaseBriefings(WORKFLOW_ID))
     val deliveredRecords = assertNotNull(harness.recorder.loadDeliveredProjections(WORKFLOW_ID))
-    assertEquals(forwardPhases.toSet(), briefings.keys)
-    assertEquals(forwardPhases.toSet(), deliveredRecords.keys)
+    val persistedPhases = forwardPhases - FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT
+    assertEquals(persistedPhases.toSet(), briefings.keys)
+    assertEquals(persistedPhases.toSet(), deliveredRecords.keys)
 
-    forwardPhases.forEach { phaseId ->
+    persistedPhases.forEach { phaseId ->
       assertConsumerDelivery(phaseId, briefings.getValue(phaseId), deliveredRecords.getValue(phaseId))
     }
 
     val privatePhaseRecords = assertNotNull(harness.recorder.loadPhaseRecords(WORKFLOW_ID))
     assertEquals(forwardPhases.toSet(), privatePhaseRecords.keys)
-    forwardPhases.forEach { phaseId ->
+    persistedPhases.forEach { phaseId ->
       val privateOutput = assertNotNull(privatePhaseRecords.getValue(phaseId).outputArtifact)
       val deliveredWire = deliveredRecords.getValue(phaseId).toArtifactMap().toString()
       assertNotEquals(

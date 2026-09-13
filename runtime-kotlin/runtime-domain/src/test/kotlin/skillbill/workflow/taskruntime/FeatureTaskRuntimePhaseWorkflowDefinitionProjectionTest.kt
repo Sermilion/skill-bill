@@ -6,7 +6,6 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeCapExhaustionBehav
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffSourceRef
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseEntryGate
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePlanningProjectionContract
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePriorGapMemory
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepositoryCheckpointPolicy
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeSharedReviewEvidenceReference
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeTransitionDeclaration
@@ -14,7 +13,6 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class FeatureTaskRuntimePhaseWorkflowDefinitionProjectionTest {
@@ -23,39 +21,6 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionProjectionTest {
   @Test
   fun `consumer projection matrix is exact and downstream edges never receive whole phase receipts`() {
     assertConsumerProjectionMatrixExact(definition)
-  }
-
-  @Test
-  fun `audit remediation selectors retain only the immutable plan and applicable repair projection`() {
-    val def = FeatureTaskRuntimePhaseWorkflowDefinition
-    val auditRemediation = def.auditRemediationProjections()
-    val upstreamRemediation = auditRemediation.filter {
-      it.sourceRef is FeatureTaskRuntimeHandoffSourceRef.UpstreamPhaseOutput
-    }
-    assertEquals(
-      listOf(
-        def.PHASE_PLAN to FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.PHASE_PROSE,
-        def.PHASE_IMPLEMENT to FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.PHASE_PROSE,
-        def.PHASE_AUDIT to FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.PHASE_PROSE,
-      ),
-      upstreamRemediation.map {
-        (it.sourceRef as FeatureTaskRuntimeHandoffSourceRef.UpstreamPhaseOutput).producingPhaseId to
-          it.projectionContractId
-      },
-    )
-    assertTrue(
-      auditRemediation.any { it.sourceRef == FeatureTaskRuntimeHandoffSourceRef.PriorGapMemory },
-    )
-    assertTrue(auditRemediation.none { it.projectionContractId == def.UPSTREAM_PHASE_RECEIPT_CONTRACT_ID })
-    assertEquals(
-      FeatureTaskRuntimeRepositoryCheckpointPolicy.REFRESH_FROM_REPOSITORY,
-      upstreamRemediation.last().checkpointPolicy,
-      "audit-to-implement prose refreshes the repository checkpoint",
-    )
-    assertEquals(
-      listOf("value", "directive"),
-      upstreamRemediation.last().declaredFieldNames,
-    )
   }
 
   @Test
@@ -91,10 +56,6 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionProjectionTest {
     assertEquals(
       listOf("unresolved_blocker_findings", "repository_checkpoint"),
       fields(def.PHASE_IMPLEMENT_FIX, "review_repair_request"),
-    )
-    assertEquals(
-      listOf("clearance_status", "review_scope", "repository_checkpoint"),
-      fields(def.PHASE_REVIEW, "audit_clearance"),
     )
     assertEquals(
       listOf("changed_paths", "repository_checkpoint"),
@@ -150,11 +111,11 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionProjectionTest {
   fun `runtime projectors privately combine only the producers needed by finalization consumers`() {
     val def = FeatureTaskRuntimePhaseWorkflowDefinition
     assertEquals(
-      setOf(def.PHASE_PLAN, def.PHASE_AUDIT),
+      setOf(def.PHASE_PLAN),
       def.runtimeProjectorProducerPhaseIds(def.PHASE_VALIDATE),
     )
     assertEquals(
-      setOf(def.PHASE_PLAN, def.PHASE_AUDIT),
+      setOf(def.PHASE_PLAN),
       def.runtimeProjectorProducerPhaseIds(def.PHASE_BUILD),
     )
     assertEquals(
@@ -198,20 +159,6 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionProjectionTest {
   }
 
   @Test
-  fun `the review_fix span excludes audit and the audit_gap span excludes review`() {
-    val def = FeatureTaskRuntimePhaseWorkflowDefinition
-    val transitions = def.transitions
-    val reviewFix = transitions.backwardEdges.single { it.loopId == def.REVIEW_FIX_LOOP_ID }
-    val auditGap = transitions.backwardEdges.single { it.loopId == def.AUDIT_GAP_LOOP_ID }
-    val reviewFixSpan = transitions.spanBetween(reviewFix.destinationPhaseId, reviewFix.fromPhaseId)
-    val auditGapSpan = transitions.spanBetween(auditGap.destinationPhaseId, auditGap.fromPhaseId)
-    assertEquals(listOf(def.PHASE_IMPLEMENT_FIX), reviewFixSpan)
-    assertEquals(listOf(def.PHASE_IMPLEMENT, def.PHASE_AUDIT), auditGapSpan)
-    assertTrue(def.PHASE_AUDIT !in reviewFixSpan)
-    assertTrue(def.PHASE_REVIEW !in auditGapSpan)
-  }
-
-  @Test
   fun `an entry gate whose required phase does not precede the gated phase fails at construction`() {
     val error = assertFailsWith<IllegalArgumentException> {
       FeatureTaskRuntimeTransitionDeclaration(
@@ -235,7 +182,7 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionProjectionTest {
   @Test
   fun `all backward edges declare PER_SUBTASK capScope explicitly`() {
     val edges = FeatureTaskRuntimePhaseWorkflowDefinition.transitions.backwardEdges
-    assertEquals(2, edges.size, "expected exactly two declared backward edges: ${edges.map { it.loopId }}")
+    assertEquals(1, edges.size, "expected exactly one declared backward edge: ${edges.map { it.loopId }}")
     edges.forEach { edge ->
       assertEquals(
         FeatureTaskRuntimeBackwardEdgeCapScope.PER_SUBTASK,
@@ -317,45 +264,13 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionProjectionTest {
     assertEquals(
       listOf(
         Triple(def.PHASE_VERIFY_FINDINGS, FeatureTaskRuntimeVerdict.FINDINGS_VERIFIED, def.PHASE_IMPLEMENT_FIX),
-        Triple(def.PHASE_AUDIT, FeatureTaskRuntimeVerdict.GAPS_FOUND, def.PHASE_IMPLEMENT),
       ),
       semantic.map { Triple(it.fromPhaseId, it.triggeringVerdict, it.destinationPhaseId) },
     )
     assertTrue(semantic.none { it.fromPhaseId == def.PHASE_REVIEW && it.loopId == def.REVIEW_FIX_LOOP_ID })
+    assertTrue(semantic.none { it.loopId == def.AUDIT_GAP_LOOP_ID })
     val reviewFixEdge = semantic.single { it.loopId == def.REVIEW_FIX_LOOP_ID }
     assertEquals(1, reviewFixEdge.perEdgeCap)
     assertEquals(FeatureTaskRuntimeCapExhaustionBehavior.ADVANCE, reviewFixEdge.capExhaustionBehavior)
-    assertNull(semantic.single { it.loopId == def.AUDIT_GAP_LOOP_ID }.perEdgeCap)
-  }
-
-  @Test
-  fun `prior gap memory source ref round-trips and the declaration matches the model field set`() {
-    val def = FeatureTaskRuntimePhaseWorkflowDefinition
-    val source = FeatureTaskRuntimeHandoffSourceRef.fromWire(
-      FeatureTaskRuntimeHandoffSourceRef.PRIOR_GAP_MEMORY_WIRE,
-    )
-    assertEquals(FeatureTaskRuntimeHandoffSourceRef.PriorGapMemory, source)
-    assertEquals(
-      mapOf("kind" to "prior_gap_memory", "id" to "prior_gap_memory"),
-      source.toDeclarationMap(),
-    )
-    assertEquals(
-      FeatureTaskRuntimeHandoffSourceRef.PriorGapMemory,
-      FeatureTaskRuntimeHandoffSourceRef.fromWire(
-        FeatureTaskRuntimeHandoffSourceRef.fromWire(
-          FeatureTaskRuntimeHandoffSourceRef.PRIOR_GAP_MEMORY_WIRE,
-        ).wireValue,
-      ),
-    )
-
-    val declaration = def.priorGapMemoryDeclaration(def.PHASE_IMPLEMENT)
-    assertEquals(def.PRIOR_GAP_MEMORY_PROJECTION_NAME, declaration.projectionName)
-    assertEquals(
-      FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.PRIOR_GAP_MEMORY,
-      declaration.projectionContractId,
-    )
-    assertEquals(FeatureTaskRuntimeHandoffSourceRef.PriorGapMemory, declaration.sourceRef)
-    assertEquals(FeatureTaskRuntimePriorGapMemory.DECLARED_FIELD_NAMES, declaration.declaredFieldNames)
-    assertEquals(false, declaration.required, "absent memory must omit, never reject a predating in-flight run")
   }
 }

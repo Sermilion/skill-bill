@@ -31,12 +31,10 @@ import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeCorrectiveRepairContext
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePriorGapMemory
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeProducerIteration
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeProjectionFailureClassification
 import skillbill.workflow.taskruntime.model.NormalizedFeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.QUARANTINE_REJECTION_CLASS_PLANNING_PROJECTION
-import skillbill.workflow.taskruntime.model.boundPriorGapNotes
 import java.nio.file.Path
 import kotlin.time.Duration.Companion.minutes
 
@@ -117,9 +115,7 @@ object FeatureTaskRuntimeRunLoopLaunch {
     val prepared = when (val preparation = prepareLaunchForCapture(runLoop, run, state, priorCorrection)) {
       is PreparedLaunchReady -> preparation.value
       is LaunchPreparationRejected -> return preparation.result
-      is LaunchMeasurementContextReady,
-      is ClosedCriterionRefsReady,
-      -> error("Unexpected launch preparation result.")
+      is LaunchMeasurementContextReady -> error("Unexpected launch preparation result.")
     }
     val (
       isReviewPhase,
@@ -191,27 +187,11 @@ object FeatureTaskRuntimeRunLoopLaunch {
     ) {
       is LaunchMeasurementContextReady -> resolution.value
       is LaunchPreparationRejected -> return resolution
-      is PreparedLaunchReady,
-      is ClosedCriterionRefsReady,
-      -> error("Unexpected launch measurement result.")
-    }
-    val durablyClosedCriterionRefs = when (
-      val resolution = FeatureTaskRuntimeRunLoopLaunch.resolveDurablyClosedCriterionRefs(
-        runLoop,
-        run,
-        state,
-        measurementContext,
-      )
-    ) {
-      is ClosedCriterionRefsReady -> resolution.value
-      is LaunchPreparationRejected -> return resolution
-      is PreparedLaunchReady,
-      is LaunchMeasurementContextReady,
-      -> error("Unexpected closed-criterion result.")
+      is PreparedLaunchReady -> error("Unexpected launch measurement result.")
     }
     return FeatureTaskRuntimeRunLoopLaunch.prepareDeclaredLaunch(
       runLoop,
-      DeclaredLaunchArgs(run, state, priorCorrection, durablyClosedCriterionRefs, measurementContext),
+      DeclaredLaunchArgs(run, state, priorCorrection, measurementContext),
     )
   }
 
@@ -382,39 +362,6 @@ object FeatureTaskRuntimeRunLoopLaunch {
     }
   }
 
-  internal fun resolveDurablyClosedCriterionRefs(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    run: PhaseRun,
-    state: FeatureTaskRuntimeRunState,
-    context: LaunchRejectionMeasurementContext,
-  ): LaunchPreparation = try {
-    ClosedCriterionRefsReady(
-      if (run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT) {
-        FeatureTaskRuntimeRunLoopPhaseRunner.durablyClosedCriterionRefs()
-      } else {
-        emptyList()
-      },
-    )
-  } catch (error: InvalidWorkflowStateSchemaError) {
-    recordLaunchSeamRejection(
-      runLoop,
-      LaunchSeamRejectionArgs(
-        run = run,
-        state = state,
-        classification = FeatureTaskRuntimeProjectionFailureClassification.UNSUPPORTED_VERSION,
-        sourceLabel = "durable_audit_state",
-        fallbackProducerIteration = context.producerIteration,
-        repositoryCheckpoint = context.repositoryCheckpoint,
-      ),
-    )
-    LaunchPreparationRejected(
-      LaunchResult.projectionRejected(
-        "Feature-task-runtime phase '${run.phaseId}' rejected its durable audit-repair state at the launch seam: " +
-          error.message,
-      ),
-    )
-  }
-
   internal fun prepareDeclaredLaunch(runLoop: FeatureTaskRuntimeRunLoop, args: DeclaredLaunchArgs): LaunchPreparation =
     FeatureTaskRuntimeRunLoopLaunch.prepareDeclaredLaunchBody(runLoop, args)
 
@@ -441,55 +388,6 @@ object FeatureTaskRuntimeRunLoopLaunch {
         failureClassification = classification,
         sourceLabel = sourceLabel,
       ),
-    )
-  }
-
-  internal fun priorGapMemoryFor(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    run: PhaseRun,
-    state: FeatureTaskRuntimeRunState,
-  ): FeatureTaskRuntimePriorGapMemory? {
-    val def = FeatureTaskRuntimePhaseWorkflowDefinition
-    val auditGapFired = state.edgeIterationCount(def.AUDIT_GAP_LOOP_ID) > 0
-    val implementReentry = run.phaseId == def.PHASE_IMPLEMENT &&
-      (run.reentry?.loopId == def.AUDIT_GAP_LOOP_ID || auditGapFired)
-    val auditAfterRemediation = run.phaseId == def.PHASE_AUDIT && auditGapFired
-    if (!implementReentry && !auditAfterRemediation) {
-      return null
-    }
-    val round = (
-      run.reentry?.takeIf { it.loopId == def.AUDIT_GAP_LOOP_ID }?.edgeIteration
-        ?: state.edgeIterationCount(def.AUDIT_GAP_LOOP_ID)
-      ).coerceAtLeast(1)
-    val auditOutputs = state.outputs()
-      .filter { it.phaseId == def.PHASE_AUDIT }
-      .sortedBy { it.iteration }
-    if (auditOutputs.isEmpty()) return null
-    val auditValues = auditOutputs.mapNotNull { output ->
-      FeatureTaskRuntimeRunLoopLaunch.outputEnvelopeOf(output)
-        ?.let(FeatureTaskRuntimeOutputVerification::auditProseValue)
-    }
-    if (auditValues.isEmpty()) return null
-    val priorAuditValues = if (implementReentry) {
-      auditValues.dropLast(1)
-    } else {
-      auditValues
-    }
-    val bounded = boundPriorGapNotes(priorAuditValues)
-    if (bounded.droppedForListCap > 0 || bounded.droppedForUtf8Budget > 0) {
-      runCatching {
-        runLoop.diagnostics.warning(
-          "seam=FeatureTaskRuntimeRunLoop.priorGapMemoryFor " +
-            "value_expected=bounded_prior_gap_memory " +
-            "value_used=dropped_whole_values " +
-            "cause=dropped_entries=${bounded.droppedForListCap};" +
-            "dropped_over_utf8=${bounded.droppedForUtf8Budget}",
-        )
-      }
-    }
-    return FeatureTaskRuntimePriorGapMemory(
-      round = round,
-      priorAuditValues = bounded.values,
     )
   }
 
@@ -556,13 +454,12 @@ object FeatureTaskRuntimeRunLoopLaunch {
     val run = args.run
     val state = args.state
     val priorCorrection = args.priorCorrection
-    val durablyClosedCriterionRefs = args.durablyClosedCriterionRefs
     val context = args.context
     return try {
       PreparedLaunchReady(
         FeatureTaskRuntimeRunLoopOutputPersistence.prepareLaunch(
           runLoop,
-          PrepareLaunchArgs(run, state, priorCorrection, durablyClosedCriterionRefs, context.repositoryCheckpoint),
+          PrepareLaunchArgs(run, state, priorCorrection, context.repositoryCheckpoint),
         ),
       )
     } catch (error: InvalidFeatureTaskRuntimeHandoffProjectionError) {

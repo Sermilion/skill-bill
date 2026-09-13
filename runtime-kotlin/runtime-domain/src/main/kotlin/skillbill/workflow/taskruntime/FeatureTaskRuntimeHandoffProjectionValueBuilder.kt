@@ -17,7 +17,6 @@ import skillbill.workflow.taskruntime.model.REPOSITORY_CHECKPOINT_FIELD
 
 internal object FeatureTaskRuntimeHandoffProjectionValueBuilder {
   private val phaseProjectionContractIds: Set<String> = setOf(
-    FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.AUDIT_CLEARANCE,
     FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.REVIEW_CLEARANCE,
     FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.REVIEW_REPAIR_REQUEST,
     FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.FINDINGS_VERIFICATION_INPUT,
@@ -35,11 +34,6 @@ internal object FeatureTaskRuntimeHandoffProjectionValueBuilder {
     FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.PHASE_PROSE,
   )
 
-  /**
-   * Selects named values from the validated phase envelope. The declaration is the allowlist:
-   * summary, narration, raw output, reports, progress and telemetry have no route into this method.
-   * Structured list entries are independently serialized so collection budgets count every item.
-   */
   fun phaseProjectionFields(
     inputs: FeatureTaskRuntimeHandoffProjectionInputs,
     declaration: PhaseHandoffProjectionDeclaration,
@@ -56,11 +50,9 @@ internal object FeatureTaskRuntimeHandoffProjectionValueBuilder {
         "validated producer output could not be decoded as an object.",
       )
     val produced = JsonCodec.anyToStringAnyMap(envelope[SharedPayloadKeys.PRODUCED_OUTPUTS]).orEmpty()
-    val runtimeOwned = runtimeOwnedPhaseProjectionValues(inputs, declaration, produced, envelope)
+    val runtimeOwned = runtimeOwnedPhaseProjectionValues(inputs, declaration, produced)
     return declaration.declaredFieldNames.mapNotNull { name ->
       val value = runtimeOwned[name] ?: when {
-        declaration.projectionContractId ==
-          FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.AUDIT_CLEARANCE -> null
         name == "verdict" -> envelope[name]
         else -> resolveDeclaredPhaseField(produced, name)
       }
@@ -74,17 +66,7 @@ internal object FeatureTaskRuntimeHandoffProjectionValueBuilder {
     inputs: FeatureTaskRuntimeHandoffProjectionInputs,
     declaration: PhaseHandoffProjectionDeclaration,
     produced: Map<String, Any?>,
-    envelope: Map<String, Any?>,
   ): Map<String, Any?> = when (declaration.projectionContractId) {
-    FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.AUDIT_CLEARANCE -> mapOf(
-      "clearance_status" to auditClearanceStatus(envelope),
-      "review_scope" to FeatureTaskRuntimePhaseWorkflowQueries
-        .ceremonyScaling(inputs.runInvariants.featureSize)
-        .reviewScope
-        .wireValue,
-      REPOSITORY_CHECKPOINT_FIELD to checkpointFingerprint(inputs),
-      SharedPayloadKeys.VERDICT to auditClearanceStatus(envelope),
-    )
     FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.REVIEW_REPAIR_REQUEST -> mapOf(
       "unresolved_blocker_findings" to verifiedFindingsProjection(inputs, produced),
       REPOSITORY_CHECKPOINT_FIELD to checkpointFingerprint(inputs),
@@ -143,9 +125,6 @@ internal object FeatureTaskRuntimeHandoffProjectionValueBuilder {
       ?.let { fields["directive"] = it }
     return fields
   }
-
-  private fun auditClearanceStatus(envelope: Map<String, Any?>): String? =
-    (envelope[SharedPayloadKeys.VERDICT] as? String)?.takeIf(String::isNotBlank)
 
   private fun verifiedFindingsProjection(
     inputs: FeatureTaskRuntimeHandoffProjectionInputs,
@@ -207,11 +186,6 @@ internal object FeatureTaskRuntimeHandoffProjectionValueBuilder {
         ).filterValues { it != null }
       }
 
-  /**
-   * Phase producers own named result objects (`validation_result`, `history_result`,
-   * `commit_push_result`, and `pr_result`). Resolve only those governed containers; searching every
-   * nested object would turn a closed projection into an accidental context-discovery mechanism.
-   */
   private fun resolveDeclaredPhaseField(produced: Map<String, Any?>, name: String): Any? {
     produced[name]?.let { return it }
     val resultContainers = listOf(

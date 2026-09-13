@@ -1,5 +1,4 @@
 package skillbill.engine
-import skillbill.application.assertGateBlockNamesRule
 import skillbill.application.assertNoRawResponseSpan
 import skillbill.application.diagnostics.RejectedOutputDiagnosticService
 import skillbill.application.realFeatureTaskRuntimePhaseOutputValidator
@@ -27,13 +26,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
-/**
- * SKILL-135 Subtask 1 remediation: the `review` phase-entry gate is only worth declaring if it
- * reaches the production topology and survives a durable record minted under the pre-reorder
- * ordering. These cases exercise the wiring end-to-end through the runner rather than asserting
- * against the shipped definition object, which every seam already agreed on while the gate was
- * inert in every real run.
- */
 class FeatureTaskRuntimeAuditEntryGateTest {
 
   @Test
@@ -55,9 +47,6 @@ class FeatureTaskRuntimeAuditEntryGateTest {
 
   @Test
   fun `a gate carried unfiltered into a truncated pipeline fails construction`() {
-    // The hazard the resolver's filter exists to prevent: transitionsFor runs outside the runner's
-    // failure handling and before telemetry starts, so a gate naming a truncated-away phase would
-    // surface as an untyped error rather than as a gate.
     val truncated = FeatureTaskRuntimePhaseWorkflowDefinition.definition.stepIds
       .takeWhile { it != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW }
 
@@ -73,8 +62,6 @@ class FeatureTaskRuntimeAuditEntryGateTest {
   fun `a durable review completed before audit is invalidated so audit runs first and review re-runs`() {
     val harness = runnerHarness(RuntimeHarnessConfig(agentAssignment = phasePerAgentAssignment()))
     seedThroughImplement(harness)
-    // The pre-reorder ordering ran review before audit, and burned the review fix-loop budget doing
-    // it: the re-run must still get a fresh per-visit budget rather than re-blocking immediately.
     harness.seedPhase("review", "completed", 3, phaseAgent("review"), CLEAN_REVIEW_OUTPUT)
 
     val report = harness.runner.run(harness.request())
@@ -241,7 +228,6 @@ class FeatureTaskRuntimeAuditEntryGateTest {
     val harness = runnerHarness(RuntimeHarnessConfig(agentAssignment = phasePerAgentAssignment()))
     seedThroughImplement(harness)
     harness.seedPhase("review", "completed", 1, phaseAgent("review"), CLEAN_REVIEW_OUTPUT)
-    // A prior run under the old ordering fired review_fix and crashed with implement_fix in flight.
     harness.seedLoopEdge("implement_fix", "review_fix", 1)
     harness.seedReentryPhase(
       SeedReentryPhaseSeed("implement_fix", "running", 1, phaseAgent("implement"), null, "review_fix", 1),
@@ -255,8 +241,6 @@ class FeatureTaskRuntimeAuditEntryGateTest {
       report.completedPhaseIds.contains("audit"),
       "resuming at the re-entry destination must not reach a terminal report with audit unvisited",
     )
-    // Discriminating against the pre-reorder graph, under which audit also runs and also completes:
-    // what the reordering owns is that it runs BEFORE the review it gates.
     assertTrue(
       launched.indexOf("audit") in 0 until launched.indexOf("review"),
       "audit must run before the review it gates, not merely somewhere in the run: launched=$launched",
@@ -285,7 +269,7 @@ class FeatureTaskRuntimeAuditEntryGateTest {
     val blocked = assertIs<FeatureTaskRuntimeRunReport.Blocked>(harness.runner.run(harness.request()))
 
     assertEquals(1, auditLaunches, "an off-vocabulary audit verdict settles on the schema gate, without a relaunch")
-    assertGateBlockNamesRule(blocked.blockedReason, "phase-output-schema")
+    assertTrue(blocked.blockedReason.contains("Rejected output violated 'phase-output-schema'"))
     assertTrue(
       !blocked.blockedReason.contains("off-vocabulary verdict 'x' and no y'"),
       "the blocked reason must not quote the response wire verdict",
@@ -321,9 +305,6 @@ class FeatureTaskRuntimeAuditEntryGateTest {
   fun `a resumed gate migration does not charge the fresh review with the legacy attempt watermark`() {
     val harness = runnerHarness(RuntimeHarnessConfig(agentAssignment = phasePerAgentAssignment()))
     seedThroughImplement(harness)
-    // The durable state an earlier migrating load left behind: the review tombstone carrying the
-    // legacy generation's exhausted attempt watermark. That load's in-memory generation reset does
-    // not survive, and a non-completed tombstone never re-enters the gate-invalidation set.
     harness.seedPhase(
       "review",
       "running",
@@ -345,8 +326,6 @@ class FeatureTaskRuntimeAuditEntryGateTest {
   fun `a dropped legacy review fix re-entry does not spend the fresh generation's fix pass`() {
     val harness = runnerHarness(reviewFixRuntimeConfig(2).copy(agentAssignment = phasePerAgentAssignment()))
     seedThroughImplement(harness)
-    // A legacy run fired review_fix once and left implement_fix in flight; review never durably
-    // completed, so there is no tombstone and the re-entry is dropped for its gate-blocked span.
     harness.seedLoopEdge("implement_fix", "review_fix", 1)
     harness.seedReentryPhase(
       SeedReentryPhaseSeed("implement_fix", "running", 1, phaseAgent("implement"), null, "review_fix", 1),
@@ -385,7 +364,7 @@ class FeatureTaskRuntimeAuditEntryGateTest {
         ),
       ),
       transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
-      initialLedger = listOf(
+      durableInitialLedger = listOf(
         FeatureTaskRuntimePhaseLedgerEntry(
           action = FeatureTaskRuntimePhaseLedgerAction.LOOP_EDGE,
           sequenceNumber = 1,
@@ -398,8 +377,6 @@ class FeatureTaskRuntimeAuditEntryGateTest {
       ),
       outputValidator = AlwaysValidValidator,
     )
-    // Precondition: the legacy generation's watermark is loaded, and its span cannot be completed
-    // because review sits behind an audit that never settled.
     assertEquals(1, state.edgeIterationCount(FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID))
     assertTrue(state.spanBlockedByEntryGate(listOf("implement_fix", "review")))
 
@@ -431,7 +408,6 @@ class FeatureTaskRuntimeAuditEntryGateTest {
       ).request(),
     )
 
-    // The goal child truncates at pr and nowhere else: same order, same gates, same backward edges.
     assertEquals(standalone.forwardPhaseIds.dropLast(1), goalChild.forwardPhaseIds)
     assertEquals(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PR, standalone.forwardPhaseIds.last())
     assertEquals(standalone.entryGates, goalChild.entryGates)
@@ -443,8 +419,6 @@ class FeatureTaskRuntimeAuditEntryGateTest {
   fun `a review generation restart over retained evidence advances without discarding the prior generation`() {
     val harness = runnerHarness(RuntimeHarnessConfig(agentAssignment = phasePerAgentAssignment()))
     seedThroughImplement(harness)
-    // The observed database state: the capped generation retained review evidence at both attempts
-    // with differing bytes, and the watermark is about to rewind below them.
     seedReviewEvidence(harness, attempt = 1, payload = LEGACY_FIRST_REVIEW_PAYLOAD)
     seedReviewEvidence(harness, attempt = 2, payload = LEGACY_SECOND_REVIEW_PAYLOAD)
     harness.seedPhase(
@@ -595,17 +569,10 @@ private const val FRESH_IMPLEMENT_FIX_OUTPUT =
     """"produced_outputs":{"changed_files":["$FRESH_IMPLEMENT_FIX_MARKER"],""" +
     """"reconciled_state":{"reconciled":true}}}"""
 
-// preplan and plan feed the bounded planning projections, so their seeded records are full envelopes
-// carrying the declared projection body rather than bare produced_outputs fragments.
 private val PREPLAN_DIGEST_OUTPUT = validJsonOutput("preplan")
 private val PLAN_STEPS_OUTPUT = validJsonOutput("plan")
 private const val CLEAN_REVIEW_OUTPUT = """{"contract_version":"0.1","produced_outputs":{"findings":[]}}"""
 
-// Carries a verdict but one outside the closed audit vocabulary, with no criteria array to derive a
-// decidable verdict from, so the audit verification-signal gate rejects it. The interior
-// `' and no` in the wire value is the realistic scrub bug: a non-greedy `'.*?'(?= and no)` match
-// stops early and leaves a response-derived suffix in Violated constraint outside the authorized
-// repair section.
 private const val UNDECIDABLE_AUDIT_OUTPUT =
   """{"contract_version":"0.6","phase_id":"audit","status":"completed","summary":"audit",""" +
     """"verdict":"x' and no y","produced_outputs":{"value":"{\"gaps\":[]}"}}"""

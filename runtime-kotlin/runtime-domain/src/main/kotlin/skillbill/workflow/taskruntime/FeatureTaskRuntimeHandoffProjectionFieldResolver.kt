@@ -24,7 +24,6 @@ internal object FeatureTaskRuntimeHandoffProjectionFieldResolver {
     FeatureTaskRuntimeHandoffSourceRef.DerivedCeremonyScaling -> declaration.producerIteration
     FeatureTaskRuntimeHandoffSourceRef.SharedReviewEvidence -> declaration.producerIteration
     FeatureTaskRuntimeHandoffSourceRef.RepairLedger -> declaration.producerIteration
-    FeatureTaskRuntimeHandoffSourceRef.PriorGapMemory -> declaration.producerIteration
     is FeatureTaskRuntimeHandoffSourceRef.AddonContentRef -> declaration.producerIteration
   }
 
@@ -57,7 +56,6 @@ internal object FeatureTaskRuntimeHandoffProjectionFieldResolver {
     FeatureTaskRuntimeHandoffSourceRef.SharedReviewEvidence ->
       inputs.sharedReviewEvidence?.toProjectionFields()
     FeatureTaskRuntimeHandoffSourceRef.RepairLedger -> repairLedgerProjectionFields(inputs)
-    FeatureTaskRuntimeHandoffSourceRef.PriorGapMemory -> inputs.priorGapMemory?.toProjectionFields()
     is FeatureTaskRuntimeHandoffSourceRef.AddonContentRef -> addonContentProjectionFields(inputs, sourceRef.slug)
   }
 }

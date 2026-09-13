@@ -1,8 +1,6 @@
 package skillbill.engine.featuretask
 
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePriorGapMemory
-
 fun mutatingPhaseIdempotencyDirective(phaseId: String): String {
   if (!FeatureTaskRuntimePhaseWorkflowDefinition.isMutatingPhase(phaseId)) {
     return ""
@@ -17,26 +15,6 @@ fun mutatingPhaseIdempotencyDirective(phaseId: String): String {
     be safe to run again: reconciling to target, not re-applying from scratch. Before finishing,
     verify every changed file is at its intended state and report that reconciled end-state in
     produced_outputs (see the reconciliation report in the required output below).
-  """.trimIndent()
-}
-
-fun priorGapMemoryRemediationDirective(phaseId: String, memory: FeatureTaskRuntimePriorGapMemory?): String {
-  if (phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT || memory == null) {
-    return ""
-  }
-  val priorRounds = if (memory.priorAuditValues.isEmpty()) {
-    "none yet (first remediation round)"
-  } else {
-    "${memory.priorAuditValues.size} prior audit value string(s) in prior_gap_memory"
-  }
-  return """
-    ## Prior-gap memory — re-justify recurrence against prior audit prose
-    The prior_gap_memory projection above records the earlier audit_gap round. Treat it as authoritative
-    context for this round, not optional color. Compare the current audit value against
-    prior_audit_values ($priorRounds): when a gap repeats a criterion already named in an earlier audit
-    value string, your remediation must explicitly address why the prior fix did not close it. Still
-    close every gap named in the current audit value in this one invocation; never narrow scope to
-    only recurring items.
   """.trimIndent()
 }
 

@@ -4,12 +4,8 @@ import skillbill.application.review.RuntimeOwnedReviewMode
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_BLOCKER_SEVERITY
-import skillbill.workflow.goal.model.GoalSubtaskOperatorDecision
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.model.AUDIT_GAP_PAUSE_DECISION_ABANDON_SUBTASK
-import skillbill.workflow.taskruntime.model.AUDIT_GAP_PAUSE_DECISION_RETRY_FIX
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeAuditGapPause
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeBackwardEdge
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeNextPhase
@@ -59,11 +55,7 @@ object FeatureTaskRuntimeRunLoopPlanningBranch {
     phaseId: String,
     transition: FeatureTaskRuntimeNextPhase.TerminalBlock,
   ) {
-    val unresolvedFindings = if (transition.loopId == FeatureTaskRuntimePhaseWorkflowDefinition.AUDIT_GAP_LOOP_ID) {
-      emptyList()
-    } else {
-      runLoop.state.unresolvedReviewFindings(phaseId)
-    }
+    val unresolvedFindings = runLoop.state.unresolvedReviewFindings(phaseId)
     val reason = capExhaustionReason(
       runLoop,
       transition.loopId,
@@ -169,7 +161,7 @@ object FeatureTaskRuntimeRunLoopPlanningBranch {
     val specSource = args.specSource
     val reentry = args.reentry
     val phaseTokenAccumulator = args.phaseTokenAccumulator
-    val declaration = phaseDeclarationForRun(runLoop, phaseId, runLoop.state, reentry)
+    val declaration = phaseDeclarationForRun(runLoop, phaseId)
     val run = buildPhaseRun(
       runLoop,
       BuildPhaseRunArgs(phaseId, runLoop.request, declaration, runLoop.specSource, reentry),
@@ -186,28 +178,13 @@ object FeatureTaskRuntimeRunLoopPlanningBranch {
   internal fun phaseDeclarationForRun(
     runLoop: FeatureTaskRuntimeRunLoop,
     phaseId: String,
-    state: FeatureTaskRuntimeRunState,
-    reentry: PendingReentry?,
   ): FeatureTaskRuntimePhaseDeclaration {
     val declaration = phaseDeclaration(
       phaseId,
       runLoop.request.runInvariants.featureSize,
       FeatureTaskRuntimeRunLoopTransitions.qualityGateSelection(runLoop),
     )
-    return when {
-      phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT &&
-        reentry?.loopId == FeatureTaskRuntimePhaseWorkflowDefinition.AUDIT_GAP_LOOP_ID ->
-        declaration.copy(
-          projectionDeclarations = FeatureTaskRuntimePhaseWorkflowDefinition.auditRemediationProjections(),
-        )
-      phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT &&
-        state.edgeIterationCount(FeatureTaskRuntimePhaseWorkflowDefinition.AUDIT_GAP_LOOP_ID) > 0 ->
-        declaration.copy(
-          projectionDeclarations = declaration.projectionDeclarations +
-            FeatureTaskRuntimePhaseWorkflowDefinition.priorGapMemoryDeclaration(phaseId),
-        )
-      else -> declaration
-    }
+    return declaration
   }
 
   internal fun buildPhaseRun(runLoop: FeatureTaskRuntimeRunLoop, args: BuildPhaseRunArgs): PhaseRun {
@@ -296,73 +273,6 @@ object FeatureTaskRuntimeRunLoopPlanningBranch {
       completedPhaseIds = runLoop.state.completedPhaseIds(),
       resolvedBranch = runLoop.session.resolvedBranch,
     )
-  }
-
-  fun mintAuditGapPause(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    pause: FeatureTaskRuntimeAuditGapPause,
-    auditPhaseId: String,
-    auditOutputArtifact: String?,
-  ) {
-    runLoop.recorder.persistAuditGapPause(runLoop.request.workflowId, pause)
-    if (isGoalContinuationRun(runLoop.request)) {
-      runLoop.goalContinuationRecorder.recordGoalContinuationState(
-        GoalContinuationStateRecordRequest(
-          workflowId = runLoop.request.workflowId,
-          workflowStatus = STATUS_PAUSED,
-        ),
-      )
-    }
-    val resolvedAgent = FeatureTaskRuntimeAgentResolver.resolve(
-      phaseId = auditPhaseId,
-      assignment = runLoop.request.agentAssignment,
-      invokedAgentId = runLoop.request.invokedAgentId,
-    )
-    runLoop.recorder.recordPhaseState(
-      FeatureTaskRuntimePhaseStateRequest(
-        workflowId = runLoop.request.workflowId,
-        phaseId = auditPhaseId,
-        status = STATUS_PAUSED,
-        attemptCount = runLoop.state.nextIteration(auditPhaseId),
-        resolvedAgentId = resolvedAgent.resolvedAgentId,
-        finished = false,
-        blockedReason = pause.reason,
-        failureDisposition = FeatureTaskRuntimeFailureDisposition.NEEDS_USER_ACTION,
-        loopId = FeatureTaskRuntimePhaseWorkflowDefinition.AUDIT_GAP_LOOP_ID,
-        edgeIteration = pause.edgeIteration,
-        outputArtifact = auditOutputArtifact,
-      ),
-    )
-    pauseAt(runLoop, auditPhaseId, pause.reason, FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT)
-  }
-
-  fun applyAuditGapPauseDecision(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    pause: FeatureTaskRuntimeAuditGapPause,
-    decision: GoalSubtaskOperatorDecision,
-  ): String? {
-    if (pause.grantConsumed) {
-      return "The audit-gap pause's retry grant is already consumed; a new operator decision is required to act."
-    }
-    return when (decision) {
-      GoalSubtaskOperatorDecision.RETRY_FIX -> {
-        runLoop.recorder.persistAuditGapPause(
-          runLoop.request.workflowId,
-          pause.copy(operatorDecision = AUDIT_GAP_PAUSE_DECISION_RETRY_FIX),
-        )
-        null
-      }
-      GoalSubtaskOperatorDecision.ABANDON_SUBTASK -> {
-        runLoop.recorder.persistAuditGapPause(
-          runLoop.request.workflowId,
-          pause.copy(operatorDecision = AUDIT_GAP_PAUSE_DECISION_ABANDON_SUBTASK),
-        )
-        null
-      }
-      GoalSubtaskOperatorDecision.ACCEPT_AND_ADVANCE ->
-        "An unmet acceptance criterion cannot be accepted-and-advanced; choose retry_fix or abandon_subtask " +
-          "for an audit-gap pause."
-    }
   }
 
   fun remediationCheckpointBlockedReason(branch: String, error: String): String =

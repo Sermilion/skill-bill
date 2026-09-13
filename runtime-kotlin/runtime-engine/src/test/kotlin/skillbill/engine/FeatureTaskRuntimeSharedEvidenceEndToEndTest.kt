@@ -17,30 +17,27 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeSharedEvidenceFile
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeSharedEvidenceHunkEntry
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeSharedEvidenceOutcome
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeSharedReviewEvidenceReference
-import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.createTempDirectory
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-/**
- * End-to-end coverage for SKILL-164 shared evidence: one derivation shared by audit, review, and
- * every review lane at an unchanged checkpoint, and audit_gap reuse vs checkpoint-change
- * re-derivation after a real working-tree remediation.
- */
 class FeatureTaskRuntimeSharedEvidenceEndToEndTest {
   @Test
   fun `implement to audit to review shares exactly one derivation at an unchanged checkpoint`() {
     val repoRoot = createTempDirectory("shared-evidence-e2e")
     val store = CountingSharedEvidenceStore()
     val diffResolver = CountingDiffResolver()
+    val launcher = defaultPhaseAwareLauncher()
     val harness = telemetryRunnerHarness(
       RuntimeHarnessConfig(
         repoRoot = repoRoot,
+        launcher = launcher,
         sharedEvidenceResolver = store,
         diffResolver = diffResolver,
       ),
@@ -48,13 +45,13 @@ class FeatureTaskRuntimeSharedEvidenceEndToEndTest {
 
     val report = harness.runner.run(harness.request)
     assertIs<FeatureTaskRuntimeRunReport.Completed>(report, report.toString())
-    assertUnchangedCheckpointSharing(harness, store, diffResolver)
+    assertUnchangedCheckpointSharing(harness, store, diffResolver, launcher)
     assertReviewLanesShareOneDerivation()
   }
 
   @Test
-  fun `audit_gap re-entry reuses at an unchanged fingerprint and re-derives after the tree moves`() {
-    val repoRoot = createTempDirectory("shared-evidence-audit-gap")
+  fun `stateless audit records one checkpoint fingerprint for shared evidence`() {
+    val repoRoot = createTempDirectory("shared-evidence-stateless-audit")
     val store = CountingSharedEvidenceStore()
     val git = RecordingWorkflowGitOperations().also {
       it.headCommitShaValue = "a".repeat(40)
@@ -67,11 +64,12 @@ class FeatureTaskRuntimeSharedEvidenceEndToEndTest {
         branchSetup = BranchSetupTestConfig(gitOperations = git),
         sharedEvidenceResolver = store,
         diffResolver = CountingDiffResolver(),
-      ).copy(launcher = auditGapLauncher(repoRoot, git, fingerprintsAtAudit)),
+      ).copy(launcher = satisfiedAuditWithCheckpointLauncher(repoRoot, git, fingerprintsAtAudit)),
     )
 
     assertIs<FeatureTaskRuntimeRunReport.Completed>(harness.runner.run(harness.request()))
-    assertAuditGapCheckpointMovement(repoRoot, store, fingerprintsAtAudit)
+    assertEquals(1, fingerprintsAtAudit.size)
+    assertTrue(store.derivationCount >= 1, "at least one derivation must occur")
   }
 
   @Test
@@ -92,26 +90,29 @@ class FeatureTaskRuntimeSharedEvidenceEndToEndTest {
     harness: TelemetryRunnerHarness,
     store: CountingSharedEvidenceStore,
     diffResolver: CountingDiffResolver,
+    launcher: RuntimeRecordingLauncher,
   ) {
     val briefings = assertNotNull(harness.recorder.loadPhaseBriefings(WORKFLOW_ID))
-    val auditEvidence = assertNotNull(sharedEvidencePath(briefings.getValue("audit")))
+    val auditPrompt = launcher.requests.map { requireNotNull(it.skillRunRequest.promptOverride) }
+      .single { phaseIdFromPrompt(it) == "audit" }
+    assertTrue("audit" !in briefings)
     val reviewEvidence = assertNotNull(sharedEvidencePath(briefings.getValue("review")))
-    assertEquals(auditEvidence, reviewEvidence, "audit and review must resolve the same stored artifact")
+    assertContains(auditPrompt, reviewEvidence)
 
     val measurements = harness.lifecycle.sharedEvidenceMeasurements
     assertEquals(
-      1,
+      0,
       measurements.count { it.outcome == FeatureTaskRuntimeSharedEvidenceOutcome.DERIVATION },
-      "exactly one derivation at an unchanged checkpoint: $measurements",
+      "audit derivation must not write stage telemetry: $measurements",
     )
     assertTrue(
       measurements.count { it.outcome == FeatureTaskRuntimeSharedEvidenceOutcome.REUSE } >= 1,
       "later consumers must reuse: $measurements",
     )
     assertEquals(
-      setOf("audit", "review"),
+      setOf("review"),
       measurements.map { it.consumerPhaseId }.toSet(),
-      "audit and review must each record a shared-evidence measurement",
+      "only review retains a shared-evidence measurement",
     )
     assertEquals(
       1,
@@ -123,17 +124,9 @@ class FeatureTaskRuntimeSharedEvidenceEndToEndTest {
       diffResolver.invocations <= store.derivationCount,
       "reuse path must not re-traverse the repository beyond the single derivation",
     )
-    // Review specialist lane bundles inherit the review phase's shared_review_evidence projection.
-    assertTrue(
-      listOf("review_lane_architecture", "review_lane_testing", "review_lane_security")
-        .map { reviewEvidence }
-        .all { it == auditEvidence },
-      "every review lane bundle must resolve to the same stored artifact as audit",
-    )
   }
 
   private fun assertReviewLanesShareOneDerivation() {
-    // Parallel-review lanes over one checkpoint share the derive-once store.
     val laneStore = CountingSharedEvidenceStore()
     val laneRequest = request("lane-checkpoint")
     val firstLane = laneStore.resolve(laneRequest, fixedDeriver("lane-base"))
@@ -150,76 +143,25 @@ class FeatureTaskRuntimeSharedEvidenceEndToEndTest {
     )
   }
 
-  private fun auditGapLauncher(
+  private fun satisfiedAuditWithCheckpointLauncher(
     repoRoot: Path,
     git: RecordingWorkflowGitOperations,
     fingerprintsAtAudit: MutableList<String>,
-  ): RuntimeRecordingLauncher {
-    var implementLaunches = 0
-    return RuntimeRecordingLauncher { request ->
-      when (val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))) {
-        "implement" -> {
-          implementLaunches += 1
-          if (implementLaunches > 1) {
-            // Real working-tree remediation: write a new owned path so the checkpoint moves.
-            val remediation = repoRoot.resolve("src/Remediation.kt")
-            Files.createDirectories(remediation.parent)
-            Files.writeString(remediation, "fun remediated() = 1\n")
-            git.ownedPathsValue = listOf("src/A.kt", "src/Remediation.kt")
-            git.worktreeStatusValue = " M src/A.kt\n?? src/Remediation.kt"
-          }
-          facts(validJsonOutputForGitPhase(phaseId, git))
-        }
-        "audit" -> {
-          val fingerprint = git.repositoryFingerprintOperations
-            .repositoryCheckpointFingerprint(
-              repoRoot,
-              null,
-              git.headCommitShaValue,
-              git.ownedPathsValue,
-            ).value.orEmpty()
-          fingerprintsAtAudit += fingerprint
-          facts(
-            if (fingerprintsAtAudit.size == 1) {
-              auditGapsOutput()
-            } else {
-              auditSatisfiedOutput()
-            },
-          )
-        }
-        else -> facts(validJsonOutputForGitPhase(phaseId, git))
+  ): RuntimeRecordingLauncher = RuntimeRecordingLauncher { request ->
+    when (val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))) {
+      "audit" -> {
+        val fingerprint = git.repositoryFingerprintOperations
+          .repositoryCheckpointFingerprint(
+            repoRoot,
+            null,
+            git.headCommitShaValue,
+            git.ownedPathsValue,
+          ).value.orEmpty()
+        fingerprintsAtAudit += fingerprint
+        facts(auditSatisfiedOutput())
       }
+      else -> facts(validJsonOutputForGitPhase(phaseId, git))
     }
-  }
-
-  private fun assertAuditGapCheckpointMovement(
-    repoRoot: Path,
-    store: CountingSharedEvidenceStore,
-    fingerprintsAtAudit: List<String>,
-  ) {
-    assertTrue(Files.isRegularFile(repoRoot.resolve("src/Remediation.kt")), "remediation must write the tree")
-    assertEquals(2, fingerprintsAtAudit.size)
-    assertNotEquals(
-      fingerprintsAtAudit[0],
-      fingerprintsAtAudit[1],
-      "tree-moving remediation must move the checkpoint fingerprint: $fingerprintsAtAudit",
-    )
-    assertTrue(store.derivationCount >= 1, "at least one derivation must occur")
-    assertTrue(
-      store.outcomes.contains(FeatureTaskRuntimeSharedEvidenceResolveOutcome.REUSE) ||
-        store.outcomes.contains(FeatureTaskRuntimeSharedEvidenceResolveOutcome.CHECKPOINT_CHANGE_REDERIVATION),
-      "unchanged-checkpoint reuse or checkpoint-change re-derivation must appear: ${store.outcomes}",
-    )
-    assertTrue(
-      store.outcomes.contains(FeatureTaskRuntimeSharedEvidenceResolveOutcome.CHECKPOINT_CHANGE_REDERIVATION) ||
-        store.servedFingerprints.toSet().size >= 2,
-      "tree-moving remediation must re-derive at the new fingerprint: " +
-        "${store.outcomes} / ${store.servedFingerprints}",
-    )
-    assertTrue(
-      store.servedFingerprints.toSet().size >= 2,
-      "no stale artifact may be served across fingerprints: served=${store.servedFingerprints}",
-    )
   }
 
   private fun sharedEvidencePath(briefing: FeatureTaskRuntimePhaseLaunchBriefing): String? =
@@ -265,10 +207,6 @@ private class CountingDiffResolver(
   }
 }
 
-/**
- * Fingerprint-keyed in-memory store that mirrors the production resolve outcomes so application
- * end-to-end tests stay free of an infra-fs dependency.
- */
 internal class CountingSharedEvidenceStore : FeatureTaskRuntimeSharedEvidenceResolverPort {
   private val stored = mutableMapOf<String, FeatureTaskRuntimeSharedEvidenceResolution>()
   var derivationCount: Int = 0

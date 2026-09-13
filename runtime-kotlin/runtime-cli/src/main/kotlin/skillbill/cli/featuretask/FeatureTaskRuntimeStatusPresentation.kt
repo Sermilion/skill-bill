@@ -17,12 +17,6 @@ internal fun FeatureTaskRuntimeStatusProjection?.toRuntimeStatusCliMap(workflowI
       "resolved_branch" to it.resolvedBranch,
       "finalizing_agent_id" to it.finalizingAgentId,
       "gate_run_count" to it.gateRunCount,
-      "audit_repair" to it.auditRepair?.let { progress ->
-        linkedMapOf(
-          "first_pass_convergence" to progress.firstPassConvergence,
-          "audit_gap_iteration_count" to progress.auditGapIterationCount,
-        )
-      },
       "degraded_diagnostic" to it.degradedDiagnostic?.let { degraded ->
         linkedMapOf(
           "count" to degraded.count,
@@ -53,7 +47,6 @@ internal fun FeatureTaskRuntimeStatusProjection?.toRuntimeStatusCliMap(workflowI
     "current_phase" to null,
     "resolved_branch" to null,
     "finalizing_agent_id" to null,
-    "audit_repair" to null,
     "degraded_diagnostic" to null,
     "decompose_terminal" to null,
     "phases" to emptyList<Map<String, Any?>>(),
@@ -81,14 +74,6 @@ internal fun runtimeStatusText(payload: Map<String, Any?>): String = buildString
   appendLine("current_phase: ${payload["current_phase"] ?: "none"}")
   appendLine("resolved_branch: ${payload["resolved_branch"] ?: "none"}")
   appendLine("finalizing_agent: ${payload["finalizing_agent_id"] ?: "none"}")
-  (payload["audit_repair"] as? Map<*, *>)?.let { progress ->
-    appendLine("audit_first_pass_convergence: ${progress["first_pass_convergence"]}")
-    appendLine("audit_recurring_gap_count: ${progress["recurring_gap_count"]}")
-    appendLine("audit_new_gap_count: ${progress["new_gap_count"]}")
-    appendLine("audit_attempted_repair_item_count: ${progress["attempted_repair_item_count"]}")
-    appendLine("audit_resolved_repair_item_count: ${progress["resolved_repair_item_count"]}")
-    appendLine("audit_gap_iteration_count: ${progress["audit_gap_iteration_count"]}")
-  }
   (payload["degraded_diagnostic"] as? Map<*, *>)?.let { degraded ->
     appendLine("degraded_diagnostic_count: ${degraded["count"]}")
     appendLine("degraded_diagnostic_failure_class: ${degraded["failure_class"]}")

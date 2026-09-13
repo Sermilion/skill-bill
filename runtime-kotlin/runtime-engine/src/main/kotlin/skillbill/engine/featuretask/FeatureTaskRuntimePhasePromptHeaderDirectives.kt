@@ -36,11 +36,9 @@ fun phasePromptHeader(inputs: PhasePromptHeaderInputs): String {
       agentRunValidateFallback = inputs.agentRunValidateFallback,
       packCollectAllCommand = inputs.packCollectAllCommand,
       packBuildCommand = inputs.packBuildCommand,
-      priorGapMemory = inputs.priorGapMemory,
       validationGateRepair = inputs.validationGateRepair,
       validationGateTriage = inputs.validationGateTriage,
       acceptanceCriteria = inputs.acceptanceCriteria,
-      auditGapImplement = inputs.auditGapImplement,
     ),
   )
   return buildString {
@@ -77,9 +75,9 @@ fun ceremonyDirective(briefing: FeatureTaskRuntimePhaseLaunchBriefing): String {
       "The runtime owns ${scaling.reviewScope.promptLabel}. Keep the review gate real: inspect the implemented " +
         "change for defects and record concrete file references."
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT ->
-      "Apply ${scaling.auditCeremony.promptLabel}. Keep the audit gate real: verify acceptance " +
-        "criteria, report concrete gaps, and attach a complete blast-radius-aware fix plan in each " +
-        "gap note so implement can close the gap without opening a new one."
+      "Apply ${scaling.auditCeremony.promptLabel}. Keep the audit gate real: verify every acceptance " +
+        "criterion for implementation and meaningful test coverage, repair fixable gaps in this same " +
+        "session, and re-check the full list before completion."
     else ->
       "Use the resolved feature size for ceremony expectations; all runtime gates remain mandatory."
   }

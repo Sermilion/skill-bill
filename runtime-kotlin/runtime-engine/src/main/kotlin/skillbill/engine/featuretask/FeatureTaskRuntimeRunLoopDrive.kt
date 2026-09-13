@@ -8,10 +8,6 @@ import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeQualityGateRouting
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeTransitionFunction
-import skillbill.workflow.taskruntime.model.AUDIT_GAP_PAUSE_DECISION_ABANDON_SUBTASK
-import skillbill.workflow.taskruntime.model.AUDIT_GAP_PAUSE_DECISION_RETRY_FIX
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeAuditGapPause
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeAuditGapPauseKind
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairEvidence
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeTransitionContext
@@ -39,7 +35,6 @@ object FeatureTaskRuntimeRunLoopDrive {
       loopId = loopId,
       edgeIteration = reentry.edgeIteration,
       drivingVerdict = reentry.drivingVerdict,
-      reentryGapCriteria = emptyList(),
       expectedRepositoryCheckpoint = if (
         loopId == FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID
       ) {
@@ -153,142 +148,6 @@ object FeatureTaskRuntimeRunLoopDrive {
     } else {
       null
     }
-  }
-
-  fun abandonAuditGapSubtask(runLoop: FeatureTaskRuntimeRunLoop, pause: FeatureTaskRuntimeAuditGapPause) {
-    runLoop.recorder.persistAuditGapPause(
-      runLoop.request.workflowId,
-      pause.copy(grantConsumed = true, operatorDecision = null),
-    )
-    FeatureTaskRuntimeRunLoopPlanningBranch.blockAt(
-      runLoop,
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
-      "The operator chose abandon_subtask while the subtask was paused on the audit gap: " +
-        pause.reason,
-    )
-    runLoop.goalContinuationRecorder.recordGoalContinuationState(
-      GoalContinuationStateRecordRequest(
-        workflowId = runLoop.request.workflowId,
-        workflowStatus = STATUS_ABANDONED,
-      ),
-    )
-  }
-
-  internal fun settleCarriedForwardAuditGapAudit(runLoop: FeatureTaskRuntimeRunLoop): PhaseSettlement? = runCatching {
-    runLoop.recorder.loadAuditGapPause(runLoop.request.workflowId)
-  }.fold(
-    onSuccess = { pause ->
-      if (pause == null || pause.operatorDecision != AUDIT_GAP_PAUSE_DECISION_RETRY_FIX || pause.grantConsumed) {
-        null
-      } else {
-        settleCarriedForwardAudit(runLoop, pause)
-      }
-    },
-    onFailure = { error ->
-      FeatureTaskRuntimeRunLoopDrive.blockCarriedForwardAudit(
-        runLoop,
-        error.message.orEmpty(),
-      )
-    },
-  )
-
-  internal fun settleCarriedForwardAudit(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    pause: FeatureTaskRuntimeAuditGapPause,
-  ): PhaseSettlement {
-    val auditPhaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT
-    if (
-      runLoop.state.isComplete(auditPhaseId) &&
-      runLoop.state.verdictFor(auditPhaseId) == FeatureTaskRuntimeVerdict.SATISFIED
-    ) {
-      consumeAuditGapRetryGrant(runLoop, pause)
-      return PhaseSettlement.completed(auditPhaseId, FeatureTaskRuntimeVerdict.SATISFIED)
-    }
-    val outputArtifact = runLoop.state.recordFor(auditPhaseId)?.outputArtifact
-      ?: return FeatureTaskRuntimeRunLoopDrive.blockCarriedForwardAudit(runLoop, "missing")
-    return runCatching {
-      val acceptedOutput = runLoop.outputValidator
-        .validatePhaseOutput(outputArtifact, auditPhaseId)
-        .requireAcceptedOutput(auditPhaseId)
-      val derivedVerdict = FeatureTaskRuntimeOutputVerification.verdictFor(
-        auditPhaseId,
-        acceptedOutput.normalizedOutput.envelope,
-      )
-      if (!runLoop.state.isComplete(auditPhaseId)) {
-        recordCarriedForwardAudit(runLoop, acceptedOutput.normalizedOutput, acceptedOutput.repairEvidence)
-      }
-      consumeAuditGapRetryGrant(runLoop, pause)
-      PhaseSettlement.completed(auditPhaseId, derivedVerdict)
-    }.fold(
-      onSuccess = { it },
-      onFailure = { error ->
-        FeatureTaskRuntimeRunLoopDrive.blockCarriedForwardAudit(
-          runLoop,
-          error.message.orEmpty(),
-        )
-      },
-    )
-  }
-
-  fun consumeAuditGapRetryGrant(runLoop: FeatureTaskRuntimeRunLoop, pause: FeatureTaskRuntimeAuditGapPause) {
-    runLoop.recorder.persistAuditGapPause(
-      runLoop.request.workflowId,
-      pause.copy(grantConsumed = true, operatorDecision = null),
-    )
-  }
-
-  fun recordCarriedForwardAudit(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    normalizedOutput: NormalizedFeatureTaskRuntimePhaseOutput,
-    repairEvidence: FeatureTaskRuntimePhaseOutputRepairEvidence?,
-  ) {
-    val phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT
-    if (runLoop.state.isComplete(phaseId)) {
-      return
-    }
-    val iteration = runLoop.state.nextIteration(phaseId)
-    val priorRecord = runLoop.state.recordFor(phaseId)
-    val persisted = runLoop.recorder.recordCompletedPhase(
-      FeatureTaskRuntimePhaseStateRequest(
-        workflowId = runLoop.request.workflowId,
-        phaseId = phaseId,
-        status = STATUS_COMPLETED,
-        attemptCount = iteration,
-        resolvedAgentId = priorRecord?.resolvedAgentId ?: "user-directed",
-        finished = true,
-        outputArtifact = normalizedOutput.canonicalJson,
-        normalizedOutput = normalizedOutput,
-        repairEvidence = repairEvidence,
-        loopId = FeatureTaskRuntimePhaseWorkflowDefinition.AUDIT_GAP_LOOP_ID,
-        edgeIteration = priorRecord?.edgeIteration,
-      ),
-    )
-    if (!persisted) {
-      error("Carried-forward audit could not atomically persist its canonical result.")
-    }
-    runLoop.state.recordCompleted(
-      FeatureTaskRuntimePhaseOutput(
-        phaseId,
-        iteration,
-        normalizedOutput.canonicalJson,
-        normalizedOutput,
-        repairEvidence,
-      ),
-    )
-  }
-
-  internal fun blockCarriedForwardAudit(runLoop: FeatureTaskRuntimeRunLoop, detail: String): PhaseSettlement {
-    val reason = if (detail == "missing") {
-      "The runLoop.session.paused audit record carries no preserved output to settle from."
-    } else {
-      "The runLoop.session.paused audit could not be settled from its carried-forward output: $detail"
-    }
-    FeatureTaskRuntimeRunLoopPlanningBranch.blockAt(
-      runLoop,
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
-      reason,
-    )
-    return PhaseSettlement.stop()
   }
 
   fun nextPhaseAfter(
@@ -469,17 +328,6 @@ object FeatureTaskRuntimeRunLoopDrive {
     return PhaseSettlement.stop()
   }
 
-  fun reSurfaceAuditGapPause(runLoop: FeatureTaskRuntimeRunLoop, pause: FeatureTaskRuntimeAuditGapPause) {
-    FeatureTaskRuntimeRunLoopPlanningBranch.pauseAt(
-      runLoop,
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
-      pause.reason,
-      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,
-    )
-  }
-
-  internal enum class AuditGapDriveAction { Continue, Stop }
-
   fun invalidateReviewGenerationIfNeeded(runLoop: FeatureTaskRuntimeRunLoop) {
     if (
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW !in
@@ -498,61 +346,6 @@ object FeatureTaskRuntimeRunLoopDrive {
       runLoop.session.pendingReentry = null
       runLoop.session.activeReentry = null
     }
-  }
-
-  fun loadMigratedAuditGapPause(runLoop: FeatureTaskRuntimeRunLoop): FeatureTaskRuntimeAuditGapPause? =
-    runLoop.recorder.loadAuditGapPause(runLoop.request.workflowId)?.let { pause ->
-      if (pause.pauseKind != FeatureTaskRuntimeAuditGapPauseKind.WARN_THRESHOLD) {
-        pause
-      } else {
-        val migrated = pause.copy(operatorDecision = null, grantConsumed = true)
-        runLoop.recorder.persistAuditGapPause(runLoop.request.workflowId, migrated)
-        runCatching {
-          runLoop.diagnostics.warning(
-            "Cleared a legacy audit-gap warning-threshold pause for workflow '${runLoop.request.workflowId}'; " +
-              "warning thresholds are advisory.",
-          )
-        }
-        migrated
-      }
-    }
-
-  internal fun resolveAuditGapPauseDriveAction(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    auditGapPause: FeatureTaskRuntimeAuditGapPause,
-  ): AuditGapDriveAction {
-    when (auditGapPause.operatorDecision) {
-      AUDIT_GAP_PAUSE_DECISION_ABANDON_SUBTASK -> {
-        FeatureTaskRuntimeRunLoopDrive.abandonAuditGapSubtask(runLoop, auditGapPause)
-        return AuditGapDriveAction.Stop
-      }
-      AUDIT_GAP_PAUSE_DECISION_RETRY_FIX -> {
-        if (!auditGapPause.grantConsumed) {
-          runLoop.session.auditGapRetryResumePending = true
-        }
-        return AuditGapDriveAction.Continue
-      }
-      else -> {
-        if (runLoop.session.pendingReentry == null && !auditGapPause.grantConsumed) {
-          reSurfaceAuditGapPause(runLoop, auditGapPause)
-          return AuditGapDriveAction.Stop
-        }
-      }
-    }
-    return AuditGapDriveAction.Continue
-  }
-
-  fun validateAuditGapResumeOrBlock(runLoop: FeatureTaskRuntimeRunLoop): Boolean {
-    val resumedReentry = runLoop.session.pendingReentry
-    if (
-      resumedReentry?.loopId != FeatureTaskRuntimePhaseWorkflowDefinition.AUDIT_GAP_LOOP_ID ||
-      resumedReentry.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT
-    ) {
-      return true
-    }
-    val reason = runLoop.state.auditGapPlanningContextError ?: return true
-    FeatureTaskRuntimeRunLoopBackwardEdge.blockInvalidAuditGapRecovery(runLoop, resumedReentry, reason)
-    return false
   }
 
   fun runPhaseDriveLoop(runLoop: FeatureTaskRuntimeRunLoop) {

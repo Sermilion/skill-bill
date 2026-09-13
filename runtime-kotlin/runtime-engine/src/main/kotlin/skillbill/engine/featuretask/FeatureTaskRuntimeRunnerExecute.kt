@@ -13,7 +13,6 @@ import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeAuditProgress
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerAction
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeResolvedBranch
 
@@ -100,14 +99,6 @@ fun FeatureTaskRuntimeRunner.loadReviewFixIterationCount(request: FeatureTaskRun
     .maxOrNull()
     ?: 0
 
-fun FeatureTaskRuntimeRunner.loadAuditRepairProgress(
-  request: FeatureTaskRuntimeRunRequest,
-): FeatureTaskRuntimeAuditProgress = FeatureTaskRuntimeAuditConvergence.progressFrom(
-  auditRecord = recorder.loadPhaseRecords(request.workflowId)
-    ?.get(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT),
-  auditGapIterationCount = loadAuditGapIterationCount(request),
-)
-
 fun FeatureTaskRuntimeRunner.loadFindingVerificationTelemetry(
   request: FeatureTaskRuntimeRunRequest,
 ): FeatureTaskRuntimeFindingVerificationTelemetry {
@@ -129,11 +120,6 @@ fun FeatureTaskRuntimeRunner.loadFindingVerificationTelemetry(
     reviewFixCapExhausted = loadReviewFixIterationCount(request) >= 1,
   )
 }
-
-fun FeatureTaskRuntimeRunner.loadAuditGapIterationCount(request: FeatureTaskRuntimeRunRequest): Int =
-  FeatureTaskRuntimeAuditConvergence.auditGapIterationCount(
-    recorder.loadPhaseLedger(request.workflowId).orEmpty(),
-  )
 
 fun FeatureTaskRuntimeRunner.loadRegenerationTelemetry(
   request: FeatureTaskRuntimeRunRequest,

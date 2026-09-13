@@ -24,11 +24,6 @@ import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeHandoffContract
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeAuditGapPause
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeAuditGapPauseKind
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeAuditGapProgress
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeAuditRepairProgressDecision
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeAuditRepairSnapshot
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFindingVerificationDisposition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffAssemblyRequest
@@ -42,8 +37,6 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepositoryCheckpoi
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepositoryCheckpointPolicy
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.model.NormalizedFeatureTaskRuntimePhaseOutput
-import skillbill.workflow.taskruntime.model.UNPROVEN_REPOSITORY_FINGERPRINT
-import skillbill.workflow.taskruntime.model.detectAuditRepairNonProgress
 import skillbill.workflow.taskruntime.model.requireAcceptedOutput
 import skillbill.workflow.taskruntime.model.validateDispositionCoverage
 
@@ -233,75 +226,12 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
   }
 
   internal fun completedPhaseRepositoryFingerprint(runLoop: FeatureTaskRuntimeRunLoop, run: PhaseRun) = if (
-    run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT ||
     run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT_FIX
   ) {
     runLoop.gitOperations.repositoryFingerprint(run.request.repoRoot)
   } else {
     null
   }
-
-  internal fun auditGapProgressPause(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    run: PhaseRun,
-    outputMap: Map<String, Any?>,
-    repositoryFingerprint: String?,
-    auditOutputArtifact: String,
-  ): FeatureTaskRuntimeAuditGapPause? {
-    if (run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT) return null
-    if (auditOutputArtifact.isBlank()) return null
-    val verdict = FeatureTaskRuntimeOutputVerification.verdictFor(run.phaseId, outputMap)
-    val currentHasGaps = verdict == FeatureTaskRuntimeVerdict.GAPS_FOUND
-    val currentCriterionRefs = auditCriterionRefs(auditOutputArtifact)
-    val previous = runLoop.recorder.loadAuditGapProgress(runLoop.request.workflowId)
-    val decision = if (previous == null || !currentHasGaps) {
-      FeatureTaskRuntimeAuditRepairProgressDecision(blocked = false, reason = null)
-    } else {
-      val previousCriterionRefs = previous.criterionRefs - FeatureTaskRuntimeAuditGapProgress.HAD_GAPS_MARKER
-      detectAuditRepairNonProgress(
-        previous = FeatureTaskRuntimeAuditRepairSnapshot(
-          hasGaps = previous.criterionRefs.isNotEmpty(),
-          repositoryFingerprint = previous.repositoryFingerprint ?: UNPROVEN_REPOSITORY_FINGERPRINT,
-          criterionRefs = previousCriterionRefs,
-        ),
-        current = FeatureTaskRuntimeAuditRepairSnapshot(
-          hasGaps = true,
-          repositoryFingerprint = repositoryFingerprint ?: UNPROVEN_REPOSITORY_FINGERPRINT,
-          criterionRefs = currentCriterionRefs.ifEmpty { previousCriterionRefs },
-        ),
-      )
-    }
-    if (currentHasGaps) {
-      runLoop.recorder.persistAuditGapProgress(
-        runLoop.request.workflowId,
-        FeatureTaskRuntimeAuditGapProgress(
-          criterionRefs = currentCriterionRefs.ifEmpty {
-            setOf(FeatureTaskRuntimeAuditGapProgress.HAD_GAPS_MARKER)
-          },
-          repositoryFingerprint = repositoryFingerprint,
-        ),
-      )
-    } else {
-      runLoop.recorder.loadAuditGapPause(runLoop.request.workflowId)?.let { pause ->
-        if (!pause.grantConsumed || pause.operatorDecision != null) {
-          FeatureTaskRuntimeRunLoopDrive.consumeAuditGapRetryGrant(runLoop, pause)
-        }
-      }
-    }
-    if (!decision.blocked) {
-      decision.reason?.let { runLoop.diagnostics.warning(it) }
-      return null
-    }
-    return FeatureTaskRuntimeAuditGapPause(
-      pauseKind = FeatureTaskRuntimeAuditGapPauseKind.NO_PROGRESS,
-      reason = noProgressPauseReason(requireNotNull(decision.reason)),
-      edgeIteration = runLoop.state.edgeIterationCount(FeatureTaskRuntimePhaseWorkflowDefinition.AUDIT_GAP_LOOP_ID) + 1,
-    )
-  }
-
-  fun noProgressPauseReason(decisionReason: String): String =
-    "$decisionReason The subtask is paused for an operator decision: choose retry_fix to allow one " +
-      "further remediation attempt, or abandon_subtask to end the subtask."
 
   internal fun terminalOutputAttempt(
     runLoop: FeatureTaskRuntimeRunLoop,
@@ -359,36 +289,28 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
     }
   }
 
-  private fun auditCriterionRefs(auditOutputArtifact: String): Set<String> {
-    val envelope = JsonCodec.parseObjectOrNull(auditOutputArtifact)
-      ?.let(JsonCodec::jsonElementToValue)
-      ?.let(JsonCodec::anyToStringAnyMap)
-    val produced = envelope?.let { JsonCodec.anyToStringAnyMap(it[SharedPayloadKeys.PRODUCED_OUTPUTS]) }
-    val value = when (val raw = produced?.get(SharedPayloadKeys.VALUE)) {
-      is String -> JsonCodec.parseObjectOrNull(raw)
-        ?.let(JsonCodec::jsonElementToValue)
-        ?.let(JsonCodec::anyToStringAnyMap)
-      is Map<*, *> -> JsonCodec.anyToStringAnyMap(raw)
-      else -> null
-    }
-    return (value?.get("gaps") as? List<*>).orEmpty()
-      .mapNotNull { JsonCodec.anyToStringAnyMap(it)?.get("criterion") as? String }
-      .map(String::trim)
-      .filter(String::isNotEmpty)
-      .toSet()
-  }
-
   internal fun outputVerificationGateReason(
     runLoop: FeatureTaskRuntimeRunLoop,
     run: PhaseRun,
     outputMap: Map<String, Any?>,
   ): String? = findingVerificationBoundaryDispositionGate(runLoop, run, outputMap)
+    ?: auditRemovedVerdictGate(run.phaseId, outputMap)
     ?: FeatureTaskRuntimeVerificationGateReasons.reviewVerificationSignal(run.phaseId, outputMap)
     ?: FeatureTaskRuntimeVerificationGateReasons.findingVerificationDisposition(
       run.phaseId,
       outputMap,
       FeatureTaskRuntimeRunLoopOutputVerification.reviewFindingIdsForVerification(runLoop),
     )
+
+  private fun auditRemovedVerdictGate(phaseId: String, outputMap: Map<String, Any?>): String? {
+    if (phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT) return null
+    val wire = (outputMap[SharedPayloadKeys.VERDICT] as? String)?.trim()
+    if (wire == FeatureTaskRuntimeVerdict.GAPS_FOUND.wireValue) {
+      return "Feature-task-runtime verdict '${FeatureTaskRuntimeVerdict.GAPS_FOUND.wireValue}' is removed " +
+        "(audit phase output); repair gaps in this session and emit satisfied."
+    }
+    return null
+  }
 
   internal fun findingVerificationBoundarySections(
     runLoop: FeatureTaskRuntimeRunLoop,

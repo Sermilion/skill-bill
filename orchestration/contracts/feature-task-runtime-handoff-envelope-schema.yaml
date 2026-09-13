@@ -111,8 +111,8 @@ $defs:
         description: >-
           Wire form of the single declared source: `upstream_phase_output:<phase_id>`,
           `run_invariant_field:<field>`, `derived_ceremony_scaling`, `shared_review_evidence`,
-          `repair_ledger`, `prior_gap_memory`, or `addon_content:<slug>`.
-        pattern: "^(upstream_phase_output:.+|run_invariant_field:.+|addon_content:.+|derived_ceremony_scaling|shared_review_evidence|repair_ledger|prior_gap_memory)$"
+          `repair_ledger`, or `addon_content:<slug>`.
+        pattern: "^(upstream_phase_output:.+|run_invariant_field:.+|addon_content:.+|derived_ceremony_scaling|shared_review_evidence|repair_ledger)$"
       projection_contract_id:
         type: string
         minLength: 1
@@ -219,6 +219,10 @@ $defs:
             description: Compact identifier only; newlines and embedded bodies are rejected by the validator.
 
 x-coherence-checks:
+  - id: retired-prior-gap-memory
+    description: >-
+      prior_gap_memory is not a deliverable handoff source. The source_ref pattern excludes it;
+      FeatureTaskRuntimeHandoffSourceRef.fromWire and the projection validator reject it loudly.
   - id: unique-projection-names
     description: >-
       Projection names are unique within one envelope. Enforced by

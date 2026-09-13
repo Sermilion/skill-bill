@@ -54,7 +54,6 @@ class RuntimeEngineInboundApiTest {
       "skillbill.engine.featuretask.OPERATOR_DECISION_QUALITY_GATE_PHASE_IDS",
       "skillbill.engine.featuretask.model.FeatureTaskContinuationCandidate",
       "skillbill.engine.featuretask.model.FeatureTaskContinuationLookupResult",
-      "skillbill.engine.featuretask.model.FeatureTaskPhaseSettlementAuditRequest",
       "skillbill.engine.featuretask.model.FeatureTaskPhaseSettlementBlockRequest",
       "skillbill.engine.featuretask.model.FeatureTaskPhaseSettlementCompleteRequest",
       "skillbill.engine.featuretask.model.FeatureTaskRuntimeAgentAssignment",

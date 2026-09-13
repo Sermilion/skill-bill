@@ -2,8 +2,6 @@ package skillbill.infrastructure.sqlite.core
 
 import skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxLastErrorMigration
 import skillbill.infrastructure.sqlite.workflow.FeatureTaskPhaseSettlementsMigration
-import skillbill.infrastructure.sqlite.workflow.FeatureTaskRuntimeAuditGenerationMigration
-
 internal val databaseMigrationsLate: List<DatabaseMigration> =
   listOf(
     DatabaseMigration(
@@ -239,11 +237,6 @@ internal val databaseMigrationsLate: List<DatabaseMigration> =
       version = 22,
       name = "drop-delegated-review-lifecycle-tables",
       operation = ::dropDelegatedReviewLifecycleTables,
-    ),
-    DatabaseMigration(
-      version = 23,
-      name = "add-feature-task-runtime-audit-generations",
-      operation = FeatureTaskRuntimeAuditGenerationMigration::apply,
     ),
     DatabaseMigration(
       version = 24,

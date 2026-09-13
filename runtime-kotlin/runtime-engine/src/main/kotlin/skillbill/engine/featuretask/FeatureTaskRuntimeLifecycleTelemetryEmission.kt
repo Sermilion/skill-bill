@@ -29,12 +29,6 @@ fun emitFeatureTaskRuntimeFinished(
       blockedReason = blockedReasonOf(report),
       resolvedBranch = report.resolvedBranch.orEmpty(),
       reviewFixIterationCount = telemetryPayload.reviewFixIterationCount,
-      auditGapIterationCount = telemetryPayload.auditGapIterationCount,
-      auditFirstPassConvergence = telemetryPayload.auditFirstPassConvergence,
-      auditRecurringGapCount = 0,
-      auditNewGapCount = 0,
-      auditAttemptedRepairItemCount = 0,
-      auditResolvedRepairItemCount = 0,
       regenerationActivationCount = telemetryPayload.regeneration.activationCount,
       regenerationAttemptCount = telemetryPayload.regeneration.attemptCount,
       regenerationOutcomeCounts = telemetryPayload.regeneration.outcomeCounts,
@@ -71,12 +65,6 @@ fun emitFeatureTaskRuntimeFinishedError(
       ),
       resolvedBranch = "",
       reviewFixIterationCount = telemetryPayload.reviewFixIterationCount,
-      auditGapIterationCount = telemetryPayload.auditGapIterationCount,
-      auditFirstPassConvergence = telemetryPayload.auditFirstPassConvergence,
-      auditRecurringGapCount = 0,
-      auditNewGapCount = 0,
-      auditAttemptedRepairItemCount = 0,
-      auditResolvedRepairItemCount = 0,
       regenerationActivationCount = telemetryPayload.regeneration.activationCount,
       regenerationAttemptCount = telemetryPayload.regeneration.attemptCount,
       regenerationOutcomeCounts = telemetryPayload.regeneration.outcomeCounts,
@@ -94,9 +82,7 @@ fun emitFeatureTaskRuntimeFinishedError(
 internal data class ResolvedFeatureTaskRuntimeTelemetryPayload(
   val tokenBreakdownJson: String?,
   val totalTokens: Int?,
-  val auditFirstPassConvergence: Boolean,
   val reviewFixIterationCount: Int,
-  val auditGapIterationCount: Int,
   val verificationTelemetry: FeatureTaskRuntimeFindingVerificationTelemetry,
   val regeneration: FeatureTaskRuntimeRegenerationTelemetry,
   val reconciliation: FeatureTaskRuntimeCrashReconciliationResult,
@@ -106,7 +92,7 @@ internal fun resolvedFeatureTaskRuntimeTelemetryPayload(
   context: FeatureTaskRuntimeFinishedTelemetryContext,
 ): ResolvedFeatureTaskRuntimeTelemetryPayload {
   val (tokenBreakdownJson, totalTokens) = runCatching(context.phaseTokenData).getOrDefault(null to null)
-  val auditProgress = runCatching(context.auditRepairProgress).getOrNull()
+  val phaseOutcomes = runCatching(context.phaseOutcomes).getOrDefault(emptyMap())
   val verificationTelemetry = runCatching(context.findingVerificationTelemetry)
     .getOrDefault(FeatureTaskRuntimeFindingVerificationTelemetry())
   val regeneration = runCatching(context.regenerationTelemetry).getOrNull() ?: FeatureTaskRuntimeRegenerationTelemetry()
@@ -115,9 +101,7 @@ internal fun resolvedFeatureTaskRuntimeTelemetryPayload(
   return ResolvedFeatureTaskRuntimeTelemetryPayload(
     tokenBreakdownJson = tokenBreakdownJson,
     totalTokens = totalTokens,
-    auditFirstPassConvergence = auditProgress?.firstPassConvergence ?: false,
     reviewFixIterationCount = runCatching(context.reviewFixIterationCount).getOrDefault(0),
-    auditGapIterationCount = runCatching(context.auditGapIterationCount).getOrDefault(0),
     verificationTelemetry = verificationTelemetry,
     regeneration = regeneration,
     reconciliation = reconciliation,

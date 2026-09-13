@@ -7,14 +7,12 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFeatureSize
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffProjectionValue
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffSourceRef
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePriorGapMemory
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeProducerIteration
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeQualityGateSelection.BUILD
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeQualityGateSelection.VALIDATE
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepositoryCheckpoint
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepositoryCheckpointPolicy
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeResolvedUpstreamOutputs
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -508,56 +506,6 @@ class FeatureTaskRuntimeHandoffProjectionValidatorContractTest {
   }
 
   @Test
-  fun `audit clearance derives gate status scope and checkpoint from runtime-owned facts`() {
-    val consumer = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW
-    val producer = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT
-    val declaration = handoffProjectionDeclaration {
-      consumerPhaseId = consumer
-      sourceRef = FeatureTaskRuntimeHandoffSourceRef.UpstreamPhaseOutput(producer)
-      projectionName = "audit_clearance"
-      projectionContractId = FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.AUDIT_CLEARANCE
-      declaredFieldNames = listOf("clearance_status", "review_scope", "repository_checkpoint")
-      checkpointPolicy = FeatureTaskRuntimeRepositoryCheckpointPolicy.REFRESH_FROM_REPOSITORY
-    }
-    val checkpoint = FeatureTaskRuntimeRepositoryCheckpoint("runtime-tree")
-
-    val envelope = FeatureTaskRuntimeHandoffProjectionValidator.validate(
-      handoffProjectionValidatorInputs {
-        consumerPhaseId = consumer
-        declarations = listOf(declaration)
-        resolvedUpstream = FeatureTaskRuntimeResolvedUpstreamOutputs(
-          mapOf(
-            producer to FeatureTaskRuntimePhaseOutput(
-              phaseId = producer,
-              iteration = 2,
-              payload = """{"verdict":"satisfied","produced_outputs":{"unmet_criteria":[],"audit_result":{""" +
-                """"clearance_status":"agent-claim","review_scope":"agent-scope",""" +
-                """"repository_checkpoint":{"fingerprint":"agent-tree"}}}}""",
-            ),
-          ),
-        )
-        resolvedCheckpoint = checkpoint
-      },
-    )
-
-    val fields = envelope.projections.single().fields.associateBy { it.name }
-    assertEquals(
-      FeatureTaskRuntimeVerdict.SATISFIED.wireValue,
-      assertIs<FeatureTaskRuntimeHandoffProjectionValue.Text>(fields.getValue("clearance_status").value).text,
-    )
-    assertEquals(
-      "branch_diff",
-      assertIs<FeatureTaskRuntimeHandoffProjectionValue.Text>(fields.getValue("review_scope").value).text,
-    )
-    assertEquals(
-      "runtime-tree",
-      assertIs<FeatureTaskRuntimeHandoffProjectionValue.CompactReference>(
-        fields.getValue("repository_checkpoint").value,
-      ).value,
-    )
-  }
-
-  @Test
   fun `phase request projection rejects a required field missing from the producer result`() {
     val declaration = handoffProjectionDeclaration {
       projectionContractId =
@@ -807,50 +755,5 @@ class FeatureTaskRuntimeHandoffProjectionValidatorContractTest {
     }
     assertEquals(FeatureTaskRuntimeHandoffProjectionFailureKind.MALFORMED_FIELD, error.failureKind)
     assertContains(error.message.orEmpty(), "non-blank prose")
-  }
-
-  @Test
-  fun `null prior gap memory omits the optional projection while present memory enforces the declared shape`() {
-    val consumer = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT
-    val memoryDeclaration = FeatureTaskRuntimePhaseWorkflowDefinition.priorGapMemoryDeclaration(consumer)
-    // Absent memory omits the optional projection rather than rejecting a predating in-flight run (AC-004).
-    val omitted = FeatureTaskRuntimeHandoffProjectionValidator.validate(
-      handoffProjectionValidatorInputs {
-        consumerPhaseId = consumer
-        declarations = listOf(memoryDeclaration)
-      },
-    )
-    assertTrue(omitted.projections.isEmpty(), "absent memory must omit the optional projection")
-
-    // Present memory is delivered with exactly the declared field shape.
-    val memory = FeatureTaskRuntimePriorGapMemory(
-      round = 2,
-      priorAuditValues = listOf("""{"gaps":[{"criterion":"AC-002","note":"gap note"}]}"""),
-    )
-    val delivered = FeatureTaskRuntimeHandoffProjectionValidator.validate(
-      handoffProjectionValidatorInputs {
-        consumerPhaseId = consumer
-        declarations = listOf(memoryDeclaration)
-        priorGapMemory = memory
-      },
-    )
-    val projection = delivered.projections.single()
-    assertEquals(FeatureTaskRuntimePriorGapMemory.DECLARED_FIELD_NAMES, projection.fields.map { it.name })
-
-    // A field outside the declared shape is rejected rather than silently accepted.
-    val error = assertFailsWith<InvalidFeatureTaskRuntimeHandoffProjectionError> {
-      FeatureTaskRuntimeHandoffProjectionValidator.validate(
-        handoffProjectionValidatorInputs {
-          consumerPhaseId = consumer
-          declarations = listOf(
-            memoryDeclaration.copy(
-              shape = memoryDeclaration.shape.copy(declaredFieldNames = listOf("unknown_field")),
-            ),
-          )
-          priorGapMemory = memory
-        },
-      )
-    }
-    assertEquals(FeatureTaskRuntimeHandoffProjectionFailureKind.UNDECLARED_FIELD, error.failureKind)
   }
 }

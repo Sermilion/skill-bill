@@ -38,15 +38,6 @@ object FeatureTaskRuntimeRunLoopTransitions {
       loopId == null -> transition.phaseId
       reentersMutatingPhase(runLoop, requireNotNull(edge), transition.phaseId) &&
         !FeatureTaskRuntimeRunLoopCheckpointRemediation.establishRemediationCheckpoint(runLoop, phaseId, loopId) -> null
-      loopId == FeatureTaskRuntimePhaseWorkflowDefinition.AUDIT_GAP_LOOP_ID &&
-        !authoritativeAuditRepairPlanMatches(runLoop, phaseId) -> {
-        FeatureTaskRuntimeRunLoopPlanningBranch.blockAt(
-          runLoop,
-          phaseId,
-          "Audit-gap edge requires unmet acceptance criteria on the settled audit; none were readable.",
-        )
-        null
-      }
       else -> {
         FeatureTaskRuntimeRunLoopBackwardEdge.recordBackwardEdge(
           runLoop,
@@ -62,9 +53,6 @@ object FeatureTaskRuntimeRunLoopTransitions {
       }
     }
   }
-
-  fun authoritativeAuditRepairPlanMatches(runLoop: FeatureTaskRuntimeRunLoop, auditPhaseId: String): Boolean =
-    runLoop.state.verdictFor(auditPhaseId) == FeatureTaskRuntimeVerdict.GAPS_FOUND
 
   fun reentersMutatingPhase(
     runLoop: FeatureTaskRuntimeRunLoop,

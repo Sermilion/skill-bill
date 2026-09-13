@@ -52,20 +52,10 @@ data class FeatureTaskRuntimeAuditGapPause(
     }
   }
 
-  @OpenBoundaryMap("Feature-task-runtime audit-gap pause artifact map at the durable workflow-artifact seam")
-  fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
-    SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION,
-    "record_kind" to "audit_gap_pause",
-    "pause_kind" to pauseKind.wireValue,
-    "reason" to reason,
-    "edge_iteration" to edgeIteration,
-    "grant_consumed" to grantConsumed,
-  ).apply {
-    operatorDecision?.let { put("operator_decision", it) }
-  }
-
   companion object {
-    /** Strict decode; loud-fails on a missing or malformed required field. */
+    const val AUDIT_GAP_PAUSE_DECISION_RETRY_FIX: String = "retry_fix"
+    const val AUDIT_GAP_PAUSE_DECISION_ABANDON_SUBTASK: String = "abandon_subtask"
+
     @OpenBoundaryMap("Feature-task-runtime audit-gap pause decode from the durable workflow-artifact map")
     fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeAuditGapPause {
       requireExactAuditGapPauseFields(raw)
@@ -122,19 +112,9 @@ data class FeatureTaskRuntimeAuditGapProgress(
     }
   }
 
-  @OpenBoundaryMap("Feature-task-runtime audit-gap progress artifact map at the durable workflow-artifact seam")
-  fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
-    SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION,
-    "record_kind" to "audit_gap_progress",
-    "previous_criterion_refs" to criterionRefs.sorted(),
-  ).apply {
-    repositoryFingerprint?.let { put("previous_repository_fingerprint", it) }
-  }
-
   companion object {
     const val HAD_GAPS_MARKER: String = "gaps_found"
 
-    /** Strict decode; loud-fails on a missing or malformed required field. */
     @OpenBoundaryMap("Feature-task-runtime audit-gap progress decode from the durable workflow-artifact map")
     fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeAuditGapProgress {
       requireExactAuditGapProgressFields(raw)

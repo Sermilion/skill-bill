@@ -8,7 +8,6 @@ import skillbill.ports.validation.model.ValidationGateFinding
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInput
 import skillbill.review.context.model.CodeReviewExecutionMode
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePriorGapMemory
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertFalse
@@ -205,43 +204,18 @@ class FeatureTaskRuntimePhasePromptComposerTest {
   }
 
   @Test
-  fun `audit with gate-proof AC may run the named gate and must inventory every finding`() {
+  fun `audit with gate-proof AC stays inspection-only`() {
     val criteria = listOf("detekt reports zero LongMethod issues under maxIssues 0")
     val prompt = composePhasePrompt(
       PROMPT_COMPOSER_ISSUE_KEY,
       promptComposerBriefingFor("audit", PromptComposerBriefingOptions(acceptanceCriteria = criteria)),
     )
     assertContains(prompt, "Validation ownership")
-    assertContains(prompt, "require mechanical gate proof")
-    assertContains(prompt, "COMPLETE remaining finding inventory")
-    assertFalse(prompt.contains("Only the validate phase may run the pack validation gate"))
-    assertFalse(prompt.contains(AUDIT_READONLY_EVIDENCE_SENTENCE))
-    assertContains(prompt, "inventory every remaining finding for that proof")
-  }
-
-  @Test
-  fun `audit-gap implement with gate-proof AC may clear the full gate inventory`() {
-    val criteria = listOf("detekt reports zero issues for complexity rules")
-    val memory = FeatureTaskRuntimePriorGapMemory(
-      round = 1,
-      priorAuditValues = listOf("""{"gaps":[{"criterion":"AC-003","note":"LongMethod peers remain"}]}"""),
-    )
-    val prompt = composePhasePrompt(
-      PROMPT_COMPOSER_ISSUE_KEY,
-      promptComposerBriefingFor(
-        "implement",
-        PromptComposerBriefingOptions(
-          priorGapMemory = memory,
-          auditGapReentry = true,
-          acceptanceCriteria = criteria,
-        ),
-      ),
-    )
-    assertContains(prompt, "require mechanical gate proof")
-    assertContains(prompt, "Clear every finding from that inventory")
-    assertContains(prompt, "AUDIT-GAP REMEDIATION with gate-proof")
-    assertFalse(prompt.contains("Only the validate phase may run the pack validation gate"))
-    assertContains(prompt, "re-run that same gate once at the end")
+    assertContains(prompt, "Only the validate phase may run the pack validation gate")
+    assertContains(prompt, "must not compile, build,")
+    assertContains(prompt, AUDIT_READONLY_EVIDENCE_SENTENCE)
+    assertFalse(prompt.contains("require mechanical gate proof"))
+    assertFalse(prompt.contains("MAY run the commands those criteria name"))
   }
 
   @Test

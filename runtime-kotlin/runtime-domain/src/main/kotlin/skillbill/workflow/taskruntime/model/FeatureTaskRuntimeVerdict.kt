@@ -48,10 +48,6 @@ data class FeatureTaskRuntimeVerdict(
     /** An audit verdict with no unmet acceptance criteria: the run advances past audit to validate. */
     val SATISFIED: FeatureTaskRuntimeVerdict = FeatureTaskRuntimeVerdict("satisfied")
 
-    /**
-     * An audit verdict carrying unmet acceptance criteria: the run takes the `audit_gap` backward edge
-     * to `implement` to reconcile against the failing criteria using the initial planning context.
-     */
     val GAPS_FOUND: FeatureTaskRuntimeVerdict = FeatureTaskRuntimeVerdict("gaps_found")
 
     /**
@@ -66,7 +62,7 @@ data class FeatureTaskRuntimeVerdict(
 
     val ESCALATED: FeatureTaskRuntimeVerdict = FeatureTaskRuntimeVerdict("escalated")
 
-    val REMOVED_VERDICTS: Set<FeatureTaskRuntimeVerdict> = setOf(REPAIR_PLANNED, ESCALATED)
+    val REMOVED_VERDICTS: Set<FeatureTaskRuntimeVerdict> = setOf(REPAIR_PLANNED, ESCALATED, GAPS_FOUND)
 
     fun rejectRemovedVerdict(value: String, context: String): FeatureTaskRuntimeVerdict {
       val verdict = fromWire(value)
@@ -83,7 +79,7 @@ data class FeatureTaskRuntimeVerdict(
      * records round-trip, so a consumer that acts on an audit verdict — the `review` entry gate —
      * matches against this set rather than trusting an arbitrary emitted string.
      */
-    val AUDIT_VERDICTS: Set<FeatureTaskRuntimeVerdict> = setOf(SATISFIED, GAPS_FOUND)
+    val AUDIT_VERDICTS: Set<FeatureTaskRuntimeVerdict> = setOf(SATISFIED)
 
     fun fromWire(value: String): FeatureTaskRuntimeVerdict =
       value.takeIf(String::isNotBlank)?.let(::FeatureTaskRuntimeVerdict)

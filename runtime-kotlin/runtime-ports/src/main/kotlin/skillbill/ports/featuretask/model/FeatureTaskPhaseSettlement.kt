@@ -28,10 +28,6 @@ sealed interface FeatureTaskPhaseSettlementKind {
     override val wireValue: String = "block"
   }
 
-  data object AuditSettle : FeatureTaskPhaseSettlementKind {
-    override val wireValue: String = "audit_settle"
-  }
-
   data class Unknown(override val wireValue: String) : FeatureTaskPhaseSettlementKind {
     init {
       require(wireValue.isNotBlank()) { "wireValue must be non-blank." }
@@ -47,14 +43,9 @@ sealed interface FeatureTaskPhaseSettlementKind {
     val BLOCK: FeatureTaskPhaseSettlementKind
       get() = Block
 
-    @Deprecated("Renamed to AuditSettle", ReplaceWith("FeatureTaskPhaseSettlementKind.AuditSettle"))
-    val AUDIT_SETTLE: FeatureTaskPhaseSettlementKind
-      get() = AuditSettle
-
     fun fromWire(value: String): FeatureTaskPhaseSettlementKind = when (value) {
       Complete.wireValue -> Complete
       Block.wireValue -> Block
-      AuditSettle.wireValue -> AuditSettle
       else -> Unknown(value)
     }
   }

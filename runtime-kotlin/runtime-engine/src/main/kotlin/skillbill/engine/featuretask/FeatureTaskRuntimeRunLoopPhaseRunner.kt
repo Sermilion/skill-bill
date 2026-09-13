@@ -14,19 +14,9 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeResolvedBranch
-import skillbill.workflow.taskruntime.model.acceptanceCriterionRefsFor
 import skillbill.workflow.taskruntime.model.requireAcceptedOutput
 
 object FeatureTaskRuntimeRunLoopPhaseRunner {
-  fun declaredCriterionRefs(runLoop: FeatureTaskRuntimeRunLoop): List<String> =
-    acceptanceCriterionRefsFor(runLoop.request.runInvariants.acceptanceCriteria.size)
-
-  fun durablyClosedCriterionRefs(): List<String> = emptyList()
-
-  fun openAuditCriterionRefs(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    closedCriterionRefs: List<String> = durablyClosedCriterionRefs(),
-  ): List<String> = declaredCriterionRefs(runLoop) - closedCriterionRefs.toSet()
 
   internal fun runDeclaredReviewDriverCycle(
     runLoop: FeatureTaskRuntimeRunLoop,
@@ -69,22 +59,13 @@ object FeatureTaskRuntimeRunLoopPhaseRunner {
       }
       PreLaunchBlock(nextIteration, reason, durable)
     }
-    val invalidPlanningContext = if (
-      run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT &&
-      run.reentry?.loopId == FeatureTaskRuntimePhaseWorkflowDefinition.AUDIT_GAP_LOOP_ID
-    ) {
-      state.auditGapPlanningContextError?.let { reason -> PreLaunchBlock(state.nextIteration(run.phaseId), reason) }
-    } else {
-      null
+    val missing = persisted ?: missingRequiredUpstream(run, state)?.let { missingIds ->
+      PreLaunchBlock(
+        1,
+        "Phase '${run.phaseId}' requires upstream output(s) ${missingIds.joinToString()} that are not " +
+          "present; the runtime blocks rather than launching the phase blind.",
+      )
     }
-    val missing = persisted ?: invalidPlanningContext
-      ?: missingRequiredUpstream(run, state)?.let { missingIds ->
-        PreLaunchBlock(
-          1,
-          "Phase '${run.phaseId}' requires upstream output(s) ${missingIds.joinToString()} that are not " +
-            "present; the runtime blocks rather than launching the phase blind.",
-        )
-      }
     return missing?.let { persistPreLaunchBlock(runLoop, run, observability, it) }
   }
 
@@ -116,17 +97,8 @@ object FeatureTaskRuntimeRunLoopPhaseRunner {
       ),
     )
   }
-  internal fun missingRequiredUpstream(run: PhaseRun, state: FeatureTaskRuntimeRunState): List<String>? {
-    val recoverableAuditRepairSource =
-      run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT &&
-        run.reentry?.loopId == FeatureTaskRuntimePhaseWorkflowDefinition.AUDIT_GAP_LOOP_ID &&
-        run.reentry.reentryGapCriteria.isNotEmpty()
-    return missingUpstream(run.declaration, state.outputs())
-      ?.filterNot {
-        recoverableAuditRepairSource && it == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT
-      }
-      ?.takeIf(List<String>::isNotEmpty)
-  }
+  internal fun missingRequiredUpstream(run: PhaseRun, state: FeatureTaskRuntimeRunState): List<String>? =
+    missingUpstream(run.declaration, state.outputs())?.takeIf(List<String>::isNotEmpty)
 
   fun isRetryableGoalReviewPreparation(phaseId: String, reason: String): Boolean {
     if (phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW) return false
@@ -211,8 +183,6 @@ object FeatureTaskRuntimeRunLoopPhaseRunner {
         phaseId,
         persistedReason,
       ) -> true
-      phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT &&
-        persistedReason.startsWith("Audit-gap recovery requires") -> true
       disposition != null -> disposition.retryOnResume
       else -> FeatureTaskRuntimePhaseWorkflowDefinition.retriesOnInvalidOutput(phaseId)
     }

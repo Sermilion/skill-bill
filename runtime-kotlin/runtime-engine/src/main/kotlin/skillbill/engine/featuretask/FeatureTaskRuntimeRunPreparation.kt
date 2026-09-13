@@ -4,9 +4,12 @@ import skillbill.engine.featuretask.model.ContinuationRead
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeGoalContinuationContext
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePreparation
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
+import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.review.context.model.CodeReviewExecutionMode
 import skillbill.workflow.goal.model.ValidationDepth
+import skillbill.workflow.model.WorkflowStepStatus
+import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationArtifact
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationFieldAdoption
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeQualityGateSelection
@@ -19,7 +22,24 @@ class FeatureTaskRuntimeRunPreparation(
   private val runInvariantsStore: FeatureTaskRuntimeRunInvariantsStore,
 ) {
   fun prepare(request: FeatureTaskRuntimeRunRequest): FeatureTaskRuntimePreparation {
-    val persistedInvariants = runInvariantsStore.resolve(request.workflowId)
+    val persistedInvariants = try {
+      runInvariantsStore.resolve(request.workflowId)
+    } catch (error: InvalidWorkflowStateSchemaError) {
+      val completedPhases = recorder.loadPhaseRecords(request.workflowId).orEmpty().values
+        .filter { it.status == WorkflowStepStatus.COMPLETED }
+        .map { it.phaseId }
+      val transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions
+      val phase = transitions.forwardPhaseIds.firstOrNull {
+        it !in completedPhases && it !in transitions.loopOnlyPhaseIds
+      } ?: FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT
+      return FeatureTaskRuntimePreparation.PreparationBlocked(
+        goalContinuationPolicyBlockedReport(
+          request,
+          request.runInvariants,
+          "Planning inputs are unreadable: ${error.message}",
+        ).copy(lastIncompletePhase = phase, completedPhaseIds = completedPhases),
+      )
+    }
     val reportInvariants = persistedInvariants ?: request.runInvariants
     return when (
       val initial = continuationRecorder.readContinuation(request, "Goal-continuation review persistence is malformed")
@@ -32,11 +52,6 @@ class FeatureTaskRuntimeRunPreparation(
     }
   }
 
-  // A resumed child whose durable review state is missing (never captured, or lost) cannot have its
-  // review baseline recreated here: recreating it would silently substitute a value review
-  // preparation never captured. Preparation is not the seam that owns that judgment call, so it
-  // freezes run invariants from the launcher-supplied baseline (never persisted from this path) and
-  // lets the review phase's own reservation refuse to substitute one when it actually needs it.
   private fun prepareResumeWithoutReviewState(
     request: FeatureTaskRuntimeRunRequest,
     persistedInvariants: FeatureTaskRuntimeRunInvariants?,
@@ -296,8 +311,7 @@ private fun goalContinuationContext(
   parentWorkflowId = continuation.parentWorkflowId,
   lastResumableStep = request.goalContinuation?.lastResumableStep,
   codeReviewMode = continuation.codeReviewMode,
-  // Prefer the durable recorded depth; otherwise the launcher-supplied (adopted) depth. DEFAULT is
-  // only a last resort when neither side carried one after the resume write-back.
+
   validationDepth = continuation.validationDepth
     ?: request.goalContinuation?.validationDepth
     ?: ValidationDepth.DEFAULT,

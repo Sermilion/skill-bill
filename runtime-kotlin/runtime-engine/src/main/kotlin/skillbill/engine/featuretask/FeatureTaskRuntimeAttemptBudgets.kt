@@ -1,5 +1,7 @@
 package skillbill.engine.featuretask
 
+import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+
 object FeatureTaskRuntimeAttemptBudgets {
   const val MAX_OUTPUT_GATE_RETRY_ATTEMPTS: Int = 1
   const val MAX_FORMAT_RETRY_ATTEMPTS: Int = MAX_OUTPUT_GATE_RETRY_ATTEMPTS
@@ -9,10 +11,15 @@ object FeatureTaskRuntimeAttemptBudgets {
     require(processFailureCount >= 0) {
       "processFailureCount must be >= 0, was $processFailureCount."
     }
-    if (processFailureCount < MAX_PROCESS_FAILURE_ATTEMPTS) return null
+    val cap = if (FeatureTaskRuntimePhaseWorkflowDefinition.singleAgentSessionOnly(phaseId)) {
+      1
+    } else {
+      MAX_PROCESS_FAILURE_ATTEMPTS
+    }
+    if (processFailureCount < cap) return null
     val last = lastFailureReason?.takeIf(String::isNotBlank)?.let { " Last failure: $it" }.orEmpty()
     return "Phase '$phaseId' failed to execute $processFailureCount times " +
-      "(cap=$MAX_PROCESS_FAILURE_ATTEMPTS) without reaching its output gate; the run blocks rather than " +
+      "(cap=$cap) without reaching its output gate; the run blocks rather than " +
       "relaunching a process that keeps dying. No repair attempt was consumed.$last"
   }
 

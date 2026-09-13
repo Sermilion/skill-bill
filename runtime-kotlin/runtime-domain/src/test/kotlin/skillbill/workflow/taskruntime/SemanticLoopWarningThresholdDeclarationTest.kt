@@ -5,22 +5,11 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeTransitionDeclarat
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 
 class SemanticLoopWarningThresholdDeclarationTest {
   private val def = FeatureTaskRuntimePhaseWorkflowDefinition
   private val transitions = def.transitions
-
-  @Test
-  fun `the audit gap semantic remediation edge carries the shared warning threshold`() {
-    assertEquals(3, def.SEMANTIC_LOOP_WARNING_THRESHOLD)
-    assertEquals(
-      def.SEMANTIC_LOOP_WARNING_THRESHOLD,
-      transitions.backwardEdges.single { it.loopId == def.AUDIT_GAP_LOOP_ID }.warnAfterIterations,
-      "'${def.AUDIT_GAP_LOOP_ID}' must source its warning threshold from the single shared constant.",
-    )
-  }
 
   @Test
   fun `the bounded review fix edge does not declare a warning threshold`() {
@@ -31,28 +20,19 @@ class SemanticLoopWarningThresholdDeclarationTest {
   }
 
   @Test
-  fun `no other backward edge declares a warning threshold`() {
-    val semanticLoopIds = setOf(def.AUDIT_GAP_LOOP_ID)
-    transitions.backwardEdges
-      .filterNot { it.loopId in semanticLoopIds }
-      .forEach { edge ->
-        assertNull(
-          edge.warnAfterIterations,
-          "'${edge.loopId}' is bounded by a finite cap and must not attach a threshold warning.",
-        )
-      }
-  }
-
-  @Test
-  fun `a threshold below one is rejected at construction`() {
-    val auditGap = transitions.backwardEdges.single { it.loopId == def.AUDIT_GAP_LOOP_ID }
-    assertFailsWith<IllegalArgumentException> { auditGap.copy(warnAfterIterations = 0) }
+  fun `no backward edge declares a warning threshold`() {
+    transitions.backwardEdges.forEach { edge ->
+      assertNull(
+        edge.warnAfterIterations,
+        "'${edge.loopId}' must not attach a threshold warning.",
+      )
+    }
   }
 
   @Test
   fun `the declared threshold is control-flow inert across every iteration`() {
     val cases = listOf(
-      def.PHASE_AUDIT to FeatureTaskRuntimeVerdict.GAPS_FOUND,
+      def.PHASE_VERIFY_FINDINGS to FeatureTaskRuntimeVerdict.FINDINGS_VERIFIED,
     )
     cases.forEach { (phaseId, verdict) ->
       val withThreshold = transitions

@@ -16,7 +16,6 @@ internal data class FeatureTaskRuntimeCurrentPhaseExecutionContext(
   val records: Map<String, FeatureTaskRuntimePhaseRecord>,
   val phases: List<FeatureTaskRuntimePhaseStatus>,
   val ledger: List<FeatureTaskRuntimePhaseLedgerEntry>,
-  val auditGapIterationCount: Int,
   val gateRunCount: Int?,
 )
 
@@ -31,7 +30,7 @@ class FeatureTaskRuntimeCurrentPhaseExecutionDeriver {
     val record = context.records[phaseId]
     return when (phaseId) {
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT ->
-        auditExecution(phaseId, phaseStatus, record, context.auditGapIterationCount)
+        auditExecution(phaseId, phaseStatus, record)
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW ->
         reviewExecution(phaseId, phaseStatus, record, context.ledger)
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS ->
@@ -49,13 +48,7 @@ class FeatureTaskRuntimeCurrentPhaseExecutionDeriver {
     phaseId: String,
     phaseStatus: FeatureTaskRuntimePhaseStatus,
     record: FeatureTaskRuntimePhaseRecord?,
-    auditGapIterationCount: Int,
   ): IdeStatusCurrentPhaseExecution? = when {
-    auditGapIterationCount >= 1 -> IdeStatusCurrentPhaseExecution(
-      phaseId = phaseId,
-      kind = IdeStatusCurrentPhaseExecutionKind.SEMANTIC_LOOP,
-      count = auditGapIterationCount,
-    )
     phaseStatus.attemptCount >= 1 || record != null -> IdeStatusCurrentPhaseExecution(
       phaseId = phaseId,
       kind = IdeStatusCurrentPhaseExecutionKind.PASS,

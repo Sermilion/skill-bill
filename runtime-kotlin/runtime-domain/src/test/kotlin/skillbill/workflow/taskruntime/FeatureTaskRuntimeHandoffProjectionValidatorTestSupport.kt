@@ -8,7 +8,6 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffProjectionI
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffPromptVisibility
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffSourceRef
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePriorGapMemory
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeQualityGateSelection
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeQualityGateSelection.BUILD
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeQualityGateSelection.VALIDATE
@@ -81,7 +80,6 @@ internal data class HandoffProjectionValidatorInputsFixture(
   var expectedCheckpoint: FeatureTaskRuntimeRepositoryCheckpoint? = null,
   var validationDepth: ValidationDepth = ValidationDepth.DEFAULT,
   var qualityGateSelection: FeatureTaskRuntimeQualityGateSelection = VALIDATE,
-  var priorGapMemory: FeatureTaskRuntimePriorGapMemory? = null,
 ) {
   fun build(): FeatureTaskRuntimeHandoffProjectionInputs = FeatureTaskRuntimeHandoffProjectionInputs(
     consumerPhaseId = consumerPhaseId,
@@ -93,7 +91,6 @@ internal data class HandoffProjectionValidatorInputsFixture(
     workflowId = "wftr-1",
     validationDepth = validationDepth,
     qualityGateSelection = qualityGateSelection,
-    priorGapMemory = priorGapMemory,
     planningProjectionValidator = NoopFeatureTaskRuntimePlanningProjectionValidator,
   )
 }
