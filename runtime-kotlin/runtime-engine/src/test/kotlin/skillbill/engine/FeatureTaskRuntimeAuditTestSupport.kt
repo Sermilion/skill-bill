@@ -26,7 +26,7 @@ internal fun auditRemainingAcOutput(remainingText: String): String {
       "value": "$escaped"
     }
   }
-""".trimIndent()
+  """.trimIndent()
 }
 
 internal fun auditGapsFoundOutput(): String = """

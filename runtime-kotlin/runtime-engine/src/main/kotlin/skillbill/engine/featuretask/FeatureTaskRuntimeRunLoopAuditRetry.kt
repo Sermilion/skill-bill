@@ -7,12 +7,13 @@ import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeAuditRemainingAcInterpretation
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeAuditRemainingAcResult
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.model.NormalizedFeatureTaskRuntimePhaseOutput
 
 object FeatureTaskRuntimeRunLoopAuditRetry {
-  internal fun interpretCompletedAuditValue(value: String?): FeatureTaskRuntimeAuditRemainingAcInterpretation.Result =
+  internal fun interpretCompletedAuditValue(value: String?): FeatureTaskRuntimeAuditRemainingAcResult =
     FeatureTaskRuntimeAuditRemainingAcInterpretation.interpret(value)
 
   internal fun stampSatisfiedVerdict(
@@ -92,7 +93,6 @@ object FeatureTaskRuntimeRunLoopAuditRetry {
   internal fun settleCompletedAuditRound(
     runLoop: FeatureTaskRuntimeRunLoop,
     capture: ValidatedOutputCapture,
-    attested: NormalizedFeatureTaskRuntimePhaseOutput,
     outputMap: Map<String, Any?>,
   ): AttemptResult? {
     val run = capture.run
@@ -102,16 +102,16 @@ object FeatureTaskRuntimeRunLoopAuditRetry {
     }
     val finalResponse = FeatureTaskRuntimeOutputVerification.auditProseValue(outputMap)
     return when (val interpretation = interpretCompletedAuditValue(finalResponse)) {
-      FeatureTaskRuntimeAuditRemainingAcInterpretation.Result.MissingFinalResponse ->
+      FeatureTaskRuntimeAuditRemainingAcResult.MissingFinalResponse ->
         FeatureTaskRuntimeRunLoopAuditRetry.blockAuditWhitespaceOnlyFinalResponse(
           runLoop,
           run,
           capture.iteration,
           capture.fileManifest,
         )
-      FeatureTaskRuntimeAuditRemainingAcInterpretation.Result.WhitespaceOnlyFinalResponse ->
+      FeatureTaskRuntimeAuditRemainingAcResult.WhitespaceOnlyFinalResponse ->
         blockAuditWhitespaceOnlyFinalResponse(runLoop, run, capture.iteration, capture.fileManifest)
-      is FeatureTaskRuntimeAuditRemainingAcInterpretation.Result.RemainingCriteriaText -> {
+      is FeatureTaskRuntimeAuditRemainingAcResult.RemainingCriteriaText -> {
         val branch = runLoop.session.resolvedBranch
         if (branch != null) {
           val blocked = commitCompletedAuditRound(
@@ -140,7 +140,7 @@ object FeatureTaskRuntimeRunLoopAuditRetry {
           fileManifest = capture.fileManifest,
         )
       }
-      FeatureTaskRuntimeAuditRemainingAcInterpretation.Result.EmptyRemainingList -> {
+      FeatureTaskRuntimeAuditRemainingAcResult.EmptyRemainingList -> {
         null
       }
     }
@@ -155,7 +155,7 @@ object FeatureTaskRuntimeRunLoopAuditRetry {
     }
     if (outputMap[SharedPayloadKeys.VERDICT] != null) return attested
     return when (interpretCompletedAuditValue(FeatureTaskRuntimeOutputVerification.auditProseValue(outputMap))) {
-      FeatureTaskRuntimeAuditRemainingAcInterpretation.Result.EmptyRemainingList -> stampSatisfiedVerdict(attested)
+      FeatureTaskRuntimeAuditRemainingAcResult.EmptyRemainingList -> stampSatisfiedVerdict(attested)
       else -> attested
     }
   }

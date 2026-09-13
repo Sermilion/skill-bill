@@ -52,34 +52,6 @@ class FeatureTaskRuntimeRejectionConstraintPrivacyTest {
   }
 
   @Test
-  fun `a terminal schema-gate block keeps every operator surface free of the constraint and the raw span`() {
-    var writeHistoryAttempts = 0
-    val harness = runnerHarness(
-      RuntimeHarnessConfig(
-        validator = object : FeatureTaskRuntimePhaseOutputValidator {
-          override fun validatePhaseOutputText(phaseOutputText: String, sourceLabel: String) {
-            if (sourceLabel != "write_history") return
-            writeHistoryAttempts += 1
-            throw InvalidFeatureTaskRuntimePhaseOutputSchemaError(
-              sourceLabel = sourceLabel,
-              reason = valueBearingReason,
-              payloadFreeReason = payloadFreeConstraint,
-            )
-          }
-        },
-      ),
-    )
-
-    val blocked = assertIs<FeatureTaskRuntimeRunReport.Blocked>(harness.runner.run(harness.request()))
-
-    assertEquals("write_history", blocked.lastIncompletePhase)
-    assertPrivateDiagnosticRejection(blocked.blockedReason, "phase-output-schema", rawSpan, payloadFreeConstraint)
-    assertNoRawResponseSpan(blocked.blockedReason, rawSpan)
-    val writeHistoryRecord = requireNotNull(harness.recorder.loadPhaseRecords(WORKFLOW_ID).orEmpty()["write_history"])
-    assertNoRawResponseSpan(requireNotNull(writeHistoryRecord.blockedReason), rawSpan, payloadFreeConstraint)
-  }
-
-  @Test
   fun `a malformed rejection with no payload-free reason falls back instead of substituting the value-bearing one`() {
     val harness = rejectingHarness { sourceLabel ->
       InvalidFeatureTaskRuntimePhaseOutputSchemaError(

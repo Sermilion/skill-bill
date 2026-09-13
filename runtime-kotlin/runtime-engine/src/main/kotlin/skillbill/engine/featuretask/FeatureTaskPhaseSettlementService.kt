@@ -13,6 +13,7 @@ import skillbill.ports.featuretask.model.FeatureTaskPhaseSettlementKind
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeAuditRemainingAcInterpretation
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.ProsePhaseOutputSynthesizer
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeAuditRemainingAcResult
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationEvidence
 import skillbill.workflow.taskruntime.model.SettlementEnvelopeRequest
 import java.time.Clock
@@ -31,11 +32,12 @@ class FeatureTaskPhaseSettlementService(
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT ->
         request.verdict?.takeIf { it == "satisfied" }
           ?: when (FeatureTaskRuntimeAuditRemainingAcInterpretation.interpret(request.value)) {
-            FeatureTaskRuntimeAuditRemainingAcInterpretation.Result.EmptyRemainingList -> "satisfied"
+            FeatureTaskRuntimeAuditRemainingAcResult.EmptyRemainingList -> "satisfied"
             else -> null
           }.let { resolved ->
             requireNotNull(resolved) {
-              "feature_task_phase_complete requires an explicit empty remaining-criteria list or verdict=satisfied when phase_id=audit."
+              "feature_task_phase_complete requires an explicit empty remaining-criteria list " +
+                "or verdict=satisfied when phase_id=audit."
             }
           }
       else -> request.verdict

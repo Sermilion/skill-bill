@@ -680,10 +680,8 @@ internal sealed interface AttemptResult {
       normalizedOutput: NormalizedFeatureTaskRuntimePhaseOutput,
     ): AttemptResult = IncompleteWork(operatorReason, continuationReason, fileManifest, normalizedOutput)
 
-    fun auditRetry(
-      focusHint: String,
-      fileManifest: FeatureTaskRuntimePhaseFileManifest,
-    ): AttemptResult = AuditRetry(focusHint, fileManifest)
+    fun auditRetry(focusHint: String, fileManifest: FeatureTaskRuntimePhaseFileManifest): AttemptResult =
+      AuditRetry(focusHint, fileManifest)
 
     fun unaccountedItems(
       phaseId: String,

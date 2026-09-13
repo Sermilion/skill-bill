@@ -8,9 +8,7 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlin.test.assertFalse
 import kotlin.test.assertIs
-import kotlin.test.assertTrue
 
 class FeatureTaskRuntimePhaseOutputSchemaValidatorTest {
   private val wellFormed =
@@ -684,19 +682,12 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
   }
 
   @Test
-  fun `audit nested verdict under produced_outputs fails with a payload-free root verdict constraint`() {
-    // SKILL-187 AC-002: syntax is fine; the required top-level verdict is missing when nested only.
+  fun `audit nested verdict under produced_outputs is accepted as payload`() {
     val nested =
       """{"contract_version":"0.6","phase_id":"audit","status":"completed","summary":"SKILL187-NESTED",""" +
         """"produced_outputs":{"value":"{\"gaps\":[]}","verdict":"satisfied"}}"""
 
-    val error = assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(nested, "audit")
-    }
-
-    val payloadFree = requireNotNull(error.payloadFreeReason)
-    assertTrue(payloadFree.contains("verdict"), "payload-free reason must name the root verdict field")
-    assertFalse(payloadFree.contains("satisfied"), "payload-free reason must omit the nested value")
+    FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(nested, "audit")
   }
 
   @Test

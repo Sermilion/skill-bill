@@ -1,5 +1,6 @@
 package skillbill.workflow.taskruntime
 
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeAuditRemainingAcResult
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -8,7 +9,7 @@ class FeatureTaskRuntimeAuditRemainingAcInterpretationTest {
   @Test
   fun `explicit empty list forms are recognized`() {
     listOf("[]", "  []  ", "```\n[]\n```", "```json\n[]\n```").forEach { text ->
-      assertIs<FeatureTaskRuntimeAuditRemainingAcInterpretation.Result.EmptyRemainingList>(
+      assertIs<FeatureTaskRuntimeAuditRemainingAcResult.EmptyRemainingList>(
         FeatureTaskRuntimeAuditRemainingAcInterpretation.interpret(text),
       )
     }
@@ -24,7 +25,7 @@ class FeatureTaskRuntimeAuditRemainingAcInterpretationTest {
       assertEquals(
         text,
         (
-          assertIs<FeatureTaskRuntimeAuditRemainingAcInterpretation.Result.RemainingCriteriaText>(
+          assertIs<FeatureTaskRuntimeAuditRemainingAcResult.RemainingCriteriaText>(
             FeatureTaskRuntimeAuditRemainingAcInterpretation.interpret(text),
           )
           ).text,
@@ -34,10 +35,10 @@ class FeatureTaskRuntimeAuditRemainingAcInterpretationTest {
 
   @Test
   fun `whitespace only and missing responses do not complete audit`() {
-    assertIs<FeatureTaskRuntimeAuditRemainingAcInterpretation.Result.WhitespaceOnlyFinalResponse>(
+    assertIs<FeatureTaskRuntimeAuditRemainingAcResult.WhitespaceOnlyFinalResponse>(
       FeatureTaskRuntimeAuditRemainingAcInterpretation.interpret("   "),
     )
-    assertIs<FeatureTaskRuntimeAuditRemainingAcInterpretation.Result.MissingFinalResponse>(
+    assertIs<FeatureTaskRuntimeAuditRemainingAcResult.MissingFinalResponse>(
       FeatureTaskRuntimeAuditRemainingAcInterpretation.interpret(null),
     )
   }

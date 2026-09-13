@@ -83,9 +83,7 @@ private fun producedOutputsAddendum(
         "invent hashes or reuse another finding's catalog. Concurrent worktree dirt outside the " +
         "review scope is ignored; settle dispositions for the reviewed findings only.\n" +
         "      Required example: {\"finding_id\":\"F-001\",\"disposition\":\"verified\"}."
-    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT -> auditProducedOutputsAddendum(
-      verdict = verdict,
-    )
+    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT -> auditProducedOutputsAddendum()
     else -> ""
   }
 }
@@ -128,7 +126,7 @@ private fun commitFocusedAccountingAddendum(): String =
     "      path, or diff text. An INLINE or non-commit-sequence pass OMITS the key entirely rather\n" +
     "      than fabricating a sequence identity; never invent or guess a digest or a count."
 
-private fun auditProducedOutputsAddendum(verdict: String): String =
+private fun auditProducedOutputsAddendum(): String =
   "\n    - This is a VERIFYING phase. Ignore the optional-verdict bullet above for audit completion: the " +
     "runtime reads your completed final response from produced_outputs.value. Only an explicit empty list " +
     "`[]` (ordinary whitespace or Markdown fencing allowed when the complete final response is exactly " +

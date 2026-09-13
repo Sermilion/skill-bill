@@ -15,7 +15,10 @@ Areas: runtime-engine/featuretask, runtime-domain/workflow/taskruntime, orchestr
 - Audit prompts request remaining acceptance criteria in `produced_outputs.value`, with explicit `[]` when none remain; SKILL-241 full-list verification, same-session repair, and no nested delegation stay unchanged.
 - Completed audit output no longer requires envelope `verdict`; the runtime interprets the final remaining-criteria response, stamps `satisfied` only for an explicit empty list, and retries in fresh sessions when the response is non-blank.
 - Each completed audit round commits or amends the subtask commit before the next retry or review advance; in-memory focus hints discard on resume.
+- Pattern: keep remaining-criteria text as a transient focus hint while the full planned list remains authoritative on every fresh audit launch. reusable
+- Limitation: temporary-repository coverage for first-round commit creation, retry amend, HEAD fallback, and Git-failure blocking remains deferred.
 Feature flag: N/A
+Acceptance criteria: 7/8 implemented
 
 ## [2026-09-12] 0AC-16 — Evidence-backed validation settlement
 Areas: orchestration/contracts, runtime-kotlin/{runtime-cli,runtime-contracts,runtime-domain,runtime-engine,runtime-infra-fs}

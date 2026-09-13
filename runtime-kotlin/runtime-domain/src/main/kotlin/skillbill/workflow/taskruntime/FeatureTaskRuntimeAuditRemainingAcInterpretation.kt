@@ -1,23 +1,18 @@
 package skillbill.workflow.taskruntime
 
-object FeatureTaskRuntimeAuditRemainingAcInterpretation {
-  sealed interface Result {
-    data object EmptyRemainingList : Result
-    data class RemainingCriteriaText(val text: String) : Result
-    data object WhitespaceOnlyFinalResponse : Result
-    data object MissingFinalResponse : Result
-  }
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeAuditRemainingAcResult
 
+object FeatureTaskRuntimeAuditRemainingAcInterpretation {
   private val MARKDOWN_FENCE: Regex =
     Regex("""^```[ \t]*[A-Za-z0-9_-]*\r?\n([\s\S]*?)```$""")
 
-  fun interpret(finalResponse: String?): Result {
-    if (finalResponse == null) return Result.MissingFinalResponse
-    if (finalResponse.isBlank()) return Result.WhitespaceOnlyFinalResponse
+  fun interpret(finalResponse: String?): FeatureTaskRuntimeAuditRemainingAcResult {
+    if (finalResponse == null) return FeatureTaskRuntimeAuditRemainingAcResult.MissingFinalResponse
+    if (finalResponse.isBlank()) return FeatureTaskRuntimeAuditRemainingAcResult.WhitespaceOnlyFinalResponse
     return if (isExplicitEmptyList(finalResponse)) {
-      Result.EmptyRemainingList
+      FeatureTaskRuntimeAuditRemainingAcResult.EmptyRemainingList
     } else {
-      Result.RemainingCriteriaText(finalResponse)
+      FeatureTaskRuntimeAuditRemainingAcResult.RemainingCriteriaText(finalResponse)
     }
   }
 

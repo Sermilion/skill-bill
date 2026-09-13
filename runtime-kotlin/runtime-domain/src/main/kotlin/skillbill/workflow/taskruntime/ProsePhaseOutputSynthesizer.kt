@@ -7,6 +7,7 @@ import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition.
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeAuditRemainingAcResult
 import skillbill.workflow.taskruntime.model.SettlementEnvelopeRequest
 import skillbill.workflow.taskruntime.model.SettlementStatus
 
@@ -66,7 +67,7 @@ object ProsePhaseOutputSynthesizer {
       if (status == SettlementStatus.COMPLETED.wireValue) {
         ProsePhaseOutputRecover.recoverAuditVerdict(parsed, phaseOutputText)
           ?: when (FeatureTaskRuntimeAuditRemainingAcInterpretation.interpret(value)) {
-            FeatureTaskRuntimeAuditRemainingAcInterpretation.Result.EmptyRemainingList -> "satisfied"
+            FeatureTaskRuntimeAuditRemainingAcResult.EmptyRemainingList -> "satisfied"
             else -> return null
           }
       } else {
@@ -93,7 +94,7 @@ object ProsePhaseOutputSynthesizer {
     if (request.phaseId == PHASE_AUDIT && request.status == SettlementStatus.COMPLETED) {
       val resolved = request.verdict?.takeIf { it in AUDIT_VERDICTS }
         ?: when (FeatureTaskRuntimeAuditRemainingAcInterpretation.interpret(request.value)) {
-          FeatureTaskRuntimeAuditRemainingAcInterpretation.Result.EmptyRemainingList -> "satisfied"
+          FeatureTaskRuntimeAuditRemainingAcResult.EmptyRemainingList -> "satisfied"
           else -> null
         }
       requireNotNull(resolved) {

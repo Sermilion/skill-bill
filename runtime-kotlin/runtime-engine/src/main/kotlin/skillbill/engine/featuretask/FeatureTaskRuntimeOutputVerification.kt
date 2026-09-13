@@ -9,6 +9,7 @@ import skillbill.review.model.ReviewClaimVerdict
 import skillbill.review.model.ReviewScopeDisposition
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeAuditRemainingAcInterpretation
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeAuditRemainingAcResult
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFindingVerificationDisposition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFindingVerificationVerdict
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeReviewFinding
@@ -97,7 +98,7 @@ private fun auditVerdict(
   if (
     FeatureTaskRuntimeAuditRemainingAcInterpretation.interpret(
       FeatureTaskRuntimeOutputVerification.auditProseValue(outputObject),
-    ) is FeatureTaskRuntimeAuditRemainingAcInterpretation.Result.EmptyRemainingList
+    ) is FeatureTaskRuntimeAuditRemainingAcResult.EmptyRemainingList
   ) {
     return FeatureTaskRuntimeVerdict.SATISFIED
   }

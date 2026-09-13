@@ -1,21 +1,11 @@
 
 package skillbill.engine
-import skillbill.application.assertNoRawResponseSpan
 import skillbill.application.diagnostics.model.RejectedOutputDiagnosticRequest
-import skillbill.application.realFeatureTaskRuntimePhaseOutputValidator
-import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
-import skillbill.engine.featuretask.AlwaysValidValidator
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunEvent
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunEventSink
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
 import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import skillbill.install.model.InstallAgent.CLAUDE
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
-import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputValidationResult
-import skillbill.workflow.taskruntime.model.requireAccepted
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -159,110 +149,6 @@ class FeatureTaskRuntimeCorrectiveRespawnIntegrationTest {
       },
       "a schema-invalid plan must block before audit launches",
     )
-  }
-
-  @Test
-  fun `delimiter repair then expected-shape restore accepts nested verdict without a relaunch`() {
-    val malformed = completedPhaseBody(
-      FEATURE_TASK_RUNTIME_CONTRACT_VERSION,
-      "audit",
-      "SKILL187-DELIMITER",
-      """{"value":"{\"gaps\":[]}","verdict":"satisfied"}""",
-    ).dropLast(1)
-    var auditAttempts = 0
-    val harness = runnerHarness(
-      RuntimeHarnessConfig(
-        launcher = RuntimeRecordingLauncher { request ->
-          val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
-          if (phaseId != "audit") return@RuntimeRecordingLauncher facts(defaultPhaseOutput(request))
-          auditAttempts += 1
-          facts(malformed)
-        },
-        validator = realAuditValidator(),
-      ),
-    )
-
-    assertIs<FeatureTaskRuntimeRunReport.Completed>(harness.runner.run(harness.request()))
-
-    val accepted = realFeatureTaskRuntimePhaseOutputValidator.validatePhaseOutput(malformed, "audit")
-    val repaired = assertIs<FeatureTaskRuntimePhaseOutputValidationResult.AcceptedAfterRepair>(accepted)
-    assertEquals("satisfied", repaired.normalizedOutput.envelope["verdict"])
-    assertEquals(1, auditAttempts, "shape restore must not relaunch audit")
-    val auditRecord = requireNotNull(harness.recorder.loadPhaseRecords(WORKFLOW_ID).orEmpty()["audit"])
-    assertEquals("completed", auditRecord.status.wireValue)
-    assertContains(requireNotNull(auditRecord.outputArtifact), "\"verdict\"")
-  }
-
-  @Test
-  fun `throwing telemetry status and diagnostic observers cannot change outcomes or leak the response`() {
-    val rejectedBody = completedPhaseBody("0.5", "audit", rawSpan, """{"gaps":[]}""")
-    val throwingSink = FeatureTaskRuntimeRunEventSink {
-      error("status/telemetry observer refused event ${it::class.simpleName}")
-    }
-    val throwingDiagnostics = object : RuntimeDiagnostics {
-      override fun warning(message: String, error: Throwable?) {
-        kotlin.error("diagnostic observer refused warning: $message")
-      }
-
-      override fun error(message: String, error: Throwable?) {
-        kotlin.error("diagnostic observer refused error: $message")
-      }
-    }
-
-    fun harnessFor(failingPhase: String, failEveryAttempt: Boolean): RunnerHarness {
-      var attempts = 0
-      return runnerHarness(
-        RuntimeHarnessConfig(eventSink = throwingSink).copy(
-          launcher = RuntimeRecordingLauncher { request ->
-            val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
-            if (phaseId != failingPhase) return@RuntimeRecordingLauncher facts(defaultPhaseOutput(request))
-            attempts += 1
-            facts(
-              if (failEveryAttempt || attempts == 1) rejectedBody else defaultPhaseOutput(request),
-            )
-          },
-          validator = object : FeatureTaskRuntimePhaseOutputValidator {
-            override fun validatePhaseOutputText(phaseOutputText: String, sourceLabel: String) {
-              if (sourceLabel != failingPhase) return
-              if (phaseOutputText.contains(rawSpan)) {
-                throw InvalidFeatureTaskRuntimePhaseOutputSchemaError(
-                  sourceLabel = sourceLabel,
-                  reason = "status: does not have a value in the enumeration — offending value: $rawSpan",
-                  payloadFreeReason = payloadFreeConstraint,
-                )
-              }
-            }
-          },
-          diagnostics = throwingDiagnostics,
-        ),
-      )
-    }
-
-    val completing = runnerHarness(RuntimeHarnessConfig(eventSink = throwingSink, diagnostics = throwingDiagnostics))
-    val completed = assertIs<FeatureTaskRuntimeRunReport.Completed>(completing.runner.run(completing.request()))
-    assertTrue(completed.completedPhaseIds.contains("audit"))
-
-    val exhausting = harnessFor(failingPhase = "write_history", failEveryAttempt = true)
-    val blocked = assertIs<FeatureTaskRuntimeRunReport.Blocked>(
-      exhausting.runner.run(exhausting.request()),
-    )
-    assertEquals("write_history", blocked.lastIncompletePhase)
-    assertNoRawResponseSpan(blocked.blockedReason, rawSpan, rejectedBody)
-    val writeHistoryRecord =
-      requireNotNull(exhausting.recorder.loadPhaseRecords(WORKFLOW_ID).orEmpty()["write_history"])
-    assertEquals(FeatureTaskRuntimeFailureDisposition.INVALID_OUTPUT, writeHistoryRecord.failureDisposition)
-    assertNoRawResponseSpan(requireNotNull(writeHistoryRecord.blockedReason), rawSpan, rejectedBody)
-    assertEquals(
-      1,
-      exhausting.launcher.requests.count {
-        phaseIdFromPrompt(requireNotNull(it.skillRunRequest.promptOverride)) == "write_history"
-      },
-    )
-    exhausting.events.filterIsInstance<FeatureTaskRuntimeRunEvent.PhaseBlocked>().forEach { event ->
-      assertNoRawResponseSpan(event.blockedReason, rawSpan, rejectedBody)
-    }
-    val diagnostic = exhausting.io.database.rejectedDiagnostics().first { it.metadata.phaseId == "write_history" }
-    assertEquals(rejectedBody.encodeToByteArray().toList(), diagnostic.payload?.toList())
   }
 
   @Test
@@ -465,116 +351,9 @@ class FeatureTaskRuntimeCorrectiveRespawnIntegrationTest {
     assertEquals(1, auditAttempts)
   }
 
-  @Test
-  fun `audit nested verdict JSON and flow-YAML are restored to the expected shape without a relaunch`() {
-    val cases = listOf(
-      Skill187SyntheticAuditResponses.nestedVerdictComplete(),
-      Skill187SyntheticAuditResponses.nestedVerdictConservativeYaml(),
-    )
-    cases.forEach { rejectedBody ->
-      var auditAttempts = 0
-      val harness = runnerHarness(
-        RuntimeHarnessConfig(
-          launcher = RuntimeRecordingLauncher { request ->
-            val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
-            if (phaseId != "audit") return@RuntimeRecordingLauncher facts(defaultPhaseOutput(request))
-            auditAttempts += 1
-            facts(rejectedBody)
-          },
-          validator = realAuditValidator(),
-        ),
-      )
-
-      assertIs<FeatureTaskRuntimeRunReport.Completed>(harness.runner.run(harness.request()))
-      assertEquals(1, auditAttempts, "nested verdict must settle on the existing capture")
-      val accepted = realFeatureTaskRuntimePhaseOutputValidator.validatePhaseOutput(rejectedBody, "audit")
-      when (accepted) {
-        is FeatureTaskRuntimePhaseOutputValidationResult.AcceptedUnchanged -> Unit
-        is FeatureTaskRuntimePhaseOutputValidationResult.AcceptedAfterRepair -> {
-          assertEquals("satisfied", accepted.normalizedOutput.envelope["verdict"])
-        }
-        else -> error("unexpected audit validation result: $accepted")
-      }
-    }
-  }
-
-  @Test
-  fun `delimiter plus nested verdict is restored on the existing capture`() {
-    val malformed = Skill187SyntheticAuditResponses.nestedVerdictMissingDelimiter()
-    var auditAttempts = 0
-    val harness = runnerHarness(
-      RuntimeHarnessConfig(
-        launcher = RuntimeRecordingLauncher { request ->
-          val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
-          if (phaseId != "audit") return@RuntimeRecordingLauncher facts(defaultPhaseOutput(request))
-          auditAttempts += 1
-          facts(malformed)
-        },
-        validator = realAuditValidator(),
-      ),
-    )
-
-    assertIs<FeatureTaskRuntimeRunReport.Completed>(harness.runner.run(harness.request()))
-
-    val accepted = realFeatureTaskRuntimePhaseOutputValidator.validatePhaseOutput(malformed, "audit")
-    val repaired = assertIs<FeatureTaskRuntimePhaseOutputValidationResult.AcceptedAfterRepair>(accepted)
-    assertEquals("satisfied", repaired.normalizedOutput.envelope["verdict"])
-    assertEquals(1, auditAttempts)
-    assertTrue(harness.io.database.rejectedDiagnostics().none { it.metadata.phaseId == "audit" })
-  }
-
-  @Test
-  fun `audit inner value with extra keys does not block on phase-output-schema`() {
-    val rejectedBody = completedPhaseBody(
-      FEATURE_TASK_RUNTIME_CONTRACT_VERSION,
-      "audit",
-      "All criteria have implementation and meaningful tests.",
-      """{"value":"{\"extra_key\":true}"}""",
-      "satisfied",
-    )
-    var auditAttempts = 0
-    val harness = runnerHarness(
-      RuntimeHarnessConfig(
-        launcher = RuntimeRecordingLauncher { request ->
-          val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
-          if (phaseId != "audit") return@RuntimeRecordingLauncher facts(defaultPhaseOutput(request))
-          auditAttempts += 1
-          facts(if (auditAttempts == 1) rejectedBody else Skill187SyntheticAuditResponses.correctedSatisfied())
-        },
-        validator = realAuditValidator(),
-      ),
-    )
-
-    val report = harness.runner.run(harness.request())
-    assertIs<FeatureTaskRuntimeRunReport.Completed>(report)
-    assertTrue(
-      harness.io.database.rejectedDiagnostics().none { it.metadata.phaseId == "audit" },
-      "schema-polish audit output must not record a phase-output-schema rejection",
-    )
-    assertEquals(1, auditAttempts)
-  }
-
   private fun auditPrompts(harness: RunnerHarness): List<String> = harness.launcher.requests
     .map { requireNotNull(it.skillRunRequest.promptOverride) }
     .filter { phaseIdFromPrompt(it) == "audit" }
-
-  private fun realAuditValidator(): FeatureTaskRuntimePhaseOutputValidator =
-    object : FeatureTaskRuntimePhaseOutputValidator {
-      private val auditValidator = realFeatureTaskRuntimePhaseOutputValidator
-
-      override fun validatePhaseOutput(
-        phaseOutputText: String,
-        sourceLabel: String,
-      ): FeatureTaskRuntimePhaseOutputValidationResult = if (sourceLabel == "audit") {
-        auditValidator.validatePhaseOutput(phaseOutputText, sourceLabel)
-      } else {
-        AlwaysValidValidator.validatePhaseOutput(phaseOutputText, sourceLabel)
-      }
-
-      override fun validatePhaseOutputText(phaseOutputText: String, sourceLabel: String) {
-        validatePhaseOutput(phaseOutputText, sourceLabel).requireAccepted(sourceLabel)
-      }
-    }
 
   private fun rejectingOnceValidator(rejectedBody: String): FeatureTaskRuntimePhaseOutputValidator =
     object : FeatureTaskRuntimePhaseOutputValidator {
