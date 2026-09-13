@@ -7,6 +7,7 @@ import skillbill.ports.goalrunner.acquireExecutionLease
 import skillbill.ports.goalrunner.executionLease
 import skillbill.ports.goalrunner.heartbeatExecutionLease
 import skillbill.ports.goalrunner.releaseExecutionLease
+import skillbill.ports.goalrunner.releaseExecutionLeaseIfExpired
 import skillbill.ports.goalrunner.runner.model.GoalRunnerCompletionPersistenceResult
 import skillbill.ports.goalrunner.runner.model.GoalRunnerLaunchAuthorization
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
@@ -57,6 +58,20 @@ internal class GoalRunnerControlCoordinator(
     database.transaction { unitOfWork ->
       unitOfWork.goalRunnerControls.releaseExecutionLease(parentWorkflowId, ownerToken, generation)
     }
+
+  fun releaseExecutionLeaseIfExpired(
+    parentWorkflowId: String,
+    ownerToken: String,
+    generation: Long,
+    nowInstant: String,
+  ): Boolean = database.transaction { unitOfWork ->
+    unitOfWork.goalRunnerControls.releaseExecutionLeaseIfExpired(
+      parentWorkflowId,
+      ownerToken,
+      generation,
+      nowInstant,
+    )
+  }
 
   fun authorizeSubtaskLaunch(state: GoalRunnerManifestState, subtaskId: Int): GoalRunnerLaunchAuthorization =
     database.transaction { unitOfWork ->

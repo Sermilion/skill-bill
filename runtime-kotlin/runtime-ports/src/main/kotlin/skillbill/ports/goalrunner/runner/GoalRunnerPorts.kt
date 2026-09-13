@@ -72,6 +72,13 @@ interface GoalRunnerManifestExecutionCommands {
   fun heartbeatExecutionLease(parentWorkflowId: String, lease: GoalRunnerExecutionLease): Boolean
 
   fun releaseExecutionLease(parentWorkflowId: String, ownerToken: String, generation: Long): Boolean
+
+  fun releaseExecutionLeaseIfExpired(
+    parentWorkflowId: String,
+    ownerToken: String,
+    generation: Long,
+    nowInstant: String,
+  ): Boolean
 }
 
 interface GoalRunnerManifestControlWrites {

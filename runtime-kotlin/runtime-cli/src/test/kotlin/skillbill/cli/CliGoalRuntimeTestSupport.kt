@@ -95,6 +95,94 @@ internal fun clearWorkerLease(fixture: GoalCliFixture, workflowId: String) {
   }
 }
 
+internal fun seedExpiredWorkerLease(fixture: GoalCliFixture, workflowId: String) {
+  DatabaseRuntime.ensureDatabase(fixture.dbPath).use { connection ->
+    connection.prepareStatement(
+      """
+      INSERT OR REPLACE INTO feature_task_runtime_worker_leases (
+        workflow_id, contract_version, generation, owner_token, host_identity, boot_identity,
+        pid, process_birth_token, lease_state, heartbeat_at, expires_at, phase_id, phase_attempt
+      ) VALUES (?, ?, 1, ?, ?, ?, 1234, ?, 'active', ?, ?, 'implement', 1)
+      """.trimIndent(),
+    ).use { statement ->
+      statement.setString(1, workflowId)
+      statement.setString(2, FEATURE_TASK_RUNTIME_WORKER_OWNERSHIP_CONTRACT_VERSION)
+      statement.setString(3, "owner-token-expired-cli")
+      statement.setString(4, "test-host")
+      statement.setString(5, "test-boot")
+      statement.setString(6, "birth-1234")
+      statement.setString(7, "2000-01-01T00:00:00Z")
+      statement.setString(8, "2000-01-01T00:00:30Z")
+      statement.executeUpdate()
+    }
+  }
+}
+
+internal fun seedIssue342StaleParentControlState(fixture: GoalCliFixture) {
+  DriverManager.getConnection("jdbc:sqlite:${fixture.dbPath}").use { connection ->
+    val rows = mutableListOf<Pair<String, String>>()
+    connection.prepareStatement(
+      "SELECT parent_workflow_id, control_state_json FROM goal_runner_controls",
+    ).use { statement ->
+      statement.executeQuery().use { result ->
+        while (result.next()) rows += result.getString(1) to result.getString(2)
+      }
+    }
+    rows.forEach { (parentWorkflowId, json) ->
+      val state = JsonCodec.anyToStringAnyMap(
+        JsonCodec.jsonElementToValue(requireNotNull(JsonCodec.parseObjectOrNull(json))),
+      ).orEmpty().toMutableMap()
+      state["paused"] = true
+      state["pause_requested"] = true
+      state["pause_consumed"] = true
+      state["pause_reason"] = "runner_interrupted"
+      state["paused_at"] = "2000-01-01T00:00:00Z"
+      state["execution_lease"] = mapOf(
+        "generation" to 1,
+        "owner_token" to "parent-owner-cli",
+        "host_identity" to "test-host",
+        "boot_identity" to "test-boot",
+        "pid" to 1234,
+        "process_birth_token" to "birth-1234",
+        "heartbeat_at" to "2000-01-01T00:00:00Z",
+        "expires_at" to "2000-01-01T00:00:30Z",
+      )
+      connection.prepareStatement(
+        "UPDATE goal_runner_controls SET control_state_json = ? WHERE parent_workflow_id = ?",
+      ).use { statement ->
+        statement.setString(1, JsonCodec.mapToJsonString(state))
+        statement.setString(2, parentWorkflowId)
+        statement.executeUpdate()
+      }
+    }
+  }
+}
+
+internal fun workerLeaseRowCount(fixture: GoalCliFixture, workflowId: String): Int =
+  DatabaseRuntime.ensureDatabase(fixture.dbPath).use { connection ->
+    connection.prepareStatement(
+      "SELECT COUNT(*) FROM feature_task_runtime_worker_leases WHERE workflow_id = ?",
+    ).use { statement ->
+      statement.setString(1, workflowId)
+      statement.executeQuery().use { rows ->
+        check(rows.next())
+        rows.getInt(1)
+      }
+    }
+  }
+
+internal fun parentControlStateJson(fixture: GoalCliFixture): String =
+  DriverManager.getConnection("jdbc:sqlite:${fixture.dbPath}").use { connection ->
+    connection.prepareStatement(
+      "SELECT control_state_json FROM goal_runner_controls LIMIT 1",
+    ).use { statement ->
+      statement.executeQuery().use { rows ->
+        check(rows.next())
+        rows.getString(1)
+      }
+    }
+  }
+
 internal fun startRunningGoalChild(fixture: GoalCliFixture): String = RuntimeWorkflowTestSupport.continueByIssueKey(
   dbPath = fixture.dbPath,
   issueKey = "SKILL-901",

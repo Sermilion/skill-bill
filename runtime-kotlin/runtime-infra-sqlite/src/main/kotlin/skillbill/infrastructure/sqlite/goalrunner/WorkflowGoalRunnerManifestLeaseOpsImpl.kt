@@ -16,4 +16,16 @@ internal class WorkflowGoalRunnerManifestLeaseOpsImpl(
     ctx.controls.heartbeatExecutionLease(parentWorkflowId, lease)
   override fun releaseExecutionLease(parentWorkflowId: String, ownerToken: String, generation: Long): Boolean =
     ctx.controls.releaseExecutionLease(parentWorkflowId, ownerToken, generation)
+
+  override fun releaseExecutionLeaseIfExpired(
+    parentWorkflowId: String,
+    ownerToken: String,
+    generation: Long,
+    nowInstant: String,
+  ): Boolean = ctx.controls.releaseExecutionLeaseIfExpired(
+    parentWorkflowId,
+    ownerToken,
+    generation,
+    nowInstant,
+  )
 }

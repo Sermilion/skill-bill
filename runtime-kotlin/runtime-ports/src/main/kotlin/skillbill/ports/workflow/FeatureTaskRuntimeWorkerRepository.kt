@@ -2,6 +2,7 @@ package skillbill.ports.workflow
 
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeCrashReconciliationCandidate
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
+import java.time.Instant
 
 interface FeatureTaskRuntimeWorkerRepository {
 
@@ -29,6 +30,18 @@ interface FeatureTaskRuntimeWorkerRepository {
 
   fun releaseFeatureTaskRuntimeWorker(workflowId: String, ownerToken: String, generation: Long): Boolean =
     error("Feature-task runtime worker release is not implemented by this persistence adapter.")
+
+  fun releaseFeatureTaskRuntimeWorkerIfExpired(
+    workflowId: String,
+    ownerToken: String,
+    generation: Long,
+    nowInstant: String,
+  ): Boolean {
+    val current = getFeatureTaskRuntimeWorkerOwnership(workflowId) ?: return false
+    if (current.ownerToken != ownerToken || current.generation != generation) return false
+    if (Instant.parse(current.expiresAt).isAfter(Instant.parse(nowInstant))) return false
+    return releaseFeatureTaskRuntimeWorker(workflowId, ownerToken, generation)
+  }
 
   /**
    * Non-terminal runtime rows whose worker lease has already expired as of [nowInstant] (an

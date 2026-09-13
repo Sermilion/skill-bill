@@ -56,9 +56,9 @@ the existing inspect/apply split.
 
 ## Affected Areas
 
-- `runtime-kotlin/runtime-engine` goal execution and worker coordination.
-- `runtime-kotlin/runtime-infra-sqlite` goal control and worker lease stores.
-- `runtime-kotlin/runtime-cli` goal repair presentation.
+- `../../../runtime-kotlin/runtime-engine` goal execution and worker coordination.
+- `../../../runtime-kotlin/runtime-infra-sqlite` goal control and worker lease stores.
+- `../../../runtime-kotlin/runtime-cli` goal repair presentation.
 - Focused engine, persistence, and CLI tests.
 
 ## Validation Strategy

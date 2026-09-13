@@ -92,6 +92,19 @@ fun GoalRunnerControlRepository.releaseExecutionLease(
   return true
 }
 
+fun GoalRunnerControlRepository.releaseExecutionLeaseIfExpired(
+  parentWorkflowId: String,
+  ownerToken: String,
+  generation: Long,
+  nowInstant: String,
+): Boolean {
+  val state = controlState(parentWorkflowId)
+  val current = state.executionLease ?: return false
+  if (current.ownerToken != ownerToken || current.generation != generation) return false
+  if (Instant.parse(current.expiresAt).isAfter(Instant.parse(nowInstant))) return false
+  return releaseExecutionLease(parentWorkflowId, ownerToken, generation)
+}
+
 private fun GoalRunnerControlState.advancedBy(heartbeatAt: String): GoalRunnerControlState {
   val goal = advanceAccumulator(activeDurationMs, activeDurationAsOf, heartbeatAt)
   val subtask = if (currentSubtaskId != null) {

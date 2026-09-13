@@ -109,6 +109,25 @@ internal class FeatureTaskRuntimeWorkerStore(
       statement.executeUpdate() == 1
     }
 
+  override fun releaseFeatureTaskRuntimeWorkerIfExpired(
+    workflowId: String,
+    ownerToken: String,
+    generation: Long,
+    nowInstant: String,
+  ): Boolean = connection.prepareStatement(
+    """
+    DELETE FROM feature_task_runtime_worker_leases
+    WHERE workflow_id = ? AND owner_token = ? AND generation = ? AND expires_at <= ?
+    """.trimIndent(),
+  ).use { statement ->
+    var parameterIndex = 1
+    statement.setString(parameterIndex++, workflowId)
+    statement.setString(parameterIndex++, ownerToken)
+    statement.setLong(parameterIndex++, generation)
+    statement.setString(parameterIndex, nowInstant)
+    statement.executeUpdate() == 1
+  }
+
   override fun findFeatureTaskRuntimeCrashReconciliationCandidates(
     nowInstant: String,
   ): List<FeatureTaskRuntimeCrashReconciliationCandidate> = connection.prepareStatement(

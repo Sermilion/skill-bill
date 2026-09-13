@@ -48,9 +48,9 @@ class GoalRunnerExecutionCoordinatorTest {
   }
 
   @Test
-  fun `expired parent lease with ownership mismatch inspection reclaims and runs the goal body`() {
+  fun `expired parent lease with ownership mismatch reclaims and runs`() {
     val store = InMemoryExecutionLeaseStore(
-      lease(generation = 1, ownerToken = "old-owner", expiresAt = expiredLeaseExpiresAt()),
+      lease(generation = 1, ownerToken = "old-owner", expiresAt = EXPIRED_LEASE_EXPIRES_AT),
     )
     val supervisor = FakeGoalSupervisor(
       FeatureTaskRuntimeProcessInspection.OwnershipMismatch("Worker PID was reused by a different process."),
@@ -67,9 +67,9 @@ class GoalRunnerExecutionCoordinatorTest {
   }
 
   @Test
-  fun `expired parent lease with unsupported inspection reclaims and runs the goal body`() {
+  fun `expired parent lease with unsupported inspection reclaims and runs`() {
     val store = InMemoryExecutionLeaseStore(
-      lease(generation = 1, ownerToken = "old-owner", expiresAt = expiredLeaseExpiresAt()),
+      lease(generation = 1, ownerToken = "old-owner", expiresAt = EXPIRED_LEASE_EXPIRES_AT),
     )
     val supervisor = FakeGoalSupervisor(
       FeatureTaskRuntimeProcessInspection.Unsupported("Process inspection is unavailable on this host."),
@@ -86,9 +86,9 @@ class GoalRunnerExecutionCoordinatorTest {
   }
 
   @Test
-  fun `relaunch after expired lease reclaim clears runner interrupted pause residue`() {
+  fun `relaunch after expired lease clears interrupted pause`() {
     val store = InMemoryExecutionLeaseStore(
-      lease(generation = 1, ownerToken = "old-owner", expiresAt = expiredLeaseExpiresAt()),
+      lease(generation = 1, ownerToken = "old-owner", expiresAt = EXPIRED_LEASE_EXPIRES_AT),
     )
     store.controlStateValue = GoalRunnerControlState(
       pauseRequested = true,
@@ -109,9 +109,9 @@ class GoalRunnerExecutionCoordinatorTest {
   }
 
   @Test
-  fun `operator stop pause reason is preserved when reclaiming an expired lease`() {
+  fun `operator stop pause is preserved after expired lease reclaim`() {
     val store = InMemoryExecutionLeaseStore(
-      lease(generation = 1, ownerToken = "old-owner", expiresAt = expiredLeaseExpiresAt()),
+      lease(generation = 1, ownerToken = "old-owner", expiresAt = EXPIRED_LEASE_EXPIRES_AT),
     )
     store.controlStateValue = GoalRunnerControlState(
       pauseRequested = true,
@@ -134,9 +134,9 @@ class GoalRunnerExecutionCoordinatorTest {
   }
 
   @Test
-  fun `issue 342 expired lease with ambiguous inspection and runner interrupted pause relaunches without sqlite surgery`() {
+  fun `issue 342 expired lease relaunch clears interrupted pause`() {
     val store = InMemoryExecutionLeaseStore(
-      lease(generation = 1, ownerToken = "old-owner", expiresAt = expiredLeaseExpiresAt()),
+      lease(generation = 1, ownerToken = "old-owner", expiresAt = EXPIRED_LEASE_EXPIRES_AT),
     )
     store.controlStateValue = GoalRunnerControlState(
       pauseRequested = true,
@@ -544,7 +544,7 @@ private fun recentBirthToken(): String = Instant.parse("2026-08-02T09:59:59Z").t
 
 private fun staleBirthToken(): String = Instant.parse("2026-08-02T09:54:00Z").toEpochMilli().toString()
 
-private fun expiredLeaseExpiresAt(): String = "2026-08-02T09:59:30Z"
+private const val EXPIRED_LEASE_EXPIRES_AT = "2026-08-02T09:59:30Z"
 
 private fun lease(
   generation: Long,
@@ -552,14 +552,13 @@ private fun lease(
   pid: Long = 100,
   processBirthToken: String = "birth-100",
   expiresAt: String = "2026-08-02T10:00:30Z",
-) =
-  GoalRunnerExecutionLease(
-    generation = generation,
-    ownerToken = ownerToken,
-    hostIdentity = "host",
-    bootIdentity = "boot",
-    pid = pid,
-    processBirthToken = processBirthToken,
-    heartbeatAt = "2026-08-02T09:59:00Z",
-    expiresAt = expiresAt,
-  )
+) = GoalRunnerExecutionLease(
+  generation = generation,
+  ownerToken = ownerToken,
+  hostIdentity = "host",
+  bootIdentity = "boot",
+  pid = pid,
+  processBirthToken = processBirthToken,
+  heartbeatAt = "2026-08-02T09:59:00Z",
+  expiresAt = expiresAt,
+)

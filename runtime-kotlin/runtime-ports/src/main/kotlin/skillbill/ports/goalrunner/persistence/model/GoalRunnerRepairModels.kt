@@ -11,6 +11,9 @@ enum class GoalRunnerWedgeClass(val wireValue: String, val durableField: String)
   STALE_BLOCKED_CONTINUATION_OUTCOME("stale_blocked_continuation_outcome", "goal_continuation_outcome"),
   COMPLETED_UPSTREAM_MISSING_OUTPUT("completed_upstream_missing_output", "phase_output"),
   PHASE_OUTPUT_CONTRACT_INCOMPATIBLE("phase_output_contract_incompatible", "phase_output_contract_version"),
+  STALE_EXECUTION_LEASE("stale_execution_lease", "execution_lease"),
+  STALE_CHILD_WORKER_LEASE("stale_child_worker_lease", "worker_lease"),
+  STALE_RUNNER_INTERRUPTED_PAUSE("stale_runner_interrupted_pause", "pause_state"),
   ;
 
   companion object {
@@ -104,6 +107,8 @@ data class GoalRunnerRepairResult(
   val issueKey: String,
   val status: GoalRunnerRepairStatus,
   val parentWorkflowId: String? = null,
+  val parentWedges: List<GoalRunnerWedgeFinding> = emptyList(),
+  val parentPassedChecks: List<String> = emptyList(),
   val diagnoses: List<GoalRunnerChildWedgeDiagnosis> = emptyList(),
   val appliedRepairs: List<GoalRunnerAppliedRepair> = emptyList(),
   val refusalReason: String? = null,

@@ -20,6 +20,8 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationAr
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeQualityGateSelection
 import skillbill.workflow.taskruntime.phaseartifacts.phaseRecordsFrom
 import java.nio.file.Path
+import java.time.Clock
+import java.time.Instant
 
 const val PASSED_VALIDATION_DEPTH: String = "validation_depth_present"
 const val PASSED_QUALITY_GATE_SELECTION: String = "quality_gate_selection_present"
@@ -28,9 +30,11 @@ const val PASSED_REMEDIATION_BASE: String = "remediation_base_reachable_or_absen
 const val PASSED_CONTINUATION_OUTCOME: String = "continuation_outcome_corroborated_or_absent"
 const val PASSED_UPSTREAM_OUTPUT: String = "upstream_output_present"
 const val PASSED_PHASE_OUTPUT_CONTRACT: String = "phase_output_contract_compatible"
+const val PASSED_WORKER_LEASE: String = "worker_lease_absent_or_unexpired"
 
 class GoalRunnerChildRepairWedgeDiagnosis(
   private val gitOperations: WorkflowGitOperations,
+  private val clock: Clock,
 ) {
   fun diagnose(
     workflowStates: WorkflowStateRepository,
@@ -55,6 +59,7 @@ class GoalRunnerChildRepairWedgeDiagnosis(
     )
     diagnoseCompletedUpstreamMissingOutput(artifacts, wedges, passed)
     diagnosePhaseOutputContract(artifacts, wedges, passed)
+    diagnoseStaleChildWorkerLease(workflowStates, workflowId, wedges, passed)
 
     return GoalRunnerChildWedgeDiagnosis(
       subtaskId = subtaskId,
@@ -82,8 +87,29 @@ class GoalRunnerChildRepairWedgeDiagnosis(
       PASSED_CONTINUATION_OUTCOME,
       PASSED_UPSTREAM_OUTPUT,
       PASSED_PHASE_OUTPUT_CONTRACT,
+      PASSED_WORKER_LEASE,
     ),
   )
+
+  private fun diagnoseStaleChildWorkerLease(
+    workflowStates: WorkflowStateRepository,
+    workflowId: String,
+    wedges: MutableList<GoalRunnerWedgeFinding>,
+    passed: MutableList<String>,
+  ) {
+    val ownership = workflowStates.getFeatureTaskRuntimeWorkerOwnership(workflowId)
+    if (ownership == null || !leaseExpired(ownership.expiresAt)) {
+      passed += PASSED_WORKER_LEASE
+      return
+    }
+    wedges += GoalRunnerWedgeFinding(
+      wedgeClass = GoalRunnerWedgeClass.STALE_CHILD_WORKER_LEASE,
+      field = GoalRunnerWedgeClass.STALE_CHILD_WORKER_LEASE.durableField,
+      currentValue = ownership.expiresAt,
+    )
+  }
+
+  private fun leaseExpired(expiresAt: String): Boolean = !Instant.parse(expiresAt).isAfter(clock.instant())
 
   private fun diagnosePhaseOutputContract(
     artifacts: Map<String, Any?>,

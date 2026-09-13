@@ -16,6 +16,7 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerScopedReplanOptions
 import skillbill.ports.goalrunner.runner.model.GoalRunnerScopedReplanWriteResult
 import skillbill.review.context.model.CodeReviewExecutionMode
 import java.nio.file.Path
+import java.time.Instant
 
 abstract class GoalRunnerManifestStoreDefaults : GoalRunnerManifestStore {
   override fun readByIssueKey(issueKey: String, repoRoot: Path?): GoalRunnerManifestState? =
@@ -42,6 +43,18 @@ abstract class GoalRunnerManifestStoreDefaults : GoalRunnerManifestStore {
   override fun pauseAtBoundary(state: GoalRunnerManifestState): GoalRunnerManifestState = state
 
   override fun executionLease(parentWorkflowId: String): GoalRunnerExecutionLease? = null
+
+  override fun releaseExecutionLeaseIfExpired(
+    parentWorkflowId: String,
+    ownerToken: String,
+    generation: Long,
+    nowInstant: String,
+  ): Boolean {
+    val lease = executionLease(parentWorkflowId) ?: return false
+    if (lease.ownerToken != ownerToken || lease.generation != generation) return false
+    if (Instant.parse(lease.expiresAt).isAfter(Instant.parse(nowInstant))) return false
+    return releaseExecutionLease(parentWorkflowId, ownerToken, generation)
+  }
 
   override fun controlState(parentWorkflowId: String): GoalRunnerControlState = GoalRunnerControlState()
 
