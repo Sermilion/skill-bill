@@ -16,9 +16,9 @@ class FeatureTaskRuntimeBuildGateReceiptProjectionTest {
           outcome = "passed",
           cacheMode = "cache_eligible",
           executedWorkUnits = 1,
+          executedChecks = listOf("runtime-engine|compileKotlin"),
         ),
       ),
-      checks = emptyList(),
     )
     val envelope = JsonCodec.parseObjectOrNull(output.payload)?.let(JsonCodec::jsonElementToValue)
       ?.let(JsonCodec::anyToStringAnyMap)

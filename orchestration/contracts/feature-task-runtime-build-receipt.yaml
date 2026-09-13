@@ -72,3 +72,8 @@ properties:
         executed_work_units:
           type: integer
           minimum: 0
+        executed_checks:
+          type: array
+          items:
+            type: string
+            minLength: 1

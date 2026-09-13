@@ -1,6 +1,7 @@
 package skillbill.cli.featuretask
 
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.workflow.ValidationEvidencePayloadKeys
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStatus
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeStatusProjection
 
@@ -17,6 +18,12 @@ internal fun FeatureTaskRuntimeStatusProjection?.toRuntimeStatusCliMap(workflowI
       "resolved_branch" to it.resolvedBranch,
       "finalizing_agent_id" to it.finalizingAgentId,
       "gate_run_count" to it.gateRunCount,
+      ValidationEvidencePayloadKeys.VALIDATION_STATUS to
+        it.validationGateExecutionEvidence?.validationStatus,
+      ValidationEvidencePayloadKeys.CHECKS to it.validationGateExecutionEvidence?.checks,
+      ValidationEvidencePayloadKeys.GATE_RUN_COUNT to it.validationGateExecutionEvidence?.gateRunCount,
+      ValidationEvidencePayloadKeys.GATE_RUNS to
+        it.validationGateExecutionEvidence?.gateRuns?.map { run -> run.toArtifactMap() },
       "degraded_diagnostic" to it.degradedDiagnostic?.let { degraded ->
         linkedMapOf(
           "count" to degraded.count,
@@ -74,6 +81,7 @@ internal fun runtimeStatusText(payload: Map<String, Any?>): String = buildString
   appendLine("current_phase: ${payload["current_phase"] ?: "none"}")
   appendLine("resolved_branch: ${payload["resolved_branch"] ?: "none"}")
   appendLine("finalizing_agent: ${payload["finalizing_agent_id"] ?: "none"}")
+  appendRuntimeValidationGateEvidence(payload)
   (payload["degraded_diagnostic"] as? Map<*, *>)?.let { degraded ->
     appendLine("degraded_diagnostic_count: ${degraded["count"]}")
     appendLine("degraded_diagnostic_failure_class: ${degraded["failure_class"]}")
@@ -97,6 +105,23 @@ internal fun runtimeStatusText(payload: Map<String, Any?>): String = buildString
         "agent=${phase["resolved_agent_id"] ?: "none"} " +
         "origin=${phase["execution_origin"] ?: "none"} " +
         "finished=${phase["finished"]}",
+    )
+  }
+}
+
+private fun StringBuilder.appendRuntimeValidationGateEvidence(payload: Map<String, Any?>) {
+  val checks = payload[ValidationEvidencePayloadKeys.CHECKS] as? List<*> ?: return
+  appendLine("validation_gate_status: ${payload[ValidationEvidencePayloadKeys.VALIDATION_STATUS]}")
+  appendLine("validation_gate_checks: ${checks.joinToString(",")}")
+  appendLine("validation_gate_run_count: ${payload[ValidationEvidencePayloadKeys.GATE_RUN_COUNT]}")
+  (payload[ValidationEvidencePayloadKeys.GATE_RUNS] as? List<*>).orEmpty().forEach { rawRun ->
+    val run = rawRun as? Map<*, *> ?: return@forEach
+    val runChecks = (run[ValidationEvidencePayloadKeys.EXECUTED_CHECKS] as? List<*>).orEmpty()
+    appendLine(
+      "validation_gate_run: cache_mode=${run[ValidationEvidencePayloadKeys.CACHE_MODE]} " +
+        "outcome=${run[ValidationEvidencePayloadKeys.OUTCOME]} " +
+        "executed_work_units=${run[ValidationEvidencePayloadKeys.EXECUTED_WORK_UNITS]} " +
+        "checks=${runChecks.joinToString(",")}",
     )
   }
 }

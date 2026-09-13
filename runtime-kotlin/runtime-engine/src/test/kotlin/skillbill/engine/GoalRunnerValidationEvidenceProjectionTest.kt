@@ -5,12 +5,16 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
 import skillbill.contracts.workflow.ValidationEvidencePayloadKeys
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
+import skillbill.engine.featuretask.validation.FeatureTaskRuntimeValidationGateCoordinator
 import skillbill.engine.goalrunner.goalRunnerDefaultPhaseRecorder
 import skillbill.engine.goalrunner.model.GoalRunnerStatusRequest
 import skillbill.engine.goalrunner.testGoalRunnerStatusService
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateRunRecord
+import skillbill.workflow.taskruntime.model.ValidationGateCacheMode
+import skillbill.workflow.taskruntime.model.ValidationGateRunOutcome
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -48,6 +52,71 @@ class GoalRunnerValidationEvidenceProjectionTest {
     assertEquals("./gradlew check", validation.evidence?.results?.single()?.command)
     assertEquals(0, validation.evidence?.results?.single()?.exitCode)
   }
+
+  @Test
+  fun `completed subtask status exposes gate execution checks from settled validate artifact`() {
+    val workflowId = "wfl-gate-checks"
+    val recorder = goalRunnerDefaultPhaseRecorder()
+    recorder.ensureWorkflowOpen(workflowId, "goal-gate-checks")
+    recorder.recordPhaseState(
+      FeatureTaskRuntimePhaseStateRequest(
+        workflowId = workflowId,
+        phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE,
+        status = "completed",
+        attemptCount = 1,
+        resolvedAgentId = "claude",
+        finished = true,
+        outputArtifact = gateEvidenceOutput(),
+      ),
+    )
+    val manifest = completedManifest(workflowId)
+    val service = testGoalRunnerStatusService(
+      manifestStore = InMemoryGoalManifestStore(manifest),
+      outcomeStore = RecordingOutcomeStore(),
+      phaseRecorder = recorder,
+    )
+    val validation = requireNotNull(
+      service.status(GoalRunnerStatusRequest(issueKey = manifest.issueKey, invokedAgentId = "codex")),
+    ).completedSubtaskValidation.single()
+    assertEquals(listOf("runtime-engine|compileKotlin"), validation.gateExecutionEvidence?.checks)
+    assertEquals(1, validation.gateExecutionEvidence?.gateRunCount)
+    assertEquals(
+      ValidationGateCacheMode.FORCED_FULL,
+      validation.gateExecutionEvidence?.gateRuns?.single()?.cacheMode,
+    )
+    assertEquals(
+      ValidationGateRunOutcome.PASSED,
+      validation.gateExecutionEvidence?.gateRuns?.single()?.outcome,
+    )
+    assertEquals(1, validation.gateExecutionEvidence?.gateRuns?.single()?.executedWorkUnits)
+    val projectedResult = JsonCodec.anyToStringAnyMap(
+      validation.toStatusMap()[ValidationEvidencePayloadKeys.VALIDATION_RESULT],
+    )
+    assertEquals(
+      listOf("runtime-engine|compileKotlin"),
+      projectedResult?.get(ValidationEvidencePayloadKeys.CHECKS),
+    )
+    assertEquals(
+      1,
+      projectedResult?.get(ValidationEvidencePayloadKeys.GATE_RUN_COUNT),
+    )
+  }
+
+  private fun gateEvidenceOutput(): String = FeatureTaskRuntimeValidationGateCoordinator.runtimeOwnedValidationOutput(
+    repositoryCheckpoint = "fixture-checkpoint-1",
+    measurements = listOf(
+      FeatureTaskRuntimeValidationGateRunRecord(
+        durationMs = 1,
+        outcome = ValidationGateRunOutcome.PASSED,
+        cacheMode = ValidationGateCacheMode.FORCED_FULL,
+        executedWorkUnits = 1,
+        executedChecks = listOf("runtime-engine|compileKotlin"),
+        command = "./gradlew check",
+        exitCode = 0,
+      ),
+    ),
+    requiredCommand = "./gradlew check",
+  ).payload
 
   @Test
   fun `completed subtask status reports integrity problem when evidence is missing`() {

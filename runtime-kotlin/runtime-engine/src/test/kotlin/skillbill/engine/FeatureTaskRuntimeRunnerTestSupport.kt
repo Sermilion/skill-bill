@@ -605,6 +605,7 @@ private fun runtimePhaseGates(deps: RuntimePhaseGatesDeps): FeatureTaskRuntimePh
         outcome = PASSED,
         cacheMode = request.cacheMode,
         executedWorkUnits = 1,
+        executedCheckIdentities = emptyList(),
         findings = emptyList(),
       )
     }
@@ -1378,6 +1379,7 @@ internal fun failThenPassValidationGateRunner(gateCalls: AtomicInteger): Validat
           request.cacheMode
         },
         executedWorkUnits = 1,
+        executedCheckIdentities = emptyList(),
         findings = if (call == 0) {
           listOf(
             ValidationGateFinding("app", "t", "broken", "A.kt"),

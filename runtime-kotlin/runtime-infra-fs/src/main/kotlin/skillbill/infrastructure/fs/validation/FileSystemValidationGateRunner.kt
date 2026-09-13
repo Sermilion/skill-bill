@@ -37,6 +37,7 @@ class FileSystemValidationGateRunner(
       val stdout = Files.readString(outputFile)
       val durationMs = ((System.nanoTime() - started) / NANOS_PER_MILLIS).coerceAtLeast(0L)
       val executedWorkUnits = deriveExecutedWorkUnits(request, stdout)
+      val executedCheckIdentities = deriveExecutedCheckIdentities(request, stdout)
       val exitCode = process.exitValue()
       val parsedFindings = parseFindings(request, stdout, artifactFloor)
       val outcome = deriveOutcome(exitCode, parsedFindings)
@@ -46,6 +47,7 @@ class FileSystemValidationGateRunner(
         outcome = outcome,
         cacheMode = request.cacheMode,
         executedWorkUnits = executedWorkUnits,
+        executedCheckIdentities = executedCheckIdentities,
         findings = finalizeFindings(request, parsedFindings, exitCode, outcome, stdout),
         stdout = stdout,
       )

@@ -1,6 +1,7 @@
 package skillbill.engine.featuretask.model
 
 import skillbill.application.idestatus.model.IdeStatusCurrentPhaseExecution
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateExecutionEvidence
 
 data class FeatureTaskRuntimeStatusRequest(
   val workflowId: String,
@@ -34,6 +35,7 @@ data class FeatureTaskRuntimeStatusProjection(
   val finalizingAgentId: String? = null,
   val decomposeTerminal: FeatureTaskRuntimeDecomposeTerminalStatus? = null,
   val gateRunCount: Int? = null,
+  val validationGateExecutionEvidence: FeatureTaskRuntimeValidationGateExecutionEvidence? = null,
   val currentPhaseExecution: IdeStatusCurrentPhaseExecution? = null,
   val degradedDiagnostic: FeatureTaskRuntimeDegradedDiagnosticStatus? = null,
   val operatorDecisionPause: FeatureTaskRuntimeOperatorDecisionPause? = null,

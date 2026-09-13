@@ -1,3 +1,12 @@
+## [2026-09-14] WE-4789 — Validation gate execution evidence
+Areas: orchestration/contracts, runtime-kotlin/{runtime-contracts,runtime-domain,runtime-engine,runtime-infra-fs,runtime-infra-sqlite,runtime-cli,runtime-ports}
+- Validation gate settlement now projects `executed_work_units`, `executed_checks`, and top-level `checks` from `ValidationGateRunResult` instead of discarding gate task identities at the coordinator seam.
+- Gradle packs derive stable `module|task` identities from `> Task` stdout lines even when actionable-summary work units are zero; explicit empty `executed_checks` distinguishes truthful zero-work from legacy evidence loss.
+- Goal status and workflow status read the same `validation_result` gate execution evidence as the settled validate artifact; issue 341 command/exit verdict rules are unchanged.
+- Pattern: one typed `FeatureTaskRuntimeValidationGateExecutionEvidence` projection across runner, settlement, persistence, and status surfaces. reusable
+Feature flag: N/A
+Acceptance criteria: 8/8 implemented
+
 ## [2026-09-13] Issue 342 — Repair lease and pause clearance
 Areas: runtime-kotlin/{runtime-engine/runtime-cli/runtime-ports}/goalrunner
 - Added durable stale parent execution-lease, stale child worker-lease, and runner-interrupted pause wedge diagnosis and repair.

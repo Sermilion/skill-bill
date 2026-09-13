@@ -1,6 +1,9 @@
 package skillbill.engine.featuretask
 
 import me.tatarka.inject.annotations.Inject
+import skillbill.contracts.JsonCodec
+import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.workflow.ValidationEvidencePayloadKeys
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeDecomposeTerminalStatus
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeDegradedDiagnosticStatus
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStatus
@@ -13,6 +16,7 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDecomposeTerminal
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerAction
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerEntry
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateExecutionEvidence
 import skillbill.workflow.taskruntime.model.orLegacyValidate
 
 @Inject
@@ -129,6 +133,7 @@ private fun FeatureTaskRuntimeStatusService.statusProjectionFrom(
     ).finalizingAgentId,
     decomposeTerminal = decomposeTerminalStatus(parts.decomposeTerminal),
     gateRunCount = parts.gateRunCount,
+    validationGateExecutionEvidence = validationGateExecutionEvidence(parts.records),
     currentPhaseExecution = currentPhaseExecutionDeriver.derive(
       FeatureTaskRuntimeCurrentPhaseExecutionContext(
         currentPhaseId = parts.currentPhaseId,
@@ -142,6 +147,29 @@ private fun FeatureTaskRuntimeStatusService.statusProjectionFrom(
     operatorDecisionPause = operatorDecisionPause(parts.records),
   )
 }
+
+private fun validationGateExecutionEvidence(
+  records: Map<String, FeatureTaskRuntimePhaseRecord>,
+): FeatureTaskRuntimeValidationGateExecutionEvidence? =
+  records[FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE]
+    ?.outputArtifact
+    ?.let(JsonCodec::parseObjectOrNull)
+    ?.let(JsonCodec::jsonElementToValue)
+    ?.let(JsonCodec::anyToStringAnyMap)
+    ?.get(SharedPayloadKeys.PRODUCED_OUTPUTS)
+    ?.let(JsonCodec::anyToStringAnyMap)
+    ?.get(ValidationEvidencePayloadKeys.VALIDATION_RESULT)
+    ?.let(JsonCodec::anyToStringAnyMap)
+    ?.let { raw ->
+      if (
+        !raw.containsKey(ValidationEvidencePayloadKeys.GATE_RUN_COUNT) &&
+        !raw.containsKey(ValidationEvidencePayloadKeys.GATE_RUNS)
+      ) {
+        null
+      } else {
+        FeatureTaskRuntimeValidationGateExecutionEvidence.fromArtifactMap(raw, "workflow-status.validate")
+      }
+    }
 
 private fun FeatureTaskRuntimeStatusService.gateRunCountFor(
   request: FeatureTaskRuntimeStatusRequest,

@@ -33,6 +33,15 @@ internal fun FileSystemValidationGateRunner.deriveExecutedWorkUnits(
   }
 }
 
+internal fun FileSystemValidationGateRunner.deriveExecutedCheckIdentities(
+  request: ValidationGateRunRequest,
+  stdout: String,
+): List<String> = when (request.declaration.findings.executedWork?.format) {
+  ValidationGateExecutedWorkFormat.GRADLE_ACTIONABLE_SUMMARY ->
+    FileSystemValidationGateGradleStdoutParsers.parseGradleExecutedTaskIdentities(stdout)
+  null -> emptyList()
+}
+
 internal fun FileSystemValidationGateRunner.parseFindings(
   request: ValidationGateRunRequest,
   stdout: String,

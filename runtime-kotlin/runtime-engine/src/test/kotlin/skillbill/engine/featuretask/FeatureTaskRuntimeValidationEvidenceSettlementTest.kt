@@ -10,6 +10,7 @@ import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateExecutionEvidence
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateRunRecord
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.model.NormalizedFeatureTaskRuntimePhaseOutput
@@ -63,6 +64,7 @@ class FeatureTaskRuntimeValidationEvidenceSettlementTest {
           outcome = ValidationGateRunOutcome.FAILED,
           cacheMode = ValidationGateCacheMode.CACHE_ELIGIBLE,
           executedWorkUnits = 1,
+          executedChecks = listOf("runtime-engine|compileKotlin"),
           command = "./gradlew check",
           exitCode = 1,
         ),
@@ -71,11 +73,11 @@ class FeatureTaskRuntimeValidationEvidenceSettlementTest {
           outcome = ValidationGateRunOutcome.PASSED,
           cacheMode = ValidationGateCacheMode.FORCED_FULL,
           executedWorkUnits = 1,
+          executedChecks = listOf("runtime-engine|compileKotlin", "runtime-engine|test"),
           command = "./gradlew check --offline",
           exitCode = 0,
         ),
       ),
-      checks = emptyList(),
       requiredCommand = "./gradlew check --offline",
     )
     val envelope = requireNotNull(
@@ -92,6 +94,19 @@ class FeatureTaskRuntimeValidationEvidenceSettlementTest {
       evidence.results.map { it.command },
     )
     assertEquals(listOf(1, 0), evidence.results.map { it.exitCode })
+    assertEquals(FeatureTaskRuntimeVerdict.SATISFIED.wireValue, envelope[SharedPayloadKeys.VERDICT])
+    val validationResult = JsonCodec.anyToStringAnyMap(
+      JsonCodec.anyToStringAnyMap(envelope[SharedPayloadKeys.PRODUCED_OUTPUTS])
+        ?.get(ValidationEvidencePayloadKeys.VALIDATION_RESULT),
+    ) ?: error("validation_result missing")
+    val gateEvidence = FeatureTaskRuntimeValidationGateExecutionEvidence.fromArtifactMap(validationResult, "validate")
+    assertEquals(
+      listOf("runtime-engine|compileKotlin", "runtime-engine|test"),
+      gateEvidence.checks,
+    )
+    assertEquals(2, gateEvidence.gateRunCount)
+    assertEquals(ValidationGateCacheMode.CACHE_ELIGIBLE, gateEvidence.gateRuns.first().cacheMode)
+    assertEquals(ValidationGateCacheMode.FORCED_FULL, gateEvidence.gateRuns.last().cacheMode)
   }
 
   @Test
