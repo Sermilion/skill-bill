@@ -329,23 +329,32 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
   }
 
   @Test
-  fun `a finalisation with nothing stageable is refused instead of publishing the checkpoint tree`() {
+  fun `a finalisation with only governed spec dirt still publishes the checkpoint tree`() {
     val repo = repoWithRemote()
+    Files.createDirectories(repo.root.resolve(".feature-specs/$issueKey"))
+    Files.writeString(repo.root.resolve(".feature-specs/$issueKey/spec.md"), "spec baseline\n")
+    git(repo.root, "add", ".feature-specs")
+    git(repo.root, "commit", "-m", "operator committed the spec")
     Files.writeString(repo.root.resolve("owned.txt"), "checkpoint\n")
     git(repo.root, "add", "owned.txt")
     git(repo.root, "commit", "-m", "$issueKey: subtask $subtaskId\n\nprovisional\n\n${identity.trailer}")
     val checkpointSha = git(repo.root, "rev-parse", "HEAD")
-    Files.createDirectories(repo.root.resolve(".feature-specs/$issueKey"))
     Files.writeString(repo.root.resolve(".feature-specs/$issueKey/spec.md"), "spec only\n")
 
-    val blocked = assertIs<FeatureTaskRuntimeSubtaskFinalisationBlocked>(
+    val finalised = assertIs<FeatureTaskRuntimeSubtaskFinalised>(
       finalise(repo, durableCommitSha = checkpointSha, paths = listOf(".feature-specs/$issueKey/spec.md")),
     )
 
-    assertContains(blocked.reason, "nothing to stage")
-    assertEquals(checkpointSha, git(repo.root, "rev-parse", "HEAD"), "HEAD must be untouched")
+    assertEquals(emptyList(), finalised.stagedPaths)
+    assertEquals(listOf(".feature-specs/$issueKey/spec.md"), finalised.excludedSpecPaths)
+    assertEquals("checkpoint\n", git(repo.root, "show", "HEAD:owned.txt") + "\n")
+    assertEquals(
+      ".feature-specs/$issueKey/spec.md",
+      git(repo.root, "diff", "--name-only"),
+      "the governed spec must stay modified in the working tree",
+    )
     assertEquals("", git(repo.root, "diff", "--cached", "--name-only"), "nothing may be left staged")
-    assertEquals("", remoteBranchTip(repo.remote), "a refused finalisation must not publish")
+    assertEquals(finalised.commitSha, git(repo.remote, "rev-parse", branch))
   }
 
   @Test

@@ -39,17 +39,6 @@ internal fun stageablePathsFrom(dirtyPaths: List<String>): StageablePathsOutcome
   return StageablePathsOutcome(stageable = stageable, excluded = excluded)
 }
 
-fun emptyStageableReason(excluded: List<String>): String {
-  val cause = if (excluded.isEmpty()) {
-    "the worktree has no dirty non-ignored paths"
-  } else {
-    "the only dirty paths are governed `$GOVERNED_SPEC_ROOT` inputs " +
-      "(${excluded.joinToString(", ")}), which finalisation never stages"
-  }
-  return "$cause, so there is nothing to stage. Finalisation would otherwise publish the " +
-    "already-committed checkpoint tree with no deliverable content"
-}
-
 fun specExclusionRecord(identity: FeatureTaskRuntimeSubtaskCommitIdentity, paths: List<String>) =
   "seam=FeatureTaskRuntimeSubtaskFinalisation.finalise value_used='staged path set without " +
     "${paths.joinToString(", ")}' value_expected=the agent's enumerated path set for " +
