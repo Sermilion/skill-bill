@@ -73,8 +73,6 @@ fun FeatureTaskRuntimeSubtaskFinalisation.commitAndPush(
 ): FeatureTaskRuntimeSubtaskFinalisationResult {
   val branch = request.metadata.branch
   val decision = promoteSupersededCheckpointCreate(
-    gitOperations = gitOperations,
-    repoRoot = repoRoot,
     branch = branch,
     decision = decide(
       branch = branch,

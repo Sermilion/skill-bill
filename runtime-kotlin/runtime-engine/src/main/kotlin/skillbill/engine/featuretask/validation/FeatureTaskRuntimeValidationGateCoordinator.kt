@@ -147,22 +147,7 @@ class FeatureTaskRuntimeValidationGateCoordinator(
     val emptyHandoff = ValidationFindingSetProjection(emptyList())
     while (true) {
       if (repairsUsed >= MAX_REPAIR_TURNS) {
-        val projection = ValidationFindingSetProjection(findings = lastFindings)
-        persistProgress(
-          state = state,
-          write = ValidationGateProgressWrite.findingsOpen(
-            completeFindings = lastFindings,
-            repairsUsed = repairsUsed,
-            capturedTriagePlan = null,
-            remainingFindings = projection,
-          ),
-        )
-        return terminalBlockedResult(
-          "Validation gate still reports ${lastFindings.size} finding(s) after $MAX_REPAIR_TURNS validate " +
-            "agent turn(s); remaining findings are recorded for the operator.",
-          remainingFindings = projection,
-          measurements = measurements,
-        )
+        return repairBudgetExhaustedResult(state, lastFindings, repairsUsed)
       }
       persistProgress(
         state = state,
@@ -206,6 +191,29 @@ class FeatureTaskRuntimeValidationGateCoordinator(
         )
       }
     }
+  }
+
+  private fun repairBudgetExhaustedResult(
+    state: ValidationGateCycleState,
+    lastFindings: List<ValidationGateFinding>,
+    repairsUsed: Int,
+  ): ValidationGateCycleResult {
+    val projection = ValidationFindingSetProjection(findings = lastFindings)
+    persistProgress(
+      state = state,
+      write = ValidationGateProgressWrite.findingsOpen(
+        completeFindings = lastFindings,
+        repairsUsed = repairsUsed,
+        capturedTriagePlan = null,
+        remainingFindings = projection,
+      ),
+    )
+    return terminalBlockedResult(
+      "Validation gate still reports ${lastFindings.size} finding(s) after $MAX_REPAIR_TURNS validate " +
+        "agent turn(s); remaining findings are recorded for the operator.",
+      remainingFindings = projection,
+      measurements = state.measurements,
+    )
   }
 
   private fun repairWindowPhaseFor(
