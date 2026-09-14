@@ -1,6 +1,7 @@
 package skillbill.infrastructure.fs.launcher
 
 import skillbill.contracts.time.JvmSystemClock
+import skillbill.infrastructure.fs.jvm.testGateJvmResolver
 import skillbill.infrastructure.fs.launcher.agentrun.CodexAgentRunCommandBuilder
 import skillbill.infrastructure.fs.launcher.agentrun.FileSystemAgentRunLauncher
 import skillbill.infrastructure.fs.launcher.agentrun.ProcessAgentRunAdapter
@@ -32,7 +33,7 @@ class SupervisorProcessLoopEndToEndTest {
   @Test
   fun `supervisor-emitted declared events feed the declared-progress tracker within one run`() {
     val store = SharedDeclaredProgressStore()
-    val result = JvmAgentRunProcessRunner(JvmSystemClock).run(
+    val result = JvmAgentRunProcessRunner(JvmSystemClock, testGateJvmResolver()).run(
       testAgentRunProcessRequest(
         listOf("sh", "-c", "sleep 0.8"),
         Path.of(".").toAbsolutePath().normalize(),
@@ -148,7 +149,10 @@ class HeadlessAgentRunAdapterTest {
 
   @Test
   fun `cursor launch is not refused and succeeds`() {
-    val launcher = FileSystemAgentRunLauncher(JvmAgentRunProcessRunner(JvmSystemClock), ALL_EXECUTABLES_AVAILABLE)
+    val launcher = FileSystemAgentRunLauncher(
+      JvmAgentRunProcessRunner(JvmSystemClock, testGateJvmResolver()),
+      ALL_EXECUTABLES_AVAILABLE,
+    )
 
     val outcome = launcher.launch(
       AgentRunLaunchRequest(
@@ -225,7 +229,7 @@ class HeadlessAgentRunAdapterTest {
 class ReadOnlyPhaseLivenessTest {
   @Test
   fun `read-only phase alive process is not idle-killed when it emits no durable progress`() {
-    val result = JvmAgentRunProcessRunner(JvmSystemClock).run(
+    val result = JvmAgentRunProcessRunner(JvmSystemClock, testGateJvmResolver()).run(
       testAgentRunProcessRequest(
         listOf("sh", "-c", "sleep 0.4"),
         Path.of(".").toAbsolutePath().normalize(),
@@ -246,7 +250,7 @@ class ReadOnlyPhaseLivenessTest {
 
   @Test
   fun `a process producing no durable progress and no heartbeat extension is killed by the idle timeout`() {
-    val result = JvmAgentRunProcessRunner(JvmSystemClock).run(
+    val result = JvmAgentRunProcessRunner(JvmSystemClock, testGateJvmResolver()).run(
       testAgentRunProcessRequest(
         listOf("sh", "-c", "sleep 5"),
         Path.of(".").toAbsolutePath().normalize(),

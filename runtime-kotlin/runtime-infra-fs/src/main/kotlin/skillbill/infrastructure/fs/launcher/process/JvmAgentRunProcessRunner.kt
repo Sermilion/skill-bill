@@ -2,6 +2,7 @@ package skillbill.infrastructure.fs.launcher.process
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.goalrunner.model.GoalRunnerProcessState
+import skillbill.infrastructure.fs.jvm.GateJvmResolver
 import skillbill.ports.agentrun.model.AgentRunLivenessSnapshot
 import skillbill.ports.agentrun.model.AgentRunOutputStream
 import skillbill.ports.review.GovernedReviewEvidenceEndpointHandle
@@ -15,6 +16,7 @@ import java.util.concurrent.TimeUnit
 @Inject
 class JvmAgentRunProcessRunner(
   private val clock: Clock,
+  private val gateJvmResolver: GateJvmResolver,
 ) : AgentRunProcessRunner {
   override fun run(request: AgentRunProcessRequest): AgentRunProcessResult {
     request.reviewEvidenceEndpoint?.let(liveEndpoints::add)
@@ -254,7 +256,7 @@ class JvmAgentRunProcessRunner(
 
   private fun buildProcess(request: AgentRunProcessRequest): ProcessBuilder = ProcessBuilder(request.command)
     .directory(request.workingDirectory.toFile())
-    .also { configureLaunchEnvironment(it, request) }
+    .also { configureLaunchEnvironment(it, request, gateJvmResolver) }
 
   private fun cleanupProcessStart(start: ProcessStart?) {
     when (start) {

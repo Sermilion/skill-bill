@@ -20,6 +20,11 @@ these seams:
 - checkpoint-ref prune: `FeatureTaskRuntimeCheckpointRefPrune.pruneSubtaskCheckpointRefs`
   when listing or deleting a ref under `refs/skill-bill/checkpoints/` fails, or when
   pruning is skipped because `commit_sha` is still blank
+- gate JVM resolution: `GateJvmResolver.resolve` records the guard branch taken
+  (`skill_bill_java_home`, `inherited_java_home`, `path_java`, `scan`, `unresolved`), the
+  `JAVA_HOME` handed to the child, and any candidate dropped because it pointed inside the
+  runtime image root. `unresolved` is a typed error at the runtime-run gate and a recorded
+  degradation with `JAVA_HOME` left absent at the agent-run launch surface
 - platform-pack `contract_version` leniency: `CanonicalPlatformPackSchemaValidator.validate`
   when a caller enumerates with `enforceContractVersion=false` (reconcile's LOCAL side and
   installed-workspace baseline status) and a stale `const` violation is tolerated instead of

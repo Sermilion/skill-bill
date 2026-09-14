@@ -1,6 +1,10 @@
 package skillbill.infrastructure.fs.validation
 
 import me.tatarka.inject.annotations.Inject
+import skillbill.infrastructure.fs.jvm.GateJvmDisposition
+import skillbill.infrastructure.fs.jvm.GateJvmResolver
+import skillbill.infrastructure.fs.jvm.GateJvmUnresolvedException
+import skillbill.infrastructure.fs.jvm.applyTo
 import skillbill.ports.validation.ValidationGateRunner
 import skillbill.ports.validation.model.ValidationGateFinding
 import skillbill.ports.validation.model.ValidationGateRunRequest
@@ -16,17 +20,19 @@ import javax.xml.parsers.DocumentBuilderFactory
 @Inject
 class FileSystemValidationGateRunner(
   private val clock: Clock,
+  private val gateJvmResolver: GateJvmResolver,
 ) : ValidationGateRunner {
   override fun run(request: ValidationGateRunRequest): ValidationGateRunResult {
     val started = System.nanoTime()
     val artifactFloor = clock.instant().truncatedTo(ChronoUnit.SECONDS)
     val outputFile = Files.createTempFile("skillbill-validation-gate", ".out")
     return try {
-      val process = ProcessBuilder(request.argv)
+      val builder = ProcessBuilder(request.argv)
         .directory(request.repoRoot.toFile())
         .redirectErrorStream(true)
         .redirectOutput(outputFile.toFile())
-        .start()
+      applyResolvedGateJvm(builder.environment(), gateJvmResolver.resolve(builder.environment()))
+      val process = builder.start()
       val finished = process.waitFor(GATE_TIMEOUT_MINUTES, TimeUnit.MINUTES)
       if (!finished) {
         process.destroyForcibly()
@@ -81,3 +87,10 @@ class FileSystemValidationGateRunner(
 }
 
 class ValidationGateProcessException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
+
+internal fun applyResolvedGateJvm(environment: MutableMap<String, String>, disposition: GateJvmDisposition) {
+  if (disposition is GateJvmDisposition.Unresolved) {
+    throw GateJvmUnresolvedException(disposition.rejectedCandidate, disposition.requiredMajor)
+  }
+  disposition.applyTo(environment)
+}

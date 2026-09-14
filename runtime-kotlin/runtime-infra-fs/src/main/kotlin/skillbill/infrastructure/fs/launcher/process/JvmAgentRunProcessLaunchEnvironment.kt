@@ -1,6 +1,13 @@
 package skillbill.infrastructure.fs.launcher.process
 
-internal fun configureLaunchEnvironment(builder: ProcessBuilder, request: AgentRunProcessRequest) {
+import skillbill.infrastructure.fs.jvm.GateJvmResolver
+import skillbill.infrastructure.fs.jvm.applyTo
+
+internal fun configureLaunchEnvironment(
+  builder: ProcessBuilder,
+  request: AgentRunProcessRequest,
+  gateJvmResolver: GateJvmResolver,
+) {
   if (!request.inheritEnvironment) {
     val isolated = isolatedLaunchEnvironment(
       builder.environment(),
@@ -12,6 +19,7 @@ internal fun configureLaunchEnvironment(builder: ProcessBuilder, request: AgentR
   } else {
     builder.environment().putAll(request.environment)
   }
+  gateJvmResolver.resolve(builder.environment()).applyTo(builder.environment())
 }
 
 internal fun isolatedLaunchEnvironment(

@@ -1,6 +1,7 @@
 package skillbill.infrastructure.fs.launcher
 
 import skillbill.contracts.time.JvmSystemClock
+import skillbill.infrastructure.fs.jvm.testGateJvmResolver
 import skillbill.infrastructure.fs.launcher.agentrun.FileSystemAgentRunLauncher
 import skillbill.infrastructure.fs.launcher.agentrun.headlessAgentRunAdapters
 import skillbill.infrastructure.fs.launcher.process.AgentRunProcessResult
@@ -48,7 +49,10 @@ class AgentRunLauncherProcessTest {
 
   @Test
   fun `unknown agent id fails before launch`() {
-    val launcher = FileSystemAgentRunLauncher(JvmAgentRunProcessRunner(JvmSystemClock), ALL_EXECUTABLES_AVAILABLE)
+    val launcher = FileSystemAgentRunLauncher(
+      JvmAgentRunProcessRunner(JvmSystemClock, testGateJvmResolver()),
+      ALL_EXECUTABLES_AVAILABLE,
+    )
 
     assertFailsWith<IllegalArgumentException> {
       launcher.launch(
@@ -161,7 +165,7 @@ class AgentRunLauncherProcessTest {
   @Test
   fun `jvm process runner tees live output while preserving captured output`() {
     val events = mutableListOf<Pair<AgentRunOutputStream, String>>()
-    val result = JvmAgentRunProcessRunner(JvmSystemClock).run(
+    val result = JvmAgentRunProcessRunner(JvmSystemClock, testGateJvmResolver()).run(
       testAgentRunProcessRequest(
         listOf("sh", "-c", "printf stdout-line; printf stderr-line >&2"),
         Path.of(".").toAbsolutePath().normalize(),
@@ -184,7 +188,7 @@ class AgentRunLauncherProcessTest {
 
   @Test
   fun `jvm process runner closes child stdin for non-interactive runs`() {
-    val result = JvmAgentRunProcessRunner(JvmSystemClock).run(
+    val result = JvmAgentRunProcessRunner(JvmSystemClock, testGateJvmResolver()).run(
       testAgentRunProcessRequest(
         listOf("sh", "-c", "if read line; then printf got; else printf eof; fi"),
         Path.of(".").toAbsolutePath().normalize(),
@@ -199,7 +203,7 @@ class AgentRunLauncherProcessTest {
 
   @Test
   fun `jvm process runner writes configured stdin text before closing child stdin`() {
-    val result = JvmAgentRunProcessRunner(JvmSystemClock).run(
+    val result = JvmAgentRunProcessRunner(JvmSystemClock, testGateJvmResolver()).run(
       testAgentRunProcessRequest(
         listOf("sh", "-c", "cat"),
         Path.of(".").toAbsolutePath().normalize(),
