@@ -1,7 +1,5 @@
 package skillbill.infrastructure.fs
-import me.tatarka.inject.annotations.Inject
 import skillbill.ports.review.ReviewEvidenceBroker
-import skillbill.ports.review.ReviewEvidenceBrokerFactory
 import skillbill.ports.review.model.ReviewEvidenceBatchRequest
 import skillbill.ports.review.model.ReviewEvidenceBatchResult
 import skillbill.ports.review.model.ReviewEvidenceBrokerBinding
@@ -22,11 +20,6 @@ import skillbill.review.context.model.ReviewRequestedOperation
 import skillbill.review.context.model.requireRepositoryRelativePath
 import java.nio.charset.StandardCharsets
 import java.nio.file.Path
-@Inject
-class FileSystemReviewEvidenceBrokerFactory : ReviewEvidenceBrokerFactory {
-  override fun brokerFor(binding: ReviewEvidenceBrokerBinding): ReviewEvidenceBroker =
-    FileSystemReviewEvidenceBroker(binding)
-}
 class FileSystemReviewEvidenceBroker(binding: ReviewEvidenceBrokerBinding) : ReviewEvidenceBroker {
   private val root: Path = binding.repoRoot.toRealPath()
   private val assignment = binding.assignment

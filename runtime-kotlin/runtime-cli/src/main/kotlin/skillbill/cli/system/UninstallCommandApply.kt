@@ -1,7 +1,6 @@
 package skillbill.cli.system
 
 import skillbill.application.scaffold.InstallAgentService
-import skillbill.application.system.UninstallFileSystemService
 import skillbill.install.model.ClaudeMcpProfileFailure
 import skillbill.ports.install.mcp.InstallMcpRegistrationPort
 import skillbill.ports.install.mcp.model.InstallMcpUnregistrationRequest
@@ -9,6 +8,7 @@ import skillbill.ports.install.model.NativeAgentLinkProvider
 import skillbill.ports.install.model.NativeAgentLinkRequest
 import skillbill.ports.install.nativeagent.InstallNativeAgentLinkPort
 import skillbill.ports.install.nativeagent.model.InstallNativeAgentLinkOperationRequest
+import skillbill.ports.system.UninstallPathsPort
 import java.nio.file.Path
 
 internal fun cleanupAgentInstallTargets(
@@ -39,7 +39,7 @@ internal fun cleanupAgentInstallTargets(
 internal fun cleanupNativeAgentInstallLinks(
   plan: UninstallPlan,
   installNativeAgentLinkPort: InstallNativeAgentLinkPort,
-  uninstallFileSystem: UninstallFileSystemService,
+  uninstallFileSystem: UninstallPathsPort,
   removed: MutableList<String>,
   recorder: UninstallMutationRecorder,
 ) {

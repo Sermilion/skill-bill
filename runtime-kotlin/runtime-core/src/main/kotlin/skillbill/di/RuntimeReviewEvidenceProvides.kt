@@ -3,7 +3,7 @@ package skillbill.di
 import me.tatarka.inject.annotations.Provides
 import skillbill.infrastructure.fs.FileSystemDiffResolver
 import skillbill.infrastructure.fs.FileSystemFeatureTaskRuntimeSharedEvidenceStore
-import skillbill.infrastructure.fs.FileSystemReviewEvidenceBrokerFactory
+import skillbill.infrastructure.fs.FileSystemReviewEvidenceBroker
 import skillbill.infrastructure.fs.FileSystemReviewInputSource
 import skillbill.infrastructure.fs.FileSystemReviewSnapshotGateway
 import skillbill.infrastructure.fs.ReviewContextEnvelopeValidatorAdapter
@@ -25,7 +25,8 @@ internal interface RuntimeReviewEvidenceProvides {
     adapter
 
   @Provides @JvmSynthetic
-  fun reviewEvidenceBrokerFactory(adapter: FileSystemReviewEvidenceBrokerFactory): ReviewEvidenceBrokerFactory = adapter
+  fun reviewEvidenceBrokerFactory(): ReviewEvidenceBrokerFactory =
+    ReviewEvidenceBrokerFactory { binding -> FileSystemReviewEvidenceBroker(binding) }
 
   @Provides @JvmSynthetic
   fun governedReviewEvidenceEndpointBinder(

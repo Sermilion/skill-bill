@@ -3,8 +3,8 @@ package skillbill.engine.goalrunner.planning
 import me.tatarka.inject.annotations.Inject
 import skillbill.engine.goalrunner.ProduceMissingPlansArgs
 import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
-import skillbill.engine.goalrunner.planning.model.GoalPlanningSweepCheckpointPort
-import skillbill.engine.goalrunner.planning.model.GoalPlanningSweepLaunchPort
+import skillbill.engine.goalrunner.planning.model.GoalPlanningSweepCheckpointBoundaries
+import skillbill.engine.goalrunner.planning.model.GoalPlanningSweepLaunchBoundaries
 import skillbill.engine.goalrunner.planning.model.GoalPlanningSweepOutcome
 import skillbill.goalrunner.model.GoalRunnerControlState
 import skillbill.ports.goalrunner.model.GoalPlanningIdentity
@@ -43,24 +43,24 @@ internal data class GoalPlanningSharedContext(
 
 @Inject
 class DefaultGoalPlanningSweep(
-  checkpointPort: GoalPlanningSweepCheckpointPort,
-  launchPort: GoalPlanningSweepLaunchPort,
+  checkpointBoundaries: GoalPlanningSweepCheckpointBoundaries,
+  launchBoundaries: GoalPlanningSweepLaunchBoundaries,
   val repositoryEnclosingRootPort: RepositoryEnclosingRootPort,
 ) : GoalPlanningSweep {
-  val checkpoint = checkpointPort.checkpoint
-  val outputValidator = checkpointPort.outputValidator
-  val invariantsSource = checkpointPort.invariantsSource
-  val manifestFileStore = checkpointPort.manifestFileStore
-  val contextDiscovery = checkpointPort.contextDiscovery
-  val planningProjectionValidator = checkpointPort.planningProjectionValidator
-  val subtaskLauncher = launchPort.subtaskLauncher
-  val manifestStore = launchPort.manifestStore
-  val planningAttemptRecorder = launchPort.planningAttemptRecorder
-  val planningRejectionRecorder = launchPort.planningRejectionRecorder
-  val timingPort = launchPort.timingPort
-  val fanOutPort = launchPort.fanOutPort
-  val burstSchedule = launchPort.burstSchedule
-  val refreshLiveness = launchPort.refreshLiveness
+  val checkpoint = checkpointBoundaries.checkpoint
+  val outputValidator = checkpointBoundaries.outputValidator
+  val invariantsSource = checkpointBoundaries.invariantsSource
+  val manifestFileStore = checkpointBoundaries.manifestFileStore
+  val contextDiscovery = checkpointBoundaries.contextDiscovery
+  val planningProjectionValidator = checkpointBoundaries.planningProjectionValidator
+  val subtaskLauncher = launchBoundaries.subtaskLauncher
+  val manifestStore = launchBoundaries.manifestStore
+  val planningAttemptRecorder = launchBoundaries.planningAttemptRecorder
+  val planningRejectionRecorder = launchBoundaries.planningRejectionRecorder
+  val timingPort = launchBoundaries.timingPort
+  val fanOutPort = launchBoundaries.fanOutPort
+  val burstSchedule = launchBoundaries.burstSchedule
+  val refreshLiveness = launchBoundaries.refreshLiveness
 
   override fun prepare(state: GoalRunnerManifestState, request: GoalRunnerRunRequest): GoalPlanningSweepOutcome {
     val identity = GoalPlanningIdentity(

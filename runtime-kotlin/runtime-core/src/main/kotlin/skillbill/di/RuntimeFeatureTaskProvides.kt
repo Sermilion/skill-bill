@@ -4,10 +4,6 @@ import me.tatarka.inject.annotations.Provides
 import skillbill.application.runtime.RuntimeSingleton
 import skillbill.engine.featuretask.FeatureTaskLastCommitReviewDriver
 import skillbill.engine.featuretask.FeatureTaskRuntimeReviewDriver
-import skillbill.engine.featuretask.model.DefaultFeatureTaskRuntimePhaseGateBranchPort
-import skillbill.engine.featuretask.model.DefaultFeatureTaskRuntimePhaseGateValidationPort
-import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseGateBranchPort
-import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseGateValidationPort
 import skillbill.infrastructure.fs.FileSystemCheckedOutBranchSource
 import skillbill.infrastructure.fs.FileSystemFeatureTaskRuntimeRunInvariantsSource
 import skillbill.infrastructure.fs.FileSystemFeatureTaskRuntimeSpecStatusWriter
@@ -44,16 +40,6 @@ internal interface RuntimeFeatureTaskProvides {
   fun featureTaskRuntimeSpecStatusWriter(
     adapter: FileSystemFeatureTaskRuntimeSpecStatusWriter,
   ): FeatureTaskRuntimeSpecStatusWriter = adapter
-
-  @Provides @JvmSynthetic
-  fun featureTaskRuntimePhaseGateBranchPort(
-    port: DefaultFeatureTaskRuntimePhaseGateBranchPort,
-  ): FeatureTaskRuntimePhaseGateBranchPort = port
-
-  @Provides @JvmSynthetic
-  fun featureTaskRuntimePhaseGateValidationPort(
-    port: DefaultFeatureTaskRuntimePhaseGateValidationPort,
-  ): FeatureTaskRuntimePhaseGateValidationPort = port
 
   @Provides @JvmSynthetic
   fun checkedOutBranchSource(source: FileSystemCheckedOutBranchSource): CheckedOutBranchSource = source

@@ -3,7 +3,6 @@ package skillbill.infrastructure.fs.scaffold
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import skillbill.error.InvalidWorkflowStateSchemaError
-import skillbill.infrastructure.fs.contracts.workflow.CanonicalWorkflowStateSchemaValidator
 import skillbill.infrastructure.fs.contracts.workflow.WorkflowStateSchemaValidator
 import skillbill.infrastructure.fs.contracts.workflow.extractOffendingValueFromInstance
 import kotlin.test.Test
@@ -20,7 +19,7 @@ import kotlin.test.assertFailsWith
  */
 class WorkflowStateSchemaViolationsTest {
 
-  private val validator: WorkflowStateSchemaValidator = CanonicalWorkflowStateSchemaValidator()
+  private val validator = WorkflowStateSchemaValidator()
 
   @Test
   fun `unknown step status enum value loud-fails`() {

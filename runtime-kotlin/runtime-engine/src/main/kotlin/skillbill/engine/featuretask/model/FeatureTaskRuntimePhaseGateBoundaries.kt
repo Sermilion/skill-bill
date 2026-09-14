@@ -1,4 +1,5 @@
 package skillbill.engine.featuretask.model
+import me.tatarka.inject.annotations.Inject
 import skillbill.application.review.SpecIntentProjectionResolver
 import skillbill.engine.featuretask.FeatureTaskRuntimeBranchSetupRunner
 import skillbill.engine.featuretask.FeatureTaskRuntimeFindingVerificationBoundaryMemory
@@ -16,24 +17,26 @@ import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeBuildReceiptValidator
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePlanningProjectionValidator
 
-interface FeatureTaskRuntimePhaseGateBranchPort {
-  val branchSetupRunner: FeatureTaskRuntimeBranchSetupRunner
-  val planningStopper: FeatureTaskRuntimePlanningStopper
-  val lifecycleTelemetry: FeatureTaskRuntimeLifecycleTelemetry
-  val gitOperations: WorkflowGitOperations
-  val specGate: FeatureTaskRuntimeSpecGate
-}
+@Inject
+data class FeatureTaskRuntimePhaseGateBranchBoundaries(
+  val branchSetupRunner: FeatureTaskRuntimeBranchSetupRunner,
+  val planningStopper: FeatureTaskRuntimePlanningStopper,
+  val lifecycleTelemetry: FeatureTaskRuntimeLifecycleTelemetry,
+  val gitOperations: WorkflowGitOperations,
+  val specGate: FeatureTaskRuntimeSpecGate,
+)
 
-interface FeatureTaskRuntimePhaseGateValidationPort {
-  val planningProjectionValidator: FeatureTaskRuntimePlanningProjectionValidator
-  val buildReceiptValidator: FeatureTaskRuntimeBuildReceiptValidator
-  val validationGateResolver: ValidationGateResolver
-  val validationGateRunner: ValidationGateRunner
-  val validationGateCoordinator: FeatureTaskRuntimeValidationGateCoordinator
-  val buildGateCoordinator: FeatureTaskRuntimeBuildGateCoordinator
-  val sharedEvidenceResolver: FeatureTaskRuntimeSharedEvidenceResolverPort
-  val diffResolver: DiffResolverPort
-  val reviewDriver: FeatureTaskRuntimeReviewDriver
-  val specIntentProjectionResolver: SpecIntentProjectionResolver
-  val findingVerificationBoundaryMemory: FeatureTaskRuntimeFindingVerificationBoundaryMemory
-}
+@Inject
+data class FeatureTaskRuntimePhaseGateValidationBoundaries(
+  val planningProjectionValidator: FeatureTaskRuntimePlanningProjectionValidator,
+  val buildReceiptValidator: FeatureTaskRuntimeBuildReceiptValidator,
+  val validationGateResolver: ValidationGateResolver,
+  val validationGateRunner: ValidationGateRunner,
+  val validationGateCoordinator: FeatureTaskRuntimeValidationGateCoordinator,
+  val buildGateCoordinator: FeatureTaskRuntimeBuildGateCoordinator,
+  val sharedEvidenceResolver: FeatureTaskRuntimeSharedEvidenceResolverPort,
+  val diffResolver: DiffResolverPort,
+  val reviewDriver: FeatureTaskRuntimeReviewDriver,
+  val specIntentProjectionResolver: SpecIntentProjectionResolver,
+  val findingVerificationBoundaryMemory: FeatureTaskRuntimeFindingVerificationBoundaryMemory,
+)

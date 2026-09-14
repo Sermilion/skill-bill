@@ -2,12 +2,6 @@ package skillbill.di
 
 import me.tatarka.inject.annotations.Provides
 import skillbill.application.agentrun.AgentRunGoalRunnerSubtaskLauncher
-import skillbill.engine.goalrunner.model.DefaultGoalRunnerFinalizationBoundariesPort
-import skillbill.engine.goalrunner.model.DefaultGoalRunnerRunBoundariesPort
-import skillbill.engine.goalrunner.model.DefaultGoalRunnerSubtaskLaunchBoundariesPort
-import skillbill.engine.goalrunner.model.GoalRunnerFinalizationBoundariesPort
-import skillbill.engine.goalrunner.model.GoalRunnerRunBoundariesPort
-import skillbill.engine.goalrunner.model.GoalRunnerSubtaskLaunchBoundariesPort
 import skillbill.infrastructure.fs.GhGoalPullRequestPort
 import skillbill.infrastructure.fs.launcher.agentrun.FileSystemAgentRunLauncher
 import skillbill.infrastructure.fs.launcher.agentrun.PathExecutableLookup
@@ -18,19 +12,6 @@ import skillbill.ports.goalrunner.runner.GoalPullRequestPort
 import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
 
 internal interface RuntimeGoalRunnerLaunchProvides {
-  @Provides @JvmSynthetic
-  fun goalRunnerRunBoundariesPort(port: DefaultGoalRunnerRunBoundariesPort): GoalRunnerRunBoundariesPort = port
-
-  @Provides @JvmSynthetic
-  fun goalRunnerSubtaskLaunchBoundariesPort(
-    port: DefaultGoalRunnerSubtaskLaunchBoundariesPort,
-  ): GoalRunnerSubtaskLaunchBoundariesPort = port
-
-  @Provides @JvmSynthetic
-  fun goalRunnerFinalizationBoundariesPort(
-    port: DefaultGoalRunnerFinalizationBoundariesPort,
-  ): GoalRunnerFinalizationBoundariesPort = port
-
   @Provides @JvmSynthetic
   fun goalPullRequestPort(callbacks: OptionalCallbacks, adapter: GhGoalPullRequestPort): GoalPullRequestPort =
     callbacks.goalPullRequestPort ?: adapter

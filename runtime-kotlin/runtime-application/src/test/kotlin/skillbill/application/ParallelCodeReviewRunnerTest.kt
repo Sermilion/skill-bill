@@ -15,9 +15,9 @@ import skillbill.application.review.SpecIntentProjectionResolver
 import skillbill.application.review.diffForChanges
 import skillbill.application.review.diffForPaths
 import skillbill.application.review.harnessRequest
-import skillbill.application.review.model.DefaultParallelCodeReviewRunnerLaneLaunchPort
-import skillbill.application.review.model.DefaultParallelCodeReviewRunnerPlanningPort
 import skillbill.application.review.model.ParallelCodeReviewRequest
+import skillbill.application.review.model.ParallelCodeReviewRunnerLaneLaunchBoundaries
+import skillbill.application.review.model.ParallelCodeReviewRunnerPlanningBoundaries
 import skillbill.application.review.model.StackDetectionException
 import skillbill.application.review.model.UsageValidationException
 import skillbill.application.review.reviewHarness
@@ -1414,7 +1414,7 @@ internal fun runner(
 internal fun createRunner(launcher: GoalRunnerSubtaskLauncher, config: RunnerFixtureConfig): ParallelCodeReviewRunner {
   val endpointRoot = config.evidenceEndpointRoot ?: Files.createTempDirectory("endpoint")
   val sharedEvidenceLocatorReader = FeatureTaskRuntimeSharedEvidenceLocatorReadPort.NONE
-  val planningPort = DefaultParallelCodeReviewRunnerPlanningPort(
+  val planningBoundaries = ParallelCodeReviewRunnerPlanningBoundaries(
     diffResolver = config.diffResolver,
     repoLocalConfig = object : RepoLocalConfigPort {
       override fun readRepoLocalConfig(request: ReadRepoLocalConfigRequest) =
@@ -1446,7 +1446,7 @@ internal fun createRunner(launcher: GoalRunnerSubtaskLauncher, config: RunnerFix
     clock = testHarnessClock,
     repositoryEnclosingRootPort = TestRepositoryEnclosingRoot,
   )
-  val laneLaunchPort = DefaultParallelCodeReviewRunnerLaneLaunchPort(
+  val laneLaunchBoundaries = ParallelCodeReviewRunnerLaneLaunchBoundaries(
     parentReviewLauncher = launcher,
     reviewEvidenceBrokerFactory = ReviewEvidenceBrokerFactory { binding ->
       object : ReviewEvidenceBroker {
@@ -1483,8 +1483,8 @@ internal fun createRunner(launcher: GoalRunnerSubtaskLauncher, config: RunnerFix
     sharedEvidenceLocatorReader = sharedEvidenceLocatorReader,
   )
   return ParallelCodeReviewRunner(
-    planningPort,
-    laneLaunchPort,
+    planningBoundaries,
+    laneLaunchBoundaries,
     AgentActivityStampWriter(config.database, Clock.systemUTC()),
   )
 }

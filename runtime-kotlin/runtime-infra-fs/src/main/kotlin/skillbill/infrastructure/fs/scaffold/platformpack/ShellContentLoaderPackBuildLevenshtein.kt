@@ -55,5 +55,5 @@ internal fun insertionOrDeletionMatches(a: String, b: String): Boolean {
 }
 
 internal val canonicalSchemaValidator: PlatformPackSchemaValidator by lazy {
-  CanonicalPlatformPackSchemaValidator()
+  PlatformPackSchemaValidator()
 }

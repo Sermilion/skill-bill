@@ -31,9 +31,9 @@ internal fun executeRemoveCommand(request: RemoveCommandExecutionRequest): CliEx
   )
   val outcome = try {
     if (request.dryRun) {
-      request.skillRemoveService.previewRemoval(removalRequest)
+      request.skillRemove.previewRemoval(removalRequest)
     } else {
-      request.skillRemoveService.executeRemoval(removalRequest)
+      request.skillRemove.executeRemoval(removalRequest)
     }
   } catch (refusal: SkillRemovalRefusedException) {
     return errorResult(
