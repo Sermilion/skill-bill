@@ -1,5 +1,14 @@
 # goalrunner boundary history
 
+## [2026-09-14] SKILL-346 subtask 1 — Runnable recovery recommendations
+Areas: runtime-kotlin/{runtime-engine/goalrunner, runtime-engine/featuretask, runtime-cli/goal}
+- Recovery projections advertise scoped child deletion only for blocked subtasks with incompatible terminal child workflows; active or in-progress cases receive runnable hard-reset, replan, or resume/stop guidance.
+- Soft reset, child-wedge repair refusal, durable child classification, and CLI expectations share the same status and deletion-precondition gate.
+- Pattern: derive operator recovery commands from durable subtask state and deletion preconditions so printed commands remain executable. reusable
+- Limitation: hard-reset branch cleanup and relaunch-span behavior remain in the next recovery subtask.
+Feature flag: N/A
+Acceptance criteria: 5/5 implemented
+
 ## [2026-09-13] Issue 342 — Expired lease reclaim on relaunch
 Areas: runtime-kotlin/{runtime-engine/goalrunner, runtime-infra-sqlite/goalrunner, runtime-ports/goalrunner}
 - Expired parent and child leases now reclaim through the existing takeover path despite ambiguous process inspection, while unexpired live leases remain fail-closed.

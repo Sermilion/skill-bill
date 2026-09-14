@@ -1,6 +1,8 @@
 package skillbill.engine.goalrunner
 
+import skillbill.engine.goalrunner.planning.goalPlanningHardResetRemedy
 import skillbill.ports.goalrunner.runner.model.GoalRunnerWorkflowProgress
+import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.WorkflowStatus
 
 internal enum class DurableChildRecoveryClass(val wireValue: String) {
@@ -23,6 +25,21 @@ internal fun classifyDurableChild(progress: GoalRunnerWorkflowProgress?): Durabl
 
 fun scopedChildRecoveryCommand(issueKey: String, subtaskId: Int): String =
   "skill-bill goal reset $issueKey --subtask $subtaskId --delete-child-workflow"
+
+fun recommendedDurableChildRecoveryCommand(
+  issueKey: String,
+  subtaskId: Int,
+  subtaskStatus: DecompositionStatus?,
+  childProgress: GoalRunnerWorkflowProgress?,
+): String =
+  if (
+    classifyDurableChild(childProgress) == DurableChildRecoveryClass.INCOMPATIBLE_TERMINAL &&
+    subtaskStatus == DecompositionStatus.BLOCKED
+  ) {
+    scopedChildRecoveryCommand(issueKey, subtaskId)
+  } else {
+    goalPlanningHardResetRemedy(issueKey)
+  }
 
 /**
  * Recovery for a child holding planning bytes its parent has since replaced. Scoped reset refuses a

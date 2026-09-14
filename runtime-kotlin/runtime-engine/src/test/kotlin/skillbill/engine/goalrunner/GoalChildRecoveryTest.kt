@@ -1,6 +1,8 @@
 package skillbill.engine.goalrunner
 
+import skillbill.engine.goalrunner.planning.goalPlanningHardResetRemedy
 import skillbill.ports.goalrunner.runner.model.GoalRunnerWorkflowProgress
+import skillbill.workflow.model.DecompositionStatus
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -29,14 +31,62 @@ class GoalChildRecoveryTest {
   }
 
   @Test
+  fun `in progress incompatible terminal child recommends hard reset`() {
+    assertEquals(
+      goalPlanningHardResetRemedy("SKILL-143"),
+      recommendedDurableChildRecoveryCommand(
+        "SKILL-143",
+        2,
+        DecompositionStatus.IN_PROGRESS,
+        progress("failed"),
+      ),
+    )
+  }
+
+  @Test
+  fun `blocked incompatible terminal child recommends scoped delete`() {
+    assertEquals(
+      scopedChildRecoveryCommand("SKILL-143", 2),
+      recommendedDurableChildRecoveryCommand(
+        "SKILL-143",
+        2,
+        DecompositionStatus.BLOCKED,
+        progress("failed"),
+      ),
+    )
+  }
+
+  @Test
   fun `ledger safe action distinguishes resumable and terminal children`() {
     assertEquals(
       "resume_from_last_resumable_step",
-      recoverySafeAction("SKILL-143", 2, progress("paused"), "inspect_blocked_reason"),
+      recoverySafeAction(
+        "SKILL-143",
+        2,
+        progress("paused"),
+        "inspect_blocked_reason",
+        DecompositionStatus.IN_PROGRESS,
+      ),
     )
     assertEquals(
-      "skill-bill goal reset SKILL-143 --subtask 2 --delete-child-workflow",
-      recoverySafeAction("SKILL-143", 2, progress("failed"), "inspect_blocked_reason"),
+      goalPlanningHardResetRemedy("SKILL-143"),
+      recoverySafeAction(
+        "SKILL-143",
+        2,
+        progress("failed"),
+        "inspect_blocked_reason",
+        DecompositionStatus.IN_PROGRESS,
+      ),
+    )
+    assertEquals(
+      scopedChildRecoveryCommand("SKILL-143", 2),
+      recoverySafeAction(
+        "SKILL-143",
+        2,
+        progress("failed"),
+        "inspect_blocked_reason",
+        DecompositionStatus.BLOCKED,
+      ),
     )
   }
 

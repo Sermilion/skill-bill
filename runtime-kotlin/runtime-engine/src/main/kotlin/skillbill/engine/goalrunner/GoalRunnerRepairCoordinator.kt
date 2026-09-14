@@ -16,9 +16,12 @@ import skillbill.model.RepositoryRoot
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
 import skillbill.ports.goalrunner.persistence.GoalRunnerChildRepairStore
 import skillbill.ports.goalrunner.runner.GoalRunnerManifestStore
+import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowOutcomeStore
 import skillbill.ports.repository.RepositoryEnclosingRootPort
 import skillbill.ports.taskruntime.FeatureTaskRuntimeWorkerSupervisor
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeProcessInspection
+import skillbill.workflow.decomposition.model.DecompositionSubtask
+import skillbill.workflow.model.decompositionStatus
 import java.nio.file.Path
 import java.time.Clock
 import java.time.Instant
@@ -28,6 +31,7 @@ class GoalRunnerRepairCoordinator(
   private val phaseRecorder: FeatureTaskRuntimePhaseRecorder,
   private val workerSupervisor: FeatureTaskRuntimeWorkerSupervisor,
   private val childRepairStore: GoalRunnerChildRepairStore,
+  private val outcomeStore: GoalRunnerWorkflowOutcomeStore,
   private val repositoryRoot: RepositoryRoot,
   private val repositoryEnclosingRootPort: RepositoryEnclosingRootPort,
   private val clock: Clock,
@@ -81,6 +85,7 @@ class GoalRunnerRepairCoordinator(
             diagnoses = diagnoses,
             childWedged = childWedged,
             repoRoot = repoRoot,
+            manifestSubtasks = loaded.manifest.subtasks,
           ),
         )
     }
@@ -223,6 +228,10 @@ class GoalRunnerRepairCoordinator(
           ) && repairResult.repairs.none { repair -> repair.wedgeClass == finding.wedgeClass }
         }
         if (unrecoverableReviewWedge != null) {
+          val subtaskStatus = context.manifestSubtasks.firstOrNull { it.id == diagnosis.subtaskId }
+            ?.status
+            ?.decompositionStatus()
+          val childProgress = outcomeStore.progress(workflowId)
           return GoalRunnerRepairResult(
             issueKey = context.request.issueKey,
             status = GoalRunnerRepairStatus.OPERATOR_REQUIRED,
@@ -233,7 +242,12 @@ class GoalRunnerRepairCoordinator(
             appliedRepairs = applied,
             refusalReason =
             "Review remediation for subtask ${diagnosis.subtaskId} could not be recovered. " +
-              "Recover with: '${scopedChildRecoveryCommand(context.request.issueKey, diagnosis.subtaskId)}'.",
+              "Recover with: '${recommendedDurableChildRecoveryCommand(
+                context.request.issueKey,
+                diagnosis.subtaskId,
+                subtaskStatus,
+                childProgress,
+              )}'.",
           )
         }
       }
@@ -341,4 +355,5 @@ private data class RepairApplicationContext(
   val diagnoses: List<GoalRunnerChildWedgeDiagnosis>,
   val childWedged: List<GoalRunnerChildWedgeDiagnosis>,
   val repoRoot: Path,
+  val manifestSubtasks: List<DecompositionSubtask>,
 )

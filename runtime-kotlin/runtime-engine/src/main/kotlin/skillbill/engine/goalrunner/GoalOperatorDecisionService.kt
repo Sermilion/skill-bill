@@ -4,19 +4,29 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.engine.goalrunner.model.GoalRunnerOperatorDecisionRequest
 import skillbill.engine.goalrunner.model.GoalRunnerOperatorDecisionResult
 import skillbill.ports.goalrunner.runner.GoalRunnerManifestStore
+import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowOutcomeStore
+import skillbill.workflow.model.DecompositionStatus
+import skillbill.workflow.model.decompositionStatus
 @Inject
 class GoalOperatorDecisionService(
   private val manifestStore: GoalRunnerManifestStore,
+  private val outcomeStore: GoalRunnerWorkflowOutcomeStore,
 ) {
   fun record(request: GoalRunnerOperatorDecisionRequest): GoalRunnerOperatorDecisionResult {
     when (val resolved = resolveChildWorkflow(request)) {
       is ResolvedChildWorkflow.Rejected -> return resolved.result
       is ResolvedChildWorkflow.Ok -> {
+        val childProgress = outcomeStore.progress(resolved.childWorkflowId)
         return GoalRunnerOperatorDecisionResult.Rejected(
           request.issueKey,
           "Operator decisions over review remediation are removed; " +
             "the run advances to validate after one implement_fix round. " +
-            "Recover with: '${scopedChildRecoveryCommand(request.issueKey, request.subtaskId)}'.",
+            "Recover with: '${recommendedDurableChildRecoveryCommand(
+              request.issueKey,
+              request.subtaskId,
+              resolved.subtaskStatus,
+              childProgress,
+            )}'.",
         )
       }
     }
@@ -41,6 +51,7 @@ class GoalOperatorDecisionService(
       ResolvedChildWorkflow.Ok(
         parentWorkflowId = requireNotNull(loaded).parentWorkflowId,
         childWorkflowId = requireNotNull(workflowId),
+        subtaskStatus = requireNotNull(subtask).status.decompositionStatus(),
       )
     }
   }
@@ -51,6 +62,7 @@ class GoalOperatorDecisionService(
     data class Ok(
       val parentWorkflowId: String,
       val childWorkflowId: String,
+      val subtaskStatus: DecompositionStatus?,
     ) : ResolvedChildWorkflow()
   }
 }

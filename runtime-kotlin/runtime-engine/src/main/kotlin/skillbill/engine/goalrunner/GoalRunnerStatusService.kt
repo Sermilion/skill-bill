@@ -52,6 +52,7 @@ class GoalRunnerStatusService(
     phaseRecorder = phaseRecorder,
     workerSupervisor = workerSupervisor,
     childRepairStore = childRepairStore,
+    outcomeStore = outcomeStore,
     repositoryRoot = repositoryRoot,
     repositoryEnclosingRootPort = repositoryEnclosingRootPort,
     clock = clock,

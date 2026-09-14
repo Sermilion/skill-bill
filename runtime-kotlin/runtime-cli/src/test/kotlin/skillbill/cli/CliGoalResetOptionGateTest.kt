@@ -49,6 +49,30 @@ class CliGoalResetOptionGateTest {
   }
 
   @Test
+  fun `goal reset accepts yes as a hard reset confirmation bypass`() {
+    val fixture = goalFixture(subtaskCount = 1)
+    val launcher = GoalFixtureAgentRunLauncher(fixture)
+
+    val accepted = CliRuntime.run(
+      listOf(
+        "--db",
+        fixture.dbPath.toString(),
+        "goal",
+        "reset",
+        "SKILL-901",
+        "--hard",
+        "--yes",
+        "--repo-root",
+        fixture.tempDir.toString(),
+      ),
+      fixture.context(launcher = launcher),
+    )
+
+    assertEquals(0, accepted.exitCode, accepted.stdout)
+    assertContains(accepted.stdout, "mode: hard")
+  }
+
+  @Test
   fun `goal reset requires both scoped child deletion selectors`() {
     val fixture = goalFixture(subtaskCount = 1)
     val launcher = GoalFixtureAgentRunLauncher(fixture)

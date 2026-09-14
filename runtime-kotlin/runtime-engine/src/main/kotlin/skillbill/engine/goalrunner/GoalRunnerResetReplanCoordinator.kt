@@ -217,7 +217,12 @@ class GoalRunnerResetReplanCoordinator(
         subtaskId = subtask.id,
         workflowId = workflowId,
         classification = it.wireValue,
-        recoveryCommand = scopedChildRecoveryCommand(manifest.issueKey, subtask.id),
+        recoveryCommand = recommendedDurableChildRecoveryCommand(
+          manifest.issueKey,
+          subtask.id,
+          subtask.status.decompositionStatus(),
+          outcomeStore.progress(workflowId),
+        ),
       )
     }
   }
