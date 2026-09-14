@@ -38,14 +38,16 @@ internal object FeatureTaskRuntimeCommitPushUpstreamHeadFallback {
     missing.forEach { phaseId ->
       reconcilePhase(phaseId, headSha, state, diagnostics)
     }
-    val stillMissing = missingUpstream(run.declaration, state.outputs())?.takeIf { it.isNotEmpty() }
-    if (
-      stillMissing == null &&
-      state.persistedBlockedReason(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_COMMIT_PUSH)
-        ?.contains("requires upstream output", ignoreCase = true) == true
-    ) {
-      state.clearPersistedBlock(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_COMMIT_PUSH)
-    }
+    clearUpstreamPersistedBlockIfRecovered(run, state)
+  }
+
+  internal fun clearUpstreamPersistedBlockIfRecovered(run: PhaseRun, state: FeatureTaskRuntimeRunState) {
+    if (run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_COMMIT_PUSH) return
+    val reason = state.persistedBlockedReason(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_COMMIT_PUSH)
+      ?: return
+    if (!reason.contains("requires upstream output", ignoreCase = true)) return
+    if (missingUpstream(run.declaration, state.outputs())?.isNotEmpty() == true) return
+    state.clearPersistedBlock(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_COMMIT_PUSH)
   }
 
   private fun reconcilePhase(
@@ -54,15 +56,19 @@ internal object FeatureTaskRuntimeCommitPushUpstreamHeadFallback {
     state: FeatureTaskRuntimeRunState,
     diagnostics: RuntimeDiagnostics,
   ) {
-    val record = state.recordFor(phaseId) ?: return
-    if (record.status.workflowStepStatus() != WorkflowStepStatus.COMPLETED) return
-    if (!record.outputArtifact.isNullOrBlank()) return
-    val output = syntheticOutput(phaseId, headSha, record.attemptCount) ?: return
-    val accepted = state.outputValidator.validatePhaseOutput(output.payload, phaseId).requireAcceptedOutput(phaseId)
+    if (!supportsHeadFallback(phaseId)) return
+    if (state.outputFor(phaseId) != null) return
+    val record = state.recordFor(phaseId)
+    if (record != null && record.status.workflowStepStatus() != WorkflowStepStatus.COMPLETED) return
+    val attemptCount = record?.attemptCount?.coerceAtLeast(1) ?: 1
+    val output = syntheticOutput(phaseId, headSha, attemptCount) ?: return
+    val accepted = runCatching {
+      state.outputValidator.validatePhaseOutput(output.payload, phaseId).requireAcceptedOutput(phaseId)
+    }.getOrNull() ?: return
     state.recordCompleted(
       FeatureTaskRuntimePhaseOutput(
         phaseId = phaseId,
-        iteration = record.attemptCount.coerceAtLeast(1),
+        iteration = attemptCount,
         payload = accepted.normalizedOutput.canonicalJson,
         normalizedOutput = accepted.normalizedOutput,
       ),
@@ -77,6 +83,10 @@ internal object FeatureTaskRuntimeCommitPushUpstreamHeadFallback {
       )
     }
   }
+
+  private fun supportsHeadFallback(phaseId: String): Boolean =
+    phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD ||
+      phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_WRITE_HISTORY
 
   private fun syntheticOutput(phaseId: String, headSha: String, attemptCount: Int): FeatureTaskRuntimePhaseOutput? =
     when (phaseId) {
