@@ -1,5 +1,7 @@
 package skillbill.engine.featuretask
 
+import skillbill.workflow.taskruntime.*
+
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
@@ -15,9 +17,6 @@ import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_RUN_INVARIANTS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRunInvariants
-import skillbill.workflow.taskruntime.model.featureTaskRuntimeRunInvariantsFromArtifactMap
-import skillbill.workflow.taskruntime.model.toArtifactMap
-
 /** Run-scoped invariant store for feature-task-runtime resume stability. */
 @Inject
 class FeatureTaskRuntimeRunInvariantsStore(
@@ -71,7 +70,7 @@ class FeatureTaskRuntimeRunInvariantsStore(
         workflowStatus = record.workflowStatus,
         currentStepId = record.currentStepId,
         stepUpdates = null,
-        artifactsPatch = mapOf(FEATURE_TASK_RUNTIME_RUN_INVARIANTS_ARTIFACT_KEY to runInvariants.toArtifactMap()),
+        artifactsPatch = mapOf(FEATURE_TASK_RUNTIME_RUN_INVARIANTS_ARTIFACT_KEY to runInvariants.asWorkflowArtifactEntry()),
         sessionId = record.sessionId.orEmpty(),
       ),
     )
@@ -85,5 +84,5 @@ private fun runInvariantsFrom(artifacts: Map<String, Any?>): FeatureTaskRuntimeR
     ?: throw InvalidWorkflowStateSchemaError(
       "Feature-task-runtime artifact '$FEATURE_TASK_RUNTIME_RUN_INVARIANTS_ARTIFACT_KEY' must decode to a map.",
     )
-  return featureTaskRuntimeRunInvariantsFromArtifactMap(entryMap)
+  return decodeRunInvariantsFromArtifact(entryMap)!!
 }

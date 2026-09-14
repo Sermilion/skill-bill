@@ -7,6 +7,8 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_BUILD_RECEIPT_CONTRACT_VERSION
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
 import skillbill.engine.featuretask.emitFeatureTaskRuntimeEventSafely
+import skillbill.engine.featuretask.workflowArtifactEntryMap
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunEvent
 import skillbill.engine.featuretask.validation.model.ValidationFindingSetProjection
 import skillbill.engine.featuretask.validation.model.ValidationGateAgentRepairResult
@@ -309,7 +311,7 @@ class FeatureTaskRuntimeBuildGateCoordinator(
       val gateExecutionEvidence = FeatureTaskRuntimeValidationGateExecutionEvidence.fromGateMeasurements(measurements)
       val buildReceipt = linkedMapOf<String, Any?>(
         SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_BUILD_RECEIPT_CONTRACT_VERSION,
-      ) + gateExecutionEvidence.toArtifactMap(repositoryCheckpoint)
+      ) + workflowArtifactEntryMap(gateExecutionEvidence.asWorkflowArtifactEntry(repositoryCheckpoint))
       val payload = JsonCodec.mapToJsonString(
         mapOf(
           SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_CONTRACT_VERSION,

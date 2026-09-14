@@ -1,6 +1,5 @@
 package skillbill.workflow.taskruntime
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT
@@ -16,16 +15,12 @@ object ProsePhaseOutputSynthesizer {
   private val AUDIT_VERDICTS: Set<String> = setOf("satisfied")
 
   fun isProsePhase(phaseId: String): Boolean = phaseId in PROSE_PHASE_IDS
-
-  @OpenBoundaryMap("Synthesized prose phase-output wire map recovered for schema re-entry")
-  fun trySynthesize(phaseOutputText: String, phaseId: String): Map<String, Any?>? {
+  fun trySynthesize(phaseOutputText: String, phaseId: String): Any? {
     if (!isProsePhase(phaseId)) return null
     val request = synthesisRequest(phaseOutputText, phaseId) ?: return null
     return stampEnvelope(request)
   }
-
-  @OpenBoundaryMap("MCP settlement prose phase-output wire map stamped for gate consumption")
-  fun envelopeFromSettlement(request: SettlementEnvelopeRequest): Map<String, Any?> {
+  fun envelopeFromSettlement(request: SettlementEnvelopeRequest): Any {
     require(isProsePhase(request.phaseId)) { "phaseId must be a prose phase, was '${request.phaseId}'." }
     require(request.value.any { !it.isWhitespace() }) { "value must be non-blank." }
     require(request.summary.any { !it.isWhitespace() }) { "summary must be non-blank." }

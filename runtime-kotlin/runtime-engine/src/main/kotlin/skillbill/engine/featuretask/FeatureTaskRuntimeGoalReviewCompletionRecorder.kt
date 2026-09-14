@@ -1,5 +1,7 @@
 package skillbill.engine.featuretask
 
+import skillbill.workflow.taskruntime.*
+
 import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
@@ -68,7 +70,7 @@ class FeatureTaskRuntimeGoalReviewCompletionRecorder(
             (write.completedState.completedPassCount.toString() to completion.rawReviewResult)
           ),
         FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to
-          write.persisted.updatedRecords.mapValues { (_, value) -> value.toArtifactMap() },
+          write.persisted.updatedRecords.mapValues { (_, value) -> value.asWorkflowArtifactEntry() },
         FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY to
           goalReviewCompletionLedger(request, write.persisted.artifacts),
       ),
@@ -107,7 +109,7 @@ class FeatureTaskRuntimeGoalReviewCompletionRecorder(
     val reservedPass = reviewArtifacts.state.reservedPassNumber ?: 1
     val envelope = requireNotNull(request.normalizedOutput) {
       "Goal review completion requires normalized output to persist the unaddressed-findings ledger."
-    }.envelope
+    }.envelopePayload().let(::workflowArtifactEntryMap)
     val recordedVerdicts = GoalSubtaskReviewSummaryReducer.recordedVerdicts(
       unitOfWork.reviews::fetchFindingVerdicts,
       envelope,
@@ -129,7 +131,7 @@ class FeatureTaskRuntimeGoalReviewCompletionRecorder(
       currentFindings,
       recordedVerdicts,
     )
-    val existingRecords = phaseRecordsFrom(artifacts)
+    val existingRecords = decodePhaseRecords(artifacts)
     return GoalReviewCompletionWrite(
       record = record,
       continuation = reviewArtifacts.continuation,
@@ -174,7 +176,7 @@ class FeatureTaskRuntimeGoalReviewCompletionRecorder(
     request: FeatureTaskRuntimePhaseStateRequest,
     artifacts: Map<String, Any?>,
   ): List<Map<String, Any?>> {
-    val ledger = phaseLedgerFrom(artifacts)
+    val ledger = decodePhaseLedger(artifacts)
     val completionEntry = FeatureTaskRuntimePhaseLedgerEntry(
       action = COMPLETE,
       sequenceNumber = (ledger.maxOfOrNull { it.sequenceNumber } ?: -1) + 1,
@@ -186,8 +188,8 @@ class FeatureTaskRuntimeGoalReviewCompletionRecorder(
       edgeIteration = request.edgeIteration,
     )
     return appendBoundedHistoryBySequence(
-      ledger.map { it.toArtifactMap() },
-      completionEntry.toArtifactMap(),
+      workflowArtifactEntryMaps(ledger.map { it.asWorkflowArtifactEntry() }),
+      workflowArtifactEntryMap(completionEntry.asWorkflowArtifactEntry()),
       FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT,
     )
   }
@@ -201,7 +203,7 @@ class FeatureTaskRuntimeGoalReviewCompletionRecorder(
   ) {
     val output = requireNotNull(request.normalizedOutput) {
       "Goal review completion requires normalized output to persist the unaddressed-findings ledger."
-    }.envelope
+    }.envelopePayload().let(::workflowArtifactEntryMap)
     val recordedVerdicts = GoalSubtaskReviewSummaryReducer.recordedVerdicts(
       unitOfWork.reviews::fetchFindingVerdicts,
       output,

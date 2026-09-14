@@ -1,5 +1,7 @@
 package skillbill.engine.featuretask
 
+import skillbill.workflow.taskruntime.*
+
 import me.tatarka.inject.annotations.Inject
 import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.JsonCodec
@@ -104,7 +106,7 @@ class FeatureTaskPhaseSettlementService(
       ?.get(ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE)
       ?.let(JsonCodec::anyToStringAnyMap)
     if (evidence != null) {
-      FeatureTaskRuntimeValidationEvidence.fromArtifactMap(evidence, "$phaseId settlement")
+      decodeValidationEvidenceFromArtifact(evidence, "$phaseId settlement")!!
     }
     return envelope
   }
@@ -113,7 +115,7 @@ class FeatureTaskPhaseSettlementService(
     repository.delete(workflowId, phaseId, attempt)
 
   private fun persist(request: PersistRequest): Map<String, Any?> {
-    val envelopeJson = JsonCodec.mapToJsonString(request.envelope)
+    val envelopeJson = JsonCodec.mapToJsonString(request.envelopeAsMap())
     repository.upsert(
       FeatureTaskPhaseSettlement(
         workflowId = request.workflowId,
@@ -148,8 +150,12 @@ class FeatureTaskPhaseSettlementService(
     val phaseId: String,
     val attempt: Int,
     val kind: FeatureTaskPhaseSettlementKind,
-    val envelope: Map<String, Any?>,
-  )
+    val envelope: Any,
+  ) {
+    fun envelopeAsMap(): Map<String, Any?> =
+      JsonCodec.anyToStringAnyMap(envelope)
+        ?: throw IllegalArgumentException("Phase settlement envelope must be an object.")
+  }
 
   companion object {
     val KIND_COMPLETE: FeatureTaskPhaseSettlementKind = FeatureTaskPhaseSettlementKind.Complete

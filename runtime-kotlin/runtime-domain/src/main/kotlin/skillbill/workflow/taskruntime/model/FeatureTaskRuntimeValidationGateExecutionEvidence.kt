@@ -1,6 +1,5 @@
 package skillbill.workflow.taskruntime.model
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.review.ReviewVerificationSignalKeys
 import skillbill.contracts.workflow.ValidationEvidencePayloadKeys
 import skillbill.error.InvalidFeatureTaskRuntimeValidationEvidenceSchemaError
@@ -33,9 +32,7 @@ data class FeatureTaskRuntimeValidationGateExecutionEvidence(
 
   val evidenceRecorded: Boolean
     get() = gateRuns.isNotEmpty() && gateRuns.all { it.executedChecksRecorded }
-
-  @OpenBoundaryMap("Runtime-owned validation gate execution evidence at the durable workflow-artifact seam")
-  fun toArtifactMap(repositoryCheckpoint: String): Map<String, Any?> {
+  internal fun toArtifactMap(repositoryCheckpoint: String): Map<String, Any?> {
     require(repositoryCheckpoint.isNotBlank()) {
       "FeatureTaskRuntimeValidationGateExecutionEvidence.repositoryCheckpoint must be non-blank."
     }
@@ -62,9 +59,7 @@ data class FeatureTaskRuntimeValidationGateExecutionEvidence(
 
     fun aggregateChecks(measurements: List<FeatureTaskRuntimeValidationGateRunRecord>): List<String> =
       measurements.flatMap { it.executedChecks }.distinct().sorted()
-
-    @OpenBoundaryMap("Runtime-owned validation gate execution evidence decode from durable workflow artifacts")
-    fun fromArtifactMap(
+    internal fun fromArtifactMap(
       raw: Map<String, Any?>,
       sourceLabel: String,
     ): FeatureTaskRuntimeValidationGateExecutionEvidence {

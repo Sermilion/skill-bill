@@ -6,7 +6,10 @@ import skillbill.workflow.taskruntime.FeatureTaskRuntimeBuildReceiptValidator
 
 @Inject
 class FeatureTaskRuntimeBuildReceiptValidatorAdapter : FeatureTaskRuntimeBuildReceiptValidator {
-  override fun validateBuildReceipt(buildReceipt: Map<String, Any?>, sourceLabel: String) {
-    FeatureTaskRuntimeBuildReceiptSchemaValidator.validate(buildReceipt, sourceLabel)
+  override fun validateBuildReceipt(buildReceipt: Any, sourceLabel: String) {
+    FeatureTaskRuntimeBuildReceiptSchemaValidator.validate(
+      requireFeatureTaskRuntimeArtifactMap(buildReceipt, sourceLabel),
+      sourceLabel,
+    )
   }
 }

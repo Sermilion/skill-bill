@@ -8,6 +8,17 @@ import skillbill.workflow.taskruntime.model.omittedCarriedFindings
 import skillbill.workflow.taskruntime.model.validateDispositionCoverage
 import kotlin.test.assertTrue
 
+import skillbill.workflow.taskruntime.asCheckpointIdentitiesArtifactEntry
+import skillbill.workflow.taskruntime.asTelemetryPayload
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.decodeFindingVerificationDispositionFromArtifact
+import skillbill.workflow.taskruntime.decodeImplementationAttemptFromArtifact
+import skillbill.workflow.taskruntime.decodePhaseRecordFromArtifact
+import skillbill.workflow.taskruntime.decodeValidationGateExecutionEvidenceFromArtifact
+import skillbill.workflow.taskruntime.decodeValidationGateProgressFromArtifact
+import skillbill.workflow.taskruntime.envelopeWireMap
+import skillbill.workflow.taskruntime.phaseRecordsFromWorkflowArtifacts
+import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 object FeatureTaskRuntimeCensusCoverageTestSupport {
   fun verifyDisposition(findingId: String, disposition: String = "verified"): Map<String, String> = mapOf(
     "finding_id" to findingId,
@@ -25,7 +36,7 @@ object FeatureTaskRuntimeCensusCoverageTestSupport {
   fun parseVerifyDispositions(
     entries: List<Map<String, String>>,
   ): List<FeatureTaskRuntimeFindingVerificationDisposition> = entries.mapIndexed { index, entry ->
-    FeatureTaskRuntimeFindingVerificationDisposition.fromArtifactMap(entry, "finding_dispositions[$index]")
+    decodeFindingVerificationDispositionFromArtifact(entry, "finding_dispositions[$index]")!!
   }
 
   fun assertVerifyCoverageContains(

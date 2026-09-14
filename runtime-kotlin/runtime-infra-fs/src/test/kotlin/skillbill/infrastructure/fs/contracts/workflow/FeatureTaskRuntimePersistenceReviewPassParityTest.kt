@@ -11,6 +11,17 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
+import skillbill.workflow.taskruntime.asCheckpointIdentitiesArtifactEntry
+import skillbill.workflow.taskruntime.asTelemetryPayload
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.decodeFindingVerificationDispositionFromArtifact
+import skillbill.workflow.taskruntime.decodeImplementationAttemptFromArtifact
+import skillbill.workflow.taskruntime.decodePhaseRecordFromArtifact
+import skillbill.workflow.taskruntime.decodeValidationGateExecutionEvidenceFromArtifact
+import skillbill.workflow.taskruntime.decodeValidationGateProgressFromArtifact
+import skillbill.workflow.taskruntime.envelopeWireMap
+import skillbill.workflow.taskruntime.phaseRecordsFromWorkflowArtifacts
+import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 /**
  * The review-pass bound is enforced twice: as `private_phase_record.review_pass_number` in
  * feature-task-runtime-persistence-schema.yaml and as the `pass >= 1` require in
@@ -27,10 +38,10 @@ class FeatureTaskRuntimePersistenceReviewPassParityTest {
       val record = reviewRecord(pass)
 
       assertEquals(pass, record.reviewPassNumber, "model verdict for pass $pass")
-      FeatureTaskRuntimePersistenceSchemaValidator.validate(record.toArtifactMap(), "review.record")
+      FeatureTaskRuntimePersistenceSchemaValidator.validate(record.asWorkflowArtifactEntry().toWorkflowArtifactMap(), "review.record")
       assertEquals(
         pass,
-        FeatureTaskRuntimePhaseRecord.fromArtifactMap(record.toArtifactMap()).reviewPassNumber,
+        decodePhaseRecordFromArtifact(record.asWorkflowArtifactEntry())!!.reviewPassNumber,
         "round-trip verdict for pass $pass",
       )
     }
@@ -38,13 +49,13 @@ class FeatureTaskRuntimePersistenceReviewPassParityTest {
 
   @Test
   fun `schema and model agree that a pass number below one is invalid`() {
-    val wireMap = reviewRecord(2).toArtifactMap() + ("review_pass_number" to 0)
+    val wireMap = reviewRecord(2).asWorkflowArtifactEntry().toWorkflowArtifactMap() + ("review_pass_number" to 0)
 
     assertFailsWith<InvalidFeatureTaskRuntimePersistenceSchemaError> {
       FeatureTaskRuntimePersistenceSchemaValidator.validate(wireMap, "review.record")
     }
     assertFailsWith<InvalidWorkflowStateSchemaError> {
-      FeatureTaskRuntimePhaseRecord.fromArtifactMap(wireMap)
+      decodePhaseRecordFromArtifact(wireMap)!!
     }
   }
 
@@ -59,10 +70,10 @@ class FeatureTaskRuntimePersistenceReviewPassParityTest {
     val split = reviewRecord(1).copy(launchedModel = "claude-opus-4-8", launchedEffort = "high")
 
     listOf(merged, split).forEach { record ->
-      FeatureTaskRuntimePersistenceSchemaValidator.validate(record.toArtifactMap(), "review.record")
+      FeatureTaskRuntimePersistenceSchemaValidator.validate(record.asWorkflowArtifactEntry().toWorkflowArtifactMap(), "review.record")
       assertEquals(
         record.launchedModel to record.launchedEffort,
-        FeatureTaskRuntimePhaseRecord.fromArtifactMap(record.toArtifactMap())
+        decodePhaseRecordFromArtifact(record.asWorkflowArtifactEntry())!!
           .let { it.launchedModel to it.launchedEffort },
       )
     }
@@ -86,10 +97,10 @@ class FeatureTaskRuntimePersistenceReviewPassParityTest {
       ),
     )
 
-    FeatureTaskRuntimePersistenceSchemaValidator.validate(record.toArtifactMap(), "validate.record")
+    FeatureTaskRuntimePersistenceSchemaValidator.validate(record.asWorkflowArtifactEntry().toWorkflowArtifactMap(), "validate.record")
     assertEquals(
       FeatureTaskRuntimePhaseOutputRepairOperation.DEDUPLICATE_KEYS,
-      FeatureTaskRuntimePhaseRecord.fromArtifactMap(record.toArtifactMap()).repairEvidence?.operation,
+      decodePhaseRecordFromArtifact(record.asWorkflowArtifactEntry())!!.repairEvidence?.operation,
     )
   }
 

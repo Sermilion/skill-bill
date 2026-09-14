@@ -1,6 +1,5 @@
 package skillbill.workflow.taskruntime.model
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.error.InvalidWorkflowStateSchemaError
 
 /** Durable terminal decompose/planning-stop summary for status and monitor after process restart. */
@@ -28,9 +27,7 @@ data class FeatureTaskRuntimeDecomposeTerminal(
   }
 
   val subtaskCount: Int get() = subtaskSpecPaths.size
-
-  @OpenBoundaryMap("Feature-task-runtime decompose-terminal artifact map at the durable workflow-artifact seam")
-  fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
+  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
     "reason" to reason,
     "parent_spec_path" to parentSpecPath,
     "decomposition_manifest_path" to decompositionManifestPath,
@@ -40,8 +37,7 @@ data class FeatureTaskRuntimeDecomposeTerminal(
   )
 
   companion object {
-    @OpenBoundaryMap("Feature-task-runtime decompose-terminal decode from the durable workflow-artifact map")
-    fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeDecomposeTerminal =
+    internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeDecomposeTerminal =
       FeatureTaskRuntimeDecomposeTerminal(
         reason = raw.requireTerminalStringField("reason"),
         parentSpecPath = raw.requireTerminalStringField("parent_spec_path"),

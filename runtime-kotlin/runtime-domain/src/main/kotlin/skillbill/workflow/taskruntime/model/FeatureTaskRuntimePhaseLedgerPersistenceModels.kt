@@ -1,6 +1,5 @@
 package skillbill.workflow.taskruntime.model
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.InvalidWorkflowStateSchemaError
 
@@ -92,9 +91,7 @@ data class FeatureTaskRuntimePhaseLedgerEntry(
       }
     }
   }
-
-  @OpenBoundaryMap("Feature-task-runtime phase ledger entry artifact map at the durable workflow-artifact seam")
-  fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
+  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
     "action" to action.wireValue,
     "sequence_number" to sequenceNumber,
     "timestamp" to timestamp,
@@ -111,8 +108,7 @@ data class FeatureTaskRuntimePhaseLedgerEntry(
 
   companion object {
     /** Strict decode; loud-fails on any missing or malformed required field. */
-    @OpenBoundaryMap("Feature-task-runtime phase ledger entry decode from the durable workflow-artifact map")
-    fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimePhaseLedgerEntry =
+    internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimePhaseLedgerEntry =
       FeatureTaskRuntimePhaseLedgerEntry(
         action = FeatureTaskRuntimePhaseLedgerAction.fromWire(raw.requireStringField("action")),
         sequenceNumber = raw.requireIntField("sequence_number"),

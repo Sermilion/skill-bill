@@ -1,6 +1,5 @@
 package skillbill.workflow.taskruntime.model
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_PHASE_HANDOFF_CONTRACT_VERSION
 import skillbill.error.InvalidFeatureTaskRuntimePhaseHandoffSchemaError
@@ -59,9 +58,7 @@ data class PhaseHandoffProjectionDeclaration(
       "PhaseHandoffProjectionDeclaration '$projectionName' inline alternative must be explicitly authorized."
     }
   }
-
-  @OpenBoundaryMap("Feature-task-runtime phase-handoff declaration wire seam")
-  fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
+  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
     SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_PHASE_HANDOFF_CONTRACT_VERSION,
     "consumer_phase_id" to consumerPhaseId,
     "projection_name" to projectionName,
@@ -88,8 +85,7 @@ data class PhaseHandoffProjectionDeclaration(
   }
 
   companion object {
-    @OpenBoundaryMap("Strict feature-task-runtime phase-handoff declaration decode")
-    fun fromArtifactMap(
+    internal fun fromArtifactMap(
       raw: Map<String, Any?>,
       foundationValidator: FeatureTaskRuntimeHandoffFoundationValidator,
     ): PhaseHandoffProjectionDeclaration {

@@ -1,4 +1,15 @@
 package skillbill.engine
+import skillbill.workflow.taskruntime.asCheckpointIdentitiesArtifactEntry
+import skillbill.workflow.taskruntime.asTelemetryPayload
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.decodeFindingVerificationDispositionFromArtifact
+import skillbill.workflow.taskruntime.decodeImplementationAttemptFromArtifact
+import skillbill.workflow.taskruntime.decodePhaseRecordFromArtifact
+import skillbill.workflow.taskruntime.decodeValidationGateExecutionEvidenceFromArtifact
+import skillbill.workflow.taskruntime.decodeValidationGateProgressFromArtifact
+import skillbill.workflow.taskruntime.envelopeWireMap
+import skillbill.workflow.taskruntime.phaseRecordsFromWorkflowArtifacts
+import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 import skillbill.application.FakeDatabaseSessionFactory
 import skillbill.application.InMemoryWorkflowStates
 import skillbill.application.workflow.decodeWorkflowArtifacts
@@ -18,7 +29,6 @@ import skillbill.ports.workflow.model.toSnapshot
 import skillbill.review.context.model.CodeReviewExecutionMode
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
-import skillbill.workflow.taskruntime.phaseartifacts.phaseRecordsFrom
 import java.nio.file.Path
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -363,7 +373,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
     val updated = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-torn-review"))
     assertEquals("running", updated.workflowStatus)
     assertEquals("review", updated.currentStepId)
-    val review = phaseRecordsFrom(decodeWorkflowArtifacts(updated.artifactsJson))
+    val review = phaseRecordsFromWorkflowArtifacts(decodeWorkflowArtifacts(updated.artifactsJson))
       .getValue("review")
     assertEquals("pending", review.status.wireValue)
   }

@@ -1,5 +1,7 @@
 package skillbill.engine.featuretask
 
+import skillbill.workflow.taskruntime.*
+
 import skillbill.contracts.JsonCodec
 import skillbill.engine.featuretask.model.CompletedUpstreamRepairRequest
 import skillbill.workflow.engine.model.WorkflowUpdateInput
@@ -10,13 +12,11 @@ import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_RUN_INVARIANTS_
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFeatureSize
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeQualityGateSelection
-import skillbill.workflow.taskruntime.model.featureTaskRuntimeRunInvariantsFromArtifactMap
-
 fun featureSizeFromArtifacts(artifacts: Map<String, Any?>): FeatureTaskRuntimeFeatureSize {
   val raw = artifacts[FEATURE_TASK_RUNTIME_RUN_INVARIANTS_ARTIFACT_KEY] as? Map<*, *>
     ?: return FeatureTaskRuntimeFeatureSize.MEDIUM
   val invariantsMap = JsonCodec.anyToStringAnyMap(raw) ?: return FeatureTaskRuntimeFeatureSize.MEDIUM
-  return featureTaskRuntimeRunInvariantsFromArtifactMap(invariantsMap).featureSize
+  return decodeRunInvariantsFromArtifact(invariantsMap)!!.featureSize
 }
 
 fun diagnoseUnsettledCompletedUpstreamPhaseId(

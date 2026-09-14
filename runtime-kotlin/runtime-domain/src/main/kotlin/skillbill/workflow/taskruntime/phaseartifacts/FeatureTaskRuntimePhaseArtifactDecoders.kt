@@ -1,6 +1,5 @@
 package skillbill.workflow.taskruntime.phaseartifacts
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.JsonCodec
 import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_FIELD_ADOPTION_ARTIFACT_KEY
@@ -14,9 +13,7 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeResolvedBranch
 
 fun schemaError(detail: String): Nothing = throw InvalidWorkflowStateSchemaError(detail)
-
-@OpenBoundaryMap("Strict keyed feature-task-runtime artifact map decode")
-fun <T> decodeStrictKeyedArtifactMap(
+internal fun <T> decodeStrictKeyedArtifactMap(
   artifacts: Map<String, Any?>,
   artifactKey: String,
   decodeEntry: (String, Map<String, Any?>) -> T,
@@ -32,15 +29,11 @@ fun <T> decodeStrictKeyedArtifactMap(
     phaseId to decodeEntry(phaseId, entryMap)
   }
 }
-
-@OpenBoundaryMap("Feature-task-runtime phase records decode from durable workflow artifacts")
-fun phaseRecordsFrom(artifacts: Map<String, Any?>): Map<String, FeatureTaskRuntimePhaseRecord> =
+internal fun phaseRecordsFrom(artifacts: Map<String, Any?>): Map<String, FeatureTaskRuntimePhaseRecord> =
   decodeStrictKeyedArtifactMap(artifacts, FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY) { _, recordMap ->
     FeatureTaskRuntimePhaseRecord.fromArtifactMap(recordMap)
   }
-
-@OpenBoundaryMap("Feature-task-runtime resolved branch decode from durable workflow artifacts")
-fun resolvedBranchFrom(artifacts: Map<String, Any?>): FeatureTaskRuntimeResolvedBranch? {
+internal fun resolvedBranchFrom(artifacts: Map<String, Any?>): FeatureTaskRuntimeResolvedBranch? {
   val raw = artifacts[FEATURE_TASK_RUNTIME_RESOLVED_BRANCH_ARTIFACT_KEY] ?: return null
   val entryMap = JsonCodec.anyToStringAnyMap(raw)
     ?: schemaError(
@@ -48,9 +41,7 @@ fun resolvedBranchFrom(artifacts: Map<String, Any?>): FeatureTaskRuntimeResolved
     )
   return FeatureTaskRuntimeResolvedBranch.fromArtifactMap(entryMap)
 }
-
-@OpenBoundaryMap("Feature-task-runtime review generation decode from durable workflow artifacts")
-fun reviewGenerationFrom(artifacts: Map<String, Any?>): Int {
+internal fun reviewGenerationFrom(artifacts: Map<String, Any?>): Int {
   val raw = artifacts[FEATURE_TASK_RUNTIME_REVIEW_GENERATION_ARTIFACT_KEY] ?: return 0
   val ordinal = when (raw) {
     is Int -> raw
@@ -64,9 +55,7 @@ fun reviewGenerationFrom(artifacts: Map<String, Any?>): Int {
         "non-negative integer; found '$raw'.",
     )
 }
-
-@OpenBoundaryMap("Feature-task-runtime operator block retry decode from durable workflow artifacts")
-fun operatorBlockRetryFrom(artifacts: Map<String, Any?>): FeatureTaskRuntimeOperatorBlockRetry? {
+internal fun operatorBlockRetryFrom(artifacts: Map<String, Any?>): FeatureTaskRuntimeOperatorBlockRetry? {
   val raw = artifacts[FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_ARTIFACT_KEY] ?: return null
   val entryMap = JsonCodec.anyToStringAnyMap(raw)
     ?: schemaError(
@@ -78,9 +67,7 @@ fun operatorBlockRetryFrom(artifacts: Map<String, Any?>): FeatureTaskRuntimeOper
     retriedAt = entryMap.requiredOperatorRetryString("retried_at"),
   )
 }
-
-@OpenBoundaryMap("Feature-task-runtime goal continuation field adoption decode from durable workflow artifacts")
-fun goalContinuationFieldAdoptionFrom(artifacts: Map<String, Any?>): FeatureTaskRuntimeGoalContinuationFieldAdoption? {
+internal fun goalContinuationFieldAdoptionFrom(artifacts: Map<String, Any?>): FeatureTaskRuntimeGoalContinuationFieldAdoption? {
   val raw = artifacts[FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_FIELD_ADOPTION_ARTIFACT_KEY] ?: return null
   val entryMap = JsonCodec.anyToStringAnyMap(raw)
     ?: schemaError(

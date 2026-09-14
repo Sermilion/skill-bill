@@ -1,6 +1,5 @@
 package skillbill.workflow.taskruntime.model
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.InvalidWorkflowStateSchemaError
@@ -66,9 +65,7 @@ data class FeatureTaskRuntimeDiagnosticSignal(
     "Diagnostic evidence write '$operation' failed as '${failureClass.wireValue}' for key " +
       "'$conflictingKey' (phase '$phaseId', attempt $attempt, repair turn ${repairTurn ?: "any"}, " +
       "generation $generation). The evidence was not retained; the run continued."
-
-  @OpenBoundaryMap("Feature-task-runtime diagnostic signal artifact map at the durable workflow-artifact seam")
-  fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
+  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
     "operation" to operation,
     "failure_class" to failureClass.wireValue,
     "conflicting_key" to conflictingKey,
@@ -80,8 +77,7 @@ data class FeatureTaskRuntimeDiagnosticSignal(
   )
 
   companion object {
-    @OpenBoundaryMap("Feature-task-runtime diagnostic signal decode from the durable workflow-artifact map")
-    fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeDiagnosticSignal =
+    internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeDiagnosticSignal =
       FeatureTaskRuntimeDiagnosticSignal(
         operation = raw.requireStringField("operation"),
         failureClass = FeatureTaskRuntimeDiagnosticFailureClass.fromWire(raw.requireStringField("failure_class")),
@@ -96,8 +92,7 @@ data class FeatureTaskRuntimeDiagnosticSignal(
 }
 
 /** Strict decode of the durable signal list; an absent key decodes to no signals. */
-@OpenBoundaryMap("Feature-task-runtime diagnostic signal list decode from the durable workflow-artifact map")
-fun featureTaskRuntimeDiagnosticSignalsFromWire(raw: Any?): List<FeatureTaskRuntimeDiagnosticSignal> {
+internal fun featureTaskRuntimeDiagnosticSignalsFromWire(raw: Any?): List<FeatureTaskRuntimeDiagnosticSignal> {
   if (raw == null) return emptyList()
   val entries = raw as? List<*>
     ?: throw InvalidWorkflowStateSchemaError("Feature-task-runtime diagnostic signals must be an array.")

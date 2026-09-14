@@ -8,6 +8,17 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+import skillbill.workflow.taskruntime.asCheckpointIdentitiesArtifactEntry
+import skillbill.workflow.taskruntime.asTelemetryPayload
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.decodeFindingVerificationDispositionFromArtifact
+import skillbill.workflow.taskruntime.decodeImplementationAttemptFromArtifact
+import skillbill.workflow.taskruntime.decodePhaseRecordFromArtifact
+import skillbill.workflow.taskruntime.decodeValidationGateExecutionEvidenceFromArtifact
+import skillbill.workflow.taskruntime.decodeValidationGateProgressFromArtifact
+import skillbill.workflow.taskruntime.envelopeWireMap
+import skillbill.workflow.taskruntime.phaseRecordsFromWorkflowArtifacts
+import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 class FeatureTaskRuntimeImplementationContinuationTest {
   @Test
   fun `no prior attempt yields no continuation`() {
@@ -37,7 +48,7 @@ class FeatureTaskRuntimeImplementationContinuationTest {
     val inProcessRetry = featureTaskRuntimeImplementationContinuationFrom("implement", history, obligations())
     val freshProcessResume = featureTaskRuntimeImplementationContinuationFrom(
       "implement",
-      history.map { FeatureTaskRuntimeImplementationAttempt.fromArtifactMap(it.toArtifactMap()) },
+      history.map { decodeImplementationAttemptFromArtifact(it.asWorkflowArtifactEntry())!! },
       obligations(),
     )
 

@@ -1,5 +1,7 @@
 package skillbill.engine.featuretask
 
+import skillbill.workflow.taskruntime.*
+
 import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.ports.db.DatabaseSessionFactory
@@ -45,7 +47,7 @@ class FeatureTaskRuntimeFindingVerificationRecorder(
         record,
         mapOf(
           FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_BOUNDARY_SELECTION_ARTIFACT_KEY to
-            selections.mapValues { (_, headings) -> headings.map { it.toArtifactMap() } },
+            selections.mapValues { (_, headings) -> headings.map { it.asWorkflowArtifactEntry() } },
         ),
         WorkflowRowAdvance.keepFrom(record),
       )
@@ -68,7 +70,7 @@ class FeatureTaskRuntimeFindingVerificationRecorder(
     if (dispositions.isEmpty()) return false
     return database.transaction { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@transaction false
-      val serialized = dispositions.map { it.toArtifactMap() }
+      val serialized = dispositions.map { it.asWorkflowArtifactEntry() }
       workflowPersistence.persistPatch(
         unitOfWork.workflowStates,
         record,

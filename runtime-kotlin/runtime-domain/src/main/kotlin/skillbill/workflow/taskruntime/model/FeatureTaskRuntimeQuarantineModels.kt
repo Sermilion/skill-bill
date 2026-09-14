@@ -1,6 +1,5 @@
 package skillbill.workflow.taskruntime.model
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.InvalidWorkflowStateSchemaError
@@ -74,9 +73,7 @@ data class FeatureTaskRuntimeQuarantineEntry(
       "FeatureTaskRuntimeQuarantineEntry.rejectedRecordSha256 must be a lowercase SHA-256 digest."
     }
   }
-
-  @OpenBoundaryMap("Feature-task-runtime quarantine entry artifact map at the durable workflow-artifact seam")
-  fun toArtifactMap(): Map<String, Any?> {
+  internal fun toArtifactMap(): Map<String, Any?> {
     val map = linkedMapOf<String, Any?>(
       "producing_phase_id" to producingPhaseId,
       "consuming_phase_id" to consumingPhaseId,
@@ -115,8 +112,7 @@ data class FeatureTaskRuntimeQuarantineEntry(
     )
 
     /** Strict decode; loud-fails on a missing, malformed, or undeclared field. */
-    @OpenBoundaryMap("Feature-task-runtime quarantine entry decode from the durable workflow-artifact map")
-    fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeQuarantineEntry {
+    internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeQuarantineEntry {
       val unexpected = raw.keys - ALLOWED_FIELDS
       if (unexpected.isNotEmpty()) {
         quarantineSchemaError(
@@ -158,8 +154,7 @@ data class FeatureTaskRuntimeQuarantineEntry(
  * Encodes the append-only quarantine list into the durable wire map the canonical quarantine schema
  * validates: a `contract_version` and an ordered `entries` array.
  */
-@OpenBoundaryMap("Feature-task-runtime quarantine record artifact map at the durable workflow-artifact seam")
-fun featureTaskRuntimeQuarantineRecordToWire(entries: List<FeatureTaskRuntimeQuarantineEntry>): Map<String, Any?> =
+internal fun featureTaskRuntimeQuarantineRecordToWire(entries: List<FeatureTaskRuntimeQuarantineEntry>): Map<String, Any?> =
   linkedMapOf(
     SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_QUARANTINE_ARTIFACT_CONTRACT_VERSION,
     "entries" to entries.map { it.toArtifactMap() },
@@ -168,8 +163,7 @@ fun featureTaskRuntimeQuarantineRecordToWire(entries: List<FeatureTaskRuntimeQua
 private fun quarantineSchemaError(detail: String): Nothing = throw InvalidWorkflowStateSchemaError(detail)
 
 /** Strict decode of the durable quarantine record; loud-fails on a malformed artifact. */
-@OpenBoundaryMap("Feature-task-runtime quarantine record decode from the durable workflow-artifact map")
-fun featureTaskRuntimeQuarantineEntriesFromWire(raw: Any?): List<FeatureTaskRuntimeQuarantineEntry> {
+internal fun featureTaskRuntimeQuarantineEntriesFromWire(raw: Any?): List<FeatureTaskRuntimeQuarantineEntry> {
   val map = JsonCodec.anyToStringAnyMap(raw)
     ?: quarantineSchemaError("Feature-task-runtime quarantine record must be an object.")
   val unexpected = map.keys - QUARANTINE_ENVELOPE_FIELDS

@@ -84,7 +84,9 @@ class FeatureTaskRuntimePhaseOutputValidatorAdapter : FeatureTaskRuntimePhaseOut
   ): FeatureTaskRuntimePhaseOutputValidationResult? {
     val envelope = ProsePhaseOutputSynthesizer.trySynthesize(phaseOutputText, sourceLabel) ?: return null
     return try {
-      val canonical = JsonCodec.mapToJsonString(envelope)
+      val canonical = JsonCodec.mapToJsonString(
+        JsonCodec.anyToStringAnyMap(envelope) ?: emptyMap(),
+      )
       val normalized = FeatureTaskRuntimePhaseOutputSchemaValidator.normalizePhaseOutput(canonical, sourceLabel)
       FeatureTaskRuntimePhaseOutputValidationResult.AcceptedUnchanged(normalized)
     } catch (_: InvalidFeatureTaskRuntimePhaseOutputSchemaError) {
@@ -116,8 +118,8 @@ class FeatureTaskRuntimePhaseOutputValidatorAdapter : FeatureTaskRuntimePhaseOut
     validatePhaseOutput(phaseOutputText, sourceLabel).requireAccepted(sourceLabel)
   }
 
-  override fun validateAndReadPhaseOutput(phaseOutputText: String, sourceLabel: String): Map<String, Any?> =
-    validatePhaseOutput(phaseOutputText, sourceLabel).requireAccepted(sourceLabel).envelope
+  override fun validateAndReadPhaseOutput(phaseOutputText: String, sourceLabel: String): Any =
+    validatePhaseOutput(phaseOutputText, sourceLabel).requireAccepted(sourceLabel).envelopePayload()
 
   override fun normalizePhaseOutput(
     phaseOutputText: String,
@@ -127,7 +129,8 @@ class FeatureTaskRuntimePhaseOutputValidatorAdapter : FeatureTaskRuntimePhaseOut
 
   private fun validateNestedBuildReceipt(normalized: NormalizedFeatureTaskRuntimePhaseOutput, sourceLabel: String) {
     if (sourceLabel != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD) return
-    val produced = JsonCodec.anyToStringAnyMap(normalized.envelope[SharedPayloadKeys.PRODUCED_OUTPUTS])
+    val envelope = JsonCodec.anyToStringAnyMap(normalized.envelopePayload()) ?: emptyMap()
+    val produced = JsonCodec.anyToStringAnyMap(envelope[SharedPayloadKeys.PRODUCED_OUTPUTS])
       ?: throw InvalidFeatureTaskRuntimeBuildReceiptSchemaError(
         sourceLabel = sourceLabel,
         reason = "produced_outputs must be present for the build phase envelope.",

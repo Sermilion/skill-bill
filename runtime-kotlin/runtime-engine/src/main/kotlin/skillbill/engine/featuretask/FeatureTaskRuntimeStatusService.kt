@@ -12,6 +12,7 @@ import skillbill.engine.featuretask.model.FeatureTaskRuntimeStatusRequest
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.decodeValidationGateExecutionEvidenceFromArtifact
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDecomposeTerminal
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerAction
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerEntry
@@ -167,7 +168,7 @@ private fun validationGateExecutionEvidence(
       ) {
         null
       } else {
-        FeatureTaskRuntimeValidationGateExecutionEvidence.fromArtifactMap(raw, "workflow-status.validate")
+        decodeValidationGateExecutionEvidenceFromArtifact(raw, "workflow-status.validate")
       }
     }
 

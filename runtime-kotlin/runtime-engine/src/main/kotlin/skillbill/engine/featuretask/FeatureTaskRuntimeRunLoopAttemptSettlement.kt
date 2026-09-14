@@ -1,5 +1,7 @@
 package skillbill.engine.featuretask
 
+import skillbill.workflow.taskruntime.*
+
 import skillbill.application.diagnostics.model.FeatureTaskRuntimeRejectedOutputWrite
 import skillbill.application.diagnostics.model.RejectedOutputDiagnosticRequest
 import skillbill.contracts.JsonCodec
@@ -180,13 +182,13 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
       fileManifest = args.output.fileManifest,
     )
     try {
-      requireValidationEvidenceForValidateSettlement(runLoop, run, attested.envelope)
+      requireValidationEvidenceForValidateSettlement(runLoop, run, attested.envelopeWireMap())
       return settleValidatedOutputWithEvidence(runLoop, capture, attested)
     } catch (error: InvalidFeatureTaskRuntimeValidationEvidenceSchemaError) {
       return rejectValidatedOutput(
         runLoop,
         capture,
-        attested.envelope,
+        attested.envelopeWireMap(),
         "validation-evidence",
         error.message.orEmpty(),
       )
@@ -198,7 +200,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
     capture: ValidatedOutputCapture,
     attested: NormalizedFeatureTaskRuntimePhaseOutput,
   ): AttemptResult {
-    val outputMap = attested.envelope
+    val outputMap = attested.envelopeWireMap()
     fun reject(rule: String, detail: String): AttemptResult =
       FeatureTaskRuntimeRunLoopAttemptSettlement.rejectValidatedOutput(
         runLoop,
@@ -274,7 +276,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
       val acceptedOutput = runLoop.outputValidator
         .validatePhaseOutput(JsonCodec.mapToJsonString(settlementEnvelope), sourceLabel = run.phaseId)
         .requireAcceptedOutput(run.phaseId)
-      validatePersistedValidationEvidence(runLoop, run, acceptedOutput.normalizedOutput.envelope)
+      validatePersistedValidationEvidence(runLoop, run, acceptedOutput.normalizedOutput.envelopeWireMap())
       FeatureTaskRuntimeRunLoopAttemptSettlement.settleValidatedOutput(
         runLoop,
         SettleValidatedOutputArgs(
@@ -721,7 +723,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
   ): CommitPushFinalisation {
     if (
       run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_COMMIT_PUSH ||
-      (normalizedOutput.envelope[SharedPayloadKeys.STATUS] as? String)
+      (normalizedOutput.envelopeWireMap()[SharedPayloadKeys.STATUS] as? String)
         .workflowStepStatus() != WorkflowStepStatus.COMPLETED
     ) {
       return CommitPushNotApplicable
@@ -729,7 +731,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
     val subtaskCommit = FeatureTaskRuntimeRunLoopSubtaskCommit
     val branch = subtaskCommit.finalisationBranch(runLoop)
       ?: return subtaskCommit.unownedWorktreeCommitSha(runLoop, run, normalizedOutput)
-    val handoff = when (val read = FeatureTaskRuntimeSubtaskFinalisation.readHandoff(normalizedOutput.envelope)) {
+    val handoff = when (val read = FeatureTaskRuntimeSubtaskFinalisation.readHandoff(normalizedOutput.envelopeWireMap())) {
       is FeatureTaskRuntimeCommitPushHandoffInvalid -> return CommitPushBlocked(read.reason)
       is FeatureTaskRuntimeCommitPushHandoffValid -> read.handoff
     }
@@ -767,7 +769,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
         FeatureTaskRuntimeRunLoopSubtaskCommit.revalidated(
           runLoop,
           run.phaseId,
-          FeatureTaskRuntimeSubtaskFinalisation.withCommitSha(normalizedOutput.envelope, outcome.commitSha),
+          FeatureTaskRuntimeSubtaskFinalisation.withCommitSha(normalizedOutput.envelopeWireMap(), outcome.commitSha),
         ),
       )
     }

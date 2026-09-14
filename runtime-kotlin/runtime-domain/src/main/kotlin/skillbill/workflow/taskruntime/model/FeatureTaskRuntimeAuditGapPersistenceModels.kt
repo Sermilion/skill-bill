@@ -1,6 +1,5 @@
 package skillbill.workflow.taskruntime.model
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION
 import skillbill.error.InvalidWorkflowStateSchemaError
@@ -55,9 +54,7 @@ data class FeatureTaskRuntimeAuditGapPause(
   companion object {
     const val AUDIT_GAP_PAUSE_DECISION_RETRY_FIX: String = "retry_fix"
     const val AUDIT_GAP_PAUSE_DECISION_ABANDON_SUBTASK: String = "abandon_subtask"
-
-    @OpenBoundaryMap("Feature-task-runtime audit-gap pause decode from the durable workflow-artifact map")
-    fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeAuditGapPause {
+    internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeAuditGapPause {
       requireExactAuditGapPauseFields(raw)
       if (raw[SharedPayloadKeys.CONTRACT_VERSION] != FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION) {
         throw InvalidWorkflowStateSchemaError(
@@ -114,9 +111,7 @@ data class FeatureTaskRuntimeAuditGapProgress(
 
   companion object {
     const val HAD_GAPS_MARKER: String = "gaps_found"
-
-    @OpenBoundaryMap("Feature-task-runtime audit-gap progress decode from the durable workflow-artifact map")
-    fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeAuditGapProgress {
+    internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeAuditGapProgress {
       requireExactAuditGapProgressFields(raw)
       if (raw[SharedPayloadKeys.CONTRACT_VERSION] != FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION) {
         throw InvalidWorkflowStateSchemaError(

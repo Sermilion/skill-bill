@@ -1,5 +1,7 @@
 package skillbill.engine.featuretask
 
+import skillbill.workflow.taskruntime.*
+
 import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.contracts.JsonCodec
@@ -22,12 +24,8 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeQuarantineEntry
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeResolvedBranch
 import skillbill.workflow.taskruntime.model.QUARANTINE_REJECTION_CLASS_CHECKPOINT_IDENTITY_VERSION
 import skillbill.workflow.taskruntime.model.featureTaskRuntimeAppendCheckpointIdentity
-import skillbill.workflow.taskruntime.model.featureTaskRuntimeCheckpointIdentitiesFromArtifact
-import skillbill.workflow.taskruntime.model.featureTaskRuntimeCheckpointIdentitiesToArtifact
 import skillbill.workflow.taskruntime.model.featureTaskRuntimeCheckpointRefName
 import skillbill.workflow.taskruntime.model.featureTaskRuntimeOwnedPathDigest
-import skillbill.workflow.taskruntime.model.featureTaskRuntimeQuarantineEntriesFromWire
-import skillbill.workflow.taskruntime.model.featureTaskRuntimeQuarantineRecordToWire
 import java.time.Clock
 
 class FeatureTaskRuntimePhaseEvidenceRecorder(
@@ -41,7 +39,7 @@ class FeatureTaskRuntimePhaseEvidenceRecorder(
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, request.workflowId)
         ?: return@transaction false
       val artifacts = decodeWorkflowArtifacts(record.artifactsJson)
-      val existingEntries = phaseLedgerFrom(artifacts)
+      val existingEntries = decodePhaseLedger(artifacts)
       val nextSequence = (existingEntries.maxOfOrNull { it.sequenceNumber } ?: -1) + 1
       val entry = FeatureTaskRuntimePhaseLedgerEntry(
         action = request.action,
@@ -56,8 +54,8 @@ class FeatureTaskRuntimePhaseEvidenceRecorder(
         edgeIteration = request.edgeIteration,
       )
       val updatedLedger = appendBoundedHistoryBySequence(
-        existing = existingEntries.map { it.toArtifactMap() },
-        entry = entry.toArtifactMap(),
+        existing = workflowArtifactEntryMaps(existingEntries.map { it.asWorkflowArtifactEntry() }),
+        entry = workflowArtifactEntryMap(entry.asWorkflowArtifactEntry()),
         retentionLimit = FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT,
       )
       workflowPersistence.persistPatch(
@@ -81,7 +79,7 @@ class FeatureTaskRuntimePhaseEvidenceRecorder(
       if (alreadyRecorded) {
         return@transaction true
       }
-      val wire = featureTaskRuntimeQuarantineRecordToWire(existing + entry)
+      val wire = (existing + entry).asQuarantineWorkflowArtifactEntry()
       quarantineValidator.validateQuarantineRecord(wire, FEATURE_TASK_RUNTIME_QUARANTINED_RECORDS_ARTIFACT_KEY)
       workflowPersistence.persistPatch(
         unitOfWork.workflowStates,
@@ -102,13 +100,13 @@ class FeatureTaskRuntimePhaseEvidenceRecorder(
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
         ?: return@transaction false
       val artifacts = decodeWorkflowArtifacts(record.artifactsJson)
-      if (resolvedBranchFrom(artifacts) != null) {
+      if (resolvedBranchFromWorkflowArtifacts(artifacts) != null) {
         return@transaction true
       }
       workflowPersistence.persistPatch(
         unitOfWork.workflowStates,
         record,
-        mapOf(FEATURE_TASK_RUNTIME_RESOLVED_BRANCH_ARTIFACT_KEY to resolvedBranch.toArtifactMap()),
+        mapOf(FEATURE_TASK_RUNTIME_RESOLVED_BRANCH_ARTIFACT_KEY to resolvedBranch.asWorkflowArtifactEntry()),
       )
       true
     }
@@ -116,7 +114,7 @@ class FeatureTaskRuntimePhaseEvidenceRecorder(
   override fun loadResolvedBranch(workflowId: String): FeatureTaskRuntimeResolvedBranch? = database.read { unitOfWork ->
     val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
       ?: return@read null
-    resolvedBranchFrom(decodeWorkflowArtifacts(record.artifactsJson))
+    resolvedBranchFromWorkflowArtifacts(decodeWorkflowArtifacts(record.artifactsJson))
   }
 
   override fun appendCheckpointIdentity(args: AppendCheckpointIdentityArgs): Boolean {
@@ -138,7 +136,7 @@ class FeatureTaskRuntimePhaseEvidenceRecorder(
       record,
       mapOf(
         FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_ARTIFACT_KEY to
-          featureTaskRuntimeCheckpointIdentitiesToArtifact(emptyList()),
+          emptyList<FeatureTaskRuntimeCheckpointIdentity>().asCheckpointIdentitiesArtifactEntry(),
       ),
     )
     true
@@ -148,12 +146,12 @@ class FeatureTaskRuntimePhaseEvidenceRecorder(
     database.transaction { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
         ?: return@transaction false
-      val resolved = resolvedBranchFrom(decodeWorkflowArtifacts(record.artifactsJson)) ?: return@transaction false
+      val resolved = resolvedBranchFromWorkflowArtifacts(decodeWorkflowArtifacts(record.artifactsJson)) ?: return@transaction false
       val updated = resolved.copy(workflowOwnedPaths = ownedPaths.distinct().sorted())
       workflowPersistence.persistPatch(
         unitOfWork.workflowStates,
         record,
-        mapOf(FEATURE_TASK_RUNTIME_RESOLVED_BRANCH_ARTIFACT_KEY to updated.toArtifactMap()),
+        mapOf(FEATURE_TASK_RUNTIME_RESOLVED_BRANCH_ARTIFACT_KEY to updated.asWorkflowArtifactEntry()),
       )
       true
     }
@@ -166,12 +164,12 @@ fun FeatureTaskRuntimePhaseEvidenceRecorder.quarantineEntriesFrom(
   val map = JsonCodec.anyToStringAnyMap(raw)
     ?: throw InvalidWorkflowStateSchemaError("Feature-task-runtime quarantine record must be an object.")
   quarantineValidator.validateQuarantineRecord(map, FEATURE_TASK_RUNTIME_QUARANTINED_RECORDS_ARTIFACT_KEY)
-  return featureTaskRuntimeQuarantineEntriesFromWire(raw)
+  return decodeQuarantineEntriesFromArtifact(raw)
 }
 
 fun FeatureTaskRuntimePhaseEvidenceRecorder.checkpointIdentitiesFrom(
   artifacts: Map<String, Any?>,
-): List<FeatureTaskRuntimeCheckpointIdentity> = featureTaskRuntimeCheckpointIdentitiesFromArtifact(
+): List<FeatureTaskRuntimeCheckpointIdentity> = decodeCheckpointIdentitiesFromArtifact(
   artifacts[FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_ARTIFACT_KEY],
 )
 
@@ -203,8 +201,7 @@ fun FeatureTaskRuntimePhaseEvidenceRecorder.appendCheckpointIdentityAtCurrentVer
     unitOfWork.workflowStates,
     record,
     mapOf(
-      FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_ARTIFACT_KEY to
-        featureTaskRuntimeCheckpointIdentitiesToArtifact(updated),
+      FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_ARTIFACT_KEY to updated.asCheckpointIdentitiesArtifactEntry(),
     ),
   )
   true

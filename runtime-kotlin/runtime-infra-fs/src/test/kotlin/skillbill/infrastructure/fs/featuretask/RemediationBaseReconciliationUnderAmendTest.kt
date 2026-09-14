@@ -28,7 +28,6 @@ import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_CONTINUATI
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeCheckpointIdentity
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationArtifact
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
-import skillbill.workflow.taskruntime.model.featureTaskRuntimeCheckpointIdentitiesToArtifact
 import skillbill.workflow.taskruntime.model.featureTaskRuntimeCheckpointRefName
 import java.nio.file.Files
 import java.nio.file.Path
@@ -42,6 +41,17 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
+import skillbill.workflow.taskruntime.asCheckpointIdentitiesArtifactEntry
+import skillbill.workflow.taskruntime.asTelemetryPayload
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.decodeFindingVerificationDispositionFromArtifact
+import skillbill.workflow.taskruntime.decodeImplementationAttemptFromArtifact
+import skillbill.workflow.taskruntime.decodePhaseRecordFromArtifact
+import skillbill.workflow.taskruntime.decodeValidationGateExecutionEvidenceFromArtifact
+import skillbill.workflow.taskruntime.decodeValidationGateProgressFromArtifact
+import skillbill.workflow.taskruntime.envelopeWireMap
+import skillbill.workflow.taskruntime.phaseRecordsFromWorkflowArtifacts
+import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 class RemediationBaseReconciliationUnderAmendTest {
   private val workflowId = "wftr-skill190-reconcile"
   private val issueKey = "SKILL-190"
@@ -384,7 +394,7 @@ class RemediationBaseReconciliationUnderAmendTest {
         suppressPr = true,
         goalBranch = goalBranch,
         codeReviewMode = CodeReviewExecutionMode.INLINE,
-      ).toArtifactMap(),
+      ).asWorkflowArtifactEntry().toWorkflowArtifactMap(),
       GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to state.toArtifactMap(),
       GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY to state.passResults.associate { result ->
         result.passNumber.toString() to """{"phase_id":"review","status":"completed"}"""
@@ -392,7 +402,7 @@ class RemediationBaseReconciliationUnderAmendTest {
     )
     if (checkpointIdentities.isNotEmpty()) {
       artifactsPatch[FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_ARTIFACT_KEY] =
-        featureTaskRuntimeCheckpointIdentitiesToArtifact(checkpointIdentities)
+        checkpointIdentities.asCheckpointIdentitiesArtifactEntry()
     }
     legacyCheckpointRecord?.let { artifactsPatch[FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_ARTIFACT_KEY] = it }
     val seeded = engine.updateRecord(

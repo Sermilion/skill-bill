@@ -17,6 +17,17 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+import skillbill.workflow.taskruntime.asCheckpointIdentitiesArtifactEntry
+import skillbill.workflow.taskruntime.asTelemetryPayload
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.decodeFindingVerificationDispositionFromArtifact
+import skillbill.workflow.taskruntime.decodeImplementationAttemptFromArtifact
+import skillbill.workflow.taskruntime.decodePhaseRecordFromArtifact
+import skillbill.workflow.taskruntime.decodeValidationGateExecutionEvidenceFromArtifact
+import skillbill.workflow.taskruntime.decodeValidationGateProgressFromArtifact
+import skillbill.workflow.taskruntime.envelopeWireMap
+import skillbill.workflow.taskruntime.phaseRecordsFromWorkflowArtifacts
+import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 class FeatureTaskRuntimeFindingVerificationBoundaryMemoryTest {
 
   private val memory = FeatureTaskRuntimeFindingVerificationBoundaryMemory(
@@ -83,7 +94,7 @@ class FeatureTaskRuntimeFindingVerificationBoundaryMemoryTest {
     val provenance = FeatureTaskRuntimeVerificationBoundaryHeadingProvenance(
       headingId = "runtime-kotlin/agent/history.md#abc",
       sourcePath = "runtime-kotlin/agent/history.md",
-    ).toArtifactMap()
+    ).asWorkflowArtifactEntry().toWorkflowArtifactMap()
     assertTrue(provenance.containsKey("heading_id"))
     assertTrue(provenance.containsKey("source_path"))
   }

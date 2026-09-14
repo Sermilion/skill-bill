@@ -40,7 +40,6 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairReceipt
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairReceiptEntry
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.model.REPAIR_RECEIPT_MAX_UNRESOLVED_REASON_UTF8_BYTES
-import skillbill.workflow.taskruntime.model.featureTaskRuntimeCheckpointIdentitiesToArtifact
 import skillbill.workflow.taskruntime.model.upsertRepairReceipt
 import java.nio.file.Files
 import java.nio.file.Path
@@ -54,6 +53,17 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+import skillbill.workflow.taskruntime.asCheckpointIdentitiesArtifactEntry
+import skillbill.workflow.taskruntime.asTelemetryPayload
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.decodeFindingVerificationDispositionFromArtifact
+import skillbill.workflow.taskruntime.decodeImplementationAttemptFromArtifact
+import skillbill.workflow.taskruntime.decodePhaseRecordFromArtifact
+import skillbill.workflow.taskruntime.decodeValidationGateExecutionEvidenceFromArtifact
+import skillbill.workflow.taskruntime.decodeValidationGateProgressFromArtifact
+import skillbill.workflow.taskruntime.envelopeWireMap
+import skillbill.workflow.taskruntime.phaseRecordsFromWorkflowArtifacts
+import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 /**
  * AC-014 and AC-016: the pause data is only useful if it survives the process that wrote it. These
  * drive the real recorder against a workflow store and read the state back, rather than asserting on
@@ -107,7 +117,7 @@ class GoalSubtaskReviewStateDurablePersistenceTest {
         suppressPr = true,
         goalBranch = goalBranch,
         codeReviewMode = CodeReviewExecutionMode.INLINE,
-      ).toArtifactMap(),
+      ).asWorkflowArtifactEntry().toWorkflowArtifactMap(),
       GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to state.toArtifactMap(),
       GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY to state.passResults.associate { result ->
         result.passNumber.toString() to """{"phase_id":"review","status":"completed"}"""
@@ -115,7 +125,7 @@ class GoalSubtaskReviewStateDurablePersistenceTest {
     )
     if (checkpointIdentities.isNotEmpty()) {
       artifactsPatch[FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_ARTIFACT_KEY] =
-        featureTaskRuntimeCheckpointIdentitiesToArtifact(checkpointIdentities)
+        checkpointIdentities.asCheckpointIdentitiesArtifactEntry()
     }
     val seeded = engine.updateRecord(
       definition,

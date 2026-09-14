@@ -1,6 +1,5 @@
 package skillbill.workflow.taskruntime.model
 
-import skillbill.boundary.OpenBoundaryMap
 
 data class FeatureTaskRuntimePriorGapMemory(
   val round: Int,
@@ -9,9 +8,7 @@ data class FeatureTaskRuntimePriorGapMemory(
   companion object {
     const val FIELD_ROUND: String = "round"
     const val FIELD_PRIOR_AUDIT_VALUES: String = "prior_audit_values"
-
-    @OpenBoundaryMap("Feature-task-runtime prior-gap memory decode from legacy durable wire map")
-    fun fromMap(raw: Map<String, Any?>): FeatureTaskRuntimePriorGapMemory {
+    internal fun fromMap(raw: Map<String, Any?>): FeatureTaskRuntimePriorGapMemory {
       val round = (raw[FIELD_ROUND] as? Number)?.toInt()
         ?: (raw[FIELD_ROUND] as? String)?.toIntOrNull()
         ?: throw IllegalArgumentException("$FIELD_ROUND must decode to an integer.")

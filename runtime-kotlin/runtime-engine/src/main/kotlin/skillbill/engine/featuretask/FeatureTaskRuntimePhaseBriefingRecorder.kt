@@ -1,5 +1,7 @@
 package skillbill.engine.featuretask
 
+import skillbill.workflow.taskruntime.*
+
 import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseLaunchBriefing
@@ -31,7 +33,7 @@ class FeatureTaskRuntimePhaseBriefingRecorder(
   ): Boolean = database.transaction { unitOfWork ->
     val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
       ?: return@transaction false
-    handoffEnvelopeValidator.validateEnvelope(briefing.handoffEnvelope.toEnvelopeMap(), workflowId)
+    handoffEnvelopeValidator.validateEnvelope(briefing.handoffEnvelope.asWorkflowArtifactEntry(), workflowId)
     val artifacts = decodeWorkflowArtifacts(record.artifactsJson)
     val updatedBriefings = LinkedHashMap(phaseBriefingsFrom(artifacts, handoffEnvelopeValidator::validateEnvelopeWire))
       .apply { put(briefing.phaseId, briefing) }
@@ -42,7 +44,7 @@ class FeatureTaskRuntimePhaseBriefingRecorder(
     )
     val delivered = nextDeliveredProjectionRecord(workflowId, briefing, deliveredHistory)
     handoffFoundationValidator.validatePersistenceRecord(
-      delivered.toArtifactMap(),
+      delivered.asWorkflowArtifactEntry(),
       "delivered-projection:${briefing.phaseId}",
     )
     recordProjectionMeasurements(unitOfWork, workflowId, briefing, delivered, artifacts)
@@ -56,7 +58,7 @@ class FeatureTaskRuntimePhaseBriefingRecorder(
       FEATURE_TASK_RUNTIME_PHASE_BRIEFINGS_ARTIFACT_KEY to
         updatedBriefings.mapValues { (_, value) -> value.toArtifactMap() },
       FEATURE_TASK_RUNTIME_DELIVERED_PROJECTIONS_ARTIFACT_KEY to
-        updatedDelivered.mapValues { (_, value) -> value.toArtifactMap() },
+        updatedDelivered.mapValues { (_, value) -> value.asWorkflowArtifactEntry() },
     )
     workflowPersistence.persistPatch(unitOfWork.workflowStates, record, patch)
     true
@@ -90,7 +92,7 @@ class FeatureTaskRuntimePhaseBriefingRecorder(
   override fun validateHandoffDeclarations(declarations: List<PhaseHandoffProjectionDeclaration>) {
     declarations.forEach { declaration ->
       handoffFoundationValidator.validateDeclaration(
-        declaration.toArtifactMap(),
+        declaration.asWorkflowArtifactEntry(),
         "phase-handoff-declaration:${declaration.consumerPhaseId}:${declaration.projectionName}",
       )
     }
@@ -141,7 +143,7 @@ fun FeatureTaskRuntimePhaseBriefingRecorder.recordProjectionMeasurements(
   delivered: FeatureTaskRuntimeDeliveredProjectionRecord,
   artifacts: Map<String, Any?>,
 ) {
-  val privatePhaseRecords = phaseRecordsFrom(artifacts)
+  val privatePhaseRecords = decodePhaseRecords(artifacts)
   briefing.handoffEnvelope.projections.forEach { projection ->
     val deliveredProjectionUtf8Bytes = projection.utf8ByteSize
     val privateEvidenceUtf8Bytes =
@@ -163,7 +165,7 @@ fun FeatureTaskRuntimePhaseBriefingRecorder.recordProjectionMeasurements(
       deliveredProjectionUtf8Bytes = deliveredProjectionUtf8Bytes,
     )
     handoffFoundationValidator.validateMeasurement(
-      measurement.toTelemetryMap(),
+      measurement.asTelemetryPayload(),
       "projection-delivery:${briefing.phaseId}:${projection.projectionName}",
     )
     unitOfWork.lifecycleTelemetry.featureTaskRuntimeProjectionMeasurement(measurement)
@@ -217,7 +219,7 @@ internal fun FeatureTaskRuntimePhaseBriefingRecorder.recordProjectionRejectionMe
     failureClassification = rejection.failureClassification,
   )
   handoffFoundationValidator.validateMeasurement(
-    measurement.toTelemetryMap(),
+    measurement.asTelemetryPayload(),
     "projection-rejection:${rejection.consumerPhaseId}:${rejection.sourceLabel}",
   )
   unitOfWork.lifecycleTelemetry.featureTaskRuntimeProjectionMeasurement(measurement)

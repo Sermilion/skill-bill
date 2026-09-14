@@ -1,6 +1,5 @@
 package skillbill.workflow.taskruntime.model
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_IMPLEMENTATION_ATTEMPT_CONTRACT_VERSION
@@ -40,9 +39,7 @@ data class FeatureTaskRuntimeImplementationAttempt(
 
   val carriesOpenObligation: Boolean
     get() = status == FeatureTaskRuntimeImplementationAttemptStatus.INCOMPLETE
-
-  @OpenBoundaryMap("Feature-task-runtime implementation-attempt entry at the durable workflow-artifact seam")
-  fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
+  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
     "sequence_number" to sequenceNumber,
     SharedPayloadKeys.PHASE_ID to phaseId,
     "attempt_number" to attemptNumber,
@@ -58,8 +55,7 @@ data class FeatureTaskRuntimeImplementationAttempt(
   }
 
   companion object {
-    @OpenBoundaryMap("Feature-task-runtime implementation-attempt decode from the durable workflow-artifact map")
-    fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeImplementationAttempt {
+    internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeImplementationAttempt {
       val unexpected = raw.keys - ALLOWED_FIELDS
       if (unexpected.isNotEmpty()) {
         implementationAttemptError(
@@ -115,17 +111,13 @@ enum class FeatureTaskRuntimeImplementationAttemptStatus(val wireValue: String) 
         )
   }
 }
-
-@OpenBoundaryMap("Feature-task-runtime implementation-attempt record at the durable workflow-artifact seam")
-fun featureTaskRuntimeImplementationAttemptRecordToWire(
+internal fun featureTaskRuntimeImplementationAttemptRecordToWire(
   attempts: List<FeatureTaskRuntimeImplementationAttempt>,
 ): Map<String, Any?> = linkedMapOf(
   SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_IMPLEMENTATION_ATTEMPT_CONTRACT_VERSION,
   "attempts" to attempts.map { it.toArtifactMap() },
 )
-
-@OpenBoundaryMap("Feature-task-runtime implementation-attempt decode from the durable workflow-artifact map")
-fun featureTaskRuntimeImplementationAttemptsFromWire(raw: Any?): List<FeatureTaskRuntimeImplementationAttempt> {
+internal fun featureTaskRuntimeImplementationAttemptsFromWire(raw: Any?): List<FeatureTaskRuntimeImplementationAttempt> {
   val map = raw as? Map<*, *>
     ?: implementationAttemptError("Feature-task-runtime implementation-attempt record must be an object.")
   val version = map[SharedPayloadKeys.CONTRACT_VERSION]

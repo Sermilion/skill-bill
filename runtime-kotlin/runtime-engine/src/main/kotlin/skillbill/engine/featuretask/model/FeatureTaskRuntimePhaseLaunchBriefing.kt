@@ -5,8 +5,10 @@ import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_PHASE_LAUNCH_BRIEFING_CONTRACT_VERSION
 import skillbill.error.InvalidWorkflowStateSchemaError
+import skillbill.workflow.taskruntime.decodeHandoffEnvelopeFromArtifact
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffEnvelope
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffSourceRef
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
 
 data class FeatureTaskRuntimePhaseLaunchBriefing(
   val phaseId: String,
@@ -43,7 +45,7 @@ data class FeatureTaskRuntimePhaseLaunchBriefing(
     "feature_size" to featureSize,
     "acceptance_criteria" to acceptanceCriteria,
     "mandates_and_overrides" to mandatesAndOverrides,
-    "handoff_envelope" to handoffEnvelope.toEnvelopeMap(),
+    "handoff_envelope" to handoffEnvelope.asWorkflowArtifactEntry(),
     "derived_context_keys" to derivedContextKeys,
     "briefing_text" to briefingText,
   ).let { base ->
@@ -98,7 +100,8 @@ data class FeatureTaskRuntimePhaseLaunchBriefing(
       val envelope = JsonCodec.anyToStringAnyMap(rawValue)
         ?: schemaError("Feature-task-runtime briefing artifact field '$key' must decode to an object.")
       return try {
-        FeatureTaskRuntimeHandoffEnvelope.fromEnvelopeMap(envelope)
+        decodeHandoffEnvelopeFromArtifact(envelope)
+          ?: schemaError("Feature-task-runtime briefing artifact field '$key' must decode to an object.")
       } catch (error: IllegalArgumentException) {
         throw InvalidWorkflowStateSchemaError(
           "Feature-task-runtime briefing artifact field '$key' is not a valid handoff envelope: " +

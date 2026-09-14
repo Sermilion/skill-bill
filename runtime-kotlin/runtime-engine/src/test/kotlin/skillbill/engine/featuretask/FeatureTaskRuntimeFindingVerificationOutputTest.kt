@@ -15,6 +15,17 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+import skillbill.workflow.taskruntime.asCheckpointIdentitiesArtifactEntry
+import skillbill.workflow.taskruntime.asTelemetryPayload
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.decodeFindingVerificationDispositionFromArtifact
+import skillbill.workflow.taskruntime.decodeImplementationAttemptFromArtifact
+import skillbill.workflow.taskruntime.decodePhaseRecordFromArtifact
+import skillbill.workflow.taskruntime.decodeValidationGateExecutionEvidenceFromArtifact
+import skillbill.workflow.taskruntime.decodeValidationGateProgressFromArtifact
+import skillbill.workflow.taskruntime.envelopeWireMap
+import skillbill.workflow.taskruntime.phaseRecordsFromWorkflowArtifacts
+import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 class FeatureTaskRuntimeFindingVerificationOutputTest {
   @Test
   fun `verify_findings wire verdict settles findings_verified`() {
@@ -148,25 +159,23 @@ class FeatureTaskRuntimeFindingVerificationOutputTest {
     )
     assertEquals(
       disposition,
-      FeatureTaskRuntimeFindingVerificationDisposition.fromArtifactMap(
-        disposition.toArtifactMap(),
-        "finding_dispositions[0]",
-      ),
+      decodeFindingVerificationDispositionFromArtifact(
+        disposition.asWorkflowArtifactEntry(), "finding_dispositions[0]",
+      )!!,
     )
   }
 
   @Test
   fun `census-only disposition ignores extra keys`() {
-    val disposition = FeatureTaskRuntimeFindingVerificationDisposition.fromArtifactMap(
+    val disposition = decodeFindingVerificationDispositionFromArtifact(
       mapOf(
-        "finding_id" to "F-001",
-        "disposition" to "verified",
+        "finding_id" to "F-001", "disposition" to "verified",
         "severity" to "major",
         "location" to "Example.kt",
         "message" to "Finding",
       ),
       "finding_dispositions[0]",
-    )
+    )!!
     assertEquals("F-001", disposition.findingId)
     assertNull(disposition.reason)
   }
@@ -186,10 +195,9 @@ class FeatureTaskRuntimeFindingVerificationOutputTest {
   @Test
   fun `retired disposition field loud-fails with named verification record error`() {
     val error = assertFailsWith<InvalidFeatureTaskRuntimeFindingVerificationRecordError> {
-      FeatureTaskRuntimeFindingVerificationDisposition.fromArtifactMap(
+      decodeFindingVerificationDispositionFromArtifact(
         mapOf(
-          "finding_id" to "F-001",
-          "verdict" to "verified",
+          "finding_id" to "F-001", "verdict" to "verified",
         ),
         "finding_verification_checkpoint[0]",
       )

@@ -17,7 +17,10 @@ import skillbill.workflow.engine.decodeWorkflowSteps
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
+import skillbill.engine.featuretask.workflowArtifactEntryMap
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.envelopeWireMap
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePlanningProjectionValidator
 import skillbill.workflow.taskruntime.model.AcceptedFeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_PLANNING_IMPORT_ARTIFACT_KEY
@@ -171,13 +174,13 @@ class GoalChildPlanningHydrator(
       preplan.normalizedOutput.canonicalJson,
       preplan.repairEvidence,
       importedAt,
-    ).toArtifactMap(),
+    ).asWorkflowArtifactEntry().let(::workflowArtifactEntryMap),
     "plan" to importedRecord(
       "plan",
       plan.normalizedOutput.canonicalJson,
       plan.repairEvidence,
       importedAt,
-    ).toArtifactMap(),
+    ).asWorkflowArtifactEntry().let(::workflowArtifactEntryMap),
   )
 
   private fun createImportedLedger(importedAt: String): List<Map<String, Any?>> =
@@ -189,7 +192,7 @@ class GoalChildPlanningHydrator(
         phaseId = phaseId,
         attemptCount = 1,
         executionOrigin = FeatureTaskRuntimePhaseExecutionOrigin.GOAL_PLANNING_HYDRATED,
-      ).toArtifactMap()
+      ).asWorkflowArtifactEntry().let(::workflowArtifactEntryMap)
     }
 
   private fun createProvenance(
@@ -211,7 +214,7 @@ class GoalChildPlanningHydrator(
     subSpecHash = request.descriptor.subSpecHash,
     preplanPayloadSha256 = prepared.shared.payloadSha256,
     planPayloadSha256 = prepared.plan.payloadSha256,
-  ).toArtifactMap()
+  ).asWorkflowArtifactEntry().let(::workflowArtifactEntryMap)
 }
 
 private class PreparedPlanningPayloadValidator(
@@ -237,7 +240,7 @@ private class PreparedPlanningPayloadValidator(
         "repair evidence does not describe the stored payload bytes",
       )
     }
-    val decoded = accepted.normalizedOutput.envelope
+    val decoded = accepted.normalizedOutput.envelopeWireMap()
     if (
       decoded[SharedPayloadKeys.PHASE_ID] != phaseId ||
       decoded[SharedPayloadKeys.STATUS].workflowStepStatus() != WorkflowStepStatus.COMPLETED

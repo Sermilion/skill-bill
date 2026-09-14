@@ -10,7 +10,10 @@ import skillbill.workflow.taskruntime.FeatureTaskRuntimeHandoffEnvelopeValidator
  */
 @Inject
 class FeatureTaskRuntimeHandoffEnvelopeValidatorInfraAdapter : FeatureTaskRuntimeHandoffEnvelopeValidator {
-  override fun validateEnvelope(envelope: Map<String, Any?>, workflowId: String?) {
-    FeatureTaskRuntimeHandoffEnvelopeSchemaValidator.validate(envelope, workflowId)
+  override fun validateEnvelope(envelope: Any, workflowId: String?) {
+    FeatureTaskRuntimeHandoffEnvelopeSchemaValidator.validate(
+      requireFeatureTaskRuntimeArtifactMap(envelope, workflowId ?: "handoff-envelope"),
+      workflowId,
+    )
   }
 }

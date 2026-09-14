@@ -1,6 +1,5 @@
 package skillbill.workflow.taskruntime.model
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.workflow.decomposition.model.SpecSource
 
@@ -54,15 +53,12 @@ data class FeatureTaskRuntimeDecomposeSubtask(
  * The absent `projection_kind` is the distinguishing signal: an `executable_plan` projection that
  * merely declares `mode: decompose` is still a projection and stays under the producer gate.
  */
-@OpenBoundaryMap("Feature-task-runtime decomposition-package detection on the schema-validated phase-output wire map")
-fun featureTaskRuntimeIsDecompositionPackage(phaseOutput: Map<String, Any?>): Boolean {
+internal fun featureTaskRuntimeIsDecompositionPackage(phaseOutput: Map<String, Any?>): Boolean {
   val producedOutputs = phaseOutput.stringAnyMap("produced_outputs") ?: return false
   val packageMap = producedOutputs.stringAnyMap("decomposition_package") ?: return false
   return packageMap["mode"]?.toString() == DECOMPOSE_MODE
 }
-
-@OpenBoundaryMap("Feature-task-runtime plan outcome projection reads the schema-validated phase-output wire map")
-fun featureTaskRuntimeDecomposePlanOutcomeOrNull(
+internal fun featureTaskRuntimeDecomposePlanOutcomeOrNull(
   phaseOutput: Map<String, Any?>,
   specSource: SpecSource,
 ): FeatureTaskRuntimeDecomposePlanOutcome? {

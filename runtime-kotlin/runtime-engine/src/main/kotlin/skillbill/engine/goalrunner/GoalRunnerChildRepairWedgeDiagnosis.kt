@@ -18,7 +18,9 @@ import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_CONTINUATI
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_PLANNING_IMPORT_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationArtifact
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeQualityGateSelection
-import skillbill.workflow.taskruntime.phaseartifacts.phaseRecordsFrom
+import skillbill.engine.featuretask.decodePhaseRecords
+import skillbill.workflow.taskruntime.decodeGoalContinuationArtifactFromArtifact
+import skillbill.workflow.taskruntime.phaseRecordsFromWorkflowArtifacts
 import java.nio.file.Path
 import java.time.Clock
 import java.time.Instant
@@ -134,7 +136,7 @@ class GoalRunnerChildRepairWedgeDiagnosis(
     wedges: MutableList<GoalRunnerWedgeFinding>,
     passed: MutableList<String>,
   ) {
-    val phaseRecords = phaseRecordsFrom(artifacts)
+    val phaseRecords = decodePhaseRecords(artifacts)
     val qualityGateSelection = continuationArtifact(artifacts)?.qualityGateSelection
       ?: FeatureTaskRuntimeQualityGateSelection.VALIDATE
     val resumePhaseId = diagnoseUnsettledCompletedUpstreamPhaseId(
@@ -223,6 +225,6 @@ class GoalRunnerChildRepairWedgeDiagnosis(
   private fun continuationArtifact(artifacts: Map<String, Any?>): FeatureTaskRuntimeGoalContinuationArtifact? {
     val raw = JsonCodec.anyToStringAnyMap(artifacts[FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY])
       ?: return null
-    return FeatureTaskRuntimeGoalContinuationArtifact.fromArtifactMap(raw)
+    return decodeGoalContinuationArtifactFromArtifact(raw)
   }
 }

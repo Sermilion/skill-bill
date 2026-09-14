@@ -1,5 +1,7 @@
 package skillbill.engine.featuretask
 
+import skillbill.workflow.taskruntime.*
+
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
 import skillbill.error.FeatureTaskRuntimePhaseOrderViolationError
 import skillbill.goalrunner.subtaskreview.GoalSubtaskReviewSummaryReducer
@@ -109,7 +111,7 @@ object FeatureTaskRuntimeRunLoopDrive {
           FeatureTaskRuntimeRunLoopDrive.completeReservedGoalReviewPass(
             runLoop,
             output,
-            accepted.normalizedOutput.envelope,
+            accepted.normalizedOutput.envelopeWireMap(),
           )
         },
         onFailure = { error ->

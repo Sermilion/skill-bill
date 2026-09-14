@@ -1,5 +1,7 @@
 package skillbill.engine.featuretask
 
+import skillbill.workflow.taskruntime.*
+
 import skillbill.application.reviewevidence.FeatureTaskRuntimeSharedReviewEvidenceResolver
 import skillbill.application.reviewevidence.model.FeatureTaskRuntimeSharedReviewEvidenceResolved
 import skillbill.contracts.JsonCodec
@@ -48,10 +50,10 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
   ): NormalizedFeatureTaskRuntimePhaseOutput {
     val eligible = run.agentRunValidateFallback &&
       run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE &&
-      (normalizedOutput.envelope[SharedPayloadKeys.STATUS] as? String)
+      (normalizedOutput.envelopeWireMap()[SharedPayloadKeys.STATUS] as? String)
         .workflowStepStatus() == WorkflowStepStatus.COMPLETED
     if (!eligible) return normalizedOutput
-    val produced = JsonCodec.anyToStringAnyMap(normalizedOutput.envelope[SharedPayloadKeys.PRODUCED_OUTPUTS])
+    val produced = JsonCodec.anyToStringAnyMap(normalizedOutput.envelopeWireMap()[SharedPayloadKeys.PRODUCED_OUTPUTS])
       ?.toMutableMap()
       ?: return normalizedOutput
     val validationResult = JsonCodec.anyToStringAnyMap(
@@ -63,7 +65,7 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
     validationResult["gate_runs"] = emptyList<Any?>()
     validationResult.remove("suppression_justifications")
     produced[ValidationEvidencePayloadKeys.VALIDATION_RESULT] = validationResult
-    val envelope = normalizedOutput.envelope.toMutableMap()
+    val envelope = normalizedOutput.envelopeWireMap().toMutableMap()
     envelope[SharedPayloadKeys.PRODUCED_OUTPUTS] = produced
     return runLoop.outputValidator.validatePhaseOutput(
       JsonCodec.mapToJsonString(envelope),
@@ -190,7 +192,7 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
       return emptyList()
     }
     val review = state.outputFor(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW) ?: return emptyList()
-    val envelope = review.normalizedOutput?.envelope
+    val envelope = review.normalizedOutput?.envelopeWireMap()
       ?: JsonCodec.parseObjectOrNull(review.payload)
         ?.let { JsonCodec.jsonElementToValue(it) }
         ?.let(JsonCodec::anyToStringAnyMap)
@@ -317,7 +319,7 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
     run: PhaseRun,
   ): List<FeatureTaskRuntimeFindingBoundaryMemorySection> {
     val reviewOutput = runLoop.state.outputFor(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW)
-      ?.normalizedOutput?.envelope
+      ?.normalizedOutput?.envelopeWireMap()
     val recordedVerdicts = reviewOutput?.let {
       runLoop.recorder.recordedFindingVerdicts(
         it,
@@ -440,7 +442,7 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
 
   fun reviewFindingIdsForVerification(runLoop: FeatureTaskRuntimeRunLoop): Set<String> {
     val reviewOutput = runLoop.state.outputFor(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW)
-      ?.normalizedOutput?.envelope
+      ?.normalizedOutput?.envelopeWireMap()
       ?: return emptySet()
     val recordedVerdicts = runLoop.recorder.recordedFindingVerdicts(reviewOutput)
     return GoalSubtaskReviewStructuredFindingsParse.structuredFindings(reviewOutput, recordedVerdicts)
@@ -782,7 +784,7 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
       FeatureTaskRuntimeRunLoopOutputPersistence.persistRejectedVerificationFindings(
         runLoop,
         run,
-        normalizedOutput.envelope,
+        normalizedOutput.envelopeWireMap(),
       )
     }
     val persisted = runLoop.recorder.recordCompletedPhase(

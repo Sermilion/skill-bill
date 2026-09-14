@@ -99,6 +99,8 @@ import skillbill.telemetry.model.TelemetryRemoteStatsResult
 import skillbill.telemetry.model.TelemetrySettings
 import skillbill.workflow.goal.NoopGoalObservabilityEventValidator
 import skillbill.workflow.model.WorkflowStepStatus
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_BRIEFINGS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
@@ -706,7 +708,7 @@ internal fun blockedGoalChildRetryFixture(): BlockedGoalChildRetryFixture {
             goalBranch = "feat/SKILL-51-demo",
             parentWorkflowId = parentWorkflowId,
             codeReviewMode = CodeReviewExecutionMode.INLINE,
-          ).toArtifactMap(),
+          ).asWorkflowArtifactEntry().toWorkflowArtifactMap(),
       ),
     ),
   )

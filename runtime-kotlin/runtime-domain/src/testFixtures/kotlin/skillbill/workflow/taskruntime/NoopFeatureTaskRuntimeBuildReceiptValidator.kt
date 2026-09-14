@@ -1,6 +1,6 @@
 package skillbill.workflow.taskruntime
 
 object NoopFeatureTaskRuntimeBuildReceiptValidator : FeatureTaskRuntimeBuildReceiptValidator {
-  override fun validateBuildReceipt(buildReceipt: Map<String, Any?>, sourceLabel: String) {
+  override fun validateBuildReceipt(buildReceipt: Any, sourceLabel: String) {
   }
 }

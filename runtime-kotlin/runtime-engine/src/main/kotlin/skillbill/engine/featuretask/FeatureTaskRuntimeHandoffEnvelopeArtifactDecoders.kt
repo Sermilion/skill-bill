@@ -7,6 +7,7 @@ import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_DELIVERED_PROJECTIONS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_INCOMPATIBLE_RECORD_GUIDANCE
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_BRIEFINGS_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.decodeDeliveredProjectionRecordFromArtifact
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDeliveredProjectionRecord
 
 fun phaseBriefingsFrom(
@@ -61,7 +62,10 @@ fun deliveredProjectionHistoryFrom(
       cause = error,
     )
   }
-  val delivered = FeatureTaskRuntimeDeliveredProjectionRecord.fromArtifactMap(recordMap)
+  val delivered = decodeDeliveredProjectionRecordFromArtifact(recordMap)
+    ?: schemaError(
+      "Feature-task-runtime artifact '$FEATURE_TASK_RUNTIME_DELIVERED_PROJECTIONS_ARTIFACT_KEY' entry must decode.",
+    )
   validateEnvelope(
     JsonCodec.anyToStringAnyMap(recordMap["handoff_envelope"])
       ?: schemaError(

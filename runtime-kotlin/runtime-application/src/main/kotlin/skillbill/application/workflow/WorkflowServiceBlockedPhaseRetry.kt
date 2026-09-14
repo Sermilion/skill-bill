@@ -22,6 +22,7 @@ import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_REASON_MAX_LENGTH
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerAction
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerEntry
@@ -159,9 +160,9 @@ class WorkflowServiceBlockedPhaseRetry(
       ),
       artifactsPatch = mapOf(
         FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to
-          updatedRecords.mapValues { (_, record) -> record.toArtifactMap() },
+          updatedRecords.mapValues { (_, record) -> record.asWorkflowArtifactEntry() },
         FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY to
-          (state.ledger.map { it.toArtifactMap() } + retryEntry.toArtifactMap()).takeLast(
+          (state.ledger.map { it.asWorkflowArtifactEntry() } + retryEntry.asWorkflowArtifactEntry()).takeLast(
             FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT,
           ),
         FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_ARTIFACT_KEY to mapOf(
@@ -169,7 +170,7 @@ class WorkflowServiceBlockedPhaseRetry(
           "reason" to request.reason,
           "retried_at" to OffsetDateTime.now(ZoneOffset.UTC).toString(),
           "previous_blocked_reason" to state.blockedRecord.blockedReason,
-          "previous_blocked_record" to state.blockedRecord.toArtifactMap(),
+          "previous_blocked_record" to state.blockedRecord.asWorkflowArtifactEntry(),
         ),
       ),
       sessionId = "",

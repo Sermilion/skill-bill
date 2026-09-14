@@ -13,6 +13,7 @@ import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.decodeGoalContinuationArtifactFromArtifact
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationArtifact
 
 fun WorkflowEngine.updateGoalParentForBlockedPhaseRetry(
@@ -28,7 +29,10 @@ fun WorkflowEngine.updateGoalParentForBlockedPhaseRetry(
     ?: invalidGoalRetryProjection(
       "Workflow artifact '$FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY' must be an object.",
     )
-  val continuation = FeatureTaskRuntimeGoalContinuationArtifact.fromArtifactMap(continuationMap)
+  val continuation = decodeGoalContinuationArtifactFromArtifact(continuationMap)
+    ?: invalidGoalRetryProjection(
+      "Workflow artifact '$FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY' is malformed.",
+    )
   val parentWorkflowId = continuation.parentWorkflowId ?: return null
   val parent = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, parentWorkflowId)
     ?: invalidGoalRetryProjection(

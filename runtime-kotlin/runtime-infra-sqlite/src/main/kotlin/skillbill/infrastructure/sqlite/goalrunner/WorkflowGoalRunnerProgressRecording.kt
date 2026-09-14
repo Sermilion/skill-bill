@@ -45,7 +45,7 @@ import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStatus
 import skillbill.workflow.model.workflowStepStatus
-import skillbill.workflow.taskruntime.phaseartifacts.phaseRecordsFrom
+import skillbill.infrastructure.sqlite.featuretask.artifact.decodePhaseRecords
 
 private val PROGRESS_POLL_ARTIFACT_KEYS = setOf(
   "progress_event",
@@ -220,7 +220,7 @@ internal class WorkflowGoalRunnerProgressRecording(
     val record = family.get(unitOfWork.workflowStates, workflowId) ?: return@read emptyMap()
     val artifacts = decodeArtifacts(record.artifactsJson)
     val result = mutableMapOf<String, Int>()
-    phaseRecordsFrom(artifacts).values.forEach { phaseRecord ->
+    decodePhaseRecords(artifacts).values.forEach { phaseRecord ->
       val loopId = phaseRecord.loopId ?: return@forEach
       val edgeIteration = phaseRecord.edgeIteration ?: return@forEach
       result.merge(loopId, edgeIteration, ::maxOf)

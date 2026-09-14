@@ -50,7 +50,8 @@ fun validatedGoalReviewPasses(
 ): List<GoalSubtaskReviewPassResult> {
   review.state.passResults.forEach { pass ->
     val rawResult = review.rawResults.getValue(pass.passNumber.toString())
-    val output = goalReviewEmissionEnvelope(rawResult, phaseOutputValidator)
+    val output = JsonCodec.anyToStringAnyMap(goalReviewEmissionEnvelope(rawResult, phaseOutputValidator))
+      ?: emptyMap()
     val recordedVerdicts = GoalSubtaskReviewStructuredFindingsParse.recordedVerdicts(
       unitOfWork.reviews::fetchFindingVerdicts,
       output,
@@ -74,17 +75,16 @@ fun validatedGoalReviewPasses(
   return review.state.passResults
 }
 
-@OpenBoundaryMap("Goal review emission envelope at the phase-output validation seam")
 fun goalReviewEmissionEnvelope(
   rawResult: String,
   phaseOutputValidator: FeatureTaskRuntimePhaseOutputValidator,
-): Map<String, Any?> {
-  if (JsonCodec.parseObjectOrNull(rawResult.trim()) == null) return emptyMap()
+): Any {
+  if (JsonCodec.parseObjectOrNull(rawResult.trim()) == null) return emptyMap<String, Any?>()
   return phaseOutputValidator
     .validatePhaseOutput(rawResult, FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW)
     .requireAcceptedOutput(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW)
     .normalizedOutput
-    .envelope
+    .envelopePayload()
 }
 
 fun taskRuntimeRecordOrNull(workflowStates: WorkflowStateRepository, workflowId: String): WorkflowStateSnapshot? = try {

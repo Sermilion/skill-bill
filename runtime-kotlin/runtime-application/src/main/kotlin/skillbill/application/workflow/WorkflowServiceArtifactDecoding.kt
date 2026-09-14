@@ -4,6 +4,8 @@ import skillbill.contracts.JsonCodec
 import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.decodePhaseLedgerEntryFromArtifact
+import skillbill.workflow.taskruntime.decodePhaseRecordFromArtifact
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerEntry
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 
@@ -16,10 +18,10 @@ fun decodeFeatureTaskRuntimePhaseRecords(artifacts: Map<String, Any?>): Map<Stri
   val raw = JsonCodec.anyToStringAnyMap(artifacts[FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY])
     ?: return emptyMap()
   return raw.mapValues { (_, value) ->
-    FeatureTaskRuntimePhaseRecord.fromArtifactMap(
+    decodePhaseRecordFromArtifact(
       JsonCodec.anyToStringAnyMap(value)
         ?: throw IllegalArgumentException("Feature-task-runtime phase record entry is malformed."),
-    )
+    ) ?: throw IllegalArgumentException("Feature-task-runtime phase record entry is malformed.")
   }
 }
 
@@ -31,7 +33,8 @@ object FeatureTaskRuntimePhaseLedgerDecoder {
     return raw.map { value ->
       val entry = JsonCodec.anyToStringAnyMap(value) ?: invalid("contains a malformed entry")
       try {
-        FeatureTaskRuntimePhaseLedgerEntry.fromArtifactMap(entry)
+        decodePhaseLedgerEntryFromArtifact(entry)
+          ?: invalid("contains a malformed entry")
       } catch (error: InvalidWorkflowStateSchemaError) {
         rethrow(error)
       } catch (error: IllegalArgumentException) {

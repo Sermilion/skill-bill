@@ -1,5 +1,7 @@
 package skillbill.engine.featuretask
 
+import skillbill.workflow.taskruntime.*
+
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
@@ -81,10 +83,10 @@ object FeatureTaskRuntimeRunLoopValidationGate {
       .requireAcceptedOutput(run.phaseId)
     val buildReceipt = JsonCodec.anyToStringAnyMap(
       JsonCodec.anyToStringAnyMap(
-        accepted.normalizedOutput.envelope[SharedPayloadKeys.PRODUCED_OUTPUTS],
+        accepted.normalizedOutput.envelopeWireMap()[SharedPayloadKeys.PRODUCED_OUTPUTS],
       )?.get("build_receipt"),
     )
-    runLoop.buildReceiptValidator.validateBuildReceipt(buildReceipt ?: emptyMap(), sourceLabel = run.phaseId)
+    runLoop.buildReceiptValidator.validateBuildReceipt(buildReceipt ?: emptyMap<String, Any?>(), sourceLabel = run.phaseId)
     accepted
   }
 
@@ -413,7 +415,7 @@ object FeatureTaskRuntimeRunLoopValidationGate {
         sourceLabel = run.phaseId,
       ).requireAcceptedOutput(run.phaseId)
       val produced = JsonCodec.anyToStringAnyMap(
-        accepted.normalizedOutput.envelope[SharedPayloadKeys.PRODUCED_OUTPUTS],
+        accepted.normalizedOutput.envelopeWireMap()[SharedPayloadKeys.PRODUCED_OUTPUTS],
       )
       val validationResult = JsonCodec.anyToStringAnyMap(
         produced?.get(ValidationEvidencePayloadKeys.VALIDATION_RESULT),
@@ -421,7 +423,7 @@ object FeatureTaskRuntimeRunLoopValidationGate {
       val evidence = JsonCodec.anyToStringAnyMap(
         validationResult?.get(ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE),
       )?.let { raw ->
-        FeatureTaskRuntimeValidationEvidence.fromArtifactMap(raw, run.phaseId)
+        decodeValidationEvidenceFromArtifact(raw, run.phaseId)!!
       } ?: error("Runtime-owned validation evidence is missing.")
       evidence.requireSuccessfulCommand(
         requiredValidationCommand(runLoop, run, evidence),

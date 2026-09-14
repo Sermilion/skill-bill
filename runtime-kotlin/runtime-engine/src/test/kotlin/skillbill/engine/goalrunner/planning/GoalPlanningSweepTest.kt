@@ -1925,7 +1925,7 @@ class GoalPlanningSweepTimingTest {
   fun `preplan settles without consulting the planning projection producer gate`() {
     val labels = mutableListOf<String>()
     val validator = object : FeatureTaskRuntimePlanningProjectionValidator {
-      override fun validatePlanningProjection(producedOutputs: Map<String, Any?>, sourceLabel: String) {
+      override fun validatePlanningProjection(producedOutputs: Any, sourceLabel: String) {
         labels += sourceLabel
       }
     }

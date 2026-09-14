@@ -16,6 +16,17 @@ import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
+import skillbill.workflow.taskruntime.asCheckpointIdentitiesArtifactEntry
+import skillbill.workflow.taskruntime.asTelemetryPayload
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.decodeFindingVerificationDispositionFromArtifact
+import skillbill.workflow.taskruntime.decodeImplementationAttemptFromArtifact
+import skillbill.workflow.taskruntime.decodePhaseRecordFromArtifact
+import skillbill.workflow.taskruntime.decodeValidationGateExecutionEvidenceFromArtifact
+import skillbill.workflow.taskruntime.decodeValidationGateProgressFromArtifact
+import skillbill.workflow.taskruntime.envelopeWireMap
+import skillbill.workflow.taskruntime.phaseRecordsFromWorkflowArtifacts
+import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 class SqliteValidationGateEvidenceRoundTripTest {
   @Test
   fun `validation gate execution evidence survives sqlite round trip`() {
@@ -64,7 +75,8 @@ class SqliteValidationGateEvidenceRoundTripTest {
       mapOf(
         SharedPayloadKeys.STATUS to "completed",
         SharedPayloadKeys.PRODUCED_OUTPUTS to mapOf(
-          ValidationEvidencePayloadKeys.VALIDATION_RESULT to gateEvidence.toArtifactMap("checkpoint"),
+          ValidationEvidencePayloadKeys.VALIDATION_RESULT to
+            gateEvidence.asWorkflowArtifactEntry("checkpoint"),
         ),
       ),
     )
@@ -92,7 +104,7 @@ class SqliteValidationGateEvidenceRoundTripTest {
           ?.get(SharedPayloadKeys.PRODUCED_OUTPUTS),
       )?.get(ValidationEvidencePayloadKeys.VALIDATION_RESULT),
     ) ?: error("validation_result missing")
-    return FeatureTaskRuntimeValidationGateExecutionEvidence.fromArtifactMap(validationResult, "validate")
+    return decodeValidationGateExecutionEvidenceFromArtifact(validationResult, "validate")!!
   }
 
   private fun assertRoundTrip(decoded: FeatureTaskRuntimeValidationGateExecutionEvidence) {

@@ -1,5 +1,7 @@
 package skillbill.engine.featuretask
 
+import skillbill.workflow.taskruntime.*
+
 import skillbill.application.review.RuntimeOwnedReviewMode
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhasePromptComposeInputs
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
@@ -29,7 +31,7 @@ object FeatureTaskRuntimeRunLoopOutputPersistence {
     if (!isGoalContinuationRun(run.request)) return
     val continuation = run.request.goalContinuation ?: return
     val reviewOutput = runLoop.state.outputFor(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW)
-      ?.normalizedOutput?.envelope
+      ?.normalizedOutput?.envelopeWireMap()
       ?: return
     val reviewState = runLoop.goalContinuationRecorder.reviewState(run.request.workflowId)
     val passNumber = reviewState?.completedPassCount?.takeIf { it > 0 } ?: 1
@@ -375,7 +377,7 @@ object FeatureTaskRuntimeRunLoopOutputPersistence {
     repairEvidence: FeatureTaskRuntimePhaseOutputRepairEvidence?,
   ): GoalReviewPhaseCompletionRequest {
     val outputText = normalizedOutput.canonicalJson
-    val outputMap = normalizedOutput.envelope
+    val outputMap = normalizedOutput.envelopeWireMap()
     val recordedVerdicts = runLoop.recorder.recordedFindingVerdicts(outputMap)
     val findings = GoalSubtaskReviewSummaryReducer.fromOutput(outputMap, recordedVerdicts)
     val outcome = GoalSubtaskReviewSummaryReducer.outcomeFor(outputMap, findings)

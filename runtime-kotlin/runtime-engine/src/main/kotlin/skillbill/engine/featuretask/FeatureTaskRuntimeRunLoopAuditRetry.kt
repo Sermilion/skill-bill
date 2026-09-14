@@ -1,5 +1,7 @@
 package skillbill.engine.featuretask
 
+import skillbill.workflow.taskruntime.*
+
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
@@ -19,7 +21,7 @@ object FeatureTaskRuntimeRunLoopAuditRetry {
   internal fun stampSatisfiedVerdict(
     normalizedOutput: NormalizedFeatureTaskRuntimePhaseOutput,
   ): NormalizedFeatureTaskRuntimePhaseOutput {
-    val envelope = normalizedOutput.envelope.toMutableMap()
+    val envelope = normalizedOutput.envelopeWireMap().toMutableMap()
     envelope[SharedPayloadKeys.VERDICT] = FeatureTaskRuntimeVerdict.SATISFIED.wireValue
     return normalizedOutput.copy(
       envelope = envelope,

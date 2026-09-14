@@ -1,4 +1,15 @@
 package skillbill.engine
+import skillbill.workflow.taskruntime.asCheckpointIdentitiesArtifactEntry
+import skillbill.workflow.taskruntime.asTelemetryPayload
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.decodeFindingVerificationDispositionFromArtifact
+import skillbill.workflow.taskruntime.decodeImplementationAttemptFromArtifact
+import skillbill.workflow.taskruntime.decodePhaseRecordFromArtifact
+import skillbill.workflow.taskruntime.decodeValidationGateExecutionEvidenceFromArtifact
+import skillbill.workflow.taskruntime.decodeValidationGateProgressFromArtifact
+import skillbill.workflow.taskruntime.envelopeWireMap
+import skillbill.workflow.taskruntime.phaseRecordsFromWorkflowArtifacts
+import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 import skillbill.application.testWorkflowSnapshotValidator
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.contracts.JsonCodec
@@ -182,7 +193,7 @@ internal fun goalReviewWorkflowRecord(
           suppressPr = true,
           goalBranch = "feat/SKILL-119",
           codeReviewMode = CodeReviewExecutionMode.AUTO,
-        ).toArtifactMap(),
+        ).asWorkflowArtifactEntry().toWorkflowArtifactMap(),
         GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to state.toArtifactMap(),
         GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY to mapOf("1" to rawReviewResult),
       ),
@@ -272,7 +283,7 @@ internal fun tornBlockedReviewRecord(workflowId: String): WorkflowStateRecord {
       ),
       artifactsPatch = mapOf(
         FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to mapOf(
-          "review" to reviewRecord.toArtifactMap(),
+          "review" to reviewRecord.asWorkflowArtifactEntry(),
         ),
         "goal_continuation" to mapOf(
           "issue_key" to "SKILL-191",

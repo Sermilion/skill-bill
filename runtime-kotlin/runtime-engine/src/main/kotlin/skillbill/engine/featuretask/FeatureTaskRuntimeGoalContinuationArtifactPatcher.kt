@@ -1,5 +1,7 @@
 package skillbill.engine.featuretask
 
+import skillbill.workflow.taskruntime.*
+
 import skillbill.agentaddon.model.AgentAddonSelection
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.contracts.SharedPayloadKeys
@@ -80,7 +82,7 @@ fun continuationPatch(
 ): Map<String, Any?> = when {
   continuation == null || continuation == existing -> emptyMap()
   existing == null -> mapOf(
-    FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY to continuation.toArtifactMap(),
+    FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY to continuation.asWorkflowArtifactEntry(),
     "install_sync_result" to mapOf(
       SharedPayloadKeys.STATUS to "deferred",
       "reason" to
@@ -88,7 +90,7 @@ fun continuationPatch(
         "deferred install sync must not block subtask completion",
     ),
   )
-  else -> mapOf(FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY to continuation.toArtifactMap())
+  else -> mapOf(FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY to continuation.asWorkflowArtifactEntry())
 }
 
 fun FeatureTaskRuntimeGoalContinuationArtifact?.compatibleWith(

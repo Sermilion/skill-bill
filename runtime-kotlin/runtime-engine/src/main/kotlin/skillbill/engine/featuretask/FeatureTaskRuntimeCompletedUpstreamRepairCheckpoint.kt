@@ -1,5 +1,7 @@
 package skillbill.engine.featuretask
 
+import skillbill.workflow.taskruntime.*
+
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.engine.featuretask.model.CompletedUpstreamRepairRequest
 import skillbill.workflow.engine.model.WorkflowUpdateInput
@@ -60,9 +62,9 @@ fun completedUpstreamRepairWorkflowUpdate(
   },
   artifactsPatch = mapOf(
     FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to
-      reopenedRecords.mapValues { (_, record) -> record.toArtifactMap() },
+      reopenedRecords.mapValues { (_, record) -> record.asWorkflowArtifactEntry() },
     FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY to
-      (request.ledger.map { it.toArtifactMap() } + retryEntry.toArtifactMap()).takeLast(
+      (request.ledger.map { it.asWorkflowArtifactEntry() } + retryEntry.asWorkflowArtifactEntry()).takeLast(
         FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT,
       ),
     FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_ARTIFACT_KEY to mapOf(

@@ -4,6 +4,7 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.ValidationEvidencePayloadKeys
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStatus
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeStatusProjection
+import skillbill.workflow.taskruntime.presentationWireMap
 
 internal fun FeatureTaskRuntimeStatusProjection?.toRuntimeStatusCliMap(workflowId: String): Map<String, Any?> =
   this?.let {
@@ -23,7 +24,7 @@ internal fun FeatureTaskRuntimeStatusProjection?.toRuntimeStatusCliMap(workflowI
       ValidationEvidencePayloadKeys.CHECKS to it.validationGateExecutionEvidence?.checks,
       ValidationEvidencePayloadKeys.GATE_RUN_COUNT to it.validationGateExecutionEvidence?.gateRunCount,
       ValidationEvidencePayloadKeys.GATE_RUNS to
-        it.validationGateExecutionEvidence?.gateRuns?.map { run -> run.toArtifactMap() },
+        it.validationGateExecutionEvidence?.gateRuns?.map { run -> run.presentationWireMap() },
       "degraded_diagnostic" to it.degradedDiagnostic?.let { degraded ->
         linkedMapOf(
           "count" to degraded.count,

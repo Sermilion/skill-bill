@@ -9,6 +9,7 @@ import skillbill.goalrunner.model.GoalRunnerStopReason
 import skillbill.ports.time.model.RuntimeWaitResult
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
+import skillbill.workflow.taskruntime.envelopeWireMap
 import skillbill.workflow.taskruntime.model.AcceptedFeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.requireAcceptedOutput
 import kotlin.time.Duration
@@ -155,7 +156,7 @@ internal fun DefaultGoalPlanningSweep.validatePlanningAttemptOutput(
   outputValidator.validatePhaseOutput(stdout, phaseId).requireAcceptedOutput(phaseId)
 }.fold(
   onSuccess = { accepted ->
-    val payload = accepted.normalizedOutput.envelope
+    val payload = accepted.normalizedOutput.envelopeWireMap()
     if (payload[SharedPayloadKeys.STATUS].workflowStepStatus() != WorkflowStepStatus.COMPLETED) {
       val reason = unsuccessfulStatusReason(phaseId, payload)
       val canonical = accepted.normalizedOutput.canonicalJson

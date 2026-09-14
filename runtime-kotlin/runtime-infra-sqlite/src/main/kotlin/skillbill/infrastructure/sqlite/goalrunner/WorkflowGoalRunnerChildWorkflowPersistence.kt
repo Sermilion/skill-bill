@@ -28,6 +28,7 @@ import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.goal.model.ValidationDepth
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
+import skillbill.infrastructure.sqlite.featuretask.artifact.encodeWorkflowArtifact
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationArtifact
 import java.nio.file.Path
 
@@ -238,7 +239,7 @@ internal class WorkflowGoalRunnerChildWorkflowPersistence(
       validationDepth = ValidationDepth.FULL,
       qualityGateSelection = GoalRunnerQualityGateSelectionResolver.resolve(state.manifest, setup.subtaskId),
       subtaskName = state.manifest.subtasks.firstOrNull { it.id == setup.subtaskId }?.name?.takeIf(String::isNotBlank),
-    ).toArtifactMap(),
+    ).encodeWorkflowArtifact(),
     GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to GoalSubtaskReviewState.initial(
       reviewBaseSha = setup.reviewBaseline.reviewBaseSha,
       baselineUntrackedPaths = setup.reviewBaseline.baselineUntrackedPaths,

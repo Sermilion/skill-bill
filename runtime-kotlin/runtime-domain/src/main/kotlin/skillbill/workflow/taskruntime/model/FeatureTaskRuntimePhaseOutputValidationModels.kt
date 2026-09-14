@@ -1,6 +1,5 @@
 package skillbill.workflow.taskruntime.model
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_PHASE_OUTPUT_VALIDATION_CONTRACT_VERSION
 import skillbill.error.FailureWireCode
@@ -137,9 +136,7 @@ data class FeatureTaskRuntimePhaseOutputRepairEvidence(
 
   companion object {
     private val SHA256_HEX = Regex("[0-9a-f]{64}")
-
-    @OpenBoundaryMap("Typed phase-output repair evidence decoded from a private workflow artifact")
-    fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimePhaseOutputRepairEvidence {
+    internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimePhaseOutputRepairEvidence {
       requireRepairEvidenceExactFields(raw)
       val location = requireRepairEvidenceLocation(raw)
       return FeatureTaskRuntimePhaseOutputRepairEvidence(
@@ -158,9 +155,7 @@ data class FeatureTaskRuntimePhaseOutputRepairEvidence(
       )
     }
   }
-
-  @OpenBoundaryMap("Typed phase-output repair evidence at the private workflow-artifact seam")
-  fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
+  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
     SharedPayloadKeys.CONTRACT_VERSION to contractVersion,
     "validator_version" to validatorVersion,
     "format" to format.wireValue,

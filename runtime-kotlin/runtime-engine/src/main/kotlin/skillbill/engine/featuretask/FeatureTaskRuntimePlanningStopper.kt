@@ -1,5 +1,7 @@
 package skillbill.engine.featuretask
 
+import skillbill.workflow.taskruntime.*
+
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.decomposition.decompositionManifestPath
 import skillbill.application.decomposition.parentSpecPath
@@ -15,7 +17,6 @@ import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDecomposePlanOutcome
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDecomposeTerminal
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
-import skillbill.workflow.taskruntime.model.featureTaskRuntimeDecomposePlanOutcomeOrNull
 import skillbill.workflow.taskruntime.model.requireAcceptedOutput
 import java.io.IOException
 
@@ -96,8 +97,8 @@ class FeatureTaskRuntimePlanningStopper(
       .validatePhaseOutput(completedOutput.payload, FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN)
       .requireAcceptedOutput(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN)
       .normalizedOutput
-      .envelope
-    val outcome = featureTaskRuntimeDecomposePlanOutcomeOrNull(parsed, specSource)
+      .envelopePayload()
+    val outcome = decomposePlanOutcomeFromPhaseOutput(parsed, specSource)
       ?: return FeatureTaskRuntimePlanningStopDecision.Proceed
     val terminal = writeDecompositionTerminal(request, outcome)
     decomposeTerminalRecorder.recordDecomposeTerminal(request.workflowId, terminal)

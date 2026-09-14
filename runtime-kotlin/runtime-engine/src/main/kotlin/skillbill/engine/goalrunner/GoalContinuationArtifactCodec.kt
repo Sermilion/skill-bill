@@ -20,6 +20,7 @@ import skillbill.workflow.goal.model.GoalSubtaskReviewArtifactDecoder
 import skillbill.workflow.goal.model.GoalSubtaskReviewArtifacts
 import skillbill.workflow.goal.model.GoalSubtaskReviewPassResult
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
+import skillbill.workflow.taskruntime.envelopeWireMap
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.model.requireAcceptedOutput
 
@@ -85,7 +86,7 @@ fun goalReviewEmissionEnvelope(
     .validatePhaseOutput(rawResult, FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW)
     .requireAcceptedOutput(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW)
     .normalizedOutput
-    .envelope
+    .envelopeWireMap()
 }
 
 fun taskRuntimeRecordOrNull(workflowStates: WorkflowStateRepository, workflowId: String): WorkflowStateSnapshot? = try {

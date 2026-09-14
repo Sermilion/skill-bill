@@ -9,7 +9,6 @@ import skillbill.ports.agentrun.ExecutableLookup
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
-import skillbill.workflow.taskruntime.phaseartifacts.phaseRecordsFrom
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -17,6 +16,17 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+import skillbill.workflow.taskruntime.asCheckpointIdentitiesArtifactEntry
+import skillbill.workflow.taskruntime.asTelemetryPayload
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.decodeFindingVerificationDispositionFromArtifact
+import skillbill.workflow.taskruntime.decodeImplementationAttemptFromArtifact
+import skillbill.workflow.taskruntime.decodePhaseRecordFromArtifact
+import skillbill.workflow.taskruntime.decodeValidationGateExecutionEvidenceFromArtifact
+import skillbill.workflow.taskruntime.decodeValidationGateProgressFromArtifact
+import skillbill.workflow.taskruntime.envelopeWireMap
+import skillbill.workflow.taskruntime.phaseRecordsFromWorkflowArtifacts
+import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 /**
  * SKILL-176 subtask 5 CLI surface for `goal repair`. Kept outside [CliGoalRuntimeTest] so that
  * suite stays under the detekt LargeClass threshold.
@@ -241,7 +251,7 @@ class CliGoalRepairRuntimeTest {
     assertEquals(0, result.exitCode, result.stdout)
     assertContains(result.stdout, "status: repaired")
     assertContains(result.stdout, "completed_upstream_missing_output")
-    val repairedRecords = phaseRecordsFrom(decodeWorkflowArtifacts(readChildArtifacts(fixture, childWorkflowId)))
+    val repairedRecords = phaseRecordsFromWorkflowArtifacts(decodeWorkflowArtifacts(readChildArtifacts(fixture, childWorkflowId)))
     assertEquals(WorkflowStepStatus.PENDING, repairedRecords.getValue("verify_findings").status)
     assertEquals(WorkflowStepStatus.PENDING, repairedRecords.getValue("implement_fix").status)
   }
@@ -326,7 +336,7 @@ class CliGoalRepairRuntimeTest {
         }
       }
       val artifacts = decodeWorkflowArtifacts(current).toMutableMap()
-      val records = phaseRecordsFrom(artifacts).toMutableMap()
+      val records = phaseRecordsFromWorkflowArtifacts(artifacts).toMutableMap()
       val timestamp = "2026-09-12T08:00:00Z"
       records.putIfAbsent(
         "verify_findings",
@@ -363,7 +373,7 @@ class CliGoalRepairRuntimeTest {
         "Phase 'implement_fix' requires upstream output(s) verify_findings that are not present",
       )
       artifacts[FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY] =
-        records.mapValues { (_, record) -> record.toArtifactMap() }
+        records.mapValues { (_, record) -> record.asWorkflowArtifactEntry() }
       connection.prepareStatement(
         "UPDATE feature_task_workflows SET artifacts_json = ? WHERE workflow_id = ?",
       ).use { statement ->

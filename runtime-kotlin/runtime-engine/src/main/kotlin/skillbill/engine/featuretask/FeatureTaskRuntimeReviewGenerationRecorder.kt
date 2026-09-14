@@ -1,5 +1,7 @@
 package skillbill.engine.featuretask
 
+import skillbill.workflow.taskruntime.*
+
 import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.goalrunner.model.UnaddressedFinding
@@ -29,7 +31,7 @@ class FeatureTaskRuntimeReviewGenerationRecorder(
       ?: return@transaction null
     val artifacts = decodeWorkflowArtifacts(record.artifactsJson)
     val storedGeneration = reviewGenerationFrom(artifacts)
-    val existingRecords = phaseRecordsFrom(artifacts)
+    val existingRecords = decodePhaseRecords(artifacts)
     val previousReview = existingRecords[FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW]
       ?: return@transaction storedGeneration
     val tombstone = FeatureTaskRuntimePhaseRecord(
@@ -46,7 +48,7 @@ class FeatureTaskRuntimeReviewGenerationRecorder(
     val nextGeneration = storedGeneration + 1
     val patch = linkedMapOf<String, Any?>(
       FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to
-        updatedRecords.mapValues { (_, value) -> value.toArtifactMap() },
+        updatedRecords.mapValues { (_, value) -> value.asWorkflowArtifactEntry() },
       FEATURE_TASK_RUNTIME_REVIEW_GENERATION_ARTIFACT_KEY to nextGeneration,
     )
     GoalSubtaskReviewArtifactDecoder.decode(artifacts)?.state?.let { state ->
@@ -75,7 +77,7 @@ class FeatureTaskRuntimeReviewGenerationRecorder(
       ?: return@transaction 0
     val artifacts = decodeWorkflowArtifacts(record.artifactsJson)
     val storedGeneration = reviewGenerationFrom(artifacts)
-    val tombstoned = phaseRecordsFrom(artifacts)[FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW]
+    val tombstoned = decodePhaseRecords(artifacts)[FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW]
       ?.resolvedAgentId == REVIEW_INVALIDATION_AGENT_ID
     if (!tombstoned || storedGeneration > 0) return@transaction storedGeneration
     workflowPersistence.persistPatch(
@@ -94,7 +96,7 @@ class FeatureTaskRuntimeReviewGenerationRecorder(
     val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
       ?: return@transaction false
     val artifacts = decodeWorkflowArtifacts(record.artifactsJson)
-    val existingRecords = phaseRecordsFrom(artifacts)
+    val existingRecords = decodePhaseRecords(artifacts)
     val previous = existingRecords[producerPhaseId] ?: return@transaction true
     if (previous.status.workflowStepStatus() != WorkflowStepStatus.COMPLETED) {
       return@transaction true
@@ -113,7 +115,7 @@ class FeatureTaskRuntimeReviewGenerationRecorder(
       record,
       mapOf(
         FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to
-          updatedRecords.mapValues { (_, value) -> value.toArtifactMap() },
+          updatedRecords.mapValues { (_, value) -> value.asWorkflowArtifactEntry() },
       ),
       WorkflowRowAdvance(
         currentStepId = record.currentStepId,

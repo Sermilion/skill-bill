@@ -22,7 +22,7 @@ import skillbill.workflow.goal.model.GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationArtifact
-import skillbill.workflow.taskruntime.model.featureTaskRuntimeCheckpointIdentitiesFromArtifact
+import skillbill.workflow.taskruntime.decodeCheckpointIdentitiesFromArtifact
 import java.nio.file.Path
 import java.time.Clock
 
@@ -88,7 +88,7 @@ class FeatureTaskRuntimeRemediationBaseReconciler(
     runCatching {
       val state = reviewStateFromArtifacts(artifacts) ?: return@read null
       val continuation = continuationFromArtifacts(artifacts) ?: return@read null
-      val checkpoints = featureTaskRuntimeCheckpointIdentitiesFromArtifact(
+      val checkpoints = decodeCheckpointIdentitiesFromArtifact(
         artifacts[FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_ARTIFACT_KEY],
       )
       RemediationReconcileSnapshot(state, continuation, checkpoints)

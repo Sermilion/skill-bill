@@ -1,6 +1,5 @@
 package skillbill.workflow.taskruntime
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.JsonCodec
 import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputFailureCode
@@ -42,23 +41,17 @@ interface FeatureTaskRuntimePhaseOutputValidator {
    */
   fun validatePhaseOutputText(phaseOutputText: String, sourceLabel: String)
 
-  /**
-   * Validates and returns the parsed string-keyed output map. Implementations that can parse the
-   * same JSON/YAML surface as the schema gate should override this; the default is sufficient for
-   * JSON-only test doubles and preserves the existing validate-only contract for callers that do
-   * not need the projection.
-   */
-  @OpenBoundaryMap("Feature-task-runtime phase-output schema gate returns the validated wire map for typed projection")
-  fun validateAndReadPhaseOutput(phaseOutputText: String, sourceLabel: String): Map<String, Any?> {
+  fun validateAndReadPhaseOutput(phaseOutputText: String, sourceLabel: String): Any {
     validatePhaseOutputText(phaseOutputText, sourceLabel)
     return JsonCodec.parseObjectOrNull(phaseOutputText)
       ?.let(JsonCodec::jsonElementToValue)
       ?.let(JsonCodec::anyToStringAnyMap)
-      ?: emptyMap()
+      ?: emptyMap<String, Any?>()
   }
 
   fun normalizePhaseOutput(phaseOutputText: String, sourceLabel: String): NormalizedFeatureTaskRuntimePhaseOutput {
-    val envelope = validateAndReadPhaseOutput(phaseOutputText, sourceLabel)
+    val envelope = JsonCodec.anyToStringAnyMap(validateAndReadPhaseOutput(phaseOutputText, sourceLabel))
+      ?: emptyMap()
     return NormalizedFeatureTaskRuntimePhaseOutput(
       canonicalJson = JsonCodec.mapToJsonString(envelope),
       envelope = envelope,

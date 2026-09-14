@@ -39,8 +39,12 @@ import skillbill.workflow.goal.model.ValidationDepth
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationArtifact
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeQualityGateSelection
-import skillbill.workflow.taskruntime.phaseartifacts.phaseLedgerFrom
-import skillbill.workflow.taskruntime.phaseartifacts.phaseRecordsFrom
+import skillbill.engine.featuretask.decodePhaseLedger
+import skillbill.engine.featuretask.decodePhaseRecords
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.decodeGoalContinuationArtifactFromArtifact
+import skillbill.workflow.taskruntime.phaseLedgerFromWorkflowArtifacts
+import skillbill.workflow.taskruntime.phaseRecordsFromWorkflowArtifacts
 import java.nio.file.Path
 import java.time.Clock
 
@@ -147,7 +151,7 @@ class GoalRunnerChildRepairWedgeApplyLoop(
     val depth = ValidationDepth.FULL
     val healed = continuation.copy(validationDepth = depth)
     state.workingContinuation = healed
-    state.patch[FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY] = healed.toArtifactMap()
+    state.patch[FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY] = healed.asWorkflowArtifactEntry()
     recordChildRepairWedge(state, wedgeClass, priorValue = null, newValue = depth.wireValue)
   }
 
@@ -157,7 +161,7 @@ class GoalRunnerChildRepairWedgeApplyLoop(
     val selection = FeatureTaskRuntimeQualityGateSelection.VALIDATE
     val healed = continuation.copy(qualityGateSelection = selection)
     state.workingContinuation = healed
-    state.patch[FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY] = healed.toArtifactMap()
+    state.patch[FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY] = healed.asWorkflowArtifactEntry()
     recordChildRepairWedge(state, wedgeClass, priorValue = null, newValue = selection.wireValue)
   }
 
@@ -337,7 +341,7 @@ internal fun applyCompletedUpstreamChildRepairWedge(
   engine: WorkflowEngine,
   decompositionManifestValidator: DecompositionManifestValidator,
 ) {
-  val phaseRecords = phaseRecordsFrom(state.artifacts)
+  val phaseRecords = decodePhaseRecords(state.artifacts)
   val featureSize = featureSizeFromArtifacts(state.artifacts)
   val qualityGateSelection = state.workingContinuation?.qualityGateSelection
     ?: FeatureTaskRuntimeQualityGateSelection.VALIDATE
@@ -349,7 +353,7 @@ internal fun applyCompletedUpstreamChildRepairWedge(
   val input = buildCompletedUpstreamMissingOutputRepair(
     CompletedUpstreamRepairRequest(
       phaseRecords = phaseRecords,
-      ledger = phaseLedgerFrom(state.artifacts),
+      ledger = decodePhaseLedger(state.artifacts),
       featureSize = featureSize,
       resumePhaseId = resumePhaseId,
       reason = "Operator goal repair reopened '$resumePhaseId' because a completed upstream phase " +
@@ -413,5 +417,5 @@ fun childRepairWedgeEvidenceMap(repair: GoalRunnerAppliedRepair, clock: Clock): 
 fun continuationArtifactFromMap(artifacts: Map<String, Any?>): FeatureTaskRuntimeGoalContinuationArtifact? {
   val raw = JsonCodec.anyToStringAnyMap(artifacts[FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY])
     ?: return null
-  return FeatureTaskRuntimeGoalContinuationArtifact.fromArtifactMap(raw)
+  return decodeGoalContinuationArtifactFromArtifact(raw)
 }

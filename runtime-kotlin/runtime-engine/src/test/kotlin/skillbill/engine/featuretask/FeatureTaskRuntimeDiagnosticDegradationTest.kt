@@ -1,4 +1,16 @@
 package skillbill.engine.featuretask
+import skillbill.workflow.taskruntime.asCheckpointIdentitiesArtifactEntry
+import skillbill.workflow.taskruntime.asTelemetryPayload
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.decodeFindingVerificationDispositionFromArtifact
+import skillbill.workflow.taskruntime.decodeImplementationAttemptFromArtifact
+import skillbill.workflow.taskruntime.decodePhaseRecordFromArtifact
+import skillbill.workflow.taskruntime.decodeValidationGateExecutionEvidenceFromArtifact
+import skillbill.workflow.taskruntime.decodeValidationGateProgressFromArtifact
+import skillbill.workflow.taskruntime.envelopeWireMap
+import skillbill.workflow.taskruntime.phaseRecordsFromWorkflowArtifacts
+import skillbill.workflow.taskruntime.toWorkflowArtifactMap
+import skillbill.contracts.JsonCodec
 import skillbill.application.RecordingLifecycleTelemetryRepository
 import skillbill.application.diagnostics.RejectedOutputDiagnosticService
 import skillbill.application.diagnostics.model.FeatureTaskRuntimeRejectedOutputWrite
@@ -90,7 +102,8 @@ class FeatureTaskRuntimeDiagnosticDegradationTest {
     assertEquals(signal.failureClass, measurement.failureClass)
     assertEquals(signal.conflictingKey, measurement.conflictingKey)
     assertTrue(
-      measurement.toTelemetryMap().values.none { it is String && it.contains("divergent-bytes") },
+      requireNotNull(JsonCodec.anyToStringAnyMap(measurement.asTelemetryPayload())).values
+        .none { it is String && it.contains("divergent-bytes") },
       "the measurement must not carry the divergent agent bytes",
     )
     val found = recorder.producerOutput(
@@ -210,7 +223,9 @@ class FeatureTaskRuntimeDiagnosticDegradationTest {
     assertTrue("SKILL187-DEGRADE-SENTINEL" !in summary)
     assertTrue("blast_radius_inspected" !in summary)
     assertContains(summary, "audit")
-    val measurement = lifecycle.diagnosticDegradationMeasurements.single().toTelemetryMap()
+    val measurement = requireNotNull(
+      JsonCodec.anyToStringAnyMap(lifecycle.diagnosticDegradationMeasurements.single().asTelemetryPayload()),
+    )
     assertTrue(measurement.values.none { it is String && "SKILL187-DEGRADE-SENTINEL" in it })
     assertTrue(measurement.values.none { it is String && "blast_radius_inspected" in it })
   }

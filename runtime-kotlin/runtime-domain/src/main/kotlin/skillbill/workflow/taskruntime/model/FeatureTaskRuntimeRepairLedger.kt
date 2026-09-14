@@ -1,6 +1,5 @@
 package skillbill.workflow.taskruntime.model
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_REPAIR_LEDGER_CONTRACT_VERSION
@@ -81,9 +80,7 @@ data class FeatureTaskRuntimeRepairLedgerEntry(
   private fun constructSymbolTokens(): Set<String> = constructs
     .flatMap { construct -> construct.symbol.split('.') }
     .filterTo(mutableSetOf()) { part -> part.length >= MIN_CONSTRUCT_TOKEN_LENGTH }
-
-  @OpenBoundaryMap("Repair ledger entry at the bounded phase-projection seam")
-  fun toProjectionMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
+  internal fun toProjectionMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
     "finding_ref" to disturbanceRef,
     "severity" to severity,
     "label" to label,
@@ -165,9 +162,7 @@ data class FeatureTaskRuntimeRepairLedgerProjection(
       }
     }
   }
-
-  @OpenBoundaryMap("Bounded repair ledger projection at the declared phase-handoff seam")
-  fun toProjectionMap(): Map<String, Any?> {
+  internal fun toProjectionMap(): Map<String, Any?> {
     val payload = linkedMapOf<String, Any?>(
       SharedPayloadKeys.CONTRACT_VERSION to contractVersion,
       "summarized" to summarized,

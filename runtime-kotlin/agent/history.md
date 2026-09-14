@@ -1,3 +1,12 @@
+## [2026-09-14] SKILL-52.5 subtask 3 — Workflow taskruntime artifact typing
+Areas: runtime-kotlin/{runtime-domain/runtime-engine/runtime-infra-fs/runtime-infra-sqlite/runtime-application/runtime-cli/runtime-core}
+- Replaced taskruntime artifact raw-map boundary shapes with typed durable models and centralized wire mappers for handoffs, repair, quarantine, checkpoint, validation-gate, implementation-attempt, and continuation artifacts.
+- Persistence decoding and encoding now use typed workflow-artifact APIs while retaining malformed-record loud-fail and quarantine behavior; representative round-trip and boundary coverage was added.
+- Pattern: keep wire maps private to serialization seams and expose typed records across application, engine, filesystem, SQLite, CLI, and test boundaries. reusable
+- Known limitation: four workflow taskruntime wire helper FQNs remain allow-listed; the full zero-entry ratchet is deferred.
+Feature flag: N/A
+Acceptance criteria: 4/5 implemented
+
 ## [2026-09-14] SKILL-52.5 subtask 2 — Learnings and decomposition ingress
 Areas: runtime-kotlin/{runtime-application,runtime-contracts,runtime-domain,runtime-engine,runtime-infra-fs,runtime-infra-sqlite,runtime-mcp,runtime-ports,runtime-cli,runtime-core}
 - Typed learning payloads and entries, decomposition planning ingress, manifest wire boundaries, and workflow continuation summaries replace the scoped raw-map surfaces.

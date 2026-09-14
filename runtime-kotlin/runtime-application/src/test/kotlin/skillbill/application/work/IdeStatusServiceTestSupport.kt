@@ -79,6 +79,17 @@ import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
 
+import skillbill.workflow.taskruntime.asCheckpointIdentitiesArtifactEntry
+import skillbill.workflow.taskruntime.asTelemetryPayload
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.decodeFindingVerificationDispositionFromArtifact
+import skillbill.workflow.taskruntime.decodeImplementationAttemptFromArtifact
+import skillbill.workflow.taskruntime.decodePhaseRecordFromArtifact
+import skillbill.workflow.taskruntime.decodeValidationGateExecutionEvidenceFromArtifact
+import skillbill.workflow.taskruntime.decodeValidationGateProgressFromArtifact
+import skillbill.workflow.taskruntime.envelopeWireMap
+import skillbill.workflow.taskruntime.phaseRecordsFromWorkflowArtifacts
+import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 internal val ideStatusObservedAt: Instant = Instant.parse("2026-08-06T12:00:00Z")
 internal val ideStatusClock: Clock = Clock.fixed(ideStatusObservedAt, ZoneOffset.UTC)
 
@@ -312,7 +323,7 @@ internal fun phaseRecordWire(
   edgeIteration = options.edgeIteration,
   blockedReason = options.blockedReason,
   failureDisposition = options.failureDisposition,
-).toArtifactMap()
+).asWorkflowArtifactEntry().toWorkflowArtifactMap()
 
 internal fun blockedQualityGateChildArtifacts(
   phaseId: String,

@@ -1,6 +1,5 @@
 package skillbill.workflow.taskruntime.model
 
-import skillbill.boundary.OpenBoundaryMap
 
 /**
  * The durable resolved feature branch for one run. [branch] is the non-default feature branch the
@@ -39,9 +38,7 @@ data class FeatureTaskRuntimeResolvedBranch(
       "FeatureTaskRuntimeResolvedBranch.boundaryHistoryRoots must not contain blanks."
     }
   }
-
-  @OpenBoundaryMap("Feature-task-runtime resolved-branch artifact map at the durable workflow-artifact seam")
-  fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
+  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
     "branch" to branch,
     "created" to created,
   ).apply {
@@ -56,8 +53,7 @@ data class FeatureTaskRuntimeResolvedBranch(
 
   companion object {
     /** Strict decode; loud-fails on a missing or malformed required field. */
-    @OpenBoundaryMap("Feature-task-runtime resolved-branch decode from the durable workflow-artifact map")
-    fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeResolvedBranch = FeatureTaskRuntimeResolvedBranch(
+    internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeResolvedBranch = FeatureTaskRuntimeResolvedBranch(
       branch = raw.requireStringField("branch"),
       baseBranch = raw.optionalStringField("base_branch"),
       created = raw.optionalBooleanField("created") ?: false,

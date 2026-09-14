@@ -10,7 +10,10 @@ import skillbill.workflow.taskruntime.FeatureTaskRuntimeImplementationAttemptVal
  */
 @Inject
 class FeatureTaskRuntimeImplementationAttemptValidatorAdapter : FeatureTaskRuntimeImplementationAttemptValidator {
-  override fun validateImplementationAttemptRecord(attemptRecord: Map<String, Any?>, sourceLabel: String) {
-    FeatureTaskRuntimeImplementationAttemptSchemaValidator.validate(attemptRecord, sourceLabel)
+  override fun validateImplementationAttemptRecord(attemptRecord: Any, sourceLabel: String) {
+    FeatureTaskRuntimeImplementationAttemptSchemaValidator.validate(
+      requireFeatureTaskRuntimeArtifactMap(attemptRecord, sourceLabel),
+      sourceLabel,
+    )
   }
 }

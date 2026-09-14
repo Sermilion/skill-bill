@@ -1,5 +1,7 @@
 package skillbill.engine.featuretask
 
+import skillbill.workflow.taskruntime.*
+
 import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
@@ -367,11 +369,12 @@ class FeatureTaskRuntimeRunState(
   fun parsedOutput(output: FeatureTaskRuntimePhaseOutput?): Map<String, Any?>? {
     val payload = output?.payload ?: return null
     return parsedOutputsByPayload.getOrPut(payload) {
-      output.normalizedOutput?.envelope
+      val envelope = output.normalizedOutput?.envelopePayload()
         ?: outputValidator.validatePhaseOutput(payload, sourceLabel = output.phaseId)
           .requireAcceptedOutput(output.phaseId)
           .normalizedOutput
-          .envelope
+          .envelopePayload()
+      workflowArtifactEntryMap(envelope)
     }
   }
 

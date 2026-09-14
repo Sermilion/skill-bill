@@ -21,6 +21,8 @@ import skillbill.workflow.goal.GoalPlanningPreparationEnvelopeValidator
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.envelopeWireMap
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePlanningProjectionValidator
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairEvidence
 import skillbill.workflow.taskruntime.model.requireAcceptedOutput
@@ -323,7 +325,7 @@ class GoalPlanningPreparationProjectionGate(
       .requireAcceptedOutput("preplan")
       .normalizedOutput
     requirePlanningPayloadHash(checkpoint.payloadSha256, normalized.canonicalJson, label)
-    return label to normalized.envelope
+    return label to normalized.envelopeWireMap()
   }
 
   private fun subtaskPlanEnvelope(checkpoint: GoalSubtaskPlanCheckpoint): Pair<String, Map<String, Any?>> {
@@ -333,7 +335,7 @@ class GoalPlanningPreparationProjectionGate(
       .requireAcceptedOutput("plan")
       .normalizedOutput
     requirePlanningPayloadHash(checkpoint.payloadSha256, normalized.canonicalJson, label)
-    return label to normalized.envelope
+    return label to normalized.envelopeWireMap()
   }
 
   // A stored record the gate rejects — or one whose bounded envelope no longer parses at all — is
@@ -401,7 +403,7 @@ private fun SharedGoalPreplanCheckpoint.toEnvelopeMap(): Map<String, Any?> = lin
   "provenance" to provenance.asMap(),
   "payload_sha256" to payloadSha256,
   "preplan_payload" to preplanPayload,
-  "repair_evidence" to repairEvidence?.toArtifactMap(),
+  "repair_evidence" to repairEvidence?.asWorkflowArtifactEntry(),
 ).filterValues { it != null }
 
 private fun GoalSubtaskPlanCheckpoint.toEnvelopeMap(): Map<String, Any?> = linkedMapOf(
@@ -413,7 +415,7 @@ private fun GoalSubtaskPlanCheckpoint.toEnvelopeMap(): Map<String, Any?> = linke
   "governed_sub_spec_path" to governedSubSpecPath,
   "sub_spec_hash" to subSpecHash, "preparation_status" to preparationStatus.wireValue,
   "provenance" to provenance.asMap(), "payload_sha256" to payloadSha256, "plan_payload" to planPayload,
-  "repair_evidence" to repairEvidence?.toArtifactMap(),
+  "repair_evidence" to repairEvidence?.asWorkflowArtifactEntry(),
 ).filterValues { it != null }
 
 private fun GoalPlanningIdentity.asMap() = linkedMapOf(

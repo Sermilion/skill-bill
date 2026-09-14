@@ -2,7 +2,6 @@ package skillbill.workflow.taskruntime.model
 
 import skillbill.agentaddon.model.AgentAddonSelection
 import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.review.context.model.CodeReviewExecutionMode
@@ -35,9 +34,7 @@ data class FeatureTaskRuntimeGoalContinuationArtifact(
       require(it.isNotBlank()) { "FeatureTaskRuntimeGoalContinuationArtifact.subtaskName must be non-blank." }
     }
   }
-
-  @OpenBoundaryMap("Feature-task-runtime goal-continuation artifact map at the durable workflow-artifact seam")
-  fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
+  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
     SharedPayloadKeys.ISSUE_KEY to issueKey,
     SharedPayloadKeys.SUBTASK_ID to subtaskId,
     "suppress_pr" to suppressPr,
@@ -63,8 +60,7 @@ data class FeatureTaskRuntimeGoalContinuationArtifact(
   }
 
   companion object {
-    @OpenBoundaryMap("Feature-task-runtime goal-continuation decode from the durable workflow-artifact map")
-    fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeGoalContinuationArtifact {
+    internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeGoalContinuationArtifact {
       rejectUnknownGoalContinuationKeys(raw)
       return FeatureTaskRuntimeGoalContinuationArtifact(
         issueKey = raw.requireStringField("issue_key"),

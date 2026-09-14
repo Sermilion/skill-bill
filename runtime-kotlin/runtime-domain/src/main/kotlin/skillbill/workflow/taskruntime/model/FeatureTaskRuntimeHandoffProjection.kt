@@ -1,6 +1,5 @@
 package skillbill.workflow.taskruntime.model
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 
@@ -54,9 +53,7 @@ data class FeatureTaskRuntimeHandoffProjection(
     } else {
       JsonCodec.mapToJsonString(toEnvelopeMap())
     }
-
-  @OpenBoundaryMap("Feature-task-runtime handoff projection at the durable envelope wire seam")
-  fun toEnvelopeMap(): Map<String, Any?> = linkedMapOf(
+  internal fun toEnvelopeMap(): Map<String, Any?> = linkedMapOf(
     "projection_name" to projectionName,
     "source_ref" to sourceRef.wireValue,
     "projection_contract_id" to projectionContractId,

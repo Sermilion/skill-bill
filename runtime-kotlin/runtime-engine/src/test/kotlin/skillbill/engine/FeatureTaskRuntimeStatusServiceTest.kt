@@ -1,4 +1,15 @@
 package skillbill.engine
+import skillbill.workflow.taskruntime.asCheckpointIdentitiesArtifactEntry
+import skillbill.workflow.taskruntime.asTelemetryPayload
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.decodeFindingVerificationDispositionFromArtifact
+import skillbill.workflow.taskruntime.decodeImplementationAttemptFromArtifact
+import skillbill.workflow.taskruntime.decodePhaseRecordFromArtifact
+import skillbill.workflow.taskruntime.decodeValidationGateExecutionEvidenceFromArtifact
+import skillbill.workflow.taskruntime.decodeValidationGateProgressFromArtifact
+import skillbill.workflow.taskruntime.envelopeWireMap
+import skillbill.workflow.taskruntime.phaseRecordsFromWorkflowArtifacts
+import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.decomposition.decompositionManifestPath
 import skillbill.application.decomposition.parentSpecPath
@@ -190,7 +201,7 @@ class FeatureTaskRuntimeStatusServiceTest {
     val record = requireNotNull(harness.recorder.loadPhaseRecords(WORKFLOW_ID)).getValue("implement")
     assertNull(record.launchedModel)
     assertNull(record.launchedEffort)
-    assertTrue("launched_model" !in record.toArtifactMap())
+    assertTrue("launched_model" !in record.asWorkflowArtifactEntry().toWorkflowArtifactMap())
   }
 
   @Test
@@ -1197,7 +1208,7 @@ internal class StatusHarness(
   )
 
   fun seedDiagnosticSignals(vararg signals: FeatureTaskRuntimeDiagnosticSignal) {
-    seedDiagnosticSignalsArtifact(signals.map { it.toArtifactMap() })
+    seedDiagnosticSignalsArtifact(signals.map { it.asWorkflowArtifactEntry() })
   }
 
   fun seedDiagnosticSignalsArtifact(raw: Any?) {
