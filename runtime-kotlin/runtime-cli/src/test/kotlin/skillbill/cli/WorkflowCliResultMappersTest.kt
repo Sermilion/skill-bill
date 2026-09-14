@@ -13,6 +13,7 @@ import skillbill.error.InvalidGoalObservabilityEventSchemaError
 import skillbill.infrastructure.fs.contracts.workflow.GoalObservabilityEventSchemaValidator
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.WorkflowSnapshotValidator
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowSnapshotView
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepState
@@ -299,8 +300,10 @@ class WorkflowCliResultMappersTest {
     workflowStatus = "running",
     currentStepId = "implement",
     steps = listOf(WorkflowStepState("implement", "running", 1)),
-    artifacts = mapOf(
-      "goal_observability_latest_event" to event,
+    artifacts = DurableWorkflowArtifacts.fromMap(
+      mapOf(
+        "goal_observability_latest_event" to event,
+      ),
     ),
     startedAt = "2026-06-01 00:00:00",
     updatedAt = "2026-06-01 00:00:00",

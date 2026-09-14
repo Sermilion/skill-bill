@@ -16,6 +16,7 @@ import skillbill.telemetry.model.TelemetrySettings
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStatus
+import skillbill.contracts.JsonPayloadContract
 import skillbill.workflow.model.workflowStepStatus
 
 class LifecycleTelemetryGoalEmission(
@@ -60,7 +61,7 @@ internal fun enabledStandaloneResult(
   settingsProvider: TelemetrySettingsProvider,
   sessionId: String,
   action: (TelemetrySettings) -> Unit,
-): Map<String, Any?> {
+): JsonPayloadContract {
   val settings = telemetrySettingsOrNull(settingsProvider)
   return if (settings?.enabled == true) {
     action(settings)

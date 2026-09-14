@@ -3,6 +3,8 @@ package skillbill.infrastructure.http
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.telemetry.model.TelemetryProxyCapabilities
 import skillbill.telemetry.model.TelemetryRemoteStatsResult
+import skillbill.workflow.engine.model.CustomFieldMap
+import skillbill.workflow.engine.model.TelemetryOpenDocument
 
 internal fun Map<String, Any?>.toTelemetryProxyCapabilities(): TelemetryProxyCapabilities {
   val supportedWorkflows =
@@ -27,7 +29,7 @@ internal fun Map<String, Any?>.toTelemetryProxyCapabilities(): TelemetryProxyCap
     supportsIngest = this["supports_ingest"] == true,
     supportsStats = this["supports_stats"] == true,
     supportedWorkflows = supportedWorkflows,
-    additionalFields = filterKeys { key -> key !in knownKeys },
+    additionalFields = CustomFieldMap.from(filterKeys { key -> key !in knownKeys }),
   )
 }
 
@@ -46,6 +48,6 @@ internal fun Map<String, Any?>.toTelemetryRemoteStatsResult(
     statsUrl = this["stats_url"]?.toString().orEmpty(),
     groupBy = this["group_by"]?.toString(),
     capabilities = capabilities,
-    metrics = filterKeys { key -> key !in knownKeys },
+    metrics = TelemetryOpenDocument.from(filterKeys { key -> key !in knownKeys }),
   )
 }

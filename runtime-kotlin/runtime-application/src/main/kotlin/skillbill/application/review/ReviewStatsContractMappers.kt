@@ -6,8 +6,6 @@ import skillbill.application.review.model.GoalStatsResult
 import skillbill.application.review.model.ReviewStatsResult
 import skillbill.contracts.JsonPayloadContract
 import skillbill.contracts.review.ReviewVerificationSignalKeys
-import skillbill.ports.workflow.model.toPayload
-
 fun ReviewStatsResult.toReviewStatsPayload(): JsonPayloadContract = MapPayloadContract(
   LinkedHashMap(stats.toPayload()).apply {
     put("health", health.toPayload())

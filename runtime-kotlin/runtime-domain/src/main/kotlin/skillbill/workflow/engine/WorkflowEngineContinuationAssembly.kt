@@ -7,7 +7,9 @@ import skillbill.workflow.engine.model.WorkflowContinueView
 import skillbill.workflow.engine.model.WorkflowDefinition
 import skillbill.workflow.engine.model.WorkflowInputProjection
 import skillbill.workflow.engine.model.WorkflowResumeView
+import skillbill.workflow.engine.model.WorkflowContinuationFieldMap
 import skillbill.workflow.engine.model.WorkflowSnapshotView
+import skillbill.workflow.engine.model.WorkflowStepArtifactMap
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepState
 import skillbill.workflow.model.WorkflowContinueStatus
@@ -195,8 +197,8 @@ internal fun buildContinueDecision(request: BuildContinueDecisionRequest): Workf
       continueStepDirective = stepDirective,
       referenceSections = definition.continuationReferenceSections[resume.resumeStepId].orEmpty(),
       stepArtifactKeys = assembled.stepArtifactKeys,
-      stepArtifacts = assembled.stepArtifacts,
-      extraFields = assembled.extraFields,
+      stepArtifacts = WorkflowStepArtifactMap.from(assembled.stepArtifacts),
+      extraFields = WorkflowContinuationFieldMap.from(assembled.extraFields),
       sessionSummary = request.sessionSummary,
       continuationBrief = assembled.continuationBrief,
       continuationEntryPrompt = assembled.continuationEntryPrompt,

@@ -15,6 +15,7 @@ import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.model.DecompositionContinuationSelection
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.model.DecompositionStatus
@@ -121,7 +122,8 @@ fun subtaskStartArtifacts(
   selection: DecompositionContinuationSelection.Start,
   manifest: DecompositionManifest,
   validator: DecompositionManifestValidator,
-): Map<String, Any?> = mapOf(
+): WorkflowArtifactPatch = WorkflowArtifactPatch.from(
+  mapOf(
   "assessment" to mapOf(
     "spec_path" to selection.subtask.specPath,
     "goal_continuation" to true,
@@ -141,21 +143,24 @@ fun subtaskStartArtifacts(
     "suppress_pr" to true,
     "outcome_authority" to "workflow_store",
   ),
-  DECOMPOSITION_RUNTIME_ARTIFACT_KEY to validator.encodeManifestWireMap(manifest, DECOMPOSITION_RUNTIME_ARTIFACT_KEY,),
-)
+  DECOMPOSITION_RUNTIME_ARTIFACT_KEY to validator.encodeManifestWireMap(manifest, DECOMPOSITION_RUNTIME_ARTIFACT_KEY),
+  ),
+)!!
 
 fun parentProjectionArtifacts(
   manifest: DecompositionManifest,
   validator: DecompositionManifestValidator,
   existingArtifactsJson: String,
-): Map<String, Any?> = LinkedHashMap(decodeWorkflowArtifacts(existingArtifactsJson)).apply {
+): WorkflowArtifactPatch = WorkflowArtifactPatch.from(
+  LinkedHashMap(decodeWorkflowArtifacts(existingArtifactsJson)).apply {
   remove("goal_review_policy")
   remove("goal_out_of_band_acceptances")
   put(
     DECOMPOSITION_RUNTIME_ARTIFACT_KEY,
     validator.encodeManifestWireMap(manifest, DECOMPOSITION_RUNTIME_ARTIFACT_KEY),
   )
-}
+  },
+)!!
 
 fun terminalSubtaskResult(
   parentRecord: WorkflowStateSnapshot,

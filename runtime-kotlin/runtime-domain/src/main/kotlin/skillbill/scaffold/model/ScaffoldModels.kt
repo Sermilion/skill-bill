@@ -1,7 +1,7 @@
 package skillbill.scaffold.model
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.model.FileLocation
+import skillbill.workflow.engine.model.CustomFieldMap
 
 data class RoutingSignals(
   val strong: List<String>,
@@ -231,8 +231,7 @@ data class PlatformManifest(
   val pointers: List<PointerSpec> = emptyList(),
   val addonUsage: List<GovernedAddonUsage> = emptyList(),
   val featureAddonUsage: List<FeatureAddonUsage> = emptyList(),
-  @OpenBoundaryMap("Schema custom-field passthrough for platform packs")
-  val customFields: Map<String, Any?> = emptyMap(),
+  val customFields: CustomFieldMap = CustomFieldMap.EMPTY,
   val requiredRubricCompanions: Map<String, List<String>> = emptyMap(),
 ) {
   val routedSkillName: String? = declaredFiles.baseline?.let { "bill-$slug-code-review" }

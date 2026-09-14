@@ -13,6 +13,7 @@ import skillbill.telemetry.TELEMETRY_PROXY_URL_ENVIRONMENT_KEY
 import skillbill.telemetry.model.RemoteStatsRequest
 import skillbill.telemetry.model.TelemetryProxyCapabilities
 import skillbill.telemetry.model.TelemetryRemoteStatsResult
+import skillbill.workflow.engine.model.TelemetryOpenDocument
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
@@ -89,7 +90,7 @@ class McpTelemetryRuntimeTest {
         statsUrl = "https://telemetry.example.dev/ingest/stats",
         groupBy = null,
         capabilities = typedCapabilities(),
-        metrics = linkedMapOf("status" to "ok", "capabilities" to null),
+        metrics = TelemetryOpenDocument.from(linkedMapOf("status" to "ok", "capabilities" to null)),
       )
 
     val payload = result.toMcpMap()

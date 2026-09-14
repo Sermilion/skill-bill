@@ -15,6 +15,7 @@ import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.runtime.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 
 class GoalParentProjectionWriter(
@@ -47,7 +48,7 @@ class GoalParentProjectionWriter(
         workflowStatus = existing.workflowStatus,
         currentStepId = existing.currentStepId,
         stepUpdates = null,
-        artifactsPatch = artifacts(manifest, existing.artifactsJson),
+        artifactsPatch = WorkflowArtifactPatch.from(artifacts(manifest, existing.artifactsJson)),
         sessionId = existing.sessionId,
         replaceArtifacts = true,
       ),

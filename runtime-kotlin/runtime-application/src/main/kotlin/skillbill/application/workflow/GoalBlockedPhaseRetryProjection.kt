@@ -11,6 +11,8 @@ import skillbill.ports.workflow.saveRecord
 import skillbill.ports.workflow.toRecord
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.decodeGoalContinuationArtifactFromArtifact
@@ -19,7 +21,7 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationAr
 fun WorkflowEngine.updateGoalParentForBlockedPhaseRetry(
   unitOfWork: GoalRunnerPersistenceSession,
   childWorkflowId: String,
-  childArtifacts: Map<String, Any?>,
+  childArtifacts: DurableWorkflowArtifacts,
   phaseId: String,
   validator: DecompositionManifestValidator,
 ): String? {
@@ -57,8 +59,13 @@ fun WorkflowEngine.updateGoalParentForBlockedPhaseRetry(
     workflowStatus = parent.workflowStatus,
     currentStepId = parent.currentStepId.orEmpty(),
     stepUpdates = null,
-    artifactsPatch = mapOf(
-      DECOMPOSITION_RUNTIME_ARTIFACT_KEY to validator.encodeManifestWireMap(retriedManifest, DECOMPOSITION_RUNTIME_ARTIFACT_KEY,),
+    artifactsPatch = WorkflowArtifactPatch.from(
+      mapOf(
+        DECOMPOSITION_RUNTIME_ARTIFACT_KEY to validator.encodeManifestWireMap(
+          retriedManifest,
+          DECOMPOSITION_RUNTIME_ARTIFACT_KEY,
+        ),
+      ),
     ),
     sessionId = parent.sessionId.orEmpty(),
     replaceArtifacts = true,

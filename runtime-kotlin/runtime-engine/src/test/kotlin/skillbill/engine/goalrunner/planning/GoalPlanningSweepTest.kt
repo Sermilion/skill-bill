@@ -70,6 +70,7 @@ import skillbill.ports.time.model.RuntimeWaitResult
 import skillbill.ports.work.EmptyWorkListRepository
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
+import skillbill.workflow.engine.model.DecompositionManifestWireMap
 import skillbill.text.sha256HexUtf8
 import skillbill.workflow.NoopGoalPlanningPreparationEnvelopeValidator
 import skillbill.workflow.decomposition.model.DecompositionManifest
@@ -2500,7 +2501,7 @@ private class CountingManifestFileStore : DecompositionManifestStore {
   override fun writeTextAtomically(target: Path, content: String): Unit =
     error("CountingManifestFileStore is read-only in goal planning sweep tests.")
 
-  override fun encodeManifestYaml(wireMap: Map<String, Any?>): String =
+  override fun encodeManifestYaml(wireMap: DecompositionManifestWireMap): String =
     error("CountingManifestFileStore is read-only in goal planning sweep tests.")
 
   fun countContaining(fragment: String): Int = readPaths.count { path -> fragment in path }
@@ -2533,7 +2534,7 @@ private class ThrowingManifestFileStore : DecompositionManifestStore {
   override fun writeTextAtomically(target: Path, content: String): Unit =
     error("ThrowingManifestFileStore is read-only in goal planning sweep tests.")
 
-  override fun encodeManifestYaml(wireMap: Map<String, Any?>): String =
+  override fun encodeManifestYaml(wireMap: DecompositionManifestWireMap): String =
     error("ThrowingManifestFileStore is read-only in goal planning sweep tests.")
 }
 

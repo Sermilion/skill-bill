@@ -1,15 +1,10 @@
 package skillbill.telemetry.model
 
-import skillbill.boundary.OpenBoundaryMap
+import skillbill.workflow.engine.model.CustomFieldMap
+import skillbill.workflow.engine.model.TelemetryOpenDocument
 
-/**
- * Open JSON document for the local telemetry config file. The config is an extension point
- * because operators may add non-runtime keys; runtime code reads only the documented telemetry
- * keys from [payload].
- */
 data class TelemetryConfigDocument(
-  @OpenBoundaryMap("Open local telemetry config JSON document")
-  val payload: Map<String, Any?>,
+  val payload: TelemetryOpenDocument,
 )
 
 data class TelemetryProxyCapabilities(
@@ -20,8 +15,7 @@ data class TelemetryProxyCapabilities(
   val supportsIngest: Boolean,
   val supportsStats: Boolean,
   val supportedWorkflows: List<String>,
-  @OpenBoundaryMap("Additional remote telemetry proxy capability fields")
-  val additionalFields: Map<String, Any?> = emptyMap(),
+  val additionalFields: CustomFieldMap = CustomFieldMap.EMPTY,
 )
 
 data class TelemetryRemoteStatsResult(
@@ -32,6 +26,5 @@ data class TelemetryRemoteStatsResult(
   val statsUrl: String,
   val groupBy: String?,
   val capabilities: TelemetryProxyCapabilities,
-  @OpenBoundaryMap("Remote telemetry stats response metrics document")
-  val metrics: Map<String, Any?>,
+  val metrics: TelemetryOpenDocument,
 )

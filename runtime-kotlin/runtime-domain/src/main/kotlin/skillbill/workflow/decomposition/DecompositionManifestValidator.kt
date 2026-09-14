@@ -1,7 +1,7 @@
 package skillbill.workflow.decomposition
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.error.InvalidDecompositionManifestSchemaError
+import skillbill.workflow.engine.model.DecompositionManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationFailureCode
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationResult
@@ -26,8 +26,7 @@ interface DecompositionManifestValidator {
    * and coherence rules. Throws [InvalidDecompositionManifestSchemaError]
    * on any violation.
    */
-  @OpenBoundaryMap("Decomposition manifest wire map at the schema-validation seam")
-  fun validate(manifest: Map<String, Any?>, sourceLabel: String)
+  fun validate(manifest: DecompositionManifestWireMap, sourceLabel: String)
 
   fun validateYamlText(yamlText: String, sourceLabel: String): DecompositionManifest
 

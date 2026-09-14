@@ -21,7 +21,7 @@ class FeatureTaskRuntimeLifecycleTelemetry(
         featureName = request.runInvariants.specReference,
         sessionId = request.sessionId,
       ),
-    )["session_id"]?.toString().orEmpty()
+    ).toPayload()["session_id"]?.toString().orEmpty()
   }
 
   fun finished(report: FeatureTaskRuntimeRunReport, context: FeatureTaskRuntimeFinishedTelemetryContext) {

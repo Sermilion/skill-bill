@@ -23,6 +23,8 @@ import skillbill.cli.kernel.formatOption
 import skillbill.cli.kernel.toPayload
 import skillbill.cli.model.CliRunInputs
 import skillbill.contracts.JsonCodec
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
+import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningResult
 import skillbill.contracts.workflow.WorkflowArtifactKeys
@@ -145,8 +147,8 @@ open class WorkflowUpdateCommand(
         workflowId = workflowId,
         workflowStatus = workflowStatus,
         currentStepId = currentStepId,
-        stepUpdates = stepUpdates?.let(::parseStepUpdates),
-        artifactsPatch = parsedArtifactsPatch,
+        stepUpdates = stepUpdates?.let(::parseStepUpdates)?.let(WorkflowStepUpdates::from),
+        artifactsPatch = parsedArtifactsPatch?.let(WorkflowArtifactPatch::from),
         planningResult = parsedArtifactsPatch?.get(WorkflowArtifactKeys.PLAN)
           ?.let(JsonCodec::anyToStringAnyMap)
           ?.let { DecompositionPlanningResult.fromWireMap(it, "cli.artifacts_patch.plan") },

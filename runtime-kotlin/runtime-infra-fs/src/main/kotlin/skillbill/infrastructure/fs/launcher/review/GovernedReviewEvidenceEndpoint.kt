@@ -9,6 +9,7 @@ import skillbill.ports.review.GovernedReviewEvidenceEndpointBinder
 import skillbill.ports.review.GovernedReviewEvidenceEndpointHandle
 import skillbill.ports.review.NativeReviewOperationProtocol
 import skillbill.ports.review.model.GovernedReviewEvidenceCodec
+import skillbill.workflow.engine.model.GovernedReviewJsonRpcArguments
 import skillbill.ports.review.model.GovernedReviewEvidenceEndpointDescriptor
 import skillbill.review.context.model.ReviewExpansionRecord
 import java.io.IOException
@@ -189,19 +190,19 @@ class GovernedReviewEvidenceEndpoint private constructor(
   private fun read(arguments: Map<String, Any?>): Map<String, Any?> {
     val request = GovernedReviewEvidenceCodec.readRequest(
       descriptor.lane,
-      arguments,
+      GovernedReviewJsonRpcArguments.from(arguments),
       issuedExpansions::get,
     )
-    val payload = GovernedReviewEvidenceCodec.payload(protocol.read(request))
+    val payload = GovernedReviewEvidenceCodec.batchResultPayload(protocol.read(request)).toPayload()
     onEvidenceRead?.invoke()
     return payload
   }
   private fun expand(arguments: Map<String, Any?>): Map<String, Any?> {
     val record = protocol.authorizeExpansion(
-      GovernedReviewEvidenceCodec.expansionRequest(descriptor.lane, arguments),
+      GovernedReviewEvidenceCodec.expansionRequest(descriptor.lane, GovernedReviewJsonRpcArguments.from(arguments)),
     )
     if (record.authorized) issuedExpansions[record.expansionId] = record
-    return GovernedReviewEvidenceCodec.payload(record)
+    return GovernedReviewEvidenceCodec.expansionRecordPayload(record).toPayload()
   }
   companion object {
     fun bind(

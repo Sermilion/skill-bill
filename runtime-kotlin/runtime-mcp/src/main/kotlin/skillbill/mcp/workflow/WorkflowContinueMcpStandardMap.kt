@@ -2,6 +2,7 @@ package skillbill.mcp.workflow
 
 import skillbill.application.workflow.WorkflowWireProjections
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.workflow.WorkflowWirePayloadKeys
 import skillbill.workflow.engine.model.WorkflowContinueView
 import skillbill.workflow.model.WorkflowContinueStatus
 
@@ -10,7 +11,8 @@ internal fun standardMcpContinueMap(
   dbPath: String,
   decompositionExtras: Map<String, Any?>,
 ): Map<String, Any?> {
-  val map = LinkedHashMap(WorkflowWireProjections.compactContinueMap(view.compact))
+  val map = LinkedHashMap(WorkflowWireProjections.compactContinueMap(view.compact).toPayload())
+  map[WorkflowWirePayloadKeys.SESSION_SUMMARY] = view.sessionSummary.toPayload()
   val workflowCommand = if (view.skillName == "bill-feature-verify") "verify-workflow" else "workflow"
   val quotedDbPath = "'${dbPath.replace("'", "'\"'\"'")}'"
   val quotedWorkflowId = "'${view.resume.snapshot.workflowId.replace("'", "'\"'\"'")}'"

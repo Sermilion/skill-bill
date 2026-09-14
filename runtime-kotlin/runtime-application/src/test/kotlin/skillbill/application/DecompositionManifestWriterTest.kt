@@ -1,4 +1,6 @@
 package skillbill.application
+import skillbill.workflow.engine.model.WorkflowStepUpdates
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.application.testDecompositionManifestValidator
 import skillbill.workflow.decomposition.encodeManifestWireMap
 
@@ -73,7 +75,7 @@ class DecompositionManifestWriterTest {
     val result = writeFromWorkflowUpdate(
       repoRoot = repoRoot,
       existingArtifactsJson = "{}",
-      artifactsPatch = mapOf("plan" to stackedDecompositionPlanningPlan().toPayload()),
+      artifactsPatch = WorkflowArtifactPatch.from(mapOf("plan" to stackedDecompositionPlanningPlan().toPayload())),
     )
 
     assertNotNull(result)
@@ -115,12 +117,12 @@ class DecompositionManifestWriterTest {
     val result = writeFromWorkflowUpdate(
       repoRoot = repoRoot,
       existingArtifactsJson = runtimeArtifactsJson(secondSubtaskSpec),
-      artifactsPatch = mapOf("review_result" to mapOf("finding_count" to 0)),
+      artifactsPatch = WorkflowArtifactPatch.from(mapOf("review_result" to mapOf("finding_count" to 0))),
       runtimeUpdate = DecompositionManifestRuntimeUpdate(
         workflowId = "wfl-subtask-2",
         workflowStatus = "running",
         currentStepId = "audit",
-        stepUpdates = listOf(mapOf("step_id" to "review", "status" to "completed", "attempt_count" to 1)),
+        stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "review", "status" to "completed", "attempt_count" to 1))),
       ),
     )
 
@@ -178,7 +180,7 @@ class DecompositionManifestWriterTest {
         workflowId = "wfl-subtask-1",
         workflowStatus = "completed",
         currentStepId = "complete",
-        stepUpdates = listOf(mapOf("step_id" to "complete", "status" to "completed", "attempt_count" to 1)),
+        stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "complete", "status" to "completed", "attempt_count" to 1))),
       ),
     )
 
@@ -241,12 +243,12 @@ class DecompositionManifestWriterTest {
     val result = writeFromWorkflowUpdate(
       repoRoot = repoRoot,
       existingArtifactsJson = runtimeArtifactsJson(parentSpecPath.parent.resolve("missing-subtask.md")),
-      artifactsPatch = mapOf("review_result" to mapOf("finding_count" to 0)),
+      artifactsPatch = WorkflowArtifactPatch.from(mapOf("review_result" to mapOf("finding_count" to 0))),
       runtimeUpdate = DecompositionManifestRuntimeUpdate(
         workflowId = "wfl-wrong-subtask",
         workflowStatus = "running",
         currentStepId = "audit",
-        stepUpdates = listOf(mapOf("step_id" to "review", "status" to "completed", "attempt_count" to 1)),
+        stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "review", "status" to "completed", "attempt_count" to 1))),
       ),
     )
 
@@ -280,7 +282,7 @@ class DecompositionManifestWriterTest {
         workflowId = "wfl-subtask-1",
         workflowStatus = "running",
         currentStepId = "audit",
-        stepUpdates = listOf(mapOf("step_id" to "review", "status" to "skipped", "attempt_count" to 1)),
+        stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "review", "status" to "skipped", "attempt_count" to 1))),
       ),
     )
 
@@ -311,12 +313,12 @@ class DecompositionManifestWriterTest {
     val result = writeFromWorkflowUpdate(
       repoRoot = repoRoot,
       existingArtifactsJson = durableRuntimeArtifactsJson(initial.manifest, subtaskSpec),
-      artifactsPatch = mapOf("validation_result" to mapOf("passed" to true)),
+      artifactsPatch = WorkflowArtifactPatch.from(mapOf("validation_result" to mapOf("passed" to true))),
       runtimeUpdate = DecompositionManifestRuntimeUpdate(
         workflowId = "wfl-subtask-1",
         workflowStatus = "running",
         currentStepId = "validate",
-        stepUpdates = listOf(mapOf("step_id" to "validate", "status" to "completed", "attempt_count" to 1)),
+        stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "validate", "status" to "completed", "attempt_count" to 1))),
       ),
     )
 
@@ -356,12 +358,12 @@ class DecompositionManifestWriterTest {
     val result = writeFromWorkflowUpdate(
       repoRoot = repoRoot,
       existingArtifactsJson = durableRuntimeArtifactsJson(durable, subtaskSpec),
-      artifactsPatch = mapOf("review_result" to mapOf("finding_count" to 0)),
+      artifactsPatch = WorkflowArtifactPatch.from(mapOf("review_result" to mapOf("finding_count" to 0))),
       runtimeUpdate = DecompositionManifestRuntimeUpdate(
         workflowId = "wfl-subtask-1",
         workflowStatus = "running",
         currentStepId = "audit",
-        stepUpdates = listOf(mapOf("step_id" to "review", "status" to "completed", "attempt_count" to 1)),
+        stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "review", "status" to "completed", "attempt_count" to 1))),
       ),
     )
 
@@ -433,7 +435,7 @@ class DecompositionManifestWriterTest {
         workflowId = "wfl-subtask-1",
         workflowStatus = "running",
         currentStepId = "implement",
-        stepUpdates = listOf(mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1)),
+        stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1))),
       ),
     )
 
@@ -484,11 +486,11 @@ class DecompositionManifestWriterTest {
         workflowStatus = "running",
         currentStepId = "implement",
         stepUpdates =
-        listOf(
+        WorkflowStepUpdates.from(listOf(
           mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1),
           mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1),
-        ),
-        artifactsPatch = mapOf("plan" to mapOf("mode" to "implement", "task_count" to 1)),
+        )),
+        artifactsPatch = WorkflowArtifactPatch.from(mapOf("plan" to mapOf("mode" to "implement", "task_count" to 1))),
         sessionId = "session-compat",
       ),
     )
@@ -541,7 +543,7 @@ class DecompositionManifestWriterTest {
       writeFromWorkflowUpdate(
         repoRoot = repoRoot,
         existingArtifactsJson = "{}",
-        artifactsPatch = mapOf("plan" to plan),
+        artifactsPatch = WorkflowArtifactPatch.from(mapOf("plan" to plan)),
       )
     }
 

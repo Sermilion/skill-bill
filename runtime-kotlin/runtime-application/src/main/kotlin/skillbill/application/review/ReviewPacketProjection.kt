@@ -18,7 +18,7 @@ import skillbill.review.model.ParallelReviewMergedFinding
 import skillbill.review.model.ReviewFindingCitation
 import skillbill.review.model.ReviewFindingVerdict
 
-fun ReviewContextPacket.toParentPacketEnvelope(): ReviewContextEnvelope = ReviewContextEnvelope(
+fun ReviewContextPacket.toParentPacketEnvelope(): ReviewContextEnvelope = ReviewContextEnvelope.from(
   linkedMapOf(
     SharedPayloadKeys.CONTRACT_VERSION to REVIEW_CONTEXT_CONTRACT_VERSION,
     "kind" to "parent_packet",
@@ -54,7 +54,7 @@ fun ReviewContextPacket.toParentPacketEnvelope(): ReviewContextEnvelope = Review
       .map { it.toEnvelope() },
   ),
 )
-fun ReviewAssignment.toAssignmentEnvelope(): ReviewContextEnvelope = ReviewContextEnvelope(
+fun ReviewAssignment.toAssignmentEnvelope(): ReviewContextEnvelope = ReviewContextEnvelope.from(
   linkedMapOf(
     SharedPayloadKeys.CONTRACT_VERSION to REVIEW_CONTEXT_CONTRACT_VERSION,
     "kind" to "assignment",
@@ -78,7 +78,7 @@ fun ReviewAssignment.toAssignmentEnvelope(): ReviewContextEnvelope = ReviewConte
     "expansions" to expansions.sortedWith(compareBy({ it.sequence }, { it.expansionId })).map { it.toEnvelope() },
   ),
 )
-fun GovernedReviewLaunch.toLaunchEnvelope(): ReviewContextEnvelope = ReviewContextEnvelope(
+fun GovernedReviewLaunch.toLaunchEnvelope(): ReviewContextEnvelope = ReviewContextEnvelope.from(
   linkedMapOf(
     SharedPayloadKeys.CONTRACT_VERSION to REVIEW_CONTEXT_CONTRACT_VERSION,
     "kind" to "launch",
@@ -112,7 +112,7 @@ fun GovernedReviewLaunch.toLaunchEnvelope(): ReviewContextEnvelope = ReviewConte
   ),
 )
 
-fun GovernedReviewVerificationLaunch.toVerificationLaunchEnvelope(): ReviewContextEnvelope = ReviewContextEnvelope(
+fun GovernedReviewVerificationLaunch.toVerificationLaunchEnvelope(): ReviewContextEnvelope = ReviewContextEnvelope.from(
   linkedMapOf(
     SharedPayloadKeys.CONTRACT_VERSION to REVIEW_CONTEXT_CONTRACT_VERSION,
     "kind" to "verification_launch",
@@ -138,7 +138,7 @@ fun GovernedReviewVerificationLaunch.toVerificationLaunchEnvelope(): ReviewConte
   ),
 )
 
-fun GovernedReviewAdjudicationLaunch.toAdjudicationLaunchEnvelope(): ReviewContextEnvelope = ReviewContextEnvelope(
+fun GovernedReviewAdjudicationLaunch.toAdjudicationLaunchEnvelope(): ReviewContextEnvelope = ReviewContextEnvelope.from(
   linkedMapOf(
     SharedPayloadKeys.CONTRACT_VERSION to REVIEW_CONTEXT_CONTRACT_VERSION,
     "kind" to "adjudication_launch",
@@ -195,7 +195,7 @@ private fun ParallelReviewMergedFinding.toEnvelope(): Map<String, Any?> = linked
   "confidence" to confidence,
 )
 
-fun GovernedReviewIntegrationLaunch.toIntegrationLaunchEnvelope(): ReviewContextEnvelope = ReviewContextEnvelope(
+fun GovernedReviewIntegrationLaunch.toIntegrationLaunchEnvelope(): ReviewContextEnvelope = ReviewContextEnvelope.from(
   linkedMapOf(
     SharedPayloadKeys.CONTRACT_VERSION to REVIEW_CONTEXT_CONTRACT_VERSION,
     "kind" to "integration_launch",

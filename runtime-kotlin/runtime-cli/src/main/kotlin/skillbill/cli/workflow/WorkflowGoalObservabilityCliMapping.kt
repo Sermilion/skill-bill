@@ -9,7 +9,7 @@ import skillbill.workflow.goal.model.goalObservabilityLatestEventFromArtifacts
 internal fun workflowSnapshotCliMap(
   snapshot: WorkflowSnapshotView,
   goalObservabilityEventValidator: GoalObservabilityEventValidator,
-): LinkedHashMap<String, Any?> = LinkedHashMap(WorkflowWireProjections.snapshotMap(snapshot)).apply {
+): LinkedHashMap<String, Any?> = LinkedHashMap(WorkflowWireProjections.snapshotMap(snapshot).toPayload()).apply {
   goalObservabilitySummaryFromArtifacts(snapshot.artifacts, goalObservabilityEventValidator)?.let { summary ->
     put("goal_observability", summary)
   }

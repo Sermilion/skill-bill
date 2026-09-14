@@ -30,6 +30,8 @@ import skillbill.ports.workflow.save
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.goal.model.GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
@@ -84,7 +86,7 @@ class GoalRunnerChildRepairWedgeApplyLoop(
         workflowStatus = record.workflowStatus,
         currentStepId = record.currentStepId,
         stepUpdates = null,
-        artifactsPatch = state.patch,
+        artifactsPatch = WorkflowArtifactPatch.from(state.patch),
         sessionId = record.sessionId.orEmpty(),
       ),
     )
@@ -183,13 +185,13 @@ class GoalRunnerChildRepairWedgeApplyLoop(
   class ApplyState(
     val request: GoalRunnerChildRepairApplyRequest,
     record: WorkflowStateSnapshot,
-    artifacts: Map<String, Any?>,
+    artifacts: DurableWorkflowArtifacts,
     workingContinuation: FeatureTaskRuntimeGoalContinuationArtifact?,
     workingReview: GoalSubtaskReviewState?,
     val clock: Clock,
   ) {
     var record: WorkflowStateSnapshot = record
-    var artifacts: Map<String, Any?> = artifacts
+    var artifacts: DurableWorkflowArtifacts = artifacts
     val patch: LinkedHashMap<String, Any?> = linkedMapOf()
     val applied: MutableList<GoalRunnerAppliedRepair> = mutableListOf()
     val evidenceEntries: MutableList<Map<String, Any?>> = mutableListOf()

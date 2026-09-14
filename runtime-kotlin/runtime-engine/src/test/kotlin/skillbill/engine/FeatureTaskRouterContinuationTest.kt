@@ -1,4 +1,6 @@
 package skillbill.engine
+import skillbill.workflow.engine.model.WorkflowStepUpdates
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.application.FakeDatabaseSessionFactory
 import skillbill.application.InMemoryWorkflowStates
 import skillbill.application.testDecompositionManifestValidator
@@ -86,12 +88,12 @@ class FeatureTaskRouterContinuationTest {
     workflowId = workflowId,
     workflowStatus = "blocked",
     currentStepId = "implement",
-    stepUpdates = listOf(
+    stepUpdates = WorkflowStepUpdates.from(listOf(
       mapOf("step_id" to "preplan", "status" to "completed", "attempt_count" to 1),
       mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1),
       mapOf("step_id" to "implement", "status" to "blocked", "attempt_count" to 1),
-    ),
-    artifactsPatch = mapOf(
+    )),
+    artifactsPatch = WorkflowArtifactPatch.from(mapOf(
       FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to mapOf(
         "preplan" to completedPhaseRecord("preplan"),
         "plan" to completedPhaseRecord(
@@ -99,7 +101,7 @@ class FeatureTaskRouterContinuationTest {
           outputArtifact = """{"tasks":["add continuation integration coverage"]}""",
         ),
       ),
-    ),
+    )),
   )
 
   private fun completedPhaseRecord(phaseId: String, outputArtifact: String? = null): Map<String, Any?> = linkedMapOf(

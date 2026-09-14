@@ -1,4 +1,6 @@
 package skillbill.application
+import skillbill.workflow.engine.model.WorkflowStepUpdates
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 
 import skillbill.application.workflow.model.WorkflowContinueResult
 import skillbill.application.workflow.model.WorkflowFamilyKind
@@ -47,13 +49,13 @@ class ApplicationPersistencePortWorkflowTest {
         workflowId = workflowId,
         workflowStatus = "blocked",
         currentStepId = "implement",
-        stepUpdates = listOf(mapOf("step_id" to "implement", "status" to "blocked", "attempt_count" to 1)),
-        artifactsPatch = mapOf(
+        stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "implement", "status" to "blocked", "attempt_count" to 1))),
+        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
           "preplan_digest" to mapOf("ok" to true),
           FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to mapOf(
             "plan" to completedPhaseRecord("plan", outputArtifact = """{"task_count":1}"""),
           ),
-        ),
+        )),
       ),
     ) as WorkflowUpdateResult.Ok
     val listed = service.list(WorkflowFamilyKind.TASK_RUNTIME)

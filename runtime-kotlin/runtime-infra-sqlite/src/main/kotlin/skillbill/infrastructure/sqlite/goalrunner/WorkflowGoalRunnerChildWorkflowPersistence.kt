@@ -24,6 +24,8 @@ import skillbill.ports.workflow.toRecord
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
+import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
@@ -175,12 +177,14 @@ internal class WorkflowGoalRunnerChildWorkflowPersistence(
         workflowStatus = existingParent.workflowStatus,
         currentStepId = existingParent.currentStepId,
         stepUpdates = null,
-        artifactsPatch = parentProjection.artifacts(
-          mergeConcurrentGoalProgress(
-            existingParent.decompositionRuntime(decompositionManifestValidator) ?: state.manifest,
-            state.manifest,
+        artifactsPatch = WorkflowArtifactPatch.from(
+          parentProjection.artifacts(
+            mergeConcurrentGoalProgress(
+              existingParent.decompositionRuntime(decompositionManifestValidator) ?: state.manifest,
+              state.manifest,
+            ),
+            existingParent.artifactsJson,
           ),
-          existingParent.artifactsJson,
         ),
         sessionId = existingParent.sessionId.orEmpty(),
         replaceArtifacts = true,
@@ -218,10 +222,14 @@ internal class WorkflowGoalRunnerChildWorkflowPersistence(
       WorkflowUpdateInput(
         workflowStatus = openedChild.workflowStatus,
         currentStepId = hydration.currentStepId,
-        stepUpdates = hydration.stepUpdates.mapNotNull { step -> JsonCodec.anyToStringAnyMap(step) },
-        artifactsPatch = LinkedHashMap(childWorkflowArtifacts(state, setup, parentWorkflowId)).apply {
-          JsonCodec.anyToStringAnyMap(hydration.artifacts)?.let(::putAll)
-        },
+        stepUpdates = WorkflowStepUpdates.from(
+          hydration.stepUpdates.mapNotNull { step -> JsonCodec.anyToStringAnyMap(step) },
+        ),
+        artifactsPatch = WorkflowArtifactPatch.from(
+          LinkedHashMap(childWorkflowArtifacts(state, setup, parentWorkflowId)).apply {
+            JsonCodec.anyToStringAnyMap(hydration.artifacts)?.let(::putAll)
+          },
+        ),
         sessionId = openedChild.sessionId.orEmpty(),
       ),
     )

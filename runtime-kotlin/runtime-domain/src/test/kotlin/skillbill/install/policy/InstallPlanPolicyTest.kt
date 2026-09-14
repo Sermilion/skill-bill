@@ -11,6 +11,7 @@ import skillbill.install.model.InstallAgentTargetSource
 import skillbill.install.model.InstallPlanRequest
 import skillbill.install.model.InstallPlanSkill
 import skillbill.install.model.InstallPlanSkillKind
+import skillbill.install.model.InstallPlanWireMap
 import skillbill.install.model.InstallPlanWireValidator
 import skillbill.install.model.InstallPlatformPackDiscoverySnapshot
 import skillbill.install.model.InstallPlatformPackSnapshot
@@ -305,7 +306,7 @@ class InstallPlanPolicyTest {
 
     var capturedWireMap: Map<String, Any?>? = null
     val recordingValidator = object : InstallPlanWireValidator {
-      override fun validate(plan: Map<String, Any?>) {
+      override fun validate(plan: InstallPlanWireMap) {
         capturedWireMap = plan
       }
     }
@@ -314,7 +315,7 @@ class InstallPlanPolicyTest {
     assertEquals("planned", capturedWireMap?.get("status"))
 
     val loudFailValidator = object : InstallPlanWireValidator {
-      override fun validate(plan: Map<String, Any?>) {
+      override fun validate(plan: InstallPlanWireMap) {
         throw InvalidInstallPlanSchemaError(
           fieldPath = "mcp_registration.runtime_mcp_bin",
           reason = "must be a non-empty string when register is true.",

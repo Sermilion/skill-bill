@@ -32,6 +32,7 @@ import skillbill.ports.workflow.save
 import skillbill.workflow.decomposition.decodeManifest
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.decodeWorkflowSteps
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.engine.progressToken
 import skillbill.workflow.goal.GoalObservabilityEventValidator
@@ -119,7 +120,7 @@ internal class WorkflowGoalRunnerProgressRecording(
           workflowStatus = record.workflowStatus,
           currentStepId = record.currentStepId,
           stepUpdates = null,
-          artifactsPatch = JsonCodec.anyToStringAnyMap(observabilityPatch),
+          artifactsPatch = JsonCodec.anyToStringAnyMap(observabilityPatch)?.let(WorkflowArtifactPatch::from),
           sessionId = record.sessionId.orEmpty(),
         ),
       )
@@ -185,7 +186,7 @@ internal class WorkflowGoalRunnerProgressRecording(
         workflowStatus = record.workflowStatus,
         currentStepId = record.currentStepId,
         stepUpdates = null,
-        artifactsPatch = mapOf(WORKER_SUBTASK_REQUEST_OUTCOMES_ARTIFACT_KEY to updatedOutcomes),
+        artifactsPatch = WorkflowArtifactPatch.from(mapOf(WORKER_SUBTASK_REQUEST_OUTCOMES_ARTIFACT_KEY to updatedOutcomes)),
         sessionId = record.sessionId.orEmpty(),
       ),
     )
@@ -268,7 +269,7 @@ internal class WorkflowGoalRunnerProgressRecording(
         workflowStatus = record.workflowStatus,
         currentStepId = record.currentStepId,
         stepUpdates = null,
-        artifactsPatch = patch,
+        artifactsPatch = WorkflowArtifactPatch.from(patch),
         sessionId = record.sessionId.orEmpty(),
       ),
     )

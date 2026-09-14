@@ -9,6 +9,7 @@ import skillbill.error.InvalidFeatureTaskRuntimeFindingVerificationRecordError
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.workflow.toRecord
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_CHECKPOINT_ARTIFACT_KEY
 import kotlin.test.Test
@@ -93,7 +94,7 @@ private fun seedWorkflow(repository: InMemoryRuntimeWorkflowRepository, workflow
       workflowStatus = "running",
       currentStepId = "verify_findings",
       stepUpdates = null,
-      artifactsPatch = artifacts,
+      artifactsPatch = WorkflowArtifactPatch.from(artifacts),
       sessionId = "ftr-finding-verification",
     ),
   ).toRecord()

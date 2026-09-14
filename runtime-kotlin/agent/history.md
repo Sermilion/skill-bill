@@ -1,3 +1,12 @@
+## [2026-09-14] SKILL-52.5 subtask 6 — Application workflow, telemetry, and remainder
+Areas: runtime-kotlin/{runtime-application,runtime-contracts,runtime-domain,runtime-engine,runtime-ports,runtime-cli,runtime-mcp,runtime-infra-{fs,http,sqlite},runtime-core}
+- Replaced the remaining application, workflow, telemetry, review, install, IDE-status, and persistence raw-map seams with typed models and boundary-owned wire mappers.
+- Lifecycle telemetry and workflow continuation/update projections preserve contract-backed payload vocabulary across application, CLI, MCP, and infrastructure adapters.
+- Pattern: keep raw maps at serialization seams and carry typed records through application, domain, ports, engine, persistence, CLI, and MCP boundaries. reusable
+- Known limitation: architecture and adapter verification remains owned by the validate phase.
+Feature flag: N/A
+Acceptance criteria: 5/5 implemented
+
 ## [2026-09-14] SKILL-52.5 subtask 5 — Goal runner and workflow goal typing
 Areas: runtime-kotlin/{runtime-domain/{goalrunner,workflow/goal},runtime-ports/goalrunner,runtime-engine/{goalrunner,featuretask},runtime-infra-{fs,sqlite},runtime-application,runtime-cli,runtime-mcp,runtime-core}
 - Replaced public raw-map boundary shapes across goal-runner and workflow-goal state, continuation artifacts, observability, review state, planning hydration, and persistence helpers with typed models and private wire decoders.

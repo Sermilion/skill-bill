@@ -1,12 +1,14 @@
 package skillbill.ports.workflow.decomposition.runtime.model
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.decomposition.DecompositionPlanningResult
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.model.DecompositionExecutionModel
 import skillbill.workflow.decomposition.model.DecompositionStackBranch
 import skillbill.workflow.decomposition.model.SpecSource
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
+import skillbill.workflow.engine.model.WorkflowStepUpdates
 import java.nio.file.Path
 import skillbill.workflow.decomposition.runtime.model.DecompositionManifestWriteResult as WorkflowDecompositionManifestWriteResult
 
@@ -27,21 +29,16 @@ data class DecompositionManifestRuntimeUpdate(
   val workflowStatus: String = "",
   val currentStepId: String = "",
   val planningResult: DecompositionPlanningResult? = null,
-  @OpenBoundaryMap("Caller-supplied JSON patch for workflow step updates")
-  val stepUpdates: List<Map<String, Any?>>? = null,
-  @OpenBoundaryMap("Caller-supplied JSON patch for durable workflow artifacts")
-  val artifactsPatch: Map<String, Any?>? = null,
-  @OpenBoundaryMap("Workflow artifacts snapshot (caller-supplied JSON passthrough)")
-  val existingArtifacts: Map<String, Any?> = emptyMap(),
+  val stepUpdates: WorkflowStepUpdates? = null,
+  val artifactsPatch: WorkflowArtifactPatch? = null,
+  val existingArtifacts: DurableWorkflowArtifacts = DurableWorkflowArtifacts.EMPTY,
 )
 
 data class DecompositionPlanManifestInput(
   val repoRoot: Path,
   val plan: DecompositionPlanningResult,
-  @OpenBoundaryMap("Caller-supplied JSON patch for durable workflow artifacts")
-  val artifactsPatch: Map<String, Any?>?,
-  @OpenBoundaryMap("Workflow artifacts snapshot (caller-supplied JSON passthrough)")
-  val existingArtifacts: Map<String, Any?>,
+  val artifactsPatch: WorkflowArtifactPatch?,
+  val existingArtifacts: DurableWorkflowArtifacts,
   val validator: DecompositionManifestValidator,
   val fileStore: DecompositionManifestStore,
 )
@@ -51,8 +48,7 @@ data class DecompositionManifestWorkflowProjectionInput(
   val existingArtifactsJson: String,
   val validator: DecompositionManifestValidator,
   val planningResult: DecompositionPlanningResult? = null,
-  @OpenBoundaryMap("Caller-supplied JSON patch for durable workflow artifacts")
-  val artifactsPatch: Map<String, Any?>? = null,
+  val artifactsPatch: WorkflowArtifactPatch? = null,
   val runtimeUpdate: DecompositionManifestRuntimeUpdate = DecompositionManifestRuntimeUpdate(),
   val fileStore: DecompositionManifestStore,
 )

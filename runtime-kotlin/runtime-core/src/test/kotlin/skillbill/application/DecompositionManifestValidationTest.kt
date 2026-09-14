@@ -9,6 +9,7 @@ import skillbill.infrastructure.fs.DecompositionManifestValidatorAdapter
 import skillbill.infrastructure.fs.FileSystemDecompositionManifestFileStore
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.workflow.decomposition.DecompositionManifestValidator
+import skillbill.workflow.engine.model.DecompositionManifestWireMap
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionDependency
 import skillbill.workflow.decomposition.model.DecompositionExecutionModel
@@ -72,7 +73,7 @@ class DecompositionManifestValidationTest {
     var encodeCalls: Int = 0
       private set
 
-    override fun encodeManifestYaml(wireMap: Map<String, Any?>): String {
+    override fun encodeManifestYaml(wireMap: DecompositionManifestWireMap): String {
       encodeCalls += 1
       return delegate.encodeManifestYaml(wireMap)
     }
@@ -105,7 +106,7 @@ class DecompositionManifestValidationTest {
     wireMap.remove("contract_version")
 
     val error = assertFailsWith<InvalidDecompositionManifestSchemaError> {
-      realDecompositionManifestValidator.decodeManifest(wireMap, "missing-contract")
+      realDecompositionManifestValidator.decodeManifest(DecompositionManifestWireMap.from(wireMap), "missing-contract")
     }
     assertContains(error.reason, "contract_version")
   }
@@ -116,7 +117,7 @@ class DecompositionManifestValidationTest {
     wireMap.mutableSubtasks()[0]["review_result"] = mapOf("finding_count" to 0)
 
     val error = assertFailsWith<InvalidDecompositionManifestSchemaError> {
-      realDecompositionManifestValidator.decodeManifest(wireMap, "result-payload-noise")
+      realDecompositionManifestValidator.decodeManifest(DecompositionManifestWireMap.from(wireMap), "result-payload-noise")
     }
     assertContains(error.reason, "review_result")
   }
@@ -127,7 +128,7 @@ class DecompositionManifestValidationTest {
     wireMap.mutableSubtasks()[0]["id"] = Int.MAX_VALUE.toLong() + 1L
 
     val error = assertFailsWith<InvalidDecompositionManifestSchemaError> {
-      realDecompositionManifestValidator.decodeManifest(wireMap, "oversized-subtask-id")
+      realDecompositionManifestValidator.decodeManifest(DecompositionManifestWireMap.from(wireMap), "oversized-subtask-id")
     }
     assertContains(error.reason, "subtasks[0].id")
     assertContains(error.reason, Int.MAX_VALUE.toString())
@@ -139,7 +140,7 @@ class DecompositionManifestValidationTest {
     wireMap.mutableSubtasks()[1]["id"] = 1
 
     val error = assertFailsWith<InvalidDecompositionManifestSchemaError> {
-      realDecompositionManifestValidator.decodeManifest(wireMap, "duplicate-subtask-id")
+      realDecompositionManifestValidator.decodeManifest(DecompositionManifestWireMap.from(wireMap), "duplicate-subtask-id")
     }
     assertContains(error.reason, "subtasks[1].id")
     assertContains(error.reason, "Duplicate subtask id '1'")
@@ -153,7 +154,10 @@ class DecompositionManifestValidationTest {
     subtasks[1]["id"] = 1
     subtasks[1]["dependencies"] = emptyList<Map<String, Any?>>()
 
-    val decoded = realDecompositionManifestValidator.decodeManifest(wireMap, "array-order-subtasks")
+    val decoded = realDecompositionManifestValidator.decodeManifest(
+      DecompositionManifestWireMap.from(wireMap),
+      "array-order-subtasks",
+    )
 
     assertEquals(listOf(2, 1), decoded.subtasks.map { it.id })
   }
@@ -164,7 +168,10 @@ class DecompositionManifestValidationTest {
     wireMap.mutableCurrentSubtaskIntent()["subtask_id"] = 99
 
     val error = assertFailsWith<InvalidDecompositionManifestSchemaError> {
-      realDecompositionManifestValidator.decodeManifest(wireMap, "missing-current-subtask")
+      realDecompositionManifestValidator.decodeManifest(
+        DecompositionManifestWireMap.from(wireMap),
+        "missing-current-subtask",
+      )
     }
     assertContains(error.reason, "current_subtask_intent.subtask_id")
     assertContains(error.reason, "Current subtask intent must reference a declared subtask")
@@ -178,7 +185,10 @@ class DecompositionManifestValidationTest {
     intent["action"] = "none"
 
     val error = assertFailsWith<InvalidDecompositionManifestSchemaError> {
-      realDecompositionManifestValidator.decodeManifest(wireMap, "invalid-none-current-subtask")
+      realDecompositionManifestValidator.decodeManifest(
+        DecompositionManifestWireMap.from(wireMap),
+        "invalid-none-current-subtask",
+      )
     }
     assertContains(error.reason, "current_subtask_intent.subtask_id")
     assertContains(error.reason, "Intent action none must use subtask_id 0")
@@ -190,7 +200,10 @@ class DecompositionManifestValidationTest {
     wireMap.mutableCurrentSubtaskIntent()["subtask_id"] = 1.5
 
     val error = assertFailsWith<InvalidDecompositionManifestSchemaError> {
-      realDecompositionManifestValidator.decodeManifest(wireMap, "fractional-current-subtask")
+      realDecompositionManifestValidator.decodeManifest(
+        DecompositionManifestWireMap.from(wireMap),
+        "fractional-current-subtask",
+      )
     }
     assertContains(error.reason, "current_subtask_intent.subtask_id")
   }

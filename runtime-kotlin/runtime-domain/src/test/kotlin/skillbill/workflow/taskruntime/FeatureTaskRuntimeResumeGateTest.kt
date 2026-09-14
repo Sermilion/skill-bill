@@ -59,7 +59,7 @@ class FeatureTaskRuntimeResumeGateTest {
     val compactPreplan = decision.view.compact.currentStepArtifacts.single { it.key == "preplan" }
     assertTrue(compactPreplan.present)
     assertFalse(compactPreplan.omitted)
-    assertEquals("""{"preplan_digest":"bounded"}""", compactPreplan.value)
+    assertEquals("""{"preplan_digest":"bounded"}""", compactPreplan.value.raw)
     assertEquals(null, compactPreplan.omissionReason)
   }
 

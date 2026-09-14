@@ -1,4 +1,6 @@
 package skillbill.application
+import skillbill.workflow.engine.model.WorkflowStepUpdates
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 
 import skillbill.application.decomposition.DecompositionManifestWriter
 import skillbill.application.decomposition.loadDecompositionManifest
@@ -94,6 +96,7 @@ import skillbill.telemetry.model.GoalStartedRecord
 import skillbill.telemetry.model.GoalSubtaskFinishedRecord
 import skillbill.telemetry.model.RemoteStatsRequest
 import skillbill.telemetry.model.TelemetryConfigDocument
+import skillbill.workflow.engine.model.TelemetryOpenDocument
 import skillbill.telemetry.model.TelemetryProxyCapabilities
 import skillbill.telemetry.model.TelemetryRemoteStatsResult
 import skillbill.telemetry.model.TelemetrySettings
@@ -619,7 +622,8 @@ internal object FakeTelemetryConfigStore : TelemetryConfigStore {
 
   override fun read(): TelemetryConfigDocument? = null
 
-  override fun ensure(): TelemetryConfigDocument = TelemetryConfigDocument(emptyMap())
+  override fun ensure(): TelemetryConfigDocument =
+    TelemetryConfigDocument(TelemetryOpenDocument.from(emptyMap()))
 
   override fun write(document: TelemetryConfigDocument) = Unit
 }
@@ -699,7 +703,7 @@ internal fun blockedGoalChildRetryFixture(): BlockedGoalChildRetryFixture {
       workflowStatus = "running",
       currentStepId = "preplan",
       stepUpdates = null,
-      artifactsPatch = mapOf(
+      artifactsPatch = WorkflowArtifactPatch.from(mapOf(
         FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY to
           FeatureTaskRuntimeGoalContinuationArtifact(
             issueKey = "SKILL-51",
@@ -709,7 +713,7 @@ internal fun blockedGoalChildRetryFixture(): BlockedGoalChildRetryFixture {
             parentWorkflowId = parentWorkflowId,
             codeReviewMode = CodeReviewExecutionMode.INLINE,
           ).asWorkflowArtifactEntry().toWorkflowArtifactMap(),
-      ),
+      )),
     ),
   )
   testPhaseRecorder(database).recordRuntimePhase(
@@ -750,7 +754,7 @@ internal fun createDecompositionWorkflow(
       workflowId = workflowId,
       workflowStatus = "running",
       currentStepId = "plan",
-      stepUpdates = listOf(mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1)),
+      stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1))),
       artifactsPatch = decompositionPlanPatch(parentSpec, subtaskOne, subtaskTwo, executionModel),
     ),
   )
@@ -764,14 +768,14 @@ internal fun markDecompositionSubtaskBlocked(service: WorkflowService, workflowI
       workflowId = workflowId,
       workflowStatus = "blocked",
       currentStepId = "validate",
-      stepUpdates = listOf(mapOf("step_id" to "validate", "status" to "blocked", "attempt_count" to 1)),
+      stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "validate", "status" to "blocked", "attempt_count" to 1))),
       artifactsPatch =
-      mapOf(
+      WorkflowArtifactPatch.from(mapOf(
         "assessment" to mapOf("spec_path" to subtaskSpec.toString()),
         FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to completedPhaseRecords("plan", "audit"),
         "validation_result" to mapOf("passed" to false),
         "blocked_reason" to "Validation failed.",
-      ),
+      )),
     ),
   )
 }
@@ -783,11 +787,11 @@ internal fun markDecompositionSubtaskSkipped(service: WorkflowService, workflowI
       workflowId = workflowId,
       workflowStatus = "running",
       currentStepId = "pr",
-      stepUpdates = listOf(mapOf("step_id" to "pr", "status" to "skipped", "attempt_count" to 1)),
-      artifactsPatch = mapOf(
+      stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "pr", "status" to "skipped", "attempt_count" to 1))),
+      artifactsPatch = WorkflowArtifactPatch.from(mapOf(
         "assessment" to mapOf("spec_path" to subtaskSpec.toString()),
         FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to completedPhaseRecords("implement", "commit_push"),
-      ),
+      )),
     ),
   )
 }
@@ -799,11 +803,11 @@ internal fun markDecompositionSubtaskComplete(service: WorkflowService, workflow
       workflowId = workflowId,
       workflowStatus = "completed",
       currentStepId = "pr",
-      stepUpdates = listOf(mapOf("step_id" to "pr", "status" to "completed", "attempt_count" to 1)),
-      artifactsPatch = mapOf(
+      stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "pr", "status" to "completed", "attempt_count" to 1))),
+      artifactsPatch = WorkflowArtifactPatch.from(mapOf(
         "assessment" to mapOf("spec_path" to subtaskSpec.toString()),
         FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to completedPhaseRecords("implement", "commit_push"),
-      ),
+      )),
     ),
   )
 }
@@ -831,7 +835,7 @@ internal fun decompositionPlanPatch(
   subtaskSpec: Path,
   subtaskTwo: Path? = null,
   executionModel: String = "same_branch_commit_per_subtask",
-): Map<String, Any?> {
+): WorkflowArtifactPatch {
   val subtasks = mutableListOf(
     mapOf(
       "id" to 1,
@@ -862,10 +866,10 @@ internal fun decompositionPlanPatch(
       mapOf("subtask_id" to 2, "branch" to "feat/SKILL-51-demo-2", "base_branch" to "feat/SKILL-51-demo-1"),
     ).take(subtasks.size)
   }
-  return mapOf(
+  return WorkflowArtifactPatch.from(mapOf(
     "branch" to mapOf("branch" to "feat/SKILL-51-demo"),
     "plan" to plan,
-  )
+  ))!!
 }
 
 internal fun writeSpecs(parentSpec: Path, vararg subtasks: Path) {

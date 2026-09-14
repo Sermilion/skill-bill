@@ -65,6 +65,7 @@ import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.engine.WorkflowSnapshotValidator
+import skillbill.ports.idestatus.IdeStatusWireMap
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.goal.model.GoalProgressEvent
 import skillbill.workflow.goal.model.GoalSubtaskReviewPassResult
@@ -260,7 +261,7 @@ internal fun fixtureCheckedOutBranch(repoRoot: Path): String? =
     ?.removePrefix("ref: refs/heads/")
 
 internal object EmitShapeValidator : IdeStatusValidator by NoopIdeStatusValidator {
-  override fun validate(snapshot: Map<String, Any?>, sourceLabel: String) {
+  override fun validate(snapshot: IdeStatusWireMap, sourceLabel: String) {
     require(snapshot["contract_version"] == IDE_STATUS_CONTRACT_VERSION)
     require(snapshot["repository_identity"] is String)
     require(snapshot["lifecycle_state"] is String)

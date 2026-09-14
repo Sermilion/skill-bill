@@ -3,92 +3,165 @@ package skillbill.application.telemetry
 import skillbill.application.telemetry.model.FeatureVerifyFinishedRequest
 import skillbill.application.telemetry.model.PrDescriptionGeneratedRequest
 import skillbill.application.telemetry.model.QualityCheckFinishedRequest
-import skillbill.boundary.OpenBoundaryMap
-import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.JsonPayloadContract
+import skillbill.contracts.telemetry.LifecycleErrorContract
+import skillbill.contracts.telemetry.LifecycleOkContract
+import skillbill.contracts.telemetry.LifecycleOrchestratedFinishedContract
+import skillbill.contracts.telemetry.LifecycleOrchestratedStartedSkippedContract
+import skillbill.contracts.telemetry.LifecycleSkippedContract
+import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
 
-private const val STATUS_OK = "ok"
-private const val STATUS_SKIPPED = "skipped"
+internal fun lifecycleOkPayload(sessionId: String): JsonPayloadContract = LifecycleOkContract(sessionId)
 
-@OpenBoundaryMap("Lifecycle telemetry event bag emitted to the MCP/CLI telemetry boundary")
-fun lifecycleOkPayload(sessionId: String): Map<String, Any?> = mapOf(
-  SharedPayloadKeys.STATUS to STATUS_OK,
-  "session_id" to sessionId,
-)
+internal fun lifecycleSkippedPayload(sessionId: String): JsonPayloadContract = LifecycleSkippedContract(sessionId)
 
-@OpenBoundaryMap("Lifecycle telemetry event bag emitted to the MCP/CLI telemetry boundary")
-fun lifecycleSkippedPayload(sessionId: String): Map<String, Any?> =
-  mapOf(SharedPayloadKeys.STATUS to STATUS_SKIPPED, "session_id" to sessionId)
+internal fun lifecycleErrorPayload(sessionId: String, error: String): JsonPayloadContract =
+  LifecycleErrorContract(sessionId, error)
 
-@OpenBoundaryMap("Lifecycle telemetry event bag emitted to the MCP/CLI telemetry boundary")
-fun lifecycleErrorPayload(sessionId: String, error: String): Map<String, Any?> =
-  mapOf(SharedPayloadKeys.STATUS to "error", "session_id" to sessionId, "error" to error)
+internal fun orchestratedStartedSkippedPayload(): JsonPayloadContract = LifecycleOrchestratedStartedSkippedContract()
 
-@OpenBoundaryMap("Lifecycle telemetry event bag emitted to the MCP/CLI telemetry boundary")
-fun orchestratedStartedSkippedPayload(): Map<String, Any?> =
-  mapOf("mode" to "orchestrated", SharedPayloadKeys.STATUS to "skipped_in_orchestrated_mode")
+internal fun QualityCheckFinishedRequest.orchestratedPayload(level: String): JsonPayloadContract =
+  LifecycleOrchestratedFinishedContract(qualityCheckPayloadContract(level))
 
-@OpenBoundaryMap("Lifecycle telemetry event bag emitted to the MCP/CLI telemetry boundary")
-fun QualityCheckFinishedRequest.orchestratedPayload(level: String): Map<String, Any?> =
-  mapOf("mode" to "orchestrated", "telemetry_payload" to qualityCheckPayload(level))
+internal fun FeatureVerifyFinishedRequest.orchestratedPayload(level: String): JsonPayloadContract =
+  LifecycleOrchestratedFinishedContract(featureVerifyPayloadContract(level))
 
-@OpenBoundaryMap("Lifecycle telemetry event bag emitted to the MCP/CLI telemetry boundary")
-fun FeatureVerifyFinishedRequest.orchestratedPayload(level: String): Map<String, Any?> =
-  mapOf("mode" to "orchestrated", "telemetry_payload" to featureVerifyPayload(level))
+internal fun PrDescriptionGeneratedRequest.orchestratedPayload(level: String): JsonPayloadContract =
+  LifecycleOrchestratedFinishedContract(prDescriptionPayloadContract(level))
 
-@OpenBoundaryMap("Lifecycle telemetry event bag emitted to the MCP/CLI telemetry boundary")
-fun PrDescriptionGeneratedRequest.orchestratedPayload(level: String): Map<String, Any?> =
-  mapOf("mode" to "orchestrated", "telemetry_payload" to prDescriptionPayload(level))
+private fun QualityCheckFinishedRequest.qualityCheckPayloadContract(level: String): JsonPayloadContract =
+  QualityCheckFinishedTelemetryPayload(
+    routedSkill = routedSkill,
+    detectedStack = detectedStack,
+    fallback = fallback,
+    fallbackReason = fallbackReason,
+    scopeType = scopeType,
+    initialFailureCount = initialFailureCount,
+    finalFailureCount = finalFailureCount,
+    iterations = iterations,
+    result = result,
+    durationSeconds = durationSeconds.toLong(),
+    level = level,
+    failingCheckNames = failingCheckNames,
+    unsupportedReason = unsupportedReason,
+  )
 
-private fun QualityCheckFinishedRequest.qualityCheckPayload(level: String): Map<String, Any?> =
-  linkedMapOf<String, Any?>(
-    "routed_skill" to routedSkill,
-    "detected_stack" to detectedStack,
-    "fallback" to fallback,
-    "scope_type" to scopeType,
-    "initial_failure_count" to initialFailureCount,
-    "final_failure_count" to finalFailureCount,
-    "iterations" to iterations,
-    "result" to result,
-    "duration_seconds" to durationSeconds,
-    "skill" to "bill-code-check",
-  ).apply {
-    if (fallback && !fallbackReason.isNullOrBlank()) {
-      put("fallback_reason", fallbackReason)
+private fun FeatureVerifyFinishedRequest.featureVerifyPayloadContract(level: String): JsonPayloadContract =
+  FeatureVerifyFinishedTelemetryPayload(
+    acceptanceCriteriaCount = acceptanceCriteriaCount,
+    rolloutRelevant = rolloutRelevant,
+    featureFlagAuditPerformed = featureFlagAuditPerformed,
+    reviewIterations = reviewIterations,
+    auditResult = auditResult,
+    completionStatus = completionStatus,
+    historyRelevance = historyRelevance,
+    historyHelpfulness = historyHelpfulness,
+    durationSeconds = durationSeconds.toLong(),
+    level = level,
+    specSummary = specSummary,
+    gapsFound = gapsFound,
+  )
+
+private fun PrDescriptionGeneratedRequest.prDescriptionPayloadContract(level: String): JsonPayloadContract =
+  PrDescriptionGeneratedTelemetryPayload(
+    commitCount = commitCount,
+    filesChangedCount = filesChangedCount,
+    wasEditedByUser = wasEditedByUser || prDescriptionWasEditedByUser(generatedDescription, finalPrBody),
+    prCreated = prCreated,
+    level = level,
+    prTitle = prTitle,
+  )
+
+private data class QualityCheckFinishedTelemetryPayload(
+  val routedSkill: String,
+  val detectedStack: String,
+  val fallback: Boolean,
+  val fallbackReason: String?,
+  val scopeType: String,
+  val initialFailureCount: Int,
+  val finalFailureCount: Int,
+  val iterations: Int,
+  val result: String,
+  val durationSeconds: Long,
+  val level: String,
+  val failingCheckNames: List<String>,
+  val unsupportedReason: String?,
+) : JsonPayloadContract {
+  override fun toPayload(): Map<String, Any?> =
+    linkedMapOf<String, Any?>(
+      LifecycleTelemetryPayloadKeys.ROUTED_SKILL to routedSkill,
+      LifecycleTelemetryPayloadKeys.DETECTED_STACK to detectedStack,
+      LifecycleTelemetryPayloadKeys.FALLBACK to fallback,
+      LifecycleTelemetryPayloadKeys.SCOPE_TYPE to scopeType,
+      LifecycleTelemetryPayloadKeys.INITIAL_FAILURE_COUNT to initialFailureCount,
+      LifecycleTelemetryPayloadKeys.FINAL_FAILURE_COUNT to finalFailureCount,
+      LifecycleTelemetryPayloadKeys.ITERATIONS to iterations,
+      LifecycleTelemetryPayloadKeys.RESULT to result,
+      LifecycleTelemetryPayloadKeys.DURATION_SECONDS to durationSeconds,
+      LifecycleTelemetryPayloadKeys.SKILL to "bill-code-check",
+    ).apply {
+      if (fallback && !fallbackReason.isNullOrBlank()) {
+        put(LifecycleTelemetryPayloadKeys.FALLBACK_REASON, fallbackReason)
+      }
+      if (level == "full") {
+        put(LifecycleTelemetryPayloadKeys.FAILING_CHECK_NAMES, failingCheckNames)
+        put(LifecycleTelemetryPayloadKeys.UNSUPPORTED_REASON, unsupportedReason)
+      }
     }
-    if (level == "full") {
-      put("failing_check_names", failingCheckNames)
-      put("unsupported_reason", unsupportedReason)
-    }
-  }
+}
 
-private fun FeatureVerifyFinishedRequest.featureVerifyPayload(level: String): Map<String, Any?> =
-  linkedMapOf<String, Any?>(
-    "acceptance_criteria_count" to acceptanceCriteriaCount,
-    "rollout_relevant" to rolloutRelevant,
-    "feature_flag_audit_performed" to featureFlagAuditPerformed,
-    "review_iterations" to reviewIterations,
-    "audit_result" to auditResult,
-    "completion_status" to completionStatus,
-    "history_relevance" to historyRelevance,
-    "history_helpfulness" to historyHelpfulness,
-    "duration_seconds" to durationSeconds,
-    "skill" to "bill-feature-verify",
-  ).apply {
-    if (level == "full") {
-      put("spec_summary", specSummary)
-      put("gaps_found", gapsFound)
+private data class FeatureVerifyFinishedTelemetryPayload(
+  val acceptanceCriteriaCount: Int,
+  val rolloutRelevant: Boolean,
+  val featureFlagAuditPerformed: Boolean,
+  val reviewIterations: Int,
+  val auditResult: String,
+  val completionStatus: String,
+  val historyRelevance: String,
+  val historyHelpfulness: String,
+  val durationSeconds: Long,
+  val level: String,
+  val specSummary: String,
+  val gapsFound: List<String>,
+) : JsonPayloadContract {
+  override fun toPayload(): Map<String, Any?> =
+    linkedMapOf<String, Any?>(
+      LifecycleTelemetryPayloadKeys.ACCEPTANCE_CRITERIA_COUNT to acceptanceCriteriaCount,
+      LifecycleTelemetryPayloadKeys.ROLLOUT_RELEVANT to rolloutRelevant,
+      LifecycleTelemetryPayloadKeys.FEATURE_FLAG_AUDIT_PERFORMED to featureFlagAuditPerformed,
+      LifecycleTelemetryPayloadKeys.REVIEW_ITERATIONS to reviewIterations,
+      LifecycleTelemetryPayloadKeys.AUDIT_RESULT to auditResult,
+      LifecycleTelemetryPayloadKeys.COMPLETION_STATUS to completionStatus,
+      LifecycleTelemetryPayloadKeys.HISTORY_RELEVANCE to historyRelevance,
+      LifecycleTelemetryPayloadKeys.HISTORY_HELPFULNESS to historyHelpfulness,
+      LifecycleTelemetryPayloadKeys.DURATION_SECONDS to durationSeconds,
+      LifecycleTelemetryPayloadKeys.SKILL to "bill-feature-verify",
+    ).apply {
+      if (level == "full") {
+        put(LifecycleTelemetryPayloadKeys.SPEC_SUMMARY, specSummary)
+        put(LifecycleTelemetryPayloadKeys.GAPS_FOUND, gapsFound)
+      }
     }
-  }
+}
 
-private fun PrDescriptionGeneratedRequest.prDescriptionPayload(level: String): Map<String, Any?> =
-  linkedMapOf<String, Any?>(
-    "commit_count" to commitCount,
-    "files_changed_count" to filesChangedCount,
-    "was_edited_by_user" to (wasEditedByUser || prDescriptionWasEditedByUser(generatedDescription, finalPrBody)),
-    "pr_created" to prCreated,
-    "skill" to "bill-pr-description",
-  ).apply {
-    if (level == "full") {
-      put("pr_title", prTitle)
+private data class PrDescriptionGeneratedTelemetryPayload(
+  val commitCount: Int,
+  val filesChangedCount: Int,
+  val wasEditedByUser: Boolean,
+  val prCreated: Boolean,
+  val level: String,
+  val prTitle: String,
+) : JsonPayloadContract {
+  override fun toPayload(): Map<String, Any?> =
+    linkedMapOf<String, Any?>(
+      LifecycleTelemetryPayloadKeys.COMMIT_COUNT to commitCount,
+      LifecycleTelemetryPayloadKeys.FILES_CHANGED_COUNT to filesChangedCount,
+      LifecycleTelemetryPayloadKeys.WAS_EDITED_BY_USER to wasEditedByUser,
+      LifecycleTelemetryPayloadKeys.PR_CREATED to prCreated,
+      LifecycleTelemetryPayloadKeys.SKILL to "bill-pr-description",
+    ).apply {
+      if (level == "full") {
+        put(LifecycleTelemetryPayloadKeys.PR_TITLE, prTitle)
+      }
     }
-  }
+}

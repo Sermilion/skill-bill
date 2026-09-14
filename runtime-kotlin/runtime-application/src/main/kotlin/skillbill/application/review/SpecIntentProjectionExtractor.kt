@@ -7,6 +7,7 @@ import skillbill.error.InvalidReviewContextSchemaError
 import skillbill.error.UnreadableSpecIntentProjectionError
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.review.context.ReviewContextEnvelopeValidator
+import skillbill.workflow.engine.model.ReviewContextWireMap
 import skillbill.review.context.model.ReviewContextBudgetPolicy
 import skillbill.review.context.model.SpecIntentProjection
 import skillbill.review.context.model.SpecIntentProvenance
@@ -54,7 +55,10 @@ class SpecIntentProjectionExtractor(
       surroundingContext = surrounding,
     )
     try {
-      envelopeValidator.validateSpecIntentProjection(projection.toProjectionPayload(), "spec_intent_projection")
+      envelopeValidator.validateSpecIntentProjection(
+        ReviewContextWireMap.from(projection.toProjectionPayload()),
+        "spec_intent_projection",
+      )
     } catch (error: InvalidReviewContextSchemaError) {
       fail(normalized, explicit, "unparseable", error)
     }

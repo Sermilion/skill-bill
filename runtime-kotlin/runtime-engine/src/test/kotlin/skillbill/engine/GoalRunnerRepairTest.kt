@@ -1,4 +1,6 @@
 package skillbill.engine
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
+import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.taskruntime.asCheckpointIdentitiesArtifactEntry
 import skillbill.workflow.taskruntime.asTelemetryPayload
 import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
@@ -518,7 +520,7 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
           workflowStatus = "running",
           currentStepId = "implement_fix",
           stepUpdates = null,
-          artifactsPatch = artifacts,
+          artifactsPatch = WorkflowArtifactPatch.from(artifacts),
           sessionId = "ftr-repair",
         ),
       ).toRecord(),
@@ -579,7 +581,7 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
           workflowStatus = "running",
           currentStepId = "write_history",
           stepUpdates = null,
-          artifactsPatch = artifacts,
+          artifactsPatch = WorkflowArtifactPatch.from(artifacts),
           sessionId = "ftr-repair",
         ),
       ).toRecord(),
@@ -618,7 +620,7 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
           workflowStatus = "blocked",
           currentStepId = "write_history",
           stepUpdates = null,
-          artifactsPatch = artifacts,
+          artifactsPatch = WorkflowArtifactPatch.from(artifacts),
           sessionId = "ftr-repair",
         ),
       ).toRecord(),
@@ -674,7 +676,7 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
           workflowStatus = "blocked",
           currentStepId = "implement_fix",
           stepUpdates = null,
-          artifactsPatch = artifacts,
+          artifactsPatch = WorkflowArtifactPatch.from(artifacts),
           sessionId = "ftr-repair",
         ),
       ).toRecord(),
@@ -768,7 +770,7 @@ internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {
           workflowStatus = "blocked",
           currentStepId = "implement_fix",
           stepUpdates = null,
-          artifactsPatch = artifacts,
+          artifactsPatch = WorkflowArtifactPatch.from(artifacts),
           sessionId = "ftr-repair",
         ),
       ).toRecord(),
@@ -1471,9 +1473,9 @@ internal abstract class GoalRunnerRepairFixtures {
           workflowStatus = "running",
           currentStepId = "plan",
           stepUpdates = null,
-          artifactsPatch = mapOf(
+          artifactsPatch = WorkflowArtifactPatch.from(mapOf(
             DECOMPOSITION_RUNTIME_ARTIFACT_KEY to testDecompositionManifestValidator.encodeManifestWireMap(manifest, ),
-          ),
+          )),
           sessionId = "ftr-repair-parent",
         ),
       ).toRecord().copy(issueKey = ISSUE_KEY),
@@ -1544,13 +1546,13 @@ internal abstract class GoalRunnerRepairFixtures {
       WorkflowUpdateInput(
         workflowStatus = args.workflowStatus,
         currentStepId = currentStepId,
-        stepUpdates = buildList {
+        stepUpdates = WorkflowStepUpdates.from(buildList {
           args.abandonedBlockedStepId?.let { stepId ->
             add(mapOf("step_id" to stepId, "status" to "blocked", "attempt_count" to 13))
           }
           add(mapOf("step_id" to currentStepId, "status" to "running", "attempt_count" to 1))
-        },
-        artifactsPatch = artifacts,
+        }),
+        artifactsPatch = WorkflowArtifactPatch.from(artifacts),
         sessionId = "ftr-repair",
       ),
     ).toRecord()

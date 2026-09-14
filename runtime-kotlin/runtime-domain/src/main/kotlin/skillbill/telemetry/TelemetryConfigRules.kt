@@ -1,9 +1,10 @@
 package skillbill.telemetry
 
 import skillbill.telemetry.model.TelemetryConfigDocument
+import skillbill.workflow.engine.model.TelemetryOpenDocument
 
 fun defaultLocalTelemetryConfig(installId: String): TelemetryConfigDocument = TelemetryConfigDocument(
-  payload =
+  payload = TelemetryOpenDocument.from(
   mapOf(
     "install_id" to installId,
     "telemetry" to
@@ -12,6 +13,7 @@ fun defaultLocalTelemetryConfig(installId: String): TelemetryConfigDocument = Te
         "proxy_url" to "",
         "batch_size" to DEFAULT_TELEMETRY_BATCH_SIZE,
       ),
+  ),
   ),
 )
 
@@ -39,7 +41,7 @@ fun TelemetryConfigDocument.withTelemetryLevel(level: String, configPath: String
   telemetry["level"] = level
   telemetry.remove("enabled")
   updatedPayload["telemetry"] = telemetry
-  return TelemetryConfigDocument(updatedPayload)
+  return TelemetryConfigDocument(TelemetryOpenDocument.from(updatedPayload))
 }
 
 fun parseTelemetryBoolValue(rawValue: String, name: String): Boolean = when (rawValue.trim().lowercase()) {

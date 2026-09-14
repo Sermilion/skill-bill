@@ -57,9 +57,9 @@ class WorkflowEngine(
   ): WorkflowStateSnapshot {
     val existingArtifacts = decodeObject(existing.artifactsJson)
     val mergedArtifacts = if (input.replaceArtifacts) {
-      LinkedHashMap()
+      LinkedHashMap<String, Any?>()
     } else {
-      LinkedHashMap(existingArtifacts)
+      existingArtifacts.toMutableMap()
     }
     input.artifactsPatch?.let { patch -> mergedArtifacts.putAll(patch) }
     val terminal = input.workflowStatus in definition.terminalStatuses
@@ -67,7 +67,9 @@ class WorkflowEngine(
       sessionId = input.sessionId.trim().ifBlank { existing.sessionId.orEmpty() },
       workflowStatus = input.workflowStatus,
       currentStepId = input.currentStepId.trim().ifBlank { existing.currentStepId.orEmpty() },
-      stepsJson = jsonString(mergeStepUpdates(definition, decodeSteps(existing.stepsJson), input.stepUpdates)),
+      stepsJson = jsonString(
+        mergeStepUpdates(definition, decodeSteps(existing.stepsJson), input.stepUpdates?.asEntries()),
+      ),
       artifactsJson = jsonString(mergedArtifacts),
       finishedAt = if (terminal) existing.finishedAt ?: "" else null,
     )
@@ -105,8 +107,8 @@ class WorkflowEngine(
     workflowName = snapshot.workflowName,
     workflowStatus = snapshot.workflowStatus,
     currentStepId = snapshot.currentStepId,
-    updatedStepIds = input.stepUpdates.orEmpty().mapNotNull { it[SharedPayloadKeys.STEP_ID] as? String },
-    updatedArtifactKeys = input.artifactsPatch.orEmpty().keys.sorted(),
+    updatedStepIds = input.stepUpdates?.asEntries().orEmpty().mapNotNull { it[SharedPayloadKeys.STEP_ID] as? String },
+    updatedArtifactKeys = input.artifactsPatch?.keys?.sorted().orEmpty(),
     readOnlyFullStateGuidance =
     "Update returns a compact acknowledgement. Use explicit read-only workflow get/show for full state, " +
       "including steps and the complete durable artifacts map.",

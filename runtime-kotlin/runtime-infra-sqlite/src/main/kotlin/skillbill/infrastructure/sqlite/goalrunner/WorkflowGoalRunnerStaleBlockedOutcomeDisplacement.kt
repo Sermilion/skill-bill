@@ -15,6 +15,7 @@ import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.save
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import java.time.Clock
 
@@ -70,7 +71,7 @@ internal class WorkflowGoalRunnerStaleBlockedOutcomeDisplacement(
         workflowStatus = context.record.workflowStatus,
         currentStepId = context.record.currentStepId,
         stepUpdates = null,
-        artifactsPatch = buildMap {
+        artifactsPatch = WorkflowArtifactPatch.from(buildMap {
           if (!evidenceAlreadyPresent) {
             put(
               GOAL_CONTINUATION_OUTCOME_DISPLACEMENT_ARTIFACT_KEY,
@@ -90,7 +91,7 @@ internal class WorkflowGoalRunnerStaleBlockedOutcomeDisplacement(
             )
           }
           put("goal_continuation_outcome", null)
-        },
+        }),
         sessionId = context.record.sessionId.orEmpty(),
       ),
     )

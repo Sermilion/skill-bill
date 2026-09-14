@@ -3,8 +3,8 @@ package skillbill.application.workflow
 import skillbill.agentaddon.model.AgentAddonSelection
 import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
 import skillbill.application.workflow.decodeWorkflowArtifacts
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.JsonCodec
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.ports.goalrunner.GoalRunnerPersistenceSession
 import skillbill.ports.goalrunner.runner.model.GoalRunnerOutOfBandAcceptance
@@ -31,8 +31,7 @@ fun migrateLegacyGoalRunnerControls(unitOfWork: GoalRunnerPersistenceSession, ex
     }
 }
 
-@OpenBoundaryMap("Legacy goal review policy artifact decode before durable control migration")
-fun reviewPolicyFromLegacyArtifacts(artifacts: Map<String, Any?>): GoalRunnerReviewPolicy? {
+fun reviewPolicyFromLegacyArtifacts(artifacts: DurableWorkflowArtifacts): GoalRunnerReviewPolicy? {
   val raw = artifacts[GOAL_REVIEW_POLICY_ARTIFACT_KEY] ?: return null
   val policy = JsonCodec.anyToStringAnyMap(raw)
     ?: error("Goal review policy artifact '$GOAL_REVIEW_POLICY_ARTIFACT_KEY' must be a map.")
@@ -53,8 +52,7 @@ fun reviewPolicyFromLegacyArtifacts(artifacts: Map<String, Any?>): GoalRunnerRev
   return GoalRunnerReviewPolicy(codeReviewMode, agentAddonSelection)
 }
 
-@OpenBoundaryMap("Legacy goal out-of-band acceptance artifact decode before durable control migration")
-fun outOfBandAcceptancesFromLegacyArtifacts(artifacts: Map<String, Any?>): Map<Int, GoalRunnerOutOfBandAcceptance> {
+fun outOfBandAcceptancesFromLegacyArtifacts(artifacts: DurableWorkflowArtifacts): Map<Int, GoalRunnerOutOfBandAcceptance> {
   val raw = artifacts[GOAL_OUT_OF_BAND_ACCEPTANCE_ARTIFACT_KEY] ?: return emptyMap()
   val entries = raw as? List<*>
     ?: error("Goal acceptance artifact '$GOAL_OUT_OF_BAND_ACCEPTANCE_ARTIFACT_KEY' must be a list.")

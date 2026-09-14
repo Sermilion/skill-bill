@@ -17,16 +17,16 @@ fun repoRelativePath(repoRoot: Path, path: Path): String {
   return root.relativize(absolute).joinToString("/")
 }
 
-fun Map<String, Any?>.optionalIntValue(key: String, sourceLabel: String): Int? = if (containsKey(key)) {
+internal fun Map<String, Any?>.optionalIntValue(key: String, sourceLabel: String): Int? = if (containsKey(key)) {
   this[key].asInt(sourceLabel, key)
 } else {
   null
 }
 
-fun Map<String, Any?>.intValue(key: String, sourceLabel: String): Int =
+internal fun Map<String, Any?>.intValue(key: String, sourceLabel: String): Int =
   this[key].asIntOrNull() ?: invalidManifest(sourceLabel, "$key must be an integer.")
 
-fun Map<String, Any?>.booleanValueOrDefault(key: String, default: Boolean, sourceLabel: String): Boolean =
+internal fun Map<String, Any?>.booleanValueOrDefault(key: String, default: Boolean, sourceLabel: String): Boolean =
   when (val value = this[key]) {
     null -> default
     is Boolean -> value
@@ -53,13 +53,13 @@ fun Any?.asIntOrNull(): Int? = when (this) {
   else -> null
 }
 
-fun Any?.asStringAnyMap(sourceLabel: String, fieldPath: String): Map<String, Any?> =
+internal fun Any?.asStringAnyMap(sourceLabel: String, fieldPath: String): Map<String, Any?> =
   (this as? Map<*, *>)?.entries?.associateTo(LinkedHashMap<String, Any?>()) { (key, value) ->
     val stringKey = key as? String ?: invalidManifest(sourceLabel, "$fieldPath contains a non-string key.")
     stringKey to value
   } ?: invalidManifest(sourceLabel, "$fieldPath must be an object.")
 
-fun Any?.asStringAnyMapOrNull(): Map<String, Any?>? =
+internal fun Any?.asStringAnyMapOrNull(): Map<String, Any?>? =
   (this as? Map<*, *>)?.entries?.associateTo(LinkedHashMap<String, Any?>()) { (key, value) ->
     val stringKey = key as? String ?: return null
     stringKey to value

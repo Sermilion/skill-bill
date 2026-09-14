@@ -4,6 +4,7 @@ import skillbill.application.review.model.ReviewPrelaunchExpansion
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.review.REVIEW_CONTEXT_CONTRACT_VERSION
 import skillbill.ports.review.model.ReviewAccountingRecord
+import skillbill.ports.review.model.ReviewAccountingBoundedPayload
 import skillbill.review.context.ReviewTreeAccounting
 import skillbill.review.context.model.ReviewAccountingCounters
 import skillbill.review.context.model.ReviewAccountingInput
@@ -147,7 +148,13 @@ class ReviewAccountingProjectionRedactionTest {
   @Test fun `durable record rejects an accounting payload carrying content`() {
     val leaking = summary().toBoundedPayload() + ("prompt" to "PROMPT_SECRET")
 
-    val failure = runCatching { ReviewAccountingRecord("review-id", "packet-digest", leaking) }.exceptionOrNull()
+    val failure = runCatching {
+      ReviewAccountingRecord(
+        "review-id",
+        "packet-digest",
+        ReviewAccountingBoundedPayload.from(leaking),
+      )
+    }.exceptionOrNull()
 
     assertTrue(failure is IllegalArgumentException, "Content-bearing accounting payload must fail loudly.")
   }

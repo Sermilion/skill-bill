@@ -36,6 +36,7 @@ import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.goal.model.GoalProgressEvent
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.WorkflowSnapshotValidator
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.goal.GoalObservabilityEventValidator
 import skillbill.workflow.goal.GoalProgressEventValidator
@@ -199,9 +200,9 @@ internal class WorkflowGoalRunnerReviewBridge(
           workflowStatus = record.workflowStatus,
           currentStepId = record.currentStepId,
           stepUpdates = null,
-          artifactsPatch = mapOf(
+          artifactsPatch = WorkflowArtifactPatch.from(mapOf(
             GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to state.acknowledgeSummariesThrough(passNumber).toPersistenceWire(),
-          ),
+          )),
           sessionId = record.sessionId.orEmpty(),
         ),
       )

@@ -11,6 +11,7 @@ import skillbill.ports.install.addon.model.ExternalAddonSourceConfigResult
 import skillbill.ports.install.addon.model.ExternalAddonSourceRegistrationRequest
 import skillbill.ports.repository.toFileLocation
 import skillbill.telemetry.model.TelemetryConfigDocument
+import skillbill.workflow.engine.model.TelemetryOpenDocument
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -47,7 +48,7 @@ class FileExternalAddonSourceConfigStore : ExternalAddonSourceConfigPort {
     } catch (error: IllegalArgumentException) {
       throw ExternalAddonConfigError(error.message.orEmpty(), error)
     }
-    val payload = existing?.payload?.toMutableMap() ?: mutableMapOf()
+    val payload = LinkedHashMap<String, Any?>(existing?.payload.orEmpty())
     val rawSources = rawExternalAddonSources(configPath, payload)
     val existingSources = rawSources.mapIndexedNotNull { index, entry ->
       parseEntry(configPath, request.userHome, index, entry)
@@ -65,7 +66,7 @@ class FileExternalAddonSourceConfigStore : ExternalAddonSourceConfigPort {
           "platform" to registeredSource.platform,
         )
       payload["external_addon_sources"] = updatedRawSources
-      writeTelemetryConfigFile(configPath, TelemetryConfigDocument(payload))
+      writeTelemetryConfigFile(configPath, TelemetryConfigDocument(TelemetryOpenDocument.from(payload)))
       existingSources + registeredSource
     }
     return ExternalAddonSourceConfigResult(sources)

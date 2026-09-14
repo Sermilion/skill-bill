@@ -10,6 +10,7 @@ import skillbill.ports.workflow.model.FeatureTaskRouteScope
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.save
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.engine.model.isTerminalStatus
 import skillbill.workflow.model.workflowStatus
@@ -64,12 +65,14 @@ class WorkflowServiceFeatureTaskIdentityRepair(
       workflowStatus = existing.workflowStatus,
       currentStepId = existing.currentStepId.orEmpty(),
       stepUpdates = null,
-      artifactsPatch = mapOf(
-        FEATURE_TASK_RUNTIME_IDENTITY_REPAIR_ARTIFACT_KEY to mapOf(
-          "reason" to normalizedReason,
-          "repaired_at" to OffsetDateTime.now(ZoneOffset.UTC).toString(),
-          "repository_identity" to repositoryIdentity,
-          "governed_spec_path" to governedSpecPath,
+      artifactsPatch = WorkflowArtifactPatch.from(
+        mapOf(
+          FEATURE_TASK_RUNTIME_IDENTITY_REPAIR_ARTIFACT_KEY to mapOf(
+            "reason" to normalizedReason,
+            "repaired_at" to OffsetDateTime.now(ZoneOffset.UTC).toString(),
+            "repository_identity" to repositoryIdentity,
+            "governed_spec_path" to governedSpecPath,
+          ),
         ),
       ),
       sessionId = "",

@@ -1,18 +1,23 @@
 package skillbill.application.review.model
 
-import skillbill.boundary.OpenBoundaryMap
+import skillbill.workflow.engine.model.ReviewContextWireMap
 
-class ReviewContextEnvelope(fields: Map<String, Any?>) {
-  private val fields: Map<String, Any?> = fields.toMap()
+class ReviewContextEnvelope private constructor(
+  private val wire: ReviewContextWireMap,
+) {
 
-  val kind: String get() = fields["kind"] as? String ?: ""
+  val kind: String get() = wire.kind
 
-  @OpenBoundaryMap("Review-context wire map at the schema-validation seam")
-  fun asWireMap(): Map<String, Any?> = fields
+  fun asWireMap(): ReviewContextWireMap = wire
 
-  override fun equals(other: Any?): Boolean = other is ReviewContextEnvelope && other.fields == fields
+  companion object {
+    internal fun from(fields: Map<String, Any?>): ReviewContextEnvelope =
+      ReviewContextEnvelope(ReviewContextWireMap.from(fields))
+  }
 
-  override fun hashCode(): Int = fields.hashCode()
+  override fun equals(other: Any?): Boolean = other is ReviewContextEnvelope && other.wire == wire
+
+  override fun hashCode(): Int = wire.hashCode()
 
   override fun toString(): String = "ReviewContextEnvelope(kind=$kind)"
 }

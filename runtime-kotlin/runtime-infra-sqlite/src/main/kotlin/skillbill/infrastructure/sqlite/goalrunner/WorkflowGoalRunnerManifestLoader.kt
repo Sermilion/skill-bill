@@ -20,6 +20,8 @@ import skillbill.ports.workflow.toRecord
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
+import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.decompositionStatus
@@ -100,20 +102,22 @@ internal class WorkflowGoalRunnerManifestLoader(
           stepUpdates = if (existing != null) {
             null
           } else {
-            listOf(
-              mapOf(
-                SharedPayloadKeys.STEP_ID to "preplan",
-                SharedPayloadKeys.STATUS to "completed",
-                "attempt_count" to 1,
-              ),
-              mapOf(
-                SharedPayloadKeys.STEP_ID to "plan",
-                SharedPayloadKeys.STATUS to "completed",
-                "attempt_count" to 1,
+            WorkflowStepUpdates.from(
+              listOf(
+                mapOf(
+                  SharedPayloadKeys.STEP_ID to "preplan",
+                  SharedPayloadKeys.STATUS to "completed",
+                  "attempt_count" to 1,
+                ),
+                mapOf(
+                  SharedPayloadKeys.STEP_ID to "plan",
+                  SharedPayloadKeys.STATUS to "completed",
+                  "attempt_count" to 1,
+                ),
               ),
             )
           },
-          artifactsPatch = parentProjection.artifacts(manifest, base.artifactsJson),
+          artifactsPatch = WorkflowArtifactPatch.from(parentProjection.artifacts(manifest, base.artifactsJson)),
           sessionId = base.sessionId.orEmpty(),
           replaceArtifacts = true,
         ),

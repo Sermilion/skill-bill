@@ -98,7 +98,8 @@ class FileSystemDecompositionManifestFileStore :
     }
   }
 
-  override fun encodeManifestYaml(wireMap: Map<String, Any?>): String = yamlMapper.writeValueAsString(wireMap)
+  override fun encodeManifestYaml(wireMap: skillbill.workflow.engine.model.DecompositionManifestWireMap): String =
+    yamlMapper.writeValueAsString(wireMap)
 
   override fun deleteIfExists(target: Path) {
     withDecompositionManifestBundleLock(target.parent) {

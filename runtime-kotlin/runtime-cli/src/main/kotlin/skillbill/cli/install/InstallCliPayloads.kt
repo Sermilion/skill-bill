@@ -3,7 +3,7 @@ package skillbill.cli.install
 import skillbill.application.install.InstallService
 import skillbill.install.model.InstallPlan
 import skillbill.install.model.WindowsSymlinkPreflight
-import skillbill.install.model.buildInstallPlanWireMap
+import skillbill.install.model.toInstallPlanContract
 
 /**
  * SKILL-48 Subtask 2b: install-plan CLI emission boundary. Delegates
@@ -15,7 +15,7 @@ import skillbill.install.model.buildInstallPlanWireMap
  * before the JSON ever reaches the wire.
  */
 internal fun installPlanPayload(plan: InstallPlan, installService: InstallService): Map<String, Any?> {
-  val wireMap = buildInstallPlanWireMap(plan)
+  val wireMap = plan.toInstallPlanContract().toPayload()
   // Deliberate dual-seam validation per AC4 of SKILL-48 subtask 2b
   // (`.feature-specs/SKILL-48-runtime-contracts-expansion/spec_subtask_2b_install-plan.md`).
   // Diverges from 2a's single-seam workflow-state pattern: AC4 explicitly

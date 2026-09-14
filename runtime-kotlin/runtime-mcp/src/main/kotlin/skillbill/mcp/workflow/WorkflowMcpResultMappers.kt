@@ -28,7 +28,7 @@ internal fun WorkflowOpenResult.toMcpMap(
   goalObservabilityEventValidator: GoalObservabilityEventValidator,
 ): Map<String, Any?> = when (this) {
   is WorkflowOpenResult.Ok -> workflowSnapshotMcpMap(snapshot, goalObservabilityEventValidator).apply {
-    launchProjection?.let { put("launch_projection", WorkflowWireProjections.inputProjectionMap(it)) }
+    launchProjection?.let { put("launch_projection", WorkflowWireProjections.inputProjectionMap(it).toPayload()) }
     put(SharedPayloadKeys.STATUS, "ok")
     put("db_path", dbPath)
   }
@@ -40,8 +40,8 @@ internal fun WorkflowOpenResult.toMcpMap(
 }
 
 internal fun WorkflowUpdateResult.toMcpMap(): Map<String, Any?> = when (this) {
-  is WorkflowUpdateResult.Ok -> LinkedHashMap(WorkflowWireProjections.updateAcknowledgementMap(acknowledgement)).apply {
-    launchProjection?.let { put("launch_projection", WorkflowWireProjections.inputProjectionMap(it)) }
+  is WorkflowUpdateResult.Ok -> LinkedHashMap(WorkflowWireProjections.updateAcknowledgementMap(acknowledgement).toPayload()).apply {
+    launchProjection?.let { put("launch_projection", WorkflowWireProjections.inputProjectionMap(it).toPayload()) }
     val workflowCommand = if (acknowledgement.workflowName == "bill-feature-verify") "verify-workflow" else "workflow"
     val quotedDbPath = "'${dbPath.replace("'", "'\"'\"'")}'"
     val quotedWorkflowId = "'${acknowledgement.workflowId.replace("'", "'\"'\"'")}'"
@@ -77,11 +77,11 @@ internal fun WorkflowListResult.toMcpMap(): Map<String, Any?> = linkedMapOf(
   SharedPayloadKeys.STATUS to "ok",
   "db_path" to dbPath,
   "workflow_count" to workflowCount,
-  "workflows" to workflows.map(WorkflowWireProjections::summaryMap),
+  "workflows" to workflows.map { WorkflowWireProjections.summaryMap(it).toPayload() },
 )
 
 internal fun WorkflowLatestResult.toMcpMap(): Map<String, Any?> = when (this) {
-  is WorkflowLatestResult.Ok -> LinkedHashMap(WorkflowWireProjections.summaryMap(summary)).apply {
+  is WorkflowLatestResult.Ok -> LinkedHashMap(WorkflowWireProjections.summaryMap(summary).toPayload()).apply {
     put(SharedPayloadKeys.STATUS, "ok")
     put("db_path", dbPath)
   }
@@ -93,7 +93,7 @@ internal fun WorkflowLatestResult.toMcpMap(): Map<String, Any?> = when (this) {
 }
 
 internal fun WorkflowResumeResult.toMcpMap(): Map<String, Any?> = when (this) {
-  is WorkflowResumeResult.Ok -> LinkedHashMap(WorkflowWireProjections.resumeMap(resume)).apply {
+  is WorkflowResumeResult.Ok -> LinkedHashMap(WorkflowWireProjections.resumeMap(resume).toPayload()).apply {
     put(SharedPayloadKeys.STATUS, "ok")
     put("db_path", dbPath)
   }

@@ -1,5 +1,6 @@
 package skillbill.ports.workflow.decomposition
 
+import skillbill.workflow.engine.model.DecompositionManifestWireMap
 import java.nio.file.Path
 
 object UnavailableDecompositionManifestStore : DecompositionManifestStore {
@@ -22,7 +23,8 @@ object UnavailableDecompositionManifestStore : DecompositionManifestStore {
 
   override fun deleteIfExists(target: Path): Unit = unavailableDecompositionManifestStore()
 
-  override fun encodeManifestYaml(wireMap: Map<String, Any?>): String = unavailableDecompositionManifestStore()
+  override fun encodeManifestYaml(wireMap: DecompositionManifestWireMap): String =
+    unavailableDecompositionManifestStore()
 }
 
 private fun unavailableDecompositionManifestStore(): Nothing {

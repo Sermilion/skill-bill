@@ -1,4 +1,5 @@
 package skillbill.engine
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.application.FakeDatabaseSessionFactory
 import skillbill.application.InMemoryWorkflowStates
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
@@ -376,11 +377,11 @@ class FeatureTaskContinuationLookupServiceTest {
             workflowStatus = workflowStatus,
             currentStepId = "plan",
             stepUpdates = null,
-            artifactsPatch = mapOf(
+            artifactsPatch = WorkflowArtifactPatch.from(mapOf(
               "plan" to mapOf("mode" to "decompose"),
               DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
                 testDecompositionManifestValidator.encodeManifestWireMap(manifest),
-            ),
+            )),
             sessionId = "ftr-goal",
           ),
         ).toRecord().copy(issueKey = "SKILL-120"),

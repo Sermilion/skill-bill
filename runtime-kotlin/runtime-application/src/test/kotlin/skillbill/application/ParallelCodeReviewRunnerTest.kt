@@ -66,6 +66,7 @@ import skillbill.review.ParallelReviewFindingParser
 import skillbill.review.context.ReviewContextEnvelopeValidator
 import skillbill.review.context.model.CodeReviewExecutionMode
 import skillbill.review.context.model.ReviewContextBudgetPolicy
+import skillbill.workflow.engine.model.ReviewContextWireMap
 import skillbill.review.model.ParallelReviewMergedFinding
 import skillbill.review.model.ParallelReviewParseResult
 import skillbill.review.model.ReviewFindingVerdict
@@ -1420,7 +1421,7 @@ internal fun createRunner(launcher: GoalRunnerSubtaskLauncher, config: RunnerFix
         ReadRepoLocalConfigResult(RepoLocalConfig.defaults().copy(reviewContextBudget = config.budget))
     },
     reviewContextEnvelopeValidator = object : ReviewContextEnvelopeValidator {
-      override fun validate(envelope: Map<String, Any?>, sourceLabel: String) = Unit
+      override fun validate(envelope: ReviewContextWireMap, sourceLabel: String) = Unit
     },
     reviewRubricResolver = config.rubricResolver,
     reviewSpecialistContractProvider = ReviewSpecialistContractProvider { TEST_SPECIALIST_CONTRACT },
@@ -1433,7 +1434,7 @@ internal fun createRunner(launcher: GoalRunnerSubtaskLauncher, config: RunnerFix
       testDecompositionManifestValidator,
       SpecIntentProjectionExtractor(
         object : ReviewContextEnvelopeValidator {
-          override fun validate(envelope: Map<String, Any?>, sourceLabel: String) = Unit
+          override fun validate(envelope: ReviewContextWireMap, sourceLabel: String) = Unit
         },
         TestDecompositionManifestStore,
       ),

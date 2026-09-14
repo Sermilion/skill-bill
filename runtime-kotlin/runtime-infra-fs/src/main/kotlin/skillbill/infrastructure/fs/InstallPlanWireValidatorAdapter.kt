@@ -18,7 +18,7 @@ import skillbill.install.model.InstallPlanWireValidator
  */
 @Inject
 class InstallPlanWireValidatorAdapter : InstallPlanWireValidator {
-  override fun validate(plan: Map<String, Any?>) {
+  override fun validate(plan: skillbill.install.model.InstallPlanWireMap) {
     InstallPlanSchemaValidator.validate(plan)
   }
 }

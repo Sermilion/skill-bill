@@ -3,6 +3,7 @@ package skillbill.cli
 import skillbill.cli.telemetry.toCliMap
 import skillbill.telemetry.model.TelemetryProxyCapabilities
 import skillbill.telemetry.model.TelemetryRemoteStatsResult
+import skillbill.workflow.engine.model.TelemetryOpenDocument
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -28,7 +29,7 @@ class TelemetryCliResultMappersTest {
           supportsStats = true,
           supportedWorkflows = listOf("bill-feature-verify"),
         ),
-        metrics = linkedMapOf("status" to "ok", "capabilities" to null),
+        metrics = TelemetryOpenDocument.from(linkedMapOf("status" to "ok", "capabilities" to null)),
       )
 
     val payload = result.toCliMap()

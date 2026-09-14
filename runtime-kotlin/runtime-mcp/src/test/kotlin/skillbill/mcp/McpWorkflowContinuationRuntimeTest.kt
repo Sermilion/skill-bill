@@ -2,10 +2,13 @@ package skillbill.mcp
 
 import skillbill.application.workflow.model.WorkflowFamilyKind
 import skillbill.application.workflow.model.WorkflowUpdateRequest
+import skillbill.contracts.decomposition.DecompositionPlanningResult
 import skillbill.mcp.shared.McpRuntimeContext
 import skillbill.mcp.workflow.McpWorkflowOpenArgs
 import skillbill.mcp.workflow.McpWorkflowRuntime
 import skillbill.mcp.workflow.workflowContinue
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
+import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.ports.workflow.gitops.RepositoryFingerprintGitOperations
 import skillbill.ports.workflow.gitops.WorkflowGitOperationsTestBase
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
@@ -93,8 +96,10 @@ private data class McpDecompositionFixture(
     workflowId = workflowId,
     workflowStatus = "running",
     currentStepId = "plan",
-    stepUpdates = listOf(mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1)),
-    artifactsPatch = mapOf(
+    stepUpdates = WorkflowStepUpdates.from(
+      listOf(mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1)),
+    ),
+    artifactsPatch = WorkflowArtifactPatch.from(mapOf(
       "branch" to mapOf("branch" to "feat/SKILL-51-demo"),
       "plan" to mapOf(
         "mode" to "decompose",
@@ -115,6 +120,28 @@ private data class McpDecompositionFixture(
           ),
         ),
       ),
+    )),
+    planningResult = DecompositionPlanningResult.fromWireMap(
+      mapOf(
+        "mode" to "decompose",
+        "parent_spec_path" to parentSpec.toString(),
+        "recommended_first_subtask_id" to 1,
+        "subtasks" to listOf(
+          mapOf(
+            "id" to 1,
+            "name" to "foundation",
+            "spec_path" to subtaskSpec.toString(),
+            "depends_on" to emptyList<Int>(),
+          ),
+          mapOf(
+            "id" to 2,
+            "name" to "runtime",
+            "spec_path" to secondSubtaskSpec.toString(),
+            "depends_on" to listOf(1),
+          ),
+        ),
+      ),
+      "test.artifacts_patch.plan",
     ),
   )
 }

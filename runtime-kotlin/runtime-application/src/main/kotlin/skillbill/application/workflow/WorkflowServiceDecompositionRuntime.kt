@@ -10,6 +10,7 @@ import skillbill.ports.workflow.model.toSnapshot
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 
 internal fun WorkflowFamily.withDecompositionRuntime(args: DecompositionRuntimeWriteArgs): DecompositionRuntimeInput =
@@ -34,12 +35,14 @@ internal fun WorkflowFamily.withDecompositionRuntime(args: DecompositionRuntimeW
     )?.let { manifest ->
       DecompositionRuntimeInput(
         input = args.input.copy(
-          artifactsPatch = LinkedHashMap(args.input.artifactsPatch.orEmpty()).apply {
-            put(
-              DECOMPOSITION_RUNTIME_ARTIFACT_KEY,
-              args.validator.encodeManifestWireMap(manifest, DECOMPOSITION_RUNTIME_ARTIFACT_KEY),
-            )
-          },
+          artifactsPatch = WorkflowArtifactPatch.from(
+            LinkedHashMap(args.input.artifactsPatch.orEmpty()).apply {
+              put(
+                DECOMPOSITION_RUNTIME_ARTIFACT_KEY,
+                args.validator.encodeManifestWireMap(manifest, DECOMPOSITION_RUNTIME_ARTIFACT_KEY),
+              )
+            },
+          ),
         ),
         updated = true,
       )

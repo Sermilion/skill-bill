@@ -27,6 +27,7 @@ import skillbill.review.context.model.ReviewLaneDecision
 import skillbill.review.context.model.ReviewLearningsReference
 import skillbill.review.context.model.ReviewRevision
 import skillbill.review.context.model.ReviewRuleReference
+import skillbill.workflow.engine.model.ReviewContextWireMap
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -90,7 +91,7 @@ class ReviewPreparationCommitBundleTest {
     return ReviewPreparationService(
       ReviewFactPorts(ports, ports, ports, ports, ports, ports),
       object : ReviewContextEnvelopeValidator {
-        override fun validate(envelope: Map<String, Any?>, sourceLabel: String) = Unit
+        override fun validate(envelope: ReviewContextWireMap, sourceLabel: String) = Unit
       },
     )
   }

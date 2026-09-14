@@ -7,6 +7,7 @@ import skillbill.infrastructure.fs.phaseoutput.FeatureTaskRuntimePhaseOutputStru
 import skillbill.infrastructure.fs.phaseoutput.FeatureTaskRuntimePhaseOutputStructuralRepairDecision
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.decodeManifest
+import skillbill.workflow.engine.model.DecompositionManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionManifestRepairEvidence
 import skillbill.workflow.decomposition.model.DecompositionManifestRepairOperation
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationFailureCode
@@ -33,12 +34,15 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputSourceL
  */
 @Inject
 class DecompositionManifestValidatorAdapter : DecompositionManifestValidator {
-  override fun validate(manifest: Map<String, Any?>, sourceLabel: String) {
+  override fun validate(manifest: DecompositionManifestWireMap, sourceLabel: String) {
     DecompositionManifestSchemaValidator.validate(manifest, sourceLabel)
   }
 
   override fun validateYamlText(yamlText: String, sourceLabel: String) =
-    decodeManifest(DecompositionManifestSchemaValidator.validateYamlText(yamlText, sourceLabel), sourceLabel)
+    decodeManifest(
+      DecompositionManifestWireMap.from(DecompositionManifestSchemaValidator.validateYamlText(yamlText, sourceLabel)),
+      sourceLabel,
+    )
 
   override fun validateYamlTextResult(yamlText: String, sourceLabel: String): DecompositionManifestValidationResult {
     val decision = FeatureTaskRuntimePhaseOutputStructuralRepair.inspectWholeDocument(yamlText, sourceLabel)
@@ -50,7 +54,9 @@ class DecompositionManifestValidatorAdapter : DecompositionManifestValidator {
           sourceLocation = decision.sourceLocation?.toManifestLocation(),
         )
       is FeatureTaskRuntimePhaseOutputStructuralRepairDecision.Accepted -> try {
-        val wireMap = DecompositionManifestSchemaValidator.validateYamlText(decision.text, sourceLabel)
+        val wireMap = DecompositionManifestWireMap.from(
+          DecompositionManifestSchemaValidator.validateYamlText(decision.text, sourceLabel),
+        )
         val manifest = decodeManifest(wireMap, sourceLabel)
         val evidence = decision.evidence?.toManifestEvidence()
         if (evidence == null) {

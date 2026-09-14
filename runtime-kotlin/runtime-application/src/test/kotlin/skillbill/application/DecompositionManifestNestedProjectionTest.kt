@@ -1,4 +1,5 @@
 package skillbill.application
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 
 import skillbill.application.decomposition.model.DecompositionManifestWriteRequest
 import skillbill.application.decomposition.decompositionPlanningResult
@@ -22,9 +23,9 @@ class DecompositionManifestNestedProjectionTest {
       writeFromWorkflowUpdate(
         repoRoot = fixture.repoRoot,
         existingArtifactsJson = "{}",
-        artifactsPatch = mapOf(
+        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
           "plan" to nestedDecompositionPlan(fixture.nestedParentSpecPath, fixture.nestedDirectory).toPayload(),
-        ),
+        )),
       )
     }
 
@@ -72,9 +73,9 @@ class DecompositionManifestNestedProjectionTest {
       writeFromWorkflowUpdate(
         repoRoot = fixture.repoRoot,
         existingArtifactsJson = "{}",
-        artifactsPatch = mapOf(
+        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
           "plan" to nestedDecompositionPlan(fixture.nestedParentSpecPath, fixture.nestedDirectory).toPayload(),
-        ),
+        )),
       )
     }
 

@@ -1,6 +1,5 @@
 package skillbill.ports.review.model
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.review.REVIEW_CONTEXT_CONTRACT_VERSION
 import skillbill.error.InvalidReviewContextSchemaError
@@ -8,16 +7,15 @@ import skillbill.error.InvalidReviewContextSchemaError
 data class ReviewAccountingRecord(
   val reviewId: String,
   val packetDigest: String,
-  @OpenBoundaryMap("Schema-bounded review-accounting persistence payload")
-  val boundedPayload: Map<String, Any?>,
+  val boundedPayload: ReviewAccountingBoundedPayload,
 ) {
   init {
     require(reviewId.isNotBlank() && packetDigest.isNotBlank())
-    requireBoundedAccountingPayload(boundedPayload)
+    requireBoundedAccountingPayload(boundedPayload.asMap())
   }
 }
 
-private fun requireBoundedAccountingPayload(payload: Map<String, Any?>) {
+internal fun requireBoundedAccountingPayload(payload: Map<String, Any?>) {
   val legacy = payload[SharedPayloadKeys.CONTRACT_VERSION] == LEGACY_REVIEW_CONTEXT_CONTRACT_VERSION
   val topKeys = if (legacy) {
     setOf(

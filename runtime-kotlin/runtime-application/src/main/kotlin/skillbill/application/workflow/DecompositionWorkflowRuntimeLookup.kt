@@ -12,13 +12,16 @@ import skillbill.ports.workflow.model.toSnapshot
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.runtime.isActiveGoalRuntime
+import skillbill.workflow.engine.model.DecompositionManifestWireMap
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.workflowStatus
 
 fun WorkflowStateSnapshot.decompositionRuntime(validator: DecompositionManifestValidator): DecompositionManifest? =
   decodeWorkflowArtifacts(artifactsJson)[DECOMPOSITION_RUNTIME_ARTIFACT_KEY].asStringAnyMapOrNull()
-    ?.let { validator.decodeManifest(it, DECOMPOSITION_RUNTIME_ARTIFACT_KEY) }
+    ?.let {
+      validator.decodeManifest(DecompositionManifestWireMap.from(it), DECOMPOSITION_RUNTIME_ARTIFACT_KEY)
+    }
 
 fun WorkflowStateSnapshot.hasDecompositionPlan(): Boolean =
   decodeWorkflowArtifacts(artifactsJson)["plan"].asStringAnyMapOrNull()?.get("mode") == "decompose"

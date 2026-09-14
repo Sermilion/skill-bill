@@ -12,7 +12,7 @@ internal fun validateWorkflowUpdate(definition: WorkflowDefinition, input: Workf
   if (input.currentStepId.isNotBlank()) {
     validateWorkflowEnum(input.currentStepId, definition.stepIds, "current_step_id")?.let { return it }
   }
-  return input.stepUpdates?.let { validateWorkflowStepUpdates(definition, it) }
+  return input.stepUpdates?.let { validateWorkflowStepUpdates(definition, it.asEntries()) }
 }
 
 private fun validateWorkflowStepUpdates(definition: WorkflowDefinition, updates: List<Map<String, Any?>>): String? {

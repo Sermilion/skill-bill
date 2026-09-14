@@ -16,6 +16,8 @@ import skillbill.ports.workflow.toRecord
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
+import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
@@ -59,8 +61,10 @@ class FeatureTaskRuntimeWorkflowPersistence(
       WorkflowUpdateInput(
         workflowStatus = advance.workflowStatus,
         currentStepId = advance.currentStepId,
-        stepUpdates = advance.stepUpdates?.map(FeatureTaskRuntimePhaseStepWireUpdate::toWireMap),
-        artifactsPatch = patch,
+        stepUpdates = WorkflowStepUpdates.from(
+          advance.stepUpdates?.map(FeatureTaskRuntimePhaseStepWireUpdate::toWireMap),
+        ),
+        artifactsPatch = WorkflowArtifactPatch.from(patch),
         sessionId = record.sessionId.orEmpty(),
       ),
     )

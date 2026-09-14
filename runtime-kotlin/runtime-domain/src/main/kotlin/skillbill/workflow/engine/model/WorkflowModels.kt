@@ -1,6 +1,5 @@
 package skillbill.workflow.engine.model
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.workflow.model.WorkflowStatus
 
 data class WorkflowStepState(
@@ -12,23 +11,8 @@ data class WorkflowStepState(
 data class WorkflowUpdateInput(
   val workflowStatus: String,
   val currentStepId: String,
-  /**
-   * SKILL-52.1 open boundary: caller-supplied step-update patches.
-   * Each entry carries an arbitrary JSON object validated downstream
-   * by `WorkflowEngine.validateUpdate`; typing it would prematurely
-   * lock the workflow-state schema before its discriminator family
-   * is extracted.
-   */
-  @OpenBoundaryMap("Caller-supplied JSON patch for workflow step updates")
-  val stepUpdates: List<Map<String, Any?>>?,
-  /**
-   * SKILL-52.1 open boundary: caller-supplied artifacts patch
-   * merged verbatim into the durable workflow artifacts JSON. Free-form
-   * by contract because artifact values are workflow-family-specific
-   * payloads with no shared schema.
-   */
-  @OpenBoundaryMap("Caller-supplied JSON patch for durable workflow artifacts")
-  val artifactsPatch: Map<String, Any?>?,
+  val stepUpdates: WorkflowStepUpdates?,
+  val artifactsPatch: WorkflowArtifactPatch?,
   val sessionId: String,
   /** Replace the durable artifact map before applying [artifactsPatch]. */
   val replaceArtifacts: Boolean = false,
@@ -154,7 +138,6 @@ data class WorkflowInputProjection(
   val stepId: String,
   val producerIteration: Int,
   val repositoryCheckpoint: Any?,
-  @OpenBoundaryMap("Closed-world workflow launch projection artifacts at the CLI/MCP serialization seam")
-  val artifacts: Map<String, Any?>,
+  val artifacts: WorkflowLaunchProjectionArtifacts,
   val utf8Bytes: Int,
 )

@@ -1,7 +1,7 @@
 package skillbill.application.review
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.ports.review.model.ReviewAccountingBoundedPayload
 import skillbill.contracts.review.REVIEW_CONTEXT_CONTRACT_VERSION
 import skillbill.review.context.model.ReviewAccountingCounters
 import skillbill.review.context.model.ReviewAccountingNode
@@ -15,8 +15,8 @@ import skillbill.review.context.model.ReviewParentAnalysisConsumption
  * The sole durable/wire projection for review accounting. Content-bearing inputs are intentionally
  * absent.
  */
-@OpenBoundaryMap("Schema-bounded review-accounting wire projection")
-fun ReviewAccountingSummary.toBoundedPayload(): Map<String, Any?> = linkedMapOf(
+fun ReviewAccountingSummary.toBoundedPayload(): ReviewAccountingBoundedPayload = ReviewAccountingBoundedPayload.from(
+  linkedMapOf(
   SharedPayloadKeys.CONTRACT_VERSION to REVIEW_CONTEXT_CONTRACT_VERSION,
   "kind" to "accounting_summary",
   "review_id" to reviewId,
@@ -27,6 +27,7 @@ fun ReviewAccountingSummary.toBoundedPayload(): Map<String, Any?> = linkedMapOf(
   "parent_analysis_consumption" to parentAnalysis?.toPayload(),
   "integration" to integration?.toPayload(),
   "aggregate_counters" to aggregateCounters.toPayload(),
+  ),
 )
 
 private fun ReviewAccountingNode.toPayload(): Map<String, Any?> = linkedMapOf(

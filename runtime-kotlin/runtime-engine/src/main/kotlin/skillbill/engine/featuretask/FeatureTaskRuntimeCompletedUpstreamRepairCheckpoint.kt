@@ -4,6 +4,8 @@ import skillbill.workflow.taskruntime.*
 
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.engine.featuretask.model.CompletedUpstreamRepairRequest
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
+import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
@@ -53,14 +55,16 @@ fun completedUpstreamRepairWorkflowUpdate(
 ): WorkflowUpdateInput = WorkflowUpdateInput(
   workflowStatus = "running",
   currentStepId = request.resumePhaseId,
-  stepUpdates = phasesToReopen.map { phaseId ->
-    mapOf(
-      SharedPayloadKeys.STEP_ID to phaseId,
-      SharedPayloadKeys.STATUS to "pending",
-      "attempt_count" to 0,
-    )
-  },
-  artifactsPatch = mapOf(
+  stepUpdates = WorkflowStepUpdates.from(
+    phasesToReopen.map { phaseId ->
+      mapOf(
+        SharedPayloadKeys.STEP_ID to phaseId,
+        SharedPayloadKeys.STATUS to "pending",
+        "attempt_count" to 0,
+      )
+    },
+  ),
+  artifactsPatch = WorkflowArtifactPatch.from(mapOf(
     FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to
       reopenedRecords.mapValues { (_, record) -> record.asWorkflowArtifactEntry() },
     FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY to
@@ -75,7 +79,7 @@ fun completedUpstreamRepairWorkflowUpdate(
       "reopened_phase_ids" to phasesToReopen,
     ),
     "goal_continuation_outcome" to null,
-  ),
+  )),
   sessionId = "",
 )
 

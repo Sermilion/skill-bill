@@ -1,4 +1,5 @@
 package skillbill.engine.featuretask
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.taskruntime.asCheckpointIdentitiesArtifactEntry
 import skillbill.workflow.taskruntime.asTelemetryPayload
 import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
@@ -219,14 +220,14 @@ class FeatureTaskRuntimeGoalContinuationAdoptionPersistenceTest {
         workflowStatus = "running",
         currentStepId = "preplan",
         stepUpdates = null,
-        artifactsPatch = mapOf(
+        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
           FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY to continuationMap,
           GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to GoalSubtaskReviewState.initial(
             reviewBaseSha = baselineSha,
             baselineUntrackedPaths = emptyList(),
             codeReviewMode = CodeReviewExecutionMode.INLINE,
           ).toPersistenceWire(),
-        ),
+        )),
         sessionId = "fis-176",
       ),
     ).toRecord()

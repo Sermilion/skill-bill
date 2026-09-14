@@ -1,6 +1,6 @@
 package skillbill.application.idestatus.model
 
-import skillbill.boundary.OpenBoundaryMap
+import skillbill.ports.idestatus.IdeStatusWireMap
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.GOAL_PLANNING_WAVE_CAP
 import skillbill.contracts.workflow.IDE_STATUS_CONTRACT_VERSION
@@ -208,8 +208,7 @@ data class IdeStatusCurrentPhaseExecution(
 data class IdeStatusProblem(
   val code: IdeStatusProblemCode,
   val message: String,
-  @OpenBoundaryMap("Optional typed problem details bag on the IDE status wire problem object")
-  val details: Map<String, Any?>? = null,
+  val details: IdeStatusProblemDetails? = null,
 ) {
   init {
     require(message.isNotBlank()) { "problem.message must not be blank." }
@@ -284,8 +283,7 @@ data class IdeStatusSnapshot(
     }
   }
 
-  @OpenBoundaryMap("IDE status snapshot wire map at the schema-validation emit seam")
-  fun toStatusWireMap(): Map<String, Any?> = buildMap {
+  fun toStatusWireMap(): IdeStatusWireMap = IdeStatusWireMap.from(buildMap {
     put(SharedPayloadKeys.CONTRACT_VERSION, contractVersion)
     put("repository_identity", repositoryIdentity)
     issueKey?.takeIf(String::isNotBlank)?.let { put(SharedPayloadKeys.ISSUE_KEY, it) }
@@ -322,7 +320,7 @@ data class IdeStatusSnapshot(
     put("freshness", freshness.wireValue)
     put(SharedPayloadKeys.SUMMARY, summary)
     putProblem()
-  }
+  })
 
   private fun MutableMap<String, Any?>.putCurrentSubtask() {
     val subtask = currentSubtask ?: return

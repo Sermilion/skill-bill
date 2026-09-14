@@ -1,4 +1,6 @@
 package skillbill.application
+import skillbill.workflow.engine.model.WorkflowStepUpdates
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.application.testDecompositionManifestValidator
 import skillbill.workflow.decomposition.encodeManifestWireMap
 
@@ -42,16 +44,16 @@ class DecompositionManifestPayloadProjectionTest {
     val result = writeFromWorkflowUpdate(
       repoRoot = repoRoot,
       existingArtifactsJson = durableRuntimeArtifactsJson(initial.manifest, subtaskSpec),
-      artifactsPatch = mapOf(
+      artifactsPatch = WorkflowArtifactPatch.from(mapOf(
         "review_result" to mapOf("finding_count" to 0),
         "audit_report" to mapOf("pass" to true),
         "validation_result" to mapOf("passed" to true),
-      ),
+      )),
       runtimeUpdate = DecompositionManifestRuntimeUpdate(
         workflowId = "wfl-subtask-1",
         workflowStatus = "running",
         currentStepId = "validate",
-        stepUpdates = listOf(mapOf("step_id" to "validate", "status" to "completed", "attempt_count" to 1)),
+        stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "validate", "status" to "completed", "attempt_count" to 1))),
       ),
     )
 

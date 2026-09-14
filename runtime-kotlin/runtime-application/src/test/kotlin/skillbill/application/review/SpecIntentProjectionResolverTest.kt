@@ -27,6 +27,7 @@ import skillbill.workflow.decomposition.model.DecompositionManifestRepairOperati
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationFormat
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationResult
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationSourceLocation
+import skillbill.workflow.engine.model.ReviewContextWireMap
 import java.nio.file.Files
 import java.nio.file.Path
 import java.security.MessageDigest
@@ -363,7 +364,7 @@ class SpecIntentProjectionResolverTest {
 
 private fun extractor() = SpecIntentProjectionExtractor(
   object : ReviewContextEnvelopeValidator {
-    override fun validate(envelope: Map<String, Any?>, sourceLabel: String) = Unit
+    override fun validate(envelope: ReviewContextWireMap, sourceLabel: String) = Unit
   },
   TestDecompositionManifestStore,
 )
@@ -438,7 +439,7 @@ private fun compileCriteria(resolution: SpecIntentResolution): List<ReviewSpecia
     ),
     ReviewContextBudgetPolicy.DEFAULT,
     object : ReviewContextEnvelopeValidator {
-      override fun validate(envelope: Map<String, Any?>, sourceLabel: String) = Unit
+      override fun validate(envelope: ReviewContextWireMap, sourceLabel: String) = Unit
     },
     "contract",
   )

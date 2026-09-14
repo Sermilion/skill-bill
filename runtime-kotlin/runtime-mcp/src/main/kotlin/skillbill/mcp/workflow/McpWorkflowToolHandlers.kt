@@ -13,6 +13,8 @@ import skillbill.mcp.shared.optionalListMap
 import skillbill.mcp.shared.optionalMap
 import skillbill.mcp.shared.optionalString
 import skillbill.mcp.shared.string
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
+import skillbill.workflow.engine.model.WorkflowStepUpdates
 
 internal fun workflowOpen(
   kind: WorkflowFamilyKind,
@@ -41,8 +43,8 @@ internal fun workflowUpdate(
       workflowId = arguments.string("workflow_id"),
       workflowStatus = arguments.string("workflow_status"),
       currentStepId = arguments.string("current_step_id"),
-      stepUpdates = arguments.optionalListMap("step_updates"),
-      artifactsPatch = artifactsPatch,
+      stepUpdates = arguments.optionalListMap("step_updates")?.let(WorkflowStepUpdates::from),
+      artifactsPatch = artifactsPatch?.let(WorkflowArtifactPatch::from),
       planningResult = artifactsPatch?.get(WorkflowArtifactKeys.PLAN)
         ?.let(JsonCodec::anyToStringAnyMap)
         ?.let { DecompositionPlanningResult.fromWireMap(it, "mcp.artifacts_patch.plan") },

@@ -1,6 +1,7 @@
 package skillbill.workflow.engine
 
 import skillbill.workflow.engine.model.WorkflowCompactContinueView
+import skillbill.workflow.engine.model.InlineContinuationArtifactValue
 import skillbill.workflow.engine.model.WorkflowContinuationArtifactSummary
 import skillbill.workflow.engine.model.WorkflowDefinition
 import skillbill.workflow.engine.model.WorkflowInputProjection
@@ -70,7 +71,7 @@ internal fun losslessProjectionArtifact(key: String, value: Any?): WorkflowConti
     present = true,
     inline = true,
     sizeBytes = sizeBytes,
-    value = value,
+    value = InlineContinuationArtifactValue.from(value),
     preview = null,
     truncated = false,
     omitted = false,
@@ -85,7 +86,7 @@ internal fun artifactSummary(key: String, value: Any?, present: Boolean): Workfl
       present = false,
       inline = false,
       sizeBytes = null,
-      value = null,
+      value = InlineContinuationArtifactValue.from(null),
       preview = null,
       truncated = false,
       omitted = true,
@@ -100,7 +101,7 @@ internal fun artifactSummary(key: String, value: Any?, present: Boolean): Workfl
     present = true,
     inline = inline,
     sizeBytes = sizeBytes,
-    value = if (inline) value else null,
+    value = InlineContinuationArtifactValue.from(if (inline) value else null),
     preview = if (inline) null else serialized.take(COMPACT_ARTIFACT_PREVIEW_CHARS),
     truncated = !inline && serialized.length > COMPACT_ARTIFACT_PREVIEW_CHARS,
     omitted = !inline,

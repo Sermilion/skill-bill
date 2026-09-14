@@ -10,6 +10,7 @@ import skillbill.ports.workflow.get
 import skillbill.ports.workflow.save
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.WorkflowSnapshotValidator
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_DECOMPOSE_TERMINAL_ARTIFACT_KEY
@@ -33,7 +34,7 @@ class FeatureTaskRuntimeDecomposeTerminalRecorder(
           workflowStatus = "completed",
           currentStepId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN,
           stepUpdates = null,
-          artifactsPatch = mapOf(FEATURE_TASK_RUNTIME_DECOMPOSE_TERMINAL_ARTIFACT_KEY to terminal.asWorkflowArtifactEntry()),
+          artifactsPatch = WorkflowArtifactPatch.from(mapOf(FEATURE_TASK_RUNTIME_DECOMPOSE_TERMINAL_ARTIFACT_KEY to terminal.asWorkflowArtifactEntry())),
           sessionId = record.sessionId.orEmpty(),
         ),
       )

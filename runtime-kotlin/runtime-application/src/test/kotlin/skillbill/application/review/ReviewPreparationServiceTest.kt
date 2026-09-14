@@ -27,6 +27,7 @@ import skillbill.ports.taskruntime.model.FeatureTaskRuntimeSharedEvidenceLocator
 import skillbill.review.context.ReviewContextEnvelopeValidator
 import skillbill.review.context.model.GovernedReviewLaunch
 import skillbill.review.context.model.ReviewAssignment
+import skillbill.workflow.engine.model.ReviewContextWireMap
 import skillbill.review.context.model.ReviewBaselineUntrackedPolicy
 import skillbill.review.context.model.ReviewBuildTestFact
 import skillbill.review.context.model.ReviewChangedHunk
@@ -104,7 +105,7 @@ private class CountingPorts(
 
 private class RecordingValidator : ReviewContextEnvelopeValidator {
   val labels: MutableList<String> = mutableListOf()
-  override fun validate(envelope: Map<String, Any?>, sourceLabel: String) {
+  override fun validate(envelope: ReviewContextWireMap, sourceLabel: String) {
     labels += sourceLabel
   }
 }

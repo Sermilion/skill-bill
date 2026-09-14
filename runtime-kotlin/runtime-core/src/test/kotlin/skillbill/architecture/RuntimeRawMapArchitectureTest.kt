@@ -9,7 +9,8 @@ import kotlin.test.assertTrue
 
 class RuntimeRawMapArchitectureTest {
 
-  private val rawMapOpenBoundaryAllowlistMaxBaseline = 86
+  private val rawMapOpenBoundaryAllowlistMaxBaseline = 0
+  private val rawMapOpenBoundaryEntriesRetiredBySubtask6 = 79
   private val retiredGoalRunnerRawMapPrefixes = listOf(
     "skillbill.engine.goalrunner.",
     "skillbill.engine.goalplanning.",
@@ -67,8 +68,8 @@ class RuntimeRawMapArchitectureTest {
   fun `open-boundary allow-list documents required exceptions`() {
     val allowListEntries = RuntimeArchitectureScanConstants.RAW_MAP_OPEN_BOUNDARY_ALLOWLIST
     assertTrue(
-      allowListEntries.isNotEmpty(),
-      "RuntimeArchitectureScanConstants.RAW_MAP_OPEN_BOUNDARY_ALLOWLIST must enumerate curated open-boundary exceptions.",
+      allowListEntries.size <= rawMapOpenBoundaryAllowlistMaxBaseline,
+      "RuntimeArchitectureScanConstants.RAW_MAP_OPEN_BOUNDARY_ALLOWLIST must not exceed the subtask-6 baseline.",
     )
     val architecture = Files.readString(runtimeArchitectureRoot.resolve("ARCHITECTURE.md"))
     assertContains(architecture, "RuntimeArchitectureTestSupport.kt")
@@ -110,7 +111,9 @@ class RuntimeRawMapArchitectureTest {
   fun `RAW_MAP_OPEN_BOUNDARY_ALLOWLIST size does not exceed shrink baseline`() {
     val size = RuntimeArchitectureScanConstants.RAW_MAP_OPEN_BOUNDARY_ALLOWLIST.size
     val requiredMaximum =
-      rawMapOpenBoundaryAllowlistPreSubtask5Count - rawMapOpenBoundaryEntriesRetiredBySubtask5
+      rawMapOpenBoundaryAllowlistPreSubtask5Count -
+        rawMapOpenBoundaryEntriesRetiredBySubtask5 -
+        rawMapOpenBoundaryEntriesRetiredBySubtask6
     assertTrue(
       size <= rawMapOpenBoundaryAllowlistMaxBaseline,
       "RAW_MAP_OPEN_BOUNDARY_ALLOWLIST has $size entries (baseline $rawMapOpenBoundaryAllowlistMaxBaseline). " +
@@ -127,10 +130,6 @@ class RuntimeRawMapArchitectureTest {
   @Test
   fun `SKILL-52_2 inventory classifies every public raw-map declaration exactly once`() {
     val inventory = parseSkill522Inventory(loadSkill522InventoryDocument())
-    assertTrue(
-      inventory.entries.isNotEmpty(),
-      "skill-52-2-inventory.md must declare a SKILL-52.2 inventory section parseable by the architecture test.",
-    )
     assertInventoryCategoriesKnown(inventory)
     assertInventoryMatchesAllowList(inventory)
     assertInventoryHasNoDuplicateFqns(inventory)

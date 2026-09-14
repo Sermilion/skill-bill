@@ -8,6 +8,7 @@ import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.save
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_FIELD_ADOPTION_ARTIFACT_KEY
@@ -47,7 +48,9 @@ class FeatureTaskRuntimeGoalContinuationStateRecorder(
           workflowStatus = request.workflowStatus ?: record.workflowStatus,
           currentStepId = request.outcome?.lastResumableStep ?: record.currentStepId,
           stepUpdates = null,
-          artifactsPatch = continuationPatch + reviewStatePatch + outcomePatch + adoptionPatch,
+          artifactsPatch = WorkflowArtifactPatch.from(
+            continuationPatch + reviewStatePatch + outcomePatch + adoptionPatch,
+          ),
           sessionId = record.sessionId.orEmpty(),
         ),
       )

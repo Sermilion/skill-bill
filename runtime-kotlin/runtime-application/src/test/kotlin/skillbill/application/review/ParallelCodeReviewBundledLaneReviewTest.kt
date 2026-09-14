@@ -30,6 +30,7 @@ import skillbill.review.context.model.ReviewLaneDecision
 import skillbill.review.context.model.ReviewLearningsReference
 import skillbill.review.context.model.ReviewRevision
 import skillbill.review.context.model.ReviewRuleReference
+import skillbill.workflow.engine.model.ReviewContextWireMap
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -131,7 +132,7 @@ class ParallelCodeReviewBundledLaneReviewTest {
       },
     ),
     object : ReviewContextEnvelopeValidator {
-      override fun validate(envelope: Map<String, Any?>, sourceLabel: String) = Unit
+      override fun validate(envelope: ReviewContextWireMap, sourceLabel: String) = Unit
     },
   )
 
@@ -271,7 +272,7 @@ class ParallelCodeReviewBundledLaneReviewTest {
         },
       ),
       object : ReviewContextEnvelopeValidator {
-        override fun validate(envelope: Map<String, Any?>, sourceLabel: String) = Unit
+      override fun validate(envelope: ReviewContextWireMap, sourceLabel: String) = Unit
       },
     ).prepare(ReviewPreparationRequest("review", ReviewRevision("rvs", 1)))
 

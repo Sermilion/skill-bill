@@ -1,4 +1,6 @@
 package skillbill.application
+import skillbill.workflow.engine.model.WorkflowStepUpdates
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 
 import skillbill.application.workflow.model.WorkflowFamilyKind
 import skillbill.application.workflow.model.WorkflowUpdateRequest
@@ -38,7 +40,7 @@ class WorkflowServiceRuntimeComponentTest {
           workflowId = workflowId,
           workflowStatus = "running",
           currentStepId = "plan",
-          stepUpdates = listOf(mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1)),
+          stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1))),
           artifactsPatch = decompositionPlanPatch(parentSpec, subtaskSpec),
         ),
       )
@@ -49,7 +51,8 @@ class WorkflowServiceRuntimeComponentTest {
     assertTrue(Files.readString(manifest).contains("same_branch_commit_per_subtask"))
   }
 
-  private fun decompositionPlanPatch(parentSpec: Path, subtaskSpec: Path): Map<String, Any?> = mapOf(
+  private fun decompositionPlanPatch(parentSpec: Path, subtaskSpec: Path): WorkflowArtifactPatch =
+    WorkflowArtifactPatch.from(mapOf(
     "branch" to mapOf("branch" to "feat/SKILL-51-demo"),
     "plan" to linkedMapOf(
       "mode" to "decompose",
@@ -64,5 +67,5 @@ class WorkflowServiceRuntimeComponentTest {
         ),
       ),
     ),
-  )
+    ))!!
 }

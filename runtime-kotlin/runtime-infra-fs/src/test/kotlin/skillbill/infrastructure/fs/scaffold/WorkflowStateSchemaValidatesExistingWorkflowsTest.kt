@@ -1,11 +1,15 @@
 package skillbill.infrastructure.fs.scaffold
 
-import skillbill.application.workflow.WorkflowWireProjections
+import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.workflow.WorkflowContracts
+import skillbill.contracts.workflow.WorkflowWirePayloadKeys
 import skillbill.infrastructure.fs.WorkflowSnapshotValidatorInfraAdapter
 import skillbill.infrastructure.fs.contracts.workflow.CanonicalWorkflowStateSchemaValidator
 import skillbill.infrastructure.fs.contracts.workflow.WorkflowStateSchemaValidator
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowDefinition
+import skillbill.workflow.engine.model.WorkflowStepUpdates
+import skillbill.workflow.engine.model.WorkflowSnapshotView
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.verify.FeatureVerifyWorkflowDefinition
@@ -88,7 +92,7 @@ class WorkflowStateSchemaValidatesExistingWorkflowsTest {
       // canonical snapshot envelope. Re-validate externally to pin the
       // schema 1:1 against engine output.
       val snapshotView = engine.snapshotView(definition, record)
-      val full = WorkflowWireProjections.snapshotMap(snapshotView)
+      val full = snapshotMap(snapshotView)
       validator.validate(full, definition.workflowName)
       // summaryView: validates internally (calls validatedSnapshotMap
       // before stripping steps/artifacts). Invoking it without an
@@ -99,7 +103,9 @@ class WorkflowStateSchemaValidatesExistingWorkflowsTest {
       // extends the envelope with non-snapshot derivative fields. The
       // snapshot-shape subset must still satisfy the schema, so
       // re-validate that subset.
-      val resumed = WorkflowWireProjections.resumeMap(engine.resumeView(definition, record))
+      val resumed = engine.resumeView(definition, record).let { resume ->
+        snapshotMap(resume.snapshot)
+      }
       validator.validate(resumed.filterKeys { it in SNAPSHOT_KEYS }, definition.workflowName)
     }
   }
@@ -138,7 +144,7 @@ class WorkflowStateSchemaValidatesExistingWorkflowsTest {
         input = WorkflowUpdateInput(
           workflowStatus = status,
           currentStepId = definition.defaultInitialStepId,
-          stepUpdates = stepUpdates,
+          stepUpdates = stepUpdates?.let(WorkflowStepUpdates::from),
           artifactsPatch = null,
           sessionId = "",
         ),
@@ -148,7 +154,7 @@ class WorkflowStateSchemaValidatesExistingWorkflowsTest {
       } else {
         updated
       }
-      val payload = WorkflowWireProjections.snapshotMap(engine.snapshotView(definition, withFinishedAt))
+      val payload = snapshotMap(engine.snapshotView(definition, withFinishedAt))
       validator.validate(payload, definition.workflowName)
     }
   }
@@ -173,4 +179,28 @@ class WorkflowStateSchemaValidatesExistingWorkflowsTest {
       "finished_at",
     )
   }
+
+  private fun snapshotMap(view: WorkflowSnapshotView): Map<String, Any?> =
+    WorkflowContracts.fullWorkflowPayload(
+      linkedMapOf(
+        SharedPayloadKeys.WORKFLOW_ID to view.workflowId,
+        WorkflowWirePayloadKeys.SESSION_ID to view.sessionId,
+        WorkflowWirePayloadKeys.WORKFLOW_NAME to view.workflowName,
+        WorkflowWirePayloadKeys.MODE to view.mode,
+        SharedPayloadKeys.CONTRACT_VERSION to view.contractVersion,
+        WorkflowWirePayloadKeys.WORKFLOW_STATUS to view.workflowStatus,
+        WorkflowWirePayloadKeys.CURRENT_STEP_ID to view.currentStepId,
+        WorkflowWirePayloadKeys.STEPS to view.steps.map { step ->
+          linkedMapOf(
+            SharedPayloadKeys.STEP_ID to step.stepId,
+            SharedPayloadKeys.STATUS to step.status,
+            WorkflowWirePayloadKeys.ATTEMPT_COUNT to step.attemptCount,
+          )
+        },
+        WorkflowWirePayloadKeys.ARTIFACTS to view.artifacts,
+        WorkflowWirePayloadKeys.STARTED_AT to view.startedAt,
+        WorkflowWirePayloadKeys.UPDATED_AT to view.updatedAt,
+        WorkflowWirePayloadKeys.FINISHED_AT to view.finishedAt,
+      ),
+    )
 }

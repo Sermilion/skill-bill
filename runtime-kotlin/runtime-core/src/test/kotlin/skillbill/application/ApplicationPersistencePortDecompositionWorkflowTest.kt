@@ -1,4 +1,6 @@
 package skillbill.application
+import skillbill.workflow.engine.model.WorkflowStepUpdates
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 
 import skillbill.application.workflow.model.WorkflowContinueResult
 import skillbill.application.workflow.model.WorkflowFamilyKind
@@ -33,9 +35,9 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
         workflowId = workflowId,
         workflowStatus = "running",
         currentStepId = "plan",
-        stepUpdates = listOf(mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1)),
+        stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1))),
         artifactsPatch =
-        mapOf(
+        WorkflowArtifactPatch.from(mapOf(
           "branch" to mapOf("branch" to "feat/SKILL-51-demo"),
           "plan" to
             mapOf(
@@ -52,7 +54,7 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
                   ),
                 ),
             ),
-        ),
+        )),
       ),
     )
 
@@ -80,16 +82,16 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
         workflowId = workflowId,
         workflowStatus = "running",
         currentStepId = "implement",
-        stepUpdates = listOf(mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1)),
+        stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1))),
         artifactsPatch =
-        mapOf(
+        WorkflowArtifactPatch.from(mapOf(
           "plan" to
             mapOf(
               "mode" to "implement",
               "task_count" to 1,
               "parent_spec_path" to parentSpec.toString(),
             ),
-        ),
+        )),
       ),
     ) as WorkflowUpdateResult.Ok
 
@@ -124,7 +126,7 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
           workflowId = workflowId,
           workflowStatus = "running",
           currentStepId = "plan",
-          stepUpdates = listOf(mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1)),
+          stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1))),
           artifactsPatch = decompositionPlanPatch(parentSpec, subtaskSpec),
         ),
       )
@@ -185,13 +187,13 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
         workflowId = workflowId,
         workflowStatus = "blocked",
         currentStepId = "validate",
-        stepUpdates = listOf(mapOf("step_id" to "validate", "status" to "blocked", "attempt_count" to 1)),
+        stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "validate", "status" to "blocked", "attempt_count" to 1))),
         artifactsPatch =
-        mapOf(
+        WorkflowArtifactPatch.from(mapOf(
           "assessment" to mapOf("spec_path" to subtaskSpec.toString()),
           FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to completedPhaseRecords("plan", "audit"),
           "blocked_reason" to "Validation paused.",
-        ),
+        )),
       ),
     )
 
@@ -331,12 +333,12 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
         workflowId = first.view.resume.snapshot.workflowId,
         workflowStatus = "running",
         currentStepId = "commit_push",
-        stepUpdates = listOf(mapOf("step_id" to "commit_push", "status" to "completed", "attempt_count" to 1)),
-        artifactsPatch = mapOf(
+        stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "commit_push", "status" to "completed", "attempt_count" to 1))),
+        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
           "assessment" to mapOf("spec_path" to subtaskOne.toString()),
           "goal_continuation" to mapOf("enabled" to true, "suppress_pr" to true),
           "commit_push_result" to mapOf("commit_sha" to "abc123"),
-        ),
+        )),
       ),
     )
 
@@ -386,11 +388,11 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
         workflowId = first.view.resume.snapshot.workflowId,
         workflowStatus = "running",
         currentStepId = "commit_push",
-        stepUpdates = listOf(mapOf("step_id" to "commit_push", "status" to "completed", "attempt_count" to 1)),
-        artifactsPatch = mapOf(
+        stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "commit_push", "status" to "completed", "attempt_count" to 1))),
+        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
           "assessment" to mapOf("spec_path" to subtaskOne.toString()),
           "goal_continuation" to mapOf("enabled" to true, "suppress_pr" to true),
-        ),
+        )),
       ),
     )
 
@@ -575,11 +577,11 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
         workflowId = subtaskWorkflowId,
         workflowStatus = "running",
         currentStepId = "validate",
-        stepUpdates = listOf(mapOf("step_id" to "validate", "status" to "running", "attempt_count" to 1)),
-        artifactsPatch = mapOf(
+        stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "validate", "status" to "running", "attempt_count" to 1))),
+        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
           FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to completedPhaseRecords("plan", "audit"),
           "validation_result" to mapOf("passed" to false),
-        ),
+        )),
       ),
     )
 

@@ -1,6 +1,5 @@
 package skillbill.ports.workflow
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.issuekey.isWellFormedIssueKey
 import skillbill.contracts.issuekey.malformedIssueKeyReason
 import skillbill.contracts.workflow.FEATURE_TASK_EXECUTION_IDENTITY_CONTRACT_VERSION
@@ -15,7 +14,6 @@ import skillbill.ports.workflow.model.toContinueSessionSummary
 import skillbill.ports.workflow.model.GoalChildWorkflowDeletionScope
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.model.WorkflowStateRecord
-import skillbill.ports.workflow.model.toPayload
 import skillbill.ports.workflow.model.toSnapshot
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 

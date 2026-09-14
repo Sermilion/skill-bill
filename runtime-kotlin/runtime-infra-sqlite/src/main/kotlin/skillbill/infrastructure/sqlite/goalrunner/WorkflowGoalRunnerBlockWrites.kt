@@ -13,6 +13,8 @@ import skillbill.ports.workflow.save
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.blockedStepId
 import skillbill.workflow.engine.decodeWorkflowSteps
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
+import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.engine.model.isTerminalStatus
 import skillbill.workflow.model.WorkflowStatus
@@ -72,17 +74,17 @@ internal class WorkflowGoalRunnerBlockWrites(
       WorkflowUpdateInput(
         workflowStatus = "blocked",
         currentStepId = stepId,
-        stepUpdates = listOf(
+        stepUpdates = WorkflowStepUpdates.from(listOf(
           mapOf(
             SharedPayloadKeys.STEP_ID to stepId,
             SharedPayloadKeys.STATUS to "blocked",
             "attempt_count" to attemptCount,
           ),
-        ),
-        artifactsPatch = buildMap {
+        )),
+        artifactsPatch = WorkflowArtifactPatch.from(buildMap {
           put("blocked_reason", write.blockedReason)
           write.supervisionEvent?.let { event -> put("supervision_event", event.toPersistenceWire()) }
-        },
+        }),
         sessionId = write.record.sessionId.orEmpty(),
       ),
     )
@@ -152,14 +154,14 @@ internal class WorkflowGoalRunnerBlockWrites(
     return WorkflowUpdateInput(
       workflowStatus = "running",
       currentStepId = blockedRecord.phaseId,
-      stepUpdates = listOf(
+      stepUpdates = WorkflowStepUpdates.from(listOf(
         mapOf(
           SharedPayloadKeys.STEP_ID to blockedRecord.phaseId,
           SharedPayloadKeys.STATUS to "pending",
           "attempt_count" to 0,
         ),
-      ),
-      artifactsPatch = mapOf(
+      )),
+      artifactsPatch = WorkflowArtifactPatch.from(mapOf(
         FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to
           reopened.mapValues { (_, record) -> record.encodeWorkflowArtifact() },
         FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY to
@@ -173,7 +175,7 @@ internal class WorkflowGoalRunnerBlockWrites(
           "previous_blocked_reason" to blockedRecord.blockedReason,
           "previous_blocked_record" to blockedRecord.encodeWorkflowArtifact(),
         ),
-      ),
+      )),
       sessionId = "",
     )
   }
