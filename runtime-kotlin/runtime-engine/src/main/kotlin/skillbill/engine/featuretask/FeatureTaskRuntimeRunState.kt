@@ -329,6 +329,10 @@ class FeatureTaskRuntimeRunState(
 
   fun persistedBlockedReason(phaseId: String): String? = blockedRecords[phaseId]
 
+  internal fun clearPersistedBlock(phaseId: String) {
+    blockedRecords.remove(phaseId)
+  }
+
   fun hasBranchSetupBlock(phaseId: String): Boolean = phaseId in branchSetupBlockedPhases
 
   fun clearBranchSetupBlock(phaseId: String) {
