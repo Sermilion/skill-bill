@@ -4,7 +4,6 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.config.model.applyValidationGateGradleWrapper
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.review.ReviewVerificationSignalKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_BUILD_RECEIPT_CONTRACT_VERSION
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
 import skillbill.engine.featuretask.emitFeatureTaskRuntimeEventSafely
@@ -31,6 +30,8 @@ import skillbill.scaffold.model.ValidationGateDeclaration
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateExecutionEvidence
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateExecutionEvidence.Companion.fromGateMeasurements
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateProgress
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateRepairWindowPhase
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateRunRecord
@@ -264,6 +265,7 @@ class FeatureTaskRuntimeBuildGateCoordinator(
       outcome = result.outcome,
       cacheMode = result.cacheMode,
       executedWorkUnits = result.executedWorkUnits,
+      executedChecks = result.executedCheckIdentities,
     )
     persistProgress(state = state, write = write)
   }
@@ -303,17 +305,11 @@ class FeatureTaskRuntimeBuildGateCoordinator(
     fun runtimeOwnedBuildOutput(
       repositoryCheckpoint: String,
       measurements: List<FeatureTaskRuntimeValidationGateRunRecord>,
-      checks: List<String>,
     ): FeatureTaskRuntimePhaseOutput {
+      val gateExecutionEvidence = FeatureTaskRuntimeValidationGateExecutionEvidence.fromGateMeasurements(measurements)
       val buildReceipt = linkedMapOf<String, Any?>(
         SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_BUILD_RECEIPT_CONTRACT_VERSION,
-        "validation_status" to "passed",
-        "checks" to checks,
-        ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT to
-          mapOf(ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT_FINGERPRINT to repositoryCheckpoint),
-        "gate_run_count" to measurements.size,
-        "gate_runs" to measurements.map { it.toArtifactMap() },
-      )
+      ) + gateExecutionEvidence.toArtifactMap(repositoryCheckpoint)
       val payload = JsonCodec.mapToJsonString(
         mapOf(
           SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_CONTRACT_VERSION,
@@ -374,7 +370,6 @@ private fun terminalCompletedResult(
     output = FeatureTaskRuntimeBuildGateCoordinator.runtimeOwnedBuildOutput(
       repositoryCheckpoint = repositoryCheckpoint,
       measurements = measurements,
-      checks = emptyList(),
     ),
   ),
 )

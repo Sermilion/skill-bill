@@ -9,6 +9,7 @@ import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunks
 import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationEvidence
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateExecutionEvidence
 
 enum class GoalPlanningStatusState(val wireValue: String) {
   NOT_STARTED("not_started"),
@@ -109,6 +110,7 @@ data class GoalRunnerStatusProjection(
 data class GoalRunnerSubtaskValidationEvidence(
   val subtaskId: Int,
   val evidence: FeatureTaskRuntimeValidationEvidence? = null,
+  val gateExecutionEvidence: FeatureTaskRuntimeValidationGateExecutionEvidence? = null,
   val integrityProblem: String? = null,
 ) {
   @OpenBoundaryMap("Goal status validation evidence wire map")
@@ -116,6 +118,15 @@ data class GoalRunnerSubtaskValidationEvidence(
     SharedPayloadKeys.SUBTASK_ID to subtaskId,
     ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE to
       evidence?.toArtifactMap(),
+    ValidationEvidencePayloadKeys.VALIDATION_RESULT to
+      gateExecutionEvidence?.let { gate ->
+        linkedMapOf(
+          ValidationEvidencePayloadKeys.VALIDATION_STATUS to gate.validationStatus,
+          ValidationEvidencePayloadKeys.CHECKS to gate.checks,
+          ValidationEvidencePayloadKeys.GATE_RUN_COUNT to gate.gateRunCount,
+          ValidationEvidencePayloadKeys.GATE_RUNS to gate.gateRuns.map { it.toArtifactMap() },
+        )
+      },
     ValidationEvidencePayloadKeys.INTEGRITY_PROBLEM to integrityProblem,
   )
 }

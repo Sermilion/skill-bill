@@ -1077,7 +1077,7 @@ private fun diagnosticSignal(
   recordedAt = "2026-08-12T20:19:51Z",
 )
 
-private fun statusHarness(): StatusHarness {
+internal fun statusHarness(): StatusHarness {
   val repository = StatusInMemoryWorkflowRepository()
   val database = StatusFakeDatabaseSessionFactory(repository)
   val recorder = featureTaskRuntimePhaseRecorder(
@@ -1099,7 +1099,7 @@ private fun statusHarness(): StatusHarness {
   )
 }
 
-private class StatusHarness(
+internal class StatusHarness(
   val recorder: FeatureTaskRuntimePhaseRecorder,
   val decomposeTerminalRecorder: FeatureTaskRuntimeDecomposeTerminalRecorder,
   val runInvariantsStore: FeatureTaskRuntimeRunInvariantsStore,
@@ -1260,7 +1260,7 @@ private class StatusFakeDatabaseSessionFactory(
   }
 }
 
-private class StatusInMemoryWorkflowRepository : WorkflowStateRepository {
+internal class StatusInMemoryWorkflowRepository : WorkflowStateRepository {
   override fun saveFeatureTaskExecutionIdentity(identity: FeatureTaskExecutionIdentity) = Unit
 
   override fun findStandaloneFeatureTaskCandidates(normalizedIssueKey: String, repositoryIdentity: String) =

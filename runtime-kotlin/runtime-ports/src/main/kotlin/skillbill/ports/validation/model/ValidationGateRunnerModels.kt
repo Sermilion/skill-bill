@@ -34,6 +34,7 @@ data class ValidationGateRunResult(
   val outcome: ValidationGateRunOutcome,
   val cacheMode: ValidationGateCacheMode,
   val executedWorkUnits: Int,
+  val executedCheckIdentities: List<String>,
   val findings: List<ValidationGateFinding>,
   val stdout: String = "",
 )

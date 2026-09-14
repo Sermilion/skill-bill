@@ -43,6 +43,7 @@ import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.decompositionStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationEvidence
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateExecutionEvidence
 import java.io.IOException
 import java.nio.file.Path
 import java.time.Clock
@@ -190,7 +191,12 @@ private fun GoalRunnerStatusProjectionAssembler.completedSubtaskValidationFor(
       sourceLabel = sourceLabel,
     )
     evidence.requireSuccessfulCommand(requireNotNull(requiredCommand), sourceLabel)
-    GoalRunnerSubtaskValidationEvidence(subtask.id, evidence = evidence)
+    val gateExecutionEvidence = runtimeValidationGateExecutionEvidence(workflowId)
+    GoalRunnerSubtaskValidationEvidence(
+      subtaskId = subtask.id,
+      evidence = evidence,
+      gateExecutionEvidence = gateExecutionEvidence,
+    )
   }.getOrElse { error ->
     GoalRunnerSubtaskValidationEvidence(
       subtaskId = subtask.id,
@@ -198,6 +204,29 @@ private fun GoalRunnerStatusProjectionAssembler.completedSubtaskValidationFor(
     )
   }
 }
+
+private fun GoalRunnerStatusProjectionAssembler.runtimeValidationGateExecutionEvidence(
+  workflowId: String,
+): FeatureTaskRuntimeValidationGateExecutionEvidence? = phaseRecorder.loadPhaseRecords(workflowId)
+  ?.get(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE)
+  ?.outputArtifact
+  ?.let(JsonCodec::parseObjectOrNull)
+  ?.let(JsonCodec::jsonElementToValue)
+  ?.let(JsonCodec::anyToStringAnyMap)
+  ?.get(SharedPayloadKeys.PRODUCED_OUTPUTS)
+  ?.let(JsonCodec::anyToStringAnyMap)
+  ?.get(ValidationEvidencePayloadKeys.VALIDATION_RESULT)
+  ?.let(JsonCodec::anyToStringAnyMap)
+  ?.let { raw ->
+    if (
+      !raw.containsKey(ValidationEvidencePayloadKeys.GATE_RUN_COUNT) &&
+      !raw.containsKey(ValidationEvidencePayloadKeys.GATE_RUNS)
+    ) {
+      null
+    } else {
+      FeatureTaskRuntimeValidationGateExecutionEvidence.fromArtifactMap(raw, "goal-status.validate")
+    }
+  }
 
 private fun GoalRunnerStatusProjectionAssembler.runtimeValidationEvidence(workflowId: String): Map<String, Any?>? =
   phaseRecorder.loadPhaseRecords(workflowId)

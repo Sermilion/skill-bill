@@ -4,7 +4,6 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.config.model.applyValidationGateGradleWrapper
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.review.ReviewVerificationSignalKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
 import skillbill.contracts.workflow.ValidationEvidencePayloadKeys
 import skillbill.engine.featuretask.FeatureTaskRuntimePhaseRecorder
@@ -36,6 +35,7 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationCommandResult
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationEvidence
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateExecutionEvidence
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateProgress
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateRepairWindowPhase
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateRunRecord
@@ -330,6 +330,7 @@ class FeatureTaskRuntimeValidationGateCoordinator(
       outcome = result.outcome,
       cacheMode = result.cacheMode,
       executedWorkUnits = result.executedWorkUnits,
+      executedChecks = result.executedCheckIdentities,
       command = command,
       exitCode = result.exitCode,
     )
@@ -383,7 +384,6 @@ class FeatureTaskRuntimeValidationGateCoordinator(
     fun runtimeOwnedValidationOutput(
       repositoryCheckpoint: String,
       measurements: List<FeatureTaskRuntimeValidationGateRunRecord>,
-      checks: List<String>,
       requiredCommand: String,
     ): FeatureTaskRuntimePhaseOutput {
       val evidence = measurements.mapNotNull { measurement ->
@@ -398,20 +398,13 @@ class FeatureTaskRuntimeValidationGateCoordinator(
         )
       }
       FeatureTaskRuntimeValidationEvidence(evidence).requireSuccessfulCommand(requiredCommand, "validate")
-      val validationResult = linkedMapOf<String, Any?>(
-        "validation_status" to "passed",
-        "checks" to checks,
-        ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT to
-          mapOf(ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT_FINGERPRINT to repositoryCheckpoint),
-        "gate_run_count" to measurements.size,
-        "gate_runs" to measurements.map { it.toArtifactMap() },
-      ).apply {
-        if (evidence.isNotEmpty()) {
-          put(
-            ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE,
-            FeatureTaskRuntimeValidationEvidence(evidence).toArtifactMap(),
-          )
-        }
+      val gateExecutionEvidence = FeatureTaskRuntimeValidationGateExecutionEvidence.fromGateMeasurements(measurements)
+      val validationResult = linkedMapOf<String, Any?>().apply {
+        putAll(gateExecutionEvidence.toArtifactMap(repositoryCheckpoint))
+        put(
+          ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE,
+          FeatureTaskRuntimeValidationEvidence(evidence).toArtifactMap(),
+        )
       }
       val payload = JsonCodec.mapToJsonString(
         mapOf(
@@ -462,7 +455,6 @@ private fun terminalCompletedResult(
       output = FeatureTaskRuntimeValidationGateCoordinator.runtimeOwnedValidationOutput(
         repositoryCheckpoint = repositoryCheckpoint,
         measurements = measurements,
-        checks = emptyList(),
         requiredCommand = requiredCommand,
       ),
     ),

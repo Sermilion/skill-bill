@@ -33,16 +33,20 @@ data class FeatureTaskRuntimeValidationGateRunRecord(
   val outcome: ValidationGateRunOutcome,
   val cacheMode: ValidationGateCacheMode,
   val executedWorkUnits: Int,
+  val executedChecks: List<String> = emptyList(),
   val command: String? = null,
   val exitCode: Int? = null,
+  val executedChecksRecorded: Boolean = true,
 ) {
   constructor(
     durationMs: Long,
     outcome: String,
     cacheMode: String,
     executedWorkUnits: Int,
+    executedChecks: List<String> = emptyList(),
     command: String? = null,
     exitCode: Int? = null,
+    executedChecksRecorded: Boolean = true,
   ) : this(
     durationMs = durationMs,
     outcome = requireNotNull(ValidationGateRunOutcome.fromWire(outcome)) {
@@ -52,23 +56,37 @@ data class FeatureTaskRuntimeValidationGateRunRecord(
       "Unknown validation gate cache mode '$cacheMode'."
     },
     executedWorkUnits = executedWorkUnits,
+    executedChecks = executedChecks,
     command = command,
     exitCode = exitCode,
+    executedChecksRecorded = executedChecksRecorded,
   )
 
   init {
+    require(durationMs >= 0) {
+      "Validation gate duration_ms must be >= 0, was $durationMs."
+    }
+    require(executedWorkUnits >= 0) {
+      "Validation gate executed_work_units must be >= 0, was $executedWorkUnits."
+    }
     require((command == null) == (exitCode == null)) {
       "Validation gate command and exit_code must be present together."
+    }
+    require(executedChecks.all { it.isNotBlank() }) {
+      "Validation gate executed check identities must be non-blank."
     }
   }
 
   @OpenBoundaryMap("Runtime-owned validation gate run measurement at the durable workflow-artifact seam")
-  fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
-    "duration_ms" to durationMs,
-    "outcome" to outcome.wireValue,
-    "cache_mode" to cacheMode.wireValue,
-    "executed_work_units" to executedWorkUnits,
+  fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
+    ValidationEvidencePayloadKeys.DURATION_MS to durationMs,
+    ValidationEvidencePayloadKeys.OUTCOME to outcome.wireValue,
+    ValidationEvidencePayloadKeys.CACHE_MODE to cacheMode.wireValue,
+    ValidationEvidencePayloadKeys.EXECUTED_WORK_UNITS to executedWorkUnits,
   ).apply {
+    if (executedChecksRecorded) {
+      put(ValidationEvidencePayloadKeys.EXECUTED_CHECKS, executedChecks)
+    }
     command?.let { put(ValidationEvidencePayloadKeys.COMMAND, it) }
     exitCode?.let { put(ValidationEvidencePayloadKeys.EXIT_CODE, it) }
   }
@@ -134,16 +152,36 @@ data class FeatureTaskRuntimeValidationGateProgress(
             "FeatureTaskRuntimeValidationGateProgress.gate_runs[$index] must be a mapping.",
           )
         FeatureTaskRuntimeValidationGateRunRecord(
-          durationMs = map.gateProgressLong("duration_ms"),
-          outcome = requireNotNull(ValidationGateRunOutcome.fromWire(map.gateProgressString("outcome"))) {
+          durationMs = map.gateProgressLong(ValidationEvidencePayloadKeys.DURATION_MS),
+          outcome = requireNotNull(
+            ValidationGateRunOutcome.fromWire(map.gateProgressString(ValidationEvidencePayloadKeys.OUTCOME)),
+          ) {
             "Unknown validation gate outcome."
           },
-          cacheMode = requireNotNull(ValidationGateCacheMode.fromWire(map.gateProgressString("cache_mode"))) {
+          cacheMode = requireNotNull(
+            ValidationGateCacheMode.fromWire(map.gateProgressString(ValidationEvidencePayloadKeys.CACHE_MODE)),
+          ) {
             "Unknown validation gate cache mode."
           },
-          executedWorkUnits = map.gateProgressInt("executed_work_units"),
+          executedWorkUnits = map.gateProgressInt(ValidationEvidencePayloadKeys.EXECUTED_WORK_UNITS),
+          executedChecks = decodeExecutedChecks(map),
           command = map.gateProgressOptionalString(ValidationEvidencePayloadKeys.COMMAND),
           exitCode = map.gateProgressOptionalInt(ValidationEvidencePayloadKeys.EXIT_CODE),
+          executedChecksRecorded = map.containsKey(ValidationEvidencePayloadKeys.EXECUTED_CHECKS),
+        )
+      }
+    }
+
+    private fun decodeExecutedChecks(map: Map<*, *>): List<String> {
+      if (!map.containsKey(ValidationEvidencePayloadKeys.EXECUTED_CHECKS)) return emptyList()
+      val raw = map[ValidationEvidencePayloadKeys.EXECUTED_CHECKS]
+      val list = raw as? List<*>
+        ?: throw InvalidWorkflowStateSchemaError(
+          "FeatureTaskRuntimeValidationGateProgress gate run executed_checks must be a list.",
+        )
+      return list.mapIndexed { index, entry ->
+        entry as? String ?: throw InvalidWorkflowStateSchemaError(
+          "FeatureTaskRuntimeValidationGateProgress gate run executed_checks[$index] must be a string.",
         )
       }
     }
@@ -170,33 +208,33 @@ data class FeatureTaskRuntimeValidationGateProgress(
   }
 }
 
-private fun Map<String, Any?>.asStarMap(): Map<*, *> = this
+internal fun Map<String, Any?>.asStarMap(): Map<*, *> = this
 
-private fun Map<*, *>.gateProgressString(key: String): String =
+internal fun Map<*, *>.gateProgressString(key: String): String =
   this[key] as? String ?: throw InvalidWorkflowStateSchemaError("Missing required string field '$key'.")
 
-private fun Map<*, *>.gateProgressInt(key: String): Int = when (val value = this[key]) {
+internal fun Map<*, *>.gateProgressInt(key: String): Int = when (val value = this[key]) {
   is Int -> value
   is Long -> value.toInt()
   is Number -> value.toInt()
   else -> throw InvalidWorkflowStateSchemaError("Missing required int field '$key'.")
 }
 
-private fun Map<*, *>.gateProgressLong(key: String): Long = when (val value = this[key]) {
+internal fun Map<*, *>.gateProgressLong(key: String): Long = when (val value = this[key]) {
   is Long -> value
   is Int -> value.toLong()
   is Number -> value.toLong()
   else -> throw InvalidWorkflowStateSchemaError("Missing required long field '$key'.")
 }
 
-private fun Map<*, *>.gateProgressOptionalInt(key: String): Int? {
+internal fun Map<*, *>.gateProgressOptionalInt(key: String): Int? {
   if (!containsKey(key) || this[key] == null) {
     return null
   }
   return gateProgressInt(key)
 }
 
-private fun Map<*, *>.gateProgressOptionalString(key: String): String? {
+internal fun Map<*, *>.gateProgressOptionalString(key: String): String? {
   if (!containsKey(key) || this[key] == null) return null
   return gateProgressString(key)
 }

@@ -157,6 +157,7 @@ internal fun passed(forced: Boolean = false): ValidationGateRunResult = Validati
   outcome = ValidationGateRunOutcome.PASSED,
   cacheMode = if (forced) ValidationGateCacheMode.FORCED_FULL else ValidationGateCacheMode.CACHE_ELIGIBLE,
   executedWorkUnits = 1,
+  executedCheckIdentities = emptyList(),
   findings = emptyList(),
 )
 
@@ -166,6 +167,7 @@ internal fun failedEmptyFindings(stdout: String = ""): ValidationGateRunResult =
   outcome = ValidationGateRunOutcome.FAILED,
   cacheMode = ValidationGateCacheMode.CACHE_ELIGIBLE,
   executedWorkUnits = 1,
+  executedCheckIdentities = emptyList(),
   findings = emptyList(),
   stdout = stdout,
 )
@@ -176,6 +178,7 @@ internal fun failedWith(vararg findings: ValidationGateFinding): ValidationGateR
   outcome = ValidationGateRunOutcome.FAILED,
   cacheMode = ValidationGateCacheMode.CACHE_ELIGIBLE,
   executedWorkUnits = 1,
+  executedCheckIdentities = emptyList(),
   findings = findings.toList(),
 )
 

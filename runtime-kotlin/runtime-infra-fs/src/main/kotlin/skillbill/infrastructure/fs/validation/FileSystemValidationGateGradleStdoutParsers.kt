@@ -29,6 +29,7 @@ internal object FileSystemValidationGateGradleStdoutParsers {
   private val QUALITY_TOOL_LINE =
     Regex("""^(?:file://)?(.+\.kt):(\d+):(\d+):\s+(.+?)\s+\[([A-Za-z0-9]+)]\s*$""")
   private val GRADLE_TASK_PREFIX = Regex("""^>\s*Task\s+:\S+\s+""")
+  private val GRADLE_TASK_LINE = Regex("""^>\s*Task\s+:(\S+)(?:\s+\S+)?\s*$""")
   private val GRADLE_TASK_FAILED_LINE = Regex("""^>\s*Task\s+:(\S+)\s+FAILED\s*$""")
   private val GRADLE_TASK_FAILURE_HEADER =
     Regex("""Execution failed for task '?([^']+)'?\.""")
@@ -60,6 +61,18 @@ internal object FileSystemValidationGateGradleStdoutParsers {
       )
     }.toList()
   }
+
+  fun parseGradleExecutedTaskIdentities(stdout: String): List<String> = buildList {
+    stdout.lineSequence().forEach { rawLine ->
+      val line = rawLine.trim()
+      val taskPath = GRADLE_TASK_FAILED_LINE.matchEntire(line)?.groupValues?.get(1)
+        ?: GRADLE_TASK_LINE.matchEntire(line)?.groupValues?.get(1)
+        ?: return@forEach
+      val (module, task) = FileSystemValidationGateGradlePaths.parseGradleTaskPath(taskPath)
+      if (task.isBlank()) return@forEach
+      add("${module.ifBlank { GRADLE_ROOT_MODULE }}|$task")
+    }
+  }.distinct()
 
   fun coveredGradleTaskKeys(findings: List<ValidationGateFinding>): Set<String> = buildSet {
     findings.forEach { finding ->

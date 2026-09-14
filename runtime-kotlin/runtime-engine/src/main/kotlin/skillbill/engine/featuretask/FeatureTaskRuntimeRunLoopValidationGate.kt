@@ -235,7 +235,6 @@ object FeatureTaskRuntimeRunLoopValidationGate {
           FeatureTaskRuntimeBuildGateCoordinator.runtimeOwnedBuildOutput(
             repositoryCheckpoint = checkpoint,
             measurements = emptyList(),
-            checks = emptyList(),
           ).payload,
           observability,
         )

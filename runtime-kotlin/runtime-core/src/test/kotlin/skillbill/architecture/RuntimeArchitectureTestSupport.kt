@@ -1247,6 +1247,8 @@ internal object RuntimeArchitectureScanConstants {
     "skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationCommandResult.toArtifactMap",
     "skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationEvidence.fromArtifactMap",
     "skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationEvidence.toArtifactMap",
+    "skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateExecutionEvidence.fromArtifactMap",
+    "skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateExecutionEvidence.toArtifactMap",
     "skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateProgress.fromArtifactMap",
     "skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateProgress.toArtifactMap",
     "skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateRunRecord.toArtifactMap",

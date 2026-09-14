@@ -11,4 +11,13 @@ object ValidationEvidencePayloadKeys {
   const val EXIT_CODE: String = "exit_code"
   const val INTEGRITY_PROBLEM: String = "integrity_problem"
   const val COMPLETED_SUBTASK_VALIDATION: String = "completed_subtask_validation"
+  const val VALIDATION_STATUS: String = "validation_status"
+  const val CHECKS: String = "checks"
+  const val GATE_RUN_COUNT: String = "gate_run_count"
+  const val GATE_RUNS: String = "gate_runs"
+  const val EXECUTED_CHECKS: String = "executed_checks"
+  const val EXECUTED_WORK_UNITS: String = "executed_work_units"
+  const val DURATION_MS: String = "duration_ms"
+  const val OUTCOME: String = "outcome"
+  const val CACHE_MODE: String = "cache_mode"
 }
