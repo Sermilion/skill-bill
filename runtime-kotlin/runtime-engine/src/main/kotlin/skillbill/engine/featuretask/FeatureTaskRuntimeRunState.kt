@@ -1,10 +1,10 @@
 package skillbill.engine.featuretask
-
 import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerAction
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerEntry
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
@@ -14,6 +14,7 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeTransitionDeclarat
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationEvidence
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.model.requireAcceptedOutput
+import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 
 class FeatureTaskRuntimeRunState(
   initialRecords: Map<String, FeatureTaskRuntimePhaseRecord>,
@@ -55,7 +56,7 @@ class FeatureTaskRuntimeRunState(
 
   val gateInvalidatedPhases: MutableSet<String> = mutableSetOf()
 
-  val parsedOutputsByPayload: MutableMap<String, Map<String, Any?>> = mutableMapOf()
+  private val parsedOutputsByPayload: MutableMap<String, FeatureTaskRuntimeWorkflowArtifactMap> = mutableMapOf()
 
   val outputs: MutableList<FeatureTaskRuntimePhaseOutput> = mutableListOf()
 
@@ -364,14 +365,15 @@ class FeatureTaskRuntimeRunState(
     return maxOf(persistedAttempts, latestOutputIteration) + 1
   }
 
-  fun parsedOutput(output: FeatureTaskRuntimePhaseOutput?): Map<String, Any?>? {
+  internal fun parsedOutput(output: FeatureTaskRuntimePhaseOutput?): FeatureTaskRuntimeWorkflowArtifactMap? {
     val payload = output?.payload ?: return null
     return parsedOutputsByPayload.getOrPut(payload) {
-      output.normalizedOutput?.envelope
+      val envelope = output.normalizedOutput?.envelopePayload()
         ?: outputValidator.validatePhaseOutput(payload, sourceLabel = output.phaseId)
           .requireAcceptedOutput(output.phaseId)
           .normalizedOutput
-          .envelope
+          .envelopePayload()
+      envelope.toWorkflowArtifactMap()
     }
   }
 

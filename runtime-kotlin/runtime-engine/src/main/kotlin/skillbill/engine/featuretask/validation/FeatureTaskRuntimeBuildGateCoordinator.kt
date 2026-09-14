@@ -1,5 +1,4 @@
 package skillbill.engine.featuretask.validation
-
 import me.tatarka.inject.annotations.Inject
 import skillbill.config.model.applyValidationGateGradleWrapper
 import skillbill.contracts.JsonCodec
@@ -18,6 +17,7 @@ import skillbill.engine.featuretask.validation.model.ValidationGateProgressWrite
 import skillbill.engine.featuretask.validation.model.ValidationGateResolution
 import skillbill.engine.featuretask.validation.model.ValidationGateTriageResult
 import skillbill.engine.featuretask.validation.model.requiresUnparseableGateTriage
+import skillbill.engine.featuretask.workflowArtifactEntryMap
 import skillbill.ports.config.RepoLocalConfigPort
 import skillbill.ports.config.model.ReadRepoLocalConfigRequest
 import skillbill.ports.diagnostics.RuntimeDiagnostics
@@ -28,6 +28,7 @@ import skillbill.ports.validation.model.ValidationGateRunRequest
 import skillbill.ports.validation.model.ValidationGateRunResult
 import skillbill.scaffold.model.ValidationGateDeclaration
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateExecutionEvidence
@@ -309,7 +310,7 @@ class FeatureTaskRuntimeBuildGateCoordinator(
       val gateExecutionEvidence = FeatureTaskRuntimeValidationGateExecutionEvidence.fromGateMeasurements(measurements)
       val buildReceipt = linkedMapOf<String, Any?>(
         SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_BUILD_RECEIPT_CONTRACT_VERSION,
-      ) + gateExecutionEvidence.toArtifactMap(repositoryCheckpoint)
+      ) + workflowArtifactEntryMap(gateExecutionEvidence.asWorkflowArtifactEntry(repositoryCheckpoint))
       val payload = JsonCodec.mapToJsonString(
         mapOf(
           SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_CONTRACT_VERSION,

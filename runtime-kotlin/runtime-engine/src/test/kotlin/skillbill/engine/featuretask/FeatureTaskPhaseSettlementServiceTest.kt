@@ -2,24 +2,26 @@ package skillbill.engine.featuretask
 
 import skillbill.application.testHarnessClock
 import skillbill.contracts.JsonCodec
+import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.ValidationEvidencePayloadKeys
 import skillbill.engine.featuretask.model.FeatureTaskPhaseSettlementBlockRequest
 import skillbill.engine.featuretask.model.FeatureTaskPhaseSettlementCompleteRequest
 import skillbill.ports.featuretask.model.FeatureTaskPhaseSettlement
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationCommandResult
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationEvidence
 import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-
 class FeatureTaskPhaseSettlementServiceTest {
   @Test
   fun `complete then findEnvelope returns stuffed value`() {
     val service = FeatureTaskPhaseSettlementService(InMemoryFeatureTaskPhaseSettlementRepository(), testHarnessClock)
-    service.complete(
+    val acknowledgment = service.complete(
       FeatureTaskPhaseSettlementCompleteRequest(
         workflowId = "wftr-test",
         phaseId = "implement",
@@ -27,10 +29,14 @@ class FeatureTaskPhaseSettlementServiceTest {
         value = """{"projection_kind":"implementation_receipt","completed_task_ids":["task-1"]}""",
       ),
     )
-    val envelope = assertNotNull(service.findEnvelope("wftr-test", "implement", 1))
-    assertEquals("completed", envelope["status"])
-    val produced = assertNotNull(JsonCodec.anyToStringAnyMap(envelope["produced_outputs"]))
-    assertTrue((produced["value"] as String).contains("implementation_receipt"))
+    assertEquals("ok", acknowledgment.status)
+    assertEquals("wftr-test", acknowledgment.workflowId)
+    assertEquals("implement", acknowledgment.phaseId)
+    assertEquals(1, acknowledgment.attempt)
+    val envelope = assertNotNull(service.findEnvelope("wftr-test", "implement", 1)).envelope
+    assertEquals("completed", envelope[SharedPayloadKeys.STATUS])
+    val produced = assertNotNull(JsonCodec.anyToStringAnyMap(envelope[SharedPayloadKeys.PRODUCED_OUTPUTS]))
+    assertTrue((produced[SharedPayloadKeys.VALUE] as String).contains("implementation_receipt"))
   }
 
   @Test
@@ -52,9 +58,9 @@ class FeatureTaskPhaseSettlementServiceTest {
         value = "second",
       ),
     )
-    val envelope = assertNotNull(service.findEnvelope("wftr-test", "plan", 1))
-    val produced = assertNotNull(JsonCodec.anyToStringAnyMap(envelope["produced_outputs"]))
-    assertEquals("second", produced["value"])
+    val envelope = assertNotNull(service.findEnvelope("wftr-test", "plan", 1)).envelope
+    val produced = assertNotNull(JsonCodec.anyToStringAnyMap(envelope[SharedPayloadKeys.PRODUCED_OUTPUTS]))
+    assertEquals("second", produced[SharedPayloadKeys.VALUE])
   }
 
   @Test
@@ -68,8 +74,8 @@ class FeatureTaskPhaseSettlementServiceTest {
         reason = "needs human",
       ),
     )
-    val envelope = assertNotNull(service.findEnvelope("wftr-test", "preplan", 1))
-    assertEquals("blocked", envelope["status"])
+    val envelope = assertNotNull(service.findEnvelope("wftr-test", "preplan", 1)).envelope
+    assertEquals("blocked", envelope[SharedPayloadKeys.STATUS])
   }
 
   @Test
@@ -84,10 +90,43 @@ class FeatureTaskPhaseSettlementServiceTest {
         failureDisposition = "needs_user_action",
       ),
     )
-    val envelope = assertNotNull(service.findEnvelope("wftr-test", "audit", 1))
-    assertEquals("blocked", envelope["status"])
-    assertNull(envelope["verdict"])
-    assertEquals("needs_user_action", envelope["failure_disposition"])
+    val envelope = assertNotNull(service.findEnvelope("wftr-test", "audit", 1)).envelope
+    assertEquals("blocked", envelope[SharedPayloadKeys.STATUS])
+    assertNull(envelope[SharedPayloadKeys.VERDICT])
+    assertEquals("needs_user_action", envelope[SharedPayloadKeys.FAILURE_DISPOSITION])
+  }
+
+  @Test
+  fun `audit completion rejects remaining criteria without a satisfied verdict`() {
+    val service = FeatureTaskPhaseSettlementService(InMemoryFeatureTaskPhaseSettlementRepository(), testHarnessClock)
+
+    assertFailsWith<IllegalArgumentException> {
+      service.complete(
+        FeatureTaskPhaseSettlementCompleteRequest(
+          workflowId = "wftr-test",
+          phaseId = "audit",
+          attempt = 1,
+          value = "- AC-001 remains incomplete",
+        ),
+      )
+    }
+  }
+
+  @Test
+  fun `blocking rejects a blank failure disposition`() {
+    val service = FeatureTaskPhaseSettlementService(InMemoryFeatureTaskPhaseSettlementRepository(), testHarnessClock)
+
+    assertFailsWith<IllegalArgumentException> {
+      service.block(
+        FeatureTaskPhaseSettlementBlockRequest(
+          workflowId = "wftr-test",
+          phaseId = "audit",
+          attempt = 1,
+          reason = "external dependency unavailable",
+          failureDisposition = " ",
+        ),
+      )
+    }
   }
 
   @Test
@@ -124,13 +163,13 @@ class FeatureTaskPhaseSettlementServiceTest {
         phaseId = "implement",
         attempt = 1,
         value = JsonCodec.mapToJsonString(
-          mapOf(ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE to evidence.toArtifactMap()),
+          mapOf(ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE to evidence.asWorkflowArtifactEntry()),
         ),
       ),
     )
-    val envelope = assertNotNull(service.findEnvelope("wftr-test", "implement", 1))
-    val produced = assertNotNull(JsonCodec.anyToStringAnyMap(envelope["produced_outputs"]))
-    val value = JsonCodec.parseObjectOrNull(produced["value"] as String)
+    val envelope = assertNotNull(service.findEnvelope("wftr-test", "implement", 1)).envelope
+    val produced = assertNotNull(JsonCodec.anyToStringAnyMap(envelope[SharedPayloadKeys.PRODUCED_OUTPUTS]))
+    val value = JsonCodec.parseObjectOrNull(produced[SharedPayloadKeys.VALUE] as String)
       ?.let(JsonCodec::jsonElementToValue)
       ?.let(JsonCodec::anyToStringAnyMap)
     val results = JsonCodec.anyToStringAnyMap(value?.get(ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE))

@@ -1,7 +1,7 @@
 package skillbill.ports.validation.model
 
-import skillbill.boundary.OpenBoundaryMap
-import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.validation.ReleaseRefMetadataContract
+import skillbill.contracts.validation.RepoValidationReportContract
 
 data class RepoValidationReport(
   val issues: List<String>,
@@ -13,14 +13,13 @@ data class RepoValidationReport(
 ) {
   val passed: Boolean = issues.isEmpty()
 
-  @OpenBoundaryMap("Wire-shape serializer for repo-validation report")
-  fun toPayload(): Map<String, Any?> = mapOf(
-    SharedPayloadKeys.STATUS to if (passed) "passed" else "failed",
-    "skill_count" to skillCount,
-    "governed_addon_count" to addonCount,
-    "platform_pack_count" to platformPackCount,
-    "native_agent_count" to nativeAgentCount,
-    "issues" to issues,
+  fun toContract(): RepoValidationReportContract = RepoValidationReportContract(
+    passed = passed,
+    skillCount = skillCount,
+    addonCount = addonCount,
+    platformPackCount = platformPackCount,
+    nativeAgentCount = nativeAgentCount,
+    issues = issues,
   )
 }
 
@@ -70,15 +69,14 @@ data class ReleaseRefMetadata(
   val prereleaseIdentifier: String?,
   val buildMetadata: String?,
 ) {
-  @OpenBoundaryMap("Wire-shape serializer for release-ref metadata")
-  fun toPayload(): Map<String, Any?> = mapOf(
-    "tag" to tag,
-    "version" to version,
-    "major" to major,
-    "minor" to minor,
-    "patch" to patch,
-    "prerelease" to prerelease,
-    "prerelease_identifier" to prereleaseIdentifier,
-    "build_metadata" to buildMetadata,
+  fun toContract(): ReleaseRefMetadataContract = ReleaseRefMetadataContract(
+    tag = tag,
+    version = version,
+    major = major,
+    minor = minor,
+    patch = patch,
+    prerelease = prerelease,
+    prereleaseIdentifier = prereleaseIdentifier,
+    buildMetadata = buildMetadata,
   )
 }

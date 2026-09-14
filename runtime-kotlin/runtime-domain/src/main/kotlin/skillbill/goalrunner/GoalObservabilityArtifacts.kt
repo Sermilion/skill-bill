@@ -1,6 +1,5 @@
 package skillbill.goalrunner
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.goalrunner.model.GoalObservabilityProgressInput
 import skillbill.goalrunner.model.GoalObservabilityRuntimeEventInput
@@ -8,6 +7,7 @@ import skillbill.workflow.goal.GoalObservabilityEventValidator
 import skillbill.workflow.goal.model.GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GOAL_OBSERVABILITY_RUN_HISTORY_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GoalObservabilityEvent
+import skillbill.workflow.goal.model.asGoalWorkflowArtifactMap
 import skillbill.workflow.goal.model.goalObservabilityHistoryFromArtifacts
 
 object GoalObservabilityArtifacts {
@@ -18,20 +18,20 @@ object GoalObservabilityArtifacts {
     val timestamp: String,
   )
 
-  @OpenBoundaryMap("Goal observability artifact patch derived from durable progress")
-  fun patchForProgressEvent(
-    input: GoalObservabilityProgressInput,
-    validator: GoalObservabilityEventValidator,
-  ): Map<String, Any?>? = eventFrom(input)?.let { event ->
-    patchForEvent(input.artifacts, event, validator)
-  }
+  fun patchForProgressEvent(input: GoalObservabilityProgressInput, validator: GoalObservabilityEventValidator): Any? =
+    eventFrom(input)?.let { event ->
+      patchForEvent(
+        input.artifacts.asGoalWorkflowArtifactMap("goal observability progress input"),
+        event,
+        validator,
+      )
+    }
 
-  @OpenBoundaryMap("Goal observability artifact patch derived from a runtime observability event")
   fun patchForRuntimeEvent(
     input: GoalObservabilityRuntimeEventInput,
     validator: GoalObservabilityEventValidator,
-  ): Map<String, Any?> = patchForEvent(
-    artifacts = input.artifacts,
+  ): Any = patchForEvent(
+    artifacts = input.artifacts.asGoalWorkflowArtifactMap("goal observability runtime event input"),
     event = GoalObservabilityEvent(
       issueKey = input.request.issueKey,
       subtaskId = input.request.subtaskId,
@@ -69,8 +69,9 @@ object GoalObservabilityArtifacts {
   }
 
   private fun requiredProgressFields(input: GoalObservabilityProgressInput): RequiredProgressFields? {
-    val progressEvent = input.artifacts["progress_event"] as? Map<*, *>
-    val continuation = input.artifacts["goal_continuation"] as? Map<*, *>
+    val artifacts = input.artifacts.asGoalWorkflowArtifactMap("goal observability progress input")
+    val progressEvent = artifacts["progress_event"] as? Map<*, *>
+    val continuation = artifacts["goal_continuation"] as? Map<*, *>
     val issueKey = continuation?.get(SharedPayloadKeys.ISSUE_KEY)?.toString()?.takeIf(String::isNotBlank)
     val subtaskId = continuation?.get(SharedPayloadKeys.SUBTASK_ID).asGoalObservabilityIntOrNull()
     val timestamp = progressEvent?.get("timestamp")?.toString()?.takeIf(String::isNotBlank)

@@ -1,5 +1,4 @@
 package skillbill.engine.featuretask
-
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 
 fun nonValidatePhaseValidationOwnershipDirective(phaseId: String): String {

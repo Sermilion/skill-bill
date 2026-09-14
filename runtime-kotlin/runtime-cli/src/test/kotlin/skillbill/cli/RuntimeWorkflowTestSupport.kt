@@ -10,8 +10,12 @@ import skillbill.cli.kernel.toPayload
 import skillbill.cli.model.CliRuntimeContext
 import skillbill.cli.workflow.toCliMap
 import skillbill.contracts.JsonCodec
+import skillbill.contracts.decomposition.DecompositionPlanningResult
+import skillbill.contracts.workflow.WorkflowArtifactKeys
 import skillbill.di.RuntimeComponent
 import skillbill.di.create
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
+import skillbill.workflow.engine.model.WorkflowStepUpdates
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.attribute.PosixFilePermissions
@@ -55,8 +59,11 @@ internal object RuntimeWorkflowTestSupport {
         workflowId = args.workflowId,
         workflowStatus = args.workflowStatus,
         currentStepId = args.currentStepId,
-        stepUpdates = args.stepUpdates,
-        artifactsPatch = args.artifactsPatch,
+        stepUpdates = args.stepUpdates?.let(WorkflowStepUpdates::from),
+        artifactsPatch = args.artifactsPatch?.let(WorkflowArtifactPatch::from),
+        planningResult = args.artifactsPatch?.get(WorkflowArtifactKeys.PLAN)
+          ?.let(JsonCodec::anyToStringAnyMap)
+          ?.let { DecompositionPlanningResult.fromWireMap(it, "test.artifacts_patch.plan") },
       ),
     )
     return assertIs<WorkflowUpdateResult.Ok>(result).toPayload()

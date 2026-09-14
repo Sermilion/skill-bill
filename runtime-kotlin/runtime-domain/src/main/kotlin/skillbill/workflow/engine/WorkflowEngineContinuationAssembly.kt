@@ -1,6 +1,8 @@
 package skillbill.workflow.engine
 
+import skillbill.contracts.workflow.WorkflowContinueSessionSummary
 import skillbill.workflow.engine.model.ResolvedRequiredArtifact
+import skillbill.workflow.engine.model.WorkflowContinuationFieldMap
 import skillbill.workflow.engine.model.WorkflowContinueDecision
 import skillbill.workflow.engine.model.WorkflowContinueView
 import skillbill.workflow.engine.model.WorkflowDefinition
@@ -8,6 +10,7 @@ import skillbill.workflow.engine.model.WorkflowInputProjection
 import skillbill.workflow.engine.model.WorkflowResumeView
 import skillbill.workflow.engine.model.WorkflowSnapshotView
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.engine.model.WorkflowStepArtifactMap
 import skillbill.workflow.engine.model.WorkflowStepState
 import skillbill.workflow.model.WorkflowContinueStatus
 import skillbill.workflow.model.WorkflowResumeMode
@@ -85,7 +88,7 @@ internal data class ContinueAssemblyContext(
 internal data class AssembleContinueTextsRequest(
   val context: ContinueAssemblyContext,
   val continueStatus: WorkflowContinueStatus,
-  val sessionSummary: Map<String, Any?>,
+  val sessionSummary: WorkflowContinueSessionSummary,
   val nextAttemptCount: Int,
 )
 
@@ -95,7 +98,7 @@ internal data class BuildContinueDecisionRequest(
   val workflowStatusBeforeContinue: String,
   val actualContinueStatus: WorkflowContinueStatus,
   val nextAttemptCount: Int,
-  val sessionSummary: Map<String, Any?>,
+  val sessionSummary: WorkflowContinueSessionSummary,
 )
 
 internal fun assembleContinueTexts(request: AssembleContinueTextsRequest): AssembledContinueTexts {
@@ -194,8 +197,8 @@ internal fun buildContinueDecision(request: BuildContinueDecisionRequest): Workf
       continueStepDirective = stepDirective,
       referenceSections = definition.continuationReferenceSections[resume.resumeStepId].orEmpty(),
       stepArtifactKeys = assembled.stepArtifactKeys,
-      stepArtifacts = assembled.stepArtifacts,
-      extraFields = assembled.extraFields,
+      stepArtifacts = WorkflowStepArtifactMap.from(assembled.stepArtifacts),
+      extraFields = WorkflowContinuationFieldMap.from(assembled.extraFields),
       sessionSummary = request.sessionSummary,
       continuationBrief = assembled.continuationBrief,
       continuationEntryPrompt = assembled.continuationEntryPrompt,

@@ -43,7 +43,10 @@ object GovernedReviewEvidenceBridge {
       message == null -> errorResponse(null, JSON_RPC_INTERNAL_ERROR, "Parse error")
       id == null -> null
       method == "initialize" -> successResponse(id, initializeResult())
-      method == "tools/list" -> successResponse(id, mapOf("tools" to GovernedReviewEvidenceCodec.TOOL_SPECS))
+      method == "tools/list" -> successResponse(
+        id,
+        mapOf("tools" to GovernedReviewEvidenceCodec.toolSpecList().asToolPayloads()),
+      )
       method == "tools/call" -> forwardToolCall(id, message.toolName(), line, forward)
       else -> errorResponse(id, JSON_RPC_METHOD_NOT_FOUND, "Method not found: $method")
     }

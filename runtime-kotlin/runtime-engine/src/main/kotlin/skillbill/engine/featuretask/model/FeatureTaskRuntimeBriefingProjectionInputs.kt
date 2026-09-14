@@ -1,5 +1,4 @@
 package skillbill.engine.featuretask.model
-
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePlanningProjectionValidator
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseHandoff
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeSharedReviewEvidenceReference

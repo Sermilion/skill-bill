@@ -1,9 +1,8 @@
 package skillbill.engine.featuretask
-
-import skillbill.application.decomposition.decodeArtifacts
 import skillbill.application.diagnostics.RejectedOutputDiagnosticService
 import skillbill.application.diagnostics.model.FeatureTaskRuntimeRejectedOutputWrite
 import skillbill.application.diagnostics.model.RejectedOutputDiagnosticRequest
+import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeProducerOutputRead
 import skillbill.engine.featuretask.model.ProducerOutputQueryArgs
@@ -19,13 +18,14 @@ import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticError
 import skillbill.ports.diagnostics.model.evidenceKey
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.get
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.decodeDiagnosticSignalsFromArtifact
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDiagnosticDegradationMeasurement
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDiagnosticFailureClass
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDiagnosticSignal
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRejectionMeasurement
 import skillbill.workflow.taskruntime.model.featureTaskRuntimeAppendDiagnosticSignal
-import skillbill.workflow.taskruntime.model.featureTaskRuntimeDiagnosticSignalsFromWire
 import skillbill.workflow.taskruntime.model.featureTaskRuntimeRejectionCapOf
 import skillbill.workflow.taskruntime.model.featureTaskRuntimeRejectionViolationClassOf
 import java.time.Clock
@@ -251,15 +251,15 @@ class FeatureTaskRuntimeRejectedOutputRecorder(
       database.transaction { unitOfWork ->
         val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
           ?: return@transaction
-        val existing = featureTaskRuntimeDiagnosticSignalsFromWire(
-          decodeArtifacts(record.artifactsJson)[FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS_ARTIFACT_KEY],
+        val existing = decodeDiagnosticSignalsFromArtifact(
+          decodeWorkflowArtifacts(record.artifactsJson)[FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS_ARTIFACT_KEY],
         )
         workflowPersistence.persistPatch(
           unitOfWork.workflowStates,
           record,
           mapOf(
             FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS_ARTIFACT_KEY to
-              featureTaskRuntimeAppendDiagnosticSignal(existing, signal).map { it.toArtifactMap() },
+              featureTaskRuntimeAppendDiagnosticSignal(existing, signal).map { it.asWorkflowArtifactEntry() },
           ),
         )
       }
@@ -269,8 +269,8 @@ class FeatureTaskRuntimeRejectedOutputRecorder(
     database.read { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
         ?: return@read emptyList()
-      featureTaskRuntimeDiagnosticSignalsFromWire(
-        decodeArtifacts(record.artifactsJson)[FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS_ARTIFACT_KEY],
+      decodeDiagnosticSignalsFromArtifact(
+        decodeWorkflowArtifacts(record.artifactsJson)[FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS_ARTIFACT_KEY],
       )
     }
 

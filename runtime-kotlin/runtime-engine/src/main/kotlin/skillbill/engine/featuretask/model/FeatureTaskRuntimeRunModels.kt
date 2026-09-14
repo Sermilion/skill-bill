@@ -1,5 +1,4 @@
 package skillbill.engine.featuretask.model
-
 import skillbill.agentaddon.model.AgentAddonSelection
 import skillbill.agentaddon.model.HydratedAgentAddonSelection
 import skillbill.application.decomposition.decompositionManifestPath

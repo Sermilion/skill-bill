@@ -1,5 +1,4 @@
 package skillbill.engine.featuretask
-
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeBackwardEdge
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeNextPhase

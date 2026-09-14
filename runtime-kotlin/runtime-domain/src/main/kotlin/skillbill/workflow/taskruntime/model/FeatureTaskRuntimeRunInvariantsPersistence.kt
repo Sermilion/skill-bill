@@ -2,7 +2,6 @@ package skillbill.workflow.taskruntime.model
 
 import skillbill.agentaddon.model.AgentAddonSelection
 import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_RUN_INVARIANTS_CONTRACT_VERSION
 import skillbill.error.InvalidFeatureTaskRuntimePhaseHandoffSchemaError
@@ -14,9 +13,7 @@ import skillbill.review.context.model.CodeReviewExecutionMode
  * re-resolving from the spec, so feature size and other governing inputs cannot drift mid-run.
  */
 const val FEATURE_TASK_RUNTIME_RUN_INVARIANTS_ARTIFACT_KEY: String = "feature_task_runtime_run_invariants"
-
-@OpenBoundaryMap("Feature-task-runtime run-invariants artifact map at the durable workflow-artifact seam")
-fun FeatureTaskRuntimeRunInvariants.toArtifactMap(): Map<String, Any?> = linkedMapOf(
+internal fun FeatureTaskRuntimeRunInvariants.toArtifactMap(): Map<String, Any?> = linkedMapOf(
   SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_RUN_INVARIANTS_CONTRACT_VERSION,
   "spec_reference" to specReference,
   "feature_size" to featureSize.name,
@@ -33,8 +30,7 @@ fun FeatureTaskRuntimeRunInvariants.toArtifactMap(): Map<String, Any?> = linkedM
 )
 
 /** Strict decode of the durable run-invariants artifact. */
-@OpenBoundaryMap("Feature-task-runtime run-invariants decode from the durable workflow-artifact map")
-fun featureTaskRuntimeRunInvariantsFromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeRunInvariants {
+internal fun featureTaskRuntimeRunInvariantsFromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeRunInvariants {
   raw.requireRunInvariantsContractVersion()
   val specReference = raw.requireInvariantStringField("spec_reference")
   val featureSize = raw.requireFeatureSizeField("feature_size")

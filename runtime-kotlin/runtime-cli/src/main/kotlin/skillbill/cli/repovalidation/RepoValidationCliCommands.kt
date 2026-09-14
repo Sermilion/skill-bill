@@ -39,7 +39,7 @@ class ValidateAgentConfigsCommand(
 
   override fun run() {
     val report = repoValidationGateway.validateRepo(Path.of(repoRoot))
-    val payload = report.toPayload()
+    val payload = report.toContract().toPayload()
     if (format == CliFormat.JSON) {
       state.complete(payload, format, exitCode = if (report.passed) 0 else 1)
       return
@@ -115,6 +115,6 @@ class ValidateReleaseRefCommand(
     githubOutput?.let { outputPath ->
       repoValidationGateway.appendGithubOutput(Path.of(outputPath), metadata)
     }
-    state.complete(metadata.toPayload(), format)
+    state.complete(metadata.toContract().toPayload(), format)
   }
 }

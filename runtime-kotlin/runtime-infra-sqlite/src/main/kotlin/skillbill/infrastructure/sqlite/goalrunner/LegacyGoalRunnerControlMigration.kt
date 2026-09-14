@@ -1,5 +1,4 @@
 package skillbill.infrastructure.sqlite.goalrunner
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.goalrunner.GOAL_OUT_OF_BAND_ACCEPTANCE_ARTIFACT_KEY
@@ -27,7 +26,6 @@ fun migrateLegacyGoalRunnerControls(unitOfWork: GoalRunnerPersistenceSession, ex
     }
 }
 
-@OpenBoundaryMap("Legacy goal review policy artifact decode before durable control migration")
 fun reviewPolicyFromLegacyArtifacts(artifacts: Map<String, Any?>): GoalRunnerReviewPolicy? {
   val raw = artifacts[GOAL_REVIEW_POLICY_ARTIFACT_KEY] ?: return null
   val policy = JsonCodec.anyToStringAnyMap(raw)
@@ -49,7 +47,6 @@ fun reviewPolicyFromLegacyArtifacts(artifacts: Map<String, Any?>): GoalRunnerRev
   return GoalRunnerReviewPolicy(codeReviewMode, agentAddonSelection)
 }
 
-@OpenBoundaryMap("Legacy goal out-of-band acceptance artifact decode before durable control migration")
 fun outOfBandAcceptancesFromLegacyArtifacts(artifacts: Map<String, Any?>): Map<Int, GoalRunnerOutOfBandAcceptance> {
   val raw = artifacts[GOAL_OUT_OF_BAND_ACCEPTANCE_ARTIFACT_KEY] ?: return emptyMap()
   val entries = raw as? List<*>

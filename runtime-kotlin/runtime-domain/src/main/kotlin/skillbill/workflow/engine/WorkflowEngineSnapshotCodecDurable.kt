@@ -3,6 +3,7 @@ package skillbill.workflow.engine
 import skillbill.contracts.JsonCodec
 import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.error.MalformedJsonTextError
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 
 internal fun decodeSteps(rawValue: String): List<Map<String, Any?>> {
   val parsed = parseDurableJson(rawValue, "stepsJson") as? List<*>
@@ -15,10 +16,11 @@ internal fun decodeSteps(rawValue: String): List<Map<String, Any?>> {
   }
 }
 
-internal fun decodeObject(rawValue: String): Map<String, Any?> {
+internal fun decodeObject(rawValue: String): DurableWorkflowArtifacts {
   val parsed = parseDurableJson(rawValue, "artifactsJson")
-  return JsonCodec.anyToStringAnyMap(parsed)
+  val map = JsonCodec.anyToStringAnyMap(parsed)
     ?: throw InvalidWorkflowStateSchemaError("Workflow state artifactsJson must decode to a JSON object.")
+  return DurableWorkflowArtifacts.fromMap(map)
 }
 
 internal fun parseDurableJson(rawValue: String, fieldName: String): Any? = try {

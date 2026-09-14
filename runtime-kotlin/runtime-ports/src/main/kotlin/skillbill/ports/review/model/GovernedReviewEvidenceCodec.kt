@@ -1,10 +1,14 @@
 package skillbill.ports.review.model
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.JsonCodec
+import skillbill.contracts.JsonPayloadContract
+import skillbill.contracts.review.GovernedReviewEvidencePayloadKeys
+import skillbill.contracts.review.GovernedReviewToolSpecList
+import skillbill.contracts.review.GovernedReviewWirePayload
 import skillbill.error.InvalidReviewContextSchemaError
 import skillbill.review.context.model.ReviewEvidenceLimits
 import skillbill.review.context.model.ReviewExpansionRecord
+import skillbill.workflow.engine.model.GovernedReviewJsonRpcArguments
 
 object GovernedReviewEvidenceCodec {
   const val REQUEST_BYTES: Int = ReviewEvidenceLimits.REQUEST_BYTES
@@ -19,19 +23,18 @@ object GovernedReviewEvidenceCodec {
 
   val OPERATIONS: List<String> = listOf(READ_EVIDENCE, REQUEST_EXPANSION)
 
-  @OpenBoundaryMap("JSON-RPC wire maps at the governed review evidence MCP seam")
-  val TOOL_SPECS: List<Map<String, Any?>> = GovernedReviewEvidenceCodecWire.toolSpecs()
+  fun toolSpecList(): GovernedReviewToolSpecList =
+    GovernedReviewToolSpecList.from(GovernedReviewEvidenceCodecWire.toolSpecs())
 
-  @OpenBoundaryMap("JSON-RPC wire maps at the governed review evidence MCP seam")
-  fun discoveryRequest(arguments: Map<String, Any?>): ReviewEvidenceDiscoveryRequest {
+  fun discoveryRequest(arguments: GovernedReviewJsonRpcArguments): ReviewEvidenceDiscoveryRequest {
     requestMetadata(arguments)
     if (arguments.keys.any {
         it !in setOf(
-          "operation",
-          "cursor",
-          "page_size",
+          GovernedReviewEvidencePayloadKeys.OPERATION,
+          GovernedReviewEvidencePayloadKeys.CURSOR,
+          GovernedReviewEvidencePayloadKeys.PAGE_SIZE,
         )
-      } || arguments["operation"] != "discover"
+      } || arguments[GovernedReviewEvidencePayloadKeys.OPERATION] != "discover"
     ) {
       throw InvalidReviewContextSchemaError("review-discovery", "Malformed discovery request.")
     }
@@ -40,80 +43,105 @@ object GovernedReviewEvidenceCodec {
     return ReviewEvidenceDiscoveryRequest(cursor, size)
   }
 
-  @OpenBoundaryMap("JSON-RPC wire maps at the governed review evidence MCP seam")
-  fun payload(page: ReviewEvidenceDiscoveryPage): Map<String, Any?> = linkedMapOf(
-    "assignment_digest" to page.assignmentDigest,
-    "next_cursor" to page.nextCursor,
-    "entries" to page.entries.map { entry ->
-      linkedMapOf(
-        "selector" to entry.selector,
-        "path" to entry.path,
-        "owners" to entry.owners.map { owner ->
-          linkedMapOf(
-            "lane" to owner.lane,
-            "assignment_digest" to owner.assignmentDigest,
-            "rubric_id" to owner.rubricId,
-            "unit_id" to owner.unitId,
-          )
-        },
-      ).apply { entry.expansionId?.let { put("expansion_id", it) } }
-    },
+  fun discoveryPagePayload(page: ReviewEvidenceDiscoveryPage): JsonPayloadContract = GovernedReviewWirePayload.from(
+    linkedMapOf(
+      GovernedReviewEvidencePayloadKeys.ASSIGNMENT_DIGEST to page.assignmentDigest,
+      GovernedReviewEvidencePayloadKeys.NEXT_CURSOR to page.nextCursor,
+      GovernedReviewEvidencePayloadKeys.ENTRIES to page.entries.map { entry ->
+        linkedMapOf(
+          GovernedReviewEvidencePayloadKeys.SELECTOR to entry.selector,
+          GovernedReviewEvidencePayloadKeys.PATH to entry.path,
+          GovernedReviewEvidencePayloadKeys.OWNERS to entry.owners.map { owner ->
+            linkedMapOf(
+              GovernedReviewEvidencePayloadKeys.LANE to owner.lane,
+              GovernedReviewEvidencePayloadKeys.ASSIGNMENT_DIGEST to owner.assignmentDigest,
+              GovernedReviewEvidencePayloadKeys.RUBRIC_ID to owner.rubricId,
+              GovernedReviewEvidencePayloadKeys.UNIT_ID to owner.unitId,
+            )
+          },
+        ).apply { entry.expansionId?.let { put(GovernedReviewEvidencePayloadKeys.EXPANSION_ID, it) } }
+      },
+    ),
   )
 
-  @OpenBoundaryMap("JSON-RPC wire maps at the governed review evidence MCP seam")
   fun readRequest(
     lane: String,
-    arguments: Map<String, Any?>,
+    arguments: GovernedReviewJsonRpcArguments,
     expansionById: (String) -> ReviewExpansionRecord?,
   ): ReviewEvidenceBatchRequest {
     requestMetadata(arguments)
-    if (arguments.keys.any { it !in setOf("operation", "requests") } ||
-      ("operation" in arguments && arguments["operation"] != "read")
+    if (
+      arguments.keys.any {
+        it !in setOf(GovernedReviewEvidencePayloadKeys.OPERATION, GovernedReviewEvidencePayloadKeys.REQUESTS)
+      } ||
+      (
+        GovernedReviewEvidencePayloadKeys.OPERATION in arguments &&
+          arguments[GovernedReviewEvidencePayloadKeys.OPERATION] != "read"
+        )
     ) {
       throw InvalidReviewContextSchemaError("review-evidence", "Malformed read operation.")
     }
     val rawRequests = evidenceReadItems(arguments)
     return ReviewEvidenceBatchRequest(
       lane = lane,
-      requests = rawRequests.map { raw -> GovernedReviewEvidenceCodecWire.evidenceRequest(lane, raw, expansionById) },
+      requests = rawRequests.map { raw ->
+        GovernedReviewEvidenceCodecWire.evidenceRequest(lane, raw, expansionById)
+      },
     )
   }
 
-  @OpenBoundaryMap("JSON-RPC wire maps at the governed review evidence MCP seam")
-  fun expansionRequest(lane: String, arguments: Map<String, Any?>): ReviewExpansionAuthorizationRequest {
+  fun expansionRequest(lane: String, arguments: GovernedReviewJsonRpcArguments): ReviewExpansionAuthorizationRequest {
     requestMetadata(arguments)
-    if (arguments.keys.any { it !in setOf("lane", "path", "reachability_reason") }) {
+    if (arguments.keys.any {
+        it !in setOf(
+          GovernedReviewEvidencePayloadKeys.LANE,
+          GovernedReviewEvidencePayloadKeys.PATH,
+          GovernedReviewEvidencePayloadKeys.REACHABILITY_REASON,
+        )
+      }
+    ) {
       throw InvalidReviewContextSchemaError("review-expansion", "Unknown expansion request field.")
     }
     return ReviewExpansionAuthorizationRequest(
-      lane = if ("lane" in arguments) GovernedReviewEvidenceCodecWire.requiredString(arguments, "lane") else lane,
-      path = GovernedReviewEvidenceCodecWire.requiredString(arguments, "path"),
-      reachabilityReason = GovernedReviewEvidenceCodecWire.requiredString(arguments, "reachability_reason"),
+      lane = if (GovernedReviewEvidencePayloadKeys.LANE in arguments) {
+        GovernedReviewEvidenceCodecWire.requiredString(arguments, GovernedReviewEvidencePayloadKeys.LANE)
+      } else {
+        lane
+      },
+      path = GovernedReviewEvidenceCodecWire.requiredString(arguments, GovernedReviewEvidencePayloadKeys.PATH),
+      reachabilityReason = GovernedReviewEvidenceCodecWire.requiredString(
+        arguments,
+        GovernedReviewEvidencePayloadKeys.REACHABILITY_REASON,
+      ),
     )
   }
 
-  @OpenBoundaryMap("JSON-RPC wire maps at the governed review evidence MCP seam")
-  fun payload(result: ReviewEvidenceBatchResult): Map<String, Any?> = linkedMapOf(
-    "delivery_receipt" to result.deliveryReceipt,
-    "results" to result.results.map(GovernedReviewEvidenceCodecWire::resultPayload),
-    "cumulative_bytes" to result.cumulativeBytes,
-    "expansions" to result.expansions.map(GovernedReviewEvidenceCodecWire::expansionPayload),
-    "terminal_outcome" to result.terminalOutcome?.let(GovernedReviewEvidenceCodecWire::budgetPayload),
+  fun batchResultPayload(result: ReviewEvidenceBatchResult): JsonPayloadContract = GovernedReviewWirePayload.from(
+    linkedMapOf(
+      GovernedReviewEvidencePayloadKeys.DELIVERY_RECEIPT to result.deliveryReceipt,
+      GovernedReviewEvidencePayloadKeys.RESULTS to
+        result.results.map(GovernedReviewEvidenceCodecWire::resultPayload),
+      GovernedReviewEvidencePayloadKeys.CUMULATIVE_BYTES to result.cumulativeBytes,
+      GovernedReviewEvidencePayloadKeys.EXPANSIONS to
+        result.expansions.map(GovernedReviewEvidenceCodecWire::expansionPayload),
+      GovernedReviewEvidencePayloadKeys.TERMINAL_OUTCOME to
+        result.terminalOutcome?.let(GovernedReviewEvidenceCodecWire::budgetPayload),
+    ),
   )
 
-  @OpenBoundaryMap("JSON-RPC wire maps at the governed review evidence MCP seam")
-  fun payload(record: ReviewExpansionRecord): Map<String, Any?> =
-    GovernedReviewEvidenceCodecWire.expansionPayload(record)
+  fun expansionRecordPayload(record: ReviewExpansionRecord): JsonPayloadContract =
+    GovernedReviewWirePayload.from(GovernedReviewEvidenceCodecWire.expansionPayload(record))
+
   fun requestMetadataBytes(request: ReviewEvidenceBatchRequest): Int = JsonCodec.mapToJsonString(
     mapOf(
-      "lane" to request.lane,
-      "requests" to request.requests.map { item ->
+      GovernedReviewEvidencePayloadKeys.LANE to request.lane,
+      GovernedReviewEvidencePayloadKeys.REQUESTS to request.requests.map { item ->
         mapOf(
-          "lane" to item.lane,
-          "path" to item.path,
-          "selector" to item.selector,
-          "reachability_reason" to item.reachabilityReason,
-          "authorized_expansion" to item.authorizedExpansion?.let(::payload),
+          GovernedReviewEvidencePayloadKeys.LANE to item.lane,
+          GovernedReviewEvidencePayloadKeys.PATH to item.path,
+          GovernedReviewEvidencePayloadKeys.SELECTOR to item.selector,
+          GovernedReviewEvidencePayloadKeys.REACHABILITY_REASON to item.reachabilityReason,
+          "authorized_expansion" to item.authorizedExpansion?.let { expansionRecordPayload(it).toPayload() },
           "offset" to item.offset,
           "limit" to item.limit,
           "pagination_token" to item.paginationToken,

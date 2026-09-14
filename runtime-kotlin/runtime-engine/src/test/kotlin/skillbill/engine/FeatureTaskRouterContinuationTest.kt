@@ -17,6 +17,8 @@ import skillbill.engine.featuretask.FeatureTaskContinuationLookupService
 import skillbill.engine.featuretask.model.FeatureTaskContinuationLookupResult
 import skillbill.ports.workflow.decomposition.UnavailableDecompositionManifestStore
 import skillbill.ports.workflow.gitops.NoopWorkflowGitOperations
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
+import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.goal.NoopGoalObservabilityEventValidator
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
 import kotlin.test.Test
@@ -86,17 +88,21 @@ class FeatureTaskRouterContinuationTest {
     workflowId = workflowId,
     workflowStatus = "blocked",
     currentStepId = "implement",
-    stepUpdates = listOf(
-      mapOf("step_id" to "preplan", "status" to "completed", "attempt_count" to 1),
-      mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1),
-      mapOf("step_id" to "implement", "status" to "blocked", "attempt_count" to 1),
+    stepUpdates = WorkflowStepUpdates.from(
+      listOf(
+        mapOf("step_id" to "preplan", "status" to "completed", "attempt_count" to 1),
+        mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1),
+        mapOf("step_id" to "implement", "status" to "blocked", "attempt_count" to 1),
+      ),
     ),
-    artifactsPatch = mapOf(
-      FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to mapOf(
-        "preplan" to completedPhaseRecord("preplan"),
-        "plan" to completedPhaseRecord(
-          "plan",
-          outputArtifact = """{"tasks":["add continuation integration coverage"]}""",
+    artifactsPatch = WorkflowArtifactPatch.from(
+      mapOf(
+        FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to mapOf(
+          "preplan" to completedPhaseRecord("preplan"),
+          "plan" to completedPhaseRecord(
+            "plan",
+            outputArtifact = """{"tasks":["add continuation integration coverage"]}""",
+          ),
         ),
       ),
     ),

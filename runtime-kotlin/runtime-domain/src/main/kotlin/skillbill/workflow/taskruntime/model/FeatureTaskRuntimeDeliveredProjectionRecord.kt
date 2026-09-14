@@ -1,6 +1,5 @@
 package skillbill.workflow.taskruntime.model
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
@@ -38,9 +37,7 @@ data class FeatureTaskRuntimeDeliveredProjectionRecord(
         "'${envelope.consumerPhaseId}'."
     }
   }
-
-  @OpenBoundaryMap("Feature-task-runtime delivered-projection record at the durable workflow-artifact seam")
-  fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
+  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
     SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION,
     "record_kind" to "delivered_projection",
     SharedPayloadKeys.WORKFLOW_ID to workflowId,
@@ -55,8 +52,7 @@ data class FeatureTaskRuntimeDeliveredProjectionRecord(
   )
 
   companion object {
-    @OpenBoundaryMap("Feature-task-runtime delivered-projection decode from the durable workflow-artifact map")
-    fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeDeliveredProjectionRecord {
+    internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeDeliveredProjectionRecord {
       requireExactDeliveredProjectionFields(raw)
       requireSupportedPersistenceContract(raw)
       requireDeliveredProjectionRecordKind(raw)

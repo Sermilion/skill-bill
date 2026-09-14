@@ -1,9 +1,9 @@
 package skillbill.ports.goalrunner.runner
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.goalrunner.model.GoalRunnerObservabilityRecordRequest
 import skillbill.ports.goalrunner.runner.model.GoalRunnerProgressEventRecordRequest
 import skillbill.ports.goalrunner.runner.model.GoalRunnerWorkflowProgress
+import skillbill.workflow.goal.model.GoalProgressEvent
 
 interface GoalRunnerWorkflowProgressStore {
   fun progress(workflowId: String): GoalRunnerWorkflowProgress?
@@ -12,6 +12,5 @@ interface GoalRunnerWorkflowProgressStore {
 
   fun recordProgressEvent(request: GoalRunnerProgressEventRecordRequest): Boolean
 
-  @OpenBoundaryMap("Durable goal progress-event artifact maps read back at the goal-runner workflow seam")
-  fun progressEvents(workflowId: String): List<Map<String, Any?>>
+  fun progressEvents(workflowId: String): List<GoalProgressEvent>
 }

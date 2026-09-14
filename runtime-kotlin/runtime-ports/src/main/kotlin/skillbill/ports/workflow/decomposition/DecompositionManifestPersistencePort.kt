@@ -1,6 +1,6 @@
 package skillbill.ports.workflow.decomposition
 
-import skillbill.boundary.OpenBoundaryMap
+import skillbill.workflow.engine.model.DecompositionManifestWireMap
 import java.nio.file.Path
 
 interface DecompositionManifestPersistencePort {
@@ -11,8 +11,7 @@ interface DecompositionManifestPersistencePort {
   fun writeTextAtomically(target: Path, content: String)
   fun deleteIfExists(target: Path)
 
-  @OpenBoundaryMap("Decomposition manifest wire map at the YAML serialization seam")
-  fun encodeManifestYaml(wireMap: Map<String, Any?>): String
+  fun encodeManifestYaml(wireMap: DecompositionManifestWireMap): String
 }
 
 fun <T> DecompositionManifestPersistencePort.writeBundleAtomically(

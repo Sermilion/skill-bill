@@ -5,9 +5,11 @@ import skillbill.contracts.time.JvmSystemClock
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeFindingBoundaryMemoryRequest
 import skillbill.infrastructure.fs.goalplanning.FileSystemGoalPlanningBoundaryBodyResolver
 import skillbill.infrastructure.fs.goalplanning.FileSystemGoalPlanningContextDiscovery
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFindingVerificationDisposition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFindingVerificationDispositionVerdict
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerificationBoundaryHeadingProvenance
+import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 import java.nio.file.Files
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -16,7 +18,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-
 class FeatureTaskRuntimeFindingVerificationBoundaryMemoryTest {
 
   private val memory = FeatureTaskRuntimeFindingVerificationBoundaryMemory(
@@ -83,7 +84,7 @@ class FeatureTaskRuntimeFindingVerificationBoundaryMemoryTest {
     val provenance = FeatureTaskRuntimeVerificationBoundaryHeadingProvenance(
       headingId = "runtime-kotlin/agent/history.md#abc",
       sourcePath = "runtime-kotlin/agent/history.md",
-    ).toArtifactMap()
+    ).asWorkflowArtifactEntry().toWorkflowArtifactMap()
     assertTrue(provenance.containsKey("heading_id"))
     assertTrue(provenance.containsKey("source_path"))
   }

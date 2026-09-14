@@ -1,5 +1,4 @@
 package skillbill.ports.goalrunner.persistence.model
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.goalrunner.model.GoalContinuation
 import skillbill.goalrunner.model.GoalRunnerStoredOutcome
 import skillbill.goalrunner.model.GoalRunnerSupervisionEvent
@@ -18,8 +17,7 @@ data class HistoryArtifactAppend(
   val latestKey: String?,
   val historyKey: String,
   val retentionLimit: Int,
-  @OpenBoundaryMap("Bounded history artifact entry map at the goal-runner durable artifact seam")
-  val entryMap: Map<String, Any?>,
+  val entryMap: Any,
 )
 
 data class GoalContinuationCandidate(

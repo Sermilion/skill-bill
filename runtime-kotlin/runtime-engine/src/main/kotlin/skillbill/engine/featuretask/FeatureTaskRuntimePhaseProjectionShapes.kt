@@ -1,5 +1,4 @@
 package skillbill.engine.featuretask
-
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_BUILD_RECEIPT_CONTRACT_VERSION
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_REPAIR_RECEIPT_CONTRACT_VERSION
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition

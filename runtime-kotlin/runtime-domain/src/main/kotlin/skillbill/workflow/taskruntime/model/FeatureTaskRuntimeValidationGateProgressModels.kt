@@ -1,6 +1,5 @@
 package skillbill.workflow.taskruntime.model
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION
 import skillbill.contracts.workflow.ValidationEvidencePayloadKeys
@@ -76,9 +75,7 @@ data class FeatureTaskRuntimeValidationGateRunRecord(
       "Validation gate executed check identities must be non-blank."
     }
   }
-
-  @OpenBoundaryMap("Runtime-owned validation gate run measurement at the durable workflow-artifact seam")
-  fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
+  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
     ValidationEvidencePayloadKeys.DURATION_MS to durationMs,
     ValidationEvidencePayloadKeys.OUTCOME to outcome.wireValue,
     ValidationEvidencePayloadKeys.CACHE_MODE to cacheMode.wireValue,
@@ -113,9 +110,7 @@ data class FeatureTaskRuntimeValidationGateProgress(
       "FeatureTaskRuntimeValidationGateProgress.repairsUsed must be >= 0, was $repairsUsed."
     }
   }
-
-  @OpenBoundaryMap("Runtime-owned validation gate progress at the durable workflow-artifact seam")
-  fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
+  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
     SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION,
     "gate_run_count" to gateRunCount,
     "gate_runs" to gateRuns.map { it.toArtifactMap() },
@@ -127,8 +122,7 @@ data class FeatureTaskRuntimeValidationGateProgress(
   )
 
   companion object {
-    @OpenBoundaryMap("Runtime-owned validation gate progress decode from durable workflow artifacts")
-    fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeValidationGateProgress =
+    internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeValidationGateProgress =
       FeatureTaskRuntimeValidationGateProgress(
         gateRunCount = raw.asStarMap().gateProgressInt("gate_run_count"),
         gateRuns = decodeGateRuns(raw["gate_runs"]),

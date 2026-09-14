@@ -8,9 +8,9 @@ import skillbill.engine.featuretask.validation.FeatureTaskRuntimeValidationGateC
 import skillbill.error.InvalidFeatureTaskRuntimeValidationEvidenceSchemaError
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.decodeValidationGateExecutionEvidenceFromArtifact
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateExecutionEvidence
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateRunRecord
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.model.NormalizedFeatureTaskRuntimePhaseOutput
@@ -21,7 +21,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-
 class FeatureTaskRuntimeValidationEvidenceSettlementTest {
   @Test
   fun `prose passed status cannot satisfy validate settlement when required command exited nonzero`() {
@@ -99,7 +98,7 @@ class FeatureTaskRuntimeValidationEvidenceSettlementTest {
       JsonCodec.anyToStringAnyMap(envelope[SharedPayloadKeys.PRODUCED_OUTPUTS])
         ?.get(ValidationEvidencePayloadKeys.VALIDATION_RESULT),
     ) ?: error("validation_result missing")
-    val gateEvidence = FeatureTaskRuntimeValidationGateExecutionEvidence.fromArtifactMap(validationResult, "validate")
+    val gateEvidence = decodeValidationGateExecutionEvidenceFromArtifact(validationResult, "validate")!!
     assertEquals(
       listOf("runtime-engine|compileKotlin", "runtime-engine|test"),
       gateEvidence.checks,

@@ -1,7 +1,7 @@
 package skillbill.engine.goalrunner.planning
-
-import skillbill.application.decomposition.decodeArtifacts
+import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.engine.featuretask.workflowArtifactEntryMap
 import skillbill.engine.goalrunner.planning.model.GoalChildPlanningHydration
 import skillbill.engine.planningprojection.requireValidPlanningProjection
 import skillbill.error.IncompatibleGoalPlanningPreparationRecoveryError
@@ -19,6 +19,8 @@ import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePlanningProjectionValidator
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.envelopeWireMap
 import skillbill.workflow.taskruntime.model.AcceptedFeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_PLANNING_IMPORT_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY
@@ -171,13 +173,13 @@ class GoalChildPlanningHydrator(
       preplan.normalizedOutput.canonicalJson,
       preplan.repairEvidence,
       importedAt,
-    ).toArtifactMap(),
+    ).asWorkflowArtifactEntry().let(::workflowArtifactEntryMap),
     "plan" to importedRecord(
       "plan",
       plan.normalizedOutput.canonicalJson,
       plan.repairEvidence,
       importedAt,
-    ).toArtifactMap(),
+    ).asWorkflowArtifactEntry().let(::workflowArtifactEntryMap),
   )
 
   private fun createImportedLedger(importedAt: String): List<Map<String, Any?>> =
@@ -189,7 +191,7 @@ class GoalChildPlanningHydrator(
         phaseId = phaseId,
         attemptCount = 1,
         executionOrigin = FeatureTaskRuntimePhaseExecutionOrigin.GOAL_PLANNING_HYDRATED,
-      ).toArtifactMap()
+      ).asWorkflowArtifactEntry().let(::workflowArtifactEntryMap)
     }
 
   private fun createProvenance(
@@ -211,7 +213,7 @@ class GoalChildPlanningHydrator(
     subSpecHash = request.descriptor.subSpecHash,
     preplanPayloadSha256 = prepared.shared.payloadSha256,
     planPayloadSha256 = prepared.plan.payloadSha256,
-  ).toArtifactMap()
+  ).asWorkflowArtifactEntry().let(::workflowArtifactEntryMap)
 }
 
 private class PreparedPlanningPayloadValidator(
@@ -237,7 +239,7 @@ private class PreparedPlanningPayloadValidator(
         "repair evidence does not describe the stored payload bytes",
       )
     }
-    val decoded = accepted.normalizedOutput.envelope
+    val decoded = accepted.normalizedOutput.envelopeWireMap()
     if (
       decoded[SharedPayloadKeys.PHASE_ID] != phaseId ||
       decoded[SharedPayloadKeys.STATUS].workflowStepStatus() != WorkflowStepStatus.COMPLETED
@@ -271,7 +273,7 @@ private class GoalChildPlanningImportMatcher(
     setup: GoalRunnerChildWorkflowSetup,
     request: GoalChildPlanningHydrationRequest,
   ): String? {
-    val artifacts = decodeArtifacts(existing.artifactsJson)
+    val artifacts = decodeWorkflowArtifacts(existing.artifactsJson)
     val expected = artifacts[FEATURE_TASK_RUNTIME_GOAL_PLANNING_IMPORT_ARTIFACT_KEY] as? Map<*, *>
       ?: return "child carries no goal planning import artifact"
     val shared = unitOfWork.goalPlanningPreparations.findSharedPreplan(request.identity)

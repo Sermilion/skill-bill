@@ -14,16 +14,17 @@ import skillbill.ports.repository.toFileLocation
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestWriteResult
 import skillbill.workflow.decomposition.DecompositionManifestValidator
+import skillbill.workflow.decomposition.decodeManifest
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionExecutionModel
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionManifestPlan
-import skillbill.workflow.decomposition.runtime.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
 import skillbill.workflow.decomposition.runtime.invalidManifest
+import skillbill.workflow.engine.model.DecompositionManifestWireMap
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import java.io.IOException
 import java.nio.file.Path
 
-private const val DECOMPOSITION_MODE: String = "decompose"
 const val DECOMPOSITION_RUNTIME_ARTIFACT_KEY: String = "decomposition_runtime"
 
 @Inject
@@ -34,17 +35,18 @@ class DecompositionManifestWriter : DecompositionManifestProjectionWriter {
   }
 
   fun manifestFromWorkflowUpdate(input: DecompositionManifestWorkflowProjectionInput): DecompositionManifest? {
-    val existingArtifacts = decodeArtifacts(input.existingArtifactsJson)
+    val existingArtifacts = decodeWorkflowArtifactsForManifest(input.existingArtifactsJson)
     val update = input.runtimeUpdate.copy(
+      planningResult = input.planningResult,
       artifactsPatch = input.artifactsPatch,
       existingArtifacts = existingArtifacts,
     )
-    val plan = input.artifactsPatch?.get("plan").asStringAnyMapOrNull()
-    return if (plan != null && plan["mode"] == DECOMPOSITION_MODE) {
+    val planningResult = input.planningResult
+    return if (planningResult != null && planningResult.isDecomposeMode()) {
       manifestFromDecompositionPlan(
         DecompositionPlanManifestInput(
           repoRoot = input.repoRoot,
-          plan = plan,
+          plan = planningResult,
           artifactsPatch = input.artifactsPatch,
           existingArtifacts = existingArtifacts,
           validator = input.validator,
@@ -65,9 +67,11 @@ class DecompositionManifestWriter : DecompositionManifestProjectionWriter {
     validator: DecompositionManifestValidator,
     fileStore: DecompositionManifestStore,
   ): DecompositionManifestWriteResult? {
-    val artifacts = decodeArtifacts(artifactsJson)
+    val artifacts = decodeWorkflowArtifactsForManifest(artifactsJson)
     val runtime = artifacts[DECOMPOSITION_RUNTIME_ARTIFACT_KEY].asStringAnyMapOrNull()
-      ?.let { decodeDecompositionManifestMap(it, validator, DECOMPOSITION_RUNTIME_ARTIFACT_KEY) }
+      ?.let {
+        validator.decodeManifest(DecompositionManifestWireMap.from(it), DECOMPOSITION_RUNTIME_ARTIFACT_KEY)
+      }
       ?: return null
     return try {
       writeProjection(repoRoot, runtime, validator, runtime.manifestPath(repoRoot), fileStore)
@@ -81,7 +85,7 @@ class DecompositionManifestWriter : DecompositionManifestProjectionWriter {
     validator: DecompositionManifestValidator,
     fileStore: DecompositionManifestStore,
   ): DecompositionManifestWriteResult? {
-    if (request.planningResult["mode"]?.toString().orEmpty() != DECOMPOSITION_MODE) {
+    if (!request.planningResult.isDecomposeMode()) {
       return null
     }
     return write(request, validator, fileStore = fileStore)
@@ -163,14 +167,17 @@ class DecompositionManifestWriter : DecompositionManifestProjectionWriter {
     validator: DecompositionManifestValidator,
     fileStore: DecompositionManifestStore,
   ): DecompositionManifest? {
-    val artifacts = LinkedHashMap(runtimeUpdate.existingArtifacts).apply {
-      runtimeUpdate.artifactsPatch?.let(::putAll)
-    }
+    val artifacts = DurableWorkflowArtifacts.fromMap(
+      LinkedHashMap(runtimeUpdate.existingArtifacts).apply {
+        runtimeUpdate.artifactsPatch?.let(::putAll)
+      },
+    )
     val runtime = runtimeManifestFromArtifacts(artifacts, validator)
     val manifestPath = manifestPathFromArtifacts(
       repoRoot = repoRoot,
       artifactsPatch = runtimeUpdate.artifactsPatch,
       existingArtifacts = runtimeUpdate.existingArtifacts,
+      planningResult = runtimeUpdate.planningResult,
     ) ?: runtime?.manifestPath(repoRoot)
     val existing = runtime ?: manifestPath?.let { loadManifestOrNull(it, validator, fileStore) } ?: return null
     return existing.withRuntimeUpdate(repoRoot, runtimeUpdate)
@@ -179,8 +186,7 @@ class DecompositionManifestWriter : DecompositionManifestProjectionWriter {
   private fun DecompositionManifestWriteRequest.toManifest(): DecompositionManifest {
     val subtasks = parseSubtasks(planningResult, parentSpecPath.toString())
     val currentId = currentSubtaskId
-      ?: planningResult.optionalIntValue("current_subtask_id", parentSpecPath.toString())
-      ?: planningResult.optionalIntValue("recommended_first_subtask_id", parentSpecPath.toString())
+      ?: planningResult.currentSubtaskIdOrNull()
       ?: subtasks.first().id
     val currentSubtask = subtasks.firstOrNull { it.id == currentId }
       ?: invalidManifest(
@@ -281,10 +287,12 @@ private fun DecompositionManifest.manifestPath(repoRoot: Path): Path =
   decompositionManifestPath(repoRoot, Path.of(parentSpecPath), subtasks.map { it.specPath })
 
 private fun runtimeManifestFromArtifacts(
-  artifacts: Map<String, Any?>,
+  artifacts: DurableWorkflowArtifacts,
   validator: DecompositionManifestValidator,
 ): DecompositionManifest? = artifacts[DECOMPOSITION_RUNTIME_ARTIFACT_KEY].asStringAnyMapOrNull()
-  ?.let { decodeDecompositionManifestMap(it, validator, DECOMPOSITION_RUNTIME_ARTIFACT_KEY) }
+  ?.let {
+    validator.decodeManifest(DecompositionManifestWireMap.from(it), DECOMPOSITION_RUNTIME_ARTIFACT_KEY)
+  }
 
 private fun writeProjection(
   repoRoot: Path,
@@ -307,3 +315,6 @@ private fun writeProjection(
 
 private fun DecompositionManifest.gitTrackedProjection(): DecompositionManifest =
   copy(subtasks = subtasks.map { subtask -> subtask.copy(commitSha = null) })
+
+private fun decodeWorkflowArtifactsForManifest(artifactsJson: String): DurableWorkflowArtifacts =
+  DurableWorkflowArtifacts.fromJson(artifactsJson)

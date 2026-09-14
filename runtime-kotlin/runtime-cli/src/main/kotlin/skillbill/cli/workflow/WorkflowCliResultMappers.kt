@@ -28,7 +28,7 @@ internal fun WorkflowOpenResult.toCliMap(
   goalObservabilityEventValidator: GoalObservabilityEventValidator,
 ): Map<String, Any?> = when (this) {
   is WorkflowOpenResult.Ok -> workflowSnapshotCliMap(snapshot, goalObservabilityEventValidator).apply {
-    launchProjection?.let { put("launch_projection", WorkflowWireProjections.inputProjectionMap(it)) }
+    launchProjection?.let { put("launch_projection", WorkflowWireProjections.inputProjectionMap(it).toPayload()) }
     put(SharedPayloadKeys.STATUS, "ok")
     put("db_path", dbPath)
   }
@@ -58,11 +58,11 @@ internal fun WorkflowListResult.toCliMap(): Map<String, Any?> = linkedMapOf(
   SharedPayloadKeys.STATUS to "ok",
   "db_path" to dbPath,
   "workflow_count" to workflowCount,
-  "workflows" to workflows.map(WorkflowWireProjections::summaryMap),
+  "workflows" to workflows.map { WorkflowWireProjections.summaryMap(it).toPayload() },
 )
 
 internal fun WorkflowLatestResult.toCliMap(): Map<String, Any?> = when (this) {
-  is WorkflowLatestResult.Ok -> LinkedHashMap(WorkflowWireProjections.summaryMap(summary)).apply {
+  is WorkflowLatestResult.Ok -> LinkedHashMap(WorkflowWireProjections.summaryMap(summary).toPayload()).apply {
     put(SharedPayloadKeys.STATUS, "ok")
     put("db_path", dbPath)
   }
@@ -74,7 +74,7 @@ internal fun WorkflowLatestResult.toCliMap(): Map<String, Any?> = when (this) {
 }
 
 internal fun WorkflowResumeResult.toCliMap(): Map<String, Any?> = when (this) {
-  is WorkflowResumeResult.Ok -> LinkedHashMap(WorkflowWireProjections.resumeMap(resume)).apply {
+  is WorkflowResumeResult.Ok -> LinkedHashMap(WorkflowWireProjections.resumeMap(resume).toPayload()).apply {
     put(SharedPayloadKeys.STATUS, "ok")
     put("db_path", dbPath)
   }

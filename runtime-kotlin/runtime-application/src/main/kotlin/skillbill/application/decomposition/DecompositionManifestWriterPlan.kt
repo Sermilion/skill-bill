@@ -1,5 +1,10 @@
 package skillbill.application.decomposition
 
+import skillbill.application.decomposition.model.DecompositionPlanningResultOptions
+import skillbill.application.decomposition.model.DecompositionPlanningSubtaskOptions
+import skillbill.contracts.decomposition.DecompositionPlanningDependencyWire
+import skillbill.contracts.decomposition.DecompositionPlanningResult
+import skillbill.contracts.decomposition.DecompositionPlanningSubtaskWire
 import skillbill.workflow.decomposition.model.DecompositionDependency
 import skillbill.workflow.decomposition.model.DecompositionExecutionModel
 import skillbill.workflow.decomposition.model.DecompositionStackBranch
@@ -9,37 +14,37 @@ import skillbill.workflow.decomposition.runtime.invalidManifest
 import java.nio.file.Path
 
 fun parseSubtasks(
-  planningResult: Map<String, Any?>,
+  planningResult: DecompositionPlanningResult,
   sourceLabel: String,
   specSource: SpecSource = specSource(planningResult, sourceLabel),
 ): List<DecompositionSubtask> {
-  val rawSubtasks = planningResult["subtasks"] as? List<*>
-    ?: invalidManifest(sourceLabel, "decomposition planning result must contain subtasks.")
-  if (rawSubtasks.isEmpty()) {
+  if (planningResult.subtasks.isEmpty()) {
     invalidManifest(sourceLabel, "decomposition planning result must contain at least one subtask.")
   }
-  return rawSubtasks.mapIndexed { index, raw ->
-    val item = raw.asStringAnyMap(sourceLabel, "subtasks[$index]")
-    val name = when {
-      item.containsKey("title") -> item.stringValue("title", sourceLabel, "subtasks[$index].title")
-      item.containsKey("name") -> item.stringValue("name", sourceLabel, "subtasks[$index].name")
-      else -> invalidManifest(sourceLabel, "subtasks[$index].name must be present.")
-    }
+  return planningResult.subtasks.mapIndexed { index, item ->
+    val name = item.name.takeIf(String::isNotBlank)
+      ?: invalidManifest(sourceLabel, "subtasks[$index].name must be nonblank.")
+    val specPath = item.specPath.takeIf(String::isNotBlank)
+      ?: invalidManifest(sourceLabel, "subtasks[$index].spec_path must be nonblank.")
     DecompositionSubtask(
-      id = item.intValue("id", sourceLabel),
+      id = item.id,
       name = name,
-      specPath = item.stringValue("spec_path", sourceLabel, "subtasks[$index].spec_path"),
+      specPath = specPath,
       status = "pending",
       linearIssueId = linearIssueId(item, index, sourceLabel, specSource),
-      dependencies = parseDependencies(item["dependencies"] ?: item["depends_on"], sourceLabel, index),
+      dependencies = item.dependencies.map { dependency ->
+        DecompositionDependency(
+          subtaskId = dependency.subtaskId,
+          optional = dependency.optional,
+          skipped = dependency.skipped,
+        )
+      },
     )
   }
 }
 
-fun specSource(plan: Map<String, Any?>, sourceLabel: String = "<planning-result>"): SpecSource {
-  val raw = plan["spec_source"] ?: return SpecSource.LOCAL
-  val value = raw as? String
-    ?: invalidManifest(sourceLabel, "spec_source must be a string when present.")
+fun specSource(plan: DecompositionPlanningResult, sourceLabel: String = "<planning-result>"): SpecSource {
+  val value = plan.specSourceWire ?: return SpecSource.LOCAL
   if (value.isBlank()) {
     invalidManifest(sourceLabel, "spec_source must be nonblank when present.")
   }
@@ -47,13 +52,15 @@ fun specSource(plan: Map<String, Any?>, sourceLabel: String = "<planning-result>
     ?: invalidManifest(sourceLabel, "spec_source '$value' is not supported.")
 }
 
-private fun linearIssueId(item: Map<String, Any?>, index: Int, sourceLabel: String, specSource: SpecSource): String? {
-  val raw = item["linear_issue_id"]
-  val value = when (raw) {
-    null -> null
-    is String -> raw.takeIf(String::isNotBlank)
-      ?: invalidManifest(sourceLabel, "subtasks[$index].linear_issue_id must be nonblank when present.")
-    else -> invalidManifest(sourceLabel, "subtasks[$index].linear_issue_id must be a string when present.")
+private fun linearIssueId(
+  item: DecompositionPlanningSubtaskWire,
+  index: Int,
+  sourceLabel: String,
+  specSource: SpecSource,
+): String? {
+  val value = item.linearIssueId
+  if (value != null && value.isBlank()) {
+    invalidManifest(sourceLabel, "subtasks[$index].linear_issue_id must be nonblank when present.")
   }
   if (specSource == SpecSource.LINEAR && value == null) {
     invalidManifest(sourceLabel, "subtasks[$index].linear_issue_id is required for linear spec_source.")
@@ -61,72 +68,76 @@ private fun linearIssueId(item: Map<String, Any?>, index: Int, sourceLabel: Stri
   return value
 }
 
-fun parseDependencies(raw: Any?, sourceLabel: String, subtaskIndex: Int): List<DecompositionDependency> {
-  if (raw == null) {
-    return emptyList()
-  }
-  val dependencies = raw as? List<*> ?: invalidManifest(
-    sourceLabel,
-    "subtasks[$subtaskIndex].dependencies must be a list.",
-  )
-  return dependencies.mapIndexed { depIndex, value ->
-    when (value) {
-      is Map<*, *> -> {
-        val dependency = value.asStringAnyMap(sourceLabel, "subtasks[$subtaskIndex].dependencies[$depIndex]")
-        DecompositionDependency(
-          subtaskId = dependency.intValue("subtask_id", sourceLabel),
-          optional = dependency.booleanValueOrDefault("optional", false, sourceLabel),
-          skipped = dependency.booleanValueOrDefault("skipped", false, sourceLabel),
-        )
-      }
-      else -> DecompositionDependency(
-        subtaskId = value.asInt(sourceLabel, "subtasks[$subtaskIndex].dependencies[$depIndex]"),
-      )
-    }
-  }
-}
-
-fun parentSpecPath(plan: Map<String, Any?>): String {
-  when (val rawParentPath = plan["parent_spec_path"]) {
-    is String -> if (rawParentPath.isNotBlank()) return rawParentPath
-    null -> Unit
-    else -> invalidManifest("<planning-result>", "parent_spec_path must be a string when present.")
-  }
-  val firstSubtask = (plan["subtasks"] as? List<*>).orEmpty().firstOrNull().asStringAnyMapOrNull()
+fun parentSpecPath(plan: DecompositionPlanningResult): String {
+  plan.parentSpecPath?.takeIf(String::isNotBlank)?.let { return it }
+  val firstSubtask = plan.subtasks.firstOrNull()
     ?: invalidManifest("<planning-result>", "decomposition planning result must contain subtasks.")
-  val firstSpecPath = firstSubtask["spec_path"] as? String
-    ?: invalidManifest("<planning-result>", "subtasks[0].spec_path must be a string.")
-  if (firstSpecPath.isBlank()) invalidManifest("<planning-result>", "subtasks[0].spec_path must be nonblank.")
-  return Path.of(firstSpecPath).parent.resolve("spec.md").toString()
+  if (firstSubtask.specPath.isBlank()) {
+    invalidManifest("<planning-result>", "subtasks[0].spec_path must be nonblank.")
+  }
+  return Path.of(firstSubtask.specPath).parent.resolve("spec.md").toString()
 }
 
-fun executionModel(plan: Map<String, Any?>): DecompositionExecutionModel {
-  val raw = when (val value = plan["execution_model"]) {
+fun executionModel(plan: DecompositionPlanningResult): DecompositionExecutionModel {
+  val raw = when (val value = plan.executionModelWire) {
     null -> DecompositionExecutionModel.SAME_BRANCH_COMMIT_PER_SUBTASK.wireValue
-    is String -> value.takeIf(String::isNotBlank)
+    else -> value.takeIf(String::isNotBlank)
       ?: invalidManifest("<planning-result>", "execution_model must be nonblank when present.")
-    else -> invalidManifest("<planning-result>", "execution_model must be a string when present.")
   }
   return DecompositionExecutionModel.fromWireValue(raw)
     ?: invalidManifest("<planning-result>", "execution_model '$raw' is not supported.")
 }
 
-fun baseBranch(plan: Map<String, Any?>, sourceLabel: String): String {
-  val raw = plan["base_branch"] ?: return "main"
-  return (raw as? String)?.takeIf(String::isNotBlank)
+fun baseBranch(plan: DecompositionPlanningResult, sourceLabel: String): String {
+  val value = plan.baseBranch ?: return "main"
+  return value.takeIf(String::isNotBlank)
     ?: invalidManifest(sourceLabel, "base_branch must be a nonblank string when present.")
 }
 
-fun parseStackBranches(plan: Map<String, Any?>): List<DecompositionStackBranch> =
-  (plan["stack_branches"] as? List<*>).orEmpty().mapIndexed { index, raw ->
-    val item = raw.asStringAnyMap("<planning-result>", "stack_branches[$index]")
+fun parseStackBranches(plan: DecompositionPlanningResult): List<DecompositionStackBranch> =
+  plan.stackBranches.map { branch ->
     DecompositionStackBranch(
-      subtaskId = item.intValue("subtask_id", "<planning-result>"),
-      branch = item.stringValue("branch", "<planning-result>", "stack_branches[$index].branch"),
-      baseBranch = item.stringValue("base_branch", "<planning-result>", "stack_branches[$index].base_branch"),
+      subtaskId = branch.subtaskId,
+      branch = branch.branch.takeIf(String::isNotBlank)
+        ?: invalidManifest("<planning-result>", "stack_branches.branch must be nonblank."),
+      baseBranch = branch.baseBranch.takeIf(String::isNotBlank)
+        ?: invalidManifest("<planning-result>", "stack_branches.base_branch must be nonblank."),
     )
   }
 
-private fun Map<String, Any?>.stringValue(key: String, sourceLabel: String, fieldPath: String): String =
-  (this[key] as? String)?.takeIf(String::isNotBlank)
-    ?: invalidManifest(sourceLabel, "$fieldPath must be a nonblank string.")
+fun DecompositionPlanningResult.currentSubtaskIdOrNull(): Int? = currentSubtaskId ?: recommendedFirstSubtaskId
+
+fun DecompositionPlanningResult.withSubtasks(
+  subtasks: List<DecompositionPlanningSubtaskWire>,
+): DecompositionPlanningResult = copy(subtasks = subtasks)
+
+fun decompositionPlanningSubtask(
+  id: Int,
+  name: String,
+  specPath: String,
+  options: DecompositionPlanningSubtaskOptions = DecompositionPlanningSubtaskOptions(),
+): DecompositionPlanningSubtaskWire = DecompositionPlanningSubtaskWire(
+  id = id,
+  name = name,
+  specPath = specPath,
+  linearIssueId = options.linearIssueId,
+  scope = options.scope,
+  dependencies = options.dependsOn.map { DecompositionPlanningDependencyWire(subtaskId = it) },
+)
+
+fun decompositionPlanningResult(
+  parentSpecPath: String,
+  subtasks: List<DecompositionPlanningSubtaskWire>,
+  options: DecompositionPlanningResultOptions = DecompositionPlanningResultOptions(
+    recommendedFirstSubtaskId = subtasks.firstOrNull()?.id,
+  ),
+): DecompositionPlanningResult = DecompositionPlanningResult(
+  mode = "decompose",
+  parentSpecPath = parentSpecPath,
+  specSourceWire = options.specSourceWire,
+  executionModelWire = options.executionModelWire,
+  baseBranch = options.baseBranch,
+  recommendedFirstSubtaskId = options.recommendedFirstSubtaskId,
+  stackBranches = options.stackBranches,
+  subtasks = subtasks,
+)

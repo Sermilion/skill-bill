@@ -1,6 +1,5 @@
 package skillbill.workflow.taskruntime.model
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITY_CONTRACT_VERSION
@@ -111,9 +110,7 @@ data class FeatureTaskRuntimeCheckpointIdentity(
     }
     loopId?.let { id -> require(id.isNotBlank()) { "FeatureTaskRuntimeCheckpointIdentity.loopId must be non-blank." } }
   }
-
-  @OpenBoundaryMap("Feature-task-runtime checkpoint-identity entry at the durable workflow-artifact seam")
-  fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
+  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
     "sequence_number" to sequenceNumber,
     SharedPayloadKeys.ISSUE_KEY to issueKey,
     SharedPayloadKeys.SUBTASK_ID to subtaskId,
@@ -155,8 +152,7 @@ data class FeatureTaskRuntimeCheckpointIdentity(
     )
 
     /** Strict decode; loud-fails on a missing or malformed field and never best-effort fills a default. */
-    @OpenBoundaryMap("Feature-task-runtime checkpoint-identity decode from the durable workflow-artifact map")
-    fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeCheckpointIdentity {
+    internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeCheckpointIdentity {
       val unexpected = raw.keys - ALLOWED_FIELDS
       if (unexpected.isNotEmpty()) {
         checkpointIdentityError(
@@ -203,9 +199,7 @@ fun featureTaskRuntimeOwnedPathDigest(ownedPaths: List<String>): String {
   digest.update(framed.toByteArray())
   return digest.digest().joinToString("") { "%02x".format(it) }
 }
-
-@OpenBoundaryMap("Feature-task-runtime checkpoint-identity store at the durable workflow-artifact seam")
-fun featureTaskRuntimeCheckpointIdentitiesToArtifact(
+internal fun featureTaskRuntimeCheckpointIdentitiesToArtifact(
   identities: List<FeatureTaskRuntimeCheckpointIdentity>,
 ): Map<String, Any?> = linkedMapOf(
   SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITY_CONTRACT_VERSION,
@@ -217,8 +211,7 @@ fun featureTaskRuntimeCheckpointIdentitiesToArtifact(
  * unsupported contract version loud-fails so the caller quarantines and regenerates it instead of
  * reinterpreting a shape this version does not understand.
  */
-@OpenBoundaryMap("Feature-task-runtime checkpoint-identity store decode from the durable workflow-artifact map")
-fun featureTaskRuntimeCheckpointIdentitiesFromArtifact(raw: Any?): List<FeatureTaskRuntimeCheckpointIdentity> {
+internal fun featureTaskRuntimeCheckpointIdentitiesFromArtifact(raw: Any?): List<FeatureTaskRuntimeCheckpointIdentity> {
   if (raw == null) return emptyList()
   val map = JsonCodec.anyToStringAnyMap(raw)
     ?: checkpointIdentityError("Feature-task-runtime checkpoint-identity record must be an object.")
@@ -267,7 +260,12 @@ fun featureTaskRuntimeAppendCheckpointIdentity(
     existing = existing.map { it.toArtifactMap() },
     entry = entry.toArtifactMap(),
     retentionLimit = retentionLimit,
-  ).map(FeatureTaskRuntimeCheckpointIdentity::fromArtifactMap)
+  ).map { raw ->
+    FeatureTaskRuntimeCheckpointIdentity.fromArtifactMap(
+      JsonCodec.anyToStringAnyMap(raw)
+        ?: checkpointIdentityError("Checkpoint identity history entry must decode to an object."),
+    )
+  }
 }
 
 private fun checkpointIdentityError(detail: String): Nothing = throw InvalidWorkflowStateSchemaError(detail)

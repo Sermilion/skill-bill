@@ -192,7 +192,7 @@ class FeatureTaskRuntimePhaseBriefingBudgetTest {
       handoff,
       planningProjectionValidator = realPlanningProjectionValidator,
     )
-    val serialized = JsonCodec.mapToJsonString(briefing.toArtifactMap())
+    val serialized = JsonCodec.mapToJsonString(briefing.briefingArtifactWireMap())
 
     FEATURE_TASK_RUNTIME_FORBIDDEN_PROJECTION_FIELD_NAMES.forEach { forbidden ->
       assertFalse(

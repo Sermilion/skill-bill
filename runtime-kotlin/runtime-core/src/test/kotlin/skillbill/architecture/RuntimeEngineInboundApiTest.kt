@@ -56,6 +56,7 @@ class RuntimeEngineInboundApiTest {
       "skillbill.engine.featuretask.model.FeatureTaskContinuationLookupResult",
       "skillbill.engine.featuretask.model.FeatureTaskPhaseSettlementBlockRequest",
       "skillbill.engine.featuretask.model.FeatureTaskPhaseSettlementCompleteRequest",
+      "skillbill.engine.featuretask.model.FeatureTaskPhaseSettlementAcknowledgment",
       "skillbill.engine.featuretask.model.FeatureTaskRuntimeAgentAssignment",
       "skillbill.engine.featuretask.model.FeatureTaskRuntimeGoalContinuationContext",
       "skillbill.engine.featuretask.model.FeatureTaskRuntimeModelAssignment",

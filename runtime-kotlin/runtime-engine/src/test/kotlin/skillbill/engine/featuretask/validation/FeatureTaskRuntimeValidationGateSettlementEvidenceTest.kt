@@ -12,7 +12,7 @@ import skillbill.infrastructure.fs.contracts.workflow.FeatureTaskRuntimeValidati
 import skillbill.ports.validation.model.ValidationGateFinding
 import skillbill.ports.validation.model.ValidationGateRunResult
 import skillbill.workflow.goal.model.ValidationDepth
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateExecutionEvidence
+import skillbill.workflow.taskruntime.decodeValidationGateExecutionEvidenceFromArtifact
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateProgress
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateRunRecord
 import skillbill.workflow.taskruntime.model.ValidationGateCacheMode
@@ -22,7 +22,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
-
 class FeatureTaskRuntimeValidationGateSettlementEvidenceTest {
   @Test
   fun `settlement projects executed work and checks from the gate runner result`() {
@@ -57,10 +56,10 @@ class FeatureTaskRuntimeValidationGateSettlementEvidenceTest {
     )
     val terminal = assertIs<ValidationGateCycleResult.Terminal>(cycle)
     val output = assertIs<ValidationGateCycleTerminalOutcome.Completed>(terminal.outcome).output
-    val gateEvidence = FeatureTaskRuntimeValidationGateExecutionEvidence.fromArtifactMap(
+    val gateEvidence = decodeValidationGateExecutionEvidenceFromArtifact(
       validationResultFrom(output.payload),
       "validate",
-    )
+    )!!
 
     assertEquals(3, gateEvidence.gateRuns.single().executedWorkUnits)
     assertEquals(result.executedCheckIdentities, gateEvidence.gateRuns.single().executedChecks)
@@ -142,10 +141,10 @@ class FeatureTaskRuntimeValidationGateSettlementEvidenceTest {
   }
 
   private fun assertSettledArtifact(completed: ValidationGateCycleTerminalOutcome.Completed) {
-    val settledArtifact = FeatureTaskRuntimeValidationGateExecutionEvidence.fromArtifactMap(
+    val settledArtifact = decodeValidationGateExecutionEvidenceFromArtifact(
       validationResultFrom(completed.output.payload),
       "validate",
-    )
+    )!!
     assertEquals(
       listOf(ValidationGateRunOutcome.FAILED, ValidationGateRunOutcome.PASSED),
       settledArtifact.gateRuns.map { it.outcome },
@@ -182,7 +181,7 @@ class FeatureTaskRuntimeValidationGateSettlementEvidenceTest {
       requiredCommand = "./gradlew check --continue",
     )
     val validationResult = validationResultFrom(output.payload)
-    val gateEvidence = FeatureTaskRuntimeValidationGateExecutionEvidence.fromArtifactMap(validationResult, "validate")
+    val gateEvidence = decodeValidationGateExecutionEvidenceFromArtifact(validationResult, "validate")!!
     FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(output.payload, "validate")
     assertEquals(0, gateEvidence.gateRuns.single().executedWorkUnits)
     assertFalse(gateEvidence.zeroWork)
@@ -227,10 +226,10 @@ class FeatureTaskRuntimeValidationGateSettlementEvidenceTest {
       requiredCommand = "./gradlew check --continue --rerun-tasks",
     )
     val validationResult = validationResultFrom(output.payload)
-    val gateEvidence = FeatureTaskRuntimeValidationGateExecutionEvidence.fromArtifactMap(
+    val gateEvidence = decodeValidationGateExecutionEvidenceFromArtifact(
       validationResult,
       "validate",
-    )
+    )!!
     assertEquals(2, gateEvidence.gateRunCount)
     assertEquals(ValidationGateCacheMode.CACHE_ELIGIBLE, gateEvidence.gateRuns.first().cacheMode)
     assertEquals(ValidationGateRunOutcome.FAILED, gateEvidence.gateRuns.first().outcome)

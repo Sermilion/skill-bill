@@ -1,6 +1,6 @@
 package skillbill.engine.featuretask
-
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+
 fun mutatingPhaseIdempotencyDirective(phaseId: String): String {
   if (!FeatureTaskRuntimePhaseWorkflowDefinition.isMutatingPhase(phaseId)) {
     return ""

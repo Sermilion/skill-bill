@@ -1,6 +1,7 @@
 package skillbill.application
 
 import skillbill.application.decomposition.DecompositionManifestWriter
+import skillbill.install.model.InstallPlanWireMap
 import skillbill.install.model.InstallPlanWireValidator
 import skillbill.model.RepositoryRoot
 import skillbill.workflow.engine.WorkflowSnapshotValidator
@@ -23,7 +24,7 @@ val testWorkflowSnapshotValidator: WorkflowSnapshotValidator =
 
 internal val testInstallPlanWireValidator: InstallPlanWireValidator =
   object : InstallPlanWireValidator {
-    override fun validate(plan: Map<String, Any?>) = Unit
+    override fun validate(plan: InstallPlanWireMap) = Unit
   }
 
 val testDecompositionManifestWriter = DecompositionManifestWriter()

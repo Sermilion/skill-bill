@@ -28,11 +28,12 @@ class ProsePhaseOutputSynthesizerTest {
       """.trimIndent()
 
     val envelope = assertNotNull(ProsePhaseOutputSynthesizer.trySynthesize(raw, "implement"))
-    val produced = assertNotNull(JsonCodec.anyToStringAnyMap(envelope["produced_outputs"]))
+    val map = envelopeMap(envelope)
+    val produced = assertNotNull(JsonCodec.anyToStringAnyMap(map["produced_outputs"]))
     val value = assertNotNull(produced["value"] as? String)
     assertTrue(value.contains("implementation_receipt") || value.contains("completed_task_ids"))
-    assertEquals("completed", envelope["status"])
-    assertEquals("implement", envelope["phase_id"])
+    assertEquals("completed", map["status"])
+    assertEquals("implement", map["phase_id"])
     assertNull(produced["implementation_receipt"])
   }
 
@@ -50,7 +51,7 @@ class ProsePhaseOutputSynthesizerTest {
       """.trimIndent()
 
     val envelope = assertNotNull(ProsePhaseOutputSynthesizer.trySynthesize(raw, "audit"))
-    assertEquals("satisfied", envelope["verdict"])
+    assertEquals("satisfied", envelopeMap(envelope)["verdict"])
   }
 
   @Test
@@ -137,10 +138,11 @@ class ProsePhaseOutputSynthesizerTest {
       """.trimIndent()
 
     val envelope = assertNotNull(ProsePhaseOutputSynthesizer.trySynthesize(raw, "implement"))
-    val produced = assertNotNull(JsonCodec.anyToStringAnyMap(envelope["produced_outputs"]))
+    val map = envelopeMap(envelope)
+    val produced = assertNotNull(JsonCodec.anyToStringAnyMap(map["produced_outputs"]))
     assertEquals("implementation prose", produced["value"])
-    assertEquals("completed", envelope["status"])
-    assertNull(envelope["tests_executed"])
+    assertEquals("completed", map["status"])
+    assertNull(map["tests_executed"])
   }
 
   @Test
@@ -156,7 +158,7 @@ class ProsePhaseOutputSynthesizerTest {
       """.trimIndent()
 
       val envelope = assertNotNull(ProsePhaseOutputSynthesizer.trySynthesize(raw, "implement"))
-      assertEquals(output, envelope["status"])
+      assertEquals(output, envelopeMap(envelope)["status"])
     }
   }
 
@@ -175,7 +177,7 @@ class ProsePhaseOutputSynthesizerTest {
       """.trimIndent()
 
     val envelope = assertNotNull(ProsePhaseOutputSynthesizer.trySynthesize(raw, "audit"))
-    assertEquals("satisfied", envelope["verdict"])
+    assertEquals("satisfied", envelopeMap(envelope)["verdict"])
   }
 
   @Test
@@ -189,8 +191,12 @@ class ProsePhaseOutputSynthesizerTest {
         failureDisposition = "needs_user_action",
       ),
     )
-    assertEquals("blocked", envelope["status"])
-    assertNull(envelope["verdict"])
-    assertEquals("needs_user_action", envelope["failure_disposition"])
+    val map = envelopeMap(envelope)
+    assertEquals("blocked", map["status"])
+    assertNull(map["verdict"])
+    assertEquals("needs_user_action", map["failure_disposition"])
   }
+
+  private fun envelopeMap(envelope: Any): Map<String, Any?> =
+    JsonCodec.anyToStringAnyMap(envelope) ?: error("expected object envelope")
 }

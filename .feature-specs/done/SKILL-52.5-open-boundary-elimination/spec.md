@@ -16,7 +16,7 @@ backed by runtime contracts; wire-shaped maps exist only at adapter boundaries
 
 The ~412 FQNs currently listed in
 `RuntimeArchitectureScanConstants.RAW_MAP_OPEN_BOUNDARY_ALLOWLIST` and duplicated
-in `runtime-kotlin/ARCHITECTURE.md` are active workflow/feature-task/goal-runner
+in `../../../runtime-kotlin/ARCHITECTURE.md` are active workflow/feature-task/goal-runner
 seams, not dead code. This feature types them away in dependency order, then
 deletes the allow-list machinery entirely.
 
@@ -46,7 +46,7 @@ the `SystemService.doctor` / `version` pattern from SKILL-52.3 subtask 4.
 
 ## Acceptance Criteria
 
-1. `runtime-kotlin/ARCHITECTURE.md` no longer contains inline FQN bullet lists
+1. `../../../runtime-kotlin/ARCHITECTURE.md` no longer contains inline FQN bullet lists
    between `open-boundary-allowlist` or `skill-52-2-inventory` markers; boundary
    rule prose describes zero-tolerance after subtask 7.
 2. Every public raw-map declaration currently on the allow-list is replaced with
@@ -60,7 +60,7 @@ the `SystemService.doctor` / `version` pattern from SKILL-52.3 subtask 4.
    if needed for migration fixtures, with zero production references).
 5. Persisted workflow, decomposition, goal, and feature-task records remain
    readable; schema bumps follow the existing quarantine/regenerate policy in
-   `runtime-kotlin/ARCHITECTURE.md`.
+   `../../../runtime-kotlin/ARCHITECTURE.md`.
 6. CLI, MCP, and desktop wire payloads stay byte-compatible at documented adapter
    seams or gain explicit contract-version bumps with loud-fail migration.
 7. `./gradlew :runtime-core:test --tests 'skillbill.architecture.*'` passes with
@@ -75,7 +75,7 @@ the `SystemService.doctor` / `version` pattern from SKILL-52.3 subtask 4.
 - Prefer typed DTO + adapter mapper over `@OpenBoundaryMap` grandfathering.
 - Subtask commits must each leave the tree compilable and architecture-test green
   for the remaining allow-list entries until subtask 7 deletes the list.
-- Area `agent/decisions.md` records the supersession of the 2026-05-29 permanent
+- Area `../../../agent/decisions.md` records the supersession of the 2026-05-29 permanent
   lifecycle open-boundary decision in subtask 7.
 
 ## Non-Goals
@@ -113,10 +113,10 @@ the `SystemService.doctor` / `version` pattern from SKILL-52.3 subtask 4.
 
 ## Sources
 
-- `runtime-kotlin/ARCHITECTURE.md` — Raw Map Boundary Rule, Open-Boundary Allow-List
-- `runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/RuntimeRawMapArchitectureTest.kt`
-- `runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/RuntimeArchitectureTestSupport.kt`
+- `../../../runtime-kotlin/ARCHITECTURE.md` — Raw Map Boundary Rule, Open-Boundary Allow-List
+- `../../../runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/RuntimeRawMapArchitectureTest.kt`
+- `../../../runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/RuntimeArchitectureTestSupport.kt`
 - `runtime-kotlin/scripts/sync_raw_map_allowlist.py`
-- `.feature-specs/done/SKILL-52.2-runtime-boundary-closure/spec.md`
-- `.feature-specs/done/SKILL-52.3-runtime-hexagon-leak-closure/spec_subtask_4_application-wire-seam-and-open-boundary-reconciliation.md`
-- `runtime-kotlin/agent/decisions.md` — 2026-05-29 lifecycle open-boundary decision
+- `../SKILL-52.2-runtime-boundary-closure/spec.md`
+- `../SKILL-52.3-runtime-hexagon-leak-closure/spec_subtask_4_application-wire-seam-and-open-boundary-reconciliation.md`
+- `../../../runtime-kotlin/agent/decisions.md` — 2026-05-29 lifecycle open-boundary decision

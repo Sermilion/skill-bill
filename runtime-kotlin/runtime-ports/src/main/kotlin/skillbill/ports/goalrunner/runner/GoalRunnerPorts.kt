@@ -1,6 +1,5 @@
 package skillbill.ports.goalrunner.runner
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.goalrunner.model.GoalPlanningStatusSnapshot
 import skillbill.goalrunner.model.GoalRunnerAttemptLedgerSummary
 import skillbill.goalrunner.model.GoalRunnerControlState
@@ -157,12 +156,11 @@ interface GoalRunnerTerminalOutcomeStore {
     repoRoot: Path,
   ): GoalRunnerStoredOutcome?
 
-  @OpenBoundaryMap("Recovered missing RESULT-prefix terminal child-output map at the goal-runner workflow seam")
   fun recoverMissingResultPrefixOutput(
     workflowId: String,
     issueKey: String,
     subtaskId: Int,
-    output: Map<String, Any?>,
+    output: Any,
   ): GoalRunnerStoredOutcome?
 }
 

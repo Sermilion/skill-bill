@@ -7,6 +7,7 @@ import skillbill.infrastructure.sqlite.PARAM_ONE
 import skillbill.infrastructure.sqlite.PARAM_THREE
 import skillbill.infrastructure.sqlite.PARAM_TWO
 import skillbill.infrastructure.sqlite.telemetry.LifecycleTelemetryStore
+import skillbill.ports.review.model.ReviewAccountingBoundedPayload
 import skillbill.ports.review.model.ReviewAccountingRecord
 import skillbill.review.model.ImportedFinding
 import skillbill.review.model.ImportedReview
@@ -29,7 +30,7 @@ fun upsertReviewAccounting(connection: Connection, record: ReviewAccountingRecor
   ).use { statement ->
     statement.setString(PARAM_ONE, record.reviewId)
     statement.setString(PARAM_TWO, record.packetDigest)
-    statement.setString(PARAM_THREE, JsonCodec.mapToJsonString(record.boundedPayload))
+    statement.setString(PARAM_THREE, JsonCodec.mapToJsonString(record.boundedPayload.asMap()))
     statement.executeUpdate()
   }
 }
@@ -59,7 +60,7 @@ fun loadReviewAccounting(connection: Connection, reviewId: String): ReviewAccoun
       ReviewAccountingRecord(
         reviewId,
         rows.getString("packet_digest"),
-        payload,
+        ReviewAccountingBoundedPayload.from(payload),
       )
     }
   }

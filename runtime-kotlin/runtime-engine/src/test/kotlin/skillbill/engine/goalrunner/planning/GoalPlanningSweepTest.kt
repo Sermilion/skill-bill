@@ -75,6 +75,7 @@ import skillbill.workflow.NoopGoalPlanningPreparationEnvelopeValidator
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.decomposition.model.SpecSource
+import skillbill.workflow.engine.model.DecompositionManifestWireMap
 import skillbill.workflow.goal.model.GoalProgressEventKind
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePlanningProjectionValidator
@@ -1925,7 +1926,7 @@ class GoalPlanningSweepTimingTest {
   fun `preplan settles without consulting the planning projection producer gate`() {
     val labels = mutableListOf<String>()
     val validator = object : FeatureTaskRuntimePlanningProjectionValidator {
-      override fun validatePlanningProjection(producedOutputs: Map<String, Any?>, sourceLabel: String) {
+      override fun validatePlanningProjection(producedOutputs: Any, sourceLabel: String) {
         labels += sourceLabel
       }
     }
@@ -2500,7 +2501,7 @@ private class CountingManifestFileStore : DecompositionManifestStore {
   override fun writeTextAtomically(target: Path, content: String): Unit =
     error("CountingManifestFileStore is read-only in goal planning sweep tests.")
 
-  override fun encodeManifestYaml(wireMap: Map<String, Any?>): String =
+  override fun encodeManifestYaml(wireMap: DecompositionManifestWireMap): String =
     error("CountingManifestFileStore is read-only in goal planning sweep tests.")
 
   fun countContaining(fragment: String): Int = readPaths.count { path -> fragment in path }
@@ -2533,7 +2534,7 @@ private class ThrowingManifestFileStore : DecompositionManifestStore {
   override fun writeTextAtomically(target: Path, content: String): Unit =
     error("ThrowingManifestFileStore is read-only in goal planning sweep tests.")
 
-  override fun encodeManifestYaml(wireMap: Map<String, Any?>): String =
+  override fun encodeManifestYaml(wireMap: DecompositionManifestWireMap): String =
     error("ThrowingManifestFileStore is read-only in goal planning sweep tests.")
 }
 

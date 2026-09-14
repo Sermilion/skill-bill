@@ -17,19 +17,22 @@ import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import skillbill.ports.workflow.toRecord
 import skillbill.review.context.model.CodeReviewExecutionMode
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.goal.model.GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.asCheckpointIdentitiesArtifactEntry
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeCheckpointIdentity
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationArtifact
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
-import skillbill.workflow.taskruntime.model.featureTaskRuntimeCheckpointIdentitiesToArtifact
 import skillbill.workflow.taskruntime.model.featureTaskRuntimeCheckpointRefName
+import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Clock
@@ -41,7 +44,6 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-
 class RemediationBaseReconciliationUnderAmendTest {
   private val workflowId = "wftr-skill190-reconcile"
   private val issueKey = "SKILL-190"
@@ -384,15 +386,15 @@ class RemediationBaseReconciliationUnderAmendTest {
         suppressPr = true,
         goalBranch = goalBranch,
         codeReviewMode = CodeReviewExecutionMode.INLINE,
-      ).toArtifactMap(),
-      GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to state.toArtifactMap(),
+      ).asWorkflowArtifactEntry().toWorkflowArtifactMap(),
+      GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to state.toPersistenceWire(),
       GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY to state.passResults.associate { result ->
         result.passNumber.toString() to """{"phase_id":"review","status":"completed"}"""
       },
     )
     if (checkpointIdentities.isNotEmpty()) {
       artifactsPatch[FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_ARTIFACT_KEY] =
-        featureTaskRuntimeCheckpointIdentitiesToArtifact(checkpointIdentities)
+        checkpointIdentities.asCheckpointIdentitiesArtifactEntry()
     }
     legacyCheckpointRecord?.let { artifactsPatch[FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_ARTIFACT_KEY] = it }
     val seeded = engine.updateRecord(
@@ -402,7 +404,7 @@ class RemediationBaseReconciliationUnderAmendTest {
         workflowStatus = "running",
         currentStepId = "review",
         stepUpdates = null,
-        artifactsPatch = artifactsPatch,
+        artifactsPatch = WorkflowArtifactPatch.from(artifactsPatch),
         sessionId = "fis-001",
       ),
     ).toRecord()

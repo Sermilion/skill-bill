@@ -2,6 +2,7 @@ package skillbill.infrastructure.fs.contracts.workflow
 
 import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import skillbill.infrastructure.fs.FeatureTaskRuntimePhaseOutputValidatorAdapter
+import skillbill.workflow.taskruntime.envelopeWireMap
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputFailureCode
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputValidationResult
 import kotlin.test.Test
@@ -9,7 +10,6 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
-
 class FeatureTaskRuntimePhaseOutputSchemaValidatorTest {
   private val wellFormed =
     """
@@ -35,7 +35,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorTest {
     val normalized = FeatureTaskRuntimePhaseOutputValidatorAdapter().normalizePhaseOutput(malformed, "plan")
 
     assertContains(normalized.canonicalJson, "\"phase_id\":\"plan\"")
-    assertEquals("plan", normalized.envelope["phase_id"])
+    assertEquals("plan", normalized.envelopeWireMap()["phase_id"])
   }
 
   @Test
@@ -626,7 +626,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
 
     val normalized = FeatureTaskRuntimePhaseOutputValidatorAdapter().normalizePhaseOutput(draftThenReal, "audit")
 
-    assertEquals("satisfied", normalized.envelope["verdict"])
+    assertEquals("satisfied", normalized.envelopeWireMap()["verdict"])
   }
 
   @Test
@@ -698,8 +698,8 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
         """"verdict":"satisfied","produced_outputs":{"value":"$innerValue"}}"""
     val lenient = FeatureTaskRuntimePhaseOutputSchemaValidator.normalizeAuditPhaseOutputLenient(body, "audit")
 
-    assertEquals("audit", lenient.envelope["phase_id"])
-    assertEquals("satisfied", lenient.envelope["verdict"])
+    assertEquals("audit", lenient.envelopeWireMap()["phase_id"])
+    assertEquals("satisfied", lenient.envelopeWireMap()["verdict"])
   }
 
   @Test
@@ -716,8 +716,8 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
       "verify_findings",
     )
 
-    assertEquals("verify_findings", lenient.envelope["phase_id"])
-    assertEquals("findings_verified", lenient.envelope["verdict"])
+    assertEquals("verify_findings", lenient.envelopeWireMap()["phase_id"])
+    assertEquals("findings_verified", lenient.envelopeWireMap()["verdict"])
   }
 
   @Test

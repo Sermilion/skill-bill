@@ -1,6 +1,5 @@
 package skillbill.workflow.taskruntime.model
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_HANDOFF_ENVELOPE_CONTRACT_VERSION
@@ -29,9 +28,7 @@ data class FeatureTaskRuntimeHandoffEnvelope(
   /** Only the prompt-visible projections reach prompt composition; private ones never render. */
   val promptVisibleProjections: List<FeatureTaskRuntimeHandoffProjection>
     get() = projections.filter { it.promptVisibility == FeatureTaskRuntimeHandoffPromptVisibility.PROMPT_VISIBLE }
-
-  @OpenBoundaryMap("Feature-task-runtime handoff envelope at the durable workflow-artifact seam")
-  fun toEnvelopeMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
+  internal fun toEnvelopeMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
     SharedPayloadKeys.CONTRACT_VERSION to contractVersion,
     "consumer_phase_id" to consumerPhaseId,
     "projections" to projections.map { it.toEnvelopeMap() },
@@ -40,25 +37,25 @@ data class FeatureTaskRuntimeHandoffEnvelope(
   }
 
   companion object {
-    @OpenBoundaryMap("Feature-task-runtime handoff envelope decode from the durable workflow-artifact map")
-    fun fromEnvelopeMap(raw: Map<String, Any?>): FeatureTaskRuntimeHandoffEnvelope = FeatureTaskRuntimeHandoffEnvelope(
-      consumerPhaseId = raw.requireString("consumer_phase_id"),
-      projections = (raw["projections"] as? List<*>).orEmpty().map { projectionFromWire(it) },
-      repositoryCheckpoint = (
-        raw[ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT] as? Map<*, *>
-        )?.let { checkpoint ->
-        FeatureTaskRuntimeRepositoryCheckpoint(
-          fingerprint = checkpoint.requireString(
-            ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT_FINGERPRINT,
-          ),
-          baseRef = checkpoint["base_ref"] as? String,
-          headRef = checkpoint["head_ref"] as? String,
-          workingTreeOwnedPaths = (checkpoint["working_tree_owned_paths"] as? List<*>).orEmpty()
-            .map { it.requireDecodedString("working_tree_owned_paths") },
-        )
-      },
-      contractVersion = raw.requireString("contract_version"),
-    )
+    internal fun fromEnvelopeMap(raw: Map<String, Any?>): FeatureTaskRuntimeHandoffEnvelope =
+      FeatureTaskRuntimeHandoffEnvelope(
+        consumerPhaseId = raw.requireString("consumer_phase_id"),
+        projections = (raw["projections"] as? List<*>).orEmpty().map { projectionFromWire(it) },
+        repositoryCheckpoint = (
+          raw[ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT] as? Map<*, *>
+          )?.let { checkpoint ->
+          FeatureTaskRuntimeRepositoryCheckpoint(
+            fingerprint = checkpoint.requireString(
+              ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT_FINGERPRINT,
+            ),
+            baseRef = checkpoint["base_ref"] as? String,
+            headRef = checkpoint["head_ref"] as? String,
+            workingTreeOwnedPaths = (checkpoint["working_tree_owned_paths"] as? List<*>).orEmpty()
+              .map { it.requireDecodedString("working_tree_owned_paths") },
+          )
+        },
+        contractVersion = raw.requireString("contract_version"),
+      )
 
     private fun projectionFromWire(raw: Any?): FeatureTaskRuntimeHandoffProjection {
       val projection = raw as? Map<*, *> ?: decodeError("projections entries must be objects.")

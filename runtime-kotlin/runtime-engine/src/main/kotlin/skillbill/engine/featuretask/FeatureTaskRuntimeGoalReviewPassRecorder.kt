@@ -1,6 +1,6 @@
 package skillbill.engine.featuretask
 
-import skillbill.application.decomposition.decodeArtifacts
+import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.engine.featuretask.model.GoalSubtaskReviewPassCarryForward
 import skillbill.engine.featuretask.model.GoalSubtaskReviewPassInFlight
@@ -30,7 +30,7 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
   fun reserveGoalReviewPass(workflowId: String): GoalSubtaskReviewPassReservation = database.transaction { unitOfWork ->
     val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
       ?: return@transaction GoalSubtaskReviewPassReservation.MissingState
-    val artifacts = decodeArtifacts(record.artifactsJson)
+    val artifacts = decodeWorkflowArtifacts(record.artifactsJson)
     val state = reviewStateFromArtifacts(artifacts)
       ?: return@transaction GoalSubtaskReviewPassReservation.MissingState
     if (state.reviewCapReached || state.reviewSkippedByUser) {
@@ -44,7 +44,7 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
       patcher.save(
         record,
         unitOfWork.workflowStates,
-        mapOf(GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to reserved.toArtifactMap()),
+        mapOf(GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to reserved.toPersistenceWire()),
       )
     }
     GoalSubtaskReviewPassReserved(reserved)
@@ -53,7 +53,7 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
   fun persistGoalReviewInput(workflowId: String, input: GoalSubtaskReviewInput): GoalSubtaskReviewState? =
     database.transaction { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@transaction null
-      val artifacts = decodeArtifacts(record.artifactsJson)
+      val artifacts = decodeWorkflowArtifacts(record.artifactsJson)
       val state = reviewStateFromArtifacts(artifacts)
         ?: return@transaction null
       check(input.reviewBaseSha == state.reviewBaseSha || input.reviewBaseSha == state.remediationBaseSha) {
@@ -71,7 +71,7 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
         record,
         unitOfWork.workflowStates,
         mapOf(
-          GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to updated.toArtifactMap(),
+          GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to updated.toPersistenceWire(),
           GOAL_SUBTASK_REVIEW_INPUT_ARTIFACT_KEY to input.toArtifactMap(),
         ),
       )
@@ -83,13 +83,13 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
     transform: (GoalSubtaskReviewState) -> GoalSubtaskReviewState,
   ): GoalSubtaskReviewState? = database.transaction { unitOfWork ->
     val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@transaction null
-    val state = reviewStateFromArtifacts(decodeArtifacts(record.artifactsJson)) ?: return@transaction null
+    val state = reviewStateFromArtifacts(decodeWorkflowArtifacts(record.artifactsJson)) ?: return@transaction null
     val updated = transform(state)
     if (updated == state) return@transaction state
     patcher.save(
       record,
       unitOfWork.workflowStates,
-      mapOf(GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to updated.toArtifactMap()),
+      mapOf(GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to updated.toPersistenceWire()),
     )
     updated
   }
@@ -113,7 +113,7 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
 
   fun lastGoalReviewResult(workflowId: String): String? = database.read { unitOfWork ->
     val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@read null
-    val artifacts = decodeArtifacts(record.artifactsJson)
+    val artifacts = decodeWorkflowArtifacts(record.artifactsJson)
     val state = reviewStateFromArtifacts(artifacts)
       ?: return@read null
     val passNumber = state.passResults.lastOrNull()?.passNumber ?: return@read null
@@ -135,7 +135,7 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
   ): GoalReviewPassWrite? {
     val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, request.workflowId)
       ?: return null
-    val artifacts = decodeArtifacts(record.artifactsJson)
+    val artifacts = decodeWorkflowArtifacts(record.artifactsJson)
     val state = reviewStateFromArtifacts(artifacts) ?: return null
     require(request.rawReviewResult.isNotBlank()) { "Goal-subtask review pass result must be non-blank." }
     val continuation = continuationFromArtifacts(artifacts)
@@ -186,7 +186,7 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
       loaded.record,
       unitOfWork.workflowStates,
       mapOf(
-        GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to completed.toArtifactMap(),
+        GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to completed.toPersistenceWire(),
         GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY to (loaded.previousResults + (passNumber to request.rawReviewResult)),
       ),
     )

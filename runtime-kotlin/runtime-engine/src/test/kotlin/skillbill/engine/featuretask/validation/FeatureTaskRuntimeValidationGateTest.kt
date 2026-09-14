@@ -11,6 +11,7 @@ import skillbill.engine.featuretask.validation.model.ValidationGateTriageResult
 import skillbill.engine.featuretask.validation.model.ValidationGateTriageResult.Captured
 import skillbill.ports.validation.model.ValidationGateFinding
 import skillbill.workflow.goal.model.ValidationDepth
+import skillbill.workflow.taskruntime.decodeValidationGateProgressFromArtifact
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateProgress
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateRepairWindowPhase
 import skillbill.workflow.taskruntime.model.ValidationGateCacheMode
@@ -19,7 +20,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
-
 class FeatureTaskRuntimeValidationGateTest {
   @Test
   fun `FAILED gate with empty findings launches triage then repair with synthetic finding`() {
@@ -163,7 +163,7 @@ class FeatureTaskRuntimeValidationGateTest {
       "message" to "msg2",
       "location" to "loc2",
     )
-    val decodedOpen = FeatureTaskRuntimeValidationGateProgress.fromArtifactMap(
+    val decodedOpen = decodeValidationGateProgressFromArtifact(
       progressArtifact(
         gateRunCount = 1,
         outcome = "failed",
@@ -173,12 +173,12 @@ class FeatureTaskRuntimeValidationGateTest {
           "repair_window_phase" to "findings_open",
         ),
       ),
-    )
+    )!!
     assertEquals(FeatureTaskRuntimeValidationGateRepairWindowPhase.FINDINGS_OPEN, decodedOpen.repairWindowPhase)
     assertEquals(2, decodedOpen.completeFindings.size)
     assertEquals(0, decodedOpen.repairsUsed)
 
-    val decodedLegacy = FeatureTaskRuntimeValidationGateProgress.fromArtifactMap(
+    val decodedLegacy = decodeValidationGateProgressFromArtifact(
       progressArtifact(
         gateRunCount = 1,
         outcome = "passed",
@@ -189,13 +189,13 @@ class FeatureTaskRuntimeValidationGateTest {
           "substantiation_receipts" to listOf(mapOf("identity" to "legacy")),
         ),
       ),
-    )
+    )!!
     assertEquals(FeatureTaskRuntimeValidationGateRepairWindowPhase.NONE, decodedLegacy.repairWindowPhase)
     assertEquals(1, decodedLegacy.gateRunCount)
     assertEquals(emptyList(), decodedLegacy.completeFindings)
     assertEquals(0, decodedLegacy.repairsUsed)
 
-    val decodedWithRepairsUsed = FeatureTaskRuntimeValidationGateProgress.fromArtifactMap(
+    val decodedWithRepairsUsed = decodeValidationGateProgressFromArtifact(
       progressArtifact(
         gateRunCount = 2,
         outcome = "failed",
@@ -206,7 +206,7 @@ class FeatureTaskRuntimeValidationGateTest {
           "repairs_used" to 3,
         ),
       ),
-    )
+    )!!
     assertEquals(3, decodedWithRepairsUsed.repairsUsed)
   }
 

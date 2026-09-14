@@ -1,6 +1,5 @@
 package skillbill.workflow.taskruntime.model
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.SharedPayloadKeys
 
 /**
@@ -24,17 +23,14 @@ data class FeatureTaskRuntimeGoalContinuationFieldAdoption(
       "FeatureTaskRuntimeGoalContinuationFieldAdoption.reason must be non-blank."
     }
   }
-
-  @OpenBoundaryMap("Goal-continuation field-adoption evidence at the durable workflow-artifact seam")
-  fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
+  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
     "field" to field,
     "adopted_value" to adoptedValue,
     "reason" to reason,
   )
 
   companion object {
-    @OpenBoundaryMap("Goal-continuation field-adoption decode from the durable workflow-artifact map")
-    fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeGoalContinuationFieldAdoption =
+    internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeGoalContinuationFieldAdoption =
       FeatureTaskRuntimeGoalContinuationFieldAdoption(
         field = raw.requireStringField("field"),
         adoptedValue = raw.requireStringField("adopted_value"),
@@ -60,8 +56,7 @@ data class FeatureTaskRuntimeGoalPlanningImport(
   val preplanPayloadSha256: String,
   val planPayloadSha256: String,
 ) {
-  @OpenBoundaryMap("Validated goal-planning import provenance at the durable workflow-artifact seam")
-  fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
+  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
     "source_kind" to "imported_goal_planning",
     "parent_goal_workflow_id" to parentGoalWorkflowId,
     "normalized_issue_key" to normalizedIssueKey,

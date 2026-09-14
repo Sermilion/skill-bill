@@ -1,9 +1,8 @@
 package skillbill.engine.featuretask
-
 import skillbill.application.workflow.model.WorkflowFamily
-import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.issuekey.normalizeIssueKey
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
+import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStepWireUpdate
 import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.error.WorkflowIssueKeyConflictError
 import skillbill.ports.db.DatabaseSessionFactory
@@ -15,7 +14,9 @@ import skillbill.ports.workflow.saveRecord
 import skillbill.ports.workflow.toRecord
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.WorkflowSnapshotValidator
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
@@ -32,7 +33,7 @@ import java.time.Instant
 internal data class WorkflowRowAdvance(
   val currentStepId: String,
   val workflowStatus: String,
-  val stepUpdates: List<Map<String, Any?>>? = null,
+  val stepUpdates: List<FeatureTaskRuntimePhaseStepWireUpdate>? = null,
 ) {
   companion object {
     fun keepFrom(record: WorkflowStateSnapshot): WorkflowRowAdvance =
@@ -58,8 +59,10 @@ class FeatureTaskRuntimeWorkflowPersistence(
       WorkflowUpdateInput(
         workflowStatus = advance.workflowStatus,
         currentStepId = advance.currentStepId,
-        stepUpdates = advance.stepUpdates,
-        artifactsPatch = patch,
+        stepUpdates = WorkflowStepUpdates.from(
+          advance.stepUpdates?.map(FeatureTaskRuntimePhaseStepWireUpdate::toWireMap),
+        ),
+        artifactsPatch = WorkflowArtifactPatch.from(patch),
         sessionId = record.sessionId.orEmpty(),
       ),
     )
@@ -112,7 +115,9 @@ class FeatureTaskRuntimeWorkflowPersistence(
     }
 }
 
-fun stepUpdatesFrom(records: Map<String, FeatureTaskRuntimePhaseRecord>): List<Map<String, Any?>> {
+internal fun stepUpdatesFrom(
+  records: Map<String, FeatureTaskRuntimePhaseRecord>,
+): List<FeatureTaskRuntimePhaseStepWireUpdate> {
   fun stepStatusFor(record: FeatureTaskRuntimePhaseRecord): String = when {
     record.status.workflowStepStatus() == WorkflowStepStatus.BLOCKED -> FEATURE_TASK_RUNTIME_PHASE_STATUS_BLOCKED
     record.status.workflowStepStatus() == WorkflowStepStatus.PAUSED -> FEATURE_TASK_RUNTIME_PHASE_STATUS_PAUSED
@@ -125,10 +130,10 @@ fun stepUpdatesFrom(records: Map<String, FeatureTaskRuntimePhaseRecord>): List<M
     )
   }
   return records.values.map { record ->
-    linkedMapOf<String, Any?>(
-      SharedPayloadKeys.STEP_ID to record.phaseId,
-      SharedPayloadKeys.STATUS to stepStatusFor(record),
-      "attempt_count" to record.attemptCount,
+    FeatureTaskRuntimePhaseStepWireUpdate(
+      stepId = record.phaseId,
+      status = stepStatusFor(record),
+      attemptCount = record.attemptCount,
     )
   }
 }

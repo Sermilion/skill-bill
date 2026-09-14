@@ -90,6 +90,7 @@ import skillbill.telemetry.model.GoalSubtaskFinishedRecord
 import skillbill.telemetry.model.PrDescriptionGeneratedRecord
 import skillbill.telemetry.model.QualityCheckFinishedRecord
 import skillbill.telemetry.model.QualityCheckStartedRecord
+import skillbill.workflow.engine.model.ReviewContextWireMap
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDiagnosticDegradationMeasurement
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeProjectionMeasurement
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRejectionMeasurement
@@ -1420,7 +1421,7 @@ internal fun createRunner(launcher: GoalRunnerSubtaskLauncher, config: RunnerFix
         ReadRepoLocalConfigResult(RepoLocalConfig.defaults().copy(reviewContextBudget = config.budget))
     },
     reviewContextEnvelopeValidator = object : ReviewContextEnvelopeValidator {
-      override fun validate(envelope: Map<String, Any?>, sourceLabel: String) = Unit
+      override fun validate(envelope: ReviewContextWireMap, sourceLabel: String) = Unit
     },
     reviewRubricResolver = config.rubricResolver,
     reviewSpecialistContractProvider = ReviewSpecialistContractProvider { TEST_SPECIALIST_CONTRACT },
@@ -1433,7 +1434,7 @@ internal fun createRunner(launcher: GoalRunnerSubtaskLauncher, config: RunnerFix
       testDecompositionManifestValidator,
       SpecIntentProjectionExtractor(
         object : ReviewContextEnvelopeValidator {
-          override fun validate(envelope: Map<String, Any?>, sourceLabel: String) = Unit
+          override fun validate(envelope: ReviewContextWireMap, sourceLabel: String) = Unit
         },
         TestDecompositionManifestStore,
       ),

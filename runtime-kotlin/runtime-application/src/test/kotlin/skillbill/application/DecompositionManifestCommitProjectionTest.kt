@@ -1,14 +1,16 @@
 package skillbill.application
-
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
+import skillbill.application.decomposition.decompositionPlanningResult
+import skillbill.application.decomposition.decompositionPlanningSubtask
 import skillbill.application.decomposition.loadDecompositionManifest
 import skillbill.application.decomposition.model.DecompositionManifestRuntimeUpdate
 import skillbill.application.decomposition.model.DecompositionManifestWriteRequest
-import skillbill.application.decomposition.parentSpecPath
 import skillbill.contracts.JsonCodec
 import skillbill.model.toPath
+import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionManifest
-import skillbill.workflow.decomposition.toWireMap
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
+import skillbill.workflow.engine.model.WorkflowStepUpdates
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
@@ -29,7 +31,12 @@ class DecompositionManifestCommitProjectionTest {
       DecompositionManifestWriteRequest(
         repoRoot = repoRoot,
         parentSpecPath = parentSpecPath,
-        planningResult = decompositionPlan(parentSpecPath, subtaskSpec),
+        planningResult = decompositionPlanningResult(
+          parentSpecPath = parentSpecPath.toString(),
+          subtasks = listOf(
+            decompositionPlanningSubtask(id = 1, name = "foundation", specPath = subtaskSpec.toString()),
+          ),
+        ),
         baseBranch = "main",
         featureBranch = "feature/SKILL-51-decomposition",
       ),
@@ -39,12 +46,18 @@ class DecompositionManifestCommitProjectionTest {
     val preCommit = writeFromWorkflowUpdate(
       repoRoot = repoRoot,
       existingArtifactsJson = durableRuntimeArtifactsJson(initial.manifest, subtaskSpec),
-      artifactsPatch = mapOf("commit_push_result" to mapOf("pre_commit_projection" to true)),
+      artifactsPatch = WorkflowArtifactPatch.from(
+        mapOf("commit_push_result" to mapOf("pre_commit_projection" to true)),
+      ),
       runtimeUpdate = DecompositionManifestRuntimeUpdate(
         workflowId = "wfl-subtask-1",
         workflowStatus = "running",
         currentStepId = "commit_push",
-        stepUpdates = listOf(mapOf("step_id" to "commit_push", "status" to "running", "attempt_count" to 1)),
+        stepUpdates = WorkflowStepUpdates.from(
+          listOf(
+            mapOf("step_id" to "commit_push", "status" to "running", "attempt_count" to 1),
+          ),
+        ),
       ),
     )
 
@@ -54,16 +67,35 @@ class DecompositionManifestCommitProjectionTest {
     assertEquals(null, projectedBeforeCommit.commitSha)
     assertContains(Files.readString(subtaskSpec), "status: In Progress")
     val manifestTextBeforeSha = Files.readString(preCommit.manifestPath.toPath())
+    assertFinalCommitProjectionUnchanged(
+      repoRoot,
+      subtaskSpec,
+      preCommit.manifest,
+      manifestTextBeforeSha,
+    )
+  }
 
+  private fun assertFinalCommitProjectionUnchanged(
+    repoRoot: Path,
+    subtaskSpec: Path,
+    manifest: DecompositionManifest,
+    manifestTextBeforeSha: String,
+  ) {
     val final = writeFromWorkflowUpdate(
       repoRoot = repoRoot,
-      existingArtifactsJson = durableRuntimeArtifactsJson(preCommit.manifest, subtaskSpec),
-      artifactsPatch = mapOf("commit_push_result" to mapOf("commit_sha" to "commit-subtask-1")),
+      existingArtifactsJson = durableRuntimeArtifactsJson(manifest, subtaskSpec),
+      artifactsPatch = WorkflowArtifactPatch.from(
+        mapOf("commit_push_result" to mapOf("commit_sha" to "commit-subtask-1")),
+      ),
       runtimeUpdate = DecompositionManifestRuntimeUpdate(
         workflowId = "wfl-subtask-1",
         workflowStatus = "running",
         currentStepId = "commit_push",
-        stepUpdates = listOf(mapOf("step_id" to "commit_push", "status" to "completed", "attempt_count" to 1)),
+        stepUpdates = WorkflowStepUpdates.from(
+          listOf(
+            mapOf("step_id" to "commit_push", "status" to "completed", "attempt_count" to 1),
+          ),
+        ),
       ),
     )
 
@@ -85,7 +117,12 @@ class DecompositionManifestCommitProjectionTest {
       DecompositionManifestWriteRequest(
         repoRoot = repoRoot,
         parentSpecPath = parentSpecPath,
-        planningResult = decompositionPlan(parentSpecPath, subtaskSpec),
+        planningResult = decompositionPlanningResult(
+          parentSpecPath = parentSpecPath.toString(),
+          subtasks = listOf(
+            decompositionPlanningSubtask(id = 1, name = "foundation", specPath = subtaskSpec.toString()),
+          ),
+        ),
         baseBranch = "main",
         featureBranch = "feature/SKILL-51-decomposition",
       ),
@@ -95,12 +132,18 @@ class DecompositionManifestCommitProjectionTest {
     val result = writeFromWorkflowUpdate(
       repoRoot = repoRoot,
       existingArtifactsJson = durableRuntimeArtifactsJson(initial.manifest, subtaskSpec),
-      artifactsPatch = mapOf("commit_push_result" to mapOf("commit_sha" to "commit-subtask-1")),
+      artifactsPatch = WorkflowArtifactPatch.from(
+        mapOf("commit_push_result" to mapOf("commit_sha" to "commit-subtask-1")),
+      ),
       runtimeUpdate = DecompositionManifestRuntimeUpdate(
         workflowId = "wfl-subtask-1",
         workflowStatus = "completed",
         currentStepId = "finish",
-        stepUpdates = listOf(mapOf("step_id" to "finish", "status" to "completed", "attempt_count" to 1)),
+        stepUpdates = WorkflowStepUpdates.from(
+          listOf(
+            mapOf("step_id" to "finish", "status" to "completed", "attempt_count" to 1),
+          ),
+        ),
       ),
     )
 
@@ -121,7 +164,12 @@ class DecompositionManifestCommitProjectionTest {
       DecompositionManifestWriteRequest(
         repoRoot = repoRoot,
         parentSpecPath = parentSpecPath,
-        planningResult = decompositionPlan(parentSpecPath, subtaskSpec),
+        planningResult = decompositionPlanningResult(
+          parentSpecPath = parentSpecPath.toString(),
+          subtasks = listOf(
+            decompositionPlanningSubtask(id = 1, name = "foundation", specPath = subtaskSpec.toString()),
+          ),
+        ),
         baseBranch = "main",
         featureBranch = "feature/SKILL-51-decomposition",
       ),
@@ -146,26 +194,10 @@ class DecompositionManifestCommitProjectionTest {
     assertEquals(null, loaded.subtasks.single { it.id == 1 }.commitSha)
   }
 
-  private fun decompositionPlan(parentSpecPath: Path, subtaskSpec: Path): Map<String, Any?> = mapOf(
-    "mode" to "decompose",
-    "issue_key" to "SKILL-51",
-    "feature_name" to "decomposition",
-    "parent_spec_path" to parentSpecPath.toString(),
-    "execution_model" to "same_branch_commit_per_subtask",
-    "subtasks" to listOf(
-      mapOf(
-        "id" to 1,
-        "name" to "foundation",
-        "spec_path" to subtaskSpec.toString(),
-        "depends_on" to emptyList<Int>(),
-      ),
-    ),
-  )
-
   private fun durableRuntimeArtifactsJson(manifest: DecompositionManifest, subtaskSpec: Path): String =
     JsonCodec.mapToJsonString(
       mapOf(
-        DECOMPOSITION_RUNTIME_ARTIFACT_KEY to manifest.toWireMap(),
+        DECOMPOSITION_RUNTIME_ARTIFACT_KEY to testDecompositionManifestValidator.encodeManifestWireMap(manifest),
         "assessment" to mapOf("spec_path" to subtaskSpec.toString()),
         "goal_continuation" to mapOf(
           "issue_key" to "SKILL-51",

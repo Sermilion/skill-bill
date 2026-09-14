@@ -1,7 +1,7 @@
 package skillbill.engine.featuretask
-import skillbill.application.decomposition.decodeArtifacts
 import skillbill.application.testHarnessClock
 import skillbill.application.testWorkflowSnapshotValidator
+import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.engine.InMemoryRuntimeWorkflowRepository
 import skillbill.engine.RuntimeFakeDatabaseSessionFactory
@@ -9,6 +9,7 @@ import skillbill.error.InvalidFeatureTaskRuntimeFindingVerificationRecordError
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.workflow.toRecord
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_CHECKPOINT_ARTIFACT_KEY
 import kotlin.test.Test
@@ -85,7 +86,7 @@ private fun seedWorkflow(repository: InMemoryRuntimeWorkflowRepository, workflow
   val engine = WorkflowEngine(testWorkflowSnapshotValidator)
   val definition = WorkflowFamily.TASK_RUNTIME.definition
   val opened = engine.openRecord(definition, workflowId, "ftr-finding-verification", "verify_findings")
-  val artifacts = decodeArtifacts(artifactsJson)
+  val artifacts = decodeWorkflowArtifacts(artifactsJson)
   val seeded = engine.updateRecord(
     definition,
     opened,
@@ -93,7 +94,7 @@ private fun seedWorkflow(repository: InMemoryRuntimeWorkflowRepository, workflow
       workflowStatus = "running",
       currentStepId = "verify_findings",
       stepUpdates = null,
-      artifactsPatch = artifacts,
+      artifactsPatch = WorkflowArtifactPatch.from(artifacts),
       sessionId = "ftr-finding-verification",
     ),
   ).toRecord()

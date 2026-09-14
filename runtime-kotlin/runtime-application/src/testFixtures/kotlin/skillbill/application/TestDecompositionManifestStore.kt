@@ -7,7 +7,12 @@ import skillbill.application.decomposition.model.DecompositionManifestRuntimeUpd
 import skillbill.application.decomposition.model.DecompositionManifestWorkflowProjectionInput
 import skillbill.application.decomposition.model.DecompositionManifestWriteRequest
 import skillbill.application.decomposition.model.DecompositionManifestWriteResult
+import skillbill.contracts.JsonCodec
+import skillbill.contracts.decomposition.DecompositionPlanningResult
+import skillbill.contracts.workflow.WorkflowArtifactKeys
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
+import skillbill.workflow.engine.model.DecompositionManifestWireMap
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
 import java.nio.file.Path
@@ -51,7 +56,8 @@ object TestDecompositionManifestStore : DecompositionManifestStore {
     }
   }
 
-  override fun encodeManifestYaml(wireMap: Map<String, Any?>): String = YAMLMapper().writeValueAsString(wireMap)
+  override fun encodeManifestYaml(wireMap: DecompositionManifestWireMap): String =
+    YAMLMapper().writeValueAsString(wireMap)
 }
 
 fun loadDecompositionManifest(path: Path) = skillbill.application.decomposition.loadDecompositionManifest(
@@ -77,7 +83,10 @@ fun writeFromWorkflowUpdate(
     repoRoot = repoRoot,
     existingArtifactsJson = existingArtifactsJson,
     validator = testDecompositionManifestValidator,
-    artifactsPatch = artifactsPatch,
+    planningResult = artifactsPatch?.get(WorkflowArtifactKeys.PLAN)
+      ?.let(JsonCodec::anyToStringAnyMap)
+      ?.let { DecompositionPlanningResult.fromWireMap(it, "test.artifacts_patch.plan") },
+    artifactsPatch = WorkflowArtifactPatch.from(artifactsPatch),
     runtimeUpdate = runtimeUpdate ?: DecompositionManifestRuntimeUpdate(),
     fileStore = TestDecompositionManifestStore,
   ),

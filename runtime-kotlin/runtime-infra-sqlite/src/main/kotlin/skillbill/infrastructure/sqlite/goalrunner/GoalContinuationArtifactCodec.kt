@@ -1,5 +1,4 @@
 package skillbill.infrastructure.sqlite.goalrunner
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.InvalidGoalSubtaskReviewStateSchemaError
@@ -22,7 +21,6 @@ import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.model.requireAcceptedOutput
 
-@OpenBoundaryMap("Goal continuation artifact decode from durable workflow artifacts")
 fun goalContinuation(artifacts: Map<String, Any?>): GoalContinuation? =
   (artifacts["goal_continuation"] as? Map<*, *>)?.let { payload ->
     val issueKey = payload[SharedPayloadKeys.ISSUE_KEY]?.toString()?.takeIf(String::isNotBlank)
@@ -39,7 +37,6 @@ fun goalContinuation(artifacts: Map<String, Any?>): GoalContinuation? =
     }
   }
 
-@OpenBoundaryMap("Goal subtask review artifact decode from durable workflow artifacts")
 fun goalReviewArtifacts(artifacts: Map<String, Any?>): GoalSubtaskReviewArtifacts? =
   GoalSubtaskReviewArtifactDecoder.decode(artifacts)
 
@@ -50,7 +47,8 @@ fun validatedGoalReviewPasses(
 ): List<GoalSubtaskReviewPassResult> {
   review.state.passResults.forEach { pass ->
     val rawResult = review.rawResults.getValue(pass.passNumber.toString())
-    val output = goalReviewEmissionEnvelope(rawResult, phaseOutputValidator)
+    val output = JsonCodec.anyToStringAnyMap(goalReviewEmissionEnvelope(rawResult, phaseOutputValidator))
+      ?: emptyMap()
     val recordedVerdicts = GoalSubtaskReviewStructuredFindingsParse.recordedVerdicts(
       unitOfWork.reviews::fetchFindingVerdicts,
       output,
@@ -74,17 +72,13 @@ fun validatedGoalReviewPasses(
   return review.state.passResults
 }
 
-@OpenBoundaryMap("Goal review emission envelope at the phase-output validation seam")
-fun goalReviewEmissionEnvelope(
-  rawResult: String,
-  phaseOutputValidator: FeatureTaskRuntimePhaseOutputValidator,
-): Map<String, Any?> {
-  if (JsonCodec.parseObjectOrNull(rawResult.trim()) == null) return emptyMap()
+fun goalReviewEmissionEnvelope(rawResult: String, phaseOutputValidator: FeatureTaskRuntimePhaseOutputValidator): Any {
+  if (JsonCodec.parseObjectOrNull(rawResult.trim()) == null) return emptyMap<String, Any?>()
   return phaseOutputValidator
     .validatePhaseOutput(rawResult, FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW)
     .requireAcceptedOutput(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW)
     .normalizedOutput
-    .envelope
+    .envelopePayload()
 }
 
 fun taskRuntimeRecordOrNull(workflowStates: WorkflowStateRepository, workflowId: String): WorkflowStateSnapshot? = try {

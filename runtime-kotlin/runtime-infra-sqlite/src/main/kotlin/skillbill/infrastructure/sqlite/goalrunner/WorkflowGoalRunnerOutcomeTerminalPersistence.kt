@@ -16,6 +16,7 @@ import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.save
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.workflowStatus
@@ -128,14 +129,16 @@ internal class WorkflowGoalRunnerOutcomeTerminalPersistence(
             workflowStatus = record.workflowStatus,
             currentStepId = record.currentStepId,
             stepUpdates = null,
-            artifactsPatch = mapOf(
-              "goal_continuation_outcome" to mapOf(
-                SharedPayloadKeys.ISSUE_KEY to issueKey,
-                SharedPayloadKeys.SUBTASK_ID to subtaskId,
-                SharedPayloadKeys.STATUS to "complete",
-                SharedPayloadKeys.WORKFLOW_ID to workflowId,
-                "commit_sha" to outcome.commitSha,
-                "last_resumable_step" to (outcome.lastResumableStep ?: "commit_push"),
+            artifactsPatch = WorkflowArtifactPatch.from(
+              mapOf(
+                "goal_continuation_outcome" to mapOf(
+                  SharedPayloadKeys.ISSUE_KEY to issueKey,
+                  SharedPayloadKeys.SUBTASK_ID to subtaskId,
+                  SharedPayloadKeys.STATUS to "complete",
+                  SharedPayloadKeys.WORKFLOW_ID to workflowId,
+                  "commit_sha" to outcome.commitSha,
+                  "last_resumable_step" to (outcome.lastResumableStep ?: "commit_push"),
+                ),
               ),
             ),
             sessionId = record.sessionId.orEmpty(),
@@ -187,7 +190,7 @@ internal class WorkflowGoalRunnerOutcomeTerminalPersistence(
         workflowStatus = record.workflowStatus,
         currentStepId = record.currentStepId,
         stepUpdates = null,
-        artifactsPatch = artifactsPatch,
+        artifactsPatch = WorkflowArtifactPatch.from(artifactsPatch),
         sessionId = record.sessionId.orEmpty(),
       ),
     )

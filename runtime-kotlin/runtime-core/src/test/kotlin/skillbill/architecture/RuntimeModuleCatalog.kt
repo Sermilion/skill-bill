@@ -22,7 +22,6 @@ object RuntimeModuleCatalog {
       "skillbill.agent.model",
       "skillbill.agentaddon",
       "skillbill.application",
-      "skillbill.boundary",
       "skillbill.cli",
       "skillbill.config",
       "skillbill.contracts",

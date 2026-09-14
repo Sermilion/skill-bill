@@ -1,5 +1,4 @@
 package skillbill.engine.featuretask
-
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
@@ -7,6 +6,8 @@ import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeAuditRemainingAcInterpretation
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWorkflowArtifactMap
+import skillbill.workflow.taskruntime.envelopeWireMap
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeAuditRemainingAcResult
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
@@ -19,7 +20,7 @@ object FeatureTaskRuntimeRunLoopAuditRetry {
   internal fun stampSatisfiedVerdict(
     normalizedOutput: NormalizedFeatureTaskRuntimePhaseOutput,
   ): NormalizedFeatureTaskRuntimePhaseOutput {
-    val envelope = normalizedOutput.envelope.toMutableMap()
+    val envelope = normalizedOutput.envelopeWireMap().toMutableMap()
     envelope[SharedPayloadKeys.VERDICT] = FeatureTaskRuntimeVerdict.SATISFIED.wireValue
     return normalizedOutput.copy(
       envelope = envelope,
@@ -93,7 +94,7 @@ object FeatureTaskRuntimeRunLoopAuditRetry {
   internal fun settleCompletedAuditRound(
     runLoop: FeatureTaskRuntimeRunLoop,
     capture: ValidatedOutputCapture,
-    outputMap: Map<String, Any?>,
+    outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
   ): AttemptResult? {
     val run = capture.run
     if (run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT) return null
@@ -148,7 +149,7 @@ object FeatureTaskRuntimeRunLoopAuditRetry {
 
   internal fun attestedAuditOutputForAcceptance(
     attested: NormalizedFeatureTaskRuntimePhaseOutput,
-    outputMap: Map<String, Any?>,
+    outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
   ): NormalizedFeatureTaskRuntimePhaseOutput {
     if ((outputMap[SharedPayloadKeys.STATUS] as? String).workflowStepStatus() != WorkflowStepStatus.COMPLETED) {
       return attested

@@ -1,5 +1,4 @@
 package skillbill.engine.goalplanning
-
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
@@ -12,6 +11,7 @@ import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePlanningProjectionValidator
+import skillbill.workflow.taskruntime.envelopeWireMap
 import skillbill.workflow.taskruntime.model.requireAcceptedOutput
 
 class GoalPlanningPreparationValidator(
@@ -26,10 +26,10 @@ class GoalPlanningPreparationValidator(
     val label = "${record.parentGoalWorkflowId}#${record.subtaskId}"
     val acceptedPreplan = outputValidator.validatePhaseOutput(record.preplanPayload, PREPLAN_PHASE_ID)
       .requireAcceptedOutput(PREPLAN_PHASE_ID)
-    val preplan = acceptedPreplan.normalizedOutput.envelope
+    val preplan = acceptedPreplan.normalizedOutput.envelopeWireMap()
     val acceptedPlan = outputValidator.validatePhaseOutput(record.planPayload, PLAN_PHASE_ID)
       .requireAcceptedOutput(PLAN_PHASE_ID)
-    val plan = acceptedPlan.normalizedOutput.envelope
+    val plan = acceptedPlan.normalizedOutput.envelopeWireMap()
     val failure = envelopeFailure(record) ?: provenanceFailure(record)
     failure?.let { throw InvalidGoalPlanningPreparationSchemaError(sourceLabel = label, fieldPath = "", reason = it) }
     requireCompleted(preplan, PREPLAN_PHASE_ID, label)

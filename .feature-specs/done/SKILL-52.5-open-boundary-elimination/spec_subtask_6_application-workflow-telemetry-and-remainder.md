@@ -1,6 +1,6 @@
 # SKILL-52.5 · Subtask 6 — Application workflow, telemetry, and remainder
 
-Parent spec: [.feature-specs/SKILL-52.5-open-boundary-elimination/spec.md](./spec.md)
+Parent spec: [.feature-specs/SKILL-52.5-open-boundary-elimination/spec.md](spec.md)
 Issue key: SKILL-52.5
 Subtask order: 6 of 7
 Depends on: subtask 5
@@ -26,7 +26,7 @@ In scope:
 - Type lifecycle telemetry event payloads and `LifecycleTelemetryService` emit
   methods per typed contract models; adapters own `.toPayload()` for MCP/CLI
   (supersedes 2026-05-29 permanent open-boundary decision — record in
-  `agent/decisions.md` in subtask 7 or here if touched).
+  `../../../agent/decisions.md` in subtask 7 or here if touched).
 - Type `WorkflowSnapshotView` / `WorkflowContinueView` artifact passthrough fields
   previously deferred as `@OpenBoundaryMap` debt where still on the allow-list.
 - Type `PlatformManifest.customFields` only if still a public raw-map boundary;
@@ -72,4 +72,4 @@ Out of scope:
 
 ## Next Path
 
-`.feature-specs/SKILL-52.5-open-boundary-elimination/spec_subtask_7_allowlist-zero-lock.md`
+`spec_subtask_7_allowlist-zero-lock.md`

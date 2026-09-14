@@ -1,5 +1,4 @@
 package skillbill.engine.goalrunner
-
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.workflow.generateWorkflowId
 import skillbill.engine.goalrunner.model.GoalRunnerRunEvent

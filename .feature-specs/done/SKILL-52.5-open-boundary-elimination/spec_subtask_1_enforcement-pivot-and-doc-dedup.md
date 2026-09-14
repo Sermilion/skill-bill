@@ -1,6 +1,6 @@
 # SKILL-52.5 · Subtask 1 — Enforcement pivot and ARCHITECTURE.md dedup
 
-Parent spec: [.feature-specs/SKILL-52.5-open-boundary-elimination/spec.md](./spec.md)
+Parent spec: [.feature-specs/SKILL-52.5-open-boundary-elimination/spec.md](spec.md)
 Issue key: SKILL-52.5
 Subtask order: 1 of 7
 Depends on: none
@@ -20,7 +20,7 @@ In scope:
 - Delete the inline bullet list between
   `<!-- open-boundary-allowlist:start/end -->` and the duplicate
   `<!-- skill-52-2-inventory:start/end -->` section from
-  `runtime-kotlin/ARCHITECTURE.md`. Replace with concise prose pointing at the
+  `../../../runtime-kotlin/ARCHITECTURE.md`. Replace with concise prose pointing at the
   canonical Kotlin constant (until subtask 7 deletes it).
 - Update `parseArchitectureAllowList`, `parseSkill522Inventory`, and related
   tests in `RuntimeRawMapArchitectureTest` / `RuntimeArchitectureTestSupport` so
@@ -69,4 +69,4 @@ Out of scope:
 
 ## Next Path
 
-`.feature-specs/SKILL-52.5-open-boundary-elimination/spec_subtask_2_learnings-and-decomposition-ingress.md`
+`spec_subtask_2_learnings-and-decomposition-ingress.md`

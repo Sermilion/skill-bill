@@ -46,6 +46,7 @@ import skillbill.review.context.model.ReviewLaneReviewDisposition
 import skillbill.review.context.model.ReviewLearningsReference
 import skillbill.review.context.model.ReviewRevision
 import skillbill.review.context.model.ReviewRuleReference
+import skillbill.workflow.engine.model.ReviewContextWireMap
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -104,7 +105,7 @@ private class CountingPorts(
 
 private class RecordingValidator : ReviewContextEnvelopeValidator {
   val labels: MutableList<String> = mutableListOf()
-  override fun validate(envelope: Map<String, Any?>, sourceLabel: String) {
+  override fun validate(envelope: ReviewContextWireMap, sourceLabel: String) {
     labels += sourceLabel
   }
 }

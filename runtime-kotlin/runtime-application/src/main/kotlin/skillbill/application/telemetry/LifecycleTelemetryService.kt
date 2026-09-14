@@ -9,7 +9,7 @@ import skillbill.application.telemetry.model.PrDescriptionGeneratedRequest
 import skillbill.application.telemetry.model.QualityCheckFinishedRequest
 import skillbill.application.telemetry.model.QualityCheckStartedRequest
 import skillbill.application.telemetry.settings.telemetrySettingsOrNull
-import skillbill.boundary.OpenBoundaryMap
+import skillbill.contracts.JsonPayloadContract
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.telemetry.TelemetrySettingsProvider
 
@@ -18,8 +18,7 @@ class LifecycleTelemetryService(
   private val database: DatabaseSessionFactory,
   private val settingsProvider: TelemetrySettingsProvider,
 ) : GoalLifecycleTelemetryEmitter by LifecycleTelemetryGoalEmission(database, settingsProvider) {
-  @OpenBoundaryMap("Lifecycle telemetry event bag emitted to the MCP/CLI telemetry boundary")
-  fun featureTaskRuntimeStarted(request: FeatureTaskRuntimeStartedRequest): Map<String, Any?> {
+  fun featureTaskRuntimeStarted(request: FeatureTaskRuntimeStartedRequest): JsonPayloadContract {
     val sessionId = request.sessionId.ifBlank { generateLifecycleSessionId("ftr") }
     return enabledStandaloneResult(settingsProvider, sessionId) { settings ->
       database.transaction { unitOfWork ->
@@ -28,8 +27,7 @@ class LifecycleTelemetryService(
     }
   }
 
-  @OpenBoundaryMap("Lifecycle telemetry event bag emitted to the MCP/CLI telemetry boundary")
-  fun featureTaskRuntimeFinished(request: FeatureTaskRuntimeFinishedRequest): Map<String, Any?> =
+  fun featureTaskRuntimeFinished(request: FeatureTaskRuntimeFinishedRequest): JsonPayloadContract =
     enabledStandaloneResult(settingsProvider, request.sessionId) { settings ->
       val reconciledRequest = request.reconcileBlockedRuntimeFields()
       database.transaction { unitOfWork ->
@@ -37,8 +35,7 @@ class LifecycleTelemetryService(
       }
     }
 
-  @OpenBoundaryMap("Lifecycle telemetry event bag emitted to the MCP/CLI telemetry boundary")
-  fun qualityCheckStarted(request: QualityCheckStartedRequest): Map<String, Any?> {
+  fun qualityCheckStarted(request: QualityCheckStartedRequest): JsonPayloadContract {
     val sessionId = generateLifecycleSessionId("qck")
     val normalizedRequest = request.normalizedLabels()
     return when {
@@ -57,8 +54,7 @@ class LifecycleTelemetryService(
     }
   }
 
-  @OpenBoundaryMap("Lifecycle telemetry event bag emitted to the MCP/CLI telemetry boundary")
-  fun qualityCheckFinished(request: QualityCheckFinishedRequest): Map<String, Any?> {
+  fun qualityCheckFinished(request: QualityCheckFinishedRequest): JsonPayloadContract {
     val normalizedRequest = request.normalizedLabels()
     return validateQualityCheckFinished(normalizedRequest)
       ?.let { lifecycleErrorPayload(normalizedRequest.sessionId, it) }
@@ -77,8 +73,7 @@ class LifecycleTelemetryService(
       }
   }
 
-  @OpenBoundaryMap("Lifecycle telemetry event bag emitted to the MCP/CLI telemetry boundary")
-  fun featureVerifyStarted(request: FeatureVerifyStartedRequest): Map<String, Any?> {
+  fun featureVerifyStarted(request: FeatureVerifyStartedRequest): JsonPayloadContract {
     val sessionId = generateLifecycleSessionId("fvr")
     return when {
       request.orchestrated -> orchestratedStartedSkippedPayload()
@@ -91,8 +86,7 @@ class LifecycleTelemetryService(
     }
   }
 
-  @OpenBoundaryMap("Lifecycle telemetry event bag emitted to the MCP/CLI telemetry boundary")
-  fun featureVerifyFinished(request: FeatureVerifyFinishedRequest): Map<String, Any?> =
+  fun featureVerifyFinished(request: FeatureVerifyFinishedRequest): JsonPayloadContract =
     validateFeatureVerifyFinished(request)
       ?.let { lifecycleErrorPayload(request.sessionId, it) }
       ?: when {
@@ -105,8 +99,7 @@ class LifecycleTelemetryService(
           }
       }
 
-  @OpenBoundaryMap("Lifecycle telemetry event bag emitted to the MCP/CLI telemetry boundary")
-  fun prDescriptionGenerated(request: PrDescriptionGeneratedRequest): Map<String, Any?> {
+  fun prDescriptionGenerated(request: PrDescriptionGeneratedRequest): JsonPayloadContract {
     val sessionId = if (request.orchestrated) "" else generateLifecycleSessionId("prd")
     return when {
       request.orchestrated -> request.orchestratedPayload(telemetryLevelOrAnonymous(settingsProvider))

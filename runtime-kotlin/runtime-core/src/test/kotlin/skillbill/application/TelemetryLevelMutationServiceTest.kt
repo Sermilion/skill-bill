@@ -26,6 +26,7 @@ import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.telemetry.CONFIG_ENVIRONMENT_KEY
 import skillbill.telemetry.model.TelemetryConfigDocument
 import skillbill.telemetry.model.TelemetrySettings
+import skillbill.workflow.engine.model.TelemetryOpenDocument
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
@@ -227,7 +228,7 @@ class TelemetryLevelMutationServiceTest {
       FeatureTaskRuntimeStartedRequest(featureSize = "MEDIUM", issueKey = "SKILL-163", featureName = "telemetry"),
     )
 
-    assertEquals("skipped", result["status"], "level off must skip lifecycle emission")
+    assertEquals("skipped", result.toPayload()["status"], "level off must skip lifecycle emission")
     assertEquals(0, outbox.pendingCount(), "nothing may be queued while telemetry is off")
   }
 }
@@ -372,9 +373,11 @@ private object DisabledMutationTelemetrySettingsProvider : TelemetrySettingsProv
 
 private class FakeMutationTelemetryConfigStore : TelemetryConfigStore {
   var document: TelemetryConfigDocument = TelemetryConfigDocument(
-    mapOf(
-      "install_id" to "existing",
-      "telemetry" to mapOf("level" to "anonymous", "proxy_url" to "", "batch_size" to 50),
+    TelemetryOpenDocument.from(
+      mapOf(
+        "install_id" to "existing",
+        "telemetry" to mapOf("level" to "anonymous", "proxy_url" to "", "batch_size" to 50),
+      ),
     ),
   )
 

@@ -1,5 +1,4 @@
 package skillbill.engine.featuretask
-
 import skillbill.application.diagnostics.model.FeatureTaskRuntimeRejectedOutputWrite
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeProducerOutputRead

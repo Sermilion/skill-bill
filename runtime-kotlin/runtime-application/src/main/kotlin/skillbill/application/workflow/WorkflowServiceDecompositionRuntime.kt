@@ -1,14 +1,15 @@
 package skillbill.application.workflow
 
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
-import skillbill.application.decomposition.encodeDecompositionManifestMap
 import skillbill.application.decomposition.model.DecompositionManifestRuntimeUpdate
 import skillbill.application.decomposition.model.DecompositionManifestWorkflowProjectionInput
 import skillbill.application.workflow.model.DecompositionRuntimeWriteArgs
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.model.toSnapshot
 import skillbill.workflow.decomposition.DecompositionManifestValidator
+import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 
@@ -21,6 +22,7 @@ internal fun WorkflowFamily.withDecompositionRuntime(args: DecompositionRuntimeW
         repoRoot = args.repoRoot,
         existingArtifactsJson = args.existing.artifactsJson,
         validator = args.validator,
+        planningResult = args.planningResult,
         artifactsPatch = args.input.artifactsPatch,
         runtimeUpdate = DecompositionManifestRuntimeUpdate(
           workflowId = args.workflowId,
@@ -33,12 +35,14 @@ internal fun WorkflowFamily.withDecompositionRuntime(args: DecompositionRuntimeW
     )?.let { manifest ->
       DecompositionRuntimeInput(
         input = args.input.copy(
-          artifactsPatch = LinkedHashMap(args.input.artifactsPatch.orEmpty()).apply {
-            put(
-              DECOMPOSITION_RUNTIME_ARTIFACT_KEY,
-              encodeDecompositionManifestMap(manifest, args.validator, DECOMPOSITION_RUNTIME_ARTIFACT_KEY),
-            )
-          },
+          artifactsPatch = WorkflowArtifactPatch.from(
+            LinkedHashMap(args.input.artifactsPatch.orEmpty()).apply {
+              put(
+                DECOMPOSITION_RUNTIME_ARTIFACT_KEY,
+                args.validator.encodeManifestWireMap(manifest, DECOMPOSITION_RUNTIME_ARTIFACT_KEY),
+              )
+            },
+          ),
         ),
         updated = true,
       )

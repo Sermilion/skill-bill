@@ -8,10 +8,9 @@ import skillbill.error.InvalidDecompositionManifestSchemaError
 import skillbill.infrastructure.fs.DecompositionManifestValidatorAdapter
 import skillbill.infrastructure.fs.FileSystemDecompositionManifestFileStore
 import skillbill.workflow.decomposition.DecompositionManifestValidator
+import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionManifest
-import skillbill.workflow.decomposition.toWireMap
 import java.nio.file.Files
-import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -43,7 +42,7 @@ class DecompositionManifestWriterValidationTest {
       DecompositionManifestWriteRequest(
         repoRoot = repoRoot,
         parentSpecPath = parentSpecPath,
-        planningResult = decompositionPlan(parentSpecPath),
+        planningResult = decompositionPlanningPlan(parentSpecPath),
         baseBranch = "main",
         featureBranch = "feature/SKILL-51-decomposition",
       ),
@@ -78,7 +77,7 @@ class DecompositionManifestWriterValidationTest {
       DecompositionManifestWriteRequest(
         repoRoot = repoRoot,
         parentSpecPath = parentSpecPath,
-        planningResult = decompositionPlan(parentSpecPath),
+        planningResult = decompositionPlanningPlan(parentSpecPath),
         baseBranch = "main",
         featureBranch = "feature/SKILL-51-decomposition",
       ),
@@ -101,30 +100,8 @@ class DecompositionManifestWriterValidationTest {
     assertContains(error.reason, "offending value: invalid-contract")
   }
 
-  private fun decompositionPlan(parentSpecPath: Path): Map<String, Any?> = linkedMapOf(
-    "mode" to "decompose",
-    "parent_spec_path" to parentSpecPath.toString(),
-    "recommended_first_subtask_id" to 1,
-    "subtasks" to listOf(
-      linkedMapOf(
-        "id" to 1,
-        "name" to "Foundation",
-        "spec_path" to parentSpecPath.parent.resolve("spec_subtask_1_foundation.md").toString(),
-        "depends_on" to emptyList<Int>(),
-        "scope" to "Create contract foundation",
-      ),
-      linkedMapOf(
-        "id" to 2,
-        "name" to "Runtime",
-        "spec_path" to parentSpecPath.parent.resolve("spec_subtask_2_runtime.md").toString(),
-        "depends_on" to listOf(1),
-        "scope" to "Wire runtime writer",
-      ),
-    ),
-  )
-
   private fun invalidDurableRuntimeArtifactsJson(manifest: DecompositionManifest): String {
-    val invalidManifest = LinkedHashMap(manifest.toWireMap()).apply {
+    val invalidManifest = LinkedHashMap(validator.encodeManifestWireMap(manifest)).apply {
       put("contract_version", "invalid-contract")
     }
     return JsonCodec.mapToJsonString(mapOf("decomposition_runtime" to invalidManifest))

@@ -2,18 +2,20 @@ package skillbill.infrastructure.sqlite.workflow
 
 import skillbill.contracts.JsonCodec
 import skillbill.error.InvalidGoalPlanningPreparationSchemaError
+import skillbill.infrastructure.sqlite.featuretask.artifact.encodeWorkflowArtifact
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationState
 import skillbill.ports.goalrunner.model.GoalSubtaskPlanCheckpoint
 import skillbill.ports.goalrunner.model.SharedGoalPreplanCheckpoint
+import skillbill.workflow.taskruntime.decodePhaseOutputRepairEvidenceFromArtifact
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairEvidence
 import java.sql.ResultSet
 
 internal fun SharedGoalPreplanCheckpoint.repairEvidenceJson(): String? = repairEvidence?.let {
-  JsonCodec.mapToJsonString(it.toArtifactMap())
+  JsonCodec.mapToJsonString(JsonCodec.anyToStringAnyMap(it.encodeWorkflowArtifact()) ?: emptyMap())
 }
 
 internal fun GoalSubtaskPlanCheckpoint.repairEvidenceJson(): String? = repairEvidence?.let {
-  JsonCodec.mapToJsonString(it.toArtifactMap())
+  JsonCodec.mapToJsonString(JsonCodec.anyToStringAnyMap(it.encodeWorkflowArtifact()) ?: emptyMap())
 }
 
 internal fun incompatibleLoadedVersionReason(loaded: String): String = "loaded contract_version '$loaded' is not '0.1'."
@@ -39,7 +41,7 @@ internal fun optionalRepairEvidence(
       ?.let(JsonCodec::jsonElementToValue)
       ?.let(JsonCodec::anyToStringAnyMap)
       ?: throw IllegalArgumentException("repair evidence must be a JSON object")
-    FeatureTaskRuntimePhaseOutputRepairEvidence.fromArtifactMap(decoded)
+    decodePhaseOutputRepairEvidenceFromArtifact(decoded)
   } catch (_: Exception) {
     throw InvalidGoalPlanningPreparationSchemaError(
       sourceLabel = label,

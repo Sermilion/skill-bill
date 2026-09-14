@@ -1,19 +1,19 @@
 package skillbill.infrastructure.sqlite.goalrunner
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.issuekey.normalizeRequiredIssueKey
 import skillbill.goalrunner.GOAL_OUT_OF_BAND_ACCEPTANCE_ARTIFACT_KEY
 import skillbill.goalrunner.GOAL_REVIEW_POLICY_ARTIFACT_KEY
 import skillbill.infrastructure.sqlite.decomposition.decodeArtifacts
-import skillbill.infrastructure.sqlite.decomposition.encodeDecompositionManifestMap
 import skillbill.infrastructure.sqlite.workflow.decompositionRuntime
 import skillbill.ports.goalrunner.GoalRunnerPersistenceSession
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.saveRecord
 import skillbill.ports.workflow.toRecord
 import skillbill.workflow.decomposition.DecompositionManifestValidator
+import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.runtime.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 
@@ -21,7 +21,6 @@ class GoalParentProjectionWriter(
   private val engine: WorkflowEngine,
   private val validator: DecompositionManifestValidator,
 ) {
-  @OpenBoundaryMap("Goal parent decomposition runtime artifact patch")
   fun artifacts(manifest: DecompositionManifest, existingArtifactsJson: String? = null): Map<String, Any?> =
     LinkedHashMap(
       existingArtifactsJson
@@ -33,7 +32,7 @@ class GoalParentProjectionWriter(
       remove(GOAL_OUT_OF_BAND_ACCEPTANCE_ARTIFACT_KEY)
       put(
         DECOMPOSITION_RUNTIME_ARTIFACT_KEY,
-        encodeDecompositionManifestMap(manifest, validator, DECOMPOSITION_RUNTIME_ARTIFACT_KEY),
+        validator.encodeManifestWireMap(manifest, DECOMPOSITION_RUNTIME_ARTIFACT_KEY),
       )
     }
 
@@ -47,7 +46,7 @@ class GoalParentProjectionWriter(
         workflowStatus = existing.workflowStatus,
         currentStepId = existing.currentStepId,
         stepUpdates = null,
-        artifactsPatch = artifacts(manifest, existing.artifactsJson),
+        artifactsPatch = WorkflowArtifactPatch.from(artifacts(manifest, existing.artifactsJson)),
         sessionId = existing.sessionId,
         replaceArtifacts = true,
       ),

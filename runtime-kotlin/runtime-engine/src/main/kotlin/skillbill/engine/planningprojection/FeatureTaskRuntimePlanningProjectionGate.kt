@@ -1,5 +1,4 @@
 package skillbill.engine.planningprojection
-
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.InvalidGoalPlanningPreparationSchemaError
 import skillbill.workflow.model.WorkflowStepStatus

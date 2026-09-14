@@ -1,5 +1,7 @@
 package skillbill.mcp.featuretask
 
+import skillbill.contracts.SharedPayloadKeys
+import skillbill.engine.featuretask.model.FeatureTaskPhaseSettlementAcknowledgment
 import skillbill.engine.featuretask.model.FeatureTaskPhaseSettlementBlockRequest
 import skillbill.engine.featuretask.model.FeatureTaskPhaseSettlementCompleteRequest
 import skillbill.mcp.shared.McpRuntimeContext
@@ -18,7 +20,7 @@ internal fun featureTaskPhaseComplete(arguments: Map<String, Any?>, context: Mcp
       prompt = arguments.optionalString("prompt"),
       summary = arguments.optionalString("summary"),
     ),
-  )
+  ).toWireMap()
 
 internal fun featureTaskPhaseBlock(arguments: Map<String, Any?>, context: McpRuntimeContext): Map<String, Any?> =
   services(context).featureTaskPhaseSettlementService.block(
@@ -29,4 +31,13 @@ internal fun featureTaskPhaseBlock(arguments: Map<String, Any?>, context: McpRun
       reason = arguments.string("reason"),
       failureDisposition = arguments.optionalString("failure_disposition") ?: "needs_user_action",
     ),
-  )
+  ).toWireMap()
+
+private fun FeatureTaskPhaseSettlementAcknowledgment.toWireMap(): Map<String, Any?> = linkedMapOf(
+  SharedPayloadKeys.STATUS to status,
+  SharedPayloadKeys.WORKFLOW_ID to workflowId,
+  SharedPayloadKeys.PHASE_ID to phaseId,
+  "attempt" to attempt,
+  "kind" to kind.wireValue,
+  "envelope" to envelope,
+)

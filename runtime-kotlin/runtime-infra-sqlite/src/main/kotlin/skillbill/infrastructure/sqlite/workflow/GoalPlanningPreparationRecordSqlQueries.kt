@@ -2,6 +2,7 @@ package skillbill.infrastructure.sqlite.workflow
 
 import skillbill.contracts.JsonCodec
 import skillbill.error.InvalidGoalPlanningPreparationSchemaError
+import skillbill.infrastructure.sqlite.featuretask.artifact.encodeWorkflowArtifact
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationProvenance
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationRecord
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationStatus
@@ -37,8 +38,18 @@ internal fun Connection.upsertPreparedRow(record: GoalPlanningPreparationRecord)
   statement.setString(index++, record.provenance.phaseOutputContractVersion)
   statement.setString(index++, record.preplanPayload)
   statement.setString(index++, record.planPayload)
-  statement.setString(index++, record.preplanRepairEvidence?.let { JsonCodec.mapToJsonString(it.toArtifactMap()) })
-  statement.setString(index++, record.planRepairEvidence?.let { JsonCodec.mapToJsonString(it.toArtifactMap()) })
+  statement.setString(
+    index++,
+    record.preplanRepairEvidence?.let {
+      JsonCodec.mapToJsonString(JsonCodec.anyToStringAnyMap(it.encodeWorkflowArtifact()) ?: emptyMap())
+    },
+  )
+  statement.setString(
+    index++,
+    record.planRepairEvidence?.let {
+      JsonCodec.mapToJsonString(JsonCodec.anyToStringAnyMap(it.encodeWorkflowArtifact()) ?: emptyMap())
+    },
+  )
   statement.executeUpdate() > 0
 }
 

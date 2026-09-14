@@ -1,5 +1,4 @@
 package skillbill.engine.featuretask
-
 import skillbill.application.idestatus.model.IdeStatusCurrentPhaseExecution
 import skillbill.application.idestatus.model.IdeStatusCurrentPhaseExecutionKind
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStatus

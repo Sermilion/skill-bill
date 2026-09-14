@@ -1,8 +1,8 @@
 package skillbill.engine
 import skillbill.application.FakeDatabaseSessionFactory
 import skillbill.application.InMemoryWorkflowStates
-import skillbill.application.decomposition.decodeArtifacts
 import skillbill.application.testWorkflowSnapshotValidator
+import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.engine.goalrunner.testWorkflowGoalRunnerOutcomeStore
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
 import skillbill.ports.goalrunner.runner.model.GoalRunnerReconcileGate
@@ -74,7 +74,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeBlockedTest {
     )
     assertEquals(GoalRunnerTerminalStatus.BLOCKED, recovered.status)
     assertEquals(reason, recovered.blockedReason)
-    val artifacts = decodeArtifacts(
+    val artifacts = decodeWorkflowArtifacts(
       requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-standing-nested-reason")).artifactsJson,
     )
     assertNull(artifacts["goal_continuation_outcome_displacement"])
@@ -121,7 +121,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeBlockedTest {
     assertEquals(GoalRunnerTerminalStatus.RECONCILABLE, recovered.status)
     assertTrue(recovered.blockedReason != staleReason)
 
-    val artifacts = decodeArtifacts(
+    val artifacts = decodeWorkflowArtifacts(
       requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-20260808-175505-c5po")).artifactsJson,
     )
     val displacement = artifacts["goal_continuation_outcome_displacement"] as Map<*, *>
@@ -156,7 +156,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeBlockedTest {
       activeWorkflowIds = setOf("wftr-stale-idempotent"),
       gate = GoalRunnerReconcileGate(requireStalenessEvidence = true),
     )
-    val artifactsAfterFirst = decodeArtifacts(
+    val artifactsAfterFirst = decodeWorkflowArtifacts(
       requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-stale-idempotent")).artifactsJson,
     )
     assertEquals(
@@ -175,7 +175,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeBlockedTest {
       gate = GoalRunnerReconcileGate(requireStalenessEvidence = true),
     )
     assertEquals(first, second)
-    val artifactsAfterSecond = decodeArtifacts(
+    val artifactsAfterSecond = decodeWorkflowArtifacts(
       requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-stale-idempotent")).artifactsJson,
     )
     assertEquals(

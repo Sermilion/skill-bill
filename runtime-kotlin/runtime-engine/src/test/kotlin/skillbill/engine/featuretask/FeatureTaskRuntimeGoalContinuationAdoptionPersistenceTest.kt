@@ -13,6 +13,7 @@ import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.ports.workflow.toRecord
 import skillbill.review.context.model.CodeReviewExecutionMode
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
@@ -208,13 +209,15 @@ class FeatureTaskRuntimeGoalContinuationAdoptionPersistenceTest {
         workflowStatus = "running",
         currentStepId = "preplan",
         stepUpdates = null,
-        artifactsPatch = mapOf(
-          FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY to continuationMap,
-          GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to GoalSubtaskReviewState.initial(
-            reviewBaseSha = baselineSha,
-            baselineUntrackedPaths = emptyList(),
-            codeReviewMode = CodeReviewExecutionMode.INLINE,
-          ).toArtifactMap(),
+        artifactsPatch = WorkflowArtifactPatch.from(
+          mapOf(
+            FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY to continuationMap,
+            GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to GoalSubtaskReviewState.initial(
+              reviewBaseSha = baselineSha,
+              baselineUntrackedPaths = emptyList(),
+              codeReviewMode = CodeReviewExecutionMode.INLINE,
+            ).toPersistenceWire(),
+          ),
         ),
         sessionId = "fis-176",
       ),

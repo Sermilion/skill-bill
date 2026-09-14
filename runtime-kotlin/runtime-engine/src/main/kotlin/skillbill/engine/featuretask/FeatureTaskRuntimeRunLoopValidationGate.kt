@@ -1,5 +1,4 @@
 package skillbill.engine.featuretask
-
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
@@ -17,11 +16,15 @@ import skillbill.engine.featuretask.validation.resolveRequiredValidationCommand
 import skillbill.ports.workflow.gitops.repositoryFingerprint
 import skillbill.workflow.goal.model.ValidationDepth
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWorkflowArtifactMap
+import skillbill.workflow.taskruntime.decodeValidationEvidenceFromArtifact
+import skillbill.workflow.taskruntime.envelopeWireMap
 import skillbill.workflow.taskruntime.model.AcceptedFeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationEvidence
 import skillbill.workflow.taskruntime.model.requireAcceptedOutput
+import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 
 object FeatureTaskRuntimeRunLoopValidationGate {
   internal fun runDeclaredBuildGateCycle(
@@ -81,10 +84,13 @@ object FeatureTaskRuntimeRunLoopValidationGate {
       .requireAcceptedOutput(run.phaseId)
     val buildReceipt = JsonCodec.anyToStringAnyMap(
       JsonCodec.anyToStringAnyMap(
-        accepted.normalizedOutput.envelope[SharedPayloadKeys.PRODUCED_OUTPUTS],
+        accepted.normalizedOutput.envelopeWireMap()[SharedPayloadKeys.PRODUCED_OUTPUTS],
       )?.get("build_receipt"),
     )
-    runLoop.buildReceiptValidator.validateBuildReceipt(buildReceipt ?: emptyMap(), sourceLabel = run.phaseId)
+    runLoop.buildReceiptValidator.validateBuildReceipt(
+      buildReceipt ?: emptyMap<String, Any?>(),
+      sourceLabel = run.phaseId,
+    )
     accepted
   }
 
@@ -264,19 +270,19 @@ object FeatureTaskRuntimeRunLoopValidationGate {
     }
   }
 
-  fun looseOutputEnvelope(outputText: String): Map<String, Any?>? {
+  internal fun looseOutputEnvelope(outputText: String): FeatureTaskRuntimeWorkflowArtifactMap? {
     val trimmed = outputText.trim()
     JsonCodec.parseObjectOrNull(trimmed)?.let {
-      return JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(it))
+      return JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(it))?.toWorkflowArtifactMap()
     }
     val start = trimmed.indexOf('{')
     val end = trimmed.lastIndexOf('}')
     if (start !in 0..<end) return null
     return JsonCodec.parseObjectOrNull(trimmed.substring(start, end + 1))
-      ?.let { JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(it)) }
+      ?.let { JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(it))?.toWorkflowArtifactMap() }
   }
 
-  fun gateTriageCapturedProducedOutputs(outputText: String): Map<String, Any?> {
+  internal fun gateTriageCapturedProducedOutputs(outputText: String): Map<String, Any?> {
     val produced = looseOutputEnvelope(outputText)
       ?.let { JsonCodec.anyToStringAnyMap(it[SharedPayloadKeys.PRODUCED_OUTPUTS]) }
       ?: return emptyMap()
@@ -413,7 +419,7 @@ object FeatureTaskRuntimeRunLoopValidationGate {
         sourceLabel = run.phaseId,
       ).requireAcceptedOutput(run.phaseId)
       val produced = JsonCodec.anyToStringAnyMap(
-        accepted.normalizedOutput.envelope[SharedPayloadKeys.PRODUCED_OUTPUTS],
+        accepted.normalizedOutput.envelopeWireMap()[SharedPayloadKeys.PRODUCED_OUTPUTS],
       )
       val validationResult = JsonCodec.anyToStringAnyMap(
         produced?.get(ValidationEvidencePayloadKeys.VALIDATION_RESULT),
@@ -421,7 +427,7 @@ object FeatureTaskRuntimeRunLoopValidationGate {
       val evidence = JsonCodec.anyToStringAnyMap(
         validationResult?.get(ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE),
       )?.let { raw ->
-        FeatureTaskRuntimeValidationEvidence.fromArtifactMap(raw, run.phaseId)
+        decodeValidationEvidenceFromArtifact(raw, run.phaseId)!!
       } ?: error("Runtime-owned validation evidence is missing.")
       evidence.requireSuccessfulCommand(
         requiredValidationCommand(runLoop, run, evidence),

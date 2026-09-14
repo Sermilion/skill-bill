@@ -6,6 +6,7 @@ import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.workflow.engine.model.WorkflowDefinition
 import skillbill.workflow.engine.model.WorkflowInputProjection
 import skillbill.workflow.engine.model.WorkflowInputProjectionDeclaration
+import skillbill.workflow.engine.model.WorkflowLaunchProjectionArtifacts
 import skillbill.workflow.engine.model.WorkflowSnapshotView
 
 const val RUNTIME_REPOSITORY_EVIDENCE_ARTIFACT_KEY = "repository_evidence"
@@ -50,7 +51,7 @@ object WorkflowInputProjectionSelector {
       stepId = stepId,
       producerIteration = producerIteration,
       repositoryCheckpoint = repositoryCheckpoint,
-      artifacts = selected,
+      artifacts = WorkflowLaunchProjectionArtifacts.from(selected),
       utf8Bytes = bytes,
     )
   }

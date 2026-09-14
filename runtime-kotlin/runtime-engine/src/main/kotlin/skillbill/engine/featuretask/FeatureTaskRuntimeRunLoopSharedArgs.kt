@@ -52,7 +52,6 @@ internal data class TerminalOutputAttemptArgs(
   val run: PhaseRun,
   val iteration: Int,
   val reason: String,
-  val outputMap: Map<String, Any?>,
   val normalizedOutput: NormalizedFeatureTaskRuntimePhaseOutput,
   val repairEvidence: FeatureTaskRuntimePhaseOutputRepairEvidence?,
   val observability: FeatureTaskRuntimeRunObservability,
@@ -121,7 +120,6 @@ internal data class LaunchSeamRejectionArgs(
 internal data class CompletionProjectionRejectionArgs(
   val run: PhaseRun,
   val iteration: Int,
-  val outputMap: Map<String, Any?>,
   val normalizedOutput: NormalizedFeatureTaskRuntimePhaseOutput,
   val repairEvidence: FeatureTaskRuntimePhaseOutputRepairEvidence?,
   val repositoryFingerprint: String?,
@@ -183,7 +181,7 @@ internal data class RunPhaseArgs(
 
 internal data class ImplementFixRepairReceiptArgs(
   val run: PhaseRun,
-  val outputMap: Map<String, Any?>,
+  val normalizedOutput: NormalizedFeatureTaskRuntimePhaseOutput,
   val reject: (String, String) -> AttemptResult,
   val iteration: Int,
   val observability: FeatureTaskRuntimeRunObservability,
@@ -192,7 +190,7 @@ internal data class ImplementFixRepairReceiptArgs(
 
 internal data class CompletedImplementationOutputArgs(
   val run: PhaseRun,
-  val outputMap: Map<String, Any?>,
+  val normalizedOutput: NormalizedFeatureTaskRuntimePhaseOutput,
   val reject: (String, String) -> AttemptResult,
   val iteration: Int,
   val observability: FeatureTaskRuntimeRunObservability,
@@ -232,7 +230,6 @@ internal data class ValidationGateRepairArgs(
 
 internal data class SettleValidatedOutputPauseArgs(
   val capture: ValidatedOutputCapture,
-  val outputMap: Map<String, Any?>,
   val attested: NormalizedFeatureTaskRuntimePhaseOutput,
   val repairEvidence: FeatureTaskRuntimePhaseOutputRepairEvidence?,
   val observability: FeatureTaskRuntimeRunObservability,
@@ -269,7 +266,6 @@ internal data class RejectedOutputTargetingArgs(
 
 internal data class SettleValidatedOutputAfterFingerprintArgs(
   val capture: ValidatedOutputCapture,
-  val outputMap: Map<String, Any?>,
   val attested: NormalizedFeatureTaskRuntimePhaseOutput,
   val repairEvidence: FeatureTaskRuntimePhaseOutputRepairEvidence?,
   val observability: FeatureTaskRuntimeRunObservability,

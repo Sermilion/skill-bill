@@ -5,14 +5,15 @@ import skillbill.error.InvalidDecompositionManifestSchemaError
 import skillbill.infrastructure.fs.contracts.workflow.DecompositionManifestSchemaValidator
 import skillbill.infrastructure.fs.phaseoutput.FeatureTaskRuntimePhaseOutputStructuralRepair
 import skillbill.infrastructure.fs.phaseoutput.FeatureTaskRuntimePhaseOutputStructuralRepairDecision
-import skillbill.workflow.decomposition.DecompositionManifestCodec
 import skillbill.workflow.decomposition.DecompositionManifestValidator
+import skillbill.workflow.decomposition.decodeManifest
 import skillbill.workflow.decomposition.model.DecompositionManifestRepairEvidence
 import skillbill.workflow.decomposition.model.DecompositionManifestRepairOperation
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationFailureCode
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationFormat
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationResult
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationSourceLocation
+import skillbill.workflow.engine.model.DecompositionManifestWireMap
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputFailureCode
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputFormat
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairEvidence
@@ -33,12 +34,14 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputSourceL
  */
 @Inject
 class DecompositionManifestValidatorAdapter : DecompositionManifestValidator {
-  override fun validate(manifest: Map<String, Any?>, sourceLabel: String) {
+  override fun validate(manifest: DecompositionManifestWireMap, sourceLabel: String) {
     DecompositionManifestSchemaValidator.validate(manifest, sourceLabel)
   }
 
-  override fun validateYamlText(yamlText: String, sourceLabel: String): Map<String, Any?> =
-    DecompositionManifestSchemaValidator.validateYamlText(yamlText, sourceLabel)
+  override fun validateYamlText(yamlText: String, sourceLabel: String) = decodeManifest(
+    DecompositionManifestWireMap.from(DecompositionManifestSchemaValidator.validateYamlText(yamlText, sourceLabel)),
+    sourceLabel,
+  )
 
   override fun validateYamlTextResult(yamlText: String, sourceLabel: String): DecompositionManifestValidationResult {
     val decision = FeatureTaskRuntimePhaseOutputStructuralRepair.inspectWholeDocument(yamlText, sourceLabel)
@@ -50,8 +53,10 @@ class DecompositionManifestValidatorAdapter : DecompositionManifestValidator {
           sourceLocation = decision.sourceLocation?.toManifestLocation(),
         )
       is FeatureTaskRuntimePhaseOutputStructuralRepairDecision.Accepted -> try {
-        val wireMap = DecompositionManifestSchemaValidator.validateYamlText(decision.text, sourceLabel)
-        val manifest = DecompositionManifestCodec.decodeMap(wireMap, sourceLabel)
+        val wireMap = DecompositionManifestWireMap.from(
+          DecompositionManifestSchemaValidator.validateYamlText(decision.text, sourceLabel),
+        )
+        val manifest = decodeManifest(wireMap, sourceLabel)
         val evidence = decision.evidence?.toManifestEvidence()
         if (evidence == null) {
           DecompositionManifestValidationResult.AcceptedUnchanged(manifest, decision.text)

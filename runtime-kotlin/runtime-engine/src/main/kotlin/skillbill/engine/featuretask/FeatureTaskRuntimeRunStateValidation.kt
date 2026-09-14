@@ -1,11 +1,11 @@
 package skillbill.engine.featuretask
-
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.ValidationEvidencePayloadKeys
 import skillbill.engine.featuretask.validation.durableValidationChangedPaths
 import skillbill.error.InvalidFeatureTaskRuntimeValidationEvidenceSchemaError
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.decodeValidationEvidenceFromArtifact
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeTransitionDeclaration
@@ -57,7 +57,7 @@ internal fun validationEvidenceFromEnvelope(
   )
   return JsonCodec.anyToStringAnyMap(
     result?.get(ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE),
-  )?.let { raw -> FeatureTaskRuntimeValidationEvidence.fromArtifactMap(raw, sourceLabel) }
+  )?.let { raw -> decodeValidationEvidenceFromArtifact(raw, sourceLabel)!! }
 }
 
 internal fun invalidateIncompleteValidationSettlement(
@@ -69,18 +69,20 @@ internal fun invalidateIncompleteValidationSettlement(
   val valid = runCatching {
     val output = validation.validatedRecordToOutput(record) ?: return@runCatching false
     val produced = JsonCodec.anyToStringAnyMap(
-      output.normalizedOutput?.envelope?.get(SharedPayloadKeys.PRODUCED_OUTPUTS),
-    )
+      output.normalizedOutput?.envelopePayload(),
+    )?.let { envelope ->
+      JsonCodec.anyToStringAnyMap(envelope[SharedPayloadKeys.PRODUCED_OUTPUTS])
+    }
     val result = JsonCodec.anyToStringAnyMap(
       produced?.get(ValidationEvidencePayloadKeys.VALIDATION_RESULT),
     )
     val evidence = JsonCodec.anyToStringAnyMap(
       result?.get(ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE),
     )?.let { raw ->
-      FeatureTaskRuntimeValidationEvidence.fromArtifactMap(
+      decodeValidationEvidenceFromArtifact(
         raw,
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE,
-      )
+      )!!
     }
     val decodedEvidence = evidence ?: return@runCatching false
     val requiredCommand = validation.validationEvidenceCommandResolver(decodedEvidence)

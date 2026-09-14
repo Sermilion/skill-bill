@@ -32,7 +32,7 @@ data class StaleRunningCandidatesBlockRequest(
 data class GoalRunnerChildRepairApplyStateInit(
   val request: GoalRunnerChildRepairApplyRequest,
   val record: WorkflowStateSnapshot,
-  val artifacts: Map<String, Any?>,
+  val artifacts: Any,
   val workingContinuation: FeatureTaskRuntimeGoalContinuationArtifact?,
   val workingReview: GoalSubtaskReviewState?,
 )

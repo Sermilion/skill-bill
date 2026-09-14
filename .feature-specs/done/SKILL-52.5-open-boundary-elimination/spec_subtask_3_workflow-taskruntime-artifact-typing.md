@@ -1,6 +1,6 @@
 # SKILL-52.5 · Subtask 3 — Workflow taskruntime artifact typing
 
-Parent spec: [.feature-specs/SKILL-52.5-open-boundary-elimination/spec.md](./spec.md)
+Parent spec: [.feature-specs/SKILL-52.5-open-boundary-elimination/spec.md](spec.md)
 Issue key: SKILL-52.5
 Subtask order: 3 of 7
 Depends on: subtask 2
@@ -26,7 +26,7 @@ In scope:
   artifacts, and sibling artifact families currently encoded as `linkedMapOf`.
 - Move wire serialization to private mappers in infra or adapter modules where
   the public API previously returned maps; ports expose typed models only.
-- Contract schemas for new artifact record shapes in `orchestration/contracts/`
+- Contract schemas for new artifact record shapes in `../../../orchestration/contracts`
   when keys are not already owned; wire keys via existing `*Keys` objects.
 - Golden or round-trip tests for representative artifact families to catch
   persistence regressions.
@@ -69,4 +69,4 @@ Out of scope:
 
 ## Next Path
 
-`.feature-specs/SKILL-52.5-open-boundary-elimination/spec_subtask_4_feature-task-engine-typing.md`
+`spec_subtask_4_feature-task-engine-typing.md`

@@ -9,15 +9,27 @@ import skillbill.workflow.taskruntime.FeatureTaskRuntimeHandoffFoundationValidat
 
 @Inject
 class FeatureTaskRuntimeHandoffFoundationValidatorInfraAdapter : FeatureTaskRuntimeHandoffFoundationValidator {
-  override fun validateDeclaration(payload: Map<String, Any?>, sourceLabel: String) =
-    FeatureTaskRuntimePhaseHandoffSchemaValidator.validate(payload, sourceLabel)
+  override fun validateDeclaration(payload: Any, sourceLabel: String) =
+    FeatureTaskRuntimePhaseHandoffSchemaValidator.validate(
+      requireFeatureTaskRuntimeArtifactMap(payload, sourceLabel),
+      sourceLabel,
+    )
 
-  override fun validatePersistenceRecord(payload: Map<String, Any?>, sourceLabel: String) =
-    FeatureTaskRuntimePersistenceSchemaValidator.validate(payload, sourceLabel)
+  override fun validatePersistenceRecord(payload: Any, sourceLabel: String) =
+    FeatureTaskRuntimePersistenceSchemaValidator.validate(
+      requireFeatureTaskRuntimeArtifactMap(payload, sourceLabel),
+      sourceLabel,
+    )
 
-  override fun validateMeasurement(payload: Map<String, Any?>, sourceLabel: String) =
-    FeatureTaskRuntimeProjectionMeasurementSchemaValidator.validate(payload, sourceLabel)
+  override fun validateMeasurement(payload: Any, sourceLabel: String) =
+    FeatureTaskRuntimeProjectionMeasurementSchemaValidator.validate(
+      requireFeatureTaskRuntimeArtifactMap(payload, sourceLabel),
+      sourceLabel,
+    )
 
-  override fun validateSharedEvidenceProjection(payload: Map<String, Any?>, sourceLabel: String) =
-    FeatureTaskRuntimeSharedEvidenceProjectionSchemaValidator.validate(payload, sourceLabel)
+  override fun validateSharedEvidenceProjection(payload: Any, sourceLabel: String) =
+    FeatureTaskRuntimeSharedEvidenceProjectionSchemaValidator.validate(
+      requireFeatureTaskRuntimeArtifactMap(payload, sourceLabel),
+      sourceLabel,
+    )
 }

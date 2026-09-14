@@ -22,6 +22,7 @@ import skillbill.application.workflow.model.WorkflowUpdateResult
 import skillbill.contracts.issuekey.normalizeIssueKey
 import skillbill.model.RepositoryRoot
 import skillbill.ports.db.DatabaseSessionFactory
+import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
@@ -35,6 +36,7 @@ import skillbill.ports.workflow.save
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.WorkflowSnapshotValidator
+import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.goal.GoalObservabilityEventValidator
 
 @Inject
@@ -110,47 +112,10 @@ class WorkflowService(
     WorkflowEngine.validateUpdate(family.definition, input)?.let { error ->
       return WorkflowUpdateResult.Error(request.workflowId, error)
     }
-    var projectionArtifactsJson: String? = null
-    val result = database.transaction { unitOfWork ->
-      val existing = family.get(unitOfWork.workflowStates, request.workflowId)
-        ?: return@transaction WorkflowUpdateResult.Error(
-          request.workflowId,
-          "Unknown workflow_id '${request.workflowId}'.",
-        )
-      val runtimeInput = family.withDecompositionRuntime(
-        DecompositionRuntimeWriteArgs(
-          existing = existing,
-          input = input,
-          workflowId = request.workflowId,
-          validator = decompositionManifestValidator,
-          fileStore = decompositionManifestStore,
-          repoRoot = repositoryRoot.path,
-          manifestWriter = decompositionManifestWriter,
-        ),
-      )
-      val effectiveInput = runtimeInput.input.withGoalObservabilityArtifacts(
-        existing = existing,
-        workflowId = request.workflowId,
-        validator = goalObservabilityEventValidator,
-        gitOperations = gitOperations,
-        repoRoot = repositoryRoot.path,
-      )
-      val updatedRecord = engine.updateRecord(family.definition, existing, effectiveInput)
-      family.save(unitOfWork.workflowStates, updatedRecord)
-      val updated = family.get(unitOfWork.workflowStates, request.workflowId) ?: updatedRecord
-      if (runtimeInput.updated) {
-        projectionArtifactsJson = updated.artifactsJson
-        engine.syncDecompositionParentRuntime(
-          family,
-          updated,
-          request.workflowId,
-          unitOfWork,
-          decompositionManifestValidator,
-        )
-      }
-      buildUpdateOk(engine, family.definition, updated, effectiveInput, unitOfWork.dbPath.toString())
+    val persisted = database.transaction { unitOfWork ->
+      persistUpdate(family, request, input, unitOfWork)
     }
-    projectionArtifactsJson?.let { artifactsJson ->
+    persisted.projectionArtifactsJson?.let { artifactsJson ->
       DecompositionManifestWriteGuard.requireWritten(
         decompositionManifestWriter.writeProjectionFromWorkflowState(
           repositoryRoot.path,
@@ -161,7 +126,58 @@ class WorkflowService(
         "Workflow update committed durable state but could not write its decomposition manifest projection.",
       )
     }
-    return result
+    return persisted.result
+  }
+
+  private fun persistUpdate(
+    family: WorkflowFamily,
+    request: WorkflowUpdateRequest,
+    input: WorkflowUpdateInput,
+    unitOfWork: UnitOfWork,
+  ): WorkflowUpdatePersistence {
+    val existing = family.get(unitOfWork.workflowStates, request.workflowId)
+      ?: return WorkflowUpdatePersistence(
+        WorkflowUpdateResult.Error(
+          request.workflowId,
+          "Unknown workflow_id '${request.workflowId}'.",
+        ),
+        null,
+      )
+    val runtimeInput = family.withDecompositionRuntime(
+      DecompositionRuntimeWriteArgs(
+        existing = existing,
+        input = input,
+        planningResult = request.planningResult,
+        workflowId = request.workflowId,
+        validator = decompositionManifestValidator,
+        fileStore = decompositionManifestStore,
+        repoRoot = repositoryRoot.path,
+        manifestWriter = decompositionManifestWriter,
+      ),
+    )
+    val effectiveInput = runtimeInput.input.withGoalObservabilityArtifacts(
+      existing = existing,
+      workflowId = request.workflowId,
+      validator = goalObservabilityEventValidator,
+      gitOperations = gitOperations,
+      repoRoot = repositoryRoot.path,
+    )
+    val updatedRecord = engine.updateRecord(family.definition, existing, effectiveInput)
+    family.save(unitOfWork.workflowStates, updatedRecord)
+    val updated = family.get(unitOfWork.workflowStates, request.workflowId) ?: updatedRecord
+    if (runtimeInput.updated) {
+      engine.syncDecompositionParentRuntime(
+        family,
+        updated,
+        request.workflowId,
+        unitOfWork,
+        decompositionManifestValidator,
+      )
+    }
+    return WorkflowUpdatePersistence(
+      result = buildUpdateOk(engine, family.definition, updated, effectiveInput, unitOfWork.dbPath.toString()),
+      projectionArtifactsJson = updated.artifactsJson.takeIf { runtimeInput.updated },
+    )
   }
 
   fun abandonFeatureTaskRuntime(workflowId: String, reason: String): WorkflowUpdateResult {
@@ -325,3 +341,8 @@ class WorkflowService(
     return result
   }
 }
+
+private data class WorkflowUpdatePersistence(
+  val result: WorkflowUpdateResult,
+  val projectionArtifactsJson: String?,
+)

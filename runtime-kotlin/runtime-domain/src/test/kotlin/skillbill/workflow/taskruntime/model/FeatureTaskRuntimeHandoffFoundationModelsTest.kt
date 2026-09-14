@@ -125,8 +125,8 @@ class FeatureTaskRuntimeHandoffFoundationModelsTest {
 }
 
 private object AcceptingFoundationValidator : FeatureTaskRuntimeHandoffFoundationValidator {
-  override fun validateDeclaration(payload: Map<String, Any?>, sourceLabel: String) = Unit
-  override fun validatePersistenceRecord(payload: Map<String, Any?>, sourceLabel: String) = Unit
-  override fun validateMeasurement(payload: Map<String, Any?>, sourceLabel: String) = Unit
-  override fun validateSharedEvidenceProjection(payload: Map<String, Any?>, sourceLabel: String) = Unit
+  override fun validateDeclaration(payload: Any, sourceLabel: String) = Unit
+  override fun validatePersistenceRecord(payload: Any, sourceLabel: String) = Unit
+  override fun validateMeasurement(payload: Any, sourceLabel: String) = Unit
+  override fun validateSharedEvidenceProjection(payload: Any, sourceLabel: String) = Unit
 }

@@ -14,15 +14,17 @@ import skillbill.featurespec.model.FeatureSpecPreparationMode
 import skillbill.featurespec.model.FeatureSpecSubtaskPreparation
 import skillbill.featurespec.model.FeatureSpecWriteRequest
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
-import skillbill.workflow.decomposition.DecompositionManifestCodec
 import skillbill.workflow.decomposition.DecompositionManifestValidator
+import skillbill.workflow.decomposition.decodeManifest
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
+import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionManifestRepairEvidence
 import skillbill.workflow.decomposition.model.DecompositionManifestRepairOperation
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationFormat
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationResult
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationSourceLocation
 import skillbill.workflow.decomposition.model.SpecSource
+import skillbill.workflow.engine.model.DecompositionManifestWireMap
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
@@ -217,10 +219,10 @@ class FeatureSpecPreparationWriterTest {
     val repoRoot = Files.createTempDirectory("skillbill-feature-spec-manifest-prevalidate")
     val store = PreparationCountingManifestFileStore()
     val rejectingValidator = object : DecompositionManifestValidator {
-      override fun validate(manifest: Map<String, Any?>, sourceLabel: String): Unit =
+      override fun validate(manifest: DecompositionManifestWireMap, sourceLabel: String): Unit =
         throw InvalidDecompositionManifestSchemaError(sourceLabel, "typed manifest rejection", "schema_invalid")
 
-      override fun validateYamlText(yamlText: String, sourceLabel: String): Map<String, Any?> =
+      override fun validateYamlText(yamlText: String, sourceLabel: String): DecompositionManifest =
         throw InvalidDecompositionManifestSchemaError(sourceLabel, "typed YAML rejection", "schema_invalid")
     }
 
@@ -246,14 +248,19 @@ class FeatureSpecPreparationWriterTest {
     val readbackRejectingValidator = object : DecompositionManifestValidator {
       private var yamlValidationCount = 0
 
-      override fun validate(manifest: Map<String, Any?>, sourceLabel: String): Unit = Unit
+      override fun validate(manifest: DecompositionManifestWireMap, sourceLabel: String): Unit = Unit
 
-      override fun validateYamlText(yamlText: String, sourceLabel: String): Map<String, Any?> {
+      override fun validateYamlText(yamlText: String, sourceLabel: String): DecompositionManifest {
         yamlValidationCount += 1
         if (yamlValidationCount == 2) {
           throw InvalidDecompositionManifestSchemaError(sourceLabel, "read-back rejection", "schema_invalid")
         }
-        return requireNotNull(JsonCodec.anyToStringAnyMap(YAMLMapper().readValue(yamlText, Map::class.java)))
+        return decodeManifest(
+          DecompositionManifestWireMap.from(
+            requireNotNull(JsonCodec.anyToStringAnyMap(YAMLMapper().readValue(yamlText, Map::class.java))),
+          ),
+          sourceLabel,
+        )
       }
     }
 
@@ -294,14 +301,19 @@ class FeatureSpecPreparationWriterTest {
     val readbackRejectingValidator = object : DecompositionManifestValidator {
       private var yamlValidationCount = 0
 
-      override fun validate(manifest: Map<String, Any?>, sourceLabel: String): Unit = Unit
+      override fun validate(manifest: DecompositionManifestWireMap, sourceLabel: String): Unit = Unit
 
-      override fun validateYamlText(yamlText: String, sourceLabel: String): Map<String, Any?> {
+      override fun validateYamlText(yamlText: String, sourceLabel: String): DecompositionManifest {
         yamlValidationCount += 1
         if (yamlValidationCount == 4) {
           throw InvalidDecompositionManifestSchemaError(sourceLabel, "read-back rejection", "schema_invalid")
         }
-        return requireNotNull(JsonCodec.anyToStringAnyMap(YAMLMapper().readValue(yamlText, Map::class.java)))
+        return decodeManifest(
+          DecompositionManifestWireMap.from(
+            requireNotNull(JsonCodec.anyToStringAnyMap(YAMLMapper().readValue(yamlText, Map::class.java))),
+          ),
+          sourceLabel,
+        )
       }
     }
 
@@ -338,17 +350,20 @@ class FeatureSpecPreparationWriterTest {
     val repairingValidator = object : DecompositionManifestValidator {
       private var yamlValidationCount = 0
 
-      override fun validate(manifest: Map<String, Any?>, sourceLabel: String): Unit = Unit
-      override fun validateYamlText(yamlText: String, sourceLabel: String): Map<String, Any?> =
-        requireNotNull(JsonCodec.anyToStringAnyMap(YAMLMapper().readValue(yamlText, Map::class.java)))
+      override fun validate(manifest: DecompositionManifestWireMap, sourceLabel: String): Unit = Unit
+      override fun validateYamlText(yamlText: String, sourceLabel: String): DecompositionManifest = decodeManifest(
+        DecompositionManifestWireMap.from(
+          requireNotNull(JsonCodec.anyToStringAnyMap(YAMLMapper().readValue(yamlText, Map::class.java))),
+        ),
+        sourceLabel,
+      )
 
       override fun validateYamlTextResult(
         yamlText: String,
         sourceLabel: String,
       ): DecompositionManifestValidationResult {
         yamlValidationCount += 1
-        val parsed = validateYamlText(yamlText, sourceLabel)
-        val manifest = DecompositionManifestCodec.decodeMap(parsed, sourceLabel)
+        val manifest = validateYamlText(yamlText, sourceLabel)
         return if (yamlValidationCount == 1) {
           DecompositionManifestValidationResult.AcceptedAfterRepair(manifest, yamlText, evidence)
         } else {
@@ -394,17 +409,20 @@ class FeatureSpecPreparationWriterTest {
       private var yamlValidationCount = 0
       var repairedYaml: String? = null
 
-      override fun validate(manifest: Map<String, Any?>, sourceLabel: String): Unit = Unit
-      override fun validateYamlText(yamlText: String, sourceLabel: String): Map<String, Any?> =
-        requireNotNull(JsonCodec.anyToStringAnyMap(YAMLMapper().readValue(yamlText, Map::class.java)))
+      override fun validate(manifest: DecompositionManifestWireMap, sourceLabel: String): Unit = Unit
+      override fun validateYamlText(yamlText: String, sourceLabel: String): DecompositionManifest = decodeManifest(
+        DecompositionManifestWireMap.from(
+          requireNotNull(JsonCodec.anyToStringAnyMap(YAMLMapper().readValue(yamlText, Map::class.java))),
+        ),
+        sourceLabel,
+      )
 
       override fun validateYamlTextResult(
         yamlText: String,
         sourceLabel: String,
       ): DecompositionManifestValidationResult {
         yamlValidationCount += 1
-        val parsed = validateYamlText(yamlText, sourceLabel)
-        val manifest = DecompositionManifestCodec.decodeMap(parsed, sourceLabel)
+        val manifest = validateYamlText(yamlText, sourceLabel)
         return if (yamlValidationCount == 2) {
           val repaired = "$yamlText# repaired read-back\n"
           repairedYaml = repaired

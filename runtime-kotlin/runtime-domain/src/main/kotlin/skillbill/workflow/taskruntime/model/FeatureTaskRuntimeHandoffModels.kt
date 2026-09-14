@@ -1,7 +1,6 @@
 package skillbill.workflow.taskruntime.model
 
 import skillbill.agentaddon.model.AgentAddonSelection
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.error.InvalidFeatureTaskRuntimePhaseHandoffSchemaError
 import skillbill.review.context.model.CodeReviewExecutionMode
 import skillbill.review.model.ReviewFindingVerdict
@@ -109,9 +108,10 @@ data class FeatureTaskRuntimeResolvedUpstreamOutputs(
 
 data class NormalizedFeatureTaskRuntimePhaseOutput(
   val canonicalJson: String,
-  @OpenBoundaryMap("Canonical validated phase-output envelope")
-  val envelope: Map<String, Any?>,
-)
+  internal val envelope: Map<String, Any?>,
+) {
+  fun envelopePayload(): Any = envelope
+}
 
 data class FeatureTaskRuntimePhaseHandoff(
   val phaseId: String,

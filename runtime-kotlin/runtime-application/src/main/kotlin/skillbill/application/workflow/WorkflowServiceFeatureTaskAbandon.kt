@@ -6,6 +6,7 @@ import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.ports.workflow.save
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowUpdateAcknowledgementView
 import skillbill.workflow.engine.model.WorkflowUpdateInput
@@ -34,10 +35,12 @@ class WorkflowServiceFeatureTaskAbandon(
       workflowStatus = "abandoned",
       currentStepId = existing.currentStepId.orEmpty(),
       stepUpdates = null,
-      artifactsPatch = mapOf(
-        FEATURE_TASK_RUNTIME_OPERATOR_ABANDONMENT_ARTIFACT_KEY to mapOf(
-          "reason" to normalizedReason,
-          "abandoned_at" to OffsetDateTime.now(ZoneOffset.UTC).toString(),
+      artifactsPatch = WorkflowArtifactPatch.from(
+        mapOf(
+          FEATURE_TASK_RUNTIME_OPERATOR_ABANDONMENT_ARTIFACT_KEY to mapOf(
+            "reason" to normalizedReason,
+            "abandoned_at" to OffsetDateTime.now(ZoneOffset.UTC).toString(),
+          ),
         ),
       ),
       sessionId = "",

@@ -5,6 +5,38 @@ This file records architectural and implementation decisions that span the
 not the implementation detail.
 
 
+## 2026-09-14 — SKILL-52.5 subtask 7: zero-tolerance raw-map enforcement
+
+**Context.** SKILL-52.1 introduced `@OpenBoundaryMap` plus a Kotlin FQN
+allow-list with ARCHITECTURE.md / SKILL-52.2 inventory parity. Subtasks 2–6
+typed the remaining inner-layer public seams; subtask 7 removes the escape
+hatches.
+
+**Decisions.**
+
+1. **Retire allow-list governance.** Delete the Kotlin allow-list constant,
+   the allow-list sync script, the SKILL-52.2 inventory resource, and all
+   architecture-test branches that parsed or ratcheted them.
+   `RuntimeRawMapArchitectureTest` hard-fails any new public raw-map
+   declaration in `runtime-application`, `runtime-domain`, and `runtime-ports`
+   with no FQN grandfather path.
+
+2. **Delete `@OpenBoundaryMap` from production.** The annotation and
+   `skillbill.boundary` package are removed; wire maps belong in private or
+   internal adapter code or in typed DTOs at real boundaries.
+
+3. **Supersede 2026-05-29 — SKILL-52.3 subtask 4 item 2 (lifecycle payloads
+   as permanent annotated open boundaries).** Lifecycle telemetry and similar
+   forward-compatible event bags remain raw-map at the adapter seam, but
+   enforcement follows the typed doctor/version pattern (item 1 of that entry)
+   and private serializers — not annotation plus three-place allow-list
+   lockstep.
+
+Revisit when: a new inner-layer public API genuinely requires an open schema
+extension with no stable per-key contract; that case needs a typed envelope or
+contract version bump, not a restored allow-list.
+
+
 ## [2026-09-06] SKILL-233 subtask 2 audit round 3: the manifest port owns its own capability split; duplicate ports/application declarations collapse to the ports copy
 
 **(a) `GoalRunnerManifestStore` is composed of four port-owned capability interfaces, superseding decision (a) of the audit-round-2 entry below.**

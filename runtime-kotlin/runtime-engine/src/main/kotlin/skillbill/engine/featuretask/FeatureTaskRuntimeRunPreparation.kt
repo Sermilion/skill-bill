@@ -1,5 +1,4 @@
 package skillbill.engine.featuretask
-
 import skillbill.engine.featuretask.model.ContinuationRead
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeGoalContinuationContext
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePreparation

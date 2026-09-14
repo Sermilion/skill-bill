@@ -1,6 +1,5 @@
 package skillbill.engine.featuretask
-
-import skillbill.application.decomposition.decodeArtifacts
+import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.engine.featuretask.model.PersistHealedRemediationBaseRequest
@@ -20,9 +19,9 @@ import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.workflow.goal.model.GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.decodeCheckpointIdentitiesFromArtifact
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationArtifact
-import skillbill.workflow.taskruntime.model.featureTaskRuntimeCheckpointIdentitiesFromArtifact
 import java.nio.file.Path
 import java.time.Clock
 
@@ -60,7 +59,7 @@ class FeatureTaskRuntimeRemediationBaseReconciler(
     database.transaction { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
         ?: return@transaction
-      val artifacts = decodeArtifacts(record.artifactsJson)
+      val artifacts = decodeWorkflowArtifacts(record.artifactsJson)
       val rejected = artifacts[FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_ARTIFACT_KEY]
         ?: return@transaction
       val existing = (artifacts[CHECKPOINT_IDENTITY_QUARANTINE_ARTIFACT_KEY] as? List<*>).orEmpty()
@@ -84,11 +83,11 @@ class FeatureTaskRuntimeRemediationBaseReconciler(
 
   private fun readRemediationSnapshot(workflowId: String): RemediationReconcileSnapshot? = database.read { unitOfWork ->
     val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@read null
-    val artifacts = decodeArtifacts(record.artifactsJson)
+    val artifacts = decodeWorkflowArtifacts(record.artifactsJson)
     runCatching {
       val state = reviewStateFromArtifacts(artifacts) ?: return@read null
       val continuation = continuationFromArtifacts(artifacts) ?: return@read null
-      val checkpoints = featureTaskRuntimeCheckpointIdentitiesFromArtifact(
+      val checkpoints = decodeCheckpointIdentitiesFromArtifact(
         artifacts[FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_ARTIFACT_KEY],
       )
       RemediationReconcileSnapshot(state, continuation, checkpoints)
@@ -100,7 +99,7 @@ class FeatureTaskRuntimeRemediationBaseReconciler(
   internal fun appendRemediationRollbackDegradationEvidence(workflowId: String, signal: RemediationDegradationSignal) {
     database.transaction { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@transaction
-      val artifacts = decodeArtifacts(record.artifactsJson)
+      val artifacts = decodeWorkflowArtifacts(record.artifactsJson)
       val goalBranch = continuationFromArtifacts(artifacts)?.goalBranch.orEmpty()
       val evidenceEntry = remediationBaseRecoveryEvidenceEntry(
         RemediationBaseRecovery(
@@ -355,7 +354,7 @@ internal fun FeatureTaskRuntimeRemediationBaseReconciler.appendRemediationBaseRe
 ) {
   database.transaction { unitOfWork ->
     val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@transaction
-    val artifacts = decodeArtifacts(record.artifactsJson)
+    val artifacts = decodeWorkflowArtifacts(record.artifactsJson)
     val evidenceEntry = remediationBaseRecoveryEvidenceEntry(recovery, signal)
     val priorEvidence = (artifacts[GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY] as? List<*>).orEmpty()
     patcher.save(

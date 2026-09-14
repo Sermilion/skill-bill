@@ -1,5 +1,4 @@
 package skillbill.engine.goalrunner
-
 import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
@@ -42,6 +41,8 @@ import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.decompositionStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.decodeValidationEvidenceFromArtifact
+import skillbill.workflow.taskruntime.decodeValidationGateExecutionEvidenceFromArtifact
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationEvidence
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateExecutionEvidence
 import java.io.IOException
@@ -136,7 +137,7 @@ internal fun GoalRunnerStatusProjectionAssembler.statusProjectionRuntimeInputs(
     currentStepOverride = derivedCurrentStep ?: progress?.currentStepId,
     currentWorkflowStatus = progress?.workflowStatus,
     latestLivenessSignal = progress?.latestLivenessSignal,
-    latestObservabilityEvent = progress?.latestGoalObservabilityEvent?.toStatusMap(),
+    latestObservabilityEvent = progress?.latestGoalObservabilityEvent?.toObservabilityEvent(),
     requestedDiffStat = requestedDiffStat(request),
     selectedDiffHunks = requestedSelectedDiffHunks(request),
     blockedAttemptCount = ledgerSummary?.blockedAttemptCount ?: 0,
@@ -183,7 +184,7 @@ private fun GoalRunnerStatusProjectionAssembler.completedSubtaskValidationFor(
   }
   val sourceLabel = "goal-status.subtask-${subtask.id}"
   return runCatching {
-    val evidence = FeatureTaskRuntimeValidationEvidence.fromArtifactMap(rawEvidence, sourceLabel)
+    val evidence = decodeValidationEvidenceFromArtifact(rawEvidence, sourceLabel)!!
     val requiredCommand = requiredValidationCommandFor(
       workflowId = requireNotNull(workflowId),
       repoRoot = repoRoot,
@@ -224,7 +225,7 @@ private fun GoalRunnerStatusProjectionAssembler.runtimeValidationGateExecutionEv
     ) {
       null
     } else {
-      FeatureTaskRuntimeValidationGateExecutionEvidence.fromArtifactMap(raw, "goal-status.validate")
+      decodeValidationGateExecutionEvidenceFromArtifact(raw, "goal-status.validate")
     }
   }
 

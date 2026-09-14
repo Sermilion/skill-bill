@@ -1,6 +1,6 @@
 package skillbill.workflow.engine.model
 
-import skillbill.boundary.OpenBoundaryMap
+import skillbill.contracts.workflow.WorkflowContinueSessionSummary
 import skillbill.workflow.model.WorkflowContinueStatus
 import skillbill.workflow.model.WorkflowResumeMode
 
@@ -22,14 +22,7 @@ data class WorkflowSnapshotView(
   val workflowStatus: String,
   val currentStepId: String,
   val steps: List<WorkflowStepState>,
-  /**
-   * Durable artifacts payload. The artifacts map is intentionally an
-   * open-boundary `Map<String, Any?>` — it carries arbitrary JSON
-   * objects supplied by callers (preplan_digest, plan, branch, etc.)
-   * that have no typed schema beyond the workflow-state schema.
-   */
-  @OpenBoundaryMap("Durable workflow artifacts payload (caller-supplied JSON)")
-  val artifacts: Map<String, Any?>,
+  val artifacts: DurableWorkflowArtifacts,
   val startedAt: String,
   val updatedAt: String,
   val finishedAt: String,
@@ -77,13 +70,7 @@ data class WorkflowContinuationArtifactSummary(
   val present: Boolean,
   val inline: Boolean,
   val sizeBytes: Int?,
-  /**
-   * Caller-supplied artifact JSON when the compact continuation payload can
-   * inline it. This is intentionally open-boundary because artifact schemas
-   * are owned by workflow callers, not this projection model.
-   */
-  @OpenBoundaryMap("Inline compact continuation artifact value (caller-supplied JSON)")
-  val value: Any?,
+  val value: InlineContinuationArtifactValue,
   val preview: String?,
   val truncated: Boolean,
   val omitted: Boolean,
@@ -121,27 +108,13 @@ data class WorkflowContinueView(
   val continueStepDirective: String,
   val referenceSections: List<String>,
   val stepArtifactKeys: List<String>,
-  /**
-   * Recovered durable artifact values keyed by artifact name; the
-   * payload mirrors the artifacts map and is an open-boundary
-   * passthrough.
-   */
-  @OpenBoundaryMap("Recovered artifact passthrough for the continue payload")
-  val stepArtifacts: Map<String, Any?>,
-  /**
-   * Implement-flavour extra fields (`feature_name`, `feature_size`,
-   * `branch_name`). Open-boundary because the set differs per
-   * workflow family and the values are scraped from caller-supplied
-   * artifacts.
-   */
-  @OpenBoundaryMap("Per-workflow-family extra continuation fields")
-  val extraFields: Map<String, Any?>,
+  val stepArtifacts: WorkflowStepArtifactMap,
+  val extraFields: WorkflowContinuationFieldMap,
   /**
    * Workflow-family session summary. Sourced from the durable record
    * via the workflow-state repository.
    */
-  @OpenBoundaryMap("Durable workflow session summary passthrough")
-  val sessionSummary: Map<String, Any?>,
+  val sessionSummary: WorkflowContinueSessionSummary,
   val continuationBrief: String,
   val continuationEntryPrompt: String,
   val compact: WorkflowCompactContinueView,

@@ -20,13 +20,13 @@ import skillbill.review.context.model.SpecIntentProjectionResolveRequest
 import skillbill.review.context.model.SpecIntentProvenance
 import skillbill.review.context.model.SpecIntentResolution
 import skillbill.review.plan.model.ReviewLaunchLane
-import skillbill.workflow.decomposition.DecompositionManifestCodec
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.model.DecompositionManifestRepairEvidence
 import skillbill.workflow.decomposition.model.DecompositionManifestRepairOperation
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationFormat
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationResult
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationSourceLocation
+import skillbill.workflow.engine.model.ReviewContextWireMap
 import java.nio.file.Files
 import java.nio.file.Path
 import java.security.MessageDigest
@@ -363,7 +363,7 @@ class SpecIntentProjectionResolverTest {
 
 private fun extractor() = SpecIntentProjectionExtractor(
   object : ReviewContextEnvelopeValidator {
-    override fun validate(envelope: Map<String, Any?>, sourceLabel: String) = Unit
+    override fun validate(envelope: ReviewContextWireMap, sourceLabel: String) = Unit
   },
   TestDecompositionManifestStore,
 )
@@ -378,7 +378,7 @@ private fun resolver(validator: DecompositionManifestValidator = testDecompositi
 private fun repairedManifestValidator(): DecompositionManifestValidator =
   object : DecompositionManifestValidator by testDecompositionManifestValidator {
     override fun validateYamlTextResult(yamlText: String, sourceLabel: String): DecompositionManifestValidationResult {
-      val manifest = DecompositionManifestCodec.decodeMap(validateYamlText(yamlText, sourceLabel), sourceLabel)
+      val manifest = validateYamlText(yamlText, sourceLabel)
       return DecompositionManifestValidationResult.AcceptedAfterRepair(
         manifest,
         yamlText,
@@ -438,7 +438,7 @@ private fun compileCriteria(resolution: SpecIntentResolution): List<ReviewSpecia
     ),
     ReviewContextBudgetPolicy.DEFAULT,
     object : ReviewContextEnvelopeValidator {
-      override fun validate(envelope: Map<String, Any?>, sourceLabel: String) = Unit
+      override fun validate(envelope: ReviewContextWireMap, sourceLabel: String) = Unit
     },
     "contract",
   )

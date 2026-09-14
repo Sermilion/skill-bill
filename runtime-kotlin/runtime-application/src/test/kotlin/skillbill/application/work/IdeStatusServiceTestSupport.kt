@@ -41,6 +41,7 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerProgressEventRecordRequ
 import skillbill.ports.goalrunner.runner.model.GoalRunnerReconcileGate
 import skillbill.ports.goalrunner.runner.model.GoalRunnerWorkflowProgress
 import skillbill.ports.idestatus.IdeStatusValidator
+import skillbill.ports.idestatus.IdeStatusWireMap
 import skillbill.ports.idestatus.NoopIdeStatusValidator
 import skillbill.ports.learning.LearningRepository
 import skillbill.ports.persistence.UnitOfWork
@@ -66,19 +67,21 @@ import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.engine.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.goal.model.GoalProgressEvent
 import skillbill.workflow.goal.model.GoalSubtaskReviewPassResult
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
+import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 import skillbill.workflow.verify.FeatureVerifyWorkflowDefinition
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
-
 internal val ideStatusObservedAt: Instant = Instant.parse("2026-08-06T12:00:00Z")
 internal val ideStatusClock: Clock = Clock.fixed(ideStatusObservedAt, ZoneOffset.UTC)
 
@@ -248,7 +251,7 @@ internal fun fixtureCheckedOutBranch(repoRoot: Path): String? =
     ?.removePrefix("ref: refs/heads/")
 
 internal object EmitShapeValidator : IdeStatusValidator by NoopIdeStatusValidator {
-  override fun validate(snapshot: Map<String, Any?>, sourceLabel: String) {
+  override fun validate(snapshot: IdeStatusWireMap, sourceLabel: String) {
     require(snapshot["contract_version"] == IDE_STATUS_CONTRACT_VERSION)
     require(snapshot["repository_identity"] is String)
     require(snapshot["lifecycle_state"] is String)
@@ -312,7 +315,7 @@ internal fun phaseRecordWire(
   edgeIteration = options.edgeIteration,
   blockedReason = options.blockedReason,
   failureDisposition = options.failureDisposition,
-).toArtifactMap()
+).asWorkflowArtifactEntry().toWorkflowArtifactMap()
 
 internal fun blockedQualityGateChildArtifacts(
   phaseId: String,
@@ -581,7 +584,7 @@ internal object EmptyOutcomeStore : GoalRunnerWorkflowOutcomeStore {
     workflowId: String,
     issueKey: String,
     subtaskId: Int,
-    output: Map<String, Any?>,
+    output: Any,
   ): GoalRunnerStoredOutcome? = null
 
   override fun reconcileAuthoritativeOutcomes(
@@ -626,7 +629,7 @@ internal object EmptyOutcomeStore : GoalRunnerWorkflowOutcomeStore {
 
   override fun acknowledgeGoalReviewPass(workflowId: String, passNumber: Int): Boolean = false
 
-  override fun progressEvents(workflowId: String): List<Map<String, Any?>> = emptyList()
+  override fun progressEvents(workflowId: String) = emptyList<GoalProgressEvent>()
 
   override fun childWorkflowLoopIterations(workflowId: String): Map<String, Int> = emptyMap()
 }

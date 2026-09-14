@@ -1,6 +1,5 @@
 package skillbill.workflow.taskruntime.model
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.review.ReviewFindingPayloadKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_REPAIR_RECEIPT_CONTRACT_VERSION
@@ -98,15 +97,12 @@ data class FeatureTaskRuntimeRepairConstruct(
     requireReceiptSymbol(symbol, "construct.symbol")
     file?.let { basename -> requireReceiptFileBasename(basename, "construct.file") }
   }
-
-  @OpenBoundaryMap("Repair construct at the durable workflow-artifact seam")
-  fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
+  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
     "symbol" to symbol,
   ).apply { file?.let { put("file", it) } }
 
   companion object {
-    @OpenBoundaryMap("Repair construct decode from the durable workflow-artifact map")
-    fun fromArtifactMap(raw: Map<String, Any?>, path: String): FeatureTaskRuntimeRepairConstruct {
+    internal fun fromArtifactMap(raw: Map<String, Any?>, path: String): FeatureTaskRuntimeRepairConstruct {
       raw.requireOnlyReviewStateKeys(setOf("symbol", "file"), path)
       return anchoredToDecodePath(path) {
         val rawSymbol = raw.requireReviewStateString("symbol", path)
@@ -131,16 +127,13 @@ data class FeatureTaskRuntimeRepairDisturbedRemedy(
       REPAIR_RECEIPT_MAX_DISTURBANCE_REASON_UTF8_BYTES,
     )
   }
-
-  @OpenBoundaryMap("Disturbed-remedy declaration at the durable workflow-artifact seam")
-  fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
+  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
     "finding_ref" to findingRef,
     "reason" to reason,
   )
 
   companion object {
-    @OpenBoundaryMap("Disturbed-remedy decode from the durable workflow-artifact map")
-    fun fromArtifactMap(raw: Map<String, Any?>, path: String): FeatureTaskRuntimeRepairDisturbedRemedy {
+    internal fun fromArtifactMap(raw: Map<String, Any?>, path: String): FeatureTaskRuntimeRepairDisturbedRemedy {
       raw.requireOnlyReviewStateKeys(setOf("finding_ref", "reason"), path)
       return anchoredToDecodePath(path) {
         FeatureTaskRuntimeRepairDisturbedRemedy(
@@ -163,9 +156,7 @@ data class FeatureTaskRuntimeRepairReceiptEntry(
   }
 
   fun findingIdentity(): String = normalizeIdentityPart(findingId)
-
-  @OpenBoundaryMap("Repair receipt entry at the durable workflow-artifact seam")
-  fun toArtifactMap(): Map<String, Any?> = buildMap {
+  internal fun toArtifactMap(): Map<String, Any?> = buildMap {
     put(ReviewFindingPayloadKeys.FINDING_ID, findingId)
     put("outcome", outcome.wireValue)
     noEditReason?.let { put("no_edit_reason", it) }
@@ -173,8 +164,7 @@ data class FeatureTaskRuntimeRepairReceiptEntry(
   }
 
   companion object {
-    @OpenBoundaryMap("Repair receipt entry decode from the durable workflow-artifact map")
-    fun fromArtifactMap(
+    internal fun fromArtifactMap(
       raw: Map<String, Any?>,
       path: String,
       observations: FeatureTaskRuntimeRepairReceiptDecodeObservations? = null,
@@ -225,9 +215,7 @@ data class FeatureTaskRuntimeRepairReceipt(
       receiptError("entries", "allows at most $REPAIR_RECEIPT_MAX_ENTRIES entries.")
     }
   }
-
-  @OpenBoundaryMap("Repair receipt at the durable workflow-artifact seam")
-  fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
+  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
     SharedPayloadKeys.CONTRACT_VERSION to contractVersion,
     "round_number" to roundNumber,
     "pre_fix_checkpoint_sha" to preFixCheckpointSha,
@@ -235,8 +223,7 @@ data class FeatureTaskRuntimeRepairReceipt(
   )
 
   companion object {
-    @OpenBoundaryMap("Repair receipt decode from the durable workflow-artifact map")
-    fun fromArtifactMap(
+    internal fun fromArtifactMap(
       raw: Map<String, Any?>,
       path: String,
       observations: FeatureTaskRuntimeRepairReceiptDecodeObservations? = null,
@@ -274,8 +261,7 @@ data class FeatureTaskRuntimeRepairReceipt(
      * sanitizer that keeps diff hunks and serialized payloads out of durable state lives on the
      * entries and still has to run.
      */
-    @OpenBoundaryMap("Repair receipt entry-shape check from the durable workflow-artifact map")
-    fun validateEntries(
+    internal fun validateEntries(
       raw: Map<String, Any?>,
       path: String,
       observations: FeatureTaskRuntimeRepairReceiptDecodeObservations? = null,

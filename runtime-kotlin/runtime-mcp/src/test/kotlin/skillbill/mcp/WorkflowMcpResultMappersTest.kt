@@ -2,9 +2,11 @@ package skillbill.mcp
 
 import skillbill.application.workflow.model.WorkflowGetResult
 import skillbill.application.workflow.model.WorkflowUpdateResult
+import skillbill.contracts.JsonCodec
 import skillbill.error.InvalidGoalObservabilityEventSchemaError
 import skillbill.infrastructure.fs.contracts.workflow.GoalObservabilityEventSchemaValidator
 import skillbill.mcp.workflow.toMcpMap
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowSnapshotView
 import skillbill.workflow.engine.model.WorkflowStepState
 import skillbill.workflow.engine.model.WorkflowUpdateAcknowledgementView
@@ -67,8 +69,10 @@ class WorkflowMcpResultMappersTest {
       workflowId = "wfl-1",
       dbPath = "/tmp/metrics.db",
       snapshot = snapshotWithObservability().copy(
-        artifacts = mapOf(
-          "goal_session_accounting" to listOf(mapOf("sequence_number" to 1)),
+        artifacts = DurableWorkflowArtifacts.fromMap(
+          mapOf(
+            "goal_session_accounting" to listOf(mapOf("sequence_number" to 1)),
+          ),
         ),
       ),
     ).toMcpMap(testGoalObservabilityEventValidator)
@@ -218,8 +222,10 @@ class WorkflowMcpResultMappersTest {
     workflowStatus = "running",
     currentStepId = "implement",
     steps = listOf(WorkflowStepState("implement", "running", 1)),
-    artifacts = mapOf(
-      "goal_observability_latest_event" to event,
+    artifacts = DurableWorkflowArtifacts.fromMap(
+      mapOf(
+        "goal_observability_latest_event" to event,
+      ),
     ),
     startedAt = "2026-06-01 00:00:00",
     updatedAt = "2026-06-01 00:00:00",
@@ -241,8 +247,8 @@ class WorkflowMcpResultMappersTest {
 
   private val testGoalObservabilityEventValidator: GoalObservabilityEventValidator =
     object : GoalObservabilityEventValidator {
-      override fun validate(event: Map<String, Any?>, sourceLabel: String) {
-        GoalObservabilityEventSchemaValidator.validate(event, sourceLabel)
+      override fun validate(event: Any, sourceLabel: String) {
+        GoalObservabilityEventSchemaValidator.validate(requireNotNull(JsonCodec.anyToStringAnyMap(event)), sourceLabel)
       }
     }
 }

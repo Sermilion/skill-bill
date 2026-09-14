@@ -8,15 +8,17 @@ import skillbill.error.InvalidInstallPlanSchemaError
 import skillbill.infrastructure.fs.DecompositionManifestValidatorAdapter
 import skillbill.infrastructure.fs.FileSystemDecompositionManifestFileStore
 import skillbill.infrastructure.fs.InstallPlanWireValidatorAdapter
+import skillbill.install.model.InstallPlanWireMap
 import skillbill.install.model.InstallPlanWireValidator
 import skillbill.workflow.decomposition.DecompositionManifestValidator
+import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionDependency
 import skillbill.workflow.decomposition.model.DecompositionExecutionModel
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionStackBranch
 import skillbill.workflow.decomposition.model.DecompositionSubtask
-import skillbill.workflow.decomposition.toWireMap
+import skillbill.workflow.engine.model.DecompositionManifestWireMap
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertFailsWith
@@ -50,14 +52,14 @@ class SchemaValidatorPortLoudFailTest {
     mcpRegistration["runtime_mcp_bin"] = ""
 
     val error = assertFailsWith<InvalidInstallPlanSchemaError> {
-      installValidator.validate(wireMap)
+      installValidator.validate(InstallPlanWireMap.from(wireMap))
     }
     assertContains(error.message.orEmpty(), "mcp_registration.runtime_mcp_bin")
   }
 
   @Test
   fun `well-formed install-plan wire map passes through the injected port`() {
-    installValidator.validate(validInstallPlanWireMap())
+    installValidator.validate(InstallPlanWireMap.from(validInstallPlanWireMap()))
   }
 
   @Test
@@ -82,7 +84,7 @@ class SchemaValidatorPortLoudFailTest {
     wireMap.remove("contract_version")
 
     val error = assertFailsWith<InvalidDecompositionManifestSchemaError> {
-      decompositionValidator.validate(wireMap, "missing-contract")
+      decompositionValidator.validate(DecompositionManifestWireMap.from(wireMap), "missing-contract")
     }
     assertContains(error.reason, "contract_version")
   }
@@ -167,7 +169,8 @@ class SchemaValidatorPortLoudFailTest {
     ),
   )
 
-  private fun DecompositionManifest.toMutableWireMap(): MutableMap<String, Any?> = LinkedHashMap(toWireMap())
+  private fun DecompositionManifest.toMutableWireMap(): MutableMap<String, Any?> =
+    LinkedHashMap(DecompositionManifestValidatorAdapter().encodeManifestWireMap(this))
 
   private fun validInstallPlanWireMap(): MutableMap<String, Any?> = linkedMapOf(
     "status" to "planned",

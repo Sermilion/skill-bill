@@ -1,6 +1,5 @@
 package skillbill.workflow.taskruntime.model
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION
@@ -141,9 +140,7 @@ data class FeatureTaskRuntimePhaseRecord(
       }
     }
   }
-
-  @OpenBoundaryMap("Feature-task-runtime per-phase record artifact map at the durable workflow-artifact seam")
-  fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
+  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
     SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION,
     "record_kind" to "private_phase_record",
     SharedPayloadKeys.PHASE_ID to phaseId,
@@ -177,8 +174,7 @@ data class FeatureTaskRuntimePhaseRecord(
 
   companion object {
     /** Strict decode; loud-fails on any missing or malformed required field. */
-    @OpenBoundaryMap("Feature-task-runtime per-phase record decode from the durable workflow-artifact map")
-    fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimePhaseRecord {
+    internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimePhaseRecord {
       requireCompatibleShape(raw)
       val phaseId = requireKnownFeatureTaskRuntimePhaseId(raw.requireStringField("phase_id"), "phase_id")
       return try {

@@ -30,7 +30,7 @@ import skillbill.engine.goalrunner.planning.model.GoalPlanningLogRequest
 import skillbill.goalrunner.model.UnaddressedFindingsLedger
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFindingVerificationDisposition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairLedger
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairLedgerEntry
+import skillbill.workflow.taskruntime.projectionWireMap
 import java.nio.file.Path
 
 @Inject
@@ -325,7 +325,7 @@ class GoalFindingsCommand(
     "repair_ledger" to repairLedgers.map { (workflowId, repairLedger) ->
       linkedMapOf<String, Any?>(
         SharedPayloadKeys.WORKFLOW_ID to workflowId,
-        "entries" to repairLedger.entries.map(FeatureTaskRuntimeRepairLedgerEntry::toProjectionMap),
+        "entries" to repairLedger.entries.map { it.projectionWireMap() },
       )
     },
     "finding_verification_dispositions" to verificationDispositions.map { disposition ->

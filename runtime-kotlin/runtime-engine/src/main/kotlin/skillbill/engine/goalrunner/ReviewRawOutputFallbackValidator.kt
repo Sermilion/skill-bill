@@ -1,5 +1,4 @@
 package skillbill.engine.goalrunner
-
 import skillbill.contracts.JsonCodec
 import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator

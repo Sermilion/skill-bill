@@ -38,7 +38,7 @@ class FeatureTaskRuntimeSubtaskFinalisation(
     return commitAndPush(request, paths.stageable, paths.excluded, staging.restoreState)
   }
 
-  companion object {
+  internal companion object {
     fun readHandoff(envelope: Map<String, Any?>): FeatureTaskRuntimeCommitPushHandoffResult =
       FeatureTaskRuntimeSubtaskFinalisationHandoff.readHandoff(envelope)
 

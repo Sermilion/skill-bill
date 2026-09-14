@@ -1,9 +1,10 @@
 package skillbill.workflow.decomposition
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.error.InvalidDecompositionManifestSchemaError
+import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationFailureCode
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationResult
+import skillbill.workflow.engine.model.DecompositionManifestWireMap
 
 /**
  * SKILL-52.3 Subtask 1: domain-owned validator port for decomposition
@@ -25,17 +26,9 @@ interface DecompositionManifestValidator {
    * and coherence rules. Throws [InvalidDecompositionManifestSchemaError]
    * on any violation.
    */
-  @OpenBoundaryMap("Decomposition manifest wire map at the schema-validation seam")
-  fun validate(manifest: Map<String, Any?>, sourceLabel: String)
+  fun validate(manifest: DecompositionManifestWireMap, sourceLabel: String)
 
-  /**
-   * Parses [yamlText] into a decomposition-manifest map, then validates it
-   * via [validate]. Returns the parsed map. Throws
-   * [InvalidDecompositionManifestSchemaError] on malformed YAML, a
-   * non-object root, schema violations, or coherence violations.
-   */
-  @OpenBoundaryMap("Parsed decomposition manifest wire map at the schema-validation seam")
-  fun validateYamlText(yamlText: String, sourceLabel: String): Map<String, Any?>
+  fun validateYamlText(yamlText: String, sourceLabel: String): DecompositionManifest
 
   /**
    * Returns the versioned result at the YAML parse/repair boundary. The default keeps existing
@@ -43,9 +36,8 @@ interface DecompositionManifestValidator {
    * repair and repair evidence.
    */
   fun validateYamlTextResult(yamlText: String, sourceLabel: String): DecompositionManifestValidationResult = try {
-    val parsed = validateYamlText(yamlText, sourceLabel)
     DecompositionManifestValidationResult.AcceptedUnchanged(
-      manifest = DecompositionManifestCodec.decodeMap(parsed, sourceLabel),
+      manifest = validateYamlText(yamlText, sourceLabel),
       yamlText = yamlText,
     )
   } catch (error: InvalidDecompositionManifestSchemaError) {

@@ -1,11 +1,11 @@
 package skillbill.engine.featuretask
-
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeTransitionDeclaration
 
 const val STATUS_RUNNING = "running"
@@ -71,7 +71,10 @@ fun phasesFor(request: FeatureTaskRuntimeRunRequest): List<String> {
   }
 }
 
-fun mutatingReconciliationGateReason(phaseId: String, outputMap: Map<String, Any?>): String? {
+internal fun mutatingReconciliationGateReason(
+  phaseId: String,
+  outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
+): String? {
   if (phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT) return null
   if (!FeatureTaskRuntimePhaseWorkflowDefinition.isMutatingPhase(phaseId)) return null
   // Only a completion claim owes a reconciliation report. A retryable blocked or failed envelope is a

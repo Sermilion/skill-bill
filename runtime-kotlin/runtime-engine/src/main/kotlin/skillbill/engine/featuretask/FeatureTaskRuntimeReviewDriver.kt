@@ -115,7 +115,7 @@ object FeatureTaskRuntimeReviewEnvelope {
         ),
     )
     commitFocusedAccounting(result, cycle.resolvedTier)?.let { accounting ->
-      produced["commit_focused_accounting"] = accounting.toArtifactMap()
+      produced["commit_focused_accounting"] = accounting.toPersistenceWire()
     }
     CRITERION_GAP_KEYS.forEach { key -> produced.remove(key) }
     val envelope = linkedMapOf<String, Any?>(
@@ -154,7 +154,7 @@ object FeatureTaskRuntimeReviewEnvelope {
     }
   }
 
-  fun envelopeMap(outputText: String): Map<String, Any?> = JsonCodec.parseObjectOrNull(outputText)
+  internal fun envelopeMap(outputText: String): Map<String, Any?> = JsonCodec.parseObjectOrNull(outputText)
     ?.let(JsonCodec::jsonElementToValue)
     ?.let(JsonCodec::anyToStringAnyMap)
     .orEmpty()

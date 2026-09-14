@@ -1,14 +1,15 @@
 package skillbill.engine.featuretask
-
 import skillbill.contracts.JsonCodec
 import skillbill.error.InvalidFeatureTaskRuntimeRepairReceiptError
 import skillbill.error.InvalidGoalSubtaskReviewStateSchemaError
 import skillbill.workflow.goal.model.GoalSubtaskReviewCompactFinding
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
+import skillbill.workflow.taskruntime.decodeRepairReceiptFromArtifact
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairReceipt
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairReceiptDecodeObservations
 import skillbill.workflow.taskruntime.model.coversCarriedFindings
 import skillbill.workflow.taskruntime.model.featureTaskRuntimeRemediationRoundNumber
+import skillbill.workflow.taskruntime.validateRepairReceiptWireEntries
 
 fun featureTaskRuntimeParseRepairReceiptOrNull(
   producedOutputs: Map<String, Any?>,
@@ -22,7 +23,7 @@ fun featureTaskRuntimeParseRepairReceiptOrNull(
     ("round_number" to roundNumber)
   val observations = FeatureTaskRuntimeRepairReceiptDecodeObservations()
   return try {
-    FeatureTaskRuntimeRepairReceipt.fromArtifactMap(map, "repair_receipt", observations).also {
+    decodeRepairReceiptFromArtifact(map, "repair_receipt", observations)!!.also {
       observations.truncationRecords.forEach(recordTruncation)
     }
   } catch (error: InvalidFeatureTaskRuntimeRepairReceiptError) {
@@ -98,7 +99,7 @@ fun featureTaskRuntimeRemediationRoundNumberOrNull(reviewState: GoalSubtaskRevie
 fun featureTaskRuntimeRepairReceiptShapeRejection(producedOutputs: Map<String, Any?>): String? {
   val raw = producedOutputs["repair_receipt"] ?: return null
   return try {
-    FeatureTaskRuntimeRepairReceipt.validateEntries(requireRepairReceiptMap(raw), "repair_receipt")
+    validateRepairReceiptWireEntries(requireRepairReceiptMap(raw), "repair_receipt")
     null
   } catch (error: InvalidFeatureTaskRuntimeRepairReceiptError) {
     featureTaskRuntimeRepairReceiptRejectionDetail(error.fieldPath, error.payloadFreeReason)

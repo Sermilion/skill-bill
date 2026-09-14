@@ -1,5 +1,4 @@
 package skillbill.engine.featuretask.validation
-
 import me.tatarka.inject.annotations.Inject
 import skillbill.config.model.applyValidationGateGradleWrapper
 import skillbill.contracts.JsonCodec
@@ -20,6 +19,7 @@ import skillbill.engine.featuretask.validation.model.ValidationGateProgressWrite
 import skillbill.engine.featuretask.validation.model.ValidationGateResolution
 import skillbill.engine.featuretask.validation.model.ValidationGateTriageResult
 import skillbill.engine.featuretask.validation.model.requiresUnparseableGateTriage
+import skillbill.engine.featuretask.workflowArtifactEntryMap
 import skillbill.error.InvalidFeatureTaskRuntimeValidationEvidenceSchemaError
 import skillbill.ports.config.RepoLocalConfigPort
 import skillbill.ports.config.model.ReadRepoLocalConfigRequest
@@ -31,6 +31,7 @@ import skillbill.ports.validation.model.ValidationGateRunRequest
 import skillbill.ports.validation.model.ValidationGateRunResult
 import skillbill.scaffold.model.ValidationGateDeclaration
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationCommandResult
@@ -400,10 +401,10 @@ class FeatureTaskRuntimeValidationGateCoordinator(
       FeatureTaskRuntimeValidationEvidence(evidence).requireSuccessfulCommand(requiredCommand, "validate")
       val gateExecutionEvidence = FeatureTaskRuntimeValidationGateExecutionEvidence.fromGateMeasurements(measurements)
       val validationResult = linkedMapOf<String, Any?>().apply {
-        putAll(gateExecutionEvidence.toArtifactMap(repositoryCheckpoint))
+        putAll(workflowArtifactEntryMap(gateExecutionEvidence.asWorkflowArtifactEntry(repositoryCheckpoint)))
         put(
           ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE,
-          FeatureTaskRuntimeValidationEvidence(evidence).toArtifactMap(),
+          FeatureTaskRuntimeValidationEvidence(evidence).asWorkflowArtifactEntry(),
         )
       }
       val payload = JsonCodec.mapToJsonString(

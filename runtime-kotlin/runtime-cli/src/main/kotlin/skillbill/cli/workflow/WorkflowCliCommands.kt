@@ -24,7 +24,11 @@ import skillbill.cli.kernel.toPayload
 import skillbill.cli.model.CliRunInputs
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.decomposition.DecompositionPlanningResult
+import skillbill.contracts.workflow.WorkflowArtifactKeys
 import skillbill.ports.workflow.model.FeatureTaskRouteScope
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
+import skillbill.workflow.engine.model.WorkflowStepUpdates
 
 @Inject
 class WorkflowTopLevelCommands(
@@ -137,13 +141,17 @@ open class WorkflowUpdateCommand(
   private val format by formatOption()
 
   override fun run() {
+    val parsedArtifactsPatch = artifactsPatch?.let(::parseArtifactsPatch)
     val request =
       WorkflowUpdateRequest(
         workflowId = workflowId,
         workflowStatus = workflowStatus,
         currentStepId = currentStepId,
-        stepUpdates = stepUpdates?.let(::parseStepUpdates),
-        artifactsPatch = artifactsPatch?.let(::parseArtifactsPatch),
+        stepUpdates = stepUpdates?.let(::parseStepUpdates)?.let(WorkflowStepUpdates::from),
+        artifactsPatch = parsedArtifactsPatch?.let(WorkflowArtifactPatch::from),
+        planningResult = parsedArtifactsPatch?.get(WorkflowArtifactKeys.PLAN)
+          ?.let(JsonCodec::anyToStringAnyMap)
+          ?.let { DecompositionPlanningResult.fromWireMap(it, "cli.artifacts_patch.plan") },
         sessionId = sessionId,
       )
     val payload =

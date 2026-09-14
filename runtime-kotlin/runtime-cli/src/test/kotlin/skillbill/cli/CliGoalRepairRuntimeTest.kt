@@ -1,22 +1,22 @@
 package skillbill.cli
 
-import skillbill.application.decomposition.decodeArtifacts
+import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliRuntimeContext
 import skillbill.contracts.JsonCodec
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
 import skillbill.ports.agentrun.ExecutableLookup
 import skillbill.workflow.model.WorkflowStepStatus
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
-import skillbill.workflow.taskruntime.phaseartifacts.phaseRecordsFrom
+import skillbill.workflow.taskruntime.phaseRecordsFromWorkflowArtifacts
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-
 /**
  * SKILL-176 subtask 5 CLI surface for `goal repair`. Kept outside [CliGoalRuntimeTest] so that
  * suite stays under the detekt LargeClass threshold.
@@ -241,7 +241,8 @@ class CliGoalRepairRuntimeTest {
     assertEquals(0, result.exitCode, result.stdout)
     assertContains(result.stdout, "status: repaired")
     assertContains(result.stdout, "completed_upstream_missing_output")
-    val repairedRecords = phaseRecordsFrom(decodeArtifacts(readChildArtifacts(fixture, childWorkflowId)))
+    val repairedRecords =
+      phaseRecordsFromWorkflowArtifacts(decodeWorkflowArtifacts(readChildArtifacts(fixture, childWorkflowId)))
     assertEquals(WorkflowStepStatus.PENDING, repairedRecords.getValue("verify_findings").status)
     assertEquals(WorkflowStepStatus.PENDING, repairedRecords.getValue("implement_fix").status)
   }
@@ -325,8 +326,8 @@ class CliGoalRepairRuntimeTest {
           rows.getString(1)
         }
       }
-      val artifacts = decodeArtifacts(current).toMutableMap()
-      val records = phaseRecordsFrom(artifacts).toMutableMap()
+      val artifacts = decodeWorkflowArtifacts(current).toMutableMap()
+      val records = phaseRecordsFromWorkflowArtifacts(artifacts).toMutableMap()
       val timestamp = "2026-09-12T08:00:00Z"
       records.putIfAbsent(
         "verify_findings",
@@ -363,7 +364,7 @@ class CliGoalRepairRuntimeTest {
         "Phase 'implement_fix' requires upstream output(s) verify_findings that are not present",
       )
       artifacts[FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY] =
-        records.mapValues { (_, record) -> record.toArtifactMap() }
+        records.mapValues { (_, record) -> record.asWorkflowArtifactEntry() }
       connection.prepareStatement(
         "UPDATE feature_task_workflows SET artifacts_json = ? WHERE workflow_id = ?",
       ).use { statement ->

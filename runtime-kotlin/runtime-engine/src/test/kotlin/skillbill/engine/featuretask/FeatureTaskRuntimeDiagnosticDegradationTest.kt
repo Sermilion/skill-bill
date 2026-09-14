@@ -4,6 +4,7 @@ import skillbill.application.diagnostics.RejectedOutputDiagnosticService
 import skillbill.application.diagnostics.model.FeatureTaskRuntimeRejectedOutputWrite
 import skillbill.application.diagnostics.model.RejectedOutputDiagnosticRequest
 import skillbill.application.testHarnessClock
+import skillbill.contracts.JsonCodec
 import skillbill.engine.InMemoryRuntimeWorkflowRepository
 import skillbill.engine.RuntimeFakeDatabaseSessionFactory
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeProducerOutputRead
@@ -13,6 +14,7 @@ import skillbill.ports.diagnostics.model.ProducerOutputEvidence
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticError
 import skillbill.workflow.engine.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.taskruntime.asTelemetryPayload
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDiagnosticFailureClass
 import java.time.Instant
 import kotlin.test.Test
@@ -90,7 +92,8 @@ class FeatureTaskRuntimeDiagnosticDegradationTest {
     assertEquals(signal.failureClass, measurement.failureClass)
     assertEquals(signal.conflictingKey, measurement.conflictingKey)
     assertTrue(
-      measurement.toTelemetryMap().values.none { it is String && it.contains("divergent-bytes") },
+      requireNotNull(JsonCodec.anyToStringAnyMap(measurement.asTelemetryPayload())).values
+        .none { it is String && it.contains("divergent-bytes") },
       "the measurement must not carry the divergent agent bytes",
     )
     val found = recorder.producerOutput(
@@ -210,7 +213,9 @@ class FeatureTaskRuntimeDiagnosticDegradationTest {
     assertTrue("SKILL187-DEGRADE-SENTINEL" !in summary)
     assertTrue("blast_radius_inspected" !in summary)
     assertContains(summary, "audit")
-    val measurement = lifecycle.diagnosticDegradationMeasurements.single().toTelemetryMap()
+    val measurement = requireNotNull(
+      JsonCodec.anyToStringAnyMap(lifecycle.diagnosticDegradationMeasurements.single().asTelemetryPayload()),
+    )
     assertTrue(measurement.values.none { it is String && "SKILL187-DEGRADE-SENTINEL" in it })
     assertTrue(measurement.values.none { it is String && "blast_radius_inspected" in it })
   }

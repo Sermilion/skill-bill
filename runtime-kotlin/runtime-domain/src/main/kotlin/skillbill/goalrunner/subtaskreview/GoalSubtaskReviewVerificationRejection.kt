@@ -17,8 +17,8 @@ object GoalSubtaskReviewVerificationRejection {
   internal const val REJECTED_VERIFICATION_REASON_MAX_UTF8_BYTES: Int = 280
 
   internal fun rejectedVerificationFindings(
-    verifyOutput: Map<String, Any?>,
-    reviewOutput: Map<String, Any?>,
+    verifyOutput: Any,
+    reviewOutput: Any,
     scope: UnaddressedFindingLedgerScope,
     recordedVerdicts: List<ReviewFindingVerdict> = emptyList(),
     truncationRecords: MutableList<String>? = null,
@@ -26,7 +26,7 @@ object GoalSubtaskReviewVerificationRejection {
     val reviewRunId = GoalSubtaskReviewStructuredFindingsParse.reviewRunIdOf(reviewOutput)
     val reviewFindings = GoalSubtaskReviewStructuredFindingsParse.structuredFindings(reviewOutput, recordedVerdicts)
     val reviewById = reviewFindings.associateBy { it.findingId.orEmpty() }
-    val dispositionsRaw = verifyOutput[SharedPayloadKeys.PRODUCED_OUTPUTS]
+    val dispositionsRaw = verifyOutput.asGoalSubtaskReviewPhaseOutputMap()[SharedPayloadKeys.PRODUCED_OUTPUTS]
       ?.let(JsonCodec::anyToStringAnyMap)
       ?.get(FeatureTaskRuntimeVerificationSignalKeys.FINDINGS_VERIFICATION_DISPOSITIONS) as? List<*>
       ?: return emptyList()

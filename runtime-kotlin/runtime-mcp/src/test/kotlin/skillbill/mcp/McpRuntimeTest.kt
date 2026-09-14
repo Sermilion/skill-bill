@@ -37,6 +37,8 @@ import skillbill.mcp.workflow.McpWorkflowOpenArgs
 import skillbill.mcp.workflow.McpWorkflowRuntime
 import skillbill.ports.workflow.gitops.repositoryFingerprint
 import skillbill.telemetry.CONFIG_ENVIRONMENT_KEY
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
+import skillbill.workflow.engine.model.WorkflowStepUpdates
 import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.Connection
@@ -572,12 +574,14 @@ class McpFeatureTaskRuntimeWorkflowTest {
         workflowId = workflowId,
         workflowStatus = "running",
         currentStepId = "implement",
-        stepUpdates = listOf(
-          mapOf("step_id" to "preplan", "status" to "completed", "attempt_count" to 1),
-          mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1),
-          mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1),
+        stepUpdates = WorkflowStepUpdates.from(
+          listOf(
+            mapOf("step_id" to "preplan", "status" to "completed", "attempt_count" to 1),
+            mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1),
+            mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1),
+          ),
         ),
-        artifactsPatch = taskRuntimePhaseArtifactsPatch(),
+        artifactsPatch = WorkflowArtifactPatch.from(taskRuntimePhaseArtifactsPatch()),
       ),
       context,
     )
@@ -638,7 +642,7 @@ class McpTokenEstimationTest {
     )
     lifecycle.featureTaskRuntimeFinished(
       FeatureTaskRuntimeFinishedRequest(
-        sessionId = started["session_id"] as String,
+        sessionId = started.toPayload()["session_id"] as String,
         completionStatus = "completed",
         completedPhaseIds = listOf("preplan", "plan", "implement"),
         phaseOutcomes = mapOf(
@@ -829,19 +833,22 @@ private fun markVerifyWorkflowVerdictBlocked(workflowId: String, context: McpRun
       workflowId = workflowId,
       workflowStatus = "running",
       currentStepId = "verdict",
-      stepUpdates = listOf(mapOf("step_id" to "verdict", "status" to "blocked", "attempt_count" to 1)),
-      artifactsPatch =
-      mapOf(
-        "diff_projection" to mapOf(
-          "checkpoint" to GitWorkflowGitOperations()
-            .repositoryFingerprint(CanonicalRepositoryRoot.enclosingRepositoryRoot(Path.of(""))).value,
-          "comparison_scope" to "base..head",
-          "changed_files" to emptyList<String>(),
+      stepUpdates = WorkflowStepUpdates.from(
+        listOf(mapOf("step_id" to "verdict", "status" to "blocked", "attempt_count" to 1)),
+      ),
+      artifactsPatch = WorkflowArtifactPatch.from(
+        mapOf(
+          "diff_projection" to mapOf(
+            "checkpoint" to GitWorkflowGitOperations()
+              .repositoryFingerprint(CanonicalRepositoryRoot.enclosingRepositoryRoot(Path.of(""))).value,
+            "comparison_scope" to "base..head",
+            "changed_files" to emptyList<String>(),
+          ),
+          "feature_flag_audit_receipt" to evaluatorReceipt(),
+          "code_review_receipt" to evaluatorReceipt(),
+          "unit_test_value_receipt" to evaluatorReceipt(),
+          "completeness_audit_receipt" to evaluatorReceipt(),
         ),
-        "feature_flag_audit_receipt" to evaluatorReceipt(),
-        "code_review_receipt" to evaluatorReceipt(),
-        "unit_test_value_receipt" to evaluatorReceipt(),
-        "completeness_audit_receipt" to evaluatorReceipt(),
       ),
     ),
     context = context,
@@ -961,7 +968,7 @@ private fun recordFeatureTaskRuntimeLifecycle(context: McpRuntimeContext) {
   )
   lifecycle.featureTaskRuntimeFinished(
     FeatureTaskRuntimeFinishedRequest(
-      sessionId = started["session_id"] as String,
+      sessionId = started.toPayload()["session_id"] as String,
       completionStatus = "completed",
       completedPhaseIds = listOf("preplan", "plan", "implement"),
       phaseOutcomes = mapOf("preplan" to "completed", "plan" to "completed", "implement" to "completed"),
@@ -991,7 +998,7 @@ private fun recordBlockedFeatureTaskRuntimeFinished(
       featureName = "blocked-runtime-finish",
     ),
   )
-  val sessionId = started["session_id"] as String
+  val sessionId = started.toPayload()["session_id"] as String
   lifecycle.featureTaskRuntimeFinished(
     FeatureTaskRuntimeFinishedRequest(
       sessionId = sessionId,

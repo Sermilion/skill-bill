@@ -1,7 +1,6 @@
 package skillbill.engine.goalrunner
 
 import skillbill.contracts.JsonCodec
-import skillbill.workflow.decomposition.runtime.decodeArtifactKeys
 import skillbill.workflow.engine.artifactsFingerprint
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.progressToken
@@ -50,7 +49,7 @@ class AttemptLedgerWorkflowDecodingTest {
       ),
     )
 
-    val sparse = decodeArtifactKeys(
+    val sparse = decodeArtifactKeysForTest(
       artifactsJson,
       setOf(GOAL_PROGRESS_LATEST_EVENT_ARTIFACT_KEY, "progress_event"),
     )
@@ -73,4 +72,15 @@ class AttemptLedgerWorkflowDecodingTest {
     updatedAt = "2026-06-02T10:00:01Z",
     finishedAt = null,
   )
+}
+
+private fun decodeArtifactKeysForTest(existingArtifactsJson: String, keys: Set<String>): Map<String, Any?> {
+  if (keys.isEmpty()) return emptyMap()
+  val root = JsonCodec.parseObjectOrNull(existingArtifactsJson) ?: return emptyMap()
+  return buildMap {
+    keys.forEach { key ->
+      val element = root[key] ?: return@forEach
+      put(key, JsonCodec.jsonElementToValue(element))
+    }
+  }
 }

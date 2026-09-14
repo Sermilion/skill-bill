@@ -81,6 +81,7 @@ import skillbill.telemetry.model.GoalSubtaskFinishedRecord
 import skillbill.telemetry.model.PrDescriptionGeneratedRecord
 import skillbill.telemetry.model.QualityCheckFinishedRecord
 import skillbill.telemetry.model.QualityCheckStartedRecord
+import skillbill.workflow.engine.model.ReviewContextWireMap
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDiagnosticDegradationMeasurement
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeProjectionMeasurement
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRejectionMeasurement
@@ -216,7 +217,8 @@ fun reviewHarness(config: ReviewHarnessConfig, recorder: ReviewRecorder): Parall
         ReadRepoLocalConfigResult(RepoLocalConfig.defaults().copy(reviewContextBudget = config.budget))
     },
     reviewContextEnvelopeValidator = object : ReviewContextEnvelopeValidator {
-      override fun validate(envelope: Map<String, Any?>, sourceLabel: String) = Unit
+      override fun validate(envelope: ReviewContextWireMap, sourceLabel: String) = Unit
+      override fun validateSpecIntentProjection(envelope: ReviewContextWireMap, sourceLabel: String) = Unit
     },
     reviewRubricResolver = recordingRubricResolver(recorder, config.rubricBody),
     reviewSpecialistContractProvider = ClasspathReviewSpecialistContractProvider(),
@@ -229,7 +231,8 @@ fun reviewHarness(config: ReviewHarnessConfig, recorder: ReviewRecorder): Parall
       DecompositionManifestValidatorAdapter(),
       SpecIntentProjectionExtractor(
         object : ReviewContextEnvelopeValidator {
-          override fun validate(envelope: Map<String, Any?>, sourceLabel: String) = Unit
+          override fun validate(envelope: ReviewContextWireMap, sourceLabel: String) = Unit
+          override fun validateSpecIntentProjection(envelope: ReviewContextWireMap, sourceLabel: String) = Unit
         },
         FileSystemDecompositionManifestFileStore(),
       ),

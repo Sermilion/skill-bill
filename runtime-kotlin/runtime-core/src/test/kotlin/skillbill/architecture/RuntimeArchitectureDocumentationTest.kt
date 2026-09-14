@@ -47,9 +47,7 @@ class RuntimeArchitectureDocumentationTest {
     assertContains(architecture, "runtime-ports")
     assertContains(architecture, "gradle-module-split-evaluation.md")
     assertContains(architecture, "Raw Map Boundary Rule")
-    assertContains(architecture, "Open-Boundary Allow-List")
-    assertContains(architecture, "@OpenBoundaryMap")
-    assertContains(architecture, "RAW_MAP_OPEN_BOUNDARY_ALLOWLIST")
+    assertContains(architecture, "zero-tolerance")
     assertContains(architecture, "Destructive command failure policy")
     assertContains(architecture, UNINSTALL_FAILURE_POLICY)
     assertContains(architecture, "UninstallMutationRecorder")
@@ -88,6 +86,16 @@ class RuntimeArchitectureDocumentationTest {
     assertContains(architecture, "Platform-pack manifest schema validation is owned by")
     assertContains(architecture, "Native-agent composition schema validation is owned by")
     assertContains(architecture, "Telemetry-event schema validation is owned by")
+  }
+
+  @Test
+  fun `boundary decisions record raw-map enforcement supersession`() {
+    val decisions = Files.readString(runtimeRoot.resolve("agent/decisions.md"))
+
+    assertContains(decisions, "2026-09-14 — SKILL-52.5 subtask 7: zero-tolerance raw-map enforcement")
+    assertContains(decisions, "Retire allow-list governance")
+    assertContains(decisions, "Supersede 2026-05-29 — SKILL-52.3 subtask 4 item 2")
+    assertContains(decisions, "Delete `@OpenBoundaryMap` from production")
   }
 
   @Test
@@ -133,7 +141,6 @@ class RuntimeArchitectureDocumentationTest {
         "skillbill.agent.model",
         "skillbill.agentaddon",
         "skillbill.application",
-        "skillbill.boundary",
         "skillbill.cli",
         "skillbill.config",
         "skillbill.contracts",

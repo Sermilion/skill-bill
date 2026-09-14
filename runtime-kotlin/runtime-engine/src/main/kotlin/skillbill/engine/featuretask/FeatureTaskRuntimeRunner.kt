@@ -1,5 +1,4 @@
 package skillbill.engine.featuretask
-
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.idestatus.AgentActivityStampWriter
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePreparation

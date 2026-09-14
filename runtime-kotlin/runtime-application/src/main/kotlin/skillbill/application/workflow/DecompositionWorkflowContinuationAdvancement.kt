@@ -1,8 +1,6 @@
 package skillbill.application.workflow
 
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
-import skillbill.application.decomposition.decodeArtifacts
-import skillbill.application.decomposition.encodeDecompositionManifestMap
 import skillbill.application.decomposition.withBlockedSubtask
 import skillbill.application.workflow.model.AdvanceCompletedSubtasksRequest
 import skillbill.application.workflow.model.CheckoutAndValidateBranchRequest
@@ -12,10 +10,12 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.workflow.decomposition.DecompositionManifestValidator
+import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionContinuationSelection
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.decompositionStatus
@@ -121,45 +121,45 @@ fun subtaskStartArtifacts(
   selection: DecompositionContinuationSelection.Start,
   manifest: DecompositionManifest,
   validator: DecompositionManifestValidator,
-): Map<String, Any?> = mapOf(
-  "assessment" to mapOf(
-    "spec_path" to selection.subtask.specPath,
-    "goal_continuation" to true,
-    SharedPayloadKeys.ISSUE_KEY to manifest.issueKey,
-    SharedPayloadKeys.SUBTASK_ID to selection.subtask.id,
-    "accepted_without_user_confirmation" to true,
+): WorkflowArtifactPatch = WorkflowArtifactPatch.from(
+  mapOf(
+    "assessment" to mapOf(
+      "spec_path" to selection.subtask.specPath,
+      "goal_continuation" to true,
+      SharedPayloadKeys.ISSUE_KEY to manifest.issueKey,
+      SharedPayloadKeys.SUBTASK_ID to selection.subtask.id,
+      "accepted_without_user_confirmation" to true,
+    ),
+    "branch" to mapOf(
+      "branch_name" to selection.branchPlan.branch,
+      "branch" to selection.branchPlan.branch,
+      "goal_continuation" to true,
+    ),
+    "goal_continuation" to mapOf(
+      "enabled" to true,
+      SharedPayloadKeys.ISSUE_KEY to manifest.issueKey,
+      SharedPayloadKeys.SUBTASK_ID to selection.subtask.id,
+      "suppress_pr" to true,
+      "outcome_authority" to "workflow_store",
+    ),
+    DECOMPOSITION_RUNTIME_ARTIFACT_KEY to validator.encodeManifestWireMap(manifest, DECOMPOSITION_RUNTIME_ARTIFACT_KEY),
   ),
-  "branch" to mapOf(
-    "branch_name" to selection.branchPlan.branch,
-    "branch" to selection.branchPlan.branch,
-    "goal_continuation" to true,
-  ),
-  "goal_continuation" to mapOf(
-    "enabled" to true,
-    SharedPayloadKeys.ISSUE_KEY to manifest.issueKey,
-    SharedPayloadKeys.SUBTASK_ID to selection.subtask.id,
-    "suppress_pr" to true,
-    "outcome_authority" to "workflow_store",
-  ),
-  DECOMPOSITION_RUNTIME_ARTIFACT_KEY to encodeDecompositionManifestMap(
-    manifest,
-    validator,
-    DECOMPOSITION_RUNTIME_ARTIFACT_KEY,
-  ),
-)
+)!!
 
 fun parentProjectionArtifacts(
   manifest: DecompositionManifest,
   validator: DecompositionManifestValidator,
   existingArtifactsJson: String,
-): Map<String, Any?> = LinkedHashMap(decodeArtifacts(existingArtifactsJson)).apply {
-  remove("goal_review_policy")
-  remove("goal_out_of_band_acceptances")
-  put(
-    DECOMPOSITION_RUNTIME_ARTIFACT_KEY,
-    encodeDecompositionManifestMap(manifest, validator, DECOMPOSITION_RUNTIME_ARTIFACT_KEY),
-  )
-}
+): WorkflowArtifactPatch = WorkflowArtifactPatch.from(
+  LinkedHashMap(decodeWorkflowArtifacts(existingArtifactsJson)).apply {
+    remove("goal_review_policy")
+    remove("goal_out_of_band_acceptances")
+    put(
+      DECOMPOSITION_RUNTIME_ARTIFACT_KEY,
+      validator.encodeManifestWireMap(manifest, DECOMPOSITION_RUNTIME_ARTIFACT_KEY),
+    )
+  },
+)!!
 
 fun terminalSubtaskResult(
   parentRecord: WorkflowStateSnapshot,

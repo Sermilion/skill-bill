@@ -1,17 +1,17 @@
 package skillbill.engine.featuretask
-
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.InvalidFeatureTaskRuntimeFindingVerificationRecordError
 import skillbill.goalrunner.subtaskreview.FeatureTaskRuntimeVerificationSignalKeys
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFindingVerificationDisposition
 import skillbill.workflow.taskruntime.model.validateDispositionCoverage
 
 object FeatureTaskRuntimeVerificationGateReasons {
-  fun findingVerificationDisposition(
+  internal fun findingVerificationDisposition(
     phaseId: String,
-    outputMap: Map<String, Any?>,
+    outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
     reviewFindingIds: Set<String>,
   ): String? {
     if (phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS || reviewFindingIds.isEmpty()) {
@@ -39,7 +39,7 @@ object FeatureTaskRuntimeVerificationGateReasons {
     )
   }
 
-  fun reviewVerificationSignal(phaseId: String, outputMap: Map<String, Any?>): String? {
+  internal fun reviewVerificationSignal(phaseId: String, outputMap: FeatureTaskRuntimeWorkflowArtifactMap): String? {
     if (phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW) return null
     val hasVerdict = (outputMap[FeatureTaskRuntimeVerificationSignalKeys.VERDICT] as? String)?.isNotBlank() == true
     val producedOutputs = outputMap[SharedPayloadKeys.PRODUCED_OUTPUTS] as? Map<*, *>

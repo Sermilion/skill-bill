@@ -21,6 +21,7 @@ import skillbill.workflow.decomposition.model.DecompositionContinuationSelection
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import java.nio.file.Path
 
@@ -101,16 +102,18 @@ class DecompositionWorkflowContinuation(
         stepUpdates = if (existing != null) {
           null
         } else {
-          listOf(
-            mapOf(
-              SharedPayloadKeys.STEP_ID to "preplan",
-              SharedPayloadKeys.STATUS to "completed",
-              "attempt_count" to 1,
-            ),
-            mapOf(
-              SharedPayloadKeys.STEP_ID to "plan",
-              SharedPayloadKeys.STATUS to "completed",
-              "attempt_count" to 1,
+          WorkflowStepUpdates.from(
+            listOf(
+              mapOf(
+                SharedPayloadKeys.STEP_ID to "preplan",
+                SharedPayloadKeys.STATUS to "completed",
+                "attempt_count" to 1,
+              ),
+              mapOf(
+                SharedPayloadKeys.STEP_ID to "plan",
+                SharedPayloadKeys.STATUS to "completed",
+                "attempt_count" to 1,
+              ),
             ),
           )
         },
@@ -254,8 +257,10 @@ class DecompositionWorkflowContinuation(
       WorkflowUpdateInput(
         workflowStatus = "running",
         currentStepId = "preplan",
-        stepUpdates = listOf(
-          mapOf(SharedPayloadKeys.STEP_ID to "preplan", SharedPayloadKeys.STATUS to "running", "attempt_count" to 1),
+        stepUpdates = WorkflowStepUpdates.from(
+          listOf(
+            mapOf(SharedPayloadKeys.STEP_ID to "preplan", SharedPayloadKeys.STATUS to "running", "attempt_count" to 1),
+          ),
         ),
         artifactsPatch = subtaskStartArtifacts(selection, updatedManifest, validator),
         sessionId = parentRecord.sessionId.orEmpty(),

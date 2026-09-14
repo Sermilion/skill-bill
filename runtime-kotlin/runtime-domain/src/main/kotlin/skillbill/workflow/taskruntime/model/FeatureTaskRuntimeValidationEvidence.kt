@@ -1,6 +1,5 @@
 package skillbill.workflow.taskruntime.model
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_VALIDATION_EVIDENCE_CONTRACT_VERSION
 import skillbill.contracts.workflow.ValidationEvidencePayloadKeys
 import skillbill.error.InvalidFeatureTaskRuntimeValidationEvidenceSchemaError
@@ -14,9 +13,7 @@ data class FeatureTaskRuntimeValidationCommandResult(
   init {
     require(command.isNotBlank()) { "Validation command must be non-blank." }
   }
-
-  @OpenBoundaryMap("Runtime-owned validation command result at the durable workflow-artifact seam")
-  fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
+  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
     ValidationEvidencePayloadKeys.COMMAND to command,
     ValidationEvidencePayloadKeys.EXIT_CODE to exitCode,
   )
@@ -31,9 +28,7 @@ data class FeatureTaskRuntimeValidationEvidence(
       "Validation evidence cannot contain more than $MAX_VALIDATION_RESULTS results."
     }
   }
-
-  @OpenBoundaryMap("Runtime-owned validation evidence at the durable workflow-artifact seam")
-  fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
+  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
     ValidationEvidencePayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_VALIDATION_EVIDENCE_CONTRACT_VERSION,
     ValidationEvidencePayloadKeys.RESULTS to results.map(FeatureTaskRuntimeValidationCommandResult::toArtifactMap),
   )
@@ -72,8 +67,7 @@ data class FeatureTaskRuntimeValidationEvidence(
   }
 
   companion object {
-    @OpenBoundaryMap("Runtime-owned validation evidence decode from durable workflow artifacts")
-    fun fromArtifactMap(raw: Map<String, Any?>, sourceLabel: String): FeatureTaskRuntimeValidationEvidence {
+    internal fun fromArtifactMap(raw: Map<String, Any?>, sourceLabel: String): FeatureTaskRuntimeValidationEvidence {
       val allowed = setOf(
         ValidationEvidencePayloadKeys.CONTRACT_VERSION,
         ValidationEvidencePayloadKeys.RESULTS,

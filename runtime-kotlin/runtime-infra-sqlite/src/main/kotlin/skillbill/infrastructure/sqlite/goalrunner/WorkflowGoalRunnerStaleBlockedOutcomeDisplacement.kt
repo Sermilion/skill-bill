@@ -14,6 +14,7 @@ import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.save
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import java.time.Clock
@@ -70,27 +71,29 @@ internal class WorkflowGoalRunnerStaleBlockedOutcomeDisplacement(
         workflowStatus = context.record.workflowStatus,
         currentStepId = context.record.currentStepId,
         stepUpdates = null,
-        artifactsPatch = buildMap {
-          if (!evidenceAlreadyPresent) {
-            put(
-              GOAL_CONTINUATION_OUTCOME_DISPLACEMENT_ARTIFACT_KEY,
-              linkedMapOf(
-                SharedPayloadKeys.WORKFLOW_ID to context.workflowId,
-                SharedPayloadKeys.ISSUE_KEY to context.issueKey,
-                SharedPayloadKeys.SUBTASK_ID to context.subtaskId,
-                "displaced_status" to "blocked",
-                "original_blocked_reason" to context.stored.blockedReason,
-                "failed_corroboration" to linkedMapOf(
-                  "derived_status" to derived?.status?.toGoalContinuationWireStatus(),
-                  "derived_blocked_reason" to derived?.blockedReason,
-                  "stored_blocked_reason" to context.stored.blockedReason,
+        artifactsPatch = WorkflowArtifactPatch.from(
+          buildMap {
+            if (!evidenceAlreadyPresent) {
+              put(
+                GOAL_CONTINUATION_OUTCOME_DISPLACEMENT_ARTIFACT_KEY,
+                linkedMapOf(
+                  SharedPayloadKeys.WORKFLOW_ID to context.workflowId,
+                  SharedPayloadKeys.ISSUE_KEY to context.issueKey,
+                  SharedPayloadKeys.SUBTASK_ID to context.subtaskId,
+                  "displaced_status" to "blocked",
+                  "original_blocked_reason" to context.stored.blockedReason,
+                  "failed_corroboration" to linkedMapOf(
+                    "derived_status" to derived?.status?.toGoalContinuationWireStatus(),
+                    "derived_blocked_reason" to derived?.blockedReason,
+                    "stored_blocked_reason" to context.stored.blockedReason,
+                  ),
+                  "displaced_at" to clock.instant().toString(),
                 ),
-                "displaced_at" to clock.instant().toString(),
-              ),
-            )
-          }
-          put("goal_continuation_outcome", null)
-        },
+              )
+            }
+            put("goal_continuation_outcome", null)
+          },
+        ),
         sessionId = context.record.sessionId.orEmpty(),
       ),
     )

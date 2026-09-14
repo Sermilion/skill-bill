@@ -1,19 +1,16 @@
 package skillbill.infrastructure.sqlite.decomposition
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.JsonCodec
 import skillbill.error.InvalidDecompositionManifestSchemaError
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestFileCandidate
 import skillbill.ports.workflow.decomposition.runtime.model.LoadedDecompositionManifest
 import skillbill.ports.workflow.decomposition.runtime.model.ValidatedDecompositionManifestYaml
-import skillbill.workflow.decomposition.DecompositionManifestCodec
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationResult
 import skillbill.workflow.decomposition.model.requireAccepted
 import skillbill.workflow.decomposition.runtime.isActiveGoalRuntime
-import skillbill.workflow.decomposition.toWireMap
 import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.decompositionStatus
 import java.nio.file.NoSuchFileException
@@ -65,25 +62,6 @@ fun validateDecompositionManifestYaml(
   }
 }
 
-fun decodeDecompositionManifestMap(
-  wireMap: Map<String, Any?>,
-  validator: DecompositionManifestValidator,
-  sourceLabel: String = "<in-memory>",
-): DecompositionManifest {
-  validator.validate(wireMap, sourceLabel)
-  return DecompositionManifestCodec.decodeMap(wireMap, sourceLabel)
-}
-
-fun encodeDecompositionManifestMap(
-  manifest: DecompositionManifest,
-  validator: DecompositionManifestValidator,
-  sourceLabel: String = "<in-memory>",
-): Map<String, Any?> {
-  val wireMap = manifest.toWireMap()
-  validator.validate(wireMap, sourceLabel)
-  return wireMap
-}
-
 fun archivedDecompositionManifest(repoRoot: Path, manifestPath: Path): Boolean {
   val relative = runCatching { repoRoot.normalize().relativize(manifestPath.normalize()).toString() }
     .getOrDefault(manifestPath.toString())
@@ -91,7 +69,6 @@ fun archivedDecompositionManifest(repoRoot: Path, manifestPath: Path): Boolean {
   return relative.startsWith(".feature-specs/done/")
 }
 
-@OpenBoundaryMap("Persisted workflow artifact JSON decoded for decomposition runtime updates")
 fun decodeArtifacts(existingArtifactsJson: String): Map<String, Any?> =
   JsonCodec.parseObjectOrNull(existingArtifactsJson)
     ?.let(JsonCodec::jsonElementToValue)

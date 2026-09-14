@@ -1,6 +1,6 @@
 # SKILL-52.5 · Subtask 4 — Feature task engine typing
 
-Parent spec: [.feature-specs/SKILL-52.5-open-boundary-elimination/spec.md](./spec.md)
+Parent spec: [.feature-specs/SKILL-52.5-open-boundary-elimination/spec.md](spec.md)
 Issue key: SKILL-52.5
 Subtask order: 4 of 7
 Depends on: subtask 3
@@ -65,4 +65,4 @@ Out of scope:
 
 ## Next Path
 
-`.feature-specs/SKILL-52.5-open-boundary-elimination/spec_subtask_5_goal-runner-and-workflow-goal-typing.md`
+`spec_subtask_5_goal-runner-and-workflow-goal-typing.md`

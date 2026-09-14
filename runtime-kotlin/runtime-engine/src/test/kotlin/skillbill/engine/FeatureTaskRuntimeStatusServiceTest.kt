@@ -1,9 +1,9 @@
 package skillbill.engine
-import skillbill.application.decomposition.decodeArtifacts
 import skillbill.application.decomposition.decompositionManifestPath
 import skillbill.application.decomposition.parentSpecPath
 import skillbill.application.idestatus.model.IdeStatusCurrentPhaseExecutionKind
 import skillbill.application.testHarnessClock
+import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.contracts.JsonCodec
 import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeHandoffEnvelopeValidator
 import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeHandoffFoundationValidator
@@ -39,6 +39,7 @@ import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.workflow.engine.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDecomposeTerminal
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDiagnosticFailureClass
@@ -55,6 +56,7 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeResolvedBranch
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRunInvariants
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateProgress
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateRunRecord
+import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -190,7 +192,7 @@ class FeatureTaskRuntimeStatusServiceTest {
     val record = requireNotNull(harness.recorder.loadPhaseRecords(WORKFLOW_ID)).getValue("implement")
     assertNull(record.launchedModel)
     assertNull(record.launchedEffort)
-    assertTrue("launched_model" !in record.toArtifactMap())
+    assertTrue("launched_model" !in record.asWorkflowArtifactEntry().toWorkflowArtifactMap())
   }
 
   @Test
@@ -1197,12 +1199,12 @@ internal class StatusHarness(
   )
 
   fun seedDiagnosticSignals(vararg signals: FeatureTaskRuntimeDiagnosticSignal) {
-    seedDiagnosticSignalsArtifact(signals.map { it.toArtifactMap() })
+    seedDiagnosticSignalsArtifact(signals.map { it.asWorkflowArtifactEntry() })
   }
 
   fun seedDiagnosticSignalsArtifact(raw: Any?) {
     val row = requireNotNull(repository.getFeatureTaskRuntimeWorkflow(WORKFLOW_ID))
-    val artifacts = decodeArtifacts(row.artifactsJson).toMutableMap()
+    val artifacts = decodeWorkflowArtifacts(row.artifactsJson).toMutableMap()
     artifacts[FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS_ARTIFACT_KEY] = raw
     repository.saveFeatureTaskRuntimeWorkflow(
       row.copy(artifactsJson = JsonCodec.mapToJsonString(artifacts)),

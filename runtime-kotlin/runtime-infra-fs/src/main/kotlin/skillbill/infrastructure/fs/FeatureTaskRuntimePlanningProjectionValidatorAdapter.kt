@@ -10,7 +10,10 @@ import skillbill.workflow.taskruntime.FeatureTaskRuntimePlanningProjectionValida
  */
 @Inject
 class FeatureTaskRuntimePlanningProjectionValidatorAdapter : FeatureTaskRuntimePlanningProjectionValidator {
-  override fun validatePlanningProjection(producedOutputs: Map<String, Any?>, sourceLabel: String) {
-    FeatureTaskRuntimePlanningProjectionSchemaValidator.validate(producedOutputs, sourceLabel)
+  override fun validatePlanningProjection(producedOutputs: Any, sourceLabel: String) {
+    FeatureTaskRuntimePlanningProjectionSchemaValidator.validate(
+      requireFeatureTaskRuntimeArtifactMap(producedOutputs, sourceLabel),
+      sourceLabel,
+    )
   }
 }

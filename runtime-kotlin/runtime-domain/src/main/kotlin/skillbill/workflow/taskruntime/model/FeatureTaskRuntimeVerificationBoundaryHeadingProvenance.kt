@@ -1,6 +1,5 @@
 package skillbill.workflow.taskruntime.model
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.JsonCodec
 import skillbill.error.InvalidFeatureTaskRuntimeFindingVerificationRecordError
 
@@ -12,15 +11,16 @@ data class FeatureTaskRuntimeVerificationBoundaryHeadingProvenance(
     require(headingId.isNotBlank()) { "verification boundary heading_id must be non-blank." }
     require(sourcePath.isNotBlank()) { "verification boundary source_path must be non-blank." }
   }
-
-  @OpenBoundaryMap("Verification boundary heading provenance at the durable workflow-artifact seam")
-  fun toArtifactMap(): Map<String, Any?> = mapOf(
+  internal fun toArtifactMap(): Map<String, Any?> = mapOf(
     "heading_id" to headingId,
     "source_path" to sourcePath,
   )
 
   companion object {
-    fun fromArtifactMap(raw: Map<String, Any?>, path: String): FeatureTaskRuntimeVerificationBoundaryHeadingProvenance {
+    internal fun fromArtifactMap(
+      raw: Map<String, Any?>,
+      path: String,
+    ): FeatureTaskRuntimeVerificationBoundaryHeadingProvenance {
       val headingId = (raw["heading_id"] as? String)?.trim()?.takeIf(String::isNotBlank)
         ?: invalid(path, "heading_id")
       val sourcePath = (raw["source_path"] as? String)?.trim()?.takeIf(String::isNotBlank)

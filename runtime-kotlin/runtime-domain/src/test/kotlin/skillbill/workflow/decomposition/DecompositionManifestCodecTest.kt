@@ -16,7 +16,7 @@ class DecompositionManifestCodecTest {
   fun `codec decodes manifest wire values without schema validation`() {
     val manifest = validManifest().copy(featureBranch = null)
 
-    val decoded = DecompositionManifestCodec.decodeMap(manifest.toWireMap())
+    val decoded = DecompositionManifestWireCodec.decode(manifest.toWireMap())
 
     assertEquals(manifest.copy(featureBranch = null), decoded)
   }
@@ -35,7 +35,7 @@ class DecompositionManifestCodecTest {
       ),
     )
 
-    val decoded = DecompositionManifestCodec.decodeMap(manifest.toWireMap())
+    val decoded = DecompositionManifestWireCodec.decode(manifest.toWireMap())
 
     assertEquals(manifest, decoded)
     assertEquals(SpecSource.LINEAR, decoded.specSource)
@@ -47,7 +47,7 @@ class DecompositionManifestCodecTest {
     val wireMap = validManifest().toWireMap().toMutableMap()
     wireMap.remove("spec_source")
 
-    val decoded = DecompositionManifestCodec.decodeMap(wireMap)
+    val decoded = DecompositionManifestWireCodec.decode(wireMap)
 
     assertEquals(SpecSource.LOCAL, decoded.specSource)
   }
@@ -61,7 +61,7 @@ class DecompositionManifestCodecTest {
     wireMap["contract_version"] = "0.2"
     wireMap.remove("spec_source")
 
-    val decoded = DecompositionManifestCodec.decodeMap(wireMap, "0.2-era-manifest")
+    val decoded = DecompositionManifestWireCodec.decode(wireMap, "0.2-era-manifest")
 
     assertEquals("0.2", decoded.contractVersion)
     assertEquals(SpecSource.LOCAL, decoded.specSource)
@@ -73,7 +73,7 @@ class DecompositionManifestCodecTest {
     wireMap["spec_source"] = "github"
 
     val error = assertFailsWith<InvalidDecompositionManifestSchemaError> {
-      DecompositionManifestCodec.decodeMap(wireMap, "codec-spec-source")
+      DecompositionManifestWireCodec.decode(wireMap, "codec-spec-source")
     }
     assertContains(error.reason, "spec_source 'github' is not supported")
   }
@@ -84,7 +84,7 @@ class DecompositionManifestCodecTest {
     wireMap["issue_key"] = 42
 
     val error = assertFailsWith<InvalidDecompositionManifestSchemaError> {
-      DecompositionManifestCodec.decodeMap(wireMap, "codec-type-mapping")
+      DecompositionManifestWireCodec.decode(wireMap, "codec-type-mapping")
     }
     assertContains(error.reason, "issue_key must be a string")
   }
@@ -104,7 +104,7 @@ class DecompositionManifestCodecTest {
       ),
     )
 
-    val decoded = DecompositionManifestCodec.decodeMap(manifest.toWireMap())
+    val decoded = DecompositionManifestWireCodec.decode(manifest.toWireMap())
 
     assertEquals(manifest, decoded)
     assertEquals("claude", decoded.subtasks.single().finalizingAgentId)
@@ -123,13 +123,13 @@ class DecompositionManifestCodecTest {
     }
     wireMap["subtasks"] = subtasks
 
-    val decoded = DecompositionManifestCodec.decodeMap(wireMap)
+    val decoded = DecompositionManifestWireCodec.decode(wireMap)
 
     val subtask = decoded.subtasks.single()
     assertEquals(null, subtask.finalizingAgentId)
     assertEquals(emptyList(), subtask.participatingAgentIds)
     // The legacy manifest round-trips cleanly (re-encode then decode is stable).
-    assertEquals(decoded, DecompositionManifestCodec.decodeMap(decoded.toWireMap()))
+    assertEquals(decoded, DecompositionManifestWireCodec.decode(decoded.toWireMap()))
   }
 
   @Test
@@ -141,7 +141,7 @@ class DecompositionManifestCodecTest {
     wireMap["subtasks"] = subtasks
 
     val error = assertFailsWith<InvalidDecompositionManifestSchemaError> {
-      DecompositionManifestCodec.decodeMap(wireMap, "codec-agent-attribution")
+      DecompositionManifestWireCodec.decode(wireMap, "codec-agent-attribution")
     }
     assertContains(error.reason, "participating_agent_ids must be a list of strings")
   }
@@ -155,7 +155,7 @@ class DecompositionManifestCodecTest {
     wireMap["subtasks"] = subtasks
 
     val error = assertFailsWith<InvalidDecompositionManifestSchemaError> {
-      DecompositionManifestCodec.decodeMap(wireMap, "codec-blank-agent-element")
+      DecompositionManifestWireCodec.decode(wireMap, "codec-blank-agent-element")
     }
     assertContains(error.reason, "participating_agent_ids must be a list of non-blank strings")
   }
@@ -178,7 +178,7 @@ class DecompositionManifestCodecTest {
     )
 
     assertEquals(4, manifest.nextSubtaskId())
-    assertEquals(manifest, DecompositionManifestCodec.decodeMap(manifest.toWireMap()))
+    assertEquals(manifest, DecompositionManifestWireCodec.decode(manifest.toWireMap()))
   }
 
   private fun validManifest(): DecompositionManifest = DecompositionManifest(

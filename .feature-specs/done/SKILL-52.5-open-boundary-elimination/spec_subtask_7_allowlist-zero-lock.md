@@ -1,6 +1,6 @@
 # SKILL-52.5 · Subtask 7 — Allow-list zero lock
 
-Parent spec: [.feature-specs/SKILL-52.5-open-boundary-elimination/spec.md](./spec.md)
+Parent spec: [.feature-specs/SKILL-52.5-open-boundary-elimination/spec.md](spec.md)
 Issue key: SKILL-52.5
 Subtask order: 7 of 7
 Depends on: subtask 6
@@ -23,9 +23,9 @@ In scope:
   application/domain/ports fails with no exemption path.
 - Remove `@OpenBoundaryMap` from production sources; delete or retain the
   annotation class only if tests need it — zero production references required.
-- Update `runtime-kotlin/ARCHITECTURE.md` Raw Map Boundary Rule to state
+- Update `../../../runtime-kotlin/ARCHITECTURE.md` Raw Map Boundary Rule to state
   zero-tolerance (no curated exceptions list).
-- Record in `runtime-kotlin/agent/decisions.md` the supersession of the
+- Record in `../../../runtime-kotlin/agent/decisions.md` the supersession of the
   2026-05-29 lifecycle permanent open-boundary decision and the elimination of
   the SKILL-52.1 allow-list governance model.
 - Update `OpenBoundaryMap.kt` KDoc or remove the file if unused.
@@ -42,7 +42,7 @@ Out of scope:
    zero public raw-map violations and no allow-list parsing.
 3. Production code has zero `@OpenBoundaryMap` references.
 4. `ARCHITECTURE.md` documents zero-tolerance with no FQN inventory blocks.
-5. `agent/decisions.md` records allow-list elimination and lifecycle decision
+5. `../../../agent/decisions.md` records allow-list elimination and lifecycle decision
    supersession.
 
 ## Non-Goals

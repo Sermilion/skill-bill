@@ -11,6 +11,9 @@ import skillbill.ports.goalrunner.runner.GoalRunnerManifestStoreDefaults
 import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowOutcomeStore
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.ports.persistence.UnitOfWork
+import skillbill.workflow.goal.model.GoalProgressEvent
+import skillbill.workflow.goal.model.GoalProgressEventKind
+import skillbill.workflow.goal.model.GoalProgressOutcome
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -75,7 +78,7 @@ class GoalPlanningLogPairingTest {
     assertEquals(0L, log.totalPlanningMs, "an unusable record must not subtract from the total")
   }
 
-  private fun logFrom(vararg events: Map<String, Any?>) = GoalPlanningLogService(
+  private fun logFrom(vararg events: GoalProgressEvent) = GoalPlanningLogService(
     manifestStore = StubManifestStore,
     outcomeStore = StubOutcomeStore(events.toList()),
     database = UnreadableDatabase,
@@ -83,19 +86,27 @@ class GoalPlanningLogPairingTest {
     clock = testHarnessClock,
   ).log(GoalPlanningLogRequest(issueKey = ISSUE_KEY))
 
-  private fun started(timestamp: String): Map<String, Any?> = mapOf(
-    "workflow_phase" to "goal_planning",
-    "operation_name" to OPERATION,
-    "event_kind" to "operation_started",
-    "timestamp" to timestamp,
+  private fun started(timestamp: String): GoalProgressEvent = GoalProgressEvent(
+    eventKind = GoalProgressEventKind.OPERATION_STARTED,
+    workflowId = PARENT_WORKFLOW_ID,
+    workflowPhase = "goal_planning",
+    processAlive = true,
+    sequenceNumber = 0,
+    timestamp = timestamp,
+    operationName = OPERATION,
+    expectedLong = true,
   )
 
-  private fun completed(timestamp: String, outcome: String): Map<String, Any?> = mapOf(
-    "workflow_phase" to "goal_planning",
-    "operation_name" to OPERATION,
-    "event_kind" to "operation_completed",
-    "timestamp" to timestamp,
-    "outcome" to outcome,
+  private fun completed(timestamp: String, outcome: String): GoalProgressEvent = GoalProgressEvent(
+    eventKind = GoalProgressEventKind.OPERATION_COMPLETED,
+    workflowId = PARENT_WORKFLOW_ID,
+    workflowPhase = "goal_planning",
+    processAlive = true,
+    sequenceNumber = 0,
+    timestamp = timestamp,
+    operationName = OPERATION,
+    expectedLong = true,
+    outcome = GoalProgressOutcome.fromWire(outcome),
   )
 }
 
@@ -116,7 +127,7 @@ private object StubManifestStore : GoalRunnerManifestStoreDefaults() {
   override fun releaseExecutionLease(parentWorkflowId: String, ownerToken: String, generation: Long): Boolean = true
 }
 
-private class StubOutcomeStore(private val events: List<Map<String, Any?>>) :
+private class StubOutcomeStore(private val events: List<GoalProgressEvent>) :
   GoalRunnerWorkflowOutcomeStore by RecordingOutcomeStore() {
   override fun progressEvents(workflowId: String) = events
 }

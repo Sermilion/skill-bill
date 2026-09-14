@@ -1,5 +1,4 @@
 package skillbill.engine.featuretask
-
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeCheckpointDecision
@@ -11,6 +10,7 @@ import skillbill.ports.workflow.gitops.repositoryOwnedPaths
 import skillbill.ports.workflow.gitops.stagePaths
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeCheckpointIdentity
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeResolvedBranch
 
@@ -98,13 +98,15 @@ object FeatureTaskRuntimeRunLoopCheckpointRemediation {
     )
   }
 
-  internal fun completedImplementFixProducedOutputs(run: PhaseRun, outputMap: Map<String, Any?>): Map<String, Any?>? =
-    outputMap
-      .takeIf {
-        run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT_FIX &&
-          (it[SharedPayloadKeys.STATUS] as? String)?.let(WorkflowStepStatus::fromWire) == WorkflowStepStatus.COMPLETED
-      }
-      ?.let { JsonCodec.anyToStringAnyMap(it[SharedPayloadKeys.PRODUCED_OUTPUTS]).orEmpty() }
+  internal fun completedImplementFixProducedOutputs(
+    run: PhaseRun,
+    outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
+  ): Map<String, Any?>? = outputMap
+    .takeIf {
+      run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT_FIX &&
+        (it[SharedPayloadKeys.STATUS] as? String)?.let(WorkflowStepStatus::fromWire) == WorkflowStepStatus.COMPLETED
+    }
+    ?.let { JsonCodec.anyToStringAnyMap(it[SharedPayloadKeys.PRODUCED_OUTPUTS]).orEmpty() }
 
   fun establishRemediationCheckpoint(
     runLoop: FeatureTaskRuntimeRunLoop,

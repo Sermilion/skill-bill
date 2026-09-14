@@ -1,6 +1,6 @@
 package skillbill.engine.goalrunner.findings
-import skillbill.application.decomposition.decodeArtifacts
 import skillbill.application.testWorkflowSnapshotValidator
+import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.engine.InMemoryRuntimeWorkflowRepository
 import skillbill.engine.RuntimeFakeDatabaseSessionFactory
@@ -8,6 +8,7 @@ import skillbill.goalrunner.model.UnaddressedFinding
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.workflow.toRecord
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_DISPOSITIONS_ARTIFACT_KEY
 import kotlin.test.Test
@@ -75,7 +76,7 @@ private fun seedWorkflow(repository: InMemoryRuntimeWorkflowRepository, workflow
       workflowStatus = "running",
       currentStepId = "verify_findings",
       stepUpdates = null,
-      artifactsPatch = decodeArtifacts(artifactsJson),
+      artifactsPatch = WorkflowArtifactPatch.from(decodeWorkflowArtifacts(artifactsJson)),
       sessionId = "ftr-provenance",
     ),
   ).toRecord()

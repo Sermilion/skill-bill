@@ -1,5 +1,7 @@
 package skillbill.engine.featuretask
 
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.decodeImplementationAttemptFromArtifact
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeImplementationAttempt
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeImplementationAttemptStatus
 import kotlin.test.Test
@@ -7,7 +9,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-
 class FeatureTaskRuntimeImplementationContinuationTest {
   @Test
   fun `no prior attempt yields no continuation`() {
@@ -37,7 +38,7 @@ class FeatureTaskRuntimeImplementationContinuationTest {
     val inProcessRetry = featureTaskRuntimeImplementationContinuationFrom("implement", history, obligations())
     val freshProcessResume = featureTaskRuntimeImplementationContinuationFrom(
       "implement",
-      history.map { FeatureTaskRuntimeImplementationAttempt.fromArtifactMap(it.toArtifactMap()) },
+      history.map { decodeImplementationAttemptFromArtifact(it.asWorkflowArtifactEntry())!! },
       obligations(),
     )
 

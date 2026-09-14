@@ -1,6 +1,8 @@
 package skillbill.ports.workflow.model
 
-import skillbill.boundary.OpenBoundaryMap
+import skillbill.contracts.workflow.FeatureImplementSessionSummaryContract
+import skillbill.contracts.workflow.FeatureVerifySessionSummaryContract
+import skillbill.contracts.workflow.WorkflowContinueSessionSummary
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 
 /**
@@ -38,25 +40,32 @@ fun WorkflowStateRecord.toSnapshot(): WorkflowStateSnapshot = WorkflowStateSnaps
   finishedAt = finishedAt,
 )
 
-@OpenBoundaryMap("Feature-implement session summary wire payload")
-fun FeatureImplementSessionSummary.toPayload(): Map<String, Any?> = linkedMapOf(
-  "session_id" to sessionId,
-  "issue_key_provided" to issueKeyProvided,
-  "issue_key_type" to issueKeyType,
-  "spec_input_types" to specInputTypes,
-  "spec_word_count" to specWordCount,
-  "feature_size" to featureSize,
-  "feature_name" to featureName,
-  "rollout_needed" to rolloutNeeded,
-  "acceptance_criteria_count" to acceptanceCriteriaCount,
-  "open_questions_count" to openQuestionsCount,
-  "spec_summary" to specSummary,
+fun FeatureImplementSessionSummary.toContract(): FeatureImplementSessionSummaryContract =
+  FeatureImplementSessionSummaryContract(
+    sessionId = sessionId,
+    issueKeyProvided = issueKeyProvided,
+    issueKeyType = issueKeyType,
+    specInputTypes = specInputTypes,
+    specWordCount = specWordCount,
+    featureSize = featureSize,
+    featureName = featureName,
+    rolloutNeeded = rolloutNeeded,
+    acceptanceCriteriaCount = acceptanceCriteriaCount,
+    openQuestionsCount = openQuestionsCount,
+    specSummary = specSummary,
+  )
+
+fun FeatureVerifySessionSummary.toContract(): FeatureVerifySessionSummaryContract = FeatureVerifySessionSummaryContract(
+  sessionId = sessionId,
+  acceptanceCriteriaCount = acceptanceCriteriaCount,
+  rolloutRelevant = rolloutRelevant,
+  specSummary = specSummary,
 )
 
-@OpenBoundaryMap("Feature-verify session summary wire payload")
-fun FeatureVerifySessionSummary.toPayload(): Map<String, Any?> = linkedMapOf(
-  "session_id" to sessionId,
-  "acceptance_criteria_count" to acceptanceCriteriaCount,
-  "rollout_relevant" to rolloutRelevant,
-  "spec_summary" to specSummary,
-)
+fun FeatureVerifySessionSummary.toContinueSessionSummary(): WorkflowContinueSessionSummary =
+  WorkflowContinueSessionSummary(
+    sessionId = sessionId,
+    acceptanceCriteriaCount = acceptanceCriteriaCount,
+    rolloutRelevant = rolloutRelevant,
+    specSummary = specSummary,
+  )

@@ -1,6 +1,7 @@
 package skillbill.learnings
 
-import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.JsonCodec
+import skillbill.contracts.learning.LearningEntryDto
 import skillbill.learnings.model.LearningEntry
 import skillbill.learnings.model.LearningRecord
 import skillbill.learnings.model.LearningScope
@@ -18,17 +19,18 @@ fun learningEntry(record: LearningRecord): LearningEntry = LearningEntry(
   sourceFindingId = record.sourceFindingId,
 )
 
-fun learningEntryPayload(entry: LearningEntry): Map<String, Any?> = mapOf(
-  "reference" to entry.reference,
-  "scope" to entry.scope.wireName,
-  "scope_key" to entry.scopeKey,
-  SharedPayloadKeys.STATUS to entry.status,
-  "title" to entry.title,
-  "rule_text" to entry.ruleText,
-  "rationale" to entry.rationale,
-  "source_review_run_id" to entry.sourceReviewRunId,
-  "source_finding_id" to entry.sourceFindingId,
+fun learningEntryDto(entry: LearningEntry): LearningEntryDto = LearningEntryDto(
+  reference = entry.reference,
+  scope = entry.scope.wireName,
+  scopeKey = entry.scopeKey,
+  status = entry.status,
+  title = entry.title,
+  ruleText = entry.ruleText,
+  rationale = entry.rationale,
+  sourceReviewRunId = entry.sourceReviewRunId,
+  sourceFindingId = entry.sourceFindingId,
 )
 
-fun learningEntrySessionJson(skillName: String?, entries: List<LearningEntry>): String =
-  learningSessionJson(skillName, entries.map(::learningEntryPayload))
+fun learningEntrySessionJson(skillName: String?, entries: List<LearningEntry>): String = JsonCodec.mapToJsonString(
+  learningAppliedSessionWire(skillName, entries.map(::learningEntryDto)).toPayload(),
+)

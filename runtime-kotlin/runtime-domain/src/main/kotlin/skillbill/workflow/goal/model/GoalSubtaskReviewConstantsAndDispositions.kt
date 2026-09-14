@@ -1,6 +1,5 @@
 package skillbill.workflow.goal.model
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.review.ReviewFindingPayloadKeys
 
@@ -72,16 +71,14 @@ data class GoalSubtaskBlockerDisposition(
     }
   }
 
-  @OpenBoundaryMap("Blocker disposition at the durable workflow-artifact seam")
-  fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
+  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
     ReviewFindingPayloadKeys.FINDING_ID to findingId,
     SharedPayloadKeys.VERDICT to verdict.wireValue,
     "evidence" to evidence,
   )
 
   companion object {
-    @OpenBoundaryMap("Blocker disposition decode from the durable workflow-artifact map")
-    fun fromArtifactMap(raw: Map<String, Any?>, path: String): GoalSubtaskBlockerDisposition {
+    internal fun fromArtifactMap(raw: Map<String, Any?>, path: String): GoalSubtaskBlockerDisposition {
       raw.requireOnlyReviewStateKeys(setOf("finding_id", "verdict", "evidence"), path)
       val evidence = raw.requireReviewStateList("evidence", path).mapIndexed { index, value ->
         value as? String ?: reviewStateError(

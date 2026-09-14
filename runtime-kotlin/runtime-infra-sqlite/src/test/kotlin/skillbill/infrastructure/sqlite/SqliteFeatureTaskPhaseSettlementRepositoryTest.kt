@@ -6,6 +6,7 @@ import skillbill.infrastructure.sqlite.core.DatabaseRuntime
 import skillbill.model.EnvironmentContext
 import skillbill.ports.featuretask.model.FeatureTaskPhaseSettlement
 import skillbill.ports.featuretask.model.FeatureTaskPhaseSettlementKind
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationCommandResult
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationEvidence
 import java.nio.file.Files
@@ -17,7 +18,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-
 class SqliteFeatureTaskPhaseSettlementRepositoryTest {
   @Test
   fun `migration v35 creates settlement table and supports upsert find delete`() {
@@ -63,7 +63,7 @@ class SqliteFeatureTaskPhaseSettlementRepositoryTest {
         "status" to "completed",
         "produced_outputs" to mapOf(
           "value" to JsonCodec.mapToJsonString(
-            mapOf(ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE to evidence.toArtifactMap()),
+            mapOf(ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE to evidence.asWorkflowArtifactEntry()),
           ),
         ),
       ),

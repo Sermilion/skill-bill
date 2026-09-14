@@ -1,4 +1,5 @@
 package skillbill.engine
+
 import skillbill.application.RecordingLifecycleTelemetryRepository
 import skillbill.application.RecordingSpecScratchStore
 import skillbill.application.RecordingSpecStatusWriter
@@ -156,6 +157,7 @@ import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePlanningProjectionValidator
 import skillbill.workflow.taskruntime.NoopFeatureTaskRuntimeBuildReceiptValidator
 import skillbill.workflow.taskruntime.NoopFeatureTaskRuntimePlanningProjectionValidator
+import skillbill.workflow.taskruntime.envelopeWireMap
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeBackwardEdge
@@ -1625,7 +1627,7 @@ internal object RepairingImplementOutputValidator : FeatureTaskRuntimePhaseOutpu
     return FeatureTaskRuntimePhaseOutputValidationResult.AcceptedAfterRepair(
       normalizedOutput = NormalizedFeatureTaskRuntimePhaseOutput(
         canonicalJson = canonical,
-        envelope = normalizePhaseOutput(canonical, sourceLabel).envelope,
+        envelope = normalizePhaseOutput(canonical, sourceLabel).envelopeWireMap(),
       ),
       evidence = FeatureTaskRuntimePhaseOutputRepairEvidence(
         format = FeatureTaskRuntimePhaseOutputFormat.JSON,

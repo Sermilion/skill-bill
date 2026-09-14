@@ -1,8 +1,6 @@
 package skillbill.application.workflow
 
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
-import skillbill.application.decomposition.decodeArtifacts
-import skillbill.application.decomposition.encodeDecompositionManifestMap
 import skillbill.application.decomposition.executionModel
 import skillbill.application.workflow.model.ContinueExistingWorkflowArgs
 import skillbill.application.workflow.model.DecompositionRuntimeWriteArgs
@@ -15,12 +13,15 @@ import skillbill.ports.workflow.saveRecord
 import skillbill.ports.workflow.sessionSummary
 import skillbill.ports.workflow.toRecord
 import skillbill.workflow.decomposition.DecompositionManifestValidator
+import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionExecutionModel
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepState
+import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
@@ -46,6 +47,7 @@ internal fun WorkflowEngine.continueExistingWorkflow(
           DecompositionRuntimeWriteArgs(
             existing = record,
             input = reopenInput,
+            planningResult = null,
             workflowId = workflowId,
             validator = requireNotNull(args.validator),
             fileStore = requireNotNull(args.fileStore),
@@ -109,11 +111,13 @@ fun WorkflowEngine.alignSubtaskResumeStep(
       workflowStatus = record.workflowStatus,
       currentStepId = alignment.targetStepId,
       stepUpdates = alignment.staleBlockedStep?.let { step ->
-        listOf(
-          mapOf(
-            SharedPayloadKeys.STEP_ID to step.stepId,
-            SharedPayloadKeys.STATUS to "completed",
-            "attempt_count" to step.attemptCount,
+        WorkflowStepUpdates.from(
+          listOf(
+            mapOf(
+              SharedPayloadKeys.STEP_ID to step.stepId,
+              SharedPayloadKeys.STATUS to "completed",
+              "attempt_count" to step.attemptCount,
+            ),
           ),
         )
       },
@@ -160,14 +164,16 @@ fun WorkflowEngine.persistParentDecompositionRuntime(
       workflowStatus = parentRecord.workflowStatus,
       currentStepId = parentRecord.currentStepId,
       stepUpdates = null,
-      artifactsPatch = LinkedHashMap(decodeArtifacts(parentRecord.artifactsJson)).apply {
-        remove("goal_review_policy")
-        remove("goal_out_of_band_acceptances")
-        put(
-          DECOMPOSITION_RUNTIME_ARTIFACT_KEY,
-          encodeDecompositionManifestMap(manifest, validator, DECOMPOSITION_RUNTIME_ARTIFACT_KEY),
-        )
-      },
+      artifactsPatch = WorkflowArtifactPatch.from(
+        LinkedHashMap(decodeWorkflowArtifacts(parentRecord.artifactsJson)).apply {
+          remove("goal_review_policy")
+          remove("goal_out_of_band_acceptances")
+          put(
+            DECOMPOSITION_RUNTIME_ARTIFACT_KEY,
+            validator.encodeManifestWireMap(manifest, DECOMPOSITION_RUNTIME_ARTIFACT_KEY),
+          )
+        },
+      ),
       sessionId = parentRecord.sessionId.orEmpty(),
       replaceArtifacts = true,
     ),

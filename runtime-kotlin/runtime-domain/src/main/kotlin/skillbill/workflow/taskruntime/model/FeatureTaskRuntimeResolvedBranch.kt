@@ -1,7 +1,5 @@
 package skillbill.workflow.taskruntime.model
 
-import skillbill.boundary.OpenBoundaryMap
-
 /**
  * The durable resolved feature branch for one run. [branch] is the non-default feature branch the
  * run is pinned to; [baseBranch] is the branch it was created from (null when the run reused an
@@ -39,9 +37,7 @@ data class FeatureTaskRuntimeResolvedBranch(
       "FeatureTaskRuntimeResolvedBranch.boundaryHistoryRoots must not contain blanks."
     }
   }
-
-  @OpenBoundaryMap("Feature-task-runtime resolved-branch artifact map at the durable workflow-artifact seam")
-  fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
+  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
     "branch" to branch,
     "created" to created,
   ).apply {
@@ -56,28 +52,28 @@ data class FeatureTaskRuntimeResolvedBranch(
 
   companion object {
     /** Strict decode; loud-fails on a missing or malformed required field. */
-    @OpenBoundaryMap("Feature-task-runtime resolved-branch decode from the durable workflow-artifact map")
-    fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeResolvedBranch = FeatureTaskRuntimeResolvedBranch(
-      branch = raw.requireStringField("branch"),
-      baseBranch = raw.optionalStringField("base_branch"),
-      created = raw.optionalBooleanField("created") ?: false,
-      reviewBaseSha = raw.optionalStringField("review_base_sha"),
-      baselineUntrackedPaths = (raw["baseline_untracked_paths"] as? List<*>)
-        ?.map { it as? String ?: error("baseline_untracked_paths must contain only strings.") }
-        .orEmpty(),
-      baselineOwnedPaths = (raw["baseline_owned_paths"] as? List<*>)
-        ?.map { it as? String ?: error("baseline_owned_paths must contain only strings.") }
-        .orEmpty(),
-      workflowOwnedPaths = (raw["workflow_owned_paths"] as? List<*>)
-        ?.map { it as? String ?: error("workflow_owned_paths must contain only strings.") }
-        .orEmpty(),
-      boundaryHistoryPaths = (raw["boundary_history_paths"] as? List<*>)
-        ?.map { it as? String ?: error("boundary_history_paths must contain only strings.") }
-        .orEmpty(),
-      boundaryHistoryRoots = (raw["boundary_history_roots"] as? List<*>)
-        ?.map { it as? String ?: error("boundary_history_roots must contain only strings.") }
-        .orEmpty(),
-    )
+    internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeResolvedBranch =
+      FeatureTaskRuntimeResolvedBranch(
+        branch = raw.requireStringField("branch"),
+        baseBranch = raw.optionalStringField("base_branch"),
+        created = raw.optionalBooleanField("created") ?: false,
+        reviewBaseSha = raw.optionalStringField("review_base_sha"),
+        baselineUntrackedPaths = (raw["baseline_untracked_paths"] as? List<*>)
+          ?.map { it as? String ?: error("baseline_untracked_paths must contain only strings.") }
+          .orEmpty(),
+        baselineOwnedPaths = (raw["baseline_owned_paths"] as? List<*>)
+          ?.map { it as? String ?: error("baseline_owned_paths must contain only strings.") }
+          .orEmpty(),
+        workflowOwnedPaths = (raw["workflow_owned_paths"] as? List<*>)
+          ?.map { it as? String ?: error("workflow_owned_paths must contain only strings.") }
+          .orEmpty(),
+        boundaryHistoryPaths = (raw["boundary_history_paths"] as? List<*>)
+          ?.map { it as? String ?: error("boundary_history_paths must contain only strings.") }
+          .orEmpty(),
+        boundaryHistoryRoots = (raw["boundary_history_roots"] as? List<*>)
+          ?.map { it as? String ?: error("boundary_history_roots must contain only strings.") }
+          .orEmpty(),
+      )
   }
 }
 

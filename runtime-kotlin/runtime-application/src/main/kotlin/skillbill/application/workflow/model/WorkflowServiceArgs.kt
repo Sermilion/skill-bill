@@ -1,6 +1,7 @@
 package skillbill.application.workflow.model
 
 import skillbill.application.decomposition.DecompositionManifestWriter
+import skillbill.contracts.decomposition.DecompositionPlanningResult
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
@@ -17,6 +18,7 @@ data class ContinueExistingWorkflowArgs(
 data class DecompositionRuntimeWriteArgs(
   val existing: WorkflowStateSnapshot,
   val input: WorkflowUpdateInput,
+  val planningResult: DecompositionPlanningResult?,
   val workflowId: String,
   val validator: DecompositionManifestValidator,
   val fileStore: DecompositionManifestStore,

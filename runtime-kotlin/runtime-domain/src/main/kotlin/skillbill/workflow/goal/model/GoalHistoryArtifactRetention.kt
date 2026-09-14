@@ -1,27 +1,18 @@
 package skillbill.workflow.goal.model
 
-import skillbill.boundary.OpenBoundaryMap
+import skillbill.contracts.JsonCodec
 
-/**
- * SKILL-64 Subtask 3: single source of truth for bounded, sequence-ordered
- * retention of durable goal history/ledger artifact maps (declared progress and
- * attempt ledger). The durable write seam appends one entry to the existing
- * run-history list and prunes to [retentionLimit].
- *
- * Semantics mirror the typed domain `append()` helpers
- * ([GoalProgressHistory.append], `GoalAttemptLedger.append`): entries are ordered
- * by their `sequence_number`
- * (stably, preserving prior order on ties / missing sequences) and the OLDEST
- * entries are pruned first so retention keeps the highest sequence numbers.
- */
-@OpenBoundaryMap("Goal history/ledger artifact-map list at the durable bounded-retention write seam")
-fun appendBoundedHistoryBySequence(
-  existing: List<Map<String, Any?>>,
-  entry: Map<String, Any?>,
-  retentionLimit: Int,
-): List<Map<String, Any?>> = (existing + entry)
-  .sortedBy { item -> item.historySequenceNumber() }
-  .takeLast(retentionLimit)
+fun appendBoundedHistoryBySequence(existing: List<Any>, entry: Any, retentionLimit: Int): List<Any> {
+  val existingMaps = existing.map { item ->
+    JsonCodec.anyToStringAnyMap(item)
+      ?: throw IllegalArgumentException("Bounded history entry must decode to an object.")
+  }
+  val entryMap = JsonCodec.anyToStringAnyMap(entry)
+    ?: throw IllegalArgumentException("Bounded history append entry must decode to an object.")
+  return (existingMaps + entryMap)
+    .sortedBy { item -> item.historySequenceNumber() }
+    .takeLast(retentionLimit)
+}
 
 private fun Map<String, Any?>.historySequenceNumber(): Int = when (val raw = this["sequence_number"]) {
   is Int -> raw

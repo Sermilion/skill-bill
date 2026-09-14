@@ -1,7 +1,5 @@
 package skillbill.workflow.taskruntime.model
 
-import skillbill.boundary.OpenBoundaryMap
-
 sealed interface FeatureTaskRuntimeHandoffSourceRef {
   val wireValue: String
 
@@ -64,8 +62,6 @@ sealed interface FeatureTaskRuntimeHandoffSourceRef {
       else -> unrecognizedHandoffWireValue("source ref", value)
     }
   }
-
-  @OpenBoundaryMap("Feature-task-runtime phase-handoff declaration source wire seam")
   fun toDeclarationMap(): Map<String, String> = when (this) {
     is UpstreamPhaseOutput -> mapOf("kind" to "upstream_phase_output", "id" to producingPhaseId)
     is RunInvariantField -> mapOf("kind" to "run_invariant_field", "id" to invariantField.wireValue)

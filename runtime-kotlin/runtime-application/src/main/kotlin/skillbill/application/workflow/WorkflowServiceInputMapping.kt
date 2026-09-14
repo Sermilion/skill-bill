@@ -19,10 +19,12 @@ import skillbill.ports.workflow.saveRecord
 import skillbill.ports.workflow.toRecord
 import skillbill.workflow.engine.RUNTIME_REPOSITORY_EVIDENCE_ARTIFACT_KEY
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowContinueDecision
 import skillbill.workflow.engine.model.WorkflowDefinition
 import skillbill.workflow.engine.model.WorkflowSnapshotView
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.goal.GoalObservabilityEventValidator
 import java.nio.file.Path
@@ -105,12 +107,13 @@ fun WorkflowUpdateRequest.toWorkflowUpdateInput(): WorkflowUpdateInput = Workflo
 fun WorkflowContinueDecision.toReopenInput(sessionId: String): WorkflowUpdateInput = WorkflowUpdateInput(
   workflowStatus = "running",
   currentStepId = resumeStepId,
-  stepUpdates =
-  listOf(
-    mapOf(
-      SharedPayloadKeys.STEP_ID to resumeStepId,
-      SharedPayloadKeys.STATUS to "running",
-      "attempt_count" to nextAttemptCount,
+  stepUpdates = WorkflowStepUpdates.from(
+    listOf(
+      mapOf(
+        SharedPayloadKeys.STEP_ID to resumeStepId,
+        SharedPayloadKeys.STATUS to "running",
+        "attempt_count" to nextAttemptCount,
+      ),
     ),
   ),
   artifactsPatch = null,
@@ -150,7 +153,10 @@ fun WorkflowUpdateInput.withGoalObservabilityArtifacts(
       ),
       validator = validator,
     )
-    observabilityPatch?.let { copy(artifactsPatch = LinkedHashMap(patch).apply { putAll(it) }) } ?: this
+    observabilityPatch?.let { patchValue ->
+      val decoded = JsonCodec.anyToStringAnyMap(patchValue) ?: return this
+      copy(artifactsPatch = WorkflowArtifactPatch.from(LinkedHashMap(patch).apply { putAll(decoded) }))
+    } ?: this
   }
 }
 

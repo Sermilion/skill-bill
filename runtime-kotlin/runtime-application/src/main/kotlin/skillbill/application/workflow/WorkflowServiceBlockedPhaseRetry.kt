@@ -12,12 +12,15 @@ import skillbill.ports.workflow.get
 import skillbill.ports.workflow.save
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.engine.model.isTerminalStatus
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStatus
 import skillbill.workflow.model.workflowStepStatus
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_REASON_MAX_LENGTH
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY
@@ -150,26 +153,30 @@ class WorkflowServiceBlockedPhaseRetry(
     val input = WorkflowUpdateInput(
       workflowStatus = "running",
       currentStepId = request.phaseId,
-      stepUpdates = listOf(
-        mapOf(
-          SharedPayloadKeys.STEP_ID to request.phaseId,
-          SharedPayloadKeys.STATUS to "pending",
-          "attempt_count" to 0,
+      stepUpdates = WorkflowStepUpdates.from(
+        listOf(
+          mapOf(
+            SharedPayloadKeys.STEP_ID to request.phaseId,
+            SharedPayloadKeys.STATUS to "pending",
+            "attempt_count" to 0,
+          ),
         ),
       ),
-      artifactsPatch = mapOf(
-        FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to
-          updatedRecords.mapValues { (_, record) -> record.toArtifactMap() },
-        FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY to
-          (state.ledger.map { it.toArtifactMap() } + retryEntry.toArtifactMap()).takeLast(
-            FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT,
+      artifactsPatch = WorkflowArtifactPatch.from(
+        mapOf(
+          FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to
+            updatedRecords.mapValues { (_, record) -> record.asWorkflowArtifactEntry() },
+          FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY to
+            (state.ledger.map { it.asWorkflowArtifactEntry() } + retryEntry.asWorkflowArtifactEntry()).takeLast(
+              FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT,
+            ),
+          FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_ARTIFACT_KEY to mapOf(
+            SharedPayloadKeys.PHASE_ID to request.phaseId,
+            "reason" to request.reason,
+            "retried_at" to OffsetDateTime.now(ZoneOffset.UTC).toString(),
+            "previous_blocked_reason" to state.blockedRecord.blockedReason,
+            "previous_blocked_record" to state.blockedRecord.asWorkflowArtifactEntry(),
           ),
-        FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_ARTIFACT_KEY to mapOf(
-          SharedPayloadKeys.PHASE_ID to request.phaseId,
-          "reason" to request.reason,
-          "retried_at" to OffsetDateTime.now(ZoneOffset.UTC).toString(),
-          "previous_blocked_reason" to state.blockedRecord.blockedReason,
-          "previous_blocked_record" to state.blockedRecord.toArtifactMap(),
         ),
       ),
       sessionId = "",

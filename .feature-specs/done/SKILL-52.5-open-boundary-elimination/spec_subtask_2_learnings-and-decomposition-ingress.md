@@ -1,6 +1,6 @@
 # SKILL-52.5 · Subtask 2 — Learnings and decomposition ingress
 
-Parent spec: [.feature-specs/SKILL-52.5-open-boundary-elimination/spec.md](./spec.md)
+Parent spec: [.feature-specs/SKILL-52.5-open-boundary-elimination/spec.md](spec.md)
 Issue key: SKILL-52.5
 Subtask order: 2 of 7
 Depends on: subtask 1
@@ -31,7 +31,7 @@ In scope:
   application layer.
 - Remove the corresponding FQNs from `RAW_MAP_OPEN_BOUNDARY_ALLOWLIST`; allow-list
   ratchet count must decrease.
-- Add or extend contract schemas under `orchestration/contracts/` when new typed
+- Add or extend contract schemas under `../../../orchestration/contracts` when new typed
   fields need wire keys; bump contract versions per repo policy.
 
 Out of scope:
@@ -74,4 +74,4 @@ Out of scope:
 
 ## Next Path
 
-`.feature-specs/SKILL-52.5-open-boundary-elimination/spec_subtask_3_workflow-taskruntime-artifact-typing.md`
+`spec_subtask_3_workflow-taskruntime-artifact-typing.md`

@@ -1,5 +1,4 @@
 package skillbill.engine.goalrunner
-
 import skillbill.engine.featuretask.FeatureTaskRuntimePhaseRecorder
 import skillbill.goalrunner.model.GoalPullRequestStatus
 import skillbill.goalrunner.model.GoalRunnerContinuationMode

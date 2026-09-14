@@ -1,8 +1,8 @@
 package skillbill.engine
 import skillbill.application.FakeDatabaseSessionFactory
 import skillbill.application.InMemoryWorkflowStates
-import skillbill.application.decomposition.decodeArtifacts
 import skillbill.application.testWorkflowSnapshotValidator
+import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.engine.featuretask.AlwaysValidValidator
 import skillbill.engine.goalrunner.OutcomeStoreTestArtifactPorts
 import skillbill.engine.goalrunner.testWorkflowGoalRunnerOutcomeStore
@@ -18,7 +18,7 @@ import skillbill.ports.workflow.model.toSnapshot
 import skillbill.review.context.model.CodeReviewExecutionMode
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
-import skillbill.workflow.taskruntime.phaseartifacts.phaseRecordsFrom
+import skillbill.workflow.taskruntime.phaseRecordsFromWorkflowArtifacts
 import java.nio.file.Path
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -70,7 +70,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
     assertTrue(recorded)
     assertNull(workflows.getFeatureImplementWorkflow("wftr-task-runtime"))
     val saved = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-task-runtime")).toSnapshot()
-    val artifacts = decodeArtifacts(saved.artifactsJson)
+    val artifacts = decodeWorkflowArtifacts(saved.artifactsJson)
     val ledger = artifacts["goal_attempt_ledger"] as List<*>
     val entry = ledger.single() as Map<*, *>
     assertEquals("final_reconciled_outcome", entry["action"])
@@ -100,7 +100,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
     assertTrue(recorded)
     assertNull(workflows.getFeatureImplementWorkflow("wftr-task-runtime"))
     val saved = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-task-runtime")).toSnapshot()
-    val artifacts = decodeArtifacts(saved.artifactsJson)
+    val artifacts = decodeWorkflowArtifacts(saved.artifactsJson)
     val outcomes = artifacts["goal_worker_subtask_request_outcomes"] as List<*>
     val rejected = outcomes.single() as Map<*, *>
     assertEquals("rejected", rejected["status"])
@@ -363,7 +363,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
     val updated = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-torn-review"))
     assertEquals("running", updated.workflowStatus)
     assertEquals("review", updated.currentStepId)
-    val review = phaseRecordsFrom(decodeArtifacts(updated.artifactsJson))
+    val review = phaseRecordsFromWorkflowArtifacts(decodeWorkflowArtifacts(updated.artifactsJson))
       .getValue("review")
     assertEquals("pending", review.status.wireValue)
   }

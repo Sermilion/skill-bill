@@ -1,8 +1,8 @@
 package skillbill.goalrunner.model
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.workflow.goal.model.GoalObservabilityChangedFileSummary
 import skillbill.workflow.goal.model.GoalObservabilityDiffStat
+import skillbill.workflow.goal.model.GoalObservabilityEvent
 import skillbill.workflow.goal.model.GoalProgressEventKind
 import skillbill.workflow.goal.model.GoalProgressOutcome
 
@@ -48,7 +48,18 @@ data class GoalObservabilityProgressEvent(
   val activitySummary: String,
   val sequenceNumber: Int,
   val timestamp: String,
-)
+) {
+  fun toObservabilityEvent(): GoalObservabilityEvent = GoalObservabilityEvent(
+    issueKey = issueKey,
+    subtaskId = subtaskId,
+    workflowPhase = workflowPhase,
+    workerRole = workerRole,
+    livenessClass = livenessClass,
+    activitySummary = activitySummary,
+    timestamp = timestamp,
+    sequenceNumber = sequenceNumber,
+  )
+}
 
 data class GoalRunnerAttemptLedgerSummary(
   val blockedAttemptCount: Int = 0,
@@ -82,8 +93,7 @@ data class GoalObservabilityWorktreeActivity(
 )
 
 data class GoalObservabilityProgressInput(
-  @OpenBoundaryMap("Existing durable workflow artifacts when projecting goal observability from progress")
-  val artifacts: Map<String, Any?>,
+  val artifacts: Any,
   val workflowId: String,
   val workflowStatus: String,
   val currentStepId: String,
@@ -91,7 +101,6 @@ data class GoalObservabilityProgressInput(
 )
 
 data class GoalObservabilityRuntimeEventInput(
-  @OpenBoundaryMap("Existing durable workflow artifacts when recording a goal observability runtime event")
-  val artifacts: Map<String, Any?>,
+  val artifacts: Any,
   val request: GoalRunnerObservabilityRecordRequest,
 )

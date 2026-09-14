@@ -1,15 +1,17 @@
 package skillbill.engine.featuretask
-
 import me.tatarka.inject.annotations.Inject
-import skillbill.application.decomposition.decodeArtifacts
+import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.save
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.WorkflowSnapshotValidator
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.decomposeTerminalFromWorkflowArtifacts
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_DECOMPOSE_TERMINAL_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDecomposeTerminal
 
@@ -31,7 +33,9 @@ class FeatureTaskRuntimeDecomposeTerminalRecorder(
           workflowStatus = "completed",
           currentStepId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN,
           stepUpdates = null,
-          artifactsPatch = mapOf(FEATURE_TASK_RUNTIME_DECOMPOSE_TERMINAL_ARTIFACT_KEY to terminal.toArtifactMap()),
+          artifactsPatch = WorkflowArtifactPatch.from(
+            mapOf(FEATURE_TASK_RUNTIME_DECOMPOSE_TERMINAL_ARTIFACT_KEY to terminal.asWorkflowArtifactEntry()),
+          ),
           sessionId = record.sessionId.orEmpty(),
         ),
       )
@@ -42,6 +46,6 @@ class FeatureTaskRuntimeDecomposeTerminalRecorder(
   fun loadDecomposeTerminal(workflowId: String): FeatureTaskRuntimeDecomposeTerminal? = database.read { unitOfWork ->
     val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
       ?: return@read null
-    decomposeTerminalFrom(decodeArtifacts(record.artifactsJson))
+    decomposeTerminalFromWorkflowArtifacts(decodeWorkflowArtifacts(record.artifactsJson))
   }
 }

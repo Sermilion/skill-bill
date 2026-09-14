@@ -1,5 +1,4 @@
 package skillbill.goalrunner
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.InvalidGoalProgressEventSchemaError
 import skillbill.goalrunner.model.BuildDeclaredGoalProgressEventArgs
@@ -8,15 +7,17 @@ import skillbill.workflow.goal.model.GOAL_PROGRESS_LATEST_EVENT_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GoalProgressEvent
 import skillbill.workflow.goal.model.GoalProgressEventKind
 import skillbill.workflow.goal.model.GoalProgressOutcome
+import skillbill.workflow.goal.model.asGoalWorkflowArtifactMap
 
-@OpenBoundaryMap("Legacy progress_event artifact decode for goal-runner progress recording")
-fun progressEventFrom(artifacts: Map<String, Any?>): GoalRunnerProgressEvent? =
-  (artifacts["progress_event"] as? Map<*, *>)
+fun progressEventFrom(artifacts: Any): GoalRunnerProgressEvent? {
+  val wire = artifacts.asGoalWorkflowArtifactMap("goal progress event artifacts")
+  return (wire["progress_event"] as? Map<*, *>)
     ?.toGoalRunnerProgressEventOrNull()
+}
 
-@OpenBoundaryMap("Declared goal progress latest-event artifact decode")
-fun declaredProgressEventFrom(artifacts: Map<String, Any?>): GoalProgressEvent? =
-  when (val raw = artifacts[GOAL_PROGRESS_LATEST_EVENT_ARTIFACT_KEY]) {
+fun declaredProgressEventFrom(artifacts: Any): GoalProgressEvent? {
+  val wire = artifacts.asGoalWorkflowArtifactMap("goal declared progress event artifacts")
+  return when (val raw = wire[GOAL_PROGRESS_LATEST_EVENT_ARTIFACT_KEY]) {
     null -> null
     is Map<*, *> -> raw.decodeDeclaredGoalProgressEvent(GOAL_PROGRESS_LATEST_EVENT_ARTIFACT_KEY)
     else -> throw InvalidGoalProgressEventSchemaError(
@@ -25,6 +26,7 @@ fun declaredProgressEventFrom(artifacts: Map<String, Any?>): GoalProgressEvent? 
       "must be an object.",
     )
   }
+}
 
 fun Map<*, *>.decodeDeclaredGoalProgressEvent(sourceLabel: String): GoalProgressEvent {
   val eventKind = requiredProgressEventKind(sourceLabel)

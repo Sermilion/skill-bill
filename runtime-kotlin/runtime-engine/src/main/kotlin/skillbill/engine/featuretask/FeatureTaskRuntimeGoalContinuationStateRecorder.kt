@@ -1,13 +1,14 @@
 package skillbill.engine.featuretask
-
-import skillbill.application.decomposition.decodeArtifacts
+import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.save
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_FIELD_ADOPTION_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_OUTCOME_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationArtifact
@@ -20,7 +21,7 @@ class FeatureTaskRuntimeGoalContinuationStateRecorder(
     database.transaction { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, request.workflowId)
         ?: return@transaction false
-      val artifacts = decodeArtifacts(record.artifactsJson)
+      val artifacts = decodeWorkflowArtifacts(record.artifactsJson)
       val existingContinuation = continuationFromArtifacts(artifacts)
       val supplied = request.continuation?.let { continuation ->
         continuation.copy(subtaskName = continuation.subtaskName ?: existingContinuation?.subtaskName)
@@ -32,10 +33,10 @@ class FeatureTaskRuntimeGoalContinuationStateRecorder(
       val continuationPatch = continuationPatch(supplied, existingContinuation)
       val reviewStatePatch = reviewStatePatch(request.copy(continuation = supplied), artifacts, existingContinuation)
       val outcomePatch = request.outcome?.let {
-        mapOf(FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_OUTCOME_ARTIFACT_KEY to it.toArtifactMap())
+        mapOf(FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_OUTCOME_ARTIFACT_KEY to it.toPersistenceWire())
       }.orEmpty()
       val adoptionPatch = request.fieldAdoption?.let {
-        mapOf(FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_FIELD_ADOPTION_ARTIFACT_KEY to it.toArtifactMap())
+        mapOf(FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_FIELD_ADOPTION_ARTIFACT_KEY to it.asWorkflowArtifactEntry())
       }.orEmpty()
       val updated = engine.updateRecord(
         WorkflowFamily.TASK_RUNTIME.definition,
@@ -44,7 +45,9 @@ class FeatureTaskRuntimeGoalContinuationStateRecorder(
           workflowStatus = request.workflowStatus ?: record.workflowStatus,
           currentStepId = request.outcome?.lastResumableStep ?: record.currentStepId,
           stepUpdates = null,
-          artifactsPatch = continuationPatch + reviewStatePatch + outcomePatch + adoptionPatch,
+          artifactsPatch = WorkflowArtifactPatch.from(
+            continuationPatch + reviewStatePatch + outcomePatch + adoptionPatch,
+          ),
           sessionId = record.sessionId.orEmpty(),
         ),
       )
@@ -54,11 +57,11 @@ class FeatureTaskRuntimeGoalContinuationStateRecorder(
 
   fun reviewState(workflowId: String): GoalSubtaskReviewState? = database.read { unitOfWork ->
     val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@read null
-    reviewStateFromArtifacts(decodeArtifacts(record.artifactsJson))
+    reviewStateFromArtifacts(decodeWorkflowArtifacts(record.artifactsJson))
   }
 
   fun continuation(workflowId: String): FeatureTaskRuntimeGoalContinuationArtifact? = database.read { unitOfWork ->
     val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@read null
-    continuationFromArtifacts(decodeArtifacts(record.artifactsJson))
+    continuationFromArtifacts(decodeWorkflowArtifacts(record.artifactsJson))
   }
 }

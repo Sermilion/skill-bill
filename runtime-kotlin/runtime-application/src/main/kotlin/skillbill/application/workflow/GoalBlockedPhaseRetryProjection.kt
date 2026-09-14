@@ -1,7 +1,6 @@
 package skillbill.application.workflow
 
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
-import skillbill.application.decomposition.encodeDecompositionManifestMap
 import skillbill.application.decomposition.withRetriedSubtask
 import skillbill.contracts.JsonCodec
 import skillbill.error.InvalidWorkflowStateSchemaError
@@ -10,15 +9,18 @@ import skillbill.ports.workflow.get
 import skillbill.ports.workflow.saveRecord
 import skillbill.ports.workflow.toRecord
 import skillbill.workflow.decomposition.DecompositionManifestValidator
+import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
+import skillbill.workflow.taskruntime.decodeGoalContinuationArtifactFromArtifact
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationArtifact
 
 fun WorkflowEngine.updateGoalParentForBlockedPhaseRetry(
   unitOfWork: GoalRunnerPersistenceSession,
   childWorkflowId: String,
-  childArtifacts: Map<String, Any?>,
+  childArtifacts: DurableWorkflowArtifacts,
   phaseId: String,
   validator: DecompositionManifestValidator,
 ): String? {
@@ -28,7 +30,10 @@ fun WorkflowEngine.updateGoalParentForBlockedPhaseRetry(
     ?: invalidGoalRetryProjection(
       "Workflow artifact '$FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY' must be an object.",
     )
-  val continuation = FeatureTaskRuntimeGoalContinuationArtifact.fromArtifactMap(continuationMap)
+  val continuation = decodeGoalContinuationArtifactFromArtifact(continuationMap)
+    ?: invalidGoalRetryProjection(
+      "Workflow artifact '$FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY' is malformed.",
+    )
   val parentWorkflowId = continuation.parentWorkflowId ?: return null
   val parent = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, parentWorkflowId)
     ?: invalidGoalRetryProjection(
@@ -53,11 +58,12 @@ fun WorkflowEngine.updateGoalParentForBlockedPhaseRetry(
     workflowStatus = parent.workflowStatus,
     currentStepId = parent.currentStepId.orEmpty(),
     stepUpdates = null,
-    artifactsPatch = mapOf(
-      DECOMPOSITION_RUNTIME_ARTIFACT_KEY to encodeDecompositionManifestMap(
-        retriedManifest,
-        validator,
-        DECOMPOSITION_RUNTIME_ARTIFACT_KEY,
+    artifactsPatch = WorkflowArtifactPatch.from(
+      mapOf(
+        DECOMPOSITION_RUNTIME_ARTIFACT_KEY to validator.encodeManifestWireMap(
+          retriedManifest,
+          DECOMPOSITION_RUNTIME_ARTIFACT_KEY,
+        ),
       ),
     ),
     sessionId = parent.sessionId.orEmpty(),

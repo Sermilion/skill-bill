@@ -2,6 +2,7 @@ package skillbill.infrastructure.fs.phaseoutput
 
 import skillbill.contracts.JsonCodec
 import skillbill.infrastructure.fs.FeatureTaskRuntimePhaseOutputValidatorAdapter
+import skillbill.workflow.taskruntime.envelopeWireMap
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputFailureCode
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputFormat
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairOperation
@@ -12,7 +13,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
-
 class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
   private val adapter = FeatureTaskRuntimePhaseOutputValidatorAdapter()
 
@@ -25,7 +25,7 @@ class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
     val result = adapter.validatePhaseOutput(validJson, "plan")
 
     val accepted = assertIs<FeatureTaskRuntimePhaseOutputValidationResult.AcceptedUnchanged>(result)
-    assertEquals(null, accepted.normalizedOutput.envelope["repair_evidence"])
+    assertEquals(null, accepted.normalizedOutput.envelopeWireMap()["repair_evidence"])
     assertTrue(accepted.normalizedOutput.canonicalJson.contains("\"phase_id\":\"plan\""))
   }
 
@@ -47,14 +47,15 @@ class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
       repaired.evidence.operation,
     )
     assertFalse(
-      repaired.normalizedOutput.envelope.containsKey("reconciled_state"),
+      repaired.normalizedOutput.envelopeWireMap().containsKey("reconciled_state"),
       "the stray root key is what the closed envelope rejects, so it must not survive at the root",
     )
     assertTrue(
       repaired.normalizedOutput.canonicalJson.contains("\"reconciled_state\""),
       "the report itself is the producer's evidence and must be kept, one level down",
     )
-    val produced = requireNotNull(JsonCodec.anyToStringAnyMap(repaired.normalizedOutput.envelope["produced_outputs"]))
+    val produced =
+      requireNotNull(JsonCodec.anyToStringAnyMap(repaired.normalizedOutput.envelopeWireMap()["produced_outputs"]))
     assertEquals("Implement prose with former receipt stuffed inside.", produced["value"])
     assertEquals(mapOf("reconciled" to true), produced["reconciled_state"])
     assertEquals(
@@ -83,10 +84,11 @@ class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
     val repaired = assertIs<FeatureTaskRuntimePhaseOutputValidationResult.AcceptedAfterRepair>(result)
     assertEquals(
       "All 13 plan tasks are converged; no build, test, or lint invocation was made in this phase.",
-      repaired.normalizedOutput.envelope["summary"],
+      repaired.normalizedOutput.envelopeWireMap()["summary"],
       "the paragraph nearest the envelope describes the state the envelope reports",
     )
-    val produced = requireNotNull(JsonCodec.anyToStringAnyMap(repaired.normalizedOutput.envelope["produced_outputs"]))
+    val produced =
+      requireNotNull(JsonCodec.anyToStringAnyMap(repaired.normalizedOutput.envelopeWireMap()["produced_outputs"]))
     assertEquals("Implement prose with former receipt stuffed inside.", produced["value"])
     assertEquals(listOf("a/B.kt"), produced["changed_paths"], "legacy sibling keys beside value survive")
   }
@@ -100,7 +102,7 @@ class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
     val result = adapter.validatePhaseOutput(bare, "implement")
 
     val repaired = assertIs<FeatureTaskRuntimePhaseOutputValidationResult.AcceptedAfterRepair>(result)
-    val summary = repaired.normalizedOutput.envelope["summary"] as String
+    val summary = repaired.normalizedOutput.envelopeWireMap()["summary"] as String
     assertTrue(
       summary.contains("reported no summary"),
       "with nothing of the producer's to recover, the fill must say so rather than invent a claim",
@@ -130,8 +132,8 @@ class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
     val result = adapter.validatePhaseOutput(draftThenReal, "plan")
 
     val envelope = when (result) {
-      is FeatureTaskRuntimePhaseOutputValidationResult.AcceptedAfterRepair -> result.normalizedOutput.envelope
-      is FeatureTaskRuntimePhaseOutputValidationResult.AcceptedUnchanged -> result.normalizedOutput.envelope
+      is FeatureTaskRuntimePhaseOutputValidationResult.AcceptedAfterRepair -> result.normalizedOutput.envelopeWireMap()
+      is FeatureTaskRuntimePhaseOutputValidationResult.AcceptedUnchanged -> result.normalizedOutput.envelopeWireMap()
       else -> error("the complete envelope must decide the response, got $result")
     }
     assertEquals("Plan output.", envelope["summary"])
@@ -153,8 +155,8 @@ class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
     val result = adapter.validatePhaseOutput(narrated, "plan")
 
     val envelope = when (val outcome = adapter.validatePhaseOutput(narrated, "plan")) {
-      is FeatureTaskRuntimePhaseOutputValidationResult.AcceptedAfterRepair -> outcome.normalizedOutput.envelope
-      is FeatureTaskRuntimePhaseOutputValidationResult.AcceptedUnchanged -> outcome.normalizedOutput.envelope
+      is FeatureTaskRuntimePhaseOutputValidationResult.AcceptedAfterRepair -> outcome.normalizedOutput.envelopeWireMap()
+      is FeatureTaskRuntimePhaseOutputValidationResult.AcceptedUnchanged -> outcome.normalizedOutput.envelopeWireMap()
       else -> error("an envelope in a fence must be accepted, got $result")
     }
     assertEquals("Plan output.", envelope["summary"])
@@ -171,7 +173,8 @@ class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
     val result = adapter.validatePhaseOutput(collision, "implement")
 
     val repaired = assertIs<FeatureTaskRuntimePhaseOutputValidationResult.AcceptedAfterRepair>(result)
-    val produced = requireNotNull(JsonCodec.anyToStringAnyMap(repaired.normalizedOutput.envelope["produced_outputs"]))
+    val produced =
+      requireNotNull(JsonCodec.anyToStringAnyMap(repaired.normalizedOutput.envelopeWireMap()["produced_outputs"]))
     assertEquals("Implement prose.", produced["value"])
     assertEquals(
       mapOf("reconciled" to true, "evidence" to "stated"),
@@ -193,7 +196,7 @@ class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
     )
     assertEquals(sha256(malformed), repaired.evidence.originalDigest)
     assertEquals(sha256(validJson), repaired.evidence.repairedDigest)
-    assertEquals("plan", repaired.normalizedOutput.envelope["phase_id"])
+    assertEquals("plan", repaired.normalizedOutput.envelopeWireMap()["phase_id"])
     assertTrue(repaired.evidence.sourceLocation.offset == validJson.length)
   }
 
@@ -228,7 +231,7 @@ class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
     assertEquals(sha256(malformed), repaired.evidence.originalDigest)
     assertEquals(sha256(validNestedJson), repaired.evidence.repairedDigest)
     val producedOutputs = requireNotNull(
-      JsonCodec.anyToStringAnyMap(repaired.normalizedOutput.envelope["produced_outputs"]),
+      JsonCodec.anyToStringAnyMap(repaired.normalizedOutput.envelopeWireMap()["produced_outputs"]),
     )
     assertEquals("Plan prose.", producedOutputs["value"])
     assertEquals(listOf(mapOf("id" to "task-1")), producedOutputs["notes"])
@@ -245,7 +248,7 @@ class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
     val result = adapter.validatePhaseOutput(wrapped, "plan")
 
     val accepted = assertIs<FeatureTaskRuntimePhaseOutputValidationResult.AcceptedUnchanged>(result)
-    assertEquals("plan", accepted.normalizedOutput.envelope["phase_id"])
+    assertEquals("plan", accepted.normalizedOutput.envelopeWireMap()["phase_id"])
   }
 
   @Test
@@ -290,7 +293,7 @@ class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
     val result = adapter.validatePhaseOutput(payload, "plan")
 
     val unchanged = assertIs<FeatureTaskRuntimePhaseOutputValidationResult.AcceptedUnchanged>(result)
-    assertEquals("literal } ] and escaped \"quote\"", unchanged.normalizedOutput.envelope["summary"])
+    assertEquals("literal } ] and escaped \"quote\"", unchanged.normalizedOutput.envelopeWireMap()["summary"])
   }
 
   @Test
@@ -301,7 +304,7 @@ class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
 
     val repaired = assertIs<FeatureTaskRuntimePhaseOutputValidationResult.AcceptedAfterRepair>(result)
     assertEquals(FeatureTaskRuntimePhaseOutputRepairOperation.DEDUPLICATE_KEYS, repaired.evidence.operation)
-    assertEquals("plan", repaired.normalizedOutput.envelope["phase_id"])
+    assertEquals("plan", repaired.normalizedOutput.envelopeWireMap()["phase_id"])
     assertEquals(sha256(duplicate), repaired.evidence.originalDigest)
   }
 
@@ -316,7 +319,7 @@ class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
 
     val repaired = assertIs<FeatureTaskRuntimePhaseOutputValidationResult.AcceptedAfterRepair>(result)
     val producedOutputs = requireNotNull(
-      JsonCodec.anyToStringAnyMap(repaired.normalizedOutput.envelope["produced_outputs"]),
+      JsonCodec.anyToStringAnyMap(repaired.normalizedOutput.envelopeWireMap()["produced_outputs"]),
     )
     assertEquals("Plan prose A.", producedOutputs["value"])
     assertEquals(listOf("n-0", "n-1"), producedOutputs["notes"])
@@ -335,7 +338,7 @@ class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
     val result = adapter.validatePhaseOutput(response, "plan")
 
     val accepted = assertIs<FeatureTaskRuntimePhaseOutputValidationResult.AcceptedUnchanged>(result)
-    assertEquals("plan", accepted.normalizedOutput.envelope["phase_id"])
+    assertEquals("plan", accepted.normalizedOutput.envelopeWireMap()["phase_id"])
   }
 
   @Test
@@ -371,7 +374,7 @@ class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
     assertEquals(FeatureTaskRuntimePhaseOutputFormat.YAML, repaired.evidence.format)
     assertEquals(sha256(malformed), repaired.evidence.originalDigest)
     assertEquals(sha256(repairedText), repaired.evidence.repairedDigest)
-    assertEquals("brace } in a scalar", repaired.normalizedOutput.envelope["summary"])
+    assertEquals("brace } in a scalar", repaired.normalizedOutput.envelopeWireMap()["summary"])
   }
 
   @Test
@@ -414,7 +417,7 @@ class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
     val result = adapter.validatePhaseOutput(response, "plan")
 
     val accepted = assertIs<FeatureTaskRuntimePhaseOutputValidationResult.AcceptedUnchanged>(result)
-    assertEquals("plan", accepted.normalizedOutput.envelope["phase_id"])
+    assertEquals("plan", accepted.normalizedOutput.envelopeWireMap()["phase_id"])
   }
 
   @Test
@@ -436,8 +439,8 @@ class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
         repaired.evidence.operation,
         label,
       )
-      assertEquals("plan", repaired.normalizedOutput.envelope["phase_id"], label)
-      assertEquals("completed", repaired.normalizedOutput.envelope["status"], label)
+      assertEquals("plan", repaired.normalizedOutput.envelopeWireMap()["phase_id"], label)
+      assertEquals("completed", repaired.normalizedOutput.envelopeWireMap()["status"], label)
     }
   }
 
@@ -469,8 +472,8 @@ class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
     val result = adapter.validatePhaseOutput(payload, "audit")
 
     val repaired = assertIs<FeatureTaskRuntimePhaseOutputValidationResult.AcceptedAfterRepair>(result)
-    assertEquals("satisfied", repaired.normalizedOutput.envelope["verdict"])
-    assertEquals("audit", repaired.normalizedOutput.envelope["phase_id"])
+    assertEquals("satisfied", repaired.normalizedOutput.envelopeWireMap()["verdict"])
+    assertEquals("audit", repaired.normalizedOutput.envelopeWireMap()["phase_id"])
     assertEquals(
       FeatureTaskRuntimePhaseOutputRepairOperation.REMOVE_EXTRA_CLOSING_DELIMITER,
       repaired.evidence.operation,
@@ -486,8 +489,8 @@ class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
     val result = adapter.validatePhaseOutput(malformed, "audit")
 
     val repaired = assertIs<FeatureTaskRuntimePhaseOutputValidationResult.AcceptedAfterRepair>(result)
-    assertEquals("satisfied", repaired.normalizedOutput.envelope["verdict"])
-    assertEquals("audit", repaired.normalizedOutput.envelope["phase_id"])
+    assertEquals("satisfied", repaired.normalizedOutput.envelopeWireMap()["verdict"])
+    assertEquals("audit", repaired.normalizedOutput.envelopeWireMap()["phase_id"])
   }
 
   @Test
@@ -499,12 +502,13 @@ class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
     val result = adapter.validatePhaseOutput(nested, "audit")
 
     val repaired = assertIs<FeatureTaskRuntimePhaseOutputValidationResult.AcceptedAfterRepair>(result)
-    assertEquals("satisfied", repaired.normalizedOutput.envelope["verdict"])
+    assertEquals("satisfied", repaired.normalizedOutput.envelopeWireMap()["verdict"])
     assertEquals(
       FeatureTaskRuntimePhaseOutputRepairOperation.RESTORE_EXPECTED_SHAPE,
       repaired.evidence.operation,
     )
-    val produced = requireNotNull(JsonCodec.anyToStringAnyMap(repaired.normalizedOutput.envelope["produced_outputs"]))
+    val produced =
+      requireNotNull(JsonCodec.anyToStringAnyMap(repaired.normalizedOutput.envelopeWireMap()["produced_outputs"]))
     assertEquals(null, produced["verdict"])
   }
 

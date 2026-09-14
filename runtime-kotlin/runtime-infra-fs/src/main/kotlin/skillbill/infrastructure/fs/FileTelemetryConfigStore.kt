@@ -10,6 +10,7 @@ import skillbill.telemetry.INSTALL_ID_ENVIRONMENT_KEY
 import skillbill.telemetry.defaultLocalTelemetryConfig
 import skillbill.telemetry.model.TelemetryConfigDocument
 import skillbill.telemetry.parseTelemetryBoolValue
+import skillbill.workflow.engine.model.TelemetryOpenDocument
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.UUID
@@ -39,7 +40,7 @@ internal fun readTelemetryConfigFile(path: Path): TelemetryConfigDocument? {
     ?: throw IllegalArgumentException("Telemetry config at '$path' is not valid JSON.")
   val payload = JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(rawPayload))
     ?: throw IllegalArgumentException("Telemetry config at '$path' must contain a JSON object.")
-  return TelemetryConfigDocument(payload)
+  return TelemetryConfigDocument(TelemetryOpenDocument.from(payload))
 }
 
 /**
@@ -56,7 +57,7 @@ internal fun ensureTelemetryConfigFile(
 ): TelemetryConfigDocument {
   path.parent?.let(Files::createDirectories)
   val existing = readTelemetryConfigFile(path)
-  val payload = (existing?.payload?.toMutableMap() ?: mutableMapOf())
+  val payload = LinkedHashMap<String, Any?>(existing?.payload.orEmpty())
   val fallbackInstallId =
     environment[INSTALL_ID_ENVIRONMENT_KEY]?.trim()?.takeIf(String::isNotBlank)
       ?: UUID.randomUUID().toString()
@@ -64,7 +65,7 @@ internal fun ensureTelemetryConfigFile(
   val telemetry = normalizedTelemetryMap(payload, defaults)
   payload["install_id"] = normalizedInstallId(payload, defaults)
   payload["telemetry"] = telemetry
-  val document = TelemetryConfigDocument(payload)
+  val document = TelemetryConfigDocument(TelemetryOpenDocument.from(payload))
   if (!Files.exists(path) || existing != document) {
     writeTelemetryConfigFile(path, document)
   }

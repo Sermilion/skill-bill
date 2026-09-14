@@ -68,7 +68,7 @@ fun DecompositionManifest.currentSubtaskIdForUpdate(repoRoot: Path, update: Deco
 }
 
 fun statusFromUpdate(update: DecompositionManifestRuntimeUpdate): String? {
-  val stepUpdates = update.stepUpdates.orEmpty()
+  val stepUpdates = update.stepUpdates?.asEntries().orEmpty()
   val workflowStatus = update.workflowStatus.workflowStatus()
   return when {
     workflowStatus == WorkflowStatus.BLOCKED ||
@@ -160,12 +160,12 @@ private fun prSuppressedCommitStatus(update: DecompositionManifestRuntimeUpdate)
   val suppressPr = goalContinuation["suppress_pr"] == true
   val commitPushResult = artifacts["commit_push_result"] as? Map<*, *>
   val commitPushActive = update.currentStepId == "commit_push" ||
-    update.stepUpdates.orEmpty().any { it[SharedPayloadKeys.STEP_ID] == "commit_push" }
+    update.stepUpdates?.asEntries().orEmpty().any { it[SharedPayloadKeys.STEP_ID] == "commit_push" }
   val preCommitProjection = commitPushActive &&
     commitPushResult?.get("pre_commit_projection") == true &&
     commitShaFrom(artifacts) == null
   val commitPushCompleted =
-    update.stepUpdates.orEmpty().any {
+    update.stepUpdates?.asEntries().orEmpty().any {
       it[SharedPayloadKeys.STEP_ID] == "commit_push" &&
         it[SharedPayloadKeys.STATUS].workflowStepStatus() == WorkflowStepStatus.COMPLETED
     }

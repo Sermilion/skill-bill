@@ -1,5 +1,4 @@
 package skillbill.engine.featuretask
-
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseLaunchBriefing
 import skillbill.goalrunner.subtaskreview.FeatureTaskRuntimeVerificationSignalKeys

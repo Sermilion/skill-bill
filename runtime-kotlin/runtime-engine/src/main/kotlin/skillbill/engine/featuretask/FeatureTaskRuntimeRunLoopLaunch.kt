@@ -1,5 +1,4 @@
 package skillbill.engine.featuretask
-
 import skillbill.application.review.toProjectionPayload
 import skillbill.contracts.JsonCodec
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseLaunchBriefing
@@ -28,6 +27,8 @@ import skillbill.review.context.model.SpecIntentProjectionResolveRequest
 import skillbill.review.context.model.SpecIntentResolution
 import skillbill.telemetry.estimation.estimateTokens
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.envelopeWireMap
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeCorrectiveRepairContext
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
@@ -89,7 +90,7 @@ object FeatureTaskRuntimeRunLoopLaunch {
         )
         appendLine(
           checkpoint.joinToString(prefix = "[", postfix = "]") { disposition ->
-            JsonCodec.mapToJsonString(disposition.toArtifactMap())
+            JsonCodec.mapToJsonString(workflowArtifactEntryMap(disposition.asWorkflowArtifactEntry()))
           },
         )
       }
@@ -392,7 +393,7 @@ object FeatureTaskRuntimeRunLoopLaunch {
   }
 
   fun outputEnvelopeOf(output: FeatureTaskRuntimePhaseOutput): Map<String, Any?>? =
-    output.normalizedOutput?.envelope?.takeIf { it.isNotEmpty() }
+    output.normalizedOutput?.envelopeWireMap()?.takeIf { it.isNotEmpty() }
       ?: JsonCodec.parseObjectOrNull(output.payload)?.let(JsonCodec::jsonElementToValue)
         ?.let(JsonCodec::anyToStringAnyMap)
 

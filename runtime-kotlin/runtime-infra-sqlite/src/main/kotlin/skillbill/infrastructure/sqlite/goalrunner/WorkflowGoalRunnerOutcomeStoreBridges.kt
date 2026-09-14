@@ -35,10 +35,12 @@ import skillbill.ports.workflow.save
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.WorkflowSnapshotValidator
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.goal.GoalObservabilityEventValidator
 import skillbill.workflow.goal.GoalProgressEventValidator
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
+import skillbill.workflow.goal.model.GoalProgressEvent
 import skillbill.workflow.goal.model.GoalSubtaskReviewPassResult
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
@@ -198,8 +200,11 @@ internal class WorkflowGoalRunnerReviewBridge(
           workflowStatus = record.workflowStatus,
           currentStepId = record.currentStepId,
           stepUpdates = null,
-          artifactsPatch = mapOf(
-            GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to state.acknowledgeSummariesThrough(passNumber).toArtifactMap(),
+          artifactsPatch = WorkflowArtifactPatch.from(
+            mapOf(
+              GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to
+                state.acknowledgeSummariesThrough(passNumber).toPersistenceWire(),
+            ),
           ),
           sessionId = record.sessionId.orEmpty(),
         ),
@@ -267,7 +272,7 @@ internal class WorkflowGoalRunnerTerminalBridge(
     workflowId: String,
     issueKey: String,
     subtaskId: Int,
-    output: Map<String, Any?>,
+    output: Any,
   ): GoalRunnerStoredOutcome? = database.transaction { unitOfWork ->
     val family = workflowFamilyFor(unitOfWork.workflowStates, workflowId) ?: return@transaction null
     val record = family.get(unitOfWork.workflowStates, workflowId) ?: return@transaction null
@@ -364,7 +369,7 @@ internal class WorkflowGoalRunnerBlockBridge(
 internal interface WorkflowGoalRunnerProgressReadStore {
   fun progress(workflowId: String): GoalRunnerWorkflowProgress?
 
-  fun progressEvents(workflowId: String): List<Map<String, Any?>>
+  fun progressEvents(workflowId: String): List<GoalProgressEvent>
 
   fun ledgerSequenceWatermarks(issueKey: String): GoalRunnerLedgerSequenceWatermarks
 
@@ -400,7 +405,7 @@ internal class WorkflowGoalRunnerProgressBridge(
   override fun recordProgressEvent(request: GoalRunnerProgressEventRecordRequest): Boolean =
     progressRecording.recordProgressEvent(request)
 
-  override fun progressEvents(workflowId: String): List<Map<String, Any?>> =
+  override fun progressEvents(workflowId: String): List<GoalProgressEvent> =
     progressRecording.progressEvents(workflowId)
 
   override fun recordAttemptLedgerEntry(request: GoalRunnerAttemptLedgerRecordRequest): Boolean =
@@ -436,7 +441,7 @@ internal class WorkflowGoalRunnerOutcomeWorkflowBridge(
   override fun authoritativeOutcomes(issueKey: String): Map<Int, GoalRunnerStoredOutcome> =
     reconcile.authoritativeOutcomes(issueKey)
 
-  override fun progressEvents(workflowId: String): List<Map<String, Any?>> = progress.progressEvents(workflowId)
+  override fun progressEvents(workflowId: String): List<GoalProgressEvent> = progress.progressEvents(workflowId)
 
   override fun childWorkflowLoopIterations(workflowId: String): Map<String, Int> =
     progress.childWorkflowLoopIterations(workflowId)

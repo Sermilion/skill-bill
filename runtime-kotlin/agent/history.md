@@ -1,3 +1,58 @@
+## [2026-09-14] SKILL-52.5 subtask 7 — Allow-list zero lock
+Areas: runtime-kotlin/{architecture,agent,runtime-cli,runtime-core,runtime-domain,runtime-engine,runtime-infra-{fs,sqlite},scripts}
+- Deleted the raw-map allow-list, sync script, inventory fixture, and `@OpenBoundaryMap` escape hatch; architecture enforcement now fails on any public inner-layer raw-map declaration.
+- Updated architecture documentation and zero-tolerance tests; production references and allow-list machinery are absent.
+- Pattern: keep wire maps private to serialization seams and require typed DTOs across application, domain, and ports boundaries. reusable
+- Supersedes the prior lifecycle open-boundary exception; future extensions require typed envelopes or contract versioning.
+Feature flag: N/A
+Acceptance criteria: 5/5 implemented
+
+## [2026-09-14] SKILL-52.5 subtask 6 — Application workflow, telemetry, and remainder
+Areas: runtime-kotlin/{runtime-application,runtime-contracts,runtime-domain,runtime-engine,runtime-ports,runtime-cli,runtime-mcp,runtime-infra-{fs,http,sqlite},runtime-core}
+- Replaced the remaining application, workflow, telemetry, review, install, IDE-status, and persistence raw-map seams with typed models and boundary-owned wire mappers.
+- Lifecycle telemetry and workflow continuation/update projections preserve contract-backed payload vocabulary across application, CLI, MCP, and infrastructure adapters.
+- Pattern: keep raw maps at serialization seams and carry typed records through application, domain, ports, engine, persistence, CLI, and MCP boundaries. reusable
+- Known limitation: architecture and adapter verification remains owned by the validate phase.
+Feature flag: N/A
+Acceptance criteria: 5/5 implemented
+
+## [2026-09-14] SKILL-52.5 subtask 5 — Goal runner and workflow goal typing
+Areas: runtime-kotlin/{runtime-domain/{goalrunner,workflow/goal},runtime-ports/goalrunner,runtime-engine/{goalrunner,featuretask},runtime-infra-{fs,sqlite},runtime-application,runtime-cli,runtime-mcp,runtime-core}
+- Replaced public raw-map boundary shapes across goal-runner and workflow-goal state, continuation artifacts, observability, review state, planning hydration, and persistence helpers with typed models and private wire decoders.
+- Retired the goal-runner/workflow-goal allow-list cluster; the canonical raw-map inventory fell from 203 to 86 entries while preserving durable decoding and loud-fail behavior.
+- Pattern: keep contract maps inside boundary mappers and carry typed records through domain, ports, engine, persistence, CLI, and MCP seams. reusable
+- Known limitations: selected planning packet helpers, child-repair patch slots, and remaining engine status/codec helpers still use public map shapes; these are documented follow-up deviations.
+Feature flag: N/A
+Acceptance criteria: 5/5 implemented
+
+## [2026-09-14] SKILL-52.5 subtask 3 — Workflow taskruntime artifact typing
+Areas: runtime-kotlin/{runtime-domain/runtime-engine/runtime-infra-fs/runtime-infra-sqlite/runtime-application/runtime-cli/runtime-core}
+- Replaced taskruntime artifact raw-map boundary shapes with typed durable models and centralized wire mappers for handoffs, repair, quarantine, checkpoint, validation-gate, implementation-attempt, and continuation artifacts.
+- Persistence decoding and encoding now use typed workflow-artifact APIs while retaining malformed-record loud-fail and quarantine behavior; representative round-trip and boundary coverage was added.
+- Pattern: keep wire maps private to serialization seams and expose typed records across application, engine, filesystem, SQLite, CLI, and test boundaries. reusable
+- Known limitation: four workflow taskruntime wire helper FQNs remain allow-listed; the full zero-entry ratchet is deferred.
+Feature flag: N/A
+Acceptance criteria: 4/5 implemented
+
+## [2026-09-14] SKILL-52.5 subtask 2 — Learnings and decomposition ingress
+Areas: runtime-kotlin/{runtime-application,runtime-contracts,runtime-domain,runtime-engine,runtime-infra-fs,runtime-infra-sqlite,runtime-mcp,runtime-ports,runtime-cli,runtime-core}
+- Typed learning payloads and entries, decomposition planning ingress, manifest wire boundaries, and workflow continuation summaries replace the scoped raw-map surfaces.
+- The canonical open-boundary allow-list ratchet now records 385 entries after this cluster; contract-owned payload keys keep wire vocabulary centralized. reusable
+- Pattern: parse wire maps at adapters and pass contract-backed DTOs through application and domain seams. reusable
+- Known limitations: workflow-artifact seams still invoke `DecompositionPlanningResult.fromWireMap`; CLI/MCP goal-planning adapter types remain deferred, and inventory/strict count reconciliation remains pending validation.
+Feature flag: N/A
+Acceptance criteria: 3/5 implemented
+
+## [2026-09-14] SKILL-52.5 subtask 1 — Enforcement pivot and ARCHITECTURE.md dedup
+Areas: runtime-kotlin/{runtime-core/architecture,runtime-domain/boundary,scripts,ARCHITECTURE.md}
+- Open-boundary and SKILL-52.2 enforcement now use the canonical `the open-boundary allow-list constant`; ARCHITECTURE.md no longer carries FQN lists.
+- Architecture tests read canonical declarations and the inventory resource, classify each declaration once, and ratchet the allow-list at 416 entries.
+- The sync script updates support and inventory outputs without mutating ARCHITECTURE.md. reusable
+- Pattern: keep machine-readable enforcement separate from explanatory architecture prose and enforce monotonic shrinkage. reusable
+- Known limitation: allow-list entries remain untyped; runtime API and wire output are unchanged.
+Feature flag: N/A
+Acceptance criteria: 5/5 implemented
+
 ## [2026-09-11] SKILL-233 subtask 7 — Unused-parameter gate cleanup
 Areas: orchestration/skill-classes, platform-packs/{generic,go,ios,kmp,kotlin,php,python,rust,typescript}
 - Synchronized the contract version declaration at 1.8 across eight skill-class definitions and nine platform manifests for the unused-parameter gate remediation.
@@ -1572,7 +1627,7 @@ Areas: runtime-kotlin/runtime-mcp, runtime-kotlin/runtime-domain, runtime-kotlin
 - Added `"bill-feature-goal"` to `TelemetryConstants.remoteStatsWorkflows` so `validateRemoteStatsRequest` accepts it after dispatcher mapping.
 - Added two new `McpTelemetryRuntimeTest` tests: `"goal"` alias maps to `"bill-feature-goal"` (verified in request body) and `"bill-feature-goal"` passes through unchanged; `goalAwareTelemetryRequester` helper added.
 - Updated `McpStdioServerTest` workflow enum assertion to include `"goal"` and `"bill-feature-goal"`.
-- Added `goalStarted`/`goalSubtaskFinished`/`goalFinished` to both `LifecycleTelemetryService` method lists in `ARCHITECTURE.md` and to `RAW_MAP_OPEN_BOUNDARY_ALLOWLIST` in `RuntimeArchitectureTest`.
+- Added `goalStarted`/`goalSubtaskFinished`/`goalFinished` to both `LifecycleTelemetryService` method lists in `ARCHITECTURE.md` and to `the open-boundary allow-list constant` in `RuntimeArchitectureTest`.
 - Open question RESOLVED: `telemetry_proxy_capabilities` is generic — `validateRemoteStatsCapabilities` is driven entirely by the proxy HTTP response (`supportedWorkflows` from wire); no local family enumeration. No code change needed.
 - AC4 confirmed no-op: `TelemetrySyncRuntime.syncTelemetry`/`syncEnabledTelemetry` have no family-specific branching; goal events flow through the same outbox path as all lifecycle events.
 - Spec open questions marked RESOLVED in `.feature-specs/SKILL-66-feature-goal-telemetry/spec.md`.
@@ -1675,7 +1730,7 @@ Areas: runtime-kotlin/runtime-application, runtime-kotlin/runtime-domain, runtim
 - Durable runtime goal-continuation artifacts mirror implement flow: `goal_continuation`, `goal_continuation_outcome`, and skipped `install_sync_result`; stdout stays diagnostic.
 - Goal-runner reconciliation now handles task-runtime workflow families, recovers missing-`RESULT:` prefix terminal JSON into durable artifacts, and records ledger diagnostics (`missing_result_prefix`, `malformed_result_json`, `no_terminal_workflow_state`, `child_process_failed`). reusable
 - Testing gotcha: keep one integration-style gate proving goal-continuation branch reuse/no PR/commit terminal and direct runtime branch creation/PR phase together; separate unit tests missed this AC6 gap.
-- Open-boundary gotcha: any new public raw-map recovery seam needs `@OpenBoundaryMap`, `RAW_MAP_OPEN_BOUNDARY_ALLOWLIST`, and `ARCHITECTURE.md` parity in the same change.
+- Open-boundary gotcha: any new public raw-map recovery seam needs `@OpenBoundaryMap`, `the open-boundary allow-list constant`, and `ARCHITECTURE.md` parity in the same change.
 Feature flag: N/A
 Acceptance criteria: 9/9 implemented
 
@@ -2015,7 +2070,7 @@ Areas: runtime-kotlin/runtime-core architecture tests, runtime-kotlin/ARCHITECTU
 - AC3: the `*SchemaValidator`/`*CoherenceValidator` import ban predicate now lives in `RuntimeImplementationImportRules.kt` as `isSchemaOrCoherenceValidatorImport` (simple-name endsWith), self-tested in `RuntimeImplementationImportRulesTest`; new guard applies it across runtime-domain install/+workflow/ AND runtime-application main. Validator PORTS (InstallPlanWireValidator/DecompositionManifestValidator/WorkflowSnapshotValidator) are allowed — they are the sanctioned reach. reusable
 - AC4: `runtime-contracts` purity LOCK — new test bans networknt/Jackson/`java.nio.file.Files` over BOTH parsed imports and source text (reuses the `Files.` regex in `containsBannedReference`), with a synthetic fixture asserting each banned reference fires. reusable
 - Verified (no new test needed): all six `*SchemaContractVersionTest` map their `*_CONTRACT_VERSION` to `properties.contract_version.const`; `TELEMETRY_PROXY_CONTRACT_VERSION` + `INSTALL_SELECTION_CONTRACT_VERSION` have NO canonical schema file so are correctly out of scope.
-- Docs: added Boundary Rule 5 contracts-purity clause; recorded the external-schema source-of-truth decision (canonical `../orchestration/contracts/*.yaml`, build-time Copy into infra-fs ×5 + mcp ×1, config-cache-friendly doFirst loud-fail, parity guarantee) + superseded the stale 2026-05-19 dual-seam mechanics. The open-boundary three-place lockstep (allow-list block + RAW_MAP_OPEN_BOUNDARY_ALLOWLIST + SKILL-52.2 inventory) and RuntimeModule/fenced lists were already reconciled by subtasks 1-4 — no code retired this subtask, so any reduction would break parity (verified no-op). reusable
+- Docs: added Boundary Rule 5 contracts-purity clause; recorded the external-schema source-of-truth decision (canonical `../orchestration/contracts/*.yaml`, build-time Copy into infra-fs ×5 + mcp ×1, config-cache-friendly doFirst loud-fail, parity guarantee) + superseded the stale 2026-05-19 dual-seam mechanics. The open-boundary three-place lockstep (allow-list block + the open-boundary allow-list constant + SKILL-52.2 inventory) and RuntimeModule/fenced lists were already reconciled by subtasks 1-4 — no code retired this subtask, so any reduction would break parity (verified no-op). reusable
 Feature flag: N/A
 Acceptance criteria: 7/7 implemented
 
@@ -2025,7 +2080,7 @@ Areas: runtime-kotlin/runtime-application, runtime-kotlin/runtime-ports (workflo
 - Ordering invariant to preserve: build validated wireMap via `encodeDecompositionManifestMap` (validate) -> `fileStore.encodeManifestYaml` (serialize) -> `validator.validateYamlText` (revalidate). Keep `encodeDecompositionManifestMap` in runtime-application — `DecompositionManifestArchitectureTest` asserts the application seam owns it and NO LONGER names `YAMLMapper`, while the infra-store seam does. reusable
 - The new port method takes `Map<String,Any?>`, so it tripped the raw-map scanner (which walks runtime-ports, NOT infra-fs); resolved by `@OpenBoundaryMap` + a documented allow-list row, accepted as the symmetric mirror of the decode port rather than a typed `writeManifest(model)`. reusable
 - Reconciliation: typed `SystemService.doctor`/`version` to return `DoctorContract`/`VersionContract` (.toPayload() pushed into CLI+MCP adapters, byte-equivalent); relabeled 5 lifecycle payload helpers + 7 `LifecycleTelemetryService` methods as `@OpenBoundaryMap` accepted permanent open boundaries. Deleted all four future-tense "Subtask N will remove" allow-list literals. reusable
-- Pitfall reaffirmed (see subtask-3): the THREE-place lockstep — `RAW_MAP_OPEN_BOUNDARY_ALLOWLIST` constant + ARCHITECTURE.md open-boundary marker block + SKILL-52.2 inventory ledger — must move in strict-set parity; open_extension inventory entries carry NO `[subtask N]` tag, gated categories must. reusable
+- Pitfall reaffirmed (see subtask-3): the THREE-place lockstep — `the open-boundary allow-list constant` constant + ARCHITECTURE.md open-boundary marker block + SKILL-52.2 inventory ledger — must move in strict-set parity; open_extension inventory entries carry NO `[subtask N]` tag, gated categories must. reusable
 - Known limitation: `jackson.dataformat.yaml` stays as `testImplementation` in runtime-application/build.gradle.kts (a pre-existing subtask-1 decode test fake + the new encode test fake both construct `YAMLMapper`); production edge is gone. Subtask 5 owns a jackson-import-ban enforcement test and may tighten AC1 wording to "no production Jackson dependency".
 Feature flag: N/A
 Acceptance criteria: 6/6 implemented
@@ -2035,7 +2090,7 @@ Areas: runtime-kotlin/runtime-ports (scaffold {catalog,repo,source}.model), runt
 - Closed the 8 `Scaffold*Result` port DTOs (List/Show/Explain/Validate/Upgrade/Fill/SaveExactContent/EditWithBodyFile) that SKILL-52.1 left dual-representation: dropped the `payload: Map<String,Any?>` field + the `init{}` desync `require` blocks + `@OpenBoundaryMap`, lifting every payload key to a typed field. This is the closure SKILL-52.1 (2026-05-24) explicitly deferred. reusable
 - Wire-shape (JSON) emission now lives ONLY in adapter mappers: `runtime-cli/ScaffoldCliResultMappers.kt` (+ extracted `ScaffoldCliWireMaps.kt` `internal` `toWireMap` helpers, split to dodge detekt `TooManyFunctions`) and desktop `service/mapper/{ScaffoldListResultMapper,ValidationSummaryMapper}.kt`; infra-fs producers return typed records via new `scaffold/AuthoringResults.kt`. New port model `scaffold/model/ScaffoldSkillStatus.kt`. `ScaffoldService` (runtime-application) stays a pure pass-through — do NOT map wire there (triplication pitfall). reusable
 - Pitfall: byte-equivalence risk is wire-map key ORDER, not just the key set. The adapter mapper must rebuild the `LinkedHashMap` in EXACT producer insertion order (highest risk: validate selected-mode inserts `skill_names` after `mode` + `suggested_commands` at tail; edit keeps bookkeeping keys before status keys). No scaffold byte-golden exists — order is now locked by `runtime-cli/.../ScaffoldCliResultMappersTest.kt` asserting `.keys.toList()`. reusable
-- Pitfall: ARCHITECTURE.md carries TWO allow-list blocks (the open-boundary marker block AND the SKILL-52.2 inventory ledger) in strict-set parity with `RAW_MAP_OPEN_BOUNDARY_ALLOWLIST` in `RuntimeArchitectureTest`; the 8 rows must be removed from all THREE in lockstep or the parity test fails. reusable
+- Pitfall: ARCHITECTURE.md carries TWO allow-list blocks (the open-boundary marker block AND the SKILL-52.2 inventory ledger) in strict-set parity with `the open-boundary allow-list constant` in `RuntimeArchitectureTest`; the 8 rows must be removed from all THREE in lockstep or the parity test fails. reusable
 - `RuntimeDesktopGatewayPolicyTest` tightened: the mapper-file exemption is gone, so `.payload[` is now forbidden across the entire desktop jvmMain service tree (mappers consume typed fields). reusable
 Feature flag: N/A
 Acceptance criteria: 6/6 implemented
@@ -2099,7 +2154,7 @@ Areas: runtime-kotlin/runtime-application, runtime-kotlin/runtime-ports, runtime
 - Per-adapter raw-map parsers in `runtime-cli/skillbill.cli.scaffold` and `runtime-mcp/skillbill.mcp.scaffold` (split into 3 files each for detekt thresholds); desktop maps sealed `ScaffoldPayload -> ScaffoldCommandRequest` with no `Map` round-trip. Wire-mappers stay out of `runtime-application` (the recurring triplication pitfall). reusable
 - Generic raw-map extraction primitives in `runtime-contracts/skillbill.contracts.scaffold.wire.ScaffoldPayloadParseSupport` — the architecture raw-map scanner only walks application/domain/ports, so contracts-side helpers do NOT need allow-list entries. reusable
 - Internal typed->raw bridge `runtime-infra-fs/.../scaffold/ScaffoldCommandRequestRawPayload.kt` (split into 5 per-kind appenders) re-materializes the typed request for the existing orchestrator path; preserves AC4 byte-equivalence trivially. Phase-5 elimination of this round-trip is deferred (still inside infra, never crosses a public boundary). reusable
-- 9 raw-map policy helpers RELOCATED from `runtime-domain.scaffold.policy` to `runtime-infra-fs.scaffold.ScaffoldPayloadMapPolicy*` as `internal` (no rewrite required because the scanner does not walk infra); 11 scaffold entries removed from `RAW_MAP_OPEN_BOUNDARY_ALLOWLIST` and ARCHITECTURE.md inventory in lockstep.
+- 9 raw-map policy helpers RELOCATED from `runtime-domain.scaffold.policy` to `runtime-infra-fs.scaffold.ScaffoldPayloadMapPolicy*` as `internal` (no rewrite required because the scanner does not walk infra); 11 scaffold entries removed from `the open-boundary allow-list constant` and ARCHITECTURE.md inventory in lockstep.
 - Wire-error invariants enforced AT THE ADAPTER BOUNDARY: `routing_signals.strong/tie_breakers` loud-fail on present-but-non-list; empty `baseline_layers: []` loud-fails with the exact `failBaselineLayersEmpty` wording; desktop `toRuntimeBaselineLayer(index)` throws `InvalidScaffoldPayloadError` (a `SkillBillRuntimeException`) so the gateway reports `rollbackComplete = true`. Drop `op` from contracts-side helper error messages to keep CLI/MCP/legacy error strings byte-equivalent.
 - `ScaffoldStandaloneEntrypoint` retained for in-module tests only; the adapter-import rule (`skillbill.scaffold.*` outside `.model.*` is forbidden in CLI/MCP/Desktop) already quarantines it.
 Feature flag: N/A
@@ -2108,7 +2163,7 @@ Acceptance criteria: 5/5 implemented
 ## [2026-05-25] SKILL-52.2 boundary-inventory-and-contract-targets
 Areas: runtime-kotlin/ARCHITECTURE.md, runtime-kotlin/runtime-core architecture tests, runtime-kotlin/runtime-domain (SkillRemoveFileSystem KDoc)
 - New `<!-- skill-52-2-inventory:start/end -->` section in ARCHITECTURE.md classifies every public raw-map FQN into four retirement categories (must_type_now, open_extension, private_serializer, postponed_with_reason) and tags must-type/postponed entries with their SKILL-52.2 subtask owner (2..5). reusable
-- `RuntimeArchitectureTest` now parses the new marker block and enforces strict-set parity with `RAW_MAP_OPEN_BOUNDARY_ALLOWLIST`, no-duplicate FQNs, `@OpenBoundaryMap`-annotated declarations placed in `open_extension`, and a subtask-id range check; a synthetic-fixture test guards the inventory parser per the SKILL-52.1 F-007 pattern. reusable
+- `RuntimeArchitectureTest` now parses the new marker block and enforces strict-set parity with `the open-boundary allow-list constant`, no-duplicate FQNs, `@OpenBoundaryMap`-annotated declarations placed in `open_extension`, and a subtask-id range check; a synthetic-fixture test guards the inventory parser per the SKILL-52.1 F-007 pattern. reusable
 - WorkflowEngine snapshotMap/summaryMap/resumeMap/continueMap and WorkflowFamily.sessionSummary are `@OpenBoundaryMap`-annotated so they belong in `open_extension`, not postponed; continueDecision (unannotated) stays postponed.
 - `SkillRemoveFileSystem` KDoc now points at `runtime-infra-fs/.../SkillRemoveJvmFileSystem.kt` instead of the stale `runtime-core` location.
 - Any future allow-list edit MUST update the inventory in the same change; strict-set parity is enforced both ways.
@@ -2199,7 +2254,7 @@ Areas: runtime-kotlin/runtime-ports, runtime-kotlin/runtime-infra-fs, runtime-ko
 - Eight `ScaffoldGateway` raw-map producers (`list`, `show`, `explain`, `validate`, `upgrade`, `fill`, `saveExactContent`, `editWithBodyFile`) now return typed `Scaffold*Result` models under `runtime-ports/.../scaffold/<capability>/model/`, each lifting stable top-level scalars plus a single `@OpenBoundaryMap`-annotated `payload: Map<String, Any?>` field; `init { require(...) }` invariants enforce typed/payload consistency at construction. Mirror this triad shape for any future raw-map seam. reusable
 - `FileSystemScaffoldGateway` lifts via `requireScalar<T>(op, key)` / `requireInt(op, key)` helpers throwing `InvalidScaffoldPayloadError` with op + key + expected/got type; `requireInt` tolerates `Number` widening for JSON round-trips. Never replace these with raw `as` casts. reusable
 - New `FileSystemScaffoldOrchestrator` (`@Inject` DI-bound) replaces the prior file-static `FileSystemScaffold*` singletons inside `skillbill.scaffold.ScaffoldService.kt`; carved IO-coupled validators (`validateBaselineLayerPayloadReferences`, `validateScaffold`, `plannedAuthoringTarget`, `resolveAddonConsumerSkillDirs`, `validateAddonConsumerSkillDir`, `optionalBaselineLayers`) live as `internal fun` on the existing capability adapters. Orchestrator injects concrete adapters (NOT port interfaces) because these validators are internal-on-adapter, not port-level. Test-only `ScaffoldStandaloneEntrypoint.scaffold(...)` wrapper keeps the legacy in-tree test call shape without singletons.
-- 16 of 18 scaffold raw-map allow-list entries removed from `RuntimeArchitectureTest.RAW_MAP_OPEN_BOUNDARY_ALLOWLIST` + ARCHITECTURE.md `<!-- open-boundary-allowlist:start/end -->` markers; 2 retained for `scaffold(...)` INPUT (subtask 4). 8 new typed-model `payload` FQN entries added. New `LEGACY_FORBIDDEN_TOP_LEVEL_REGEX` (modifier-agnostic — catches `private/internal/bare/public fun` and ktfmt-wrapped multilines) replaces brittle substring checks. Gateway raw-map producer regex now `DOT_MATCHES_ALL` with wrapped-signature fixture, replicating the subtask-1 F-007 fixture-based-scanner pattern.
+- 16 of 18 scaffold raw-map allow-list entries removed from `RuntimeArchitectureTest.the open-boundary allow-list constant` + ARCHITECTURE.md `<!-- open-boundary-allowlist:start/end -->` markers; 2 retained for `scaffold(...)` INPUT (subtask 4). 8 new typed-model `payload` FQN entries added. New `LEGACY_FORBIDDEN_TOP_LEVEL_REGEX` (modifier-agnostic — catches `private/internal/bare/public fun` and ktfmt-wrapped multilines) replaces brittle substring checks. Gateway raw-map producer regex now `DOT_MATCHES_ALL` with wrapped-signature fixture, replicating the subtask-1 F-007 fixture-based-scanner pattern.
 - CLI mapper (`ScaffoldCliResultMappers.kt`) lives in `runtime-cli` adapter only; `runtime-application/ScaffoldService.kt` is a pure pass-through with no wire-mapping. `ScaffoldMcpResultMappers.kt` was created then deleted because `McpScaffoldRuntime` only exposes typed `newSkillScaffold(...)` today — when MCP gains raw-map endpoints, re-introduce the mapper alongside that wiring with a smoke test. ARCHITECTURE.md "Typed-Result-Model Open-Boundary Pattern" section documents both the doctrine and the MCP deletion rationale.
 - Deferred to subtask 4 (with doc note in ARCHITECTURE.md): `RuntimeRepoBrowserService` desktop adapter still reads `.payload` directly — third reader of the open-boundary map, must be migrated when typed list/show/validate structural fields are lifted; `ScaffoldShowResult.completion_status` typed lift; `ScaffoldValidateStatus` sealed/enum (CLI exit-code branches on raw string today); generalized `scaffoldApplicationServiceFileNames` filename allow-list; `scaffold(...)` INPUT raw-map allow-list entries.
 - Pitfalls to avoid: (a) wire-mapper triplication keeps re-appearing — adapter modules only, never `runtime-application`; (b) do NOT relax the typed-result `init` invariants to a softer check; (c) do NOT replace `requireScalar`/`requireInt` with raw `as` casts; (d) keep `ScaffoldStandaloneEntrypoint.scaffold(...)` test-only (F-016 residual — tighten to `internal` once spotless compat verified); (e) gateway raw-map regex companion-object extraction would let fixture and prod assertion share a single constant (F-018 residual — apply when next subtask touches that file).

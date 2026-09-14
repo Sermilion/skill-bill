@@ -1,5 +1,4 @@
 package skillbill.engine.featuretask
-
 import skillbill.application.telemetry.model.FeatureTaskRuntimeFindingVerificationTelemetry
 import skillbill.application.telemetry.model.FeatureTaskRuntimeRegenerationTelemetry
 import skillbill.contracts.JsonCodec
@@ -15,6 +14,7 @@ import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerAction
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeResolvedBranch
+import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 
 fun FeatureTaskRuntimeRunner.executePreparedRun(
   runRequest: FeatureTaskRuntimeRunRequest,
@@ -111,6 +111,7 @@ fun FeatureTaskRuntimeRunner.loadFindingVerificationTelemetry(
     ?.let(JsonCodec::parseObjectOrNull)
     ?.let(JsonCodec::jsonElementToValue)
     ?.let(JsonCodec::anyToStringAnyMap)
+    ?.toWorkflowArtifactMap()
     ?: return FeatureTaskRuntimeFindingVerificationTelemetry(
       reviewFixCapExhausted = loadReviewFixIterationCount(request) >= 1,
     )

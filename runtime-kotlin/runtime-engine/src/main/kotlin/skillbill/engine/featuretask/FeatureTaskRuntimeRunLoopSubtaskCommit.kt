@@ -1,9 +1,9 @@
 package skillbill.engine.featuretask
-
 import skillbill.contracts.JsonCodec
 import skillbill.engine.featuretask.model.AppendCheckpointIdentityArgs
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.gitops.stagedPaths
+import skillbill.workflow.taskruntime.envelopeWireMap
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_STANDALONE_SUBTASK_ID
 import skillbill.workflow.taskruntime.model.NormalizedFeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.requireAcceptedOutput
@@ -30,7 +30,7 @@ object FeatureTaskRuntimeRunLoopSubtaskCommit {
         runLoop,
         run.phaseId,
         FeatureTaskRuntimeSubtaskFinalisation.withCommitSha(
-          normalizedOutput.envelope,
+          normalizedOutput.envelopeWireMap(),
           sha,
         ),
       ),

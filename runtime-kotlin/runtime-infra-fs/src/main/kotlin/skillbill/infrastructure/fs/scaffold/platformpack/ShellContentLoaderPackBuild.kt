@@ -5,6 +5,7 @@ import org.yaml.snakeyaml.Yaml
 import org.yaml.snakeyaml.error.YAMLException
 import skillbill.ports.repository.toFileLocation
 import skillbill.scaffold.model.PlatformManifest
+import skillbill.workflow.engine.model.CustomFieldMap
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
@@ -87,7 +88,7 @@ internal fun assemblePlatformManifest(
       ),
     ),
     featureAddonUsage = parseFeatureAddonUsage(manifest, slug, packRoot, pointers),
-    customFields = validatedCustomFields(slug, manifestPath, typedManifest),
+    customFields = CustomFieldMap.from(validatedCustomFields(slug, manifestPath, typedManifest)),
     requiredRubricCompanions = requiredRubricCompanions,
   )
 }

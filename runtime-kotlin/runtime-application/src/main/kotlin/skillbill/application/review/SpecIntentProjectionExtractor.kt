@@ -13,6 +13,7 @@ import skillbill.review.context.model.SpecIntentProvenance
 import skillbill.review.context.model.SpecIntentSurroundingContext
 import skillbill.review.spec.GovernedSpecSectionParser
 import skillbill.review.spec.GovernedSpecSectionParser.ACCEPTANCE_CRITERIA_PREFIX
+import skillbill.workflow.engine.model.ReviewContextWireMap
 import java.nio.file.Path
 import java.security.MessageDigest
 
@@ -54,7 +55,10 @@ class SpecIntentProjectionExtractor(
       surroundingContext = surrounding,
     )
     try {
-      envelopeValidator.validateSpecIntentProjection(projection.toProjectionPayload(), "spec_intent_projection")
+      envelopeValidator.validateSpecIntentProjection(
+        ReviewContextWireMap.from(projection.toProjectionPayload()),
+        "spec_intent_projection",
+      )
     } catch (error: InvalidReviewContextSchemaError) {
       fail(normalized, explicit, "unparseable", error)
     }

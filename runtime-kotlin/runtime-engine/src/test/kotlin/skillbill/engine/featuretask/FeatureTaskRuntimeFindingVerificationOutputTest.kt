@@ -5,16 +5,18 @@ import skillbill.engine.featuretask.FeatureTaskRuntimeCensusCoverageTestSupport.
 import skillbill.engine.featuretask.FeatureTaskRuntimeCensusCoverageTestSupport.verifyDisposition
 import skillbill.error.InvalidFeatureTaskRuntimeFindingVerificationRecordError
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.decodeFindingVerificationDispositionFromArtifact
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFindingVerificationDisposition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFindingVerificationDispositionVerdict
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.model.validateDispositionCoverage
+import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-
 class FeatureTaskRuntimeFindingVerificationOutputTest {
   @Test
   fun `verify_findings wire verdict settles findings_verified`() {
@@ -30,7 +32,7 @@ class FeatureTaskRuntimeFindingVerificationOutputTest {
             ),
           ),
         ),
-      ),
+      ).toWorkflowArtifactMap(),
     )
     assertEquals(FeatureTaskRuntimeVerdict.FINDINGS_VERIFIED, verdict)
   }
@@ -49,7 +51,7 @@ class FeatureTaskRuntimeFindingVerificationOutputTest {
             ),
           ),
         ),
-      ),
+      ).toWorkflowArtifactMap(),
     )
     assertEquals(FeatureTaskRuntimeVerdict.NO_FINDINGS_VERIFIED, verdict)
   }
@@ -68,7 +70,7 @@ class FeatureTaskRuntimeFindingVerificationOutputTest {
             ),
           ),
         ),
-      ),
+      ).toWorkflowArtifactMap(),
     )
     assertEquals(FeatureTaskRuntimeVerdict.FINDINGS_VERIFIED, verdict)
   }
@@ -87,7 +89,7 @@ class FeatureTaskRuntimeFindingVerificationOutputTest {
             ),
           ),
         ),
-      ),
+      ).toWorkflowArtifactMap(),
     )
     assertEquals(FeatureTaskRuntimeVerdict.NO_FINDINGS_VERIFIED, verdict)
   }
@@ -106,7 +108,7 @@ class FeatureTaskRuntimeFindingVerificationOutputTest {
               ),
             ),
           ),
-        ),
+        ).toWorkflowArtifactMap(),
       )
     }
   }
@@ -148,16 +150,16 @@ class FeatureTaskRuntimeFindingVerificationOutputTest {
     )
     assertEquals(
       disposition,
-      FeatureTaskRuntimeFindingVerificationDisposition.fromArtifactMap(
-        disposition.toArtifactMap(),
+      decodeFindingVerificationDispositionFromArtifact(
+        disposition.asWorkflowArtifactEntry(),
         "finding_dispositions[0]",
-      ),
+      )!!,
     )
   }
 
   @Test
   fun `census-only disposition ignores extra keys`() {
-    val disposition = FeatureTaskRuntimeFindingVerificationDisposition.fromArtifactMap(
+    val disposition = decodeFindingVerificationDispositionFromArtifact(
       mapOf(
         "finding_id" to "F-001",
         "disposition" to "verified",
@@ -166,7 +168,7 @@ class FeatureTaskRuntimeFindingVerificationOutputTest {
         "message" to "Finding",
       ),
       "finding_dispositions[0]",
-    )
+    )!!
     assertEquals("F-001", disposition.findingId)
     assertNull(disposition.reason)
   }
@@ -186,7 +188,7 @@ class FeatureTaskRuntimeFindingVerificationOutputTest {
   @Test
   fun `retired disposition field loud-fails with named verification record error`() {
     val error = assertFailsWith<InvalidFeatureTaskRuntimeFindingVerificationRecordError> {
-      FeatureTaskRuntimeFindingVerificationDisposition.fromArtifactMap(
+      decodeFindingVerificationDispositionFromArtifact(
         mapOf(
           "finding_id" to "F-001",
           "verdict" to "verified",

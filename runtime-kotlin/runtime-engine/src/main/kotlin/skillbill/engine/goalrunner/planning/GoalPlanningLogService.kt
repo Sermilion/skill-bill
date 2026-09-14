@@ -12,7 +12,9 @@ import skillbill.ports.diagnostics.model.RejectedOutputDiagnostic
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticSelector
 import skillbill.ports.goalrunner.runner.GoalRunnerManifestStore
 import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowOutcomeStore
+import skillbill.workflow.goal.model.GoalProgressEvent
 import skillbill.workflow.goal.model.GoalProgressEventKind
+import skillbill.workflow.goal.model.GoalProgressOutcome
 import java.time.Clock
 import java.time.Instant
 
@@ -38,7 +40,7 @@ class GoalPlanningLogService(
       ?: return GoalPlanningLog(request.issueKey, null)
 
     val events = outcomeStore.progressEvents(parentWorkflowId)
-      .filter { event -> event["workflow_phase"] == GOAL_PLANNING_WORKFLOW_PHASE }
+      .filter { event -> event.workflowPhase == GOAL_PLANNING_WORKFLOW_PHASE }
     val rejections = readRejections(parentWorkflowId)
 
     val attempts = assembleAttempts(events, rejections)
@@ -81,25 +83,15 @@ class GoalPlanningLogService(
    * open and reports as in-flight rather than borrowing a sibling's finish.
    */
   private fun assembleAttempts(
-    events: List<Map<String, Any?>>,
+    events: List<GoalProgressEvent>,
     rejections: Map<String, RejectedOutputDiagnostic>,
   ): List<GoalPlanningLogAttempt> {
     val occurrences = mutableListOf<AttemptOccurrence>()
     val open = mutableMapOf<String, MutableList<AttemptOccurrence>>()
 
     events.forEach { event ->
-      val operation = event["operation_name"] as? String ?: return@forEach
-      val eventKind = (event["event_kind"] as? String)
-        ?.trim()
-        ?.takeIf(String::isNotBlank)
-        ?.let { raw ->
-          try {
-            GoalProgressEventKind.fromWire(raw)
-          } catch (_: IllegalArgumentException) {
-            null
-          }
-        }
-        ?: return@forEach
+      val operation = event.operationName?.takeIf(String::isNotBlank) ?: return@forEach
+      val eventKind = event.eventKind
       when (eventKind) {
         GoalProgressEventKind.OPERATION_STARTED -> {
           val occurrence = AttemptOccurrence(operation, timestamp(event))
@@ -109,10 +101,8 @@ class GoalPlanningLogService(
 
         GoalProgressEventKind.OPERATION_COMPLETED -> {
           val pending = open[operation]?.removeLastOrNull()
-            // A completion whose start fell outside the retained events is still a real attempt; it
-            // just has no measurable interval.
             ?: AttemptOccurrence(operation, startedAt = null).also { occurrences += it }
-          pending.settle(timestamp(event), event["outcome"] as? String)
+          pending.settle(timestamp(event), outcomeWire(event.outcome))
         }
 
         GoalProgressEventKind.PHASE_STARTED,
@@ -163,8 +153,10 @@ class GoalPlanningLogService(
     }
   }
 
-  private fun timestamp(event: Map<String, Any?>): Instant? =
-    (event["timestamp"] as? String)?.let { raw -> runCatching { Instant.parse(raw) }.getOrNull() }
+  private fun timestamp(event: GoalProgressEvent): Instant? = runCatching { Instant.parse(event.timestamp) }.getOrNull()
+
+  private fun outcomeWire(outcome: GoalProgressOutcome): String? =
+    if (outcome == GoalProgressOutcome.NONE) null else outcome.wireValue
 
   private data class ParsedOperation(val diagnosticPhaseId: String, val subtaskId: Int, val attempt: Int)
 

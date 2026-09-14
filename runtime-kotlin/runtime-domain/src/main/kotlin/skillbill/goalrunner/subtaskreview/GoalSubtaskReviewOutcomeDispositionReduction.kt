@@ -41,10 +41,10 @@ object GoalSubtaskReviewOutcomeDispositionReduction {
   }
 
   fun blockerDispositions(
-    output: Map<String, Any?>,
+    output: Any,
     priorBlockerFindingIds: List<String> = emptyList(),
   ): List<GoalSubtaskBlockerDisposition> {
-    val dispositions = output[SharedPayloadKeys.PRODUCED_OUTPUTS]
+    val dispositions = output.asGoalSubtaskReviewPhaseOutputMap()[SharedPayloadKeys.PRODUCED_OUTPUTS]
       ?.let(JsonCodec::anyToStringAnyMap)
       ?.get("blocker_dispositions")
       ?.let { it as? List<*> }
