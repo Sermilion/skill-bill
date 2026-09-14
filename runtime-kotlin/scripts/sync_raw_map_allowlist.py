@@ -7,7 +7,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SUPPORT = ROOT / "runtime-core/src/test/kotlin/skillbill/architecture/RuntimeArchitectureTestSupport.kt"
-ARCHITECTURE = ROOT / "ARCHITECTURE.md"
+INVENTORY = ROOT / "runtime-core/src/test/resources/skill-52-2-inventory.md"
 
 MUST_TYPE_NOW = {
     "skillbill.learnings.learningPayload",
@@ -50,49 +50,6 @@ def migrate_fqn(fqn: str) -> str:
         if fqn.startswith(old) or fqn == old:
             return new + fqn[len(old):]
     return fqn
-
-
-def read_allowlist(text: str) -> set[str]:
-    entries: set[str] = set()
-    in_list = False
-    for line in text.splitlines():
-        if "RAW_MAP_OPEN_BOUNDARY_ALLOWLIST" in line and "listOf" in line:
-            in_list = True
-            continue
-        if in_list:
-            if line.strip() == ")":
-                break
-            match = re.search(r'"([^"]+)"', line)
-            if match:
-                chunk = match.group(1)
-                if chunk.endswith("."):
-                    continue
-                entries.add(chunk)
-            if '" +' in line:
-                continue
-    merged = set()
-    pending = ""
-    for line in text.splitlines():
-        if not in_list and "RAW_MAP_OPEN_BOUNDARY_ALLOWLIST" not in line:
-            continue
-    body = text.split("RAW_MAP_OPEN_BOUNDARY_ALLOWLIST: List<String> = listOf(", 1)[1]
-    body = body.split("\n  )", 1)[0]
-    current = ""
-    for line in body.splitlines():
-        stripped = line.strip()
-        if not stripped.startswith('"'):
-            continue
-        part = stripped.strip('",')
-        if stripped.endswith('" +'):
-            current += part
-            continue
-        if current:
-            current += part
-            entries.add(current)
-            current = ""
-        else:
-            entries.add(part)
-    return entries
 
 
 def read_allowlist_simple(text: str) -> set[str]:
@@ -201,20 +158,7 @@ def write_allowlist_kotlin(entries: set[str]) -> None:
     SUPPORT.write_text(text)
 
 
-def write_architecture_allowlist(entries: set[str]) -> None:
-    text = ARCHITECTURE.read_text()
-    start = text.index("<!-- open-boundary-allowlist:start -->")
-    end = text.index("<!-- open-boundary-allowlist:end -->")
-    bullets = "\n".join(f"    - `{e}`" for e in sorted(entries))
-    replacement = "<!-- open-boundary-allowlist:start -->\n\n" + bullets + "\n\n    <!-- open-boundary-allowlist:end -->"
-    text = text[:start] + replacement + text[end + len("<!-- open-boundary-allowlist:end -->") :]
-    ARCHITECTURE.write_text(text)
-
-
 def write_inventory(entries: set[str]) -> None:
-    text = ARCHITECTURE.read_text()
-    start = text.index("<!-- skill-52-2-inventory:start -->")
-    end = text.index("<!-- skill-52-2-inventory:end -->")
     must = sorted(MUST_TYPE_NOW & entries)
     postponed = sorted(POSTPONED & entries)
     open_ext = sorted(entries - MUST_TYPE_NOW - POSTPONED)
@@ -245,10 +189,8 @@ def write_inventory(entries: set[str]) -> None:
     for e in postponed:
         reason = postponed_reasons.get(e, "postponed raw-map seam.")
         sections.append(f"- `{e}` [subtask 4] — {reason}")
-    sections += ["", "<!-- skill-52-2-inventory:end -->"]
-    replacement = "\n".join(sections)
-    text = text[:start] + replacement + text[end + len("<!-- skill-52-2-inventory:end -->") :]
-    ARCHITECTURE.write_text(text)
+    sections += ["", "<!-- skill-52-2-inventory:end -->", ""]
+    INVENTORY.write_text("\n".join(sections))
 
 
 def main() -> None:
@@ -263,7 +205,6 @@ def main() -> None:
         violations, undocumented = run_tests()
     merged = {migrate_fqn(f) for f in current} | violations | undocumented
     write_allowlist_kotlin(merged)
-    write_architecture_allowlist(merged)
     write_inventory(merged)
     print(f"allowlist entries: {len(merged)}")
 

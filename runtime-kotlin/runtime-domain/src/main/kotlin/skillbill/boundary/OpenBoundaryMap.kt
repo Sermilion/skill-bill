@@ -10,14 +10,13 @@ package skillbill.boundary
  * artifacts passthrough, etc.).
  *
  * The architecture test
- * `RuntimeArchitectureTest.runtime architecture forbids raw map shapes
+ * `RuntimeRawMapArchitectureTest.runtime architecture forbids raw map shapes
  * outside the open-boundary allowlist` will fail loudly when a public
  * runtime declaration uses one of these raw map shapes unless it is
- * either (a) listed by FQN in the curated
- * `RAW_MAP_OPEN_BOUNDARY_ALLOWLIST` constant in that test, or (b)
- * annotated with `@OpenBoundaryMap`. The documented exceptions are
- * enumerated in `runtime-kotlin/ARCHITECTURE.md` under
- * "Open-Boundary Allow-List".
+ * either (a) listed by FQN in
+ * `RuntimeArchitectureScanConstants.RAW_MAP_OPEN_BOUNDARY_ALLOWLIST` in
+ * `runtime-core/src/test/kotlin/skillbill/architecture/RuntimeArchitectureTestSupport.kt`,
+ * or (b) annotated with `@OpenBoundaryMap`.
  *
  * The annotation lives in `runtime-domain` (the leaf module that both
  * `runtime-application` and `runtime-ports` depend on) so all three
@@ -26,11 +25,9 @@ package skillbill.boundary
  * does not collide with the area-specific `*.model` packages and is
  * not split across modules.
  *
- * Do NOT introduce new uses of this annotation without first:
- *   1. Documenting the exception in `ARCHITECTURE.md`.
- *   2. Updating the parity assertion in
- *      `RuntimeArchitectureTest.open-boundary allow-list documents required
- *      exceptions`.
+ * Do NOT introduce new uses of this annotation without first adding the
+ * FQN to `RAW_MAP_OPEN_BOUNDARY_ALLOWLIST` and updating the SKILL-52.2
+ * inventory resource when classification changes.
  */
 @Target(
   AnnotationTarget.FUNCTION,

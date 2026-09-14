@@ -255,8 +255,8 @@ internal fun assertSubtaskIdsPresentForGatedCategories(inventory: Skill522Invent
       missingSubtask.joinToString(separator = "\n"),
   )
 }
-internal fun parseSkill522Inventory(architecture: String): Skill522Inventory {
-  val body = extractSkill522InventoryBody(architecture)
+internal fun parseSkill522Inventory(document: String): Skill522Inventory {
+  val body = extractSkill522InventoryBody(document)
   val rawLines = body.lines()
   val state = InventoryParseState()
   while (state.index < rawLines.size) {
@@ -288,15 +288,26 @@ internal class InventoryParseState(
   val entries: MutableList<Skill522InventoryEntry> = mutableListOf(),
 )
 
-internal fun extractSkill522InventoryBody(architecture: String): String {
-  val sectionStart = architecture.indexOf("<!-- skill-52-2-inventory:start -->")
-  val sectionEnd = architecture.indexOf("<!-- skill-52-2-inventory:end -->")
+internal const val SKILL_52_2_INVENTORY_RESOURCE = "skill-52-2-inventory.md"
+
+internal fun loadSkill522InventoryDocument(): String {
+  val stream =
+    RuntimeArchitectureScanConstants::class.java.classLoader.getResourceAsStream(SKILL_52_2_INVENTORY_RESOURCE)
+      ?: error(
+        "Missing classpath resource $SKILL_52_2_INVENTORY_RESOURCE under runtime-core/src/test/resources.",
+      )
+  return stream.bufferedReader().readText()
+}
+
+internal fun extractSkill522InventoryBody(document: String): String {
+  val sectionStart = document.indexOf("<!-- skill-52-2-inventory:start -->")
+  val sectionEnd = document.indexOf("<!-- skill-52-2-inventory:end -->")
   require(sectionStart >= 0 && sectionEnd > sectionStart) {
-    "ARCHITECTURE.md must declare a SKILL-52.2 inventory section bracketed by " +
+    "SKILL-52.2 inventory document must declare a section bracketed by " +
       "'<!-- skill-52-2-inventory:start -->' / '<!-- skill-52-2-inventory:end -->' " +
       "machine-readable markers."
   }
-  return architecture.substring(sectionStart, sectionEnd)
+  return document.substring(sectionStart, sectionEnd)
 }
 internal fun buildInventoryEntry(
   category: String?,
@@ -612,21 +623,6 @@ internal fun findAnnotatedOpenBoundaryDeclarations(file: SourceFile): List<Strin
     results += declarationFqn(file.packageName, tracker.enclosingStack, declName)
   }
   return results
-}
-
-internal fun parseArchitectureAllowList(architecture: String): Set<String> {
-  val sectionStart = architecture.indexOf("<!-- open-boundary-allowlist:start -->")
-  val sectionEnd = architecture.indexOf("<!-- open-boundary-allowlist:end -->")
-  require(sectionStart >= 0 && sectionEnd > sectionStart) {
-    "ARCHITECTURE.md must declare an Open-Boundary Allow-List section bracketed by " +
-      "'<!-- open-boundary-allowlist:start -->' / '<!-- open-boundary-allowlist:end -->' " +
-      "machine-readable markers."
-  }
-  val body = architecture.substring(sectionStart, sectionEnd)
-  return Regex("""^\s*-\s+`([A-Za-z0-9_.]+)`""", RegexOption.MULTILINE)
-    .findAll(body)
-    .map { it.groupValues[1] }
-    .toSet()
 }
 
 internal class ScopeTracker {

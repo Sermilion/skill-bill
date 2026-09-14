@@ -1,3 +1,13 @@
+## [2026-09-14] SKILL-52.5 subtask 1 — Enforcement pivot and ARCHITECTURE.md dedup
+Areas: runtime-kotlin/{runtime-core/architecture,runtime-domain/boundary,scripts,ARCHITECTURE.md}
+- Open-boundary and SKILL-52.2 enforcement now use the canonical `OpenBoundaryMap.RAW_MAP_OPEN_BOUNDARY_ALLOWLIST`; ARCHITECTURE.md no longer carries FQN lists.
+- Architecture tests read canonical declarations and the inventory resource, classify each declaration once, and ratchet the allow-list at 416 entries.
+- The sync script updates support and inventory outputs without mutating ARCHITECTURE.md. reusable
+- Pattern: keep machine-readable enforcement separate from explanatory architecture prose and enforce monotonic shrinkage. reusable
+- Known limitation: allow-list entries remain untyped; runtime API and wire output are unchanged.
+Feature flag: N/A
+Acceptance criteria: 5/5 implemented
+
 ## [2026-09-11] SKILL-233 subtask 7 — Unused-parameter gate cleanup
 Areas: orchestration/skill-classes, platform-packs/{generic,go,ios,kmp,kotlin,php,python,rust,typescript}
 - Synchronized the contract version declaration at 1.8 across eight skill-class definitions and nine platform manifests for the unused-parameter gate remediation.
