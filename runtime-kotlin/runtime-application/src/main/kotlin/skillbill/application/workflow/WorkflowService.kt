@@ -121,6 +121,7 @@ class WorkflowService(
         DecompositionRuntimeWriteArgs(
           existing = existing,
           input = input,
+          planningResult = request.planningResult,
           workflowId = request.workflowId,
           validator = decompositionManifestValidator,
           fileStore = decompositionManifestStore,

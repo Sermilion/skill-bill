@@ -1,8 +1,8 @@
 package skillbill.engine.goalrunner
 
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
-import skillbill.application.decomposition.decodeArtifacts
-import skillbill.application.decomposition.encodeDecompositionManifestMap
+import skillbill.application.workflow.decodeWorkflowArtifacts
+import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.application.workflow.decompositionRuntime
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.boundary.OpenBoundaryMap
@@ -27,14 +27,14 @@ class GoalParentProjectionWriter(
     LinkedHashMap(
       existingArtifactsJson
         ?.takeIf(String::isNotBlank)
-        ?.let(::decodeArtifacts)
+        ?.let(::decodeWorkflowArtifacts)
         .orEmpty(),
     ).apply {
       remove(GOAL_REVIEW_POLICY_ARTIFACT_KEY)
       remove(GOAL_OUT_OF_BAND_ACCEPTANCE_ARTIFACT_KEY)
       put(
         DECOMPOSITION_RUNTIME_ARTIFACT_KEY,
-        encodeDecompositionManifestMap(manifest, validator, DECOMPOSITION_RUNTIME_ARTIFACT_KEY),
+        validator.encodeManifestWireMap(manifest, DECOMPOSITION_RUNTIME_ARTIFACT_KEY),
       )
     }
 

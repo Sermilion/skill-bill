@@ -1,49 +1,40 @@
 package skillbill.learnings
 
-import skillbill.contracts.JsonCodec
-import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.learning.LearningAppliedSessionWire
+import skillbill.contracts.learning.LearningEntryDto
+import skillbill.contracts.learning.LearningSummaryWire
 import skillbill.learnings.model.LearningRecord
 import skillbill.learnings.model.LearningScope
 
 fun learningReference(record: LearningRecord): String = "L-%03d".format(record.id)
 
-fun learningPayload(record: LearningRecord): Map<String, Any?> = mapOf(
-  "reference" to learningReference(record),
-  "scope" to record.scope,
-  "scope_key" to record.scopeKey,
-  SharedPayloadKeys.STATUS to record.status,
-  "title" to record.title,
-  "rule_text" to record.ruleText,
-  "rationale" to record.rationale,
-  "source_review_run_id" to record.sourceReviewRunId,
-  "source_finding_id" to record.sourceFindingId,
+fun learningEntryDto(record: LearningRecord): LearningEntryDto = LearningEntryDto(
+  reference = learningReference(record),
+  scope = record.scope,
+  scopeKey = record.scopeKey,
+  status = record.status,
+  title = record.title,
+  ruleText = record.ruleText,
+  rationale = record.rationale,
+  sourceReviewRunId = record.sourceReviewRunId,
+  sourceFindingId = record.sourceFindingId,
 )
 
-fun learningSummaryPayload(payload: Map<String, Any?>): Map<String, Any?> = mapOf(
-  "reference" to payload["reference"],
-  "scope" to payload["scope"],
-  "title" to payload["title"],
-  "rule_text" to payload["rule_text"],
-)
+fun learningSummaryWire(entry: LearningEntryDto): LearningSummaryWire = LearningSummaryWire.fromEntry(entry)
 
-fun scopeCounts(payloads: List<Map<String, Any?>>): Map<String, Int> = LearningScope.emptyScopeCounts().apply {
+fun scopeCountsFromDtos(payloads: List<LearningEntryDto>): Map<String, Int> = LearningScope.emptyScopeCounts().apply {
   payloads.forEach { payload ->
-    val scope = LearningScope.fromWireNameOrNull(payload["scope"]?.toString()) ?: return@forEach
+    val scope = LearningScope.fromWireNameOrNull(payload.scope) ?: return@forEach
     put(scope.wireName, getValue(scope.wireName) + 1)
   }
 }
 
-fun learningSessionJson(skillName: String?, payloadEntries: List<Map<String, Any?>>): String =
-  JsonCodec.mapToJsonString(
-    linkedMapOf(
-      "skill_name" to skillName,
-      "applied_learning_count" to payloadEntries.size,
-      "applied_learning_references" to payloadEntries.map { it["reference"] },
-      "applied_learnings" to summarizeLearningReferences(payloadEntries),
-      "scope_counts" to scopeCounts(payloadEntries),
-      "learnings" to payloadEntries.map(::learningSummaryPayload),
-    ),
+fun learningAppliedSessionWire(skillName: String?, payloadEntries: List<LearningEntryDto>): LearningAppliedSessionWire =
+  LearningAppliedSessionWire(
+    skillName = skillName,
+    entries = payloadEntries,
+    scopeCounts = scopeCountsFromDtos(payloadEntries),
   )
 
-fun summarizeLearningReferences(entries: List<Map<String, Any?>>): String =
-  if (entries.isEmpty()) "none" else entries.joinToString(", ") { it["reference"].toString() }
+fun summarizeLearningReferences(entries: List<LearningEntryDto>): String =
+  if (entries.isEmpty()) "none" else entries.joinToString(", ") { it.reference }

@@ -7,13 +7,13 @@ import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestFileCandidate
 import skillbill.ports.workflow.decomposition.runtime.model.LoadedDecompositionManifest
 import skillbill.ports.workflow.decomposition.runtime.model.ValidatedDecompositionManifestYaml
-import skillbill.workflow.decomposition.DecompositionManifestCodec
 import skillbill.workflow.decomposition.DecompositionManifestValidator
+import skillbill.workflow.decomposition.decodeManifest
+import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationResult
 import skillbill.workflow.decomposition.model.requireAccepted
 import skillbill.workflow.decomposition.runtime.isActiveGoalRuntime
-import skillbill.workflow.decomposition.toWireMap
 import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.decompositionStatus
 import java.nio.file.NoSuchFileException
@@ -63,25 +63,6 @@ fun validateDecompositionManifestYaml(
       error("Unreachable rejected decomposition manifest result.")
     }
   }
-}
-
-fun decodeDecompositionManifestMap(
-  wireMap: Map<String, Any?>,
-  validator: DecompositionManifestValidator,
-  sourceLabel: String = "<in-memory>",
-): DecompositionManifest {
-  validator.validate(wireMap, sourceLabel)
-  return DecompositionManifestCodec.decodeMap(wireMap, sourceLabel)
-}
-
-fun encodeDecompositionManifestMap(
-  manifest: DecompositionManifest,
-  validator: DecompositionManifestValidator,
-  sourceLabel: String = "<in-memory>",
-): Map<String, Any?> {
-  val wireMap = manifest.toWireMap()
-  validator.validate(wireMap, sourceLabel)
-  return wireMap
 }
 
 fun archivedDecompositionManifest(repoRoot: Path, manifestPath: Path): Boolean {

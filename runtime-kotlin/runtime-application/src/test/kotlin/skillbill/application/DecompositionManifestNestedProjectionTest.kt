@@ -1,7 +1,9 @@
 package skillbill.application
 
 import skillbill.application.decomposition.model.DecompositionManifestWriteRequest
-import skillbill.application.decomposition.parentSpecPath
+import skillbill.application.decomposition.decompositionPlanningResult
+import skillbill.application.decomposition.decompositionPlanningSubtask
+import skillbill.contracts.decomposition.DecompositionPlanningResult
 import skillbill.error.InvalidDecompositionManifestSchemaError
 import java.nio.file.Files
 import java.nio.file.Path
@@ -21,7 +23,7 @@ class DecompositionManifestNestedProjectionTest {
         repoRoot = fixture.repoRoot,
         existingArtifactsJson = "{}",
         artifactsPatch = mapOf(
-          "plan" to nestedDecompositionPlan(fixture.nestedParentSpecPath, fixture.nestedDirectory),
+          "plan" to nestedDecompositionPlan(fixture.nestedParentSpecPath, fixture.nestedDirectory).toPayload(),
         ),
       )
     }
@@ -71,7 +73,7 @@ class DecompositionManifestNestedProjectionTest {
         repoRoot = fixture.repoRoot,
         existingArtifactsJson = "{}",
         artifactsPatch = mapOf(
-          "plan" to nestedDecompositionPlan(fixture.nestedParentSpecPath, fixture.nestedDirectory),
+          "plan" to nestedDecompositionPlan(fixture.nestedParentSpecPath, fixture.nestedDirectory).toPayload(),
         ),
       )
     }
@@ -117,42 +119,37 @@ private fun writeTopLevelDecomposition(repoRoot: Path, parentSpecPath: Path) {
   assertNotNull(result)
 }
 
-private fun topLevelDecompositionPlan(parentSpecPath: Path): Map<String, Any?> = linkedMapOf(
-  "mode" to "decompose",
-  "parent_spec_path" to parentSpecPath.toString(),
-  "recommended_first_subtask_id" to 1,
-  "subtasks" to listOf(
-    linkedMapOf(
-      "id" to 1,
-      "name" to "Install Policy",
-      "spec_path" to parentSpecPath.parent.resolve("spec_subtask_1_install-policy.md").toString(),
-      "depends_on" to emptyList<Int>(),
+private fun topLevelDecompositionPlan(parentSpecPath: Path): DecompositionPlanningResult = decompositionPlanningResult(
+  parentSpecPath = parentSpecPath.toString(),
+  subtasks = listOf(
+    decompositionPlanningSubtask(
+      id = 1,
+      name = "Install Policy",
+      specPath = parentSpecPath.parent.resolve("spec_subtask_1_install-policy.md").toString(),
     ),
-    linkedMapOf(
-      "id" to 2,
-      "name" to "Runtime",
-      "spec_path" to parentSpecPath.parent.resolve("spec_subtask_2_runtime.md").toString(),
-      "depends_on" to listOf(1),
+    decompositionPlanningSubtask(
+      id = 2,
+      name = "Runtime",
+      specPath = parentSpecPath.parent.resolve("spec_subtask_2_runtime.md").toString(),
+      dependsOn = listOf(1),
     ),
   ),
 )
 
-private fun nestedDecompositionPlan(parentSpecPath: Path, subtaskDirectory: Path): Map<String, Any?> = linkedMapOf(
-  "mode" to "decompose",
-  "parent_spec_path" to parentSpecPath.toString(),
-  "recommended_first_subtask_id" to 1,
-  "subtasks" to listOf(
-    linkedMapOf(
-      "id" to 1,
-      "name" to "Foundation",
-      "spec_path" to subtaskDirectory.resolve("spec_subtask_1_foundation.md").toString(),
-      "depends_on" to emptyList<Int>(),
+private fun nestedDecompositionPlan(parentSpecPath: Path, subtaskDirectory: Path): DecompositionPlanningResult =
+  decompositionPlanningResult(
+    parentSpecPath = parentSpecPath.toString(),
+    subtasks = listOf(
+      decompositionPlanningSubtask(
+        id = 1,
+        name = "Foundation",
+        specPath = subtaskDirectory.resolve("spec_subtask_1_foundation.md").toString(),
+      ),
+      decompositionPlanningSubtask(
+        id = 2,
+        name = "Runtime",
+        specPath = subtaskDirectory.resolve("spec_subtask_2_runtime.md").toString(),
+        dependsOn = listOf(1),
+      ),
     ),
-    linkedMapOf(
-      "id" to 2,
-      "name" to "Runtime",
-      "spec_path" to subtaskDirectory.resolve("spec_subtask_2_runtime.md").toString(),
-      "depends_on" to listOf(1),
-    ),
-  ),
-)
+  )

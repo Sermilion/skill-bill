@@ -4,7 +4,7 @@ import skillbill.contracts.issuekey.normalizeRequiredIssueKey
 import skillbill.goalrunner.GOAL_OUT_OF_BAND_ACCEPTANCE_ARTIFACT_KEY
 import skillbill.goalrunner.GOAL_REVIEW_POLICY_ARTIFACT_KEY
 import skillbill.infrastructure.sqlite.decomposition.decodeArtifacts
-import skillbill.infrastructure.sqlite.decomposition.encodeDecompositionManifestMap
+import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.infrastructure.sqlite.workflow.decompositionRuntime
 import skillbill.ports.goalrunner.GoalRunnerPersistenceSession
 import skillbill.ports.workflow.model.WorkflowFamily
@@ -33,7 +33,7 @@ class GoalParentProjectionWriter(
       remove(GOAL_OUT_OF_BAND_ACCEPTANCE_ARTIFACT_KEY)
       put(
         DECOMPOSITION_RUNTIME_ARTIFACT_KEY,
-        encodeDecompositionManifestMap(manifest, validator, DECOMPOSITION_RUNTIME_ARTIFACT_KEY),
+        validator.encodeManifestWireMap(manifest, DECOMPOSITION_RUNTIME_ARTIFACT_KEY),
       )
     }
 

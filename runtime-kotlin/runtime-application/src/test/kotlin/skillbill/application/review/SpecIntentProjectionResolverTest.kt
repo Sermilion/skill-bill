@@ -6,6 +6,7 @@ import skillbill.application.review.model.ReviewSpecialistLaunchRequest
 import skillbill.application.reviewevidence.ResolvedCommitSequence
 import skillbill.application.reviewevidence.ReviewDiffEvidence
 import skillbill.application.testDecompositionManifestValidator
+import skillbill.workflow.decomposition.decodeManifest
 import skillbill.error.UnreadableSpecIntentProjectionError
 import skillbill.ports.repository.toFileLocation
 import skillbill.review.context.ReviewContextEnvelopeValidator
@@ -20,7 +21,6 @@ import skillbill.review.context.model.SpecIntentProjectionResolveRequest
 import skillbill.review.context.model.SpecIntentProvenance
 import skillbill.review.context.model.SpecIntentResolution
 import skillbill.review.plan.model.ReviewLaunchLane
-import skillbill.workflow.decomposition.DecompositionManifestCodec
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.model.DecompositionManifestRepairEvidence
 import skillbill.workflow.decomposition.model.DecompositionManifestRepairOperation
@@ -378,7 +378,7 @@ private fun resolver(validator: DecompositionManifestValidator = testDecompositi
 private fun repairedManifestValidator(): DecompositionManifestValidator =
   object : DecompositionManifestValidator by testDecompositionManifestValidator {
     override fun validateYamlTextResult(yamlText: String, sourceLabel: String): DecompositionManifestValidationResult {
-      val manifest = DecompositionManifestCodec.decodeMap(validateYamlText(yamlText, sourceLabel), sourceLabel)
+      val manifest = validateYamlText(yamlText, sourceLabel)
       return DecompositionManifestValidationResult.AcceptedAfterRepair(
         manifest,
         yamlText,

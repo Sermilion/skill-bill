@@ -2,7 +2,10 @@ package skillbill.mcp.workflow
 
 import skillbill.application.workflow.model.WorkflowFamilyKind
 import skillbill.application.workflow.model.WorkflowUpdateRequest
+import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.decomposition.DecompositionPlanningResult
+import skillbill.contracts.workflow.WorkflowArtifactKeys
 import skillbill.mcp.shared.McpRuntimeContext
 import skillbill.mcp.shared.int
 import skillbill.mcp.shared.optionalInt
@@ -33,15 +36,19 @@ internal fun workflowUpdate(
   context: McpRuntimeContext,
 ): Map<String, Any?> = McpWorkflowRuntime.update(
   kind = kind,
-  request =
-  WorkflowUpdateRequest(
-    workflowId = arguments.string("workflow_id"),
-    workflowStatus = arguments.string("workflow_status"),
-    currentStepId = arguments.string("current_step_id"),
-    stepUpdates = arguments.optionalListMap("step_updates"),
-    artifactsPatch = arguments.optionalMap("artifacts_patch"),
-    sessionId = arguments.string("session_id"),
-  ),
+  request = arguments.optionalMap("artifacts_patch").let { artifactsPatch ->
+    WorkflowUpdateRequest(
+      workflowId = arguments.string("workflow_id"),
+      workflowStatus = arguments.string("workflow_status"),
+      currentStepId = arguments.string("current_step_id"),
+      stepUpdates = arguments.optionalListMap("step_updates"),
+      artifactsPatch = artifactsPatch,
+      planningResult = artifactsPatch?.get(WorkflowArtifactKeys.PLAN)
+        ?.let(JsonCodec::anyToStringAnyMap)
+        ?.let { DecompositionPlanningResult.fromWireMap(it, "mcp.artifacts_patch.plan") },
+      sessionId = arguments.string("session_id"),
+    )
+  },
   context = context,
 )
 

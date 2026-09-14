@@ -1,5 +1,6 @@
 package skillbill.workflow.engine
 
+import skillbill.contracts.workflow.WorkflowContinueSessionSummary
 import skillbill.workflow.engine.model.WorkflowDefinition
 import skillbill.workflow.model.WorkflowContinueStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
@@ -48,7 +49,7 @@ internal data class ContinuationEntryPromptRequest(
   val definition: WorkflowDefinition,
   val identity: ContinuationIdentity,
   val artifactKeys: ContinuationArtifactKeys,
-  val sessionSummary: Map<String, Any?>,
+  val sessionSummary: WorkflowContinueSessionSummary,
   val extraFields: Map<String, Any?>,
 )
 
@@ -81,11 +82,10 @@ internal fun continuationEntryPrompt(request: ContinuationEntryPromptRequest): S
   commonLines += "Current-step artifacts: $currentArtifacts"
   commonLines += "Omitted artifact keys: $omittedArtifacts"
   if (request.definition.skillName == "bill-feature-verify") {
-    commonLines += "Acceptance criteria count: ${request.sessionSummary["acceptance_criteria_count"] ?: 0}"
-    commonLines += "Rollout relevant: ${request.sessionSummary["rollout_relevant"] ?: false}"
+    commonLines += "Acceptance criteria count: ${request.sessionSummary.acceptanceCriteriaCount}"
+    commonLines += "Rollout relevant: ${request.sessionSummary.rolloutRelevant}"
   }
-  val specSummary = request.sessionSummary["spec_summary"]?.toString()?.ifBlank { "(none saved)" }
-    ?: "(none saved)"
+  val specSummary = request.sessionSummary.specSummary.ifBlank { "(none saved)" }
   commonLines += "Spec summary: $specSummary"
   commonLines += "Reference sections: ${references.ifBlank { "normal step instructions only" }}"
   commonLines +=

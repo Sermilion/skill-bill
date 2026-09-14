@@ -9,7 +9,9 @@ import skillbill.ports.workflow.model.FeatureImplementSessionSummary
 import skillbill.ports.workflow.model.FeatureTaskExecutionIdentity
 import skillbill.ports.workflow.model.FeatureTaskWorkflowCandidate
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
+import skillbill.contracts.workflow.WorkflowContinueSessionSummary
 import skillbill.ports.workflow.model.FeatureVerifySessionSummary
+import skillbill.ports.workflow.model.toContinueSessionSummary
 import skillbill.ports.workflow.model.GoalChildWorkflowDeletionScope
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.model.WorkflowStateRecord
@@ -223,14 +225,17 @@ fun WorkflowFamily.latest(repository: WorkflowStateRepository): WorkflowStateSna
   WorkflowFamily.TASK_RUNTIME -> repository.latestFeatureTaskWorkflow(FeatureTaskWorkflowMode.RUNTIME)
 }?.toSnapshot()
 
-@OpenBoundaryMap("Durable workflow session summary passthrough")
-fun WorkflowFamily.sessionSummary(repository: WorkflowStateRepository, sessionId: String): Map<String, Any?> {
+fun WorkflowFamily.sessionSummary(
+  repository: WorkflowStateRepository,
+  sessionId: String,
+): WorkflowContinueSessionSummary {
   if (sessionId.isBlank()) {
-    return emptyMap()
+    return WorkflowContinueSessionSummary.EMPTY
   }
   return when (this) {
-    WorkflowFamily.VERIFY -> repository.getFeatureVerifySessionSummary(sessionId)?.toPayload().orEmpty()
-    WorkflowFamily.TASK_RUNTIME -> emptyMap()
+    WorkflowFamily.VERIFY -> repository.getFeatureVerifySessionSummary(sessionId)?.toContinueSessionSummary()
+      ?: WorkflowContinueSessionSummary.EMPTY
+    WorkflowFamily.TASK_RUNTIME -> WorkflowContinueSessionSummary.EMPTY
   }
 }
 

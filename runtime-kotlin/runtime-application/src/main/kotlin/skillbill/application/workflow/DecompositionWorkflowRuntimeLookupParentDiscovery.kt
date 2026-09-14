@@ -1,7 +1,7 @@
 package skillbill.application.workflow
 
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
-import skillbill.application.decomposition.decodeArtifacts
+import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.WorkflowStateRecord
@@ -27,7 +27,7 @@ fun WorkflowStateRepository.findDecomposedParentOrCorruptFallback(
         row.issueKey == normalizedIssueKey &&
         (
           snapshot.hasDecompositionPlan() ||
-            DECOMPOSITION_RUNTIME_ARTIFACT_KEY in decodeArtifacts(snapshot.artifactsJson)
+            DECOMPOSITION_RUNTIME_ARTIFACT_KEY in decodeWorkflowArtifacts(snapshot.artifactsJson)
           )
     }
     .forEach { row ->

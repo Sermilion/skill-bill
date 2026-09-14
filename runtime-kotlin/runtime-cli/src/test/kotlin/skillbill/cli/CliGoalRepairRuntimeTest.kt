@@ -1,6 +1,6 @@
 package skillbill.cli
 
-import skillbill.application.decomposition.decodeArtifacts
+import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliRuntimeContext
 import skillbill.contracts.JsonCodec
@@ -241,7 +241,7 @@ class CliGoalRepairRuntimeTest {
     assertEquals(0, result.exitCode, result.stdout)
     assertContains(result.stdout, "status: repaired")
     assertContains(result.stdout, "completed_upstream_missing_output")
-    val repairedRecords = phaseRecordsFrom(decodeArtifacts(readChildArtifacts(fixture, childWorkflowId)))
+    val repairedRecords = phaseRecordsFrom(decodeWorkflowArtifacts(readChildArtifacts(fixture, childWorkflowId)))
     assertEquals(WorkflowStepStatus.PENDING, repairedRecords.getValue("verify_findings").status)
     assertEquals(WorkflowStepStatus.PENDING, repairedRecords.getValue("implement_fix").status)
   }
@@ -325,7 +325,7 @@ class CliGoalRepairRuntimeTest {
           rows.getString(1)
         }
       }
-      val artifacts = decodeArtifacts(current).toMutableMap()
+      val artifacts = decodeWorkflowArtifacts(current).toMutableMap()
       val records = phaseRecordsFrom(artifacts).toMutableMap()
       val timestamp = "2026-09-12T08:00:00Z"
       records.putIfAbsent(

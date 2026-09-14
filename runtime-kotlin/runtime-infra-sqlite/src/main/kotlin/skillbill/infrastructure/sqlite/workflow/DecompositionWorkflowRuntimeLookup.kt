@@ -2,12 +2,12 @@ package skillbill.infrastructure.sqlite.workflow
 import skillbill.error.LegacyProseWorkflowError
 import skillbill.infrastructure.sqlite.decomposition.asStringAnyMapOrNull
 import skillbill.infrastructure.sqlite.decomposition.decodeArtifacts
-import skillbill.infrastructure.sqlite.decomposition.decodeDecompositionManifestMap
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.ports.workflow.model.toSnapshot
 import skillbill.workflow.decomposition.DecompositionManifestValidator
+import skillbill.workflow.decomposition.decodeManifest
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.runtime.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
 import skillbill.workflow.decomposition.runtime.isActiveGoalRuntime
@@ -17,7 +17,7 @@ import skillbill.workflow.model.workflowStatus
 
 fun WorkflowStateSnapshot.decompositionRuntime(validator: DecompositionManifestValidator): DecompositionManifest? =
   decodeArtifacts(artifactsJson)[DECOMPOSITION_RUNTIME_ARTIFACT_KEY].asStringAnyMapOrNull()
-    ?.let { decodeDecompositionManifestMap(it, validator, DECOMPOSITION_RUNTIME_ARTIFACT_KEY) }
+    ?.let { validator.decodeManifest(it, DECOMPOSITION_RUNTIME_ARTIFACT_KEY) }
 
 fun WorkflowStateSnapshot.hasDecompositionPlan(): Boolean =
   decodeArtifacts(artifactsJson)["plan"].asStringAnyMapOrNull()?.get("mode") == "decompose"

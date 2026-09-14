@@ -1,3 +1,12 @@
+## [2026-09-14] SKILL-52.5 subtask 2 — Learnings and decomposition ingress
+Areas: runtime-kotlin/{runtime-application,runtime-contracts,runtime-domain,runtime-engine,runtime-infra-fs,runtime-infra-sqlite,runtime-mcp,runtime-ports,runtime-cli,runtime-core}
+- Typed learning payloads and entries, decomposition planning ingress, manifest wire boundaries, and workflow continuation summaries replace the scoped raw-map surfaces.
+- The canonical open-boundary allow-list ratchet now records 385 entries after this cluster; contract-owned payload keys keep wire vocabulary centralized. reusable
+- Pattern: parse wire maps at adapters and pass contract-backed DTOs through application and domain seams. reusable
+- Known limitations: workflow-artifact seams still invoke `DecompositionPlanningResult.fromWireMap`; CLI/MCP goal-planning adapter types remain deferred, and inventory/strict count reconciliation remains pending validation.
+Feature flag: N/A
+Acceptance criteria: 3/5 implemented
+
 ## [2026-09-14] SKILL-52.5 subtask 1 — Enforcement pivot and ARCHITECTURE.md dedup
 Areas: runtime-kotlin/{runtime-core/architecture,runtime-domain/boundary,scripts,ARCHITECTURE.md}
 - Open-boundary and SKILL-52.2 enforcement now use the canonical `OpenBoundaryMap.RAW_MAP_OPEN_BOUNDARY_ALLOWLIST`; ARCHITECTURE.md no longer carries FQN lists.

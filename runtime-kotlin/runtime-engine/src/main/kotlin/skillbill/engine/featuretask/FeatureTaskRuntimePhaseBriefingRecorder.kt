@@ -1,6 +1,6 @@
 package skillbill.engine.featuretask
 
-import skillbill.application.decomposition.decodeArtifacts
+import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseLaunchBriefing
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeProjectionRejection
@@ -32,7 +32,7 @@ class FeatureTaskRuntimePhaseBriefingRecorder(
     val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
       ?: return@transaction false
     handoffEnvelopeValidator.validateEnvelope(briefing.handoffEnvelope.toEnvelopeMap(), workflowId)
-    val artifacts = decodeArtifacts(record.artifactsJson)
+    val artifacts = decodeWorkflowArtifacts(record.artifactsJson)
     val updatedBriefings = LinkedHashMap(phaseBriefingsFrom(artifacts, handoffEnvelopeValidator::validateEnvelopeWire))
       .apply { put(briefing.phaseId, briefing) }
     val deliveredHistory = deliveredProjectionHistoryFrom(
@@ -99,7 +99,7 @@ class FeatureTaskRuntimePhaseBriefingRecorder(
     database.read { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
         ?: return@read null
-      phaseBriefingsFrom(decodeArtifacts(record.artifactsJson)) { envelope ->
+      phaseBriefingsFrom(decodeWorkflowArtifacts(record.artifactsJson)) { envelope ->
         handoffEnvelopeValidator.validateEnvelope(envelope, workflowId)
       }
     }
@@ -109,7 +109,7 @@ class FeatureTaskRuntimePhaseBriefingRecorder(
     val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
       ?: return@read null
     deliveredProjectionsFrom(
-      decodeArtifacts(record.artifactsJson),
+      decodeWorkflowArtifacts(record.artifactsJson),
       validateEnvelope = { envelope -> handoffEnvelopeValidator.validateEnvelope(envelope, workflowId) },
       validatePersistenceRecord = { persistence ->
         handoffFoundationValidator.validatePersistenceRecord(persistence, "delivered-projection:$workflowId")

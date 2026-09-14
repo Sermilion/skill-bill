@@ -2,8 +2,7 @@ package skillbill.application.decomposition
 
 import skillbill.application.decomposition.model.DecompositionManifestFileCandidate
 import skillbill.application.decomposition.model.DecompositionManifestRuntimeUpdate
-import skillbill.boundary.OpenBoundaryMap
-import skillbill.contracts.JsonCodec
+import skillbill.contracts.decomposition.DecompositionPlanningResult
 import skillbill.error.InvalidDecompositionManifestSchemaError
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.workflow.decomposition.DecompositionManifestValidator
@@ -20,13 +19,6 @@ fun archivedDecompositionManifest(repoRoot: Path, manifestPath: Path): Boolean {
     .replace('\\', '/')
   return relative.startsWith(".feature-specs/done/")
 }
-
-@OpenBoundaryMap("Persisted workflow artifact JSON decoded for decomposition runtime updates")
-fun decodeArtifacts(existingArtifactsJson: String): Map<String, Any?> =
-  JsonCodec.parseObjectOrNull(existingArtifactsJson)
-    ?.let(JsonCodec::jsonElementToValue)
-    ?.let(JsonCodec::anyToStringAnyMap)
-    .orEmpty()
 
 fun loadManifestOrNull(
   path: Path,
@@ -112,18 +104,22 @@ fun resolveDecompositionManifest(
   return activeCandidates.firstOrNull()?.manifest ?: candidates.firstOrNull()?.manifest
 }
 
-@OpenBoundaryMap("Merged workflow artifact maps used to resolve the decomposition manifest path")
-fun manifestPathFromArtifacts(
+internal fun manifestPathFromArtifacts(
   repoRoot: Path,
   artifactsPatch: Map<String, Any?>?,
   existingArtifacts: Map<String, Any?>,
+  planningResult: DecompositionPlanningResult? = null,
 ): Path? {
   val merged = LinkedHashMap(existingArtifacts)
   artifactsPatch?.let(merged::putAll)
   val specPath = (merged["assessment"] as? Map<*, *>)?.get("spec_path")?.toString()?.takeIf(String::isNotBlank)
-    ?: (merged["plan"] as? Map<*, *>)?.get("parent_spec_path")?.toString()?.takeIf(String::isNotBlank)
-  (merged["plan"] as? Map<*, *>)?.asStringAnyMapOrNull()?.takeIf { it["mode"] == "decompose" }?.let { plan ->
-    return decompositionManifestPath(repoRoot, Path.of(parentSpecPath(plan)), planSubtaskSpecPaths(plan))
+    ?: planningResult?.takeIf { it.isDecomposeMode() }?.parentSpecPath?.takeIf(String::isNotBlank)
+  planningResult?.takeIf { it.isDecomposeMode() }?.let { plan ->
+    return decompositionManifestPath(
+      repoRoot,
+      Path.of(parentSpecPath(plan)),
+      plan.subtasks.map { it.specPath },
+    )
   }
   return specPath?.let { resolvedParentSpecPath(repoRoot, Path.of(it)).parent.resolve(DECOMPOSITION_MANIFEST_FILENAME) }
 }
@@ -141,11 +137,6 @@ fun DecompositionManifest.assertExecutionModelCanReplace(
   }
   return this
 }
-
-private fun planSubtaskSpecPaths(plan: Map<String, Any?>): List<String> =
-  (plan["subtasks"] as? List<*>).orEmpty().mapNotNull { raw ->
-    raw.asStringAnyMapOrNull()?.get("spec_path")?.toString()?.takeIf(String::isNotBlank)
-  }
 
 fun DecompositionManifest.withPreservedRuntimeState(existing: DecompositionManifest?): DecompositionManifest {
   if (existing == null) {

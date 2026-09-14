@@ -1,7 +1,7 @@
 package skillbill.engine.goalrunner.findings
 
 import me.tatarka.inject.annotations.Inject
-import skillbill.application.decomposition.decodeArtifacts
+import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.error.InvalidUnaddressedFindingsLedgerSchemaError
 import skillbill.error.UnaddressedFindingsLedgerAbsentError
@@ -46,7 +46,7 @@ class UnaddressedFindingsLedgerService(
       unitOfWork.unaddressedFindings.workflowIdsForIssue(issueKey).flatMap { workflowId ->
         val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
           ?: return@flatMap emptyList()
-        val artifacts = decodeArtifacts(record.artifactsJson)
+        val artifacts = decodeWorkflowArtifacts(record.artifactsJson)
         val artifactKey = when {
           artifacts[FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_DISPOSITIONS_ARTIFACT_KEY] != null ->
             FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_DISPOSITIONS_ARTIFACT_KEY
@@ -78,7 +78,7 @@ class UnaddressedFindingsLedgerService(
         val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
           ?: return@mapNotNull null
         val state = runCatching {
-          GoalSubtaskReviewArtifactDecoder.decodeReviewStateOnly(decodeArtifacts(record.artifactsJson))
+          GoalSubtaskReviewArtifactDecoder.decodeReviewStateOnly(decodeWorkflowArtifacts(record.artifactsJson))
         }.getOrNull() ?: return@mapNotNull null
         runCatching { state.repairLedger }.getOrNull()
           ?.takeUnless(FeatureTaskRuntimeRepairLedger::isEmpty)

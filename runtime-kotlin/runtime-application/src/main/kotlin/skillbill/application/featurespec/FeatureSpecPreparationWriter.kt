@@ -2,10 +2,13 @@ package skillbill.application.featurespec
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.decomposition.DecompositionManifestWriter
+import skillbill.application.decomposition.decompositionPlanningResult
+import skillbill.application.decomposition.decompositionPlanningSubtask
 import skillbill.application.decomposition.defaultFeatureBranch
 import skillbill.application.decomposition.loadValidatedDecompositionManifestPersistingRepair
 import skillbill.application.decomposition.model.DecompositionManifestWriteRequest
 import skillbill.application.decomposition.repoRelativePath
+import skillbill.contracts.decomposition.DecompositionPlanningResult
 import skillbill.error.InvalidFeatureSpecPreparationRequestError
 import skillbill.featurespec.model.FeatureSpecPreparationMode
 import skillbill.featurespec.model.FeatureSpecSubtaskPreparation
@@ -96,19 +99,18 @@ class FeatureSpecPreparationWriter(
   private fun loadPreparedManifest(manifestPath: Path) =
     loadValidatedDecompositionManifestPersistingRepair(manifestPath, fileStore, decompositionManifestValidator)
 
-  private fun planningResult(parentSpecPath: Path, subtaskRecords: List<PreparedSubtask>): Map<String, Any?> =
-    linkedMapOf(
-      "mode" to "decompose",
-      "parent_spec_path" to parentSpecPath.toString(),
-      "recommended_first_subtask_id" to subtaskRecords.first().definition.id,
-      "subtasks" to subtaskRecords.map { subtask ->
-        linkedMapOf(
-          "id" to subtask.definition.id,
-          "name" to subtask.definition.name,
-          "spec_path" to subtask.path.toString(),
-          "depends_on" to subtask.definition.dependsOn,
-          "scope" to subtask.definition.scope,
-          "linear_issue_id" to subtask.definition.linearIssueId,
+  private fun planningResult(parentSpecPath: Path, subtaskRecords: List<PreparedSubtask>): DecompositionPlanningResult =
+    decompositionPlanningResult(
+      parentSpecPath = parentSpecPath.toString(),
+      recommendedFirstSubtaskId = subtaskRecords.first().definition.id,
+      subtasks = subtaskRecords.map { subtask ->
+        decompositionPlanningSubtask(
+          id = subtask.definition.id,
+          name = subtask.definition.name,
+          specPath = subtask.path.toString(),
+          dependsOn = subtask.definition.dependsOn,
+          linearIssueId = subtask.definition.linearIssueId,
+          scope = subtask.definition.scope,
         )
       },
     )

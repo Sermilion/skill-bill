@@ -2,27 +2,9 @@
 
 ### must_type_now
 
-- `skillbill.learnings.learningEntryPayload` [subtask 5] — typed learnings surface.
-- `skillbill.learnings.learningPayload` [subtask 5] — typed learnings surface.
-- `skillbill.learnings.learningSessionJson` [subtask 5] — typed learnings surface.
-- `skillbill.learnings.learningSummaryPayload` [subtask 5] — typed learnings surface.
-- `skillbill.learnings.scopeCounts` [subtask 5] — typed learnings surface.
-- `skillbill.learnings.summarizeLearningReferences` [subtask 5] — typed learnings surface.
 
 ### open_extension (@OpenBoundaryMap)
 
-- `skillbill.application.decomposition.baseBranch`
-- `skillbill.application.decomposition.decodeArtifacts`
-- `skillbill.application.decomposition.decodeDecompositionManifestMap`
-- `skillbill.application.decomposition.encodeDecompositionManifestMap`
-- `skillbill.application.decomposition.executionModel`
-- `skillbill.application.decomposition.manifestPathFromArtifacts`
-- `skillbill.application.decomposition.parentSpecPath`
-- `skillbill.application.decomposition.parseStackBranches`
-- `skillbill.application.decomposition.parseSubtasks`
-- `skillbill.application.decomposition.specSource`
-- `skillbill.application.workflow.outOfBandAcceptancesFromLegacyArtifacts`
-- `skillbill.application.workflow.reviewPolicyFromLegacyArtifacts`
 - `skillbill.application.idestatus.model.IdeStatusProblem.details`
 - `skillbill.application.idestatus.model.IdeStatusSnapshot.toStatusWireMap`
 - `skillbill.application.review.model.ReviewContextEnvelope.asWireMap`
@@ -56,7 +38,9 @@
 - `skillbill.application.workflow.decodeWorkflowArtifacts`
 - `skillbill.application.workflow.model.WorkflowUpdateRequest.artifactsPatch`
 - `skillbill.application.workflow.model.WorkflowUpdateRequest.stepUpdates`
+- `skillbill.application.workflow.outOfBandAcceptancesFromLegacyArtifacts`
 - `skillbill.application.workflow.parentProjectionArtifacts`
+- `skillbill.application.workflow.reviewPolicyFromLegacyArtifacts`
 - `skillbill.application.workflow.subtaskStartArtifacts`
 - `skillbill.application.workflow.updateGoalParentForBlockedPhaseRetry`
 - `skillbill.engine.featuretask.CompletedImplementationOutputArgs.outputMap`
@@ -253,25 +237,14 @@
 - `skillbill.ports.workflow.decomposition.runtime.DecompositionManifestWriter.manifestFromWorkflowUpdate`
 - `skillbill.ports.workflow.decomposition.runtime.DecompositionManifestWriter.maybeWriteFromWorkflowUpdate`
 - `skillbill.ports.workflow.decomposition.runtime.DecompositionManifestWriter.writeFromWorkflowUpdate`
-- `skillbill.ports.workflow.decomposition.runtime.baseBranch`
-- `skillbill.ports.workflow.decomposition.runtime.decodeArtifacts`
-- `skillbill.ports.workflow.decomposition.runtime.executionModel`
-- `skillbill.ports.workflow.decomposition.runtime.manifestPathFromArtifacts`
 - `skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestRuntimeUpdate.artifactsPatch`
 - `skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestRuntimeUpdate.existingArtifacts`
 - `skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestRuntimeUpdate.stepUpdates`
 - `skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestWorkflowProjectionInput.artifactsPatch`
-- `skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestWriteRequest.planningResult`
 - `skillbill.ports.workflow.decomposition.runtime.model.DecompositionPlanManifestInput.artifactsPatch`
 - `skillbill.ports.workflow.decomposition.runtime.model.DecompositionPlanManifestInput.existingArtifacts`
-- `skillbill.ports.workflow.decomposition.runtime.model.DecompositionPlanManifestInput.plan`
-- `skillbill.ports.workflow.decomposition.runtime.parentSpecPath`
-- `skillbill.ports.workflow.decomposition.runtime.parseStackBranches`
-- `skillbill.ports.workflow.decomposition.runtime.parseSubtasks`
-- `skillbill.ports.workflow.decomposition.runtime.specSource`
 - `skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInput.toArtifactMap`
 - `skillbill.ports.workflow.model.toPayload`
-- `skillbill.ports.workflow.sessionSummary`
 - `skillbill.review.context.ReviewContextEnvelopeValidator.validate`
 - `skillbill.review.context.ReviewContextEnvelopeValidator.validateSpecIntentProjection`
 - `skillbill.scaffold.model.PlatformManifest.customFields`
@@ -279,11 +252,10 @@
 - `skillbill.telemetry.model.TelemetryProxyCapabilities.additionalFields`
 - `skillbill.telemetry.model.TelemetryRemoteStatsResult.metrics`
 - `skillbill.workflow.decomposition.DecompositionManifestValidator.validate`
-- `skillbill.workflow.decomposition.DecompositionManifestValidator.validateYamlText`
-- `skillbill.workflow.decomposition.runtime.decodeArtifactKeys`
+- `skillbill.workflow.decomposition.decodeManifest`
+- `skillbill.workflow.decomposition.encodeManifestWireMap`
 - `skillbill.workflow.engine.model.WorkflowContinuationArtifactSummary.value`
 - `skillbill.workflow.engine.model.WorkflowContinueView.extraFields`
-- `skillbill.workflow.engine.model.WorkflowContinueView.sessionSummary`
 - `skillbill.workflow.engine.model.WorkflowContinueView.stepArtifacts`
 - `skillbill.workflow.engine.model.WorkflowInputProjection.artifacts`
 - `skillbill.workflow.engine.model.WorkflowSnapshotView.artifacts`
@@ -423,11 +395,6 @@ _None — placeholder._
 
 ### postponed_with_reason
 
-- `skillbill.ports.workflow.decomposition.runtime.decodeDecompositionManifestMap` [subtask 4] — decomposition manifest decode entrypoint.
-- `skillbill.ports.workflow.decomposition.runtime.encodeDecompositionManifestMap` [subtask 4] — decomposition manifest encode entrypoint.
-- `skillbill.workflow.decomposition.DecompositionManifestCodec.decodeMap` [subtask 4] — decomposition manifest codec entrypoint.
-- `skillbill.workflow.decomposition.toWireMap` [subtask 4] — decomposition manifest wire-map encoder.
-- `skillbill.workflow.engine.WorkflowEngine.continueDecision` [subtask 4] — workflow-engine continue-decision raw-map seam.
+_None — placeholder._
 
 <!-- skill-52-2-inventory:end -->
-

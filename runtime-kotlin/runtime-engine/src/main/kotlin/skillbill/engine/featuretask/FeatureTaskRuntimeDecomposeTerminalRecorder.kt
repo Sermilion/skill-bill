@@ -1,7 +1,7 @@
 package skillbill.engine.featuretask
 
 import me.tatarka.inject.annotations.Inject
-import skillbill.application.decomposition.decodeArtifacts
+import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.workflow.get
@@ -42,6 +42,6 @@ class FeatureTaskRuntimeDecomposeTerminalRecorder(
   fun loadDecomposeTerminal(workflowId: String): FeatureTaskRuntimeDecomposeTerminal? = database.read { unitOfWork ->
     val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
       ?: return@read null
-    decomposeTerminalFrom(decodeArtifacts(record.artifactsJson))
+    decomposeTerminalFrom(decodeWorkflowArtifacts(record.artifactsJson))
   }
 }

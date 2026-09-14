@@ -7,6 +7,7 @@ import skillbill.cli.goal.toGoalDiffStatCliMap
 import skillbill.cli.goal.toGoalSelectedDiffHunksCliMap
 import skillbill.cli.kernel.toPayload
 import skillbill.cli.workflow.toCliMap
+import skillbill.contracts.workflow.WorkflowContinueSessionSummary
 import skillbill.error.InvalidGoalObservabilityEventSchemaError
 import skillbill.infrastructure.fs.contracts.workflow.GoalObservabilityEventSchemaValidator
 import skillbill.workflow.engine.WorkflowEngine
@@ -89,7 +90,15 @@ class WorkflowCliResultMappersTest {
       finishedAt = null,
       mode = definition.workflowMode,
     )
-    val decision = engine.continueDecision(definition, record)
+    val decision = engine.continueDecision(
+      definition,
+      record,
+      WorkflowContinueSessionSummary(
+        acceptanceCriteriaCount = 3,
+        rolloutRelevant = true,
+        specSummary = "typed summary",
+      ),
+    )
 
     val mapped = WorkflowContinueResult.Standard(dbPath = "/tmp/metrics.db", view = decision.view).toCliMap()
 
@@ -97,6 +106,14 @@ class WorkflowCliResultMappersTest {
     assertFalse(mapped.containsKey("error"))
     assertEquals("implement", mapped["continue_step_id"])
     assertEquals(emptyList<String>(), mapped["missing_artifacts"])
+    assertEquals(
+      mapOf(
+        "acceptance_criteria_count" to 3,
+        "rollout_relevant" to true,
+        "spec_summary" to "typed summary",
+      ),
+      mapped["session_summary"],
+    )
   }
 
   @Test

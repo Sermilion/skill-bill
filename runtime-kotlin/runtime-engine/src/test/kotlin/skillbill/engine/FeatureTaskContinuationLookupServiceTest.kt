@@ -2,7 +2,7 @@ package skillbill.engine
 import skillbill.application.FakeDatabaseSessionFactory
 import skillbill.application.InMemoryWorkflowStates
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
-import skillbill.application.decomposition.encodeDecompositionManifestMap
+import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.application.testDecompositionManifestValidator
 import skillbill.application.testDecompositionManifestWriter
 import skillbill.application.testRepositoryRoot
@@ -379,7 +379,7 @@ class FeatureTaskContinuationLookupServiceTest {
             artifactsPatch = mapOf(
               "plan" to mapOf("mode" to "decompose"),
               DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
-                encodeDecompositionManifestMap(manifest, testDecompositionManifestValidator),
+                testDecompositionManifestValidator.encodeManifestWireMap(manifest),
             ),
             sessionId = "ftr-goal",
           ),
@@ -409,7 +409,7 @@ class FeatureTaskContinuationLookupServiceTest {
       val artifacts = mapOf(
         "plan" to mapOf("mode" to "decompose"),
         DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
-          encodeDecompositionManifestMap(manifest, testDecompositionManifestValidator),
+          testDecompositionManifestValidator.encodeManifestWireMap(manifest),
       )
       states.saveFeatureTaskWorkflow(
         WorkflowStateRecord(

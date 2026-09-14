@@ -77,7 +77,7 @@ object WorkflowWireProjections {
       "reference_sections" to view.referenceSections,
       "step_artifact_keys" to view.stepArtifactKeys,
       "step_artifacts" to view.stepArtifacts,
-      "session_summary" to view.sessionSummary,
+      "session_summary" to view.sessionSummary.toPayload(),
       "continuation_brief" to view.continuationBrief,
       "continuation_entry_prompt" to view.continuationEntryPrompt,
       "extra_fields" to view.extraFields,

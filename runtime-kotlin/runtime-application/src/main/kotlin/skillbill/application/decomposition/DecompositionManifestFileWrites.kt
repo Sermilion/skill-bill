@@ -4,13 +4,12 @@ import skillbill.error.InvalidDecompositionManifestSchemaError
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.ports.workflow.decomposition.runtime.model.LoadedDecompositionManifest
 import skillbill.ports.workflow.decomposition.runtime.model.ValidatedDecompositionManifestYaml
-import skillbill.workflow.decomposition.DecompositionManifestCodec
 import skillbill.workflow.decomposition.DecompositionManifestValidator
+import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationFailureCode
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationResult
 import skillbill.workflow.decomposition.model.requireAccepted
-import skillbill.workflow.decomposition.toWireMap
 import java.nio.file.NoSuchFileException
 import java.nio.file.Path
 
@@ -101,25 +100,6 @@ fun validateDecompositionManifestYaml(
   }
 }
 
-fun decodeDecompositionManifestMap(
-  wireMap: Map<String, Any?>,
-  validator: DecompositionManifestValidator,
-  sourceLabel: String = "<in-memory>",
-): DecompositionManifest {
-  validator.validate(wireMap, sourceLabel)
-  return DecompositionManifestCodec.decodeMap(wireMap, sourceLabel)
-}
-
-fun encodeDecompositionManifestMap(
-  manifest: DecompositionManifest,
-  validator: DecompositionManifestValidator,
-  sourceLabel: String = "<in-memory>",
-): Map<String, Any?> {
-  val wireMap = manifest.toWireMap()
-  validator.validate(wireMap, sourceLabel)
-  return wireMap
-}
-
 fun encodeDecompositionManifestYaml(
   manifest: DecompositionManifest,
   validator: DecompositionManifestValidator,
@@ -135,7 +115,7 @@ fun encodeValidatedDecompositionManifestYaml(
   fileStore: DecompositionManifestStore,
   sourceLabel: String = "<in-memory>",
 ): ValidatedDecompositionManifestYaml {
-  val wireMap = encodeDecompositionManifestMap(manifest, validator, sourceLabel)
+  val wireMap = validator.encodeManifestWireMap(manifest, sourceLabel)
   val yamlText = fileStore.encodeManifestYaml(wireMap)
   return when (val result = validator.validateYamlTextResult(yamlText, sourceLabel)) {
     is DecompositionManifestValidationResult.AcceptedUnchanged -> ValidatedDecompositionManifestYaml(

@@ -1,8 +1,8 @@
 package skillbill.application.workflow
 
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
-import skillbill.application.decomposition.decodeArtifacts
-import skillbill.application.decomposition.encodeDecompositionManifestMap
+import skillbill.application.workflow.decodeWorkflowArtifacts
+import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.application.decomposition.executionModel
 import skillbill.application.workflow.model.ContinueExistingWorkflowArgs
 import skillbill.application.workflow.model.DecompositionRuntimeWriteArgs
@@ -46,6 +46,7 @@ internal fun WorkflowEngine.continueExistingWorkflow(
           DecompositionRuntimeWriteArgs(
             existing = record,
             input = reopenInput,
+            planningResult = null,
             workflowId = workflowId,
             validator = requireNotNull(args.validator),
             fileStore = requireNotNull(args.fileStore),
@@ -160,12 +161,12 @@ fun WorkflowEngine.persistParentDecompositionRuntime(
       workflowStatus = parentRecord.workflowStatus,
       currentStepId = parentRecord.currentStepId,
       stepUpdates = null,
-      artifactsPatch = LinkedHashMap(decodeArtifacts(parentRecord.artifactsJson)).apply {
+      artifactsPatch = LinkedHashMap(decodeWorkflowArtifacts(parentRecord.artifactsJson)).apply {
         remove("goal_review_policy")
         remove("goal_out_of_band_acceptances")
         put(
           DECOMPOSITION_RUNTIME_ARTIFACT_KEY,
-          encodeDecompositionManifestMap(manifest, validator, DECOMPOSITION_RUNTIME_ARTIFACT_KEY),
+          validator.encodeManifestWireMap(manifest, DECOMPOSITION_RUNTIME_ARTIFACT_KEY),
         )
       },
       sessionId = parentRecord.sessionId.orEmpty(),

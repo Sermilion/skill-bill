@@ -1,7 +1,7 @@
 package skillbill.application
 
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
-import skillbill.application.decomposition.encodeDecompositionManifestMap
+import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.application.decomposition.encodeDecompositionManifestYaml
 import skillbill.application.decomposition.executionModel
 import skillbill.application.decomposition.parentSpecPath
@@ -692,7 +692,7 @@ class WorkflowServiceDecomposedParentTest {
         workflowId = "wfl-child",
         artifactsPatch = mapOf(
           DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
-            encodeDecompositionManifestMap(childRuntime, testDecompositionManifestValidator),
+            testDecompositionManifestValidator.encodeManifestWireMap(childRuntime),
         ),
       ),
     )
@@ -702,7 +702,7 @@ class WorkflowServiceDecomposedParentTest {
         artifactsPatch = mapOf(
           "plan" to mapOf("mode" to "decompose"),
           DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
-            encodeDecompositionManifestMap(parentRuntime, testDecompositionManifestValidator),
+            testDecompositionManifestValidator.encodeManifestWireMap(parentRuntime),
         ),
       ),
     )
@@ -727,10 +727,7 @@ class WorkflowServiceDecomposedParentTest {
             "suppress_pr" to true,
           ),
           DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
-            encodeDecompositionManifestMap(
-              decompositionRuntime(status = "in_progress"),
-              testDecompositionManifestValidator,
-            ),
+            testDecompositionManifestValidator.encodeManifestWireMap(decompositionRuntime(status = "in_progress"), ),
         ),
       ),
     )
@@ -740,10 +737,7 @@ class WorkflowServiceDecomposedParentTest {
         artifactsPatch = mapOf(
           "plan" to mapOf("mode" to "decompose"),
           DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
-            encodeDecompositionManifestMap(
-              decompositionRuntime(status = "in_progress"),
-              testDecompositionManifestValidator,
-            ),
+            testDecompositionManifestValidator.encodeManifestWireMap(decompositionRuntime(status = "in_progress"), ),
         ),
       ),
     )
@@ -762,10 +756,7 @@ class WorkflowServiceDecomposedParentTest {
         artifactsPatch = mapOf(
           "plan" to mapOf("mode" to "decompose"),
           DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
-            encodeDecompositionManifestMap(
-              decompositionRuntime(status = "complete"),
-              testDecompositionManifestValidator,
-            ),
+            testDecompositionManifestValidator.encodeManifestWireMap(decompositionRuntime(status = "complete"), ),
         ),
       ),
     )
@@ -775,10 +766,7 @@ class WorkflowServiceDecomposedParentTest {
         artifactsPatch = mapOf(
           "plan" to mapOf("mode" to "decompose"),
           DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
-            encodeDecompositionManifestMap(
-              decompositionRuntime(status = "blocked"),
-              testDecompositionManifestValidator,
-            ),
+            testDecompositionManifestValidator.encodeManifestWireMap(decompositionRuntime(status = "blocked"), ),
         ),
       ),
     )
@@ -807,7 +795,7 @@ class WorkflowServiceDecomposedParentTest {
         artifactsPatch = mapOf(
           "plan" to mapOf("mode" to "decompose"),
           DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
-            encodeDecompositionManifestMap(staleLineage, testDecompositionManifestValidator),
+            testDecompositionManifestValidator.encodeManifestWireMap(staleLineage),
         ),
         workflowStatus = "abandoned",
       ),
@@ -860,7 +848,7 @@ class WorkflowServiceDecomposedParentTest {
         artifactsPatch = mapOf(
           "plan" to mapOf("mode" to "decompose"),
           DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
-            encodeDecompositionManifestMap(progressedLineage, testDecompositionManifestValidator),
+            testDecompositionManifestValidator.encodeManifestWireMap(progressedLineage),
         ),
         workflowStatus = "abandoned",
       ),
@@ -909,7 +897,7 @@ class WorkflowServiceDecomposedParentTest {
         artifactsPatch = mapOf(
           "plan" to mapOf("mode" to "decompose"),
           DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
-            encodeDecompositionManifestMap(pausedLineage, testDecompositionManifestValidator),
+            testDecompositionManifestValidator.encodeManifestWireMap(pausedLineage),
         ),
         workflowStatus = "paused",
       ),
@@ -944,10 +932,7 @@ class WorkflowServiceDecomposedParentTest {
           artifactsPatch = mapOf(
             "plan" to mapOf("mode" to "decompose"),
             DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
-              encodeDecompositionManifestMap(
-                decompositionRuntime(status = "blocked"),
-                testDecompositionManifestValidator,
-              ),
+              testDecompositionManifestValidator.encodeManifestWireMap(decompositionRuntime(status = "blocked"), ),
           ),
         ),
       )
@@ -1117,10 +1102,7 @@ class WorkflowServiceGoalManifestStoreTest {
         artifactsPatch = mapOf(
           "plan" to mapOf("mode" to "decompose"),
           DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
-            encodeDecompositionManifestMap(
-              decompositionRuntime(status = "blocked"),
-              testDecompositionManifestValidator,
-            ),
+            testDecompositionManifestValidator.encodeManifestWireMap(decompositionRuntime(status = "blocked"), ),
         ),
       ),
     )
@@ -1274,7 +1256,7 @@ class WorkflowServiceGoalManifestStoreTest {
         artifactsPatch = mapOf(
           "plan" to mapOf("mode" to "decompose"),
           DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
-            encodeDecompositionManifestMap(pending, testDecompositionManifestValidator),
+            testDecompositionManifestValidator.encodeManifestWireMap(pending),
         ),
       ),
     )
@@ -1386,7 +1368,7 @@ class WorkflowGoalStatusProjectionTest {
           mapOf(
             "plan" to mapOf("mode" to "decompose"),
             DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
-              encodeDecompositionManifestMap(manifest, testDecompositionManifestValidator),
+              testDecompositionManifestValidator.encodeManifestWireMap(manifest),
           ),
         ),
         startedAt = null,
@@ -1443,7 +1425,7 @@ class WorkflowGoalStatusProjectionTest {
         artifactsPatch = mapOf(
           "plan" to mapOf("mode" to "decompose"),
           DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
-            encodeDecompositionManifestMap(manifest, testDecompositionManifestValidator),
+            testDecompositionManifestValidator.encodeManifestWireMap(manifest),
         ),
       ),
     )
@@ -2790,7 +2772,7 @@ class WorkflowGoalRunnerProgressStoreTest {
       artifactsPatch = mapOf(
         "plan" to mapOf("mode" to "decompose"),
         DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
-          encodeDecompositionManifestMap(manifest, testDecompositionManifestValidator),
+          testDecompositionManifestValidator.encodeManifestWireMap(manifest),
         "goal_review_policy" to mapOf(
           "code_review_mode" to CodeReviewExecutionMode.INLINE.wireValue,
         ),
@@ -2956,7 +2938,7 @@ private fun manifestStore(rejecting: Set<String>) = testWorkflowGoalRunnerManife
 
 private fun rejectingDecompositionManifestValidator(rejectedSources: Set<String>): DecompositionManifestValidator =
   object : DecompositionManifestValidator by testDecompositionManifestValidator {
-    override fun validateYamlText(yamlText: String, sourceLabel: String): Map<String, Any?> {
+    override fun validateYamlText(yamlText: String, sourceLabel: String): DecompositionManifest {
       if (sourceLabel in rejectedSources) {
         throw InvalidDecompositionManifestSchemaError(sourceLabel, "contract_version: must be '0.5'")
       }
@@ -2974,7 +2956,7 @@ private fun scopedReplanStore(
       artifactsPatch = mapOf(
         "plan" to mapOf("mode" to "decompose"),
         DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
-          encodeDecompositionManifestMap(manifest, testDecompositionManifestValidator),
+          testDecompositionManifestValidator.encodeManifestWireMap(manifest),
       ),
     ),
   )
@@ -3527,7 +3509,7 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
         "goal-parent",
         mapOf(
           DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
-            encodeDecompositionManifestMap(manifest, testDecompositionManifestValidator),
+            testDecompositionManifestValidator.encodeManifestWireMap(manifest),
         ),
       ),
     )
@@ -3813,7 +3795,7 @@ class DecompositionDiskBootstrapTest {
         artifactsPatch = mapOf(
           "plan" to mapOf("mode" to "decompose"),
           DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
-            encodeDecompositionManifestMap(manifest, testDecompositionManifestValidator),
+            testDecompositionManifestValidator.encodeManifestWireMap(manifest),
         ),
       ),
     )

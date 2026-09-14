@@ -10,8 +10,8 @@ import skillbill.infrastructure.sqlite.review.TriageRuntime
 import skillbill.infrastructure.sqlite.telemetry.LifecycleTelemetryStore
 import skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxStore
 import skillbill.infrastructure.sqlite.telemetry.listJson
-import skillbill.learnings.learningPayload
-import skillbill.learnings.learningSummaryPayload
+import skillbill.learnings.learningEntryDto
+import skillbill.learnings.learningAppliedSessionWire
 import skillbill.learnings.model.CreateLearningRequest
 import skillbill.learnings.model.LearningScope
 import skillbill.learnings.model.LearningSourceValidation
@@ -537,19 +537,15 @@ private fun cacheSkillLearning(connection: Connection, reviewRunId: String, revi
         rejectedOutcome = RejectedLearningSourceOutcome("fix_rejected", "Intentional wording"),
       ),
     )
-  val learningPayload = learningPayload(SQLiteLearningStore.getLearning(connection, learningId))
+  val learningDto = learningEntryDto(SQLiteLearningStore.getLearning(connection, learningId))
   SQLiteLearningStore.saveSessionLearnings(
     connection = connection,
     reviewSessionId = reviewSessionId,
     learningsJson =
     JsonCodec.mapToJsonString(
-      mapOf(
-        "applied_learning_count" to 1,
-        "applied_learning_references" to listOf(learningPayload["reference"]),
-        "applied_learnings" to learningPayload["reference"],
-        "scope_counts" to mapOf("global" to 0, "repo" to 0, "skill" to 1),
-        "learnings" to listOf(learningSummaryPayload(learningPayload)),
-      ),
+      learningAppliedSessionWire(null, listOf(learningDto)).toPayload().toMutableMap().apply {
+        put("scope_counts", mapOf("global" to 0, "repo" to 0, "skill" to 1))
+      },
     ),
   )
 }

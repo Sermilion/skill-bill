@@ -1,14 +1,16 @@
 package skillbill.application
+import skillbill.application.testDecompositionManifestValidator
+import skillbill.workflow.decomposition.encodeManifestWireMap
 
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
 import skillbill.application.decomposition.loadDecompositionManifest
 import skillbill.application.decomposition.model.DecompositionManifestRuntimeUpdate
 import skillbill.application.decomposition.model.DecompositionManifestWriteRequest
-import skillbill.application.decomposition.parentSpecPath
+import skillbill.application.decomposition.decompositionPlanningResult
+import skillbill.application.decomposition.decompositionPlanningSubtask
 import skillbill.contracts.JsonCodec
 import skillbill.model.toPath
 import skillbill.workflow.decomposition.model.DecompositionManifest
-import skillbill.workflow.decomposition.toWireMap
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
@@ -29,7 +31,12 @@ class DecompositionManifestCommitProjectionTest {
       DecompositionManifestWriteRequest(
         repoRoot = repoRoot,
         parentSpecPath = parentSpecPath,
-        planningResult = decompositionPlan(parentSpecPath, subtaskSpec),
+        planningResult = decompositionPlanningResult(
+          parentSpecPath = parentSpecPath.toString(),
+          subtasks = listOf(
+            decompositionPlanningSubtask(id = 1, name = "foundation", specPath = subtaskSpec.toString()),
+          ),
+        ),
         baseBranch = "main",
         featureBranch = "feature/SKILL-51-decomposition",
       ),
@@ -85,7 +92,12 @@ class DecompositionManifestCommitProjectionTest {
       DecompositionManifestWriteRequest(
         repoRoot = repoRoot,
         parentSpecPath = parentSpecPath,
-        planningResult = decompositionPlan(parentSpecPath, subtaskSpec),
+        planningResult = decompositionPlanningResult(
+          parentSpecPath = parentSpecPath.toString(),
+          subtasks = listOf(
+            decompositionPlanningSubtask(id = 1, name = "foundation", specPath = subtaskSpec.toString()),
+          ),
+        ),
         baseBranch = "main",
         featureBranch = "feature/SKILL-51-decomposition",
       ),
@@ -121,7 +133,12 @@ class DecompositionManifestCommitProjectionTest {
       DecompositionManifestWriteRequest(
         repoRoot = repoRoot,
         parentSpecPath = parentSpecPath,
-        planningResult = decompositionPlan(parentSpecPath, subtaskSpec),
+        planningResult = decompositionPlanningResult(
+          parentSpecPath = parentSpecPath.toString(),
+          subtasks = listOf(
+            decompositionPlanningSubtask(id = 1, name = "foundation", specPath = subtaskSpec.toString()),
+          ),
+        ),
         baseBranch = "main",
         featureBranch = "feature/SKILL-51-decomposition",
       ),
@@ -146,26 +163,10 @@ class DecompositionManifestCommitProjectionTest {
     assertEquals(null, loaded.subtasks.single { it.id == 1 }.commitSha)
   }
 
-  private fun decompositionPlan(parentSpecPath: Path, subtaskSpec: Path): Map<String, Any?> = mapOf(
-    "mode" to "decompose",
-    "issue_key" to "SKILL-51",
-    "feature_name" to "decomposition",
-    "parent_spec_path" to parentSpecPath.toString(),
-    "execution_model" to "same_branch_commit_per_subtask",
-    "subtasks" to listOf(
-      mapOf(
-        "id" to 1,
-        "name" to "foundation",
-        "spec_path" to subtaskSpec.toString(),
-        "depends_on" to emptyList<Int>(),
-      ),
-    ),
-  )
-
   private fun durableRuntimeArtifactsJson(manifest: DecompositionManifest, subtaskSpec: Path): String =
     JsonCodec.mapToJsonString(
       mapOf(
-        DECOMPOSITION_RUNTIME_ARTIFACT_KEY to manifest.toWireMap(),
+        DECOMPOSITION_RUNTIME_ARTIFACT_KEY to testDecompositionManifestValidator.encodeManifestWireMap(manifest),
         "assessment" to mapOf("spec_path" to subtaskSpec.toString()),
         "goal_continuation" to mapOf(
           "issue_key" to "SKILL-51",

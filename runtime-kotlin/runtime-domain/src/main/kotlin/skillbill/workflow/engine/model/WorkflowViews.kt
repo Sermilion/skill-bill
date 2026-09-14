@@ -1,6 +1,7 @@
 package skillbill.workflow.engine.model
 
 import skillbill.boundary.OpenBoundaryMap
+import skillbill.contracts.workflow.WorkflowContinueSessionSummary
 import skillbill.workflow.model.WorkflowContinueStatus
 import skillbill.workflow.model.WorkflowResumeMode
 
@@ -140,8 +141,7 @@ data class WorkflowContinueView(
    * Workflow-family session summary. Sourced from the durable record
    * via the workflow-state repository.
    */
-  @OpenBoundaryMap("Durable workflow session summary passthrough")
-  val sessionSummary: Map<String, Any?>,
+  val sessionSummary: WorkflowContinueSessionSummary,
   val continuationBrief: String,
   val continuationEntryPrompt: String,
   val compact: WorkflowCompactContinueView,

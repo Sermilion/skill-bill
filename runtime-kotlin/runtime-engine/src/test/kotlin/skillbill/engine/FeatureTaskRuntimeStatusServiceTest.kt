@@ -1,5 +1,5 @@
 package skillbill.engine
-import skillbill.application.decomposition.decodeArtifacts
+import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.decomposition.decompositionManifestPath
 import skillbill.application.decomposition.parentSpecPath
 import skillbill.application.idestatus.model.IdeStatusCurrentPhaseExecutionKind
@@ -1202,7 +1202,7 @@ internal class StatusHarness(
 
   fun seedDiagnosticSignalsArtifact(raw: Any?) {
     val row = requireNotNull(repository.getFeatureTaskRuntimeWorkflow(WORKFLOW_ID))
-    val artifacts = decodeArtifacts(row.artifactsJson).toMutableMap()
+    val artifacts = decodeWorkflowArtifacts(row.artifactsJson).toMutableMap()
     artifacts[FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS_ARTIFACT_KEY] = raw
     repository.saveFeatureTaskRuntimeWorkflow(
       row.copy(artifactsJson = JsonCodec.mapToJsonString(artifacts)),

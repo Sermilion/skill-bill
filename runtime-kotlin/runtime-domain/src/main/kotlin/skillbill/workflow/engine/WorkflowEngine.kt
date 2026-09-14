@@ -1,6 +1,7 @@
 package skillbill.workflow.engine
 
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.workflow.WorkflowContinueSessionSummary
 import skillbill.workflow.engine.model.WorkflowContinueDecision
 import skillbill.workflow.engine.model.WorkflowDefinition
 import skillbill.workflow.engine.model.WorkflowInputProjection
@@ -164,7 +165,7 @@ class WorkflowEngine(
   fun continueDecision(
     definition: WorkflowDefinition,
     record: WorkflowStateSnapshot,
-    sessionSummary: Map<String, Any?> = emptyMap(),
+    sessionSummary: WorkflowContinueSessionSummary = WorkflowContinueSessionSummary.EMPTY,
     continueStatusOverride: WorkflowContinueStatus? = null,
     workflowStatusBeforeContinueOverride: String? = null,
   ): WorkflowContinueDecision {

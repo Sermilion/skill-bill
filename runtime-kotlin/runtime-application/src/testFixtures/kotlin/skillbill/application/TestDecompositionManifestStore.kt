@@ -7,6 +7,9 @@ import skillbill.application.decomposition.model.DecompositionManifestRuntimeUpd
 import skillbill.application.decomposition.model.DecompositionManifestWorkflowProjectionInput
 import skillbill.application.decomposition.model.DecompositionManifestWriteRequest
 import skillbill.application.decomposition.model.DecompositionManifestWriteResult
+import skillbill.contracts.JsonCodec
+import skillbill.contracts.decomposition.DecompositionPlanningResult
+import skillbill.contracts.workflow.WorkflowArtifactKeys
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
@@ -77,6 +80,9 @@ fun writeFromWorkflowUpdate(
     repoRoot = repoRoot,
     existingArtifactsJson = existingArtifactsJson,
     validator = testDecompositionManifestValidator,
+    planningResult = artifactsPatch?.get(WorkflowArtifactKeys.PLAN)
+      ?.let(JsonCodec::anyToStringAnyMap)
+      ?.let { DecompositionPlanningResult.fromWireMap(it, "test.artifacts_patch.plan") },
     artifactsPatch = artifactsPatch,
     runtimeUpdate = runtimeUpdate ?: DecompositionManifestRuntimeUpdate(),
     fileStore = TestDecompositionManifestStore,

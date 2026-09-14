@@ -5,8 +5,8 @@ import skillbill.error.InvalidDecompositionManifestSchemaError
 import skillbill.infrastructure.fs.contracts.workflow.DecompositionManifestSchemaValidator
 import skillbill.infrastructure.fs.phaseoutput.FeatureTaskRuntimePhaseOutputStructuralRepair
 import skillbill.infrastructure.fs.phaseoutput.FeatureTaskRuntimePhaseOutputStructuralRepairDecision
-import skillbill.workflow.decomposition.DecompositionManifestCodec
 import skillbill.workflow.decomposition.DecompositionManifestValidator
+import skillbill.workflow.decomposition.decodeManifest
 import skillbill.workflow.decomposition.model.DecompositionManifestRepairEvidence
 import skillbill.workflow.decomposition.model.DecompositionManifestRepairOperation
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationFailureCode
@@ -37,8 +37,8 @@ class DecompositionManifestValidatorAdapter : DecompositionManifestValidator {
     DecompositionManifestSchemaValidator.validate(manifest, sourceLabel)
   }
 
-  override fun validateYamlText(yamlText: String, sourceLabel: String): Map<String, Any?> =
-    DecompositionManifestSchemaValidator.validateYamlText(yamlText, sourceLabel)
+  override fun validateYamlText(yamlText: String, sourceLabel: String) =
+    decodeManifest(DecompositionManifestSchemaValidator.validateYamlText(yamlText, sourceLabel), sourceLabel)
 
   override fun validateYamlTextResult(yamlText: String, sourceLabel: String): DecompositionManifestValidationResult {
     val decision = FeatureTaskRuntimePhaseOutputStructuralRepair.inspectWholeDocument(yamlText, sourceLabel)
@@ -51,7 +51,7 @@ class DecompositionManifestValidatorAdapter : DecompositionManifestValidator {
         )
       is FeatureTaskRuntimePhaseOutputStructuralRepairDecision.Accepted -> try {
         val wireMap = DecompositionManifestSchemaValidator.validateYamlText(decision.text, sourceLabel)
-        val manifest = DecompositionManifestCodec.decodeMap(wireMap, sourceLabel)
+        val manifest = decodeManifest(wireMap, sourceLabel)
         val evidence = decision.evidence?.toManifestEvidence()
         if (evidence == null) {
           DecompositionManifestValidationResult.AcceptedUnchanged(manifest, decision.text)

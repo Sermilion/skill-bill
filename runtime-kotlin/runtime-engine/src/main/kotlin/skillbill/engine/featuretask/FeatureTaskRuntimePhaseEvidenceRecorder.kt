@@ -1,6 +1,6 @@
 package skillbill.engine.featuretask
 
-import skillbill.application.decomposition.decodeArtifacts
+import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.contracts.JsonCodec
 import skillbill.engine.featuretask.model.AppendCheckpointIdentityArgs
@@ -40,7 +40,7 @@ class FeatureTaskRuntimePhaseEvidenceRecorder(
     database.transaction { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, request.workflowId)
         ?: return@transaction false
-      val artifacts = decodeArtifacts(record.artifactsJson)
+      val artifacts = decodeWorkflowArtifacts(record.artifactsJson)
       val existingEntries = phaseLedgerFrom(artifacts)
       val nextSequence = (existingEntries.maxOfOrNull { it.sequenceNumber } ?: -1) + 1
       val entry = FeatureTaskRuntimePhaseLedgerEntry(
@@ -71,7 +71,7 @@ class FeatureTaskRuntimePhaseEvidenceRecorder(
     database.transaction { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
         ?: return@transaction false
-      val artifacts = decodeArtifacts(record.artifactsJson)
+      val artifacts = decodeWorkflowArtifacts(record.artifactsJson)
       val existing = quarantineEntriesFrom(artifacts)
       val alreadyRecorded = existing.any {
         it.producingPhaseId == entry.producingPhaseId &&
@@ -94,14 +94,14 @@ class FeatureTaskRuntimePhaseEvidenceRecorder(
     database.read { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
         ?: return@read null
-      quarantineEntriesFrom(decodeArtifacts(record.artifactsJson))
+      quarantineEntriesFrom(decodeWorkflowArtifacts(record.artifactsJson))
     }
 
   override fun recordResolvedBranch(workflowId: String, resolvedBranch: FeatureTaskRuntimeResolvedBranch): Boolean =
     database.transaction { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
         ?: return@transaction false
-      val artifacts = decodeArtifacts(record.artifactsJson)
+      val artifacts = decodeWorkflowArtifacts(record.artifactsJson)
       if (resolvedBranchFrom(artifacts) != null) {
         return@transaction true
       }
@@ -116,7 +116,7 @@ class FeatureTaskRuntimePhaseEvidenceRecorder(
   override fun loadResolvedBranch(workflowId: String): FeatureTaskRuntimeResolvedBranch? = database.read { unitOfWork ->
     val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
       ?: return@read null
-    resolvedBranchFrom(decodeArtifacts(record.artifactsJson))
+    resolvedBranchFrom(decodeWorkflowArtifacts(record.artifactsJson))
   }
 
   override fun appendCheckpointIdentity(args: AppendCheckpointIdentityArgs): Boolean {
@@ -128,7 +128,7 @@ class FeatureTaskRuntimePhaseEvidenceRecorder(
     database.read { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
         ?: return@read null
-      checkpointIdentitiesFrom(decodeArtifacts(record.artifactsJson))
+      checkpointIdentitiesFrom(decodeWorkflowArtifacts(record.artifactsJson))
     }
   override fun quarantineCheckpointIdentities(workflowId: String): Boolean = database.transaction { unitOfWork ->
     val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
@@ -148,7 +148,7 @@ class FeatureTaskRuntimePhaseEvidenceRecorder(
     database.transaction { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
         ?: return@transaction false
-      val resolved = resolvedBranchFrom(decodeArtifacts(record.artifactsJson)) ?: return@transaction false
+      val resolved = resolvedBranchFrom(decodeWorkflowArtifacts(record.artifactsJson)) ?: return@transaction false
       val updated = resolved.copy(workflowOwnedPaths = ownedPaths.distinct().sorted())
       workflowPersistence.persistPatch(
         unitOfWork.workflowStates,
@@ -180,7 +180,7 @@ fun FeatureTaskRuntimePhaseEvidenceRecorder.appendCheckpointIdentityAtCurrentVer
 ): Boolean = database.transaction { unitOfWork ->
   val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, args.workflowId)
     ?: return@transaction false
-  val artifacts = decodeArtifacts(record.artifactsJson)
+  val artifacts = decodeWorkflowArtifacts(record.artifactsJson)
   val existing = checkpointIdentitiesFrom(artifacts)
   val sequenceNumber = (existing.maxOfOrNull { it.sequenceNumber } ?: -1) + 1
   val entry = FeatureTaskRuntimeCheckpointIdentity(
@@ -218,7 +218,7 @@ fun FeatureTaskRuntimePhaseEvidenceRecorder.quarantineCheckpointIdentitiesOnVers
   val rejected = database.read { unitOfWork ->
     val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
       ?: return@read null
-    val artifacts = decodeArtifacts(record.artifactsJson)
+    val artifacts = decodeWorkflowArtifacts(record.artifactsJson)
     try {
       checkpointIdentitiesFrom(artifacts)
       null

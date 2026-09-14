@@ -1,7 +1,7 @@
 package skillbill.application.workflow
 
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
-import skillbill.application.decomposition.encodeDecompositionManifestMap
+import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.application.decomposition.withRetriedSubtask
 import skillbill.contracts.JsonCodec
 import skillbill.error.InvalidWorkflowStateSchemaError
@@ -54,11 +54,7 @@ fun WorkflowEngine.updateGoalParentForBlockedPhaseRetry(
     currentStepId = parent.currentStepId.orEmpty(),
     stepUpdates = null,
     artifactsPatch = mapOf(
-      DECOMPOSITION_RUNTIME_ARTIFACT_KEY to encodeDecompositionManifestMap(
-        retriedManifest,
-        validator,
-        DECOMPOSITION_RUNTIME_ARTIFACT_KEY,
-      ),
+      DECOMPOSITION_RUNTIME_ARTIFACT_KEY to validator.encodeManifestWireMap(retriedManifest, DECOMPOSITION_RUNTIME_ARTIFACT_KEY,),
     ),
     sessionId = parent.sessionId.orEmpty(),
     replaceArtifacts = true,

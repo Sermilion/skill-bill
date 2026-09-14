@@ -1,8 +1,8 @@
 package skillbill.application.workflow
 
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
-import skillbill.application.decomposition.decodeArtifacts
-import skillbill.application.decomposition.encodeDecompositionManifestMap
+import skillbill.application.workflow.decodeWorkflowArtifacts
+import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.application.decomposition.withBlockedSubtask
 import skillbill.application.workflow.model.AdvanceCompletedSubtasksRequest
 import skillbill.application.workflow.model.CheckoutAndValidateBranchRequest
@@ -141,23 +141,19 @@ fun subtaskStartArtifacts(
     "suppress_pr" to true,
     "outcome_authority" to "workflow_store",
   ),
-  DECOMPOSITION_RUNTIME_ARTIFACT_KEY to encodeDecompositionManifestMap(
-    manifest,
-    validator,
-    DECOMPOSITION_RUNTIME_ARTIFACT_KEY,
-  ),
+  DECOMPOSITION_RUNTIME_ARTIFACT_KEY to validator.encodeManifestWireMap(manifest, DECOMPOSITION_RUNTIME_ARTIFACT_KEY,),
 )
 
 fun parentProjectionArtifacts(
   manifest: DecompositionManifest,
   validator: DecompositionManifestValidator,
   existingArtifactsJson: String,
-): Map<String, Any?> = LinkedHashMap(decodeArtifacts(existingArtifactsJson)).apply {
+): Map<String, Any?> = LinkedHashMap(decodeWorkflowArtifacts(existingArtifactsJson)).apply {
   remove("goal_review_policy")
   remove("goal_out_of_band_acceptances")
   put(
     DECOMPOSITION_RUNTIME_ARTIFACT_KEY,
-    encodeDecompositionManifestMap(manifest, validator, DECOMPOSITION_RUNTIME_ARTIFACT_KEY),
+    validator.encodeManifestWireMap(manifest, DECOMPOSITION_RUNTIME_ARTIFACT_KEY),
   )
 }
 

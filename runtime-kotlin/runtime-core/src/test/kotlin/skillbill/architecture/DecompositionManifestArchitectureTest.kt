@@ -43,9 +43,10 @@ class DecompositionManifestArchitectureTest {
     // injected `DecompositionManifestValidator` port.
     assertContains(applicationSeam, "validator: DecompositionManifestValidator")
     assertContains(applicationSeam, "validator.validateYamlText")
-    assertContains(applicationSeam, "validator.validate(")
-    assertContains(applicationSeam, "DecompositionManifestCodec.decodeMap")
-    assertContains(applicationSeam, "fun encodeDecompositionManifestMap")
+    assertContains(applicationSeam, "validator.encodeManifestWireMap")
+    assertFalse(applicationSeam.contains("validator.validate("))
+    assertFalse(applicationSeam.contains("DecompositionManifestWireCodec.decode"))
+    assertFalse(applicationSeam.contains("fun encodeDecompositionManifestMap"))
     // SKILL-52.3 subtask 4: YAML serialization moved behind the
     // `DecompositionManifestStore.encodeManifestYaml` infra/codec seam;
     // the application seam must no longer name `YAMLMapper` and instead
@@ -55,7 +56,7 @@ class DecompositionManifestArchitectureTest {
       "Application seam must not own the YAML serializer; it now flows through the file-store port.",
     )
     assertContains(applicationSeam, "fileStore.encodeManifestYaml")
-    assertFalse(applicationSeam.contains("DecompositionManifestCodec.encodeYaml"))
+    assertFalse(applicationSeam.contains("DecompositionManifestWireCodec.encodeYaml"))
     assertFalse(
       applicationSeam.contains("DecompositionManifestSchemaValidator"),
       "Application seam must not reference the concrete schema validator directly.",
@@ -114,7 +115,7 @@ class DecompositionManifestArchitectureTest {
             decompositionRuntimeEmissionPatterns.forEach { pattern ->
               pattern.findAll(text).forEach { match ->
                 val emissionExpression = match.value
-                if (!emissionExpression.contains("encodeDecompositionManifestMap")) {
+                if (!emissionExpression.contains("encodeManifestWireMap")) {
                   add("${runtimeRoot.relativize(path)} emits decomposition_runtime without validated map seam")
                 }
               }

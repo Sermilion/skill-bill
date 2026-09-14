@@ -2,7 +2,7 @@ package skillbill.application.workflow
 
 import kotlinx.serialization.json.JsonElement
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
-import skillbill.application.decomposition.encodeDecompositionManifestMap
+import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.application.workflow.model.GoalContinuationOutcome
 import skillbill.application.workflow.model.WorkflowContinueResult
 import skillbill.contracts.JsonCodec
@@ -125,11 +125,7 @@ fun decompositionRuntimeArtifactsJson(
   validator: DecompositionManifestValidator,
 ): String = jsonString(
   mapOf(
-    DECOMPOSITION_RUNTIME_ARTIFACT_KEY to encodeDecompositionManifestMap(
-      manifest,
-      validator,
-      DECOMPOSITION_RUNTIME_ARTIFACT_KEY,
-    ),
+    DECOMPOSITION_RUNTIME_ARTIFACT_KEY to validator.encodeManifestWireMap(manifest, DECOMPOSITION_RUNTIME_ARTIFACT_KEY,),
   ),
 )
 

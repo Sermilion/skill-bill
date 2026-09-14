@@ -1,6 +1,6 @@
 package skillbill.engine.featuretask
 
-import skillbill.application.decomposition.decodeArtifacts
+import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
@@ -42,7 +42,7 @@ class FeatureTaskRuntimePhaseStateRecorder(
     database.transaction { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, request.workflowId)
         ?: return@transaction false
-      val artifacts = decodeArtifacts(record.artifactsJson)
+      val artifacts = decodeWorkflowArtifacts(record.artifactsJson)
       val existingRecords = phaseRecordsFrom(artifacts)
       val now = clock.instant().toString()
       val previous = existingRecords[request.phaseId]
@@ -76,7 +76,7 @@ class FeatureTaskRuntimePhaseStateRecorder(
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, request.workflowId)
         ?: return@transaction false
       val patch = implementationAttemptPatch(
-        decodeArtifacts(record.artifactsJson),
+        decodeWorkflowArtifacts(record.artifactsJson),
         request,
         FeatureTaskRuntimeImplementationAttemptStatus.INCOMPLETE,
       )
@@ -88,14 +88,14 @@ class FeatureTaskRuntimePhaseStateRecorder(
     database.read { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
         ?: return@read null
-      implementationAttemptsFrom(decodeArtifacts(record.artifactsJson))
+      implementationAttemptsFrom(decodeWorkflowArtifacts(record.artifactsJson))
     }
 
   override fun clearBackwardEdgeContext(workflowId: String, phaseIds: Collection<String>): Boolean =
     database.transaction { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
         ?: return@transaction false
-      val existingRecords = phaseRecordsFrom(decodeArtifacts(record.artifactsJson))
+      val existingRecords = phaseRecordsFrom(decodeWorkflowArtifacts(record.artifactsJson))
       val cleared = LinkedHashMap(existingRecords)
       phaseIds.forEach { phaseId ->
         val previous = existingRecords[phaseId] ?: return@forEach
@@ -121,14 +121,14 @@ class FeatureTaskRuntimePhaseStateRecorder(
     database.read { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
         ?: return@read null
-      phaseRecordsFrom(decodeArtifacts(record.artifactsJson))
+      phaseRecordsFrom(decodeWorkflowArtifacts(record.artifactsJson))
     }
 
   override fun loadOperatorBlockRetry(workflowId: String): FeatureTaskRuntimeOperatorBlockRetry? =
     database.read { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
         ?: return@read null
-      val artifacts = decodeArtifacts(record.artifactsJson)
+      val artifacts = decodeWorkflowArtifacts(record.artifactsJson)
       val retry = operatorBlockRetryFrom(artifacts) ?: return@read null
       val phaseEntries = phaseLedgerFrom(artifacts).filter { it.phaseId == retry.phaseId }
       val latestRetry = phaseEntries.lastOrNull { it.action == FeatureTaskRuntimePhaseLedgerAction.RETRY }
@@ -146,7 +146,7 @@ class FeatureTaskRuntimePhaseStateRecorder(
     database.read { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
         ?: return@read null
-      phaseLedgerFrom(decodeArtifacts(record.artifactsJson))
+      phaseLedgerFrom(decodeWorkflowArtifacts(record.artifactsJson))
     }
 }
 
@@ -274,7 +274,7 @@ fun FeatureTaskRuntimePhaseStateRecorder.recordCompletedPhaseWrite(
 ) { unitOfWork ->
   val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, request.workflowId)
     ?: return@requiredWrite false
-  val artifacts = decodeArtifacts(record.artifactsJson)
+  val artifacts = decodeWorkflowArtifacts(record.artifactsJson)
   val existingRecords = phaseRecordsFrom(artifacts)
   val updatedRecords = LinkedHashMap(existingRecords).apply {
     put(request.phaseId, phaseRecordFor(request, existingRecords[request.phaseId], clock.instant().toString()))

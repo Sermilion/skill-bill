@@ -6,13 +6,13 @@ import skillbill.infrastructure.sqlite.SQLiteLearningStore
 import skillbill.infrastructure.sqlite.review.ReviewRuntime
 import skillbill.infrastructure.sqlite.review.TriageRuntime
 import skillbill.learnings.LearningsRuntime
-import skillbill.learnings.learningPayload
-import skillbill.learnings.learningSummaryPayload
+import skillbill.contracts.learning.LearningEntryDto
+import skillbill.learnings.learningAppliedSessionWire
+import skillbill.learnings.learningEntryDto
 import skillbill.learnings.model.CreateLearningRequest
 import skillbill.learnings.model.LearningScope
 import skillbill.learnings.model.LearningSourceValidation
 import skillbill.learnings.model.RejectedLearningSourceOutcome
-import skillbill.learnings.scopeCounts
 import skillbill.review.model.FeedbackRequest
 import skillbill.review.model.FeedbackTelemetryOptions
 import skillbill.review.model.ImportedReview
@@ -73,7 +73,7 @@ class TriageAndLearningsRuntimeTest {
       assertEquals(listOf(skillId, repoId, globalId), resolved.map { it.id })
       assertTrue(resolved.first().rationale.contains("current prompt wording"))
 
-      val payloadEntries = resolved.map(::learningPayload)
+      val payloadEntries = resolved.map(::learningEntryDto)
       saveCachedLearnings(connection, review.reviewSessionId, payloadEntries)
 
       val cached = SQLiteLearningStore.fetchSessionLearnings(connection, review.reviewSessionId)
@@ -211,20 +211,11 @@ private fun addLearning(
 private fun saveCachedLearnings(
   connection: Connection,
   reviewSessionId: String,
-  payloadEntries: List<Map<String, Any?>>,
+  payloadEntries: List<LearningEntryDto>,
 ) {
   SQLiteLearningStore.saveSessionLearnings(
     connection = connection,
     reviewSessionId = reviewSessionId,
-    learningsJson =
-    JsonCodec.mapToJsonString(
-      mapOf(
-        "applied_learning_count" to payloadEntries.size,
-        "applied_learning_references" to payloadEntries.map { it["reference"] },
-        "applied_learnings" to payloadEntries.joinToString(", ") { it["reference"].toString() },
-        "scope_counts" to scopeCounts(payloadEntries),
-        "learnings" to payloadEntries.map(::learningSummaryPayload),
-      ),
-    ),
+    learningsJson = JsonCodec.mapToJsonString(learningAppliedSessionWire(null, payloadEntries).toPayload()),
   )
 }

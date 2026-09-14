@@ -1,6 +1,7 @@
 package skillbill.application.workflow.model
 
 import skillbill.boundary.OpenBoundaryMap
+import skillbill.contracts.decomposition.DecompositionPlanningResult
 
 data class WorkflowUpdateRequest(
   val workflowId: String,
@@ -10,6 +11,7 @@ data class WorkflowUpdateRequest(
   val stepUpdates: List<Map<String, Any?>>? = null,
   @OpenBoundaryMap("Caller-supplied JSON patch for durable workflow artifacts")
   val artifactsPatch: Map<String, Any?>? = null,
+  val planningResult: DecompositionPlanningResult? = null,
   val sessionId: String = "",
 )
 

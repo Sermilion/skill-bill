@@ -1,5 +1,5 @@
 package skillbill.engine.featuretask
-import skillbill.application.decomposition.decodeArtifacts
+import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.testHarnessClock
 import skillbill.application.testWorkflowSnapshotValidator
 import skillbill.application.workflow.model.WorkflowFamily
@@ -85,7 +85,7 @@ private fun seedWorkflow(repository: InMemoryRuntimeWorkflowRepository, workflow
   val engine = WorkflowEngine(testWorkflowSnapshotValidator)
   val definition = WorkflowFamily.TASK_RUNTIME.definition
   val opened = engine.openRecord(definition, workflowId, "ftr-finding-verification", "verify_findings")
-  val artifacts = decodeArtifacts(artifactsJson)
+  val artifacts = decodeWorkflowArtifacts(artifactsJson)
   val seeded = engine.updateRecord(
     definition,
     opened,

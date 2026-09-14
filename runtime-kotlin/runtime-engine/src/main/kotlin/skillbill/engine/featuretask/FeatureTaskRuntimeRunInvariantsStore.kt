@@ -1,7 +1,7 @@
 package skillbill.engine.featuretask
 
 import me.tatarka.inject.annotations.Inject
-import skillbill.application.decomposition.decodeArtifacts
+import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.contracts.JsonCodec
 import skillbill.error.InvalidWorkflowStateSchemaError
@@ -38,7 +38,7 @@ class FeatureTaskRuntimeRunInvariantsStore(
     return database.read { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
         ?: return@read null
-      runInvariantsFrom(decodeArtifacts(record.artifactsJson))
+      runInvariantsFrom(decodeWorkflowArtifacts(record.artifactsJson))
     }
   }
 
@@ -46,7 +46,7 @@ class FeatureTaskRuntimeRunInvariantsStore(
     database.transaction { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
         ?: return@transaction
-      val artifacts = decodeArtifacts(record.artifactsJson)
+      val artifacts = decodeWorkflowArtifacts(record.artifactsJson)
       val existing = runInvariantsFrom(artifacts)
       when {
         existing == null -> persistPatch(unitOfWork.workflowStates, record, proposed)

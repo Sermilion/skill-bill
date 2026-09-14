@@ -1,6 +1,7 @@
 package skillbill.ports.workflow.model
 
 import skillbill.boundary.OpenBoundaryMap
+import skillbill.contracts.workflow.WorkflowContinueSessionSummary
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 
 /**
@@ -59,4 +60,11 @@ fun FeatureVerifySessionSummary.toPayload(): Map<String, Any?> = linkedMapOf(
   "acceptance_criteria_count" to acceptanceCriteriaCount,
   "rollout_relevant" to rolloutRelevant,
   "spec_summary" to specSummary,
+)
+
+fun FeatureVerifySessionSummary.toContinueSessionSummary(): WorkflowContinueSessionSummary = WorkflowContinueSessionSummary(
+  sessionId = sessionId,
+  acceptanceCriteriaCount = acceptanceCriteriaCount,
+  rolloutRelevant = rolloutRelevant,
+  specSummary = specSummary,
 )

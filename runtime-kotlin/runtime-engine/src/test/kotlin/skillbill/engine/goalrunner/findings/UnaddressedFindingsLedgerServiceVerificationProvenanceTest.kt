@@ -1,5 +1,5 @@
 package skillbill.engine.goalrunner.findings
-import skillbill.application.decomposition.decodeArtifacts
+import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.testWorkflowSnapshotValidator
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.engine.InMemoryRuntimeWorkflowRepository
@@ -75,7 +75,7 @@ private fun seedWorkflow(repository: InMemoryRuntimeWorkflowRepository, workflow
       workflowStatus = "running",
       currentStepId = "verify_findings",
       stepUpdates = null,
-      artifactsPatch = decodeArtifacts(artifactsJson),
+      artifactsPatch = decodeWorkflowArtifacts(artifactsJson),
       sessionId = "ftr-provenance",
     ),
   ).toRecord()

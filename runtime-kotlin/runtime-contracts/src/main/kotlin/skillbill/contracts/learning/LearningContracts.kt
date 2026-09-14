@@ -1,7 +1,6 @@
 package skillbill.contracts.learning
 
 import skillbill.contracts.JsonPayloadContract
-import skillbill.contracts.SharedPayloadKeys
 
 data class LearningEntryDto(
   val reference: String,
@@ -15,15 +14,53 @@ data class LearningEntryDto(
   val sourceFindingId: String?,
 ) : JsonPayloadContract {
   override fun toPayload(): Map<String, Any?> = mapOf(
-    "reference" to reference,
-    "scope" to scope,
-    "scope_key" to scopeKey,
-    SharedPayloadKeys.STATUS to status,
-    "title" to title,
-    "rule_text" to ruleText,
-    "rationale" to rationale,
-    "source_review_run_id" to sourceReviewRunId,
-    "source_finding_id" to sourceFindingId,
+    LearningPayloadKeys.REFERENCE to reference,
+    LearningPayloadKeys.SCOPE to scope,
+    LearningPayloadKeys.SCOPE_KEY to scopeKey,
+    LearningPayloadKeys.STATUS to status,
+    LearningPayloadKeys.TITLE to title,
+    LearningPayloadKeys.RULE_TEXT to ruleText,
+    LearningPayloadKeys.RATIONALE to rationale,
+    LearningPayloadKeys.SOURCE_REVIEW_RUN_ID to sourceReviewRunId,
+    LearningPayloadKeys.SOURCE_FINDING_ID to sourceFindingId,
+  )
+}
+
+data class LearningSummaryWire(
+  val reference: String,
+  val scope: String,
+  val title: String,
+  val ruleText: String,
+) : JsonPayloadContract {
+  override fun toPayload(): Map<String, Any?> = mapOf(
+    LearningPayloadKeys.REFERENCE to reference,
+    LearningPayloadKeys.SCOPE to scope,
+    LearningPayloadKeys.TITLE to title,
+    LearningPayloadKeys.RULE_TEXT to ruleText,
+  )
+
+  companion object {
+    fun fromEntry(entry: LearningEntryDto): LearningSummaryWire = LearningSummaryWire(
+      reference = entry.reference,
+      scope = entry.scope,
+      title = entry.title,
+      ruleText = entry.ruleText,
+    )
+  }
+}
+
+data class LearningAppliedSessionWire(
+  val skillName: String?,
+  val entries: List<LearningEntryDto>,
+  val scopeCounts: Map<String, Int>,
+) : JsonPayloadContract {
+  override fun toPayload(): Map<String, Any?> = linkedMapOf(
+    LearningPayloadKeys.SKILL_NAME to skillName,
+    LearningPayloadKeys.APPLIED_LEARNING_COUNT to entries.size,
+    LearningPayloadKeys.APPLIED_LEARNING_REFERENCES to entries.map { it.reference },
+    LearningPayloadKeys.APPLIED_LEARNINGS to summarizeLearningReferences(entries),
+    LearningPayloadKeys.SCOPE_COUNTS to scopeCounts,
+    LearningPayloadKeys.LEARNINGS to entries.map(LearningSummaryWire::fromEntry).map(LearningSummaryWire::toPayload),
   )
 }
 
@@ -32,8 +69,8 @@ data class LearningListContract(
   val learnings: List<LearningEntryDto>,
 ) : JsonPayloadContract {
   override fun toPayload(): Map<String, Any?> = linkedMapOf(
-    "db_path" to dbPath,
-    "learnings" to learnings.map(LearningEntryDto::toPayload),
+    LearningPayloadKeys.DB_PATH to dbPath,
+    LearningPayloadKeys.LEARNINGS to learnings.map(LearningEntryDto::toPayload),
   )
 }
 
@@ -43,7 +80,7 @@ data class LearningRecordContract(
 ) : JsonPayloadContract {
   override fun toPayload(): Map<String, Any?> = linkedMapOf<String, Any?>().apply {
     putAll(learning.toPayload())
-    put("db_path", dbPath)
+    put(LearningPayloadKeys.DB_PATH, dbPath)
   }
 }
 
@@ -56,14 +93,14 @@ data class LearningResolveContract(
   val learnings: List<LearningEntryDto>,
 ) : JsonPayloadContract {
   override fun toPayload(): Map<String, Any?> = linkedMapOf<String, Any?>(
-    "db_path" to dbPath,
-    "repo_scope_key" to repoScopeKey,
-    "skill_name" to skillName,
-    "scope_precedence" to scopePrecedence,
-    "applied_learnings" to summarizeLearningReferences(learnings),
-    "learnings" to learnings.map(LearningEntryDto::toPayload),
+    LearningPayloadKeys.DB_PATH to dbPath,
+    LearningPayloadKeys.REPO_SCOPE_KEY to repoScopeKey,
+    LearningPayloadKeys.SKILL_NAME to skillName,
+    LearningPayloadKeys.SCOPE_PRECEDENCE to scopePrecedence,
+    LearningPayloadKeys.APPLIED_LEARNINGS to summarizeLearningReferences(learnings),
+    LearningPayloadKeys.LEARNINGS to learnings.map(LearningEntryDto::toPayload),
   ).also { payload ->
-    reviewSessionId?.takeIf(String::isNotBlank)?.let { payload["review_session_id"] = it }
+    reviewSessionId?.takeIf(String::isNotBlank)?.let { payload[LearningPayloadKeys.REVIEW_SESSION_ID] = it }
   }
 }
 
@@ -72,8 +109,8 @@ data class LearningDeleteContract(
   val deletedLearningId: Int,
 ) : JsonPayloadContract {
   override fun toPayload(): Map<String, Any?> = linkedMapOf(
-    "db_path" to dbPath,
-    "deleted_learning_id" to deletedLearningId,
+    LearningPayloadKeys.DB_PATH to dbPath,
+    LearningPayloadKeys.DELETED_LEARNING_ID to deletedLearningId,
   )
 }
 

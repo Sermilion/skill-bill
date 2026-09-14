@@ -1,6 +1,6 @@
 package skillbill.engine.featuretask
 
-import skillbill.application.decomposition.decodeArtifacts
+import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.workflow.get
@@ -20,7 +20,7 @@ class FeatureTaskRuntimeGoalContinuationStateRecorder(
     database.transaction { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, request.workflowId)
         ?: return@transaction false
-      val artifacts = decodeArtifacts(record.artifactsJson)
+      val artifacts = decodeWorkflowArtifacts(record.artifactsJson)
       val existingContinuation = continuationFromArtifacts(artifacts)
       val supplied = request.continuation?.let { continuation ->
         continuation.copy(subtaskName = continuation.subtaskName ?: existingContinuation?.subtaskName)
@@ -54,11 +54,11 @@ class FeatureTaskRuntimeGoalContinuationStateRecorder(
 
   fun reviewState(workflowId: String): GoalSubtaskReviewState? = database.read { unitOfWork ->
     val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@read null
-    reviewStateFromArtifacts(decodeArtifacts(record.artifactsJson))
+    reviewStateFromArtifacts(decodeWorkflowArtifacts(record.artifactsJson))
   }
 
   fun continuation(workflowId: String): FeatureTaskRuntimeGoalContinuationArtifact? = database.read { unitOfWork ->
     val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@read null
-    continuationFromArtifacts(decodeArtifacts(record.artifactsJson))
+    continuationFromArtifacts(decodeWorkflowArtifacts(record.artifactsJson))
   }
 }

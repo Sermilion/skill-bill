@@ -3,8 +3,8 @@ import skillbill.application.FakeDatabaseSessionFactory
 import skillbill.application.InMemoryWorkflowStates
 import skillbill.application.TestDecompositionManifestStore
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
-import skillbill.application.decomposition.decodeArtifacts
-import skillbill.application.decomposition.encodeDecompositionManifestMap
+import skillbill.application.workflow.decodeWorkflowArtifacts
+import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.application.testDecompositionManifestValidator
 import skillbill.application.testHarnessClock
 import skillbill.application.testWorkflowSnapshotValidator
@@ -629,7 +629,7 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
     val updated = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId))
     assertEquals("running", updated.workflowStatus)
     assertEquals("build", updated.currentStepId)
-    val records = phaseRecordsFrom(decodeArtifacts(updated.artifactsJson))
+    val records = phaseRecordsFrom(decodeWorkflowArtifacts(updated.artifactsJson))
     assertEquals("pending", records.getValue("build").status.wireValue)
     assertEquals("pending", records.getValue("write_history").status.wireValue)
   }
@@ -685,10 +685,10 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
     val updated = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId))
     assertEquals("running", updated.workflowStatus)
     assertEquals("verify_findings", updated.currentStepId)
-    val records = phaseRecordsFrom(decodeArtifacts(updated.artifactsJson))
+    val records = phaseRecordsFrom(decodeWorkflowArtifacts(updated.artifactsJson))
     assertEquals("pending", records.getValue("verify_findings").status.wireValue)
     assertEquals("pending", records.getValue("implement_fix").status.wireValue)
-    val evidence = (decodeArtifacts(updated.artifactsJson)[GOAL_CHILD_REPAIR_EVIDENCE_ARTIFACT_KEY] as List<*>)
+    val evidence = (decodeWorkflowArtifacts(updated.artifactsJson)[GOAL_CHILD_REPAIR_EVIDENCE_ARTIFACT_KEY] as List<*>)
       .single() as Map<*, *>
     assertEquals("completed_upstream_missing_output", evidence["wedge_class"])
     assertEquals("verify_findings", evidence["field"])
@@ -723,7 +723,7 @@ internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {
     val updated = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId))
     assertEquals("running", updated.workflowStatus)
     assertEquals("verify_findings", updated.currentStepId)
-    val after = decodeArtifacts(updated.artifactsJson)
+    val after = decodeWorkflowArtifacts(updated.artifactsJson)
     assertEquals("full", (after["goal_continuation"] as Map<*, *>)["validation_depth"])
     val records = phaseRecordsFrom(after)
     assertEquals("pending", records.getValue("verify_findings").status.wireValue)
@@ -791,7 +791,7 @@ internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {
 
     assertEquals(1, applied.repairs.size)
     assertEquals(GoalRunnerWedgeClass.MISSING_QUALITY_GATE_SELECTION, applied.repairs.single().wedgeClass)
-    val after = decodeArtifacts(
+    val after = decodeWorkflowArtifacts(
       requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson,
     )
     val continuation = after["goal_continuation"] as Map<*, *>
@@ -825,7 +825,7 @@ internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {
         ),
       ),
     )
-    val before = decodeArtifacts(
+    val before = decodeWorkflowArtifacts(
       requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson,
     )
     val store = repairStore(workflows, git = ReachableGit())
@@ -842,7 +842,7 @@ internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {
 
     assertEquals(1, applied.repairs.size)
     assertEquals("full", applied.repairs.single().newValue)
-    val after = decodeArtifacts(
+    val after = decodeWorkflowArtifacts(
       requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson,
     )
     assertEquals(COMPLETED_COMMIT, after["commit_sha"])
@@ -884,7 +884,7 @@ internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {
         ),
       ),
     )
-    val beforeReview = decodeArtifacts(
+    val beforeReview = decodeWorkflowArtifacts(
       requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson,
     )[GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY]
     val store = repairStore(workflows, git = ReachableGit())
@@ -902,7 +902,7 @@ internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {
     assertEquals(1, applied.repairs.size)
     assertEquals(staleReason, applied.repairs.single().priorValue)
     assertNull(applied.repairs.single().newValue)
-    val after = decodeArtifacts(
+    val after = decodeWorkflowArtifacts(
       requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson,
     )
     assertNull(after["goal_continuation_outcome"])
@@ -956,7 +956,7 @@ internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {
     assertEquals(1, applied.repairs.size)
     assertEquals(unreachable, applied.repairs.single().priorValue)
     assertEquals(recovered, applied.repairs.single().newValue)
-    val after = decodeArtifacts(
+    val after = decodeWorkflowArtifacts(
       requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson,
     )
     val state = GoalSubtaskReviewState.fromArtifactMap(
@@ -983,7 +983,7 @@ internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {
     )
     val beforeJson = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson
     workflows.failSaveWhen = { row ->
-      decodeArtifacts(row.artifactsJson).containsKey(GOAL_CHILD_REPAIR_EVIDENCE_ARTIFACT_KEY)
+      decodeWorkflowArtifacts(row.artifactsJson).containsKey(GOAL_CHILD_REPAIR_EVIDENCE_ARTIFACT_KEY)
     }
     val store = repairStore(workflows, git = ReachableGit())
 
@@ -1463,10 +1463,7 @@ internal abstract class GoalRunnerRepairFixtures {
           currentStepId = "plan",
           stepUpdates = null,
           artifactsPatch = mapOf(
-            DECOMPOSITION_RUNTIME_ARTIFACT_KEY to encodeDecompositionManifestMap(
-              manifest,
-              testDecompositionManifestValidator,
-            ),
+            DECOMPOSITION_RUNTIME_ARTIFACT_KEY to testDecompositionManifestValidator.encodeManifestWireMap(manifest, ),
           ),
           sessionId = "ftr-repair-parent",
         ),

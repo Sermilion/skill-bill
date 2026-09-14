@@ -28,7 +28,7 @@ import skillbill.ports.workflow.get
 import skillbill.ports.workflow.list
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.save
-import skillbill.workflow.decomposition.runtime.decodeArtifactKeys
+import skillbill.workflow.decomposition.decodeManifest
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.decodeWorkflowSteps
 import skillbill.workflow.engine.model.WorkflowUpdateInput
@@ -64,7 +64,7 @@ internal class WorkflowGoalRunnerProgressRecording(
     val record = family.get(unitOfWork.workflowStates, workflowId) ?: return@read null
     engine.snapshotView(family.definition, record)
     val steps = decodeWorkflowSteps(record.stepsJson)
-    val artifacts = decodeArtifactKeys(record.artifactsJson, PROGRESS_POLL_ARTIFACT_KEYS)
+    val artifacts = sparseArtifactKeys(record.artifactsJson, PROGRESS_POLL_ARTIFACT_KEYS)
     val finishCompleted = steps.any {
         step ->
       step.stepId == "pr" && step.status.workflowStepStatus() == WorkflowStepStatus.COMPLETED
@@ -271,5 +271,16 @@ internal class WorkflowGoalRunnerProgressRecording(
     )
     family.save(unitOfWork.workflowStates, updated)
     true
+  }
+}
+
+private fun sparseArtifactKeys(existingArtifactsJson: String, keys: Set<String>): Map<String, Any?> {
+  if (keys.isEmpty()) return emptyMap()
+  val root = JsonCodec.parseObjectOrNull(existingArtifactsJson) ?: return emptyMap()
+  return buildMap {
+    keys.forEach { key ->
+      val element = root[key] ?: return@forEach
+      put(key, JsonCodec.jsonElementToValue(element))
+    }
   }
 }

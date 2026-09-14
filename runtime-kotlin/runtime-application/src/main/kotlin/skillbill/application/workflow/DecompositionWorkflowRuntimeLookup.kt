@@ -2,8 +2,8 @@ package skillbill.application.workflow
 
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
 import skillbill.application.decomposition.asStringAnyMapOrNull
-import skillbill.application.decomposition.decodeArtifacts
-import skillbill.application.decomposition.decodeDecompositionManifestMap
+import skillbill.application.workflow.decodeWorkflowArtifacts
+import skillbill.workflow.decomposition.decodeManifest
 import skillbill.error.LegacyProseWorkflowError
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
@@ -17,11 +17,11 @@ import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.workflowStatus
 
 fun WorkflowStateSnapshot.decompositionRuntime(validator: DecompositionManifestValidator): DecompositionManifest? =
-  decodeArtifacts(artifactsJson)[DECOMPOSITION_RUNTIME_ARTIFACT_KEY].asStringAnyMapOrNull()
-    ?.let { decodeDecompositionManifestMap(it, validator, DECOMPOSITION_RUNTIME_ARTIFACT_KEY) }
+  decodeWorkflowArtifacts(artifactsJson)[DECOMPOSITION_RUNTIME_ARTIFACT_KEY].asStringAnyMapOrNull()
+    ?.let { validator.decodeManifest(it, DECOMPOSITION_RUNTIME_ARTIFACT_KEY) }
 
 fun WorkflowStateSnapshot.hasDecompositionPlan(): Boolean =
-  decodeArtifacts(artifactsJson)["plan"].asStringAnyMapOrNull()?.get("mode") == "decompose"
+  decodeWorkflowArtifacts(artifactsJson)["plan"].asStringAnyMapOrNull()?.get("mode") == "decompose"
 
 val IMPLEMENT_TERMINAL_STATUSES: Set<WorkflowStatus> = WorkflowStatus.terminalStatuses
 
@@ -89,7 +89,7 @@ private fun DecomposedParentLookupCandidate.isStaleAbandonedLineage(
 }
 
 fun WorkflowStateSnapshot.isGoalContinuationChildWorkflow(): Boolean {
-  val goalContinuation = decodeArtifacts(artifactsJson)["goal_continuation"].asStringAnyMapOrNull() ?: return false
+  val goalContinuation = decodeWorkflowArtifacts(artifactsJson)["goal_continuation"].asStringAnyMapOrNull() ?: return false
   return goalContinuation["enabled"] == true ||
     goalContinuation.containsKey("issue_key") ||
     goalContinuation.containsKey("subtask_id")

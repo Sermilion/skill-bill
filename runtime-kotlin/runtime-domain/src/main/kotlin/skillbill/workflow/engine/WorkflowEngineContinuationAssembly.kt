@@ -1,5 +1,6 @@
 package skillbill.workflow.engine
 
+import skillbill.contracts.workflow.WorkflowContinueSessionSummary
 import skillbill.workflow.engine.model.ResolvedRequiredArtifact
 import skillbill.workflow.engine.model.WorkflowContinueDecision
 import skillbill.workflow.engine.model.WorkflowContinueView
@@ -85,7 +86,7 @@ internal data class ContinueAssemblyContext(
 internal data class AssembleContinueTextsRequest(
   val context: ContinueAssemblyContext,
   val continueStatus: WorkflowContinueStatus,
-  val sessionSummary: Map<String, Any?>,
+  val sessionSummary: WorkflowContinueSessionSummary,
   val nextAttemptCount: Int,
 )
 
@@ -95,7 +96,7 @@ internal data class BuildContinueDecisionRequest(
   val workflowStatusBeforeContinue: String,
   val actualContinueStatus: WorkflowContinueStatus,
   val nextAttemptCount: Int,
-  val sessionSummary: Map<String, Any?>,
+  val sessionSummary: WorkflowContinueSessionSummary,
 )
 
 internal fun assembleContinueTexts(request: AssembleContinueTextsRequest): AssembledContinueTexts {

@@ -1,5 +1,5 @@
 package skillbill.engine.goalrunner
-import skillbill.application.decomposition.decodeArtifacts
+import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.application.workflow.updateGoalParentForBlockedPhaseRetry
 import skillbill.contracts.JsonCodec
@@ -56,7 +56,7 @@ class GoalRunnerChildRepairWedgeApplyLoop(
     val workflowStates = request.unitOfWork.workflowStates
     var record = WorkflowFamily.TASK_RUNTIME.get(workflowStates, request.workflowId)
       ?: return GoalRunnerChildRepairApplyResult()
-    var artifacts = decodeArtifacts(record.artifactsJson)
+    var artifacts = decodeWorkflowArtifacts(record.artifactsJson)
     val state = ApplyState(
       request = request,
       record = record,
@@ -360,7 +360,7 @@ internal fun applyCompletedUpstreamChildRepairWedge(
   val updated = engine.updateRecord(WorkflowFamily.TASK_RUNTIME.definition, state.record, input)
   WorkflowFamily.TASK_RUNTIME.save(workflowStates, updated)
   state.record = updated
-  state.artifacts = decodeArtifacts(updated.artifactsJson)
+  state.artifacts = decodeWorkflowArtifacts(updated.artifactsJson)
   state.workingContinuation = continuationArtifactFromMap(state.artifacts)
   state.workingReview = GoalSubtaskReviewArtifactDecoder.decode(state.artifacts)?.state
   state.manifestProjectionArtifactsJson = engine.updateGoalParentForBlockedPhaseRetry(

@@ -1,0 +1,25 @@
+package skillbill.contracts.decomposition
+
+object DecompositionPlanningPayloadKeys {
+  const val MODE: String = "mode"
+  const val PARENT_SPEC_PATH: String = "parent_spec_path"
+  const val SPEC_SOURCE: String = "spec_source"
+  const val EXECUTION_MODEL: String = "execution_model"
+  const val BASE_BRANCH: String = "base_branch"
+  const val CURRENT_SUBTASK_ID: String = "current_subtask_id"
+  const val RECOMMENDED_FIRST_SUBTASK_ID: String = "recommended_first_subtask_id"
+  const val STACK_BRANCHES: String = "stack_branches"
+  const val SUBTASKS: String = "subtasks"
+  const val SUBTASK_ID: String = "subtask_id"
+  const val BRANCH: String = "branch"
+  const val ID: String = "id"
+  const val NAME: String = "name"
+  const val TITLE: String = "title"
+  const val SPEC_PATH: String = "spec_path"
+  const val LINEAR_ISSUE_ID: String = "linear_issue_id"
+  const val DEPENDENCIES: String = "dependencies"
+  const val DEPENDS_ON: String = "depends_on"
+  const val OPTIONAL: String = "optional"
+  const val SKIPPED: String = "skipped"
+  const val SCOPE: String = "scope"
+}

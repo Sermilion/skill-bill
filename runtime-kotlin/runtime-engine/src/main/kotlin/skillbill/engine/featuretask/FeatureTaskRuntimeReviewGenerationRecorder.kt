@@ -1,6 +1,6 @@
 package skillbill.engine.featuretask
 
-import skillbill.application.decomposition.decodeArtifacts
+import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.goalrunner.model.UnaddressedFinding
 import skillbill.goalrunner.subtaskreview.GoalSubtaskReviewSummaryReducer
@@ -27,7 +27,7 @@ class FeatureTaskRuntimeReviewGenerationRecorder(
   override fun persistReviewGenerationInvalidation(workflowId: String): Int? = database.transaction { unitOfWork ->
     val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
       ?: return@transaction null
-    val artifacts = decodeArtifacts(record.artifactsJson)
+    val artifacts = decodeWorkflowArtifacts(record.artifactsJson)
     val storedGeneration = reviewGenerationFrom(artifacts)
     val existingRecords = phaseRecordsFrom(artifacts)
     val previousReview = existingRecords[FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW]
@@ -73,7 +73,7 @@ class FeatureTaskRuntimeReviewGenerationRecorder(
   override fun reconcileReviewGeneration(workflowId: String): Int = database.transaction { unitOfWork ->
     val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
       ?: return@transaction 0
-    val artifacts = decodeArtifacts(record.artifactsJson)
+    val artifacts = decodeWorkflowArtifacts(record.artifactsJson)
     val storedGeneration = reviewGenerationFrom(artifacts)
     val tombstoned = phaseRecordsFrom(artifacts)[FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW]
       ?.resolvedAgentId == REVIEW_INVALIDATION_AGENT_ID
@@ -93,7 +93,7 @@ class FeatureTaskRuntimeReviewGenerationRecorder(
   ): Boolean = database.transaction { unitOfWork ->
     val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
       ?: return@transaction false
-    val artifacts = decodeArtifacts(record.artifactsJson)
+    val artifacts = decodeWorkflowArtifacts(record.artifactsJson)
     val existingRecords = phaseRecordsFrom(artifacts)
     val previous = existingRecords[producerPhaseId] ?: return@transaction true
     if (previous.status.workflowStepStatus() != WorkflowStepStatus.COMPLETED) {
