@@ -29,15 +29,6 @@ internal fun FeatureTaskRuntimeSubtaskFinalisation.decide(
 fun FeatureTaskRuntimeSubtaskFinalisation.headMessage(): String? =
   gitOperations.headCommitMessage(repoRoot).takeIf { it is WorkflowGitOperationResult.Ok }?.value
 
-fun FeatureTaskRuntimeSubtaskFinalisation.ownedHeadAlreadyFinalised(durableCommitSha: String?): Boolean {
-  val durable = durableCommitSha?.trim()?.takeIf(String::isNotBlank) ?: return false
-  val headSha = gitOperations.headCommitSha(repoRoot)
-    .takeIf { it is WorkflowGitOperationResult.Ok }?.value?.trim()?.takeIf(String::isNotBlank)
-    ?: return false
-  if (durable != headSha) return false
-  return headMessage().orEmpty().contains(FeatureTaskRuntimeCheckpointMessage.INTENT_FINALISED_SUBTASK)
-}
-
 fun FeatureTaskRuntimeSubtaskFinalisation.remoteDiverged(branch: String, commitSha: String): Boolean {
   val remoteTip = gitOperations.resolveCommit(repoRoot, "origin/$branch")
     .takeIf { it is WorkflowGitOperationResult.Ok }?.value?.trim()?.takeIf(String::isNotBlank) ?: return false

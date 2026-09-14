@@ -24,13 +24,6 @@ class FeatureTaskRuntimeSubtaskFinalisation(
     if (dirtyOrError is DirtyPathsError) return blocked(dirtyOrError.reason)
     val paths = stageablePathsFrom((dirtyOrError as DirtyPaths).paths)
     if (paths.excluded.isNotEmpty()) record(specExclusionRecord(request.identity, paths.excluded))
-    if (
-      paths.stageable.isEmpty() &&
-      paths.excluded.isNotEmpty() &&
-      !ownedHeadAlreadyFinalised(request.durableCommitSha)
-    ) {
-      return blocked(emptyStageableReason(paths.excluded))
-    }
     val staging = when (val outcome = prepareStaging(paths.stageable)) {
       is FinalisationStagingBlocked -> return outcome.result
       is FinalisationStagingReady -> outcome
