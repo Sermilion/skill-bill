@@ -234,7 +234,6 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
       runLoop,
       SettleValidatedOutputAfterFingerprintArgs(
         capture = capture,
-        outputMap = outputMap,
         attested = attested,
         repairEvidence = capture.repairEvidence,
         observability = runLoop.observability,
@@ -252,14 +251,14 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
   private fun loadPersistedSettlementEnvelope(
     runLoop: FeatureTaskRuntimeRunLoop,
     args: GateOutputArgs,
-  ): Map<String, Any?>? {
+  ): FeatureTaskRuntimeWorkflowArtifactMap? {
     val run = args.run
     return try {
       runLoop.phaseSettlementService.findEnvelope(
         workflowId = run.request.workflowId,
         phaseId = run.phaseId,
         attempt = args.iteration,
-      )
+      )?.envelope
     } catch (error: InvalidFeatureTaskRuntimeValidationEvidenceSchemaError) {
       clearAndRecordPersistedEvidenceFailure(runLoop, args, error)
       null
@@ -269,7 +268,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
   private fun settlePersistedEnvelope(
     runLoop: FeatureTaskRuntimeRunLoop,
     args: GateOutputArgs,
-    settlementEnvelope: Map<String, Any?>,
+    settlementEnvelope: FeatureTaskRuntimeWorkflowArtifactMap,
   ): AttemptResult? {
     val run = args.run
     return try {
@@ -303,7 +302,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
   private fun validatePersistedValidationEvidence(
     runLoop: FeatureTaskRuntimeRunLoop,
     run: PhaseRun,
-    envelope: Map<String, Any?>,
+    envelope: FeatureTaskRuntimeWorkflowArtifactMap,
   ) {
     requireValidationEvidenceForValidateSettlement(runLoop, run, envelope)
   }
@@ -491,7 +490,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
   internal fun settleValidatedOutputBoundary(
     runLoop: FeatureTaskRuntimeRunLoop,
     capture: ValidatedOutputCapture,
-    outputMap: Map<String, Any?>,
+    outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
     reject: (String, String) -> AttemptResult,
   ): AttemptResult? {
     val bodyDelivery = FeatureTaskRuntimeRunLoopOutputVerification
@@ -509,7 +508,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
     args: SettleValidatedOutputPauseArgs,
   ): AttemptResult? {
     val capture = args.capture
-    val outputMap = args.outputMap
+    val outputMap = args.attested.envelopeWireMap()
     val attested = args.attested
     val repairEvidence = args.repairEvidence
     val observability = args.observability
@@ -522,7 +521,6 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
           run = run,
           iteration = capture.iteration,
           reason = reason,
-          outputMap = outputMap,
           normalizedOutput = attested,
           repairEvidence = repairEvidence,
           observability = runLoop.observability,
@@ -570,7 +568,6 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
       runLoop,
       SettleValidatedOutputPauseArgs(
         capture = args.capture,
-        outputMap = args.outputMap,
         attested = args.attested,
         repairEvidence = args.repairEvidence,
         observability = runLoop.observability,
@@ -581,7 +578,6 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
       CompletionProjectionRejectionArgs(
         run = args.capture.run,
         iteration = args.capture.iteration,
-        outputMap = args.outputMap,
         normalizedOutput = args.attested,
         repairEvidence = args.repairEvidence,
         repositoryFingerprint = args.repositoryFingerprint,
@@ -591,7 +587,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
         runLoop,
         CompletedImplementationOutputArgs(
           run = args.capture.run,
-          outputMap = args.outputMap,
+          normalizedOutput = args.attested,
           reject = args.reject,
           iteration = args.capture.iteration,
           observability = runLoop.observability,
@@ -601,7 +597,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
       ?: FeatureTaskRuntimeRunLoopAuditRetry.settleCompletedAuditRound(
         runLoop,
         args.capture,
-        args.outputMap,
+        args.attested.envelopeWireMap(),
       )
       ?: finalizeValidatedOutputAcceptance(
         runLoop,
@@ -609,7 +605,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
           capture = args.capture,
           attested = FeatureTaskRuntimeRunLoopAuditRetry.attestedAuditOutputForAcceptance(
             args.attested,
-            args.outputMap,
+            args.attested.envelopeWireMap(),
           ),
           repairEvidence = args.repairEvidence,
           observability = runLoop.observability,
@@ -648,7 +644,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
   internal fun rejectValidatedOutput(
     runLoop: FeatureTaskRuntimeRunLoop,
     capture: ValidatedOutputCapture,
-    outputMap: Map<String, Any?>,
+    outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
     rule: String,
     detail: String,
   ): AttemptResult {

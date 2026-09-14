@@ -95,7 +95,7 @@ object FeatureTaskRuntimeRunLoopAuditRetry {
   internal fun settleCompletedAuditRound(
     runLoop: FeatureTaskRuntimeRunLoop,
     capture: ValidatedOutputCapture,
-    outputMap: Map<String, Any?>,
+    outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
   ): AttemptResult? {
     val run = capture.run
     if (run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT) return null
@@ -150,7 +150,7 @@ object FeatureTaskRuntimeRunLoopAuditRetry {
 
   internal fun attestedAuditOutputForAcceptance(
     attested: NormalizedFeatureTaskRuntimePhaseOutput,
-    outputMap: Map<String, Any?>,
+    outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
   ): NormalizedFeatureTaskRuntimePhaseOutput {
     if ((outputMap[SharedPayloadKeys.STATUS] as? String).workflowStepStatus() != WorkflowStepStatus.COMPLETED) {
       return attested

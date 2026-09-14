@@ -3,21 +3,24 @@ package skillbill.engine.featuretask
 import skillbill.workflow.taskruntime.*
 
 import me.tatarka.inject.annotations.Inject
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.ValidationEvidencePayloadKeys
+import skillbill.engine.featuretask.model.FeatureTaskPhaseSettlementAcknowledgment
 import skillbill.engine.featuretask.model.FeatureTaskPhaseSettlementBlockRequest
 import skillbill.engine.featuretask.model.FeatureTaskPhaseSettlementCompleteRequest
+import skillbill.engine.featuretask.model.FeatureTaskPhaseSettlementEnvelope
 import skillbill.ports.featuretask.FeatureTaskPhaseSettlementRepository
 import skillbill.ports.featuretask.model.FeatureTaskPhaseSettlement
 import skillbill.ports.featuretask.model.FeatureTaskPhaseSettlementKind
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeAuditRemainingAcInterpretation
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWorkflowArtifactMap
 import skillbill.workflow.taskruntime.ProsePhaseOutputSynthesizer
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeAuditRemainingAcResult
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationEvidence
 import skillbill.workflow.taskruntime.model.SettlementEnvelopeRequest
+import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 import java.time.Clock
 
 @Inject
@@ -25,8 +28,7 @@ class FeatureTaskPhaseSettlementService(
   private val repository: FeatureTaskPhaseSettlementRepository,
   private val clock: Clock,
 ) {
-  @OpenBoundaryMap("MCP feature_task_phase_complete acknowledgement wire map")
-  fun complete(request: FeatureTaskPhaseSettlementCompleteRequest): Map<String, Any?> {
+  fun complete(request: FeatureTaskPhaseSettlementCompleteRequest): FeatureTaskPhaseSettlementAcknowledgment {
     require(ProsePhaseOutputSynthesizer.isProsePhase(request.phaseId)) {
       "phase_id must be a prose phase (preplan|plan|implement|audit)."
     }
@@ -53,7 +55,7 @@ class FeatureTaskPhaseSettlementService(
         prompt = request.prompt,
         verdict = verdict,
       ),
-    )
+    ).toWorkflowArtifactMap()
     return persist(
       PersistRequest(
         workflowId = request.workflowId,
@@ -65,8 +67,7 @@ class FeatureTaskPhaseSettlementService(
     )
   }
 
-  @OpenBoundaryMap("MCP feature_task_phase_block acknowledgement wire map")
-  fun block(request: FeatureTaskPhaseSettlementBlockRequest): Map<String, Any?> {
+  fun block(request: FeatureTaskPhaseSettlementBlockRequest): FeatureTaskPhaseSettlementAcknowledgment {
     require(ProsePhaseOutputSynthesizer.isProsePhase(request.phaseId)) {
       "phase_id must be a prose phase (preplan|plan|implement|audit)."
     }
@@ -81,7 +82,7 @@ class FeatureTaskPhaseSettlementService(
         summary = truncateSummary(request.reason),
         failureDisposition = request.failureDisposition,
       ),
-    )
+    ).toWorkflowArtifactMap()
     return persist(
       PersistRequest(
         workflowId = request.workflowId,
@@ -93,13 +94,13 @@ class FeatureTaskPhaseSettlementService(
     )
   }
 
-  @OpenBoundaryMap("Durable MCP phase-settlement envelope wire map for gate consumption")
-  fun findEnvelope(workflowId: String, phaseId: String, attempt: Int): Map<String, Any?>? {
+  fun findEnvelope(workflowId: String, phaseId: String, attempt: Int): FeatureTaskPhaseSettlementEnvelope? {
     val settlement = repository.find(workflowId, phaseId, attempt) ?: return null
     val envelope = JsonCodec.parseObjectOrNull(settlement.envelopeJson)
       ?.let { JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(it)) }
-    val evidence = envelope
-      ?.get(SharedPayloadKeys.PRODUCED_OUTPUTS)
+      ?: return null
+    val wire = envelope.toWorkflowArtifactMap()
+    val evidence = wire[SharedPayloadKeys.PRODUCED_OUTPUTS]
       ?.let(JsonCodec::anyToStringAnyMap)
       ?.get(ValidationEvidencePayloadKeys.VALIDATION_RESULT)
       ?.let(JsonCodec::anyToStringAnyMap)
@@ -108,13 +109,13 @@ class FeatureTaskPhaseSettlementService(
     if (evidence != null) {
       decodeValidationEvidenceFromArtifact(evidence, "$phaseId settlement")!!
     }
-    return envelope
+    return FeatureTaskPhaseSettlementEnvelope(envelope = wire)
   }
 
   fun clear(workflowId: String, phaseId: String, attempt: Int): Boolean =
     repository.delete(workflowId, phaseId, attempt)
 
-  private fun persist(request: PersistRequest): Map<String, Any?> {
+  private fun persist(request: PersistRequest): FeatureTaskPhaseSettlementAcknowledgment {
     val envelopeJson = JsonCodec.mapToJsonString(request.envelopeAsMap())
     repository.upsert(
       FeatureTaskPhaseSettlement(
@@ -126,13 +127,13 @@ class FeatureTaskPhaseSettlementService(
         recordedAt = clock.instant().toString(),
       ),
     )
-    return linkedMapOf(
-      SharedPayloadKeys.STATUS to "ok",
-      SharedPayloadKeys.WORKFLOW_ID to request.workflowId,
-      SharedPayloadKeys.PHASE_ID to request.phaseId,
-      "attempt" to request.attempt,
-      "kind" to request.kind.wireValue,
-      "envelope" to request.envelope,
+    return FeatureTaskPhaseSettlementAcknowledgment(
+      status = "ok",
+      workflowId = request.workflowId,
+      phaseId = request.phaseId,
+      attempt = request.attempt,
+      kind = request.kind,
+      envelope = request.envelope,
     )
   }
 
@@ -150,11 +151,9 @@ class FeatureTaskPhaseSettlementService(
     val phaseId: String,
     val attempt: Int,
     val kind: FeatureTaskPhaseSettlementKind,
-    val envelope: Any,
+    val envelope: FeatureTaskRuntimeWorkflowArtifactMap,
   ) {
-    fun envelopeAsMap(): Map<String, Any?> =
-      JsonCodec.anyToStringAnyMap(envelope)
-        ?: throw IllegalArgumentException("Phase settlement envelope must be an object.")
+    fun envelopeAsMap(): Map<String, Any?> = envelope
   }
 
   companion object {

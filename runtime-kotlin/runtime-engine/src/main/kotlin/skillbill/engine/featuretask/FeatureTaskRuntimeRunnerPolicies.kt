@@ -71,7 +71,10 @@ fun phasesFor(request: FeatureTaskRuntimeRunRequest): List<String> {
   }
 }
 
-fun mutatingReconciliationGateReason(phaseId: String, outputMap: Map<String, Any?>): String? {
+internal fun mutatingReconciliationGateReason(
+  phaseId: String,
+  outputMap: skillbill.workflow.taskruntime.FeatureTaskRuntimeWorkflowArtifactMap,
+): String? {
   if (phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT) return null
   if (!FeatureTaskRuntimePhaseWorkflowDefinition.isMutatingPhase(phaseId)) return null
   // Only a completion claim owes a reconciliation report. A retryable blocked or failed envelope is a

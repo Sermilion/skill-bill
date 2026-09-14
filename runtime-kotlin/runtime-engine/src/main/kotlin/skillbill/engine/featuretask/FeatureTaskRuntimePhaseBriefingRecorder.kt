@@ -56,7 +56,7 @@ class FeatureTaskRuntimePhaseBriefingRecorder(
       }
     val patch = mapOf(
       FEATURE_TASK_RUNTIME_PHASE_BRIEFINGS_ARTIFACT_KEY to
-        updatedBriefings.mapValues { (_, value) -> value.toArtifactMap() },
+        updatedBriefings.mapValues { (_, value) -> value.asBriefingArtifactEntry() },
       FEATURE_TASK_RUNTIME_DELIVERED_PROJECTIONS_ARTIFACT_KEY to
         updatedDelivered.mapValues { (_, value) -> value.asWorkflowArtifactEntry() },
     )
@@ -226,8 +226,8 @@ internal fun FeatureTaskRuntimePhaseBriefingRecorder.recordProjectionRejectionMe
   return true
 }
 
-fun FeatureTaskRuntimeHandoffEnvelopeValidator.validateEnvelopeWire(envelope: Map<String, Any?>) =
+internal fun FeatureTaskRuntimeHandoffEnvelopeValidator.validateEnvelopeWire(envelope: Map<String, Any?>) =
   validateEnvelope(envelope, workflowId = null)
 
-fun FeatureTaskRuntimeHandoffFoundationValidator.validatePersistenceWire(record: Map<String, Any?>) =
+internal fun FeatureTaskRuntimeHandoffFoundationValidator.validatePersistenceWire(record: Map<String, Any?>) =
   validatePersistenceRecord(record, "delivered-projection")

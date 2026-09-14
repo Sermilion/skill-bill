@@ -9,7 +9,7 @@ import kotlin.test.assertTrue
 
 class RuntimeRawMapArchitectureTest {
 
-  private val rawMapOpenBoundaryAllowlistMaxBaseline = 289
+  private val rawMapOpenBoundaryAllowlistMaxBaseline = 203
 
   @Test
   fun `architecture prose does not carry raw-map FQN inventories`() {

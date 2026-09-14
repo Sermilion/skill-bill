@@ -6,6 +6,7 @@ import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.gitops.stagePaths
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
+import skillbill.workflow.taskruntime.envelopeWireMap
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairReceipt
 import skillbill.workflow.taskruntime.model.upsertRepairReceipt
 
@@ -42,7 +43,7 @@ object FeatureTaskRuntimeRunLoopRepairReceipt {
     args: ImplementFixRepairReceiptArgs,
   ): AttemptResult? {
     val run = args.run
-    val outputMap = args.outputMap
+    val outputMap = args.normalizedOutput.envelopeWireMap()
     val reject = args.reject
     val iteration = args.iteration
     val observability = args.observability
@@ -68,7 +69,7 @@ object FeatureTaskRuntimeRunLoopRepairReceipt {
   internal fun implementFixRepairReceiptSettlement(
     runLoop: FeatureTaskRuntimeRunLoop,
     run: PhaseRun,
-    outputMap: Map<String, Any?>,
+    outputMap: skillbill.workflow.taskruntime.FeatureTaskRuntimeWorkflowArtifactMap,
   ): RepairReceiptSettlement {
     val produced = FeatureTaskRuntimeRunLoopCheckpointRemediation.completedImplementFixProducedOutputs(
       run,
@@ -166,7 +167,7 @@ object FeatureTaskRuntimeRunLoopRepairReceipt {
     runLoop,
     ImplementFixRepairReceiptArgs(
       run = args.run,
-      outputMap = args.outputMap,
+      normalizedOutput = args.normalizedOutput,
       reject = args.reject,
       iteration = args.iteration,
       observability = args.observability,

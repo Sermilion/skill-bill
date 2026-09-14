@@ -10,7 +10,7 @@ import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_BRIEFINGS
 import skillbill.workflow.taskruntime.decodeDeliveredProjectionRecordFromArtifact
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDeliveredProjectionRecord
 
-fun phaseBriefingsFrom(
+internal fun phaseBriefingsFrom(
   artifacts: Map<String, Any?>,
   validateEnvelope: (Map<String, Any?>) -> Unit = {},
 ): Map<String, FeatureTaskRuntimePhaseLaunchBriefing> = decodeStrictKeyedArtifactMap(
@@ -18,7 +18,7 @@ fun phaseBriefingsFrom(
   FEATURE_TASK_RUNTIME_PHASE_BRIEFINGS_ARTIFACT_KEY,
   ignoreEntry = { it == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT },
 ) { _, briefingMap ->
-  val briefing = FeatureTaskRuntimePhaseLaunchBriefing.fromArtifactMap(briefingMap)
+  val briefing = FeatureTaskRuntimePhaseLaunchBriefing.fromBriefingArtifactWire(briefingMap)
   validateEnvelope(handoffEnvelopeWireMap(briefingMap))
   briefing
 }
@@ -30,7 +30,7 @@ private fun handoffEnvelopeWireMap(briefingMap: Map<String, Any?>): Map<String, 
         "'handoff_envelope' object.",
     )
 
-fun deliveredProjectionsFrom(
+internal fun deliveredProjectionsFrom(
   artifacts: Map<String, Any?>,
   validateEnvelope: (Map<String, Any?>) -> Unit = {},
   validatePersistenceRecord: (Map<String, Any?>) -> Unit = {},
@@ -40,7 +40,7 @@ fun deliveredProjectionsFrom(
     .groupBy(FeatureTaskRuntimeDeliveredProjectionRecord::consumerPhaseId)
     .mapValues { (_, records) -> records.maxBy(FeatureTaskRuntimeDeliveredProjectionRecord::iteration) }
 
-fun deliveredProjectionHistoryFrom(
+internal fun deliveredProjectionHistoryFrom(
   artifacts: Map<String, Any?>,
   validateEnvelope: (Map<String, Any?>) -> Unit = {},
   validatePersistenceRecord: (Map<String, Any?>) -> Unit = {},

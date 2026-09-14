@@ -2,6 +2,7 @@ package skillbill.engine.featuretask
 
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
+import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -27,7 +28,7 @@ class FeatureTaskRuntimeReviewVerdictActionabilityTest {
           ),
         ),
       ),
-    )
+    ).toWorkflowArtifactMap()
 
     assertEquals(
       FeatureTaskRuntimeVerdict.APPROVED,
@@ -57,7 +58,7 @@ class FeatureTaskRuntimeReviewVerdictActionabilityTest {
           ),
         ),
       ),
-    )
+    ).toWorkflowArtifactMap()
 
     assertEquals(
       FeatureTaskRuntimeVerdict.CHANGES_REQUESTED,
@@ -84,7 +85,7 @@ class FeatureTaskRuntimeReviewVerdictActionabilityTest {
           ),
         ),
       ),
-    )
+    ).toWorkflowArtifactMap()
 
     assertEquals(
       FeatureTaskRuntimeVerdict.CHANGES_REQUESTED,

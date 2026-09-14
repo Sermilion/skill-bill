@@ -1,6 +1,8 @@
 package skillbill.engine.featuretask
 
 import skillbill.workflow.taskruntime.*
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWorkflowArtifactMap
+import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 
 import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import skillbill.workflow.model.WorkflowStepStatus
@@ -57,7 +59,7 @@ class FeatureTaskRuntimeRunState(
 
   val gateInvalidatedPhases: MutableSet<String> = mutableSetOf()
 
-  val parsedOutputsByPayload: MutableMap<String, Map<String, Any?>> = mutableMapOf()
+  private val parsedOutputsByPayload: MutableMap<String, FeatureTaskRuntimeWorkflowArtifactMap> = mutableMapOf()
 
   val outputs: MutableList<FeatureTaskRuntimePhaseOutput> = mutableListOf()
 
@@ -366,7 +368,7 @@ class FeatureTaskRuntimeRunState(
     return maxOf(persistedAttempts, latestOutputIteration) + 1
   }
 
-  fun parsedOutput(output: FeatureTaskRuntimePhaseOutput?): Map<String, Any?>? {
+  internal fun parsedOutput(output: FeatureTaskRuntimePhaseOutput?): FeatureTaskRuntimeWorkflowArtifactMap? {
     val payload = output?.payload ?: return null
     return parsedOutputsByPayload.getOrPut(payload) {
       val envelope = output.normalizedOutput?.envelopePayload()
@@ -374,7 +376,7 @@ class FeatureTaskRuntimeRunState(
           .requireAcceptedOutput(output.phaseId)
           .normalizedOutput
           .envelopePayload()
-      workflowArtifactEntryMap(envelope)
+      envelope.toWorkflowArtifactMap()
     }
   }
 

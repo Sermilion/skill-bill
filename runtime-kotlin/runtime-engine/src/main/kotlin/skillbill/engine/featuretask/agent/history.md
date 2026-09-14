@@ -1,5 +1,14 @@
 # featuretask runtime boundary history
 
+## [2026-09-14] SKILL-52.5 subtask 4 — Feature task engine typing
+Areas: runtime-kotlin/runtime-engine/featuretask, runtime-kotlin/runtime-core/architecture, runtime-kotlin/runtime-mcp/featuretask
+- Replaced raw-map handoffs across feature-task run-loop, verification, settlement, phase-artifact, and MCP adapter boundaries with typed engine models.
+- Removed the feature-task cluster from the raw-map architecture allow-list and ratcheted the inventory baseline.
+- Pattern: keep map decoding at narrow artifact or wire seams while typed records cross engine boundaries. reusable
+- Limitation: goal-runner and remaining application/workflow surfaces are handled by later SKILL-52.5 subtasks.
+Feature flag: N/A
+Acceptance criteria: 5/5 implemented
+
 ## [2026-09-13] SKILL-241 stateless acceptance-criteria audit
 Areas: runtime-engine/featuretask, runtime-engine/goalrunner, runtime-domain/workflow/taskruntime, runtime-application/telemetry, runtime-cli/featuretask, runtime-infra-fs, runtime-infra-sqlite, runtime-ports, runtime-mcp, orchestration/contracts
 - Audit checks every planned criterion against implementation and meaningful test coverage, repairs gaps in one fresh session, and restarts the full inspection after interruption. Build and test execution remain with their existing phase owners.

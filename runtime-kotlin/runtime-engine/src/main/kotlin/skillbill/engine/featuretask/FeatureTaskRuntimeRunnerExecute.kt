@@ -13,6 +13,7 @@ import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerAction
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeResolvedBranch
 
@@ -111,6 +112,7 @@ fun FeatureTaskRuntimeRunner.loadFindingVerificationTelemetry(
     ?.let(JsonCodec::parseObjectOrNull)
     ?.let(JsonCodec::jsonElementToValue)
     ?.let(JsonCodec::anyToStringAnyMap)
+    ?.toWorkflowArtifactMap()
     ?: return FeatureTaskRuntimeFindingVerificationTelemetry(
       reviewFixCapExhausted = loadReviewFixIterationCount(request) >= 1,
     )

@@ -266,19 +266,19 @@ object FeatureTaskRuntimeRunLoopValidationGate {
     }
   }
 
-  fun looseOutputEnvelope(outputText: String): Map<String, Any?>? {
+  internal fun looseOutputEnvelope(outputText: String): FeatureTaskRuntimeWorkflowArtifactMap? {
     val trimmed = outputText.trim()
     JsonCodec.parseObjectOrNull(trimmed)?.let {
-      return JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(it))
+      return JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(it))?.toWorkflowArtifactMap()
     }
     val start = trimmed.indexOf('{')
     val end = trimmed.lastIndexOf('}')
     if (start !in 0..<end) return null
     return JsonCodec.parseObjectOrNull(trimmed.substring(start, end + 1))
-      ?.let { JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(it)) }
+      ?.let { JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(it))?.toWorkflowArtifactMap() }
   }
 
-  fun gateTriageCapturedProducedOutputs(outputText: String): Map<String, Any?> {
+  internal fun gateTriageCapturedProducedOutputs(outputText: String): Map<String, Any?> {
     val produced = looseOutputEnvelope(outputText)
       ?.let { JsonCodec.anyToStringAnyMap(it[SharedPayloadKeys.PRODUCED_OUTPUTS]) }
       ?: return emptyMap()

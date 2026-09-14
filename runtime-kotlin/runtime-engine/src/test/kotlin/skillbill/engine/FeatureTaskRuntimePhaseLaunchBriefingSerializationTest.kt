@@ -18,13 +18,13 @@ class FeatureTaskRuntimePhaseLaunchBriefingSerializationTest {
   fun `retired gap memory is ignored and omitted when a legacy briefing is saved again`() {
     val briefing = briefing()
     listOf(null, "obsolete gap notes", listOf("unreadable legacy memory")).forEach { memory ->
-      val legacy = briefing.toArtifactMap() +
+      val legacy = briefing.briefingArtifactWireMap() +
         (FeatureTaskRuntimeHandoffSourceRef.RETIRED_PRIOR_GAP_MEMORY_WIRE to memory)
 
-      val decoded = FeatureTaskRuntimePhaseLaunchBriefing.fromArtifactMap(legacy)
+      val decoded = FeatureTaskRuntimePhaseLaunchBriefing.fromBriefingArtifactWire(legacy)
 
       assertEquals(briefing, decoded)
-      assertEquals(briefing.toArtifactMap(), decoded.toArtifactMap())
+      assertEquals(briefing.briefingArtifactWireMap(), decoded.briefingArtifactWireMap())
     }
   }
 
@@ -32,15 +32,15 @@ class FeatureTaskRuntimePhaseLaunchBriefingSerializationTest {
   fun `a briefing round trips through the durable artifact map`() {
     val briefing = briefing()
 
-    assertEquals(briefing, FeatureTaskRuntimePhaseLaunchBriefing.fromArtifactMap(briefing.toArtifactMap()))
+    assertEquals(briefing, FeatureTaskRuntimePhaseLaunchBriefing.fromBriefingArtifactWire(briefing.briefingArtifactWireMap()))
   }
 
   @Test
   fun `a legacy row carrying the removed upstream payload map loud-fails instead of migrating silently`() {
-    val legacyRow = briefing().toArtifactMap() + ("upstream_outputs_by_phase_id" to mapOf("plan" to "raw payload"))
+    val legacyRow = briefing().briefingArtifactWireMap() + ("upstream_outputs_by_phase_id" to mapOf("plan" to "raw payload"))
 
     val error = assertFailsWith<InvalidWorkflowStateSchemaError> {
-      FeatureTaskRuntimePhaseLaunchBriefing.fromArtifactMap(legacyRow)
+      FeatureTaskRuntimePhaseLaunchBriefing.fromBriefingArtifactWire(legacyRow)
     }
 
     assertContains(error.message.orEmpty(), "upstream_outputs_by_phase_id")
@@ -50,19 +50,19 @@ class FeatureTaskRuntimePhaseLaunchBriefingSerializationTest {
 
   @Test
   fun `a row missing the handoff envelope loud-fails rather than defaulting to an empty delivery`() {
-    val rowWithoutEnvelope = briefing().toArtifactMap() - "handoff_envelope"
+    val rowWithoutEnvelope = briefing().briefingArtifactWireMap() - "handoff_envelope"
 
     assertFailsWith<InvalidWorkflowStateSchemaError> {
-      FeatureTaskRuntimePhaseLaunchBriefing.fromArtifactMap(rowWithoutEnvelope)
+      FeatureTaskRuntimePhaseLaunchBriefing.fromBriefingArtifactWire(rowWithoutEnvelope)
     }
   }
 
   @Test
   fun `an unknown briefing field loud-fails with restart or migration guidance`() {
-    val incompatible = briefing().toArtifactMap() + ("future_field" to "private body")
+    val incompatible = briefing().briefingArtifactWireMap() + ("future_field" to "private body")
 
     val error = assertFailsWith<InvalidWorkflowStateSchemaError> {
-      FeatureTaskRuntimePhaseLaunchBriefing.fromArtifactMap(incompatible)
+      FeatureTaskRuntimePhaseLaunchBriefing.fromBriefingArtifactWire(incompatible)
     }
 
     assertContains(error.message.orEmpty(), "unsupported fields")
@@ -73,11 +73,11 @@ class FeatureTaskRuntimePhaseLaunchBriefingSerializationTest {
   @Test
   fun `a missing or incompatible briefing version loud-fails`() {
     listOf(
-      briefing().toArtifactMap() - "contract_version",
-      briefing().toArtifactMap() + ("contract_version" to "9.9"),
+      briefing().briefingArtifactWireMap() - "contract_version",
+      briefing().briefingArtifactWireMap() + ("contract_version" to "9.9"),
     ).forEach { incompatible ->
       assertFailsWith<InvalidWorkflowStateSchemaError> {
-        FeatureTaskRuntimePhaseLaunchBriefing.fromArtifactMap(incompatible)
+        FeatureTaskRuntimePhaseLaunchBriefing.fromBriefingArtifactWire(incompatible)
       }
     }
   }
@@ -85,11 +85,11 @@ class FeatureTaskRuntimePhaseLaunchBriefingSerializationTest {
   @Test
   fun `legacy criterion progress is ignored and never serialized into a fresh briefing`() {
     val retiredField = "durably_closed_criterion_refs"
-    val original = briefing().toArtifactMap()
-    val restored = FeatureTaskRuntimePhaseLaunchBriefing.fromArtifactMap(
+    val original = briefing().briefingArtifactWireMap()
+    val restored = FeatureTaskRuntimePhaseLaunchBriefing.fromBriefingArtifactWire(
       original + (retiredField to "unreadable retired progress"),
     )
-    assertEquals(original, restored.toArtifactMap())
+    assertEquals(original, restored.briefingArtifactWireMap())
     assertEquals(briefing().acceptanceCriteria, restored.acceptanceCriteria)
   }
 

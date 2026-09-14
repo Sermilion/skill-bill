@@ -13,7 +13,7 @@ private const val CHANGED_PATHS_KEY = "changed_paths"
 private const val COMMIT_SHA_KEY = "commit_sha"
 
 object FeatureTaskRuntimeSubtaskFinalisationHandoff {
-  fun readHandoff(envelope: Map<String, Any?>): FeatureTaskRuntimeCommitPushHandoffResult {
+  internal fun readHandoff(envelope: Map<String, Any?>): FeatureTaskRuntimeCommitPushHandoffResult {
     val result = commitPushResult(envelope)
       ?: return invalid("`produced_outputs.$COMMIT_PUSH_RESULT_KEY` is absent")
     val message = result[OUTCOME_MESSAGE_KEY]?.toString()?.trim()?.takeIf(String::isNotBlank)
@@ -29,7 +29,7 @@ object FeatureTaskRuntimeSubtaskFinalisationHandoff {
     )
   }
 
-  fun withCommitSha(envelope: Map<String, Any?>, commitSha: String): Map<String, Any?> {
+  internal fun withCommitSha(envelope: Map<String, Any?>, commitSha: String): Map<String, Any?> {
     val produced = JsonCodec.anyToStringAnyMap(envelope[SharedPayloadKeys.PRODUCED_OUTPUTS])?.toMutableMap()
       ?: return envelope
     val result = JsonCodec.anyToStringAnyMap(produced[COMMIT_PUSH_RESULT_KEY])?.toMutableMap()

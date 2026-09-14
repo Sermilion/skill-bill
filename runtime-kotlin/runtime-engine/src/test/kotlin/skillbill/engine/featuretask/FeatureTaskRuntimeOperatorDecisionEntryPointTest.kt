@@ -29,7 +29,7 @@ class FeatureTaskRuntimeOperatorDecisionEntryPointTest {
 
     val projected = stepUpdatesFrom(mapOf(reopened.phaseId to reopened)).single()
 
-    assertEquals("implement_fix", projected["step_id"])
-    assertEquals("pending", projected["status"], "a reopened phase is unstarted work, not completed work")
+    assertEquals("implement_fix", projected.stepId)
+    assertEquals("pending", projected.status, "a reopened phase is unstarted work, not completed work")
   }
 }

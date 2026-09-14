@@ -43,7 +43,10 @@ object FeatureTaskRuntimePhaseSafetyPolicy {
     .distinct()
     .sorted()
 
-  fun dispositionForTerminalOutput(phaseId: String, output: Map<String, Any?>): FeatureTaskRuntimeFailureDisposition {
+  internal fun dispositionForTerminalOutput(
+    phaseId: String,
+    output: skillbill.workflow.taskruntime.FeatureTaskRuntimeWorkflowArtifactMap,
+  ): FeatureTaskRuntimeFailureDisposition {
     val explicit = (output[SharedPayloadKeys.FAILURE_DISPOSITION] as? String)
       ?.let(FeatureTaskRuntimeFailureDisposition::fromWireValue)
     if (explicit != null) return explicit

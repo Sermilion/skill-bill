@@ -41,7 +41,7 @@ class FeatureTaskRuntimeFindingVerificationOutputTest {
             ),
           ),
         ),
-      ),
+      ).toWorkflowArtifactMap(),
     )
     assertEquals(FeatureTaskRuntimeVerdict.FINDINGS_VERIFIED, verdict)
   }
@@ -60,7 +60,7 @@ class FeatureTaskRuntimeFindingVerificationOutputTest {
             ),
           ),
         ),
-      ),
+      ).toWorkflowArtifactMap(),
     )
     assertEquals(FeatureTaskRuntimeVerdict.NO_FINDINGS_VERIFIED, verdict)
   }
@@ -79,7 +79,7 @@ class FeatureTaskRuntimeFindingVerificationOutputTest {
             ),
           ),
         ),
-      ),
+      ).toWorkflowArtifactMap(),
     )
     assertEquals(FeatureTaskRuntimeVerdict.FINDINGS_VERIFIED, verdict)
   }
@@ -98,7 +98,7 @@ class FeatureTaskRuntimeFindingVerificationOutputTest {
             ),
           ),
         ),
-      ),
+      ).toWorkflowArtifactMap(),
     )
     assertEquals(FeatureTaskRuntimeVerdict.NO_FINDINGS_VERIFIED, verdict)
   }
@@ -117,7 +117,7 @@ class FeatureTaskRuntimeFindingVerificationOutputTest {
               ),
             ),
           ),
-        ),
+        ).toWorkflowArtifactMap(),
       )
     }
   }

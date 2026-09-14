@@ -24,7 +24,7 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeQualityGateSelecti
 class FeatureTaskRuntimeGoalContinuationArtifactPatcher(
   private val engine: WorkflowEngine,
 ) {
-  fun save(record: WorkflowStateSnapshot, workflowStates: WorkflowStateRepository, patch: Map<String, Any?>) {
+  internal fun save(record: WorkflowStateSnapshot, workflowStates: WorkflowStateRepository, patch: Map<String, Any?>) {
     val updated = engine.updateRecord(
       WorkflowFamily.TASK_RUNTIME.definition,
       record,
@@ -40,10 +40,10 @@ class FeatureTaskRuntimeGoalContinuationArtifactPatcher(
   }
 }
 
-fun continuationFromArtifacts(artifacts: Map<String, Any?>): FeatureTaskRuntimeGoalContinuationArtifact? =
+internal fun continuationFromArtifacts(artifacts: Map<String, Any?>): FeatureTaskRuntimeGoalContinuationArtifact? =
   GoalSubtaskReviewArtifactDecoder.decodeContinuationOnly(artifacts)
 
-fun reviewStateFromArtifacts(artifacts: Map<String, Any?>): GoalSubtaskReviewState? =
+internal fun reviewStateFromArtifacts(artifacts: Map<String, Any?>): GoalSubtaskReviewState? =
   GoalSubtaskReviewArtifactDecoder.decodeReviewStateOnly(artifacts)
 
 fun GoalSubtaskReviewState.canRecoverReviewBase(): Boolean = disposition == GoalSubtaskReviewDisposition.PENDING
@@ -55,7 +55,10 @@ fun GoalSubtaskReviewState.matches(
   baselineUntrackedPaths == baseline.baselineUntrackedPaths.distinct().sorted() &&
   codeReviewMode == continuation.codeReviewMode
 
-fun rawReviewResultsFromArtifacts(artifacts: Map<String, Any?>, state: GoalSubtaskReviewState): Map<String, String> {
+internal fun rawReviewResultsFromArtifacts(
+  artifacts: Map<String, Any?>,
+  state: GoalSubtaskReviewState,
+): Map<String, String> {
   val decoded = GoalSubtaskReviewArtifactDecoder.decode(artifacts)
     ?: rawReviewResultError(
       GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY,
@@ -76,7 +79,7 @@ fun rawReviewResultError(fieldPath: String, reason: String): Nothing = throw Inv
   reason = reason,
 )
 
-fun continuationPatch(
+internal fun continuationPatch(
   continuation: FeatureTaskRuntimeGoalContinuationArtifact?,
   existing: FeatureTaskRuntimeGoalContinuationArtifact?,
 ): Map<String, Any?> = when {

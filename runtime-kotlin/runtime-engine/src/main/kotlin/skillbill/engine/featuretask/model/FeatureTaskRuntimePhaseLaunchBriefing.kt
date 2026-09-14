@@ -1,6 +1,5 @@
 package skillbill.engine.featuretask.model
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_PHASE_LAUNCH_BRIEFING_CONTRACT_VERSION
@@ -37,8 +36,9 @@ data class FeatureTaskRuntimePhaseLaunchBriefing(
     require(briefingText.isNotBlank()) { "FeatureTaskRuntimePhaseLaunchBriefing.briefingText must be non-blank." }
   }
 
-  @OpenBoundaryMap("Feature-task-runtime per-phase launch briefing artifact map at the durable workflow-artifact seam")
-  fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
+  fun asBriefingArtifactEntry(): Any = briefingArtifactWireMap()
+
+  internal fun briefingArtifactWireMap(): Map<String, Any?> = linkedMapOf(
     SharedPayloadKeys.CONTRACT_VERSION to CONTRACT_VERSION,
     SharedPayloadKeys.PHASE_ID to phaseId,
     "spec_reference" to specReference,
@@ -56,8 +56,7 @@ data class FeatureTaskRuntimePhaseLaunchBriefing(
 
   companion object {
 
-    @OpenBoundaryMap("Feature-task-runtime per-phase launch briefing decode from the durable workflow-artifact map")
-    fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimePhaseLaunchBriefing {
+    internal fun fromBriefingArtifactWire(raw: Map<String, Any?>): FeatureTaskRuntimePhaseLaunchBriefing {
       val unknownFields = raw.keys - ALLOWED_FIELDS - FeatureTaskRuntimeHandoffSourceRef.RETIRED_PRIOR_GAP_MEMORY_WIRE
       if (unknownFields.isNotEmpty()) {
         schemaError(

@@ -11,6 +11,7 @@ import skillbill.ports.workflow.gitops.repositoryOwnedPaths
 import skillbill.ports.workflow.gitops.stagePaths
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeCheckpointIdentity
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeResolvedBranch
 
@@ -98,7 +99,10 @@ object FeatureTaskRuntimeRunLoopCheckpointRemediation {
     )
   }
 
-  internal fun completedImplementFixProducedOutputs(run: PhaseRun, outputMap: Map<String, Any?>): Map<String, Any?>? =
+  internal fun completedImplementFixProducedOutputs(
+    run: PhaseRun,
+    outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
+  ): Map<String, Any?>? =
     outputMap
       .takeIf {
         run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT_FIX &&

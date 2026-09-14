@@ -9,6 +9,7 @@ import skillbill.review.model.ReviewClaimVerdict
 import skillbill.review.model.ReviewScopeDisposition
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeAuditRemainingAcInterpretation
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeAuditRemainingAcResult
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFindingVerificationDisposition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFindingVerificationVerdict
@@ -18,7 +19,7 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeReviewVerdict
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
 
 object FeatureTaskRuntimeOutputVerification {
-  fun verdictFor(phaseId: String, outputObject: Map<String, Any?>?): FeatureTaskRuntimeVerdict {
+  internal fun verdictFor(phaseId: String, outputObject: FeatureTaskRuntimeWorkflowArtifactMap?): FeatureTaskRuntimeVerdict {
     val wireVerdict = (outputObject?.get(SharedPayloadKeys.VERDICT) as? String)
       ?.takeIf(String::isNotBlank)
       ?.let { value -> FeatureTaskRuntimeVerdict.rejectRemovedVerdict(value, "phase output verdict") }
@@ -31,27 +32,32 @@ object FeatureTaskRuntimeOutputVerification {
     }
   }
 
-  fun dispositionsFrom(outputObject: Map<String, Any?>?): List<FeatureTaskRuntimeFindingVerificationDisposition> =
+  internal fun dispositionsFrom(
+    outputObject: FeatureTaskRuntimeWorkflowArtifactMap?,
+  ): List<FeatureTaskRuntimeFindingVerificationDisposition> =
     findingVerificationVerdictFrom(outputObject)?.dispositions.orEmpty()
 
-  fun verifiedFindingDispositions(
-    outputObject: Map<String, Any?>?,
+  internal fun verifiedFindingDispositions(
+    outputObject: FeatureTaskRuntimeWorkflowArtifactMap?,
   ): List<FeatureTaskRuntimeFindingVerificationDisposition> =
     findingVerificationVerdictFrom(outputObject)?.verifiedDispositions.orEmpty()
 
-  fun rejectedFindingDispositions(
-    outputObject: Map<String, Any?>?,
+  internal fun rejectedFindingDispositions(
+    outputObject: FeatureTaskRuntimeWorkflowArtifactMap?,
   ): List<FeatureTaskRuntimeFindingVerificationDisposition> =
     findingVerificationVerdictFrom(outputObject)?.rejectedDispositions.orEmpty()
 
-  fun unresolvedReviewFindings(outputObject: Map<String, Any?>?): List<FeatureTaskRuntimeReviewFinding> =
+  internal fun unresolvedReviewFindings(
+    outputObject: FeatureTaskRuntimeWorkflowArtifactMap?,
+  ): List<FeatureTaskRuntimeReviewFinding> =
     reviewVerdictFrom(outputObject)?.unresolvedFindings.orEmpty()
 
-  fun auditProseValue(outputObject: Map<String, Any?>?): String? = outputObject?.get(SharedPayloadKeys.PRODUCED_OUTPUTS)
-    ?.let(JsonCodec::anyToStringAnyMap)
-    ?.get(SharedPayloadKeys.VALUE)
-    ?.toString()
-    ?.takeIf(String::isNotBlank)
+  internal fun auditProseValue(outputObject: FeatureTaskRuntimeWorkflowArtifactMap?): String? =
+    outputObject?.get(SharedPayloadKeys.PRODUCED_OUTPUTS)
+      ?.let(JsonCodec::anyToStringAnyMap)
+      ?.get(SharedPayloadKeys.VALUE)
+      ?.toString()
+      ?.takeIf(String::isNotBlank)
 }
 
 private fun findingVerificationVerdict(wireVerdict: FeatureTaskRuntimeVerdict?): FeatureTaskRuntimeVerdict =
@@ -60,7 +66,7 @@ private fun findingVerificationVerdict(wireVerdict: FeatureTaskRuntimeVerdict?):
   }
 
 private fun findingVerificationVerdictFrom(
-  outputObject: Map<String, Any?>?,
+  outputObject: FeatureTaskRuntimeWorkflowArtifactMap?,
 ): FeatureTaskRuntimeFindingVerificationVerdict? {
   val dispositionsRaw = outputObject?.get(SharedPayloadKeys.PRODUCED_OUTPUTS)
     ?.let(JsonCodec::anyToStringAnyMap)
@@ -74,7 +80,7 @@ private fun findingVerificationVerdictFrom(
 }
 
 private fun reviewVerdict(
-  outputObject: Map<String, Any?>?,
+  outputObject: FeatureTaskRuntimeWorkflowArtifactMap?,
   wireVerdict: FeatureTaskRuntimeVerdict?,
 ): FeatureTaskRuntimeVerdict {
   val reviewVerdict = reviewVerdictFrom(outputObject)
@@ -83,7 +89,7 @@ private fun reviewVerdict(
 
 private fun auditVerdict(
   wireVerdict: FeatureTaskRuntimeVerdict?,
-  outputObject: Map<String, Any?>?,
+  outputObject: FeatureTaskRuntimeWorkflowArtifactMap?,
 ): FeatureTaskRuntimeVerdict {
   val status = (outputObject?.get(SharedPayloadKeys.STATUS) as? String)?.trim()?.lowercase()
   if (status == "blocked" || status == "failed") {
@@ -107,7 +113,7 @@ private fun auditVerdict(
   }
 }
 
-private fun reviewVerdictFrom(outputObject: Map<String, Any?>?): FeatureTaskRuntimeReviewVerdict? {
+private fun reviewVerdictFrom(outputObject: FeatureTaskRuntimeWorkflowArtifactMap?): FeatureTaskRuntimeReviewVerdict? {
   val findingsRaw = outputObject?.get(SharedPayloadKeys.PRODUCED_OUTPUTS)
     ?.let(JsonCodec::anyToStringAnyMap)
     ?.get(FeatureTaskRuntimeVerificationSignalKeys.REVIEW_FINDINGS) as? List<*>

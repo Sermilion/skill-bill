@@ -156,7 +156,7 @@ object FeatureTaskRuntimeReviewEnvelope {
     }
   }
 
-  fun envelopeMap(outputText: String): Map<String, Any?> = JsonCodec.parseObjectOrNull(outputText)
+  internal fun envelopeMap(outputText: String): Map<String, Any?> = JsonCodec.parseObjectOrNull(outputText)
     ?.let(JsonCodec::jsonElementToValue)
     ?.let(JsonCodec::anyToStringAnyMap)
     .orEmpty()

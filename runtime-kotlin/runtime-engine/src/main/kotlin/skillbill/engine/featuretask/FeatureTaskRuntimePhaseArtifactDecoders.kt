@@ -18,9 +18,9 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerEntry
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeResolvedBranch
 
-fun schemaError(detail: String): Nothing = throw InvalidWorkflowStateSchemaError(detail)
+internal fun schemaError(detail: String): Nothing = throw InvalidWorkflowStateSchemaError(detail)
 
-fun <T> decodeStrictKeyedArtifactMap(
+internal fun <T> decodeStrictKeyedArtifactMap(
   artifacts: Map<String, Any?>,
   artifactKey: String,
   ignoreEntry: (String) -> Boolean = { false },
@@ -41,13 +41,13 @@ fun <T> decodeStrictKeyedArtifactMap(
   }
 }
 
-fun decodePhaseRecords(artifacts: Map<String, Any?>): Map<String, FeatureTaskRuntimePhaseRecord> =
+internal fun decodePhaseRecords(artifacts: Map<String, Any?>): Map<String, FeatureTaskRuntimePhaseRecord> =
   decodeStrictKeyedArtifactMap(artifacts, FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY) { phaseId, recordMap ->
     decodePhaseRecordFromArtifact(recordMap)
       ?: schemaError("Feature-task-runtime phase record for '$phaseId' must decode to a map.")
   }
 
-fun resolvedBranchFromWorkflowArtifacts(artifacts: Map<String, Any?>): FeatureTaskRuntimeResolvedBranch? {
+internal fun resolvedBranchFromWorkflowArtifacts(artifacts: Map<String, Any?>): FeatureTaskRuntimeResolvedBranch? {
   val raw = artifacts[FEATURE_TASK_RUNTIME_RESOLVED_BRANCH_ARTIFACT_KEY] ?: return null
   val entryMap = JsonCodec.anyToStringAnyMap(raw)
     ?: schemaError(
@@ -59,7 +59,7 @@ fun resolvedBranchFromWorkflowArtifacts(artifacts: Map<String, Any?>): FeatureTa
     )
 }
 
-fun reviewGenerationFrom(artifacts: Map<String, Any?>): Int {
+internal fun reviewGenerationFrom(artifacts: Map<String, Any?>): Int {
   val raw = artifacts[FEATURE_TASK_RUNTIME_REVIEW_GENERATION_ARTIFACT_KEY] ?: return 0
   val ordinal = when (raw) {
     is Int -> raw
@@ -74,7 +74,7 @@ fun reviewGenerationFrom(artifacts: Map<String, Any?>): Int {
     )
 }
 
-fun operatorBlockRetryFromWorkflowArtifacts(artifacts: Map<String, Any?>): FeatureTaskRuntimeOperatorBlockRetry? {
+internal fun operatorBlockRetryFromWorkflowArtifacts(artifacts: Map<String, Any?>): FeatureTaskRuntimeOperatorBlockRetry? {
   val raw = artifacts[FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_ARTIFACT_KEY] ?: return null
   val entryMap = JsonCodec.anyToStringAnyMap(raw)
     ?: schemaError(
@@ -87,7 +87,9 @@ fun operatorBlockRetryFromWorkflowArtifacts(artifacts: Map<String, Any?>): Featu
   )
 }
 
-fun goalContinuationFieldAdoptionFromWorkflowArtifacts(artifacts: Map<String, Any?>): FeatureTaskRuntimeGoalContinuationFieldAdoption? {
+internal fun goalContinuationFieldAdoptionFromWorkflowArtifacts(
+  artifacts: Map<String, Any?>,
+): FeatureTaskRuntimeGoalContinuationFieldAdoption? {
   val raw = artifacts[FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_FIELD_ADOPTION_ARTIFACT_KEY] ?: return null
   val entryMap = JsonCodec.anyToStringAnyMap(raw)
     ?: schemaError(
@@ -108,7 +110,7 @@ private fun Map<String, Any?>.requiredOperatorRetryString(field: String): String
         "'$field' must decode to a non-blank string.",
     )
 
-fun decomposeTerminalFromWorkflowArtifacts(artifacts: Map<String, Any?>): FeatureTaskRuntimeDecomposeTerminal? {
+internal fun decomposeTerminalFromWorkflowArtifacts(artifacts: Map<String, Any?>): FeatureTaskRuntimeDecomposeTerminal? {
   val raw = artifacts[FEATURE_TASK_RUNTIME_DECOMPOSE_TERMINAL_ARTIFACT_KEY] ?: return null
   val entryMap = JsonCodec.anyToStringAnyMap(raw)
     ?: schemaError(
@@ -120,7 +122,7 @@ fun decomposeTerminalFromWorkflowArtifacts(artifacts: Map<String, Any?>): Featur
     )
 }
 
-fun decodePhaseLedger(artifacts: Map<String, Any?>): List<FeatureTaskRuntimePhaseLedgerEntry> {
+internal fun decodePhaseLedger(artifacts: Map<String, Any?>): List<FeatureTaskRuntimePhaseLedgerEntry> {
   val raw = artifacts[FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY] ?: return emptyList()
   val rawList = raw as? List<*>
     ?: throw InvalidWorkflowStateSchemaError(

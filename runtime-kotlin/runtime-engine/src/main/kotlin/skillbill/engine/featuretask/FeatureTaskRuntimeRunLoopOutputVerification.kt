@@ -97,7 +97,7 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
     args: CompletionProjectionRejectionArgs,
   ): Pair<String, String>? = producerProjectionGateReason(
     args.run.phaseId,
-    args.outputMap,
+    args.normalizedOutput.envelopeWireMap(),
     runLoop.planningProjectionValidator,
   )?.let { "producer-projection" to it }
     ?: immediateConsumerProjectionGateReason(
@@ -113,10 +113,10 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
     ?: FeatureTaskRuntimeRunLoopOutputVerification.outputVerificationGateReason(
       runLoop,
       args.run,
-      args.outputMap,
+      args.normalizedOutput.envelopeWireMap(),
     )?.let { "output-verification" to it }
 
-  fun firstValidatedOutputRejection(phaseId: String, outputMap: Map<String, Any?>): Pair<String, String>? =
+  fun firstValidatedOutputRejection(phaseId: String, outputMap: FeatureTaskRuntimeWorkflowArtifactMap): Pair<String, String>? =
     mutatingReconciliationGateReason(
       phaseId,
       outputMap,
@@ -242,7 +242,7 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
     val run = args.run
     val iteration = args.iteration
     val reason = args.reason
-    val outputMap = args.outputMap
+    val outputMap = args.normalizedOutput.envelopeWireMap()
     val normalizedOutput = args.normalizedOutput
     val repairEvidence = args.repairEvidence
     val observability = args.observability
@@ -294,7 +294,7 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
   internal fun outputVerificationGateReason(
     runLoop: FeatureTaskRuntimeRunLoop,
     run: PhaseRun,
-    outputMap: Map<String, Any?>,
+    outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
   ): String? = findingVerificationBoundaryDispositionGate(runLoop, run, outputMap)
     ?: auditRemovedVerdictGate(run.phaseId, outputMap)
     ?: FeatureTaskRuntimeVerificationGateReasons.reviewVerificationSignal(run.phaseId, outputMap)
@@ -304,7 +304,7 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
       FeatureTaskRuntimeRunLoopOutputVerification.reviewFindingIdsForVerification(runLoop),
     )
 
-  private fun auditRemovedVerdictGate(phaseId: String, outputMap: Map<String, Any?>): String? {
+  private fun auditRemovedVerdictGate(phaseId: String, outputMap: FeatureTaskRuntimeWorkflowArtifactMap): String? {
     if (phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT) return null
     val wire = (outputMap[SharedPayloadKeys.VERDICT] as? String)?.trim()
     if (wire == FeatureTaskRuntimeVerdict.GAPS_FOUND.wireValue) {
@@ -343,7 +343,7 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
   internal fun findingVerificationBoundaryBodyDeliveryDecision(
     runLoop: FeatureTaskRuntimeRunLoop,
     run: PhaseRun,
-    outputMap: Map<String, Any?>,
+    outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
   ): BoundaryBodyDeliveryDecision {
     FeatureTaskRuntimeRunLoopOutputVerification.verifyFindingsBoundaryContext(
       runLoop,
@@ -386,13 +386,13 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
   internal fun findingVerificationBoundaryDispositionGate(
     runLoop: FeatureTaskRuntimeRunLoop,
     run: PhaseRun,
-    outputMap: Map<String, Any?>,
+    outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
   ): String? = findingVerificationBoundaryDispositionGateImpl(runLoop, run, outputMap)
 
   internal fun findingVerificationBoundaryDispositionGateImpl(
     runLoop: FeatureTaskRuntimeRunLoop,
     run: PhaseRun,
-    outputMap: Map<String, Any?>,
+    outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
   ): String? {
     val dispositions = FeatureTaskRuntimeRunLoopOutputVerification.verifyFindingsDispositionGateContext(
       runLoop,
@@ -431,6 +431,7 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
     val outputMap = JsonCodec.parseObjectOrNull(outputText)
       ?.let(JsonCodec::jsonElementToValue)
       ?.let(JsonCodec::anyToStringAnyMap)
+      ?.toWorkflowArtifactMap()
       ?: return
     val dispositions = FeatureTaskRuntimeOutputVerification.dispositionsFrom(outputMap)
     if (dispositions.isEmpty()) return
@@ -688,7 +689,7 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
   internal fun verifyFindingsBoundaryContext(
     runLoop: FeatureTaskRuntimeRunLoop,
     run: PhaseRun,
-    outputMap: Map<String, Any?>,
+    outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
   ): BoundaryBodyDeliveryDecision? {
     if (run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS) {
       return BoundaryBodyDeliveryDecision.NotApplicable
@@ -723,7 +724,7 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
   internal fun verifyFindingsDispositionGateContext(
     runLoop: FeatureTaskRuntimeRunLoop,
     run: PhaseRun,
-    outputMap: Map<String, Any?>,
+    outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
   ): List<FeatureTaskRuntimeFindingVerificationDisposition>? {
     if (run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS) return null
     val dispositions = FeatureTaskRuntimeOutputVerification.dispositionsFrom(outputMap)

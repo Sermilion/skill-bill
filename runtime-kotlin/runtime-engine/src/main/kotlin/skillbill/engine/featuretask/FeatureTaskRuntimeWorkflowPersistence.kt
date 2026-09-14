@@ -24,6 +24,7 @@ import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_STATUS_BL
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_STATUS_PAUSED
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_STATUS_PENDING
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeImplementationAttemptStatus
+import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStepWireUpdate
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 import java.security.MessageDigest
 import java.time.Duration
@@ -32,7 +33,7 @@ import java.time.Instant
 internal data class WorkflowRowAdvance(
   val currentStepId: String,
   val workflowStatus: String,
-  val stepUpdates: List<Map<String, Any?>>? = null,
+  val stepUpdates: List<FeatureTaskRuntimePhaseStepWireUpdate>? = null,
 ) {
   companion object {
     fun keepFrom(record: WorkflowStateSnapshot): WorkflowRowAdvance =
@@ -58,7 +59,7 @@ class FeatureTaskRuntimeWorkflowPersistence(
       WorkflowUpdateInput(
         workflowStatus = advance.workflowStatus,
         currentStepId = advance.currentStepId,
-        stepUpdates = advance.stepUpdates,
+        stepUpdates = advance.stepUpdates?.map(FeatureTaskRuntimePhaseStepWireUpdate::toWireMap),
         artifactsPatch = patch,
         sessionId = record.sessionId.orEmpty(),
       ),
@@ -112,7 +113,7 @@ class FeatureTaskRuntimeWorkflowPersistence(
     }
 }
 
-fun stepUpdatesFrom(records: Map<String, FeatureTaskRuntimePhaseRecord>): List<Map<String, Any?>> {
+internal fun stepUpdatesFrom(records: Map<String, FeatureTaskRuntimePhaseRecord>): List<FeatureTaskRuntimePhaseStepWireUpdate> {
   fun stepStatusFor(record: FeatureTaskRuntimePhaseRecord): String = when {
     record.status.workflowStepStatus() == WorkflowStepStatus.BLOCKED -> FEATURE_TASK_RUNTIME_PHASE_STATUS_BLOCKED
     record.status.workflowStepStatus() == WorkflowStepStatus.PAUSED -> FEATURE_TASK_RUNTIME_PHASE_STATUS_PAUSED
@@ -125,10 +126,10 @@ fun stepUpdatesFrom(records: Map<String, FeatureTaskRuntimePhaseRecord>): List<M
     )
   }
   return records.values.map { record ->
-    linkedMapOf<String, Any?>(
-      SharedPayloadKeys.STEP_ID to record.phaseId,
-      SharedPayloadKeys.STATUS to stepStatusFor(record),
-      "attempt_count" to record.attemptCount,
+    FeatureTaskRuntimePhaseStepWireUpdate(
+      stepId = record.phaseId,
+      status = stepStatusFor(record),
+      attemptCount = record.attemptCount,
     )
   }
 }
