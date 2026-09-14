@@ -2,15 +2,14 @@ package dev.skillbill.intellij.composition
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.util.Disposer
-import dev.skillbill.intellij.application.GoalPauseRepository
-import dev.skillbill.intellij.application.GoalStopRepository
+import dev.skillbill.intellij.application.GoalMutationRepository
 import dev.skillbill.intellij.application.PreferenceCachePort
 import dev.skillbill.intellij.application.StatusRefreshCoordinator
 import dev.skillbill.intellij.application.StatusRepository
 import dev.skillbill.intellij.domain.StatusClock
-import dev.skillbill.intellij.infrastructure.cli.CliGoalPauseRepository
-import dev.skillbill.intellij.infrastructure.cli.CliGoalStopRepository
+import dev.skillbill.intellij.infrastructure.cli.CliGoalMutationRepository
 import dev.skillbill.intellij.infrastructure.cli.CliSkillBillStatusRepository
+import dev.skillbill.intellij.infrastructure.cli.GoalMutation
 import dev.skillbill.intellij.infrastructure.cli.ProcessRunner
 import dev.skillbill.intellij.presentation.SkillBillStatusViewModel
 import java.nio.file.Path
@@ -33,8 +32,8 @@ class SkillBillStatusCompositionRoot(
     val coordinator: StatusRefreshCoordinator,
     val viewModel: SkillBillStatusViewModel,
     private val scope: CoroutineScope,
-    val goalPauseRepository: GoalPauseRepository,
-    val goalStopRepository: GoalStopRepository,
+    val goalPauseRepository: GoalMutationRepository,
+    val goalStopRepository: GoalMutationRepository,
     val pauseProcessRunner: ProcessRunner,
     val stopProcessRunner: ProcessRunner,
 ) : Disposable {
@@ -83,14 +82,8 @@ class SkillBillStatusCompositionRoot(
                 coordinator = coordinator,
                 viewModel = viewModel,
                 scope = scope,
-                goalPauseRepository = CliGoalPauseRepository(
-                    preferences = preferences,
-                    processRunner = pauseProcessRunner,
-                ),
-                goalStopRepository = CliGoalStopRepository(
-                    preferences = preferences,
-                    processRunner = stopProcessRunner,
-                ),
+                goalPauseRepository = goalMutationRepository(GoalMutation.PAUSE, preferences, pauseProcessRunner),
+                goalStopRepository = goalMutationRepository(GoalMutation.STOP, preferences, stopProcessRunner),
                 pauseProcessRunner = pauseProcessRunner,
                 stopProcessRunner = stopProcessRunner,
             )
@@ -109,14 +102,6 @@ class SkillBillStatusCompositionRoot(
             processRunner: ProcessRunner = ProcessRunner(),
             pauseProcessRunner: ProcessRunner = ProcessRunner(),
             stopProcessRunner: ProcessRunner = ProcessRunner(),
-            goalPauseRepository: GoalPauseRepository = CliGoalPauseRepository(
-                preferences = preferences,
-                processRunner = pauseProcessRunner,
-            ),
-            goalStopRepository: GoalStopRepository = CliGoalStopRepository(
-                preferences = preferences,
-                processRunner = stopProcessRunner,
-            ),
         ): SkillBillStatusCompositionRoot {
             val scope = CoroutineScope(SupervisorJob())
             val coordinator = StatusRefreshCoordinator(
@@ -138,11 +123,21 @@ class SkillBillStatusCompositionRoot(
                 coordinator = coordinator,
                 viewModel = viewModel,
                 scope = scope,
-                goalPauseRepository = goalPauseRepository,
-                goalStopRepository = goalStopRepository,
+                goalPauseRepository = goalMutationRepository(GoalMutation.PAUSE, preferences, pauseProcessRunner),
+                goalStopRepository = goalMutationRepository(GoalMutation.STOP, preferences, stopProcessRunner),
                 pauseProcessRunner = pauseProcessRunner,
                 stopProcessRunner = stopProcessRunner,
             )
         }
+
+        private fun goalMutationRepository(
+            mutation: GoalMutation,
+            preferences: PreferenceCachePort,
+            processRunner: ProcessRunner,
+        ): GoalMutationRepository = CliGoalMutationRepository(
+            mutation = mutation,
+            preferences = preferences,
+            processRunner = processRunner,
+        )
     }
 }

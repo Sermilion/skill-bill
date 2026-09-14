@@ -1,13 +1,11 @@
 import type { ExtensionContext } from "vscode";
 import { StatusRefreshCoordinator } from "../application/StatusRefreshCoordinator";
 import { StatusClock } from "../domain/StatusClock";
-import { CliGoalPauseRepository } from "../infrastructure/cli/CliGoalPauseRepository";
-import { CliGoalStopRepository } from "../infrastructure/cli/CliGoalStopRepository";
 import { CliSkillBillStatusRepository } from "../infrastructure/cli/CliSkillBillStatusRepository";
 import { ProcessRunner } from "../infrastructure/cli/ProcessRunner";
 import { VsCodePreferenceCache } from "../infrastructure/prefs/VsCodePreferenceCache";
 import { SkillBillStatusViewModel } from "../presentation/SkillBillStatusViewModel";
-import { StatusCompositionRoot } from "./StatusCompositionRoot";
+import { createGoalMutationRepositories, StatusCompositionRoot } from "./StatusCompositionRoot";
 
 export function createStatusCompositionRoot(
   context: ExtensionContext,
@@ -26,8 +24,11 @@ export function createStatusCompositionRoot(
     () => processRunner.cancelAll(),
   );
   const viewModel = new SkillBillStatusViewModel(coordinator, clock);
-  const goalPauseRepository = new CliGoalPauseRepository(preferences, pauseProcessRunner);
-  const goalStopRepository = new CliGoalStopRepository(preferences, stopProcessRunner);
+  const mutations = createGoalMutationRepositories(
+    preferences,
+    pauseProcessRunner,
+    stopProcessRunner,
+  );
   return new StatusCompositionRoot(
     preferences,
     processRunner,
@@ -36,7 +37,7 @@ export function createStatusCompositionRoot(
     statusRepository,
     coordinator,
     viewModel,
-    goalPauseRepository,
-    goalStopRepository,
+    mutations.pause,
+    mutations.stop,
   );
 }

@@ -1,3 +1,15 @@
+## [2026-09-14] SKILL-238 subtask 3 — IDE extension YAGNI parity
+Areas: intellij-plugin/{application,composition,domain,infrastructure/cli,ui}, intellij-plugin/{ARCHITECTURE.md,README.md}
+- `CliGoalPauseRepository` / `CliGoalStopRepository` collapse into one `CliGoalMutationRepository` parameterized by a `GoalMutation` enum holding the verb and the five failure-summary strings; the `GoalPauseRepository` / `GoalStopRepository` ports and their outcome types become one `GoalMutationRepository` fun interface with `GoalMutationOutcome`.
+- Pattern for near-duplicate CLI mutators: put the differing wording in enum constant fields, not in a second class, and keep the summary strings verbatim so UI text assertions stay untouched. reusable
+- SKILL-168 runner isolation survives the collapse — the composition root still builds one repository per dedicated `ProcessRunner` (status, pause, stop) and cancels all three on dispose. A single shared class makes a copy-paste verb regression newly possible, so `GoalMutationWiringTest` asserts the *composed* pause instance emits `goal pause` and the composed stop instance emits `goal stop`. Pair any parameterization collapse with a wiring test at the composition seam. reusable
+- `SkillBillStatusBarWidget.activateControl` selects the repository by control kind and makes one `requestMutation` call instead of two structurally identical `when` branches.
+- Deleted as caller-less: `StatusClock.from(Clock)` and `PreferenceCachePort`'s `defaultRefreshIntervalSeconds()`. `StatusClock.system()` / `fixed()` remain the injectable ViewModel test seam; callers read `DEFAULT_REFRESH_INTERVAL_SECONDS` directly.
+- Foreshadowing "future tool window" prose (extension-point section, table clause, README clause, service doc aside) is gone; the three factual deferred entries in ARCHITECTURE.md and README.md stay. Do not re-add speculative-consumer docs — record deferral as fact, never as design.
+- Limitation: `intellij-plugin` is a standalone Gradle build, so its build proof needs `cd intellij-plugin && ./gradlew build` — the repo-root Kotlin pack gate does not reach it. Older entries below still name the deleted `GoalPauseRepository` / `GoalStopRepository`; they record what was true then.
+Feature flag: N/A
+Acceptance criteria: 5/5 implemented (AC-005 build proof executes in the runtime build/validate phases)
+
 ## [2026-09-01] SKILL-228 subtask 2 — Blocked operator reason in status details
 Areas: intellij-plugin/{domain,infrastructure/cli,presentation,ui}
 - Blocked lifecycle outcomes carry `pauseReason` from the IdeStatus wire through mapper → domain → presentation → status details popup so operators see the validate/build needs-user-action text without opening the agent transcript.

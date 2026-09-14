@@ -1,13 +1,14 @@
 package dev.skillbill.intellij.composition
 
-import dev.skillbill.intellij.application.GoalStopOutcome
+import dev.skillbill.intellij.application.GoalMutationOutcome
 import dev.skillbill.intellij.domain.SkillBillStatusOutcome
 import dev.skillbill.intellij.fakes.FakePreferenceCache
 import dev.skillbill.intellij.fakes.FakeStatusRepository
 import dev.skillbill.intellij.fakes.ScriptedProcessFactory
 import dev.skillbill.intellij.infrastructure.cli.CliExecutableResolution
 import dev.skillbill.intellij.infrastructure.cli.CliExecutableSource
-import dev.skillbill.intellij.infrastructure.cli.CliGoalStopRepository
+import dev.skillbill.intellij.infrastructure.cli.CliGoalMutationRepository
+import dev.skillbill.intellij.infrastructure.cli.GoalMutation
 import dev.skillbill.intellij.infrastructure.cli.ProcessRunner
 import dev.skillbill.intellij.infrastructure.cli.ProcessSpec
 import java.nio.file.Files
@@ -79,15 +80,16 @@ class ProcessRunnerIsolationTest {
         // Let the poll get in flight before the mutation starts.
         delay(100)
 
-        val stop = CliGoalStopRepository(
+        val stop = CliGoalMutationRepository(
+            mutation = GoalMutation.STOP,
             preferences = FakePreferenceCache(),
             processRunner = stopRunner,
             executableResolver = { CliExecutableResolution.Found("/usr/bin/skill-bill", CliExecutableSource.SEARCH_PATH) },
         )
-        val outcome = withContext(Dispatchers.Default) { stop.requestStop(root, "SKILL-168") }
+        val outcome = withContext(Dispatchers.Default) { stop.requestMutation(root, "SKILL-168") }
 
         // The stop returned its own exit code (0 → Requested), not the poll's 77.
-        assertEquals(GoalStopOutcome.Requested, outcome)
+        assertEquals(GoalMutationOutcome.Requested, outcome)
         assertEquals("the stop started its own process", 1, stopFactory.commands.size)
         assertTrue("the poll was still in flight", !poll.isCompleted)
 

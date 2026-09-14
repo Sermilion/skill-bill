@@ -1,9 +1,7 @@
 package dev.skillbill.intellij.fakes
 
-import dev.skillbill.intellij.application.GoalPauseOutcome
-import dev.skillbill.intellij.application.GoalPauseRepository
-import dev.skillbill.intellij.application.GoalStopOutcome
-import dev.skillbill.intellij.application.GoalStopRepository
+import dev.skillbill.intellij.application.GoalMutationOutcome
+import dev.skillbill.intellij.application.GoalMutationRepository
 import dev.skillbill.intellij.application.PreferenceCachePort
 import dev.skillbill.intellij.application.StatusRepository
 import dev.skillbill.intellij.domain.CurrentPhaseModel
@@ -116,23 +114,12 @@ suspend fun awaitCallCount(repo: FakeStatusRepository, atLeast: Int, timeoutMs: 
 
 fun gate(): CompletableDeferred<Unit> = CompletableDeferred()
 
-class FakeGoalPauseRepository(
-    private val outcome: GoalPauseOutcome = GoalPauseOutcome.Requested,
-) : GoalPauseRepository {
+class FakeGoalMutationRepository(
+    private val outcome: GoalMutationOutcome = GoalMutationOutcome.Requested,
+) : GoalMutationRepository {
     val invocations = CopyOnWriteArrayList<MutationInvocation>()
 
-    override suspend fun requestPause(projectRoot: Path, issueKey: String): GoalPauseOutcome {
-        invocations += MutationInvocation(projectRoot, issueKey, Thread.currentThread().name)
-        return outcome
-    }
-}
-
-class FakeGoalStopRepository(
-    private val outcome: GoalStopOutcome = GoalStopOutcome.Requested,
-) : GoalStopRepository {
-    val invocations = CopyOnWriteArrayList<MutationInvocation>()
-
-    override suspend fun requestStop(projectRoot: Path, issueKey: String): GoalStopOutcome {
+    override suspend fun requestMutation(projectRoot: Path, issueKey: String): GoalMutationOutcome {
         invocations += MutationInvocation(projectRoot, issueKey, Thread.currentThread().name)
         return outcome
     }

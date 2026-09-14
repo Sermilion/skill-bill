@@ -1,13 +1,31 @@
-import { GoalPauseRepository } from "../application/GoalPauseRepository";
-import { GoalStopRepository } from "../application/GoalStopRepository";
+import { GoalMutationRepository } from "../application/GoalMutationRepository";
 import { PreferenceCachePort } from "../application/PreferenceCachePort";
 import { StatusRefreshCoordinator } from "../application/StatusRefreshCoordinator";
 import { StatusRepository } from "../application/StatusRepository";
 import { StatusClock } from "../domain/StatusClock";
-import { CliGoalPauseRepository } from "../infrastructure/cli/CliGoalPauseRepository";
-import { CliGoalStopRepository } from "../infrastructure/cli/CliGoalStopRepository";
+import {
+  CliGoalMutationRepository,
+  GOAL_PAUSE_MUTATION,
+  GOAL_STOP_MUTATION,
+} from "../infrastructure/cli/CliGoalMutationRepository";
 import { ProcessRunner } from "../infrastructure/cli/ProcessRunner";
 import { SkillBillStatusViewModel } from "../presentation/SkillBillStatusViewModel";
+
+export interface GoalMutationRepositories {
+  readonly pause: GoalMutationRepository;
+  readonly stop: GoalMutationRepository;
+}
+
+export function createGoalMutationRepositories(
+  preferences: PreferenceCachePort,
+  pauseProcessRunner: ProcessRunner,
+  stopProcessRunner: ProcessRunner,
+): GoalMutationRepositories {
+  return {
+    pause: new CliGoalMutationRepository(GOAL_PAUSE_MUTATION, preferences, pauseProcessRunner),
+    stop: new CliGoalMutationRepository(GOAL_STOP_MUTATION, preferences, stopProcessRunner),
+  };
+}
 
 export class StatusCompositionRoot {
   constructor(
@@ -18,8 +36,8 @@ export class StatusCompositionRoot {
     readonly statusRepository: StatusRepository,
     readonly coordinator: StatusRefreshCoordinator,
     readonly viewModel: SkillBillStatusViewModel,
-    readonly goalPauseRepository: GoalPauseRepository,
-    readonly goalStopRepository: GoalStopRepository,
+    readonly goalPauseRepository: GoalMutationRepository,
+    readonly goalStopRepository: GoalMutationRepository,
   ) {}
 
   dispose(): void {
@@ -39,8 +57,6 @@ export class StatusCompositionRoot {
     processRunner?: ProcessRunner;
     pauseProcessRunner?: ProcessRunner;
     stopProcessRunner?: ProcessRunner;
-    goalPauseRepository?: GoalPauseRepository;
-    goalStopRepository?: GoalStopRepository;
   }): StatusCompositionRoot {
     const clock = options.clock ?? StatusClock.system();
     const processRunner = options.processRunner ?? new ProcessRunner();
@@ -53,12 +69,11 @@ export class StatusCompositionRoot {
       options.onCancelProcesses ?? (() => processRunner.cancelAll()),
     );
     const viewModel = new SkillBillStatusViewModel(coordinator, clock);
-    const goalPauseRepository =
-      options.goalPauseRepository ??
-      new CliGoalPauseRepository(options.preferences, pauseProcessRunner);
-    const goalStopRepository =
-      options.goalStopRepository ??
-      new CliGoalStopRepository(options.preferences, stopProcessRunner);
+    const mutations = createGoalMutationRepositories(
+      options.preferences,
+      pauseProcessRunner,
+      stopProcessRunner,
+    );
     return new StatusCompositionRoot(
       options.preferences,
       processRunner,
@@ -67,8 +82,8 @@ export class StatusCompositionRoot {
       options.statusRepository,
       coordinator,
       viewModel,
-      goalPauseRepository,
-      goalStopRepository,
+      mutations.pause,
+      mutations.stop,
     );
   }
 }
