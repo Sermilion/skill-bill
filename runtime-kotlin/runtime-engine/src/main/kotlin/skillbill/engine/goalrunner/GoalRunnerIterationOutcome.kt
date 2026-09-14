@@ -12,6 +12,7 @@ import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowOutcomeStore
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.ports.goalrunner.runner.model.GoalRunnerWorkflowProgress
 import skillbill.workflow.decomposition.model.DecompositionManifest
+import skillbill.workflow.model.decompositionStatus
 import java.time.Clock
 
 internal class GoalRunnerIterationOutcome(
@@ -227,6 +228,7 @@ internal class GoalRunnerIterationOutcome(
           subtaskId = subtaskId,
           progress = progress,
           fallback = stoppedOutcome.reason.nextSafeAction(),
+          subtaskStatus = state.manifest.subtasks.firstOrNull { it.id == subtaskId }?.status?.decompositionStatus(),
         ),
         attemptDurationMillis = attemptDurationMillis,
         reAttemptCause = reAttemptCause,

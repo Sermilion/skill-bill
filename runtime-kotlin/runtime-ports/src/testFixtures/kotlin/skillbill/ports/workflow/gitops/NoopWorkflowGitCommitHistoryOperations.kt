@@ -18,6 +18,10 @@ internal object NoopWorkflowGitCommitHistoryOperations : WorkflowGitCommitHistor
     return WorkflowGitOperationResult.Ok(value = commitSha.trim())
   }
 
+  override fun resetHardToCommit(repoRoot: Path, commitSha: String): WorkflowGitOperationResult {
+    return WorkflowGitOperationResult.Ok(value = commitSha.trim())
+  }
+
   override fun isCommitAncestor(
     repoRoot: Path,
     ancestorSha: String,

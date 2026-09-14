@@ -5,6 +5,7 @@ import skillbill.goalrunner.model.GoalRunnerLaunchFacts
 import skillbill.goalrunner.model.GoalRunnerLivenessSnapshot
 import skillbill.goalrunner.model.GoalRunnerStopReason
 import skillbill.ports.goalrunner.runner.model.GoalRunnerWorkflowProgress
+import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 
 fun reAttemptCauseFor(reason: GoalRunnerStopReason, childLoopIterations: Map<String, Int>): String? {
@@ -82,9 +83,11 @@ fun recoverySafeAction(
   subtaskId: Int,
   progress: GoalRunnerWorkflowProgress?,
   fallback: String,
+  subtaskStatus: DecompositionStatus?,
 ): String = when (classifyDurableChild(progress)) {
   DurableChildRecoveryClass.RESUMABLE -> "resume_from_last_resumable_step"
-  DurableChildRecoveryClass.INCOMPATIBLE_TERMINAL -> scopedChildRecoveryCommand(issueKey, subtaskId)
+  DurableChildRecoveryClass.INCOMPATIBLE_TERMINAL ->
+    recommendedDurableChildRecoveryCommand(issueKey, subtaskId, subtaskStatus, progress)
   DurableChildRecoveryClass.ABSENT,
   DurableChildRecoveryClass.ACTIVE,
   -> fallback

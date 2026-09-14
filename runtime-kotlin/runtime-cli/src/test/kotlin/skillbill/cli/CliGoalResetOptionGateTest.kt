@@ -1,12 +1,17 @@
 package skillbill.cli
 
 import skillbill.cli.core.CliRuntime
+import skillbill.cli.goal.goalResetExitCode
+import skillbill.cli.goal.goalResetText
+import skillbill.cli.goal.toGoalResetCliMap
+import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.goalrunner.GoalRunnerResetPayloadKeys
+import skillbill.engine.goalrunner.model.GoalRunnerResetResult
+import skillbill.engine.goalrunner.model.GoalRunnerResetSnapshot
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 
-// The soft reset never consults --preserve-planning, so accepting the pair silently discarded the
-// operator's intent. The gate mirrors how --confirm-issue-key is bound to --hard.
 class CliGoalResetOptionGateTest {
   @Test
   fun `goal reset rejects preserve-planning without hard`() {
@@ -49,6 +54,30 @@ class CliGoalResetOptionGateTest {
   }
 
   @Test
+  fun `goal reset accepts yes as a hard reset confirmation bypass`() {
+    val fixture = goalFixture(subtaskCount = 1)
+    val launcher = GoalFixtureAgentRunLauncher(fixture)
+
+    val accepted = CliRuntime.run(
+      listOf(
+        "--db",
+        fixture.dbPath.toString(),
+        "goal",
+        "reset",
+        "SKILL-901",
+        "--hard",
+        "--yes",
+        "--repo-root",
+        fixture.tempDir.toString(),
+      ),
+      fixture.context(launcher = launcher),
+    )
+
+    assertEquals(0, accepted.exitCode, accepted.stdout)
+    assertContains(accepted.stdout, "mode: hard")
+  }
+
+  @Test
   fun `goal reset requires both scoped child deletion selectors`() {
     val fixture = goalFixture(subtaskCount = 1)
     val launcher = GoalFixtureAgentRunLauncher(fixture)
@@ -66,6 +95,31 @@ class CliGoalResetOptionGateTest {
     assertContains(missingDelete.stdout, "--subtask ID and --delete-child-workflow")
     assertEquals(1, missingSubtask.exitCode, missingSubtask.stdout)
     assertContains(missingSubtask.stdout, "--subtask ID and --delete-child-workflow")
+  }
+
+  @Test
+  fun `hard reset output documents the branch action taken`() {
+    val snapshot = GoalRunnerResetSnapshot(
+      status = "pending",
+      currentSubtaskId = 1,
+      currentAction = "start",
+      subtasks = emptyList(),
+    )
+    val payload = GoalRunnerResetResult(
+      issueKey = "SKILL-346",
+      mode = "hard",
+      parentWorkflowId = "wfl-parent",
+      before = snapshot,
+      after = snapshot,
+      branchActionTaken = "reset_feature_branch_tip_to_parent",
+    ).toGoalResetCliMap("SKILL-346", hard = true)
+
+    assertEquals("ok", payload[SharedPayloadKeys.STATUS])
+    assertEquals(0, payload.goalResetExitCode())
+    assertContains(
+      goalResetText(payload),
+      "${GoalRunnerResetPayloadKeys.BRANCH_ACTION_TAKEN}: reset_feature_branch_tip_to_parent",
+    )
   }
 
   @Test

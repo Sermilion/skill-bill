@@ -67,7 +67,7 @@ class CliGoalRuntimeExecutionTest {
     assertContains(reset.stdout, "classification=incompatible_terminal")
     assertContains(
       reset.stdout,
-      "recovery_command: skill-bill goal reset SKILL-901 --subtask 2 --delete-child-workflow",
+      "recovery_command: skill-bill goal reset SKILL-901 --hard --yes",
     )
     val status = CliRuntime.run(
       listOf("--db", fixture.dbPath.toString(), "goal", "status", "SKILL-901", "--agent", "codex"),

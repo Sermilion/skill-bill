@@ -86,7 +86,7 @@ class GoalResetCommand(
   private val issueKey by argument(help = "Parent issue key for the decomposed goal.")
   private val hard by option("--hard", help = "Reset all subtask runtime fields, including completed subtasks.")
     .flag(default = false)
-  private val force by option("--force", help = "Bypass hard-reset confirmation gate.")
+  private val force by option("--force", "--yes", help = "Bypass hard-reset confirmation gate.")
     .flag(default = false)
   private val preservePlanning by option(
     "--preserve-planning",

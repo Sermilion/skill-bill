@@ -336,6 +336,56 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
     assertEquals(GoalRunnerRepairStatus.OPERATOR_REQUIRED, result.status)
     assertContains(
       result.refusalReason.orEmpty(),
+      "skill-bill goal reset $ISSUE_KEY --hard --yes",
+    )
+  }
+
+  @Test
+  fun `repair refusal for unreachable review base with blocked subtask points to scoped child reset`() {
+    val unreachable = "a".repeat(40)
+    val workflows = InMemoryWorkflowStates()
+    val workflowId = "wftr-repair-unrecoverable-review-blocked"
+    workflows.saveFeatureTaskRuntimeWorkflow(
+      repairChildRecord(
+        RepairChildRecordArgs(
+          workflowId = workflowId,
+          continuation = continuationMap(includeValidationDepth = true),
+          reviewState = healthyReviewState().copy(reviewBaseSha = unreachable),
+          workflowStatus = "failed",
+        ),
+      ),
+    )
+    val store = repairStore(
+      workflows,
+      git = ReachableGit(
+        unreachableShas = setOf(unreachable),
+        recoveryStatus = WorkflowGitOperationStatus.ERROR,
+      ),
+    )
+    val manifestStore = MutableRepairManifestStore(
+      workflowId,
+      initialControlState = GoalRunnerControlState(),
+      subtasks = listOf(subtask(1, workflowId).copy(status = "blocked")),
+    )
+    val service = testGoalRunnerStatusService(
+      manifestStore = manifestStore,
+      outcomeStore = store,
+      phaseRecorder = goalTestPhaseRecorder(),
+      ports = GoalRunnerStatusTestPorts(childRepairStore = store),
+    )
+
+    val result = service.repair(
+      GoalRunnerRepairRequest(
+        issueKey = ISSUE_KEY,
+        apply = true,
+        subtaskId = 1,
+        repoRoot = Path.of("."),
+      ),
+    )
+
+    assertEquals(GoalRunnerRepairStatus.OPERATOR_REQUIRED, result.status)
+    assertContains(
+      result.refusalReason.orEmpty(),
       "skill-bill goal reset $ISSUE_KEY --subtask 1 --delete-child-workflow",
     )
   }
@@ -1587,6 +1637,7 @@ internal abstract class GoalRunnerRepairFixtures {
   protected open class MutableRepairManifestStore(
     private val childWorkflowId: String,
     initialControlState: GoalRunnerControlState = GoalRunnerControlState(),
+    private val subtasks: List<DecompositionSubtask>? = null,
   ) : GoalRunnerManifestStoreDefaults() {
     var controlStateValue: GoalRunnerControlState = initialControlState
 
@@ -1602,7 +1653,7 @@ internal abstract class GoalRunnerRepairFixtures {
         baseBranch = "main",
         featureBranch = "feat/$issueKey-repair",
         currentSubtaskIntent = CurrentSubtaskIntent(1, "resume"),
-        subtasks = listOf(
+        subtasks = subtasks ?: listOf(
           DecompositionSubtask(
             id = 1,
             name = "child",

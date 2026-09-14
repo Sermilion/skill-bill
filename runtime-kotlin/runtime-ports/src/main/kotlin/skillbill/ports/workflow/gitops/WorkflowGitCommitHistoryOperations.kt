@@ -13,6 +13,11 @@ interface WorkflowGitCommitHistoryOperations {
       error = "This git operations implementation cannot soft-reset HEAD to '$commitSha'.",
     )
 
+  fun resetHardToCommit(repoRoot: Path, commitSha: String): WorkflowGitOperationResult =
+    WorkflowGitOperationResult.Failed(
+      error = "This git operations implementation cannot hard-reset HEAD to '$commitSha'.",
+    )
+
   fun isCommitAncestor(repoRoot: Path, ancestorSha: String, descendantSha: String): WorkflowGitOperationResult =
     WorkflowGitOperationResult.Failed(
       error = "This git operations implementation cannot test commit ancestry.",

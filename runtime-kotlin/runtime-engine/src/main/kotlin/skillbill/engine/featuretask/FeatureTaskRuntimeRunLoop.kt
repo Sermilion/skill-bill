@@ -3,7 +3,7 @@ package skillbill.engine.featuretask
 import skillbill.application.idestatus.AgentActivityStampWriter
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
-import skillbill.engine.goalrunner.scopedChildRecoveryCommand
+import skillbill.engine.goalrunner.recommendedDurableChildRecoveryCommand
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
 import skillbill.workflow.decomposition.model.SpecSource
@@ -171,7 +171,14 @@ class FeatureTaskRuntimeRunLoop internal constructor(
     append("Operator decisions over review remediation are removed; ")
     append("the run advances to validate after one implement_fix round.")
     request.goalContinuation?.let {
-      append(" Recover with: '${scopedChildRecoveryCommand(it.parentIssueKey, it.subtaskId)}'.")
+      append(
+        " Recover with: '${recommendedDurableChildRecoveryCommand(
+          it.parentIssueKey,
+          it.subtaskId,
+          null,
+          null,
+        )}'.",
+      )
     }
   }
 }

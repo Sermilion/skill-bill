@@ -80,14 +80,15 @@ public class GoalRunnerSubtaskLaunchPrepare(
     reason: String,
     request: GoalRunnerRunRequest,
   ): GoalRunnerIterationResult {
-    val blocked = state.manifest.withBranchSetupBlockedSubtask(subtaskId, reason)
+    val blockedReason = reviewBaselineBlockedReason(state.manifest, subtaskId, reason)
+    val blocked = state.manifest.withBranchSetupBlockedSubtask(subtaskId, blockedReason)
     val saved = manifestStore.save(state.copy(manifest = blocked))
     request.eventSink.emit(
       GoalRunnerRunEvent.SubtaskStopped(
         issueKey = saved.manifest.issueKey,
         subtaskId = subtaskId,
         reason = GoalRunnerStopReason.BLOCKED.name.lowercase(),
-        blockedReason = reason,
+        blockedReason = blockedReason,
         currentStepId = "preplan",
       ),
     )
@@ -99,7 +100,7 @@ public class GoalRunnerSubtaskLaunchPrepare(
           attempted = emptyList(),
           subtaskId = subtaskId,
           reason = GoalRunnerStopReason.BLOCKED,
-          blockedReason = reason,
+          blockedReason = blockedReason,
           workflowId = state.manifest.workflowIdFor(subtaskId),
           lastResumableStep = "preplan",
         ),

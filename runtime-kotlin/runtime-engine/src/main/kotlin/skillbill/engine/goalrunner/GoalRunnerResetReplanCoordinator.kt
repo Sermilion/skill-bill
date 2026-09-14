@@ -8,6 +8,7 @@ import skillbill.engine.goalrunner.model.GoalRunnerReplanResult
 import skillbill.engine.goalrunner.model.GoalRunnerReplanSnapshot
 import skillbill.engine.goalrunner.model.GoalRunnerResetRequest
 import skillbill.engine.goalrunner.model.GoalRunnerResetResult
+import skillbill.engine.goalrunner.model.GoalRunnerResetSnapshot
 import skillbill.engine.goalrunner.model.GoalRunnerResetSubtaskSnapshot
 import skillbill.goalrunner.model.ExecutionLiveness
 import skillbill.goalrunner.model.GoalRunnerAcceptedSubtask
@@ -39,39 +40,19 @@ class GoalRunnerResetReplanCoordinator(
   private val repositoryEnclosingRootPort: RepositoryEnclosingRootPort,
 ) {
   fun reset(request: GoalRunnerResetRequest): GoalRunnerResetResult? {
-    val loaded = if (request.deleteChildWorkflow) {
-      manifestStore.loadDurableByIssueKey(request.issueKey)?.copy(repoRoot = request.repoRoot)
-    } else {
-      manifestStore.loadByIssueKey(request.issueKey, request.repoRoot)
-    }
-      ?: return null
-    if (request.deleteChildWorkflow) {
-      return deleteIncompatibleChildWorkflow(request, loaded)
-    }
-    outcomeStore.reconcileAuthoritativeOutcomes(
-      issueKey = loaded.manifest.issueKey,
-      activeWorkflowIds = emptySet(),
-      gate = GoalRunnerReconcileGate(allowInactiveReconciliation = true),
-    )
+    val loaded = loadResetState(request) ?: return null
+    if (request.deleteChildWorkflow) return deleteIncompatibleChildWorkflow(request, loaded)
+    reconcileResetState(loaded)
     val latest = manifestStore.loadByIssueKey(request.issueKey, request.repoRoot) ?: loaded
     val hardResetRepoRoot = request.takeHardResetRepositoryRoot(latest)
+    val coordination = hardResetBranchCoordination(request, latest, hardResetRepoRoot)
+    if (coordination is GoalRunnerHardResetBranchCoordination.Refused) {
+      return refusedResetResult(latest, coordination)
+    }
+    val branchActionTaken = (coordination as? GoalRunnerHardResetBranchCoordination.Documented)
+      ?.branchActionTaken
     val before = latest.manifest.toResetSnapshot()
-    val resetManifest = latest.manifest.resetManifest(request.hard)
-    val resetState = latest.copy(manifest = resetManifest)
-    val saved = if (request.hard) {
-      manifestStore.saveHardReset(resetState, request.preservePlanning)
-    } else {
-      manifestStore.save(resetState)
-    }
-    if (request.hard) {
-      pruneResetSubtaskCheckpointRefs(
-        gitOperations = gitOperations,
-        repoRoot = requireNotNull(hardResetRepoRoot),
-        issueKey = saved.manifest.issueKey,
-        subtaskIds = before.subtasks.map { it.id },
-        record = { message -> runCatching { diagnostics.warning(message) } },
-      )
-    }
+    val saved = saveResetState(request, latest, before, hardResetRepoRoot)
     val staleChild = if (!request.hard) {
       currentChildRecoveryDiagnostic(saved.manifest)
     } else {
@@ -84,7 +65,83 @@ class GoalRunnerResetReplanCoordinator(
       before = before,
       after = saved.manifest.toResetSnapshot(),
       recovery = staleChild,
+      branchActionTaken = branchActionTaken,
     )
+  }
+
+  private fun loadResetState(request: GoalRunnerResetRequest): GoalRunnerManifestState? =
+    if (request.deleteChildWorkflow) {
+      manifestStore.loadDurableByIssueKey(request.issueKey)?.copy(repoRoot = request.repoRoot)
+    } else {
+      manifestStore.loadByIssueKey(request.issueKey, request.repoRoot)
+    }
+
+  private fun reconcileResetState(loaded: GoalRunnerManifestState) {
+    outcomeStore.reconcileAuthoritativeOutcomes(
+      issueKey = loaded.manifest.issueKey,
+      activeWorkflowIds = emptySet(),
+      gate = GoalRunnerReconcileGate(allowInactiveReconciliation = true),
+    )
+  }
+
+  private fun hardResetBranchCoordination(
+    request: GoalRunnerResetRequest,
+    latest: GoalRunnerManifestState,
+    repoRoot: Path?,
+  ): GoalRunnerHardResetBranchCoordination {
+    if (!request.hard) return GoalRunnerHardResetBranchCoordination.NotApplicable
+    val root = requireNotNull(repoRoot)
+    return when (val inspection = inspectHardResetOrphanTrap(latest.manifest, root, gitOperations)) {
+      GoalRunnerHardResetOrphanTrapInspection.NotApplicable ->
+        GoalRunnerHardResetBranchCoordination.NotApplicable
+      is GoalRunnerHardResetOrphanTrapInspection.Detected ->
+        coordinateHardResetOrphanTrap(inspection.trap, latest.manifest.issueKey, root, gitOperations)
+      is GoalRunnerHardResetOrphanTrapInspection.Unavailable ->
+        GoalRunnerHardResetBranchCoordination.Refused(
+          reason = inspection.reason,
+          remedyCommand = inspection.remedyCommand,
+        )
+    }
+  }
+
+  private fun refusedResetResult(
+    latest: GoalRunnerManifestState,
+    refusal: GoalRunnerHardResetBranchCoordination.Refused,
+  ): GoalRunnerResetResult {
+    val snapshot = latest.manifest.toResetSnapshot()
+    return GoalRunnerResetResult(
+      issueKey = latest.manifest.issueKey,
+      mode = "hard",
+      parentWorkflowId = latest.parentWorkflowId,
+      before = snapshot,
+      after = snapshot,
+      refusalReason = refusal.reason,
+      remedyCommand = refusal.remedyCommand,
+    )
+  }
+
+  private fun saveResetState(
+    request: GoalRunnerResetRequest,
+    latest: GoalRunnerManifestState,
+    before: GoalRunnerResetSnapshot,
+    repoRoot: Path?,
+  ): GoalRunnerManifestState {
+    val resetState = latest.copy(manifest = latest.manifest.resetManifest(request.hard))
+    val saved = if (request.hard) {
+      manifestStore.saveHardReset(resetState, request.preservePlanning)
+    } else {
+      manifestStore.save(resetState)
+    }
+    if (request.hard) {
+      pruneResetSubtaskCheckpointRefs(
+        gitOperations = gitOperations,
+        repoRoot = requireNotNull(repoRoot),
+        issueKey = saved.manifest.issueKey,
+        subtaskIds = before.subtasks.map { it.id },
+        record = { message -> runCatching { diagnostics.warning(message) } },
+      )
+    }
+    return saved
   }
 
   fun replan(request: GoalRunnerReplanRequest): GoalRunnerReplanResult? {
@@ -217,7 +274,12 @@ class GoalRunnerResetReplanCoordinator(
         subtaskId = subtask.id,
         workflowId = workflowId,
         classification = it.wireValue,
-        recoveryCommand = scopedChildRecoveryCommand(manifest.issueKey, subtask.id),
+        recoveryCommand = recommendedDurableChildRecoveryCommand(
+          manifest.issueKey,
+          subtask.id,
+          subtask.status.decompositionStatus(),
+          outcomeStore.progress(workflowId),
+        ),
       )
     }
   }
