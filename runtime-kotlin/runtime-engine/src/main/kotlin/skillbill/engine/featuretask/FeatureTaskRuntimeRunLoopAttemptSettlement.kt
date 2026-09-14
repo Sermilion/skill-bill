@@ -424,7 +424,10 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
         ),
       )
     }
-    if (run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE) {
+    if (
+      run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE &&
+      !run.agentRunValidateFallback
+    ) {
       return AttemptResult.settled(
         PhaseOutcome.completed(
           FeatureTaskRuntimeRunLoopValidationGate.gateRepairSegmentOutput(run, args.iteration),
@@ -460,8 +463,10 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
       (run.validationGateFindings != null && run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD)
   }
 
-  private fun shouldSkipValidationEvidenceRequirement(run: PhaseRun): Boolean =
-    run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE
+  private fun shouldSkipValidationEvidenceRequirement(run: PhaseRun): Boolean {
+    if (run.agentRunValidateFallback) return false
+    return run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE
+  }
 
   internal fun gateOutputSchemaInvalid(
     state: FeatureTaskRuntimeRunState,
