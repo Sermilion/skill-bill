@@ -118,6 +118,14 @@ internal fun gitResetSoftToCommit(repoRoot: Path, commitSha: String): WorkflowGi
   return runGitCommand(repoRoot, "reset", "--soft", normalized)
 }
 
+internal fun gitResetHardToCommit(repoRoot: Path, commitSha: String): WorkflowGitOperationResult {
+  val normalized = commitSha.trim()
+  if (normalized.isBlank()) {
+    return WorkflowGitOperationResult.Failed(error = "A commit SHA is required to hard-reset HEAD.")
+  }
+  return runGitCommand(repoRoot, "reset", "--hard", normalized)
+}
+
 internal fun gitIsCommitAncestor(
   repoRoot: Path,
   ancestorSha: String,

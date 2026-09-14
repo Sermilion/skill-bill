@@ -13,6 +13,9 @@ internal object GitStandardWorkflowGitCommitHistoryOperations : WorkflowGitCommi
   override fun resetSoftToCommit(repoRoot: Path, commitSha: String): WorkflowGitOperationResult =
     gitResetSoftToCommit(repoRoot, commitSha)
 
+  override fun resetHardToCommit(repoRoot: Path, commitSha: String): WorkflowGitOperationResult =
+    gitResetHardToCommit(repoRoot, commitSha)
+
   override fun isCommitAncestor(
     repoRoot: Path,
     ancestorSha: String,

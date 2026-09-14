@@ -39,8 +39,6 @@ object FeatureTaskRuntimeSubtaskCommitResolver {
     sequenceNumber: Int,
   ): FeatureTaskRuntimeSubtaskCommitDecision {
     val durable = durableCommitSha?.trim()?.takeIf(String::isNotBlank)
-    val ownsPublishedHead = durable != null && durable == headSha
-    if (!head.isUnpushed && !ownsPublishedHead) return FeatureTaskRuntimeSubtaskCommitCreate
     if (durable != null) {
       return amendOrCreateFromDurable(durable, headSha, head, sequenceNumber)
     }

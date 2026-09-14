@@ -1,5 +1,14 @@
 # goalrunner boundary history
 
+## [2026-09-14] SKILL-346 subtask 2 — Hard reset and commit-span recovery
+Areas: runtime-kotlin/{runtime-engine/{goalrunner,featuretask}, runtime-infra-fs, runtime-ports, runtime-contracts, runtime-cli}
+- Hard reset now preflights same-goal trailer spans, refuses when publication or parent ownership cannot be proven, and documents or performs the required branch action before clearing durable identity.
+- Relaunch recovery adopts a matching trailer-backed identity and accepts a subtask N>1 review base at the prior subtask commit without an ambiguous-span block; checkpoint refs and completed commits remain preserved.
+- Pattern: coordinate durable reset state with proven git ownership and make branch mutations explicit in the reset result. reusable
+- Regression coverage reproduces interrupted hard-reset recovery for published and unpublished trailer tips.
+Feature flag: N/A
+Acceptance criteria: 5/5 implemented
+
 ## [2026-09-14] SKILL-346 subtask 1 — Runnable recovery recommendations
 Areas: runtime-kotlin/{runtime-engine/goalrunner, runtime-engine/featuretask, runtime-cli/goal}
 - Recovery projections advertise scoped child deletion only for blocked subtasks with incompatible terminal child workflows; active or in-progress cases receive runnable hard-reset, replan, or resume/stop guidance.

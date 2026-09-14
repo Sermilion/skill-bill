@@ -31,6 +31,9 @@ data class GoalRunnerResetResult(
   val before: GoalRunnerResetSnapshot,
   val after: GoalRunnerResetSnapshot,
   val recovery: GoalRunnerChildRecoveryDiagnostic? = null,
+  val branchActionTaken: String? = null,
+  val refusalReason: String? = null,
+  val remedyCommand: String? = null,
 )
 
 data class GoalRunnerChildRecoveryDiagnostic(

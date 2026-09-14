@@ -31,15 +31,14 @@ fun recommendedDurableChildRecoveryCommand(
   subtaskId: Int,
   subtaskStatus: DecompositionStatus?,
   childProgress: GoalRunnerWorkflowProgress?,
-): String =
-  if (
-    classifyDurableChild(childProgress) == DurableChildRecoveryClass.INCOMPATIBLE_TERMINAL &&
-    subtaskStatus == DecompositionStatus.BLOCKED
-  ) {
-    scopedChildRecoveryCommand(issueKey, subtaskId)
-  } else {
-    goalPlanningHardResetRemedy(issueKey)
-  }
+): String = if (
+  classifyDurableChild(childProgress) == DurableChildRecoveryClass.INCOMPATIBLE_TERMINAL &&
+  subtaskStatus == DecompositionStatus.BLOCKED
+) {
+  scopedChildRecoveryCommand(issueKey, subtaskId)
+} else {
+  goalPlanningHardResetRemedy(issueKey)
+}
 
 /**
  * Recovery for a child holding planning bytes its parent has since replaced. Scoped reset refuses a

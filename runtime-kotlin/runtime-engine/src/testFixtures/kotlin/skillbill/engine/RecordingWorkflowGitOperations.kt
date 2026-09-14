@@ -59,6 +59,8 @@ class RecordingWorkflowGitOperations(
   var invalidShaOnRemediationCommit: Boolean = false
   val resetSoftToCommitCalls = mutableListOf<String>()
   var resetSoftToCommitResult: WorkflowGitOperationResult? = null
+  val resetHardToCommitCalls = mutableListOf<String>()
+  var resetHardToCommitResult: WorkflowGitOperationResult? = null
   val nonAncestorPairs = mutableSetOf<Pair<String, String>>()
   val stagePathsCalls = mutableListOf<String>()
   var stagePathsResult: WorkflowGitOperationResult? = null
@@ -185,6 +187,15 @@ class RecordingWorkflowGitOperations(
   override fun resetSoftToCommit(repoRoot: Path, commitSha: String): WorkflowGitOperationResult {
     resetSoftToCommitCalls += commitSha.trim()
     val result = resetSoftToCommitResult ?: WorkflowGitOperationResult.Ok(value = commitSha.trim())
+    if (result is WorkflowGitOperationResult.Ok) {
+      headCommitShaValue = commitSha.trim()
+    }
+    return result
+  }
+
+  override fun resetHardToCommit(repoRoot: Path, commitSha: String): WorkflowGitOperationResult {
+    resetHardToCommitCalls += commitSha.trim()
+    val result = resetHardToCommitResult ?: WorkflowGitOperationResult.Ok(value = commitSha.trim())
     if (result is WorkflowGitOperationResult.Ok) {
       headCommitShaValue = commitSha.trim()
     }

@@ -1,6 +1,7 @@
 package skillbill.cli.goal
 
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.goalrunner.GoalRunnerResetPayloadKeys
 import skillbill.engine.goalrunner.model.GoalRunnerAcceptResult
 import skillbill.engine.goalrunner.model.GoalRunnerReplanResult
 import skillbill.engine.goalrunner.model.GoalRunnerReplanSnapshot
@@ -9,13 +10,21 @@ import skillbill.engine.goalrunner.model.GoalRunnerResetSnapshot
 import skillbill.goalrunner.model.GoalRunnerAcceptedSubtask
 
 internal fun GoalRunnerResetResult?.toGoalResetCliMap(issueKey: String, hard: Boolean): Map<String, Any?> = this?.let {
+  val status = when {
+    it.refusalReason != null -> "refused"
+    it.recovery?.recoveryCommand != null -> "recovery_required"
+    else -> "ok"
+  }
   linkedMapOf(
-    SharedPayloadKeys.STATUS to if (it.recovery?.recoveryCommand == null) "ok" else "recovery_required",
+    SharedPayloadKeys.STATUS to status,
     SharedPayloadKeys.ISSUE_KEY to it.issueKey,
     "mode" to it.mode,
     "parent_workflow_id" to it.parentWorkflowId,
     "before" to resetSnapshotMap(it.before),
     "after" to resetSnapshotMap(it.after),
+    GoalRunnerResetPayloadKeys.BRANCH_ACTION_TAKEN to it.branchActionTaken,
+    GoalRunnerResetPayloadKeys.REFUSAL_REASON to it.refusalReason,
+    GoalRunnerResetPayloadKeys.REMEDY_COMMAND to it.remedyCommand,
     "recovery" to it.recovery?.let { recovery ->
       linkedMapOf(
         SharedPayloadKeys.SUBTASK_ID to recovery.subtaskId,
@@ -180,6 +189,15 @@ internal fun goalResetText(payload: Map<String, Any?>): String = buildString {
         "classification=${recovery["classification"]}",
     )
     recovery["command"]?.let { appendLine("recovery_command: $it") }
+  }
+  payload[GoalRunnerResetPayloadKeys.BRANCH_ACTION_TAKEN]?.let {
+    appendLine("branch_action_taken: $it")
+  }
+  payload[GoalRunnerResetPayloadKeys.REFUSAL_REASON]?.let {
+    appendLine("refusal_reason: $it")
+  }
+  payload[GoalRunnerResetPayloadKeys.REMEDY_COMMAND]?.let {
+    appendLine("remedy_command: $it")
   }
 }
 
