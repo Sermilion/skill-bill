@@ -39,6 +39,13 @@ object FeatureTaskRuntimeRunLoopPhaseRunner {
     state: FeatureTaskRuntimeRunState,
     observability: FeatureTaskRuntimeRunObservability,
   ): PhaseOutcome? {
+    FeatureTaskRuntimeCommitPushUpstreamHeadFallback.reconcile(
+      runLoop.request,
+      run,
+      state,
+      runLoop.phaseGates,
+      runLoop.diagnostics,
+    )
     val persisted = state.persistedBlockedReason(run.phaseId)?.let { persistedReason ->
       val nextIteration = state.nextIteration(run.phaseId)
       val durable = state.recordFor(run.phaseId)
