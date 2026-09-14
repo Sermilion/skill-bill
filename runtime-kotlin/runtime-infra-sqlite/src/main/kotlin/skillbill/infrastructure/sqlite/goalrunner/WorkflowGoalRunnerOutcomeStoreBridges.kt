@@ -32,6 +32,9 @@ import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.save
+import skillbill.infrastructure.sqlite.goalrunner.clearDecompositionManifestProjectionFailure
+import skillbill.infrastructure.sqlite.goalrunner.persistDecompositionManifestProjectionFailure
+import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.WorkflowSnapshotValidator
@@ -105,6 +108,7 @@ class WorkflowGoalRunnerOutcomeStoreBridgeBuilder @Inject constructor(
       decompositionManifestValidator,
       decompositionManifestStore,
       decompositionManifestWriter,
+      engine,
     )
     return WorkflowGoalRunnerOutcomeStoreBridges(
       workflow = workflowBridge,
@@ -120,6 +124,7 @@ internal class WorkflowGoalRunnerChildRepairBridge(
   private val decompositionManifestValidator: DecompositionManifestValidator?,
   private val decompositionManifestStore: DecompositionManifestStore,
   private val decompositionManifestWriter: DecompositionManifestProjectionWriter,
+  private val engine: WorkflowEngine,
 ) : GoalRunnerChildRepairStore {
   override fun diagnoseChildWedges(request: GoalRunnerChildWedgeDiagnosisRequest): GoalRunnerChildWedgeDiagnosis =
     database.read { unitOfWork ->
@@ -148,15 +153,28 @@ internal class WorkflowGoalRunnerChildRepairBridge(
     }
     result.manifestProjectionArtifactsJson?.let { artifactsJson ->
       val validator = decompositionManifestValidator ?: return@let
-      checkNotNull(
-        decompositionManifestWriter.writeProjectionFromWorkflowState(
+      when (
+        val outcome = decompositionManifestWriter.writeProjectionFromWorkflowState(
           repoRoot = request.repoRoot,
           artifactsJson = artifactsJson,
           validator = validator,
           fileStore = decompositionManifestStore,
-        ),
+        )
       ) {
-        "Goal repair reopened the durable goal child but could not write its decomposition manifest projection."
+        is DecompositionManifestProjectionOutcome.Failed ->
+          database.transaction { unitOfWork ->
+            persistDecompositionManifestProjectionFailure(
+              engine,
+              unitOfWork,
+              request.workflowId,
+              outcome,
+            )
+          }
+        is DecompositionManifestProjectionOutcome.Written ->
+          database.transaction { unitOfWork ->
+            clearDecompositionManifestProjectionFailure(engine, unitOfWork, request.workflowId)
+          }
+        DecompositionManifestProjectionOutcome.Absent -> Unit
       }
     }
     return result

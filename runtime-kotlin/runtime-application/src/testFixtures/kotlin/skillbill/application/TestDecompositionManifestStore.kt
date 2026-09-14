@@ -93,9 +93,16 @@ fun writeFromWorkflowUpdate(
 )
 
 fun writeProjectionFromWorkflowState(repoRoot: Path, artifactsJson: String): DecompositionManifestWriteResult? =
-  testDecompositionManifestWriter.writeProjectionFromWorkflowState(
-    repoRoot = repoRoot,
-    artifactsJson = artifactsJson,
-    validator = testDecompositionManifestValidator,
-    fileStore = TestDecompositionManifestStore,
-  )
+  when (
+    val outcome = testDecompositionManifestWriter.writeProjectionFromWorkflowState(
+      repoRoot = repoRoot,
+      artifactsJson = artifactsJson,
+      validator = testDecompositionManifestValidator,
+      fileStore = TestDecompositionManifestStore,
+    )
+  ) {
+    is skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome.Written -> outcome.result
+    skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome.Absent,
+    is skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome.Failed,
+    -> null
+  }

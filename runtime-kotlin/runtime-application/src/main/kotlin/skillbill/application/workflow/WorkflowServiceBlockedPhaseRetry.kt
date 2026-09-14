@@ -1,7 +1,8 @@
 package skillbill.application.workflow
 
-import skillbill.application.decomposition.DecompositionManifestWriteGuard
 import skillbill.application.decomposition.DecompositionManifestWriter
+import skillbill.application.decomposition.clearDecompositionManifestProjectionFailure
+import skillbill.application.decomposition.persistDecompositionManifestProjectionFailure
 import skillbill.application.workflow.model.WorkflowUpdateResult
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.model.RepositoryRoot
@@ -11,6 +12,7 @@ import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.save
 import skillbill.workflow.decomposition.DecompositionManifestValidator
+import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
@@ -69,16 +71,24 @@ class WorkflowServiceBlockedPhaseRetry(
       retryInTransaction(unitOfWork, request)
     }
     persistence.projectionArtifactsJson?.let { artifactsJson ->
-      DecompositionManifestWriteGuard.requireWritten(
-        decompositionManifestWriter.writeProjectionFromWorkflowState(
+      when (
+        val outcome = decompositionManifestWriter.writeProjectionFromWorkflowState(
           repositoryRoot.path,
           artifactsJson,
           decompositionManifestValidator,
           decompositionManifestStore,
-        ),
-        "Blocked-phase retry reopened the durable goal child but could not write " +
-          "its decomposition manifest projection.",
-      )
+        )
+      ) {
+        is DecompositionManifestProjectionOutcome.Failed ->
+          database.transaction { unitOfWork ->
+            persistDecompositionManifestProjectionFailure(engine, unitOfWork, request.workflowId, outcome)
+          }
+        is DecompositionManifestProjectionOutcome.Written ->
+          database.transaction { unitOfWork ->
+            clearDecompositionManifestProjectionFailure(engine, unitOfWork, request.workflowId)
+          }
+        DecompositionManifestProjectionOutcome.Absent -> Unit
+      }
     }
     return persistence.result
   }

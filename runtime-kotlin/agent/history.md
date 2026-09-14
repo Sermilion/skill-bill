@@ -1,3 +1,12 @@
+## [2026-09-14] SKILL-239 subtask 2 — Persistence lifecycle and projection outcomes
+Areas: runtime-kotlin/{runtime-application,runtime-contracts,runtime-domain,runtime-infra-sqlite,runtime-ports}, architecture docs and tests
+- Separated SQLite schema readiness from connection acquisition, cached database identity for invalidation, and preserved initialization repair and transaction-pragmas behavior.
+- Made manifest projection outcomes explicit as absent, written, or failed; committed database state remains authoritative and projection-only retry avoids replaying workflow mutations.
+- Reusable pattern: persistence callers distinguish durable state changes from filesystem projections and record projection failures for targeted recovery. reusable
+- Known limitations: the regression uses readiness-count and migration-ledger stability evidence instead of a JDBC statement-category histogram; the dedicated store-level retry test remains deferred.
+Feature flag: N/A
+Acceptance criteria: 7/8 implemented
+
 ## [2026-09-14] SKILL-52.5 subtask 7 — Allow-list zero lock
 Areas: runtime-kotlin/{architecture,agent,runtime-cli,runtime-core,runtime-domain,runtime-engine,runtime-infra-{fs,sqlite},scripts}
 - Deleted the raw-map allow-list, sync script, inventory fixture, and `@OpenBoundaryMap` escape hatch; architecture enforcement now fails on any public inner-layer raw-map declaration.

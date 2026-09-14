@@ -1,8 +1,10 @@
 package skillbill.application.workflow
 
 import me.tatarka.inject.annotations.Inject
-import skillbill.application.decomposition.DecompositionManifestWriteGuard
 import skillbill.application.decomposition.DecompositionManifestWriter
+import skillbill.application.decomposition.retryDecompositionManifestProjectionFromAuthoritativeState
+import skillbill.application.decomposition.clearDecompositionManifestProjectionFailure
+import skillbill.application.decomposition.persistDecompositionManifestProjectionFailure
 import skillbill.application.workflow.model.BuildFeatureTaskExecutionIdentityArgs
 import skillbill.application.workflow.model.ContinueExistingWorkflowArgs
 import skillbill.application.workflow.model.DecompositionRuntimeWriteArgs
@@ -34,6 +36,7 @@ import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.toSnapshot
 import skillbill.ports.workflow.save
 import skillbill.workflow.decomposition.DecompositionManifestValidator
+import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowUpdateInput
@@ -116,18 +119,24 @@ class WorkflowService(
       persistUpdate(family, request, input, unitOfWork)
     }
     persisted.projectionArtifactsJson?.let { artifactsJson ->
-      DecompositionManifestWriteGuard.requireWritten(
-        decompositionManifestWriter.writeProjectionFromWorkflowState(
-          repositoryRoot.path,
-          artifactsJson,
-          decompositionManifestValidator,
-          decompositionManifestStore,
-        ),
-        "Workflow update committed durable state but could not write its decomposition manifest projection.",
+      reconcileDecompositionManifestProjectionAfterCommit(
+        workflowId = request.workflowId,
+        artifactsJson = artifactsJson,
       )
     }
     return persisted.result
   }
+
+  fun retryDecompositionManifestProjection(workflowId: String): DecompositionManifestProjectionOutcome =
+    retryDecompositionManifestProjectionFromAuthoritativeState(
+      database = database,
+      engine = engine,
+      decompositionManifestWriter = decompositionManifestWriter,
+      decompositionManifestValidator = decompositionManifestValidator,
+      decompositionManifestStore = decompositionManifestStore,
+      repoRoot = repositoryRoot.path,
+      workflowId = workflowId,
+    )
 
   private fun persistUpdate(
     family: WorkflowFamily,
@@ -328,17 +337,36 @@ class WorkflowService(
       }.result
     }
     projectionArtifactsJson?.let { artifactsJson ->
-      DecompositionManifestWriteGuard.requireWritten(
-        decompositionManifestWriter.writeProjectionFromWorkflowState(
-          repositoryRoot.path,
-          artifactsJson,
-          decompositionManifestValidator,
-          decompositionManifestStore,
-        ),
-        "Workflow continue committed durable state but could not write its decomposition manifest projection.",
+      reconcileDecompositionManifestProjectionAfterCommit(
+        workflowId = workflowId,
+        artifactsJson = artifactsJson,
       )
     }
     return result
+  }
+
+  private fun reconcileDecompositionManifestProjectionAfterCommit(
+    workflowId: String,
+    artifactsJson: String,
+  ) {
+    when (
+      val outcome = decompositionManifestWriter.writeProjectionFromWorkflowState(
+        repositoryRoot.path,
+        artifactsJson,
+        decompositionManifestValidator,
+        decompositionManifestStore,
+      )
+    ) {
+      is DecompositionManifestProjectionOutcome.Written ->
+        database.transaction { unitOfWork ->
+          clearDecompositionManifestProjectionFailure(engine, unitOfWork, workflowId)
+        }
+      is DecompositionManifestProjectionOutcome.Failed ->
+        database.transaction { unitOfWork ->
+          persistDecompositionManifestProjectionFailure(engine, unitOfWork, workflowId, outcome)
+        }
+      DecompositionManifestProjectionOutcome.Absent -> Unit
+    }
   }
 }
 

@@ -128,7 +128,7 @@ pass. Documentation must distinguish current enforcement from planned coverage.
 | Requirement with an identified gap | Implementation owner |
 | --- | --- |
 | Cleanup after callback failure and incomplete drain settlement | SKILL-239 subtask 1 |
-| Database readiness and explicit projection outcomes | SKILL-239 subtask 2 |
+| Database readiness and explicit projection outcomes | SKILL-239 subtask 2 — `:runtime-infra-sqlite` write-readiness gate keyed by `PRAGMA user_version` plus stable file identity; decomposition manifest projection outcomes (`absent` / `written` / `failed`) with projection-only retry |
 | Run-loop state ownership, narrow helper inputs, and engine cycle removal | SKILL-239 subtask 3 |
 | Independent wire-key coverage and truthful architecture documentation | SKILL-239 subtask 4 |
 | Redundant role interfaces and application forwarders | SKILL-238 |
