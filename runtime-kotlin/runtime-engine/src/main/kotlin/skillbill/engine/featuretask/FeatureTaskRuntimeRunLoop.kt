@@ -197,5 +197,4 @@ internal class FeatureTaskRuntimeRunLoopSession(
   var activeReentry: PendingReentry? = initialPendingReentry
   var recordRejectionSettlementPending: Boolean = false
   var auditRetryFocusHint: String? = null
-  var lastValidateRepairAgentCapture: String? = null
 }

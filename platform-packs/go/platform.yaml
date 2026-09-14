@@ -83,6 +83,44 @@ lane_conditions:
 
 declared_quality_check_file: quality-check/bill-go-code-check/content.md
 
+validation_gate:
+  full_gate_command:
+    - go
+    - test
+    - ./...
+  cache_bypassing_full_gate_command:
+    - go
+    - test
+    - -count=1
+    - ./...
+  collect_all_full_gate_command:
+    - go
+    - test
+    - ./...
+  cache_bypassing_collect_all_full_gate_command:
+    - go
+    - test
+    - -count=1
+    - ./...
+  build_command:
+    - go
+    - build
+    - ./...
+  cache_bypassing_build_command:
+    - go
+    - build
+    - -a
+    - ./...
+  findings:
+    format: junit_xml
+    artifact_globs:
+      - "**/junit.xml"
+      - "**/test-results/**/*.xml"
+    compiler_diagnostics:
+      format: gradle_kotlin_compiler_stdout
+  suppression_markers:
+    - "//nolint"
+
 # Pointer files are generated into render/install output from this block.
 pointers:
   code-review/bill-go-code-review:

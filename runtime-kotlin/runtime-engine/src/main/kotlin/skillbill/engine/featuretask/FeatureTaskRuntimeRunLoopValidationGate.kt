@@ -14,6 +14,7 @@ import skillbill.engine.featuretask.validation.model.ValidationGateResolution
 import skillbill.engine.featuretask.validation.model.ValidationGateTriageResult
 import skillbill.engine.featuretask.validation.resolveRequiredValidationCommand
 import skillbill.ports.workflow.gitops.repositoryFingerprint
+import skillbill.scaffold.model.ValidationGateDeclaration
 import skillbill.workflow.goal.model.ValidationDepth
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeWorkflowArtifactMap
@@ -366,13 +367,11 @@ object FeatureTaskRuntimeRunLoopValidationGate {
     val iteration = args.context.attempt.iteration
     val observability = args.context.attempt.observability
     val phaseTokenAccumulator = args.context.phaseTokenAccumulator
-    val findings = args.findings
     val repairTurn = args.repairTurn
-    val triagePlan = args.triagePlan
     val repairRun = run.copy(
-      validationGateFindings = findings,
+      validationGateFindings = null,
       validationGateRepairTurn = repairTurn,
-      validationGateTriagePlan = triagePlan,
+      validationGateTriagePlan = null,
       validationGateRepair = true,
     )
     val attempt = FeatureTaskRuntimeRunLoopRecordRejection.attemptOnce(
@@ -384,12 +383,8 @@ object FeatureTaskRuntimeRunLoopValidationGate {
     )
     val settled = attempt.settledOutcome
     val completed = settled?.completedOutput
-    val agentFinalResponse = runLoop.session.lastValidateRepairAgentCapture?.let { capture ->
-      runLoop.session.lastValidateRepairAgentCapture = null
-      FeatureTaskRuntimeValidateRepairResponse.extract(capture)
-    }
     return when {
-      completed != null -> ValidationGateAgentRepairResult.Completed(completed, agentFinalResponse)
+      completed != null -> ValidationGateAgentRepairResult.Completed(completed)
       settled != null -> ValidationGateAgentRepairResult.Blocked(
         settled.blockedReason
           ?: settled.pausedReason
@@ -406,7 +401,6 @@ object FeatureTaskRuntimeRunLoopValidationGate {
           """{"contract_version":"$FEATURE_TASK_RUNTIME_CONTRACT_VERSION","phase_id":"${run.phaseId}",""" +
             """"status":"completed","summary":"Gate repair segment.","produced_outputs":{}}""",
         ),
-        agentFinalResponse,
       )
     }
   }
@@ -532,7 +526,10 @@ object FeatureTaskRuntimeRunLoopValidationGate {
     ),
   )
 
-  internal fun packCollectAllCommand(runLoop: FeatureTaskRuntimeRunLoop, run: PhaseRun): String? {
+  internal fun declaredValidationGateDeclaration(
+    runLoop: FeatureTaskRuntimeRunLoop,
+    run: PhaseRun,
+  ): ValidationGateDeclaration? {
     if (run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE) {
       return null
     }
@@ -544,11 +541,21 @@ object FeatureTaskRuntimeRunLoopValidationGate {
         ).orEmpty(),
       )
     ) {
-      is ValidationGateResolution.Declared -> resolution.declaration.collectAllFullGateCommand.joinToString(" ")
+      is ValidationGateResolution.Declared -> resolution.declaration
       is ValidationGateResolution.Absent -> null
       is ValidationGateResolution.Incompatible -> null
     }
   }
+
+  internal fun packCollectAllCommand(runLoop: FeatureTaskRuntimeRunLoop, run: PhaseRun): String? =
+    declaredValidationGateDeclaration(runLoop, run)
+      ?.collectAllFullGateCommand
+      ?.joinToString(" ")
+
+  internal fun packConfirmationGateCommand(runLoop: FeatureTaskRuntimeRunLoop, run: PhaseRun): String? =
+    declaredValidationGateDeclaration(runLoop, run)
+      ?.cacheBypassingCollectAllFullGateCommand
+      ?.joinToString(" ")
 
   internal fun packBuildCommand(runLoop: FeatureTaskRuntimeRunLoop, run: PhaseRun): String? {
     if (run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD) {

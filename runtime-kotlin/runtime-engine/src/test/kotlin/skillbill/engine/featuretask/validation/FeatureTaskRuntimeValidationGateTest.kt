@@ -8,7 +8,6 @@ import skillbill.engine.featuretask.validation.model.ValidationGateCycleRequest
 import skillbill.engine.featuretask.validation.model.ValidationGateCycleResult
 import skillbill.engine.featuretask.validation.model.ValidationGateCycleTerminalOutcome
 import skillbill.engine.featuretask.validation.model.ValidationGateTriageResult
-import skillbill.engine.featuretask.validation.model.ValidationGateTriageResult.Captured
 import skillbill.ports.validation.model.ValidationGateFinding
 import skillbill.workflow.goal.model.ValidationDepth
 import skillbill.workflow.taskruntime.decodeValidationGateProgressFromArtifact
@@ -20,9 +19,10 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+
 class FeatureTaskRuntimeValidationGateTest {
   @Test
-  fun `FAILED gate with empty findings launches triage then repair with synthetic finding`() {
+  fun `unparseable gate after agent still retries agent without injected findings`() {
     val progress = mutableListOf<FeatureTaskRuntimeValidationGateProgress>()
     val triageLaunches = AtomicInteger(0)
     val repairLaunches = AtomicInteger(0)
@@ -36,31 +36,26 @@ class FeatureTaskRuntimeValidationGateTest {
         validationDepth = ValidationDepth.DEFAULT,
         changedPaths = listOf("runtime-kotlin/foo.kt"),
         repositoryCheckpoint = "checkpoint",
-        agentTriageLauncher = ValidationGateAgentTriageLauncher { findings ->
+        agentTriageLauncher = ValidationGateAgentTriageLauncher { _ ->
           triageLaunches.incrementAndGet()
-          assertEquals(1, findings.findings.size)
-          assertEquals(UNPARSEABLE_GATE_FAILURE_RULE_ID, findings.findings.single().ruleOrTestId)
-          ValidationGateTriageResult.Captured("module=m fix spotless")
+          ValidationGateTriageResult.Captured("should not run")
         },
         agentRepairLauncher = ValidationGateAgentRepairLauncher { findings, _, triagePlan ->
           repairLaunches.incrementAndGet()
-          assertEquals(1, findings.findings.size)
-          assertEquals(UNPARSEABLE_GATE_FAILURE_RULE_ID, findings.findings.single().ruleOrTestId)
-          assertTrue(findings.findings.single().message.contains("Execution failed for task :spotlessCheck."))
-          assertEquals("module=m fix spotless", triagePlan)
+          assertEquals(0, findings.findings.size)
+          assertEquals(null, triagePlan)
           completedRepair()
         },
       ),
     )
-    assertEquals(1, triageLaunches.get())
-    assertEquals(1, repairLaunches.get())
+    assertEquals(0, triageLaunches.get())
+    assertEquals(2, repairLaunches.get())
     assertIs<ValidationGateCycleResult.Terminal>(cycle)
     assertIs<ValidationGateCycleTerminalOutcome.Completed>(cycle.outcome)
-    assertEquals("module=m fix spotless", progress.last().capturedTriagePlan)
   }
 
   @Test
-  fun `discrete findings skip triage and launch repair directly`() {
+  fun `discrete findings after agent launch another agent without handing findings in`() {
     val findingOne = ValidationGateFinding("m1", "r1", "msg1", "loc1")
     val findingTwo = ValidationGateFinding("m2", "r2", "msg2", "loc2")
     val triageLaunches = AtomicInteger(0)
@@ -79,22 +74,21 @@ class FeatureTaskRuntimeValidationGateTest {
         },
         agentRepairLauncher = ValidationGateAgentRepairLauncher { findings, _, triagePlan ->
           repairLaunches.incrementAndGet()
-          assertEquals(2, findings.findings.size)
+          assertEquals(0, findings.findings.size)
           assertEquals(null, triagePlan)
           completedRepair()
         },
       ),
     )
     assertEquals(0, triageLaunches.get())
-    assertEquals(1, repairLaunches.get())
+    assertEquals(2, repairLaunches.get())
     assertIs<ValidationGateCycleTerminalOutcome.Completed>(
       assertIs<ValidationGateCycleResult.Terminal>(cycle).outcome,
     )
   }
 
   @Test
-  fun `empty triage still launches repair and verify gate`() {
-    val triageLaunches = AtomicInteger(0)
+  fun `agent runs before first gate check`() {
     val repairLaunches = AtomicInteger(0)
     val runner = ScriptedGateRunner(
       listOf(failedEmptyFindings("unparseable blob"), passed(forced = true)),
@@ -106,24 +100,18 @@ class FeatureTaskRuntimeValidationGateTest {
         validationDepth = ValidationDepth.DEFAULT,
         changedPaths = listOf("runtime-kotlin/foo.kt"),
         repositoryCheckpoint = "checkpoint",
-        agentTriageLauncher = ValidationGateAgentTriageLauncher { _ ->
-          triageLaunches.incrementAndGet()
-          ValidationGateTriageResult.Empty
-        },
-        agentRepairLauncher = ValidationGateAgentRepairLauncher { findings, _, triagePlan ->
+        agentRepairLauncher = ValidationGateAgentRepairLauncher { _, _, _ ->
           repairLaunches.incrementAndGet()
-          assertEquals(null, triagePlan)
           completedRepair()
         },
       ),
     )
-    assertEquals(1, triageLaunches.get())
-    assertEquals(1, repairLaunches.get())
+    assertEquals(2, repairLaunches.get())
     assertEquals(2, runner.calls)
   }
 
   @Test
-  fun `triage does not substitute gate verify as repair proof`() {
+  fun `second gate verify uses cache bypass`() {
     val progress = mutableListOf<FeatureTaskRuntimeValidationGateProgress>()
     val runner = ScriptedGateRunner(
       listOf(failedEmptyFindings("blob"), passed(forced = true)),
@@ -135,10 +123,7 @@ class FeatureTaskRuntimeValidationGateTest {
         validationDepth = ValidationDepth.DEFAULT,
         changedPaths = listOf("runtime-kotlin/foo.kt"),
         repositoryCheckpoint = "checkpoint",
-        agentTriageLauncher = ValidationGateAgentTriageLauncher {
-          Captured("plan prose")
-        },
-        agentRepairLauncher = ValidationGateAgentRepairLauncher { findings, _, _ ->
+        agentRepairLauncher = ValidationGateAgentRepairLauncher { _, _, _ ->
           completedRepair()
         },
       ),

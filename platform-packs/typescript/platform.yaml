@@ -82,6 +82,44 @@ lane_conditions:
 
 declared_quality_check_file: quality-check/bill-typescript-code-check/content.md
 
+validation_gate:
+  full_gate_command:
+    - sh
+    - -c
+    - npm run lint && npm run typecheck && npm run test
+  cache_bypassing_full_gate_command:
+    - sh
+    - -c
+    - CI=true npm run lint && npm run typecheck && npm run test
+  collect_all_full_gate_command:
+    - sh
+    - -c
+    - npm run lint && npm run typecheck && npm run test
+  cache_bypassing_collect_all_full_gate_command:
+    - sh
+    - -c
+    - CI=true npm run lint && npm run typecheck && npm run test
+  build_command:
+    - npm
+    - run
+    - build
+  cache_bypassing_build_command:
+    - sh
+    - -c
+    - CI=true npm run build
+  findings:
+    format: junit_xml
+    artifact_globs:
+      - "**/junit.xml"
+      - "**/test-results/**/*.xml"
+      - "**/reports/**/*.xml"
+    compiler_diagnostics:
+      format: gradle_kotlin_compiler_stdout
+  suppression_markers:
+    - eslint-disable
+    - "@ts-ignore"
+    - "@ts-expect-error"
+
 pointers:
   code-review/bill-typescript-code-review:
     - name: review-orchestrator.md

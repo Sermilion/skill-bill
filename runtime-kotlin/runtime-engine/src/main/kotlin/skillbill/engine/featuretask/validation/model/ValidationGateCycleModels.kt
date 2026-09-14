@@ -66,10 +66,7 @@ fun interface ValidationGateAgentRepairLauncher {
 }
 
 sealed interface ValidationGateAgentRepairResult {
-  data class Completed(
-    val output: FeatureTaskRuntimePhaseOutput,
-    val agentFinalResponse: String? = null,
-  ) : ValidationGateAgentRepairResult
+  data class Completed(val output: FeatureTaskRuntimePhaseOutput) : ValidationGateAgentRepairResult
   data class Blocked(
     val reason: String,
     val failureDisposition: FeatureTaskRuntimeFailureDisposition? = null,

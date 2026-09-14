@@ -81,6 +81,42 @@ lane_conditions:
 
 declared_quality_check_file: quality-check/bill-php-code-check/content.md
 
+validation_gate:
+  full_gate_command:
+    - composer
+    - test
+  cache_bypassing_full_gate_command:
+    - sh
+    - -c
+    - COMPOSER_DISABLE_XDEBUG_WARN=1 composer test --no-ansi
+  collect_all_full_gate_command:
+    - composer
+    - test
+  cache_bypassing_collect_all_full_gate_command:
+    - sh
+    - -c
+    - COMPOSER_DISABLE_XDEBUG_WARN=1 composer test --no-ansi
+  build_command:
+    - composer
+    - validate
+    - --strict
+  cache_bypassing_build_command:
+    - composer
+    - validate
+    - --strict
+    - --no-check-publish
+  findings:
+    format: junit_xml
+    artifact_globs:
+      - "**/junit.xml"
+      - "**/build/logs/junit.xml"
+      - "**/test-results/**/*.xml"
+    compiler_diagnostics:
+      format: gradle_kotlin_compiler_stdout
+  suppression_markers:
+    - "@suppress"
+    - phpcs:ignore
+
 # Pointer files are generated into render/install output from this block.
 pointers:
   code-review/bill-php-code-review:

@@ -18,23 +18,23 @@ class FeatureTaskRuntimeValidationGateFullDiscoverTest {
   private val declaration = validationGateTestDeclaration
 
   @Test
-  fun `one check hands every finding to one repair and confirms with cache-bypassing verify`() {
+  fun `agent then gate then agent confirms with cache-bypassing verify`() {
     val progress = mutableListOf<FeatureTaskRuntimeValidationGateProgress>()
     val compiler = ValidationGateFinding("app", "e: Unresolved reference", "compile error", "Foo.kt")
     val laterTest = ValidationGateFinding("later-module", "LaterTest.fails", "assertion failed", "LaterTest.kt")
-    val repairSets = mutableListOf<List<String>>()
+    val repairLaunchCounts = mutableListOf<Int>()
     val runner = ScriptedGateRunner(listOf(failedWith(compiler, laterTest), passed(forced = true)))
     val cycle = coordinator(declaredResolver(), runner, progress).execute(
       cycle = fullCycle { findings, _, _ ->
-        repairSets += findings.findings.map { it.ruleOrTestId }
+        repairLaunchCounts += findings.findings.size
         completedRepair()
       },
     )
-    assertEquals(listOf(listOf("e: Unresolved reference", "LaterTest.fails")), repairSets)
+    assertEquals(listOf(0, 0), repairLaunchCounts)
     assertEquals(2, runner.calls)
-    assertEquals(listOf("echo", "collect-all"), runner.requests[0].argv)
-    assertEquals(ValidationGateCacheMode.CACHE_ELIGIBLE, runner.requests[0].cacheMode)
-    assertEquals(false, runner.requests[0].terminalVerifying)
+    assertEquals(listOf("echo", "collect-all-full"), runner.requests[0].argv)
+    assertEquals(ValidationGateCacheMode.FORCED_FULL, runner.requests[0].cacheMode)
+    assertEquals(true, runner.requests[0].terminalVerifying)
     assertEquals(listOf("echo", "collect-all-full"), runner.requests[1].argv)
     assertEquals(ValidationGateCacheMode.FORCED_FULL, runner.requests[1].cacheMode)
     assertEquals(true, runner.requests[1].terminalVerifying)
@@ -51,7 +51,7 @@ class FeatureTaskRuntimeValidationGateFullDiscoverTest {
   }
 
   @Test
-  fun `a large finding set is never split across repair launches`() {
+  fun `each validate agent launch receives an empty finding handoff`() {
     val findings = (1..65).map { index ->
       ValidationGateFinding("m$index", "t$index", "message-$index", "loc-$index")
     }
@@ -63,7 +63,7 @@ class FeatureTaskRuntimeValidationGateFullDiscoverTest {
         completedRepair()
       },
     )
-    assertEquals(listOf(65), launchSizes)
+    assertEquals(listOf(0, 0), launchSizes)
     assertEquals(2, runner.calls)
     assertIs<ValidationGateCycleTerminalOutcome.Completed>(
       assertIs<ValidationGateCycleResult.Terminal>(cycle).outcome,
@@ -71,29 +71,27 @@ class FeatureTaskRuntimeValidationGateFullDiscoverTest {
   }
 
   @Test
-  fun `failing verify keeps launching repair until the three-turn cap then records remaining findings`() {
+  fun `failing verify keeps launching validate agents until the three-turn cap then records remaining findings`() {
     val progress = mutableListOf<FeatureTaskRuntimeValidationGateProgress>()
-    val discovery = ValidationGateFinding("app", "compile", "first", "A.kt")
     val verifyFinding = ValidationGateFinding("later", "LaterTest", "still failing", "LaterTest.kt")
-    val repairIds = mutableListOf<List<String>>()
+    val repairLaunchCount = mutableListOf<Int>()
     val maxTurns = FeatureTaskRuntimeValidationGateCoordinator.MAX_REPAIR_TURNS
-    val runnerResults = mutableListOf(failedWith(discovery))
-    repeat(maxTurns) { runnerResults += failedWith(verifyFinding) }
-    val runner = ScriptedGateRunner(runnerResults)
+    val runner = ScriptedGateRunner(
+      List(maxTurns) { failedWith(verifyFinding) },
+    )
     val cycle = coordinator(declaredResolver(), runner, progress).execute(
       cycle = fullCycle { findings, _, _ ->
-        repairIds += findings.findings.map { it.ruleOrTestId }
+        repairLaunchCount += findings.findings.size
         completedRepair()
       },
     )
     val blocked = assertIs<ValidationGateCycleTerminalOutcome.Blocked>(
       assertIs<ValidationGateCycleResult.Terminal>(cycle).outcome,
     )
-    assertEquals(maxTurns, repairIds.size)
-    assertEquals(listOf("compile"), repairIds.first())
-    assertTrue(repairIds.drop(1).all { it == listOf("LaterTest") })
-    assertEquals(1 + maxTurns, runner.calls)
-    assertTrue(blocked.reason.contains("after $maxTurns repair"))
+    assertEquals(maxTurns, repairLaunchCount.size)
+    assertTrue(repairLaunchCount.all { it == 0 })
+    assertEquals(maxTurns, runner.calls)
+    assertTrue(blocked.reason.contains("after $maxTurns validate"))
     assertTrue(blocked.reason.contains("recorded for the operator"))
     assertEquals("LaterTest", blocked.remainingFindings?.findings?.single()?.ruleOrTestId)
     assertEquals(

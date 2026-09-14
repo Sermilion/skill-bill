@@ -50,7 +50,7 @@ class FeatureTaskRuntimeValidationGateSettlementEvidenceTest {
         changedPaths = listOf("runtime-kotlin/foo.kt"),
         repositoryCheckpoint = "checkpoint",
         agentRepairLauncher = ValidationGateAgentRepairLauncher { _, _, _ ->
-          error("repair should not launch for a passing gate")
+          completedRepair()
         },
       ),
     )

@@ -12,6 +12,7 @@ fun phasePromptLeadingSections(inputs: FeatureTaskRuntimePhasePromptComposeInput
       phaseId = inputs.briefing.phaseId,
       agentRunValidateFallback = inputs.agentRunValidateFallback,
       packCollectAllCommand = inputs.packCollectAllCommand,
+      packConfirmationGateCommand = inputs.packConfirmationGateCommand,
       packBuildCommand = inputs.packBuildCommand,
       validationGateRepair = inputs.validationGateRepair,
       validationGateTriage = inputs.validationGateTriage,
@@ -67,12 +68,15 @@ fun phasePromptTrailingSections(
   terminalRetryDirective(inputs.priorTerminalFailure),
   findingCoverageDirective(inputs.priorFindingCoverage),
   if (
-    inputs.validationGateFindings != null ||
-    (
-      !inputs.agentRunValidateFallback &&
-        inputs.briefing.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE
-      )
+    !inputs.agentRunValidateFallback &&
+      inputs.briefing.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE &&
+      !inputs.validationGateTriage
   ) {
+    runtimeOwnedValidateFinishedDirective(
+      inputs.briefing.phaseId,
+      inputs.packConfirmationGateCommand,
+    )
+  } else if (inputs.validationGateFindings != null) {
     gateRepairNoOutputSchemaDirective(inputs.briefing.phaseId, inputs.validationGateTriage)
   } else {
     outputContract(inputs.briefing, inputs.agentRunValidateFallback)

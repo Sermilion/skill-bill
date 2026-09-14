@@ -287,6 +287,10 @@ object FeatureTaskRuntimeRunLoopOutputPersistence {
         validationGateTriage = run.validationGateTriage,
         agentRunValidateFallback = run.agentRunValidateFallback,
         packCollectAllCommand = FeatureTaskRuntimeRunLoopValidationGate.packCollectAllCommand(runLoop, run),
+        packConfirmationGateCommand = FeatureTaskRuntimeRunLoopValidationGate.packConfirmationGateCommand(
+          runLoop,
+          run,
+        ),
         packBuildCommand = FeatureTaskRuntimeRunLoopValidationGate.packBuildCommand(runLoop, run),
         auditRetryFocusHint = runLoop.session.auditRetryFocusHint
           ?.takeIf { run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT },

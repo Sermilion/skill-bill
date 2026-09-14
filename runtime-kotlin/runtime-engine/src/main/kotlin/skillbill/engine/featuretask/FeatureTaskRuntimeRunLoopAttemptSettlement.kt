@@ -40,9 +40,6 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
     )
 
   internal fun gateOutput(runLoop: FeatureTaskRuntimeRunLoop, args: GateOutputArgs): AttemptResult {
-    if (args.run.validationGateRepair) {
-      runLoop.session.lastValidateRepairAgentCapture = args.captured.text
-    }
     FeatureTaskRuntimeRunLoopAttemptSettlement.gateOutputEarlyExit(args)?.let { return it }
     FeatureTaskRuntimeRunLoopAttemptSettlement.settleFromPersistedEnvelope(runLoop, args)?.let { return it }
     return try {
@@ -416,7 +413,8 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
     ) {
       return false
     }
-    return run.validationGateRepair || run.validationGateRepairTurn > 0 || run.validationGateFindings != null
+    return run.validationGateRepair || run.validationGateRepairTurn > 0 ||
+      (run.validationGateFindings != null && run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD)
   }
 
   private fun shouldSkipValidationEvidenceRequirement(

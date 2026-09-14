@@ -17,8 +17,6 @@ import skillbill.engine.featuretask.validation.model.ValidationGateCycleTerminal
 import skillbill.engine.featuretask.validation.model.ValidationGateProgressStore
 import skillbill.engine.featuretask.validation.model.ValidationGateProgressWrite
 import skillbill.engine.featuretask.validation.model.ValidationGateResolution
-import skillbill.engine.featuretask.validation.model.ValidationGateTriageResult
-import skillbill.engine.featuretask.validation.model.requiresUnparseableGateTriage
 import skillbill.engine.featuretask.workflowArtifactEntryMap
 import skillbill.error.InvalidFeatureTaskRuntimeValidationEvidenceSchemaError
 import skillbill.ports.config.RepoLocalConfigPort
@@ -31,8 +29,6 @@ import skillbill.ports.validation.model.ValidationGateRunRequest
 import skillbill.ports.validation.model.ValidationGateRunResult
 import skillbill.scaffold.model.ValidationGateDeclaration
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeValidateRemainingCriteriaInterpretation
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidateRemainingCriteriaResult
 import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
@@ -54,7 +50,6 @@ private data class ValidationGateCycleState(
   val cycle: ValidationGateCycleRequest,
   val measurements: MutableList<FeatureTaskRuntimeValidationGateRunRecord>,
   val onGateRunCount: (Int) -> Unit,
-  var lastAgentUnfixedCriteria: Set<String> = emptySet(),
 )
 
 class FeatureTaskRuntimeValidationGateProgressStore private constructor(
@@ -121,110 +116,50 @@ class FeatureTaskRuntimeValidationGateCoordinator(
       cycle = cycle,
       measurements = measurements,
       onGateRunCount = onGateRunCount,
-      lastAgentUnfixedCriteria = FeatureTaskRuntimeValidateRemainingCriteriaInterpretation.normalizedFingerprint(
-        loaded?.lastAgentUnfixedCriteria.orEmpty(),
-      ),
     )
-
-    if (loaded?.repairWindowPhase == FeatureTaskRuntimeValidationGateRepairWindowPhase.FINDINGS_OPEN) {
-      return repairLoop(
-        state = state,
-        declaration = declaration,
-        openFindings = decodePersistedFindings(loaded.completeFindings),
-        initialRepairsUsed = operatorResumeRepairTurns(loaded.repairsUsed),
-        triagePlan = loaded.capturedTriagePlan,
-      )
+    val initialRepairsUsed = when (loaded?.repairWindowPhase) {
+      FeatureTaskRuntimeValidationGateRepairWindowPhase.FINDINGS_OPEN ->
+        operatorResumeRepairTurns(loaded.repairsUsed)
+      else -> 0
     }
-
-    val discovery = runGate(cycle, declaration, ValidationGateCyclePhase.INITIAL_DISCOVERY)
-    val discoveryFindings = findingsForRepairFromResult(discovery)
-    recordGateProgress(
-      state = state,
-      result = discovery,
-      command = commandFor(cycle, declaration, ValidationGateCyclePhase.INITIAL_DISCOVERY),
-      write = ValidationGateProgressWrite(
-        repairWindowPhase = repairWindowPhaseFor(discoveryFindings),
-        remainingFindings = null,
-        completeFindings = discoveryFindings,
-        repairsUsed = 0,
-        capturedTriagePlan = null,
-      ),
-    )
-    if (discoveryFindings.isEmpty()) {
-      return terminalCompletedResult(
-        cycle.repositoryCheckpoint,
-        measurements,
-        commandFor(cycle, declaration, ValidationGateCyclePhase.INITIAL_DISCOVERY),
-      )
-    }
-    val triagePlan = runTriageIfNeeded(cycle, discoveryFindings, persistedPlan = null)
-    if (triagePlan != null) {
-      persistProgress(
-        state = state,
-        write = ValidationGateProgressWrite(
-          repairWindowPhase = FeatureTaskRuntimeValidationGateRepairWindowPhase.FINDINGS_OPEN,
-          remainingFindings = null,
-          completeFindings = discoveryFindings,
-          repairsUsed = 0,
-          capturedTriagePlan = triagePlan,
-        ),
-      )
-    }
-    return repairLoop(
+    return agentThenVerifyLoop(
       state = state,
       declaration = declaration,
-      openFindings = discoveryFindings,
-      initialRepairsUsed = 0,
-      triagePlan = triagePlan,
+      initialRepairsUsed = initialRepairsUsed,
+      openFindingsHint = when (loaded?.repairWindowPhase) {
+        FeatureTaskRuntimeValidationGateRepairWindowPhase.FINDINGS_OPEN ->
+          decodePersistedFindings(loaded.completeFindings)
+        else -> emptyList()
+      },
     )
   }
 
-  private fun runTriageIfNeeded(
-    cycle: ValidationGateCycleRequest,
-    findings: List<ValidationGateFinding>,
-    persistedPlan: String?,
-  ): String? {
-    if (!persistedPlan.isNullOrBlank()) return persistedPlan
-    if (!requiresUnparseableGateTriage(findings)) return null
-    return when (val triage = cycle.agentTriageLauncher.launch(ValidationFindingSetProjection(findings))) {
-      is ValidationGateTriageResult.Captured -> triage.validationRepairPlan.takeIf { it.isNotBlank() }
-      ValidationGateTriageResult.Empty -> null
-    }
-  }
-
-  private fun repairLoop(
+  private fun agentThenVerifyLoop(
     state: ValidationGateCycleState,
     declaration: ValidationGateDeclaration,
-    openFindings: List<ValidationGateFinding>,
     initialRepairsUsed: Int,
-    triagePlan: String?,
+    openFindingsHint: List<ValidationGateFinding>,
   ): ValidationGateCycleResult {
     val cycle = state.cycle
     val measurements = state.measurements
     var repairsUsed = initialRepairsUsed
-    var currentFindings = openFindings
+    var lastFindings = openFindingsHint
+    val emptyHandoff = ValidationFindingSetProjection(emptyList())
     while (true) {
-      if (currentFindings.isEmpty()) {
-        return terminalCompletedResult(
-          cycle.repositoryCheckpoint,
-          measurements,
-          commandFor(cycle, declaration, ValidationGateCyclePhase.POST_REPAIR_VERIFY),
-        )
-      }
-      val projection = ValidationFindingSetProjection(findings = currentFindings)
       if (repairsUsed >= MAX_REPAIR_TURNS) {
+        val projection = ValidationFindingSetProjection(findings = lastFindings)
         persistProgress(
           state = state,
           write = ValidationGateProgressWrite.findingsOpen(
-            completeFindings = currentFindings,
+            completeFindings = lastFindings,
             repairsUsed = repairsUsed,
-            capturedTriagePlan = triagePlan,
+            capturedTriagePlan = null,
             remainingFindings = projection,
           ),
         )
         return terminalBlockedResult(
-          "Validation gate still reports ${currentFindings.size} finding(s) after $MAX_REPAIR_TURNS repair " +
-            "turns; remaining findings are recorded for the operator.",
+          "Validation gate still reports ${lastFindings.size} finding(s) after $MAX_REPAIR_TURNS validate " +
+            "agent turn(s); remaining findings are recorded for the operator.",
           remainingFindings = projection,
           measurements = measurements,
         )
@@ -232,85 +167,45 @@ class FeatureTaskRuntimeValidationGateCoordinator(
       persistProgress(
         state = state,
         write = ValidationGateProgressWrite.findingsOpen(
-          completeFindings = currentFindings,
+          completeFindings = lastFindings,
           repairsUsed = repairsUsed,
-          capturedTriagePlan = triagePlan,
+          capturedTriagePlan = null,
         ),
       )
-      when (val repair = cycle.agentRepairLauncher.launch(projection, repairsUsed + 1, triagePlan)) {
+      when (
+        val repair = cycle.agentRepairLauncher.launch(emptyHandoff, repairsUsed + 1, triagePlan = null)
+      ) {
         is ValidationGateAgentRepairResult.Blocked -> return terminalBlockedResult(
           repair.reason,
-          remainingFindings = projection,
+          remainingFindings = ValidationFindingSetProjection(findings = lastFindings),
           measurements = measurements,
           failureDisposition = repair.failureDisposition,
         )
-        is ValidationGateAgentRepairResult.Completed -> {
-          when (
-            val criteria = FeatureTaskRuntimeValidateRemainingCriteriaInterpretation.interpret(
-              repair.agentFinalResponse,
-            )
-          ) {
-            FeatureTaskRuntimeValidateRemainingCriteriaResult.MissingFinalResponse -> return terminalBlockedResult(
-              "Validate repair ended without a remaining-criteria list; emit [] when every open finding " +
-                "was addressed, or a non-empty list of criteria still unfixed.",
-              remainingFindings = projection,
-              measurements = measurements,
-              failureDisposition = FeatureTaskRuntimeFailureDisposition.INVALID_OUTPUT,
-            )
-            FeatureTaskRuntimeValidateRemainingCriteriaResult.EmptyRemainingList -> {
-              state.lastAgentUnfixedCriteria = emptySet()
-              repairsUsed++
-            }
-            is FeatureTaskRuntimeValidateRemainingCriteriaResult.UnfixedCriteria -> {
-              val fingerprint = FeatureTaskRuntimeValidateRemainingCriteriaInterpretation.normalizedFingerprint(
-                criteria.items,
-              )
-              if (fingerprint.isNotEmpty() && fingerprint == state.lastAgentUnfixedCriteria) {
-                return terminalBlockedResult(
-                  "Validate repair reported the same unfixed criteria on two consecutive turns: " +
-                    criteria.items.joinToString("; "),
-                  remainingFindings = projection,
-                  measurements = measurements,
-                )
-              }
-              state.lastAgentUnfixedCriteria = fingerprint
-              repairsUsed++
-            }
-          }
-        }
+        is ValidationGateAgentRepairResult.Completed -> repairsUsed++
       }
-      currentFindings = verifyAfterRepair(state, declaration, repairsUsed, triagePlan)
-      if (currentFindings.isEmpty()) {
+      val gatePhase = ValidationGateCyclePhase.POST_REPAIR_VERIFY
+      val verify = runGate(cycle, declaration, gatePhase)
+      lastFindings = findingsForRepairFromResult(verify)
+      recordGateProgress(
+        state = state,
+        result = verify,
+        command = commandFor(cycle, declaration, gatePhase),
+        write = ValidationGateProgressWrite(
+          repairWindowPhase = repairWindowPhaseFor(lastFindings),
+          remainingFindings = null,
+          completeFindings = lastFindings,
+          repairsUsed = repairsUsed,
+          capturedTriagePlan = null,
+        ),
+      )
+      if (lastFindings.isEmpty()) {
         return terminalCompletedResult(
           cycle.repositoryCheckpoint,
           measurements,
-          commandFor(cycle, declaration, ValidationGateCyclePhase.POST_REPAIR_VERIFY),
+          commandFor(cycle, declaration, gatePhase),
         )
       }
     }
-  }
-
-  private fun verifyAfterRepair(
-    state: ValidationGateCycleState,
-    declaration: ValidationGateDeclaration,
-    repairsUsed: Int,
-    triagePlan: String?,
-  ): List<ValidationGateFinding> {
-    val verify = runGate(state.cycle, declaration, ValidationGateCyclePhase.POST_REPAIR_VERIFY)
-    val verifyFindings = findingsForRepairFromResult(verify)
-    recordGateProgress(
-      state = state,
-      result = verify,
-      command = commandFor(state.cycle, declaration, ValidationGateCyclePhase.POST_REPAIR_VERIFY),
-      write = ValidationGateProgressWrite(
-        repairWindowPhase = repairWindowPhaseFor(verifyFindings),
-        remainingFindings = null,
-        completeFindings = verifyFindings,
-        repairsUsed = repairsUsed,
-        capturedTriagePlan = triagePlan,
-      ),
-    )
-    return verifyFindings
   }
 
   private fun repairWindowPhaseFor(
@@ -390,7 +285,6 @@ class FeatureTaskRuntimeValidationGateCoordinator(
       repairWindowPhase = write.repairWindowPhase,
       repairsUsed = write.repairsUsed,
       capturedTriagePlan = write.capturedTriagePlan,
-      lastAgentUnfixedCriteria = state.lastAgentUnfixedCriteria.toList().sorted(),
     )
     progressStore.persist(state.cycle.request.workflowId, progress)
     emitFeatureTaskRuntimeEventSafely(

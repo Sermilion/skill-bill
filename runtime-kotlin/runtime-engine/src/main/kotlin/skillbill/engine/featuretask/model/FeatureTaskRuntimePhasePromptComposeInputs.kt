@@ -30,6 +30,7 @@ data class FeatureTaskRuntimePhasePromptComposeInputs(
   val validationGateTriage: Boolean = false,
   val agentRunValidateFallback: Boolean = false,
   val packCollectAllCommand: String? = null,
+  val packConfirmationGateCommand: String? = null,
   val packBuildCommand: String? = null,
   val repairLedger: FeatureTaskRuntimeRepairLedger? = null,
   val priorReviewContext: FeatureTaskRuntimePriorReviewContext? = null,
