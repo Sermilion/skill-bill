@@ -40,6 +40,9 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
     )
 
   internal fun gateOutput(runLoop: FeatureTaskRuntimeRunLoop, args: GateOutputArgs): AttemptResult {
+    if (args.run.validationGateRepair) {
+      runLoop.session.lastValidateRepairAgentCapture = args.captured.text
+    }
     FeatureTaskRuntimeRunLoopAttemptSettlement.gateOutputEarlyExit(args)?.let { return it }
     FeatureTaskRuntimeRunLoopAttemptSettlement.settleFromPersistedEnvelope(runLoop, args)?.let { return it }
     return try {
@@ -184,7 +187,9 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
       fileManifest = args.output.fileManifest,
     )
     try {
-      requireValidationEvidenceForValidateSettlement(runLoop, run, attested.envelopeWireMap())
+      if (!shouldSkipValidationEvidenceRequirement(run, attested.envelopeWireMap())) {
+        requireValidationEvidenceForValidateSettlement(runLoop, run, attested.envelopeWireMap())
+      }
       return settleValidatedOutputWithEvidence(runLoop, capture, attested)
     } catch (error: InvalidFeatureTaskRuntimeValidationEvidenceSchemaError) {
       return rejectValidatedOutput(
@@ -372,24 +377,6 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
   }
   internal fun gateOutputEarlyExit(args: GateOutputArgs): AttemptResult? {
     val run = args.run
-    if (run.validationGateRepairTurn > 0) {
-      val outputMap = FeatureTaskRuntimeRunLoopValidationGate.looseOutputEnvelope(args.captured.text)
-      val operatorTerminalQualityGate = outputMap?.let { envelope ->
-        val disposition = FeatureTaskRuntimePhaseSafetyPolicy.dispositionForTerminalOutput(run.phaseId, envelope)
-        !disposition.retryOnResume &&
-          (
-            run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE ||
-              run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD
-            )
-      } == true
-      if (!operatorTerminalQualityGate) {
-        val gateRepairOutput = FeatureTaskRuntimeRunLoopValidationGate.gateRepairSegmentOutput(
-          run,
-          args.iteration,
-        )
-        return AttemptResult.settled(PhaseOutcome.completed(gateRepairOutput))
-      }
-    }
     if (run.validationGateTriage) {
       return AttemptResult.settled(
         PhaseOutcome.completed(
@@ -401,7 +388,44 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
         ),
       )
     }
+    if (runtimeOwnedGateAgentTurn(run)) {
+      val outputMap = FeatureTaskRuntimeRunLoopValidationGate.looseOutputEnvelope(args.captured.text)
+      val operatorTerminalQualityGate = outputMap?.let { envelope ->
+        val disposition = FeatureTaskRuntimePhaseSafetyPolicy.dispositionForTerminalOutput(run.phaseId, envelope)
+        !disposition.retryOnResume &&
+          (
+            run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE ||
+              run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD
+            )
+      } == true
+      if (!operatorTerminalQualityGate) {
+        return AttemptResult.settled(
+          PhaseOutcome.completed(
+            FeatureTaskRuntimeRunLoopValidationGate.gateRepairSegmentOutput(run, args.iteration),
+          ),
+        )
+      }
+    }
     return null
+  }
+
+  private fun runtimeOwnedGateAgentTurn(run: PhaseRun): Boolean {
+    if (run.agentRunValidateFallback) return false
+    if (run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE &&
+      run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD
+    ) {
+      return false
+    }
+    return run.validationGateRepair || run.validationGateRepairTurn > 0 || run.validationGateFindings != null
+  }
+
+  private fun shouldSkipValidationEvidenceRequirement(
+    run: PhaseRun,
+    envelope: FeatureTaskRuntimeWorkflowArtifactMap,
+  ): Boolean {
+    if (run.agentRunValidateFallback) return false
+    if (run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE) return false
+    return validationEvidenceFromEnvelope(envelope, run.phaseId) == null
   }
   internal fun gateOutputSchemaInvalid(
     runLoop: FeatureTaskRuntimeRunLoop,

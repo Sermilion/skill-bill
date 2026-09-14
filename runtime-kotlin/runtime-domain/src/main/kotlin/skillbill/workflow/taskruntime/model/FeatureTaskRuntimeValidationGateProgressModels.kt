@@ -98,6 +98,7 @@ data class FeatureTaskRuntimeValidationGateProgress(
     FeatureTaskRuntimeValidationGateRepairWindowPhase.NONE,
   val repairsUsed: Int = 0,
   val capturedTriagePlan: String? = null,
+  val lastAgentUnfixedCriteria: List<String> = emptyList(),
 ) {
   init {
     require(gateRunCount >= 0) {
@@ -119,6 +120,7 @@ data class FeatureTaskRuntimeValidationGateProgress(
     "repair_window_phase" to repairWindowPhase.wireValue,
     "repairs_used" to repairsUsed,
     "captured_triage_plan" to capturedTriagePlan,
+    ValidationEvidencePayloadKeys.LAST_AGENT_UNFIXED_CRITERIA to lastAgentUnfixedCriteria,
   )
 
   companion object {
@@ -133,6 +135,10 @@ data class FeatureTaskRuntimeValidationGateProgress(
         ),
         repairsUsed = raw.asStarMap().gateProgressOptionalInt("repairs_used") ?: 0,
         capturedTriagePlan = raw["captured_triage_plan"] as? String,
+        lastAgentUnfixedCriteria = decodeStringList(
+          raw[ValidationEvidencePayloadKeys.LAST_AGENT_UNFIXED_CRITERIA],
+          ValidationEvidencePayloadKeys.LAST_AGENT_UNFIXED_CRITERIA,
+        ),
       )
 
     private fun decodeGateRuns(raw: Any?): List<FeatureTaskRuntimeValidationGateRunRecord> {
@@ -176,6 +182,19 @@ data class FeatureTaskRuntimeValidationGateProgress(
       return list.mapIndexed { index, entry ->
         entry as? String ?: throw InvalidWorkflowStateSchemaError(
           "FeatureTaskRuntimeValidationGateProgress gate run executed_checks[$index] must be a string.",
+        )
+      }
+    }
+
+    private fun decodeStringList(raw: Any?, field: String): List<String> {
+      if (raw == null) return emptyList()
+      val list = raw as? List<*>
+        ?: throw InvalidWorkflowStateSchemaError(
+          "FeatureTaskRuntimeValidationGateProgress.$field must be a list.",
+        )
+      return list.mapIndexed { index, entry ->
+        entry as? String ?: throw InvalidWorkflowStateSchemaError(
+          "FeatureTaskRuntimeValidationGateProgress.$field[$index] must be a string.",
         )
       }
     }

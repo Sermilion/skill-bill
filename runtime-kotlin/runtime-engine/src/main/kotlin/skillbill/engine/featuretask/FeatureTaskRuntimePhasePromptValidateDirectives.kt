@@ -36,8 +36,10 @@ fun validateRepairPhaseTask(): String =
     "Do not re-run the full gate or bill-code-check to rediscover " +
     "or confirm findings — after you stop, the runtime re-runs the pack gate and mints the receipt. Never " +
     "silence findings with annotations, baselines, disabled rules, weakened configuration, or skipped " +
-    "tests; fix root causes instead. Return prose only; do not emit validation_result, gate_run_count, or " +
-    "any phase-output JSON."
+    "tests; fix root causes instead. End with exactly one remaining-criteria list: emit [] when every open " +
+    "finding was addressed, or a JSON array of strings naming each criterion or finding you could not fix " +
+    "(plain bullets or prose lines are also accepted). Do not emit validation_result, gate_run_count, or " +
+    "any other phase-output JSON envelope."
 
 fun validateGateTriagePhaseTask(): String =
   "You are triaging an unparseable validation gate failure blob before the first repair turn — do not spawn " +

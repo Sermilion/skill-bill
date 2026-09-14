@@ -513,6 +513,8 @@ class FeatureTaskRuntimePhasePromptComposerTest {
     )
     assertContains(validatePrompt, "Invoke bill-code-check for collect-all and confirmation")
     assertFalse(validatePrompt.contains("Invoke bill-kotlin-code-check"))
+    assertFalse(validatePrompt.contains("Required final output (validated schema gate)"))
+    assertContains(validatePrompt, "Gate repair — prose only, no phase-output schema")
 
     val nonValidatePhases = listOf(
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN,

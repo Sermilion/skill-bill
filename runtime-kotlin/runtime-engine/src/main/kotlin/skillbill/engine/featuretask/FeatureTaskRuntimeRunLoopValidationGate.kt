@@ -384,8 +384,12 @@ object FeatureTaskRuntimeRunLoopValidationGate {
     )
     val settled = attempt.settledOutcome
     val completed = settled?.completedOutput
+    val agentFinalResponse = runLoop.session.lastValidateRepairAgentCapture?.let { capture ->
+      runLoop.session.lastValidateRepairAgentCapture = null
+      FeatureTaskRuntimeValidateRepairResponse.extract(capture)
+    }
     return when {
-      completed != null -> ValidationGateAgentRepairResult.Completed(completed)
+      completed != null -> ValidationGateAgentRepairResult.Completed(completed, agentFinalResponse)
       settled != null -> ValidationGateAgentRepairResult.Blocked(
         settled.blockedReason
           ?: settled.pausedReason
@@ -402,6 +406,7 @@ object FeatureTaskRuntimeRunLoopValidationGate {
           """{"contract_version":"$FEATURE_TASK_RUNTIME_CONTRACT_VERSION","phase_id":"${run.phaseId}",""" +
             """"status":"completed","summary":"Gate repair segment.","produced_outputs":{}}""",
         ),
+        agentFinalResponse,
       )
     }
   }

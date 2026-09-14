@@ -31,6 +31,8 @@ import skillbill.ports.validation.model.ValidationGateRunRequest
 import skillbill.ports.validation.model.ValidationGateRunResult
 import skillbill.scaffold.model.ValidationGateDeclaration
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeValidateRemainingCriteriaInterpretation
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidateRemainingCriteriaResult
 import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
@@ -52,6 +54,7 @@ private data class ValidationGateCycleState(
   val cycle: ValidationGateCycleRequest,
   val measurements: MutableList<FeatureTaskRuntimeValidationGateRunRecord>,
   val onGateRunCount: (Int) -> Unit,
+  var lastAgentUnfixedCriteria: Set<String> = emptySet(),
 )
 
 class FeatureTaskRuntimeValidationGateProgressStore private constructor(
@@ -114,7 +117,14 @@ class FeatureTaskRuntimeValidationGateCoordinator(
   ): ValidationGateCycleResult {
     val loaded = progressStore.load(cycle.request.workflowId)
     val measurements = loaded?.gateRuns?.toMutableList() ?: mutableListOf()
-    val state = ValidationGateCycleState(cycle, measurements, onGateRunCount)
+    val state = ValidationGateCycleState(
+      cycle = cycle,
+      measurements = measurements,
+      onGateRunCount = onGateRunCount,
+      lastAgentUnfixedCriteria = FeatureTaskRuntimeValidateRemainingCriteriaInterpretation.normalizedFingerprint(
+        loaded?.lastAgentUnfixedCriteria.orEmpty(),
+      ),
+    )
 
     if (loaded?.repairWindowPhase == FeatureTaskRuntimeValidationGateRepairWindowPhase.FINDINGS_OPEN) {
       return repairLoop(
@@ -234,7 +244,40 @@ class FeatureTaskRuntimeValidationGateCoordinator(
           measurements = measurements,
           failureDisposition = repair.failureDisposition,
         )
-        is ValidationGateAgentRepairResult.Completed -> repairsUsed++
+        is ValidationGateAgentRepairResult.Completed -> {
+          when (
+            val criteria = FeatureTaskRuntimeValidateRemainingCriteriaInterpretation.interpret(
+              repair.agentFinalResponse,
+            )
+          ) {
+            FeatureTaskRuntimeValidateRemainingCriteriaResult.MissingFinalResponse -> return terminalBlockedResult(
+              "Validate repair ended without a remaining-criteria list; emit [] when every open finding " +
+                "was addressed, or a non-empty list of criteria still unfixed.",
+              remainingFindings = projection,
+              measurements = measurements,
+              failureDisposition = FeatureTaskRuntimeFailureDisposition.INVALID_OUTPUT,
+            )
+            FeatureTaskRuntimeValidateRemainingCriteriaResult.EmptyRemainingList -> {
+              state.lastAgentUnfixedCriteria = emptySet()
+              repairsUsed++
+            }
+            is FeatureTaskRuntimeValidateRemainingCriteriaResult.UnfixedCriteria -> {
+              val fingerprint = FeatureTaskRuntimeValidateRemainingCriteriaInterpretation.normalizedFingerprint(
+                criteria.items,
+              )
+              if (fingerprint.isNotEmpty() && fingerprint == state.lastAgentUnfixedCriteria) {
+                return terminalBlockedResult(
+                  "Validate repair reported the same unfixed criteria on two consecutive turns: " +
+                    criteria.items.joinToString("; "),
+                  remainingFindings = projection,
+                  measurements = measurements,
+                )
+              }
+              state.lastAgentUnfixedCriteria = fingerprint
+              repairsUsed++
+            }
+          }
+        }
       }
       currentFindings = verifyAfterRepair(state, declaration, repairsUsed, triagePlan)
       if (currentFindings.isEmpty()) {
@@ -347,6 +390,7 @@ class FeatureTaskRuntimeValidationGateCoordinator(
       repairWindowPhase = write.repairWindowPhase,
       repairsUsed = write.repairsUsed,
       capturedTriagePlan = write.capturedTriagePlan,
+      lastAgentUnfixedCriteria = state.lastAgentUnfixedCriteria.toList().sorted(),
     )
     progressStore.persist(state.cycle.request.workflowId, progress)
     emitFeatureTaskRuntimeEventSafely(

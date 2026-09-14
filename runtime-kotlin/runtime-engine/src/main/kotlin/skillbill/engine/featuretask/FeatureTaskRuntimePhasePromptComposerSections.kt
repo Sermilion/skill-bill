@@ -3,6 +3,7 @@ package skillbill.engine.featuretask
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeImplementationContinuation
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhasePromptComposeInputs
 import skillbill.engine.featuretask.model.PhasePromptHeaderInputs
+import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 
 fun phasePromptLeadingSections(inputs: FeatureTaskRuntimePhasePromptComposeInputs): List<String> = listOf(
   phasePromptHeader(
@@ -65,7 +66,13 @@ fun phasePromptTrailingSections(
   retryCorrectionDirective(inputs.briefing, inputs.priorSchemaFailure, inputs.correctiveRepairContext),
   terminalRetryDirective(inputs.priorTerminalFailure),
   findingCoverageDirective(inputs.priorFindingCoverage),
-  if (inputs.validationGateFindings != null) {
+  if (
+    inputs.validationGateFindings != null ||
+    (
+      !inputs.agentRunValidateFallback &&
+        inputs.briefing.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE
+      )
+  ) {
     gateRepairNoOutputSchemaDirective(inputs.briefing.phaseId, inputs.validationGateTriage)
   } else {
     outputContract(inputs.briefing, inputs.agentRunValidateFallback)
