@@ -189,6 +189,9 @@ internal fun completedRepair(): ValidationGateAgentRepairResult {
   )
 }
 
+internal fun blockedRepair(reason: String = "child process failed"): ValidationGateAgentRepairResult =
+  ValidationGateAgentRepairResult.Blocked(reason)
+
 internal fun kotlinPackWithoutGate(): PlatformManifest = PlatformManifest(
   slug = "kotlin",
   packRoot = validationGateTestRepoRoot.resolve("platform-packs/kotlin").toFileLocation(),

@@ -326,6 +326,13 @@ object FeatureTaskRuntimeRunLoopRecordRejection {
         launch.infraFailureChildOutput,
       )
     }
+    if (run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE) {
+      return AttemptResult.settled(
+        PhaseOutcome.completed(
+          FeatureTaskRuntimeRunLoopValidationGate.gateRepairSegmentOutput(run, args.context.iteration),
+        ),
+      )
+    }
     return AttemptResult.settled(
       FeatureTaskRuntimeRunLoopPhaseAttempts.blockAndPersistInPhase(
         request,

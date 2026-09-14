@@ -1,3 +1,12 @@
+## [2026-09-14] SKILL-239 subtask 4 — Architecture enforcement and wire vocabulary
+Areas: runtime-kotlin/{architecture,runtime-contracts,runtime-domain,runtime-application,runtime-engine,runtime-infra-{fs,sqlite}}, platform-pack manifests
+- Governed payload seams now validate undeclared literals and schema fields independently of key-owner scans; decomposition and workflow keys use runtime-contract owners.
+- Architecture documentation, inventories, baselines, and fixtures now agree on line ceilings, module edges, engine-cycle state, extension maps, and scanner coverage.
+- Reusable pattern: keep wire vocabulary in family-owned Keys objects and make scanner fixtures exercise the production source path. reusable
+- Known limitation: seam enforcement does not cover telemetry, CLI presentation, or prompt prose outside governed markers; remaining engine-cycle documentation gaps stay explicit.
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented
+
 ## [2026-09-14] SKILL-239 subtask 3 — Engine run-loop session and state ownership
 Areas: runtime-kotlin/runtime-engine/featuretask, runtime-engine/recovery, runtime-core architecture baseline
 - Session terminal outcomes (blocked/paused/decomposed) are exclusive via `FeatureTaskRuntimeRunLoopSession` named transitions; run-state completion/output/gate buffers are private with transition methods.

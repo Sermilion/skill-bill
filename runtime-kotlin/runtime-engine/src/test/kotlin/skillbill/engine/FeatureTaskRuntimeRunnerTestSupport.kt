@@ -563,7 +563,7 @@ internal data class RuntimeHarnessConfig(
     override fun runProcess(args: List<String>, workDir: Path): String? = null
   },
   val validationGateRunner: ValidationGateRunner? = null,
-  val validationGatePlatformManifests: List<PlatformManifest> = emptyList(),
+  val validationGatePlatformManifests: List<PlatformManifest> = listOf(kotlinPackWithValidationGate()),
   val reviewDriver: FeatureTaskRuntimeReviewDriver =
     ApprovingReviewDriverStub,
   val launcher: RuntimeRecordingLauncher? = null,
@@ -592,7 +592,7 @@ private data class RuntimePhaseGatesDeps(
   },
   val recorder: FeatureTaskRuntimePhaseRecorder,
   val validationGateRunnerOverride: ValidationGateRunner? = null,
-  val validationGatePlatformManifests: List<PlatformManifest> = emptyList(),
+  val validationGatePlatformManifests: List<PlatformManifest> = listOf(kotlinPackWithValidationGate()),
   val reviewDriver: FeatureTaskRuntimeReviewDriver = ApprovingReviewDriverStub,
 )
 

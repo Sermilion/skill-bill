@@ -22,10 +22,8 @@ sealed interface ValidationGateResolution {
     val declaration: ValidationGateDeclaration,
   ) : ValidationGateResolution
 
-  /** Missing pack gate declaration — agent-run validate fallback with surfaced degradation. */
   data class Absent(val routedPackSlug: String?) : ValidationGateResolution
 
-  /** Installed packs exist but could not be read against this runtime's contract. */
   data class Incompatible(val reason: String) : ValidationGateResolution
 }
 
@@ -56,7 +54,6 @@ sealed interface ValidationGateTriageResult {
   data object Empty : ValidationGateTriageResult
 }
 
-/** Agent repair launch within the runtime-owned validate gate cycle. */
 fun interface ValidationGateAgentRepairLauncher {
   fun launch(
     findings: ValidationFindingSetProjection,
@@ -74,7 +71,6 @@ sealed interface ValidationGateAgentRepairResult {
 }
 
 sealed interface ValidationGateCycleResult {
-  /** Fall back to legacy agent-run validate (absent gate declaration). */
   data object AbsentFallback : ValidationGateCycleResult
 
   data class Terminal(val outcome: ValidationGateCycleTerminalOutcome) : ValidationGateCycleResult

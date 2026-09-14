@@ -195,6 +195,57 @@ class FeatureTaskRuntimeValidationGateTest {
   }
 
   @Test
+  fun `blocked agent turn still runs confirmation and can complete`() {
+    val repairLaunches = AtomicInteger(0)
+    val runner = ScriptedGateRunner(listOf(failedEmptyFindings("still red"), passed(forced = true)))
+    val cycle = coordinator(declaredResolver(), runner, mutableListOf()).execute(
+      ValidationGateCycleRequest(
+        repoRoot = validationGateTestRepoRoot,
+        request = minimalRequest(),
+        validationDepth = ValidationDepth.DEFAULT,
+        changedPaths = listOf("runtime-kotlin/foo.kt"),
+        repositoryCheckpoint = "checkpoint",
+        agentRepairLauncher = ValidationGateAgentRepairLauncher { _, _, _ ->
+          val launch = repairLaunches.incrementAndGet()
+          if (launch == 1) blockedRepair() else completedRepair()
+        },
+      ),
+    )
+    assertEquals(2, repairLaunches.get())
+    assertEquals(2, runner.calls)
+    assertIs<ValidationGateCycleTerminalOutcome.Completed>(
+      assertIs<ValidationGateCycleResult.Terminal>(cycle).outcome,
+    )
+  }
+
+  @Test
+  fun `missing pack validation_gate blocks without launching an agent`() {
+    val repairLaunches = AtomicInteger(0)
+    val cycle = coordinator(
+      ValidationGateResolver { listOf(kotlinPackWithoutGate()) },
+      neverRunsGate(),
+      mutableListOf(),
+    ).execute(
+      ValidationGateCycleRequest(
+        repoRoot = validationGateTestRepoRoot,
+        request = minimalRequest(),
+        validationDepth = ValidationDepth.DEFAULT,
+        changedPaths = listOf("runtime-kotlin/foo.kt"),
+        repositoryCheckpoint = "checkpoint",
+        agentRepairLauncher = ValidationGateAgentRepairLauncher { _, _, _ ->
+          repairLaunches.incrementAndGet()
+          error("validate must not launch an agent when no pack declares validation_gate")
+        },
+      ),
+    )
+    assertEquals(0, repairLaunches.get())
+    val blocked = assertIs<ValidationGateCycleTerminalOutcome.Blocked>(
+      assertIs<ValidationGateCycleResult.Terminal>(cycle).outcome,
+    )
+    assertEquals(FeatureTaskRuntimeValidationGateCoordinator.ABSENT_VALIDATION_GATE_REASON, blocked.reason)
+  }
+
+  @Test
   fun `catalog gate wins when review routing only selects a no-gate fallback pack`() {
     val resolver = ValidationGateResolver {
       listOf(

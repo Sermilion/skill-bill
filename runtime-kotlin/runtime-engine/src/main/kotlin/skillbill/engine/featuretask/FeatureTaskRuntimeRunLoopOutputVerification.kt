@@ -256,10 +256,7 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
     val disposition = FeatureTaskRuntimePhaseSafetyPolicy.dispositionForTerminalOutput(run.phaseId, outputMap)
     val operatorTerminalQualityGate =
       !disposition.retryOnResume &&
-        (
-          run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE ||
-            run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD
-          )
+        run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD
     if (operatorTerminalQualityGate) {
       return AttemptResult.settled(
         FeatureTaskRuntimeRunLoopPhaseAttempts.blockInPhase(

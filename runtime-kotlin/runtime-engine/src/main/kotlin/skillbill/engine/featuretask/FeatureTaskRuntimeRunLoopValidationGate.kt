@@ -6,6 +6,7 @@ import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
 import skillbill.contracts.workflow.ValidationEvidencePayloadKeys
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
 import skillbill.engine.featuretask.validation.FeatureTaskRuntimeBuildGateCoordinator
+import skillbill.engine.featuretask.validation.FeatureTaskRuntimeValidationGateCoordinator
 import skillbill.engine.featuretask.validation.model.ValidationGateAgentRepairLauncher
 import skillbill.engine.featuretask.validation.model.ValidationGateAgentRepairResult
 import skillbill.engine.featuretask.validation.model.ValidationGateAgentTriageLauncher
@@ -771,10 +772,7 @@ object FeatureTaskRuntimeRunLoopValidationGate {
   }
 
   internal fun FeatureTaskRuntimeRunLoopContext.runDeclaredValidationGateCycle(run: PhaseRun): PhaseOutcome {
-    val checkpoint = FeatureTaskRuntimeRunLoopValidationGate.resolveValidationGateCheckpoint(phaseGates, run)
-      ?: return PhaseOutcome.blocked(
-        "Validation gate cycle could not resolve a repository checkpoint fingerprint.",
-      )
+    val checkpoint = FeatureTaskRuntimeRunLoopValidationGate.resolveValidationGateCheckpoint(phaseGates, run).orEmpty()
     val iteration = state.nextIteration(run.phaseId)
     val context = phaseAttemptAccumulatorContext(run, state, iteration, observability, phaseTokenAccumulator)
     val cycle = phaseGates.validationGateCoordinator.execute(
@@ -837,11 +835,30 @@ object FeatureTaskRuntimeRunLoopValidationGate {
     val run = args.context.attempt.run
     val state = args.context.attempt.state
     val observability = args.context.attempt.observability
-    val phaseTokenAccumulator = args.context.phaseTokenAccumulator
     val iteration = args.context.attempt.iteration
     return when (args.cycle) {
-      ValidationGateCycleResult.AbsentFallback ->
-        runPhaseAttempts(run.copy(agentRunValidateFallback = true))
+      ValidationGateCycleResult.AbsentFallback -> {
+        observability.started(
+          run.phaseId,
+          run.resolvedAgent.resolvedAgentId,
+          iteration,
+          run.modelDirective,
+          FeatureTaskRuntimePhaseStartReentry.FIRST_VISIT,
+        )
+        FeatureTaskRuntimeRunLoopPhaseAttempts.blockInPhase(
+          request,
+          state,
+          recorder,
+          observability,
+          PhaseBlockRequest(
+            run = run,
+            attemptCount = iteration,
+            reason = FeatureTaskRuntimeValidationGateCoordinator.ABSENT_VALIDATION_GATE_REASON,
+            observability = observability,
+            failureDisposition = FeatureTaskRuntimeFailureDisposition.NEEDS_USER_ACTION,
+          ),
+        )
+      }
       is ValidationGateCycleResult.Terminal -> {
         observability.started(
           run.phaseId,
