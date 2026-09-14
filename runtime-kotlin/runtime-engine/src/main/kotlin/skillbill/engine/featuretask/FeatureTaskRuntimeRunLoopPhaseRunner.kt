@@ -46,6 +46,7 @@ object FeatureTaskRuntimeRunLoopPhaseRunner {
       runLoop.phaseGates,
       runLoop.diagnostics,
     )
+    FeatureTaskRuntimeCommitPushUpstreamHeadFallback.clearUpstreamPersistedBlockIfRecovered(run, state)
     val persisted = state.persistedBlockedReason(run.phaseId)?.let { persistedReason ->
       val nextIteration = state.nextIteration(run.phaseId)
       val durable = state.recordFor(run.phaseId)
