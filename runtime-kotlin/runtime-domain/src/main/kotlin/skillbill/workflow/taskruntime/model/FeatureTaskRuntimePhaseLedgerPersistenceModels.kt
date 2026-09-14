@@ -1,8 +1,7 @@
 package skillbill.workflow.taskruntime.model
 
-import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
-
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
 import skillbill.error.InvalidWorkflowStateSchemaError
 
 enum class FeatureTaskRuntimePhaseExecutionOrigin(val wireValue: String) {
@@ -112,10 +111,15 @@ data class FeatureTaskRuntimePhaseLedgerEntry(
     /** Strict decode; loud-fails on any missing or malformed required field. */
     internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimePhaseLedgerEntry =
       FeatureTaskRuntimePhaseLedgerEntry(
-        action = FeatureTaskRuntimePhaseLedgerAction.fromWire(raw.requireStringField(DecompositionManifestPayloadKeys.ACTION)),
+        action = FeatureTaskRuntimePhaseLedgerAction.fromWire(
+          raw.requireStringField(DecompositionManifestPayloadKeys.ACTION),
+        ),
         sequenceNumber = raw.requireIntField("sequence_number"),
         timestamp = raw.requireStringField("timestamp"),
-        phaseId = requireKnownFeatureTaskRuntimePhaseId(raw.requireStringField(SharedPayloadKeys.PHASE_ID), SharedPayloadKeys.PHASE_ID),
+        phaseId = requireKnownFeatureTaskRuntimePhaseId(
+          raw.requireStringField(SharedPayloadKeys.PHASE_ID),
+          SharedPayloadKeys.PHASE_ID,
+        ),
         attemptCount = raw.requireIntField("attempt_count"),
         resolvedAgentId = raw.optionalStringField("resolved_agent_id"),
         executionOrigin = raw.optionalStringField("execution_origin")?.let(

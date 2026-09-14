@@ -59,6 +59,7 @@ class JvmAgentRunProcessRunnerTest {
     }
     trackedChildPidFiles.clear()
   }
+
   @Test
   fun `throwing output sink still reaps a live child process`() {
     val pidFile = Files.createTempFile("skillbill-child", ".pid")
@@ -71,7 +72,7 @@ class JvmAgentRunProcessRunnerTest {
     assertThrows<IllegalStateException> {
       JvmAgentRunProcessRunner(JvmSystemClock).run(
         testAgentRunProcessRequest(
-          listOf("sh", "-c", "echo $$ > '${pidFile}'; exec sleep 120"),
+          listOf("sh", "-c", "echo $$ > '$pidFile'; exec sleep 120"),
           Path.of("."),
         ) {
           outputSink = sink

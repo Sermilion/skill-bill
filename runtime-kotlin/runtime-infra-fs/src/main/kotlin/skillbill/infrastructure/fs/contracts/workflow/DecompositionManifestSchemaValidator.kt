@@ -1,7 +1,5 @@
 package skillbill.infrastructure.fs.contracts.workflow
 
-import skillbill.contracts.SharedPayloadKeys
-
 import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.core.type.TypeReference
@@ -13,6 +11,7 @@ import com.networknt.schema.JsonSchema
 import com.networknt.schema.JsonSchemaFactory
 import com.networknt.schema.SpecVersion
 import com.networknt.schema.ValidationMessage
+import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.logSchemaLoadFailure
 import skillbill.contracts.workflow.DECOMPOSITION_MANIFEST_CONTRACT_VERSION
 import skillbill.contracts.workflow.DecompositionManifestSchemaPaths

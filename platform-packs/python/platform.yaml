@@ -83,6 +83,48 @@ lane_conditions:
 
 declared_quality_check_file: quality-check/bill-python-code-check/content.md
 
+validation_gate:
+  full_gate_command:
+    - sh
+    - -c
+    - python -m compileall -q . && pytest -q
+  cache_bypassing_full_gate_command:
+    - sh
+    - -c
+    - python -m compileall -q . && pytest -q --cache-clear
+  collect_all_full_gate_command:
+    - sh
+    - -c
+    - python -m compileall -q . && pytest -q
+  cache_bypassing_collect_all_full_gate_command:
+    - sh
+    - -c
+    - python -m compileall -q . && pytest -q --cache-clear
+  build_command:
+    - python
+    - -m
+    - compileall
+    - -q
+    - .
+  cache_bypassing_build_command:
+    - python
+    - -B
+    - -m
+    - compileall
+    - -q
+    - .
+  findings:
+    format: junit_xml
+    artifact_globs:
+      - "**/junit.xml"
+      - "**/test-results/**/*.xml"
+      - "**/pytest-results/**/*.xml"
+    compiler_diagnostics:
+      format: gradle_kotlin_compiler_stdout
+  suppression_markers:
+    - "# noqa"
+    - "type: ignore"
+
 # Pointer files are generated into render/install output from this block.
 pointers:
   code-review/bill-python-code-review:

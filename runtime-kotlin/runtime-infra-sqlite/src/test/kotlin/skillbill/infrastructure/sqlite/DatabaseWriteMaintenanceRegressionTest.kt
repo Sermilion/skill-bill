@@ -1,16 +1,19 @@
 package skillbill.infrastructure.sqlite
 
+import skillbill.infrastructure.sqlite.core.DatabaseRuntime
 import skillbill.model.EnvironmentContext
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.WorkflowStateRecord
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
+import java.lang.reflect.InvocationTargetException
+import java.lang.reflect.Method
+import java.lang.reflect.Proxy
 import java.nio.file.Files
 import java.sql.Connection
 import java.sql.Driver
 import java.sql.DriverManager
 import java.sql.DriverPropertyInfo
-import java.lang.reflect.InvocationTargetException
-import java.lang.reflect.Proxy
+import java.sql.PreparedStatement
+import java.sql.Statement
 import java.util.Properties
 import java.util.logging.Logger
 import kotlin.test.Test
@@ -100,52 +103,56 @@ private class RecordingJdbcDriver(
     ) { _, method, args ->
       val value = invokeRaw(method, connection, args)
       when {
-        value is java.sql.PreparedStatement && method.name == "prepareStatement" ->
+        value is PreparedStatement && method.name == "prepareStatement" ->
           recordStatement(value, args?.firstOrNull() as? String, prepared = true)
-        value is java.sql.Statement && method.name == "createStatement" ->
+        value is Statement && method.name == "createStatement" ->
           recordStatement(value, null, prepared = false)
         else -> value
       }
     } as Connection
   }
 
-  private fun recordStatement(
-    statement: java.sql.Statement,
-    preparedSql: String?,
-    prepared: Boolean,
-  ): java.sql.Statement = Proxy.newProxyInstance(
-    java.sql.Statement::class.java.classLoader,
-    arrayOf(if (prepared) java.sql.PreparedStatement::class.java else java.sql.Statement::class.java),
-  ) { _, method, args ->
-    if (method.name in setOf("execute", "executeQuery", "executeUpdate", "executeLargeUpdate", "executeBatch")) {
-      categories += statementCategory(preparedSql ?: (args?.firstOrNull() as? String).orEmpty())
-    }
-    invokeRaw(method, statement, args)
-  } as java.sql.Statement
+  private fun recordStatement(statement: Statement, preparedSql: String?, prepared: Boolean): Statement =
+    Proxy.newProxyInstance(
+      Statement::class.java.classLoader,
+      arrayOf(if (prepared) PreparedStatement::class.java else Statement::class.java),
+    ) { _, method, args ->
+      if (method.name in setOf("execute", "executeQuery", "executeUpdate", "executeLargeUpdate", "executeBatch")) {
+        categories += statementCategory(preparedSql ?: (args?.firstOrNull() as? String).orEmpty())
+      }
+      invokeRaw(method, statement, args)
+    } as Statement
 
   private fun statementCategory(sql: String): String {
     val normalized = sql.replace(Regex("\\s+"), " ").trim().uppercase()
     return when {
-      normalized.startsWith("PRAGMA BUSY_TIMEOUT") ||
-        normalized.startsWith("PRAGMA JOURNAL_MODE") ||
-        normalized.startsWith("PRAGMA FOREIGN_KEYS") -> "connection_pragmas"
+      isConnectionPragma(normalized) -> "connection_pragmas"
       normalized.startsWith("PRAGMA") -> "readiness_signal"
-      normalized.startsWith("BEGIN") ||
-        normalized.startsWith("COMMIT") ||
-        normalized.startsWith("ROLLBACK") -> "transaction_control"
-      normalized.contains("SCHEMA_MIGRATIONS") ||
-        normalized.startsWith("CREATE TABLE") ||
-        normalized.startsWith("CREATE INDEX") ||
-        normalized.startsWith("ALTER TABLE") ||
-        normalized.startsWith("DROP TABLE") ||
-        normalized.startsWith("DROP INDEX") -> "schema_maintenance"
-      normalized.contains("SQLITE_MASTER") ||
-        normalized.contains("PRAGMA_TABLE_INFO") ||
-        (normalized.contains("STATE_ENTERED_AT_ESTIMATED") && !normalized.contains("EXCLUDED")) ->
-        "repair_scan"
+      isTransactionControl(normalized) -> "transaction_control"
+      isSchemaMaintenance(normalized) -> "schema_maintenance"
+      isRepairScan(normalized) -> "repair_scan"
       else -> "application_work"
     }
   }
+
+  private fun isConnectionPragma(sql: String): Boolean = sql.startsWith("PRAGMA BUSY_TIMEOUT") ||
+    sql.startsWith("PRAGMA JOURNAL_MODE") ||
+    sql.startsWith("PRAGMA FOREIGN_KEYS")
+
+  private fun isTransactionControl(sql: String): Boolean = sql.startsWith("BEGIN") ||
+    sql.startsWith("COMMIT") ||
+    sql.startsWith("ROLLBACK")
+
+  private fun isSchemaMaintenance(sql: String): Boolean = sql.contains("SCHEMA_MIGRATIONS") ||
+    sql.startsWith("CREATE TABLE") ||
+    sql.startsWith("CREATE INDEX") ||
+    sql.startsWith("ALTER TABLE") ||
+    sql.startsWith("DROP TABLE") ||
+    sql.startsWith("DROP INDEX")
+
+  private fun isRepairScan(sql: String): Boolean = sql.contains("SQLITE_MASTER") ||
+    sql.contains("PRAGMA_TABLE_INFO") ||
+    (sql.contains("STATE_ENTERED_AT_ESTIMATED") && !sql.contains("EXCLUDED"))
 
   override fun acceptsURL(url: String?): Boolean = delegate.acceptsURL(url)
 
@@ -160,11 +167,7 @@ private class RecordingJdbcDriver(
 
   override fun getParentLogger(): Logger = delegate.parentLogger
 
-  private fun invokeRaw(
-    method: java.lang.reflect.Method,
-    target: Any,
-    args: Array<out Any?>?,
-  ): Any? = try {
+  private fun invokeRaw(method: Method, target: Any, args: Array<out Any?>?): Any? = try {
     method.invoke(target, *(args ?: emptyArray()))
   } catch (error: InvocationTargetException) {
     throw error.targetException

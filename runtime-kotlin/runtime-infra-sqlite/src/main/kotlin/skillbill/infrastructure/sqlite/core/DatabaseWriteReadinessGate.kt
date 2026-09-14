@@ -23,15 +23,14 @@ internal class DatabaseWriteReadinessGate {
         return
       }
       published = null
-      try {
+      runCatching {
         schemaEstablishmentExecutions += 1
         DatabaseRuntime.establishSchemaReadiness(normalized)
         published = DatabaseIdentity.read(normalized)
           ?: error("Database readiness completed but identity could not be read at '$normalized'.")
-      } catch (error: Exception) {
+      }.onFailure {
         published = null
-        throw error
-      }
+      }.getOrThrow()
     }
   }
 }

@@ -428,24 +428,23 @@ object ArchitectureScanSupport {
   fun abstractPropertyNames(source: String): Set<String> =
     ABSTRACT_PROPERTY_PATTERN.findAll(source).map { match -> match.groupValues[1] }.toSet()
 
-  fun logicalTypeLineCounts(productionRoots: List<String>): Map<String, Int> =
-    productionRoots
-      .flatMap { productionRoot -> kotlinFilesUnder(runtimeRoot.resolve(productionRoot)) }
-      .mapNotNull { sourceFile ->
-        val relativePath = runtimeRoot.relativize(sourceFile).toString().replace('\\', '/')
-        if (isNonProductionKotlinSourceSet(relativePath)) return@mapNotNull null
-        val source = sourceFile.readText()
-        val packageName = declaredPackage(source) ?: return@mapNotNull null
-        SourceFile(
-          relativePath = relativePath,
-          packageName = packageName,
-          imports = declaredImports(source),
-          source = source,
-        )
-      }
-      .let(::logicalTypeLineCountsInSources)
+  fun logicalTypeLineCounts(productionRoots: List<String>): Map<String, Int> = productionRoots
+    .flatMap { productionRoot -> kotlinFilesUnder(runtimeRoot.resolve(productionRoot)) }
+    .mapNotNull { sourceFile ->
+      val relativePath = runtimeRoot.relativize(sourceFile).toString().replace('\\', '/')
+      if (isNonProductionKotlinSourceSet(relativePath)) return@mapNotNull null
+      val source = sourceFile.readText()
+      val packageName = declaredPackage(source) ?: return@mapNotNull null
+      SourceFile(
+        relativePath = relativePath,
+        packageName = packageName,
+        imports = declaredImports(source),
+        source = source,
+      )
+    }
+    .let(::logicalTypeLineCountsInSources)
 
-  fun logicalTypeLineCeilingViolationsInSources(
+  internal fun logicalTypeLineCeilingViolationsInSources(
     sourceFiles: List<SourceFile>,
     ceiling: Int,
     baseline: Map<String, Int>,

@@ -15,11 +15,7 @@ import java.time.Clock
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 import kotlin.time.DurationUnit
-internal fun writeAndCloseStdin(
-  process: Process,
-  stdinText: String?,
-  degradation: ProcessRunDegradationRecorder,
-) {
+internal fun writeAndCloseStdin(process: Process, stdinText: String?, degradation: ProcessRunDegradationRecorder) {
   runCatching {
     process.outputStream.use { output ->
       if (stdinText != null) {

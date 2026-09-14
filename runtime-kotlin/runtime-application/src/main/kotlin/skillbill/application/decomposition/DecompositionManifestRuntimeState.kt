@@ -1,9 +1,8 @@
 package skillbill.application.decomposition
 
-import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
-
 import skillbill.application.decomposition.model.DecompositionManifestFileCandidate
 import skillbill.application.decomposition.model.DecompositionManifestRuntimeUpdate
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningResult
 import skillbill.error.InvalidDecompositionManifestSchemaError
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
@@ -114,7 +113,9 @@ internal fun manifestPathFromArtifacts(
 ): Path? {
   val merged = LinkedHashMap(existingArtifacts)
   artifactsPatch?.let(merged::putAll)
-  val specPath = (merged["assessment"] as? Map<*, *>)?.get(DecompositionPlanningPayloadKeys.SPEC_PATH)?.toString()?.takeIf(String::isNotBlank)
+  val specPath = (merged["assessment"] as? Map<*, *>)?.get(
+    DecompositionPlanningPayloadKeys.SPEC_PATH,
+  )?.toString()?.takeIf(String::isNotBlank)
     ?: planningResult?.takeIf { it.isDecomposeMode() }?.parentSpecPath?.takeIf(String::isNotBlank)
   planningResult?.takeIf { it.isDecomposeMode() }?.let { plan ->
     return decompositionManifestPath(

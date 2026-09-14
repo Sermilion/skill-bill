@@ -1,7 +1,6 @@
 package skillbill.application.decomposition
 
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
-
 import skillbill.contracts.issuekey.issueAndFeature
 import java.nio.file.Path
 

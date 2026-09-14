@@ -82,6 +82,42 @@ lane_conditions:
 
 declared_quality_check_file: quality-check/bill-rust-code-check/content.md
 
+validation_gate:
+  full_gate_command:
+    - cargo
+    - test
+    - --workspace
+  cache_bypassing_full_gate_command:
+    - sh
+    - -c
+    - CARGO_INCREMENTAL=0 cargo test --workspace
+  collect_all_full_gate_command:
+    - cargo
+    - test
+    - --workspace
+  cache_bypassing_collect_all_full_gate_command:
+    - sh
+    - -c
+    - CARGO_INCREMENTAL=0 cargo test --workspace
+  build_command:
+    - cargo
+    - check
+    - --workspace
+  cache_bypassing_build_command:
+    - sh
+    - -c
+    - CARGO_INCREMENTAL=0 cargo check --workspace
+  findings:
+    format: junit_xml
+    artifact_globs:
+      - "**/junit.xml"
+      - "**/target/**/junit.xml"
+      - "**/nextest/**/*.xml"
+    compiler_diagnostics:
+      format: gradle_kotlin_compiler_stdout
+  suppression_markers:
+    - "#[allow("
+
 pointers:
   code-review/bill-rust-code-review:
     - name: review-orchestrator.md

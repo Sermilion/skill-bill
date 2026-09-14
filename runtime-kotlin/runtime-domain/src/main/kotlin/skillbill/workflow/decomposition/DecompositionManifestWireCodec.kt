@@ -89,7 +89,10 @@ private fun Map<String, Any?>.toDecompositionManifest(sourceLabel: String): Deco
       )
   }
   val subtasks = listValue(DecompositionPlanningPayloadKeys.SUBTASKS).mapIndexed { index, raw ->
-    raw.asMap(sourceLabel, "${DecompositionPlanningPayloadKeys.SUBTASKS}[$index]").toDecompositionSubtask(sourceLabel, index)
+    raw.asMap(
+      sourceLabel,
+      "${DecompositionPlanningPayloadKeys.SUBTASKS}[$index]",
+    ).toDecompositionSubtask(sourceLabel, index)
   }
   val current = this[DecompositionManifestPayloadKeys.CURRENT_SUBTASK_INTENT]
     .asMap(sourceLabel, DecompositionManifestPayloadKeys.CURRENT_SUBTASK_INTENT)

@@ -175,7 +175,15 @@ internal object PhaseOutputExpectedShape {
   }
 
   fun requiredFields(phaseId: String): List<String> = buildList {
-    addAll(listOf(SharedPayloadKeys.CONTRACT_VERSION, SharedPayloadKeys.PHASE_ID, SharedPayloadKeys.STATUS, SharedPayloadKeys.SUMMARY, SharedPayloadKeys.PRODUCED_OUTPUTS))
+    addAll(
+      listOf(
+        SharedPayloadKeys.CONTRACT_VERSION,
+        SharedPayloadKeys.PHASE_ID,
+        SharedPayloadKeys.STATUS,
+        SharedPayloadKeys.SUMMARY,
+        SharedPayloadKeys.PRODUCED_OUTPUTS,
+      ),
+    )
     if (phaseId == "audit") add(SharedPayloadKeys.VERDICT)
   }
 

@@ -25,23 +25,17 @@ internal fun AgentRunActivityProbe.readActivityLabel(recorder: ProcessRunDegrada
 
 internal fun AgentRunDeclaredProgressProbe.readDeclaredProgress(
   recorder: ProcessRunDegradationRecorder,
-): ProbeRead<AgentRunDeclaredProgressSnapshot> =
-  readProbe(recorder, "declared_progress") { latestDeclaredProgress() }
+): ProbeRead<AgentRunDeclaredProgressSnapshot> = readProbe(recorder, "declared_progress") { latestDeclaredProgress() }
 
-internal fun AgentRunMcpStartupProbe.readStartupObserved(
-  recorder: ProcessRunDegradationRecorder,
-): ProbeRead<Boolean> =
+internal fun AgentRunMcpStartupProbe.readStartupObserved(recorder: ProcessRunDegradationRecorder): ProbeRead<Boolean> =
   readProbe(recorder, "mcp_startup") { startupObserved() }
 
-private inline fun <T> readProbe(
-  recorder: ProcessRunDegradationRecorder,
-  seam: String,
-  read: () -> T?,
-): ProbeRead<T> = try {
-  ProbeRead(value = read(), failed = false)
-} catch (cancellation: CancellationException) {
-  throw cancellation
-} catch (failure: RuntimeException) {
-  recorder.recordProbeFailure(seam, failure)
-  ProbeRead(value = null, failed = true)
-}
+private inline fun <T> readProbe(recorder: ProcessRunDegradationRecorder, seam: String, read: () -> T?): ProbeRead<T> =
+  runCatching { read() }.fold(
+    onSuccess = { value -> ProbeRead(value = value, failed = false) },
+    onFailure = { failure ->
+      if (failure is CancellationException) throw failure
+      recorder.recordProbeFailure(seam, failure)
+      ProbeRead(value = null, failed = true)
+    },
+  )

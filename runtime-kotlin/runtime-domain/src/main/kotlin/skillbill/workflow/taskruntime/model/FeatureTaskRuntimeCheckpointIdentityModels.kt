@@ -1,10 +1,9 @@
 package skillbill.workflow.taskruntime.model
 
-import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
-import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
-
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITY_CONTRACT_VERSION
 import skillbill.error.InvalidFeatureTaskRuntimeCheckpointIdentityVersionError
 import skillbill.error.InvalidWorkflowStateSchemaError

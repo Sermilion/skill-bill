@@ -19,7 +19,12 @@ internal object FeatureTaskRuntimeProjectionCanonicalizerEntries {
     governed.forEach { (key, value) ->
       result[key] = when (key) {
         "task_id" -> canonicalizeDeclaredId(value, records, "tasks[$index].task_id")
-        DecompositionPlanningPayloadKeys.DEPENDS_ON -> canonicalizeReferenceIds(value, declaredIds, records, "tasks[$index].depends_on")
+        DecompositionPlanningPayloadKeys.DEPENDS_ON -> canonicalizeReferenceIds(
+          value,
+          declaredIds,
+          records,
+          "tasks[$index].depends_on",
+        )
         "description" -> canonicalizeCompactSummary(value, records, "tasks[$index].description")
         in FEATURE_TASK_RUNTIME_NONBLANK_STRING_LIST_KEYS ->
           trimStringList(value, records, "tasks[$index].$key")

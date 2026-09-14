@@ -34,6 +34,7 @@ fun phasePromptHeader(inputs: PhasePromptHeaderInputs): String {
     PhaseTaskDirectiveArgs(
       agentRunValidateFallback = inputs.agentRunValidateFallback,
       packCollectAllCommand = inputs.packCollectAllCommand,
+      packConfirmationGateCommand = inputs.packConfirmationGateCommand,
       packBuildCommand = inputs.packBuildCommand,
       validationGateRepair = inputs.validationGateRepair,
       validationGateTriage = inputs.validationGateTriage,

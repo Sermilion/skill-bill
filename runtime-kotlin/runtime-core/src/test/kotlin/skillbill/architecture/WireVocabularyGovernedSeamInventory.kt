@@ -48,12 +48,15 @@ internal object WireVocabularyGovernedSeamInventory {
     ),
   )
 
-  fun closedSchemaPropertyKeys(schemaRepoRelativePath: String): Set<String> =
-    when (schemaRepoRelativePath) {
-      DecompositionManifestSchemaPaths.REPO_RELATIVE_PATH -> decompositionManifestGovernedKeys(loadRepoSchema(schemaRepoRelativePath))
-      FeatureTaskRuntimePhaseOutputSchemaPaths.REPO_RELATIVE_PATH -> phaseOutputEnvelopeGovernedKeys(loadRepoSchema(schemaRepoRelativePath))
-      else -> emptySet()
-    }
+  fun closedSchemaPropertyKeys(schemaRepoRelativePath: String): Set<String> = when (schemaRepoRelativePath) {
+    DecompositionManifestSchemaPaths.REPO_RELATIVE_PATH -> decompositionManifestGovernedKeys(
+      loadRepoSchema(schemaRepoRelativePath),
+    )
+    FeatureTaskRuntimePhaseOutputSchemaPaths.REPO_RELATIVE_PATH -> phaseOutputEnvelopeGovernedKeys(
+      loadRepoSchema(schemaRepoRelativePath),
+    )
+    else -> emptySet()
+  }
 
   private fun decompositionManifestGovernedKeys(schema: JsonNode): Set<String> {
     val keys = mutableSetOf<String>()
@@ -74,14 +77,12 @@ internal object WireVocabularyGovernedSeamInventory {
     return names
   }
 
-  fun schemaFieldsMissingKotlinOwner(
-    schemaRepoRelativePath: String,
-    declaredKeyValues: Set<String>,
-  ): List<String> = schemaFieldsMissingKotlinOwner(
-    closedSchemaPropertyKeys(schemaRepoRelativePath),
-    schemaRepoRelativePath,
-    declaredKeyValues,
-  )
+  fun schemaFieldsMissingKotlinOwner(schemaRepoRelativePath: String, declaredKeyValues: Set<String>): List<String> =
+    schemaFieldsMissingKotlinOwner(
+      closedSchemaPropertyKeys(schemaRepoRelativePath),
+      schemaRepoRelativePath,
+      declaredKeyValues,
+    )
 
   fun schemaFieldsMissingKotlinOwner(
     schemaPropertyKeys: Set<String>,

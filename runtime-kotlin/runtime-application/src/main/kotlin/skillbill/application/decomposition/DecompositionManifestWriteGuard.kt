@@ -20,16 +20,16 @@ object DecompositionManifestWriteGuard {
       )
   }
 
-  fun failureArtifact(outcome: DecompositionManifestProjectionOutcome.Failed): Map<String, String> =
-    mapOf(
-      DecompositionManifestProjectionFailurePayloadKeys.OPERATION to outcome.operation,
-      DecompositionManifestProjectionFailurePayloadKeys.TARGET_PATH to outcome.targetPath,
-    )
+  fun failureArtifact(outcome: DecompositionManifestProjectionOutcome.Failed): Map<String, String> = mapOf(
+    DecompositionManifestProjectionFailurePayloadKeys.OPERATION to outcome.operation,
+    DecompositionManifestProjectionFailurePayloadKeys.TARGET_PATH to outcome.targetPath,
+  )
 
   fun isRetryableFailure(outcome: DecompositionManifestProjectionOutcome): Boolean =
     outcome is DecompositionManifestProjectionOutcome.Failed
 
-  fun projectionOperationLabel(): String = DecompositionManifestProjectionOperations.WRITE_PROJECTION_FROM_WORKFLOW_STATE
+  fun projectionOperationLabel(): String =
+    DecompositionManifestProjectionOperations.WRITE_PROJECTION_FROM_WORKFLOW_STATE
 
   fun failureArtifactKey(): String = DECOMPOSITION_MANIFEST_PROJECTION_FAILURE_ARTIFACT_KEY
 }

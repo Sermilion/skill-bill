@@ -1,7 +1,6 @@
 package skillbill.workflow.taskruntime.model
 
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
-
 import skillbill.error.InvalidWorkflowStateSchemaError
 
 /** Durable terminal decompose/planning-stop summary for status and monitor after process restart. */

@@ -114,6 +114,13 @@ class WireVocabularyArchitectureTest {
 
           object ManifestKeys {
             const val STATUS: String = "status"
+            const val CONTRACT_VERSION: String = "contract_version"
+            const val PHASE_ID: String = "phase_id"
+            const val SUMMARY: String = "summary"
+            const val PRODUCED_OUTPUTS: String = "produced_outputs"
+            const val FAILURE_DISPOSITION: String = "failure_disposition"
+            const val DERIVED_NOTES: String = "derived_notes"
+            const val VERDICT: String = "verdict"
           }
           """.trimIndent(),
         ),
@@ -139,6 +146,13 @@ class WireVocabularyArchitectureTest {
 
         object ManifestKeys {
           const val STATUS: String = "status"
+          const val CONTRACT_VERSION: String = "contract_version"
+          const val PHASE_ID: String = "phase_id"
+          const val SUMMARY: String = "summary"
+          const val PRODUCED_OUTPUTS: String = "produced_outputs"
+          const val FAILURE_DISPOSITION: String = "failure_disposition"
+          const val DERIVED_NOTES: String = "derived_notes"
+          const val VERDICT: String = "verdict"
         }
         """.trimIndent(),
       ),
@@ -172,6 +186,13 @@ class WireVocabularyArchitectureTest {
 
         object ManifestKeys {
           const val STATUS: String = "status"
+          const val CONTRACT_VERSION: String = "contract_version"
+          const val PHASE_ID: String = "phase_id"
+          const val SUMMARY: String = "summary"
+          const val PRODUCED_OUTPUTS: String = "produced_outputs"
+          const val FAILURE_DISPOSITION: String = "failure_disposition"
+          const val DERIVED_NOTES: String = "derived_notes"
+          const val VERDICT: String = "verdict"
         }
         """.trimIndent(),
       ),

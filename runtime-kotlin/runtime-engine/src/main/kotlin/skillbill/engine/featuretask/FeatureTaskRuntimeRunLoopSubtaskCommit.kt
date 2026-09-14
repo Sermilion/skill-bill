@@ -1,20 +1,25 @@
 package skillbill.engine.featuretask
 
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
 import skillbill.contracts.JsonCodec
 import skillbill.engine.featuretask.model.AppendCheckpointIdentityArgs
+import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
+import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.gitops.stagedPaths
+import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.workflow.taskruntime.envelopeWireMap
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_STANDALONE_SUBTASK_ID
 import skillbill.workflow.taskruntime.model.NormalizedFeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.requireAcceptedOutput
-import skillbill.ports.diagnostics.RuntimeDiagnostics
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
-import skillbill.engine.featuretask.FeatureTaskRuntimePhaseGates
 
 object FeatureTaskRuntimeRunLoopSubtaskCommit {
-  internal fun unownedWorktreeCommitSha(request: FeatureTaskRuntimeRunRequest, outputValidator: FeatureTaskRuntimePhaseOutputValidator, diagnostics: RuntimeDiagnostics, phaseGates: FeatureTaskRuntimePhaseGates, run: PhaseRun, normalizedOutput: NormalizedFeatureTaskRuntimePhaseOutput): CommitPushFinalisation {
+  internal fun unownedWorktreeCommitSha(args: UnownedWorktreeCommitShaArgs): CommitPushFinalisation {
+    val request = args.request
+    val outputValidator = args.outputValidator
+    val diagnostics = args.diagnostics
+    val phaseGates = args.phaseGates
+    val run = args.run
+    val normalizedOutput = args.normalizedOutput
     val head = phaseGates.gitOperations.headCommitSha(request.repoRoot)
     val sha = head.value.orEmpty().trim().takeIf { head is WorkflowGitOperationResult.Ok && it.isNotBlank() }
       ?: return CommitPushNotApplicable
@@ -27,14 +32,22 @@ object FeatureTaskRuntimeRunLoopSubtaskCommit {
       )
     }
     return CommitPushSettled(
-      revalidated( outputValidator, run.phaseId, FeatureTaskRuntimeSubtaskFinalisation.withCommitSha(
+      revalidated(
+        outputValidator,
+        run.phaseId,
+        FeatureTaskRuntimeSubtaskFinalisation.withCommitSha(
           normalizedOutput.envelopeWireMap(),
           sha,
-        )),
+        ),
+      ),
     )
   }
 
-  internal fun finalisationBranch(request: FeatureTaskRuntimeRunRequest, session: FeatureTaskRuntimeRunLoopSession, phaseGates: FeatureTaskRuntimePhaseGates): String? {
+  internal fun finalisationBranch(
+    request: FeatureTaskRuntimeRunRequest,
+    session: FeatureTaskRuntimeRunLoopSession,
+    phaseGates: FeatureTaskRuntimePhaseGates,
+  ): String? {
     val branch = session.resolvedBranch
       ?.takeIf { FeatureTaskRuntimeBranchSetup.protectedBranchName(it) == null }
       ?: return null
@@ -42,7 +55,13 @@ object FeatureTaskRuntimeRunLoopSubtaskCommit {
     return branch.takeIf { head is WorkflowGitOperationResult.Ok && head.value.trim() == branch.trim() }
   }
 
-  internal fun recordFinalisedCheckpointIdentity(request: FeatureTaskRuntimeRunRequest, state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, diagnostics: RuntimeDiagnostics, args: RecordFinalisedCheckpointIdentityArgs): String? {
+  internal fun recordFinalisedCheckpointIdentity(
+    request: FeatureTaskRuntimeRunRequest,
+    state: FeatureTaskRuntimeRunState,
+    recorder: FeatureTaskRuntimePhaseRecorder,
+    diagnostics: RuntimeDiagnostics,
+    args: RecordFinalisedCheckpointIdentityArgs,
+  ): String? {
     val phaseId = args.phaseId
     val branch = args.branch
     val ledger = args.ledger
@@ -81,7 +100,15 @@ object FeatureTaskRuntimeRunLoopSubtaskCommit {
       "the workflow store and resume; the commit is already on the branch."
   }
 
-  internal fun revalidated( outputValidator: FeatureTaskRuntimePhaseOutputValidator, phaseId: String, envelope: Map<String, Any?>): NormalizedFeatureTaskRuntimePhaseOutput = outputValidator
+  internal fun revalidated(
+    outputValidator: FeatureTaskRuntimePhaseOutputValidator,
+    phaseId: String,
+    envelope: Map<
+      String,
+
+      Any?,
+      >,
+  ): NormalizedFeatureTaskRuntimePhaseOutput = outputValidator
     .validatePhaseOutput(JsonCodec.mapToJsonString(envelope), sourceLabel = phaseId)
     .requireAcceptedOutput(phaseId)
     .normalizedOutput

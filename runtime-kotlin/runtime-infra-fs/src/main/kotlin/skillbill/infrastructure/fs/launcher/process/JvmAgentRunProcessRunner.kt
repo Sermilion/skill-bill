@@ -110,28 +110,24 @@ class JvmAgentRunProcessRunner(
     val lifetime = ProcessRunLifetime(process, liveProcesses, stdout, stderr, degradation)
     var mcpStartupObservedAtStart = false
     var waitResult: Result<ProcessWait>? = null
-    var primaryFailure: Throwable? = null
-    try {
+    val runOutcome = runCatching {
       mcpStartupObservedAtStart = request.mcpStartupProbe.readStartupObserved(degradation).value == true
       stdout.start()
       stderr.start()
       writeAndCloseStdin(process, request.stdinText, degradation)
       lifecycleEmitter.emitStarted(process.isAlive)
-      waitResult = try {
-        Result.success(waitForProcess(process, request, outputTracker, lifecycleEmitter, degradation))
-      } catch (interrupt: InterruptedException) {
-        Result.failure(interrupt)
-      }
-    } catch (failure: Throwable) {
-      primaryFailure = failure
-      throw failure
-    } finally {
-      try {
-        lifetime.release(waitResult)
-      } catch (cleanupFailure: Throwable) {
-        primaryFailure?.addSuppressed(cleanupFailure) ?: throw cleanupFailure
+      waitResult = runCatching {
+        waitForProcess(process, request, outputTracker, lifecycleEmitter, degradation)
       }
     }
+    val cleanupFailure = runCatching { lifetime.release(waitResult) }.exceptionOrNull()
+    cleanupFailure?.let { failure ->
+      runOutcome.exceptionOrNull()?.addSuppressed(failure) ?: throw failure
+    }
+    runOutcome.getOrThrow()
+    waitResult?.exceptionOrNull()
+      ?.takeUnless { it is InterruptedException }
+      ?.let { throw it }
     return buildRunResult(
       BuildRunResultInput(
         process = process,

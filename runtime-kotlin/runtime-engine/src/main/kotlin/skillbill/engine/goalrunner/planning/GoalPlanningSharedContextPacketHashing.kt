@@ -1,9 +1,9 @@
 package skillbill.engine.goalrunner.planning
 
-import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
-import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.text.sha256HexUtf8
 import skillbill.workflow.decomposition.model.DecompositionManifest
 
@@ -18,7 +18,11 @@ fun goalPlanningImmutableDecompositionHash(manifest: DecompositionManifest): Str
     DecompositionPlanningPayloadKeys.BASE_BRANCH to manifest.baseBranch,
     DecompositionManifestPayloadKeys.FEATURE_BRANCH to manifest.featureBranch,
     DecompositionPlanningPayloadKeys.STACK_BRANCHES to manifest.stackBranches.map {
-      linkedMapOf(SharedPayloadKeys.SUBTASK_ID to it.subtaskId, DecompositionPlanningPayloadKeys.BRANCH to it.branch, DecompositionPlanningPayloadKeys.BASE_BRANCH to it.baseBranch)
+      linkedMapOf(
+        SharedPayloadKeys.SUBTASK_ID to it.subtaskId,
+        DecompositionPlanningPayloadKeys.BRANCH to it.branch,
+        DecompositionPlanningPayloadKeys.BASE_BRANCH to it.baseBranch,
+      )
     },
     DecompositionPlanningPayloadKeys.SUBTASKS to manifest.subtasks.map { subtask ->
       linkedMapOf(

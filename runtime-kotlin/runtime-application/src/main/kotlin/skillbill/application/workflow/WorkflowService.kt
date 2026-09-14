@@ -2,9 +2,10 @@ package skillbill.application.workflow
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.decomposition.DecompositionManifestWriter
-import skillbill.application.decomposition.retryDecompositionManifestProjectionFromAuthoritativeState
 import skillbill.application.decomposition.clearDecompositionManifestProjectionFailure
+import skillbill.application.decomposition.model.RetryDecompositionManifestProjectionArgs
 import skillbill.application.decomposition.persistDecompositionManifestProjectionFailure
+import skillbill.application.decomposition.retryDecompositionManifestProjectionFromAuthoritativeState
 import skillbill.application.workflow.model.BuildFeatureTaskExecutionIdentityArgs
 import skillbill.application.workflow.model.ContinueExistingWorkflowArgs
 import skillbill.application.workflow.model.DecompositionRuntimeWriteArgs
@@ -129,13 +130,15 @@ class WorkflowService(
 
   fun retryDecompositionManifestProjection(workflowId: String): DecompositionManifestProjectionOutcome =
     retryDecompositionManifestProjectionFromAuthoritativeState(
-      database = database,
-      engine = engine,
-      decompositionManifestWriter = decompositionManifestWriter,
-      decompositionManifestValidator = decompositionManifestValidator,
-      decompositionManifestStore = decompositionManifestStore,
-      repoRoot = repositoryRoot.path,
-      workflowId = workflowId,
+      RetryDecompositionManifestProjectionArgs(
+        database = database,
+        engine = engine,
+        decompositionManifestWriter = decompositionManifestWriter,
+        decompositionManifestValidator = decompositionManifestValidator,
+        decompositionManifestStore = decompositionManifestStore,
+        repoRoot = repositoryRoot.path,
+        workflowId = workflowId,
+      ),
     )
 
   private fun persistUpdate(
@@ -345,10 +348,7 @@ class WorkflowService(
     return result
   }
 
-  private fun reconcileDecompositionManifestProjectionAfterCommit(
-    workflowId: String,
-    artifactsJson: String,
-  ) {
+  private fun reconcileDecompositionManifestProjectionAfterCommit(workflowId: String, artifactsJson: String) {
     when (
       val outcome = decompositionManifestWriter.writeProjectionFromWorkflowState(
         repositoryRoot.path,

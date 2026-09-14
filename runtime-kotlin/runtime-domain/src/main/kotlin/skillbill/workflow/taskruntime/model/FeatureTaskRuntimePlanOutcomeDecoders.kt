@@ -1,7 +1,6 @@
 package skillbill.workflow.taskruntime.model
 
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
-
 import skillbill.error.InvalidWorkflowStateSchemaError
 
 internal fun Map<String, Any?>.requireSubtasks(): List<FeatureTaskRuntimeDecomposeSubtask> {

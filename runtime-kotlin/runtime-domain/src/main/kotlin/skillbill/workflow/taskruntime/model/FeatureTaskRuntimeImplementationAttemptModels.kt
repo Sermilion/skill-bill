@@ -69,7 +69,9 @@ data class FeatureTaskRuntimeImplementationAttempt(
           phaseId = raw.requireStringField(SharedPayloadKeys.PHASE_ID),
           attemptNumber = raw.requireIntField("attempt_number"),
           agentId = raw.requireStringField("agent_id"),
-          status = FeatureTaskRuntimeImplementationAttemptStatus.fromWireValue(raw.requireStringField(SharedPayloadKeys.STATUS)),
+          status = FeatureTaskRuntimeImplementationAttemptStatus.fromWireValue(
+            raw.requireStringField(SharedPayloadKeys.STATUS),
+          ),
           recordedAt = raw.requireStringField("recorded_at"),
           value = raw.requireStringField(SharedPayloadKeys.VALUE),
           loopId = raw.optionalStringField("loop_id"),
@@ -90,8 +92,17 @@ data class FeatureTaskRuntimeImplementationAttempt(
     }
 
     private val ALLOWED_FIELDS = setOf(
-      "sequence_number", SharedPayloadKeys.PHASE_ID, "attempt_number", "agent_id", SharedPayloadKeys.STATUS, "recorded_at",
-      SharedPayloadKeys.VALUE, "loop_id", "edge_iteration", SharedPayloadKeys.FAILURE_DISPOSITION, SharedPayloadKeys.PROMPT,
+      "sequence_number",
+      SharedPayloadKeys.PHASE_ID,
+      "attempt_number",
+      "agent_id",
+      SharedPayloadKeys.STATUS,
+      "recorded_at",
+      SharedPayloadKeys.VALUE,
+      "loop_id",
+      "edge_iteration",
+      SharedPayloadKeys.FAILURE_DISPOSITION,
+      SharedPayloadKeys.PROMPT,
     )
   }
 }

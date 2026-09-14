@@ -1,8 +1,7 @@
 package skillbill.workflow.taskruntime.model
 
-import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
-
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.contracts.review.ReviewFindingPayloadKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_REPAIR_RECEIPT_CONTRACT_VERSION
 import skillbill.error.InvalidFeatureTaskRuntimeRepairReceiptError
@@ -231,7 +230,13 @@ data class FeatureTaskRuntimeRepairReceipt(
       observations: FeatureTaskRuntimeRepairReceiptDecodeObservations? = null,
     ): FeatureTaskRuntimeRepairReceipt {
       raw.requireOnlyReviewStateKeys(
-        setOf(SharedPayloadKeys.CONTRACT_VERSION, "round_number", "pre_fix_checkpoint_sha", "entries", "disturbed_remedies"),
+        setOf(
+          SharedPayloadKeys.CONTRACT_VERSION,
+          "round_number",
+          "pre_fix_checkpoint_sha",
+          "entries",
+          "disturbed_remedies",
+        ),
         path,
       )
       if (raw.containsKey("disturbed_remedies")) {

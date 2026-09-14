@@ -1,9 +1,8 @@
 package skillbill.workflow.taskruntime.model
 
-import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
-
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 
 /** One validated projection actually delivered to a consumer phase. */
 data class FeatureTaskRuntimeHandoffProjection(

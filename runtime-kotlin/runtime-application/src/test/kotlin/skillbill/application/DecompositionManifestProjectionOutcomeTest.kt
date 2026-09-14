@@ -4,9 +4,9 @@ import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
 import skillbill.application.decomposition.decompositionPlanningResult
 import skillbill.application.decomposition.decompositionPlanningSubtask
 import skillbill.application.decomposition.model.DecompositionManifestWriteRequest
-import skillbill.model.toPath
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.decomposition.DecompositionManifestProjectionOperations
+import skillbill.model.toPath
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionManifest
@@ -102,10 +102,9 @@ class DecompositionManifestProjectionOutcomeTest {
     assertEquals(manifestPath.toString(), failed.targetPath)
   }
 
-  private fun durableRuntimeArtifactsJson(manifest: DecompositionManifest): String =
-    JsonCodec.mapToJsonString(
-      mapOf(
-        DECOMPOSITION_RUNTIME_ARTIFACT_KEY to testDecompositionManifestValidator.encodeManifestWireMap(manifest),
-      ),
-    )
+  private fun durableRuntimeArtifactsJson(manifest: DecompositionManifest): String = JsonCodec.mapToJsonString(
+    mapOf(
+      DECOMPOSITION_RUNTIME_ARTIFACT_KEY to testDecompositionManifestValidator.encodeManifestWireMap(manifest),
+    ),
+  )
 }

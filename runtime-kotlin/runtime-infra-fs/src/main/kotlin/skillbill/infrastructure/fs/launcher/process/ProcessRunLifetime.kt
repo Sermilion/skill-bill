@@ -1,6 +1,7 @@
 package skillbill.infrastructure.fs.launcher.process
 
 import skillbill.workflow.goal.model.GoalProgressOutcome
+import java.io.Closeable
 import java.util.concurrent.TimeUnit
 
 internal data class ProcessRunReleaseSnapshot(
@@ -28,48 +29,63 @@ internal class ProcessRunLifetime(
   fun release(waitResult: Result<ProcessWait>?): ProcessRunReleaseSnapshot {
     if (released) return requireNotNull(releaseSnapshot)
     released = true
-    var interrupted = waitResult?.exceptionOrNull() is InterruptedException || Thread.interrupted()
-    val wait = waitResult?.getOrNull()
-    val finished = wait?.finished == true
-    if (!finished) {
-      runCatching {
-        process.destroyForcibly()
-        val exited = process.waitFor(DESTROY_WAIT_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
-        if (!exited && process.isAlive) {
-          degradation.recordCleanupFailure(
-            "process_destroy_wait",
-            IllegalStateException("child process remained alive after forced termination"),
-          )
-        }
-      }.onFailure { failure ->
-        degradation.recordCleanupFailure("process_destroy_wait", failure)
-        if (failure is InterruptedException) interrupted = true
-      }
+    val cleanupState = CleanupState(
+      interrupted = waitResult?.exceptionOrNull() is InterruptedException || Thread.currentThread().isInterrupted,
+    )
+    terminateIfNeeded(waitResult?.getOrNull(), cleanupState)
+    closeStream(process.outputStream, "stdin_stream_close")
+    val stdoutIncomplete = joinDrain(stdout, "stdout_drain_join", cleanupState)
+    val stderrIncomplete = joinDrain(stderr, "stderr_drain_join", cleanupState)
+    closeStream(process.inputStream, "stdout_stream_close")
+    closeStream(process.errorStream, "stderr_stream_close")
+    recordProcessCleanup()
+    val snapshot = ProcessRunReleaseSnapshot(
+      interrupted = cleanupState.interrupted,
+      outputCaptureIncomplete = stdoutIncomplete || stderrIncomplete ||
+        stdout.workerFailure != null || stderr.workerFailure != null,
+      stdoutCapture = stdout.capture(),
+      stderrCapture = stderr.capture(),
+    )
+    releaseSnapshot = snapshot
+    if (cleanupState.interrupted) {
+      Thread.currentThread().interrupt()
     }
-    runCatching { process.outputStream.close() }
-      .onFailure { failure -> degradation.recordCleanupFailure("stdin_stream_close", failure) }
-    val stdoutIncomplete = runCatching { stdout.joinAndFreeze() }
+    return snapshot
+  }
+
+  private data class CleanupState(var interrupted: Boolean)
+
+  private fun terminateIfNeeded(wait: ProcessWait?, state: CleanupState) {
+    if (wait?.finished == true) return
+    runCatching {
+      process.destroyForcibly()
+      val exited = process.waitFor(DESTROY_WAIT_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+      if (!exited && process.isAlive) {
+        degradation.recordCleanupFailure(
+          "process_destroy_wait",
+          IllegalStateException("child process remained alive after forced termination"),
+        )
+      }
+    }.onFailure { failure ->
+      degradation.recordCleanupFailure("process_destroy_wait", failure)
+      if (failure is InterruptedException) state.interrupted = true
+    }
+  }
+
+  private fun closeStream(stream: Closeable, seam: String) {
+    runCatching { stream.close() }
+      .onFailure { failure -> degradation.recordCleanupFailure(seam, failure) }
+  }
+
+  private fun joinDrain(drain: CappedUtf8Drain, seam: String, state: CleanupState): Boolean =
+    runCatching { drain.joinAndFreeze() }
       .onFailure { failure ->
-        degradation.recordCleanupFailure("stdout_drain_join", failure)
-        if (failure is InterruptedException) interrupted = true
+        degradation.recordCleanupFailure(seam, failure)
+        if (failure is InterruptedException) state.interrupted = true
       }
       .getOrDefault(true)
-    stdout.workerFailure?.let { failure ->
-      degradation.recordCleanupFailure("stdout_drain", failure)
-    }
-    val stderrIncomplete = runCatching { stderr.joinAndFreeze() }
-      .onFailure { failure ->
-        degradation.recordCleanupFailure("stderr_drain_join", failure)
-        if (failure is InterruptedException) interrupted = true
-      }
-      .getOrDefault(true)
-    stderr.workerFailure?.let { failure ->
-      degradation.recordCleanupFailure("stderr_drain", failure)
-    }
-    runCatching { process.inputStream.close() }
-      .onFailure { failure -> degradation.recordCleanupFailure("stdout_stream_close", failure) }
-    runCatching { process.errorStream.close() }
-      .onFailure { failure -> degradation.recordCleanupFailure("stderr_stream_close", failure) }
+
+  private fun recordProcessCleanup() {
     if (process.isAlive) {
       degradation.recordCleanupFailure(
         "process_cleanup",
@@ -78,18 +94,6 @@ internal class ProcessRunLifetime(
     } else {
       liveProcesses.remove(process)
     }
-    val snapshot = ProcessRunReleaseSnapshot(
-      interrupted = interrupted,
-      outputCaptureIncomplete = stdoutIncomplete || stderrIncomplete ||
-        stdout.workerFailure != null || stderr.workerFailure != null,
-      stdoutCapture = stdout.capture(),
-      stderrCapture = stderr.capture(),
-    )
-    releaseSnapshot = snapshot
-    if (interrupted) {
-      Thread.currentThread().interrupt()
-    }
-    return snapshot
   }
 
   fun cachedRelease(): ProcessRunReleaseSnapshot =

@@ -1,8 +1,7 @@
 package skillbill.workflow.taskruntime.model
 
-import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
-
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION
 import skillbill.error.InvalidWorkflowStateSchemaError
@@ -178,7 +177,11 @@ data class FeatureTaskRuntimePhaseRecord(
     /** Strict decode; loud-fails on any missing or malformed required field. */
     internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimePhaseRecord {
       requireCompatibleShape(raw)
-      val phaseId = requireKnownFeatureTaskRuntimePhaseId(raw.requireStringField(SharedPayloadKeys.PHASE_ID), SharedPayloadKeys.PHASE_ID)
+      val phaseId =
+        requireKnownFeatureTaskRuntimePhaseId(
+          raw.requireStringField(SharedPayloadKeys.PHASE_ID),
+          SharedPayloadKeys.PHASE_ID,
+        )
       return try {
         FeatureTaskRuntimePhaseRecord(
           phaseId = phaseId,
@@ -221,17 +224,35 @@ data class FeatureTaskRuntimePhaseRecord(
       }
     }
 
-    /** Key-shape and identity guard: an unknown key is drift, not a field to ignore. */
     private fun requireCompatibleShape(raw: Map<String, Any?>) {
       val required = setOf(
-        SharedPayloadKeys.CONTRACT_VERSION, "record_kind", SharedPayloadKeys.PHASE_ID, SharedPayloadKeys.STATUS, "attempt_count", "started_at",
-        "first_started_at", "resolved_agent_id", "execution_origin",
+        SharedPayloadKeys.CONTRACT_VERSION,
+        "record_kind",
+        SharedPayloadKeys.PHASE_ID,
+        SharedPayloadKeys.STATUS,
+        "attempt_count",
+        "started_at",
+        "first_started_at",
+        "resolved_agent_id",
+        "execution_origin",
       )
       val allowed = required + setOf(
-        "finished_at", "duration_millis", "output_artifact", DecompositionManifestPayloadKeys.BLOCKED_REASON,
-        SharedPayloadKeys.FAILURE_DISPOSITION, "file_manifest_before", "file_manifest_after", "file_manifest_introduced",
-        "loop_id", "edge_iteration", "review_pass_number", "rejected_output",
-        "repair_evidence", "launched_model", "launched_effort", "review_run_id",
+        "finished_at",
+        "duration_millis",
+        "output_artifact",
+        DecompositionManifestPayloadKeys.BLOCKED_REASON,
+        SharedPayloadKeys.FAILURE_DISPOSITION,
+        "file_manifest_before",
+        "file_manifest_after",
+        "file_manifest_introduced",
+        "loop_id",
+        "edge_iteration",
+        "review_pass_number",
+        "rejected_output",
+        "repair_evidence",
+        "launched_model",
+        "launched_effort",
+        "review_run_id",
       )
       val missing = required - raw.keys
       val unknown = raw.keys - allowed

@@ -1,10 +1,9 @@
 package skillbill.engine.goalrunner.planning
 
-import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
-
 import skillbill.application.decomposition.DECOMPOSITION_MANIFEST_FILENAME
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
 import skillbill.engine.goalrunner.planning.model.GoalPlanningPhaseProduction
 import skillbill.ports.goalrunner.model.GoalPlanningContractProvenance

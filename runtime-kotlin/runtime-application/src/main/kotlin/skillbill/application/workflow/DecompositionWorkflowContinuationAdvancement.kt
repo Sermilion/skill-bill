@@ -1,7 +1,5 @@
 package skillbill.application.workflow
 
-import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
-
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
 import skillbill.application.decomposition.withBlockedSubtask
 import skillbill.application.workflow.model.AdvanceCompletedSubtasksRequest
@@ -9,6 +7,7 @@ import skillbill.application.workflow.model.CheckoutAndValidateBranchRequest
 import skillbill.application.workflow.model.GoalContinuationOutcome
 import skillbill.application.workflow.model.WorkflowContinueResult
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.workflow.decomposition.DecompositionManifestValidator

@@ -35,15 +35,33 @@ internal class ProcessRunDegradationRecorder(
   }
 
   fun recordProbeFailure(seam: String, failure: Throwable) {
-    record(ProcessRunDegradationKind.PROBE_FAILURE, seam, failure.message.orEmpty().ifBlank { failure::class.simpleName.orEmpty() })
+    record(
+      ProcessRunDegradationKind.PROBE_FAILURE,
+      seam,
+      failure.message.orEmpty().ifBlank {
+        failure::class.simpleName.orEmpty()
+      },
+    )
   }
 
   fun recordStdinDeliveryFailure(failure: Throwable) {
-    record(ProcessRunDegradationKind.STDIN_DELIVERY_FAILURE, "stdin", failure.message.orEmpty().ifBlank { failure::class.simpleName.orEmpty() })
+    record(
+      ProcessRunDegradationKind.STDIN_DELIVERY_FAILURE,
+      "stdin",
+      failure.message.orEmpty().ifBlank {
+        failure::class.simpleName.orEmpty()
+      },
+    )
   }
 
   fun recordCleanupFailure(seam: String, failure: Throwable) {
-    record(ProcessRunDegradationKind.CLEANUP_FAILURE, seam, failure.message.orEmpty().ifBlank { failure::class.simpleName.orEmpty() })
+    record(
+      ProcessRunDegradationKind.CLEANUP_FAILURE,
+      seam,
+      failure.message.orEmpty().ifBlank {
+        failure::class.simpleName.orEmpty()
+      },
+    )
   }
 
   private fun record(kind: ProcessRunDegradationKind, seam: String, detail: String) {

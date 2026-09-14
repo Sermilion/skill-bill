@@ -1,10 +1,9 @@
 package skillbill.application.workflow
 
-import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
-import skillbill.contracts.SharedPayloadKeys
-
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
 import skillbill.application.decomposition.asStringAnyMapOrNull
+import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.error.LegacyProseWorkflowError
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
@@ -25,8 +24,9 @@ fun WorkflowStateSnapshot.decompositionRuntime(validator: DecompositionManifestV
       validator.decodeManifest(DecompositionManifestWireMap.from(it), DECOMPOSITION_RUNTIME_ARTIFACT_KEY)
     }
 
-fun WorkflowStateSnapshot.hasDecompositionPlan(): Boolean =
-  decodeWorkflowArtifacts(artifactsJson)["plan"].asStringAnyMapOrNull()?.get(DecompositionPlanningPayloadKeys.MODE) == "decompose"
+fun WorkflowStateSnapshot.hasDecompositionPlan(): Boolean = decodeWorkflowArtifacts(
+  artifactsJson,
+)["plan"].asStringAnyMapOrNull()?.get(DecompositionPlanningPayloadKeys.MODE) == "decompose"
 
 val IMPLEMENT_TERMINAL_STATUSES: Set<WorkflowStatus> = WorkflowStatus.terminalStatuses
 

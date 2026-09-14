@@ -36,11 +36,10 @@ internal fun recommendedDurableChildRecoveryCommand(
 ) {
   scopedChildRecoveryCommand(issueKey, subtaskId)
 } else {
-    hardResetRecoveryCommand(issueKey)
+  hardResetRecoveryCommand(issueKey)
 }
 
 internal fun staleChildPlanningRecoveryCommand(issueKey: String, subtaskId: Int): String =
   "skill-bill goal replan $issueKey --subtask $subtaskId"
 
-private fun hardResetRecoveryCommand(issueKey: String): String =
-  "skill-bill goal reset $issueKey --hard --yes"
+private fun hardResetRecoveryCommand(issueKey: String): String = "skill-bill goal reset $issueKey --hard --yes"

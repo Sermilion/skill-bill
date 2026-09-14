@@ -1,8 +1,8 @@
 package skillbill.engine.goalrunner.planning
 
-import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.ports.goalrunner.planning.model.GoalPlanningBoundaryHeadingKind
 import skillbill.ports.goalrunner.planning.model.GoalPlanningContext
 import skillbill.text.sha256HexUtf8
@@ -11,8 +11,19 @@ object GoalPlanningSharedContextPacketValidation {
   private val BOUNDARY_MEMORY_FIELDS = setOf("catalog", "truncated")
   private val CATALOG_ENTRY_FIELDS = setOf("heading_id", "source_path", "kind", "heading")
   private val CATALOG_KINDS = setOf(GoalPlanningContext.KIND_HISTORY, GoalPlanningContext.KIND_DECISIONS)
-  private val SUBTASK_FIELDS = setOf(DecompositionPlanningPayloadKeys.ID, DecompositionPlanningPayloadKeys.NAME, DecompositionPlanningPayloadKeys.SPEC_PATH, "planning_disposition", DecompositionPlanningPayloadKeys.DEPENDENCIES)
-  private val DEPENDENCY_FIELDS = setOf(SharedPayloadKeys.SUBTASK_ID, DecompositionPlanningPayloadKeys.OPTIONAL, DecompositionPlanningPayloadKeys.SKIPPED)
+  private val SUBTASK_FIELDS = setOf(
+    DecompositionPlanningPayloadKeys.ID,
+    DecompositionPlanningPayloadKeys.NAME,
+    DecompositionPlanningPayloadKeys.SPEC_PATH,
+    "planning_disposition",
+
+    DecompositionPlanningPayloadKeys.DEPENDENCIES,
+  )
+  private val DEPENDENCY_FIELDS = setOf(
+    SharedPayloadKeys.SUBTASK_ID,
+    DecompositionPlanningPayloadKeys.OPTIONAL,
+    DecompositionPlanningPayloadKeys.SKIPPED,
+  )
   private val DISPOSITIONS = setOf("included", DecompositionPlanningPayloadKeys.SKIPPED)
 
   fun requireValidCatalog(value: Any?) {
@@ -67,7 +78,9 @@ object GoalPlanningSharedContextPacketValidation {
         DecompositionPlanningPayloadKeys.NAME to name,
         DecompositionPlanningPayloadKeys.SPEC_PATH to specPath,
         "planning_disposition" to disposition,
-        DecompositionPlanningPayloadKeys.DEPENDENCIES to normalizedDependencies(subtask[DecompositionPlanningPayloadKeys.DEPENDENCIES]),
+        DecompositionPlanningPayloadKeys.DEPENDENCIES to normalizedDependencies(
+          subtask[DecompositionPlanningPayloadKeys.DEPENDENCIES],
+        ),
       )
     }
   }

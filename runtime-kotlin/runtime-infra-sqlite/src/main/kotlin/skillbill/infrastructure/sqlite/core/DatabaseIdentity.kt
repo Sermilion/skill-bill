@@ -3,8 +3,6 @@ package skillbill.infrastructure.sqlite.core
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.attribute.BasicFileAttributes
-import java.sql.DriverManager
-import org.sqlite.SQLiteConfig
 
 internal data class DatabaseIdentity(
   val absolutePath: String,
@@ -12,13 +10,12 @@ internal data class DatabaseIdentity(
   val fileIdentity: String,
   val fileSizeBytes: Long,
 ) {
-  fun matchesFile(path: Path): Boolean =
-    read(path)?.let { current ->
-      current.absolutePath == absolutePath &&
-        current.userVersion == userVersion &&
-        current.fileIdentity == fileIdentity &&
-        current.fileSizeBytes >= fileSizeBytes
-    } == true
+  fun matchesFile(path: Path): Boolean = read(path)?.let { current ->
+    current.absolutePath == absolutePath &&
+      current.userVersion == userVersion &&
+      current.fileIdentity == fileIdentity &&
+      current.fileSizeBytes >= fileSizeBytes
+  } == true
 
   companion object {
     fun read(path: Path): DatabaseIdentity? {
@@ -35,10 +32,8 @@ internal data class DatabaseIdentity(
     }
 
     private fun readUserVersion(path: Path): Int? = runCatching {
-      DriverManager.getConnection(
-        "jdbc:sqlite:${path.toAbsolutePath().normalize()}",
-        SQLiteConfig().apply { setReadOnly(true) }.toProperties(),
-      ).use { connection ->
+      DatabaseRuntime.openReadConnectionAt(path).use { database ->
+        val connection = database.connection
         connection.createStatement().use { statement ->
           statement.executeQuery("PRAGMA user_version").use { rows ->
             if (!rows.next()) return@use null
@@ -48,8 +43,7 @@ internal data class DatabaseIdentity(
       }
     }.getOrNull()
 
-    private fun fileIdentity(attributes: BasicFileAttributes): String =
-      attributes.fileKey()?.toString()
-        ?: "creation-time:${attributes.creationTime().toMillis()}"
+    private fun fileIdentity(attributes: BasicFileAttributes): String = attributes.fileKey()?.toString()
+      ?: "creation-time:${attributes.creationTime().toMillis()}"
   }
 }

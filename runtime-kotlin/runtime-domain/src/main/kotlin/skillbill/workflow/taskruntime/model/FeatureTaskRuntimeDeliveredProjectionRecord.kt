@@ -62,7 +62,9 @@ data class FeatureTaskRuntimeDeliveredProjectionRecord(
     }
 
     private fun requireSupportedPersistenceContract(raw: Map<String, Any?>) {
-      val contractVersion = raw[SharedPayloadKeys.CONTRACT_VERSION] as? String ?: missing(SharedPayloadKeys.CONTRACT_VERSION)
+      val contractVersion = raw[SharedPayloadKeys.CONTRACT_VERSION] as? String ?: missing(
+        SharedPayloadKeys.CONTRACT_VERSION,
+      )
       if (contractVersion != FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION) {
         throw InvalidWorkflowStateSchemaError(
           "Feature-task-runtime delivered projection uses unsupported persistence contract version " +

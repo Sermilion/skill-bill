@@ -100,6 +100,8 @@ object DatabaseRuntime {
     return openReadOnlyDb(dbPath)
   }
 
+  internal fun openReadConnectionAt(dbPath: Path): OpenDatabase = openReadOnlyDb(dbPath)
+
   fun openReadDbIfPresent(
     cliValue: String? = null,
     environment: Map<String, String> = System.getenv(),

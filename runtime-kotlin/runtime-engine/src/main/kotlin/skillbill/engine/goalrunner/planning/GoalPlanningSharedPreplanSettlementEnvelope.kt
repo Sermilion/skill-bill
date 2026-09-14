@@ -1,8 +1,7 @@
 package skillbill.engine.goalrunner.planning
 
-import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
-
 import skillbill.application.decomposition.DECOMPOSITION_MANIFEST_FILENAME
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.engine.goalrunner.planning.model.GoalPlanningSweepOutcome
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 

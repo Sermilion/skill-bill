@@ -1,9 +1,8 @@
 package skillbill.workflow.taskruntime
 
-import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
-
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.contracts.review.ReviewFindingPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
 import skillbill.error.FeatureTaskRuntimeHandoffProjectionFailureKind
@@ -171,7 +170,9 @@ internal object FeatureTaskRuntimeHandoffProjectionValueBuilder {
         val severity = (finding["severity"] as? String)?.takeIf(String::isNotBlank) ?: "blocker"
         mapOf(
           ReviewFindingPayloadKeys.FINDING_ID to (
-            finding[ReviewFindingPayloadKeys.FINDING_ID] ?: finding[ReviewFindingPayloadKeys.F_NUMBER] ?: finding[DecompositionPlanningPayloadKeys.ID]
+            finding[ReviewFindingPayloadKeys.FINDING_ID]
+              ?: finding[ReviewFindingPayloadKeys.F_NUMBER]
+              ?: finding[DecompositionPlanningPayloadKeys.ID]
             ),
           "severity" to severity,
           "location" to (

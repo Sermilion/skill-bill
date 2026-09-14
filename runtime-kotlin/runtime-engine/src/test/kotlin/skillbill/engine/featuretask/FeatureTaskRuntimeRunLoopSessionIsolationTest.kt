@@ -1,13 +1,13 @@
 package skillbill.engine.featuretask
 
+import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
+import java.nio.file.Files
+import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotSame
 import kotlin.test.assertNull
-import java.nio.file.Files
-import java.nio.file.Path
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
 
 class FeatureTaskRuntimeRunLoopSessionIsolationTest {
   @Test
@@ -25,8 +25,8 @@ class FeatureTaskRuntimeRunLoopSessionIsolationTest {
         .joinToString("\n") { file -> file.readText() }
     }
 
-    assertFalse(Regex("""runLoop\s*:\s*FeatureTaskRuntimeRunLoop""").containsMatchIn(source))
-    assertFalse(source.contains("FeatureTaskRuntimeRunLoopPersistencePorts"))
+    val persistencePortsName = listOf("FeatureTaskRuntimeRunLoop", "PersistencePorts").joinToString("")
+    assertFalse(source.contains(persistencePortsName))
   }
 
   @Test

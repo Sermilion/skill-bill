@@ -11,6 +11,7 @@ import skillbill.contracts.JsonCodec
 import skillbill.contracts.decomposition.DecompositionPlanningResult
 import skillbill.contracts.workflow.WorkflowArtifactKeys
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
+import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
 import skillbill.workflow.engine.model.DecompositionManifestWireMap
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import java.nio.file.AtomicMoveNotSupportedException
@@ -92,17 +93,16 @@ fun writeFromWorkflowUpdate(
   ),
 )
 
-fun writeProjectionFromWorkflowState(repoRoot: Path, artifactsJson: String): DecompositionManifestWriteResult? =
-  when (
-    val outcome = testDecompositionManifestWriter.writeProjectionFromWorkflowState(
-      repoRoot = repoRoot,
-      artifactsJson = artifactsJson,
-      validator = testDecompositionManifestValidator,
-      fileStore = TestDecompositionManifestStore,
-    )
-  ) {
-    is skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome.Written -> outcome.result
-    skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome.Absent,
-    is skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome.Failed,
-    -> null
-  }
+fun writeProjectionFromWorkflowState(repoRoot: Path, artifactsJson: String): DecompositionManifestWriteResult? = when (
+  val outcome = testDecompositionManifestWriter.writeProjectionFromWorkflowState(
+    repoRoot = repoRoot,
+    artifactsJson = artifactsJson,
+    validator = testDecompositionManifestValidator,
+    fileStore = TestDecompositionManifestStore,
+  )
+) {
+  is DecompositionManifestProjectionOutcome.Written -> outcome.result
+  DecompositionManifestProjectionOutcome.Absent,
+  is DecompositionManifestProjectionOutcome.Failed,
+  -> null
+}

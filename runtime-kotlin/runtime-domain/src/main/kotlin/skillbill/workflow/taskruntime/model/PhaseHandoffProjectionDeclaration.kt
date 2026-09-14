@@ -1,8 +1,7 @@
 package skillbill.workflow.taskruntime.model
 
-import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
-
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_PHASE_HANDOFF_CONTRACT_VERSION
 import skillbill.error.InvalidFeatureTaskRuntimePhaseHandoffSchemaError
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeHandoffFoundationValidator
@@ -65,7 +64,10 @@ data class PhaseHandoffProjectionDeclaration(
     "consumer_phase_id" to consumerPhaseId,
     "projection_name" to projectionName,
     "source" to sourceRef.toDeclarationMap(),
-    "projection_contract" to mapOf(DecompositionPlanningPayloadKeys.ID to projectionContractId, "version" to projectionContractVersion),
+    "projection_contract" to mapOf(
+      DecompositionPlanningPayloadKeys.ID to projectionContractId,
+      "version" to projectionContractVersion,
+    ),
     "prompt_visibility" to promptVisibility.wireValue,
     "budget" to mapOf(
       "max_utf8_bytes" to budget.maxUtf8Bytes,
@@ -140,12 +142,16 @@ data class PhaseHandoffProjectionDeclaration(
     }
 
     private fun sourceRefOf(source: Map<*, *>): FeatureTaskRuntimeHandoffSourceRef = when (source["kind"]) {
-      "upstream_phase_output" -> FeatureTaskRuntimeHandoffSourceRef.UpstreamPhaseOutput(source.string(DecompositionPlanningPayloadKeys.ID))
+      "upstream_phase_output" -> FeatureTaskRuntimeHandoffSourceRef.UpstreamPhaseOutput(
+        source.string(DecompositionPlanningPayloadKeys.ID),
+      )
       "run_invariant_field" -> FeatureTaskRuntimeHandoffSourceRef.RunInvariantField(
         FeatureTaskRuntimeRunInvariantPromptField.fromWire(source.string(DecompositionPlanningPayloadKeys.ID)),
       )
       "derived_ceremony_scaling" -> FeatureTaskRuntimeHandoffSourceRef.DerivedCeremonyScaling
-      "addon_content" -> FeatureTaskRuntimeHandoffSourceRef.AddonContentRef(source.string(DecompositionPlanningPayloadKeys.ID))
+      "addon_content" -> FeatureTaskRuntimeHandoffSourceRef.AddonContentRef(
+        source.string(DecompositionPlanningPayloadKeys.ID),
+      )
       FeatureTaskRuntimeHandoffSourceRef.SHARED_REVIEW_EVIDENCE_WIRE ->
         FeatureTaskRuntimeHandoffSourceRef.SharedReviewEvidence
       FeatureTaskRuntimeHandoffSourceRef.REPAIR_LEDGER_WIRE ->

@@ -107,7 +107,10 @@ class FeatureTaskRuntimeRunState(
   init {
     this.initialRecords.values
       .mapNotNull(::validatedRecordToOutput)
-      .filterNot { it.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN && it.phaseId !in completedPhases }
+      .filterNot {
+        it.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN &&
+          it.phaseId !in completedPhases
+      }
       .filterNot { it.phaseId in gateInvalidatedPhaseIds }
       .toCollection(outputBuffer)
   }

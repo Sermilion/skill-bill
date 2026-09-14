@@ -3,9 +3,12 @@ package skillbill.infrastructure.fs.scaffold
 import org.yaml.snakeyaml.Yaml
 import skillbill.error.InvalidValidationGateDeclarationError
 import skillbill.infrastructure.fs.scaffold.platformpack.parseValidationGate
+import skillbill.testing.repoRootFromTest
+import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 class ShellContentLoaderValidationGateTest {
@@ -111,6 +114,26 @@ class ShellContentLoaderValidationGateTest {
         "byte-identical to 'validation_gate.cache_bypassing_collect_all_full_gate_command'.",
       error.message,
     )
+  }
+
+  @Test
+  fun `every quality-check platform pack declares a parseable validation_gate`() {
+    val packsRoot = repoRootFromTest().resolve("platform-packs")
+    val yaml = Yaml()
+    Files.list(packsRoot).use { stream ->
+      stream.filter(Files::isDirectory).forEach { packDir ->
+        val manifestPath = packDir.resolve("platform.yaml")
+        if (!Files.isRegularFile(manifestPath)) return@forEach
+        val manifest = yaml.load<Map<String, Any?>>(Files.readString(manifestPath))
+        val qualityCheck = manifest["declared_quality_check_file"] as? String
+        if (qualityCheck.isNullOrBlank()) return@forEach
+        val slug = manifest["platform"] as? String ?: packDir.fileName.toString()
+        assertNotNull(
+          parseValidationGate(manifest, slug),
+          "Pack '$slug' declares quality-check but validation_gate is missing or invalid.",
+        )
+      }
+    }
   }
 
   @Test

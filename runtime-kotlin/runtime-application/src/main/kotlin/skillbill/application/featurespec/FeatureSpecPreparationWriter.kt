@@ -1,8 +1,5 @@
 package skillbill.application.featurespec
 
-import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
-import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
-
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.decomposition.DecompositionManifestWriter
 import skillbill.application.decomposition.decompositionPlanningResult
@@ -13,6 +10,8 @@ import skillbill.application.decomposition.model.DecompositionManifestWriteReque
 import skillbill.application.decomposition.model.DecompositionPlanningResultOptions
 import skillbill.application.decomposition.model.DecompositionPlanningSubtaskOptions
 import skillbill.application.decomposition.repoRelativePath
+import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningResult
 import skillbill.error.InvalidFeatureSpecPreparationRequestError
 import skillbill.featurespec.model.FeatureSpecPreparationMode
@@ -147,7 +146,10 @@ class FeatureSpecPreparationWriter(
 
   private fun validateSubtasks(subtasks: List<FeatureSpecSubtaskPreparation>, specSource: SpecSource) {
     if (subtasks.isEmpty()) {
-      invalidRequest(DecompositionPlanningPayloadKeys.SUBTASKS, "prepared features require at least one ordered subtask.")
+      invalidRequest(
+        DecompositionPlanningPayloadKeys.SUBTASKS,
+        "prepared features require at least one ordered subtask.",
+      )
     }
     val ids = mutableSetOf<Int>()
     var previousId = Int.MIN_VALUE

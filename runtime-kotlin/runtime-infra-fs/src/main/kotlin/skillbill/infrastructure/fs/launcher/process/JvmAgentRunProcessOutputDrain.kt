@@ -4,7 +4,6 @@ import skillbill.ports.agentrun.model.AgentRunLivenessSnapshot
 import skillbill.ports.agentrun.model.AgentRunOutputSink
 import skillbill.ports.agentrun.model.AgentRunOutputStream
 import java.io.ByteArrayOutputStream
-import java.io.IOException
 import java.io.InputStream
 import java.nio.ByteBuffer
 import java.nio.CharBuffer
@@ -86,13 +85,17 @@ internal class CappedUtf8Drain(
   @Volatile internal var truncated = false
   internal var totalByteSize = 0L
   internal val digest = MessageDigest.getInstance("SHA-256")
+
   @Volatile private var workerCompleted = false
+
   @Volatile internal var workerFailure: Throwable? = null
+
   @Volatile private var frozen = false
+
   @Volatile private var frozenCapture: CappedUtf8DrainCapture? = null
   internal val stateLock = Any()
   internal val worker = thread(start = false, isDaemon = true, name = "skillbill-agent-run-output-drain") {
-    try {
+    runCatching {
       input.use { stream ->
         val buffer = ByteArray(DEFAULT_DRAIN_BUFFER_BYTES)
         var remaining = limitBytes
@@ -101,7 +104,7 @@ internal class CappedUtf8Drain(
           .onUnmappableCharacter(CodingErrorAction.REPLACE)
         val carry = ByteBuffer.allocate(DEFAULT_DRAIN_BUFFER_BYTES + UTF8_MAX_BYTES_PER_CODE_POINT)
         val decoded = CharBuffer.allocate(DEFAULT_DRAIN_BUFFER_BYTES)
-        while (true) {
+        while (!frozen) {
           val read = stream.read(buffer)
           if (read == -1) {
             break
@@ -115,7 +118,7 @@ internal class CappedUtf8Drain(
               false
             }
           }
-          if (frozenBeforeRead) break
+          if (frozenBeforeRead) return@use
           val withinCap = remaining == null || remaining > 0
           carry.put(buffer, 0, read)
           carry.flip()
@@ -124,7 +127,6 @@ internal class CappedUtf8Drain(
 
           val forwarded = remaining?.coerceAtMost(read) ?: read
           if (forwarded > 0) remaining = remaining?.minus(forwarded)
-          if (frozen) break
           synchronized(stateLock) {
             if (!frozen) retain(buffer, read)
           }
@@ -135,11 +137,9 @@ internal class CappedUtf8Drain(
         decodeAvailable(decoded, withinCap) { decoder.decode(carry, decoded, true) }
         decodeAvailable(decoded, withinCap) { decoder.flush(decoded) }
       }
-    } catch (failure: IOException) {
+    }.onFailure { failure ->
       workerFailure = failure
-    } catch (failure: RuntimeException) {
-      workerFailure = failure
-    } finally {
+    }.also {
       workerCompleted = true
     }
   }

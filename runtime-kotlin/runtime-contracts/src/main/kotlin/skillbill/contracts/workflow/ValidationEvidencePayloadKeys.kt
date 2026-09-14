@@ -20,4 +20,5 @@ object ValidationEvidencePayloadKeys {
   const val DURATION_MS: String = "duration_ms"
   const val OUTCOME: String = "outcome"
   const val CACHE_MODE: String = "cache_mode"
+  const val LAST_AGENT_UNFIXED_CRITERIA: String = "last_agent_unfixed_criteria"
 }

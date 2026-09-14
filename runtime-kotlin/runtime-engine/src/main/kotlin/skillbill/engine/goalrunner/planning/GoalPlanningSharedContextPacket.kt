@@ -1,9 +1,8 @@
 package skillbill.engine.goalrunner.planning
 
-import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
-
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.contracts.goalplanning.GoalPlanningDiscoveryExclusions
 import skillbill.ports.goalrunner.planning.model.GoalPlanningContext
 import skillbill.workflow.decomposition.model.DecompositionSubtask
@@ -60,7 +59,9 @@ object GoalPlanningSharedContextPacket {
     require(packet["packet_version"] == VERSION) { "shared context packet version is invalid" }
     require(packet["repository_identity"] == repositoryIdentity) { "shared context repository identity is invalid" }
     require(packet["normalized_issue_key"] == normalizedIssueKey) { "shared context issue key is invalid" }
-    require(packet[DecompositionPlanningPayloadKeys.PARENT_SPEC_PATH] == parentSpecPath) { "shared context parent spec path is invalid" }
+    require(packet[DecompositionPlanningPayloadKeys.PARENT_SPEC_PATH] == parentSpecPath) {
+      "shared context parent spec path is invalid"
+    }
     require(packet["parent_spec"] is String) { "shared context parent spec is invalid" }
     require((packet["decomposition_manifest"] as? String)?.length?.let { it <= MAX_GOVERNED_CONTEXT_CHARS } == true) {
       "shared context decomposition manifest is malformed"
@@ -141,7 +142,11 @@ object GoalPlanningSharedContextPacket {
 
   fun includedSubtaskIds(packet: Map<String, Any?>): Set<Int> =
     GoalPlanningSharedContextPacketValidation.normalizedSubtasks(packet["ordered_subtasks"])
-      .mapNotNull { subtask -> (subtask[DecompositionPlanningPayloadKeys.ID] as Int).takeIf { subtask["planning_disposition"] == "included" } }
+      .mapNotNull { subtask ->
+        (subtask[DecompositionPlanningPayloadKeys.ID] as Int).takeIf {
+          subtask["planning_disposition"] == "included"
+        }
+      }
       .toSet()
 
   fun digest(packet: Map<String, Any?>): String = GoalPlanningSharedContextPacketValidation.digest(packet)

@@ -78,7 +78,13 @@ internal object WireVocabularyArchitectureSupport {
       }
       files.forEach { file ->
         addAll(localVocabularyRestatements(file, tokenValues, declarations))
-        if (includePayloadKeyAccesses && (!enforceGovernedSeams || WireVocabularyGovernedSeamInventory.fileMatchesGovernedSeam(file.relativePath))) {
+        if (
+          includePayloadKeyAccesses &&
+          (
+            !enforceGovernedSeams ||
+              WireVocabularyGovernedSeamInventory.fileMatchesGovernedSeam(file.relativePath)
+            )
+        ) {
           addAll(payloadKeyAccesses(file, payloadKeyValues, declarations))
         }
       }

@@ -1,11 +1,10 @@
 package skillbill.application.decomposition
 
-import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
-import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
-
 import skillbill.application.decomposition.model.DecompositionManifestRuntimeUpdate
 import skillbill.application.telemetry.normalizedBlockedReason
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionExecutionModel
 import skillbill.workflow.decomposition.model.DecompositionManifest
@@ -53,7 +52,9 @@ fun DecompositionSubtask.withRuntimeFields(
       nextStatus.decompositionStatus() != DecompositionStatus.BLOCKED
     },
     lastResumableStep = update.currentStepId.takeIf(String::isNotBlank) ?: lastResumableStep,
-    finalizingAgentId = terminalOutcome?.get(DecompositionManifestPayloadKeys.FINALIZING_AGENT_ID)?.toString()?.takeIf(String::isNotBlank)
+    finalizingAgentId = terminalOutcome?.get(
+      DecompositionManifestPayloadKeys.FINALIZING_AGENT_ID,
+    )?.toString()?.takeIf(String::isNotBlank)
       ?: finalizingAgentId,
     participatingAgentIds = rolledParticipants.ifEmpty { participatingAgentIds },
   )

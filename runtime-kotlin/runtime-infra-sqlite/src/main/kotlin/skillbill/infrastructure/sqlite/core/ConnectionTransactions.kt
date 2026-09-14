@@ -1,7 +1,6 @@
 package skillbill.infrastructure.sqlite.core
 
 import java.sql.Connection
-import java.sql.SQLException
 
 internal inline fun <T> Connection.inImmediateTransaction(block: Connection.() -> T): T {
   createStatement().use { it.execute("BEGIN IMMEDIATE") }

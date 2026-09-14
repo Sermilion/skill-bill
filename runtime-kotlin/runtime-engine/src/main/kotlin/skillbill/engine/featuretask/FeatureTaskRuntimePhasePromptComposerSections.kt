@@ -3,6 +3,7 @@ package skillbill.engine.featuretask
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeImplementationContinuation
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhasePromptComposeInputs
 import skillbill.engine.featuretask.model.PhasePromptHeaderInputs
+import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 
 fun phasePromptLeadingSections(inputs: FeatureTaskRuntimePhasePromptComposeInputs): List<String> = listOf(
   phasePromptHeader(
@@ -11,6 +12,7 @@ fun phasePromptLeadingSections(inputs: FeatureTaskRuntimePhasePromptComposeInput
       phaseId = inputs.briefing.phaseId,
       agentRunValidateFallback = inputs.agentRunValidateFallback,
       packCollectAllCommand = inputs.packCollectAllCommand,
+      packConfirmationGateCommand = inputs.packConfirmationGateCommand,
       packBuildCommand = inputs.packBuildCommand,
       validationGateRepair = inputs.validationGateRepair,
       validationGateTriage = inputs.validationGateTriage,
@@ -65,7 +67,16 @@ fun phasePromptTrailingSections(
   retryCorrectionDirective(inputs.briefing, inputs.priorSchemaFailure, inputs.correctiveRepairContext),
   terminalRetryDirective(inputs.priorTerminalFailure),
   findingCoverageDirective(inputs.priorFindingCoverage),
-  if (inputs.validationGateFindings != null) {
+  if (
+    !inputs.agentRunValidateFallback &&
+    inputs.briefing.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE &&
+    !inputs.validationGateTriage
+  ) {
+    runtimeOwnedValidateFinishedDirective(
+      inputs.briefing.phaseId,
+      inputs.packConfirmationGateCommand,
+    )
+  } else if (inputs.validationGateFindings != null) {
     gateRepairNoOutputSchemaDirective(inputs.briefing.phaseId, inputs.validationGateTriage)
   } else {
     outputContract(inputs.briefing, inputs.agentRunValidateFallback)

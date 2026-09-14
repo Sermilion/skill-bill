@@ -6,8 +6,6 @@ import skillbill.ports.decomposition.DecompositionManifestProjectionWriter
 import skillbill.ports.goalrunner.persistence.GoalChildPlanningHydratorPort
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
-import skillbill.infrastructure.sqlite.goalrunner.clearDecompositionManifestProjectionFailure
-import skillbill.infrastructure.sqlite.goalrunner.persistDecompositionManifestProjectionFailure
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
 import skillbill.workflow.engine.WorkflowEngine

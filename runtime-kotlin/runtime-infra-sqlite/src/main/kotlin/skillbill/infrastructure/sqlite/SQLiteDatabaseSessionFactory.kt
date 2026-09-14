@@ -51,10 +51,9 @@ class SQLiteDatabaseSessionFactory(
       }
     }
 
-  override fun <T> selfManagedWrite(block: (UnitOfWork) -> T): T =
-    withWriteDatabase { openDb ->
-      block(SQLiteUnitOfWork(openDb.connection, openDb.dbPath))
-    }
+  override fun <T> selfManagedWrite(block: (UnitOfWork) -> T): T = withWriteDatabase { openDb ->
+    block(SQLiteUnitOfWork(openDb.connection, openDb.dbPath))
+  }
 
   override fun <T> transaction(block: (UnitOfWork) -> T): T = withWriteDatabase { openDb ->
     openDb.connection.inTransaction(openDb.dbPath) {
