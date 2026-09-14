@@ -329,6 +329,33 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
   }
 
   @Test
+  fun `finalisation amends HEAD when durable checkpoint is an ancestor after branch advanced`() {
+    val repo = repoWithRemote()
+    Files.writeString(repo.root.resolve("owned.txt"), "checkpoint\n")
+    git(repo.root, "add", "owned.txt")
+    git(repo.root, "commit", "-m", "$issueKey: subtask $subtaskId\n\nprovisional\n\n${identity.trailer}")
+    val checkpointSha = git(repo.root, "rev-parse", "HEAD")
+    git(repo.root, "checkout", "-b", "merge-side")
+    Files.writeString(repo.root.resolve("merge-side.txt"), "side\n")
+    git(repo.root, "add", "merge-side.txt")
+    git(repo.root, "commit", "-m", "integration side commit")
+    git(repo.root, "checkout", branch)
+    git(repo.root, "merge", "merge-side", "--no-edit")
+    assertTrue(git(repo.root, "rev-parse", "HEAD") != checkpointSha)
+    Files.createDirectories(repo.root.resolve(".feature-specs/$issueKey"))
+    Files.writeString(repo.root.resolve(".feature-specs/$issueKey/spec.md"), "spec only\n")
+
+    val finalised = assertIs<FeatureTaskRuntimeSubtaskFinalised>(
+      finalise(repo, durableCommitSha = checkpointSha, paths = listOf(".feature-specs/$issueKey/spec.md")),
+    )
+
+    assertEquals(emptyList(), finalised.stagedPaths)
+    assertEquals(agentSubject, git(repo.root, "log", "-1", "--format=%s"))
+    assertEquals("checkpoint\n", git(repo.root, "show", "HEAD:owned.txt") + "\n")
+    assertEquals(finalised.commitSha, git(repo.remote, "rev-parse", branch))
+  }
+
+  @Test
   fun `a finalisation with only governed spec dirt still publishes the checkpoint tree`() {
     val repo = repoWithRemote()
     Files.createDirectories(repo.root.resolve(".feature-specs/$issueKey"))

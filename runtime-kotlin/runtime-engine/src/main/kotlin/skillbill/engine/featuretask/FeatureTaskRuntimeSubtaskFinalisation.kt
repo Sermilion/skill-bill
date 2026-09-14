@@ -72,11 +72,19 @@ fun FeatureTaskRuntimeSubtaskFinalisation.commitAndPush(
   restoreState: String,
 ): FeatureTaskRuntimeSubtaskFinalisationResult {
   val branch = request.metadata.branch
-  val decision = decide(
+  val decision = promoteSupersededCheckpointCreate(
+    gitOperations = gitOperations,
+    repoRoot = repoRoot,
     branch = branch,
-    identity = request.identity,
+    decision = decide(
+      branch = branch,
+      identity = request.identity,
+      durableCommitSha = request.durableCommitSha,
+      sequenceNumber = request.sequenceNumber,
+    ),
     durableCommitSha = request.durableCommitSha,
     sequenceNumber = request.sequenceNumber,
+    stageable = stageable,
   )
   val rewrites = decision is FeatureTaskRuntimeSubtaskCommitAmend
   val message = FeatureTaskRuntimeCheckpointMessage.finalise(
