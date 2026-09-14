@@ -1,4 +1,6 @@
 package skillbill.engine.featuretask
+
+import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
 import skillbill.application.review.RuntimeOwnedReviewMode
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
@@ -12,19 +14,28 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseDeclaration
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeReviewFinding
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.model.ReviewPassResolution
+import skillbill.engine.featuretask.FeatureTaskRuntimeGoalContinuationRecorder
+import skillbill.workflow.decomposition.model.SpecSource
+import skillbill.ports.diagnostics.RuntimeDiagnostics
+import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeTransitionDeclaration
+import java.time.Clock
+import skillbill.engine.featuretask.FeatureTaskPhaseSettlementService
+import skillbill.application.idestatus.AgentActivityStampWriter
+import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
 
 object FeatureTaskRuntimeRunLoopPlanningBranch {
-  fun clearRecoveredBranchSetupBlock(runLoop: FeatureTaskRuntimeRunLoop, phaseId: String) {
-    if (!runLoop.state.hasBranchSetupBlock(phaseId)) {
+  internal fun clearRecoveredBranchSetupBlock(state: FeatureTaskRuntimeRunState, phaseId: String){
+    if (!state.hasBranchSetupBlock(phaseId)) {
       return
     }
-    runLoop.state.clearBranchSetupBlock(phaseId)
+    state.clearBranchSetupBlock(phaseId)
   }
 
-  fun persistBranchSetupBlock(runLoop: FeatureTaskRuntimeRunLoop, phaseId: String, reason: String) {
-    runLoop.recorder.recordPhaseState(
+  internal fun persistBranchSetupBlock(request: FeatureTaskRuntimeRunRequest, recorder: FeatureTaskRuntimePhaseRecorder, observability: FeatureTaskRuntimeRunObservability, phaseId: String, reason: String){
+    recorder.recordPhaseState(
       FeatureTaskRuntimePhaseStateRequest(
-        workflowId = runLoop.request.workflowId,
+        workflowId = request.workflowId,
         phaseId = phaseId,
         status = STATUS_BLOCKED,
         attemptCount = 1,
@@ -34,87 +45,72 @@ object FeatureTaskRuntimeRunLoopPlanningBranch {
         blockedReason = reason,
       ),
     )
-    runLoop.observability.branchSetupBlocked(phaseId, BRANCH_SETUP_AGENT_ID, reason)
+    observability.branchSetupBlocked(phaseId, BRANCH_SETUP_AGENT_ID, reason)
   }
 
-  fun blockAt(runLoop: FeatureTaskRuntimeRunLoop, phaseId: String, reason: String) {
-    runLoop.session.blocked = FeatureTaskRuntimeRunReport.Blocked(
-      issueKey = runLoop.request.issueKey,
-      workflowId = runLoop.request.workflowId,
-      featureSize = runLoop.request.runInvariants.featureSize.name,
-      lastIncompletePhase = phaseId,
-      blockedReason = reason,
-      completedPhaseIds = runLoop.state.completedPhaseIds(),
-      resolvedBranch = runLoop.session.resolvedBranch,
+  internal fun blockAt(request: FeatureTaskRuntimeRunRequest, state: FeatureTaskRuntimeRunState, session: FeatureTaskRuntimeRunLoopSession, phaseId: String, reason: String){
+    session.transitionToBlocked(
+      FeatureTaskRuntimeRunReport.Blocked(
+        issueKey = request.issueKey,
+        workflowId = request.workflowId,
+        featureSize = request.runInvariants.featureSize.name,
+        lastIncompletePhase = phaseId,
+        blockedReason = reason,
+        completedPhaseIds = state.completedPhaseIds(),
+        resolvedBranch = session.resolvedBranch,
+      ),
     )
   }
 
-  fun blockOnCapExhaustion(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    phaseId: String,
-    transition: FeatureTaskRuntimeNextPhase.TerminalBlock,
-  ) {
-    val unresolvedFindings = runLoop.state.unresolvedReviewFindings(phaseId)
-    val reason = capExhaustionReason(
-      runLoop,
-      transition.loopId,
-      transition.edgeIteration,
-      transition.unresolvedVerdict,
-      unresolvedFindings,
-    )
+  internal fun blockOnCapExhaustion(request: FeatureTaskRuntimeRunRequest, state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, observability: FeatureTaskRuntimeRunObservability, session: FeatureTaskRuntimeRunLoopSession, specSource: SpecSource, phaseId: String, transition: FeatureTaskRuntimeNextPhase.TerminalBlock){
+    val unresolvedFindings = state.unresolvedReviewFindings(phaseId)
+    val reason = capExhaustionReason(request, recorder, transition.loopId, transition.edgeIteration, transition.unresolvedVerdict, unresolvedFindings)
     val resolvedAgent = FeatureTaskRuntimeAgentResolver.resolve(
       phaseId = phaseId,
-      assignment = runLoop.request.agentAssignment,
-      invokedAgentId = runLoop.request.invokedAgentId,
+      assignment = request.agentAssignment,
+      invokedAgentId = request.invokedAgentId,
     )
     val run = PhaseRun(
       phaseId = phaseId,
       declaration = phaseDeclaration(
         phaseId,
-        runLoop.request.runInvariants.featureSize,
-        FeatureTaskRuntimeRunLoopTransitions.qualityGateSelection(runLoop),
+        request.runInvariants.featureSize,
+        FeatureTaskRuntimeRunLoopTransitions.qualityGateSelection(request),
       ),
       resolvedAgent = resolvedAgent,
       modelDirective = FeatureTaskRuntimeModelResolver.resolve(
         phaseId,
         resolvedAgent.resolvedAgentId,
-        runLoop.request.modelAssignment,
+        request.modelAssignment,
       ),
-      compaction = runLoop.request.compactionSettings.directiveFor(phaseId),
-      request = runLoop.request,
-      specSource = runLoop.specSource,
+      compaction = request.compactionSettings.directiveFor(phaseId),
+      request = request,
+      specSource = specSource,
     )
-    FeatureTaskRuntimeRunLoopPhaseAttempts.blockAndPersist(
-      runLoop,
-      BlockAndPersistArgs(
+    FeatureTaskRuntimeRunLoopPhaseAttempts.blockAndPersist(request, state, recorder, observability, null, BlockAndPersistArgs(
         run = run,
-        attemptCount = runLoop.state.nextIteration(phaseId),
+        attemptCount = state.nextIteration(phaseId),
         reason = reason,
-        observability = runLoop.observability,
+        observability = observability,
         loopId = transition.loopId,
         edgeIteration = transition.edgeIteration,
         failureDisposition = FeatureTaskRuntimeFailureDisposition.NEEDS_USER_ACTION,
-        payload = BlockAndPersistPayload(outputArtifact = runLoop.state.outputFor(phaseId)?.payload),
-      ),
-    )
-    blockAt(runLoop, phaseId, reason)
+        payload = BlockAndPersistPayload(outputArtifact = state.outputFor(phaseId)?.payload),
+      ))
+    blockAt(request, state, session, phaseId, reason)
   }
 
-  fun effectiveEdgeIterationCount(runLoop: FeatureTaskRuntimeRunLoop, edge: FeatureTaskRuntimeBackwardEdge): Int =
-    runLoop.state.edgeIterationCount(edge.loopId)
+  internal fun effectiveEdgeIterationCount(state: FeatureTaskRuntimeRunState, edge: FeatureTaskRuntimeBackwardEdge): Int =
+    state.edgeIterationCount(edge.loopId)
 
-  internal fun persistResolvedReviewTier(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    run: PhaseRun,
-    resolution: ReviewPassResolution,
-  ) {
+  internal fun persistResolvedReviewTier(request: FeatureTaskRuntimeRunRequest, goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder, run: PhaseRun, resolution: ReviewPassResolution){
     if (run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW ||
-      !isGoalContinuationRun(runLoop.request)
+      !isGoalContinuationRun(request)
     ) {
       return
     }
-    runLoop.goalContinuationRecorder.updateReviewState(
-      runLoop.request.workflowId,
+    goalContinuationRecorder.updateReviewState(
+      request.workflowId,
     ) { state ->
       state.copy(
         resolvedTier = RuntimeOwnedReviewMode.execute(resolution.resolvedTier),
@@ -123,25 +119,25 @@ object FeatureTaskRuntimeRunLoopPlanningBranch {
     }
   }
 
-  fun priorBlockerFindingIds(runLoop: FeatureTaskRuntimeRunLoop): List<String> {
-    val priorPass = goalReviewStateOrNull(runLoop)?.passResults?.lastOrNull() ?: return emptyList()
+  internal fun priorBlockerFindingIds(request: FeatureTaskRuntimeRunRequest, goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder): List<String> {
+    val priorPass = goalReviewStateOrNull(request, goalContinuationRecorder)?.passResults?.lastOrNull() ?: return emptyList()
     return priorPass.findings
       .filter { it.severity == GOAL_SUBTASK_REVIEW_BLOCKER_SEVERITY }
       .mapIndexed { index, finding -> finding.findingId ?: "pass${priorPass.passNumber}-blocker-${index + 1}" }
   }
 
-  fun goalReviewStateOrNull(runLoop: FeatureTaskRuntimeRunLoop): GoalSubtaskReviewState? =
-    if (!isGoalContinuationRun(runLoop.request)) {
+  internal fun goalReviewStateOrNull(request: FeatureTaskRuntimeRunRequest, goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder): GoalSubtaskReviewState? =
+    if (!isGoalContinuationRun(request)) {
       null
     } else {
-      runLoop.goalContinuationRecorder.reviewState(runLoop.request.workflowId)
+      goalContinuationRecorder.reviewState(request.workflowId)
     }
 
-  fun regenerationCapExhaustionReason(runLoop: FeatureTaskRuntimeRunLoop, loopId: String, edgeIteration: Int): String {
+  internal fun regenerationCapExhaustionReason(request: FeatureTaskRuntimeRunRequest, recorder: FeatureTaskRuntimePhaseRecorder, loopId: String, edgeIteration: Int): String {
     val producer = FeatureTaskRuntimePhaseWorkflowDefinition.REGENERATION_LOOP_ID_BY_PRODUCER.entries
       .firstOrNull { it.value == loopId }?.key
     val latest = producer?.let { producing ->
-      runLoop.recorder.loadQuarantinedRecords(runLoop.request.workflowId)
+      recorder.loadQuarantinedRecords(request.workflowId)
         .orEmpty()
         .lastOrNull { it.producingPhaseId == producing }
     }
@@ -152,7 +148,7 @@ object FeatureTaskRuntimeRunLoopPlanningBranch {
       "record out of band by deleting or migrating the offending row."
   }
 
-  internal fun runPhase(runLoop: FeatureTaskRuntimeRunLoop, args: RunPhaseArgs): PhaseOutcome {
+  internal fun runPhase(request: FeatureTaskRuntimeRunRequest, state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, observability: FeatureTaskRuntimeRunObservability, session: FeatureTaskRuntimeRunLoopSession, goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder, phaseSettlementService: FeatureTaskPhaseSettlementService, outputValidator: FeatureTaskRuntimePhaseOutputValidator, diagnostics: RuntimeDiagnostics, phaseGates: FeatureTaskRuntimePhaseGates, clock: Clock, transitions: FeatureTaskRuntimeTransitionDeclaration, specSource: SpecSource, phaseTokenAccumulator: MutableMap<String, Pair<Int, Int>>?, subtaskLauncher: GoalRunnerSubtaskLauncher, activityStampWriter: AgentActivityStampWriter, args: RunPhaseArgs): PhaseOutcome {
     val phaseId = args.phaseId
     val request = args.request
     val state = args.state
@@ -160,40 +156,44 @@ object FeatureTaskRuntimeRunLoopPlanningBranch {
     val specSource = args.specSource
     val reentry = args.reentry
     val phaseTokenAccumulator = args.phaseTokenAccumulator
-    val declaration = phaseDeclarationForRun(runLoop, phaseId)
-    val run = buildPhaseRun(
-      runLoop,
-      BuildPhaseRunArgs(phaseId, runLoop.request, declaration, runLoop.specSource, reentry),
-    )
-    FeatureTaskRuntimeRunLoopPhaseRunner.preLaunchBlock(
-      runLoop,
+    val declaration = phaseDeclarationForRun(request, phaseId)
+    val run = buildPhaseRun(request, specSource, BuildPhaseRunArgs(phaseId, request, declaration, specSource, reentry))
+    FeatureTaskRuntimeRunLoopPhaseRunner.preLaunchBlock(request, recorder, session, run, state, observability)?.let { return it }
+    return runPreparedPhase(
+      request, recorder, session,
+      goalContinuationRecorder,
+      phaseSettlementService,
+      outputValidator,
+      diagnostics,
+      phaseGates,
+      clock,
+      transitions,
+      subtaskLauncher,
+      activityStampWriter,
+      phaseTokenAccumulator,
       run,
-      runLoop.state,
-      runLoop.observability,
-    )?.let { return it }
-    return runPreparedPhase(runLoop, run, runLoop.state, runLoop.observability, runLoop.phaseTokenAccumulator)
+      state,
+      observability,
+    )
   }
 
-  internal fun phaseDeclarationForRun(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    phaseId: String,
-  ): FeatureTaskRuntimePhaseDeclaration {
+  internal fun phaseDeclarationForRun(request: FeatureTaskRuntimeRunRequest, phaseId: String): FeatureTaskRuntimePhaseDeclaration {
     val declaration = phaseDeclaration(
       phaseId,
-      runLoop.request.runInvariants.featureSize,
-      FeatureTaskRuntimeRunLoopTransitions.qualityGateSelection(runLoop),
+      request.runInvariants.featureSize,
+      FeatureTaskRuntimeRunLoopTransitions.qualityGateSelection(request),
     )
     return declaration
   }
 
-  internal fun buildPhaseRun(runLoop: FeatureTaskRuntimeRunLoop, args: BuildPhaseRunArgs): PhaseRun {
+  internal fun buildPhaseRun(request: FeatureTaskRuntimeRunRequest, specSource: SpecSource, args: BuildPhaseRunArgs): PhaseRun {
     val phaseId = args.phaseId
     val declaration = args.declaration
     val reentry = args.reentry
     val resolvedAgent = FeatureTaskRuntimeAgentResolver.resolve(
       phaseId = phaseId,
-      assignment = runLoop.request.agentAssignment,
-      invokedAgentId = runLoop.request.invokedAgentId,
+      assignment = request.agentAssignment,
+      invokedAgentId = request.invokedAgentId,
     )
     return PhaseRun(
       phaseId = phaseId,
@@ -202,97 +202,60 @@ object FeatureTaskRuntimeRunLoopPlanningBranch {
       modelDirective = FeatureTaskRuntimeModelResolver.resolve(
         phaseId,
         resolvedAgent.resolvedAgentId,
-        runLoop.request.modelAssignment,
+        request.modelAssignment,
       ),
-      compaction = runLoop.request.compactionSettings.directiveFor(phaseId),
-      request = runLoop.request,
-      specSource = runLoop.specSource,
+      compaction = request.compactionSettings.directiveFor(phaseId),
+      request = request,
+      specSource = specSource,
       reentry = reentry,
     )
   }
 
-  internal fun runPreparedPhase(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    run: PhaseRun,
-    state: FeatureTaskRuntimeRunState,
-    observability: FeatureTaskRuntimeRunObservability,
-    phaseTokenAccumulator: MutableMap<String, Pair<Int, Int>>?,
-  ): PhaseOutcome = when (
-    val prepared = FeatureTaskRuntimeRunLoopPhaseRunner.prepareGoalReviewRun(
-      runLoop,
-      run,
-      observability,
-    )
+  internal fun runPreparedPhase(request: FeatureTaskRuntimeRunRequest, recorder: FeatureTaskRuntimePhaseRecorder, session: FeatureTaskRuntimeRunLoopSession, goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder, phaseSettlementService: FeatureTaskPhaseSettlementService, outputValidator: FeatureTaskRuntimePhaseOutputValidator, diagnostics: RuntimeDiagnostics, phaseGates: FeatureTaskRuntimePhaseGates, clock: Clock, transitions: FeatureTaskRuntimeTransitionDeclaration, subtaskLauncher: GoalRunnerSubtaskLauncher, activityStampWriter: AgentActivityStampWriter, phaseTokenAccumulator: MutableMap<String, Pair<Int, Int>>?, run: PhaseRun, state: FeatureTaskRuntimeRunState, observability: FeatureTaskRuntimeRunObservability): PhaseOutcome = when (
+    val prepared = FeatureTaskRuntimeRunLoopPhaseRunner.prepareGoalReviewRun(request, state, recorder, goalContinuationRecorder, phaseGates, run, observability)
   ) {
     is GoalReviewRunReady -> when {
       run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW ->
-        FeatureTaskRuntimeRunLoopPhaseRunner.runDeclaredReviewDriverCycle(runLoop, prepared.run, state, observability)
+        FeatureTaskRuntimeRunLoopPhaseRunner.runDeclaredReviewDriverCycle(request, recorder, session, goalContinuationRecorder, outputValidator, diagnostics, phaseGates, clock, prepared.run, state, observability)
       run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE ->
-        FeatureTaskRuntimeRunLoopValidationGate.runDeclaredValidationGateCycle(
-          runLoop,
-          prepared.run,
-          state,
-          observability,
-          runLoop.phaseTokenAccumulator,
-        )
+        FeatureTaskRuntimeRunLoopValidationGate.runDeclaredValidationGateCycle(request, recorder, session, phaseSettlementService, outputValidator, goalContinuationRecorder, diagnostics, phaseGates, clock, transitions, subtaskLauncher, activityStampWriter, phaseTokenAccumulator, prepared.run, state, observability)
       run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD ->
-        FeatureTaskRuntimeRunLoopValidationGate.runDeclaredBuildGateCycle(
-          runLoop,
-          prepared.run,
-          state,
-          observability,
-          runLoop.phaseTokenAccumulator,
-        )
-      else -> FeatureTaskRuntimeRunLoopValidationGate.runPhaseAttempts(
-        runLoop,
-        prepared.run,
-        state,
-        observability,
-        runLoop.phaseTokenAccumulator,
-      )
+        FeatureTaskRuntimeRunLoopValidationGate.runDeclaredBuildGateCycle(request, recorder, session, phaseSettlementService, outputValidator, goalContinuationRecorder, diagnostics, phaseGates, clock, transitions, subtaskLauncher, activityStampWriter, phaseTokenAccumulator, prepared.run, state, observability)
+      else -> FeatureTaskRuntimeRunLoopValidationGate.runPhaseAttempts(request, recorder, session, phaseSettlementService, outputValidator, goalContinuationRecorder, diagnostics, phaseGates, clock, transitions, subtaskLauncher, activityStampWriter, prepared.run, state, observability, phaseTokenAccumulator)
     }
     GoalReviewRunPreparation.CarryForward ->
-      FeatureTaskRuntimeRunLoopPhaseRunner.settleCarriedForwardGoalReview(
-        runLoop,
-        run = run,
-        state = state,
-        observability = observability,
-      )
+      FeatureTaskRuntimeRunLoopPhaseRunner.settleCarriedForwardGoalReview(request, recorder, goalContinuationRecorder, outputValidator, run, state, observability)
     is GoalReviewRunPreparation.Blocked -> PhaseOutcome.blocked(prepared.reason)
   }
 
-  fun pauseAt(runLoop: FeatureTaskRuntimeRunLoop, phaseId: String, reason: String, resumableStep: String) {
-    runLoop.session.paused = FeatureTaskRuntimeRunReport.Paused(
-      issueKey = runLoop.request.issueKey,
-      workflowId = runLoop.request.workflowId,
-      featureSize = runLoop.request.runInvariants.featureSize.name,
-      pausedPhase = phaseId,
-      pauseReason = reason,
-      resumableStep = resumableStep,
-      completedPhaseIds = runLoop.state.completedPhaseIds(),
-      resolvedBranch = runLoop.session.resolvedBranch,
+  internal fun pauseAt(request: FeatureTaskRuntimeRunRequest, state: FeatureTaskRuntimeRunState, session: FeatureTaskRuntimeRunLoopSession, phaseId: String, reason: String, resumableStep: String){
+    session.transitionToPaused(
+      FeatureTaskRuntimeRunReport.Paused(
+        issueKey = request.issueKey,
+        workflowId = request.workflowId,
+        featureSize = request.runInvariants.featureSize.name,
+        pausedPhase = phaseId,
+        pauseReason = reason,
+        resumableStep = resumableStep,
+        completedPhaseIds = state.completedPhaseIds(),
+        resolvedBranch = session.resolvedBranch,
+      ),
     )
   }
 
-  fun remediationCheckpointBlockedReason(branch: String, error: String): String =
+  internal fun remediationCheckpointBlockedReason(branch: String, error: String): String =
     "Feature-task-runtime could not establish a remediation checkpoint on the feature branch '$branch' " +
       "before re-entering a mutating phase" + (if (error.isBlank()) "." else " ($error).") +
       " Refusing to re-enter a mutating phase on a dirty, non-reconcilable tree."
 
-  fun auditReviewCheckpointBlockedReason(branch: String, error: String): String =
+  internal fun auditReviewCheckpointBlockedReason(branch: String, error: String): String =
     "Feature-task-runtime could not commit the audited implementation on the feature branch '$branch' " +
       "before review" + (if (error.isBlank()) "." else " ($error).") +
       " Refusing to review an uncommitted final audit iteration."
 
-  fun capExhaustionReason(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    loopId: String,
-    edgeIteration: Int,
-    verdict: FeatureTaskRuntimeVerdict,
-    unresolvedFindings: List<FeatureTaskRuntimeReviewFinding> = emptyList(),
-  ): String {
+  internal fun capExhaustionReason(request: FeatureTaskRuntimeRunRequest, recorder: FeatureTaskRuntimePhaseRecorder, loopId: String, edgeIteration: Int, verdict: FeatureTaskRuntimeVerdict, unresolvedFindings: List<FeatureTaskRuntimeReviewFinding> = emptyList()): String {
     if (FeatureTaskRuntimePhaseWorkflowDefinition.isRegenerationLoopId(loopId)) {
-      return regenerationCapExhaustionReason(runLoop, loopId, edgeIteration)
+      return regenerationCapExhaustionReason(request, recorder, loopId, edgeIteration)
     }
     val findingsSuffix = if (unresolvedFindings.isEmpty()) {
       ""

@@ -1,4 +1,6 @@
 package skillbill.engine.featuretask
+
+import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
 import skillbill.application.reviewevidence.FeatureTaskRuntimeSharedReviewEvidenceResolver
 import skillbill.application.reviewevidence.model.FeatureTaskRuntimeSharedReviewEvidenceResolved
 import skillbill.contracts.JsonCodec
@@ -23,6 +25,10 @@ import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeHandoffContract
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.ports.diagnostics.RuntimeDiagnostics
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeTransitionDeclaration
+import skillbill.engine.featuretask.FeatureTaskRuntimeGoalContinuationRecorder
+import skillbill.engine.featuretask.FeatureTaskRuntimePhaseGates
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeWorkflowArtifactMap
 import skillbill.workflow.taskruntime.envelopeWireMap
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
@@ -41,13 +47,10 @@ import skillbill.workflow.taskruntime.model.NormalizedFeatureTaskRuntimePhaseOut
 import skillbill.workflow.taskruntime.model.requireAcceptedOutput
 import skillbill.workflow.taskruntime.model.validateDispositionCoverage
 import skillbill.workflow.taskruntime.toWorkflowArtifactMap
+import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 
 object FeatureTaskRuntimeRunLoopOutputVerification {
-  internal fun attestAbsentGateValidationReceipt(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    run: PhaseRun,
-    normalizedOutput: NormalizedFeatureTaskRuntimePhaseOutput,
-  ): NormalizedFeatureTaskRuntimePhaseOutput {
+  internal fun attestAbsentGateValidationReceipt( outputValidator: FeatureTaskRuntimePhaseOutputValidator, run: PhaseRun, normalizedOutput: NormalizedFeatureTaskRuntimePhaseOutput): NormalizedFeatureTaskRuntimePhaseOutput {
     val eligible = run.agentRunValidateFallback &&
       run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE &&
       (normalizedOutput.envelopeWireMap()[SharedPayloadKeys.STATUS] as? String)
@@ -67,7 +70,7 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
     produced[ValidationEvidencePayloadKeys.VALIDATION_RESULT] = validationResult
     val envelope = normalizedOutput.envelopeWireMap().toMutableMap()
     envelope[SharedPayloadKeys.PRODUCED_OUTPUTS] = produced
-    return runLoop.outputValidator.validatePhaseOutput(
+    return outputValidator.validatePhaseOutput(
       JsonCodec.mapToJsonString(envelope),
       sourceLabel = run.phaseId,
     ).requireAcceptedOutput(run.phaseId).normalizedOutput
@@ -81,42 +84,29 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
       edgeIteration = run.reentry?.edgeIteration,
     )
 
-  internal fun implementationContinuationFor(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    run: PhaseRun,
-  ): FeatureTaskRuntimeImplementationContinuation? {
+  internal fun implementationContinuationFor(recorder: FeatureTaskRuntimePhaseRecorder, run: PhaseRun): FeatureTaskRuntimeImplementationContinuation? {
     if (!FeatureTaskRuntimePhaseWorkflowDefinition.isMutatingPhase(run.phaseId)) return null
-    val attempts = runLoop.recorder.loadImplementationAttempts(run.request.workflowId)
+    val attempts = recorder.loadImplementationAttempts(run.request.workflowId)
       ?: return null
     return featureTaskRuntimeImplementationContinuationFrom(run.phaseId, attempts, implementationObligations(run))
       ?.takeIf { it.priorValueSegments.isNotEmpty() }
   }
 
-  internal fun completionProjectionRejection(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    args: CompletionProjectionRejectionArgs,
-  ): Pair<String, String>? = producerProjectionGateReason(
+  internal fun completionProjectionRejection(request: FeatureTaskRuntimeRunRequest, state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, session: FeatureTaskRuntimeRunLoopSession, phaseGates: FeatureTaskRuntimePhaseGates, transitions: FeatureTaskRuntimeTransitionDeclaration, args: CompletionProjectionRejectionArgs): Pair<String, String>? = producerProjectionGateReason(
     args.run.phaseId,
     args.normalizedOutput.envelopeWireMap(),
-    runLoop.planningProjectionValidator,
+    phaseGates.planningProjectionValidator,
   )?.let { "producer-projection" to it }
-    ?: immediateConsumerProjectionGateReason(
-      runLoop,
-      ImmediateConsumerProjectionGateArgs(
+    ?: immediateConsumerProjectionGateReason(request, state, recorder, session, phaseGates, transitions, ImmediateConsumerProjectionGateArgs(
         run = args.run,
         iteration = args.iteration,
         normalizedOutput = args.normalizedOutput,
         repairEvidence = args.repairEvidence,
         repositoryFingerprint = args.repositoryFingerprint,
-      ),
-    )?.let { "consumer-projection" to it }
-    ?: FeatureTaskRuntimeRunLoopOutputVerification.outputVerificationGateReason(
-      runLoop,
-      args.run,
-      args.normalizedOutput.envelopeWireMap(),
-    )?.let { "output-verification" to it }
+      ))?.let { "consumer-projection" to it }
+    ?: FeatureTaskRuntimeRunLoopOutputVerification.outputVerificationGateReason(state, recorder, phaseGates, args.run, args.normalizedOutput.envelopeWireMap())?.let { "output-verification" to it }
 
-  fun firstValidatedOutputRejection(
+  internal fun firstValidatedOutputRejection(
     phaseId: String,
     outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
   ): Pair<String, String>? = mutatingReconciliationGateReason(
@@ -124,10 +114,7 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
     outputMap,
   )?.let { "mutating-reconciliation" to it }
 
-  internal fun immediateConsumerProjectionGateReason(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    args: ImmediateConsumerProjectionGateArgs,
-  ): String? {
+  internal fun immediateConsumerProjectionGateReason(request: FeatureTaskRuntimeRunRequest, state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, session: FeatureTaskRuntimeRunLoopSession, phaseGates: FeatureTaskRuntimePhaseGates, transitions: FeatureTaskRuntimeTransitionDeclaration, args: ImmediateConsumerProjectionGateArgs): String? {
     val run = args.run
     val iteration = args.iteration
     val normalizedOutput = args.normalizedOutput
@@ -135,13 +122,13 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
     val repositoryFingerprint = args.repositoryFingerprint
     if (run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE) return null
     if (run.validationGateFindings != null) return null
-    val producerIndex = runLoop.transitions.forwardPhaseIds.indexOf(run.phaseId)
-    if (producerIndex < 0 || producerIndex == runLoop.transitions.forwardPhaseIds.lastIndex) return null
-    val consumerPhaseId = runLoop.transitions.forwardPhaseIds[producerIndex + 1]
+    val producerIndex = transitions.forwardPhaseIds.indexOf(run.phaseId)
+    if (producerIndex < 0 || producerIndex == transitions.forwardPhaseIds.lastIndex) return null
+    val consumerPhaseId = transitions.forwardPhaseIds[producerIndex + 1]
     val declaration = phaseDeclaration(
       consumerPhaseId,
       run.request.runInvariants.featureSize,
-      FeatureTaskRuntimeRunLoopTransitions.qualityGateSelection(runLoop),
+      FeatureTaskRuntimeRunLoopTransitions.qualityGateSelection(request),
     )
     val currentOutput = FeatureTaskRuntimePhaseOutput(
       phaseId = run.phaseId,
@@ -150,9 +137,9 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
       normalizedOutput = normalizedOutput,
       repairEvidence = repairEvidence,
     )
-    val outputs = runLoop.state.outputs().filterNot { it.phaseId == run.phaseId } + currentOutput
+    val outputs = state.outputs().filterNot { it.phaseId == run.phaseId } + currentOutput
     val resolvedFingerprint = repositoryFingerprint?.takeIf(String::isNotBlank)
-      ?: runLoop.gitOperations.repositoryFingerprint(run.request.repoRoot).value.takeIf(String::isNotBlank)
+      ?: phaseGates.gitOperations.repositoryFingerprint(run.request.repoRoot).value.takeIf(String::isNotBlank)
     val checkpoint = resolvedFingerprint
       ?.let(::FeatureTaskRuntimeRepositoryCheckpoint)
     val handoff = FeatureTaskRuntimeHandoffContract.assembleHandoff(
@@ -162,8 +149,8 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
         recordedOutputs = outputs,
         repositoryCheckpoint = checkpoint,
         expectedRepositoryCheckpoint = checkpoint,
-        branchIdentity = runLoop.session.resolvedBranch,
-        baseBranch = runLoop.recorder.loadResolvedBranch(run.request.workflowId)
+        branchIdentity = session.resolvedBranch,
+        baseBranch = recorder.loadResolvedBranch(run.request.workflowId)
           ?.baseBranch
           ?: "main",
       ),
@@ -172,7 +159,7 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
       FeatureTaskRuntimePhaseBriefingAssembler.assemble(
         handoff,
         run.request.workflowId,
-        runLoop.planningProjectionValidator,
+        phaseGates.planningProjectionValidator,
         run.request.agentAddonSelection,
       )
       null
@@ -185,11 +172,7 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
     }
   }
 
-  internal fun recordedFindingVerdictsForFixHandoff(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    run: PhaseRun,
-    state: FeatureTaskRuntimeRunState,
-  ): List<ReviewFindingVerdict> {
+  internal fun recordedFindingVerdictsForFixHandoff(recorder: FeatureTaskRuntimePhaseRecorder, run: PhaseRun, state: FeatureTaskRuntimeRunState): List<ReviewFindingVerdict> {
     if (run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT_FIX) {
       return emptyList()
     }
@@ -199,48 +182,38 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
         ?.let { JsonCodec.jsonElementToValue(it) }
         ?.let(JsonCodec::anyToStringAnyMap)
       ?: return emptyList()
-    return runLoop.recorder.recordedFindingVerdicts(envelope)
+    return recorder.recordedFindingVerdicts(envelope)
   }
 
-  internal fun resolveSharedReviewEvidence(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    run: PhaseRun,
-    checkpoint: FeatureTaskRuntimeRepositoryCheckpoint?,
-  ): FeatureTaskRuntimeSharedReviewEvidenceResolved? {
+  internal fun resolveSharedReviewEvidence( phaseGates: FeatureTaskRuntimePhaseGates, run: PhaseRun, checkpoint: FeatureTaskRuntimeRepositoryCheckpoint?): FeatureTaskRuntimeSharedReviewEvidenceResolved? {
     val declared = run.declaration.projectionDeclarations.any {
       it.sourceRef == FeatureTaskRuntimeHandoffSourceRef.SharedReviewEvidence
     }
     if (!declared) return null
     return FeatureTaskRuntimeSharedReviewEvidenceResolver(
-      runLoop.phaseGates.sharedEvidenceResolver,
-      runLoop.phaseGates.diffResolver,
+      phaseGates.sharedEvidenceResolver,
+      phaseGates.diffResolver,
     ).resolve(run.request.repoRoot, run.request.workflowId, checkpoint, run.phaseId)
   }
 
-  internal fun resolveRepositoryCheckpoint(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    run: PhaseRun,
-  ): FeatureTaskRuntimeRepositoryCheckpoint? = if (run.declaration.projectionDeclarations.none { projection ->
+  internal fun resolveRepositoryCheckpoint(recorder: FeatureTaskRuntimePhaseRecorder, session: FeatureTaskRuntimeRunLoopSession, phaseGates: FeatureTaskRuntimePhaseGates, goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder, run: PhaseRun): FeatureTaskRuntimeRepositoryCheckpoint? = if (run.declaration.projectionDeclarations.none { projection ->
       projection.checkpointPolicy != FeatureTaskRuntimeRepositoryCheckpointPolicy.NOT_REQUIRED
     }
   ) {
     null
   } else {
-    FeatureTaskRuntimeRunLoopOutputVerification.buildRepositoryCheckpoint(runLoop, run)
+    FeatureTaskRuntimeRunLoopOutputVerification.buildRepositoryCheckpoint(recorder, session, goalContinuationRecorder, phaseGates, run)
   }
 
-  internal fun completedPhaseRepositoryFingerprint(runLoop: FeatureTaskRuntimeRunLoop, run: PhaseRun) = if (
+  internal fun completedPhaseRepositoryFingerprint( phaseGates: FeatureTaskRuntimePhaseGates, run: PhaseRun)= if (
     run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT_FIX
   ) {
-    runLoop.gitOperations.repositoryFingerprint(run.request.repoRoot)
+    phaseGates.gitOperations.repositoryFingerprint(run.request.repoRoot)
   } else {
     null
   }
 
-  internal fun terminalOutputAttempt(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    args: TerminalOutputAttemptArgs,
-  ): AttemptResult {
+  internal fun terminalOutputAttempt(request: FeatureTaskRuntimeRunRequest, state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, observability: FeatureTaskRuntimeRunObservability, args: TerminalOutputAttemptArgs): AttemptResult {
     val run = args.run
     val iteration = args.iteration
     val reason = args.reason
@@ -258,17 +231,14 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
           )
     if (operatorTerminalQualityGate) {
       return AttemptResult.settled(
-        FeatureTaskRuntimeRunLoopPhaseAttempts.blockInPhase(
-          runLoop,
-          PhaseBlockRequest(
+        FeatureTaskRuntimeRunLoopPhaseAttempts.blockInPhase(request, state, recorder, observability, PhaseBlockRequest(
             run = run,
             attemptCount = iteration,
             reason = reason,
-            observability = runLoop.observability,
+            observability = observability,
             payload = BlockAndPersistPayload(fileManifest = fileManifest),
             failureDisposition = disposition,
-          ),
-        ),
+          )),
       )
     }
     return if (
@@ -278,32 +248,25 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
       AttemptResult.retryableTerminal(reason, fileManifest, disposition)
     } else {
       AttemptResult.settled(
-        FeatureTaskRuntimeRunLoopPhaseAttempts.blockInPhase(
-          runLoop,
-          PhaseBlockRequest(
+        FeatureTaskRuntimeRunLoopPhaseAttempts.blockInPhase(request, state, recorder, observability, PhaseBlockRequest(
             run = run,
             attemptCount = iteration,
             reason = reason,
-            observability = runLoop.observability,
+            observability = observability,
             payload = BlockAndPersistPayload(fileManifest = fileManifest),
             failureDisposition = disposition,
-          ),
-        ),
+          )),
       )
     }
   }
 
-  internal fun outputVerificationGateReason(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    run: PhaseRun,
-    outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
-  ): String? = findingVerificationBoundaryDispositionGate(runLoop, run, outputMap)
+  internal fun outputVerificationGateReason(state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, phaseGates: FeatureTaskRuntimePhaseGates, run: PhaseRun, outputMap: FeatureTaskRuntimeWorkflowArtifactMap): String? = findingVerificationBoundaryDispositionGate(state, recorder, phaseGates, run, outputMap)
     ?: auditRemovedVerdictGate(run.phaseId, outputMap)
     ?: FeatureTaskRuntimeVerificationGateReasons.reviewVerificationSignal(run.phaseId, outputMap)
     ?: FeatureTaskRuntimeVerificationGateReasons.findingVerificationDisposition(
       run.phaseId,
       outputMap,
-      FeatureTaskRuntimeRunLoopOutputVerification.reviewFindingIdsForVerification(runLoop),
+      FeatureTaskRuntimeRunLoopOutputVerification.reviewFindingIdsForVerification(state, recorder),
     )
 
   private fun auditRemovedVerdictGate(phaseId: String, outputMap: FeatureTaskRuntimeWorkflowArtifactMap): String? {
@@ -316,21 +279,18 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
     return null
   }
 
-  internal fun findingVerificationBoundarySections(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    run: PhaseRun,
-  ): List<FeatureTaskRuntimeFindingBoundaryMemorySection> {
-    val reviewOutput = runLoop.state.outputFor(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW)
+  internal fun findingVerificationBoundarySections(state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, phaseGates: FeatureTaskRuntimePhaseGates, run: PhaseRun): List<FeatureTaskRuntimeFindingBoundaryMemorySection> {
+    val reviewOutput = state.outputFor(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW)
       ?.normalizedOutput?.envelopeWireMap()
     val recordedVerdicts = reviewOutput?.let {
-      runLoop.recorder.recordedFindingVerdicts(
+      recorder.recordedFindingVerdicts(
         it,
       )
     }.orEmpty()
     val findings = reviewOutput?.let {
       GoalSubtaskReviewStructuredFindingsParse.structuredFindings(it, recordedVerdicts)
     }.orEmpty()
-    return runLoop.phaseGates.findingVerificationBoundaryMemory.sectionsForFindings(
+    return phaseGates.findingVerificationBoundaryMemory.sectionsForFindings(
       run.request.repoRoot,
       findings.mapNotNull { finding ->
         val findingId = finding.findingId?.takeIf(String::isNotBlank) ?: return@mapNotNull null
@@ -342,40 +302,28 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
     )
   }
 
-  internal fun findingVerificationBoundaryBodyDeliveryDecision(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    run: PhaseRun,
-    outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
-  ): BoundaryBodyDeliveryDecision {
-    FeatureTaskRuntimeRunLoopOutputVerification.verifyFindingsBoundaryContext(
-      runLoop,
-      run,
-      outputMap,
-    )?.let { return it }
+  internal fun findingVerificationBoundaryBodyDeliveryDecision(state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, phaseGates: FeatureTaskRuntimePhaseGates, run: PhaseRun, outputMap: FeatureTaskRuntimeWorkflowArtifactMap): BoundaryBodyDeliveryDecision {
+    FeatureTaskRuntimeRunLoopOutputVerification.verifyFindingsBoundaryContext(state, recorder, run, outputMap)?.let { return it }
     val dispositions = FeatureTaskRuntimeOutputVerification.dispositionsFrom(outputMap)
-    val sections = findingVerificationBoundarySections(runLoop, run)
-    FeatureTaskRuntimeRunLoopOutputVerification.verifyFindingsBoundaryValidationFailure(
-      runLoop,
-      sections,
-      dispositions,
-    )?.let { return it }
-    val selections = runLoop.phaseGates.findingVerificationBoundaryMemory.selectionsRequiringBodyDelivery(
+    val sections = findingVerificationBoundarySections(state, recorder, phaseGates, run)
+    FeatureTaskRuntimeRunLoopOutputVerification.verifyFindingsBoundaryValidationFailure( phaseGates, sections, dispositions)?.let { return it }
+    val selections = phaseGates.findingVerificationBoundaryMemory.selectionsRequiringBodyDelivery(
       sections,
       dispositions,
     )
     val delivered = if (selections.isEmpty()) {
       true
     } else {
-      runLoop.recorder.loadFindingVerificationBoundarySelection(
+      recorder.loadFindingVerificationBoundarySelection(
         run.request.workflowId,
       ) != null
     }
     if (delivered) return BoundaryBodyDeliveryDecision.NotApplicable
-    runLoop.recorder.persistFindingVerificationBoundarySelection(
+    recorder.persistFindingVerificationBoundarySelection(
       workflowId = run.request.workflowId,
       selections = selections,
     )
-    runLoop.recorder.persistFindingVerificationCheckpoint(
+    recorder.persistFindingVerificationCheckpoint(
       workflowId = run.request.workflowId,
       dispositions = dispositions,
     )
@@ -385,32 +333,16 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
     )
   }
 
-  internal fun findingVerificationBoundaryDispositionGate(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    run: PhaseRun,
-    outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
-  ): String? = findingVerificationBoundaryDispositionGateImpl(runLoop, run, outputMap)
+  internal fun findingVerificationBoundaryDispositionGate(state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, phaseGates: FeatureTaskRuntimePhaseGates, run: PhaseRun, outputMap: FeatureTaskRuntimeWorkflowArtifactMap): String? = findingVerificationBoundaryDispositionGateImpl(state, recorder, phaseGates, run, outputMap)
 
-  internal fun findingVerificationBoundaryDispositionGateImpl(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    run: PhaseRun,
-    outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
-  ): String? {
-    val dispositions = FeatureTaskRuntimeRunLoopOutputVerification.verifyFindingsDispositionGateContext(
-      runLoop,
-      run,
-      outputMap,
-    ) ?: return null
-    val sections = findingVerificationBoundarySections(runLoop, run)
-    FeatureTaskRuntimeRunLoopOutputVerification.verifyFindingsDispositionGateValidationFailure(
-      runLoop,
-      sections,
-      dispositions,
-    )?.let { return it }
-    val persisted = runLoop.recorder.loadFindingVerificationBoundarySelection(
+  internal fun findingVerificationBoundaryDispositionGateImpl(state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, phaseGates: FeatureTaskRuntimePhaseGates, run: PhaseRun, outputMap: FeatureTaskRuntimeWorkflowArtifactMap): String? {
+    val dispositions = FeatureTaskRuntimeRunLoopOutputVerification.verifyFindingsDispositionGateContext(state, recorder, run, outputMap) ?: return null
+    val sections = findingVerificationBoundarySections(state, recorder, phaseGates, run)
+    FeatureTaskRuntimeRunLoopOutputVerification.verifyFindingsDispositionGateValidationFailure( phaseGates, sections, dispositions)?.let { return it }
+    val persisted = recorder.loadFindingVerificationBoundarySelection(
       run.request.workflowId,
     )
-    val memory = runLoop.phaseGates.findingVerificationBoundaryMemory
+    val memory = phaseGates.findingVerificationBoundaryMemory
     memory.validateBoundarySelectionsDelivered(sections, dispositions, persisted)?.let { return it }
     return if (persisted != null) {
       memory.validateDispositionBoundaryBodies(
@@ -424,11 +356,7 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
     }
   }
 
-  internal fun persistVerifyFindingsCheckpointIfPresent(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    run: PhaseRun,
-    outputText: String,
-  ) {
+  internal fun persistVerifyFindingsCheckpointIfPresent(recorder: FeatureTaskRuntimePhaseRecorder, run: PhaseRun, outputText: String){
     if (run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS) return
     val outputMap = JsonCodec.parseObjectOrNull(outputText)
       ?.let(JsonCodec::jsonElementToValue)
@@ -437,23 +365,23 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
       ?: return
     val dispositions = FeatureTaskRuntimeOutputVerification.dispositionsFrom(outputMap)
     if (dispositions.isEmpty()) return
-    runLoop.recorder.persistFindingVerificationCheckpoint(
+    recorder.persistFindingVerificationCheckpoint(
       workflowId = run.request.workflowId,
       dispositions = dispositions,
     )
   }
 
-  fun reviewFindingIdsForVerification(runLoop: FeatureTaskRuntimeRunLoop): Set<String> {
-    val reviewOutput = runLoop.state.outputFor(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW)
+  internal fun reviewFindingIdsForVerification(state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder): Set<String> {
+    val reviewOutput = state.outputFor(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW)
       ?.normalizedOutput?.envelopeWireMap()
       ?: return emptySet()
-    val recordedVerdicts = runLoop.recorder.recordedFindingVerdicts(reviewOutput)
+    val recordedVerdicts = recorder.recordedFindingVerdicts(reviewOutput)
     return GoalSubtaskReviewStructuredFindingsParse.structuredFindings(reviewOutput, recordedVerdicts)
       .mapNotNull { it.findingId }
       .toSet()
   }
 
-  fun structuralRepairEvidenceFromSchemaError(
+  internal fun structuralRepairEvidenceFromSchemaError(
     error: InvalidFeatureTaskRuntimePhaseOutputSchemaError,
   ): FeatureTaskRuntimePhaseOutputRepairEvidence? {
     val originalDigest = error.structuralRepairOriginalDigest
@@ -496,10 +424,7 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
     )
   }
 
-  internal fun persistAcceptedOutput(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    args: PersistAcceptedOutputArgs,
-  ): AttemptResult {
+  internal fun persistAcceptedOutput(request: FeatureTaskRuntimeRunRequest, state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, observability: FeatureTaskRuntimeRunObservability, goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder, diagnostics: RuntimeDiagnostics, args: PersistAcceptedOutputArgs): AttemptResult {
     val run = args.run
     val iteration = args.iteration
     val normalizedOutput = args.normalizedOutput
@@ -517,10 +442,11 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
         outputText,
       )
     }
-    val reviewArgs = PhaseReviewPersistenceArgs(run, iteration, runLoop.observability, fileManifest)
+    val reviewArgs = PhaseReviewPersistenceArgs(run, iteration, observability, fileManifest)
     if (FeatureTaskRuntimeRunLoopOutputPersistence.isGoalReviewRun(run)) {
       FeatureTaskRuntimeRunLoopOutputPersistence.persistGoalReviewCompletion(
-        runLoop,
+        request, state, recorder, observability,
+        goalContinuationRecorder,
         reviewArgs,
         normalizedOutput,
         repairEvidence,
@@ -529,22 +455,23 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
       }
     } else {
       FeatureTaskRuntimeRunLoopOutputVerification.persistStandardAcceptedOutput(
-        runLoop,
+        request, state, recorder, observability,
+        goalContinuationRecorder,
+        diagnostics,
         PersistStandardAcceptedOutputArgs(
           accepted = PersistAcceptedOutputArgs(
             run = run,
             iteration = iteration,
             normalizedOutput = normalizedOutput,
             repairEvidence = repairEvidence,
-            observability = runLoop.observability,
+            observability = observability,
             fileManifest = fileManifest,
             repositoryFingerprint = repositoryFingerprint,
           ),
           outputText = outputText,
-        ),
-      )?.let { return it }
+        ))?.let { return it }
     }
-    runLoop.observability.completedEvent(run.phaseId, run.resolvedAgent.resolvedAgentId, iteration)
+    observability.completedEvent(run.phaseId, run.resolvedAgent.resolvedAgentId, iteration)
     return FeatureTaskRuntimeRunLoopOutputVerification.completedAttemptResult(
       run,
       iteration,
@@ -554,31 +481,17 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
     )
   }
 
-  internal fun buildRepositoryCheckpoint(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    run: PhaseRun,
-  ): FeatureTaskRuntimeRepositoryCheckpoint? {
-    val resolvedBranchRecord = runLoop.recorder.loadResolvedBranch(run.request.workflowId)
-    runLoop.session.resolvedBranch = resolvedBranchRecord?.branch
-    val goalReviewState = runLoop.goalContinuationRecorder.reviewState(
+  internal fun buildRepositoryCheckpoint(recorder: FeatureTaskRuntimePhaseRecorder, session: FeatureTaskRuntimeRunLoopSession, goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder, phaseGates: FeatureTaskRuntimePhaseGates, run: PhaseRun): FeatureTaskRuntimeRepositoryCheckpoint? {
+    val resolvedBranchRecord = recorder.loadResolvedBranch(run.request.workflowId)
+    session.transitionResolvedBranch(resolvedBranchRecord?.branch)
+    val goalReviewState = goalContinuationRecorder.reviewState(
       run.request.workflowId,
     )
-    val revisions = FeatureTaskRuntimeRunLoopOutputVerification.resolveCheckpointRevisions(
-      runLoop,
-      run = run,
-      headRevision = resolvedBranchRecord?.branch?.takeIf(String::isNotBlank) ?: "HEAD",
-      baseRevision = goalReviewState?.reviewBaseSha ?: resolvedBranchRecord?.reviewBaseSha,
-    ) ?: return null
-    val ownedPaths = resolveCheckpointOwnedPaths(
-      runLoop,
-      run = run,
-      persistedOwnedPaths = resolvedBranchRecord?.workflowOwnedPaths,
-      baselineOwnedPaths = resolvedBranchRecord?.baselineOwnedPaths
+    val revisions = FeatureTaskRuntimeRunLoopOutputVerification.resolveCheckpointRevisions( phaseGates, run = run, headRevision = resolvedBranchRecord?.branch?.takeIf(String::isNotBlank) ?: "HEAD", baseRevision = goalReviewState?.reviewBaseSha ?: resolvedBranchRecord?.reviewBaseSha) ?: return null
+    val ownedPaths = resolveCheckpointOwnedPaths(recorder, session, phaseGates, run = run, persistedOwnedPaths = resolvedBranchRecord?.workflowOwnedPaths, baselineOwnedPaths = resolvedBranchRecord?.baselineOwnedPaths
         ?: goalReviewState?.baselineUntrackedPaths
-        ?: resolvedBranchRecord?.baselineUntrackedPaths.orEmpty(),
-      revisions = revisions,
-    ) ?: return null
-    val fingerprint = runLoop.gitOperations.repositoryCheckpointFingerprint(
+        ?: resolvedBranchRecord?.baselineUntrackedPaths.orEmpty(), revisions = revisions) ?: return null
+    val fingerprint = phaseGates.gitOperations.repositoryCheckpointFingerprint(
       run.request.repoRoot,
       revisions.base,
       revisions.head,
@@ -592,27 +505,17 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
     )
   }
 
-  internal fun resolveCheckpointOwnedPaths(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    run: PhaseRun,
-    persistedOwnedPaths: List<String>?,
-    baselineOwnedPaths: List<String>,
-    revisions: CheckpointRevisions,
-  ): List<String>? {
-    val workingTreePaths = FeatureTaskRuntimeRunLoopOutputVerification.checkpointOwnedPaths(
-      runLoop,
-      run,
-      baselineOwnedPaths,
-    ) ?: return null
+  internal fun resolveCheckpointOwnedPaths(recorder: FeatureTaskRuntimePhaseRecorder, session: FeatureTaskRuntimeRunLoopSession, phaseGates: FeatureTaskRuntimePhaseGates, run: PhaseRun, persistedOwnedPaths: List<String>?, baselineOwnedPaths: List<String>, revisions: CheckpointRevisions): List<String>? {
+    val workingTreePaths = FeatureTaskRuntimeRunLoopOutputVerification.checkpointOwnedPaths( phaseGates, run, baselineOwnedPaths) ?: return null
     val committedPaths = revisions.base?.let { base ->
-      runLoop.gitOperations.runtimePhaseChangedPathsBetweenCommits(run.request.repoRoot, base, revisions.head)
+      phaseGates.gitOperations.runtimePhaseChangedPathsBetweenCommits(run.request.repoRoot, base, revisions.head)
         .takeIf { it is WorkflowGitOperationResult.Ok }
         ?.value
         ?.let(FeatureTaskRuntimePhaseSafetyPolicy::lineSeparatedPaths)
         ?: return null
     }.orEmpty()
     val durableInventory = persistedOwnedPaths.orEmpty().filter(String::isNotBlank)
-    val discovered = if (runLoop.session.checkpointOwnershipDecided && durableInventory.isNotEmpty()) {
+    val discovered = if (session.checkpointOwnershipDecided && durableInventory.isNotEmpty()) {
       durableInventory
     } else {
       (durableInventory + workingTreePaths).distinct()
@@ -624,26 +527,21 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
       paths = (discovered + committedPaths).distinct(),
     ).sorted()
     return inventory.takeIf {
-      runLoop.recorder.recordWorkflowOwnedPaths(
+      recorder.recordWorkflowOwnedPaths(
         run.request.workflowId,
         inventory,
       )
     }
   }
 
-  internal fun resolveCheckpointRevisions(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    run: PhaseRun,
-    headRevision: String,
-    baseRevision: String?,
-  ): CheckpointRevisions? {
-    val immutableHead = runLoop.gitOperations.resolveCommit(run.request.repoRoot, headRevision)
+  internal fun resolveCheckpointRevisions( phaseGates: FeatureTaskRuntimePhaseGates, run: PhaseRun, headRevision: String, baseRevision: String?): CheckpointRevisions? {
+    val immutableHead = phaseGates.gitOperations.resolveCommit(run.request.repoRoot, headRevision)
       .takeIf { it is WorkflowGitOperationResult.Ok }?.value?.takeIf(String::isNotBlank)
-      ?: runLoop.gitOperations.headCommitSha(run.request.repoRoot)
+      ?: phaseGates.gitOperations.headCommitSha(run.request.repoRoot)
         .takeIf { it is WorkflowGitOperationResult.Ok }?.value?.takeIf(String::isNotBlank)
       ?: return null
     val immutableBase = baseRevision?.let { revision ->
-      runLoop.gitOperations.resolveCommit(run.request.repoRoot, revision)
+      phaseGates.gitOperations.resolveCommit(run.request.repoRoot, revision)
         .takeIf { it is WorkflowGitOperationResult.Ok }?.value?.takeIf(String::isNotBlank)
         ?: revision.takeIf { it.matches(Regex("^[0-9a-fA-F]{40,64}$")) }
     }
@@ -651,12 +549,8 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
     return CheckpointRevisions(base = immutableBase, head = immutableHead)
   }
 
-  internal fun checkpointOwnedPaths(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    run: PhaseRun,
-    baselineOwnedPaths: List<String>,
-  ): List<String>? {
-    val owned = runLoop.gitOperations.repositoryOwnedPaths(run.request.repoRoot)
+  internal fun checkpointOwnedPaths( phaseGates: FeatureTaskRuntimePhaseGates, run: PhaseRun, baselineOwnedPaths: List<String>): List<String>? {
+    val owned = phaseGates.gitOperations.repositoryOwnedPaths(run.request.repoRoot)
     if (owned !is WorkflowGitOperationResult.Ok) return null
     val baseline = baselineOwnedPaths.toSet()
     val paths = owned.value.orEmpty()
@@ -688,11 +582,7 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
     return paths
   }
 
-  internal fun verifyFindingsBoundaryContext(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    run: PhaseRun,
-    outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
-  ): BoundaryBodyDeliveryDecision? {
+  internal fun verifyFindingsBoundaryContext(state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, run: PhaseRun, outputMap: FeatureTaskRuntimeWorkflowArtifactMap): BoundaryBodyDeliveryDecision? {
     if (run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS) {
       return BoundaryBodyDeliveryDecision.NotApplicable
     }
@@ -700,7 +590,7 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
     if (dispositions.isEmpty()) return BoundaryBodyDeliveryDecision.NotApplicable
     if (validateDispositionCoverage(
         dispositions,
-        FeatureTaskRuntimeRunLoopOutputVerification.reviewFindingIdsForVerification(runLoop),
+        FeatureTaskRuntimeRunLoopOutputVerification.reviewFindingIdsForVerification(state, recorder),
       ) != null
     ) {
       return BoundaryBodyDeliveryDecision.NotApplicable
@@ -708,12 +598,8 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
     return null
   }
 
-  internal fun verifyFindingsBoundaryValidationFailure(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    sections: List<FeatureTaskRuntimeFindingBoundaryMemorySection>,
-    dispositions: List<FeatureTaskRuntimeFindingVerificationDisposition>,
-  ): BoundaryBodyDeliveryDecision? {
-    val memory = runLoop.phaseGates.findingVerificationBoundaryMemory
+  internal fun verifyFindingsBoundaryValidationFailure( phaseGates: FeatureTaskRuntimePhaseGates, sections: List<FeatureTaskRuntimeFindingBoundaryMemorySection>, dispositions: List<FeatureTaskRuntimeFindingVerificationDisposition>): BoundaryBodyDeliveryDecision? {
+    val memory = phaseGates.findingVerificationBoundaryMemory
     memory.validateDispositionBoundaryContext(sections, dispositions)?.let {
       return BoundaryBodyDeliveryDecision.RejectDecision.of(it)
     }
@@ -723,17 +609,13 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
     return null
   }
 
-  internal fun verifyFindingsDispositionGateContext(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    run: PhaseRun,
-    outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
-  ): List<FeatureTaskRuntimeFindingVerificationDisposition>? {
+  internal fun verifyFindingsDispositionGateContext(state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, run: PhaseRun, outputMap: FeatureTaskRuntimeWorkflowArtifactMap): List<FeatureTaskRuntimeFindingVerificationDisposition>? {
     if (run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS) return null
     val dispositions = FeatureTaskRuntimeOutputVerification.dispositionsFrom(outputMap)
     if (dispositions.isEmpty()) return null
     if (validateDispositionCoverage(
         dispositions,
-        FeatureTaskRuntimeRunLoopOutputVerification.reviewFindingIdsForVerification(runLoop),
+        FeatureTaskRuntimeRunLoopOutputVerification.reviewFindingIdsForVerification(state, recorder),
       ) != null
     ) {
       return null
@@ -741,12 +623,8 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
     return dispositions
   }
 
-  fun verifyFindingsDispositionGateValidationFailure(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    sections: List<FeatureTaskRuntimeFindingBoundaryMemorySection>,
-    dispositions: List<FeatureTaskRuntimeFindingVerificationDisposition>,
-  ): String? {
-    val memory = runLoop.phaseGates.findingVerificationBoundaryMemory
+  internal fun verifyFindingsDispositionGateValidationFailure( phaseGates: FeatureTaskRuntimePhaseGates, sections: List<FeatureTaskRuntimeFindingBoundaryMemorySection>, dispositions: List<FeatureTaskRuntimeFindingVerificationDisposition>): String? {
+    val memory = phaseGates.findingVerificationBoundaryMemory
     memory.validateDispositionBoundaryContext(sections, dispositions)?.let { return it }
     memory.validateDispositionBoundaryProvenance(sections, dispositions)?.let { return it }
     return null
@@ -770,10 +648,7 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
     ),
   )
 
-  internal fun persistStandardAcceptedOutput(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    args: PersistStandardAcceptedOutputArgs,
-  ): AttemptResult? {
+  internal fun persistStandardAcceptedOutput(request: FeatureTaskRuntimeRunRequest, state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, observability: FeatureTaskRuntimeRunObservability, goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder, diagnostics: RuntimeDiagnostics, args: PersistStandardAcceptedOutputArgs): AttemptResult? {
     val accepted = args.accepted
     val run = accepted.run
     val iteration = accepted.iteration
@@ -784,16 +659,10 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
     val repositoryFingerprint = accepted.repositoryFingerprint
     val outputText = args.outputText
     if (run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS) {
-      FeatureTaskRuntimeRunLoopOutputPersistence.persistRejectedVerificationFindings(
-        runLoop,
-        run,
-        normalizedOutput.envelopeWireMap(),
-      )
+      FeatureTaskRuntimeRunLoopOutputPersistence.persistRejectedVerificationFindings(state, recorder, goalContinuationRecorder, diagnostics, run, normalizedOutput.envelopeWireMap())
     }
-    val persisted = runLoop.recorder.recordCompletedPhase(
-      FeatureTaskRuntimeRunLoopOutputPersistence.phaseStateRequest(
-        runLoop,
-        PhaseStateRequestArgs(
+    val persisted = recorder.recordCompletedPhase(
+      FeatureTaskRuntimeRunLoopOutputPersistence.phaseStateRequest(request, state, goalContinuationRecorder, PhaseStateRequestArgs(
           write = PhaseStateWriteArgs(
             run = run,
             iteration = iteration,
@@ -807,22 +676,18 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
             repairEvidence = repairEvidence,
             repositoryFingerprint = repositoryFingerprint,
           ),
-        ),
-      ),
+        )),
     )
     if (!persisted) {
       return AttemptResult.settled(
-        FeatureTaskRuntimeRunLoopPhaseAttempts.blockInPhase(
-          runLoop,
-          PhaseBlockRequest(
+        FeatureTaskRuntimeRunLoopPhaseAttempts.blockInPhase(request, state, recorder, observability, PhaseBlockRequest(
             run = run,
             attemptCount = iteration,
             reason = "Validated phase output could not be persisted to the authoritative workflow record.",
-            observability = runLoop.observability,
+            observability = observability,
             payload = BlockAndPersistPayload(fileManifest = fileManifest),
             failureDisposition = FeatureTaskRuntimeFailureDisposition.PROCESS_FAILURE,
-          ),
-        ),
+          )),
       )
     }
     return null

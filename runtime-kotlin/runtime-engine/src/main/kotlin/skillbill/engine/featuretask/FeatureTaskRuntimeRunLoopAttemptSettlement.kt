@@ -1,4 +1,6 @@
 package skillbill.engine.featuretask
+
+import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
 import skillbill.application.diagnostics.model.FeatureTaskRuntimeRejectedOutputWrite
 import skillbill.application.diagnostics.model.RejectedOutputDiagnosticRequest
 import skillbill.contracts.JsonCodec
@@ -28,6 +30,13 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeCorrectiveRepairCo
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.model.NormalizedFeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.requireAcceptedOutput
+import skillbill.ports.diagnostics.RuntimeDiagnostics
+import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
+import skillbill.engine.featuretask.FeatureTaskRuntimeGoalContinuationRecorder
+import skillbill.engine.featuretask.FeatureTaskRuntimePhaseGates
+import skillbill.engine.featuretask.FeatureTaskPhaseSettlementService
+import java.time.Clock
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeTransitionDeclaration
 
 object FeatureTaskRuntimeRunLoopAttemptSettlement {
   internal fun rejectedOutputTargeting(args: RejectedOutputTargetingArgs): RejectedOutputTargeting =
@@ -39,17 +48,15 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
       repairTurn = args.repairTurn,
     )
 
-  internal fun gateOutput(runLoop: FeatureTaskRuntimeRunLoop, args: GateOutputArgs): AttemptResult {
+  internal fun gateOutput(state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, session: FeatureTaskRuntimeRunLoopSession, goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder, phaseSettlementService: FeatureTaskPhaseSettlementService, outputValidator: FeatureTaskRuntimePhaseOutputValidator, diagnostics: RuntimeDiagnostics, phaseGates: FeatureTaskRuntimePhaseGates, clock: Clock, transitions: FeatureTaskRuntimeTransitionDeclaration, args: GateOutputArgs): AttemptResult {
     FeatureTaskRuntimeRunLoopAttemptSettlement.gateOutputEarlyExit(args)?.let { return it }
-    FeatureTaskRuntimeRunLoopAttemptSettlement.settleFromPersistedEnvelope(runLoop, args)?.let { return it }
+    FeatureTaskRuntimeRunLoopAttemptSettlement.settleFromPersistedEnvelope(state, recorder, session, goalContinuationRecorder, phaseSettlementService, outputValidator, diagnostics, phaseGates, clock, transitions, args)?.let { return it }
     return try {
       val run = args.run
-      val acceptedOutput = runLoop.outputValidator
+      val acceptedOutput = outputValidator
         .validatePhaseOutput(args.captured.text, sourceLabel = run.phaseId)
         .requireAcceptedOutput(run.phaseId)
-      settleValidatedOutput(
-        runLoop,
-        SettleValidatedOutputArgs(
+      settleValidatedOutput(state, recorder, session, goalContinuationRecorder, outputValidator, diagnostics, phaseGates, clock, transitions, SettleValidatedOutputArgs(
           run = run,
           iteration = args.iteration,
           output = SettledOutputContext(
@@ -59,10 +66,9 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
             fileManifest = args.fileManifest,
             captured = args.captured,
           ),
-        ),
-      )
+        ))
     } catch (error: InvalidFeatureTaskRuntimePhaseOutputSchemaError) {
-      FeatureTaskRuntimeRunLoopAttemptSettlement.gateOutputSchemaInvalid(runLoop, args, error)
+      FeatureTaskRuntimeRunLoopAttemptSettlement.gateOutputSchemaInvalid(state, recorder, args, error)
     }
   }
 
@@ -108,14 +114,11 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
     )
   }
 
-  internal fun recordRejectedOutput(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    args: RecordRejectedOutputArgs,
-  ): FeatureTaskRuntimeRejectedOutputWrite {
+  internal fun recordRejectedOutput(state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, args: RecordRejectedOutputArgs): FeatureTaskRuntimeRejectedOutputWrite {
     val run = args.run
     val captured = args.captured
     val targeting = args.targeting
-    return runLoop.recorder.recordRejectedOutput(
+    return recorder.recordRejectedOutput(
       RejectedOutputDiagnosticRequest(
         workflowId = run.request.workflowId,
         phaseId = targeting.phaseId,
@@ -131,51 +134,35 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
         truncated = captured.truncated,
         repairTurn = targeting.repairTurn,
       ),
-      runLoop.state.evidenceGeneration(targeting.phaseId),
+      state.evidenceGeneration(targeting.phaseId),
     )
   }
 
-  internal fun persistChildProcessFailureOutput(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    run: PhaseRun,
-    iteration: Int,
-    reason: String,
-    childOutput: FeatureTaskRuntimeChildOutput?,
-  ) {
+  internal fun persistChildProcessFailureOutput(request: FeatureTaskRuntimeRunRequest, state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, diagnostics: RuntimeDiagnostics, run: PhaseRun, iteration: Int, reason: String, childOutput: FeatureTaskRuntimeChildOutput?){
     val output = childOutput ?: return
     runCatching {
-      recordRejectedOutput(
-        runLoop,
-        RecordRejectedOutputArgs(
+      recordRejectedOutput(state, recorder, RecordRejectedOutputArgs(
           run = run,
           iteration = iteration,
           rule = FEATURE_TASK_RUNTIME_PROCESS_FAILURE_RULE,
           reason = boundedSchemaGateDetail(reason),
           captured = CapturedPhaseOutput.fromBytes(output.storedBody().encodeToByteArray()),
           targeting = rejectedOutputTargeting(defaultRejectedOutputTargetingArgs(run)),
-        ),
-      )
+        ))
     }.onFailure { error ->
-      runLoop.diagnostics.warning(
+      diagnostics.warning(
         "Feature-task-runtime could not persist the child process-failure diagnostic for issue " +
-          "${runLoop.request.issueKey}, workflow ${runLoop.request.workflowId}, phase '${run.phaseId}'. The block " +
+          "${request.issueKey}, workflow ${request.workflowId}, phase '${run.phaseId}'. The block " +
           "reason keeps its bounded excerpt; the full child output is lost.",
         error,
       )
     }
   }
 
-  internal fun settleValidatedOutput(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    args: SettleValidatedOutputArgs,
-  ): AttemptResult {
+  internal fun settleValidatedOutput(state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, session: FeatureTaskRuntimeRunLoopSession, goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder, outputValidator: FeatureTaskRuntimePhaseOutputValidator, diagnostics: RuntimeDiagnostics, phaseGates: FeatureTaskRuntimePhaseGates, clock: Clock, transitions: FeatureTaskRuntimeTransitionDeclaration, args: SettleValidatedOutputArgs): AttemptResult {
     val run = args.run
     val iteration = args.iteration
-    val attested = FeatureTaskRuntimeRunLoopOutputVerification.attestAbsentGateValidationReceipt(
-      runLoop,
-      run,
-      args.output.normalizedOutput,
-    )
+    val attested = FeatureTaskRuntimeRunLoopOutputVerification.attestAbsentGateValidationReceipt( outputValidator, run, args.output.normalizedOutput)
     val capture = ValidatedOutputCapture(
       run = run,
       iteration = iteration,
@@ -184,39 +171,18 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
       fileManifest = args.output.fileManifest,
     )
     try {
-      requireValidationEvidenceForValidateSettlement(runLoop, run, attested.envelopeWireMap())
-      return settleValidatedOutputWithEvidence(runLoop, capture, attested)
+      requireValidationEvidenceForValidateSettlement(recorder, session, goalContinuationRecorder, phaseGates, run, attested.envelopeWireMap())
+      return settleValidatedOutputWithEvidence(outputValidator, phaseGates, state, recorder, args.output.observability, session, goalContinuationRecorder, diagnostics, clock, transitions, capture, attested)
     } catch (error: InvalidFeatureTaskRuntimeValidationEvidenceSchemaError) {
-      return rejectValidatedOutput(
-        runLoop,
-        capture,
-        attested.envelopeWireMap(),
-        "validation-evidence",
-        error.message.orEmpty(),
-      )
+      return rejectValidatedOutput(state, recorder, capture, attested.envelopeWireMap(), "validation-evidence", error.message.orEmpty())
     }
   }
 
-  private fun settleValidatedOutputWithEvidence(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    capture: ValidatedOutputCapture,
-    attested: NormalizedFeatureTaskRuntimePhaseOutput,
-  ): AttemptResult {
+  private fun settleValidatedOutputWithEvidence(outputValidator: FeatureTaskRuntimePhaseOutputValidator, phaseGates: FeatureTaskRuntimePhaseGates, state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, observability: FeatureTaskRuntimeRunObservability, session: FeatureTaskRuntimeRunLoopSession, goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder, diagnostics: RuntimeDiagnostics, clock: Clock, transitions: FeatureTaskRuntimeTransitionDeclaration, capture: ValidatedOutputCapture, attested: NormalizedFeatureTaskRuntimePhaseOutput): AttemptResult {
     val outputMap = attested.envelopeWireMap()
     fun reject(rule: String, detail: String): AttemptResult =
-      FeatureTaskRuntimeRunLoopAttemptSettlement.rejectValidatedOutput(
-        runLoop,
-        capture,
-        outputMap,
-        rule,
-        detail,
-      )
-    FeatureTaskRuntimeRunLoopAttemptSettlement.settleValidatedOutputBoundary(
-      runLoop,
-      capture,
-      outputMap,
-      ::reject,
-    )?.let { return it }
+      FeatureTaskRuntimeRunLoopAttemptSettlement.rejectValidatedOutput(state, recorder, capture, outputMap, rule, detail)
+    FeatureTaskRuntimeRunLoopAttemptSettlement.settleValidatedOutputBoundary(state, recorder, phaseGates, capture, outputMap, ::reject)?.let { return it }
     FeatureTaskRuntimeRunLoopOutputVerification.firstValidatedOutputRejection(capture.run.phaseId, outputMap)?.let { (
       rule,
       reason,
@@ -224,63 +190,53 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
       ->
       return reject(rule, reason)
     }
-    val fingerprintResolution = FeatureTaskRuntimeRunLoopAttemptSettlement.resolveRepositoryFingerprint(
-      runLoop,
-      capture.run,
-      capture.iteration,
-      runLoop.observability,
-      capture.fileManifest,
-    )
+    val fingerprintResolution = FeatureTaskRuntimeRunLoopAttemptSettlement.resolveRepositoryFingerprint(capture.run.request, state, recorder, phaseGates, capture.run, capture.iteration, observability, capture.fileManifest)
     fingerprintResolution.blocked?.let { return it }
     return FeatureTaskRuntimeRunLoopAttemptSettlement.settleValidatedOutputAfterFingerprint(
-      runLoop,
+      capture.run.request, state, recorder, observability, session,
+      phaseGates,
+      goalContinuationRecorder,
+      outputValidator,
+      diagnostics,
+      clock,
+      transitions,
       SettleValidatedOutputAfterFingerprintArgs(
         capture = capture,
         attested = attested,
         repairEvidence = capture.repairEvidence,
-        observability = runLoop.observability,
+        observability = observability,
         repositoryFingerprint = fingerprintResolution.fingerprint,
         reject = ::reject,
-      ),
-    )
+      ))
   }
 
-  internal fun settleFromPersistedEnvelope(runLoop: FeatureTaskRuntimeRunLoop, args: GateOutputArgs): AttemptResult? {
-    val settlementEnvelope = loadPersistedSettlementEnvelope(runLoop, args) ?: return null
-    return settlePersistedEnvelope(runLoop, args, settlementEnvelope)
+  internal fun settleFromPersistedEnvelope(state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, session: FeatureTaskRuntimeRunLoopSession, goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder, phaseSettlementService: FeatureTaskPhaseSettlementService, outputValidator: FeatureTaskRuntimePhaseOutputValidator, diagnostics: RuntimeDiagnostics, phaseGates: FeatureTaskRuntimePhaseGates, clock: Clock, transitions: FeatureTaskRuntimeTransitionDeclaration, args: GateOutputArgs): AttemptResult? {
+    val settlementEnvelope = loadPersistedSettlementEnvelope(state, recorder, phaseSettlementService, args) ?: return null
+    return settlePersistedEnvelope(state, recorder, session, phaseSettlementService, outputValidator, phaseGates, goalContinuationRecorder, diagnostics, clock, transitions, args, settlementEnvelope)
   }
 
-  private fun loadPersistedSettlementEnvelope(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    args: GateOutputArgs,
-  ): FeatureTaskRuntimeWorkflowArtifactMap? {
+  private fun loadPersistedSettlementEnvelope(state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, phaseSettlementService: FeatureTaskPhaseSettlementService, args: GateOutputArgs): FeatureTaskRuntimeWorkflowArtifactMap? {
     val run = args.run
     return try {
-      runLoop.phaseSettlementService.findEnvelope(
+      phaseSettlementService.findEnvelope(
         workflowId = run.request.workflowId,
         phaseId = run.phaseId,
         attempt = args.iteration,
       )?.envelope
     } catch (error: InvalidFeatureTaskRuntimeValidationEvidenceSchemaError) {
-      clearAndRecordPersistedEvidenceFailure(runLoop, args, error)
+      clearAndRecordPersistedEvidenceFailure(state, recorder, phaseSettlementService, args, error)
       null
     }
   }
 
-  private fun settlePersistedEnvelope(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    args: GateOutputArgs,
-    settlementEnvelope: FeatureTaskRuntimeWorkflowArtifactMap,
-  ): AttemptResult? {
+  private fun settlePersistedEnvelope(state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, session: FeatureTaskRuntimeRunLoopSession, phaseSettlementService: FeatureTaskPhaseSettlementService, outputValidator: FeatureTaskRuntimePhaseOutputValidator, phaseGates: FeatureTaskRuntimePhaseGates, goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder, diagnostics: RuntimeDiagnostics, clock: Clock, transitions: FeatureTaskRuntimeTransitionDeclaration, args: GateOutputArgs, settlementEnvelope: FeatureTaskRuntimeWorkflowArtifactMap): AttemptResult? {
     val run = args.run
     return try {
-      val acceptedOutput = runLoop.outputValidator
+      val acceptedOutput = outputValidator
         .validatePhaseOutput(JsonCodec.mapToJsonString(settlementEnvelope), sourceLabel = run.phaseId)
         .requireAcceptedOutput(run.phaseId)
-      validatePersistedValidationEvidence(runLoop, run, acceptedOutput.normalizedOutput.envelopeWireMap())
-      FeatureTaskRuntimeRunLoopAttemptSettlement.settleValidatedOutput(
-        runLoop,
-        SettleValidatedOutputArgs(
+      validatePersistedValidationEvidence(recorder, session, goalContinuationRecorder, phaseGates, run, acceptedOutput.normalizedOutput.envelopeWireMap())
+      FeatureTaskRuntimeRunLoopAttemptSettlement.settleValidatedOutput(state, recorder, session, goalContinuationRecorder, outputValidator, diagnostics, phaseGates, clock, transitions, SettleValidatedOutputArgs(
           run = run,
           iteration = args.iteration,
           output = SettledOutputContext(
@@ -290,39 +246,28 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
             fileManifest = args.fileManifest,
             captured = args.captured,
           ),
-        ),
-      )
+        ))
     } catch (error: InvalidFeatureTaskRuntimePhaseOutputSchemaError) {
-      rejectPersistedEnvelopeSchema(runLoop, args, run, error)
+      rejectPersistedEnvelopeSchema(state, recorder, phaseSettlementService, args, run, error)
       null
     } catch (error: InvalidFeatureTaskRuntimeValidationEvidenceSchemaError) {
-      clearAndRecordPersistedEvidenceFailure(runLoop, args, error)
+      clearAndRecordPersistedEvidenceFailure(state, recorder, phaseSettlementService, args, error)
       null
     }
   }
 
-  private fun validatePersistedValidationEvidence(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    run: PhaseRun,
-    envelope: FeatureTaskRuntimeWorkflowArtifactMap,
-  ) {
-    requireValidationEvidenceForValidateSettlement(runLoop, run, envelope)
+  private fun validatePersistedValidationEvidence(recorder: FeatureTaskRuntimePhaseRecorder, session: FeatureTaskRuntimeRunLoopSession, goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder, phaseGates: FeatureTaskRuntimePhaseGates, run: PhaseRun, envelope: FeatureTaskRuntimeWorkflowArtifactMap){
+    requireValidationEvidenceForValidateSettlement(recorder, session, goalContinuationRecorder, phaseGates, run, envelope)
   }
 
-  private fun clearAndRecordPersistedEvidenceFailure(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    args: GateOutputArgs,
-    error: InvalidFeatureTaskRuntimeValidationEvidenceSchemaError,
-  ) {
+  private fun clearAndRecordPersistedEvidenceFailure(state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, phaseSettlementService: FeatureTaskPhaseSettlementService, args: GateOutputArgs, error: InvalidFeatureTaskRuntimeValidationEvidenceSchemaError){
     val run = args.run
-    runLoop.phaseSettlementService.clear(
+    phaseSettlementService.clear(
       workflowId = run.request.workflowId,
       phaseId = run.phaseId,
       attempt = args.iteration,
     )
-    FeatureTaskRuntimeRunLoopAttemptSettlement.recordRejectedOutput(
-      runLoop,
-      RecordRejectedOutputArgs(
+    FeatureTaskRuntimeRunLoopAttemptSettlement.recordRejectedOutput(state, recorder, RecordRejectedOutputArgs(
         run = run,
         iteration = args.iteration,
         rule = "phase-settlement-validation-evidence",
@@ -331,29 +276,17 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
         targeting = FeatureTaskRuntimeRunLoopAttemptSettlement.rejectedOutputTargeting(
           defaultRejectedOutputTargetingArgs(run),
         ),
-      ),
-    )
+      ))
   }
 
-  private fun rejectPersistedEnvelopeSchema(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    args: GateOutputArgs,
-    run: PhaseRun,
-    error: InvalidFeatureTaskRuntimePhaseOutputSchemaError,
-  ) {
-    runLoop.phaseSettlementService.clear(
+  private fun rejectPersistedEnvelopeSchema(state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, phaseSettlementService: FeatureTaskPhaseSettlementService, args: GateOutputArgs, run: PhaseRun, error: InvalidFeatureTaskRuntimePhaseOutputSchemaError){
+    phaseSettlementService.clear(
       workflowId = run.request.workflowId,
       phaseId = run.phaseId,
       attempt = args.iteration,
     )
-    FeatureTaskRuntimeRunLoopOutputVerification.persistVerifyFindingsCheckpointIfPresent(
-      runLoop,
-      run,
-      args.captured.text,
-    )
-    FeatureTaskRuntimeRunLoopAttemptSettlement.recordRejectedOutput(
-      runLoop,
-      RecordRejectedOutputArgs(
+    FeatureTaskRuntimeRunLoopOutputVerification.persistVerifyFindingsCheckpointIfPresent(recorder, run, args.captured.text)
+    FeatureTaskRuntimeRunLoopAttemptSettlement.recordRejectedOutput(state, recorder, RecordRejectedOutputArgs(
         run = run,
         iteration = args.iteration,
         rule = "phase-settlement-schema",
@@ -367,8 +300,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
             ),
           ),
         ),
-      ),
-    )
+      ))
   }
   internal fun gateOutputEarlyExit(args: GateOutputArgs): AttemptResult? {
     val run = args.run
@@ -403,22 +335,12 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
     }
     return null
   }
-  internal fun gateOutputSchemaInvalid(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    args: GateOutputArgs,
-    error: InvalidFeatureTaskRuntimePhaseOutputSchemaError,
-  ): AttemptResult {
+  internal fun gateOutputSchemaInvalid(state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, args: GateOutputArgs, error: InvalidFeatureTaskRuntimePhaseOutputSchemaError): AttemptResult {
     val run = args.run
-    FeatureTaskRuntimeRunLoopOutputVerification.persistVerifyFindingsCheckpointIfPresent(
-      runLoop,
-      run,
-      args.captured.text,
-    )
+    FeatureTaskRuntimeRunLoopOutputVerification.persistVerifyFindingsCheckpointIfPresent(recorder, run, args.captured.text)
     val path = FeatureTaskRuntimeRunLoopRecordRejection.rejectionPath(error.reason)
     val reason = FeatureTaskRuntimeRunLoopRecordRejection.payloadFreeRejectionReason("phase-output-schema", path)
-    val diagnosticWrite = FeatureTaskRuntimeRunLoopAttemptSettlement.recordRejectedOutput(
-      runLoop,
-      RecordRejectedOutputArgs(
+    val diagnosticWrite = FeatureTaskRuntimeRunLoopAttemptSettlement.recordRejectedOutput(state, recorder, RecordRejectedOutputArgs(
         run = run,
         iteration = args.iteration,
         rule = "phase-output-schema",
@@ -427,8 +349,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
         targeting = FeatureTaskRuntimeRunLoopAttemptSettlement.rejectedOutputTargeting(
           defaultRejectedOutputTargetingArgs(run, RejectedOutputTargetingOverrides(path = path)),
         ),
-      ),
-    )
+      ))
     val repairEvidence = FeatureTaskRuntimeRunLoopOutputVerification
       .structuralRepairEvidenceFromSchemaError(error)
     return FeatureTaskRuntimeRunLoopOutputPersistence.schemaInvalidAttempt(
@@ -459,44 +380,27 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
     val blocked: AttemptResult?,
   )
 
-  internal fun resolveRepositoryFingerprint(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    run: PhaseRun,
-    iteration: Int,
-    observability: FeatureTaskRuntimeRunObservability,
-    fileManifest: FeatureTaskRuntimePhaseFileManifest,
-  ): RepositoryFingerprintResolution {
-    val result = FeatureTaskRuntimeRunLoopOutputVerification.completedPhaseRepositoryFingerprint(
-      runLoop,
-      run,
-    ) ?: return RepositoryFingerprintResolution(null, null)
+  internal fun resolveRepositoryFingerprint(request: FeatureTaskRuntimeRunRequest, state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, phaseGates: FeatureTaskRuntimePhaseGates, run: PhaseRun, iteration: Int, observability: FeatureTaskRuntimeRunObservability, fileManifest: FeatureTaskRuntimePhaseFileManifest): RepositoryFingerprintResolution {
+    val result = FeatureTaskRuntimeRunLoopOutputVerification.completedPhaseRepositoryFingerprint( phaseGates, run) ?: return RepositoryFingerprintResolution(null, null)
     if (result !is WorkflowGitOperationResult.Ok) {
       val blocked = AttemptResult.settled(
-        FeatureTaskRuntimeRunLoopPhaseAttempts.blockInPhase(
-          runLoop,
-          PhaseBlockRequest(
+        FeatureTaskRuntimeRunLoopPhaseAttempts.blockInPhase(request, state, recorder, observability, PhaseBlockRequest(
             run = run,
             attemptCount = iteration,
             reason = "Completed-phase repository fingerprinting failed for '${run.phaseId}': ${result.error}",
             observability = observability,
             payload = BlockAndPersistPayload(fileManifest = fileManifest),
             failureDisposition = FeatureTaskRuntimeFailureDisposition.PROCESS_FAILURE,
-          ),
-        ),
+          )),
       )
       return RepositoryFingerprintResolution(fingerprint = null, blocked = blocked)
     }
     return RepositoryFingerprintResolution(result.value, null)
   }
 
-  internal fun settleValidatedOutputBoundary(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    capture: ValidatedOutputCapture,
-    outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
-    reject: (String, String) -> AttemptResult,
-  ): AttemptResult? {
+  internal fun settleValidatedOutputBoundary(state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, phaseGates: FeatureTaskRuntimePhaseGates, capture: ValidatedOutputCapture, outputMap: FeatureTaskRuntimeWorkflowArtifactMap, reject: (String, String) -> AttemptResult,): AttemptResult? {
     val bodyDelivery = FeatureTaskRuntimeRunLoopOutputVerification
-      .findingVerificationBoundaryBodyDeliveryDecision(runLoop, capture.run, outputMap)
+      .findingVerificationBoundaryBodyDeliveryDecision(state, recorder, phaseGates, capture.run, outputMap)
     return when (bodyDelivery) {
       is BoundaryBodyDeliveryDecision.RejectDecision -> reject("output-verification", bodyDelivery.reason)
       is BoundaryBodyDeliveryDecision.ContinueDecision ->
@@ -505,132 +409,99 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
     }
   }
 
-  internal fun settleValidatedOutputPauseOrTerminal(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    args: SettleValidatedOutputPauseArgs,
-  ): AttemptResult? {
+  internal fun settleValidatedOutputPauseOrTerminal(request: FeatureTaskRuntimeRunRequest, state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, observability: FeatureTaskRuntimeRunObservability, args: SettleValidatedOutputPauseArgs): AttemptResult? {
     val capture = args.capture
     val outputMap = args.attested.envelopeWireMap()
     val attested = args.attested
     val repairEvidence = args.repairEvidence
-    val observability = args.observability
     val repositoryFingerprint = args.repositoryFingerprint
     val run = capture.run
     terminalBlockedReasonFrom(run.phaseId, outputMap)?.let { reason ->
-      return FeatureTaskRuntimeRunLoopOutputVerification.terminalOutputAttempt(
-        runLoop,
-        TerminalOutputAttemptArgs(
+      return FeatureTaskRuntimeRunLoopOutputVerification.terminalOutputAttempt(request, state, recorder, observability, TerminalOutputAttemptArgs(
           run = run,
           iteration = capture.iteration,
           reason = reason,
           normalizedOutput = attested,
           repairEvidence = repairEvidence,
-          observability = runLoop.observability,
+          observability = observability,
           fileManifest = capture.fileManifest,
-        ),
-      )
+        ))
     }
     return null
   }
 
-  internal fun settleValidatedOutputCommit(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    run: PhaseRun,
-    capture: ValidatedOutputCapture,
-    attested: NormalizedFeatureTaskRuntimePhaseOutput,
-    observability: FeatureTaskRuntimeRunObservability,
-  ): Pair<NormalizedFeatureTaskRuntimePhaseOutput, AttemptResult?> = when (
-    val finalisation = FeatureTaskRuntimeRunLoopAttemptSettlement.finaliseSubtaskCommit(
-      runLoop,
-      run,
-      attested,
-    )
+  internal fun settleValidatedOutputCommit(request: FeatureTaskRuntimeRunRequest, state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, session: FeatureTaskRuntimeRunLoopSession, goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder, outputValidator: FeatureTaskRuntimePhaseOutputValidator, diagnostics: RuntimeDiagnostics, phaseGates: FeatureTaskRuntimePhaseGates, run: PhaseRun, capture: ValidatedOutputCapture, attested: NormalizedFeatureTaskRuntimePhaseOutput, observability: FeatureTaskRuntimeRunObservability): Pair<NormalizedFeatureTaskRuntimePhaseOutput, AttemptResult?> = when (
+    val finalisation = FeatureTaskRuntimeRunLoopAttemptSettlement.finaliseSubtaskCommit(request, state, recorder, session, goalContinuationRecorder, outputValidator, diagnostics, phaseGates, run, attested)
   ) {
     is CommitPushNotApplicable -> attested to null
     is CommitPushSettled -> finalisation.output to null
     is CommitPushBlocked -> attested to AttemptResult.settled(
-      FeatureTaskRuntimeRunLoopPhaseAttempts.blockAndPersistInPhase(
-        runLoop,
-        phaseBlockArgs(
+      FeatureTaskRuntimeRunLoopPhaseAttempts.blockAndPersistInPhase(request, state, recorder, observability, null, phaseBlockArgs(
           run,
           capture.iteration,
           finalisation.reason,
           observability,
           payload = BlockAndPersistPayload(fileManifest = capture.fileManifest),
-        ).withDisposition(FeatureTaskRuntimeFailureDisposition.NEEDS_USER_ACTION),
-      ),
+        ).withDisposition(FeatureTaskRuntimeFailureDisposition.NEEDS_USER_ACTION)),
     )
   }
 
-  internal fun settleValidatedOutputAfterFingerprint(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    args: SettleValidatedOutputAfterFingerprintArgs,
-  ): AttemptResult {
-    return settleValidatedOutputPauseOrTerminal(
-      runLoop,
-      SettleValidatedOutputPauseArgs(
+  internal fun settleValidatedOutputAfterFingerprint(request: FeatureTaskRuntimeRunRequest, state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, observability: FeatureTaskRuntimeRunObservability, session: FeatureTaskRuntimeRunLoopSession, phaseGates: FeatureTaskRuntimePhaseGates, goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder, outputValidator: FeatureTaskRuntimePhaseOutputValidator, diagnostics: RuntimeDiagnostics, clock: Clock, transitions: FeatureTaskRuntimeTransitionDeclaration, args: SettleValidatedOutputAfterFingerprintArgs): AttemptResult {
+    return settleValidatedOutputPauseOrTerminal(request, state, recorder, observability, SettleValidatedOutputPauseArgs(
         capture = args.capture,
         attested = args.attested,
         repairEvidence = args.repairEvidence,
-        observability = runLoop.observability,
+        observability = observability,
         repositoryFingerprint = args.repositoryFingerprint,
-      ),
-    ) ?: FeatureTaskRuntimeRunLoopOutputVerification.completionProjectionRejection(
-      runLoop,
-      CompletionProjectionRejectionArgs(
+      )) ?: FeatureTaskRuntimeRunLoopOutputVerification.completionProjectionRejection(
+        request, state, recorder, session,
+        phaseGates,
+        transitions,
+        CompletionProjectionRejectionArgs(
         run = args.capture.run,
         iteration = args.capture.iteration,
         normalizedOutput = args.attested,
         repairEvidence = args.repairEvidence,
         repositoryFingerprint = args.repositoryFingerprint,
-      ),
-    )?.let { (rule, reason) -> args.reject(rule, reason) }
+      ))?.let { (rule, reason) -> args.reject(rule, reason) }
       ?: FeatureTaskRuntimeRunLoopRepairReceipt.settleCompletedImplementationOutput(
-        runLoop,
+        request, state, recorder, observability,
+        goalContinuationRecorder,
+        diagnostics,
         CompletedImplementationOutputArgs(
           run = args.capture.run,
           normalizedOutput = args.attested,
           reject = args.reject,
           iteration = args.capture.iteration,
-          observability = runLoop.observability,
+          observability = observability,
           fileManifest = args.capture.fileManifest,
-        ),
-      )
-      ?: FeatureTaskRuntimeRunLoopAuditRetry.settleCompletedAuditRound(
-        runLoop,
-        args.capture,
-        args.attested.envelopeWireMap(),
-      )
-      ?: finalizeValidatedOutputAcceptance(
-        runLoop,
-        FinalizeValidatedOutputAcceptanceArgs(
+        ))
+      ?: FeatureTaskRuntimeRunLoopAuditRetry.settleCompletedAuditRound(request, state, recorder, observability, session, diagnostics, phaseGates, args.capture, args.attested.envelopeWireMap())
+      ?: finalizeValidatedOutputAcceptance(request, state, recorder, observability, session, goalContinuationRecorder, outputValidator, diagnostics, phaseGates, clock, FinalizeValidatedOutputAcceptanceArgs(
           capture = args.capture,
           attested = FeatureTaskRuntimeRunLoopAuditRetry.attestedAuditOutputForAcceptance(
             args.attested,
             args.attested.envelopeWireMap(),
           ),
           repairEvidence = args.repairEvidence,
-          observability = runLoop.observability,
+          observability = observability,
           repositoryFingerprint = args.repositoryFingerprint,
-        ),
-      )
+        ))
   }
 
-  internal fun finalizeValidatedOutputAcceptance(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    args: FinalizeValidatedOutputAcceptanceArgs,
-  ): AttemptResult {
+  internal fun finalizeValidatedOutputAcceptance(request: FeatureTaskRuntimeRunRequest, state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, observability: FeatureTaskRuntimeRunObservability, session: FeatureTaskRuntimeRunLoopSession, goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder, outputValidator: FeatureTaskRuntimePhaseOutputValidator, diagnostics: RuntimeDiagnostics, phaseGates: FeatureTaskRuntimePhaseGates, clock: Clock, args: FinalizeValidatedOutputAcceptanceArgs): AttemptResult {
     val capture = args.capture
     val attested = args.attested
     val repairEvidence = args.repairEvidence
-    val observability = args.observability
     val repositoryFingerprint = args.repositoryFingerprint
     val run = capture.run
-    val (finalised, commitBlocked) = settleValidatedOutputCommit(runLoop, run, capture, attested, observability)
+    val (finalised, commitBlocked) = settleValidatedOutputCommit(request, state, recorder, session, goalContinuationRecorder, outputValidator, diagnostics, phaseGates, run, capture, attested, observability)
     commitBlocked?.let { return it }
-    FeatureTaskRuntimeRunLoopAttemptSettlement.retainSettledProducerOutput(runLoop, capture)
+    FeatureTaskRuntimeRunLoopAttemptSettlement.retainSettledProducerOutput(request, state, recorder, clock, capture)
     return FeatureTaskRuntimeRunLoopOutputVerification.persistAcceptedOutput(
-      runLoop,
+      request, state, recorder, observability,
+      goalContinuationRecorder,
+      diagnostics,
       PersistAcceptedOutputArgs(
         run = run,
         iteration = capture.iteration,
@@ -639,30 +510,16 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
         observability = observability,
         fileManifest = capture.fileManifest,
         repositoryFingerprint = repositoryFingerprint,
-      ),
-    )
+      ))
   }
 
-  internal fun rejectValidatedOutput(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    capture: ValidatedOutputCapture,
-    outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
-    rule: String,
-    detail: String,
-  ): AttemptResult {
+  internal fun rejectValidatedOutput(state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, capture: ValidatedOutputCapture, outputMap: FeatureTaskRuntimeWorkflowArtifactMap, rule: String, detail: String): AttemptResult {
     val diagnosticRule = rule
     val path = FeatureTaskRuntimeRunLoopRecordRejection.rejectionPath(detail)
     val reason = FeatureTaskRuntimeRunLoopRecordRejection.payloadFreeRejectionReason(rule, path)
-    val retryFacingConstraint = FeatureTaskRuntimeRunLoopRecordRejection.payloadFreeSemanticGateConstraint(
-      runLoop,
-      rule,
-      detail,
-      outputMap,
-    )
+    val retryFacingConstraint = FeatureTaskRuntimeRunLoopRecordRejection.payloadFreeSemanticGateConstraint( rule, detail, outputMap)
     val retryReason = FeatureTaskRuntimeRunLoopRecordRejection.retryRejectionReason(reason, retryFacingConstraint)
-    val diagnosticWrite = FeatureTaskRuntimeRunLoopAttemptSettlement.recordRejectedOutput(
-      runLoop,
-      RecordRejectedOutputArgs(
+    val diagnosticWrite = FeatureTaskRuntimeRunLoopAttemptSettlement.recordRejectedOutput(state, recorder, RecordRejectedOutputArgs(
         run = capture.run,
         iteration = capture.iteration,
         rule = diagnosticRule,
@@ -671,8 +528,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
         targeting = FeatureTaskRuntimeRunLoopAttemptSettlement.rejectedOutputTargeting(
           defaultRejectedOutputTargetingArgs(capture.run, RejectedOutputTargetingOverrides(path = path)),
         ),
-      ),
-    )
+      ))
     return FeatureTaskRuntimeRunLoopOutputPersistence.schemaInvalidAttempt(
       reason,
       capture.fileManifest,
@@ -695,30 +551,26 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
     )
   }
 
-  fun retainSettledProducerOutput(runLoop: FeatureTaskRuntimeRunLoop, capture: ValidatedOutputCapture) {
+  internal fun retainSettledProducerOutput(request: FeatureTaskRuntimeRunRequest, state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, clock: Clock, capture: ValidatedOutputCapture){
     val run = capture.run
-    runLoop.recorder.retainProducerOutput(
+    recorder.retainProducerOutput(
       ProducerOutputEvidence(
-        workflowId = runLoop.request.workflowId,
+        workflowId = request.workflowId,
         phaseId = run.phaseId,
         attempt = capture.iteration,
         agentId = run.resolvedAgent.resolvedAgentId,
         model = run.modelDirective?.model ?: "unspecified",
-        recordedAt = runLoop.clock.instant(),
+        recordedAt = clock.instant(),
         byteSize = capture.outputByteSize,
         sha256 = capture.outputSha256,
         payload = capture.outputBytes.takeUnless { capture.outputTruncated },
-        generation = runLoop.state.evidenceGeneration(run.phaseId),
+        generation = state.evidenceGeneration(run.phaseId),
         repairTurn = run.validationGateRepairTurn,
       ),
     )
   }
 
-  internal fun finaliseSubtaskCommit(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    run: PhaseRun,
-    normalizedOutput: NormalizedFeatureTaskRuntimePhaseOutput,
-  ): CommitPushFinalisation {
+  internal fun finaliseSubtaskCommit(request: FeatureTaskRuntimeRunRequest, state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, session: FeatureTaskRuntimeRunLoopSession, goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder, outputValidator: FeatureTaskRuntimePhaseOutputValidator, diagnostics: RuntimeDiagnostics, phaseGates: FeatureTaskRuntimePhaseGates, run: PhaseRun, normalizedOutput: NormalizedFeatureTaskRuntimePhaseOutput): CommitPushFinalisation {
     if (
       run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_COMMIT_PUSH ||
       (normalizedOutput.envelopeWireMap()[SharedPayloadKeys.STATUS] as? String)
@@ -727,44 +579,39 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
       return CommitPushNotApplicable
     }
     val subtaskCommit = FeatureTaskRuntimeRunLoopSubtaskCommit
-    val branch = subtaskCommit.finalisationBranch(runLoop)
-      ?: return subtaskCommit.unownedWorktreeCommitSha(
-        runLoop,
-        run,
-        normalizedOutput,
-      )
+    val branch = subtaskCommit.finalisationBranch(request, session, phaseGates)
+      ?: return subtaskCommit.unownedWorktreeCommitSha(request, outputValidator, diagnostics, phaseGates, run, normalizedOutput)
     val handoff = when (
       val read = FeatureTaskRuntimeSubtaskFinalisation.readHandoff(normalizedOutput.envelopeWireMap())
     ) {
       is FeatureTaskRuntimeCommitPushHandoffInvalid -> return CommitPushBlocked(read.reason)
       is FeatureTaskRuntimeCommitPushHandoffValid -> read.handoff
     }
-    val identity = FeatureTaskRuntimeRunLoopCheckpoint.subtaskCommitIdentity(runLoop)
-    val ledger = FeatureTaskRuntimeRunLoopCheckpoint.subtaskCommitLedgerState(runLoop, identity)
+    val identity = FeatureTaskRuntimeRunLoopCheckpoint.subtaskCommitIdentity(request)
+    val ledger = FeatureTaskRuntimeRunLoopCheckpoint.subtaskCommitLedgerState(request, recorder, diagnostics, identity)
     val outcome = finaliseSubtaskCommitOutcome(
-      FinaliseSubtaskCommitOutcomeArgs(runLoop, run, branch, handoff, identity, ledger),
+      request, state, recorder,
+      diagnostics,
+      phaseGates,
+      goalContinuationRecorder,
+      FinaliseSubtaskCommitOutcomeArgs(goalContinuationRecorder, outputValidator, phaseGates, run, branch, handoff, identity, ledger),
     )
     return when (outcome) {
       is FeatureTaskRuntimeSubtaskFinalisationBlocked -> CommitPushBlocked(outcome.reason)
       is FeatureTaskRuntimeSubtaskFinalised -> CommitPushSettled(
-        FeatureTaskRuntimeRunLoopSubtaskCommit.revalidated(
-          runLoop,
-          run.phaseId,
-          FeatureTaskRuntimeSubtaskFinalisation.withCommitSha(normalizedOutput.envelopeWireMap(), outcome.commitSha),
-        ),
+        FeatureTaskRuntimeRunLoopSubtaskCommit.revalidated( outputValidator, run.phaseId, FeatureTaskRuntimeSubtaskFinalisation.withCommitSha(normalizedOutput.envelopeWireMap(), outcome.commitSha)),
       )
     }
   }
 
-  private fun finaliseSubtaskCommitOutcome(
-    args: FinaliseSubtaskCommitOutcomeArgs,
-  ): FeatureTaskRuntimeSubtaskFinalisationResult = FeatureTaskRuntimeSubtaskFinalisation(
-    gitOperations = args.runLoop.phaseGates.gitOperations,
-    repoRoot = args.runLoop.request.repoRoot,
-    record = { record -> runCatching { args.runLoop.diagnostics.warning(record) } },
+  private fun finaliseSubtaskCommitOutcome(request: FeatureTaskRuntimeRunRequest, state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, diagnostics: RuntimeDiagnostics, phaseGates: FeatureTaskRuntimePhaseGates, goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder, args: FinaliseSubtaskCommitOutcomeArgs): FeatureTaskRuntimeSubtaskFinalisationResult = FeatureTaskRuntimeSubtaskFinalisation(
+    gitOperations = phaseGates.gitOperations,
+    repoRoot = request.repoRoot,
+    record = { record -> runCatching { diagnostics.warning(record) } },
     recordCommit = { commitSha, stagedPaths ->
       FeatureTaskRuntimeRunLoopSubtaskCommit.recordFinalisedCheckpointIdentity(
-        args.runLoop,
+        request, state, recorder,
+        diagnostics,
         RecordFinalisedCheckpointIdentityArgs(
           args.phase.phaseId,
           args.branch,
@@ -783,23 +630,24 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
       metadata = FeatureTaskRuntimeCheckpointMetadata(
         phaseId = args.phase.phaseId,
         loopId = null,
-        generation = FeatureTaskRuntimeRunLoopCheckpoint.checkpointGeneration(args.runLoop, null),
+        generation = FeatureTaskRuntimeRunLoopCheckpoint.checkpointGeneration(state, null),
         branch = args.branch,
         intent = FeatureTaskRuntimeCheckpointMessage.INTENT_FINALISED_SUBTASK,
       ),
-      manifestCommitSha = args.runLoop.goalContinuationManifestCommitSha,
+      manifestCommitSha = goalContinuationManifestCommitSha( goalContinuationRecorder),
     ),
   )
 }
 
+internal fun goalContinuationManifestCommitSha( goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder): String? = null
+
 private data class FinaliseSubtaskCommitOutcomeArgs(
-  val runLoop: FeatureTaskRuntimeRunLoop,
+  val goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
+  val outputValidator: FeatureTaskRuntimePhaseOutputValidator,
+  val phaseGates: FeatureTaskRuntimePhaseGates,
   val phase: PhaseRun,
   val branch: String,
   val handoff: FeatureTaskRuntimeCommitPushHandoff,
   val identity: FeatureTaskRuntimeSubtaskCommitIdentity,
   val ledger: SubtaskCommitLedgerState,
 )
-
-val FeatureTaskRuntimeRunLoop.goalContinuationManifestCommitSha: String?
-  get() = null

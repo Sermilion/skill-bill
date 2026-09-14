@@ -1,4 +1,8 @@
 package skillbill.engine.featuretask
+
+import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
+import skillbill.application.idestatus.AgentActivityStampWriter
+import skillbill.engine.featuretask.FeatureTaskRuntimeGoalContinuationRecorder
 import skillbill.application.review.toProjectionPayload
 import skillbill.contracts.JsonCodec
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseLaunchBriefing
@@ -38,30 +42,32 @@ import skillbill.workflow.taskruntime.model.NormalizedFeatureTaskRuntimePhaseOut
 import skillbill.workflow.taskruntime.model.QUARANTINE_REJECTION_CLASS_PLANNING_PROJECTION
 import java.nio.file.Path
 import kotlin.time.Duration.Companion.minutes
+import skillbill.engine.featuretask.FeatureTaskRuntimePhaseGates
+import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
 
 object FeatureTaskRuntimeRunLoopLaunch {
   internal fun findingPathsForBoundaryMemory(finding: StructuredGoalReviewFinding): List<String> =
     GoalSubtaskReviewSummaryReducer.verificationBoundaryFindingPaths(finding)
 
-  internal fun verifyFindingsSpecIntentSection(runLoop: FeatureTaskRuntimeRunLoop, run: PhaseRun): String {
+  internal fun verifyFindingsSpecIntentSection(state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, session: FeatureTaskRuntimeRunLoopSession, phaseGates: FeatureTaskRuntimePhaseGates, run: PhaseRun): String {
     if (run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS) return ""
-    val checkpoint = runLoop.recorder.loadFindingVerificationCheckpoint(
+    val checkpoint = recorder.loadFindingVerificationCheckpoint(
       run.request.workflowId,
     )
-    val boundarySelection = runLoop.recorder.loadFindingVerificationBoundarySelection(
+    val boundarySelection = recorder.loadFindingVerificationBoundarySelection(
       run.request.workflowId,
     )?.takeIf { it.isNotEmpty() }
-    val resolution = runLoop.phaseGates.specIntentProjectionResolver.resolve(
+    val resolution = phaseGates.specIntentProjectionResolver.resolve(
       SpecIntentProjectionResolveRequest(
         repoRoot = run.request.repoRoot.toFileLocation(),
         explicitSpecPath = Path.of(run.request.runInvariants.specReference).toFileLocation(),
-        branchName = runLoop.session.resolvedBranch ?: "HEAD",
+        branchName = session.resolvedBranch ?: "HEAD",
         changedPaths = emptyList(),
         budget = ReviewContextBudgetPolicy.DEFAULT,
       ),
     )
     val boundarySections = FeatureTaskRuntimeRunLoopOutputVerification
-      .findingVerificationBoundarySections(runLoop, run)
+      .findingVerificationBoundarySections(state, recorder, phaseGates, run)
     return buildString {
       when (resolution) {
         is SpecIntentResolution.Resolved -> {
@@ -71,10 +77,10 @@ object FeatureTaskRuntimeRunLoopLaunch {
         }
         is SpecIntentResolution.None -> Unit
       }
-      append(runLoop.phaseGates.findingVerificationBoundaryMemory.promptSection(boundarySections))
+      append(phaseGates.findingVerificationBoundaryMemory.promptSection(boundarySections))
       if (boundarySelection != null) {
         append(
-          runLoop.phaseGates.findingVerificationBoundaryMemory.resolvedBodiesPromptSection(
+          phaseGates.findingVerificationBoundaryMemory.resolvedBodiesPromptSection(
             repoRoot = run.request.repoRoot,
             sections = boundarySections,
             selectionsByFindingId = boundarySelection,
@@ -97,14 +103,8 @@ object FeatureTaskRuntimeRunLoopLaunch {
     }
   }
 
-  internal fun launchAndCapture(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    run: PhaseRun,
-    state: FeatureTaskRuntimeRunState,
-    priorCorrection: PriorAttemptCorrection? = null,
-    phaseTokenAccumulator: MutableMap<String, Pair<Int, Int>>? = null,
-  ): LaunchResult {
-    val before = when (val captured = FeatureTaskRuntimeRunLoopLaunch.captureLaunchBeforeState(runLoop, run)) {
+  internal fun launchAndCapture(request: FeatureTaskRuntimeRunRequest, recorder: FeatureTaskRuntimePhaseRecorder, session: FeatureTaskRuntimeRunLoopSession, goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder, phaseGates: FeatureTaskRuntimePhaseGates, phaseTokenAccumulator: MutableMap<String, Pair<Int, Int>>?, subtaskLauncher: GoalRunnerSubtaskLauncher, activityStampWriter: AgentActivityStampWriter, run: PhaseRun, state: FeatureTaskRuntimeRunState, priorCorrection: PriorAttemptCorrection? = null): LaunchResult {
+    val before = when (val captured = FeatureTaskRuntimeRunLoopLaunch.captureLaunchBeforeState( phaseGates, run)) {
       is LaunchCaptureBeforeResult.Ready -> captured.state
       is LaunchCaptureBeforeResult.Failed ->
         return FeatureTaskRuntimeRunLoopLaunch.launchCaptureInfraFailure(
@@ -113,7 +113,7 @@ object FeatureTaskRuntimeRunLoopLaunch {
           childNeverLaunched = true,
         )
     }
-    val prepared = when (val preparation = prepareLaunchForCapture(runLoop, run, state, priorCorrection)) {
+    val prepared = when (val preparation = prepareLaunchForCapture(request, recorder, session, goalContinuationRecorder, phaseGates, run, state, priorCorrection)) {
       is PreparedLaunchReady -> preparation.value
       is LaunchPreparationRejected -> return preparation.result
       is LaunchMeasurementContextReady -> error("Unexpected launch preparation result.")
@@ -122,25 +122,15 @@ object FeatureTaskRuntimeRunLoopLaunch {
       isReviewPhase,
       isVerifyFindingsPhase,
     ) = FeatureTaskRuntimeRunLoopLaunch.isReadOnlyLaunchPhase(run.phaseId)
-    val outcome = FeatureTaskRuntimeRunLoopLaunch.executeSubtaskLaunch(
-      runLoop,
-      run,
-      prepared,
-      isReviewPhase,
-      isVerifyFindingsPhase,
-    )
+    val outcome = FeatureTaskRuntimeRunLoopLaunch.executeSubtaskLaunch( subtaskLauncher, activityStampWriter, run, prepared, isReviewPhase, isVerifyFindingsPhase)
     FeatureTaskRuntimeRunLoopLaunch.recordLaunchTokenUsage(
       run,
       prepared.briefing,
       outcome,
-      runLoop.phaseTokenAccumulator,
+      phaseTokenAccumulator,
     )
     val fileManifest = when (
-      val captured = FeatureTaskRuntimeRunLoopLaunch.buildLaunchFileManifest(
-        runLoop,
-        run,
-        before,
-      )
+      val captured = FeatureTaskRuntimeRunLoopLaunch.buildLaunchFileManifest( phaseGates, run, before)
     ) {
       is LaunchCaptureAfterResult.Ready -> captured.manifest
       is LaunchCaptureAfterResult.Failed ->
@@ -150,20 +140,23 @@ object FeatureTaskRuntimeRunLoopLaunch {
           childNeverLaunched = false,
         )
     }
-    capturePhaseContentIdentities(runLoop, run.phaseId)
+    capturePhaseContentIdentities(request, session, phaseGates, run.phaseId)
     return FeatureTaskRuntimeRunLoopLaunch.reconcileLaunch(run.phaseId, outcome, fileManifest)
   }
 
-  fun capturePhaseContentIdentities(runLoop: FeatureTaskRuntimeRunLoop, phaseId: String) {
-    val owned = runLoop.gitOperations.repositoryOwnedPaths(runLoop.request.repoRoot)
+  internal fun capturePhaseContentIdentities(request: FeatureTaskRuntimeRunRequest, session: FeatureTaskRuntimeRunLoopSession, phaseGates: FeatureTaskRuntimePhaseGates, phaseId: String){
+    val owned = phaseGates.gitOperations.repositoryOwnedPaths(request.repoRoot)
     if (owned !is WorkflowGitOperationResult.Ok) return
     val paths = owned.value.orEmpty().split(OWNED_PATH_DELIMITER).map(String::trim).filter(String::isNotBlank)
-    val identities = runLoop.gitOperations.pathContentIdentities(runLoop.request.repoRoot, paths)
+    val identities = phaseGates.gitOperations.pathContentIdentities(request.repoRoot, paths)
     if (identities !is WorkflowGitOperationResult.Ok) return
-    runLoop.session.phaseContentIdentities[phaseId] = parseContentIdentities(identities.value.orEmpty())
+    session.recordPhaseContentIdentities(
+      phaseId,
+      parseContentIdentities(identities.value.orEmpty()),
+    )
   }
 
-  fun parseContentIdentities(raw: String): Map<String, String> = raw
+  internal fun parseContentIdentities(raw: String): Map<String, String> = raw
     .split(OWNED_PATH_DELIMITER)
     .filter(String::isNotBlank)
     .mapNotNull { record ->
@@ -173,15 +166,12 @@ object FeatureTaskRuntimeRunLoopLaunch {
     }
     .toMap()
 
-  internal fun prepareLaunchForCapture(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    run: PhaseRun,
-    state: FeatureTaskRuntimeRunState,
-    priorCorrection: PriorAttemptCorrection?,
-  ): LaunchPreparation {
+  internal fun prepareLaunchForCapture(request: FeatureTaskRuntimeRunRequest, recorder: FeatureTaskRuntimePhaseRecorder, session: FeatureTaskRuntimeRunLoopSession, goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder, phaseGates: FeatureTaskRuntimePhaseGates, run: PhaseRun, state: FeatureTaskRuntimeRunState, priorCorrection: PriorAttemptCorrection?): LaunchPreparation {
     val measurementContext = when (
       val resolution = FeatureTaskRuntimeRunLoopLaunch.resolveLaunchMeasurementContext(
-        runLoop,
+        recorder, session,
+        phaseGates,
+        goalContinuationRecorder,
         run,
         state,
       )
@@ -190,10 +180,7 @@ object FeatureTaskRuntimeRunLoopLaunch {
       is LaunchPreparationRejected -> return resolution
       is PreparedLaunchReady -> error("Unexpected launch measurement result.")
     }
-    return FeatureTaskRuntimeRunLoopLaunch.prepareDeclaredLaunch(
-      runLoop,
-      DeclaredLaunchArgs(run, state, priorCorrection, measurementContext),
-    )
+    return FeatureTaskRuntimeRunLoopLaunch.prepareDeclaredLaunch(request, state, recorder, session, goalContinuationRecorder, phaseGates, DeclaredLaunchArgs(run, state, priorCorrection, measurementContext))
   }
 
   internal data class LaunchCaptureBeforeState(
@@ -211,15 +198,12 @@ object FeatureTaskRuntimeRunLoopLaunch {
     data class Failed(val detail: String) : LaunchCaptureAfterResult
   }
 
-  internal fun captureLaunchBeforeState(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    run: PhaseRun,
-  ): FeatureTaskRuntimeRunLoopLaunch.LaunchCaptureBeforeResult {
-    val before = runLoop.gitOperations.worktreeStatus(run.request.repoRoot)
+  internal fun captureLaunchBeforeState( phaseGates: FeatureTaskRuntimePhaseGates, run: PhaseRun): FeatureTaskRuntimeRunLoopLaunch.LaunchCaptureBeforeResult {
+    val before = phaseGates.gitOperations.worktreeStatus(run.request.repoRoot)
     if (before !is WorkflowGitOperationResult.Ok) {
       return FeatureTaskRuntimeRunLoopLaunch.LaunchCaptureBeforeResult.Failed("before-file manifest: ${before.error}")
     }
-    val beforeCommit = runLoop.gitOperations.runtimePhaseHeadCommit(run.request.repoRoot)
+    val beforeCommit = phaseGates.gitOperations.runtimePhaseHeadCommit(run.request.repoRoot)
     if (beforeCommit !is WorkflowGitOperationResult.Ok) {
       return FeatureTaskRuntimeRunLoopLaunch.LaunchCaptureBeforeResult.Failed("before commit")
     }
@@ -237,15 +221,9 @@ object FeatureTaskRuntimeRunLoopLaunch {
       childNeverLaunched = childNeverLaunched,
     )
 
-  internal fun executeSubtaskLaunch(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    run: PhaseRun,
-    prepared: PreparedLaunch,
-    isReviewPhase: Boolean,
-    isVerifyFindingsPhase: Boolean,
-  ): AgentRunLaunchOutcome {
+  internal fun executeSubtaskLaunch( subtaskLauncher: GoalRunnerSubtaskLauncher, activityStampWriter: AgentActivityStampWriter, run: PhaseRun, prepared: PreparedLaunch, isReviewPhase: Boolean, isVerifyFindingsPhase: Boolean): AgentRunLaunchOutcome {
     val launched = FeatureTaskRuntimeRunLoopOutputPersistence.launchedModelDirective(run)
-    return runLoop.subtaskLauncher.launch(
+    return subtaskLauncher.launch(
       GoalRunnerSubtaskLaunchRequest(
         invokedAgentId = run.resolvedAgent.invokedAgentId,
         configuredAgentOverrideId = run.resolvedAgent.configuredAgentOverrideId,
@@ -260,7 +238,7 @@ object FeatureTaskRuntimeRunLoopLaunch {
           readOnlyPhase = isReviewPhase || isVerifyFindingsPhase,
           progressIdleTimeout = READ_ONLY_PHASE_PROGRESS_IDLE_TIMEOUT_MINUTES.minutes
             .takeIf { isReviewPhase || isVerifyFindingsPhase },
-          activityStampSink = runLoop.activityStampWriter.sink(
+          activityStampSink = activityStampWriter.sink(
             workflowId = run.request.workflowId,
             parentWorkflowId = run.request.goalContinuation?.parentWorkflowId,
           ),
@@ -269,20 +247,16 @@ object FeatureTaskRuntimeRunLoopLaunch {
     )
   }
 
-  internal fun buildLaunchFileManifest(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    run: PhaseRun,
-    before: FeatureTaskRuntimeRunLoopLaunch.LaunchCaptureBeforeState,
-  ): FeatureTaskRuntimeRunLoopLaunch.LaunchCaptureAfterResult {
-    val after = runLoop.gitOperations.worktreeStatus(run.request.repoRoot)
+  internal fun buildLaunchFileManifest( phaseGates: FeatureTaskRuntimePhaseGates, run: PhaseRun, before: FeatureTaskRuntimeRunLoopLaunch.LaunchCaptureBeforeState): FeatureTaskRuntimeRunLoopLaunch.LaunchCaptureAfterResult {
+    val after = phaseGates.gitOperations.worktreeStatus(run.request.repoRoot)
     if (after !is WorkflowGitOperationResult.Ok) {
       return FeatureTaskRuntimeRunLoopLaunch.LaunchCaptureAfterResult.Failed("after-file manifest")
     }
-    val afterCommit = runLoop.gitOperations.runtimePhaseHeadCommit(run.request.repoRoot)
+    val afterCommit = phaseGates.gitOperations.runtimePhaseHeadCommit(run.request.repoRoot)
     if (afterCommit !is WorkflowGitOperationResult.Ok) {
       return FeatureTaskRuntimeRunLoopLaunch.LaunchCaptureAfterResult.Failed("after commit")
     }
-    val committedPaths = runLoop.gitOperations.runtimePhaseChangedPathsBetweenCommits(
+    val committedPaths = phaseGates.gitOperations.runtimePhaseChangedPathsBetweenCommits(
       run.request.repoRoot,
       before.beforeCommit,
       afterCommit.value.orEmpty(),
@@ -314,14 +288,16 @@ object FeatureTaskRuntimeRunLoopLaunch {
     }
   }
 
-  fun isReadOnlyLaunchPhase(phaseId: String): Pair<Boolean, Boolean> {
+  internal fun isReadOnlyLaunchPhase(phaseId: String): Pair<Boolean, Boolean> {
     val isReviewPhase = phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW
     val isVerifyFindingsPhase = phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS
     return isReviewPhase to isVerifyFindingsPhase
   }
 
   internal fun resolveLaunchMeasurementContext(
-    runLoop: FeatureTaskRuntimeRunLoop,
+    recorder: FeatureTaskRuntimePhaseRecorder, session: FeatureTaskRuntimeRunLoopSession,
+    phaseGates: FeatureTaskRuntimePhaseGates,
+    goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
     run: PhaseRun,
     state: FeatureTaskRuntimeRunState,
   ): LaunchPreparation {
@@ -338,23 +314,22 @@ object FeatureTaskRuntimeRunLoopLaunch {
         LaunchRejectionMeasurementContext(
           producerIteration = producerIteration,
           repositoryCheckpoint = FeatureTaskRuntimeRunLoopOutputVerification.resolveRepositoryCheckpoint(
-            runLoop,
+            recorder, session,
+            phaseGates,
+            goalContinuationRecorder,
             run,
           ),
         ),
       )
     } catch (error: InvalidFeatureTaskRuntimeHandoffProjectionError) {
-      recordLaunchSeamRejection(
-        runLoop,
-        LaunchSeamRejectionArgs(
+      recordLaunchSeamRejection(recorder, LaunchSeamRejectionArgs(
           run = run,
           state = state,
           classification = FeatureTaskRuntimeProjectionFailureClassification.BUDGET_OVERFLOW,
           sourceLabel = error.projectionName,
           fallbackProducerIteration = producerIteration,
           repositoryCheckpoint = null,
-        ),
-      )
+        ))
       LaunchPreparationRejected(
         LaunchResult.projectionRejected(
           "Feature-task-runtime phase '${run.phaseId}' could not resolve its repository checkpoint: ${error.message}",
@@ -363,10 +338,10 @@ object FeatureTaskRuntimeRunLoopLaunch {
     }
   }
 
-  internal fun prepareDeclaredLaunch(runLoop: FeatureTaskRuntimeRunLoop, args: DeclaredLaunchArgs): LaunchPreparation =
-    FeatureTaskRuntimeRunLoopLaunch.prepareDeclaredLaunchBody(runLoop, args)
+  internal fun prepareDeclaredLaunch(request: FeatureTaskRuntimeRunRequest, state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, session: FeatureTaskRuntimeRunLoopSession, goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder, phaseGates: FeatureTaskRuntimePhaseGates, args: DeclaredLaunchArgs): LaunchPreparation =
+    FeatureTaskRuntimeRunLoopLaunch.prepareDeclaredLaunchBody(request, state, recorder, session, goalContinuationRecorder, phaseGates, args)
 
-  internal fun recordLaunchSeamRejection(runLoop: FeatureTaskRuntimeRunLoop, args: LaunchSeamRejectionArgs) {
+  internal fun recordLaunchSeamRejection(recorder: FeatureTaskRuntimePhaseRecorder, args: LaunchSeamRejectionArgs){
     val run = args.run
     val state = args.state
     val classification = args.classification
@@ -379,7 +354,7 @@ object FeatureTaskRuntimeRunLoopLaunch {
       currentProducerIteration = { phaseId -> state.outputFor(phaseId)?.iteration },
       fallbackProducerIteration = fallbackProducerIteration,
     )
-    runLoop.recorder.recordProjectionRejection(
+    recorder.recordProjectionRejection(
       FeatureTaskRuntimeProjectionRejection(
         workflowId = run.request.workflowId,
         consumerPhaseId = run.phaseId,
@@ -392,7 +367,7 @@ object FeatureTaskRuntimeRunLoopLaunch {
     )
   }
 
-  fun outputEnvelopeOf(output: FeatureTaskRuntimePhaseOutput): Map<String, Any?>? =
+  internal fun outputEnvelopeOf(output: FeatureTaskRuntimePhaseOutput): Map<String, Any?>? =
     output.normalizedOutput?.envelopeWireMap()?.takeIf { it.isNotEmpty() }
       ?: JsonCodec.parseObjectOrNull(output.payload)?.let(JsonCodec::jsonElementToValue)
         ?.let(JsonCodec::anyToStringAnyMap)
@@ -430,59 +405,39 @@ object FeatureTaskRuntimeRunLoopLaunch {
       )
   }
 
-  internal fun launchPreparationRejected(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    args: LaunchPreparationRejectedArgs,
-  ): LaunchPreparationRejected {
-    FeatureTaskRuntimeRunLoopLaunch.recordLaunchSeamRejection(
-      runLoop,
-      LaunchSeamRejectionArgs(
+  internal fun launchPreparationRejected(recorder: FeatureTaskRuntimePhaseRecorder, args: LaunchPreparationRejectedArgs): LaunchPreparationRejected {
+    FeatureTaskRuntimeRunLoopLaunch.recordLaunchSeamRejection(recorder, LaunchSeamRejectionArgs(
         run = args.run,
         state = args.state,
         classification = args.classification,
         sourceLabel = args.sourceLabel,
         fallbackProducerIteration = args.measurement.producerIteration,
         repositoryCheckpoint = args.measurement.repositoryCheckpoint,
-      ),
-    )
+      ))
     return LaunchPreparationRejected(LaunchResult.projectionRejected(args.message))
   }
 
-  internal fun prepareDeclaredLaunchBody(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    args: DeclaredLaunchArgs,
-  ): LaunchPreparation {
+  internal fun prepareDeclaredLaunchBody(request: FeatureTaskRuntimeRunRequest, state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, session: FeatureTaskRuntimeRunLoopSession, goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder, phaseGates: FeatureTaskRuntimePhaseGates, args: DeclaredLaunchArgs): LaunchPreparation {
     val run = args.run
     val state = args.state
     val priorCorrection = args.priorCorrection
     val context = args.context
     return try {
       PreparedLaunchReady(
-        FeatureTaskRuntimeRunLoopOutputPersistence.prepareLaunch(
-          runLoop,
-          PrepareLaunchArgs(run, state, priorCorrection, context.repositoryCheckpoint),
-        ),
+        FeatureTaskRuntimeRunLoopOutputPersistence.prepareLaunch(request, state, recorder, session, goalContinuationRecorder, phaseGates, PrepareLaunchArgs(run, state, priorCorrection, context.repositoryCheckpoint)),
       )
     } catch (error: InvalidFeatureTaskRuntimeHandoffProjectionError) {
-      rejectedHandoffLaunch(runLoop, run, state, error, context)
+      rejectedHandoffLaunch(recorder, run, state, error, context)
     } catch (error: InvalidFeatureTaskRuntimePhaseBriefingFramingError) {
-      rejectedBriefingLaunch(runLoop, run, state, error, context)
+      rejectedBriefingLaunch(recorder, run, state, error, context)
     } catch (error: InvalidFeatureTaskRuntimePlanningProjectionSchemaError) {
-      rejectedPlanningProjectionLaunch(runLoop, run, state, error, context)
+      rejectedPlanningProjectionLaunch(recorder, run, state, error, context)
     } catch (error: InvalidWorkflowStateSchemaError) {
-      rejectedDurableBriefingLaunch(runLoop, run, state, error, context)
+      rejectedDurableBriefingLaunch(recorder, run, state, error, context)
     }
   }
 
-  private fun rejectedHandoffLaunch(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    run: PhaseRun,
-    state: FeatureTaskRuntimeRunState,
-    error: InvalidFeatureTaskRuntimeHandoffProjectionError,
-    context: LaunchRejectionMeasurementContext,
-  ): LaunchPreparationRejected = launchPreparationRejected(
-    runLoop,
-    LaunchPreparationRejectedArgs(
+  private fun rejectedHandoffLaunch(recorder: FeatureTaskRuntimePhaseRecorder, run: PhaseRun, state: FeatureTaskRuntimeRunState, error: InvalidFeatureTaskRuntimeHandoffProjectionError, context: LaunchRejectionMeasurementContext): LaunchPreparationRejected = launchPreparationRejected(recorder, LaunchPreparationRejectedArgs(
       run = run,
       state = state,
       classification = error.failureKind.toMeasurementFailureClassification(),
@@ -490,18 +445,9 @@ object FeatureTaskRuntimeRunLoopLaunch {
       measurement = context,
       message = "Feature-task-runtime phase '${run.phaseId}' could not build its declared handoff " +
         "projection: ${error.message}",
-    ),
-  )
+    ))
 
-  private fun rejectedBriefingLaunch(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    run: PhaseRun,
-    state: FeatureTaskRuntimeRunState,
-    error: InvalidFeatureTaskRuntimePhaseBriefingFramingError,
-    context: LaunchRejectionMeasurementContext,
-  ): LaunchPreparationRejected = launchPreparationRejected(
-    runLoop,
-    LaunchPreparationRejectedArgs(
+  private fun rejectedBriefingLaunch(recorder: FeatureTaskRuntimePhaseRecorder, run: PhaseRun, state: FeatureTaskRuntimeRunState, error: InvalidFeatureTaskRuntimePhaseBriefingFramingError, context: LaunchRejectionMeasurementContext): LaunchPreparationRejected = launchPreparationRejected(recorder, LaunchPreparationRejectedArgs(
       run = run,
       state = state,
       classification = FeatureTaskRuntimeProjectionFailureClassification.BUDGET_OVERFLOW,
@@ -509,27 +455,17 @@ object FeatureTaskRuntimeRunLoopLaunch {
       measurement = context,
       message = "Feature-task-runtime phase '${run.phaseId}' could not fit its launch briefing under " +
         "the byte ceiling: ${error.message}",
-    ),
-  )
+    ))
 
-  private fun rejectedPlanningProjectionLaunch(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    run: PhaseRun,
-    state: FeatureTaskRuntimeRunState,
-    error: InvalidFeatureTaskRuntimePlanningProjectionSchemaError,
-    context: LaunchRejectionMeasurementContext,
-  ): LaunchPreparationRejected {
-    FeatureTaskRuntimeRunLoopLaunch.recordLaunchSeamRejection(
-      runLoop,
-      LaunchSeamRejectionArgs(
+  private fun rejectedPlanningProjectionLaunch(recorder: FeatureTaskRuntimePhaseRecorder, run: PhaseRun, state: FeatureTaskRuntimeRunState, error: InvalidFeatureTaskRuntimePlanningProjectionSchemaError, context: LaunchRejectionMeasurementContext): LaunchPreparationRejected {
+    FeatureTaskRuntimeRunLoopLaunch.recordLaunchSeamRejection(recorder, LaunchSeamRejectionArgs(
         run = run,
         state = state,
         classification = FeatureTaskRuntimeProjectionFailureClassification.INVALID_CONTRACT,
         sourceLabel = error.projectionName ?: "planning_projection",
         fallbackProducerIteration = context.producerIteration,
         repositoryCheckpoint = context.repositoryCheckpoint,
-      ),
-    )
+      ))
     return LaunchPreparationRejected(
       LaunchResult.recordRejected(
         QUARANTINE_REJECTION_CLASS_PLANNING_PROJECTION,
@@ -538,15 +474,7 @@ object FeatureTaskRuntimeRunLoopLaunch {
     )
   }
 
-  private fun rejectedDurableBriefingLaunch(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    run: PhaseRun,
-    state: FeatureTaskRuntimeRunState,
-    error: InvalidWorkflowStateSchemaError,
-    context: LaunchRejectionMeasurementContext,
-  ): LaunchPreparationRejected = launchPreparationRejected(
-    runLoop,
-    LaunchPreparationRejectedArgs(
+  private fun rejectedDurableBriefingLaunch(recorder: FeatureTaskRuntimePhaseRecorder, run: PhaseRun, state: FeatureTaskRuntimeRunState, error: InvalidWorkflowStateSchemaError, context: LaunchRejectionMeasurementContext): LaunchPreparationRejected = launchPreparationRejected(recorder, LaunchPreparationRejectedArgs(
       run = run,
       state = state,
       classification = FeatureTaskRuntimeProjectionFailureClassification.UNSUPPORTED_VERSION,
@@ -554,8 +482,7 @@ object FeatureTaskRuntimeRunLoopLaunch {
       measurement = context,
       message = "Feature-task-runtime phase '${run.phaseId}' rejected a durable handoff envelope at " +
         "the launch seam: ${error.message}",
-    ),
-  )
+    ))
 }
 
 internal sealed interface AttemptResult {

@@ -2,7 +2,7 @@ package skillbill.engine.featuretask
 import skillbill.application.idestatus.AgentActivityStampWriter
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
-import skillbill.engine.goalrunner.recommendedDurableChildRecoveryCommand
+import skillbill.engine.recovery.recommendedDurableChildRecoveryCommand
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
 import skillbill.workflow.decomposition.model.SpecSource
@@ -126,28 +126,74 @@ class FeatureTaskRuntimeRunLoop internal constructor(
   )
 
   init {
-    session.pendingReentry = FeatureTaskRuntimeRunLoopDrive.resumedReentry(this)
-    session.activeReentry = session.pendingReentry
+    val resumed = FeatureTaskRuntimeRunLoopDrive.resumedReentry(
+      request, state, recorder,
+      goalContinuationRecorder,
+      outputValidator,
+      transitions,
+    )
+    session.transitionReentryPair(resumed, resumed)
   }
 
+
   fun drive() {
-    FeatureTaskRuntimeRunLoopDrive.invalidateReviewGenerationIfNeeded(this)
-    FeatureTaskRuntimeRunLoopDrive.runPhaseDriveLoop(this)
+    FeatureTaskRuntimeRunLoopDrive.invalidateReviewGenerationIfNeeded(request, state, recorder, session, transitions)
+    FeatureTaskRuntimeRunLoopDrive.runPhaseDriveLoop(
+      request, state, recorder, observability, session,
+      goalContinuationRecorder,
+      outputValidator,
+      diagnostics,
+      phaseGates,
+      transitions,
+      specSource,
+      phaseTokenAccumulator,
+      subtaskLauncher,
+      ::advance,
+    )
   }
 
   internal fun advance(phaseId: String): PhaseSettlement {
-    FeatureTaskRuntimeRunLoopDrive.phaseEntryBlockReason(this, phaseId)?.let { reason ->
-      FeatureTaskRuntimeRunLoopPlanningBranch.blockAt(this, phaseId, reason)
+    FeatureTaskRuntimeRunLoopDrive.phaseEntryBlockReason(
+      request, state, recorder, session,
+      goalContinuationRecorder,
+      outputValidator,
+      diagnostics,
+      phaseGates,
+      transitions,
+      specSource,
+      phaseTokenAccumulator,
+      phaseId,
+    )?.let { reason ->
+      FeatureTaskRuntimeRunLoopPlanningBranch.blockAt(request, state, session, phaseId, reason)
       return PhaseSettlement.stop()
     }
     if (phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW && isGoalContinuationRun(request)) {
-      val carriedForward = FeatureTaskRuntimeRunLoopDrive.carriedForwardGoalReviewSettlement(this)
+      val carriedForward = FeatureTaskRuntimeRunLoopDrive.carriedForwardGoalReviewSettlement(
+        request, state, recorder, session,
+        goalContinuationRecorder,
+        outputValidator,
+        transitions,
+      )
       if (carriedForward != null) {
         return carriedForward
       }
     }
-    val reason = FeatureTaskRuntimeRunLoopDrive.advancePhaseReason(this, phaseId)
-    return FeatureTaskRuntimeRunLoopDrive.settleAdvanceOutcome(this, phaseId, reason)
+    val reason = FeatureTaskRuntimeRunLoopDrive.advancePhaseReason(
+      request, state, recorder, observability, session,
+      goalContinuationRecorder,
+      phaseSettlementService,
+      outputValidator,
+      diagnostics,
+      phaseGates,
+      clock,
+      transitions,
+      specSource,
+      phaseTokenAccumulator,
+      subtaskLauncher,
+      activityStampWriter,
+      phaseId,
+    )
+    return FeatureTaskRuntimeRunLoopDrive.settleAdvanceOutcome(request, state, session, phaseId, reason)
   }
 
   fun report(): FeatureTaskRuntimeRunReport {
@@ -182,19 +228,3 @@ class FeatureTaskRuntimeRunLoop internal constructor(
   }
 }
 
-internal class FeatureTaskRuntimeRunLoopSession(
-  internal val operatorBlockRetry: FeatureTaskRuntimeOperatorBlockRetry?,
-  initialPendingReentry: PendingReentry?,
-) {
-  internal val phaseContentIdentities = mutableMapOf<String, Map<String, String>>()
-  var resolvedBranch: String? = null
-  var checkpointOwnershipDecided: Boolean = false
-  var blocked: FeatureTaskRuntimeRunReport.Blocked? = null
-  var paused: FeatureTaskRuntimeRunReport.Paused? = null
-  var decomposed: FeatureTaskRuntimeRunReport.Decomposed? = null
-  var operatorBlockRetryCompleted: Boolean = false
-  var pendingReentry: PendingReentry? = initialPendingReentry
-  var activeReentry: PendingReentry? = initialPendingReentry
-  var recordRejectionSettlementPending: Boolean = false
-  var auditRetryFocusHint: String? = null
-}

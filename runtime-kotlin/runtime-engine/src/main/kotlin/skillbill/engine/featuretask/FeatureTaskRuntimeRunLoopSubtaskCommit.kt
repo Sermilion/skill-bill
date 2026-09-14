@@ -1,4 +1,6 @@
 package skillbill.engine.featuretask
+
+import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
 import skillbill.contracts.JsonCodec
 import skillbill.engine.featuretask.model.AppendCheckpointIdentityArgs
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
@@ -7,64 +9,56 @@ import skillbill.workflow.taskruntime.envelopeWireMap
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_STANDALONE_SUBTASK_ID
 import skillbill.workflow.taskruntime.model.NormalizedFeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.requireAcceptedOutput
+import skillbill.ports.diagnostics.RuntimeDiagnostics
+import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
+import skillbill.engine.featuretask.FeatureTaskRuntimePhaseGates
 
 object FeatureTaskRuntimeRunLoopSubtaskCommit {
-  internal fun unownedWorktreeCommitSha(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    run: PhaseRun,
-    normalizedOutput: NormalizedFeatureTaskRuntimePhaseOutput,
-  ): CommitPushFinalisation {
-    val head = runLoop.phaseGates.gitOperations.headCommitSha(runLoop.request.repoRoot)
+  internal fun unownedWorktreeCommitSha(request: FeatureTaskRuntimeRunRequest, outputValidator: FeatureTaskRuntimePhaseOutputValidator, diagnostics: RuntimeDiagnostics, phaseGates: FeatureTaskRuntimePhaseGates, run: PhaseRun, normalizedOutput: NormalizedFeatureTaskRuntimePhaseOutput): CommitPushFinalisation {
+    val head = phaseGates.gitOperations.headCommitSha(request.repoRoot)
     val sha = head.value.orEmpty().trim().takeIf { head is WorkflowGitOperationResult.Ok && it.isNotBlank() }
       ?: return CommitPushNotApplicable
     runCatching {
-      runLoop.diagnostics.warning(
+      diagnostics.warning(
         "seam=FeatureTaskRuntimeRunLoop.finaliseSubtaskCommit value_used='measured HEAD $sha' " +
-          "value_expected=a runtime-finalised subtask commit for '${runLoop.request.issueKey}' " +
+          "value_expected=a runtime-finalised subtask commit for '${request.issueKey}' " +
           "cause=the run has no resolved, unprotected, checked-out branch, so finalisation could not " +
           "stage, amend, or push and the commit sha degrades to whatever HEAD already names",
       )
     }
     return CommitPushSettled(
-      revalidated(
-        runLoop,
-        run.phaseId,
-        FeatureTaskRuntimeSubtaskFinalisation.withCommitSha(
+      revalidated( outputValidator, run.phaseId, FeatureTaskRuntimeSubtaskFinalisation.withCommitSha(
           normalizedOutput.envelopeWireMap(),
           sha,
-        ),
-      ),
+        )),
     )
   }
 
-  fun finalisationBranch(runLoop: FeatureTaskRuntimeRunLoop): String? {
-    val branch = runLoop.session.resolvedBranch
+  internal fun finalisationBranch(request: FeatureTaskRuntimeRunRequest, session: FeatureTaskRuntimeRunLoopSession, phaseGates: FeatureTaskRuntimePhaseGates): String? {
+    val branch = session.resolvedBranch
       ?.takeIf { FeatureTaskRuntimeBranchSetup.protectedBranchName(it) == null }
       ?: return null
-    val head = runLoop.phaseGates.gitOperations.currentBranch(runLoop.request.repoRoot)
+    val head = phaseGates.gitOperations.currentBranch(request.repoRoot)
     return branch.takeIf { head is WorkflowGitOperationResult.Ok && head.value.trim() == branch.trim() }
   }
 
-  internal fun recordFinalisedCheckpointIdentity(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    args: RecordFinalisedCheckpointIdentityArgs,
-  ): String? {
+  internal fun recordFinalisedCheckpointIdentity(request: FeatureTaskRuntimeRunRequest, state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, diagnostics: RuntimeDiagnostics, args: RecordFinalisedCheckpointIdentityArgs): String? {
     val phaseId = args.phaseId
     val branch = args.branch
     val ledger = args.ledger
     val commitSha = args.commitSha
     val stagedPaths = args.stagedPaths
     val appended = runCatching {
-      runLoop.recorder.appendCheckpointIdentity(
+      recorder.appendCheckpointIdentity(
         AppendCheckpointIdentityArgs(
-          workflowId = runLoop.request.workflowId,
-          issueKey = runLoop.request.issueKey,
-          subtaskId = runLoop.request.goalContinuation?.subtaskId?.toString()
+          workflowId = request.workflowId,
+          issueKey = request.issueKey,
+          subtaskId = request.goalContinuation?.subtaskId?.toString()
             ?: FEATURE_TASK_RUNTIME_STANDALONE_SUBTASK_ID,
           branch = branch,
           phaseId = phaseId,
           loopId = null,
-          generation = FeatureTaskRuntimeRunLoopCheckpoint.checkpointGeneration(runLoop, null),
+          generation = FeatureTaskRuntimeRunLoopCheckpoint.checkpointGeneration(state, null),
           parentSha = ledger.commitSha,
           ownedPaths = stagedPaths,
           commitSha = commitSha,
@@ -74,10 +68,10 @@ object FeatureTaskRuntimeRunLoopSubtaskCommit {
     if (appended.getOrDefault(false)) return null
     val cause = appended.exceptionOrNull()?.message ?: "the workflow row was absent"
     runCatching {
-      runLoop.diagnostics.warning(
+      diagnostics.warning(
         "seam=FeatureTaskRuntimeRunLoop.recordFinalisedCheckpointIdentity " +
           "value_used='no durable identity for finalised commit $commitSha' " +
-          "value_expected=an appended checkpoint identity for '${runLoop.request.issueKey}' " +
+          "value_expected=an appended checkpoint identity for '${request.issueKey}' " +
           "cause=$cause",
       )
     }
@@ -87,11 +81,7 @@ object FeatureTaskRuntimeRunLoopSubtaskCommit {
       "the workflow store and resume; the commit is already on the branch."
   }
 
-  fun revalidated(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    phaseId: String,
-    envelope: Map<String, Any?>,
-  ): NormalizedFeatureTaskRuntimePhaseOutput = runLoop.outputValidator
+  internal fun revalidated( outputValidator: FeatureTaskRuntimePhaseOutputValidator, phaseId: String, envelope: Map<String, Any?>): NormalizedFeatureTaskRuntimePhaseOutput = outputValidator
     .validatePhaseOutput(JsonCodec.mapToJsonString(envelope), sourceLabel = phaseId)
     .requireAcceptedOutput(phaseId)
     .normalizedOutput

@@ -11,6 +11,8 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeTransitionDeclaration
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationEvidence
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
+import skillbill.engine.featuretask.FeatureTaskRuntimePhaseGates
+import skillbill.engine.featuretask.FeatureTaskRuntimeGoalContinuationRecorder
 
 internal data class ValidationSettlementState(
   val completed: MutableSet<String>,
@@ -25,11 +27,7 @@ internal data class ValidationSettlementValidation(
   val durableVerdictFor: (String) -> FeatureTaskRuntimeVerdict,
 )
 
-internal fun requireValidationEvidenceForValidateSettlement(
-  runLoop: FeatureTaskRuntimeRunLoop,
-  run: PhaseRun,
-  envelope: Map<String, Any?>,
-) {
+internal fun requireValidationEvidenceForValidateSettlement(recorder: FeatureTaskRuntimePhaseRecorder, session: FeatureTaskRuntimeRunLoopSession, goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder, phaseGates: FeatureTaskRuntimePhaseGates, run: PhaseRun, envelope: Map<String, Any?>){
   if (run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE) return
   val evidence = validationEvidenceFromEnvelope(envelope, run.phaseId)
     ?: throw InvalidFeatureTaskRuntimeValidationEvidenceSchemaError(
@@ -38,10 +36,12 @@ internal fun requireValidationEvidenceForValidateSettlement(
     )
   evidence.requireSuccessfulCommand(
     FeatureTaskRuntimeRunLoopValidationGate.requiredValidationCommand(
-      runLoop = runLoop,
-      run = run,
-      evidence = evidence,
-      changedPaths = durableValidationChangedPaths(runLoop.recorder, run.request.workflowId),
+      recorder, session,
+      phaseGates,
+      goalContinuationRecorder,
+      run,
+      evidence,
+      durableValidationChangedPaths(recorder, run.request.workflowId),
     ),
     run.phaseId,
   )

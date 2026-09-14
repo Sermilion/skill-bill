@@ -1,5 +1,6 @@
 package skillbill.engine.goalrunner
 
+import skillbill.engine.recovery.DurableChildRecoveryClass
 import skillbill.engine.goalrunner.planning.goalPlanningHardResetRemedy
 import skillbill.ports.goalrunner.runner.model.GoalRunnerWorkflowProgress
 import skillbill.workflow.model.DecompositionStatus
@@ -33,7 +34,7 @@ class GoalChildRecoveryTest {
   @Test
   fun `in progress incompatible terminal child recommends hard reset`() {
     assertEquals(
-      goalPlanningHardResetRemedy("SKILL-143"),
+      "skill-bill goal reset SKILL-143 --hard --yes",
       recommendedDurableChildRecoveryCommand(
         "SKILL-143",
         2,

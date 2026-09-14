@@ -456,6 +456,7 @@ internal data class RecordFinalisedCheckpointIdentityArgs(
 )
 
 internal data class PersistRuntimeOwnedBuildCompletionArgs(
+  val goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
   val run: PhaseRun,
   val iteration: Int,
   val outputText: String,

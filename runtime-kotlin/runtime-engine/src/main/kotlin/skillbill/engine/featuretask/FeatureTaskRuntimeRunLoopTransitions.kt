@@ -1,31 +1,49 @@
 package skillbill.engine.featuretask
+
+import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
+import skillbill.workflow.decomposition.model.SpecSource
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeBackwardEdge
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeNextPhase
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeQualityGateSelection
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeTransitionDeclaration
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
+import skillbill.ports.diagnostics.RuntimeDiagnostics
 
 object FeatureTaskRuntimeRunLoopTransitions {
-  fun qualityGateSelection(runLoop: FeatureTaskRuntimeRunLoop): FeatureTaskRuntimeQualityGateSelection =
-    runLoop.request.goalContinuation?.qualityGateSelection ?: FeatureTaskRuntimeQualityGateSelection.VALIDATE
+  internal fun qualityGateSelection(request: FeatureTaskRuntimeRunRequest): FeatureTaskRuntimeQualityGateSelection =
+    request.goalContinuation?.qualityGateSelection ?: FeatureTaskRuntimeQualityGateSelection.VALIDATE
 
-  fun transitionTarget(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    phaseId: String,
-    edge: FeatureTaskRuntimeBackwardEdge?,
-    effectiveVerdict: FeatureTaskRuntimeVerdict,
-    transition: FeatureTaskRuntimeNextPhase,
-  ): String? = when (transition) {
+  internal fun transitionTarget(request: FeatureTaskRuntimeRunRequest, state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, observability: FeatureTaskRuntimeRunObservability, session: FeatureTaskRuntimeRunLoopSession, goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder, diagnostics: RuntimeDiagnostics, phaseGates: FeatureTaskRuntimePhaseGates, transitions: FeatureTaskRuntimeTransitionDeclaration, specSource: SpecSource, phaseId: String, edge: FeatureTaskRuntimeBackwardEdge?, effectiveVerdict: FeatureTaskRuntimeVerdict, transition: FeatureTaskRuntimeNextPhase): String? = when (transition) {
     is FeatureTaskRuntimeNextPhase.TerminalAdvance -> null
     is FeatureTaskRuntimeNextPhase.TerminalBlock -> {
-      FeatureTaskRuntimeRunLoopPlanningBranch.blockOnCapExhaustion(runLoop, phaseId, transition)
+      FeatureTaskRuntimeRunLoopPlanningBranch.blockOnCapExhaustion(
+        request, state, recorder, observability, session,
+        specSource,
+        phaseId,
+        transition,
+      )
       null
     }
-    is FeatureTaskRuntimeNextPhase.Next -> nextTransitionTarget(runLoop, phaseId, edge, effectiveVerdict, transition)
+    is FeatureTaskRuntimeNextPhase.Next -> nextTransitionTarget(
+      request, state, recorder, observability, session,
+      goalContinuationRecorder,
+      diagnostics,
+      phaseGates,
+      transitions,
+      phaseId,
+      edge,
+      effectiveVerdict,
+      transition,
+    )
   }
 
-  fun nextTransitionTarget(
-    runLoop: FeatureTaskRuntimeRunLoop,
+  internal fun nextTransitionTarget(
+    request: FeatureTaskRuntimeRunRequest, state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, observability: FeatureTaskRuntimeRunObservability, session: FeatureTaskRuntimeRunLoopSession,
+    goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
+    diagnostics: RuntimeDiagnostics,
+    phaseGates: FeatureTaskRuntimePhaseGates,
+    transitions: FeatureTaskRuntimeTransitionDeclaration,
     phaseId: String,
     edge: FeatureTaskRuntimeBackwardEdge?,
     effectiveVerdict: FeatureTaskRuntimeVerdict,
@@ -33,13 +51,28 @@ object FeatureTaskRuntimeRunLoopTransitions {
   ): String? {
     val loopId = transition.loopId
     return when {
-      loopId == null && !establishForwardCheckpoint(runLoop, phaseId, transition.phaseId) -> null
+      loopId == null && !establishForwardCheckpoint(
+        request, state, recorder, session,
+        diagnostics,
+        phaseGates,
+        precedingPhaseId = phaseId,
+        destinationPhaseId = transition.phaseId,
+      ) -> null
       loopId == null -> transition.phaseId
-      reentersMutatingPhase(runLoop, requireNotNull(edge), transition.phaseId) &&
-        !FeatureTaskRuntimeRunLoopCheckpointRemediation.establishRemediationCheckpoint(runLoop, phaseId, loopId) -> null
+      reentersMutatingPhase(transitions, requireNotNull(edge), transition.phaseId) &&
+        !FeatureTaskRuntimeRunLoopCheckpointRemediation.establishRemediationCheckpoint(
+          request, state, recorder, session,
+          goalContinuationRecorder,
+          diagnostics,
+          phaseGates,
+          phaseId,
+          loopId,
+        ) -> null
       else -> {
         FeatureTaskRuntimeRunLoopBackwardEdge.recordBackwardEdge(
-          runLoop,
+          request, state, recorder, observability, session,
+          diagnostics,
+          transitions,
           BackwardEdgeRecordArgs(
             edge = edge,
             destinationPhaseId = transition.phaseId,
@@ -53,24 +86,26 @@ object FeatureTaskRuntimeRunLoopTransitions {
     }
   }
 
-  fun reentersMutatingPhase(
-    runLoop: FeatureTaskRuntimeRunLoop,
+  internal fun reentersMutatingPhase(
+    transitions: FeatureTaskRuntimeTransitionDeclaration,
     edge: FeatureTaskRuntimeBackwardEdge,
     destinationPhaseId: String,
   ): Boolean = spanBetween(
-    runLoop,
+    transitions,
     destinationPhaseId,
     edge.fromPhaseId,
   ).any(FeatureTaskRuntimePhaseWorkflowDefinition::isMutatingPhase)
 
-  fun spanBetween(
-    runLoop: FeatureTaskRuntimeRunLoop,
+  internal fun spanBetween(
+    transitions: FeatureTaskRuntimeTransitionDeclaration,
     destinationPhaseId: String,
     sourcePhaseId: String,
-  ): List<String> = runLoop.transitions.spanBetween(destinationPhaseId, sourcePhaseId)
+  ): List<String> = transitions.spanBetween(destinationPhaseId, sourcePhaseId)
 
-  fun establishForwardCheckpoint(
-    runLoop: FeatureTaskRuntimeRunLoop,
+  internal fun establishForwardCheckpoint(
+    request: FeatureTaskRuntimeRunRequest, state: FeatureTaskRuntimeRunState, recorder: FeatureTaskRuntimePhaseRecorder, session: FeatureTaskRuntimeRunLoopSession,
+    diagnostics: RuntimeDiagnostics,
+    phaseGates: FeatureTaskRuntimePhaseGates,
     precedingPhaseId: String,
     destinationPhaseId: String,
   ): Boolean = if (
@@ -78,13 +113,13 @@ object FeatureTaskRuntimeRunLoopTransitions {
     destinationPhaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW
   ) {
     FeatureTaskRuntimeRunLoopCheckpointRemediation.checkpointEstablished(
-      runLoop,
+      request, state, recorder, session,
+      diagnostics,
+      phaseGates,
       precedingPhaseId = precedingPhaseId,
       loopId = null,
       intent = FeatureTaskRuntimeCheckpointMessage.INTENT_AUDITED_IMPLEMENTATION,
-      blockedReason = { branch,
-                        error,
-        ->
+      blockedReason = { branch, error ->
         FeatureTaskRuntimeRunLoopPlanningBranch.auditReviewCheckpointBlockedReason(branch, error)
       },
     )

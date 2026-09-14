@@ -1,3 +1,14 @@
+## [2026-09-14] SKILL-239 subtask 3 — Engine run-loop session and state ownership
+Areas: runtime-kotlin/runtime-engine/featuretask, runtime-engine/recovery, runtime-core architecture baseline
+- Session terminal outcomes (blocked/paused/decomposed) are exclusive via `FeatureTaskRuntimeRunLoopSession` named transitions; run-state completion/output/gate buffers are private with transition methods.
+- Helper signatures no longer accept `FeatureTaskRuntimeRunLoop`; whole-loop parameter occurrences are 269 → 0, and the all-access persistence bundle was replaced with required request, state, recorder, observability, and session inputs; public engine inbound API delta 0.
+- Helper responsibility map: Drive sequences phases and reentry; PlanningBranch owns phase preparation and blocking; PhaseRunner owns phase dispatch; Launch owns process capture; PhaseAttempts and AttemptSettlement own attempt and output settlement; ValidationGate owns build/validation cycles; Review owns review execution; Checkpoint and CheckpointRemediation own checkpoint scope; BackwardEdge owns reentry; AuditRetry owns audit retry; RecordRejection owns quarantine; RepairReceipt owns repair receipts; OutputVerification and OutputPersistence own output evidence and durable writes; SubtaskCommit owns finalisation; Transitions owns next-phase routing; RunStateValidation and RunStateReconstruction own state invariants.
+- Mutable state access: session and run-state backing collections are private; helpers use named session/state transitions and read APIs; no helper assigns session ownership fields directly.
+- Public engine API delta: 0; the pinned inbound API set is unchanged.
+- Recovery command formatting lives in `skillbill.engine.recovery`; featuretask no longer imports goalrunner; `runtime-engine-package-cycle-baseline.txt` empty.
+Feature flag: N/A
+Acceptance criteria: 8/8 implemented
+
 ## [2026-09-14] SKILL-239 subtask 2 — Persistence lifecycle and projection outcomes
 Areas: runtime-kotlin/{runtime-application,runtime-contracts,runtime-domain,runtime-infra-sqlite,runtime-ports}, architecture docs and tests
 - Separated SQLite schema readiness from connection acquisition, cached database identity for invalidation, and preserved initialization repair and transaction-pragmas behavior.
