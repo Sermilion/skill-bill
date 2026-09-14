@@ -27,3 +27,13 @@ class GateJvmUnresolvedException(
   "No Java $requiredMajor+ runtime resolved for the pack gate command; rejected candidate: $rejectedCandidate. " +
     "Set SKILL_BILL_JAVA_HOME to a Java $requiredMajor+ installation and retry.",
 )
+
+class GateJvmStartupFailureException(
+  val resolvedJvm: String,
+  excerpt: String?,
+) : SkillBillRuntimeException(
+  "The pack gate command could not start a JVM on the resolved Java home '$resolvedJvm'; " +
+    "this is an environment defect, not a repairable gate finding. " +
+    "Set SKILL_BILL_JAVA_HOME to a working JDK and retry." +
+    (excerpt?.let { "\nGate stdout (head+tail):\n$it" } ?: ""),
+)

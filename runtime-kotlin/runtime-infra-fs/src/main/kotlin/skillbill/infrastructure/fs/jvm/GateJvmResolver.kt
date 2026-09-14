@@ -2,11 +2,11 @@ package skillbill.infrastructure.fs.jvm
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.ports.diagnostics.RuntimeDiagnostics
+import java.io.File
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.attribute.PosixFilePermissions
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
 sealed interface GateJvmDisposition {
@@ -29,18 +29,12 @@ fun GateJvmDisposition.applyTo(environment: MutableMap<String, String>) {
 class GateJvmResolver(
   private val diagnostics: RuntimeDiagnostics,
 ) {
-  fun resolve(childEnvironment: Map<String, String>): GateJvmDisposition {
+  fun resolve(childEnvironment: MutableMap<String, String>): GateJvmDisposition {
     val imageRoot = runtimeImageRoot()
-    val sanitized = withoutRuntimeImageJavaHomes(childEnvironment, imageRoot)
-    val memoKey = GateJvmMemoKey(
-      skillBillJavaHome = sanitized[GateJvmEnvironmentKeys.SKILL_BILL_JAVA_HOME],
-      javaHome = sanitized[GateJvmEnvironmentKeys.JAVA_HOME],
-      path = sanitized[GateJvmEnvironmentKeys.PATH],
-    )
-    val disposition = memoizedDispositions.computeIfAbsent(memoKey) {
-      evaluateGuard(sanitized, rejectedCandidate(childEnvironment))
-    }
-    recordDecision(childEnvironment, sanitized, imageRoot, disposition)
+    val rejected = rejectedCandidate(childEnvironment)
+    val dropped = dropRuntimeImageJava(childEnvironment, imageRoot)
+    val disposition = evaluateGuard(childEnvironment, rejected)
+    recordDecision(childEnvironment, dropped, imageRoot, disposition)
     return disposition
   }
 
@@ -84,17 +78,19 @@ class GateJvmResolver(
 
   private fun dispositionOf(evaluation: GuardEvaluation, rejectedCandidate: String): GateJvmDisposition {
     val output = parseGuardOutput(evaluation)
-    return when (evaluation.status) {
-      GUARD_RESOLVED_EXIT ->
-        if (output.resolvedHome.isEmpty()) {
-          GateJvmDisposition.LeaveUnset
-        } else {
-          GateJvmDisposition.Export(output.resolvedHome)
-        }
-
-      GUARD_REMEDIATION_EXIT -> GateJvmDisposition.Unresolved(rejectedCandidate, output.requiredMajor)
-      else -> throw GateJvmGuardExecutionException("guard exited with unexpected status ${evaluation.status}")
+    if (evaluation.status == GUARD_RESOLVED_EXIT) {
+      return if (output.resolvedHome.isEmpty()) {
+        GateJvmDisposition.LeaveUnset
+      } else {
+        GateJvmDisposition.Export(output.resolvedHome)
+      }
     }
+    if (output.reachedRemediation) {
+      return GateJvmDisposition.Unresolved(rejectedCandidate, output.requiredMajor)
+    }
+    throw GateJvmGuardExecutionException(
+      "guard exited with status ${evaluation.status} without reaching its no-qualifying-JDK branch",
+    )
   }
 
   private fun parseGuardOutput(evaluation: GuardEvaluation): GuardOutput {
@@ -103,23 +99,25 @@ class GateJvmResolver(
     if (lines.size < GUARD_OUTPUT_LINES || requiredMajor.isEmpty()) {
       throw GateJvmGuardOutputException("exit=${evaluation.status} output=${evaluation.stdout.trim()}")
     }
-    return GuardOutput(resolvedHome = lines[0].trim(), requiredMajor = requiredMajor)
+    return GuardOutput(
+      resolvedHome = lines[0].trim(),
+      requiredMajor = requiredMajor,
+      reachedRemediation = lines[2].trim() == GUARD_REMEDIATION_SENTINEL,
+    )
   }
 
   private fun recordDecision(
-    childEnvironment: Map<String, String>,
     sanitized: Map<String, String>,
+    dropped: List<String>,
     imageRoot: Path?,
     disposition: GateJvmDisposition,
   ) {
-    val dropped = GateJvmEnvironmentKeys.JAVA_HOME_CANDIDATES
-      .filter { key -> childEnvironment[key] != null && sanitized[key] == null }
-      .joinToString(",") { key -> "$key=${childEnvironment[key]}" }
-      .ifEmpty { "none" }
-    val imageRootLabel = imageRoot?.toString() ?: "unknown"
     diagnostics.warning(
       "Gate JVM resolution: seam=GateJvmResolver.resolve branch=${branchOf(sanitized, disposition)} " +
-        "used=${usedValueOf(disposition)} dropped_image_candidates=$dropped image_root=$imageRootLabel",
+        "used=${usedValueOf(disposition)} " +
+        "dropped_image_candidates=${dropped.joinToString(",").ifEmpty { "none" }} " +
+        "image_root=${imageRoot?.toString() ?: "unknown"}" +
+        unresolvedDetailOf(disposition),
     )
   }
 
@@ -127,24 +125,23 @@ class GateJvmResolver(
     const val GUARD_CLASSPATH_RESOURCE = "skillbill/infrastructure/fs/jvm/skill-bill-java-guard.sh"
     const val GUARD_TIMEOUT_SECONDS = 60L
     const val GUARD_RESOLVED_EXIT = 0
-    const val GUARD_REMEDIATION_EXIT = 1
-    const val GUARD_OUTPUT_LINES = 2
+    const val GUARD_REMEDIATION_SENTINEL = "1"
+    const val GUARD_OUTPUT_LINES = 3
 
     val OWNER_ONLY = PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"))
 
-    val memoizedDispositions = ConcurrentHashMap<GateJvmMemoKey, GateJvmDisposition>()
-
     val GUARD_PROGRAM = """
       trap 'skill_bill_gate_exit=${'$'}?
-      printf "%s\n%s\n" "${'$'}{JAVA_HOME:-}" "${'$'}{skill_bill_required_java_major:-}"
+      printf "%s\n" "${'$'}{JAVA_HOME:-}"
+      printf "%s\n" "${'$'}{skill_bill_required_java_major:-}"
+      printf "%s\n" "${'$'}{skill_bill_java_unresolved:-}"
       exit ${'$'}skill_bill_gate_exit' EXIT
       . "${'$'}1" >/dev/null
     """.trimIndent()
 
-    fun rejectedCandidate(childEnvironment: Map<String, String>): String =
-      GateJvmEnvironmentKeys.JAVA_HOME_CANDIDATES
-        .firstNotNullOfOrNull { key -> childEnvironment[key]?.takeIf(String::isNotBlank) }
-        ?: "<unset>"
+    fun rejectedCandidate(childEnvironment: Map<String, String>): String = GateJvmEnvironmentKeys.JAVA_HOME_CANDIDATES
+      .firstNotNullOfOrNull { key -> childEnvironment[key]?.takeIf(String::isNotBlank) }
+      ?: "<unset>"
 
     fun branchOf(sanitized: Map<String, String>, disposition: GateJvmDisposition): String = when (disposition) {
       is GateJvmDisposition.Export -> when (disposition.javaHome) {
@@ -162,28 +159,51 @@ class GateJvmResolver(
       GateJvmDisposition.LeaveUnset -> "<unset>"
       is GateJvmDisposition.Unresolved -> "<none>"
     }
+
+    fun unresolvedDetailOf(disposition: GateJvmDisposition): String = when (disposition) {
+      is GateJvmDisposition.Unresolved ->
+        " rejected_candidate=${disposition.rejectedCandidate} expected=java_${disposition.requiredMajor}+"
+
+      else -> ""
+    }
   }
 }
 
-internal data class GateJvmMemoKey(
-  val skillBillJavaHome: String?,
-  val javaHome: String?,
-  val path: String?,
-)
-
 private data class GuardEvaluation(val status: Int, val stdout: String)
 
-private data class GuardOutput(val resolvedHome: String, val requiredMajor: String)
+private data class GuardOutput(
+  val resolvedHome: String,
+  val requiredMajor: String,
+  val reachedRemediation: Boolean,
+)
 
-internal fun runtimeImageRoot(): Path? = runCatching {
+internal fun runtimeImageRoot(): Path? = runningJavaHome()?.takeUnless(::hostsAJavaCompiler)
+
+private fun runningJavaHome(): Path? = runCatching {
   Path.of(System.getProperty("java.home").orEmpty()).toRealPath()
 }.getOrNull()
 
-internal fun withoutRuntimeImageJavaHomes(
-  environment: Map<String, String>,
-  imageRoot: Path?,
-): Map<String, String> = environment.filterNot { (key, value) ->
-  key in GateJvmEnvironmentKeys.JAVA_HOME_CANDIDATES && liesInside(value, imageRoot)
+private fun hostsAJavaCompiler(home: Path): Boolean =
+  JAVA_COMPILER_EXECUTABLES.any { name -> Files.isExecutable(home.resolve("bin").resolve(name)) }
+
+private val JAVA_COMPILER_EXECUTABLES = listOf("javac", "javac.exe")
+
+internal fun dropRuntimeImageJava(environment: MutableMap<String, String>, imageRoot: Path?): List<String> {
+  val dropped = mutableListOf<String>()
+  GateJvmEnvironmentKeys.JAVA_HOME_CANDIDATES.forEach { key ->
+    val value = environment[key]
+    if (value != null && liesInside(value, imageRoot)) {
+      environment.remove(key)
+      dropped += "$key=$value"
+    }
+  }
+  val entries = environment[GateJvmEnvironmentKeys.PATH]?.split(File.pathSeparator) ?: return dropped
+  val (inImage, kept) = entries.partition { entry -> liesInside(entry, imageRoot) }
+  if (inImage.isNotEmpty()) {
+    environment[GateJvmEnvironmentKeys.PATH] = kept.joinToString(File.pathSeparator)
+    dropped += inImage.map { entry -> "${GateJvmEnvironmentKeys.PATH}=$entry" }
+  }
+  return dropped
 }
 
 private fun liesInside(value: String, imageRoot: Path?): Boolean {

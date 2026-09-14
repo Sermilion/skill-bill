@@ -64,6 +64,7 @@ else
         JAVA_HOME=$skill_bill_scanned_home
         export JAVA_HOME
     else
+        skill_bill_java_unresolved=1
         echo "ERROR: no Java $skill_bill_required_java_major+ runtime found." >&2
         echo "The Skill Bill runtime is compiled for Java $skill_bill_required_java_major and cannot run on an older JVM." >&2
         echo "JAVA_HOME is currently: ${JAVA_HOME:-<unset>}" >&2

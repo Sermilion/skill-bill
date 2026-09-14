@@ -3,12 +3,14 @@ package skillbill.infrastructure.fs.validation
 import me.tatarka.inject.annotations.Inject
 import skillbill.infrastructure.fs.jvm.GateJvmDisposition
 import skillbill.infrastructure.fs.jvm.GateJvmResolver
+import skillbill.infrastructure.fs.jvm.GateJvmStartupFailureException
 import skillbill.infrastructure.fs.jvm.GateJvmUnresolvedException
 import skillbill.infrastructure.fs.jvm.applyTo
 import skillbill.ports.validation.ValidationGateRunner
 import skillbill.ports.validation.model.ValidationGateFinding
 import skillbill.ports.validation.model.ValidationGateRunRequest
 import skillbill.ports.validation.model.ValidationGateRunResult
+import skillbill.workflow.taskruntime.gateStdoutExcerpt
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Clock
@@ -31,7 +33,9 @@ class FileSystemValidationGateRunner(
         .directory(request.repoRoot.toFile())
         .redirectErrorStream(true)
         .redirectOutput(outputFile.toFile())
-      applyResolvedGateJvm(builder.environment(), gateJvmResolver.resolve(builder.environment()))
+      val environment = builder.environment()
+      val gateJvm = gateJvmResolver.resolve(environment)
+      applyResolvedGateJvm(environment, gateJvm)
       val process = builder.start()
       val finished = process.waitFor(GATE_TIMEOUT_MINUTES, TimeUnit.MINUTES)
       if (!finished) {
@@ -46,6 +50,7 @@ class FileSystemValidationGateRunner(
       val executedCheckIdentities = deriveExecutedCheckIdentities(request, stdout)
       val exitCode = process.exitValue()
       val parsedFindings = parseFindings(request, stdout, artifactFloor)
+      rejectGateJvmStartupFailure(gateJvm, exitCode, parsedFindings, stdout)
       val outcome = deriveOutcome(exitCode, parsedFindings)
       ValidationGateRunResult(
         exitCode = exitCode,
@@ -94,3 +99,28 @@ internal fun applyResolvedGateJvm(environment: MutableMap<String, String>, dispo
   }
   disposition.applyTo(environment)
 }
+
+private val JVM_STARTUP_FAILURE_MARKERS = listOf(
+  "Error occurred during initialization of VM",
+  "Could not create the Java Virtual Machine",
+  "may be missing from runtime image",
+)
+
+internal fun rejectGateJvmStartupFailure(
+  disposition: GateJvmDisposition,
+  exitCode: Int,
+  parsedFindings: List<ValidationGateFinding>,
+  stdout: String,
+) {
+  if (exitCode == 0 || parsedFindings.isNotEmpty()) return
+  if (JVM_STARTUP_FAILURE_MARKERS.none { marker -> stdout.contains(marker) }) return
+  throw GateJvmStartupFailureException(resolvedGateJvmLabel(disposition), gateStdoutExcerpt(stdout))
+}
+
+private fun resolvedGateJvmLabel(disposition: GateJvmDisposition): String = when (disposition) {
+  is GateJvmDisposition.Export -> disposition.javaHome
+  GateJvmDisposition.LeaveUnset -> PATH_RESOLVED_GATE_JVM
+  is GateJvmDisposition.Unresolved -> disposition.rejectedCandidate
+}
+
+private const val PATH_RESOLVED_GATE_JVM = "<java resolved from PATH>"

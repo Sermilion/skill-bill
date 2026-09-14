@@ -1,36 +1,55 @@
 package skillbill.infrastructure.fs.jvm
 
+import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 
 class GateJvmResolverTest {
   @Test
-  fun `a qualifying JDK inside the runtime image root is dropped before the guard decides`() {
+  fun `a JDK inside the runtime image root is dropped from JAVA_HOME and from PATH before the guard decides`() {
     val imageRoot = Files.createTempDirectory("gate-jvm-image")
     val outsideImage = Files.createTempDirectory("gate-jvm-host")
     try {
       val leaked = writeJdkShapedHome(Files.createDirectories(imageRoot.resolve("jdk")))
       val explicit = writeJdkShapedHome(outsideImage)
-
-      val sanitized = withoutRuntimeImageJavaHomes(
-        mapOf(
-          GateJvmEnvironmentKeys.JAVA_HOME to leaked.toString(),
-          GateJvmEnvironmentKeys.SKILL_BILL_JAVA_HOME to explicit.toString(),
-          GateJvmEnvironmentKeys.PATH to hostPath(),
-        ),
-        imageRoot.toRealPath(),
+      val environment = mutableMapOf(
+        GateJvmEnvironmentKeys.JAVA_HOME to leaked.toString(),
+        GateJvmEnvironmentKeys.SKILL_BILL_JAVA_HOME to explicit.toString(),
+        GateJvmEnvironmentKeys.PATH to listOf(
+          leaked.resolve("bin").toString(),
+          explicit.resolve("bin").toString(),
+        ).joinToString(File.pathSeparator),
       )
 
-      assertNull(sanitized[GateJvmEnvironmentKeys.JAVA_HOME])
-      assertEquals(explicit.toString(), sanitized[GateJvmEnvironmentKeys.SKILL_BILL_JAVA_HOME])
-      assertEquals(hostPath(), sanitized[GateJvmEnvironmentKeys.PATH])
+      dropRuntimeImageJava(environment, imageRoot.toRealPath())
+
+      assertNull(environment[GateJvmEnvironmentKeys.JAVA_HOME])
+      assertEquals(explicit.toString(), environment[GateJvmEnvironmentKeys.SKILL_BILL_JAVA_HOME])
+      assertEquals(explicit.resolve("bin").toString(), environment[GateJvmEnvironmentKeys.PATH])
     } finally {
       imageRoot.toFile().deleteRecursively()
       outsideImage.toFile().deleteRecursively()
     }
+  }
+
+  @Test
+  fun `a runtime already running on a full JDK keeps the operator's own selection out of the drop list`() {
+    val runningHome = Path.of(System.getProperty("java.home"))
+    val environment = mutableMapOf(
+      GateJvmEnvironmentKeys.SKILL_BILL_JAVA_HOME to runningHome.toString(),
+      GateJvmEnvironmentKeys.JAVA_HOME to runningHome.toString(),
+      GateJvmEnvironmentKeys.PATH to runningHome.resolve("bin").toString(),
+    )
+
+    val dropped = dropRuntimeImageJava(environment, runtimeImageRoot())
+
+    assertEquals(emptyList(), dropped)
+    assertEquals(runningHome.toString(), environment[GateJvmEnvironmentKeys.SKILL_BILL_JAVA_HOME])
+    assertEquals(runningHome.resolve("bin").toString(), environment[GateJvmEnvironmentKeys.PATH])
   }
 
   @Test
@@ -57,6 +76,25 @@ class GateJvmResolverTest {
   }
 
   @Test
+  fun `a JDK that appears after a first resolution is used by the next resolution`() {
+    val candidate = Files.createTempDirectory("gate-jvm-late-install")
+    try {
+      val resolver = testGateJvmResolver()
+      val environment = mutableMapOf(
+        GateJvmEnvironmentKeys.SKILL_BILL_JAVA_HOME to candidate.toString(),
+        GateJvmEnvironmentKeys.PATH to hostPath(),
+      )
+      val beforeInstall = resolver.resolve(environment)
+      writeJdkShapedHome(candidate)
+
+      assertNotEquals(GateJvmDisposition.Export(candidate.toString()), beforeInstall)
+      assertEquals(GateJvmDisposition.Export(candidate.toString()), resolver.resolve(environment))
+    } finally {
+      candidate.toFile().deleteRecursively()
+    }
+  }
+
+  @Test
   fun `an unresolved gate JVM clears JAVA_HOME at the launch surface instead of failing the launch`() {
     val environment = mutableMapOf(
       GateJvmEnvironmentKeys.JAVA_HOME to "/opt/skill-bill/runtime",
@@ -70,7 +108,7 @@ class GateJvmResolverTest {
     assertEquals(hostPath(), environment[GateJvmEnvironmentKeys.PATH])
   }
 
-  private fun guardInput(skillBillJavaHome: Path, javaHome: Path): Map<String, String> = mapOf(
+  private fun guardInput(skillBillJavaHome: Path, javaHome: Path): MutableMap<String, String> = mutableMapOf(
     GateJvmEnvironmentKeys.SKILL_BILL_JAVA_HOME to skillBillJavaHome.toString(),
     GateJvmEnvironmentKeys.JAVA_HOME to javaHome.toString(),
     GateJvmEnvironmentKeys.PATH to hostPath(),

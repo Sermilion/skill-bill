@@ -19,7 +19,8 @@ internal fun configureLaunchEnvironment(
   } else {
     builder.environment().putAll(request.environment)
   }
-  gateJvmResolver.resolve(builder.environment()).applyTo(builder.environment())
+  val environment = builder.environment()
+  gateJvmResolver.resolve(environment).applyTo(environment)
 }
 
 internal fun isolatedLaunchEnvironment(

@@ -3,6 +3,7 @@ package skillbill.infrastructure.fs.validation
 import skillbill.contracts.time.JvmSystemClock
 import skillbill.infrastructure.fs.jvm.GateJvmDisposition
 import skillbill.infrastructure.fs.jvm.GateJvmEnvironmentKeys
+import skillbill.infrastructure.fs.jvm.GateJvmStartupFailureException
 import skillbill.infrastructure.fs.jvm.GateJvmUnresolvedException
 import skillbill.infrastructure.fs.jvm.hostPath
 import skillbill.infrastructure.fs.jvm.testGateJvmResolver
@@ -620,6 +621,42 @@ class FileSystemValidationGateRunnerTest {
     assertEquals("/opt/skill-bill/runtime", failure.rejectedCandidate)
     assertEquals("21", failure.requiredMajor)
     assertEquals("/opt/skill-bill/runtime", environment[GateJvmEnvironmentKeys.JAVA_HOME])
+  }
+
+  @Test
+  fun `a gate that dies initializing a JVM raises a typed error instead of an unparseable finding`() {
+    val repo = Files.createTempDirectory("gate-daemon-start-failure")
+    try {
+      val script = repo.resolve("gate.sh")
+      Files.writeString(
+        script,
+        """
+        #!/bin/sh
+        printf '%s\n' 'FAILURE: Build failed with an exception.'
+        printf '%s\n' 'Unable to start the daemon process.'
+        printf '%s\n' 'Error occurred during initialization of VM'
+        printf '%s\n' 'Module java.instrument may be missing from runtime image.'
+        exit 1
+        """.trimIndent(),
+      )
+
+      val failure = assertFailsWith<GateJvmStartupFailureException> {
+        FileSystemValidationGateRunner(JvmSystemClock, testGateJvmResolver()).run(
+          request(
+            repo,
+            argv = listOf("sh", script.toString()),
+            parseMode = ValidationGateFindingParseMode.COLLECT_ALL,
+          ),
+        )
+      }
+
+      assertTrue(
+        failure.message.orEmpty().contains("Error occurred during initialization of VM"),
+        "the typed error must carry the gate output that identified it: ${failure.message}",
+      )
+    } finally {
+      repo.toFile().deleteRecursively()
+    }
   }
 
   private fun fixturePath(name: String): String {

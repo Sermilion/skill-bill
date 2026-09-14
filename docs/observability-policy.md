@@ -22,9 +22,16 @@ these seams:
   pruning is skipped because `commit_sha` is still blank
 - gate JVM resolution: `GateJvmResolver.resolve` records the guard branch taken
   (`skill_bill_java_home`, `inherited_java_home`, `path_java`, `scan`, `unresolved`), the
-  `JAVA_HOME` handed to the child, and any candidate dropped because it pointed inside the
-  runtime image root. `unresolved` is a typed error at the runtime-run gate and a recorded
-  degradation with `JAVA_HOME` left absent at the agent-run launch surface
+  `JAVA_HOME` handed to the child, and every `JAVA_HOME`, `SKILL_BILL_JAVA_HOME`, or `PATH`
+  entry dropped because it pointed inside the runtime image root.
+  `unresolved` is a typed error at the runtime-run gate and a recorded
+  degradation with `JAVA_HOME` left absent at the agent-run launch surface; the `unresolved`
+  record names the rejected candidate and the required major so the degraded launch carries the
+  same attribution as the typed error
+- gate JVM startup failure: a gate command that exits non-zero, parses no findings, and reports a
+  JVM-initialization failure raises `GateJvmStartupFailureException` naming the resolved Java home
+  instead of minting an `unparseable_gate_failure` finding, so an unusable gate JVM surfaces as an
+  environment defect rather than as a repair turn no source edit can clear
 - platform-pack `contract_version` leniency: `CanonicalPlatformPackSchemaValidator.validate`
   when a caller enumerates with `enforceContractVersion=false` (reconcile's LOCAL side and
   installed-workspace baseline status) and a stale `const` violation is tolerated instead of
