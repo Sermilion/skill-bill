@@ -20,6 +20,7 @@ import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import skillbill.ports.workflow.toRecord
 import skillbill.review.context.model.CodeReviewExecutionMode
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.goal.model.GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY
@@ -31,6 +32,8 @@ import skillbill.workflow.goal.model.GoalSubtaskReviewCompactFinding
 import skillbill.workflow.goal.model.GoalSubtaskReviewDisposition
 import skillbill.workflow.goal.model.GoalSubtaskReviewPassResult
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
+import skillbill.workflow.taskruntime.asCheckpointIdentitiesArtifactEntry
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeCheckpointIdentity
@@ -41,6 +44,7 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairReceiptEntry
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.model.REPAIR_RECEIPT_MAX_UNRESOLVED_REASON_UTF8_BYTES
 import skillbill.workflow.taskruntime.model.upsertRepairReceipt
+import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Clock
@@ -52,18 +56,6 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-
-import skillbill.workflow.taskruntime.asCheckpointIdentitiesArtifactEntry
-import skillbill.workflow.taskruntime.asTelemetryPayload
-import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
-import skillbill.workflow.taskruntime.decodeFindingVerificationDispositionFromArtifact
-import skillbill.workflow.taskruntime.decodeImplementationAttemptFromArtifact
-import skillbill.workflow.taskruntime.decodePhaseRecordFromArtifact
-import skillbill.workflow.taskruntime.decodeValidationGateExecutionEvidenceFromArtifact
-import skillbill.workflow.taskruntime.decodeValidationGateProgressFromArtifact
-import skillbill.workflow.taskruntime.envelopeWireMap
-import skillbill.workflow.taskruntime.phaseRecordsFromWorkflowArtifacts
-import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 /**
  * AC-014 and AC-016: the pause data is only useful if it survives the process that wrote it. These
  * drive the real recorder against a workflow store and read the state back, rather than asserting on
@@ -134,7 +126,7 @@ class GoalSubtaskReviewStateDurablePersistenceTest {
         workflowStatus = "running",
         currentStepId = "review",
         stepUpdates = null,
-        artifactsPatch = artifactsPatch,
+        artifactsPatch = WorkflowArtifactPatch.from(artifactsPatch),
         sessionId = "fis-001",
       ),
     ).toRecord()

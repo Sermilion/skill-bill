@@ -55,17 +55,17 @@ fun FeatureImplementSessionSummary.toContract(): FeatureImplementSessionSummaryC
     specSummary = specSummary,
   )
 
-fun FeatureVerifySessionSummary.toContract(): FeatureVerifySessionSummaryContract =
-  FeatureVerifySessionSummaryContract(
-    sessionId = sessionId,
-    acceptanceCriteriaCount = acceptanceCriteriaCount,
-    rolloutRelevant = rolloutRelevant,
-    specSummary = specSummary,
-  )
-
-fun FeatureVerifySessionSummary.toContinueSessionSummary(): WorkflowContinueSessionSummary = WorkflowContinueSessionSummary(
+fun FeatureVerifySessionSummary.toContract(): FeatureVerifySessionSummaryContract = FeatureVerifySessionSummaryContract(
   sessionId = sessionId,
   acceptanceCriteriaCount = acceptanceCriteriaCount,
   rolloutRelevant = rolloutRelevant,
   specSummary = specSummary,
 )
+
+fun FeatureVerifySessionSummary.toContinueSessionSummary(): WorkflowContinueSessionSummary =
+  WorkflowContinueSessionSummary(
+    sessionId = sessionId,
+    acceptanceCriteriaCount = acceptanceCriteriaCount,
+    rolloutRelevant = rolloutRelevant,
+    specSummary = specSummary,
+  )

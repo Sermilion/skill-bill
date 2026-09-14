@@ -129,16 +129,18 @@ internal class WorkflowGoalRunnerOutcomeTerminalPersistence(
             workflowStatus = record.workflowStatus,
             currentStepId = record.currentStepId,
             stepUpdates = null,
-            artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-              "goal_continuation_outcome" to mapOf(
-                SharedPayloadKeys.ISSUE_KEY to issueKey,
-                SharedPayloadKeys.SUBTASK_ID to subtaskId,
-                SharedPayloadKeys.STATUS to "complete",
-                SharedPayloadKeys.WORKFLOW_ID to workflowId,
-                "commit_sha" to outcome.commitSha,
-                "last_resumable_step" to (outcome.lastResumableStep ?: "commit_push"),
+            artifactsPatch = WorkflowArtifactPatch.from(
+              mapOf(
+                "goal_continuation_outcome" to mapOf(
+                  SharedPayloadKeys.ISSUE_KEY to issueKey,
+                  SharedPayloadKeys.SUBTASK_ID to subtaskId,
+                  SharedPayloadKeys.STATUS to "complete",
+                  SharedPayloadKeys.WORKFLOW_ID to workflowId,
+                  "commit_sha" to outcome.commitSha,
+                  "last_resumable_step" to (outcome.lastResumableStep ?: "commit_push"),
+                ),
               ),
-            )),
+            ),
             sessionId = record.sessionId.orEmpty(),
           ),
         )

@@ -1,10 +1,10 @@
 package skillbill.workflow.decomposition
 
 import skillbill.error.InvalidDecompositionManifestSchemaError
-import skillbill.workflow.engine.model.DecompositionManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationFailureCode
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationResult
+import skillbill.workflow.engine.model.DecompositionManifestWireMap
 
 /**
  * SKILL-52.3 Subtask 1: domain-owned validator port for decomposition

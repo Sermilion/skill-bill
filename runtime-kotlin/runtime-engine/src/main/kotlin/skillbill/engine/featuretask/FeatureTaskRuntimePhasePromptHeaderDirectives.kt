@@ -1,5 +1,4 @@
 package skillbill.engine.featuretask
-
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseLaunchBriefing
 import skillbill.engine.featuretask.model.PhasePromptHeaderInputs
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition

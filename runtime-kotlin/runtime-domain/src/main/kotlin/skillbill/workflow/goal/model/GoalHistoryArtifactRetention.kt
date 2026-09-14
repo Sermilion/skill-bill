@@ -2,11 +2,7 @@ package skillbill.workflow.goal.model
 
 import skillbill.contracts.JsonCodec
 
-fun appendBoundedHistoryBySequence(
-  existing: List<Any>,
-  entry: Any,
-  retentionLimit: Int,
-): List<Any> {
+fun appendBoundedHistoryBySequence(existing: List<Any>, entry: Any, retentionLimit: Int): List<Any> {
   val existingMaps = existing.map { item ->
     JsonCodec.anyToStringAnyMap(item)
       ?: throw IllegalArgumentException("Bounded history entry must decode to an object.")

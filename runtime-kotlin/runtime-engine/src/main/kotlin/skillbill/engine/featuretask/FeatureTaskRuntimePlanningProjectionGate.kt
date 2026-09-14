@@ -1,5 +1,4 @@
 package skillbill.engine.featuretask
-
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.InvalidGoalPlanningPreparationSchemaError
 import skillbill.workflow.model.WorkflowStepStatus

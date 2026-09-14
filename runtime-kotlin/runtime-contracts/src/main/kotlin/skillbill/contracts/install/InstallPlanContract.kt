@@ -13,8 +13,7 @@ class InstallPlanContract private constructor(
   }
 }
 
-fun installPlanContractPayload(wire: Map<String, Any?>): Map<String, Any?> =
-  InstallPlanContract.wrap(wire).toPayload()
+fun installPlanContractPayload(wire: Map<String, Any?>): Map<String, Any?> = InstallPlanContract.wrap(wire).toPayload()
 
 fun installPlanContractStatusPlanned(): String = InstallPlanPayloadKeys.PLANNED_STATUS
 

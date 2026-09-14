@@ -1,5 +1,7 @@
 package skillbill.engine.featuretask
 
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.decodeImplementationAttemptFromArtifact
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeImplementationAttempt
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeImplementationAttemptStatus
 import kotlin.test.Test
@@ -7,18 +9,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-
-import skillbill.workflow.taskruntime.asCheckpointIdentitiesArtifactEntry
-import skillbill.workflow.taskruntime.asTelemetryPayload
-import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
-import skillbill.workflow.taskruntime.decodeFindingVerificationDispositionFromArtifact
-import skillbill.workflow.taskruntime.decodeImplementationAttemptFromArtifact
-import skillbill.workflow.taskruntime.decodePhaseRecordFromArtifact
-import skillbill.workflow.taskruntime.decodeValidationGateExecutionEvidenceFromArtifact
-import skillbill.workflow.taskruntime.decodeValidationGateProgressFromArtifact
-import skillbill.workflow.taskruntime.envelopeWireMap
-import skillbill.workflow.taskruntime.phaseRecordsFromWorkflowArtifacts
-import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 class FeatureTaskRuntimeImplementationContinuationTest {
   @Test
   fun `no prior attempt yields no continuation`() {

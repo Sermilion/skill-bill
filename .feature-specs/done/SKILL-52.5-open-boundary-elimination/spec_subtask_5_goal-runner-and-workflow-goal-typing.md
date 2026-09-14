@@ -1,6 +1,6 @@
 # SKILL-52.5 · Subtask 5 — Goal runner and workflow goal typing
 
-Parent spec: [.feature-specs/SKILL-52.5-open-boundary-elimination/spec.md](./spec.md)
+Parent spec: [.feature-specs/SKILL-52.5-open-boundary-elimination/spec.md](spec.md)
 Issue key: SKILL-52.5
 Subtask order: 5 of 7
 Depends on: subtask 4
@@ -60,4 +60,4 @@ Out of scope:
 
 ## Next Path
 
-`.feature-specs/SKILL-52.5-open-boundary-elimination/spec_subtask_6_application-workflow-telemetry-and-remainder.md`
+`spec_subtask_6_application-workflow-telemetry-and-remainder.md`

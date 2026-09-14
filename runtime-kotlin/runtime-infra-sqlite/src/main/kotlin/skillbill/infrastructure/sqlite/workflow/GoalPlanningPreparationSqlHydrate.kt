@@ -2,10 +2,10 @@ package skillbill.infrastructure.sqlite.workflow
 
 import skillbill.contracts.JsonCodec
 import skillbill.error.InvalidGoalPlanningPreparationSchemaError
+import skillbill.infrastructure.sqlite.featuretask.artifact.encodeWorkflowArtifact
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationState
 import skillbill.ports.goalrunner.model.GoalSubtaskPlanCheckpoint
 import skillbill.ports.goalrunner.model.SharedGoalPreplanCheckpoint
-import skillbill.infrastructure.sqlite.featuretask.artifact.encodeWorkflowArtifact
 import skillbill.workflow.taskruntime.decodePhaseOutputRepairEvidenceFromArtifact
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairEvidence
 import java.sql.ResultSet

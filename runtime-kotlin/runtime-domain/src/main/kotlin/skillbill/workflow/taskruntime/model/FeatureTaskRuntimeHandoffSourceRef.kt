@@ -1,6 +1,5 @@
 package skillbill.workflow.taskruntime.model
 
-
 sealed interface FeatureTaskRuntimeHandoffSourceRef {
   val wireValue: String
 

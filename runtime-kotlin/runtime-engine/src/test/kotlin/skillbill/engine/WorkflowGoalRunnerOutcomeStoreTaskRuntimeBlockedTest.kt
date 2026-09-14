@@ -1,8 +1,8 @@
 package skillbill.engine
 import skillbill.application.FakeDatabaseSessionFactory
 import skillbill.application.InMemoryWorkflowStates
-import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.testWorkflowSnapshotValidator
+import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.engine.goalrunner.testWorkflowGoalRunnerOutcomeStore
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
 import skillbill.ports.goalrunner.runner.model.GoalRunnerReconcileGate

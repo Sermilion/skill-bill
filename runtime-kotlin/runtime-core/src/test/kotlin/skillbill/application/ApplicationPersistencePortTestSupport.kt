@@ -1,7 +1,4 @@
 package skillbill.application
-import skillbill.workflow.engine.model.WorkflowStepUpdates
-import skillbill.workflow.engine.model.WorkflowArtifactPatch
-
 import skillbill.application.decomposition.DecompositionManifestWriter
 import skillbill.application.decomposition.loadDecompositionManifest
 import skillbill.application.review.ReviewService
@@ -17,6 +14,7 @@ import skillbill.application.workflow.model.WorkflowServiceOpenFeatureTaskArgs
 import skillbill.application.workflow.model.WorkflowUpdateRequest
 import skillbill.application.workflow.openFeatureTask
 import skillbill.contracts.JsonCodec
+import skillbill.contracts.decomposition.DecompositionPlanningResult
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION
 import skillbill.engine.featuretask.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.featureTaskRuntimePhaseRecorder
@@ -96,14 +94,15 @@ import skillbill.telemetry.model.GoalStartedRecord
 import skillbill.telemetry.model.GoalSubtaskFinishedRecord
 import skillbill.telemetry.model.RemoteStatsRequest
 import skillbill.telemetry.model.TelemetryConfigDocument
-import skillbill.workflow.engine.model.TelemetryOpenDocument
 import skillbill.telemetry.model.TelemetryProxyCapabilities
 import skillbill.telemetry.model.TelemetryRemoteStatsResult
 import skillbill.telemetry.model.TelemetrySettings
+import skillbill.workflow.engine.model.TelemetryOpenDocument
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
+import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.goal.NoopGoalObservabilityEventValidator
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
-import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_BRIEFINGS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
@@ -120,6 +119,7 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeProjectionMeasurement
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepositoryCheckpoint
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeSharedEvidenceMeasurement
+import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 import java.lang.Boolean.TYPE
 import java.lang.reflect.Method
 import java.lang.reflect.Proxy
@@ -622,8 +622,7 @@ internal object FakeTelemetryConfigStore : TelemetryConfigStore {
 
   override fun read(): TelemetryConfigDocument? = null
 
-  override fun ensure(): TelemetryConfigDocument =
-    TelemetryConfigDocument(TelemetryOpenDocument.from(emptyMap()))
+  override fun ensure(): TelemetryConfigDocument = TelemetryConfigDocument(TelemetryOpenDocument.from(emptyMap()))
 
   override fun write(document: TelemetryConfigDocument) = Unit
 }
@@ -703,17 +702,19 @@ internal fun blockedGoalChildRetryFixture(): BlockedGoalChildRetryFixture {
       workflowStatus = "running",
       currentStepId = "preplan",
       stepUpdates = null,
-      artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-        FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY to
-          FeatureTaskRuntimeGoalContinuationArtifact(
-            issueKey = "SKILL-51",
-            subtaskId = 1,
-            suppressPr = true,
-            goalBranch = "feat/SKILL-51-demo",
-            parentWorkflowId = parentWorkflowId,
-            codeReviewMode = CodeReviewExecutionMode.INLINE,
-          ).asWorkflowArtifactEntry().toWorkflowArtifactMap(),
-      )),
+      artifactsPatch = WorkflowArtifactPatch.from(
+        mapOf(
+          FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY to
+            FeatureTaskRuntimeGoalContinuationArtifact(
+              issueKey = "SKILL-51",
+              subtaskId = 1,
+              suppressPr = true,
+              goalBranch = "feat/SKILL-51-demo",
+              parentWorkflowId = parentWorkflowId,
+              codeReviewMode = CodeReviewExecutionMode.INLINE,
+            ).asWorkflowArtifactEntry().toWorkflowArtifactMap(),
+        ),
+      ),
     ),
   )
   testPhaseRecorder(database).recordRuntimePhase(
@@ -745,7 +746,11 @@ internal fun createDecompositionWorkflow(
   subtaskTwo: Path?,
   executionModel: String = "same_branch_commit_per_subtask",
 ): String {
-  val opened = service.openTestFeatureTask(WorkflowFamilyKind.TASK_RUNTIME, sessionId = "ftr-001")
+  val opened = service.openTestFeatureTask(
+    WorkflowFamilyKind.TASK_RUNTIME,
+    sessionId = "ftr-001",
+    issueKey = "SKILL-51",
+  )
     as WorkflowOpenResult.Ok
   val workflowId = opened.workflowId
   service.update(
@@ -754,8 +759,15 @@ internal fun createDecompositionWorkflow(
       workflowId = workflowId,
       workflowStatus = "running",
       currentStepId = "plan",
-      stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1))),
+      stepUpdates = WorkflowStepUpdates.from(
+        listOf(
+          mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1),
+        ),
+      ),
       artifactsPatch = decompositionPlanPatch(parentSpec, subtaskOne, subtaskTwo, executionModel),
+      planningResult = decompositionPlanningResultFromPatch(
+        decompositionPlanPatch(parentSpec, subtaskOne, subtaskTwo, executionModel),
+      ),
     ),
   )
   return workflowId
@@ -768,14 +780,20 @@ internal fun markDecompositionSubtaskBlocked(service: WorkflowService, workflowI
       workflowId = workflowId,
       workflowStatus = "blocked",
       currentStepId = "validate",
-      stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "validate", "status" to "blocked", "attempt_count" to 1))),
+      stepUpdates = WorkflowStepUpdates.from(
+        listOf(
+          mapOf("step_id" to "validate", "status" to "blocked", "attempt_count" to 1),
+        ),
+      ),
       artifactsPatch =
-      WorkflowArtifactPatch.from(mapOf(
-        "assessment" to mapOf("spec_path" to subtaskSpec.toString()),
-        FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to completedPhaseRecords("plan", "audit"),
-        "validation_result" to mapOf("passed" to false),
-        "blocked_reason" to "Validation failed.",
-      )),
+      WorkflowArtifactPatch.from(
+        mapOf(
+          "assessment" to mapOf("spec_path" to subtaskSpec.toString()),
+          FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to completedPhaseRecords("plan", "audit"),
+          "validation_result" to mapOf("passed" to false),
+          "blocked_reason" to "Validation failed.",
+        ),
+      ),
     ),
   )
 }
@@ -787,11 +805,17 @@ internal fun markDecompositionSubtaskSkipped(service: WorkflowService, workflowI
       workflowId = workflowId,
       workflowStatus = "running",
       currentStepId = "pr",
-      stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "pr", "status" to "skipped", "attempt_count" to 1))),
-      artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-        "assessment" to mapOf("spec_path" to subtaskSpec.toString()),
-        FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to completedPhaseRecords("implement", "commit_push"),
-      )),
+      stepUpdates = WorkflowStepUpdates.from(
+        listOf(
+          mapOf("step_id" to "pr", "status" to "skipped", "attempt_count" to 1),
+        ),
+      ),
+      artifactsPatch = WorkflowArtifactPatch.from(
+        mapOf(
+          "assessment" to mapOf("spec_path" to subtaskSpec.toString()),
+          FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to completedPhaseRecords("implement", "commit_push"),
+        ),
+      ),
     ),
   )
 }
@@ -803,11 +827,17 @@ internal fun markDecompositionSubtaskComplete(service: WorkflowService, workflow
       workflowId = workflowId,
       workflowStatus = "completed",
       currentStepId = "pr",
-      stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "pr", "status" to "completed", "attempt_count" to 1))),
-      artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-        "assessment" to mapOf("spec_path" to subtaskSpec.toString()),
-        FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to completedPhaseRecords("implement", "commit_push"),
-      )),
+      stepUpdates = WorkflowStepUpdates.from(
+        listOf(
+          mapOf("step_id" to "pr", "status" to "completed", "attempt_count" to 1),
+        ),
+      ),
+      artifactsPatch = WorkflowArtifactPatch.from(
+        mapOf(
+          "assessment" to mapOf("spec_path" to subtaskSpec.toString()),
+          FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to completedPhaseRecords("implement", "commit_push"),
+        ),
+      ),
     ),
   )
 }
@@ -866,11 +896,20 @@ internal fun decompositionPlanPatch(
       mapOf("subtask_id" to 2, "branch" to "feat/SKILL-51-demo-2", "base_branch" to "feat/SKILL-51-demo-1"),
     ).take(subtasks.size)
   }
-  return WorkflowArtifactPatch.from(mapOf(
-    "branch" to mapOf("branch" to "feat/SKILL-51-demo"),
-    "plan" to plan,
-  ))!!
+  return WorkflowArtifactPatch.from(
+    mapOf(
+      "branch" to mapOf("branch" to "feat/SKILL-51-demo"),
+      "plan" to plan,
+    ),
+  )!!
 }
+
+internal fun decompositionPlanningResultFromPatch(patch: WorkflowArtifactPatch): DecompositionPlanningResult =
+  DecompositionPlanningResult.fromWireMap(
+    requireNotNull(JsonCodec.anyToStringAnyMap(patch["plan"])) {
+      "Decomposition plan artifact is required."
+    },
+  )
 
 internal fun writeSpecs(parentSpec: Path, vararg subtasks: Path) {
   Files.createDirectories(parentSpec.parent)

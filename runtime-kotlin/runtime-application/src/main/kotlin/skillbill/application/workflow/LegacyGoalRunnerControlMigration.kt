@@ -2,14 +2,13 @@ package skillbill.application.workflow
 
 import skillbill.agentaddon.model.AgentAddonSelection
 import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
-import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.contracts.JsonCodec
-import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.ports.goalrunner.GoalRunnerPersistenceSession
 import skillbill.ports.goalrunner.runner.model.GoalRunnerOutOfBandAcceptance
 import skillbill.ports.goalrunner.runner.model.GoalRunnerReviewPolicy
 import skillbill.review.context.model.CodeReviewExecutionMode
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 
 const val GOAL_REVIEW_POLICY_ARTIFACT_KEY = "goal_review_policy"
@@ -52,7 +51,9 @@ fun reviewPolicyFromLegacyArtifacts(artifacts: DurableWorkflowArtifacts): GoalRu
   return GoalRunnerReviewPolicy(codeReviewMode, agentAddonSelection)
 }
 
-fun outOfBandAcceptancesFromLegacyArtifacts(artifacts: DurableWorkflowArtifacts): Map<Int, GoalRunnerOutOfBandAcceptance> {
+fun outOfBandAcceptancesFromLegacyArtifacts(
+  artifacts: DurableWorkflowArtifacts,
+): Map<Int, GoalRunnerOutOfBandAcceptance> {
   val raw = artifacts[GOAL_OUT_OF_BAND_ACCEPTANCE_ARTIFACT_KEY] ?: return emptyMap()
   val entries = raw as? List<*>
     ?: error("Goal acceptance artifact '$GOAL_OUT_OF_BAND_ACCEPTANCE_ARTIFACT_KEY' must be a list.")

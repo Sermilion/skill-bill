@@ -1,7 +1,4 @@
 package skillbill.engine.featuretask
-
-import skillbill.workflow.taskruntime.*
-
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.engine.featuretask.model.CompletedUpstreamRepairRequest
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
@@ -10,6 +7,7 @@ import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT
@@ -64,22 +62,24 @@ fun completedUpstreamRepairWorkflowUpdate(
       )
     },
   ),
-  artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-    FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to
-      reopenedRecords.mapValues { (_, record) -> record.asWorkflowArtifactEntry() },
-    FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY to
-      (request.ledger.map { it.asWorkflowArtifactEntry() } + retryEntry.asWorkflowArtifactEntry()).takeLast(
-        FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT,
+  artifactsPatch = WorkflowArtifactPatch.from(
+    mapOf(
+      FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to
+        reopenedRecords.mapValues { (_, record) -> record.asWorkflowArtifactEntry() },
+      FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY to
+        (request.ledger.map { it.asWorkflowArtifactEntry() } + retryEntry.asWorkflowArtifactEntry()).takeLast(
+          FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT,
+        ),
+      FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_ARTIFACT_KEY to mapOf(
+        SharedPayloadKeys.PHASE_ID to request.resumePhaseId,
+        "reason" to request.reason,
+        "retried_at" to OffsetDateTime.now(ZoneOffset.UTC).toString(),
+        "previous_blocked_reason" to "completed_upstream_missing_output",
+        "reopened_phase_ids" to phasesToReopen,
       ),
-    FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_ARTIFACT_KEY to mapOf(
-      SharedPayloadKeys.PHASE_ID to request.resumePhaseId,
-      "reason" to request.reason,
-      "retried_at" to OffsetDateTime.now(ZoneOffset.UTC).toString(),
-      "previous_blocked_reason" to "completed_upstream_missing_output",
-      "reopened_phase_ids" to phasesToReopen,
+      "goal_continuation_outcome" to null,
     ),
-    "goal_continuation_outcome" to null,
-  )),
+  ),
   sessionId = "",
 )
 

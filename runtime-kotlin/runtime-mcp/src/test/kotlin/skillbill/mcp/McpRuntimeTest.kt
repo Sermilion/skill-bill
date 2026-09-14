@@ -836,18 +836,20 @@ private fun markVerifyWorkflowVerdictBlocked(workflowId: String, context: McpRun
       stepUpdates = WorkflowStepUpdates.from(
         listOf(mapOf("step_id" to "verdict", "status" to "blocked", "attempt_count" to 1)),
       ),
-      artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-        "diff_projection" to mapOf(
-          "checkpoint" to GitWorkflowGitOperations()
-            .repositoryFingerprint(CanonicalRepositoryRoot.enclosingRepositoryRoot(Path.of(""))).value,
-          "comparison_scope" to "base..head",
-          "changed_files" to emptyList<String>(),
+      artifactsPatch = WorkflowArtifactPatch.from(
+        mapOf(
+          "diff_projection" to mapOf(
+            "checkpoint" to GitWorkflowGitOperations()
+              .repositoryFingerprint(CanonicalRepositoryRoot.enclosingRepositoryRoot(Path.of(""))).value,
+            "comparison_scope" to "base..head",
+            "changed_files" to emptyList<String>(),
+          ),
+          "feature_flag_audit_receipt" to evaluatorReceipt(),
+          "code_review_receipt" to evaluatorReceipt(),
+          "unit_test_value_receipt" to evaluatorReceipt(),
+          "completeness_audit_receipt" to evaluatorReceipt(),
         ),
-        "feature_flag_audit_receipt" to evaluatorReceipt(),
-        "code_review_receipt" to evaluatorReceipt(),
-        "unit_test_value_receipt" to evaluatorReceipt(),
-        "completeness_audit_receipt" to evaluatorReceipt(),
-      )),
+      ),
     ),
     context = context,
   )

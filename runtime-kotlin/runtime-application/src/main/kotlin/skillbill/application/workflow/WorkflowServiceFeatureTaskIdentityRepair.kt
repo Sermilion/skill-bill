@@ -3,6 +3,7 @@ package skillbill.application.workflow
 import skillbill.application.workflow.model.FeatureTaskIdentityRepairArgs
 import skillbill.application.workflow.model.WorkflowUpdateResult
 import skillbill.contracts.issuekey.normalizeIssueKey
+import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.FeatureTaskExecutionIdentityPolicy
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.FeatureTaskExecutionIdentity
@@ -11,6 +12,7 @@ import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.save
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
+import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.engine.model.isTerminalStatus
 import skillbill.workflow.model.workflowStatus
@@ -24,9 +26,6 @@ class WorkflowServiceFeatureTaskIdentityRepair(
     val unitOfWork = args.unitOfWork
     val workflowId = args.workflowId
     val normalizedIssueKey = args.normalizedIssueKey
-    val repositoryIdentity = args.repositoryIdentity
-    val governedSpecPath = args.governedSpecPath
-    val normalizedReason = args.normalizedReason
     val family = WorkflowFamily.TASK_RUNTIME
     val workflowRow = unitOfWork.workflowStates.getFeatureTaskRuntimeWorkflow(workflowId)
       ?: return WorkflowUpdateResult.Error(
@@ -51,34 +50,41 @@ class WorkflowServiceFeatureTaskIdentityRepair(
         unitOfWork.dbPath.toString(),
       )
     }
+    persistIdentity(unitOfWork, args)
+    val input = repairInput(existing, args)
+    val updated = engine.updateRecord(family.definition, existing, input)
+    family.save(unitOfWork.workflowStates, updated)
+    return buildUpdateOk(engine, family.definition, updated, input, unitOfWork.dbPath.toString())
+  }
+
+  private fun persistIdentity(unitOfWork: UnitOfWork, args: FeatureTaskIdentityRepairArgs) {
     val identity = FeatureTaskExecutionIdentity(
-      workflowId = workflowId,
-      normalizedIssueKey = normalizedIssueKey,
-      repositoryIdentity = repositoryIdentity,
-      governedSpecPath = governedSpecPath,
+      workflowId = args.workflowId,
+      normalizedIssueKey = args.normalizedIssueKey,
+      repositoryIdentity = args.repositoryIdentity,
+      governedSpecPath = args.governedSpecPath,
       mode = FeatureTaskWorkflowMode.RUNTIME,
       routeScope = FeatureTaskRouteScope.STANDALONE,
     )
     FeatureTaskExecutionIdentityPolicy.validate(identity)
     unitOfWork.workflowStates.saveFeatureTaskExecutionIdentity(identity)
-    val input = WorkflowUpdateInput(
+  }
+
+  private fun repairInput(existing: WorkflowStateSnapshot, args: FeatureTaskIdentityRepairArgs): WorkflowUpdateInput =
+    WorkflowUpdateInput(
       workflowStatus = existing.workflowStatus,
       currentStepId = existing.currentStepId.orEmpty(),
       stepUpdates = null,
       artifactsPatch = WorkflowArtifactPatch.from(
         mapOf(
           FEATURE_TASK_RUNTIME_IDENTITY_REPAIR_ARTIFACT_KEY to mapOf(
-            "reason" to normalizedReason,
+            "reason" to args.normalizedReason,
             "repaired_at" to OffsetDateTime.now(ZoneOffset.UTC).toString(),
-            "repository_identity" to repositoryIdentity,
-            "governed_spec_path" to governedSpecPath,
+            "repository_identity" to args.repositoryIdentity,
+            "governed_spec_path" to args.governedSpecPath,
           ),
         ),
       ),
       sessionId = "",
     )
-    val updated = engine.updateRecord(family.definition, existing, input)
-    family.save(unitOfWork.workflowStates, updated)
-    return buildUpdateOk(engine, family.definition, updated, input, unitOfWork.dbPath.toString())
-  }
 }

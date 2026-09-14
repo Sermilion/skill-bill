@@ -1,6 +1,5 @@
 package skillbill.engine.goalrunner
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.engine.goalrunner.model.GoalContinuationCandidate
@@ -48,7 +47,6 @@ fun staleRunningReason(
     "subtask $subtaskId because it was no longer active."
   )
 
-@OpenBoundaryMap("Missing result-prefix terminal outcome artifact reconstruction")
 fun missingResultPrefixTerminalOutcomeArtifact(
   output: Map<String, Any?>,
   issueKey: String,
@@ -92,7 +90,6 @@ fun Map<String, Any?>.toMissingResultPrefixOutcomeArtifact(
 
 fun GoalRunnerTerminalStatus.toGoalContinuationWireStatus(): String = wireValue
 
-@OpenBoundaryMap("Bounded history sequence scan over durable workflow artifacts")
 fun maxHistorySequence(artifacts: Map<String, Any?>, historyKey: String, current: Int?): Int? {
   val entries = (artifacts[historyKey] as? List<*>).orEmpty()
   var max = current

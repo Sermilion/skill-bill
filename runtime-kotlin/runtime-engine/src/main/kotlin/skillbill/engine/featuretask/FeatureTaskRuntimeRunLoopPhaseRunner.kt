@@ -1,5 +1,4 @@
 package skillbill.engine.featuretask
-
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
 import skillbill.engine.featuretask.model.GoalSubtaskReviewInputBlocked
 import skillbill.engine.featuretask.model.GoalSubtaskReviewInputPreparation

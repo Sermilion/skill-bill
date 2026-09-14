@@ -32,12 +32,16 @@ class FeatureTaskRuntimePhaseLaunchBriefingSerializationTest {
   fun `a briefing round trips through the durable artifact map`() {
     val briefing = briefing()
 
-    assertEquals(briefing, FeatureTaskRuntimePhaseLaunchBriefing.fromBriefingArtifactWire(briefing.briefingArtifactWireMap()))
+    assertEquals(
+      briefing,
+      FeatureTaskRuntimePhaseLaunchBriefing.fromBriefingArtifactWire(briefing.briefingArtifactWireMap()),
+    )
   }
 
   @Test
   fun `a legacy row carrying the removed upstream payload map loud-fails instead of migrating silently`() {
-    val legacyRow = briefing().briefingArtifactWireMap() + ("upstream_outputs_by_phase_id" to mapOf("plan" to "raw payload"))
+    val legacyRow = briefing().briefingArtifactWireMap() +
+      ("upstream_outputs_by_phase_id" to mapOf("plan" to "raw payload"))
 
     val error = assertFailsWith<InvalidWorkflowStateSchemaError> {
       FeatureTaskRuntimePhaseLaunchBriefing.fromBriefingArtifactWire(legacyRow)

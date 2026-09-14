@@ -1,5 +1,4 @@
 package skillbill.engine.goalrunner.planning
-
 import skillbill.engine.featuretask.FeatureTaskRuntimePhaseBriefingAssembler
 import skillbill.engine.featuretask.FeatureTaskRuntimePhasePromptComposer
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhasePromptComposeInputs

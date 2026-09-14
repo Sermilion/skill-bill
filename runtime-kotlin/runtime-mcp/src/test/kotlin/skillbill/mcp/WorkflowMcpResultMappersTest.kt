@@ -6,10 +6,10 @@ import skillbill.contracts.JsonCodec
 import skillbill.error.InvalidGoalObservabilityEventSchemaError
 import skillbill.infrastructure.fs.contracts.workflow.GoalObservabilityEventSchemaValidator
 import skillbill.mcp.workflow.toMcpMap
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowSnapshotView
 import skillbill.workflow.engine.model.WorkflowStepState
 import skillbill.workflow.engine.model.WorkflowUpdateAcknowledgementView
-import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.goal.GoalObservabilityEventValidator
 import kotlin.test.Test
 import kotlin.test.assertEquals

@@ -8,6 +8,7 @@ import skillbill.application.telemetry.model.GoalSubtaskFinishedRequest
 import skillbill.application.telemetry.model.QualityCheckFinishedRequest
 import skillbill.application.telemetry.model.QualityCheckStartedRequest
 import skillbill.application.telemetry.settings.telemetrySettingsOrNull
+import skillbill.contracts.JsonPayloadContract
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.telemetry.TelemetrySettingsProvider
 import skillbill.review.normalizeRoutedSkill
@@ -16,7 +17,6 @@ import skillbill.telemetry.model.TelemetrySettings
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStatus
-import skillbill.contracts.JsonPayloadContract
 import skillbill.workflow.model.workflowStepStatus
 
 class LifecycleTelemetryGoalEmission(

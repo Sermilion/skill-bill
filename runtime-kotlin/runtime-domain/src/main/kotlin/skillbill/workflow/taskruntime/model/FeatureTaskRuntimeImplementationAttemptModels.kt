@@ -117,7 +117,9 @@ internal fun featureTaskRuntimeImplementationAttemptRecordToWire(
   SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_IMPLEMENTATION_ATTEMPT_CONTRACT_VERSION,
   "attempts" to attempts.map { it.toArtifactMap() },
 )
-internal fun featureTaskRuntimeImplementationAttemptsFromWire(raw: Any?): List<FeatureTaskRuntimeImplementationAttempt> {
+internal fun featureTaskRuntimeImplementationAttemptsFromWire(
+  raw: Any?,
+): List<FeatureTaskRuntimeImplementationAttempt> {
   val map = raw as? Map<*, *>
     ?: implementationAttemptError("Feature-task-runtime implementation-attempt record must be an object.")
   val version = map[SharedPayloadKeys.CONTRACT_VERSION]

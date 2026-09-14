@@ -2,6 +2,7 @@ package skillbill.workflow.engine.model
 
 import skillbill.contracts.JsonCodec
 import skillbill.error.InvalidWorkflowStateSchemaError
+import skillbill.review.context.ReviewContextWireMap as ReviewContextWireMapType
 
 class WorkflowStepUpdates private constructor(
   private val entries: List<Map<String, Any?>>,
@@ -9,8 +10,7 @@ class WorkflowStepUpdates private constructor(
   fun asEntries(): List<Map<String, Any?>> = entries
 
   companion object {
-    fun from(entries: List<Map<String, Any?>>?): WorkflowStepUpdates? =
-      entries?.let { WorkflowStepUpdates(it) }
+    fun from(entries: List<Map<String, Any?>>?): WorkflowStepUpdates? = entries?.let { WorkflowStepUpdates(it) }
 
     val EMPTY: WorkflowStepUpdates = WorkflowStepUpdates(emptyList())
   }
@@ -22,8 +22,7 @@ class WorkflowArtifactPatch private constructor(
   internal fun toMutableMap(): MutableMap<String, Any?> = LinkedHashMap(delegate)
 
   companion object {
-    fun from(map: Map<String, Any?>?): WorkflowArtifactPatch? =
-      map?.let { WorkflowArtifactPatch(LinkedHashMap(it)) }
+    fun from(map: Map<String, Any?>?): WorkflowArtifactPatch? = map?.let { WorkflowArtifactPatch(LinkedHashMap(it)) }
 
     val EMPTY: WorkflowArtifactPatch = WorkflowArtifactPatch(emptyMap())
   }
@@ -33,8 +32,7 @@ class WorkflowContinuationFieldMap private constructor(
   private val delegate: Map<String, Any?>,
 ) : Map<String, Any?> by delegate {
   companion object {
-    fun from(map: Map<String, Any?>): WorkflowContinuationFieldMap =
-      WorkflowContinuationFieldMap(LinkedHashMap(map))
+    fun from(map: Map<String, Any?>): WorkflowContinuationFieldMap = WorkflowContinuationFieldMap(LinkedHashMap(map))
 
     val EMPTY: WorkflowContinuationFieldMap = WorkflowContinuationFieldMap(emptyMap())
   }
@@ -44,8 +42,7 @@ class WorkflowStepArtifactMap private constructor(
   private val delegate: Map<String, Any?>,
 ) : Map<String, Any?> by delegate {
   companion object {
-    fun from(map: Map<String, Any?>): WorkflowStepArtifactMap =
-      WorkflowStepArtifactMap(LinkedHashMap(map))
+    fun from(map: Map<String, Any?>): WorkflowStepArtifactMap = WorkflowStepArtifactMap(LinkedHashMap(map))
 
     val EMPTY: WorkflowStepArtifactMap = WorkflowStepArtifactMap(emptyMap())
   }
@@ -74,14 +71,12 @@ class DecompositionManifestWireMap private constructor(
   private val delegate: Map<String, Any?>,
 ) : Map<String, Any?> by delegate {
   companion object {
-    fun from(map: Map<String, Any?>): DecompositionManifestWireMap =
-      DecompositionManifestWireMap(LinkedHashMap(map))
+    fun from(map: Map<String, Any?>): DecompositionManifestWireMap = DecompositionManifestWireMap(LinkedHashMap(map))
 
-    fun fromAny(raw: Any?): DecompositionManifestWireMap =
-      from(
-        JsonCodec.anyToStringAnyMap(raw)
-          ?: throw InvalidWorkflowStateSchemaError("Decomposition manifest wire map must decode to an object."),
-      )
+    fun fromAny(raw: Any?): DecompositionManifestWireMap = from(
+      JsonCodec.anyToStringAnyMap(raw)
+        ?: throw InvalidWorkflowStateSchemaError("Decomposition manifest wire map must decode to an object."),
+    )
   }
 }
 
@@ -101,9 +96,15 @@ class TelemetryOpenDocument private constructor(
   companion object {
     fun from(map: Map<String, Any?>): TelemetryOpenDocument = TelemetryOpenDocument(LinkedHashMap(map))
   }
+
+  override fun equals(other: Any?): Boolean = other is TelemetryOpenDocument && delegate == other.delegate
+
+  override fun hashCode(): Int = delegate.hashCode()
+
+  override fun toString(): String = delegate.toString()
 }
 
-typealias ReviewContextWireMap = skillbill.review.context.ReviewContextWireMap
+typealias ReviewContextWireMap = ReviewContextWireMapType
 
 class GovernedReviewJsonRpcArguments private constructor(
   private val delegate: Map<String, Any?>,

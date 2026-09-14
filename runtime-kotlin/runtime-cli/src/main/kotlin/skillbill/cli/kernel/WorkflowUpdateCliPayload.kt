@@ -10,8 +10,12 @@ import skillbill.contracts.SharedPayloadKeys
  * `runtime-cli/src/test/resources/golden/cli-verify-workflow-show.json` locks it.
  */
 internal fun WorkflowUpdateResult.toPayload(): Map<String, Any?> = when (this) {
-  is WorkflowUpdateResult.Ok -> LinkedHashMap(WorkflowWireProjections.updateAcknowledgementMap(acknowledgement).toPayload()).apply {
-    launchProjection?.let { put("launch_projection", WorkflowWireProjections.inputProjectionMap(it).toPayload()) }
+  is WorkflowUpdateResult.Ok -> LinkedHashMap(
+    WorkflowWireProjections.updateAcknowledgementMap(acknowledgement).toPayload(),
+  ).apply {
+    launchProjection?.let {
+      put("launch_projection", WorkflowWireProjections.inputProjectionMap(it).toPayload())
+    }
     val quotedDbPath = "'${dbPath.replace("'", "'\"'\"'")}'"
     val quotedWorkflowId = "'${acknowledgement.workflowId.replace("'", "'\"'\"'")}'"
     put(

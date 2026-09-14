@@ -1,16 +1,4 @@
 package skillbill.engine.featuretask
-import skillbill.workflow.engine.model.WorkflowArtifactPatch
-import skillbill.workflow.taskruntime.asCheckpointIdentitiesArtifactEntry
-import skillbill.workflow.taskruntime.asTelemetryPayload
-import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
-import skillbill.workflow.taskruntime.decodeFindingVerificationDispositionFromArtifact
-import skillbill.workflow.taskruntime.decodeImplementationAttemptFromArtifact
-import skillbill.workflow.taskruntime.decodePhaseRecordFromArtifact
-import skillbill.workflow.taskruntime.decodeValidationGateExecutionEvidenceFromArtifact
-import skillbill.workflow.taskruntime.decodeValidationGateProgressFromArtifact
-import skillbill.workflow.taskruntime.envelopeWireMap
-import skillbill.workflow.taskruntime.phaseRecordsFromWorkflowArtifacts
-import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 import skillbill.application.testHarnessClock
 import skillbill.application.testWorkflowSnapshotValidator
 import skillbill.application.workflow.model.WorkflowFamily
@@ -25,6 +13,7 @@ import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.ports.workflow.toRecord
 import skillbill.review.context.model.CodeReviewExecutionMode
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
@@ -220,14 +209,16 @@ class FeatureTaskRuntimeGoalContinuationAdoptionPersistenceTest {
         workflowStatus = "running",
         currentStepId = "preplan",
         stepUpdates = null,
-        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-          FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY to continuationMap,
-          GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to GoalSubtaskReviewState.initial(
-            reviewBaseSha = baselineSha,
-            baselineUntrackedPaths = emptyList(),
-            codeReviewMode = CodeReviewExecutionMode.INLINE,
-          ).toPersistenceWire(),
-        )),
+        artifactsPatch = WorkflowArtifactPatch.from(
+          mapOf(
+            FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY to continuationMap,
+            GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to GoalSubtaskReviewState.initial(
+              reviewBaseSha = baselineSha,
+              baselineUntrackedPaths = emptyList(),
+              codeReviewMode = CodeReviewExecutionMode.INLINE,
+            ).toPersistenceWire(),
+          ),
+        ),
         sessionId = "fis-176",
       ),
     ).toRecord()

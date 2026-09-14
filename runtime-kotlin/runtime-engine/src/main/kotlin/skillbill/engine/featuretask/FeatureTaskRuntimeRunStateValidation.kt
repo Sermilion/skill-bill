@@ -1,13 +1,11 @@
 package skillbill.engine.featuretask
-
-import skillbill.workflow.taskruntime.*
-
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.ValidationEvidencePayloadKeys
 import skillbill.engine.featuretask.validation.durableValidationChangedPaths
 import skillbill.error.InvalidFeatureTaskRuntimeValidationEvidenceSchemaError
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.decodeValidationEvidenceFromArtifact
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeTransitionDeclaration
@@ -82,7 +80,8 @@ internal fun invalidateIncompleteValidationSettlement(
       result?.get(ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE),
     )?.let { raw ->
       decodeValidationEvidenceFromArtifact(
-        raw, FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE,
+        raw,
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE,
       )!!
     }
     val decodedEvidence = evidence ?: return@runCatching false

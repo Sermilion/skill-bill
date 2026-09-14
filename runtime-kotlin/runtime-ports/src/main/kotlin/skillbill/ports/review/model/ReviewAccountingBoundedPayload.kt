@@ -10,4 +10,10 @@ class ReviewAccountingBoundedPayload private constructor(
       return ReviewAccountingBoundedPayload(map.toMap())
     }
   }
+
+  override fun equals(other: Any?): Boolean = other is ReviewAccountingBoundedPayload && delegate == other.delegate
+
+  override fun hashCode(): Int = delegate.hashCode()
+
+  override fun toString(): String = delegate.toString()
 }

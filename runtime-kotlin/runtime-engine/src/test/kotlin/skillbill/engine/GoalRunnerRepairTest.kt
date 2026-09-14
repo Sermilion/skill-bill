@@ -1,28 +1,13 @@
 package skillbill.engine
-import skillbill.workflow.engine.model.WorkflowArtifactPatch
-import skillbill.workflow.engine.model.WorkflowStepUpdates
-import skillbill.workflow.taskruntime.asCheckpointIdentitiesArtifactEntry
-import skillbill.workflow.taskruntime.asTelemetryPayload
-import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
-import skillbill.workflow.taskruntime.decodeFindingVerificationDispositionFromArtifact
-import skillbill.workflow.taskruntime.decodeImplementationAttemptFromArtifact
-import skillbill.workflow.taskruntime.decodePhaseRecordFromArtifact
-import skillbill.workflow.taskruntime.decodeValidationGateExecutionEvidenceFromArtifact
-import skillbill.workflow.taskruntime.decodeValidationGateProgressFromArtifact
-import skillbill.workflow.taskruntime.envelopeWireMap
-import skillbill.workflow.taskruntime.phaseRecordsFromWorkflowArtifacts
-import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 import skillbill.application.FakeDatabaseSessionFactory
 import skillbill.application.InMemoryWorkflowStates
 import skillbill.application.TestDecompositionManifestStore
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
-import skillbill.application.workflow.decodeWorkflowArtifacts
-import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.application.testDecompositionManifestValidator
 import skillbill.application.testHarnessClock
 import skillbill.application.testWorkflowSnapshotValidator
+import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
-import skillbill.contracts.JsonCodec
 import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeHandoffEnvelopeValidator
 import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeHandoffFoundationValidator
 import skillbill.engine.featuretask.featureTaskRuntimePhaseRecorder
@@ -79,21 +64,27 @@ import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.ports.workflow.toRecord
 import skillbill.review.context.model.CodeReviewExecutionMode
+import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
+import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GoalSubtaskReviewArtifactDecoder
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.goal.model.ValidationDepth
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationArtifact
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeQualityGateSelection
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
+import skillbill.workflow.taskruntime.phaseRecordsFromWorkflowArtifacts
+import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 import java.nio.file.Path
 import java.time.Duration
 import kotlin.test.Test
@@ -501,7 +492,9 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
       GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to healthyReviewState().toPersistenceWire(),
       FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to mapOf(
         "review" to unsettledUpstreamPhaseRecord("review").asWorkflowArtifactEntry().toWorkflowArtifactMap(),
-        "verify_findings" to unsettledUpstreamPhaseRecord("verify_findings").asWorkflowArtifactEntry().toWorkflowArtifactMap(),
+        "verify_findings" to unsettledUpstreamPhaseRecord("verify_findings")
+          .asWorkflowArtifactEntry()
+          .toWorkflowArtifactMap(),
         "implement_fix" to unsettledUpstreamPhaseRecord(
           phaseId = "implement_fix",
           status = "blocked",
@@ -657,7 +650,9 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
       GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to healthyReviewState().toPersistenceWire(),
       FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to mapOf(
         "review" to unsettledUpstreamPhaseRecord("review").asWorkflowArtifactEntry().toWorkflowArtifactMap(),
-        "verify_findings" to unsettledUpstreamPhaseRecord("verify_findings").asWorkflowArtifactEntry().toWorkflowArtifactMap(),
+        "verify_findings" to unsettledUpstreamPhaseRecord("verify_findings")
+          .asWorkflowArtifactEntry()
+          .toWorkflowArtifactMap(),
         "implement_fix" to unsettledUpstreamPhaseRecord(
           phaseId = "implement_fix",
           status = "blocked",
@@ -750,7 +745,9 @@ internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {
       GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to healthyReviewState().toPersistenceWire(),
       FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to mapOf(
         "review" to unsettledUpstreamPhaseRecord("review").asWorkflowArtifactEntry().toWorkflowArtifactMap(),
-        "verify_findings" to unsettledUpstreamPhaseRecord("verify_findings").asWorkflowArtifactEntry().toWorkflowArtifactMap(),
+        "verify_findings" to unsettledUpstreamPhaseRecord("verify_findings")
+          .asWorkflowArtifactEntry()
+          .toWorkflowArtifactMap(),
         "implement_fix" to unsettledUpstreamPhaseRecord(
           phaseId = "implement_fix",
           status = "blocked",
@@ -1473,9 +1470,11 @@ internal abstract class GoalRunnerRepairFixtures {
           workflowStatus = "running",
           currentStepId = "plan",
           stepUpdates = null,
-          artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-            DECOMPOSITION_RUNTIME_ARTIFACT_KEY to testDecompositionManifestValidator.encodeManifestWireMap(manifest, ),
-          )),
+          artifactsPatch = WorkflowArtifactPatch.from(
+            mapOf(
+              DECOMPOSITION_RUNTIME_ARTIFACT_KEY to testDecompositionManifestValidator.encodeManifestWireMap(manifest),
+            ),
+          ),
           sessionId = "ftr-repair-parent",
         ),
       ).toRecord().copy(issueKey = ISSUE_KEY),
@@ -1546,12 +1545,14 @@ internal abstract class GoalRunnerRepairFixtures {
       WorkflowUpdateInput(
         workflowStatus = args.workflowStatus,
         currentStepId = currentStepId,
-        stepUpdates = WorkflowStepUpdates.from(buildList {
-          args.abandonedBlockedStepId?.let { stepId ->
-            add(mapOf("step_id" to stepId, "status" to "blocked", "attempt_count" to 13))
-          }
-          add(mapOf("step_id" to currentStepId, "status" to "running", "attempt_count" to 1))
-        }),
+        stepUpdates = WorkflowStepUpdates.from(
+          buildList {
+            args.abandonedBlockedStepId?.let { stepId ->
+              add(mapOf("step_id" to stepId, "status" to "blocked", "attempt_count" to 13))
+            }
+            add(mapOf("step_id" to currentStepId, "status" to "running", "attempt_count" to 1))
+          },
+        ),
         artifactsPatch = WorkflowArtifactPatch.from(artifacts),
         sessionId = "ftr-repair",
       ),

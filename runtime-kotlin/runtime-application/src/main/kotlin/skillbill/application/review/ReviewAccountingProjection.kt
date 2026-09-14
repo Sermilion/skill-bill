@@ -1,8 +1,8 @@
 package skillbill.application.review
 
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.ports.review.model.ReviewAccountingBoundedPayload
 import skillbill.contracts.review.REVIEW_CONTEXT_CONTRACT_VERSION
+import skillbill.ports.review.model.ReviewAccountingBoundedPayload
 import skillbill.review.context.model.ReviewAccountingCounters
 import skillbill.review.context.model.ReviewAccountingNode
 import skillbill.review.context.model.ReviewAccountingSummary
@@ -17,16 +17,16 @@ import skillbill.review.context.model.ReviewParentAnalysisConsumption
  */
 fun ReviewAccountingSummary.toBoundedPayload(): ReviewAccountingBoundedPayload = ReviewAccountingBoundedPayload.from(
   linkedMapOf(
-  SharedPayloadKeys.CONTRACT_VERSION to REVIEW_CONTEXT_CONTRACT_VERSION,
-  "kind" to "accounting_summary",
-  "review_id" to reviewId,
-  "packet_digest" to packetDigest,
-  "parent" to parent.toPayload(),
-  "lanes" to lanes.map(ReviewAccountingNode::toPayload),
-  "commit_routing_accounting" to commitRouting?.toPayload(),
-  "parent_analysis_consumption" to parentAnalysis?.toPayload(),
-  "integration" to integration?.toPayload(),
-  "aggregate_counters" to aggregateCounters.toPayload(),
+    SharedPayloadKeys.CONTRACT_VERSION to REVIEW_CONTEXT_CONTRACT_VERSION,
+    "kind" to "accounting_summary",
+    "review_id" to reviewId,
+    "packet_digest" to packetDigest,
+    "parent" to parent.toPayload(),
+    "lanes" to lanes.map(ReviewAccountingNode::toPayload),
+    "commit_routing_accounting" to commitRouting?.toPayload(),
+    "parent_analysis_consumption" to parentAnalysis?.toPayload(),
+    "integration" to integration?.toPayload(),
+    "aggregate_counters" to aggregateCounters.toPayload(),
   ),
 )
 

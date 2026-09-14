@@ -8,8 +8,8 @@ import skillbill.error.InvalidInstallPlanSchemaError
 import skillbill.infrastructure.fs.DecompositionManifestValidatorAdapter
 import skillbill.infrastructure.fs.FileSystemDecompositionManifestFileStore
 import skillbill.infrastructure.fs.InstallPlanWireValidatorAdapter
-import skillbill.install.model.InstallPlanWireValidator
 import skillbill.install.model.InstallPlanWireMap
+import skillbill.install.model.InstallPlanWireValidator
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent

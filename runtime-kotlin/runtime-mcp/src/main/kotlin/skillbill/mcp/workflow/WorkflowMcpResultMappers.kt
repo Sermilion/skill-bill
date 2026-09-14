@@ -28,7 +28,9 @@ internal fun WorkflowOpenResult.toMcpMap(
   goalObservabilityEventValidator: GoalObservabilityEventValidator,
 ): Map<String, Any?> = when (this) {
   is WorkflowOpenResult.Ok -> workflowSnapshotMcpMap(snapshot, goalObservabilityEventValidator).apply {
-    launchProjection?.let { put("launch_projection", WorkflowWireProjections.inputProjectionMap(it).toPayload()) }
+    launchProjection?.let {
+      put("launch_projection", WorkflowWireProjections.inputProjectionMap(it).toPayload())
+    }
     put(SharedPayloadKeys.STATUS, "ok")
     put("db_path", dbPath)
   }
@@ -40,7 +42,9 @@ internal fun WorkflowOpenResult.toMcpMap(
 }
 
 internal fun WorkflowUpdateResult.toMcpMap(): Map<String, Any?> = when (this) {
-  is WorkflowUpdateResult.Ok -> LinkedHashMap(WorkflowWireProjections.updateAcknowledgementMap(acknowledgement).toPayload()).apply {
+  is WorkflowUpdateResult.Ok -> LinkedHashMap(
+    WorkflowWireProjections.updateAcknowledgementMap(acknowledgement).toPayload(),
+  ).apply {
     launchProjection?.let { put("launch_projection", WorkflowWireProjections.inputProjectionMap(it).toPayload()) }
     val workflowCommand = if (acknowledgement.workflowName == "bill-feature-verify") "verify-workflow" else "workflow"
     val quotedDbPath = "'${dbPath.replace("'", "'\"'\"'")}'"

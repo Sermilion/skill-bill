@@ -7,6 +7,8 @@ import skillbill.application.decomposition.decompositionPlanningSubtask
 import skillbill.application.decomposition.defaultFeatureBranch
 import skillbill.application.decomposition.loadValidatedDecompositionManifestPersistingRepair
 import skillbill.application.decomposition.model.DecompositionManifestWriteRequest
+import skillbill.application.decomposition.model.DecompositionPlanningResultOptions
+import skillbill.application.decomposition.model.DecompositionPlanningSubtaskOptions
 import skillbill.application.decomposition.repoRelativePath
 import skillbill.contracts.decomposition.DecompositionPlanningResult
 import skillbill.error.InvalidFeatureSpecPreparationRequestError
@@ -102,17 +104,21 @@ class FeatureSpecPreparationWriter(
   private fun planningResult(parentSpecPath: Path, subtaskRecords: List<PreparedSubtask>): DecompositionPlanningResult =
     decompositionPlanningResult(
       parentSpecPath = parentSpecPath.toString(),
-      recommendedFirstSubtaskId = subtaskRecords.first().definition.id,
       subtasks = subtaskRecords.map { subtask ->
         decompositionPlanningSubtask(
           id = subtask.definition.id,
           name = subtask.definition.name,
           specPath = subtask.path.toString(),
-          dependsOn = subtask.definition.dependsOn,
-          linearIssueId = subtask.definition.linearIssueId,
-          scope = subtask.definition.scope,
+          options = DecompositionPlanningSubtaskOptions(
+            dependsOn = subtask.definition.dependsOn,
+            linearIssueId = subtask.definition.linearIssueId,
+            scope = subtask.definition.scope,
+          ),
         )
       },
+      options = DecompositionPlanningResultOptions(
+        recommendedFirstSubtaskId = subtaskRecords.first().definition.id,
+      ),
     )
 
   private fun prepareSubtasks(

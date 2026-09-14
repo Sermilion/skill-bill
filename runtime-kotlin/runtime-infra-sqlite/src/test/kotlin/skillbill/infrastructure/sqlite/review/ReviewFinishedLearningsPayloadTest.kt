@@ -1,6 +1,5 @@
 package skillbill.infrastructure.sqlite.review
 
-import skillbill.contracts.learning.LearningAppliedSessionWire
 import skillbill.contracts.learning.LearningEntryDto
 import skillbill.contracts.learning.LearningPayloadKeys
 import skillbill.learnings.learningAppliedSessionWire

@@ -1,7 +1,6 @@
 package skillbill.engine.goalrunner
 
 import skillbill.contracts.JsonCodec
-
 import skillbill.workflow.engine.artifactsFingerprint
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.progressToken

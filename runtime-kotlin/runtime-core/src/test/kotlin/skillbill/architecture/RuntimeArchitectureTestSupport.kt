@@ -186,193 +186,23 @@ internal fun hasFunctionSignatureTerminator(text: String): Boolean =
 
 internal fun containsReturnTypeSeparator(text: String): Boolean = "):" in text || ") :" in text
 
-internal fun assertInventoryCategoriesKnown(inventory: Skill522Inventory) {
-  val knownCategories = setOf(
-    "must_type_now",
-    "open_extension",
-    "private_serializer",
-    "postponed_with_reason",
-  )
-  val unknownCategories = inventory.entries.map { it.category }.toSet() - knownCategories
-  assertTrue(
-    unknownCategories.isEmpty(),
-    "SKILL-52.2 inventory contains unknown categories: $unknownCategories. Allowed: $knownCategories.",
-  )
-}
-internal fun assertInventoryMatchesAllowList(inventory: Skill522Inventory) {
-  val inventoryFqns = inventory.entries.map { it.fqn }.toSet()
-  val allowList = RuntimeArchitectureScanConstants.RAW_MAP_OPEN_BOUNDARY_ALLOWLIST.toSet()
-  val missingFromInventory = allowList - inventoryFqns
-  val unknownInInventory = inventoryFqns - allowList
-  assertTrue(
-    missingFromInventory.isEmpty() && unknownInInventory.isEmpty(),
-    "SKILL-52.2 inventory must classify every entry in " +
-      "RuntimeArchitectureScanConstants.RAW_MAP_OPEN_BOUNDARY_ALLOWLIST " +
-      "exactly once.\nMissing from inventory: $missingFromInventory\n" +
-      "Inventory entries not in allow-list: $unknownInInventory",
-  )
-}
-internal fun assertInventoryHasNoDuplicateFqns(inventory: Skill522Inventory) {
-  val duplicates = inventory.entries.groupBy { it.fqn }
-    .filterValues { it.size > 1 }
-    .keys
-  assertTrue(
-    duplicates.isEmpty(),
-    "SKILL-52.2 inventory must classify every FQN exactly once. Duplicates: $duplicates",
-  )
-}
-internal fun assertAnnotatedDeclarationsAreOpenExtension(inventory: Skill522Inventory) {
-  val annotatedFqns = sourceFiles()
-    .filter { file ->
-      file.relativePath.startsWith("runtime-application/src/main/kotlin/") ||
-        file.relativePath.startsWith("runtime-domain/src/main/kotlin/") ||
-        file.relativePath.startsWith("runtime-ports/src/main/kotlin/")
-    }
-    .flatMap(::findAnnotatedOpenBoundaryDeclarations)
-    .toSet()
-  val openExtensionFqns = inventory.entries
-    .filter { it.category == "open_extension" }
-    .map { it.fqn }
-    .toSet()
-  val annotatedNotOpenExtension = annotatedFqns - openExtensionFqns
-  assertTrue(
-    annotatedNotOpenExtension.isEmpty(),
-    "Every @OpenBoundaryMap-annotated declaration in runtime-application/-domain/-ports " +
-      "MUST be classified under SKILL-52.2 inventory category `open_extension`.\n" +
-      "Misclassified: $annotatedNotOpenExtension",
-  )
-}
-internal fun assertSubtaskIdsPresentForGatedCategories(inventory: Skill522Inventory) {
-  val needsSubtaskCategories = setOf("must_type_now", "postponed_with_reason")
-  val missingSubtask = inventory.entries
-    .filter { it.category in needsSubtaskCategories }
-    .filter { it.subtaskId == null || it.subtaskId !in 2..5 }
-    .map { "${it.fqn} (category=${it.category}, subtaskId=${it.subtaskId})" }
-  assertTrue(
-    missingSubtask.isEmpty(),
-    "Every SKILL-52.2 inventory entry under $needsSubtaskCategories MUST carry a " +
-      "[subtask N] tag with N in 2..5.\nNon-compliant:\n" +
-      missingSubtask.joinToString(separator = "\n"),
-  )
-}
-internal fun parseSkill522Inventory(document: String): Skill522Inventory {
-  val body = extractSkill522InventoryBody(document)
-  val rawLines = body.lines()
-  val state = InventoryParseState()
-  while (state.index < rawLines.size) {
-    state.index = advanceInventoryCursor(rawLines, state)
-  }
-  return Skill522Inventory(entries = state.entries)
-}
-internal fun advanceInventoryCursor(rawLines: List<String>, state: InventoryParseState): Int {
-  val index = state.index
-  val trimmed = rawLines[index].trim()
-  val heading = RuntimeArchitectureScanConstants.INVENTORY_HEADING_PATTERN.find(trimmed)?.groupValues?.get(1)
-  if (heading != null) {
-    state.currentCategory = heading
-  }
-  val bulletMatch = if (heading == null) {
-    RuntimeArchitectureScanConstants.INVENTORY_BULLET_PATTERN.find(trimmed)
-  } else {
-    null
-  }
-  val entry = buildInventoryEntry(state.currentCategory, bulletMatch, rawLines, index)
-  if (entry != null) {
-    state.entries += entry.entry
-  }
-  return entry?.nextIndex ?: (index + 1)
-}
-internal class InventoryParseState(
-  var index: Int = 0,
-  var currentCategory: String? = null,
-  val entries: MutableList<Skill522InventoryEntry> = mutableListOf(),
-)
-
-internal const val SKILL_52_2_INVENTORY_RESOURCE = "skill-52-2-inventory.md"
-
-internal fun loadSkill522InventoryDocument(): String {
-  val stream =
-    RuntimeArchitectureScanConstants::class.java.classLoader.getResourceAsStream(SKILL_52_2_INVENTORY_RESOURCE)
-      ?: error(
-        "Missing classpath resource $SKILL_52_2_INVENTORY_RESOURCE under runtime-core/src/test/resources.",
-      )
-  return stream.bufferedReader().readText()
-}
-
-internal fun extractSkill522InventoryBody(document: String): String {
-  val sectionStart = document.indexOf("<!-- skill-52-2-inventory:start -->")
-  val sectionEnd = document.indexOf("<!-- skill-52-2-inventory:end -->")
-  require(sectionStart >= 0 && sectionEnd > sectionStart) {
-    "SKILL-52.2 inventory document must declare a section bracketed by " +
-      "'<!-- skill-52-2-inventory:start -->' / '<!-- skill-52-2-inventory:end -->' " +
-      "machine-readable markers."
-  }
-  return document.substring(sectionStart, sectionEnd)
-}
-internal fun buildInventoryEntry(
-  category: String?,
-  bulletMatch: MatchResult?,
-  rawLines: List<String>,
-  index: Int,
-): InventoryEntryWithCursor? {
-  if (category == null || bulletMatch == null) return null
-  val (lookahead, joinedTail) = consumeContinuationLines(
-    rawLines = rawLines,
-    startIndex = index + 1,
-    head = bulletMatch.groupValues[2],
-  )
-  val subtaskId = RuntimeArchitectureScanConstants.INVENTORY_SUBTASK_PATTERN
-    .find(joinedTail)
-    ?.groupValues
-    ?.get(1)
-    ?.toIntOrNull()
-  return InventoryEntryWithCursor(
-    entry = Skill522InventoryEntry(
-      fqn = bulletMatch.groupValues[1],
-      category = category,
-      subtaskId = subtaskId,
-    ),
-    nextIndex = lookahead,
-  )
-}
-
-internal fun consumeContinuationLines(rawLines: List<String>, startIndex: Int, head: String): Pair<Int, String> {
-  val accumulator = StringBuilder(head)
-  val end = rawLines
-    .asSequence()
-    .drop(startIndex)
-    .takeWhile { line -> isInventoryContinuationLine(line) }
-    .onEach { line -> accumulator.append(' ').append(line.trim()) }
-    .count() + startIndex
-  return end to accumulator.toString()
-}
-internal fun isInventoryContinuationLine(line: String): Boolean {
-  val trimmed = line.trim()
-  val isTerminator = trimmed.isEmpty() ||
-    RuntimeArchitectureScanConstants.INVENTORY_BULLET_LEADER_PATTERN.containsMatchIn(line) ||
-    RuntimeArchitectureScanConstants.INVENTORY_HEADING_PATTERN.containsMatchIn(trimmed)
-  return !isTerminator
-}
-internal data class InventoryEntryWithCursor(
-  val entry: Skill522InventoryEntry,
-  val nextIndex: Int,
-)
-
-internal data class Skill522InventoryEntry(
-  val fqn: String,
-  val category: String,
-  val subtaskId: Int?,
-)
-
-internal data class Skill522Inventory(
-  val entries: List<Skill522InventoryEntry>,
-)
-
 internal fun rawMapViolationFixtureSource(): String = """
     package skillbill.application
 
     typealias AnyMapAlias = Map<String, Any>
     typealias HashMapAlias = HashMap<String, Any?>
+
+    open class PublicBase {
+      open fun overrideMap(): Map<String, Any?> = emptyMap()
+    }
+
+    class PublicDerived : PublicBase() {
+      override fun overrideMap(): Map<String, Any?> = emptyMap()
+    }
+
+    class PublicPayload {
+      fun payloadMap(): Map<String, Any?> = emptyMap()
+    }
 
     class Fake {
       public fun foo(): Map<String, Any?> = emptyMap()
@@ -412,6 +242,7 @@ internal fun rawMapViolationFixtureSource(): String = """
 internal fun expectedRawMapViolationFixtureNames(): List<String> = listOf(
   "aliasHashMap",
   "aliasMap",
+  "AnyMapAlias",
   "bar",
   "baz",
   "foo",
@@ -425,6 +256,10 @@ internal fun expectedRawMapViolationFixtureNames(): List<String> = listOf(
   "mutableNonNull",
   "mutableStar",
   "nonNullMap",
+  "overrideMap",
+  "overrideMap",
+  "payloadMap",
+  "HashMapAlias",
 ).sorted()
 
 private val rawMapBannedShapes =
@@ -444,15 +279,27 @@ private val rawMapBannedShapes =
   )
 
 private val rawMapFunDeclPattern =
-  Regex("""^(?:public\s+)?fun\s+(?:<[^>]+>\s+)?([A-Za-z0-9_]+\.)?([A-Za-z0-9_]+)\s*\(""")
+  Regex(
+    """^(?:(?:public|private|protected|internal|override|open|final|abstract|suspend|""" +
+      """inline|operator|infix|tailrec|external|expect|actual)\s+)*""" +
+      """fun\s+(?:<[^>]+>\s+)?(?:[A-Za-z0-9_]+\.)?([A-Za-z0-9_]+)\s*\(""",
+  )
 
 private val rawMapValDeclPattern =
-  Regex("""^(?:public\s+)?(?:val|var)\s+([A-Za-z0-9_]+)\s*:""")
+  Regex(
+    """^(?:(?:public|private|protected|internal|override|open|final|abstract|""" +
+      """const|lateinit|expect|actual)\s+)*(?:val|var)\s+([A-Za-z0-9_]+)\s*:""",
+  )
+
+private val rawMapTypeAliasDeclPattern =
+  Regex(
+    """^(?:(?:public|private|protected|internal)\s+)*typealias\s+([A-Za-z0-9_]+)\s*=\s*(.+)$""",
+  )
 
 private fun rawMapDeclarationName(trimmed: String): String? {
   val funMatch = rawMapFunDeclPattern.find(trimmed)
   val valMatch = rawMapValDeclPattern.find(trimmed)
-  return funMatch?.groupValues?.get(2) ?: valMatch?.groupValues?.get(1)
+  return funMatch?.groupValues?.get(1) ?: valMatch?.groupValues?.get(1)
 }
 
 private fun collectRawMapDeclarationSignature(lines: List<String>, startIndex: Int, hasValDecl: Boolean): String {
@@ -505,45 +352,44 @@ private fun signatureUsesBannedRawMap(
 ): Boolean = bannedShapes.any { shape -> shape in sigText } ||
   bannedTypeAliases.any { alias -> Regex("""\b${Regex.escape(alias)}\b""").containsMatchIn(sigText) }
 
-private data class RawMapAllowlistContext(
+private data class RawMapDeclarationContext(
   val trimmed: String,
-  val sigText: String,
-  val precedingLines: List<String>,
   val tracker: ScopeTracker,
-  val packageName: String,
-  val declName: String,
-  val allowlistSet: Set<String>,
+  val source: String,
 )
 
-private fun isAllowlistedRawMapDeclaration(context: RawMapAllowlistContext): Boolean {
-  val annotationPrecedingLines = context.precedingLines
-    .map(String::trim)
-    .takeLastWhile { it.startsWith("@") || it.isEmpty() }
-  val annotated = "@OpenBoundaryMap" in context.sigText ||
-    annotationPrecedingLines.any { "@OpenBoundaryMap" in it }
-  if (annotated) return true
-  val nonPublicMarker = Regex("""^(?:private|internal)\s+""").containsMatchIn(context.trimmed) ||
-    context.tracker.insideNonPublicScope
-  if (nonPublicMarker) return true
-  val enclosingName = context.tracker.enclosingStack.lastOrNull().orEmpty()
+private fun isBoundaryCarrierRawMapDeclaration(context: RawMapDeclarationContext): Boolean {
   if (
-    enclosingName.endsWith("Map") ||
-      enclosingName.endsWith("Payload") ||
-      enclosingName.endsWith("Artifacts") ||
-      enclosingName.endsWith("Document") ||
-      enclosingName.endsWith("Arguments") ||
-      enclosingName.endsWith("Patch") ||
-      enclosingName == "WorkflowStepUpdates" ||
-      enclosingName == "DurableWorkflowArtifacts" ||
-      enclosingName == "IdeStatusProblemDetails"
+    rawMapDeclarationModifiers(context.trimmed)
+      .any { modifier -> modifier in setOf("private", "protected", "internal") } ||
+    context.tracker.insideNonPublicScope
   ) {
     return true
   }
-  val enclosingPrefix = context.tracker.enclosingStack.joinToString(".").let { if (it.isEmpty()) "" else "$it." }
-  val fqn = listOf(context.packageName, "$enclosingPrefix${context.declName}")
+  val enclosingName = context.tracker.enclosingStack.lastOrNull().orEmpty()
+  val namedCarrier = enclosingName.endsWith("Map") ||
+    enclosingName.endsWith("Payload") ||
+    enclosingName.endsWith("Artifacts") ||
+    enclosingName.endsWith("Document") ||
+    enclosingName.endsWith("Arguments") ||
+    enclosingName.endsWith("Patch") ||
+    enclosingName == "WorkflowStepUpdates" ||
+    enclosingName == "DurableWorkflowArtifacts" ||
+    enclosingName == "IdeStatusProblemDetails"
+  if (!namedCarrier) return false
+  return Regex(
+    """(?s)(?:class|data\s+class)\s+$enclosingName\b[^{}]*?\bprivate\s+(?:val|var)\s+\w+\s*:\s*""" +
+      """(?:List<)?(?:Map|MutableMap|HashMap|LinkedHashMap)<String""",
+  ).containsMatchIn(context.source)
+}
+
+private fun rawMapDeclarationModifiers(trimmed: String): Set<String> {
+  val keyword = Regex("""\b(?:fun|val|var|typealias)\b""").find(trimmed) ?: return emptySet()
+  return trimmed.substring(0, keyword.range.first)
+    .trim()
+    .split(Regex("""\s+"""))
     .filter(String::isNotBlank)
-    .joinToString(".")
-  return fqn in context.allowlistSet
+    .toSet()
 }
 
 internal fun findRawMapViolations(file: SourceFile): List<String> {
@@ -551,10 +397,17 @@ internal fun findRawMapViolations(file: SourceFile): List<String> {
   val bannedTypeAliases = rawMapTypeAliases(file.source, rawMapBannedShapes)
   val violations = mutableListOf<String>()
   val tracker = ScopeTracker()
-  val allowlistSet = RuntimeArchitectureScanConstants.RAW_MAP_OPEN_BOUNDARY_ALLOWLIST.toSet()
   lines.forEachIndexed { index, line ->
     tracker.consume(line)
     val trimmed = line.trim()
+    val typeAliasMatch = rawMapTypeAliasDeclPattern.find(trimmed)
+    if (typeAliasMatch != null && typeAliasMatch.groupValues[1] in bannedTypeAliases) {
+      if (!isBoundaryCarrierRawMapDeclaration(RawMapDeclarationContext(trimmed, tracker, file.source))) {
+        violations +=
+          "${file.relativePath}:${index + 1} public `${typeAliasMatch.groupValues[1]}` exposes raw map shape"
+      }
+      return@forEachIndexed
+    }
     val declName = rawMapDeclarationName(trimmed) ?: return@forEachIndexed
     val sigText = collectRawMapDeclarationSignature(
       lines,
@@ -562,16 +415,11 @@ internal fun findRawMapViolations(file: SourceFile): List<String> {
       rawMapValDeclPattern.find(trimmed) != null,
     )
     if (!signatureUsesBannedRawMap(sigText, rawMapBannedShapes, bannedTypeAliases)) return@forEachIndexed
-    val precedingLines = lines.subList(maxOf(0, index - 4), index)
-    if (isAllowlistedRawMapDeclaration(
-        RawMapAllowlistContext(
+    if (isBoundaryCarrierRawMapDeclaration(
+        RawMapDeclarationContext(
           trimmed = trimmed,
-          sigText = sigText,
-          precedingLines = precedingLines,
           tracker = tracker,
-          packageName = file.packageName,
-          declName = declName,
-          allowlistSet = allowlistSet,
+          source = file.source,
         ),
       )
     ) {
@@ -588,7 +436,10 @@ internal fun findRawMapViolations(file: SourceFile): List<String> {
 
 internal fun rawMapTypeAliases(source: String, bannedShapes: List<String>): Set<String> {
   val directAliases = mutableMapOf<String, String>()
-  val aliasPattern = Regex("""^typealias\s+([A-Za-z0-9_]+)\s*=\s*(.+)$""", RegexOption.MULTILINE)
+  val aliasPattern = Regex(
+    """^(?:(?:public|private|protected|internal)\s+)*typealias\s+([A-Za-z0-9_]+)\s*=\s*(.+)$""",
+    RegexOption.MULTILINE,
+  )
   aliasPattern.findAll(source).forEach { match ->
     directAliases[match.groupValues[1]] = match.groupValues[2].trim()
   }
@@ -604,39 +455,6 @@ internal fun rawMapTypeAliases(source: String, bannedShapes: List<String>): Set<
     }
   }
   return bannedAliases
-}
-
-private fun openBoundaryDeclarationName(candidate: String): String? {
-  val funMatch = rawMapFunDeclPattern.find(candidate)
-  val valMatch = rawMapValDeclPattern.find(candidate)
-  val classMatch = RuntimeArchitectureScanConstants.scopeDeclarationPattern.find(candidate)
-  return funMatch?.groupValues?.get(2)
-    ?: valMatch?.groupValues?.get(1)
-    ?: classMatch?.groupValues?.get(1)
-}
-
-private fun declarationFqn(packageName: String, enclosingStack: ArrayDeque<String>, declName: String): String {
-  val enclosingPrefix = enclosingStack.joinToString(".").let { if (it.isEmpty()) "" else "$it." }
-  return listOf(packageName, "$enclosingPrefix$declName")
-    .filter(String::isNotBlank)
-    .joinToString(".")
-}
-
-internal fun findAnnotatedOpenBoundaryDeclarations(file: SourceFile): List<String> {
-  val lines = file.source.lines()
-  val results = mutableListOf<String>()
-  val tracker = ScopeTracker()
-  lines.forEachIndexed { index, line ->
-    tracker.consume(line)
-    if (!line.trim().startsWith("@OpenBoundaryMap")) return@forEachIndexed
-    val candidate = lines.drop(index + 1)
-      .map(String::trim)
-      .firstOrNull { it.isNotBlank() && !it.startsWith("@") }
-      ?: return@forEachIndexed
-    val declName = openBoundaryDeclarationName(candidate) ?: return@forEachIndexed
-    results += declarationFqn(file.packageName, tracker.enclosingStack, declName)
-  }
-  return results
 }
 
 internal class ScopeTracker {
@@ -859,15 +677,6 @@ internal data class InstallPortFunctionSignature(
 }
 
 internal object RuntimeArchitectureScanConstants {
-  val INVENTORY_HEADING_PATTERN: Regex =
-    Regex("""^###\s+(must_type_now|open_extension|private_serializer|postponed_with_reason)\b""")
-  val INVENTORY_BULLET_PATTERN: Regex =
-    Regex("""^\s*-\s+`([A-Za-z0-9_.]+)`(.*)$""")
-  val INVENTORY_SUBTASK_PATTERN: Regex = Regex("""\[subtask\s+(\d+)\]""")
-  val INVENTORY_BULLET_LEADER_PATTERN: Regex = Regex("""^\s*-\s+""")
-
-  val RAW_MAP_OPEN_BOUNDARY_ALLOWLIST: List<String> = emptyList()
-
   val contractsForbiddenImports: List<String> =
     listOf(
       "com.networknt.",

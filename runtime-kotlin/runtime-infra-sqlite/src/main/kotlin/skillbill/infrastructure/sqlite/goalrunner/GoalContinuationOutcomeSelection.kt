@@ -1,5 +1,4 @@
 package skillbill.infrastructure.sqlite.goalrunner
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.goalrunner.asGoalRunnerIntOrNull
@@ -47,7 +46,6 @@ fun staleRunningReason(
     "subtask $subtaskId because it was no longer active."
   )
 
-@OpenBoundaryMap("Missing result-prefix terminal outcome artifact reconstruction")
 fun missingResultPrefixTerminalOutcomeArtifact(
   output: Any,
   issueKey: String,
@@ -56,12 +54,12 @@ fun missingResultPrefixTerminalOutcomeArtifact(
 ): Map<String, Any?>? {
   val wire = JsonCodec.anyToStringAnyMap(output) ?: return null
   return (JsonCodec.anyToStringAnyMap(wire["subtask_outcome"]) ?: wire)
-  .takeIf { candidate -> candidate.matchesGoalContinuation(issueKey, subtaskId) }
-  ?.let { candidate ->
-    candidate[SharedPayloadKeys.STATUS]?.toString()?.let(::goalContinuationTerminalStatus)?.let { status ->
-      candidate.toMissingResultPrefixOutcomeArtifact(issueKey, subtaskId, workflowId, status)
+    .takeIf { candidate -> candidate.matchesGoalContinuation(issueKey, subtaskId) }
+    ?.let { candidate ->
+      candidate[SharedPayloadKeys.STATUS]?.toString()?.let(::goalContinuationTerminalStatus)?.let { status ->
+        candidate.toMissingResultPrefixOutcomeArtifact(issueKey, subtaskId, workflowId, status)
+      }
     }
-  }
 }
 
 fun Map<String, Any?>.matchesGoalContinuation(issueKey: String, subtaskId: Int): Boolean {
@@ -94,7 +92,6 @@ fun Map<String, Any?>.toMissingResultPrefixOutcomeArtifact(
 
 fun GoalRunnerTerminalStatus.toGoalContinuationWireStatus(): String = wireValue
 
-@OpenBoundaryMap("Bounded history sequence scan over durable workflow artifacts")
 fun maxHistorySequence(artifacts: Map<String, Any?>, historyKey: String, current: Int?): Int? {
   val entries = (artifacts[historyKey] as? List<*>).orEmpty()
   var max = current

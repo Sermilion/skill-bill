@@ -2,10 +2,8 @@ package skillbill.engine.goalrunner
 
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
 import skillbill.application.workflow.decodeWorkflowArtifacts
-import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.application.workflow.decompositionRuntime
 import skillbill.application.workflow.model.WorkflowFamily
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.issuekey.normalizeRequiredIssueKey
 import skillbill.goalrunner.GOAL_OUT_OF_BAND_ACCEPTANCE_ARTIFACT_KEY
 import skillbill.goalrunner.GOAL_REVIEW_POLICY_ARTIFACT_KEY
@@ -13,17 +11,17 @@ import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.saveRecord
 import skillbill.ports.workflow.toRecord
 import skillbill.workflow.decomposition.DecompositionManifestValidator
+import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.engine.WorkflowEngine
-import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
+import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 
 class GoalParentProjectionWriter(
   private val engine: WorkflowEngine,
   private val validator: DecompositionManifestValidator,
 ) {
-  @OpenBoundaryMap("Goal parent decomposition runtime artifact patch")
   fun artifacts(manifest: DecompositionManifest, existingArtifactsJson: String? = null): Map<String, Any?> =
     LinkedHashMap(
       existingArtifactsJson

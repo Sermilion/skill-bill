@@ -1,5 +1,4 @@
 package skillbill.engine.featuretask
-
 import skillbill.agentaddon.model.HydratedAgentAddonSelection
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeBriefingProjectionInputs
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseLaunchBriefing

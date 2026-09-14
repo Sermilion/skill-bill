@@ -1,17 +1,4 @@
 package skillbill.engine
-import skillbill.workflow.engine.model.WorkflowStepUpdates
-import skillbill.workflow.engine.model.WorkflowArtifactPatch
-import skillbill.workflow.taskruntime.asCheckpointIdentitiesArtifactEntry
-import skillbill.workflow.taskruntime.asTelemetryPayload
-import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
-import skillbill.workflow.taskruntime.decodeFindingVerificationDispositionFromArtifact
-import skillbill.workflow.taskruntime.decodeImplementationAttemptFromArtifact
-import skillbill.workflow.taskruntime.decodePhaseRecordFromArtifact
-import skillbill.workflow.taskruntime.decodeValidationGateExecutionEvidenceFromArtifact
-import skillbill.workflow.taskruntime.decodeValidationGateProgressFromArtifact
-import skillbill.workflow.taskruntime.envelopeWireMap
-import skillbill.workflow.taskruntime.phaseRecordsFromWorkflowArtifacts
-import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 import skillbill.application.testWorkflowSnapshotValidator
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.contracts.JsonCodec
@@ -30,16 +17,20 @@ import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.ports.workflow.toRecord
 import skillbill.review.context.model.CodeReviewExecutionMode
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
+import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GoalProgressEvent
 import skillbill.workflow.goal.model.GoalProgressEventKind
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationArtifact
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
+import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 import java.nio.file.Path
 import java.time.Duration
 import java.time.Instant
@@ -107,9 +98,11 @@ internal fun blockedContinuationRecord(fixture: BlockedContinuationRecordFixture
     WorkflowUpdateInput(
       workflowStatus = workflowStatus,
       currentStepId = "review",
-      stepUpdates = WorkflowStepUpdates.from(listOf(
-        mapOf("step_id" to "review", "status" to stepStatus, "attempt_count" to 1),
-      )),
+      stepUpdates = WorkflowStepUpdates.from(
+        listOf(
+          mapOf("step_id" to "review", "status" to stepStatus, "attempt_count" to 1),
+        ),
+      ),
       artifactsPatch = WorkflowArtifactPatch.from(artifacts),
       sessionId = "ftr-176",
     ),
@@ -126,23 +119,27 @@ internal fun completeWithoutShaContinuationRecord(workflowId: String): WorkflowS
     WorkflowUpdateInput(
       workflowStatus = "running",
       currentStepId = "commit_push",
-      stepUpdates = WorkflowStepUpdates.from(listOf(
-        mapOf("step_id" to "commit_push", "status" to "completed", "attempt_count" to 1),
-      )),
-      artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-        "goal_continuation" to mapOf(
-          "issue_key" to "SKILL-176.4",
-          "subtask_id" to 4,
-          "suppress_pr" to true,
+      stepUpdates = WorkflowStepUpdates.from(
+        listOf(
+          mapOf("step_id" to "commit_push", "status" to "completed", "attempt_count" to 1),
         ),
-        "goal_continuation_outcome" to mapOf(
-          "issue_key" to "SKILL-176.4",
-          "subtask_id" to 4,
-          "status" to "complete",
-          "workflow_id" to workflowId,
-          "last_resumable_step" to "commit_push",
+      ),
+      artifactsPatch = WorkflowArtifactPatch.from(
+        mapOf(
+          "goal_continuation" to mapOf(
+            "issue_key" to "SKILL-176.4",
+            "subtask_id" to 4,
+            "suppress_pr" to true,
+          ),
+          "goal_continuation_outcome" to mapOf(
+            "issue_key" to "SKILL-176.4",
+            "subtask_id" to 4,
+            "status" to "complete",
+            "workflow_id" to workflowId,
+            "last_resumable_step" to "commit_push",
+          ),
         ),
-      )),
+      ),
       sessionId = "ftr-176",
     ),
   ).toRecord()
@@ -158,16 +155,20 @@ internal fun runtimeCandidateRecordNoDeclaredEvent(workflowId: String, updatedAt
     WorkflowUpdateInput(
       workflowStatus = "running",
       currentStepId = "implement",
-      stepUpdates = WorkflowStepUpdates.from(listOf(
-        mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1),
-      )),
-      artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-        "goal_continuation" to mapOf(
-          "issue_key" to "SKILL-87.1",
-          "subtask_id" to 1,
-          "suppress_pr" to true,
+      stepUpdates = WorkflowStepUpdates.from(
+        listOf(
+          mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1),
         ),
-      )),
+      ),
+      artifactsPatch = WorkflowArtifactPatch.from(
+        mapOf(
+          "goal_continuation" to mapOf(
+            "issue_key" to "SKILL-87.1",
+            "subtask_id" to 1,
+            "suppress_pr" to true,
+          ),
+        ),
+      ),
       sessionId = "ftr-001",
     ),
   ).toRecord().copy(updatedAt = updatedAt)
@@ -188,17 +189,19 @@ internal fun goalReviewWorkflowRecord(
       workflowStatus = "running",
       currentStepId = "review",
       stepUpdates = null,
-      artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-        FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY to FeatureTaskRuntimeGoalContinuationArtifact(
-          issueKey = "SKILL-119",
-          subtaskId = 2,
-          suppressPr = true,
-          goalBranch = "feat/SKILL-119",
-          codeReviewMode = CodeReviewExecutionMode.AUTO,
-        ).asWorkflowArtifactEntry().toWorkflowArtifactMap(),
-        GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to state.toPersistenceWire(),
-        GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY to mapOf("1" to rawReviewResult),
-      )),
+      artifactsPatch = WorkflowArtifactPatch.from(
+        mapOf(
+          FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY to FeatureTaskRuntimeGoalContinuationArtifact(
+            issueKey = "SKILL-119",
+            subtaskId = 2,
+            suppressPr = true,
+            goalBranch = "feat/SKILL-119",
+            codeReviewMode = CodeReviewExecutionMode.AUTO,
+          ).asWorkflowArtifactEntry().toWorkflowArtifactMap(),
+          GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to state.toPersistenceWire(),
+          GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY to mapOf("1" to rawReviewResult),
+        ),
+      ),
       sessionId = "ftr-001",
     ),
   ).toRecord()
@@ -225,17 +228,21 @@ internal fun runtimeCandidateRecord(workflowId: String, declaredProgressTimestam
     WorkflowUpdateInput(
       workflowStatus = "running",
       currentStepId = "implement",
-      stepUpdates = WorkflowStepUpdates.from(listOf(
-        mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1),
-      )),
-      artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-        "goal_continuation" to mapOf(
-          "issue_key" to "SKILL-87.1",
-          "subtask_id" to 1,
-          "suppress_pr" to true,
+      stepUpdates = WorkflowStepUpdates.from(
+        listOf(
+          mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1),
         ),
-        "goal_progress_latest_event" to declaredEvent.toPersistenceWire(),
-      )),
+      ),
+      artifactsPatch = WorkflowArtifactPatch.from(
+        mapOf(
+          "goal_continuation" to mapOf(
+            "issue_key" to "SKILL-87.1",
+            "subtask_id" to 1,
+            "suppress_pr" to true,
+          ),
+          "goal_progress_latest_event" to declaredEvent.toPersistenceWire(),
+        ),
+      ),
       sessionId = "ftr-001",
     ),
   ).toRecord()
@@ -280,19 +287,23 @@ internal fun tornBlockedReviewRecord(workflowId: String): WorkflowStateRecord {
     WorkflowUpdateInput(
       workflowStatus = "blocked",
       currentStepId = "review",
-      stepUpdates = WorkflowStepUpdates.from(listOf(
-        mapOf("step_id" to "review", "status" to "blocked", "attempt_count" to 2),
-      )),
-      artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-        FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to mapOf(
-          "review" to reviewRecord.asWorkflowArtifactEntry(),
+      stepUpdates = WorkflowStepUpdates.from(
+        listOf(
+          mapOf("step_id" to "review", "status" to "blocked", "attempt_count" to 2),
         ),
-        "goal_continuation" to mapOf(
-          "issue_key" to "SKILL-191",
-          "subtask_id" to 9,
-          "suppress_pr" to true,
+      ),
+      artifactsPatch = WorkflowArtifactPatch.from(
+        mapOf(
+          FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to mapOf(
+            "review" to reviewRecord.asWorkflowArtifactEntry(),
+          ),
+          "goal_continuation" to mapOf(
+            "issue_key" to "SKILL-191",
+            "subtask_id" to 9,
+            "suppress_pr" to true,
+          ),
         ),
-      )),
+      ),
       sessionId = "ftr-001",
     ),
   ).toRecord()
@@ -309,13 +320,15 @@ internal fun crashedChildRecord(workflowId: String): WorkflowStateRecord {
       workflowStatus = "running",
       currentStepId = "implement",
       stepUpdates = null,
-      artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-        "goal_continuation" to mapOf(
-          "issue_key" to "SKILL-87.1",
-          "subtask_id" to 1,
-          "suppress_pr" to true,
+      artifactsPatch = WorkflowArtifactPatch.from(
+        mapOf(
+          "goal_continuation" to mapOf(
+            "issue_key" to "SKILL-87.1",
+            "subtask_id" to 1,
+            "suppress_pr" to true,
+          ),
         ),
-      )),
+      ),
       sessionId = "ftr-001",
     ),
   ).toRecord()

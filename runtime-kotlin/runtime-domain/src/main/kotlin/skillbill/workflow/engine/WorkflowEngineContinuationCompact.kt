@@ -1,7 +1,7 @@
 package skillbill.workflow.engine
 
-import skillbill.workflow.engine.model.WorkflowCompactContinueView
 import skillbill.workflow.engine.model.InlineContinuationArtifactValue
+import skillbill.workflow.engine.model.WorkflowCompactContinueView
 import skillbill.workflow.engine.model.WorkflowContinuationArtifactSummary
 import skillbill.workflow.engine.model.WorkflowDefinition
 import skillbill.workflow.engine.model.WorkflowInputProjection

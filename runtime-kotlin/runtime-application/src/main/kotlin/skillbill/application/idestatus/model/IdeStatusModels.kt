@@ -1,11 +1,11 @@
 package skillbill.application.idestatus.model
 
-import skillbill.ports.idestatus.IdeStatusWireMap
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.GOAL_PLANNING_WAVE_CAP
 import skillbill.contracts.workflow.IDE_STATUS_CONTRACT_VERSION
 import skillbill.goalrunner.model.GoalPlanningStatusState
 import skillbill.idestatus.model.AgentActivityLabel
+import skillbill.ports.idestatus.IdeStatusWireMap
 import skillbill.ports.workflow.model.FeatureTaskRouteScope
 import java.nio.file.Path
 import java.time.Instant
@@ -283,44 +283,46 @@ data class IdeStatusSnapshot(
     }
   }
 
-  fun toStatusWireMap(): IdeStatusWireMap = IdeStatusWireMap.from(buildMap {
-    put(SharedPayloadKeys.CONTRACT_VERSION, contractVersion)
-    put("repository_identity", repositoryIdentity)
-    issueKey?.takeIf(String::isNotBlank)?.let { put(SharedPayloadKeys.ISSUE_KEY, it) }
-    workflowId?.takeIf(String::isNotBlank)?.let { put(SharedPayloadKeys.WORKFLOW_ID, it) }
-    workflowFamily?.let { put("workflow_family", it.wireValue) }
-    put("lifecycle_state", lifecycleState.wireValue)
-    put(
-      "current_step",
-      linkedMapOf(
-        "id" to currentStep.id,
-        "label" to currentStep.label,
-      ),
-    )
-    progress?.let {
+  fun toStatusWireMap(): IdeStatusWireMap = IdeStatusWireMap.from(
+    buildMap {
+      put(SharedPayloadKeys.CONTRACT_VERSION, contractVersion)
+      put("repository_identity", repositoryIdentity)
+      issueKey?.takeIf(String::isNotBlank)?.let { put(SharedPayloadKeys.ISSUE_KEY, it) }
+      workflowId?.takeIf(String::isNotBlank)?.let { put(SharedPayloadKeys.WORKFLOW_ID, it) }
+      workflowFamily?.let { put("workflow_family", it.wireValue) }
+      put("lifecycle_state", lifecycleState.wireValue)
       put(
-        "progress",
+        "current_step",
         linkedMapOf(
-          "completed" to it.completed,
-          "total" to it.total,
+          "id" to currentStep.id,
+          "label" to currentStep.label,
         ),
       )
-    }
-    startedAt?.let { put("started_at", it.toString()) }
-    putCurrentSubtask()
-    putCurrentModel()
-    planning?.let { put("planning", planningWireMap(it)) }
-    putCurrentPhaseExecution()
-    pauseRequested?.takeIf { it }?.let { put("pause_requested", true) }
-    pausedAt?.let { put("paused_at", it.toString()) }
-    putPauseReason()
-    putActiveDuration()
-    putAgentActivity()
-    put("updated_at", updatedAt.toString())
-    put("freshness", freshness.wireValue)
-    put(SharedPayloadKeys.SUMMARY, summary)
-    putProblem()
-  })
+      progress?.let {
+        put(
+          "progress",
+          linkedMapOf(
+            "completed" to it.completed,
+            "total" to it.total,
+          ),
+        )
+      }
+      startedAt?.let { put("started_at", it.toString()) }
+      putCurrentSubtask()
+      putCurrentModel()
+      planning?.let { put("planning", planningWireMap(it)) }
+      putCurrentPhaseExecution()
+      pauseRequested?.takeIf { it }?.let { put("pause_requested", true) }
+      pausedAt?.let { put("paused_at", it.toString()) }
+      putPauseReason()
+      putActiveDuration()
+      putAgentActivity()
+      put("updated_at", updatedAt.toString())
+      put("freshness", freshness.wireValue)
+      put(SharedPayloadKeys.SUMMARY, summary)
+      putProblem()
+    },
+  )
 
   private fun MutableMap<String, Any?>.putCurrentSubtask() {
     val subtask = currentSubtask ?: return

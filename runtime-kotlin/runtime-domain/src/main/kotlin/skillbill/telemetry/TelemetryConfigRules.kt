@@ -5,15 +5,15 @@ import skillbill.workflow.engine.model.TelemetryOpenDocument
 
 fun defaultLocalTelemetryConfig(installId: String): TelemetryConfigDocument = TelemetryConfigDocument(
   payload = TelemetryOpenDocument.from(
-  mapOf(
-    "install_id" to installId,
-    "telemetry" to
-      mapOf(
-        "level" to "anonymous",
-        "proxy_url" to "",
-        "batch_size" to DEFAULT_TELEMETRY_BATCH_SIZE,
-      ),
-  ),
+    mapOf(
+      "install_id" to installId,
+      "telemetry" to
+        mapOf(
+          "level" to "anonymous",
+          "proxy_url" to "",
+          "batch_size" to DEFAULT_TELEMETRY_BATCH_SIZE,
+        ),
+    ),
   ),
 )
 

@@ -11,8 +11,7 @@ class DurableWorkflowArtifacts private constructor(
   companion object {
     val EMPTY: DurableWorkflowArtifacts = DurableWorkflowArtifacts(emptyMap())
 
-    fun fromMap(map: Map<String, Any?>): DurableWorkflowArtifacts =
-      DurableWorkflowArtifacts(LinkedHashMap(map))
+    fun fromMap(map: Map<String, Any?>): DurableWorkflowArtifacts = DurableWorkflowArtifacts(LinkedHashMap(map))
 
     fun fromJson(artifactsJson: String): DurableWorkflowArtifacts {
       val parsed = JsonCodec.parseObjectOrNull(artifactsJson)
@@ -21,17 +20,16 @@ class DurableWorkflowArtifacts private constructor(
       return DurableWorkflowArtifacts(parsed.orEmpty())
     }
 
-    fun fromAny(raw: Any?): DurableWorkflowArtifacts =
-      when (raw) {
-        null -> EMPTY
-        is DurableWorkflowArtifacts -> raw
-        else ->
-          fromMap(
-            JsonCodec.anyToStringAnyMap(raw)
-              ?: throw InvalidWorkflowStateSchemaError(
-                "Durable workflow artifacts must decode to an object.",
-              ),
-          )
-      }
+    fun fromAny(raw: Any?): DurableWorkflowArtifacts = when (raw) {
+      null -> EMPTY
+      is DurableWorkflowArtifacts -> raw
+      else ->
+        fromMap(
+          JsonCodec.anyToStringAnyMap(raw)
+            ?: throw InvalidWorkflowStateSchemaError(
+              "Durable workflow artifacts must decode to an object.",
+            ),
+        )
+    }
   }
 }

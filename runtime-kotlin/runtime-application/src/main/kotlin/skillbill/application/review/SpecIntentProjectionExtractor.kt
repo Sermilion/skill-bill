@@ -7,13 +7,13 @@ import skillbill.error.InvalidReviewContextSchemaError
 import skillbill.error.UnreadableSpecIntentProjectionError
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.review.context.ReviewContextEnvelopeValidator
-import skillbill.workflow.engine.model.ReviewContextWireMap
 import skillbill.review.context.model.ReviewContextBudgetPolicy
 import skillbill.review.context.model.SpecIntentProjection
 import skillbill.review.context.model.SpecIntentProvenance
 import skillbill.review.context.model.SpecIntentSurroundingContext
 import skillbill.review.spec.GovernedSpecSectionParser
 import skillbill.review.spec.GovernedSpecSectionParser.ACCEPTANCE_CRITERIA_PREFIX
+import skillbill.workflow.engine.model.ReviewContextWireMap
 import java.nio.file.Path
 import java.security.MessageDigest
 

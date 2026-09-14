@@ -2,18 +2,20 @@ package skillbill.application.workflow
 
 import skillbill.contracts.JsonCodec
 import skillbill.error.InvalidWorkflowStateSchemaError
-import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.taskruntime.decodePhaseLedgerEntryFromArtifact
 import skillbill.workflow.taskruntime.decodePhaseRecordFromArtifact
+import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerEntry
-import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 
 fun decodeWorkflowArtifacts(artifactsJson: String): DurableWorkflowArtifacts =
   DurableWorkflowArtifacts.fromJson(artifactsJson)
 
-fun decodeFeatureTaskRuntimePhaseRecords(artifacts: DurableWorkflowArtifacts): Map<String, FeatureTaskRuntimePhaseRecord> {
+fun decodeFeatureTaskRuntimePhaseRecords(
+  artifacts: DurableWorkflowArtifacts,
+): Map<String, FeatureTaskRuntimePhaseRecord> {
   val raw = JsonCodec.anyToStringAnyMap(artifacts[FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY])
     ?: return emptyMap()
   return raw.mapValues { (_, value) ->

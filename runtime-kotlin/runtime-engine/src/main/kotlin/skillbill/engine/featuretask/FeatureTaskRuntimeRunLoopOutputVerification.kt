@@ -1,7 +1,4 @@
 package skillbill.engine.featuretask
-
-import skillbill.workflow.taskruntime.*
-
 import skillbill.application.reviewevidence.FeatureTaskRuntimeSharedReviewEvidenceResolver
 import skillbill.application.reviewevidence.model.FeatureTaskRuntimeSharedReviewEvidenceResolved
 import skillbill.contracts.JsonCodec
@@ -26,6 +23,8 @@ import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeHandoffContract
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWorkflowArtifactMap
+import skillbill.workflow.taskruntime.envelopeWireMap
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFindingVerificationDisposition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffAssemblyRequest
@@ -41,6 +40,7 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.model.NormalizedFeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.requireAcceptedOutput
 import skillbill.workflow.taskruntime.model.validateDispositionCoverage
+import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 
 object FeatureTaskRuntimeRunLoopOutputVerification {
   internal fun attestAbsentGateValidationReceipt(
@@ -116,11 +116,13 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
       args.normalizedOutput.envelopeWireMap(),
     )?.let { "output-verification" to it }
 
-  fun firstValidatedOutputRejection(phaseId: String, outputMap: FeatureTaskRuntimeWorkflowArtifactMap): Pair<String, String>? =
-    mutatingReconciliationGateReason(
-      phaseId,
-      outputMap,
-    )?.let { "mutating-reconciliation" to it }
+  fun firstValidatedOutputRejection(
+    phaseId: String,
+    outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
+  ): Pair<String, String>? = mutatingReconciliationGateReason(
+    phaseId,
+    outputMap,
+  )?.let { "mutating-reconciliation" to it }
 
   internal fun immediateConsumerProjectionGateReason(
     runLoop: FeatureTaskRuntimeRunLoop,

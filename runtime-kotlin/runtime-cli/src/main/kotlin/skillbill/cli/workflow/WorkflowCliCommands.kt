@@ -23,12 +23,12 @@ import skillbill.cli.kernel.formatOption
 import skillbill.cli.kernel.toPayload
 import skillbill.cli.model.CliRunInputs
 import skillbill.contracts.JsonCodec
-import skillbill.workflow.engine.model.WorkflowArtifactPatch
-import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningResult
 import skillbill.contracts.workflow.WorkflowArtifactKeys
 import skillbill.ports.workflow.model.FeatureTaskRouteScope
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
+import skillbill.workflow.engine.model.WorkflowStepUpdates
 
 @Inject
 class WorkflowTopLevelCommands(

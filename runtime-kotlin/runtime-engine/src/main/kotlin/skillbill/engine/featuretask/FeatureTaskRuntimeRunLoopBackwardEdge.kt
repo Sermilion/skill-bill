@@ -1,5 +1,4 @@
 package skillbill.engine.featuretask
-
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePlanningStopDecision
 import skillbill.workflow.model.WorkflowStepStatus

@@ -1,6 +1,6 @@
 package skillbill.engine.goalrunner.findings
-import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.testWorkflowSnapshotValidator
+import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.engine.InMemoryRuntimeWorkflowRepository
 import skillbill.engine.RuntimeFakeDatabaseSessionFactory

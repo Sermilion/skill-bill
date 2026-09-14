@@ -1,7 +1,4 @@
 package skillbill.engine.featuretask.validation
-
-import skillbill.workflow.taskruntime.*
-
 import me.tatarka.inject.annotations.Inject
 import skillbill.config.model.applyValidationGateGradleWrapper
 import skillbill.contracts.JsonCodec
@@ -9,7 +6,6 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
 import skillbill.contracts.workflow.ValidationEvidencePayloadKeys
 import skillbill.engine.featuretask.FeatureTaskRuntimePhaseRecorder
-import skillbill.engine.featuretask.workflowArtifactEntryMap
 import skillbill.engine.featuretask.emitFeatureTaskRuntimeEventSafely
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunEvent
 import skillbill.engine.featuretask.validation.model.ValidationFindingSetProjection
@@ -23,6 +19,7 @@ import skillbill.engine.featuretask.validation.model.ValidationGateProgressWrite
 import skillbill.engine.featuretask.validation.model.ValidationGateResolution
 import skillbill.engine.featuretask.validation.model.ValidationGateTriageResult
 import skillbill.engine.featuretask.validation.model.requiresUnparseableGateTriage
+import skillbill.engine.featuretask.workflowArtifactEntryMap
 import skillbill.error.InvalidFeatureTaskRuntimeValidationEvidenceSchemaError
 import skillbill.ports.config.RepoLocalConfigPort
 import skillbill.ports.config.model.ReadRepoLocalConfigRequest
@@ -34,6 +31,7 @@ import skillbill.ports.validation.model.ValidationGateRunRequest
 import skillbill.ports.validation.model.ValidationGateRunResult
 import skillbill.scaffold.model.ValidationGateDeclaration
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationCommandResult

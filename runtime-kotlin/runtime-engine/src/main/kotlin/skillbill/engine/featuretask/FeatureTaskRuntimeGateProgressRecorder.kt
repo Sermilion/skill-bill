@@ -1,7 +1,4 @@
 package skillbill.engine.featuretask
-
-import skillbill.workflow.taskruntime.*
-
 import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.contracts.JsonCodec
@@ -9,6 +6,8 @@ import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.workflow.get
 import skillbill.workflow.goal.model.GoalSubtaskReviewArtifactDecoder
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.decodeValidationGateProgressFromArtifact
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_BUILD_GATE_PROGRESS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_VALIDATION_GATE_PROGRESS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeQualityGateSelection
@@ -21,7 +20,9 @@ class FeatureTaskRuntimeGateProgressRecorder(
   override fun loadValidationGateProgress(workflowId: String): FeatureTaskRuntimeValidationGateProgress? =
     database.read { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@read null
-      val raw = decodeWorkflowArtifacts(record.artifactsJson)[FEATURE_TASK_RUNTIME_VALIDATION_GATE_PROGRESS_ARTIFACT_KEY]
+      val raw = decodeWorkflowArtifacts(
+        record.artifactsJson,
+      )[FEATURE_TASK_RUNTIME_VALIDATION_GATE_PROGRESS_ARTIFACT_KEY]
       val artifact = JsonCodec.anyToStringAnyMap(raw) ?: return@read null
       decodeValidationGateProgressFromArtifact(artifact)!!
     }

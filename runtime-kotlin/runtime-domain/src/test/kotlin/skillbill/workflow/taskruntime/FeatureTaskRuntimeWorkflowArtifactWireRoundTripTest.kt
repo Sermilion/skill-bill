@@ -1,6 +1,7 @@
 package skillbill.workflow.taskruntime
 
 import skillbill.contracts.JsonCodec
+import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeCheckpointIdentity
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffEnvelope
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeQuarantineEntry
@@ -8,7 +9,6 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairOutcome
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairReceipt
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairReceiptEntry
 import skillbill.workflow.taskruntime.model.QUARANTINE_REJECTION_CLASS_PLANNING_PROJECTION
-import skillbill.error.InvalidWorkflowStateSchemaError
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

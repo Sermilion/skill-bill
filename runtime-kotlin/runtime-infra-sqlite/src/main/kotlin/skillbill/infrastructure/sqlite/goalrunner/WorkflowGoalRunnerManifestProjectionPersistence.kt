@@ -64,7 +64,9 @@ internal class WorkflowGoalRunnerManifestProjectionPersistence(
         workflowStatus = existingSnapshot.workflowStatus,
         currentStepId = existingSnapshot.currentStepId,
         stepUpdates = null,
-        artifactsPatch = WorkflowArtifactPatch.from(parentProjection.artifacts(manifest, existingSnapshot.artifactsJson)),
+        artifactsPatch = WorkflowArtifactPatch.from(
+          parentProjection.artifacts(manifest, existingSnapshot.artifactsJson),
+        ),
         sessionId = existingSnapshot.sessionId.orEmpty(),
         replaceArtifacts = true,
       ),

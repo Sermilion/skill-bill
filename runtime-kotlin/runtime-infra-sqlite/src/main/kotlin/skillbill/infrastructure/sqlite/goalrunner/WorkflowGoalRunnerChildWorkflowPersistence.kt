@@ -5,6 +5,7 @@ import skillbill.contracts.issuekey.normalizeRequiredIssueKey
 import skillbill.error.IncompatibleGoalPlanningPreparationRecoveryError
 import skillbill.goalrunner.GoalRunnerQualityGateSelectionResolver
 import skillbill.infrastructure.sqlite.decomposition.decodeArtifacts
+import skillbill.infrastructure.sqlite.featuretask.artifact.encodeWorkflowArtifact
 import skillbill.infrastructure.sqlite.workflow.decompositionRuntime
 import skillbill.infrastructure.sqlite.workflow.findDecomposedParentWorkflow
 import skillbill.infrastructure.sqlite.workflow.requireRuntimeModeForEngineWrite
@@ -23,15 +24,14 @@ import skillbill.ports.workflow.saveRecord
 import skillbill.ports.workflow.toRecord
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.engine.WorkflowEngine
-import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
+import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.goal.model.ValidationDepth
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
-import skillbill.infrastructure.sqlite.featuretask.artifact.encodeWorkflowArtifact
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationArtifact
 import java.nio.file.Path
 

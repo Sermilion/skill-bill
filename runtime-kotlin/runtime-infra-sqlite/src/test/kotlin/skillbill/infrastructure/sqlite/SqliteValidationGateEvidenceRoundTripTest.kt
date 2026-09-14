@@ -7,6 +7,8 @@ import skillbill.infrastructure.sqlite.core.DatabaseRuntime
 import skillbill.model.EnvironmentContext
 import skillbill.ports.featuretask.model.FeatureTaskPhaseSettlement
 import skillbill.ports.featuretask.model.FeatureTaskPhaseSettlementKind
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.decodeValidationGateExecutionEvidenceFromArtifact
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateExecutionEvidence
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateRunRecord
 import skillbill.workflow.taskruntime.model.ValidationGateCacheMode
@@ -15,18 +17,6 @@ import java.nio.file.Files
 import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
-
-import skillbill.workflow.taskruntime.asCheckpointIdentitiesArtifactEntry
-import skillbill.workflow.taskruntime.asTelemetryPayload
-import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
-import skillbill.workflow.taskruntime.decodeFindingVerificationDispositionFromArtifact
-import skillbill.workflow.taskruntime.decodeImplementationAttemptFromArtifact
-import skillbill.workflow.taskruntime.decodePhaseRecordFromArtifact
-import skillbill.workflow.taskruntime.decodeValidationGateExecutionEvidenceFromArtifact
-import skillbill.workflow.taskruntime.decodeValidationGateProgressFromArtifact
-import skillbill.workflow.taskruntime.envelopeWireMap
-import skillbill.workflow.taskruntime.phaseRecordsFromWorkflowArtifacts
-import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 class SqliteValidationGateEvidenceRoundTripTest {
   @Test
   fun `validation gate execution evidence survives sqlite round trip`() {

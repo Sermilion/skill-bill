@@ -70,12 +70,12 @@ import skillbill.ports.time.model.RuntimeWaitResult
 import skillbill.ports.work.EmptyWorkListRepository
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
-import skillbill.workflow.engine.model.DecompositionManifestWireMap
 import skillbill.text.sha256HexUtf8
 import skillbill.workflow.NoopGoalPlanningPreparationEnvelopeValidator
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.decomposition.model.SpecSource
+import skillbill.workflow.engine.model.DecompositionManifestWireMap
 import skillbill.workflow.goal.model.GoalProgressEventKind
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePlanningProjectionValidator

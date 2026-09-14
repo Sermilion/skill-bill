@@ -6,10 +6,10 @@ import skillbill.goalrunner.model.GoalRunnerTerminalStatus
 import skillbill.workflow.engine.decodeWorkflowSteps
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepState
+import skillbill.workflow.goal.model.asGoalWorkflowArtifactMap
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStatus
-import skillbill.workflow.goal.model.asGoalWorkflowArtifactMap
 import skillbill.workflow.model.workflowStepStatus
 
 fun terminalOutcomeFor(
@@ -111,20 +111,16 @@ fun liveBlockedStep(snapshot: WorkflowStateSnapshot, steps: List<WorkflowStepSta
   }
 }
 
-fun blockedReasonFrom(
-  artifacts: Any,
-  steps: List<WorkflowStepState>,
-  status: GoalRunnerTerminalStatus,
-): String? {
+fun blockedReasonFrom(artifacts: Any, steps: List<WorkflowStepState>, status: GoalRunnerTerminalStatus): String? {
   val wire = artifacts.asGoalWorkflowArtifactMap("goal blocked reason artifacts")
   return wire["blocked_reason"]?.toString()?.takeIf(String::isNotBlank)
-  ?: (wire["goal_continuation_outcome"] as? Map<*, *>)
-    ?.get("blocked_reason")?.toString()?.takeIf(String::isNotBlank)
-  ?: steps.firstOrNull {
-    it.status.workflowStepStatus() in setOf(WorkflowStepStatus.FAILED, WorkflowStepStatus.BLOCKED)
-  }?.let { step -> "Workflow step '${step.stepId}' is ${step.status}." }
-  ?: "Workflow reached a terminal state without a goal-continuation commit SHA."
-    .takeIf { status == GoalRunnerTerminalStatus.NO_TERMINAL_STORE_OUTCOME }
+    ?: (wire["goal_continuation_outcome"] as? Map<*, *>)
+      ?.get("blocked_reason")?.toString()?.takeIf(String::isNotBlank)
+    ?: steps.firstOrNull {
+      it.status.workflowStepStatus() in setOf(WorkflowStepStatus.FAILED, WorkflowStepStatus.BLOCKED)
+    }?.let { step -> "Workflow step '${step.stepId}' is ${step.status}." }
+    ?: "Workflow reached a terminal state without a goal-continuation commit SHA."
+      .takeIf { status == GoalRunnerTerminalStatus.NO_TERMINAL_STORE_OUTCOME }
 }
 
 fun commitShaFrom(artifacts: Any): String? {

@@ -1,7 +1,4 @@
 package skillbill.engine.featuretask
-
-import skillbill.workflow.taskruntime.*
-
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
 import skillbill.error.FeatureTaskRuntimePhaseOrderViolationError
 import skillbill.goalrunner.subtaskreview.GoalSubtaskReviewSummaryReducer
@@ -10,6 +7,7 @@ import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeQualityGateRouting
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeTransitionFunction
+import skillbill.workflow.taskruntime.envelopeWireMap
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairEvidence
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeTransitionContext

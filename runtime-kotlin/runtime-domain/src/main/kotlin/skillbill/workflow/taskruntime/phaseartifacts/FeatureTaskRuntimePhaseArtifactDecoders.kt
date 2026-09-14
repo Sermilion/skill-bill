@@ -67,7 +67,9 @@ internal fun operatorBlockRetryFrom(artifacts: Map<String, Any?>): FeatureTaskRu
     retriedAt = entryMap.requiredOperatorRetryString("retried_at"),
   )
 }
-internal fun goalContinuationFieldAdoptionFrom(artifacts: Map<String, Any?>): FeatureTaskRuntimeGoalContinuationFieldAdoption? {
+internal fun goalContinuationFieldAdoptionFrom(
+  artifacts: Map<String, Any?>,
+): FeatureTaskRuntimeGoalContinuationFieldAdoption? {
   val raw = artifacts[FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_FIELD_ADOPTION_ARTIFACT_KEY] ?: return null
   val entryMap = JsonCodec.anyToStringAnyMap(raw)
     ?: schemaError(

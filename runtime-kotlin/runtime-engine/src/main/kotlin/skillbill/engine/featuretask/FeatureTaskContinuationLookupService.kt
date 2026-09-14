@@ -1,5 +1,4 @@
 package skillbill.engine.featuretask
-
 import me.tatarka.inject.annotations.Inject
 import skillbill.engine.featuretask.model.FeatureTaskContinuationCandidate
 import skillbill.engine.featuretask.model.FeatureTaskContinuationLiveness

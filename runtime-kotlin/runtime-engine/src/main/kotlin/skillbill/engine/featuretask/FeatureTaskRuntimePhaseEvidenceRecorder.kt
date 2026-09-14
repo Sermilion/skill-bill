@@ -1,7 +1,4 @@
 package skillbill.engine.featuretask
-
-import skillbill.workflow.taskruntime.*
-
 import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.contracts.JsonCodec
@@ -13,6 +10,11 @@ import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.workflow.get
 import skillbill.workflow.goal.model.appendBoundedHistoryBySequence
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeQuarantineValidator
+import skillbill.workflow.taskruntime.asCheckpointIdentitiesArtifactEntry
+import skillbill.workflow.taskruntime.asQuarantineWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.decodeCheckpointIdentitiesFromArtifact
+import skillbill.workflow.taskruntime.decodeQuarantineEntriesFromArtifact
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT
@@ -26,6 +28,7 @@ import skillbill.workflow.taskruntime.model.QUARANTINE_REJECTION_CLASS_CHECKPOIN
 import skillbill.workflow.taskruntime.model.featureTaskRuntimeAppendCheckpointIdentity
 import skillbill.workflow.taskruntime.model.featureTaskRuntimeCheckpointRefName
 import skillbill.workflow.taskruntime.model.featureTaskRuntimeOwnedPathDigest
+import skillbill.workflow.taskruntime.resolvedBranchFromWorkflowArtifacts
 import java.time.Clock
 
 class FeatureTaskRuntimePhaseEvidenceRecorder(
@@ -146,7 +149,9 @@ class FeatureTaskRuntimePhaseEvidenceRecorder(
     database.transaction { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
         ?: return@transaction false
-      val resolved = resolvedBranchFromWorkflowArtifacts(decodeWorkflowArtifacts(record.artifactsJson)) ?: return@transaction false
+      val resolved =
+        resolvedBranchFromWorkflowArtifacts(decodeWorkflowArtifacts(record.artifactsJson))
+          ?: return@transaction false
       val updated = resolved.copy(workflowOwnedPaths = ownedPaths.distinct().sorted())
       workflowPersistence.persistPatch(
         unitOfWork.workflowStates,

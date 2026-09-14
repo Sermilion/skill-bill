@@ -153,8 +153,7 @@ class GoalPlanningLogService(
     }
   }
 
-  private fun timestamp(event: GoalProgressEvent): Instant? =
-    runCatching { Instant.parse(event.timestamp) }.getOrNull()
+  private fun timestamp(event: GoalProgressEvent): Instant? = runCatching { Instant.parse(event.timestamp) }.getOrNull()
 
   private fun outcomeWire(outcome: GoalProgressOutcome): String? =
     if (outcome == GoalProgressOutcome.NONE) null else outcome.wireValue

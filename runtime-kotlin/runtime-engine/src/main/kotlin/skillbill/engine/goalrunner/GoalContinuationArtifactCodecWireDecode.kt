@@ -1,11 +1,9 @@
 package skillbill.engine.goalrunner
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.goalrunner.model.GoalRunnerSupervisionEvent
 import skillbill.goalrunner.model.GoalRunnerWorkerSubtaskRequest
 import skillbill.goalrunner.model.GoalRunnerWorkerSubtaskRequestOutcome
-@OpenBoundaryMap("Goal runner supervision event durable artifact map")
 fun GoalRunnerSupervisionEvent.toArtifactsMap(): Map<String, Any?> = linkedMapOf(
   "phase" to phase,
   "reason" to reason,
@@ -22,7 +20,6 @@ fun GoalRunnerSupervisionEvent.toArtifactsMap(): Map<String, Any?> = linkedMapOf
 const val WORKER_SUBTASK_REQUEST_OUTCOMES_ARTIFACT_KEY = "goal_worker_subtask_request_outcomes"
 const val WORKER_SUBTASK_REQUEST_OUTCOME_LIMIT = 50
 
-@OpenBoundaryMap("Goal worker subtask request outcome durable artifact map")
 fun GoalRunnerWorkerSubtaskRequestOutcome.toPersistenceWire(): Map<String, Any?> = when (this) {
   is GoalRunnerWorkerSubtaskRequestOutcome.Accepted -> linkedMapOf(
     SharedPayloadKeys.STATUS to "accepted",
@@ -51,7 +48,6 @@ fun GoalRunnerWorkerSubtaskRequestOutcome.toPersistenceWire(): Map<String, Any?>
   )
 }
 
-@OpenBoundaryMap("Goal worker subtask request durable artifact map")
 fun GoalRunnerWorkerSubtaskRequest.toPersistenceWire(): Map<String, Any?> = linkedMapOf<String, Any?>(
   "name" to name,
   "spec_path" to specPath,

@@ -33,7 +33,6 @@ import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.save
 import skillbill.workflow.decomposition.DecompositionManifestValidator
-import skillbill.workflow.goal.model.GoalProgressEvent
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
@@ -41,6 +40,7 @@ import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.goal.GoalObservabilityEventValidator
 import skillbill.workflow.goal.GoalProgressEventValidator
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
+import skillbill.workflow.goal.model.GoalProgressEvent
 import skillbill.workflow.goal.model.GoalSubtaskReviewPassResult
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
@@ -200,9 +200,12 @@ internal class WorkflowGoalRunnerReviewBridge(
           workflowStatus = record.workflowStatus,
           currentStepId = record.currentStepId,
           stepUpdates = null,
-          artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-            GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to state.acknowledgeSummariesThrough(passNumber).toPersistenceWire(),
-          )),
+          artifactsPatch = WorkflowArtifactPatch.from(
+            mapOf(
+              GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to
+                state.acknowledgeSummariesThrough(passNumber).toPersistenceWire(),
+            ),
+          ),
           sessionId = record.sessionId.orEmpty(),
         ),
       )

@@ -70,16 +70,23 @@ object GovernedReviewEvidenceCodec {
     expansionById: (String) -> ReviewExpansionRecord?,
   ): ReviewEvidenceBatchRequest {
     requestMetadata(arguments)
-    if (arguments.keys.any { it !in setOf(GovernedReviewEvidencePayloadKeys.OPERATION, GovernedReviewEvidencePayloadKeys.REQUESTS) } ||
-      (GovernedReviewEvidencePayloadKeys.OPERATION in arguments &&
-        arguments[GovernedReviewEvidencePayloadKeys.OPERATION] != "read")
+    if (
+      arguments.keys.any {
+        it !in setOf(GovernedReviewEvidencePayloadKeys.OPERATION, GovernedReviewEvidencePayloadKeys.REQUESTS)
+      } ||
+      (
+        GovernedReviewEvidencePayloadKeys.OPERATION in arguments &&
+          arguments[GovernedReviewEvidencePayloadKeys.OPERATION] != "read"
+        )
     ) {
       throw InvalidReviewContextSchemaError("review-evidence", "Malformed read operation.")
     }
     val rawRequests = evidenceReadItems(arguments)
     return ReviewEvidenceBatchRequest(
       lane = lane,
-      requests = rawRequests.map { raw -> GovernedReviewEvidenceCodecWire.evidenceRequest(lane, raw, expansionById) },
+      requests = rawRequests.map { raw ->
+        GovernedReviewEvidenceCodecWire.evidenceRequest(lane, raw, expansionById)
+      },
     )
   }
 
@@ -112,10 +119,13 @@ object GovernedReviewEvidenceCodec {
   fun batchResultPayload(result: ReviewEvidenceBatchResult): JsonPayloadContract = GovernedReviewWirePayload.from(
     linkedMapOf(
       GovernedReviewEvidencePayloadKeys.DELIVERY_RECEIPT to result.deliveryReceipt,
-      GovernedReviewEvidencePayloadKeys.RESULTS to result.results.map(GovernedReviewEvidenceCodecWire::resultPayload),
+      GovernedReviewEvidencePayloadKeys.RESULTS to
+        result.results.map(GovernedReviewEvidenceCodecWire::resultPayload),
       GovernedReviewEvidencePayloadKeys.CUMULATIVE_BYTES to result.cumulativeBytes,
-      GovernedReviewEvidencePayloadKeys.EXPANSIONS to result.expansions.map(GovernedReviewEvidenceCodecWire::expansionPayload),
-      GovernedReviewEvidencePayloadKeys.TERMINAL_OUTCOME to result.terminalOutcome?.let(GovernedReviewEvidenceCodecWire::budgetPayload),
+      GovernedReviewEvidencePayloadKeys.EXPANSIONS to
+        result.expansions.map(GovernedReviewEvidenceCodecWire::expansionPayload),
+      GovernedReviewEvidencePayloadKeys.TERMINAL_OUTCOME to
+        result.terminalOutcome?.let(GovernedReviewEvidenceCodecWire::budgetPayload),
     ),
   )
 

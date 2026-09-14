@@ -1,7 +1,5 @@
 package skillbill.engine.goalrunner
-
 import skillbill.application.workflow.model.WorkflowFamily
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.engine.goalrunner.model.GoalContinuation
@@ -20,11 +18,10 @@ import skillbill.workflow.goal.model.GoalSubtaskReviewArtifactDecoder
 import skillbill.workflow.goal.model.GoalSubtaskReviewArtifacts
 import skillbill.workflow.goal.model.GoalSubtaskReviewPassResult
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
-import skillbill.workflow.taskruntime.envelopeWireMap
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.envelopeWireMap
 import skillbill.workflow.taskruntime.model.requireAcceptedOutput
 
-@OpenBoundaryMap("Goal continuation artifact decode from durable workflow artifacts")
 fun goalContinuation(artifacts: Map<String, Any?>): GoalContinuation? =
   (artifacts["goal_continuation"] as? Map<*, *>)?.let { payload ->
     val issueKey = payload[SharedPayloadKeys.ISSUE_KEY]?.toString()?.takeIf(String::isNotBlank)
@@ -41,7 +38,6 @@ fun goalContinuation(artifacts: Map<String, Any?>): GoalContinuation? =
     }
   }
 
-@OpenBoundaryMap("Goal subtask review artifact decode from durable workflow artifacts")
 fun goalReviewArtifacts(artifacts: Map<String, Any?>): GoalSubtaskReviewArtifacts? =
   GoalSubtaskReviewArtifactDecoder.decode(artifacts)
 
@@ -76,7 +72,6 @@ fun validatedGoalReviewPasses(
   return review.state.passResults
 }
 
-@OpenBoundaryMap("Goal review emission envelope at the phase-output validation seam")
 fun goalReviewEmissionEnvelope(
   rawResult: String,
   phaseOutputValidator: FeatureTaskRuntimePhaseOutputValidator,

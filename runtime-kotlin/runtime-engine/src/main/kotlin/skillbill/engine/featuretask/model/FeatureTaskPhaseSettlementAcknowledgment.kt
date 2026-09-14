@@ -1,5 +1,4 @@
 package skillbill.engine.featuretask.model
-
 import skillbill.ports.featuretask.model.FeatureTaskPhaseSettlementKind
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeWorkflowArtifactMap
 

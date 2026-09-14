@@ -17,7 +17,10 @@ data class FeatureTaskRuntimeVerificationBoundaryHeadingProvenance(
   )
 
   companion object {
-    internal fun fromArtifactMap(raw: Map<String, Any?>, path: String): FeatureTaskRuntimeVerificationBoundaryHeadingProvenance {
+    internal fun fromArtifactMap(
+      raw: Map<String, Any?>,
+      path: String,
+    ): FeatureTaskRuntimeVerificationBoundaryHeadingProvenance {
       val headingId = (raw["heading_id"] as? String)?.trim()?.takeIf(String::isNotBlank)
         ?: invalid(path, "heading_id")
       val sourcePath = (raw["source_path"] as? String)?.trim()?.takeIf(String::isNotBlank)

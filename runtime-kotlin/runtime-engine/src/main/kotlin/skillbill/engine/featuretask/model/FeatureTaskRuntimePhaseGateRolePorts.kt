@@ -1,5 +1,4 @@
 package skillbill.engine.featuretask.model
-
 import skillbill.application.review.SpecIntentProjectionResolver
 import skillbill.engine.featuretask.FeatureTaskRuntimeBranchSetupRunner
 import skillbill.engine.featuretask.FeatureTaskRuntimeFindingVerificationBoundaryMemory

@@ -1,16 +1,14 @@
 package skillbill.application
-import skillbill.workflow.engine.model.WorkflowStepUpdates
-import skillbill.workflow.engine.model.WorkflowArtifactPatch
-import skillbill.application.testDecompositionManifestValidator
-import skillbill.workflow.decomposition.encodeManifestWireMap
-
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
-import skillbill.application.decomposition.model.DecompositionManifestRuntimeUpdate
-import skillbill.application.decomposition.model.DecompositionManifestWriteRequest
 import skillbill.application.decomposition.decompositionPlanningResult
 import skillbill.application.decomposition.decompositionPlanningSubtask
+import skillbill.application.decomposition.model.DecompositionManifestRuntimeUpdate
+import skillbill.application.decomposition.model.DecompositionManifestWriteRequest
 import skillbill.contracts.JsonCodec
+import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionManifest
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
+import skillbill.workflow.engine.model.WorkflowStepUpdates
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
@@ -44,16 +42,22 @@ class DecompositionManifestPayloadProjectionTest {
     val result = writeFromWorkflowUpdate(
       repoRoot = repoRoot,
       existingArtifactsJson = durableRuntimeArtifactsJson(initial.manifest, subtaskSpec),
-      artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-        "review_result" to mapOf("finding_count" to 0),
-        "audit_report" to mapOf("pass" to true),
-        "validation_result" to mapOf("passed" to true),
-      )),
+      artifactsPatch = WorkflowArtifactPatch.from(
+        mapOf(
+          "review_result" to mapOf("finding_count" to 0),
+          "audit_report" to mapOf("pass" to true),
+          "validation_result" to mapOf("passed" to true),
+        ),
+      ),
       runtimeUpdate = DecompositionManifestRuntimeUpdate(
         workflowId = "wfl-subtask-1",
         workflowStatus = "running",
         currentStepId = "validate",
-        stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "validate", "status" to "completed", "attempt_count" to 1))),
+        stepUpdates = WorkflowStepUpdates.from(
+          listOf(
+            mapOf("step_id" to "validate", "status" to "completed", "attempt_count" to 1),
+          ),
+        ),
       ),
     )
 
@@ -64,8 +68,9 @@ class DecompositionManifestPayloadProjectionTest {
     assertFalse("validation_result" in subtaskWire)
   }
 
-  private fun firstSubtaskWire(manifest: DecompositionManifest): Map<*, *> =
-    (testDecompositionManifestValidator.encodeManifestWireMap(manifest).getValue("subtasks") as List<*>).first() as Map<*, *>
+  private fun firstSubtaskWire(manifest: DecompositionManifest): Map<*, *> = (
+    testDecompositionManifestValidator.encodeManifestWireMap(manifest).getValue("subtasks") as List<*>
+    ).first() as Map<*, *>
 
   private fun durableRuntimeArtifactsJson(manifest: DecompositionManifest, subtaskSpec: Path): String =
     JsonCodec.mapToJsonString(

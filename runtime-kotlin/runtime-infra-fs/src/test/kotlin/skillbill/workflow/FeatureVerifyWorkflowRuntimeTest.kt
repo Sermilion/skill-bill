@@ -1,9 +1,8 @@
 package skillbill.workflow
-import skillbill.workflow.engine.model.WorkflowStepUpdates
-import skillbill.workflow.engine.model.WorkflowArtifactPatch
-
 import skillbill.infrastructure.fs.WorkflowSnapshotValidatorInfraAdapter
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
+import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.verify.FeatureVerifyWorkflowDefinition
 import kotlin.test.Test
@@ -36,7 +35,9 @@ class FeatureVerifyWorkflowRuntimeTest {
         WorkflowUpdateInput(
           workflowStatus = "completed",
           currentStepId = "finish",
-          stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "finish", "status" to "completed", "attempt_count" to 1))),
+          stepUpdates = WorkflowStepUpdates.from(
+            listOf(mapOf("step_id" to "finish", "status" to "completed", "attempt_count" to 1)),
+          ),
           artifactsPatch = WorkflowArtifactPatch.from(mapOf("verdict_result" to mapOf("verdict" to "pass"))),
           sessionId = "",
         ),
@@ -62,17 +63,20 @@ class FeatureVerifyWorkflowRuntimeTest {
         WorkflowUpdateInput(
           workflowStatus = "running",
           currentStepId = "verdict",
-          stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "verdict", "status" to "blocked", "attempt_count" to 1))),
-          artifactsPatch =
-          linkedMapOf(
-            "feature_flag_audit_receipt" to evaluatorReceipt("not_applicable"),
-            "code_review_receipt" to evaluatorReceipt("pass"),
-            "unit_test_value_receipt" to evaluatorReceipt("strong"),
-            "completeness_audit_receipt" to evaluatorReceipt("pass"),
-            "diff_projection" to mapOf(
-              "checkpoint" to "abc123",
-              "comparison_scope" to "branch_diff",
-              "changed_files" to listOf("Changed.kt"),
+          stepUpdates = WorkflowStepUpdates.from(
+            listOf(mapOf("step_id" to "verdict", "status" to "blocked", "attempt_count" to 1)),
+          ),
+          artifactsPatch = WorkflowArtifactPatch.from(
+            linkedMapOf(
+              "feature_flag_audit_receipt" to evaluatorReceipt("not_applicable"),
+              "code_review_receipt" to evaluatorReceipt("pass"),
+              "unit_test_value_receipt" to evaluatorReceipt("strong"),
+              "completeness_audit_receipt" to evaluatorReceipt("pass"),
+              "diff_projection" to mapOf(
+                "checkpoint" to "abc123",
+                "comparison_scope" to "branch_diff",
+                "changed_files" to listOf("Changed.kt"),
+              ),
             ),
           ),
           sessionId = "",
@@ -101,7 +105,9 @@ class FeatureVerifyWorkflowRuntimeTest {
       WorkflowUpdateInput(
         workflowStatus = "pending",
         currentStepId = "code_review",
-        stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "code_review", "status" to "failed", "attempt_count" to 1))),
+        stepUpdates = WorkflowStepUpdates.from(
+          listOf(mapOf("step_id" to "code_review", "status" to "failed", "attempt_count" to 1)),
+        ),
         artifactsPatch = null,
         sessionId = "",
       )
@@ -141,7 +147,9 @@ class FeatureVerifyWorkflowRuntimeTest {
     WorkflowUpdateInput(
       workflowStatus = status,
       currentStepId = "finish",
-      stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "finish", "status" to "completed", "attempt_count" to 1))),
+      stepUpdates = WorkflowStepUpdates.from(
+        listOf(mapOf("step_id" to "finish", "status" to "completed", "attempt_count" to 1)),
+      ),
       artifactsPatch = WorkflowArtifactPatch.from(mapOf("verdict_result" to emptyMap<String, Any?>())),
       sessionId = "",
     ),

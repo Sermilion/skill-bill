@@ -6,9 +6,9 @@ import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.ports.workflow.save
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowUpdateAcknowledgementView
-import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.engine.model.isTerminalStatus
 import skillbill.workflow.model.workflowStatus

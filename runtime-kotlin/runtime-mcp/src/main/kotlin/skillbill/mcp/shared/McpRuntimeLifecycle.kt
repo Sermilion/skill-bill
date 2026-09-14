@@ -12,27 +12,37 @@ object McpRuntimeLifecycle {
   fun qualityCheckStarted(
     request: QualityCheckStartedRequest,
     context: McpRuntimeContext = McpRuntimeContext(),
-  ): Map<String, Any?> = withAutoSync(context) { it.lifecycleTelemetryService.qualityCheckStarted(request).toPayload() }
+  ): Map<String, Any?> = withAutoSync(context) {
+    it.lifecycleTelemetryService.qualityCheckStarted(request).toPayload()
+  }
 
   fun qualityCheckFinished(
     request: QualityCheckFinishedRequest,
     context: McpRuntimeContext = McpRuntimeContext(),
-  ): Map<String, Any?> = withAutoSync(context) { it.lifecycleTelemetryService.qualityCheckFinished(request).toPayload() }
+  ): Map<String, Any?> = withAutoSync(context) {
+    it.lifecycleTelemetryService.qualityCheckFinished(request).toPayload()
+  }
 
   fun featureVerifyStarted(
     request: FeatureVerifyStartedRequest,
     context: McpRuntimeContext = McpRuntimeContext(),
-  ): Map<String, Any?> = withAutoSync(context) { it.lifecycleTelemetryService.featureVerifyStarted(request).toPayload() }
+  ): Map<String, Any?> = withAutoSync(context) {
+    it.lifecycleTelemetryService.featureVerifyStarted(request).toPayload()
+  }
 
   fun featureVerifyFinished(
     request: FeatureVerifyFinishedRequest,
     context: McpRuntimeContext = McpRuntimeContext(),
-  ): Map<String, Any?> = withAutoSync(context) { it.lifecycleTelemetryService.featureVerifyFinished(request).toPayload() }
+  ): Map<String, Any?> = withAutoSync(context) {
+    it.lifecycleTelemetryService.featureVerifyFinished(request).toPayload()
+  }
 
   fun prDescriptionGenerated(
     request: PrDescriptionGeneratedRequest,
     context: McpRuntimeContext = McpRuntimeContext(),
-  ): Map<String, Any?> = withAutoSync(context) { it.lifecycleTelemetryService.prDescriptionGenerated(request).toPayload() }
+  ): Map<String, Any?> = withAutoSync(context) {
+    it.lifecycleTelemetryService.prDescriptionGenerated(request).toPayload()
+  }
 
   fun telemetryRemoteStats(
     request: RemoteStatsRequest,

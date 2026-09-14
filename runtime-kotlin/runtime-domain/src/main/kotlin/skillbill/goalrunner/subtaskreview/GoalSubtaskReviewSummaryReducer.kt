@@ -112,8 +112,8 @@ object GoalSubtaskReviewSummaryReducer {
 
   internal fun evidenceCoverageComplete(output: Any): Boolean? =
     output.asGoalSubtaskReviewPhaseOutputMap()[SharedPayloadKeys.PRODUCED_OUTPUTS]
-    ?.let(JsonCodec::anyToStringAnyMap)
-    ?.get(FeatureTaskRuntimeVerificationSignalKeys.EVIDENCE_COVERAGE_COMPLETE) as? Boolean
+      ?.let(JsonCodec::anyToStringAnyMap)
+      ?.get(FeatureTaskRuntimeVerificationSignalKeys.EVIDENCE_COVERAGE_COMPLETE) as? Boolean
 
   fun rejectedVerificationFindings(
     verifyOutput: Any,

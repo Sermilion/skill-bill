@@ -1,5 +1,4 @@
 package skillbill.engine.featuretask
-
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowQueries
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffEnvelope

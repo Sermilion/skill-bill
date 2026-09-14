@@ -1,7 +1,6 @@
 package skillbill.learnings
 
 import skillbill.contracts.JsonCodec
-import skillbill.contracts.learning.LearningAppliedSessionWire
 import skillbill.contracts.learning.LearningEntryDto
 import skillbill.learnings.model.LearningEntry
 import skillbill.learnings.model.LearningRecord
@@ -32,7 +31,6 @@ fun learningEntryDto(entry: LearningEntry): LearningEntryDto = LearningEntryDto(
   sourceFindingId = entry.sourceFindingId,
 )
 
-fun learningEntrySessionJson(skillName: String?, entries: List<LearningEntry>): String =
-  JsonCodec.mapToJsonString(
-    learningAppliedSessionWire(skillName, entries.map(::learningEntryDto)).toPayload(),
-  )
+fun learningEntrySessionJson(skillName: String?, entries: List<LearningEntry>): String = JsonCodec.mapToJsonString(
+  learningAppliedSessionWire(skillName, entries.map(::learningEntryDto)).toPayload(),
+)

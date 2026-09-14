@@ -1,7 +1,5 @@
 package skillbill.application
 
-import skillbill.workflow.decomposition.decodeManifest
-import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.application.decomposition.encodeDecompositionManifestYaml
 import skillbill.contracts.JsonCodec
 import skillbill.error.InvalidDecompositionManifestSchemaError
@@ -9,13 +7,15 @@ import skillbill.infrastructure.fs.DecompositionManifestValidatorAdapter
 import skillbill.infrastructure.fs.FileSystemDecompositionManifestFileStore
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.workflow.decomposition.DecompositionManifestValidator
-import skillbill.workflow.engine.model.DecompositionManifestWireMap
+import skillbill.workflow.decomposition.decodeManifest
+import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionDependency
 import skillbill.workflow.decomposition.model.DecompositionExecutionModel
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionStackBranch
 import skillbill.workflow.decomposition.model.DecompositionSubtask
+import skillbill.workflow.engine.model.DecompositionManifestWireMap
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -97,7 +97,10 @@ class DecompositionManifestValidationTest {
 
     encodeDecompositionManifestYaml(manifest, realDecompositionManifestValidator, fileStore)
 
-    assertEquals("stacked_branches", realDecompositionManifestValidator.encodeManifestWireMap(manifest)["execution_model"])
+    assertEquals(
+      "stacked_branches",
+      realDecompositionManifestValidator.encodeManifestWireMap(manifest)["execution_model"],
+    )
   }
 
   @Test
@@ -117,7 +120,10 @@ class DecompositionManifestValidationTest {
     wireMap.mutableSubtasks()[0]["review_result"] = mapOf("finding_count" to 0)
 
     val error = assertFailsWith<InvalidDecompositionManifestSchemaError> {
-      realDecompositionManifestValidator.decodeManifest(DecompositionManifestWireMap.from(wireMap), "result-payload-noise")
+      realDecompositionManifestValidator.decodeManifest(
+        DecompositionManifestWireMap.from(wireMap),
+        "result-payload-noise",
+      )
     }
     assertContains(error.reason, "review_result")
   }
@@ -128,7 +134,10 @@ class DecompositionManifestValidationTest {
     wireMap.mutableSubtasks()[0]["id"] = Int.MAX_VALUE.toLong() + 1L
 
     val error = assertFailsWith<InvalidDecompositionManifestSchemaError> {
-      realDecompositionManifestValidator.decodeManifest(DecompositionManifestWireMap.from(wireMap), "oversized-subtask-id")
+      realDecompositionManifestValidator.decodeManifest(
+        DecompositionManifestWireMap.from(wireMap),
+        "oversized-subtask-id",
+      )
     }
     assertContains(error.reason, "subtasks[0].id")
     assertContains(error.reason, Int.MAX_VALUE.toString())
@@ -140,7 +149,10 @@ class DecompositionManifestValidationTest {
     wireMap.mutableSubtasks()[1]["id"] = 1
 
     val error = assertFailsWith<InvalidDecompositionManifestSchemaError> {
-      realDecompositionManifestValidator.decodeManifest(DecompositionManifestWireMap.from(wireMap), "duplicate-subtask-id")
+      realDecompositionManifestValidator.decodeManifest(
+        DecompositionManifestWireMap.from(wireMap),
+        "duplicate-subtask-id",
+      )
     }
     assertContains(error.reason, "subtasks[1].id")
     assertContains(error.reason, "Duplicate subtask id '1'")
@@ -313,7 +325,9 @@ class DecompositionManifestValidationTest {
     ),
   )
 
-  private fun validWireMap(): MutableMap<String, Any?> = LinkedHashMap(realDecompositionManifestValidator.encodeManifestWireMap(validSameBranchManifest()))
+  private fun validWireMap(): MutableMap<String, Any?> = LinkedHashMap(
+    realDecompositionManifestValidator.encodeManifestWireMap(validSameBranchManifest()),
+  )
   private fun MutableMap<String, Any?>.mutableSubtasks(): MutableList<MutableMap<String, Any?>> {
     val mutableSubtasks = requireNotNull(JsonCodec.anyToStringAnyMapList(this["subtasks"]))
       .mapTo(mutableListOf<MutableMap<String, Any?>>()) { LinkedHashMap(it) }

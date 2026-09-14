@@ -1,11 +1,8 @@
 package skillbill.engine.featuretask
-
-import skillbill.workflow.taskruntime.*
-
-import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.diagnostics.RejectedOutputDiagnosticService
 import skillbill.application.diagnostics.model.FeatureTaskRuntimeRejectedOutputWrite
 import skillbill.application.diagnostics.model.RejectedOutputDiagnosticRequest
+import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeProducerOutputRead
 import skillbill.engine.featuretask.model.ProducerOutputQueryArgs
@@ -21,6 +18,8 @@ import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticError
 import skillbill.ports.diagnostics.model.evidenceKey
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.get
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.decodeDiagnosticSignalsFromArtifact
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDiagnosticDegradationMeasurement
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDiagnosticFailureClass

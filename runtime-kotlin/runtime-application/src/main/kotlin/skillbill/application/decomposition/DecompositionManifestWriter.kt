@@ -6,7 +6,6 @@ import skillbill.application.decomposition.model.DecompositionManifestWorkflowPr
 import skillbill.application.decomposition.model.DecompositionManifestWriteRequest
 import skillbill.application.decomposition.model.DecompositionPlanManifestInput
 import skillbill.application.decomposition.model.PreparedDecompositionManifestWrite
-import skillbill.contracts.JsonCodec
 import skillbill.contracts.issuekey.issueAndFeature
 import skillbill.error.InvalidDecompositionManifestSchemaError
 import skillbill.model.toPath
@@ -15,15 +14,14 @@ import skillbill.ports.repository.toFileLocation
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestWriteResult
 import skillbill.workflow.decomposition.DecompositionManifestValidator
+import skillbill.workflow.decomposition.decodeManifest
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionExecutionModel
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionManifestPlan
-import skillbill.workflow.decomposition.decodeManifest
-import skillbill.workflow.decomposition.encodeManifestWireMap
+import skillbill.workflow.decomposition.runtime.invalidManifest
 import skillbill.workflow.engine.model.DecompositionManifestWireMap
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
-import skillbill.workflow.decomposition.runtime.invalidManifest
 import java.io.IOException
 import java.nio.file.Path
 
@@ -188,7 +186,7 @@ class DecompositionManifestWriter : DecompositionManifestProjectionWriter {
   private fun DecompositionManifestWriteRequest.toManifest(): DecompositionManifest {
     val subtasks = parseSubtasks(planningResult, parentSpecPath.toString())
     val currentId = currentSubtaskId
-      ?: planningResult.currentSubtaskIdOrNull(parentSpecPath.toString())
+      ?: planningResult.currentSubtaskIdOrNull()
       ?: subtasks.first().id
     val currentSubtask = subtasks.firstOrNull { it.id == currentId }
       ?: invalidManifest(

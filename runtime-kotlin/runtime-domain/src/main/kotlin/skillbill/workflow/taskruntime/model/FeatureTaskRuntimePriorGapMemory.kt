@@ -1,6 +1,5 @@
 package skillbill.workflow.taskruntime.model
 
-
 data class FeatureTaskRuntimePriorGapMemory(
   val round: Int,
   val priorAuditValues: List<String>,

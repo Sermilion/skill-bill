@@ -1,7 +1,4 @@
 package skillbill.engine.featuretask
-
-import skillbill.workflow.taskruntime.*
-
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
@@ -19,11 +16,15 @@ import skillbill.engine.featuretask.validation.resolveRequiredValidationCommand
 import skillbill.ports.workflow.gitops.repositoryFingerprint
 import skillbill.workflow.goal.model.ValidationDepth
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWorkflowArtifactMap
+import skillbill.workflow.taskruntime.decodeValidationEvidenceFromArtifact
+import skillbill.workflow.taskruntime.envelopeWireMap
 import skillbill.workflow.taskruntime.model.AcceptedFeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationEvidence
 import skillbill.workflow.taskruntime.model.requireAcceptedOutput
+import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 
 object FeatureTaskRuntimeRunLoopValidationGate {
   internal fun runDeclaredBuildGateCycle(
@@ -86,7 +87,10 @@ object FeatureTaskRuntimeRunLoopValidationGate {
         accepted.normalizedOutput.envelopeWireMap()[SharedPayloadKeys.PRODUCED_OUTPUTS],
       )?.get("build_receipt"),
     )
-    runLoop.buildReceiptValidator.validateBuildReceipt(buildReceipt ?: emptyMap<String, Any?>(), sourceLabel = run.phaseId)
+    runLoop.buildReceiptValidator.validateBuildReceipt(
+      buildReceipt ?: emptyMap<String, Any?>(),
+      sourceLabel = run.phaseId,
+    )
     accepted
   }
 

@@ -1,5 +1,4 @@
 package skillbill.engine.goalplanning
-
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
@@ -11,8 +10,8 @@ import skillbill.ports.goalrunner.model.GoalPlanningPreparationState
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
-import skillbill.workflow.taskruntime.envelopeWireMap
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePlanningProjectionValidator
+import skillbill.workflow.taskruntime.envelopeWireMap
 import skillbill.workflow.taskruntime.model.requireAcceptedOutput
 
 class GoalPlanningPreparationValidator(

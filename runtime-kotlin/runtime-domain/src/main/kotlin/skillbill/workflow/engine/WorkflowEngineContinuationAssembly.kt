@@ -2,15 +2,15 @@ package skillbill.workflow.engine
 
 import skillbill.contracts.workflow.WorkflowContinueSessionSummary
 import skillbill.workflow.engine.model.ResolvedRequiredArtifact
+import skillbill.workflow.engine.model.WorkflowContinuationFieldMap
 import skillbill.workflow.engine.model.WorkflowContinueDecision
 import skillbill.workflow.engine.model.WorkflowContinueView
 import skillbill.workflow.engine.model.WorkflowDefinition
 import skillbill.workflow.engine.model.WorkflowInputProjection
 import skillbill.workflow.engine.model.WorkflowResumeView
-import skillbill.workflow.engine.model.WorkflowContinuationFieldMap
 import skillbill.workflow.engine.model.WorkflowSnapshotView
-import skillbill.workflow.engine.model.WorkflowStepArtifactMap
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.engine.model.WorkflowStepArtifactMap
 import skillbill.workflow.engine.model.WorkflowStepState
 import skillbill.workflow.model.WorkflowContinueStatus
 import skillbill.workflow.model.WorkflowResumeMode

@@ -19,8 +19,8 @@ import skillbill.ports.scaffold.source.model.ScaffoldSaveExactContentResult
  * and the CliScaffoldRuntime tests.
  *
  * SKILL-52.1 subtask 3 typed only the top-level scalars and carried the rest of the
- * wire shape verbatim through an `@OpenBoundaryMap` `payload` field. SKILL-52.3
- * subtask 3 retired that field: every wire key is now rebuilt here from typed fields in
+ * wire shape in an open `payload` field. SKILL-52.3 subtask 3 retired that field:
+ * every wire key is now rebuilt here from typed fields in
  * the EXACT producer key order the prior `skillbill.infrastructure.fs.scaffold.AuthoringOperations`
  * raw-map producers emitted. The byte-equivalence contract is locked by
  * `runtime-cli/src/test/kotlin/skillbill/cli/CliScaffoldRuntimeTest.kt`

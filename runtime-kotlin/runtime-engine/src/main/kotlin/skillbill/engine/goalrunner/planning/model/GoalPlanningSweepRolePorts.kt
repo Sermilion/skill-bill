@@ -1,5 +1,4 @@
 package skillbill.engine.goalrunner.planning.model
-
 import skillbill.engine.goalplanning.GoalPlanningPreparationCheckpoint
 import skillbill.engine.goalrunner.planning.GoalPlanningAttemptRecorder
 import skillbill.engine.goalrunner.planning.GoalPlanningRefreshLiveness

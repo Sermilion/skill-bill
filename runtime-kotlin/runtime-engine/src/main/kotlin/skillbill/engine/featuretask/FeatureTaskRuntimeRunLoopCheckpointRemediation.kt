@@ -1,5 +1,4 @@
 package skillbill.engine.featuretask
-
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeCheckpointDecision
@@ -102,13 +101,12 @@ object FeatureTaskRuntimeRunLoopCheckpointRemediation {
   internal fun completedImplementFixProducedOutputs(
     run: PhaseRun,
     outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
-  ): Map<String, Any?>? =
-    outputMap
-      .takeIf {
-        run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT_FIX &&
-          (it[SharedPayloadKeys.STATUS] as? String)?.let(WorkflowStepStatus::fromWire) == WorkflowStepStatus.COMPLETED
-      }
-      ?.let { JsonCodec.anyToStringAnyMap(it[SharedPayloadKeys.PRODUCED_OUTPUTS]).orEmpty() }
+  ): Map<String, Any?>? = outputMap
+    .takeIf {
+      run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT_FIX &&
+        (it[SharedPayloadKeys.STATUS] as? String)?.let(WorkflowStepStatus::fromWire) == WorkflowStepStatus.COMPLETED
+    }
+    ?.let { JsonCodec.anyToStringAnyMap(it[SharedPayloadKeys.PRODUCED_OUTPUTS]).orEmpty() }
 
   fun establishRemediationCheckpoint(
     runLoop: FeatureTaskRuntimeRunLoop,

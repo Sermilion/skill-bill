@@ -18,16 +18,14 @@ object GoalObservabilityArtifacts {
     val timestamp: String,
   )
 
-  fun patchForProgressEvent(
-    input: GoalObservabilityProgressInput,
-    validator: GoalObservabilityEventValidator,
-  ): Any? = eventFrom(input)?.let { event ->
-    patchForEvent(
-      input.artifacts.asGoalWorkflowArtifactMap("goal observability progress input"),
-      event,
-      validator,
-    )
-  }
+  fun patchForProgressEvent(input: GoalObservabilityProgressInput, validator: GoalObservabilityEventValidator): Any? =
+    eventFrom(input)?.let { event ->
+      patchForEvent(
+        input.artifacts.asGoalWorkflowArtifactMap("goal observability progress input"),
+        event,
+        validator,
+      )
+    }
 
   fun patchForRuntimeEvent(
     input: GoalObservabilityRuntimeEventInput,

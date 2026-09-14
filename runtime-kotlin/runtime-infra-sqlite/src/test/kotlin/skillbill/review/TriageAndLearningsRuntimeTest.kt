@@ -2,11 +2,11 @@ package skillbill.review
 
 import skillbill.SAMPLE_REVIEW
 import skillbill.contracts.JsonCodec
+import skillbill.contracts.learning.LearningEntryDto
 import skillbill.infrastructure.sqlite.SQLiteLearningStore
 import skillbill.infrastructure.sqlite.review.ReviewRuntime
 import skillbill.infrastructure.sqlite.review.TriageRuntime
 import skillbill.learnings.LearningsRuntime
-import skillbill.contracts.learning.LearningEntryDto
 import skillbill.learnings.learningAppliedSessionWire
 import skillbill.learnings.learningEntryDto
 import skillbill.learnings.model.CreateLearningRequest

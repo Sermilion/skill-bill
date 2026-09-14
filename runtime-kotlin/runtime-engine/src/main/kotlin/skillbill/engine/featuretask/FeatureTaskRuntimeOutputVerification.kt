@@ -1,5 +1,4 @@
 package skillbill.engine.featuretask
-
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.review.ReviewFindingPayloadKeys
@@ -19,7 +18,10 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeReviewVerdict
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
 
 object FeatureTaskRuntimeOutputVerification {
-  internal fun verdictFor(phaseId: String, outputObject: FeatureTaskRuntimeWorkflowArtifactMap?): FeatureTaskRuntimeVerdict {
+  internal fun verdictFor(
+    phaseId: String,
+    outputObject: FeatureTaskRuntimeWorkflowArtifactMap?,
+  ): FeatureTaskRuntimeVerdict {
     val wireVerdict = (outputObject?.get(SharedPayloadKeys.VERDICT) as? String)
       ?.takeIf(String::isNotBlank)
       ?.let { value -> FeatureTaskRuntimeVerdict.rejectRemovedVerdict(value, "phase output verdict") }
@@ -49,8 +51,7 @@ object FeatureTaskRuntimeOutputVerification {
 
   internal fun unresolvedReviewFindings(
     outputObject: FeatureTaskRuntimeWorkflowArtifactMap?,
-  ): List<FeatureTaskRuntimeReviewFinding> =
-    reviewVerdictFrom(outputObject)?.unresolvedFindings.orEmpty()
+  ): List<FeatureTaskRuntimeReviewFinding> = reviewVerdictFrom(outputObject)?.unresolvedFindings.orEmpty()
 
   internal fun auditProseValue(outputObject: FeatureTaskRuntimeWorkflowArtifactMap?): String? =
     outputObject?.get(SharedPayloadKeys.PRODUCED_OUTPUTS)

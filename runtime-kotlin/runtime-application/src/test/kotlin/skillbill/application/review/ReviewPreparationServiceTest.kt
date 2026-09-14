@@ -27,7 +27,6 @@ import skillbill.ports.taskruntime.model.FeatureTaskRuntimeSharedEvidenceLocator
 import skillbill.review.context.ReviewContextEnvelopeValidator
 import skillbill.review.context.model.GovernedReviewLaunch
 import skillbill.review.context.model.ReviewAssignment
-import skillbill.workflow.engine.model.ReviewContextWireMap
 import skillbill.review.context.model.ReviewBaselineUntrackedPolicy
 import skillbill.review.context.model.ReviewBuildTestFact
 import skillbill.review.context.model.ReviewChangedHunk
@@ -47,6 +46,7 @@ import skillbill.review.context.model.ReviewLaneReviewDisposition
 import skillbill.review.context.model.ReviewLearningsReference
 import skillbill.review.context.model.ReviewRevision
 import skillbill.review.context.model.ReviewRuleReference
+import skillbill.workflow.engine.model.ReviewContextWireMap
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals

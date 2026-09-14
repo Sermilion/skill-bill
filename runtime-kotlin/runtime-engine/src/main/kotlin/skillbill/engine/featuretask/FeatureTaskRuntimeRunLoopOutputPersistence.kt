@@ -1,7 +1,4 @@
 package skillbill.engine.featuretask
-
-import skillbill.workflow.taskruntime.*
-
 import skillbill.application.review.RuntimeOwnedReviewMode
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhasePromptComposeInputs
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
@@ -13,6 +10,7 @@ import skillbill.ports.workflow.gitops.repositoryFingerprint
 import skillbill.workflow.goal.model.ValidationDepth
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeHandoffContract
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.envelopeWireMap
 import skillbill.workflow.taskruntime.model.AcceptedFeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeCorrectiveRepairContext
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition

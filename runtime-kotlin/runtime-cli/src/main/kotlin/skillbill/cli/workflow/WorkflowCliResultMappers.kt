@@ -1,11 +1,11 @@
 package skillbill.cli.workflow
 
+import skillbill.application.workflow.WorkflowWireProjections
 import skillbill.application.workflow.model.WorkflowGetResult
 import skillbill.application.workflow.model.WorkflowLatestResult
 import skillbill.application.workflow.model.WorkflowListResult
 import skillbill.application.workflow.model.WorkflowOpenResult
 import skillbill.application.workflow.model.WorkflowResumeResult
-import skillbill.application.workflow.WorkflowWireProjections
 import skillbill.cli.kernel.CliOutput
 import skillbill.cli.kernel.CliRunState
 import skillbill.contracts.SharedPayloadKeys

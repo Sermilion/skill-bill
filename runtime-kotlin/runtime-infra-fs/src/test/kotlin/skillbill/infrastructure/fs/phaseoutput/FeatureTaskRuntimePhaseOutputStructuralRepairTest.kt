@@ -2,6 +2,7 @@ package skillbill.infrastructure.fs.phaseoutput
 
 import skillbill.contracts.JsonCodec
 import skillbill.infrastructure.fs.FeatureTaskRuntimePhaseOutputValidatorAdapter
+import skillbill.workflow.taskruntime.envelopeWireMap
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputFailureCode
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputFormat
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairOperation
@@ -12,18 +13,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
-
-import skillbill.workflow.taskruntime.asCheckpointIdentitiesArtifactEntry
-import skillbill.workflow.taskruntime.asTelemetryPayload
-import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
-import skillbill.workflow.taskruntime.decodeFindingVerificationDispositionFromArtifact
-import skillbill.workflow.taskruntime.decodeImplementationAttemptFromArtifact
-import skillbill.workflow.taskruntime.decodePhaseRecordFromArtifact
-import skillbill.workflow.taskruntime.decodeValidationGateExecutionEvidenceFromArtifact
-import skillbill.workflow.taskruntime.decodeValidationGateProgressFromArtifact
-import skillbill.workflow.taskruntime.envelopeWireMap
-import skillbill.workflow.taskruntime.phaseRecordsFromWorkflowArtifacts
-import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
   private val adapter = FeatureTaskRuntimePhaseOutputValidatorAdapter()
 
@@ -65,7 +54,8 @@ class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
       repaired.normalizedOutput.canonicalJson.contains("\"reconciled_state\""),
       "the report itself is the producer's evidence and must be kept, one level down",
     )
-    val produced = requireNotNull(JsonCodec.anyToStringAnyMap(repaired.normalizedOutput.envelopeWireMap()["produced_outputs"]))
+    val produced =
+      requireNotNull(JsonCodec.anyToStringAnyMap(repaired.normalizedOutput.envelopeWireMap()["produced_outputs"]))
     assertEquals("Implement prose with former receipt stuffed inside.", produced["value"])
     assertEquals(mapOf("reconciled" to true), produced["reconciled_state"])
     assertEquals(
@@ -97,7 +87,8 @@ class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
       repaired.normalizedOutput.envelopeWireMap()["summary"],
       "the paragraph nearest the envelope describes the state the envelope reports",
     )
-    val produced = requireNotNull(JsonCodec.anyToStringAnyMap(repaired.normalizedOutput.envelopeWireMap()["produced_outputs"]))
+    val produced =
+      requireNotNull(JsonCodec.anyToStringAnyMap(repaired.normalizedOutput.envelopeWireMap()["produced_outputs"]))
     assertEquals("Implement prose with former receipt stuffed inside.", produced["value"])
     assertEquals(listOf("a/B.kt"), produced["changed_paths"], "legacy sibling keys beside value survive")
   }
@@ -182,7 +173,8 @@ class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
     val result = adapter.validatePhaseOutput(collision, "implement")
 
     val repaired = assertIs<FeatureTaskRuntimePhaseOutputValidationResult.AcceptedAfterRepair>(result)
-    val produced = requireNotNull(JsonCodec.anyToStringAnyMap(repaired.normalizedOutput.envelopeWireMap()["produced_outputs"]))
+    val produced =
+      requireNotNull(JsonCodec.anyToStringAnyMap(repaired.normalizedOutput.envelopeWireMap()["produced_outputs"]))
     assertEquals("Implement prose.", produced["value"])
     assertEquals(
       mapOf("reconciled" to true, "evidence" to "stated"),
@@ -515,7 +507,8 @@ class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
       FeatureTaskRuntimePhaseOutputRepairOperation.RESTORE_EXPECTED_SHAPE,
       repaired.evidence.operation,
     )
-    val produced = requireNotNull(JsonCodec.anyToStringAnyMap(repaired.normalizedOutput.envelopeWireMap()["produced_outputs"]))
+    val produced =
+      requireNotNull(JsonCodec.anyToStringAnyMap(repaired.normalizedOutput.envelopeWireMap()["produced_outputs"]))
     assertEquals(null, produced["verdict"])
   }
 

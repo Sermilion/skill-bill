@@ -1,7 +1,4 @@
 package skillbill.engine.featuretask
-
-import skillbill.workflow.taskruntime.*
-
 import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
@@ -17,8 +14,8 @@ import skillbill.workflow.taskruntime.FeatureTaskRuntimeAuditRemainingAcInterpre
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeWorkflowArtifactMap
 import skillbill.workflow.taskruntime.ProsePhaseOutputSynthesizer
+import skillbill.workflow.taskruntime.decodeValidationEvidenceFromArtifact
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeAuditRemainingAcResult
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationEvidence
 import skillbill.workflow.taskruntime.model.SettlementEnvelopeRequest
 import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 import java.time.Clock

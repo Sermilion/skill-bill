@@ -76,9 +76,8 @@ fun goalObservabilityEventFromArtifact(
   )
 }
 
-internal fun Any.asGoalWorkflowArtifactMap(sourceLabel: String): Map<String, Any?> =
-  JsonCodec.anyToStringAnyMap(this)
-    ?: throw IllegalArgumentException("Goal workflow artifacts at $sourceLabel must decode to an object.")
+internal fun Any.asGoalWorkflowArtifactMap(sourceLabel: String): Map<String, Any?> = JsonCodec.anyToStringAnyMap(this)
+  ?: throw IllegalArgumentException("Goal workflow artifacts at $sourceLabel must decode to an object.")
 
 private fun Any?.toGoalObservabilityEventMap(sourceLabel: String): Map<String, Any?> = JsonCodec.anyToStringAnyMap(this)
   ?: (this as? Map<*, *>)?.let { map ->

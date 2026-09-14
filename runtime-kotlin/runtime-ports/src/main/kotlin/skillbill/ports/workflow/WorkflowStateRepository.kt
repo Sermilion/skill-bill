@@ -3,17 +3,17 @@ package skillbill.ports.workflow
 import skillbill.contracts.issuekey.isWellFormedIssueKey
 import skillbill.contracts.issuekey.malformedIssueKeyReason
 import skillbill.contracts.workflow.FEATURE_TASK_EXECUTION_IDENTITY_CONTRACT_VERSION
+import skillbill.contracts.workflow.WorkflowContinueSessionSummary
 import skillbill.error.InvalidFeatureTaskExecutionIdentitySchemaError
 import skillbill.ports.workflow.model.FeatureImplementSessionSummary
 import skillbill.ports.workflow.model.FeatureTaskExecutionIdentity
 import skillbill.ports.workflow.model.FeatureTaskWorkflowCandidate
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
-import skillbill.contracts.workflow.WorkflowContinueSessionSummary
 import skillbill.ports.workflow.model.FeatureVerifySessionSummary
-import skillbill.ports.workflow.model.toContinueSessionSummary
 import skillbill.ports.workflow.model.GoalChildWorkflowDeletionScope
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.model.WorkflowStateRecord
+import skillbill.ports.workflow.model.toContinueSessionSummary
 import skillbill.ports.workflow.model.toSnapshot
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 

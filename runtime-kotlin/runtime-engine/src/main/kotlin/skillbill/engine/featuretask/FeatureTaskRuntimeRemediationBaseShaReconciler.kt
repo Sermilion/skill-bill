@@ -1,5 +1,4 @@
 package skillbill.engine.featuretask
-
 import skillbill.engine.featuretask.model.RemediationReconcileSnapshot
 import skillbill.engine.featuretask.model.RemediationReconciliationBlocked
 import skillbill.engine.featuretask.model.RemediationReconciliationCoherent

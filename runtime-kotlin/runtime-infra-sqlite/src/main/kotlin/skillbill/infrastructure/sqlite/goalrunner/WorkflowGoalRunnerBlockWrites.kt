@@ -4,6 +4,9 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.goalrunner.model.GoalRunnerSupervisionEvent
 import skillbill.goalrunner.toPersistenceWire
 import skillbill.infrastructure.sqlite.decomposition.decodeArtifacts
+import skillbill.infrastructure.sqlite.featuretask.artifact.decodePhaseLedger
+import skillbill.infrastructure.sqlite.featuretask.artifact.decodePhaseRecords
+import skillbill.infrastructure.sqlite.featuretask.artifact.encodeWorkflowArtifact
 import skillbill.ports.goalrunner.persistence.model.GoalRunnerBlockWrite
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.WorkflowStateRepository
@@ -28,9 +31,6 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerAction
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerEntry
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.phaseartifacts.asPendingForOperatorResume
-import skillbill.infrastructure.sqlite.featuretask.artifact.decodePhaseLedger
-import skillbill.infrastructure.sqlite.featuretask.artifact.decodePhaseRecords
-import skillbill.infrastructure.sqlite.featuretask.artifact.encodeWorkflowArtifact
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 
@@ -74,17 +74,21 @@ internal class WorkflowGoalRunnerBlockWrites(
       WorkflowUpdateInput(
         workflowStatus = "blocked",
         currentStepId = stepId,
-        stepUpdates = WorkflowStepUpdates.from(listOf(
-          mapOf(
-            SharedPayloadKeys.STEP_ID to stepId,
-            SharedPayloadKeys.STATUS to "blocked",
-            "attempt_count" to attemptCount,
+        stepUpdates = WorkflowStepUpdates.from(
+          listOf(
+            mapOf(
+              SharedPayloadKeys.STEP_ID to stepId,
+              SharedPayloadKeys.STATUS to "blocked",
+              "attempt_count" to attemptCount,
+            ),
           ),
-        )),
-        artifactsPatch = WorkflowArtifactPatch.from(buildMap {
-          put("blocked_reason", write.blockedReason)
-          write.supervisionEvent?.let { event -> put("supervision_event", event.toPersistenceWire()) }
-        }),
+        ),
+        artifactsPatch = WorkflowArtifactPatch.from(
+          buildMap {
+            put("blocked_reason", write.blockedReason)
+            write.supervisionEvent?.let { event -> put("supervision_event", event.toPersistenceWire()) }
+          },
+        ),
         sessionId = write.record.sessionId.orEmpty(),
       ),
     )
@@ -154,28 +158,32 @@ internal class WorkflowGoalRunnerBlockWrites(
     return WorkflowUpdateInput(
       workflowStatus = "running",
       currentStepId = blockedRecord.phaseId,
-      stepUpdates = WorkflowStepUpdates.from(listOf(
-        mapOf(
-          SharedPayloadKeys.STEP_ID to blockedRecord.phaseId,
-          SharedPayloadKeys.STATUS to "pending",
-          "attempt_count" to 0,
-        ),
-      )),
-      artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-        FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to
-          reopened.mapValues { (_, record) -> record.encodeWorkflowArtifact() },
-        FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY to
-          (ledger.map { it.encodeWorkflowArtifact() } + retryEntry.encodeWorkflowArtifact()).takeLast(
-            FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT,
+      stepUpdates = WorkflowStepUpdates.from(
+        listOf(
+          mapOf(
+            SharedPayloadKeys.STEP_ID to blockedRecord.phaseId,
+            SharedPayloadKeys.STATUS to "pending",
+            "attempt_count" to 0,
           ),
-        FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_ARTIFACT_KEY to mapOf(
-          SharedPayloadKeys.PHASE_ID to blockedRecord.phaseId,
-          "reason" to reason,
-          "retried_at" to OffsetDateTime.now(ZoneOffset.UTC).toString(),
-          "previous_blocked_reason" to blockedRecord.blockedReason,
-          "previous_blocked_record" to blockedRecord.encodeWorkflowArtifact(),
         ),
-      )),
+      ),
+      artifactsPatch = WorkflowArtifactPatch.from(
+        mapOf(
+          FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to
+            reopened.mapValues { (_, record) -> record.encodeWorkflowArtifact() },
+          FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY to
+            (ledger.map { it.encodeWorkflowArtifact() } + retryEntry.encodeWorkflowArtifact()).takeLast(
+              FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT,
+            ),
+          FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_ARTIFACT_KEY to mapOf(
+            SharedPayloadKeys.PHASE_ID to blockedRecord.phaseId,
+            "reason" to reason,
+            "retried_at" to OffsetDateTime.now(ZoneOffset.UTC).toString(),
+            "previous_blocked_reason" to blockedRecord.blockedReason,
+            "previous_blocked_record" to blockedRecord.encodeWorkflowArtifact(),
+          ),
+        ),
+      ),
       sessionId = "",
     )
   }

@@ -8,9 +8,9 @@ import skillbill.application.telemetry.model.FeatureVerifyStartedRequest
 import skillbill.application.telemetry.model.PrDescriptionGeneratedRequest
 import skillbill.application.telemetry.model.QualityCheckFinishedRequest
 import skillbill.application.telemetry.model.QualityCheckStartedRequest
+import skillbill.application.telemetry.settings.telemetrySettingsOrNull
 import skillbill.contracts.JsonPayloadContract
 import skillbill.ports.db.DatabaseSessionFactory
-import skillbill.application.telemetry.settings.telemetrySettingsOrNull
 import skillbill.ports.telemetry.TelemetrySettingsProvider
 
 @Inject

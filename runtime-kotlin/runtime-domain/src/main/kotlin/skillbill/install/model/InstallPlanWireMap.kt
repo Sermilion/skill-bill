@@ -5,7 +5,15 @@ import skillbill.contracts.install.INSTALL_PLAN_CONTRACT_VERSION
 import skillbill.contracts.install.InstallPlanContract
 import skillbill.contracts.install.InstallPlanPayloadKeys
 
-internal fun buildInstallPlanWireMap(plan: InstallPlan): InstallPlanWireMap = InstallPlanWireMap.from(
+class InstallPlanWireMap private constructor(
+  private val delegate: Map<String, Any?>,
+) : Map<String, Any?> by delegate {
+  companion object {
+    fun from(map: Map<String, Any?>): InstallPlanWireMap = InstallPlanWireMap(LinkedHashMap(map))
+  }
+}
+
+fun buildInstallPlanWireMap(plan: InstallPlan): InstallPlanWireMap = InstallPlanWireMap.from(
   linkedMapOf(
     SharedPayloadKeys.STATUS to InstallPlanPayloadKeys.PLANNED_STATUS,
     SharedPayloadKeys.CONTRACT_VERSION to INSTALL_PLAN_CONTRACT_VERSION,
@@ -49,7 +57,8 @@ internal fun buildInstallPlanWireMap(plan: InstallPlan): InstallPlanWireMap = In
       InstallPlanPayloadKeys.RUNTIME_MCP_BUILD_DIR to plan.runtimeDistributionInputs.runtimeMcpBuildDir?.toString(),
       InstallPlanPayloadKeys.RUNTIME_CLI_INSTALL_DIR to plan.runtimeDistributionInputs.runtimeCliInstallDir?.toString(),
       InstallPlanPayloadKeys.RUNTIME_MCP_INSTALL_DIR to plan.runtimeDistributionInputs.runtimeMcpInstallDir?.toString(),
-      InstallPlanPayloadKeys.RUNTIME_LAUNCHER_BIN_DIR to plan.runtimeDistributionInputs.runtimeLauncherBinDir?.toString(),
+      InstallPlanPayloadKeys.RUNTIME_LAUNCHER_BIN_DIR to
+        plan.runtimeDistributionInputs.runtimeLauncherBinDir?.toString(),
     ),
     InstallPlanPayloadKeys.WINDOWS_SYMLINK_PREFLIGHT to windowsPreflightWireMap(plan.windowsSymlinkPreflight),
     InstallPlanPayloadKeys.REPLACE_EXISTING_SKILL_BILL_LINKS to plan.request.replaceExistingSkillBillLinks,

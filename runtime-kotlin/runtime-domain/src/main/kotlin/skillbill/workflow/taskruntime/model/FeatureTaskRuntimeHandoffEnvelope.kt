@@ -37,24 +37,25 @@ data class FeatureTaskRuntimeHandoffEnvelope(
   }
 
   companion object {
-    internal fun fromEnvelopeMap(raw: Map<String, Any?>): FeatureTaskRuntimeHandoffEnvelope = FeatureTaskRuntimeHandoffEnvelope(
-      consumerPhaseId = raw.requireString("consumer_phase_id"),
-      projections = (raw["projections"] as? List<*>).orEmpty().map { projectionFromWire(it) },
-      repositoryCheckpoint = (
-        raw[ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT] as? Map<*, *>
-        )?.let { checkpoint ->
-        FeatureTaskRuntimeRepositoryCheckpoint(
-          fingerprint = checkpoint.requireString(
-            ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT_FINGERPRINT,
-          ),
-          baseRef = checkpoint["base_ref"] as? String,
-          headRef = checkpoint["head_ref"] as? String,
-          workingTreeOwnedPaths = (checkpoint["working_tree_owned_paths"] as? List<*>).orEmpty()
-            .map { it.requireDecodedString("working_tree_owned_paths") },
-        )
-      },
-      contractVersion = raw.requireString("contract_version"),
-    )
+    internal fun fromEnvelopeMap(raw: Map<String, Any?>): FeatureTaskRuntimeHandoffEnvelope =
+      FeatureTaskRuntimeHandoffEnvelope(
+        consumerPhaseId = raw.requireString("consumer_phase_id"),
+        projections = (raw["projections"] as? List<*>).orEmpty().map { projectionFromWire(it) },
+        repositoryCheckpoint = (
+          raw[ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT] as? Map<*, *>
+          )?.let { checkpoint ->
+          FeatureTaskRuntimeRepositoryCheckpoint(
+            fingerprint = checkpoint.requireString(
+              ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT_FINGERPRINT,
+            ),
+            baseRef = checkpoint["base_ref"] as? String,
+            headRef = checkpoint["head_ref"] as? String,
+            workingTreeOwnedPaths = (checkpoint["working_tree_owned_paths"] as? List<*>).orEmpty()
+              .map { it.requireDecodedString("working_tree_owned_paths") },
+          )
+        },
+        contractVersion = raw.requireString("contract_version"),
+      )
 
     private fun projectionFromWire(raw: Any?): FeatureTaskRuntimeHandoffProjection {
       val projection = raw as? Map<*, *> ?: decodeError("projections entries must be objects.")

@@ -30,7 +30,6 @@ import skillbill.engine.goalrunner.planning.model.GoalPlanningLogRequest
 import skillbill.goalrunner.model.UnaddressedFindingsLedger
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFindingVerificationDisposition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairLedger
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairLedgerEntry
 import skillbill.workflow.taskruntime.projectionWireMap
 import java.nio.file.Path
 

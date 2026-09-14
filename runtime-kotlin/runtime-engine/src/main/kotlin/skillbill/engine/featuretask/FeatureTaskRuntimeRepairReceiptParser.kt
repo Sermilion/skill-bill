@@ -1,16 +1,15 @@
 package skillbill.engine.featuretask
-
 import skillbill.contracts.JsonCodec
 import skillbill.error.InvalidFeatureTaskRuntimeRepairReceiptError
 import skillbill.error.InvalidGoalSubtaskReviewStateSchemaError
 import skillbill.workflow.goal.model.GoalSubtaskReviewCompactFinding
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.taskruntime.decodeRepairReceiptFromArtifact
-import skillbill.workflow.taskruntime.validateRepairReceiptWireEntries
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairReceipt
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairReceiptDecodeObservations
 import skillbill.workflow.taskruntime.model.coversCarriedFindings
 import skillbill.workflow.taskruntime.model.featureTaskRuntimeRemediationRoundNumber
+import skillbill.workflow.taskruntime.validateRepairReceiptWireEntries
 
 fun featureTaskRuntimeParseRepairReceiptOrNull(
   producedOutputs: Map<String, Any?>,

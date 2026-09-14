@@ -1,5 +1,4 @@
 package skillbill.engine.featuretask
-
 import skillbill.application.agentoutput.agentFailureExcerpt
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeGoalContinuationContext
@@ -17,19 +16,16 @@ import skillbill.workflow.taskruntime.FeatureTaskRuntimeHandoffContract
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowQueries
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeProviderLimitDetector
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_STATUS_PAUSED
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFeatureSize
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseDeclaration
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeProviderLimitSignal
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeQualityGateSelection
 
-internal fun terminalBlockedReasonFrom(
-  phaseId: String,
-  outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
-): String? {
+internal fun terminalBlockedReasonFrom(phaseId: String, outputMap: FeatureTaskRuntimeWorkflowArtifactMap): String? {
   val status = outputMap[SharedPayloadKeys.STATUS] as? String
   if (status.workflowStepStatus() != WorkflowStepStatus.BLOCKED &&
     status.workflowStepStatus() != WorkflowStepStatus.FAILED

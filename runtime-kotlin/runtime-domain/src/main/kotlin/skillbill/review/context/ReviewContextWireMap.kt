@@ -8,4 +8,10 @@ class ReviewContextWireMap private constructor(
   companion object {
     fun from(map: Map<String, Any?>): ReviewContextWireMap = ReviewContextWireMap(map.toMap())
   }
+
+  override fun equals(other: Any?): Boolean = other is ReviewContextWireMap && delegate == other.delegate
+
+  override fun hashCode(): Int = delegate.hashCode()
+
+  override fun toString(): String = delegate.toString()
 }

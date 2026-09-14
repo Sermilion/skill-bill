@@ -12,7 +12,7 @@ import skillbill.infrastructure.fs.contracts.workflow.FeatureTaskRuntimeValidati
 import skillbill.ports.validation.model.ValidationGateFinding
 import skillbill.ports.validation.model.ValidationGateRunResult
 import skillbill.workflow.goal.model.ValidationDepth
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateExecutionEvidence
+import skillbill.workflow.taskruntime.decodeValidationGateExecutionEvidenceFromArtifact
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateProgress
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateRunRecord
 import skillbill.workflow.taskruntime.model.ValidationGateCacheMode
@@ -22,18 +22,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
-
-import skillbill.workflow.taskruntime.asCheckpointIdentitiesArtifactEntry
-import skillbill.workflow.taskruntime.asTelemetryPayload
-import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
-import skillbill.workflow.taskruntime.decodeFindingVerificationDispositionFromArtifact
-import skillbill.workflow.taskruntime.decodeImplementationAttemptFromArtifact
-import skillbill.workflow.taskruntime.decodePhaseRecordFromArtifact
-import skillbill.workflow.taskruntime.decodeValidationGateExecutionEvidenceFromArtifact
-import skillbill.workflow.taskruntime.decodeValidationGateProgressFromArtifact
-import skillbill.workflow.taskruntime.envelopeWireMap
-import skillbill.workflow.taskruntime.phaseRecordsFromWorkflowArtifacts
-import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 class FeatureTaskRuntimeValidationGateSettlementEvidenceTest {
   @Test
   fun `settlement projects executed work and checks from the gate runner result`() {
@@ -69,7 +57,8 @@ class FeatureTaskRuntimeValidationGateSettlementEvidenceTest {
     val terminal = assertIs<ValidationGateCycleResult.Terminal>(cycle)
     val output = assertIs<ValidationGateCycleTerminalOutcome.Completed>(terminal.outcome).output
     val gateEvidence = decodeValidationGateExecutionEvidenceFromArtifact(
-      validationResultFrom(output.payload), "validate",
+      validationResultFrom(output.payload),
+      "validate",
     )!!
 
     assertEquals(3, gateEvidence.gateRuns.single().executedWorkUnits)
@@ -153,7 +142,8 @@ class FeatureTaskRuntimeValidationGateSettlementEvidenceTest {
 
   private fun assertSettledArtifact(completed: ValidationGateCycleTerminalOutcome.Completed) {
     val settledArtifact = decodeValidationGateExecutionEvidenceFromArtifact(
-      validationResultFrom(completed.output.payload), "validate",
+      validationResultFrom(completed.output.payload),
+      "validate",
     )!!
     assertEquals(
       listOf(ValidationGateRunOutcome.FAILED, ValidationGateRunOutcome.PASSED),
@@ -237,7 +227,8 @@ class FeatureTaskRuntimeValidationGateSettlementEvidenceTest {
     )
     val validationResult = validationResultFrom(output.payload)
     val gateEvidence = decodeValidationGateExecutionEvidenceFromArtifact(
-      validationResult, "validate",
+      validationResult,
+      "validate",
     )!!
     assertEquals(2, gateEvidence.gateRunCount)
     assertEquals(ValidationGateCacheMode.CACHE_ELIGIBLE, gateEvidence.gateRuns.first().cacheMode)

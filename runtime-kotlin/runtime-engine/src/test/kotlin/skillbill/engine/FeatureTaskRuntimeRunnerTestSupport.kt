@@ -1,6 +1,5 @@
 package skillbill.engine
 
-import skillbill.workflow.taskruntime.envelopeWireMap
 import skillbill.application.RecordingLifecycleTelemetryRepository
 import skillbill.application.RecordingSpecScratchStore
 import skillbill.application.RecordingSpecStatusWriter
@@ -158,6 +157,7 @@ import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePlanningProjectionValidator
 import skillbill.workflow.taskruntime.NoopFeatureTaskRuntimeBuildReceiptValidator
 import skillbill.workflow.taskruntime.NoopFeatureTaskRuntimePlanningProjectionValidator
+import skillbill.workflow.taskruntime.envelopeWireMap
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeBackwardEdge

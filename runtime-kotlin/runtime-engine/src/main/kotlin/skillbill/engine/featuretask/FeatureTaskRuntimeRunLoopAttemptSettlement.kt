@@ -1,14 +1,14 @@
 package skillbill.engine.featuretask
-
-import skillbill.workflow.taskruntime.*
-
 import skillbill.application.diagnostics.model.FeatureTaskRuntimeRejectedOutputWrite
 import skillbill.application.diagnostics.model.RejectedOutputDiagnosticRequest
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.engine.featuretask.model.FeatureTaskRuntimeCommitPushHandoff
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeCommitPushHandoffInvalid
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeCommitPushHandoffValid
+import skillbill.engine.featuretask.model.FeatureTaskRuntimeSubtaskCommitIdentity
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeSubtaskFinalisationBlocked
+import skillbill.engine.featuretask.model.FeatureTaskRuntimeSubtaskFinalisationResult
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeSubtaskFinaliseRequest
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeSubtaskFinalised
 import skillbill.error.FeatureTaskRuntimePhaseOutputFailureKind
@@ -20,6 +20,8 @@ import skillbill.ports.workflow.gitops.stagedPaths
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWorkflowArtifactMap
+import skillbill.workflow.taskruntime.envelopeWireMap
 import skillbill.workflow.taskruntime.model.CorrectiveRepairCapturedResponse
 import skillbill.workflow.taskruntime.model.CorrectiveRepairDiagnosticLocator
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeCorrectiveRepairContext
@@ -726,38 +728,21 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
     }
     val subtaskCommit = FeatureTaskRuntimeRunLoopSubtaskCommit
     val branch = subtaskCommit.finalisationBranch(runLoop)
-      ?: return subtaskCommit.unownedWorktreeCommitSha(runLoop, run, normalizedOutput)
-    val handoff = when (val read = FeatureTaskRuntimeSubtaskFinalisation.readHandoff(normalizedOutput.envelopeWireMap())) {
+      ?: return subtaskCommit.unownedWorktreeCommitSha(
+        runLoop,
+        run,
+        normalizedOutput,
+      )
+    val handoff = when (
+      val read = FeatureTaskRuntimeSubtaskFinalisation.readHandoff(normalizedOutput.envelopeWireMap())
+    ) {
       is FeatureTaskRuntimeCommitPushHandoffInvalid -> return CommitPushBlocked(read.reason)
       is FeatureTaskRuntimeCommitPushHandoffValid -> read.handoff
     }
     val identity = FeatureTaskRuntimeRunLoopCheckpoint.subtaskCommitIdentity(runLoop)
     val ledger = FeatureTaskRuntimeRunLoopCheckpoint.subtaskCommitLedgerState(runLoop, identity)
-    val outcome = FeatureTaskRuntimeSubtaskFinalisation(
-      gitOperations = runLoop.phaseGates.gitOperations,
-      repoRoot = runLoop.request.repoRoot,
-      record = { record -> runCatching { runLoop.diagnostics.warning(record) } },
-      recordCommit = { commitSha, stagedPaths ->
-        FeatureTaskRuntimeRunLoopSubtaskCommit.recordFinalisedCheckpointIdentity(
-          runLoop,
-          RecordFinalisedCheckpointIdentityArgs(run.phaseId, branch, ledger, commitSha, stagedPaths),
-        )
-      },
-    ).finalise(
-      FeatureTaskRuntimeSubtaskFinaliseRequest(
-        identity = identity,
-        durableCommitSha = ledger.commitSha,
-        sequenceNumber = ledger.nextSequenceNumber,
-        handoff = handoff,
-        metadata = FeatureTaskRuntimeCheckpointMetadata(
-          phaseId = run.phaseId,
-          loopId = null,
-          generation = FeatureTaskRuntimeRunLoopCheckpoint.checkpointGeneration(runLoop, null),
-          branch = branch,
-          intent = FeatureTaskRuntimeCheckpointMessage.INTENT_FINALISED_SUBTASK,
-        ),
-        manifestCommitSha = runLoop.goalContinuationManifestCommitSha,
-      ),
+    val outcome = finaliseSubtaskCommitOutcome(
+      FinaliseSubtaskCommitOutcomeArgs(runLoop, run, branch, handoff, identity, ledger),
     )
     return when (outcome) {
       is FeatureTaskRuntimeSubtaskFinalisationBlocked -> CommitPushBlocked(outcome.reason)
@@ -770,7 +755,51 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
       )
     }
   }
+
+  private fun finaliseSubtaskCommitOutcome(
+    args: FinaliseSubtaskCommitOutcomeArgs,
+  ): FeatureTaskRuntimeSubtaskFinalisationResult = FeatureTaskRuntimeSubtaskFinalisation(
+    gitOperations = args.runLoop.phaseGates.gitOperations,
+    repoRoot = args.runLoop.request.repoRoot,
+    record = { record -> runCatching { args.runLoop.diagnostics.warning(record) } },
+    recordCommit = { commitSha, stagedPaths ->
+      FeatureTaskRuntimeRunLoopSubtaskCommit.recordFinalisedCheckpointIdentity(
+        args.runLoop,
+        RecordFinalisedCheckpointIdentityArgs(
+          args.phase.phaseId,
+          args.branch,
+          args.ledger,
+          commitSha,
+          stagedPaths,
+        ),
+      )
+    },
+  ).finalise(
+    FeatureTaskRuntimeSubtaskFinaliseRequest(
+      identity = args.identity,
+      durableCommitSha = args.ledger.commitSha,
+      sequenceNumber = args.ledger.nextSequenceNumber,
+      handoff = args.handoff,
+      metadata = FeatureTaskRuntimeCheckpointMetadata(
+        phaseId = args.phase.phaseId,
+        loopId = null,
+        generation = FeatureTaskRuntimeRunLoopCheckpoint.checkpointGeneration(args.runLoop, null),
+        branch = args.branch,
+        intent = FeatureTaskRuntimeCheckpointMessage.INTENT_FINALISED_SUBTASK,
+      ),
+      manifestCommitSha = args.runLoop.goalContinuationManifestCommitSha,
+    ),
+  )
 }
+
+private data class FinaliseSubtaskCommitOutcomeArgs(
+  val runLoop: FeatureTaskRuntimeRunLoop,
+  val phase: PhaseRun,
+  val branch: String,
+  val handoff: FeatureTaskRuntimeCommitPushHandoff,
+  val identity: FeatureTaskRuntimeSubtaskCommitIdentity,
+  val ledger: SubtaskCommitLedgerState,
+)
 
 val FeatureTaskRuntimeRunLoop.goalContinuationManifestCommitSha: String?
   get() = null

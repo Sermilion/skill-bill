@@ -1,7 +1,4 @@
 package skillbill.engine.featuretask
-
-import skillbill.workflow.taskruntime.*
-
 import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.contracts.JsonCodec
@@ -14,6 +11,10 @@ import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeImplementationAttemptValidator
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.decodeImplementationAttemptsFromArtifact
+import skillbill.workflow.taskruntime.envelopeWireMap
+import skillbill.workflow.taskruntime.implementationAttemptRecordWorkflowArtifact
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_BOUNDARY_SELECTION_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_CHECKPOINT_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_DISPOSITIONS_ARTIFACT_KEY
@@ -29,6 +30,7 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerAction.
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerEntry
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.featureTaskRuntimeAppendImplementationAttempt
+import skillbill.workflow.taskruntime.operatorBlockRetryFromWorkflowArtifacts
 import java.time.Clock
 
 class FeatureTaskRuntimePhaseStateRecorder(
@@ -262,7 +264,8 @@ fun FeatureTaskRuntimePhaseStateRecorder.findingVerificationCheckpointPatch(
   }
   val checkpoint = request.findingVerificationCheckpoint?.takeIf { it.isNotEmpty() } ?: return emptyMap()
   return mapOf(
-    FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_CHECKPOINT_ARTIFACT_KEY to checkpoint.map { it.asWorkflowArtifactEntry() },
+    FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_CHECKPOINT_ARTIFACT_KEY to
+      checkpoint.map { it.asWorkflowArtifactEntry() },
   )
 }
 

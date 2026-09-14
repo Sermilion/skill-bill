@@ -43,7 +43,10 @@ data class FeatureTaskRuntimeFindingVerificationDisposition(
   }
 
   companion object {
-    internal fun fromArtifactMap(raw: Map<String, Any?>, path: String): FeatureTaskRuntimeFindingVerificationDisposition {
+    internal fun fromArtifactMap(
+      raw: Map<String, Any?>,
+      path: String,
+    ): FeatureTaskRuntimeFindingVerificationDisposition {
       val findingId =
         (raw[ReviewFindingPayloadKeys.FINDING_ID] as? String)
           ?.trim()

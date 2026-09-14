@@ -6,8 +6,8 @@ import skillbill.goalrunner.GoalObservabilityArtifacts
 import skillbill.goalrunner.WORKER_SUBTASK_REQUEST_OUTCOMES_ARTIFACT_KEY
 import skillbill.goalrunner.WORKER_SUBTASK_REQUEST_OUTCOME_LIMIT
 import skillbill.goalrunner.backwardEdgeCountsFromLedger
-import skillbill.goalrunner.decodeDeclaredGoalProgressEvent
 import skillbill.goalrunner.declaredProgressEventFrom
+import skillbill.goalrunner.decodeDeclaredGoalProgressEvent
 import skillbill.goalrunner.model.GOAL_ATTEMPT_LEDGER_ARTIFACT_KEY
 import skillbill.goalrunner.model.GOAL_ATTEMPT_LEDGER_LIMIT
 import skillbill.goalrunner.model.GoalObservabilityRuntimeEventInput
@@ -19,6 +19,7 @@ import skillbill.goalrunner.summary
 import skillbill.goalrunner.toPersistenceWire
 import skillbill.goalrunner.toProgressEvent
 import skillbill.infrastructure.sqlite.decomposition.decodeArtifacts
+import skillbill.infrastructure.sqlite.featuretask.artifact.decodePhaseRecords
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.goalrunner.persistence.model.HistoryArtifactAppend
 import skillbill.ports.goalrunner.runner.model.GoalRunnerAttemptLedgerRecordRequest
@@ -29,7 +30,6 @@ import skillbill.ports.workflow.get
 import skillbill.ports.workflow.list
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.save
-import skillbill.workflow.decomposition.decodeManifest
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.decodeWorkflowSteps
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
@@ -48,7 +48,6 @@ import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStatus
 import skillbill.workflow.model.workflowStepStatus
-import skillbill.infrastructure.sqlite.featuretask.artifact.decodePhaseRecords
 
 private val PROGRESS_POLL_ARTIFACT_KEYS = setOf(
   "progress_event",
@@ -186,7 +185,9 @@ internal class WorkflowGoalRunnerProgressRecording(
         workflowStatus = record.workflowStatus,
         currentStepId = record.currentStepId,
         stepUpdates = null,
-        artifactsPatch = WorkflowArtifactPatch.from(mapOf(WORKER_SUBTASK_REQUEST_OUTCOMES_ARTIFACT_KEY to updatedOutcomes)),
+        artifactsPatch = WorkflowArtifactPatch.from(
+          mapOf(WORKER_SUBTASK_REQUEST_OUTCOMES_ARTIFACT_KEY to updatedOutcomes),
+        ),
         sessionId = record.sessionId.orEmpty(),
       ),
     )

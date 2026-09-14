@@ -1,10 +1,8 @@
 package skillbill.application
 
-import skillbill.application.decomposition.model.DecompositionManifestWriteRequest
 import skillbill.contracts.decomposition.DecompositionPlanningResult
 import skillbill.error.InvalidDecompositionManifestSchemaError
 import java.nio.file.Files
-import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertFailsWith

@@ -8,8 +8,8 @@ import skillbill.infrastructure.fs.contracts.workflow.CanonicalWorkflowStateSche
 import skillbill.infrastructure.fs.contracts.workflow.WorkflowStateSchemaValidator
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowDefinition
-import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowSnapshotView
+import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.verify.FeatureVerifyWorkflowDefinition
@@ -180,27 +180,26 @@ class WorkflowStateSchemaValidatesExistingWorkflowsTest {
     )
   }
 
-  private fun snapshotMap(view: WorkflowSnapshotView): Map<String, Any?> =
-    WorkflowContracts.fullWorkflowPayload(
-      linkedMapOf(
-        SharedPayloadKeys.WORKFLOW_ID to view.workflowId,
-        WorkflowWirePayloadKeys.SESSION_ID to view.sessionId,
-        WorkflowWirePayloadKeys.WORKFLOW_NAME to view.workflowName,
-        WorkflowWirePayloadKeys.MODE to view.mode,
-        SharedPayloadKeys.CONTRACT_VERSION to view.contractVersion,
-        WorkflowWirePayloadKeys.WORKFLOW_STATUS to view.workflowStatus,
-        WorkflowWirePayloadKeys.CURRENT_STEP_ID to view.currentStepId,
-        WorkflowWirePayloadKeys.STEPS to view.steps.map { step ->
-          linkedMapOf(
-            SharedPayloadKeys.STEP_ID to step.stepId,
-            SharedPayloadKeys.STATUS to step.status,
-            WorkflowWirePayloadKeys.ATTEMPT_COUNT to step.attemptCount,
-          )
-        },
-        WorkflowWirePayloadKeys.ARTIFACTS to view.artifacts,
-        WorkflowWirePayloadKeys.STARTED_AT to view.startedAt,
-        WorkflowWirePayloadKeys.UPDATED_AT to view.updatedAt,
-        WorkflowWirePayloadKeys.FINISHED_AT to view.finishedAt,
-      ),
-    )
+  private fun snapshotMap(view: WorkflowSnapshotView): Map<String, Any?> = WorkflowContracts.fullWorkflowPayload(
+    linkedMapOf(
+      SharedPayloadKeys.WORKFLOW_ID to view.workflowId,
+      WorkflowWirePayloadKeys.SESSION_ID to view.sessionId,
+      WorkflowWirePayloadKeys.WORKFLOW_NAME to view.workflowName,
+      WorkflowWirePayloadKeys.MODE to view.mode,
+      SharedPayloadKeys.CONTRACT_VERSION to view.contractVersion,
+      WorkflowWirePayloadKeys.WORKFLOW_STATUS to view.workflowStatus,
+      WorkflowWirePayloadKeys.CURRENT_STEP_ID to view.currentStepId,
+      WorkflowWirePayloadKeys.STEPS to view.steps.map { step ->
+        linkedMapOf(
+          SharedPayloadKeys.STEP_ID to step.stepId,
+          SharedPayloadKeys.STATUS to step.status,
+          WorkflowWirePayloadKeys.ATTEMPT_COUNT to step.attemptCount,
+        )
+      },
+      WorkflowWirePayloadKeys.ARTIFACTS to view.artifacts,
+      WorkflowWirePayloadKeys.STARTED_AT to view.startedAt,
+      WorkflowWirePayloadKeys.UPDATED_AT to view.updatedAt,
+      WorkflowWirePayloadKeys.FINISHED_AT to view.finishedAt,
+    ),
+  )
 }

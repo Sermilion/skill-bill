@@ -1,5 +1,4 @@
 package skillbill.engine.featuretask
-
 import skillbill.engine.featuretask.validation.model.ValidationFindingSetProjection
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 private const val VALIDATE_PHASE_FORBIDDEN_EXTRAS: String =

@@ -61,5 +61,4 @@ fun invalidWire(source: String, reason: String): Nothing = throw InvalidWorkflow
 fun workflowArtifactEntryMap(entry: Any): Map<String, Any?> =
   JsonCodec.anyToStringAnyMap(entry) ?: invalidWire("workflow artifact entry", "must be an object")
 
-fun workflowArtifactEntryMaps(entries: List<Any>): List<Map<String, Any?>> =
-  entries.map(::workflowArtifactEntryMap)
+fun workflowArtifactEntryMaps(entries: List<Any>): List<Map<String, Any?>> = entries.map(::workflowArtifactEntryMap)

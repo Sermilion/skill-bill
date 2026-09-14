@@ -154,11 +154,12 @@ data class FeatureTaskRuntimeQuarantineEntry(
  * Encodes the append-only quarantine list into the durable wire map the canonical quarantine schema
  * validates: a `contract_version` and an ordered `entries` array.
  */
-internal fun featureTaskRuntimeQuarantineRecordToWire(entries: List<FeatureTaskRuntimeQuarantineEntry>): Map<String, Any?> =
-  linkedMapOf(
-    SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_QUARANTINE_ARTIFACT_CONTRACT_VERSION,
-    "entries" to entries.map { it.toArtifactMap() },
-  )
+internal fun featureTaskRuntimeQuarantineRecordToWire(
+  entries: List<FeatureTaskRuntimeQuarantineEntry>,
+): Map<String, Any?> = linkedMapOf(
+  SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_QUARANTINE_ARTIFACT_CONTRACT_VERSION,
+  "entries" to entries.map { it.toArtifactMap() },
+)
 
 private fun quarantineSchemaError(detail: String): Nothing = throw InvalidWorkflowStateSchemaError(detail)
 

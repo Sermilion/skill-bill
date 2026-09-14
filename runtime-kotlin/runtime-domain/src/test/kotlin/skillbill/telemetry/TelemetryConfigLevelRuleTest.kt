@@ -1,7 +1,7 @@
 package skillbill.telemetry
 
-import skillbill.workflow.engine.model.TelemetryOpenDocument
 import skillbill.telemetry.model.TelemetryConfigDocument
+import skillbill.workflow.engine.model.TelemetryOpenDocument
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -11,12 +11,14 @@ class TelemetryConfigLevelRuleTest {
   @Test
   fun `writing a level preserves every unrelated payload key`() {
     val document = TelemetryConfigDocument(
-      payload = TelemetryOpenDocument.from(mapOf(
-        "install_id" to "retained-install-id",
-        "external_addon_sources" to listOf("/tmp/addons"),
-        "execution_matrix" to mapOf("default" to "claude"),
-        "telemetry" to mapOf("level" to "anonymous", "proxy_url" to "", "batch_size" to 10),
-      )),
+      payload = TelemetryOpenDocument.from(
+        mapOf(
+          "install_id" to "retained-install-id",
+          "external_addon_sources" to listOf("/tmp/addons"),
+          "execution_matrix" to mapOf("default" to "claude"),
+          "telemetry" to mapOf("level" to "anonymous", "proxy_url" to "", "batch_size" to 10),
+        ),
+      ),
     )
 
     val updated = document.withTelemetryLevel("off", "/tmp/config.json")

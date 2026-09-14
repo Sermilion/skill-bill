@@ -1,5 +1,4 @@
 package skillbill.engine.featuretask
-
 import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.contracts.SharedPayloadKeys
@@ -20,9 +19,9 @@ import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.workflow.goal.model.GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.decodeCheckpointIdentitiesFromArtifact
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationArtifact
-import skillbill.workflow.taskruntime.decodeCheckpointIdentitiesFromArtifact
 import java.nio.file.Path
 import java.time.Clock
 

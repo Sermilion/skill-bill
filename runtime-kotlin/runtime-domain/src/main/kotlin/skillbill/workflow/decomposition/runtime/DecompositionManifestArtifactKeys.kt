@@ -1,6 +1,5 @@
 package skillbill.workflow.decomposition.runtime
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.JsonCodec
 
 internal fun decodeArtifactKeys(existingArtifactsJson: String, keys: Set<String>): Map<String, Any?> {

@@ -272,7 +272,7 @@ class ParallelCodeReviewBundledLaneReviewTest {
         },
       ),
       object : ReviewContextEnvelopeValidator {
-      override fun validate(envelope: ReviewContextWireMap, sourceLabel: String) = Unit
+        override fun validate(envelope: ReviewContextWireMap, sourceLabel: String) = Unit
       },
     ).prepare(ReviewPreparationRequest("review", ReviewRevision("rvs", 1)))
 

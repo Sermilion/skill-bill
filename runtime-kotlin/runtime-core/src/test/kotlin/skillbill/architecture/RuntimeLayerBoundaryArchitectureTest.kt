@@ -281,7 +281,6 @@ class RuntimeLayerBoundaryArchitectureTest {
         }
         .flatMap { file ->
           if (file.packageName.split('.').contains("model")) return@flatMap emptyList()
-          if (file.packageName.startsWith("skillbill.boundary")) return@flatMap emptyList()
           val source = Files.readString(runtimeArchitectureRoot.resolve(file.relativePath))
           val lines = source.lines()
           val tracker = ScopeTracker()

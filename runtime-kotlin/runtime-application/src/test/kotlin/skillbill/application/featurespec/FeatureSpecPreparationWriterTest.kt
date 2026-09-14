@@ -5,7 +5,6 @@ import skillbill.application.TestDecompositionManifestStore
 import skillbill.application.decomposition.encodeDecompositionManifestYaml
 import skillbill.application.decomposition.loadDecompositionManifest
 import skillbill.application.testDecompositionManifestValidator
-import skillbill.workflow.decomposition.decodeManifest
 import skillbill.application.testDecompositionManifestWriter
 import skillbill.contracts.JsonCodec
 import skillbill.error.InvalidDecompositionManifestSchemaError
@@ -16,7 +15,7 @@ import skillbill.featurespec.model.FeatureSpecSubtaskPreparation
 import skillbill.featurespec.model.FeatureSpecWriteRequest
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.workflow.decomposition.DecompositionManifestValidator
-import skillbill.workflow.engine.model.DecompositionManifestWireMap
+import skillbill.workflow.decomposition.decodeManifest
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionManifestRepairEvidence
@@ -25,6 +24,7 @@ import skillbill.workflow.decomposition.model.DecompositionManifestValidationFor
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationResult
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationSourceLocation
 import skillbill.workflow.decomposition.model.SpecSource
+import skillbill.workflow.engine.model.DecompositionManifestWireMap
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
@@ -351,13 +351,12 @@ class FeatureSpecPreparationWriterTest {
       private var yamlValidationCount = 0
 
       override fun validate(manifest: DecompositionManifestWireMap, sourceLabel: String): Unit = Unit
-      override fun validateYamlText(yamlText: String, sourceLabel: String): DecompositionManifest =
-      decodeManifest(
+      override fun validateYamlText(yamlText: String, sourceLabel: String): DecompositionManifest = decodeManifest(
         DecompositionManifestWireMap.from(
           requireNotNull(JsonCodec.anyToStringAnyMap(YAMLMapper().readValue(yamlText, Map::class.java))),
         ),
-          sourceLabel,
-        )
+        sourceLabel,
+      )
 
       override fun validateYamlTextResult(
         yamlText: String,
@@ -411,13 +410,12 @@ class FeatureSpecPreparationWriterTest {
       var repairedYaml: String? = null
 
       override fun validate(manifest: DecompositionManifestWireMap, sourceLabel: String): Unit = Unit
-      override fun validateYamlText(yamlText: String, sourceLabel: String): DecompositionManifest =
-      decodeManifest(
+      override fun validateYamlText(yamlText: String, sourceLabel: String): DecompositionManifest = decodeManifest(
         DecompositionManifestWireMap.from(
           requireNotNull(JsonCodec.anyToStringAnyMap(YAMLMapper().readValue(yamlText, Map::class.java))),
         ),
-          sourceLabel,
-        )
+        sourceLabel,
+      )
 
       override fun validateYamlTextResult(
         yamlText: String,

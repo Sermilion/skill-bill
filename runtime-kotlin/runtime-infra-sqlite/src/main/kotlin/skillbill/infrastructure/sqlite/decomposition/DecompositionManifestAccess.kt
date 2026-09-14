@@ -1,6 +1,5 @@
 package skillbill.infrastructure.sqlite.decomposition
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.JsonCodec
 import skillbill.error.InvalidDecompositionManifestSchemaError
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
@@ -8,8 +7,6 @@ import skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifes
 import skillbill.ports.workflow.decomposition.runtime.model.LoadedDecompositionManifest
 import skillbill.ports.workflow.decomposition.runtime.model.ValidatedDecompositionManifestYaml
 import skillbill.workflow.decomposition.DecompositionManifestValidator
-import skillbill.workflow.decomposition.decodeManifest
-import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationResult
 import skillbill.workflow.decomposition.model.requireAccepted
@@ -72,7 +69,6 @@ fun archivedDecompositionManifest(repoRoot: Path, manifestPath: Path): Boolean {
   return relative.startsWith(".feature-specs/done/")
 }
 
-@OpenBoundaryMap("Persisted workflow artifact JSON decoded for decomposition runtime updates")
 fun decodeArtifacts(existingArtifactsJson: String): Map<String, Any?> =
   JsonCodec.parseObjectOrNull(existingArtifactsJson)
     ?.let(JsonCodec::jsonElementToValue)

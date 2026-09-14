@@ -1,5 +1,4 @@
 package skillbill.engine.goalrunner
-
 import skillbill.goalrunner.model.GoalAttemptLedgerAction
 import skillbill.goalrunner.model.GoalRunnerLaunchFacts
 import skillbill.goalrunner.model.GoalRunnerLivenessSnapshot

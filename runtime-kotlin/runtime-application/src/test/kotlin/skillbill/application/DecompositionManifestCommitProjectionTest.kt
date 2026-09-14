@@ -1,18 +1,16 @@
 package skillbill.application
-import skillbill.workflow.engine.model.WorkflowStepUpdates
-import skillbill.workflow.engine.model.WorkflowArtifactPatch
-import skillbill.application.testDecompositionManifestValidator
-import skillbill.workflow.decomposition.encodeManifestWireMap
-
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
+import skillbill.application.decomposition.decompositionPlanningResult
+import skillbill.application.decomposition.decompositionPlanningSubtask
 import skillbill.application.decomposition.loadDecompositionManifest
 import skillbill.application.decomposition.model.DecompositionManifestRuntimeUpdate
 import skillbill.application.decomposition.model.DecompositionManifestWriteRequest
-import skillbill.application.decomposition.decompositionPlanningResult
-import skillbill.application.decomposition.decompositionPlanningSubtask
 import skillbill.contracts.JsonCodec
 import skillbill.model.toPath
+import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionManifest
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
+import skillbill.workflow.engine.model.WorkflowStepUpdates
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
@@ -48,12 +46,18 @@ class DecompositionManifestCommitProjectionTest {
     val preCommit = writeFromWorkflowUpdate(
       repoRoot = repoRoot,
       existingArtifactsJson = durableRuntimeArtifactsJson(initial.manifest, subtaskSpec),
-      artifactsPatch = WorkflowArtifactPatch.from(mapOf("commit_push_result" to mapOf("pre_commit_projection" to true))),
+      artifactsPatch = WorkflowArtifactPatch.from(
+        mapOf("commit_push_result" to mapOf("pre_commit_projection" to true)),
+      ),
       runtimeUpdate = DecompositionManifestRuntimeUpdate(
         workflowId = "wfl-subtask-1",
         workflowStatus = "running",
         currentStepId = "commit_push",
-        stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "commit_push", "status" to "running", "attempt_count" to 1))),
+        stepUpdates = WorkflowStepUpdates.from(
+          listOf(
+            mapOf("step_id" to "commit_push", "status" to "running", "attempt_count" to 1),
+          ),
+        ),
       ),
     )
 
@@ -63,16 +67,35 @@ class DecompositionManifestCommitProjectionTest {
     assertEquals(null, projectedBeforeCommit.commitSha)
     assertContains(Files.readString(subtaskSpec), "status: In Progress")
     val manifestTextBeforeSha = Files.readString(preCommit.manifestPath.toPath())
+    assertFinalCommitProjectionUnchanged(
+      repoRoot,
+      subtaskSpec,
+      preCommit.manifest,
+      manifestTextBeforeSha,
+    )
+  }
 
+  private fun assertFinalCommitProjectionUnchanged(
+    repoRoot: Path,
+    subtaskSpec: Path,
+    manifest: DecompositionManifest,
+    manifestTextBeforeSha: String,
+  ) {
     val final = writeFromWorkflowUpdate(
       repoRoot = repoRoot,
-      existingArtifactsJson = durableRuntimeArtifactsJson(preCommit.manifest, subtaskSpec),
-      artifactsPatch = WorkflowArtifactPatch.from(mapOf("commit_push_result" to mapOf("commit_sha" to "commit-subtask-1"))),
+      existingArtifactsJson = durableRuntimeArtifactsJson(manifest, subtaskSpec),
+      artifactsPatch = WorkflowArtifactPatch.from(
+        mapOf("commit_push_result" to mapOf("commit_sha" to "commit-subtask-1")),
+      ),
       runtimeUpdate = DecompositionManifestRuntimeUpdate(
         workflowId = "wfl-subtask-1",
         workflowStatus = "running",
         currentStepId = "commit_push",
-        stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "commit_push", "status" to "completed", "attempt_count" to 1))),
+        stepUpdates = WorkflowStepUpdates.from(
+          listOf(
+            mapOf("step_id" to "commit_push", "status" to "completed", "attempt_count" to 1),
+          ),
+        ),
       ),
     )
 
@@ -109,12 +132,18 @@ class DecompositionManifestCommitProjectionTest {
     val result = writeFromWorkflowUpdate(
       repoRoot = repoRoot,
       existingArtifactsJson = durableRuntimeArtifactsJson(initial.manifest, subtaskSpec),
-      artifactsPatch = WorkflowArtifactPatch.from(mapOf("commit_push_result" to mapOf("commit_sha" to "commit-subtask-1"))),
+      artifactsPatch = WorkflowArtifactPatch.from(
+        mapOf("commit_push_result" to mapOf("commit_sha" to "commit-subtask-1")),
+      ),
       runtimeUpdate = DecompositionManifestRuntimeUpdate(
         workflowId = "wfl-subtask-1",
         workflowStatus = "completed",
         currentStepId = "finish",
-        stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "finish", "status" to "completed", "attempt_count" to 1))),
+        stepUpdates = WorkflowStepUpdates.from(
+          listOf(
+            mapOf("step_id" to "finish", "status" to "completed", "attempt_count" to 1),
+          ),
+        ),
       ),
     )
 

@@ -7,13 +7,13 @@ import skillbill.infrastructure.fs.phaseoutput.FeatureTaskRuntimePhaseOutputStru
 import skillbill.infrastructure.fs.phaseoutput.FeatureTaskRuntimePhaseOutputStructuralRepairDecision
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.decodeManifest
-import skillbill.workflow.engine.model.DecompositionManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionManifestRepairEvidence
 import skillbill.workflow.decomposition.model.DecompositionManifestRepairOperation
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationFailureCode
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationFormat
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationResult
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationSourceLocation
+import skillbill.workflow.engine.model.DecompositionManifestWireMap
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputFailureCode
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputFormat
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairEvidence
@@ -38,11 +38,10 @@ class DecompositionManifestValidatorAdapter : DecompositionManifestValidator {
     DecompositionManifestSchemaValidator.validate(manifest, sourceLabel)
   }
 
-  override fun validateYamlText(yamlText: String, sourceLabel: String) =
-    decodeManifest(
-      DecompositionManifestWireMap.from(DecompositionManifestSchemaValidator.validateYamlText(yamlText, sourceLabel)),
-      sourceLabel,
-    )
+  override fun validateYamlText(yamlText: String, sourceLabel: String) = decodeManifest(
+    DecompositionManifestWireMap.from(DecompositionManifestSchemaValidator.validateYamlText(yamlText, sourceLabel)),
+    sourceLabel,
+  )
 
   override fun validateYamlTextResult(yamlText: String, sourceLabel: String): DecompositionManifestValidationResult {
     val decision = FeatureTaskRuntimePhaseOutputStructuralRepair.inspectWholeDocument(yamlText, sourceLabel)

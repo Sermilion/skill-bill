@@ -1,9 +1,7 @@
 package skillbill.engine
-import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.application.FakeDatabaseSessionFactory
 import skillbill.application.InMemoryWorkflowStates
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
-import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.application.testDecompositionManifestValidator
 import skillbill.application.testDecompositionManifestWriter
 import skillbill.application.testRepositoryRoot
@@ -26,10 +24,12 @@ import skillbill.ports.workflow.model.FeatureTaskRouteScope
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.ports.workflow.toRecord
+import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.goal.NoopGoalObservabilityEventValidator
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
@@ -377,11 +377,13 @@ class FeatureTaskContinuationLookupServiceTest {
             workflowStatus = workflowStatus,
             currentStepId = "plan",
             stepUpdates = null,
-            artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-              "plan" to mapOf("mode" to "decompose"),
-              DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
-                testDecompositionManifestValidator.encodeManifestWireMap(manifest),
-            )),
+            artifactsPatch = WorkflowArtifactPatch.from(
+              mapOf(
+                "plan" to mapOf("mode" to "decompose"),
+                DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
+                  testDecompositionManifestValidator.encodeManifestWireMap(manifest),
+              ),
+            ),
             sessionId = "ftr-goal",
           ),
         ).toRecord().copy(issueKey = "SKILL-120"),

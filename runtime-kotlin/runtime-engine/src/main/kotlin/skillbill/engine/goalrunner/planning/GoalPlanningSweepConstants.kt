@@ -1,5 +1,4 @@
 package skillbill.engine.goalrunner.planning
-
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 
 object GoalPlanningSweepConstants {

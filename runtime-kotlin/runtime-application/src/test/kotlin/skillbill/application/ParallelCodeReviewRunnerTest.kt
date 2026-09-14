@@ -66,7 +66,6 @@ import skillbill.review.ParallelReviewFindingParser
 import skillbill.review.context.ReviewContextEnvelopeValidator
 import skillbill.review.context.model.CodeReviewExecutionMode
 import skillbill.review.context.model.ReviewContextBudgetPolicy
-import skillbill.workflow.engine.model.ReviewContextWireMap
 import skillbill.review.model.ParallelReviewMergedFinding
 import skillbill.review.model.ParallelReviewParseResult
 import skillbill.review.model.ReviewFindingVerdict
@@ -91,6 +90,7 @@ import skillbill.telemetry.model.GoalSubtaskFinishedRecord
 import skillbill.telemetry.model.PrDescriptionGeneratedRecord
 import skillbill.telemetry.model.QualityCheckFinishedRecord
 import skillbill.telemetry.model.QualityCheckStartedRecord
+import skillbill.workflow.engine.model.ReviewContextWireMap
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDiagnosticDegradationMeasurement
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeProjectionMeasurement
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRejectionMeasurement

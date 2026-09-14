@@ -62,7 +62,10 @@ data class DecompositionPlanningResult(
   }
 
   companion object {
-    fun fromWireMap(wireMap: Map<String, Any?>, sourceLabel: String = "<planning-result>"): DecompositionPlanningResult {
+    fun fromWireMap(
+      wireMap: Map<String, Any?>,
+      sourceLabel: String = "<planning-result>",
+    ): DecompositionPlanningResult {
       val mode = wireMap.stringValue(DecompositionPlanningPayloadKeys.MODE, sourceLabel)
       if (mode != "decompose") {
         return DecompositionPlanningResult(mode = mode, subtasks = emptyList())

@@ -1,7 +1,4 @@
 package skillbill.application
-import skillbill.workflow.engine.model.WorkflowStepUpdates
-import skillbill.workflow.engine.model.WorkflowArtifactPatch
-
 import skillbill.application.decomposition.intentFor
 import skillbill.application.decomposition.model.DecompositionManifestRuntimeUpdate
 import skillbill.application.decomposition.statusFromUpdate
@@ -9,6 +6,8 @@ import skillbill.application.decomposition.withRuntimeFields
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
+import skillbill.workflow.engine.model.WorkflowStepUpdates
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -125,12 +124,18 @@ class DecompositionManifestRuntimeStateSupportTest {
     workflowId = "wfl-subtask-5",
     workflowStatus = "running",
     currentStepId = "commit_push",
-    stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "commit_push", "status" to "completed", "attempt_count" to 1))),
-    artifactsPatch = WorkflowArtifactPatch.from(buildMap {
-      put("goal_continuation", mapOf("issue_key" to "SKILL-68", "subtask_id" to 5, "suppress_pr" to true))
-      commitPushResult?.let { put("commit_push_result", it) }
-      goalContinuationOutcome?.let { put("goal_continuation_outcome", it) }
-    }),
+    stepUpdates = WorkflowStepUpdates.from(
+      listOf(
+        mapOf("step_id" to "commit_push", "status" to "completed", "attempt_count" to 1),
+      ),
+    ),
+    artifactsPatch = WorkflowArtifactPatch.from(
+      buildMap {
+        put("goal_continuation", mapOf("issue_key" to "SKILL-68", "subtask_id" to 5, "suppress_pr" to true))
+        commitPushResult?.let { put("commit_push_result", it) }
+        goalContinuationOutcome?.let { put("goal_continuation_outcome", it) }
+      },
+    ),
   )
 
   private fun baseManifest(): DecompositionManifest = DecompositionManifest(

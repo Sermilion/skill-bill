@@ -1,5 +1,4 @@
 package skillbill.engine.featuretask
-
 import me.tatarka.inject.annotations.Inject
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.ProducerOutputEvidenceValidator

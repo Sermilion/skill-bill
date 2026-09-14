@@ -1,9 +1,8 @@
 package skillbill.engine.featuretask
-
 import skillbill.application.workflow.model.WorkflowFamily
-import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.issuekey.normalizeIssueKey
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
+import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStepWireUpdate
 import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.error.WorkflowIssueKeyConflictError
 import skillbill.ports.db.DatabaseSessionFactory
@@ -15,8 +14,8 @@ import skillbill.ports.workflow.saveRecord
 import skillbill.ports.workflow.toRecord
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.WorkflowSnapshotValidator
-import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
+import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.model.WorkflowStepStatus
@@ -26,7 +25,6 @@ import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_STATUS_BL
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_STATUS_PAUSED
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_STATUS_PENDING
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeImplementationAttemptStatus
-import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStepWireUpdate
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 import java.security.MessageDigest
 import java.time.Duration
@@ -117,7 +115,9 @@ class FeatureTaskRuntimeWorkflowPersistence(
     }
 }
 
-internal fun stepUpdatesFrom(records: Map<String, FeatureTaskRuntimePhaseRecord>): List<FeatureTaskRuntimePhaseStepWireUpdate> {
+internal fun stepUpdatesFrom(
+  records: Map<String, FeatureTaskRuntimePhaseRecord>,
+): List<FeatureTaskRuntimePhaseStepWireUpdate> {
   fun stepStatusFor(record: FeatureTaskRuntimePhaseRecord): String = when {
     record.status.workflowStepStatus() == WorkflowStepStatus.BLOCKED -> FEATURE_TASK_RUNTIME_PHASE_STATUS_BLOCKED
     record.status.workflowStepStatus() == WorkflowStepStatus.PAUSED -> FEATURE_TASK_RUNTIME_PHASE_STATUS_PAUSED

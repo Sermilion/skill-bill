@@ -1,9 +1,5 @@
 package skillbill.application
-import skillbill.workflow.engine.model.WorkflowStepUpdates
-import skillbill.workflow.engine.model.WorkflowArtifactPatch
-
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
-import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.application.decomposition.encodeDecompositionManifestYaml
 import skillbill.application.decomposition.executionModel
 import skillbill.application.decomposition.parentSpecPath
@@ -89,14 +85,18 @@ import skillbill.ports.workflow.toRecord
 import skillbill.review.context.model.CodeReviewExecutionMode
 import skillbill.text.sha256HexUtf8
 import skillbill.workflow.decomposition.DecompositionManifestValidator
+import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionExecutionModel
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.WorkflowSnapshotValidator
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowDefinition
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.engine.model.WorkflowStepUpdates
+import skillbill.workflow.engine.model.WorkflowUpdateAcknowledgementView
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.goal.GoalObservabilityEventValidator
 import skillbill.workflow.goal.GoalProgressEventValidator
@@ -121,18 +121,6 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-
-import skillbill.workflow.taskruntime.asCheckpointIdentitiesArtifactEntry
-import skillbill.workflow.taskruntime.asTelemetryPayload
-import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
-import skillbill.workflow.taskruntime.decodeFindingVerificationDispositionFromArtifact
-import skillbill.workflow.taskruntime.decodeImplementationAttemptFromArtifact
-import skillbill.workflow.taskruntime.decodePhaseRecordFromArtifact
-import skillbill.workflow.taskruntime.decodeValidationGateExecutionEvidenceFromArtifact
-import skillbill.workflow.taskruntime.decodeValidationGateProgressFromArtifact
-import skillbill.workflow.taskruntime.envelopeWireMap
-import skillbill.workflow.taskruntime.phaseRecordsFromWorkflowArtifacts
-import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 private fun WorkflowService.openTestRuntime(sessionId: String = "", currentStepId: String? = null): WorkflowOpenResult =
   openFeatureTask(
     WorkflowServiceOpenFeatureTaskArgs(
@@ -537,9 +525,11 @@ class WorkflowServiceTest {
         workflowId = opened.workflowId,
         workflowStatus = "blocked",
         currentStepId = "implement",
-        stepUpdates = WorkflowStepUpdates.from(listOf(
-          mapOf("step_id" to "implement", "status" to "blocked", "attempt_count" to 1),
-        )),
+        stepUpdates = WorkflowStepUpdates.from(
+          listOf(
+            mapOf("step_id" to "implement", "status" to "blocked", "attempt_count" to 1),
+          ),
+        ),
         artifactsPatch = WorkflowArtifactPatch.from(mapOf("preplan_digest" to mapOf("ok" to true))),
       ),
     )
@@ -622,8 +612,14 @@ class WorkflowServiceTest {
           workflowId = "wftr-update-loud",
           workflowStatus = "running",
           currentStepId = "preplan",
-          stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "preplan", "status" to "running", "attempt_count" to 1))),
-          artifactsPatch = WorkflowArtifactPatch.from(mapOf("assessment" to mapOf("ok" to true), "branch" to mapOf("ok" to true))),
+          stepUpdates = WorkflowStepUpdates.from(
+            listOf(
+              mapOf("step_id" to "preplan", "status" to "running", "attempt_count" to 1),
+            ),
+          ),
+          artifactsPatch = WorkflowArtifactPatch.from(
+            mapOf("assessment" to mapOf("ok" to true), "branch" to mapOf("ok" to true)),
+          ),
           sessionId = "",
         ),
       )
@@ -651,23 +647,29 @@ class WorkflowServiceTest {
         workflowId = opened.workflowId,
         workflowStatus = "running",
         currentStepId = "implement",
-        stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1))),
-        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-          "goal_continuation" to mapOf(
-            "issue_key" to "SKILL-61",
-            "subtask_id" to 1,
-            "suppress_pr" to true,
+        stepUpdates = WorkflowStepUpdates.from(
+          listOf(
+            mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1),
           ),
-          "progress_event" to mapOf(
-            "step_id" to "implement",
-            "attempt_count" to 1,
-            "source" to "phase_subagent",
-            "kind" to "durable_progress",
-            "message" to "editing runtime files",
-            "sequence" to 7,
-            "timestamp" to "2026-06-01T00:00:00Z",
+        ),
+        artifactsPatch = WorkflowArtifactPatch.from(
+          mapOf(
+            "goal_continuation" to mapOf(
+              "issue_key" to "SKILL-61",
+              "subtask_id" to 1,
+              "suppress_pr" to true,
+            ),
+            "progress_event" to mapOf(
+              "step_id" to "implement",
+              "attempt_count" to 1,
+              "source" to "phase_subagent",
+              "kind" to "durable_progress",
+              "message" to "editing runtime files",
+              "sequence" to 7,
+              "timestamp" to "2026-06-01T00:00:00Z",
+            ),
           ),
-        )),
+        ),
         sessionId = "ftr-001",
       ),
     )
@@ -704,20 +706,24 @@ class WorkflowServiceDecomposedParentTest {
     workflows.saveFeatureImplementWorkflow(
       workflowRecord(
         workflowId = "wfl-child",
-        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-          DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
-            testDecompositionManifestValidator.encodeManifestWireMap(childRuntime),
-        )),
+        artifactsPatch = WorkflowArtifactPatch.from(
+          mapOf(
+            DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
+              testDecompositionManifestValidator.encodeManifestWireMap(childRuntime),
+          ),
+        ),
       ),
     )
     workflows.saveFeatureTaskRuntimeWorkflow(
       workflowRecord(
         workflowId = "wfl-parent",
-        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-          "plan" to mapOf("mode" to "decompose"),
-          DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
-            testDecompositionManifestValidator.encodeManifestWireMap(parentRuntime),
-        )),
+        artifactsPatch = WorkflowArtifactPatch.from(
+          mapOf(
+            "plan" to mapOf("mode" to "decompose"),
+            DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
+              testDecompositionManifestValidator.encodeManifestWireMap(parentRuntime),
+          ),
+        ),
       ),
     )
 
@@ -732,27 +738,31 @@ class WorkflowServiceDecomposedParentTest {
     workflows.saveFeatureImplementWorkflow(
       workflowRecord(
         workflowId = "wfl-child",
-        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-          "plan" to mapOf("mode" to "decompose"),
-          "goal_continuation" to mapOf(
-            "enabled" to true,
-            "issue_key" to "SKILL-52.1",
-            "subtask_id" to 1,
-            "suppress_pr" to true,
+        artifactsPatch = WorkflowArtifactPatch.from(
+          mapOf(
+            "plan" to mapOf("mode" to "decompose"),
+            "goal_continuation" to mapOf(
+              "enabled" to true,
+              "issue_key" to "SKILL-52.1",
+              "subtask_id" to 1,
+              "suppress_pr" to true,
+            ),
+            DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
+              testDecompositionManifestValidator.encodeManifestWireMap(decompositionRuntime(status = "in_progress")),
           ),
-          DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
-            testDecompositionManifestValidator.encodeManifestWireMap(decompositionRuntime(status = "in_progress"), ),
-        )),
+        ),
       ),
     )
     workflows.saveFeatureTaskRuntimeWorkflow(
       workflowRecord(
         workflowId = "wfl-parent",
-        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-          "plan" to mapOf("mode" to "decompose"),
-          DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
-            testDecompositionManifestValidator.encodeManifestWireMap(decompositionRuntime(status = "in_progress"), ),
-        )),
+        artifactsPatch = WorkflowArtifactPatch.from(
+          mapOf(
+            "plan" to mapOf("mode" to "decompose"),
+            DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
+              testDecompositionManifestValidator.encodeManifestWireMap(decompositionRuntime(status = "in_progress")),
+          ),
+        ),
       ),
     )
 
@@ -767,21 +777,25 @@ class WorkflowServiceDecomposedParentTest {
     workflows.saveFeatureTaskRuntimeWorkflow(
       workflowRecord(
         workflowId = "wfl-completed-discovery",
-        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-          "plan" to mapOf("mode" to "decompose"),
-          DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
-            testDecompositionManifestValidator.encodeManifestWireMap(decompositionRuntime(status = "complete"), ),
-        )),
+        artifactsPatch = WorkflowArtifactPatch.from(
+          mapOf(
+            "plan" to mapOf("mode" to "decompose"),
+            DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
+              testDecompositionManifestValidator.encodeManifestWireMap(decompositionRuntime(status = "complete")),
+          ),
+        ),
       ),
     )
     workflows.saveFeatureTaskRuntimeWorkflow(
       workflowRecord(
         workflowId = "wfl-active-implementation",
-        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-          "plan" to mapOf("mode" to "decompose"),
-          DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
-            testDecompositionManifestValidator.encodeManifestWireMap(decompositionRuntime(status = "blocked"), ),
-        )),
+        artifactsPatch = WorkflowArtifactPatch.from(
+          mapOf(
+            "plan" to mapOf("mode" to "decompose"),
+            DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
+              testDecompositionManifestValidator.encodeManifestWireMap(decompositionRuntime(status = "blocked")),
+          ),
+        ),
       ),
     )
 
@@ -806,11 +820,13 @@ class WorkflowServiceDecomposedParentTest {
     workflows.saveFeatureTaskRuntimeWorkflow(
       workflowRecord(
         workflowId = "wfl-abandoned-stale",
-        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-          "plan" to mapOf("mode" to "decompose"),
-          DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
-            testDecompositionManifestValidator.encodeManifestWireMap(staleLineage),
-        )),
+        artifactsPatch = WorkflowArtifactPatch.from(
+          mapOf(
+            "plan" to mapOf("mode" to "decompose"),
+            DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
+              testDecompositionManifestValidator.encodeManifestWireMap(staleLineage),
+          ),
+        ),
         workflowStatus = "abandoned",
       ),
     )
@@ -859,11 +875,13 @@ class WorkflowServiceDecomposedParentTest {
     workflows.saveFeatureTaskRuntimeWorkflow(
       workflowRecord(
         workflowId = "wfl-abandoned-progressed",
-        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-          "plan" to mapOf("mode" to "decompose"),
-          DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
-            testDecompositionManifestValidator.encodeManifestWireMap(progressedLineage),
-        )),
+        artifactsPatch = WorkflowArtifactPatch.from(
+          mapOf(
+            "plan" to mapOf("mode" to "decompose"),
+            DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
+              testDecompositionManifestValidator.encodeManifestWireMap(progressedLineage),
+          ),
+        ),
         workflowStatus = "abandoned",
       ),
     )
@@ -908,11 +926,13 @@ class WorkflowServiceDecomposedParentTest {
     workflows.saveFeatureTaskRuntimeWorkflow(
       workflowRecord(
         workflowId = "wfl-paused-parent",
-        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-          "plan" to mapOf("mode" to "decompose"),
-          DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
-            testDecompositionManifestValidator.encodeManifestWireMap(pausedLineage),
-        )),
+        artifactsPatch = WorkflowArtifactPatch.from(
+          mapOf(
+            "plan" to mapOf("mode" to "decompose"),
+            DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
+              testDecompositionManifestValidator.encodeManifestWireMap(pausedLineage),
+          ),
+        ),
         workflowStatus = "paused",
       ),
     )
@@ -943,11 +963,13 @@ class WorkflowServiceDecomposedParentTest {
       workflows.saveFeatureTaskRuntimeWorkflow(
         workflowRecord(
           workflowId = workflowId,
-          artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-            "plan" to mapOf("mode" to "decompose"),
-            DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
-              testDecompositionManifestValidator.encodeManifestWireMap(decompositionRuntime(status = "blocked"), ),
-          )),
+          artifactsPatch = WorkflowArtifactPatch.from(
+            mapOf(
+              "plan" to mapOf("mode" to "decompose"),
+              DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
+                testDecompositionManifestValidator.encodeManifestWireMap(decompositionRuntime(status = "blocked")),
+            ),
+          ),
         ),
       )
     }
@@ -1113,11 +1135,13 @@ class WorkflowServiceGoalManifestStoreTest {
     workflows.saveFeatureTaskRuntimeWorkflow(
       workflowRecord(
         workflowId = "wfl-parent",
-        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-          "plan" to mapOf("mode" to "decompose"),
-          DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
-            testDecompositionManifestValidator.encodeManifestWireMap(decompositionRuntime(status = "blocked"), ),
-        )),
+        artifactsPatch = WorkflowArtifactPatch.from(
+          mapOf(
+            "plan" to mapOf("mode" to "decompose"),
+            DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
+              testDecompositionManifestValidator.encodeManifestWireMap(decompositionRuntime(status = "blocked")),
+          ),
+        ),
       ),
     )
     val store = testWorkflowGoalRunnerManifestStore(
@@ -1267,11 +1291,13 @@ class WorkflowServiceGoalManifestStoreTest {
     workflows.saveFeatureTaskRuntimeWorkflow(
       workflowRecord(
         workflowId = "wfl-parent",
-        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-          "plan" to mapOf("mode" to "decompose"),
-          DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
-            testDecompositionManifestValidator.encodeManifestWireMap(pending),
-        )),
+        artifactsPatch = WorkflowArtifactPatch.from(
+          mapOf(
+            "plan" to mapOf("mode" to "decompose"),
+            DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
+              testDecompositionManifestValidator.encodeManifestWireMap(pending),
+          ),
+        ),
       ),
     )
     val store = testWorkflowGoalRunnerManifestStore(
@@ -1436,11 +1462,13 @@ class WorkflowGoalStatusProjectionTest {
     workflows.saveFeatureTaskRuntimeWorkflow(
       workflowRecord(
         workflowId = "wfl-parent",
-        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-          "plan" to mapOf("mode" to "decompose"),
-          DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
-            testDecompositionManifestValidator.encodeManifestWireMap(manifest),
-        )),
+        artifactsPatch = WorkflowArtifactPatch.from(
+          mapOf(
+            "plan" to mapOf("mode" to "decompose"),
+            DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
+              testDecompositionManifestValidator.encodeManifestWireMap(manifest),
+          ),
+        ),
       ),
     )
   }
@@ -1458,7 +1486,11 @@ class WorkflowGoalStatusProjectionTest {
       WorkflowUpdateInput(
         workflowStatus = "running",
         currentStepId = "implement",
-        stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1))),
+        stepUpdates = WorkflowStepUpdates.from(
+          listOf(
+            mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1),
+          ),
+        ),
         artifactsPatch = WorkflowArtifactPatch.from(goalContinuationArtifact() + staleObservabilityArtifact()),
         sessionId = "ftr-stale",
       ),
@@ -1479,7 +1511,11 @@ class WorkflowGoalStatusProjectionTest {
       WorkflowUpdateInput(
         workflowStatus = "running",
         currentStepId = "commit_push",
-        stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "commit_push", "status" to "completed", "attempt_count" to 1))),
+        stepUpdates = WorkflowStepUpdates.from(
+          listOf(
+            mapOf("step_id" to "commit_push", "status" to "completed", "attempt_count" to 1),
+          ),
+        ),
         artifactsPatch = WorkflowArtifactPatch.from(goalContinuationArtifact() + completeOutcomeArtifact()),
         sessionId = "ftr-done",
       ),
@@ -1687,13 +1723,15 @@ class GoalRunnerCommitShaRecoveryTest {
     workflows.saveFeatureImplementWorkflow(
       workflowRecord(
         workflowId = "wfl-child",
-        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-          "goal_continuation" to mapOf(
-            "issue_key" to "SKILL-52.1",
-            "subtask_id" to 1,
-            "suppress_pr" to true,
+        artifactsPatch = WorkflowArtifactPatch.from(
+          mapOf(
+            "goal_continuation" to mapOf(
+              "issue_key" to "SKILL-52.1",
+              "subtask_id" to 1,
+              "suppress_pr" to true,
+            ),
           ),
-        )),
+        ),
       ),
     )
     val store = testWorkflowGoalRunnerOutcomeStore(
@@ -1776,14 +1814,20 @@ class GoalRunnerCommitShaRecoveryTest {
       WorkflowUpdateInput(
         workflowStatus = "running",
         currentStepId = "commit_push",
-        stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "commit_push", "status" to "completed", "attempt_count" to 1))),
-        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-          "goal_continuation" to mapOf(
-            "issue_key" to "SKILL-52.1",
-            "subtask_id" to 1,
-            "suppress_pr" to true,
+        stepUpdates = WorkflowStepUpdates.from(
+          listOf(
+            mapOf("step_id" to "commit_push", "status" to "completed", "attempt_count" to 1),
           ),
-        )),
+        ),
+        artifactsPatch = WorkflowArtifactPatch.from(
+          mapOf(
+            "goal_continuation" to mapOf(
+              "issue_key" to "SKILL-52.1",
+              "subtask_id" to 1,
+              "suppress_pr" to true,
+            ),
+          ),
+        ),
         sessionId = "ftr-no-sha",
       ),
     )
@@ -1803,24 +1847,30 @@ class GoalRunnerCommitShaRecoveryTest {
       WorkflowUpdateInput(
         workflowStatus = "blocked",
         currentStepId = "commit_push",
-        stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "commit_push", "status" to "blocked", "attempt_count" to 1))),
-        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-          "goal_continuation" to mapOf(
-            "issue_key" to "SKILL-52.1",
-            "subtask_id" to 1,
-            "suppress_pr" to true,
-            "goal_branch" to "feat/SKILL-52",
+        stepUpdates = WorkflowStepUpdates.from(
+          listOf(
+            mapOf("step_id" to "commit_push", "status" to "blocked", "attempt_count" to 1),
           ),
-          "goal_continuation_outcome" to mapOf(
-            "issue_key" to "SKILL-52.1",
-            "subtask_id" to 1,
-            "status" to "blocked",
-            "workflow_id" to workflowId,
+        ),
+        artifactsPatch = WorkflowArtifactPatch.from(
+          mapOf(
+            "goal_continuation" to mapOf(
+              "issue_key" to "SKILL-52.1",
+              "subtask_id" to 1,
+              "suppress_pr" to true,
+              "goal_branch" to "feat/SKILL-52",
+            ),
+            "goal_continuation_outcome" to mapOf(
+              "issue_key" to "SKILL-52.1",
+              "subtask_id" to 1,
+              "status" to "blocked",
+              "workflow_id" to workflowId,
+              "blocked_reason" to "remote branch diverged",
+              "last_resumable_step" to "commit_push",
+            ),
             "blocked_reason" to "remote branch diverged",
-            "last_resumable_step" to "commit_push",
           ),
-          "blocked_reason" to "remote branch diverged",
-        )),
+        ),
         sessionId = "ftr-blocked-push",
       ),
     ).toRecord()
@@ -1841,21 +1891,27 @@ class GoalRunnerCommitShaRecoveryTest {
       WorkflowUpdateInput(
         workflowStatus = "running",
         currentStepId = "commit_push",
-        stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "commit_push", "status" to "completed", "attempt_count" to 1))),
-        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-          "goal_continuation" to mapOf(
-            "issue_key" to "SKILL-52.1",
-            "subtask_id" to 1,
-            "suppress_pr" to true,
+        stepUpdates = WorkflowStepUpdates.from(
+          listOf(
+            mapOf("step_id" to "commit_push", "status" to "completed", "attempt_count" to 1),
           ),
-          "goal_continuation_outcome" to mapOf(
-            "issue_key" to "SKILL-52.1",
-            "subtask_id" to 1,
-            "status" to "complete",
-            "workflow_id" to workflowId,
-            "last_resumable_step" to "commit_push",
+        ),
+        artifactsPatch = WorkflowArtifactPatch.from(
+          mapOf(
+            "goal_continuation" to mapOf(
+              "issue_key" to "SKILL-52.1",
+              "subtask_id" to 1,
+              "suppress_pr" to true,
+            ),
+            "goal_continuation_outcome" to mapOf(
+              "issue_key" to "SKILL-52.1",
+              "subtask_id" to 1,
+              "status" to "complete",
+              "workflow_id" to workflowId,
+              "last_resumable_step" to "commit_push",
+            ),
           ),
-        )),
+        ),
         sessionId = "ftr-stale-complete",
       ),
     )
@@ -1871,11 +1927,6 @@ class GoalRunnerCommitShaRecoveryTest {
 class WorkflowUpdateAcknowledgementBudgetTest {
   @Test
   fun `compact update acknowledgement stays under byte ceiling and omits full durable state`() {
-    // A workflow update with a representative LARGE artifacts_patch must return a
-    // compact typed acknowledgement, not a full snapshot. The serialized ack
-    // stays under a named ceiling and carries only the documented compact fields
-    // + read-only full-state guidance — never the full durable artifacts map or
-    // the full per-step list.
     val service = newAckBudgetService()
     val opened = assertIs<WorkflowOpenResult.Ok>(service.openTestRuntime("ftr-001"))
     val updated = service.update(
@@ -1884,11 +1935,17 @@ class WorkflowUpdateAcknowledgementBudgetTest {
         workflowId = opened.workflowId,
         workflowStatus = "running",
         currentStepId = "implement",
-        stepUpdates = WorkflowStepUpdates.from(listOf(mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1))),
-        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-          "plan" to mapOf("mode" to "implement", "body" to "x".repeat(12000)),
-          "preplan_digest" to mapOf("risk" to "low", "notes" to "y".repeat(8000)),
-        )),
+        stepUpdates = WorkflowStepUpdates.from(
+          listOf(
+            mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1),
+          ),
+        ),
+        artifactsPatch = WorkflowArtifactPatch.from(
+          mapOf(
+            "plan" to mapOf("mode" to "implement", "body" to "x".repeat(12000)),
+            "preplan_digest" to mapOf("risk" to "low", "notes" to "y".repeat(8000)),
+          ),
+        ),
         sessionId = "ftr-001",
       ),
     )
@@ -1902,20 +1959,7 @@ class WorkflowUpdateAcknowledgementBudgetTest {
     assertEquals(listOf("implement"), ack.updatedStepIds)
     assertEquals(listOf("plan", "preplan_digest"), ack.updatedArtifactKeys)
 
-    // Build the compact ack wire shape (typed ack map + result-level db_path) and
-    // assert it stays under the ceiling. A regression that echoes the full
-    // durable artifacts map back in the ack would blow past it.
-    val ackMap = linkedMapOf<String, Any?>(
-      SharedPayloadKeys.STATUS to ack.status,
-      SharedPayloadKeys.WORKFLOW_ID to ack.workflowId,
-      WorkflowWirePayloadKeys.WORKFLOW_NAME to ack.workflowName,
-      WorkflowWirePayloadKeys.WORKFLOW_STATUS to ack.workflowStatus,
-      WorkflowWirePayloadKeys.CURRENT_STEP_ID to ack.currentStepId,
-      WorkflowWirePayloadKeys.UPDATED_STEP_IDS to ack.updatedStepIds,
-      WorkflowWirePayloadKeys.UPDATED_ARTIFACT_KEYS to ack.updatedArtifactKeys,
-      WorkflowWirePayloadKeys.READ_ONLY_FULL_STATE_GUIDANCE to ack.readOnlyFullStateGuidance,
-      "db_path" to ok.dbPath,
-    )
+    val ackMap = compactAcknowledgementMap(ack, ok.dbPath)
     val serialized = JsonCodec.mapToJsonString(ackMap)
     val byteSize = serialized.toByteArray(Charsets.UTF_8).size
     assertTrue(
@@ -1923,7 +1967,6 @@ class WorkflowUpdateAcknowledgementBudgetTest {
       "Compact update acknowledgement was $byteSize bytes, exceeding the " +
         "$COMPACT_UPDATE_ACK_PAYLOAD_BYTE_CEILING ceiling; the full durable state was likely echoed back.",
     )
-    // The ack carries only documented compact fields + read-only guidance.
     assertEquals(
       setOf(
         "status",
@@ -1938,13 +1981,25 @@ class WorkflowUpdateAcknowledgementBudgetTest {
       ),
       ackMap.keys,
     )
-    // The full durable artifacts map and the full per-step list must NOT appear.
     assertFalse(serialized.contains("\"artifacts\""))
     assertFalse(serialized.contains("\"steps\""))
     assertFalse(serialized.contains("x".repeat(2000)))
     assertFalse(serialized.contains("y".repeat(2000)))
     assertTrue(ack.readOnlyFullStateGuidance.isNotBlank())
   }
+
+  private fun compactAcknowledgementMap(ack: WorkflowUpdateAcknowledgementView, dbPath: String): Map<String, Any?> =
+    linkedMapOf(
+      SharedPayloadKeys.STATUS to ack.status,
+      SharedPayloadKeys.WORKFLOW_ID to ack.workflowId,
+      WorkflowWirePayloadKeys.WORKFLOW_NAME to ack.workflowName,
+      WorkflowWirePayloadKeys.WORKFLOW_STATUS to ack.workflowStatus,
+      WorkflowWirePayloadKeys.CURRENT_STEP_ID to ack.currentStepId,
+      WorkflowWirePayloadKeys.UPDATED_STEP_IDS to ack.updatedStepIds,
+      WorkflowWirePayloadKeys.UPDATED_ARTIFACT_KEYS to ack.updatedArtifactKeys,
+      WorkflowWirePayloadKeys.READ_ONLY_FULL_STATE_GUIDANCE to ack.readOnlyFullStateGuidance,
+      "db_path" to dbPath,
+    )
 
   private fun newAckBudgetService(): WorkflowService = WorkflowService(
     database = FakeDatabaseSessionFactory(InMemoryWorkflowStates()),
@@ -1965,21 +2020,23 @@ class WorkflowGoalRunnerOutcomeStoreTest {
     workflows.saveFeatureImplementWorkflow(
       workflowRecord(
         workflowId = "wfl-child",
-        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-          "goal_continuation" to mapOf(
-            "issue_key" to "SKILL-52.1",
-            "subtask_id" to 1,
-            "suppress_pr" to true,
+        artifactsPatch = WorkflowArtifactPatch.from(
+          mapOf(
+            "goal_continuation" to mapOf(
+              "issue_key" to "SKILL-52.1",
+              "subtask_id" to 1,
+              "suppress_pr" to true,
+            ),
+            "goal_continuation_outcome" to mapOf(
+              "issue_key" to "SKILL-52.1",
+              "subtask_id" to 1,
+              "status" to "blocked",
+              "workflow_id" to "wfl-child",
+              "blocked_reason" to "preplan could not progress",
+              "last_resumable_step" to "preplan",
+            ),
           ),
-          "goal_continuation_outcome" to mapOf(
-            "issue_key" to "SKILL-52.1",
-            "subtask_id" to 1,
-            "status" to "blocked",
-            "workflow_id" to "wfl-child",
-            "blocked_reason" to "preplan could not progress",
-            "last_resumable_step" to "preplan",
-          ),
-        )),
+        ),
         // SKILL-176: a stored blocked continuation outcome must corroborate against the durable
         // workflow status, or it is treated as stale and displaced rather than read as authoritative.
         workflowStatus = "blocked",
@@ -2033,16 +2090,20 @@ class WorkflowGoalRunnerReconciliationTest {
       WorkflowUpdateInput(
         workflowStatus = "running",
         currentStepId = "implement",
-        stepUpdates = WorkflowStepUpdates.from(listOf(
-          mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1),
-        )),
-        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-          "goal_continuation" to mapOf(
-            "issue_key" to "SKILL-52.1",
-            "subtask_id" to 1,
-            "suppress_pr" to true,
+        stepUpdates = WorkflowStepUpdates.from(
+          listOf(
+            mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1),
           ),
-        )),
+        ),
+        artifactsPatch = WorkflowArtifactPatch.from(
+          mapOf(
+            "goal_continuation" to mapOf(
+              "issue_key" to "SKILL-52.1",
+              "subtask_id" to 1,
+              "suppress_pr" to true,
+            ),
+          ),
+        ),
         sessionId = "ftr-001",
       ),
     )
@@ -2073,16 +2134,20 @@ class WorkflowGoalRunnerReconciliationTest {
       WorkflowUpdateInput(
         workflowStatus = "running",
         currentStepId = "implement",
-        stepUpdates = WorkflowStepUpdates.from(listOf(
-          mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1),
-        )),
-        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-          "goal_continuation" to mapOf(
-            "issue_key" to "SKILL-52.1",
-            "subtask_id" to 1,
-            "suppress_pr" to true,
+        stepUpdates = WorkflowStepUpdates.from(
+          listOf(
+            mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1),
           ),
-        )),
+        ),
+        artifactsPatch = WorkflowArtifactPatch.from(
+          mapOf(
+            "goal_continuation" to mapOf(
+              "issue_key" to "SKILL-52.1",
+              "subtask_id" to 1,
+              "suppress_pr" to true,
+            ),
+          ),
+        ),
         sessionId = "ftr-001",
       ),
     )
@@ -2134,18 +2199,22 @@ class WorkflowGoalRunnerReconciliationTest {
       WorkflowUpdateInput(
         workflowStatus = "running",
         currentStepId = "implement",
-        stepUpdates = WorkflowStepUpdates.from(listOf(
-          mapOf("step_id" to "preplan", "status" to "completed", "attempt_count" to 1),
-          mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1),
-          mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1),
-        )),
-        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-          "goal_continuation" to mapOf(
-            "issue_key" to "SKILL-52.1",
-            "subtask_id" to 1,
-            "suppress_pr" to true,
+        stepUpdates = WorkflowStepUpdates.from(
+          listOf(
+            mapOf("step_id" to "preplan", "status" to "completed", "attempt_count" to 1),
+            mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1),
+            mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1),
           ),
-        )),
+        ),
+        artifactsPatch = WorkflowArtifactPatch.from(
+          mapOf(
+            "goal_continuation" to mapOf(
+              "issue_key" to "SKILL-52.1",
+              "subtask_id" to 1,
+              "suppress_pr" to true,
+            ),
+          ),
+        ),
         sessionId = "ftr-001",
       ),
     )
@@ -2180,29 +2249,33 @@ class WorkflowGoalRunnerReconciliationTest {
       WorkflowUpdateInput(
         workflowStatus = "running",
         currentStepId = "plan",
-        stepUpdates = WorkflowStepUpdates.from(listOf(
-          mapOf("step_id" to "preplan", "status" to "completed", "attempt_count" to 1),
-          mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1),
-        )),
-        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-          "goal_continuation" to mapOf(
-            "issue_key" to "SKILL-85",
-            "subtask_id" to 1,
-            "suppress_pr" to true,
+        stepUpdates = WorkflowStepUpdates.from(
+          listOf(
+            mapOf("step_id" to "preplan", "status" to "completed", "attempt_count" to 1),
+            mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1),
           ),
-          "feature_task_runtime_phase_records" to mapOf(
-            "preplan" to completedRuntimePhaseRecord(
-              "preplan",
-              "2026-06-18T10:00:00Z",
-              "2026-06-18T10:01:00Z",
+        ),
+        artifactsPatch = WorkflowArtifactPatch.from(
+          mapOf(
+            "goal_continuation" to mapOf(
+              "issue_key" to "SKILL-85",
+              "subtask_id" to 1,
+              "suppress_pr" to true,
             ),
-            "plan" to completedRuntimePhaseRecord(
-              "plan",
-              "2026-06-18T10:02:00Z",
-              "2026-06-18T10:03:00Z",
+            "feature_task_runtime_phase_records" to mapOf(
+              "preplan" to completedRuntimePhaseRecord(
+                "preplan",
+                "2026-06-18T10:00:00Z",
+                "2026-06-18T10:01:00Z",
+              ),
+              "plan" to completedRuntimePhaseRecord(
+                "plan",
+                "2026-06-18T10:02:00Z",
+                "2026-06-18T10:03:00Z",
+              ),
             ),
           ),
-        )),
+        ),
         sessionId = "ftr-001",
       ),
     )
@@ -2239,20 +2312,24 @@ class WorkflowGoalRunnerReconciliationTest {
       WorkflowUpdateInput(
         workflowStatus = "running",
         currentStepId = "audit",
-        stepUpdates = WorkflowStepUpdates.from(listOf(
-          mapOf("step_id" to "preplan", "status" to "completed", "attempt_count" to 1),
-          mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1),
-          mapOf("step_id" to "implement", "status" to "completed", "attempt_count" to 1),
-          // implement_fix stays pending (the clean review never triggered the review_fix edge).
-          mapOf("step_id" to "review", "status" to "completed", "attempt_count" to 1),
-        )),
-        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-          "goal_continuation" to mapOf(
-            "issue_key" to "PS-24",
-            "subtask_id" to 2,
-            "suppress_pr" to true,
+        stepUpdates = WorkflowStepUpdates.from(
+          listOf(
+            mapOf("step_id" to "preplan", "status" to "completed", "attempt_count" to 1),
+            mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1),
+            mapOf("step_id" to "implement", "status" to "completed", "attempt_count" to 1),
+            // implement_fix stays pending (the clean review never triggered the review_fix edge).
+            mapOf("step_id" to "review", "status" to "completed", "attempt_count" to 1),
           ),
-        )),
+        ),
+        artifactsPatch = WorkflowArtifactPatch.from(
+          mapOf(
+            "goal_continuation" to mapOf(
+              "issue_key" to "PS-24",
+              "subtask_id" to 2,
+              "suppress_pr" to true,
+            ),
+          ),
+        ),
         sessionId = "ftr-002",
       ),
     )
@@ -2288,21 +2365,25 @@ class WorkflowGoalRunnerReconciliationTest {
       WorkflowUpdateInput(
         workflowStatus = "running",
         currentStepId = "implement_fix",
-        stepUpdates = WorkflowStepUpdates.from(listOf(
-          mapOf("step_id" to "preplan", "status" to "completed", "attempt_count" to 1),
-          mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1),
-          mapOf("step_id" to "implement", "status" to "completed", "attempt_count" to 1),
-          // review completed with CHANGES_REQUESTED, taking the review_fix edge back to implement_fix.
-          mapOf("step_id" to "review", "status" to "completed", "attempt_count" to 1),
-          mapOf("step_id" to "implement_fix", "status" to "running", "attempt_count" to 1),
-        )),
-        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-          "goal_continuation" to mapOf(
-            "issue_key" to "PS-24",
-            "subtask_id" to 3,
-            "suppress_pr" to true,
+        stepUpdates = WorkflowStepUpdates.from(
+          listOf(
+            mapOf("step_id" to "preplan", "status" to "completed", "attempt_count" to 1),
+            mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1),
+            mapOf("step_id" to "implement", "status" to "completed", "attempt_count" to 1),
+            // review completed with CHANGES_REQUESTED, taking the review_fix edge back to implement_fix.
+            mapOf("step_id" to "review", "status" to "completed", "attempt_count" to 1),
+            mapOf("step_id" to "implement_fix", "status" to "running", "attempt_count" to 1),
           ),
-        )),
+        ),
+        artifactsPatch = WorkflowArtifactPatch.from(
+          mapOf(
+            "goal_continuation" to mapOf(
+              "issue_key" to "PS-24",
+              "subtask_id" to 3,
+              "suppress_pr" to true,
+            ),
+          ),
+        ),
         sessionId = "ftr-003",
       ),
     )
@@ -2356,17 +2437,21 @@ private fun staleRunningChildRecord(definition: WorkflowDefinition) = testWorkfl
   WorkflowUpdateInput(
     workflowStatus = "running",
     currentStepId = "implement",
-    stepUpdates = WorkflowStepUpdates.from(listOf(
-      mapOf("step_id" to "preplan", "status" to "completed", "attempt_count" to 1),
-      mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1),
-    )),
-    artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-      "goal_continuation" to mapOf(
-        "issue_key" to "SKILL-52.1",
-        "subtask_id" to 1,
-        "suppress_pr" to true,
+    stepUpdates = WorkflowStepUpdates.from(
+      listOf(
+        mapOf("step_id" to "preplan", "status" to "completed", "attempt_count" to 1),
+        mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1),
       ),
-    )),
+    ),
+    artifactsPatch = WorkflowArtifactPatch.from(
+      mapOf(
+        "goal_continuation" to mapOf(
+          "issue_key" to "SKILL-52.1",
+          "subtask_id" to 1,
+          "suppress_pr" to true,
+        ),
+      ),
+    ),
     sessionId = "ftr-001",
   ),
 )
@@ -2377,24 +2462,28 @@ private fun authoritativeCompleteChildRecord(definition: WorkflowDefinition) = t
   WorkflowUpdateInput(
     workflowStatus = "running",
     currentStepId = "commit_push",
-    stepUpdates = WorkflowStepUpdates.from(listOf(
-      mapOf("step_id" to "commit_push", "status" to "completed", "attempt_count" to 1),
-    )),
-    artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-      "goal_continuation" to mapOf(
-        "issue_key" to "SKILL-52.1",
-        "subtask_id" to 1,
-        "suppress_pr" to true,
+    stepUpdates = WorkflowStepUpdates.from(
+      listOf(
+        mapOf("step_id" to "commit_push", "status" to "completed", "attempt_count" to 1),
       ),
-      "goal_continuation_outcome" to mapOf(
-        "issue_key" to "SKILL-52.1",
-        "subtask_id" to 1,
-        "status" to "complete",
-        "workflow_id" to "wfl-authoritative",
-        "commit_sha" to "sha-1",
-        "last_resumable_step" to "commit_push",
+    ),
+    artifactsPatch = WorkflowArtifactPatch.from(
+      mapOf(
+        "goal_continuation" to mapOf(
+          "issue_key" to "SKILL-52.1",
+          "subtask_id" to 1,
+          "suppress_pr" to true,
+        ),
+        "goal_continuation_outcome" to mapOf(
+          "issue_key" to "SKILL-52.1",
+          "subtask_id" to 1,
+          "status" to "complete",
+          "workflow_id" to "wfl-authoritative",
+          "commit_sha" to "sha-1",
+          "last_resumable_step" to "commit_push",
+        ),
       ),
-    )),
+    ),
     sessionId = "ftr-002",
   ),
 )
@@ -2405,16 +2494,20 @@ private fun blockedSiblingChildRecord(definition: WorkflowDefinition) = testWork
   WorkflowUpdateInput(
     workflowStatus = "blocked",
     currentStepId = "review",
-    stepUpdates = WorkflowStepUpdates.from(listOf(
-      mapOf("step_id" to "review", "status" to "blocked", "attempt_count" to 1),
-    )),
-    artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-      "goal_continuation" to mapOf(
-        "issue_key" to "SKILL-52.1",
-        "subtask_id" to 1,
-        "suppress_pr" to true,
+    stepUpdates = WorkflowStepUpdates.from(
+      listOf(
+        mapOf("step_id" to "review", "status" to "blocked", "attempt_count" to 1),
       ),
-    )),
+    ),
+    artifactsPatch = WorkflowArtifactPatch.from(
+      mapOf(
+        "goal_continuation" to mapOf(
+          "issue_key" to "SKILL-52.1",
+          "subtask_id" to 1,
+          "suppress_pr" to true,
+        ),
+      ),
+    ),
     sessionId = "ftr-001",
   ),
 )
@@ -2425,16 +2518,20 @@ private fun activeRetryChildRecord(definition: WorkflowDefinition) = testWorkflo
   WorkflowUpdateInput(
     workflowStatus = "running",
     currentStepId = "implement",
-    stepUpdates = WorkflowStepUpdates.from(listOf(
-      mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1),
-    )),
-    artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-      "goal_continuation" to mapOf(
-        "issue_key" to "SKILL-52.1",
-        "subtask_id" to 1,
-        "suppress_pr" to true,
+    stepUpdates = WorkflowStepUpdates.from(
+      listOf(
+        mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1),
       ),
-    )),
+    ),
+    artifactsPatch = WorkflowArtifactPatch.from(
+      mapOf(
+        "goal_continuation" to mapOf(
+          "issue_key" to "SKILL-52.1",
+          "subtask_id" to 1,
+          "suppress_pr" to true,
+        ),
+      ),
+    ),
     sessionId = "ftr-002",
   ),
 )
@@ -2454,23 +2551,25 @@ class WorkflowGoalRunnerProgressStoreTest {
     workflows.saveFeatureImplementWorkflow(
       workflowRecord(
         workflowId = "wfl-child",
-        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-          "goal_observability_latest_event" to mapOf(
-            "contract_version" to "0.1",
-            "issue_key" to "SKILL-61",
+        artifactsPatch = WorkflowArtifactPatch.from(
+          mapOf(
+            "goal_observability_latest_event" to mapOf(
+              "contract_version" to "0.1",
+              "issue_key" to "SKILL-61",
+            ),
+            GoalProgressEvent(
+              eventKind = GoalProgressEventKind.OPERATION_HEARTBEAT,
+              workflowId = "wfl-child",
+              workflowPhase = "validate",
+              processAlive = true,
+              sequenceNumber = 5,
+              timestamp = "2026-06-02T10:00:00Z",
+              operationName = "gradlew check",
+              operationKind = "build",
+              expectedLong = true,
+            ).let { event -> "goal_progress_latest_event" to event.toPersistenceWire() },
           ),
-          GoalProgressEvent(
-            eventKind = GoalProgressEventKind.OPERATION_HEARTBEAT,
-            workflowId = "wfl-child",
-            workflowPhase = "validate",
-            processAlive = true,
-            sequenceNumber = 5,
-            timestamp = "2026-06-02T10:00:00Z",
-            operationName = "gradlew check",
-            operationKind = "build",
-            expectedLong = true,
-          ).let { event -> "goal_progress_latest_event" to event.toPersistenceWire() },
-        )),
+        ),
       ),
     )
     val store = testWorkflowGoalRunnerOutcomeStore(
@@ -2500,22 +2599,24 @@ class WorkflowGoalRunnerProgressStoreTest {
     workflows.saveFeatureImplementWorkflow(
       workflowRecord(
         workflowId = "wfl-child",
-        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-          "feature_task_runtime_delivered_projections" to mapOf(
-            "validate|1" to "z".repeat(1_500_000),
+        artifactsPatch = WorkflowArtifactPatch.from(
+          mapOf(
+            "feature_task_runtime_delivered_projections" to mapOf(
+              "validate|1" to "z".repeat(1_500_000),
+            ),
+            GoalProgressEvent(
+              eventKind = GoalProgressEventKind.OPERATION_HEARTBEAT,
+              workflowId = "wfl-child",
+              workflowPhase = "validate",
+              processAlive = true,
+              sequenceNumber = 9,
+              timestamp = "2026-06-02T11:00:00Z",
+              operationName = "pack validation gate",
+              operationKind = "validate",
+              expectedLong = true,
+            ).let { event -> "goal_progress_latest_event" to event.toPersistenceWire() },
           ),
-          GoalProgressEvent(
-            eventKind = GoalProgressEventKind.OPERATION_HEARTBEAT,
-            workflowId = "wfl-child",
-            workflowPhase = "validate",
-            processAlive = true,
-            sequenceNumber = 9,
-            timestamp = "2026-06-02T11:00:00Z",
-            operationName = "pack validation gate",
-            operationKind = "validate",
-            expectedLong = true,
-          ).let { event -> "goal_progress_latest_event" to event.toPersistenceWire() },
-        )),
+        ),
       ),
     )
     val store = testWorkflowGoalRunnerOutcomeStore(
@@ -2758,11 +2859,13 @@ class WorkflowGoalRunnerProgressStoreTest {
       WorkflowUpdateInput(
         workflowStatus = "running",
         currentStepId = "implement",
-        stepUpdates = WorkflowStepUpdates.from(listOf(
-          mapOf("step_id" to "preplan", "status" to "blocked", "attempt_count" to 1),
-          mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1),
-          mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1),
-        )),
+        stepUpdates = WorkflowStepUpdates.from(
+          listOf(
+            mapOf("step_id" to "preplan", "status" to "blocked", "attempt_count" to 1),
+            mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1),
+            mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1),
+          ),
+        ),
         artifactsPatch = null,
         sessionId = "ftr-001",
       ),
@@ -2793,15 +2896,17 @@ class WorkflowGoalRunnerProgressStoreTest {
     )
     val parent = workflowRecord(
       workflowId = "wfl-legacy-parent",
-      artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-        "plan" to mapOf("mode" to "decompose"),
-        DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
-          testDecompositionManifestValidator.encodeManifestWireMap(manifest),
-        "goal_review_policy" to mapOf(
-          "code_review_mode" to CodeReviewExecutionMode.INLINE.wireValue,
+      artifactsPatch = WorkflowArtifactPatch.from(
+        mapOf(
+          "plan" to mapOf("mode" to "decompose"),
+          DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
+            testDecompositionManifestValidator.encodeManifestWireMap(manifest),
+          "goal_review_policy" to mapOf(
+            "code_review_mode" to CodeReviewExecutionMode.INLINE.wireValue,
+          ),
+          "goal_out_of_band_acceptances" to listOf(acceptance),
         ),
-        "goal_out_of_band_acceptances" to listOf(acceptance),
-      )),
+      ),
     ).copy(issueKey = manifest.issueKey)
     val workflows = InMemoryWorkflowStates()
     workflows.saveFeatureImplementWorkflow(parent)
@@ -2987,11 +3092,13 @@ private fun scopedReplanStore(
   workflows.saveFeatureTaskRuntimeWorkflow(
     workflowRecord(
       workflowId = "wfl-parent",
-      artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-        "plan" to mapOf("mode" to "decompose"),
-        DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
-          testDecompositionManifestValidator.encodeManifestWireMap(manifest),
-      )),
+      artifactsPatch = WorkflowArtifactPatch.from(
+        mapOf(
+          "plan" to mapOf("mode" to "decompose"),
+          DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
+            testDecompositionManifestValidator.encodeManifestWireMap(manifest),
+        ),
+      ),
     ),
   )
   return testWorkflowGoalRunnerManifestStore(
@@ -3629,7 +3736,8 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
     // projection gate, so a placeholder produced_outputs would be rejected before any child artifact.
     val PREPLAN_PAYLOAD = """
       {
-        "contract_version":"$FEATURE_TASK_RUNTIME_CONTRACT_VERSION","phase_id":"preplan","status":"completed","summary":"shared",
+        "contract_version":"$FEATURE_TASK_RUNTIME_CONTRACT_VERSION",
+        "phase_id":"preplan","status":"completed","summary":"shared",
         "produced_outputs":{"value":"shared preplan prose for hydration"}
       }
     """.trimIndent()
@@ -3637,7 +3745,8 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
     // A settled plan whose produced_outputs omits the required non-blank value.
     val EMPTY_VALUE_PLAN_PAYLOAD = """
       {
-        "contract_version":"$FEATURE_TASK_RUNTIME_CONTRACT_VERSION","phase_id":"plan","status":"completed","summary":"no value",
+        "contract_version":"$FEATURE_TASK_RUNTIME_CONTRACT_VERSION",
+        "phase_id":"plan","status":"completed","summary":"no value",
         "produced_outputs":{"prompt":"optional only"}
       }
     """.trimIndent()
@@ -3646,7 +3755,8 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
 
     fun planPayload(description: String): String = """
       {
-        "contract_version":"$FEATURE_TASK_RUNTIME_CONTRACT_VERSION","phase_id":"plan","status":"completed","summary":"$description",
+        "contract_version":"$FEATURE_TASK_RUNTIME_CONTRACT_VERSION",
+        "phase_id":"plan","status":"completed","summary":"$description",
         "produced_outputs":{"value":"$description prose for downstream implement."}
       }
     """.trimIndent()
@@ -3826,11 +3936,13 @@ class DecompositionDiskBootstrapTest {
     workflows.saveFeatureTaskRuntimeWorkflow(
       workflowRecord(
         workflowId = "wfl-invalid-issue-key",
-        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-          "plan" to mapOf("mode" to "decompose"),
-          DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
-            testDecompositionManifestValidator.encodeManifestWireMap(manifest),
-        )),
+        artifactsPatch = WorkflowArtifactPatch.from(
+          mapOf(
+            "plan" to mapOf("mode" to "decompose"),
+            DECOMPOSITION_RUNTIME_ARTIFACT_KEY to
+              testDecompositionManifestValidator.encodeManifestWireMap(manifest),
+          ),
+        ),
       ),
     )
     val gitOperations = RecordingWorkflowGitOperations()
@@ -4014,6 +4126,25 @@ class DecompositionDiskBootstrapTest {
    */
   @Test
   fun `continueDecomposedParentByIssueKey reuses existing parent when decomposition artifact is corrupt`() {
+    val (workflows, continuation) = corruptParentContinuation()
+    val db = FakeDatabaseSessionFactory(workflows)
+    db.transaction { unitOfWork ->
+      continuation.continueDecomposedParentByIssueKey("SKILL-TEST", unitOfWork)
+    }
+    val parentRow = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wfl-corrupt-parent"))
+    assertEquals("paused", parentRow.workflowStatus)
+    // No second parent should have been minted: only one row must carry both the
+    // decompose-mode plan artifact and the issue key (child subtask rows don't have it).
+    val parentRows = workflows.decomposedParentRows("SKILL-TEST")
+    assertEquals(1, parentRows.size, "Bootstrap must reuse the existing parent, not mint a second one.")
+    assertEquals("wfl-corrupt-parent", parentRows.single().workflowId)
+    assertNotNull(
+      parentRows.single().toSnapshot().decompositionRuntime(testDecompositionManifestValidator),
+      "Reclaimed parent must carry a decodable decomposition_runtime artifact.",
+    )
+  }
+
+  private fun corruptParentContinuation(): Pair<InMemoryWorkflowStates, DecompositionWorkflowContinuation> {
     val repoRoot = Files.createTempDirectory("skillbill-corrupt-artifact-reuse")
     val manifestPath = repoRoot.resolve(".feature-specs/SKILL-TEST-feature/decomposition-manifest.yaml")
     Files.createDirectories(manifestPath.parent)
@@ -4040,40 +4171,24 @@ class DecompositionDiskBootstrapTest {
       encodeDecompositionManifestYaml(manifest, testDecompositionManifestValidator, TestDecompositionManifestStore),
     )
     val workflows = InMemoryWorkflowStates()
-    // Insert existing parent with a corrupt decomposition_runtime artifact. findDecomposedParentWorkflow
-    // requires a valid Map decode and silently excludes this row; the secondary legacy-parent
-    // search must find it so no second parent id is minted.
     workflows.saveFeatureTaskRuntimeWorkflow(
       workflowRecord(
         workflowId = "wfl-corrupt-parent",
-        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-          "plan" to mapOf("mode" to "decompose"),
-          DECOMPOSITION_RUNTIME_ARTIFACT_KEY to "not-a-map",
-        )),
+        artifactsPatch = WorkflowArtifactPatch.from(
+          mapOf(
+            "plan" to mapOf("mode" to "decompose"),
+            DECOMPOSITION_RUNTIME_ARTIFACT_KEY to "not-a-map",
+          ),
+        ),
       ).copy(issueKey = "SKILL-TEST"),
     )
-    val db = FakeDatabaseSessionFactory(workflows)
-    val continuation = DecompositionWorkflowContinuation(
+    return workflows to DecompositionWorkflowContinuation(
       engine = testWorkflowEngine,
       gitOperations = NoopWorkflowGitOperations,
       validator = testDecompositionManifestValidator,
       fileStore = TestDecompositionManifestStore,
       repoRoot = repoRoot,
       manifestWriter = testDecompositionManifestWriter,
-    )
-    db.transaction { unitOfWork ->
-      continuation.continueDecomposedParentByIssueKey("SKILL-TEST", unitOfWork)
-    }
-    val parentRow = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wfl-corrupt-parent"))
-    assertEquals("paused", parentRow.workflowStatus)
-    // No second parent should have been minted: only one row must carry both the
-    // decompose-mode plan artifact and the issue key (child subtask rows don't have it).
-    val parentRows = workflows.decomposedParentRows("SKILL-TEST")
-    assertEquals(1, parentRows.size, "Bootstrap must reuse the existing parent, not mint a second one.")
-    assertEquals("wfl-corrupt-parent", parentRows.single().workflowId)
-    assertNotNull(
-      parentRows.single().toSnapshot().decompositionRuntime(testDecompositionManifestValidator),
-      "Reclaimed parent must carry a decodable decomposition_runtime artifact.",
     )
   }
 
@@ -4175,10 +4290,12 @@ class DecompositionDiskBootstrapTest {
     workflows.saveFeatureTaskRuntimeWorkflow(
       workflowRecord(
         workflowId = "wfl-corrupt-idempotent",
-        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-          "plan" to mapOf("mode" to "decompose"),
-          DECOMPOSITION_RUNTIME_ARTIFACT_KEY to "not-a-map",
-        )),
+        artifactsPatch = WorkflowArtifactPatch.from(
+          mapOf(
+            "plan" to mapOf("mode" to "decompose"),
+            DECOMPOSITION_RUNTIME_ARTIFACT_KEY to "not-a-map",
+          ),
+        ),
       ).copy(issueKey = "SKILL-TEST"),
     )
     val db = FakeDatabaseSessionFactory(workflows)
@@ -4238,10 +4355,12 @@ class DecompositionDiskBootstrapTest {
       workflowRecord(
         workflowId = "wfl-abandoned-corrupt",
         workflowStatus = "abandoned",
-        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-          "plan" to mapOf("mode" to "decompose"),
-          DECOMPOSITION_RUNTIME_ARTIFACT_KEY to "not-a-map",
-        )),
+        artifactsPatch = WorkflowArtifactPatch.from(
+          mapOf(
+            "plan" to mapOf("mode" to "decompose"),
+            DECOMPOSITION_RUNTIME_ARTIFACT_KEY to "not-a-map",
+          ),
+        ),
       ).copy(issueKey = "SKILL-TEST"),
     )
     val db = FakeDatabaseSessionFactory(workflows)

@@ -1,8 +1,8 @@
 package skillbill.workflow.taskruntime
 
 import skillbill.agentaddon.model.AgentAddonSelection
-import skillbill.contracts.JsonCodec
 import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
+import skillbill.contracts.JsonCodec
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_RUN_INVARIANTS_CONTRACT_VERSION
 import skillbill.error.InvalidWorkflowStateSchemaError

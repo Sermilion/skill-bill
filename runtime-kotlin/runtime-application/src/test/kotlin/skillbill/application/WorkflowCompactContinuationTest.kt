@@ -1,7 +1,4 @@
 package skillbill.application
-import skillbill.workflow.engine.model.WorkflowStepUpdates
-import skillbill.workflow.engine.model.WorkflowArtifactPatch
-
 import skillbill.application.workflow.WorkflowService
 import skillbill.application.workflow.model.WorkflowContinueResult
 import skillbill.application.workflow.model.WorkflowFamilyKind
@@ -12,6 +9,8 @@ import skillbill.contracts.JsonCodec
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION
 import skillbill.ports.workflow.decomposition.UnavailableDecompositionManifestStore
 import skillbill.ports.workflow.gitops.NoopWorkflowGitOperations
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
+import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.goal.NoopGoalObservabilityEventValidator
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -226,9 +225,11 @@ private fun newBlockedImplementService(
       workflowId = opened.workflowId,
       workflowStatus = "blocked",
       currentStepId = "implement",
-      stepUpdates = WorkflowStepUpdates.from(listOf(
-        mapOf("step_id" to "implement", "status" to "blocked", "attempt_count" to 1),
-      )),
+      stepUpdates = WorkflowStepUpdates.from(
+        listOf(
+          mapOf("step_id" to "implement", "status" to "blocked", "attempt_count" to 1),
+        ),
+      ),
       artifactsPatch = WorkflowArtifactPatch.from(artifactsPatch),
     ),
   )

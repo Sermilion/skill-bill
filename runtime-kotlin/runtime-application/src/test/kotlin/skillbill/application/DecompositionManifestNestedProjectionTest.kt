@@ -1,11 +1,11 @@
 package skillbill.application
-import skillbill.workflow.engine.model.WorkflowArtifactPatch
-
-import skillbill.application.decomposition.model.DecompositionManifestWriteRequest
 import skillbill.application.decomposition.decompositionPlanningResult
 import skillbill.application.decomposition.decompositionPlanningSubtask
+import skillbill.application.decomposition.model.DecompositionManifestWriteRequest
+import skillbill.application.decomposition.model.DecompositionPlanningSubtaskOptions
 import skillbill.contracts.decomposition.DecompositionPlanningResult
 import skillbill.error.InvalidDecompositionManifestSchemaError
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
@@ -23,9 +23,11 @@ class DecompositionManifestNestedProjectionTest {
       writeFromWorkflowUpdate(
         repoRoot = fixture.repoRoot,
         existingArtifactsJson = "{}",
-        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-          "plan" to nestedDecompositionPlan(fixture.nestedParentSpecPath, fixture.nestedDirectory).toPayload(),
-        )),
+        artifactsPatch = WorkflowArtifactPatch.from(
+          mapOf(
+            "plan" to nestedDecompositionPlan(fixture.nestedParentSpecPath, fixture.nestedDirectory).toPayload(),
+          ),
+        ),
       )
     }
 
@@ -73,9 +75,11 @@ class DecompositionManifestNestedProjectionTest {
       writeFromWorkflowUpdate(
         repoRoot = fixture.repoRoot,
         existingArtifactsJson = "{}",
-        artifactsPatch = WorkflowArtifactPatch.from(mapOf(
-          "plan" to nestedDecompositionPlan(fixture.nestedParentSpecPath, fixture.nestedDirectory).toPayload(),
-        )),
+        artifactsPatch = WorkflowArtifactPatch.from(
+          mapOf(
+            "plan" to nestedDecompositionPlan(fixture.nestedParentSpecPath, fixture.nestedDirectory).toPayload(),
+          ),
+        ),
       )
     }
 
@@ -132,7 +136,7 @@ private fun topLevelDecompositionPlan(parentSpecPath: Path): DecompositionPlanni
       id = 2,
       name = "Runtime",
       specPath = parentSpecPath.parent.resolve("spec_subtask_2_runtime.md").toString(),
-      dependsOn = listOf(1),
+      options = DecompositionPlanningSubtaskOptions(dependsOn = listOf(1)),
     ),
   ),
 )
@@ -150,7 +154,7 @@ private fun nestedDecompositionPlan(parentSpecPath: Path, subtaskDirectory: Path
         id = 2,
         name = "Runtime",
         specPath = subtaskDirectory.resolve("spec_subtask_2_runtime.md").toString(),
-        dependsOn = listOf(1),
+        options = DecompositionPlanningSubtaskOptions(dependsOn = listOf(1)),
       ),
     ),
   )

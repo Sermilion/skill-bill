@@ -28,8 +28,7 @@ fun decodePhaseRecords(artifacts: Any?) = phaseRecordsFromWorkflowArtifacts(arti
 
 fun decodePhaseLedger(artifacts: Any?) = phaseLedgerFromWorkflowArtifacts(artifacts)
 
-fun decodeGoalContinuationFieldAdoption(artifacts: Any?) =
-  goalContinuationFieldAdoptionFromWorkflowArtifacts(artifacts)
+fun decodeGoalContinuationFieldAdoption(artifacts: Any?) = goalContinuationFieldAdoptionFromWorkflowArtifacts(artifacts)
 
 fun decodePhaseOutputRepairEvidence(json: String): FeatureTaskRuntimePhaseOutputRepairEvidence? =
   decodePhaseOutputRepairEvidenceFromArtifact(

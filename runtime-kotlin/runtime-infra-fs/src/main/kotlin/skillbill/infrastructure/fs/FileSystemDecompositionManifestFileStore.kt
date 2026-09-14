@@ -4,6 +4,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import me.tatarka.inject.annotations.Inject
 import skillbill.ports.workflow.decomposition.DecompositionManifestDiscoveryPort
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
+import skillbill.workflow.engine.model.DecompositionManifestWireMap
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -98,7 +99,7 @@ class FileSystemDecompositionManifestFileStore :
     }
   }
 
-  override fun encodeManifestYaml(wireMap: skillbill.workflow.engine.model.DecompositionManifestWireMap): String =
+  override fun encodeManifestYaml(wireMap: DecompositionManifestWireMap): String =
     yamlMapper.writeValueAsString(wireMap)
 
   override fun deleteIfExists(target: Path) {

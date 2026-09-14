@@ -1,8 +1,9 @@
 package skillbill.application.decomposition
 
+import skillbill.application.decomposition.model.DecompositionPlanningResultOptions
+import skillbill.application.decomposition.model.DecompositionPlanningSubtaskOptions
 import skillbill.contracts.decomposition.DecompositionPlanningDependencyWire
 import skillbill.contracts.decomposition.DecompositionPlanningResult
-import skillbill.contracts.decomposition.DecompositionPlanningStackBranchWire
 import skillbill.contracts.decomposition.DecompositionPlanningSubtaskWire
 import skillbill.workflow.decomposition.model.DecompositionDependency
 import skillbill.workflow.decomposition.model.DecompositionExecutionModel
@@ -104,43 +105,39 @@ fun parseStackBranches(plan: DecompositionPlanningResult): List<DecompositionSta
     )
   }
 
-fun DecompositionPlanningResult.currentSubtaskIdOrNull(sourceLabel: String): Int? =
-  currentSubtaskId ?: recommendedFirstSubtaskId
+fun DecompositionPlanningResult.currentSubtaskIdOrNull(): Int? = currentSubtaskId ?: recommendedFirstSubtaskId
 
-fun DecompositionPlanningResult.withSubtasks(subtasks: List<DecompositionPlanningSubtaskWire>): DecompositionPlanningResult =
-  copy(subtasks = subtasks)
+fun DecompositionPlanningResult.withSubtasks(
+  subtasks: List<DecompositionPlanningSubtaskWire>,
+): DecompositionPlanningResult = copy(subtasks = subtasks)
 
 fun decompositionPlanningSubtask(
   id: Int,
   name: String,
   specPath: String,
-  dependsOn: List<Int> = emptyList(),
-  linearIssueId: String? = null,
-  scope: String? = null,
+  options: DecompositionPlanningSubtaskOptions = DecompositionPlanningSubtaskOptions(),
 ): DecompositionPlanningSubtaskWire = DecompositionPlanningSubtaskWire(
   id = id,
   name = name,
   specPath = specPath,
-  linearIssueId = linearIssueId,
-  scope = scope,
-  dependencies = dependsOn.map { DecompositionPlanningDependencyWire(subtaskId = it) },
+  linearIssueId = options.linearIssueId,
+  scope = options.scope,
+  dependencies = options.dependsOn.map { DecompositionPlanningDependencyWire(subtaskId = it) },
 )
 
 fun decompositionPlanningResult(
   parentSpecPath: String,
   subtasks: List<DecompositionPlanningSubtaskWire>,
-  recommendedFirstSubtaskId: Int? = subtasks.firstOrNull()?.id,
-  executionModelWire: String? = null,
-  stackBranches: List<DecompositionPlanningStackBranchWire> = emptyList(),
-  baseBranch: String? = null,
-  specSourceWire: String? = null,
+  options: DecompositionPlanningResultOptions = DecompositionPlanningResultOptions(
+    recommendedFirstSubtaskId = subtasks.firstOrNull()?.id,
+  ),
 ): DecompositionPlanningResult = DecompositionPlanningResult(
   mode = "decompose",
   parentSpecPath = parentSpecPath,
-  specSourceWire = specSourceWire,
-  executionModelWire = executionModelWire,
-  baseBranch = baseBranch,
-  recommendedFirstSubtaskId = recommendedFirstSubtaskId,
-  stackBranches = stackBranches,
+  specSourceWire = options.specSourceWire,
+  executionModelWire = options.executionModelWire,
+  baseBranch = options.baseBranch,
+  recommendedFirstSubtaskId = options.recommendedFirstSubtaskId,
+  stackBranches = options.stackBranches,
   subtasks = subtasks,
 )

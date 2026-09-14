@@ -1,24 +1,13 @@
 package skillbill.engine.featuretask
 
 import skillbill.workflow.goal.model.GoalSubtaskReviewCompactFinding
+import skillbill.workflow.taskruntime.decodeFindingVerificationDispositionFromArtifact
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFindingVerificationDisposition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairOutcome
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairReceipt
 import skillbill.workflow.taskruntime.model.omittedCarriedFindings
 import skillbill.workflow.taskruntime.model.validateDispositionCoverage
 import kotlin.test.assertTrue
-
-import skillbill.workflow.taskruntime.asCheckpointIdentitiesArtifactEntry
-import skillbill.workflow.taskruntime.asTelemetryPayload
-import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
-import skillbill.workflow.taskruntime.decodeFindingVerificationDispositionFromArtifact
-import skillbill.workflow.taskruntime.decodeImplementationAttemptFromArtifact
-import skillbill.workflow.taskruntime.decodePhaseRecordFromArtifact
-import skillbill.workflow.taskruntime.decodeValidationGateExecutionEvidenceFromArtifact
-import skillbill.workflow.taskruntime.decodeValidationGateProgressFromArtifact
-import skillbill.workflow.taskruntime.envelopeWireMap
-import skillbill.workflow.taskruntime.phaseRecordsFromWorkflowArtifacts
-import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 object FeatureTaskRuntimeCensusCoverageTestSupport {
   fun verifyDisposition(findingId: String, disposition: String = "verified"): Map<String, String> = mapOf(
     "finding_id" to findingId,

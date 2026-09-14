@@ -295,13 +295,6 @@ runtime-ports
   `WorkflowOpsContext`, `OptionalCallbacks`, and `RepositoryRoot`.
 - `skillbill.config.*`: repo-local configuration domain models and resolution
   policy owned by `runtime-domain`.
-- `skillbill.boundary`: cross-area marker types that do not fit a single
-  module's `model` package. Currently owns
-  `skillbill.boundary.OpenBoundaryMap`, the annotation that callers in
-  `runtime-application`, `runtime-domain`, and `runtime-ports` apply
-  to documented raw-map open boundaries. The annotation lives in
-  `runtime-domain` so all three modules can apply it without inverting
-  the dependency direction.
 - `skillbill.ports.*`: port contracts for persistence, install, scaffold,
   validation, telemetry, workflow git operations, and decomposition-manifest
   file storage. Public port DTOs and results live in
@@ -440,115 +433,23 @@ runtime-ports
 11. JSON maps, YAML maps, MCP payloads, CLI JSON payloads, and terminal strings
     are boundary concerns. Internal use cases expose typed models.
 
-    **Raw Map Boundary Rule (SKILL-52.1):** public declarations on
-    `runtime-application`, `runtime-domain`, and `runtime-ports` MUST NOT
-    return or accept `Map<String, Any?>`, `Map<String, Any>`,
-    `Map<String, *>`, string-keyed `MutableMap`, `HashMap`, or
-    `LinkedHashMap` variants, or type aliases to those shapes unless
-    they are either (a) listed by FQN in
-    `RuntimeArchitectureScanConstants.RAW_MAP_OPEN_BOUNDARY_ALLOWLIST`
-    (`RuntimeArchitectureTestSupport.kt`), or (b) annotated with
-    `@skillbill.boundary.OpenBoundaryMap`. The architecture tests
-    `runtime architecture forbids raw map shapes outside the open-boundary
-    allowlist`, `open-boundary allow-list documents required exceptions`,
-    and `every OpenBoundaryMap annotated declaration is documented in the
-    architecture allow-list` enforce this rule together — the annotation
-    is not a silent escape valve.
+    **Raw Map Boundary Rule (SKILL-52.1, zero-tolerance as of SKILL-52.5):**
+    public declarations on `runtime-application`, `runtime-domain`, and
+    `runtime-ports` MUST NOT return or accept `Map<String, Any?>`,
+    `Map<String, Any>`, `Map<String, *>`, string-keyed `MutableMap`,
+    `HashMap`, or `LinkedHashMap` variants, or type aliases to those
+    shapes. There is no curated FQN allow-list and no production
+    annotation escape hatch. `RuntimeRawMapArchitectureTest.runtime
+    architecture forbids public raw map shapes in inner layers` fails on
+    any new public raw-map surface in those modules.
 
-    **Open-Boundary Allow-List (SKILL-52.1):** the curated exceptions are
-    enumerated by fully-qualified name in
-    `RuntimeArchitectureScanConstants.RAW_MAP_OPEN_BOUNDARY_ALLOWLIST`
-    (`RuntimeArchitectureTestSupport.kt`). Architecture parity tests read
-    that constant; prose below documents rationale and grouping only.
+    Contain wire maps in `private` or `internal` adapter serializers, or
+    replace them with typed models at the port or application boundary.
+    The scanner treats declarations inside non-public scopes and certain
+    adapter-local enclosing types (`*Map`, `*Payload`, `*Artifacts`,
+    `*Patch`, and related workflow patch carriers) as implementation
+    detail when they stay non-public.
 
-    The list grandfathers in legacy raw-map surfaces (scaffold
-    gateways, review repository, telemetry runtimes, learning payload
-    helpers, lifecycle telemetry payloads, etc.) that pre-date the
-    typed-DTO conversion. Entries are grouped by which follow-up
-    subtask owns their removal so the work stays scoped:
-
-    Port-model `toPayload` is the only sanctioned presentation-in-ports
-    shape and is grandfathered for compatibility, not a pattern for new
-    port DTOs. The current bounded examples are
-    `RepoValidationReport.toPayload`, `ReleaseRefMetadata.toPayload`,
-    and the review-finished telemetry payload family
-    (`toReviewFinishedTelemetryPayload` plus its private nested
-    mappers). Any retained presentation-in-ports shape must remain
-    documented here and mirrored by the architecture guard allow-list
-    when it is a public raw-map boundary.
-
-    - **Workflow scope (SKILL-52.1 documented open boundaries):**
-      open-boundary serializer helpers, contracts wire-map facades,
-      decomposition-manifest codec/projection seams, and the
-      `WorkflowFamily.sessionSummary` durable-record lookup.
-    - **Deferred-debt fields annotated `@OpenBoundaryMap`:**
-      `WorkflowSnapshotView.artifacts`,
-      `WorkflowContinueView.stepArtifacts`,
-      `WorkflowContinueView.extraFields`, and
-      `WorkflowContinueView.sessionSummary` — intentional debt to be
-      retired when `WorkflowContinueView` gains a typed family
-      discriminator (subtask 2/3). Also
-      `WorkflowUpdateInput.stepUpdates` /
-      `WorkflowUpdateInput.artifactsPatch` and
-      `WorkflowUpdateRequest.stepUpdates` /
-      `WorkflowUpdateRequest.artifactsPatch` — caller-supplied JSON
-      patches with no shared schema until then. Also
-      `PlatformManifest.customFields` — schema custom-field
-      passthrough for platform packs.
-    - **Accepted permanent open boundaries (SKILL-52.3 subtask 4):**
-      the lifecycle telemetry payload helpers
-      (`lifecycleOkPayload`, `lifecycleSkippedPayload`,
-      `lifecycleErrorPayload`, `orchestratedStartedSkippedPayload`,
-      `orchestratedPayload`) and the `LifecycleTelemetryService` emit
-      methods stay raw-map by design: they are forward-compatible
-      MCP/CLI event bags, now annotated `@OpenBoundaryMap`. The
-      `SystemService.doctor` / `SystemService.version` surfaces were
-      typed to `DoctorContract` / `VersionContract` and the adapters
-      now own `.toPayload()`. Review service, review repository, and
-      `TelemetryService` typed-boundary work closed in subtask 3.
-
-    **Typed-Result-Model Open-Boundary Pattern (SKILL-52.1 subtask 3):**
-    when a producer's wire shape is sealed by golden tests but no
-    stable schema exists for every key in the payload, the result
-    model MAY carry a single `@OpenBoundaryMap`-annotated
-    `payload: Map<String, Any?>` field that holds the legacy
-    `linkedMapOf` contents verbatim. Stable top-level scalars (e.g.
-    `status`, `skillName`, `validatorRan`) are lifted to strongly-typed
-    fields on the same model so callers can branch on them without
-    re-reading the open-boundary map. The adapter-side
-    `ScaffoldCliResultMappers` mappers emit the wire payload by
-    returning the `payload` field directly — adapters own the
-    wire-shape contract, and the typed model preserves byte-equivalence.
-    The MCP adapter currently only exposes the `newSkillScaffold(...)`
-    endpoint (which uses the strongly-typed `ScaffoldResult` directly),
-    so it does not yet need a parallel mapper file; when MCP gains a
-    raw-map scaffold endpoint, an `McpScaffoldResultMappers` file will
-    be reintroduced alongside that wiring.
-
-    Service/gateway PUBLIC APIs MAY NOT return raw `Map<String, Any?>`.
-    Once a producer is typed (subtask 3 retired the eight
-    `ScaffoldGateway` raw-map producers — `list`, `show`, `explain`,
-    `validate`, `upgrade`, `fill`, `saveExactContent`, `editWithBodyFile`),
-    re-adding a raw-map return type at the service/gateway level
-    requires an explicit allow-list entry AND a documented rationale.
-    The pattern's exemplars are `PlatformManifest.customFields` (open
-    boundary for schema custom fields) and `WorkflowSnapshotView.artifacts`
-    (durable workflow artifacts passthrough). The eight scaffold
-    typed-result-model `payload` fields that SKILL-52.1 subtask 3 left as
-    exemplars were retired in SKILL-52.3 subtask 3: each `Scaffold*Result`
-    DTO is now fully typed and the wire map is rebuilt in the adapter
-    mappers (`runtime-cli` `ScaffoldCliResultMappers`).
-
-    The canonical FQN enumeration is
-    `RuntimeArchitectureScanConstants.RAW_MAP_OPEN_BOUNDARY_ALLOWLIST` in
-    `runtime-core/src/test/kotlin/skillbill/architecture/RuntimeArchitectureTestSupport.kt`.
-    Architecture parity tests read that constant directly; this document carries
-    rationale and grouping only.
-
-    The allow-list grandfathers legacy raw-map surfaces. The rule
-    applies prospectively: new public declarations cannot join the
-    legacy raw-map surface without being added to
-    `RAW_MAP_OPEN_BOUNDARY_ALLOWLIST` in the same change.
     Inner-layer test sources in `runtime-application`, `runtime-domain`, and
     `runtime-ports` are also part of this boundary: their `src/test/kotlin`,
     `src/jvmTest/kotlin`, and `src/commonTest/kotlin` roots must not import
@@ -576,7 +477,6 @@ The subsystem package set is:
 skillbill.agent.model
 skillbill.agentaddon
 skillbill.application
-skillbill.boundary
 skillbill.cli
 skillbill.config
 skillbill.contracts
@@ -783,7 +683,7 @@ evidence as `FeatureTaskRuntimeDeliveredProjectionRecord` under
 `feature_task_runtime_delivered_projections`; the two artifact keys must never
 merge, because merging them is exactly how a round trip could hand a consumer
 the private artifact in place of its projection. Raw-map exposure is confined to
-`@OpenBoundaryMap`-annotated wire seams.
+private adapter serializers outside the inner-layer public surface.
 
 A projection may declare `inlineAlternative` to deliver a lossless compact
 reference instead of inline content. A `private_evidence_artifact` reference is
@@ -1035,14 +935,6 @@ deferred to subtask 3.
     and `skillbill.scaffold.scaffold` IO seams. The legacy
     `FileSystemScaffoldGateway` adapter is intentionally retained — its
     raw-map removal belongs to subtask 3.
-- **Subtask 3 deferred work (do not touch in this subtask):** the
-  `skillbill.application.ScaffoldService.*` and
-  `skillbill.ports.scaffold.ScaffoldGateway.*` raw-map open-boundary
-  entries in the
-  `RAW_MAP_OPEN_BOUNDARY_ALLOWLIST` constant in
-  `runtime-core/src/test/kotlin/skillbill/architecture/RuntimeArchitectureTestSupport.kt`
-  remain in place until subtask 3 removes them.
-
 ## Architecture Guardrails
 
 The architecture tests enforce the following rules:
@@ -1103,13 +995,10 @@ The architecture tests enforce the following rules:
 - A failed `uninstall` mutation is a recorded degradation with a non-zero exit
   code, shared by launcher removal, desktop removal, recursive tree removal,
   agent-target cleanup, native-agent unlinking, and MCP unregistration.
-- The Raw Map Boundary Rule (rule 11) and its Open-Boundary Allow-List are
-  enforced by `RuntimeRawMapArchitectureTest.runtime architecture forbids raw
-  map shapes outside the open-boundary allowlist` and
-  `RuntimeRawMapArchitectureTest.open-boundary allow-list documents required
-  exceptions`. New exceptions MUST be added to the
-  `RAW_MAP_OPEN_BOUNDARY_ALLOWLIST` constant and the inventory resource in the
-  same change.
+- The Raw Map Boundary Rule (rule 11) is enforced by
+  `RuntimeRawMapArchitectureTest.runtime architecture forbids public raw map
+  shapes in inner layers` with zero-tolerance: no allow-list and no annotation
+  grandfather path.
 
 ### SKILL-227 runtime-application guardrails
 
@@ -1322,47 +1211,6 @@ The closed workflow-Git result vocabulary is owned by
   empty `Ok`, while goal finalization separately accepts a marker-bearing
   `Failed`; both paths are intentional and preserve their existing payload
   semantics.
-
-## SKILL-52.2 — Runtime boundary closure inventory
-
-This section classifies every current public raw-map declaration in
-`runtime-application`, `runtime-domain`, and `runtime-ports` into one of
-four SKILL-52.2 retirement categories. It is the planning ledger for the
-remaining SKILL-52.2 subtasks (2–5).
-
-Inventory FQNs stay in strict-set parity with
-`RuntimeArchitectureScanConstants.RAW_MAP_OPEN_BOUNDARY_ALLOWLIST`. The architecture
-test `SKILL-52.2 inventory classifies every public raw-map declaration exactly once`
-loads `runtime-core/src/test/resources/skill-52-2-inventory.md` and asserts that
-union(inventory FQNs) equals the allow-list constant.
-
-Subtask ids in the inventory resource (subtask 2, subtask 3, subtask 4, subtask 5)
-refer to SKILL-52.2 subtasks — they intentionally do NOT match the SKILL-52.1
-subtask numbering used in the allow-list grouping prose above.
-
-Categories:
-
-- `must_type_now` — public raw-map producer that MUST be replaced with a typed
-  DTO during SKILL-52.2. Every entry carries its owning SKILL-52.2 subtask id.
-- `open_extension` (`@OpenBoundaryMap`) — typed-DTO field/function intentionally
-  modelled as an open boundary. The raw-map shape is the documented extension
-  point and is guarded by the `@OpenBoundaryMap` annotation parity check.
-- `private_serializer` — private/internal raw-map declaration that already
-  lives behind a typed seam (serialization scratch space). These are NOT
-  present in the SKILL-52.1 allow-list (which tracks only public surfaces) and
-  therefore contribute no FQNs to this inventory; the category is retained as
-  a planning slot so future audits can attach private serializer FQNs without
-  reshaping the markers.
-- `postponed_with_reason` — public raw-map surface whose retirement is
-  deliberately deferred beyond SKILL-52.2 (workflow-engine snapshot codec,
-  decomposition manifest codec/writer entrypoints, scaffold-policy
-  pure-policy entrypoints). Every entry carries its owning SKILL-52.2 subtask
-  id; the "reason" is the postponement note in the bullet.
-
-The machine-readable classification ledger (category headings, FQN bullets, and
-`<!-- skill-52-2-inventory:start/end -->` markers) lives in
-`runtime-core/src/test/resources/skill-52-2-inventory.md` until SKILL-52.5 subtask 7
-retires the inventory.
 
 # Wire vocabulary
 
