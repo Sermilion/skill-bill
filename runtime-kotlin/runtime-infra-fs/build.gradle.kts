@@ -59,6 +59,29 @@ val copyAgentAddonSchema =
     }
   }
 
+val canonicalJavaGuardPath: String =
+  rootProject.projectDir
+    .resolve("build-logic/convention/src/main/resources/skill-bill-java-guard.sh")
+    .absolutePath
+
+val copyJavaGuard =
+  tasks.register<Copy>("copyJavaGuard") {
+    val guardPath = canonicalJavaGuardPath
+    from(guardPath)
+    into(
+      layout.buildDirectory.dir(
+        "generated/skillbill-infrastructure-fs/skillbill/infrastructure/fs/jvm",
+      ),
+    )
+    inputs.file(guardPath)
+    doFirst {
+      require(File(guardPath).exists()) {
+        "SKILL-244: canonical Java guard script is missing at $guardPath. " +
+          "The runtime image must ship the single authored guard so gate JVM resolution has a rule."
+      }
+    }
+  }
+
 val canonicalReviewContextSchemaPath: String =
   rootProject.projectDir.parentFile
     .resolve("orchestration/contracts/review-context-schema.yaml").absolutePath
@@ -731,6 +754,7 @@ sourceSets.named("main") {
 }
 
 tasks.named("processResources") {
+  dependsOn(copyJavaGuard)
   dependsOn(copySpecialistContract)
   dependsOn(copyAgentAddonSchema)
   dependsOn(copyReviewContextSchema)
@@ -765,6 +789,7 @@ tasks.named("processResources") {
 }
 
 tasks.named("processTestResources") {
+  dependsOn(copyJavaGuard)
   dependsOn(copySpecialistContract)
   dependsOn(copyAgentAddonSchema)
   dependsOn(copyReviewContextSchema)
@@ -811,6 +836,7 @@ tasks.register<JavaExec>("platformPackSubstanceReport") {
 
 val infraFsAreaLayerOrder =
   listOf(
+    "Jvm",
     "Contracts",
     "AgentAddon",
     "NativeAgent",
@@ -824,6 +850,7 @@ val infraFsAreaLayerOrder =
 
 val infraFsAreaSourceDirs =
   mapOf(
+    "Jvm" to "skillbill/infrastructure/fs/jvm",
     "Infrastructure" to "skillbill/infrastructure/fs",
     "Install" to "skillbill/infrastructure/fs/install",
     "Launcher" to "skillbill/infrastructure/fs/launcher",

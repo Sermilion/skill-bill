@@ -1,10 +1,13 @@
 package skillbill.infrastructure.fs.launcher.process
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import skillbill.contracts.time.JvmSystemClock
+import skillbill.infrastructure.fs.jvm.hostPath
+import skillbill.infrastructure.fs.jvm.testGateJvmResolver
 import skillbill.infrastructure.fs.launcher.review.GovernedReviewEvidenceEndpoint
 import skillbill.infrastructure.fs.launcher.testAgentRunProcessRequest
 import skillbill.ports.agentrun.model.AgentRunMcpStartupProbe
@@ -27,7 +30,7 @@ class JvmAgentRunProcessRunnerTest {
       """awk 'BEGIN{p=sprintf("%0500d",0); """ +
         """for(i=0;i<4000;i++) printf "{\"type\":\"assistant\",\"pad\":\"%s\"}\n", p; """ +
         """printf "{\"type\":\"result\",\"result\":\"TERMINAL\"}\n"}'"""
-    val result = JvmAgentRunProcessRunner(JvmSystemClock).run(
+    val result = JvmAgentRunProcessRunner(JvmSystemClock, testGateJvmResolver()).run(
       testAgentRunProcessRequest(
         listOf("sh", "-c", flood),
         Path.of("."),
@@ -52,7 +55,7 @@ class JvmAgentRunProcessRunnerTest {
 
   @Test
   fun `foreground process result is returned once as the bounded terminal result`() {
-    val result = JvmAgentRunProcessRunner(JvmSystemClock).run(
+    val result = JvmAgentRunProcessRunner(JvmSystemClock, testGateJvmResolver()).run(
       testAgentRunProcessRequest(
         listOf("sh", "-c", "printf terminal-result"),
         Path.of("."),
@@ -69,7 +72,7 @@ class JvmAgentRunProcessRunnerTest {
 
   @Test
   fun `MCP startup is counted only when an explicit launcher probe observes it`() {
-    val result = JvmAgentRunProcessRunner(JvmSystemClock).run(
+    val result = JvmAgentRunProcessRunner(JvmSystemClock, testGateJvmResolver()).run(
       testAgentRunProcessRequest(
         listOf("sh", "-c", "printf terminal-result"),
         Path.of("."),
@@ -85,7 +88,7 @@ class JvmAgentRunProcessRunnerTest {
   fun `spawn authorization surrounds process creation and not terminal waiting`() {
     var authorizationEntered = false
     var authorizationExited = false
-    val result = JvmAgentRunProcessRunner(JvmSystemClock).run(
+    val result = JvmAgentRunProcessRunner(JvmSystemClock, testGateJvmResolver()).run(
       testAgentRunProcessRequest(
         listOf("sh", "-c", "printf terminal-result"),
         Path.of("."),
@@ -208,6 +211,7 @@ class JvmAgentRunProcessRunnerTest {
         inheritEnvironment = false
         environmentPassthroughKeys = setOf("ANTHROPIC_API_KEY")
       },
+      testGateJvmResolver(),
     )
 
     assertEquals("/home/dev", builder.environment()["HOME"])
@@ -218,6 +222,23 @@ class JvmAgentRunProcessRunnerTest {
   }
 
   @Test
+  fun `an inherited JAVA_HOME inside the runtime image never reaches the child environment`() {
+    val leaked = Path.of(System.getProperty("java.home")).resolve("lib").toString()
+    val builder = ProcessBuilder("echo", "test")
+    builder.environment().clear()
+    builder.environment()["PATH"] = hostPath()
+    builder.environment()["JAVA_HOME"] = leaked
+
+    configureLaunchEnvironment(
+      builder,
+      testAgentRunProcessRequest(listOf("echo"), Path.of(".")) { inheritEnvironment = true },
+      testGateJvmResolver(),
+    )
+
+    assertNotEquals(leaked, builder.environment()["JAVA_HOME"])
+  }
+
+  @Test
   fun `a timed-out governed launch leaves no endpoint bound`() {
     val endpoint = GovernedReviewEvidenceEndpoint.bind(
       "architecture",
@@ -225,7 +246,7 @@ class JvmAgentRunProcessRunnerTest {
       listOf("/bin/true"),
     )
 
-    val result = JvmAgentRunProcessRunner(JvmSystemClock).run(
+    val result = JvmAgentRunProcessRunner(JvmSystemClock, testGateJvmResolver()).run(
       testAgentRunProcessRequest(
         listOf("sh", "-c", "sleep 30"),
         Path.of("."),

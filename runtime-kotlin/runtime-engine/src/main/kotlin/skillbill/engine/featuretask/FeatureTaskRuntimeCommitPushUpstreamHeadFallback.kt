@@ -56,11 +56,7 @@ internal object FeatureTaskRuntimeCommitPushUpstreamHeadFallback {
     state: FeatureTaskRuntimeRunState,
     diagnostics: RuntimeDiagnostics,
   ) {
-    if (!supportsHeadFallback(phaseId)) return
-    if (state.outputFor(phaseId) != null) return
-    val record = state.recordFor(phaseId)
-    if (record != null && record.status.workflowStepStatus() != WorkflowStepStatus.COMPLETED) return
-    val attemptCount = record?.attemptCount?.coerceAtLeast(1) ?: 1
+    val attemptCount = fallbackAttemptCount(phaseId, state) ?: return
     val output = syntheticOutput(phaseId, headSha, attemptCount) ?: return
     val accepted = runCatching {
       state.outputValidator.validatePhaseOutput(output.payload, phaseId).requireAcceptedOutput(phaseId)
@@ -82,6 +78,14 @@ internal object FeatureTaskRuntimeCommitPushUpstreamHeadFallback {
           "the runtime synthesized a HEAD-backed receipt so finalisation can proceed",
       )
     }
+  }
+
+  private fun fallbackAttemptCount(phaseId: String, state: FeatureTaskRuntimeRunState): Int? {
+    if (!supportsHeadFallback(phaseId)) return null
+    if (state.outputFor(phaseId) != null) return null
+    val record = state.recordFor(phaseId)
+    if (record != null && record.status.workflowStepStatus() != WorkflowStepStatus.COMPLETED) return null
+    return record?.attemptCount?.coerceAtLeast(1) ?: 1
   }
 
   private fun supportsHeadFallback(phaseId: String): Boolean =
