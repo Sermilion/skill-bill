@@ -138,7 +138,7 @@ internal fun GoalRunnerStatusProjectionAssembler.statusProjectionRuntimeInputs(
     currentStepOverride = derivedCurrentStep ?: progress?.currentStepId,
     currentWorkflowStatus = progress?.workflowStatus,
     latestLivenessSignal = progress?.latestLivenessSignal,
-    latestObservabilityEvent = progress?.latestGoalObservabilityEvent?.toStatusMap(),
+    latestObservabilityEvent = progress?.latestGoalObservabilityEvent?.toObservabilityEvent(),
     requestedDiffStat = requestedDiffStat(request),
     selectedDiffHunks = requestedSelectedDiffHunks(request),
     blockedAttemptCount = ledgerSummary?.blockedAttemptCount ?: 0,

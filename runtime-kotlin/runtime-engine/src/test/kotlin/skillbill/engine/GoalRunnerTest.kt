@@ -126,6 +126,7 @@ import skillbill.workflow.decomposition.model.SpecSource
 import skillbill.workflow.engine.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.goal.model.GoalObservabilityDiffStat
+import skillbill.workflow.goal.model.GoalProgressEvent
 import skillbill.workflow.goal.model.GoalProgressEventKind
 import skillbill.workflow.goal.model.GoalProgressOutcome
 import skillbill.workflow.goal.model.GoalSubtaskReviewCompactFinding
@@ -1970,8 +1971,8 @@ class GoalRunnerStatusProjectionTest {
     )
 
     requireNotNull(status)
-    assertEquals("implement", status.latestObservabilityEvent?.get("workflow_phase"))
-    assertEquals(42, status.latestObservabilityEvent?.get("sequence_number"))
+    assertEquals("implement", status.latestObservabilityEvent?.workflowPhase)
+    assertEquals(42, status.latestObservabilityEvent?.sequenceNumber)
     assertEquals(2, status.requestedDiffStat?.filesChanged)
     assertEquals(5, status.requestedDiffStat?.insertions)
     assertEquals(1, status.requestedDiffStat?.deletions)
@@ -3880,7 +3881,7 @@ internal class RecordingOutcomeStore : GoalRunnerWorkflowOutcomeStore {
     workflowId: String,
     issueKey: String,
     subtaskId: Int,
-    output: Map<String, Any?>,
+    output: Any,
   ): GoalRunnerStoredOutcome? {
     recoveredMissingResultPrefixOutputs += RecoveredMissingResultPrefixOutput(
       workflowId = workflowId,
@@ -3917,7 +3918,7 @@ internal class RecordingOutcomeStore : GoalRunnerWorkflowOutcomeStore {
     return progresses[workflowId]
   }
 
-  override fun progressEvents(workflowId: String): List<Map<String, Any?>> = emptyList()
+  override fun progressEvents(workflowId: String) = emptyList<GoalProgressEvent>()
 
   override fun recordObservabilityEvent(request: GoalRunnerObservabilityRecordRequest): Boolean {
     if (throwOnObservabilityRecord) {
@@ -3982,7 +3983,7 @@ internal data class RecoveredMissingResultPrefixOutput(
   val workflowId: String,
   val issueKey: String,
   val subtaskId: Int,
-  val output: Map<String, Any?>,
+  val output: Any,
 )
 
 internal data class ReconcileRequest(

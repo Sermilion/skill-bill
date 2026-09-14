@@ -1,3 +1,12 @@
+## [2026-09-14] SKILL-52.5 subtask 5 — Goal runner and workflow goal typing
+Areas: runtime-kotlin/{runtime-domain/{goalrunner,workflow/goal},runtime-ports/goalrunner,runtime-engine/{goalrunner,featuretask},runtime-infra-{fs,sqlite},runtime-application,runtime-cli,runtime-mcp,runtime-core}
+- Replaced public raw-map boundary shapes across goal-runner and workflow-goal state, continuation artifacts, observability, review state, planning hydration, and persistence helpers with typed models and private wire decoders.
+- Retired the goal-runner/workflow-goal allow-list cluster; the canonical raw-map inventory fell from 203 to 86 entries while preserving durable decoding and loud-fail behavior.
+- Pattern: keep contract maps inside boundary mappers and carry typed records through domain, ports, engine, persistence, CLI, and MCP seams. reusable
+- Known limitations: selected planning packet helpers, child-repair patch slots, and remaining engine status/codec helpers still use public map shapes; these are documented follow-up deviations.
+Feature flag: N/A
+Acceptance criteria: 5/5 implemented
+
 ## [2026-09-14] SKILL-52.5 subtask 3 — Workflow taskruntime artifact typing
 Areas: runtime-kotlin/{runtime-domain/runtime-engine/runtime-infra-fs/runtime-infra-sqlite/runtime-application/runtime-cli/runtime-core}
 - Replaced taskruntime artifact raw-map boundary shapes with typed durable models and centralized wire mappers for handoffs, repair, quarantine, checkpoint, validation-gate, implementation-attempt, and continuation artifacts.

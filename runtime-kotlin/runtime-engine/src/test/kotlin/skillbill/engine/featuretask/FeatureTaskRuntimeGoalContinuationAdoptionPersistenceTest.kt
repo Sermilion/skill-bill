@@ -225,7 +225,7 @@ class FeatureTaskRuntimeGoalContinuationAdoptionPersistenceTest {
             reviewBaseSha = baselineSha,
             baselineUntrackedPaths = emptyList(),
             codeReviewMode = CodeReviewExecutionMode.INLINE,
-          ).toArtifactMap(),
+          ).toPersistenceWire(),
         ),
         sessionId = "fis-176",
       ),

@@ -1,6 +1,7 @@
 package skillbill.mcp.workflow
 
 import skillbill.application.workflow.WorkflowWireProjections
+import skillbill.contracts.JsonCodec
 import skillbill.goalrunner.model.GOAL_ATTEMPT_LEDGER_ARTIFACT_KEY
 import skillbill.goalrunner.model.GoalPlanningStatusSnapshot
 import skillbill.workflow.engine.model.WorkflowSnapshotView
@@ -37,4 +38,5 @@ private fun goalObservabilitySummaryFromArtifacts(
   artifacts: Map<String, Any?>,
   goalObservabilityEventValidator: GoalObservabilityEventValidator,
 ): Map<String, Any?>? = goalObservabilityLatestEventFromArtifacts(artifacts, goalObservabilityEventValidator)
-  ?.toCompactSummaryMap()
+  ?.toCompactSummaryWire()
+  ?.let(JsonCodec::anyToStringAnyMap)

@@ -150,6 +150,6 @@ internal fun reviewStatePatch(
       reviewBaseSha = baseline.reviewBaseSha,
       baselineUntrackedPaths = baseline.baselineUntrackedPaths,
       codeReviewMode = continuation.codeReviewMode,
-    ).toArtifactMap(),
+    ).toPersistenceWire(),
   )
 }

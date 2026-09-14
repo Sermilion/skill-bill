@@ -5,6 +5,7 @@ import skillbill.ports.workflow.gitops.captureIndexState
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.gitops.stagePaths
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.envelopeWireMap
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairReceipt
@@ -69,7 +70,7 @@ object FeatureTaskRuntimeRunLoopRepairReceipt {
   internal fun implementFixRepairReceiptSettlement(
     runLoop: FeatureTaskRuntimeRunLoop,
     run: PhaseRun,
-    outputMap: skillbill.workflow.taskruntime.FeatureTaskRuntimeWorkflowArtifactMap,
+    outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
   ): RepairReceiptSettlement {
     val produced = FeatureTaskRuntimeRunLoopCheckpointRemediation.completedImplementFixProducedOutputs(
       run,

@@ -3,6 +3,7 @@ package skillbill.engine.featuretask
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
 
 internal data class FeatureTaskRuntimePhaseFileManifest(
@@ -45,7 +46,7 @@ object FeatureTaskRuntimePhaseSafetyPolicy {
 
   internal fun dispositionForTerminalOutput(
     phaseId: String,
-    output: skillbill.workflow.taskruntime.FeatureTaskRuntimeWorkflowArtifactMap,
+    output: FeatureTaskRuntimeWorkflowArtifactMap,
   ): FeatureTaskRuntimeFailureDisposition {
     val explicit = (output[SharedPayloadKeys.FAILURE_DISPOSITION] as? String)
       ?.let(FeatureTaskRuntimeFailureDisposition::fromWireValue)

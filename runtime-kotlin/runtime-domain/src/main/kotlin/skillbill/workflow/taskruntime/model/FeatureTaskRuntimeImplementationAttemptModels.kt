@@ -148,7 +148,12 @@ fun featureTaskRuntimeAppendImplementationAttempt(
     existing = existing.map { it.toArtifactMap() },
     entry = entry.toArtifactMap(),
     retentionLimit = Int.MAX_VALUE,
-  ).map(FeatureTaskRuntimeImplementationAttempt::fromArtifactMap)
+  ).map { raw ->
+    FeatureTaskRuntimeImplementationAttempt.fromArtifactMap(
+      JsonCodec.anyToStringAnyMap(raw)
+        ?: implementationAttemptError("Implementation attempt history entry must decode to an object."),
+    )
+  }
   if (ordered.size <= retentionLimit) return ordered
   val overflow = ordered.size - retentionLimit
   val droppableIndices = ordered.indices.filterNot { ordered[it].carriesOpenObligation }.take(overflow)

@@ -2,7 +2,7 @@ package skillbill.infrastructure.sqlite.goalrunner
 
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.goalrunner.model.GoalRunnerSupervisionEvent
-import skillbill.goalrunner.toArtifactsMap
+import skillbill.goalrunner.toPersistenceWire
 import skillbill.infrastructure.sqlite.decomposition.decodeArtifacts
 import skillbill.ports.goalrunner.persistence.model.GoalRunnerBlockWrite
 import skillbill.ports.persistence.UnitOfWork
@@ -81,7 +81,7 @@ internal class WorkflowGoalRunnerBlockWrites(
         ),
         artifactsPatch = buildMap {
           put("blocked_reason", write.blockedReason)
-          write.supervisionEvent?.let { event -> put("supervision_event", event.toArtifactsMap()) }
+          write.supervisionEvent?.let { event -> put("supervision_event", event.toPersistenceWire()) }
         },
         sessionId = write.record.sessionId.orEmpty(),
       ),

@@ -2,6 +2,7 @@ package skillbill.mcp
 
 import skillbill.application.workflow.model.WorkflowGetResult
 import skillbill.application.workflow.model.WorkflowUpdateResult
+import skillbill.contracts.JsonCodec
 import skillbill.error.InvalidGoalObservabilityEventSchemaError
 import skillbill.infrastructure.fs.contracts.workflow.GoalObservabilityEventSchemaValidator
 import skillbill.mcp.workflow.toMcpMap
@@ -241,8 +242,8 @@ class WorkflowMcpResultMappersTest {
 
   private val testGoalObservabilityEventValidator: GoalObservabilityEventValidator =
     object : GoalObservabilityEventValidator {
-      override fun validate(event: Map<String, Any?>, sourceLabel: String) {
-        GoalObservabilityEventSchemaValidator.validate(event, sourceLabel)
+      override fun validate(event: Any, sourceLabel: String) {
+        GoalObservabilityEventSchemaValidator.validate(requireNotNull(JsonCodec.anyToStringAnyMap(event)), sourceLabel)
       }
     }
 }

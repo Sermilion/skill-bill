@@ -150,7 +150,10 @@ fun WorkflowUpdateInput.withGoalObservabilityArtifacts(
       ),
       validator = validator,
     )
-    observabilityPatch?.let { copy(artifactsPatch = LinkedHashMap(patch).apply { putAll(it) }) } ?: this
+    observabilityPatch?.let { patchValue ->
+      val decoded = JsonCodec.anyToStringAnyMap(patchValue) ?: return this
+      copy(artifactsPatch = LinkedHashMap(patch).apply { putAll(decoded) })
+    } ?: this
   }
 }
 

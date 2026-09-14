@@ -1,9 +1,9 @@
 package skillbill.goalrunner
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.goalrunner.model.GOAL_ATTEMPT_LEDGER_ARTIFACT_KEY
 import skillbill.goalrunner.model.GoalRunnerAttemptLedgerSummary
+import skillbill.workflow.goal.model.asGoalWorkflowArtifactMap
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
@@ -64,9 +64,9 @@ val BLOCK_STOP_REASONS: Set<String> = setOf(
   "pull_request_failed",
 )
 
-@OpenBoundaryMap("Backward-edge counts derived from the goal attempt ledger artifact")
-fun backwardEdgeCountsFromLedger(artifacts: Map<String, Any?>): Map<String, Int> {
-  val entries = (artifacts[GOAL_ATTEMPT_LEDGER_ARTIFACT_KEY] as? List<*>).orEmpty()
+fun backwardEdgeCountsFromLedger(artifacts: Any): Map<String, Int> {
+  val wire = artifacts.asGoalWorkflowArtifactMap("goal attempt ledger artifacts")
+  val entries = (wire[GOAL_ATTEMPT_LEDGER_ARTIFACT_KEY] as? List<*>).orEmpty()
   val counts = mutableMapOf<String, Int>()
   entries.forEach { item ->
     val entry = item as? Map<*, *> ?: return@forEach

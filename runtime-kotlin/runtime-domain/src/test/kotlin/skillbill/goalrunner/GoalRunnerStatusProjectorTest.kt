@@ -5,6 +5,7 @@ import skillbill.goalrunner.model.GoalRunnerStatusProjector
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask
+import skillbill.workflow.goal.model.GoalObservabilityEvent
 import skillbill.workflow.model.WorkflowStatus
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -42,7 +43,7 @@ class GoalRunnerStatusProjectorTest {
       extras = GoalRunnerStatusProjectionRuntimeInputs(
         currentWorkflowStatus = WorkflowStatus.RUNNING,
         latestLivenessSignal = "liveness=block phase=review role=goal_runner_supervisor",
-        latestObservabilityEvent = mapOf("liveness_class" to "block"),
+        latestObservabilityEvent = observabilityEvent("block"),
       ),
     )
 
@@ -57,12 +58,12 @@ class GoalRunnerStatusProjectorTest {
       extras = GoalRunnerStatusProjectionRuntimeInputs(
         currentWorkflowStatus = WorkflowStatus.RUNNING,
         latestLivenessSignal = "liveness=durable_progress phase=implement",
-        latestObservabilityEvent = mapOf("liveness_class" to "durable_progress"),
+        latestObservabilityEvent = observabilityEvent("durable_progress"),
       ),
     )
 
     assertEquals("liveness=durable_progress phase=implement", projection.latestLivenessSignal)
-    assertEquals(mapOf("liveness_class" to "durable_progress"), projection.latestObservabilityEvent)
+    assertEquals(observabilityEvent("durable_progress"), projection.latestObservabilityEvent)
   }
 
   @Test
@@ -73,10 +74,7 @@ class GoalRunnerStatusProjectorTest {
         currentWorkflowStatus = WorkflowStatus.RUNNING,
         currentStepOverride = "implement_fix",
         latestLivenessSignal = "liveness=worker_output_summary phase=audit activity=exit_status=1",
-        latestObservabilityEvent = mapOf(
-          "liveness_class" to "worker_output_summary",
-          "workflow_phase" to "audit",
-        ),
+        latestObservabilityEvent = observabilityEvent("worker_output_summary", workflowPhase = "audit"),
       ),
     )
 
@@ -87,7 +85,7 @@ class GoalRunnerStatusProjectorTest {
 
   @Test
   fun `a worker output summary for the live phase is preserved`() {
-    val event = mapOf("liveness_class" to "worker_output_summary", "workflow_phase" to "implement")
+    val event = observabilityEvent("worker_output_summary", workflowPhase = "implement")
     val signal = "liveness=worker_output_summary phase=implement activity=exit_status=0"
     val projection = GoalRunnerStatusProjector.project(
       manifest = manifest(currentSubtaskStatus = "in_progress"),
@@ -110,12 +108,24 @@ class GoalRunnerStatusProjectorTest {
       extras = GoalRunnerStatusProjectionRuntimeInputs(
         currentWorkflowStatus = WorkflowStatus.BLOCKED,
         latestLivenessSignal = "liveness=block phase=review role=goal_runner_supervisor",
-        latestObservabilityEvent = mapOf("liveness_class" to "block"),
+        latestObservabilityEvent = observabilityEvent("block"),
       ),
     )
 
     assertEquals("liveness=block phase=review role=goal_runner_supervisor", projection.latestLivenessSignal)
   }
+
+  private fun observabilityEvent(livenessClass: String, workflowPhase: String = "implement"): GoalObservabilityEvent =
+    GoalObservabilityEvent(
+      issueKey = "SKILL-TEST",
+      subtaskId = 1,
+      workflowPhase = workflowPhase,
+      workerRole = "goal_runner_supervisor",
+      livenessClass = livenessClass,
+      activitySummary = "test",
+      timestamp = "2026-01-01T00:00:00Z",
+      sequenceNumber = 1,
+    )
 
   private fun manifest(currentSubtaskStatus: String): DecompositionManifest = DecompositionManifest(
     issueKey = "SKILL-135",

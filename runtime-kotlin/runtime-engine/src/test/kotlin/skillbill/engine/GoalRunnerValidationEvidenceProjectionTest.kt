@@ -89,9 +89,8 @@ class GoalRunnerValidationEvidenceProjectionTest {
       validation.gateExecutionEvidence?.gateRuns?.single()?.outcome,
     )
     assertEquals(1, validation.gateExecutionEvidence?.gateRuns?.single()?.executedWorkUnits)
-    val projectedResult = JsonCodec.anyToStringAnyMap(
-      validation.toStatusMap()[ValidationEvidencePayloadKeys.VALIDATION_RESULT],
-    )
+    val statusWire = JsonCodec.anyToStringAnyMap(validation.toStatusWire())!!
+    val projectedResult = JsonCodec.anyToStringAnyMap(statusWire[ValidationEvidencePayloadKeys.VALIDATION_RESULT])
     assertEquals(
       listOf("runtime-engine|compileKotlin"),
       projectedResult?.get(ValidationEvidencePayloadKeys.CHECKS),

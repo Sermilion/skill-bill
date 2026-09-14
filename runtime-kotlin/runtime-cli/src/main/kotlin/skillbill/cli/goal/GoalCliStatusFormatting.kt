@@ -83,7 +83,7 @@ internal fun GoalRunnerStatusProjection?.toGoalStatusCliMap(issueKey: String): M
         ),
       )
     }
-    it.latestObservabilityEvent?.let { event -> put("latest_observability_event", event) }
+    it.latestObservabilityEvent?.let { event -> put("latest_observability_event", event.toCompactSummaryWire()) }
     it.requestedDiffStat?.let { stat -> put("diff_stat", stat.toGoalDiffStatCliMap()) }
     it.selectedDiffHunks?.let { hunks -> put("selected_diff_hunks", hunks.toGoalSelectedDiffHunksCliMap()) }
     putGoalLedgerCliEntries(it)
@@ -91,7 +91,7 @@ internal fun GoalRunnerStatusProjection?.toGoalStatusCliMap(issueKey: String): M
     if (it.completedSubtaskValidation.isNotEmpty()) {
       put(
         ValidationEvidencePayloadKeys.COMPLETED_SUBTASK_VALIDATION,
-        it.completedSubtaskValidation.map { evidence -> evidence.toStatusMap() },
+        it.completedSubtaskValidation.map { evidence -> evidence.toStatusWire() },
       )
     }
   }

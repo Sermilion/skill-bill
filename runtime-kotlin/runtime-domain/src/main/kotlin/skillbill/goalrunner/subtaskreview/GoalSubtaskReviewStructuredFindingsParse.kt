@@ -16,15 +16,16 @@ import skillbill.review.model.ReviewFindingVerdict
 
 object GoalSubtaskReviewStructuredFindingsParse {
   fun structuredFindings(
-    output: Map<String, Any?>,
+    output: Any,
     recordedVerdicts: List<ReviewFindingVerdict> = emptyList(),
   ): List<StructuredGoalReviewFinding> = parseStructuredFindings(output, recordedVerdicts).findings
 
   fun parseStructuredFindings(
-    output: Map<String, Any?>,
+    output: Any,
     recordedVerdicts: List<ReviewFindingVerdict> = emptyList(),
   ): StructuredGoalReviewFindingsParse {
-    val findings = output[SharedPayloadKeys.PRODUCED_OUTPUTS]
+    val wire = output.asGoalSubtaskReviewPhaseOutputMap()
+    val findings = wire[SharedPayloadKeys.PRODUCED_OUTPUTS]
       ?.let(JsonCodec::anyToStringAnyMap)
       ?.get(ReviewVerificationSignalKeys.REVIEW_FINDINGS) as? List<*>
       ?: return StructuredGoalReviewFindingsParse(emptyList(), emptyList())
@@ -78,20 +79,20 @@ object GoalSubtaskReviewStructuredFindingsParse {
   }
 
   fun citationDiagnostics(
-    output: Map<String, Any?>,
+    output: Any,
     recordedVerdicts: List<ReviewFindingVerdict> = emptyList(),
   ): List<ReviewFindingCitationDiagnosticWithFinding> =
     parseStructuredFindings(output, recordedVerdicts).citationDiagnostics
 
-  fun reviewRunIdOf(output: Map<String, Any?>): String? = (
-    output[SharedPayloadKeys.PRODUCED_OUTPUTS]
+  internal fun reviewRunIdOf(output: Any): String? = (
+    output.asGoalSubtaskReviewPhaseOutputMap()[SharedPayloadKeys.PRODUCED_OUTPUTS]
       ?.let(JsonCodec::anyToStringAnyMap)
       ?.get(FeatureTaskRuntimeVerificationSignalKeys.REVIEW_RUN_ID) as? String
     )?.trim()?.takeIf(String::isNotBlank)
 
   fun recordedVerdicts(
     fetchFindingVerdicts: (String) -> List<ReviewFindingVerdict>,
-    output: Map<String, Any?>,
+    output: Any,
   ): List<ReviewFindingVerdict> {
     val reviewRunId = reviewRunIdOf(output) ?: return emptyList()
     return fetchFindingVerdicts(reviewRunId)

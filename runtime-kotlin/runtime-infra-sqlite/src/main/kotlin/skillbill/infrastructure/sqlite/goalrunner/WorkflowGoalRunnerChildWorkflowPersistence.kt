@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.goalrunner
+import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.issuekey.normalizeRequiredIssueKey
 import skillbill.error.IncompatibleGoalPlanningPreparationRecoveryError
@@ -217,8 +218,10 @@ internal class WorkflowGoalRunnerChildWorkflowPersistence(
       WorkflowUpdateInput(
         workflowStatus = openedChild.workflowStatus,
         currentStepId = hydration.currentStepId,
-        stepUpdates = hydration.stepUpdates,
-        artifactsPatch = childWorkflowArtifacts(state, setup, parentWorkflowId) + hydration.artifacts,
+        stepUpdates = hydration.stepUpdates.mapNotNull { step -> JsonCodec.anyToStringAnyMap(step) },
+        artifactsPatch = LinkedHashMap(childWorkflowArtifacts(state, setup, parentWorkflowId)).apply {
+          JsonCodec.anyToStringAnyMap(hydration.artifacts)?.let(::putAll)
+        },
         sessionId = openedChild.sessionId.orEmpty(),
       ),
     )
@@ -244,7 +247,7 @@ internal class WorkflowGoalRunnerChildWorkflowPersistence(
       reviewBaseSha = setup.reviewBaseline.reviewBaseSha,
       baselineUntrackedPaths = setup.reviewBaseline.baselineUntrackedPaths,
       codeReviewMode = setup.reviewPolicy.codeReviewMode,
-    ).toArtifactMap(),
+    ).toPersistenceWire(),
     "install_sync_result" to mapOf(
       SharedPayloadKeys.STATUS to "deferred",
       "reason" to

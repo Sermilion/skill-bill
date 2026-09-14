@@ -23,11 +23,12 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFeatureSize
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseDeclaration
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeProviderLimitSignal
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeQualityGateSelection
 
 internal fun terminalBlockedReasonFrom(
   phaseId: String,
-  outputMap: skillbill.workflow.taskruntime.FeatureTaskRuntimeWorkflowArtifactMap,
+  outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
 ): String? {
   val status = outputMap[SharedPayloadKeys.STATUS] as? String
   if (status.workflowStepStatus() != WorkflowStepStatus.BLOCKED &&

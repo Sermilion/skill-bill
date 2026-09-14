@@ -1,25 +1,26 @@
 package skillbill.workflow.goal.model
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.GOAL_OBSERVABILITY_EVENT_CONTRACT_VERSION
 import skillbill.workflow.goal.GoalObservabilityEventValidator
 import skillbill.workflow.goal.invalidGoalObservabilityEvent
 
-@OpenBoundaryMap("Goal observability latest-event durable artifact parse seam")
 fun goalObservabilityLatestEventFromArtifacts(
-  artifacts: Map<String, Any?>,
-  validator: GoalObservabilityEventValidator,
-): GoalObservabilityEvent? = artifacts[GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY]
-  ?.let { raw -> goalObservabilityEventFromArtifact(raw, GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY, validator) }
-
-@OpenBoundaryMap("Goal observability latest-event liveness parse seam")
-fun goalObservabilityLatestEventForLiveness(
-  artifacts: Map<String, Any?>,
+  artifacts: Any,
   validator: GoalObservabilityEventValidator,
 ): GoalObservabilityEvent? {
-  val raw = artifacts[GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY] ?: return null
+  val artifactMap = artifacts.asGoalWorkflowArtifactMap("goal observability artifacts")
+  return artifactMap[GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY]
+    ?.let { raw -> goalObservabilityEventFromArtifact(raw, GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY, validator) }
+}
+
+fun goalObservabilityLatestEventForLiveness(
+  artifacts: Any,
+  validator: GoalObservabilityEventValidator,
+): GoalObservabilityEvent? {
+  val artifactMap = artifacts.asGoalWorkflowArtifactMap("goal observability liveness artifacts")
+  val raw = artifactMap[GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY] ?: return null
   val eventMap = JsonCodec.anyToStringAnyMap(raw) ?: return null
   if (eventMap[SharedPayloadKeys.CONTRACT_VERSION] != GOAL_OBSERVABILITY_EVENT_CONTRACT_VERSION) return null
   return runCatching {
@@ -27,12 +28,12 @@ fun goalObservabilityLatestEventForLiveness(
   }.getOrNull()
 }
 
-@OpenBoundaryMap("Goal observability bounded-history durable artifact parse seam")
 fun goalObservabilityHistoryFromArtifacts(
-  artifacts: Map<String, Any?>,
+  artifacts: Any,
   validator: GoalObservabilityEventValidator,
 ): GoalObservabilityHistory {
-  val rawHistory = artifacts[GOAL_OBSERVABILITY_RUN_HISTORY_ARTIFACT_KEY] ?: return GoalObservabilityHistory()
+  val artifactMap = artifacts.asGoalWorkflowArtifactMap("goal observability history artifacts")
+  val rawHistory = artifactMap[GOAL_OBSERVABILITY_RUN_HISTORY_ARTIFACT_KEY] ?: return GoalObservabilityHistory()
   val rawEvents = rawHistory as? List<*>
     ?: throw invalidGoalObservabilityEvent(
       GOAL_OBSERVABILITY_RUN_HISTORY_ARTIFACT_KEY,
@@ -74,6 +75,10 @@ fun goalObservabilityEventFromArtifact(
     diffStatByFile = eventMap.optionalList("diff_stat_by_file", sourceLabel).toFileDiffStats(sourceLabel),
   )
 }
+
+internal fun Any.asGoalWorkflowArtifactMap(sourceLabel: String): Map<String, Any?> =
+  JsonCodec.anyToStringAnyMap(this)
+    ?: throw IllegalArgumentException("Goal workflow artifacts at $sourceLabel must decode to an object.")
 
 private fun Any?.toGoalObservabilityEventMap(sourceLabel: String): Map<String, Any?> = JsonCodec.anyToStringAnyMap(this)
   ?: (this as? Map<*, *>)?.let { map ->

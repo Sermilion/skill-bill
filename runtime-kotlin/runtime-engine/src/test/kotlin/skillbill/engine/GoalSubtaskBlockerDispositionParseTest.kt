@@ -68,7 +68,7 @@ class GoalSubtaskBlockerDispositionParseTest {
 
   @Test
   fun `a pass with no dispositions parses empty rather than failing`() {
-    assertEquals(emptyList(), GoalSubtaskReviewSummaryReducer.blockerDispositions(emptyMap()))
+    assertEquals(emptyList(), GoalSubtaskReviewSummaryReducer.blockerDispositions(linkedMapOf<String, Any?>()))
   }
 
   @Test

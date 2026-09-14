@@ -84,6 +84,7 @@ import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
+import skillbill.workflow.goal.model.GoalSubtaskReviewArtifactDecoder
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.goal.model.ValidationDepth
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
@@ -495,7 +496,7 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
     val workflowId = "wftr-repair-unsettled-upstream"
     val artifacts = linkedMapOf<String, Any?>(
       "goal_continuation" to continuationMap(includeValidationDepth = true),
-      GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to healthyReviewState().toArtifactMap(),
+      GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to healthyReviewState().toPersistenceWire(),
       FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to mapOf(
         "review" to unsettledUpstreamPhaseRecord("review").asWorkflowArtifactEntry().toWorkflowArtifactMap(),
         "verify_findings" to unsettledUpstreamPhaseRecord("verify_findings").asWorkflowArtifactEntry().toWorkflowArtifactMap(),
@@ -554,7 +555,7 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
         validationDepth = ValidationDepth.FULL,
         qualityGateSelection = FeatureTaskRuntimeQualityGateSelection.BUILD,
       ).asWorkflowArtifactEntry().toWorkflowArtifactMap(),
-      GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to healthyReviewState().toArtifactMap(),
+      GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to healthyReviewState().toPersistenceWire(),
       FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to mapOf(
         "review" to unsettledUpstreamPhaseRecord("review", status = "completed").copy(
           outputArtifact = """{"contract_version":"0.1"}""",
@@ -651,7 +652,7 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
     seedRepairParent(workflows, workflowId)
     val artifacts = linkedMapOf<String, Any?>(
       "goal_continuation" to continuationMap(includeValidationDepth = true),
-      GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to healthyReviewState().toArtifactMap(),
+      GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to healthyReviewState().toPersistenceWire(),
       FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to mapOf(
         "review" to unsettledUpstreamPhaseRecord("review").asWorkflowArtifactEntry().toWorkflowArtifactMap(),
         "verify_findings" to unsettledUpstreamPhaseRecord("verify_findings").asWorkflowArtifactEntry().toWorkflowArtifactMap(),
@@ -744,7 +745,7 @@ internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {
   private fun saveBlockedUnsettledUpstreamChild(workflows: InMemoryWorkflowStates, workflowId: String) {
     val artifacts = linkedMapOf<String, Any?>(
       "goal_continuation" to continuationMap(includeValidationDepth = false),
-      GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to healthyReviewState().toArtifactMap(),
+      GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to healthyReviewState().toPersistenceWire(),
       FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to mapOf(
         "review" to unsettledUpstreamPhaseRecord("review").asWorkflowArtifactEntry().toWorkflowArtifactMap(),
         "verify_findings" to unsettledUpstreamPhaseRecord("verify_findings").asWorkflowArtifactEntry().toWorkflowArtifactMap(),
@@ -969,9 +970,7 @@ internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {
     val after = decodeWorkflowArtifacts(
       requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(workflowId)).artifactsJson,
     )
-    val state = GoalSubtaskReviewState.fromArtifactMap(
-      requireNotNull(JsonCodec.anyToStringAnyMap(after[GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY])),
-    )
+    val state = requireNotNull(GoalSubtaskReviewArtifactDecoder.decodeReviewStateOnly(after))
     assertEquals(recovered, state.remediationBaseSha)
     assertEquals(1, state.completedPassCount)
     assertEquals(COMPLETED_COMMIT, after["commit_sha"])
@@ -1528,7 +1527,7 @@ internal abstract class GoalRunnerRepairFixtures {
     val opened = engine.openRecord(definition, args.workflowId, "fis-repair", "preplan")
     val artifacts = linkedMapOf<String, Any?>(
       "goal_continuation" to args.continuation,
-      GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to args.reviewState.toArtifactMap(),
+      GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to args.reviewState.toPersistenceWire(),
     )
     if (args.reviewState.completedPassCount > 0) {
       artifacts[GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY] = args.reviewState.passResults.associate { result ->
@@ -1606,7 +1605,7 @@ internal abstract class GoalRunnerRepairFixtures {
       validationDepth = ValidationDepth.FULL,
       qualityGateSelection = FeatureTaskRuntimeQualityGateSelection.BUILD,
     ).asWorkflowArtifactEntry().toWorkflowArtifactMap(),
-    GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to healthyReviewState().toArtifactMap(),
+    GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to healthyReviewState().toPersistenceWire(),
     FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY to mapOf(
       "review" to unsettledUpstreamPhaseRecord("review", status = "completed").copy(
         outputArtifact = """{"contract_version":"0.1"}""",

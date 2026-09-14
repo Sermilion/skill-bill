@@ -2456,7 +2456,7 @@ class WorkflowGoalRunnerProgressStoreTest {
             operationName = "gradlew check",
             operationKind = "build",
             expectedLong = true,
-          ).let { event -> "goal_progress_latest_event" to event.toArtifactMap() },
+          ).let { event -> "goal_progress_latest_event" to event.toPersistenceWire() },
         ),
       ),
     )
@@ -2465,7 +2465,7 @@ class WorkflowGoalRunnerProgressStoreTest {
       workflowSnapshotValidator = testWorkflowSnapshotValidator,
       artifactPorts = OutcomeStoreTestArtifactPorts(
         goalObservabilityEventValidator = object : GoalObservabilityEventValidator {
-          override fun validate(event: Map<String, Any?>, sourceLabel: String) {
+          override fun validate(event: Any, sourceLabel: String) {
             throw InvalidGoalObservabilityEventSchemaError(sourceLabel, "subtask_id", "subtask_id is required.")
           }
         },
@@ -2501,7 +2501,7 @@ class WorkflowGoalRunnerProgressStoreTest {
             operationName = "pack validation gate",
             operationKind = "validate",
             expectedLong = true,
-          ).let { event -> "goal_progress_latest_event" to event.toArtifactMap() },
+          ).let { event -> "goal_progress_latest_event" to event.toPersistenceWire() },
         ),
       ),
     )
@@ -2653,7 +2653,7 @@ class WorkflowGoalRunnerProgressStoreTest {
       workflowSnapshotValidator = testWorkflowSnapshotValidator,
       artifactPorts = OutcomeStoreTestArtifactPorts(
         goalProgressEventValidator = object : GoalProgressEventValidator {
-          override fun validate(event: Map<String, Any?>, sourceLabel: String) {
+          override fun validate(event: Any, sourceLabel: String) {
             throw InvalidGoalProgressEventSchemaError(
               sourceLabel,
               "operation_name",
@@ -2904,7 +2904,7 @@ private val testWorkflowEngine: WorkflowEngine = WorkflowEngine(testWorkflowSnap
 
 private val testGoalObservabilityEventValidator: GoalObservabilityEventValidator =
   object : GoalObservabilityEventValidator {
-    override fun validate(event: Map<String, Any?>, sourceLabel: String) = Unit
+    override fun validate(event: Any, sourceLabel: String) = Unit
   }
 
 private fun workflowRecord(

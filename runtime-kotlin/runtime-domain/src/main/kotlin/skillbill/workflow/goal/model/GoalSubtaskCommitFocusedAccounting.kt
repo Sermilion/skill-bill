@@ -1,6 +1,5 @@
 package skillbill.workflow.goal.model
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.review.context.model.ReviewIntegrationTerminalOutcome
 
 data class GoalSubtaskCommitFocusedAccounting(
@@ -39,8 +38,9 @@ data class GoalSubtaskCommitFocusedAccounting(
 
   val isCleanCoverage: Boolean get() = incompleteLanes.isEmpty()
 
-  @OpenBoundaryMap("Commit-focused review accounting at the durable workflow-artifact seam")
-  fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
+  fun toPersistenceWire(): Any = toArtifactMap()
+
+  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
     "commit_sequence_digest" to commitSequenceDigest,
     "commit_count" to commitCount,
     "lane_count" to laneCount,
@@ -67,8 +67,7 @@ data class GoalSubtaskCommitFocusedAccounting(
 
     private val SHA256_HEX = Regex("[0-9a-f]{64}")
 
-    @OpenBoundaryMap("Commit-focused review accounting decode from the durable workflow-artifact map")
-    fun fromArtifactMap(raw: Map<String, Any?>, path: String): GoalSubtaskCommitFocusedAccounting {
+    internal fun fromArtifactMap(raw: Map<String, Any?>, path: String): GoalSubtaskCommitFocusedAccounting {
       raw.requireOnlyReviewStateKeys(ARTIFACT_KEYS, path)
       return GoalSubtaskCommitFocusedAccounting(
         commitSequenceDigest = raw.requireReviewStateString("commit_sequence_digest", path),

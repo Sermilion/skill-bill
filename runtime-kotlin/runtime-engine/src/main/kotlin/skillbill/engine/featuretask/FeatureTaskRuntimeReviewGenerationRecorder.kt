@@ -56,7 +56,7 @@ class FeatureTaskRuntimeReviewGenerationRecorder(
         reviewBaseSha = state.reviewBaseSha,
         baselineUntrackedPaths = state.baselineUntrackedPaths,
         codeReviewMode = state.codeReviewMode,
-      ).toArtifactMap()
+      ).toPersistenceWire()
       patch[GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY] = emptyMap<String, String>()
       unitOfWork.unaddressedFindings.clearWorkflowLedger(workflowId)
     }

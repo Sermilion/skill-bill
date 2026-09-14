@@ -21,7 +21,7 @@ object NoopGoalChildPlanningHydrator : GoalChildPlanningHydratorPort {
   ): GoalChildPlanningHydrationResult = GoalChildPlanningHydrationResult(
     currentStepId = setup.workflowId,
     stepUpdates = emptyList(),
-    artifacts = emptyMap(),
+    artifacts = emptyMap<String, Any?>(),
   )
 
   override fun requireMatchingImport(

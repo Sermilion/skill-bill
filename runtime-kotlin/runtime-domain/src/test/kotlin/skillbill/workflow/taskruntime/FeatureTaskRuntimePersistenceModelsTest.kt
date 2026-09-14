@@ -1,6 +1,7 @@
 package skillbill.workflow.taskruntime
 
 import skillbill.agentaddon.model.AgentAddonSelection
+import skillbill.contracts.JsonCodec
 import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_RUN_INVARIANTS_CONTRACT_VERSION
@@ -606,7 +607,7 @@ class FeatureTaskRuntimePersistenceModelsTest {
 
   @Test
   fun `append-only ledger keeps monotonic sequence order and prunes oldest beyond the limit`() {
-    var ledger = emptyList<Map<String, Any?>>()
+    var ledger = emptyList<Any>()
     (0 until FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT + 3).forEach { index ->
       val entry = FeatureTaskRuntimePhaseLedgerEntry(
         action = FeatureTaskRuntimePhaseLedgerAction.RETRY,
@@ -618,7 +619,9 @@ class FeatureTaskRuntimePersistenceModelsTest {
       ledger = appendBoundedHistoryBySequence(ledger, entry.toArtifactMap(), FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT)
     }
     assertEquals(FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT, ledger.size)
-    val sequences = ledger.map { (it["sequence_number"] as Number).toInt() }
+    val sequences = ledger.map { entry ->
+      (JsonCodec.anyToStringAnyMap(entry)?.get("sequence_number") as Number).toInt()
+    }
     assertEquals(sequences.sorted(), sequences)
     assertEquals(3, sequences.first())
     assertEquals(FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT + 2, sequences.last())

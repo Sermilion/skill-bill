@@ -7,6 +7,7 @@ import skillbill.cli.goal.toGoalDiffStatCliMap
 import skillbill.cli.goal.toGoalSelectedDiffHunksCliMap
 import skillbill.cli.kernel.toPayload
 import skillbill.cli.workflow.toCliMap
+import skillbill.contracts.JsonCodec
 import skillbill.contracts.workflow.WorkflowContinueSessionSummary
 import skillbill.error.InvalidGoalObservabilityEventSchemaError
 import skillbill.infrastructure.fs.contracts.workflow.GoalObservabilityEventSchemaValidator
@@ -321,8 +322,8 @@ class WorkflowCliResultMappersTest {
 
   private val testGoalObservabilityEventValidator: GoalObservabilityEventValidator =
     object : GoalObservabilityEventValidator {
-      override fun validate(event: Map<String, Any?>, sourceLabel: String) {
-        GoalObservabilityEventSchemaValidator.validate(event, sourceLabel)
+      override fun validate(event: Any, sourceLabel: String) {
+        GoalObservabilityEventSchemaValidator.validate(requireNotNull(JsonCodec.anyToStringAnyMap(event)), sourceLabel)
       }
     }
 

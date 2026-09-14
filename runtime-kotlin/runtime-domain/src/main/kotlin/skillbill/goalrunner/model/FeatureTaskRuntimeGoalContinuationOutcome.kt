@@ -1,6 +1,5 @@
 package skillbill.goalrunner.model
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.workflow.taskruntime.model.optionalStringField
 import skillbill.workflow.taskruntime.model.optionalStringListField
@@ -51,8 +50,9 @@ data class FeatureTaskRuntimeGoalContinuationOutcome(
     }
   }
 
-  @OpenBoundaryMap("Feature-task-runtime goal-continuation outcome artifact map at the durable workflow-artifact seam")
-  fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
+  fun toPersistenceWire(): Any = toArtifactMap()
+
+  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
     SharedPayloadKeys.ISSUE_KEY to issueKey,
     SharedPayloadKeys.SUBTASK_ID to subtaskId,
     SharedPayloadKeys.STATUS to status.wireValue,
@@ -67,8 +67,7 @@ data class FeatureTaskRuntimeGoalContinuationOutcome(
 
   companion object {
     /** Strict decode; loud-fails on a missing or malformed required field. New agent fields are additive-optional. */
-    @OpenBoundaryMap("Feature-task-runtime goal-continuation outcome decode from the durable workflow-artifact map")
-    fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeGoalContinuationOutcome =
+    internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeGoalContinuationOutcome =
       FeatureTaskRuntimeGoalContinuationOutcome(
         issueKey = raw.requireStringField("issue_key"),
         subtaskId = raw.requireIntField("subtask_id"),

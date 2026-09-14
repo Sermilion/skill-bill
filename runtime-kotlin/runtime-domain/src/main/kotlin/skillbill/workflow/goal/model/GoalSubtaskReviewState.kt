@@ -1,6 +1,5 @@
 package skillbill.workflow.goal.model
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.GOAL_SUBTASK_REVIEW_STATE_CONTRACT_VERSION
 import skillbill.error.InvalidFeatureTaskRuntimeRepairReceiptError
@@ -199,8 +198,7 @@ data class GoalSubtaskReviewState(
    * verdict, and counts. Location-bearing evidence stays in the durable artifact and is reachable
    * only through `skill-bill goal findings --issue-key <KEY>`.
    */
-  @OpenBoundaryMap("Bounded goal-facing disposition projection; carries no location-bearing evidence")
-  fun boundedDispositionSummary(): Map<String, Any?> = linkedMapOf(
+  internal fun boundedDispositionSummary(): Map<String, Any?> = linkedMapOf(
     "pass" to completedPassCount,
     "disposition_counts" to GoalSubtaskBlockerDispositionVerdict.entries.associate { verdict ->
       verdict.wireValue to blockerDispositions.count { it.verdict == verdict }
@@ -211,8 +209,9 @@ data class GoalSubtaskReviewState(
   fun acknowledgeSummariesThrough(passNumber: Int): GoalSubtaskReviewState =
     copy(emittedPassCount = passNumber.coerceIn(emittedPassCount, completedPassCount))
 
-  @OpenBoundaryMap("Goal-review state at the durable workflow-artifact seam")
-  fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
+  fun toPersistenceWire(): Any = toArtifactMap()
+
+  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
     SharedPayloadKeys.CONTRACT_VERSION to contractVersion,
     "review_base_sha" to reviewBaseSha,
     "code_review_mode" to codeReviewMode.wireValue,
@@ -249,8 +248,7 @@ data class GoalSubtaskReviewState(
       codeReviewMode = codeReviewMode,
     )
 
-    @OpenBoundaryMap("Goal-review state decode from the durable workflow-artifact map")
-    fun fromArtifactMap(
+    internal fun fromArtifactMap(
       raw: Map<String, Any?>,
       sourceLabel: String = GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY,
     ): GoalSubtaskReviewState {

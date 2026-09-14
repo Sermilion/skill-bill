@@ -1,6 +1,5 @@
 package skillbill.workflow.goal.model
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.GOAL_OBSERVABILITY_EVENT_CONTRACT_VERSION
 import skillbill.contracts.workflow.GOAL_PROGRESS_EVENT_CONTRACT_VERSION
@@ -96,8 +95,9 @@ data class GoalProgressEvent(
     }
   }
 
-  @OpenBoundaryMap("Goal progress event artifact map at durable workflow-artifact/schema seams")
-  fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
+  fun toPersistenceWire(): Any = toArtifactMap()
+
+  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
     SharedPayloadKeys.CONTRACT_VERSION to contractVersion,
     "event_kind" to eventKind.wireValue,
     SharedPayloadKeys.WORKFLOW_ID to workflowId,
@@ -125,8 +125,7 @@ data class GoalProgressHistory(
   fun append(event: GoalProgressEvent): GoalProgressHistory =
     copy(events = (events + event).sortedBy(GoalProgressEvent::sequenceNumber).takeLast(retentionLimit))
 
-  @OpenBoundaryMap("Goal progress history artifact list at durable workflow-artifact/schema seams")
-  fun toArtifactList(): List<Map<String, Any?>> = events.map(GoalProgressEvent::toArtifactMap)
+  internal fun toArtifactList(): List<Map<String, Any?>> = events.map(GoalProgressEvent::toArtifactMap)
 
   fun latest(): GoalProgressEvent? = events.maxByOrNull(GoalProgressEvent::sequenceNumber)
 }
@@ -184,8 +183,7 @@ data class GoalObservabilityEvent(
   val diffStatByFile: List<GoalObservabilityFileDiffStat> = emptyList(),
   val contractVersion: String = GOAL_OBSERVABILITY_EVENT_CONTRACT_VERSION,
 ) {
-  @OpenBoundaryMap("Goal observability event artifact map at durable workflow-artifact/schema seams")
-  fun toArtifactMap(includeHeavyFields: Boolean = false): Map<String, Any?> = linkedMapOf<String, Any?>(
+  internal fun toArtifactMap(includeHeavyFields: Boolean = false): Map<String, Any?> = linkedMapOf<String, Any?>(
     SharedPayloadKeys.CONTRACT_VERSION to contractVersion,
     "record_kind" to recordKind.wireValue,
     SharedPayloadKeys.ISSUE_KEY to issueKey,
@@ -233,8 +231,9 @@ data class GoalObservabilityEvent(
     }
   }
 
-  @OpenBoundaryMap("Compact goal observability summary map rendered by CLI/MCP workflow adapters")
-  fun toCompactSummaryMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
+  fun toCompactSummaryWire(): Any = toCompactSummaryMap()
+
+  internal fun toCompactSummaryMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
     SharedPayloadKeys.ISSUE_KEY to issueKey,
     SharedPayloadKeys.SUBTASK_ID to subtaskId,
     "workflow_phase" to workflowPhase,
@@ -256,8 +255,7 @@ data class GoalObservabilityHistory(
   fun append(event: GoalObservabilityEvent): GoalObservabilityHistory =
     copy(events = (events + event).sortedBy(GoalObservabilityEvent::sequenceNumber).takeLast(retentionLimit))
 
-  @OpenBoundaryMap("Goal observability history artifact list at durable workflow-artifact/schema seams")
-  fun toArtifactList(includeHeavyFields: Boolean = false): List<Map<String, Any?>> =
+  internal fun toArtifactList(includeHeavyFields: Boolean = false): List<Map<String, Any?>> =
     events.map { event -> event.toArtifactMap(includeHeavyFields) }
 }
 

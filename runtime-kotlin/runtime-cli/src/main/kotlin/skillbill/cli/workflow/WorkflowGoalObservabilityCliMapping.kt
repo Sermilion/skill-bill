@@ -1,6 +1,7 @@
 package skillbill.cli.workflow
 
 import skillbill.application.workflow.WorkflowWireProjections
+import skillbill.contracts.JsonCodec
 import skillbill.workflow.engine.model.WorkflowSnapshotView
 import skillbill.workflow.goal.GoalObservabilityEventValidator
 import skillbill.workflow.goal.model.goalObservabilityLatestEventFromArtifacts
@@ -18,4 +19,5 @@ private fun goalObservabilitySummaryFromArtifacts(
   artifacts: Map<String, Any?>,
   goalObservabilityEventValidator: GoalObservabilityEventValidator,
 ): Map<String, Any?>? = goalObservabilityLatestEventFromArtifacts(artifacts, goalObservabilityEventValidator)
-  ?.toCompactSummaryMap()
+  ?.toCompactSummaryWire()
+  ?.let(JsonCodec::anyToStringAnyMap)

@@ -46,7 +46,7 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
       patcher.save(
         record,
         unitOfWork.workflowStates,
-        mapOf(GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to reserved.toArtifactMap()),
+        mapOf(GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to reserved.toPersistenceWire()),
       )
     }
     GoalSubtaskReviewPassReserved(reserved)
@@ -73,7 +73,7 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
         record,
         unitOfWork.workflowStates,
         mapOf(
-          GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to updated.toArtifactMap(),
+          GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to updated.toPersistenceWire(),
           GOAL_SUBTASK_REVIEW_INPUT_ARTIFACT_KEY to input.toArtifactMap(),
         ),
       )
@@ -91,7 +91,7 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
     patcher.save(
       record,
       unitOfWork.workflowStates,
-      mapOf(GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to updated.toArtifactMap()),
+      mapOf(GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to updated.toPersistenceWire()),
     )
     updated
   }
@@ -188,7 +188,7 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
       loaded.record,
       unitOfWork.workflowStates,
       mapOf(
-        GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to completed.toArtifactMap(),
+        GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to completed.toPersistenceWire(),
         GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY to (loaded.previousResults + (passNumber to request.rawReviewResult)),
       ),
     )

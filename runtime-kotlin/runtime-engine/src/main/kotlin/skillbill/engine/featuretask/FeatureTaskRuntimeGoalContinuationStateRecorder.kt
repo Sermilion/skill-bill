@@ -35,7 +35,7 @@ class FeatureTaskRuntimeGoalContinuationStateRecorder(
       val continuationPatch = continuationPatch(supplied, existingContinuation)
       val reviewStatePatch = reviewStatePatch(request.copy(continuation = supplied), artifacts, existingContinuation)
       val outcomePatch = request.outcome?.let {
-        mapOf(FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_OUTCOME_ARTIFACT_KEY to it.toArtifactMap())
+        mapOf(FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_OUTCOME_ARTIFACT_KEY to it.toPersistenceWire())
       }.orEmpty()
       val adoptionPatch = request.fieldAdoption?.let {
         mapOf(FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_FIELD_ADOPTION_ARTIFACT_KEY to it.asWorkflowArtifactEntry())

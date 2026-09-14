@@ -1,20 +1,19 @@
 package skillbill.goalrunner
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.workflow.goal.model.asGoalWorkflowArtifactMap
 import skillbill.goalrunner.model.GoalRunnerStoredOutcome
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
 
 fun goalContinuationTerminalStatus(status: String?): GoalRunnerTerminalStatus? =
   status?.let(GoalRunnerTerminalStatus::fromWire)
 
-@OpenBoundaryMap("Goal continuation outcome decode from durable workflow artifacts")
 fun goalContinuationOutcome(
-  artifacts: Map<String, Any?>,
+  artifacts: Any,
   issueKey: String,
   subtaskId: Int,
   suppressPr: Boolean,
-): GoalRunnerStoredOutcome? = (artifacts["goal_continuation_outcome"] as? Map<*, *>)
+): GoalRunnerStoredOutcome? = (artifacts.asGoalWorkflowArtifactMap("goal continuation outcome artifacts")["goal_continuation_outcome"] as? Map<*, *>)
   ?.takeIf { outcome -> outcome[SharedPayloadKeys.ISSUE_KEY]?.toString() == issueKey }
   ?.takeIf { outcome -> outcome[SharedPayloadKeys.SUBTASK_ID].asGoalRunnerIntOrNull() == subtaskId }
   ?.let { outcome ->

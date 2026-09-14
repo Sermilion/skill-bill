@@ -32,7 +32,7 @@ object GoalSubtaskReviewSummarySanitize {
     return if (compact.isBlank() || containsUnsafeReviewMaterial(compact)) "Review finding" else compact
   }
 
-  fun labelFor(finding: Map<String, Any?>, message: String): String {
+  internal fun labelFor(finding: Map<String, Any?>, message: String): String {
     val explicit = sequenceOf(
       finding["class_or_symbol"],
       finding["symbol"],

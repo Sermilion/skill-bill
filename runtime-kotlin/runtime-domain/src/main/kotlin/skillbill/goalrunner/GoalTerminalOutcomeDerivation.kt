@@ -1,6 +1,5 @@
 package skillbill.goalrunner
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.goalrunner.model.GoalContinuation
 import skillbill.goalrunner.model.GoalRunnerStoredOutcome
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
@@ -10,12 +9,12 @@ import skillbill.workflow.engine.model.WorkflowStepState
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStatus
+import skillbill.workflow.goal.model.asGoalWorkflowArtifactMap
 import skillbill.workflow.model.workflowStepStatus
 
-@OpenBoundaryMap("Terminal goal outcome derivation from durable workflow artifacts")
 fun terminalOutcomeFor(
   snapshot: WorkflowStateSnapshot,
-  artifacts: Map<String, Any?>,
+  artifacts: Any,
   goalContinuation: GoalContinuation,
   measuredCommitSha: () -> String? = { null },
 ): GoalRunnerStoredOutcome? {
@@ -41,10 +40,9 @@ fun terminalOutcomeFor(
   return derivedTerminalOutcomeFor(snapshot, artifacts, goalContinuation, measuredCommitSha)
 }
 
-@OpenBoundaryMap("Derived terminal goal outcome from durable workflow artifacts")
 fun derivedTerminalOutcomeFor(
   snapshot: WorkflowStateSnapshot,
-  artifacts: Map<String, Any?>,
+  artifacts: Any,
   goalContinuation: GoalContinuation,
   measuredCommitSha: () -> String?,
 ): GoalRunnerStoredOutcome? {
@@ -113,23 +111,26 @@ fun liveBlockedStep(snapshot: WorkflowStateSnapshot, steps: List<WorkflowStepSta
   }
 }
 
-@OpenBoundaryMap("Blocked reason extraction from durable workflow artifacts")
 fun blockedReasonFrom(
-  artifacts: Map<String, Any?>,
+  artifacts: Any,
   steps: List<WorkflowStepState>,
   status: GoalRunnerTerminalStatus,
-): String? = artifacts["blocked_reason"]?.toString()?.takeIf(String::isNotBlank)
-  ?: (artifacts["goal_continuation_outcome"] as? Map<*, *>)
+): String? {
+  val wire = artifacts.asGoalWorkflowArtifactMap("goal blocked reason artifacts")
+  return wire["blocked_reason"]?.toString()?.takeIf(String::isNotBlank)
+  ?: (wire["goal_continuation_outcome"] as? Map<*, *>)
     ?.get("blocked_reason")?.toString()?.takeIf(String::isNotBlank)
   ?: steps.firstOrNull {
     it.status.workflowStepStatus() in setOf(WorkflowStepStatus.FAILED, WorkflowStepStatus.BLOCKED)
   }?.let { step -> "Workflow step '${step.stepId}' is ${step.status}." }
   ?: "Workflow reached a terminal state without a goal-continuation commit SHA."
     .takeIf { status == GoalRunnerTerminalStatus.NO_TERMINAL_STORE_OUTCOME }
+}
 
-@OpenBoundaryMap("Commit SHA extraction from durable workflow artifacts")
-fun commitShaFrom(artifacts: Map<String, Any?>): String? =
-  (artifacts["commit_push_result"] as? Map<*, *>)?.get("commit_sha")?.toString()?.takeIf(String::isNotBlank)
+fun commitShaFrom(artifacts: Any): String? {
+  val wire = artifacts.asGoalWorkflowArtifactMap("goal commit sha artifacts")
+  return (wire["commit_push_result"] as? Map<*, *>)?.get("commit_sha")?.toString()?.takeIf(String::isNotBlank)
+}
 
 fun commitPushCompletedUnderSuppressPr(steps: List<WorkflowStepState>, suppressPr: Boolean): Boolean =
   suppressPr && steps.any {

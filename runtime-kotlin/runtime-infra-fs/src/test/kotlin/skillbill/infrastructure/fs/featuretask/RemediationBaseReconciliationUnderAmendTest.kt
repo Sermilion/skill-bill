@@ -395,7 +395,7 @@ class RemediationBaseReconciliationUnderAmendTest {
         goalBranch = goalBranch,
         codeReviewMode = CodeReviewExecutionMode.INLINE,
       ).asWorkflowArtifactEntry().toWorkflowArtifactMap(),
-      GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to state.toArtifactMap(),
+      GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to state.toPersistenceWire(),
       GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY to state.passResults.associate { result ->
         result.passNumber.toString() to """{"phase_id":"review","status":"completed"}"""
       },

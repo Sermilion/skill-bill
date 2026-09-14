@@ -2,6 +2,7 @@ package skillbill.engine.featuretask
 
 import skillbill.workflow.taskruntime.*
 
+import skillbill.contracts.JsonCodec
 import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
@@ -64,7 +65,7 @@ class FeatureTaskRuntimeGoalReviewCompletionRecorder(
       unitOfWork.workflowStates,
       write.record,
       mapOf(
-        GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to write.completedState.toArtifactMap(),
+        GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to write.completedState.toPersistenceWire(),
         GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY to (
           write.persisted.rawResults +
             (write.completedState.completedPassCount.toString() to completion.rawReviewResult)
@@ -191,7 +192,7 @@ class FeatureTaskRuntimeGoalReviewCompletionRecorder(
       workflowArtifactEntryMaps(ledger.map { it.asWorkflowArtifactEntry() }),
       workflowArtifactEntryMap(completionEntry.asWorkflowArtifactEntry()),
       FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT,
-    )
+    ).mapNotNull { entry -> JsonCodec.anyToStringAnyMap(entry) }
   }
 
   private fun persistUnaddressedFindings(

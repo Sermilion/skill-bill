@@ -97,7 +97,7 @@ internal fun blockedContinuationRecord(fixture: BlockedContinuationRecordFixture
       operationName = "child_agent_run",
       operationKind = "long_child_run",
       expectedLong = true,
-    ).toArtifactMap()
+    ).toPersistenceWire()
   }
   return engine.updateRecord(
     definition,
@@ -194,7 +194,7 @@ internal fun goalReviewWorkflowRecord(
           goalBranch = "feat/SKILL-119",
           codeReviewMode = CodeReviewExecutionMode.AUTO,
         ).asWorkflowArtifactEntry().toWorkflowArtifactMap(),
-        GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to state.toArtifactMap(),
+        GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to state.toPersistenceWire(),
         GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY to mapOf("1" to rawReviewResult),
       ),
       sessionId = "ftr-001",
@@ -232,7 +232,7 @@ internal fun runtimeCandidateRecord(workflowId: String, declaredProgressTimestam
           "subtask_id" to 1,
           "suppress_pr" to true,
         ),
-        "goal_progress_latest_event" to declaredEvent.toArtifactMap(),
+        "goal_progress_latest_event" to declaredEvent.toPersistenceWire(),
       ),
       sessionId = "ftr-001",
     ),

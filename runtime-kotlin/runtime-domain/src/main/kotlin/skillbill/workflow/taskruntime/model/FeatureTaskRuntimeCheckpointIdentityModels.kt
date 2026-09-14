@@ -260,7 +260,12 @@ fun featureTaskRuntimeAppendCheckpointIdentity(
     existing = existing.map { it.toArtifactMap() },
     entry = entry.toArtifactMap(),
     retentionLimit = retentionLimit,
-  ).map(FeatureTaskRuntimeCheckpointIdentity::fromArtifactMap)
+  ).map { raw ->
+    FeatureTaskRuntimeCheckpointIdentity.fromArtifactMap(
+      JsonCodec.anyToStringAnyMap(raw)
+        ?: checkpointIdentityError("Checkpoint identity history entry must decode to an object."),
+    )
+  }
 }
 
 private fun checkpointIdentityError(detail: String): Nothing = throw InvalidWorkflowStateSchemaError(detail)

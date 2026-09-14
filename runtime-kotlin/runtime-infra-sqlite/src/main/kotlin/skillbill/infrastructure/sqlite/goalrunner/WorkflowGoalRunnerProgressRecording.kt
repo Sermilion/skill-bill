@@ -6,6 +6,7 @@ import skillbill.goalrunner.GoalObservabilityArtifacts
 import skillbill.goalrunner.WORKER_SUBTASK_REQUEST_OUTCOMES_ARTIFACT_KEY
 import skillbill.goalrunner.WORKER_SUBTASK_REQUEST_OUTCOME_LIMIT
 import skillbill.goalrunner.backwardEdgeCountsFromLedger
+import skillbill.goalrunner.decodeDeclaredGoalProgressEvent
 import skillbill.goalrunner.declaredProgressEventFrom
 import skillbill.goalrunner.model.GOAL_ATTEMPT_LEDGER_ARTIFACT_KEY
 import skillbill.goalrunner.model.GOAL_ATTEMPT_LEDGER_LIMIT
@@ -15,7 +16,7 @@ import skillbill.goalrunner.model.GoalRunnerObservabilityRecordRequest
 import skillbill.goalrunner.model.GoalRunnerWorkerSubtaskRequestOutcome
 import skillbill.goalrunner.progressEventFrom
 import skillbill.goalrunner.summary
-import skillbill.goalrunner.toArtifactMap
+import skillbill.goalrunner.toPersistenceWire
 import skillbill.goalrunner.toProgressEvent
 import skillbill.infrastructure.sqlite.decomposition.decodeArtifacts
 import skillbill.ports.db.DatabaseSessionFactory
@@ -39,6 +40,7 @@ import skillbill.workflow.goal.model.GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KE
 import skillbill.workflow.goal.model.GOAL_PROGRESS_HISTORY_LIMIT
 import skillbill.workflow.goal.model.GOAL_PROGRESS_LATEST_EVENT_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GOAL_PROGRESS_RUN_HISTORY_ARTIFACT_KEY
+import skillbill.workflow.goal.model.GoalProgressEvent
 import skillbill.workflow.goal.model.appendBoundedHistoryBySequence
 import skillbill.workflow.goal.model.goalObservabilityLatestEventFromArtifacts
 import skillbill.workflow.model.WorkflowStatus
@@ -117,7 +119,7 @@ internal class WorkflowGoalRunnerProgressRecording(
           workflowStatus = record.workflowStatus,
           currentStepId = record.currentStepId,
           stepUpdates = null,
-          artifactsPatch = observabilityPatch,
+          artifactsPatch = JsonCodec.anyToStringAnyMap(observabilityPatch),
           sessionId = record.sessionId.orEmpty(),
         ),
       )
@@ -126,7 +128,7 @@ internal class WorkflowGoalRunnerProgressRecording(
     }
 
   fun recordProgressEvent(request: GoalRunnerProgressEventRecordRequest): Boolean {
-    val entryMap = request.event.toArtifactMap()
+    val entryMap = request.event.toPersistenceWire()
     goalProgressEventValidator.validate(entryMap, GOAL_PROGRESS_LATEST_EVENT_ARTIFACT_KEY)
     return appendHistoryArtifact(
       HistoryArtifactAppend(
@@ -145,11 +147,11 @@ internal class WorkflowGoalRunnerProgressRecording(
       latestKey = null,
       historyKey = GOAL_ATTEMPT_LEDGER_ARTIFACT_KEY,
       retentionLimit = GOAL_ATTEMPT_LEDGER_LIMIT,
-      entryMap = request.entry.toArtifactMap(),
+      entryMap = request.entry.toPersistenceWire(),
     ),
   )
 
-  fun progressEvents(workflowId: String): List<Map<String, Any?>> = database.transaction { unitOfWork ->
+  fun progressEvents(workflowId: String): List<GoalProgressEvent> = database.transaction { unitOfWork ->
     val family = workflowFamilyFor(unitOfWork.workflowStates, workflowId)
       ?: return@transaction emptyList()
     val record = family.get(unitOfWork.workflowStates, workflowId)
@@ -158,6 +160,7 @@ internal class WorkflowGoalRunnerProgressRecording(
       .orEmpty()
       .mapNotNull { item -> item as? Map<*, *> }
       .mapNotNull { item -> JsonCodec.anyToStringAnyMap(item) }
+      .map { map -> map.decodeDeclaredGoalProgressEvent(GOAL_PROGRESS_RUN_HISTORY_ARTIFACT_KEY) }
   }
 
   fun recordWorkerSubtaskRequestOutcomes(
@@ -173,7 +176,7 @@ internal class WorkflowGoalRunnerProgressRecording(
       .orEmpty()
       .mapNotNull { item -> item as? Map<*, *> }
       .map { item -> JsonCodec.anyToStringAnyMap(item) }
-    val updatedOutcomes = (existing + outcomes.map(GoalRunnerWorkerSubtaskRequestOutcome::toArtifactMap))
+    val updatedOutcomes = (existing + outcomes.map(GoalRunnerWorkerSubtaskRequestOutcome::toPersistenceWire))
       .takeLast(WORKER_SUBTASK_REQUEST_OUTCOME_LIMIT)
     val updated = engine.updateRecord(
       family.definition,

@@ -1,6 +1,5 @@
 package skillbill.goalrunner.model
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.workflow.model.WorkflowStatus
 
@@ -101,8 +100,9 @@ data class GoalAttemptLedgerEntry(
     require(timestamp.isNotBlank()) { "GoalAttemptLedgerEntry.timestamp is required." }
   }
 
-  @OpenBoundaryMap("Goal attempt ledger entry artifact map at durable workflow-artifact/schema seams")
-  fun toArtifactMap(): Map<String, Any?> {
+  fun toPersistenceWire(): Any = toArtifactMap()
+
+  internal fun toArtifactMap(): Map<String, Any?> {
     val optional = linkedMapOf<String, Any?>(
       SharedPayloadKeys.ISSUE_KEY to issueKey,
       SharedPayloadKeys.SUBTASK_ID to subtaskId,
@@ -145,6 +145,5 @@ data class GoalAttemptLedger(
   fun append(entry: GoalAttemptLedgerEntry): GoalAttemptLedger =
     copy(entries = (entries + entry).sortedBy(GoalAttemptLedgerEntry::sequenceNumber).takeLast(retentionLimit))
 
-  @OpenBoundaryMap("Goal attempt ledger artifact list at durable workflow-artifact/schema seams")
-  fun toArtifactList(): List<Map<String, Any?>> = entries.map(GoalAttemptLedgerEntry::toArtifactMap)
+  internal fun toArtifactList(): List<Map<String, Any?>> = entries.map(GoalAttemptLedgerEntry::toArtifactMap)
 }

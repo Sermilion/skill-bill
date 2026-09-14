@@ -9,7 +9,16 @@ import kotlin.test.assertTrue
 
 class RuntimeRawMapArchitectureTest {
 
-  private val rawMapOpenBoundaryAllowlistMaxBaseline = 203
+  private val rawMapOpenBoundaryAllowlistMaxBaseline = 86
+  private val retiredGoalRunnerRawMapPrefixes = listOf(
+    "skillbill.engine.goalrunner.",
+    "skillbill.engine.goalplanning.",
+    "skillbill.goalrunner.",
+    "skillbill.ports.goalrunner.",
+    "skillbill.workflow.goal.",
+  )
+  private val rawMapOpenBoundaryAllowlistPreSubtask5Count = 196
+  private val rawMapOpenBoundaryEntriesRetiredBySubtask5 = 117
 
   @Test
   fun `architecture prose does not carry raw-map FQN inventories`() {
@@ -69,6 +78,17 @@ class RuntimeRawMapArchitectureTest {
   }
 
   @Test
+  fun `goal runner raw-map allow-list entries remain retired`() {
+    val remaining = RuntimeArchitectureScanConstants.RAW_MAP_OPEN_BOUNDARY_ALLOWLIST.filter { entry ->
+      retiredGoalRunnerRawMapPrefixes.any { prefix -> entry.startsWith(prefix) }
+    }
+    assertTrue(
+      remaining.isEmpty(),
+      "Retired goal-runner raw-map declarations must not return to the open-boundary allow-list: $remaining",
+    )
+  }
+
+  @Test
   fun `every OpenBoundaryMap annotated declaration is documented in the architecture allow-list`() {
     val boundaryFiles = sourceFiles().filter { file ->
       file.relativePath.startsWith("runtime-application/src/main/kotlin/") ||
@@ -89,10 +109,18 @@ class RuntimeRawMapArchitectureTest {
   @Test
   fun `RAW_MAP_OPEN_BOUNDARY_ALLOWLIST size does not exceed shrink baseline`() {
     val size = RuntimeArchitectureScanConstants.RAW_MAP_OPEN_BOUNDARY_ALLOWLIST.size
+    val requiredMaximum =
+      rawMapOpenBoundaryAllowlistPreSubtask5Count - rawMapOpenBoundaryEntriesRetiredBySubtask5
     assertTrue(
       size <= rawMapOpenBoundaryAllowlistMaxBaseline,
       "RAW_MAP_OPEN_BOUNDARY_ALLOWLIST has $size entries (baseline $rawMapOpenBoundaryAllowlistMaxBaseline). " +
         "SKILL-52.5 subtasks 2–6 must shrink the allow-list; do not add FQNs without lowering the count elsewhere.",
+    )
+    assertTrue(
+      size <= requiredMaximum,
+      "RAW_MAP_OPEN_BOUNDARY_ALLOWLIST has $size entries; subtask 5 requires at most $requiredMaximum " +
+        "after retiring $rawMapOpenBoundaryEntriesRetiredBySubtask5 entries from the " +
+        "$rawMapOpenBoundaryAllowlistPreSubtask5Count-entry baseline.",
     )
   }
 

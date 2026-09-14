@@ -66,6 +66,7 @@ import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.engine.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.goal.model.GoalProgressEvent
 import skillbill.workflow.goal.model.GoalSubtaskReviewPassResult
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
@@ -592,7 +593,7 @@ internal object EmptyOutcomeStore : GoalRunnerWorkflowOutcomeStore {
     workflowId: String,
     issueKey: String,
     subtaskId: Int,
-    output: Map<String, Any?>,
+    output: Any,
   ): GoalRunnerStoredOutcome? = null
 
   override fun reconcileAuthoritativeOutcomes(
@@ -637,7 +638,7 @@ internal object EmptyOutcomeStore : GoalRunnerWorkflowOutcomeStore {
 
   override fun acknowledgeGoalReviewPass(workflowId: String, passNumber: Int): Boolean = false
 
-  override fun progressEvents(workflowId: String): List<Map<String, Any?>> = emptyList()
+  override fun progressEvents(workflowId: String) = emptyList<GoalProgressEvent>()
 
   override fun childWorkflowLoopIterations(workflowId: String): Map<String, Int> = emptyMap()
 }

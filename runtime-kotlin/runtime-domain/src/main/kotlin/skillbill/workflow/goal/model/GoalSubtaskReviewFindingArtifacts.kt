@@ -1,6 +1,5 @@
 package skillbill.workflow.goal.model
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.review.ReviewFindingPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
@@ -45,16 +44,14 @@ data class GoalSubtaskReviewCompactFinding(
     findingId?.let { require(it.isNotBlank()) { "GoalSubtaskReviewCompactFinding.findingId must be non-blank." } }
   }
 
-  @OpenBoundaryMap("Compact goal-review finding at the durable workflow-artifact seam")
-  fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
+  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
     "severity" to severity,
     "label" to label,
     "text" to text,
   ).apply { findingId?.let { put(ReviewFindingPayloadKeys.FINDING_ID, it) } }
 
   companion object {
-    @OpenBoundaryMap("Compact goal-review finding decode from the durable workflow-artifact map")
-    fun fromArtifactMap(raw: Map<String, Any?>, path: String): GoalSubtaskReviewCompactFinding {
+    internal fun fromArtifactMap(raw: Map<String, Any?>, path: String): GoalSubtaskReviewCompactFinding {
       raw.requireOnlyReviewStateKeys(setOf("severity", "label", "text", "finding_id"), path)
       return GoalSubtaskReviewCompactFinding(
         severity = raw.requireReviewStateString("severity", path),
@@ -103,8 +100,7 @@ data class GoalSubtaskReviewPassResult(
    */
   val blocksAdvance: Boolean get() = blocksAdvance(unresolvedFindingCount, findings)
 
-  @OpenBoundaryMap("Goal-review pass result at the durable workflow-artifact seam")
-  fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
+  internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
     "pass_number" to passNumber,
     SharedPayloadKeys.VERDICT to verdict.wireValue,
     "review_result_artifact" to reviewResultArtifact,
@@ -116,8 +112,7 @@ data class GoalSubtaskReviewPassResult(
   }
 
   companion object {
-    @OpenBoundaryMap("Goal-review pass result decode from the durable workflow-artifact map")
-    fun fromArtifactMap(raw: Map<String, Any?>, path: String): GoalSubtaskReviewPassResult {
+    internal fun fromArtifactMap(raw: Map<String, Any?>, path: String): GoalSubtaskReviewPassResult {
       raw.requireOnlyReviewStateKeys(
         setOf(
           "pass_number",
@@ -166,8 +161,16 @@ data class GoalSubtaskReviewArtifacts(
 )
 
 object GoalSubtaskReviewArtifactDecoder {
-  @OpenBoundaryMap("Atomic goal-review artifact decode from the durable workflow-artifact map")
-  fun decode(artifacts: Map<String, Any?>): GoalSubtaskReviewArtifacts? {
+  fun decode(artifacts: Any): GoalSubtaskReviewArtifacts? =
+    decodeWire(artifacts.asGoalWorkflowArtifactMap("goal subtask review artifacts"))
+
+  fun decodeContinuationOnly(artifacts: Any): FeatureTaskRuntimeGoalContinuationArtifact? =
+    decodeContinuationOnlyWire(artifacts.asGoalWorkflowArtifactMap("goal subtask review continuation artifacts"))
+
+  fun decodeReviewStateOnly(artifacts: Any): GoalSubtaskReviewState? =
+    decodeReviewStateOnlyWire(artifacts.asGoalWorkflowArtifactMap("goal subtask review state artifacts"))
+
+  internal fun decodeWire(artifacts: Map<String, Any?>): GoalSubtaskReviewArtifacts? {
     val hasContinuation = FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY in artifacts
     val hasState = GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY in artifacts
     if (!hasContinuation && !hasState) {
@@ -226,8 +229,7 @@ object GoalSubtaskReviewArtifactDecoder {
    * identity; whether that absence blocks progress is for the phase that actually needs review
    * state to decide (see goal-review reservation), not every reader of the continuation.
    */
-  @OpenBoundaryMap("Continuation-only decode tolerant of a not-yet-captured review state")
-  fun decodeContinuationOnly(artifacts: Map<String, Any?>): FeatureTaskRuntimeGoalContinuationArtifact? {
+  internal fun decodeContinuationOnlyWire(artifacts: Map<String, Any?>): FeatureTaskRuntimeGoalContinuationArtifact? {
     if (FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY !in artifacts) {
       // A review state (or its raw results) without a continuation is not a legitimate "not
       // captured yet" shape the way a missing state is: continuation is written first on every
@@ -247,7 +249,7 @@ object GoalSubtaskReviewArtifactDecoder {
       return null
     }
     return try {
-      decode(artifacts)?.continuation
+      decodeWire(artifacts)?.continuation
     } catch (error: InvalidGoalSubtaskReviewStateSchemaError) {
       if (GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY !in artifacts) decodeContinuationDirect(artifacts) else throw error
     }
@@ -258,9 +260,8 @@ object GoalSubtaskReviewArtifactDecoder {
    * durable row simply has not captured review state (or it disappeared), deferring to the caller
    * to decide whether that absence blocks it.
    */
-  @OpenBoundaryMap("Review-state-only decode tolerant of it not existing yet")
-  fun decodeReviewStateOnly(artifacts: Map<String, Any?>): GoalSubtaskReviewState? =
-    if (GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY !in artifacts) null else decode(artifacts)?.state
+  internal fun decodeReviewStateOnlyWire(artifacts: Map<String, Any?>): GoalSubtaskReviewState? =
+    if (GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY !in artifacts) null else decodeWire(artifacts)?.state
 
   private fun decodeContinuationDirect(artifacts: Map<String, Any?>): FeatureTaskRuntimeGoalContinuationArtifact = try {
     FeatureTaskRuntimeGoalContinuationArtifact.fromArtifactMap(

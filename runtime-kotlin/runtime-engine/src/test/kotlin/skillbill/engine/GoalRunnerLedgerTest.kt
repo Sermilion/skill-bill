@@ -1,4 +1,5 @@
 package skillbill.engine
+import skillbill.contracts.JsonCodec
 import skillbill.engine.goalrunner.goalRunnerDeps
 import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
 import skillbill.engine.goalrunner.testGoalRunner
@@ -148,7 +149,10 @@ class GoalRunnerLedgerTest {
     assertEquals("resume_from_last_resumable_step", finalStop.nextSafeAction)
     val recovered = outcomes.recoveredMissingResultPrefixOutputs.single()
     assertEquals("wfl-1", recovered.workflowId)
-    assertEquals("F-001", recovered.output["notes_for_review"])
+    assertEquals(
+      "F-001",
+      JsonCodec.anyToStringAnyMap(recovered.output)?.get("notes_for_review"),
+    )
   }
 
   @Test

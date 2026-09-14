@@ -18,7 +18,7 @@ import skillbill.goalrunner.derivedTerminalOutcomeFor
 import skillbill.goalrunner.goalContinuationOutcome
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
 import skillbill.goalrunner.nonCompleteStoredOutcomeIsCorroborated
-import skillbill.goalrunner.toArtifactMap
+import skillbill.goalrunner.toPersistenceWire
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
@@ -288,7 +288,7 @@ internal fun applyUnreachableReviewRepairToState(
 ) {
   val healed = healedUnreachableReviewState(wedgeClass, context) ?: return
   state.workingReview = healed
-  state.patch[GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY] = healed.toArtifactMap()
+  state.patch[GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY] = healed.toPersistenceWire()
   val recoveryEvidence = linkedMapOf<String, Any?>(
     "original_sha" to context.failedSha,
     "replacement_sha" to context.replacement,

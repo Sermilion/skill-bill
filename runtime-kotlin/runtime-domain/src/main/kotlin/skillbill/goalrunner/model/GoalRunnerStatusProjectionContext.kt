@@ -26,8 +26,8 @@ internal fun buildGoalRunnerStatusProjectionContext(
   }
   val liveChild = extras.currentWorkflowStatus in LIVE_WORKFLOW_STATUSES
   val liveStep = extras.currentStepOverride?.takeIf(String::isNotBlank)
-  val eventPhase = extras.latestObservabilityEvent?.get("workflow_phase")?.toString()?.takeIf(String::isNotBlank)
-  val blockEvent = extras.latestObservabilityEvent?.get("liveness_class") == "block"
+  val eventPhase = extras.latestObservabilityEvent?.workflowPhase?.takeIf(String::isNotBlank)
+  val blockEvent = extras.latestObservabilityEvent?.livenessClass == "block"
   val supersededPhaseEvent = liveStep != null && eventPhase != null && eventPhase != liveStep
   val staleSignal = liveChild && (blockEvent || supersededPhaseEvent)
   return GoalRunnerStatusProjectionContext(currentSubtask, statusOf, staleSignal)

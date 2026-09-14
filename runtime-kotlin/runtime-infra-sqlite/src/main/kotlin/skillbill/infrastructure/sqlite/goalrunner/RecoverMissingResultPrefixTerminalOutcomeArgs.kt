@@ -8,7 +8,7 @@ internal data class RecoverMissingResultPrefixTerminalOutcomeArgs(
   val workflowStates: WorkflowStateRepository,
   val family: WorkflowFamily,
   val record: WorkflowStateSnapshot,
-  val output: Map<String, Any?>,
+  val output: Any,
   val issueKey: String,
   val subtaskId: Int,
   val workflowId: String,

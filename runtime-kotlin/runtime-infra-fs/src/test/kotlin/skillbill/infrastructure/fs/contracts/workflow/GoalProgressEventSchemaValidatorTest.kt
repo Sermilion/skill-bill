@@ -1,4 +1,5 @@
 package skillbill.infrastructure.fs.contracts.workflow
+import skillbill.contracts.JsonCodec
 import skillbill.contracts.workflow.GOAL_PROGRESS_EVENT_CONTRACT_VERSION
 import skillbill.error.InvalidGoalProgressEventSchemaError
 import skillbill.workflow.goal.model.GoalProgressEvent
@@ -18,7 +19,10 @@ class GoalProgressEventSchemaValidatorTest {
       sequenceNumber = 1,
       timestamp = "2026-06-02T10:00:00Z",
     )
-    GoalProgressEventSchemaValidator.validate(event.toArtifactMap(), "test-phase")
+    GoalProgressEventSchemaValidator.validate(
+      JsonCodec.anyToStringAnyMap(event.toPersistenceWire())!!,
+      "test-phase",
+    )
   }
 
   @Test
@@ -35,7 +39,10 @@ class GoalProgressEventSchemaValidatorTest {
       expectedLong = true,
       outcome = GoalProgressOutcome.NONE,
     )
-    GoalProgressEventSchemaValidator.validate(event.toArtifactMap(), "test-operation")
+    GoalProgressEventSchemaValidator.validate(
+      JsonCodec.anyToStringAnyMap(event.toPersistenceWire())!!,
+      "test-operation",
+    )
   }
 
   @Test

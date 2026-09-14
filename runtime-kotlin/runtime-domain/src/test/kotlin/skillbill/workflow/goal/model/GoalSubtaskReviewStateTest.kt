@@ -278,7 +278,7 @@ class GoalSubtaskReviewStateTest {
       codeReviewMode = CodeReviewExecutionMode.AUTO,
     )
 
-    assertEquals(null, GoalSubtaskReviewArtifactDecoder.decode(emptyMap()))
+    assertEquals(null, GoalSubtaskReviewArtifactDecoder.decode(emptyMap<String, Any?>()))
     assertFailsWith<InvalidGoalSubtaskReviewStateSchemaError> {
       GoalSubtaskReviewArtifactDecoder.decode(
         mapOf(GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to state.toArtifactMap()),

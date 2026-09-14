@@ -1,10 +1,10 @@
 package skillbill.goalrunner.model
 
-import skillbill.boundary.OpenBoundaryMap
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.ValidationEvidencePayloadKeys
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.goal.model.GoalObservabilityDiffStat
+import skillbill.workflow.goal.model.GoalObservabilityEvent
 import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunks
 import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.WorkflowStatus
@@ -84,8 +84,7 @@ data class GoalRunnerStatusProjection(
   val executionLiveness: ExecutionLiveness = ExecutionLiveness.UNKNOWN,
   val planning: GoalPlanningStatusSnapshot? = null,
   val latestLivenessSignal: String? = null,
-  @OpenBoundaryMap("Compact latest goal observability event passthrough for goal status rendering")
-  val latestObservabilityEvent: Map<String, Any?>? = null,
+  val latestObservabilityEvent: GoalObservabilityEvent? = null,
   val requestedDiffStat: GoalObservabilityDiffStat? = null,
   val selectedDiffHunks: GoalObservabilitySelectedDiffHunks? = null,
   val blockedAttemptCount: Int = 0,
@@ -113,8 +112,9 @@ data class GoalRunnerSubtaskValidationEvidence(
   val gateExecutionEvidence: FeatureTaskRuntimeValidationGateExecutionEvidence? = null,
   val integrityProblem: String? = null,
 ) {
-  @OpenBoundaryMap("Goal status validation evidence wire map")
-  fun toStatusMap(): Map<String, Any?> = linkedMapOf(
+  fun toStatusWire(): Any = toStatusMap()
+
+  internal fun toStatusMap(): Map<String, Any?> = linkedMapOf(
     SharedPayloadKeys.SUBTASK_ID to subtaskId,
     ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE to
       evidence?.toArtifactMap(),
@@ -154,8 +154,7 @@ data class GoalRunnerStatusProjectionRuntimeInputs(
    */
   val currentWorkflowStatus: WorkflowStatus? = null,
   val latestLivenessSignal: String? = null,
-  @OpenBoundaryMap("Compact latest goal observability event passthrough for goal status rendering")
-  val latestObservabilityEvent: Map<String, Any?>? = null,
+  val latestObservabilityEvent: GoalObservabilityEvent? = null,
   val requestedDiffStat: GoalObservabilityDiffStat? = null,
   val selectedDiffHunks: GoalObservabilitySelectedDiffHunks? = null,
   val blockedAttemptCount: Int = 0,
@@ -178,7 +177,6 @@ data class GoalRunnerStatusProjectionRuntimeInputs(
 )
 
 object GoalRunnerStatusProjector {
-  @OpenBoundaryMap("Goal status projection accepts compact latest goal observability event passthrough")
   fun project(
     manifest: DecompositionManifest,
     activeAgent: String? = null,
