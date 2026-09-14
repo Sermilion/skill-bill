@@ -1,5 +1,7 @@
 package skillbill.workflow.taskruntime.model
 
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
+
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.review.ReviewFindingPayloadKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_REPAIR_RECEIPT_CONTRACT_VERSION
@@ -198,7 +200,7 @@ data class FeatureTaskRuntimeRepairReceipt(
   init {
     if (contractVersion !in ACCEPTED_REPAIR_RECEIPT_CONTRACT_VERSIONS) {
       receiptError(
-        "contract_version",
+        SharedPayloadKeys.CONTRACT_VERSION,
         "must be one of ${ACCEPTED_REPAIR_RECEIPT_CONTRACT_VERSIONS.joinToString { "'$it'" }}.",
       )
     }
@@ -229,7 +231,7 @@ data class FeatureTaskRuntimeRepairReceipt(
       observations: FeatureTaskRuntimeRepairReceiptDecodeObservations? = null,
     ): FeatureTaskRuntimeRepairReceipt {
       raw.requireOnlyReviewStateKeys(
-        setOf("contract_version", "round_number", "pre_fix_checkpoint_sha", "entries", "disturbed_remedies"),
+        setOf(SharedPayloadKeys.CONTRACT_VERSION, "round_number", "pre_fix_checkpoint_sha", "entries", "disturbed_remedies"),
         path,
       )
       if (raw.containsKey("disturbed_remedies")) {
@@ -247,7 +249,7 @@ data class FeatureTaskRuntimeRepairReceipt(
       }
       return anchoredToDecodePath(path) {
         FeatureTaskRuntimeRepairReceipt(
-          contractVersion = raw.requireReviewStateString("contract_version", path),
+          contractVersion = raw.requireReviewStateString(SharedPayloadKeys.CONTRACT_VERSION, path),
           roundNumber = raw.requireReviewStateInt("round_number", path),
           preFixCheckpointSha = raw.requireReviewStateString("pre_fix_checkpoint_sha", path),
           entries = entries,
@@ -337,7 +339,7 @@ fun FeatureTaskRuntimeRepairReceipt.attemptedUnresolvedEntries(): List<FeatureTa
 internal fun compactReviewFindingIdentity(finding: GoalSubtaskReviewCompactFinding): String =
   listOf(finding.severity, finding.label, finding.text).joinToString("|", transform = ::normalizeIdentityPart)
 
-private val FINDING_REF_ALIASES = listOf("finding_id", "finding_ref", "id", "ref")
+private val FINDING_REF_ALIASES = listOf("finding_id", "finding_ref", DecompositionPlanningPayloadKeys.ID, "ref")
 private const val FINDING_REF_NUMERIC_WIDTH = 3
 
 internal fun requireFindingRefAlias(raw: Map<String, Any?>, path: String): String {

@@ -1,5 +1,7 @@
 package skillbill.application.decomposition
 
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
+
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.decomposition.model.DecompositionManifestRuntimeUpdate
 import skillbill.application.decomposition.model.DecompositionManifestWorkflowProjectionInput
@@ -156,8 +158,8 @@ class DecompositionManifestWriter : DecompositionManifestProjectionWriter {
   private fun manifestFromDecompositionPlan(input: DecompositionPlanManifestInput): DecompositionManifest {
     val parentSpecPath = Path.of(parentSpecPath(input.plan))
     assertParentSpecIsNotDecomposedSubtask(input.repoRoot, parentSpecPath, input.validator, input.fileStore)
-    val branchName = branchName(input.artifactsPatch?.get("branch"))
-      .ifBlank { branchName(input.existingArtifacts["branch"]) }
+    val branchName = branchName(input.artifactsPatch?.get(DecompositionPlanningPayloadKeys.BRANCH))
+      .ifBlank { branchName(input.existingArtifacts[DecompositionPlanningPayloadKeys.BRANCH]) }
     val executionModel = executionModel(input.plan)
     val request = DecompositionManifestWriteRequest(
       repoRoot = input.repoRoot,

@@ -140,7 +140,7 @@ data class FeatureTaskRuntimePhaseOutputRepairEvidence(
       requireRepairEvidenceExactFields(raw)
       val location = requireRepairEvidenceLocation(raw)
       return FeatureTaskRuntimePhaseOutputRepairEvidence(
-        contractVersion = raw.requireRepairEvidenceString("contract_version"),
+        contractVersion = raw.requireRepairEvidenceString(SharedPayloadKeys.CONTRACT_VERSION),
         validatorVersion = raw.requireRepairEvidenceString("validator_version"),
         format = FeatureTaskRuntimePhaseOutputFormat.fromWire(raw.requireRepairEvidenceString("format")),
         originalDigest = raw.requireRepairEvidenceString("original_digest"),
@@ -180,7 +180,7 @@ private fun phaseOutputRepairEvidenceSchemaError(reason: String): Nothing =
 
 private fun requireRepairEvidenceExactFields(raw: Map<String, Any?>) {
   val expectedFields = setOf(
-    "contract_version",
+    SharedPayloadKeys.CONTRACT_VERSION,
     "validator_version",
     "format",
     "original_digest",

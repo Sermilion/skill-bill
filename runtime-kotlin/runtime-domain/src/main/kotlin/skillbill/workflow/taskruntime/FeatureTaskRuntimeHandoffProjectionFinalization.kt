@@ -1,5 +1,7 @@
 package skillbill.workflow.taskruntime
 
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
+
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
@@ -77,7 +79,7 @@ internal object FeatureTaskRuntimeHandoffProjectionFinalization {
         ?: context.validation[SharedPayloadKeys.SUMMARY]
         ?: "completed"
       ),
-    "base_branch" to context.base,
+    DecompositionPlanningPayloadKeys.BASE_BRANCH to context.base,
     "diff_reference" to (context.checkpointFingerprint ?: "repository-checkpoint-unavailable"),
   )
 

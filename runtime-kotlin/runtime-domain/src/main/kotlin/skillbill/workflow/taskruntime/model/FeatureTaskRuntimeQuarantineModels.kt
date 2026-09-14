@@ -30,7 +30,7 @@ private val QUARANTINE_REJECTION_CLASSES: Set<String> = setOf(
   QUARANTINE_REJECTION_CLASS_CHECKPOINT_IDENTITY_VERSION,
 )
 
-private val QUARANTINE_ENVELOPE_FIELDS: Set<String> = setOf("contract_version", "entries")
+private val QUARANTINE_ENVELOPE_FIELDS: Set<String> = setOf(SharedPayloadKeys.CONTRACT_VERSION, "entries")
 
 /**
  * One quarantined durable record. Names the producing phase (which will be regenerated), the

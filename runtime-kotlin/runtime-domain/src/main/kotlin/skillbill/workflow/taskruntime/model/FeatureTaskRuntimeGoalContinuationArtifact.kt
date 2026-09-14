@@ -63,8 +63,8 @@ data class FeatureTaskRuntimeGoalContinuationArtifact(
     internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeGoalContinuationArtifact {
       rejectUnknownGoalContinuationKeys(raw)
       return FeatureTaskRuntimeGoalContinuationArtifact(
-        issueKey = raw.requireStringField("issue_key"),
-        subtaskId = raw.requireIntField("subtask_id"),
+        issueKey = raw.requireStringField(SharedPayloadKeys.ISSUE_KEY),
+        subtaskId = raw.requireIntField(SharedPayloadKeys.SUBTASK_ID),
         suppressPr = raw.requireGoalContinuationSuppressPr(),
         goalBranch = raw.requireStringField("goal_branch"),
         parentWorkflowId = raw.optionalStringField("parent_workflow_id"),
@@ -80,8 +80,8 @@ data class FeatureTaskRuntimeGoalContinuationArtifact(
 }
 
 private val goalContinuationKeys: Set<String> = setOf(
-  "issue_key",
-  "subtask_id",
+  SharedPayloadKeys.ISSUE_KEY,
+  SharedPayloadKeys.SUBTASK_ID,
   "suppress_pr",
   "goal_branch",
   "parent_workflow_id",

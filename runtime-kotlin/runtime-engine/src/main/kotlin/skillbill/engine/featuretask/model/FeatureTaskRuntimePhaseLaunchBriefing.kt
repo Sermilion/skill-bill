@@ -79,7 +79,7 @@ data class FeatureTaskRuntimePhaseLaunchBriefing(
         )
       }
       return FeatureTaskRuntimePhaseLaunchBriefing(
-        phaseId = raw.requireStringField("phase_id"),
+        phaseId = raw.requireStringField(SharedPayloadKeys.PHASE_ID),
         specReference = raw.requireStringField("spec_reference"),
         featureSize = raw.requireStringField("feature_size"),
         acceptanceCriteria = raw.requireStringListField("acceptance_criteria"),
@@ -139,8 +139,8 @@ data class FeatureTaskRuntimePhaseLaunchBriefing(
     const val CONTRACT_VERSION: String = FEATURE_TASK_RUNTIME_PHASE_LAUNCH_BRIEFING_CONTRACT_VERSION
 
     private val ALLOWED_FIELDS: Set<String> = setOf(
-      "contract_version",
-      "phase_id",
+      SharedPayloadKeys.CONTRACT_VERSION,
+      SharedPayloadKeys.PHASE_ID,
       "spec_reference",
       "feature_size",
       "acceptance_criteria",

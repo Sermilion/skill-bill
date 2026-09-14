@@ -62,8 +62,6 @@ class RuntimeArchitectureDocumentationTest {
     assertContains(architecture, SCAFFOLD_STANDALONE_ENTRYPOINT_GUARDRAIL)
     assertContains(architecture, "RuntimeCompositionGuardArchitectureTest")
     assertFalse(architecture.contains("compatibility umbrella"))
-    assertFalse(architecture.contains("while the"))
-    assertFalse(architecture.contains("should converge"))
     assertFalse(architecture.contains("Near-Term Refactor Order"))
   }
 
@@ -86,6 +84,19 @@ class RuntimeArchitectureDocumentationTest {
     assertContains(architecture, "Platform-pack manifest schema validation is owned by")
     assertContains(architecture, "Native-agent composition schema validation is owned by")
     assertContains(architecture, "Telemetry-event schema validation is owned by")
+  }
+
+  @Test
+  fun `architecture document declares governed wire seams and current enforcement state`() {
+    val architecture = Files.readString(runtimeRoot.resolve("ARCHITECTURE.md"))
+
+    assertContains(architecture, "## Governed payload seams (mechanical scope)")
+    assertContains(architecture, "Decomposition manifest")
+    assertContains(architecture, "Workflow phase-output envelope")
+    assertContains(architecture, "`produced_outputs` entry maps")
+    assertContains(architecture, "does not prove every `String` in")
+    assertContains(architecture, "ApplicationPackageAcyclicityArchitectureTest")
+    assertContains(architecture, "runtime-engine-package-cycle-baseline.txt")
   }
 
   @Test

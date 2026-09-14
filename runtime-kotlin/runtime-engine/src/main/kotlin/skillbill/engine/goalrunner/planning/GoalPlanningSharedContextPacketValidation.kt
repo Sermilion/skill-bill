@@ -1,4 +1,6 @@
 package skillbill.engine.goalrunner.planning
+
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.ports.goalrunner.planning.model.GoalPlanningBoundaryHeadingKind
@@ -9,9 +11,9 @@ object GoalPlanningSharedContextPacketValidation {
   private val BOUNDARY_MEMORY_FIELDS = setOf("catalog", "truncated")
   private val CATALOG_ENTRY_FIELDS = setOf("heading_id", "source_path", "kind", "heading")
   private val CATALOG_KINDS = setOf(GoalPlanningContext.KIND_HISTORY, GoalPlanningContext.KIND_DECISIONS)
-  private val SUBTASK_FIELDS = setOf("id", "name", "spec_path", "planning_disposition", "dependencies")
-  private val DEPENDENCY_FIELDS = setOf("subtask_id", "optional", "skipped")
-  private val DISPOSITIONS = setOf("included", "skipped")
+  private val SUBTASK_FIELDS = setOf(DecompositionPlanningPayloadKeys.ID, DecompositionPlanningPayloadKeys.NAME, DecompositionPlanningPayloadKeys.SPEC_PATH, "planning_disposition", DecompositionPlanningPayloadKeys.DEPENDENCIES)
+  private val DEPENDENCY_FIELDS = setOf(SharedPayloadKeys.SUBTASK_ID, DecompositionPlanningPayloadKeys.OPTIONAL, DecompositionPlanningPayloadKeys.SKIPPED)
+  private val DISPOSITIONS = setOf("included", DecompositionPlanningPayloadKeys.SKIPPED)
 
   fun requireValidCatalog(value: Any?) {
     val boundaryMemory = value as? Map<*, *> ?: error("shared context boundary memory is invalid")
@@ -51,21 +53,21 @@ object GoalPlanningSharedContextPacketValidation {
     return entries.map { entry ->
       val subtask = entry as? Map<*, *> ?: error("shared context ordered subtask must be an object")
       require(subtask.keys == SUBTASK_FIELDS) { "shared context ordered subtask fields are invalid" }
-      val id = (subtask["id"] as? Number)?.toInt()
+      val id = (subtask[DecompositionPlanningPayloadKeys.ID] as? Number)?.toInt()
         ?: error("shared context ordered subtask id is invalid")
-      val name = subtask["name"] as? String
+      val name = subtask[DecompositionPlanningPayloadKeys.NAME] as? String
         ?: error("shared context ordered subtask name is invalid")
-      val specPath = subtask["spec_path"] as? String
+      val specPath = subtask[DecompositionPlanningPayloadKeys.SPEC_PATH] as? String
         ?: error("shared context ordered subtask spec path is invalid")
       val disposition = subtask["planning_disposition"] as? String
         ?: error("shared context ordered subtask planning disposition is invalid")
       require(disposition in DISPOSITIONS) { "shared context ordered subtask planning disposition is invalid" }
       linkedMapOf(
-        "id" to id,
-        "name" to name,
-        "spec_path" to specPath,
+        DecompositionPlanningPayloadKeys.ID to id,
+        DecompositionPlanningPayloadKeys.NAME to name,
+        DecompositionPlanningPayloadKeys.SPEC_PATH to specPath,
         "planning_disposition" to disposition,
-        "dependencies" to normalizedDependencies(subtask["dependencies"]),
+        DecompositionPlanningPayloadKeys.DEPENDENCIES to normalizedDependencies(subtask[DecompositionPlanningPayloadKeys.DEPENDENCIES]),
       )
     }
   }
@@ -80,12 +82,12 @@ object GoalPlanningSharedContextPacketValidation {
           (dependency[SharedPayloadKeys.SUBTASK_ID] as? Number)?.toInt()
             ?: error("shared context dependency subtask id is invalid")
           ),
-        "optional" to (
-          dependency["optional"] as? Boolean
+        DecompositionPlanningPayloadKeys.OPTIONAL to (
+          dependency[DecompositionPlanningPayloadKeys.OPTIONAL] as? Boolean
             ?: error("shared context dependency optional flag is invalid")
           ),
-        "skipped" to (
-          dependency["skipped"] as? Boolean
+        DecompositionPlanningPayloadKeys.SKIPPED to (
+          dependency[DecompositionPlanningPayloadKeys.SKIPPED] as? Boolean
             ?: error("shared context dependency skipped flag is invalid")
           ),
       )

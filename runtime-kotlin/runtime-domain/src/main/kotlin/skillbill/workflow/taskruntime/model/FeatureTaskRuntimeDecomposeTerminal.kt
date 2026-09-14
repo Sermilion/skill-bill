@@ -1,5 +1,7 @@
 package skillbill.workflow.taskruntime.model
 
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
+
 import skillbill.error.InvalidWorkflowStateSchemaError
 
 /** Durable terminal decompose/planning-stop summary for status and monitor after process restart. */
@@ -29,7 +31,7 @@ data class FeatureTaskRuntimeDecomposeTerminal(
   val subtaskCount: Int get() = subtaskSpecPaths.size
   internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf(
     "reason" to reason,
-    "parent_spec_path" to parentSpecPath,
+    DecompositionPlanningPayloadKeys.PARENT_SPEC_PATH to parentSpecPath,
     "decomposition_manifest_path" to decompositionManifestPath,
     "subtask_spec_paths" to subtaskSpecPaths,
     "subtask_count" to subtaskCount,
@@ -40,7 +42,7 @@ data class FeatureTaskRuntimeDecomposeTerminal(
     internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeDecomposeTerminal =
       FeatureTaskRuntimeDecomposeTerminal(
         reason = raw.requireTerminalStringField("reason"),
-        parentSpecPath = raw.requireTerminalStringField("parent_spec_path"),
+        parentSpecPath = raw.requireTerminalStringField(DecompositionPlanningPayloadKeys.PARENT_SPEC_PATH),
         decompositionManifestPath = raw.requireTerminalStringField("decomposition_manifest_path"),
         subtaskSpecPaths = raw.requireTerminalStringListField("subtask_spec_paths"),
       )

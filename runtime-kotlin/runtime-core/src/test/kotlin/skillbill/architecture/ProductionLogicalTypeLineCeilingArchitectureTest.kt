@@ -31,27 +31,14 @@ class ProductionLogicalTypeLineCeilingArchitectureTest {
       fun SplitLogicalTypeFixture.partTwo() = Unit
     """.trimIndent() + "\n" + (1..partLineCount).joinToString("\n") { index -> "fun partTwo$index() = $index" }
     val combinedLineCount = listOf(partOne, partTwo).sumOf { source -> source.lineSequence().count() }
-    val counts = linkedMapOf<String, Int>()
-    listOf(partOne, partTwo).forEach { source ->
-      val packageName = ArchitectureScanSupport.declaredPackage(source).orEmpty()
-      val topLevelType = ArchitectureScanSupport.primaryTopLevelDeclarationName(source)
-      val lineCount = source.lineSequence().count()
-      val targets =
-        if (topLevelType != null) {
-          listOf("$packageName.$topLevelType")
-        } else {
-          ArchitectureScanSupport.extensionReceiverFqns(source, packageName, emptyList())
-        }
-      targets.forEach { fqn -> counts[fqn] = counts.getOrDefault(fqn, 0) + lineCount }
-    }
-    val violations = counts.mapNotNull { (fqn, lineCount) ->
-      if (lineCount > PrincipleEnforcementInventory.PRODUCTION_LINE_CEILING) {
-        "$fqn has $lineCount lines; exceeds the ${PrincipleEnforcementInventory.PRODUCTION_LINE_CEILING}-line " +
-          "ceiling without a baseline entry."
-      } else {
-        null
-      }
-    }
+    val violations = ArchitectureScanSupport.logicalTypeLineCeilingViolationsInSources(
+      sourceFiles = listOf(
+        syntheticSourceFile("fixture/logicaltype/SplitLogicalTypeFixture.kt", partOne),
+        syntheticSourceFile("fixture/logicaltype/SplitLogicalTypeFixtureExtensions.kt", partTwo),
+      ),
+      ceiling = PrincipleEnforcementInventory.PRODUCTION_LINE_CEILING,
+      baseline = emptyMap(),
+    )
     assertEquals(
       listOf(
         "skillbill.fixture.logicaltype.SplitLogicalTypeFixture has $combinedLineCount lines; exceeds the " +

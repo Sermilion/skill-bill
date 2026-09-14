@@ -1,5 +1,7 @@
 package skillbill.engine.goalrunner.planning
 
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
+
 import skillbill.application.decomposition.DECOMPOSITION_MANIFEST_FILENAME
 import skillbill.engine.goalrunner.planning.model.GoalPlanningSweepOutcome
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
@@ -20,7 +22,7 @@ internal fun DefaultGoalPlanningSweep.freshPlanningPacket(
     "packet_version" to GoalPlanningSharedContextPacket.VERSION,
     "repository_identity" to shared.repositoryIdentity,
     "normalized_issue_key" to shared.normalizedIssueKey,
-    "parent_spec_path" to state.manifest.parentSpecPath,
+    DecompositionPlanningPayloadKeys.PARENT_SPEC_PATH to state.manifest.parentSpecPath,
     "parent_spec" to shared.parentSpec.take(GoalPlanningSharedContextPacket.MAX_GOVERNED_CONTEXT_CHARS),
     "decomposition_manifest" to decomposition.take(GoalPlanningSharedContextPacket.MAX_GOVERNED_CONTEXT_CHARS),
     "boundary_memory" to GoalPlanningSharedContextPacket.catalog(discovered),

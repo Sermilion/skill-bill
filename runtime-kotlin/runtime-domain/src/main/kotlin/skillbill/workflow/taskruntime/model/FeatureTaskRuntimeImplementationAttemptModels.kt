@@ -66,21 +66,21 @@ data class FeatureTaskRuntimeImplementationAttempt(
       return try {
         FeatureTaskRuntimeImplementationAttempt(
           sequenceNumber = raw.requireIntField("sequence_number"),
-          phaseId = raw.requireStringField("phase_id"),
+          phaseId = raw.requireStringField(SharedPayloadKeys.PHASE_ID),
           attemptNumber = raw.requireIntField("attempt_number"),
           agentId = raw.requireStringField("agent_id"),
-          status = FeatureTaskRuntimeImplementationAttemptStatus.fromWireValue(raw.requireStringField("status")),
+          status = FeatureTaskRuntimeImplementationAttemptStatus.fromWireValue(raw.requireStringField(SharedPayloadKeys.STATUS)),
           recordedAt = raw.requireStringField("recorded_at"),
-          value = raw.requireStringField("value"),
+          value = raw.requireStringField(SharedPayloadKeys.VALUE),
           loopId = raw.optionalStringField("loop_id"),
           edgeIteration = raw.optionalAttemptIntField("edge_iteration"),
-          failureDisposition = raw.optionalStringField("failure_disposition")?.let { value ->
+          failureDisposition = raw.optionalStringField(SharedPayloadKeys.FAILURE_DISPOSITION)?.let { value ->
             FeatureTaskRuntimeFailureDisposition.fromWireValue(value)
               ?: implementationAttemptError(
                 "Feature-task-runtime implementation-attempt 'failure_disposition' has unsupported value.",
               )
           },
-          prompt = raw.optionalStringField("prompt"),
+          prompt = raw.optionalStringField(SharedPayloadKeys.PROMPT),
         )
       } catch (error: IllegalArgumentException) {
         implementationAttemptError(
@@ -90,8 +90,8 @@ data class FeatureTaskRuntimeImplementationAttempt(
     }
 
     private val ALLOWED_FIELDS = setOf(
-      "sequence_number", "phase_id", "attempt_number", "agent_id", "status", "recorded_at",
-      "value", "loop_id", "edge_iteration", "failure_disposition", "prompt",
+      "sequence_number", SharedPayloadKeys.PHASE_ID, "attempt_number", "agent_id", SharedPayloadKeys.STATUS, "recorded_at",
+      SharedPayloadKeys.VALUE, "loop_id", "edge_iteration", SharedPayloadKeys.FAILURE_DISPOSITION, SharedPayloadKeys.PROMPT,
     )
   }
 }

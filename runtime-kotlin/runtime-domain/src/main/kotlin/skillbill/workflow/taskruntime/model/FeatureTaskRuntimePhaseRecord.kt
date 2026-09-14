@@ -1,5 +1,7 @@
 package skillbill.workflow.taskruntime.model
 
+import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
+
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION
@@ -154,7 +156,7 @@ data class FeatureTaskRuntimePhaseRecord(
     finishedAt?.let { put("finished_at", it) }
     durationMillis?.let { put("duration_millis", it) }
     outputArtifact?.let { put("output_artifact", it) }
-    blockedReason?.let { put("blocked_reason", it) }
+    blockedReason?.let { put(DecompositionManifestPayloadKeys.BLOCKED_REASON, it) }
     failureDisposition?.let { put(SharedPayloadKeys.FAILURE_DISPOSITION, it.wireValue) }
     if (fileManifestBefore.isNotEmpty()) put("file_manifest_before", fileManifestBefore)
     if (fileManifestAfter.isNotEmpty()) put("file_manifest_after", fileManifestAfter)
@@ -176,11 +178,11 @@ data class FeatureTaskRuntimePhaseRecord(
     /** Strict decode; loud-fails on any missing or malformed required field. */
     internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimePhaseRecord {
       requireCompatibleShape(raw)
-      val phaseId = requireKnownFeatureTaskRuntimePhaseId(raw.requireStringField("phase_id"), "phase_id")
+      val phaseId = requireKnownFeatureTaskRuntimePhaseId(raw.requireStringField(SharedPayloadKeys.PHASE_ID), SharedPayloadKeys.PHASE_ID)
       return try {
         FeatureTaskRuntimePhaseRecord(
           phaseId = phaseId,
-          status = WorkflowStepStatus.fromWire(raw.requireStringField("status"))
+          status = WorkflowStepStatus.fromWire(raw.requireStringField(SharedPayloadKeys.STATUS))
             ?: incompatiblePhaseRecord(listOf("unknown status '${raw[SharedPayloadKeys.STATUS]}'")),
           attemptCount = raw.requireIntField("attempt_count"),
           startedAt = raw.requireStringField("started_at"),
@@ -193,8 +195,8 @@ data class FeatureTaskRuntimePhaseRecord(
           ),
           outputArtifact = raw.optionalStringField("output_artifact"),
           rejectedOutput = null,
-          blockedReason = raw.optionalStringField("blocked_reason"),
-          failureDisposition = raw.optionalStringField("failure_disposition")?.let { value ->
+          blockedReason = raw.optionalStringField(DecompositionManifestPayloadKeys.BLOCKED_REASON),
+          failureDisposition = raw.optionalStringField(SharedPayloadKeys.FAILURE_DISPOSITION)?.let { value ->
             FeatureTaskRuntimeFailureDisposition.fromWireValue(value) ?: incompatiblePhaseRecord()
           },
           fileManifestBefore = raw.optionalStringListField("file_manifest_before"),
@@ -222,12 +224,12 @@ data class FeatureTaskRuntimePhaseRecord(
     /** Key-shape and identity guard: an unknown key is drift, not a field to ignore. */
     private fun requireCompatibleShape(raw: Map<String, Any?>) {
       val required = setOf(
-        "contract_version", "record_kind", "phase_id", "status", "attempt_count", "started_at",
+        SharedPayloadKeys.CONTRACT_VERSION, "record_kind", SharedPayloadKeys.PHASE_ID, SharedPayloadKeys.STATUS, "attempt_count", "started_at",
         "first_started_at", "resolved_agent_id", "execution_origin",
       )
       val allowed = required + setOf(
-        "finished_at", "duration_millis", "output_artifact", "blocked_reason",
-        "failure_disposition", "file_manifest_before", "file_manifest_after", "file_manifest_introduced",
+        "finished_at", "duration_millis", "output_artifact", DecompositionManifestPayloadKeys.BLOCKED_REASON,
+        SharedPayloadKeys.FAILURE_DISPOSITION, "file_manifest_before", "file_manifest_after", "file_manifest_introduced",
         "loop_id", "edge_iteration", "review_pass_number", "rejected_output",
         "repair_evidence", "launched_model", "launched_effort", "review_run_id",
       )

@@ -1,5 +1,7 @@
 package skillbill.workflow.taskruntime.model
 
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
+
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_PHASE_HANDOFF_CONTRACT_VERSION
 import skillbill.error.InvalidFeatureTaskRuntimePhaseHandoffSchemaError
@@ -63,7 +65,7 @@ data class PhaseHandoffProjectionDeclaration(
     "consumer_phase_id" to consumerPhaseId,
     "projection_name" to projectionName,
     "source" to sourceRef.toDeclarationMap(),
-    "projection_contract" to mapOf("id" to projectionContractId, "version" to projectionContractVersion),
+    "projection_contract" to mapOf(DecompositionPlanningPayloadKeys.ID to projectionContractId, "version" to projectionContractVersion),
     "prompt_visibility" to promptVisibility.wireValue,
     "budget" to mapOf(
       "max_utf8_bytes" to budget.maxUtf8Bytes,
@@ -91,7 +93,7 @@ data class PhaseHandoffProjectionDeclaration(
     ): PhaseHandoffProjectionDeclaration {
       foundationValidator.validateDeclaration(raw, "phase-handoff-declaration")
       val allowed = setOf(
-        "contract_version", "consumer_phase_id", "projection_name", "source", "projection_contract",
+        SharedPayloadKeys.CONTRACT_VERSION, "consumer_phase_id", "projection_name", "source", "projection_contract",
         "prompt_visibility", "budget", "checkpoint_policy", "producer_iteration", "declared_fields",
         "required", "allows_private_artifact_reference", "inline_alternative", "authorized_reference_kinds",
       )
@@ -114,7 +116,7 @@ data class PhaseHandoffProjectionDeclaration(
         sourceRef = sourceRef,
         shape = PhaseHandoffProjectionShape(
           projectionName = raw.string("projection_name"),
-          projectionContractId = contract.string("id"),
+          projectionContractId = contract.string(DecompositionPlanningPayloadKeys.ID),
           projectionContractVersion = contract.string("version"),
           promptVisibility = FeatureTaskRuntimeHandoffPromptVisibility.fromWire(raw.string("prompt_visibility")),
           budget = FeatureTaskRuntimeHandoffProjectionBudget(
@@ -128,7 +130,7 @@ data class PhaseHandoffProjectionDeclaration(
           required = raw.boolean("required"),
           allowsPrivateArtifactReference = raw.boolean("allows_private_artifact_reference"),
           producerIteration = FeatureTaskRuntimeProducerIteration(
-            phaseId = producer.string("phase_id"),
+            phaseId = producer.string(SharedPayloadKeys.PHASE_ID),
             iteration = producer.int("iteration"),
           ),
           inlineAlternative = inlineAlternative,
@@ -138,12 +140,12 @@ data class PhaseHandoffProjectionDeclaration(
     }
 
     private fun sourceRefOf(source: Map<*, *>): FeatureTaskRuntimeHandoffSourceRef = when (source["kind"]) {
-      "upstream_phase_output" -> FeatureTaskRuntimeHandoffSourceRef.UpstreamPhaseOutput(source.string("id"))
+      "upstream_phase_output" -> FeatureTaskRuntimeHandoffSourceRef.UpstreamPhaseOutput(source.string(DecompositionPlanningPayloadKeys.ID))
       "run_invariant_field" -> FeatureTaskRuntimeHandoffSourceRef.RunInvariantField(
-        FeatureTaskRuntimeRunInvariantPromptField.fromWire(source.string("id")),
+        FeatureTaskRuntimeRunInvariantPromptField.fromWire(source.string(DecompositionPlanningPayloadKeys.ID)),
       )
       "derived_ceremony_scaling" -> FeatureTaskRuntimeHandoffSourceRef.DerivedCeremonyScaling
-      "addon_content" -> FeatureTaskRuntimeHandoffSourceRef.AddonContentRef(source.string("id"))
+      "addon_content" -> FeatureTaskRuntimeHandoffSourceRef.AddonContentRef(source.string(DecompositionPlanningPayloadKeys.ID))
       FeatureTaskRuntimeHandoffSourceRef.SHARED_REVIEW_EVIDENCE_WIRE ->
         FeatureTaskRuntimeHandoffSourceRef.SharedReviewEvidence
       FeatureTaskRuntimeHandoffSourceRef.REPAIR_LEDGER_WIRE ->

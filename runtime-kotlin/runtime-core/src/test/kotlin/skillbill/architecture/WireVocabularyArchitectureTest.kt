@@ -1,5 +1,6 @@
 package skillbill.architecture
 
+import skillbill.contracts.workflow.DecompositionManifestSchemaPaths
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -100,6 +101,99 @@ class WireVocabularyArchitectureTest {
     val report = WireVocabularyArchitectureSupport.scanSourceFiles(files)
     assertTrue(report.violations.none { it.contains("unrelated/Labels.kt") })
     assertTrue(report.violations.any { it.contains("consumer/Decoder.kt") && it.contains("restates 'ready'") })
+  }
+
+  @Test
+  fun `new schema field without kotlin owner fails through the production scanner`() {
+    val report = WireVocabularyArchitectureSupport.scanSourceFiles(
+      files = listOf(
+        syntheticSourceFile(
+          "workflow/decomposition/ManifestKeys.kt",
+          """
+          package fixture
+
+          object ManifestKeys {
+            const val STATUS: String = "status"
+          }
+          """.trimIndent(),
+        ),
+      ),
+      enforceGovernedSeams = true,
+      schemaPropertyKeysByPath = mapOf(
+        DecompositionManifestSchemaPaths.REPO_RELATIVE_PATH to setOf("status", "schema_introduced_key"),
+      ),
+    )
+    assertTrue(
+      report.violations.any { it.contains("schema_introduced_key") },
+      "Expected independent schema authority to flag a new field before its owner exists",
+    )
+  }
+
+  @Test
+  fun `governed seam rejects undeclared literal even when keys object declares the wire string`() {
+    val files = listOf(
+      syntheticSourceFile(
+        "fixture/ManifestKeys.kt",
+        """
+        package fixture
+
+        object ManifestKeys {
+          const val STATUS: String = "status"
+        }
+        """.trimIndent(),
+      ),
+      syntheticSourceFile(
+        "workflow/decomposition/ForeignConsumer.kt",
+        """
+        package fixture
+
+        fun read(payload: Map<String, Any?>) = payload["status"]
+        """.trimIndent(),
+      ),
+    )
+    val report = WireVocabularyArchitectureSupport.scanSourceFiles(
+      files,
+      includePayloadKeyAccesses = true,
+      enforceGovernedSeams = true,
+      schemaPropertyKeysByPath = mapOf(
+        DecompositionManifestSchemaPaths.REPO_RELATIVE_PATH to setOf("status"),
+      ),
+    )
+    assertTrue(report.violations.any { it.contains("accesses key 'status'") })
+  }
+
+  @Test
+  fun `governed seam accepts keys constant reference and open extension map values`() {
+    val files = listOf(
+      syntheticSourceFile(
+        "fixture/ManifestKeys.kt",
+        """
+        package fixture
+
+        object ManifestKeys {
+          const val STATUS: String = "status"
+        }
+        """.trimIndent(),
+      ),
+      syntheticSourceFile(
+        "workflow/decomposition/Codec.kt",
+        """
+        package fixture
+
+        fun keyed(payload: Map<String, Any?>) = payload[ManifestKeys.STATUS]
+        fun extensionValues(produced: Map<String, Any?>) = produced["custom_phase_output"]
+        """.trimIndent(),
+      ),
+    )
+    val report = WireVocabularyArchitectureSupport.scanSourceFiles(
+      files,
+      includePayloadKeyAccesses = true,
+      enforceGovernedSeams = true,
+      schemaPropertyKeysByPath = mapOf(
+        DecompositionManifestSchemaPaths.REPO_RELATIVE_PATH to setOf("status"),
+      ),
+    )
+    assertEquals(emptyList(), report.violations)
   }
 
   @Test

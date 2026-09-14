@@ -1,5 +1,8 @@
 package skillbill.workflow.taskruntime.model
 
+import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
+
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITY_CONTRACT_VERSION
@@ -115,12 +118,12 @@ data class FeatureTaskRuntimeCheckpointIdentity(
     SharedPayloadKeys.ISSUE_KEY to issueKey,
     SharedPayloadKeys.SUBTASK_ID to subtaskId,
     "checkpoint_ref" to checkpointRef,
-    "branch" to branch,
+    DecompositionPlanningPayloadKeys.BRANCH to branch,
     SharedPayloadKeys.PHASE_ID to phaseId,
     "generation" to generation,
     "owned_path_digest" to ownedPathDigest,
     "owned_path_count" to ownedPathCount,
-    "commit_sha" to commitSha,
+    DecompositionManifestPayloadKeys.COMMIT_SHA to commitSha,
     "recorded_at" to recordedAt,
   ).apply {
     loopId?.let { put("loop_id", it) }
@@ -137,15 +140,15 @@ data class FeatureTaskRuntimeCheckpointIdentity(
 
     private val ALLOWED_FIELDS = setOf(
       "sequence_number",
-      "issue_key",
-      "subtask_id",
+      SharedPayloadKeys.ISSUE_KEY,
+      SharedPayloadKeys.SUBTASK_ID,
       "checkpoint_ref",
-      "branch",
-      "phase_id",
+      DecompositionPlanningPayloadKeys.BRANCH,
+      SharedPayloadKeys.PHASE_ID,
       "generation",
       "owned_path_digest",
       "owned_path_count",
-      "commit_sha",
+      DecompositionManifestPayloadKeys.COMMIT_SHA,
       "recorded_at",
       "loop_id",
       "parent_sha",
@@ -163,15 +166,15 @@ data class FeatureTaskRuntimeCheckpointIdentity(
       return try {
         FeatureTaskRuntimeCheckpointIdentity(
           sequenceNumber = raw.requireIntField("sequence_number"),
-          issueKey = raw.requireStringField("issue_key"),
-          subtaskId = raw.requireStringField("subtask_id"),
+          issueKey = raw.requireStringField(SharedPayloadKeys.ISSUE_KEY),
+          subtaskId = raw.requireStringField(SharedPayloadKeys.SUBTASK_ID),
           checkpointRef = raw.requireStringField("checkpoint_ref"),
-          branch = raw.requireStringField("branch"),
-          phaseId = raw.requireStringField("phase_id"),
+          branch = raw.requireStringField(DecompositionPlanningPayloadKeys.BRANCH),
+          phaseId = raw.requireStringField(SharedPayloadKeys.PHASE_ID),
           generation = raw.requireIntField("generation"),
           ownedPathDigest = raw.requireStringField("owned_path_digest"),
           ownedPathCount = raw.requireIntField("owned_path_count"),
-          commitSha = raw.requireStringField("commit_sha"),
+          commitSha = raw.requireStringField(DecompositionManifestPayloadKeys.COMMIT_SHA),
           recordedAt = raw.requireStringField("recorded_at"),
           loopId = raw.optionalStringField("loop_id"),
           parentSha = raw.optionalStringField("parent_sha"),

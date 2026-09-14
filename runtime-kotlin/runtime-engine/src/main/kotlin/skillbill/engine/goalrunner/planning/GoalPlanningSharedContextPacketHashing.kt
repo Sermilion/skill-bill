@@ -1,4 +1,7 @@
 package skillbill.engine.goalrunner.planning
+
+import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.text.sha256HexUtf8
@@ -8,26 +11,26 @@ fun goalPlanningImmutableDecompositionHash(manifest: DecompositionManifest): Str
   val immutable = linkedMapOf<String, Any?>(
     SharedPayloadKeys.CONTRACT_VERSION to manifest.contractVersion,
     SharedPayloadKeys.ISSUE_KEY to manifest.issueKey,
-    "feature_name" to manifest.featureName,
-    "parent_spec_path" to manifest.parentSpecPath,
-    "spec_source" to manifest.specSource.wireValue,
-    "execution_model" to manifest.executionModel.wireValue,
-    "base_branch" to manifest.baseBranch,
-    "feature_branch" to manifest.featureBranch,
-    "stack_branches" to manifest.stackBranches.map {
-      linkedMapOf(SharedPayloadKeys.SUBTASK_ID to it.subtaskId, "branch" to it.branch, "base_branch" to it.baseBranch)
+    DecompositionManifestPayloadKeys.FEATURE_NAME to manifest.featureName,
+    DecompositionPlanningPayloadKeys.PARENT_SPEC_PATH to manifest.parentSpecPath,
+    DecompositionPlanningPayloadKeys.SPEC_SOURCE to manifest.specSource.wireValue,
+    DecompositionPlanningPayloadKeys.EXECUTION_MODEL to manifest.executionModel.wireValue,
+    DecompositionPlanningPayloadKeys.BASE_BRANCH to manifest.baseBranch,
+    DecompositionManifestPayloadKeys.FEATURE_BRANCH to manifest.featureBranch,
+    DecompositionPlanningPayloadKeys.STACK_BRANCHES to manifest.stackBranches.map {
+      linkedMapOf(SharedPayloadKeys.SUBTASK_ID to it.subtaskId, DecompositionPlanningPayloadKeys.BRANCH to it.branch, DecompositionPlanningPayloadKeys.BASE_BRANCH to it.baseBranch)
     },
-    "subtasks" to manifest.subtasks.map { subtask ->
+    DecompositionPlanningPayloadKeys.SUBTASKS to manifest.subtasks.map { subtask ->
       linkedMapOf(
-        "id" to subtask.id,
-        "name" to subtask.name,
-        "spec_path" to subtask.specPath,
-        "linear_issue_id" to subtask.linearIssueId,
-        "dependencies" to subtask.dependencies.map { dependency ->
+        DecompositionPlanningPayloadKeys.ID to subtask.id,
+        DecompositionPlanningPayloadKeys.NAME to subtask.name,
+        DecompositionPlanningPayloadKeys.SPEC_PATH to subtask.specPath,
+        DecompositionPlanningPayloadKeys.LINEAR_ISSUE_ID to subtask.linearIssueId,
+        DecompositionPlanningPayloadKeys.DEPENDENCIES to subtask.dependencies.map { dependency ->
           linkedMapOf(
             SharedPayloadKeys.SUBTASK_ID to dependency.subtaskId,
-            "optional" to dependency.optional,
-            "skipped" to dependency.skipped,
+            DecompositionPlanningPayloadKeys.OPTIONAL to dependency.optional,
+            DecompositionPlanningPayloadKeys.SKIPPED to dependency.skipped,
           )
         },
       )

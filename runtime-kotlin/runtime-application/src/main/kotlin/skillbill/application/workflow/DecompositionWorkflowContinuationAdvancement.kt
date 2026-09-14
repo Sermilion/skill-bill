@@ -1,5 +1,7 @@
 package skillbill.application.workflow
 
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
+
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
 import skillbill.application.decomposition.withBlockedSubtask
 import skillbill.application.workflow.model.AdvanceCompletedSubtasksRequest
@@ -124,15 +126,15 @@ fun subtaskStartArtifacts(
 ): WorkflowArtifactPatch = WorkflowArtifactPatch.from(
   mapOf(
     "assessment" to mapOf(
-      "spec_path" to selection.subtask.specPath,
+      DecompositionPlanningPayloadKeys.SPEC_PATH to selection.subtask.specPath,
       "goal_continuation" to true,
       SharedPayloadKeys.ISSUE_KEY to manifest.issueKey,
       SharedPayloadKeys.SUBTASK_ID to selection.subtask.id,
       "accepted_without_user_confirmation" to true,
     ),
-    "branch" to mapOf(
+    DecompositionPlanningPayloadKeys.BRANCH to mapOf(
       "branch_name" to selection.branchPlan.branch,
-      "branch" to selection.branchPlan.branch,
+      DecompositionPlanningPayloadKeys.BRANCH to selection.branchPlan.branch,
       "goal_continuation" to true,
     ),
     "goal_continuation" to mapOf(

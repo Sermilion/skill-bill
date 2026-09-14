@@ -1,5 +1,7 @@
 package skillbill.engine.goalrunner.planning
 
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
+
 import skillbill.application.decomposition.DECOMPOSITION_MANIFEST_FILENAME
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
@@ -106,7 +108,7 @@ internal fun gatherSharedContext(
         "packet_version" to GoalPlanningSharedContextPacket.VERSION,
         "repository_identity" to repositoryIdentity,
         "normalized_issue_key" to state.manifest.issueKey.trim().uppercase(),
-        "parent_spec_path" to parentSpecGoverningPath,
+        DecompositionPlanningPayloadKeys.PARENT_SPEC_PATH to parentSpecGoverningPath,
         "parent_spec" to parentSpec.take(GoalPlanningSharedContextPacket.MAX_GOVERNED_CONTEXT_CHARS),
         "decomposition_manifest" to decomposition.take(GoalPlanningSharedContextPacket.MAX_GOVERNED_CONTEXT_CHARS),
         "boundary_memory" to GoalPlanningSharedContextPacket.catalog(discovered),

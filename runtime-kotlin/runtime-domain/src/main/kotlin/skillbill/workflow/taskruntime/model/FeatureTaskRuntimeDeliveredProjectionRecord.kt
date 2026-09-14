@@ -62,7 +62,7 @@ data class FeatureTaskRuntimeDeliveredProjectionRecord(
     }
 
     private fun requireSupportedPersistenceContract(raw: Map<String, Any?>) {
-      val contractVersion = raw[SharedPayloadKeys.CONTRACT_VERSION] as? String ?: missing("contract_version")
+      val contractVersion = raw[SharedPayloadKeys.CONTRACT_VERSION] as? String ?: missing(SharedPayloadKeys.CONTRACT_VERSION)
       if (contractVersion != FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION) {
         throw InvalidWorkflowStateSchemaError(
           "Feature-task-runtime delivered projection uses unsupported persistence contract version " +
@@ -81,7 +81,7 @@ data class FeatureTaskRuntimeDeliveredProjectionRecord(
     }
 
     private fun decodeDeliveredProjection(raw: Map<String, Any?>) = FeatureTaskRuntimeDeliveredProjectionRecord(
-      workflowId = raw[SharedPayloadKeys.WORKFLOW_ID] as? String ?: missing("workflow_id"),
+      workflowId = raw[SharedPayloadKeys.WORKFLOW_ID] as? String ?: missing(SharedPayloadKeys.WORKFLOW_ID),
       consumerPhaseId = raw["consumer_phase_id"] as? String ?: missing("consumer_phase_id"),
       iteration = (raw["consumer_delivery_iteration"] as? Number)?.toInt()
         ?: missing("consumer_delivery_iteration"),
@@ -123,9 +123,9 @@ data class FeatureTaskRuntimeDeliveredProjectionRecord(
 
     private fun requireExactDeliveredProjectionFields(raw: Map<String, Any?>) {
       val expected = setOf(
-        "contract_version",
+        SharedPayloadKeys.CONTRACT_VERSION,
         "record_kind",
-        "workflow_id",
+        SharedPayloadKeys.WORKFLOW_ID,
         "consumer_phase_id",
         "consumer_delivery_iteration",
         "source_producer_iterations",

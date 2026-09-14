@@ -245,8 +245,8 @@ object FeatureTaskRuntimeRunLoopValidationGate {
       phaseId = run.phaseId,
       iteration = iteration,
       payload =
-      """{"contract_version":"$FEATURE_TASK_RUNTIME_CONTRACT_VERSION","phase_id":"${run.phaseId}",""" +
-        """"status":"completed","summary":"Gate repair segment.","produced_outputs":{}}""",
+      """{"${SharedPayloadKeys.CONTRACT_VERSION}":"$FEATURE_TASK_RUNTIME_CONTRACT_VERSION","${SharedPayloadKeys.PHASE_ID}":"${run.phaseId}",""" +
+        """"${SharedPayloadKeys.STATUS}":"completed","${SharedPayloadKeys.SUMMARY}":"Gate repair segment.","${SharedPayloadKeys.PRODUCED_OUTPUTS}":{}}""",
     )
 
   internal fun gateTriageSegmentOutput(
@@ -354,8 +354,8 @@ object FeatureTaskRuntimeRunLoopValidationGate {
           phaseId = run.phaseId,
           iteration = iteration,
           payload =
-          """{"contract_version":"$FEATURE_TASK_RUNTIME_CONTRACT_VERSION","phase_id":"${run.phaseId}",""" +
-            """"status":"completed","summary":"Gate repair segment.","produced_outputs":{}}""",
+          """{"${SharedPayloadKeys.CONTRACT_VERSION}":"$FEATURE_TASK_RUNTIME_CONTRACT_VERSION","${SharedPayloadKeys.PHASE_ID}":"${run.phaseId}",""" +
+            """"${SharedPayloadKeys.STATUS}":"completed","${SharedPayloadKeys.SUMMARY}":"Gate repair segment.","${SharedPayloadKeys.PRODUCED_OUTPUTS}":{}}""",
         ),
       )
     }

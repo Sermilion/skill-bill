@@ -1,5 +1,7 @@
 package skillbill.workflow.taskruntime.model
 
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
+
 internal val FEATURE_TASK_RUNTIME_NONBLANK_STRING_LIST_KEYS = setOf(
   "affected_boundaries",
   "patterns_and_decisions",
@@ -20,7 +22,7 @@ internal val FEATURE_TASK_RUNTIME_REPOSITORY_CHECKPOINT_KEYS =
 
 internal val FEATURE_TASK_RUNTIME_PLAN_TASK_KEYS = setOf(
   "task_id",
-  "depends_on",
+  DecompositionPlanningPayloadKeys.DEPENDS_ON,
   "description",
   "criterion_refs",
   "target_paths_or_symbols",
@@ -31,7 +33,7 @@ internal val FEATURE_TASK_RUNTIME_PLAN_TASK_KEYS = setOf(
 internal val FEATURE_TASK_RUNTIME_TASK_COMMITMENT_KEYS =
   setOf("task_id", "criterion_refs", "test_obligations", "constraints")
 
-internal val FEATURE_TASK_RUNTIME_TEST_EXECUTION_KEYS = setOf("name", "outcome")
+internal val FEATURE_TASK_RUNTIME_TEST_EXECUTION_KEYS = setOf(DecompositionPlanningPayloadKeys.NAME, "outcome")
 
 internal val FEATURE_TASK_RUNTIME_DEVIATION_KEYS = setOf("ref", "note")
 

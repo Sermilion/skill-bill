@@ -1,5 +1,8 @@
 package skillbill.application.workflow
 
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
+import skillbill.contracts.SharedPayloadKeys
+
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
 import skillbill.application.decomposition.asStringAnyMapOrNull
 import skillbill.error.LegacyProseWorkflowError
@@ -23,7 +26,7 @@ fun WorkflowStateSnapshot.decompositionRuntime(validator: DecompositionManifestV
     }
 
 fun WorkflowStateSnapshot.hasDecompositionPlan(): Boolean =
-  decodeWorkflowArtifacts(artifactsJson)["plan"].asStringAnyMapOrNull()?.get("mode") == "decompose"
+  decodeWorkflowArtifacts(artifactsJson)["plan"].asStringAnyMapOrNull()?.get(DecompositionPlanningPayloadKeys.MODE) == "decompose"
 
 val IMPLEMENT_TERMINAL_STATUSES: Set<WorkflowStatus> = WorkflowStatus.terminalStatuses
 
@@ -94,6 +97,6 @@ fun WorkflowStateSnapshot.isGoalContinuationChildWorkflow(): Boolean {
   val goalContinuation =
     decodeWorkflowArtifacts(artifactsJson)["goal_continuation"].asStringAnyMapOrNull() ?: return false
   return goalContinuation["enabled"] == true ||
-    goalContinuation.containsKey("issue_key") ||
-    goalContinuation.containsKey("subtask_id")
+    goalContinuation.containsKey(SharedPayloadKeys.ISSUE_KEY) ||
+    goalContinuation.containsKey(SharedPayloadKeys.SUBTASK_ID)
 }

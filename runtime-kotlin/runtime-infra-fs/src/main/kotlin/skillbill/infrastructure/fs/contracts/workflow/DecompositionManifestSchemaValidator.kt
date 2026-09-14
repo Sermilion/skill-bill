@@ -1,5 +1,7 @@
 package skillbill.infrastructure.fs.contracts.workflow
 
+import skillbill.contracts.SharedPayloadKeys
+
 import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.core.type.TypeReference
@@ -126,7 +128,7 @@ object DecompositionManifestSchemaValidator {
           "schema is on the classpath.",
       )
     }
-    val loadedConst = yamlNode.path("properties").path("contract_version").path("const").asText("")
+    val loadedConst = yamlNode.path("properties").path(SharedPayloadKeys.CONTRACT_VERSION).path("const").asText("")
     if (loadedConst != DECOMPOSITION_MANIFEST_CONTRACT_VERSION) {
       throw InvalidDecompositionManifestSchemaError(
         sourceLabel = DecompositionManifestSchemaPaths.CLASSPATH_RESOURCE,

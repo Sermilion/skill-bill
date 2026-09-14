@@ -1,5 +1,7 @@
 package skillbill.workflow.taskruntime.model
 
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
+
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 
@@ -64,7 +66,7 @@ data class FeatureTaskRuntimeHandoffProjection(
       "iteration" to producerIteration.iteration,
     ),
     "fields" to fields.map { field ->
-      linkedMapOf<String, Any?>("name" to field.name).apply {
+      linkedMapOf<String, Any?>(DecompositionPlanningPayloadKeys.NAME to field.name).apply {
         when (val value = field.value) {
           is FeatureTaskRuntimeHandoffProjectionValue.Text -> {
             put("kind", "text")

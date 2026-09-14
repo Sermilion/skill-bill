@@ -1,5 +1,7 @@
 package skillbill.workflow.taskruntime.model
 
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
+
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_HANDOFF_ENVELOPE_CONTRACT_VERSION
@@ -54,7 +56,7 @@ data class FeatureTaskRuntimeHandoffEnvelope(
               .map { it.requireDecodedString("working_tree_owned_paths") },
           )
         },
-        contractVersion = raw.requireString("contract_version"),
+        contractVersion = raw.requireString(SharedPayloadKeys.CONTRACT_VERSION),
       )
 
     private fun projectionFromWire(raw: Any?): FeatureTaskRuntimeHandoffProjection {
@@ -68,7 +70,7 @@ data class FeatureTaskRuntimeHandoffEnvelope(
           .fromWire(projection.requireString("prompt_visibility")),
         producerIteration = (projection["producer_iteration"] as? Map<*, *>)?.let {
           FeatureTaskRuntimeProducerIteration(
-            phaseId = it.requireString("phase_id"),
+            phaseId = it.requireString(SharedPayloadKeys.PHASE_ID),
             iteration = (it["iteration"] as? Number)?.toInt()
               ?: decodeError("field 'producer_iteration.iteration' must be an integer."),
           )
@@ -79,7 +81,7 @@ data class FeatureTaskRuntimeHandoffEnvelope(
 
     private fun fieldFromWire(raw: Any?): FeatureTaskRuntimeHandoffProjectionField {
       val field = raw as? Map<*, *> ?: decodeError("projection fields entries must be objects.")
-      val name = field.requireString("name")
+      val name = field.requireString(DecompositionPlanningPayloadKeys.NAME)
       return FeatureTaskRuntimeHandoffProjectionField(
         name = name,
         value = when (val kind = field.requireString("kind")) {
