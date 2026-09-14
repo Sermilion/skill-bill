@@ -15,14 +15,18 @@ import java.time.Clock
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 import kotlin.time.DurationUnit
-internal fun writeAndCloseStdin(process: Process, stdinText: String?) {
+internal fun writeAndCloseStdin(
+  process: Process,
+  stdinText: String?,
+  degradation: ProcessRunDegradationRecorder,
+) {
   runCatching {
     process.outputStream.use { output ->
       if (stdinText != null) {
         output.write(stdinText.toByteArray(StandardCharsets.UTF_8))
       }
     }
-  }
+  }.onFailure { failure -> degradation.recordStdinDeliveryFailure(failure) }
 }
 internal data class ProcessWait(
   val finished: Boolean,
@@ -37,6 +41,7 @@ internal class ProcessWaitLoop(
   internal val outputTracker: OutputObservationTracker,
   internal val lifecycleEmitter: ProcessLifecycleEmitter,
   internal val clock: Clock,
+  internal val degradation: ProcessRunDegradationRecorder,
 ) {
   internal val timeoutMillis = request.timeout
     ?.toLong(DurationUnit.MILLISECONDS)
@@ -57,10 +62,10 @@ internal class ProcessWaitLoop(
   internal var lastWorkflowProgressNanos = startNanos
   internal var lastStatusHeartbeatNanos = startNanos
   internal var lastLiveHeartbeatNanos = startNanos
-  internal var lastProgressToken = request.progressProbe.safeProgressToken()
-  internal var lastActivityToken = request.activityProbe.safeActivityToken()
+  internal var lastProgressToken = request.progressProbe.readProgressToken(degradation).value
+  internal var lastActivityToken = request.activityProbe.readActivityToken(degradation).value
   internal var fileActivityWindowStartNanos: Long? = null
-  internal var lastProgressLabel: String? = request.progressProbe.safeProgressLabel()
+  internal var lastProgressLabel: String? = request.progressProbe.readProgressLabel(degradation).value
   internal var lastProgressInstant: Instant? = null
   internal var lastSnapshotInstant: Instant? = null
   internal var lastActivityLabel: String? = null
@@ -71,6 +76,9 @@ internal class ProcessWaitLoop(
   fun wait(): ProcessWait {
     var wait: ProcessWait? = null
     while (wait == null) {
+      if (Thread.interrupted()) {
+        throw InterruptedException()
+      }
       wait = nextWait()
     }
     return wait

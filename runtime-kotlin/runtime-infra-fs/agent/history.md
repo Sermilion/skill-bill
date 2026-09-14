@@ -1,5 +1,15 @@
 # Boundary History — runtime-kotlin/runtime-infra-fs
 
+## [2026-09-14] SKILL-239 subtask 1 — process lifetime
+Areas: runtime-infra-fs/launcher/process, runtime-infra-fs process tests
+- `ProcessRunLifetime` now owns process termination, drain settlement or abandonment, stream closure, registry removal, and review-endpoint closure on every runner exit.
+- Frozen drain release snapshots prevent incomplete output or digest mutation from being published as settled evidence; incomplete capture is explicit.
+- Probe and stdin seam degradation uses a bounded recorder that does not recurse through a failed output sink; wait interruption preserves the interrupt signal. reusable
+- Pattern: inject agent behavior as request strategies while keeping cleanup in one `try/finally` ownership scope. reusable
+- Known limitation: provider selection, idle-policy semantics, telemetry transport, and coroutine migration remain outside this boundary.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
 ## [2026-08-29] SKILL-219 subtask 1 — Discrete Gradle gate findings in collect-all parsing
 Areas: runtime-infra-fs/validation
 - COLLECT_ALL parsing now turns `:projectHealth` `incorrectConfiguration` advice, `:architectureCheck` forbidden project-dependency lines, and leftover `Execution failed for task ':…'` headers into separate `ValidationGateFinding` rows instead of one `unparseable_gate_failure` blob.

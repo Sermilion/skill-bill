@@ -63,6 +63,15 @@ internal sealed interface ProcessStart {
   data class Failed(val error: Exception) : ProcessStart
 }
 
+internal data class CappedUtf8DrainCapture(
+  val text: String,
+  val bytes: ByteArray,
+  val truncated: Boolean,
+  val totalByteSize: Long,
+  val sha256: String,
+  val incomplete: Boolean,
+)
+
 internal class CappedUtf8Drain(
   private val input: InputStream,
   internal val limitBytes: Int?,
@@ -77,6 +86,11 @@ internal class CappedUtf8Drain(
   @Volatile internal var truncated = false
   internal var totalByteSize = 0L
   internal val digest = MessageDigest.getInstance("SHA-256")
+  @Volatile private var workerCompleted = false
+  @Volatile internal var workerFailure: Throwable? = null
+  @Volatile private var frozen = false
+  @Volatile private var frozenCapture: CappedUtf8DrainCapture? = null
+  internal val stateLock = Any()
   internal val worker = thread(start = false, isDaemon = true, name = "skillbill-agent-run-output-drain") {
     try {
       input.use { stream ->
@@ -92,8 +106,16 @@ internal class CappedUtf8Drain(
           if (read == -1) {
             break
           }
-          totalByteSize += read
-          digest.update(buffer, 0, read)
+          val frozenBeforeRead = synchronized(stateLock) {
+            if (frozen) {
+              true
+            } else {
+              totalByteSize += read
+              digest.update(buffer, 0, read)
+              false
+            }
+          }
+          if (frozenBeforeRead) break
           val withinCap = remaining == null || remaining > 0
           carry.put(buffer, 0, read)
           carry.flip()
@@ -102,14 +124,23 @@ internal class CappedUtf8Drain(
 
           val forwarded = remaining?.coerceAtMost(read) ?: read
           if (forwarded > 0) remaining = remaining?.minus(forwarded)
-          retain(buffer, read)
+          if (frozen) break
+          synchronized(stateLock) {
+            if (!frozen) retain(buffer, read)
+          }
         }
+        if (frozen) return@use
         val withinCap = remaining == null || remaining > 0
         carry.flip()
         decodeAvailable(decoded, withinCap) { decoder.decode(carry, decoded, true) }
         decodeAvailable(decoded, withinCap) { decoder.flush(decoded) }
       }
-    } catch (_: IOException) {
+    } catch (failure: IOException) {
+      workerFailure = failure
+    } catch (failure: RuntimeException) {
+      workerFailure = failure
+    } finally {
+      workerCompleted = true
     }
   }
 
@@ -121,20 +152,55 @@ internal class CappedUtf8Drain(
     worker.join(DRAIN_JOIN_TIMEOUT_MILLIS)
   }
 
-  fun text(): String = String(bytes(), StandardCharsets.UTF_8)
+  fun joinAndFreeze(): Boolean {
+    worker.join(DRAIN_JOIN_TIMEOUT_MILLIS)
+    var incomplete = workerFailure != null || !workerCompleted || worker.isAlive
+    if (worker.isAlive) {
+      runCatching { input.close() }
+      worker.join(DRAIN_JOIN_TIMEOUT_MILLIS)
+      incomplete = workerFailure != null || !workerCompleted || worker.isAlive
+    }
+    freezeCapture(incomplete)
+    return incomplete
+  }
 
-  fun bytes(): ByteArray {
+  fun capture(): CappedUtf8DrainCapture =
+    frozenCapture ?: freezeCapture(incomplete = workerFailure != null || !workerCompleted)
+
+  private fun freezeCapture(incomplete: Boolean): CappedUtf8DrainCapture {
+    synchronized(stateLock) {
+      frozenCapture?.let { return it }
+      frozen = true
+      val bytes = materializeBytes()
+      val capture = CappedUtf8DrainCapture(
+        text = String(bytes, StandardCharsets.UTF_8),
+        bytes = bytes,
+        truncated = truncated,
+        totalByteSize = totalByteSize,
+        sha256 = digest.digest().joinToString("") { "%02x".format(it) },
+        incomplete = incomplete || workerFailure != null,
+      )
+      frozenCapture = capture
+      return capture
+    }
+  }
+
+  private fun materializeBytes(): ByteArray {
     val limit = limitBytes ?: return output.toByteArray()
     val retained = output.toByteArray()
     if (retained.size <= limit) return retained
     return alignToLineStart(retained.copyOfRange(retained.size - limit, retained.size))
   }
 
-  fun wasTruncated(): Boolean = truncated
+  fun text(): String = capture().text
 
-  fun totalByteSize(): Long = totalByteSize
+  fun bytes(): ByteArray = capture().bytes
 
-  fun sha256(): String = digest.digest().joinToString("") { "%02x".format(it) }
+  fun wasTruncated(): Boolean = capture().truncated
+
+  fun totalByteSize(): Long = capture().totalByteSize
+
+  fun sha256(): String = capture().sha256
 }
 
 internal class OutputObservationTracker {

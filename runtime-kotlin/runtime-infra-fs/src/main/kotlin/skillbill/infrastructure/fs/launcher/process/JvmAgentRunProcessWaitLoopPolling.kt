@@ -33,7 +33,9 @@ internal fun ProcessWaitLoop.pollProgress(): ProcessWait? {
 }
 
 internal fun ProcessWaitLoop.pollDeclaredProgress(nowNanos: Long) {
-  val snapshot = request.declaredProgressProbe.safeDeclaredProgress() ?: return
+  val read = request.declaredProgressProbe.readDeclaredProgress(degradation)
+  if (read.failed) return
+  val snapshot = read.value ?: return
   val previousSequence = declaredTracker.latestEvent?.sequenceNumber
   declaredTracker.observe(snapshot, nowNanos)
   val latest = declaredTracker.latestEvent
