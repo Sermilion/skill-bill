@@ -5,6 +5,7 @@ import skillbill.error.DatabaseAccessOperation
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
 import skillbill.infrastructure.sqlite.core.OpenDatabase
 import skillbill.infrastructure.sqlite.core.databaseAccessError
+import skillbill.infrastructure.sqlite.core.rollbackAfterFailedTransaction
 import skillbill.model.EnvironmentContext
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.persistence.UnitOfWork
@@ -85,14 +86,18 @@ private fun EnvironmentContext.withProcessDefaults(): EnvironmentContext {
 private fun <T> Connection.inTransaction(dbPath: Path, block: () -> T): T {
   typedStatement(dbPath, "BEGIN IMMEDIATE", DatabaseAccessOperation.OPEN)
   var committed = false
+  var primaryFailure: Throwable? = null
   return try {
     val result = block()
     typedStatement(dbPath, "COMMIT", DatabaseAccessOperation.OPEN)
     committed = true
     result
+  } catch (failure: Throwable) {
+    primaryFailure = failure
+    throw failure
   } finally {
     if (!committed) {
-      runCatching { createStatement().use { it.execute("ROLLBACK") } }
+      rollbackAfterFailedTransaction(primaryFailure)
     }
   }
 }
@@ -100,14 +105,18 @@ private fun <T> Connection.inTransaction(dbPath: Path, block: () -> T): T {
 private fun <T> Connection.inReadTransaction(dbPath: Path, block: () -> T): T {
   typedStatement(dbPath, "BEGIN DEFERRED", DatabaseAccessOperation.READ)
   var committed = false
+  var primaryFailure: Throwable? = null
   return try {
     val result = block()
     typedStatement(dbPath, "COMMIT", DatabaseAccessOperation.READ)
     committed = true
     result
+  } catch (failure: Throwable) {
+    primaryFailure = failure
+    throw failure
   } finally {
     if (!committed) {
-      runCatching { createStatement().use { it.execute("ROLLBACK") } }
+      rollbackAfterFailedTransaction(primaryFailure)
     }
   }
 }

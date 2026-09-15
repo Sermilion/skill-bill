@@ -418,6 +418,35 @@ tests do not prove exactly-once remote delivery, protection against
 indefinite JVM pause beyond lease expiry, or behavior when the remote proxy
 ignores deduplication keys.
 
+### Transaction rollback and agent-run cleanup boundaries (SKILL-247)
+
+SQLite write and read session transactions share
+`Connection.rollbackAfterFailedTransaction`: a failed body or commit still
+throws its primary failure, a failed `ROLLBACK` is attached with
+`addSuppressed` when a primary exists, and a bounded `java.util.logging`
+record is emitted on rollback failure only. Successful rollback stays silent.
+
+`JvmAgentRunProcessRunner.runStartedProcess` always runs
+`ProcessRunLifetime.release` in `finally`, exports the run-local
+`ProcessRunDegradationRecorder` snapshot to stderr through the output sink
+before rethrowing, and keeps `InterruptedException` / cancellation as the
+primary failure over cleanup suppresseds. `ProcessLifecycleEmitter` records
+progress publication failures into the same recorder without replacing callback
+or cancellation failures.
+
+Governed review endpoint teardown reports close failure to stderr once; when
+the sink also fails, a bounded `skillbill.agent.run.teardown` logger record is
+emitted and the sink is not invoked again.
+
+Per-run process cleanup waits are bounded: forced destroy waits up to
+`DESTROY_WAIT_TIMEOUT_MILLIS` (1s), and each stdout/stderr drain join uses up
+to two `DRAIN_JOIN_TIMEOUT_MILLIS` (1s) joins after `input.close` when the
+worker remains alive, before the owner thread closes process streams. A single
+run's drain and destroy cleanup is therefore capped at destroy wait plus up to
+four drain-join windows for the two streams; stdin and process-stream closes
+occur in the existing ordered cleanup path and are not used as a total bound
+for a live drain worker.
+
 ## Boundary Rules
 
 1. CLI and MCP data gateways are entry adapters. They validate and

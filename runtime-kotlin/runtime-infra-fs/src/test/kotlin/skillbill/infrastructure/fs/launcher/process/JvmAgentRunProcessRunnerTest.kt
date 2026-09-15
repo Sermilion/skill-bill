@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -16,19 +17,27 @@ import skillbill.infrastructure.fs.launcher.testAgentRunProcessRequest
 import skillbill.ports.agentrun.model.AgentRunMcpStartupProbe
 import skillbill.ports.agentrun.model.AgentRunOutputSink
 import skillbill.ports.agentrun.model.AgentRunOutputStream
+import skillbill.ports.review.GovernedReviewEvidenceEndpointHandle
 import skillbill.ports.agentrun.model.AgentRunProgressProbe
 import skillbill.ports.agentrun.model.AgentRunSpawnAuthorization
 import skillbill.ports.agentrun.model.ConversationIsolation
 import skillbill.ports.review.BrokerBackedNativeReviewOperationProtocol
 import skillbill.ports.review.ReviewEvidenceBroker
+import skillbill.ports.review.model.GovernedReviewEvidenceEndpointDescriptor
 import skillbill.ports.review.model.ReviewEvidenceBatchRequest
 import skillbill.ports.review.model.ReviewLaneAccounting
 import skillbill.ports.review.model.ReviewToolCall
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.logging.Handler
+import java.util.logging.LogRecord
+import java.util.logging.Logger
 import kotlin.concurrent.thread
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration.Companion.milliseconds
@@ -141,6 +150,110 @@ class JvmAgentRunProcessRunnerTest {
   }
 
   @Test
+  fun `cancellation from a probe keeps its primary identity while cleanup releases the child`() {
+    val primary = CancellationException("cancelled")
+    assertSame(
+      primary,
+      assertThrows<CancellationException> {
+        JvmAgentRunProcessRunner(JvmSystemClock, testGateJvmResolver()).run(
+          testAgentRunProcessRequest(
+            listOf("sh", "-c", "exec sleep 120"),
+            Path.of("."),
+          ) {
+            progressProbe = AgentRunProgressProbe { throw primary }
+          },
+        )
+      },
+    )
+  }
+
+  @Test
+  fun `setup cancellation still releases the child process`() {
+    val pidFile = Files.createTempFile("skillbill-child-setup-cancel", ".pid")
+    trackedChildPidFiles.add(pidFile)
+    Files.deleteIfExists(pidFile)
+    assertThrows<CancellationException> {
+      JvmAgentRunProcessRunner(JvmSystemClock, testGateJvmResolver()).run(
+        testAgentRunProcessRequest(
+          listOf("sh", "-c", "echo $$ > '$pidFile'; exec sleep 120"),
+          Path.of("."),
+        ) {
+          mcpStartupProbe = AgentRunMcpStartupProbe {
+            val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5)
+            while (
+              (!Files.exists(pidFile) || Files.readString(pidFile).trim().isBlank()) &&
+              System.nanoTime() < deadline
+            ) {
+              Thread.sleep(10)
+            }
+            check(Files.exists(pidFile) && Files.readString(pidFile).trim().isNotBlank())
+            throw CancellationException("cancelled during setup")
+          }
+        },
+      )
+    }
+    val pid = Files.readString(pidFile).trim().toLong()
+    trackedChildPids.add(pid)
+    Files.deleteIfExists(pidFile)
+    assertFalse(childProcessAlive(pid), "F-002: child must not outlive setup cancellation cleanup")
+  }
+
+  @Test
+  fun `endpoint close failure falls back to logger when stderr sink also fails`() {
+    val logger = Logger.getLogger("skillbill.agent.run.teardown")
+    val sinkWrites = AtomicInteger(0)
+    val sink = AgentRunOutputSink { _, _ ->
+      sinkWrites.incrementAndGet()
+      error("sink rejected teardown diagnostic")
+    }
+    val endpoint = object : GovernedReviewEvidenceEndpointHandle {
+      override val descriptor = GovernedReviewEvidenceEndpointDescriptor(
+        lane = "test",
+        socketPath = Path.of("/tmp/test-review.sock"),
+        mcpConfigPath = Path.of("/tmp/test-review.json"),
+        token = "test-token",
+      )
+
+      override fun close() {
+        error("endpoint-close-failure")
+      }
+    }
+    val (_, messages) = capturingLogRecords(logger) {
+      JvmAgentRunProcessRunner.closeEndpoint(
+        testAgentRunProcessRequest(listOf("true"), Path.of(".")) {
+          outputSink = sink
+          reviewEvidenceEndpoint = endpoint
+        reviewEvidenceBroker = TeardownProbeBroker
+        nativeReviewOperations = BrokerBackedNativeReviewOperationProtocol(TeardownProbeBroker)
+        conversationIsolation = ConversationIsolation.NONE
+        },
+      )
+    }
+    assertEquals(1, sinkWrites.get())
+    assertTrue(
+      messages.any { it.contains("endpoint teardown failed") && it.contains("endpoint-close-failure") },
+      messages.toString(),
+    )
+  }
+
+  @Test
+  fun `degradation export falls back to logger when stderr sink also fails`() {
+    val logger = Logger.getLogger("skillbill.agent.run.degradation")
+    val degradation = ProcessRunDegradationRecorder()
+    degradation.recordCleanupFailure("stdout_stream_close", IllegalStateException("close-failure"))
+    val sink = AgentRunOutputSink { _, _ -> error("sink rejected degradation diagnostic") }
+
+    val (_, messages) = capturingLogRecords(logger) {
+      exportRunDegradationEvidence(degradation, sink)
+    }
+
+    assertTrue(
+      messages.any { it.contains("degradation export failed") && it.contains("stdout_stream_close") },
+      messages.toString(),
+    )
+  }
+
+  @Test
   fun `cancellation from a probe is not converted into missing progress`() {
     assertThrows<CancellationException> {
       JvmAgentRunProcessRunner(JvmSystemClock, testGateJvmResolver()).run(
@@ -183,13 +296,15 @@ class JvmAgentRunProcessRunnerTest {
     val stderr = testDrain(stderrInput)
     stdout.start()
     stderr.start()
-    val process = FakeReapableProcess(staysAlive = false)
+    val process = FakeReapableProcess(staysAlive = false, streamsAvailable = true)
+    val liveProcesses = mutableSetOf<Process>(process)
+    val degradation = ProcessRunDegradationRecorder()
     val lifetime = ProcessRunLifetime(
       process = process,
-      liveProcesses = mutableSetOf(),
+      liveProcesses = liveProcesses,
       stdout = stdout,
       stderr = stderr,
-      degradation = ProcessRunDegradationRecorder(),
+      degradation = degradation,
     )
     val releaseThread = thread(start = true) {
       lifetime.release(
@@ -213,6 +328,17 @@ class JvmAgentRunProcessRunnerTest {
 
     assertFalse(releaseThread.isAlive)
     assertTrue(releaseThread.isInterrupted)
+    assertFalse(liveProcesses.contains(process))
+    val stderrChunks = mutableListOf<String>()
+    exportRunDegradationEvidence(
+      degradation,
+      AgentRunOutputSink { stream, chunk ->
+        if (stream == AgentRunOutputStream.STDERR) {
+          stderrChunks += chunk
+        }
+      },
+    )
+    assertTrue(stderrChunks.joinToString("").contains("stdout_drain_join"))
   }
 
   @Test
@@ -519,6 +645,23 @@ class JvmAgentRunProcessRunnerTest {
   private fun childProcessAlive(pid: Long): Boolean =
     ProcessHandle.of(pid).map { handle -> handle.isAlive }.orElse(false)
 
+  private fun <T> capturingLogRecords(logger: Logger, block: () -> T): Pair<T, List<String>> {
+    val records = mutableListOf<LogRecord>()
+    val handler = object : Handler() {
+      override fun publish(record: LogRecord) {
+        records += record
+      }
+      override fun flush() = Unit
+      override fun close() = Unit
+    }
+    logger.addHandler(handler)
+    return try {
+      block() to records.mapNotNull(LogRecord::getMessage)
+    } finally {
+      logger.removeHandler(handler)
+    }
+  }
+
   private fun testDrain(input: InputStream) = CappedUtf8Drain(
     input = input,
     limitBytes = AGENT_RUN_OUTPUT_LIMIT_BYTES,
@@ -556,15 +699,23 @@ private class BlockingInputStream : InputStream() {
   fun awaitReadStarted(): Boolean = readStarted.await(5, TimeUnit.SECONDS)
 }
 
-private class FakeReapableProcess(private val staysAlive: Boolean) : Process() {
+private class FakeReapableProcess(
+  private val staysAlive: Boolean,
+  private val streamsAvailable: Boolean = false,
+) : Process() {
   var destroyCount = 0
     private set
   var forcibleCount = 0
     private set
 
-  override fun getOutputStream() = error("unused")
-  override fun getInputStream() = error("unused")
-  override fun getErrorStream() = error("unused")
+  override fun getOutputStream() =
+    if (streamsAvailable) ByteArrayOutputStream() else error("unused")
+
+  override fun getInputStream() =
+    if (streamsAvailable) ByteArrayInputStream(ByteArray(0)) else error("unused")
+
+  override fun getErrorStream() =
+    if (streamsAvailable) ByteArrayInputStream(ByteArray(0)) else error("unused")
   override fun waitFor(): Int = error("unused")
   override fun exitValue(): Int = error("unused")
   override fun destroy() {

@@ -233,6 +233,8 @@ class AgentRunLauncherActivityTest {
 
     assertEquals(0, result.exitStatus)
     assertEquals("done", result.stdout)
+    assertTrue(result.stderr.contains("run degradation"))
+    assertTrue(result.stderr.contains("progress_lifecycle_emit"))
   }
 
   @Test

@@ -222,7 +222,10 @@ internal class DeclaredProgressTracker(startNanos: Long) {
     )
   }
 }
-internal class ProcessLifecycleEmitter(private val request: AgentRunProcessRequest) {
+internal class ProcessLifecycleEmitter(
+  private val request: AgentRunProcessRequest,
+  private val degradation: ProcessRunDegradationRecorder,
+) {
   private var started = false
   private var completed = false
   fun emitStarted(processAlive: Boolean) {
@@ -258,7 +261,7 @@ internal class ProcessLifecycleEmitter(private val request: AgentRunProcessReque
           authoritative = false,
         ),
       )
-    }
+    }.onFailure { failure -> degradation.recordLifecyclePublicationFailure(failure) }
   }
   private companion object {
     const val CHILD_OPERATION_NAME = "child_agent_run"

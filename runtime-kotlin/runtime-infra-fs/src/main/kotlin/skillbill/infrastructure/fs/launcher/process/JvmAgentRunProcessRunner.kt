@@ -11,6 +11,7 @@ import java.io.InputStream
 import java.time.Clock
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
+import java.util.logging.Logger
 
 @Inject
 class JvmAgentRunProcessRunner(
@@ -68,14 +69,32 @@ class JvmAgentRunProcessRunner(
       val endpoint = request.reviewEvidenceEndpoint ?: return
       liveEndpoints.remove(endpoint)
       runCatching { endpoint.close() }.onFailure { failure ->
-        runCatching {
+        val sinkDelivered = runCatching {
           request.outputSink.write(
             AgentRunOutputStream.STDERR,
             "governed review evidence endpoint teardown failed: ${failure.message.orEmpty()}\n",
           )
         }
+        if (sinkDelivered.isFailure) {
+          val sinkFailure = sinkDelivered.exceptionOrNull()
+          agentRunTeardownLogger.warning(
+            "skillbill agent run: endpoint teardown failed and stderr sink rejected the diagnostic; " +
+              "endpoint=${boundedTeardownFailureDetail(failure)}; " +
+              "sink=${boundedTeardownFailureDetail(sinkFailure ?: failure)}",
+          )
+        }
       }
     }
+
+    private val agentRunTeardownLogger: Logger =
+      Logger.getLogger("skillbill.agent.run.teardown")
+
+    private fun boundedTeardownFailureDetail(failure: Throwable): String {
+      val message = failure.message?.takeIf { it.isNotBlank() }
+      return (message ?: failure::class.simpleName.orEmpty()).take(TEARDOWN_FAILURE_DETAIL_LIMIT)
+    }
+
+    private const val TEARDOWN_FAILURE_DETAIL_LIMIT = 240
 
     internal fun reapLiveProcesses(processes: List<Process>) {
       processes.forEach { process -> runCatching { process.destroy() } }
@@ -94,7 +113,7 @@ class JvmAgentRunProcessRunner(
   ): AgentRunProcessResult {
     val degradation = ProcessRunDegradationRecorder()
     val outputTracker = OutputObservationTracker()
-    val lifecycleEmitter = ProcessLifecycleEmitter(request)
+    val lifecycleEmitter = ProcessLifecycleEmitter(request, degradation)
     val stdout = CappedUtf8Drain(
       input = stdoutStream,
       limitBytes = AGENT_RUN_OUTPUT_LIMIT_BYTES,
@@ -112,7 +131,8 @@ class JvmAgentRunProcessRunner(
     val lifetime = ProcessRunLifetime(process, liveProcesses, stdout, stderr, degradation)
     var mcpStartupObservedAtStart = false
     var waitResult: Result<ProcessWait>? = null
-    val runOutcome = runCatching {
+    var primaryFailure: Throwable? = null
+    try {
       mcpStartupObservedAtStart = request.mcpStartupProbe.readStartupObserved(degradation).value == true
       stdout.start()
       stderr.start()
@@ -121,15 +141,24 @@ class JvmAgentRunProcessRunner(
       waitResult = runCatching {
         waitForProcess(process, request, outputTracker, lifecycleEmitter, degradation)
       }
+      waitResult.exceptionOrNull()
+        ?.takeUnless { it is InterruptedException }
+        ?.let { throw it }
+    } catch (failure: Throwable) {
+      primaryFailure = failure
+      throw failure
+    } finally {
+      val cleanupFailure = runCatching { lifetime.release(waitResult) }.exceptionOrNull()
+      exportRunDegradationEvidence(degradation, request.outputSink)
+      when {
+        primaryFailure != null -> {
+          if (cleanupFailure != null && cleanupFailure !== primaryFailure) {
+            primaryFailure.addSuppressed(cleanupFailure)
+          }
+        }
+        cleanupFailure != null -> throw cleanupFailure
+      }
     }
-    val cleanupFailure = runCatching { lifetime.release(waitResult) }.exceptionOrNull()
-    cleanupFailure?.let { failure ->
-      runOutcome.exceptionOrNull()?.addSuppressed(failure) ?: throw failure
-    }
-    runOutcome.getOrThrow()
-    waitResult?.exceptionOrNull()
-      ?.takeUnless { it is InterruptedException }
-      ?.let { throw it }
     return buildRunResult(
       BuildRunResultInput(
         process = process,

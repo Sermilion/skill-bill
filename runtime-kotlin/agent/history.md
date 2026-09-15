@@ -1,3 +1,13 @@
+## [2026-09-15] SKILL-247 subtask 2 — Preserve evidence through failed cleanup
+Areas: runtime-kotlin/{runtime-infra-sqlite/{sqlite,core},runtime-infra-fs/launcher/process}, runtime-kotlin/ARCHITECTURE.md, runtime-kotlin/{runtime-infra-fs tests,runtime-infra-sqlite tests}
+- SQLite read, write, and immediate transactions now preserve the body or commit failure as primary, attach rollback failure as suppressed evidence, and emit only bounded rollback diagnostics; snapshot and BEGIN modes stay unchanged.
+- Agent-run cleanup now exports run-local degradation evidence from the exception path, records lifecycle-publication failures, preserves callback/cancellation identity, and reports endpoint-close failures through an independent logger when stderr also fails.
+- Process teardown waits and drain settlement remain bounded and ordered; tests inject rollback and cleanup failures to assert primary identity, secondary evidence, release, incomplete capture, and interruption retention.
+- Pattern: keep acquisition, primary failure, cleanup, and bounded secondary evidence in one ownership scope. reusable
+- Known limitation: SQLite transaction success does not claim atomicity with file projection; cleanup bounds do not make a live drain close itself instantaneous.
+Feature flag: N/A
+Acceptance criteria: 5/5 implemented
+
 ## [2026-09-15] SKILL-247 subtask 1 — Bound telemetry delivery and fence settlement
 Areas: runtime-kotlin/{runtime-ports/{telemetry,model},runtime-application/telemetry,runtime-infra-sqlite/telemetry,runtime-infra-http,runtime-core/di}, runtime-kotlin/ARCHITECTURE.md
 - Telemetry outbox settlement now carries claimToken and returns an explicit owned/lost result; SQLite updates fence both claim_token and synced_at, so stale A cannot mutate B.
