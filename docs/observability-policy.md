@@ -53,3 +53,74 @@ degradations the caller can still trust.
 
 Bounded output rules still apply: records carry counts, identities, and sanitized
 labels, never raw payloads, diff hunks, or unbounded child output.
+
+## Telemetry delivery health records on the row, never in the queue
+
+Telemetry delivery degradation is the one seam where emitting a telemetry event is
+forbidden. The outbox drain is what failed; enqueuing a diagnostic into the same
+store feeds the drain it cannot complete, and `autoSync` runs at every CLI
+completion and every MCP tool call, so the queue grows faster than it drains.
+
+The record lives on the failing row instead:
+
+- `last_error` carries a bounded, actionable message that distinguishes *rejected*
+  (the receiver will not accept this payload, recorded with the relay's status code
+  and its returned reason, truncated to a bounded length), *unconfirmed* (the receiver may
+  already hold the batch — a timeout, an aborted upstream, or a relay 502 after
+  possible acceptance), and *local acknowledgement failed* (the batch was accepted
+  but the local mark-synced write did not land)
+- `delivery_attempts` counts the failures the receiver confirmed — a rejection, and
+  an accepted send whose local acknowledgement did not land. A row past the budget
+  stays queued but is no longer claimed, so a poison row cannot replay forever
+- an *unconfirmed* failure records `last_error` and releases the claim without
+  spending budget. It is a transport verdict, not a receiver verdict, and `autoSync`
+  fires often enough that charging it would block the whole queue permanently after
+  a few offline minutes, with no way back once connectivity returned
+- `skill-bill telemetry status` reports `pending_events`, `latest_error`, and
+  `blocked_events`; a drain that ends with blocked rows reports `failed`, never
+  `synced`, so budget exhaustion is never silent
+- a blocked row has no redelivery path. There is no retry command, so the failure
+  message names what an operator can actually do — read the row through
+  `telemetry status`, or discard it with `skill-bill telemetry clear` — instead of
+  promising an automatic retry that never arrives
+- a drain that claimed nothing because a concurrent drain holds every queued row
+  reports `noop` with those rows still counted in `pending_events`, never `synced`
+  with zero delivered events, so a stalled drain does not read as a clean one
+- a client failure of any type, not only a transport `IOException`, records
+  `last_error` and releases the claim. An escaping failure left the batch claimed
+  with no recorded cause until the lease expired
+
+### Reproduced cause and what stayed unconfirmed
+
+The reproduction fixtures cover three candidate causes of whole-batch resend. Two
+reproduce deterministically against a real SQLite file and a fake transport:
+
+1. **Unclaimed concurrent drain.** `listPending` handed identical unclaimed rows to
+   every drainer, so two drains sent the same batch. Repaired by an explicit claim
+   with an expiring lease.
+2. **Accepted send, failed local acknowledgement.** The drain looped on
+   `listPending` and re-read the same still-pending rows, resending them on the next
+   pass without bound. Repaired by claiming before sending, counting progress only
+   after a durable mark-synced, and bounding the invocation by the pending snapshot.
+
+The third — the receiver accepting a batch while the sender loses the
+acknowledgement — is covered by a fake-transport fixture that proves the *sender*
+keeps one recoverable entry with its original identity. It does **not** prove what
+the receiver did with the retry: that depends on the provider's `$insert_id`
+deduplication window, which is finite. Whether any specific historical duplicate
+originated from this path rather than from cause 1 or 2 stays unconfirmed; the
+fixtures pin the sender-side behavior, not a retrospective attribution.
+
+### Counting historical telemetry
+
+Historical analysis of already-ingested events is read-only. Do not delete,
+rewrite, or reclassify past events to make a count look clean.
+
+- Events ingested before durable identity existed carry no `$insert_id`. They cannot
+  be deduplicated retroactively and must be reported with that caveat attached.
+- After the change, duplicate suppression is bounded by the receiver's finite
+  deduplication window. A retry outside that window is a real second row upstream.
+  Report deduplicated counts as best-effort, never as exactly-once.
+- Stale or missing data is stale or missing. A gap in a series is not a proven zero,
+  and an absent event is not a proven non-occurrence; say which it is rather than
+  converting either into an outcome.

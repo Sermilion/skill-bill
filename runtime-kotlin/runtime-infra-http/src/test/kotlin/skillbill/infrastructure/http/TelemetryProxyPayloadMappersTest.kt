@@ -1,5 +1,6 @@
 package skillbill.infrastructure.http
 
+import skillbill.contracts.telemetry.TelemetryProxyPayloadKeys
 import skillbill.ports.repository.toFileLocation
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
 import skillbill.telemetry.model.TelemetrySettings
@@ -41,7 +42,31 @@ class TelemetryProxyPayloadMappersTest {
     assertTrue("skill_bill_version" in payload.batch.last().properties)
   }
 
-  private fun row(id: Long, version: String?): TelemetryOutboxRecord = TelemetryOutboxRecord(
+  // AC-001: the receiver deduplicates a retried batch on this property alone. Two rows carrying the
+  // same payload and the same timestamp are two real emissions and must stay two logical events, so
+  // the identity has to come from the row rather than from anything the payload could reproduce.
+  @Test
+  fun `the row identity is mapped onto the receiver deduplication key and stays per-row`() {
+    val rows =
+      listOf(
+        row(id = 1, version = "1.2.3", eventUuid = "11111111-1111-4111-8111-111111111111"),
+        row(id = 2, version = "1.2.3", eventUuid = "22222222-2222-4222-8222-222222222222"),
+      )
+
+    val payload = telemetryProxyBatchPayload(settings(), rows)
+
+    assertEquals(
+      listOf("11111111-1111-4111-8111-111111111111", "22222222-2222-4222-8222-222222222222"),
+      payload.batch.map { it.properties[TelemetryProxyPayloadKeys.EVENT_DEDUPLICATION_ID] },
+    )
+    assertEquals(
+      rows.map { it.createdAt }.distinct().size,
+      1,
+      "Identical timestamps are the case the identity has to separate.",
+    )
+  }
+
+  private fun row(id: Long, version: String?, eventUuid: String = ""): TelemetryOutboxRecord = TelemetryOutboxRecord(
     id = id,
     eventName = "skillbill_goal_finished",
     payloadJson = """{"name":"ok"}""",
@@ -49,6 +74,7 @@ class TelemetryProxyPayloadMappersTest {
     syncedAt = null,
     lastError = "",
     skillBillVersion = version,
+    eventUuid = eventUuid,
   )
 
   private fun settings(): TelemetrySettings = TelemetrySettings(

@@ -3,6 +3,7 @@ package skillbill.infrastructure.http
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.telemetry.TelemetryProxyBatchEvent
 import skillbill.contracts.telemetry.TelemetryProxyBatchPayload
+import skillbill.contracts.telemetry.TelemetryProxyPayloadKeys
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
 import skillbill.telemetry.model.TelemetrySettings
 
@@ -15,26 +16,23 @@ fun telemetryProxyBatchPayload(
     TelemetryProxyBatchEvent(
       event = row.eventName,
       distinctId = settings.installId,
-      properties = telemetryProperties(row.payloadJson, settings.installId, row.skillBillVersion),
+      properties = telemetryProperties(row, settings.installId),
       timestamp = row.createdAt,
     )
   },
 )
 
-private fun telemetryProperties(
-  payloadJson: String,
-  installId: String,
-  skillBillVersion: String?,
-): MutableMap<String, Any?> = (
-  JsonCodec.parseObjectOrNull(payloadJson)?.let {
+private fun telemetryProperties(row: TelemetryOutboxRecord, installId: String): MutableMap<String, Any?> = (
+  JsonCodec.parseObjectOrNull(row.payloadJson)?.let {
     JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(it))
   } ?: emptyMap()
   ).toMutableMap().apply {
   this["install_id"] = installId
   this["\$process_person_profile"] = false
-  // A row enqueued before release attribution existed carries no version; the property is omitted
-  // rather than sent as a sentinel, and the row still uploads.
-  if (!skillBillVersion.isNullOrBlank()) {
-    this["skill_bill_version"] = skillBillVersion
+  if (!row.skillBillVersion.isNullOrBlank()) {
+    this["skill_bill_version"] = row.skillBillVersion
+  }
+  if (row.eventUuid.isNotBlank()) {
+    this[TelemetryProxyPayloadKeys.EVENT_DEDUPLICATION_ID] = row.eventUuid
   }
 }

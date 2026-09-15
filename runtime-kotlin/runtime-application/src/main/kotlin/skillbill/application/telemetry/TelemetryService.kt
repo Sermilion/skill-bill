@@ -14,6 +14,8 @@ import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.telemetry.TelemetryClient
 import skillbill.ports.telemetry.TelemetryOutboxRepository
 import skillbill.ports.telemetry.TelemetrySettingsProvider
+import skillbill.ports.telemetry.model.TELEMETRY_DELIVERY_ATTEMPT_BUDGET
+import skillbill.ports.telemetry.model.TelemetryOutboxClaimRequest
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
 import skillbill.ports.telemetry.model.TelemetryReconciliationRequest
 import skillbill.telemetry.model.RemoteStatsRequest
@@ -45,6 +47,7 @@ class TelemetryService(
         pendingEvents = unitOfWork.telemetryOutbox.pendingCount(),
         latestError = unitOfWork.telemetryOutbox.latestError(),
         lastSyncedAt = unitOfWork.telemetryOutbox.lastSyncedAt(),
+        blockedEvents = unitOfWork.telemetryOutbox.blockedCount(TELEMETRY_DELIVERY_ATTEMPT_BUDGET),
       )
     }
   }
@@ -62,6 +65,7 @@ class TelemetryService(
           settings,
           sessionTelemetryOutboxRepository(database),
           telemetryClient,
+          clock.instant(),
         )
       }
     return TelemetrySyncPayload(
@@ -78,6 +82,7 @@ class TelemetryService(
       settings,
       sessionTelemetryOutboxRepository(database),
       telemetryClient,
+      clock.instant(),
     )
   }
 
@@ -136,7 +141,13 @@ private fun sessionTelemetryOutboxRepository(database: DatabaseSessionFactory): 
     override fun listPending(limit: Int?): List<TelemetryOutboxRecord> =
       database.read { unitOfWork -> unitOfWork.telemetryOutbox.listPending(limit) }
 
+    override fun claimPending(request: TelemetryOutboxClaimRequest): List<TelemetryOutboxRecord> =
+      database.transaction { unitOfWork -> unitOfWork.telemetryOutbox.claimPending(request) }
+
     override fun pendingCount(): Int = database.read { unitOfWork -> unitOfWork.telemetryOutbox.pendingCount() }
+
+    override fun blockedCount(attemptBudget: Int): Int =
+      database.read { unitOfWork -> unitOfWork.telemetryOutbox.blockedCount(attemptBudget) }
 
     override fun latestError(): String? = database.read { unitOfWork -> unitOfWork.telemetryOutbox.latestError() }
 
@@ -156,6 +167,10 @@ private fun sessionTelemetryOutboxRepository(database: DatabaseSessionFactory): 
 
     override fun markFailed(eventIds: List<Long>, lastError: String) {
       database.transaction { unitOfWork -> unitOfWork.telemetryOutbox.markFailed(eventIds, lastError) }
+    }
+
+    override fun markUnconfirmed(eventIds: List<Long>, lastError: String) {
+      database.transaction { unitOfWork -> unitOfWork.telemetryOutbox.markUnconfirmed(eventIds, lastError) }
     }
 
     override fun clear(): Int = database.transaction { unitOfWork -> unitOfWork.telemetryOutbox.clear() }

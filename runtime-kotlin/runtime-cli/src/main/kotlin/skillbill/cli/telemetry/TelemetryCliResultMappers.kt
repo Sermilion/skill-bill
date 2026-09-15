@@ -4,6 +4,7 @@ import skillbill.application.telemetry.model.TelemetryMutationResult
 import skillbill.application.telemetry.model.TelemetryStatusResult
 import skillbill.application.telemetry.model.TelemetrySyncStatusResult
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.telemetry.TelemetryProxyPayloadKeys
 import skillbill.telemetry.model.TelemetryProxyCapabilities
 import skillbill.telemetry.model.TelemetryRemoteStatsResult
 
@@ -25,6 +26,9 @@ internal fun TelemetryStatusResult.toCliMap(): Map<String, Any?> = linkedMapOf<S
   installId?.let { put("install_id", it) }
   batchSize?.let { put("batch_size", it) }
   latestError?.let { put("latest_error", it) }
+  if (blockedEvents > 0) {
+    put("blocked_events", blockedEvents)
+  }
 }
 
 internal fun TelemetrySyncStatusResult.toCliMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
@@ -64,6 +68,7 @@ internal fun TelemetryProxyCapabilities.toCliMap(): Map<String, Any?> = linkedMa
   "supports_ingest" to supportsIngest,
   "supports_stats" to supportsStats,
   "supported_workflows" to supportedWorkflows,
+  TelemetryProxyPayloadKeys.SUPPORTS_EVENT_DEDUPLICATION to supportsEventDeduplication,
 ).apply {
   additionalFields.forEach { (key, value) -> putIfAbsent(key, value) }
 }

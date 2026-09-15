@@ -20,6 +20,7 @@ import skillbill.ports.telemetry.TelemetryConfigStore
 import skillbill.ports.telemetry.TelemetryOutboxRepository
 import skillbill.ports.telemetry.TelemetryReconciliationRepository
 import skillbill.ports.telemetry.TelemetrySettingsProvider
+import skillbill.ports.telemetry.model.TelemetryOutboxClaimRequest
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
 import skillbill.ports.work.EmptyWorkListRepository
 import skillbill.ports.workflow.WorkflowStateRepository
@@ -326,7 +327,12 @@ private class MutationTelemetryOutboxRepository(
 
   override fun listPending(limit: Int?): List<TelemetryOutboxRecord> = rows
 
+  override fun claimPending(request: TelemetryOutboxClaimRequest): List<TelemetryOutboxRecord> =
+    rows.take(request.limit)
+
   override fun pendingCount(): Int = rows.size
+
+  override fun blockedCount(attemptBudget: Int): Int = 0
 
   override fun latestError(): String? = null
 
@@ -339,6 +345,8 @@ private class MutationTelemetryOutboxRepository(
   override fun markFailed(id: Long, lastError: String) = Unit
 
   override fun markFailed(eventIds: List<Long>, lastError: String) = Unit
+
+  override fun markUnconfirmed(eventIds: List<Long>, lastError: String) = Unit
 
   override fun clear(): Int {
     val count = rows.size

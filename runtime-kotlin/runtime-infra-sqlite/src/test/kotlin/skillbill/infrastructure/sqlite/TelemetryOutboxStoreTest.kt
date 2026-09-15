@@ -3,10 +3,14 @@ package skillbill.infrastructure.sqlite
 import skillbill.SkillBillVersion
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
 import skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxStore
+import skillbill.ports.telemetry.model.TELEMETRY_DELIVERY_ATTEMPT_BUDGET
+import skillbill.ports.telemetry.model.TelemetryOutboxClaimRequest
 import java.nio.file.Files
 import java.sql.Connection
+import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -151,6 +155,127 @@ class TelemetryOutboxStoreTest {
       assertEquals(1, store.pendingCount(), "The still-pending row must remain queued alongside the sync timestamp.")
     }
   }
+
+  // SKILL-236 AC-001: two real emissions can carry byte-identical payloads and the same timestamp.
+  // Anything derived from content would fold them into one logical receiver event.
+  @Test
+  fun `identical payloads enqueued at the same timestamp get distinct identities`() {
+    withOutbox { connection, store ->
+      val first = store.enqueue(eventName = "skillbill_goal_finished", payloadJson = """{"same":"payload"}""")
+      val second = store.enqueue(eventName = "skillbill_goal_finished", payloadJson = """{"same":"payload"}""")
+      connection.createStatement().use { statement ->
+        statement.executeUpdate("UPDATE telemetry_outbox SET created_at = '2026-04-23 00:00:00'")
+      }
+
+      val identities = store.listPending().associate { it.id to it.eventUuid }
+
+      assertTrue(identities.getValue(first).isNotBlank())
+      assertNotEquals(
+        identities.getValue(first),
+        identities.getValue(second),
+        "Two real attempts must stay two logical events.",
+      )
+    }
+  }
+
+  // SKILL-236 AC-001: review health materialization rewrites payload_json after enqueue. An identity
+  // recomputed from content would change under that rewrite and the retry would arrive as a new event.
+  @Test
+  fun `an identity survives a payload rewrite after enqueue`() {
+    withOutbox { connection, store ->
+      val id = store.enqueue(eventName = "skillbill_review_finished", payloadJson = """{"v":"1"}""")
+      val minted = store.listPending().single().eventUuid
+
+      connection.prepareStatement("UPDATE telemetry_outbox SET payload_json = ? WHERE id = ?").use { statement ->
+        statement.setString(1, """{"v":"2","regenerated":true}""")
+        statement.setLong(2, id)
+        statement.executeUpdate()
+      }
+
+      assertEquals(minted, store.listPending().single().eventUuid)
+    }
+  }
+
+  // SKILL-236 AC-003: the pre-claim drain handed the same unclaimed rows to every concurrent drainer,
+  // so both sent them. Two drainers over one real database file must partition the queue instead.
+  @Test
+  fun `concurrent drainers claim disjoint rows and lose none`() {
+    val dbPath = Files.createTempDirectory("runtime-kotlin-db-outbox-claim").resolve("metrics.db")
+    DatabaseRuntime.ensureDatabase(dbPath).use { seed ->
+      repeat(4) { index ->
+        TelemetryOutboxStore(seed).enqueue(eventName = "skillbill_goal_finished", payloadJson = """{"i":$index}""")
+      }
+    }
+
+    DatabaseRuntime.ensureDatabase(dbPath).use { first ->
+      DatabaseRuntime.ensureDatabase(dbPath).use { second ->
+        val firstClaim = TelemetryOutboxStore(first).claimPending(claimRequest("drainer-a", limit = 2))
+        val secondClaim = TelemetryOutboxStore(second).claimPending(claimRequest("drainer-b", limit = 2))
+
+        val firstIds = firstClaim.map { it.id }
+        val secondIds = secondClaim.map { it.id }
+        assertTrue(firstIds.intersect(secondIds.toSet()).isEmpty(), "No row may be claimed by both drainers.")
+        assertEquals(
+          setOf(1L, 2L, 3L, 4L),
+          (firstIds + secondIds).toSet(),
+          "Partitioning the queue must not drop a queued record.",
+        )
+      }
+    }
+  }
+
+  // SKILL-236 AC-003: a drainer that dies mid-flight would otherwise strand its claimed rows forever.
+  @Test
+  fun `an expired claim is reclaimable so a crashed drainer strands nothing`() {
+    withOutbox { _, store ->
+      store.enqueue(eventName = "skillbill_goal_finished", payloadJson = "{}")
+      val abandoned = store.claimPending(claimRequest("crashed-drainer", limit = 10))
+      assertEquals(1, abandoned.size)
+
+      val stillHeld = store.claimPending(claimRequest("fresh-drainer", limit = 10))
+      assertTrue(stillHeld.isEmpty(), "A live claim must not be stolen.")
+
+      val reclaimed =
+        store.claimPending(
+          claimRequest("fresh-drainer", limit = 10, reclaimBefore = Instant.parse("2026-09-15T11:00:00Z")),
+        )
+
+      assertEquals(listOf(1L), reclaimed.map { it.id })
+      assertEquals(
+        abandoned.single().eventUuid,
+        reclaimed.single().eventUuid,
+        "Reclaiming must preserve the original identity, not mint a new one.",
+      )
+    }
+  }
+
+  // SKILL-236 AC-003/AC-006: a row that keeps failing must stop being replayed and must become
+  // visible as blocked, rather than looping through every drain forever.
+  @Test
+  fun `a row past the attempt budget stops being claimed and reports as blocked`() {
+    withOutbox { _, store ->
+      val id = store.enqueue(eventName = "skillbill_goal_finished", payloadJson = "{}")
+      repeat(3) { store.markFailed(eventIds = listOf(id), lastError = "receiver rejected the batch") }
+
+      assertEquals(1, store.claimPending(claimRequest("drainer", limit = 10, attemptBudget = 5)).size)
+      assertTrue(store.claimPending(claimRequest("drainer", limit = 10, attemptBudget = 3)).isEmpty())
+      assertEquals(1, store.blockedCount(attemptBudget = 3))
+      assertEquals(1, store.pendingCount(), "A blocked row stays queued for recovery, it is not discarded.")
+    }
+  }
+
+  private fun claimRequest(
+    token: String,
+    limit: Int,
+    reclaimBefore: Instant = Instant.parse("2026-09-15T09:55:00Z"),
+    attemptBudget: Int = TELEMETRY_DELIVERY_ATTEMPT_BUDGET,
+  ): TelemetryOutboxClaimRequest = TelemetryOutboxClaimRequest(
+    claimToken = token,
+    limit = limit,
+    claimedAt = Instant.parse("2026-09-15T10:00:00Z"),
+    reclaimBefore = reclaimBefore,
+    attemptBudget = attemptBudget,
+  )
 
   private fun scalarString(connection: Connection, sql: String): String? = connection.createStatement().use { st ->
     st.executeQuery(sql).use { rows ->

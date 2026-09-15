@@ -8,7 +8,7 @@ This example lets Skill Bill clients send telemetry to a small Cloudflare Worker
 2. Performs lightweight validation on the incoming batch.
 3. Adds the server-side `POSTHOG_API_KEY` for this example backend.
 4. Forwards the batch to PostHog `/batch/`.
-5. Exposes `GET /capabilities` so clients can discover whether the relay supports ingest and/or stats.
+5. Exposes `GET /capabilities` so clients can discover whether the relay supports ingest, stats, and per-event deduplication.
 6. Accepts `POST /stats` requests containing a workflow name plus `date_from` / `date_to`.
 7. Optionally enforces a bearer token for `/stats`.
 8. Queries PostHog through its Query API and returns aggregate workflow metrics.
@@ -93,6 +93,24 @@ skill-bill telemetry stats verify --date-from 2026-04-01 --date-to 2026-04-22
 skill-bill telemetry stats verify --since 30d --group-by day
 skill-bill telemetry stats verify --since 30d --group-by week
 ```
+
+## Event deduplication and delivery acknowledgement
+
+Every outbox row carries a durable, opaque identity minted in the same write that enqueues it. The client sends it as PostHog's `$insert_id` property. The identity is never derived from payload bytes, event name, or timestamp, so two real emissions with identical content stay two logical events, and it is never re-minted on rebatch, retry, restart, or reclaim.
+
+The Worker forwards event properties verbatim: `isValidEvent` only inspects them, and `transformBatch` spreads them into both the pass-through branch and the `$exception` rewrite branch. Consequently:
+
+- **Rollout order is producer-first.** A client may start sending `$insert_id` before any relay is redeployed; today's relay already forwards it. No coordinated deploy is required.
+- **A fork that rewrites or drops properties must report `supports_event_deduplication: false`** from `GET /capabilities`. Every client path that reads capabilities — `skill-bill telemetry capabilities`, `telemetry stats`, and the `telemetry_proxy_capabilities` MCP tool — then fails loudly instead of reporting a relay that cannot deduplicate as usable. The ingest drain does not fetch capabilities per batch, so this is a configuration-time check, not a per-send guard. Omitting the field means "supported", which keeps older relays working.
+
+Deduplication retention is bounded by the receiver, not by this relay. PostHog's `$insert_id` deduplication is a finite ingestion-window mechanism keyed on the event name, `distinct_id`, timestamp, and `$insert_id` together. A retry that arrives after that window has passed is ingested as a separate event. This is best-effort duplicate suppression for retries that happen within normal delivery latency; it is **not** indefinite exactly-once ingestion, and no part of this design should be described as such. Verify the current window against PostHog's supported API documentation for your deployment rather than assuming a fixed value.
+
+`forwardBatch` acknowledges a batch only after PostHog accepts it. Two paths in this Worker lose that acknowledgement without losing the data:
+
+- the 10-second `AbortController` timeout, which can fire after the upstream already accepted the batch
+- the `502` rewrite of an upstream error, which can follow a partially completed upstream write
+
+The client treats both as an **unknown** outcome: the rows stay pending with their original identity and are retried, and the receiver deduplicates them. Treating either as a rejection would discard delivered events; treating either as success would drop undelivered ones.
 
 ## Health dashboard guidance
 

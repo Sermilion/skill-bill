@@ -1,5 +1,6 @@
 package skillbill.infrastructure.sqlite.core
 
+import skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxDeliveryIdentityMigration
 import skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxLastErrorMigration
 import skillbill.infrastructure.sqlite.workflow.FeatureTaskPhaseSettlementsMigration
 internal val databaseMigrationsLate: List<DatabaseMigration> =
@@ -322,5 +323,10 @@ internal val databaseMigrationsLate: List<DatabaseMigration> =
           )
         }
       },
+    ),
+    DatabaseMigration(
+      version = 37,
+      name = "add-telemetry-outbox-delivery-identity",
+      operation = TelemetryOutboxDeliveryIdentityMigration::apply,
     ),
   )

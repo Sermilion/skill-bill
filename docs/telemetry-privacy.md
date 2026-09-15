@@ -61,6 +61,16 @@ enabling.
 | `install_id` (also the `distinct_id`) | — | ✓ | ✓ | `telemetryProperties` |
 | `skill_bill_version` | — | ✓ | ✓ | `telemetryProperties`, from the `telemetry_outbox.skill_bill_version` column; omitted on rows enqueued before release attribution existed |
 | `$process_person_profile` (always `false`) | — | ✓ | ✓ | `telemetryProperties` |
+| `$insert_id` (delivery identity) | — | ✓ | ✓ | `telemetryProperties`, from the `telemetry_outbox.event_uuid` column; omitted on rows that predate the column and were already synced |
+
+`$insert_id` is a random UUID minted in the same write that enqueues the row. It is content-free:
+never derived from payload bytes, event name, timestamp, `install_id`, or any machine property, so
+it discloses nothing beyond "this is one distinct queued event". It is the receiver's deduplication
+key, so it is assigned once and never re-minted on rebatch, retry, restart, or reclaim — and it is
+independent per database file, so two installs cannot produce the same identity.
+
+Redaction is unchanged by it: the anonymous-level redaction path still governs event content, and
+`$insert_id` is not part of that content.
 
 ### `skillbill_goal_started`, `skillbill_goal_finished`, `skillbill_goal_issue_finished`, `skillbill_goal_subtask_finished`
 
@@ -218,6 +228,12 @@ At `off`, no telemetry is transmitted and no telemetry config is required. Paylo
 skipped for every event except the producers listed in
 [What is still queued at `off`](#what-is-still-queued-at-off), which are enqueued locally without
 consulting the level and are not discarded when telemetry is later enabled.
+
+Opting out still deletes rows. A consent downgrade, a move to `off`, and an explicit queue clear all
+delete the pending outbox rows outright; the delivery identity lives in a column on those same rows,
+so deleting them deletes the identity with them. Nothing in the drain, the migration backfill, or the
+receiver's deduplication window can reconstruct a discarded event: the backfill only ever fills a
+missing identity on a row that still exists, and it never recreates one.
 
 ## What correlates events
 

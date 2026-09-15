@@ -1,3 +1,16 @@
+## [2026-09-15] SKILL-236 subtask 1 — Durable telemetry delivery identity and replay recovery
+Areas: runtime-kotlin/{runtime-application,runtime-contracts,runtime-domain,runtime-infra-http,runtime-infra-sqlite,runtime-ports,runtime-cli,runtime-mcp}, docs/cloudflare-telemetry-proxy, docs
+- `telemetry_outbox` gained `event_uuid`, `delivery_attempts`, `claim_token`, `claimed_at` in the base schema plus ledger migration 37 with an unconditional `ensureColumns` net; the migration backfills one UUID per pending row, scoped per database file, and reconstructs nothing an operator cleared.
+- Identity is minted inside the enqueue INSERT, so it survives rebatching, payload rewrite and restart; it rides to the receiver as `$insert_id` through the contracts-owned `TelemetryProxyPayloadKeys`.
+- The drain claims rows with a token and a five-minute lease before sending, counts progress only after a durable `markSynced`, and stops at a five-attempt budget; blocked rows surface as `blocked_events` instead of retrying forever.
+- Transport outcomes split into ACCEPTED / REJECTED / UNKNOWN with 408, 429 and 5xx as UNKNOWN, so a lost acknowledgement leaves the row pending under its original identity; a status outside 100..599 raises `InvalidTelemetryTransportOutcomeError`.
+- Reusable pattern: an outbox drain needs a claim lease, an attempt budget and a three-way transport outcome together — any two of the three still lose rows or replay them. reusable
+- Delivery health is written onto the failing row as `last_error` + `delivery_attempts` and never re-enqueued as telemetry; `autoSyncTelemetry` now swallows delivery failures so the MCP exception-capture path cannot grow the queue it failed to drain, while explicit `telemetry sync` still fails loudly.
+- Relay contract and worker are both at version 2 and advertise `supports_event_deduplication`; the capability handshake fails loudly when a relay accepts ingest but cannot carry the property. Producer-first rollout order is documented.
+- Known limitations: receiver deduplication is a finite retention window, not exactly-once; pre-identity events cannot be deduplicated retroactively and historical gaps are not proven zeros; the receiver-side duplication cause is reproduced on the sender side only.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
 ## [2026-09-14] SKILL-239 subtask 4 — Architecture enforcement and wire vocabulary
 Areas: runtime-kotlin/{architecture,runtime-contracts,runtime-domain,runtime-application,runtime-engine,runtime-infra-{fs,sqlite}}, platform-pack manifests
 - Governed payload seams now validate undeclared literals and schema fields independently of key-owner scans; decomposition and workflow keys use runtime-contract owners.

@@ -4,6 +4,7 @@ import skillbill.application.telemetry.REDACTED_ERROR_MESSAGE
 import skillbill.application.telemetry.RUNTIME_EXCEPTION_EVENT
 import skillbill.application.telemetry.enqueueRuntimeException
 import skillbill.ports.telemetry.TelemetryOutboxRepository
+import skillbill.ports.telemetry.model.TelemetryOutboxClaimRequest
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
 import kotlin.test.Test
 import kotlin.test.assertContains
@@ -113,13 +114,16 @@ class RuntimeExceptionTelemetryTest {
       }
 
       override fun listPending(limit: Int?): List<TelemetryOutboxRecord> = emptyList()
+      override fun claimPending(request: TelemetryOutboxClaimRequest): List<TelemetryOutboxRecord> = emptyList()
       override fun pendingCount(): Int = 0
+      override fun blockedCount(attemptBudget: Int): Int = 0
       override fun latestError(): String? = null
       override fun lastSyncedAt(): String? = null
       override fun markSynced(id: Long, syncedAt: String) = Unit
       override fun markSynced(eventIds: List<Long>) = Unit
       override fun markFailed(id: Long, lastError: String) = Unit
       override fun markFailed(eventIds: List<Long>, lastError: String) = Unit
+      override fun markUnconfirmed(eventIds: List<Long>, lastError: String) = Unit
       override fun clear(): Int = 0
     }
 }

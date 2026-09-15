@@ -11,6 +11,8 @@ import skillbill.ports.telemetry.TelemetryClient
 import skillbill.ports.telemetry.model.RemoteTransportResponse
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
 import skillbill.telemetry.model.RemoteStatsRequest
+import skillbill.telemetry.model.TelemetryDeliveryOutcome
+import skillbill.telemetry.model.TelemetryDeliveryReport
 import skillbill.telemetry.model.TelemetryProxyCapabilities
 import skillbill.telemetry.model.TelemetryRemoteStatsResult
 import skillbill.telemetry.model.TelemetrySettings
@@ -18,10 +20,15 @@ import skillbill.telemetry.model.TelemetrySyncStatus
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
+import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
+
+private val SYNC_NOW: Instant = Instant.parse("2026-09-15T10:00:00Z")
 
 class TelemetryRuntimeTest {
   @Test
@@ -61,6 +68,46 @@ class TelemetryRuntimeTest {
 
     assertEquals("0", payload.contractVersion)
     assertEquals(false, payload.supportsStats)
+  }
+
+  // SKILL-236 AC-005: a relay fork that rewrites or drops event properties cannot carry the
+  // deduplication key, so every retried batch would land upstream as a fresh duplicate. Sending
+  // anyway degrades silently. A relay that omits the field is an older relay that forwards
+  // properties verbatim, which is what makes the producer-first rollout order safe.
+  @Test
+  fun `a relay that cannot carry the deduplication property fails the ingest handshake loudly`() {
+    val settings = telemetrySettings(Files.createTempFile("telemetry-dedup-capability", ".json"))
+    val refusing = HttpTelemetryClient(ingestCapabilitiesRequester(deduplicationSupported = false))
+    val silentOlderRelay = HttpTelemetryClient(ingestCapabilitiesRequester(deduplicationSupported = null))
+
+    val error = assertFailsWith<IllegalArgumentException> { refusing.fetchProxyCapabilities(settings) }
+
+    assertTrue(
+      error.message.orEmpty().contains("event deduplication"),
+      "The refusal must name the missing property, not fail as a generic transport error.",
+    )
+    assertEquals(
+      true,
+      silentOlderRelay.fetchProxyCapabilities(settings).supportsEventDeduplication,
+      "A relay that omits the field forwards properties verbatim and must keep working.",
+    )
+  }
+
+  // SKILL-236 AC-003: a row blocked after five rejections is only actionable if the recorded error
+  // names the refusal. Discarding the relay response left the operator with "rejected" and no reason.
+  @Test
+  fun `a rejected batch carries the relay status and reason`() {
+    val requester =
+      RemoteTransportPort { _, _, _, _ ->
+        RemoteTransportResponse(statusCode = 422, body = """{"error":"unknown event property"}""")
+      }
+    val settings = telemetrySettings(Files.createTempFile("telemetry-rejection", ".json"))
+
+    val report = HttpTelemetryClient(requester).sendBatch(settings, emptyList())
+
+    assertEquals(TelemetryDeliveryOutcome.REJECTED, report.outcome)
+    assertTrue(report.detail.contains("422"), "The recorded refusal must name the relay status code.")
+    assertTrue(report.detail.contains("unknown event property"), "The relay's reason must survive into the record.")
   }
 
   @Test
@@ -107,7 +154,7 @@ class TelemetryRuntimeTest {
       outboxStore.enqueue("skillbill_feature_implement_finished", JsonCodec.mapToJsonString(mapOf("name" to "fail")))
 
       val successClient = RecordingTelemetryClient()
-      val successResult = TelemetrySyncRuntime.syncTelemetry(settings, outboxStore, successClient)
+      val successResult = TelemetrySyncRuntime.syncTelemetry(settings, outboxStore, successClient, SYNC_NOW)
       assertEquals(TelemetrySyncStatus.SYNCED, successResult.status)
       assertEquals(2, successResult.syncedEvents)
       assertEquals(listOf(listOf(1L, 2L)), successClient.sentBatchIds)
@@ -118,10 +165,10 @@ class TelemetryRuntimeTest {
       outboxStore.enqueue("skillbill_feature_verify_started", JsonCodec.mapToJsonString(mapOf("name" to "retry")))
 
       val failingClient = RecordingTelemetryClient(failure = IOException("blocked by network isolation sentinel"))
-      val failedResult = TelemetrySyncRuntime.syncTelemetry(settings, outboxStore, failingClient)
+      val failedResult = TelemetrySyncRuntime.syncTelemetry(settings, outboxStore, failingClient, SYNC_NOW)
       assertEquals(TelemetrySyncStatus.FAILED, failedResult.status)
-      assertEquals("blocked by network isolation sentinel", failedResult.message)
-      assertEquals("blocked by network isolation sentinel", outboxStore.latestError())
+      assertTrue(failedResult.message.orEmpty().contains("blocked by network isolation sentinel"))
+      assertTrue(outboxStore.latestError().orEmpty().contains("blocked by network isolation sentinel"))
     }
   }
 
@@ -146,6 +193,7 @@ class TelemetryRuntimeTest {
           settings = disabledSettings,
           outboxRepository = outboxStore,
           client = RecordingTelemetryClient(failure = IOException("must not call client")),
+          now = SYNC_NOW,
           reportFailures = false,
         )
 
@@ -163,6 +211,7 @@ class TelemetryRuntimeTest {
           telemetrySettings(Files.createTempFile("telemetry-noop", ".json")),
           outboxStore,
           RecordingTelemetryClient(),
+          SYNC_NOW,
         )
 
       assertEquals(TelemetrySyncStatus.NOOP, noopResult.status)
@@ -180,6 +229,7 @@ class TelemetryRuntimeTest {
           ),
           outboxStore,
           RecordingTelemetryClient(failure = IOException("must not call client")),
+          SYNC_NOW,
         )
 
       assertEquals(TelemetrySyncStatus.UNCONFIGURED, unconfiguredResult.status)
@@ -193,9 +243,13 @@ private class RecordingTelemetryClient(
 ) : TelemetryClient {
   val sentBatchIds = mutableListOf<List<Long>>()
 
-  override fun sendBatch(settings: TelemetrySettings, rows: List<TelemetryOutboxRecord>) {
+  override fun sendBatch(
+    settings: TelemetrySettings,
+    rows: List<TelemetryOutboxRecord>,
+  ): TelemetryDeliveryReport {
     failure?.let { throw it }
     sentBatchIds += rows.map { it.id }
+    return TelemetryDeliveryReport(TelemetryDeliveryOutcome.ACCEPTED)
   }
 
   override fun fetchProxyCapabilities(settings: TelemetrySettings): TelemetryProxyCapabilities =
@@ -214,6 +268,17 @@ private fun remoteStatsRequester(requests: MutableList<Triple<String, String, St
       remoteStatsResponse()
     }
   }
+
+private fun ingestCapabilitiesRequester(deduplicationSupported: Boolean?): RemoteTransportPort {
+  val deduplicationField =
+    deduplicationSupported?.let { ""","supports_event_deduplication":$it""" }.orEmpty()
+  return RemoteTransportPort { _, _, _, _ ->
+    RemoteTransportResponse(
+      statusCode = 200,
+      body = """{"contract_version":"2","supports_ingest":true$deduplicationField}""",
+    )
+  }
+}
 
 private fun capabilitiesResponse(): RemoteTransportResponse = RemoteTransportResponse(
   statusCode = 200,

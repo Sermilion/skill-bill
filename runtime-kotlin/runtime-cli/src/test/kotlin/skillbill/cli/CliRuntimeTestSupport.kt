@@ -417,6 +417,7 @@ internal fun expectedCapabilitiesPayload(): Map<String, Any?> = linkedMapOf(
   "supports_ingest" to true,
   "supports_stats" to true,
   "supported_workflows" to listOf("bill-feature-verify", "feature-task-runtime"),
+  "supports_event_deduplication" to true,
   "region" to "eu",
 )
 

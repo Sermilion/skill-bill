@@ -1,6 +1,7 @@
 package skillbill.infrastructure.http
 
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.telemetry.TelemetryProxyPayloadKeys
 import skillbill.telemetry.model.TelemetryProxyCapabilities
 import skillbill.telemetry.model.TelemetryRemoteStatsResult
 import skillbill.workflow.engine.model.CustomFieldMap
@@ -20,6 +21,7 @@ internal fun Map<String, Any?>.toTelemetryProxyCapabilities(): TelemetryProxyCap
       "supports_ingest",
       "supports_stats",
       "supported_workflows",
+      TelemetryProxyPayloadKeys.SUPPORTS_EVENT_DEDUPLICATION,
     )
   return TelemetryProxyCapabilities(
     contractVersion = this[SharedPayloadKeys.CONTRACT_VERSION]?.toString().orEmpty(),
@@ -29,6 +31,7 @@ internal fun Map<String, Any?>.toTelemetryProxyCapabilities(): TelemetryProxyCap
     supportsIngest = this["supports_ingest"] == true,
     supportsStats = this["supports_stats"] == true,
     supportedWorkflows = supportedWorkflows,
+    supportsEventDeduplication = this[TelemetryProxyPayloadKeys.SUPPORTS_EVENT_DEDUPLICATION] != false,
     additionalFields = CustomFieldMap.from(filterKeys { key -> key !in knownKeys }),
   )
 }

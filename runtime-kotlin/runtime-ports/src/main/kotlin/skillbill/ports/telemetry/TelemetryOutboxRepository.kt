@@ -1,5 +1,6 @@
 package skillbill.ports.telemetry
 
+import skillbill.ports.telemetry.model.TelemetryOutboxClaimRequest
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
 
 interface TelemetryOutboxRepository {
@@ -7,7 +8,11 @@ interface TelemetryOutboxRepository {
 
   fun listPending(limit: Int? = null): List<TelemetryOutboxRecord>
 
+  fun claimPending(request: TelemetryOutboxClaimRequest): List<TelemetryOutboxRecord>
+
   fun pendingCount(): Int
+
+  fun blockedCount(attemptBudget: Int): Int
 
   fun latestError(): String?
 
@@ -20,6 +25,8 @@ interface TelemetryOutboxRepository {
   fun markFailed(id: Long, lastError: String)
 
   fun markFailed(eventIds: List<Long>, lastError: String)
+
+  fun markUnconfirmed(eventIds: List<Long>, lastError: String)
 
   fun clear(): Int
 }

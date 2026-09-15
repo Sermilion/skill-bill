@@ -1,5 +1,6 @@
 package skillbill.infrastructure.sqlite.core
 
+import skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxDeliveryIdentityMigration
 import java.sql.Connection
 
 internal object DatabaseColumnMigrations {
@@ -14,6 +15,7 @@ internal object DatabaseColumnMigrations {
     DatabaseColumnMigrationsEnsure.ensureFeatureTaskRuntimeSessionColumns(connection)
     DatabaseColumnMigrationsEnsure.ensureColumn(connection, "feature_task_workflows", "interruption_reason", "TEXT")
     DatabaseColumnMigrationsEnsure.ensureColumn(connection, "telemetry_outbox", "skill_bill_version", "TEXT")
+    TelemetryOutboxDeliveryIdentityMigration.ensureColumns(connection)
     DatabaseColumnMigrationsConditional.apply(connection)
     DatabaseColumnMigrationsWorkListRecovery.ensureReconciliationIndexes(connection)
   }

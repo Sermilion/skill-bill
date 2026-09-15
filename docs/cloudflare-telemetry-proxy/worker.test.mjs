@@ -67,6 +67,10 @@ describe("capabilitiesPayload", () => {
     assert.deepEqual(caps.supported_workflows, []);
     assert.equal(caps.supports_stats, false);
   });
+
+  it("advertises event deduplication support so clients do not refuse to send", () => {
+    assert.equal(capabilitiesPayload(fullEnv).supports_event_deduplication, true);
+  });
 });
 
 describe("stats queries default to production installs", () => {
@@ -119,6 +123,26 @@ describe("transformBatch", () => {
     const result = transformBatch(batch);
     assert.equal(result[0].event, "skillbill_feature_verify_started");
     assert.equal(result[1].event, "$exception");
+  });
+
+  // The whole replay recovery depends on the receiver seeing the producer's $insert_id. The
+  // exception branch rebuilds properties, so a rewrite that forgot to spread them would silently
+  // turn every retried exception into a fresh duplicate event.
+  it("forwards $insert_id verbatim through both the pass-through and exception-rewrite branches", () => {
+    const batch = [
+      { ...baseEvent("skillbill_review_finished", { $insert_id: "pass-through-id" }) },
+      {
+        ...baseEvent("skillbill_runtime_exception", {
+          $insert_id: "rewritten-id",
+          error_type: "RuntimeException",
+          error_message: "boom",
+        }),
+      },
+    ];
+    const result = transformBatch(batch);
+    assert.equal(result[0].properties.$insert_id, "pass-through-id");
+    assert.equal(result[1].properties.$insert_id, "rewritten-id");
+    assert.equal(result[1].event, "$exception", "the second event must still be the rewritten branch");
   });
 
   it("passes retired prose event names through untouched and unaggregated", () => {

@@ -15,6 +15,7 @@ data class TelemetryStatusResult(
   val batchSize: Int? = null,
   val latestError: String? = null,
   val lastSyncedAt: String? = null,
+  val blockedEvents: Int = 0,
 )
 
 data class TelemetrySyncStatusResult(
