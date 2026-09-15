@@ -9,8 +9,6 @@ import skillbill.engine.featuretask.model.FeatureTaskRuntimeFindingBoundaryMemor
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeFindingBoundaryMemorySection
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeImplementationContinuation
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
-import skillbill.error.FeatureTaskRuntimeHandoffProjectionFailureKind
-import skillbill.error.InvalidFeatureTaskRuntimeHandoffProjectionContext
 import skillbill.error.InvalidFeatureTaskRuntimeHandoffProjectionError
 import skillbill.error.InvalidFeatureTaskRuntimePhaseBriefingFramingError
 import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
@@ -701,24 +699,6 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
       .filterNot { path -> isFeatureSpecPathForIssue(path, run.request.issueKey) }
       .distinct()
       .sorted()
-    if (paths.size > MAX_CHECKPOINT_OWNED_PATHS) {
-      val declaration = run.declaration.projectionDeclarations.first { projection ->
-        projection.checkpointPolicy != FeatureTaskRuntimeRepositoryCheckpointPolicy.NOT_REQUIRED
-      }
-      throw InvalidFeatureTaskRuntimeHandoffProjectionError(
-        context = InvalidFeatureTaskRuntimeHandoffProjectionContext(
-          workflowId = run.request.workflowId,
-          consumerPhaseId = run.phaseId,
-          projectionName = declaration.projectionName,
-          projectionContractId = declaration.projectionContractId,
-          projectionContractVersion = declaration.projectionContractVersion,
-          failureKind = FeatureTaskRuntimeHandoffProjectionFailureKind.BUDGET_OVERFLOW,
-          reason = "the scoped owned-path inventory holds ${paths.size} entries, over the " +
-            "$MAX_CHECKPOINT_OWNED_PATHS-entry checkpoint limit; narrow the run scope or commit " +
-            "unrelated working-tree changes before relaunching",
-        ),
-      )
-    }
     return paths
   }
 
