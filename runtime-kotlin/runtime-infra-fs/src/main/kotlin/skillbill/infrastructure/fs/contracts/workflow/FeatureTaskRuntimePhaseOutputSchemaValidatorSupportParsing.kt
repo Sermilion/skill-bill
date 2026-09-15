@@ -4,6 +4,10 @@ import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.JsonNode
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
+import skillbill.workflow.model.WorkflowStepStatus
+import skillbill.workflow.model.workflowStepStatus
+import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
 import java.util.logging.Level
 
 internal fun readPhaseOutputObjectNode(phaseOutputText: String, sourceLabel: String): JsonNode {
@@ -126,4 +130,12 @@ internal fun phaseOutputObjectNodeToMap(node: JsonNode, sourceLabel: String): Ma
     cause = error,
     payloadFreeReason = "Phase output root object cannot be converted to a string-keyed map.",
   )
+}
+
+internal fun dropSpuriousAuditCompletedVerdict(parsed: MutableMap<String, Any?>) {
+  if (parsed[SharedPayloadKeys.PHASE_ID] != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT) return
+  if ((parsed[SharedPayloadKeys.STATUS] as? String).workflowStepStatus() != WorkflowStepStatus.COMPLETED) return
+  val verdict = parsed[SharedPayloadKeys.VERDICT] as? String ?: return
+  if (verdict == FeatureTaskRuntimeVerdict.SATISFIED.wireValue) return
+  parsed.remove(SharedPayloadKeys.VERDICT)
 }

@@ -112,6 +112,33 @@ class FeatureTaskRuntimeAuditAcListRetryTest {
   }
 
   @Test
+  fun `invented audit verdict is ignored and remaining criteria still retry`() {
+    var auditLaunches = 0
+    val launcher = RuntimeRecordingLauncher { request ->
+      val prompt = requireNotNull(request.skillRunRequest.promptOverride)
+      if (phaseIdFromPrompt(prompt) != "audit") return@RuntimeRecordingLauncher facts(defaultPhaseOutput(request))
+      auditLaunches += 1
+      when (auditLaunches) {
+        1 -> facts(
+          auditRemainingAcOutput(remainingHint).trimEnd().removeSuffix("}") +
+            """, "verdict": "remediation_required" }""",
+        )
+        2 -> facts(auditSatisfiedOutput())
+        else -> error("unexpected audit launch $auditLaunches")
+      }
+    }
+    val harness = runnerHarness(
+      RuntimeHarnessConfig(
+        acceptanceCriteria = CRITERIA,
+        launcher = launcher,
+        validator = realFeatureTaskRuntimePhaseOutputValidator,
+      ),
+    )
+    assertIs<FeatureTaskRuntimeRunReport.Completed>(harness.runner.run(harness.request()))
+    assertEquals(2, auditLaunches)
+  }
+
+  @Test
   fun `completed audit retries accept arbitrary nonempty final text`() {
     listOf(
       "- AC-002 still open",

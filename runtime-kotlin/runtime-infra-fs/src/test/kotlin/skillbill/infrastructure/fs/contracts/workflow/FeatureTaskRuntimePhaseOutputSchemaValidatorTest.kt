@@ -10,6 +10,7 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 class FeatureTaskRuntimePhaseOutputSchemaValidatorTest {
   private val wellFormed =
     """
@@ -441,6 +442,18 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
     assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
       FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(badVerdict, "audit")
     }
+  }
+
+  @Test
+  fun `completed audit drops invented verdict before normalization`() {
+    val inventedVerdict =
+      """{"contract_version":"0.6","phase_id":"audit","status":"completed","summary":"audit",""" +
+        """"verdict":"remediation_required","produced_outputs":{"value":"- AC-002 still open"}}"""
+    val normalized = FeatureTaskRuntimePhaseOutputSchemaValidator.normalizePhaseOutput(inventedVerdict, "audit")
+    assertNull(normalized.envelopeWireMap()["verdict"])
+    assertEquals("- AC-002 still open", normalized.envelopeWireMap()["produced_outputs"].let {
+      (it as Map<*, *>)["value"]
+    })
   }
 
   @Test
