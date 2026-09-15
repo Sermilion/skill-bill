@@ -49,10 +49,7 @@ internal fun GoalRunnerControlCoordinator.requestPauseByIssueKey(
   val existing = unitOfWork.goalRunnerControls.controlState(parent.workflowId)
   if (repoRoot != null) {
     val identity = goalRepositoryIdentity(repoRoot)
-    require(existing.repositoryIdentity == null || existing.repositoryIdentity == identity) {
-      "Goal parent '${parent.workflowId}' belongs to another repository."
-    }
-    if (existing.repositoryIdentity == null) {
+    if (existing.repositoryIdentity != identity) {
       unitOfWork.goalRunnerControls.persistControlState(
         parent.workflowId,
         existing.copy(repositoryIdentity = identity),

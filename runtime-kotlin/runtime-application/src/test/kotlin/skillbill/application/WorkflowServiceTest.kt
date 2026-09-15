@@ -1119,6 +1119,39 @@ class WorkflowServiceGoalManifestStoreTest {
   }
 
   @Test
+  fun `a goal parent bound to an earlier checkout rebinds to the invoking repository`() {
+    val repoRoot = Files.createTempDirectory("skillbill-goal-manifest-rebind")
+    val manifestPath = repoRoot.resolve(".feature-specs/SKILL-52.1-implementation/decomposition-manifest.yaml")
+    Files.createDirectories(manifestPath.parent)
+    Files.writeString(
+      manifestPath,
+      encodeDecompositionManifestYaml(
+        decompositionRuntime(status = "blocked"),
+        testDecompositionManifestValidator,
+        TestDecompositionManifestStore,
+      ),
+    )
+    val store = testWorkflowGoalRunnerManifestStore(
+      database = FakeDatabaseSessionFactory(
+        workflowStates = InMemoryWorkflowStates(),
+        goalRunnerControls = RecordingGoalRunnerControlRepository(),
+      ),
+      decompositionManifestStore = TestDecompositionManifestStore,
+      clock = Clock.systemUTC(),
+    )
+    val parentWorkflowId = assertNotNull(store.loadByIssueKey("SKILL-52.1", repoRoot = repoRoot)).parentWorkflowId
+    store.bindRepositoryIdentity(parentWorkflowId, "repo-root-realpath-v1:/checkouts/first")
+
+    val rebound = store.bindRepositoryIdentity(parentWorkflowId, "repo-root-realpath-v1:/checkouts/second")
+
+    assertEquals("repo-root-realpath-v1:/checkouts/second", rebound.repositoryIdentity)
+    assertEquals(
+      "repo-root-realpath-v1:/checkouts/second",
+      store.controlState(parentWorkflowId).repositoryIdentity,
+    )
+  }
+
+  @Test
   fun `goal manifest store refreshes stale db projection from complete checked-in projection`() {
     val repoRoot = Files.createTempDirectory("skillbill-goal-manifest-refresh-complete")
     val manifestPath = repoRoot.resolve(".feature-specs/SKILL-52.1-implementation/decomposition-manifest.yaml")

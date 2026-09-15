@@ -18,7 +18,6 @@ import skillbill.engine.goalrunner.GoalRunnerStatusTestPorts
 import skillbill.engine.goalrunner.SubtaskLaunchRequestArgs
 import skillbill.engine.goalrunner.TestNoopGoalRunnerSubtaskLauncher
 import skillbill.engine.goalrunner.findings.UnaddressedFindingsLedgerService
-import skillbill.engine.goalrunner.goalRepositoryIdentity
 import skillbill.engine.goalrunner.goalRunnerDeps
 import skillbill.engine.goalrunner.model.GoalRunnerAcceptRequest
 import skillbill.engine.goalrunner.model.GoalRunnerAcceptResult
@@ -3079,31 +3078,6 @@ class GoalRunnerAcceptResetTest {
     }
   }
 
-  @Test
-  fun `hard reset rejects repository root that does not match the goal identity`() {
-    val store = InMemoryGoalManifestStore(
-      manifest = manifest(subtaskCount = 1),
-      initialControlState = GoalRunnerControlState(
-        repositoryIdentity = goalRepositoryIdentity(Path.of("/tmp/bound-repo")),
-      ),
-    )
-    val service = testGoalRunnerStatusService(
-      manifestStore = store,
-      outcomeStore = RecordingOutcomeStore(),
-      phaseRecorder = goalTestPhaseRecorder(),
-    )
-
-    assertFailsWith<IllegalArgumentException> {
-      service.reset(
-        GoalRunnerResetRequest(
-          issueKey = "SKILL-56",
-          hard = true,
-          repoRoot = Path.of("/tmp/other-repo"),
-        ),
-      )
-    }
-  }
-
   private fun runRequest(): GoalRunnerRunRequest = GoalRunnerRunRequest(
     issueKey = "SKILL-56",
     repoRoot = Path.of("/tmp/skillbill-goal-runner"),
@@ -3201,12 +3175,7 @@ internal class InMemoryGoalManifestStore(
   }
 
   override fun bindRepositoryIdentity(parentWorkflowId: String, repositoryIdentity: String): GoalRunnerControlState {
-    require(controlState.repositoryIdentity == null || controlState.repositoryIdentity == repositoryIdentity) {
-      "Goal parent '$parentWorkflowId' belongs to another repository."
-    }
-    if (controlState.repositoryIdentity == null) {
-      controlState = controlState.copy(repositoryIdentity = repositoryIdentity)
-    }
+    controlState = controlState.copy(repositoryIdentity = repositoryIdentity)
     return controlState
   }
 
