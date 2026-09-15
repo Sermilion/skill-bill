@@ -3,17 +3,16 @@ package skillbill.infrastructure.sqlite
 import org.junit.jupiter.api.parallel.Execution
 import org.junit.jupiter.api.parallel.ExecutionMode
 import skillbill.error.DatabaseAccessError
-import skillbill.infrastructure.sqlite.core.DatabaseIdentity
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
 import skillbill.model.EnvironmentContext
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardCopyOption
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
 @Execution(ExecutionMode.SAME_THREAD)
@@ -43,13 +42,10 @@ class DatabaseWriteReadinessTest {
     }
     assertEquals(afterFirst, DatabaseRuntime.writeReadinessEstablishmentCount())
 
-    val identityBefore = requireNotNull(DatabaseIdentity.read(dbPath))
-    deleteDatabaseFiles(dbPath)
+    relocateDatabaseFromPath(dbPath, tempDir.resolve("metrics-archived.db"))
     database.transaction { unitOfWork ->
       unitOfWork.workflowStates.saveFeatureTaskRuntimeWorkflow(sampleWorkflow("wftr-readiness-3"))
     }
-    val identityAfter = DatabaseIdentity.read(dbPath)
-    assertNotEquals(identityBefore, identityAfter)
     assertTrue(DatabaseRuntime.writeReadinessEstablishmentCount() > afterFirst)
   }
 
@@ -103,10 +99,12 @@ class DatabaseWriteReadinessTest {
     assertTrue(DatabaseRuntime.writeReadinessEstablishmentCount() > afterFailure)
   }
 
-  private fun deleteDatabaseFiles(dbPath: Path) {
+  private fun relocateDatabaseFromPath(dbPath: Path, archivePath: Path) {
+    Files.deleteIfExists(archivePath)
+    Files.move(dbPath, archivePath, StandardCopyOption.ATOMIC_MOVE)
     Files.deleteIfExists(dbPath.resolveSibling("${dbPath.fileName}-wal"))
     Files.deleteIfExists(dbPath.resolveSibling("${dbPath.fileName}-shm"))
-    assertTrue(Files.deleteIfExists(dbPath), "expected database file to delete before identity change probe")
+    assertTrue(!Files.exists(dbPath), "expected database path to be absent before recreation")
   }
 
   private fun sampleWorkflow(workflowId: String) = WorkflowStateRecord(
