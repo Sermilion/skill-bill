@@ -6,13 +6,17 @@ import skillbill.infrastructure.sqlite.core.DatabaseRuntime
 import skillbill.model.EnvironmentContext
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.WorkflowStateRecord
+import org.junit.jupiter.api.parallel.Execution
+import org.junit.jupiter.api.parallel.ExecutionMode
 import java.nio.file.Files
+import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
+@Execution(ExecutionMode.SAME_THREAD)
 class DatabaseWriteReadinessTest {
   @Test
   fun `repeated write acquisitions establish schema once until database identity changes`() {
@@ -39,8 +43,8 @@ class DatabaseWriteReadinessTest {
     }
     assertEquals(afterFirst, DatabaseRuntime.writeReadinessEstablishmentCount())
 
-    val identityBefore = DatabaseIdentity.read(dbPath)
-    Files.delete(dbPath)
+    val identityBefore = requireNotNull(DatabaseIdentity.read(dbPath))
+    deleteDatabaseFiles(dbPath)
     database.transaction { unitOfWork ->
       unitOfWork.workflowStates.saveFeatureTaskRuntimeWorkflow(sampleWorkflow("wftr-readiness-3"))
     }
@@ -97,6 +101,12 @@ class DatabaseWriteReadinessTest {
     }
 
     assertTrue(DatabaseRuntime.writeReadinessEstablishmentCount() > afterFailure)
+  }
+
+  private fun deleteDatabaseFiles(dbPath: Path) {
+    Files.deleteIfExists(dbPath.resolveSibling("${dbPath.fileName}-wal"))
+    Files.deleteIfExists(dbPath.resolveSibling("${dbPath.fileName}-shm"))
+    assertTrue(Files.deleteIfExists(dbPath), "expected database file to delete before identity change probe")
   }
 
   private fun sampleWorkflow(workflowId: String) = WorkflowStateRecord(
