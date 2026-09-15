@@ -1,5 +1,18 @@
 # Boundary History — runtime-kotlin/runtime-infra-fs
 
+## [2026-09-14] SKILL-244 subtask 1 — Gate JVM resolved through the shared Java guard
+Areas: runtime-infra-fs/jvm, runtime-infra-fs/validation, runtime-infra-fs/launcher/process
+- `skill-bill-java-guard.sh` now ships as a runtime-infra-fs classpath resource (`copyJavaGuard` in `build.gradle.kts`, one authored copy under `build-logic/convention`), so the resolution rule exists at gate time and not only during install/uninstall.
+- New `skillbill/infrastructure/fs/jvm` package (`GateJvmResolver`, `GateJvmEnvironmentKeys`, `GateJvmResolutionErrors`) evaluates that guard: `SKILL_BILL_JAVA_HOME`, then an inherited `JAVA_HOME` accepted by `skill_bill_java_home_ok`, then a qualifying PATH `java`, then the guard's scan. reusable
+- Both gate launch surfaces resolve through it: `FileSystemValidationGateRunner.applyResolvedGateJvm` before `builder.start()`, and `JvmAgentRunProcessLaunchEnvironment.configureLaunchEnvironment` (now three-arg) for the agent-run build gate that inherits the parent environment.
+- The runtime's own jlink image is pruned from the gate PATH and an image-rooted `JAVA_HOME` is dropped before the guard decides, so the runtime keeps `JAVA_HOME="$APP_HOME"` for itself without leaking it into children.
+- Pattern: exactly one resolution rule. Kotlin shells out to the guard; no second acceptance or scan implementation lives beside it.
+- An unresolved disposition raises `GateJvmUnresolvedException` naming the rejected candidate and the required major version, and produces no `ValidationGateFinding`, so a JVM startup failure never reaches the agent as a build finding.
+- `Jvm` is registered first in `infraFsAreaLayerOrder`/`infraFsAreaSourceDirs` so `verifyInfraFsAreaCompile`'s isolated launcher area can resolve the new package.
+- Limitation: the guard must reach `~/.skill-bill/runtime/`, so `./install.sh` must be rerun before the fix is observable end to end. Two tests sit at narrower seams (resolver sanitation against an injected image root; `applyResolvedGateJvm`) because any host running Gradle always has a scannable JDK.
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented
+
 ## [2026-09-14] SKILL-239 subtask 1 — process lifetime
 Areas: runtime-infra-fs/launcher/process, runtime-infra-fs process tests
 - `ProcessRunLifetime` now owns process termination, drain settlement or abandonment, stream closure, registry removal, and review-endpoint closure on every runner exit.

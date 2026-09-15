@@ -3,11 +3,14 @@ package skillbill.infrastructure.fs.launcher.process
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import skillbill.contracts.time.JvmSystemClock
+import skillbill.infrastructure.fs.jvm.hostPath
+import skillbill.infrastructure.fs.jvm.testGateJvmResolver
 import skillbill.infrastructure.fs.launcher.review.GovernedReviewEvidenceEndpoint
 import skillbill.infrastructure.fs.launcher.testAgentRunProcessRequest
 import skillbill.ports.agentrun.model.AgentRunMcpStartupProbe
@@ -70,7 +73,7 @@ class JvmAgentRunProcessRunnerTest {
       }
     }
     assertThrows<IllegalStateException> {
-      JvmAgentRunProcessRunner(JvmSystemClock).run(
+      JvmAgentRunProcessRunner(JvmSystemClock, testGateJvmResolver()).run(
         testAgentRunProcessRequest(
           listOf("sh", "-c", "echo $$ > '$pidFile'; exec sleep 120"),
           Path.of("."),
@@ -89,7 +92,7 @@ class JvmAgentRunProcessRunnerTest {
 
   @Test
   fun `probe failure is recorded without resetting the idle deadline`() {
-    val result = JvmAgentRunProcessRunner(JvmSystemClock).run(
+    val result = JvmAgentRunProcessRunner(JvmSystemClock, testGateJvmResolver()).run(
       testAgentRunProcessRequest(
         listOf("sh", "-c", "sleep 5"),
         Path.of("."),
@@ -108,7 +111,7 @@ class JvmAgentRunProcessRunnerTest {
   @Test
   fun `progress absence after an observation does not extend the idle deadline`() {
     var observations = 0
-    val result = JvmAgentRunProcessRunner(JvmSystemClock).run(
+    val result = JvmAgentRunProcessRunner(JvmSystemClock, testGateJvmResolver()).run(
       testAgentRunProcessRequest(
         listOf("sh", "-c", "sleep 5"),
         Path.of("."),
@@ -140,7 +143,7 @@ class JvmAgentRunProcessRunnerTest {
   @Test
   fun `cancellation from a probe is not converted into missing progress`() {
     assertThrows<CancellationException> {
-      JvmAgentRunProcessRunner(JvmSystemClock).run(
+      JvmAgentRunProcessRunner(JvmSystemClock, testGateJvmResolver()).run(
         testAgentRunProcessRequest(
           listOf("sh", "-c", "exec sleep 120"),
           Path.of("."),
@@ -214,7 +217,7 @@ class JvmAgentRunProcessRunnerTest {
 
   @Test
   fun `parent interrupt during wait keeps interrupted result without idle timeout`() {
-    val runner = JvmAgentRunProcessRunner(JvmSystemClock)
+    val runner = JvmAgentRunProcessRunner(JvmSystemClock, testGateJvmResolver())
     var result: AgentRunProcessResult? = null
     val worker = thread(start = true) {
       result = runner.run(
@@ -243,7 +246,7 @@ class JvmAgentRunProcessRunnerTest {
       """awk 'BEGIN{p=sprintf("%0500d",0); """ +
         """for(i=0;i<4000;i++) printf "{\"type\":\"assistant\",\"pad\":\"%s\"}\n", p; """ +
         """printf "{\"type\":\"result\",\"result\":\"TERMINAL\"}\n"}'"""
-    val result = JvmAgentRunProcessRunner(JvmSystemClock).run(
+    val result = JvmAgentRunProcessRunner(JvmSystemClock, testGateJvmResolver()).run(
       testAgentRunProcessRequest(
         listOf("sh", "-c", flood),
         Path.of("."),
@@ -268,7 +271,7 @@ class JvmAgentRunProcessRunnerTest {
 
   @Test
   fun `foreground process result is returned once as the bounded terminal result`() {
-    val result = JvmAgentRunProcessRunner(JvmSystemClock).run(
+    val result = JvmAgentRunProcessRunner(JvmSystemClock, testGateJvmResolver()).run(
       testAgentRunProcessRequest(
         listOf("sh", "-c", "printf terminal-result"),
         Path.of("."),
@@ -285,7 +288,7 @@ class JvmAgentRunProcessRunnerTest {
 
   @Test
   fun `nonzero child exit remains an ordinary completed process result`() {
-    val result = JvmAgentRunProcessRunner(JvmSystemClock).run(
+    val result = JvmAgentRunProcessRunner(JvmSystemClock, testGateJvmResolver()).run(
       testAgentRunProcessRequest(
         listOf("sh", "-c", "printf failure >&2; exit 17"),
         Path.of("."),
@@ -300,7 +303,7 @@ class JvmAgentRunProcessRunnerTest {
 
   @Test
   fun `spawn refusal remains distinct from a started process`() {
-    val result = JvmAgentRunProcessRunner(JvmSystemClock).run(
+    val result = JvmAgentRunProcessRunner(JvmSystemClock, testGateJvmResolver()).run(
       testAgentRunProcessRequest(
         listOf("/skillbill/does-not-exist"),
         Path.of("."),
@@ -314,7 +317,7 @@ class JvmAgentRunProcessRunnerTest {
 
   @Test
   fun `MCP startup is counted only when an explicit launcher probe observes it`() {
-    val result = JvmAgentRunProcessRunner(JvmSystemClock).run(
+    val result = JvmAgentRunProcessRunner(JvmSystemClock, testGateJvmResolver()).run(
       testAgentRunProcessRequest(
         listOf("sh", "-c", "printf terminal-result"),
         Path.of("."),
@@ -330,7 +333,7 @@ class JvmAgentRunProcessRunnerTest {
   fun `spawn authorization surrounds process creation and not terminal waiting`() {
     var authorizationEntered = false
     var authorizationExited = false
-    val result = JvmAgentRunProcessRunner(JvmSystemClock).run(
+    val result = JvmAgentRunProcessRunner(JvmSystemClock, testGateJvmResolver()).run(
       testAgentRunProcessRequest(
         listOf("sh", "-c", "printf terminal-result"),
         Path.of("."),
@@ -428,12 +431,6 @@ class JvmAgentRunProcessRunnerTest {
     assertNull(isolated["SOME_AMBIENT_SECRET"])
   }
 
-  /**
-   * SKILL-141: configureLaunchEnvironment must apply isolation against the ProcessBuilder's own
-   * environment map — the actual seam that broke when the block was untested. This test exercises
-   * the ProcessBuilder seam directly rather than the pure-helper overload, so reverting the .apply
-   * block would cause this test to fail while keeping the helper tests green.
-   */
   @Test
   fun `configureLaunchEnvironment applies isolation to a real ProcessBuilder environment map`() {
     val builder = ProcessBuilder("echo", "test")
@@ -453,6 +450,7 @@ class JvmAgentRunProcessRunnerTest {
         inheritEnvironment = false
         environmentPassthroughKeys = setOf("ANTHROPIC_API_KEY")
       },
+      testGateJvmResolver(),
     )
 
     assertEquals("/home/dev", builder.environment()["HOME"])
@@ -463,6 +461,23 @@ class JvmAgentRunProcessRunnerTest {
   }
 
   @Test
+  fun `an inherited JAVA_HOME inside the runtime image never reaches the child environment`() {
+    val leaked = Path.of(System.getProperty("java.home")).resolve("lib").toString()
+    val builder = ProcessBuilder("echo", "test")
+    builder.environment().clear()
+    builder.environment()["PATH"] = hostPath()
+    builder.environment()["JAVA_HOME"] = leaked
+
+    configureLaunchEnvironment(
+      builder,
+      testAgentRunProcessRequest(listOf("echo"), Path.of(".")) { inheritEnvironment = true },
+      testGateJvmResolver(),
+    )
+
+    assertNotEquals(leaked, builder.environment()["JAVA_HOME"])
+  }
+
+  @Test
   fun `a timed-out governed launch leaves no endpoint bound`() {
     val endpoint = GovernedReviewEvidenceEndpoint.bind(
       "architecture",
@@ -470,7 +485,7 @@ class JvmAgentRunProcessRunnerTest {
       listOf("/bin/true"),
     )
 
-    val result = JvmAgentRunProcessRunner(JvmSystemClock).run(
+    val result = JvmAgentRunProcessRunner(JvmSystemClock, testGateJvmResolver()).run(
       testAgentRunProcessRequest(
         listOf("sh", "-c", "sleep 30"),
         Path.of("."),
