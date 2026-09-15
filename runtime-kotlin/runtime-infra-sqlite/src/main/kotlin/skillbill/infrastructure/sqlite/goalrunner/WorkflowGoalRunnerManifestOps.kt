@@ -119,6 +119,12 @@ internal interface GoalRunnerManifestPersistenceCommands {
   ): GoalRunnerManifestState
 }
 
+internal interface GoalRunnerManifestPurgeCommands {
+  fun listOwnedGoalChildWorkflowIds(parentWorkflowId: String): List<String>
+
+  fun purgeDecomposedGoal(parentWorkflowId: String)
+}
+
 internal interface GoalRunnerManifestReviewCommands {
   fun reviewMode(parentWorkflowId: String): CodeReviewExecutionMode?
 

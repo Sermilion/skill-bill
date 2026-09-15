@@ -7,6 +7,27 @@ import java.sql.Connection
 internal class GoalChildWorkflowStore(
   private val connection: Connection,
 ) : GoalChildWorkflowStateRepository {
+  override fun listGoalChildWorkflowIdsByParent(parentWorkflowId: String): List<String> = connection.prepareStatement(
+    """
+      SELECT workflows.workflow_id
+      FROM feature_task_workflows AS workflows
+      JOIN feature_task_execution_identities AS identities
+        ON identities.workflow_id = workflows.workflow_id
+      WHERE identities.route_scope = 'goal_child'
+        AND json_extract(workflows.artifacts_json, '$.goal_continuation.parent_workflow_id') = ?
+      ORDER BY workflows.workflow_id
+    """.trimIndent(),
+  ).use { statement ->
+    statement.setString(1, parentWorkflowId)
+    statement.executeQuery().use { rows ->
+      buildList {
+        while (rows.next()) {
+          add(rows.getString("workflow_id"))
+        }
+      }
+    }
+  }
+
   override fun deleteGoalChildWorkflowsByParent(parentWorkflowId: String): Int = connection.prepareStatement(
     """
       DELETE FROM feature_task_workflows

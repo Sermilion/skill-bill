@@ -60,6 +60,7 @@ class SQLiteUnitOfWork(
   private val connection: Connection,
   override val dbPath: Path,
 ) : UnitOfWork {
+  internal val rawConnection: Connection get() = connection
   override val reviews: ReviewRepository = SQLiteReviewRepository(connection)
   override val learnings: LearningRepository = SQLiteLearningRepository(connection)
   override val lifecycleTelemetry: LifecycleTelemetryRepository = LifecycleTelemetryStore(connection)

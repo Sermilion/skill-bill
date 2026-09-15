@@ -34,6 +34,7 @@ import skillbill.ports.scaffold.install.InstalledPlatformPackCatalogPort
 import skillbill.ports.taskruntime.FeatureTaskRuntimeWorkerSupervisor
 import skillbill.ports.taskruntime.NoopFeatureTaskRuntimeWorkerSupervisor
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
+import skillbill.ports.workflow.decomposition.UnavailableDecompositionManifestStore
 import skillbill.ports.workflow.gitops.NoopWorkflowGitOperations
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.scaffold.model.PlatformManifest
@@ -66,6 +67,8 @@ fun testGoalRunnerStatusService(
   phaseRecorder: FeatureTaskRuntimePhaseRecorder = goalRunnerDefaultPhaseRecorder(),
   clock: Clock = testHarnessClock,
   ports: GoalRunnerStatusTestPorts = GoalRunnerStatusTestPorts(),
+  database: DatabaseSessionFactory = FakeDatabaseSessionFactory(InMemoryWorkflowStates()),
+  decompositionManifestStore: DecompositionManifestStore = UnavailableDecompositionManifestStore,
 ): GoalRunnerStatusService {
   val projectionAssembler = GoalRunnerStatusProjectionAssembler(
     dataSources = GoalRunnerStatusProjectionDataSources(
@@ -96,7 +99,6 @@ fun testGoalRunnerStatusService(
     clock = clock,
     workerSupervisor = ports.workerSupervisor,
     childRepairStore = ports.childRepairStore,
-    repositoryRoot = testRepositoryRoot,
     repositoryEnclosingRootPort = TestRepositoryEnclosingRoot,
     projectionAssembler = projectionAssembler,
     resetReplanCoordinator = GoalRunnerResetReplanCoordinator(
@@ -106,6 +108,15 @@ fun testGoalRunnerStatusService(
       diagnostics = NoopRuntimeDiagnostics,
       projectionAssembler = projectionAssembler,
       repositoryRoot = testRepositoryRoot,
+      repositoryEnclosingRootPort = TestRepositoryEnclosingRoot,
+    ),
+    purgeCoordinator = GoalRunnerPurgeCoordinator(
+      manifestStore = manifestStore,
+      gitOperations = ports.gitOperations,
+      projectionAssembler = projectionAssembler,
+      manifestFileStore = decompositionManifestStore,
+      manifestValidator = testDecompositionManifestValidator,
+      database = database,
       repositoryEnclosingRootPort = TestRepositoryEnclosingRoot,
     ),
   )

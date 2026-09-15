@@ -35,6 +35,7 @@ class GoalControlFlowCommands(
   val stop: GoalStopCommand,
   val resume: GoalResumeCommand,
   val reset: GoalResetCommand,
+  val purge: GoalPurgeCommand,
 )
 
 @Inject
@@ -144,6 +145,7 @@ class GoalRunCommand(
       goalRunSubcommands.controls.flow.stop,
       goalRunSubcommands.controls.flow.resume,
       goalRunSubcommands.controls.flow.reset,
+      goalRunSubcommands.controls.flow.purge,
       goalRunSubcommands.controls.operator.replan,
       goalRunSubcommands.controls.operator.accept,
       goalRunSubcommands.controls.operator.repair,

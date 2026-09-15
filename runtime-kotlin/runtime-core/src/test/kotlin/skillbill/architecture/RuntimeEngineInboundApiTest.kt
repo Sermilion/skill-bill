@@ -85,6 +85,8 @@ class RuntimeEngineInboundApiTest {
       "skillbill.engine.goalrunner.model.GoalRunnerOperatorDecisionRequest",
       "skillbill.engine.goalrunner.model.GoalRunnerOperatorDecisionResult",
       "skillbill.engine.goalrunner.model.GoalRunnerPauseResult",
+      "skillbill.engine.goalrunner.model.GoalRunnerPurgeRequest",
+      "skillbill.engine.goalrunner.model.GoalRunnerPurgeResult",
       "skillbill.engine.goalrunner.model.GoalRunnerRepairRequest",
       "skillbill.engine.goalrunner.model.GoalRunnerRepairResult",
       "skillbill.engine.goalrunner.model.GoalRunnerRepairStatus",
