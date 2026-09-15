@@ -213,8 +213,7 @@ runtime-core
   git workflow operations, decomposition-manifest file storage, and
   skill-remove filesystem cascades. It also owns the concrete JSON-Schema
   validators (`AgentAddonSchemaValidator`, `InstallPlanSchemaValidator`,
-  `WorkflowStateSchemaValidator` /
-  `CanonicalWorkflowStateSchemaValidator`, `DecompositionManifestSchemaValidator`,
+  `WorkflowStateSchemaValidator`, `DecompositionManifestSchemaValidator`,
   and the `DecompositionManifestCoherenceValidator`) plus their schema-resource
   copy tasks (`copyInstallPlanSchema`, `copyWorkflowStateSchema`,
   `copyDecompositionManifestSchema`), reached only through domain-neutral ports.
@@ -522,8 +521,7 @@ skillbill.workflow.verify
   reached only through the domain-neutral ports `InstallPlanWireValidator`,
   `DecompositionManifestValidator`, and `WorkflowSnapshotValidator`.
 - Workflow-state schema validation is owned by
-  `skillbill.infrastructure.fs.contracts.workflow.WorkflowStateSchemaValidator` (its default
-  implementation `CanonicalWorkflowStateSchemaValidator`), compiled into
+  `skillbill.infrastructure.fs.contracts.workflow.WorkflowStateSchemaValidator`, compiled into
   `runtime-infra-fs`. The runtime-domain workflow engine MUST NOT import that
   validator directly — instead it depends on the domain-owned port
   `skillbill.workflow.engine.WorkflowSnapshotValidator`, which the composition root

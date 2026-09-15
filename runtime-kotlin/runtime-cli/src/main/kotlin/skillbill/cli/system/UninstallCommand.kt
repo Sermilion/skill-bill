@@ -4,7 +4,6 @@ import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.scaffold.InstallAgentService
-import skillbill.application.system.UninstallFileSystemService
 import skillbill.cli.kernel.CliRunState
 import skillbill.cli.kernel.DocumentedCliCommand
 import skillbill.cli.kernel.formatOption
@@ -14,6 +13,7 @@ import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.install.mcp.InstallMcpRegistrationPort
 import skillbill.ports.install.nativeagent.InstallNativeAgentLinkPort
 import skillbill.ports.system.HostPlatformPort
+import skillbill.ports.system.UninstallPathsPort
 import java.nio.file.Path
 
 @Inject
@@ -23,7 +23,7 @@ class UninstallCommand(
   private val installAgentService: InstallAgentService,
   private val installNativeAgentLinkPort: InstallNativeAgentLinkPort,
   private val installMcpRegistrationPort: InstallMcpRegistrationPort,
-  private val uninstallFileSystem: UninstallFileSystemService,
+  private val uninstallFileSystem: UninstallPathsPort,
   private val hostPlatform: HostPlatformPort,
   private val diagnostics: RuntimeDiagnostics,
 ) : DocumentedCliCommand("uninstall", "Uninstall Skill Bill from local agents and runtime state.") {
@@ -159,7 +159,7 @@ private val RENAMED_SKILL_PAIRS = listOf(
   "bill-kmp-code-review-correctness" to "bill-kmp-code-review-platform-correctness",
 )
 
-private fun installedSkillNames(fileSystem: UninstallFileSystemService, installedSkillsRoot: Path): List<String> {
+private fun installedSkillNames(fileSystem: UninstallPathsPort, installedSkillsRoot: Path): List<String> {
   val names = mutableSetOf<String>()
   fileSystem.listImmediateDirectoryNames(installedSkillsRoot).forEach { name ->
     val match = STAGED_SKILL_DIRECTORY.matchEntire(name)
@@ -184,7 +184,7 @@ private fun legacySkillNames(skillNames: List<String>): List<String> {
 }
 
 internal fun removeLauncher(
-  fileSystem: UninstallFileSystemService,
+  fileSystem: UninstallPathsPort,
   launcher: LauncherRemoval,
   removed: MutableList<String>,
   skipped: MutableList<String>,
@@ -211,7 +211,7 @@ internal fun removeLauncher(
 }
 
 private fun removeDesktop(
-  fileSystem: UninstallFileSystemService,
+  fileSystem: UninstallPathsPort,
   desktop: DesktopRemoval,
   removed: MutableList<String>,
   skipped: MutableList<String>,
@@ -228,7 +228,7 @@ private fun removeDesktop(
 }
 
 internal fun removeRecursively(
-  fileSystem: UninstallFileSystemService,
+  fileSystem: UninstallPathsPort,
   path: Path,
   removed: MutableList<String>,
   recorder: UninstallMutationRecorder,

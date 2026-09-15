@@ -1,5 +1,6 @@
 package skillbill.application.scaffold
 
+import me.tatarka.inject.annotations.Inject
 import skillbill.domain.skillremove.SkillBillRollbackException
 import skillbill.domain.skillremove.SkillRemovalRefusedException
 import skillbill.domain.skillremove.TargetValidation
@@ -36,6 +37,7 @@ import kotlin.coroutines.cancellation.CancellationException
  *   prove rollback ran for a non-runtime exception.
  * - JVM [Error] is NOT caught so it can propagate to the supervisor.
  */
+@Inject
 class SkillRemove(
   private val fileSystem: SkillRemoveFileSystem,
 ) {

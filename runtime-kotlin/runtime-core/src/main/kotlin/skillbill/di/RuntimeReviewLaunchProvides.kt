@@ -1,10 +1,6 @@
 package skillbill.di
 
 import me.tatarka.inject.annotations.Provides
-import skillbill.application.review.model.DefaultParallelCodeReviewRunnerLaneLaunchPort
-import skillbill.application.review.model.DefaultParallelCodeReviewRunnerPlanningPort
-import skillbill.application.review.model.ParallelCodeReviewRunnerLaneLaunchPort
-import skillbill.application.review.model.ParallelCodeReviewRunnerPlanningPort
 import skillbill.infrastructure.fs.AgentRunReviewIsolationResolver
 import skillbill.infrastructure.fs.ClasspathReviewSpecialistContractProvider
 import skillbill.infrastructure.fs.FileSystemReviewAttribution
@@ -42,14 +38,4 @@ internal interface RuntimeReviewLaunchProvides {
 
   @Provides @JvmSynthetic
   fun reviewLaunchIsolationResolver(adapter: AgentRunReviewIsolationResolver): ReviewLaunchIsolationResolver = adapter
-
-  @Provides @JvmSynthetic
-  fun parallelCodeReviewRunnerPlanningPort(
-    port: DefaultParallelCodeReviewRunnerPlanningPort,
-  ): ParallelCodeReviewRunnerPlanningPort = port
-
-  @Provides @JvmSynthetic
-  fun parallelCodeReviewRunnerLaneLaunchPort(
-    port: DefaultParallelCodeReviewRunnerLaneLaunchPort,
-  ): ParallelCodeReviewRunnerLaneLaunchPort = port
 }

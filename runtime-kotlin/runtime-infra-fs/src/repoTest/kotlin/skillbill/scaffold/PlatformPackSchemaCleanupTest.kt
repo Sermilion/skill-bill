@@ -14,7 +14,6 @@ import skillbill.infrastructure.fs.contracts.workflow.assertWorkflowStateSchemaI
 import skillbill.infrastructure.fs.nativeagent.composition.NATIVE_AGENT_COMPOSITION_CONTRACT_VERSION
 import skillbill.infrastructure.fs.nativeagent.composition.NativeAgentCompositionSchemaPaths
 import skillbill.infrastructure.fs.nativeagent.composition.NativeAgentCompositionSchemaValidator
-import skillbill.infrastructure.fs.scaffold.platformpack.CanonicalPlatformPackSchemaValidator
 import skillbill.infrastructure.fs.scaffold.platformpack.PlatformPackSchemaPaths
 import skillbill.infrastructure.fs.scaffold.platformpack.PlatformPackSchemaValidator
 import skillbill.infrastructure.fs.scaffold.platformpack.assertSchemaIdentity
@@ -315,7 +314,7 @@ class PlatformPackSchemaCleanupTest {
       "routing_signals" to mapOf("strong" to listOf(".kt")),
       "declared_code_review_areas" to emptyList<String>(),
     )
-    val validator: PlatformPackSchemaValidator = CanonicalPlatformPackSchemaValidator()
+    val validator = PlatformPackSchemaValidator()
     validator.validate(typedManifest, "scenarioslug")
   }
 }

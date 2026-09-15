@@ -32,7 +32,7 @@ these seams:
   JVM-initialization failure raises `GateJvmStartupFailureException` naming the resolved Java home
   instead of minting an `unparseable_gate_failure` finding, so an unusable gate JVM surfaces as an
   environment defect rather than as a repair turn no source edit can clear
-- platform-pack `contract_version` leniency: `CanonicalPlatformPackSchemaValidator.validate`
+- platform-pack `contract_version` leniency: `PlatformPackSchemaValidator.validate`
   when a caller enumerates with `enforceContractVersion=false` (reconcile's LOCAL side and
   installed-workspace baseline status) and a stale `const` violation is tolerated instead of
   raising `ContractVersionMismatchError`

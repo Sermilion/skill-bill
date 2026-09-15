@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.workflow.WORKFLOW_STATE_CONTRACT_VERSION
 import skillbill.contracts.workflow.WorkflowStateSchemaPaths
-import skillbill.infrastructure.fs.contracts.workflow.CanonicalWorkflowStateSchemaValidator
+import skillbill.infrastructure.fs.contracts.workflow.WorkflowStateSchemaValidator
 import skillbill.testing.repoRootFromTest
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.verify.FeatureVerifyWorkflowDefinition
@@ -164,7 +164,7 @@ class WorkflowStateSchemaContractVersionTest {
   }
 
   private fun loadClasspathSchemaNode(): JsonNode {
-    val resourceStream = CanonicalWorkflowStateSchemaValidator::class.java.classLoader
+    val resourceStream = WorkflowStateSchemaValidator::class.java.classLoader
       .getResourceAsStream(WorkflowStateSchemaPaths.CLASSPATH_RESOURCE)
     assertNotNull(
       resourceStream,

@@ -26,16 +26,27 @@ private val log: Logger = Logger.getLogger("skillbill.contracts.workflow.Workflo
  * against the canonical JSON-Schema document at
  * `orchestration/contracts/workflow-state-schema.yaml`.
  *
- * Wraps `com.networknt:json-schema-validator` behind a thin Kotlin
- * interface so the underlying library choice stays local. The schema is
- * loaded ONCE per validator instance (cached) because schema compilation
- * is non-trivial.
+ * Wraps `com.networknt:json-schema-validator` so the underlying library
+ * choice stays local. The schema is loaded ONCE per validator instance
+ * (cached) because schema compilation is non-trivial.
  *
  * Coherence rules (cross-field validation) stay in `WorkflowEngine` and
  * the per-skill `WorkflowDefinition`s; see `x-coherence-checks` in the
  * schema file for the named list.
+ *
+ * Resolves the canonical schema from the JVM classpath first (populated
+ * at build time from `orchestration/contracts/workflow-state-schema.yaml`);
+ * when running from a tree that does not yet bundle the schema as a
+ * resource (early bootstrap), it falls back to walking up from the JVM
+ * working directory to find the canonical file on disk. The compiled
+ * [JsonSchema] is cached across calls.
  */
-interface WorkflowStateSchemaValidator {
+class WorkflowStateSchemaValidator {
+  // Lazy singleton: the schema file is parsed and compiled exactly
+  // once per validator instance.
+  private val schema: JsonSchema by lazy { loadSchema() }
+  private val mapper: ObjectMapper by lazy { ObjectMapper() }
+
   /**
    * Validates the snapshot-shaped map against the canonical schema. On
    * any violation, throws [InvalidWorkflowStateSchemaError] whose
@@ -50,25 +61,7 @@ interface WorkflowStateSchemaValidator {
    * and is woven into the loud-fail message so per-skill regressions
    * are easy to spot.
    */
-  fun validate(parsedYaml: Map<String, Any?>, slug: String)
-}
-
-/**
- * Default implementation. Resolves the canonical schema from the JVM
- * classpath first (populated at build time from
- * `orchestration/contracts/workflow-state-schema.yaml`); when running
- * from a tree that does not yet bundle the schema as a resource (early
- * bootstrap), it falls back to walking up from the JVM working
- * directory to find the canonical file on disk. The compiled
- * [JsonSchema] is cached across calls.
- */
-class CanonicalWorkflowStateSchemaValidator : WorkflowStateSchemaValidator {
-  // Lazy singleton: the schema file is parsed and compiled exactly
-  // once per validator instance.
-  private val schema: JsonSchema by lazy { loadSchema() }
-  private val mapper: ObjectMapper by lazy { ObjectMapper() }
-
-  override fun validate(parsedYaml: Map<String, Any?>, slug: String) {
+  fun validate(parsedYaml: Map<String, Any?>, slug: String) {
     val instance: JsonNode = mapper.valueToTree(parsedYaml)
     val errors: Set<ValidationMessage> = schema.validate(instance)
     if (errors.isEmpty()) {
@@ -171,7 +164,7 @@ fun assertWorkflowStateSchemaIdentity(yamlNode: JsonNode) {
 }
 
 private fun readSchemaText(): String {
-  CanonicalWorkflowStateSchemaValidator::class.java.classLoader
+  WorkflowStateSchemaValidator::class.java.classLoader
     .getResourceAsStream(WORKFLOW_STATE_SCHEMA_CLASSPATH_RESOURCE)
     ?.use { return it.readBytes().toString(Charsets.UTF_8) }
 

@@ -41,10 +41,10 @@ import skillbill.engine.featuretask.FeatureTaskRuntimeRunner
 import skillbill.engine.featuretask.FeatureTaskRuntimeSpecGate
 import skillbill.engine.featuretask.InMemoryFeatureTaskPhaseSettlementRepository
 import skillbill.engine.featuretask.featureTaskRuntimePhaseRecorder
-import skillbill.engine.featuretask.model.DefaultFeatureTaskRuntimePhaseGateBranchPort
-import skillbill.engine.featuretask.model.DefaultFeatureTaskRuntimePhaseGateValidationPort
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeAgentAssignment
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeGoalContinuationContext
+import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseGateBranchBoundaries
+import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseGateValidationBoundaries
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseLedgerRequest
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunEvent
@@ -612,14 +612,14 @@ private fun runtimePhaseGates(deps: RuntimePhaseGatesDeps): FeatureTaskRuntimePh
       )
     }
   return FeatureTaskRuntimePhaseGates(
-    DefaultFeatureTaskRuntimePhaseGateBranchPort(
+    FeatureTaskRuntimePhaseGateBranchBoundaries(
       branchSetupRunner = deps.branchSetupRunner,
       planningStopper = deps.planningStopper,
       lifecycleTelemetry = deps.lifecycleTelemetry,
       gitOperations = deps.gitOperations,
       specGate = deps.specGate,
     ),
-    DefaultFeatureTaskRuntimePhaseGateValidationPort(
+    FeatureTaskRuntimePhaseGateValidationBoundaries(
       planningProjectionValidator = deps.planningProjectionValidator,
       buildReceiptValidator = deps.buildReceiptValidator,
       validationGateResolver = validationGateResolver,

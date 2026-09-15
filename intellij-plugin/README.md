@@ -6,7 +6,7 @@ own Gradle build — it is not included in the runtime build and adds no Intelli
 dependency there.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for package ownership, persistence policy,
-source-of-truth rules, status-bar expected states, and the deferred tool-window path.
+source-of-truth rules, and status-bar expected states.
 
 ## Requirements
 

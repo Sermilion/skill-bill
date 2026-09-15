@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
-import { GoalPauseRepository } from "../application/GoalPauseRepository";
-import { GoalStopRepository } from "../application/GoalStopRepository";
+import { GoalMutationRepository } from "../application/GoalMutationRepository";
 import { MappedPresentation, SkillBillStatusBarPresentation } from "../presentation/SkillBillStatusBarPresentation";
 import { SkillBillStatusUiState } from "../presentation/SkillBillStatusUiState";
 import { SkillBillStatusViewModel } from "../presentation/SkillBillStatusViewModel";
@@ -15,8 +14,8 @@ export class StatusBarController implements vscode.Disposable {
   constructor(
     private readonly viewModel: SkillBillStatusViewModel,
     private readonly workspaceRoot: string,
-    private readonly goalStopRepository: GoalStopRepository,
-    private readonly goalPauseRepository: GoalPauseRepository,
+    private readonly goalStopRepository: GoalMutationRepository,
+    private readonly goalPauseRepository: GoalMutationRepository,
     priority = 100,
   ) {
     this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, priority);
@@ -49,11 +48,11 @@ export class StatusBarController implements vscode.Disposable {
       showStatusDetails(this.latestPresentation, {
         onRefresh: () => this.viewModel.refresh(),
         onStop: async (issueKey) => {
-          const outcome = await this.goalStopRepository.requestStop(this.workspaceRoot, issueKey);
+          const outcome = await this.goalStopRepository.requestMutation(this.workspaceRoot, issueKey);
           return outcome.kind === "failed" ? outcome.summary : undefined;
         },
         onPause: async (issueKey) => {
-          const outcome = await this.goalPauseRepository.requestPause(this.workspaceRoot, issueKey);
+          const outcome = await this.goalPauseRepository.requestMutation(this.workspaceRoot, issueKey);
           return outcome.kind === "failed" ? outcome.summary : undefined;
         },
       });

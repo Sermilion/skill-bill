@@ -1,7 +1,6 @@
 package skillbill.infrastructure.fs
 
 import me.tatarka.inject.annotations.Inject
-import skillbill.infrastructure.fs.contracts.workflow.CanonicalWorkflowStateSchemaValidator
 import skillbill.infrastructure.fs.contracts.workflow.WorkflowStateSchemaValidator
 import skillbill.workflow.engine.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
@@ -9,7 +8,7 @@ import skillbill.workflow.engine.model.WorkflowStateSnapshot
 /**
  * SKILL-52.3 Subtask 1: infra-side adapter that bridges the domain-owned
  * [WorkflowSnapshotValidator] port to the concrete
- * [CanonicalWorkflowStateSchemaValidator] (now owned by
+ * [WorkflowStateSchemaValidator] (now owned by
  * `runtime-infra-fs`).
  *
  * Supersedes the former `runtime-application` `WorkflowSnapshotValidatorAdapter`,
@@ -22,7 +21,7 @@ import skillbill.workflow.engine.model.WorkflowStateSnapshot
  */
 @Inject
 class WorkflowSnapshotValidatorInfraAdapter : WorkflowSnapshotValidator {
-  private val delegate: WorkflowStateSchemaValidator = CanonicalWorkflowStateSchemaValidator()
+  private val delegate = WorkflowStateSchemaValidator()
 
   override fun validate(snapshot: WorkflowStateSnapshot, slug: String) {
     delegate.validate(WorkflowStateSnapshotWireMapper.wireMap(snapshot), slug)

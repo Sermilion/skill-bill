@@ -12,9 +12,8 @@ import skillbill.application.review.ReviewService
 import skillbill.application.review.ReviewSnapshotPruneService
 import skillbill.application.runtime.RuntimeSingleton
 import skillbill.application.scaffold.InstallAgentService
-import skillbill.application.scaffold.SkillRemoveService
+import skillbill.application.scaffold.SkillRemove
 import skillbill.application.system.SystemService
-import skillbill.application.system.UninstallFileSystemService
 import skillbill.application.telemetry.LifecycleTelemetryService
 import skillbill.application.telemetry.TelemetryService
 import skillbill.application.work.WorkListService
@@ -49,6 +48,7 @@ import skillbill.ports.repository.RepositoryEnclosingRootPort
 import skillbill.ports.scaffold.ScaffoldCatalogGateway
 import skillbill.ports.scaffold.ScaffoldGateway
 import skillbill.ports.scaffold.UnsupportedScaffoldGateway
+import skillbill.ports.system.UninstallPathsPort
 import skillbill.ports.taskruntime.FeatureTaskRuntimeRunInvariantsSource
 import skillbill.ports.telemetry.TelemetryConfigStore
 import skillbill.ports.telemetry.TelemetryLevelMutator
@@ -138,12 +138,12 @@ abstract class RuntimeComponent(
   abstract val runtimeDiagnostics: RuntimeDiagnostics
   abstract val scaffoldCatalogGateway: ScaffoldCatalogGateway
   abstract val scaffoldGateway: ScaffoldGateway
-  abstract val skillRemoveService: SkillRemoveService
+  abstract val skillRemove: SkillRemove
   abstract val systemService: SystemService
   abstract val telemetryConfigStorePort: TelemetryConfigStore
   abstract val telemetryLevelMutator: TelemetryLevelMutator
   abstract val telemetryService: TelemetryService
-  abstract val uninstallFileSystemService: UninstallFileSystemService
+  abstract val uninstallPathsPort: UninstallPathsPort
   abstract val unsupportedScaffoldGateway: UnsupportedScaffoldGateway
   abstract val workflowService: WorkflowService
   abstract val workListService: WorkListService
