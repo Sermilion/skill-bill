@@ -68,6 +68,4 @@ private object EmptyLegacyGoalPlanningPreparationRepository : LegacyGoalPlanning
 object EmptyGoalPlanningPreparationRepository :
   GoalPlanningPreparationRepository,
   NormalizedGoalPlanningPreparationRepository by EmptyNormalizedGoalPlanningPreparationRepository,
-  LegacyGoalPlanningPreparationRepository by EmptyLegacyGoalPlanningPreparationRepository {
-  override fun rebindRepositoryIdentity(parentGoalWorkflowId: String, repositoryIdentity: String): Int = 0
-}
+  LegacyGoalPlanningPreparationRepository by EmptyLegacyGoalPlanningPreparationRepository

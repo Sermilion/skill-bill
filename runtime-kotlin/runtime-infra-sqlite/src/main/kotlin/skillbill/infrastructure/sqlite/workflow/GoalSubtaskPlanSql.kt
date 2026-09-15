@@ -97,15 +97,6 @@ internal class GoalSubtaskPlanSql(
       it.executeUpdate()
     }
 
-  fun rebindRepositoryIdentity(parentGoalWorkflowId: String, repositoryIdentity: String): Int =
-    connection.prepareStatement(
-      "UPDATE goal_subtask_plans SET repository_identity = ? WHERE parent_goal_workflow_id = ?",
-    ).use {
-      it.setString(1, repositoryIdentity)
-      it.setString(2, parentGoalWorkflowId)
-      it.executeUpdate()
-    }
-
   private fun requireGoverningSharedPreplan(checkpoint: GoalSubtaskPlanCheckpoint) {
     val shared = translateSqlFailure(checkpoint.identity.parentGoalWorkflowId, 0) {
       sharedPreplan.findSharedPreplan(checkpoint.identity)

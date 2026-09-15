@@ -213,15 +213,6 @@ internal class GoalSharedPreplanSql(
       it.setString(1, parentGoalWorkflowId)
       it.executeUpdate()
     }
-
-  fun rebindRepositoryIdentity(parentGoalWorkflowId: String, repositoryIdentity: String): Int =
-    connection.prepareStatement(
-      "UPDATE goal_shared_preplans SET repository_identity = ? WHERE parent_goal_workflow_id = ?",
-    ).use {
-      it.setString(1, repositoryIdentity)
-      it.setString(2, parentGoalWorkflowId)
-      it.executeUpdate()
-    }
 }
 
 internal fun Connection.insertSharedPreplanRow(checkpoint: SharedGoalPreplanCheckpoint): Boolean = prepareStatement(

@@ -122,6 +122,4 @@ interface LegacyGoalPlanningPreparationRepository {
 
 interface GoalPlanningPreparationRepository :
   NormalizedGoalPlanningPreparationRepository,
-  LegacyGoalPlanningPreparationRepository {
-  fun rebindRepositoryIdentity(parentGoalWorkflowId: String, repositoryIdentity: String): Int
-}
+  LegacyGoalPlanningPreparationRepository

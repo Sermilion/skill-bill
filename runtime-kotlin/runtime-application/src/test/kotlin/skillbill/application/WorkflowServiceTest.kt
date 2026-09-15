@@ -1131,11 +1131,9 @@ class WorkflowServiceGoalManifestStoreTest {
         TestDecompositionManifestStore,
       ),
     )
-    val planning = RecordingPlanningPreparations()
     val store = testWorkflowGoalRunnerManifestStore(
       database = FakeDatabaseSessionFactory(
         workflowStates = InMemoryWorkflowStates(),
-        planningPreparations = planning,
         goalRunnerControls = RecordingGoalRunnerControlRepository(),
       ),
       decompositionManifestStore = TestDecompositionManifestStore,
@@ -1151,50 +1149,6 @@ class WorkflowServiceGoalManifestStoreTest {
       "repo-root-realpath-v1:/checkouts/second",
       store.controlState(parentWorkflowId).repositoryIdentity,
     )
-  }
-
-  @Test
-  fun `planning stranded on an old identity is repaired even when the control state already matches`() {
-    val repoRoot = Files.createTempDirectory("skillbill-goal-manifest-rebind-planning")
-    val manifestPath = repoRoot.resolve(".feature-specs/SKILL-52.1-implementation/decomposition-manifest.yaml")
-    Files.createDirectories(manifestPath.parent)
-    Files.writeString(
-      manifestPath,
-      encodeDecompositionManifestYaml(
-        decompositionRuntime(status = "blocked"),
-        testDecompositionManifestValidator,
-        TestDecompositionManifestStore,
-      ),
-    )
-    val planning = RecordingPlanningPreparations()
-    val store = testWorkflowGoalRunnerManifestStore(
-      database = FakeDatabaseSessionFactory(
-        workflowStates = InMemoryWorkflowStates(),
-        planningPreparations = planning,
-        goalRunnerControls = RecordingGoalRunnerControlRepository(),
-      ),
-      decompositionManifestStore = TestDecompositionManifestStore,
-      clock = Clock.systemUTC(),
-    )
-    val parentWorkflowId = assertNotNull(store.loadByIssueKey("SKILL-52.1", repoRoot = repoRoot)).parentWorkflowId
-    val current = "repo-root-realpath-v1:/checkouts/current"
-    store.bindRepositoryIdentity(parentWorkflowId, current)
-    planning.checkpointSharedPreplan(
-      SharedGoalPreplanCheckpoint(
-        identity = GoalPlanningIdentity(parentWorkflowId, "SKILL-52.1", "repo-root-realpath-v1:/checkouts/stale"),
-        provenance = GoalPlanningContractProvenance(
-          parentSpecHash = "a".repeat(64),
-          decompositionManifestHash = "b".repeat(64),
-          planningContractId = "https://skill-bill.dev/contracts/goal-planning-preparation-schema.yaml",
-        ),
-        payloadSha256 = "c".repeat(64),
-        preplanPayload = "preplan-payload",
-      ),
-    )
-
-    store.bindRepositoryIdentity(parentWorkflowId, current)
-
-    assertEquals(current, planning.shared?.identity?.repositoryIdentity)
   }
 
   @Test
@@ -3890,12 +3844,6 @@ private class RecordingPlanningPreparations(
   var shared: SharedGoalPreplanCheckpoint? = null
   val plans = mutableMapOf<Int, GoalSubtaskPlanCheckpoint>()
   var readCount = 0
-
-  override fun rebindRepositoryIdentity(parentGoalWorkflowId: String, repositoryIdentity: String): Int {
-    shared = shared?.let { it.copy(identity = it.identity.copy(repositoryIdentity = repositoryIdentity)) }
-    plans.replaceAll { _, plan -> plan.copy(identity = plan.identity.copy(repositoryIdentity = repositoryIdentity)) }
-    return plans.size + if (shared == null) 0 else 1
-  }
 
   override fun checkpointSharedPreplan(checkpoint: SharedGoalPreplanCheckpoint) {
     shared = checkpoint

@@ -366,24 +366,6 @@ class GoalPlanningPreparationStoreTest {
   }
 
   @Test
-  fun `rebinding the repository identity keeps planning readable from the new checkout`() {
-    DatabaseRuntime.ensureDatabase(tempDb()).use { connection ->
-      val store = GoalPlanningPreparationStore(connection)
-      store.checkpointSharedPreplan(sharedCheckpoint())
-      store.checkpointSubtaskPlan(planCheckpoint(subtaskId = 1, order = 1))
-      val relocated = identity().copy(repositoryIdentity = "repo-root-realpath-v1:/relocated")
-
-      store.rebindRepositoryIdentity("goal-1", relocated.repositoryIdentity)
-
-      assertEquals(relocated, store.findSharedPreplan(relocated)?.identity)
-      assertEquals(
-        relocated,
-        store.findSubtaskPlan(relocated, 1, descriptor(subtaskId = 1, order = 1).governedSubSpecPath)?.identity,
-      )
-    }
-  }
-
-  @Test
   fun `marking a same-key pair with a diverging repository identity fails loudly`() {
     DatabaseRuntime.ensureDatabase(tempDb()).use { connection ->
       val store = GoalPlanningPreparationStore(connection)
