@@ -187,3 +187,14 @@ internal fun Connection.deletePreparedByGoal(parentGoalWorkflowId: String): Int 
   statement.setString(1, parentGoalWorkflowId)
   statement.executeUpdate()
 }
+
+internal fun Connection.rebindPreparedRepositoryIdentity(
+  parentGoalWorkflowId: String,
+  repositoryIdentity: String,
+): Int = prepareStatement(
+  "UPDATE goal_planning_preparations SET repository_identity = ? WHERE parent_goal_workflow_id = ?",
+).use { statement ->
+  statement.setString(1, repositoryIdentity)
+  statement.setString(2, parentGoalWorkflowId)
+  statement.executeUpdate()
+}

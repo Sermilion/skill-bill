@@ -2636,6 +2636,13 @@ private class InMemoryPreparationRepository(
   private var sharedPreplan: SharedGoalPreplanCheckpoint? = null
   private val plans = linkedMapOf<Int, GoalSubtaskPlanCheckpoint>()
 
+  override fun rebindRepositoryIdentity(parentGoalWorkflowId: String, repositoryIdentity: String): Int {
+    sharedPreplan = sharedPreplan?.let { it.copy(identity = it.identity.copy(repositoryIdentity = repositoryIdentity)) }
+    plans.replaceAll { _, plan -> plan.copy(identity = plan.identity.copy(repositoryIdentity = repositoryIdentity)) }
+    records.replaceAll { _, record -> record.copy(repositoryIdentity = repositoryIdentity) }
+    return records.size + plans.size + if (sharedPreplan == null) 0 else 1
+  }
+
   override fun checkpointSharedPreplan(checkpoint: SharedGoalPreplanCheckpoint) {
     sharedPreplan = checkpoint
     if (markPreparedThrows) {

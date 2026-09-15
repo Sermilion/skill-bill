@@ -3845,6 +3845,12 @@ private class RecordingPlanningPreparations(
   val plans = mutableMapOf<Int, GoalSubtaskPlanCheckpoint>()
   var readCount = 0
 
+  override fun rebindRepositoryIdentity(parentGoalWorkflowId: String, repositoryIdentity: String): Int {
+    shared = shared?.let { it.copy(identity = it.identity.copy(repositoryIdentity = repositoryIdentity)) }
+    plans.replaceAll { _, plan -> plan.copy(identity = plan.identity.copy(repositoryIdentity = repositoryIdentity)) }
+    return plans.size + if (shared == null) 0 else 1
+  }
+
   override fun checkpointSharedPreplan(checkpoint: SharedGoalPreplanCheckpoint) {
     shared = checkpoint
   }

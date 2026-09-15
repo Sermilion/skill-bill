@@ -68,6 +68,7 @@ internal fun GoalRunnerControlCoordinator.bindRepositoryIdentity(
   if (existing.repositoryIdentity == repositoryIdentity) {
     existing
   } else {
+    unitOfWork.goalPlanningPreparations.rebindRepositoryIdentity(parent.workflowId, repositoryIdentity)
     unitOfWork.goalRunnerControls.persistControlState(
       parent.workflowId,
       existing.copy(repositoryIdentity = repositoryIdentity),

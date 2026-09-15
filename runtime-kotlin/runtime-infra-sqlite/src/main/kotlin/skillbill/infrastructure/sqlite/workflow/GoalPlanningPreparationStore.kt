@@ -29,4 +29,10 @@ class GoalPlanningPreparationStore(
     val shared = sharedPreplan.deleteAllByGoal(parentGoalWorkflowId)
     return plans + shared + preparationRecord.deletePreparedByGoal(parentGoalWorkflowId)
   }
+
+  override fun rebindRepositoryIdentity(parentGoalWorkflowId: String, repositoryIdentity: String): Int {
+    val plans = subtaskPlan.rebindRepositoryIdentity(parentGoalWorkflowId, repositoryIdentity)
+    val shared = sharedPreplan.rebindRepositoryIdentity(parentGoalWorkflowId, repositoryIdentity)
+    return plans + shared + preparationRecord.rebindRepositoryIdentity(parentGoalWorkflowId, repositoryIdentity)
+  }
 }

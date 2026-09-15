@@ -33,6 +33,9 @@ internal class GoalPlanningPreparationRecordSql(
 
   fun preparedCount(parentGoalWorkflowId: String): Int = connection.countPrepared(parentGoalWorkflowId)
 
+  fun rebindRepositoryIdentity(parentGoalWorkflowId: String, repositoryIdentity: String): Int =
+    connection.rebindPreparedRepositoryIdentity(parentGoalWorkflowId, repositoryIdentity)
+
   fun firstMissingOrIncompleteSubtask(parentGoalWorkflowId: String, orderedSubtaskIds: List<Int>): Int? {
     if (orderedSubtaskIds.isEmpty()) return null
     val prepared = connection.preparedSubtaskStatuses(parentGoalWorkflowId)
