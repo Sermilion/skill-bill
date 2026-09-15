@@ -38,6 +38,86 @@ parameter into a context, callback bag, or role interface does not narrow access
 Reconstruction from durable records must preserve the same invariants as live
 execution, including retry consumption, checkpoint ownership, and phase order.
 
+#### Feature-task run-loop helper inputs (SKILL-247 subtask 3)
+
+Investigation F-005 counted 122 `FeatureTaskRuntimeRunLoopContext` extension
+functions across 15 files under `skillbill.engine.featuretask`, backed by a
+17-field `FeatureTaskRuntimeRunLoopContext`. Before narrowing, extension counts
+per helper family in that package were: PlanningBranch 0 (only a context wrapper
+around `runPhase`), Drive 13, ValidationGate 21, AttemptSettlement 13, Review 8,
+PhaseAttempts 4 (carried-forward adjacency). PlanningBranch also duplicated many
+public APIs that differed only by accepting `FeatureTaskRuntimeRunLoop` versus
+narrowed request/state/recorder/session parameters; PhaseRunner and
+ValidationGate exposed companion entry points that took the run loop wholesale.
+
+After narrowing (same census rules): PlanningBranch stays at 0 context extensions;
+`runPhase`, `runPreparedPhase`, `buildPhaseRun`, and `phaseDeclarationForRun` take
+`RunPhaseArgs` and/or `FeatureTaskRuntimeRunLoopContext` without constructing
+`FeatureTaskRuntimeRunLoop`. Drive retains 2 context extensions —
+`invalidateReviewGenerationIfNeeded` and `runPhaseDriveLoop` — because the drive
+orchestrator still owns session transition wiring and the forward phase loop;
+resume, entry-gate, carried-forward review, advance routing, and cap exhaustion
+call sites use object functions with explicit request/state/recorder/session (or
+context passed as a value, not as an all-access receiver). ValidationGate keeps
+context extensions only at the gate-cycle and phase-attempt orchestration seams:
+the gate coordinator's agent-turn callbacks and the generic fix-loop launcher
+still need the launch, activity, diagnostics, clock, transition, and session
+ports together. Build/validation settlement, pack-command routing, and
+repository-checkpoint calculation use explicit arguments. Carried-forward goal
+review settlement uses `CarriedForwardGoalReviewArgs`;
+PhaseRunner and PlanningBranch enter through `context.copy(state, observability,
+phaseTokenAccumulator)` at the phase boundary. AttemptSettlement moves
+`gateOutput` / `settleValidatedOutput` / envelope settlement off the context
+receiver; `GateOutputArgs` and `SettleValidatedOutputArgs` carry the
+request/state/recorder/outputValidator/phaseGates/clock/diagnostics/
+goalContinuationRecorder/phaseSettlementService ports those paths use.
+`settlementContext` on those args remains only for the not-yet-peeled
+audit/checkpoint and accepted-output persistence tail inside
+`settleValidatedOutputAfterFingerprint`; implement-fix repair-receipt settlement
+and commit finalisation now receive their request/state/recorder/goal-recorder/
+diagnostics ports directly. Review
+narrows `prepareRuntimeOwnedReview` to explicit request/recorder/
+goalContinuationRecorder/phaseGates/clock/state parameters; driver execution
+remains on context where launch capture still needs session and phase gates.
+PhaseAttempts keeps `blockAndPersist` context and top-level overloads; governed
+block paths prefer the top-level `blockAndPersist(request, state, recorder,
+goalContinuationRecorder, args)` seam. `FeatureTaskRuntimeRunLoop` exposes only
+`drive()`, `report()`, and `applyOperatorDecision()` publicly; collaborator
+fields are internal to `FeatureTaskRuntimeRunLoopContext`.
+
+The named-family census is now PlanningBranch 0, Drive 2, ValidationGate 9,
+AttemptSettlement 3, Review 6, and PhaseAttempts 4 context extensions, down
+from 0, 13, 21, 13, 8, and 4 respectively. The remaining groups have these
+inputs:
+
+- PlanningBranch pure declarations and cap reasons take request facts, values,
+  recorder reads, or explicit state/session ports; `runPhase` and
+  `runPreparedPhase` retain the phase-boundary context for launch preparation.
+- Drive resume and routing calculations take request/state/recorder/
+  goal-recorder/transition values; carried-forward review takes
+  `CarriedForwardGoalReviewArgs`; only the forward drive loop and review
+  generation invalidation retain context.
+- ValidationGate settlement takes request/state/recorder/goal-recorder,
+  output-validator, phase-gates, observability, and session only for the
+  validation checkpoint lookup; gate-cycle and fix-loop orchestration retains
+  context for the launch callback graph.
+- AttemptSettlement gate output takes `GateOutputArgs`; validated output
+  settlement takes `SettleValidatedOutputArgs`; implement-fix receipt
+  settlement takes request/state/recorder/goal-recorder/diagnostics; the
+  audit/checkpoint and accepted-output persistence tail retains
+  `settlementContext`.
+- Review preparation takes request/recorder/goal-recorder/phase-gates/clock/
+  state; review driver execution and its worktree checkpoint retain context
+  for session and phase-gate ownership.
+- PhaseAttempts exposes top-level block/pause seams with request/state/
+  recorder/goal-recorder/observability arguments; its context overloads remain
+  only for the generic attempt-loop adjacency.
+
+New helpers must not reintroduce run-loop or context-all-access parameters when
+a narrowed overload already exists; retained broad inputs require a concrete,
+current orchestration requirement documented here or in the owning area
+`agent/decisions.md`.
+
 ### Resource Lifetime And Failure
 
 Successful acquisition immediately establishes one cleanup owner for a child
@@ -386,6 +466,66 @@ runtime-ports
 - `skillbill.mcp`: MCP adapter code. It validates MCP input, shapes MCP
   payloads, owns MCP-specific schema seams, and delegates shared behavior to
   application services or ports.
+
+### Telemetry outbox delivery ownership
+
+Claim lease duration is five minutes (`CLAIM_LEASE_MINUTES` in
+`TelemetryOutboxDrain`). Each drain run holds one random `claimToken`; every
+batch claim reads the injected clock at claim time so a slow earlier HTTP
+request does not backdate a later batch lease. Settlement through
+`markSynced`, `markFailed`, and `markUnconfirmed` requires the active
+`claimToken` and `synced_at IS NULL`; zero updated rows set
+`TelemetryOutboxSettlementResult.lostClaim`, and a partial update also reports
+the lost portion so the drain does not count another owner's row as synced. The
+drain stops without altering another owner's row.
+
+`JdkHttpRemoteTransport` reuses one JDK `HttpClient` for the process. Default
+connect timeout is ten seconds and per-request timeout is four minutes, both
+below the claim lease; `TransportContext.connectTimeout` and
+`requestTimeout` override those defaults for tests only. Cooperative
+cancellation and `InterruptedException` propagate through manual sync, auto
+sync, drain, and stale-session reconciliation; cancellation does not consume
+delivery attempts or become an UNKNOWN delivery report. Ordinary auto-sync
+failure stays non-fatal to callers and records the payload-free
+`telemetry background sync failed` diagnostic; the same signature is emitted
+again when the follow-up outbox exception enqueue fails.
+
+SQLite integration tests prove stale-owner settlement rejection. A loopback
+HTTP peer that accepts a connection but never completes a response proves
+request deadlines and server teardown. Fakes at claim, transport, and
+acknowledgement prove cancellation propagation and durable row state. Those
+tests do not prove exactly-once remote delivery, protection against
+indefinite JVM pause beyond lease expiry, or behavior when the remote proxy
+ignores deduplication keys.
+
+### Transaction rollback and agent-run cleanup boundaries (SKILL-247)
+
+SQLite write and read session transactions share
+`Connection.rollbackAfterFailedTransaction`: a failed body or commit still
+throws its primary failure, a failed `ROLLBACK` is attached with
+`addSuppressed` when a primary exists, and a bounded `java.util.logging`
+record is emitted on rollback failure only. Successful rollback stays silent.
+
+`JvmAgentRunProcessRunner.runStartedProcess` always runs
+`ProcessRunLifetime.release` in `finally`, exports the run-local
+`ProcessRunDegradationRecorder` snapshot to stderr through the output sink
+before rethrowing, and keeps `InterruptedException` / cancellation as the
+primary failure over cleanup suppresseds. `ProcessLifecycleEmitter` records
+progress publication failures into the same recorder without replacing callback
+or cancellation failures.
+
+Governed review endpoint teardown reports close failure to stderr once; when
+the sink also fails, a bounded `skillbill.agent.run.teardown` logger record is
+emitted and the sink is not invoked again.
+
+Per-run process cleanup waits are bounded: forced destroy waits up to
+`DESTROY_WAIT_TIMEOUT_MILLIS` (1s), and each stdout/stderr drain join uses up
+to two `DRAIN_JOIN_TIMEOUT_MILLIS` (1s) joins after `input.close` when the
+worker remains alive, before the owner thread closes process streams. A single
+run's drain and destroy cleanup is therefore capped at destroy wait plus up to
+four drain-join windows for the two streams; stdin and process-stream closes
+occur in the existing ordered cleanup path and are not used as a total bound
+for a live drain worker.
 
 ## Boundary Rules
 

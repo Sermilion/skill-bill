@@ -216,7 +216,8 @@ internal fun telemetryStatusStdout(level: String, pendingEvents: Int, priorSync:
   DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
     val store = TelemetryOutboxStore(connection)
     if (priorSync) {
-      store.markSynced(listOf(store.enqueue("skillbill_goal_finished", """{"seed":"delivered"}""")))
+      val syncedId = store.enqueue("skillbill_goal_finished", """{"seed":"delivered"}""")
+      store.markSynced(id = syncedId, syncedAt = "2026-09-01 00:00:00")
     }
     repeat(pendingEvents) { index -> store.enqueue("skillbill_review_finished", """{"seed":$index}""") }
   }

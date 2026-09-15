@@ -284,7 +284,7 @@ class RuntimeArchitectureTest {
     assertContains(telemetryClientPort, "skillbill.telemetry.model.TelemetryRemoteStatsResult")
 
     assertContains(
-      Files.readString(sourcePath("skillbill/infrastructure/http/HttpTelemetryClient.kt")),
+      Files.readString(sourcePath("skillbill/infrastructure/http/JdkHttpRemoteTransport.kt")),
       "java.net.http.HttpClient",
     )
     assertContains(

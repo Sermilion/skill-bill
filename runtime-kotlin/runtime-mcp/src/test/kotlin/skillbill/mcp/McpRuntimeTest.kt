@@ -1100,6 +1100,7 @@ private fun assertLifecyclePersistence(connection: Connection) {
       "skillbill_feature_verify_started" to 1,
       "skillbill_feature_verify_finished" to 1,
       "skillbill_pr_description_generated" to 1,
+      "skillbill_runtime_exception" to 5,
     ),
     outboxEventCounts(connection),
   )

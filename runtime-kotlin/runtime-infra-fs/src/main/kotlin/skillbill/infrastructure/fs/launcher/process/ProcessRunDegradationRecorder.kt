@@ -1,5 +1,9 @@
 package skillbill.infrastructure.fs.launcher.process
 
+import skillbill.ports.agentrun.model.AgentRunOutputSink
+import skillbill.ports.agentrun.model.AgentRunOutputStream
+import java.util.logging.Logger
+
 internal enum class ProcessRunDegradationKind {
   PROBE_ABSENCE,
   PROBE_FAILURE,
@@ -64,6 +68,10 @@ internal class ProcessRunDegradationRecorder(
     )
   }
 
+  fun recordLifecyclePublicationFailure(failure: Throwable) {
+    recordCleanupFailure("progress_lifecycle_emit", failure)
+  }
+
   private fun record(kind: ProcessRunDegradationKind, seam: String, detail: String) {
     if (records.size >= maxRecords) return
     val seamCount = countsBySeam.getOrDefault(seam, 0)
@@ -76,4 +84,31 @@ internal class ProcessRunDegradationRecorder(
     const val MAX_RECORDS_PER_RUN = 32
     const val MAX_RECORDS_PER_SEAM = 8
   }
+}
+
+internal fun exportRunDegradationEvidence(degradation: ProcessRunDegradationRecorder, outputSink: AgentRunOutputSink) {
+  val payload = degradation.appendToStderr("")
+  if (payload.isBlank()) {
+    return
+  }
+  val line = if (payload.endsWith("\n")) payload else "$payload\n"
+  val sinkFailure = runCatching {
+    outputSink.write(AgentRunOutputStream.STDERR, line)
+  }.exceptionOrNull() ?: return
+  degradationExportLogger.warning(
+    "skillbill agent run: degradation export failed; " +
+      "records=${payload.take(DEGRADATION_EXPORT_PAYLOAD_LIMIT)}; " +
+      "sink=${boundedDegradationFailureDetail(sinkFailure)}",
+  )
+}
+
+private val degradationExportLogger: Logger =
+  Logger.getLogger("skillbill.agent.run.degradation")
+
+private const val DEGRADATION_EXPORT_PAYLOAD_LIMIT = 1_024
+private const val DEGRADATION_FAILURE_DETAIL_LIMIT = 240
+
+private fun boundedDegradationFailureDetail(failure: Throwable): String {
+  val message = failure.message?.takeIf { it.isNotBlank() }
+  return (message ?: failure::class.simpleName.orEmpty()).take(DEGRADATION_FAILURE_DETAIL_LIMIT)
 }

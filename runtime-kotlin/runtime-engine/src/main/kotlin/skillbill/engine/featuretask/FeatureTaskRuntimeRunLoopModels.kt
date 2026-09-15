@@ -10,9 +10,11 @@ import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseLaunchBriefing
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeResolvedPhaseAgent
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
 import skillbill.engine.featuretask.validation.model.ValidationFindingSetProjection
+import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInput
 import skillbill.review.context.model.CodeReviewExecutionMode
 import skillbill.workflow.decomposition.model.SpecSource
+import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.workflow.taskruntime.model.AcceptedFeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseDeclaration
@@ -22,6 +24,7 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeProducerIteration
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepositoryCheckpoint
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.model.NormalizedFeatureTaskRuntimePhaseOutput
+import java.time.Clock
 
 internal data class RemediationCheckpointCommit(val commitSha: String, val parentSha: String?)
 
@@ -46,6 +49,15 @@ internal data class PendingReentry(
   val edgeIteration: Int,
   val drivingVerdict: FeatureTaskRuntimeVerdict,
   val expectedRepositoryCheckpoint: String? = null,
+)
+
+internal data class CarriedForwardGoalReviewArgs(
+  val request: FeatureTaskRuntimeRunRequest,
+  val state: FeatureTaskRuntimeRunState,
+  val session: FeatureTaskRuntimeRunLoopSession,
+  val recorder: FeatureTaskRuntimePhaseRecorder,
+  val goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
+  val outputValidator: FeatureTaskRuntimePhaseOutputValidator,
 )
 
 class MissingCarriedForwardGoalReviewResultException : IllegalStateException()
@@ -208,6 +220,16 @@ internal data class GateOutputArgs(
   val observability: FeatureTaskRuntimeRunObservability,
   val fileManifest: FeatureTaskRuntimePhaseFileManifest,
   val outputGateFailuresBefore: Int? = null,
+  val request: FeatureTaskRuntimeRunRequest,
+  val state: FeatureTaskRuntimeRunState,
+  val recorder: FeatureTaskRuntimePhaseRecorder,
+  val outputValidator: FeatureTaskRuntimePhaseOutputValidator,
+  val phaseGates: FeatureTaskRuntimePhaseGates,
+  val clock: Clock,
+  val diagnostics: RuntimeDiagnostics,
+  val goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
+  val phaseSettlementService: FeatureTaskPhaseSettlementService,
+  val settlementContext: FeatureTaskRuntimeRunLoopContext,
 ) {
 
   val rejectionExhaustsFixLoop: Boolean?
@@ -228,6 +250,17 @@ internal data class SettleValidatedOutputArgs(
   val run: PhaseRun,
   val iteration: Int,
   val output: SettledOutputContext,
+  val request: FeatureTaskRuntimeRunRequest,
+  val state: FeatureTaskRuntimeRunState,
+  val recorder: FeatureTaskRuntimePhaseRecorder,
+  val outputValidator: FeatureTaskRuntimePhaseOutputValidator,
+  val phaseGates: FeatureTaskRuntimePhaseGates,
+  val clock: Clock,
+  val diagnostics: RuntimeDiagnostics,
+  val goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
+  val phaseSettlementService: FeatureTaskPhaseSettlementService,
+  val observability: FeatureTaskRuntimeRunObservability,
+  val settlementContext: FeatureTaskRuntimeRunLoopContext,
 )
 
 internal data class PhaseStateWriteArgs(

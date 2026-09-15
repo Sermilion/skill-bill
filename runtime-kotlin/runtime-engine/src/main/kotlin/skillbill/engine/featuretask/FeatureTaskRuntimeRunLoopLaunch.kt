@@ -339,7 +339,15 @@ object FeatureTaskRuntimeRunLoopLaunch {
         LaunchRejectionMeasurementContext(
           producerIteration = producerIteration,
           repositoryCheckpoint = with(FeatureTaskRuntimeRunLoopOutputVerification) {
-            this@resolveLaunchMeasurementContext.resolveRepositoryCheckpoint(run)
+            resolveRepositoryCheckpoint(
+              RepositoryCheckpointResolutionArgs(
+                recorder = recorder,
+                goalContinuationRecorder = goalContinuationRecorder,
+                phaseGates = phaseGates,
+                session = session,
+                run = run,
+              ),
+            )
           },
         ),
       )

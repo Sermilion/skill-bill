@@ -13,6 +13,35 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairReceipt
 import skillbill.workflow.taskruntime.model.upsertRepairReceipt
 
+internal data class RepairReceiptSettlementArgs(
+  val request: FeatureTaskRuntimeRunRequest,
+  val state: FeatureTaskRuntimeRunState,
+  val recorder: FeatureTaskRuntimePhaseRecorder,
+  val goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
+  val diagnostics: RuntimeDiagnostics,
+  val run: PhaseRun,
+  val outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
+)
+
+internal data class SettledRepairReceiptArgs(
+  val request: FeatureTaskRuntimeRunRequest,
+  val state: FeatureTaskRuntimeRunState,
+  val recorder: FeatureTaskRuntimePhaseRecorder,
+  val goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
+  val diagnostics: RuntimeDiagnostics,
+  val receipt: FeatureTaskRuntimeRepairReceipt,
+  val reviewState: GoalSubtaskReviewState,
+)
+
+internal data class CompletedImplementationSettlementArgs(
+  val request: FeatureTaskRuntimeRunRequest,
+  val state: FeatureTaskRuntimeRunState,
+  val recorder: FeatureTaskRuntimePhaseRecorder,
+  val goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
+  val diagnostics: RuntimeDiagnostics,
+  val output: CompletedImplementationOutputArgs,
+)
+
 object FeatureTaskRuntimeRunLoopRepairReceipt {
   internal fun persistImplementFixRepairReceipt(
     request: FeatureTaskRuntimeRunRequest,
@@ -48,16 +77,29 @@ object FeatureTaskRuntimeRunLoopRepairReceipt {
     )
   }
 
-  internal fun FeatureTaskRuntimeRunLoopContext.settleAndPersistImplementFixRepairReceipt(
-    args: ImplementFixRepairReceiptArgs,
-  ): AttemptResult? {
+  internal fun settleAndPersistImplementFixRepairReceipt(args: ImplementFixRepairReceiptArgs): AttemptResult? {
+    val request = args.request
+    val state = args.state
+    val recorder = args.recorder
+    val goalContinuationRecorder = args.goalContinuationRecorder
+    val diagnostics = args.diagnostics
     val run = args.run
     val outputMap = args.normalizedOutput.envelopeWireMap()
     val reject = args.reject
     val iteration = args.iteration
     val observability = args.observability
     val fileManifest = args.fileManifest
-    val settlement = implementFixRepairReceiptSettlement(run, outputMap)
+    val settlement = implementFixRepairReceiptSettlement(
+      RepairReceiptSettlementArgs(
+        request,
+        state,
+        recorder,
+        goalContinuationRecorder,
+        diagnostics,
+        run,
+        outputMap,
+      ),
+    )
     settlement.rejectionDetail?.let { detail -> return reject("repair-receipt", detail) }
     val writeFailure = settlement.writeFailureReason ?: return null
     return AttemptResult.settled(
@@ -78,10 +120,14 @@ object FeatureTaskRuntimeRunLoopRepairReceipt {
     )
   }
 
-  internal fun FeatureTaskRuntimeRunLoopContext.implementFixRepairReceiptSettlement(
-    run: PhaseRun,
-    outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
-  ): RepairReceiptSettlement {
+  internal fun implementFixRepairReceiptSettlement(args: RepairReceiptSettlementArgs): RepairReceiptSettlement {
+    val request = args.request
+    val state = args.state
+    val recorder = args.recorder
+    val goalContinuationRecorder = args.goalContinuationRecorder
+    val diagnostics = args.diagnostics
+    val run = args.run
+    val outputMap = args.outputMap
     val produced = FeatureTaskRuntimeRunLoopCheckpointRemediation.completedImplementFixProducedOutputs(
       run,
       outputMap,
@@ -102,27 +148,36 @@ object FeatureTaskRuntimeRunLoopRepairReceipt {
     ) {
       FeatureTaskRuntimeRepairReceiptMissing -> RepairReceiptSettlement.None
       is FeatureTaskRuntimeRepairReceiptRejected -> RepairReceiptSettlement.rejected(parsed.rejectionDetail)
-      is FeatureTaskRuntimeRepairReceiptValid -> settledRepairReceipt(parsed.receipt, reviewState)
+      is FeatureTaskRuntimeRepairReceiptValid ->
+        settledRepairReceipt(
+          SettledRepairReceiptArgs(
+            request,
+            state,
+            recorder,
+            goalContinuationRecorder,
+            diagnostics,
+            parsed.receipt,
+            reviewState,
+          ),
+        )
     }
   }
 
-  internal fun FeatureTaskRuntimeRunLoopContext.settledRepairReceipt(
-    receipt: FeatureTaskRuntimeRepairReceipt,
-    reviewState: GoalSubtaskReviewState,
-  ): RepairReceiptSettlement = featureTaskRuntimeRepairReceiptSettleRejection(
-    receipt,
-    reviewState,
-    refutedCarriedFindingIds(request, recorder, diagnostics, reviewState),
-  )
-    ?.let { detail -> RepairReceiptSettlement.rejected(detail) }
-    ?: persistImplementFixRepairReceipt(
-      request,
-      state,
-      goalContinuationRecorder,
-      diagnostics,
-      receipt,
-    )?.let { reason -> RepairReceiptSettlement.writeFailed(reason) }
-    ?: RepairReceiptSettlement.None
+  internal fun settledRepairReceipt(args: SettledRepairReceiptArgs): RepairReceiptSettlement =
+    featureTaskRuntimeRepairReceiptSettleRejection(
+      args.receipt,
+      args.reviewState,
+      refutedCarriedFindingIds(args.request, args.recorder, args.diagnostics, args.reviewState),
+    )
+      ?.let { detail -> RepairReceiptSettlement.rejected(detail) }
+      ?: persistImplementFixRepairReceipt(
+        args.request,
+        args.state,
+        args.goalContinuationRecorder,
+        args.diagnostics,
+        args.receipt,
+      )?.let { reason -> RepairReceiptSettlement.writeFailed(reason) }
+      ?: RepairReceiptSettlement.None
 
   internal fun refutedCarriedFindingIds(
     request: FeatureTaskRuntimeRunRequest,
@@ -190,18 +245,22 @@ object FeatureTaskRuntimeRunLoopRepairReceipt {
     }
   }
 
-  internal fun FeatureTaskRuntimeRunLoopContext.settleCompletedImplementationOutput(
-    args: CompletedImplementationOutputArgs,
-  ): AttemptResult? = settleAndPersistImplementFixRepairReceipt(
-    ImplementFixRepairReceiptArgs(
-      run = args.run,
-      normalizedOutput = args.normalizedOutput,
-      reject = args.reject,
-      iteration = args.iteration,
-      observability = args.observability,
-      fileManifest = args.fileManifest,
-    ),
-  )
+  internal fun settleCompletedImplementationOutput(args: CompletedImplementationSettlementArgs): AttemptResult? =
+    settleAndPersistImplementFixRepairReceipt(
+      ImplementFixRepairReceiptArgs(
+        request = args.request,
+        state = args.state,
+        recorder = args.recorder,
+        goalContinuationRecorder = args.goalContinuationRecorder,
+        diagnostics = args.diagnostics,
+        run = args.output.run,
+        normalizedOutput = args.output.normalizedOutput,
+        reject = args.output.reject,
+        iteration = args.output.iteration,
+        observability = args.output.observability,
+        fileManifest = args.output.fileManifest,
+      ),
+    )
 
   internal fun blockRemediationBaseSha(
     request: FeatureTaskRuntimeRunRequest,

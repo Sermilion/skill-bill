@@ -292,6 +292,13 @@ object FeatureTaskRuntimeRunLoopOutputPersistence {
   )
 
   private fun FeatureTaskRuntimeRunLoopContext.composeLaunchPrompt(args: ComposeLaunchPromptArgs): String {
+    return FeatureTaskRuntimePhasePromptComposer.compose(composeLaunchPromptInputs(args)) +
+      FeatureTaskRuntimeRunLoopLaunch.verifyFindingsSpecIntentSection(state, recorder, session, phaseGates, args.run)
+  }
+
+  private fun FeatureTaskRuntimeRunLoopContext.composeLaunchPromptInputs(
+    args: ComposeLaunchPromptArgs,
+  ): FeatureTaskRuntimePhasePromptComposeInputs {
     val run = args.run
     val state = args.state
     val handoff = args.handoff
@@ -300,52 +307,66 @@ object FeatureTaskRuntimeRunLoopOutputPersistence {
     val context = this
     val resolvedBranchRecord = recorder.loadResolvedBranch(run.request.workflowId)
     val (passNumber, depthResolution, executedTier) = context.resolveReviewPromptTier(run, state)
-    return FeatureTaskRuntimePhasePromptComposer.compose(
-      FeatureTaskRuntimePhasePromptComposeInputs(
-        issueKey = run.request.issueKey,
-        briefing = briefing,
-        suppressDecomposition = isGoalContinuationRun(run.request),
-        codeReviewMode = executedTier,
-        reviewPassNumber = passNumber,
-        goalSubtaskReviewInput = run.goalReviewInput,
-        baselineUntrackedPaths = resolvedBranchRecord?.baselineUntrackedPaths.orEmpty(),
-        resolvedReviewTier = depthResolution?.let { executedTier },
-        reviewDecidingRule = depthResolution?.decidingRule,
-        repairLedger = handoff.repairLedger,
-        priorReviewContext = null,
-        priorSchemaFailure = priorCorrection?.schemaGateReason,
-        priorTerminalFailure = priorCorrection?.retryableTerminalReason,
-        priorFindingCoverage = priorCorrection?.findingCoverageReason,
-        correctiveRepairContext = priorCorrection?.correctiveRepairContext,
-        operatorBlockRetry = session.operatorBlockRetry
-          ?.takeIf { it.phaseId == run.phaseId && !session.operatorBlockRetryCompleted },
-        implementationContinuation =
-        FeatureTaskRuntimeRunLoopOutputVerification.implementationContinuationFor(recorder, run),
-        validationGateFindings = run.validationGateFindings,
-        validationGateTriagePlan = run.validationGateTriagePlan,
-        validationGateRepair = run.validationGateRepair,
-        validationGateTriage = run.validationGateTriage,
-        agentRunValidateFallback = run.agentRunValidateFallback,
-        packCollectAllCommand = run.let {
-          with(FeatureTaskRuntimeRunLoopValidationGate) {
-            context.packCollectAllCommand(run)
-          }
-        },
-        packConfirmationGateCommand = run.let {
-          with(FeatureTaskRuntimeRunLoopValidationGate) {
-            context.packConfirmationGateCommand(run)
-          }
-        },
-        packBuildCommand = run.let {
-          with(FeatureTaskRuntimeRunLoopValidationGate) {
-            context.packBuildCommand(run)
-          }
-        },
-        auditRetryFocusHint = session.auditRetryFocusHint
-          ?.takeIf { run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT },
-      ),
-    ) + FeatureTaskRuntimeRunLoopLaunch.verifyFindingsSpecIntentSection(state, recorder, session, phaseGates, run)
+    return FeatureTaskRuntimePhasePromptComposeInputs(
+      issueKey = run.request.issueKey,
+      briefing = briefing,
+      suppressDecomposition = isGoalContinuationRun(run.request),
+      codeReviewMode = executedTier,
+      reviewPassNumber = passNumber,
+      goalSubtaskReviewInput = run.goalReviewInput,
+      baselineUntrackedPaths = resolvedBranchRecord?.baselineUntrackedPaths.orEmpty(),
+      resolvedReviewTier = depthResolution?.let { executedTier },
+      reviewDecidingRule = depthResolution?.decidingRule,
+      repairLedger = handoff.repairLedger,
+      priorReviewContext = null,
+      priorSchemaFailure = priorCorrection?.schemaGateReason,
+      priorTerminalFailure = priorCorrection?.retryableTerminalReason,
+      priorFindingCoverage = priorCorrection?.findingCoverageReason,
+      correctiveRepairContext = priorCorrection?.correctiveRepairContext,
+      operatorBlockRetry = session.operatorBlockRetry
+        ?.takeIf { it.phaseId == run.phaseId && !session.operatorBlockRetryCompleted },
+      implementationContinuation =
+      FeatureTaskRuntimeRunLoopOutputVerification.implementationContinuationFor(recorder, run),
+      validationGateFindings = run.validationGateFindings,
+      validationGateTriagePlan = run.validationGateTriagePlan,
+      validationGateRepair = run.validationGateRepair,
+      validationGateTriage = run.validationGateTriage,
+      agentRunValidateFallback = run.agentRunValidateFallback,
+      packCollectAllCommand = packCollectAllCommand(run),
+      packConfirmationGateCommand = packConfirmationGateCommand(run),
+      packBuildCommand = packBuildCommand(run),
+      auditRetryFocusHint = session.auditRetryFocusHint?.takeIf {
+        run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT
+      },
+    )
   }
+
+  private fun FeatureTaskRuntimeRunLoopContext.packCollectAllCommand(run: PhaseRun): String? =
+    FeatureTaskRuntimeRunLoopValidationGate.packCollectAllCommand(
+      phaseGates,
+      recorder,
+      goalContinuationRecorder,
+      session,
+      run,
+    )
+
+  private fun FeatureTaskRuntimeRunLoopContext.packConfirmationGateCommand(run: PhaseRun): String? =
+    FeatureTaskRuntimeRunLoopValidationGate.packConfirmationGateCommand(
+      phaseGates,
+      recorder,
+      goalContinuationRecorder,
+      session,
+      run,
+    )
+
+  private fun FeatureTaskRuntimeRunLoopContext.packBuildCommand(run: PhaseRun): String? =
+    FeatureTaskRuntimeRunLoopValidationGate.packBuildCommand(
+      phaseGates,
+      recorder,
+      goalContinuationRecorder,
+      session,
+      run,
+    )
 
   private fun FeatureTaskRuntimeRunLoopContext.resolveReviewPromptTier(
     run: PhaseRun,

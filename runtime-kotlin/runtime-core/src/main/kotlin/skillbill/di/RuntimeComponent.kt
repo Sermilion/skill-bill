@@ -37,6 +37,8 @@ import skillbill.model.RuntimeContext
 import skillbill.model.TransportContext
 import skillbill.model.WorkflowOpsContext
 import skillbill.ports.agentaddon.ExternalAgentAddonSourceConfigPort
+import skillbill.ports.concurrency.InterruptSignalPort
+import skillbill.ports.concurrency.JvmInterruptSignalPort
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.featurespec.FeatureSpecPathResolverPort
@@ -99,6 +101,9 @@ abstract class RuntimeComponent(
   @Provides @RuntimeSingleton @JvmSynthetic
   fun databaseSessionFactory(context: EnvironmentContext): DatabaseSessionFactory =
     RuntimeBootstrapBindings.databaseSessionFactory(context)
+
+  @Provides @JvmSynthetic
+  fun interruptSignal(): InterruptSignalPort = JvmInterruptSignalPort
 
   abstract val resolvedEnvironmentContext: EnvironmentContext
 

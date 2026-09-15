@@ -217,15 +217,15 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
     ).resolve(run.request.repoRoot, run.request.workflowId, checkpoint, run.phaseId)
   }
 
-  internal fun FeatureTaskRuntimeRunLoopContext.resolveRepositoryCheckpoint(
-    run: PhaseRun,
-  ): FeatureTaskRuntimeRepositoryCheckpoint? = if (run.declaration.projectionDeclarations.none { projection ->
+  internal fun resolveRepositoryCheckpoint(
+    args: RepositoryCheckpointResolutionArgs,
+  ): FeatureTaskRuntimeRepositoryCheckpoint? = if (args.run.declaration.projectionDeclarations.none { projection ->
       projection.checkpointPolicy != FeatureTaskRuntimeRepositoryCheckpointPolicy.NOT_REQUIRED
     }
   ) {
     null
   } else {
-    buildRepositoryCheckpoint(run)
+    buildRepositoryCheckpoint(args)
   }
 
   internal fun completedPhaseRepositoryFingerprint(phaseGates: FeatureTaskRuntimePhaseGates, run: PhaseRun) = if (
@@ -586,23 +586,22 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
     return completedAttemptResult(run, iteration, outputText, normalizedOutput, repairEvidence)
   }
 
-  internal fun FeatureTaskRuntimeRunLoopContext.buildRepositoryCheckpoint(
-    run: PhaseRun,
+  internal fun buildRepositoryCheckpoint(
+    args: RepositoryCheckpointResolutionArgs,
   ): FeatureTaskRuntimeRepositoryCheckpoint? {
-    val resolvedBranchRecord = recorder.loadResolvedBranch(run.request.workflowId)
-    session.transitionResolvedBranch(resolvedBranchRecord?.branch)
-    val goalReviewState = goalContinuationRecorder.reviewState(
-      run.request.workflowId,
-    )
+    val run = args.run
+    val resolvedBranchRecord = args.recorder.loadResolvedBranch(run.request.workflowId)
+    args.session.transitionResolvedBranch(resolvedBranchRecord?.branch)
+    val goalReviewState = args.goalContinuationRecorder.reviewState(run.request.workflowId)
     val revisions = FeatureTaskRuntimeRunLoopOutputVerification.resolveCheckpointRevisions(
-      phaseGates,
+      args.phaseGates,
       run = run,
       headRevision = resolvedBranchRecord?.branch?.takeIf(String::isNotBlank) ?: "HEAD",
 
       baseRevision = goalReviewState?.reviewBaseSha ?: resolvedBranchRecord?.reviewBaseSha,
     ) ?: return null
     val ownedPaths = resolveCheckpointOwnedPaths(
-      run = run,
+      args = args,
       persistedOwnedPaths = resolvedBranchRecord?.workflowOwnedPaths,
 
       baselineOwnedPaths = resolvedBranchRecord?.baselineOwnedPaths
@@ -610,7 +609,7 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
         ?: resolvedBranchRecord?.baselineUntrackedPaths.orEmpty(),
       revisions = revisions,
     ) ?: return null
-    val fingerprint = phaseGates.gitOperations.repositoryCheckpointFingerprint(
+    val fingerprint = args.phaseGates.gitOperations.repositoryCheckpointFingerprint(
       run.request.repoRoot,
       revisions.base,
       revisions.head,
@@ -624,26 +623,27 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
     )
   }
 
-  internal fun FeatureTaskRuntimeRunLoopContext.resolveCheckpointOwnedPaths(
-    run: PhaseRun,
+  internal fun resolveCheckpointOwnedPaths(
+    args: RepositoryCheckpointResolutionArgs,
     persistedOwnedPaths: List<String>?,
     baselineOwnedPaths: List<String>,
     revisions: CheckpointRevisions,
   ): List<String>? {
+    val run = args.run
     val workingTreePaths = FeatureTaskRuntimeRunLoopOutputVerification.checkpointOwnedPaths(
-      phaseGates,
+      args.phaseGates,
       run,
       baselineOwnedPaths,
     ) ?: return null
     val committedPaths = revisions.base?.let { base ->
-      phaseGates.gitOperations.runtimePhaseChangedPathsBetweenCommits(run.request.repoRoot, base, revisions.head)
+      args.phaseGates.gitOperations.runtimePhaseChangedPathsBetweenCommits(run.request.repoRoot, base, revisions.head)
         .takeIf { it is WorkflowGitOperationResult.Ok }
         ?.value
         ?.let(FeatureTaskRuntimePhaseSafetyPolicy::lineSeparatedPaths)
         ?: return null
     }.orEmpty()
     val durableInventory = persistedOwnedPaths.orEmpty().filter(String::isNotBlank)
-    val discovered = if (session.checkpointOwnershipDecided && durableInventory.isNotEmpty()) {
+    val discovered = if (args.session.checkpointOwnershipDecided && durableInventory.isNotEmpty()) {
       durableInventory
     } else {
       (durableInventory + workingTreePaths).distinct()
@@ -656,7 +656,7 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
       paths = (discovered + committedPaths).distinct(),
     ).sorted()
     return inventory.takeIf {
-      recorder.recordWorkflowOwnedPaths(
+      args.recorder.recordWorkflowOwnedPaths(
         run.request.workflowId,
         inventory,
       )

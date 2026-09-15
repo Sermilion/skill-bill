@@ -1,5 +1,13 @@
 # Boundary History — runtime-kotlin/runtime-infra-fs
 
+## [2026-09-15] SKILL-247 subtask 4 — Consolidate governed resource copying in runtime-infra-fs
+Areas: runtime-infra-fs Gradle resource wiring
+- `runtime-infra-fs/build.gradle.kts` now declares each governed copy once via `GovernedResourceCopy` and `registerGovernedCopy`, with main/test `processResources` dependencies driven from the same registration list (main-only: rejected-output diagnostic and producer-output evidence schemas).
+- Golden manifest at `src/test/resources/governed-resource-manifest-main.json` locks packaged resource paths and SHA-256 hashes from the pre-refactor tree; `GovernedResourceCopyParityTest` guards regressions.
+- Net line count for `build.gradle.kts`: 914 → 410 (−504).
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
 ## [2026-09-14] SKILL-244 subtask 1 — Gate JVM resolved through the shared Java guard
 Areas: runtime-infra-fs/jvm, runtime-infra-fs/validation, runtime-infra-fs/launcher/process
 - `skill-bill-java-guard.sh` now ships as a runtime-infra-fs classpath resource (`copyJavaGuard` in `build.gradle.kts`, one authored copy under `build-logic/convention`), so the resolution rule exists at gate time and not only during install/uninstall.

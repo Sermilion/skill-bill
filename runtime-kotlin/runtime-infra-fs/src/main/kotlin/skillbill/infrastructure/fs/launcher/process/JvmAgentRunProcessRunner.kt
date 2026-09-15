@@ -11,6 +11,7 @@ import java.io.InputStream
 import java.time.Clock
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
+import java.util.logging.Logger
 
 @Inject
 class JvmAgentRunProcessRunner(
@@ -68,14 +69,32 @@ class JvmAgentRunProcessRunner(
       val endpoint = request.reviewEvidenceEndpoint ?: return
       liveEndpoints.remove(endpoint)
       runCatching { endpoint.close() }.onFailure { failure ->
-        runCatching {
+        val sinkDelivered = runCatching {
           request.outputSink.write(
             AgentRunOutputStream.STDERR,
             "governed review evidence endpoint teardown failed: ${failure.message.orEmpty()}\n",
           )
         }
+        if (sinkDelivered.isFailure) {
+          val sinkFailure = sinkDelivered.exceptionOrNull()
+          agentRunTeardownLogger.warning(
+            "skillbill agent run: endpoint teardown failed and stderr sink rejected the diagnostic; " +
+              "endpoint=${boundedTeardownFailureDetail(failure)}; " +
+              "sink=${boundedTeardownFailureDetail(sinkFailure ?: failure)}",
+          )
+        }
       }
     }
+
+    private val agentRunTeardownLogger: Logger =
+      Logger.getLogger("skillbill.agent.run.teardown")
+
+    private fun boundedTeardownFailureDetail(failure: Throwable): String {
+      val message = failure.message?.takeIf { it.isNotBlank() }
+      return (message ?: failure::class.simpleName.orEmpty()).take(TEARDOWN_FAILURE_DETAIL_LIMIT)
+    }
+
+    private const val TEARDOWN_FAILURE_DETAIL_LIMIT = 240
 
     internal fun reapLiveProcesses(processes: List<Process>) {
       processes.forEach { process -> runCatching { process.destroy() } }
@@ -94,42 +113,45 @@ class JvmAgentRunProcessRunner(
   ): AgentRunProcessResult {
     val degradation = ProcessRunDegradationRecorder()
     val outputTracker = OutputObservationTracker()
-    val lifecycleEmitter = ProcessLifecycleEmitter(request)
-    val stdout = CappedUtf8Drain(
-      input = stdoutStream,
-      limitBytes = AGENT_RUN_OUTPUT_LIMIT_BYTES,
-      outputStream = AgentRunOutputStream.STDOUT,
-      outputSink = request.outputSink,
-      onChunkRead = { outputTracker.markObserved() },
-    )
-    val stderr = CappedUtf8Drain(
-      input = stderrStream,
-      limitBytes = AGENT_RUN_OUTPUT_LIMIT_BYTES,
-      outputStream = AgentRunOutputStream.STDERR,
-      outputSink = request.outputSink,
-      onChunkRead = { outputTracker.markObserved() },
-    )
-    val lifetime = ProcessRunLifetime(process, liveProcesses, stdout, stderr, degradation)
+    val lifecycleEmitter = ProcessLifecycleEmitter(request, degradation)
+    val resources =
+      createProcessResources(
+        ProcessResourceRequest(
+          process,
+          stdoutStream,
+          stderrStream,
+          request,
+          outputTracker,
+          degradation,
+        ),
+      )
     var mcpStartupObservedAtStart = false
     var waitResult: Result<ProcessWait>? = null
-    val runOutcome = runCatching {
+    var primaryFailure: Throwable? = null
+    var cleanupFailure: Throwable? = null
+    try {
       mcpStartupObservedAtStart = request.mcpStartupProbe.readStartupObserved(degradation).value == true
-      stdout.start()
-      stderr.start()
+      resources.stdout.start()
+      resources.stderr.start()
       writeAndCloseStdin(process, request.stdinText, degradation)
       lifecycleEmitter.emitStarted(process.isAlive)
       waitResult = runCatching {
         waitForProcess(process, request, outputTracker, lifecycleEmitter, degradation)
       }
+      waitResult.exceptionOrNull()
+        ?.takeUnless { it is InterruptedException }
+        ?.let(::rethrow)
+    } catch (failure: IOException) {
+      primaryFailure = failure
+      rethrow(failure)
+    } finally {
+      cleanupFailure = runCatching { resources.lifetime.release(waitResult) }.exceptionOrNull()
+      exportRunDegradationEvidence(degradation, request.outputSink)
+      if (primaryFailure != null && cleanupFailure != null && cleanupFailure !== primaryFailure) {
+        primaryFailure.addSuppressed(cleanupFailure)
+      }
     }
-    val cleanupFailure = runCatching { lifetime.release(waitResult) }.exceptionOrNull()
-    cleanupFailure?.let { failure ->
-      runOutcome.exceptionOrNull()?.addSuppressed(failure) ?: throw failure
-    }
-    runOutcome.getOrThrow()
-    waitResult?.exceptionOrNull()
-      ?.takeUnless { it is InterruptedException }
-      ?.let { throw it }
+    if (primaryFailure == null) cleanupFailure?.let(::rethrow)
     return buildRunResult(
       BuildRunResultInput(
         process = process,
@@ -137,12 +159,51 @@ class JvmAgentRunProcessRunner(
         waitResult = requireNotNull(waitResult),
         outputTracker = outputTracker,
         lifecycleEmitter = lifecycleEmitter,
-        lifetime = lifetime,
+        lifetime = resources.lifetime,
         degradation = degradation,
         mcpStartupObservedAtStart = mcpStartupObservedAtStart,
       ),
     )
   }
+
+  private data class ProcessResources(
+    val stdout: CappedUtf8Drain,
+    val stderr: CappedUtf8Drain,
+    val lifetime: ProcessRunLifetime,
+  )
+
+  private data class ProcessResourceRequest(
+    val process: Process,
+    val stdoutStream: InputStream,
+    val stderrStream: InputStream,
+    val request: AgentRunProcessRequest,
+    val outputTracker: OutputObservationTracker,
+    val degradation: ProcessRunDegradationRecorder,
+  )
+
+  private fun createProcessResources(args: ProcessResourceRequest): ProcessResources {
+    val stdout = CappedUtf8Drain(
+      input = args.stdoutStream,
+      limitBytes = AGENT_RUN_OUTPUT_LIMIT_BYTES,
+      outputStream = AgentRunOutputStream.STDOUT,
+      outputSink = args.request.outputSink,
+      onChunkRead = { args.outputTracker.markObserved() },
+    )
+    val stderr = CappedUtf8Drain(
+      input = args.stderrStream,
+      limitBytes = AGENT_RUN_OUTPUT_LIMIT_BYTES,
+      outputStream = AgentRunOutputStream.STDERR,
+      outputSink = args.request.outputSink,
+      onChunkRead = { args.outputTracker.markObserved() },
+    )
+    return ProcessResources(
+      stdout = stdout,
+      stderr = stderr,
+      lifetime = ProcessRunLifetime(args.process, liveProcesses, stdout, stderr, args.degradation),
+    )
+  }
+
+  private fun rethrow(failure: Throwable): Nothing = throw failure
 
   private data class BuildRunResultInput(
     val process: Process,

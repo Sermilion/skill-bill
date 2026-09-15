@@ -281,18 +281,26 @@ object FeatureTaskRuntimeRunLoopRecordRejection {
       return settleRecordRejection(args, rejection)
     }
     val fileManifest = requireNotNull(launch.fileManifest)
-    return with(FeatureTaskRuntimeRunLoopAttemptSettlement) {
-      this@settleRecordRejectionLaunchOutcome.gateOutput(
-        GateOutputArgs(
-          run = run,
-          iteration = iteration,
-          captured = requireNotNull(launch.capturedPhaseOutput),
-          observability = observability,
-          fileManifest = fileManifest,
-          outputGateFailuresBefore = args.context.outputGateFailuresBefore,
-        ),
-      )
-    }
+    return FeatureTaskRuntimeRunLoopAttemptSettlement.gateOutput(
+      GateOutputArgs(
+        run = run,
+        iteration = iteration,
+        captured = requireNotNull(launch.capturedPhaseOutput),
+        observability = observability,
+        fileManifest = fileManifest,
+        outputGateFailuresBefore = args.context.outputGateFailuresBefore,
+        request = request,
+        state = state,
+        recorder = recorder,
+        outputValidator = outputValidator,
+        phaseGates = phaseGates,
+        clock = clock,
+        diagnostics = diagnostics,
+        goalContinuationRecorder = goalContinuationRecorder,
+        phaseSettlementService = phaseSettlementService,
+        settlementContext = this@settleRecordRejectionLaunchOutcome,
+      ),
+    )
   }
 
   private fun FeatureTaskRuntimeRunLoopContext.settleProviderLimit(

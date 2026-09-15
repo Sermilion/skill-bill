@@ -28,7 +28,9 @@ class TelemetryOutboxStoreTest {
       assertEquals(2, store.pendingCount())
       assertEquals(listOf(firstId, secondId), store.listPending().map { it.id })
 
-      store.markFailed(id = firstId, lastError = "connection refused")
+      val token = "drain-test"
+      store.claimPending(claimRequest(token, limit = 10))
+      store.markFailed(listOf(firstId), token, "connection refused")
       assertEquals("connection refused", store.listPending().first().lastError)
 
       store.markSynced(id = firstId, syncedAt = "2026-04-23 00:00:00")
@@ -47,7 +49,9 @@ class TelemetryOutboxStoreTest {
   fun `marking an event synced clears last_error to SQL NULL`() {
     withOutbox { connection, store ->
       val id = store.enqueue(eventName = "skillbill_review_finished", payloadJson = "{}")
-      store.markFailed(id = id, lastError = "connection refused")
+      val token = "error-test"
+      store.claimPending(claimRequest(token, limit = 10))
+      store.markFailed(listOf(id), token, "connection refused")
       assertEquals("connection refused", store.latestError())
 
       store.markSynced(id = id, syncedAt = "2026-04-23 00:00:00")
@@ -66,7 +70,9 @@ class TelemetryOutboxStoreTest {
     withOutbox { connection, store ->
       val healthy = store.enqueue(eventName = "skillbill_goal_finished", payloadJson = "{}")
       val failed = store.enqueue(eventName = "skillbill_review_finished", payloadJson = "{}")
-      store.markFailed(id = failed, lastError = "boom")
+      val token = "latest-error"
+      store.claimPending(claimRequest(token, limit = 10))
+      store.markFailed(listOf(failed), token, "boom")
 
       assertEquals("boom", store.latestError())
       assertEquals(2, store.pendingCount(), "Recording a failure must not retire either pending row.")
@@ -96,9 +102,11 @@ class TelemetryOutboxStoreTest {
     withOutbox { _, store ->
       val ids =
         List(3) { index -> store.enqueue(eventName = "skillbill_goal_finished", payloadJson = """{"i":$index}""") }
-      store.markFailed(eventIds = ids, lastError = "transient")
-
-      store.markSynced(ids)
+      val token = "drain-all"
+      store.claimPending(claimRequest(token, limit = 10))
+      store.markFailed(ids, token, "transient")
+      store.claimPending(claimRequest(token, limit = 10))
+      store.markSynced(ids, token)
 
       assertTrue(store.listPending().isEmpty(), "Every synced row must leave the pending set.")
       assertEquals(0, store.pendingCount())
@@ -142,7 +150,9 @@ class TelemetryOutboxStoreTest {
 
       assertEquals(null, store.lastSyncedAt(), "An outbox that never delivered has no successful sync timestamp.")
 
-      store.markSynced(listOf(id))
+      val token = "last-synced"
+      store.claimPending(claimRequest(token, limit = 10))
+      store.markSynced(listOf(id), token)
 
       assertNotNull(store.lastSyncedAt(), "A delivered row must expose a successful sync timestamp.")
       assertEquals(1, store.pendingCount(), "The still-pending row must remain queued alongside the sync timestamp.")
@@ -239,7 +249,11 @@ class TelemetryOutboxStoreTest {
   fun `a row past the attempt budget stops being claimed and reports as blocked`() {
     withOutbox { _, store ->
       val id = store.enqueue(eventName = "skillbill_goal_finished", payloadJson = "{}")
-      repeat(3) { store.markFailed(eventIds = listOf(id), lastError = "receiver rejected the batch") }
+      repeat(3) { attempt ->
+        val token = "budget-$attempt"
+        store.claimPending(claimRequest(token, limit = 10))
+        store.markFailed(listOf(id), token, "receiver rejected the batch")
+      }
 
       assertEquals(1, store.claimPending(claimRequest("drainer", limit = 10, attemptBudget = 5)).size)
       assertTrue(store.claimPending(claimRequest("drainer", limit = 10, attemptBudget = 3)).isEmpty())

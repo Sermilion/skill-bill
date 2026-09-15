@@ -9,6 +9,7 @@ import skillbill.ports.telemetry.RemoteTransportPort
 import skillbill.ports.time.RuntimeTimingPort
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import java.nio.file.Path
+import java.time.Duration
 
 data class EnvironmentContext(
   val dbPathOverride: String? = null,
@@ -26,7 +27,11 @@ data class EnvironmentContext(
   }
 }
 
-data class TransportContext(val requester: RemoteTransportPort? = null)
+data class TransportContext(
+  val requester: RemoteTransportPort? = null,
+  val connectTimeout: Duration? = null,
+  val requestTimeout: Duration? = null,
+)
 
 data class WorkflowOpsContext(val workflowGitOperations: WorkflowGitOperations? = null)
 

@@ -1,3 +1,24 @@
+## [2026-09-15] SKILL-247 subtask 2 — Preserve evidence through failed cleanup
+Areas: runtime-kotlin/{runtime-infra-sqlite/{sqlite,core},runtime-infra-fs/launcher/process}, runtime-kotlin/ARCHITECTURE.md, runtime-kotlin/{runtime-infra-fs tests,runtime-infra-sqlite tests}
+- SQLite read, write, and immediate transactions now preserve the body or commit failure as primary, attach rollback failure as suppressed evidence, and emit only bounded rollback diagnostics; snapshot and BEGIN modes stay unchanged.
+- Agent-run cleanup now exports run-local degradation evidence from the exception path, records lifecycle-publication failures, preserves callback/cancellation identity, and reports endpoint-close failures through an independent logger when stderr also fails.
+- Process teardown waits and drain settlement remain bounded and ordered; tests inject rollback and cleanup failures to assert primary identity, secondary evidence, release, incomplete capture, and interruption retention.
+- Pattern: keep acquisition, primary failure, cleanup, and bounded secondary evidence in one ownership scope. reusable
+- Known limitation: SQLite transaction success does not claim atomicity with file projection; cleanup bounds do not make a live drain close itself instantaneous.
+Feature flag: N/A
+Acceptance criteria: 5/5 implemented
+
+## [2026-09-15] SKILL-247 subtask 1 — Bound telemetry delivery and fence settlement
+Areas: runtime-kotlin/{runtime-ports/{telemetry,model},runtime-application/telemetry,runtime-infra-sqlite/telemetry,runtime-infra-http,runtime-core/di}, runtime-kotlin/ARCHITECTURE.md
+- Telemetry outbox settlement now carries claimToken and returns an explicit owned/lost result; SQLite updates fence both claim_token and synced_at, so stale A cannot mutate B.
+- Drain claims each batch with the injected clock and one claim token; retries preserve event_uuid; the shared JDK client uses finite connect/request deadlines below the lease lifetime.
+- Cancellation and interruption propagate through delivery and acknowledgement, with cancelled claims released only under current ownership; background failures emit a bounded payload-free diagnostic.
+- Pattern: carry claim identity plus an explicit settlement result across port, adapter, and caller; reuse shared transport lifetime and injectable timing seams. reusable
+- Regression pattern: real SQLite stale-settlement and loopback deadline tests, plus cancellation fakes, assert durable outcomes rather than call counts. reusable
+- Breaking changes/known limitations: telemetry outbox settlement consumers must provide claim identity; remote delivery is not exactly once.
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented
+
 ## [2026-09-15] SKILL-246 subtask 1 — Strip comments keep interface KDoc
 Areas: runtime-kotlin/{runtime-core,build-logic}, intellij-plugin, docs, orchestration/shell-content-contract
 - Authored Kotlin and Kotlin script sources now reject line comments, block comments, and KDoc outside interfaces and their members; generated and build paths remain outside the scan.

@@ -6,6 +6,7 @@ import skillbill.application.telemetry.enqueueRuntimeException
 import skillbill.ports.telemetry.TelemetryOutboxRepository
 import skillbill.ports.telemetry.model.TelemetryOutboxClaimRequest
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
+import skillbill.ports.telemetry.model.TelemetryOutboxSettlementResult
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -118,9 +119,20 @@ class RuntimeExceptionTelemetryTest {
       override fun blockedCount(attemptBudget: Int): Int = 0
       override fun latestError(): String? = null
       override fun lastSyncedAt(): String? = null
-      override fun markSynced(eventIds: List<Long>) = Unit
-      override fun markFailed(eventIds: List<Long>, lastError: String) = Unit
-      override fun markUnconfirmed(eventIds: List<Long>, lastError: String) = Unit
+      override fun markSynced(eventIds: List<Long>, claimToken: String): TelemetryOutboxSettlementResult =
+        TelemetryOutboxSettlementResult.forRequest(eventIds, updatedRows = 0)
+
+      override fun markFailed(
+        eventIds: List<Long>,
+        claimToken: String,
+        lastError: String,
+      ): TelemetryOutboxSettlementResult = TelemetryOutboxSettlementResult.forRequest(eventIds, updatedRows = 0)
+
+      override fun markUnconfirmed(
+        eventIds: List<Long>,
+        claimToken: String,
+        lastError: String,
+      ): TelemetryOutboxSettlementResult = TelemetryOutboxSettlementResult.forRequest(eventIds, updatedRows = 0)
       override fun clear(): Int = 0
     }
 }
