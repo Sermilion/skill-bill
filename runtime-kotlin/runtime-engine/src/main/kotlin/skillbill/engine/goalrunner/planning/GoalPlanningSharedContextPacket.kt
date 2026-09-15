@@ -2,6 +2,7 @@ package skillbill.engine.goalrunner.planning
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.contracts.goalplanning.GoalPlanningDiscoveryExclusions
 import skillbill.ports.goalrunner.planning.model.GoalPlanningContext
 import skillbill.workflow.decomposition.model.DecompositionSubtask
@@ -20,7 +21,7 @@ object GoalPlanningSharedContextPacket {
     "packet_version",
     "repository_identity",
     "normalized_issue_key",
-    "parent_spec_path",
+    DecompositionPlanningPayloadKeys.PARENT_SPEC_PATH,
     "parent_spec",
     "decomposition_manifest",
     "boundary_memory",
@@ -58,7 +59,9 @@ object GoalPlanningSharedContextPacket {
     require(packet["packet_version"] == VERSION) { "shared context packet version is invalid" }
     require(packet["repository_identity"] == repositoryIdentity) { "shared context repository identity is invalid" }
     require(packet["normalized_issue_key"] == normalizedIssueKey) { "shared context issue key is invalid" }
-    require(packet["parent_spec_path"] == parentSpecPath) { "shared context parent spec path is invalid" }
+    require(packet[DecompositionPlanningPayloadKeys.PARENT_SPEC_PATH] == parentSpecPath) {
+      "shared context parent spec path is invalid"
+    }
     require(packet["parent_spec"] is String) { "shared context parent spec is invalid" }
     require((packet["decomposition_manifest"] as? String)?.length?.let { it <= MAX_GOVERNED_CONTEXT_CHARS } == true) {
       "shared context decomposition manifest is malformed"
@@ -119,19 +122,19 @@ object GoalPlanningSharedContextPacket {
 
   fun orderedSubtasks(subtasks: List<DecompositionSubtask>): List<Map<String, Any?>> = subtasks.map { subtask ->
     linkedMapOf(
-      "id" to subtask.id,
-      "name" to subtask.name,
-      "spec_path" to subtask.specPath,
+      DecompositionPlanningPayloadKeys.ID to subtask.id,
+      DecompositionPlanningPayloadKeys.NAME to subtask.name,
+      DecompositionPlanningPayloadKeys.SPEC_PATH to subtask.specPath,
       "planning_disposition" to if (subtask.status.decompositionStatus() == DecompositionStatus.SKIPPED) {
         DecompositionStatus.SKIPPED.wireValue
       } else {
         "included"
       },
-      "dependencies" to subtask.dependencies.map { dependency ->
+      DecompositionPlanningPayloadKeys.DEPENDENCIES to subtask.dependencies.map { dependency ->
         linkedMapOf(
           SharedPayloadKeys.SUBTASK_ID to dependency.subtaskId,
-          "optional" to dependency.optional,
-          "skipped" to dependency.skipped,
+          DecompositionPlanningPayloadKeys.OPTIONAL to dependency.optional,
+          DecompositionPlanningPayloadKeys.SKIPPED to dependency.skipped,
         )
       },
     )
@@ -139,7 +142,11 @@ object GoalPlanningSharedContextPacket {
 
   fun includedSubtaskIds(packet: Map<String, Any?>): Set<Int> =
     GoalPlanningSharedContextPacketValidation.normalizedSubtasks(packet["ordered_subtasks"])
-      .mapNotNull { subtask -> (subtask["id"] as Int).takeIf { subtask["planning_disposition"] == "included" } }
+      .mapNotNull { subtask ->
+        (subtask[DecompositionPlanningPayloadKeys.ID] as Int).takeIf {
+          subtask["planning_disposition"] == "included"
+        }
+      }
       .toSet()
 
   fun digest(packet: Map<String, Any?>): String = GoalPlanningSharedContextPacketValidation.digest(packet)

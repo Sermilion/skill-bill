@@ -92,7 +92,7 @@ Additional direct domain/contracts dependencies are omitted from the picture for
 
 Priority P1. Reproduced.
 
-[JvmAgentRunProcessRunner.kt:88](../../runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/launcher/process/JvmAgentRunProcessRunner.kt#L88) registers the child, starts drains, then waits. It catches InterruptedException around the wait, but other exceptions bypass finishRun. The outer finally closes only the review endpoint. [JvmAgentRunProcessWaitLoopProbes.kt:58](../../runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/launcher/process/JvmAgentRunProcessWaitLoopProbes.kt#L58) calls the output sink directly.
+[JvmAgentRunProcessRunner.kt:88](../../../runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/launcher/process/JvmAgentRunProcessRunner.kt#L88) registers the child, starts drains, then waits. It catches InterruptedException around the wait, but other exceptions bypass finishRun. The outer finally closes only the review endpoint. [JvmAgentRunProcessWaitLoopProbes.kt:58](../../../runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/launcher/process/JvmAgentRunProcessWaitLoopProbes.kt#L58) calls the output sink directly.
 
 A temporary child ran `exec sleep 20`. An injected progress probe caused an output callback, whose sink threw IllegalStateException. The runner threw and the child remained alive. The audit probe explicitly killed that child afterward.
 
@@ -103,13 +103,13 @@ child_alive_after_runner_exception=true
 
 This lets work continue after its caller has failed. The global shutdown hook eventually reaps tracked processes only when the JVM exits. Give each invocation one immediate lifetime owner and run cleanup for every exit.
 
-Related lifetime gap, inspected but not separately reproduced: [JvmAgentRunProcessOutputDrain.kt:120](../../runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/launcher/process/JvmAgentRunProcessOutputDrain.kt#L120) joins with a deadline and then allows byte/digest reads without proving the worker stopped. F-001's implementation must cover incomplete drain settlement rather than merely wrapping waitForProcess in another catch.
+Related lifetime gap, inspected but not separately reproduced: [JvmAgentRunProcessOutputDrain.kt:120](../../../runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/launcher/process/JvmAgentRunProcessOutputDrain.kt#L120) joins with a deadline and then allows byte/digest reads without proving the worker stopped. F-001's implementation must cover incomplete drain settlement rather than merely wrapping waitForProcess in another catch.
 
 ### F-002. Every database write reacquires schema readiness through maintenance
 
 Priority P2. Work amplification reproduced; production latency impact unmeasured.
 
-[SQLiteDatabaseSessionFactory.kt:53](../../runtime-kotlin/runtime-infra-sqlite/src/main/kotlin/skillbill/infrastructure/sqlite/SQLiteDatabaseSessionFactory.kt#L53) opens through DatabaseRuntime.openDbAt for both write APIs. [DatabaseRuntime.kt:92](../../runtime-kotlin/runtime-infra-sqlite/src/main/kotlin/skillbill/infrastructure/sqlite/core/DatabaseRuntime.kt#L92) creates base schema and runs migration/repair functions on each open. Activity stamps and worker operations use these write APIs.
+[SQLiteDatabaseSessionFactory.kt:53](../../../runtime-kotlin/runtime-infra-sqlite/src/main/kotlin/skillbill/infrastructure/sqlite/SQLiteDatabaseSessionFactory.kt#L53) opens through DatabaseRuntime.openDbAt for both write APIs. [DatabaseRuntime.kt:92](../../../runtime-kotlin/runtime-infra-sqlite/src/main/kotlin/skillbill/infrastructure/sqlite/core/DatabaseRuntime.kt#L92) creates base schema and runs migration/repair functions on each open. Activity stamps and worker operations use these write APIs.
 
 A recording JDBC driver initialized a temporary database, cleared its observations, then opened it again without adding any data. The second open executed:
 
@@ -127,7 +127,7 @@ Separate schema readiness from connection acquisition within the existing databa
 
 Priority P2. Confirmed call path; fault injection belongs to implementation validation.
 
-[DecompositionManifestWriter.kt:62](../../runtime-kotlin/runtime-application/src/main/kotlin/skillbill/application/decomposition/DecompositionManifestWriter.kt#L62) and its private writeProjection function both catch IOException and return null. [WorkflowGoalRunnerManifestWriteOpsImpl.kt:25](../../runtime-kotlin/runtime-infra-sqlite/src/main/kotlin/skillbill/infrastructure/sqlite/goalrunner/WorkflowGoalRunnerManifestWriteOpsImpl.kt#L25) saves the database and then requests the file projection. [WorkflowGoalRunnerManifestStoreContext.kt:54](../../runtime-kotlin/runtime-infra-sqlite/src/main/kotlin/skillbill/infrastructure/sqlite/goalrunner/WorkflowGoalRunnerManifestStoreContext.kt#L54) discards the writer result.
+[DecompositionManifestWriter.kt:62](../../../runtime-kotlin/runtime-application/src/main/kotlin/skillbill/application/decomposition/DecompositionManifestWriter.kt#L62) and its private writeProjection function both catch IOException and return null. [WorkflowGoalRunnerManifestWriteOpsImpl.kt:25](../../../runtime-kotlin/runtime-infra-sqlite/src/main/kotlin/skillbill/infrastructure/sqlite/goalrunner/WorkflowGoalRunnerManifestWriteOpsImpl.kt#L25) saves the database and then requests the file projection. [WorkflowGoalRunnerManifestStoreContext.kt:54](../../../runtime-kotlin/runtime-infra-sqlite/src/main/kotlin/skillbill/infrastructure/sqlite/goalrunner/WorkflowGoalRunnerManifestStoreContext.kt#L54) discards the writer result.
 
 A disk or permission failure can therefore leave a stale manifest while the caller observes the normal database result and no projection failure record. Database-authoritative continuation is a sound choice; hiding divergence is not. Return explicit projection outcomes, report failure, and regenerate only the projection from durable state. Do not move the file write inside a SQLite transaction and call that cross-store atomicity.
 
@@ -137,9 +137,9 @@ The store also calls an engine-owned planning hydrator through a port. That call
 
 Priority P2. Structural evidence; no claim that all current transitions are wrong.
 
-[FeatureTaskRuntimeRunLoop.kt:93](../../runtime-kotlin/runtime-engine/src/main/kotlin/skillbill/engine/featuretask/FeatureTaskRuntimeRunLoop.kt#L93) exposes the recorder, phase gates, diagnostics, request, and state to helper objects. The twenty FeatureTaskRuntimeRunLoop-prefixed files total 9,779 lines and contain 280 parameters typed as the whole run loop.
+[FeatureTaskRuntimeRunLoop.kt:93](../../../runtime-kotlin/runtime-engine/src/main/kotlin/skillbill/engine/featuretask/FeatureTaskRuntimeRunLoop.kt#L93) exposes the recorder, phase gates, diagnostics, request, and state to helper objects. The twenty FeatureTaskRuntimeRunLoop-prefixed files total 9,779 lines and contain 280 parameters typed as the whole run loop.
 
-[FeatureTaskRuntimeRunLoopSession:201](../../runtime-kotlin/runtime-engine/src/main/kotlin/skillbill/engine/featuretask/FeatureTaskRuntimeRunLoop.kt#L201) keeps blocked, paused, and decomposed reports independently nullable. report() imposes precedence when more than one is present. BackwardEdge, Drive, PlanningBranch, Checkpoint, and OutputVerification assign session fields. RunState also exposes mutable collections despite offering named transition methods. Current callers mostly use those methods; the public mutation capability remains unnecessary.
+[FeatureTaskRuntimeRunLoopSession:201](../../../runtime-kotlin/runtime-engine/src/main/kotlin/skillbill/engine/featuretask/FeatureTaskRuntimeRunLoop.kt#L201) keeps blocked, paused, and decomposed reports independently nullable. report() imposes precedence when more than one is present. BackwardEdge, Drive, PlanningBranch, Checkpoint, and OutputVerification assign session fields. RunState also exposes mutable collections despite offering named transition methods. Current callers mostly use those methods; the public mutation capability remains unnecessary.
 
 The cost is that a change to checkpoint or reentry behavior requires understanding distant assignments and report precedence. Privatize coupled state, return explicit decisions, and pass helpers the values or capabilities they actually use. Do not replace 280 whole-loop parameters with 280 equivalent context bags.
 
@@ -174,7 +174,7 @@ The line estimate is conservative, not a measured patch. It allows for caller re
 
 Priority P2. Scanner behavior reproduced.
 
-[WireVocabularyArchitectureSupport.kt:46](../../runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/WireVocabularyArchitectureSupport.kt#L46) builds keyValues only from existing Keys objects. payloadKeyAccesses iterates that set. A new literal that lacks any owning declaration is therefore invisible.
+[WireVocabularyArchitectureSupport.kt:46](../../../runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/WireVocabularyArchitectureSupport.kt#L46) builds keyValues only from existing Keys objects. payloadKeyAccesses iterates that set. A new literal that lacks any owning declaration is therefore invisible.
 
 The actual scanner, called with payload-key checks enabled, accepted this synthetic governed-payload candidate:
 
@@ -192,9 +192,9 @@ Actual decomposition codecs still access keys such as current_subtask_intent as 
 
 Priority P3. Confirmed mismatch.
 
-The current [code principles](../../docs/code-principles.md) and AGENTS.md state a 500-line ceiling; [PrincipleEnforcementInventory.kt:268](../../runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/PrincipleEnforcementInventory.kt#L268) enforces 1,200. The principles also describe empty baselines, while the inspected tree has one engine cycle and ambient-environment baselines of 104 filesystem, 12 SQLite, and four HTTP entries. Existing allowances are not automatically new defects, but the prose must not claim they are absent.
+The current [code principles](../../../docs/code-principles.md) and AGENTS.md state a 500-line ceiling; [PrincipleEnforcementInventory.kt:268](../../../runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/PrincipleEnforcementInventory.kt#L268) enforces 1,200. The principles also describe empty baselines, while the inspected tree has one engine cycle and ambient-environment baselines of 104 filesystem, 12 SQLite, and four HTTP entries. Existing allowances are not automatically new defects, but the prose must not claim they are absent.
 
-The documentation tests include incidental phrase bans such as [RuntimeArchitectureDocumentationTest.kt:67](../../runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/RuntimeArchitectureDocumentationTest.kt#L67). They pass while the numeric rule is wrong. Keep checks for contract sections and module ownership, remove editorial word bans, and verify duplicated numeric facts against their real owner.
+The documentation tests include incidental phrase bans such as [RuntimeArchitectureDocumentationTest.kt:67](../../../runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/RuntimeArchitectureDocumentationTest.kt#L67). They pass while the numeric rule is wrong. Keep checks for contract sections and module ownership, remove editorial word bans, and verify duplicated numeric facts against their real owner.
 
 The archived SKILL-233 spec also promised identifier wrappers and a stdlib-only domain. The tree has one value class, FileLocation, and runtime-domain still declares a serialization dependency. No direct serialization imports were found in domain production sources, but WorkflowEngine delegates JSON work through contract helpers. Archive status is not proof of the stronger design claim.
 

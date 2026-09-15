@@ -14,20 +14,20 @@ Work includes:
   `di-backend-review.md`, `ai-llm-backend-review.md` (marked “Do not ship
   as-is”; not referenced from `addon_usage` / pointers).
 - Remove or reduce `docs/delegated-review/` to a single pointer at
-  `orchestration/review-delegation/` (SKILL-159-removed archive).
-- Trim `docs/team-control-plane-roadmap.md` unbuilt CLI / hosted-org sections
+  `../../../orchestration/review-delegation` (SKILL-159-removed archive).
+- Trim `../../../docs/team-control-plane-roadmap.md` unbuilt CLI / hosted-org sections
   to match shipped team surfaces, or replace with an explicit “not shipped”
   stub — do not implement the CLI.
-- Delete unused `jna` entry from `runtime-kotlin/gradle/libs.versions.toml`
+- Delete unused `jna` entry from `../../../runtime-kotlin/gradle/libs.versions.toml`
   (and any unused catalog alias) when no module depends on it.
 - Delete empty `app/src/main/java/com/amplitude/ampli/` package tree if still
   source-less.
 - Remove stale GLM uninstall cleanup past the 2026-08-02 window in
-  `uninstall.sh` only after confirming no remaining seeds; do not remove
+  `../../../uninstall.sh` only after confirming no remaining seeds; do not remove
   Copilot historical sweep paths.
 - Fix any stale comments that still claim “seven agents” or point at deleted
   capture recipes only when those files are touched for the above cuts.
-- Update affected area `agent/history.md` if docs/scripts boundaries require
+- Update affected area `../../../agent/history.md` if docs/scripts boundaries require
   it.
 
 ## Acceptance Criteria
@@ -35,7 +35,7 @@ Work includes:
 1. `scripts/split-runloop.py` is absent from the tree.
 2. The three undeclared TypeScript add-on scaffolds listed in Scope are absent, and no pack manifest still references them.
 3. `docs/delegated-review/` is gone or contains only a pointer to the live review-delegation contract; no archived capability bodies remain as if current.
-4. Unused `jna` catalog version/library entries are removed from `runtime-kotlin/gradle/libs.versions.toml`.
+4. Unused `jna` catalog version/library entries are removed from `../../../runtime-kotlin/gradle/libs.versions.toml`.
 5. Empty Amplitude `ampli` package tree is absent when it still has no sources.
 6. GLM-only uninstall cleanup past the closed window is removed when no seeds remain; Copilot deprecation sweep paths stay.
 7. No runtime-kotlin production behavior changes in this subtask beyond catalog/doc/script deletions.
@@ -67,4 +67,4 @@ install paths when available.
 
 ## Next Path
 
-`.feature-specs/SKILL-238-yagni-port-necessity-alignment/spec_subtask_2_collapse-runtime-kotlin-yagni.md`
+`spec_subtask_2_collapse-runtime-kotlin-yagni.md`

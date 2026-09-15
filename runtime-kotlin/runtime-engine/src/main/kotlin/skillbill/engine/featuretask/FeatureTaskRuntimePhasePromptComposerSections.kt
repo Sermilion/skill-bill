@@ -34,7 +34,6 @@ fun phasePromptLeadingSections(inputs: FeatureTaskRuntimePhasePromptComposeInput
 
 fun phasePromptMiddleSections(inputs: FeatureTaskRuntimePhasePromptComposeInputs): List<String> = listOf(
   goalContinuationDirective(inputs.briefing.phaseId, inputs.suppressDecomposition),
-  absentValidationGateDegradationDirective(inputs.briefing.phaseId, inputs.agentRunValidateFallback),
   validationGateFindingsDirective(
     inputs.briefing.phaseId,
     inputs.validationGateFindings,
@@ -68,9 +67,8 @@ fun phasePromptTrailingSections(
   terminalRetryDirective(inputs.priorTerminalFailure),
   findingCoverageDirective(inputs.priorFindingCoverage),
   if (
-    !inputs.agentRunValidateFallback &&
-      inputs.briefing.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE &&
-      !inputs.validationGateTriage
+    inputs.briefing.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE &&
+    !inputs.validationGateTriage
   ) {
     runtimeOwnedValidateFinishedDirective(
       inputs.briefing.phaseId,

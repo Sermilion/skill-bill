@@ -1,6 +1,7 @@
 package skillbill.workflow.taskruntime.model
 
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
 import skillbill.error.InvalidWorkflowStateSchemaError
 
 enum class FeatureTaskRuntimePhaseExecutionOrigin(val wireValue: String) {
@@ -92,7 +93,7 @@ data class FeatureTaskRuntimePhaseLedgerEntry(
     }
   }
   internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
-    "action" to action.wireValue,
+    DecompositionManifestPayloadKeys.ACTION to action.wireValue,
     "sequence_number" to sequenceNumber,
     "timestamp" to timestamp,
     SharedPayloadKeys.PHASE_ID to phaseId,
@@ -101,7 +102,7 @@ data class FeatureTaskRuntimePhaseLedgerEntry(
     resolvedAgentId?.let { put("resolved_agent_id", it) }
     put("execution_origin", executionOrigin.wireValue)
     fixLoopIteration?.let { put("fix_loop_iteration", it) }
-    blockedReason?.let { put("blocked_reason", it) }
+    blockedReason?.let { put(DecompositionManifestPayloadKeys.BLOCKED_REASON, it) }
     loopId?.let { put("loop_id", it) }
     edgeIteration?.let { put("edge_iteration", it) }
   }
@@ -110,17 +111,22 @@ data class FeatureTaskRuntimePhaseLedgerEntry(
     /** Strict decode; loud-fails on any missing or malformed required field. */
     internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimePhaseLedgerEntry =
       FeatureTaskRuntimePhaseLedgerEntry(
-        action = FeatureTaskRuntimePhaseLedgerAction.fromWire(raw.requireStringField("action")),
+        action = FeatureTaskRuntimePhaseLedgerAction.fromWire(
+          raw.requireStringField(DecompositionManifestPayloadKeys.ACTION),
+        ),
         sequenceNumber = raw.requireIntField("sequence_number"),
         timestamp = raw.requireStringField("timestamp"),
-        phaseId = requireKnownFeatureTaskRuntimePhaseId(raw.requireStringField("phase_id"), "phase_id"),
+        phaseId = requireKnownFeatureTaskRuntimePhaseId(
+          raw.requireStringField(SharedPayloadKeys.PHASE_ID),
+          SharedPayloadKeys.PHASE_ID,
+        ),
         attemptCount = raw.requireIntField("attempt_count"),
         resolvedAgentId = raw.optionalStringField("resolved_agent_id"),
         executionOrigin = raw.optionalStringField("execution_origin")?.let(
           FeatureTaskRuntimePhaseExecutionOrigin::fromWireValue,
         ) ?: FeatureTaskRuntimePhaseExecutionOrigin.AGENT_EXECUTED,
         fixLoopIteration = raw.optionalIntField("fix_loop_iteration"),
-        blockedReason = raw.optionalStringField("blocked_reason"),
+        blockedReason = raw.optionalStringField(DecompositionManifestPayloadKeys.BLOCKED_REASON),
         loopId = raw.optionalStringField("loop_id"),
         edgeIteration = raw.optionalIntField("edge_iteration"),
       )

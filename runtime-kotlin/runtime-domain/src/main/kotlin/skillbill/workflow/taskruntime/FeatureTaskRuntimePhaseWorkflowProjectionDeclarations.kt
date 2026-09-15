@@ -1,5 +1,8 @@
 package skillbill.workflow.taskruntime
 
+import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.contracts.workflow.ValidationEvidencePayloadKeys
 import skillbill.workflow.engine.model.WorkflowDefinition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffProjectionBudget
@@ -56,7 +59,7 @@ internal object FeatureTaskRuntimePhaseWorkflowProjectionDeclarations {
       sourceRef = FeatureTaskRuntimeHandoffSourceRef.UpstreamPhaseOutput(producingPhaseId),
       projectionName = "${producingPhaseId}_prose",
       projectionContractId = FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.PHASE_PROSE,
-      declaredFieldNames = listOf("value", "directive"),
+      declaredFieldNames = listOf(SharedPayloadKeys.VALUE, "directive"),
       delivery = PhaseHandoffProjectionDelivery(
         checkpointPolicy = checkpointPolicy,
         required = true,
@@ -322,7 +325,7 @@ internal object FeatureTaskRuntimePhaseWorkflowProjectionDeclarations {
           fields = listOf(
             "changed_paths",
             "validation_summary",
-            "base_branch",
+            DecompositionPlanningPayloadKeys.BASE_BRANCH,
             "diff_reference",
           ),
           checkpointPolicy = FeatureTaskRuntimeRepositoryCheckpointPolicy.REFRESH_FROM_REPOSITORY,
@@ -335,7 +338,12 @@ internal object FeatureTaskRuntimePhaseWorkflowProjectionDeclarations {
           producingPhaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_COMMIT_PUSH,
           name = "commit_receipt",
           contractId = FeatureTaskRuntimePhaseWorkflowDefinition.PhaseProjectionContract.COMMIT_RECEIPT,
-          fields = listOf("commit_sha", "branch", "base_branch", "pushed"),
+          fields = listOf(
+            DecompositionManifestPayloadKeys.COMMIT_SHA,
+            DecompositionPlanningPayloadKeys.BRANCH,
+            DecompositionPlanningPayloadKeys.BASE_BRANCH,
+            "pushed",
+          ),
           checkpointPolicy = FeatureTaskRuntimeRepositoryCheckpointPolicy.NOT_REQUIRED,
           required = true,
         ),

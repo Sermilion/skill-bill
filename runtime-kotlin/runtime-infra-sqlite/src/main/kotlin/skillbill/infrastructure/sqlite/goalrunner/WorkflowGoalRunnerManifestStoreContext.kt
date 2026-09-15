@@ -7,6 +7,7 @@ import skillbill.ports.goalrunner.persistence.GoalChildPlanningHydratorPort
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.workflow.decomposition.DecompositionManifestValidator
+import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.WorkflowSnapshotValidator
 import java.time.Clock
@@ -51,12 +52,32 @@ internal class WorkflowGoalRunnerManifestStoreContext(
     projectionPersistence.saveInTransaction(unitOfWork, state)
   }
 
-  fun writeProjectionFile(state: GoalRunnerManifestState, projectionArtifactsJson: String) {
-    decompositionManifestWriter.writeProjectionFromWorkflowState(
+  fun writeProjectionFile(
+    state: GoalRunnerManifestState,
+    projectionArtifactsJson: String,
+  ): DecompositionManifestProjectionOutcome {
+    val outcome = decompositionManifestWriter.writeProjectionFromWorkflowState(
       state.repoRoot ?: repositoryRoot.path,
       projectionArtifactsJson,
       decompositionManifestValidator,
       decompositionManifestStore,
     )
+    when (outcome) {
+      is DecompositionManifestProjectionOutcome.Failed ->
+        database.transaction { unitOfWork ->
+          persistDecompositionManifestProjectionFailure(
+            engine,
+            unitOfWork,
+            state.parentWorkflowId,
+            outcome,
+          )
+        }
+      is DecompositionManifestProjectionOutcome.Written ->
+        database.transaction { unitOfWork ->
+          clearDecompositionManifestProjectionFailure(engine, unitOfWork, state.parentWorkflowId)
+        }
+      DecompositionManifestProjectionOutcome.Absent -> Unit
+    }
+    return outcome
   }
 }

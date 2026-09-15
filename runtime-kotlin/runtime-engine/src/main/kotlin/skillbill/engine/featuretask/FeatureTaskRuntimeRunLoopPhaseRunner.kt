@@ -23,12 +23,19 @@ object FeatureTaskRuntimeRunLoopPhaseRunner {
     state: FeatureTaskRuntimeRunState,
     observability: FeatureTaskRuntimeRunObservability,
   ): PhaseOutcome {
-    val prepared = FeatureTaskRuntimeRunLoopReview.prepareRuntimeOwnedReview(runLoop, run, state)
+    val context = runLoop.context.copy(state = state, observability = observability)
+    val prepared = with(FeatureTaskRuntimeRunLoopReview) {
+      context.prepareRuntimeOwnedReview(run)
+    }
     return when (prepared) {
       is RuntimeOwnedReviewBlocked -> prepared.outcome
       is RuntimeOwnedReviewReady -> {
-        FeatureTaskRuntimeRunLoopLaunch.prepareLaunchForCapture(runLoop, prepared.run, state, null)
-        FeatureTaskRuntimeRunLoopReview.executePreparedReviewDriver(runLoop, prepared, observability)
+        with(FeatureTaskRuntimeRunLoopLaunch) {
+          runLoop.context.prepareLaunchForCapture(prepared.run, state, null)
+        }
+        with(FeatureTaskRuntimeRunLoopReview) {
+          context.executePreparedReviewDriver(prepared)
+        }
       }
     }
   }
@@ -83,8 +90,7 @@ object FeatureTaskRuntimeRunLoopPhaseRunner {
     preLaunch: PreLaunchBlock,
   ): PhaseOutcome {
     val durable = preLaunch.durableRecord
-    return FeatureTaskRuntimeRunLoopPhaseAttempts.blockAndPersist(
-      runLoop,
+    return runLoop.blockAndPersist(
       BlockAndPersistArgs(
         run = run,
         attemptCount = preLaunch.attemptCount,
@@ -154,7 +160,7 @@ object FeatureTaskRuntimeRunLoopPhaseRunner {
       retryReviewPreparation,
       reenterableRecordRejection,
       removedContinuationBudget,
-      FeatureTaskRuntimeRunLoopPhaseAttempts.operatorReopenedPhase(runLoop, phaseId),
+      FeatureTaskRuntimeRunLoopPhaseAttempts.operatorReopenedPhase(runLoop.session, phaseId),
     ).any { it }
     if (restartsBudget) {
       state.restartAttemptBudget(phaseId)
@@ -182,7 +188,7 @@ object FeatureTaskRuntimeRunLoopPhaseRunner {
     val persistedReason = args.persistedReason
     val disposition = durable?.failureDisposition
     return when {
-      FeatureTaskRuntimeRunLoopPhaseAttempts.operatorReopenedPhase(runLoop, phaseId) -> true
+      FeatureTaskRuntimeRunLoopPhaseAttempts.operatorReopenedPhase(runLoop.session, phaseId) -> true
       retryReviewPreparation -> true
       reenterableRecordRejection -> true
       FeatureTaskRuntimeRunLoopPhaseRunner.isRemovedGoalReviewSchemaGateBlock(phaseId, persistedReason) -> true
@@ -354,8 +360,7 @@ object FeatureTaskRuntimeRunLoopPhaseRunner {
     reason: String,
     failureDisposition: FeatureTaskRuntimeFailureDisposition = FeatureTaskRuntimeFailureDisposition.NEEDS_USER_ACTION,
   ): GoalReviewRunPreparation {
-    FeatureTaskRuntimeRunLoopPhaseAttempts.blockAndPersist(
-      runLoop,
+    runLoop.blockAndPersist(
       BlockAndPersistArgs(
         run = run,
         attemptCount = 1,
@@ -377,15 +382,16 @@ object FeatureTaskRuntimeRunLoopPhaseRunner {
     observability: FeatureTaskRuntimeRunObservability,
   ): PhaseOutcome {
     val acceptedOutput = loadCarriedForwardGoalReviewOutput(runLoop, run).getOrElse { error ->
-      return FeatureTaskRuntimeRunLoopPhaseAttempts.blockAndPersist(
-        runLoop,
+      return runLoop.blockAndPersist(
         carriedForwardMissingReviewBlock(run, state, observability, error),
       )
     }
     val normalizedOutput = acceptedOutput.normalizedOutput
     val iteration = state.nextIteration(run.phaseId)
     val phaseState = FeatureTaskRuntimeRunLoopOutputPersistence.phaseStateRequest(
-      runLoop,
+      runLoop.request,
+      runLoop.state,
+      runLoop.goalContinuationRecorder,
       PhaseStateRequestArgs(
         write = PhaseStateWriteArgs(
           run = run,
@@ -402,8 +408,7 @@ object FeatureTaskRuntimeRunLoopPhaseRunner {
     )
     state.reserveReviewPass(phaseState.reviewPassNumber)
     carriedForwardReviewPersistenceFailure(runLoop, phaseState)?.let { failure ->
-      return FeatureTaskRuntimeRunLoopPhaseAttempts.blockAndPersist(
-        runLoop,
+      return runLoop.blockAndPersist(
         BlockAndPersistArgs(
           run = run,
           attemptCount = iteration,
@@ -477,3 +482,6 @@ object FeatureTaskRuntimeRunLoopPhaseRunner {
     )
   }
 }
+
+internal fun FeatureTaskRuntimeRunLoop.blockAndPersist(args: BlockAndPersistArgs): PhaseOutcome =
+  with(FeatureTaskRuntimeRunLoopPhaseAttempts) { context.blockAndPersist(args) }

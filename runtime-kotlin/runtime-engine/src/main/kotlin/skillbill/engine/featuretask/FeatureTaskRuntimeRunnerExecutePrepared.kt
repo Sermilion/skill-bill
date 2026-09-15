@@ -10,6 +10,8 @@ import skillbill.engine.featuretask.validation.durableValidationChangedPaths
 import skillbill.engine.featuretask.validation.resolveRequiredValidationCommand
 import skillbill.error.FeatureTaskRuntimeOperatorDecisionRejectedError
 import skillbill.workflow.decomposition.model.SpecSource
+import skillbill.workflow.model.WorkflowStepStatus
+import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeTransitionDeclaration
 
 fun FeatureTaskRuntimeRunner.buildExecutePreparedRunTelemetryContext(
@@ -54,14 +56,6 @@ fun FeatureTaskRuntimeRunner.driveExecutePreparedRunLoop(
   }
   val state = createExecutePreparedRunState(runRequest, transitions)
   val loop = FeatureTaskRuntimeRunLoop(
-    recorder = recorder,
-    goalContinuationRecorder = goalContinuationRecorder,
-    outputValidator = outputValidator,
-    phaseGates = phaseGates,
-    subtaskLauncher = subtaskLauncher,
-    phaseSettlementService = phaseSettlementService,
-    activityStampWriter = activityStampWriter,
-    clock = clock,
     context = FeatureTaskRuntimeRunLoopContext(
       runRequest,
       state,
@@ -69,8 +63,26 @@ fun FeatureTaskRuntimeRunner.driveExecutePreparedRunLoop(
       specSource,
       transitions,
       phaseTokenAccumulator,
+      recorder,
+      goalContinuationRecorder,
+      outputValidator,
+      phaseGates,
+      subtaskLauncher,
+      phaseSettlementService,
+      activityStampWriter,
+      clock,
+      diagnostics,
+      FeatureTaskRuntimeRunLoopSession(
+        operatorBlockRetry = recorder
+          .loadOperatorBlockRetry(runRequest.workflowId)
+          ?.takeIf { retry ->
+            state.recordFor(retry.phaseId)?.status.let { status ->
+              status == null || status.workflowStepStatus() == WorkflowStepStatus.PENDING
+            }
+          },
+        initialPendingReentry = null,
+      ),
     ),
-    diagnostics = diagnostics,
   )
   runRequest.operatorDecision?.let { decision ->
     loop.applyOperatorDecision()?.let { rejection ->

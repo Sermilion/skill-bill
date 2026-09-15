@@ -428,37 +428,62 @@ object ArchitectureScanSupport {
   fun abstractPropertyNames(source: String): Set<String> =
     ABSTRACT_PROPERTY_PATTERN.findAll(source).map { match -> match.groupValues[1] }.toSet()
 
-  fun logicalTypeLineCounts(productionRoots: List<String>): Map<String, Int> {
-    val counts = linkedMapOf<String, Int>()
-    productionRoots.forEach { productionRoot ->
-      kotlinFilesUnder(runtimeRoot.resolve(productionRoot)).forEach { sourceFile ->
-        val relativePath = runtimeRoot.relativize(sourceFile).toString().replace('\\', '/')
-        if (isNonProductionKotlinSourceSet(relativePath)) return@forEach
-        val source = sourceFile.readText()
-        val lineCount = source.lineSequence().count()
-        val packageName = declaredPackage(source) ?: return@forEach
-        val topLevelType = primaryTopLevelDeclarationName(source)
-        val targets =
-          if (topLevelType != null) {
-            listOf("$packageName.$topLevelType")
-          } else {
-            extensionReceiverFqns(source, packageName, declaredImports(source))
-          }
-        if (targets.isEmpty()) return@forEach
-        targets.distinct().forEach { fqn ->
-          counts[fqn] = counts.getOrDefault(fqn, 0) + lineCount
-        }
-      }
+  fun logicalTypeLineCounts(productionRoots: List<String>): Map<String, Int> = productionRoots
+    .flatMap { productionRoot -> kotlinFilesUnder(runtimeRoot.resolve(productionRoot)) }
+    .mapNotNull { sourceFile ->
+      val relativePath = runtimeRoot.relativize(sourceFile).toString().replace('\\', '/')
+      if (isNonProductionKotlinSourceSet(relativePath)) return@mapNotNull null
+      val source = sourceFile.readText()
+      val packageName = declaredPackage(source) ?: return@mapNotNull null
+      SourceFile(
+        relativePath = relativePath,
+        packageName = packageName,
+        imports = declaredImports(source),
+        source = source,
+      )
     }
-    return counts
-  }
+    .let(::logicalTypeLineCountsInSources)
+
+  internal fun logicalTypeLineCeilingViolationsInSources(
+    sourceFiles: List<SourceFile>,
+    ceiling: Int,
+    baseline: Map<String, Int>,
+  ): List<String> = logicalTypeLineCeilingViolationsForCounts(
+    logicalTypeLineCountsInSources(sourceFiles),
+    ceiling,
+    baseline,
+  )
 
   fun logicalTypeLineCeilingViolations(
     productionRoots: List<String>,
     ceiling: Int,
     baseline: Map<String, Int>,
+  ): List<String> = logicalTypeLineCeilingViolationsForCounts(
+    logicalTypeLineCounts(productionRoots),
+    ceiling,
+    baseline,
+  )
+
+  private fun logicalTypeLineCountsInSources(sourceFiles: List<SourceFile>): Map<String, Int> {
+    val counts = linkedMapOf<String, Int>()
+    sourceFiles.forEach { sourceFile ->
+      val lineCount = sourceFile.source.lineSequence().count()
+      val targets =
+        ArchitectureScanSupport.primaryTopLevelDeclarationName(sourceFile.source)?.let { topLevelType ->
+          listOf("${sourceFile.packageName}.$topLevelType")
+        } ?: extensionReceiverFqns(sourceFile.source, sourceFile.packageName, sourceFile.imports)
+      targets.distinct().forEach { fqn ->
+        counts[fqn] = counts.getOrDefault(fqn, 0) + lineCount
+      }
+    }
+    return counts
+  }
+
+  private fun logicalTypeLineCeilingViolationsForCounts(
+    counts: Map<String, Int>,
+    ceiling: Int,
+    baseline: Map<String, Int>,
   ): List<String> {
-    val counts = logicalTypeLineCounts(productionRoots)
     val violations = mutableListOf<String>()
     counts.forEach { (fqn, lineCount) ->
       val baselineCount = baseline[fqn]

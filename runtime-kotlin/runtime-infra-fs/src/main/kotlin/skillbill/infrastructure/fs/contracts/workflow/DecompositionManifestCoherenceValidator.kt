@@ -1,16 +1,20 @@
 package skillbill.infrastructure.fs.contracts.workflow
 
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.error.InvalidDecompositionManifestSchemaError
 import java.math.BigDecimal
 import java.math.BigInteger
 
 internal object DecompositionManifestCoherenceValidator {
   fun validate(manifest: Map<String, Any?>, sourceLabel: String) {
-    val stackBranches = (manifest["stack_branches"] as? List<*>).orEmpty().mapNotNull { it as? Map<*, *> }
-    val subtasks = (manifest["subtasks"] as? List<*>).orEmpty().mapNotNull { it as? Map<*, *> }
-    // The writer requires IDs for new linear manifests; reload must still accept contract 0.5
-    // records written before that requirement existed so recovery can inspect and migrate them.
+    val stackBranches = (manifest[DecompositionPlanningPayloadKeys.STACK_BRANCHES] as? List<*>)
+      .orEmpty()
+      .mapNotNull { it as? Map<*, *> }
+    val subtasks = (manifest[DecompositionPlanningPayloadKeys.SUBTASKS] as? List<*>)
+      .orEmpty()
+      .mapNotNull { it as? Map<*, *> }
     val subtaskIds = validateSubtasks(subtasks, sourceLabel)
     validateExecutionModel(manifest, subtasks, subtaskIds, stackBranches, sourceLabel)
     validateCurrentIntent(manifest, subtaskIds, sourceLabel)
@@ -20,11 +24,11 @@ internal object DecompositionManifestCoherenceValidator {
     val subtaskIds = mutableSetOf<Int>()
     val specPaths = mutableSetOf<String>()
     subtasks.forEachIndexed { index, subtask ->
-      val id = subtask["id"].asExactInt(sourceLabel, "subtasks[$index].id")
+      val id = subtask[DecompositionPlanningPayloadKeys.ID].asExactInt(sourceLabel, "subtasks[$index].id")
       if (!subtaskIds.add(id)) {
         coherenceFailure(sourceLabel, "subtasks[$index].id", "Duplicate subtask id '$id'.")
       }
-      val specPath = subtask["spec_path"]?.toString().orEmpty()
+      val specPath = subtask[DecompositionPlanningPayloadKeys.SPEC_PATH]?.toString().orEmpty()
       if (!specPaths.add(specPath)) {
         coherenceFailure(sourceLabel, "subtasks[$index].spec_path", "Duplicate subtask spec_path '$specPath'.")
       }
@@ -40,7 +44,9 @@ internal object DecompositionManifestCoherenceValidator {
     index: Int,
     sourceLabel: String,
   ) {
-    val dependencies = (subtask["dependencies"] as? List<*>).orEmpty().mapNotNull { it as? Map<*, *> }
+    val dependencies = (subtask[DecompositionPlanningPayloadKeys.DEPENDENCIES] as? List<*>)
+      .orEmpty()
+      .mapNotNull { it as? Map<*, *> }
     dependencies.forEachIndexed { depIndex, dependency ->
       val path = "subtasks[$index].dependencies[$depIndex].subtask_id"
       val dependencyId = dependency[SharedPayloadKeys.SUBTASK_ID].asExactInt(sourceLabel, path)
@@ -61,24 +67,24 @@ internal object DecompositionManifestCoherenceValidator {
     stackBranches: List<Map<*, *>>,
     sourceLabel: String,
   ) {
-    when (manifest["execution_model"]?.toString().orEmpty()) {
+    when (manifest[DecompositionPlanningPayloadKeys.EXECUTION_MODEL]?.toString().orEmpty()) {
       "same_branch_commit_per_subtask" -> validateSameBranch(manifest, stackBranches, sourceLabel)
       "stacked_branches" -> validateStackedBranches(manifest, subtasks, subtaskIds, stackBranches, sourceLabel)
     }
   }
 
   private fun validateSameBranch(manifest: Map<String, Any?>, stackBranches: List<Map<*, *>>, sourceLabel: String) {
-    if (manifest["feature_branch"]?.toString().orEmpty().isBlank()) {
+    if (manifest[DecompositionManifestPayloadKeys.FEATURE_BRANCH]?.toString().orEmpty().isBlank()) {
       throw coherenceError(
         sourceLabel,
-        "feature_branch",
+        DecompositionManifestPayloadKeys.FEATURE_BRANCH,
         "same_branch_commit_per_subtask manifests must declare feature_branch.",
       )
     }
     if (stackBranches.isNotEmpty()) {
       throw coherenceError(
         sourceLabel,
-        "stack_branches",
+        DecompositionPlanningPayloadKeys.STACK_BRANCHES,
         "same_branch_commit_per_subtask manifests must not declare stack branches.",
       )
     }
@@ -91,11 +97,15 @@ internal object DecompositionManifestCoherenceValidator {
     stackBranches: List<Map<*, *>>,
     sourceLabel: String,
   ) {
-    if (manifest["feature_branch"] != null) {
-      throw coherenceError(sourceLabel, "feature_branch", "stacked_branches manifests must set feature_branch to null.")
+    if (manifest[DecompositionManifestPayloadKeys.FEATURE_BRANCH] != null) {
+      throw coherenceError(
+        sourceLabel,
+        DecompositionManifestPayloadKeys.FEATURE_BRANCH,
+        "stacked_branches manifests must set feature_branch to null.",
+      )
     }
     val expectedStackIds = subtasks.mapIndexed { index, subtask ->
-      subtask["id"].asExactInt(sourceLabel, "subtasks[$index].id")
+      subtask[DecompositionPlanningPayloadKeys.ID].asExactInt(sourceLabel, "subtasks[$index].id")
     }
     val actualStackIds = stackBranches.mapIndexed { index, branch ->
       branch[SharedPayloadKeys.SUBTASK_ID].asExactInt(sourceLabel, "stack_branches[$index].subtask_id")
@@ -103,16 +113,17 @@ internal object DecompositionManifestCoherenceValidator {
     if (actualStackIds != expectedStackIds || actualStackIds.toSet() != subtaskIds) {
       throw coherenceError(
         sourceLabel,
-        "stack_branches",
+        DecompositionPlanningPayloadKeys.STACK_BRANCHES,
         "stacked_branches manifests must declare exactly one branch per subtask in subtask order.",
       )
     }
   }
 
   private fun validateCurrentIntent(manifest: Map<String, Any?>, subtaskIds: Set<Int>, sourceLabel: String) {
-    val intent = manifest["current_subtask_intent"] as? Map<*, *> ?: return
-    val intentId = intent[SharedPayloadKeys.SUBTASK_ID].asExactInt(sourceLabel, "current_subtask_intent.subtask_id")
-    val intentAction = intent["action"]?.toString().orEmpty()
+    val intent = manifest[DecompositionManifestPayloadKeys.CURRENT_SUBTASK_INTENT] as? Map<*, *> ?: return
+    val intentId = intent[SharedPayloadKeys.SUBTASK_ID]
+      .asExactInt(sourceLabel, "current_subtask_intent.subtask_id")
+    val intentAction = intent[DecompositionManifestPayloadKeys.ACTION]?.toString().orEmpty()
     val isTerminalAction = intentAction == "none" || intentAction == "complete"
     if (isTerminalAction && intentId != 0) {
       throw coherenceError(

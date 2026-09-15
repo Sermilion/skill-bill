@@ -80,7 +80,7 @@ data class FeatureTaskRuntimeAuditGapPause(
 
     private fun requireExactAuditGapPauseFields(raw: Map<String, Any?>) {
       val expected = setOf(
-        "contract_version",
+        SharedPayloadKeys.CONTRACT_VERSION,
         "record_kind",
         "pause_kind",
         "reason",
@@ -132,7 +132,7 @@ data class FeatureTaskRuntimeAuditGapProgress(
 
     private fun requireExactAuditGapProgressFields(raw: Map<String, Any?>) {
       val expected = setOf(
-        "contract_version",
+        SharedPayloadKeys.CONTRACT_VERSION,
         "record_kind",
         "previous_criterion_refs",
         "previous_repository_fingerprint",

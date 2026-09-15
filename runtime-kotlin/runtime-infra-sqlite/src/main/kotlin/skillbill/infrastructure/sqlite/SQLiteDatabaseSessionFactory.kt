@@ -3,6 +3,7 @@ package skillbill.infrastructure.sqlite
 import me.tatarka.inject.annotations.Inject
 import skillbill.error.DatabaseAccessOperation
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
+import skillbill.infrastructure.sqlite.core.OpenDatabase
 import skillbill.infrastructure.sqlite.core.databaseAccessError
 import skillbill.model.EnvironmentContext
 import skillbill.ports.db.DatabaseSessionFactory
@@ -50,15 +51,20 @@ class SQLiteDatabaseSessionFactory(
       }
     }
 
-  override fun <T> selfManagedWrite(block: (UnitOfWork) -> T): T =
-    DatabaseRuntime.openDbAt(resolveDbPath()).use { openDb ->
-      block(SQLiteUnitOfWork(openDb.connection, openDb.dbPath))
-    }
+  override fun <T> selfManagedWrite(block: (UnitOfWork) -> T): T = withWriteDatabase { openDb ->
+    block(SQLiteUnitOfWork(openDb.connection, openDb.dbPath))
+  }
 
-  override fun <T> transaction(block: (UnitOfWork) -> T): T = DatabaseRuntime.openDbAt(resolveDbPath()).use { openDb ->
+  override fun <T> transaction(block: (UnitOfWork) -> T): T = withWriteDatabase { openDb ->
     openDb.connection.inTransaction(openDb.dbPath) {
       block(SQLiteUnitOfWork(openDb.connection, openDb.dbPath))
     }
+  }
+
+  private fun <T> withWriteDatabase(block: (OpenDatabase) -> T): T {
+    val dbPath = resolveDbPath()
+    DatabaseRuntime.ensureWriteReady(dbPath)
+    return DatabaseRuntime.openWriteDbAt(dbPath).use(block)
   }
 }
 

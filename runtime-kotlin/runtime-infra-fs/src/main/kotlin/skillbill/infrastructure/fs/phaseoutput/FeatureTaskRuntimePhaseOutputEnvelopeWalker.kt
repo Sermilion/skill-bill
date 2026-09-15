@@ -161,7 +161,7 @@ internal object FeatureTaskRuntimePhaseOutputEnvelopeWalker {
 
 internal object PhaseOutputExpectedShape {
   private val mapper = ObjectMapper()
-  private const val SUMMARY_FIELD = "summary"
+  private const val SUMMARY_FIELD = SharedPayloadKeys.SUMMARY
   private const val RECOVERED_SUMMARY_MAX_CHARS = 2_000
   private val FENCED_BLOCK = Regex("```.*?```", RegexOption.DOT_MATCHES_ALL)
   private val FENCE_MARKER_LINE = Regex("(?m)^[ \\t]*```[A-Za-z0-9_-]*[ \\t]*$")
@@ -170,13 +170,21 @@ internal object PhaseOutputExpectedShape {
 
   fun matches(node: JsonNode, phaseId: String): Boolean {
     if (!node.isObject) return false
-    if (node.path("phase_id").asText("") != phaseId) return false
+    if (node.path(SharedPayloadKeys.PHASE_ID).asText("") != phaseId) return false
     return requiredFields(phaseId).all { field -> node.hasNonNull(field) }
   }
 
   fun requiredFields(phaseId: String): List<String> = buildList {
-    addAll(listOf("contract_version", "phase_id", "status", "summary", "produced_outputs"))
-    if (phaseId == "audit") add("verdict")
+    addAll(
+      listOf(
+        SharedPayloadKeys.CONTRACT_VERSION,
+        SharedPayloadKeys.PHASE_ID,
+        SharedPayloadKeys.STATUS,
+        SharedPayloadKeys.SUMMARY,
+        SharedPayloadKeys.PRODUCED_OUTPUTS,
+      ),
+    )
+    if (phaseId == "audit") add(SharedPayloadKeys.VERDICT)
   }
 
   /**
@@ -188,14 +196,14 @@ internal object PhaseOutputExpectedShape {
    * not name, which is what keeps a genuinely new envelope field from being demoted as a stray.
    */
   val ENVELOPE_ROOT_FIELDS: Set<String> = setOf(
-    "contract_version",
-    "phase_id",
-    "status",
-    "failure_disposition",
-    "summary",
-    "produced_outputs",
-    "derived_notes",
-    "verdict",
+    SharedPayloadKeys.CONTRACT_VERSION,
+    SharedPayloadKeys.PHASE_ID,
+    SharedPayloadKeys.STATUS,
+    SharedPayloadKeys.FAILURE_DISPOSITION,
+    SharedPayloadKeys.SUMMARY,
+    SharedPayloadKeys.PRODUCED_OUTPUTS,
+    SharedPayloadKeys.DERIVED_NOTES,
+    SharedPayloadKeys.VERDICT,
   )
 
   fun align(node: JsonNode, phaseId: String): Pair<JsonNode, Boolean> {
@@ -265,7 +273,7 @@ internal object PhaseOutputExpectedShape {
 
   /** Matching `phase_id` plus every other required field present: the fill can add nothing else. */
   private fun onlySummaryIsMissing(root: ObjectNode, phaseId: String): Boolean =
-    root.path("phase_id").asText("") == phaseId &&
+    root.path(SharedPayloadKeys.PHASE_ID).asText("") == phaseId &&
       !root.hasNonNull(SUMMARY_FIELD) &&
       requiredFields(phaseId).none { field -> field != SUMMARY_FIELD && !root.hasNonNull(field) }
 

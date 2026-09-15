@@ -82,7 +82,7 @@ data class FeatureTaskRuntimeDiagnosticSignal(
         operation = raw.requireStringField("operation"),
         failureClass = FeatureTaskRuntimeDiagnosticFailureClass.fromWire(raw.requireStringField("failure_class")),
         conflictingKey = raw.requireStringField("conflicting_key"),
-        phaseId = raw.requireStringField("phase_id"),
+        phaseId = raw.requireStringField(SharedPayloadKeys.PHASE_ID),
         attempt = raw.requireIntField("attempt"),
         repairTurn = raw["repair_turn"]?.let { raw.requireIntField("repair_turn") },
         generation = raw.requireIntField("generation"),

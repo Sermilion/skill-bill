@@ -1,16 +1,18 @@
 package skillbill.engine.featuretask
+
+import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeBackwardEdge
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeNextPhase
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeQualityGateSelection
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeTransitionDeclaration
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
 
 object FeatureTaskRuntimeRunLoopTransitions {
-  fun qualityGateSelection(runLoop: FeatureTaskRuntimeRunLoop): FeatureTaskRuntimeQualityGateSelection =
-    runLoop.request.goalContinuation?.qualityGateSelection ?: FeatureTaskRuntimeQualityGateSelection.VALIDATE
+  internal fun qualityGateSelection(request: FeatureTaskRuntimeRunRequest): FeatureTaskRuntimeQualityGateSelection =
+    request.goalContinuation?.qualityGateSelection ?: FeatureTaskRuntimeQualityGateSelection.VALIDATE
 
-  fun transitionTarget(
-    runLoop: FeatureTaskRuntimeRunLoop,
+  internal fun FeatureTaskRuntimeRunLoopContext.transitionTarget(
     phaseId: String,
     edge: FeatureTaskRuntimeBackwardEdge?,
     effectiveVerdict: FeatureTaskRuntimeVerdict,
@@ -18,14 +20,30 @@ object FeatureTaskRuntimeRunLoopTransitions {
   ): String? = when (transition) {
     is FeatureTaskRuntimeNextPhase.TerminalAdvance -> null
     is FeatureTaskRuntimeNextPhase.TerminalBlock -> {
-      FeatureTaskRuntimeRunLoopPlanningBranch.blockOnCapExhaustion(runLoop, phaseId, transition)
+      FeatureTaskRuntimeRunLoopPlanningBranch.blockOnCapExhaustion(
+        BlockOnCapExhaustionArgs(
+          request = request,
+          state = state,
+          recorder = recorder,
+          observability = observability,
+          session = session,
+          goalContinuationRecorder = goalContinuationRecorder,
+          specSource = specSource,
+          phaseId = phaseId,
+          transition = transition,
+        ),
+      )
       null
     }
-    is FeatureTaskRuntimeNextPhase.Next -> nextTransitionTarget(runLoop, phaseId, edge, effectiveVerdict, transition)
+    is FeatureTaskRuntimeNextPhase.Next -> nextTransitionTarget(
+      phaseId,
+      edge,
+      effectiveVerdict,
+      transition,
+    )
   }
 
-  fun nextTransitionTarget(
-    runLoop: FeatureTaskRuntimeRunLoop,
+  internal fun FeatureTaskRuntimeRunLoopContext.nextTransitionTarget(
     phaseId: String,
     edge: FeatureTaskRuntimeBackwardEdge?,
     effectiveVerdict: FeatureTaskRuntimeVerdict,
@@ -33,61 +51,65 @@ object FeatureTaskRuntimeRunLoopTransitions {
   ): String? {
     val loopId = transition.loopId
     return when {
-      loopId == null && !establishForwardCheckpoint(runLoop, phaseId, transition.phaseId) -> null
+      loopId == null && !establishForwardCheckpoint(
+        precedingPhaseId = phaseId,
+        destinationPhaseId = transition.phaseId,
+      ) -> null
       loopId == null -> transition.phaseId
-      reentersMutatingPhase(runLoop, requireNotNull(edge), transition.phaseId) &&
-        !FeatureTaskRuntimeRunLoopCheckpointRemediation.establishRemediationCheckpoint(runLoop, phaseId, loopId) -> null
+      reentersMutatingPhase(transitions, requireNotNull(edge), transition.phaseId) &&
+        !with(FeatureTaskRuntimeRunLoopCheckpointRemediation) {
+          this@nextTransitionTarget.establishRemediationCheckpoint(phaseId, loopId)
+        } -> null
       else -> {
-        FeatureTaskRuntimeRunLoopBackwardEdge.recordBackwardEdge(
-          runLoop,
-          BackwardEdgeRecordArgs(
-            edge = edge,
-            destinationPhaseId = transition.phaseId,
-            loopId = loopId,
-            edgeIteration = requireNotNull(transition.edgeIteration),
-            verdict = effectiveVerdict,
-          ),
-        )
+        with(FeatureTaskRuntimeRunLoopBackwardEdge) {
+          this@nextTransitionTarget.recordBackwardEdge(
+            BackwardEdgeRecordArgs(
+              edge = edge,
+              destinationPhaseId = transition.phaseId,
+              loopId = loopId,
+              edgeIteration = requireNotNull(transition.edgeIteration),
+              verdict = effectiveVerdict,
+            ),
+          )
+        }
         transition.phaseId
       }
     }
   }
 
-  fun reentersMutatingPhase(
-    runLoop: FeatureTaskRuntimeRunLoop,
+  internal fun reentersMutatingPhase(
+    transitions: FeatureTaskRuntimeTransitionDeclaration,
     edge: FeatureTaskRuntimeBackwardEdge,
     destinationPhaseId: String,
   ): Boolean = spanBetween(
-    runLoop,
+    transitions,
     destinationPhaseId,
     edge.fromPhaseId,
   ).any(FeatureTaskRuntimePhaseWorkflowDefinition::isMutatingPhase)
 
-  fun spanBetween(
-    runLoop: FeatureTaskRuntimeRunLoop,
+  internal fun spanBetween(
+    transitions: FeatureTaskRuntimeTransitionDeclaration,
     destinationPhaseId: String,
     sourcePhaseId: String,
-  ): List<String> = runLoop.transitions.spanBetween(destinationPhaseId, sourcePhaseId)
+  ): List<String> = transitions.spanBetween(destinationPhaseId, sourcePhaseId)
 
-  fun establishForwardCheckpoint(
-    runLoop: FeatureTaskRuntimeRunLoop,
+  internal fun FeatureTaskRuntimeRunLoopContext.establishForwardCheckpoint(
     precedingPhaseId: String,
     destinationPhaseId: String,
   ): Boolean = if (
     precedingPhaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT &&
     destinationPhaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW
   ) {
-    FeatureTaskRuntimeRunLoopCheckpointRemediation.checkpointEstablished(
-      runLoop,
-      precedingPhaseId = precedingPhaseId,
-      loopId = null,
-      intent = FeatureTaskRuntimeCheckpointMessage.INTENT_AUDITED_IMPLEMENTATION,
-      blockedReason = { branch,
-                        error,
-        ->
-        FeatureTaskRuntimeRunLoopPlanningBranch.auditReviewCheckpointBlockedReason(branch, error)
-      },
-    )
+    with(FeatureTaskRuntimeRunLoopCheckpointRemediation) {
+      this@establishForwardCheckpoint.checkpointEstablished(
+        precedingPhaseId = precedingPhaseId,
+        loopId = null,
+        intent = FeatureTaskRuntimeCheckpointMessage.INTENT_AUDITED_IMPLEMENTATION,
+        blockedReason = { branch, error ->
+          FeatureTaskRuntimeRunLoopPlanningBranch.auditReviewCheckpointBlockedReason(branch, error)
+        },
+      )
+    }
   } else {
     true
   }

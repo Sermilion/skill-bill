@@ -1,6 +1,8 @@
 package skillbill.engine.featuretask
+
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeGoalContinuationContext
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
@@ -154,11 +156,21 @@ fun commitShaFromPhaseRecords(
 
 fun Map<String, Any?>.commitShaFromPhasePayload(): String? {
   val producedOutputs = JsonCodec.anyToStringAnyMap(this[SharedPayloadKeys.PRODUCED_OUTPUTS])
-  return (this["commit_push_result"] as? Map<*, *>)?.get("commit_sha")?.toString()?.takeIf(String::isNotBlank)
-    ?: (producedOutputs?.get("commit_push_result") as? Map<*, *>)?.get("commit_sha")?.toString()
+  return (
+    this["commit_push_result"] as? Map<
+      *,
+      *,
+      >
+    )?.get(DecompositionManifestPayloadKeys.COMMIT_SHA)?.toString()?.takeIf(String::isNotBlank)
+    ?: (
+      producedOutputs?.get("commit_push_result") as? Map<
+        *,
+        *,
+        >
+      )?.get(DecompositionManifestPayloadKeys.COMMIT_SHA)?.toString()
       ?.takeIf(String::isNotBlank)
-    ?: producedOutputs?.get("commit_sha")?.toString()?.takeIf(String::isNotBlank)
-    ?: (this["commit_sha"]?.toString()?.takeIf(String::isNotBlank))
+    ?: producedOutputs?.get(DecompositionManifestPayloadKeys.COMMIT_SHA)?.toString()?.takeIf(String::isNotBlank)
+    ?: (this[DecompositionManifestPayloadKeys.COMMIT_SHA]?.toString()?.takeIf(String::isNotBlank))
 }
 
 fun remediationBaseCoherenceBlockedReport(

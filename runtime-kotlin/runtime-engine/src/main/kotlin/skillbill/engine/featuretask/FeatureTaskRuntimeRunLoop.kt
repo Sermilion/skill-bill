@@ -2,15 +2,12 @@ package skillbill.engine.featuretask
 import skillbill.application.idestatus.AgentActivityStampWriter
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
-import skillbill.engine.goalrunner.recommendedDurableChildRecoveryCommand
+import skillbill.engine.recovery.recommendedDurableChildRecoveryCommand
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
 import skillbill.workflow.decomposition.model.SpecSource
-import skillbill.workflow.model.WorkflowStepStatus
-import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeOperatorBlockRetry
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeProducerIteration
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeTransitionDeclaration
 import skillbill.workflow.taskruntime.model.PhaseHandoffProjectionDeclaration
@@ -24,6 +21,16 @@ internal data class FeatureTaskRuntimeRunLoopContext(
   val specSource: SpecSource,
   val transitions: FeatureTaskRuntimeTransitionDeclaration,
   val phaseTokenAccumulator: MutableMap<String, Pair<Int, Int>>,
+  val recorder: FeatureTaskRuntimePhaseRecorder,
+  val goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
+  val outputValidator: FeatureTaskRuntimePhaseOutputValidator,
+  val phaseGates: FeatureTaskRuntimePhaseGates,
+  val subtaskLauncher: GoalRunnerSubtaskLauncher,
+  val phaseSettlementService: FeatureTaskPhaseSettlementService,
+  val activityStampWriter: AgentActivityStampWriter,
+  val clock: Clock,
+  val diagnostics: RuntimeDiagnostics,
+  val session: FeatureTaskRuntimeRunLoopSession,
 )
 
 internal data class LaunchRejectionAttribution(
@@ -89,16 +96,7 @@ fun resolveReviewPassNumber(reservedPassNumber: Int?, completedReviewPassCount: 
 }
 
 class FeatureTaskRuntimeRunLoop internal constructor(
-  val recorder: FeatureTaskRuntimePhaseRecorder,
-  val goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
-  val outputValidator: FeatureTaskRuntimePhaseOutputValidator,
-  val phaseGates: FeatureTaskRuntimePhaseGates,
-  val subtaskLauncher: GoalRunnerSubtaskLauncher,
-  val phaseSettlementService: FeatureTaskPhaseSettlementService,
-  val activityStampWriter: AgentActivityStampWriter,
-  val clock: Clock,
-  context: FeatureTaskRuntimeRunLoopContext,
-  val diagnostics: RuntimeDiagnostics,
+  internal val context: FeatureTaskRuntimeRunLoopContext,
 ) {
   val request = context.request
   val state = context.state
@@ -106,48 +104,48 @@ class FeatureTaskRuntimeRunLoop internal constructor(
   val specSource = context.specSource
   val transitions = context.transitions
   val phaseTokenAccumulator = context.phaseTokenAccumulator
-  val branchSetupRunner get() = phaseGates.branchSetupRunner
-  val planningStopper get() = phaseGates.planningStopper
-  val gitOperations get() = phaseGates.gitOperations
-  val planningProjectionValidator get() = phaseGates.planningProjectionValidator
-  val buildReceiptValidator get() = phaseGates.buildReceiptValidator
-  val validationGateCoordinator get() = phaseGates.validationGateCoordinator
-  val buildGateCoordinator get() = phaseGates.buildGateCoordinator
-
-  internal val session = FeatureTaskRuntimeRunLoopSession(
-    operatorBlockRetry = recorder
-      .loadOperatorBlockRetry(request.workflowId)
-      ?.takeIf { retry ->
-        state.recordFor(retry.phaseId)?.status.let { status ->
-          status == null || status.workflowStepStatus() == WorkflowStepStatus.PENDING
-        }
-      },
-    initialPendingReentry = null,
-  )
+  val recorder = context.recorder
+  val goalContinuationRecorder = context.goalContinuationRecorder
+  val outputValidator = context.outputValidator
+  val phaseGates = context.phaseGates
+  val subtaskLauncher = context.subtaskLauncher
+  val phaseSettlementService = context.phaseSettlementService
+  val activityStampWriter = context.activityStampWriter
+  val clock = context.clock
+  val diagnostics = context.diagnostics
+  internal val session = context.session
 
   init {
-    session.pendingReentry = FeatureTaskRuntimeRunLoopDrive.resumedReentry(this)
-    session.activeReentry = session.pendingReentry
+    val resumed = with(FeatureTaskRuntimeRunLoopDrive) { context.resumedReentry() }
+    session.transitionReentryPair(resumed, resumed)
   }
 
   fun drive() {
-    FeatureTaskRuntimeRunLoopDrive.invalidateReviewGenerationIfNeeded(this)
-    FeatureTaskRuntimeRunLoopDrive.runPhaseDriveLoop(this)
+    with(FeatureTaskRuntimeRunLoopDrive) {
+      context.invalidateReviewGenerationIfNeeded()
+      context.runPhaseDriveLoop(::advance)
+    }
   }
 
   internal fun advance(phaseId: String): PhaseSettlement {
-    FeatureTaskRuntimeRunLoopDrive.phaseEntryBlockReason(this, phaseId)?.let { reason ->
-      FeatureTaskRuntimeRunLoopPlanningBranch.blockAt(this, phaseId, reason)
+    with(FeatureTaskRuntimeRunLoopDrive) {
+      context.phaseEntryBlockReason(phaseId)
+    }?.let { reason ->
+      FeatureTaskRuntimeRunLoopPlanningBranch.blockAt(request, state, session, phaseId, reason)
       return PhaseSettlement.stop()
     }
     if (phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW && isGoalContinuationRun(request)) {
-      val carriedForward = FeatureTaskRuntimeRunLoopDrive.carriedForwardGoalReviewSettlement(this)
+      val carriedForward = with(FeatureTaskRuntimeRunLoopDrive) {
+        context.carriedForwardGoalReviewSettlement()
+      }
       if (carriedForward != null) {
         return carriedForward
       }
     }
-    val reason = FeatureTaskRuntimeRunLoopDrive.advancePhaseReason(this, phaseId)
-    return FeatureTaskRuntimeRunLoopDrive.settleAdvanceOutcome(this, phaseId, reason)
+    val reason = with(FeatureTaskRuntimeRunLoopDrive) {
+      context.advancePhaseReason(phaseId)
+    }
+    return FeatureTaskRuntimeRunLoopDrive.settleAdvanceOutcome(request, state, session, phaseId, reason)
   }
 
   fun report(): FeatureTaskRuntimeRunReport {
@@ -180,21 +178,4 @@ class FeatureTaskRuntimeRunLoop internal constructor(
       )
     }
   }
-}
-
-internal class FeatureTaskRuntimeRunLoopSession(
-  internal val operatorBlockRetry: FeatureTaskRuntimeOperatorBlockRetry?,
-  initialPendingReentry: PendingReentry?,
-) {
-  internal val phaseContentIdentities = mutableMapOf<String, Map<String, String>>()
-  var resolvedBranch: String? = null
-  var checkpointOwnershipDecided: Boolean = false
-  var blocked: FeatureTaskRuntimeRunReport.Blocked? = null
-  var paused: FeatureTaskRuntimeRunReport.Paused? = null
-  var decomposed: FeatureTaskRuntimeRunReport.Decomposed? = null
-  var operatorBlockRetryCompleted: Boolean = false
-  var pendingReentry: PendingReentry? = initialPendingReentry
-  var activeReentry: PendingReentry? = initialPendingReentry
-  var recordRejectionSettlementPending: Boolean = false
-  var auditRetryFocusHint: String? = null
 }

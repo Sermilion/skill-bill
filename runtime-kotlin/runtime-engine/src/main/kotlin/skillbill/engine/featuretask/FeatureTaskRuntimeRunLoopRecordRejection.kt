@@ -1,5 +1,7 @@
 package skillbill.engine.featuretask
+
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeProducerOutputRead
+import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
 import skillbill.engine.featuretask.model.ProducerOutputQueryArgs
 import skillbill.ports.diagnostics.model.ProducerOutputEvidence
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
@@ -8,7 +10,10 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
 
 object FeatureTaskRuntimeRunLoopRecordRejection {
   internal fun blockUnattributableRecordRejection(
-    runLoop: FeatureTaskRuntimeRunLoop,
+    request: FeatureTaskRuntimeRunRequest,
+    state: FeatureTaskRuntimeRunState,
+    recorder: FeatureTaskRuntimePhaseRecorder,
+    observability: FeatureTaskRuntimeRunObservability,
     args: UnattributableRecordRejectionArgs,
   ): PhaseOutcome {
     val run = args.context.run
@@ -21,20 +26,23 @@ object FeatureTaskRuntimeRunLoopRecordRejection {
       "reconciliation-${rejection.rejectionClass}",
       rejectionPath(rejection.rejectionDetail),
     )
-    recordUnattributableRejectedEvidence(runLoop, run, runLoop.state, rejection)
+    recordUnattributableRejectedEvidence(request, recorder, run, state, rejection)
     return FeatureTaskRuntimeRunLoopPhaseAttempts.blockAndPersistInPhase(
-      runLoop,
+      request,
+      state,
+      recorder,
+      null,
       phaseBlockArgs(
         run = run,
         attemptCount = iteration,
         reason = unattributableRecordRejectionReason(run.phaseId, rejection, producer, detail),
-        observability = runLoop.observability,
+        observability = observability,
         payload = BlockAndPersistPayload(childNeverLaunched = true),
       ).withDisposition(FeatureTaskRuntimeFailureDisposition.NEEDS_USER_ACTION),
     )
   }
 
-  fun rejectionPath(detail: String): String {
+  internal fun rejectionPath(detail: String): String {
     Regex("""(?:instance location|path|pointer)\s*[:=]\s*['"]?(/[^\s,'"]*)""", RegexOption.IGNORE_CASE)
       .find(detail)
       ?.groupValues
@@ -46,32 +54,34 @@ object FeatureTaskRuntimeRunLoopRecordRejection {
       .replace(Regex("""\[([0-9]+)]"""), "/${'$'}1")
   }
 
-  fun payloadFreeRejectionReason(rule: String, path: String): String =
+  internal fun payloadFreeRejectionReason(rule: String, path: String): String =
     "Rejected output violated '$rule' at '$path'. Inspect the private diagnostic for the exact response."
 
-  fun retryRejectionReason(payloadFreeReason: String, validationReason: String?): String =
+  internal fun retryRejectionReason(payloadFreeReason: String, validationReason: String?): String =
     if (validationReason.isNullOrBlank()) {
       payloadFreeReason
     } else {
       "$payloadFreeReason Violated constraint: ${boundedSchemaGateDetail(validationReason)}"
     }
 
-  fun payloadFreeSemanticGateConstraint(
-    runLoop: FeatureTaskRuntimeRunLoop,
+  internal fun payloadFreeSemanticGateConstraint(
     rule: String,
     detail: String,
-    rejectedOutput: Map<String, Any?>,
+    rejectedOutput: Map<
+      String,
+      Any?,
+      >,
   ): String? = when (rule) {
     "mutating-reconciliation" -> detail.takeUnless { it.isBlank() }
     "repair-receipt" -> detail.takeUnless { it.isBlank() }
     "producer-projection",
     "consumer-projection",
     "output-verification",
-    -> scrubResponseDerivedGateDetail(runLoop, detail, rejectedOutput)
+    -> scrubResponseDerivedGateDetail(detail, rejectedOutput)
     else -> scrubBoundedReferenceGateConstraint(detail)
   }
 
-  fun scrubBoundedReferenceGateConstraint(detail: String): String? {
+  internal fun scrubBoundedReferenceGateConstraint(detail: String): String? {
     if (detail.isBlank()) return null
     val namesArtifactRef = detail.contains("artifact_ref")
     val namesCheckRef = detail.contains("check_ref")
@@ -89,17 +99,13 @@ object FeatureTaskRuntimeRunLoopRecordRejection {
     }
   }
 
-  fun scrubResponseDerivedGateDetail(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    detail: String,
-    rejectedOutput: Map<String, Any?>,
-  ): String? {
+  internal fun scrubResponseDerivedGateDetail(detail: String, rejectedOutput: Map<String, Any?>): String? {
     if (detail.isBlank()) return null
     var text = detail.take(SCHEMA_GATE_DETAIL_MAX_CHARS)
     text = scrubOffVocabularyVerdictQuote(text)
     text = OFFENDING_VALUE_APPENDIX_PATTERN.replace(text, "")
     text = EXPECTED_ACTUAL_LIST_PATTERN.replace(text, "")
-    responseStringValues(runLoop, rejectedOutput)
+    responseStringValues(rejectedOutput)
       .filter { value ->
         value.length >= MIN_RESPONSE_STRING_VALUE_LENGTH &&
           SCHEMA_DETAIL_TYPE_WORDS.none { typeWord -> typeWord.equals(value, ignoreCase = true) } &&
@@ -110,52 +116,50 @@ object FeatureTaskRuntimeRunLoopRecordRejection {
     return text.trim().takeUnless { it.isBlank() }
   }
 
-  fun responseStringValues(runLoop: FeatureTaskRuntimeRunLoop, value: Any?): List<String> {
+  internal fun responseStringValues(value: Any?): List<String> {
     val values = mutableListOf<String>()
-    collectResponseStringValues(runLoop, value, values)
+    collectResponseStringValues(value, values)
     return values.distinct()
   }
 
-  fun collectResponseStringValues(runLoop: FeatureTaskRuntimeRunLoop, value: Any?, values: MutableList<String>) {
+  internal fun collectResponseStringValues(value: Any?, values: MutableList<String>) {
     when (value) {
       is String -> values += value
-      is Map<*, *> -> value.values.forEach { nested -> collectResponseStringValues(runLoop, nested, values) }
-      is Iterable<*> -> value.forEach { nested -> collectResponseStringValues(runLoop, nested, values) }
+      is Map<*, *> -> value.values.forEach { nested -> collectResponseStringValues(nested, values) }
+      is Iterable<*> -> value.forEach { nested -> collectResponseStringValues(nested, values) }
     }
   }
 
-  internal fun attemptOnce(runLoop: FeatureTaskRuntimeRunLoop, args: RecordRejectionAttemptArgs): AttemptResult {
+  internal fun FeatureTaskRuntimeRunLoopContext.attemptOnce(args: RecordRejectionAttemptArgs): AttemptResult {
     val run = args.context.run
-    val state = args.context.state
     val iteration = args.context.iteration
-    val observability = args.context.observability
     val priorCorrection = args.priorCorrection
     val phaseTokenAccumulator = args.phaseTokenAccumulator
     FeatureTaskRuntimeRunLoopOutputPersistence.persistPhase(
-      runLoop,
+      request,
+      state,
+      recorder,
+      goalContinuationRecorder,
       PersistPhaseArgs(
         write = PhaseStateWriteArgs(
           run = run,
           iteration = iteration,
           status = STATUS_RUNNING,
           finished = false,
-          outputArtifact = runLoop.state.outputFor(run.phaseId)?.payload,
+          outputArtifact = state.outputFor(run.phaseId)?.payload,
         ),
         launched = FeatureTaskRuntimeRunLoopOutputPersistence.launchedModelDirective(run),
       ),
     )
-    val launch = FeatureTaskRuntimeRunLoopLaunch.launchAndCapture(
-      runLoop,
-      run,
-      runLoop.state,
-      priorCorrection,
-      runLoop.phaseTokenAccumulator,
-    )
-    return settleRecordRejectionLaunchOutcome(runLoop, args, launch)
+    val launch = with(FeatureTaskRuntimeRunLoopLaunch) {
+      this@attemptOnce.launchAndCapture(run, state, priorCorrection)
+    }
+    return settleRecordRejectionLaunchOutcome(args, launch)
   }
 
   internal fun recordUnattributableRejectedEvidence(
-    runLoop: FeatureTaskRuntimeRunLoop,
+    request: FeatureTaskRuntimeRunRequest,
+    recorder: FeatureTaskRuntimePhaseRecorder,
     run: PhaseRun,
     state: FeatureTaskRuntimeRunState,
     rejection: RecordRejection,
@@ -171,21 +175,26 @@ object FeatureTaskRuntimeRunLoopRecordRejection {
       .mapNotNull { phaseId -> state.outputFor(phaseId) }
       .firstOrNull()
     val evidence = rejectedOutput?.let { output ->
-      unattributableProducerEvidence(runLoop, state, output)
+      unattributableProducerEvidence(request, recorder, state, output)
     }
-    evidence?.let { writeUnattributableRejectedEvidence(runLoop, run, rejection, detail, it) }
+    evidence?.let {
+      writeUnattributableRejectedEvidence(
+        WriteUnattributableRejectedEvidenceArgs(state, recorder, run, rejection, detail, it),
+      )
+    }
   }
 
   private fun unattributableProducerEvidence(
-    runLoop: FeatureTaskRuntimeRunLoop,
+    request: FeatureTaskRuntimeRunRequest,
+    recorder: FeatureTaskRuntimePhaseRecorder,
     state: FeatureTaskRuntimeRunState,
     output: FeatureTaskRuntimePhaseOutput,
   ): ProducerOutputEvidence? {
     val agentId = state.recordFor(output.phaseId)?.resolvedAgentId ?: return null
     return when (
-      val read = runLoop.recorder.producerOutput(
+      val read = recorder.producerOutput(
         ProducerOutputQueryArgs(
-          workflowId = runLoop.request.workflowId,
+          workflowId = request.workflowId,
           phaseId = output.phaseId,
           attempt = output.iteration.coerceAtLeast(1),
           agentId = agentId,
@@ -200,16 +209,17 @@ object FeatureTaskRuntimeRunLoopRecordRejection {
     }
   }
 
-  private fun writeUnattributableRejectedEvidence(
-    runLoop: FeatureTaskRuntimeRunLoop,
-    run: PhaseRun,
-    rejection: RecordRejection,
-    detail: String,
-    evidence: ProducerOutputEvidence,
-  ) {
+  private fun writeUnattributableRejectedEvidence(args: WriteUnattributableRejectedEvidenceArgs) {
+    val state = args.state
+    val recorder = args.recorder
+    val run = args.run
+    val rejection = args.rejection
+    val detail = args.detail
+    val evidence = args.evidence
     val payload = evidence.payload ?: byteArrayOf()
     FeatureTaskRuntimeRunLoopAttemptSettlement.recordRejectedOutput(
-      runLoop,
+      state,
+      recorder,
       RecordRejectedOutputArgs(
         run = run,
         iteration = evidence.attempt,
@@ -255,69 +265,112 @@ object FeatureTaskRuntimeRunLoopRecordRejection {
       "deleting or migrating the offending row. Detail: $detail"
   }
 
-  internal fun settleRecordRejectionLaunchOutcome(
-    runLoop: FeatureTaskRuntimeRunLoop,
+  internal fun FeatureTaskRuntimeRunLoopContext.settleRecordRejectionLaunchOutcome(
     args: RecordRejectionAttemptArgs,
     launch: LaunchResult,
   ): AttemptResult {
     val run = args.context.run
-    val state = args.context.state
     val iteration = args.context.iteration
-    val observability = args.context.observability
     launch.providerLimitReason?.let { reason ->
-      return AttemptResult.settled(
-        FeatureTaskRuntimeRunLoopPhaseAttempts.pauseAndPersistInPhase(
-          runLoop,
-          PauseAndPersistInPhaseArgs(run, iteration, reason, runLoop.observability, launch.fileManifest),
+      return settleProviderLimit(args, launch, reason)
+    }
+    launch.infraFailureReason?.let { reason ->
+      return settleInfrastructureFailure(args, launch, reason)
+    }
+    launch.recordRejection?.let { rejection ->
+      return settleRecordRejection(args, rejection)
+    }
+    val fileManifest = requireNotNull(launch.fileManifest)
+    return with(FeatureTaskRuntimeRunLoopAttemptSettlement) {
+      this@settleRecordRejectionLaunchOutcome.gateOutput(
+        GateOutputArgs(
+          run = run,
+          iteration = iteration,
+          captured = requireNotNull(launch.capturedPhaseOutput),
+          observability = observability,
+          fileManifest = fileManifest,
         ),
       )
     }
-    launch.infraFailureReason?.let { reason ->
-      FeatureTaskRuntimeRunLoopAttemptSettlement.persistChildProcessFailureOutput(
-        runLoop,
+  }
+
+  private fun FeatureTaskRuntimeRunLoopContext.settleProviderLimit(
+    args: RecordRejectionAttemptArgs,
+    launch: LaunchResult,
+    reason: String,
+  ): AttemptResult = AttemptResult.settled(
+    with(FeatureTaskRuntimeRunLoopPhaseAttempts) {
+      this@settleProviderLimit.pauseAndPersistInPhase(
+        PauseAndPersistInPhaseArgs(
+          args.context.run,
+          args.context.iteration,
+          reason,
+          observability,
+          launch.fileManifest,
+        ),
+      )
+    },
+  )
+
+  private fun FeatureTaskRuntimeRunLoopContext.settleInfrastructureFailure(
+    args: RecordRejectionAttemptArgs,
+    launch: LaunchResult,
+    reason: String,
+  ): AttemptResult {
+    val run = args.context.run
+    with(FeatureTaskRuntimeRunLoopAttemptSettlement) {
+      persistChildProcessFailureOutput(
         run,
-        iteration,
+        args.context.iteration,
         reason,
         launch.infraFailureChildOutput,
       )
+    }
+    if (run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE) {
       return AttemptResult.settled(
-        FeatureTaskRuntimeRunLoopPhaseAttempts.blockAndPersistInPhase(
-          runLoop,
-          phaseBlockArgs(
-            run,
-            iteration,
-            reason,
-            runLoop.observability,
-            payload = BlockAndPersistPayload(
-              childNeverLaunched = launch.childNeverLaunched,
-              fileManifest = launch.fileManifest,
-            ),
-          ).withDisposition(launch.failureDisposition),
+        PhaseOutcome.completed(
+          FeatureTaskRuntimeRunLoopValidationGate.gateRepairSegmentOutput(run, args.context.iteration),
         ),
       )
     }
-    launch.recordRejection?.let { rejection ->
-      return AttemptResult.settled(
-        FeatureTaskRuntimeRunLoopPhaseAttempts.settleRecordRejection(
-          runLoop,
-          SettleRecordRejectionArgs(run, runLoop.state, iteration, runLoop.observability, rejection),
-        ),
-      )
-    }
-    val fileManifest = requireNotNull(launch.fileManifest)
-    return FeatureTaskRuntimeRunLoopAttemptSettlement.gateOutput(
-      runLoop,
-      GateOutputArgs(
-        run = run,
-        iteration = iteration,
-        captured = requireNotNull(launch.capturedPhaseOutput),
-        observability = runLoop.observability,
-        fileManifest = fileManifest,
+    return AttemptResult.settled(
+      FeatureTaskRuntimeRunLoopPhaseAttempts.blockAndPersistInPhase(
+        request,
+        state,
+        recorder,
+        goalContinuationRecorder,
+        phaseBlockArgs(
+          run,
+          args.context.iteration,
+          reason,
+          observability,
+          payload = BlockAndPersistPayload(
+            childNeverLaunched = launch.childNeverLaunched,
+            fileManifest = launch.fileManifest,
+          ),
+        ).withDisposition(launch.failureDisposition),
       ),
     )
   }
 
-  fun scrubOffVocabularyVerdictQuote(text: String): String {
+  private fun FeatureTaskRuntimeRunLoopContext.settleRecordRejection(
+    args: RecordRejectionAttemptArgs,
+    rejection: RecordRejection,
+  ): AttemptResult = AttemptResult.settled(
+    with(FeatureTaskRuntimeRunLoopPhaseAttempts) {
+      this@settleRecordRejection.settleRecordRejection(
+        SettleRecordRejectionArgs(
+          args.context.run,
+          state,
+          args.context.iteration,
+          observability,
+          rejection,
+        ),
+      )
+    },
+  )
+
+  internal fun scrubOffVocabularyVerdictQuote(text: String): String {
     val start = text.indexOf(OFF_VOCABULARY_VERDICT_OPEN, ignoreCase = true)
     if (start < 0) return text
     val afterOpenQuote = start + OFF_VOCABULARY_VERDICT_OPEN.length

@@ -1,4 +1,5 @@
 package skillbill.engine.featuretask
+
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
@@ -28,30 +29,34 @@ object FeatureTaskRuntimeRunLoopAuditRetry {
     )
   }
 
-  internal fun commitCompletedAuditRound(
-    runLoop: FeatureTaskRuntimeRunLoop,
+  internal fun FeatureTaskRuntimeRunLoopContext.commitCompletedAuditRound(
     precedingPhaseId: String,
-    blockedReason: (String, String) -> String,
+    blockedReason: (
+      String,
+      String,
+    ) -> String,
   ): String? {
-    val branch = requireNotNull(runLoop.session.resolvedBranch)
-    val currentBranch = runLoop.phaseGates.gitOperations.currentBranch(runLoop.request.repoRoot)
+    val branch = requireNotNull(session.resolvedBranch)
+    val currentBranch = phaseGates.gitOperations.currentBranch(request.repoRoot)
     if (currentBranch !is WorkflowGitOperationResult.Ok) {
       return blockedReason(branch, "current branch lookup failed: ${currentBranch.error}")
     }
     if (currentBranch.value.trim() != branch.trim()) {
       return blockedReason(branch, "current branch is '${currentBranch.value.trim()}'")
     }
-    val established = FeatureTaskRuntimeRunLoopCheckpointRemediation.checkpointEstablished(
-      runLoop,
-      precedingPhaseId = precedingPhaseId,
-      loopId = null,
-      intent = FeatureTaskRuntimeCheckpointMessage.INTENT_AUDITED_IMPLEMENTATION,
-      blockedReason = blockedReason,
-    )
+    val established =
+      with(FeatureTaskRuntimeRunLoopCheckpointRemediation) {
+        this@commitCompletedAuditRound.checkpointEstablished(
+          precedingPhaseId = precedingPhaseId,
+          loopId = null,
+          intent = FeatureTaskRuntimeCheckpointMessage.INTENT_AUDITED_IMPLEMENTATION,
+          blockedReason = blockedReason,
+        )
+      }
     return if (established) {
       null
     } else {
-      runLoop.session.blocked?.blockedReason
+      session.blocked?.blockedReason
         ?: blockedReason(branch, "audit round commit could not be established")
     }
   }
@@ -64,35 +69,40 @@ object FeatureTaskRuntimeRunLoopAuditRetry {
       )
     }
 
-  internal fun blockAuditWhitespaceOnlyFinalResponse(
-    runLoop: FeatureTaskRuntimeRunLoop,
+  internal fun FeatureTaskRuntimeRunLoopContext.blockAuditWhitespaceOnlyFinalResponse(
     run: PhaseRun,
     iteration: Int,
     fileManifest: FeatureTaskRuntimePhaseFileManifest?,
   ): AttemptResult = AttemptResult.settled(
     FeatureTaskRuntimeRunLoopPhaseAttempts.blockInPhase(
-      runLoop,
+      request,
+      state,
+      recorder,
+      observability,
       PhaseBlockRequest(
         run = run,
         attemptCount = iteration,
         reason = "Audit completed with a whitespace-only remaining-criteria final response; the run blocks " +
           "rather than treating it as an empty list or launching a retry.",
-        observability = runLoop.observability,
+        observability = observability,
         payload = BlockAndPersistPayload(fileManifest = fileManifest),
         failureDisposition = FeatureTaskRuntimeFailureDisposition.INVALID_OUTPUT,
       ),
     ),
   )
 
-  internal fun clearRetryHintOnFreshLaunch(runLoop: FeatureTaskRuntimeRunLoop, phaseId: String) {
+  internal fun clearRetryHintOnFreshLaunch(
+    state: FeatureTaskRuntimeRunState,
+    session: FeatureTaskRuntimeRunLoopSession,
+    phaseId: String,
+  ) {
     if (phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT) return
-    if (runLoop.state.resumedFromPriorProcess(phaseId)) {
-      runLoop.session.auditRetryFocusHint = null
+    if (state.resumedFromPriorProcess(phaseId)) {
+      session.transitionAuditRetryFocusHint(null)
     }
   }
 
-  internal fun settleCompletedAuditRound(
-    runLoop: FeatureTaskRuntimeRunLoop,
+  internal fun FeatureTaskRuntimeRunLoopContext.settleCompletedAuditRound(
     capture: ValidatedOutputCapture,
     outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
   ): AttemptResult? {
@@ -104,31 +114,32 @@ object FeatureTaskRuntimeRunLoopAuditRetry {
     val finalResponse = FeatureTaskRuntimeOutputVerification.auditProseValue(outputMap)
     return when (val interpretation = interpretCompletedAuditValue(finalResponse)) {
       FeatureTaskRuntimeAuditRemainingAcResult.MissingFinalResponse ->
-        FeatureTaskRuntimeRunLoopAuditRetry.blockAuditWhitespaceOnlyFinalResponse(
-          runLoop,
-          run,
-          capture.iteration,
-          capture.fileManifest,
-        )
+        blockAuditWhitespaceOnlyFinalResponse(run, capture.iteration, capture.fileManifest)
       FeatureTaskRuntimeAuditRemainingAcResult.WhitespaceOnlyFinalResponse ->
-        blockAuditWhitespaceOnlyFinalResponse(runLoop, run, capture.iteration, capture.fileManifest)
+        blockAuditWhitespaceOnlyFinalResponse(run, capture.iteration, capture.fileManifest)
       is FeatureTaskRuntimeAuditRemainingAcResult.RemainingCriteriaText -> {
-        val branch = runLoop.session.resolvedBranch
+        val branch = session.resolvedBranch
         if (branch != null) {
           val blocked = commitCompletedAuditRound(
-            runLoop,
             precedingPhaseId = run.phaseId,
-            blockedReason = auditRoundCommitBlockedReason(branch, "audit retry could not commit current changes"),
+            blockedReason = auditRoundCommitBlockedReason(
+              branch,
+
+              "audit retry could not commit current changes",
+            ),
           )
           if (blocked != null) {
             return AttemptResult.settled(
               FeatureTaskRuntimeRunLoopPhaseAttempts.blockInPhase(
-                runLoop,
+                request,
+                state,
+                recorder,
+                observability,
                 PhaseBlockRequest(
                   run = run,
                   attemptCount = capture.iteration,
                   reason = blocked,
-                  observability = runLoop.observability,
+                  observability = observability,
                   payload = BlockAndPersistPayload(fileManifest = capture.fileManifest),
                   failureDisposition = FeatureTaskRuntimeFailureDisposition.NEEDS_USER_ACTION,
                 ),

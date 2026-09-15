@@ -1,5 +1,7 @@
 package skillbill.workflow.taskruntime.model
 
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
+
 sealed interface FeatureTaskRuntimeHandoffSourceRef {
   val wireValue: String
 
@@ -63,11 +65,23 @@ sealed interface FeatureTaskRuntimeHandoffSourceRef {
     }
   }
   fun toDeclarationMap(): Map<String, String> = when (this) {
-    is UpstreamPhaseOutput -> mapOf("kind" to "upstream_phase_output", "id" to producingPhaseId)
-    is RunInvariantField -> mapOf("kind" to "run_invariant_field", "id" to invariantField.wireValue)
-    DerivedCeremonyScaling -> mapOf("kind" to "derived_ceremony_scaling", "id" to "ceremony_scaling")
-    SharedReviewEvidence -> mapOf("kind" to SHARED_REVIEW_EVIDENCE_WIRE, "id" to SHARED_REVIEW_EVIDENCE_WIRE)
-    RepairLedger -> mapOf("kind" to REPAIR_LEDGER_WIRE, "id" to REPAIR_LEDGER_WIRE)
-    is AddonContentRef -> mapOf("kind" to "addon_content", "id" to slug)
+    is UpstreamPhaseOutput -> mapOf(
+      "kind" to "upstream_phase_output",
+      DecompositionPlanningPayloadKeys.ID to producingPhaseId,
+    )
+    is RunInvariantField -> mapOf(
+      "kind" to "run_invariant_field",
+      DecompositionPlanningPayloadKeys.ID to invariantField.wireValue,
+    )
+    DerivedCeremonyScaling -> mapOf(
+      "kind" to "derived_ceremony_scaling",
+      DecompositionPlanningPayloadKeys.ID to "ceremony_scaling",
+    )
+    SharedReviewEvidence -> mapOf(
+      "kind" to SHARED_REVIEW_EVIDENCE_WIRE,
+      DecompositionPlanningPayloadKeys.ID to SHARED_REVIEW_EVIDENCE_WIRE,
+    )
+    RepairLedger -> mapOf("kind" to REPAIR_LEDGER_WIRE, DecompositionPlanningPayloadKeys.ID to REPAIR_LEDGER_WIRE)
+    is AddonContentRef -> mapOf("kind" to "addon_content", DecompositionPlanningPayloadKeys.ID to slug)
   }
 }

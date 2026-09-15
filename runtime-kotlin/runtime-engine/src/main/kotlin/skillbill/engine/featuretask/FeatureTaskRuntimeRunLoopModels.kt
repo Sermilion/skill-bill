@@ -241,6 +241,7 @@ internal data class PhaseStateRequestAttachments(
 internal data class PhaseStateRequestArgs(
   val write: PhaseStateWriteArgs,
   val extras: PhaseStateRequestAttachments = PhaseStateRequestAttachments(),
+  val context: FeatureTaskRuntimeRunLoopContext? = null,
 )
 
 internal data class PersistPhaseArgs(

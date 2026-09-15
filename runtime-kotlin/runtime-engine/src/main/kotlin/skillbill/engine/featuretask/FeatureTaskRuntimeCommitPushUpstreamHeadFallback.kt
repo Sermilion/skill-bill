@@ -56,36 +56,39 @@ internal object FeatureTaskRuntimeCommitPushUpstreamHeadFallback {
     state: FeatureTaskRuntimeRunState,
     diagnostics: RuntimeDiagnostics,
   ) {
-    val attemptCount = fallbackAttemptCount(phaseId, state) ?: return
-    val output = syntheticOutput(phaseId, headSha, attemptCount) ?: return
-    val accepted = runCatching {
-      state.outputValidator.validatePhaseOutput(output.payload, phaseId).requireAcceptedOutput(phaseId)
-    }.getOrNull() ?: return
-    state.recordCompleted(
-      FeatureTaskRuntimePhaseOutput(
-        phaseId = phaseId,
-        iteration = attemptCount,
-        payload = accepted.normalizedOutput.canonicalJson,
-        normalizedOutput = accepted.normalizedOutput,
-      ),
-    )
-    runCatching {
-      diagnostics.warning(
-        "seam=FeatureTaskRuntimeCommitPushUpstreamHeadFallback.reconcile " +
-          "value_used='repository HEAD $headSha' " +
-          "value_expected=a settled durable output for phase '$phaseId' " +
-          "cause=commit_push resumed while '$phaseId' was completed without output; " +
-          "the runtime synthesized a HEAD-backed receipt so finalisation can proceed",
-      )
-    }
-  }
-
-  private fun fallbackAttemptCount(phaseId: String, state: FeatureTaskRuntimeRunState): Int? {
-    if (!supportsHeadFallback(phaseId)) return null
-    if (state.outputFor(phaseId) != null) return null
     val record = state.recordFor(phaseId)
-    if (record != null && record.status.workflowStepStatus() != WorkflowStepStatus.COMPLETED) return null
-    return record?.attemptCount?.coerceAtLeast(1) ?: 1
+    val attemptCount = record?.attemptCount?.coerceAtLeast(1) ?: 1
+    val output = phaseId
+      .takeIf(::supportsHeadFallback)
+      ?.takeIf { state.outputFor(it) == null }
+      ?.takeIf {
+        record == null || record.status.workflowStepStatus() == WorkflowStepStatus.COMPLETED
+      }
+      ?.let { syntheticOutput(it, headSha, attemptCount) }
+    val accepted = output?.let {
+      runCatching {
+        state.outputValidator.validatePhaseOutput(it.payload, phaseId).requireAcceptedOutput(phaseId)
+      }.getOrNull()
+    }
+    if (output != null && accepted != null) {
+      state.recordCompleted(
+        FeatureTaskRuntimePhaseOutput(
+          phaseId = phaseId,
+          iteration = attemptCount,
+          payload = accepted.normalizedOutput.canonicalJson,
+          normalizedOutput = accepted.normalizedOutput,
+        ),
+      )
+      runCatching {
+        diagnostics.warning(
+          "seam=FeatureTaskRuntimeCommitPushUpstreamHeadFallback.reconcile " +
+            "value_used='repository HEAD $headSha' " +
+            "value_expected=a settled durable output for phase '$phaseId' " +
+            "cause=commit_push resumed while '$phaseId' was completed without output; " +
+            "the runtime synthesized a HEAD-backed receipt so finalisation can proceed",
+        )
+      }
+    }
   }
 
   private fun supportsHeadFallback(phaseId: String): Boolean =

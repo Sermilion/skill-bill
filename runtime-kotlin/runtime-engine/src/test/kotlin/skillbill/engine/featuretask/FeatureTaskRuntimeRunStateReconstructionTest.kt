@@ -14,6 +14,7 @@ import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerAction
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerEntry
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -22,6 +23,27 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class FeatureTaskRuntimeRunStateReconstructionTest {
+  @Test
+  fun `completed phase and output views cannot mutate run state`() {
+    val state = FeatureTaskRuntimeRunState(
+      initialRecords = emptyMap(),
+      transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
+      outputValidator = AlwaysValidValidator,
+    )
+    val output = FeatureTaskRuntimePhaseOutput(
+      phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,
+      iteration = 1,
+      payload = "{}",
+    )
+
+    state.recordCompleted(output)
+    val outputs = state.outputs().toMutableList()
+    outputs.clear()
+
+    assertEquals(listOf(output), state.outputs())
+    assertEquals(listOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT), state.completedPhaseIds())
+  }
+
   @Test
   fun `legacy blocked audit with loop id only normalizes to pending`() {
     val raw = auditPhaseRecord(
@@ -83,7 +105,7 @@ class FeatureTaskRuntimeRunStateReconstructionTest {
     )
     assertNull(state.persistedBlockedReason("audit"))
     assertEquals(WorkflowStepStatus.PENDING, state.recordFor("audit")?.status)
-    assertFalse("audit" in state.completed)
+    assertFalse(state.isComplete("audit"))
   }
 
   @Test

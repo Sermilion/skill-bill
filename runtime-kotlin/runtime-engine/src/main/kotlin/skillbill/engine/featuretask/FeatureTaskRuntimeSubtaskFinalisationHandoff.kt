@@ -2,6 +2,7 @@ package skillbill.engine.featuretask
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeCommitPushHandoff
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeCommitPushHandoffInvalid
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeCommitPushHandoffResult
@@ -10,7 +11,7 @@ import skillbill.engine.featuretask.model.FeatureTaskRuntimeCommitPushHandoffVal
 private const val COMMIT_PUSH_RESULT_KEY = "commit_push_result"
 private const val OUTCOME_MESSAGE_KEY = "message"
 private const val CHANGED_PATHS_KEY = "changed_paths"
-private const val COMMIT_SHA_KEY = "commit_sha"
+private const val COMMIT_SHA_KEY = DecompositionManifestPayloadKeys.COMMIT_SHA
 
 object FeatureTaskRuntimeSubtaskFinalisationHandoff {
   internal fun readHandoff(envelope: Map<String, Any?>): FeatureTaskRuntimeCommitPushHandoffResult {

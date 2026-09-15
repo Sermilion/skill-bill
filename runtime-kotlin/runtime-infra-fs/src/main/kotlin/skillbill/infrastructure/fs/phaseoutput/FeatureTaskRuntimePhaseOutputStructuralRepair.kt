@@ -1,6 +1,7 @@
 package skillbill.infrastructure.fs.phaseoutput
 
 import com.fasterxml.jackson.databind.JsonNode
+import skillbill.contracts.SharedPayloadKeys
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputFailureCode
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputFormat
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairEvidence
@@ -77,7 +78,7 @@ internal object FeatureTaskRuntimePhaseOutputStructuralRepair {
   ): FeatureTaskRuntimePhaseOutputStructuralRepairDecision {
     val shouldInspectEmbedded =
       !exact.node.isObject ||
-        (!exact.node.has("phase_id") && phaseOutputText.indexOf('{', startIndex = 1) >= 0)
+        (!exact.node.has(SharedPayloadKeys.PHASE_ID) && phaseOutputText.indexOf('{', startIndex = 1) >= 0)
     val embedded = if (shouldInspectEmbedded) selectEmbeddedSafely(phaseOutputText, sourceLabel) else null
     return embedded ?: if (exact.node.isObject) {
       StructuralRepairDecisions.accepted(phaseOutputText, exact.node, null)
@@ -165,7 +166,7 @@ internal object FeatureTaskRuntimePhaseOutputStructuralRepair {
     }.filter { it.node.isObject }
     if (parsed.isEmpty()) return null
 
-    val matching = parsed.filter { it.node.path("phase_id").asText("") == sourceLabel }
+    val matching = parsed.filter { it.node.path(SharedPayloadKeys.PHASE_ID).asText("") == sourceLabel }
     val relevant = if (matching.isNotEmpty()) matching else parsed
     val completeShape = relevant.filter { candidate ->
       PhaseOutputExpectedShape.matches(candidate.node, sourceLabel)

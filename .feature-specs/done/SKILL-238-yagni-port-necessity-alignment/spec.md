@@ -3,7 +3,7 @@
 ## Intended Outcome
 
 Bring the repository in line with the documented **Port Necessity And
-Deletion** rule (`docs/code-principles.md`): remove leftover speculative
+Deletion** rule (`../../../docs/code-principles.md`): remove leftover speculative
 surfaces, collapse same-module one-implementation role-port bags and thin
 application forwarders, and shrink duplicated IDE CLI mutators — without
 touching hexagonal `skillbill.ports.*` adapters that earn their place via the
@@ -17,12 +17,12 @@ remaining debt is concentrated, not systemic.
 
 ## Acceptance Criteria
 
-1. Confirmed dead leftovers from the investigation are removed: `scripts/split-runloop.py`, undeclared TypeScript SKILL-116 add-on scaffolds under `platform-packs/typescript/addons/`, the unused `jna` catalog entry, the empty `app/.../ampli/` tree, and either deletion or a single pointer stub for `docs/delegated-review/` (live contract remains `orchestration/review-delegation/`).
+1. Confirmed dead leftovers from the investigation are removed: `scripts/split-runloop.py`, undeclared TypeScript SKILL-116 add-on scaffolds under `platform-packs/typescript/addons/`, the unused `jna` catalog entry, the empty `app/.../ampli/` tree, and either deletion or a single pointer stub for `docs/delegated-review/` (live contract remains `../../../orchestration/review-delegation`).
 2. Same-module role-port interface + `Default*` pairs for feature-task phase gates, parallel code review, goal-planning sweep, and goal-runner boundaries are collapsed to data classes or direct constructor injection; DI bindings and affected tests compile and pass.
 3. Thin application forwarders that only rename a single port/domain call (`UninstallFileSystemService`, and `InstallAgentService` / `SkillRemoveService` when still pure forwarders) are removed or inlined so CLI/MCP call the port or domain type directly.
 4. IntelliJ and VS Code pause/stop CLI repositories share one parameterized mutator; dead `StatusClock.from` (or twin) and unused `defaultRefreshIntervalSeconds` helpers are removed in both extensions without deleting the live `StatusClock` test seam.
-5. Hexagonal `skillbill.ports.*` with one FS/SQLite adapter, `GoalRunnerManifestStore` ISP slices cited as preferred shape in `docs/code-principles.md`, governed contracts, and validator-backed rules remain intact in intent.
-6. Area `agent/history.md` entries record the sweep with reuse notes for touched boundaries.
+5. Hexagonal `skillbill.ports.*` with one FS/SQLite adapter, `GoalRunnerManifestStore` ISP slices cited as preferred shape in `../../../docs/code-principles.md`, governed contracts, and validator-backed rules remain intact in intent.
+6. Area `../../../agent/history.md` entries record the sweep with reuse notes for touched boundaries.
 7. No mechanical single-impl Port Necessity architecture-test census is required in this feature (explicitly deferred since SKILL-232); optional follow-up only.
 
 ## Constraints

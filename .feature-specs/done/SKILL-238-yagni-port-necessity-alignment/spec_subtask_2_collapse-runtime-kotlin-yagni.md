@@ -33,12 +33,12 @@ Collapse (illustrative anchors from the investigation — verify before edit):
   the domain/port type already names the seam.
 - Optional shrink: merge one-export `Jdk*Port` adapter files only if it does
   not blur testFixture substitute boundaries.
-- Update `runtime-kotlin` / area `agent/history.md` with reuse notes.
+- Update `runtime-kotlin` / area `../../../agent/history.md` with reuse notes.
 
 **Keep (do not collapse):**
 
 - Hexagonal `skillbill.ports.*` with one FS/SQLite adapter (module boundary).
-- `GoalRunnerManifestStore` ISP parent slices cited in `docs/code-principles.md`.
+- `GoalRunnerManifestStore` ISP parent slices cited in `../../../docs/code-principles.md`.
 - Ports with real second implementations or testFixtures substitutes
   (`BoundedWorkFanOutPort`, JDK process ports, `ExternalCommandRunner`, etc.).
 - kotlin-inject `Runtime*Provides` composition splits.
@@ -83,4 +83,4 @@ parallel-review factories (`GoalRunnerTestFactory`,
 
 ## Next Path
 
-`.feature-specs/SKILL-238-yagni-port-necessity-alignment/spec_subtask_3_ide-extension-yagni-parity.md`
+`spec_subtask_3_ide-extension-yagni-parity.md`

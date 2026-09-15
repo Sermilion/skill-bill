@@ -70,6 +70,7 @@ data class AgentRunProcessResult(
   val stdoutByteSize: Long = stdoutBytes.size.toLong(),
   val stdoutSha256: String = MessageDigest.getInstance("SHA-256")
     .digest(stdoutBytes).joinToString("") { "%02x".format(it) },
+  val outputCaptureIncomplete: Boolean = false,
 )
 
 interface AgentRunProcessRunner {

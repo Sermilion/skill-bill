@@ -6,7 +6,7 @@ This document defines architecture requirements and enforcement boundaries for `
 
 Apply these principles when designing, implementing, or reviewing runtime changes.
 They are requirements for new and changed code. Existing violations remain tracked
-work, not examples to copy. [SKILL-239](../.feature-specs/SKILL-239-runtime-architecture-ownership-and-simplicity/spec.md)
+work, not examples to copy. [SKILL-239](../.feature-specs/done/SKILL-239-runtime-architecture-ownership-and-simplicity/spec.md)
 owns the implementation gaps identified below; publishing this document does not
 mean those fixes or checks have landed. Kotlin coding patterns remain in
 [Code Principles](../docs/code-principles.md).
@@ -128,9 +128,9 @@ pass. Documentation must distinguish current enforcement from planned coverage.
 | Requirement with an identified gap | Implementation owner |
 | --- | --- |
 | Cleanup after callback failure and incomplete drain settlement | SKILL-239 subtask 1 |
-| Database readiness and explicit projection outcomes | SKILL-239 subtask 2 |
-| Run-loop state ownership, narrow helper inputs, and engine cycle removal | SKILL-239 subtask 3 |
-| Independent wire-key coverage and truthful architecture documentation | SKILL-239 subtask 4 |
+| Database readiness and explicit projection outcomes | SKILL-239 subtask 2 — `:runtime-infra-sqlite` write-readiness gate keyed by `PRAGMA user_version` plus stable file identity; decomposition manifest projection outcomes (`absent` / `written` / `failed`) with projection-only retry |
+| Run-loop state ownership, narrow helper inputs, and engine cycle removal | SKILL-239 subtask 3 — `ApplicationPackageAcyclicityArchitectureTest` applies the per-module shrink-only package-cycle baselines; the `runtime-engine-package-cycle-baseline.txt` baseline is empty |
+| Independent wire-key coverage and truthful architecture documentation | SKILL-239 subtask 4 — `WireVocabularyGovernedSeamInventory` loads decomposition-manifest and workflow phase-output envelope fields from canonical schema YAML; `WireVocabularyArchitectureSupport` fails schema fields without `*Keys` owners independently of the declaration scan, and literal payload-key accesses only inside declared path markers for those seams; `DecompositionManifestPayloadKeys` plus `SharedPayloadKeys.DERIVED_NOTES`; `RuntimeArchitectureDocumentationTest` no longer bans incidental English phrases |
 | Redundant role interfaces and application forwarders | SKILL-238 |
 
 The owning subtask updates this status with the checks that actually landed.
@@ -1214,16 +1214,38 @@ The closed workflow-Git result vocabulary is owned by
 
 Runtime-domain wire-token declarations own closed enum tokens and their aliases. Runtime-contracts
 `*Keys` declarations own durable and wire payload keys; `SharedPayloadKeys` is the shared owner for
-the workflow envelope keys. `ProsePhaseOutputParse` delegates status normalization to
-`SettlementStatus`, while `DecompositionStatus` retains its separate `completed` input alias and
-`complete` output token. `WireVocabularyArchitectureTest` discovers every runtime main source
-through `RuntimeModuleCatalog`, indexes declarations with source locations, rejects same-owner
-duplicates and local vocabulary restatements, and reports the measured baseline-to-final delta.
-Identical spellings in different enums remain separate when their decoding context differs; the
-owner and decoder are recorded together so a lexical match cannot silently change wire behavior. A
-collection literal restates a token only inside that owner's decoding context — the file names the
-owning type or declares it in its own package — so a generic word such as `error` or `type` in an
-unrelated payload is not a restatement of an enum that happens to spell it the same way.
+the feature-task phase-output envelope; `DecompositionManifestPayloadKeys` and
+`DecompositionPlanningPayloadKeys` own decomposition-manifest and planning-projection keys.
+`ProsePhaseOutputParse` delegates status normalization to `SettlementStatus`, while
+`DecompositionStatus` retains its separate `completed` input alias and `complete` output token.
+
+## Governed payload seams (mechanical scope)
+
+`WireVocabularyGovernedSeamInventory` is the independent expected-key authority. It reads canonical
+schema YAML from `DecompositionManifestSchemaPaths.REPO_RELATIVE_PATH` and
+`FeatureTaskRuntimePhaseOutputSchemaPaths.REPO_RELATIVE_PATH` (not a scan of existing `*Keys`
+objects). For each seam it compares closed schema fields to declared `*Keys` / `*PayloadKeys`
+constants and fails when a schema field has no Kotlin owner.
+
+Literal payload-key enforcement runs only on production sources whose paths match the seam markers
+(documented in `WireVocabularyGovernedSeamInventory.seams`). Outside those markers, telemetry,
+CLI presentation, SQL column labels, and prompt prose may still carry string literals even when
+they spell the same token.
+
+| Seam | Schema authority | Open extension (not key-owned) |
+| --- | --- | --- |
+| Decomposition manifest | Root, subtask, dependency, stack branch, and current-intent closed objects | N/A at manifest root (`additionalProperties: false`) |
+| Workflow phase-output envelope | Top-level envelope fields only | `produced_outputs` entry maps (phase-specific keys stay open) |
+
+A green `WireVocabularyArchitectureTest` on runtime main sources does not prove every `String` in
+the runtime is typed, that handoff-envelope projection bodies are fully keyed, or that unrelated
+payload families (telemetry, review, install) have been migrated.
+
+`WireVocabularyArchitectureTest` discovers runtime main sources through `RuntimeModuleCatalog`,
+indexes declarations with source locations, rejects same-owner duplicates and local vocabulary
+restatements, and reports the measured baseline-to-final delta. Identical spellings in different
+enums remain separate when their decoding context differs. A collection literal restates a token
+only inside that owner's decoding context.
 
 # Native-agent installation integrity
 

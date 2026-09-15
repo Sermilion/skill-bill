@@ -4,7 +4,7 @@
 
 Own process lifetime in the existing JvmAgentRunProcessRunner, ProcessWaitLoop, CappedUtf8Drain, and their request/diagnostic collaborators. F-001 reproduces a real child surviving an output-sink exception. The runner currently closes the review endpoint in an outer finally, but reaches process cleanup only through finishRun.
 
-Primary files are under `runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/launcher/process/`. Update the existing process tests alongside the implementation. Change a ports model only if this boundary needs an explicit failure result.
+Primary files are under `../../../runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/launcher/process`. Update the existing process tests alongside the implementation. Change a ports model only if this boundary needs an explicit failure result.
 
 ## Acceptance criteria
 

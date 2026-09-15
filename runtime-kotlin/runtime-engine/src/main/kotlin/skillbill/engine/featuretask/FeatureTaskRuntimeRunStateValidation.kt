@@ -26,9 +26,14 @@ internal data class ValidationSettlementValidation(
 )
 
 internal fun requireValidationEvidenceForValidateSettlement(
-  runLoop: FeatureTaskRuntimeRunLoop,
+  recorder: FeatureTaskRuntimePhaseRecorder,
+  phaseGates: FeatureTaskRuntimePhaseGates,
   run: PhaseRun,
-  envelope: Map<String, Any?>,
+  envelope: Map<
+    String,
+
+    Any?,
+    >,
 ) {
   if (run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE) return
   val evidence = validationEvidenceFromEnvelope(envelope, run.phaseId)
@@ -38,10 +43,12 @@ internal fun requireValidationEvidenceForValidateSettlement(
     )
   evidence.requireSuccessfulCommand(
     FeatureTaskRuntimeRunLoopValidationGate.requiredValidationCommand(
-      runLoop = runLoop,
-      run = run,
-      evidence = evidence,
-      changedPaths = durableValidationChangedPaths(runLoop.recorder, run.request.workflowId),
+      FeatureTaskRuntimeRunLoopValidationGate.RequiredValidationCommandArgs(
+        phaseGates = phaseGates,
+        run = run,
+        evidence = evidence,
+        changedPaths = durableValidationChangedPaths(recorder, run.request.workflowId),
+      ),
     ),
     run.phaseId,
   )

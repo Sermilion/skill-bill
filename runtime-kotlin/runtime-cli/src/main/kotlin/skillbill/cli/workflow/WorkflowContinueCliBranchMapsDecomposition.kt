@@ -3,6 +3,7 @@ package skillbill.cli.workflow
 import skillbill.application.workflow.model.GoalContinuationOutcome
 import skillbill.application.workflow.model.WorkflowContinueResult
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
 import skillbill.workflow.model.WorkflowContinueStatus
 
 internal fun WorkflowContinueResult.DecompositionStandard.toDecompositionStandardCliMap(): Map<String, Any?> =
@@ -23,7 +24,7 @@ internal fun WorkflowContinueResult.DecompositionMissingSubtaskWorkflow.toDecomp
     SharedPayloadKeys.STATUS to "error",
     "continue_status" to WorkflowContinueStatus.BLOCKED.wireValue,
     SharedPayloadKeys.SUBTASK_ID to subtaskId,
-    "blocked_reason" to blockedReason,
+    DecompositionManifestPayloadKeys.BLOCKED_REASON to blockedReason,
     "db_path" to dbPath,
   )
 
@@ -36,7 +37,7 @@ internal fun WorkflowContinueResult.DecompositionBlockedSubtask.toDecompositionB
     SharedPayloadKeys.ISSUE_KEY to issueKey,
     "decomposition_subtask_id" to subtaskId,
     "decomposition_subtask_spec_path" to subtaskSpecPath,
-    "blocked_reason" to blockedReason,
+    DecompositionManifestPayloadKeys.BLOCKED_REASON to blockedReason,
     "error" to blockedReason,
     "db_path" to dbPath,
   )
@@ -80,7 +81,7 @@ internal fun WorkflowContinueResult.DecompositionBlockedGit.toDecompositionBlock
     "continue_status" to WorkflowContinueStatus.BLOCKED.wireValue,
     SharedPayloadKeys.WORKFLOW_ID to workflowId,
     SharedPayloadKeys.ISSUE_KEY to issueKey,
-    "blocked_reason" to blockedReason,
+    DecompositionManifestPayloadKeys.BLOCKED_REASON to blockedReason,
     "error" to blockedReason,
     "db_path" to dbPath,
   )
@@ -90,9 +91,9 @@ internal fun GoalContinuationOutcome?.toWireMap(): Map<String, Any?> = this?.let
     SharedPayloadKeys.ISSUE_KEY to outcome.issueKey,
     SharedPayloadKeys.SUBTASK_ID to outcome.subtaskId,
     SharedPayloadKeys.STATUS to outcome.status,
-    "commit_sha" to outcome.commitSha,
+    DecompositionManifestPayloadKeys.COMMIT_SHA to outcome.commitSha,
     SharedPayloadKeys.WORKFLOW_ID to outcome.workflowId,
-    "blocked_reason" to outcome.blockedReason,
-    "last_resumable_step" to outcome.lastResumableStep,
+    DecompositionManifestPayloadKeys.BLOCKED_REASON to outcome.blockedReason,
+    DecompositionManifestPayloadKeys.LAST_RESUMABLE_STEP to outcome.lastResumableStep,
   )
 }.orEmpty()

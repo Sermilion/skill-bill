@@ -7,6 +7,7 @@ import skillbill.application.workflow.model.CheckoutAndValidateBranchRequest
 import skillbill.application.workflow.model.GoalContinuationOutcome
 import skillbill.application.workflow.model.WorkflowContinueResult
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.workflow.decomposition.DecompositionManifestValidator
@@ -124,15 +125,15 @@ fun subtaskStartArtifacts(
 ): WorkflowArtifactPatch = WorkflowArtifactPatch.from(
   mapOf(
     "assessment" to mapOf(
-      "spec_path" to selection.subtask.specPath,
+      DecompositionPlanningPayloadKeys.SPEC_PATH to selection.subtask.specPath,
       "goal_continuation" to true,
       SharedPayloadKeys.ISSUE_KEY to manifest.issueKey,
       SharedPayloadKeys.SUBTASK_ID to selection.subtask.id,
       "accepted_without_user_confirmation" to true,
     ),
-    "branch" to mapOf(
+    DecompositionPlanningPayloadKeys.BRANCH to mapOf(
       "branch_name" to selection.branchPlan.branch,
-      "branch" to selection.branchPlan.branch,
+      DecompositionPlanningPayloadKeys.BRANCH to selection.branchPlan.branch,
       "goal_continuation" to true,
     ),
     "goal_continuation" to mapOf(

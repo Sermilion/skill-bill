@@ -6,6 +6,8 @@ import skillbill.application.decomposition.model.DecompositionManifestWorkflowPr
 import skillbill.application.decomposition.model.DecompositionManifestWriteRequest
 import skillbill.application.decomposition.model.DecompositionPlanManifestInput
 import skillbill.application.decomposition.model.PreparedDecompositionManifestWrite
+import skillbill.contracts.decomposition.DecompositionManifestProjectionOperations
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.contracts.issuekey.issueAndFeature
 import skillbill.error.InvalidDecompositionManifestSchemaError
 import skillbill.model.toPath
@@ -20,6 +22,7 @@ import skillbill.workflow.decomposition.model.DecompositionExecutionModel
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionManifestPlan
 import skillbill.workflow.decomposition.runtime.invalidManifest
+import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
 import skillbill.workflow.engine.model.DecompositionManifestWireMap
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import java.io.IOException
@@ -31,7 +34,24 @@ const val DECOMPOSITION_RUNTIME_ARTIFACT_KEY: String = "decomposition_runtime"
 class DecompositionManifestWriter : DecompositionManifestProjectionWriter {
   fun writeFromWorkflowUpdate(input: DecompositionManifestWorkflowProjectionInput): DecompositionManifestWriteResult? {
     val manifest = manifestFromWorkflowUpdate(input) ?: return null
-    return writeProjection(input.repoRoot, manifest, input.validator, fileStore = input.fileStore)
+    return when (
+      val outcome = writeProjectionOutcome(
+        WriteProjectionOutcomeArgs(
+          repoRoot = input.repoRoot,
+          manifest = manifest,
+          validator = input.validator,
+          manifestPath = manifest.manifestPath(input.repoRoot),
+          fileStore = input.fileStore,
+          operation = DecompositionManifestProjectionOperations.WRITE_PROJECTION,
+        ),
+      )
+    ) {
+      is DecompositionManifestProjectionOutcome.Written -> outcome.result
+      is DecompositionManifestProjectionOutcome.Absent -> null
+      is DecompositionManifestProjectionOutcome.Failed -> throw IOException(
+        "Decomposition manifest projection failed during ${outcome.operation} at ${outcome.targetPath}.",
+      )
+    }
   }
 
   fun manifestFromWorkflowUpdate(input: DecompositionManifestWorkflowProjectionInput): DecompositionManifest? {
@@ -66,18 +86,23 @@ class DecompositionManifestWriter : DecompositionManifestProjectionWriter {
     artifactsJson: String,
     validator: DecompositionManifestValidator,
     fileStore: DecompositionManifestStore,
-  ): DecompositionManifestWriteResult? {
+  ): DecompositionManifestProjectionOutcome {
     val artifacts = decodeWorkflowArtifactsForManifest(artifactsJson)
     val runtime = artifacts[DECOMPOSITION_RUNTIME_ARTIFACT_KEY].asStringAnyMapOrNull()
       ?.let {
         validator.decodeManifest(DecompositionManifestWireMap.from(it), DECOMPOSITION_RUNTIME_ARTIFACT_KEY)
       }
-      ?: return null
-    return try {
-      writeProjection(repoRoot, runtime, validator, runtime.manifestPath(repoRoot), fileStore)
-    } catch (_: IOException) {
-      null
-    }
+      ?: return DecompositionManifestProjectionOutcome.Absent
+    return writeProjectionOutcome(
+      WriteProjectionOutcomeArgs(
+        repoRoot = repoRoot,
+        manifest = runtime,
+        validator = validator,
+        manifestPath = runtime.manifestPath(repoRoot),
+        fileStore = fileStore,
+        operation = DecompositionManifestProjectionOperations.WRITE_PROJECTION_FROM_WORKFLOW_STATE,
+      ),
+    )
   }
 
   fun writeIfDecomposed(
@@ -136,8 +161,8 @@ class DecompositionManifestWriter : DecompositionManifestProjectionWriter {
   private fun manifestFromDecompositionPlan(input: DecompositionPlanManifestInput): DecompositionManifest {
     val parentSpecPath = Path.of(parentSpecPath(input.plan))
     assertParentSpecIsNotDecomposedSubtask(input.repoRoot, parentSpecPath, input.validator, input.fileStore)
-    val branchName = branchName(input.artifactsPatch?.get("branch"))
-      .ifBlank { branchName(input.existingArtifacts["branch"]) }
+    val branchName = branchName(input.artifactsPatch?.get(DecompositionPlanningPayloadKeys.BRANCH))
+      .ifBlank { branchName(input.existingArtifacts[DecompositionPlanningPayloadKeys.BRANCH]) }
     val executionModel = executionModel(input.plan)
     val request = DecompositionManifestWriteRequest(
       repoRoot = input.repoRoot,
@@ -300,17 +325,41 @@ private fun writeProjection(
   validator: DecompositionManifestValidator,
   manifestPath: Path = manifest.manifestPath(repoRoot),
   fileStore: DecompositionManifestStore,
-): DecompositionManifestWriteResult? = try {
+): DecompositionManifestWriteResult {
   val encoded = encodeValidatedDecompositionManifestYaml(manifest.gitTrackedProjection(), validator, fileStore)
   writeDecompositionManifestText(manifestPath, encoded.yamlText, fileStore)
   val loaded = loadValidatedDecompositionManifest(manifestPath, fileStore, validator)
-  DecompositionManifestWriteResult(
+  return DecompositionManifestWriteResult(
     manifestPath = manifestPath.toFileLocation(),
     manifest = loaded.manifest,
     repairEvidence = listOfNotNull(encoded.repairEvidence, loaded.repairEvidence),
   )
+}
+
+private data class WriteProjectionOutcomeArgs(
+  val repoRoot: Path,
+  val manifest: DecompositionManifest,
+  val validator: DecompositionManifestValidator,
+  val manifestPath: Path,
+  val fileStore: DecompositionManifestStore,
+  val operation: String,
+)
+
+private fun writeProjectionOutcome(args: WriteProjectionOutcomeArgs): DecompositionManifestProjectionOutcome = try {
+  val repoRoot = args.repoRoot
+  val manifest = args.manifest
+  val validator = args.validator
+  val manifestPath = args.manifestPath
+  val fileStore = args.fileStore
+  val operation = args.operation
+  DecompositionManifestProjectionOutcome.Written(
+    writeProjection(repoRoot, manifest, validator, manifestPath, fileStore),
+  )
 } catch (_: IOException) {
-  null
+  DecompositionManifestProjectionOutcome.Failed(
+    operation = args.operation,
+    targetPath = args.manifestPath.toString(),
+  )
 }
 
 private fun DecompositionManifest.gitTrackedProjection(): DecompositionManifest =

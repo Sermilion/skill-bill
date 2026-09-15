@@ -1,5 +1,7 @@
 package skillbill.workflow.taskruntime.model
 
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
+
 /**
  * The durable resolved feature branch for one run. [branch] is the non-default feature branch the
  * run is pinned to; [baseBranch] is the branch it was created from (null when the run reused an
@@ -38,10 +40,10 @@ data class FeatureTaskRuntimeResolvedBranch(
     }
   }
   internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
-    "branch" to branch,
+    DecompositionPlanningPayloadKeys.BRANCH to branch,
     "created" to created,
   ).apply {
-    baseBranch?.let { put("base_branch", it) }
+    baseBranch?.let { put(DecompositionPlanningPayloadKeys.BASE_BRANCH, it) }
     reviewBaseSha?.let { put("review_base_sha", it) }
     if (baselineUntrackedPaths.isNotEmpty()) put("baseline_untracked_paths", baselineUntrackedPaths)
     put("baseline_owned_paths", baselineOwnedPaths)
@@ -54,8 +56,8 @@ data class FeatureTaskRuntimeResolvedBranch(
     /** Strict decode; loud-fails on a missing or malformed required field. */
     internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeResolvedBranch =
       FeatureTaskRuntimeResolvedBranch(
-        branch = raw.requireStringField("branch"),
-        baseBranch = raw.optionalStringField("base_branch"),
+        branch = raw.requireStringField(DecompositionPlanningPayloadKeys.BRANCH),
+        baseBranch = raw.optionalStringField(DecompositionPlanningPayloadKeys.BASE_BRANCH),
         created = raw.optionalBooleanField("created") ?: false,
         reviewBaseSha = raw.optionalStringField("review_base_sha"),
         baselineUntrackedPaths = (raw["baseline_untracked_paths"] as? List<*>)

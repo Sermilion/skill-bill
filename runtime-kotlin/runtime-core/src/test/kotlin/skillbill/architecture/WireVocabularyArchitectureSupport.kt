@@ -6,7 +6,8 @@ private val wireVocabularyEnumEntryPattern = Regex("""(?m)^\s*[A-Z][A-Z0-9_]*\s*
 private val wireVocabularyFromWirePattern = Regex("""fun\s+fromWire(?:Value|Name)?\s*\([^)]*\)[^{]*\{""")
 private val wireVocabularyAliasPattern = Regex(""""([^"\n]+)"\s*(?:->|to)""")
 private val wireVocabularyAliasSetPattern = Regex("""\bin\s+setOf\s*\(([^)]*)\)\s*->""")
-private val wireVocabularyConstPattern = Regex("""\bconst\s+val\s+([A-Za-z0-9_]+)\s*=\s*"([^"]+)"""")
+private val wireVocabularyConstPattern =
+  Regex("""\bconst\s+val\s+([A-Za-z0-9_]+)\s*(?::\s*[^=]+)?=\s*"([^"]+)"""")
 
 internal data class WireVocabularyDeclaration(
   val category: String,
@@ -29,9 +30,15 @@ internal object WireVocabularyArchitectureSupport {
       .flatMap { moduleName -> mainSourceRoots(moduleName) }
       .flatMap(::sourceFilesIn),
     includePayloadKeyAccesses = true,
+    enforceGovernedSeams = true,
   )
 
-  fun scanSourceFiles(files: List<SourceFile>, includePayloadKeyAccesses: Boolean = false): WireVocabularyScanResult {
+  fun scanSourceFiles(
+    files: List<SourceFile>,
+    includePayloadKeyAccesses: Boolean = false,
+    enforceGovernedSeams: Boolean = false,
+    schemaPropertyKeysByPath: Map<String, Set<String>>? = null,
+  ): WireVocabularyScanResult {
     val declarations = files.flatMap(::declarationsIn).sortedWith(
       compareBy<WireVocabularyDeclaration> { it.category }
         .thenBy { it.value }
@@ -44,11 +51,42 @@ internal object WireVocabularyArchitectureSupport {
       .map { it.value }
       .toSet()
     val keyValues = declarations.filter { it.category == "key" }.map { it.value }.toSet()
+    val governedSchemaPropertyKeysByPath = if (enforceGovernedSeams) {
+      WireVocabularyGovernedSeamInventory.seams.associate { seam ->
+        seam.schemaRepoRelativePath to (
+          schemaPropertyKeysByPath?.get(seam.schemaRepoRelativePath)
+            ?: WireVocabularyGovernedSeamInventory.closedSchemaPropertyKeys(seam.schemaRepoRelativePath)
+          )
+      }
+    } else {
+      emptyMap()
+    }
+    val payloadKeyValues =
+      if (enforceGovernedSeams) governedSchemaPropertyKeysByPath.values.flatten().toSet() else keyValues
     val violations = buildList {
       addAll(duplicateDeclarations(declarations))
+      if (enforceGovernedSeams) {
+        WireVocabularyGovernedSeamInventory.seams.forEach { seam ->
+          addAll(
+            WireVocabularyGovernedSeamInventory.schemaFieldsMissingKotlinOwner(
+              governedSchemaPropertyKeysByPath.getValue(seam.schemaRepoRelativePath),
+              seam.schemaRepoRelativePath,
+              keyValues,
+            ),
+          )
+        }
+      }
       files.forEach { file ->
         addAll(localVocabularyRestatements(file, tokenValues, declarations))
-        if (includePayloadKeyAccesses) addAll(payloadKeyAccesses(file, keyValues, declarations))
+        if (
+          includePayloadKeyAccesses &&
+          (
+            !enforceGovernedSeams ||
+              WireVocabularyGovernedSeamInventory.fileMatchesGovernedSeam(file.relativePath)
+            )
+        ) {
+          addAll(payloadKeyAccesses(file, payloadKeyValues, declarations))
+        }
       }
     }.distinct().sorted()
     return WireVocabularyScanResult(
@@ -142,11 +180,7 @@ internal object WireVocabularyArchitectureSupport {
 
   private fun duplicateDeclarations(declarations: List<WireVocabularyDeclaration>): List<String> =
     declarations.groupBy { declaration ->
-      if (declaration.category == "key") {
-        Triple(declaration.category, declaration.value, "")
-      } else {
-        Triple(declaration.category, declaration.value, declaration.owner)
-      }
+      Triple(declaration.category, declaration.value, declaration.owner)
     }
       .filterValues { it.size > 1 }
       .values

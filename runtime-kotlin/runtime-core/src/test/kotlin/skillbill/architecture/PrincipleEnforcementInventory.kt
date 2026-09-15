@@ -112,7 +112,7 @@ object PrincipleEnforcementInventory {
       "explicit exemption.",
     "Production logical-type line ceiling: attribute extension files to receiver types and enforce combined totals.",
     "Package acyclicity: mutual imports among areas under each module package prefix must stay within " +
-      "that module baseline across all ten Gradle modules.",
+      "that module baseline across all declared runtime Gradle modules.",
     "Ambient clock ban: Instant.now, LocalDateTime.now, LocalDate.now, and Clock.systemUTC require baseline " +
       "in every module main source root.",
     "No @Inject constructor defaults: dependency bags and @Inject constructors must not carry default arguments.",

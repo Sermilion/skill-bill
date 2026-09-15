@@ -1,6 +1,8 @@
 package skillbill.workflow.taskruntime.model
 
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.workflow.decomposition.model.SpecSource
 
 private const val DECOMPOSE_MODE: String = "decompose"
@@ -54,25 +56,30 @@ data class FeatureTaskRuntimeDecomposeSubtask(
  * merely declares `mode: decompose` is still a projection and stays under the producer gate.
  */
 internal fun featureTaskRuntimeIsDecompositionPackage(phaseOutput: Map<String, Any?>): Boolean {
-  val producedOutputs = phaseOutput.stringAnyMap("produced_outputs") ?: return false
+  val producedOutputs = phaseOutput.stringAnyMap(SharedPayloadKeys.PRODUCED_OUTPUTS) ?: return false
   val packageMap = producedOutputs.stringAnyMap("decomposition_package") ?: return false
-  return packageMap["mode"]?.toString() == DECOMPOSE_MODE
+  return packageMap[DecompositionPlanningPayloadKeys.MODE]?.toString() == DECOMPOSE_MODE
 }
 internal fun featureTaskRuntimeDecomposePlanOutcomeOrNull(
   phaseOutput: Map<String, Any?>,
   specSource: SpecSource,
 ): FeatureTaskRuntimeDecomposePlanOutcome? {
-  val producedOutputs = phaseOutput.stringAnyMap("produced_outputs") ?: return null
+  val producedOutputs = phaseOutput.stringAnyMap(SharedPayloadKeys.PRODUCED_OUTPUTS) ?: return null
   val packageMap = producedOutputs.stringAnyMap("decomposition_package") ?: return null
-  if (packageMap["mode"]?.toString() != DECOMPOSE_MODE) return null
+  if (packageMap[DecompositionPlanningPayloadKeys.MODE]?.toString() != DECOMPOSE_MODE) return null
   val summary = phaseOutput[SharedPayloadKeys.SUMMARY]?.toString().orEmpty()
   return FeatureTaskRuntimeDecomposePlanOutcome(
     reason = packageMap.firstString("reason", "decomposition_reason").ifBlank { summary },
-    featureName = packageMap.firstString("feature_name", "name").ifBlank { "feature" },
+    featureName = packageMap.firstString(
+      DecompositionManifestPayloadKeys.FEATURE_NAME,
+      DecompositionPlanningPayloadKeys.NAME,
+    ).ifBlank {
+      "feature"
+    },
     parentSpecOverview = packageMap.firstString("parent_spec_overview", "overview").ifBlank { summary },
     validationStrategy = packageMap.firstString("validation_strategy").ifBlank { "bill-code-check" },
-    baseBranch = packageMap.firstString("base_branch").ifBlank { "main" },
-    featureBranch = packageMap.firstString("feature_branch"),
+    baseBranch = packageMap.firstString(DecompositionPlanningPayloadKeys.BASE_BRANCH).ifBlank { "main" },
+    featureBranch = packageMap.firstString(DecompositionManifestPayloadKeys.FEATURE_BRANCH),
     specSource = specSource,
     subtasks = packageMap.requireSubtasks(),
   )

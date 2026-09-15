@@ -6,7 +6,6 @@ import skillbill.infrastructure.fs.jvm.GateJvmResolver
 import skillbill.ports.agentrun.model.AgentRunLivenessSnapshot
 import skillbill.ports.agentrun.model.AgentRunOutputStream
 import skillbill.ports.review.GovernedReviewEvidenceEndpointHandle
-import skillbill.workflow.goal.model.GoalProgressOutcome
 import java.io.IOException
 import java.io.InputStream
 import java.time.Clock
@@ -93,8 +92,7 @@ class JvmAgentRunProcessRunner(
     stderrStream: InputStream,
     request: AgentRunProcessRequest,
   ): AgentRunProcessResult {
-    liveProcesses.add(process)
-    val mcpStartupObservedAtStart = request.mcpStartupProbe.safeStartupObserved()
+    val degradation = ProcessRunDegradationRecorder()
     val outputTracker = OutputObservationTracker()
     val lifecycleEmitter = ProcessLifecycleEmitter(request)
     val stdout = CappedUtf8Drain(
@@ -103,116 +101,119 @@ class JvmAgentRunProcessRunner(
       outputStream = AgentRunOutputStream.STDOUT,
       outputSink = request.outputSink,
       onChunkRead = { outputTracker.markObserved() },
-    ).also { it.start() }
+    )
     val stderr = CappedUtf8Drain(
       input = stderrStream,
       limitBytes = AGENT_RUN_OUTPUT_LIMIT_BYTES,
       outputStream = AgentRunOutputStream.STDERR,
       outputSink = request.outputSink,
       onChunkRead = { outputTracker.markObserved() },
-    ).also { it.start() }
-    writeAndCloseStdin(process, request.stdinText)
-    lifecycleEmitter.emitStarted(process.isAlive)
-    val wait = try {
-      Result.success(waitForProcess(process, request, outputTracker, lifecycleEmitter))
-    } catch (interrupt: InterruptedException) {
-      Result.failure(interrupt)
+    )
+    val lifetime = ProcessRunLifetime(process, liveProcesses, stdout, stderr, degradation)
+    var mcpStartupObservedAtStart = false
+    var waitResult: Result<ProcessWait>? = null
+    val runOutcome = runCatching {
+      mcpStartupObservedAtStart = request.mcpStartupProbe.readStartupObserved(degradation).value == true
+      stdout.start()
+      stderr.start()
+      writeAndCloseStdin(process, request.stdinText, degradation)
+      lifecycleEmitter.emitStarted(process.isAlive)
+      waitResult = runCatching {
+        waitForProcess(process, request, outputTracker, lifecycleEmitter, degradation)
+      }
     }
-    return finishRun(
-      FinishRunInput(
+    val cleanupFailure = runCatching { lifetime.release(waitResult) }.exceptionOrNull()
+    cleanupFailure?.let { failure ->
+      runOutcome.exceptionOrNull()?.addSuppressed(failure) ?: throw failure
+    }
+    runOutcome.getOrThrow()
+    waitResult?.exceptionOrNull()
+      ?.takeUnless { it is InterruptedException }
+      ?.let { throw it }
+    return buildRunResult(
+      BuildRunResultInput(
         process = process,
         request = request,
-        waitResult = wait,
+        waitResult = requireNotNull(waitResult),
         outputTracker = outputTracker,
-        stdout = stdout,
-        stderr = stderr,
         lifecycleEmitter = lifecycleEmitter,
+        lifetime = lifetime,
+        degradation = degradation,
         mcpStartupObservedAtStart = mcpStartupObservedAtStart,
       ),
     )
   }
 
-  private data class FinishRunInput(
+  private data class BuildRunResultInput(
     val process: Process,
     val request: AgentRunProcessRequest,
     val waitResult: Result<ProcessWait>,
     val outputTracker: OutputObservationTracker,
-    val stdout: CappedUtf8Drain,
-    val stderr: CappedUtf8Drain,
     val lifecycleEmitter: ProcessLifecycleEmitter,
+    val lifetime: ProcessRunLifetime,
+    val degradation: ProcessRunDegradationRecorder,
     val mcpStartupObservedAtStart: Boolean,
   )
 
-  private fun finishRun(input: FinishRunInput): AgentRunProcessResult {
-    val process = input.process
-    val request = input.request
-    val waitResult = input.waitResult
-    val outputTracker = input.outputTracker
-    val stdout = input.stdout
-    val stderr = input.stderr
-    val lifecycleEmitter = input.lifecycleEmitter
-    val mcpStartupObservedAtStart = input.mcpStartupObservedAtStart
-    var interrupted = waitResult.exceptionOrNull() is InterruptedException
-    val wait = waitResult.getOrNull()
-    val finished = wait?.finished == true
-    if (!finished) {
-      process.destroyForcibly()
-      runCatching { process.waitFor(DESTROY_WAIT_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS) }
-        .onFailure { error -> if (error is InterruptedException) interrupted = true }
-    }
-    liveProcesses.remove(process)
-    stdout.join()
-    stderr.join()
-    val terminalOutcome = when {
-      interrupted -> GoalProgressOutcome.CANCELLED
-      finished -> GoalProgressOutcome.SUCCEEDED
-      else -> GoalProgressOutcome.TIMED_OUT
-    }
-    lifecycleEmitter.emitCompleted(processAlive = false, outcome = terminalOutcome)
-    if (interrupted) {
-      Thread.currentThread().interrupt()
+  private fun buildRunResult(input: BuildRunResultInput): AgentRunProcessResult {
+    val release = input.lifetime.cachedRelease()
+    val wait = input.waitResult.getOrNull()
+    val terminalOutcome = input.lifetime.terminalOutcome(release, wait)
+    input.lifecycleEmitter.emitCompleted(processAlive = false, outcome = terminalOutcome)
+    val mcpStartupObserved =
+      input.mcpStartupObservedAtStart ||
+        input.request.mcpStartupProbe.readStartupObserved(input.degradation).value == true
+    if (release.interrupted) {
       return interruptedResult(
-        stdout,
-        stderr,
-        outputTracker,
-        mcpStartupObservedAtStart || request.mcpStartupProbe.safeStartupObserved(),
+        release = release,
+        outputTracker = input.outputTracker,
+        mcpStartupObserved = mcpStartupObserved,
+        degradation = input.degradation,
       )
     }
+    val stdout = release.stdoutCapture
+    val stderr = release.stderrCapture
+    val settledWait = requireNotNull(wait)
+    val stderrText = stderr.text.withTimeoutMessage(settledWait, input.request)
     return AgentRunProcessResult(
-      exitStatus = if (finished) process.exitValue() else null,
-      stdout = stdout.text(),
-      stdoutBytes = stdout.bytes(),
-      stderr = stderr.text().withTimeoutMessage(requireNotNull(wait), request),
-      timedOut = !finished,
+      exitStatus = if (settledWait.finished) input.process.exitValue() else null,
+      stdout = stdout.text,
+      stdoutBytes = stdout.bytes,
+      stderr = input.degradation.appendToStderr(stderrText),
+      timedOut = !settledWait.finished,
       interrupted = false,
       spawnFailed = false,
-      liveness = wait.liveness,
+      liveness = settledWait.liveness,
       processStarted = true,
-      mcpStartupObserved = mcpStartupObservedAtStart || request.mcpStartupProbe.safeStartupObserved(),
-      stdoutTruncated = stdout.wasTruncated(),
-      stdoutByteSize = stdout.totalByteSize(),
-      stdoutSha256 = stdout.sha256(),
+      mcpStartupObserved = mcpStartupObserved,
+      stdoutTruncated = stdout.truncated,
+      stdoutByteSize = stdout.totalByteSize,
+      stdoutSha256 = stdout.sha256,
+      outputCaptureIncomplete = release.outputCaptureIncomplete,
     )
   }
 
   private fun interruptedResult(
-    stdout: CappedUtf8Drain,
-    stderr: CappedUtf8Drain,
+    release: ProcessRunReleaseSnapshot,
     outputTracker: OutputObservationTracker,
     mcpStartupObserved: Boolean,
+    degradation: ProcessRunDegradationRecorder,
   ): AgentRunProcessResult {
+    val stdout = release.stdoutCapture
+    val stderr = release.stderrCapture
     val interruptMessage = "Agent run interrupted by parent signal before completion."
+    val stderrBody = stderr.text.let { existing ->
+      if (existing.isBlank()) {
+        interruptMessage
+      } else {
+        "$existing\n$interruptMessage"
+      }
+    }
     return AgentRunProcessResult(
       exitStatus = null,
-      stdout = stdout.text(),
-      stdoutBytes = stdout.bytes(),
-      stderr = stderr.text().let { existing ->
-        if (existing.isBlank()) {
-          interruptMessage
-        } else {
-          "$existing\n$interruptMessage"
-        }
-      },
+      stdout = stdout.text,
+      stdoutBytes = stdout.bytes,
+      stderr = degradation.appendToStderr(stderrBody),
       timedOut = false,
       interrupted = true,
       spawnFailed = false,
@@ -224,9 +225,10 @@ class JvmAgentRunProcessRunner(
         processState = GoalRunnerProcessState.KILLED,
         lastOutputAt = outputTracker.lastObservedAt()?.toIsoUtc(),
       ),
-      stdoutTruncated = stdout.wasTruncated(),
-      stdoutByteSize = stdout.totalByteSize(),
-      stdoutSha256 = stdout.sha256(),
+      stdoutTruncated = stdout.truncated,
+      stdoutByteSize = stdout.totalByteSize,
+      stdoutSha256 = stdout.sha256,
+      outputCaptureIncomplete = release.outputCaptureIncomplete,
     )
   }
 
@@ -235,7 +237,8 @@ class JvmAgentRunProcessRunner(
     request: AgentRunProcessRequest,
     outputTracker: OutputObservationTracker,
     lifecycleEmitter: ProcessLifecycleEmitter,
-  ): ProcessWait = ProcessWaitLoop(process, request, outputTracker, lifecycleEmitter, clock).wait()
+    degradation: ProcessRunDegradationRecorder,
+  ): ProcessWait = ProcessWaitLoop(process, request, outputTracker, lifecycleEmitter, clock, degradation).wait()
 
   private fun spawnFailure(error: Exception): AgentRunProcessResult = AgentRunProcessResult(
     exitStatus = null,

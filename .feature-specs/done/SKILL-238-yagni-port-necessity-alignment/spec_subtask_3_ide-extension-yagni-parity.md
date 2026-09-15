@@ -22,7 +22,7 @@ Work includes:
 - Optional shrink only when touching adjacent files: reduce near-identical
   cached display snapshot constructors / `"key" in state` accessor forests
   without changing observable status UI behavior.
-- Update `intellij-plugin/agent/history.md` and VS Code area history if present.
+- Update `../../../intellij-plugin/agent/history.md` and VS Code area history if present.
 
 ## Acceptance Criteria
 

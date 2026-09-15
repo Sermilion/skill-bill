@@ -3,6 +3,8 @@ package skillbill.application.decomposition
 import skillbill.application.decomposition.model.DecompositionManifestRuntimeUpdate
 import skillbill.application.telemetry.normalizedBlockedReason
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionExecutionModel
 import skillbill.workflow.decomposition.model.DecompositionManifest
@@ -32,12 +34,12 @@ fun DecompositionSubtask.withRuntimeFields(
   // artifact map (loose-map style, mirroring commitShaFrom); non-terminal updates leave it untouched.
   val terminalOutcome = (artifacts["goal_continuation_outcome"] as? Map<*, *>)
     ?.takeIf { nextStatus.decompositionStatus() in setOf(DecompositionStatus.COMPLETE, DecompositionStatus.BLOCKED) }
-  val rolledParticipants = (terminalOutcome?.get("participating_agent_ids") as? List<*>)
+  val rolledParticipants = (terminalOutcome?.get(DecompositionManifestPayloadKeys.PARTICIPATING_AGENT_IDS) as? List<*>)
     ?.mapNotNull { it?.toString()?.takeIf(String::isNotBlank) }
     .orEmpty()
   return copy(
     status = nextStatus,
-    branch = branchName(artifacts["branch"]).ifBlank {
+    branch = branchName(artifacts[DecompositionPlanningPayloadKeys.BRANCH]).ifBlank {
       when (manifest.executionModel) {
         DecompositionExecutionModel.SAME_BRANCH_COMMIT_PER_SUBTASK -> manifest.featureBranch
         DecompositionExecutionModel.STACKED_BRANCHES ->
@@ -50,7 +52,9 @@ fun DecompositionSubtask.withRuntimeFields(
       nextStatus.decompositionStatus() != DecompositionStatus.BLOCKED
     },
     lastResumableStep = update.currentStepId.takeIf(String::isNotBlank) ?: lastResumableStep,
-    finalizingAgentId = terminalOutcome?.get("finalizing_agent_id")?.toString()?.takeIf(String::isNotBlank)
+    finalizingAgentId = terminalOutcome?.get(
+      DecompositionManifestPayloadKeys.FINALIZING_AGENT_ID,
+    )?.toString()?.takeIf(String::isNotBlank)
       ?: finalizingAgentId,
     participatingAgentIds = rolledParticipants.ifEmpty { participatingAgentIds },
   )
@@ -58,7 +62,7 @@ fun DecompositionSubtask.withRuntimeFields(
 
 fun DecompositionManifest.currentSubtaskIdForUpdate(repoRoot: Path, update: DecompositionManifestRuntimeUpdate): Int? {
   val assessment = mergedArtifacts(update)["assessment"] as? Map<*, *>
-  val specPath = assessment?.get("spec_path")?.toString()?.takeIf(String::isNotBlank)
+  val specPath = assessment?.get(DecompositionPlanningPayloadKeys.SPEC_PATH)?.toString()?.takeIf(String::isNotBlank)
   val matchedId = specPath?.let { matchingSubtaskId(repoRoot, it) }
   return if (specPath != null) {
     matchedId
@@ -132,7 +136,7 @@ private fun mergedArtifacts(update: DecompositionManifestRuntimeUpdate): Map<Str
 private fun blockedReasonFrom(update: DecompositionManifestRuntimeUpdate, status: String): String? =
   if (status.decompositionStatus() == DecompositionStatus.BLOCKED) {
     val artifacts = mergedArtifacts(update)
-    val rawReason = artifacts["blocked_reason"]?.toString()?.takeIf(String::isNotBlank)
+    val rawReason = artifacts[DecompositionManifestPayloadKeys.BLOCKED_REASON]?.toString()?.takeIf(String::isNotBlank)
     when {
       rawReason != null -> normalizedBlockedReason(
         reason = rawReason,
@@ -180,9 +184,9 @@ private fun prSuppressedCommitStatus(update: DecompositionManifestRuntimeUpdate)
 
 private fun commitShaFrom(artifacts: Map<String, Any?>): String? {
   val fromCommitPush = (artifacts["commit_push_result"] as? Map<*, *>)
-    ?.get("commit_sha")?.toString()?.trim()?.takeIf(String::isNotBlank)
+    ?.get(DecompositionManifestPayloadKeys.COMMIT_SHA)?.toString()?.trim()?.takeIf(String::isNotBlank)
   val fromOutcome = (artifacts["goal_continuation_outcome"] as? Map<*, *>)
-    ?.get("commit_sha")?.toString()?.trim()?.takeIf(String::isNotBlank)
+    ?.get(DecompositionManifestPayloadKeys.COMMIT_SHA)?.toString()?.trim()?.takeIf(String::isNotBlank)
   if (fromCommitPush != null && fromOutcome != null && fromCommitPush != fromOutcome) {
     val subtaskId = (artifacts["goal_continuation_outcome"] as? Map<*, *>)?.get(SharedPayloadKeys.SUBTASK_ID)
       ?: (artifacts["goal_continuation"] as? Map<*, *>)?.get(SharedPayloadKeys.SUBTASK_ID)

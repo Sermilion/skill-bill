@@ -9,7 +9,6 @@ import skillbill.engine.featuretask.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.emitFeatureTaskRuntimeEventSafely
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunEvent
 import skillbill.engine.featuretask.validation.model.ValidationFindingSetProjection
-import skillbill.engine.featuretask.validation.model.ValidationGateAgentRepairResult
 import skillbill.engine.featuretask.validation.model.ValidationGateCyclePhase
 import skillbill.engine.featuretask.validation.model.ValidationGateCycleRequest
 import skillbill.engine.featuretask.validation.model.ValidationGateCycleResult
@@ -99,7 +98,7 @@ class FeatureTaskRuntimeValidationGateCoordinator(
 
   fun execute(cycle: ValidationGateCycleRequest, onGateRunCount: (Int) -> Unit = {}): ValidationGateCycleResult {
     return when (val resolution = resolver.resolve(cycle.changedPaths)) {
-      is ValidationGateResolution.Absent -> ValidationGateCycleResult.AbsentFallback
+      is ValidationGateResolution.Absent -> terminalBlockedResult(ABSENT_VALIDATION_GATE_REASON)
       is ValidationGateResolution.Incompatible -> terminalBlockedResult(resolution.reason)
       is ValidationGateResolution.Declared -> checkAndRepair(cycle, resolution.declaration, onGateRunCount)
     }
@@ -144,30 +143,22 @@ class FeatureTaskRuntimeValidationGateCoordinator(
     val measurements = state.measurements
     var repairsUsed = initialRepairsUsed
     var lastFindings = openFindingsHint
-    val emptyHandoff = ValidationFindingSetProjection(emptyList())
     while (true) {
       if (repairsUsed >= MAX_REPAIR_TURNS) {
-        return repairBudgetExhaustedResult(state, lastFindings, repairsUsed)
-      }
-      persistProgress(
-        state = state,
-        write = ValidationGateProgressWrite.findingsOpen(
-          completeFindings = lastFindings,
-          repairsUsed = repairsUsed,
-          capturedTriagePlan = null,
-        ),
-      )
-      when (
-        val repair = cycle.agentRepairLauncher.launch(emptyHandoff, repairsUsed + 1, triagePlan = null)
-      ) {
-        is ValidationGateAgentRepairResult.Blocked -> return terminalBlockedResult(
-          repair.reason,
-          remainingFindings = ValidationFindingSetProjection(findings = lastFindings),
+        val projection = persistFindingsOpen(state, lastFindings, repairsUsed)
+        return terminalBlockedResult(
+          FINDINGS_REMAIN_AFTER_RESTARTS_REASON,
+          remainingFindings = projection,
           measurements = measurements,
-          failureDisposition = repair.failureDisposition,
         )
-        is ValidationGateAgentRepairResult.Completed -> repairsUsed++
       }
+      persistFindingsOpen(state, lastFindings, repairsUsed)
+      cycle.agentRepairLauncher.launch(
+        ValidationFindingSetProjection(emptyList()),
+        repairsUsed + 1,
+        triagePlan = null,
+      )
+      repairsUsed++
       val gatePhase = ValidationGateCyclePhase.POST_REPAIR_VERIFY
       val verify = runGate(cycle, declaration, gatePhase)
       lastFindings = findingsForRepairFromResult(verify)
@@ -193,27 +184,22 @@ class FeatureTaskRuntimeValidationGateCoordinator(
     }
   }
 
-  private fun repairBudgetExhaustedResult(
+  private fun persistFindingsOpen(
     state: ValidationGateCycleState,
-    lastFindings: List<ValidationGateFinding>,
+    findings: List<ValidationGateFinding>,
     repairsUsed: Int,
-  ): ValidationGateCycleResult {
-    val projection = ValidationFindingSetProjection(findings = lastFindings)
+  ): ValidationFindingSetProjection {
+    val projection = ValidationFindingSetProjection(findings = findings)
     persistProgress(
       state = state,
       write = ValidationGateProgressWrite.findingsOpen(
-        completeFindings = lastFindings,
+        completeFindings = findings,
         repairsUsed = repairsUsed,
         capturedTriagePlan = null,
-        remainingFindings = projection,
+        remainingFindings = projection.takeIf { findings.isNotEmpty() },
       ),
     )
-    return terminalBlockedResult(
-      "Validation gate still reports ${lastFindings.size} finding(s) after $MAX_REPAIR_TURNS validate " +
-        "agent turn(s); remaining findings are recorded for the operator.",
-      remainingFindings = projection,
-      measurements = state.measurements,
-    )
+    return projection
   }
 
   private fun repairWindowPhaseFor(
@@ -312,6 +298,10 @@ class FeatureTaskRuntimeValidationGateCoordinator(
 
   companion object {
     const val MAX_REPAIR_TURNS: Int = 3
+    const val FINDINGS_REMAIN_AFTER_RESTARTS_REASON: String =
+      "Validation still has findings after 3 restarts."
+    const val ABSENT_VALIDATION_GATE_REASON: String =
+      "No installed platform pack declares validation_gate."
 
     private fun operatorResumeRepairTurns(repairsUsed: Int): Int =
       if (repairsUsed >= MAX_REPAIR_TURNS) 0 else repairsUsed
@@ -396,19 +386,15 @@ private fun terminalCompletedResult(
   repositoryCheckpoint: String,
   measurements: List<FeatureTaskRuntimeValidationGateRunRecord>,
   requiredCommand: String,
-): ValidationGateCycleResult = try {
-  ValidationGateCycleResult.Terminal(
-    ValidationGateCycleTerminalOutcome.Completed(
-      output = FeatureTaskRuntimeValidationGateCoordinator.runtimeOwnedValidationOutput(
-        repositoryCheckpoint = repositoryCheckpoint,
-        measurements = measurements,
-        requiredCommand = requiredCommand,
-      ),
+): ValidationGateCycleResult = ValidationGateCycleResult.Terminal(
+  ValidationGateCycleTerminalOutcome.Completed(
+    output = FeatureTaskRuntimeValidationGateCoordinator.runtimeOwnedValidationOutput(
+      repositoryCheckpoint = repositoryCheckpoint,
+      measurements = measurements,
+      requiredCommand = requiredCommand,
     ),
-  )
-} catch (error: InvalidFeatureTaskRuntimeValidationEvidenceSchemaError) {
-  terminalBlockedResult(error.message.orEmpty(), measurements = measurements)
-}
+  ),
+)
 
 private fun terminalBlockedResult(
   reason: String,

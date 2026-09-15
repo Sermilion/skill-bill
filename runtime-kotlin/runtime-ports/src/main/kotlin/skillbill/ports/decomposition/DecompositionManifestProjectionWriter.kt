@@ -2,7 +2,7 @@ package skillbill.ports.decomposition
 
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.workflow.decomposition.DecompositionManifestValidator
-import skillbill.workflow.decomposition.runtime.model.DecompositionManifestWriteResult
+import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
 import java.nio.file.Path
 
 interface DecompositionManifestProjectionWriter {
@@ -11,5 +11,5 @@ interface DecompositionManifestProjectionWriter {
     artifactsJson: String,
     validator: DecompositionManifestValidator,
     fileStore: DecompositionManifestStore,
-  ): DecompositionManifestWriteResult?
+  ): DecompositionManifestProjectionOutcome
 }

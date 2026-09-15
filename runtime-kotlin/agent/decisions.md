@@ -4,6 +4,25 @@ This file records architectural and implementation decisions that span the
 `runtime-kotlin/` boundary. Each entry is dated and explains the trade-off,
 not the implementation detail.
 
+## 2026-09-14 — Validate is collect-all, fix, exit; runtime confirms
+
+**Context.** Validate blocked on agent `validation-evidence` JSON (schema cap=1)
+even when the agent had finished. Fallback (`agentRunValidateFallback`) still
+required that envelope. Prompts also forbade the agent from running collect-all,
+so the child never saw gate output before the runtime confirmation.
+
+**Decision.** Validate agent output is a finished signal, never evidence. The
+agent runs pack `collect_all_full_gate_command` once, fixes, and stops with no
+phase JSON. The runtime then runs `cache_bypassing_collect_all_full_gate_command`.
+Still red starts a fresh validate session. Validate has two block reasons: no
+installed platform pack declares `validation_gate`, and findings remaining after
+3 restarts. Schema, process death, and agent JSON are not validate block reasons.
+
+**Reason.** Pass/fail is the runtime confirmation. Agent JSON is not a check.
+
+**Supersedes.** 2026-08-29 validate repair edit-only for the first collect-all;
+2026-08-20 agent-run confirmation. Agent collect-all stays; confirmation is
+runtime-owned.
 
 ## 2026-09-14 — SKILL-238 subtask 2: what survives the single-implementation collapse
 

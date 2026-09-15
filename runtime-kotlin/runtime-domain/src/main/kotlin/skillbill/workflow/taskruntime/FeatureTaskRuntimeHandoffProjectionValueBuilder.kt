@@ -2,6 +2,7 @@ package skillbill.workflow.taskruntime
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.contracts.review.ReviewFindingPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
 import skillbill.error.FeatureTaskRuntimeHandoffProjectionFailureKind
@@ -53,7 +54,7 @@ internal object FeatureTaskRuntimeHandoffProjectionValueBuilder {
     val runtimeOwned = runtimeOwnedPhaseProjectionValues(inputs, declaration, produced)
     return declaration.declaredFieldNames.mapNotNull { name ->
       val value = runtimeOwned[name] ?: when {
-        name == "verdict" -> envelope[name]
+        name == SharedPayloadKeys.VERDICT -> envelope[name]
         else -> resolveDeclaredPhaseField(produced, name)
       }
       value?.let {
@@ -102,7 +103,7 @@ internal object FeatureTaskRuntimeHandoffProjectionValueBuilder {
     declaration: PhaseHandoffProjectionDeclaration,
     produced: Map<String, Any?>,
   ): Map<String, Any?> {
-    val value = resolveDeclaredPhaseField(produced, "value")
+    val value = resolveDeclaredPhaseField(produced, SharedPayloadKeys.VALUE)
       ?: rejectFeatureTaskRuntimeHandoffProjection(
         inputs,
         declaration,
@@ -119,7 +120,7 @@ internal object FeatureTaskRuntimeHandoffProjectionValueBuilder {
       )
     }
     val fields = linkedMapOf<String, Any?>(SharedPayloadKeys.VALUE to valueText)
-    resolveDeclaredPhaseField(produced, "prompt")
+    resolveDeclaredPhaseField(produced, SharedPayloadKeys.PROMPT)
       ?.toString()
       ?.takeIf(String::isNotBlank)
       ?.let { fields["directive"] = it }
@@ -169,7 +170,9 @@ internal object FeatureTaskRuntimeHandoffProjectionValueBuilder {
         val severity = (finding["severity"] as? String)?.takeIf(String::isNotBlank) ?: "blocker"
         mapOf(
           ReviewFindingPayloadKeys.FINDING_ID to (
-            finding[ReviewFindingPayloadKeys.FINDING_ID] ?: finding[ReviewFindingPayloadKeys.F_NUMBER] ?: finding["id"]
+            finding[ReviewFindingPayloadKeys.FINDING_ID]
+              ?: finding[ReviewFindingPayloadKeys.F_NUMBER]
+              ?: finding[DecompositionPlanningPayloadKeys.ID]
             ),
           "severity" to severity,
           "location" to (

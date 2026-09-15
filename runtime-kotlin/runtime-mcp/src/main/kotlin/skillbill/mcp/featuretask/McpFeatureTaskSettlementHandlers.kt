@@ -13,23 +13,23 @@ import skillbill.mcp.shared.string
 internal fun featureTaskPhaseComplete(arguments: Map<String, Any?>, context: McpRuntimeContext): Map<String, Any?> =
   services(context).featureTaskPhaseSettlementService.complete(
     FeatureTaskPhaseSettlementCompleteRequest(
-      workflowId = arguments.string("workflow_id"),
-      phaseId = arguments.string("phase_id"),
+      workflowId = arguments.string(SharedPayloadKeys.WORKFLOW_ID),
+      phaseId = arguments.string(SharedPayloadKeys.PHASE_ID),
       attempt = requireNotNull(arguments.optionalInt("attempt")) { "attempt is required." },
-      value = arguments.string("value"),
-      prompt = arguments.optionalString("prompt"),
-      summary = arguments.optionalString("summary"),
+      value = arguments.string(SharedPayloadKeys.VALUE),
+      prompt = arguments.optionalString(SharedPayloadKeys.PROMPT),
+      summary = arguments.optionalString(SharedPayloadKeys.SUMMARY),
     ),
   ).toWireMap()
 
 internal fun featureTaskPhaseBlock(arguments: Map<String, Any?>, context: McpRuntimeContext): Map<String, Any?> =
   services(context).featureTaskPhaseSettlementService.block(
     FeatureTaskPhaseSettlementBlockRequest(
-      workflowId = arguments.string("workflow_id"),
-      phaseId = arguments.string("phase_id"),
+      workflowId = arguments.string(SharedPayloadKeys.WORKFLOW_ID),
+      phaseId = arguments.string(SharedPayloadKeys.PHASE_ID),
       attempt = requireNotNull(arguments.optionalInt("attempt")) { "attempt is required." },
       reason = arguments.string("reason"),
-      failureDisposition = arguments.optionalString("failure_disposition") ?: "needs_user_action",
+      failureDisposition = arguments.optionalString(SharedPayloadKeys.FAILURE_DISPOSITION) ?: "needs_user_action",
     ),
   ).toWireMap()
 

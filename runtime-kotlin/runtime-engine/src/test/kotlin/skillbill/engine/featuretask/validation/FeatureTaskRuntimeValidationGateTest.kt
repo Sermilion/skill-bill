@@ -1,12 +1,12 @@
 package skillbill.engine.featuretask.validation
 
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION
-import skillbill.engine.featuretask.validation.model.UNPARSEABLE_GATE_FAILURE_RULE_ID
 import skillbill.engine.featuretask.validation.model.ValidationGateAgentRepairLauncher
 import skillbill.engine.featuretask.validation.model.ValidationGateAgentTriageLauncher
 import skillbill.engine.featuretask.validation.model.ValidationGateCycleRequest
 import skillbill.engine.featuretask.validation.model.ValidationGateCycleResult
 import skillbill.engine.featuretask.validation.model.ValidationGateCycleTerminalOutcome
+import skillbill.engine.featuretask.validation.model.ValidationGateResolution
 import skillbill.engine.featuretask.validation.model.ValidationGateTriageResult
 import skillbill.ports.validation.model.ValidationGateFinding
 import skillbill.workflow.goal.model.ValidationDepth
@@ -18,7 +18,6 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
-import kotlin.test.assertTrue
 
 class FeatureTaskRuntimeValidationGateTest {
   @Test
@@ -193,6 +192,70 @@ class FeatureTaskRuntimeValidationGateTest {
       ),
     )!!
     assertEquals(3, decodedWithRepairsUsed.repairsUsed)
+  }
+
+  @Test
+  fun `blocked agent turn still runs confirmation and can complete`() {
+    val repairLaunches = AtomicInteger(0)
+    val runner = ScriptedGateRunner(listOf(failedEmptyFindings("still red"), passed(forced = true)))
+    val cycle = coordinator(declaredResolver(), runner, mutableListOf()).execute(
+      ValidationGateCycleRequest(
+        repoRoot = validationGateTestRepoRoot,
+        request = minimalRequest(),
+        validationDepth = ValidationDepth.DEFAULT,
+        changedPaths = listOf("runtime-kotlin/foo.kt"),
+        repositoryCheckpoint = "checkpoint",
+        agentRepairLauncher = ValidationGateAgentRepairLauncher { _, _, _ ->
+          val launch = repairLaunches.incrementAndGet()
+          if (launch == 1) blockedRepair() else completedRepair()
+        },
+      ),
+    )
+    assertEquals(2, repairLaunches.get())
+    assertEquals(2, runner.calls)
+    assertIs<ValidationGateCycleTerminalOutcome.Completed>(
+      assertIs<ValidationGateCycleResult.Terminal>(cycle).outcome,
+    )
+  }
+
+  @Test
+  fun `missing pack validation_gate blocks without launching an agent`() {
+    val repairLaunches = AtomicInteger(0)
+    val cycle = coordinator(
+      ValidationGateResolver { listOf(kotlinPackWithoutGate()) },
+      neverRunsGate(),
+      mutableListOf(),
+    ).execute(
+      ValidationGateCycleRequest(
+        repoRoot = validationGateTestRepoRoot,
+        request = minimalRequest(),
+        validationDepth = ValidationDepth.DEFAULT,
+        changedPaths = listOf("runtime-kotlin/foo.kt"),
+        repositoryCheckpoint = "checkpoint",
+        agentRepairLauncher = ValidationGateAgentRepairLauncher { _, _, _ ->
+          repairLaunches.incrementAndGet()
+          error("validate must not launch an agent when no pack declares validation_gate")
+        },
+      ),
+    )
+    assertEquals(0, repairLaunches.get())
+    val blocked = assertIs<ValidationGateCycleTerminalOutcome.Blocked>(
+      assertIs<ValidationGateCycleResult.Terminal>(cycle).outcome,
+    )
+    assertEquals(FeatureTaskRuntimeValidationGateCoordinator.ABSENT_VALIDATION_GATE_REASON, blocked.reason)
+  }
+
+  @Test
+  fun `catalog gate wins when review routing only selects a no-gate fallback pack`() {
+    val resolver = ValidationGateResolver {
+      listOf(
+        reviewFallbackPackWithoutGate(),
+        kotlinPackWithoutGate().copy(validationGate = validationGateTestDeclaration),
+      )
+    }
+    val resolution = resolver.resolve(listOf("notes.txt"))
+    val declared = assertIs<ValidationGateResolution.Declared>(resolution)
+    assertEquals("kotlin", declared.packSlug)
   }
 
   private fun progressArtifact(

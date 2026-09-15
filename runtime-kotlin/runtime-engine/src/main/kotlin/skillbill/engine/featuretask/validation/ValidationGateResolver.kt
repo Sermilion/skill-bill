@@ -62,7 +62,7 @@ class ValidationGateResolver(
     }
     val gated = routed.filter { it.validationGate != null }
     if (gated.isEmpty()) {
-      return routed.firstOrNull()
+      return manifests.firstOrNull { it.validationGate != null } ?: routed.firstOrNull()
     }
     return gated.maxByOrNull { pack -> routing.ownedPathsBySlug[pack.slug]?.size ?: 0 }
   }

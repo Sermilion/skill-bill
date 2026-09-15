@@ -91,8 +91,10 @@ class FeatureTaskRuntimeValidationGateFullDiscoverTest {
     assertEquals(maxTurns, repairLaunchCount.size)
     assertTrue(repairLaunchCount.all { it == 0 })
     assertEquals(maxTurns, runner.calls)
-    assertTrue(blocked.reason.contains("after $maxTurns validate"))
-    assertTrue(blocked.reason.contains("recorded for the operator"))
+    assertEquals(
+      FeatureTaskRuntimeValidationGateCoordinator.FINDINGS_REMAIN_AFTER_RESTARTS_REASON,
+      blocked.reason,
+    )
     assertEquals("LaterTest", blocked.remainingFindings?.findings?.single()?.ruleOrTestId)
     assertEquals(
       FeatureTaskRuntimeValidationGateRepairWindowPhase.FINDINGS_OPEN,

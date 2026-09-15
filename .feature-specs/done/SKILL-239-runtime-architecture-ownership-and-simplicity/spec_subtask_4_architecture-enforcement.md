@@ -4,7 +4,7 @@
 
 Fix F-006 and F-007 in wire-vocabulary enforcement and current architecture documentation. The scanner's current checked keys come only from existing owning objects, so an undeclared key produces no violation. Some documentation tests pin exact prose while missing disagreements about the active ceiling and baselines.
 
-Own WireVocabularyArchitectureSupport and its fixtures, RuntimeArchitectureDocumentationTest, the relevant enforcement inventory, docs/code-principles.md, runtime-kotlin/ARCHITECTURE.md, and the decomposition/workflow key declarations and call sites needed to close the named contract gap. Preserve AGENTS.md's reference to [Design Principles](../../runtime-kotlin/ARCHITECTURE.md#design-principles). Keep lasting rules there rather than duplicating them in AGENTS.md or this spec.
+Own WireVocabularyArchitectureSupport and its fixtures, RuntimeArchitectureDocumentationTest, the relevant enforcement inventory, docs/code-principles.md, runtime-kotlin/ARCHITECTURE.md, and the decomposition/workflow key declarations and call sites needed to close the named contract gap. Preserve AGENTS.md's reference to [Design Principles](../../../runtime-kotlin/ARCHITECTURE.md#design-principles). Keep lasting rules there rather than duplicating them in AGENTS.md or this spec.
 
 ## Acceptance criteria
 

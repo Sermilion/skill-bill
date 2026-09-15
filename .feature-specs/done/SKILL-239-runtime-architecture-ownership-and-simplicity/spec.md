@@ -6,7 +6,7 @@ Keep the existing eleven-module runtime and make its boundaries hold during fail
 
 The investigation is in [investigation.md](investigation.md). It covers all declared runtime modules through dependency and source inventories, selected execution traces, 36 passing architecture tests, and three isolated executable probes. This spec prepares work only. It does not claim that the runtime has already met these criteria.
 
-The lasting requirements live in [Design Principles](../../runtime-kotlin/ARCHITECTURE.md#design-principles), which AGENTS.md requires runtime contributors to follow. This spec owns the bounded implementation and validation of those requirements. Each subtask updates the documented enforcement status when its checks land.
+The lasting requirements live in [Design Principles](../../../runtime-kotlin/ARCHITECTURE.md#design-principles), which AGENTS.md requires runtime contributors to follow. This spec owns the bounded implementation and validation of those requirements. Each subtask updates the documented enforcement status when its checks land.
 
 ## Mode
 

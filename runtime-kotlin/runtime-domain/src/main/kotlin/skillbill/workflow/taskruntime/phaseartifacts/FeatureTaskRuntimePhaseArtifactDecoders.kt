@@ -1,6 +1,7 @@
 package skillbill.workflow.taskruntime.phaseartifacts
 
 import skillbill.contracts.JsonCodec
+import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_FIELD_ADOPTION_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_ARTIFACT_KEY
@@ -62,7 +63,7 @@ internal fun operatorBlockRetryFrom(artifacts: Map<String, Any?>): FeatureTaskRu
       "Feature-task-runtime artifact '$FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_ARTIFACT_KEY' must decode to a map.",
     )
   return FeatureTaskRuntimeOperatorBlockRetry(
-    phaseId = entryMap.requiredOperatorRetryString("phase_id"),
+    phaseId = entryMap.requiredOperatorRetryString(SharedPayloadKeys.PHASE_ID),
     reason = entryMap.requiredOperatorRetryString("reason"),
     retriedAt = entryMap.requiredOperatorRetryString("retried_at"),
   )

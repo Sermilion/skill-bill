@@ -20,6 +20,17 @@ data class OpenDatabase(
 }
 
 object DatabaseRuntime {
+  private var writeReadinessGate = DatabaseWriteReadinessGate()
+
+  internal fun resetWriteReadinessForTests() {
+    writeReadinessGate = DatabaseWriteReadinessGate()
+  }
+
+  internal fun writeReadinessEstablishmentCount(): Int = writeReadinessGate.schemaEstablishmentExecutions
+
+  fun ensureWriteReady(path: Path) {
+    writeReadinessGate.ensureReady(path.toAbsolutePath().normalize())
+  }
   fun resolveDbPath(
     cliValue: String?,
     environment: Map<String, String> = System.getenv(),
@@ -35,7 +46,43 @@ object DatabaseRuntime {
     return openDbAt(dbPath)
   }
 
-  fun openDbAt(dbPath: Path): OpenDatabase = OpenDatabase(connection = ensureDatabase(dbPath), dbPath = dbPath)
+  fun openDbAt(dbPath: Path): OpenDatabase {
+    ensureWriteReady(dbPath)
+    return openWriteDbAt(dbPath)
+  }
+
+  fun openWriteDbAt(dbPath: Path): OpenDatabase =
+    OpenDatabase(connection = openWriteConnectionAt(dbPath), dbPath = dbPath)
+
+  fun establishSchemaReadiness(path: Path) {
+    path.parent?.toAbsolutePath()?.normalize()?.toFile()?.mkdirs()
+    asTypedFailure(path, DatabaseAccessOperation.OPEN) {
+      DriverManager.getConnection("jdbc:sqlite:${path.toAbsolutePath().normalize()}").use { connection ->
+        connection.closingOnFailure {
+          asTypedFailure(path, DatabaseAccessOperation.OPEN) {
+            configureConnection(connection, enableWal = true)
+            DatabaseSchema.createBaseSchema(connection)
+            DatabaseMigrations.apply(connection)
+            DatabaseColumnMigrations.apply(connection)
+            DatabaseColumnMigrations.healDiagnosticEvidenceKeys(connection)
+            DatabaseColumnMigrations.healWorkListMetadata(connection)
+          }
+        }
+      }
+    }
+  }
+
+  fun openWriteConnectionAt(path: Path): Connection {
+    val connection = asTypedFailure(path, DatabaseAccessOperation.OPEN) {
+      DriverManager.getConnection("jdbc:sqlite:${path.toAbsolutePath().normalize()}")
+    }
+    return connection.closingOnFailure {
+      asTypedFailure(path, DatabaseAccessOperation.OPEN) {
+        configureConnection(connection, enableWal = true)
+      }
+      connection
+    }
+  }
 
   fun openReadDb(
     cliValue: String? = null,
@@ -52,6 +99,8 @@ object DatabaseRuntime {
     }
     return openReadOnlyDb(dbPath)
   }
+
+  internal fun openReadConnectionAt(dbPath: Path): OpenDatabase = openReadOnlyDb(dbPath)
 
   fun openReadDbIfPresent(
     cliValue: String? = null,
@@ -90,21 +139,8 @@ object DatabaseRuntime {
   }
 
   fun ensureDatabase(path: Path): Connection {
-    path.parent?.toAbsolutePath()?.normalize()?.toFile()?.mkdirs()
-    val connection = asTypedFailure(path, DatabaseAccessOperation.OPEN) {
-      DriverManager.getConnection("jdbc:sqlite:${path.toAbsolutePath().normalize()}")
-    }
-    return connection.closingOnFailure {
-      asTypedFailure(path, DatabaseAccessOperation.OPEN) {
-        configureConnection(connection, enableWal = true)
-        DatabaseSchema.createBaseSchema(connection)
-        DatabaseMigrations.apply(connection)
-        DatabaseColumnMigrations.apply(connection)
-        DatabaseColumnMigrations.healDiagnosticEvidenceKeys(connection)
-        DatabaseColumnMigrations.healWorkListMetadata(connection)
-      }
-      connection
-    }
+    establishSchemaReadiness(path)
+    return openWriteConnectionAt(path)
   }
 
   // A zero-byte file is a valid empty SQLite database with no tables, so emptiness of sqlite_master
