@@ -10,19 +10,40 @@ import skillbill.review.model.ReviewStageDegradationMeasurement
 import skillbill.review.model.ReviewStageDegradationReason
 import skillbill.review.model.ReviewStageDegradationSelectionRequest
 import skillbill.review.model.ReviewStageReached
+import skillbill.review.model.ReviewVerificationNonSuccess
 
 object ReviewStageDegradationSelection {
-  private val workerLaunchOrReturnReasons = setOf(
-    "agent process failed to spawn",
-    "agent timed out",
-    "agent was interrupted",
-    "agent exited with unknown status",
-    "agent output exceeded the retention cap before completion",
-    "verification launch exceeded max_lane_launch_bytes",
-    "adjudication launch exceeded max_lane_launch_bytes",
-    "unparseable verification output",
-    "unparseable adjudication output",
+  private val workerFailureReasons: Map<String, ReviewStageDegradationReason> = mapOf(
+    "agent process failed to spawn" to ReviewStageDegradationReason.WORKER_PROCESS_FAILED,
+    "agent was interrupted" to ReviewStageDegradationReason.WORKER_PROCESS_FAILED,
+    "agent exited with unknown status" to ReviewStageDegradationReason.WORKER_PROCESS_FAILED,
+    "agent timed out" to ReviewStageDegradationReason.WORKER_TIMED_OUT,
+    "agent output exceeded the retention cap before completion" to
+      ReviewStageDegradationReason.WORKER_LAUNCH_BUDGET_EXCEEDED,
+    "verification launch exceeded max_lane_launch_bytes" to
+      ReviewStageDegradationReason.WORKER_LAUNCH_BUDGET_EXCEEDED,
+    "adjudication launch exceeded max_lane_launch_bytes" to
+      ReviewStageDegradationReason.WORKER_LAUNCH_BUDGET_EXCEEDED,
+    "unparseable verification output" to ReviewStageDegradationReason.WORKER_OUTPUT_UNUSABLE,
+    "unparseable adjudication output" to ReviewStageDegradationReason.WORKER_OUTPUT_UNUSABLE,
   )
+
+  private val workerFailureReasonPrefixes: Map<String, ReviewStageDegradationReason> = mapOf(
+    "agent exited with status " to ReviewStageDegradationReason.WORKER_PROCESS_FAILED,
+    "unsupported agent:" to ReviewStageDegradationReason.WORKER_LAUNCH_OR_RETURN_FAILED,
+  )
+
+  /**
+   * The cause behind a rejected verdict, or null when the rejection is an ordinary review outcome
+   * rather than a worker failure. Classification is by exact reason: an unrecognized reason stays
+   * null rather than being attributed to a cause nobody classified, so a new worker-failure reason
+   * has to be added here to report at all.
+   */
+  fun workerFailureReason(rejectionReason: String?): ReviewStageDegradationReason? {
+    val reason = rejectionReason ?: return null
+    return workerFailureReasons[reason]
+      ?: workerFailureReasonPrefixes.entries.firstOrNull { reason.startsWith(it.key) }?.value
+  }
 
   fun select(request: ReviewStageDegradationSelectionRequest): List<ReviewStageDegradationMeasurement> {
     val byStage = request.boundaries.associateBy { it.stage }
@@ -33,6 +54,7 @@ object ReviewStageDegradationSelection {
         add(adjudicationSkip(request.reviewRunId, specNone))
       }
       workerFailure(request.reviewRunId, request.verdicts)?.let(::add)
+      verificationNonSuccess(request.reviewRunId, request.verificationNonSuccess)?.let(::add)
       addAll(unreachedBoundaries(request.reviewRunId, specNone, byStage, request.claims))
       request.evidenceBoundaries.forEach { addAll(evidenceBoundaryRecords(request.reviewRunId, it)) }
     }
@@ -71,18 +93,30 @@ object ReviewStageDegradationSelection {
     reviewRunId: String,
     verdicts: List<ReviewFindingVerdict>,
   ): ReviewStageDegradationMeasurement? {
-    val failedWorker = verdicts.firstOrNull { verdict ->
-      val reason = verdict.rejectionReason ?: return@firstOrNull false
-      reason in workerLaunchOrReturnReasons ||
-        reason.startsWith("agent exited with status ") ||
-        reason.startsWith("unsupported agent:")
+    val failure = verdicts.firstNotNullOfOrNull { verdict ->
+      workerFailureReason(verdict.rejectionReason)?.let { verdict to it }
     } ?: return null
+    val (failedWorker, reason) = failure
     return ReviewStageDegradationMeasurement(
       reviewRunId = reviewRunId,
       seam = "review.${failedWorker.stage.wireValue}.worker",
       expected = "worker_returned",
-      actual = "launch_or_return_failed",
-      reason = ReviewStageDegradationReason.WORKER_LAUNCH_OR_RETURN_FAILED,
+      actual = reason.wireValue,
+      reason = reason,
+    )
+  }
+
+  private fun verificationNonSuccess(
+    reviewRunId: String,
+    nonSuccess: ReviewVerificationNonSuccess?,
+  ): ReviewStageDegradationMeasurement? {
+    val observed = nonSuccess ?: return null
+    return ReviewStageDegradationMeasurement(
+      reviewRunId = reviewRunId,
+      seam = "review.${ReviewStage.VERIFICATION.wireValue}.worker",
+      expected = "worker_returned",
+      actual = observed.reason.wireValue,
+      reason = observed.reason,
     )
   }
 

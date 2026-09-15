@@ -7,4 +7,5 @@ data class ReviewStageDegradationSelectionRequest(
   val verdicts: List<ReviewFindingVerdict>,
   val claims: ReviewPassClaimSnapshot?,
   val evidenceBoundaries: List<ReviewEvidenceBoundaryAccounting> = emptyList(),
+  val verificationNonSuccess: ReviewVerificationNonSuccess? = null,
 )

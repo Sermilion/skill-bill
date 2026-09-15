@@ -147,6 +147,22 @@ $defs:
       - working_tree
       - branch_diff
       - repo
+  # Mirrors `TelemetryMeasurementAvailability`. A consumer reads the availability before the value, so
+  # an absent measurement can never be mistaken for a measured zero.
+  telemetryMeasurementAvailabilityEnum:
+    type: string
+    enum:
+      - measured
+      - unavailable_no_durable_state
+      - unavailable_unsupported
+      - unavailable_incomplete
+      - unknown
+  # Mirrors `LifecycleSessionCompletion`: how a lifecycle session reached its terminal row.
+  lifecycleSessionCompletionEnum:
+    type: string
+    enum:
+      - operator_completed
+      - reconciler_stale
   specInputTypeEnum:
     type: string
     enum:
@@ -1210,8 +1226,18 @@ $defs:
         const: quality_check_finished
       contract_version:
         const: "1.11.0"
+      # Null on a reconciler-marked stale terminal: that check never reported back, so it has no final
+      # count. Read `final_failure_count_availability` before this value.
       final_failure_count:
-        type: integer
+        type:
+          - integer
+          - "null"
+      final_failure_count_availability:
+        $ref: "#/$defs/telemetryMeasurementAvailabilityEnum"
+      completion:
+        $ref: "#/$defs/lifecycleSessionCompletionEnum"
+      stale_reason:
+        type: string
       iterations:
         type: integer
       result:
@@ -1533,7 +1559,12 @@ $defs:
         enum:
           - spec_context_none
           - adjudication_skipped
+          - worker_process_failed
+          - worker_timed_out
+          - worker_output_unusable
+          - worker_launch_budget_exceeded
           - worker_launch_or_return_failed
+          - review_pass_output_absent
           - stage_boundary_unreached
           - evidence_boundary_unbound_broker
           - evidence_boundary_unexercised
@@ -1655,6 +1686,18 @@ x-coherence-checks:
       enforces the clean-slug shape without hard-coding manifest-driven
       platform-pack slugs; `TelemetryEventSchemaValidator` enforces the
       cross-field equality after schema validation.
+  quality-check-null-failure-count-requires-reconciler-terminal:
+    description: >
+      `quality_check_finished.final_failure_count` is nullable because the
+      same branch validates the payload the runtime emits for a check the
+      stale reconciler closed, which never observed a count. Only that
+      terminal may carry the null: `TelemetryEventSchemaValidator` rejects a
+      null count unless `completion` is `reconciler_stale`, and
+      `McpToolDispatcher` strips caller-supplied `completion`,
+      `final_failure_count_availability`, and `stale_reason` before
+      validation because the emission seam owns all three. Without both
+      halves a caller could report a null count that the handler defaults to
+      zero and the payload then publishes as a measured clean gate.
   inputschemas-structural-parity:
     description: >
       For every event with an entry in `McpToolRegistry.inputSchemas`,

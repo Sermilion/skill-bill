@@ -15,34 +15,46 @@ private val featureTaskRuntimeCompletionStatuses =
   listOf("completed", "blocked", "decomposed_at_planning", "error", "stale")
 private val featureTaskRuntimePhaseOutcomes = listOf("completed", "blocked", "running")
 
+/**
+ * Every rate here is over the runs that were actually observed reaching a terminal. A stale row is a
+ * run the reconciler closed after it stopped reporting, never one that ended in a known way, so
+ * including it in the denominator quietly reported a lower completion rate than the runs support.
+ * Its count is published as [FeatureTaskRuntimeWorkflowStats.reconcilerClosedRuns] instead of being
+ * folded into a rate.
+ */
 fun buildFeatureTaskRuntimeStats(rows: List<Map<String, Any?>>): FeatureTaskRuntimeWorkflowStats {
   val finishedRows = finishedRows(rows)
-  val completedRuns = finishedRows.count { it.stringValue("completion_status") == "completed" }
-  val blockedRuns = finishedRows.count { it.stringValue("completion_status") == "blocked" }
-  val decomposedRuns = finishedRows.count { it.stringValue("completion_status") == "decomposed_at_planning" }
-  val errorRuns = finishedRows.count { it.stringValue("completion_status") == "error" }
-  val completedPhaseCounts = finishedRows.map { parseJsonList(it["completed_phase_ids"]).size }
-  val tokenValues = finishedRows.mapNotNull { it.nullableIntValue("estimated_total_tokens") }
+  val observedRows = finishedRows.filterNot { it.stringValue("completion_status") == STALE_COMPLETION_STATUS }
+  val completedRuns = observedRows.count { it.stringValue("completion_status") == "completed" }
+  val blockedRuns = observedRows.count { it.stringValue("completion_status") == "blocked" }
+  val decomposedRuns = observedRows.count { it.stringValue("completion_status") == "decomposed_at_planning" }
+  val errorRuns = observedRows.count { it.stringValue("completion_status") == "error" }
+  val completedPhaseCounts = observedRows.map { parseJsonList(it["completed_phase_ids"]).size }
+  val tokenValues = observedRows.mapNotNull { it.nullableIntValue("estimated_total_tokens") }
   return FeatureTaskRuntimeWorkflowStats(
     totalRuns = rows.size,
     finishedRuns = finishedRows.size,
     inProgressRuns = rows.size - finishedRows.size,
     featureSizeCounts = countValues(rows, "feature_size", featureSizes),
     completionStatusCounts = countValues(finishedRows, "completion_status", featureTaskRuntimeCompletionStatuses),
-    phaseOutcomeCounts = phaseOutcomeCounts(finishedRows),
+    phaseOutcomeCounts = phaseOutcomeCounts(observedRows),
     completedRuns = completedRuns,
-    completedRate = rate(completedRuns, finishedRows.size),
+    completedRate = rate(completedRuns, observedRows.size),
     blockedRuns = blockedRuns,
-    blockedRate = rate(blockedRuns, finishedRows.size),
+    blockedRate = rate(blockedRuns, observedRows.size),
     decomposedRuns = decomposedRuns,
-    decomposedRate = rate(decomposedRuns, finishedRows.size),
+    decomposedRate = rate(decomposedRuns, observedRows.size),
     errorRuns = errorRuns,
-    errorRate = rate(errorRuns, finishedRows.size),
+    errorRate = rate(errorRuns, observedRows.size),
     averageCompletedPhaseCount = average(completedPhaseCounts),
     estimatedTokenRunsWithValue = tokenValues.size,
     averageEstimatedTotalTokens = average(tokenValues),
+    observedRuns = observedRows.size,
+    reconcilerClosedRuns = finishedRows.size - observedRows.size,
   )
 }
+
+const val STALE_COMPLETION_STATUS: String = "stale"
 
 private fun phaseOutcomeCounts(rows: List<Map<String, Any?>>): Map<String, Int> {
   val counts = featureTaskRuntimePhaseOutcomes.associateWith { 0 }.toMutableMap()

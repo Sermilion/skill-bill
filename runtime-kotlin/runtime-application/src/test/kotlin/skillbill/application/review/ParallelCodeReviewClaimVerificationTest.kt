@@ -4,6 +4,7 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerSubtaskLaunchRequest
 import skillbill.review.context.model.CodeReviewExecutionMode
 import skillbill.review.model.ReviewClaimVerdict
 import skillbill.review.model.ReviewStage
+import skillbill.review.model.ReviewStageDegradationReason
 import skillbill.review.model.ReviewStageReached
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -117,6 +118,39 @@ class ParallelCodeReviewClaimVerificationTest {
     val verificationPrompt = recorder.verificationLaunches.single().skillRunRequest.promptOverride.orEmpty()
     assertTrue(prose in verificationPrompt)
     assertTrue(ReviewClaimVerificationRunner.VERIFY_CLAIMS_ACTION in verificationPrompt)
+  }
+
+  @Test
+  fun `a review pass that returned no output leaves verification unreached and records why`() {
+    val recorder = ReviewRecorder()
+    reviewHarness(verificationConfig(paths = listOf("src/Main.kt"), findings = ""), recorder)
+      .run(harnessRequest(reviewRunId = RUN_ID, codeReviewMode = CodeReviewExecutionMode.DELEGATED))
+
+    assertTrue(
+      recorder.durableStageBoundaries.none {
+        it.stage == ReviewStage.VERIFICATION && it.reached == ReviewStageReached.REACHED
+      },
+    )
+    assertEquals(
+      listOf(ReviewStageDegradationReason.REVIEW_PASS_OUTPUT_ABSENT),
+      recorder.stageDegradations
+        .filter { it.reason == ReviewStageDegradationReason.REVIEW_PASS_OUTPUT_ABSENT }
+        .map { it.reason },
+    )
+  }
+
+  @Test
+  fun `a degradation write that fails is absorbed instead of failing the review run`() {
+    val recorder = ReviewRecorder()
+    recorder.failStageDegradationWrite = true
+
+    val result = reviewHarness(
+      verificationConfig(paths = listOf("src/Main.kt"), findings = ""),
+      recorder,
+    ).run(harnessRequest(reviewRunId = RUN_ID, codeReviewMode = CodeReviewExecutionMode.DELEGATED))
+
+    assertTrue(recorder.stageDegradations.isEmpty())
+    assertTrue(result.mergeResult.findings.isEmpty())
   }
 
   private fun delegatedRequest() = harnessRequest(

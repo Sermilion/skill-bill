@@ -40,6 +40,9 @@ sealed interface FeatureTaskRuntimeCheckpointDecision {
  * active phase finished writing them.
  * @param deletedPaths tracked paths removed from the worktree (or rename sources). Removals are
  * staged so a package move can commit both halves.
+ * @param workflowId the active run's identity. Run-evidence artifacts published under this
+ * workflow's own address are runtime-owned; another run's artifact or an unrecognized file under
+ * the same store root is not, and stays an actionable path rather than being swept by the prefix.
  */
 data class FeatureTaskRuntimeCheckpointScopeInput(
   val issueKey: String,
@@ -49,4 +52,5 @@ data class FeatureTaskRuntimeCheckpointScopeInput(
   val foreignStagedPaths: List<String> = emptyList(),
   val concurrentlyModifiedOwnedPaths: List<String> = emptyList(),
   val deletedPaths: List<String> = emptyList(),
+  val workflowId: String? = null,
 )

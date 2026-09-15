@@ -57,6 +57,7 @@ import skillbill.ports.telemetry.TelemetryConfigStore
 import skillbill.ports.telemetry.TelemetryOutboxRepository
 import skillbill.ports.telemetry.TelemetryReconciliationRepository
 import skillbill.ports.telemetry.TelemetrySettingsProvider
+import skillbill.ports.telemetry.model.TelemetryOutboxClaimRequest
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
 import skillbill.ports.telemetry.model.TelemetryReconciliationRequest
 import skillbill.ports.telemetry.model.TelemetryReconciliationResult
@@ -94,6 +95,8 @@ import skillbill.telemetry.model.GoalStartedRecord
 import skillbill.telemetry.model.GoalSubtaskFinishedRecord
 import skillbill.telemetry.model.RemoteStatsRequest
 import skillbill.telemetry.model.TelemetryConfigDocument
+import skillbill.telemetry.model.TelemetryDeliveryOutcome
+import skillbill.telemetry.model.TelemetryDeliveryReport
 import skillbill.telemetry.model.TelemetryProxyCapabilities
 import skillbill.telemetry.model.TelemetryRemoteStatsResult
 import skillbill.telemetry.model.TelemetrySettings
@@ -525,21 +528,21 @@ internal object ThrowingPlanReviewAttributionPort : ReviewAttributionPort {
 internal object NoopTelemetryOutboxRepository : TelemetryOutboxRepository {
   override fun enqueue(eventName: String, payloadJson: String): Long = error("Unexpected enqueue")
 
-  override fun listPending(limit: Int?): List<TelemetryOutboxRecord> = emptyList()
+  override fun claimPending(request: TelemetryOutboxClaimRequest): List<TelemetryOutboxRecord> = emptyList()
 
   override fun pendingCount(): Int = 0
+
+  override fun blockedCount(attemptBudget: Int): Int = 0
 
   override fun latestError(): String? = null
 
   override fun lastSyncedAt(): String? = null
 
-  override fun markSynced(id: Long, syncedAt: String) = Unit
-
   override fun markSynced(eventIds: List<Long>) = Unit
 
-  override fun markFailed(id: Long, lastError: String) = Unit
-
   override fun markFailed(eventIds: List<Long>, lastError: String) = Unit
+
+  override fun markUnconfirmed(eventIds: List<Long>, lastError: String) = Unit
 
   override fun clear(): Int = 0
 }
@@ -563,20 +566,22 @@ internal class InMemoryTelemetryOutboxRepository(
     return id
   }
 
-  override fun listPending(limit: Int?): List<TelemetryOutboxRecord> =
+  fun listPending(limit: Int? = null): List<TelemetryOutboxRecord> =
     rows.filter { it.syncedAt == null }.let { pending ->
       if (limit == null) pending else pending.take(limit)
     }
 
+  override fun claimPending(request: TelemetryOutboxClaimRequest): List<TelemetryOutboxRecord> =
+    rows.filter { it.syncedAt == null && it.deliveryAttempts < request.attemptBudget }.take(request.limit)
+
   override fun pendingCount(): Int = rows.count { it.syncedAt == null }
+
+  override fun blockedCount(attemptBudget: Int): Int =
+    rows.count { it.syncedAt == null && it.deliveryAttempts >= attemptBudget }
 
   override fun latestError(): String? = rows.lastOrNull { it.syncedAt == null && it.lastError.isNotBlank() }?.lastError
 
   override fun lastSyncedAt(): String? = rows.mapNotNull { it.syncedAt }.maxOrNull()
-
-  override fun markSynced(id: Long, syncedAt: String) {
-    markSynced(listOf(id))
-  }
 
   override fun markSynced(eventIds: List<Long>) {
     rows.replaceAll { row ->
@@ -584,14 +589,18 @@ internal class InMemoryTelemetryOutboxRepository(
     }
   }
 
-  override fun markFailed(id: Long, lastError: String) {
-    markFailed(listOf(id), lastError)
-  }
-
   override fun markFailed(eventIds: List<Long>, lastError: String) {
     rows.replaceAll { row ->
-      if (row.id in eventIds) row.copy(lastError = lastError) else row
+      if (row.id in eventIds) {
+        row.copy(lastError = lastError, deliveryAttempts = row.deliveryAttempts + 1)
+      } else {
+        row
+      }
     }
+  }
+
+  override fun markUnconfirmed(eventIds: List<Long>, lastError: String) {
+    rows.replaceAll { row -> if (row.id in eventIds) row.copy(lastError = lastError) else row }
   }
 
   override fun clear(): Int {
@@ -630,8 +639,9 @@ internal object FakeTelemetryConfigStore : TelemetryConfigStore {
 internal class FakeTelemetryClient : TelemetryClient {
   val sentBatchIds = mutableListOf<List<Long>>()
 
-  override fun sendBatch(settings: TelemetrySettings, rows: List<TelemetryOutboxRecord>) {
+  override fun sendBatch(settings: TelemetrySettings, rows: List<TelemetryOutboxRecord>): TelemetryDeliveryReport {
     sentBatchIds += rows.map { it.id }
+    return TelemetryDeliveryReport(TelemetryDeliveryOutcome.ACCEPTED)
   }
 
   override fun fetchProxyCapabilities(settings: TelemetrySettings): TelemetryProxyCapabilities =

@@ -1,15 +1,14 @@
 package skillbill.application.telemetry.sync
 
+import skillbill.application.telemetry.model.TelemetryOutboxStatusSnapshot
 import skillbill.application.telemetry.model.TelemetryStatusResult
 import skillbill.application.telemetry.model.TelemetrySyncStatusResult
 import skillbill.ports.telemetry.TelemetryClient
 import skillbill.ports.telemetry.TelemetryOutboxRepository
-import skillbill.ports.telemetry.model.TelemetryOutboxRecord
 import skillbill.telemetry.model.SyncResult
 import skillbill.telemetry.model.TelemetrySettings
-import skillbill.telemetry.model.TelemetrySyncStatus
-import java.io.IOException
 import java.nio.file.Path
+import java.time.Instant
 
 object TelemetrySyncRuntime {
   fun disabledSync(settings: TelemetrySettings): SyncResult = disabledSyncResult(settings)
@@ -18,10 +17,11 @@ object TelemetrySyncRuntime {
     settings: TelemetrySettings,
     outboxRepository: TelemetryOutboxRepository,
     client: TelemetryClient,
+    now: Instant,
   ): SyncResult = if (!settings.enabled) {
     disabledSyncResult(settings)
   } else {
-    syncEnabledTelemetry(settings, outboxRepository, client)
+    syncEnabledTelemetry(settings, outboxRepository, client, now)
   }
 
   fun syncResult(result: SyncResult): TelemetrySyncStatusResult = TelemetrySyncStatusResult(
@@ -42,36 +42,24 @@ object TelemetrySyncRuntime {
   fun telemetryStatusPayload(
     dbPath: Path,
     settings: TelemetrySettings,
-    pendingEvents: Int = 0,
-    latestError: String? = null,
-    lastSyncedAt: String? = null,
+    outbox: TelemetryOutboxStatusSnapshot = TelemetryOutboxStatusSnapshot(),
   ): TelemetryStatusResult = baseStatusResult(dbPath, settings).copy(
-    pendingEvents = pendingEvents,
-    latestError = latestError,
-    lastSyncedAt = lastSyncedAt,
+    pendingEvents = outbox.pendingEvents,
+    latestError = outbox.latestError,
+    lastSyncedAt = outbox.lastSyncedAt,
+    blockedEvents = outbox.blockedEvents,
   )
 
   fun autoSyncTelemetry(
     settings: TelemetrySettings,
     outboxRepository: TelemetryOutboxRepository,
     client: TelemetryClient,
-    reportFailures: Boolean = false,
-    stderr: (String) -> Unit = {},
-  ): SyncResult? {
-    val result =
-      try {
-        syncTelemetry(settings, outboxRepository, client)
-      } catch (error: IllegalArgumentException) {
-        if (reportFailures) {
-          stderr("Telemetry sync skipped: ${error.message}")
-        }
-        return null
-      }
-    if (reportFailures && result.status == TelemetrySyncStatus.FAILED && result.message != null) {
-      stderr("Telemetry sync failed: ${result.message}")
+    now: Instant,
+  ): SyncResult? = runCatching { syncTelemetry(settings, outboxRepository, client, now) }
+    .getOrElse { thrown ->
+      if (thrown !is Exception) throw thrown
+      null
     }
-    return result
-  }
 }
 
 fun telemetrySyncTarget(settings: TelemetrySettings): String = when {
@@ -84,76 +72,21 @@ private fun syncEnabledTelemetry(
   settings: TelemetrySettings,
   outboxRepository: TelemetryOutboxRepository,
   client: TelemetryClient,
+  now: Instant,
 ): SyncResult {
   val pendingBefore = outboxRepository.pendingCount()
   val syncContext = syncContext(settings, pendingBefore)
   return when {
     !syncContext.remoteConfigured -> unconfiguredSyncResult(syncContext)
     pendingBefore == 0 -> noopSyncResult(syncContext)
-    else -> syncPendingBatches(outboxRepository, settings, client, syncContext)
+    else -> drainPendingBatches(
+      DrainRequest(
+        outboxRepository = outboxRepository,
+        settings = settings,
+        client = client,
+        syncContext = syncContext,
+        now = now,
+      ),
+    )
   }
-}
-
-private fun syncPendingBatches(
-  outboxRepository: TelemetryOutboxRepository,
-  settings: TelemetrySettings,
-  client: TelemetryClient,
-  syncContext: SyncContext,
-): SyncResult {
-  var syncedTotal = 0
-  while (true) {
-    val rows = outboxRepository.listPending(limit = settings.batchSize)
-    if (rows.isEmpty()) {
-      break
-    }
-    val eventIds = rows.map { it.id }
-    val failureResult =
-      trySyncBatch(
-        PendingBatch(
-          outboxRepository = outboxRepository,
-          settings = settings,
-          client = client,
-          eventIds = eventIds,
-          rows = rows,
-          syncedTotal = syncedTotal,
-          syncContext = syncContext,
-        ),
-      )
-    if (failureResult != null) {
-      return failureResult
-    }
-    syncedTotal += eventIds.size
-  }
-  return completedSyncResult(syncContext, syncedTotal, outboxRepository.pendingCount())
-}
-
-private fun trySyncBatch(batch: PendingBatch): SyncResult? = try {
-  batch.client.sendBatch(batch.settings, batch.rows)
-  batch.outboxRepository.markSynced(batch.eventIds)
-  null
-} catch (error: IOException) {
-  failedSyncResult(batch, error.message.orEmpty())
-} catch (error: IllegalArgumentException) {
-  failedSyncResult(batch, error.message.orEmpty())
-}
-
-private data class PendingBatch(
-  val outboxRepository: TelemetryOutboxRepository,
-  val settings: TelemetrySettings,
-  val client: TelemetryClient,
-  val eventIds: List<Long>,
-  val rows: List<TelemetryOutboxRecord>,
-  val syncedTotal: Int,
-  val syncContext: SyncContext,
-)
-
-private fun failedSyncResult(batch: PendingBatch, message: String): SyncResult {
-  batch.outboxRepository.markFailed(batch.eventIds, message)
-  return syncResult(
-    status = TelemetrySyncStatus.FAILED,
-    syncedEvents = batch.syncedTotal,
-    pendingEvents = batch.outboxRepository.pendingCount(),
-    syncContext = batch.syncContext,
-    message = message,
-  )
 }

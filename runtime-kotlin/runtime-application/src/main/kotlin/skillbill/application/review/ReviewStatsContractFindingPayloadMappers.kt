@@ -46,6 +46,12 @@ internal fun ReviewHealthStats.toPayload(): Map<String, Any?> = linkedMapOf(
   "platform_counts" to platformCounts,
   "scope_counts" to scopeCounts,
   "source_counts" to sourceCounts,
+  "queued_delivery_rows" to reviewDeliveryGrain.queuedDeliveryRows,
+  "delivery_attempts" to reviewDeliveryGrain.deliveryAttempts,
+  "logical_events" to reviewDeliveryGrain.logicalEvents,
+  "rows_with_unknown_delivery_identity" to reviewDeliveryGrain.rowsWithUnknownDeliveryIdentity,
+  "logical_reviews" to reviewDeliveryGrain.logicalReviews,
+  "records_with_unknown_review" to reviewDeliveryGrain.recordsWithUnknownReview,
 )
 
 internal fun ReviewFindingDetail.toPayload(): Map<String, Any?> = linkedMapOf<String, Any?>(

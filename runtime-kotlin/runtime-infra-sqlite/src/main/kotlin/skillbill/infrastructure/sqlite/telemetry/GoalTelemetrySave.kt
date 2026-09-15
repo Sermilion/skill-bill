@@ -19,8 +19,8 @@ fun saveGoalStarted(connection: Connection, record: GoalStartedRecord): GoalStar
   val inserted = connection.prepareStatement(
     """
     INSERT INTO goal_run_sessions (
-      workflow_id, issue_key, feature_name, subtask_total, resumed, started_at, mode
-    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+      workflow_id, issue_key, feature_name, subtask_total, resumed, started_at, mode, parent_workflow_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(workflow_id) DO NOTHING
     """.trimIndent(),
   ).use { statement ->
@@ -32,6 +32,7 @@ fun saveGoalStarted(connection: Connection, record: GoalStartedRecord): GoalStar
       record.resumed.toSqlInt(),
       record.startedAt,
       record.mode,
+      record.parentWorkflowId,
     )
     statement.executeUpdate() > 0
   }
@@ -64,7 +65,8 @@ private fun updateGoalFinished(connection: Connection, record: GoalFinishedRecor
       subtasks_blocked = ?,
       subtasks_skipped = ?,
       mode = ?,
-      stop_reason = ?
+      stop_reason = ?,
+      parent_workflow_id = COALESCE(?, parent_workflow_id)
     WHERE workflow_id = ? AND status IS NULL AND finished_at IS NULL
     """.trimIndent(),
   ).use { statement ->
@@ -79,6 +81,7 @@ private fun updateGoalFinished(connection: Connection, record: GoalFinishedRecor
       record.subtasksSkipped,
       record.mode,
       record.stopReason,
+      record.parentWorkflowId,
       record.workflowId,
     )
     statement.executeUpdate() > 0
@@ -89,8 +92,9 @@ private fun insertGoalFinished(connection: Connection, record: GoalFinishedRecor
     """
     INSERT INTO goal_run_sessions (
       workflow_id, issue_key, started_at, status, finished_at,
-      finished_duration_ms, subtasks_complete, subtasks_blocked, subtasks_skipped, mode, stop_reason
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      finished_duration_ms, subtasks_complete, subtasks_blocked, subtasks_skipped, mode, stop_reason,
+      parent_workflow_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """.trimIndent(),
   ).use { statement ->
     statement.bind(
@@ -105,6 +109,7 @@ private fun insertGoalFinished(connection: Connection, record: GoalFinishedRecor
       record.subtasksSkipped,
       record.mode,
       record.stopReason,
+      record.parentWorkflowId,
     )
     statement.executeUpdate()
   }

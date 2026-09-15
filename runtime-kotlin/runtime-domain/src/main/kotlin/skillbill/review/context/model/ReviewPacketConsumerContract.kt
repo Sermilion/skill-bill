@@ -28,7 +28,7 @@ object ReviewPacketConsumerContract {
     "scratch_path_rediscovery",
     "contract_rediscovery",
     "rules_rediscovery",
-    "repeated_evidence_read",
+    "evidence_scope_expansion_repeat",
     "per_commit_stepping",
     "worker_relevance_redecision",
     "aggregate_diff_restart",

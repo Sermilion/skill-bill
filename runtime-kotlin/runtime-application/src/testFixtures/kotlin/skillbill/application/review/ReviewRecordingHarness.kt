@@ -130,6 +130,9 @@ class ReviewRecorder {
   val stageDegradations: MutableList<ReviewStageDegradationMeasurement> =
     Collections.synchronizedList(mutableListOf())
 
+  /** Set true to model a degradation store that rejects every write. */
+  @Volatile var failStageDegradationWrite: Boolean = false
+
   /** The prompts the inline parent lanes were actually launched with. */
   val parentPrompts: List<String>
     get() = parentLaunches.mapNotNull { it.skillRunRequest.promptOverride }
@@ -372,6 +375,7 @@ private fun recordingDatabase(recorder: ReviewRecorder): DatabaseSessionFactory 
 private fun recordingLifecycleTelemetry(recorder: ReviewRecorder): LifecycleTelemetryRepository =
   object : LifecycleTelemetryRepository {
     override fun reviewStageDegradation(record: ReviewStageDegradationMeasurement) {
+      check(!recorder.failStageDegradationWrite) { "the degradation store rejected the write" }
       recorder.stageDegradations += record
     }
 

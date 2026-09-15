@@ -26,13 +26,17 @@ class FeatureTaskRuntimePhaseSafetyPolicyTest {
     val paths = FeatureTaskRuntimePhaseSafetyPolicy.changedPaths(
       """
        M src/Main.kt
+      ?? .skill-bill/state.db
       ?? .skill-bill/run-evidence/wf/fp/evidence.json
-      ?? .skill-bill/run-evidence/wf/fp/diff.patch
       ?? .skill-bill/config.yaml
       """.trimIndent(),
     )
 
-    assertEquals(listOf(".skill-bill/config.yaml", "src/Main.kt"), paths)
+    assertEquals(
+      listOf(".skill-bill/config.yaml", ".skill-bill/run-evidence/wf/fp/evidence.json", "src/Main.kt"),
+      paths,
+      "run-evidence reaches the manifest so run provenance, not the store prefix, decides ownership",
+    )
   }
 
   @Test

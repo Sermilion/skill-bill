@@ -181,6 +181,8 @@ internal data class RecordRejectedOutputArgs(
   val reason: String,
   val captured: CapturedPhaseOutput,
   val targeting: RejectedOutputTargeting,
+  /** Null where no output-gate correction budget governs the rejection; see FeatureTaskRuntimeAttemptBudgets. */
+  val exhaustedFixLoop: Boolean? = null,
 )
 
 internal data class CorrectiveRepairRejectionDetail(
@@ -205,7 +207,18 @@ internal data class GateOutputArgs(
   val captured: CapturedPhaseOutput,
   val observability: FeatureTaskRuntimeRunObservability,
   val fileManifest: FeatureTaskRuntimePhaseFileManifest,
-)
+  val outputGateFailuresBefore: Int? = null,
+) {
+  /**
+   * Whether a rejection settled from this attempt spends the phase's correction budget, resolved
+   * against the same cap the fix loop blocks on. Null when this attempt is not running under that
+   * loop, so nothing downstream reports a budget nobody was counting.
+   */
+  val rejectionExhaustsFixLoop: Boolean?
+    get() = outputGateFailuresBefore?.let {
+      FeatureTaskRuntimeAttemptBudgets.outputGateRejectionExhaustsBudget(run.phaseId, it)
+    }
+}
 
 internal data class SettledOutputContext(
   val normalizedOutput: NormalizedFeatureTaskRuntimePhaseOutput,

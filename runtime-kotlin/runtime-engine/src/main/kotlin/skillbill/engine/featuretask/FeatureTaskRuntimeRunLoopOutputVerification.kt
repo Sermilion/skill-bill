@@ -654,6 +654,7 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
       repoRoot = run.request.repoRoot,
       issueKey = run.request.issueKey,
       specReference = run.request.runInvariants.specReference,
+      workflowId = run.request.workflowId,
       paths = (discovered + committedPaths).distinct(),
     ).sorted()
     return inventory.takeIf {

@@ -21,6 +21,9 @@ fun FeatureTaskRuntimeStartedRequest.toRecord(sessionId: String): FeatureTaskRun
     featureSize = featureSize,
     issueKey = issueKey,
     featureName = featureName,
+    workflowId = correlation.workflowId,
+    goalParentWorkflowId = correlation.goalParentWorkflowId,
+    goalSubtaskId = correlation.goalSubtaskId,
   )
 
 fun FeatureTaskRuntimeFinishedRequest.toRecord(): FeatureTaskRuntimeFinishedRecord = FeatureTaskRuntimeFinishedRecord(
@@ -42,6 +45,9 @@ fun FeatureTaskRuntimeFinishedRequest.toRecord(): FeatureTaskRuntimeFinishedReco
   findingVerificationVerifiedCount = findingVerificationVerifiedCount,
   findingVerificationRejectedCount = findingVerificationRejectedCount,
   reviewFixCapExhausted = reviewFixCapExhausted,
+  auditGapIterationCount = auditGapIterationCount,
+  resolvedAgentIds = agentContext.resolvedAgentIds,
+  launchedModels = agentContext.launchedModels,
 )
 
 fun QualityCheckStartedRequest.toRecord(sessionId: String): QualityCheckStartedRecord = QualityCheckStartedRecord(

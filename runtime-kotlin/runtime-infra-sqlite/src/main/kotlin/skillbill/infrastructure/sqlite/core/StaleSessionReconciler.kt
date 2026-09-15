@@ -185,6 +185,12 @@ private fun staleSessionIds(
   }
 }
 
+/**
+ * The reason is a closed normalized token, never an operator message: a session marked stale here was
+ * never observed finishing, and a consumer must be able to tell that apart from a terminal the
+ * session itself reported. The pre-existing emission guards stay in the WHERE clause, so a session
+ * that already reported a terminal is untouched.
+ */
 private fun markLifecycleSessionStale(
   connection: Connection,
   target: LifecycleReconciliationTarget,
@@ -192,12 +198,17 @@ private fun markLifecycleSessionStale(
 ): Boolean = connection.prepareStatement(
   """
   UPDATE ${target.tableName}
-  SET ${target.terminalColumn} = ?, finished_at = CURRENT_TIMESTAMP
+  SET ${target.terminalColumn} = ?, stale_reason = ?, finished_at = CURRENT_TIMESTAMP
   WHERE session_id = ? AND finished_at IS NULL AND finished_event_emitted_at IS NULL
   """.trimIndent(),
 ).use { statement ->
-  statement.bind(target.terminalValue, sessionId)
+  statement.bind(target.terminalValue, LifecycleStaleReason.NO_TERMINAL_BEFORE_THRESHOLD.wireValue, sessionId)
   statement.executeUpdate() > 0
+}
+
+/** Why a lifecycle row reached a reconciler-owned terminal. Closed vocabulary; no free text. */
+enum class LifecycleStaleReason(val wireValue: String) {
+  NO_TERMINAL_BEFORE_THRESHOLD("no_terminal_before_threshold"),
 }
 
 private fun markGoalIssueAbandoned(connection: Connection, goal: GoalIssueIdentity): Boolean =

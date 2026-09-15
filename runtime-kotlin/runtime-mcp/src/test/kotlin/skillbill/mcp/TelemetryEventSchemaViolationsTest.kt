@@ -49,6 +49,25 @@ class TelemetryEventSchemaViolationsTest {
     "duration_seconds" to 120,
   )
 
+  /** Schema-clean envelope for `quality_check_finished`. */
+  private fun validQualityCheckFinishedEnvelope(): MutableMap<String, Any?> = linkedMapOf(
+    "event_name" to "quality_check_finished",
+    "contract_version" to TELEMETRY_EVENT_CONTRACT_VERSION,
+    "final_failure_count" to 0,
+    "iterations" to 1,
+    "result" to "pass",
+    "session_id" to "qck-1",
+    "failing_check_names" to emptyList<String>(),
+    "unsupported_reason" to "",
+    "orchestrated" to false,
+    "routed_skill" to "bill-kotlin-code-check",
+    "detected_stack" to "kotlin",
+    "fallback" to false,
+    "scope_type" to "branch_diff",
+    "initial_failure_count" to 2,
+    "duration_seconds" to 30,
+  )
+
   @Test
   fun `valid base envelope passes validation`() {
     // Sanity-check the fixture — otherwise every violation test below
@@ -149,6 +168,25 @@ class TelemetryEventSchemaViolationsTest {
     // appears in the envelope — even though the envelope shape does
     // not match the branch.
     assertEquals("feature_verify_started", error.eventName)
+  }
+
+  @Test
+  fun `a null final failure count is rejected unless the reconciler wrote the terminal`() {
+    val callerReported = validQualityCheckFinishedEnvelope()
+    callerReported["final_failure_count"] = null
+
+    val error = assertFailsWith<InvalidTelemetryEventSchemaError> {
+      TelemetryEventSchemaValidator.validate(callerReported)
+    }
+    assertEquals("final_failure_count", error.fieldPath)
+    assertEquals("quality_check_finished", error.eventName)
+
+    val reconcilerClosed = validQualityCheckFinishedEnvelope()
+    reconcilerClosed["final_failure_count"] = null
+    reconcilerClosed["final_failure_count_availability"] = "unavailable_incomplete"
+    reconcilerClosed["completion"] = "reconciler_stale"
+    reconcilerClosed["result"] = "stale"
+    TelemetryEventSchemaValidator.validate(reconcilerClosed)
   }
 
   @Test

@@ -1,6 +1,7 @@
 package skillbill.engine.featuretask
 
 import skillbill.application.telemetry.LifecycleTelemetryService
+import skillbill.application.telemetry.model.FeatureTaskRuntimeAgentContext
 import skillbill.application.telemetry.model.FeatureTaskRuntimeFindingVerificationTelemetry
 import skillbill.application.telemetry.model.FeatureTaskRuntimeFinishedRequest
 import skillbill.application.telemetry.model.FeatureTaskRuntimeRegenerationTelemetry
@@ -39,14 +40,23 @@ fun emitFeatureTaskRuntimeFinished(
       findingVerificationVerifiedCount = telemetryPayload.verificationTelemetry.verifiedCount,
       findingVerificationRejectedCount = telemetryPayload.verificationTelemetry.rejectedCount,
       reviewFixCapExhausted = telemetryPayload.verificationTelemetry.reviewFixCapExhausted,
+      auditGapIterationCount = telemetryPayload.auditGapIterationCount,
+      agentContext = telemetryPayload.agentContext,
     ),
   )
 }
 
+/**
+ * [error] contributes its type only. An exception class names the failure mode an operator can act
+ * on; its message can carry agent output, paths, or issue text, so it never reaches the wire. Every
+ * unhandled-error terminal used to report the same generic sentence, which made eleven distinct
+ * failures look like one.
+ */
 fun emitFeatureTaskRuntimeFinishedError(
   lifecycleTelemetryService: LifecycleTelemetryService,
   context: FeatureTaskRuntimeFinishedTelemetryContext,
   outcomes: Map<String, String>,
+  error: Throwable? = null,
 ) {
   val telemetryPayload = resolvedFeatureTaskRuntimeTelemetryPayload(context)
   lifecycleTelemetryService.featureTaskRuntimeFinished(
@@ -59,7 +69,7 @@ fun emitFeatureTaskRuntimeFinishedError(
       phaseOutcomes = outcomes,
       lastIncompletePhase = outcomes.firstIncompletePhase(),
       blockedReason = normalizedBlockedReason(
-        reason = null,
+        reason = error?.let { "Feature-task-runtime finished with an unhandled ${it.terminalFailureClass()}." },
         category = "runtime",
         fallback = "Feature-task-runtime finished with an unhandled error.",
       ),
@@ -75,14 +85,21 @@ fun emitFeatureTaskRuntimeFinishedError(
       findingVerificationVerifiedCount = telemetryPayload.verificationTelemetry.verifiedCount,
       findingVerificationRejectedCount = telemetryPayload.verificationTelemetry.rejectedCount,
       reviewFixCapExhausted = telemetryPayload.verificationTelemetry.reviewFixCapExhausted,
+      auditGapIterationCount = telemetryPayload.auditGapIterationCount,
+      agentContext = telemetryPayload.agentContext,
     ),
   )
 }
+
+private fun Throwable.terminalFailureClass(): String = (this::class.simpleName ?: "Throwable")
+  .let { name -> if (name.endsWith("Exception") || name.endsWith("Error")) name else "$name exception" }
 
 internal data class ResolvedFeatureTaskRuntimeTelemetryPayload(
   val tokenBreakdownJson: String?,
   val totalTokens: Int?,
   val reviewFixIterationCount: Int,
+  val auditGapIterationCount: Int?,
+  val agentContext: FeatureTaskRuntimeAgentContext,
   val verificationTelemetry: FeatureTaskRuntimeFindingVerificationTelemetry,
   val regeneration: FeatureTaskRuntimeRegenerationTelemetry,
   val reconciliation: FeatureTaskRuntimeCrashReconciliationResult,
@@ -102,6 +119,8 @@ internal fun resolvedFeatureTaskRuntimeTelemetryPayload(
     tokenBreakdownJson = tokenBreakdownJson,
     totalTokens = totalTokens,
     reviewFixIterationCount = runCatching(context.reviewFixIterationCount).getOrDefault(0),
+    auditGapIterationCount = runCatching(context.auditGapIterationCount).getOrNull(),
+    agentContext = runCatching(context.agentContext).getOrNull() ?: FeatureTaskRuntimeAgentContext(),
     verificationTelemetry = verificationTelemetry,
     regeneration = regeneration,
     reconciliation = reconciliation,
@@ -134,13 +153,22 @@ fun Map<String, String>.firstIncompletePhase(): String =
   entries.firstOrNull { it.value.workflowStepStatus() != WorkflowStepStatus.COMPLETED }?.key?.takeIf(String::isNotBlank)
     ?: "unknown"
 
+/**
+ * A paused run reports the reason it stopped, not an empty string. The pause reason is already the
+ * runtime's own normalized text, and dropping it left every paused session indistinguishable from
+ * every other paused session — which is the whole diagnostic question an operator asks about a pause.
+ */
 fun blockedReasonOf(report: FeatureTaskRuntimeRunReport): String = when (report) {
   is FeatureTaskRuntimeRunReport.Blocked -> normalizedBlockedReason(
     reason = report.blockedReason,
     category = "runtime",
     fallback = "Feature-task-runtime blocked without a specific reason.",
   )
-  is FeatureTaskRuntimeRunReport.Paused,
+  is FeatureTaskRuntimeRunReport.Paused -> normalizedBlockedReason(
+    reason = report.pauseReason,
+    category = "runtime",
+    fallback = "Feature-task-runtime paused in phase '${report.pausedPhase}' without a specific reason.",
+  )
   is FeatureTaskRuntimeRunReport.Completed,
   is FeatureTaskRuntimeRunReport.Decomposed,
   -> ""

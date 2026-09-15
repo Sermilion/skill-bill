@@ -52,6 +52,16 @@ data class ReviewHealthStats(
   val platformCounts: Map<String, Int>,
   val scopeCounts: Map<String, Int>,
   val sourceCounts: Map<String, Int>,
+  val reviewDeliveryGrain: ReviewDeliveryGrainStats,
+)
+
+data class ReviewDeliveryGrainStats(
+  val queuedDeliveryRows: Int,
+  val deliveryAttempts: Int,
+  val logicalEvents: Int,
+  val rowsWithUnknownDeliveryIdentity: Int,
+  val logicalReviews: Int,
+  val recordsWithUnknownReview: Int,
 )
 
 data class ReviewFinishedFindingStats(
@@ -150,6 +160,11 @@ data class FeatureTaskRuntimeWorkflowStats(
   val averageCompletedPhaseCount: Double,
   val estimatedTokenRunsWithValue: Int,
   val averageEstimatedTotalTokens: Double,
+  // SKILL-236: a run the stale reconciler closed was never observed reaching a terminal, so it is not
+  // evidence about how runs end. It is reported on its own and excluded from every rate denominator,
+  // which is [observedRuns] — not [finishedRuns].
+  val observedRuns: Int,
+  val reconcilerClosedRuns: Int,
 )
 
 data class FeatureVerifyWorkflowStats(
@@ -229,4 +244,12 @@ data class GoalWorkflowStats(
   val mostRecentRun: GoalRunSummary?,
   val topBlockedSubtasks: List<GoalBlockedSubtaskSummary>,
   val byMode: Map<String, GoalModeStats> = emptyMap(),
+  // SKILL-236: a `goal_run_sessions` row is one invocation segment, and a resumed goal writes a new
+  // one each time it restarts. [totalRuns] therefore counts invocations, not goals. [logicalGoals]
+  // counts the goals those invocations belong to, and [goalIdentityAvailability] states whether every
+  // invocation could be attributed to one — rows written before the parent id was persisted cannot.
+  val logicalGoals: Int,
+  val invocationsWithUnknownGoal: Int,
+  val goalIdentityAvailability: String,
+  val resumedInvocations: Int,
 )

@@ -1,6 +1,7 @@
 package skillbill.workflow.taskruntime.model
 
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.telemetry.TelemetryMeasurementAvailability
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_DIAGNOSTIC_DEGRADATION_MEASUREMENT_CONTRACT_VERSION
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_PROJECTION_MEASUREMENT_CONTRACT_VERSION
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_REJECTION_MEASUREMENT_CONTRACT_VERSION
@@ -143,7 +144,13 @@ data class FeatureTaskRuntimeRejectionMeasurement(
   val violationClass: FeatureTaskRuntimeRejectionViolationClass,
   val declaredCap: Int? = null,
   val observedLength: Int? = null,
-  val exhaustedFixLoop: Boolean = false,
+  /**
+   * Whether this rejection is the one that spent the phase's output-gate correction budget, or `null`
+   * when no output-gate budget governs it (a process failure and a reconciliation rejection are
+   * counted elsewhere). The run loop that owns the cap supplies it; it is never read back out of the
+   * rejection reason text, which is how every record came to claim an intact budget.
+   */
+  val exhaustedFixLoop: Boolean? = null,
 ) {
   init {
     require(workflowId.isNotBlank()) { "FeatureTaskRuntimeRejectionMeasurement.workflowId must be non-blank." }
@@ -160,6 +167,11 @@ data class FeatureTaskRuntimeRejectionMeasurement(
       "FeatureTaskRuntimeRejectionMeasurement.observedLength must be non-negative."
     }
   }
+  private fun exhaustedFixLoopAvailability(): TelemetryMeasurementAvailability = when (exhaustedFixLoop) {
+    null -> TelemetryMeasurementAvailability.UNAVAILABLE_UNSUPPORTED
+    else -> TelemetryMeasurementAvailability.MEASURED
+  }
+
   internal fun toTelemetryMap(): Map<String, Any?> = linkedMapOf(
     SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_REJECTION_MEASUREMENT_CONTRACT_VERSION,
     SharedPayloadKeys.WORKFLOW_ID to workflowId,
@@ -168,6 +180,7 @@ data class FeatureTaskRuntimeRejectionMeasurement(
     "rule" to rule,
     "pointer_path" to pointerPath,
     "violation_class" to violationClass.wireValue,
+    "exhausted_fix_loop_availability" to exhaustedFixLoopAvailability().wireValue,
     "exhausted_fix_loop" to exhaustedFixLoop,
   ).apply {
     declaredCap?.let { put("declared_cap", it) }

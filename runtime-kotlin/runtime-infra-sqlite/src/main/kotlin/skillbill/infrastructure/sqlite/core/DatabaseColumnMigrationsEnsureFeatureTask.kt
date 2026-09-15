@@ -115,4 +115,42 @@ private fun ensureFeatureTaskRuntimeSessionVerificationColumns(connection: Conne
     columnName = "duplicate_terminal_finished_events",
     definition = "INTEGER NOT NULL DEFAULT 0",
   )
+  ensureFeatureTaskRuntimeSessionAvailabilityColumns(connection)
+}
+
+// Nullable with no default and no backfill: a row written before these columns existed keeps NULL and
+// reports unknown, so no historical run is credited with a measurement nobody took.
+private fun ensureFeatureTaskRuntimeSessionAvailabilityColumns(connection: Connection) {
+  listOf(
+    "review_fix_cap_exhausted_availability",
+    "audit_gap_availability",
+  ).forEach { column ->
+    DatabaseColumnMigrationsEnsure.ensureColumn(connection, "feature_task_runtime_sessions", column, "TEXT")
+  }
+  DatabaseColumnMigrationsEnsure.ensureColumn(
+    connection,
+    "feature_task_runtime_sessions",
+    "audit_gap_iteration_count",
+    "INTEGER",
+  )
+  listOf(
+    "resolved_agent_ids",
+    "launched_models",
+  ).forEach { column ->
+    DatabaseColumnMigrationsEnsure.ensureColumn(connection, "feature_task_runtime_sessions", column, "TEXT")
+  }
+}
+
+// Nullable with no backfill: a session started before these columns existed has no recoverable
+// correlation identity, and its payload declares that rather than joining on a blank id.
+internal fun ensureFeatureTaskRuntimeSessionCorrelationColumns(connection: Connection) {
+  listOf("workflow_id", "goal_parent_workflow_id").forEach { column ->
+    DatabaseColumnMigrationsEnsure.ensureColumn(connection, "feature_task_runtime_sessions", column, "TEXT")
+  }
+  DatabaseColumnMigrationsEnsure.ensureColumn(
+    connection,
+    "feature_task_runtime_sessions",
+    "goal_subtask_id",
+    "INTEGER",
+  )
 }
