@@ -325,8 +325,6 @@ private class MutationTelemetryOutboxRepository(
     return id
   }
 
-  override fun listPending(limit: Int?): List<TelemetryOutboxRecord> = rows
-
   override fun claimPending(request: TelemetryOutboxClaimRequest): List<TelemetryOutboxRecord> =
     rows.take(request.limit)
 
@@ -338,11 +336,7 @@ private class MutationTelemetryOutboxRepository(
 
   override fun lastSyncedAt(): String? = rows.mapNotNull(TelemetryOutboxRecord::syncedAt).maxOrNull()
 
-  override fun markSynced(id: Long, syncedAt: String) = Unit
-
   override fun markSynced(eventIds: List<Long>) = Unit
-
-  override fun markFailed(id: Long, lastError: String) = Unit
 
   override fun markFailed(eventIds: List<Long>, lastError: String) = Unit
 

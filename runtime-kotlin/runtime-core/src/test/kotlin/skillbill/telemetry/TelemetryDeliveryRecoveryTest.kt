@@ -144,7 +144,7 @@ class TelemetryDeliveryRecoveryTest {
           override fun sendBatch(
             settings: TelemetrySettings,
             rows: List<TelemetryOutboxRecord>,
-          ): TelemetryDeliveryReport = throw IllegalStateException("relay handshake blew up")
+          ): TelemetryDeliveryReport = error("relay handshake blew up")
         }
 
       val result =

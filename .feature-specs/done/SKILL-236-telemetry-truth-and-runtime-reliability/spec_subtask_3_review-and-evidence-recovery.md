@@ -1,6 +1,6 @@
 # SKILL-236 Subtask 3 - Review execution and generated-evidence ownership recovery
 
-Parent spec: [spec.md](./spec.md)
+Parent spec: [spec.md](spec.md)
 Issue key: SKILL-236
 
 ## Scope

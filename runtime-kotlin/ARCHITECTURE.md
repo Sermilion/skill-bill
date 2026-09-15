@@ -717,6 +717,22 @@ finding is a criterion with no code behind it and therefore no diff. Telemetry
 records each resolve as `skillbill_feature_task_runtime_shared_evidence` with
 outcome `derivation`, `reuse`, or `checkpoint_change_rederivation`.
 
+That publication address is also the ownership authority. `isRuntimePrivatePath`
+covers the rest of the `.skill-bill/` root but deliberately does not claim
+`run-evidence`; `FeatureTaskRuntimeCheckpointScope` resolves ownership through
+`FeatureTaskRuntimeRunEvidenceOwnership` against the active run's workflow id,
+so only artifacts at this run's own address are runtime-owned and non-blocking.
+Another workflow's artifact, or a file forged directly under the store root,
+receives no exemption: it is preserved and stays an ordinary actionable path.
+Ownership therefore never derives from the path prefix alone, and both failure
+directions are covered — a prefix-free rule would block the run's own evidence,
+and a blanket prefix rule would silently sweep the forged file.
+`FeatureTaskRuntimeRunEvidenceAddress` owns the single address derivation both
+the store adapter and the engine read. `reconcileCheckpointPathInventory` applies
+the same ownership test, so the run's own evidence never enters the durable
+`workflow_owned_paths` inventory the goal review pathspec and the checkpoint
+fingerprint are built from, whichever producer writes that inventory.
+
 Finalization path inventories come from the checkpoint's runtime-resolved
 base/head and scoped owned-path comparison. Implementation receipt paths are
 claims only: validation scope, boundary candidates, commit inclusions and

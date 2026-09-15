@@ -113,15 +113,12 @@ class RuntimeExceptionTelemetryTest {
         return captured.size.toLong()
       }
 
-      override fun listPending(limit: Int?): List<TelemetryOutboxRecord> = emptyList()
       override fun claimPending(request: TelemetryOutboxClaimRequest): List<TelemetryOutboxRecord> = emptyList()
       override fun pendingCount(): Int = 0
       override fun blockedCount(attemptBudget: Int): Int = 0
       override fun latestError(): String? = null
       override fun lastSyncedAt(): String? = null
-      override fun markSynced(id: Long, syncedAt: String) = Unit
       override fun markSynced(eventIds: List<Long>) = Unit
-      override fun markFailed(id: Long, lastError: String) = Unit
       override fun markFailed(eventIds: List<Long>, lastError: String) = Unit
       override fun markUnconfirmed(eventIds: List<Long>, lastError: String) = Unit
       override fun clear(): Int = 0

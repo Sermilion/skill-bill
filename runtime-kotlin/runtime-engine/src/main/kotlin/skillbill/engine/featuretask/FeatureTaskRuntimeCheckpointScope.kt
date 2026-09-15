@@ -11,12 +11,17 @@ private const val MAX_REPORTED_PATHS = 10
 
 object FeatureTaskRuntimeCheckpointScope {
   fun decide(input: FeatureTaskRuntimeCheckpointScopeInput): FeatureTaskRuntimeCheckpointDecision {
-    val deleted = sanitized(input.deletedPaths)
+    val runtimeOwned: (String) -> Boolean = { path ->
+      isRuntimePrivatePath(path) ||
+        FeatureTaskRuntimeRunEvidenceOwnership.isOwnedByRun(path, input.workflowId)
+    }
+    val deleted = sanitized(input.deletedPaths, runtimeOwned)
     val implementationPaths = sanitized(
       input.ownedPaths +
         input.phaseIntroducedPaths +
         input.concurrentlyModifiedOwnedPaths +
         deleted,
+      runtimeOwned,
     ).filterNot { isFeatureSpecPathForIssue(it, input.issueKey) }
     val implementationAliases = implementationPaths
       .groupBy(::normalizeForAliasComparison)
@@ -27,6 +32,7 @@ object FeatureTaskRuntimeCheckpointScope {
         input.foreignStagedPaths +
         input.concurrentlyModifiedOwnedPaths +
         deleted,
+      runtimeOwned,
     ).filterNot { isFeatureSpecPathForIssue(it, input.issueKey) }
       .mapNotNull { path ->
         implementationAliases[normalizeForAliasComparison(path)]
@@ -35,6 +41,7 @@ object FeatureTaskRuntimeCheckpointScope {
       input.foreignStagedPaths +
         input.concurrentlyModifiedOwnedPaths +
         deleted,
+      runtimeOwned,
     ).filterNot { isFeatureSpecPathForIssue(it, input.issueKey) }
       .mapNotNull { path ->
         implementationAliases[normalizeForAliasComparison(path)]
@@ -47,20 +54,19 @@ object FeatureTaskRuntimeCheckpointScope {
   }
 }
 
-private fun sanitized(paths: Collection<String>): List<String> =
-  paths.filter(String::isNotBlank).filterNot(::isRuntimePrivatePath)
+private fun sanitized(paths: Collection<String>, runtimeOwned: (String) -> Boolean): List<String> =
+  paths.filter(String::isNotBlank).filterNot(runtimeOwned)
 
 fun isRuntimePrivatePath(path: String): Boolean {
   val normalized = normalizeForAliasComparison(path)
   if (normalized == RUNTIME_TRACKABLE_CONFIG) return false
+  if (FeatureTaskRuntimeRunEvidenceOwnership.isRunEvidencePath(normalized)) return false
   return normalized == RUNTIME_PRIVATE_ROOT.trimEnd('/') ||
     normalized.startsWith(RUNTIME_PRIVATE_ROOT)
 }
 
 fun phaseWrittenPaths(worktreeDeltaPaths: List<String>, phaseManifestPaths: List<String>): List<String> {
-  val manifest = phaseManifestPaths.filter(String::isNotBlank)
-    .filterNot(::isRuntimePrivatePath)
-    .map(::normalizeForAliasComparison)
+  val manifest = phaseManifestPaths.filter(String::isNotBlank).map(::normalizeForAliasComparison)
   if (manifest.isEmpty()) return emptyList()
   return worktreeDeltaPaths.filter(String::isNotBlank)
     .filterNot(::isRuntimePrivatePath)

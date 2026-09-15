@@ -1,12 +1,12 @@
 package skillbill.application.telemetry.sync
 
+import skillbill.application.telemetry.model.TelemetryOutboxStatusSnapshot
 import skillbill.application.telemetry.model.TelemetryStatusResult
 import skillbill.application.telemetry.model.TelemetrySyncStatusResult
 import skillbill.ports.telemetry.TelemetryClient
 import skillbill.ports.telemetry.TelemetryOutboxRepository
 import skillbill.telemetry.model.SyncResult
 import skillbill.telemetry.model.TelemetrySettings
-import skillbill.telemetry.model.TelemetrySyncStatus
 import java.nio.file.Path
 import java.time.Instant
 
@@ -42,15 +42,12 @@ object TelemetrySyncRuntime {
   fun telemetryStatusPayload(
     dbPath: Path,
     settings: TelemetrySettings,
-    pendingEvents: Int = 0,
-    latestError: String? = null,
-    lastSyncedAt: String? = null,
-    blockedEvents: Int = 0,
+    outbox: TelemetryOutboxStatusSnapshot = TelemetryOutboxStatusSnapshot(),
   ): TelemetryStatusResult = baseStatusResult(dbPath, settings).copy(
-    pendingEvents = pendingEvents,
-    latestError = latestError,
-    lastSyncedAt = lastSyncedAt,
-    blockedEvents = blockedEvents,
+    pendingEvents = outbox.pendingEvents,
+    latestError = outbox.latestError,
+    lastSyncedAt = outbox.lastSyncedAt,
+    blockedEvents = outbox.blockedEvents,
   )
 
   fun autoSyncTelemetry(
@@ -58,23 +55,11 @@ object TelemetrySyncRuntime {
     outboxRepository: TelemetryOutboxRepository,
     client: TelemetryClient,
     now: Instant,
-    reportFailures: Boolean = false,
-    stderr: (String) -> Unit = {},
-  ): SyncResult? {
-    val result =
-      try {
-        syncTelemetry(settings, outboxRepository, client, now)
-      } catch (error: Exception) {
-        if (reportFailures) {
-          stderr("Telemetry sync skipped: ${error.message}")
-        }
-        return null
-      }
-    if (reportFailures && result.status == TelemetrySyncStatus.FAILED && result.message != null) {
-      stderr("Telemetry sync failed: ${result.message}")
+  ): SyncResult? = runCatching { syncTelemetry(settings, outboxRepository, client, now) }
+    .getOrElse { thrown ->
+      if (thrown !is Exception) throw thrown
+      null
     }
-    return result
-  }
 }
 
 fun telemetrySyncTarget(settings: TelemetrySettings): String = when {

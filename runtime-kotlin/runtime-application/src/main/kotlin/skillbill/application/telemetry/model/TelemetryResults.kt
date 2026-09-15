@@ -1,5 +1,12 @@
 package skillbill.application.telemetry.model
 
+data class TelemetryOutboxStatusSnapshot(
+  val pendingEvents: Int = 0,
+  val latestError: String? = null,
+  val lastSyncedAt: String? = null,
+  val blockedEvents: Int = 0,
+)
+
 data class TelemetryStatusResult(
   val configPath: String,
   val dbPath: String,

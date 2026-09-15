@@ -20,6 +20,7 @@ import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceResolverPort
 import skillbill.review.context.ReviewContextEnvelopeValidator
 import skillbill.review.context.ReviewExecutionModePolicy
 import skillbill.review.context.model.ReviewContextBudgetPolicy
+import skillbill.review.context.model.ReviewLaneReviewDisposition
 import skillbill.review.context.model.SpecIntentProjectionResolveRequest
 import skillbill.review.context.model.SpecIntentResolution
 import skillbill.review.context.model.toCodeReviewExecutionMode
@@ -109,7 +110,11 @@ internal class ParallelCodeReviewRunnerPlanning(
     }
     return ParallelCodeReviewResult(
       mergeResult = ParallelReviewMergeResult(findings = emptyList(), formattedOutput = "NO_FINDINGS"),
-      lane1 = ParallelReviewLaneStatus(agentId = request.agent1Id, success = true),
+      lane1 = ParallelReviewLaneStatus(
+        agentId = request.agent1Id,
+        success = true,
+        reviewDisposition = ReviewLaneReviewDisposition.COMPLETE,
+      ),
     )
   }
 

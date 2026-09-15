@@ -74,6 +74,7 @@ fun reconcileCheckpointPathInventory(
   repoRoot: Path,
   issueKey: String,
   specReference: String,
+  workflowId: String,
   paths: List<String>,
 ): List<String> {
   val specPath = Path.of(specReference)
@@ -81,7 +82,9 @@ fun reconcileCheckpointPathInventory(
     .normalize()
     .toString()
   return paths.filterNot { path ->
-    path == specPath || isFeatureSpecPathForIssue(path, issueKey)
+    path == specPath ||
+      isFeatureSpecPathForIssue(path, issueKey) ||
+      FeatureTaskRuntimeRunEvidenceOwnership.isOwnedByRun(path, workflowId)
   }.distinct()
 }
 

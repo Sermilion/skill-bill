@@ -56,7 +56,7 @@ Consumers must not rediscover any of the following:
 - `scratch_path_rediscovery` — scratch review artifacts are outside the governed evidence surface
 - `contract_rediscovery` — specialist and consumer contracts are supplied directly at launch
 - `rules_rediscovery` — review rules are supplied directly at launch
-- `repeated_evidence_read` — a normalized evidence target may be read only once
+- `evidence_scope_expansion_repeat` — an evidence target already served as projected hunks may not be re-requested as a complete file; repeating the same target at the same scope is served from the lane's own copy and charged once
 - `per_commit_stepping` — the bundle is reviewed in one pass; do not iterate commits as separate review steps
 - `worker_relevance_redecision` — routing and focus/skip dispositions are fixed at launch; do not re-decide relevance
 - `aggregate_diff_restart` — never restart review from the aggregate PR diff or a complete-diff artifact

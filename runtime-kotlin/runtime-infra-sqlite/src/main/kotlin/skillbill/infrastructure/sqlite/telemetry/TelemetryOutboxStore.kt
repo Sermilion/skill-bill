@@ -41,7 +41,7 @@ class TelemetryOutboxStore(
     }
   }
 
-  override fun listPending(limit: Int?): List<TelemetryOutboxRecord> {
+  fun listPending(limit: Int? = null): List<TelemetryOutboxRecord> {
     val sql =
       buildString {
         appendLine("SELECT $ROW_COLUMNS")
@@ -75,22 +75,25 @@ class TelemetryOutboxStore(
       )
       """.trimIndent(),
     ).use { statement ->
-      statement.setString(1, request.claimToken)
-      statement.setString(2, FIXED_WIDTH_CLAIM_TIMESTAMP.format(request.claimedAt))
-      statement.setInt(3, request.attemptBudget)
-      statement.setString(4, FIXED_WIDTH_CLAIM_TIMESTAMP.format(request.reclaimBefore))
-      statement.setInt(5, request.limit)
+      statement.bind(
+        request.claimToken,
+        FIXED_WIDTH_CLAIM_TIMESTAMP.format(request.claimedAt),
+        request.attemptBudget,
+        FIXED_WIDTH_CLAIM_TIMESTAMP.format(request.reclaimBefore),
+        request.limit,
+      )
       statement.executeUpdate()
     }
     return connection.prepareStatement(
       """
       SELECT $ROW_COLUMNS
       FROM telemetry_outbox
-      WHERE claim_token = ? AND synced_at IS NULL
+      WHERE claim_token = ? AND synced_at IS NULL AND delivery_attempts < ?
       ORDER BY id
+      LIMIT ?
       """.trimIndent(),
     ).use { statement ->
-      statement.setString(1, request.claimToken)
+      statement.bind(request.claimToken, request.attemptBudget, request.limit)
       statement.executeQuery().use { it.readOutboxRows() }
     }
   }
@@ -154,7 +157,7 @@ class TelemetryOutboxStore(
     }
   }
 
-  override fun markSynced(id: Long, syncedAt: String) {
+  fun markSynced(id: Long, syncedAt: String) {
     connection.prepareStatement(
       """
       UPDATE telemetry_outbox
@@ -187,7 +190,7 @@ class TelemetryOutboxStore(
     }
   }
 
-  override fun markFailed(id: Long, lastError: String) {
+  fun markFailed(id: Long, lastError: String) {
     markFailed(listOf(id), lastError)
   }
 

@@ -257,7 +257,10 @@ class ApplicationPersistencePortTest {
 
     val result = service.sync()
 
-    assertEquals(listOf("transaction", "read", "read", "transaction", "read", "read"), database.calls)
+    assertEquals(
+      listOf("transaction", "read", "transaction", "transaction", "read", "read"),
+      database.calls,
+    )
     assertEquals(listOf("anonymous"), reconciliationRepository.levels)
     assertEquals("synced", result.result.syncStatus)
     assertEquals(listOf(listOf(1L)), client.sentBatchIds)

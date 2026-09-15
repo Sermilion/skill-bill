@@ -1,6 +1,6 @@
 # SKILL-236 Subtask 2 - Truthful lifecycle metrics and correlated diagnostics
 
-Parent spec: [spec.md](./spec.md)
+Parent spec: [spec.md](spec.md)
 Issue key: SKILL-236
 
 ## Scope

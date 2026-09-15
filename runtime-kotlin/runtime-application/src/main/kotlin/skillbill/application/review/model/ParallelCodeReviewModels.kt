@@ -8,6 +8,7 @@ import skillbill.review.context.model.ReviewAccountingSummary
 import skillbill.review.context.model.ReviewBaselineUntrackedPolicy
 import skillbill.review.context.model.ReviewBudgetOutcome
 import skillbill.review.context.model.ReviewLaneCompletionState
+import skillbill.review.context.model.ReviewLaneReviewDisposition
 import skillbill.review.model.ParallelReviewMergeResult
 import skillbill.review.model.ReviewCoverageReport
 import skillbill.review.model.ReviewFindingCitationDiagnosticWithFinding
@@ -115,6 +116,7 @@ data class ParallelReviewLaneStatus(
   val budgetOutcome: ReviewBudgetOutcome? = null,
   val accounting: ReviewLaneAccounting? = null,
   val specialistAccounting: List<ReviewLaneAccounting> = accounting?.let(::listOf) ?: emptyList(),
+  val reviewDisposition: ReviewLaneReviewDisposition = ReviewLaneReviewDisposition.INCOMPLETE,
 )
 
 class UsageValidationException(message: String) : RuntimeException(message)

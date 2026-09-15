@@ -41,6 +41,7 @@ import skillbill.review.model.ReviewStageBoundary
 import skillbill.review.model.ReviewStageDegradationSelectionRequest
 import skillbill.review.model.ReviewStageReached
 import skillbill.review.model.ReviewStageResumeReport
+import skillbill.review.model.ReviewVerificationNonSuccess
 import skillbill.text.sha256HexUtf8
 import java.time.Clock
 
@@ -164,7 +165,11 @@ class ParallelCodeReviewRunnerResultAssembly(
     ) { unitOfWork -> unitOfWork.reviews.recordFindingLaneAttribution(reviewRunId, attribution) }
   }
 
-  fun emitReviewStageDegradations(reviewRunId: String?, outcomes: ParallelReviewLaneRunResult) {
+  fun emitReviewStageDegradations(
+    reviewRunId: String?,
+    outcomes: ParallelReviewLaneRunResult,
+    verificationNonSuccess: ReviewVerificationNonSuccess?,
+  ) {
     if (reviewRunId == null) return
     val evidenceBoundaries = evidenceBoundaryAccountings(outcomes)
     val selected = runtimeOwnedPersistence.optionalRead(
@@ -180,6 +185,7 @@ class ParallelCodeReviewRunnerResultAssembly(
           verdicts = unitOfWork.reviews.fetchFindingVerdicts(reviewRunId),
           claims = unitOfWork.reviews.fetchReviewPassClaims(reviewRunId),
           evidenceBoundaries = evidenceBoundaries,
+          verificationNonSuccess = verificationNonSuccess,
         ),
       )
     }
@@ -308,7 +314,15 @@ private fun ParallelReviewLaneOutcome.toParallelReviewLaneStatus(agentId: String
   budgetOutcome,
   accounting,
   specialistAccounting,
+  reviewPassDisposition(),
 )
+
+private fun ParallelReviewLaneOutcome.reviewPassDisposition(): ReviewLaneReviewDisposition =
+  if (success && !interrupted && rawOutput.isNotBlank()) {
+    reviewDisposition ?: ReviewLaneReviewDisposition.COMPLETE
+  } else {
+    ReviewLaneReviewDisposition.INCOMPLETE
+  }
 
 internal fun ParallelCodeReviewRunnerResultAssembly.durableIntegrationOutcome(
   reviewRunId: String?,

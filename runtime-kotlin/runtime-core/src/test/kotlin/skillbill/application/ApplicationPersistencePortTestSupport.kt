@@ -528,8 +528,6 @@ internal object ThrowingPlanReviewAttributionPort : ReviewAttributionPort {
 internal object NoopTelemetryOutboxRepository : TelemetryOutboxRepository {
   override fun enqueue(eventName: String, payloadJson: String): Long = error("Unexpected enqueue")
 
-  override fun listPending(limit: Int?): List<TelemetryOutboxRecord> = emptyList()
-
   override fun claimPending(request: TelemetryOutboxClaimRequest): List<TelemetryOutboxRecord> = emptyList()
 
   override fun pendingCount(): Int = 0
@@ -540,11 +538,7 @@ internal object NoopTelemetryOutboxRepository : TelemetryOutboxRepository {
 
   override fun lastSyncedAt(): String? = null
 
-  override fun markSynced(id: Long, syncedAt: String) = Unit
-
   override fun markSynced(eventIds: List<Long>) = Unit
-
-  override fun markFailed(id: Long, lastError: String) = Unit
 
   override fun markFailed(eventIds: List<Long>, lastError: String) = Unit
 
@@ -572,7 +566,7 @@ internal class InMemoryTelemetryOutboxRepository(
     return id
   }
 
-  override fun listPending(limit: Int?): List<TelemetryOutboxRecord> =
+  fun listPending(limit: Int? = null): List<TelemetryOutboxRecord> =
     rows.filter { it.syncedAt == null }.let { pending ->
       if (limit == null) pending else pending.take(limit)
     }
@@ -589,18 +583,10 @@ internal class InMemoryTelemetryOutboxRepository(
 
   override fun lastSyncedAt(): String? = rows.mapNotNull { it.syncedAt }.maxOrNull()
 
-  override fun markSynced(id: Long, syncedAt: String) {
-    markSynced(listOf(id))
-  }
-
   override fun markSynced(eventIds: List<Long>) {
     rows.replaceAll { row ->
       if (row.id in eventIds) row.copy(syncedAt = "2026-04-24 00:00:01", lastError = "") else row
     }
-  }
-
-  override fun markFailed(id: Long, lastError: String) {
-    markFailed(listOf(id), lastError)
   }
 
   override fun markFailed(eventIds: List<Long>, lastError: String) {

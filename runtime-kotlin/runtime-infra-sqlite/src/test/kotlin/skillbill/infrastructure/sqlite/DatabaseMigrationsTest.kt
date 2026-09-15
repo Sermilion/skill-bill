@@ -86,6 +86,7 @@ class DatabaseMigrationsTest {
         34 to "allow-goal-planning-phase-output-0-6",
         35 to "add-feature-task-phase-settlements",
         36 to "add-agent-activity-stamps",
+        37 to "add-telemetry-outbox-delivery-identity",
       ),
       migrationDefinitions,
     )

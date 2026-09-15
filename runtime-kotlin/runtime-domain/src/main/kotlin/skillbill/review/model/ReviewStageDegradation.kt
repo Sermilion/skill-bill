@@ -3,14 +3,12 @@ package skillbill.review.model
 enum class ReviewStageDegradationReason(val wireValue: String) {
   SPEC_CONTEXT_NONE("spec_context_none"),
   ADJUDICATION_SKIPPED("adjudication_skipped"),
-  // SKILL-236: one bucket could not tell a worker that never started from one that produced output
-  // nobody could read, so every worker failure looked like the same defect. Each cause routes to a
-  // different fix, so each gets its own token.
   WORKER_PROCESS_FAILED("worker_process_failed"),
   WORKER_TIMED_OUT("worker_timed_out"),
   WORKER_OUTPUT_UNUSABLE("worker_output_unusable"),
   WORKER_LAUNCH_BUDGET_EXCEEDED("worker_launch_budget_exceeded"),
   WORKER_LAUNCH_OR_RETURN_FAILED("worker_launch_or_return_failed"),
+  REVIEW_PASS_OUTPUT_ABSENT("review_pass_output_absent"),
   STAGE_BOUNDARY_UNREACHED("stage_boundary_unreached"),
   EVIDENCE_BOUNDARY_UNBOUND_BROKER("evidence_boundary_unbound_broker"),
   EVIDENCE_BOUNDARY_UNEXERCISED("evidence_boundary_unexercised"),
@@ -39,6 +37,15 @@ data class ReviewEvidenceBoundaryAccounting(
   companion object {
     const val GOVERNED_EVIDENCE_SEAM: String = "review.evidence.broker"
     val NONE: ReviewEvidenceBoundaryAccounting = ReviewEvidenceBoundaryAccounting()
+  }
+}
+
+data class ReviewVerificationNonSuccess(
+  val reason: ReviewStageDegradationReason,
+  val detail: String,
+) {
+  init {
+    require(detail.isNotBlank()) { "A review verification non-success must record what was observed." }
   }
 }
 

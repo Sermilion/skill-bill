@@ -10,6 +10,7 @@ import skillbill.review.model.ReviewStageDegradationMeasurement
 import skillbill.review.model.ReviewStageDegradationReason
 import skillbill.review.model.ReviewStageDegradationSelectionRequest
 import skillbill.review.model.ReviewStageReached
+import skillbill.review.model.ReviewVerificationNonSuccess
 
 object ReviewStageDegradationSelection {
   private val workerFailureReasons: Map<String, ReviewStageDegradationReason> = mapOf(
@@ -27,18 +28,21 @@ object ReviewStageDegradationSelection {
     "unparseable adjudication output" to ReviewStageDegradationReason.WORKER_OUTPUT_UNUSABLE,
   )
 
+  private val workerFailureReasonPrefixes: Map<String, ReviewStageDegradationReason> = mapOf(
+    "agent exited with status " to ReviewStageDegradationReason.WORKER_PROCESS_FAILED,
+    "unsupported agent:" to ReviewStageDegradationReason.WORKER_LAUNCH_OR_RETURN_FAILED,
+  )
+
   /**
    * The cause behind a rejected verdict, or null when the rejection is an ordinary review outcome
    * rather than a worker failure. Classification is by exact reason: an unrecognized reason stays
    * null rather than being attributed to a cause nobody classified, so a new worker-failure reason
    * has to be added here to report at all.
    */
-  private fun workerFailureReason(rejectionReason: String?): ReviewStageDegradationReason? {
+  fun workerFailureReason(rejectionReason: String?): ReviewStageDegradationReason? {
     val reason = rejectionReason ?: return null
-    workerFailureReasons[reason]?.let { return it }
-    if (reason.startsWith("agent exited with status ")) return ReviewStageDegradationReason.WORKER_PROCESS_FAILED
-    if (reason.startsWith("unsupported agent:")) return ReviewStageDegradationReason.WORKER_LAUNCH_OR_RETURN_FAILED
-    return null
+    return workerFailureReasons[reason]
+      ?: workerFailureReasonPrefixes.entries.firstOrNull { reason.startsWith(it.key) }?.value
   }
 
   fun select(request: ReviewStageDegradationSelectionRequest): List<ReviewStageDegradationMeasurement> {
@@ -50,6 +54,7 @@ object ReviewStageDegradationSelection {
         add(adjudicationSkip(request.reviewRunId, specNone))
       }
       workerFailure(request.reviewRunId, request.verdicts)?.let(::add)
+      verificationNonSuccess(request.reviewRunId, request.verificationNonSuccess)?.let(::add)
       addAll(unreachedBoundaries(request.reviewRunId, specNone, byStage, request.claims))
       request.evidenceBoundaries.forEach { addAll(evidenceBoundaryRecords(request.reviewRunId, it)) }
     }
@@ -98,6 +103,20 @@ object ReviewStageDegradationSelection {
       expected = "worker_returned",
       actual = reason.wireValue,
       reason = reason,
+    )
+  }
+
+  private fun verificationNonSuccess(
+    reviewRunId: String,
+    nonSuccess: ReviewVerificationNonSuccess?,
+  ): ReviewStageDegradationMeasurement? {
+    val observed = nonSuccess ?: return null
+    return ReviewStageDegradationMeasurement(
+      reviewRunId = reviewRunId,
+      seam = "review.${ReviewStage.VERIFICATION.wireValue}.worker",
+      expected = "worker_returned",
+      actual = observed.reason.wireValue,
+      reason = observed.reason,
     )
   }
 

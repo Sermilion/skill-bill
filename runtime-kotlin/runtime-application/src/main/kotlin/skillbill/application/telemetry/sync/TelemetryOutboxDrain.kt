@@ -14,7 +14,9 @@ import java.time.Duration
 import java.time.Instant
 import java.util.UUID
 
-private val CLAIM_LEASE: Duration = Duration.ofMinutes(5)
+private const val CLAIM_LEASE_MINUTES: Long = 5
+
+private val CLAIM_LEASE: Duration = Duration.ofMinutes(CLAIM_LEASE_MINUTES)
 
 internal data class DrainRequest(
   val outboxRepository: TelemetryOutboxRepository,
@@ -63,26 +65,23 @@ private fun deliverBatch(request: DrainRequest, rows: List<TelemetryOutboxRecord
       consumesAttempt = report.outcome == TelemetryDeliveryOutcome.REJECTED,
     )
   }
-  try {
-    request.outboxRepository.markSynced(eventIds)
-  } catch (error: Exception) {
-    return failedBatchResult(
-      request,
-      eventIds,
-      syncedTotal,
-      "delivery accepted but the local acknowledgement failed: ${error.message.orEmpty()}",
-      consumesAttempt = true,
-    )
-  }
-  return null
+  val acknowledgement = runCatching { request.outboxRepository.markSynced(eventIds) }.exceptionOrNull()
+    ?: return null
+  if (acknowledgement !is Exception) throw acknowledgement
+  return failedBatchResult(
+    request,
+    eventIds,
+    syncedTotal,
+    "delivery accepted but the local acknowledgement failed: ${acknowledgement.message.orEmpty()}",
+    consumesAttempt = true,
+  )
 }
 
 private fun attemptDelivery(request: DrainRequest, rows: List<TelemetryOutboxRecord>): TelemetryDeliveryReport {
-  val report =
-    try {
-      request.client.sendBatch(request.settings, rows)
-    } catch (error: Exception) {
-      return TelemetryDeliveryReport(TelemetryDeliveryOutcome.UNKNOWN, unconfirmedMessage(failureDetail(error)))
+  val report = runCatching { request.client.sendBatch(request.settings, rows) }
+    .getOrElse { thrown ->
+      if (thrown !is Exception) throw thrown
+      return TelemetryDeliveryReport(TelemetryDeliveryOutcome.UNKNOWN, unconfirmedMessage(failureDetail(thrown)))
     }
   return when (report.outcome) {
     TelemetryDeliveryOutcome.ACCEPTED -> report

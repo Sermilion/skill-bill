@@ -24,4 +24,17 @@ Discover and deliver assigned changes to `AGENTS.md` and `specialist-contract.md
 
 For committed, staged, and unstaged reviews, put different content in HEAD, the index, and the worktree. Verify that a non-primary lane expansion delivers the selected source through the final merged broker. Include symbolic committed revisions and the complete discovered `agent:bill-skill` lane in `--expand-file`. Change a checkpoint file after preparation and confirm refusal without coverage credit, then restore the recorded content and retry.
 
+## Repeat consumption and the preserved rejection classes
+
+A lane may consume an already-admitted evidence target again. The second read of an unchanged, identically-scoped target is served from the lane's own copy: the same content comes back, `lane_evidence_bytes` is charged once, and the read is not counted as a refusal. A lane that legitimately needs an item twice therefore cannot be driven into a refusal loop.
+
+Repeat consumption widens nothing. Four rejections keep their distinct identity and must be exercised as such:
+
+- a complete-file read whose checkpoint digest drifted after the launch checkpoint was bound, on the first read and on a repeat alike
+- an unassigned path presented without an authorized expansion
+- a request carrying another assignment's or lane's identity
+- a repeat that widens a target already served as projected hunks into a complete file, refused as `evidence_scope_expansion_repeat`
+
+Aggregate refusal counts are not the oracle. Assert the served content and the rejection identity.
+
 Exercise oversized reasons, authenticated frames, retained expansion metadata, and response serialization. Refusals must remain bounded and recorded. Confirm that only complete units retained in the final response receive delivery credit, and that byte-budget exhaustion stays terminal. These scenarios are authored regressions pending execution by the owning validation phase.

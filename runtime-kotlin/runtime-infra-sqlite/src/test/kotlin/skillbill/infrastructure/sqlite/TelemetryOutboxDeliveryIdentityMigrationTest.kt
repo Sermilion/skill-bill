@@ -98,8 +98,7 @@ class TelemetryOutboxDeliveryIdentityMigrationTest {
     }
   }
 
-  private fun newDatabase(): Path =
-    Files.createTempDirectory("runtime-kotlin-outbox-identity").resolve("metrics.db")
+  private fun newDatabase(): Path = Files.createTempDirectory("runtime-kotlin-outbox-identity").resolve("metrics.db")
 
   private fun stripIdentities(connection: Connection) {
     connection.createStatement().use { statement ->

@@ -68,11 +68,8 @@ class FeatureTaskRuntimeReviewFixBudgetTest {
 
 private fun RunnerHarness.appendLedger(
   action: FeatureTaskRuntimePhaseLedgerAction,
-  loopId: String? = null,
-  edgeIteration: Int? = null,
   phaseId: String = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW,
-  blockedReason: String? = null,
-  fixLoopIteration: Int? = null,
+  detail: FeatureTaskRuntimePhaseLedgerRequest.() -> FeatureTaskRuntimePhaseLedgerRequest = { this },
 ) = recorder.appendLedgerEntry(
   FeatureTaskRuntimePhaseLedgerRequest(
     workflowId = WORKFLOW_ID,
@@ -80,22 +77,25 @@ private fun RunnerHarness.appendLedger(
     phaseId = phaseId,
     attemptCount = 1,
     resolvedAgentId = INVOKED_AGENT,
-    loopId = loopId,
-    edgeIteration = edgeIteration,
-    blockedReason = blockedReason,
-    fixLoopIteration = fixLoopIteration,
-  ),
+  ).detail(),
 )
 
 private fun RunnerHarness.appendAuditContinuation(kind: FeatureTaskRuntimeContinuationKind) = appendLedger(
   FeatureTaskRuntimePhaseLedgerAction.FIX_LOOP_ITERATION,
   phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
-  blockedReason = FeatureTaskRuntimeContinuationKind.LEDGER_DETAIL_PREFIX + kind.wireValue,
-  fixLoopIteration = 1,
-)
+) {
+  copy(
+    blockedReason = FeatureTaskRuntimeContinuationKind.LEDGER_DETAIL_PREFIX + kind.wireValue,
+    fixLoopIteration = 1,
+  )
+}
 
 private fun RunnerHarness.appendLoopEdge(loopId: String, edgeIteration: Int) =
-  appendLedger(FeatureTaskRuntimePhaseLedgerAction.LOOP_EDGE, loopId, edgeIteration)
+  appendLedger(FeatureTaskRuntimePhaseLedgerAction.LOOP_EDGE) {
+    copy(loopId = loopId, edgeIteration = edgeIteration)
+  }
 
 private fun RunnerHarness.appendLoopCapExhausted(loopId: String) =
-  appendLedger(FeatureTaskRuntimePhaseLedgerAction.LOOP_CAP_EXHAUSTED, loopId, edgeIteration = 1)
+  appendLedger(FeatureTaskRuntimePhaseLedgerAction.LOOP_CAP_EXHAUSTED) {
+    copy(loopId = loopId, edgeIteration = 1)
+  }

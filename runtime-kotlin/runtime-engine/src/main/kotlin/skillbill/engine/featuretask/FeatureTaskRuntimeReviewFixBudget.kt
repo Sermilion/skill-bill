@@ -44,7 +44,7 @@ private fun isAuditGapRound(entry: FeatureTaskRuntimePhaseLedgerEntry): Boolean 
   FeatureTaskRuntimePhaseLedgerAction.FIX_LOOP_ITERATION ->
     entry.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT &&
       FeatureTaskRuntimeContinuationKind.fromLedgerDetail(entry.blockedReason) ==
-        FeatureTaskRuntimeContinuationKind.AUDIT_AC_RETRY
+      FeatureTaskRuntimeContinuationKind.AUDIT_AC_RETRY
   else -> false
 }
 

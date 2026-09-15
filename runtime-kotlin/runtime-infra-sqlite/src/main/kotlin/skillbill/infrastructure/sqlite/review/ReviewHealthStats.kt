@@ -71,8 +71,8 @@ private fun reviewDeliveryGrain(
     queuedDeliveryRows = scopedPayloads.count { it.deliveryAttempts != null },
     deliveryAttempts = scopedPayloads.sumOf { it.deliveryAttempts ?: 0 },
     logicalEvents = identities.filterNotNull().distinct().size,
-    rowsWithUnknownDeliveryIdentity = scopedPayloads.count { it.deliveryAttempts != null }
-      - identities.count { it != null },
+    rowsWithUnknownDeliveryIdentity = scopedPayloads.count { it.deliveryAttempts != null } -
+      identities.count { it != null },
     logicalReviews = reviewRunIds.filterNotNull().distinct().size,
     recordsWithUnknownReview = reviewRunIds.count { it == null },
   )

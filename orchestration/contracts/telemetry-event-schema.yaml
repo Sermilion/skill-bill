@@ -1564,6 +1564,7 @@ $defs:
           - worker_output_unusable
           - worker_launch_budget_exceeded
           - worker_launch_or_return_failed
+          - review_pass_output_absent
           - stage_boundary_unreached
           - evidence_boundary_unbound_broker
           - evidence_boundary_unexercised

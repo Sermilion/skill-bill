@@ -194,7 +194,6 @@ class TelemetryRuntimeTest {
           outboxRepository = outboxStore,
           client = RecordingTelemetryClient(failure = IOException("must not call client")),
           now = SYNC_NOW,
-          reportFailures = false,
         )
 
       assertEquals(TelemetrySyncStatus.DISABLED, result?.status)
@@ -243,10 +242,7 @@ private class RecordingTelemetryClient(
 ) : TelemetryClient {
   val sentBatchIds = mutableListOf<List<Long>>()
 
-  override fun sendBatch(
-    settings: TelemetrySettings,
-    rows: List<TelemetryOutboxRecord>,
-  ): TelemetryDeliveryReport {
+  override fun sendBatch(settings: TelemetrySettings, rows: List<TelemetryOutboxRecord>): TelemetryDeliveryReport {
     failure?.let { throw it }
     sentBatchIds += rows.map { it.id }
     return TelemetryDeliveryReport(TelemetryDeliveryOutcome.ACCEPTED)

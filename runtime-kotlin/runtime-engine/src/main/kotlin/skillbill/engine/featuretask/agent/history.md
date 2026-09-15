@@ -1,5 +1,17 @@
 # featuretask runtime boundary history
 
+## [2026-09-15] SKILL-236 subtask 3 — Review execution and generated-evidence ownership recovery
+Areas: runtime-kotlin/runtime-engine/featuretask, runtime-kotlin/runtime-application/review, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-domain/review
+- The verification stage boundary is gated on an observed lane disposition. An empty, failed, interrupted, or truncated review pass yields a typed `ReviewVerificationNonSuccess`, preserves prior findings and verdicts, and emits `review_pass_output_absent` instead of reaching the boundary.
+- The evidence broker serves an unchanged, identically-scoped repeat read from the same lane and charges `lane_evidence_bytes` once. A repeat that widens projected hunks to a complete file is refused as `evidence_scope_expansion_repeat`; stale-checkpoint, unassigned, and foreign-assignment rejections are untouched.
+- Run-evidence ownership derives from the active run's publication address rather than the `.skill-bill/` prefix, so a foreign workflow's artifact and a forged file under the same store root stay actionable.
+- Pattern: when a placeholder substitutes for an absent signal downstream, carry the observation from where it was made rather than re-deriving it. reusable
+- A failed diagnostic write reuses `RuntimeOwnedPersistenceBoundary.optionalWrite`: it records a bounded local record without marking a stage reached, clearing a finding, or replacing the primary error, so diagnostics cannot fabricate clearance. reusable
+- A checkpoint commit that returns an empty sha blocks after index mutation and restores the captured index snapshot; post-commit `recordCommit` and push failures deliberately leave the index alone.
+- Limitation: ownership provenance is derived from the deterministic address, not a durable published inventory; preflight/resume re-derivation of runtime-owned ignored or deleted evidence is not covered here.
+Feature flag: N/A
+Acceptance criteria: 5/6 implemented (AC-4 partial: index restore landed, preflight/resume re-derivation deferred)
+
 ## [2026-09-14] SKILL-52.5 subtask 4 — Feature task engine typing
 Areas: runtime-kotlin/runtime-engine/featuretask, runtime-kotlin/runtime-core/architecture, runtime-kotlin/runtime-mcp/featuretask
 - Replaced raw-map handoffs across feature-task run-loop, verification, settlement, phase-artifact, and MCP adapter boundaries with typed engine models.

@@ -2,6 +2,7 @@ package skillbill.application.telemetry
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.telemetry.model.TelemetryMutationResult
+import skillbill.application.telemetry.model.TelemetryOutboxStatusSnapshot
 import skillbill.application.telemetry.model.TelemetryStatusResult
 import skillbill.application.telemetry.model.TelemetrySyncPayload
 import skillbill.application.telemetry.settings.loadTelemetrySettings
@@ -44,10 +45,12 @@ class TelemetryService(
       TelemetrySyncRuntime.telemetryStatusPayload(
         dbPath = unitOfWork.dbPath,
         settings = settings,
-        pendingEvents = unitOfWork.telemetryOutbox.pendingCount(),
-        latestError = unitOfWork.telemetryOutbox.latestError(),
-        lastSyncedAt = unitOfWork.telemetryOutbox.lastSyncedAt(),
-        blockedEvents = unitOfWork.telemetryOutbox.blockedCount(TELEMETRY_DELIVERY_ATTEMPT_BUDGET),
+        outbox = TelemetryOutboxStatusSnapshot(
+          pendingEvents = unitOfWork.telemetryOutbox.pendingCount(),
+          latestError = unitOfWork.telemetryOutbox.latestError(),
+          lastSyncedAt = unitOfWork.telemetryOutbox.lastSyncedAt(),
+          blockedEvents = unitOfWork.telemetryOutbox.blockedCount(TELEMETRY_DELIVERY_ATTEMPT_BUDGET),
+        ),
       )
     }
   }
@@ -138,9 +141,6 @@ private fun sessionTelemetryOutboxRepository(database: DatabaseSessionFactory): 
     override fun enqueue(eventName: String, payloadJson: String): Long =
       database.transaction { unitOfWork -> unitOfWork.telemetryOutbox.enqueue(eventName, payloadJson) }
 
-    override fun listPending(limit: Int?): List<TelemetryOutboxRecord> =
-      database.read { unitOfWork -> unitOfWork.telemetryOutbox.listPending(limit) }
-
     override fun claimPending(request: TelemetryOutboxClaimRequest): List<TelemetryOutboxRecord> =
       database.transaction { unitOfWork -> unitOfWork.telemetryOutbox.claimPending(request) }
 
@@ -153,16 +153,8 @@ private fun sessionTelemetryOutboxRepository(database: DatabaseSessionFactory): 
 
     override fun lastSyncedAt(): String? = database.read { unitOfWork -> unitOfWork.telemetryOutbox.lastSyncedAt() }
 
-    override fun markSynced(id: Long, syncedAt: String) {
-      database.transaction { unitOfWork -> unitOfWork.telemetryOutbox.markSynced(id, syncedAt) }
-    }
-
     override fun markSynced(eventIds: List<Long>) {
       database.transaction { unitOfWork -> unitOfWork.telemetryOutbox.markSynced(eventIds) }
-    }
-
-    override fun markFailed(id: Long, lastError: String) {
-      database.transaction { unitOfWork -> unitOfWork.telemetryOutbox.markFailed(id, lastError) }
     }
 
     override fun markFailed(eventIds: List<Long>, lastError: String) {

@@ -2,6 +2,7 @@ package skillbill.engine.featuretask
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeCheckpointDecision
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeCheckpointScopeInput
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeSubtaskCommitIdentity
+import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -387,6 +388,7 @@ class FeatureTaskRuntimeCheckpointScopeTest {
       CheckpointScopeDecideFixture(
         ownedPaths = listOf("src/Owned.kt"),
         phaseIntroducedPaths = listOf("src/Owned.kt", evidence, patch, ".skill-bill/"),
+        workflowId = "wftr-1",
       ),
     )
 
@@ -399,19 +401,66 @@ class FeatureTaskRuntimeCheckpointScopeTest {
     val written = phaseWrittenPaths(
       worktreeDeltaPaths = listOf(
         "src/Owned.kt",
+        ".skill-bill/state.db",
         ".skill-bill/run-evidence/wf/fp/diff.patch",
-        ".skill-bill/run-evidence/wf/fp/evidence.json",
       ),
       phaseManifestPaths = listOf("src/Owned.kt", ".skill-bill/"),
     )
 
-    assertEquals(listOf("src/Owned.kt"), written)
+    assertEquals(
+      listOf(".skill-bill/run-evidence/wf/fp/diff.patch", "src/Owned.kt"),
+      written,
+      "run-evidence survives the prefix seam so provenance decides ownership downstream",
+    )
   }
 
   @Test
   fun `trackable skill-bill config is not treated as runtime-private`() {
     assertFalse(isRuntimePrivatePath(".skill-bill/config.yaml"))
-    assertTrue(isRuntimePrivatePath(".skill-bill/run-evidence/a/b"))
+    assertTrue(isRuntimePrivatePath(".skill-bill/state.db"))
+  }
+
+  @Test
+  fun `run-evidence ownership follows the active run, not the store prefix`() {
+    val runEvidence = listOf(
+      ".skill-bill/run-evidence/wf-mine/fp/diff.patch",
+      ".skill-bill/run-evidence/wf-other/fp/diff.patch",
+      ".skill-bill/run-evidence/forged.json",
+    )
+    val decision = decide(
+      CheckpointScopeDecideFixture(
+        ownedPaths = listOf("src/Owned.kt"),
+        phaseIntroducedPaths = listOf("src/Owned.kt") + runEvidence,
+        worktreeDeltaPaths = listOf("src/Owned.kt") + runEvidence,
+        workflowId = "wf-mine",
+      ),
+    )
+
+    assertEquals(
+      FeatureTaskRuntimeCheckpointDecision.Stage(
+        listOf(
+          ".skill-bill/run-evidence/forged.json",
+          ".skill-bill/run-evidence/wf-other/fp/diff.patch",
+          "src/Owned.kt",
+        ),
+      ),
+      decision,
+    )
+    assertEquals(
+      listOf(
+        ".skill-bill/run-evidence/wf-other/fp/diff.patch",
+        ".skill-bill/run-evidence/forged.json",
+        "src/Owned.kt",
+      ),
+      reconcileCheckpointPathInventory(
+        repoRoot = Path.of("/repo"),
+        issueKey = ISSUE,
+        specReference = ".feature-specs/$ISSUE/spec.md",
+        workflowId = "wf-mine",
+        paths = runEvidence + "src/Owned.kt",
+      ),
+      "only this run's own evidence leaves the inventory the review pathspec is built from",
+    )
   }
 
   private data class CheckpointScopeDecideFixture(
@@ -421,6 +470,7 @@ class FeatureTaskRuntimeCheckpointScopeTest {
     val foreignStagedPaths: List<String> = emptyList(),
     val concurrentlyModifiedOwnedPaths: List<String> = emptyList(),
     val deletedPaths: List<String> = emptyList(),
+    val workflowId: String? = null,
   ) {
     fun decide(): FeatureTaskRuntimeCheckpointDecision = FeatureTaskRuntimeCheckpointScope.decide(
       FeatureTaskRuntimeCheckpointScopeInput(
@@ -431,6 +481,7 @@ class FeatureTaskRuntimeCheckpointScopeTest {
         foreignStagedPaths = foreignStagedPaths,
         concurrentlyModifiedOwnedPaths = concurrentlyModifiedOwnedPaths,
         deletedPaths = deletedPaths,
+        workflowId = workflowId,
       ),
     )
   }
