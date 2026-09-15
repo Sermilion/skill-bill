@@ -387,6 +387,37 @@ runtime-ports
   payloads, owns MCP-specific schema seams, and delegates shared behavior to
   application services or ports.
 
+### Telemetry outbox delivery ownership
+
+Claim lease duration is five minutes (`CLAIM_LEASE_MINUTES` in
+`TelemetryOutboxDrain`). Each drain run holds one random `claimToken`; every
+batch claim reads the injected clock at claim time so a slow earlier HTTP
+request does not backdate a later batch lease. Settlement through
+`markSynced`, `markFailed`, and `markUnconfirmed` requires the active
+`claimToken` and `synced_at IS NULL`; zero updated rows set
+`TelemetryOutboxSettlementResult.lostClaim`, and a partial update also reports
+the lost portion so the drain does not count another owner's row as synced. The
+drain stops without altering another owner's row.
+
+`JdkHttpRemoteTransport` reuses one JDK `HttpClient` for the process. Default
+connect timeout is ten seconds and per-request timeout is four minutes, both
+below the claim lease; `TransportContext.connectTimeout` and
+`requestTimeout` override those defaults for tests only. Cooperative
+cancellation and `InterruptedException` propagate through manual sync, auto
+sync, drain, and stale-session reconciliation; cancellation does not consume
+delivery attempts or become an UNKNOWN delivery report. Ordinary auto-sync
+failure stays non-fatal to callers and records the payload-free
+`telemetry background sync failed` diagnostic; the same signature is emitted
+again when the follow-up outbox exception enqueue fails.
+
+SQLite integration tests prove stale-owner settlement rejection. A loopback
+HTTP peer that accepts a connection but never completes a response proves
+request deadlines and server teardown. Fakes at claim, transport, and
+acknowledgement prove cancellation propagation and durable row state. Those
+tests do not prove exactly-once remote delivery, protection against
+indefinite JVM pause beyond lease expiry, or behavior when the remote proxy
+ignores deduplication keys.
+
 ## Boundary Rules
 
 1. CLI and MCP data gateways are entry adapters. They validate and

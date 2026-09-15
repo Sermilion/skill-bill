@@ -4,6 +4,7 @@ import skillbill.SkillBillVersion
 import skillbill.ports.telemetry.TelemetryOutboxRepository
 import skillbill.ports.telemetry.model.TelemetryOutboxClaimRequest
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
+import skillbill.ports.telemetry.model.TelemetryOutboxSettlementResult
 import java.sql.Connection
 import java.sql.ResultSet
 import java.time.ZoneOffset
@@ -171,40 +172,52 @@ class TelemetryOutboxStore(
     }
   }
 
-  override fun markSynced(eventIds: List<Long>) {
+  override fun markSynced(eventIds: List<Long>, claimToken: String): TelemetryOutboxSettlementResult {
     if (eventIds.isEmpty()) {
-      return
+      return TelemetryOutboxSettlementResult.forRequest(eventIds, updatedRows = 0)
     }
     val placeholders = eventIds.joinToString(", ") { "?" }
-    connection.prepareStatement(
-      """
+    val updated =
+      connection.prepareStatement(
+        """
       UPDATE telemetry_outbox
       SET synced_at = CURRENT_TIMESTAMP, last_error = NULL, claim_token = NULL, claimed_at = NULL
-      WHERE id IN ($placeholders)
+      WHERE id IN ($placeholders) AND claim_token = ? AND synced_at IS NULL
       """.trimIndent(),
-    ).use { statement ->
-      eventIds.forEachIndexed { index, eventId ->
-        statement.setLong(index + 1, eventId)
+      ).use { statement ->
+        eventIds.forEachIndexed { index, eventId ->
+          statement.setLong(index + 1, eventId)
+        }
+        statement.setString(eventIds.size + 1, claimToken)
+        statement.executeUpdate()
       }
-      statement.executeUpdate()
-    }
+    return TelemetryOutboxSettlementResult.forRequest(eventIds, updatedRows = updated)
   }
 
-  fun markFailed(id: Long, lastError: String) {
-    markFailed(listOf(id), lastError)
+  fun markFailed(id: Long, claimToken: String, lastError: String) {
+    markFailed(listOf(id), claimToken, lastError)
   }
 
-  override fun markFailed(eventIds: List<Long>, lastError: String) {
-    recordFailure(eventIds, lastError, consumesAttempt = true)
-  }
+  override fun markFailed(
+    eventIds: List<Long>,
+    claimToken: String,
+    lastError: String,
+  ): TelemetryOutboxSettlementResult = recordFailure(eventIds, claimToken, lastError, consumesAttempt = true)
 
-  override fun markUnconfirmed(eventIds: List<Long>, lastError: String) {
-    recordFailure(eventIds, lastError, consumesAttempt = false)
-  }
+  override fun markUnconfirmed(
+    eventIds: List<Long>,
+    claimToken: String,
+    lastError: String,
+  ): TelemetryOutboxSettlementResult = recordFailure(eventIds, claimToken, lastError, consumesAttempt = false)
 
-  private fun recordFailure(eventIds: List<Long>, lastError: String, consumesAttempt: Boolean) {
+  private fun recordFailure(
+    eventIds: List<Long>,
+    claimToken: String,
+    lastError: String,
+    consumesAttempt: Boolean,
+  ): TelemetryOutboxSettlementResult {
     if (eventIds.isEmpty()) {
-      return
+      return TelemetryOutboxSettlementResult.forRequest(eventIds, updatedRows = 0)
     }
     val placeholders = eventIds.joinToString(", ") { "?" }
     val assignments =
@@ -216,19 +229,22 @@ class TelemetryOutboxStore(
         add("claim_token = NULL")
         add("claimed_at = NULL")
       }.joinToString(", ")
-    connection.prepareStatement(
-      """
+    val updated =
+      connection.prepareStatement(
+        """
       UPDATE telemetry_outbox
       SET $assignments
-      WHERE id IN ($placeholders)
+      WHERE id IN ($placeholders) AND claim_token = ? AND synced_at IS NULL
       """.trimIndent(),
-    ).use { statement ->
-      statement.setString(1, lastError)
-      eventIds.forEachIndexed { index, eventId ->
-        statement.setLong(index + 2, eventId)
+      ).use { statement ->
+        statement.setString(1, lastError)
+        eventIds.forEachIndexed { index, eventId ->
+          statement.setLong(index + 2, eventId)
+        }
+        statement.setString(eventIds.size + 2, claimToken)
+        statement.executeUpdate()
       }
-      statement.executeUpdate()
-    }
+    return TelemetryOutboxSettlementResult.forRequest(eventIds, updatedRows = updated)
   }
 
   override fun clear(): Int {

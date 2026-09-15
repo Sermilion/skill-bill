@@ -59,6 +59,7 @@ import skillbill.ports.telemetry.TelemetryReconciliationRepository
 import skillbill.ports.telemetry.TelemetrySettingsProvider
 import skillbill.ports.telemetry.model.TelemetryOutboxClaimRequest
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
+import skillbill.ports.telemetry.model.TelemetryOutboxSettlementResult
 import skillbill.ports.telemetry.model.TelemetryReconciliationRequest
 import skillbill.ports.telemetry.model.TelemetryReconciliationResult
 import skillbill.ports.work.EmptyWorkListRepository
@@ -538,11 +539,20 @@ internal object NoopTelemetryOutboxRepository : TelemetryOutboxRepository {
 
   override fun lastSyncedAt(): String? = null
 
-  override fun markSynced(eventIds: List<Long>) = Unit
+  override fun markSynced(eventIds: List<Long>, claimToken: String): TelemetryOutboxSettlementResult =
+    TelemetryOutboxSettlementResult.forRequest(eventIds, updatedRows = 0)
 
-  override fun markFailed(eventIds: List<Long>, lastError: String) = Unit
+  override fun markFailed(
+    eventIds: List<Long>,
+    claimToken: String,
+    lastError: String,
+  ): TelemetryOutboxSettlementResult = TelemetryOutboxSettlementResult.forRequest(eventIds, updatedRows = 0)
 
-  override fun markUnconfirmed(eventIds: List<Long>, lastError: String) = Unit
+  override fun markUnconfirmed(
+    eventIds: List<Long>,
+    claimToken: String,
+    lastError: String,
+  ): TelemetryOutboxSettlementResult = TelemetryOutboxSettlementResult.forRequest(eventIds, updatedRows = 0)
 
   override fun clear(): Int = 0
 }
@@ -551,6 +561,7 @@ internal class InMemoryTelemetryOutboxRepository(
   private val rows: MutableList<TelemetryOutboxRecord> = mutableListOf(),
 ) : TelemetryOutboxRepository {
   val enqueuedEventNames = mutableListOf<String>()
+  private val claimTokens = mutableMapOf<Long, String>()
 
   override fun enqueue(eventName: String, payloadJson: String): Long {
     val id = (rows.maxOfOrNull { it.id } ?: 0L) + 1
@@ -571,8 +582,12 @@ internal class InMemoryTelemetryOutboxRepository(
       if (limit == null) pending else pending.take(limit)
     }
 
-  override fun claimPending(request: TelemetryOutboxClaimRequest): List<TelemetryOutboxRecord> =
-    rows.filter { it.syncedAt == null && it.deliveryAttempts < request.attemptBudget }.take(request.limit)
+  override fun claimPending(request: TelemetryOutboxClaimRequest): List<TelemetryOutboxRecord> {
+    val claimed =
+      rows.filter { it.syncedAt == null && it.deliveryAttempts < request.attemptBudget }.take(request.limit)
+    claimed.forEach { claimTokens[it.id] = request.claimToken }
+    return claimed
+  }
 
   override fun pendingCount(): Int = rows.count { it.syncedAt == null }
 
@@ -583,24 +598,54 @@ internal class InMemoryTelemetryOutboxRepository(
 
   override fun lastSyncedAt(): String? = rows.mapNotNull { it.syncedAt }.maxOrNull()
 
-  override fun markSynced(eventIds: List<Long>) {
+  override fun markSynced(eventIds: List<Long>, claimToken: String): TelemetryOutboxSettlementResult {
+    var updated = 0
     rows.replaceAll { row ->
-      if (row.id in eventIds) row.copy(syncedAt = "2026-04-24 00:00:01", lastError = "") else row
+      if (row.id in eventIds && claimTokens[row.id] == claimToken && row.syncedAt == null) {
+        updated++
+        claimTokens.remove(row.id)
+        row.copy(syncedAt = "2026-04-24 00:00:01", lastError = "")
+      } else {
+        row
+      }
     }
+    return TelemetryOutboxSettlementResult.forRequest(eventIds, updatedRows = updated)
   }
 
-  override fun markFailed(eventIds: List<Long>, lastError: String) {
+  override fun markFailed(
+    eventIds: List<Long>,
+    claimToken: String,
+    lastError: String,
+  ): TelemetryOutboxSettlementResult {
+    var updated = 0
     rows.replaceAll { row ->
-      if (row.id in eventIds) {
+      if (row.id in eventIds && claimTokens[row.id] == claimToken && row.syncedAt == null) {
+        updated++
+        claimTokens.remove(row.id)
         row.copy(lastError = lastError, deliveryAttempts = row.deliveryAttempts + 1)
       } else {
         row
       }
     }
+    return TelemetryOutboxSettlementResult.forRequest(eventIds, updatedRows = updated)
   }
 
-  override fun markUnconfirmed(eventIds: List<Long>, lastError: String) {
-    rows.replaceAll { row -> if (row.id in eventIds) row.copy(lastError = lastError) else row }
+  override fun markUnconfirmed(
+    eventIds: List<Long>,
+    claimToken: String,
+    lastError: String,
+  ): TelemetryOutboxSettlementResult {
+    var updated = 0
+    rows.replaceAll { row ->
+      if (row.id in eventIds && claimTokens[row.id] == claimToken && row.syncedAt == null) {
+        updated++
+        claimTokens.remove(row.id)
+        row.copy(lastError = lastError)
+      } else {
+        row
+      }
+    }
+    return TelemetryOutboxSettlementResult.forRequest(eventIds, updatedRows = updated)
   }
 
   override fun clear(): Int {
@@ -1269,5 +1314,6 @@ internal fun telemetrySyncService(reconciliation: RecordingTelemetryReconciliati
       settingsProvider = settingsProvider,
       configStore = FakeTelemetryConfigStore,
     ),
+    diagnostics = NoopRuntimeDiagnostics,
   )
 }

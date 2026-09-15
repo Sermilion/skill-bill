@@ -1,6 +1,7 @@
 package skillbill.di
 
 import skillbill.infrastructure.fs.CanonicalRepositoryRoot
+import skillbill.infrastructure.http.JdkHttpRemoteTransport
 import skillbill.infrastructure.http.JdkHttpRequester
 import skillbill.infrastructure.sqlite.SQLiteDatabaseSessionFactory
 import skillbill.model.EnvironmentContext
@@ -29,7 +30,18 @@ internal object RuntimeBootstrapBindings {
         resolvedEnvironment
       }
     val inputTransport = inputRuntimeContext.transport
-    val resolvedTransport = inputTransport.copy(requester = inputTransport.requester ?: JdkHttpRequester)
+    val resolvedTransport =
+      inputTransport.copy(
+        requester =
+          inputTransport.requester ?: if (
+            inputTransport.connectTimeout == null &&
+            inputTransport.requestTimeout == null
+          ) {
+            JdkHttpRequester
+          } else {
+            JdkHttpRemoteTransport.create(inputTransport.connectTimeout, inputTransport.requestTimeout)
+          },
+      )
     val resolvedRepositoryRoot =
       if (environmentWithEnv.repositoryRoot == EnvironmentContext.UnspecifiedRepositoryRoot) {
         environmentWithEnv.copy(repositoryRoot = repositoryEnclosingRootPort.enclosingRepositoryRoot(Path.of("")))

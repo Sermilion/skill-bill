@@ -22,6 +22,7 @@ import skillbill.ports.telemetry.TelemetryReconciliationRepository
 import skillbill.ports.telemetry.TelemetrySettingsProvider
 import skillbill.ports.telemetry.model.TelemetryOutboxClaimRequest
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
+import skillbill.ports.telemetry.model.TelemetryOutboxSettlementResult
 import skillbill.ports.work.EmptyWorkListRepository
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.telemetry.CONFIG_ENVIRONMENT_KEY
@@ -333,11 +334,20 @@ private class MutationTelemetryOutboxRepository(
 
   override fun lastSyncedAt(): String? = rows.mapNotNull(TelemetryOutboxRecord::syncedAt).maxOrNull()
 
-  override fun markSynced(eventIds: List<Long>) = Unit
+  override fun markSynced(eventIds: List<Long>, claimToken: String): TelemetryOutboxSettlementResult =
+    TelemetryOutboxSettlementResult.forRequest(eventIds, updatedRows = 0)
 
-  override fun markFailed(eventIds: List<Long>, lastError: String) = Unit
+  override fun markFailed(
+    eventIds: List<Long>,
+    claimToken: String,
+    lastError: String,
+  ): TelemetryOutboxSettlementResult = TelemetryOutboxSettlementResult.forRequest(eventIds, updatedRows = 0)
 
-  override fun markUnconfirmed(eventIds: List<Long>, lastError: String) = Unit
+  override fun markUnconfirmed(
+    eventIds: List<Long>,
+    claimToken: String,
+    lastError: String,
+  ): TelemetryOutboxSettlementResult = TelemetryOutboxSettlementResult.forRequest(eventIds, updatedRows = 0)
 
   override fun clear(): Int {
     val count = rows.size

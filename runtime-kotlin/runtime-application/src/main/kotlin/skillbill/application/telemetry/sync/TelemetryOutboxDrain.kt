@@ -13,17 +13,21 @@ import skillbill.telemetry.model.TelemetrySyncStatus
 import java.time.Duration
 import java.time.Instant
 import java.util.UUID
+import kotlin.coroutines.cancellation.CancellationException
 
-private const val CLAIM_LEASE_MINUTES: Long = 5
+internal const val CLAIM_LEASE_MINUTES: Long = 5
 
 private val CLAIM_LEASE: Duration = Duration.ofMinutes(CLAIM_LEASE_MINUTES)
+
+private const val LOST_CLAIM_MESSAGE =
+  "delivery settlement lost the outbox claim before the result could be recorded locally"
 
 internal data class DrainRequest(
   val outboxRepository: TelemetryOutboxRepository,
   val settings: TelemetrySettings,
   val client: TelemetryClient,
   val syncContext: SyncContext,
-  val now: Instant,
+  val nowSupplier: () -> Instant,
 )
 
 internal fun drainPendingBatches(request: DrainRequest): SyncResult {
@@ -34,7 +38,7 @@ internal fun drainPendingBatches(request: DrainRequest): SyncResult {
     if (rows.isEmpty()) {
       return drainedSyncResult(request, syncedTotal)
     }
-    val failure = deliverBatch(request, rows, syncedTotal)
+    val failure = deliverBatch(request, rows, claimToken, syncedTotal)
     if (failure != null) {
       return failure
     }
@@ -43,46 +47,130 @@ internal fun drainPendingBatches(request: DrainRequest): SyncResult {
   return drainedSyncResult(request, syncedTotal)
 }
 
-private fun claimBatch(request: DrainRequest, claimToken: String): List<TelemetryOutboxRecord> =
-  request.outboxRepository.claimPending(
+private fun claimBatch(request: DrainRequest, claimToken: String): List<TelemetryOutboxRecord> {
+  val batchNow = request.nowSupplier()
+  return request.outboxRepository.claimPending(
     TelemetryOutboxClaimRequest(
       claimToken = claimToken,
       limit = request.settings.batchSize,
-      claimedAt = request.now,
-      reclaimBefore = request.now.minus(CLAIM_LEASE),
+      claimedAt = batchNow,
+      reclaimBefore = batchNow.minus(CLAIM_LEASE),
     ),
-  )
-
-private fun deliverBatch(request: DrainRequest, rows: List<TelemetryOutboxRecord>, syncedTotal: Int): SyncResult? {
-  val eventIds = rows.map { it.id }
-  val report = attemptDelivery(request, rows)
-  if (report.outcome != TelemetryDeliveryOutcome.ACCEPTED) {
-    return failedBatchResult(
-      request,
-      eventIds,
-      syncedTotal,
-      report.detail,
-      consumesAttempt = report.outcome == TelemetryDeliveryOutcome.REJECTED,
-    )
-  }
-  val acknowledgement = runCatching { request.outboxRepository.markSynced(eventIds) }.exceptionOrNull()
-    ?: return null
-  if (acknowledgement !is Exception) throw acknowledgement
-  return failedBatchResult(
-    request,
-    eventIds,
-    syncedTotal,
-    "delivery accepted but the local acknowledgement failed: ${acknowledgement.message.orEmpty()}",
-    consumesAttempt = true,
   )
 }
 
-private fun attemptDelivery(request: DrainRequest, rows: List<TelemetryOutboxRecord>): TelemetryDeliveryReport {
-  val report = runCatching { request.client.sendBatch(request.settings, rows) }
-    .getOrElse { thrown ->
-      if (thrown !is Exception) throw thrown
-      return TelemetryDeliveryReport(TelemetryDeliveryOutcome.UNKNOWN, unconfirmedMessage(failureDetail(thrown)))
+private fun deliverBatch(
+  request: DrainRequest,
+  rows: List<TelemetryOutboxRecord>,
+  claimToken: String,
+  syncedTotal: Int,
+): SyncResult? {
+  val eventIds = rows.map { it.id }
+  val report = attemptDelivery(request, rows)
+  if (report.outcome != TelemetryDeliveryOutcome.ACCEPTED) {
+    val settlement =
+      settleFailedDelivery(
+        request,
+        eventIds,
+        claimToken,
+        report.detail,
+        consumesAttempt = report.outcome == TelemetryDeliveryOutcome.REJECTED,
+        syncedTotal = syncedTotal,
+      )
+    if (settlement != null) {
+      return settlement
     }
+    return failedBatchResult(
+      request,
+      syncedTotal,
+      report.detail,
+    )
+  }
+  val acknowledgement =
+    runCatching { request.outboxRepository.markSynced(eventIds, claimToken) }
+      .fold(
+        onSuccess = { it },
+        onFailure = { thrown ->
+          if (thrown.isCooperativeCancellation()) {
+            throw thrown
+          }
+          if (thrown is InterruptedException) {
+            Thread.currentThread().interrupt()
+            throw thrown
+          }
+          if (thrown !is Exception) {
+            throw thrown
+          }
+          return failedBatchResult(
+            request,
+            syncedTotal,
+            "delivery accepted but the local acknowledgement failed: ${thrown.message.orEmpty()}",
+            markFailure = {
+              request.outboxRepository.markFailed(
+                eventIds,
+                claimToken,
+                "delivery accepted but the local acknowledgement failed: ${thrown.message.orEmpty()}",
+              )
+            },
+          )
+        },
+      )
+  if (acknowledgement.lostClaim) {
+    return lostClaimBatchResult(request, syncedTotal)
+  }
+  return null
+}
+
+private fun settleFailedDelivery(
+  request: DrainRequest,
+  eventIds: List<Long>,
+  claimToken: String,
+  message: String,
+  consumesAttempt: Boolean,
+  syncedTotal: Int,
+): SyncResult? {
+  val settlement =
+    runCatching {
+      if (consumesAttempt) {
+        request.outboxRepository.markFailed(eventIds, claimToken, message)
+      } else {
+        request.outboxRepository.markUnconfirmed(eventIds, claimToken, message)
+      }
+    }.getOrElse { thrown ->
+      if (thrown.isCooperativeCancellation()) {
+        throw thrown
+      }
+      if (thrown is InterruptedException) {
+        Thread.currentThread().interrupt()
+        throw thrown
+      }
+      if (thrown !is Exception) {
+        throw thrown
+      }
+      return failedBatchResult(request, syncedTotal, message = thrown.message.orEmpty())
+    }
+  if (settlement.lostClaim) {
+    return lostClaimBatchResult(request, syncedTotal)
+  }
+  return null
+}
+
+private fun attemptDelivery(request: DrainRequest, rows: List<TelemetryOutboxRecord>): TelemetryDeliveryReport {
+  val report =
+    runCatching { request.client.sendBatch(request.settings, rows) }
+      .getOrElse { thrown ->
+        if (thrown.isCooperativeCancellation()) {
+          throw thrown
+        }
+        if (thrown is InterruptedException) {
+          Thread.currentThread().interrupt()
+          throw thrown
+        }
+        if (thrown !is Exception) {
+          throw thrown
+        }
+        return TelemetryDeliveryReport(TelemetryDeliveryOutcome.UNKNOWN, unconfirmedMessage(failureDetail(thrown)))
+      }
   return when (report.outcome) {
     TelemetryDeliveryOutcome.ACCEPTED -> report
     TelemetryDeliveryOutcome.REJECTED -> report.copy(detail = rejectedMessage(report.detail))
@@ -105,16 +193,11 @@ private fun unconfirmedMessage(detail: String): String {
 
 private fun failedBatchResult(
   request: DrainRequest,
-  eventIds: List<Long>,
   syncedTotal: Int,
   message: String,
-  consumesAttempt: Boolean,
+  markFailure: (() -> Unit)? = null,
 ): SyncResult {
-  if (consumesAttempt) {
-    request.outboxRepository.markFailed(eventIds, message)
-  } else {
-    request.outboxRepository.markUnconfirmed(eventIds, message)
-  }
+  markFailure?.invoke()
   return syncResult(
     status = TelemetrySyncStatus.FAILED,
     syncedEvents = syncedTotal,
@@ -123,6 +206,15 @@ private fun failedBatchResult(
     message = message,
   )
 }
+
+private fun lostClaimBatchResult(request: DrainRequest, syncedTotal: Int): SyncResult =
+  syncResult(
+    status = TelemetrySyncStatus.FAILED,
+    syncedEvents = syncedTotal,
+    pendingEvents = request.outboxRepository.pendingCount(),
+    syncContext = request.syncContext,
+    message = LOST_CLAIM_MESSAGE,
+  )
 
 private fun drainedSyncResult(request: DrainRequest, syncedTotal: Int): SyncResult {
   val pending = request.outboxRepository.pendingCount()
@@ -164,3 +256,6 @@ private fun batchBudget(pendingEvents: Int, batchSize: Int): Int {
   }
   return pendingEvents / batchSize + 1
 }
+
+private fun Throwable.isCooperativeCancellation(): Boolean =
+  this is CancellationException || this is java.util.concurrent.CancellationException

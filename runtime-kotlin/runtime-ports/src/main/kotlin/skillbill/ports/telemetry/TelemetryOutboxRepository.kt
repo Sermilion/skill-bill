@@ -2,6 +2,7 @@ package skillbill.ports.telemetry
 
 import skillbill.ports.telemetry.model.TelemetryOutboxClaimRequest
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
+import skillbill.ports.telemetry.model.TelemetryOutboxSettlementResult
 
 interface TelemetryOutboxRepository {
   fun enqueue(eventName: String, payloadJson: String): Long
@@ -16,11 +17,19 @@ interface TelemetryOutboxRepository {
 
   fun lastSyncedAt(): String?
 
-  fun markSynced(eventIds: List<Long>)
+  fun markSynced(eventIds: List<Long>, claimToken: String): TelemetryOutboxSettlementResult
 
-  fun markFailed(eventIds: List<Long>, lastError: String)
+  fun markFailed(
+    eventIds: List<Long>,
+    claimToken: String,
+    lastError: String,
+  ): TelemetryOutboxSettlementResult
 
-  fun markUnconfirmed(eventIds: List<Long>, lastError: String)
+  fun markUnconfirmed(
+    eventIds: List<Long>,
+    claimToken: String,
+    lastError: String,
+  ): TelemetryOutboxSettlementResult
 
   fun clear(): Int
 }

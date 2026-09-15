@@ -1082,7 +1082,7 @@ class DatabaseMigrationsReviewAttributionTest {
 
       val store = TelemetryOutboxStore(connection)
       val pendingIds = store.listPending(null).map(TelemetryOutboxRecord::id)
-      store.markSynced(pendingIds)
+      pendingIds.forEach { id -> store.markSynced(id = id, syncedAt = "2026-09-01 00:00:00") }
       assertTrue(store.listPending(null).isEmpty(), "The outbox must drain fully after marking every row synced.")
       assertEquals(null, store.latestError(), "A fully drained outbox must report no delivery error.")
     }

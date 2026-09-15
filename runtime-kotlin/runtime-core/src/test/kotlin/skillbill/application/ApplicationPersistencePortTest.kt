@@ -245,6 +245,7 @@ class ApplicationPersistencePortTest {
           settingsProvider = settingsProvider,
           configStore = FakeTelemetryConfigStore,
         ),
+        diagnostics = NoopRuntimeDiagnostics,
       )
 
     val result = service.sync()
@@ -292,6 +293,7 @@ class ApplicationPersistencePortTest {
           settingsProvider = settingsProvider,
           configStore = FakeTelemetryConfigStore,
         ),
+        diagnostics = NoopRuntimeDiagnostics,
       )
 
     service.autoSync()
@@ -333,6 +335,7 @@ class ApplicationPersistencePortTest {
           settingsProvider = settingsProvider,
           configStore = FakeTelemetryConfigStore,
         ),
+        diagnostics = NoopRuntimeDiagnostics,
       )
 
     service.autoSync()

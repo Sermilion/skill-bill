@@ -9,6 +9,7 @@ import skillbill.telemetry.model.SyncResult
 import skillbill.telemetry.model.TelemetrySettings
 import java.nio.file.Path
 import java.time.Instant
+import kotlin.coroutines.cancellation.CancellationException
 
 object TelemetrySyncRuntime {
   fun disabledSync(settings: TelemetrySettings): SyncResult = disabledSyncResult(settings)
@@ -17,11 +18,11 @@ object TelemetrySyncRuntime {
     settings: TelemetrySettings,
     outboxRepository: TelemetryOutboxRepository,
     client: TelemetryClient,
-    now: Instant,
+    nowSupplier: () -> Instant,
   ): SyncResult = if (!settings.enabled) {
     disabledSyncResult(settings)
   } else {
-    syncEnabledTelemetry(settings, outboxRepository, client, now)
+    syncEnabledTelemetry(settings, outboxRepository, client, nowSupplier)
   }
 
   fun syncResult(result: SyncResult): TelemetrySyncStatusResult = TelemetrySyncStatusResult(
@@ -54,12 +55,20 @@ object TelemetrySyncRuntime {
     settings: TelemetrySettings,
     outboxRepository: TelemetryOutboxRepository,
     client: TelemetryClient,
-    now: Instant,
-  ): SyncResult? = runCatching { syncTelemetry(settings, outboxRepository, client, now) }
-    .getOrElse { thrown ->
-      if (thrown !is Exception) throw thrown
-      null
-    }
+    nowSupplier: () -> Instant,
+  ): SyncResult? =
+    runCatching { syncTelemetry(settings, outboxRepository, client, nowSupplier) }
+      .getOrElse { thrown ->
+        when (thrown) {
+          is CancellationException, is java.util.concurrent.CancellationException -> throw thrown
+          is InterruptedException -> {
+            Thread.currentThread().interrupt()
+            throw thrown
+          }
+          is Exception -> null
+          else -> throw thrown
+        }
+      }
 }
 
 fun telemetrySyncTarget(settings: TelemetrySettings): String = when {
@@ -72,7 +81,7 @@ private fun syncEnabledTelemetry(
   settings: TelemetrySettings,
   outboxRepository: TelemetryOutboxRepository,
   client: TelemetryClient,
-  now: Instant,
+  nowSupplier: () -> Instant,
 ): SyncResult {
   val pendingBefore = outboxRepository.pendingCount()
   val syncContext = syncContext(settings, pendingBefore)
@@ -85,7 +94,7 @@ private fun syncEnabledTelemetry(
         settings = settings,
         client = client,
         syncContext = syncContext,
-        now = now,
+        nowSupplier = nowSupplier,
       ),
     )
   }

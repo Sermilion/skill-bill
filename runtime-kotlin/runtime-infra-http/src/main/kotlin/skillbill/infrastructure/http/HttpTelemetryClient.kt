@@ -22,31 +22,10 @@ import skillbill.telemetry.parseRemoteStatsWindow
 import skillbill.telemetry.validateIngestCapabilities
 import skillbill.telemetry.validateRemoteStatsCapabilities
 import skillbill.telemetry.validateRemoteStatsRequest
-import java.net.URI
-import java.net.http.HttpClient
-import java.net.http.HttpRequest
-import java.net.http.HttpResponse.BodyHandlers
 import java.nio.file.Path
 import java.time.Clock
 import java.time.LocalDate
 import java.time.ZoneOffset
-
-object JdkHttpRequester : RemoteTransportPort {
-  override fun execute(
-    method: String,
-    url: String,
-    bodyJson: String?,
-    headers: Map<String, String>,
-  ): RemoteTransportResponse {
-    val requestBuilder =
-      HttpRequest
-        .newBuilder(URI.create(url))
-        .method(method, bodyPublisher(bodyJson))
-    headers.forEach(requestBuilder::header)
-    val response = HttpClient.newHttpClient().send(requestBuilder.build(), BodyHandlers.ofString())
-    return RemoteTransportResponse(statusCode = response.statusCode(), body = response.body().orEmpty())
-  }
-}
 
 @Inject
 class HttpTelemetryClient(
@@ -55,7 +34,9 @@ class HttpTelemetryClient(
   private val clock: Clock,
 ) : TelemetryClient {
   private val resolvedEnvironment = environmentContext.withProcessDefaults()
-  private val resolvedRequester = transportContext.requester ?: JdkHttpRequester
+  private val resolvedRequester =
+    transportContext.requester
+      ?: JdkHttpRemoteTransport.create(transportContext.connectTimeout, transportContext.requestTimeout)
 
   constructor(
     requester: RemoteTransportPort,
@@ -253,12 +234,6 @@ private fun defaultJsonHeaders(): Map<String, String> = mapOf(
   "Content-Type" to "application/json",
   "User-Agent" to "skill-bill-telemetry/1.0",
 )
-
-private fun bodyPublisher(bodyJson: String?): HttpRequest.BodyPublisher = if (bodyJson == null) {
-  HttpRequest.BodyPublishers.noBody()
-} else {
-  HttpRequest.BodyPublishers.ofString(bodyJson)
-}
 
 private fun EnvironmentContext.withProcessDefaults(): EnvironmentContext {
   val withUserHome =

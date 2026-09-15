@@ -148,7 +148,7 @@ class TelemetryRuntimeTest {
       outboxStore.enqueue("skillbill_feature_implement_finished", JsonCodec.mapToJsonString(mapOf("name" to "fail")))
 
       val successClient = RecordingTelemetryClient()
-      val successResult = TelemetrySyncRuntime.syncTelemetry(settings, outboxStore, successClient, SYNC_NOW)
+      val successResult = TelemetrySyncRuntime.syncTelemetry(settings, outboxStore, successClient, { SYNC_NOW })
       assertEquals(TelemetrySyncStatus.SYNCED, successResult.status)
       assertEquals(2, successResult.syncedEvents)
       assertEquals(listOf(listOf(1L, 2L)), successClient.sentBatchIds)
@@ -159,7 +159,7 @@ class TelemetryRuntimeTest {
       outboxStore.enqueue("skillbill_feature_verify_started", JsonCodec.mapToJsonString(mapOf("name" to "retry")))
 
       val failingClient = RecordingTelemetryClient(failure = IOException("blocked by network isolation sentinel"))
-      val failedResult = TelemetrySyncRuntime.syncTelemetry(settings, outboxStore, failingClient, SYNC_NOW)
+      val failedResult = TelemetrySyncRuntime.syncTelemetry(settings, outboxStore, failingClient, { SYNC_NOW })
       assertEquals(TelemetrySyncStatus.FAILED, failedResult.status)
       assertTrue(failedResult.message.orEmpty().contains("blocked by network isolation sentinel"))
       assertTrue(outboxStore.latestError().orEmpty().contains("blocked by network isolation sentinel"))
@@ -187,7 +187,7 @@ class TelemetryRuntimeTest {
           settings = disabledSettings,
           outboxRepository = outboxStore,
           client = RecordingTelemetryClient(failure = IOException("must not call client")),
-          now = SYNC_NOW,
+          nowSupplier = { SYNC_NOW },
         )
 
       assertEquals(TelemetrySyncStatus.DISABLED, result?.status)
@@ -204,7 +204,7 @@ class TelemetryRuntimeTest {
           telemetrySettings(Files.createTempFile("telemetry-noop", ".json")),
           outboxStore,
           RecordingTelemetryClient(),
-          SYNC_NOW,
+          { SYNC_NOW },
         )
 
       assertEquals(TelemetrySyncStatus.NOOP, noopResult.status)
@@ -222,7 +222,7 @@ class TelemetryRuntimeTest {
           ),
           outboxStore,
           RecordingTelemetryClient(failure = IOException("must not call client")),
-          SYNC_NOW,
+          { SYNC_NOW },
         )
 
       assertEquals(TelemetrySyncStatus.UNCONFIGURED, unconfiguredResult.status)

@@ -9,6 +9,7 @@ import skillbill.ports.telemetry.TelemetryOutboxRepository
 import skillbill.ports.telemetry.model.TELEMETRY_DELIVERY_ATTEMPT_BUDGET
 import skillbill.ports.telemetry.model.TelemetryOutboxClaimRequest
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
+import skillbill.ports.telemetry.model.TelemetryOutboxSettlementResult
 import skillbill.telemetry.model.RemoteStatsRequest
 import skillbill.telemetry.model.TelemetryDeliveryOutcome
 import skillbill.telemetry.model.TelemetryDeliveryReport
@@ -19,8 +20,10 @@ import skillbill.telemetry.model.TelemetrySyncStatus
 import java.io.IOException
 import java.nio.file.Files
 import java.time.Instant
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
@@ -39,7 +42,7 @@ class TelemetryDeliveryRecoveryTest {
           settings(),
           store,
           StubTelemetryClient(TelemetryDeliveryOutcome.UNKNOWN),
-          NOW,
+          { NOW },
         )
 
       assertEquals(TelemetrySyncStatus.FAILED, result.status)
@@ -59,13 +62,13 @@ class TelemetryDeliveryRecoveryTest {
       val client = StubTelemetryClient(TelemetryDeliveryOutcome.ACCEPTED)
       val brokenAcknowledgement =
         object : TelemetryOutboxRepository by store {
-          override fun markSynced(eventIds: List<Long>) {
+          override fun markSynced(eventIds: List<Long>, claimToken: String): TelemetryOutboxSettlementResult {
             throw IOException("disk full")
           }
         }
 
       val result =
-        TelemetrySyncRuntime.syncTelemetry(settings(batchSize = 1), brokenAcknowledgement, client, NOW)
+        TelemetrySyncRuntime.syncTelemetry(settings(batchSize = 1), brokenAcknowledgement, client, { NOW })
 
       assertEquals(TelemetrySyncStatus.FAILED, result.status)
       assertEquals(1, client.sentBatches.size, "The invocation must stop, not resend on every pass.")
@@ -81,7 +84,7 @@ class TelemetryDeliveryRecoveryTest {
       val unreachable = StubTelemetryClient(TelemetryDeliveryOutcome.UNKNOWN)
 
       repeat(TELEMETRY_DELIVERY_ATTEMPT_BUDGET * 2) {
-        TelemetrySyncRuntime.syncTelemetry(settings(), store, unreachable, NOW)
+        TelemetrySyncRuntime.syncTelemetry(settings(), store, unreachable, { NOW })
       }
 
       assertEquals(
@@ -94,7 +97,7 @@ class TelemetryDeliveryRecoveryTest {
           settings(),
           store,
           StubTelemetryClient(TelemetryDeliveryOutcome.ACCEPTED),
-          NOW,
+          { NOW },
         )
 
       assertEquals(TelemetrySyncStatus.SYNCED, recovered.status)
@@ -109,7 +112,7 @@ class TelemetryDeliveryRecoveryTest {
       val client =
         StubTelemetryClient(TelemetryDeliveryOutcome.REJECTED, detail = "HTTP 422: unknown event property")
 
-      repeat(10) { TelemetrySyncRuntime.syncTelemetry(settings(), store, client, NOW) }
+      repeat(10) { TelemetrySyncRuntime.syncTelemetry(settings(), store, client, { NOW }) }
 
       assertEquals(1, store.pendingCount(), "The failing drain must not enqueue anything of its own.")
       assertTrue(
@@ -136,7 +139,7 @@ class TelemetryDeliveryRecoveryTest {
         }
 
       val result =
-        TelemetrySyncRuntime.autoSyncTelemetry(settings(), store, throwingClient, NOW)
+        TelemetrySyncRuntime.autoSyncTelemetry(settings(), store, throwingClient, { NOW })
 
       assertEquals(TelemetrySyncStatus.FAILED, result?.status, "The failure must be reported, not swallowed.")
       assertEquals(1, store.pendingCount(), "The queue must not grow from its own failure.")
@@ -170,11 +173,131 @@ class TelemetryDeliveryRecoveryTest {
       )
       val client = StubTelemetryClient(TelemetryDeliveryOutcome.ACCEPTED)
 
-      val result = TelemetrySyncRuntime.syncTelemetry(settings(), store, client, NOW)
+      val result = TelemetrySyncRuntime.syncTelemetry(settings(), store, client, { NOW })
 
       assertNotEquals(TelemetrySyncStatus.SYNCED, result.status)
       assertEquals(1, result.pendingEvents, "The queued row must stay visible as pending.")
       assertTrue(client.sentBatches.isEmpty(), "A claimed row must not be sent twice.")
+    }
+  }
+
+  @Test
+  fun `auto sync propagates cancellation instead of returning null`() {
+    val cancellingRepository =
+      object : TelemetryOutboxRepository {
+        override fun enqueue(eventName: String, payloadJson: String): Long = error("unexpected")
+
+        override fun claimPending(request: TelemetryOutboxClaimRequest): List<TelemetryOutboxRecord> =
+          throw CancellationException("probe-cancelled")
+
+        override fun pendingCount(): Int = 1
+
+        override fun blockedCount(attemptBudget: Int): Int = 0
+
+        override fun latestError(): String? = null
+
+        override fun lastSyncedAt(): String? = null
+
+        override fun markSynced(eventIds: List<Long>, claimToken: String): TelemetryOutboxSettlementResult =
+          error("unexpected")
+
+        override fun markFailed(
+          eventIds: List<Long>,
+          claimToken: String,
+          lastError: String,
+        ): TelemetryOutboxSettlementResult = error("unexpected")
+
+        override fun markUnconfirmed(
+          eventIds: List<Long>,
+          claimToken: String,
+          lastError: String,
+        ): TelemetryOutboxSettlementResult = error("unexpected")
+
+        override fun clear(): Int = 0
+      }
+
+    assertFailsWith<CancellationException> {
+      TelemetrySyncRuntime.autoSyncTelemetry(settings(), cancellingRepository, StubTelemetryClient(TelemetryDeliveryOutcome.ACCEPTED), { NOW })
+    }
+  }
+
+  @Test
+  fun `transport cancellation propagates without consuming an attempt and the lease can recover`() {
+    withOutbox { store ->
+      val id = store.enqueue(eventName = "skillbill_goal_finished", payloadJson = "{}")
+      val cancellingClient =
+        object : TelemetryClient by StubTelemetryClient(TelemetryDeliveryOutcome.ACCEPTED) {
+          override fun sendBatch(
+            settings: TelemetrySettings,
+            rows: List<TelemetryOutboxRecord>,
+          ): TelemetryDeliveryReport = throw CancellationException("transport-cancelled")
+        }
+
+      assertFailsWith<CancellationException> {
+        TelemetrySyncRuntime.syncTelemetry(settings(), store, cancellingClient, { NOW })
+      }
+      assertEquals(id, store.listPending().single().id)
+      assertEquals(0, store.listPending().single().deliveryAttempts)
+
+      val recovered =
+        TelemetrySyncRuntime.syncTelemetry(
+          settings(),
+          store,
+          StubTelemetryClient(TelemetryDeliveryOutcome.ACCEPTED),
+          { NOW.plusSeconds(301) },
+        )
+      assertEquals(TelemetrySyncStatus.SYNCED, recovered.status)
+      assertEquals(0, store.pendingCount())
+    }
+  }
+
+  @Test
+  fun `acknowledgement cancellation propagates without consuming an attempt or writing an error`() {
+    withOutbox { store ->
+      val id = store.enqueue(eventName = "skillbill_goal_finished", payloadJson = "{}")
+      val cancellingAcknowledgement =
+        object : TelemetryOutboxRepository by store {
+          override fun markSynced(
+            eventIds: List<Long>,
+            claimToken: String,
+          ): TelemetryOutboxSettlementResult = throw CancellationException("ack-cancelled")
+        }
+
+      assertFailsWith<CancellationException> {
+        TelemetrySyncRuntime.syncTelemetry(
+          settings(),
+          cancellingAcknowledgement,
+          StubTelemetryClient(TelemetryDeliveryOutcome.ACCEPTED),
+          { NOW },
+        )
+      }
+      assertEquals(id, store.listPending().single().id)
+      assertEquals(0, store.listPending().single().deliveryAttempts)
+      assertEquals("", store.listPending().single().lastError)
+    }
+  }
+
+  @Test
+  fun `interrupted delivery is rethrown with the thread interrupt signal preserved`() {
+    withOutbox { store ->
+      store.enqueue(eventName = "skillbill_goal_finished", payloadJson = "{}")
+      val interruptedClient =
+        object : TelemetryClient by StubTelemetryClient(TelemetryDeliveryOutcome.ACCEPTED) {
+          override fun sendBatch(
+            settings: TelemetrySettings,
+            rows: List<TelemetryOutboxRecord>,
+          ): TelemetryDeliveryReport = throw InterruptedException("transport-interrupted")
+        }
+
+      try {
+        assertFailsWith<InterruptedException> {
+          TelemetrySyncRuntime.syncTelemetry(settings(), store, interruptedClient, { NOW })
+        }
+        assertTrue(Thread.currentThread().isInterrupted)
+        assertEquals(0, store.listPending().single().deliveryAttempts)
+      } finally {
+        Thread.interrupted()
+      }
     }
   }
 
