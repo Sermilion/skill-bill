@@ -192,8 +192,8 @@ class IdeStatusJsonMapperTest {
 
     @Test
     fun `blocked lifecycle with pause reason maps to Blocked outcome`() {
-        val json = runtimeFixture(lifecycle = "blocked").dropLast(1) +
-            """,\"pause_reason\":{\"code\":\"awaiting_operator_decision\",\"label\":\"Run npm ci:safe after GITHUB_REGISTRY_AUTH\"}}"""
+        val json = runtimeFixture(lifecycle = "blocked").trimEnd().dropLast(1) +
+            ""","pause_reason":{"code":"awaiting_operator_decision","label":"Run npm ci:safe after GITHUB_REGISTRY_AUTH"}}"""
         val outcome = IdeStatusJsonMapper.map(json, now, 0)
         assertTrue(outcome is SkillBillStatusOutcome.Blocked)
         outcome as SkillBillStatusOutcome.Blocked
