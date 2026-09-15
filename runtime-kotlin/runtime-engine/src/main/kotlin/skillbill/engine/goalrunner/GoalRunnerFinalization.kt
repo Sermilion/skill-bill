@@ -3,7 +3,7 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.application.decomposition.resolvedParentSpecPath
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeCheckpointRefPruneRequest
 import skillbill.engine.featuretask.pruneCompletedSubtaskCheckpointRefs
-import skillbill.engine.goalrunner.model.GoalRunnerFinalizationBoundariesPort
+import skillbill.engine.goalrunner.model.GoalRunnerFinalizationBoundaries
 import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
 import skillbill.error.InvalidUnaddressedFindingsLedgerSchemaError
 import skillbill.error.UnaddressedFindingsLedgerAbsentError
@@ -27,7 +27,7 @@ import java.nio.file.Path
 
 @Inject
 public class GoalRunnerFinalization(
-  boundaries: GoalRunnerFinalizationBoundariesPort,
+  boundaries: GoalRunnerFinalizationBoundaries,
   progressReader: GoalRunnerProgressReader,
 ) {
   private val manifestStore = boundaries.manifestStore

@@ -137,7 +137,7 @@ Omit `mode:` to use inline review, the default single-prompt light tier; `mode:d
 
 - [Getting Started](docs/getting-started.md): install flow, CLI surfaces, agent support tiers, and MCP tool groups
 - [Getting Started for Teams](docs/getting-started-for-teams.md): rollout guidance, customization strategy, and adoption patterns
-- [Skill Bill Teams Roadmap](docs/team-control-plane-roadmap.md): staged path from team bundle sync to admin editing, telemetry-driven tuning, and hosted org controls
+- [Skill Bill Teams Roadmap](docs/team-control-plane-roadmap.md): positioning, product principles, and the discovery questions a hosted team control plane would have to answer first
 - [Capability Deep-dive](docs/capabilities.md): the full system — one-shot install, durable workflows, platform packs, decomposition, telemetry, overrides, memory, and governance
 - [Skill Source And Generation Model](docs/skill-source-generation.md): `content.md` vs generated `SKILL.md`, support pointers, install staging, and native-agent generation
 - [External Addon Sources](docs/external-addons.md): overlay private or team-specific review add-ons onto an installed pack, kept out of the shared repo

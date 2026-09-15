@@ -30,7 +30,24 @@ import java.util.logging.Logger
 internal val platformPackSchemaLog: Logger =
   Logger.getLogger("skillbill.scaffold.platformpack.PlatformPackSchemaValidator")
 
-internal interface PlatformPackSchemaValidator {
+/**
+ * Resolves the canonical schema from the JVM classpath first (populated at
+ * build time from `orchestration/contracts/platform-pack-schema.yaml`); when
+ * running from a tree that does not yet bundle the schema as a resource
+ * (early bootstrap), it falls back to walking up from the JVM working
+ * directory to find the canonical file on disk. The compiled [JsonSchema] is
+ * cached across calls.
+ *
+ * SKILL-48 C3: the prior `repoRootHint` parameter was never set by any caller
+ * and only added a never-used branch to [readSchemaText]. It has been removed;
+ * the disk fallback uses `Path.of("")` as its single walk anchor.
+ */
+internal class PlatformPackSchemaValidator {
+  // Lazy singleton: the schema file is parsed and compiled exactly once
+  // per validator instance.
+  private val schema: JsonSchema by lazy { loadSchema() }
+  private val mapper: ObjectMapper by lazy { ObjectMapper() }
+
   /**
    * Validates the parsed YAML manifest against the canonical schema. On
    * any violation, throws [InvalidManifestSchemaError] whose message names
@@ -42,28 +59,7 @@ internal interface PlatformPackSchemaValidator {
    * already enforces this via `requireManifestMap`), so this method no longer
    * carries dead defensive coercion.
    */
-  fun validate(parsedYaml: Map<String, Any?>, slug: String, enforceContractVersion: Boolean = true)
-}
-
-/**
- * Default implementation. Resolves the canonical schema from the JVM
- * classpath first (populated at build time from
- * `orchestration/contracts/platform-pack-schema.yaml`); when running from
- * a tree that does not yet bundle the schema as a resource (early bootstrap),
- * it falls back to walking up from the JVM working directory to find the
- * canonical file on disk. The compiled [JsonSchema] is cached across calls.
- *
- * SKILL-48 C3: the prior `repoRootHint` parameter was never set by any caller
- * and only added a never-used branch to [readSchemaText]. It has been removed;
- * the disk fallback uses `Path.of("")` as its single walk anchor.
- */
-internal class CanonicalPlatformPackSchemaValidator : PlatformPackSchemaValidator {
-  // Lazy singleton: the schema file is parsed and compiled exactly once
-  // per validator instance.
-  private val schema: JsonSchema by lazy { loadSchema() }
-  private val mapper: ObjectMapper by lazy { ObjectMapper() }
-
-  override fun validate(parsedYaml: Map<String, Any?>, slug: String, enforceContractVersion: Boolean) {
+  fun validate(parsedYaml: Map<String, Any?>, slug: String, enforceContractVersion: Boolean = true) {
     val instance: JsonNode = mapper.valueToTree(parsedYaml)
     val errors: Set<ValidationMessage> = schema.validate(instance)
     // F-009 (SKILL-47): `contract_version` value mismatches must surface as
@@ -96,7 +92,7 @@ internal class CanonicalPlatformPackSchemaValidator : PlatformPackSchemaValidato
     val actual = extractOffendingValue(instance, error.instanceLocation?.toString().orEmpty())
     platformPackSchemaLog.warning(
       "platform pack contract_version enforcement degraded: " +
-        "seam=CanonicalPlatformPackSchemaValidator.validate pack=$slug " +
+        "seam=PlatformPackSchemaValidator.validate pack=$slug " +
         "used=${actual.ifBlank { "<unreadable>" }} expected=$SHELL_CONTRACT_VERSION " +
         "cause=caller enumerated with enforceContractVersion=false, so a preserved local " +
         "manifest pinned to an unsupported contract stays enumerable and is replaced by " +
@@ -352,7 +348,7 @@ internal fun assertSchemaIdentity(yamlNode: JsonNode) {
 }
 
 private fun readSchemaText(): String {
-  CanonicalPlatformPackSchemaValidator::class.java.classLoader
+  PlatformPackSchemaValidator::class.java.classLoader
     .getResourceAsStream(PLATFORM_PACK_SCHEMA_CLASSPATH_RESOURCE)
     ?.use { return it.readBytes().toString(Charsets.UTF_8) }
 

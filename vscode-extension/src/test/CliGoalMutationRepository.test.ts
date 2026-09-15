@@ -4,8 +4,11 @@ import os from "node:os";
 import path from "node:path";
 import { describe, it } from "mocha";
 import { CliExecutableSource } from "../infrastructure/cli/CliExecutableResolver";
-import { CliGoalPauseRepository } from "../infrastructure/cli/CliGoalPauseRepository";
-import { CliGoalStopRepository } from "../infrastructure/cli/CliGoalStopRepository";
+import {
+  CliGoalMutationRepository,
+  GOAL_PAUSE_MUTATION,
+  GOAL_STOP_MUTATION,
+} from "../infrastructure/cli/CliGoalMutationRepository";
 import { ProcessRunner } from "../infrastructure/cli/ProcessRunner";
 import { ScriptedProcessFactory } from "./fakes/ScriptedProcessFactory";
 import { FakePreferenceCache } from "./fakes/FakePreferenceCache";
@@ -20,12 +23,12 @@ describe("CliGoalMutationRepository", () => {
 
     const pauseFactory = new ScriptedProcessFactory(0);
     const pauseRunner = new ProcessRunner(pauseFactory);
-    const pauseRepo = new CliGoalPauseRepository(prefs, pauseRunner, () => ({
+    const pauseRepo = new CliGoalMutationRepository(GOAL_PAUSE_MUTATION, prefs, pauseRunner, () => ({
       kind: "found" as const,
       path: executable,
       source: CliExecutableSource.SEARCH_PATH,
     }));
-    const pauseOutcome = await pauseRepo.requestPause(path.join(root, "..", path.basename(root)), "SKILL-168");
+    const pauseOutcome = await pauseRepo.requestMutation(path.join(root, "..", path.basename(root)), "SKILL-168");
     assert.equal(pauseOutcome.kind, "requested");
     assert.deepEqual(pauseFactory.commands[0], [
       executable,
@@ -38,12 +41,12 @@ describe("CliGoalMutationRepository", () => {
 
     const stopFactory = new ScriptedProcessFactory(0);
     const stopRunner = new ProcessRunner(stopFactory);
-    const stopRepo = new CliGoalStopRepository(prefs, stopRunner, () => ({
+    const stopRepo = new CliGoalMutationRepository(GOAL_STOP_MUTATION, prefs, stopRunner, () => ({
       kind: "found" as const,
       path: executable,
       source: CliExecutableSource.SEARCH_PATH,
     }));
-    const stopOutcome = await stopRepo.requestStop(root, "SKILL-168");
+    const stopOutcome = await stopRepo.requestMutation(root, "SKILL-168");
     assert.equal(stopOutcome.kind, "requested");
     assert.deepEqual(stopFactory.commands[0], [
       executable,
@@ -63,21 +66,23 @@ describe("CliGoalMutationRepository", () => {
     const secretStdout = "SECRET_STDOUT_MARKER";
     const summaries: string[] = [];
 
-    const failing = new CliGoalPauseRepository(
+    const failing = new CliGoalMutationRepository(
+      GOAL_PAUSE_MUTATION,
       prefs,
       new ProcessRunner(new ScriptedProcessFactory(3, secretStdout)),
       () => ({ kind: "found" as const, path: executable, source: CliExecutableSource.SEARCH_PATH }),
     );
-    const pauseFailed = await failing.requestPause(root, "SKILL-168");
+    const pauseFailed = await failing.requestMutation(root, "SKILL-168");
     if (pauseFailed.kind === "failed") {
       summaries.push(pauseFailed.summary);
     }
 
-    const stopFailed = await new CliGoalStopRepository(
+    const stopFailed = await new CliGoalMutationRepository(
+      GOAL_STOP_MUTATION,
       prefs,
       new ProcessRunner(new ScriptedProcessFactory(3, secretStdout)),
       () => ({ kind: "found" as const, path: executable, source: CliExecutableSource.SEARCH_PATH }),
-    ).requestStop(root, "SKILL-168");
+    ).requestMutation(root, "SKILL-168");
     if (stopFailed.kind === "failed") {
       summaries.push(stopFailed.summary);
     }

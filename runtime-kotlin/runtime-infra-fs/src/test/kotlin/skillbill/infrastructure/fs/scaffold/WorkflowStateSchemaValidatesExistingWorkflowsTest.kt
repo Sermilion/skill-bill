@@ -4,7 +4,6 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.WorkflowContracts
 import skillbill.contracts.workflow.WorkflowWirePayloadKeys
 import skillbill.infrastructure.fs.WorkflowSnapshotValidatorInfraAdapter
-import skillbill.infrastructure.fs.contracts.workflow.CanonicalWorkflowStateSchemaValidator
 import skillbill.infrastructure.fs.contracts.workflow.WorkflowStateSchemaValidator
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowDefinition
@@ -44,7 +43,7 @@ import kotlin.test.Test
  */
 class WorkflowStateSchemaValidatesExistingWorkflowsTest {
 
-  private val validator: WorkflowStateSchemaValidator = CanonicalWorkflowStateSchemaValidator()
+  private val validator = WorkflowStateSchemaValidator()
   private val engine: WorkflowEngine = WorkflowEngine(WorkflowSnapshotValidatorInfraAdapter())
 
   @Test

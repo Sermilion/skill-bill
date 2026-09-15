@@ -15,7 +15,7 @@ Borrowed from the KMP Compose starter's *useful* boundaries — not its stack:
 | --- | --- |
 | Inward dependency direction | `presentation` → `application`/`domain` ← `infrastructure`; only `composition` wires concrete adapters; `ui` consumes presentation + composition |
 | Feature-owned presentation | Project-scoped `SkillBillStatusViewModel` owns `StateFlow<SkillBillStatusUiState>` |
-| Thin UI entry points | Status-bar widget renders/emits intents; future tool window should do the same |
+| Thin UI entry points | Status-bar widget renders/emits intents |
 | Explicit lifetimes | IntelliJ `Project` + `Disposable` replace custom App/User/Screen scopes |
 | Repository-backed source of truth | `StatusRepository` port; CLI adapter is the sole live transport |
 | Persistence behind a port | `PreferenceCachePort` for settings + optional last-known display cache |
@@ -133,16 +133,6 @@ It constructs adapters, coordinator, and ViewModel with explicit constructors.
 Polling starts only while a consumer (status-bar widget) is active, coalesces
 overlapping polls, and cancels the loop plus child processes when the project
 is disposed. There is no application-global mutable status cache.
-
-## Future tool-window extension point
-
-The status-bar widget collects `viewModel.uiState`. A later **full tool window
-remains deferred** and should:
-
-1. Obtain `SkillBillProjectStatusService` for the open project.
-2. Collect the same `StateFlow<SkillBillStatusUiState>`.
-3. Emit the same refresh/lifecycle intents (`refresh`, activate/deactivate).
-4. Add no second status transport and no direct CLI/process calls from UI code.
 
 ## Compatibility
 

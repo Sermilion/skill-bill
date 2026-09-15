@@ -51,7 +51,6 @@ class RuntimeImplementationImportRulesTest {
     val mustBeDetected = listOf(
       "skillbill.infrastructure.fs.contracts.install.InstallPlanSchemaValidator",
       "skillbill.infrastructure.fs.contracts.workflow.WorkflowStateSchemaValidator",
-      "skillbill.infrastructure.fs.contracts.workflow.CanonicalWorkflowStateSchemaValidator",
       "skillbill.infrastructure.fs.contracts.workflow.DecompositionManifestSchemaValidator",
       "skillbill.infrastructure.fs.contracts.workflow.DecompositionManifestCoherenceValidator",
       "skillbill.infrastructure.fs.scaffold.PlatformPackSchemaValidator",

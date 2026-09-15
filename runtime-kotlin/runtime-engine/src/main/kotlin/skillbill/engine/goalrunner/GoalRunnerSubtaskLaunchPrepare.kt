@@ -3,7 +3,7 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.application.workflow.generateWorkflowId
 import skillbill.engine.goalrunner.model.GoalRunnerRunEvent
 import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
-import skillbill.engine.goalrunner.model.GoalRunnerSubtaskLaunchBoundariesPort
+import skillbill.engine.goalrunner.model.GoalRunnerSubtaskLaunchBoundaries
 import skillbill.engine.goalrunner.planning.goalPlanningChildImportConflictBlockedReason
 import skillbill.engine.goalrunner.planning.model.GoalPlanningSweepOutcome
 import skillbill.error.IncompatibleGoalPlanningPreparationRecoveryError
@@ -27,7 +27,7 @@ import java.nio.file.Path
 
 @Inject
 public class GoalRunnerSubtaskLaunchPrepare(
-  private val launchBoundaries: GoalRunnerSubtaskLaunchBoundariesPort,
+  private val launchBoundaries: GoalRunnerSubtaskLaunchBoundaries,
   private val repositoryEnclosingRootPort: RepositoryEnclosingRootPort,
 ) {
   private val manifestStore get() = launchBoundaries.manifestStore

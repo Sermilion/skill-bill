@@ -24,6 +24,50 @@ installed platform pack declares `validation_gate`, and findings remaining after
 2026-08-20 agent-run confirmation. Agent collect-all stays; confirmation is
 runtime-owned.
 
+## 2026-09-14 — SKILL-238 subtask 2: what survives the single-implementation collapse
+
+**Context.** The YAGNI sweep removes same-module interfaces that name exactly one
+data bag and application services that only rename a port. Two calls in that sweep
+were not mechanical and should not be re-litigated from the diff alone.
+
+**Decisions.**
+
+1. **Retain `InstallAgentService`.** The parent AC and the sub-spec both condition
+   removal on the methods still being pure forwarders. They are not. Each of the six
+   methods constructs a distinct request DTO (`InstallAgentPathRequest`,
+   `DetectInstallAgentTargetsRequest`, `ClaudeConfigRootsRequest`,
+   `CodexConfigRootsRequest`, `InstallAgentDirectoryRequest`,
+   `InstallAgentTargetCleanupRequest`), unwraps `.path` / `.targets` / `.roots` /
+   `.cleanup` from the response, and supplies default `home` and `environment`
+   arguments that roughly fifteen CLI call sites rely on. Deleting it would push DTO
+   construction into the CLI, which is real adaptation, not a rename. Revisit when
+   `InstallAgentTargetPort` exposes the unwrapped shapes directly.
+
+2. **Nullability is declared by the interface, not the binding.** When collapsing the
+   goal-runner boundary groups, `phaseRecorder` and `unaddressedFindingsLedgerService`
+   keep the *interface's* nullable declared types on the surviving data class, even
+   though the deleted `Default*` classes declared `phaseRecorder` non-null. Every
+   consumer read through the interface, so the nullable type is the behaviour that was
+   actually observed — `GoalRunnerPerRunLoopAssembler` forwards `phaseRecorder` into
+   `GoalRunnerIterationOutcome`, which takes it nullable. Taking the binding's non-null
+   type instead would silently change downstream null handling and warnings-as-errors
+   behaviour. The same rule applies to any future collapse of an interface/binding pair
+   whose declared types differ: the interface side wins.
+
+3. **The survivor sheds port vocabulary.** `skillbill.ports.*` owns the `*Port`
+   suffix, and `*RolePortBindings.kt` named a bindings half that no longer exists, so
+   the collapsed data bags are `*Boundaries` in `FeatureTaskRuntimePhaseGateBoundaries.kt`,
+   `ParallelCodeReviewRunnerBoundaries.kt`, `GoalPlanningSweepBoundaries.kt`, and
+   `GoalRunnerBoundaries.kt`. Constructor parameters follow the type
+   (`checkpointBoundaries`, `laneLaunchBoundaries`); parameters still named `*Port`
+   inside those bags (`timingPort`, `fanOutPort`, `pullRequestPort`,
+   `repositoryEnclosingRootPort`) hold real `skillbill.ports.*` types and keep the
+   suffix.
+
+Revisit when: a second implementation of one of these collapsed groups appears, at
+which point reintroduce the interface rather than branching inside the data class.
+
+
 ## 2026-09-14 — SKILL-52.5 subtask 7: zero-tolerance raw-map enforcement
 
 **Context.** SKILL-52.1 introduced `@OpenBoundaryMap` plus a Kotlin FQN

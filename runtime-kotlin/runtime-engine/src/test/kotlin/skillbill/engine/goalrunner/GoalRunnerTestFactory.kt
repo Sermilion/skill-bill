@@ -6,23 +6,18 @@ import skillbill.application.telemetry.GoalLifecycleTelemetryEmitter
 import skillbill.engine.featuretask.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.goalplanning.GoalPlanningPreparationCheckpoint
 import skillbill.engine.goalrunner.findings.UnaddressedFindingsLedgerService
-import skillbill.engine.goalrunner.model.DefaultGoalRunnerFinalizationBoundariesPort
-import skillbill.engine.goalrunner.model.DefaultGoalRunnerRunBoundariesPort
-import skillbill.engine.goalrunner.model.DefaultGoalRunnerSubtaskLaunchBoundariesPort
 import skillbill.engine.goalrunner.model.GoalRunnerDeps
-import skillbill.engine.goalrunner.model.GoalRunnerFinalizationBoundariesPort
-import skillbill.engine.goalrunner.model.GoalRunnerRunBoundariesPort
-import skillbill.engine.goalrunner.model.GoalRunnerSubtaskLaunchBoundariesPort
+import skillbill.engine.goalrunner.model.GoalRunnerFinalizationBoundaries
+import skillbill.engine.goalrunner.model.GoalRunnerRunBoundaries
+import skillbill.engine.goalrunner.model.GoalRunnerSubtaskLaunchBoundaries
 import skillbill.engine.goalrunner.planning.DefaultGoalPlanningSweep
 import skillbill.engine.goalrunner.planning.GoalPlanningAttemptRecorder
 import skillbill.engine.goalrunner.planning.GoalPlanningRefreshLiveness
 import skillbill.engine.goalrunner.planning.GoalPlanningRejectionRecorder
 import skillbill.engine.goalrunner.planning.GoalPlanningSweep
-import skillbill.engine.goalrunner.planning.model.DefaultGoalPlanningSweepCheckpointPort
-import skillbill.engine.goalrunner.planning.model.DefaultGoalPlanningSweepLaunchPort
 import skillbill.engine.goalrunner.planning.model.GoalPlanningBurstSchedule
-import skillbill.engine.goalrunner.planning.model.GoalPlanningSweepCheckpointPort
-import skillbill.engine.goalrunner.planning.model.GoalPlanningSweepLaunchPort
+import skillbill.engine.goalrunner.planning.model.GoalPlanningSweepCheckpointBoundaries
+import skillbill.engine.goalrunner.planning.model.GoalPlanningSweepLaunchBoundaries
 import skillbill.ports.concurrency.BoundedWorkFanOutPort
 import skillbill.ports.concurrency.SequentialBoundedWorkFanOutPort
 import skillbill.ports.db.DatabaseSessionFactory
@@ -62,9 +57,9 @@ internal fun testActivityStampWriter(
 ): AgentActivityStampWriter = AgentActivityStampWriter(database, Clock.systemUTC())
 
 internal data class GoalRunnerTestWiring(
-  val runBoundaries: GoalRunnerRunBoundariesPort,
-  val launchBoundaries: GoalRunnerSubtaskLaunchBoundariesPort,
-  val finalizationBoundaries: GoalRunnerFinalizationBoundariesPort,
+  val runBoundaries: GoalRunnerRunBoundaries,
+  val launchBoundaries: GoalRunnerSubtaskLaunchBoundaries,
+  val finalizationBoundaries: GoalRunnerFinalizationBoundaries,
 )
 
 internal data class GoalRunnerTestWiringParams(
@@ -79,7 +74,7 @@ internal data class GoalRunnerTestWiringParams(
 internal fun testGoalRunnerWiring(params: GoalRunnerTestWiringParams): GoalRunnerTestWiring {
   val clock = Clock.systemUTC()
   val diagnostics = NoopRuntimeDiagnostics
-  val runBoundaries = DefaultGoalRunnerRunBoundariesPort(
+  val runBoundaries = GoalRunnerRunBoundaries(
     manifestStore = params.manifestStore,
     outcomeStore = params.outcomeStore,
     goalPlanningSweep = GoalPlanningSweep.NONE,
@@ -90,13 +85,13 @@ internal fun testGoalRunnerWiring(params: GoalRunnerTestWiringParams): GoalRunne
     phaseRecorder = params.phaseRecorder,
     unaddressedFindingsLedgerService = params.unaddressedFindingsLedgerService,
   )
-  val launchBoundaries = DefaultGoalRunnerSubtaskLaunchBoundariesPort(
+  val launchBoundaries = GoalRunnerSubtaskLaunchBoundaries(
     manifestStore = params.manifestStore,
     outcomeStore = params.outcomeStore,
     subtaskLauncher = params.subtaskLauncher,
     gitOperations = NoopWorkflowGitOperations,
   )
-  val finalizationBoundaries = DefaultGoalRunnerFinalizationBoundariesPort(
+  val finalizationBoundaries = GoalRunnerFinalizationBoundaries(
     manifestStore = params.manifestStore,
     outcomeStore = params.outcomeStore,
     pullRequestPort = params.pullRequestPort,
@@ -123,7 +118,7 @@ internal data class GoalRunnerDepsCompat(
   val phaseRecorder: FeatureTaskRuntimePhaseRecorder = goalRunnerDefaultPhaseRecorder(),
 ) {
   fun toWiring(): GoalRunnerTestWiring = GoalRunnerTestWiring(
-    runBoundaries = DefaultGoalRunnerRunBoundariesPort(
+    runBoundaries = GoalRunnerRunBoundaries(
       manifestStore = manifestStore,
       outcomeStore = outcomeStore,
       goalPlanningSweep = goalPlanningSweep,
@@ -134,13 +129,13 @@ internal data class GoalRunnerDepsCompat(
       phaseRecorder = phaseRecorder,
       unaddressedFindingsLedgerService = unaddressedFindingsLedgerService,
     ),
-    launchBoundaries = DefaultGoalRunnerSubtaskLaunchBoundariesPort(
+    launchBoundaries = GoalRunnerSubtaskLaunchBoundaries(
       manifestStore = manifestStore,
       outcomeStore = outcomeStore,
       subtaskLauncher = subtaskLauncher,
       gitOperations = gitOperations,
     ),
-    finalizationBoundaries = DefaultGoalRunnerFinalizationBoundariesPort(
+    finalizationBoundaries = GoalRunnerFinalizationBoundaries(
       manifestStore = manifestStore,
       outcomeStore = outcomeStore,
       pullRequestPort = pullRequestPort,
@@ -242,9 +237,10 @@ private object TestGoalActivityStampDatabase : DatabaseSessionFactory {
 }
 
 internal fun testDefaultGoalPlanningSweep(
-  checkpointPort: GoalPlanningSweepCheckpointPort,
-  launchPort: GoalPlanningSweepLaunchPort,
-): DefaultGoalPlanningSweep = DefaultGoalPlanningSweep(checkpointPort, launchPort, TestRepositoryEnclosingRoot)
+  checkpointBoundaries: GoalPlanningSweepCheckpointBoundaries,
+  launchBoundaries: GoalPlanningSweepLaunchBoundaries,
+): DefaultGoalPlanningSweep =
+  DefaultGoalPlanningSweep(checkpointBoundaries, launchBoundaries, TestRepositoryEnclosingRoot)
 
 internal data class GoalPlanningSweepPortsParams(
   val checkpoint: GoalPlanningPreparationCheckpoint,
@@ -270,7 +266,7 @@ internal data class GoalPlanningSweepPortsParams(
 
 internal fun testGoalPlanningSweepPorts(params: GoalPlanningSweepPortsParams): DefaultGoalPlanningSweep =
   testDefaultGoalPlanningSweep(
-    DefaultGoalPlanningSweepCheckpointPort(
+    GoalPlanningSweepCheckpointBoundaries(
       checkpoint = params.checkpoint,
       outputValidator = params.outputValidator,
       invariantsSource = params.invariantsSource,
@@ -278,7 +274,7 @@ internal fun testGoalPlanningSweepPorts(params: GoalPlanningSweepPortsParams): D
       contextDiscovery = params.contextDiscovery,
       planningProjectionValidator = params.planningProjectionValidator,
     ),
-    DefaultGoalPlanningSweepLaunchPort(
+    GoalPlanningSweepLaunchBoundaries(
       subtaskLauncher = params.subtaskLauncher,
       manifestStore = params.manifestStore,
       planningAttemptRecorder = params.planningAttemptRecorder,

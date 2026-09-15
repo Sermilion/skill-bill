@@ -12,10 +12,8 @@ import com.intellij.ui.AnimatedIcon
 import com.intellij.ui.awt.RelativePoint
 import com.intellij.util.Alarm
 import com.intellij.util.ui.JBUI
-import dev.skillbill.intellij.application.GoalPauseOutcome
-import dev.skillbill.intellij.application.GoalPauseRepository
-import dev.skillbill.intellij.application.GoalStopOutcome
-import dev.skillbill.intellij.application.GoalStopRepository
+import dev.skillbill.intellij.application.GoalMutationOutcome
+import dev.skillbill.intellij.application.GoalMutationRepository
 import dev.skillbill.intellij.composition.SkillBillProjectStatusService
 import dev.skillbill.intellij.domain.StatusClock
 import dev.skillbill.intellij.presentation.GoalControlDescriptor
@@ -50,9 +48,9 @@ class SkillBillStatusBarWidget(
         project.getService(SkillBillProjectStatusService::class.java).viewModel,
     private val clock: StatusClock = StatusClock.system(),
     private val tickIntervalMs: Long = 1_000L,
-    private val goalPauseRepository: GoalPauseRepository =
+    private val goalPauseRepository: GoalMutationRepository =
         project.getService(SkillBillProjectStatusService::class.java).goalPauseRepository,
-    private val goalStopRepository: GoalStopRepository =
+    private val goalStopRepository: GoalMutationRepository =
         project.getService(SkillBillProjectStatusService::class.java).goalStopRepository,
 ) : CustomStatusBarWidget, StatusBarWidget.WidgetPresentation {
     private val activityIcon = AnimatedIcon.Default()
@@ -217,18 +215,13 @@ class SkillBillStatusBarWidget(
             built.buttonFor(GoalControlKind.PAUSE)?.isEnabled = false
         }
         actionScope.launch {
-            val outcome = when (descriptor.kind) {
-                GoalControlKind.STOP ->
-                    when (val result = goalStopRepository.requestStop(projectRoot(), descriptor.issueKey)) {
-                        is GoalStopOutcome.Failed -> result.summary
-                        GoalStopOutcome.Requested -> null
-                    }
-
-                GoalControlKind.PAUSE ->
-                    when (val result = goalPauseRepository.requestPause(projectRoot(), descriptor.issueKey)) {
-                        is GoalPauseOutcome.Failed -> result.summary
-                        GoalPauseOutcome.Requested -> null
-                    }
+            val repository = when (descriptor.kind) {
+                GoalControlKind.STOP -> goalStopRepository
+                GoalControlKind.PAUSE -> goalPauseRepository
+            }
+            val outcome = when (val result = repository.requestMutation(projectRoot(), descriptor.issueKey)) {
+                is GoalMutationOutcome.Failed -> result.summary
+                GoalMutationOutcome.Requested -> null
             }
             if (outcome != null) {
                 // A refused call must not strand the optimistic disable; polling and the

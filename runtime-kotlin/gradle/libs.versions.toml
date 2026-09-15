@@ -1,7 +1,6 @@
 [versions]
 beryxRuntime = "2.0.1"
 detekt = "1.23.8"
-jna = "5.13.0"
 clikt = "5.1.0"
 kotlin = "2.4.0-Beta2"
 kotlinInject = "0.9.0"
@@ -27,7 +26,6 @@ ksp-gradle-plugin = { module = "com.google.devtools.ksp:com.google.devtools.ksp.
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "jackson" }
-jna = { module = "net.java.dev.jna:jna", version.ref = "jna" }
 jackson-dataformat-yaml = { module = "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml", version.ref = "jackson" }
 json-schema-validator = { module = "com.networknt:json-schema-validator", version.ref = "jsonSchemaValidator" }
 snakeyaml = { module = "org.yaml:snakeyaml", version.ref = "snakeyaml" }

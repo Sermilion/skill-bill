@@ -1,19 +1,48 @@
 import * as fs from "fs";
 import * as path from "path";
-import { GoalStopOutcome, GoalStopRepository } from "../../application/GoalStopRepository";
+import { GoalMutationOutcome, GoalMutationRepository } from "../../application/GoalMutationRepository";
 import { PreferenceCachePort } from "../../application/PreferenceCachePort";
 import {
   DEFAULT_CLI_TIMEOUT_MS,
   DEFAULT_STDERR_LIMIT_BYTES,
   DEFAULT_STDOUT_LIMIT_BYTES,
+  GOAL_PAUSE_VERB,
   GOAL_STOP_VERB,
   REPO_ROOT_OPTION,
 } from "../../domain/Constants";
 import { CliExecutableResolution, resolveCliExecutable } from "./CliExecutableResolver";
 import { BoundedProcessResult, ProcessRunner, ProcessSpec } from "./ProcessRunner";
 
-export class CliGoalStopRepository implements GoalStopRepository {
+export interface GoalMutation {
+  readonly verb: readonly string[];
+  readonly blankKeySummary: string;
+  readonly launchFailureSummary: string;
+  readonly cancelledSummary: string;
+  readonly timedOutSummary: string;
+  readonly declinedSummary: string;
+}
+
+export const GOAL_PAUSE_MUTATION: GoalMutation = {
+  verb: GOAL_PAUSE_VERB,
+  blankKeySummary: "No issue key to pause",
+  launchFailureSummary: "Pause request failed to start",
+  cancelledSummary: "Pause request cancelled",
+  timedOutSummary: "Pause request timed out",
+  declinedSummary: "Skill Bill declined the pause request",
+};
+
+export const GOAL_STOP_MUTATION: GoalMutation = {
+  verb: GOAL_STOP_VERB,
+  blankKeySummary: "No issue key to stop",
+  launchFailureSummary: "Stop request failed to start",
+  cancelledSummary: "Stop request cancelled",
+  timedOutSummary: "Stop request timed out",
+  declinedSummary: "Skill Bill declined the stop request",
+};
+
+export class CliGoalMutationRepository implements GoalMutationRepository {
   constructor(
+    private readonly mutation: GoalMutation,
     private readonly preferences: PreferenceCachePort,
     private readonly processRunner: ProcessRunner,
     private readonly executableResolver: () => CliExecutableResolution = () =>
@@ -23,10 +52,10 @@ export class CliGoalStopRepository implements GoalStopRepository {
     private readonly stderrLimitBytes: number = DEFAULT_STDERR_LIMIT_BYTES,
   ) {}
 
-  async requestStop(projectRoot: string, issueKey: string): Promise<GoalStopOutcome> {
+  async requestMutation(projectRoot: string, issueKey: string): Promise<GoalMutationOutcome> {
     const key = issueKey.trim();
     if (!key) {
-      return { kind: "failed", summary: "No issue key to stop" };
+      return { kind: "failed", summary: this.mutation.blankKeySummary };
     }
     const resolution = this.executableResolver();
     if (resolution.kind === "missing") {
@@ -46,25 +75,25 @@ export class CliGoalStopRepository implements GoalStopRepository {
     let result: BoundedProcessResult;
     try {
       const spec: ProcessSpec = {
-        command: [resolution.path, ...GOAL_STOP_VERB, key, REPO_ROOT_OPTION, canonicalRoot],
+        command: [resolution.path, ...this.mutation.verb, key, REPO_ROOT_OPTION, canonicalRoot],
         timeoutMs: this.timeoutMs,
         stdoutLimitBytes: this.stdoutLimitBytes,
         stderrLimitBytes: this.stderrLimitBytes,
       };
       result = await this.processRunner.runCoalesced(spec);
     } catch {
-      return { kind: "failed", summary: "Stop request failed to start" };
+      return { kind: "failed", summary: this.mutation.launchFailureSummary };
     }
 
     if (result.cancelled) {
-      return { kind: "failed", summary: "Stop request cancelled" };
+      return { kind: "failed", summary: this.mutation.cancelledSummary };
     }
     if (result.timedOut) {
-      return { kind: "failed", summary: "Stop request timed out" };
+      return { kind: "failed", summary: this.mutation.timedOutSummary };
     }
     if (result.exitCode === 0) {
       return { kind: "requested" };
     }
-    return { kind: "failed", summary: "Skill Bill declined the stop request" };
+    return { kind: "failed", summary: this.mutation.declinedSummary };
   }
 }

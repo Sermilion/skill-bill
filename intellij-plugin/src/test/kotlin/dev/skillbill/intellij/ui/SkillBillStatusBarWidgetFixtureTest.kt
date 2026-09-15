@@ -4,7 +4,7 @@ import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.wm.StatusBarWidgetFactory
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
-import dev.skillbill.intellij.application.GoalStopOutcome
+import dev.skillbill.intellij.application.GoalMutationOutcome
 import dev.skillbill.intellij.application.StatusRefreshCoordinator
 import dev.skillbill.intellij.composition.SkillBillProjectStatusService
 import dev.skillbill.intellij.domain.CurrentPhaseExecution
@@ -12,8 +12,7 @@ import dev.skillbill.intellij.domain.CurrentPhaseModel
 import dev.skillbill.intellij.domain.GoalPlanningInfo
 import dev.skillbill.intellij.domain.SkillBillStatusOutcome
 import dev.skillbill.intellij.fakes.ControllableClock
-import dev.skillbill.intellij.fakes.FakeGoalPauseRepository
-import dev.skillbill.intellij.fakes.FakeGoalStopRepository
+import dev.skillbill.intellij.fakes.FakeGoalMutationRepository
 import dev.skillbill.intellij.fakes.FakePreferenceCache
 import dev.skillbill.intellij.fakes.FakeStatusRepository
 import dev.skillbill.intellij.fakes.activeUiState
@@ -361,8 +360,8 @@ class SkillBillStatusBarWidgetFixtureTest : BasePlatformTestCase() {
     }
 
     fun testActivatingEachControlInvokesItsRepositoryOffTheEdt() {
-        val pauseRepo = FakeGoalPauseRepository()
-        val stopRepo = FakeGoalStopRepository()
+        val pauseRepo = FakeGoalMutationRepository()
+        val stopRepo = FakeGoalMutationRepository()
         val widget = newWidget(pauseRepo, stopRepo)
         val built = widget.buildPopupContent(SkillBillStatusBarPresentation.map(activeUiState()))
 
@@ -401,13 +400,13 @@ class SkillBillStatusBarWidgetFixtureTest : BasePlatformTestCase() {
         val prefs = FakePreferenceCache(refreshIntervalSeconds = 60)
         val coordinator = StatusRefreshCoordinator(repo, prefs, scope, Path.of(project.basePath!!))
         val vm = SkillBillStatusViewModel(coordinator, clock, scope, tickIntervalMs = 50)
-        val stopRepo = FakeGoalStopRepository(GoalStopOutcome.Failed("Skill Bill declined the stop request"))
+        val stopRepo = FakeGoalMutationRepository(GoalMutationOutcome.Failed("Skill Bill declined the stop request"))
         val widget = SkillBillStatusBarWidget(
             project,
             vm,
             clock,
             tickIntervalMs = 50,
-            goalPauseRepository = FakeGoalPauseRepository(),
+            goalPauseRepository = FakeGoalMutationRepository(),
             goalStopRepository = stopRepo,
         )
         widget.activate()
@@ -441,8 +440,8 @@ class SkillBillStatusBarWidgetFixtureTest : BasePlatformTestCase() {
     }
 
     private fun newWidget(
-        pauseRepo: FakeGoalPauseRepository = FakeGoalPauseRepository(),
-        stopRepo: FakeGoalStopRepository = FakeGoalStopRepository(),
+        pauseRepo: FakeGoalMutationRepository = FakeGoalMutationRepository(),
+        stopRepo: FakeGoalMutationRepository = FakeGoalMutationRepository(),
     ): SkillBillStatusBarWidget {
         val clock = ControllableClock(Instant.parse("2026-08-07T12:00:00Z"))
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)

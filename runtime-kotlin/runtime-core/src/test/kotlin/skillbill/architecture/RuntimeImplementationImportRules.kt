@@ -32,8 +32,8 @@ internal fun isRuntimeImplementationImport(importedName: String): Boolean {
 /**
  * SKILL-52.3 subtask 5 (AC3): predicate identifying a direct import of a
  * concrete schema/coherence validator. The three relocated JSON-Schema
- * validators (`InstallPlanSchemaValidator`, `WorkflowStateSchemaValidator` /
- * `CanonicalWorkflowStateSchemaValidator`, `DecompositionManifestSchemaValidator`)
+ * validators (`InstallPlanSchemaValidator`, `WorkflowStateSchemaValidator`,
+ * `DecompositionManifestSchemaValidator`)
  * and the `DecompositionManifestCoherenceValidator` are owned by
  * `runtime-infra-fs` and reached only through domain-owned ports. Pure-layer
  * code (runtime-domain install/workflow source, runtime-application main

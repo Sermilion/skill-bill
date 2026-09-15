@@ -7,7 +7,7 @@ import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import me.tatarka.inject.annotations.Inject
-import skillbill.application.scaffold.SkillRemoveService
+import skillbill.application.scaffold.SkillRemove
 import skillbill.cli.kernel.CliRunState
 import skillbill.cli.kernel.DocumentedCliCommand
 import skillbill.cli.kernel.formatOption
@@ -17,7 +17,7 @@ import skillbill.cli.model.CliRunInputs
 class RemoveCliCommand(
   private val state: CliRunState,
   private val inputs: CliRunInputs,
-  private val skillRemoveService: SkillRemoveService,
+  private val skillRemove: SkillRemove,
 ) : DocumentedCliCommand(
   "remove",
   "Remove a horizontal skill, a platform pack, or a governed add-on, including manifest, README, " +
@@ -45,7 +45,7 @@ class RemoveCliCommand(
     state.result = executeRemoveCommand(
       RemoveCommandExecutionRequest(
         inputs = inputs,
-        skillRemoveService = skillRemoveService,
+        skillRemove = skillRemove,
         rawTarget = target,
         repoRoot = repoRoot,
         dryRun = dryRun,

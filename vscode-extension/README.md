@@ -6,7 +6,7 @@ status bar. This directory is a **sibling** of `runtime-kotlin/` and
 adds no VS Code dependency to the Kotlin runtime.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for package ownership, persistence policy,
-source-of-truth rules, and deferred tool-window paths.
+and source-of-truth rules.
 
 ## Requirements
 

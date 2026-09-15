@@ -11,8 +11,8 @@ import skillbill.engine.goalrunner.GoalRunnerWorkerRequestHandler
 
 @Inject
 data class GoalRunnerDeps(
-  val runBoundaries: GoalRunnerRunBoundariesPort,
-  val launchBoundaries: GoalRunnerSubtaskLaunchBoundariesPort,
+  val runBoundaries: GoalRunnerRunBoundaries,
+  val launchBoundaries: GoalRunnerSubtaskLaunchBoundaries,
   val workerRequestHandler: GoalRunnerWorkerRequestHandler,
   val reconciler: GoalRunnerLaunchReconciler,
   val progressReader: GoalRunnerProgressReader,

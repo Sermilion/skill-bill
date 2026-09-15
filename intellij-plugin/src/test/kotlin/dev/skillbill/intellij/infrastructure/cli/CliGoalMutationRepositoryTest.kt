@@ -1,7 +1,6 @@
 package dev.skillbill.intellij.infrastructure.cli
 
-import dev.skillbill.intellij.application.GoalPauseOutcome
-import dev.skillbill.intellij.application.GoalStopOutcome
+import dev.skillbill.intellij.application.GoalMutationOutcome
 import dev.skillbill.intellij.fakes.FakePreferenceCache
 import dev.skillbill.intellij.fakes.ScriptedProcessFactory
 import java.nio.file.Files
@@ -25,26 +24,18 @@ class CliGoalMutationRepositoryTest {
         val canonical = root.toAbsolutePath().normalize().toRealPath().toString()
 
         val pauseFactory = ScriptedProcessFactory(exitCode = 0)
-        val pause = CliGoalPauseRepository(
-            preferences = prefs,
-            processRunner = ProcessRunner(processFactory = pauseFactory),
-            executableResolver = { CliExecutableResolution.Found("/usr/bin/skill-bill", CliExecutableSource.SEARCH_PATH) },
-        )
-        val pauseOutcome = runBlocking { pause.requestPause(root.resolve("..").resolve(root.fileName), "SKILL-168") }
-        assertEquals(GoalPauseOutcome.Requested, pauseOutcome)
+        val pause = repository(GoalMutation.PAUSE, ProcessRunner(processFactory = pauseFactory))
+        val pauseOutcome = runBlocking { pause.requestMutation(root.resolve("..").resolve(root.fileName), "SKILL-168") }
+        assertEquals(GoalMutationOutcome.Requested, pauseOutcome)
         assertEquals(
             listOf("/usr/bin/skill-bill", "goal", "pause", "SKILL-168", "--repo-root", canonical),
             pauseFactory.commands.single(),
         )
 
         val stopFactory = ScriptedProcessFactory(exitCode = 0)
-        val stop = CliGoalStopRepository(
-            preferences = prefs,
-            processRunner = ProcessRunner(processFactory = stopFactory),
-            executableResolver = { CliExecutableResolution.Found("/usr/bin/skill-bill", CliExecutableSource.SEARCH_PATH) },
-        )
-        val stopOutcome = runBlocking { stop.requestStop(root, "SKILL-168") }
-        assertEquals(GoalStopOutcome.Requested, stopOutcome)
+        val stop = repository(GoalMutation.STOP, ProcessRunner(processFactory = stopFactory))
+        val stopOutcome = runBlocking { stop.requestMutation(root, "SKILL-168") }
+        assertEquals(GoalMutationOutcome.Requested, stopOutcome)
         assertEquals(
             listOf("/usr/bin/skill-bill", "goal", "stop", "SKILL-168", "--repo-root", canonical),
             stopFactory.commands.single(),
@@ -55,21 +46,13 @@ class CliGoalMutationRepositoryTest {
     fun `a blank or whitespace issue key never starts a process`() {
         for (key in listOf("", "   ", "\t")) {
             val pauseFactory = ScriptedProcessFactory()
-            val pause = CliGoalPauseRepository(
-                preferences = prefs,
-                processRunner = ProcessRunner(processFactory = pauseFactory),
-                executableResolver = { CliExecutableResolution.Found("/usr/bin/skill-bill", CliExecutableSource.SEARCH_PATH) },
-            )
+            val pause = repository(GoalMutation.PAUSE, ProcessRunner(processFactory = pauseFactory))
             val stopFactory = ScriptedProcessFactory()
-            val stop = CliGoalStopRepository(
-                preferences = prefs,
-                processRunner = ProcessRunner(processFactory = stopFactory),
-                executableResolver = { CliExecutableResolution.Found("/usr/bin/skill-bill", CliExecutableSource.SEARCH_PATH) },
-            )
+            val stop = repository(GoalMutation.STOP, ProcessRunner(processFactory = stopFactory))
             val root = Files.createTempDirectory("blank-key")
             runBlocking {
-                assertTrue(pause.requestPause(root, key) is GoalPauseOutcome.Failed)
-                assertTrue(stop.requestStop(root, key) is GoalStopOutcome.Failed)
+                assertTrue(pause.requestMutation(root, key) is GoalMutationOutcome.Failed)
+                assertTrue(stop.requestMutation(root, key) is GoalMutationOutcome.Failed)
             }
             assertTrue("blank key must not spawn a process", pauseFactory.commands.isEmpty())
             assertTrue("blank key must not spawn a process", stopFactory.commands.isEmpty())
@@ -89,21 +72,17 @@ class CliGoalMutationRepositoryTest {
         summaries += failureSummaries(root, resolution = CliExecutableResolution.Misconfigured) {
             ProcessRunner(processFactory = ScriptedProcessFactory())
         }
-        // Thrown-from-runner path.
         summaries += failureSummaries(root) {
             ProcessRunner(
                 processFactory = { _, _ -> throw IllegalStateException("BOOM_$secretStdout at $canonical") },
             )
         }
-        // Cancelled runner.
         summaries += failureSummaries(root) {
             ProcessRunner(processFactory = ScriptedProcessFactory()).apply { cancelAll() }
         }
-        // Timed out: the held process never finishes inside the timeout.
         summaries += failureSummaries(root, timeoutMs = 50) {
             ProcessRunner(processFactory = ScriptedProcessFactory(hold = true))
         }
-        // Unusable project root.
         summaries += failureSummaries(Path.of("/definitely/not/a/real/root/for/skill-bill")) {
             ProcessRunner(processFactory = ScriptedProcessFactory())
         }
@@ -119,19 +98,27 @@ class CliGoalMutationRepositoryTest {
         }
     }
 
+    private fun repository(
+        mutation: GoalMutation,
+        runner: ProcessRunner,
+        resolution: CliExecutableResolution =
+            CliExecutableResolution.Found("/usr/bin/skill-bill", CliExecutableSource.SEARCH_PATH),
+        timeoutMs: Long = 2_000,
+    ) = CliGoalMutationRepository(mutation, prefs, runner, { resolution }, timeoutMs)
+
     private fun failureSummaries(
         root: Path,
         resolution: CliExecutableResolution = CliExecutableResolution.Found("/usr/bin/skill-bill", CliExecutableSource.SEARCH_PATH),
         timeoutMs: Long = 2_000,
         runner: () -> ProcessRunner,
     ): List<String> = runBlocking {
-        val pause = CliGoalPauseRepository(prefs, runner(), { resolution }, timeoutMs)
-            .requestPause(root, "SKILL-168")
-        val stop = CliGoalStopRepository(prefs, runner(), { resolution }, timeoutMs)
-            .requestStop(root, "SKILL-168")
+        val pause = repository(GoalMutation.PAUSE, runner(), resolution, timeoutMs)
+            .requestMutation(root, "SKILL-168")
+        val stop = repository(GoalMutation.STOP, runner(), resolution, timeoutMs)
+            .requestMutation(root, "SKILL-168")
         listOfNotNull(
-            (pause as? GoalPauseOutcome.Failed)?.summary,
-            (stop as? GoalStopOutcome.Failed)?.summary,
+            (pause as? GoalMutationOutcome.Failed)?.summary,
+            (stop as? GoalMutationOutcome.Failed)?.summary,
         )
     }
 }

@@ -3,17 +3,15 @@ package dev.skillbill.intellij.composition
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
-import dev.skillbill.intellij.application.GoalPauseRepository
-import dev.skillbill.intellij.application.GoalStopRepository
+import dev.skillbill.intellij.application.GoalMutationRepository
 import dev.skillbill.intellij.application.StatusRefreshCoordinator
 import dev.skillbill.intellij.infrastructure.prefs.IntelliJPreferenceCache
 import dev.skillbill.intellij.presentation.SkillBillStatusViewModel
 import java.nio.file.Path
 
 /**
- * Project service exposing presentation-facing handles for status-bar (and future
- * tool-window) consumers. Owns the composed graph lifetime; disposal cancels
- * polling and child processes.
+ * Project service exposing presentation-facing handles for status-bar consumers.
+ * Owns the composed graph lifetime; disposal cancels polling and child processes.
  */
 class SkillBillProjectStatusService(
     private val project: Project,
@@ -31,10 +29,10 @@ class SkillBillProjectStatusService(
     val coordinator: StatusRefreshCoordinator
         get() = root.coordinator
 
-    val goalPauseRepository: GoalPauseRepository
+    val goalPauseRepository: GoalMutationRepository
         get() = root.goalPauseRepository
 
-    val goalStopRepository: GoalStopRepository
+    val goalStopRepository: GoalMutationRepository
         get() = root.goalStopRepository
 
     init {

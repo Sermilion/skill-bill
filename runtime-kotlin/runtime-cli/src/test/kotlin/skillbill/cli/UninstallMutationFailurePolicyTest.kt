@@ -2,7 +2,6 @@ package skillbill.cli
 
 import com.github.ajalt.clikt.parsers.CommandLineParser
 import skillbill.application.scaffold.InstallAgentService
-import skillbill.application.system.UninstallFileSystemService
 import skillbill.cli.kernel.CliRunState
 import skillbill.cli.model.CliExecutionResult
 import skillbill.cli.model.CliRunInputs
@@ -57,7 +56,7 @@ class UninstallMutationFailurePolicyTest {
     val recorder = UninstallMutationRecorder(diagnostics)
 
     removeLauncher(
-      fileSystem = UninstallFileSystemService(ThrowingUninstallPathsPort(RUNTIME_BIN_PATH, "deleteIfExists")),
+      fileSystem = ThrowingUninstallPathsPort(RUNTIME_BIN_PATH, "deleteIfExists"),
       launcher = LauncherRemoval(LAUNCHER_PATH, RUNTIME_BIN_PATH),
       removed = mutableListOf(),
       skipped = mutableListOf(),
@@ -76,7 +75,7 @@ class UninstallMutationFailurePolicyTest {
     val recorder = UninstallMutationRecorder(diagnostics)
 
     removeRecursively(
-      fileSystem = UninstallFileSystemService(ThrowingUninstallPathsPort(RUNTIME_BIN_PATH, "removeTree")),
+      fileSystem = ThrowingUninstallPathsPort(RUNTIME_BIN_PATH, "removeTree"),
       path = STATE_ROOT,
       removed = mutableListOf(),
       recorder = recorder,
@@ -140,7 +139,7 @@ class UninstallMutationFailurePolicyTest {
       installAgentService = InstallAgentService(StubInstallAgentTargetPort),
       installNativeAgentLinkPort = StubInstallNativeAgentLinkPort,
       installMcpRegistrationPort = mcpRegistrationPort,
-      uninstallFileSystem = UninstallFileSystemService(AbsentUninstallPathsPort),
+      uninstallFileSystem = AbsentUninstallPathsPort,
       hostPlatform = StubUninstallHostPlatformPort,
       diagnostics = RecordingRuntimeDiagnostics(),
     )

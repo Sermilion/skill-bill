@@ -572,10 +572,6 @@ remove_from_codex_skill_roots() {
   done <<< "$roots"
 }
 remove_from_codex_skill_roots
-legacy_commands_agent="$(printf 'g%s' 'lm')"
-# TODO(SKILL-34-followup): remove legacy commands cleanup branch on or after 2026-08-02.
-info "A retired commands-only agent target is no longer first-class supported. If you used Skill Bill there as a model inside Claude Code, your skills are unaffected — they live under the Claude Code skills directory."
-remove_from_agent_dir "$legacy_commands_agent" "$HOME/.$legacy_commands_agent/commands"
 remove_from_agent_dir "codex" "$HOME/.agents/skills"
 remove_from_agent_dir "junie" "$HOME/.junie/skills"
 remove_from_agent_dir "cursor" "$HOME/.cursor/skills"
@@ -682,7 +678,7 @@ info "Removing Cursor subagent markdown installs."
 remove_cursor_agent_mds
 
 info "Removing MCP server registrations."
-for agent in claude codex "$legacy_commands_agent" junie cursor; do
+for agent in claude codex junie cursor; do
   if mcp_output="$(run_runtime_cli install unregister-mcp "$agent" 2>/dev/null)"; then
     ok "  removed skill-bill MCP server ($agent)"
     while IFS= read -r profile_path; do

@@ -1,6 +1,5 @@
 package dev.skillbill.intellij.application
 
-import dev.skillbill.intellij.domain.DEFAULT_REFRESH_INTERVAL_SECONDS
 import dev.skillbill.intellij.domain.LastKnownDisplayCache
 
 /**
@@ -20,8 +19,4 @@ interface PreferenceCachePort {
     fun getLastKnownDisplayCache(): LastKnownDisplayCache?
 
     fun setLastKnownDisplayCache(cache: LastKnownDisplayCache?)
-
-    companion object {
-        fun defaultRefreshIntervalSeconds(): Long = DEFAULT_REFRESH_INTERVAL_SECONDS
-    }
 }

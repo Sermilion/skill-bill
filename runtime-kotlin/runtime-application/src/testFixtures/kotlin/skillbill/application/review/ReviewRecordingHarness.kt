@@ -1,9 +1,9 @@
 package skillbill.application.review
 
 import skillbill.application.idestatus.AgentActivityStampWriter
-import skillbill.application.review.model.DefaultParallelCodeReviewRunnerLaneLaunchPort
-import skillbill.application.review.model.DefaultParallelCodeReviewRunnerPlanningPort
 import skillbill.application.review.model.ParallelCodeReviewRequest
+import skillbill.application.review.model.ParallelCodeReviewRunnerLaneLaunchBoundaries
+import skillbill.application.review.model.ParallelCodeReviewRunnerPlanningBoundaries
 import skillbill.application.review.model.ReviewPrelaunchExpansion
 import skillbill.application.reviewevidence.model.ParallelReviewScope
 import skillbill.config.model.RepoLocalConfig
@@ -12,7 +12,7 @@ import skillbill.infrastructure.fs.ClasspathReviewSpecialistContractProvider
 import skillbill.infrastructure.fs.DecompositionManifestValidatorAdapter
 import skillbill.infrastructure.fs.FileSystemDecompositionManifestFileStore
 import skillbill.infrastructure.fs.FileSystemDiffResolver
-import skillbill.infrastructure.fs.FileSystemReviewEvidenceBrokerFactory
+import skillbill.infrastructure.fs.FileSystemReviewEvidenceBroker
 import skillbill.install.model.InstallAgent
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
@@ -156,7 +156,7 @@ data class ReviewHarnessConfig(
   val rubricBody: (String) -> String = { "governed rubric body for $it" },
   val response: (GoalRunnerSubtaskLaunchRequest) -> RecordedWorkerResponse = { RecordedWorkerResponse() },
   val evidenceBrokerFactory: ReviewEvidenceBrokerFactory =
-    FileSystemReviewEvidenceBrokerFactory(),
+    ReviewEvidenceBrokerFactory { binding -> FileSystemReviewEvidenceBroker(binding) },
   val parentLaunch: ((GoalRunnerSubtaskLaunchRequest) -> AgentRunLaunchOutcome)? = null,
   /** Set false to model a worker that answered without reading its assigned evidence. */
   val simulateEvidenceReads: Boolean = true,
@@ -194,7 +194,7 @@ fun reviewHarness(config: ReviewHarnessConfig, recorder: ReviewRecorder): Parall
     ) as AgentRunLaunchOutcome
   }
   val sharedEvidenceLocatorReader = FeatureTaskRuntimeSharedEvidenceLocatorReadPort.NONE
-  val planningPort = DefaultParallelCodeReviewRunnerPlanningPort(
+  val planningBoundaries = ParallelCodeReviewRunnerPlanningBoundaries(
     diffResolver = object : DiffResolverPort {
       override fun readDiff(path: Path, maxBytes: Long): String? = null
 
@@ -244,7 +244,7 @@ fun reviewHarness(config: ReviewHarnessConfig, recorder: ReviewRecorder): Parall
     clock = Clock.systemUTC(),
     repositoryEnclosingRootPort = CanonicalRepositoryRoot,
   )
-  val laneLaunchPort = DefaultParallelCodeReviewRunnerLaneLaunchPort(
+  val laneLaunchBoundaries = ParallelCodeReviewRunnerLaneLaunchBoundaries(
     parentReviewLauncher = launcher,
     reviewEvidenceBrokerFactory = config.evidenceBrokerFactory,
     governedEvidenceEndpointBinder = config.evidenceEndpointBinder,
@@ -252,8 +252,8 @@ fun reviewHarness(config: ReviewHarnessConfig, recorder: ReviewRecorder): Parall
     sharedEvidenceLocatorReader = sharedEvidenceLocatorReader,
   )
   return ParallelCodeReviewRunner(
-    planningPort,
-    laneLaunchPort,
+    planningBoundaries,
+    laneLaunchBoundaries,
     AgentActivityStampWriter(database, Clock.systemUTC()),
   )
 }
@@ -546,7 +546,7 @@ fun reviewFileSystemDiffResolver(): DiffResolverPort = FileSystemDiffResolver()
  * packet carries no materializable hunk bodies, so a byte-driven refusal cannot be provoked here.
  */
 fun brokerDenyingUnit(deniedPath: String): ReviewEvidenceBrokerFactory = ReviewEvidenceBrokerFactory { binding ->
-  val delegate = FileSystemReviewEvidenceBrokerFactory().brokerFor(binding)
+  val delegate = FileSystemReviewEvidenceBroker(binding)
   val hunkId = binding.projectedHunks.first { it.path == deniedPath }.hunkId
   val commitSha = binding.assignment.assignedBundle.entries.first { hunkId in it.hunkIds }.commitSha
   val deniedUnit = "$commitSha@$deniedPath"
