@@ -38,6 +38,86 @@ parameter into a context, callback bag, or role interface does not narrow access
 Reconstruction from durable records must preserve the same invariants as live
 execution, including retry consumption, checkpoint ownership, and phase order.
 
+#### Feature-task run-loop helper inputs (SKILL-247 subtask 3)
+
+Investigation F-005 counted 122 `FeatureTaskRuntimeRunLoopContext` extension
+functions across 15 files under `skillbill.engine.featuretask`, backed by a
+17-field `FeatureTaskRuntimeRunLoopContext`. Before narrowing, extension counts
+per helper family in that package were: PlanningBranch 0 (only a context wrapper
+around `runPhase`), Drive 13, ValidationGate 21, AttemptSettlement 13, Review 8,
+PhaseAttempts 4 (carried-forward adjacency). PlanningBranch also duplicated many
+public APIs that differed only by accepting `FeatureTaskRuntimeRunLoop` versus
+narrowed request/state/recorder/session parameters; PhaseRunner and
+ValidationGate exposed companion entry points that took the run loop wholesale.
+
+After narrowing (same census rules): PlanningBranch stays at 0 context extensions;
+`runPhase`, `runPreparedPhase`, `buildPhaseRun`, and `phaseDeclarationForRun` take
+`RunPhaseArgs` and/or `FeatureTaskRuntimeRunLoopContext` without constructing
+`FeatureTaskRuntimeRunLoop`. Drive retains 2 context extensions —
+`invalidateReviewGenerationIfNeeded` and `runPhaseDriveLoop` — because the drive
+orchestrator still owns session transition wiring and the forward phase loop;
+resume, entry-gate, carried-forward review, advance routing, and cap exhaustion
+call sites use object functions with explicit request/state/recorder/session (or
+context passed as a value, not as an all-access receiver). ValidationGate keeps
+context extensions only at the gate-cycle and phase-attempt orchestration seams:
+the gate coordinator's agent-turn callbacks and the generic fix-loop launcher
+still need the launch, activity, diagnostics, clock, transition, and session
+ports together. Build/validation settlement, pack-command routing, and
+repository-checkpoint calculation use explicit arguments. Carried-forward goal
+review settlement uses `CarriedForwardGoalReviewArgs`;
+PhaseRunner and PlanningBranch enter through `context.copy(state, observability,
+phaseTokenAccumulator)` at the phase boundary. AttemptSettlement moves
+`gateOutput` / `settleValidatedOutput` / envelope settlement off the context
+receiver; `GateOutputArgs` and `SettleValidatedOutputArgs` carry the
+request/state/recorder/outputValidator/phaseGates/clock/diagnostics/
+goalContinuationRecorder/phaseSettlementService ports those paths use.
+`settlementContext` on those args remains only for the not-yet-peeled
+audit/checkpoint and accepted-output persistence tail inside
+`settleValidatedOutputAfterFingerprint`; implement-fix repair-receipt settlement
+and commit finalisation now receive their request/state/recorder/goal-recorder/
+diagnostics ports directly. Review
+narrows `prepareRuntimeOwnedReview` to explicit request/recorder/
+goalContinuationRecorder/phaseGates/clock/state parameters; driver execution
+remains on context where launch capture still needs session and phase gates.
+PhaseAttempts keeps `blockAndPersist` context and top-level overloads; governed
+block paths prefer the top-level `blockAndPersist(request, state, recorder,
+goalContinuationRecorder, args)` seam. `FeatureTaskRuntimeRunLoop` exposes only
+`drive()`, `report()`, and `applyOperatorDecision()` publicly; collaborator
+fields are internal to `FeatureTaskRuntimeRunLoopContext`.
+
+The named-family census is now PlanningBranch 0, Drive 2, ValidationGate 9,
+AttemptSettlement 3, Review 6, and PhaseAttempts 4 context extensions, down
+from 0, 13, 21, 13, 8, and 4 respectively. The remaining groups have these
+inputs:
+
+- PlanningBranch pure declarations and cap reasons take request facts, values,
+  recorder reads, or explicit state/session ports; `runPhase` and
+  `runPreparedPhase` retain the phase-boundary context for launch preparation.
+- Drive resume and routing calculations take request/state/recorder/
+  goal-recorder/transition values; carried-forward review takes
+  `CarriedForwardGoalReviewArgs`; only the forward drive loop and review
+  generation invalidation retain context.
+- ValidationGate settlement takes request/state/recorder/goal-recorder,
+  output-validator, phase-gates, observability, and session only for the
+  validation checkpoint lookup; gate-cycle and fix-loop orchestration retains
+  context for the launch callback graph.
+- AttemptSettlement gate output takes `GateOutputArgs`; validated output
+  settlement takes `SettleValidatedOutputArgs`; implement-fix receipt
+  settlement takes request/state/recorder/goal-recorder/diagnostics; the
+  audit/checkpoint and accepted-output persistence tail retains
+  `settlementContext`.
+- Review preparation takes request/recorder/goal-recorder/phase-gates/clock/
+  state; review driver execution and its worktree checkpoint retain context
+  for session and phase-gate ownership.
+- PhaseAttempts exposes top-level block/pause seams with request/state/
+  recorder/goal-recorder/observability arguments; its context overloads remain
+  only for the generic attempt-loop adjacency.
+
+New helpers must not reintroduce run-loop or context-all-access parameters when
+a narrowed overload already exists; retained broad inputs require a concrete,
+current orchestration requirement documented here or in the owning area
+`agent/decisions.md`.
+
 ### Resource Lifetime And Failure
 
 Successful acquisition immediately establishes one cleanup owner for a child

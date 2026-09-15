@@ -1,12 +1,23 @@
 package skillbill.engine
 
 import skillbill.application.realFeatureTaskRuntimePhaseOutputValidator
+import skillbill.engine.featuretask.GoalContinuationStateRecordRequest
+import skillbill.engine.featuretask.reviewState
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
+import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
+import skillbill.review.context.model.CodeReviewExecutionMode
+import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY
+import skillbill.workflow.goal.model.GoalSubtaskReviewCompactFinding
+import skillbill.workflow.goal.model.GoalSubtaskReviewDisposition
+import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_DELIVERED_PROJECTIONS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_BRIEFINGS_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationArtifact
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerAction
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
+import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -232,6 +243,80 @@ class FeatureTaskRuntimeStatelessAuditTest {
     assertEquals(legacyArtifacts, artifacts.filterKeys { it in legacyArtifacts })
     assertTrue(harness.recorder.loadPhaseBriefings(WORKFLOW_ID).orEmpty().keys.none { it == "audit" })
     assertTrue(harness.recorder.loadDeliveredProjections(WORKFLOW_ID).orEmpty().keys.none { it == "audit" })
+  }
+
+  @Test
+  fun `review cap carries forward its durable result without launching another review`() {
+    val root = Files.createTempDirectory("goal-review-carry-forward")
+    try {
+      val git = RecordingWorkflowGitOperations(currentBranchValue = "feat/existing-runtime-branch")
+      val harness = goalContinuationHarness(
+        repoRoot = root,
+        git = git,
+        launcher = RuntimeRecordingLauncher { request ->
+          val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
+          facts(
+            when {
+              phaseId == "audit" -> auditSatisfiedOutput()
+              phaseId == "commit_push" -> validJsonOutput("commit_push")
+              else -> validJsonOutput(phaseId)
+            },
+          )
+        },
+      )
+      harness.recorder.ensureWorkflowOpen(WORKFLOW_ID, SESSION_ID)
+      check(
+        harness.goalContinuationRecorder.recordGoalContinuationState(
+          GoalContinuationStateRecordRequest(
+            workflowId = WORKFLOW_ID,
+            continuation = FeatureTaskRuntimeGoalContinuationArtifact(
+              issueKey = RUNNER_TEST_ISSUE_KEY,
+              subtaskId = 5,
+              suppressPr = true,
+              goalBranch = "feat/existing-runtime-branch",
+              parentWorkflowId = "wfl-parent",
+              codeReviewMode = CodeReviewExecutionMode.DEFAULT,
+            ),
+            reviewBaseline = GoalSubtaskReviewBaseline("0".repeat(40), emptyList()),
+          ),
+        ),
+      )
+      val capped = requireNotNull(
+        harness.goalContinuationRecorder.updateReviewState(WORKFLOW_ID) { state ->
+          state.reserveNextPass().completeReservedPass(
+            verdict = FeatureTaskRuntimeVerdict.CHANGES_REQUESTED,
+            unresolvedFindingCount = 1,
+            findings = listOf(
+              GoalSubtaskReviewCompactFinding(
+                severity = "blocker",
+                label = "Missing behavior",
+                text = "The required behavior is still absent.",
+                findingId = "F-001",
+              ),
+            ),
+          ).copy(disposition = GoalSubtaskReviewDisposition.REVIEW_CAP_REACHED)
+        },
+      )
+      val artifacts = harness.repository.taskRuntimeArtifacts(WORKFLOW_ID).toMutableMap()
+      artifacts[GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY] =
+        capped.passResults.associate { it.passNumber.toString() to VALID_REVIEW_OUTPUT }
+      harness.repository.replaceTaskRuntimeArtifacts(WORKFLOW_ID, artifacts)
+      seedPlanningUpstreamPhases(harness)
+
+      harness.runner.run(harness.request())
+
+      assertEquals(0, harness.launchedPromptPhaseOrder().count { it == "review" })
+      assertEquals(
+        WorkflowStepStatus.COMPLETED,
+        harness.recorder.loadPhaseRecords(WORKFLOW_ID)?.get("review")?.status,
+      )
+      assertEquals(
+        1,
+        harness.goalContinuationRecorder.reviewState(WORKFLOW_ID)?.completedPassCount,
+      )
+    } finally {
+      root.toFile().deleteRecursively()
+    }
   }
 
   @Test

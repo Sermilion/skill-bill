@@ -25,12 +25,21 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeReviewPassSequence
 import skillbill.workflow.taskruntime.model.NormalizedFeatureTaskRuntimePhaseOutput
+import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
 import skillbill.workflow.taskruntime.model.requireAcceptedOutput
 import java.time.Clock
 import kotlin.coroutines.cancellation.CancellationException
 
 object FeatureTaskRuntimeRunLoopReview {
-  internal fun FeatureTaskRuntimeRunLoopContext.prepareRuntimeOwnedReview(run: PhaseRun): RuntimeOwnedReviewPrep {
+  internal fun prepareRuntimeOwnedReview(
+    request: FeatureTaskRuntimeRunRequest,
+    recorder: FeatureTaskRuntimePhaseRecorder,
+    goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
+    phaseGates: FeatureTaskRuntimePhaseGates,
+    clock: Clock,
+    state: FeatureTaskRuntimeRunState,
+    run: PhaseRun,
+  ): RuntimeOwnedReviewPrep {
     val input = run.goalReviewInput
       ?: return RuntimeOwnedReviewBlocked(
         PhaseOutcome.blocked("Runtime-owned review is missing the child-owned review input."),
@@ -45,7 +54,7 @@ object FeatureTaskRuntimeRunLoopReview {
     val pinnedMode = run.request.runInvariants.codeReviewMode
     val resolution = FeatureTaskRuntimeReviewPassSequence.resolveForPass(pinnedMode, passNumber)
     val reviewRunId = resolveReviewRunId(clock, state.recordFor(run.phaseId), passNumber)
-    persistReviewStart(run, iteration, reviewRunId)
+    persistReviewStart(request, state, recorder, goalContinuationRecorder, run, iteration, reviewRunId)
     val checkpoint = phaseGates.gitOperations.repositoryFingerprint(run.request.repoRoot).value
       .takeIf(String::isNotBlank)
       ?: return RuntimeOwnedReviewBlocked(
@@ -77,7 +86,15 @@ object FeatureTaskRuntimeRunLoopReview {
     )
   }
 
-  private fun FeatureTaskRuntimeRunLoopContext.persistReviewStart(run: PhaseRun, iteration: Int, reviewRunId: String) {
+  private fun persistReviewStart(
+    request: FeatureTaskRuntimeRunRequest,
+    state: FeatureTaskRuntimeRunState,
+    recorder: FeatureTaskRuntimePhaseRecorder,
+    goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
+    run: PhaseRun,
+    iteration: Int,
+    reviewRunId: String,
+  ) {
     FeatureTaskRuntimeRunLoopOutputPersistence.persistPhase(
       request,
       state,

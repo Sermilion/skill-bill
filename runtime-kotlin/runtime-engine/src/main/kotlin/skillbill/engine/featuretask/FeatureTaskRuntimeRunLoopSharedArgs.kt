@@ -107,6 +107,12 @@ internal data class ValidationGateCycleRequestArgs(
 internal data class SettleValidationGateCycleArgs(
   val context: PhaseAttemptAccumulatorContext,
   val cycle: ValidationGateCycleResult,
+  val request: FeatureTaskRuntimeRunRequest,
+  val recorder: FeatureTaskRuntimePhaseRecorder,
+  val goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
+  val outputValidator: FeatureTaskRuntimePhaseOutputValidator,
+  val phaseGates: FeatureTaskRuntimePhaseGates,
+  val session: FeatureTaskRuntimeRunLoopSession,
 )
 
 internal data class FixLoopOutcomeArgs(
@@ -139,6 +145,14 @@ internal data class CompletionProjectionRejectionArgs(
   val normalizedOutput: NormalizedFeatureTaskRuntimePhaseOutput,
   val repairEvidence: FeatureTaskRuntimePhaseOutputRepairEvidence?,
   val repositoryFingerprint: String?,
+)
+
+internal data class RepositoryCheckpointResolutionArgs(
+  val recorder: FeatureTaskRuntimePhaseRecorder,
+  val goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
+  val phaseGates: FeatureTaskRuntimePhaseGates,
+  val session: FeatureTaskRuntimeRunLoopSession,
+  val run: PhaseRun,
 )
 
 internal data class PersistAcceptedOutputArgs(
@@ -274,6 +288,11 @@ internal data class RunPhaseArgs(
 )
 
 internal data class ImplementFixRepairReceiptArgs(
+  val request: FeatureTaskRuntimeRunRequest,
+  val state: FeatureTaskRuntimeRunState,
+  val recorder: FeatureTaskRuntimePhaseRecorder,
+  val goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
+  val diagnostics: RuntimeDiagnostics,
   val run: PhaseRun,
   val normalizedOutput: NormalizedFeatureTaskRuntimePhaseOutput,
   val reject: (String, String) -> AttemptResult,
@@ -550,6 +569,9 @@ internal data class RecordFinalisedCheckpointIdentityArgs(
 )
 
 internal data class PersistRuntimeOwnedBuildCompletionArgs(
+  val request: FeatureTaskRuntimeRunRequest,
+  val state: FeatureTaskRuntimeRunState,
+  val recorder: FeatureTaskRuntimePhaseRecorder,
   val goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
   val run: PhaseRun,
   val iteration: Int,
@@ -559,6 +581,12 @@ internal data class PersistRuntimeOwnedBuildCompletionArgs(
 )
 
 internal data class SettleBuildGateCycleResultArgs(
+  val request: FeatureTaskRuntimeRunRequest,
+  val state: FeatureTaskRuntimeRunState,
+  val recorder: FeatureTaskRuntimePhaseRecorder,
+  val goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
+  val outputValidator: FeatureTaskRuntimePhaseOutputValidator,
+  val phaseGates: FeatureTaskRuntimePhaseGates,
   val run: PhaseRun,
   val iteration: Int,
   val observability: FeatureTaskRuntimeRunObservability,

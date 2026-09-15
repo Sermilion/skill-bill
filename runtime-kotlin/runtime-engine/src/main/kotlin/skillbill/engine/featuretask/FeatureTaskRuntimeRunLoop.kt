@@ -101,25 +101,10 @@ fun resolveReviewPassNumber(reservedPassNumber: Int?, completedReviewPassCount: 
 class FeatureTaskRuntimeRunLoop internal constructor(
   internal val context: FeatureTaskRuntimeRunLoopContext,
 ) {
-  val request = context.request
-  val state = context.state
-  val observability = context.observability
-  val specSource = context.specSource
-  val transitions = context.transitions
-  val phaseTokenAccumulator = context.phaseTokenAccumulator
-  val recorder = context.recorder
-  val goalContinuationRecorder = context.goalContinuationRecorder
-  val outputValidator = context.outputValidator
-  val phaseGates = context.phaseGates
-  val subtaskLauncher = context.subtaskLauncher
-  val phaseSettlementService = context.phaseSettlementService
-  val activityStampWriter = context.activityStampWriter
-  val clock = context.clock
-  val diagnostics = context.diagnostics
   internal val session = context.session
 
   init {
-    val resumed = with(FeatureTaskRuntimeRunLoopDrive) { context.resumedReentry() }
+    val resumed = FeatureTaskRuntimeRunLoopDrive.resumedReentry(context)
     session.transitionReentryPair(resumed, resumed)
   }
 
@@ -131,38 +116,52 @@ class FeatureTaskRuntimeRunLoop internal constructor(
   }
 
   internal fun advance(phaseId: String): PhaseSettlement {
-    with(FeatureTaskRuntimeRunLoopDrive) {
-      context.phaseEntryBlockReason(phaseId)
-    }?.let { reason ->
-      FeatureTaskRuntimeRunLoopPlanningBranch.blockAt(request, state, session, phaseId, reason)
+    FeatureTaskRuntimeRunLoopDrive.phaseEntryBlockReason(context, phaseId)?.let { reason ->
+      FeatureTaskRuntimeRunLoopPlanningBranch.blockAt(
+        context.request,
+        context.state,
+        session,
+        phaseId,
+        reason,
+      )
       return PhaseSettlement.stop()
     }
-    if (phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW && isGoalContinuationRun(request)) {
-      val carriedForward = with(FeatureTaskRuntimeRunLoopDrive) {
-        context.carriedForwardGoalReviewSettlement()
-      }
-      if (carriedForward != null) {
+    if (phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW && isGoalContinuationRun(context.request)) {
+      FeatureTaskRuntimeRunLoopDrive.carriedForwardGoalReviewSettlement(
+        CarriedForwardGoalReviewArgs(
+          request = context.request,
+          state = context.state,
+          session = session,
+          recorder = context.recorder,
+          goalContinuationRecorder = context.goalContinuationRecorder,
+          outputValidator = context.outputValidator,
+        ),
+      )?.let { carriedForward ->
         return carriedForward
       }
     }
-    val reason = with(FeatureTaskRuntimeRunLoopDrive) {
-      context.advancePhaseReason(phaseId)
-    }
-    return FeatureTaskRuntimeRunLoopDrive.settleAdvanceOutcome(request, state, session, phaseId, reason)
+    val reason = FeatureTaskRuntimeRunLoopDrive.advancePhaseReason(context, phaseId)
+    return FeatureTaskRuntimeRunLoopDrive.settleAdvanceOutcome(
+      context.request,
+      context.state,
+      session,
+      phaseId,
+      reason,
+    )
   }
 
   fun report(): FeatureTaskRuntimeRunReport {
     val branch = session.resolvedBranch
-      ?: recorder.loadResolvedBranch(request.workflowId)?.branch
+      ?: context.recorder.loadResolvedBranch(context.request.workflowId)?.branch
     return session.decomposed ?: session.paused?.let { report ->
       if (report.resolvedBranch == null && branch != null) report.copy(resolvedBranch = branch) else report
     } ?: session.blocked?.let { report ->
       if (report.resolvedBranch == null && branch != null) report.copy(resolvedBranch = branch) else report
     } ?: FeatureTaskRuntimeRunReport.Completed(
-      issueKey = request.issueKey,
-      workflowId = request.workflowId,
-      featureSize = request.runInvariants.featureSize.name,
-      completedPhaseIds = state.completedPhaseIds(),
+      issueKey = context.request.issueKey,
+      workflowId = context.request.workflowId,
+      featureSize = context.request.runInvariants.featureSize.name,
+      completedPhaseIds = context.state.completedPhaseIds(),
       resolvedBranch = branch,
     )
   }
@@ -170,7 +169,7 @@ class FeatureTaskRuntimeRunLoop internal constructor(
   fun applyOperatorDecision(): String? = buildString {
     append("Operator decisions over review remediation are removed; ")
     append("the run advances to validate after one implement_fix round.")
-    request.goalContinuation?.let {
+    context.request.goalContinuation?.let {
       append(
         " Recover with: '${recommendedDurableChildRecoveryCommand(
           it.parentIssueKey,

@@ -1,5 +1,14 @@
 # featuretask runtime boundary history
 
+## [2026-09-15] SKILL-247 subtask 3 — Narrow run-loop helper dependencies
+Areas: runtime-kotlin/runtime-engine/featuretask, runtime-kotlin/ARCHITECTURE.md
+- Narrowed run-loop helper seams to request facts, state operations, recorder/observability capabilities, and cohesive collaborators instead of all-access loop context.
+- Removed duplicate PlanningBranch overloads and public loop collaborator aliases while preserving phase advancement, session ownership, review repair, checkpointing, and resume behavior.
+- Pattern: keep broad context only at orchestration seams that coordinate launch, diagnostics, transition, and session concerns. reusable
+- Limitation: retained context inputs remain at validation agent-turn/fix-loop orchestration and review launch capture where those combined capabilities are still required.
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented
+
 ## [2026-09-15] SKILL-236 subtask 3 — Review execution and generated-evidence ownership recovery
 Areas: runtime-kotlin/runtime-engine/featuretask, runtime-kotlin/runtime-application/review, runtime-kotlin/runtime-infra-fs, runtime-kotlin/runtime-domain/review
 - The verification stage boundary is gated on an observed lane disposition. An empty, failed, interrupted, or truncated review pass yields a typed `ReviewVerificationNonSuccess`, preserves prior findings and verdicts, and emits `review_pass_output_absent` instead of reaching the boundary.

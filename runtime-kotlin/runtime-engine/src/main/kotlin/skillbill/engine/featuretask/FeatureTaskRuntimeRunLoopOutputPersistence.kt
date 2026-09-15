@@ -327,19 +327,31 @@ object FeatureTaskRuntimeRunLoopOutputPersistence {
         validationGateTriage = run.validationGateTriage,
         agentRunValidateFallback = run.agentRunValidateFallback,
         packCollectAllCommand = run.let {
-          with(FeatureTaskRuntimeRunLoopValidationGate) {
-            context.packCollectAllCommand(run)
-          }
+          FeatureTaskRuntimeRunLoopValidationGate.packCollectAllCommand(
+            context.phaseGates,
+            context.recorder,
+            context.goalContinuationRecorder,
+            context.session,
+            run,
+          )
         },
         packConfirmationGateCommand = run.let {
-          with(FeatureTaskRuntimeRunLoopValidationGate) {
-            context.packConfirmationGateCommand(run)
-          }
+          FeatureTaskRuntimeRunLoopValidationGate.packConfirmationGateCommand(
+            context.phaseGates,
+            context.recorder,
+            context.goalContinuationRecorder,
+            context.session,
+            run,
+          )
         },
         packBuildCommand = run.let {
-          with(FeatureTaskRuntimeRunLoopValidationGate) {
-            context.packBuildCommand(run)
-          }
+          FeatureTaskRuntimeRunLoopValidationGate.packBuildCommand(
+            context.phaseGates,
+            context.recorder,
+            context.goalContinuationRecorder,
+            context.session,
+            run,
+          )
         },
         auditRetryFocusHint = session.auditRetryFocusHint
           ?.takeIf { run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT },
