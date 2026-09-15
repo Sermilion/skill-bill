@@ -25,22 +25,6 @@ import java.nio.file.Path
 import kotlin.test.AfterTest
 import kotlin.test.Test
 
-/**
- * SKILL-48 Subtask 2b AC3: every install-plan fixture produced by the
- * existing contract-coverage paths validates clean against
- * `orchestration/contracts/install-plan-schema.yaml`. The scenarios
- * mirror those exercised by `InstallPlanContractCoverageTest`:
- *
- * - All-platforms selection with discovered base + pack skills.
- * - Manual agent selection over every supported agent.
- * - Detection-derived agent selection.
- * - Telemetry-level coverage (every level).
- * - Windows symlink preflight coverage (every state/decision combo).
- *
- * Each scenario runs `InstallOperations.planInstall` (so the builder
- * seam already validates), then re-validates the wire map at the CLI
- * boundary so both seams are pinned.
- */
 class InstallPlanSchemaValidatesExistingFixturesTest {
   private val tempDirs = mutableListOf<Path>()
 

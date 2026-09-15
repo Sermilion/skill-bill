@@ -33,21 +33,15 @@ class GitWorkflowGitOperations :
   override val suppressionEvidenceOperations: SuppressionEvidenceGitOperations = GitSuppressionEvidenceOperations
 }
 
-/**
- * Untracked entries and tracked worktree/index changes, both NUL-delimited. `ls-files --others` is the
- * same command that writes the goal-child baseline, so the two inventories are directly comparable;
- * `diff --name-only -z HEAD` covers tracked edits, which no untracked listing reports.
- */
 internal object GitRepositoryOwnedPathsOperations : RepositoryOwnedPathsGitOperations {
   override fun ownedPaths(repoRoot: Path): WorkflowGitOperationResult {
     val untracked = runGitCommand(repoRoot, "ls-files", "--others", "--exclude-standard", "-z")
     if (untracked !is WorkflowGitOperationResult.Ok) return untracked
     val tracked = runGitCommand(repoRoot, "diff", "--name-only", "-z", "HEAD")
-    // A repository with no commits has no HEAD to diff against; the untracked listing is the whole
-    // owned inventory there, so an unresolvable HEAD is not a failure.
+
     val trackedValue = tracked.value.takeIf { tracked is WorkflowGitOperationResult.Ok }.orEmpty()
     return WorkflowGitOperationResult.Ok(
-      // Each -z listing terminates every entry with NUL, so the two blobs concatenate directly.
+
       value = untracked.value.orEmpty() + trackedValue,
     )
   }

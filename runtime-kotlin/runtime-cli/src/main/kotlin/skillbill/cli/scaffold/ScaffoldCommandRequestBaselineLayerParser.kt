@@ -6,11 +6,6 @@ import skillbill.scaffold.model.CodeReviewBaselineLayer
 import skillbill.scaffold.model.CodeReviewCompositionMode
 import skillbill.scaffold.model.CodeReviewCompositionScope
 
-/**
- * SKILL-52.2 subtask 2: per-kind baseline-layer parser for the CLI scaffold parser. Split out of
- * the main parser file so each function stays under the detekt `ThrowsCount` threshold and the
- * generic helpers file stays under the `TooManyFunctions` threshold.
- */
 internal fun parseBaselineLayers(payload: Map<String, Any?>): List<CodeReviewBaselineLayer> {
   val raw = optionalList(payload, "baseline_layers") ?: return emptyList()
   if (raw.isEmpty()) {

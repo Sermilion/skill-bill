@@ -142,7 +142,6 @@ class FeatureTaskRuntimeCheckpointIdentityModelsTest {
     val resumed = featureTaskRuntimeAppendCheckpointIdentity(history, identity(sequenceNumber = 0))
     assertEquals(history, resumed)
 
-    // The subtask commit was amended, so this later checkpoint names the same sha under a new ref.
     val postAmend = featureTaskRuntimeAppendCheckpointIdentity(resumed, identity(sequenceNumber = 1))
     assertEquals(2, postAmend.size)
   }

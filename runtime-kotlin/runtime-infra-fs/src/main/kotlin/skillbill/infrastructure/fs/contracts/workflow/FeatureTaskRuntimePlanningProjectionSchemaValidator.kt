@@ -18,11 +18,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.coroutines.cancellation.CancellationException
 
-/**
- * Draft 2020-12 validator for the implementation receipt planning projection.
- * and forwards; any violation fails with [InvalidFeatureTaskRuntimePlanningProjectionSchemaError], the
- * message carrying schema locations, never projection bodies.
- */
 object FeatureTaskRuntimePlanningProjectionSchemaValidator {
   private val schemaDocument: JsonNode by lazy { loadPlanningProjectionsSchemaDocument() }
   private val schema: JsonSchema by lazy { compile(schemaDocument) }
@@ -31,10 +26,7 @@ object FeatureTaskRuntimePlanningProjectionSchemaValidator {
 
   fun validate(payload: Map<String, Any?>, sourceLabel: String) {
     val instance: JsonNode = mapper.valueToTree(payload)
-    // Validating a mismatched payload against the whole `oneOf` reports every violation of all four
-    // variants at once, burying the actual offending field under two dozen irrelevant ones. When the
-    // payload declares a known kind, check that variant directly so the message names the real cause;
-    // an unknown or absent kind still falls back to the full family.
+
     val declaredKind = payload["projection_kind"] as? String
     val effective = variantSchemas[declaredKind] ?: schema
     val errors: Set<ValidationMessage> = effective.validate(instance)
@@ -64,9 +56,6 @@ object FeatureTaskRuntimePlanningProjectionSchemaValidator {
     .joinToString(separator = " | ") { locatedMessage(it) } +
     if (errors.size > MAX_REPORTED_VIOLATIONS) " (+${errors.size - MAX_REPORTED_VIOLATIONS} more)" else ""
 
-  // Every networknt message template renders the instance location as its leading argument, so prefixing
-  // the location again would report each violated location twice. Only an absent or blank location, which
-  // renders as an empty leading argument, needs the explicit root marker.
   private fun locatedMessage(error: ValidationMessage): String {
     val message = error.message.orEmpty()
     if (instanceLocationOf(error).isNotBlank()) return message

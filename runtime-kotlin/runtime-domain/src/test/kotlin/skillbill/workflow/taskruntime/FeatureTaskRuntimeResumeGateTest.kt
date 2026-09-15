@@ -13,11 +13,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
-/**
- * Domain resume-gate coverage for SKILL-85 subtask 1: the runtime family resolves required-upstream
- * presence from its private per-phase records, while every other family keeps the default top-level
- * key presence rule unchanged.
- */
 class FeatureTaskRuntimeResumeGateTest {
   private val engine = WorkflowEngine(NoopWorkflowSnapshotValidator)
   private val runtimeDefinition = FeatureTaskRuntimePhaseWorkflowDefinition.definition
@@ -79,7 +74,6 @@ class FeatureTaskRuntimeResumeGateTest {
 
   @Test
   fun `crashed runtime run with completed preplan and plan resumes at implement not preplan`() {
-    // AC8 regression: completed preplan/plan records + dead process (no terminal outcome).
     val record = runtimeSnapshot(
       currentStepId = "plan",
       workflowStatus = "running",
@@ -104,9 +98,6 @@ class FeatureTaskRuntimeResumeGateTest {
 
   @Test
   fun `completed run done next-action dereferences a terminal-summary artifact present in the snapshot`() {
-    // AC6 behavioral: a completed run's "done" next-action must point at an artifact that is actually
-    // persisted in the snapshot, not a never-written key. This proves the terminal-summary pointer
-    // dereferences real state rather than only equalling a config constant.
     val record = runtimeSnapshot(
       currentStepId = "pr",
       workflowStatus = "completed",
@@ -140,8 +131,6 @@ class FeatureTaskRuntimeResumeGateTest {
 
   @Test
   fun `non-runtime family keeps default top-level key presence rule`() {
-    // AC9 family-scoping: a non-runtime family (verify) still judges presence by top-level keys, so an
-    // empty artifacts map blocks resume at a step that requires upstream output.
     val verify = FeatureVerifyWorkflowDefinition.definition
     val firstRequiredStep = verify.stepIds.first { stepId ->
       verify.requiredArtifactsByStep[stepId].orEmpty().isNotEmpty()
@@ -170,7 +159,7 @@ class FeatureTaskRuntimeResumeGateTest {
   @Test
   fun `runtime resume gate loud-fails on a corrupt phase record rather than coercing to empty`() {
     val corruptArtifactsJson =
-      // A per-phase record missing the required `resolved_agent_id`.
+
       """{"feature_task_runtime_phase_records":{"preplan":""" +
         """{"phase_id":"preplan","status":"completed","attempt_count":1,""" +
         """"started_at":"2026-06-18T10:00:00Z"}}}"""

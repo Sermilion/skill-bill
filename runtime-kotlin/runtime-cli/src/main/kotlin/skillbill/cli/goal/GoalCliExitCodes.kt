@@ -33,7 +33,6 @@ internal fun Map<String, Any?>.goalStatusExitCode(): Int = if (!containsKey(
 
 internal fun Map<String, Any?>.goalPauseExitCode(): Int = if (this[SharedPayloadKeys.STATUS] != "not_found") 0 else 1
 
-// Idempotent outcomes exit 0; a refused stop is a non-zero failure the operator must act on.
 internal fun Map<String, Any?>.goalStopExitCode(): Int = when (this[SharedPayloadKeys.STATUS]) {
   GoalRunnerStopStatus.STOPPED.wireValue,
   GoalRunnerStopStatus.ALREADY_STOPPED.wireValue,

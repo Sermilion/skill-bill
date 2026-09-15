@@ -69,14 +69,6 @@ internal data class ScaffoldExecutionResult(
   val notes: List<String>,
 )
 
-/**
- * SKILL-52.1 subtask 3 (F-001): orchestrator entrypoint. Receives the two carved IO
- * validator adapters as explicit parameters so the DI-bound `FileSystemScaffoldOrchestrator`
- * can thread its kotlin-inject-provided singletons through; this eliminates the prior
- * file-static parallel instances. The adapters are passed as opaque seams via the
- * [ScaffoldAdapterSeams] holder so this file does not need to import the concrete adapter
- * class names directly.
- */
 internal fun scaffoldWithAdapters(
   payload: Map<String, Any?>,
   dryRun: Boolean,
@@ -97,13 +89,6 @@ internal fun scaffoldWithAdapters(
   }
 }
 
-/**
- * Port-style adapter facades that decouple the orchestrator file from the concrete adapter
- * class names. `FileSystemScaffoldOrchestrator` (in `skillbill.infrastructure.fs`) binds
- * kotlin-inject-provided adapters into instances of this holder and threads them through
- * `scaffoldWithAdapters`. Keeping this seam local to `runtime-infra-fs` preserves the F-006
- * constraint that the carved validators remain `internal fun` on the adapter classes.
- */
 internal data class ScaffoldAdapterSeams(
   val validateScaffold: (ScaffoldPlan, Path) -> Unit,
   val optionalBaselineLayers: (Map<String, Any?>, Path, String) -> List<CodeReviewBaselineLayer>,

@@ -18,13 +18,6 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.requireAcceptedOutput
 import java.io.IOException
 
-/**
- * Determines whether the plan phase terminates the run at a planning-stage decompose stop. The
- * determination is derived purely from the persisted PLAN output so it is identical whether the
- * plan phase just ran or PLAN is already durably complete on resume: a decompose outcome must
- * terminate at planning and never advance to implement (AC2). A malformed decompose package yields
- * a Blocked decision (a diagnosable terminal block) rather than an uncaught exception.
- */
 @Inject
 class FeatureTaskRuntimePlanningStopper(
   private val outputValidator: FeatureTaskRuntimePhaseOutputValidator,
@@ -32,12 +25,7 @@ class FeatureTaskRuntimePlanningStopper(
   private val decomposeTerminalRecorder: FeatureTaskRuntimeDecomposeTerminalRecorder,
   private val diagnostics: RuntimeDiagnostics,
 ) {
-  /**
-   * Resolves the plan-phase stop decision from the persisted PLAN output. Goal-continuation runs
-   * always [Proceed] (AC5). On resume, a previously recorded decompose terminal is reconstructed
-   * idempotently (no duplicate spec/manifest write). A first-seen valid decompose outcome completes
-   * the stop (write + record + emit). A malformed decompose package blocks loudly.
-   */
+
   fun resolve(
     request: FeatureTaskRuntimeRunRequest,
     completedOutput: FeatureTaskRuntimePhaseOutput,
@@ -48,9 +36,7 @@ class FeatureTaskRuntimePlanningStopper(
     if (isGoalContinuationRun(request)) {
       return FeatureTaskRuntimePlanningStopDecision.Proceed
     }
-    // A decompose terminal already durably recorded on a prior run is reconstructed without
-    // rewriting the specs/manifest, so a crash after PLAN completed but before the terminal was
-    // observed re-derives the same Decomposed report rather than advancing to implement.
+
     val recordedTerminal = decomposeTerminalRecorder.loadDecomposeTerminal(request.workflowId)
     return if (recordedTerminal != null) {
       FeatureTaskRuntimePlanningStopDecision.Decomposed(
@@ -71,11 +57,6 @@ class FeatureTaskRuntimePlanningStopper(
     return try {
       resolveFromPlanOutput(request, completedOutput, completedPhaseIds, resolvedBranch, specSource)
     } catch (error: SkillBillRuntimeException) {
-      // Covers decoder schema errors (InvalidFeatureTaskRuntimePhaseOutputSchemaError,
-      // InvalidWorkflowStateSchemaError), decomposition-manifest schema errors
-      // (InvalidDecompositionManifestSchemaError), and writer business-rule rejections
-      // (InvalidFeatureSpecPreparationRequestError, FeatureSpecPreparationModeConflictError) — all
-      // share this base. Any malformed/invalid decomposition package blocks at planning.
       FeatureTaskRuntimePlanningStopDecision.Blocked(malformedDecomposeReason(error.message.orEmpty()))
     } catch (error: IllegalArgumentException) {
       FeatureTaskRuntimePlanningStopDecision.Blocked(malformedDecomposeReason(error.message.orEmpty()))
@@ -130,8 +111,6 @@ class FeatureTaskRuntimePlanningStopper(
     request: FeatureTaskRuntimeRunRequest,
     terminal: FeatureTaskRuntimeDecomposeTerminal,
   ) {
-    // Terminal persistence already succeeded; a throwing status/telemetry observer must not
-    // escape and alter the Decomposed completion outcome (AC-010).
     emitFeatureTaskRuntimeEventSafely(
       diagnostics = diagnostics,
       seam = "DecomposedAtPlanning event-sink emission",

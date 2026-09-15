@@ -13,10 +13,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-/**
- * Operates on real temporary git repositories, never on mocked git output: the whole point of these
- * assertions is the exact index tree, which only real plumbing can produce.
- */
 class GitScopedStagingOperationsTest {
   private lateinit var repo: Path
 
@@ -94,9 +90,6 @@ class GitScopedStagingOperationsTest {
 
   @Test
   fun `stagePaths treats an already-staged deletion as a no-op and still stages live owned paths`() {
-    // A checkpoint owns a deletion that a prior attempt already staged: the path is gone from both the
-    // worktree and the index, so its pathspec matches nothing and `git add --all` would abort the whole
-    // batch with exit 128. The live owned path in the same batch must still be staged.
     Files.delete(repo.resolve("tracked/Base.kt"))
     git("add", "--", "tracked/Base.kt")
     write("owned/Live.kt", "owned\n")
@@ -167,7 +160,6 @@ class GitScopedStagingOperationsTest {
     assertTrue(snapshot is WorkflowGitOperationResult.Ok, snapshot.error)
     val before = indexSnapshot()
 
-    // Model a checkpoint that staged and then failed before committing.
     assertTrue(GitScopedStagingOperations.stagePaths(repo, owned) is WorkflowGitOperationResult.Ok)
     assertTrue("owned/Owned.kt" in indexSnapshot().keys, "precondition: staging actually mutated the index")
     val worktreeBefore = read("owned/Owned.kt")
@@ -240,7 +232,6 @@ class GitScopedStagingOperationsTest {
     assertEquals(before, indexSnapshot())
   }
 
-  // AC-005: content identity is what distinguishes "this phase wrote it" from "someone else did".
   @Test
   fun `pathContentIdentities reports one identity per present path and changes when content changes`() {
     write("owned/Owned.kt", "owned\n")

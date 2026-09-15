@@ -10,10 +10,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.seconds
 
-/**
- * Cursor's transport choice, kept apart from the builder matrix because it encodes one rule: a
- * launch nobody streams must not pay for the whole-session transport.
- */
 class CursorAgentRunTransportTest {
   @Test
   fun `unstreamed launch buffers instead of carrying the whole session`() {

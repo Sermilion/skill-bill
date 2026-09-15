@@ -11,7 +11,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
-/** Hermetic fixtures over a fake process seam; no live Git invocation. */
 class ReviewCommitSequenceResolverTest {
   private val repoRoot: Path = Path.of(".")
 
@@ -64,7 +63,6 @@ class ReviewCommitSequenceResolverTest {
     supplied,
   )
 
-  // AC-001, AC-004
   @Test fun `a six commit branch resolves an ordered first-parent sequence`() {
     val aggregate = (1..5).joinToString("\n") { diffFor("src/c$it.kt", "line-c$it") } +
       "\n" + diffFor("src/head.kt", "line-head")
@@ -77,7 +75,6 @@ class ReviewCommitSequenceResolverTest {
     assertTrue(resolved.units.all { it.source == ReviewCommitSource.COMMIT_RANGE })
   }
 
-  // AC-001, AC-007: a real two-parent merge commit is traversed by its first parent only.
   @Test fun `a merge commit is traversed by first parent only`() {
     val mergeDiff = diffFor("src/Merged.kt", "merged")
     val headDiff = diffFor("src/head.kt", "line-head")
@@ -85,7 +82,7 @@ class ReviewCommitSequenceResolverTest {
       "git rev-list --first-parent --reverse base..head" to "c1\nmerge\nhead",
       "git show -s --format=%P%n%s c1" to "base\nsubject c1",
       "git diff base c1" to diffFor("src/c1.kt", "line-c1"),
-      // Two parents: the second is the merged-in branch tip and must never be walked.
+
       "git show -s --format=%P%n%s merge" to "c1 other\nMerge branch 'other'",
       "git diff c1 merge" to mergeDiff,
       "git show -s --format=%P%n%s head" to "merge\nsubject head",
@@ -103,7 +100,6 @@ class ReviewCommitSequenceResolverTest {
     assertTrue(resolved.coverageFact.chainVerified)
   }
 
-  // AC-004: main merged into the branch leaves the merge base off the first-parent chain.
   @Test fun `a base outside the first-parent chain degrades instead of aborting the review`() {
     val headDiff = diffFor("src/head.kt", "line-head")
     val git = branchRepo(
@@ -118,7 +114,6 @@ class ReviewCommitSequenceResolverTest {
     assertEquals(false, resolved.coverageFact.chainVerified)
   }
 
-  // AC-007
   @Test fun `an empty commit stays in the sequence as a zero-hunk unit`() {
     val shas = listOf("c1", "head")
     val git = branchRepo(
@@ -131,7 +126,6 @@ class ReviewCommitSequenceResolverTest {
     assertEquals(emptyList(), resolved.units.first().hunks)
   }
 
-  // AC-004
   @Test fun `a sequence that omits a changed path fails loudly`() {
     val git = branchRepo(
       listOf("head"),
@@ -145,7 +139,6 @@ class ReviewCommitSequenceResolverTest {
     assertTrue("src/Dropped.kt" in failure.message.orEmpty())
   }
 
-  // AC-004
   @Test fun `a duplicated commit fails loudly`() {
     val diff = diffFor("src/A.kt", "alpha")
     val responses = mutableMapOf<String, String?>(
@@ -159,7 +152,6 @@ class ReviewCommitSequenceResolverTest {
     assertTrue("more than once" in failure.message.orEmpty())
   }
 
-  // AC-001: byte-identical hunks in two different commits are distinct, commit-owned evidence.
   @Test fun `identical hunks in two commits keep distinct commit-scoped identities`() {
     val duplicate = diffFor("src/A.kt", "alpha")
     val git = branchRepo(
@@ -173,7 +165,6 @@ class ReviewCommitSequenceResolverTest {
     assertEquals(2, ids.distinct().size)
   }
 
-  // AC-001: a failed git invocation is not an absent-commit degradation.
   @Test fun `a failed rev-list fails loudly instead of degrading to a synthetic unit`() {
     val failure = assertFailsWith<DiffResolutionException> {
       resolve(FakeGit(emptyMap()), ParallelReviewScope.BRANCH, diffFor("src/A.kt", "alpha"))
@@ -181,7 +172,6 @@ class ReviewCommitSequenceResolverTest {
     assertTrue("enumerate the commit sequence" in failure.message.orEmpty())
   }
 
-  // AC-004
   @Test fun `a sequence that does not reach head fails loudly`() {
     val git = branchRepo(
       listOf("c1"),
@@ -193,7 +183,6 @@ class ReviewCommitSequenceResolverTest {
     }
   }
 
-  // AC-005
   @Test fun `non-commit and locally-absent sources produce exactly one declared synthetic unit`() {
     val aggregate = diffFor("src/A.kt", "alpha")
     val noGit = FakeGit(emptyMap())
@@ -211,7 +200,7 @@ class ReviewCommitSequenceResolverTest {
       ReviewCommitSource.SYNTHETIC_SUPPLIED_DIFF,
       resolve(noGit, ParallelReviewScope.BRANCH, aggregate, supplied = true).units.single().source,
     )
-    // A PR whose commits are not present locally never fabricates a chain.
+
     assertEquals(
       ReviewCommitSource.SYNTHETIC_AGGREGATE_PR_DIFF,
       resolve(

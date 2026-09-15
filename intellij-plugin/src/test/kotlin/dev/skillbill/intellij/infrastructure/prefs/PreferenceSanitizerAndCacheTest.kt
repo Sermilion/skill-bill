@@ -74,8 +74,8 @@ class PreferenceSanitizerAndCacheTest {
                 ),
             ),
         )
-        // Unbounded / phase-artifact blobs are rejected at the raw preference-state seam;
-        // CachedDisplaySnapshot already forbids oversize summaries in-domain.
+
+
         val cleared = PreferenceSanitizer.sanitizeCacheState(
             SkillBillProjectDisplayCache.State(
                 summary = "phase artifact\n".repeat(40),

@@ -96,8 +96,6 @@ class TelemetryAnonymousRedactionTest {
     }
   }
 
-  // AC-003: `resolve_learnings` is an MCP tool-call envelope validated locally; no outbox payload
-  // builder emits it, so no `repo` value is ever uploaded. This guards that no-op against regression.
   @Test
   fun `no enqueued outbox payload carries a repo property`() {
     withConnection { connection ->

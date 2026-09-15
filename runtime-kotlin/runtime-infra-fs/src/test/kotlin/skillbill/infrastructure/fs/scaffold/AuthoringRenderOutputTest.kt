@@ -59,8 +59,7 @@ class AuthoringRenderOutputTest {
 
     assertContains(renderedWrapper, "## Descriptor\n\nGoverned skill: `bill-render-fixture`")
     assertContains(renderedWrapper, "## Execution\n\n### Review Steps\n\nRead the authored guidance from content.md.")
-    // Unclassed horizontal skill: heading is emitted but no ceremony pointer lines, because no
-    // class manifest matches this fixture name. Production skills always match a class.
+
     assertContains(renderedWrapper, "## Ceremony\n")
     assertFalse("Follow the instructions in [content.md](content.md)." in renderedWrapper)
     assertEquals(expectedStdout, first.stdout)

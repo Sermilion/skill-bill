@@ -8,12 +8,12 @@ plugins {
 
 group = "dev.skillbill"
 
-// Release builds set RELEASE_VERSION to the tag (e.g. v0.4.1). Local/dev builds
-// derive the version from the latest reachable git tag, bump the patch, and add
-// a -SNAPSHOT suffix (v0.4.1 -> 0.4.2-SNAPSHOT), so a from-source install reports
-// the current development line instead of a frozen, hand-maintained string. The
-// "0.0.0-SNAPSHOT" fallback only applies when neither a RELEASE_VERSION nor a
-// reachable git tag is available (e.g. a tarball with no .git).
+
+
+
+
+
+
 version = providers.environmentVariable("RELEASE_VERSION").orNull
   ?.takeIf(String::isNotBlank)
   ?: gitDevSnapshotVersion()

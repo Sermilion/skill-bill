@@ -77,11 +77,6 @@ object ReviewRuntime {
     }
   }
 
-  /**
-   * A run exists once its review text has been imported. The lane recorders reserve the parent row
-   * before the text lands (`raw_text = ''`) to keep their foreign key honest, and a run that never
-   * completed its import must not read as a reviewable run to triage or stats.
-   */
   fun reviewExists(connection: Connection, reviewRunId: String): Boolean = connection.prepareStatement(
     "SELECT 1 FROM review_runs WHERE review_run_id = ? AND raw_text != ''",
   ).use { statement ->

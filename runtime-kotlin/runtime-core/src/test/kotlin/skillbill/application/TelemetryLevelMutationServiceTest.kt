@@ -217,9 +217,6 @@ class TelemetryLevelMutationServiceTest {
       outbox = outbox,
     )
 
-    // The production emit gate is LifecycleTelemetryService: driving a real lifecycle emit after
-    // the disable is what proves nothing is queued. The fake unit of work errors on any
-    // lifecycleTelemetry access, so removing that gate fails this test instead of leaving it green.
     val service = LifecycleTelemetryService(
       database = FakeTelemetryDatabaseSessionFactory(outbox),
       settingsProvider = fixture.settingsProvider,

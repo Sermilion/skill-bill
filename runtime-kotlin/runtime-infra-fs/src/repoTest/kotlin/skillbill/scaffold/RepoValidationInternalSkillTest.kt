@@ -75,7 +75,7 @@ class RepoValidationInternalSkillTest {
     createRepoValidationSkillFixture(repoRoot)
     seedInternalSkill(repoRoot, "bill-feature", null)
     seedInternalSkill(repoRoot, "bill-feature-helper", "bill-feature")
-    // README catalog lists the listed skills but intentionally omits the internal one.
+
     Files.writeString(
       repoRoot.resolve("README.md"),
       """

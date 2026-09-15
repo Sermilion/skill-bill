@@ -318,8 +318,7 @@ class ReviewPreparationServiceTest {
   @Test fun `assignment claiming an unowned hunk id is rejected`() {
     val prepared = service(ports()).prepare(request())
     val forged = "f".repeat(64)
-    // The bundle is rewritten with the hunk surface: an assignment whose bundle contradicts its own
-    // hunks cannot be constructed at all, so a coherent forgery is what packet validation must catch.
+
     val owning = prepared.assignments.first().assignedBundle.entries.first()
     val foreign = prepared.assignments.first().copy(
       assignedHunks = listOf(forged),
@@ -372,7 +371,7 @@ class ReviewPreparationServiceTest {
     val failure = assertFailsWith<InvalidReviewContextSchemaError> {
       service(ports()).validateAgainstPacket(prepared.packet, prepared.assignments.dropLast(1))
     }
-    // A dropped lane trips the one-assignment-per-selected-lane count check before lane-set coverage.
+
     assertTrue("exactly one specialist lane per selected lane" in failure.message.orEmpty(), failure.message.orEmpty())
   }
 

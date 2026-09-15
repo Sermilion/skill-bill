@@ -21,44 +21,17 @@ import java.util.logging.Logger
 
 private val log: Logger = Logger.getLogger("skillbill.contracts.install.InstallPlanSchemaValidator")
 
-/**
- * SKILL-48 Subtask 2b: validates an install-plan-shaped `Map<String, Any?>`
- * against the canonical JSON-Schema document at
- * `orchestration/contracts/install-plan-schema.yaml`.
- *
- * Mirrors [skillbill.contracts.workflow.WorkflowStateSchemaValidator]. The schema
- * is loaded ONCE per process via the [schema] lazy and the compiled
- * [JsonSchema] is cached for every subsequent call. Coherence rules
- * (cross-field validation) stay in `InstallPlanBuilder` and surrounding
- * seam code; see `x-coherence-checks` in the schema file for the named
- * list.
- *
- * `validate` throws [InvalidInstallPlanSchemaError] carrying the dotted
- * `fieldPath` of the first offending value so callers and tests can
- * pinpoint the regression. `assertIdentity` checks the loaded schema's
- * `$id` and `properties.contract_version.const` match the runtime's
- * expected values; downstream JARs shipping a stale classpath copy
- * loud-fail at first validator use.
- */
 object InstallPlanSchemaValidator {
   private val schema: JsonSchema by lazy { loadSchema() }
   private val mapper: ObjectMapper by lazy { ObjectMapper() }
 
-  /**
-   * Validates the install-plan-shaped map against the canonical
-   * schema. On any violation, throws [InvalidInstallPlanSchemaError]
-   * whose `fieldPath` names the offending field so the failure surface
-   * stays loud and useful.
-   */
   fun validate(plan: Map<String, Any?>) {
     val instance: JsonNode = mapper.valueToTree(plan)
     val errors: Set<ValidationMessage> = schema.validate(instance)
     if (errors.isEmpty()) {
       return
     }
-    // F-401 (carried over from 2a): emit a structured WARN log BEFORE
-    // throwing so a slow-rolling schema-drift incident shows up in
-    // dashboards without depending on an unhandled-exception monitor.
+
     log.log(Level.WARNING, buildSchemaDriftLog(errors, instance))
     val sorted = errors.sortedWith(violationOrdering)
     val firstError = sorted.first()
@@ -68,12 +41,6 @@ object InstallPlanSchemaValidator {
     throw InvalidInstallPlanSchemaError(fieldPath = fieldPath, reason = reason)
   }
 
-  /**
-   * Asserts the loaded canonical schema document's `$id` and
-   * `properties.contract_version.const` match the runtime's expected
-   * values. Visible to tests so they can drive the assertion with
-   * synthesized YAML nodes; called from the lazy schema load below.
-   */
   fun assertIdentity(yamlText: String) {
     val yamlNode = YAMLMapper().readTree(yamlText)
     assertIdentity(yamlNode)
@@ -153,13 +120,6 @@ internal const val INSTALL_PLAN_SCHEMA_CLASSPATH_RESOURCE: String =
 internal const val INSTALL_PLAN_SCHEMA_REPO_RELATIVE_PATH: String =
   InstallPlanSchemaPaths.REPO_RELATIVE_PATH
 
-/**
- * Loads the canonical schema YAML text from the classpath first;
- * failing that, walks up from the JVM working directory to find the
- * on-disk file. Re-emits as JSON before handing to networknt so the
- * validator gets a predictable JSON tree regardless of how the schema
- * is authored.
- */
 private fun loadSchema(): JsonSchema {
   var failure: Throwable? = null
   try {
@@ -218,12 +178,6 @@ private fun readSchemaText(): String {
   )
 }
 
-/**
- * Visible-to-tests pure helper for offending-value extraction from a
- * networknt `instanceLocation`. Supports both reporting formats
- * networknt has used across versions (JSONPath and JSON-Pointer). See
- * the workflow-state validator's analogous helper for the rationale.
- */
 fun extractOffendingValueFromInstance(instance: JsonNode, instanceLocation: String): String {
   val dotted = installPlanSchemaDottedFieldPath(instanceLocation)
   if (dotted.isBlank()) return ""

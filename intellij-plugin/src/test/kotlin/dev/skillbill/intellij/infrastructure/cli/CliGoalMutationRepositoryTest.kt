@@ -10,10 +10,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/**
- * Exact-argv and failure-summary coverage for both mutating verbs. Summaries must never
- * carry stdout, stderr, exception text, or a filesystem path.
- */
+
 class CliGoalMutationRepositoryTest {
     private val secretStdout = "SECRET_STDOUT_MARKER"
     private val prefs = FakePreferenceCache()

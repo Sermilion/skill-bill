@@ -204,8 +204,7 @@ class GoalRunnerTest {
     assertEquals("complete", store.manifest.status)
     assertEquals("SKILL-56", outcomes.lastReconcileRequest?.issueKey)
     assertEquals(emptySet(), outcomes.lastReconcileRequest?.activeWorkflowIds)
-    // SKILL-87 (AC4): finalize reconciles with the empty active set but demands staleness evidence,
-    // so it can never false-kill a still-running subtask.
+
     assertEquals(true, outcomes.lastReconcileRequest?.gate?.requireStalenessEvidence)
   }
 
@@ -404,11 +403,7 @@ class GoalRunnerTest {
     assertEquals(1, launcher.requests.size)
     assertEquals(null, launcher.requests.first().skillRunRequest.timeout)
     assertEquals(null, launcher.requests.first().skillRunRequest.progressIdleTimeout)
-    // SKILL-64 Subtask 3 (F-PF01): the legacy progress probe and the declared
-    // probe now share one per-tick read. A fresh launch request (= a fresh
-    // per-tick reader) resolves the current store state in a single read, so set
-    // the child progress before reading and assert the token folds both the
-    // manifest subtask token and the child progress token together.
+
     outcomes.progresses["wfl-1"] = GoalRunnerWorkflowProgress(
       workflowId = "wfl-1",
       workflowStatus = "running",
@@ -701,8 +696,6 @@ class GoalRunnerTest {
   )
 }
 
-// SKILL-173: validation_depth stamping for non-skipped children. Kept outside [GoalRunnerTest]
-// so that suite stays under the detekt LargeClass threshold.
 class GoalRunnerValidationDepthTest {
   @Test
   fun `every non-skipped child stamps full validation depth`() {
@@ -855,8 +848,6 @@ class GoalRunnerQualityGateSelectionTest {
   )
 }
 
-// Linear/local spec-scratch finalize behaviour. Kept outside [GoalRunnerTest] so that suite
-// stays under the detekt LargeClass threshold.
 class GoalRunnerLinearScratchFinalizeTest {
   @Test
   fun `decomposed linear run deletes each subtask spec after its commit and the dir after the final pr`() {
@@ -890,8 +881,7 @@ class GoalRunnerLinearScratchFinalizeTest {
     val report = runner.run(linearRunRequest(repoRoot))
 
     assertIs<GoalRunnerRunReport.Completed>(report)
-    // Each subtask spec is deleted after its own commit; the parent + manifest only via directory
-    // deletion — once before commit-all and again after PR open (idempotent).
+
     assertEquals(listOf(sub1, sub2), scratch.deletedFiles)
     assertEquals(listOf(specDir, specDir), scratch.deletedDirectories)
     assertEquals(listOf(sub1, sub2, specDir, specDir), scratch.deletions)
@@ -909,8 +899,7 @@ class GoalRunnerLinearScratchFinalizeTest {
     val manifestFile = specDir.resolve("decomposition-manifest.yaml").also { Files.writeString(it, "x") }
     val store = InMemoryGoalManifestStore(manifest = manifest(subtaskCount = 2).copy(specSource = SpecSource.LINEAR))
     val outcomes = RecordingOutcomeStore()
-    // Subtask 1 records a terminal outcome; subtask 2 launches but never produces one, so the goal
-    // stops before finalize.
+
     val launcher = RecordingSubtaskLauncher { request ->
       val subtaskId = requireNotNull(request.skillRunRequest.subtaskId)
       store.mutate { current -> current.withWorkflowId(subtaskId, "wfl-$subtaskId") }
@@ -933,7 +922,6 @@ class GoalRunnerLinearScratchFinalizeTest {
 
     assertIs<GoalRunnerRunReport.Stopped>(runner.run(linearRunRequest(repoRoot)))
 
-    // Only the completed subtask's spec is deleted; nothing else and no directory deletion.
     assertEquals(listOf(sub1), scratch.deletedFiles)
     assertTrue(scratch.deletedDirectories.isEmpty(), "a stopped goal must not delete the scratch dir")
     assertTrue(Files.exists(sub2), "the incomplete subtask spec must survive")
@@ -1001,7 +989,7 @@ class GoalRunnerLinearScratchFinalizeTest {
     )
 
     assertIs<GoalRunnerRunReport.Completed>(runner.run(linearRunRequest(repoRoot)))
-    // Once before commit-all, once after PR open (idempotent delete).
+
     assertEquals(2, scratch.deletedDirectories.size, "linear scratch must be deleted before commit-all")
     assertEquals(listOf(listOf("src/Extra.kt")), git.stagePathsCalls)
     assertEquals(
@@ -1701,7 +1689,6 @@ class GoalRunnerNoTerminalOutcomeDiagnosisTest {
   )
 }
 
-// Starts dirty, then clears after createCommit so post-sweep cleanliness verification can pass.
 private class CommitAllRecordingGitOperations(
   private val dirtyPorcelain: String,
   private val currentBranch: String,
@@ -1823,7 +1810,6 @@ class GoalRunnerStatusProjectionTest {
 
   @Test
   fun `execution liveness is idle when lease or identity is missing and unknown on lease read failure`() {
-    // No parent lease after clean exit is idle — not unknown — so watch/replan can proceed at boundaries.
     val missingLeaseStore = InMemoryGoalManifestStore(manifest(subtaskCount = 1))
     assertEquals(
       ExecutionLiveness.IDLE,
@@ -1837,7 +1823,6 @@ class GoalRunnerStatusProjectionTest {
       ).executionLiveness,
     )
 
-    // Intent naming a subtask that is not on the manifest still falls through to the parent lease path.
     val missingCurrentSubtaskStore = InMemoryGoalManifestStore(
       manifest(subtaskCount = 1)
         .copy(status = "in_progress", currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 2, action = "resume")),
@@ -2788,7 +2773,7 @@ class GoalRunnerAcceptResetTest {
         },
       ),
     )
-    // Seed a pre-existing acceptance artifact; ordinary accept is disabled and cannot create one.
+
     store.persistOutOfBandAcceptance(
       parentWorkflowId = "wfl-parent",
       acceptance = GoalRunnerOutOfBandAcceptance(
@@ -2814,8 +2799,7 @@ class GoalRunnerAcceptResetTest {
     requireNotNull(projection)
     assertEquals(1, projection.completeCount)
     assertEquals(2, projection.currentSubtaskId)
-    // The git-tracked manifest deliberately omits commit SHAs, so status is the only place a human
-    // can see which commit an accepted subtask points at.
+
     val accepted = projection.outOfBandAcceptances.single()
     assertEquals(1, accepted.subtaskId)
     assertEquals("abc1234abc1234abc1234abc1234abc1234abcd", accepted.commitSha)
@@ -2854,7 +2838,7 @@ class GoalRunnerAcceptResetTest {
     )
 
     requireNotNull(reset)
-    // AC6: reset keeps the aggressive shape — allowInactiveReconciliation=true and NO staleness gate.
+
     assertEquals(
       ReconcileRequest(
         "SKILL-56",
@@ -3505,12 +3489,6 @@ class GoalRunnerLedgerRecorderSeedingTest {
   )
 }
 
-// SKILL-64 Subtask 3 (AC21, AC25, AC20, AC22, AC23): the supervisor-side
-// declared-progress emitter is the production driver of the declared
-// operation_* events. It persists into the durable goal_progress run history via
-// recordProgressEvent WITHOUT the child phase-agent self-reporting, mints the
-// timestamp in the adapter layer, and seeds a monotonic sequence from the
-// persisted goal_progress watermark so resume runs stay monotonic.
 class GoalRunnerProgressEventEmitterTest {
   @Test
   fun `emitter persists declared operation events into goal_progress run history`() {
@@ -3543,7 +3521,7 @@ class GoalRunnerProgressEventEmitterTest {
     assertTrue(recorded[0].event.expectedLong)
     assertTrue(recorded[0].event.processAlive)
     assertTrue(!recorded[2].event.processAlive)
-    // Monotonic sequence space seeded from 0.
+
     assertEquals(listOf(0, 1, 2), recorded.map { it.event.sequenceNumber })
   }
 
@@ -3582,7 +3560,7 @@ class GoalRunnerProgressEventEmitterTest {
     workflowId = "wfl-child"
     emitter.emit(emission(GoalProgressEventKind.OPERATION_HEARTBEAT, processAlive = true))
     assertEquals(1, outcomes.progressEventRecords.size)
-    // First persisted event still anchors the sequence space at 0.
+
     assertEquals(0, outcomes.progressEventRecords.single().event.sequenceNumber)
   }
 
@@ -3614,13 +3592,6 @@ class GoalRunnerProgressEventEmitterTest {
   )
 }
 
-// SKILL-64 Subtask 3 (F-NT02): the launch-reconciler wiring that builds the
-// production declared-progress emitter (seeded from the persisted
-// maxProgressSequence watermark, resolving the child workflow id mid-run) and
-// threads it into the SkillRunRequest. Prior tests used RecordingSubtaskLauncher
-// which discarded the emitter and never invoked the process loop, leaving this
-// wiring with zero coverage. These tests drive the SkillRunRequest's emitter
-// directly so the reconciler's wiring is exercised end-to-end.
 class GoalRunnerLaunchReconcilerWiringTest {
   @Test
   fun `reconciler threads a watermark-seeded emitter that persists declared events for the resolved workflow`() {
@@ -3628,7 +3599,6 @@ class GoalRunnerLaunchReconcilerWiringTest {
       manifest = manifest(subtaskCount = 1).withWorkflowId(subtaskId = 1, workflowId = "wfl-1"),
     )
     val outcomes = RecordingOutcomeStore().apply {
-      // The production emitter seeds its monotonic sequence from this watermark.
       ledgerSequenceWatermarks = GoalRunnerLedgerSequenceWatermarks(maxProgressSequence = 41)
     }
     val reconciler = GoalRunnerLaunchReconciler(
@@ -3651,8 +3621,6 @@ class GoalRunnerLaunchReconcilerWiringTest {
       ),
     )
 
-    // Drive the supervisor lifecycle through the emitter the reconciler actually
-    // wired into the SkillRunRequest (what the process loop would call).
     val emitter = launchRequest.skillRunRequest.progressEmitter
     emitter.emit(supervisorEmission(GoalProgressEventKind.OPERATION_STARTED, processAlive = true))
     emitter.emit(supervisorEmission(GoalProgressEventKind.OPERATION_HEARTBEAT, processAlive = true))
@@ -3666,12 +3634,10 @@ class GoalRunnerLaunchReconcilerWiringTest {
 
     val recorded = outcomes.progressEventRecords
     assertEquals(3, recorded.size, "wired emitter must persist every declared event via recordProgressEvent")
-    // Workflow id resolved mid-run from the per-tick reader, not NONE.
+
     assertTrue(recorded.all { it.workflowId == "wfl-1" })
     assertTrue(recorded.all { it.event.workflowId == "wfl-1" })
-    // Seeded from the persisted watermark (41), so the first sequence is 42 — a
-    // raw AgentRunProgressEmitter.NONE would persist nothing, and seeding from 0
-    // would produce 0,1,2. Both regressions fail this assertion.
+
     assertEquals(listOf(42, 43, 44), recorded.map { it.event.sequenceNumber })
     assertEquals(GoalProgressEventKind.OPERATION_STARTED, recorded[0].event.eventKind)
     assertEquals(GoalProgressEventKind.OPERATION_COMPLETED, recorded[2].event.eventKind)
@@ -3680,9 +3646,6 @@ class GoalRunnerLaunchReconcilerWiringTest {
 
   @Test
   fun `first-run subtask with pre-assigned id records started and heartbeat through a long quiet phase`() {
-    // SKILL-87 (AC3/AC5): the goal driver pre-assigns and persists the runtime workflow id BEFORE
-    // launch, so resolveWorkflowId is non-blank from the first tick. A long, quiet first phase (no
-    // terminal event yet) must still durably record operation_started AND operation_heartbeat.
     val store = InMemoryGoalManifestStore(
       manifest = manifest(subtaskCount = 1).withWorkflowId(subtaskId = 1, workflowId = "wftr-pre-assigned"),
     )
@@ -3721,9 +3684,6 @@ class GoalRunnerLaunchReconcilerWiringTest {
 
   @Test
   fun `reconciler emitter is a no-op until the child workflow id is resolvable`() {
-    // No workflowId on the subtask yet: resolveWorkflowId returns null, so the
-    // wired emitter must persist nothing (matching the production no-op-until-known
-    // contract) rather than recording an event with a blank workflow id.
     val store = InMemoryGoalManifestStore(manifest = manifest(subtaskCount = 1))
     val outcomes = RecordingOutcomeStore()
     val reconciler = GoalRunnerLaunchReconciler(
@@ -4280,14 +4240,9 @@ private fun DecompositionManifest.withBlockedSubtask(
   },
 )
 
-// SKILL-103 (AC1, AC2): goal status attribution — active_agent sourced from persisted run state,
-// never from the status caller's resolution chain. Kept in its own class so the broad
-// [GoalRunnerTest] stays under the detekt LargeClass threshold.
 class GoalRunnerStatusAttributionTest {
   @Test
   fun `status projection reports counts current step and active agent sourced from persisted run state`() {
-    // The caller passes invokedAgentId=claude and configuredAgentOverrideId=codex, but the current
-    // subtask's recorded finalizing agent is cursor — status must report cursor and ignore both.
     val blockedWithAgent = manifest(subtaskCount = 3)
       .withCompletedSubtask(1, workflowId = "wfl-1", commitSha = "sha-1")
       .withBlockedSubtask(2, workflowId = "wfl-2", reason = "needs review")
@@ -4317,9 +4272,7 @@ class GoalRunnerStatusAttributionTest {
 
     requireNotNull(status)
     assertEquals(1, status.completeCount)
-    // Subtask 2 is durably blocked in the manifest but its child workflow is running, so it counts as
-    // in-progress: the manifest projection is only rewritten at reconciliation points and would otherwise
-    // report a relaunched subtask as blocked for the whole run.
+
     assertEquals(2, status.pendingCount)
     assertEquals(0, status.blockedCount)
     assertEquals(2, status.currentSubtaskId)
@@ -4330,8 +4283,6 @@ class GoalRunnerStatusAttributionTest {
 
   @Test
   fun `status projection omits active agent when no agent is persisted for the current subtask`() {
-    // When neither the phase ledger nor the subtask outcome carries an agent, the field is omitted
-    // (null) rather than invented from the caller's resolution chain.
     val store = InMemoryGoalManifestStore(
       manifest = manifest(subtaskCount = 1).withBlockedSubtask(1, workflowId = "wfl-1", reason = "needs review"),
     )
@@ -4355,9 +4306,6 @@ class GoalRunnerStatusAttributionTest {
 
   @Test
   fun `status projection reports the persisted phase-ledger agent for a runtime child regardless of caller`() {
-    // AC2 regression: a goal run persisted with cursor phase records, queried by a status call whose
-    // own resolution chain would yield codex, reports active_agent: cursor. Source 1 is the current
-    // subtask's active workflow agent from the persisted phase ledger.
     val harness = GoalStatusPhaseLedgerHarness()
     val workflowId = "wfl-cursor-child"
     harness.openRuntimeWorkflow(workflowId)
@@ -4384,11 +4332,6 @@ class GoalRunnerStatusAttributionTest {
   }
 }
 
-// SKILL-103: GoalRunnerStatusService now resolves the active agent from persisted phase state via
-// FeatureTaskRuntimePhaseRecorder. Goal-runner unit tests don't seed child phase records, so this
-// recorder runs over an empty repository (every read returns null) and attribution falls through to
-// the subtask's recorded finalizing/participating agent — letting status attribution tests assert
-// source 2 without a database.
 internal const val FAKE_PAUSED_AT = "2026-08-02T10:00:00Z"
 
 internal fun goalTestPhaseRecorder(): FeatureTaskRuntimePhaseRecorder = testPhaseRecorder(
@@ -4398,9 +4341,6 @@ internal fun goalTestPhaseRecorder(): FeatureTaskRuntimePhaseRecorder = testPhas
   AcceptingFeatureTaskRuntimeHandoffFoundationValidator,
 )
 
-// Seedable in-memory harness for the AC2 phase-ledger regression: opens a real runtime-mode workflow
-// row and records a finalized phase so GoalRunnerStatusService.resolveActiveAgent reads the agent
-// from the durable phase ledger (source 1) rather than the subtask outcome.
 private class GoalStatusPhaseLedgerHarness {
   private val repository = GoalStatusSeedableWorkflowStateRepository()
   private val database = GoalStatusSeedableDatabase(repository)
@@ -4619,9 +4559,6 @@ private object GoalTestEmptyWorkflowStateRepository : WorkflowStateRepository {
   override fun latestFeatureTaskRuntimeWorkflow(): WorkflowStateRecord? = null
 }
 
-// Regression for the validate crashloop: a persistently-failing validate phase must stop after a bounded
-// number of goal-level retries instead of looping forever. Kept in its own class so the broad
-// [GoalRunnerTest] stays under the detekt LargeClass threshold.
 class GoalRunnerValidationQualityRetryTest {
   private fun runRequest(): GoalRunnerRunRequest = GoalRunnerRunRequest(
     issueKey = "SKILL-56",
@@ -4744,7 +4681,6 @@ class GoalRunnerUnaddressedFindingsSummaryTest {
   }
 }
 
-// Operator blocked-subtask resume: kept outside [GoalRunnerTest] so that suite stays under detekt LargeClass.
 class GoalRunnerOperatorBlockedResumeTest {
   @Test
   fun `operator resume of a blocked subtask reopens the child phase before launch`() {

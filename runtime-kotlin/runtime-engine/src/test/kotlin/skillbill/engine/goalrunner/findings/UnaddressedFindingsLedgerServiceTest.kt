@@ -74,9 +74,6 @@ class UnaddressedFindingsLedgerServiceTest {
 
   @Test
   fun `Major findings are recorded in the ledger without triggering a fix pass`() {
-    // This test verifies the contract that Major findings advance and are durably recorded
-    // in the unaddressed-findings ledger without reopening implement_fix. Only Blocker
-    // findings trigger the fix pass; Major, Minor, and Nit findings are ledger-only.
     val rows = listOf(
       finding(subtaskId = 1, workflowId = "wf-1", ordinal = 1, severity = "blocker", category = "behavior_correctness"),
       finding(subtaskId = 1, workflowId = "wf-1", ordinal = 2, severity = "major", category = "concurrency_lifecycle"),
@@ -86,11 +83,9 @@ class UnaddressedFindingsLedgerServiceTest {
 
     val ledger = service.ledger("SKILL-135")
 
-    // All severities are recorded in the ledger
     assertEquals(3, ledger.findings.size)
     assertEquals(mapOf("blocker" to 1, "major" to 1, "minor" to 1, "nit" to 0), ledger.severityBreakdown)
 
-    // Blocker is unresolved-count 1, Major/Minor are ledger-only and don't trigger implement_fix
     val block = ledger.findings.first { it.severity == "blocker" }
     val major = ledger.findings.first { it.severity == "major" }
     val minor = ledger.findings.first { it.severity == "minor" }

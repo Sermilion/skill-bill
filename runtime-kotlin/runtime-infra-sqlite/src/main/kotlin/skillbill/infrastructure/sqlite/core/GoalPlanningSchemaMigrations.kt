@@ -3,31 +3,20 @@ package skillbill.infrastructure.sqlite.core
 import skillbill.error.InvalidGoalPlanningPreparationSchemaError
 import java.sql.Connection
 
-/**
- * Goal-planning table rebuilds, kept out of the migration registry so that registry stays a readable
- * version-ordered list instead of a container for every migration's DDL.
- *
- * The rebuilds recreate the same two tables and differ only in which `phase_output_contract_version`
- * values the rebuilt table accepts and which renamed table the rows come from, so the DDL is shared and
- * those two differences are the parameters.
- */
 internal fun rebuildGoalPlanningPlansForPhaseOutputVersion2(connection: Connection) {
   connection.createStatement().use { statement ->
     statement.execute("ALTER TABLE goal_subtask_plans RENAME TO $LEGACY_PLANS")
     statement.execute("ALTER TABLE goal_shared_preplans RENAME TO $LEGACY_PREPLANS")
     statement.execute(connection.sharedPreplansDdl(LEGACY_PREPLANS, "IN ('0.1', '0.2')"))
     statement.execute(connection.subtaskPlansDdl(LEGACY_PLANS, "IN ('0.1', '0.2')"))
-    // Carry existing planning rows across the widened constraint. Their recorded
-    // phase-output provenance stays truthful; the read seam decides whether a legacy
-    // stamp is still usable, so discarding in-flight goal planning is never automatic.
+
     statement.execute(
       "INSERT INTO goal_shared_preplans SELECT * FROM $LEGACY_PREPLANS",
     )
     statement.execute(
       "INSERT INTO goal_subtask_plans SELECT * FROM $LEGACY_PLANS",
     )
-    // Drop before recreating the index: SQLite carries an index across a table rename, so
-    // the renamed table still owns the old index name until it is gone.
+
     statement.execute("DROP TABLE $LEGACY_PLANS")
     statement.execute("DROP TABLE $LEGACY_PREPLANS")
     statement.execute(ORDERED_SUBTASK_PLANS_INDEX)
@@ -180,11 +169,6 @@ private fun Connection.subtaskPlansDdl(legacyTable: String, phaseOutputCheck: St
   )
 """.trimIndent()
 
-/**
- * Widens a rebuilt planning table with `repair_evidence_json` only when the table being replaced already
- * carried it, so a rebuild never silently drops recorded repair evidence and never invents the column on
- * databases that predate it.
- */
 internal fun Connection.optionalRepairEvidenceColumn(table: String): String {
   val hasRepairEvidence = prepareStatement(
     "SELECT 1 FROM pragma_table_info(?) WHERE name = 'repair_evidence_json'",

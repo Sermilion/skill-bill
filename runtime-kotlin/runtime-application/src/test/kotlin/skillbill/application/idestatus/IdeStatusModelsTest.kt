@@ -17,10 +17,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-/**
- * SKILL-165 Subtask 1: the emitted `planning` block must stay byte-identical to the
- * snake_case property names in orchestration/contracts/ide-status-schema.yaml.
- */
 class IdeStatusModelsTest {
   @Test
   fun `toStatusWireMap emits planning with snake_case keys matching the schema`() {
@@ -83,7 +79,6 @@ class IdeStatusModelsTest {
   fun `toStatusWireMap omits the planning key entirely when planning is null`() {
     val wire = snapshot(planning = null).toStatusWireMap()
 
-    // A present-but-null entry would fail schema validation differently; assert true absence.
     assertFalse(wire.containsKey("planning"))
     assertTrue(wire.containsKey("current_step"))
   }
@@ -171,7 +166,7 @@ class IdeStatusModelsTest {
         total = 1,
       )
     }
-    // bounded_edge may carry a meaningful cap.
+
     IdeStatusCurrentPhaseExecution(
       phaseId = "plan",
       kind = IdeStatusCurrentPhaseExecutionKind.BOUNDED_EDGE,
@@ -190,7 +185,6 @@ class IdeStatusModelsTest {
 
   @Test
   fun `toStatusWireMap never emits pause_requested as false`() {
-    // A false emission changes the bytes an existing consumer sees for every running goal.
     val wire = snapshot(planning = null).copy(pauseRequested = false).toStatusWireMap()
 
     assertFalse(wire.containsKey("pause_requested"))
@@ -223,7 +217,7 @@ class IdeStatusModelsTest {
       linkedMapOf("model" to "claude-opus-4-8", "effort" to "high"),
       withEffort["current_model"],
     )
-    // Never a null effort value: the schema pins effort as a non-empty string when present.
+
     assertEquals(linkedMapOf("model" to "claude-opus-4-8[effort=high]"), withoutEffort["current_model"])
   }
 
@@ -231,7 +225,6 @@ class IdeStatusModelsTest {
   fun `toStatusWireMap omits the current_model key entirely when no model is recorded`() {
     val wire = snapshot(planning = null).toStatusWireMap()
 
-    // A present-but-empty object would fail the schema's required model; assert true absence.
     assertFalse(wire.containsKey("current_model"))
   }
 

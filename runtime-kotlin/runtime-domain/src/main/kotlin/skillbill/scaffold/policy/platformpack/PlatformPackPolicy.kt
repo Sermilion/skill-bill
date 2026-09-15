@@ -3,29 +3,6 @@ package skillbill.scaffold.policy.platformpack
 import skillbill.model.FileLocation
 import skillbill.scaffold.policy.scaffold.sharedContractNote
 
-/**
- * SKILL-52.1 subtask 2: pure-policy half of platform-pack scaffolding.
- *
- * Derives routing-signal + display-name defaults, composes the human-readable notes that ship
- * with a scaffold result, and produces the deterministic install-path list.
- *
- * Uses the domain `FileLocation` value type only for path arithmetic (`resolve`) — there is no IO.
- * `PlatformPackSelection` and `PlatformPackDefaults` live in `skillbill.scaffold.policy.scaffold.model`
- * per the domain `model` rule.
- */
-
-// SKILL-52.2 subtask 2 (Task 11): `resolvePlatformPackSelection(payload)` was retired from this
-// file. Its public raw-`Map<String, Any?>` signature contributed one of the 11 scaffold input
-// raw-map allow-list entries. The CLI / MCP / Desktop adapters now resolve specialist-area
-// selection from the typed `ScaffoldCommandRequest.PlatformPack`; the legacy filesystem
-// orchestrator path inside `runtime-infra-fs` keeps a private internal copy operating on the
-// raw map (see `runtime-infra-fs/.../scaffold/ScaffoldPayloadMapPolicy.kt`).
-
-/**
- * Composes the human-readable note list shipped with a scaffold result. [presetUsed] indicates
- * that built-in defaults were applied. Platform-pack scaffolds now always include the full
- * approved specialist set; unwanted focus areas can be removed later through governed removal.
- */
 fun platformPackNotes(platform: String, presetUsed: Boolean, selectedAreas: List<String>): List<String> {
   val notes = mutableListOf<String>()
   if (presetUsed) {
@@ -39,16 +16,6 @@ fun platformPackNotes(platform: String, presetUsed: Boolean, selectedAreas: List
   return notes
 }
 
-// SKILL-52.2 subtask 2 (Task 11): `resolvePlatformPackDefaults(payload, platform)` was retired
-// from this file. Its public raw-`Map<String, Any?>` signature contributed one of the 11 scaffold
-// input raw-map allow-list entries. The legacy filesystem orchestrator path inside
-// `runtime-infra-fs` keeps a private internal copy operating on the raw map
-// (see `runtime-infra-fs/.../scaffold/ScaffoldPayloadMapPolicy.kt`).
-
-/**
- * Builds the deterministic install-path list for a freshly scaffolded platform pack: baseline
- * shell first, then quality-check shell, then each selected specialist area.
- */
 fun buildPlatformPackInstallPaths(
   packRoot: FileLocation,
   baselineName: String,

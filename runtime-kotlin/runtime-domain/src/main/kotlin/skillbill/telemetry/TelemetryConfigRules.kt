@@ -17,13 +17,6 @@ fun defaultLocalTelemetryConfig(installId: String): TelemetryConfigDocument = Te
   ),
 )
 
-/**
- * The single rule for recording a telemetry level in the local config document: replace only the
- * `telemetry.level` entry, drop the legacy `enabled` flag, and leave every other payload key
- * (`install_id`, `external_addon_sources`, `execution_matrix`, operator extensions) untouched.
- * The CLI mutation path and the install-apply path both go through here so `off` can never mean
- * "delete the file" on one path and "write level off" on the other.
- */
 fun TelemetryConfigDocument.withTelemetryLevel(level: String, configPath: String): TelemetryConfigDocument {
   val updatedPayload = payload.toMutableMap()
   val telemetry =

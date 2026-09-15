@@ -11,10 +11,6 @@ import skillbill.review.context.model.ReviewIntegrationAccounting
 import skillbill.review.context.model.ReviewLaneSegmentAccounting
 import skillbill.review.context.model.ReviewParentAnalysisConsumption
 
-/**
- * The sole durable/wire projection for review accounting. Content-bearing inputs are intentionally
- * absent.
- */
 fun ReviewAccountingSummary.toBoundedPayload(): ReviewAccountingBoundedPayload = ReviewAccountingBoundedPayload.from(
   linkedMapOf(
     SharedPayloadKeys.CONTRACT_VERSION to REVIEW_CONTEXT_CONTRACT_VERSION,
@@ -42,15 +38,12 @@ private fun ReviewAccountingNode.toPayload(): Map<String, Any?> = linkedMapOf(
   "inclusive_counters" to inclusiveCounters.toPayload(),
   "terminal_outcome" to terminalOutcome.wireValue,
 ).apply {
-  // Bundle keys are present-or-absent, never null: a lane with no bundle stays byte-identical.
   bundleCompositionDigest?.let { put("bundle_composition_digest", it) }
   segmentAccounting.takeIf { it.isNotEmpty() }
     ?.let { segments -> put("segment_accounting", segments.map { it.toPayload() }) }
   unreviewedSegmentIds.takeIf { it.isNotEmpty() }?.let { put("unreviewed_segment_ids", it) }
 }
 
-// Identity, counts, and lane names only. No commit subject, no path, no diff text: a routing shape
-// is safe to persist, the code it routed is not.
 private fun ReviewCommitRoutingAccounting.toPayload(): Map<String, Any?> = linkedMapOf(
   "commit_sequence_digest" to commitSequenceDigest,
   "routing_digest" to routingDigest,

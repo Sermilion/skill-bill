@@ -22,12 +22,6 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/**
- * Application-layer resolve seam for the shared review evidence projection. Reuse and re-derivation
- * are the port's fingerprint-keyed outcomes; these tests pin that audit_gap / review_fix re-entry
- * at an unchanged fingerprint reuses, and a moved tree (new fingerprint) re-derives, with no new
- * invalidation concept.
- */
 class FeatureTaskRuntimeSharedReviewEvidenceResolverTest {
   private val repoRoot: Path = Path.of(".")
 
@@ -50,7 +44,6 @@ class FeatureTaskRuntimeSharedReviewEvidenceResolverTest {
     }
   }
 
-  /** Fingerprint-keyed store faithful to the port: a hit never invokes the deriver. */
   private class InMemoryStore : FeatureTaskRuntimeSharedEvidenceResolverPort {
     private val stored = mutableMapOf<String, FeatureTaskRuntimeSharedEvidenceResolution>()
     var derivations: Int = 0
@@ -147,7 +140,6 @@ class FeatureTaskRuntimeSharedReviewEvidenceResolverTest {
     val before = resolver.resolve(repoRoot, "wf-audit-gap", checkpoint("fp-unchanged"), "audit")
     assertNotNull(before)
 
-    // Unchanged checkpoint fingerprint: audit_gap re-entry reuses the stored artifact.
     val reuseGit = FakeGit(emptyMap())
     val reused = FeatureTaskRuntimeSharedReviewEvidenceResolver(store, reuseGit)
       .resolve(repoRoot, "wf-audit-gap", checkpoint("fp-unchanged"), "audit")
@@ -156,7 +148,6 @@ class FeatureTaskRuntimeSharedReviewEvidenceResolverTest {
     assertEquals(1, store.derivations)
     assertTrue(reuseGit.invoked.isEmpty())
 
-    // Remediation moved the tree: a new fingerprint forces re-derivation.
     val movedGit = gitFor("base", "head", "b.kt", "after")
     val moved = FeatureTaskRuntimeSharedReviewEvidenceResolver(store, movedGit)
       .resolve(repoRoot, "wf-audit-gap", checkpoint("fp-moved"), "audit")
@@ -168,8 +159,6 @@ class FeatureTaskRuntimeSharedReviewEvidenceResolverTest {
 
   @Test
   fun `review_fix re-entry reuses or re-derives by fingerprint with no added invalidation branch`() {
-    // MUST_MATCH on the review_fix edge substitutes a freshly resolved checkpoint rather than
-    // rejecting movement; reuse is still fingerprint equality alone — no new invalidation concept.
     val store = InMemoryStore()
     val first = FeatureTaskRuntimeSharedReviewEvidenceResolver(
       store,

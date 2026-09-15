@@ -1,6 +1,5 @@
 package skillbill.workflow.taskruntime.model
 
-/** Closed response-availability states. A non-exact body is never labeled exact. */
 enum class CorrectiveRepairResponseAvailability(val wireValue: String) {
   EXACT_RESPONSE_INCLUDED("exact_response_included"),
   RESPONSE_ALREADY_TRUNCATED("response_already_truncated"),
@@ -16,7 +15,6 @@ enum class CorrectiveRepairResponseAvailability(val wireValue: String) {
   }
 }
 
-/** Explicit inclusion or truncation reason paired with [CorrectiveRepairResponseAvailability]. */
 enum class CorrectiveRepairInclusionReason(val wireValue: String) {
   EXACT_WITHIN_BUDGET("exact_within_budget"),
   CAPTURE_ALREADY_TRUNCATED("capture_already_truncated"),

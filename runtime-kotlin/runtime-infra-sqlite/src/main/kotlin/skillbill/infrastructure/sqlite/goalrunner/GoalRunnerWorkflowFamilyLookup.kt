@@ -29,7 +29,6 @@ fun GoalRunnerControlState.pauseAtOperatorBoundary(
   pausedAtNow: String,
   targetReached: Boolean = false,
 ): GoalRunnerControlState = when {
-  // Already paused: the original pause instant is the one that matters, so it is never restamped.
   paused -> copy(stopAfterConsumed = stopAfterConsumed || targetReached)
   pauseRequested -> copy(
     pauseConsumed = true,

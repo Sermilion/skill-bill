@@ -10,20 +10,6 @@ import skillbill.application.workflow.model.WorkflowUpdateResult
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.workflow.goal.GoalObservabilityEventValidator
 
-/**
- * SKILL-52.1 — Adapter-side mappers that convert typed
- * [WorkflowService][skillbill.application.WorkflowService] results
- * into the wire-shape `LinkedHashMap` payloads consumed by the MCP
- * envelope. Goldens locking this wire shape:
- *
- *  - `runtime-mcp/src/test/resources/golden/mcp-feature-task-runtime-workflow.json`
- *  - `runtime-mcp/src/test/resources/golden/mcp-feature-verify-workflow.json`
- *
- * Mirror of `runtime-cli/.../WorkflowCliResultMappers.kt`. The MCP and
- * CLI mappers share the SAME wire shape, so changes here must be
- * mirrored in the CLI mapper (and both goldens regenerated
- * deliberately).
- */
 internal fun WorkflowOpenResult.toMcpMap(
   goalObservabilityEventValidator: GoalObservabilityEventValidator,
 ): Map<String, Any?> = when (this) {

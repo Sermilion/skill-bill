@@ -1,6 +1,5 @@
 package skillbill.architecture
 
-/** Expected JVM runtime module and subsystem graph the architecture tests assert against. */
 object RuntimeModuleCatalog {
   val declaredGradleModules: List<String> =
     listOf(

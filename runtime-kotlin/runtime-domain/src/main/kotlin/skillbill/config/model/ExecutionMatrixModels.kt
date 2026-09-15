@@ -49,11 +49,6 @@ data class ExecutionMatrix(
 ) {
   fun tierOf(phaseId: String): ExecutionTier = phaseTiers[phaseId] ?: DEFAULT_PHASE_TIERS.getValue(phaseId)
 
-  /**
-   * A per-phase directive under the agent block wins over that agent's tier directive, so
-   * `reasoning` stays the one-line way to route every reasoning phase while a single phase can
-   * opt out without restructuring the tier map.
-   */
   fun directiveFor(agentId: String, phaseId: String): PhaseModelDirective? {
     val agent = InstallAgent.entries.firstOrNull { it.id == agentId.trim().lowercase() } ?: return null
     return agentPhaseOverrides[agent]?.get(phaseId) ?: agents[agent]?.get(tierOf(phaseId))
@@ -141,12 +136,6 @@ private fun parseAgents(raw: Any?): Map<InstallAgent, AgentDirectives> {
   }
 }
 
-/**
- * Tier ids and runtime phase ids share one key namespace under an agent, and the tier is resolved
- * first. That is only safe while the two sets are disjoint: a phase id equal to `reasoning` or
- * `implementation` would leave every existing config parsing while silently turning a single-phase
- * override into a whole-tier directive. The guard fails the parse instead of re-routing a tier.
- */
 private val COLLIDING_PHASE_IDS: List<String> =
   FeatureTaskRuntimePhaseWorkflowDefinition.definition.stepIds.filter { ExecutionTier.fromId(it) != null }
 

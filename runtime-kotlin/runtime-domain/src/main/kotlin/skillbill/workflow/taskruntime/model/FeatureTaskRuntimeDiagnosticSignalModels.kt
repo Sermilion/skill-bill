@@ -4,24 +4,13 @@ import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.InvalidWorkflowStateSchemaError
 
-/**
- * Durable, bounded record of diagnostic-evidence writes that failed and were degraded rather than
- * thrown. A diagnostic is private evidence about a run; losing one is a diagnosability regression, and
- * killing the run over it turns a bookkeeping fault into a lost workflow. The runtime therefore keeps
- * the failure here and proceeds.
- *
- * Every field is payload-free by construction: the key, the phase, the ordinals, and a typed failure
- * class. No agent output, prompt text, database path, or process output is ever recorded.
- */
 const val FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS_ARTIFACT_KEY: String =
   "feature_task_runtime_diagnostic_signals"
 
-/** Oldest entries are pruned first, so a pathological run cannot grow the workflow row without bound. */
 const val FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS_LIMIT: Int = 32
 
-/** Typed classes of degraded diagnostic-persistence failure; the class is what an operator triages on. */
 enum class FeatureTaskRuntimeDiagnosticFailureClass(val wireValue: String) {
-  /** Divergent evidence already committed under the same key. */
+
   CONFLICT("conflict"),
   PERMISSION("permission"),
   CORRUPT("corrupt"),
@@ -43,7 +32,7 @@ data class FeatureTaskRuntimeDiagnosticSignal(
   val conflictingKey: String,
   val phaseId: String,
   val attempt: Int,
-  /** Null when the failure was not scoped to a single repair turn, as on a newest-turn read. */
+
   val repairTurn: Int?,
   val generation: Int,
   val recordedAt: String,
@@ -60,7 +49,6 @@ data class FeatureTaskRuntimeDiagnosticSignal(
     require(recordedAt.isNotBlank()) { "FeatureTaskRuntimeDiagnosticSignal.recordedAt must be non-blank." }
   }
 
-  /** The operator-facing sentence. Names the key, the phase and the attempt, and nothing else. */
   fun operatorSummary(): String =
     "Diagnostic evidence write '$operation' failed as '${failureClass.wireValue}' for key " +
       "'$conflictingKey' (phase '$phaseId', attempt $attempt, repair turn ${repairTurn ?: "any"}, " +
@@ -91,7 +79,6 @@ data class FeatureTaskRuntimeDiagnosticSignal(
   }
 }
 
-/** Strict decode of the durable signal list; an absent key decodes to no signals. */
 internal fun featureTaskRuntimeDiagnosticSignalsFromWire(raw: Any?): List<FeatureTaskRuntimeDiagnosticSignal> {
   if (raw == null) return emptyList()
   val entries = raw as? List<*>
@@ -104,7 +91,6 @@ internal fun featureTaskRuntimeDiagnosticSignalsFromWire(raw: Any?): List<Featur
   }
 }
 
-/** Appends one signal, pruning the oldest beyond [FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS_LIMIT]. */
 fun featureTaskRuntimeAppendDiagnosticSignal(
   existing: List<FeatureTaskRuntimeDiagnosticSignal>,
   signal: FeatureTaskRuntimeDiagnosticSignal,

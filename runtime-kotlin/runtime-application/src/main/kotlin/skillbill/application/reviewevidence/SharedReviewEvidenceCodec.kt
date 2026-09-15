@@ -2,13 +2,6 @@ package skillbill.application.reviewevidence
 
 import skillbill.review.context.model.ReviewCommitSource
 
-/**
- * Length-framed codec for the shared evidence payload.
- *
- * Diff text carries every delimiter a line- or token-oriented format could use, so each field is
- * written as its character count, a newline, then the field itself. Decoding a payload that does not
- * frame exactly returns null, which the caller treats as a corrupt cache entry and re-derives from.
- */
 object SharedReviewEvidenceCodec {
   private const val VERSION = "shared-review-evidence/1"
 

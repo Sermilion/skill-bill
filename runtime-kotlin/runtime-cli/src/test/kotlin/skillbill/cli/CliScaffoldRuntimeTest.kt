@@ -497,7 +497,6 @@ private fun assertNewSkillScaffoldGolden(result: CliExecutionResult) {
   assertTrue(Path.of(skillPath).isAbsolute, "Expected absolute skill_path but got $skillPath")
   assertTrue(skillPath.endsWith("/skills/bill-horizontal-kotlin"))
 
-  // Lock the exact top-level payload contract so new fields cannot slip in unnoticed.
   assertEquals(
     setOf(
       "created_files",
@@ -522,11 +521,6 @@ private fun assertNewSkillScaffoldGolden(result: CliExecutionResult) {
     payload["notes"]?.jsonArray?.map { it.jsonPrimitive.content },
   )
 
-  // Horizontal-skill scaffolds plan an alphabetical README catalog-row insert
-  // (see ScaffoldManifestEdits / ScaffoldService). Assert that manifest edit
-  // structurally rather than pinning the volatile full-README preview in a
-  // golden fixture; the catalog-insertion semantics are covered by
-  // ReadmeCatalogAppendTest.
   val manifestEdits = payload["manifest_edits"]?.jsonArray?.map { it.jsonPrimitive.content }.orEmpty()
   assertEquals(1, manifestEdits.size, "Expected a single README.md manifest edit but got $manifestEdits")
   val readmePath = manifestEdits.single()

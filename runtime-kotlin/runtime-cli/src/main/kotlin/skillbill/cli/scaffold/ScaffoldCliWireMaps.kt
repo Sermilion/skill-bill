@@ -6,21 +6,6 @@ import skillbill.ports.scaffold.model.ScaffoldReviewComposition
 import skillbill.ports.scaffold.model.ScaffoldSectionStatus
 import skillbill.ports.scaffold.model.ScaffoldSkillStatus
 
-/**
- * SKILL-52.3 subtask 3 — Shared wire-map rebuilders for the typed scaffold result
- * models. These helpers reconstruct the legacy ordered `LinkedHashMap` wire shapes in
- * EXACT producer key order so the byte-equivalence contract locked by
- * `runtime-cli/src/test/kotlin/skillbill/cli/CliScaffoldRuntimeTest.kt` and
- * `AuthoringOperationsTest.kt` holds. They are consumed by the `toCliMap()` adapter
- * mappers in [ScaffoldCliResultMappers].
- */
-
-/**
- * Rebuilds the legacy `statusPayload(...)` ordered wire map from the typed
- * [ScaffoldSkillStatus] in EXACT producer key order. The optional `review_composition`,
- * `content_preview` / `content`, and `issues` tail keys are appended only when present,
- * mirroring the conditional `payload[...] = ...` writes in the prior producer.
- */
 internal fun ScaffoldSkillStatus.toWireMap(): Map<String, Any?> {
   val map = linkedMapOf<String, Any?>(
     "skill_name" to skillName,

@@ -14,9 +14,7 @@ import dev.skillbill.intellij.domain.MIN_REFRESH_INTERVAL_SECONDS
 import dev.skillbill.intellij.infrastructure.AbsolutePathGuard
 import java.time.Instant
 
-/**
- * Application-level settings: CLI executable override and refresh interval only.
- */
+
 @State(
     name = "SkillBillApplicationSettings",
     storages = [Storage("skillBillSettings.xml")],
@@ -52,10 +50,7 @@ class SkillBillApplicationSettings : PersistentStateComponent<SkillBillApplicati
     }
 }
 
-/**
- * Project-scoped last-known display cache. Observation time is required.
- * Never stores tokens, prompts, phase artifacts, raw stderr, or unbounded blobs.
- */
+
 @State(
     name = "SkillBillProjectDisplayCache",
     storages = [Storage("skillBillDisplayCache.xml")],
@@ -169,9 +164,7 @@ class IntelliJPreferenceCache(
     }
 }
 
-/**
- * Rejects or strips values that must never enter preference persistence.
- */
+
 object PreferenceSanitizer {
     private val FORBIDDEN_KEYS = setOf(
         "token", "prompt", "phase", "stderr", "password", "secret", "api_key", "apikey",
@@ -221,10 +214,7 @@ object PreferenceSanitizer {
         )
     }
 
-    /**
-     * Omits identities that embed absolute filesystem paths (e.g. repo-root-realpath-v1:/…).
-     * CLI executable override stays on [sanitizeExecutablePath] (AC-008 settings exception).
-     */
+    
     fun sanitizeRepositoryIdentity(raw: String?): String? {
         val value = raw?.trim()?.takeIf { it.isNotEmpty() } ?: return null
         if (AbsolutePathGuard.containsAbsolutePath(value)) return null

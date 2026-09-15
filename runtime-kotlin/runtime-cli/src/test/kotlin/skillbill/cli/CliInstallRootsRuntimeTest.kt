@@ -111,19 +111,15 @@ class CliInstallRootsRuntimeTest {
     val stagingRoot = home.resolve(".skill-bill/installed-skills")
     Files.createDirectories(stagingRoot)
 
-    // A current skill whose staging dir still exists and whose name is passed.
     val currentStaging = stagingRoot.resolve("bill-current-deadbeefdeadbeef")
     Files.createDirectories(currentStaging)
     Files.createSymbolicLink(targetDir.resolve("bill-current"), currentStaging)
 
-    // An orphan from a removed/renamed skill: its staging dir is gone (dangling
-    // link) and its name is NOT passed on the command line.
     Files.createSymbolicLink(
       targetDir.resolve("bill-go-code-review"),
       stagingRoot.resolve("bill-go-code-review-0123456789abcdef"),
     )
 
-    // A user-owned symlink pointing elsewhere must be preserved.
     val userTarget = home.resolve("user-thing")
     Files.createDirectories(userTarget)
     Files.createSymbolicLink(targetDir.resolve("user-link"), userTarget)

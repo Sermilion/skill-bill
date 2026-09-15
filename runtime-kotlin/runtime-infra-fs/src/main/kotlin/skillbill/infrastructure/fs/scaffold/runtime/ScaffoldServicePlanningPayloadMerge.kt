@@ -144,10 +144,6 @@ internal fun validateAgentAddonSlugRoot(slug: String, agentAddonsRoot: Path) {
   }
 }
 
-// SKILL-52.1 subtask 3 (AC1): `resolveAddonConsumerSkillDirs` and `validateAddonConsumerSkillDir`
-// now live on `FileSystemScaffoldSourceLoader`. Callsites delegate to
-// `scaffoldSourceLoader.resolveAddonConsumerSkillDirs(...)`.
-
 internal fun planPreShellPlatformOverride(args: ScaffoldPlatformOverridePlanArgs): ScaffoldPlan {
   if (args.family !in PRE_SHELL_FAMILIES) {
     val replacement = if (args.family == "feature-" + "implement") {

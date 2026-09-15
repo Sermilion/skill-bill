@@ -15,13 +15,6 @@ private val featureTaskRuntimeCompletionStatuses =
   listOf("completed", "blocked", "decomposed_at_planning", "error", "stale")
 private val featureTaskRuntimePhaseOutcomes = listOf("completed", "blocked", "running")
 
-/**
- * Every rate here is over the runs that were actually observed reaching a terminal. A stale row is a
- * run the reconciler closed after it stopped reporting, never one that ended in a known way, so
- * including it in the denominator quietly reported a lower completion rate than the runs support.
- * Its count is published as [FeatureTaskRuntimeWorkflowStats.reconcilerClosedRuns] instead of being
- * folded into a rate.
- */
 fun buildFeatureTaskRuntimeStats(rows: List<Map<String, Any?>>): FeatureTaskRuntimeWorkflowStats {
   val finishedRows = finishedRows(rows)
   val observedRows = finishedRows.filterNot { it.stringValue("completion_status") == STALE_COMPLETION_STATUS }

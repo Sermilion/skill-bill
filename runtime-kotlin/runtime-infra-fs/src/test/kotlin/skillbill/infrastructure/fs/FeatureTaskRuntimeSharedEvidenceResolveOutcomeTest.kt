@@ -101,10 +101,6 @@ internal class CountingDeriver(private val baseRef: String? = "main") : FeatureT
   }
 }
 
-/**
- * A hit that traverses the repository fails the test loudly instead of passing on an
- * invocation-count assertion that a silently-derived-then-equal artifact could satisfy.
- */
 internal object ThrowingDeriver : FeatureTaskRuntimeSharedEvidenceDeriver {
   override fun derive(checkpoint: FeatureTaskRuntimeRepositoryCheckpoint): FeatureTaskRuntimeSharedEvidenceDerivation =
     error("Deriver must not be invoked on a fingerprint hit; resolving '${checkpoint.fingerprint}' traversed.")

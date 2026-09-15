@@ -14,9 +14,6 @@ import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.text.sha256HexUtf8
 import java.nio.file.Path
 
-/**
- * Aligns status `planning_reason` with the launch-path refuse taxonomy without mutating planning rows.
- */
 fun interface GoalPlanningStatusReasonCoherence {
   fun align(request: GoalPlanningStatusAlignRequest): GoalPlanningStatusSnapshot
 

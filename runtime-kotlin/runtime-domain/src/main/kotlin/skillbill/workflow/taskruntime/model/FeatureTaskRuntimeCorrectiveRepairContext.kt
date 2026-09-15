@@ -13,11 +13,7 @@ data class FeatureTaskRuntimeCorrectiveRepairContext(
   val repairTurn: Int? = null,
   val budget: FeatureTaskRuntimeCorrectiveRepairBudget = FeatureTaskRuntimeCorrectiveRepairBudget.DEFAULT,
   val acceptedAfterStructuralRepair: Boolean = false,
-  /**
-   * Payload-free digest/location evidence from a prior successful delimiter-only structural repair on
-   * this capture. When present, correlates original/repaired digests and source location with the
-   * phase, attempt, and repair turn carried by this context. Never carries response body text.
-   */
+
   val structuralRepairEvidence: FeatureTaskRuntimePhaseOutputRepairEvidence? = null,
   val diagnosticDegradationClass: FeatureTaskRuntimeDiagnosticFailureClass? = null,
   val contractVersion: String = FEATURE_TASK_RUNTIME_CORRECTIVE_REPAIR_CONTEXT_CONTRACT_VERSION,
@@ -46,8 +42,7 @@ data class FeatureTaskRuntimeCorrectiveRepairContext(
       "FeatureTaskRuntimeCorrectiveRepairContext.structuralRepairEvidence requires " +
         "acceptedAfterStructuralRepair=true so syntax-repair correlation cannot disagree with the flag."
     }
-    // Constraint may be blank when the validator had no mechanical payload-free restatement; the
-    // consumer then falls back to its own payload-free sentence rather than a value-bearing reason.
+
     val exact = captured as? CorrectiveRepairCapturedResponse.Exact
     require(exact == null || exact.utf8ByteCount <= budget.maxResponseUtf8Bytes) {
       "Exact captured response is ${exact?.utf8ByteCount} UTF-8 bytes against the " +
@@ -55,11 +50,5 @@ data class FeatureTaskRuntimeCorrectiveRepairContext(
     }
   }
 
-  /** Builds the authorized prompt projection, validating budgets before any body is framed. */
   fun promptProjection(): CorrectiveRepairPromptProjection = CorrectiveRepairPromptProjection.from(this)
 }
-
-/**
- * Authorized repair prompt projection. Exact body text appears only here; fallbacks are payload-free
- * and name the private diagnostic locator for authorized lookup.
- */

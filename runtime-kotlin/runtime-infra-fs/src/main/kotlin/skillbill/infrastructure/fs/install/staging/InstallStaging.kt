@@ -37,7 +37,7 @@ internal fun installedSkillStagingDir(home: Path, sourceSkillDir: Path, contentH
   val slug = installedSkillSlug(sourceSkillDir)
   val leaf = if (slug.isEmpty()) contentHash else "$slug-$contentHash"
   val staging = cacheRoot.resolve(leaf).normalize()
-  // Defense-in-depth: assert the resolved staging dir cannot escape the cache root via '..' segments.
+
   require(staging.startsWith(cacheRoot)) {
     "Resolved staging dir '$staging' escapes installed-skills cache root '$cacheRoot'."
   }
@@ -51,8 +51,7 @@ internal fun applicablePointers(
 ): List<Pair<PlatformManifest, PointerSpec>> {
   val resolvedInstall = installPath.toAbsolutePath().normalize()
   val packsRoot = repoRoot.toAbsolutePath().normalize().resolve("platform-packs")
-  // F-015: prefer the caller-provided pre-discovered manifest list to avoid re-walking
-  // platform-packs for every skill in a multi-skill scaffold install.
+
   val discovered = manifests ?: run {
     if (!Files.isDirectory(packsRoot)) {
       return emptyList()
@@ -90,8 +89,7 @@ internal fun authoredFilesFor(
   generatedSupportPointers.forEach { pointer ->
     excluded.add(sourceSkillDir.resolve(pointer.name).toAbsolutePath().normalize())
   }
-  // An authored file at a would-be sidecar name must not be copied verbatim (it would race with
-  // the sidecar render); the collision hard-fail lives in writeInternalSidecarFiles.
+
   excludedSidecarNames.forEach { sidecarName ->
     excluded.add(sourceSkillDir.resolve(sidecarName).toAbsolutePath().normalize())
   }
@@ -106,16 +104,10 @@ internal fun authoredFilesFor(
   }
 }
 
-/**
- * F-012: defense-in-depth — even though `Files.walk` follows NOFOLLOW by default, post-filter
- * each path's real-path so any path that escapes the source skill dir (via a symlink whose target
- * lives elsewhere) is rejected loudly. Not an assertion; a hard fail.
- */
 private fun requireWithinSource(path: Path, resolvedSourceSkillDir: Path) {
   val realPath = try {
     path.toRealPath()
   } catch (_: IOException) {
-    // Broken symlink or transient FS error. Don't trust the path; reject.
     throw IllegalArgumentException(
       "Authored path '$path' under '$resolvedSourceSkillDir' could not be resolved to a real path.",
     )

@@ -11,9 +11,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class TelemetryOutboxDeliveryIdentityMigrationTest {
-  // SKILL-236 AC-004: rows queued before the identity column existed must become deliverable exactly
-  // once. Re-minting on a later open would make every restart look like a new logical event, and
-  // dropping a row would silently lose queued telemetry.
+
   @Test
   fun `legacy pending rows get an identity once and every unsynced row survives`() {
     val dbPath = newDatabase()
@@ -39,9 +37,6 @@ class TelemetryOutboxDeliveryIdentityMigrationTest {
     }
   }
 
-  // SKILL-236 AC-001: every database open replays the identity column migration over pending rows.
-  // A backfill that re-minted on reopen would hand the receiver a different key after each restart,
-  // so a delivery resumed after a restart would arrive as a fresh duplicate instead of deduplicating.
   @Test
   fun `reopening the database preserves a pending row identity`() {
     val dbPath = newDatabase()
@@ -61,8 +56,6 @@ class TelemetryOutboxDeliveryIdentityMigrationTest {
     assertEquals(minted, afterRestart, "A restart must not re-mint a pending row's identity.")
   }
 
-  // SKILL-236 AC-004: separate installs share no state, so their backfills must not produce the same
-  // identity for what are genuinely different events.
   @Test
   fun `two separate database files do not produce colliding identities`() {
     val identities = List(2) { backfilledIdentity() }
@@ -70,8 +63,6 @@ class TelemetryOutboxDeliveryIdentityMigrationTest {
     assertEquals(2, identities.toSet().size, "Identities must be isolated across database files.")
   }
 
-  // SKILL-236 AC-004: an operator who cleared the queue discarded those events. Nothing in the
-  // identity path may bring them back on the next pass.
   @Test
   fun `a cleared queue leaves nothing for the migration to reconstruct`() {
     val dbPath = newDatabase()

@@ -23,11 +23,7 @@ import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/**
- * `runCoalesced` coalesces per instance, so a mutating call sharing the poll runner would
- * join an in-flight poll and return that poll's exit code. Isolation is asserted both
- * structurally (three distinct instances) and behaviourally (a held poll completes nothing).
- */
+
 class ProcessRunnerIsolationTest {
     private val root = Files.createTempDirectory("runner-isolation")
 
@@ -52,7 +48,7 @@ class ProcessRunnerIsolationTest {
         )
 
         composed.dispose()
-        // A cancelled runner short-circuits instead of spawning; proves all three were cancelled.
+
         runBlocking {
             for (runner in listOf(composed.processRunner, composed.pauseProcessRunner, composed.stopProcessRunner)) {
                 val result = withContext(Dispatchers.Default) {
@@ -77,7 +73,7 @@ class ProcessRunnerIsolationTest {
                 ProcessSpec(listOf("skill-bill", "work", "status"), timeoutMs = 5_000, stdoutLimitBytes = 1024, stderrLimitBytes = 1024),
             )
         }
-        // Let the poll get in flight before the mutation starts.
+
         delay(100)
 
         val stop = CliGoalMutationRepository(
@@ -88,7 +84,7 @@ class ProcessRunnerIsolationTest {
         )
         val outcome = withContext(Dispatchers.Default) { stop.requestMutation(root, "SKILL-168") }
 
-        // The stop returned its own exit code (0 → Requested), not the poll's 77.
+
         assertEquals(GoalMutationOutcome.Requested, outcome)
         assertEquals("the stop started its own process", 1, stopFactory.commands.size)
         assertTrue("the poll was still in flight", !poll.isCompleted)

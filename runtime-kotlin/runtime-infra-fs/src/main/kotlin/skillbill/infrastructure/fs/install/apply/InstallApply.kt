@@ -155,8 +155,7 @@ internal fun standaloneInstallableSkills(
   skills: List<InstallPlanSkill>,
   selectedPlatformSlugs: Set<String>,
 ): List<InstallPlanSkill> = skills.filter { skill ->
-  // Internal skills are excluded here (they stage as sidecars in their parent) but stay
-  // enumerated for native-agent source roots — see nativeAgentSourceRoots.
+
   skill.internalFor == null &&
     (skill.kind == InstallPlanSkillKind.BASE || skill.platformSlug in selectedPlatformSlugs)
 }
@@ -176,11 +175,7 @@ private fun stagePlannedSkill(
   )
   staging.toStagingOutcome(skill.sourceDir.toPath())
 }.getOrElse { error ->
-  // An identity mismatch is a precondition for the whole install, not one skill's problem: it means
-  // this apply was pointed at a different source root than the installed one. Collecting it let the
-  // skills that did stage keep the new identity while the rest kept the old, leaving an install
-  // split across two source roots that neither root could then apply. Rethrow so the surrounding
-  // transaction rolls the whole apply back and the operator sees one precondition failure.
+
   if (error is SkillContentIdentityMismatchError) throw error
   failedStagingOutcome(skill.sourceDir.toPath(), skill.name, error).also { outcome ->
     outcome.issue?.let(failures::add)

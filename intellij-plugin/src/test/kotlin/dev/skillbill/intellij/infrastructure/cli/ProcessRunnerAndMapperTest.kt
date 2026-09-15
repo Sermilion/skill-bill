@@ -51,7 +51,7 @@ class ProcessRunnerTest {
                 SlowProcess(hangMs = 10_000, onStart = { started.countDown() })
             },
         )
-        // Dispatch off the runBlocking event loop so CountDownLatch.await cannot starve start.
+
         val job = async(Dispatchers.IO) {
             runner.runCoalesced(
                 ProcessSpec(
@@ -206,7 +206,7 @@ class IdeStatusJsonMapperTest {
         val json = runtimeFixture(lifecycle = "terminal", freshness = "stale")
         val outcome = IdeStatusJsonMapper.map(json, now, 0)
         assertTrue(outcome is SkillBillStatusOutcome.Done)
-        // The lifecycle wins, but the stale reading still has to reach the surface.
+
         assertTrue((outcome as SkillBillStatusOutcome.Done).stale)
     }
 
@@ -306,25 +306,25 @@ class IdeStatusJsonMapperTest {
         val currentModel = (outcome as SkillBillStatusOutcome.Active).currentModel
         assertEquals("opus-5", currentModel?.model)
         assertEquals("high", currentModel?.effort)
-        // A goal's step is a goal-level label, so this is the only thing that says which phase the
-        // model belongs to; dropping it leaves the popup naming a model attributed to nothing.
+
+
         assertEquals("implement", currentModel?.phaseId)
         assertEquals("implement", outcome.currentStepId)
     }
 
     @Test
     fun `unusable current model degrades to null while the outcome maps normally`() {
-        // One case per parse rule the mapper applies: the key's absence, the object check, the
-        // non-blank-string check on `model`, its isString check, and the length bound. Extra
-        // literals for a rule already covered cost tokens on every future change and detect
-        // nothing more.
+
+
+
+
         val unusable = mapOf(
             "absent" to null,
             "non-object" to """"current_model": "opus-5"""",
             "missing or blank model" to """"current_model": {"model": "   "}""",
             "non-string model" to """"current_model": {"model": ["opus-5"]}""",
-            // Degrades rather than truncating: a clipped id would render a model that never
-            // existed, and the operator could not tell it had been cut.
+
+
             "over-length model" to """"current_model": {"model": "${"m".repeat(121)}"}""",
         )
         for ((case, block) in unusable) {
@@ -406,11 +406,7 @@ class IdeStatusJsonMapperTest {
         assertTrue(fixture("active-runtime.json").contains("\"contract_version\": \"$IDE_STATUS_CONTRACT_VERSION\""))
     }
 
-    /**
-     * Rewrites the named fields only. A blanket string replace would also rewrite any
-     * other occurrence of the same value (workflow family, summary text, step id), so
-     * the test would silently exercise a payload it does not describe.
-     */
+    
     private fun runtimeFixture(lifecycle: String? = null, freshness: String? = null): String {
         var json = fixture("active-runtime.json")
         lifecycle?.let { json = json.replaceField("lifecycle_state", "active", it) }
@@ -426,8 +422,8 @@ class IdeStatusJsonMapperTest {
         assertEquals(true, parsed.pauseRequested)
         assertEquals(Instant.parse("2026-08-06T09:30:00Z"), parsed.pausedAt)
 
-        // Omitting both keys must stay absent — not coerced to false — and must not
-        // turn a valid payload into a malformed outcome.
+
+
         val without = IdeStatusJsonMapper.map(goalPayload(null), now, 0) as SkillBillStatusOutcome.Active
         assertNull(without.pauseRequested)
         assertNull(without.pausedAt)
@@ -455,8 +451,8 @@ class IdeStatusJsonMapperTest {
         assertEquals(1_380_000L, parsed.activeDurationMs)
         assertEquals(Instant.parse("2026-08-06T09:59:00Z"), parsed.activeDurationAsOf)
 
-        // Absent must stay null rather than becoming zero: null falls back to the wall clock,
-        // whereas zero would render "0s" as a measurement.
+
+
         val without = IdeStatusJsonMapper.map(goalPayload(null), now, 0) as SkillBillStatusOutcome.Active
         assertNull(without.activeDurationMs)
         assertNull(without.activeDurationAsOf)

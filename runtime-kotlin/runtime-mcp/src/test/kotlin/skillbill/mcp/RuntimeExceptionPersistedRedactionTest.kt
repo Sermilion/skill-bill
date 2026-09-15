@@ -9,8 +9,6 @@ import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-// AC-006: redaction happens at payload construction, so the persisted column — not just the
-// in-memory map — must be free of caller-supplied content at `anonymous`.
 class RuntimeExceptionPersistedRedactionTest {
   private val callerMessage = "reading /home/dev/checkout/SKILL-163/spec.md failed"
 

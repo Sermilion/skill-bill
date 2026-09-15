@@ -6,12 +6,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
-/**
- * The demote pass treats any root key outside `ENVELOPE_ROOT_FIELDS` as a `produced_outputs` member
- * placed one level too high. That inference is only safe while the set names every root field the
- * schema declares: a new envelope field missing from it would be demoted into `produced_outputs`
- * instead of read, so the drift has to fail here rather than in a run.
- */
 class PhaseOutputEnvelopeRootFieldsParityTest {
   @Test
   fun `ENVELOPE_ROOT_FIELDS names exactly the schema's declared root properties`() {

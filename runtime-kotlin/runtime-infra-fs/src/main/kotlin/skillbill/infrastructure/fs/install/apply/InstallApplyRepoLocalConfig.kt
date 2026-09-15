@@ -8,15 +8,6 @@ import skillbill.model.toPath
 import java.nio.file.Files
 import java.nio.file.Path
 
-/**
- * Scaffolds the repo-local config under `plan.request.repoRoot`. Both side effects are
- * idempotent and non-destructive: `.skill-bill/config.yaml` is created only when absent (a
- * user-edited config is never clobbered), and `.gitignore` gains an ignore for runtime state
- * under `.skill-bill/` while leaving `config.yaml` trackable.
- *
- * Scaffolding is additive, so failures are collected as warnings rather than hard install
- * failures (mirroring orchestration-link outcome handling).
- */
 internal fun applyRepoLocalConfigScaffold(plan: InstallPlan, warnings: MutableList<InstallApplyIssue>) {
   val repoRoot = plan.request.repoRoot.toPath().toAbsolutePath().normalize()
   scaffoldStep(InstallApplyIssueKind.REPO_LOCAL_CONFIG_SCAFFOLD_FAILED, warnings) {

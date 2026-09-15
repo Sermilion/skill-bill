@@ -56,9 +56,7 @@ class InstallReconcileCommand(
   "reconcile",
   "Reconcile a reinstall: compare upstream/local/baseline per-skill hashes and emit a machine-readable plan.",
 ) {
-  // --repo-root/--skills/--platform-packs (inherited) describe the LOCAL copied
-  // source under ~/.skill-bill. The upstream/candidate clone source is supplied
-  // explicitly so reconciliation runs against a staged candidate BEFORE any swap.
+
   private val upstreamRepoRoot by option(
     "--upstream-repo-root",
     help = "Upstream/candidate repo root containing skills/ and platform-packs/ to reconcile against the local copy.",
@@ -84,7 +82,6 @@ class InstallReconcileCommand(
       upstreamPlatformPacksRoot?.let(Path::of) ?: resolvedUpstreamRepoRoot.resolve("platform-packs")
 
     if (apply) {
-      // Apply is a durable mutation; gate it behind the goal-continuation refusal.
       if (state.refuseInstallMutationDuringGoalContinuation(inputs, "reconcile")) {
         return
       }
@@ -123,9 +120,6 @@ class InstallReconcileCommand(
     completeReconcile(plan, refreshed = false, applied = false, installedPaths = emptyList())
   }
 
-  // Emit the STABLE line-oriented machine report as stdout (install.sh consumes it
-  // line-by-line, FAIL-CLOSED on a missing/unparseable summary), while keeping the
-  // structured payload for JSON consumers.
   private fun completeReconcile(
     plan: ReconciliationPlan,
     refreshed: Boolean,

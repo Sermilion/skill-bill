@@ -2,7 +2,7 @@ package dev.skillbill.intellij.domain
 
 import java.time.Instant
 
-/** Injectable clock for deterministic elapsed-time derivation in the ViewModel. */
+
 fun interface StatusClock {
     fun now(): Instant
 

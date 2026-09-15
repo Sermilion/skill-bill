@@ -14,7 +14,7 @@ data class WorkflowUpdateInput(
   val stepUpdates: WorkflowStepUpdates?,
   val artifactsPatch: WorkflowArtifactPatch?,
   val sessionId: String,
-  /** Replace the durable artifact map before applying [artifactsPatch]. */
+
   val replaceArtifacts: Boolean = false,
 )
 
@@ -40,14 +40,6 @@ data class WorkflowContinueDecision(
   val nextAttemptCount: Int,
 )
 
-/**
- * Resolves which of a resume step's required-upstream artifacts are absent for a given
- * workflow snapshot. The presence rule is family-specific: most families judge presence by
- * a top-level artifact key existing in the durable artifacts map ([DEFAULT]), but a family
- * whose upstream outputs live in a private per-phase store supplies its own resolver so the
- * generic resume gate reads its authoritative state rather than the top-level key. Pure
- * domain function: no JDBC/HTTP/Files and no clock/random.
- */
 data class ResolvedRequiredArtifact(
   val present: Boolean,
   val value: Any?,
@@ -71,11 +63,6 @@ fun interface RequiredArtifactPresenceResolver {
     )
 
   companion object {
-    /**
-     * Top-level-key presence: an upstream id is present iff the durable artifacts map carries
-     * a matching key. Preserves the historical `snapshot.artifacts.containsKey` behavior for
-     * every family that does not override it.
-     */
     val DEFAULT: RequiredArtifactPresenceResolver =
       object : RequiredArtifactPresenceResolver {
         override fun missingRequiredArtifacts(
@@ -121,10 +108,6 @@ fun WorkflowDefinition.isTerminalStatus(status: String): Boolean {
   }
 }
 
-/**
- * Closed-world declaration for model-delivered workflow input. Durable artifacts not named
- * here remain private and are available only through explicit operator inspection surfaces.
- */
 data class WorkflowInputProjectionDeclaration(
   val requiredArtifactKeys: List<String>,
   val projectedFieldsByArtifactKey: Map<String, Set<String>> = emptyMap(),

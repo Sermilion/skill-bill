@@ -155,8 +155,6 @@ class FileSystemGoalPlanningVerificationDiscoveryTest {
     assertFalse(discovery.boundaryCatalogTruncated)
   }
 
-  // Verification discovery drops history entries older than the recency window, so a fixture dated
-  // by hand ages out and the test starts failing on a date unrelated to the behaviour it covers.
   private fun writeEntries(file: Path, title: String, body: String) {
     val entryDate = LocalDate.now(ZoneOffset.UTC)
     Files.writeString(

@@ -27,8 +27,6 @@ class FileSystemReviewAttributionTest {
     assertEquals(setOf("bill-ruby-code-review", "bill-ruby-code-review-security"), mappings.keys)
   }
 
-  // SKILL-136 subtask 5 AC-001: ingestion reads the launch plan the runtime would compose, including
-  // lanes contributed by a baseline layer, each carrying its owning pack and composition depth.
   @Test
   fun `composed launch plan carries baseline sourced lanes with their owning pack and depth`() {
     val repoRoot = composedPackFixture()

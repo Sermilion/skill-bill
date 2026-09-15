@@ -35,10 +35,7 @@ import java.awt.Component
 import java.awt.Container
 import javax.swing.JLabel
 
-/**
- * IntelliJ Platform fixture coverage for registration, disposal, ticker stop,
- * and project-scoped isolation. Uses faked status repositories — no CLI or DB.
- */
+
 class SkillBillStatusBarWidgetFixtureTest : BasePlatformTestCase() {
     fun testFactoryIsRegisteredAndAvailableOnlyForNormalProjectWindows() {
         val factories = StatusBarWidgetFactory.EP_NAME.extensionList
@@ -56,8 +53,8 @@ class SkillBillStatusBarWidgetFixtureTest : BasePlatformTestCase() {
         val started = Instant.parse("2026-08-07T11:59:00Z")
         val subtaskStarted = Instant.parse("2026-08-07T11:59:50Z")
         val refreshCount = AtomicInteger(0)
-        // Active from the repository: ViewModel republishes cannot clobber the
-        // widget with Idle while we assert local ticker re-anchoring.
+
+
         val repo = FakeStatusRepository {
             refreshCount.incrementAndGet()
             SkillBillStatusOutcome.Active(
@@ -85,18 +82,18 @@ class SkillBillStatusBarWidgetFixtureTest : BasePlatformTestCase() {
         widget.activate()
         assertTrue(widget.isTickerRunning())
 
-        // Wait off the EDT so ViewModel → widget invokeLater updates can flush.
+
         runBlocking(Dispatchers.Default) {
             val deadline = System.currentTimeMillis() + 2_000
             while (refreshCount.get() < 1 && System.currentTimeMillis() < deadline) {
                 delay(20)
             }
-            // Allow collectLatest to assign latestState after the outcome emit.
+
             delay(50)
         }
         assertTrue("activate must poll once", refreshCount.get() >= 1)
 
-        // Synchronous re-anchor of authoritative starts for the local UI ticker.
+
         widget.replaceLatestStateForTest(
             SkillBillStatusUiState.Active(
                 headline = "Skill Bill: SKILL-148 · Implement",
@@ -217,7 +214,7 @@ class SkillBillStatusBarWidgetFixtureTest : BasePlatformTestCase() {
             assertTrue("buttons must be keyboard reachable", button.isFocusable)
         }
 
-        // The rendered lines are exactly today's detail lines, in today's order.
+
         val details = eligible.details
         assertEquals(
             listOf(
@@ -253,7 +250,7 @@ class SkillBillStatusBarWidgetFixtureTest : BasePlatformTestCase() {
         val withoutModel = SkillBillStatusBarPresentation.map(activeUiState())
         val lines = StatusDetailsPopupContent.statusLines(withoutModel)
         assertTrue("no model row when absent", lines.none { it.first == "Model" })
-        // No row at all when absent: the present-model lines are today's lines plus one.
+
         assertEquals(
             lines,
             StatusDetailsPopupContent.statusLines(withModel).filterNot { it.first == "Model" },
@@ -328,9 +325,9 @@ class SkillBillStatusBarWidgetFixtureTest : BasePlatformTestCase() {
             ),
         )
 
-        // Swing parses a label whose text starts with <html> as markup, so an <img src=...> would
-        // make the IDE fetch it and a <b> would restyle away the value the row exists to report.
-        // Every value here is runtime-supplied, so HTML must be off on all of them.
+
+
+
         val labels = valueLabels(built.panel)
         assertTrue("popup renders value labels", labels.isNotEmpty())
         assertTrue(
@@ -413,8 +410,8 @@ class SkillBillStatusBarWidgetFixtureTest : BasePlatformTestCase() {
         val built = widget.buildPopupContent(SkillBillStatusBarPresentation.map(activeUiState()))
         built.buttonFor(GoalControlKind.STOP)!!.doClick()
 
-        // The summary arrives through invokeLater and this test body runs on the EDT, so
-        // the queue must be pumped rather than blocked while waiting for it.
+
+
         val messageDeadline = System.currentTimeMillis() + 2_000
         while (built.messageText() == null && System.currentTimeMillis() < messageDeadline) {
             PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
@@ -487,7 +484,7 @@ class SkillBillStatusBarWidgetFixtureTest : BasePlatformTestCase() {
         first.dispose()
         assertFalse(first.isTickerRunning())
 
-        // Simulate project reopen: a new widget consumer for the same ViewModel.
+
         val second = SkillBillStatusBarWidget(project, vm, clock, tickIntervalMs = 50)
         second.activate()
         assertTrue(second.isTickerRunning())

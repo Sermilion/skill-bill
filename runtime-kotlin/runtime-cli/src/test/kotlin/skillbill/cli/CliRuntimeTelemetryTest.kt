@@ -25,7 +25,6 @@ class CliRuntimeTelemetryTest {
     assertEquals(expectedCliRemoteStatsRequests(), capturedRequests)
   }
 
-  // SKILL-170 AC-001/AC-002/AC-004: queue depth and sync state are visible at every resolved level.
   @Test
   fun `telemetry status reports queue depth and sync state across outbox states`() {
     val empty = telemetryStatusState(level = "anonymous", pendingEvents = 0, priorSync = false)
@@ -50,7 +49,6 @@ class CliRuntimeTelemetryTest {
     assertNull(disabled["install_id"], "An off install must not leak the install id.")
   }
 
-  // The text formatter drops null values, so the distinction has to survive without last_synced_at.
   @Test
   fun `telemetry status renders the sync state distinction in text format`() {
     val neverSynced = telemetryStatusText(level = "anonymous", pendingEvents = 1, priorSync = false)
@@ -62,7 +60,6 @@ class CliRuntimeTelemetryTest {
     assertContains(synced, "last_synced_at: ")
   }
 
-  // AC-003: proven negatively — the requester fails the test if status reaches for the network at all.
   @Test
   fun `telemetry status makes no network call and tolerates a missing database`() {
     val tempDir = Files.createTempDirectory("skillbill-cli-telemetry-status-read")

@@ -23,12 +23,6 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/**
- * Frozen golden table for the legacy `requiredSupportingFilesForSkill` behavior. The class YAMLs
- * under `orchestration/skill-classes/` must reproduce these pointer sets exactly. If you change a
- * class YAML and a shipped skill's pointer set diverges from this table, decide whether the change
- * is intentional: update the golden in the same PR, or fix the YAML drift.
- */
 private val LEGACY_POINTER_GOLDEN: Map<String, Set<String>> = mapOf(
   "bill-code-review" to setOf(
     "telemetry-contract.md",

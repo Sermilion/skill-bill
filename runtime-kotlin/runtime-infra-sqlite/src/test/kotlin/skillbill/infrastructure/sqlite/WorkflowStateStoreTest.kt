@@ -29,10 +29,7 @@ class WorkflowStateStoreTest {
     val dbPath = Files.createTempDirectory("standalone-candidate-goal-parent").resolve("metrics.db")
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val store = WorkflowStateStore(connection)
-      // Goal parents carry no execution identity by design. Since the prose engine was retired every
-      // row is mode=runtime, so mode must never be what readmits a parent into standalone discovery:
-      // doing so reports needs_identity_repair for a goal and repair-identity would stamp
-      // route_scope=standalone on it.
+
       store.saveFeatureTaskRuntimeWorkflow(
         workflowRow(
           "wftr-goal-parent",
@@ -101,11 +98,11 @@ class WorkflowStateStoreTest {
     val dbPath = Files.createTempDirectory("crash-reconcile-candidates").resolve("metrics.db")
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
       val store = WorkflowStateStore(connection)
-      // Expired-lease running row: a candidate.
+
       seedRunningRowWithLease(store, "wftr-expired", "owner-token-expired1", expiresAt = "2026-07-14T10:05:00Z")
-      // Live-lease running row: not a candidate.
+
       seedRunningRowWithLease(store, "wftr-live", "owner-token-live00001", expiresAt = "2999-01-01T00:00:00Z")
-      // Terminal row with no lease: not a candidate.
+
       store.saveFeatureTaskRuntimeWorkflow(
         workflowRow("wftr-done", "ftr-done", "bill-feature-task", "implement", FeatureTaskWorkflowMode.RUNTIME)
           .copy(workflowStatus = "completed"),
@@ -153,7 +150,7 @@ class WorkflowStateStoreTest {
         "lease_expired: worker lease expired and process confirmed dead",
         interruptionReasonOf(connection, row.workflowId),
       )
-      // Idempotent: a second pass finds no candidate and changes nothing.
+
       assertTrue(store.findFeatureTaskRuntimeCrashReconciliationCandidates("2026-07-14T10:06:00Z").isEmpty())
     }
   }
@@ -295,8 +292,6 @@ class WorkflowStateStoreTest {
 
   @Test
   fun `feature task runtime table contract version default matches schema contract version const`() {
-    // Pin the table default to the validator's schema version so a future
-    // schema bump that forgets it breaks the build, not production writes.
     assertEquals(
       WORKFLOW_STATE_CONTRACT_VERSION,
       DbConstants.FEATURE_TASK_RUNTIME_WORKFLOW_CONTRACT_VERSION,
@@ -366,11 +361,6 @@ class WorkflowStateStoreTest {
     }
   }
 
-  /**
-   * SKILL-141 Subtask 1 AC-007: the paused decomposed-goal parent must survive a persistence
-   * round-trip under its own id and stay non-terminal — no finished timestamp is stamped, so a
-   * later resume still reads it as open work.
-   */
   @Test
   fun `paused parent workflow round-trips under the same id and is not stamped finished`() {
     val dbPath = Files.createTempDirectory("runtime-kotlin-db-workflow-paused").resolve("metrics.db")
@@ -645,8 +635,6 @@ class WorkflowStateStoreLifecycleTest {
       val firstStartedAt = assertNotNull(store.getFeatureTaskRuntimeWorkflow("wftr-started")).startedAt
       assertNotNull(firstStartedAt)
 
-      // A second save of the same workflow_id (e.g. advancing the phase) must not reset
-      // started_at: the upsert leaves it immutable and only refreshes updated_at.
       store.saveFeatureTaskRuntimeWorkflow(
         initialRow.copy(currentStepId = "implement", startedAt = "2099-01-01 00:00:00"),
       )
@@ -705,14 +693,6 @@ class WorkflowStateStoreLifecycleTest {
     }
   }
 
-  /**
-   * SKILL-175 subtask 6 AC-002 quarantine proof. The write path refuses `mode='prose'` writes, so the
-   * ONLY way a genuine legacy prose row exists in the database is one that was persisted before the
-   * engine was retired (or is inserted directly, as done here). Such a row must remain readable by the
-   * store read path and must NEVER be silently reinterpreted as a runtime row: reads surface it as
-   * PROSE, and a runtime-mode read of it loud-fails rather than coercing it. This is the only test in
-   * the suite permitted to carry `mode='prose'` product tokens.
-   */
   @Test
   fun `quarantined legacy prose rows stay readable but are never silently routed as runtime`() {
     val dbPath = Files.createTempDirectory("legacy-prose-quarantine").resolve("metrics.db")
@@ -736,21 +716,17 @@ class WorkflowStateStoreLifecycleTest {
 
       val store = WorkflowStateStore(connection)
 
-      // (a) The prose row stays readable via the store read path, still decoded as prose.
       val prose = assertNotNull(store.getFeatureImplementWorkflow("wfl-legacy-prose-001"))
       assertEquals(FeatureTaskWorkflowMode.PROSE, prose.mode)
       assertEquals("bill-feature-task-prose", prose.implementationSkill)
       assertEquals(DbConstants.FEATURE_IMPLEMENT_WORKFLOW_CONTRACT_VERSION, prose.contractVersion)
 
-      // (b) Reads never silently reinterpret it as runtime: the generic feature-task read surfaces the
-      // same PROSE row, and a runtime-mode read loud-fails instead of coercing it.
       val generic = assertNotNull(store.getFeatureTaskWorkflow("wfl-legacy-prose-001"))
       assertEquals(FeatureTaskWorkflowMode.PROSE, generic.mode)
       assertFailsWith<InvalidWorkflowStateSchemaError> {
         store.getFeatureTaskRuntimeWorkflow("wfl-legacy-prose-001")
       }
 
-      // The write path refuses any prose write, so the row can never be re-created through the store.
       assertFailsWith<ProseFeatureTaskWorkflowWriteRefusedError> {
         store.saveFeatureImplementWorkflow(prose)
       }

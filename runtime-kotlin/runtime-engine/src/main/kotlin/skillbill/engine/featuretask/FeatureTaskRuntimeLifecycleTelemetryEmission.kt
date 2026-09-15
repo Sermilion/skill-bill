@@ -46,12 +46,6 @@ fun emitFeatureTaskRuntimeFinished(
   )
 }
 
-/**
- * [error] contributes its type only. An exception class names the failure mode an operator can act
- * on; its message can carry agent output, paths, or issue text, so it never reaches the wire. Every
- * unhandled-error terminal used to report the same generic sentence, which made eleven distinct
- * failures look like one.
- */
 fun emitFeatureTaskRuntimeFinishedError(
   lifecycleTelemetryService: LifecycleTelemetryService,
   context: FeatureTaskRuntimeFinishedTelemetryContext,
@@ -153,11 +147,6 @@ fun Map<String, String>.firstIncompletePhase(): String =
   entries.firstOrNull { it.value.workflowStepStatus() != WorkflowStepStatus.COMPLETED }?.key?.takeIf(String::isNotBlank)
     ?: "unknown"
 
-/**
- * A paused run reports the reason it stopped, not an empty string. The pause reason is already the
- * runtime's own normalized text, and dropping it left every paused session indistinguishable from
- * every other paused session — which is the whole diagnostic question an operator asks about a pause.
- */
 fun blockedReasonOf(report: FeatureTaskRuntimeRunReport): String = when (report) {
   is FeatureTaskRuntimeRunReport.Blocked -> normalizedBlockedReason(
     reason = report.blockedReason,

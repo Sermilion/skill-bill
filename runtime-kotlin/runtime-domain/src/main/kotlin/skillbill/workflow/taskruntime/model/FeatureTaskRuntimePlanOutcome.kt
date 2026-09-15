@@ -44,17 +44,6 @@ data class FeatureTaskRuntimeDecomposeSubtask(
   val linearIssueId: String? = null,
 )
 
-/**
- * True when a plan phase output is a decomposition package rather than a bounded planning projection.
- *
- * A decompose stop terminates the run at planning, so `implement` never runs and no consumer ever
- * parses an `executable_plan` from it. The package carries its own separately-contracted shape, which
- * [featureTaskRuntimeDecomposePlanOutcomeOrNull] decodes and the planning stopper loud-fails on, so
- * demanding a projection of it would block a correct decompose plan against a contract nothing reads.
- *
- * The absent `projection_kind` is the distinguishing signal: an `executable_plan` projection that
- * merely declares `mode: decompose` is still a projection and stays under the producer gate.
- */
 internal fun featureTaskRuntimeIsDecompositionPackage(phaseOutput: Map<String, Any?>): Boolean {
   val producedOutputs = phaseOutput.stringAnyMap(SharedPayloadKeys.PRODUCED_OUTPUTS) ?: return false
   val packageMap = producedOutputs.stringAnyMap("decomposition_package") ?: return false

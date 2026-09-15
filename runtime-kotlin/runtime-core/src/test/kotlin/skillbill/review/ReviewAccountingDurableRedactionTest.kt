@@ -28,11 +28,6 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/**
- * Content-bearing review inputs are measured, never retained. The summary under test comes from a
- * real run of the production review runner whose diff, rubric, and lane results all carry sentinel
- * bodies, so every absence assertion below has something it could have failed on.
- */
 class ReviewAccountingDurableRedactionTest {
   private val diffBody = "DIFF_SENTINEL ".repeat(64)
   private val guidanceBody = "GUIDANCE_SENTINEL ".repeat(64)
@@ -180,10 +175,6 @@ class ReviewAccountingDurableRedactionTest {
     }
   }
 
-  /**
-   * One production review whose every content-bearing input carries a sentinel: the diff and the
-   * changed guidance file, the resolved rubric, and the lane result.
-   */
   private fun recordedReview(): Pair<ReviewRecorder, ReviewAccountingSummary> {
     val recorder = ReviewRecorder()
     val runner = reviewHarness(

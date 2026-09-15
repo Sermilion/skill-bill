@@ -30,7 +30,7 @@ class AgentRunLauncherProcessTest {
     val captured = runner.requests.single()
     assertEquals("claude", captured.command[0])
     assertEquals(AGENT_RUN_LAUNCHER_PHASE_PROMPT, captured.stdinText)
-    // Delivery mechanics are unchanged: stdin for claude, never a trailing argv token.
+
     assertEquals("--add-dir", captured.command[captured.command.size - 2])
   }
 
@@ -39,7 +39,6 @@ class AgentRunLauncherProcessTest {
     val runner = RecordingAgentRunProcessRunner()
     val request = skillRunRequest(goalContinuation = null).copy(promptOverride = AGENT_RUN_LAUNCHER_PHASE_PROMPT)
 
-    // Junie is the argv-delivered agent (the prompt rides as a trailing argv token, never via stdin).
     requireNotNull(headlessAgentRunAdapters(runner, ALL_EXECUTABLES_AVAILABLE)[InstallAgent.JUNIE]).launch(request)
 
     val captured = runner.requests.single()

@@ -14,14 +14,9 @@ import skillbill.review.model.ReviewRunLane
 import skillbill.review.model.toStoredSegmentIdList
 import java.sql.Connection
 
-/** Bucket for a finding whose producing lane was never recorded; never silently dropped. */
 const val UNATTRIBUTED_LANE: String = "unattributed"
 private const val UNRESOLVED_ROUTED_SKILL: String = "unresolved"
 
-/**
- * Replaces a run's lane set. Delete-then-insert keyed by the run makes a re-import converge on one
- * row per lane instead of accumulating duplicates.
- */
 fun replaceReviewRunLanes(connection: Connection, reviewRunId: String, lanes: List<ReviewRunLane>) {
   reserveReviewRun(connection, reviewRunId)
   connection.prepareStatement("DELETE FROM review_run_lanes WHERE review_run_id = ?").use { statement ->
@@ -68,11 +63,6 @@ fun replaceReviewRunLanes(connection: Connection, reviewRunId: String, lanes: Li
   }
 }
 
-// shortcut: the runtime records a run's launch plan before the review text is imported, so the
-// parent row is reserved here to keep the lane foreign key honest; drop this once review runs gain
-// a registration seam of their own. The import upsert overwrites every reserved placeholder field.
-// Until then the empty raw_text is the marker that distinguishes a reservation from an imported
-// review — see ReviewRuntime.reviewExists, which run-facing reads gate on.
 internal fun reserveReviewRun(connection: Connection, reviewRunId: String) {
   connection.prepareStatement(
     "INSERT OR IGNORE INTO review_runs (review_run_id, review_session_id, raw_text) VALUES (?, ?, '')",
@@ -116,11 +106,6 @@ fun fetchReviewRunLanes(connection: Connection, reviewRunId: String): List<Revie
     }
   }
 
-/**
- * Settles the integration pass's own durable boundary, independent of every lane row. Writing it
- * separately is what lets a resume tell "all lanes done, integration never ran" apart from
- * "everything done" instead of inferring one from the other.
- */
 fun recordIntegrationPass(connection: Connection, reviewRunId: String, record: ReviewIntegrationPassRecord) {
   reserveReviewRun(connection, reviewRunId)
   connection.prepareStatement(
@@ -179,12 +164,6 @@ fun queryReviewLaneEffectiveness(connection: Connection, reviewRunId: String?): 
   }
 }
 
-/**
- * Corrects the lane columns of already-persisted finding rows in place, keyed by
- * (review_run_id, finding_id). An UPDATE rather than a delete-and-reinsert is what makes a lane
- * correction non-destructive: findings cascade-delete their feedback_events, so re-importing an
- * already-triaged run after the composed plan shifts would otherwise erase every disposition.
- */
 fun updateFindingLaneAttribution(
   connection: Connection,
   review: ImportedReview,
@@ -211,10 +190,6 @@ fun updateFindingLaneAttribution(
   }
 }
 
-/**
- * Records finding-to-lane attribution straight from the runtime's own merge result, before the
- * review text exists. Insert-or-replace keyed by (run, finding) keeps a re-run idempotent.
- */
 fun recordFindingLaneAttribution(connection: Connection, reviewRunId: String, attribution: Map<String, String>) {
   if (attribution.isEmpty()) return
   reserveReviewRun(connection, reviewRunId)
@@ -248,7 +223,5 @@ fun fetchFindingLaneAttribution(connection: Connection, reviewRunId: String): Ma
     }
   }
 
-// A finding's producing lane, preferring what the runtime recorded from its own merge result over
-// provenance parsed out of review text.
 internal fun ImportedFinding.effectiveLaneName(recordedLanes: Map<String, String>): String? =
   recordedLanes[findingId] ?: laneSkillName

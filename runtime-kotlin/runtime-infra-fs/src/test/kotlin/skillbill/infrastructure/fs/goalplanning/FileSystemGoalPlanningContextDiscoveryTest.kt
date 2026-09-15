@@ -74,7 +74,7 @@ class FileSystemGoalPlanningContextDiscoveryTest {
       writeEntries(agent.resolve("history.md"), "excluded-history", "excluded body")
     }
     GoalPlanningDiscoveryExclusions.excludedDirectoryNames.forEach { name ->
-      // nested, not repo-root: an anchored-prefix-only gate would walk straight into these
+
       val agent = Files.createDirectories(repo.resolve("runtime-kotlin/module/$name/nested/agent"))
       writeEntries(agent.resolve("history.md"), "excluded-history", "excluded body")
     }
@@ -160,8 +160,6 @@ class FileSystemGoalPlanningContextDiscoveryTest {
     assertTrue(context.boundaryCatalogTruncated)
   }
 
-  // Under a sequential take the alphabetically-first modules consume every slot and the rest of the
-  // repository is invisible to planning.
   @Test
   fun `a large early module cannot starve later modules out of the catalog`() {
     val repo = Files.createTempDirectory("goal-context-fairness")
@@ -190,7 +188,6 @@ class FileSystemGoalPlanningContextDiscoveryTest {
     )
   }
 
-  // validation_guidance rides into every planning prompt, so an unbounded AGENTS.md rides with it.
   @Test
   fun `validation guidance is bounded by its declared cap`() {
     val repo = Files.createTempDirectory("goal-context-guidance-cap")
@@ -215,7 +212,6 @@ class FileSystemGoalPlanningContextDiscoveryTest {
     assertEquals(GoalPlanningContext.MAX_HEADING_TEXT_CHARS, context.boundaryCatalog.single().heading.length)
   }
 
-  // A present-but-unreadable file is not an absent one; skipping it silently claims false completeness.
   @Test
   fun `an unreadable boundary file marks the catalog truncated instead of vanishing`() {
     val repo = Files.createTempDirectory("goal-context-unreadable")
@@ -238,7 +234,6 @@ class FileSystemGoalPlanningContextDiscoveryTest {
     assertTrue(context.boundaryCatalogTruncated, "an unreadable file must not read as a complete catalog")
   }
 
-  // Two different read caps let the passes parse different text and produce disagreeing digests.
   @Test
   fun `discovery and body resolution agree on heading ids for the same file`() {
     val repo = Files.createTempDirectory("goal-context-read-parity")
@@ -256,8 +251,6 @@ class FileSystemGoalPlanningContextDiscoveryTest {
     assertTrue(resolved.unresolvedHeadingIds.isEmpty(), "a catalog id must always resolve against the same read")
   }
 
-  // A file cut at the per-file read cap loses every entry past the cut; reporting completeness there
-  // is the same silent loss as skipping an unreadable file.
   @Test
   fun `a boundary file larger than the per file cap marks the catalog truncated`() {
     val repo = Files.createTempDirectory("goal-context-file-cap")

@@ -15,18 +15,12 @@ import skillbill.review.model.ReviewScopeDisposition
 import skillbill.review.model.ReviewSeverityAdjustment
 
 object ParallelReviewMerger {
-  /**
-   * [integration] is the single integration pass's cross-commit register, merged through the same
-   * clustering as the specialist lanes so an interaction both a lane and the integration pass
-   * noticed still coalesces into one root-cause finding rather than being reported twice.
-   */
+
   fun merge(
     lane1: ParallelReviewLaneResult,
     lane2: ParallelReviewLaneResult,
     integration: ParallelReviewLaneResult? = null,
   ): ParallelReviewMergeResult {
-    // Findings are the single source of truth: callers gate them on lane success, so a failed lane
-    // contributes an empty list here and never leaks into the merged register.
     val candidates = mergeCandidates(lane1, lane2, integration)
 
     val sorted = candidates.sortedWith(
@@ -112,14 +106,9 @@ object ParallelReviewMerger {
     var appearanceOrder = 0
     lane1.findings.forEach { f -> allEntries += FindingEntry(f, lane1.agentId, appearanceOrder++) }
     lane2.findings.forEach { f -> allEntries += FindingEntry(f, lane2.agentId, appearanceOrder++) }
-    // Last, so a specialist lane that saw the same root cause stays the cluster representative.
+
     integration?.findings?.forEach { f -> allEntries += FindingEntry(f, integration.agentId, appearanceOrder++) }
 
-    // Deterministic greedy single pass in insertion order (lane1 entries first, then lane2).
-    // Each entry joins the first existing cluster whose first-inserted representative shares the
-    // same file path AND clears the Jaccard token-overlap threshold; otherwise it opens a new
-    // cluster. The representative's file path and tokens are cached in ClusterHead to avoid
-    // O(N²) recomputation of tokens() on each probe.
     val clusters = mutableListOf<ClusterHead>()
     allEntries.forEach { entry ->
       val entryFilePath = entry.finding.repositoryPath ?: filePathOf(entry.finding.location)
@@ -181,9 +170,7 @@ object ParallelReviewMerger {
   private fun toCandidate(head: ClusterHead): MergedCandidate {
     val entries = head.entries
     val coalesced = entries.map { it.agentId }.distinct().size > 1
-    // Severity and confidence travel together: both come from the most-severe assessment (ties
-    // broken by earliest appearance) so the reported confidence describes the reported severity,
-    // never a severity from one finding paired with the confidence of a lower-severity one.
+
     val primary = entries.minWith(
       compareBy({ it.finding.severity.ordinal }, { it.appearanceOrder }),
     )
@@ -230,27 +217,15 @@ object ParallelReviewMerger {
     )
   }
 
-  // Jaccard token-overlap floor for coalescing two same-file findings. Comparison is strict `>`:
-  // a pair coalesces only when its overlap ratio is strictly above this value. Update here to
-  // retune fuzzy dedup sensitivity — no other code depends on the literal.
   private const val FUZZY_DEDUP_THRESHOLD = 0.6
 
-  // File-path portion of a location field ("file:line" -> "file"). Kotlin's substringBeforeLast
-  // returns the whole string when there is no colon, so colon-less locations fall back to
-  // themselves. Repository path identity is intentionally case-sensitive.
   private fun filePathOf(location: String): String = location.substringBeforeLast(":").trim()
 
-  // Splits a description into word tokens on any non-alphanumeric run. Hoisted to a constant so the
-  // pattern is compiled once, not per pairwise comparison during clustering.
   private val TOKEN_DELIMITER = Regex("[^a-z0-9]+")
 
-  // Word set of a description: lower-cased, split on any non-alphanumeric run, empties dropped.
   private fun tokens(description: String): Set<String> =
     description.lowercase().split(TOKEN_DELIMITER).filter { it.isNotEmpty() }.toSet()
 
-  // Jaccard similarity = |intersection| / |union|. Empty union means both sets are empty, which
-  // returns 1.0 so identical/empty descriptions on the same file still coalesce (preserving
-  // exact-match behaviour); disjoint non-empty sets yield 0.0 from the ratio.
   private fun jaccard(a: Set<String>, b: Set<String>): Double {
     val union = a union b
     if (union.isEmpty()) return 1.0

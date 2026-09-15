@@ -8,10 +8,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-/**
- * Bug this catches: a 5-wide planning wave still presenting to an operator as one planning
- * subtask, which is the under-reporting `goal status` exists to remove.
- */
 class GoalCliStatusPlanningWaveTest {
   @Test
   fun `goal status carries every concurrent planning subtask and names the count on the human line`() {

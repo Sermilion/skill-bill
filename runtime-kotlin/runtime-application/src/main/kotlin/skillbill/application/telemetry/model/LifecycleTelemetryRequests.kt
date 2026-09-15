@@ -8,12 +8,6 @@ data class FeatureTaskRuntimeStartedRequest(
   val correlation: FeatureTaskRuntimeCorrelation = FeatureTaskRuntimeCorrelation(),
 )
 
-/**
- * The identifiers that let a lifecycle record be joined to the rejection and diagnostic records of the
- * same run. Every field is blank/null when the runtime does not know it; nothing here is inferred, and
- * the workflow id is redacted at the emission seam with the same salt the issue key uses so anonymous
- * mode keeps the join without exposing a raw identifier.
- */
 data class FeatureTaskRuntimeCorrelation(
   val workflowId: String = "",
   val goalParentWorkflowId: String? = null,
@@ -29,14 +23,11 @@ data class FeatureTaskRuntimeFinishedRequest(
   val blockedReason: String,
   val resolvedBranch: String,
   val reviewFixIterationCount: Int = 0,
-  // SKILL-140: per-run quarantine-and-regenerate counters (AC-006). Counts and outcome classes only,
-  // sourced from the durable quarantine store and LOOP_EDGE ledger; never agent-self-reported.
+
   val regenerationActivationCount: Int = 0,
   val regenerationAttemptCount: Int = 0,
   val regenerationOutcomeCounts: Map<String, Int> = emptyMap(),
-  // SKILL-140 subtask 5: per-run crash-reconciliation counters (AC-006). How many orphaned runtime
-  // rows the startup pass transitioned to resumable, and the tally by reason class. Counts and class
-  // labels only; never carries row contents. Runtime-owned, never agent-self-reported.
+
   val crashReconciliationCount: Int = 0,
   val crashReconciliationReasonCounts: Map<String, Int> = emptyMap(),
   val estimatedPhaseTokenBreakdownJson: String? = null,
@@ -53,21 +44,12 @@ data class FeatureTaskRuntimeAgentContext(
   val launchedModels: List<String>? = null,
 )
 
-/**
- * SKILL-140: per-run quarantine-and-regenerate telemetry, sourced from durable state. Counts and
- * outcome-class labels only; never carries record contents, prompts, plan bodies, or receipt bodies.
- */
 data class FeatureTaskRuntimeRegenerationTelemetry(
   val activationCount: Int = 0,
   val attemptCount: Int = 0,
   val outcomeCounts: Map<String, Int> = emptyMap(),
 )
 
-/**
- * [reviewFixCapExhausted] is tri-state: exhausted, not exhausted, or `null` when the run holds no
- * durable state to read it from. It is never defaulted to false, because an unmeasured budget and a
- * budget measured as intact are different facts.
- */
 data class FeatureTaskRuntimeFindingVerificationTelemetry(
   val verifiedCount: Int = 0,
   val rejectedCount: Int = 0,

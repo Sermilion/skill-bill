@@ -194,9 +194,7 @@ private fun recoveredBaselineSnapshot(
   val head = branch?.let {
     goalReviewGitValue(repoRoot, "rev-parse", "HEAD")?.trim()?.takeIf(String::isNotBlank)
   }
-  // Prefer the nearest reachable ancestor of the failed base so recovery preserves the pass's
-  // intended scope. Fall back to origin/main|main only when the object is missing or that
-  // nearest-ancestor resolution itself fails.
+
   val nearestAncestor = head?.takeIf {
     request.failureReason == GoalSubtaskReviewInputFailureReason.BASE_NOT_ANCESTOR &&
       runGitCommand(repoRoot, "cat-file", "-e", "$unreachableSha^{commit}") is WorkflowGitOperationResult.Ok

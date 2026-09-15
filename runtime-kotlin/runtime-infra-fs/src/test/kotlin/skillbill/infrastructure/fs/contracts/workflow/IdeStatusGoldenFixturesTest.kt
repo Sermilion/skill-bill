@@ -2,10 +2,6 @@ package skillbill.infrastructure.fs.contracts.workflow
 import skillbill.contracts.workflow.IDE_STATUS_CONTRACT_VERSION
 import kotlin.test.Test
 
-/**
- * SKILL-148 Subtask 1: golden wire snapshots for every workflow family and typed
- * problem outcome. Each fixture must remain schema-valid.
- */
 class IdeStatusGoldenFixturesTest {
   @Test
   fun `feature-task-runtime golden validates`() {
@@ -28,10 +24,6 @@ class IdeStatusGoldenFixturesTest {
     )
   }
 
-  /**
-   * SKILL-183: the model-present shape. The model-absent shape stays pinned by every other
-   * fixture here, which carries no `current_model` key at all.
-   */
   @Test
   fun `feature-task-runtime current-model golden validates`() {
     IdeStatusSchemaValidator.validate(
@@ -54,10 +46,6 @@ class IdeStatusGoldenFixturesTest {
     )
   }
 
-  /**
-   * SKILL-184: current-phase execution present. The absent shape stays pinned by the base
-   * feature-task-runtime golden and by the feature-verify golden (non-goal family unchanged).
-   */
   @Test
   fun `feature-task-runtime current-phase-execution golden validates`() {
     IdeStatusSchemaValidator.validate(
@@ -84,11 +72,6 @@ class IdeStatusGoldenFixturesTest {
     )
   }
 
-  /**
-   * Cursor's merged form carries the effort inside the model string, so no `effort` key is emitted.
-   * The goal-level `current_step` is why `phase_id` exists: without it this payload names a model
-   * whose phase appears nowhere in it.
-   */
   @Test
   fun `feature-goal current-model without effort golden validates`() {
     IdeStatusSchemaValidator.validate(
@@ -171,7 +154,7 @@ class IdeStatusGoldenFixturesTest {
         "current_step" to linkedMapOf("id" to "planning", "label" to "Planning"),
         "progress" to linkedMapOf("completed" to 0, "total" to 5),
         "started_at" to "2026-08-06T08:00:00Z",
-        // Both required and optional planning properties in one fixture.
+
         "planning" to linkedMapOf(
           "state" to "partially_planned",
           "shared_preplan_prepared" to true,
@@ -188,10 +171,6 @@ class IdeStatusGoldenFixturesTest {
     )
   }
 
-  /**
-   * SKILL-230: the concurrent-wave shape. Every other fixture here pins the absent-key shape,
-   * so this one only has to pin the emitted set.
-   */
   @Test
   fun `feature-goal concurrent-planning-wave golden validates`() {
     IdeStatusSchemaValidator.validate(
@@ -232,7 +211,7 @@ class IdeStatusGoldenFixturesTest {
         "issue_key" to "SKILL-168",
         "workflow_id" to "goal-3",
         "workflow_family" to "feature-goal",
-        // Still genuinely running its current subtask; the request is a modifier, not a lifecycle.
+
         "lifecycle_state" to "active",
         "current_step" to linkedMapOf("id" to "implement", "label" to "Implement"),
         "progress" to linkedMapOf("completed" to 1, "total" to 3),
@@ -277,8 +256,7 @@ class IdeStatusGoldenFixturesTest {
         "issue_key" to "SKILL-168",
         "workflow_id" to "goal-5",
         "workflow_family" to "feature-goal",
-        // Paused by lease-expiry inference: no durable pause record, so no paused_at.
-        // updated_at carries the inferred stop anchor instead.
+
         "lifecycle_state" to "paused",
         "current_step" to linkedMapOf("id" to "implement", "label" to "Implement"),
         "progress" to linkedMapOf("completed" to 1, "total" to 3),

@@ -30,8 +30,6 @@ class CliTelemetryStatsWorkflowTest {
 
   @Test
   fun `deprecated runtime-stats alias stays registered`() {
-    // SKILL-132 subtask 4 (AC-002): no documented removal window or migration guidance exists
-    // for this published alias, so it is compatibility-retained rather than deleted.
     val dbPath = Files.createTempDirectory("skillbill-cli-runtime-stats-alias").resolve("metrics.db")
 
     val result =

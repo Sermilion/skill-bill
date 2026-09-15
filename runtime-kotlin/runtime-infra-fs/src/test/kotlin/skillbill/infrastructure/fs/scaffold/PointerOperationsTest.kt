@@ -60,7 +60,7 @@ class PointerOperationsTest {
       "platform-packs/fixturepack/code-review/skill/b.md",
     )
     Files.createDirectories(pointerB.parent)
-    Files.writeString(pointerB, "../../../shared/b.md") // pre-existing, will be re-rendered
+    Files.writeString(pointerB, "../../../shared/b.md")
     val original = Files.readAllBytes(pointerB)
 
     val originalBytes = mutableMapOf<Path, ByteArray>()
@@ -75,7 +75,7 @@ class PointerOperationsTest {
     val createdNames = createdPaths.map { it.fileName.toString() }
     assertTrue("a.md" in createdNames, "expected newly-created a.md to be tracked: $createdNames")
     assertFalse("b.md" in createdNames, "expected pre-existing b.md to NOT be in createdPaths: $createdNames")
-    // originalBytes records the pre-existing bytes for b.md
+
     assertContentEquals(
       original,
       originalBytes[pointerB.normalize()] ?: error("expected originalBytes entry for $pointerB"),
@@ -95,19 +95,15 @@ class PointerOperationsTest {
     val originalBytes = mutableMapOf<Path, ByteArray>()
     val createdPaths = mutableListOf<Path>()
 
-    // First regenerate -> renderer rewrites pointerA, originalBytes captures veryFirstBytes.
     PointerOperations.regenerate(repoRoot, originalBytes, createdPaths)
     assertContentEquals(
       veryFirstBytes,
       originalBytes[pointerA] ?: error("expected originalBytes entry after first regenerate"),
     )
 
-    // Manually drift pointerA to simulate a second tool overwrite, then call regenerate again.
     Files.write(pointerA, "DRIFTED".toByteArray(Charsets.UTF_8))
     PointerOperations.regenerate(repoRoot, originalBytes, createdPaths)
 
-    // Second regenerate must not clobber originalBytes — the very first bytes win, so
-    // rollback restores the pre-tool state, not the intermediate drift.
     assertContentEquals(
       veryFirstBytes,
       originalBytes[pointerA] ?: error("expected originalBytes still set after second regenerate"),
@@ -122,8 +118,7 @@ class PointerOperationsTest {
       "platform-packs/fixturepack/code-review/skill/a.md",
     ).normalize()
     Files.createDirectories(pointerA.parent)
-    // Pre-create a SYMLINK with a deliberately wrong target. Skip on filesystems that refuse
-    // symbolic links so this test stays cross-platform safe.
+
     val symlinksSupported = runCatching {
       Files.createSymbolicLink(pointerA, Path.of("../../../wrong/target.md"))
     }.fold(onSuccess = { true }, onFailure = { it !is FileSystemException && it !is UnsupportedOperationException })
@@ -150,7 +145,7 @@ class PointerOperationsTest {
       "platform-packs/fixturepack/code-review/skill/a.md",
     ).normalize()
     Files.createDirectories(pointerA.parent)
-    Files.writeString(pointerA, "../../../stale/a.md") // regular file, stale content
+    Files.writeString(pointerA, "../../../stale/a.md")
 
     val originalBytes = mutableMapOf<Path, ByteArray>()
     val createdPaths = mutableListOf<Path>()
@@ -167,8 +162,7 @@ class PointerOperationsTest {
       String(recovered, Charsets.UTF_8),
       "originalBytes must hold the pre-existing text-file bytes",
     )
-    // Final form: a symlink on Linux/macOS, or a regular text file on filesystems where
-    // createSymbolicLink failed and we fell back to atomic-write.
+
     if (Files.isSymbolicLink(pointerA)) {
       val target = Files.readSymbolicLink(pointerA).toString().replace('\\', '/')
       assertEquals("../../../../shared/a.md", target)
@@ -200,9 +194,6 @@ class PointerOperationsTest {
 
   @Test
   fun `regenerate does NOT write through an existing symlink to corrupt its target`() {
-    // Latent-bug regression: prior implementation did Files.write(pointerFile, ...) which would
-    // follow a symlink and overwrite the orchestration playbook on Linux. This test asserts the
-    // shared target file is left alone even when the symlink is stale.
     val repoRoot = setupRepoWithTwoPointers()
     val pointerA = repoRoot.resolve(
       "platform-packs/fixturepack/code-review/skill/a.md",
@@ -225,10 +216,6 @@ class PointerOperationsTest {
     )
   }
 
-  /**
-   * Lays out a repo with one platform pack `fixturepack` declaring two pointers, with their
-   * targets present on disk. Pointer files themselves are NOT pre-written by this helper.
-   */
   private fun setupRepoWithTwoPointers(): Path {
     val repoRoot = temp.resolve("repo-${System.nanoTime()}")
     Files.createDirectories(repoRoot.resolve("shared"))

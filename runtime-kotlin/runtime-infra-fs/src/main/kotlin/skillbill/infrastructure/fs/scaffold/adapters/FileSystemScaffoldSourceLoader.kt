@@ -14,21 +14,6 @@ import java.nio.file.InvalidPathException
 import java.nio.file.Path
 import skillbill.infrastructure.fs.scaffold.platformpack.loadPlatformPack as fsLoadPlatformPack
 
-/**
- * Filesystem adapter for [ScaffoldSourceLoaderPort]. Delegates to the existing
- * `skillbill.scaffold.loadPlatformPack` parse seam in `runtime-infra-fs`, which owns the
- * `platform.yaml` schema validation and on-disk file reading.
- *
- * SKILL-52.1 subtask 3 also collected the IO-coupled add-on consumer-skill-dir validators
- * that previously lived at top-level inside `skillbill.scaffold.ScaffoldService.kt` into
- * this adapter:
- *  - [resolveAddonConsumerSkillDirs] (parses and de-dups the requested consumer dirs)
- *  - [validateAddonConsumerSkillDir] (normalizes one dir + checks it against the pack
- *    layout on disk)
- *
- * The architecture test `ImplementationOwnershipArchitectureTest` asserts the FQN of those
- * functions resolves to this adapter, not to top-level `skillbill.scaffold`.
- */
 @Inject
 class FileSystemScaffoldSourceLoader : ScaffoldSourceLoaderPort {
   override fun loadPlatformPack(request: ScaffoldPlatformPackLoadRequest): ScaffoldPlatformPackLoadResult =
@@ -37,16 +22,6 @@ class FileSystemScaffoldSourceLoader : ScaffoldSourceLoaderPort {
       manifest = fsLoadPlatformPack(request.packRoot),
     )
 
-  /**
-   * Resolves the `consumer_skill_dirs` payload entry against a loaded [pack]. Returns the
-   * normalized, de-duplicated list of skill-relative directories. Falls back to the pack's
-   * baseline skill directory when the payload field is absent. Packs without a baseline may use
-   * their only manifest-declared skill directory as the default; packs with no unambiguous default
-   * fail before scaffold planning can mutate files.
-   *
-   * Replaces the legacy top-level `resolveAddonConsumerSkillDirs` in
-   * `skillbill.scaffold.ScaffoldService.kt`.
-   */
   internal fun resolveAddonConsumerSkillDirs(
     payload: Map<String, Any?>,
     packRoot: Path,
@@ -64,14 +39,6 @@ class FileSystemScaffoldSourceLoader : ScaffoldSourceLoaderPort {
     }.filter { dir -> seen.add(dir) }
   }
 
-  /**
-   * Validates and normalizes a single skill-relative directory string against the loaded
-   * [pack]. Rejects absolute paths, parent-segment escapes, and references to non-declared
-   * skill directories.
-   *
-   * Replaces the legacy top-level `validateAddonConsumerSkillDir` in
-   * `skillbill.scaffold.ScaffoldService.kt`.
-   */
   internal fun validateAddonConsumerSkillDir(pack: PlatformManifest, skillRelativeDir: String): String {
     val relative = parseRelativePath(skillRelativeDir)
     if (relative.isAbsolute || skillRelativeDir.startsWith("/") || skillRelativeDir.startsWith("\\")) {

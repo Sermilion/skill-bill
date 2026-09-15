@@ -17,10 +17,6 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputValidat
 import skillbill.workflow.taskruntime.model.NormalizedFeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.requireAccepted
 
-/**
- * Bridges the domain-owned [FeatureTaskRuntimePhaseOutputValidator] port to the
- * concrete [FeatureTaskRuntimePhaseOutputSchemaValidator].
- */
 @Inject
 class FeatureTaskRuntimePhaseOutputValidatorAdapter : FeatureTaskRuntimePhaseOutputValidator {
   override fun validatePhaseOutput(
@@ -94,10 +90,6 @@ class FeatureTaskRuntimePhaseOutputValidatorAdapter : FeatureTaskRuntimePhaseOut
     }
   }
 
-  /**
-   * The lenient normalization of a phase output the structural gate rejected, or null when it does
-   * not settle either. Null keeps the original rejection; it never invents an acceptance.
-   */
   private fun leniently(phaseOutputText: String, sourceLabel: String): NormalizedFeatureTaskRuntimePhaseOutput? {
     if (sourceLabel !in LENIENT_VERIFYING_PHASE_OUTPUT_SCHEMA) return null
     return try {

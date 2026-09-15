@@ -22,12 +22,6 @@ import skillbill.ports.workflow.model.FeatureTaskRouteScope
 import java.nio.file.Path
 import java.time.Clock
 
-/**
- * SKILL-148 Subtask 1: read-only application projection for IDE status.
- *
- * Side-effect free beyond process-local reads: no workflow transition, manifest
- * rewrite, lease acquisition, telemetry mutation, or database write.
- */
 @Inject
 class IdeStatusService(
   private val database: DatabaseSessionFactory,
@@ -90,17 +84,6 @@ class IdeStatusService(
     }
   }
 
-  /**
-   * The widget answers "what is happening on the branch I am looking at", so candidates
-   * whose issue key does not appear in the checked-out branch name are dropped. With no
-   * resolvable branch (detached HEAD, rebase) scoping is disabled instead of hiding work.
-   *
-   * A protected base branch (`main`/`master`/`trunk`) also disables scoping. Work only
-   * acquires its issue-named branch at the `create_branch` step, which for a goal runs at
-   * the first subtask launch — so between goal start and that step the run sits on the base
-   * branch and name-matching would hide the very work the surface exists to report. A base
-   * branch is not a feature context to scope to, so the answer there is repository-wide.
-   */
   private fun scopeToBranch(candidates: List<IdeStatusCandidate>, branch: String?): List<IdeStatusCandidate> {
     if (branch == null) return candidates
     if (FeatureTaskRuntimeBranchSetup.protectedBranchName(branch) != null) return candidates
@@ -176,10 +159,6 @@ class IdeStatusService(
   }
 }
 
-/**
- * Resolve canonical repository identity without direct file-IO helpers: existence and the
- * `.git` walk use `Path.toRealPath()`, matching `goalRepositoryIdentity`.
- */
 internal fun resolveRepositoryIdentity(
   repoRootArg: String,
   repositoryEnclosingRootPort: RepositoryEnclosingRootPort,

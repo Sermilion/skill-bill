@@ -32,11 +32,6 @@ class GoalRunnerExecutionAlreadyRunningException(parentWorkflowId: String, detai
   "Goal parent '$parentWorkflowId' cannot start: $detail",
 )
 
-/**
- * Adapt a goal execution lease into the worker ownership the supervisor inspects and terminates.
- * Shared by the execution coordinator's reclaim path and the stop verb so both judge liveness and
- * process identity by exactly the same evidence.
- */
 fun GoalRunnerExecutionLease.asWorkerOwnership(parentWorkflowId: String) = FeatureTaskRuntimeWorkerOwnership(
   workflowId = parentWorkflowId,
   generation = generation,
@@ -126,13 +121,6 @@ class DefaultGoalRunnerExecutionCoordinator(
     }
   }
 
-  /**
-   * The whole shutdown-hook body: exactly one durable write, bounded, and silent on failure. It runs
-   * on an already-dying JVM, so it never terminates anything, never blocks past
-   * [SHUTDOWN_WRITE_BUDGET], and never lets a throw degrade exit. `overwriteExistingReason = false`
-   * makes it idempotent with the stop verb — a stop that killed this process already wrote the more
-   * specific `operator_stop`, and the hook leaves it alone.
-   */
   fun recordInterruption(parentWorkflowId: String) {
     daemonThreadPort.runWithJoinBudget(
       action = {
@@ -170,12 +158,6 @@ class DefaultGoalRunnerExecutionCoordinator(
     }
   }
 
-  /**
-   * A second `skill-bill goal` in the same second (Cursor sandbox + real spawn) must wait for the
-   * winner instead of exiting blocked — otherwise the agent turn ends and reaps the live runner.
-   * A lease older than [DUPLICATE_LAUNCH_WINDOW] is a separate session (Claude, Codex, tmux) and
-   * still fails closed so those agents keep the immediate "already running" signal.
-   */
   private fun reclaimAfterLiveOwner(
     parentWorkflowId: String,
     existing: GoalRunnerExecutionLease,
@@ -235,7 +217,6 @@ class DefaultGoalRunnerExecutionCoordinator(
     val DUPLICATE_LAUNCH_WINDOW: Duration = Duration.ofSeconds(60)
     const val HEARTBEAT_SECONDS: Long = 10
 
-    /** Hard ceiling on how long a blocked database may hold up JVM shutdown. */
     val SHUTDOWN_WRITE_BUDGET: Duration = Duration.ofSeconds(2)
   }
 }

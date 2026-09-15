@@ -43,8 +43,6 @@ class TelemetryOutboxStoreTest {
     }
   }
 
-  // SKILL-136 subtask 6 AC-001: the success path clears the error signal to SQL NULL, not to ''.
-  // Writing '' here is what made 10,495 healthy rows indistinguishable from failed ones.
   @Test
   fun `marking an event synced clears last_error to SQL NULL`() {
     withOutbox { connection, store ->
@@ -81,7 +79,6 @@ class TelemetryOutboxStoreTest {
     }
   }
 
-  // A store still carrying the pre-migration '' convention must not have those rows read as errors.
   @Test
   fun `latestError ignores legacy empty-string rows`() {
     withOutbox { connection, store ->
@@ -94,7 +91,6 @@ class TelemetryOutboxStoreTest {
     }
   }
 
-  // AC-009: the outbox still drains fully with the nullable column in place.
   @Test
   fun `the outbox drains fully after every row is marked synced`() {
     withOutbox { _, store ->
@@ -110,8 +106,6 @@ class TelemetryOutboxStoreTest {
     }
   }
 
-  // SKILL-163 AC-001/AC-003: the version is recorded at insert time from the store's own value, so
-  // no payload-builder call site has to pass it.
   @Test
   fun `enqueue records the running skill-bill version without the caller supplying it`() {
     withOutbox { connection, store ->
@@ -140,7 +134,6 @@ class TelemetryOutboxStoreTest {
     }
   }
 
-  // SKILL-170 AC-002: the status surface needs a never-synced/synced distinction that survives a non-empty outbox.
   @Test
   fun `lastSyncedAt is null until a row is marked synced`() {
     withOutbox { _, store ->
@@ -156,8 +149,6 @@ class TelemetryOutboxStoreTest {
     }
   }
 
-  // SKILL-236 AC-001: two real emissions can carry byte-identical payloads and the same timestamp.
-  // Anything derived from content would fold them into one logical receiver event.
   @Test
   fun `identical payloads enqueued at the same timestamp get distinct identities`() {
     withOutbox { connection, store ->
@@ -178,8 +169,6 @@ class TelemetryOutboxStoreTest {
     }
   }
 
-  // SKILL-236 AC-001: review health materialization rewrites payload_json after enqueue. An identity
-  // recomputed from content would change under that rewrite and the retry would arrive as a new event.
   @Test
   fun `an identity survives a payload rewrite after enqueue`() {
     withOutbox { connection, store ->
@@ -196,8 +185,6 @@ class TelemetryOutboxStoreTest {
     }
   }
 
-  // SKILL-236 AC-003: the pre-claim drain handed the same unclaimed rows to every concurrent drainer,
-  // so both sent them. Two drainers over one real database file must partition the queue instead.
   @Test
   fun `concurrent drainers claim disjoint rows and lose none`() {
     val dbPath = Files.createTempDirectory("runtime-kotlin-db-outbox-claim").resolve("metrics.db")
@@ -224,7 +211,6 @@ class TelemetryOutboxStoreTest {
     }
   }
 
-  // SKILL-236 AC-003: a drainer that dies mid-flight would otherwise strand its claimed rows forever.
   @Test
   fun `an expired claim is reclaimable so a crashed drainer strands nothing`() {
     withOutbox { _, store ->
@@ -249,8 +235,6 @@ class TelemetryOutboxStoreTest {
     }
   }
 
-  // SKILL-236 AC-003/AC-006: a row that keeps failing must stop being replayed and must become
-  // visible as blocked, rather than looping through every drain forever.
   @Test
   fun `a row past the attempt budget stops being claimed and reports as blocked`() {
     withOutbox { _, store ->

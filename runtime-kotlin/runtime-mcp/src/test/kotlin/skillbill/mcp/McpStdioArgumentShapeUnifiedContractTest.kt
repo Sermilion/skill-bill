@@ -9,19 +9,6 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/**
- * F-003 (review-run rvw-20260519-162500-a2d4): both argument-shape
- * failure paths — the strict-args gate in `McpStdioServer.callToolResult`
- * (unknown / additional property at the JSON-RPC `arguments` map) AND
- * the schema validator in `McpToolDispatcher.call` (missing required,
- * enum mismatch, type mismatch, oneOf/discriminator mismatch) — surface
- * uniformly as MCP `isError=true` results. Transport-level JSON-RPC
- * errors are reserved for protocol violations only. This test pins the
- * unified contract so future drift between the two seams fails the
- * build. See also
- * `orchestration/contracts/telemetry-event-schema.yaml`
- * `x-coherence-checks.argument-shape-failures-surface`.
- */
 class McpStdioArgumentShapeUnifiedContractTest {
 
   @Test
@@ -49,12 +36,6 @@ class McpStdioArgumentShapeUnifiedContractTest {
 
   @Test
   fun `schema validator missing required field surfaces as isError=true`() {
-    // `feature_verify_started` requires `acceptance_criteria_count` etc.; omit
-    // ALL required keys so the schema validator throws inside the
-    // dispatcher. The dispatcher's
-    // `InvalidTelemetryEventSchemaError` is mapped by
-    // `McpStdioServer.callToolResult` to `isError=true`, mirroring the
-    // strict-args path above.
     val response =
       decodeStdioObject(
         McpStdioServer.handleLine(
@@ -73,8 +54,7 @@ class McpStdioArgumentShapeUnifiedContractTest {
     val payload = decodeFirstTextContent(result)
     assertEquals("error", payload["status"])
     assertEquals("feature_verify_started", payload["tool"])
-    // The composed message carries the event name and the field path
-    // of the first offending required key.
+
     val lowerError = payload["error"].toString().lowercase()
     assertContains(lowerError, "feature_verify_started")
     assertTrue(

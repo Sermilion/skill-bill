@@ -78,8 +78,7 @@ class CliRuntimeShellCommandsTest {
     assertContains(rootHelp.stdout, "new-addon")
     assertContains(rootHelp.stdout, "install")
     assertContains(rootHelp.stdout, "verify-workflow")
-    // Clikt help tables pad command names; reject a dedicated `workflow` row while keeping
-    // `verify-workflow` and incidental mentions of the word elsewhere.
+
     assertFalse(
       Regex("""(?m)^\s*workflow\s{2,}""").containsMatchIn(rootHelp.stdout),
       "root help must not list the removed workflow command",
@@ -87,8 +86,7 @@ class CliRuntimeShellCommandsTest {
     val workflowHelp = CliRuntime.run(listOf("workflow", "--help"))
     val workflowContinue = CliRuntime.run(listOf("workflow", "continue"))
     val verifyWorkflowHelp = CliRuntime.run(listOf("verify-workflow", "--help"))
-    // The removed `workflow` command is unknown: `--help` falls through to the root help
-    // (exit 0, no workflow-specific help) while any other invocation errors (exit 1).
+
     assertEquals(0, workflowHelp.exitCode)
     assertContains(workflowHelp.stdout, "Usage: skill-bill")
     assertEquals(1, workflowContinue.exitCode)

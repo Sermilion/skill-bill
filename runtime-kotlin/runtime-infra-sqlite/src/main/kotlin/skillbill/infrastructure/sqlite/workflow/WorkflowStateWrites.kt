@@ -120,10 +120,6 @@ internal fun Connection.upsertFeatureTaskWorkflowRow(
   }
 }
 
-/**
- * Status/artifact terminalization for an existing legacy prose row. Updates only status, artifacts,
- * finished_at, and related timestamps — never touches `mode`, so the row stays prose.
- */
 internal fun Connection.terminalizeLegacyProseFeatureTaskWorkflowRow(row: WorkflowStateRecord) {
   val transitionTimestamp = nextStateEnteredAtSql("feature_task_workflows")
   prepareStatement(

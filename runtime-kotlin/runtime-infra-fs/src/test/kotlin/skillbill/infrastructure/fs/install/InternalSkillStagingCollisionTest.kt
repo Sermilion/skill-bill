@@ -208,15 +208,11 @@ class InternalSkillStagingCollisionTest : InternalSkillStagingTestSupport() {
 
   @Test
   fun `pack-aware staging is byte-identical to pre-change when no skill opts in`() {
-    // Inertness (criterion 5): with no opted-in repo skill, the parent stages identically whether
-    // or not the pack-aware mechanism is present. Concretely: no sidecar, no hash contribution.
     val fixture = setupParentWithInternalPackChild()
 
-    // No pack opt-in: the parent stages with no sidecars.
     val inert = stageInstalledSkill(fixture.repoRoot, fixture.parentDir, fixture.home)
     assertTrue(inert.renderedSidecarFiles.isEmpty(), "inert staging must carry no sidecars")
 
-    // A second staging with an empty selectedPackSkills list must be byte-identical.
     val inertExplicitEmpty = stageInstalledSkill(
       StageInstalledSkillInput(
         repoRoot = fixture.repoRoot,
@@ -250,7 +246,6 @@ class InternalSkillStagingCollisionTest : InternalSkillStagingTestSupport() {
       "an internal pack skill must not stage standalone or link into skills_dir",
     )
 
-    // PD6 verify-only: native-agent source roots keep enumerating the internal pack skill.
     val sourceRoots = nativeAgentSourceRoots(skills, selectedPlatformSlugs = setOf("kotlin"))
     assertTrue(
       packInternal.sourceDir.toPath() in sourceRoots,

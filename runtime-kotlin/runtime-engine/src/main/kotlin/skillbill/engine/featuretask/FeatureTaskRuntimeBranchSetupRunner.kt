@@ -9,19 +9,6 @@ import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import skillbill.ports.workflow.gitops.repositoryOwnedPaths
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeResolvedBranch
 
-/**
- * Owns the distinct pre-`implement` run-setup step that guarantees a non-default feature branch is
- * checked out before any file-mutating phase runs. Git side effects go only through the injected
- * [WorkflowGitOperations] port (no filesystem/process IO here); the resolved branch is persisted
- * through the [FeatureTaskRuntimePhaseRecorder] so resume re-attaches to the same branch.
- *
- * Idempotency: a persisted branch is re-attached by reconciling the real git HEAD with it — a
- * no-op when HEAD already sits on it, a single checkout otherwise (never creating a second/divergent
- * branch); a fresh resolution is persisted exactly once. Loud-fail: a failed/non-landing checkout,
- * an unreadable current branch, a resolution that lands on a protected branch, or a resolved branch
- * that could not be durably recorded returns [FeatureTaskRuntimeBranchSetupOutcome.Blocked] rather
- * than letting any file-mutating phase proceed on the default branch.
- */
 @Inject
 class FeatureTaskRuntimeBranchSetupRunner(
   private val recorder: FeatureTaskRuntimePhaseRecorder,
@@ -62,11 +49,6 @@ class FeatureTaskRuntimeBranchSetupRunner(
     }
   }
 
-  // Resume re-attach: reconcile the real git HEAD with the persisted branch. When HEAD already sits
-  // on the persisted branch this is a no-op; otherwise it checks out the persisted branch and only
-  // returns established once HEAD is actually on it, blocking loudly if the checkout fails or HEAD
-  // does not land on the persisted branch. Never returns established while HEAD is on a different
-  // (possibly default/protected) branch.
   private fun reattachPersisted(
     request: FeatureTaskRuntimeRunRequest,
     observability: FeatureTaskRuntimeRunObservability,
@@ -85,10 +67,6 @@ class FeatureTaskRuntimeBranchSetupRunner(
     }
   }
 
-  // Reconciles the real HEAD with the persisted branch, returning a block reason when reconciliation
-  // fails. A no-op when HEAD already sits on the persisted branch; otherwise it first proves the
-  // persisted branch still exists (refusing to let checkout create a second/divergent branch off the
-  // current HEAD) and only then checks it out, requiring HEAD to actually land on it.
   private fun reattachBlockedReason(
     request: FeatureTaskRuntimeRunRequest,
     persistedBranch: String,
@@ -104,9 +82,6 @@ class FeatureTaskRuntimeBranchSetupRunner(
     }
   }
 
-  // Proves the persisted branch still exists before any checkout, refusing to let checkout create a
-  // second/divergent branch off the current HEAD; returns a block reason when existence is
-  // unreadable or the branch is gone, else null.
   private fun persistedBranchUnusableReason(
     request: FeatureTaskRuntimeRunRequest,
     persistedBranch: String,
@@ -121,8 +96,6 @@ class FeatureTaskRuntimeBranchSetupRunner(
     }
   }
 
-  // Checks out the (already-proven-existing) persisted branch and requires HEAD to land on it;
-  // returns a block reason when the checkout fails or HEAD does not land on it, else null.
   private fun checkoutAndConfirmReason(
     request: FeatureTaskRuntimeRunRequest,
     persistedBranch: String,
@@ -174,8 +147,6 @@ class FeatureTaskRuntimeBranchSetupRunner(
       ?: establishBranch(request, observability, branch, baseBranch, created = true)
   }
 
-  // Re-confirms the actual working-tree branch after a checkout reported ok: re-reads currentBranch
-  // and blocks loudly when HEAD did not land on [expectedBranch] or landed on a protected branch.
   private fun landedBranchBlockedReason(request: FeatureTaskRuntimeRunRequest, expectedBranch: String): String? {
     val landed = gitOperations.currentBranch(request.repoRoot)
     if (landed !is WorkflowGitOperationResult.Ok) {
@@ -237,7 +208,6 @@ class FeatureTaskRuntimeBranchSetupRunner(
   }
 }
 
-/** Outcome of the branch-setup step: an established branch name, or a loud block with a reason. */
 internal sealed interface FeatureTaskRuntimeBranchSetupOutcome {
   val establishedBranch: String?
   val blockedReason: String?

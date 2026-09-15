@@ -16,11 +16,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
-/**
- * SKILL-136 subtask 4 AC-007: the CLI and MCP review-import surfaces resolve attribution through the
- * same ingestion path, so an unresolvable value is recorded identically as the explicit unresolved
- * marker on both, and a resolver-contract failure is the same typed error on both.
- */
 class ReviewAttributionResolutionParityTest {
   private val resolvableReview =
     """
@@ -80,8 +75,6 @@ class ReviewAttributionResolutionParityTest {
 
   @Test
   fun `a resolver contract failure is the same typed error for both surfaces`() {
-    // Both surfaces build ReviewService from the same component and resolve through this single
-    // seam, so a malformed catalog raises one typed error rather than a per-surface fallback.
     val malformedCatalog = setOf("Bill KMP Code Review")
 
     val routedFailure = assertFailsWith<ReviewAttributionResolutionError.MalformedVocabulary> {

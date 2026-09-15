@@ -38,8 +38,6 @@ class GitProtectedBranchPushGuardTest {
     remote.toFile().deleteRecursively()
   }
 
-  // The rewrite that dropped two merged commits from main: a lease push cannot protect a branch
-  // whose remote-tracking ref is stale, so the refusal has to come before git runs.
   @Test
   fun `a lease push to a protected branch is refused before git runs`() {
     val remoteHeadBefore = remoteHead()

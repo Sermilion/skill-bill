@@ -33,7 +33,6 @@ internal data class ReviewOutputClassification(
   val admission: ReviewOutputAdmission,
 )
 
-/** Schema repair is a narrow envelope repair path, never a recovery path for process failure. */
 internal fun classifyReviewOutput(
   facts: AgentRunLaunchFacts,
   resultEnvelopeValid: Boolean,

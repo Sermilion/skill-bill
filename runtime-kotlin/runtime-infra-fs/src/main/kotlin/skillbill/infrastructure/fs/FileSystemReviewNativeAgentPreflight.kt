@@ -21,10 +21,7 @@ class FileSystemReviewNativeAgentPreflight(
 ) : ReviewNativeAgentPreflightPort {
   override fun verify(request: ReviewNativeAgentPreflightRequest) {
     val home = environment.userHome
-    // sourceRoot is intentionally omitted: passing it would let read() bootstrap trust from
-    // whatever links currently exist on disk when the durable inventory is missing, so a
-    // tampered artifact could validate against a digest computed from itself. Preflight must
-    // reject a missing inventory outright; only install/reconcile may legitimately bootstrap it.
+
     val inventory = NativeAgentLinkInventory.read(home, emptyList())
     request.assignments.distinct().forEach { assignment ->
       val agentId = assignment.agentId

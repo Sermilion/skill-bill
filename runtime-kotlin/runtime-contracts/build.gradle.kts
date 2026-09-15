@@ -12,9 +12,6 @@ dependencies {
   testImplementation(libs.kotlin.test)
 }
 
-// SKILL-174: the discovery-exclusion contract is the single deny source shared by filesystem
-// discovery (runtime-infra-fs) and shared-context packet migration (runtime-application), so it
-// stages onto this module's classpath rather than either consumer's.
 val canonicalGoalPlanningDiscoveryExclusionsPath: String =
   rootProject.projectDir.parentFile
     .resolve("orchestration/contracts/goal-planning-discovery-exclusions.yaml")
@@ -85,9 +82,6 @@ sourceSets.named("main") {
   resources.srcDir(layout.buildDirectory.dir("generated/skillbill-contracts"))
 }
 
-// Every task that consumes the generated resource directory must declare the dependency, not just
-// the two obvious ones: skillbill.jvm-library calls withSourcesJar(), so sourcesJar reads this
-// source set too and fails on a clean build without it.
 listOf("processResources", "processTestResources", "sourcesJar").forEach { consumer ->
   tasks.matching { task -> task.name == consumer }.configureEach {
     dependsOn(

@@ -19,11 +19,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.coroutines.cancellation.CancellationException
 
-/**
- * Draft 2020-12 validator for the delivered handoff envelope, reached by the runtime only through
- * the domain-owned port. Any violation fails with [InvalidFeatureTaskRuntimeHandoffProjectionError];
- * the message carries schema locations, never projection bodies.
- */
 object FeatureTaskRuntimeHandoffEnvelopeSchemaValidator {
   private val schema: JsonSchema by lazy { loadHandoffEnvelopeSchema() }
   private val mapper: ObjectMapper by lazy { ObjectMapper() }
@@ -47,7 +42,6 @@ object FeatureTaskRuntimeHandoffEnvelopeSchemaValidator {
     }
   }
 
-  // Schema locations only; a violated instance path names where the drift is without quoting values.
   private fun firstProjectionLocation(errors: Set<ValidationMessage>): String =
     errors.minByOrNull { it.instanceLocation?.toString().orEmpty() }
       ?.instanceLocation?.toString()?.ifBlank { "<root>" }

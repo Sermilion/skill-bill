@@ -27,14 +27,6 @@ import kotlin.coroutines.cancellation.CancellationException
 private val decompositionManifestLog: Logger =
   Logger.getLogger("skillbill.contracts.workflow.DecompositionManifestSchemaValidator")
 
-/**
- * Public parse-seam validator for decomposition manifest wire payloads.
- *
- * SKILL-52 moved this API from `runtime-domain` to `runtime-contracts` so
- * schema validation remains owned by the runtime contract boundary. Callers
- * should import this package directly; legacy domain shims are intentionally
- * not provided because domain code must not own runtime schema loading.
- */
 object DecompositionManifestSchemaValidator {
   private val schema: JsonSchema by lazy { loadDecompositionManifestSchema() }
   private val mapper: ObjectMapper by lazy { ObjectMapper() }

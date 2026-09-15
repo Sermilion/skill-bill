@@ -7,10 +7,7 @@ import dev.skillbill.intellij.domain.StatusDiagnostic
 import java.time.Duration
 import java.time.Instant
 
-/**
- * Exhaustive domain → UI mapping. Elapsed durations come only from authoritative
- * start timestamps via [now]; absent starts stay absent (never synthesized).
- */
+
 object StatusUiMapper {
     const val POLL_TIMEOUT_NOTE: String = "Status poll timed out. Showing the last live snapshot."
     const val POLL_CANCELLED_NOTE: String = "Status poll was cancelled. Showing the last live snapshot."
@@ -167,10 +164,10 @@ object StatusUiMapper {
                         outcome.currentSubtaskId,
                         outcome.progressCompleted,
                     ),
-                    // A Stale built from the persisted display cache carries no model — the cache
-                    // deliberately stores none, so a phase's model is never resurrected from disk
-                    // after a restart. The Model row is therefore absent until a live poll lands;
-                    // that missing row is the cache being honest, not a parse failure.
+
+
+
+
                     currentModel = outcome.currentModel,
                     currentPhaseExecution = outcome.currentPhaseExecution,
                     lastAgentActivityAt = outcome.lastAgentActivityAt,
@@ -278,34 +275,17 @@ object StatusUiMapper {
         }
     }
 
-    /**
-     * Anchor for work that is no longer running. Elapsed for a settled state is measured
-     * to its last authoritative update, not to wall-clock now — otherwise an abandoned
-     * goal reports an ever-growing duration that reads as ongoing execution. Falls back
-     * to [now] only when no authoritative update exists.
-     */
+    
     fun settledAt(updatedAt: Instant?, now: Instant): Instant = updatedAt ?: now
 
-    /**
-     * Elapsed from an authoritative start. Returns null when start is absent.
-     * Wall-clock rollback (now before start) yields [Duration.ZERO], never negative.
-     */
+    
     fun elapsed(startedAt: Instant?, now: Instant): Duration? {
         if (startedAt == null) return null
         val millis = now.toEpochMilli() - startedAt.toEpochMilli()
         return if (millis <= 0L) Duration.ZERO else Duration.ofMillis(millis)
     }
 
-    /**
-     * The goal clock. Prefers the runtime's accumulated execution time, which excludes the stretches
-     * a goal spends blocked, paused, or simply unattended between runs — `now - startedAt` counts all
-     * of those as work and reports an overnight gap as hours of progress.
-     *
-     * [asOf] is present only while a lease is live; the tail since then is added so the clock ticks
-     * between polls, and the next heartbeat folds that same tail into [accumulatedMs] without
-     * double counting. Falls back to wall clock when the snapshot carries no accumulated value,
-     * which keeps older runtimes and non-goal families rendering exactly as before.
-     */
+    
     fun activeElapsed(
         accumulatedMs: Long?,
         asOf: Instant?,
@@ -335,13 +315,7 @@ object StatusUiMapper {
         return goalElapsed?.let { goal -> if (raw > goal) goal else raw } ?: raw
     }
 
-    /**
-     * Re-anchors elapsed clocks from retained start timestamps without a new poll.
-     *
-     * Only live work ticks. Settled states (stale/blocked/failed) already carry a
-     * duration frozen at their last authoritative update and are returned untouched;
-     * ticking them would keep counting long after execution stopped.
-     */
+    
     fun withElapsed(state: SkillBillStatusUiState, now: Instant): SkillBillStatusUiState =
         when (state) {
             is SkillBillStatusUiState.Active -> state.copy(
@@ -364,12 +338,7 @@ object StatusUiMapper {
             else -> state
         }
 
-    /**
-     * The one place planning relevance is decided, so bar, tooltip, and accessibility
-     * text cannot diverge. Planning stops being relevant once implementation starts:
-     * state `prepared`, or the snapshot already reports execution work. Snapshot-derived
-     * with no latch — `progress.completed` only moves forward.
-     */
+    
     private fun relevantPlanning(
         planning: GoalPlanningInfo?,
         currentSubtaskId: String?,

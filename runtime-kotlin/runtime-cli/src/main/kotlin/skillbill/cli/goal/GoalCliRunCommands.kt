@@ -231,10 +231,6 @@ class GoalPlanningLogCommand(
   }
 }
 
-/**
- * `none` already means an attempt that has not finished, so an interval the stamps cannot express
- * reads as its own value: an operator sees a record to distrust instead of a plausible blank.
- */
 internal fun durationField(attempt: GoalPlanningLogAttempt): String = when {
   attempt.timestampsInconsistent -> "inconsistent"
   else -> attempt.durationMs?.toString() ?: "none"

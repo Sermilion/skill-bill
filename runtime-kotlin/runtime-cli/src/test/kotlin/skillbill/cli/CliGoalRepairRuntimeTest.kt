@@ -17,10 +17,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-/**
- * SKILL-176 subtask 5 CLI surface for `goal repair`. Kept outside [CliGoalRuntimeTest] so that
- * suite stays under the detekt LargeClass threshold.
- */
+
 class CliGoalRepairRuntimeTest {
   @Test
   fun `goal repair help enumerates wedge classes and does-not-touch statement`() {
@@ -38,7 +35,7 @@ class CliGoalRepairRuntimeTest {
     assertContains(result.stdout, "stale_execution_lease")
     assertContains(result.stdout, "stale_child_worker_lease")
     assertContains(result.stdout, "stale_runner_interrupted_pause")
-    // Clikt wraps help across lines; normalize whitespace so mid-phrase wraps do not flake.
+
     val help = result.stdout.replace(Regex("\\s+"), " ")
     assertContains(help, "Does not touch")
     assertContains(help, "completed commit shas")

@@ -10,11 +10,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/**
- * SKILL-136 subtask 4 AC-001/002/003/007: attribution values resolve to a controlled canonical
- * vocabulary at ingestion, keep their raw text, and are explicitly marked unresolved rather than
- * bucketed into a default when the value is ambiguous.
- */
 class ReviewAttributionCanonicalizationTest {
   private val packSkills = setOf(
     "bill-code-review",
@@ -185,8 +180,6 @@ class ReviewAttributionCanonicalizationTest {
     assertTrue(UNRESOLVED_ATTRIBUTION !in listOf("inline", EXECUTION_MODE_DELEGATED))
   }
 
-  // SKILL-136 subtask 5 AC-001: the routed pack slug is recoverable from the canonical skill name
-  // itself, so lane composition never depends on an in-repo platform-packs directory.
   @Test
   fun `pack slug resolves from a canonical pack skill name and only from one`() {
     assertEquals("kmp", packSlugFromCanonicalPackSkillName("bill-kmp-code-review"))

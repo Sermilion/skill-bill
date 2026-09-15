@@ -1,8 +1,5 @@
 package skillbill.workflow.goal.model
 
-// Typed accessors for the durable review-state artifact map. Every one loud-fails through
-// reviewStateError so a malformed record is rejected at the parse seam rather than silently coerced.
-
 internal fun Map<String, Any?>.requireOnlyReviewStateKeys(allowed: Set<String>, sourceLabel: String) {
   keys.forEach { key -> if (key !in allowed) reviewStateError("$sourceLabel.$key", "unknown field is not allowed.") }
 }

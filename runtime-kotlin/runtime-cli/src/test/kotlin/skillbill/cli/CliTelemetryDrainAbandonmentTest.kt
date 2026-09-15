@@ -15,11 +15,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class CliTelemetryDrainAbandonmentTest {
-  /**
-   * The drain's join timeout is 5s, so this case pays that wall clock deliberately: the bug it
-   * guards is that an outbox which never flushes leaves no trace anywhere, and only the
-   * abandonment path can show it. The same case pins the two constraints the fix must not break.
-   */
+
   @Test
   fun `an abandoned drain records the degradation without printing to the run surfaces`() {
     val home = Files.createTempDirectory("skillbill-drain-abandon")

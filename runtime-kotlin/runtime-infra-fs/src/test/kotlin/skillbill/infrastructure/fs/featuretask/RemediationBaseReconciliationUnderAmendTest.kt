@@ -340,9 +340,6 @@ class RemediationBaseReconciliationUnderAmendTest {
 
   @Test
   fun `a checkpoint-identity store on a superseded contract is quarantined instead of killing the run`() {
-    // A legacy store used to escape as InvalidFeatureTaskRuntimeCheckpointIdentityVersionError out of
-    // executeRun, so the child exited non-zero at startup, the parent only ever saw "exited with
-    // status 1", and no goal command could recover the subtask.
     val repository = FeatureTaskGitIntegrationWorkflowRepository()
     val recorder = recorderWith(
       state = remediationState(remediationBaseSha = null),

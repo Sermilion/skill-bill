@@ -3,33 +3,18 @@ package skillbill.domain.skillremove
 
 import skillbill.model.FileLocation
 
-/**
- * F-S04: removes absolute-path tokens from exception messages before they reach the dialog/CLI.
- *
- * Rules:
- * - Tokens that resolve to a path under `repoRoot` are relativized (e.g. `/Users/alice/repo/skills/foo`
- *   becomes `skills/foo`).
- * - Tokens that are absolute paths but not under `repoRoot` are replaced with `<external path>`.
- * - Tokens that don't look like paths are left untouched.
- *
- * The implementation is whitespace-tokenized and conservative — exception messages we have seen in
- * the wild use spaces as natural separators (e.g. java.nio.file.NoSuchFileException prints the
- * absolute path as the entire message; the IOException family interleaves with prose). For the
- * cases where a path is embedded mid-token (e.g. `foo:/abs/path:bar`), we still try to relativize
- * any substring that parses as an absolute path.
- */
 object SkillRemoveErrorSanitizer {
   fun sanitize(message: String, repoRootAbsolutePath: String): String {
     val repoRoot: FileLocation? = if (message.isBlank()) null else parseRepoRoot(repoRootAbsolutePath)
     if (repoRoot == null) return message
     val repoRootStr = repoRoot.value
-    // Split on whitespace; rejoin with a single space so we don't widen newlines into noise.
+
     return message.splitToSequence(' ', '\t', '\n')
       .map { token ->
         if (token.isBlank()) return@map token
-        // Quick check — if the token has no '/' or '\' it cannot be a path.
+
         if (!token.contains('/') && !token.contains('\\')) return@map token
-        // Strip trailing punctuation that's commonly attached to paths in messages.
+
         val (core, trailing) = stripTrailingPunctuation(token)
         val sanitized = sanitizeToken(core, repoRoot, repoRootStr) ?: return@map token
         sanitized + trailing
@@ -53,8 +38,7 @@ object SkillRemoveErrorSanitizer {
     val normalized = parsed.normalized()
     return when {
       normalized.startsWith(repoRoot) -> repoRoot.relativize(normalized).value.ifBlank { "." }
-      // Defensive: same as above but in case the path string contains components we couldn't
-      // resolve cleanly.
+
       token.startsWith(repoRootStr) -> token.removePrefix(repoRootStr).trimStart('/', '\\').ifBlank { "." }
       else -> EXTERNAL_PATH_PLACEHOLDER
     }

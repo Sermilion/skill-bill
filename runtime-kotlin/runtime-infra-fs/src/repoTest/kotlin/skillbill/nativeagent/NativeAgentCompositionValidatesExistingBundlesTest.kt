@@ -3,7 +3,6 @@ package skillbill.infrastructure.fs.nativeagent
 import skillbill.infrastructure.fs.nativeagent.composition.NATIVE_AGENT_BUNDLE_FILE
 import skillbill.infrastructure.fs.nativeagent.composition.NATIVE_AGENT_SOURCE_DIR
 import skillbill.infrastructure.fs.nativeagent.composition.parseNativeAgentBundle
-import skillbill.infrastructure.fs.nativeagent.composition.parseNativeAgentSource
 import skillbill.infrastructure.fs.nativeagent.composition.parseNativeAgentSourceFile
 import skillbill.ports.review.model.GovernedReviewEvidenceCodec.OPERATIONS
 import skillbill.testing.repoRootFromTest
@@ -17,19 +16,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.test.fail
 
-/**
- * SKILL-48 Subtask 2c AC3: every native-agent fixture under
- * `skills/[...]/native-agents/` and `platform-packs/[...]/native-agents/`
- * must validate clean against the canonical schema. The test walks the
- * repo and feeds each discovered fixture through the same parse seam
- * the runtime uses on disk — bundle YAMLs go through
- * [parseNativeAgentBundle] and single-md sources go through
- * [parseNativeAgentSource].
- *
- * A failure here means either (a) a fixture drifted from the schema or
- * (b) the schema tightened without a parallel fixture update. Both
- * cases are loud build breaks by design.
- */
 class NativeAgentCompositionValidatesExistingBundlesTest {
 
   @Test

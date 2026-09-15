@@ -174,7 +174,6 @@ class CliGoalRuntimeControlTest {
     val first = CliRuntime.run(command, fixture.context(launcher = launcher))
     val second = CliRuntime.run(command, fixture.context(launcher = launcher))
 
-    // No runner holds this fixture, so the stop is durable-only: exit 0 both times, no termination.
     assertEquals(0, first.exitCode, first.stdout)
     assertEquals(0, second.exitCode, second.stdout)
     assertEquals("no_live_lease", first.payload?.get("status"))
@@ -307,9 +306,6 @@ class CliGoalRuntimeControlTest {
     assertEquals("goal_paused", watch.payload?.get("stop_reason"))
   }
 
-  // A pause request is honoured at the next launch boundary, so the current subtask keeps running.
-  // Treating the request as terminal ended the monitor immediately and left the operator blind for the
-  // rest of that subtask.
   @Test
   fun `goal watch keeps following while a pause is requested but not reached`() {
     val fixture = goalFixture(subtaskCount = 1)

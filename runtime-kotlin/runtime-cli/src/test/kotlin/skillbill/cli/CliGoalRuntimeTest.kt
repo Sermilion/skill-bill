@@ -49,7 +49,7 @@ class CliGoalSharedPreplanReplanTest {
     assertEquals(0, replan.exitCode, replan.stdout)
     assertContains(replan.stdout, "discarded_shared_preplan: true")
     assertContains(replan.stdout, "cascaded_plans=")
-    // Subtasks 1–2 are complete+commit: cascade must exclude them (WE-4719 / SKILL-181).
+
     assertTrue(
       replan.stdout.contains("cascaded_plans=none"),
       replan.stdout,
@@ -66,8 +66,7 @@ class CliGoalSharedPreplanReplanTest {
     }
     assertTrue(1 in plannedAfterIds, "complete+commit plan row 1 must survive include-shared-preplan")
     assertTrue(2 in plannedAfterIds, "complete+commit plan row 2 must survive include-shared-preplan")
-    // The replan deletes children hydrated from a discarded plan, but never a completed subtask's:
-    // that would drop the commit_sha and workflow_id mapping this cascade is required to preserve.
+
     val clearedChildren = (replan.payload?.get("cleared_child_subtask_ids") as? List<*>)
       ?.mapNotNull { (it as? Number)?.toInt() ?: (it as? String)?.toIntOrNull() }
       .orEmpty()
@@ -115,10 +114,6 @@ class CliGoalSharedPreplanReplanTest {
   )
 }
 
-/**
- * Goal-watch follow-loop coverage is isolated from the broader goal runtime suite so each test
- * class stays focused and below the detekt LargeClass threshold.
- */
 class CliGoalWatchRuntimeTest {
   @Test
   fun `goal watch resets two idle refreshes with live and stops only after three consecutive idle refreshes`() {
@@ -533,7 +528,7 @@ class CliGoalExecutionOptionsTest {
     assertContains(status.stdout, "blocked: 1")
     assertContains(status.stdout, "current_subtask: 2")
     assertContains(status.stdout, "current_step: implement")
-    // SKILL-103 AC1: CLI child carries no persisted agent => active_agent omitted.
+
     assertContains(status.stdout, "active_agent: none")
   }
 
@@ -556,9 +551,7 @@ class CliGoalExecutionOptionsTest {
     )
 
     assertEquals("blocked", child["workflow_status"])
-    // GoalChildPlanningHydrator sets currentStepId=implement after completed preplan+plan
-    // (FeatureTaskRuntimePhaseWorkflowDefinition). markBlocked's firstUnfinishedStepId scan parks a
-    // no-terminal hydrated child there — not at preplan.
+
     assertEquals("implement", child["current_step_id"])
   }
 
@@ -617,8 +610,7 @@ class CliGoalExecutionOptionsTest {
         }
       }
     }
-    // SKILL-103 AC1: no child run persisted => active_agent is omitted (rendered as none), never
-    // sourced from the status caller's --agent resolution chain.
+
     assertContains(status.stdout, "active_agent: none")
   }
 
@@ -650,10 +642,6 @@ class CliGoalExecutionOptionsTest {
   }
 }
 
-/**
- * Kept in its own class so it does not push the broad [CliGoalRuntimeTest] over the detekt
- * LargeClass threshold.
- */
 class CliGoalUnaddressedFindingsTest {
   @Test
   fun `an unreadable ledger reports itself instead of an affirmative zero`() {

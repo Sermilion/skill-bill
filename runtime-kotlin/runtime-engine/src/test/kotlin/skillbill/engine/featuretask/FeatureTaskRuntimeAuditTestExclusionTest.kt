@@ -5,11 +5,6 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertTrue
 
-/**
- * Audit reports unmet acceptance criteria and nothing else, so what remains enforceable about the
- * test exclusion is the instruction itself: neither the repair round nor the audit may be told to run
- * a build or a test as evidence. Validation owns test execution.
- */
 class FeatureTaskRuntimeAuditTestExclusionTest {
   @Test
   fun `repair and follow-up audit directives carry no build or test execution instruction`() {

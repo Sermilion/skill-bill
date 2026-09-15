@@ -8,7 +8,6 @@ import kotlin.test.assertTrue
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeProjectionCanonicalizationTransform as Transform
 
 class FeatureTaskRuntimeProjectionCanonicalizationTest {
-  // --- task ids (task 2) ------------------------------------------------------------------------
 
   @Test
   fun `task id is lowercased, separator runs become one hyphen, and invalid chars are stripped`() {
@@ -58,8 +57,6 @@ class FeatureTaskRuntimeProjectionCanonicalizationTest {
     assertEquals(listOf("c", "a", "b"), result.canonical["completed_task_ids"])
   }
 
-  // --- compact summaries (task 2) ---------------------------------------------------------------
-
   @Test
   fun `compact summary collapses tab runs and strips backticks, trimming boundary whitespace`() {
     val produced = mapOf(
@@ -77,8 +74,6 @@ class FeatureTaskRuntimeProjectionCanonicalizationTest {
 
   @Test
   fun `compact summary never removes an interior line break, so a multi-line paste stays rejectable`() {
-    // Collapsing CR/LF would flatten a multi-line body into a single line the schema's no-line-break
-    // guard then accepts, and slide the diff marker off its line start. The interior break must survive.
     val produced = mapOf("tasks" to listOf(taskMap("t1", description = "changes:\ndiff --git a/x b/x")))
 
     val result = FeatureTaskRuntimeProjectionCanonicalizer.canonicalize(produced)
@@ -86,8 +81,6 @@ class FeatureTaskRuntimeProjectionCanonicalizationTest {
     val task = (result.canonical["tasks"] as List<*>)[0] as Map<*, *>
     assertEquals("changes:\ndiff --git a/x b/x", task["description"])
   }
-
-  // --- nonBlank trims (task 2) ------------------------------------------------------------------
 
   @Test
   fun `nonBlank scalar and array string fields are trimmed without touching interior content`() {
@@ -120,8 +113,6 @@ class FeatureTaskRuntimeProjectionCanonicalizationTest {
     assertEquals(listOf("t1", 42, null), result.canonical["completed_task_ids"])
     assertEquals(listOf("array-not-object"), result.canonical["rollout"])
   }
-
-  // --- diagnostics (task 4) ---------------------------------------------------------------------
 
   @Test
   fun `an id canonicalization records the field path plus original and canonical values`() {
@@ -179,8 +170,6 @@ class FeatureTaskRuntimeProjectionCanonicalizationTest {
     )
   }
 
-  // --- SKILL-152 AC-005: the scoped unknown-key discard -----------------------------------------
-
   @Test
   fun `a bare evidence string is promoted to the declared reconciliation_evidence object`() {
     val produced = mapOf("reconciliation_evidence" to "  Read-only sweep after the last edit: 0 hits.  ")
@@ -224,10 +213,6 @@ class FeatureTaskRuntimeProjectionCanonicalizationTest {
     assertEquals(listOf("at target"), wrongContainer.canonical["reconciliation_evidence"])
   }
 
-  /**
-   * The observed defect: the discard stripped `notes` and the schema then rejected the object for the
-   * required field `notes` was. In-cap, correct prose was deleted and reported missing.
-   */
   @Test
   fun `a lone misnamed prose key is adopted as evidence instead of being discarded`() {
     val produced = mapOf(
@@ -300,10 +285,6 @@ class FeatureTaskRuntimeProjectionCanonicalizationTest {
     )
   }
 
-  /**
-   * Adoption is per call site precisely so this cannot happen: `deviation` requires `ref` and `note`,
-   * and a general single-unknown-key rule would file a sentence as an identifier.
-   */
   @Test
   fun `adoption never reaches an object whose missing required field is an identifier`() {
     val produced = mapOf(
@@ -442,7 +423,7 @@ class FeatureTaskRuntimeProjectionCanonicalizationTest {
   @Test
   fun `a discarded key name is length-bounded in the record`() {
     val longKey = "k".repeat(MAX_RECORDED_ID_LENGTH + 40)
-    // `evidence` is stated so prose adoption cannot claim the long key: this pins the discard path.
+
     val produced = mapOf(
       "reconciliation_evidence" to mapOf("reconciled" to true, "evidence" to "stated", longKey to "v"),
     )

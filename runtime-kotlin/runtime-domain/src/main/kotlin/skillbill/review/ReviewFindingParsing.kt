@@ -32,9 +32,6 @@ fun parseBulletFindings(text: String): List<ImportedFinding> {
   }.toList()
 }
 
-// The merged provenance segment can carry several attributions ("specialists=a,b") when two lanes
-// coalesced onto one finding. The first is the lane that reported it first, which is the lane the
-// finding is attributed to; a segment carrying only origins leaves the lane unattributed.
 private fun parseProvenanceLane(provenance: MatchResult): String? = provenance
   .groups["provenance"]
   ?.value

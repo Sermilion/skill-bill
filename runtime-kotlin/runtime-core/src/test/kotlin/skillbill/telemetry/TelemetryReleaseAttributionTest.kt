@@ -16,8 +16,7 @@ private const val ENQUEUE_TIME_VERSION = "7.7.7-enqueue"
 private const val UPLOAD_TIME_VERSION = "8.8.8-upload"
 
 class TelemetryReleaseAttributionTest {
-  // SKILL-163 AC-006: attribution is emit-time. A row enqueued under one release keeps that release
-  // on the wire even though the running build has since moved on.
+
   @Test
   fun `an event is uploaded with the version that was running when it was enqueued`() {
     withOutboxDatabase { connection ->
@@ -31,8 +30,6 @@ class TelemetryReleaseAttributionTest {
     }
   }
 
-  // SKILL-163 AC-007: the on-disk shape a real upgrade leaves behind — a row inserted before the
-  // column existed — must upload rather than block the queue.
   @Test
   fun `a pre-migration row carrying no version uploads without error`() {
     withOutboxDatabase { connection ->

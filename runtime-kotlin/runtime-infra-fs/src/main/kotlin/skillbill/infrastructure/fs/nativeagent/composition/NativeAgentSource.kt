@@ -18,19 +18,13 @@ data class NativeAgentSource(
   val composition: NativeAgentCompositionDirective? = null,
   val path: Path? = null,
   val bundleEntryName: String? = null,
-  /** Empty means "declare nothing", which leaves the rendered agent on the host default of every tool. */
+
   val tools: List<String> = emptyList(),
   val composedAddonSlugs: List<String> = emptyList(),
 )
 
-/** Tools that grant mutation or recursive delegation. */
 val MUTATING_TOOL_NAMES: Set<String> = setOf("Edit", "Write", "NotebookEdit", "Agent")
 
-/**
- * A declared toolset holding no mutation or delegation tool. Providers whose only capability control
- * is a boolean project this onto that boolean; an undeclared toolset is not read-only, because it
- * inherits every tool the parent can reach.
- */
 val NativeAgentSource.declaresReadOnlyToolset: Boolean
   get() = tools.isNotEmpty() && tools.none { tool -> tool in MUTATING_TOOL_NAMES }
 
@@ -84,16 +78,7 @@ fun parseNativeAgentSourceText(text: String, label: String = "native agent sourc
   require(body.isNotBlank() || composition != null) {
     "$label: native agent body is required"
   }
-  // SKILL-48 Subtask 2c: validate the frontmatter against the
-  // canonical schema as a defense-in-depth backstop AFTER the manual
-  // require checks. We build a JsonNode directly from the parsed
-  // frontmatter values (instead of re-serializing to YAML and feeding
-  // it through a generic YAML parser) so descriptions that contain
-  // ambiguous YAML punctuation — colons, brackets, leading reserved
-  // characters — validate correctly. The schema enforces the
-  // body-or-compose anyOf rule on the single-md envelope just like
-  // the bundle envelope, while the manual checks preserve their
-  // caller-friendly source-level messages.
+
   val instance: ObjectNode = JsonNodeFactory.instance.objectNode()
   frontmatter["name"]?.let { instance.put("name", it) }
   frontmatter["description"]?.let { instance.put("description", it) }
@@ -115,8 +100,6 @@ fun parseNativeAgentSourceText(text: String, label: String = "native agent sourc
   )
 }
 
-// The frontmatter parser is deliberately scalar-only, so `tools` round-trips through the one-line
-// flow form the renderer emits rather than teaching that parser block-sequence syntax.
 private fun decodeFlowSequence(value: String, label: String): List<String> {
   val trimmed = value.trim()
   require(trimmed.startsWith("[") && trimmed.endsWith("]")) {
@@ -156,10 +139,7 @@ private fun parseSimpleFrontmatter(raw: String, label: String): Map<String, Stri
     }
     val key = line.substring(0, separator).trim()
     val value = decodeYamlScalar(line.substring(separator + 1).trimStart(), label)
-    // SKILL-48 Subtask 2c: allow an optional top-level `contract_version`
-    // key (the canonical schema keeps it optional; on-disk fixtures may
-    // omit it). Future writes that include the pin must not be rejected
-    // by the parser.
+
     require(key in setOf("name", "description", "compose", "contract_version", "tools")) {
       "$label: unsupported native agent frontmatter key '$key'"
     }
@@ -168,7 +148,6 @@ private fun parseSimpleFrontmatter(raw: String, label: String): Map<String, Stri
   return parsed
 }
 
-// Inverse of YAML_DOUBLE_QUOTE_ESCAPES — derived once so the encode/decode tables stay in sync.
 private val DOUBLE_QUOTE_DECODE_MAP: Map<String, String> =
   YAML_DOUBLE_QUOTE_ESCAPES.entries.associate { (decoded, escape) -> escape to decoded.toString() }
 
@@ -182,7 +161,7 @@ private fun decodeYamlScalar(value: String, label: String): String {
         "$label: native agent frontmatter has unterminated double-quoted scalar"
       }
       val inner = value.substring(1, value.length - 1)
-      // If the inner segment ends with an odd number of backslashes the closing quote was actually escaped.
+
       var trailingBackslashes = 0
       var probe = inner.length - 1
       while (probe >= 0 && inner[probe] == '\\') {

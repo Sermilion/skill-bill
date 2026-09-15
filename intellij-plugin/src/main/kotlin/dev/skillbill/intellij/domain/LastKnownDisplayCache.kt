@@ -2,21 +2,13 @@ package dev.skillbill.intellij.domain
 
 import java.time.Instant
 
-/**
- * Last-known display snapshot suitable for preference persistence.
- * Observation time is required whenever a cached snapshot exists.
- * Consumers may surface this only as [SkillBillStatusOutcome.Stale], never as
- * an authoritative active state.
- */
+
 data class LastKnownDisplayCache(
     val display: CachedDisplaySnapshot,
     val observedAt: Instant,
 )
 
-/**
- * Safe, bounded fields for stale UI fallback. No tokens, prompts, stderr,
- * absolute paths, or unbounded blobs.
- */
+
 data class CachedDisplaySnapshot(
     val summary: String,
     val repositoryIdentity: String? = null,
@@ -29,11 +21,7 @@ data class CachedDisplaySnapshot(
     val currentSubtaskId: String? = null,
     val subtaskStartedAt: Instant? = null,
     val updatedAt: Instant? = null,
-    /**
-     * Accumulated execution time, so a cached fallback keeps reporting the runtime's clock
-     * instead of reverting to wall clock since [startedAt]. The live anchor is deliberately
-     * not cached: a cache fallback is never live, so the value it restores is final.
-     */
+    
     val activeDurationMs: Long? = null,
     val subtaskActiveDurationMs: Long? = null,
 ) {

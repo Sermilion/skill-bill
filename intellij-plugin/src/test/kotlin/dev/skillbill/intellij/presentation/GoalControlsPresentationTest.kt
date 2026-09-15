@@ -8,10 +8,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/**
- * Eligibility is proved exhaustively rather than by sampling: every UI state subtype is
- * crossed with each workflow family and each issue-key shape.
- */
+
 class GoalControlsPresentationTest {
     private val families = listOf(FEATURE_GOAL_WORKFLOW_FAMILY, "feature-task-runtime", null)
     private val issueKeys = listOf("SKILL-168", null, "   ")
@@ -58,7 +55,7 @@ class GoalControlsPresentationTest {
 
     @Test
     fun `pause renders disabled on the first snapshot after restart`() {
-        // No prior state exists after a restart: the very first snapshot carries the flag.
+
         val firstSnapshot = activeUiState(pauseRequested = true)
         val pause = GoalControlsPresentation.controlsFor(firstSnapshot).single { it.kind == GoalControlKind.PAUSE }
         assertFalse(pause.enabled)

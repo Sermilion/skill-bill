@@ -167,12 +167,6 @@ data class GoalIssueSegmentStart(
   val mode: String,
 )
 
-/**
- * Records a non-completed segment end against the issue row. A pause is resumable state, so it
- * advances `status` without touching `total_blocks` or the `last_blocked_*` columns: counting it as
- * a block would inflate the blocker history that operators and goal stats read to find the goals
- * that actually need intervention.
- */
 fun recordGoalIssueSegmentEnd(
   connection: Connection,
   parentWorkflowId: String,

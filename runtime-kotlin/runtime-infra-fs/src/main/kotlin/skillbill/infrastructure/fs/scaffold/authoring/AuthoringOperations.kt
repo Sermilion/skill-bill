@@ -22,7 +22,7 @@ data class AuthoringTarget(
   val displayName: String,
   val family: String,
   val area: String,
-  // skillFile remains for transient consumers until SKILL-40 subtask 4 deletes the wrapper.
+
   val skillFile: Path,
   val contentFile: Path,
   val codeReviewComposition: CodeReviewComposition? = null,

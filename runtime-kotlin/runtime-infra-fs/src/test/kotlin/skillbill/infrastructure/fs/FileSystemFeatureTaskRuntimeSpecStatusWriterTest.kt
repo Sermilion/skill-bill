@@ -105,7 +105,7 @@ class FileSystemFeatureTaskRuntimeSpecStatusWriterTest {
 
     val text = Files.readString(spec)
     assertTrue(text.contains("## Acceptance Criteria\n1. Criterion one.\n2. Criterion two."))
-    // The Agent line lands before the Acceptance Criteria heading, never inside it.
+
     val lines = text.lines()
     assertTrue(lines.indexOf("- Agent: claude") < lines.indexOf("## Acceptance Criteria"))
   }

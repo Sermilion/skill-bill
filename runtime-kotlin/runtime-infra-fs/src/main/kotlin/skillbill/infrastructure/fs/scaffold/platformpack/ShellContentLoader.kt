@@ -99,13 +99,6 @@ internal fun validatePlatformPack(
   contractVersion: String,
   enforceContractVersion: Boolean = true,
 ) {
-  // F-009: defense-in-depth. The canonical schema validator (run from
-  // `buildPack` via `loadPlatformManifest`) already raises
-  // `ContractVersionMismatchError` for any version drift, so callers that
-  // skip the contract gate (e.g. `loadPlatformManifest`) still loud-fail.
-  // Keep this duplicate check so any future caller that constructs a
-  // `PlatformManifest` directly (bypassing the schema validator) is still
-  // gated here.
   if (enforceContractVersion && pack.contractVersion != contractVersion) {
     contractVersionMismatch(
       buildString {

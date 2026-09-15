@@ -24,11 +24,6 @@ enum class GoalObservabilityRecordKind(val wireValue: String) {
   }
 }
 
-/**
- * SKILL-64 Subtask 3 (AC21): declared lifecycle event kinds. phase_* mark
- * workflow phase/step boundaries; operation_* bracket long operations such as
- * `gradlew check` or a test run.
- */
 enum class GoalProgressEventKind(val wireValue: String) {
   PHASE_STARTED("phase_started"),
   PHASE_COMPLETED("phase_completed"),
@@ -46,10 +41,6 @@ enum class GoalProgressEventKind(val wireValue: String) {
   }
 }
 
-/**
- * Declared outcome of a progress event. In-flight events use [NONE];
- * phase_completed/operation_completed carry a terminal outcome.
- */
 enum class GoalProgressOutcome(val wireValue: String) {
   NONE("none"),
   SUCCEEDED("succeeded"),
@@ -64,11 +55,6 @@ enum class GoalProgressOutcome(val wireValue: String) {
   }
 }
 
-/**
- * SKILL-64 Subtask 3 (AC20-AC25): an effect-free, durable, monotonically
- * sequenced declared progress event. Timestamps are minted in the adapter
- * layer; the domain never reads the clock or generates identifiers.
- */
 data class GoalProgressEvent(
   val eventKind: GoalProgressEventKind,
   val workflowId: String,

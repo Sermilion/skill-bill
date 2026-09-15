@@ -101,10 +101,6 @@ private val REACHABLE_SHA = "c".repeat(40)
 private val HEAD_SHA = "d".repeat(40)
 private val COMPLETED_COMMIT = "e".repeat(40)
 
-/**
- * SKILL-176 subtask 5: operator `goal repair` diagnosis, atomic mutation, evidence, and
- * orchestration preconditions. Wedge fixtures mirror SKILL-15 durable artifact shapes.
- */
 internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
   @Test
   fun `diagnosis names missing validation_depth with absent current value`() {
@@ -438,10 +434,6 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
 
   @Test
   fun `a blocked step the fix loop moved past does not corroborate a stale blocked outcome`() {
-    // The fix loop leaves the step it abandons marked blocked and advances. Deriving BLOCKED from
-    // that historical step, then reading the derived reason back out of goal_continuation_outcome,
-    // makes the stored outcome corroborate itself: the child reads terminal forever, repair reports
-    // healthy, and every later goal run re-reports the stale reason without relaunching the child.
     val staleReason = "Feature-task-runtime phase 'review' governed evidence was never read"
     val workflows = InMemoryWorkflowStates()
     val workflowId = "wftr-repair-abandoned-upstream-block"

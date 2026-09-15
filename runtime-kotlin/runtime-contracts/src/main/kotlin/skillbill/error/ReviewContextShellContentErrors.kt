@@ -67,12 +67,6 @@ class UnreadableSpecIntentProjectionError(
   cause,
 )
 
-/**
- * Surfaced when delegated-review aggregation is handed a lane set it cannot merge honestly: a
- * selected lane with no result, two results for one lane, or a result minted against a different
- * commit sequence. Merging any of these would silently under-report coverage, so aggregation fails
- * loudly with the offending lanes named instead.
- */
 class ReviewAggregationIntegrityError(
   val reason: String,
   val lanes: List<String> = emptyList(),

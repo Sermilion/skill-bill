@@ -12,10 +12,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
-/**
- * SKILL-102 subtask 1 (PD1): install-plan discovery carries the internal-for classification and
- * enforces the same loud-fail rules as authoring discovery. Fixtures are created inside the tests.
- */
 class InstallPlanInternalSkillDiscoveryTest {
   private val tempDirs = mutableListOf<Path>()
 
@@ -97,7 +93,6 @@ class InstallPlanInternalSkillDiscoveryTest {
 
   @Test
   fun `validateInstallPlanInternalSkills passes for a platform-pack skill internal to a base parent`() {
-    // SKILL-104 (PD1): the base-skill-only restriction is relaxed; a pack skill may now be internal.
     val skills = listOf(
       planSkill("bill-code-review", internalFor = null),
       planSkill("bill-kotlin-code-review", internalFor = "bill-code-review", kind = InstallPlanSkillKind.PLATFORM_PACK),
@@ -107,7 +102,6 @@ class InstallPlanInternalSkillDiscoveryTest {
 
   @Test
   fun `validateInstallPlanInternalSkills fails when a platform-pack skill declares a pack-skill parent`() {
-    // PD1 preserved rule: a pack skill can never be a parent.
     val skills = listOf(
       planSkill(
         "bill-kotlin-code-review",

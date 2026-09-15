@@ -67,9 +67,6 @@ class ExecutionMatrixModelsTest {
     )
     val matrix = parsed.matrix
 
-    // An override beats an explicit phase_tiers entry, carries an effort, and leaves every
-    // non-overridden phase on its tier. The remaining override keys would only re-exercise the
-    // same branch with different literals.
     assertEquals(PhaseModelDirective("gpt-5.6-luna-high"), matrix.directiveFor("cursor", "preplan"))
     assertEquals(PhaseModelDirective("claude-opus-5-thinking-max", "max"), matrix.directiveFor("cursor", "review"))
     assertEquals(PhaseModelDirective("gpt-5.6-luna-xhigh"), matrix.directiveFor("cursor", "audit"))

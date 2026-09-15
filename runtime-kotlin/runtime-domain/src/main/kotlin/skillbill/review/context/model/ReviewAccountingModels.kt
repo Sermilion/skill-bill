@@ -45,7 +45,7 @@ data class ReviewAccountingNode(
   val counters: ReviewAccountingCounters,
   val inclusiveCounters: ReviewAccountingCounters,
   val terminalOutcome: ReviewAccountingTerminalOutcome,
-  /** Bundle composition this lane actually reviewed, so result records preserve it. */
+
   val bundleCompositionDigest: String?,
   val segmentAccounting: List<ReviewLaneSegmentAccounting>,
   val unreviewedSegmentIds: List<String>,

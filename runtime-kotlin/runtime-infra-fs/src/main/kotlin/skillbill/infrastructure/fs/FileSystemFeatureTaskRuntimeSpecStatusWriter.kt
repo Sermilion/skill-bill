@@ -5,17 +5,6 @@ import skillbill.ports.taskruntime.FeatureTaskRuntimeSpecStatusWriter
 import java.nio.file.Files
 import java.nio.file.Path
 
-/**
- * Filesystem writer for the single-spec `## Status`-block `Agent:` line (SKILL-89 Seam D, runtime
- * side). Sibling of [FileSystemFeatureTaskRuntimeRunInvariantsSource]; the only runtime seam that
- * reconciles the `## Status` block.
- *
- * The write is idempotent: when an `Agent:` line already exists under `## Status` it is replaced in
- * place (keeping the file byte-stable on a re-run with the same agent), otherwise a new line is
- * inserted immediately after the `Status:` line, matching its bullet/indent style. The `## Status`
- * heading is matched on a `^#{2,6}\s+Status\b` line and the section ends at the next heading, so the
- * line never escapes into `## Acceptance Criteria` (which the run-invariants reader keys off).
- */
 @Inject
 class FileSystemFeatureTaskRuntimeSpecStatusWriter : FeatureTaskRuntimeSpecStatusWriter {
   override fun writeFinalizingAgent(specPath: Path, finalizingAgentId: String) {
@@ -49,14 +38,11 @@ class FileSystemFeatureTaskRuntimeSpecStatusWriter : FeatureTaskRuntimeSpecStatu
     }
   }
 
-  // First heading line at or after the section body, or the end of file when none follows.
   private fun sectionEndExclusive(lines: List<String>, headingIndex: Int): Int {
     val next = (headingIndex + 1 until lines.size).firstOrNull { HEADING.matches(lines[it]) }
     return next ?: lines.size
   }
 
-  // The leading bullet/indent of a `Status:` line (e.g. "- ", "  - ") so the inserted Agent line
-  // matches its style; empty when the line carries no bullet.
   private fun bulletPrefix(statusLine: String): String = BULLET_PREFIX.find(statusLine)?.value ?: ""
 
   private companion object {

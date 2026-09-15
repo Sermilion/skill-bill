@@ -14,17 +14,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-/**
- * Regression coverage for the on-disk cascade discovery the desktop dialog and CLI consume.
- *
- * The fake [skillbill.domain.skillremove.SkillRemoveFileSystem] used in the runtime-domain test
- * suite scripts the port responses, which let the original implementation of
- * [SkillRemoveJvmFileSystem.discoverCascadedSkillNames] ship with a slug-prefix bug undetected:
- * for a horizontal skill named `bill-code-review`, the implementation built the search prefix
- * `bill-<platform>-bill-code-review` instead of `bill-<platform>-code-review`, so the cascade
- * never picked up `bill-kotlin-code-review`, `bill-kmp-code-review`, or their area specialists.
- * These tests pin the correct slug behavior using a real on-disk fixture.
- */
 class SkillRemoveJvmFileSystemTest {
   private val tempDirs = mutableListOf<Path>()
 
@@ -44,8 +33,7 @@ class SkillRemoveJvmFileSystemTest {
     val repoRoot = seedRepo()
     val fs = SkillRemoveJvmFileSystem(home = Files.createTempDirectory("home").also(tempDirs::add))
     val request = SkillRemovalRequest(
-      // SKILL-49: `bill-code-review` is a horizontal product skill; cascade-removal tests
-      // exercise the maintainer path (`--allow-shipped`). The desktop UI never offers this.
+
       target = SkillRemovalTarget.HorizontalSkill(skillName = "bill-code-review", allowShipped = true),
       repoRootAbsolutePath = repoRoot.toString(),
     )
@@ -82,8 +70,7 @@ class SkillRemoveJvmFileSystemTest {
     val repoRoot = seedRepo()
     val fs = SkillRemoveJvmFileSystem(home = Files.createTempDirectory("home").also(tempDirs::add))
     val request = SkillRemovalRequest(
-      // SKILL-49: `bill-code-review` is a horizontal product skill; cascade-removal tests
-      // exercise the maintainer path (`--allow-shipped`). The desktop UI never offers this.
+
       target = SkillRemovalTarget.HorizontalSkill(skillName = "bill-code-review", allowShipped = true),
       repoRootAbsolutePath = repoRoot.toString(),
     )
@@ -111,8 +98,7 @@ class SkillRemoveJvmFileSystemTest {
     val repoRoot = seedRepo()
     val fs = SkillRemoveJvmFileSystem(home = Files.createTempDirectory("home").also(tempDirs::add))
     val request = SkillRemovalRequest(
-      // SKILL-49: `bill-code-review` is a horizontal product skill; cascade-removal tests
-      // exercise the maintainer path (`--allow-shipped`). The desktop UI never offers this.
+
       target = SkillRemovalTarget.HorizontalSkill(skillName = "bill-code-review", allowShipped = true),
       repoRootAbsolutePath = repoRoot.toString(),
     )
@@ -134,8 +120,7 @@ class SkillRemoveJvmFileSystemTest {
     val repoRoot = seedRepo()
     val fs = SkillRemoveJvmFileSystem(home = Files.createTempDirectory("home").also(tempDirs::add))
     val request = SkillRemovalRequest(
-      // SKILL-49: `bill-code-review` is a horizontal product skill; cascade-removal tests
-      // exercise the maintainer path (`--allow-shipped`). The desktop UI never offers this.
+
       target = SkillRemovalTarget.HorizontalSkill(skillName = "bill-code-review", allowShipped = true),
       repoRootAbsolutePath = repoRoot.toString(),
     )
@@ -168,8 +153,7 @@ class SkillRemoveJvmFileSystemTest {
     val fs = SkillRemoveJvmFileSystem(home = Files.createTempDirectory("home").also(tempDirs::add))
     val service = SkillRemove(fs)
     val request = SkillRemovalRequest(
-      // SKILL-49: `bill-code-review` is a horizontal product skill; cascade-removal tests
-      // exercise the maintainer path (`--allow-shipped`). The desktop UI never offers this.
+
       target = SkillRemovalTarget.HorizontalSkill(skillName = "bill-code-review", allowShipped = true),
       repoRootAbsolutePath = repoRoot.toString(),
     )
@@ -198,17 +182,13 @@ class SkillRemoveJvmFileSystemTest {
     val fs = SkillRemoveJvmFileSystem(home = Files.createTempDirectory("home").also(tempDirs::add))
     val service = SkillRemove(fs)
     val request = SkillRemovalRequest(
-      // SKILL-49: `bill-code-review` is a horizontal product skill; cascade-removal tests
-      // exercise the maintainer path (`--allow-shipped`). The desktop UI never offers this.
+
       target = SkillRemovalTarget.HorizontalSkill(skillName = "bill-code-review", allowShipped = true),
       repoRootAbsolutePath = repoRoot.toString(),
     )
 
     service.executeRemoval(request)
 
-    // Re-parse both manifests through the same production loader the repo browser's
-    // `AuthoringDiscovery` path uses. This is the real assertion: the repo browser's `buildTree`
-    // path will succeed if and only if this succeeds.
     val packs = discoverPlatformPackManifests(repoRoot.resolve("platform-packs"))
     val kmpPack = packs.first { it.slug == "kmp" }
     val kotlinPack = packs.first { it.slug == "kotlin" }
@@ -217,7 +197,7 @@ class SkillRemoveJvmFileSystemTest {
     assertEquals(emptyMap(), kmpPack.declaredFiles.areas)
     assertEquals(emptyList(), kmpPack.declaredCodeReviewAreas)
     assertEquals(null, kmpPack.routedSkillName)
-    // The kotlin pack should keep its quality-check feature intact.
+
     assertNotNull(kotlinPack.declaredQualityCheckFile, "kotlin pack should retain its quality-check file")
   }
 

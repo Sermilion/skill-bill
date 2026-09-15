@@ -14,12 +14,6 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/**
- * A round that closed every finding verification let through must settle. Before this, coverage
- * measured against the raw review pass, so the stage that exists to drop unsound findings dropped
- * one and the next gate blocked the round for not filing paperwork on it — with both real findings
- * already fixed on the tree.
- */
 class FeatureTaskRuntimeRefutedFindingCoverageTest {
   private val sha = "d".repeat(40)
 
@@ -100,10 +94,6 @@ class FeatureTaskRuntimeRefutedFindingCoverageTest {
     )
   }
 
-  /**
-   * Review may omit the ref entirely. Coverage stabilizes refs before it measures, so such a finding
-   * is still owed an entry rather than passing silently on an identity it never had.
-   */
   @Test
   fun `a carried finding whose review omitted its ref is still owed an entry`() {
     val unnamed = GoalSubtaskReviewCompactFinding(
@@ -115,7 +105,7 @@ class FeatureTaskRuntimeRefutedFindingCoverageTest {
     val receipt = receiptAddressing(surviving)
 
     assertNotNull(featureTaskRuntimeRepairReceiptSettleRejection(receipt, state))
-    // Stabilization hands the unnamed finding the first ref no carried finding already holds.
+
     assertEquals(
       listOf("F-002"),
       featureTaskRuntimeRepairReceiptOmittedFindings(receipt, state).map { finding -> finding.findingId },

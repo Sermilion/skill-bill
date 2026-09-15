@@ -14,8 +14,6 @@ class GoalRunnerOutcomeReconcilerTest {
 
   @Test
   fun `a reconciled child row routes to resumable instead of the terminal no-terminal-store block`() {
-    // AC-002 / task-5: a crash-reconciled child row stops with RECONCILED_RESUMABLE, not the terminal
-    // NO_TERMINAL_STORE_OUTCOME, so the goal parent keeps the subtask resumable at its recorded step.
     val outcome = GoalRunnerStoredOutcome(
       status = GoalRunnerTerminalStatus.RECONCILABLE,
       workflowId = "wf-reconciled",
@@ -33,8 +31,6 @@ class GoalRunnerOutcomeReconcilerTest {
 
   @Test
   fun `a no-terminal-store outcome still blocks with the existing reason`() {
-    // task-5: the new reconcilable path does not weaken the existing terminal block for rows that are
-    // genuinely without a store outcome.
     val outcome = GoalRunnerStoredOutcome(
       status = GoalRunnerTerminalStatus.NO_TERMINAL_STORE_OUTCOME,
       workflowId = "wf-stranded",

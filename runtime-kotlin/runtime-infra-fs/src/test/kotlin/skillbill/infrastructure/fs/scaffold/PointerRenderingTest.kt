@@ -111,8 +111,6 @@ class PointerRenderingTest {
 
   @Test
   fun `fails with IllegalArgumentException when pointer file resolves to itself`() {
-    // F-006: regression for the self-reference guard, which now raises IllegalArgumentException
-    // (per F-001) so it is caught by runWithUpgradeRollback and the file is restored.
     val packRoot = tempRoot.resolve("platform-packs/kotlin")
     val pointerDir = packRoot.resolve("code-review/bill-kotlin-code-review")
     Files.createDirectories(pointerDir)
@@ -137,7 +135,6 @@ class PointerRenderingTest {
 
   @Test
   fun `fails with IllegalArgumentException when target escapes repoRoot`() {
-    // F-010: defense-in-depth guard for absolute-path/escape targets at render time.
     val outsideRepo = Files.createTempDirectory("skillbill-outside-repo-")
     try {
       Files.writeString(outsideRepo.resolve("evil.md"), "# evil")
@@ -171,7 +168,6 @@ class PointerRenderingTest {
 
   @Test
   fun `fails with IllegalArgumentException when target is a directory not a regular file`() {
-    // F-010: directories must not be accepted as pointer targets.
     val packRoot = tempRoot.resolve("platform-packs/kotlin")
     Files.createDirectories(packRoot.resolve("code-review/skill"))
     Files.createDirectories(tempRoot.resolve("orchestration/dir-target"))
@@ -195,8 +191,6 @@ class PointerRenderingTest {
 
   @Test
   fun `normalizePointerPath collapses Windows separators leading dot and double slashes`() {
-    // F-008: direct unit tests of the path-normalization helper to replace the old tautological
-    // forward-slash assertion that exercised pre-normalized inputs.
     assertEquals("a/b/c.md", normalizePointerPath("a\\b\\c.md"))
     assertEquals("a.md", normalizePointerPath("./a.md"))
     assertEquals("a/b.md", normalizePointerPath("a//b.md"))

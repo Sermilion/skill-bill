@@ -29,12 +29,6 @@ enum class FeatureTaskRuntimeWorkerLeaseState(val wireValue: String) {
   }
 }
 
-/**
- * A non-terminal runtime workflow row whose worker lease has expired: the raw material the
- * crash reconciler inspects for liveness before transitioning to the resumable pending state.
- * Carries the fenced [ownership] so liveness detection and the fenced reconcile write both ride
- * the existing owner_token/generation machinery, plus the row's [currentStepId] the resume point.
- */
 data class FeatureTaskRuntimeCrashReconciliationCandidate(
   val ownership: FeatureTaskRuntimeWorkerOwnership,
   val currentStepId: String,

@@ -187,8 +187,6 @@ class FeatureTaskRuntimeDiagnosticDegradationTest {
 
   @Test
   fun `rejected audit sentinel stays private when diagnostic persistence degrades`() {
-    // SKILL-187 AC-008/AC-011: degradation must not change privacy — operator summary stays payload-free
-    // while the first rejected row still retains the synthetic bytes.
     val lifecycle = RecordingLifecycleTelemetryRepository()
     val database = database(lifecycle)
     val recorder = recorder(database)
@@ -200,7 +198,7 @@ class FeatureTaskRuntimeDiagnosticDegradationTest {
         reason = "observation: does not have a value in the enumeration — offending value: blast_radius_inspected",
       ),
     )
-    // Force a conflict on the same repair-turn evidence key so degradation emits a payload-free signal.
+
     recorder.retainProducerOutput(evidence(sentinel, repairTurn = 1).copy(phaseId = "audit"))
     recorder.retainProducerOutput(
       evidence("divergent-bytes".encodeToByteArray(), repairTurn = 1).copy(phaseId = "audit"),

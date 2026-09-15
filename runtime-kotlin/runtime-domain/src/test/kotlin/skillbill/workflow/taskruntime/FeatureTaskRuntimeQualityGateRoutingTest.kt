@@ -59,7 +59,7 @@ class FeatureTaskRuntimeQualityGateRoutingTest {
       edgeIterationCount = 0,
     )
     assertEquals(def.PHASE_VALIDATE, assertIs<FeatureTaskRuntimeNextPhase.Next>(transition).phaseId)
-    // Same order as FeatureTaskRuntimeRunLoop.nextPhaseAfter: review remap then build remap.
+
     val routed = FeatureTaskRuntimeQualityGateRouting.applyAfterBuild(
       def.PHASE_BUILD,
       FeatureTaskRuntimeQualityGateRouting.applyAfterReview(

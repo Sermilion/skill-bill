@@ -54,14 +54,6 @@ internal fun linkProviderAgents(
   }
 }
 
-/**
- * Staged into a sibling directory and swapped in with two renames, rather than pruned and
- * recopied in place. The in-memory [ProviderMutationJournal] cannot roll back an abrupt process
- * death, and an in-place rewrite leaves a pack whose `platform.yaml` is deleted but not yet
- * recopied — which every reader loads as a corrupt pack. With the swap the only externally
- * visible states are the previous catalog, the new catalog, and briefly no catalog at all;
- * readers degrade on absence and never observe a partially written pack.
- */
 internal fun publishInstalledReviewCatalog(
   platformPacksRoot: Path,
   selectedPlatforms: List<String>?,

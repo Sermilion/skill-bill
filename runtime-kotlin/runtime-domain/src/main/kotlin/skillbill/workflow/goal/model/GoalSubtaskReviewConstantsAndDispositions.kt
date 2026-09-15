@@ -9,7 +9,6 @@ const val GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY: String = "goal_subtask_revie
 const val GOAL_SUBTASK_REVIEW_RESULT_ARTIFACT_PREFIX: String = "goal_subtask_review_results"
 const val GOAL_SUBTASK_REVIEW_BLOCKER_SEVERITY: String = "blocker"
 
-/** Additive evidence log of review/remediation base recoveries; unknown to older runtimes. */
 const val GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY: String = "goal_review_base_recoveries"
 
 enum class GoalSubtaskOperatorDecision(val wireValue: String) {
@@ -24,18 +23,12 @@ enum class GoalSubtaskOperatorDecision(val wireValue: String) {
   }
 }
 
-/**
- * How a recorded operator decision releases the pause. Every decision releases it — leaving a decided
- * pause intact would re-pause the subtask identically and strand it on the operator's own choice.
- */
 enum class GoalSubtaskPauseRelease {
-  /** One fresh, unbudgeted `implement_fix` iteration. */
+
   RETRY_FIX,
 
-  /** Forward to `validate` with the unresolved Blockers accepted as-is. */
   ADVANCE,
 
-  /** Terminal: the subtask is abandoned rather than repaired. */
   ABANDON,
 }
 

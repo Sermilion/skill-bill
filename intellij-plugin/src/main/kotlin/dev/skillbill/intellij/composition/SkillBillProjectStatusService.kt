@@ -9,10 +9,7 @@ import dev.skillbill.intellij.infrastructure.prefs.IntelliJPreferenceCache
 import dev.skillbill.intellij.presentation.SkillBillStatusViewModel
 import java.nio.file.Path
 
-/**
- * Project service exposing presentation-facing handles for status-bar consumers.
- * Owns the composed graph lifetime; disposal cancels polling and child processes.
- */
+
 class SkillBillProjectStatusService(
     private val project: Project,
 ) : Disposable {

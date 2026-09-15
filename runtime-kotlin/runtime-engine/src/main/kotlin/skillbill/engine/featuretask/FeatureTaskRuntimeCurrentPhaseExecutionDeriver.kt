@@ -19,10 +19,7 @@ internal data class FeatureTaskRuntimeCurrentPhaseExecutionContext(
 )
 
 class FeatureTaskRuntimeCurrentPhaseExecutionDeriver {
-  /**
-   * Derives one current-phase execution value from the same durable inputs that selected the
-   * current phase. Never reads a completed neighbour's historical counter as current.
-   */
+
   internal fun derive(context: FeatureTaskRuntimeCurrentPhaseExecutionContext): IdeStatusCurrentPhaseExecution? {
     val phaseId = context.currentPhaseId?.takeIf(String::isNotBlank) ?: return null
     val phaseStatus = context.phases.firstOrNull { it.phaseId == phaseId } ?: return null
@@ -112,10 +109,6 @@ class FeatureTaskRuntimeCurrentPhaseExecutionDeriver {
     )
   }
 
-  /**
-   * Active review pass for the current review phase. A completed prior review record is omitted
-   * when a newer review_fix LOOP_EDGE has reopened review.
-   */
   private fun activeReviewPassNumber(
     record: FeatureTaskRuntimePhaseRecord?,
     ledger: List<FeatureTaskRuntimePhaseLedgerEntry>,
@@ -138,10 +131,6 @@ class FeatureTaskRuntimeCurrentPhaseExecutionDeriver {
     }?.let { pass }
   }
 
-  /**
-   * Prefer the latest LOOP_EDGE targeting the current phase, falling back to the phase-record
-   * watermark when no targeting edge exists.
-   */
   private fun activeEdgeContext(
     phaseId: String,
     record: FeatureTaskRuntimePhaseRecord?,

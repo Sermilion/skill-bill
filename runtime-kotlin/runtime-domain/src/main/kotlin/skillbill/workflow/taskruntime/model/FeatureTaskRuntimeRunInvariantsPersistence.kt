@@ -8,10 +8,6 @@ import skillbill.error.InvalidFeatureTaskRuntimePhaseHandoffSchemaError
 import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.review.context.model.CodeReviewExecutionMode
 
-/**
- * Durable run-scoped invariants resolved at run creation. Resume reads this artifact instead of
- * re-resolving from the spec, so feature size and other governing inputs cannot drift mid-run.
- */
 const val FEATURE_TASK_RUNTIME_RUN_INVARIANTS_ARTIFACT_KEY: String = "feature_task_runtime_run_invariants"
 internal fun FeatureTaskRuntimeRunInvariants.toArtifactMap(): Map<String, Any?> = linkedMapOf(
   SharedPayloadKeys.CONTRACT_VERSION to FEATURE_TASK_RUNTIME_RUN_INVARIANTS_CONTRACT_VERSION,
@@ -29,7 +25,6 @@ internal fun FeatureTaskRuntimeRunInvariants.toArtifactMap(): Map<String, Any?> 
   },
 )
 
-/** Strict decode of the durable run-invariants artifact. */
 internal fun featureTaskRuntimeRunInvariantsFromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeRunInvariants {
   raw.requireRunInvariantsContractVersion()
   val specReference = raw.requireInvariantStringField("spec_reference")

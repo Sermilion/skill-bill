@@ -2,11 +2,6 @@ package skillbill.workflow.taskruntime.model
 
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 
-/**
- * The durable resolved feature branch for one run. [branch] is the non-default feature branch the
- * run is pinned to; [baseBranch] is the branch it was created from (null when the run reused an
- * already-checked-out branch rather than creating one).
- */
 data class FeatureTaskRuntimeResolvedBranch(
   val branch: String,
   val baseBranch: String? = null,
@@ -53,7 +48,7 @@ data class FeatureTaskRuntimeResolvedBranch(
   }
 
   companion object {
-    /** Strict decode; loud-fails on a missing or malformed required field. */
+
     internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeResolvedBranch =
       FeatureTaskRuntimeResolvedBranch(
         branch = raw.requireStringField(DecompositionPlanningPayloadKeys.BRANCH),

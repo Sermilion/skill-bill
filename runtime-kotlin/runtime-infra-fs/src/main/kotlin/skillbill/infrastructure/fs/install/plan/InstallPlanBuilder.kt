@@ -30,12 +30,7 @@ internal fun buildInstallPlan(request: InstallPlanRequest, wireValidator: Instal
   validateInstallPlanInternalSkills(draft.skills)
   val staging = buildInstallStagingIntent(request, draft.skills, platformManifests)
   val plan = draft.toInstallPlan(staging)
-  // SKILL-48 Subtask 2b: validate the install-plan wire shape at the
-  // builder seam. The CLI emission boundary validates again — both
-  // sites cover the parse seam so any regression in shape (e.g. an
-  // unknown agent id slipping through a future builder change)
-  // loud-fails with `InvalidInstallPlanSchemaError` before the plan is
-  // handed to the apply pipeline.
+
   validateInstallPlanWireSnapshot(plan, wireValidator)
   return plan
 }
@@ -93,14 +88,6 @@ private fun buildInstallPolicyInput(
   )
 }
 
-/**
- * SKILL-76 Subtask 2: enumerate every install-plan skill (base + all materialized
- * platform-pack skills) for [request]. Lives in the approved builder seam so the
- * reconcile policy can reuse skill enumeration WITHOUT referencing the domain
- * `InstallPlanPolicy` directly (InstallPolicyOwnershipArchitectureTest restricts
- * policy callers to this file). Returns the same `draft.skills` the staging-intent
- * builder consumes.
- */
 internal fun enumerateInstallPlanSkills(
   request: InstallPlanRequest,
   enforceContractVersion: Boolean = true,

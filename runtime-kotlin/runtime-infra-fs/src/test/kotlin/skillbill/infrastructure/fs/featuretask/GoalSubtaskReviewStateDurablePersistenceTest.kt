@@ -56,11 +56,7 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-/**
- * AC-014 and AC-016: the pause data is only useful if it survives the process that wrote it. These
- * drive the real recorder against a workflow store and read the state back, rather than asserting on
- * objects the test constructs itself.
- */
+
 class GoalSubtaskReviewStateDurablePersistenceTest {
   private val workflowId = "wftr-skill142-1"
 
@@ -497,7 +493,6 @@ class GoalSubtaskReviewStateDurablePersistenceTest {
 
   @Test
   fun `resume coherence heals committed-but-unrecorded remediation checkpoint to the identity sha`() {
-    // Crash window: remediation checkpoint committed and identity recorded, base still the parent.
     val fixture = committedUnrecordedFixture()
     val state = deepRemediationState(completedPasses = 1)
       .reserveNextPass()
@@ -558,8 +553,6 @@ class GoalSubtaskReviewStateDurablePersistenceTest {
 
   @Test
   fun `resume coherence keeps a Skip-recorded descendant tip ahead of the review_fix identity`() {
-    // AC-006: identity R is still on the branch; stored H is a later Skip-recorded tip (descendant of
-    // R). Pre-fix resume replaced H with R because identity != stored; post-fix must keep H.
     val fixture = skipRecordedDescendantFixture()
     val state = deepRemediationState(completedPasses = 1)
       .copy(remediationBaseSha = fixture.skipRecordedTip)

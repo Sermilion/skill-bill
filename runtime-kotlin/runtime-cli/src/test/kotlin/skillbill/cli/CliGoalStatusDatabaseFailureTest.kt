@@ -97,8 +97,7 @@ class CliGoalStatusDatabaseFailureTest {
           "--agent",
           "codex",
         ),
-        // Pinned so the probe does not hit the goal-continuation install refusal, which would
-        // return a result instead of throwing and leave the propagation claim unexercised.
+
         fixture.context(launcher = UnusedStatusAgentRunLauncher).copy(environment = emptyMap()),
       )
     }

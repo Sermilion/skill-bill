@@ -9,12 +9,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-/**
- * SKILL-52.3 subtask 5 (enforcement-hardening-and-final-lock): source-text
- * inline-FQN bans and the schema/coherence validator-import ban. Split out of
- * [ImplementationOwnershipArchitectureTest] to keep both suites under the
- * detekt `LargeClass` budget without a suppression.
- */
 class RuntimeEnforcementHardeningArchitectureTest {
   private val runtimeRoot: Path =
     Path.of("").toAbsolutePath().normalize().let { workingDir ->
@@ -27,15 +21,6 @@ class RuntimeEnforcementHardeningArchitectureTest {
 
   @Test
   fun `application domain and ports do not embed inline fully-qualified adapter or infrastructure references`() {
-    // SKILL-52.3 subtask 5 (AC1): the sibling import-only guard
-    // `application domain and ports do not import adapters infrastructure or
-    // composition roots` matches parsed `import` statements only. A
-    // fully-qualified inline reference with NO import — e.g.
-    // `skillbill.infrastructure.fs.Foo()` written out at the call site — is
-    // invisible to that scan. This source-text scan catches inline FQN
-    // references to the same forbidden prefixes so the leak cannot recur
-    // through an unimported call site. The fixture-driven positive control
-    // below proves the scanner fires.
     val violations = SOURCE_TEXT_LAYER_RULES.flatMap { (sourceRoot, forbiddenPrefixes) ->
       val sourceFiles = kotlinFilesUnder(runtimeRoot.resolve(sourceRoot))
       assertTrue(
@@ -60,11 +45,6 @@ class RuntimeEnforcementHardeningArchitectureTest {
 
   @Test
   fun `inline fully-qualified reference scanner fires on synthetic fixture`() {
-    // SKILL-52.3 subtask 5 (AC1) positive control: a synthetic source string
-    // carrying a bare `skillbill.infrastructure.fs.Foo()` inline reference with
-    // NO import statement MUST be reported by the scanner. A regression that
-    // weakened the scan (e.g. only matching `import ...` lines) would silently
-    // disable the inline-FQN guard above.
     val fixtureWithInlineReference =
       """
       package skillbill.application
@@ -82,19 +62,25 @@ class RuntimeEnforcementHardeningArchitectureTest {
       "Inline-FQN scanner must report a bare `skillbill.infrastructure.fs.Foo()` reference with no import.",
     )
 
+    val wholeCommentLine = "// trailing comment skillbill.cli.Baz reference must be ignored"
+    val commentTailLine = "fun build(): Foo = Foo() // inline tail skillbill.infrastructure.fs.Qux"
     val cleanFixture =
       """
       package skillbill.application
 
       import skillbill.engine.featuretask.model.Foo
 
-      /**
-       * Doc: see skillbill.infrastructure.fs.Foo for the adapter wiring.
-       * skillbill.infrastructure.sqlite.Bar is the legacy path.
-       */
+      interface CleanDoc {
+        /**
+         * Doc: see skillbill.infrastructure.fs.Foo for the adapter wiring.
+         * skillbill.infrastructure.sqlite.Bar is the legacy path.
+         */
+        fun documented(): Unit
+      }
+
       class Clean {
-        // trailing comment skillbill.cli.Baz reference must be ignored
-        fun build(): Foo = Foo() // inline tail skillbill.infrastructure.fs.Qux
+        $wholeCommentLine
+        $commentTailLine
       }
       """.trimIndent()
     assertEquals(
@@ -107,17 +93,6 @@ class RuntimeEnforcementHardeningArchitectureTest {
 
   @Test
   fun `pure layers must not import concrete schema or coherence validators`() {
-    // SKILL-52.3 subtask 5 (AC3): the three relocated schema validators + the
-    // coherence validator live in `runtime-infra-fs` and are reached only
-    // through the domain-owned ports `InstallPlanWireValidator`,
-    // `DecompositionManifestValidator`, and `WorkflowSnapshotValidator`. Pure
-    // layers must never import a concrete `*SchemaValidator` /
-    // `*CoherenceValidator`. The existing RuntimeArchitectureTest guard covers
-    // `runtime-domain/.../skillbill/install/` + `.../skillbill/workflow/`; this
-    // test additionally locks `runtime-application` main source and routes the
-    // predicate through the shared `isSchemaOrCoherenceValidatorImport` helper
-    // (self-tested in `RuntimeImplementationImportRulesTest`) so the install
-    // leak that motivated SKILL-52.3 cannot recur from any of the three roots.
     val guardedSourceRoots = listOf(
       "runtime-domain/src/main/kotlin/skillbill/install",
       "runtime-domain/src/main/kotlin/skillbill/workflow",
@@ -151,13 +126,6 @@ class RuntimeEnforcementHardeningArchitectureTest {
 
   @Test
   fun `validator-import extraction strips aliases before applying the ban predicate`() {
-    // SKILL-52.3 subtask 5 (AC3) regression control: aliased imports are
-    // idiomatic in this repo (e.g. ReviewContractMappers.kt), so the AC3 guard's
-    // import extraction MUST strip an ` as <alias>` suffix before feeding
-    // `isSchemaOrCoherenceValidatorImport`. A naive `removePrefix("import ")`
-    // would yield `InstallPlanSchemaValidator as IPV` whose `substringAfterLast('.')`
-    // no longer `endsWith("SchemaValidator")`, silently evading the ban. Drive an
-    // aliased line through the SAME extraction+predicate path the guard uses.
     val aliasedImportSource =
       """
       package skillbill.application
@@ -228,23 +196,6 @@ import skillbill.contracts.workflow.DecompositionManifestCoherenceValidator as D
     )
   }
 
-  /**
-   * SKILL-52.3 subtask 5 (AC1): source-text scan for inline fully-qualified
-   * references to forbidden prefixes. Mirrors
-   * `RuntimeArchitectureTest.assertNoBannedSourceReferences` /
-   * `containsBannedReference` (word-boundary-anchored substring match) but
-   * deliberately SKIPS `import` lines so it complements — rather than
-   * duplicates — the import-parsing guard. Each forbidden prefix is matched
-   * as a dotted package token (`prefix.`) so `skillbill.infrastructure.fs.Foo`
-   * is caught while an unrelated identifier merely containing the text is not.
-   * Conservatively ignores `import`/`package` statements and comment text:
-   * line-comment tails are stripped and whole-line block-comment / KDoc
-   * continuation lines (trimmed line begins with an asterisk, a slash-star
-   * block-comment opener, or a double-slash) are skipped so a documented FQN
-   * in a comment cannot false-positive the build. Full string literal parsing
-   * is intentionally NOT attempted — stripping comment tails is sufficient
-   * for this guard.
-   */
   private fun bannedInlineReferences(source: String, forbiddenPrefixes: List<String>): List<String> =
     source.lineSequence()
       .filterNot { line ->
@@ -262,13 +213,6 @@ import skillbill.contracts.workflow.DecompositionManifestCoherenceValidator as D
       .distinct()
       .toList()
 
-  /**
-   * SKILL-52.3 subtask 5 (AC3): parse imported FQNs from source text, mirroring
-   * `RuntimeArchitectureTest.importPattern` + `substringBefore(" as ")` so an
-   * aliased import (`import a.b.C as D`) yields the bare FQN `a.b.C` and trailing
-   * whitespace is dropped. Aligning on the shared parse keeps the AC3 guard from
-   * being evaded by idiomatic aliased imports.
-   */
   private fun importedNames(source: String): List<String> = IMPORT_PATTERN.findAll(source)
     .map { match -> match.groupValues[1].substringBefore(" as ").trim() }
     .toList()
@@ -367,24 +311,8 @@ import skillbill.contracts.workflow.DecompositionManifestCoherenceValidator as D
       name = groupValues[3],
     )
 
-    /**
-     * SKILL-52.3 subtask 5 (AC3): import-line pattern matching
-     * `RuntimeArchitectureTest.importPattern`. The capture stops at the first
-     * non-FQN char, so the optional ` as <alias>` suffix is excluded by the
-     * regex; the call site still applies `substringBefore(" as ")` defensively.
-     */
     val IMPORT_PATTERN: Regex = Regex("""^import\s+([A-Za-z0-9_.*]+)""", RegexOption.MULTILINE)
 
-    /**
-     * SKILL-52.3 subtask 5 (AC1): forbidden inline-FQN prefixes per source
-     * root for the source-text scan. Scoped to the adapter / concrete
-     * infrastructure / DI composition-root prefixes that may never be reached
-     * from application/domain/port code by ANY path — import OR inline FQN.
-     * (Cross-layer prefixes such as `skillbill.application` or `skillbill.ports`
-     * are intentionally excluded here: they are guarded by the import-only
-     * rule and appear legitimately as inline type names within their own
-     * layer, so a blanket source-text ban would false-positive.)
-     */
     val SOURCE_TEXT_LAYER_RULES: Map<String, List<String>> = mapOf(
       "runtime-application/src/main/kotlin" to listOf(
         "skillbill.cli",

@@ -1,12 +1,7 @@
 package skillbill.infrastructure.sqlite.core
 
-/**
- * Review-ledger DDL, held apart from [DatabaseSchema] so the base-schema object stays within its
- * size budget. Each list is shared verbatim between the base schema and its named migration so an
- * existing store and a fresh one converge on one definition.
- */
 internal object DatabaseReviewLedgerSchema {
-  // Per-lane review attribution.
+
   val reviewRunLaneStatements: List<String> =
     listOf(
       """
@@ -35,9 +30,7 @@ internal object DatabaseReviewLedgerSchema {
       CREATE INDEX IF NOT EXISTS idx_review_run_lanes_pack_area
         ON review_run_lanes(pack_slug, area, review_run_id)
       """.trimIndent(),
-      // Finding-to-lane attribution the runtime records from its own merge result, before the
-      // review text is imported. It is the authoritative source for a finding's producing lane;
-      // parsed provenance is only the fallback for externally supplied review text.
+
       """
       CREATE TABLE IF NOT EXISTS review_run_finding_lanes (
         review_run_id TEXT NOT NULL,
@@ -50,14 +43,6 @@ internal object DatabaseReviewLedgerSchema {
       """.trimIndent(),
     )
 
-  /**
-   * The shared finding key joining the workflow review loop to review-run import. It is a table of
-   * its own rather than columns on `unaddressed_findings` because that ledger is retracted
-   * (`replaceLedgerForPass`, `clearWorkflowLedger` both DELETE), so an outcome recorded on it would
-   * be destroyed by the next pass. There is deliberately no foreign key to `findings`:
-   * workflow-loop findings need not have been imported as a review run, and `review_run_id` stays
-   * NULL (`key_state = 'unresolved'`) in exactly that case rather than being guessed.
-   */
   val reviewFindingOutcomeStatements: List<String> =
     listOf(
       """

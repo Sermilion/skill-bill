@@ -37,7 +37,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
-/** Launch fan-out stays one worker per selected lane regardless of commit or segment count. */
 class ParallelReviewFanOutInvariantTest {
   private val hunkTemplate = ReviewChangedHunk("src/A.kt", 1, 1, 1, 2, "+alpha")
 
@@ -145,7 +144,7 @@ class ParallelReviewFanOutInvariantTest {
     assertTrue(segmentation.segments.size >= 2, "Fixture must force segmentation without multiplying launches.")
     assertEquals(1, prepared.assignments.count { it.lane == "security" })
     assertEquals(prepared.packet.selectedLanes.size, prepared.assignments.size)
-    // Real launch construction still yields one GovernedReviewLaunch per assignment.
+
     GovernedReviewLaunch(
       security,
       prepared.packet,

@@ -214,11 +214,6 @@ class GitWorkflowGitOperationsDiffTest {
     assertFalse("preexisting.tmp" in reviewText)
   }
 
-  /**
-   * WE-4860 subtask 3 retired a module: 1.1MB of its 1.7MB delta was the bodies of 170 deleted
-   * files. Blocking there refuses to review the additions and modifications too, so an over-bound
-   * delta keeps every surviving patch in full and reduces the deletions to a named manifest.
-   */
   @Test
   fun `an oversized worktree still resolves as a scope fingerprint without inlining bodies`() {
     val repoRoot = Files.createTempDirectory("skillbill-goal-review-elided-deletions")

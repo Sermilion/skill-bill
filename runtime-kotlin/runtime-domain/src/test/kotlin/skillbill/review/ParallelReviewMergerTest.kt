@@ -389,7 +389,6 @@ class ParallelReviewMergerTest {
 
   @Test
   fun `same file with partial overlap below threshold is not coalesced`() {
-    // tokens: {token,exposed,in,logs,here} vs {token,missing,csrf,header,on,post} -> 1/10 = 0.1 < 0.6
     val lane1Output = "- [F-001] Major | High | path=\"Auth.kt\" | line=7 | token exposed in logs here"
     val lane2Output = "- [F-001] Major | High | path=\"Auth.kt\" | line=7 | token missing csrf header on post"
 
@@ -433,8 +432,6 @@ class ParallelReviewMergerTest {
 
   @Test
   fun `coalesced confidence tracks the higher severity, not first appearance`() {
-    // lane1 (first) is Minor|High; lane2 is Major|Low. The merged finding must report the more
-    // severe assessment's severity AND its confidence (Major|Low), never Major|High.
     val location = "Auth.kt:42"
     val description = "token exposed in logs"
     val lane1Output = "- [F-001] Minor | High | path=\"${location.substringBeforeLast(
@@ -456,7 +453,6 @@ class ParallelReviewMergerTest {
 
   @Test
   fun `same file with token overlap exactly at threshold is not coalesced`() {
-    // tokens {alpha,beta,gamma,delta} vs {alpha,beta,gamma,epsilon} -> 3/5 = 0.6, not strictly above.
     val lane1Output = "- [F-001] Major | High | path=\"Auth.kt\" | line=7 | alpha beta gamma delta"
     val lane2Output = "- [F-001] Major | High | path=\"Auth.kt\" | line=7 | alpha beta gamma epsilon"
 

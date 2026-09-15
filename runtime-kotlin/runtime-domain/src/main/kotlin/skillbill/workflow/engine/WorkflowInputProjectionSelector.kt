@@ -18,10 +18,6 @@ private fun collectionItemCount(value: Any?): Int = when (value) {
   else -> 1
 }
 
-/**
- * The single selection boundary used by fresh launches and continuations. It never falls back
- * to the complete durable artifact map and it rejects, rather than truncates, oversized input.
- */
 object WorkflowInputProjectionSelector {
   fun select(
     definition: WorkflowDefinition,

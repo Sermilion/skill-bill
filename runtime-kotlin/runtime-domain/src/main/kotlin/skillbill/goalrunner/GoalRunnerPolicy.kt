@@ -230,8 +230,7 @@ object GoalRunnerOutcomeReconciler {
       storedOutcome = storedOutcome,
       liveness = liveness,
     )
-    // A crash-reconciled child row routes away from the terminal NO_TERMINAL_STORE_OUTCOME block: the
-    // subtask is resumable at its recorded step, so the goal resumes without manual lease/row clearing.
+
     GoalRunnerTerminalStatus.RECONCILABLE -> stop(
       reason = GoalRunnerStopReason.RECONCILED_RESUMABLE,
       blockedReason = storedOutcome.blockedReason.orEmpty().ifBlank {
@@ -241,8 +240,7 @@ object GoalRunnerOutcomeReconciler {
       storedOutcome = storedOutcome,
       liveness = liveness,
     )
-    // A paused child is awaiting the bounded operator decision, not blocked: the persisted review
-    // state, baseline, and consumed pass count survive so resume continues from the recorded step.
+
     GoalRunnerTerminalStatus.PAUSED -> stop(
       reason = GoalRunnerStopReason.AWAITING_OPERATOR_DECISION,
       blockedReason = storedOutcome.blockedReason.orEmpty().ifBlank {

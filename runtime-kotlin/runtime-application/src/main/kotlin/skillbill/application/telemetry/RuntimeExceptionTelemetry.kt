@@ -10,8 +10,6 @@ private const val MAX_STACK_FRAMES = 12
 private const val MAX_MESSAGE_LENGTH = 512
 private const val SKILLBILL_FRAME_PREFIX = "skillbill."
 
-// Only `full` uploads caller-supplied content; an unknown or unresolved level fails closed to the
-// redacted branch.
 fun enqueueRuntimeException(
   outbox: TelemetryOutboxRepository,
   workflowPhase: String,

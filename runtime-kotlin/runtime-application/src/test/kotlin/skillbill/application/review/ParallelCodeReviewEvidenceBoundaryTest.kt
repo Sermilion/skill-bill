@@ -349,9 +349,7 @@ class ParallelCodeReviewEvidenceBoundaryTest {
       "the inline parent reaches the broker through one endpoint that stamps one lane, so its " +
         "surface must cover every routed area; it covered ${binding.assignment.assignedPaths}",
     )
-    // Admitting the path is only half of it: the surface must also carry the hunks behind it, or
-    // the lane is handed a path whose body it can never obtain. ReviewEvidenceBrokerBinding's own
-    // invariant then ties projectedHunks to exactly these ids, so a servable body follows.
+
     assertEquals(
       setOf("src/core/Repo.kt", "src/secure/Auth.kt"),
       binding.projectedHunks.map { it.path }.toSet(),

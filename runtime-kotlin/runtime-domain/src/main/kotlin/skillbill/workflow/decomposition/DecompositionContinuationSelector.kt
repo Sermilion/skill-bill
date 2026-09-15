@@ -21,8 +21,6 @@ object DecompositionContinuationSelector {
       it.status.decompositionStatus() == DecompositionStatus.BLOCKED
     }
     val unconstrained = when {
-      // Orphaned handoff: marked started but no durable workflow opened. Re-open fresh
-      // rather than resuming a workflow that does not exist, which would block the goal.
       inProgress != null && inProgress.workflowId.isNullOrBlank() -> DecompositionContinuationSelection.Start(
         subtask = inProgress,
         branchPlan = manifest.branchPlanFor(inProgress.id),

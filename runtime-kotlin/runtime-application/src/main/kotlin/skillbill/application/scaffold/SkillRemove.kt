@@ -2,7 +2,6 @@ package skillbill.application.scaffold
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.domain.skillremove.SkillBillRollbackException
-import skillbill.domain.skillremove.SkillRemovalRefusedException
 import skillbill.domain.skillremove.TargetValidation
 import skillbill.domain.skillremove.model.SkillRemovalPreview
 import skillbill.domain.skillremove.model.SkillRemovalRefusalReason
@@ -15,35 +14,11 @@ import skillbill.ports.skillremove.SkillRemoveFileSystem
 import java.nio.file.Paths
 import kotlin.coroutines.cancellation.CancellationException
 
-/**
- * Domain service that orchestrates skill removal (SKILL-46).
- *
- * Owns the typed refusal policy (`.bill-shared` and shipped product skills) and the preview-then-execute
- * lifecycle. All I/O is delegated to the [SkillRemoveFileSystem] port so the unit tests can fake
- * the install primitives in-memory.
- *
- * Contract:
- * - [previewRemoval] never mutates the repo. It returns a [SkillRemovalResult.Preview] dossier or
- *   throws [SkillRemovalRefusedException] for guarded targets.
- * - [executeRemoval] previews first, then applies the cascade. It returns [SkillRemovalResult.Success]
- *   on the happy path or [SkillRemovalResult.Failed] on any runtime exception.
- *
- * Catch posture in [executeRemoval]:
- * - kotlinx `CancellationException` propagates verbatim (re-thrown first by intent — see the docs
- *   on [tryExecute] below for the precise check).
- * - [SkillBillRuntimeException] is caught and mapped — `rollbackComplete = false` only when the
- *   exception is a [SkillBillRollbackException], `true` otherwise.
- * - The generic [Exception] catch defensively forces `rollbackComplete = false` because we cannot
- *   prove rollback ran for a non-runtime exception.
- * - JVM [Error] is NOT caught so it can propagate to the supervisor.
- */
 @Inject
 class SkillRemove(
   private val fileSystem: SkillRemoveFileSystem,
 ) {
   fun previewRemoval(request: SkillRemovalRequest): SkillRemovalResult.Preview {
-    // F-S01: validate input BEFORE any filesystem call so a malicious target string can never
-    // even be resolved against repoRoot.
     TargetValidation.validateOrRefuse(request)
     enforceRefusalPolicy(request)
     val cascadedSkillNames = computeCascadedSkillNames(request)
@@ -59,8 +34,6 @@ class SkillRemove(
   }
 
   fun executeRemoval(request: SkillRemovalRequest): SkillRemovalResult = tryExecute {
-    // F-S01: same gate as previewRemoval — validate every argument before resolving against the
-    // filesystem so /etc/passwd / .. cannot reach the executor.
     TargetValidation.validateOrRefuse(request)
     enforceRefusalPolicy(request)
     val cascadedSkillNames = computeCascadedSkillNames(request)
@@ -72,9 +45,7 @@ class SkillRemove(
       skillDirRoot = skillDirRootFor(request.target),
       cascadedSkillNames = cascadedSkillNames,
     )
-    // F-004-RELIABILITY-LOG: structured begin/failure/success logging is emitted by the
-    // [SkillRemoveFileSystem] adapter (SKILL-52.3) so the pure domain stays effect-free; the
-    // adapter strips absolute paths so we never leak filesystem layout into the log stream.
+
     val applied = fileSystem.applyCascade(request, preview)
     SkillRemovalResult.Success(
       preview = preview,
@@ -85,12 +56,6 @@ class SkillRemove(
     )
   }
 
-  /**
-   * F-S03: after [TargetValidation] proves the identifier is well-formed, canonicalize the
-   * concrete target path against the repo root and compare via [Path.startsWith] (not name
-   * equality). This catches identifiers that differ in casing on case-insensitive file systems,
-   * symlink-aliasing, or any other surface the prior exact-equality check could miss.
-   */
   private fun enforceRefusalPolicy(request: SkillRemovalRequest) {
     val repoRoot = Paths.get(request.repoRootAbsolutePath).toAbsolutePath().normalize()
     val target = request.target
@@ -113,16 +78,12 @@ class SkillRemove(
         }
       }
       is SkillRemovalTarget.PlatformPack -> {
-        // F-S03: `.bill-shared` is never deletable, whether requested as a skill OR a platform pack.
         if (target.platform == BILL_SHARED_NAME) {
           refuseSkillRemoval(
             SkillRemovalRefusalReason.BILL_SHARED_PROTECTED,
             "Removal of platform pack '$BILL_SHARED_NAME' is not allowed — it is a built-in shared surface.",
           )
         }
-        // SKILL-49: shipped first-party platform packs (`kotlin`, `kmp`) are user-removable.
-        // Platform packs are the user-extension surface; forks may drop packs they do not use.
-        // `--allow-shipped` is no longer required on this axis.
       }
       is SkillRemovalTarget.AddOn,
       is SkillRemovalTarget.ExternalAddOn,
@@ -149,12 +110,6 @@ class SkillRemove(
       Paths.get(target.sourceRootAbsolutePath).resolve(target.fileName).normalize().toString().replace('\\', '/')
   }
 
-  /**
-   * Wraps the happy-path block with the documented catch posture. Cancellation must propagate
-   * verbatim (kotlinx coroutines contract); [SkillBillRuntimeException] subclasses map to
-   * [SkillRemovalResult.Failed]; generic [Exception] is caught with `rollbackComplete = false`;
-   * JVM [Error] is not caught.
-   */
   private inline fun tryExecute(block: () -> SkillRemovalResult): SkillRemovalResult {
     val outcome = runCatching(block)
     if (outcome.isSuccess) return outcome.getOrThrow()

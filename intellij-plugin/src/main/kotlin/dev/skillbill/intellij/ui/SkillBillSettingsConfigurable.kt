@@ -20,11 +20,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import javax.swing.JTextField
 
-/**
- * Settings | Tools | Skill Bill. The CLI path override is otherwise unreachable: a
- * desktop-launched IDE can miss a `skill-bill` that the login shell finds, and without
- * an editor the only correction would be hand-editing `skillBillSettings.xml`.
- */
+
 class SkillBillSettingsConfigurable : BoundConfigurable(DISPLAY_NAME) {
     private val settings: SkillBillApplicationSettings
         get() = service<SkillBillApplicationSettings>()

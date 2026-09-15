@@ -13,8 +13,7 @@ class FileSystemReviewSnapshotGateway : ReviewSnapshotGateway {
     val directory = live.parent ?: return emptyList()
     if (!Files.isDirectory(directory)) return emptyList()
     val liveName = live.fileName.toString()
-    // review-metrics.db -> stem "review-metrics", so a snapshot is review-metrics.<label>.db. The
-    // live file fails this pattern (it has no label segment) and can never be a candidate.
+
     val stem = liveName.removeSuffix(SUFFIX)
     val pattern = Regex("^${Regex.escape(stem)}\\.(.+)${Regex.escape(SUFFIX)}$")
     return Files.newDirectoryStream(directory).use { entries ->

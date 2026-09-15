@@ -13,14 +13,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-/**
- * SKILL-52.2 subtask 2 (TEST-T01): byte-equivalence tests for
- * `ScaffoldCommandRequest.toRawScaffoldPayload()`. This bridge re-materialises the typed request
- * back into the legacy raw `Map<String, Any?>` payload shape so the existing
- * `scaffoldWithAdapters(...)` orchestrator path keeps working (AC4 byte-equivalent scaffold
- * outputs). These tests pin the omission rules so a regression cannot silently introduce a
- * "$key=$default" entry that the legacy seam used to drop.
- */
 class ScaffoldCommandRequestRawPayloadTest {
   @Test
   fun `horizontal skill emits canonical fields with omission rules`() {
@@ -41,7 +33,7 @@ class ScaffoldCommandRequestRawPayloadTest {
     assertEquals("do the foo", raw["description"])
     assertEquals("## body", raw["content_body"])
     assertEquals(listOf("ui"), raw["subagent_specialists"])
-    // suppressSubagents=false MUST NOT emit no_subagents (legacy seam parity)
+
     assertFalse("no_subagents" in raw)
   }
 
@@ -60,8 +52,7 @@ class ScaffoldCommandRequestRawPayloadTest {
     assertFalse("description" in raw, "blank description must be omitted, got: $raw")
     assertFalse("content_body" in raw, "null content_body must be omitted")
     assertFalse("repo_root" in raw, "null repo_root must be omitted")
-    // Empty subagent_specialists for HorizontalSkill is also omitted (it is a List<String>, not
-    // List<String>? — and the legacy seam emitted nothing when the list was empty).
+
     assertFalse("subagent_specialists" in raw)
     assertEquals(true, raw["no_subagents"])
   }
@@ -125,7 +116,7 @@ class ScaffoldCommandRequestRawPayloadTest {
     ).toRawScaffoldPayload()
 
     assertFalse("subagent_specialists" in withNull, "null variant must omit subagent_specialists")
-    // Empty list still emitted — null vs empty distinction is preserved by the bridge
+
     assertTrue("subagent_specialists" in withEmpty, "empty list variant must emit empty list")
     assertEquals(emptyList<String>(), withEmpty["subagent_specialists"])
   }

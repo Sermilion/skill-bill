@@ -8,10 +8,6 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-/**
- * SKILL-178 subtask 3: a documented skill-bill goal command records operator decisions for paused
- * goal subtasks without hand-editing durable state or decomposition-manifest.yaml.
- */
 class CliGoalOperatorDecisionRuntimeTest {
   @Test
   fun `goal operator-decision help documents the paused-subtask decision surface`() {

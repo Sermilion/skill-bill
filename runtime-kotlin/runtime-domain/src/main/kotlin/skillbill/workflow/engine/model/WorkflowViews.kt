@@ -4,16 +4,6 @@ import skillbill.contracts.workflow.WorkflowContinueSessionSummary
 import skillbill.workflow.model.WorkflowContinueStatus
 import skillbill.workflow.model.WorkflowResumeMode
 
-/**
- * SKILL-52.1 — Typed view models replacing the raw `Map<String, Any?>`
- * payloads previously returned by `WorkflowEngine.fullPayload` /
- * `summaryPayload` / `resumePayload` / `continueDecision`.
- *
- * These views are the engine's public surface. Adapters at the
- * application/CLI/MCP layer consume them directly. Wire-shape ordered
- * maps are produced by the engine's open-boundary serializer helpers
- * (`WorkflowEngine.snapshotMap` etc.).
- */
 data class WorkflowSnapshotView(
   val workflowId: String,
   val sessionId: String,
@@ -110,10 +100,7 @@ data class WorkflowContinueView(
   val stepArtifactKeys: List<String>,
   val stepArtifacts: WorkflowStepArtifactMap,
   val extraFields: WorkflowContinuationFieldMap,
-  /**
-   * Workflow-family session summary. Sourced from the durable record
-   * via the workflow-state repository.
-   */
+
   val sessionSummary: WorkflowContinueSessionSummary,
   val continuationBrief: String,
   val continuationEntryPrompt: String,

@@ -15,10 +15,6 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeTransitionDeclarat
 import java.nio.file.Path
 import kotlin.time.Duration
 
-/**
- * The request that drives one deterministic phase-loop run. It carries only inert values; the
- * repo root is an inert [Path] (the application layer performs no file IO against it).
- */
 data class FeatureTaskRuntimeRunRequest(
   val issueKey: String,
   val workflowId: String,
@@ -30,24 +26,17 @@ data class FeatureTaskRuntimeRunRequest(
   val compactionSettings: CompactionSettings = CompactionSettings.DEFAULT,
   val environment: Map<String, String> = emptyMap(),
   val repoRoot: Path,
-  /** Optional per-phase wall-clock cap forwarded to each phase agent launch. */
+
   val timeout: Duration? = null,
   val requestedCodeReviewMode: CodeReviewExecutionMode? = null,
-  /** Present only for non-interactive goal-runner continuation children. */
+
   val goalContinuation: FeatureTaskRuntimeGoalContinuationContext? = null,
-  /**
-   * Releases a subtask paused on an unresolved Blocker disposition. Applied once before the loop
-   * drives; null on every run that is not resuming such a pause.
-   */
+
   val operatorDecision: GoalSubtaskOperatorDecision? = null,
-  /** Already identity-verified selection; workers never discover or reparse add-on sources. */
+
   val agentAddonSelection: HydratedAgentAddonSelection = HydratedAgentAddonSelection(),
   val eventSink: FeatureTaskRuntimeRunEventSink = FeatureTaskRuntimeRunEventSink.NONE,
-  /**
-   * Test-only seam for a synthetic cyclic topology. Null in production, where the runner uses the
-   * forward-only [skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition.transitions]
-   * declaration; inert when null so production behavior is byte-for-byte unchanged.
-   */
+
   val transitionsOverride: FeatureTaskRuntimeTransitionDeclaration? = null,
 ) {
   init {
@@ -87,10 +76,6 @@ data class FeatureTaskRuntimeGoalContinuationContext(
   }
 }
 
-/**
- * The terminal report of one phase-loop run. [Completed] means every phase produced schema-valid
- * output; [Blocked] means the run halted at [lastIncompletePhase] with a [blockedReason].
- */
 sealed interface FeatureTaskRuntimeRunReport {
   val issueKey: String
   val workflowId: String
@@ -198,7 +183,6 @@ data class FeatureTaskRuntimeSubtaskOutcome(
   }
 }
 
-/** The plan-phase stop decision: continue the loop, terminate decomposed, or block loudly. */
 sealed interface FeatureTaskRuntimePlanningStopDecision {
   data object Proceed : FeatureTaskRuntimePlanningStopDecision
 
@@ -209,7 +193,6 @@ sealed interface FeatureTaskRuntimePlanningStopDecision {
   data class Blocked(val reason: String) : FeatureTaskRuntimePlanningStopDecision
 }
 
-/** Typed observability events emitted at phase boundaries. */
 sealed interface FeatureTaskRuntimeRunEvent {
   val workflowId: String
   val phaseId: String
@@ -255,11 +238,6 @@ sealed interface FeatureTaskRuntimeRunEvent {
     val resumed: Boolean,
     val model: String? = null,
     val effort: String? = null,
-    /**
-     * Set when this start is itself a re-entry — a crash resume or a process retry. Without it a
-     * telemetry consumer could distinguish neither from a first attempt, and the `resumed` flag alone
-     * does not separate a resumed process from a relaunched one. Null on a genuine first attempt.
-     */
     val continuationKind: String? = null,
   ) : FeatureTaskRuntimeRunEvent
 
@@ -285,12 +263,6 @@ sealed interface FeatureTaskRuntimeRunEvent {
     val resolvedAgentId: String,
     val attemptCount: Int,
     val fixLoopIteration: Int,
-    /**
-     * Which KIND of re-entry this is. A bare iteration counter said only "the phase ran again",
-     * which read identically whether the runtime was correcting malformed JSON, continuing partial
-     * implementation work, recovering a crashed process, or re-entering from audit. The axis is
-     * additive-optional: a legacy consumer that ignores it still sees the counter it always saw.
-     */
     val continuationKind: String? = null,
   ) : FeatureTaskRuntimeRunEvent
 

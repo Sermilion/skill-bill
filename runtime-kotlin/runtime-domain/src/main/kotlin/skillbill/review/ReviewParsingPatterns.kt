@@ -18,11 +18,6 @@ val summaryPatterns: Map<String, Regex> =
     "execution_mode" to Regex("^Execution mode:\\s*(?<value>inline|delegated)\\s*$", RegexOption.MULTILINE),
   )
 
-/**
- * Matches any reported execution mode, including tokens outside the accepted set, so the parser can
- * tell an absent line apart from one carrying an unknown or pre-SKILL-159 token and reject the
- * latter instead of silently dropping it.
- */
 val reportedExecutionModePattern =
   Regex("^Execution mode:\\s*(?<value>\\S.*?)\\s*$", RegexOption.MULTILINE)
 val specialistReviewsPattern =
@@ -40,11 +35,6 @@ val findingPattern =
     RegexOption.MULTILINE,
   )
 
-/**
- * Trailing provenance the runtime itself appends to a merged finding line
- * ("… | specialists=a,b; origins=x->y"). It is runtime bookkeeping, not description text, so the
- * parser lifts the lane out of it and keeps it out of the persisted description.
- */
 val findingProvenancePattern =
   Regex("\\s*\\|\\s*(?<provenance>(?:specialists|origins)=[^|]*)$")
 val findingSpecialistsProvenancePattern = Regex("specialists=(?<value>[^;]+)")

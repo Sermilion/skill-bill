@@ -223,8 +223,6 @@ class InstallNativeAgentLinkApplyCursorTest : InstallNativeAgentLinkApplyTestSup
     ).resolve("review-catalog/platform-packs")
     val publishedManifest = Files.readString(catalog.resolve("kotlin/platform.yaml"))
 
-    // The catalog swap moves the outgoing tree aside and deletes it, so a failure after the swap
-    // can only be undone from the journal's captured snapshots.
     val inventory = fixture.home.resolve(".skill-bill/native-agent-link-inventory.json")
     Files.writeString(inventory, "not-json")
     val replacementPlan = planInstallForTest(

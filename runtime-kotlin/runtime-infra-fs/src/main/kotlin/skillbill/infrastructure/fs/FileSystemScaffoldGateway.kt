@@ -179,12 +179,6 @@ class FileSystemScaffoldGateway(
     )
   }
 
-  /**
-   * SKILL-52.2 subtask 2: typed scaffold entry point. The typed request is re-materialised into
-   * the legacy raw-map payload shape and delegated to the existing scaffolder code path so
-   * byte-equivalent outputs are trivially preserved (AC4); the re-materialisation happens
-   * entirely inside `runtime-infra-fs`, which is outside the raw-map architecture scan scope.
-   */
   override fun scaffold(request: ScaffoldCommandRequest, dryRun: Boolean) =
     scaffoldOrchestrator.scaffold(request, dryRun)
 

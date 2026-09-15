@@ -10,54 +10,22 @@ import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.workflow.goal.model.appendBoundedHistoryBySequence
 import java.security.MessageDigest
 
-/**
- * Durable append-only identity for every scoped checkpoint commit, structurally separate from
- * [FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY]. The two keys must never merge: phase records are
- * put()-replaced per phase id and hold only the latest output, while a checkpoint identity must
- * survive every later phase so a commit stays attributable to the boundary that created it.
- *
- * An absent key decodes to zero prior checkpoints, so a workflow created before this contract needs
- * no DDL migration.
- */
 const val FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_ARTIFACT_KEY: String =
   "feature_task_runtime_checkpoint_identities"
 
-/** Mirrors the schema's `checkpoints.maxItems`; a schema-valid store can therefore never overflow it. */
 const val FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_LIMIT: Int = 200
 
 private const val OWNED_PATH_DIGEST_DELIMITER: Char = '\u0000'
 
-/**
- * Reserved [FeatureTaskRuntimeCheckpointIdentity.subtaskId] for a feature-task run that is not a goal
- * continuation and therefore owns no decomposed subtask. A contract-level value: it appears in the
- * schema's `subtask_id` pattern and in every checkpoint ref a standalone run names.
- */
 const val FEATURE_TASK_RUNTIME_STANDALONE_SUBTASK_ID: String = "standalone"
 
-/**
- * The one ref namespace runtime checkpoint refs live in. Every ref write is confined to it, so nothing
- * in this ceremony can move or delete a branch ref.
- */
 const val FEATURE_TASK_RUNTIME_CHECKPOINT_REF_NAMESPACE: String = "refs/skill-bill/checkpoints"
 
 private const val CHECKPOINT_REF_PREFIX: String = FEATURE_TASK_RUNTIME_CHECKPOINT_REF_NAMESPACE
 
-/**
- * The one place a checkpoint ref name is minted. Deterministic in its inputs so a resume that
- * re-reaches the checkpoint seam names the same ref and converges on the existing record instead of
- * appending a second one.
- */
 fun featureTaskRuntimeCheckpointRefName(issueKey: String, subtaskId: String, sequenceNumber: Int): String =
   "$CHECKPOINT_REF_PREFIX/$issueKey/$subtaskId/$sequenceNumber"
 
-/**
- * One checkpoint's identity. Effect-free: the application layer mints `sequenceNumber` and
- * `recordedAt` and passes them in, so this model carries no clock and no randomness.
- *
- * Every field is bounded and derived. The owned-path inventory is reduced to a digest and a count
- * rather than stored verbatim, which keeps the record within its durable bound while still proving
- * exactly which inventory the commit staged.
- */
 data class FeatureTaskRuntimeCheckpointIdentity(
   val sequenceNumber: Int,
   val issueKey: String,
@@ -153,7 +121,6 @@ data class FeatureTaskRuntimeCheckpointIdentity(
       "parent_sha",
     )
 
-    /** Strict decode; loud-fails on a missing or malformed field and never best-effort fills a default. */
     internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeCheckpointIdentity {
       val unexpected = raw.keys - ALLOWED_FIELDS
       if (unexpected.isNotEmpty()) {
@@ -187,11 +154,6 @@ data class FeatureTaskRuntimeCheckpointIdentity(
   }
 }
 
-/**
- * Digest over the inventory a checkpoint staged. Sorting first makes the digest independent of the
- * order git listed the paths in. Each entry is length-prefixed rather than only delimiter-joined, so
- * a path that itself contains the delimiter cannot forge the digest of a different inventory.
- */
 fun featureTaskRuntimeOwnedPathDigest(ownedPaths: List<String>): String {
   val normalized = ownedPaths.filter(String::isNotBlank).distinct().sorted()
   val digest = MessageDigest.getInstance("SHA-256")
@@ -208,11 +170,6 @@ internal fun featureTaskRuntimeCheckpointIdentitiesToArtifact(
   "checkpoints" to identities.map { it.toArtifactMap() },
 )
 
-/**
- * Strict decode of the whole store. An absent artifact decodes to an empty history; a record at an
- * unsupported contract version loud-fails so the caller quarantines and regenerates it instead of
- * reinterpreting a shape this version does not understand.
- */
 internal fun featureTaskRuntimeCheckpointIdentitiesFromArtifact(raw: Any?): List<FeatureTaskRuntimeCheckpointIdentity> {
   if (raw == null) return emptyList()
   val map = JsonCodec.anyToStringAnyMap(raw)
@@ -244,14 +201,6 @@ internal fun featureTaskRuntimeCheckpointIdentitiesFromArtifact(raw: Any?): List
   return decoded
 }
 
-/**
- * Appends one checkpoint identity and prunes oldest-first to
- * [FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_LIMIT]. Re-recording an already-recorded checkpoint ref
- * is a no-op rather than a duplicate: a resume that reaches this seam again after a crash between the
- * commit and the durable write must converge on the same single record. Dedupe keys on the ref, not
- * the sha — after an amend a later checkpoint legitimately points at an already-recorded sha, and
- * keying on the sha would silently swallow it.
- */
 fun featureTaskRuntimeAppendCheckpointIdentity(
   existing: List<FeatureTaskRuntimeCheckpointIdentity>,
   entry: FeatureTaskRuntimeCheckpointIdentity,

@@ -7,8 +7,6 @@ internal object DatabaseMigrations {
     (databaseMigrationsEarly + databaseMigrationsLate).also(::requireDeterministicMigrations)
 
   fun apply(connection: Connection) {
-    // Optimistic reads-only pre-check: every open would otherwise take the write lock just to learn
-    // there is nothing to do. The in-lock re-derivation below stays the sole authority.
     val ledger = MigrationLedger.readState(connection)
     if (!ledger.hasPendingWork(migrations.map { migration -> migration.name })) return
 

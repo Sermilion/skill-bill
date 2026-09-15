@@ -23,14 +23,7 @@ data class ReviewLaneCondition(
 }
 
 data class DeclaredFiles(
-  /**
-   * SKILL-47/SKILL-48 contract: `null` means the pack ships no code-review baseline — that is
-   * a meaningful, intentional absence at the manifest layer (e.g. quality-check-only packs).
-   * Consumers MUST NOT re-narrow this with `!!` or default to a synthesized path; the schema
-   * (`orchestration/contracts/platform-pack-schema.yaml`, `declared_files.baseline`) is the
-   * single source of truth for the optional/required boundary, and `areas-require-baseline`
-   * ensures areas without a baseline already loud-fail upstream.
-   */
+
   val baseline: FileLocation?,
   val areas: Map<String, FileLocation>,
 )

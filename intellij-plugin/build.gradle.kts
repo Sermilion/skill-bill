@@ -4,7 +4,7 @@ import org.jetbrains.intellij.platform.gradle.tasks.VerifyPluginTask
 
 plugins {
     alias(libs.plugins.kotlin.jvm)
-    // Version comes from settings pluginManagement / platform.settings; do not restate it.
+
     id("org.jetbrains.intellij.platform")
 }
 
@@ -19,9 +19,9 @@ dependencies {
     testImplementation(libs.junit)
 
     intellijPlatform {
-        // IntelliJ IDEA Community/Ultimate family; compile against 2025.2 baseline.
+
         intellijIdea(providers.gradleProperty("platformVersion"))
-        // No Java, Kotlin, Android, or other language-plugin dependencies.
+
         pluginVerifier()
         zipSigner()
         testFramework(TestFrameworkType.Platform)
@@ -57,7 +57,7 @@ intellijPlatform {
 
     pluginVerification {
         ides {
-            // Oldest supported IDEA (IC still published) and newest released IDEA.
+
             create(IntelliJPlatformType.IntellijIdeaCommunity, "2025.2.5")
             create(IntelliJPlatformType.IntellijIdea, "2026.2")
         }
@@ -76,8 +76,8 @@ tasks {
     }
 
     withType<Test> {
-        // Pure JVM unit/presentation/architecture tests plus IntelliJ Platform
-        // fixture tests (BasePlatformTestCase) from testFramework(Platform).
+
+
         useJUnit()
     }
 }

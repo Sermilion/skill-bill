@@ -281,13 +281,6 @@ class InstallPlanPolicyTest {
 
   @Test
   fun `validate install plan snapshot delegates to the injected wire validator port`() {
-    // SKILL-52.3 Subtask 1: the concrete schema validator now lives in
-    // `runtime-infra-fs`; the domain policy reaches it only through the
-    // injected `InstallPlanWireValidator` port. This test pins the seam
-    // contract (the policy builds the wire map and hands it to the port,
-    // surfacing the port's typed error). Real-schema coverage lives in
-    // the infra-fs `InstallPlanSchemaViolationsTest` and the dedicated
-    // dual-seam install validation test.
     val draft = InstallPlanPolicy.buildPlanDraft(policyInput())
     val plan = draft.toInstallPlan(
       staging = InstallStagingIntent(
@@ -327,10 +320,6 @@ class InstallPlanPolicyTest {
     }
     assertContains(error.message.orEmpty(), "mcp_registration.runtime_mcp_bin")
   }
-
-  // ---------------------------------------------------------------------------------------------
-  // SKILL-104 (PD8): baseline co-presence guard
-  // ---------------------------------------------------------------------------------------------
 
   @Test
   fun `PD8 guard fails when a selected pack declares a required baseline in an unselected pack`() {

@@ -73,12 +73,6 @@ class RepoValidationSkillContentTest {
     )
   }
 
-  // ---------------------------------------------------------------------------------------------
-  // F-T1 (testing): orphan-path detection in discoverSkillFiles / discoverPlatformPackSkillFiles.
-  // The four assertions below pin the iter-1 fixes for F-E so a regression that drops the issue,
-  // mis-formats the message, or routes the wrong path into seenContent is caught here.
-  // ---------------------------------------------------------------------------------------------
-
   @Test
   fun `repo validation accepts skills content_md without sibling SKILL_md`() {
     val repoRoot = Files.createTempDirectory("skillbill-orphan-skills-content")
@@ -195,9 +189,6 @@ class RepoValidationSkillContentTest {
 
   @Test
   fun `repo validation reports content_md frontmatter name mismatch`() {
-    // Regression for M-2 (architecture iter-2 F-002): an authored content.md whose frontmatter
-    // `name:` disagrees with its parent directory must surface as a content.md issue, not as a
-    // wrapper drift symptom only after `skill-bill render` regenerates SKILL.md.
     val repoRoot = Files.createTempDirectory("skillbill-content-name-mismatch")
     createRepoValidationSkillFixture(repoRoot)
     val contentFile = repoRoot.resolve("skills/bill-code-review/content.md")
@@ -232,7 +223,7 @@ class RepoValidationSkillContentTest {
   fun `repo validation rejects content_md without authored guidance beyond title`() {
     val repoRoot = Files.createTempDirectory("skillbill-content-empty-body")
     createRepoValidationSkillFixture(repoRoot)
-    // Use a horizontal skill name — no class declares sections for it, so authored body is required.
+
     val contentFile = repoRoot.resolve("skills/bill-horizontal-fixture/content.md")
     Files.createDirectories(contentFile.parent)
     Files.writeString(

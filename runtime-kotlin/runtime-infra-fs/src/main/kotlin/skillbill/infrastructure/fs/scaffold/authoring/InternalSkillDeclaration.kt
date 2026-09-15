@@ -5,23 +5,6 @@ import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
 
-/**
- * SKILL-102 (PD1): internal-skill classification.
- *
- * An internal skill is declared by exactly one optional `content.md` frontmatter key:
- * `internal-for: <parent-skill-name>`. Presence of the key makes the skill internal; absence
- * means listed.
- *
- * [internalSkillClassificationViolations] is the single rule evaluator. Authoring discovery and
- * install-plan discovery throw the first violation ([requireValidInternalSkillClassification]);
- * `skill-bill validate` collects every violation as an issue string. One implementation so the
- * seams cannot drift apart.
- *
- * SKILL-104 (PD1): platform-pack skills may also declare `internal-for`. The base-skill-only
- * restriction is relaxed; the [InternalSkillDeclaration.isBaseSkill] flag now feeds only the
- * parent-side rule (a pack skill can never be a parent). Selection-aware staging (PD3) decides
- * which pack sidecars land in a parent's installed directory.
- */
 internal data class InternalSkillDeclaration(
   val skillName: String,
   val contentFile: Path,
@@ -35,9 +18,6 @@ internal fun internalSkillClassificationViolations(declarations: Collection<Inte
     val declaredParent = declaration.declaredParent ?: return@mapNotNull null
     val prefix = "${declaration.contentFile}: internal skill '${declaration.skillName}'"
     when {
-      // SKILL-104 (PD1): platform-pack skills may now declare internal-for. The isBaseSkill flag
-      // is no longer a declaration-side violation; it only feeds the parent-side rule below
-      // (a pack skill can never be a parent).
       declaredParent.isBlank() ->
         "$prefix declares parent via 'internal-for:' with an empty value; the value must be the " +
           "name of another discovered skill."
@@ -80,12 +60,6 @@ internal fun validateInternalSkillClassification(targets: Map<String, AuthoringT
   )
 }
 
-/**
- * Reads the `internal-for` frontmatter value from a content.md file. Returns null when the key is
- * absent (listed skill); otherwise the trimmed value, which may be empty — an empty declaration
- * loud-fails downstream instead of being treated as listed. When the key appears more than once
- * the first occurrence wins; every seam reads through this function so they cannot disagree.
- */
 internal fun parseInternalForFrontmatter(contentFile: Path): String? {
   if (!Files.isRegularFile(contentFile, LinkOption.NOFOLLOW_LINKS)) {
     return null

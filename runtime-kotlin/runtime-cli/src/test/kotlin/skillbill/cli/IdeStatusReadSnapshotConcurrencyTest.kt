@@ -38,12 +38,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/**
- * SKILL-168 subtask 2, AC-003: a writer commit landing anywhere inside `IdeStatusService`'s candidate
- * collection must not hide a live, correctly-bound, durably running goal. The interleave is driven by
- * an instrumented `UnitOfWork` that fires the commit after the Nth collection statement, and the
- * assertion is made against the mechanism — every interleave point — rather than one statement pair.
- */
 class IdeStatusReadSnapshotConcurrencyTest {
   private val observedAt: Instant = Instant.parse("2026-08-06T12:00:00Z")
 
@@ -69,7 +63,6 @@ class IdeStatusReadSnapshotConcurrencyTest {
 
   @Test
   fun `the interleaved mutation is outcome-changing when it lands before the snapshot opens`() {
-    // Without this control the snapshot test would pass even if the mutation were inert.
     val fixture = fixture("ide-status-snapshot-control")
     fixture.clearGoalBinding()
 
@@ -110,8 +103,7 @@ class IdeStatusReadSnapshotConcurrencyTest {
       }
     }
     database.transaction { unitOfWork ->
-      // A goal child bound elsewhere makes an unbound goal resolve as "belongs to another repository",
-      // so a torn read of the goal binding drops the candidate instead of silently passing.
+
       unitOfWork.workflowStates.saveFeatureTaskRuntimeWorkflow(foreignChildWorkflow())
       unitOfWork.workflowStates.saveFeatureTaskExecutionIdentity(foreignChildIdentity())
       unitOfWork.goalRunnerControls.persistControlState(
@@ -151,11 +143,8 @@ class IdeStatusReadSnapshotConcurrencyTest {
     const val GOAL_WORKFLOW_ID = "goal-snapshot"
     const val FOREIGN_CHILD_WORKFLOW_ID = "wfl-foreign-child"
 
-    // Mirrors goalRepositoryIdentity, which is internal to runtime-application.
     const val REPOSITORY_IDENTITY_PREFIX = "repo-root-realpath-v1:"
 
-    // Candidate collection issues more statements than this; covering the first N interleave points
-    // asserts the mechanism rather than the one torn pair that produced the observed report.
     const val INTERLEAVE_POINTS = 5
   }
 }
@@ -179,7 +168,7 @@ private class SnapshotFixture(
   fun status(interleaveAfterCall: Int?): IdeStatusResult {
     val instrumented = InterleavingDatabase(database, interleaveAfterCall) {
       interleaved = true
-      // A separate connection commits mid-collection, exactly as the goal runtime does.
+
       clearGoalBinding()
     }
     return service(instrumented).status(
@@ -209,11 +198,6 @@ private object NoopSnapshotValidator : WorkflowSnapshotValidator {
   override fun validate(snapshot: WorkflowStateSnapshot, slug: String) = Unit
 }
 
-/**
- * Delegates every session to the real SQLite factory and counts the collection statements issued inside
- * one read block, firing [onInterleave] once after the configured statement so the writer commit lands
- * at a chosen point mid-collection.
- */
 private class InterleavingDatabase(
   private val delegate: DatabaseSessionFactory,
   private val interleaveAfterCall: Int?,

@@ -111,8 +111,6 @@ class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
 
   @Test
   fun `a summary-less draft never competes with the complete envelope that follows it`() {
-    // The fill would otherwise promote the draft to a second valid candidate and turn a response
-    // the walker could already read into a multiple-candidates conflict.
     val draftThenReal = """
       |Discarded draft, missing its summary:
       |
@@ -514,7 +512,6 @@ class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
 
   @Test
   fun `unsupported block YAML is rejected without guessed structural edits`() {
-    // SKILL-187 AC-005: block indentation is outside conservative flow repair; never invent closers.
     val blockYaml =
       """
         contract_version: "0.6"

@@ -38,10 +38,7 @@ import com.intellij.util.Consumer
 import java.awt.Cursor
 import java.awt.Cursor.HAND_CURSOR
 
-/**
- * Thin status-bar consumer of the project-scoped ViewModel. Owns local UI ticking
- * and EDT updates only — no CLI, JSON, or workflow mutation.
- */
+
 class SkillBillStatusBarWidget(
     private val project: Project,
     private val viewModel: SkillBillStatusViewModel =
@@ -68,11 +65,7 @@ class SkillBillStatusBarWidget(
         SkillBillStatusBarPresentation.map(latestState)
     private var subscriptionScope: CoroutineScope? = null
 
-    /**
-     * Dispatches control activations off the EDT. Separate from [subscriptionScope] so a
-     * control works whether or not status collection is running, and so cancelling a
-     * subscription never cancels an in-flight mutation.
-     */
+    
     private val actionScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var ticker: Alarm? = null
     private var disposed = false
@@ -107,7 +100,7 @@ class SkillBillStatusBarWidget(
         activate()
     }
 
-    /** Starts ViewModel consumption and the local UI ticker (idempotent). */
+    
     internal fun activate() {
         if (activated || disposed || project.isDisposed) return
         activated = true
@@ -165,7 +158,7 @@ class SkillBillStatusBarWidget(
 
     private fun onClick(owner: Component?, point: Point?) {
         if (disposed || project.isDisposed) return
-        // Coalesced immediate refresh — read-only; mutation only happens on activation.
+
         viewModel.refresh()
         lastClickKind = ClickKind.REFRESH_AND_DETAILS
         val built = buildPopupContent(latestPresentation)
@@ -179,17 +172,14 @@ class SkillBillStatusBarWidget(
         val anchor = owner ?: component
         val relative = point ?: Point(anchor.width / 2, 0)
         if (ApplicationManager.getApplication()?.isUnitTestMode == true) {
-            // Avoid showing Swing popups in headless unit tests; refresh already ran.
+
             Disposer.dispose(popup)
             return
         }
         popup.show(RelativePoint(anchor, relative))
     }
 
-    /**
-     * Builds the details panel and wires activation. Separate from [onClick] so tests can
-     * construct it without a popup or a visible frame.
-     */
+    
     internal fun buildPopupContent(
         presentation: SkillBillStatusBarPresentation.MappedPresentation,
     ): StatusDetailsPopupContent.Built {
@@ -200,17 +190,14 @@ class SkillBillStatusBarWidget(
         return built
     }
 
-    /**
-     * Dispatches a control off the EDT. The click handler runs on the EDT, so the CLI call
-     * is launched on the injected scope and never blocks it — no runBlocking here.
-     */
+    
     private fun activateControl(
         descriptor: GoalControlDescriptor,
         built: StatusDetailsPopupContent.Built,
     ) {
-        // Optimistic disable is additive to the snapshot-derived disable: it hides the
-        // click-to-next-poll gap and is never the source of truth. The next snapshot,
-        // which carries pause_requested, decides the button's real state.
+
+
+
         if (descriptor.kind == GoalControlKind.PAUSE) {
             built.buttonFor(GoalControlKind.PAUSE)?.isEnabled = false
         }
@@ -224,8 +211,8 @@ class SkillBillStatusBarWidget(
                 GoalMutationOutcome.Requested -> null
             }
             if (outcome != null) {
-                // A refused call must not strand the optimistic disable; polling and the
-                // ticker are untouched, so the next snapshot stays authoritative.
+
+
                 scheduleUi {
                     built.showMessage(outcome)
                     if (descriptor.kind == GoalControlKind.PAUSE) {

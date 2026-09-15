@@ -1,9 +1,5 @@
 package skillbill.workflow.taskruntime.model
 
-/**
- * Opaque private-diagnostic identity. Safe for operator and prompt fallback text: identifiers only,
- * never retained bytes, database paths, or value-bearing validator text.
- */
 data class CorrectiveRepairDiagnosticLocator(
   val identity: String,
 ) {
@@ -18,32 +14,25 @@ data class CorrectiveRepairDiagnosticLocator(
     }
   }
 
-  /** Validated opaque identity only — never a path, multiline secret, or value-bearing excerpt. */
   val sanitizedIdentity: String
     get() = identity
 
-  /** Payload-free guidance naming the authorized lookup mechanism without embedding raw content. */
   fun authorizedLookupGuidance(): String =
     "Use the private diagnostic locator '$sanitizedIdentity' only through the existing authorized " +
       "private-diagnostic mechanism. Do not invent an excerpt of the rejected response."
 
   companion object {
-    /** Production `rod_<sha256>` and synthetic opaque test ids; rejects paths and free text. */
+
     private val OPAQUE_IDENTITY_PATTERN: Regex = Regex("^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
   }
 }
 
-/**
- * Captured-response classification. Only [Exact] exposes a body; every other state is payload-free
- * while still retaining byte count and digest metadata when known.
- */
 sealed class CorrectiveRepairCapturedResponse {
   abstract val availability: CorrectiveRepairResponseAvailability
   abstract val utf8ByteCount: Int
   abstract val digestSha256: String
   abstract val inclusionReason: CorrectiveRepairInclusionReason
 
-  /** Unchanged response within the response budget; [body] is the complete capture. */
   data class Exact(
     val body: String,
     override val utf8ByteCount: Int,
@@ -126,11 +115,6 @@ sealed class CorrectiveRepairCapturedResponse {
       }
     }
 
-    /**
-     * Classifies a capture without silently truncating. Only an unchanged body within
-     * [budget.maxResponseUtf8Bytes] becomes [Exact]; truncated, oversized, and missing bodies stay
-     * payload-free while preserving digest and byte metadata when supplied.
-     */
     fun classify(
       body: String?,
       alreadyTruncated: Boolean,
@@ -163,8 +147,3 @@ sealed class CorrectiveRepairCapturedResponse {
     }
   }
 }
-
-/**
- * Versioned corrective-repair context carried into a schema-invalid retry. Distinct from
- * retryable-terminal and incomplete-work continuation paths.
- */

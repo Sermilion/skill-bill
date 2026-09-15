@@ -5,12 +5,6 @@ import skillbill.scaffold.policy.scaffold.ORCHESTRATOR_KINDS_FOR_SUBAGENTS
 import skillbill.scaffold.policy.scaffold.SUBAGENT_NAME_PATTERN
 import skillbill.scaffold.policy.scaffold.model.OptionalSubagents
 
-/**
- * SKILL-52.2 subtask 2 (Task 11): subagent-policy helpers split out of `ScaffoldPayloadMapPolicy`
- * so each file stays small and each function keeps a narrow failure surface. See the doc comment in
- * `ScaffoldPayloadMapPolicy.kt` for the relocation rationale.
- */
-
 internal fun optionalSpecialistSubagents(payload: Map<String, Any?>, kind: String): OptionalSubagents {
   val rawSpecialists = payload["subagent_specialists"] ?: emptyList<String>()
   val rawSuppressed = payload["no_subagents"] ?: false

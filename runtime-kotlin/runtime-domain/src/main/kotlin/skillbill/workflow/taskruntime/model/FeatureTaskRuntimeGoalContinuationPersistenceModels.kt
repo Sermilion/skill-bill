@@ -2,11 +2,6 @@ package skillbill.workflow.taskruntime.model
 
 import skillbill.contracts.SharedPayloadKeys
 
-/**
- * One silent heal of a goal-continuation field on resume: the launcher value was adopted because the
- * durable row never recorded the field. Observability policy requires every silent heal to leave
- * durable evidence of what changed and why.
- */
 data class FeatureTaskRuntimeGoalContinuationFieldAdoption(
   val field: String,
   val adoptedValue: String,

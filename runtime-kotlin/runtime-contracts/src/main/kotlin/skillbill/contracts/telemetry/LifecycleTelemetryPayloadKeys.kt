@@ -54,12 +54,10 @@ object LifecycleTelemetryPayloadKeys {
   const val AGENT_CONTEXT_MEASUREMENT_GRAIN: String = "agent_context_measurement_grain"
 }
 
-/** The grain an audit-loop measurement is counted at, stated on the wire so no consumer guesses it. */
 const val AUDIT_GAP_MEASUREMENT_GRAIN_PER_RUN: String = "audit_gap_rounds_per_run"
 
 const val AGENT_CONTEXT_MEASUREMENT_GRAIN_DISTINCT_PER_RUN: String = "distinct_resolved_agents_per_run"
 
-/** How a lifecycle session reached its terminal row. */
 enum class LifecycleSessionCompletion(val wireValue: String) {
   OPERATOR_COMPLETED("operator_completed"),
   RECONCILER_STALE("reconciler_stale"),

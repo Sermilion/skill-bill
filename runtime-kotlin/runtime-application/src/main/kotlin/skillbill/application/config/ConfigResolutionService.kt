@@ -17,10 +17,6 @@ import skillbill.ports.config.model.ReadRepoLocalConfigRequest
 import skillbill.ports.telemetry.TelemetryConfigStore
 import java.nio.file.Path
 
-/**
- * Resolves repository-local workflow settings and machine-wide model directives through their
- * respective configuration ports. Malformed values fail loudly with typed errors.
- */
 @Inject
 class ConfigResolutionService(
   private val repoLocalConfigPort: RepoLocalConfigPort,
@@ -51,11 +47,6 @@ class ConfigResolutionService(
     }
   }
 
-  /**
-   * Compaction is on by default, so an absent `compaction` key resolves to [CompactionSettings.DEFAULT]
-   * rather than null: a phase agent that inherits a 1M-context model would otherwise never reach its
-   * provider-side auto-compaction trigger and would re-read its whole history on every turn.
-   */
   fun resolveCompactionSettings(): CompactionSettings {
     val configPath = machineConfigStore.configPath()
     val payload = try {

@@ -6,13 +6,6 @@ import skillbill.ports.goalrunner.planning.model.GoalPlanningContext
 import skillbill.ports.goalrunner.planning.model.GoalPlanningResolvedBoundaryBodies
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 
-/**
- * Appends the shared planning context to a composed phase prompt. `boundary_memory` inside the packet
- * is a heading catalog only; entry bodies are never serialized with it. The plan phase receives bodies
- * separately, for exactly the heading ids the caller resolved, and outside the digested packet so the
- * packet's integrity_sha256 is unaffected. The runtime computes no relevance of its own — it emits the
- * ids it was handed.
- */
 object GoalPlanningContextPromptFormatter {
   fun append(
     prompt: String,
@@ -95,11 +88,6 @@ object GoalPlanningContextPromptFormatter {
     if (resolved.truncated) append("\nSelected boundary memory was truncated at its resolved-body cap.\n")
   }
 
-  /**
-   * Heading ids are model-authored output, and an unresolved one is echoed back verbatim. Collapsing
-   * whitespace and capping the length stops a selection from carrying newlines that reproduce the
-   * `### <heading_id>` delimiters above and forge a delivered body the resolver never returned.
-   */
   private fun singleLineId(headingId: String): String = headingId
     .replace(WHITESPACE_RUN, " ")
     .trim()

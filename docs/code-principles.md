@@ -266,9 +266,29 @@ prose.
 
 **Amendment (SKILL-220 subtask 2 and 7).** Keep-list: `package` and `import`
 lines; string literals (including architecture inventories); generated sources;
-compiler-required disambiguation after alias failure; KDoc and comment mentions
-are not scanned. `ARCHITECTURE.md` FQN inventories document names for tests, not
-production style.
+compiler-required disambiguation after alias failure; interface KDoc mentions of
+FQNs (other comment forms are banned). `ARCHITECTURE.md` FQN inventories document
+names for tests, not production style.
+
+## Comments And Interface KDoc
+
+**Rule.** Authored Kotlin under `runtime-kotlin`, `intellij-plugin`, and
+`runtime-kotlin/build-logic` contains no `//` line comments and no non-KDoc
+`/* */` block comments. `/** */` KDoc is allowed only on `interface` declarations
+and their members, including nested types inside an interface. Move irreducible why-only prose to the owning area
+`agent/decisions.md`.
+
+**Preferred shapes.** Self-explanatory names; port contracts documented on the
+interface; architecture-test fixtures that need forbidden syntax use runtime-built
+source strings or allowed interface KDoc.
+
+**Anti-patterns.** Class or function KDoc; line or block comments; `@Suppress`
+instead of fixing the scan.
+
+**Reference examples.**
+
+- `runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/CommentAndInterfaceKdocArchitectureTest.kt`
+- `runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/ArchitectureScanSupport.kt` (`commentAndInterfaceKdocViolations`)
 
 ## Review-Only Principles (Not Mechanically Enforced)
 
@@ -277,7 +297,6 @@ and in decision logs; they are not silent violations.
 
 **Not enforced by architecture tests.**
 
-- Comment quality and density (subjective editorial standards).
 - Naming taste beyond noun-family clustering.
 - Deeper noun-family relatedness inside a single area cluster (only cross-area
   loose-file buckets are mechanically provable).

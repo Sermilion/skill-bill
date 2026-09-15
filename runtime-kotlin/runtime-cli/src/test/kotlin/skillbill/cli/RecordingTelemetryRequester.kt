@@ -3,11 +3,6 @@ package skillbill.cli
 import skillbill.ports.telemetry.RemoteTransportPort
 import skillbill.ports.telemetry.model.RemoteTransportResponse
 
-/**
- * Records every request instead of touching the network, so a completion drain in a CLI test can
- * never reach a real relay. [failure] makes the sync path throw the escaping exception type the
- * failure-isolation contract exists to contain.
- */
 internal class RecordingTelemetryRequester(
   private val failure: (() -> Nothing)? = null,
 ) : RemoteTransportPort {

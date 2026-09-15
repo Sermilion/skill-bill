@@ -18,24 +18,12 @@ enum class CliExecutableSource {
     INSTALL_DIRECTORY,
 }
 
-/**
- * Single lookup vocabulary for environment values, so resolution is testable without
- * an IDE and without mutating the JVM process environment.
- */
+
 fun interface CliEnvironment {
     fun value(name: String): String?
 }
 
-/**
- * Resolves the `skill-bill` launcher for every CLI adapter.
- *
- * A desktop-launched IDE inherits the session environment, not the login shell's, so
- * `System.getenv("PATH")` alone misses the installer default `~/.local/bin` and every
- * other shell-profile entry. Lookup therefore merges the platform's shell-aware
- * environment with the process environment, then probes the installer's launcher
- * directory (`SKILL_BILL_BIN_DIR`, default `~/.local/bin`) before reporting the
- * executable missing.
- */
+
 object CliExecutableResolver {
     const val EXECUTABLE_NAME: String = "skill-bill"
 
@@ -62,7 +50,7 @@ object CliExecutableResolver {
             return if (isRunnable(path)) {
                 CliExecutableResolution.Found(path.toString(), CliExecutableSource.OVERRIDE)
             } else {
-                // Override set but unusable — do not fall back to PATH.
+
                 CliExecutableResolution.Misconfigured
             }
         }
@@ -87,11 +75,7 @@ object CliExecutableResolver {
         }
     }.distinct()
 
-    /**
-     * Merges the platform's shell-aware environment with the process environment instead of
-     * choosing one: either can carry an entry the other lacks, and a missed entry is the
-     * failure this resolver exists to prevent.
-     */
+    
     fun platformEnvironment(): CliEnvironment = CliEnvironment { name ->
         val shellValue = shellEnvironmentValue(name)
         val processValue = System.getenv(name) ?: fallbackProcessValue(name)

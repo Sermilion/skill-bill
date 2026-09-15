@@ -10,17 +10,6 @@ import skillbill.ports.taskruntime.FeatureTaskRuntimeWorkerSupervisor
 import skillbill.ports.taskruntime.model.isConfirmedDead
 import java.time.Clock
 
-/**
- * Reconciles orphaned non-terminal runtime rows left by a killed child process. A candidate is a
- * running row whose worker lease has expired and whose process the injected supervisor confirms
- * dead; the reconciler transitions it to the resumable `pending` state and releases the lease under
- * the existing owner_token/generation fencing, reusing the worker-lease and workflow-store machinery
- * rather than a parallel state machine.
- *
- * The pass runs unconditionally and never throws on a benign race: an empty candidate set is a
- * no-op, an already-reconciled row drops out of the candidate query, and a lost fencing race (a
- * concurrent startup reconciled first) is skipped rather than failing the pass.
- */
 @Inject
 class FeatureTaskRuntimeCrashReconciler(
   private val database: DatabaseSessionFactory,
@@ -42,25 +31,19 @@ class FeatureTaskRuntimeCrashReconciler(
     candidates.forEach { candidate ->
       reconcileCandidate(candidate)?.let { reasonClass ->
         reasonClassCounts.merge(reasonClass, 1, Int::plus)
-        // The fault class counts toward telemetry visibility but not toward reconciled rows.
+
         if (reasonClass != FAULT_REASON_CLASS) reconciledCount++
       }
     }
     return FeatureTaskRuntimeCrashReconciliationResult(reconciledCount, reasonClassCounts)
   }
 
-  // Returns the reason class a candidate was reconciled under, the FAULT_REASON_CLASS sentinel when
-  // an unexpected fault interrupted it, or null when it was alive, ambiguous, or lost the fencing
-  // race. The store returns false for a lost race, so an exception reaching this catch is a genuine
-  // infrastructure or programming fault, surfaced as the fault class rather than masked as idle.
-  // Never throws: the pass runs unconditionally and must not block an otherwise healthy start.
   private fun reconcileCandidate(candidate: FeatureTaskRuntimeCrashReconciliationCandidate): String? = runCatching {
     if (!supervisor.inspect(candidate.ownership).isConfirmedDead()) {
       return@runCatching null
     }
     val reason = interruptionReason()
-    // The fenced reconcile write re-checks lease expiry inside the transaction against `now`, so a
-    // lease extended between the scan and here (or another pass winning the race) returns false.
+
     val reconciled = database.transaction {
       it.workflowStates.reconcileFeatureTaskRuntimeCrashedWorker(
         workflowId = candidate.ownership.workflowId,
@@ -83,8 +66,6 @@ class FeatureTaskRuntimeCrashReconciler(
     const val FAULT_REASON_CLASS = "reconcile_fault"
   }
 
-  // Recorded exit status is not durably persisted on the row today, so lease expiry is the only
-  // evidence available; the reason class stays open for a future exit-status source.
   private fun interruptionReason(): FeatureTaskRuntimeCrashReconciliationReason =
     FeatureTaskRuntimeCrashReconciliationReason.LEASE_EXPIRED
 }

@@ -43,11 +43,6 @@ object TelemetryConfigMutations {
   )
 }
 
-/**
- * A downgrade narrows what may leave the machine, but payloads already sitting in the outbox were
- * built under the looser level and would still upload raw values on the next sync. Treat an
- * unrecognized current level as the loosest one so an unresolvable state fails closed and clears.
- */
 fun clearsPendingOutbox(currentLevel: String, newLevel: String): Boolean {
   if (newLevel == "off") return true
   val current = telemetryLevels.indexOf(currentLevel).takeIf { it >= 0 } ?: telemetryLevels.lastIndex
@@ -65,13 +60,6 @@ private fun enableTelemetry(
   return settingsProvider.load(materialize = true) to clearedEvents
 }
 
-/**
- * Disable is an in-place level write on an existing config, never a delete and never a create:
- * `install_id` and every other config key must survive so re-enabling reuses the same install
- * identity instead of minting a fresh UUID, and a machine with no config keeps having none.
- * [TelemetrySettingsProvider.load] stays non-materializing so it cannot re-default the file just
- * written.
- */
 private fun disableTelemetry(
   configStore: TelemetryConfigStore,
   settingsProvider: TelemetrySettingsProvider,

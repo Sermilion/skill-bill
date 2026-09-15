@@ -20,13 +20,6 @@ import skillbill.review.context.model.structuredString
 import skillbill.review.model.ParallelReviewRawFinding
 import skillbill.review.model.ReviewFindingCitationDiagnosticWithFinding
 
-/**
- * Runs the single bounded integration pass after every specialist lane reaches a terminal state.
- *
- * Exactly one pass runs per review regardless of how many commits the sequence carries, and it
- * launches no specialist rubric. A review with nothing to integrate over — a synthetic unit or a
- * lone commit — is skipped deterministically with a stated reason rather than run on empty input.
- */
 class ReviewIntegrationPassRunner(
   private val launcher: GoalRunnerSubtaskLauncher,
   private val envelopeValidator: ReviewContextEnvelopeValidator,
@@ -97,16 +90,6 @@ class ReviewIntegrationPassRunner(
     )
   }
 
-  /**
-   * The integration pass exists to report interactions between commits, so a finding it returns
-   * must name the commits it relates, and those commits must belong to the reviewed sequence. A
-   * finding naming no commit is a single-commit observation the finishing lane already owned.
-   *
-   * A worker citing an abbreviated or hallucinated SHA is unusable output, not a contract breach:
-   * abbreviations resolve against the owned set by unique prefix and anything still foreign drops
-   * the finding, so the remaining cross-commit findings survive instead of the whole run throwing
-   * away every specialist lane's already-finished work.
-   */
   private fun crossCommitFindings(stdout: String, integration: GovernedReviewIntegrationLaunch): CrossCommitFindings {
     val owned = integration.packet.ownedCommitIds
     val parsed = ParallelReviewFindingParser.parse(stdout)
@@ -125,7 +108,6 @@ class ReviewIntegrationPassRunner(
     )
   }
 
-  /** Exact match, else the single owned commit this abbreviation prefixes; ambiguous stays foreign. */
   private fun resolveCommitSha(sha: String, owned: Set<String>): String? = when {
     sha in owned -> sha
     else -> owned.filter { it.startsWith(sha) }.singleOrNull()
@@ -158,10 +140,6 @@ class ReviewIntegrationPassRunner(
     else -> null
   }
 
-  /**
-   * Bounded by construction: commit subjects and lane summaries only. Adding a hunk body here would
-   * be caught by the pre-launch envelope validation, but it must not be written in the first place.
-   */
   private fun integrationPrompt(integration: GovernedReviewIntegrationLaunch): String = buildString {
     appendLine(integration.integrationContract)
     appendLine()
@@ -209,7 +187,7 @@ class ReviewIntegrationPassRunner(
   )
 
   companion object {
-    /** Attribution for a finding the integration pass owns; never a specialist skill name. */
+
     const val INTEGRATION_LANE: String = "review-integration"
 
     private const val MIN_INTEGRATION_COMMITS = 2

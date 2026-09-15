@@ -68,10 +68,7 @@ class RealProcessFactory : ProcessFactory {
     }
 }
 
-/**
- * Runs external processes with timeout, output-size bounds, and coalescing of
- * overlapping polls. Never returns or persists unbounded stderr.
- */
+
 class ProcessRunner(
     private val processFactory: ProcessFactory = RealProcessFactory(),
     private val edtGuard: EdtGuard = EdtGuard { },
@@ -145,15 +142,15 @@ class ProcessRunner(
             }
             val stderrReader = Thread {
                 stderrTruncated = copyBounded(process.errorStream, stderrDiscard, spec.stderrLimitBytes)
-                // Intentionally discard stderr contents — never expose.
+
                 stderrDiscard.reset()
             }.also {
                 it.isDaemon = true
                 it.start()
             }
 
-            // Poll so cancelAll can wake without waiting out the full timeout when
-            // destroyForcibly does not unblock the platform wait immediately.
+
+
             val deadlineNs = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(spec.timeoutMs)
             var finished = false
             while (true) {
@@ -240,7 +237,7 @@ class ProcessRunner(
             if (remaining <= 0) {
                 truncated = true
                 while (input.read(buffer) >= 0) {
-                    // discard
+
                 }
                 break
             }
@@ -250,7 +247,7 @@ class ProcessRunner(
             if (toWrite < read) {
                 truncated = true
                 while (input.read(buffer) >= 0) {
-                    // discard
+
                 }
                 break
             }

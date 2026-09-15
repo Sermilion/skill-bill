@@ -7,12 +7,6 @@ import skillbill.scaffold.policy.scaffold.displayNameFromSlug
 import skillbill.scaffold.policy.scaffold.model.PlatformPackDefaults
 import skillbill.scaffold.policy.scaffold.model.PlatformPackSelection
 
-/**
- * SKILL-52.2 subtask 2 (Task 11): platform-pack-resolution helpers split out of
- * `ScaffoldPayloadMapPolicy` so each file stays small and focused. See the doc comment in
- * `ScaffoldPayloadMapPolicy.kt` for the relocation rationale.
- */
-
 internal fun resolvePlatformPackSelection(payload: Map<String, Any?>): PlatformPackSelection {
   rejectLegacyPlatformPackSelector(payload, "skeleton_mode")
   rejectLegacyPlatformPackSelector(payload, "specialist_areas")

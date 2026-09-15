@@ -14,12 +14,6 @@ import skillbill.application.reviewevidence.parseCommitUnits as sharedParseCommi
 
 internal fun parseCommitUnits(commits: List<RawCommitDiff>): List<ReviewCommitUnit> = sharedParseCommitUnits(commits)
 
-/**
- * Thin review-side caller over the phase-neutral assembly. The Git traversal and the unit
- * construction both live in [SharedReviewEvidenceAssembler] and [SharedReviewEvidenceProjection] so
- * the shared deriver can produce the same evidence for any phase; review resolves it here only when
- * it is not reading an already-derived checkpoint artifact.
- */
 class ReviewCommitSequenceResolver(private val diffResolver: DiffResolverPort) {
   internal fun resolve(
     scope: ParallelReviewScope,

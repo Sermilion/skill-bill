@@ -10,9 +10,7 @@ import java.sql.Connection
 internal class FeatureImplementWorkflowStateStore(
   private val connection: Connection,
 ) : FeatureImplementWorkflowStateRepository {
-  // SKILL-175 subtask 6: compatibility-alias writer for mode=prose, neutered per the "no live
-  // writer" policy (runtime-kotlin/agent/decisions.md, "In-flight prose row policy" rule 1). Reads
-  // below stay live so quarantined rows remain visible for history.
+
   override fun saveFeatureImplementWorkflow(row: WorkflowStateRecord) {
     throw ProseFeatureTaskWorkflowWriteRefusedError(row.workflowId)
   }

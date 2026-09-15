@@ -6,13 +6,6 @@ import skillbill.workflow.model.WorkflowStatus
 const val GOAL_ATTEMPT_LEDGER_ARTIFACT_KEY: String = "goal_attempt_ledger"
 const val GOAL_ATTEMPT_LEDGER_LIMIT: Int = 200
 
-/**
- * SKILL-64 Subtask 3 (AC10, AC11): append-only attempt/event ledger entry. One
- * entry is appended per child activation, resume/retry, terminal done check,
- * policy block, timeout, interruption, and final reconciled outcome. Effect-
- * free; timestamps minted in adapters. The sequence space is distinct from the
- * goal_event and goal_progress sequence spaces.
- */
 enum class GoalAttemptLedgerAction(val wireValue: String) {
   CHILD_ACTIVATION("child_activation"),
   RESUME("resume"),
@@ -24,7 +17,6 @@ enum class GoalAttemptLedgerAction(val wireValue: String) {
   FINAL_RECONCILED_OUTCOME("final_reconciled_outcome"),
   DIAGNOSTIC_INSPECTION("diagnostic_inspection"),
 
-  /** A backward edge was taken for a subtask; records the loop id and the running cumulative count. */
   BACKWARD_EDGE_ENTRY("backward_edge_entry"),
   ;
 

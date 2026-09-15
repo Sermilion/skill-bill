@@ -401,13 +401,6 @@ class DecompositionManifestWriterTest {
     assertEquals("wfl-subtask-1", subtask.workflowId)
   }
 
-  // SKILL-52.3 subtask 1: the two "rejects schema invalid durable
-  // decomposition runtime" tests moved to runtime-core's
-  // `DecompositionManifestWriterValidationTest`, which exercises the real
-  // infra-fs validator adapter. `runtime-application` must not depend on
-  // `runtime-infra-fs`, so the pass-through validator fake used here cannot
-  // assert real schema loud-fails.
-
   @Test
   fun `execution model can change before any subtask starts`() {
     val repoRoot = Files.createTempDirectory("skillbill-model-change-before-start")

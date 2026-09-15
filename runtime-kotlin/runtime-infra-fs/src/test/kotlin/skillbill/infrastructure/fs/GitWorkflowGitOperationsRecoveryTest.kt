@@ -35,8 +35,6 @@ class GitWorkflowGitOperationsRecoveryTest {
     assertEquals(git(repoRoot, "rev-parse", "HEAD"), requireNotNull(result.baseline).reviewBaseSha)
   }
 
-  // Pre-existing tracked work is intentionally in scope: the review reads the whole worktree delta from
-  // the base commit, so a dirty tree starts a run and the reviewer sees everything in it.
   @Test
   fun `goal review input includes tracked changes that pre-date the baseline`() {
     val repoRoot = Files.createTempDirectory("skillbill-goal-review-preexisting-tracked")
@@ -201,11 +199,11 @@ class GitWorkflowGitOperationsRecoveryTest {
     Files.writeString(repoRoot.resolve("tracked.txt"), "parent\n")
     git(repoRoot, "commit", "-am", "parent")
     val parent = git(repoRoot, "rev-parse", "HEAD")
-    // First sibling remediation checkpoint — becomes the orphaned stored base.
+
     Files.writeString(repoRoot.resolve("tracked.txt"), "sibling-a\n")
     git(repoRoot, "commit", "-am", "sibling-a")
     val orphanedBase = git(repoRoot, "rev-parse", "HEAD")
-    // Reset to parent and create the second sibling; branch tip lands here.
+
     git(repoRoot, "reset", "--hard", parent)
     Files.writeString(repoRoot.resolve("tracked.txt"), "sibling-b\n")
     git(repoRoot, "commit", "-am", "sibling-b")
@@ -246,7 +244,7 @@ class GitWorkflowGitOperationsRecoveryTest {
     Files.writeString(repoRoot.resolve("tracked.txt"), "goal\n")
     git(repoRoot, "add", ".")
     git(repoRoot, "commit", "-m", "goal tip")
-    // Unrelated root history: orphan branch with its own root, then abandon the ref.
+
     git(repoRoot, "checkout", "--orphan", "unrelated-root")
     val prior = git(repoRoot, "ls-files").lines().filter { it.isNotBlank() }
     if (prior.isNotEmpty()) {

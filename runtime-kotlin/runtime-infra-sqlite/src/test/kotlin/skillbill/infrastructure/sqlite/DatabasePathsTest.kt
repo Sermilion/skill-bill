@@ -48,13 +48,6 @@ class DatabasePathsTest {
     assertEquals(Path.of("/tmp/home/.skill-bill/review-metrics.db"), resolved)
   }
 
-  /**
-   * SKILL-136 subtask 6 AC-005. This is the exact shape that produced a zero-byte
-   * `<workingDir>/.skill-bill/review-metrics.db` and made a later reading conclude the store was
-   * empty: the file existed, so `openReadDb`'s bootstrap branch did not fire, and it was opened
-   * read-only with no schema at all. A database file must be absent or schema-complete, never both
-   * present and schema-less.
-   */
   @Test
   fun `openReadDb migrates a zero-byte working-directory database instead of reporting it empty`() {
     val workingDir = Files.createTempDirectory("runtime-kotlin-zero-byte-store")
@@ -80,7 +73,6 @@ class DatabasePathsTest {
     }
   }
 
-  // The pre-existing deliberate exception must keep working: an absent path still bootstraps.
   @Test
   fun `openReadDb on an absent path still bootstraps a schema-complete database`() {
     val dbPath = Files.createTempDirectory("runtime-kotlin-absent-store").resolve("review-metrics.db")
@@ -90,8 +82,6 @@ class DatabasePathsTest {
     }
   }
 
-  // A store that is already schema-complete keeps read-only semantics; only the schema-less case
-  // escalates to the migrating open.
   @Test
   fun `openReadDb keeps a schema-complete database read-only`() {
     val dbPath = Files.createTempDirectory("runtime-kotlin-readonly-store").resolve("review-metrics.db")

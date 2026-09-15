@@ -20,7 +20,7 @@ internal fun TelemetryStatusResult.toCliMap(): Map<String, Any?> = linkedMapOf<S
   "custom_proxy_url" to customProxyUrl,
   "pending_events" to pendingEvents,
   "last_synced_at" to lastSyncedAt,
-  // emitText drops null values, so the never-synced/synced distinction needs its own non-null key.
+
   "last_sync_state" to if (lastSyncedAt == null) "never_synced" else "synced",
 ).apply {
   installId?.let { put("install_id", it) }

@@ -6,10 +6,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.fail
 
-/**
- * Planning-projections schema is reject-all; [producedProjectionKindFor] is null for every phase, so
- * the producing-phase corpus is empty and every canned phase is named in the exemption list.
- */
 class PhaseOutputFixtureParityTest {
   private data class PhaseOutputFixture(
     val id: String,

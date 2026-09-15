@@ -2,13 +2,6 @@ package skillbill.engine
 import skillbill.engine.featuretask.FeatureTaskRuntimeReviewDriver
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
 
-// SKILL-140 Subtask 3 (task-6): the canned phase-output fixture corpus, extracted verbatim from
-// FeatureTaskRuntimeRunnerTest so a single parity test (PhaseOutputFixtureParityTest) can enumerate
-// every fixture with a stable identifier. Runner, goal-runner, and projection suites resolve these
-// top-level functions by package, so the move needs no import changes.
-
-// An implement output that completes WITHOUT a reconciliation report. Implement no longer owes
-// mutating-reconciliation; value is required, legacy sibling keys are tolerated (AC-003/AC-013).
 internal const val REVIEW_FIX_BLOCKER_FINDING_ID = "F-001"
 
 internal var harnessPendingVerifyFindingIds: List<String> = emptyList()
@@ -63,9 +56,6 @@ internal val IMPLEMENT_NO_RECONCILE_OUTPUT: String = """
   }
 """.trimIndent()
 
-// A schema-valid plan output carrying a top-level `verdict` wire string the transition function reads.
-// produced_outputs carries the declared executable_plan projection: a completed plan owes the shape
-// its consumer parses, and the producer gate rejects it otherwise (SKILL-140 Subtask 1).
 internal fun verdictPlanOutput(verdict: String): String = """
   {
     "contract_version": "0.6",
@@ -77,10 +67,6 @@ internal fun verdictPlanOutput(verdict: String): String = """
   }
 """.trimIndent()
 
-// The commit_push record as it exists AFTER runtime finalisation: the agent contributed message and
-// changed_paths, and the runtime wrote the post-amend commit_sha back into the same container. This is
-// what the `pr` consumer projection reads, so any suite that assembles a pr briefing from static
-// records must use this rather than the pre-finalisation agent payload.
 internal val FINALISED_COMMIT_PUSH_OUTPUT: String = """
   {
     "contract_version": "0.6",
@@ -91,11 +77,6 @@ internal val FINALISED_COMMIT_PUSH_OUTPUT: String = """
   }
 """.trimIndent()
 
-// The runtime, not the agent, supplies commit_sha: the agent contributes the outcome message and the
-// enumerated path set, and finalisation writes the post-amend sha back into this container. Both the
-// pre- and post-finalisation fixtures are built here so the sha lands inside commit_push_result by
-// construction; deriving one from the other by text substitution let a template rename yield a fixture
-// that silently no longer carried the finalised shape.
 internal fun commitPushProducedOutputs(
   commitSha: String? = null,
   changedPaths: List<String> = listOf("src/Foo.kt"),
@@ -210,8 +191,6 @@ private fun implementFixProducedOutputs(): String = """{
     }
 """.trimIndent()
 
-// SKILL-140 Subtask 3 (task-6/task-7): the enumerable parity corpus. Each entry carries a stable id
-// used verbatim in parity-failure messages.
 internal data class PhaseOutputFixture(
   val id: String,
   val phaseId: String,
@@ -232,10 +211,6 @@ internal val PLANNING_PROJECTION_EXEMPT_PHASES: Set<String> =
     "commit_push",
   )
 
-/**
- * SKILL-187 subtask 3: synthetic audit envelopes for repair-context conformance. Sentinels only —
- * never real rejected payloads, secrets, prompts, or database paths.
- */
 internal object Skill187SyntheticAuditResponses {
   const val NESTED_VERDICT_SENTINEL: String = "SKILL187-NESTED-VERDICT"
   const val OBSERVATION_SENTINEL: String = "SKILL187-BAD-OBSERVATION"

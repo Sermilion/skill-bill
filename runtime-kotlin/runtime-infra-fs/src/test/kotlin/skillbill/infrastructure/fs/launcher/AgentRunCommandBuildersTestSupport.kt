@@ -76,20 +76,14 @@ internal fun assertCursorGovernedLaunch(
   val workspace = StubReviewEvidenceEndpoint.descriptor.mcpConfigPath.parent
   assertEquals(workspace.toString(), command[command.indexOf("--workspace") + 1])
   assertEquals(workspace, built.workingDirectory)
-  // A review packet runs to hundreds of KB, past the 128 KB Linux caps on one argv element, so
-  // the prompt travels on stdin like every other launch rather than as the trailing argument.
+
   assertEquals(requireNotNull(governed.promptOverride), built.stdinText)
   assertTrue(command.none { it == governed.promptOverride })
   assertTrue(command.none { it.startsWith("/bill-code-review-inline") })
   assertTrue(command.contains("--approve-mcps"))
-  // --approve-mcps admits the server; only --force admits its tool calls, and a --print launch
-  // auto-rejects anything it cannot prompt for. Without it the lane lists the evidence tools and
-  // is refused every read, then answers from the prompt alone.
+
   assertTrue(command.contains("--force"))
-  // This lane carries no tool allowlist of its own: the CLI honours no workspace-scoped
-  // permission file, so unlike Claude's --tools there is nothing here that can deny the agent's
-  // own file and shell tools. Broker-only evidence is enforced by the unread-evidence gate on
-  // the returned lane, not by a config file, and no filesystem tool is named on the command.
+
   assertTrue(rawFilesystemTools.none { tool -> command.any { it.contains(tool) } })
 }
 

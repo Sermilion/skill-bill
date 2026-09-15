@@ -127,8 +127,6 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
       as WorkflowOpenResult.Ok
     val workflowId = opened.workflowId
 
-    // Durable save still precedes decomposition-manifest projection; failure must abort on the
-    // TASK_RUNTIME save path (saveFeatureTaskRuntimeWorkflow), not the retired prose implement save.
     workflowRepository.failNextRuntimeSave = true
     assertFailsWith<IllegalStateException> {
       service.update(
@@ -193,9 +191,6 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
     val service = testWorkflowService(database, FakeWorkflowGitOperations())
     val workflowId = createDecompositionWorkflow(service, parentSpec, subtaskSpec)
 
-    // requiredArtifactsByStep[validate]=[plan,audit]; seed completed phase records so canResume
-    // is true. assessment.spec_path remains decomposition metadata only
-    // (DecompositionManifestRuntimeState), never a resume-gate satisfier.
     service.update(
       WorkflowFamilyKind.TASK_RUNTIME,
       WorkflowUpdateRequest(
@@ -468,7 +463,7 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
 
     assertEquals(1, continued.subtaskId)
     assertEquals("complete", continued.outcome.status)
-    // FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PR — lastResumableStep tracks runtime step ids.
+
     assertEquals("pr", continued.outcome.lastResumableStep)
     assertEquals("pending", manifest.subtasks.first { it.id == 2 }.status)
   }
@@ -603,7 +598,7 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
     val first = service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
       as WorkflowContinueResult.DecompositionStandard
     val subtaskWorkflowId = first.view.resume.snapshot.workflowId
-    // requiredArtifactsByStep[validate]=[plan,audit] via FeatureTaskRuntimeRequiredArtifactPresenceResolver.
+
     service.update(
       WorkflowFamilyKind.TASK_RUNTIME,
       WorkflowUpdateRequest(

@@ -16,10 +16,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
-/**
- * Bug this catches: status claims "planning can resume at subtask N" for durable planning that launch
- * would refuse (WE-4719: PARTIALLY_PLANNED + invalid provenance still advertised resume).
- */
 class GoalPlanningStatusReasonCoherenceTest {
   @Test
   fun `invalid provenance overlays resume claim with the exact replan remedy`() {
@@ -123,8 +119,6 @@ class GoalPlanningStatusReasonCoherenceTest {
 
   @Test
   fun `classify failure maps to Invalid so status cannot keep a resume claim`() {
-    // Bug: align used to swallow classifyForStatus failures (e.g. identity mismatch from toShared)
-    // and return the resume-claiming snapshot while launch would refuse.
     val recoverability = statusRecoverabilityOrRefuse {
       throw IncompatibleGoalPlanningPreparationRecoveryError(
         "wfl",
@@ -189,8 +183,6 @@ class GoalPlanningStatusReasonCoherenceTest {
 
   @Test
   fun `preparation state read stop uses recovery reason not cannot-be-recovered message`() {
-    // Bug: embedding IncompatibleGoalPlanningPreparationRecoveryError.message kept
-    // "cannot be recovered" while also naming the --include-shared-preplan remedy.
     val error = IncompatibleGoalPlanningPreparationRecoveryError(
       "wfl",
       0,

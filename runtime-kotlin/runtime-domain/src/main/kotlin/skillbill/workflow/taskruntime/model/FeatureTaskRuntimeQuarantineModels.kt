@@ -4,22 +4,11 @@ import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.InvalidWorkflowStateSchemaError
 
-/**
- * Durable, append-only quarantine evidence store. When a launch seam rejects an upstream producer's
- * durable record (a legacy or drifted bounded planning projection), the runtime appends the rejected
- * record here as PRIVATE evidence and re-enters the producing phase under a bounded regeneration cap.
- *
- * This key is deliberately excluded from every prompt and briefing path: it is never resolved into an
- * upstream projection, so no rejected-record byte reaches an agent. The runtime only ever appends; it
- * never mutates or deletes a prior entry. Only out-of-band operator action may remove evidence.
- */
 const val FEATURE_TASK_RUNTIME_QUARANTINED_RECORDS_ARTIFACT_KEY: String =
   "feature_task_runtime_quarantined_records"
 
-/** Wire value of the quarantine contract version, mirrored by the canonical quarantine schema. */
 const val FEATURE_TASK_RUNTIME_QUARANTINE_ARTIFACT_CONTRACT_VERSION: String = "0.3"
 
-/** Typed classes of launch-seam rejection that trigger quarantine; mirror the schema enum. */
 const val QUARANTINE_REJECTION_CLASS_PLANNING_PROJECTION: String = "planning_projection_schema"
 const val QUARANTINE_REJECTION_CLASS_HANDOFF_ENVELOPE: String = "handoff_envelope_schema"
 const val QUARANTINE_REJECTION_CLASS_CHECKPOINT_IDENTITY_VERSION: String = "checkpoint_identity_contract_version"
@@ -32,13 +21,6 @@ private val QUARANTINE_REJECTION_CLASSES: Set<String> = setOf(
 
 private val QUARANTINE_ENVELOPE_FIELDS: Set<String> = setOf(SharedPayloadKeys.CONTRACT_VERSION, "entries")
 
-/**
- * One quarantined durable record. Names the producing phase (which will be regenerated), the
- * consuming phase whose launch seam rejected it, the rejected producing iteration, the typed
- * rejection class and bounded detail, the per-producer regeneration attempt at quarantine, the
- * consuming-phase iteration at quarantine, and either a private diagnostic identity or a mark that
- * the diagnostic write degraded. Identity and the degraded flag are mutually exclusive.
- */
 data class FeatureTaskRuntimeQuarantineEntry(
   val producingPhaseId: String,
   val consumingPhaseId: String,
@@ -93,7 +75,6 @@ data class FeatureTaskRuntimeQuarantineEntry(
     return map
   }
 
-  /** A stable identifier for this quarantined record, used in cap-exhaustion block reasons. */
   fun recordIdentifier(): String = "$producingPhaseId#$producingIteration"
 
   companion object {
@@ -111,7 +92,6 @@ data class FeatureTaskRuntimeQuarantineEntry(
       "rejected_record_sha256",
     )
 
-    /** Strict decode; loud-fails on a missing, malformed, or undeclared field. */
     internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeQuarantineEntry {
       val unexpected = raw.keys - ALLOWED_FIELDS
       if (unexpected.isNotEmpty()) {
@@ -150,10 +130,6 @@ data class FeatureTaskRuntimeQuarantineEntry(
   }
 }
 
-/**
- * Encodes the append-only quarantine list into the durable wire map the canonical quarantine schema
- * validates: a `contract_version` and an ordered `entries` array.
- */
 internal fun featureTaskRuntimeQuarantineRecordToWire(
   entries: List<FeatureTaskRuntimeQuarantineEntry>,
 ): Map<String, Any?> = linkedMapOf(
@@ -163,7 +139,6 @@ internal fun featureTaskRuntimeQuarantineRecordToWire(
 
 private fun quarantineSchemaError(detail: String): Nothing = throw InvalidWorkflowStateSchemaError(detail)
 
-/** Strict decode of the durable quarantine record; loud-fails on a malformed artifact. */
 internal fun featureTaskRuntimeQuarantineEntriesFromWire(raw: Any?): List<FeatureTaskRuntimeQuarantineEntry> {
   val map = JsonCodec.anyToStringAnyMap(raw)
     ?: quarantineSchemaError("Feature-task-runtime quarantine record must be an object.")

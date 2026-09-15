@@ -7,7 +7,6 @@ import kotlin.test.assertFailsWith
 class FeatureTaskRuntimeQuarantineSchemaValidatorTest {
   @Test
   fun `a well-formed quarantine record validates`() {
-    // A 0.3 envelope must still accept a 0.2-shaped identity-bearing entry (flag absent).
     FeatureTaskRuntimeQuarantineSchemaValidator.validate(validRecord(), "quarantine")
   }
 

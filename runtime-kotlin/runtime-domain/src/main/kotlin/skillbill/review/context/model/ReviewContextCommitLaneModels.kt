@@ -2,13 +2,8 @@ package skillbill.review.context.model
 
 const val REVIEW_ROUTING_REASON_MAX_CHARS: Int = 600
 
-/**
- * A commit/lane pair has exactly two final states. There is deliberately no deferred `candidate`
- * state: relevance is decided once, on the parent, and no worker re-decides it downstream.
- */
 enum class ReviewCommitLaneDisposition { FOCUSED, SKIPPED }
 
-/** One final, auditable routing decision for a single (commit unit, lane) pair. */
 data class ReviewCommitLaneDecision(
   val commitSha: String,
   val orderIndex: Int,
@@ -43,10 +38,6 @@ data class ReviewCommitLaneDecision(
   )
 }
 
-/**
- * The complete commit-by-lane routing result: every analyzed pair carries one final disposition,
- * so a lane's assignment is derivable from focused commits alone with nothing left to re-decide.
- */
 data class ReviewCommitLaneRoutingMatrix(
   val commitShas: List<String>,
   val lanes: List<String>,
@@ -72,7 +63,6 @@ data class ReviewCommitLaneRoutingMatrix(
     }
   }
 
-  /** The lane's focused commit identities in packet commit order. */
   fun focusedCommits(lane: String): List<String> = decisions
     .filter { it.lane == lane && it.focused }
     .sortedBy { it.orderIndex }

@@ -11,11 +11,6 @@ internal class FeatureTaskWorkflowRowStore(
   private val connection: Connection,
 ) : FeatureTaskWorkflowRowRepository {
   override fun saveFeatureTaskWorkflow(row: WorkflowStateRecord, mode: FeatureTaskWorkflowMode) {
-    // SKILL-175 subtask 6: refuse mode=prose above the schema (the CHECK constraint still spells
-    // 'prose' so legacy rows stay insert-compatible with their own history; see
-    // runtime-kotlin/agent/decisions.md, "In-flight prose row policy"). This is the live write path
-    // `WorkflowService` calls for both families, so the guard lives here rather than only in the
-    // `FeatureImplementWorkflowStateRepository` compatibility alias below.
     if (mode == FeatureTaskWorkflowMode.PROSE) {
       throw ProseFeatureTaskWorkflowWriteRefusedError(row.workflowId)
     }

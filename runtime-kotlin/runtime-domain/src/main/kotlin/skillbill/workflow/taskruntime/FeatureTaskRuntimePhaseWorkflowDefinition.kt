@@ -7,15 +7,6 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeTransitionDeclarat
 import skillbill.workflow.taskruntime.model.PhaseHandoffProjectionDeclaration
 import skillbill.workflow.taskruntime.model.PhaseHandoffProjectionTemplate
 
-/**
- * The experimental runtime-driven feature-task pipeline definition, fully independent
- * from `FeatureImplementWorkflowDefinition`.
- *
- * The phase set is a DAG, not a chain: `requiredArtifactsByStep` encodes each phase's
- * upstream dependency set (the producing-phase ids whose latest output it consumes).
- * [phaseDeclarations] adds the derived-context declarations that the `WorkflowDefinition`
- * shape cannot express.
- */
 object FeatureTaskRuntimePhaseWorkflowDefinition {
   const val PHASE_PREPLAN: String = "preplan"
   const val PHASE_PLAN: String = "plan"
@@ -33,13 +24,8 @@ object FeatureTaskRuntimePhaseWorkflowDefinition {
   const val DERIVED_CONTEXT_DIFF: String = "diff"
   const val DERIVED_CONTEXT_SCOPED_REPOSITORY_STATE: String = "scoped_repository_state"
 
-  // `review` is delivered the shared evidence projection and `pr` is not, so the two can no longer share
-  // one diff key: the review keys now name a delivered reference, while PR keeps reading the branch diff
-  // itself. Splitting the key rather than the instruction keeps PR's behaviour byte-identical.
   const val DERIVED_CONTEXT_PR_BRANCH_DIFF: String = "pr_branch_diff"
 
-  // The M1 review->implement_fix remediation loop id, named once so durable accounting and telemetry
-  // (the finished-event review-fix iteration count) reference the same loop the backward edge mints.
   const val REVIEW_FIX_LOOP_ID: String = "review_fix"
 
   const val AUDIT_GAP_LOOP_ID: String = "audit_gap"
@@ -54,27 +40,16 @@ object FeatureTaskRuntimePhaseWorkflowDefinition {
 
   val REGENERATION_PRODUCER_BY_CONSUMER: Map<String, String> = emptyMap()
 
-  // Phases whose attempt watermark a review-generation restart rewinds. Only these carry a non-zero
-  // evidence generation, so every other phase keeps a generation-blind key and a byte-identical
-  // re-write after a restart stays an idempotent no-op.
   val GENERATION_SCOPED_PHASE_IDS: Set<String> = setOf(PHASE_REVIEW, PHASE_IMPLEMENT_FIX)
 
   val REGENERATION_LOOP_IDS: Set<String> = REGENERATION_LOOP_ID_BY_PRODUCER.values.toSet()
 
   fun isRegenerationLoopId(loopId: String): Boolean = loopId in REGENERATION_LOOP_IDS
 
-  // Mutating phases reconcile the working tree to an intended target state. They are the phases the
-  // idempotency contract governs: re-entering or resuming one must converge to target, treating an
-  // already-applied change as a no-op rather than re-applying it. `implement` mutates from
-  // intended-state plan inputs; `implement_fix` reconciles the current tree against the review
-  // findings on the `review_fix` loop. Callers MUST consult this predicate rather than hardcoding a
-  // single phase id.
   private val MUTATING_PHASES: Set<String> = setOf(PHASE_IMPLEMENT, PHASE_IMPLEMENT_FIX)
 
   fun isMutatingPhase(phaseId: String): Boolean = phaseId in MUTATING_PHASES
 
-  // Producer phases re-run on schema-invalid or retryable-terminal output until the output is valid.
-  // Downstream phases (`write_history`, `commit_push`, `pr`) block on the first invalid output.
   private val OUTPUT_RETRY_PHASES: Set<String> = setOf(
     PHASE_PREPLAN,
     PHASE_PLAN,
@@ -92,17 +67,10 @@ object FeatureTaskRuntimePhaseWorkflowDefinition {
 
   val definition: WorkflowDefinition = FeatureTaskRuntimePhaseWorkflowGraph.definition
 
-  /** Legacy contract id retained only for compatibility rejection and regression assertions. */
   const val UPSTREAM_PHASE_RECEIPT_CONTRACT_ID: String = "feature_task_runtime.upstream_phase_receipt"
 
-  /** Version of the retired [UPSTREAM_PHASE_RECEIPT_CONTRACT_ID]. */
   const val UPSTREAM_PHASE_RECEIPT_CONTRACT_VERSION: String = "0.1"
 
-  /**
-   * Closed downstream projection contracts. These names are deliberately consumer-oriented: a
-   * producer's complete phase envelope remains private, while each edge receives only the fields
-   * listed by its declaration.
-   */
   object PhaseProjectionContract {
     const val VERSION: String = "0.1"
     const val PHASE_PROSE: String = "feature_task_runtime.phase_prose"
@@ -137,13 +105,6 @@ object FeatureTaskRuntimePhaseWorkflowDefinition {
     checkpointPolicy,
   )
 
-  /**
-   * The phase-neutral shared review evidence for the current checkpoint, delivered as a reference.
-   *
-   * `required = false` is load-bearing: the artifact is a derived cache, and a required declaration would
-   * turn an absent or unreadable one into a hard launch rejection instead of the re-derivation AC-010
-   * mandates. Absent evidence omits the projection; the phase still launches.
-   */
   fun sharedReviewEvidenceDeclaration(consumerPhaseId: String): PhaseHandoffProjectionDeclaration =
     FeatureTaskRuntimePhaseWorkflowProjectionDeclarations.sharedReviewEvidenceDeclaration(consumerPhaseId)
 
@@ -152,37 +113,14 @@ object FeatureTaskRuntimePhaseWorkflowDefinition {
 
   const val REPAIR_LEDGER_PROJECTION_NAME: String = "repair_ledger"
 
-  /** The projection name the rewritten derived-context instructions point the agent at. */
   const val SHARED_REVIEW_EVIDENCE_PROJECTION_NAME: String = "shared_review_evidence"
 
-  /**
-   * Private producer evidence that a runtime-owned projector may combine. These records are never
-   * delivered directly; the consumer still sees only the closed declaration in
-   * [phaseDeclarations].
-   */
   fun runtimeProjectorProducerPhaseIds(consumerPhaseId: String): Set<String> =
     FeatureTaskRuntimePhaseWorkflowProjectionDeclarations.runtimeProjectorProducerPhaseIds(consumerPhaseId)
 
   val phaseDeclarations: Map<String, FeatureTaskRuntimePhaseDeclaration> =
     FeatureTaskRuntimePhaseWorkflowProjectionDeclarations.phaseDeclarations(definition)
 
-  /**
-   * Transition topology: the ordered [stepIds] forward pipeline plus the `review_fix` backward edge.
-   * The pipeline is audit-first: a clean run advances `implement` -> `audit` -> `review` ->
-   * `verify_findings` -> `validate`, skipping loop-only `implement_fix`. Audit is stateless: one
-   * agent session per invocation repairs gaps in-session and emits only terminal completion.
-   *
-   * A `verify_findings` `findings_verified` verdict takes the single bounded `review_fix` backward
-   * edge to `implement_fix` (perEdgeCap 1, cap exhaustion ADVANCE). The run always advances to
-   * `validate` after that one fix round regardless of unresolved findings. `review` records its
-   * verdict and never routes. `write_history` and `commit_push` have no backward edges and never
-   * reopen earlier phases; commit_push finalises every non-runtime-private dirty path as this
-   * subtask's work.
-   *
-   * [FeatureTaskRuntimeTransitionDeclaration.entryGates] makes the ordering enforceable rather than
-   * merely implied: `review` is unreachable until `audit` has settled `satisfied`, and
-   * `implement_fix` is unreachable until `verify_findings` has settled `findings_verified`.
-   */
   val transitions: FeatureTaskRuntimeTransitionDeclaration =
     FeatureTaskRuntimePhaseWorkflowTransitions.transitions(definition)
 }

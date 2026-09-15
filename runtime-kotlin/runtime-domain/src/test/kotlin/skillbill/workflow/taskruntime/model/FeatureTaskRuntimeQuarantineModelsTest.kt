@@ -6,10 +6,6 @@ import kotlin.test.assertContains
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 
-/**
- * F-001: the durable decoder must loud-fail undeclared and unsupported records so an append cannot
- * load them and rewrite the store without that evidence.
- */
 class FeatureTaskRuntimeQuarantineModelsTest {
   @Test
   fun `an unsupported field loud-fails rather than being dropped on decode`() {

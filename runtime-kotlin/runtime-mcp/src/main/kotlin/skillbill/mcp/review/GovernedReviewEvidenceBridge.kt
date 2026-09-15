@@ -16,11 +16,6 @@ import java.nio.file.Path
 private const val JSON_RPC_METHOD_NOT_FOUND = -32601
 private const val JSON_RPC_INTERNAL_ERROR = -32603
 
-/**
- * Pipe between a governed review worker's stdio MCP client and its parent evidence endpoint. It
- * holds no broker reference, reads no file, and makes no policy decision: the only frames it
- * forwards are calls to the two governed operations.
- */
 object GovernedReviewEvidenceBridge {
   fun enabled(environment: Map<String, String>): Boolean =
     !environment[GovernedReviewEvidenceCodec.SOCKET_ENV].isNullOrBlank()

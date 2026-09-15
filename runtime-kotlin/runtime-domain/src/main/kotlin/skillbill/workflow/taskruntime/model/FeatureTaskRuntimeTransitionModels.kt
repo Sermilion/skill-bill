@@ -1,15 +1,5 @@
 package skillbill.workflow.taskruntime.model
 
-/**
- * Effect-free transition declaration models for the bounded-cyclic phase executor. A transition is a
- * pure function of `(currentPhaseId, verdict, edgeIterationCount)`; the executor consumes this
- * declaration rather than hardcoding loop topology, so backward edges (the remediation loops) are
- * data, not bespoke branches. The forward pipeline is the ordered
- * [FeatureTaskRuntimeTransitionDeclaration.forwardPhaseIds]; the default forward edge from any phase
- * is the next index. Backward edges are declared explicitly and may carry a per-edge cap.
- */
-
-/** The next transition target computed for a settled phase. */
 sealed interface FeatureTaskRuntimeNextPhase {
   /** Re-enter or advance to [phaseId]. A backward re-entry additionally carries its loop context. */
   data class Next(
@@ -53,27 +43,11 @@ enum class FeatureTaskRuntimeCapExhaustionBehavior {
   ADVANCE,
 }
 
-/**
- * Whether the per-edge cap counter resets across parent-level resumes (PER_RUN) or accumulates
- * across all runs for the same subtask (PER_SUBTASK, the default). All current backward edges use
- * PER_SUBTASK: the cap counter is seeded from durable phase records on resume so repeated resumes
- * cannot multiply a bound the contract presents as fixed; the cumulative count is surfaced
- * separately for observability. PER_RUN is reserved for a resume that should start a fresh window.
- */
 enum class FeatureTaskRuntimeBackwardEdgeCapScope {
   PER_RUN,
   PER_SUBTASK,
 }
 
-/**
- * One declared backward edge: when [fromPhaseId] settles with [triggeringVerdict], the run re-enters
- * [destinationPhaseId]. [perEdgeCap] bounds re-entries when present; `null` allows reconciliation to
- * continue until the triggering verdict clears. [loopId] names the loop for durable accounting.
- *
- * [warnAfterIterations] is advisory metadata, not control flow: an edge that declares it asks the
- * run loop to warn once when re-entry passes that iteration count while remediation continues. The
- * transition function never reads it, so an edge carrying it transitions identically to one without.
- */
 data class FeatureTaskRuntimeBackwardEdge(
   val fromPhaseId: String,
   val triggeringVerdict: FeatureTaskRuntimeVerdict,
@@ -98,11 +72,6 @@ data class FeatureTaskRuntimeBackwardEdge(
   }
 }
 
-/**
- * One declared phase-entry gate: [phaseId] is unreachable until [requiredPhaseId] has settled with
- * [requiredVerdict]. The gate is topology data rather than a bespoke branch in the transition
- * function, so an ordering invariant stays inspectable and testable without phase-identity branching.
- */
 data class FeatureTaskRuntimePhaseEntryGate(
   val phaseId: String,
   val requiredPhaseId: String,
@@ -119,20 +88,6 @@ data class FeatureTaskRuntimePhaseEntryGate(
   }
 }
 
-/**
- * The full transition topology: the ordered forward pipeline (default forward edge = next index), the
- * set of backward edges, and the phase-entry gates. An edge-free, gate-free declaration is
- * behaviorally identical to a strict forward pipeline.
- *
- * [loopOnlyPhaseIds] are phases the forward edge skips: they sit in the pipeline only as backward-edge
- * destinations (e.g. a remediation `implement_fix` phase) and are never reached by forward advance, so
- * a clean run never launches them. An empty set leaves the forward advance strictly index+1.
- *
- * [entryGates] declare ordering invariants the topology alone cannot enforce: a gated phase may only
- * be entered once its gating phase settled with the required verdict. The init block requires each
- * gate's required phase to strictly precede the gated phase in [forwardPhaseIds], so a future reorder
- * that regresses the ordering fails at class-init rather than silently at runtime.
- */
 data class FeatureTaskRuntimeTransitionDeclaration(
   val forwardPhaseIds: List<String>,
   val backwardEdges: List<FeatureTaskRuntimeBackwardEdge> = emptyList(),
@@ -140,12 +95,7 @@ data class FeatureTaskRuntimeTransitionDeclaration(
   val entryGates: List<FeatureTaskRuntimePhaseEntryGate> = emptyList(),
   val loopOnlySuccessors: Map<String, String> = emptyMap(),
 ) {
-  /**
-   * The gate blocking entry into [phaseId] given the settled verdict per completed phase, or `null`
-   * when the phase is ungated or every gate is satisfied. Single shared predicate for both
-   * enforcement seams (the transition function and the run loop's phase-entry seam) so the rule
-   * cannot drift between them.
-   */
+
   fun entryGateViolation(
     phaseId: String,
     settledVerdictsByPhaseId: Map<String, FeatureTaskRuntimeVerdict>,
@@ -153,13 +103,6 @@ data class FeatureTaskRuntimeTransitionDeclaration(
     gate.phaseId == phaseId && settledVerdictsByPhaseId[gate.requiredPhaseId] != gate.requiredVerdict
   }
 
-  /**
-   * The forward span a backward edge reopens, [destinationPhaseId] through [sourcePhaseId] inclusive,
-   * derived from the LIVE [forwardPhaseIds] rather than from any durable record. Resume therefore
-   * always invalidates the phase set the current topology implies, so a run recorded under an older
-   * ordering cannot resume against a stale span. Falls back to the destination alone when the indices
-   * do not bracket. Single source for the run loop's live edge path and the run state's resume path.
-   */
   fun spanBetween(destinationPhaseId: String, sourcePhaseId: String): List<String> {
     val destinationIndex = forwardPhaseIds.indexOf(destinationPhaseId)
     val sourceIndex = forwardPhaseIds.indexOf(sourcePhaseId)
@@ -221,11 +164,6 @@ data class FeatureTaskRuntimeTransitionDeclaration(
   }
 }
 
-/**
- * Run-state the transition consults but does not own: what earlier phases settled at, and whether the
- * review sequence is holding an unresolved Blocker. Both default to "nothing known", which is what a
- * pure forward advance sees.
- */
 data class FeatureTaskRuntimeTransitionContext(
   val settledVerdictsByPhaseId: Map<String, FeatureTaskRuntimeVerdict> = emptyMap(),
 )

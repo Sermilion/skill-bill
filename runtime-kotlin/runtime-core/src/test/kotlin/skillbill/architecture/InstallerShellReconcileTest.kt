@@ -8,13 +8,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-/**
- * Shell-level reconcile scenarios that drive install.sh through the Kotlin ProcessBuilder
- * harness with a fake reconcile CLI emitting the SAME line-based machine report the real
- * CLI emits (pinned by the runtime-cli contract test). Split out of
- * [InstallerShellDelegationTest] so each test class stays under detekt's LargeClass
- * threshold.
- */
 class InstallerShellReconcileTest {
   private val runtimeRoot: Path =
     Path.of("").toAbsolutePath().normalize().let { workingDir ->
@@ -151,16 +144,11 @@ class InstallerShellReconcileTest {
     val output: String,
   )
 
-  // mutateUpstream bumps the staged upstream skill source before a reinstall;
-  // reconcileFailOnce makes the fake CLI fail its first invocation so the clean
-  // copied-source reset recovery is exercised.
   private data class ReconcileScenario(
     val mutateUpstream: ((Path) -> Unit)? = null,
     val reconcileFailOnce: Boolean = false,
   )
 
-  // Drive install.sh without asserting success. `reuse` (a prior run) drives a second
-  // install against that install's home + bin dir.
   private fun runInstallerShellRaw(
     input: String,
     reuse: InstallerShellRawRun? = null,

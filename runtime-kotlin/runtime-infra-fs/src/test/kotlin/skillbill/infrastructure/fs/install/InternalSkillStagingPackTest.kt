@@ -43,10 +43,6 @@ class InternalSkillStagingPackTest : InternalSkillStagingTestSupport() {
     )
   }
 
-  // ---------------------------------------------------------------------------------------------
-  // Uninstall idempotency (criterion 6)
-  // ---------------------------------------------------------------------------------------------
-
   @Test
   fun `uninstallTargets removes the parent link and repeats as a no-op`() {
     val fixture = setupParentWithInternalChild()
@@ -68,10 +64,6 @@ class InternalSkillStagingPackTest : InternalSkillStagingTestSupport() {
     val removedAgain = uninstallTargets(links)
     assertTrue(removedAgain.isEmpty(), "repeat uninstall must be a no-op, got $removedAgain")
   }
-
-  // ---------------------------------------------------------------------------------------------
-  // Repo validation (classification, blank values, sidecar references)
-  // ---------------------------------------------------------------------------------------------
 
   @Test
   fun `repo validation rejects unknown internal parent at validate time`() {
@@ -206,10 +198,6 @@ class InternalSkillStagingPackTest : InternalSkillStagingTestSupport() {
     )
   }
 
-  // ---------------------------------------------------------------------------------------------
-  // SKILL-104: pack-aware selection-shaped sidecar staging (PD2/PD3)
-  // ---------------------------------------------------------------------------------------------
-
   @Test
   fun `selected pack child stages as a sidecar inside the parent staged directory`() {
     val fixture = setupParentWithInternalPackChild()
@@ -243,7 +231,6 @@ class InternalSkillStagingPackTest : InternalSkillStagingTestSupport() {
   fun `unselected pack child contributes no sidecar and no hash contribution`() {
     val fixture = setupParentWithInternalPackChild()
 
-    // No selectedPackSkills passed -> the pack child is unselected -> no sidecar.
     val unselected = stageInstalledSkill(fixture.repoRoot, fixture.parentDir, fixture.home)
     assertTrue(unselected.renderedSidecarFiles.isEmpty(), "unselected pack must stage no sidecars")
     assertFalse(

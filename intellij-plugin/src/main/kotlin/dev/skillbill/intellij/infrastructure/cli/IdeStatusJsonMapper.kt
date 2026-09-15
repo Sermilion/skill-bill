@@ -32,11 +32,7 @@ import dev.skillbill.intellij.domain.UnavailableReason
 import dev.skillbill.intellij.infrastructure.AbsolutePathGuard
 import java.time.Instant
 
-/**
- * Maps schema-shaped IDE status JSON into domain outcomes.
- * Validates contract_version before mapping; never surfaces stderr or absolute
- * sensitive paths from diagnostics.
- */
+
 object IdeStatusJsonMapper {
     fun map(
         stdout: String,
@@ -118,7 +114,7 @@ object IdeStatusJsonMapper {
         val planning = root.parsePlanning()
         val currentModel = root.parseCurrentModel()
         val currentPhaseExecution = root.parseCurrentPhaseExecution()
-        // Both optional and goal-family-only: a missing key stays null, never false.
+
         val pauseRequested = root.getAsBoolean(PAUSE_REQUESTED_WIRE_KEY)
         val pausedAt = root.getAsInstant(PAUSED_AT_WIRE_KEY)
         val pauseReason = root.parsePauseReason()
@@ -126,8 +122,8 @@ object IdeStatusJsonMapper {
         val activeDurationAsOf = root.getAsInstant(ACTIVE_DURATION_AS_OF_WIRE_KEY)
         val agentActivity = root.parseAgentActivity()
 
-        // "No work here" is a healthy idle repository, not a broken status source.
-        // Every other problem code is a genuine failure to obtain status.
+
+
         if (problemCode == NO_MATCHING_WORK_REASON_CODE) {
             return SkillBillStatusOutcome.Idle(
                 observedAt = observedAt,
@@ -156,9 +152,9 @@ object IdeStatusJsonMapper {
 
         val isStale = freshness == "stale"
 
-        // Staleness only *replaces* a lifecycle that claims to be live. A settled
-        // lifecycle (blocked/failed/terminal/idle) is the more specific truth and
-        // outranks it; there it degrades to a modifier on the lifecycle outcome.
+
+
+
         if (isStale && (lifecycle == "active" || lifecycle == "paused")) {
             return SkillBillStatusOutcome.Stale(
                 observedAt = observedAt,
@@ -342,15 +338,11 @@ object IdeStatusJsonMapper {
     private fun safeSummary(raw: String?, fallback: String): String {
         val value = raw?.trim().orEmpty()
         if (value.isEmpty()) return fallback
-        // Drop absolute Unix/Windows path segments from any surfaced text.
+
         return AbsolutePathGuard.redact(value).take(512)
     }
 
-    /**
-     * Planning is optional context, never a reason to lose a whole status reading:
-     * any missing, mistyped, or out-of-range field degrades the block to null and the
-     * surrounding outcome still maps normally.
-     */
+    
     private fun JsonObject.parsePlanning(): GoalPlanningInfo? {
         val planning = getAsJsonObjectOrNull("planning") ?: return null
         val state = planning.getAsString("state")?.takeUnless { it.isBlank() } ?: return null
@@ -368,20 +360,7 @@ object IdeStatusJsonMapper {
         )
     }
 
-    /**
-     * Same degradation rule as [parsePlanning]: the launched model is optional context, so a
-     * missing block, a non-object, or a blank/mistyped field degrades to null and the surrounding
-     * outcome still maps normally.
-     *
-     * Over-length values degrade rather than truncate. Truncating would render a model identifier
-     * that never existed — worse than showing nothing, because the operator cannot tell it was
-     * clipped. The bounds mirror the schema's own `maxLength`, so the producer already rejects an
-     * over-length value at its emit gate and this is the client-side floor, not the enforcement.
-     *
-     * A present-but-unparseable block leaves no client-side record: this mapper is deliberately
-     * platform-free so it stays unit-testable, and the plugin has no logging seam that does not
-     * pull in the IntelliJ platform. The producer's schema gate is where such a payload is caught.
-     */
+    
     private fun JsonObject.parseCurrentModel(): CurrentPhaseModel? {
         val currentModel = getAsJsonObjectOrNull(CURRENT_MODEL_WIRE_KEY) ?: return null
         val model = currentModel.boundedString("model", MODEL_MAX_LENGTH) ?: return null
@@ -392,20 +371,7 @@ object IdeStatusJsonMapper {
         )
     }
 
-    /**
-     * Same degradation rule as [parsePlanning]: optional context, so a missing block, a
-     * non-object, an unknown kind, a non-positive count, an over-length phase id, a total
-     * on a kind that must not carry one, or a non-strict integer count/total degrades to null
-     * and the surrounding outcome still maps.
-     *
-     * Count and total must be JSON number primitives with no fractional part. Gson's permissive
-     * [JsonElement.asInt] is not used here: fractional numbers, numeric strings, and an explicit
-     * null total reject the whole optional block rather than rendering a coerced value.
-     *
-     * Kind must match the controlled vocabulary exactly — surrounding whitespace is not trimmed
-     * into a valid kind. Kind and count stay exactly as the producer sent them; this parser
-     * never invents a total or re-labels an attempt as a semantic loop.
-     */
+    
     private fun JsonObject.parseCurrentPhaseExecution(): CurrentPhaseExecution? {
         val execution = getAsJsonObjectOrNull(CURRENT_PHASE_EXECUTION_WIRE_KEY) ?: return null
         val phaseId = execution.boundedString("phase_id", PHASE_ID_MAX_LENGTH) ?: return null
@@ -415,7 +381,7 @@ object IdeStatusJsonMapper {
         val totalElement = execution.get("total")
         val total = when {
             totalElement == null -> null
-            // Explicit null is a type error for optional total, not "absent".
+
             totalElement.isJsonNull -> return null
             kind != "bounded_edge" -> return null
             else -> execution.getAsStrictInt("total")?.takeIf { it >= 1 } ?: return null
@@ -443,7 +409,7 @@ object IdeStatusJsonMapper {
     private fun JsonObject.getAsString(key: String): String? =
         get(key)?.takeUnless { it.isJsonNull }?.asStringOrNull()
 
-    /** Strict: a JSON number or boolean is a type error, not text. */
+    
     private fun JsonObject.getAsStringPrimitive(key: String): String? =
         get(key)?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isString }?.asString
 
@@ -452,21 +418,18 @@ object IdeStatusJsonMapper {
             runCatching { it.asInt }.getOrNull()
         }
 
-    /**
-     * Strict JSON integer: a number primitive with no fractional part and in [Int] range.
-     * Strings, booleans, null, and fractional numbers are type errors (null), never coerced.
-     */
+    
     private fun JsonObject.getAsStrictInt(key: String): Int? {
         val element = get(key) ?: return null
         if (!element.isJsonPrimitive || !element.asJsonPrimitive.isNumber) return null
         return runCatching { element.asBigDecimal.intValueExact() }.getOrNull()
     }
 
-    /** Strict: a JSON string "true" is a type error, not a boolean. */
+    
     private fun JsonObject.getAsBoolean(key: String): Boolean? =
         get(key)?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isBoolean }?.asBoolean
 
-    /** Strict and non-negative: a malformed or negative duration is dropped, never shown as work. */
+    
     private fun JsonObject.getAsNonNegativeLong(key: String): Long? =
         get(key)?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isNumber }
             ?.let { runCatching { it.asLong }.getOrNull() }

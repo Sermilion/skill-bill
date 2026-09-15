@@ -16,10 +16,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-/**
- * A declared toolset is the only mechanism that keeps unused tool schemas out of a worker's every
- * model turn, so it has to survive the bundle round-trip and reach the rendered provider frontmatter.
- */
 class NativeAgentToolsetContractTest {
   @Test
   fun `a declared toolset round-trips through the bundle and reaches rendered frontmatter`() {
@@ -39,13 +35,10 @@ class NativeAgentToolsetContractTest {
     val rendered = NativeAgentProvider.Claude.render(agent)
     assertTrue(rendered.contains("tools: Read, Grep, Glob, Bash"), "Claude render must emit the toolset: $rendered")
 
-    // Cursor has no `tools` key, so the declaration has to reach its one capability control instead.
-    // Emitting neither leaves the worker on the host default of every tool the parent can reach.
     val cursor = NativeAgentProvider.Cursor.render(agent)
     assertTrue(cursor.contains("readonly: true"), "Cursor render must project the read-only toolset: $cursor")
   }
 
-  // `readonly: true` is a claim about the worker, so a toolset that grants mutation must not earn it.
   @Test
   fun `a toolset granting mutation is not projected as read-only`() {
     val agent = NativeAgentSource(
@@ -107,8 +100,6 @@ class NativeAgentToolsetContractTest {
     }
   }
 
-  // Inline is the cheap tier only if its worker is the declared narrow-toolset agent; a
-  // general-purpose substitute silently restores the whole host tool surface on every turn.
   @Test
   fun `the inline review worker is declared with the narrow reviewer toolset`() {
     val root = repoRoot()
@@ -116,8 +107,7 @@ class NativeAgentToolsetContractTest {
     val inline = parseNativeAgentSourceFile(bundle).single { it.name == "bill-code-review-inline" }
 
     assertEquals(GOVERNED_EVIDENCE_TOOLS, inline.tools)
-    // The body is composed from the internal skill's governed content, so the rubric lives in one
-    // place rather than being duplicated into the bundle entry.
+
     assertEquals(NativeAgentCompositionKind.GovernedContent, inline.composition?.kind)
     val governed = Files.readString(root.resolve("skills/bill-code-review-inline/content.md"))
     assertTrue("internal-for: bill-code-review" in governed, "The inline worker must install as a sidecar")

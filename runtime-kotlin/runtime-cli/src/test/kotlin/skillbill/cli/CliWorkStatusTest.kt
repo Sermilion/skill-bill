@@ -99,11 +99,6 @@ class CliWorkStatusTest {
     assertTrue(before.contentEquals(Files.readAllBytes(dbPath)))
   }
 
-  /**
-   * SKILL-165 Subtask 1: the CLI work-status fixture harness has no goal work item, so the
-   * end-to-end obligation is met at the emit-shape seam — the same `toStatusWireMap()` the CLI
-   * prints, validated by the same canonical schema validator the CLI runs.
-   */
   @Test
   fun `mid-planning goal emit shape validates against the canonical schema`() {
     val snapshot = IdeStatusSnapshot(

@@ -150,7 +150,6 @@ class ReviewPreparationService(
   ): List<ReviewAssignment> {
     val packetDigest = packet.digest
 
-    /** The full commit-grouped projection of a lane's already-assigned hunks, in packet commit order. */
     fun laneBundle(laneHunkIds: Set<String>) = ReviewLaneBundle(
       packet.commitUnits.sortedBy { it.orderIndex }.mapNotNull { unit ->
         unit.hunkIds.filter { it in laneHunkIds }
@@ -165,8 +164,7 @@ class ReviewPreparationService(
       if (unowned.isNotEmpty()) {
         reject(request.reviewId, "Lane '$lane' claims paths the packet does not own: ${unowned.sorted()}.")
       }
-      // Sparse routing narrows the lane to the commits it focused, so a path this lane owns
-      // contributes only the hunks the focused commits introduced there.
+
       val laneHunkIds = packet.focusedHunkIds(decision).sorted()
       val lanePaths = decision.normalizedOwnedPaths.sorted()
       ReviewAssignment(
@@ -212,11 +210,6 @@ class ReviewPreparationService(
     }
   }
 
-  /**
-   * Relevance was decided once, on the parent: a lane sees exactly the hunks its focused commits
-   * introduced under its owned paths. Claiming a skipped commit's hunk is a routing violation, not
-   * a widening a worker is allowed to make.
-   */
   private fun rejectRoutingViolations(
     packet: ReviewContextPacket,
     assignment: ReviewAssignment,

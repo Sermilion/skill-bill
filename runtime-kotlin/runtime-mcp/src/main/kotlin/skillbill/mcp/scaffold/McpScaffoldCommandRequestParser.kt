@@ -17,15 +17,6 @@ import skillbill.scaffold.model.command.ScaffoldCommandRequest
 import skillbill.scaffold.model.command.isRetiredPartialScaffoldCommandKindAlias
 import skillbill.scaffold.model.command.rejectRetiredPartialScaffoldCommandKind
 
-/**
- * SKILL-52.2 subtask 2: MCP raw-map → typed [ScaffoldCommandRequest] parser. Runs at the MCP
- * adapter boundary (JSON-RPC arg envelope → typed request) so the application + port surface
- * no longer accepts a `Map<String, Any?>` from MCP either.
- *
- * Mirrors [skillbill.cli.scaffold.parseScaffoldCommandRequest] exactly — the duplication is
- * deliberate. Both parsers loud-fail with the same legacy exception types at the same semantic
- * points so caller-facing diagnostics remain stable across CLI and MCP entry points.
- */
 fun parseMcpScaffoldCommandRequest(args: Map<String, Any?>): ScaffoldCommandRequest {
   val (version, kind) = validateVersionAndKind(args)
   val repoRoot = requireOptionalNonBlank(args, "repo_root")
@@ -38,11 +29,6 @@ fun parseMcpScaffoldCommandRequest(args: Map<String, Any?>): ScaffoldCommandRequ
   }
 }
 
-/**
- * Validates the scaffold-payload envelope `(scaffold_payload_version, kind)` and returns the
- * parsed pair. Encapsulates the two top-level loud-fails (version mismatch + unsupported kind)
- * so [parseMcpScaffoldCommandRequest] keeps its throw count at the per-function limit.
- */
 private fun validateVersionAndKind(args: Map<String, Any?>): Pair<String, String> {
   val version = requireString(args, "scaffold_payload_version")
   if (version != SCAFFOLD_COMMAND_PAYLOAD_VERSION) {

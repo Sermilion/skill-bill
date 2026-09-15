@@ -38,12 +38,6 @@ object FeatureTaskRuntimeAttemptBudgets {
   fun malformedOutputBlockReason(phaseId: String, malformedAttemptCount: Int): String? =
     outputGateBlockReason(phaseId, malformedAttemptCount)
 
-  /**
-   * Whether the rejection now being recorded is the one that spends the phase's correction budget.
-   * The block decision and the telemetry both route through here, so a record cannot report an intact
-   * budget on the same attempt the loop refuses to relaunch. A phase that never relaunches on invalid
-   * output has no budget to spend beyond this rejection, so the first one is already terminal.
-   */
   fun outputGateRejectionExhaustsBudget(phaseId: String, priorOutputGateFailures: Int): Boolean {
     require(priorOutputGateFailures >= 0) {
       "priorOutputGateFailures must be >= 0, was $priorOutputGateFailures."
@@ -53,14 +47,6 @@ object FeatureTaskRuntimeAttemptBudgets {
     return !relaunches || outputGateBlockReason(phaseId, priorOutputGateFailures + 1) != null
   }
 
-  /**
-   * Whether a round that reported it tried and could not close a finding may try that finding again.
-   *
-   * One retry per finding, tracked by finding reference rather than by attempt count: a first failed
-   * fix is often a first reading of the defect, and a second attempt costs one session. A finding the
-   * round declares unresolved twice is a genuine dead end, and re-entering it a third time buys
-   * nothing an operator would not have to decide anyway.
-   */
   fun unresolvedFindingBlockReason(
     phaseId: String,
     unresolved: Set<String>,
@@ -75,18 +61,6 @@ object FeatureTaskRuntimeAttemptBudgets {
       "on it. Reported: $detail"
   }
 
-  /**
-   * Whether a round that left carried review findings out of its repair receipt may run again.
-   *
-   * The omitted set is the budget, not an attempt count: a re-entry has to account for at least one
-   * more finding than the last one did, so the loop is bounded by the number of carried findings and
-   * a producer that keeps dropping the same finding stops after one send-back. An attempt count
-   * cannot express this — the flat output-gate cap blocked rounds that had real repair work left,
-   * which is what routed a dropped finding to an operator instead of back to the phase.
-   *
-   * [omitted] and [priorOmitted] are finding references, so growth and substitution both read as
-   * "no progress": a round that trades one omission for another has closed nothing.
-   */
   fun findingCoverageBlockReason(phaseId: String, omitted: Set<String>, priorOmitted: Set<String>?): String? {
     require(omitted.isNotEmpty()) { "omitted must name at least one finding, was empty." }
     if (priorOmitted == null) return null

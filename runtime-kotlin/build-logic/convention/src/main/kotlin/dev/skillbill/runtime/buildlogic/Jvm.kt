@@ -18,10 +18,6 @@ private const val MAX_TEST_FORKS = 8
 private const val TEST_FORK_CPU_DIVISOR = 2
 private const val TEST_MAX_HEAP = "2g"
 
-// Gates for the opt-in real-store harnesses. Test workers inherit the long-lived daemon's
-// environment rather than the invoking shell's, so an exported gate never reaches the test JVM and
-// the harness silently no-ops. These are forwarded explicitly through the provider API, which reads
-// the client environment and re-runs the task when the value changes.
 private val HARNESS_ENVIRONMENT_GATES = listOf(
   "SKILL_BILL_REAL_STORE_DB",
   "SKILL_BILL_MIGRATION_FIXTURE_DB",

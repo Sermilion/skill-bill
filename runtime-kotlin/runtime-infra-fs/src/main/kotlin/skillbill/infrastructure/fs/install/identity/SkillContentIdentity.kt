@@ -14,10 +14,6 @@ import java.security.MessageDigest
 internal const val SKILL_CONTENT_IDENTITY_CONTRACT_VERSION = "0.1"
 internal const val SKILL_CONTENT_IDENTITY_FILENAME = ".content-identity"
 
-/**
- * Compact, body-free identity for an authored skill. The full digest is intentionally separate
- * from the short install-cache hash: the latter is a directory key, not an equality proof.
- */
 internal data class SkillContentIdentity(
   val canonicalSourceIdentity: String,
   val exactContentSha256: String,
@@ -29,7 +25,6 @@ internal data class SkillContentIdentity(
     require(normalizedMetadata.keys.all { it.isNotBlank() }) { "normalizedMetadata keys must not be blank." }
   }
 
-  /** The compact form is suitable for diagnostics and contains no skill body. */
   fun compact(): String = JsonCodec.mapToJsonString(toMap())
 
   fun toMap(): Map<String, Any?> = linkedMapOf(
@@ -63,7 +58,6 @@ internal data class SkillContentIdentity(
       return SkillContentIdentity(canonical, sha256(content), metadata.toSortedMap())
     }
 
-    /** Reads only the compact marker; it never replays the installed SKILL.md or content.md body. */
     fun fromInstalled(stagingDir: Path): SkillContentIdentity {
       val marker = stagingDir.resolve(SKILL_CONTENT_IDENTITY_FILENAME)
       if (!Files.isRegularFile(marker, LinkOption.NOFOLLOW_LINKS)) {
@@ -166,11 +160,6 @@ internal fun installedSkillContentIdentity(stagingDir: Path): SkillContentIdenti
 internal fun requireMatchingSkillContentIdentity(supplied: SkillContentIdentity, installed: SkillContentIdentity) =
   SkillContentIdentity.requireMatch(supplied, installed)
 
-/**
- * Session routing seam for callers that already have a compact supplied identity. A matching
- * marker is sufficient to route without replaying the installed SKILL.md body. The supplied
- * identity is mandatory so a session cannot bypass the comparison.
- */
 internal fun routeInstalledSkillBody(suppliedCompactIdentity: String, installedStagingDir: Path) {
   val suppliedIdentity = SkillContentIdentity.fromCompact(suppliedCompactIdentity, "supplied")
   val installedIdentity = SkillContentIdentity.fromInstalled(installedStagingDir)

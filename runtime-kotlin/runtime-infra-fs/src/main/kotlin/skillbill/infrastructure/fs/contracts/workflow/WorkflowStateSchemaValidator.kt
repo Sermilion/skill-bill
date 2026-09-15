@@ -21,59 +21,18 @@ import java.util.logging.Logger
 
 private val log: Logger = Logger.getLogger("skillbill.contracts.workflow.WorkflowStateSchemaValidator")
 
-/**
- * SKILL-48 Subtask 2a: validates a snapshot-shaped `Map<String, Any?>`
- * against the canonical JSON-Schema document at
- * `orchestration/contracts/workflow-state-schema.yaml`.
- *
- * Wraps `com.networknt:json-schema-validator` so the underlying library
- * choice stays local. The schema is loaded ONCE per validator instance
- * (cached) because schema compilation is non-trivial.
- *
- * Coherence rules (cross-field validation) stay in `WorkflowEngine` and
- * the per-skill `WorkflowDefinition`s; see `x-coherence-checks` in the
- * schema file for the named list.
- *
- * Resolves the canonical schema from the JVM classpath first (populated
- * at build time from `orchestration/contracts/workflow-state-schema.yaml`);
- * when running from a tree that does not yet bundle the schema as a
- * resource (early bootstrap), it falls back to walking up from the JVM
- * working directory to find the canonical file on disk. The compiled
- * [JsonSchema] is cached across calls.
- */
 class WorkflowStateSchemaValidator {
-  // Lazy singleton: the schema file is parsed and compiled exactly
-  // once per validator instance.
+
   private val schema: JsonSchema by lazy { loadSchema() }
   private val mapper: ObjectMapper by lazy { ObjectMapper() }
 
-  /**
-   * Validates the snapshot-shaped map against the canonical schema. On
-   * any violation, throws [InvalidWorkflowStateSchemaError] whose
-   * message names the offending field path so the failure surface stays
-   * loud and useful.
-   *
-   * The typed `Map<String, Any?>` signature (vs a raw `Any?`) makes
-   * "is it a mapping?" a compile-time concern of the caller — the
-   * `WorkflowEngine` / `WorkflowRecordMapping` parse seams already
-   * produce a `LinkedHashMap<String, Any?>` by construction. The `slug`
-   * is the snapshot's `workflow_name` (e.g. `bill-feature-task`)
-   * and is woven into the loud-fail message so per-skill regressions
-   * are easy to spot.
-   */
   fun validate(parsedYaml: Map<String, Any?>, slug: String) {
     val instance: JsonNode = mapper.valueToTree(parsedYaml)
     val errors: Set<ValidationMessage> = schema.validate(instance)
     if (errors.isEmpty()) {
       return
     }
-    // F-401: emit a structured WARN log BEFORE throwing so a slow-rolling
-    // schema-drift incident shows up in dashboards without depending on
-    // an unhandled-exception monitor at the read seam. The log line is
-    // intentionally bounded (slug + up to two offending field paths +
-    // their offending values) — we do NOT log the full snapshot payload
-    // because the durable record may carry user content and the loud-
-    // fail exception is the authoritative debug surface.
+
     log.log(Level.WARNING, buildWorkflowStateSchemaDriftLog(slug, errors, instance))
     throw InvalidWorkflowStateSchemaError(formatWorkflowStateValidationMessage(slug, errors, instance))
   }
@@ -85,18 +44,6 @@ internal const val WORKFLOW_STATE_SCHEMA_CLASSPATH_RESOURCE: String =
 internal const val WORKFLOW_STATE_SCHEMA_REPO_RELATIVE_PATH: String =
   WorkflowStateSchemaPaths.REPO_RELATIVE_PATH
 
-/**
- * Loads the canonical schema YAML text from the classpath first;
- * failing that, walks up from the JVM working directory to find the
- * on-disk file. Re-emits as JSON before handing to networknt so the
- * validator gets a predictable JSON tree regardless of how the schema
- * is authored.
- *
- * Mirrors SKILL-47 C7: after compiling the schema, asserts the loaded
- * document's `$id` and `properties.contract_version.const` match the
- * runtime's expected values. This protects against a stale schema
- * being shadowed onto the classpath by a sibling jar.
- */
 private fun loadSchema(): JsonSchema {
   var failure: Throwable? = null
   try {
@@ -137,13 +84,6 @@ private fun loadSchema(): JsonSchema {
   throw failure
 }
 
-// Visible to tests so they can drive the assertion with synthesized
-// YAML nodes without round-tripping through the classpath-loaded schema
-// (which is bundled by Gradle and always matches at test time).
-// Exposed at module-public visibility because the canonical
-// `PlatformPackSchemaCleanupTest` lives in `runtime-core/src/test` and
-// the equivalent workflow-state shadow guard reuses the same module's
-// test fixtures; `internal` would not cross the module boundary.
 fun assertWorkflowStateSchemaIdentity(yamlNode: JsonNode) {
   val loadedId = yamlNode.path("\$id").asText("")
   if (loadedId != WorkflowStateSchemaPaths.EXPECTED_SCHEMA_ID) {
@@ -180,23 +120,6 @@ private fun readSchemaText(): String {
   )
 }
 
-/**
- * F-303: visible-to-tests pure helper for offending-value extraction
- * from a networknt `instanceLocation`. Supports both reporting formats
- * networknt has used across versions:
- *
- *  - JSONPath form (`$.steps[0].status` or `$.steps.0.status`)
- *  - JSON-Pointer form (`/steps/0/status`)
- *
- * Pure-integer segments are treated as array indices when (and only
- * when) the current node is a `JsonNode` array. Previously a JSON-
- * Pointer-form error against `/steps/0/status` silently returned `""`
- * because `JsonNode.path("0")` on an array returns `MissingNode`.
- *
- * Exposed at module-public visibility so the canonical violations test
- * (in `runtime-core/src/test`) can drive it directly without forcing
- * networknt into a specific reporting format.
- */
 fun extractOffendingValueFromInstance(instance: JsonNode, instanceLocation: String): String {
   val dotted = workflowStateSchemaDottedFieldPath(instanceLocation)
   if (dotted.isBlank()) return ""

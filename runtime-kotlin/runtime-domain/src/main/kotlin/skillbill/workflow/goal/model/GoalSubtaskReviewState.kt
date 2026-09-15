@@ -164,8 +164,7 @@ data class GoalSubtaskReviewState(
       unresolvedFindingCount = unresolvedFindingCount,
       findings = findings,
       executedMode = executedMode,
-      // An inline pass carries no delegated commit sequence, so accounting a caller offers anyway is
-      // dropped rather than fabricated into durable state.
+
       commitFocusedAccounting = effectiveCommitFocusedAccounting
         ?.takeIf { executedMode != CodeReviewExecutionMode.INLINE },
     )
@@ -193,11 +192,6 @@ data class GoalSubtaskReviewState(
   val unresolvedBlockerDispositions: List<GoalSubtaskBlockerDisposition>
     get() = blockerDispositions.filter { it.verdict == GoalSubtaskBlockerDispositionVerdict.UNRESOLVED }
 
-  /**
-   * The only disposition projection any goal-facing surface may read: pass number, per-finding
-   * verdict, and counts. Location-bearing evidence stays in the durable artifact and is reachable
-   * only through `skill-bill goal findings --issue-key <KEY>`.
-   */
   internal fun boundedDispositionSummary(): Map<String, Any?> = linkedMapOf(
     "pass" to completedPassCount,
     "disposition_counts" to GoalSubtaskBlockerDispositionVerdict.entries.associate { verdict ->

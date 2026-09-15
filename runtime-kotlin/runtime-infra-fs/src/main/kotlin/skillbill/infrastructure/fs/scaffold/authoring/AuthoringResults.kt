@@ -2,24 +2,12 @@ package skillbill.infrastructure.fs.scaffold.authoring
 
 import skillbill.ports.scaffold.model.ScaffoldSkillStatus
 
-/**
- * SKILL-52.3 subtask 3 — Typed intermediate results produced by [AuthoringOperations]
- * and consumed by `FileSystemScaffoldGateway`. These replace the legacy
- * `Map<String, Any?>` open-boundary payloads so the gateway constructs the typed port
- * result DTOs from strongly-typed fields. Wire-shape serialization lives in the
- * adapter mappers (`runtime-cli`).
- */
 internal data class AuthoringListResult(
   val repoRoot: String,
   val skillCount: Int,
   val skills: List<ScaffoldSkillStatus>,
 )
 
-/**
- * Post-mutation status shared by fill / saveExactContent / editWithBodyFile. The
- * per-operation bookkeeping fields (`updated_section`, `used_editor`, etc.) are added
- * by the operation that wraps this status.
- */
 internal data class AuthoringMutationResult(
   val status: ScaffoldSkillStatus,
   val wrapperRegenerated: Boolean,

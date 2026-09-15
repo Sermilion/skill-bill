@@ -9,11 +9,6 @@ import skillbill.workflow.taskruntime.model.attemptedUnresolvedEntries
 import skillbill.workflow.taskruntime.model.omittedCarriedFindings
 import skillbill.workflow.taskruntime.model.withStableFindingRefs
 
-/**
- * The findings the last review pass carries into this round. Refs are stabilized first so a review
- * that omitted one cannot fail coverage on an identity it never had, and findings verification
- * refuted are then dropped: they are not carried, so nothing owes them an entry.
- */
 fun featureTaskRuntimeCarriedFindings(
   reviewState: GoalSubtaskReviewState,
   refutedFindingIds: Set<String> = emptySet(),
@@ -22,7 +17,6 @@ fun featureTaskRuntimeCarriedFindings(
   refutedFindingIds,
 )
 
-/** The carried findings this round neither closed, waived, nor declared it had tried and failed. */
 fun featureTaskRuntimeRepairReceiptOmittedFindings(
   receipt: FeatureTaskRuntimeRepairReceipt,
   reviewState: GoalSubtaskReviewState,
@@ -42,11 +36,6 @@ fun featureTaskRuntimeOmittedFindingsRetryReason(omitted: List<GoalSubtaskReview
     "outcome 'attempted_unresolved' with unresolved_reason and the constructs you touched. A " +
     "carried finding may never be left out of the receipt."
 
-/**
- * What a round reported it tried and could not close. The refs carry the per-finding retry budget,
- * the detail is the producer's own account for whichever surface ends up reading it: the retry
- * prompt on the first report, the operator's blocked reason on a repeat.
- */
 class FeatureTaskRuntimeUnresolvedFindings(
   val refs: Set<String>,
   val detail: String,

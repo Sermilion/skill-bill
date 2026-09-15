@@ -9,7 +9,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
-/** Assembly, segmentation, launch projection, and forbidden-rediscovery coverage for bundled lanes. */
 class ReviewLaneBundleAssemblyTest {
   private val hunkA = ReviewChangedHunk("src/A.kt", 1, 1, 1, 2, "+alpha")
   private val hunkB = ReviewChangedHunk("src/B.kt", 4, 1, 4, 1, "+beta")
@@ -93,8 +92,7 @@ class ReviewLaneBundleAssemblyTest {
       lane = "security",
       baseRevision = built.baseRevision,
       headRevision = built.headRevision,
-      // Mirrors preparation: a lane's assigned paths are the paths it owns, while its assigned hunks
-      // are narrowed to the commits routing focused for it.
+
       assignedPaths = built.laneDecisions.single { it.lane == "security" }.normalizedOwnedPaths.sorted(),
       assignedHunks = hunks,
       assignedBundle = bundle,

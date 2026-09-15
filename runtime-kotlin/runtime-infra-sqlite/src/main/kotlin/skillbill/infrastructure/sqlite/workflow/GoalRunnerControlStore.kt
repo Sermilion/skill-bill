@@ -36,8 +36,7 @@ internal class GoalRunnerControlStore(
 
   override fun clearControlState(parentWorkflowId: String) {
     val existing = controlState(parentWorkflowId)
-    // The lease and the accumulated execution total are runtime bookkeeping, not operator intent.
-    // Clearing a pause must not restart the goal's execution clock at zero.
+
     val retained = GoalRunnerControlState(
       executionLease = existing.executionLease,
       activeDurationMs = existing.activeDurationMs,

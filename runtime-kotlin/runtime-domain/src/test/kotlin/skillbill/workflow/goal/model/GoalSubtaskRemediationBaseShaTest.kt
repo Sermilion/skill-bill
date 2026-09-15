@@ -5,10 +5,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 
-/**
- * AC-012: the reserved pass needs a durable pre-fix tree sha so its bounded delta survives a resume.
- * The field is additive — a record written before it existed must still decode.
- */
 class GoalSubtaskRemediationBaseShaTest {
   private val preFixSha = "c".repeat(40)
 

@@ -768,7 +768,7 @@ class GoalPlanningPreparationStoreMutationTest {
         "plan-2",
         store.findSubtaskPlan(identity(), 2, descriptor(2, 1).governedSubSpecPath)?.planPayload,
       )
-      // Store still surfaces the row so relaunch can replace+restamp.
+
       assertEquals(
         INVALIDATED_SHARED_PREPLAN_PAYLOAD,
         store.findSharedPreplan(identity())?.preplanPayload,

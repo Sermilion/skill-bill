@@ -12,8 +12,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
-// SKILL-68 AC4/AC5: the completing commit SHA that advances a suppress_pr subtask is sourced from
-// commit_push_result.commit_sha (preferred) or the recovered goal_continuation_outcome.commit_sha.
 class DecompositionManifestRuntimeStateSupportTest {
   @Test
   fun `subtask advances to complete when the commit sha lives only in the recovered goal continuation outcome`() {

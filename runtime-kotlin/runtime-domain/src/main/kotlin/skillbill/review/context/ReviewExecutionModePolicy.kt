@@ -12,12 +12,6 @@ object ReviewExecutionModePolicy {
 
   fun resolve(requested: CodeReviewExecutionMode): ResolvedReviewExecutionMode = resolveWithRule(requested).resolvedMode
 
-  /**
-   * The two declared auto rules. Both now resolve inline: the delegated fan-out is the experimental
-   * tier, reachable only through an explicit `delegated` selection, because its cost scales with
-   * lanes multiplied by model turns while inline pays one context floor. The rules stay named and
-   * distinct so telemetry keeps reporting which one applied and a future retuning has a seam.
-   */
   fun resolveWithRule(requested: CodeReviewExecutionMode, reviewPassNumber: Int? = null): ResolvedReviewDepth =
     when (requested) {
       CodeReviewExecutionMode.INLINE -> ResolvedReviewDepth(

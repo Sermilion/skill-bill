@@ -189,7 +189,7 @@ class SkillBillStatusBarPresentationTest {
         )
         val mapped = SkillBillStatusBarPresentation.map(done, now)
         assertTrue(mapped.barText.startsWith("Skill Bill · done"))
-        // Final progress renders as-is; the in-flight position shift must not apply.
+
         assertTrue(mapped.barText.contains("3/3"))
         assertFalse(mapped.showActivityAnimation)
         assertFalse(mapped.isStaleMarked)
@@ -208,8 +208,8 @@ class SkillBillStatusBarPresentationTest {
 
     @Test
     fun `states describing no run never claim one ran`() {
-        // "Goal ran: —" on an empty repository or a missing CLI asserts an execution
-        // that never happened; only settled work has a duration it "ran" for.
+
+
         val neutral = listOf(
             SkillBillStatusUiState.Idle(),
             SkillBillStatusUiState.Unavailable(
@@ -319,7 +319,7 @@ class SkillBillStatusBarPresentationTest {
         assertEquals("partially planned, 10/15 plans saved", partiallyPlanned.details.selectedSlotText)
         assertEquals("10/15", partiallyPlanned.details.progressText)
 
-        // One saved plan out of fifteen must come from planning counts, not completed+1.
+
         val oneSaved = SkillBillStatusBarPresentation.map(
             active(
                 progressCompleted = 0,
@@ -357,7 +357,7 @@ class SkillBillStatusBarPresentationTest {
 
     @Test
     fun `a non-goal family snapshot renders no planning segment or planning line`() {
-        // Non-goal families never carry planning on the wire, so the ui value is null.
+
         val mapped = SkillBillStatusBarPresentation.map(active(planning = null), now)
         assertFalse(mapped.barText.contains("Planning"))
         assertFalse(mapped.tooltipText.contains("Planning:"))
@@ -367,8 +367,8 @@ class SkillBillStatusBarPresentationTest {
 
     @Test
     fun `planning disappears once implementation starts and execution fills the slot`() {
-        // Relevance is decided in StatusUiMapper; by the time presentation sees a
-        // prepared or executing snapshot the ui planning value is already null.
+
+
         val prepared = StatusUiMapper.map(
             activeOutcome(planning = domainPlanning("prepared"), currentSubtaskId = null, completed = 0),
             now,
@@ -485,7 +485,7 @@ class SkillBillStatusBarPresentationTest {
 
     @Test
     fun `control characters in phase id do not reach tooltip accessibility or popup text`() {
-        // Catches rendering that inserts raw phase_id and lets ISO controls corrupt UI text.
+
         val mapped = SkillBillStatusBarPresentation.map(
             active().copy(
                 currentPhaseExecution = CurrentPhaseExecution(
@@ -623,8 +623,8 @@ class SkillBillStatusBarPresentationTest {
 
     @Test
     fun `adding controls leaves bar text tooltip and detail lines unchanged`() {
-        // The same state with and without control eligibility must render identically
-        // everywhere except the controls list — AC-008 requires the lines untouched.
+
+
         val base = active().copy(issueKey = "SKILL-168", workflowFamily = "feature-task-runtime")
         val eligible = base.copy(workflowFamily = "feature-goal")
         val withoutControls = SkillBillStatusBarPresentation.map(base)
@@ -650,7 +650,7 @@ class SkillBillStatusBarPresentationTest {
         assertEquals(withoutModel.tooltipText, withModel.tooltipText)
         assertEquals(withoutModel.accessibleName, withModel.accessibleName)
         assertEquals(withoutModel.accessibleDescription, withModel.accessibleDescription)
-        // Only the popup-facing row differs.
+
         assertEquals("opus-5 (effort: high)", withModel.details.modelText)
         assertTrue("no model text without a model", withoutModel.details.modelText == null)
     }
@@ -659,10 +659,10 @@ class SkillBillStatusBarPresentationTest {
     fun `the model row names its phase only for a goal and stays bounded for the popup`() {
         val model = CurrentPhaseModel(model = "opus-5", effort = "high", phaseId = "implement")
 
-        // The runtime family's Step row already names the phase; repeating it there is noise.
+
         val runtime = SkillBillStatusBarPresentation.map(active().copy(currentModel = model))
-        // A goal's Step row is a goal-level label, so without the phase the model is attributed to
-        // nothing the payload shows.
+
+
         val goal = SkillBillStatusBarPresentation.map(
             active().copy(workflowFamily = FEATURE_GOAL_WORKFLOW_FAMILY, currentModel = model),
         )
@@ -670,8 +670,8 @@ class SkillBillStatusBarPresentationTest {
         assertEquals("opus-5 (effort: high)", runtime.details.modelText)
         assertEquals("opus-5 (implement, effort: high)", goal.details.modelText)
 
-        // Unbounded, this lands in a non-wrapping JLabel inside a popup with no width cap and can
-        // push the action row off-screen.
+
+
         val long = SkillBillStatusBarPresentation.map(
             active().copy(currentModel = CurrentPhaseModel(model = "m".repeat(119))),
         )

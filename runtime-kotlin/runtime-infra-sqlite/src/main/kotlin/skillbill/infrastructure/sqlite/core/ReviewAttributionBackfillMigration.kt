@@ -10,15 +10,6 @@ import skillbill.review.resolveCanonicalScope
 import skillbill.review.resolveCanonicalStack
 import java.sql.Connection
 
-/**
- * SKILL-136 subtask 4 AC-004/AC-005/AC-006: backfills the canonical review-run attribution columns.
- *
- * The canonical backfill is a one-shot migration run through the numbered ledger rather than on every
- * open. It is unambiguous-only: rows whose retained raw text does not resolve keep the explicit
- * 'unresolved' marker, the raw columns are never written, and a canonical value already computed at
- * ingestion is never overwritten (only columns still holding the marker are touched). Rows whose
- * recomputed values equal the stored ones are skipped, so re-running writes nothing.
- */
 internal object ReviewAttributionBackfillMigration {
   private const val BIND_ROUTED_SKILL = 1
   private const val BIND_STACK = 2
@@ -26,8 +17,6 @@ internal object ReviewAttributionBackfillMigration {
   private const val BIND_SCOPE_DETAIL = 4
   private const val BIND_REVIEW_RUN_ID = 5
 
-  // The raw attribution columns predate this feature but are absent from the oldest stores. There is
-  // nothing to canonicalize without them, so the migration is a no-op rather than a failed open.
   private val requiredRawColumns = setOf("routed_skill", "detected_stack", "detected_scope")
 
   fun apply(connection: Connection) {
@@ -37,8 +26,6 @@ internal object ReviewAttributionBackfillMigration {
     backfillCanonicals(connection)
   }
 
-  // execution_mode is only inferred from the run's own evidence: recorded specialist reviews prove a
-  // delegated run. Everything else is explicitly unresolved rather than defaulted to inline.
   fun backfillExecutionModes(connection: Connection) {
     connection.createStatement().use { statement ->
       statement.execute(

@@ -61,11 +61,6 @@ internal fun bridgeCommand(environment: Map<String, String>, userHome: Path): Li
   return listOf(bin.toAbsolutePath().normalize().toString())
 }
 
-/**
- * Per-launch listener that serves the two governed evidence operations by delegating verbatim to
- * the supplied protocol. It holds no filesystem access of its own and re-implements no policy,
- * budget, expansion ledger, or lane termination: every answer is whatever the broker returned.
- */
 class GovernedReviewEvidenceEndpoint private constructor(
   override val descriptor: GovernedReviewEvidenceEndpointDescriptor,
   private val protocol: NativeReviewOperationProtocol,

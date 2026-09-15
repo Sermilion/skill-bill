@@ -66,8 +66,7 @@ private data class GoalManifestReconciliationContext(
   fun reconcile(subtask: DecompositionSubtask): DecompositionSubtask {
     val workflowId = subtask.workflowId?.takeIf(String::isNotBlank)
     val outcome = workflowId?.let { id -> preferredOutcome(subtask, id) }
-    // Runtime evidence wins: an acceptance only speaks for a subtask the runtime never carried to
-    // completion itself, so it can never downgrade or overwrite a genuine COMPLETE outcome.
+
     acceptances[subtask.id]
       ?.takeIf { outcome?.status != GoalRunnerTerminalStatus.COMPLETE }
       ?.let { acceptance ->
@@ -121,7 +120,7 @@ private fun canApplyAuthoritativeOutcome(
   if (resetPendingSubtask && outcome.status != GoalRunnerTerminalStatus.COMPLETE) {
     return false
   }
-  // Do not let non-complete sibling outcomes overwrite an active retry workflow.
+
   val nonCompleteSibling = outcome.workflowId != workflowId && outcome.status != GoalRunnerTerminalStatus.COMPLETE
   return subtask.status.decompositionStatus() != DecompositionStatus.IN_PROGRESS || !nonCompleteSibling
 }
@@ -133,9 +132,9 @@ private fun shouldPreserveCompletedSubtask(subtask: DecompositionSubtask, outcom
 
 private fun GoalRunnerStoredOutcome.toManifestStatus(): String = when (status) {
   GoalRunnerTerminalStatus.COMPLETE -> DecompositionStatus.COMPLETE.wireValue
-  // A crash-reconciled row is resumable, not blocked: keep the subtask in_progress so resume continues.
+
   GoalRunnerTerminalStatus.RECONCILABLE -> DecompositionStatus.IN_PROGRESS.wireValue
-  // A paused child awaits the operator decision and stays resumable, so it is not blocked either.
+
   GoalRunnerTerminalStatus.PAUSED -> DecompositionStatus.IN_PROGRESS.wireValue
   GoalRunnerTerminalStatus.BLOCKED,
   GoalRunnerTerminalStatus.FAILED,

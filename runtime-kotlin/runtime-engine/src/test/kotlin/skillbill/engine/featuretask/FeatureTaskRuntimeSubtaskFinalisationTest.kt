@@ -20,11 +20,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
-/**
- * Every assertion reads the git objects and the remote, never the message builder's return string:
- * what this subtask promises is a property of the repository after finalisation, and an in-memory
- * assertion would pass for a message that never reached a commit.
- */
 private const val GIT_TIMEOUT_SECONDS = 60L
 
 class FeatureTaskRuntimeSubtaskFinalisationTest {
@@ -578,7 +573,6 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
     ),
   )
 
-  /** Moves the remote out from under the working repository without the repository observing it. */
   private fun staleLease(fixture: Fixture): Fixture {
     val clone = tempRoot("skillbill-finalisation-stale").resolve("clone")
     git(clone.parent, "clone", fixture.remote.toString(), clone.toString())
@@ -608,12 +602,6 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
     return Fixture(root = root, remote = remote)
   }
 
-  /**
-   * Repository-scoped, because the assertions run against real git objects written by both this helper
-   * and the production adapter, and the adapter inherits whatever global configuration the developer or
-   * CI image carries. A global `commit.gpgsign`, `core.hooksPath`, or unexpected `push.default` would
-   * otherwise fail every test here for reasons that have nothing to do with finalisation.
-   */
   private fun configureIdentity(repoRoot: Path) {
     val hooks = Files.createDirectories(repoRoot.resolve(".git/skillbill-empty-hooks"))
     git(repoRoot, "config", "user.email", "runtime@skill-bill.test")
@@ -638,7 +626,6 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
 
   private fun commitCount(repoRoot: Path): Int = git(repoRoot, "rev-list", "--count", "HEAD").toInt()
 
-  /** The remote's tip for the subtask branch, blank while the remote carries no such branch yet. */
   private fun remoteBranchTip(remote: Path): String =
     git(remote, "for-each-ref", "--format=%(objectname)", "refs/heads/$branch")
 
@@ -649,8 +636,7 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
     builder.environment()["GIT_CONFIG_SYSTEM"] = "/dev/null"
     val process = builder.start()
     val output = process.inputStream.bufferedReader().readText().trim()
-    // Bounded so a git invocation waiting on a credential, editor, or signing prompt fails the test
-    // instead of hanging the suite until the build times out.
+
     if (!process.waitFor(GIT_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
       process.destroyForcibly().waitFor()
       error("git ${args.joinToString(" ")} did not finish within ${GIT_TIMEOUT_SECONDS}s: $output")

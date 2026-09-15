@@ -12,43 +12,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.test.fail
 
-/**
- * SKILL-48 Subtask 2d AC2 + AC4: walks every name in
- * `McpToolRegistry.tools` (the public source of truth for event names
- * — the underlying `toolNames` list is private) and asserts that the
- * corresponding entry in `telemetry-event-schema.yaml` is structurally
- * equivalent.
- *
- * Two-direction enforcement:
- *
- * 1. Every event in `McpToolRegistry.tools` has a `$defs.<event>Event`
- *    branch under the canonical schema, with matching `event_name`
- *    const and `additionalProperties` flag (true for open-object
- *    fallback events, false for strict events).
- * 2. Every `$defs.<event>Event` branch's `event_name.const` appears in
- *    `McpToolRegistry.tools`. A new branch in the YAML without a
- *    corresponding Kotlin event fails the build.
- *
- * For strict events (`additionalProperties: false`), the test also
- * walks the typed property keys (minus `event_name` / `contract_version`)
- * and asserts they line up with the Kotlin `inputSchema.properties`
- * keys. This is intentionally a structural keyset comparison and does
- * not assert per-property type equivalence — drift in a single field's
- * shape is caught by `TelemetryEventSchemaValidatesAllEventsTest`,
- * which validates a representative payload built from the Kotlin
- * shapes against the YAML schema.
- */
 class TelemetryEventInputSchemaParityTest {
 
-  /**
-   * SKILL-66/SKILL-109: goal lifecycle emission payload contracts are
-   * they are NOT MCP tools and are intentionally absent from
-   * `McpToolRegistry.toolNames`. Their per-event branches exist so
-   * the emission payloads are schema-validated, but they are exempt
-   * from the "every schema branch maps to a tool" direction. See
-   * `x-coherence-checks.goal-telemetry-emission-events` in
-   * `telemetry-event-schema.yaml`.
-   */
   private val runtimeInternalEmissionEvents =
     setOf(
       "goal_started",
@@ -99,9 +64,6 @@ class TelemetryEventInputSchemaParityTest {
       )
 
       if (!expectedAdditionalProps) {
-        // For strict events, the YAML branch MUST list the same
-        // property keys as the Kotlin inputSchema (plus the envelope
-        // keys `event_name` and `contract_version`).
         val kotlinKeys = inputSchemaPropertyKeys(tool.inputSchema)
         val yamlKeys = branchPropertyKeys(branch) - setOf("event_name", "contract_version")
         assertEquals(
@@ -111,9 +73,6 @@ class TelemetryEventInputSchemaParityTest {
             "kotlin=$kotlinKeys yaml=$yamlKeys",
         )
 
-        // Required arrays MUST also line up (envelope keys excluded
-        // because those are wire-envelope concerns, not payload
-        // concerns).
         val kotlinRequired = inputSchemaRequiredKeys(tool.inputSchema)
         val yamlRequired = branchRequiredKeys(branch) - setOf("event_name", "contract_version")
         assertEquals(
@@ -151,19 +110,11 @@ class TelemetryEventInputSchemaParityTest {
     } + "Event"
   }
   private fun expectedAdditionalPropertiesFor(inputSchema: Map<String, Any?>): Boolean {
-    // `McpToolSpec.openObjectSchema()` and `passthroughObjectSchema(...)`
-    // both set `additionalProperties: true`. `McpToolSpec.strictObjectSchema(...)`
-    // sets `additionalProperties: false`. Anything else is a programming error
-    // we want to fail loudly on.
     val raw = inputSchema["additionalProperties"]
     return when (raw) {
       true -> true
       false -> false
       null -> {
-        // `McpToolSpec.openObjectSchema()` historically returns
-        // `additionalProperties=true`; missing is treated as open by
-        // the spec. Anything that lands here is by construction the
-        // open-object fallback (no `inputSchemas` entry).
         true
       }
       else -> fail(

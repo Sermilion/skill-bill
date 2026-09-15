@@ -161,8 +161,7 @@ class SqliteRejectedOutputDiagnosticRepository(
         agentId = agentId,
         generation = generation,
         exactGeneration = false,
-        // Null means "whichever repair turn is newest": a consumer resolving a producer's evidence
-        // knows the attempt it wants, never how many repair turns that attempt ran.
+
         repairTurn = null,
       ),
     )
@@ -270,7 +269,7 @@ private data class ProducerEvidenceLookup(
   val agentId: String,
   val generation: Int,
   val exactGeneration: Boolean,
-  /** Exact turn when set; null resolves the newest turn retained for the attempt. */
+
   val repairTurn: Int?,
 )
 

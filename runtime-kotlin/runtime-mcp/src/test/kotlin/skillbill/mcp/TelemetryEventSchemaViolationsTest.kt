@@ -8,22 +8,8 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
-/**
- * SKILL-48 Subtask 2d AC7: per-violation tests covering the
- * highest-signal rules — unknown event_name, missing required field,
- * wrong contract_version, unknown additional property, type mismatch,
- * and discriminator mismatch (a payload whose body shape belongs to a
- * different event_name than the one declared).
- *
- * Each case starts from a known-valid envelope and mutates one field;
- * the test asserts that `TelemetryEventSchemaValidator.validate` throws
- * [InvalidTelemetryEventSchemaError] with the expected dotted
- * `fieldPath` and `eventName`. Mirrors `InstallPlanSchemaViolationsTest`
- * (Subtask 2b).
- */
 class TelemetryEventSchemaViolationsTest {
 
-  /** Schema-clean envelope for `feature_verify_started`. */
   private fun validVerifyStartedEnvelope(): MutableMap<String, Any?> = linkedMapOf(
     "event_name" to "feature_verify_started",
     "contract_version" to TELEMETRY_EVENT_CONTRACT_VERSION,
@@ -32,7 +18,6 @@ class TelemetryEventSchemaViolationsTest {
     "spec_summary" to "summary",
   )
 
-  /** Schema-clean envelope for `feature_verify_finished`. */
   private fun validVerifyFinishedEnvelope(): MutableMap<String, Any?> = linkedMapOf(
     "event_name" to "feature_verify_finished",
     "contract_version" to TELEMETRY_EVENT_CONTRACT_VERSION,
@@ -49,7 +34,6 @@ class TelemetryEventSchemaViolationsTest {
     "duration_seconds" to 120,
   )
 
-  /** Schema-clean envelope for `quality_check_finished`. */
   private fun validQualityCheckFinishedEnvelope(): MutableMap<String, Any?> = linkedMapOf(
     "event_name" to "quality_check_finished",
     "contract_version" to TELEMETRY_EVENT_CONTRACT_VERSION,
@@ -70,8 +54,6 @@ class TelemetryEventSchemaViolationsTest {
 
   @Test
   fun `valid base envelope passes validation`() {
-    // Sanity-check the fixture — otherwise every violation test below
-    // would be ambiguous about which schema rule it actually trips.
     TelemetryEventSchemaValidator.validate(validVerifyStartedEnvelope())
     TelemetryEventSchemaValidator.validate(validVerifyFinishedEnvelope())
   }
@@ -84,12 +66,9 @@ class TelemetryEventSchemaViolationsTest {
     val error = assertFailsWith<InvalidTelemetryEventSchemaError> {
       TelemetryEventSchemaValidator.validate(envelope)
     }
-    // The validator carries the offending event_name on the typed
-    // field — grep by event name remains useful even when the name is
-    // bogus.
+
     assertEquals("this_event_does_not_exist", error.eventName)
-    // The reason mentions `oneOf` or `event_name` because no branch
-    // matched the discriminator.
+
     val combined = (error.reason + " " + error.fieldPath).lowercase()
     val signals = listOf("oneof", "event_name", "anyof", "schema")
     val hits = signals.count { it in combined }
@@ -109,8 +88,7 @@ class TelemetryEventSchemaViolationsTest {
     val error = assertFailsWith<InvalidTelemetryEventSchemaError> {
       TelemetryEventSchemaValidator.validate(envelope)
     }
-    // Required-property violations may surface at the parent path; the
-    // reason MUST name the missing key so callers can pinpoint it.
+
     assertContains(error.reason.lowercase() + " " + error.fieldPath.lowercase(), "spec_summary")
     assertEquals("feature_verify_started", error.eventName)
   }
@@ -142,8 +120,7 @@ class TelemetryEventSchemaViolationsTest {
   @Test
   fun `type mismatch on a typed field fails validation`() {
     val envelope = validVerifyStartedEnvelope()
-    // `acceptance_criteria_count` is declared as integer in the
-    // schema; a string value should trip the type rule.
+
     envelope["acceptance_criteria_count"] = "not-a-number"
 
     val error = assertFailsWith<InvalidTelemetryEventSchemaError> {
@@ -155,18 +132,13 @@ class TelemetryEventSchemaViolationsTest {
 
   @Test
   fun `discriminator mismatch a finished payload tagged as started fails validation`() {
-    // Build a finished-shaped payload but pin event_name to
-    // feature_verify_started — none of the finished-required fields
-    // belong to the verify_started branch, so `oneOf` rejects it.
     val finishedShapedButStartedTagged = validVerifyFinishedEnvelope()
     finishedShapedButStartedTagged["event_name"] = "feature_verify_started"
 
     val error = assertFailsWith<InvalidTelemetryEventSchemaError> {
       TelemetryEventSchemaValidator.validate(finishedShapedButStartedTagged)
     }
-    // The validator should carry the offending event_name as it
-    // appears in the envelope — even though the envelope shape does
-    // not match the branch.
+
     assertEquals("feature_verify_started", error.eventName)
   }
 

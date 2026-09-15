@@ -8,7 +8,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class ReviewDiffEvidenceTest {
-  // AC-001, AC-007
+
   @Test
   fun `commit units reuse the record parser across additions renames and deletions`() {
     val units = parseCommitUnits(
@@ -67,7 +67,6 @@ class ReviewDiffEvidenceTest {
     assertEquals(listOf("src/Renamed.kt"), units[3].hunks.map { it.path })
   }
 
-  // AC-007
   @Test
   fun `a malformed record inside a commit keeps the existing loud failure`() {
     val failure = assertFailsWith<IllegalArgumentException> {

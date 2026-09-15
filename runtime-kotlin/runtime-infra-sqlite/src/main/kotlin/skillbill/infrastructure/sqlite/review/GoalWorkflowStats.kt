@@ -11,18 +11,6 @@ import skillbill.workflow.model.WorkflowStatus
 import java.sql.Connection
 import java.util.Locale
 
-// SKILL-66 Subtask 2: goal-run aggregate read. Deliberately isolated from the
-// permissive `ReviewStatsArithmetic` accessors (`stringValue`/`intValue`/
-// `booleanValue`), which silently default malformed values. Goal rows are
-// parsed through the strict accessors in `GoalTelemetryRowAccessors` that throw
-// `InvalidGoalTelemetryRowError` on any malformed value, so the stats read
-// loud-fails instead of producing best-effort numbers (AC#5).
-
-// SKILL-175 Subtask 6: legacy `mode='prose'` goal_run_sessions rows are
-// retained verbatim in storage (read-only), but the prose runtime surface is
-// retired. `buildByModeStats` therefore emits only runtime-mode buckets so a
-// retained prose row never surfaces as a live `prose` bucket in goal stats.
-
 private val goalFinishedStatuses = listOf(
   WorkflowStatus.COMPLETED,
   WorkflowStatus.PAUSED,

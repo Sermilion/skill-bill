@@ -145,10 +145,6 @@ class FeatureTaskRuntimeTransitionFunctionTest {
     }
   }
 
-  // --- Loop-only forward skip (Subtask 4) -------------------------------------------------------
-
-  // A pipeline mirroring the real review_fix topology: `fix` is loop-only, sitting between `impl` and
-  // `review` so the forward edge skips it and a clean run advances `impl` -> `review`.
   private val loopPipeline = listOf("plan", "impl", "fix", "review", "audit")
   private val reviewFixEdge = FeatureTaskRuntimeBackwardEdge(
     fromPhaseId = "review",
@@ -188,7 +184,6 @@ class FeatureTaskRuntimeTransitionFunctionTest {
 
   @Test
   fun `loop-only phase is reachable only via a backward edge destination`() {
-    // No forward transition from any non-loop-only phase ever yields the loop-only `fix` phase.
     loopPipeline.filterNot { it == "fix" }.forEach { phaseId ->
       val transition = FeatureTaskRuntimeTransitionFunction.nextTransition(
         declaration = loopDeclaration,
@@ -199,7 +194,7 @@ class FeatureTaskRuntimeTransitionFunctionTest {
       val landed = (transition as? FeatureTaskRuntimeNextPhase.Next)?.phaseId
       assertTrue(landed != "fix", "forward advance from '$phaseId' must not reach the loop-only phase")
     }
-    // The backward edge is the only path that reaches it.
+
     val backward = FeatureTaskRuntimeTransitionFunction.nextTransition(
       declaration = loopDeclaration,
       currentPhaseId = "review",
@@ -230,8 +225,6 @@ class FeatureTaskRuntimeTransitionFunctionTest {
       )
     }
   }
-
-  // --- review_fix transition matrix (verdict x iteration) ---------------------------------------
 
   @Test
   fun `review approved forwards past the loop-only fix phase to audit`() {
@@ -272,8 +265,6 @@ class FeatureTaskRuntimeTransitionFunctionTest {
     )
     assertEquals("review_fix", assertIs<FeatureTaskRuntimeNextPhase.TerminalBlock>(transition).loopId)
   }
-
-  // --- verdict constants + findings -> verdict helper -------------------------------------------
 
   @Test
   fun `review verdict constants carry their stable wire values`() {
@@ -354,8 +345,7 @@ class FeatureTaskRuntimeTransitionFunctionTest {
         FeatureTaskRuntimeReviewFinding(FeatureTaskRuntimeReviewSeverity.MINOR, "consider renaming"),
       ),
     )
-    // Blocker and Major both reopen implement_fix (changes_requested). Minor advances without
-    // joining the remediation or unresolved sets.
+
     assertEquals(FeatureTaskRuntimeVerdict.CHANGES_REQUESTED, majorOnly.verdict)
     assertEquals(listOf("follow-up risk"), majorOnly.remediationFindings.map { it.message })
     assertEquals(listOf("follow-up risk"), majorOnly.unresolvedFindings.map { it.message })
@@ -366,10 +356,6 @@ class FeatureTaskRuntimeTransitionFunctionTest {
     assertFailsWith<IllegalArgumentException> { FeatureTaskRuntimeReviewSeverity.fromWire("catastrophic") }
   }
 
-  // --- two independent backward edges (review_fix + audit_gap composition) ----------------------
-
-  // A pipeline carrying both the loop-only review_fix edge and an audit->implement audit_gap edge, so
-  // each edge routes from its own source on its own verdict with its own per-edge iteration count.
   private val auditGapEdge = FeatureTaskRuntimeBackwardEdge(
     fromPhaseId = "audit",
     triggeringVerdict = FeatureTaskRuntimeVerdict.GAPS_FOUND,
@@ -385,8 +371,6 @@ class FeatureTaskRuntimeTransitionFunctionTest {
 
   @Test
   fun `each backward edge fires from its own source and iteration without touching the other`() {
-    // review_fix fires from `review` on changes_requested, audit_gap from `audit` on gaps_found; the
-    // iteration count passed for one edge never bleeds into the other (the function reads each per call).
     val reviewFix = assertIs<FeatureTaskRuntimeNextPhase.Next>(
       FeatureTaskRuntimeTransitionFunction.nextTransition(
         declaration = twoEdgeDeclaration,

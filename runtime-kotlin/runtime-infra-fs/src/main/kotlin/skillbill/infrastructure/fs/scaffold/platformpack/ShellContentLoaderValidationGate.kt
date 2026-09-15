@@ -2,7 +2,6 @@
 package skillbill.infrastructure.fs.scaffold.platformpack
 
 import skillbill.contracts.review.ReviewVerificationSignalKeys
-import skillbill.error.InvalidValidationGateDeclarationError
 import skillbill.scaffold.model.ValidationGateCompilerDiagnosticsFormat
 import skillbill.scaffold.model.ValidationGateCompilerDiagnosticsLocator
 import skillbill.scaffold.model.ValidationGateDeclaration
@@ -11,10 +10,6 @@ import skillbill.scaffold.model.ValidationGateExecutedWorkSignal
 import skillbill.scaffold.model.ValidationGateFindingsFormat
 import skillbill.scaffold.model.ValidationGateFindingsLocator
 
-/**
- * Optional pack-declared validation gate. Absent key → null (agent-run degradation path).
- * Present but malformed → [InvalidValidationGateDeclarationError], never null/"no gate".
- */
 internal fun parseValidationGate(manifest: Map<*, *>, slug: String): ValidationGateDeclaration? {
   val raw = manifest["validation_gate"] ?: return null
   val gate = raw as? Map<*, *> ?: invalidValidationGateDeclaration(
@@ -69,10 +64,6 @@ internal fun validateBuildCommandsDistinctFromCollectAll(
   }
 }
 
-/**
- * Absent or empty `suppression_markers` → empty list (ungated). Present but
- * malformed → loud-fail; never coerce a bad declaration into an ungated empty set.
- */
 internal fun parseSuppressionMarkers(gate: Map<*, *>, slug: String): List<String> {
   if (!gate.containsKey("suppression_markers")) return emptyList()
   val raw = gate["suppression_markers"]

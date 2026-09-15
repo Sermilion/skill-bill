@@ -38,19 +38,14 @@ class DecompositionManifestArchitectureTest {
     )
 
     assertContains(architecture, "decomposition-manifest file-store ports")
-    // SKILL-52.3 subtask 1: the concrete schema validator moved to
-    // `runtime-infra-fs`; the application seam now flows through the
-    // injected `DecompositionManifestValidator` port.
+
     assertContains(applicationSeam, "validator: DecompositionManifestValidator")
     assertContains(applicationSeam, "validator.validateYamlText")
     assertContains(applicationSeam, "validator.encodeManifestWireMap")
     assertFalse(applicationSeam.contains("validator.validate("))
     assertFalse(applicationSeam.contains("DecompositionManifestWireCodec.decode"))
     assertFalse(applicationSeam.contains("fun encodeDecompositionManifestMap"))
-    // SKILL-52.3 subtask 4: YAML serialization moved behind the
-    // `DecompositionManifestStore.encodeManifestYaml` infra/codec seam;
-    // the application seam must no longer name `YAMLMapper` and instead
-    // delegate serialization to the injected file-store port.
+
     assertFalse(
       applicationSeam.contains("YAMLMapper"),
       "Application seam must not own the YAML serializer; it now flows through the file-store port.",
@@ -75,10 +70,7 @@ class DecompositionManifestArchitectureTest {
   @Test
   fun `domain workflow code does not own decomposition manifest schema or YAML seams`() {
     val domainWorkflowRoot = runtimeRoot.resolve("runtime-domain/src/main/kotlin/skillbill/workflow")
-    // SKILL-52.3 subtask 1: the domain-owned `DecompositionManifestValidator`
-    // port interface legitimately declares `validate` / `validateYamlText`;
-    // it carries no schema or YAML mechanics, so it is exempt from the
-    // concrete-seam token ban below.
+
     val validatorPortFile =
       domainWorkflowRoot.resolve("decomposition/DecompositionManifestValidator.kt").normalize()
     val violations = Files.walk(domainWorkflowRoot).use { paths ->

@@ -2,11 +2,7 @@ package dev.skillbill.intellij.domain
 
 import java.time.Instant
 
-/**
- * Domain outcomes for Skill Bill IDE status. Distinct from wire lifecycle enums:
- * freshness, problem codes, and transport failures collapse into these UI-facing
- * outcomes so presentation can map exhaustively without transport knowledge.
- */
+
 sealed class SkillBillStatusOutcome {
     abstract val observedAt: Instant
     abstract val diagnostic: StatusDiagnostic?
@@ -15,16 +11,12 @@ sealed class SkillBillStatusOutcome {
         override val observedAt: Instant,
         val summary: String,
         val repositoryIdentity: String? = null,
-        /** Freshness modifies a settled lifecycle; it never replaces it. */
+        
         val stale: Boolean = false,
         override val diagnostic: StatusDiagnostic? = null,
     ) : SkillBillStatusOutcome()
 
-    /**
-     * A terminal lifecycle with a finished run to show. Distinct from [Idle] because a
-     * completed goal keeps its issue key and final progress on screen for the runtime's
-     * settled-retention window instead of blanking to an empty repository.
-     */
+    
     data class Done(
         override val observedAt: Instant,
         val summary: String,
@@ -34,10 +26,10 @@ sealed class SkillBillStatusOutcome {
         val progressTotal: Int?,
         val startedAt: Instant?,
         val updatedAt: Instant?,
-        /** Freshness modifies a settled lifecycle; it never replaces it. */
+        
         val stale: Boolean = false,
         override val diagnostic: StatusDiagnostic? = null,
-        /** See [Active.activeDurationMs]. Final for a finished run. */
+        
         val activeDurationMs: Long? = null,
         val activeDurationAsOf: Instant? = null,
         val subtaskActiveDurationMs: Long? = null,
@@ -55,41 +47,32 @@ sealed class SkillBillStatusOutcome {
         val currentStepLabel: String,
         val progressCompleted: Int?,
         val progressTotal: Int?,
-        /** Authoritative goal/work start; never synthesized from updated_at. */
+        
         val startedAt: Instant?,
         val currentSubtaskId: String?,
-        /** Authoritative subtask start; omitted when absent on the wire. */
+        
         val subtaskStartedAt: Instant?,
         val updatedAt: Instant,
         override val diagnostic: StatusDiagnostic? = null,
         val planning: GoalPlanningInfo? = null,
-        /**
-         * A pause is requested but not yet consumed at a boundary. Optional on the wire:
-         * null means the snapshot said nothing, which is not the same as an explicit false.
-         */
+        
         val pauseRequested: Boolean? = null,
-        /** Instant a recorded pause took effect; absent for an inferred pause. */
+        
         val pausedAt: Instant? = null,
-        /**
-         * Execution time the runtime accumulated for this goal, excluding blocked, paused, and
-         * unattended gaps. Null when the snapshot carried none, which is not zero work.
-         */
+        
         val activeDurationMs: Long? = null,
         val activeDurationAsOf: Instant? = null,
         val subtaskActiveDurationMs: Long? = null,
         val subtaskActiveDurationAsOf: Instant? = null,
-        /** Model the current phase launched with; null when the snapshot carried none. */
+        
         val currentModel: CurrentPhaseModel? = null,
-        /** See [CurrentPhaseExecution]; null when the snapshot carried none or it was unusable. */
+        
         val currentPhaseExecution: CurrentPhaseExecution? = null,
         val lastAgentActivityAt: Instant? = null,
         val lastAgentActivityLabel: String? = null,
     ) : SkillBillStatusOutcome()
 
-    /**
-     * A live lifecycle that is not running. Distinct from [Active] because spinner and
-     * ticking-clock decisions key off the type: a paused goal must show neither.
-     */
+    
     data class Paused(
         override val observedAt: Instant,
         val summary: String,
@@ -107,11 +90,11 @@ sealed class SkillBillStatusOutcome {
         val updatedAt: Instant,
         override val diagnostic: StatusDiagnostic? = null,
         val planning: GoalPlanningInfo? = null,
-        /** See [Active.pauseRequested]; null means the snapshot said nothing. */
+        
         val pauseRequested: Boolean? = null,
-        /** Instant a recorded pause took effect; absent for an inferred pause. */
+        
         val pausedAt: Instant? = null,
-        /** See [Active.activeDurationMs]. A paused goal accumulates none while it waits. */
+        
         val activeDurationMs: Long? = null,
         val activeDurationAsOf: Instant? = null,
         val subtaskActiveDurationMs: Long? = null,
@@ -139,7 +122,7 @@ sealed class SkillBillStatusOutcome {
         val fromCache: Boolean = false,
         override val diagnostic: StatusDiagnostic? = null,
         val planning: GoalPlanningInfo? = null,
-        /** See [Active.activeDurationMs]. */
+        
         val activeDurationMs: Long? = null,
         val activeDurationAsOf: Instant? = null,
         val subtaskActiveDurationMs: Long? = null,
@@ -161,10 +144,10 @@ sealed class SkillBillStatusOutcome {
         val currentSubtaskId: String?,
         val subtaskStartedAt: Instant?,
         val updatedAt: Instant?,
-        /** Freshness modifies a settled lifecycle; it never replaces it. */
+        
         val stale: Boolean = false,
         override val diagnostic: StatusDiagnostic? = null,
-        /** See [Active.activeDurationMs]. A blocked goal accumulates none while it waits. */
+        
         val activeDurationMs: Long? = null,
         val activeDurationAsOf: Instant? = null,
         val subtaskActiveDurationMs: Long? = null,
@@ -185,10 +168,10 @@ sealed class SkillBillStatusOutcome {
         val currentSubtaskId: String?,
         val subtaskStartedAt: Instant?,
         val updatedAt: Instant?,
-        /** Freshness modifies a settled lifecycle; it never replaces it. */
+        
         val stale: Boolean = false,
         override val diagnostic: StatusDiagnostic? = null,
-        /** See [Active.activeDurationMs]. Final for a run that stopped failing. */
+        
         val activeDurationMs: Long? = null,
         val activeDurationAsOf: Instant? = null,
         val subtaskActiveDurationMs: Long? = null,
@@ -213,18 +196,11 @@ sealed class SkillBillStatusOutcome {
     ) : SkillBillStatusOutcome()
 }
 
-/**
- * True only for an [SkillBillStatusOutcome.Idle] derived from the `no_matching_work`
- * problem code — an idle reading the runtime has not corroborated with a settled
- * lifecycle. Lifecycle-derived idles carry no diagnostic and are never uncorroborated.
- */
+
 fun SkillBillStatusOutcome.isUncorroboratedIdle(): Boolean =
     this is SkillBillStatusOutcome.Idle && diagnostic?.reasonCode == NO_MATCHING_WORK_REASON_CODE
 
-/**
- * A lifecycle the runtime is actively tracking. Distinct from settled or absent
- * readings because only a live display is worth holding across an unconfirmed idle.
- */
+
 fun SkillBillStatusOutcome.isLiveOutcome(): Boolean = when (this) {
     is SkillBillStatusOutcome.Active,
     is SkillBillStatusOutcome.Paused,
@@ -277,10 +253,7 @@ fun SkillBillStatusOutcome.withPollFailure(reason: UnavailableReason): SkillBill
     }
 }
 
-/**
- * Goal planning progress carried alongside a live goal snapshot. [state] holds the raw
- * wire value; the plugin never restates the runtime's planning-state vocabulary.
- */
+
 data class GoalPlanningInfo(
     val state: String,
     val sharedPreplanPrepared: Boolean,
@@ -290,26 +263,15 @@ data class GoalPlanningInfo(
     val reason: String? = null,
 )
 
-/**
- * The model the current phase launched with, plus its reasoning effort when the runtime
- * recorded one. Optional context on a live snapshot; a missing block is simply no model.
- */
+
 data class CurrentPhaseModel(
     val model: String,
     val effort: String? = null,
-    /**
-     * The runtime phase the model belongs to. A goal's step is a goal-level label — often
-     * `Planning` — so for the goal family this is the only thing that says which phase is meant.
-     * Absent when the producer could not resolve it.
-     */
+    
     val phaseId: String? = null,
 )
 
-/**
- * Authoritative current-phase execution measure from the IDE status wire. [kind] and [count]
- * are producer-defined; [total] is present only for a meaningful bounded-edge cap. The plugin
- * never invents a loop total or re-labels an attempt as a semantic loop.
- */
+
 data class CurrentPhaseExecution(
     val phaseId: String,
     val kind: String,
@@ -330,10 +292,7 @@ enum class UnavailableReason {
     MISCONFIGURED,
     MISSING_REPOSITORY,
     ABSENT_DATABASE,
-    /**
-     * Retained for wire compatibility only. The `no_matching_work` contract code maps
-     * to [SkillBillStatusOutcome.Idle] — an empty repository is idle, not unavailable.
-     */
+    
     NO_MATCHING_WORK,
     INVALID_REPOSITORY_INPUT,
     PROCESS_FAILURE,
@@ -342,10 +301,7 @@ enum class UnavailableReason {
     MALFORMED_OUTPUT,
 }
 
-/**
- * Typed troubleshooting context only — never raw stderr, tokens, prompts,
- * phase artifacts, or absolute sensitive paths.
- */
+
 data class StatusDiagnostic(
     val exitCode: Int? = null,
     val timedOut: Boolean = false,

@@ -7,23 +7,6 @@ import skillbill.workflow.engine.model.WorkflowSnapshotView
 import skillbill.workflow.engine.model.WorkflowSummaryView
 import skillbill.workflow.engine.model.WorkflowUpdateAcknowledgementView
 
-/**
- * SKILL-52.1 — Typed application result models for `WorkflowService`.
- *
- * Mirrors `LearningResults.kt`. Every public `WorkflowService` method
- * returns one of these results instead of `Map<String, Any?>`. The
- * CLI/MCP adapters convert the typed result back to the wire-shape
- * ordered map via mappers in
- * `runtime-cli/src/main/kotlin/skillbill/cli/WorkflowCliResultMappers.kt`
- * and `runtime-mcp/src/main/kotlin/skillbill/mcp/WorkflowMcpResultMappers.kt`,
- * which delegate the field-order contract to
- * `skillbill.infrastructure.fs.contracts.workflow.WorkflowContracts`.
- *
- * Each result models `status` implicitly via either an Ok or Error
- * sealed variant, so callers do not branch on string status fields.
- * The pre-existing on-wire `status` / `error` keys are reattached by
- * the adapter mappers, preserving golden byte-equivalence.
- */
 sealed interface WorkflowOpenResult {
   data class Ok(
     val workflowId: String,
@@ -83,20 +66,6 @@ sealed interface WorkflowResumeResult {
   data class Error(val workflowId: String, val error: String, val dbPath: String) : WorkflowResumeResult
 }
 
-/**
- * Continuation results split into the regular continue path and the
- * decomposition continuation paths (missing-workflow, blocked-subtask,
- * blocked-git, done-decomposition). Adapter mappers reattach the
- * exact on-wire shape that the previous `continuePayload()` helper
- * produced.
- *
- * `WorkflowContinueResult.Reopened` and `Blocked` carry the typed
- * `WorkflowContinueView` so the adapter can reconstruct the
- * wire-shape map via `WorkflowWireProjections.continueMap(view)`.
- *
- * Decomposition variants carry their own typed fields because their
- * shapes do not pass through `WorkflowWireProjections.continueMap`.
- */
 sealed interface WorkflowContinueResult {
   val dbPath: String
 

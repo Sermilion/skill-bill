@@ -15,11 +15,6 @@ enum class FeatureTaskRuntimeRepositoryCheckpointPolicy(val wireValue: String) {
   }
 }
 
-/**
- * Deterministic identification of the repository state a projection was derived against. [baseRef]
- * and [headRef] carry the base/head pair when the caller knows it; [fingerprint] is the equivalent
- * digest every policy compares on.
- */
 data class FeatureTaskRuntimeRepositoryCheckpoint(
   val fingerprint: String,
   val baseRef: String? = null,

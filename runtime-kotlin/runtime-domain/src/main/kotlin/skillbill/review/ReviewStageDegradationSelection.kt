@@ -33,12 +33,6 @@ object ReviewStageDegradationSelection {
     "unsupported agent:" to ReviewStageDegradationReason.WORKER_LAUNCH_OR_RETURN_FAILED,
   )
 
-  /**
-   * The cause behind a rejected verdict, or null when the rejection is an ordinary review outcome
-   * rather than a worker failure. Classification is by exact reason: an unrecognized reason stays
-   * null rather than being attributed to a cause nobody classified, so a new worker-failure reason
-   * has to be added here to report at all.
-   */
   fun workerFailureReason(rejectionReason: String?): ReviewStageDegradationReason? {
     val reason = rejectionReason ?: return null
     return workerFailureReasons[reason]

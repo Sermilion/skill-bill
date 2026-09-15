@@ -17,11 +17,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.coroutines.cancellation.CancellationException
 
-/**
- * Draft 2020-12 validator for the durable feature-task-runtime implementation-attempt history. Any
- * violation fails with [InvalidFeatureTaskRuntimeImplementationAttemptSchemaError], the message
- * carrying the offending instance location, never record bodies.
- */
 object FeatureTaskRuntimeImplementationAttemptSchemaValidator {
   private val schemaDocument: JsonNode by lazy { loadImplementationAttemptSchemaDocument() }
   private val schema: JsonSchema by lazy { compile(schemaDocument) }

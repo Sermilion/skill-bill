@@ -9,11 +9,6 @@ import skillbill.ports.scaffold.install.InstalledPlatformPackCatalogPort
 import skillbill.scaffold.model.PlatformManifest
 import java.nio.file.Files
 
-/**
- * Reads the pack selection published at install time. The on-disk directory is still named
- * `review-catalog/platform-packs` because install writes it under that name; the contents are the
- * selected packs and serve every consumer, review and validate alike.
- */
 @Inject
 class FileSystemInstalledPlatformPackCatalog(
   private val environment: EnvironmentContext,

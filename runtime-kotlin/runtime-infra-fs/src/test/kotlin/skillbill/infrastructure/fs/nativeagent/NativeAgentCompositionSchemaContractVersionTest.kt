@@ -10,19 +10,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-/**
- * SKILL-48 Subtask 2c AC2: pins `contract_version` parity between the
- * canonical schema file
- * (`orchestration/contracts/native-agent-composition-schema.yaml`)
- * loaded from the classpath bundle and the runtime constant
- * [NATIVE_AGENT_COMPOSITION_CONTRACT_VERSION]. Bumping one without the
- * other is a build break, by design.
- *
- * Mirrors `InstallPlanSchemaContractVersionTest` (runtime-domain) and
- * the workflow-state variant; lives in runtime-core because the
- * runtime-core build owns the canonical classpath bundle for this
- * schema.
- */
 class NativeAgentCompositionSchemaContractVersionTest {
   @Test
   fun `schema contract_version const matches NATIVE_AGENT_COMPOSITION_CONTRACT_VERSION`() {

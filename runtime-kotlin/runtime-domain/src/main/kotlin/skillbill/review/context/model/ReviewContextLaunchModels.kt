@@ -40,8 +40,7 @@ data class GovernedReviewLaunch(
     }
     val unownedHunks = assignment.assignedHunks.filterNot { it in packet.ownedHunkIds }
     require(unownedHunks.isEmpty()) { "Launch claims hunk ids the packet does not own." }
-    // Sparse routing owns the expected surface: a lane sees its owned paths only in the commits it
-    // focused, never every hunk that ever touched those paths.
+
     val expectedHunks = packet.focusedHunkIds(packetDecision)
     require(assignment.assignedHunks.toSet() == expectedHunks) {
       "Launch hunks differ from the focused-commit hunks the packet routed to the lane."
@@ -85,22 +84,16 @@ data class GovernedReviewLaunch(
     }
   }
 
-  /** Assigned commit units in packet order (identity metadata for the launch envelope). */
   private val projectedUnits: List<ReviewCommitUnit>
     get() {
       val unitsBySha = packet.commitUnits.associateBy { it.commitSha }
       return assignment.assignedBundle.entries.map { entry -> unitsBySha.getValue(entry.commitSha) }
     }
 
-  /** Ordered assigned hunk bodies with commit identity; never the aggregate PR diff. */
   val assembledBundle: ReviewLaneAssembledBundle by lazy(LazyThreadSafetyMode.PUBLICATION) {
     ReviewLaneAssembledBundle.assemble(assignment, packet)
   }
 
-  /**
-   * Size-driven segmentation of [assembledBundle]. Segments are consumed inside one lane worker
-   * operation; segmentation never multiplies worker launches.
-   */
   val segmentation: ReviewLaneBundleSegmentation by lazy(LazyThreadSafetyMode.PUBLICATION) {
     segmentAssembledBundle(assembledBundle, budget.maxLaneLaunchBytes, ::measureBundleEntries)
   }
@@ -113,19 +106,10 @@ data class GovernedReviewLaunch(
     require(forkTurns == "none") { "Governed Codex review launches require fork_turns none." }
   }
 
-  /** Entries the segmentation retained; unreviewable bodies are named, never delivered. */
   val deliveredEntries: List<ReviewLaneAssembledEntry> get() = segmentation.segments.flatMap { it.entries }
 
   val canonicalPayload: String get() = renderCanonicalPayload(deliveredEntries, segmentation)
 
-  /**
-   * Returns a typed budget breach when the fixed launch overhead alone exceeds the lane budget
-   * (nothing can be reviewed), or when the rendered payload exceeds the lane allowance. Each
-   * segment is separately accounted against [ReviewContextBudgetPolicy.maxLaneLaunchBytes], so the
-   * allowance for a delivered payload is that budget once per segment; anything beyond it is an
-   * overflow the segmentation did not account for and must surface as a typed breach rather than
-   * ship silently.
-   */
   fun budgetOutcomeOrNull(): ReviewContextBudgetExceeded? {
     val overhead = measureBundleEntries(emptyList())
     val renderedBytes = canonicalPayload.toByteArray(Charsets.UTF_8).size.toLong()

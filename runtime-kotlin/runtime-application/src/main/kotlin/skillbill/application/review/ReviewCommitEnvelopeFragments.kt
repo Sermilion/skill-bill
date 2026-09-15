@@ -21,7 +21,6 @@ internal fun ReviewCommitUnit.toEnvelope(): Map<String, Any?> = linkedMapOf(
   "hunk_ids" to hunkIds,
 )
 
-/** Launch-side commit metadata: identity and order only, since the bodies below carry attribution. */
 internal fun ReviewCommitUnit.toAssignedEnvelope(): Map<String, Any?> = linkedMapOf(
   "commit_unit_id" to commitUnitId,
   "commit_sha" to commitSha,

@@ -8,19 +8,6 @@ import skillbill.ports.review.ReviewSnapshotGateway
 import skillbill.ports.review.model.ReviewSnapshot
 import java.io.IOException
 
-/**
- * Retention policy for `~/.skill-bill/review-metrics.<label>.db` snapshots.
- *
- * Snapshots are operator artifacts: hand-named copies of the live store taken before a risky
- * migration or to preserve a point-in-time reading. They have no expiry and nothing in the runtime
- * creates, rotates, or removes them. Left alone they accumulate indefinitely — an observed
- * 37 snapshots totalling roughly 2.9 GB.
- *
- * Deletion is opt-in and operator-driven only. [prune] defaults to a dry run that lists candidates
- * and deletes nothing; passing `confirmed = true` is the sole code path in the runtime that removes
- * a snapshot. The live `review-metrics.db` never matches the snapshot pattern and is therefore never
- * a candidate.
- */
 @Inject
 class ReviewSnapshotPruneService(
   private val database: DatabaseSessionFactory,
@@ -34,8 +21,7 @@ class ReviewSnapshotPruneService(
     val failed = mutableListOf<ReviewSnapshot>()
     if (confirmed) {
       candidates.forEach { snapshot ->
-        // One unreadable or locked snapshot must not abort the sweep: without this the operator gets
-        // a stack trace and no result, leaving the already-deleted snapshots unreported.
+
         val removed = try {
           gateway.delete(snapshot)
         } catch (error: IOException) {

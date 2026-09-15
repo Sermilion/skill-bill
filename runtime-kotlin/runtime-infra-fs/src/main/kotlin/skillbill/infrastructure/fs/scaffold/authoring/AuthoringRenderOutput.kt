@@ -82,8 +82,6 @@ private fun renderPlatformPointerBlocks(repoRoot: Path, target: AuthoringTarget)
   requireMatchingRenderContractVersion(pack)
   val skillRelativeDir = normalizedRelativePath(packRoot, target.skillFile.parent)
   return pack.pointers
-    // Keep stdout in platform.yaml declaration order. PointerOperations.regenerate sorts for
-    // deterministic writes, but render output mirrors the author-declared manifest sequence.
     .filter { spec -> spec.skillRelativeDir == skillRelativeDir }
     .map { spec -> renderPointerBlock(repoRoot, pack, spec) }
 }

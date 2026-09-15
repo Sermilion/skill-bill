@@ -122,10 +122,6 @@ class ApplicationPersistencePortTest {
     assertEquals(listOf("fix_applied", "fix_applied"), result.recorded.map { it.outcomeType })
   }
 
-  // SKILL-136 subtask 5 AC-001/AC-002: lane identity comes from the composed launch plan. Narration
-  // that disagrees with the plan is retained as an unresolved lane, never used as identity. The
-  // routed pack slug resolves from the canonical skill name, so this holds in a consumer repository
-  // where no platform-packs directory exists and routedSkillPlatformSlugs() is empty.
   @Test
   fun `review import records lanes from the composed plan rather than the narration string`() {
     val reviewRepository = FakeReviewRepository()
@@ -144,8 +140,6 @@ class ApplicationPersistencePortTest {
     assertEquals("unresolved", lanes.last().resolutionState.wireValue)
   }
 
-  // AC-002/AC-005/AC-006: a run that produced no findings still records its lanes and its terminal
-  // facts, and does so even though telemetry is disabled for this session.
   @Test
   fun `a zero findings import still records lanes and terminal review state`() {
     val reviewRepository = FakeReviewRepository()
@@ -190,8 +184,6 @@ class ApplicationPersistencePortTest {
     )
   }
 
-  // A partially staged catalog — the routed pack composes a baseline layer that is not installed —
-  // makes composition throw. Attribution is best-effort: the import must still land the run.
   @Test
   fun `a composition failure degrades to unresolved lanes rather than failing the import`() {
     val reviewRepository = FakeReviewRepository()

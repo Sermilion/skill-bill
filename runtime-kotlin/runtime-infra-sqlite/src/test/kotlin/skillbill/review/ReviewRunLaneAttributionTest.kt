@@ -19,8 +19,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 class ReviewRunLaneAttributionTest {
-  // AC-002: lanes are durable rows, never one comma-joined value; AC-003: a finding carries the lane
-  // that produced it, resolved to that lane's plan-sourced pack and area.
+
   @Test
   fun `saving a review records one row per lane and attributes each finding to its lane`() {
     val (_, connection) = tempDbConnection("review-lanes")
@@ -45,8 +44,6 @@ class ReviewRunLaneAttributionTest {
     }
   }
 
-  // AC-001: lanes already recorded for a run are the launch plan that actually ran, so a re-import
-  // leaves them intact instead of overwriting them with whatever the imported text composes to.
   @Test
   fun `re-importing a run keeps its recorded lane rows and never duplicates them`() {
     val (_, connection) = tempDbConnection("review-lanes-reimport")
@@ -64,10 +61,6 @@ class ReviewRunLaneAttributionTest {
     }
   }
 
-  // AC-003: the lane recorded from the runtime's own merge result is authoritative; parsed
-  // provenance is only the fallback for review text the runtime did not produce.
-  // AC-004: correcting a finding's lane updates the row in place, so its recorded disposition — the
-  // signal pack-and-area effectiveness is built on — survives the re-import.
   @Test
   fun `recorded finding lane attribution wins over parsed provenance and preserves dispositions`() {
     val (_, connection) = tempDbConnection("review-finding-lane-attribution")
@@ -89,8 +82,6 @@ class ReviewRunLaneAttributionTest {
     }
   }
 
-  // AC-004: effectiveness joins findings and their dispositions to the canonical routed skill, and a
-  // finding with no lane attribution lands in an explicit bucket instead of falling out of the join.
   @Test
   fun `lane effectiveness groups by canonical routed skill and lane area and keeps unattributed findings`() {
     val (_, connection) = tempDbConnection("review-lane-effectiveness")
@@ -116,8 +107,6 @@ class ReviewRunLaneAttributionTest {
     }
   }
 
-  // AC-005/AC-006: the terminal facts of a run are durable even when it produced no findings, and an
-  // already-recorded finish timestamp is never rewritten.
   @Test
   fun `terminal state records a finish timestamp and execution mode for a zero-findings run`() {
     val (_, connection) = tempDbConnection("review-terminal-state")

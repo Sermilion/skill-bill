@@ -4,11 +4,6 @@ import skillbill.workflow.taskruntime.FeatureTaskRuntimeHandoffProjectionValidat
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffProjectionValue
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffSourceRef
 
-/**
- * Reads the receipt body a phase was actually delivered for one producing phase. Tests go through
- * the validated envelope rather than a payload map, so an assertion cannot accidentally observe
- * private evidence the phase never received.
- */
 internal fun FeatureTaskRuntimePhaseLaunchBriefing.upstreamReceipt(producingPhaseId: String): String? =
   handoffEnvelope.projections
     .firstOrNull { projection ->
@@ -27,14 +22,8 @@ internal fun FeatureTaskRuntimePhaseLaunchBriefing.requireUpstreamReceipt(produc
 internal fun FeatureTaskRuntimePhaseLaunchBriefing.hasUpstreamReceipt(producingPhaseId: String): Boolean =
   upstreamReceipt(producingPhaseId) != null
 
-/** Finalization phases whose prompts omit the acceptance contract; PR explicitly requires it. */
 internal val FINALIZATION_PHASE_IDS: Set<String> = setOf("write_history", "commit_push")
 
-/**
- * Canonical `produced_outputs` bodies for the phases that feed the bounded planning projections on the
- * preplan->plan, plan->implement, and plan+implement->audit edges. Fixtures that seed these phases must
- * carry the declared projection shape or the projection loud-fails at launch.
- */
 internal object PlanningProjectionFixtures {
   const val PREPLAN_DIGEST: String =
     """{"value":"Fixture preplan prose for downstream plan."}"""

@@ -54,8 +54,6 @@ class DatabaseSchemaTest {
     }
   }
 
-  // SKILL-136 subtask 6 AC-001: a fresh database must agree with the migrated shape, or every new
-  // store would keep writing '' and re-open the healthy-vs-failed ambiguity the migration closed.
   @Test
   fun `a freshly created telemetry outbox declares last_error nullable`() {
     val dbPath = Files.createTempDirectory("runtime-kotlin-outbox-schema").resolve("metrics.db")
@@ -67,7 +65,6 @@ class DatabaseSchemaTest {
     }
   }
 
-  // SKILL-136 subtask 6 AC-003: the shared key joining the workflow review loop to review-run import.
   @Test
   fun `ensureDatabase creates the review finding outcome key on a fresh database`() {
     val dbPath = Files.createTempDirectory("runtime-kotlin-outcome-schema").resolve("metrics.db")
@@ -88,8 +85,6 @@ class DatabaseSchemaTest {
     }
   }
 
-  // AC-003: an unresolvable key is retained as NULL, never bucketed to a guessed review run. The
-  // paired-null CHECK is what makes "half a key" unrepresentable.
   @Test
   fun `review finding outcomes reject a half-populated key`() {
     val dbPath = Files.createTempDirectory("runtime-kotlin-outcome-check").resolve("metrics.db")
@@ -153,16 +148,12 @@ class DatabaseSchemaTest {
         ),
       )
       assertTrue("idx_unaddressed_findings_issue" in sqliteObjects(connection, "index"))
-      // The run/finding key index must be created only after its columns are healed onto the legacy
-      // table; creating it from the shared schema list raised 'no such column: review_run_id' and
-      // left every pre-existing store unopenable.
+
       assertTrue(columnNames.containsAll(setOf("review_run_id", "finding_id")))
       assertTrue("idx_unaddressed_findings_run" in sqliteObjects(connection, "index"))
     }
   }
 
-  // SKILL-136 subtask 4 AC-001/AC-006: a fresh database carries the canonical attribution columns
-  // with the documented types and explicit 'unresolved' default.
   @Test
   fun `ensureDatabase creates review run canonical attribution columns`() {
     val dbPath = Files.createTempDirectory("runtime-kotlin-review-canonical-schema").resolve("metrics.db")
@@ -183,8 +174,6 @@ class DatabaseSchemaTest {
     }
   }
 
-  // SKILL-136 subtask 5 AC-002/AC-003: a fresh database carries per-lane attribution as its own
-  // table and per-finding lane columns, so specialist reviews are never a comma-joined string.
   @Test
   fun `ensureDatabase creates the review run lanes table and finding lane columns`() {
     val dbPath = Files.createTempDirectory("runtime-kotlin-review-lane-schema").resolve("metrics.db")

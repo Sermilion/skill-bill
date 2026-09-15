@@ -44,9 +44,7 @@ internal fun coerceFullContentText(target: AuthoringTarget, bodyText: String): S
   if (stripped.isBlank()) {
     throw SkillBillRuntimeException("Filled content must be non-empty.")
   }
-  // The validator now requires a YAML frontmatter block at the head of content.md. If the
-  // user-supplied body already starts with one we use it verbatim; otherwise we preserve
-  // whatever frontmatter the existing content.md has so the writer never strips it.
+
   val (existingFrontmatter, _) = splitFrontmatter(Files.readString(target.contentFile))
   val (suppliedFrontmatter, suppliedBody) = splitFrontmatter(stripped)
   val frontmatter = suppliedFrontmatter ?: existingFrontmatter

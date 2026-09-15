@@ -267,13 +267,6 @@ class ImplementationOwnershipArchitectureTest {
 
   @Test
   fun `cli and mcp declare direct runtime dependencies beside runtime core`() {
-    // SKILL-52.2 subtask 5: narrowed allow-list. The infrastructure modules
-    // (`:runtime-infra-fs`, `:runtime-infra-http`) were dropped because none
-    // of these adapters concretely import `skillbill.infrastructure.*` outside
-    // test sources — infrastructure adapters are resolved through
-    // `RuntimeComponent` (kotlin-inject) instead. The exact allow-list per adapter is pinned by
-    // `RuntimeAdapterDependencyAllowlistTest`; this test asserts only that the
-    // declared dependencies are present (it does not enforce the exact set).
     val adapterDependencies = mapOf(
       "runtime-cli/build.gradle.kts" to listOf(
         ":runtime-application",
@@ -396,10 +389,6 @@ class ImplementationOwnershipArchitectureTest {
 
   @Test
   fun `scaffold policy packages must not import infra-fs`() {
-    // SKILL-52.1 subtask 2: pure-policy ownership boundary. The extracted-policy package under
-    // `runtime-domain` must not depend on filesystem implementations. The application-level
-    // ScaffoldService is also guarded for the same reason — policy callsites must go through the
-    // typed capability ports introduced in subtask 2.
     val policySourceRoots = listOf(
       "runtime-domain/src/main/kotlin/skillbill/scaffold/policy",
       "runtime-application/src/main/kotlin/skillbill/application",
@@ -434,12 +423,6 @@ class ImplementationOwnershipArchitectureTest {
 
   @Test
   fun `io-coupled scaffold validators live in capability-aligned adapters`() {
-    // SKILL-52.1 subtask 3 (AC1): the IO-coupled validators that previously lived as
-    // top-level functions in `skillbill.infrastructure.fs.scaffold.ScaffoldService.kt` must live on the
-    // capability-aligned adapter classes in `runtime-infra-fs` under
-    // `skillbill.infrastructure.fs`. The FQN-based lookup avoids short-name collisions
-    // (subtask-1 pitfall) by binding each validator to the absolute file path of its
-    // owning adapter.
     val repoValidationAdapter = runtimeRoot.resolve(
       "runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/scaffold/adapters/" +
         "FileSystemScaffoldRepoValidation.kt",
@@ -459,13 +442,6 @@ class ImplementationOwnershipArchitectureTest {
     val sourceLoaderText = sourceLoaderAdapter.readText()
     val legacyText = legacyScaffoldService.readText()
 
-    // `FileSystemScaffoldRepoValidation` owns `validateBaselineLayerPayloadReferences`,
-    // `validateScaffold`, `plannedAuthoringTarget`. `optionalBaselineLayers` follows the
-    // validator that consumes it. SKILL-52.1 subtask 3 (F-007): anchor each substring with
-    // `(` so KDoc body text and longer-named lookalikes (e.g. a hypothetical
-    // `validateScaffoldExtension`) do not trip the positive ownership match. Spotless can
-    // wrap the parameter list onto the next line, so the assertion uses `contains(...)`
-    // against the literal `fun name(` token which survives the wrap.
     listOf(
       "fun validateBaselineLayerPayloadReferences(",
       "fun validateScaffold(",
@@ -478,8 +454,6 @@ class ImplementationOwnershipArchitectureTest {
       )
     }
 
-    // `FileSystemScaffoldSourceLoader` owns `resolveAddonConsumerSkillDirs`,
-    // `validateAddonConsumerSkillDir`. SKILL-52.1 subtask 3 (F-007): anchor with `(`.
     listOf(
       "fun resolveAddonConsumerSkillDirs(",
       "fun validateAddonConsumerSkillDir(",
@@ -490,16 +464,6 @@ class ImplementationOwnershipArchitectureTest {
       )
     }
 
-    // The legacy top-level scaffold service file must NOT redeclare these validators —
-    // they belong to the adapter classes above.
-    //
-    // SKILL-52.1 subtask 3 (F-005): the previous guard only matched `private fun X(`. A
-    // future regression could re-introduce these validators under any visibility modifier
-    // (`internal fun`, bare `fun`, `public fun`) or with a ktfmt-wrapped multiline
-    // declaration that puts whitespace between the modifier and `fun`. The modifier-
-    // agnostic regex below catches all of those forms. See the sibling
-    // `legacyScaffoldServiceForbiddenTopLevelDeclarationRegex` fixture test below for
-    // an explicit assertion that this regex catches every variant.
     val redeclared = LEGACY_FORBIDDEN_TOP_LEVEL_REGEX.findAll(legacyText)
       .map { match -> match.value.trim() }
       .toList()
@@ -513,13 +477,6 @@ class ImplementationOwnershipArchitectureTest {
 
   @Test
   fun `legacy scaffold service forbidden top-level declaration regex catches all modifier variants`() {
-    // SKILL-52.1 subtask 3 (F-005): the negative guard in
-    // `io-coupled scaffold validators live in capability-aligned adapters` is implemented
-    // with a modifier-agnostic regex. A typo there would silently disable the only check
-    // preventing the IO-coupled validators from sneaking back into the legacy scaffold
-    // service. This fixture-based test exercises the regex against synthetic source lines
-    // (one per modifier variant plus a ktfmt-wrapped multiline declaration) so a regression
-    // in the regex itself loud-fails.
     val mustMatch = listOf(
       "private fun validateScaffold(plan: ScaffoldPlan, repoRoot: Path) {}",
       "internal fun validateScaffold(plan: ScaffoldPlan, repoRoot: Path) {}",
@@ -556,9 +513,6 @@ class ImplementationOwnershipArchitectureTest {
 
   @Test
   fun `scaffold gateway raw-map producer regex catches wrapped signatures but not typed-result variants`() {
-    // SKILL-52.1 subtask 3 (F-007): the production regex must catch a multi-line wrapped
-    // signature returning `Map<String, Any?>`. A fixture test parallel to the policy-regex
-    // fixture above exercises that case so a regex regression loud-fails.
     val rawMapProducerPattern = Regex(
       """fun\s+(list|show|explain|validate|upgrade|fill|saveExactContent|editWithBodyFile)""" +
         """\s*\([^)]*\)\s*:\s*Map<\s*String\s*,\s*Any\?\s*>""",
@@ -592,12 +546,6 @@ class ImplementationOwnershipArchitectureTest {
 
   @Test
   fun `scaffold gateway no longer exposes raw map producers on the public surface`() {
-    // SKILL-52.1 subtask 3 (AC2): `ScaffoldGateway` must no longer expose
-    // `Map<String, Any?>` return types for the eight raw-map producers
-    // (list / show / explain / validate / upgrade / fill / saveExactContent /
-    // editWithBodyFile). `scaffold(...)` retains its raw-map INPUT (the wire payload)
-    // until subtask 4 introduces a typed payload DTO; that input remains documented
-    // in the allow-list constant in `RuntimeArchitectureTest`.
     val gatewayFile = runtimeRoot.resolve(
       "runtime-ports/src/main/kotlin/skillbill/ports/scaffold/ScaffoldGateways.kt",
     )
@@ -606,8 +554,7 @@ class ImplementationOwnershipArchitectureTest {
     val rawMapProducerPattern = Regex(
       """fun\s+(list|show|explain|validate|upgrade|fill|saveExactContent|editWithBodyFile)""" +
         """\s*\([^)]*\)\s*:\s*Map<\s*String\s*,\s*Any\?\s*>""",
-      // SKILL-52.1 subtask 3 (F-007): allow `.` to match newlines so a ktfmt-wrapped
-      // multi-line parameter list still gets caught by the raw-map return-type guard.
+
       setOf(RegexOption.DOT_MATCHES_ALL),
     )
     val violations = rawMapProducerPattern.findAll(gatewayText).map { match -> match.value }.toList()
@@ -621,13 +568,6 @@ class ImplementationOwnershipArchitectureTest {
 
   @Test
   fun `scaffold policy import regex catches known bad and passes known good`() {
-    // SKILL-52.1 subtask 2 (review-fix F-001): the production
-    // `scaffold policy packages must not import infra-fs` test only proves the regex is sound
-    // by asserting `emptyList() == emptyList()` against the current source tree. A typo in the
-    // pattern anchors/alternation/grouping would silently disable the only enforcement preventing
-    // pure-policy code from re-acquiring an FS dependency. This fixture-based test exercises the
-    // same `forbiddenImportPattern.matches(...)` predicate the production scan uses against a
-    // synthetic set of import lines so a regression in the pattern itself loud-fails.
     val forbiddenImportPattern = Regex(
       "^import\\s+(skillbill\\.infrastructure\\.fs(?:\\..*)?|" +
         "skillbill\\.scaffold\\.(?:adapters\\..*|ScaffoldService|FileSystem.*))$",
@@ -671,8 +611,7 @@ class ImplementationOwnershipArchitectureTest {
   }
 
   private companion object {
-    // The composition root may reference port types and concrete adapters only where it declares
-    // @Provides bindings. These explicit imports are not runtime-core implementation ownership.
+
     val ALLOWED_COMPOSITION_IMPORTS: Set<String> = setOf(
       "skillbill.install.model.InstallPlanWireValidator",
       "skillbill.infrastructure.fs.launcher.agentrun.FileSystemAgentRunLauncher",
@@ -698,12 +637,6 @@ class ImplementationOwnershipArchitectureTest {
 
     val scaffoldApplicationServiceFileNames: Set<String> = emptySet()
 
-    /**
-     * SKILL-52.1 subtask 3 (F-005): modifier-agnostic regex that catches any redeclaration
-     * of the IO-coupled validators (under `private`, `internal`, bare `fun`, `public`, or
-     * with whitespace between modifier and `fun`) in the legacy scaffold service file.
-     * `DOT_MATCHES_ALL` lets the assertion survive a ktfmt-wrapped multi-line declaration.
-     */
     val LEGACY_FORBIDDEN_TOP_LEVEL_REGEX = Regex(
       """\bfun\s+(validateScaffold|validateBaselineLayerPayloadReferences|""" +
         """plannedAuthoringTarget|resolveAddonConsumerSkillDirs|""" +

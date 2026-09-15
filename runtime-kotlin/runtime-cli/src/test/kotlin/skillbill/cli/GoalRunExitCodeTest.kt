@@ -4,10 +4,6 @@ import skillbill.cli.goal.goalRunExitCode
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-/**
- * Bug this catches: goal run collapses paused/blocked/failed into exit 1, so harnesses cannot tell
- * a durable operator pause from failure by exit code alone.
- */
 class GoalRunExitCodeTest {
   @Test
   fun `complete exits 0`() {

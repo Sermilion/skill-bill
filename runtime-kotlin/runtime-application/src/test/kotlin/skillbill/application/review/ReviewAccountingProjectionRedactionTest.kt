@@ -159,7 +159,6 @@ class ReviewAccountingProjectionRedactionTest {
     assertTrue(failure is IllegalArgumentException, "Content-bearing accounting payload must fail loudly.")
   }
 
-  /** A production review run whose diff, rubric, and lane result all carry secrets. */
   private fun recordedReview(): Pair<ReviewRecorder, ReviewAccountingSummary> {
     val recorder = ReviewRecorder()
     val result = reviewHarness(

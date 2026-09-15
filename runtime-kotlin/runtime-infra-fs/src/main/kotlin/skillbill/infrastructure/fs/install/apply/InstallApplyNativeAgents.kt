@@ -159,9 +159,6 @@ private fun nativeAgentLegacyCacheRoot(plan: InstallPlan): Path = NativeAgentOpe
   skillsRoot = plan.installationTargetPaths.skillsRoot.toPath(),
 )
 
-// Unlike standaloneInstallableSkills, internal skills stay enumerated here: a native-agents
-// bundle hosted in an internal skill's dir installs exactly as it does for a listed skill
-// (native-agent parity). Do not add an internalFor filter.
 internal fun nativeAgentSourceRoots(skills: List<InstallPlanSkill>, selectedPlatformSlugs: Set<String>): List<Path> =
   skills
     .filter { skill -> skill.platformSlug == null || skill.platformSlug in selectedPlatformSlugs }

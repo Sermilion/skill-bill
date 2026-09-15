@@ -126,6 +126,13 @@ contract or the runtime fails the run with "must list at least one criterion":
   bullet (`- ...`, optionally a `- [ ]` checkbox). Do not place criteria in
   prose paragraphs under the heading.
 - At least one criterion is required in every spec the runtime will execute.
+- Each criterion MUST be observable in the phase that currently consumes the
+  spec. Do not require a later phase's result as an acceptance criterion:
+  no validate quality-check receipt, review clearance, commit sha, or PR URL
+  on implement or audit criteria. Those belong in Validation Strategy or in
+  that later phase. Audit cannot mint validate evidence; implement cannot
+  mint review clearance. A criterion that needs a future phase is
+  impossible and must not be written.
 
 Prefer the canonical numbered form the runtime writer emits:
 

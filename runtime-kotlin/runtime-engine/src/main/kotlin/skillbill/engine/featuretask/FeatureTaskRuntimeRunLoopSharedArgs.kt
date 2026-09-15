@@ -37,7 +37,7 @@ internal data class PhaseAttemptContext(
   val state: FeatureTaskRuntimeRunState,
   val iteration: Int,
   val observability: FeatureTaskRuntimeRunObservability,
-  /** Output-gate failures the fix loop had already spent before this attempt; null outside that loop. */
+
   val outputGateFailuresBefore: Int? = null,
 )
 

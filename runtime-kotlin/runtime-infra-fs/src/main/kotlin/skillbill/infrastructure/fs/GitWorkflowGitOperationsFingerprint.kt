@@ -122,10 +122,6 @@ internal object UntrackedFingerprintDigest {
     digest.update(0)
   }
 
-  // An untracked entry is fingerprinted, never trusted: symlinks and directories are recorded by
-  // marker instead of followed, oversized artifacts by size and mtime instead of being read into the
-  // heap, and an entry that disappeared between the `ls-files` listing and this read is a benign
-  // marker rather than a failure that would block an otherwise successful phase.
   fun digestUntrackedEntry(digest: MessageDigest, path: String, resolved: Path) {
     val label = "untracked:$path"
     if (!Files.isRegularFile(resolved, LinkOption.NOFOLLOW_LINKS)) {
@@ -180,10 +176,6 @@ internal object GitRuntimePhaseFileManifestOperations : RuntimePhaseFileManifest
   }
 }
 
-/**
- * Rename-aware base/HEAD content pairs for the validate suppression delta.
- * Inventory stays the caller's scoped path list — never porcelain-wide dirty siblings.
- */
 internal object GitSuppressionEvidenceOperations : SuppressionEvidenceGitOperations {
   override fun scopedPathContentsAgainstBase(
     repoRoot: Path,
@@ -224,7 +216,6 @@ internal object GitSuppressionEvidenceOperations : SuppressionEvidenceGitOperati
     val error: String = "",
   )
 
-  /** Maps HEAD path → base path for renames detected against [baseRef]. */
   private fun renameBasePaths(repoRoot: Path, baseRef: String): RenameMapResult {
     val diff = runGitCommand(repoRoot, "diff", "-M", "--name-status", "--find-renames", baseRef)
     if (diff !is WorkflowGitOperationResult.Ok) {

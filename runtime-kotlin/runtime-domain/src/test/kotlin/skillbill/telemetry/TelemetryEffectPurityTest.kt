@@ -4,15 +4,6 @@ import java.time.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-/**
- * SKILL-52.3: guards the effect-purity of the runtime-domain telemetry rules.
- *
- *  - [defaultLocalTelemetryConfig] no longer mints a random `UUID`; the install id is injected by
- *    the caller (the random fallback now lives in the infra-fs adapter). The function is therefore
- *    deterministic: the same `installId` always yields a byte-equivalent payload.
- *  - [parseRemoteStatsWindow] no longer reads the system clock; `today` is supplied by the caller,
- *    so the window math is exercised here against a fixed reference date.
- */
 class TelemetryEffectPurityTest {
   @Test
   fun `defaultLocalTelemetryConfig is deterministic for a fixed install id`() {
@@ -52,7 +43,6 @@ class TelemetryEffectPurityTest {
 
     val (from, to) = parseRemoteStatsWindow(today = today)
 
-    // 30d window is inclusive of `today`, so the start is today - 29 days.
     assertEquals("2026-04-30" to "2026-05-29", from to to)
   }
 

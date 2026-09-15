@@ -61,12 +61,6 @@ val reviewRunLanesSql =
   ORDER BY order_index, lane_skill_name
   """.trimIndent()
 
-/**
- * Pack-and-area effectiveness input: one row per finding, carrying the run's canonical routed skill
- * (never the free-prose routed_skill text) plus the lane that produced it and its latest
- * disposition. A finding with no lane attribution keeps NULL lane columns here so the caller can
- * report it under an explicit unattributed bucket instead of dropping it from the join.
- */
 val laneEffectivenessSql =
   """
   WITH latest_feedback AS (

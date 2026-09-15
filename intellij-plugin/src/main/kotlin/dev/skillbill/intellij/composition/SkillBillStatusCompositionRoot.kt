@@ -17,14 +17,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 
-/**
- * Explicit constructor wiring for one project-scoped status graph.
- * Dependencies point inward; no general-purpose DI code generation.
- *
- * Each mutating repository gets a [ProcessRunner] of its own. [ProcessRunner.runCoalesced]
- * coalesces per instance, so a runner shared with status polling would let a pause or stop
- * join an in-flight poll and return that poll's exit code as if the mutation had landed.
- */
+
 class SkillBillStatusCompositionRoot(
     val preferences: PreferenceCachePort,
     val processRunner: ProcessRunner,
@@ -93,7 +86,7 @@ class SkillBillStatusCompositionRoot(
             return root
         }
 
-        /** Test/composition helper that accepts already-built ports (isolation tests). */
+        
         fun createForTest(
             projectRoot: Path,
             preferences: PreferenceCachePort,

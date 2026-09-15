@@ -6,7 +6,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
-/** Commit-evidence identity, packet validation, bundle composition, and launch projection. */
 class ReviewCommitEvidenceTest {
   private val hunkA = ReviewChangedHunk("src/A.kt", 1, 1, 1, 2, "+alpha")
   private val hunkB = ReviewChangedHunk("src/B.kt", 4, 1, 4, 1, "+beta")
@@ -92,7 +91,6 @@ class ReviewCommitEvidenceTest {
     assertNotEquals(base.commitUnitId, base.copy(hunks = listOf(hunkB)).commitUnitId)
   }
 
-  // AC-001, AC-002: hunk identity is commit-owned, so identical content in two commits stays distinct.
   @Test fun `ofCommit scopes hunk identity to its owning commit`() {
     val first = ReviewCommitUnit.ofCommit("c1", "base", "first", 0, listOf(hunkA))
     val second = ReviewCommitUnit.ofCommit("head", "c1", "second", 1, listOf(hunkA))
@@ -102,13 +100,12 @@ class ReviewCommitEvidenceTest {
       ReviewCommitUnit.ofCommit("c1", "base", "first", 0, listOf(hunkA)).hunkIds,
     )
     assertEquals(ReviewCommitUnit.commitScopeKey("c1", 0), first.hunks.single().commitScope)
-    // A hunk repeated inside one commit still collides, so a commit cannot own it twice.
+
     assertFailsWith<IllegalArgumentException> {
       ReviewCommitUnit.ofCommit("c1", "base", "first", 0, listOf(hunkA, hunkA))
     }
   }
 
-  // AC-005
   @Test fun `synthetic units declare their source and never fabricate a commit sha`() {
     val synthetic = ReviewCommitUnit.synthetic(ReviewCommitSource.SYNTHETIC_SUPPLIED_DIFF, listOf(hunkA))
     assertTrue(synthetic.commitSha.startsWith(REVIEW_SYNTHETIC_COMMIT_PREFIX))
@@ -122,7 +119,6 @@ class ReviewCommitEvidenceTest {
     }
   }
 
-  // AC-005
   @Test fun `a synthetic unit is the only unit its packet may carry`() {
     val synthetic = packet(
       listOf(ReviewCommitUnit.synthetic(ReviewCommitSource.SYNTHETIC_WORKING_TREE, listOf(hunkA, hunkB))),
@@ -146,45 +142,43 @@ class ReviewCommitEvidenceTest {
     }
   }
 
-  // AC-003
   @Test fun `packet rejects every malformed commit and hunk reference class`() {
     val orphan = ReviewChangedHunk("src/C.kt", 9, 1, 9, 1, "+gamma")
-    // A hunk with no owning commit unit.
+
     assertFailsWith<IllegalArgumentException> {
       packet(twoCommits, hunks = listOf(hunkA, hunkB, orphan), paths = listOf("src/A.kt", "src/B.kt", "src/C.kt"))
     }
-    // A commit unit naming a hunk the packet does not carry.
+
     assertFailsWith<IllegalArgumentException> {
       packet(twoCommits, hunks = listOf(hunkA))
     }
-    // The same hunk claimed by two commit units.
+
     assertFailsWith<IllegalArgumentException> {
       packet(listOf(unit("c1", "base", 0, listOf(hunkA)), unit("head", "c1", 1, listOf(hunkA))))
     }
-    // A duplicate commit identity.
+
     assertFailsWith<IllegalArgumentException> {
       packet(listOf(unit("head", "base", 0, listOf(hunkA)), unit("head", "head", 1, listOf(hunkB))))
     }
-    // Out-of-order (non-contiguous) order indices.
+
     assertFailsWith<IllegalArgumentException> {
       packet(listOf(unit("c1", "base", 0, listOf(hunkA)), unit("head", "c1", 2, listOf(hunkB))))
     }
-    // A broken parent chain.
+
     assertFailsWith<IllegalArgumentException> {
       packet(listOf(unit("c1", "base", 0, listOf(hunkA)), unit("head", "unrelated", 1, listOf(hunkB))))
     }
-    // Endpoints that do not span base..head.
+
     assertFailsWith<IllegalArgumentException> {
       packet(listOf(unit("c1", "elsewhere", 0, listOf(hunkA)), unit("head", "c1", 1, listOf(hunkB))))
     }
     assertFailsWith<IllegalArgumentException> {
       packet(listOf(unit("c1", "base", 0, listOf(hunkA)), unit("c2", "c1", 1, listOf(hunkB))))
     }
-    // A packet with no commit sequence at all.
+
     assertFailsWith<IllegalArgumentException> { packet(emptyList(), hunks = listOf(hunkA)) }
   }
 
-  // AC-004
   @Test fun `two commits touching the same file still partition the packet`() {
     val firstEdit = ReviewChangedHunk("src/A.kt", 10, 1, 10, 1, "+first")
     val secondEdit = ReviewChangedHunk("src/A.kt", 10, 1, 10, 1, "+second")
@@ -195,7 +189,6 @@ class ReviewCommitEvidenceTest {
     assertEquals(setOf("c1", "head"), built.ownedCommitIds)
   }
 
-  // AC-004
   @Test fun `an unverified coverage fact must name its reason`() {
     assertFailsWith<IllegalArgumentException> {
       ReviewCommitCoverageFact("base", "head", 1, chainVerified = false, pathCoverageVerified = true)
@@ -205,11 +198,10 @@ class ReviewCommitEvidenceTest {
     }
   }
 
-  // AC-002
   @Test fun `packet digest tracks commit order parent and coverage status`() {
     val built = packet(twoCommits)
     assertEquals(built.digest, packet(twoCommits).digest)
-    // Reordering the chain is not merely a different digest: the packet refuses to exist at all.
+
     assertFailsWith<IllegalArgumentException> {
       packet(listOf(unit("c1", "base", 1, listOf(hunkA)), unit("head", "c1", 0, listOf(hunkB))))
     }
@@ -255,7 +247,6 @@ class ReviewCommitEvidenceTest {
     ),
   )
 
-  // AC-008
   @Test fun `bundle composition and entry order change the assignment digest`() {
     val built = packet(twoCommits)
     val base = assignment(built, fullBundle)
@@ -270,7 +261,6 @@ class ReviewCommitEvidenceTest {
     assertEquals(base.digest, assignment(built, fullBundle).digest)
   }
 
-  // AC-008
   @Test fun `bundles reject stray hunks and out-of-order entries`() {
     assertFailsWith<IllegalArgumentException> {
       ReviewLaneBundle(
@@ -288,7 +278,7 @@ class ReviewCommitEvidenceTest {
         ),
       )
     }
-    // A bundle hunk that is not assigned to the lane.
+
     assertFailsWith<IllegalArgumentException> {
       assignment(packet(twoCommits), fullBundle).copy(assignedHunks = listOf(hunkA.hunkId))
     }
@@ -303,7 +293,6 @@ class ReviewCommitEvidenceTest {
     ReviewContextBudgetPolicy.DEFAULT,
   )
 
-  // AC-006, AC-008
   @Test fun `launch projects every hunk body under exactly one commit and no aggregate diff`() {
     val payload = launch(packet(twoCommits), fullBundle).canonicalPayload
     assertTrue("commit_sha: \"c1\"" in payload)
@@ -316,7 +305,6 @@ class ReviewCommitEvidenceTest {
     assertTrue("coverage_fact:" in payload)
   }
 
-  // AC-003, AC-008
   @Test fun `launch rejects a bundle naming a commit outside the packet`() {
     val built = packet(twoCommits)
     val foreign = ReviewLaneBundle(

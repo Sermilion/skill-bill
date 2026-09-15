@@ -43,11 +43,6 @@ class RuntimeImplementationImportRulesTest {
 
   @Test
   fun `schema or coherence validator import scanner catches known validators`() {
-    // SKILL-52.3 subtask 5 (AC3) positive control: the `*SchemaValidator` /
-    // `*CoherenceValidator` ban predicate used by the runtime-domain +
-    // runtime-application validator-import guard must fire on every concrete
-    // validator FQN regardless of owning module, and must NOT flag the
-    // domain-owned validator PORTS (which are how pure layers reach validation).
     val mustBeDetected = listOf(
       "skillbill.infrastructure.fs.contracts.install.InstallPlanSchemaValidator",
       "skillbill.infrastructure.fs.contracts.workflow.WorkflowStateSchemaValidator",
@@ -57,11 +52,11 @@ class RuntimeImplementationImportRulesTest {
       "skillbill.infrastructure.fs.nativeagent.NativeAgentCompositionSchemaValidator",
     )
     val mustNotBeDetected = listOf(
-      // Domain-owned validator PORTS — the sanctioned reach into validation.
+
       "skillbill.install.model.InstallPlanWireValidator",
       "skillbill.workflow.decomposition.DecompositionManifestValidator",
       "skillbill.workflow.engine.WorkflowSnapshotValidator",
-      // Unrelated types.
+
       "skillbill.application.InstallService",
       "skillbill.infrastructure.fs.contracts.install.InstallPlanSchemaPaths",
     )

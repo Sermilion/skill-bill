@@ -26,13 +26,12 @@ class ClaudeConfigDirAgentPathTest {
       workConfig.resolve("skills"),
       InstallOperations.agentPath("claude", home, environment = env),
     )
-    // Native subagents follow the same profile root.
+
     assertEquals(
       workConfig.resolve("agents"),
       InstallOperations.claudeAgentsPath(home, environment = env),
     )
-    // Non-claude agents are unaffected by CLAUDE_CONFIG_DIR. With no .codex dir present, the
-    // codex skill root falls back to the Agents directory (codexPath in InstallPrimitives).
+
     assertEquals(
       home.resolve(".agents/skills"),
       InstallOperations.agentPath("codex", home, environment = env),
@@ -55,8 +54,6 @@ class ClaudeConfigDirAgentPathTest {
     Files.createDirectories(workConfig)
     val env = mapOf("CLAUDE_CONFIG_DIR" to workConfig.toString())
 
-    // Multi-root detection (SKILL-74): the default ~/.claude is always first, then the explicit
-    // CLAUDE_CONFIG_DIR work profile. Both are detected so skills install into each root.
     val claudeTargets = InstallOperations.detectAgentTargets(home, environment = env)
       .filter { it.name == "claude" }
     assertEquals(

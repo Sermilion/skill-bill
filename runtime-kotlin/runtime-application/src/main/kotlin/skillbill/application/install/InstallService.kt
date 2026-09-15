@@ -82,22 +82,9 @@ class InstallService(
     return validatedInstallPlan(draft, staging, installPlanWireValidator)
   }
 
-  /**
-   * SKILL-76 Subtask 2: compute the per-skill reconciliation plan for a reinstall.
-   * Pure compute — no FS mutation. The CLI renders the result as a machine-readable
-   * report and install.sh drives the stage -> reconcile -> swap sequence and the
-   * interactive conflict prompt from it (AC-5..AC-9).
-   */
   fun reconcile(request: InstallReconcileRequest): ReconciliationPlan =
     reconcilePorts.reconcilePort.reconcile(request).plan
 
-  /**
-   * Runtime-owned per-skill APPLY. The infra-fs adapter recomputes the plan from the same
-   * inputs and replaces every live skill dir whose upstream counterpart differs;
-   * locally-authored skills (no upstream counterpart) are preserved by construction. The
-   * baseline is then refreshed from the SAME returned plan via [refreshBaselineFromPlan].
-   * Returns the plan, the installed paths, and whether the baseline was rewritten.
-   */
   fun applyReconcile(request: InstallReconcileApplyRequest): InstallReconcileApplyOutcome {
     val applied = reconcilePorts.reconcileApplyPort.apply(request)
     val before = reconcilePorts.baselineManifestPersistencePort
@@ -112,13 +99,6 @@ class InstallService(
     )
   }
 
-  /**
-   * Refresh the baseline manifest after a successful apply. Every skill with an upstream
-   * counterpart baselines to its UPSTREAM hash, pruned paths drop their entry, and
-   * locally-authored add-ons are left untouched so their entry keeps reporting them as
-   * user-owned. Idempotent: a no-change reinstall produces an overlay identical to the
-   * current manifest, so nothing is written.
-   */
   fun refreshBaselineFromPlan(home: Path, plan: ReconciliationPlan): BaselineManifest {
     val current = reconcilePorts.baselineManifestPersistencePort
       .readBaseline(ReadBaselineManifestRequest(installHome = home))
@@ -143,15 +123,6 @@ class InstallService(
     return result
   }
 
-  /**
-   * SKILL-52.3 subtask 1: CLI emission-seam validation hook. The CLI
-   * re-validates the install-plan wire shape before emitting JSON (the
-   * documented dual-seam coverage). The concrete validator lives in
-   * `runtime-infra-fs`; routing the CLI seam through this service method
-   * keeps the injected `InstallPlanWireValidator` port inside the
-   * application layer (and off the CLI's compile graph + the runtime-core
-   * public ABI), while preserving the loud-fail contract.
-   */
   fun validateInstallPlanWire(plan: InstallPlan) {
     InstallPlanPolicy.validateInstallPlanSnapshot(plan, installPlanWireValidator)
   }

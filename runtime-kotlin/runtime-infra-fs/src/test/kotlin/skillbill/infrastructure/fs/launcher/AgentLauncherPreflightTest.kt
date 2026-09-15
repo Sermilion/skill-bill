@@ -55,7 +55,7 @@ class AgentLauncherPreflightTest {
 
     assertContains(facts.stderr, "'agent' is not on PATH")
     assertContains(facts.stderr, "curl https://cursor.com/install")
-    // The install-time cursor home check cannot see this, so the message must say so outright.
+
     assertContains(facts.stderr, "separate install")
   }
 

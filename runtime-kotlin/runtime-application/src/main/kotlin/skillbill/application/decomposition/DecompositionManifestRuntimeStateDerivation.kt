@@ -17,8 +17,6 @@ import skillbill.workflow.model.workflowStatus
 import skillbill.workflow.model.workflowStepStatus
 import java.nio.file.Path
 
-// Runtime terminal step is `pr` (FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PR). Keep
-// `pr_description` only so legacy GoalRunner lastResumableStep stamps still decode as terminal.
 private val statusTrackedSteps = setOf("implement", "review", "audit", "validate", "pr", "pr_description", "finish")
 private val completionSteps = setOf("pr", "pr_description", "finish")
 private val terminalSkippedSteps = setOf("pr", "pr_description", "finish")
@@ -30,8 +28,7 @@ fun DecompositionSubtask.withRuntimeFields(
 ): DecompositionSubtask {
   val artifacts = mergedArtifacts(update)
   val nextStatus = status ?: this.status
-  // On a terminal transition, copy the agent-attribution rollup off the merged goal_continuation_outcome
-  // artifact map (loose-map style, mirroring commitShaFrom); non-terminal updates leave it untouched.
+
   val terminalOutcome = (artifacts["goal_continuation_outcome"] as? Map<*, *>)
     ?.takeIf { nextStatus.decompositionStatus() in setOf(DecompositionStatus.COMPLETE, DecompositionStatus.BLOCKED) }
   val rolledParticipants = (terminalOutcome?.get(DecompositionManifestPayloadKeys.PARTICIPATING_AGENT_IDS) as? List<*>)

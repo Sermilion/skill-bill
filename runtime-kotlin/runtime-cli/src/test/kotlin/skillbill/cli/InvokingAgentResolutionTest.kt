@@ -10,11 +10,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 
-/**
- * Bug this catches: an operator-supplied agent id that names no supported agent travels past the CLI
- * as an opaque string, so `goal preflight` renders a confirmation gate for an agent that cannot run
- * and the launch only fails once a goal record and its planning attempt already exist.
- */
 class InvokingAgentResolutionTest {
   @Test
   fun `unknown explicit agent is refused with the supported list`() {

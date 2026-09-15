@@ -7,14 +7,7 @@ import dev.skillbill.intellij.domain.PauseReason
 import java.time.Duration
 import java.time.Instant
 
-/**
- * Immutable presentation state for Skill Bill status surfaces.
- * No process, JSON, filesystem, or status-bar rendering code here.
- *
- * Authoritative start timestamps ([startedAt] / [subtaskStartedAt]) are retained so
- * UI tickers can recompute elapsed without synthesizing from updated_at. Absent
- * timestamps stay absent; never treat missing as zero.
- */
+
 sealed class SkillBillStatusUiState {
     abstract val headline: String
     abstract val detail: String?
@@ -31,37 +24,24 @@ sealed class SkillBillStatusUiState {
     open val lastUpdated: Instant? get() = null
     open val problemSummary: String? get() = null
 
-    /**
-     * Wire `workflow_family`. Carried to the UI because goal-control eligibility is a
-     * function of it; renderers must not re-derive the family from anything else.
-     */
+    
     open val workflowFamily: String? get() = null
 
-    /**
-     * Snapshot-reported "pause requested, not yet consumed". Null means the snapshot
-     * said nothing — never coerced to false, so an absent signal stays distinguishable
-     * from an explicit "no pause pending".
-     */
+    
     open val pauseRequested: Boolean? get() = null
 
-    /**
-     * Non-null only while planning progress is worth showing. Relevance is decided once,
-     * in [StatusUiMapper]; renderers must not re-derive it.
-     */
+    
     open val planning: GoalPlanningInfo? get() = null
 
-    /** Model the current phase launched with; null on states that carry no current step. */
+    
     open val currentModel: CurrentPhaseModel? get() = null
 
     open val pauseReason: PauseReason? get() = null
 
-    /**
-     * Authoritative current-phase execution measure. Non-null only on lifecycles that carry a
-     * current phase; relevance of planning versus this value is decided in [StatusUiMapper].
-     */
+    
     open val currentPhaseExecution: CurrentPhaseExecution? get() = null
 
-    /** True when this state is not live. Always true for [Stale]; a modifier elsewhere. */
+    
     open val stale: Boolean get() = this is Stale
 
     data class Idle(
@@ -111,7 +91,7 @@ sealed class SkillBillStatusUiState {
         override val currentModel: CurrentPhaseModel? = null,
         override val currentPhaseExecution: CurrentPhaseExecution? = null,
         override val problemSummary: String? = null,
-        /** Retained so the 1s ticker re-anchors the active clock without a new poll. */
+        
         val activeDurationMs: Long? = null,
         val activeDurationAsOf: Instant? = null,
         val subtaskActiveDurationMs: Long? = null,

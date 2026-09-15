@@ -118,8 +118,6 @@ class GoalPlanningDiscoveryExclusionsTest {
     }
   }
 
-  // The declared supertype is the assertion: the MCP server, CLI, and quarantine classifier all match
-  // on ShellContentContractException, so this fails to compile if the error stops extending it.
   @Test
   fun `contract failures are governed contract exceptions the runtime already classifies`() {
     val failure: ShellContentContractException =
@@ -129,7 +127,6 @@ class GoalPlanningDiscoveryExclusionsTest {
     assertContains(failure.message.orEmpty(), "not a YAML mapping")
   }
 
-  // Parity is constant vs canonical file vs schema. Reading only the staged copy pins a snapshot.
   @Test
   fun `contract version is pinned across the constant, the canonical file, and its schema`() {
     val repoRoot = assertNotNull(repoRoot(), "contract parity requires the checked-in repository")
@@ -151,7 +148,6 @@ class GoalPlanningDiscoveryExclusionsTest {
       schemaDocument["required"],
     )
 
-    // The staged classpath copy must be the canonical file, not a drifted snapshot of it.
     assertEquals(
       GoalPlanningDiscoveryExclusions.parse(Files.readString(canonical)).roots,
       GoalPlanningDiscoveryExclusions.excludedRoots,

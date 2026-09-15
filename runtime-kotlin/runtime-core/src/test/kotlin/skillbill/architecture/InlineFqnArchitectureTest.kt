@@ -40,12 +40,13 @@ class InlineFqnArchitectureTest {
 
       import java.time.Instant
 
-      /**
-       * Doc mentions java.time.Instant.now() in KDoc.
-       */
-      class Clean {
-        val hint = "java.time.Instant.now()"
-        fun now(): Instant = Instant.now()
+      interface Clean {
+        /**
+         * Doc mentions java.time.Instant.now() in KDoc.
+         */
+        fun now(): Instant
+        val hint: String
+          get() = "java.time.Instant.now()"
       }
       """.trimIndent()
     assertEquals(

@@ -10,11 +10,6 @@ import java.nio.file.Path
 
 private const val CONTENT_PREVIEW_LIMIT = 400
 
-/**
- * SKILL-52.3 subtask 3 — Builds the typed [ScaffoldSkillStatus] for a content-managed
- * skill. The previous `linkedMapOf` open-boundary payload was retired; adapter-owned
- * wire mappers rebuild the byte-equivalent ordered wire map from these typed fields.
- */
 internal fun skillStatus(
   repoRoot: Path,
   target: AuthoringTarget,

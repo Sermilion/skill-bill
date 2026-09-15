@@ -12,15 +12,7 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairO
 import skillbill.workflow.taskruntime.model.salvageCompactReceiptSymbol
 
 internal object FeatureTaskRuntimePhaseOutputEnvelopeWalker {
-  /**
-   * A complete envelope always decides the response. Only when the text holds none at all is the
-   * scan repeated with the absent-`summary` fill enabled.
-   *
-   * The order is what keeps the fill safe. A phase that emits a summary-less draft and then a
-   * corrected envelope must settle on the correction; filling during the first scan would promote
-   * the draft to a second valid candidate and turn a recoverable response into a conflict. Two
-   * summary-less candidates and nothing complete still conflict, which is the honest answer.
-   */
+
   fun select(text: String, phaseId: String): FeatureTaskRuntimePhaseOutputStructuralRepairDecision? =
     selectMatching(text, phaseId, recoverSummary = false)
       ?: selectMatching(text, phaseId, recoverSummary = true)
@@ -76,9 +68,6 @@ internal object FeatureTaskRuntimePhaseOutputEnvelopeWalker {
     return shapedEnvelope(repaired, span, spliceOffset = span.last, phaseId, summarySource)
   }
 
-  // `spliced` is exactly `spliceOffset != null` — the only splice this walker performs records where
-  // it cut — so the offset carries both facts and the two can never disagree. `summarySource` is
-  // likewise both the switch and the input: null leaves an absent summary fatal to the candidate.
   private fun shapedEnvelope(
     slice: String,
     span: IntRange,
@@ -187,14 +176,6 @@ internal object PhaseOutputExpectedShape {
     if (phaseId == "audit") add(SharedPayloadKeys.VERDICT)
   }
 
-  /**
-   * Every key the envelope declares at its root.
-   *
-   * The root is closed and `produced_outputs` is open, so a key outside this set is not an unknown
-   * envelope field — it is a `produced_outputs` member the producer placed one level too high.
-   * `PhaseOutputEnvelopeRootFieldsParityTest` fails if the schema grows a root field this set does
-   * not name, which is what keeps a genuinely new envelope field from being demoted as a stray.
-   */
   val ENVELOPE_ROOT_FIELDS: Set<String> = setOf(
     SharedPayloadKeys.CONTRACT_VERSION,
     SharedPayloadKeys.PHASE_ID,
@@ -222,19 +203,6 @@ internal object PhaseOutputExpectedShape {
     return root to changed
   }
 
-  /**
-   * Moves a key the producer put beside `produced_outputs` into it.
-   *
-   * The mirror of the nested-required-field case above, and the same judgement: the producer already
-   * emitted this value and the shape says where it belongs, so correcting the placement beats
-   * discarding a phase's completed work over it. `reconciled_state` on a mutating phase is the
-   * common one — the contract calls it an additional report, which reads as a sibling of
-   * `produced_outputs` rather than a member of it.
-   *
-   * A key `produced_outputs` already carries keeps the value it already has: the producer named that
-   * member deliberately, and overwriting it would replace a stated value with a guess. The stray
-   * root copy still goes, because the closed root is what rejects the envelope.
-   */
   private fun demoteStrayRootFields(root: ObjectNode, produced: ObjectNode): Boolean {
     val stray = root.fieldNames().asSequence().filterNot(ENVELOPE_ROOT_FIELDS::contains).toList()
     if (stray.isEmpty()) return false
@@ -245,25 +213,6 @@ internal object PhaseOutputExpectedShape {
     return true
   }
 
-  /**
-   * Fills an absent `summary` rather than discarding the envelope over it.
-   *
-   * `summary` is descriptive, never load-bearing: consumers read it as `.orEmpty()`, and the runtime
-   * already authors one itself for its own gate-executed phases. Blocking a phase whose entire
-   * `produced_outputs` is present and valid, over the one field nothing branches on, spends a
-   * session to recover a sentence.
-   *
-   * The fill prefers the producer's own prose immediately before the envelope, which is where a
-   * phase that narrated its work and then emitted JSON actually put its summary — the same recovery
-   * the review path performs when it assembles an envelope from prose. Nothing is invented there;
-   * the text is the producer's, only its placement was wrong. With no such prose, the marker says
-   * plainly that no summary was reported rather than fabricating one.
-   *
-   * Deliberately narrow: it fires only when `phase_id` matches and every other required field is
-   * already present, so an unrelated object never becomes a candidate. That alone is not enough —
-   * a summary-less *draft* of the same phase would still qualify — which is why [select] runs this
-   * only after a scan without it found no complete envelope at all.
-   */
   fun withRecoveredSummary(node: JsonNode, phaseId: String, precedingText: String): Pair<JsonNode, Boolean> {
     val root = (node as? ObjectNode)?.takeIf { onlySummaryIsMissing(it, phaseId) } ?: return node to false
     val recovered = root.deepCopy()
@@ -271,7 +220,6 @@ internal object PhaseOutputExpectedShape {
     return recovered to true
   }
 
-  /** Matching `phase_id` plus every other required field present: the fill can add nothing else. */
   private fun onlySummaryIsMissing(root: ObjectNode, phaseId: String): Boolean =
     root.path(SharedPayloadKeys.PHASE_ID).asText("") == phaseId &&
       !root.hasNonNull(SUMMARY_FIELD) &&
@@ -280,15 +228,8 @@ internal object PhaseOutputExpectedShape {
   private fun absentSummaryMarker(phaseId: String): String =
     "Phase '$phaseId' reported no summary; its produced_outputs carries the phase's output."
 
-  /**
-   * The last paragraph before the envelope, fences removed and whitespace collapsed. The last one
-   * rather than the first: a phase narrates its work in order, so the paragraph nearest the envelope
-   * is the one describing the state the envelope reports.
-   */
   private fun proseSummary(precedingText: String): String? = precedingText
     .replace(FENCED_BLOCK, " ")
-    // The envelope's own opening fence is unmatched in the text preceding it — its closer sits past
-    // the envelope — so it survives the pair strip above and would otherwise be read as the summary.
     .replace(FENCE_MARKER_LINE, "")
     .split(PARAGRAPH_BREAK)
     .lastOrNull(String::isNotBlank)
@@ -306,8 +247,7 @@ internal object PhaseOutputExpectedShape {
   ): FeatureTaskRuntimePhaseOutputStructuralRepairDecision {
     val accepted = decision as? FeatureTaskRuntimePhaseOutputStructuralRepairDecision.Accepted ?: return decision
     val (alignedShape, shapeChanged) = align(accepted.node, phaseId)
-    // A whole-document parse succeeded, so there is no prose outside the envelope to recover from:
-    // the fill can only be the marker, and the missing sentence still must not cost a session.
+
     val (aligned, summaryRecovered) = withRecoveredSummary(alignedShape, phaseId, precedingText = "")
     val changed = shapeChanged || summaryRecovered
     if (!changed) return accepted

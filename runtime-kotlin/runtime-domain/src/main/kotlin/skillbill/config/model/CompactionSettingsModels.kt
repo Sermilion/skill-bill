@@ -4,21 +4,10 @@ import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 
 const val COMPACTION_KEY: String = "compaction"
 
-/**
- * Phase-agent context compaction is on by default: a phase inherits a 1M-context model whose own
- * auto-compaction trigger sits near the top of that window, so a phase that peaks well below it
- * never compacts and pays the full quadratic re-read of its own history.
- */
 const val DEFAULT_COMPACTION_ENABLED: Boolean = true
 const val DEFAULT_COMPACTION_WINDOW_TOKENS: Int = 400_000
 const val DEFAULT_COMPACTION_TRIGGER_PCT: Int = 70
 
-/**
- * Compaction that fires below this many accumulated tokens thrashes: a phase reading ordinary
- * source files refills the freed context within a few turns, and the provider aborts the run after
- * three consecutive refills. The floor is enforced on the effective trigger rather than the window
- * so a large window paired with a small percentage cannot smuggle a thrashing configuration in.
- */
 const val MIN_COMPACTION_TRIGGER_TOKENS: Int = 200_000
 
 private const val PERCENT_SCALE: Int = 100

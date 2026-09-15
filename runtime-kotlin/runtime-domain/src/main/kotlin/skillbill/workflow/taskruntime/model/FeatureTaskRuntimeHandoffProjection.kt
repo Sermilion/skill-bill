@@ -4,7 +4,6 @@ import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 
-/** One validated projection actually delivered to a consumer phase. */
 data class FeatureTaskRuntimeHandoffProjection(
   val projectionName: String,
   val sourceRef: FeatureTaskRuntimeHandoffSourceRef,
@@ -19,10 +18,7 @@ data class FeatureTaskRuntimeHandoffProjection(
       iteration = 1,
     ),
 ) {
-  /**
-   * Exact UTF-8 size of the representation delivered to the consumer. Prompt-visible projections
-   * use their canonical line rendering; private projections use their durable wire representation.
-   */
+
   val utf8ByteSize: Int
     get() = canonicalDeliveredRendering.toByteArray(Charsets.UTF_8).size
   val itemCount: Int get() = fields.sumOf { it.value.itemCount }

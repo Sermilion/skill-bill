@@ -231,8 +231,6 @@ private class MemoryRepository : RejectedOutputDiagnosticRepository {
 
   override fun delete(selector: RejectedOutputDiagnosticSelector): Int = 0
 
-  // Mirrors the SQLite write-once semantics: insert-if-absent by (workflow, phase, generation,
-  // attempt, agent), then a read-back equality guard that raises Conflict on a divergent write.
   override fun retainProducerOutput(evidence: ProducerOutputEvidence) {
     producerOutputs += 1
     val key = listOf(

@@ -3,11 +3,6 @@ package skillbill.config.model
 const val VALIDATION_GATE_KEY: String = "validation_gate"
 const val GRADLE_WRAPPER_KEY: String = "gradle_wrapper"
 
-/**
- * Repo-local validation-gate overrides from `.skill-bill/config.yaml`.
- * Pack manifests keep generic argv (`./gradlew …` at the Git root); monorepos point
- * [gradleWrapper] at a repo-relative wrapper such as `runtime-kotlin/gradlew`.
- */
 data class ValidationGateRepoConfig(
   val gradleWrapper: String? = null,
 ) {
@@ -32,10 +27,6 @@ fun parseValidationGateRepoConfig(raw: Any?): ValidationGateRepoConfigParse = tr
   failure.invalid
 }
 
-/**
- * Returns a normalized repo-relative gradle-wrapper path, or null when [raw] is absent/blank.
- * Absolute paths, empty segments, and `..` traversal are rejected.
- */
 fun parseGradleWrapperPath(raw: String?): String? {
   val trimmed = raw?.trim().orEmpty()
   if (trimmed.isEmpty()) return null
@@ -52,12 +43,6 @@ fun parseGradleWrapperPath(raw: String?): String? {
   return if (invalid) null else segments.joinToString("/")
 }
 
-/**
- * Rewrites pack-declared gate argv when the repo configures a custom gradle wrapper.
- * Replaces a leading `./gradlew` or `gradlew` token and, for nested wrappers, injects
- * `-p <wrapper-parent>` so Gradle resolves the build from the Git root working directory.
- * Other commands stay untouched.
- */
 fun applyValidationGateGradleWrapper(argv: List<String>, gradleWrapper: String?): List<String> {
   val wrapper = gradleWrapper?.takeIf { path -> path.isNotBlank() } ?: return argv
   val head = argv.firstOrNull() ?: return argv

@@ -779,5 +779,3 @@ const val LEGACY_PLANNING_PROJECTION_LAUNCH_SEAM_REJECTION =
   "rejected an upstream bounded planning projection at the launch seam"
 
 const val OWNED_PATH_DELIMITER = '\u0000'
-
-const val MAX_CHECKPOINT_OWNED_PATHS = 500

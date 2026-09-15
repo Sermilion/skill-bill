@@ -6,10 +6,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
-/**
- * SKILL-159 AC-004: the reported-string surface accepts exactly the post-rename token set. An
- * unknown or pre-rename token is a typed parse failure, never a silent drop to null.
- */
 class ReviewExecutionModeReportingTest {
   private fun review(executionModeLine: String?) = ReviewParser.parseReview(
     buildString {
@@ -30,8 +26,6 @@ class ReviewExecutionModeReportingTest {
     }
   }
 
-  // SKILL-136 subtask 4 AC-005: a run that omits the line still records a value; with no delegation
-  // evidence that value is the explicit unresolved marker, never a silent drop to inline.
   @Test
   fun `an absent execution mode line records the explicit unresolved marker`() {
     assertEquals(ReviewExecutionMode.UNRESOLVED, review(null).executionMode)

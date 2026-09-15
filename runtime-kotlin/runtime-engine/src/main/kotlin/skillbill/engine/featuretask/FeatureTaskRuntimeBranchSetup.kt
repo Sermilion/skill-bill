@@ -5,29 +5,10 @@ import skillbill.contracts.issuekey.issueAndFeature
 import skillbill.workflow.gitops.ProtectedBranches
 import java.nio.file.Path
 
-/**
- * Pure branch-resolution helper for the runtime run-setup step. It is effect-free: it does no
- * git/process/file IO and only computes the target feature branch and the setup decision from
- * inert inputs (issue key, spec reference, and the branch the run currently sits on). The caller
- * (the runner) performs the git side effects through the injected `WorkflowGitOperations` port.
- *
- * The target branch follows the feature convention `feat/{ISSUE_KEY}-{feature-name}`, deriving
- * BOTH the issue key and the feature name from the spec's parent directory through the
- * same `issueAndFeature` seam as `DecompositionManifestWriterPlan.defaultFeatureBranch`, so the
- * runtime can never compute a branch that diverges from the canonical one. The protected-branch
- * guard mirrors `GoalRunner` (`PROTECTED_GOAL_BRANCHES` + `protectedBranchName`) so a run never
- * proceeds on `main`/`master`/`trunk`.
- */
 object FeatureTaskRuntimeBranchSetup {
   private val PROTECTED_BRANCHES: Set<String> = ProtectedBranches.names
   private const val DEFAULT_BASE_BRANCH: String = "main"
 
-  /**
-   * Derives the target feature branch `feat/{ISSUE_KEY}-{feature-name}` from the spec reference's
-   * parent directory. Both segments come from the single `issueAndFeature` seam; the request-supplied
-   * [issueKey] is validated against the parsed issue key rather than mixed into the branch name, so a
-   * caller-supplied key can never produce a branch that diverges from `defaultFeatureBranch`.
-   */
   internal fun targetBranch(issueKey: String, specReference: String): FeatureTaskRuntimeTargetBranch {
     val parentName = Path.of(specReference).parent?.fileName?.toString().orEmpty()
     if (parentName.isBlank()) {
@@ -48,15 +29,6 @@ object FeatureTaskRuntimeBranchSetup {
     }
   }
 
-  /**
-   * Decides how to establish the feature branch given the branch the run currently sits on.
-   * - On a default/protected branch (or an unknown/blank current branch): [Create] the target
-   *   branch and switch to it from [DEFAULT_BASE_BRANCH].
-   * - On any other (non-protected) branch: [Reuse] it as-is — this is the seam goal-driven runs
-   *   rely on to hand the runtime a pre-created branch (subtask 7).
-   * - When the target branch cannot be derived (malformed spec reference or issue-key mismatch),
-   *   returns an invalid decision so the runner can block loudly.
-   */
   internal fun decide(
     issueKey: String,
     specReference: String,
@@ -91,14 +63,12 @@ object FeatureTaskRuntimeBranchSetup {
     }
   }
 
-  /** The protected branch name when [branch] is one of the protected defaults, else null. */
   fun protectedBranchName(branch: String?): String? = branch
     ?.trim()
     ?.takeIf(String::isNotBlank)
     ?.takeIf { normalized -> normalized.lowercase() in PROTECTED_BRANCHES }
 }
 
-/** The derived target feature branch, or a structured reason it could not be derived. */
 internal sealed interface FeatureTaskRuntimeTargetBranch {
   val resolvedBranch: String?
   val invalidReason: String?
@@ -120,12 +90,6 @@ internal data class FeatureTaskRuntimeTargetBranchInvalid(val reason: String) : 
   override val invalidReason: String get() = reason
 }
 
-/**
- * The runtime's branch-setup decision. A resolved decision carries the target branch (when [create]
- * is true the runtime must create+switch to [branch] from [baseBranch]; otherwise it reuses the
- * already-checked-out [branch] and [baseBranch] is null). An invalid decision carries a structured
- * [invalidReason] the runner must turn into a loud block.
- */
 internal sealed interface FeatureTaskRuntimeBranchDecision {
   val invalidReason: String?
 

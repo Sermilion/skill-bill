@@ -157,8 +157,6 @@ class ReviewRunLaneDispositionPersistenceTest {
     }
   }
 
-  // A non-empty unreviewed segment list is what makes a lane incomplete, so the disposition and the
-  // stopping budget dimension are derived here rather than passed alongside it.
   private fun lane(
     laneSkillName: String = "bill-kotlin-code-review-security",
     bundleCompositionDigest: String? = null,

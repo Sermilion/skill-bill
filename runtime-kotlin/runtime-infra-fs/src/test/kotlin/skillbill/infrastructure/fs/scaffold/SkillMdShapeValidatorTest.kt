@@ -8,14 +8,6 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertFailsWith
 
-/**
- * Coverage for the polymorphic shape validator after SKILL-40 subtask 1.
- *
- * The validator must:
- *  - always enforce frontmatter rules (required block, name+description),
- *  - accept rich body markdown (fenced code, H1/H3, tables) on content.md (validateBodyShape=false),
- *  - still enforce the canonical wrapper body shape on SKILL.md (validateBodyShape=true).
- */
 class SkillMdShapeValidatorTest {
   @Test
   fun `valid content_md with rich body markdown passes when body shape is not enforced`() {
@@ -42,7 +34,7 @@ class SkillMdShapeValidatorTest {
       ```
       """.trimIndent() + "\n",
     )
-    // Must not throw — frontmatter-only mode is permissive of body markdown.
+
     validateSkillMdShape(contentFile, validateBodyShape = false)
   }
 
@@ -86,7 +78,7 @@ class SkillMdShapeValidatorTest {
       validateSkillMdShape(contentFile, validateBodyShape = false)
     }
     assertContains(error.message.orEmpty(), "must begin with a YAML frontmatter block")
-    // Error message must reference the actual filename, not a hard-coded literal.
+
     assertContains(error.message.orEmpty(), "content.md")
   }
 
@@ -160,7 +152,6 @@ class SkillMdShapeValidatorTest {
 
   @Test
   fun `wrapper body fence rule does not fire when body shape is not enforced`() {
-    // Same SKILL.md text as above must pass when callers opt out of wrapper-body checks.
     val skillFile = writeFile(
       "SKILL.md",
       """
@@ -181,8 +172,6 @@ class SkillMdShapeValidatorTest {
 
   @Test
   fun `same wrapper text fails strict mode body shape rules`() {
-    // Pair regression-protects on/off semantics: identical SKILL.md text that passes
-    // permissive mode must trip strict mode (fenced code blocks are rejected first).
     val skillFile = writeFile(
       "SKILL.md",
       """

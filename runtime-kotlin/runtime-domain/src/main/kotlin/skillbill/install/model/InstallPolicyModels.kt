@@ -12,12 +12,7 @@ data class InstallPlatformPackSnapshot(
   val slug: String,
   val packRoot: FileLocation,
   val skills: List<InstallPlanSkill>,
-  /**
-   * SKILL-104 (PD8): the pack's required code-review baseline layers (from
-   * `platform.yaml` `code_review_composition.baseline_layers`), used by the install-plan policy to
-   * loud-fail when a selected pack declares a required baseline in an unselected pack. Empty for
-   * packs with no composition block.
-   */
+
   val baselineLayers: List<CodeReviewBaselineLayer> = emptyList(),
 )
 

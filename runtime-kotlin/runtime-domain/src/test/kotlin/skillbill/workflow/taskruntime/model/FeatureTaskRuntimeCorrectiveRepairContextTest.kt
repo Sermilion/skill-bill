@@ -7,13 +7,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/**
- * SKILL-187 subtask 1: corrective-repair context classification, UTF-8 budgets, and prompt projection.
- *
- * Realistic bugs these catch: a budget that counts Unicode characters instead of UTF-8 bytes and admits
- * an oversized multi-byte body as exact; a truncated or oversized capture mislabeled exact with a
- * lossy excerpt; value-bearing leakage into a payload-free fallback projection.
- */
 class FeatureTaskRuntimeCorrectiveRepairContextTest {
   @Test
   fun `budget construction rejects non-positive limits and a prompt budget smaller than the response budget`() {
@@ -37,9 +30,7 @@ class FeatureTaskRuntimeCorrectiveRepairContextTest {
 
   @Test
   fun `multi-byte synthetic responses are classified by UTF-8 byte count not character count`() {
-    // Three-byte UTF-8 code points: 4 characters = 12 bytes. A char-counting budget of 10 would
-    // wrongly admit this body; the UTF-8 budget of 10 must classify it as exceeds-repair-budget.
-    val threeByte = "\u20AC\u20AC\u20AC\u20AC" // euro sign = 3 UTF-8 bytes each → 12 bytes, 4 chars
+    val threeByte = "\u20AC\u20AC\u20AC\u20AC"
     assertEquals(12, threeByte.toByteArray(Charsets.UTF_8).size)
     assertEquals(4, threeByte.length)
 
@@ -57,7 +48,6 @@ class FeatureTaskRuntimeCorrectiveRepairContextTest {
     assertEquals(12, captured.utf8ByteCount)
     assertEquals(CorrectiveRepairResponseAvailability.RESPONSE_EXCEEDS_REPAIR_BUDGET, captured.availability)
 
-    // 9 bytes
     val within = CorrectiveRepairCapturedResponse.classify(
       body = "\u20AC\u20AC\u20AC",
       alreadyTruncated = false,
@@ -125,9 +115,6 @@ class FeatureTaskRuntimeCorrectiveRepairContextTest {
 
   @Test
   fun `framed exact body that overflows the prompt budget falls back without an excerpt`() {
-    // Realistic bug: measuring only the framed exact body, then emitting a payload-free fallback that
-    // itself exceeds maxPromptUtf8Bytes. Body fits the response budget; framing does not fit the prompt
-    // budget; fallback still must fit.
     val body = "x".repeat(200)
     val capture = CorrectiveRepairCapturedResponse.classify(
       body = body,
@@ -164,8 +151,6 @@ class FeatureTaskRuntimeCorrectiveRepairContextTest {
 
   @Test
   fun `fallback that still exceeds the prompt budget is rejected rather than emitted`() {
-    // Realistic bug: exact framing overflows a tiny prompt budget and the fallback is returned unchecked,
-    // so an "over budget" path still ships an over-budget section.
     val body = "sentinel-body"
     val capture = CorrectiveRepairCapturedResponse.classify(
       body = body,
@@ -197,9 +182,6 @@ class FeatureTaskRuntimeCorrectiveRepairContextTest {
 
   @Test
   fun `non-exact fallback that exceeds the prompt budget is rejected rather than emitted`() {
-    // Realistic bug: Exact→fallback checked maxPromptUtf8Bytes, but AlreadyTruncated / ExceedsBudget /
-    // Unavailable returned a payload-free section without measuring it, so a tiny prompt budget still
-    // shipped an over-budget non-exact projection.
     val capture = CorrectiveRepairCapturedResponse.AlreadyTruncated(
       utf8ByteCount = 2_048,
       digestSha256 = sha256Hex("truncated-capture".toByteArray(Charsets.UTF_8)),
@@ -233,8 +215,6 @@ class FeatureTaskRuntimeCorrectiveRepairContextTest {
 
   @Test
   fun `collection limit is enforced at the projection boundary before rendering`() {
-    // Realistic bug: a budget that only checks maxCollectionItems > 0 at construction, then never
-    // compares an actual item count before prompt rendering, so an oversized collection reaches the agent.
     val tight = FeatureTaskRuntimeCorrectiveRepairBudget(
       maxResponseUtf8Bytes = 64,
       maxPromptUtf8Bytes = 1_024,
@@ -260,7 +240,7 @@ class FeatureTaskRuntimeCorrectiveRepairContextTest {
       captured = capture,
       budget = tight,
     )
-    // from() calls requireCollectionWithinLimit(1); a one-item projection stays within the budget.
+
     assertEquals(
       CorrectiveRepairResponseAvailability.EXACT_RESPONSE_INCLUDED,
       context.promptProjection().availability,
@@ -269,8 +249,6 @@ class FeatureTaskRuntimeCorrectiveRepairContextTest {
 
   @Test
   fun `diagnostic locator rejects paths whitespace and value-bearing text and renders only the sanitized id`() {
-    // Realistic bug: interpolating an unchecked locator lets a filesystem path, newline, or secret
-    // into the payload-free fallback prompt.
     assertFailsWith<IllegalArgumentException> {
       CorrectiveRepairDiagnosticLocator("/home/secret/db.sqlite")
     }
@@ -307,7 +285,7 @@ class FeatureTaskRuntimeCorrectiveRepairContextTest {
     val section = sampleContext(capture).promptProjection().renderAuthorizedRepairSection()
 
     assertTrue(section.contains(body))
-    // Body already owns marker=0, so framing must pick a different close marker.
+
     assertTrue(section.contains("<<<END_CORRECTIVE_REPAIR_RESPONSE marker=1>>>"))
     val afterBody = section.substringAfter(body)
     assertTrue(
@@ -328,10 +306,6 @@ class FeatureTaskRuntimeCorrectiveRepairContextTest {
     )
 }
 
-/**
- * One boundary conformance test: synthetic JSON and YAML through the typed projection, checking digest
- * and UTF-8 metadata and asserting raw content stays out of payload-free and non-authorized shapes.
- */
 class CorrectiveRepairContextConformanceTest {
   @Test
   fun `JSON and YAML synthetic responses project with matching digest metadata and payload-free fallbacks`() {

@@ -100,8 +100,6 @@ class FeatureTaskRuntimePhaseOutputValidationModelsTest {
 
   @Test
   fun `rejected after structural repair maps acceptedAfterStructuralRepair onto the throwing seam`() {
-    // Realistic bug: adapter keeps digest evidence on Rejected, but requireAccepted drops it and the
-    // corrective retry never learns syntax repair already ran.
     val evidence = FeatureTaskRuntimePhaseOutputRepairEvidence(
       format = FeatureTaskRuntimePhaseOutputFormat.JSON,
       originalDigest = "a".repeat(64),

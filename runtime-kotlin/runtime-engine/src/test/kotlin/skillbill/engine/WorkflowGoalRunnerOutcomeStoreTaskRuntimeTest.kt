@@ -178,8 +178,6 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
 
   @Test
   fun `evidence-based reconcile keeps a running subtask with recent declared progress`() {
-    // SKILL-87 (AC4): an empty active set with requireStalenessEvidence must NOT stale-block a child
-    // that is plainly alive — a recent declared operation_heartbeat is positive liveness evidence.
     val workflows = InMemoryWorkflowStates()
     workflows.saveFeatureTaskRuntimeWorkflow(
       runtimeCandidateRecord("wftr-alive", declaredProgressTimestamp = Instant.now()),
@@ -202,8 +200,6 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
 
   @Test
   fun `evidence-based reconcile blocks a running subtask with no liveness past the staleness window`() {
-    // SKILL-87 (AC4): the same empty-active-set reconcile DOES block a child whose only liveness signal
-    // is stale beyond the window — positive evidence it is gone.
     val workflows = InMemoryWorkflowStates()
     workflows.saveFeatureTaskRuntimeWorkflow(
       runtimeCandidateRecord(
@@ -231,10 +227,6 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
 
   @Test
   fun `evidence-based reconcile blocks a running subtask whose only liveness is an old sqlite updatedAt`() {
-    // SKILL-87 (F-001/F-002): a running child that emitted NO declared/observability event still
-    // carries the row's own updated_at as an always-present backstop. SQLite stamps it as
-    // "yyyy-MM-dd HH:mm:ss"; once parsed, an updated_at well past the 30-min window is positive
-    // staleness evidence and the strand-forever path is closed.
     val workflows = InMemoryWorkflowStates()
     workflows.saveFeatureTaskRuntimeWorkflow(
       runtimeCandidateRecordNoDeclaredEvent(
@@ -262,8 +254,6 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
 
   @Test
   fun `evidence-based reconcile keeps a running subtask whose only liveness is a recent sqlite updatedAt`() {
-    // SKILL-87 (F-001): the SQLite-format updated_at must parse and count as recent liveness when it
-    // is within the window, so a quiet-but-alive child with no declared event is not false-killed.
     val workflows = InMemoryWorkflowStates()
     workflows.saveFeatureTaskRuntimeWorkflow(
       runtimeCandidateRecordNoDeclaredEvent(
@@ -289,9 +279,6 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
 
   @Test
   fun `evidence-based reconcile keeps a running subtask with genuinely empty liveness`() {
-    // SKILL-87 (F-002): the no-evidence-at-all fallback — no declared/observability event AND no
-    // parseable updated_at — biases to alive. This locks the defensive last-resort branch so a
-    // regression that flips it to false-kill is caught.
     val workflows = InMemoryWorkflowStates()
     workflows.saveFeatureTaskRuntimeWorkflow(
       runtimeCandidateRecordNoDeclaredEvent("wftr-empty-liveness", updatedAt = null),
@@ -314,9 +301,6 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
 
   @Test
   fun `a crashed goal child with an expired lease and dead process reconciles to a resumable outcome`() {
-    // AC-002: the goal-parent outcome store transitions a crashed child (running row, expired lease,
-    // dead process) to a RECONCILABLE outcome so the parent keeps the subtask resumable instead of
-    // emitting the terminal NO_TERMINAL_STORE_OUTCOME block.
     val workflows = InMemoryWorkflowStates()
     workflows.saveFeatureTaskRuntimeWorkflow(crashedChildRecord("wftr-crashed-child"))
     workflows.seedWorkerOwnership(expiredLeaseOwnership("wftr-crashed-child"))
@@ -370,8 +354,6 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
 
   @Test
   fun `a goal child with a live lease or live process is never reconciled and yields no outcome`() {
-    // AC-003: a live lease (not expired) and a live process (expired lease but alive) both leave the
-    // row untouched, returning no outcome so the existing terminal reasons stay intact.
     val liveLease = InMemoryWorkflowStates()
     liveLease.saveFeatureTaskRuntimeWorkflow(crashedChildRecord("wftr-live-lease"))
     liveLease.seedWorkerOwnership(expiredLeaseOwnership("wftr-live-lease", expiresAt = "2999-01-01T00:00:30Z"))

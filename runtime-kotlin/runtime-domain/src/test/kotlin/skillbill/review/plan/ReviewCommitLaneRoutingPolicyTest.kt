@@ -16,11 +16,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-/**
- * Relevance is decided once here with no worker backstop, so routing quality is asserted directly:
- * exact dispositions per commit, no skipped owning lane for disguised risk, and every skip reason
- * falsifiable against the commit's own changed hunks.
- */
 class ReviewCommitLaneRoutingPolicyTest {
   private fun lane(
     area: String,
@@ -88,7 +83,6 @@ class ReviewCommitLaneRoutingPolicyTest {
   private fun disposition(matrix: ReviewCommitLaneRoutingMatrix, commitSha: String, lane: ReviewRoutedLane) =
     matrix.decisions.single { it.commitSha == commitSha && it.lane == lane.laneKey }.disposition
 
-  // AC-002
   @Test fun `a pure UI commit never enters the security lane`() {
     val uiCommit = commit(0, hunk("ui/ProfileScreen.kt", "+@Composable fun Profile() {}"))
     val matrix = ReviewCommitLaneRoutingPolicy.route(listOf(uiCommit), allLanes)
@@ -99,7 +93,6 @@ class ReviewCommitLaneRoutingPolicyTest {
     assertEquals(ReviewCommitLaneDisposition.SKIPPED, disposition(matrix, "c0", apiContracts))
   }
 
-  // AC-002
   @Test fun `a pure UX accessibility commit focuses UX and skips persistence and security`() {
     val uxCommit = commit(0, hunk("ui/AccessibleButton.kt", "+Modifier.semantics { contentDescription = \"Save\" }"))
     val matrix = ReviewCommitLaneRoutingPolicy.route(listOf(uxCommit), allLanes)
@@ -110,7 +103,6 @@ class ReviewCommitLaneRoutingPolicyTest {
     assertEquals(ReviewCommitLaneDisposition.SKIPPED, disposition(matrix, "c0", security))
   }
 
-  // AC-002
   @Test fun `a pure architecture ports commit focuses architecture and skips UI`() {
     val archCommit = commit(0, hunk("ports/BillingPort.kt", "+interface BillingPort { fun charge(): Boolean }"))
     val matrix = ReviewCommitLaneRoutingPolicy.route(listOf(archCommit), allLanes)
@@ -120,7 +112,6 @@ class ReviewCommitLaneRoutingPolicyTest {
     assertEquals(ReviewCommitLaneDisposition.SKIPPED, disposition(matrix, "c0", uxAccessibility))
   }
 
-  // AC-002
   @Test fun `a pure testing commit focuses testing and skips security`() {
     val testCommit = commit(0, hunk("src/test/ScreenTest.kt", "+@Test fun renders() {}"))
     val matrix = ReviewCommitLaneRoutingPolicy.route(listOf(testCommit), allLanes)
@@ -130,7 +121,6 @@ class ReviewCommitLaneRoutingPolicyTest {
     assertEquals(ReviewCommitLaneDisposition.SKIPPED, disposition(matrix, "c0", persistence))
   }
 
-  // AC-002
   @Test fun `a pure persistence commit never enters the UI lane`() {
     val dbCommit = commit(0, hunk("db/migrations/003_add_tenant.sql", "+CREATE TABLE tenant (id uuid);"))
     val matrix = ReviewCommitLaneRoutingPolicy.route(listOf(dbCommit), allLanes)
@@ -140,7 +130,6 @@ class ReviewCommitLaneRoutingPolicyTest {
     assertEquals(ReviewCommitLaneDisposition.SKIPPED, disposition(matrix, "c0", uxAccessibility))
   }
 
-  // AC-003, AC-009
   @Test fun `a shared contract change under an unrelated path still reaches api-contracts`() {
     val disguised = commit(0, hunk("misc/WireFormat.kt", "+@Serializable data class WireFormat(val openapi: String)"))
     val matrix = ReviewCommitLaneRoutingPolicy.route(listOf(disguised), allLanes)
@@ -148,7 +137,6 @@ class ReviewCommitLaneRoutingPolicyTest {
     assertEquals(ReviewCommitLaneDisposition.FOCUSED, disposition(matrix, "c0", apiContracts))
   }
 
-  // AC-002
   @Test fun `an authentication and API commit reaches both the security and api-contract lanes`() {
     val authCommit = commit(
       0,
@@ -162,7 +150,6 @@ class ReviewCommitLaneRoutingPolicyTest {
     assertEquals(ReviewCommitLaneDisposition.SKIPPED, disposition(matrix, "c0", ui))
   }
 
-  // AC-003
   @Test fun `a cross-cutting commit enters several lanes and each inclusion cites changed evidence`() {
     val crossCutting = commit(
       0,
@@ -187,7 +174,6 @@ class ReviewCommitLaneRoutingPolicyTest {
     }
   }
 
-  // AC-003, AC-009
   @Test fun `disguised risk still reaches its owning lane despite an unrelated path and misleading subject`() {
     val disguised = ReviewCommitUnit.ofCommit(
       commitSha = "c0",
@@ -201,7 +187,6 @@ class ReviewCommitLaneRoutingPolicyTest {
     assertEquals(ReviewCommitLaneDisposition.FOCUSED, disposition(matrix, "c0", security))
   }
 
-  // AC-003, AC-009
   @Test fun `a durable state shape change under an unrelated path still reaches persistence`() {
     val disguised = commit(0, hunk("util/Bootstrap.kt", "+@Entity data class AuditRow(val id: Long)"))
     val matrix = ReviewCommitLaneRoutingPolicy.route(listOf(disguised), allLanes)
@@ -209,7 +194,6 @@ class ReviewCommitLaneRoutingPolicyTest {
     assertEquals(ReviewCommitLaneDisposition.FOCUSED, disposition(matrix, "c0", persistence))
   }
 
-  // AC-003
   @Test fun `a commit subject alone can never focus a lane`() {
     val subjectOnly = ReviewCommitUnit.ofCommit(
       commitSha = "c0",
@@ -223,7 +207,6 @@ class ReviewCommitLaneRoutingPolicyTest {
     assertTrue(matrix.decisions.none { it.focused }, "a commit message alone focused a lane")
   }
 
-  // AC-004
   @Test fun `required baseline lanes are focused for every commit and never skipped`() {
     val commits = listOf(
       commit(0, hunk("ui/Screen.kt", "+@Composable fun Screen() {}")),
@@ -240,7 +223,6 @@ class ReviewCommitLaneRoutingPolicyTest {
     )
   }
 
-  // AC-004
   @Test fun `optional lanes do not receive clearly irrelevant commit bodies`() {
     val docsOnly = commit(0, hunk("docs/CHANGELOG.md", "+released 1.2.3"))
     val matrix = ReviewCommitLaneRoutingPolicy.route(listOf(docsOnly), allLanes)
@@ -248,7 +230,6 @@ class ReviewCommitLaneRoutingPolicyTest {
     assertTrue(matrix.decisions.none { it.focused })
   }
 
-  // AC-008
   @Test fun `sparse routing shrinks the commit-by-lane matrix while preserving required and cross-cutting coverage`() {
     val commits = listOf(
       commit(0, hunk("ui/Screen.kt", "+@Composable fun Screen() {}")),
@@ -273,7 +254,6 @@ class ReviewCommitLaneRoutingPolicyTest {
     assertEquals(listOf("c2"), matrix.focusedCommits(testing.laneKey))
   }
 
-  // AC-001, AC-009
   @Test fun `every skip reason is falsifiable against the commit's own changed hunks`() {
     val commits = listOf(
       commit(0, hunk("ui/Screen.kt", "+@Composable fun Screen() {}")),
@@ -304,7 +284,6 @@ class ReviewCommitLaneRoutingPolicyTest {
     }
   }
 
-  // AC-001
   @Test fun `routing decides every commit-lane pair exactly once and in commit order`() {
     val commits = listOf(
       commit(0, hunk("ui/Screen.kt", "+@Composable fun A() {}")),
@@ -318,7 +297,6 @@ class ReviewCommitLaneRoutingPolicyTest {
     assertTrue(matrix.decisions.all { it.reason.isNotBlank() })
   }
 
-  // AC-007
   @Test fun `a single synthetic unit resolves each lane to exactly one decision without commit identity`() {
     val synthetic = ReviewCommitUnit.synthetic(
       ReviewCommitSource.SYNTHETIC_WORKING_TREE,
@@ -334,7 +312,6 @@ class ReviewCommitLaneRoutingPolicyTest {
     assertTrue(matrix.focusedCommits(persistence.laneKey).isEmpty())
   }
 
-  // AC-010
   @Test fun `routing analysis no longer hard-fails on former pair or byte prep budgets`() {
     val commits = (0..3).map { commit(it, hunk("ui/Screen$it.kt", "+@Composable fun S() {}")) }
     val matrix = ReviewCommitLaneRoutingPolicy.route(commits, allLanes)
@@ -354,7 +331,6 @@ class ReviewCommitLaneRoutingPolicyTest {
     assertEquals(allLanes.size, matrix.decisions.size)
   }
 
-  // AC-010
   @Test fun `non-positive routing budgets are rejected at construction`() {
     assertFailsWith<IllegalArgumentException> {
       ReviewContextBudgetPolicy.DEFAULT.copy(maxRoutingAnalysisPairs = 0)
@@ -364,7 +340,6 @@ class ReviewCommitLaneRoutingPolicyTest {
     }
   }
 
-  // AC-001
   @Test fun `the routing matrix rejects a missing pair a duplicate pair and a bad reason`() {
     fun decision(
       sha: String,
@@ -395,7 +370,6 @@ class ReviewCommitLaneRoutingPolicyTest {
     }
   }
 
-  // AC-001
   @Test fun `the disposition vocabulary admits no deferred candidate state`() {
     assertEquals(
       listOf("FOCUSED", "SKIPPED"),
@@ -403,7 +377,6 @@ class ReviewCommitLaneRoutingPolicyTest {
     )
   }
 
-  // AC-006
   @Test fun `the routing digest moves with a disposition and with a skip reason`() {
     val commits = listOf(commit(0, hunk("ui/Screen.kt", "+@Composable fun S() {}")))
     val matrix = ReviewCommitLaneRoutingPolicy.route(commits, allLanes)

@@ -3,7 +3,6 @@ package skillbill.workflow.taskruntime.model
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.error.InvalidWorkflowStateSchemaError
 
-/** Durable terminal decompose/planning-stop summary for status and monitor after process restart. */
 const val FEATURE_TASK_RUNTIME_DECOMPOSE_TERMINAL_ARTIFACT_KEY: String =
   "feature_task_runtime_decompose_terminal"
 

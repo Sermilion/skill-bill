@@ -15,10 +15,6 @@ import java.sql.Connection
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-/**
- * SKILL-136 subtask 6 AC-004. The accepted/rejected aggregation must reflect outcomes the fix loop
- * recorded, not only the ones an operator remembered to triage by hand.
- */
 class LoopRecordedOutcomeStatsTest {
   @Test
   fun `a loop-recorded outcome counts as resolved without any manual triage`() {
@@ -74,7 +70,6 @@ class LoopRecordedOutcomeStatsTest {
       val review = ReviewParser.parseReview(SAMPLE_REVIEW.trimIndent())
       ReviewRuntime.saveImportedReview(connection, review, sourcePath = null)
 
-      // The exact record shape the review reducer now derives once the pass reports its run id.
       SQLiteUnaddressedFindingsRepository(connection).recordOutcomes(
         listOf(
           ReviewFindingOutcomeRecord(

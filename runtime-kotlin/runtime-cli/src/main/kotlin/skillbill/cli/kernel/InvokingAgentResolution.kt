@@ -18,12 +18,6 @@ fun requireInvokingAgentId(explicitAgent: String?, environment: Map<String, Stri
   return requireSupportedAgentId(resolved, invokingAgentSource(explicitAgent, agentOption))
 }
 
-/**
- * Refuse an agent id the runtime cannot launch, at the CLI boundary. Detection via execution-context
- * markers yields an [InstallAgent] id by construction, so only an operator-supplied value can name an
- * unknown agent — and without this gate that value travels as an opaque string until the runtime
- * rejects it, by which point a goal record and its planning attempt already exist.
- */
 fun requireSupportedAgentId(agentId: String, source: String): String {
   val normalized = agentId.trim().lowercase()
   if (normalized !in InstallAgent.supportedIds) {
@@ -32,10 +26,6 @@ fun requireSupportedAgentId(agentId: String, source: String): String {
   return normalized
 }
 
-/**
- * Blank stays the business of the request-level identity validation that already reports it; this
- * only answers whether a supplied agent id names a supported agent.
- */
 fun requireSupportedOptionalAgentId(agentId: String?, agentOption: String): String? = when {
   agentId == null || agentId.isBlank() -> agentId
   else -> requireSupportedAgentId(agentId, agentOption)

@@ -10,32 +10,6 @@ import skillbill.scaffold.policy.scaffold.RETIRED_PLATFORM_OVERRIDE_KIND_ALIASES
 import skillbill.scaffold.policy.scaffold.SCAFFOLD_PAYLOAD_VERSION
 import skillbill.scaffold.policy.scaffold.rejectRetiredPartialScaffoldKind
 
-/**
- * SKILL-52.2 subtask 2 (Task 11): the legacy raw-map scaffold-payload policy helpers used to
- * live in `runtime-domain` under `skillbill.scaffold.policy`. Per the SKILL-52.2 plan the 11
- * scaffold-input raw-map entries are removed from the architecture allow-list; relocating these
- * helpers to `runtime-infra-fs` (which the raw-map architecture scanner does NOT walk) closes
- * out the 9 policy-function entries without forcing a wholesale re-shape of the existing
- * filesystem scaffolder internals.
- *
- * The orchestrator at `skillbill.scaffold.ScaffoldService` continues to consume raw maps
- * internally — that is acceptable because:
- *  - The new public application + port surface is fully typed via `ScaffoldCommandRequest`.
- *  - CLI / MCP / Desktop adapters parse to typed requests at the adapter boundary.
- *  - The typed gateway path re-materialises the typed request to the legacy raw payload
- *    (`ScaffoldCommandRequestRawPayload.toRawScaffoldPayload`) only inside `runtime-infra-fs`,
- *    not across the open boundary.
- *
- * Functions here are deliberately `internal` so they are invisible to anything outside
- * `runtime-infra-fs` and so the architecture scanner — even if its scope expanded — would not
- * treat them as a public boundary.
- *
- * This file owns the top-level payload-shape policy (version + kind + baseline-layers gate +
- * string lifters). Subagent-policy and platform-pack-resolution helpers live in sibling files
- * (`ScaffoldPayloadMapSubagentPolicy.kt`, `ScaffoldPayloadMapPlatformPackPolicy.kt`) so each file
- * stays small and focused.
- */
-
 internal fun validatePayloadVersion(payload: Map<String, Any?>) {
   val version = payload["scaffold_payload_version"] as? String
     ?: throw InvalidScaffoldPayloadError(

@@ -28,12 +28,6 @@ const val REPAIR_RECEIPT_MAX_DISTURBANCE_REASON_UTF8_BYTES: Int = 356
 
 private val GIT_COMMIT_SHA = Regex("^[0-9a-f]{40}(?:[0-9a-f]{24})?$")
 
-/**
- * Invariant checks in a receipt `init` name their field without knowing where the value sits in the
- * payload, so a bad entry would otherwise report `text` — a key that does not exist under the
- * receipt's `additionalProperties: false`. Re-anchoring the bare name onto the decode path is what
- * makes the reported JSON pointer address the offending entry the producer has to repair.
- */
 private fun <T> anchoredToDecodePath(path: String, decode: () -> T): T = try {
   decode()
 } catch (error: InvalidFeatureTaskRuntimeRepairReceiptError) {
@@ -52,13 +46,6 @@ enum class FeatureTaskRuntimeRepairOutcome(val wireValue: String) {
   ADDRESSED("addressed"),
   NO_EDIT_REQUIRED("no_edit_required"),
 
-  /**
-   * The round tried and the finding is still open. Without it a round that could not close a finding
-   * has no honest entry to write: `addressed` asserts an edit that closed it and `no_edit_required`
-   * asserts no edit was warranted, so the only exit was to omit the finding — which is exactly the
-   * silent loss the coverage gate exists to catch. The finding gets one more fix attempt; reported
-   * unresolved twice it blocks, carrying the producer's own account of what still fails.
-   */
   ATTEMPTED_UNRESOLVED("attempted_unresolved"),
   ;
 
@@ -71,10 +58,6 @@ enum class FeatureTaskRuntimeRepairOutcome(val wireValue: String) {
   }
 }
 
-/**
- * Normalized construct key (trim, lowercase, whitespace collapse) so the same
- * construct written two ways compares equal. Subtasks 2 through 4 key off this.
- */
 @ConsistentCopyVisibility
 data class FeatureTaskRuntimeRepairConstructIdentity internal constructor(val key: String) {
   companion object {
@@ -262,12 +245,6 @@ data class FeatureTaskRuntimeRepairReceipt(
       }
     }
 
-    /**
-     * Entry-shape validation without the runtime-owned anchor. A run with no durable review state
-     * has no remediation base or round to stamp, so the full receipt cannot be built — but the
-     * sanitizer that keeps diff hunks and serialized payloads out of durable state lives on the
-     * entries and still has to run.
-     */
     internal fun validateEntries(
       raw: Map<String, Any?>,
       path: String,
@@ -288,10 +265,6 @@ private val ACCEPTED_REPAIR_RECEIPT_CONTRACT_VERSIONS: Set<String> = setOf(
   FEATURE_TASK_RUNTIME_REPAIR_RECEIPT_CONTRACT_VERSION,
 )
 
-/**
- * The review pass this `implement_fix` round remediates: the completed pass count at
- * `implement_fix` entry. Never a phase-launch count.
- */
 fun featureTaskRuntimeRemediationRoundNumber(completedPassCountAtImplementFixEntry: Int): Int {
   if (completedPassCountAtImplementFixEntry < 1) {
     receiptError(
@@ -312,21 +285,10 @@ fun GoalSubtaskReviewState.upsertRepairReceipt(receipt: FeatureTaskRuntimeRepair
   return copy(repairReceipts = updated)
 }
 
-/**
- * Coverage for a round's carried findings. Match only on the briefing's finding ref
- * (`finding_id`). Label and text are decoration and never decide coverage. Carried findings must
- * carry a ref before coverage runs; [withStableFindingRefs] assigns one when review omitted it.
- */
 fun FeatureTaskRuntimeRepairReceipt.coversCarriedFindings(
   carriedFindings: List<GoalSubtaskReviewCompactFinding>,
 ): Boolean = omittedCarriedFindings(carriedFindings).isEmpty()
 
-/**
- * The carried findings this receipt never accounted for, in carried order. The runtime sends the
- * round back for exactly these, so it needs the identities rather than a boolean: naming them is
- * what lets the next attempt close the omission instead of guessing at it, and it is what makes a
- * non-shrinking omission set detectable.
- */
 fun FeatureTaskRuntimeRepairReceipt.omittedCarriedFindings(
   carriedFindings: List<GoalSubtaskReviewCompactFinding>,
 ): List<GoalSubtaskReviewCompactFinding> {

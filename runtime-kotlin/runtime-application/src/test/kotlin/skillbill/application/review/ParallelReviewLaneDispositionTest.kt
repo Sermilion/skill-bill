@@ -28,7 +28,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-/** Lane disposition and segment accounting without driving the full parallel runner. */
 class ParallelReviewLaneDispositionTest {
   private val hunk = ReviewChangedHunk("src/A.kt", 1, 1, 1, 1, "+${"x".repeat(400)}")
   private val unit = ReviewCommitUnit("head", "base", "large hunk", 0, listOf(hunk), ReviewCommitSource.COMMIT_RANGE)

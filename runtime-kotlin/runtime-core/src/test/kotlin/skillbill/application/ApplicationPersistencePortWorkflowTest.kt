@@ -32,9 +32,6 @@ import kotlin.test.assertTrue
 class ApplicationPersistencePortWorkflowTest {
   @Test
   fun `workflow service owns implement rows list resume and continuation through ports`() {
-    // Resume gate judges upstream presence from completed private phase records
-    // (FeatureTaskRuntimeRequiredArtifactPresenceResolver / requiredArtifactsByStep[implement]=[plan]),
-    // matching WorkflowCompactContinuationTest — not top-level plan/preplan_digest maps.
     val workflowRepository = InMemoryWorkflowStateRepository()
     val database = FakeDatabaseSessionFactory(workflows = workflowRepository)
     val service = testWorkflowService(database)
@@ -133,7 +130,7 @@ class ApplicationPersistencePortWorkflowTest {
     val planRecord = requireNotNull(JsonCodec.anyToStringAnyMap(phaseRecords["plan"]))
     assertEquals("completed", planRecord["status"])
     assertEquals("agent-plan-1", planRecord["resolved_agent_id"])
-    // Timestamps and duration are minted by the runtime, never agent-reported.
+
     assertTrue((planRecord["started_at"] as String).isNotBlank())
     assertTrue((planRecord["finished_at"] as String).isNotBlank())
     assertTrue((planRecord["duration_millis"] as Number).toLong() >= 0)
@@ -346,7 +343,7 @@ class ApplicationPersistencePortWorkflowTest {
 
     assertTrue(recorder.recordRuntimePhase(workflowId, "plan", status = "running", finished = false))
     assertEquals("running", stepStatusFor(workflowRepository, workflowId, "plan"))
-    // The prior completed phase stays completed in the mid-run snapshot.
+
     assertEquals("completed", stepStatusFor(workflowRepository, workflowId, "preplan"))
     assertRuntimeWorkflowRow(workflowRepository, workflowId, currentStepId = "plan", workflowStatus = "running")
 
@@ -364,7 +361,7 @@ class ApplicationPersistencePortWorkflowTest {
     )
     assertEquals("blocked", stepStatusFor(workflowRepository, workflowId, "implement"))
     assertRuntimeWorkflowRow(workflowRepository, workflowId, currentStepId = "implement", workflowStatus = "blocked")
-    // Untouched downstream phases stay pending.
+
     assertEquals("pending", stepStatusFor(workflowRepository, workflowId, "review"))
   }
 
@@ -397,8 +394,7 @@ class ApplicationPersistencePortWorkflowTest {
     val stepStatusByPhaseId = decodeStepsForTest(workflowRepository, workflowId)
       .filter { (phaseId, _) -> phaseId in records.keys }
       .toMap()
-    // AC7: the full per-phase status map shared steps[] carries cannot diverge from what the records
-    // imply for ANY status, including the non-completed running/blocked phases.
+
     assertEquals(recordDerivedStatuses, stepStatusByPhaseId)
     assertEquals(
       mapOf(
@@ -413,8 +409,6 @@ class ApplicationPersistencePortWorkflowTest {
 
   @Test
   fun `task runtime shared step keeps blocked status even when the blocked record carries a finished timestamp`() {
-    // F-003: blocked-wins precedence. A blocked record that also carries a non-null finishedAt must
-    // map to a blocked step, never collapse to completed via the finishedAt branch.
     val workflowRepository = InMemoryWorkflowStateRepository()
     val database = FakeDatabaseSessionFactory(workflows = workflowRepository)
     val service = testWorkflowService(database)
@@ -439,8 +433,6 @@ class ApplicationPersistencePortWorkflowTest {
 
   @Test
   fun `task runtime shared step maps a running record with a finished timestamp to completed`() {
-    // F-003: finishedAt-wins precedence. A record whose status is still running but which carries a
-    // non-null finishedAt must map to completed.
     val workflowRepository = InMemoryWorkflowStateRepository()
     val database = FakeDatabaseSessionFactory(workflows = workflowRepository)
     val service = testWorkflowService(database)
@@ -469,7 +461,6 @@ class ApplicationPersistencePortWorkflowTest {
       as WorkflowOpenResult.Ok
     val workflowId = opened.workflowId
 
-    // Per-phase record missing the required `resolved_agent_id`.
     val malformedArtifactsJson =
       """
       {
@@ -502,7 +493,6 @@ class ApplicationPersistencePortWorkflowTest {
 
   @Test
   fun `task runtime ledger append loud-fails on malformed persisted ledger entry`() {
-    // Persisted ledger entry missing the required `action`.
     val workflowRepository = InMemoryWorkflowStateRepository()
     val database = FakeDatabaseSessionFactory(workflows = workflowRepository)
     val service = testWorkflowService(database)
@@ -571,7 +561,7 @@ class ApplicationPersistencePortWorkflowTest {
 
     assertTrue(recorder.appendPlanLedger(workflowId, FeatureTaskRuntimePhaseLedgerAction.START))
     assertTrue(recorder.appendPlanLedger(workflowId, FeatureTaskRuntimePhaseLedgerAction.COMPLETE))
-    // A separate append must continue from the persisted max rather than rewinding to 0.
+
     assertTrue(recorder.appendPlanLedger(workflowId, FeatureTaskRuntimePhaseLedgerAction.RESUME))
 
     val artifacts = decodeArtifactsForTest(

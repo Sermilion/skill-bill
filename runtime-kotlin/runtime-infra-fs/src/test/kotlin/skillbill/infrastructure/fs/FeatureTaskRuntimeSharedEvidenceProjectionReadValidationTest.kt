@@ -32,7 +32,7 @@ class FeatureTaskRuntimeSharedEvidenceProjectionReadValidationTest {
     val envelope = artifactDir(request("fp-invalid"))
       .resolve(FileSystemFeatureTaskRuntimeSharedEvidenceStore.ENVELOPE_FILE_NAME)
     val payloadSize = Files.size(artifactDir(request("fp-invalid")).resolve("diff.patch"))
-    // Wrong contract_version makes the constructed projection fail schema validation.
+
     Files.writeString(
       envelope,
       """

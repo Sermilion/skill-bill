@@ -53,11 +53,6 @@ internal fun runGitForActivity(repoRoot: Path, args: List<String>): WorkflowGitO
   }
 }
 
-/**
- * Runs git with [stdin] written to the child's standard input as raw bytes. Used by the scoped
- * checkpoint restore, which feeds `update-index --index-info` a NUL-delimited record stream that
- * cannot survive being passed as arguments or re-encoded through a shell.
- */
 internal fun runGitCommandWithStdin(repoRoot: Path, args: List<String>, stdin: ByteArray): WorkflowGitOperationResult {
   val result = runGitProcess(repoRoot, args, stdin)
   return when {

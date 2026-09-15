@@ -178,8 +178,7 @@ class SQLiteDatabaseSessionFactoryTest {
         }
         val elapsedMillis = (System.nanoTime() - startedAt) / 1_000_000
         assertEquals("running", status)
-        // Well inside the 5000 ms busy_timeout, so a pass proves the read never contended for the
-        // write lock rather than having waited one out.
+
         assertTrue(elapsedMillis < 1_000, "A contended read must return promptly, took ${elapsedMillis}ms.")
       } finally {
         writer.createStatement().use { it.execute("ROLLBACK") }
@@ -234,7 +233,7 @@ class SQLiteDatabaseSessionFactoryTest {
 
     try {
       database.read { unitOfWork ->
-        // Materialize the snapshot first: BEGIN DEFERRED takes its read mark at the first statement.
+
         assertEquals("running", unitOfWork.workflowStates.getFeatureTaskRuntimeWorkflow(workflowId)?.workflowStatus)
         val writer = executor.submit {
           database.transaction { writerWork ->
@@ -242,7 +241,7 @@ class SQLiteDatabaseSessionFactoryTest {
             writerWork.workflowStates.saveFeatureTaskRuntimeWorkflow(row.copy(artifactsJson = "{\"writer\":1}"))
           }
         }
-        // A deferred read takes no write lock, so this commit must land without waiting for the block.
+
         writer.get(10, TimeUnit.SECONDS)
       }
     } finally {
@@ -259,8 +258,6 @@ class SQLiteDatabaseSessionFactoryTest {
       unitOfWork.workflowStates.saveFeatureTaskRuntimeWorkflow(workflowRecord("wftr-journal-mode"))
     }
 
-    // openReadDb configures its own connection with enableWal = false and a read-only connection cannot
-    // change the mode, so WAL is asserted against the file rather than assumed from the writer's PRAGMA.
     DatabaseRuntime.openReadDb(cliValue = dbPath.toString(), environment = emptyMap(), userHome = tempDir)
       .use { openDb -> assertEquals("wal", journalMode(openDb.connection)) }
   }
@@ -274,7 +271,7 @@ class SQLiteDatabaseSessionFactoryTest {
     database.transaction { unitOfWork ->
       unitOfWork.workflowStates.saveFeatureTaskRuntimeWorkflow(workflowRecord(workflowId))
     }
-    // Every factory-opened writer re-asserts WAL, so the non-WAL case is reached with a raw connection.
+
     DriverManager.getConnection("jdbc:sqlite:$dbPath").use { connection ->
       connection.createStatement().use { it.execute("PRAGMA journal_mode = DELETE") }
       assertEquals("delete", journalMode(connection))
@@ -286,8 +283,7 @@ class SQLiteDatabaseSessionFactoryTest {
         val before = unitOfWork.workflowStates.getFeatureTaskRuntimeWorkflow(workflowId)?.workflowStatus
         val writer = executor.submit { rawWriterCommit(dbPath.toString(), workflowId, "complete") }
         val after = unitOfWork.workflowStates.getFeatureTaskRuntimeWorkflow(workflowId)?.workflowStatus
-        // Under a rollback journal the writer waits out the reader's shared lock — the tradeoff WAL
-        // removes, which is why the journal mode of read-path databases is asserted rather than assumed.
+
         Triple(before, after, writer)
       }
       assertEquals(observed.first, observed.second, "A rollback-journal read block must still see one snapshot.")
@@ -356,8 +352,7 @@ class SQLiteDatabaseSessionFactoryTest {
     val dbPath = tempDir.resolve("metrics.db")
     val database = boundDatabase(tempDir, dbPath)
     val workflowId = "wftr-crash-reconcile"
-    // Seed the row and the expired worker lease exactly as production does: acquisition runs under
-    // read (the store method owns its own BEGIN IMMEDIATE), never inside an outer transaction.
+
     database.transaction { it.workflowStates.saveFeatureTaskRuntimeWorkflow(runtimeRow(workflowId)) }
     val updatedAt = database.read {
       it.workflowStates.getFeatureTaskRuntimeWorkflow(workflowId)?.updatedAt
@@ -367,8 +362,6 @@ class SQLiteDatabaseSessionFactoryTest {
       it.workflowStates.acquireFeatureTaskRuntimeWorker(ownership, updatedAt)
     }
 
-    // The production reconciler and goal-parent both call the reconcile write inside
-    // database.transaction; assert that composition succeeds instead of raising a nested BEGIN.
     val reconciled = database.transaction {
       it.workflowStates.reconcileFeatureTaskRuntimeCrashedWorker(
         workflowId = workflowId,
