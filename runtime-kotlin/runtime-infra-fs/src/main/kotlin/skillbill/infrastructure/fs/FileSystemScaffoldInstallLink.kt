@@ -12,12 +12,6 @@ import skillbill.ports.scaffold.install.model.ScaffoldInstallLinkResult
 import java.nio.file.Files
 import java.nio.file.Path
 
-/**
- * Filesystem adapter for [ScaffoldInstallLinkPort]. Owns the agent detection +
- * per-skill `installSkill` call sequence the legacy `performInstall` helper uses inside
- * `ScaffoldService.kt`. The platform-pack manifest discovery hoist (F-015) is preserved so a
- * multi-skill platform-pack scaffold does not re-walk `platform-packs` once per skill.
- */
 @Inject
 class FileSystemScaffoldInstallLink : ScaffoldInstallLinkPort {
   override fun applyInstallLinks(request: ScaffoldInstallLinkRequest): ScaffoldInstallLinkResult {

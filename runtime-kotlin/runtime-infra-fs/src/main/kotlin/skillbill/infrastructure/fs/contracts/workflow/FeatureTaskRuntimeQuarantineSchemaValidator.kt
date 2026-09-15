@@ -17,12 +17,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.coroutines.cancellation.CancellationException
 
-/**
- * Draft 2020-12 validator for the durable feature-task-runtime quarantine record (the append-only
- * list of rejected upstream records). Any violation fails with
- * [InvalidFeatureTaskRuntimeQuarantineSchemaError], the message carrying schema locations, never
- * record bodies.
- */
 object FeatureTaskRuntimeQuarantineSchemaValidator {
   private val schemaDocument: JsonNode by lazy { loadQuarantineSchemaDocument() }
   private val schema: JsonSchema by lazy { compile(schemaDocument) }

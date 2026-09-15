@@ -14,12 +14,6 @@ import java.nio.file.Path
 import java.text.Normalizer
 import java.util.Locale
 
-/**
- * SKILL-102 (PD2/PD6): one internal child of a parent skill, carrying the rendered governed
- * wrapper that lands at `<skill-name>.md`. The wrapper is rendered once at discovery time and
- * shared by hash computation and sidecar writing, so a staging operation runs a single authoring
- * discovery walk regardless of child count or how many times the hash is recomputed.
- */
 internal data class InternalSidecarTarget(
   val skillName: String,
   val sourceDir: Path,
@@ -114,17 +108,6 @@ private fun mergeInternalSupportPointers(
   return merged.values.map(OwnedPointer::pointer).sortedBy { pointer -> portableFileName(pointer.name) }
 }
 
-/**
- * Discovers the internal skills that declare [parentSkillName] as their parent, sorted by skill
- * name so staging is deterministic. The install-plan seam already validated the classification;
- * this lookup is read-only and trusts that validation.
- *
- * SKILL-104 (PD3): the union of (a) skills-root children with matching `internal-for` (today's
- * scan) and (b) selected pack skills from the plan whose `internalFor` matches the parent. Pack
- * children contribute ONLY when their pack is selected, so an unselected pack stages nothing and
- * contributes no hash bytes (inertness). The same `discoverTargets` + `renderWrapper` path renders
- * both base and pack children (SKILL-102 PD6 parity: full governed wrapper, no trimmed body).
- */
 internal fun discoverInternalSidecarTargets(
   repoRoot: Path,
   parentSkillName: String,
@@ -150,8 +133,7 @@ internal fun discoverInternalSidecarTargets(
     )
   }
   packChildren.forEach { skill ->
-    // A pack child that shares a name with a base child would be a duplicate; the plan's
-    // `requireUniqueSkillNames` already forbids that, so a collision here is a programmer error.
+
     require(skill.name !in byName) {
       "Internal pack skill '${skill.name}' duplicates a base-skill sidecar name for parent " +
         "'$parentSkillName'."

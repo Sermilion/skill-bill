@@ -81,8 +81,6 @@ private fun quarantineReviewAccounting(connection: Connection, reviewId: String,
   )
 }
 
-// The bounded-payload contract is expressed in plain Kotlin values, so a stored row is decoded all
-// the way down before it reaches the record's validator.
 private fun decodeBoundedAccounting(rawJson: String): Map<String, Any?>? = JsonCodec.parseObjectOrNull(rawJson)?.let {
   JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(it))
 }
@@ -162,13 +160,6 @@ fun upsertReviewRun(connection: Connection, review: ImportedReview, sourcePath: 
   }
 }
 
-/**
- * Persists an imported review. Shared by the transactional runtime entry point and the unit-of-work
- * repository so both converge on one ordering and one set of write triggers.
- *
- * Lanes already recorded for the run are the authoritative launch plan — the runtime writes them
- * when it launches the lanes — so composed lanes are only written for a run that has none.
- */
 fun persistImportedReview(connection: Connection, review: ImportedReview, sourcePath: String?) {
   val existingReviewSummary = existingReviewSummary(connection, review.reviewRunId)
   val existingFindings = ReviewRuntime.fetchImportedFindings(connection, review.reviewRunId)
@@ -183,8 +174,7 @@ fun persistImportedReview(connection: Connection, review: ImportedReview, source
     ReviewStatsRuntime.clearReviewFinishedTelemetryState(connection, review.reviewRunId)
   }
   val recordedLanes = fetchFindingLaneAttribution(connection, review.reviewRunId)
-  // Lane attribution alone never triggers the delete-and-reinsert path: deleting a finding row
-  // cascades away its recorded dispositions, so a lane correction is applied in place instead.
+
   if (existingFindings.withoutLanes() != review.findings.withoutLanes()) {
     replaceFindings(connection, review, lanes, recordedLanes)
   } else {
@@ -200,8 +190,6 @@ fun replaceFindings(
   lanes: List<ReviewRunLane>,
   recordedLanes: Map<String, String> = emptyMap(),
 ) {
-  // The run's persisted lanes are the only source of a finding's pack and area: a finding reports
-  // which lane produced it, never what that lane covers.
   val lanesByName = lanes.associateBy { it.laneSkillName }
   connection.prepareStatement("DELETE FROM findings WHERE review_run_id = ?").use { statement ->
     statement.setString(PARAM_ONE, review.reviewRunId)

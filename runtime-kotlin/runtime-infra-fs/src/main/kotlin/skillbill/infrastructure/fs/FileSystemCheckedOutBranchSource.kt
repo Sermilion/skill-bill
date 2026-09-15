@@ -22,7 +22,7 @@ class FileSystemCheckedOutBranchSource : CheckedOutBranchSource {
     val marker = repoRoot.resolve(".git")
     return when {
       Files.isDirectory(marker) -> marker
-      // Worktree/submodule checkouts store a `gitdir: <path>` pointer file.
+
       Files.isRegularFile(marker) -> gitDirPointerTarget(repoRoot, marker)
       else -> null
     }

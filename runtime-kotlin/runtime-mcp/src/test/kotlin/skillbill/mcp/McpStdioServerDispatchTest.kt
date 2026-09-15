@@ -41,9 +41,6 @@ class McpStdioServerDispatchTest {
 
   @Test
   fun `SKILL-132 removed tools are absent from discovery`() {
-    // SKILL-132 subtask 4: the duplicate feature_task_runtime_* MCP endpoints, the
-    // CLI-duplicated continuation lookup, and the Readian bridge are gone. The foreground
-    // runtime driver owns those services directly, so no MCP surface may advertise them.
     val tools = toolsList()
 
     removedToolNames.forEach { removed ->

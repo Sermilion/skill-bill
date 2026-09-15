@@ -8,8 +8,7 @@ internal fun Map<String, Any?>.withWatchRefresh(refreshIndex: Int): Map<String, 
 internal fun Map<String, Any?>.goalWatchStopReason(refreshCount: Int, maxRefreshes: Int, idleStop: Boolean): String? =
   when {
     this[SharedPayloadKeys.STATUS] == "not_found" -> "not_found"
-    // Only a reached pause is terminal. `pause_requested` is deferred to the next launch boundary, so
-    // the current subtask keeps running; stopping on the request blinds the monitor for the rest of it.
+
     this["paused"] == true -> "goal_paused"
     (this["pending_count"] as? Number)?.toInt() == 0 -> "goal_terminal"
     idleStop -> "goal_idle"

@@ -6,14 +6,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-/**
- * SKILL-52.2 subtask 2 (Task 11): coverage for `resolvePlatformPackSelection` and
- * `resolvePlatformPackDefaults` moved to
- * `runtime-infra-fs/src/test/kotlin/skillbill/scaffold/ScaffoldPayloadMapPolicyTest.kt` because
- * those entry points now live as `internal` raw-map helpers inside `runtime-infra-fs`. The
- * helpers that remain in this file (`buildPlatformPackInstallPaths`, `platformPackNotes`) take
- * typed inputs and continue to be tested here.
- */
 class PlatformPackPolicyTest {
   @Test
   fun `buildPlatformPackInstallPaths includes baseline, quality-check, and selected specialists`() {

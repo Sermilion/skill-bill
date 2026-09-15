@@ -9,12 +9,6 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffProjection
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffProjectionInputs
 import skillbill.workflow.taskruntime.model.PhaseHandoffProjectionDeclaration
 
-/**
- * Builds the delivered handoff envelope from static declarations, rejecting rather than repairing.
- *
- * Shape and contract are validated without truncating. A consumer either receives a whole
- * validated projection or the launch fails loudly with a typed error naming the projection.
- */
 object FeatureTaskRuntimeHandoffProjectionValidator {
   const val COMPACT_REFERENCE_MAX_LENGTH: Int = 512
 
@@ -53,19 +47,9 @@ object FeatureTaskRuntimeHandoffProjectionValidator {
     )
   }
 
-  /**
-   * Deterministic locator for one private-evidence artifact: the phase-records store, the producing
-   * phase, and the iteration. A consumer resolves it through the runtime's record lookup, so nothing
-   * here grants a model an open retrieval capability.
-   */
   fun privateEvidenceReference(producingPhaseId: String, iteration: Int): String =
     PRIVATE_EVIDENCE_LOCATOR_PREFIX + "$producingPhaseId#$iteration"
 
-  /**
-   * Joins the authoritative runtime fingerprint to the producer's own checkpoint claim. The two are
-   * not comparable values — see `enforceCheckpointPolicy` — so the claim is carried as provenance,
-   * not as a superseded fingerprint. Single-token, so the field stays a compact reference.
-   */
   const val CHECKPOINT_PRODUCER_CLAIM_SEPARATOR: String = "+producer-claimed:"
 
   const val PRIVATE_EVIDENCE_LOCATOR_PREFIX: String = "$FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY/"

@@ -6,16 +6,6 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.InvalidGoalPlanningDiscoveryExclusionsSchemaError
 import kotlin.coroutines.cancellation.CancellationException
 
-/**
- * The checked-in goal planning / preplanning discovery exclusion contract, staged onto the
- * classpath from `orchestration/contracts/goal-planning-discovery-exclusions.yaml` and governed by
- * the sibling `-schema.yaml`.
- *
- * Listed roots are anchored repo-relative directory prefixes and listed directory names are
- * denied at any depth; neither ever contributes planning memory. Discovery and the
- * shared-context packet migration both deny through this single source; a missing or
- * malformed contract loud-fails rather than degrading to allow-all.
- */
 object GoalPlanningDiscoveryExclusions {
   const val CONTRACT_VERSION = "0.3"
   const val RESOURCE_PATH = "skillbill/infrastructure/fs/contracts/goal-planning-discovery-exclusions.yaml"
@@ -30,13 +20,6 @@ object GoalPlanningDiscoveryExclusions {
 
   val excludedDirectoryNames: List<String> get() = contract.directoryNames
 
-  /**
-   * Deny predicate over '/'-joined repo-relative paths. The path is normalized first, so interior
-   * `.` and `..` segments cannot dress an excluded root up as an allowed one; a path that walks above
-   * the repo root is denied outright. Roots match as whole-segment anchored prefixes, so
-   * `platform-packsX/` passes; directory names match at any position, so nested
-   * `runtime-kotlin/foo/build/` is denied exactly like repo-root `build/`.
-   */
   fun isExcluded(relativePath: String): Boolean {
     val normalized = normalize(relativePath) ?: return true
     if (normalized.isEmpty()) return false
@@ -45,7 +28,6 @@ object GoalPlanningDiscoveryExclusions {
     return normalized.split("/").any { segment -> segment in names }
   }
 
-  /** Null when the path escapes the repository root, which callers must treat as denied. */
   private fun normalize(relativePath: String): String? {
     val segments = mutableListOf<String>()
     for (segment in relativePath.replace('\\', '/').split("/")) {
@@ -91,11 +73,6 @@ object GoalPlanningDiscoveryExclusions {
     )
   }
 
-  /**
-   * The schema is closed, and so is this parser. Ignoring an unknown key would let a misspelled
-   * `excluded_paths:` read as a deny rule that silently never applies while discovery walks the tree
-   * the author believed was denied.
-   */
   private fun requireKnownKeysOnly(root: Map<*, *>) {
     val unknown = root.keys.map(Any?::toString).filterNot { key -> key in KNOWN_KEYS }.sorted()
     if (unknown.isNotEmpty()) {

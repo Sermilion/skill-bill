@@ -4,12 +4,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-/**
- * AC-004: canonicalization is deterministic and idempotent. Over the whole canned fixture corpus, a
- * second pass must reproduce the first pass's map exactly and apply no further changes (empty
- * diagnostics), so no fixed point is missed. Fixtures are enumerated from the shared source, so a new
- * fixture is covered without editing this test.
- */
 class FeatureTaskRuntimeProjectionCanonicalizationIdempotenceTest {
   @Test
   fun `canonicalize equals canonicalize applied twice across every canned fixture`() {

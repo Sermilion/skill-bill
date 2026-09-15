@@ -2,15 +2,6 @@ package skillbill.infrastructure.sqlite.core
 
 import java.sql.Connection
 
-/**
- * SKILL-185: a validation-gate repair cycle re-runs an agent inside one phase attempt without
- * advancing `attempt`, so both diagnostic keys had to widen by the repair-turn ordinal. Every
- * pre-existing row is carried across at turn 0, which is exactly the key an ordinary (non-repair)
- * attempt still writes, so no identity already stored on a quarantine entry changes.
- *
- * Both rebuilds are guarded on the live DDL rather than on the ledger, so a store that reached the
- * widened shape by any path is left alone and a store that did not self-heals on the next open.
- */
 internal fun rekeyDiagnosticEvidenceByRepairTurn(connection: Connection) {
   rekeyProducerOutputEvidenceByRepairTurn(connection)
   rekeyRejectedOutputDiagnosticsByRepairTurn(connection)
@@ -59,7 +50,7 @@ private fun tableDdlMentions(connection: Connection, table: String, column: Stri
   ).use { statement ->
     statement.setString(1, table)
     statement.executeQuery().use { rows ->
-      // An absent table is created in its widened shape by the base schema, so there is nothing to rebuild.
+
       if (!rows.next()) return true
       rows.getString("sql").orEmpty()
     }

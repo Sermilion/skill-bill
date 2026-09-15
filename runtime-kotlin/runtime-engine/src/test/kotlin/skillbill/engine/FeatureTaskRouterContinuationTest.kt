@@ -29,11 +29,6 @@ import kotlin.test.assertIs
 class FeatureTaskRouterContinuationTest {
   @Test
   fun `runtime router continuation after plan preserves identity and supplies only completed plan`() {
-    // Resume presence SoT is completed private phase records
-    // (FeatureTaskRuntimeRequiredArtifactPresenceResolver), not top-level preplan_digest/plan maps.
-    // compactContinueView falls back to requiredKeys when no declared projection synthesizes
-    // repository_evidence; WorkflowEngine.resumeView also filters RUNTIME_REPOSITORY_EVIDENCE_ARTIFACT_KEY
-    // from missingArtifacts — so currentStepArtifacts is [plan], matching WorkflowCompactContinuationTest.
     val states = InMemoryWorkflowStates()
     val database = FakeDatabaseSessionFactory(states)
     val service = WorkflowService(

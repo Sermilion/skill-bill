@@ -13,21 +13,6 @@ import kotlin.test.assertContains
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 
-/**
- * SKILL-48 Subtask 2d: classpath-shadow guard for the canonical
- * telemetry-event schema. Mirrors the install-plan / workflow-state /
- * native-agent-composition classpath-shadow guards that live in
- * `runtime-core/src/test/kotlin/skillbill/scaffold/PlatformPackSchemaCleanupTest.kt`.
- *
- * NOTE on placement: the original plan called for EXTENDING the
- * `PlatformPackSchemaCleanupTest` file with these cases, but that file
- * lives in `runtime-core` which cannot depend on `runtime-mcp` (the
- * dependency direction is `runtime-mcp -> runtime-core`). The
- * telemetry validator + paths live in `runtime-mcp` alongside
- * `McpToolRegistry` so the only way to drive the assertions is from
- * a runtime-mcp test class. This file is the sibling that keeps the
- * loud-fail surface intact without inverting the module graph.
- */
 class TelemetryEventSchemaCleanupTest {
 
   @Test
@@ -74,7 +59,7 @@ class TelemetryEventSchemaCleanupTest {
       .resolve(TelemetryEventSchemaPaths.REPO_RELATIVE_PATH)
     val yamlText = Files.readString(schemaPath)
     val node = YAMLMapper().readTree(yamlText)
-    // Must not throw.
+
     TelemetryEventSchemaValidator.assertIdentity(node)
   }
 

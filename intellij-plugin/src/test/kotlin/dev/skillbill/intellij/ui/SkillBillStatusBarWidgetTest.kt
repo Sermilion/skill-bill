@@ -4,11 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/**
- * Pure identity and click-surface checks that do not require an IDE fixture.
- * Lifecycle, ticker, scheduling, disposal, and multi-consumer coverage live in
- * [SkillBillStatusBarWidgetFixtureTest].
- */
+
 class SkillBillStatusBarWidgetTest {
     @Test
     fun `factory and widget ids stay identical`() {

@@ -75,8 +75,6 @@ class SQLiteDatabaseSessionFactoryTypedFailureTest {
       }
     }
 
-    // Both a later read and a later writer succeed, proving the deferred snapshot was rolled back rather
-    // than left open by the failing block.
     database.read { it.workflowStates.getFeatureTaskExecutionIdentity("missing") }
     database.transaction { }
   }
@@ -105,7 +103,6 @@ class SQLiteDatabaseSessionFactoryTypedFailureTest {
       database.transaction { error("force rollback") }
     }
 
-    // A rolled-back transaction leaves the database usable, proving ROLLBACK ran rather than a stuck BEGIN.
     database.transaction { }
   }
 

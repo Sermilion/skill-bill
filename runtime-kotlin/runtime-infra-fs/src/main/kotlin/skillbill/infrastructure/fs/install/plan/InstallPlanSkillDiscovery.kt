@@ -47,8 +47,7 @@ internal fun discoverBaseSkills(skillsRoot: Path): List<InstallPlanSkill> {
   }
   val baseSkills = candidateSkillDirs
     .map { skillDir ->
-      // Validate the compact identity while the install plan is still read-only. This keeps an
-      // invalid source from reaching workflow or staging side effects.
+
       suppliedSkillContentIdentity(skillDir)
       InstallPlanSkill(
         name = skillDir.fileName.toString(),
@@ -63,11 +62,6 @@ internal fun discoverBaseSkills(skillsRoot: Path): List<InstallPlanSkill> {
   return baseSkills
 }
 
-/**
- * SKILL-102 (PD1): enforce the internal-skill classification rules across the full install-plan
- * skill set (base + materialized platform-pack skills) once every name is known, via the shared
- * rule evaluator so the install seam and the authoring/validation seams fail identically.
- */
 internal fun validateInstallPlanInternalSkills(skills: List<InstallPlanSkill>) {
   requireValidInternalSkillClassification(
     skills.map { skill ->
@@ -100,8 +94,7 @@ internal fun platformSkills(
   return skillDirs
     .sortedBy { skillDir -> skillDir.fileName.toString() }
     .map { skillDir ->
-      // Validate the compact identity while the install plan is still read-only. This keeps an
-      // invalid source from reaching workflow or staging side effects.
+
       suppliedSkillContentIdentity(skillDir)
       InstallPlanSkill(
         name = skillDir.fileName.toString(),

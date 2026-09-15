@@ -66,7 +66,7 @@ data class FeatureTaskRuntimeGoalContinuationOutcome(
   }
 
   companion object {
-    /** Strict decode; loud-fails on a missing or malformed required field. New agent fields are additive-optional. */
+
     internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeGoalContinuationOutcome =
       FeatureTaskRuntimeGoalContinuationOutcome(
         issueKey = raw.requireStringField("issue_key"),

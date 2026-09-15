@@ -35,22 +35,12 @@ data class RejectedOutputDiagnosticRequest(
   val observedByteSize: Long = rawResponse.size.toLong(),
   val observedSha256: String = RejectedOutputDiagnosticService.sha256(rawResponse),
   val truncated: Boolean = false,
-  /**
-   * Repair turn within [attempt], zero for an ordinary attempt. A validation-gate repair cycle
-   * launches several agent turns under one attempt, and each turn's rejection is its own diagnostic.
-   */
+
   val repairTurn: Int = 0,
-  /**
-   * Whether this rejection spends the phase's output-gate correction budget, or null where no such
-   * budget governs it. Supplied by the run loop that owns the cap, never derived from [reason].
-   */
+
   val exhaustedFixLoop: Boolean? = null,
 )
 
-/**
- * Outcome of a rejected-output diagnostic write. [Written] is returned only after the evidence
- * transaction commits; [Degraded] means that transaction rolled back and no `rod_` row exists.
- */
 sealed class FeatureTaskRuntimeRejectedOutputWrite {
   data class Written(val identity: String) : FeatureTaskRuntimeRejectedOutputWrite()
   data class Degraded(

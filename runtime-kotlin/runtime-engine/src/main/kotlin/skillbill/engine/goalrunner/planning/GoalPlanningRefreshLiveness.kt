@@ -30,10 +30,6 @@ class ChildAwareGoalPlanningRefreshLiveness(
   }
 }
 
-/**
- * Child-workflow liveness only. When no child workflow id is selected, returns IDLE — the parent
- * execution lease is held by the owning prepare() and must not block in-run refresh.
- */
 fun resolveChildExecutionLiveness(
   currentSubtask: DecompositionSubtask?,
   phaseRecorder: FeatureTaskRuntimePhaseRecorder,

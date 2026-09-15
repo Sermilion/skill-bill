@@ -303,7 +303,6 @@ class ParallelCodeReviewRunnerTest {
     assertContains(resolver.calls, listOf("git", "diff", "base-sha", "head-sha"))
   }
 
-  // AC-001: a PR review spans its own base branch instead of collapsing to HEAD..HEAD.
   @Test
   fun `PR scope resolves the pull request base and enumerates its commit range`() {
     val resolver = RecordingDiffResolver(
@@ -403,7 +402,6 @@ class ParallelCodeReviewRunnerTest {
     val launcher = ParallelSubtaskLauncher()
     val runner = runner(launcher, diffResolver = RecordingDiffResolver(default = diffFor("A.kt")))
 
-    // The request default is what an omitted --execution-mode resolves to.
     runner.run(
       baseRequest(scope = ParallelReviewScope.STAGED).copy(codeReviewMode = CodeReviewExecutionMode.DEFAULT),
     )
@@ -826,8 +824,6 @@ class ParallelCodeReviewSuppliedDiffTest {
       assertTrue(prompt.contains("bill-kotlin-code-review-testing"))
       assertFalse(prompt.contains(huge))
     }
-    // Projected headroom is not unreviewed code: nothing refused a read, segmentation carried every
-    // entry, and both workers ran, so the only honest verdict is clean coverage.
     val coverage = assertNotNull(result.coverage)
     assertTrue(coverage.isCleanCoverage, coverage.render())
   }
@@ -1195,8 +1191,6 @@ class ParallelCodeReviewRunnerFailureTest {
     }
   }
 
-  // SKILL-136 subtask 5 AC-001/AC-002: a runtime-launched review is attributed from the launch plan
-  // it resolved, not from the review text it later produces.
   @Test
   fun `runtime launched review records one lane row per planned lane from the plan`() {
     val database = RecordingReviewDatabase()
@@ -1226,8 +1220,6 @@ class ParallelCodeReviewRunnerFailureTest {
     assertTrue(database.laneWrites.size >= 2, "Plan recording and disposition finalization must both write.")
   }
 
-  // AC-003: the lane that produced a finding is recorded from the runtime's own merge result, so it
-  // never depends on an agent reproducing a provenance annotation in the review text it emits.
   @Test
   fun `runtime launched review records the producing lane of every merged finding`() {
     val database = RecordingReviewDatabase()
@@ -1291,8 +1283,6 @@ class ParallelCodeReviewRunnerFailureTest {
     )
   }
 
-  // AC-004, AC-007, AC-008: synthetic staged/unstaged scopes keep required coverage and drop clear
-  // irrelevant optional specialists before launch.
   @Test
   fun `sparse routing on a staged UI-only diff drops security and keeps the required baseline`() {
     val launcher = ParallelSubtaskLauncher()
@@ -1353,7 +1343,6 @@ class ParallelCodeReviewRunnerFailureTest {
     assertEquals(launchedRubrics(ParallelReviewScope.STAGED), launchedRubrics(ParallelReviewScope.UNSTAGED))
   }
 
-  // AC-010
   @Test
   fun `a former parent routing-analysis pair bound no longer blocks launch`() {
     val launcher = ParallelSubtaskLauncher()
@@ -1608,13 +1597,11 @@ internal fun baseRequest(
   timeout = timeout,
   codeReviewMode = CodeReviewExecutionMode.INLINE,
   reviewRunId = "runner-test-${runnerRequestSequence.incrementAndGet()}",
-  // Pinned so most fixtures never reach for Git; a scope test that exercises base or head detection
-  // clears them with `detectingRevisions()` to leave the resolution the runner performs visible.
+
   baseRevision = "base-revision",
   headRevision = "head-revision",
 )
 
-/** Drops the pinned revisions so the runner resolves the scope's own base and head. */
 private fun ParallelCodeReviewRequest.detectingRevisions() = copy(baseRevision = null, headRevision = null)
 
 private fun alwaysSuccessLauncher(stdout: String = "NO_FINDINGS") = GoalRunnerSubtaskLauncher { request ->

@@ -21,10 +21,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
-/**
- * Hermetic fixtures over a fake process seam and an in-memory store honouring the resolver port's
- * declared outcomes; no live Git invocation and no filesystem.
- */
 class SharedReviewEvidenceResolutionTest {
   private val repoRoot: Path = Path.of(".")
   private val range = ReviewCommitRange("base", "head")
@@ -46,7 +42,6 @@ class SharedReviewEvidenceResolutionTest {
     }
   }
 
-  /** Fingerprint-keyed, in-memory, and faithful to the port: a hit never invokes the deriver. */
   private class InMemoryStore(
     private val corruptPayload: Boolean = false,
   ) : FeatureTaskRuntimeSharedEvidenceResolverPort {
@@ -115,7 +110,6 @@ class SharedReviewEvidenceResolutionTest {
     aggregate
   }
 
-  // AC-002, AC-003: N consumers over one checkpoint derive exactly once and traverse nothing after.
   @Test fun `a fingerprint hit serves the stored evidence with zero repository traversal`() {
     val store = InMemoryStore()
     val (first, aggregate) = twoCommitGit()
@@ -133,7 +127,6 @@ class SharedReviewEvidenceResolutionTest {
     assertTrue(lanes.all { it.first == derived })
   }
 
-  // AC-004: identities rebuilt from the store are byte-identical to in-line derivation.
   @Test fun `identities projected from stored evidence match in-line derivation byte for byte`() {
     val store = InMemoryStore()
     val (git, aggregate) = twoCommitGit()
@@ -155,7 +148,6 @@ class SharedReviewEvidenceResolutionTest {
     assertEquals(2, fromStore.units.size)
   }
 
-  // AC-007: synthetic identities and the sole-unit ordering invariant survive the store round trip.
   @Test fun `every synthetic source keeps its placeholder identity and sole-unit ordering`() {
     val aggregate = diffFor("src/A.kt", "alpha")
     val parsed = ReviewDiffEvidence.parse(aggregate)
@@ -186,7 +178,6 @@ class SharedReviewEvidenceResolutionTest {
     }
   }
 
-  // AC-002: a corrupt payload re-derives in line and still yields a complete sequence.
   @Test fun `a corrupt stored payload degrades to in-line derivation rather than failing the review`() {
     val store = InMemoryStore(corruptPayload = true)
     val (seed, aggregate) = twoCommitGit()
@@ -200,7 +191,6 @@ class SharedReviewEvidenceResolutionTest {
     assertEquals(2, projected.units.size)
   }
 
-  // AC-005, AC-006: a commit range is checkpoint-keyed; a working-tree scope never reuses a range key.
   @Test fun `only an immutable commit range is checkpoint-keyed`() {
     val store = InMemoryStore()
     val aggregate = diffFor("src/A.kt", "alpha")
@@ -217,7 +207,6 @@ class SharedReviewEvidenceResolutionTest {
     assertTrue(store.derivations > branchAndPr)
   }
 
-  // AC-005: a supplied diff is not identified by its declared range, so it persists under a payload fingerprint.
   @Test fun `a supplied diff review derives in line rather than reusing a range-keyed artifact`() {
     val store = InMemoryStore()
     val noGit = FakeGit(mapOf("git rev-list --first-parent --reverse base..head" to ""))
@@ -235,7 +224,6 @@ class SharedReviewEvidenceResolutionTest {
     assertNotEquals(firstRecord.storePath, secondRecord.storePath)
   }
 
-  // AC-004: a different range is a different checkpoint, never a stale hit.
   @Test fun `a different range resolves a different checkpoint`() {
     val store = InMemoryStore()
     val (git, aggregate) = twoCommitGit()

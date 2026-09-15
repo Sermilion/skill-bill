@@ -6,11 +6,7 @@ import java.nio.file.Path
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-/**
- * Resolution runs against a fake environment: a desktop-launched IDE inherits the
- * session PATH, not the login shell's, so these cases are the difference between a
- * working status widget and a permanently unavailable one.
- */
+
 class CliExecutableResolverTest {
     @Test
     fun `resolves the installer launcher when it is absent from PATH`() {

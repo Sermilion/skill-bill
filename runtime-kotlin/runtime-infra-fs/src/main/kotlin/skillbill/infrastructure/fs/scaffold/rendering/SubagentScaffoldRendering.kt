@@ -49,8 +49,7 @@ internal fun renderSubagentSpawnRuntimeNotes(orchestratorName: String, specialis
     claudeSpawnParagraph(orchestratorName, specialists),
     codexSpawnParagraph(),
   )
-  // The wave limit belongs to the Codex paragraph it qualifies. Emitted after another runtime's
-  // paragraph it reads as that runtime's limit and contradicts its parallel-launch rule.
+
   if (specialists.size > DEFAULT_CODEX_MAX_THREADS) {
     paragraphs +=
       "**On Codex (wave limit).** Selected fan-out exceeds Codex's `agents.max_threads = 6` default; run " +
@@ -121,8 +120,6 @@ private fun cursorSpawnParagraph(orchestratorName: String, specialists: List<Str
     "substitute a built-in worker, or claim delegated coverage from the parent context."
 }
 
-// Junie has no spawn mechanism, so the runtime-neutral resolution rule above would otherwise leave a
-// Junie orchestrator to invent one.
 private fun junieSpawnParagraph(): String =
   "**On Junie.** Junie delegated review is intentionally unsupported: there is no Junie mechanism for " +
     "launching the named specialists these lanes require. Do not emulate a lane by answering its rubric in " +

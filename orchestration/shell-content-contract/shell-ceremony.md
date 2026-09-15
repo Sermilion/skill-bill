@@ -105,19 +105,12 @@ precedence above: a matching `.agents/skill-overrides.md` section or an
 
 ### Comments
 
-Prefer self-documenting code over comments. Clear names, small functions, and
-precise types carry intent more reliably than prose that drifts out of sync with
-the code it describes.
-
-- Do not write comments that restate **what** the code does. A comment that
-  paraphrases the line beneath it is noise and a maintenance liability.
-- Reach for a clearer name or a smaller function before reaching for a comment.
-- Keep KDoc/docstrings sparing — reserve them for genuinely non-obvious public
-  contracts, not routine description.
-- The one warranted exception is a comment that explains **why, not what**: a
-  decision or non-obvious external constraint the code physically cannot express
-  (e.g. "retry 3x because the upstream returns 503 on cold start"; "do not
-  reorder — the lock must be acquired before the flush"). Keep these.
+Authored Kotlin under `runtime-kotlin`, `intellij-plugin`, and
+`runtime-kotlin/build-logic` must contain no `//` line comments and no non-KDoc
+`/* */` block comments. `/** */` KDoc is allowed only on `interface` declarations
+and their members, including nested types inside an interface. Prefer clear names and small functions; record irreducible
+why-only rationale in the owning area `agent/decisions.md`. This matches
+`AGENTS.md` and `CommentAndInterfaceKdocArchitectureTest`.
 
 ## Inputs
 

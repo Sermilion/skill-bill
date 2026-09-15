@@ -8,10 +8,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
-/**
- * SKILL-142 AC-010 and AC-011: the reserved remediation pass emits one evidenced verdict per prior
- * Blocker, and an unevidenced disposition is rejected at the parse seam.
- */
 class GoalSubtaskBlockerDispositionParseTest {
   private fun output(vararg dispositions: Map<String, Any?>): Map<String, Any?> =
     mapOf("produced_outputs" to mapOf("blocker_dispositions" to dispositions.toList()))
@@ -73,8 +69,6 @@ class GoalSubtaskBlockerDispositionParseTest {
 
   @Test
   fun `a remediation pass dispositions blockers its immediately preceding pass introduced`() {
-    // SKILL-157 AC-005: the expected id set is the previous pass's Blockers for any pass, including
-    // one the previous remediation introduced itself. Nothing is keyed to pass one any more.
     val introducedByPassFour = listOf("F-041", "F-042")
 
     val parsed = GoalSubtaskReviewSummaryReducer.blockerDispositions(

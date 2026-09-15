@@ -58,8 +58,6 @@ class StaleSessionReconcilerTest {
         now = now,
       )
 
-      // SKILL-175 subtask 6 AC-005: prose sessions are quarantined, so only the three live lifecycle
-      // families (runtime, verify, quality-check) remain candidates and the batch budget drains 2+1.
       assertEquals(2, reconcileStaleTelemetrySessions(connection, request).processedCandidates)
       assertTrue(reconcileStaleTelemetrySessions(connection, request).skippedByCadence)
       assertEquals(
@@ -115,8 +113,6 @@ class StaleSessionReconcilerTest {
 
       val reconciled = reconcileStaleTelemetrySessions(connection, level = "full")
 
-      // SKILL-175 subtask 6 AC-005: prose sessions are quarantined, never reconciliation candidates,
-      // so the seeded feature_implement row is left untouched and counts stay at zero.
       assertEquals(0, reconciled.featureImplementSessions)
       assertEquals(1, reconciled.featureTaskRuntimeSessions)
       assertEquals(1, reconciled.featureVerifySessions)

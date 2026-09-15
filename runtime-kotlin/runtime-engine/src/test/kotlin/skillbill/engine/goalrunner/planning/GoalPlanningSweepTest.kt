@@ -412,9 +412,6 @@ class GoalPlanningSweepMigrateTest {
       "cap",
     )
   }
-
-  // Dropping a newly excluded entry re-signs the packet, so the digest it replaces has to be checked
-  // first — otherwise appending one excluded entry launders a tampered checkpoint through migrate.
 }
 
 class GoalPlanningSweepPromptTest {
@@ -440,9 +437,6 @@ class GoalPlanningSweepPromptTest {
     assertContains(failure.message.orEmpty(), "integrity is invalid")
   }
 
-  // The exclusion contract is checked in and expected to grow, so a newly excluded entry in an
-  // already-durable catalog is dropped on migrate rather than rejected on validate. Rejecting it made
-  // the sweep re-derive the same block on every resume, leaving the goal permanently unresumable.
   @Test
   fun `migrate drops newly excluded catalog entries instead of blocking the resume`() {
     val subtasks = listOf(
@@ -1272,8 +1266,6 @@ class GoalPlanningSweepPrepareAndResumeTest {
     val resumed = harness.sweep.prepare(harness.stateFor(manifest(subtaskCount = 1)), harness.request())
 
     assertIs<GoalPlanningSweepOutcome.PreparedAll>(resumed)
-    // `failed` without an explicit disposition is retryable by contract, so the first sweep spends
-    // its bounded decline budget before blocking; the resume then plans once.
     assertEquals(listOf("preplan", "plan", "plan", "plan", "plan"), harness.launcher.phases)
     assertEquals(1, discovery.calls, "resume after shared-preplan persistence must not repeat discovery")
   }
@@ -1549,8 +1541,6 @@ class GoalPlanningSweepRejectionTest {
       harness.sweep.prepare(harness.stateFor(manifest(subtaskCount = 2)), harness.request()),
     )
 
-    // Every subtask restarts `attempt` at 1, so an unscoped phase id would key both first-attempt
-    // rejections identically and the diagnostics store would keep only one of them.
     val planRejections = recorded.filter { it.phaseId.startsWith("plan") }
     assertEquals(listOf("plan:1", "plan:2"), planRejections.map { it.phaseId })
     assertEquals(listOf(1, 1), planRejections.map { it.attempt })
@@ -2404,7 +2394,6 @@ private fun GoalPlanningPreparationRecord.preplanRoot(): Map<String, Any?> =
 
 private fun validPhaseOutcome(phase: String): AgentRunLaunchOutcome = launchFacts(stdout = phasePayload(phase))
 
-/** A provider turn that emitted no assistant event and still exited zero. */
 private fun emptyProviderTurnOutcome(): AgentRunLaunchOutcome = AgentRunLaunchFacts(
   agent = InstallAgent.CLAUDE,
   exitStatus = 0,

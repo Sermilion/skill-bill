@@ -17,11 +17,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.coroutines.cancellation.CancellationException
 
-/**
- * Draft 2020-12 validator for the append-only checkpoint-identity store. Any violation fails with
- * [InvalidFeatureTaskRuntimeCheckpointIdentitySchemaError], the message carrying the offending
- * instance location only — never a path inventory, a commit message, or a diff body.
- */
 object FeatureTaskRuntimeCheckpointIdentitySchemaValidator {
   private val schemaDocument: JsonNode by lazy { loadCheckpointIdentitySchemaDocument() }
   private val schema: JsonSchema by lazy { compile(schemaDocument) }

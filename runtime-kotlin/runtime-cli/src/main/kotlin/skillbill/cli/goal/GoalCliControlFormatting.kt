@@ -239,6 +239,3 @@ internal fun goalReplanText(payload: Map<String, Any?>): String = buildString {
     appendGoalResetSubtaskLines(this, after["subtasks"] as? List<*>)
   }
 }
-
-// --agent-override is independent and continues to win at the
-// AgentRunService.effectiveAgent seam; this only sources invokedAgentId.

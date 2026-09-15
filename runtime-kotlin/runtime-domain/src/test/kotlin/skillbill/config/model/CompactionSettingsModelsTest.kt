@@ -52,7 +52,6 @@ class CompactionSettingsModelsTest {
 
   @Test
   fun `a trigger below the thrash floor is rejected`() {
-    // The 150k window at 60% that the provider aborted mid-run as thrashing.
     val parsed = assertIs<CompactionSettingsParse.Invalid>(
       parseCompactionSettings(mapOf("window_tokens" to 150_000, "trigger_pct" to 60)),
     )

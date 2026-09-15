@@ -32,9 +32,6 @@ internal data class ReconciliationCandidate(
   val secondaryIdentity: String?,
 )
 
-// SKILL-175 subtask 6: "feature_implement" is deliberately absent. The prose engine has no live
-// writer (runtime-kotlin/agent/decisions.md, "In-flight prose row policy" rule 2), so
-// `feature_implement_sessions` must never be treated as a reconciliation candidate again.
 private val lifecycleTargets = listOf(
   LifecycleReconciliationTarget(
     family = "feature_task_runtime",
@@ -185,12 +182,6 @@ private fun staleSessionIds(
   }
 }
 
-/**
- * The reason is a closed normalized token, never an operator message: a session marked stale here was
- * never observed finishing, and a consumer must be able to tell that apart from a terminal the
- * session itself reported. The pre-existing emission guards stay in the WHERE clause, so a session
- * that already reported a terminal is untouched.
- */
 private fun markLifecycleSessionStale(
   connection: Connection,
   target: LifecycleReconciliationTarget,
@@ -206,7 +197,6 @@ private fun markLifecycleSessionStale(
   statement.executeUpdate() > 0
 }
 
-/** Why a lifecycle row reached a reconciler-owned terminal. Closed vocabulary; no free text. */
 enum class LifecycleStaleReason(val wireValue: String) {
   NO_TERMINAL_BEFORE_THRESHOLD("no_terminal_before_threshold"),
 }

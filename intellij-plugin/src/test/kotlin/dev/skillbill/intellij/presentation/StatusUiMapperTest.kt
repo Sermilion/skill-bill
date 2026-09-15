@@ -111,7 +111,7 @@ class StatusUiMapperTest {
         assertEquals("SKILL-148", ui.issueKey)
         assertEquals(3, ui.progressCompleted)
         assertEquals(3, ui.progressTotal)
-        // Frozen at updatedAt, not ticking against now.
+
         assertEquals(Duration.ofMinutes(90), ui.goalElapsed)
     }
 
@@ -121,11 +121,7 @@ class StatusUiMapperTest {
         assertTrue(ui.stale)
     }
 
-    /**
-     * The reported bug, on the settled side: a goal that ran overnight in bursts and finished
-     * reported "8h 03m" — wall clock from start to the final update, counting every hour nobody
-     * was executing it. The runtime's accumulated total is the honest number.
-     */
+    
     @Test
     fun `a finished goal reports execution time not wall clock since it started`() {
         val openedAt = Instant.parse("2026-08-08T21:32:57Z")
@@ -207,11 +203,7 @@ class StatusUiMapperTest {
         assertNull(ui.subtaskElapsed)
     }
 
-    /**
-     * The reported bug: a goal opened 12h ago that ran for minutes read "12h 10m" under a live
-     * spinner, because the clock was wall time since start and the overnight blocked stretch was
-     * counted as work.
-     */
+    
     @Test
     fun `the goal clock counts execution time and excludes the gap a goal spent blocked`() {
         val openedAt = Instant.parse("2026-08-07T18:22:00Z")
@@ -225,7 +217,7 @@ class StatusUiMapperTest {
         ) as SkillBillStatusUiState.Active
 
         assertEquals(Duration.ofMinutes(23), ui.goalElapsed)
-        // The wall clock this replaces still spans the whole overnight gap.
+
         assertEquals(Duration.ofHours(12).plusMinutes(9), StatusUiMapper.elapsed(openedAt, observedAt))
     }
 
@@ -243,7 +235,7 @@ class StatusUiMapperTest {
         ) as SkillBillStatusUiState.Active
         assertEquals(accumulated.plusSeconds(10), ui.goalElapsed)
 
-        // The heartbeat folds that same tail in and re-anchors; the total must not jump.
+
         val afterHeartbeat = StatusUiMapper.map(
             active(startedAt = asOf, subtaskStartedAt = asOf).copy(
                 activeDurationMs = accumulated.plusSeconds(10).toMillis(),
@@ -323,7 +315,7 @@ class StatusUiMapperTest {
             updatedAt = lastUpdate,
         )
         val ui = StatusUiMapper.map(blocked, muchLater) as SkillBillStatusUiState.Blocked
-        // 10:00 start → 10:15 last update, not → observation three days later.
+
         assertEquals(Duration.ofMinutes(15), ui.goalElapsed)
         assertEquals(ui, StatusUiMapper.withElapsed(ui, muchLater.plusSeconds(3_600)))
     }
@@ -380,7 +372,7 @@ class StatusUiMapperTest {
         val ui = StatusUiMapper.map(paused(updatedAt = lastUpdate), muchLater)
         assertTrue(ui is SkillBillStatusUiState.Paused)
         ui as SkillBillStatusUiState.Paused
-        // 10:00 start → 10:30 last update, not → observation three days later.
+
         assertEquals(Duration.ofMinutes(30), ui.goalElapsed)
         assertTrue(ui.headline.contains("paused"))
         assertEquals(false, ui.stale)
@@ -533,7 +525,7 @@ class StatusUiMapperTest {
         assertEquals("feature-goal", pausedUi.workflowFamily)
         assertEquals(false, pausedUi.pauseRequested)
 
-        // An absent flag stays absent rather than collapsing into an explicit false.
+
         val absent = StatusUiMapper.map(active(), now) as SkillBillStatusUiState.Active
         assertNull(absent.pauseRequested)
     }
@@ -555,10 +547,10 @@ class StatusUiMapperTest {
     @Test
     fun `the current phase model survives the mapping on every outcome that carries it`() {
         val model = CurrentPhaseModel(model = "opus-5", effort = "high", phaseId = "implement")
-        // All five branches that wire currentModel, not a hand-picked pair: a missing wire on any one
-        // of them loses the popup's Model row for that lifecycle while the UI tests — which build
-        // SkillBillStatusUiState directly — stay green. Stale matters most: it is exactly when the
-        // user wants to know what was running.
+
+
+
+
         val carriers = listOf<Pair<String, SkillBillStatusOutcome>>(
             "Active" to active().copy(currentModel = model),
             "Paused" to paused(now).copy(currentModel = model),

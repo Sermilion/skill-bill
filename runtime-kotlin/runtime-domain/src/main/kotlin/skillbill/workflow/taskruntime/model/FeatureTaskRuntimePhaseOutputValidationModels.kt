@@ -9,11 +9,9 @@ import skillbill.error.FeatureTaskRuntimePhaseOutputStructuralRepairSource
 import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import skillbill.error.failureWireByValue
 
-/** Stable contract version for the typed phase-output validation result. */
 const val FEATURE_TASK_RUNTIME_PHASE_OUTPUT_VALIDATION_VERSION: String =
   FEATURE_TASK_RUNTIME_PHASE_OUTPUT_VALIDATION_CONTRACT_VERSION
 
-/** The syntax family used by the strict parser. */
 enum class FeatureTaskRuntimePhaseOutputFormat(val wireValue: String) {
   JSON("json"),
   YAML("yaml"),
@@ -30,7 +28,6 @@ enum class FeatureTaskRuntimePhaseOutputFormat(val wireValue: String) {
   }
 }
 
-/** The only syntax edits the bounded structural-repair engine may publish. */
 enum class FeatureTaskRuntimePhaseOutputRepairOperation(val wireValue: String) {
   REMOVE_EXTRA_CLOSING_DELIMITER("remove_extra_closing_delimiter"),
   ADD_MISSING_CLOSING_DELIMITER("add_missing_closing_delimiter"),
@@ -50,7 +47,6 @@ enum class FeatureTaskRuntimePhaseOutputRepairOperation(val wireValue: String) {
   }
 }
 
-/** Stable, payload-free rejection codes for callers and retry policy. */
 enum class FeatureTaskRuntimePhaseOutputFailureCode(
   override val wireValue: String,
 ) : FailureWireCode {
@@ -91,7 +87,6 @@ enum class FeatureTaskRuntimePhaseOutputFailureCode(
   }
 }
 
-/** Payload-free source position for parser/repair diagnostics. */
 data class FeatureTaskRuntimePhaseOutputSourceLocation(
   val sourceLabel: String,
   val offset: Int,
@@ -106,7 +101,6 @@ data class FeatureTaskRuntimePhaseOutputSourceLocation(
   }
 }
 
-/** Evidence for a syntax-only repair; it deliberately contains no payload text. */
 data class FeatureTaskRuntimePhaseOutputRepairEvidence(
   val contractVersion: String = FEATURE_TASK_RUNTIME_PHASE_OUTPUT_VALIDATION_VERSION,
   val validatorVersion: String = FEATURE_TASK_RUNTIME_PHASE_OUTPUT_VALIDATION_VERSION,
@@ -214,14 +208,9 @@ private fun Map<*, *>.requireRepairEvidenceString(field: String): String = this[
 private fun Map<*, *>.requireRepairEvidenceInt(field: String): Int = when (val value = this[field]) {
   is Int -> value
   is Number -> value.toInt().takeIf { value.toDouble() == it.toDouble() }
-  else -> null // untrusted durable JSON value shape: non-integer primitives fail the field below
+  else -> null
 } ?: phaseOutputRepairEvidenceSchemaError("Phase-output repair evidence field '$field' must be an integer.")
 
-/**
- * Typed result at the phase-output validation boundary. The normalized envelope is
- * the existing schema-validated projection; no parser node or rejected payload is
- * allowed to cross into this contract.
- */
 sealed interface FeatureTaskRuntimePhaseOutputValidationResult {
   val contractVersion: String
     get() = FEATURE_TASK_RUNTIME_PHASE_OUTPUT_VALIDATION_VERSION
@@ -242,11 +231,6 @@ sealed interface FeatureTaskRuntimePhaseOutputValidationResult {
     val diagnosticReason: String = reason,
     val payloadFreeReason: String? = reason,
     val sourceLocation: FeatureTaskRuntimePhaseOutputSourceLocation? = null,
-    /**
-     * Payload-free digest/location evidence from a prior successful delimiter-only structural repair
-     * on this capture. Present when syntax repair accepted the document and the phase schema later
-     * rejected it; absent when no structural repair ran. Never carries response body text.
-     */
     val structuralRepairEvidence: FeatureTaskRuntimePhaseOutputRepairEvidence? = null,
   ) : FeatureTaskRuntimePhaseOutputValidationResult {
     override val normalizedOutput: NormalizedFeatureTaskRuntimePhaseOutput? = null
@@ -271,10 +255,6 @@ fun FeatureTaskRuntimePhaseOutputValidationResult.requireAcceptedOutput(
   }
 }
 
-/**
- * Converts the new result into the established exception at legacy throwing
- * seams. The reason supplied here is already payload-free.
- */
 fun FeatureTaskRuntimePhaseOutputValidationResult.requireAccepted(
   sourceLabel: String,
 ): NormalizedFeatureTaskRuntimePhaseOutput = when (this) {

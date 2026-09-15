@@ -18,16 +18,6 @@ import skillbill.ports.scaffold.repo.model.ScaffoldValidationStatus
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-/**
- * SKILL-52.3 subtask 3 — Byte-contract regression guard for the adapter-owned scaffold
- * wire mappers in [ScaffoldCliResultMappers]. The emitted `LinkedHashMap` key ORDER is
- * the JSON byte contract for CLI/MCP consumers (AC3 byte-equivalence). These tests pin
- * the EXACT ordered key list — not just set membership — for the show, list-entry,
- * validate (repo + selected modes), and explain (with/without nested `skill`) paths, so
- * any reorder/drop/rename in the producers fails here even though existing
- * CliScaffoldRuntimeTest assertions (which only cover the scaffold `new` path) would
- * still pass.
- */
 class ScaffoldCliResultMappersTest {
   private fun sampleStatus(
     reviewComposition: ScaffoldReviewComposition? = null,

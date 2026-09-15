@@ -424,7 +424,7 @@ class ReviewContextModelsTest {
         maxLaneResultBytes = 50,
       )
     val launch = GovernedReviewLaunch(assignment, packet, "contract", "rubric", "broker", policy)
-    // Fixed overhead alone exceeds the tiny budget, so preparation still gets typed evidence.
+
     assertEquals(REVIEW_CONTEXT_BUDGET_EXCEEDED, launch.budgetOutcomeOrNull()?.type)
   }
 

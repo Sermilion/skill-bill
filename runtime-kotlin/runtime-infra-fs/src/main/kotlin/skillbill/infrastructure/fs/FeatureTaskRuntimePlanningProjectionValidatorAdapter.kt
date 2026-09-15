@@ -4,10 +4,6 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.infrastructure.fs.contracts.workflow.FeatureTaskRuntimePlanningProjectionSchemaValidator
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePlanningProjectionValidator
 
-/**
- * Bridges the domain-owned [FeatureTaskRuntimePlanningProjectionValidator] port to the concrete
- * [FeatureTaskRuntimePlanningProjectionSchemaValidator].
- */
 @Inject
 class FeatureTaskRuntimePlanningProjectionValidatorAdapter : FeatureTaskRuntimePlanningProjectionValidator {
   override fun validatePlanningProjection(producedOutputs: Any, sourceLabel: String) {

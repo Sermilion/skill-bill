@@ -62,8 +62,6 @@ class WorkflowCliResultMappersTest {
 
   @Test
   fun `runtime continue mapper returns honest ok for a recoverable run instead of false missing artifacts error`() {
-    // AC4/AC8 regression: completed preplan/plan records + dead process (no terminal outcome) must
-    // map to an honest reopened/ok continue, never a false "Cannot continue ... missing artifacts".
     val definition = FeatureTaskRuntimePhaseWorkflowDefinition.definition
     val engine = WorkflowEngine(NoopWorkflowSnapshotValidator)
     val record = WorkflowStateSnapshot(

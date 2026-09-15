@@ -10,8 +10,6 @@ const val UNRESOLVED_ATTRIBUTION: String = "unresolved"
 
 const val EXECUTION_MODE_DELEGATED: String = "delegated"
 
-// Canonical stack vocabulary used when no catalog-derived slug set is available (the migration
-// backfill runs below the port layer). Ingestion passes the discovered pack slugs unioned with this.
 val canonicalPlatformSlugs: Set<String> = setOf(
   "kmp",
   "kotlin",
@@ -28,17 +26,8 @@ val canonicalPlatformSlugs: Set<String> = setOf(
   "generic",
 )
 
-// Canonical pack-skill vocabulary, derived from the canonical slugs so the migration backfill (which
-// runs below the port layer) checks membership against the same names ingestion accepts. Ingestion
-// unions this with the discovered pack skill names.
 val canonicalPackSkillNames: Set<String> = canonicalPlatformSlugs.map { slug -> "bill-$slug-code-review" }.toSet()
 
-/**
- * Inverse of the canonical pack-skill derivation: the pack slug embedded in a canonical
- * `bill-<slug>-code-review` name. Resolving the slug from the name itself keeps lane composition
- * working in a consumer repository, where no in-repo platform-packs directory exists to map from.
- * Returns null for a name that is not a canonical pack skill (including "unresolved").
- */
 fun packSlugFromCanonicalPackSkillName(canonicalPackSkillName: String): String? =
   canonicalPackSkillNamePattern.matchEntire(canonicalPackSkillName)?.groups?.get("slug")?.value
 
@@ -87,8 +76,6 @@ fun resolveCanonicalScope(rawValue: String?): CanonicalAttribution {
   return CanonicalAttribution(scope.wireValue, rawValue, detail)
 }
 
-// execution_mode is derived, never defaulted: an explicit reported value wins, otherwise the run's
-// own specialist-review evidence proves delegation, otherwise the value is explicitly unresolved.
 fun resolveExecutionMode(
   reportedExecutionMode: ReviewExecutionMode?,
   specialistReviews: List<String>,
@@ -126,8 +113,6 @@ private class ScopeMatchRule(
   }
 }
 
-// Ordered scope vocabulary: the first matching rule wins, so narrower terms must come first —
-// "unstaged" contains "staged", and "pr-diff" must not fall through to the commit-range rule.
 private val scopeMatchRules: List<ScopeMatchRule> = listOf(
   ScopeMatchRule(
     scope = CanonicalScope.WORKING_TREE,
@@ -139,7 +124,7 @@ private val scopeMatchRules: List<ScopeMatchRule> = listOf(
     exact = setOf("index"),
     contains = setOf(CanonicalScope.STAGED.wireValue),
   ),
-  // "pr-diff" is the governed pull-request label emitted by code-review-shell.yaml.
+
   ScopeMatchRule(
     scope = CanonicalScope.PULL_REQUEST,
     exact = setOf("pr"),
@@ -151,7 +136,7 @@ private val scopeMatchRules: List<ScopeMatchRule> = listOf(
     contains = setOf("commit-range", "branch-diff"),
     containsAll = setOf("commit", "range"),
   ),
-  // Positive other-scope rule: a recognized scope kind that is deliberately none of the four above.
+
   ScopeMatchRule(
     scope = CanonicalScope.OTHER,
     exact = setOf(CanonicalScope.OTHER.wireValue, "file", "files"),

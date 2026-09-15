@@ -6,10 +6,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.util.Comparator
 
-/**
- * Filesystem adapter for [SpecScratchStore]. Deletes linear-mode spec scratch idempotently:
- * a missing file or directory is a silent no-op so a re-run after partial deletion is safe.
- */
 @Inject
 class FileSystemSpecScratchStore : SpecScratchStore {
   override fun deleteFileIfExists(path: Path) {

@@ -110,7 +110,6 @@ internal fun parseDeclaredFiles(
 }
 
 internal fun parseAreaMetadata(manifest: Map<*, *>, slug: String, declaredAreas: List<String>): Map<String, String> {
-  // Optional: a pack with no code-review areas does not need an area_metadata block.
   val rawMetadata = (manifest["area_metadata"] as? Map<*, *>) ?: emptyMap<Any?, Any?>()
   val areaMetadata = mutableMapOf<String, String>()
   val extraAreaMetadata = mutableSetOf<String>()

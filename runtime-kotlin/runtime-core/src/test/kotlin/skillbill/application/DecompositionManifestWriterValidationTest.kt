@@ -17,16 +17,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 
-/**
- * SKILL-52.3 subtask 1: relocated from the runtime-application
- * `DecompositionManifestWriterTest` because these cases assert REAL schema
- * loud-fails through the decomposition write/projection seams. The concrete
- * schema + coherence validators now live in `runtime-infra-fs`, and
- * `runtime-application` must not depend on infra-fs (enforced by
- * `RuntimeGradleModuleLayeringTest`). runtime-core is the composition layer
- * that legitimately wires the real validator adapter, so the end-to-end
- * loud-fail coverage lives here.
- */
 class DecompositionManifestWriterValidationTest {
   private val validator: DecompositionManifestValidator = DecompositionManifestValidatorAdapter()
   private val fileStore = FileSystemDecompositionManifestFileStore()

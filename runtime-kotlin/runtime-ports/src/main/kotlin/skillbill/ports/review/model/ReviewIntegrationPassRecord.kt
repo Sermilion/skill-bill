@@ -1,6 +1,5 @@
 package skillbill.ports.review.model
 
-/** Durable integration-pass boundary: which sequence it covered and how it ended. */
 data class ReviewIntegrationPassRecord(
   val commitSequenceDigest: String,
   val terminalOutcome: String,

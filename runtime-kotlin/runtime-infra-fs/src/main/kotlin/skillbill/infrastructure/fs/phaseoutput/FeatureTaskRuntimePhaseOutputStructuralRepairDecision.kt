@@ -5,7 +5,6 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputFailure
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairEvidence
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputSourceLocation
 
-/** Internal parse result; Jackson nodes never cross the domain port. */
 internal sealed interface FeatureTaskRuntimePhaseOutputStructuralRepairDecision {
   data class Accepted(
     val text: String,

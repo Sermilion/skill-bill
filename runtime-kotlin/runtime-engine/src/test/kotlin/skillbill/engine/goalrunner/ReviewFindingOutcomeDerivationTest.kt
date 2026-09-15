@@ -10,10 +10,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-/**
- * SKILL-136 subtask 6 AC-004. Coverage must come from the fix loop, not from optional manual triage
- * — that dependence is what left only 13% of runs with any recorded outcome.
- */
 class ReviewFindingOutcomeDerivationTest {
   @Test
   fun `every finding a pass produces receives an outcome without any manual triage`() {
@@ -48,9 +44,7 @@ class ReviewFindingOutcomeDerivationTest {
   fun `a finding an earlier pass reported and this pass does not is recorded as addressed`() {
     val addressed = finding(ordinal = 1, findingId = "F-001")
     val stillOpen = finding(ordinal = 2, findingId = "F-002")
-    // Pass 2 is its own review run, so it renumbers its surviving finding from F-001 exactly as the
-    // production id generator does. Matching on the reported id here would compare ordinals and
-    // invert both outcomes.
+
     val renumbered = stillOpen.copy(reviewPassNumber = 2, findingOrdinal = 1, findingId = "F-001")
 
     val outcomes = GoalSubtaskReviewSummaryReducer.reviewFindingOutcomes(
@@ -78,7 +72,7 @@ class ReviewFindingOutcomeDerivationTest {
 
     val outcomes = GoalSubtaskReviewSummaryReducer.reviewFindingOutcomes(
       supersededFindings = listOf(fixed, survivor),
-      // The survivor now occupies the id the fixed finding held in pass 1.
+
       currentFindings = listOf(survivor.copy(reviewPassNumber = 2, findingOrdinal = 1, findingId = "F-001")),
       blockerDispositions = emptyList(),
     )

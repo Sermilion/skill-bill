@@ -17,31 +17,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-/**
- * SKILL-66 Subtask 1 (AC4): per-family parity test for the
- * runtime-internal emission events
- * (`goal_started`, `goal_subtask_finished`, `goal_finished`, `goal_issue_finished`,
- * `skillbill_review_finished`).
- *
- * Modeled on `TelemetryTaskRuntimeStepIdEnumParityTest`: the canonical
- * schema carries `$defs/<name>Event` branches for these payloads
- * so the runtime's goal-telemetry emissions are schema-validated, but
- * the events are intentionally NOT MCP tools (no `McpToolRegistry`
- * entry, no dispatcher handler, no input schema). This test pins three
- * invariants:
- *
- *  1. Each emission branch exists with `additionalProperties: false`,
- *     the right `event_name`/`contract_version` consts, and the exact
- *     required keyset the runtime persistence/emission code (Subtasks
- *     2/3) will rely on.
- *  2. A representative envelope per event validates clean against the
- *     canonical schema — proving the branches are reachable through the
- *     top-level `oneOf` and that `blocked_reason`'s `["string","null"]`
- *     union validates for BOTH a string and `null`.
- *  3. None of these names appear in `McpToolRegistry.tools` (the
- *     `x-coherence-checks.goal-telemetry-emission-events` invariant in
- *     test form).
- */
 class GoalTelemetryEmissionEventParityTest {
 
   private val schemaNode: JsonNode by lazy {
@@ -433,7 +408,7 @@ class GoalTelemetryEmissionEventParityTest {
           "See x-coherence-checks.goal-telemetry-emission-events.",
       )
     }
-    // The companion stats tool IS registered.
+
     assertTrue("goal_stats" in toolNames, "goal_stats must be a registered MCP tool.")
   }
 

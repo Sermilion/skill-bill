@@ -64,10 +64,6 @@ class GoalPlanningPreparationCheckpoint(
     database.selfManagedWrite { it.goalPlanningPreparations.checkpointSubtaskPlan(canonical) }
   }
 
-  /**
-   * Checkpoints a regenerated shared preplan, overwriting a stored record the projection gate rejects so the
-   * regeneration actually lands. A stored record that still satisfies the gate keeps its immutable guard.
-   */
   fun recheckpointSharedPreplan(
     checkpoint: SharedGoalPreplanCheckpoint,
     cascadePlanSubtaskIds: List<Int> = emptyList(),
@@ -84,14 +80,9 @@ class GoalPlanningPreparationCheckpoint(
     }
   }
 
-  /** Shared-preplan refresh write seam (provenance-only advance and full-payload replace). */
   val sharedPreplanRefresh: GoalPlanningSharedPreplanRefresh =
     GoalPlanningSharedPreplanRefresh(database, gate)
 
-  /**
-   * Checkpoints a regenerated subtask plan, overwriting a stored record the projection gate rejects so the
-   * regeneration actually lands. A stored record that still satisfies the gate keeps its immutable guard.
-   */
   fun recheckpointSubtaskPlan(checkpoint: GoalSubtaskPlanCheckpoint) {
     val canonical = gate.canonicalizeSubtaskPlan(checkpoint)
     gate.validateSubtaskPlan(canonical)
@@ -107,7 +98,6 @@ class GoalPlanningPreparationCheckpoint(
     }
   }
 
-  /** The stored subtask plan as persisted, independent of the projection verdict. */
   fun findStoredSubtaskPlan(
     identity: GoalPlanningIdentity,
     subtaskId: Int,
@@ -116,9 +106,6 @@ class GoalPlanningPreparationCheckpoint(
     it.goalPlanningPreparations.findSubtaskPlan(identity, subtaskId, governedSubSpecPath)
   }
 
-  // A stored record whose projection no longer satisfies the gate is regenerable, not fatal: reporting it
-  // as missing lets the sweep re-produce it under the same gate and re-checkpoint it, where throwing here
-  // would wedge the goal terminally with no in-band repair. Structural drift still throws.
   fun findSharedPreplan(identity: GoalPlanningIdentity): SharedGoalPreplanCheckpoint? =
     database.read { it.goalPlanningPreparations.findSharedPreplan(identity) }
       ?.takeIf { gate.sharedPreplanRejection(it) == null }
@@ -199,23 +186,15 @@ class GoalPlanningPreparationCheckpoint(
   }
 }
 
-/**
- * Refresh write seam for shared preplans: provenance-only advance and full-payload replace.
- * Kept off [GoalPlanningPreparationCheckpoint] so that class stays within the function-count budget.
- */
 class GoalPlanningSharedPreplanRefresh(
   private val database: DatabaseSessionFactory,
   private val gate: GoalPlanningPreparationProjectionGate,
 ) {
-  /** Prepared plan subtask ids currently stored for [parentGoalWorkflowId], including orphans. */
+
   fun listPreparedPlanSubtaskIds(parentGoalWorkflowId: String): List<Int> = database.read {
     it.goalPlanningPreparations.listPreparedPlanSubtaskIds(parentGoalWorkflowId)
   }
 
-  /**
-   * Provenance-only refresh: advance shared + plan-row provenance to [provenance] while keeping the exact
-   * saved payload bytes. Compare-and-swap on [expectedPayloadSha256].
-   */
   fun advanceSharedPreplanProvenance(
     identity: GoalPlanningIdentity,
     expectedPayloadSha256: String,
@@ -226,10 +205,6 @@ class GoalPlanningSharedPreplanRefresh(
     }
   }
 
-  /**
-   * Full-payload refresh: UPDATE the shared row to [checkpoint], delete only [cascadePlanSubtaskIds],
-   * and restamp retained plan provenance in the same transaction.
-   */
   fun replaceSharedPreplanForRefresh(
     checkpoint: SharedGoalPreplanCheckpoint,
     expectedPayloadSha256: String,
@@ -244,10 +219,6 @@ class GoalPlanningSharedPreplanRefresh(
   }
 }
 
-/**
- * The one producer-side projection gate for durable goal planning records. Both the write seam and the
- * recovery read seam route through it, so a record can never be admitted by one and refused by the other.
- */
 class GoalPlanningPreparationProjectionGate(
   private val envelopeValidator: GoalPlanningPreparationEnvelopeValidator,
   private val phaseOutputValidator: FeatureTaskRuntimePhaseOutputValidator,
@@ -298,20 +269,11 @@ class GoalPlanningPreparationProjectionGate(
     requireValidPlanningProjection(envelope, "plan", label, planningProjectionValidator)
   }
 
-  /**
-   * Null when the stored shared preplan satisfies the projection gate; the bounded reason otherwise.
-   *
-   * An envelope, digest, or phase-output failure is reported as a rejection rather than thrown: on a read
-   * seam every one of those means the same thing operationally — the stored bytes cannot be handed to a
-   * consumer — and the in-band recovery for all of them is the same regeneration. Throwing instead would
-   * block every existing goal on the first contract bump with no path that can repair the record.
-   */
   fun sharedPreplanRejection(checkpoint: SharedGoalPreplanCheckpoint): String? = planningRecordRejection {
     sharedPreplanEnvelope(checkpoint)
     null
   }
 
-  /** Null when the stored subtask plan satisfies the projection gate; the bounded reason otherwise. */
   fun subtaskPlanRejection(checkpoint: GoalSubtaskPlanCheckpoint): String? = planningRecordRejection {
     val (_, envelope) = subtaskPlanEnvelope(checkpoint)
     producerProjectionGateReason("plan", envelope, planningProjectionValidator)
@@ -337,9 +299,6 @@ class GoalPlanningPreparationProjectionGate(
     return label to normalized.envelopeWireMap()
   }
 
-  // A stored record the gate rejects — or one whose bounded envelope no longer parses at all — is
-  // regenerable rather than immutable: the replacement is already gate-valid, so keeping the old bytes
-  // would only wedge the goal.
   fun sharedPreplanIsRegenerable(stored: SharedGoalPreplanCheckpoint): Boolean = sharedPreplanRejection(stored) != null
 
   fun subtaskPlanIsRegenerable(stored: GoalSubtaskPlanCheckpoint): Boolean = subtaskPlanRejection(stored) != null

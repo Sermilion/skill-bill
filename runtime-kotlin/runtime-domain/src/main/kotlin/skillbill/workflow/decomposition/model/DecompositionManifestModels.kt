@@ -64,7 +64,6 @@ data class CurrentSubtaskIntent(
   val action: String,
 )
 
-/** Typed application input used before a manifest wire map is emitted. */
 data class DecompositionManifestPlan(
   val parentSpecPath: String,
   val baseBranch: String,

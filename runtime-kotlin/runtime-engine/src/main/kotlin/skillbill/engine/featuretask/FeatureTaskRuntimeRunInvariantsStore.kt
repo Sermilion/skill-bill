@@ -17,7 +17,7 @@ import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.decodeRunInvariantsFromArtifact
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_RUN_INVARIANTS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRunInvariants
-/** Run-scoped invariant store for feature-task-runtime resume stability. */
+
 @Inject
 class FeatureTaskRuntimeRunInvariantsStore(
   private val database: DatabaseSessionFactory,
@@ -25,10 +25,6 @@ class FeatureTaskRuntimeRunInvariantsStore(
 ) {
   private val engine = WorkflowEngine(workflowSnapshotValidator)
 
-  /**
-   * Strict read of durable run-invariants, optionally persisting [proposed] exactly once first.
-   * Passing null is read-only; passing a value at run creation freezes the invariant for resume.
-   */
   fun resolve(
     workflowId: String,
     proposed: FeatureTaskRuntimeRunInvariants? = null,

@@ -6,11 +6,6 @@ import skillbill.contracts.review.ReviewVerificationSignalKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_HANDOFF_ENVELOPE_CONTRACT_VERSION
 import skillbill.error.InvalidFeatureTaskRuntimePhaseHandoffSchemaError
 
-/**
- * The durable, prompt-visible handoff envelope: named typed projections and compact references only.
- * There is intentionally no generic upstream-payload map, raw payload, prompt, transcript, tool
- * output, log, source body, diff body, or telemetry field anywhere in this shape.
- */
 data class FeatureTaskRuntimeHandoffEnvelope(
   val consumerPhaseId: String,
   val projections: List<FeatureTaskRuntimeHandoffProjection> = emptyList(),
@@ -26,7 +21,6 @@ data class FeatureTaskRuntimeHandoffEnvelope(
     }
   }
 
-  /** Only the prompt-visible projections reach prompt composition; private ones never render. */
   val promptVisibleProjections: List<FeatureTaskRuntimeHandoffProjection>
     get() = projections.filter { it.promptVisibility == FeatureTaskRuntimeHandoffPromptVisibility.PROMPT_VISIBLE }
   internal fun toEnvelopeMap(): Map<String, Any?> = linkedMapOf<String, Any?>(

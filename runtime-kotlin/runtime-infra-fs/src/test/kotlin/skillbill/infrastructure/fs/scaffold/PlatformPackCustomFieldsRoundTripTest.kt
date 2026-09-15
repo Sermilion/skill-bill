@@ -11,17 +11,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-/**
- * SKILL-48 Subtask 3 A3 + A5(a): a `platform.yaml` may carry fork-specific
- * top-level keys that the runtime does not consume by name. They MUST:
- *
- *  1. pass schema validation (the top-level `additionalProperties` is now `true`),
- *  2. reach `PlatformManifest.customFields` verbatim,
- *  3. not appear under the typed fields the runtime owns.
- *
- * Pinned through `loadPlatformManifest` because that is the seam used by all
- * real callers (CLI, desktop, validators).
- */
 class PlatformPackCustomFieldsRoundTripTest {
 
   @Test
@@ -44,7 +33,6 @@ class PlatformPackCustomFieldsRoundTripTest {
     val packRoot = newTempPackRoot(slug, manifest)
     val pack = loadPlatformManifest(packRoot)
 
-    // (1) Custom fields surfaced verbatim.
     assertTrue(
       "custom_thing" in pack.customFields,
       "Non-anchored top-level field 'custom_thing' is missing from PlatformManifest.customFields. " +
@@ -62,7 +50,6 @@ class PlatformPackCustomFieldsRoundTripTest {
     assertEquals(1, nested["a"])
     assertEquals(listOf("x", "y"), nested["b"])
 
-    // (2) Anchored fields MUST NOT appear in customFields.
     val anchored = anchoredTopLevelFieldNames()
     val leakedAnchored = pack.customFields.keys.intersect(anchored)
     assertTrue(
@@ -74,8 +61,6 @@ class PlatformPackCustomFieldsRoundTripTest {
 
   @Test
   fun `pack with no custom fields produces empty customFields map`() {
-    // Pin the boring path: a stock manifest yields an empty `customFields`. This guards against
-    // a future regression that accidentally includes anchored fields in `customFields`.
     val slug = "scenarioslug"
     val manifest = """
       platform: $slug
@@ -92,7 +77,7 @@ class PlatformPackCustomFieldsRoundTripTest {
       pack.customFields.isEmpty(),
       "Manifest with no fork-specific keys must produce empty customFields; got ${pack.customFields.keys}.",
     )
-    // Belt-and-suspenders: no anchored key snuck in.
+
     val anchored = anchoredTopLevelFieldNames()
     assertFalse(pack.customFields.keys.any { it in anchored })
   }

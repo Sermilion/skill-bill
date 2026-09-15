@@ -176,8 +176,7 @@ internal val databaseMigrationsLate: List<DatabaseMigration> =
         }
         if (!alreadyRekeyed) {
           connection.createStatement().use {
-            // SQLite cannot widen a PRIMARY KEY in place, so the table is rebuilt and every
-            // pre-generation row is carried across at generation 0.
+
             it.execute(
               "ALTER TABLE producer_output_evidence RENAME TO producer_output_evidence_pre_generation",
             )

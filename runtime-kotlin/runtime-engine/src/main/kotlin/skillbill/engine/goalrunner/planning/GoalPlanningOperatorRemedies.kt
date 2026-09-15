@@ -8,16 +8,9 @@ import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.decompositionStatus
 
-/** Copy-pasteable operator remedy for incompatible shared-preplan provenance. */
 fun goalPlanningIncludeSharedPreplanRemedy(issueKey: String, subtaskId: Int): String =
   "skill-bill goal replan $issueKey --subtask $subtaskId --include-shared-preplan"
 
-/**
- * The subtask the advertised replan can actually target. `replan` refuses a `complete` or `skipped`
- * subtask, so picking the lowest id — or any non-skipped one — hands the operator a command the
- * runtime then rejects, which is what happens on every goal whose early subtasks already finished.
- * Null means no subtask is replannable and no command should be advertised.
- */
 fun goalPlanningRemedySubtaskId(subtasks: List<DecompositionSubtask>): Int? = subtasks.firstOrNull {
   it.status.decompositionStatus() !in setOf(DecompositionStatus.COMPLETE, DecompositionStatus.SKIPPED)
 }?.id
@@ -47,11 +40,6 @@ fun goalPlanningMissingSharedContextPacketStopReason(issueKey: String, subtaskId
   "Goal planning shared preplan does not contain a valid shared context packet. " +
     recoverySuffix(issueKey, subtaskId, GoalPlanningRecoveryKind.SCOPED_REPLAN)
 
-/**
- * Surviving preparation-state hard stop. Uses [IncompatibleGoalPlanningPreparationRecoveryError.reason]
- * rather than [Throwable.message] so the stop does not claim the state "cannot be recovered" when
- * `--include-shared-preplan` is the documented recovery path.
- */
 fun goalPlanningPreparationStateReadStopReason(error: Throwable, issueKey: String, subtaskId: Int?): String {
   val recovery = error as? IncompatibleGoalPlanningPreparationRecoveryError
     ?: return "Goal planning preparation state could not be read: ${error.message.orEmpty()}"
@@ -68,11 +56,6 @@ internal fun goalPlanningNonResumableStatusReason(
 ): String = "Saved planning is not resumable until provenance is repaired. " +
   recoverySuffix(issueKey, subtaskId, kind)
 
-/**
- * Launch refuses when shared-preplan classification cannot complete (identity mismatch, schema
- * drift). Status must treat that failure as [GoalPlanningProvenanceRecoverability.Irrecoverable] so a
- * resume-claiming `planning_reason` cannot survive.
- */
 internal fun statusRecoverabilityOrRefuse(
   classify: () -> GoalPlanningProvenanceRecoverability,
 ): GoalPlanningProvenanceRecoverability = runCatching(classify).getOrElse { error ->
@@ -81,11 +64,6 @@ internal fun statusRecoverabilityOrRefuse(
   )
 }
 
-/**
- * Replaces resume-claiming status reasons when launch would refuse the same durable planning state.
- * [GoalPlanningProvenanceRecoverability.StaleValid] is not refused after in-run refresh; only Invalid
- * overlays the reason.
- */
 internal fun alignPlanningStatusWithLaunchRecoverability(
   snapshot: GoalPlanningStatusSnapshot,
   recoverability: GoalPlanningProvenanceRecoverability,

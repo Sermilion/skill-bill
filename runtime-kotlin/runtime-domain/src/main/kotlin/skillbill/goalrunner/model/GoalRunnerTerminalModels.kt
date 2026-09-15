@@ -9,18 +9,8 @@ enum class GoalRunnerTerminalStatus(val wireValue: String) {
   TIMEOUT("timeout"),
   NO_TERMINAL_STORE_OUTCOME("no_terminal_store_outcome"),
 
-  /**
-   * A non-terminal child row that crash reconciliation transitioned to the resumable pending state
-   * (killed child, expired lease, dead process). Not a failure: the goal parent reports the subtask
-   * resumable so `skill-bill goal <key>` resume continues without manual lease or row clearing.
-   */
   RECONCILABLE("reconcilable"),
 
-  /**
-   * A non-terminal child waiting on the bounded operator decision after the reserved remediation pass
-   * left an unresolved Blocker. Not a failure and not blocked: the persisted review state, baseline,
-   * and consumed pass count survive, so resume continues from the recorded resumable step.
-   */
   PAUSED("paused"),
 
   ;
@@ -44,21 +34,15 @@ enum class GoalRunnerStopReason {
   PULL_REQUEST_FAILED,
   DEPENDENCIES_BLOCKED,
 
-  /** The child row was crash-reconciled to resumable; the goal halts but the subtask stays resumable. */
   RECONCILED_RESUMABLE,
 
-  /**
-   * The child paused after the reserved remediation pass left an unresolved Blocker. The goal halts
-   * awaiting the bounded operator decision; the subtask stays resumable at its recorded step.
-   */
   AWAITING_OPERATOR_DECISION,
 
-  /** The parent reached a durable operator or stop-after-subtask pause boundary. */
   PAUSED,
   ;
 
   companion object {
-    /** Stop reasons that leave the subtask resumable rather than stopped. */
+
     val RESUMABLE_STOP_REASONS = setOf(RECONCILED_RESUMABLE, AWAITING_OPERATOR_DECISION, PAUSED)
   }
 }

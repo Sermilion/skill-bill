@@ -20,22 +20,9 @@ import javax.swing.JSeparator
 import javax.swing.SwingConstants
 import java.awt.Font.BOLD
 
-/**
- * Builds the status details popup panel from an already-mapped presentation.
- *
- * Extracted from the click handler so construction is exercisable without showing a
- * Swing popup: nothing here needs a running popup or a visible frame. Colours are
- * theme-derived only, and the panel decides nothing — eligibility and label text arrive
- * pre-resolved on [SkillBillStatusBarPresentation.MappedPresentation.controls].
- */
+
 object StatusDetailsPopupContent {
-    /**
-     * Label/value pairs in display order: lifecycle state, the optional identity and step rows, the
-     * optional model row when the snapshot reported one, exactly one planning or current-phase
-     * execution row when presentation selected one, then progress, clocks, and notes. The
-     * byte-identity guarantee belongs to the bar, tooltip, and accessibility text — not to this list,
-     * which grows as the popup gains rows.
-     */
+    
     fun statusLines(presentation: SkillBillStatusBarPresentation.MappedPresentation): List<Pair<String, String>> {
         val details = presentation.details
         return buildList {
@@ -82,7 +69,7 @@ object StatusDetailsPopupContent {
             border = JBUI.Borders.empty(8, 0, 4, 0)
             foreground = JBColor.border()
         }
-        // Carries showMessage's bounded failure summary, which is runtime output like every value row.
+
         val messageLabel = plainLabel("").apply {
             isVisible = false
             foreground = UIUtil.getErrorForeground()
@@ -91,8 +78,8 @@ object StatusDetailsPopupContent {
         val buttons = presentation.controls.associate { descriptor ->
             descriptor.kind to JButton(descriptor.text).apply {
                 isEnabled = descriptor.enabled
-                // Disabled buttons stay focusable so the registered-request text is
-                // reachable by keyboard and readable by a screen reader.
+
+
                 isFocusable = true
                 accessibleContext.accessibleName = descriptor.accessibleName
                 addActionListener { onActivate(descriptor) }
@@ -100,7 +87,7 @@ object StatusDetailsPopupContent {
         }
         val actionRow = JPanel(FlowLayout(FlowLayout.LEFT, JBUI.scale(8), 0)).apply {
             isOpaque = false
-            // Reading order follows the descriptor order, so focus traversal matches it.
+
             presentation.controls.forEach { descriptor -> buttons[descriptor.kind]?.let { add(it) } }
         }
 
@@ -175,19 +162,14 @@ object StatusDetailsPopupContent {
         return block
     }
 
-    /**
-     * Most text here is runtime-supplied — a model id, a workflow id, a failure summary — and Swing
-     * parses a label whose text starts with `<html>` as markup, so an `<img src=…>` would make the
-     * IDE fetch it and a `<b>` would silently restyle the value the row exists to report. Applied
-     * uniformly, including to the static labels, so a row added later cannot miss it.
-     */
+    
     private fun plainLabel(text: String): JLabel = JLabel(text).apply {
-        // Swing's own key for opting a component out of HTML rendering. Spelled out because
-        // BasicHTML.htmlDisable is not public API on every JDK this plugin builds against.
+
+
         putClientProperty("html.disable", true)
     }
 
-    /** The built panel plus the pieces tests and the click handler need to address. */
+    
     class Built(
         val panel: JPanel,
         val buttons: Map<GoalControlKind, JButton>,
@@ -195,7 +177,7 @@ object StatusDetailsPopupContent {
         val actionRow: Component?,
         private val messageLabel: JLabel?,
     ) {
-        /** Renders a bounded failure summary inline; the next snapshot stays authoritative. */
+        
         fun showMessage(summary: String) {
             messageLabel?.apply {
                 text = summary

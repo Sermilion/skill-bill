@@ -1,12 +1,5 @@
 package skillbill.infrastructure.sqlite.review
 
-// SKILL-66 Subtask 2: strict row accessors for the goal telemetry stats read.
-// Every failure routes through `goalRowError` (a single `throw` returning
-// `Nothing`) so callers stay branch-simple and the loud-fail contract (AC#5)
-// is enforced uniformly: missing/null required columns, non-numeric values,
-// negative durations/counts, out-of-range ids, and out-of-enum statuses all
-// raise `InvalidGoalTelemetryRowError`.
-
 private fun goalRowError(identity: String, reason: String): Nothing =
   throw InvalidGoalTelemetryRowError(identity, reason)
 

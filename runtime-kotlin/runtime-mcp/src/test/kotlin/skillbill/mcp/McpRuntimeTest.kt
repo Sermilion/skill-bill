@@ -625,7 +625,6 @@ class McpFeatureTaskRuntimeWorkflowTest {
   }
 }
 
-// Kept in its own class so it does not push McpRuntimeTest over the detekt LargeClass threshold.
 class McpTokenEstimationTest {
   @Test
   fun `runtime token data persists through mcp tool and aggregates in stats`() {
@@ -736,7 +735,6 @@ class McpTokenEstimationTest {
   }
 }
 
-// F-019: a multi-phase records map + multi-entry ledger patch for the task-runtime golden flow.
 private fun taskRuntimePhaseArtifactsPatch(): Map<String, Any?> = mapOf(
   "feature_task_runtime_phase_records" to linkedMapOf(
     "preplan" to linkedMapOf(

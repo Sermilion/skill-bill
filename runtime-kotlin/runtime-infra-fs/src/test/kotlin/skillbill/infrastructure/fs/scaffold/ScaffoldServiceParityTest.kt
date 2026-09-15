@@ -56,12 +56,9 @@ class ScaffoldServiceParityTest {
     assertEquals("horizontal", result.kind)
     assertFalse("Subagent Spawn Runtime Notes" in content)
     assertContains(rendered, "### Subagent Spawn Runtime Notes")
-    // SKILL-175: OpenCode paragraph (the only `@`-mention of every specialist) was removed, so the
-    // runtime-neutral notes name the lead specialist only; both specialists remain in the bundle.
+
     assertContains(rendered, "`foo-arch`")
-    // Every installed runtime needs a spawn paragraph; a runtime left out of the list falls through to
-    // the runtime-neutral phrasing and invents a mechanism. The paragraph prose itself is pinned by the
-    // `.render.txt` goldens, so only this skill's own specialist interpolation is asserted here.
+
     listOf("**On Claude", "**On Codex.**", "**On Cursor.**", "**On Junie.**").forEach { marker ->
       assertContains(rendered, marker)
     }

@@ -6,19 +6,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
-/**
- * SKILL-52.2 subtask 2 (Task 11): `detectKind` and `validatePayloadVersion` were retired from
- * `runtime-domain.scaffold.policy` (they exposed raw `Map<String, Any?>` signatures).
- *
- *  - CLI / MCP coverage of the same loud-fail semantics lives in the new adapter parser tests
- *    (`runtime-cli/src/test/.../ScaffoldCommandRequestParserTest`,
- *    `runtime-mcp/src/test/.../McpScaffoldCommandRequestParserTest`).
- *  - The legacy filesystem orchestrator path that still consumes raw maps internally is covered
- *    in `runtime-infra-fs/src/test/kotlin/skillbill/scaffold/ScaffoldPayloadMapPolicyTest.kt`.
- *
- * Tests below continue to exercise the typed-input helpers that stayed in this package
- * (`parseBaselineLayerPayload`).
- */
 class ScaffoldPayloadPolicyTest {
   @Test
   fun `active creation kinds exclude retired partial scaffold kinds`() {

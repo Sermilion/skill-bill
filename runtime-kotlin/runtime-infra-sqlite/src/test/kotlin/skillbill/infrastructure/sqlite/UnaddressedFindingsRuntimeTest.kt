@@ -118,8 +118,6 @@ class UnaddressedFindingsRuntimeTest {
     }
   }
 
-  // SKILL-136 subtask 6 AC-003: the shared key survives the round trip, and an unimported pass keeps
-  // both key columns NULL instead of being attributed to a guessed review run.
   @Test
   fun `the shared review run key round-trips and stays null when no review run was imported`() {
     val dbPath = Files.createTempDirectory("unaddressed-findings-key").resolve("runtime.db")
@@ -142,8 +140,6 @@ class UnaddressedFindingsRuntimeTest {
     }
   }
 
-  // AC-004: outcomes outlive the ledger rows they came from, which is the whole reason they live in
-  // their own table — clearWorkflowLedger and replaceLedgerForPass both DELETE.
   @Test
   fun `recorded outcomes survive ledger retraction and clearing`() {
     val dbPath = Files.createTempDirectory("unaddressed-findings-outcomes").resolve("runtime.db")
@@ -180,9 +176,6 @@ class UnaddressedFindingsRuntimeTest {
     }
   }
 
-  // AC-004: the ledger only ever holds the preceding pass, so a finding retired in pass 3 must still
-  // correct its pass-1 outcome — otherwise pass 1 under-reports acceptance forever. Each pass is its
-  // own review run and renumbers from F-001, so the match is on the content-derived finding key.
   @Test
   fun `a terminal outcome reconciles every earlier carried pass for the same finding`() {
     val dbPath = Files.createTempDirectory("unaddressed-findings-cross-pass").resolve("runtime.db")
@@ -212,8 +205,6 @@ class UnaddressedFindingsRuntimeTest {
     }
   }
 
-  // Every row here reports finding id F-001, because each pass renumbers from F-001. Reconciliation
-  // must key on the content-derived finding key, or it corrects unrelated findings that share an id.
   @Test
   fun `reconciliation does not touch another workflow or another finding sharing a finding id`() {
     val dbPath = Files.createTempDirectory("unaddressed-findings-cross-pass-scope").resolve("runtime.db")
@@ -243,8 +234,6 @@ class UnaddressedFindingsRuntimeTest {
     }
   }
 
-  // AC-003: a workflow-loop finding that does carry a key resolves through review_finding_outcomes
-  // to its review_runs row, and therefore to the routed pack.
   @Test
   fun `a keyed outcome joins to its review run`() {
     val dbPath = Files.createTempDirectory("unaddressed-findings-join").resolve("runtime.db")

@@ -10,7 +10,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-/** Cross-seam regressions the surviving inline parallel review must keep holding. */
 class ParallelCodeReviewRegressionTest {
   private val areas = listOf("architecture", "security", "testing")
   private val agentsBody = "AGENTS_BODY_SENTINEL ".repeat(400)

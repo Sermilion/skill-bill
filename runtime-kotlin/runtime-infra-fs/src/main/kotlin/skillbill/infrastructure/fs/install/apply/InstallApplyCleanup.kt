@@ -34,9 +34,7 @@ internal fun cleanupExistingSkillBillLinks(
   )
   plan.agents.forEach { agentTarget ->
     cleanupOneTarget(agentTarget.agent, agentTarget.path.toPath(), cleanupContext, failures)
-    // Migration: before SKILL-bill installed Claude skills into `<root>/skills`, it linked them into
-    // the sibling `<root>/commands` slash-command dir. Sweep that legacy location so upgrading users
-    // don't keep orphaned command symlinks pointing into the installed-skills cache.
+
     legacyClaudeCommandsDir(agentTarget.agent, agentTarget.path.toPath())?.let { legacyDir ->
       cleanupOneTarget(agentTarget.agent, legacyDir, cleanupContext, failures)
     }

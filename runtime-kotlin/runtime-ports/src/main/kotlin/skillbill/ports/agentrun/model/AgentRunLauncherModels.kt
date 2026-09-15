@@ -33,21 +33,11 @@ data class SkillRunRequest(
   val progressEmitter: AgentRunProgressEmitter = AgentRunProgressEmitter.NONE,
   val outputSink: AgentRunOutputSink = AgentRunOutputSink.NONE,
   val promptOverride: String? = null,
-  /**
-   * Request incremental provider transport without making arbitrary output authoritative progress.
-   * Builders may stream provider envelopes while retaining a durable-progress-only idle policy.
-   */
+
   val streamProviderOutput: Boolean = false,
-  /**
-   * Request incremental provider output so a launch that writes no durable workflow rows can still
-   * prove liveness. A builder that cannot stream must keep the idle watchdog off its own launch.
-   */
+
   val streamOutputForLiveness: Boolean = false,
-  /**
-   * True when the phase produces no durable workflow rows and no file activity by construction (e.g.
-   * the review phase). Builders use this to select HEARTBEAT_EXTENDED so the process runner does not
-   * idle-kill a healthy agent whose only liveness signal is a live heartbeat.
-   */
+
   val readOnlyPhase: Boolean = false,
   val modelOverride: String? = null,
   val effortOverride: String? = null,
@@ -175,7 +165,7 @@ data class AgentRunProgressEmission(
   val operationKind: String,
   val expectedLong: Boolean = true,
   val outcome: GoalProgressOutcome = GoalProgressOutcome.NONE,
-  /** True only for provider-owned specialist progress; process wrapper events are observational. */
+
   val authoritative: Boolean = false,
 )
 
@@ -234,30 +224,17 @@ data class AgentRunLaunchFacts(
   val spawnFailed: Boolean,
   val stdoutBytes: ByteArray = stdout.encodeToByteArray(),
   val liveness: AgentRunLivenessSnapshot? = null,
-  /**
-   * True only when the launcher crossed the process-start boundary. Defaulted from [spawnFailed]
-   * because the two are one fact: the run loop decides whether a settled phase keeps its
-   * launched-model stamp from [spawnFailed], so a bare `false` default let a facts producer that
-   * omitted this report "never started" for a child that ran.
-   */
+
   val processStarted: Boolean = !spawnFailed,
-  /** True only when an MCP startup observation was explicitly emitted by the launcher. */
+
   val mcpStartupObserved: Boolean = false,
   val childSessionPath: String? = null,
   val childSessionId: String? = null,
-  /**
-   * Count of provider assistant turns the decoder observed, when the transport exposes them. A zero
-   * count on a zero-exit launch distinguishes "the provider answered nothing" from "the provider
-   * answered and the harvest lost it"; null means the transport carries no such signal.
-   */
+
   val assistantEventCount: Int? = null,
-  /**
-   * Bounded, non-authoritative excerpt of the raw provider transport, retained only when decoding
-   * yielded no usable text. It exists for durable failure evidence and must never be treated as
-   * phase output.
-   */
+
   val rawOutputPreview: String? = null,
-  /** True when raw output exceeded the retention cap, so [stdout] is missing trailing content. */
+
   val stdoutTruncated: Boolean = false,
   val stdoutByteSize: Long = stdoutBytes.size.toLong(),
   val stdoutSha256: String = MessageDigest.getInstance("SHA-256")
@@ -271,7 +248,6 @@ data class AgentRunLaunchFacts(
   }
 }
 
-/** Maps process facts to a lifecycle class without using provider identity. */
 fun AgentRunLaunchFacts.reviewProcessOutcome(): ReviewProcessOutcome = when {
   timedOut -> ReviewProcessOutcome.TIMED_OUT
   interrupted -> ReviewProcessOutcome.INTERRUPTED

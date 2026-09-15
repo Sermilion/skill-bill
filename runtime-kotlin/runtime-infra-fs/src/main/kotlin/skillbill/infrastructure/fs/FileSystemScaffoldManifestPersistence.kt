@@ -18,15 +18,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 import skillbill.scaffold.policy.platformpack.renderPlatformPackManifest as policyRenderPlatformPackManifest
 
-/**
- * Filesystem adapter for [ScaffoldManifestPersistencePort]. IO ownership stays here — the
- * adapter delegates to the existing infra-fs YAML mutators
- * (`appendCodeReviewArea`, `setDeclaredQualityCheckFile`,
- * `appendGovernedAddonManifestRegistration`) and to the pure-policy renderer in
- * `runtime-domain` for fresh-content generation. The scaffold legacy seam (`scaffold(...)`)
- * still owns the rollback transaction; this adapter is a typed alternative for pure-policy
- * callers that does NOT yet replace the legacy entry point in subtask 2.
- */
 @Inject
 class FileSystemScaffoldManifestPersistence : ScaffoldManifestPersistencePort {
   override fun read(manifestPath: Path): ScaffoldManifestReadResult = ScaffoldManifestReadResult(

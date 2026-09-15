@@ -9,12 +9,6 @@ object FeatureTaskRuntimeQualityGateRouting {
     FeatureTaskRuntimeQualityGateSelection.VALIDATE -> FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE
   }
 
-  /**
-   * When the selected quality gate is build, traffic that would advance into validate is sent to
-   * build instead. Do not remap when already leaving build: the forward next is still validate, and
-   * [applyAfterBuild] must see that target so it can advance to write_history. Remapping here would
-   * produce build → build and spin the run loop on an already-complete phase.
-   */
   fun applyAfterReview(
     currentPhaseId: String,
     transition: FeatureTaskRuntimeNextPhase,

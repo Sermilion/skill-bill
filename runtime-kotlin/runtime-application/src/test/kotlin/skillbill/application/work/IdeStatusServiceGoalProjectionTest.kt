@@ -238,11 +238,6 @@ class IdeStatusServiceGoalProjectionTest {
     assertFalse(wire.containsKey("paused_at"))
   }
 
-  /**
-   * Zero is not an observation that the goal did no work. Emitting it would have the widget render
-   * "Goal elapsed: 0s" as fact for every goal predating the accumulator, instead of letting the
-   * consumer fall back to its own clock.
-   */
   @Test
   fun `a goal with no recorded execution omits the active duration rather than publishing zero`() {
     val wire = goalWireMapUnderControls(
@@ -256,11 +251,6 @@ class IdeStatusServiceGoalProjectionTest {
     assertFalse(wire.containsKey("active_duration_as_of"))
   }
 
-  /**
-   * A killed runner never reaches releaseExecutionLease, so its anchor survives in the durable
-   * record. Publishing it would license the consumer to add an unbounded `now - anchor` tail and
-   * rebuild the inflated clock the accumulator exists to remove.
-   */
   @Test
   fun `a stale anchor from a dead runner is withheld while the accumulated total still ships`() {
     val wire = goalWireMapUnderControls(

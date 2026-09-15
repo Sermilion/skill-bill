@@ -30,8 +30,7 @@ private fun parseValidatedNativeAgentBundle(path: Path, yamlText: String): List<
     invalidBundle("$path: native agent bundle is not valid YAML: ${error.message}", error)
   }
   val root = raw as? Map<*, *> ?: invalidBundle("$path: native agent bundle must be a YAML mapping at the top level")
-  // SKILL-48 Subtask 2c: allow an optional top-level `contract_version`
-  // key (the schema keeps it optional; on-disk fixtures may omit it).
+
   requireSupportedKeys(root.keys, setOf("agents", "contract_version")) { key ->
     "$path: unsupported native agent bundle key '$key'"
   }

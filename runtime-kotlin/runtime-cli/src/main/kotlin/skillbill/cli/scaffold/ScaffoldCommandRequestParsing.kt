@@ -2,13 +2,6 @@ package skillbill.cli.scaffold
 
 import skillbill.error.InvalidScaffoldPayloadError
 
-/**
- * SKILL-52.2 subtask 2: shared generic raw-map parse helpers for the CLI scaffold parser. These
- * file-private helpers live in a sibling file so the main parser stays under the detekt
- * `TooManyFunctions` threshold; baseline-layer specific helpers live in
- * `ScaffoldCommandRequestBaselineLayerParser.kt`.
- */
-
 internal fun parseStringList(payload: Map<String, Any?>, key: String): List<String> {
   val raw = payload[key]
     ?: throw InvalidScaffoldPayloadError(
@@ -32,12 +25,6 @@ internal fun parseStringListOrEmpty(payload: Map<String, Any?>, key: String): Li
   return parseStringListValue(raw, key)
 }
 
-/**
- * Reads an optional routing-signal list under [key] from the `routing_signals` payload object.
- * Returns null only when the key is absent (so preset fallback still applies); when the key is
- * present but the value is not a list, loud-fails with [InvalidScaffoldPayloadError] mirroring
- * the legacy `requireStringListPayload` error wording.
- */
 internal fun parseRoutingSignalList(routing: Map<*, *>, key: String, fieldName: String): List<String>? {
   if (!routing.containsKey(key)) return null
   val raw = routing[key]

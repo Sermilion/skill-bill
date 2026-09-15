@@ -7,15 +7,6 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputFormat
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairEvidence
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairOperation
 
-/**
- * Strict, bounded syntax repair for phase-output payloads.
- *
- * The engine first parses the original text with duplicate-key detection enabled. Duplicate keys
- * merge object or array values when both sides share a type; otherwise the first value is kept.
- * Delimiter imbalance is repaired separately, and every candidate is parsed again before one can be
- * selected. JSON is the default for flow-shaped payloads; YAML repair is restricted to conservative
- * flow documents so block indentation and plain scalar content are never guessed at.
- */
 internal object FeatureTaskRuntimePhaseOutputStructuralRepair {
   private val fencedBlock = Regex("```[ \\t]*[A-Za-z0-9_-]*\\r?\\n(.*?)```", RegexOption.DOT_MATCHES_ALL)
   private val inlineCodeSpan = Regex("`[^`\\n]*`")
@@ -35,11 +26,6 @@ internal object FeatureTaskRuntimePhaseOutputStructuralRepair {
     return PhaseOutputExpectedShape.alignDecision(raw, sourceLabel, phaseOutputText)
   }
 
-  /**
-   * Shared whole-document entry point for other governed YAML contracts. It uses the same strict
-   * parser and bounded candidate engine without phase-output envelope extraction, so a manifest's
-   * nested objects cannot be mistaken for competing phase envelopes.
-   */
   internal fun inspectWholeDocument(
     text: String,
     sourceLabel: String,
@@ -104,9 +90,6 @@ internal object FeatureTaskRuntimePhaseOutputStructuralRepair {
       null
     }
 
-    // A failed whole-response repair must not hide a valid envelope embedded in prose or a fence.
-    // The selected envelope is inspected independently so a malformed embedded envelope carries
-    // its own repair evidence instead of being accepted as an extracted, unchanged object.
     val extracted = if (wholeResponseRepair is FeatureTaskRuntimePhaseOutputStructuralRepairDecision.Accepted) {
       null
     } else {

@@ -13,17 +13,6 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationAr
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeQualityGateSelection
 
-/**
- * Family-aware presence resolver for the feature-task-runtime pipeline. The runtime never
- * writes top-level per-phase artifact keys; its upstream outputs live in the private
- * per-phase records store under [FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY]. An upstream
- * phase id is therefore present iff its per-phase record exists with a `completed` status, so
- * the generic resume gate reads authoritative runtime state instead of a never-written key.
- *
- * Strict decode: a corrupt records map or entry loud-fails with [InvalidWorkflowStateSchemaError]
- * rather than coercing to empty, which would otherwise turn lost outputs into a blind re-run.
- * Pure domain function: no JDBC/HTTP/Files and no clock/random.
- */
 object FeatureTaskRuntimeRequiredArtifactPresenceResolver : RequiredArtifactPresenceResolver {
   override fun missingRequiredArtifacts(
     snapshot: WorkflowSnapshotView,

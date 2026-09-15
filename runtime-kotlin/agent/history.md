@@ -1,3 +1,12 @@
+## [2026-09-15] SKILL-246 subtask 1 — Strip comments keep interface KDoc
+Areas: runtime-kotlin/{runtime-core,build-logic}, intellij-plugin, docs, orchestration/shell-content-contract
+- Authored Kotlin and Kotlin script sources now reject line comments, block comments, and KDoc outside interfaces and their members; generated and build paths remain outside the scan.
+- The architecture scanner and policy documentation use one interface-only KDoc rule, with fixture syntax handled without weakening the authored-source boundary.
+- Pattern: keep comment policy enforceable through a focused architecture test and align contributor guidance with the tested source boundary. reusable
+- Limitation: Markdown, YAML, JSON, shell, and TypeScript remain outside this comment sweep.
+Feature flag: N/A
+Acceptance criteria: 4/4 implemented
+
 ## [2026-09-15] SKILL-236 subtask 2 — Truthful lifecycle metrics and correlated diagnostics
 Areas: runtime-kotlin/{runtime-contracts,runtime-domain,runtime-application,runtime-engine,runtime-infra-sqlite,runtime-mcp,runtime-core,runtime-cli}, orchestration/contracts, docs, docs/cloudflare-telemetry-proxy
 - Every lifecycle, rejection, quality-check and aggregate metric that can be unknown now emits a `TelemetryMeasurementAvailability` token beside its value and emits explicit null rather than a defaulted zero or false whenever that token is not `measured`; a measured zero stays distinguishable from absent. reusable

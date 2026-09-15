@@ -89,8 +89,7 @@ class ComposedReviewLaunchPlanTest {
       val bundle = YAMLMapper().readTree(source.toFile())
       bundle.path("agents").mapNotNull { entry ->
         val name = entry.path("name").asText()
-        // A hand-written body cannot be pinned to the governed prose, so it is the one way a
-        // rendered worker prompt could still instruct broad discovery or per-commit stepping.
+
         "$source/$name".takeIf { entry.path("compose").asText() != "governed-content" }
       }
     }

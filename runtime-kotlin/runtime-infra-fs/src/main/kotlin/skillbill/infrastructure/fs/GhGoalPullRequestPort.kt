@@ -117,7 +117,6 @@ class GhGoalPullRequestPort() : GoalPullRequestPort {
         }
       }
     } catch (_: IOException) {
-      // Reader shutdown is best-effort after the process exits.
     }
   }
 

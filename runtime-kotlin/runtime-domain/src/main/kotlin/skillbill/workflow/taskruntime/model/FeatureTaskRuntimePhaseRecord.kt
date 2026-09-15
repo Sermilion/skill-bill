@@ -7,16 +7,6 @@ import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VE
 import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.workflow.model.WorkflowStepStatus
 
-/**
- * Durable per-phase record: one entry per phase id holding its latest persisted state.
- * `finishedAt`/`durationMillis`/`outputArtifact` are nullable because a phase may be
- * persisted while still running; a finished phase carries all three.
- *
- * `startedAt` is re-minted on every running transition so `durationMillis` measures only
- * the current run, never spanning the resume gap; `firstStartedAt` preserves the original
- * first-started timestamp across resumes. A phase the runtime blocked on persists a
- * terminal `blocked` status with [blockedReason] so blocked-ness survives ledger pruning.
- */
 data class FeatureTaskRuntimePhaseRecord(
   val phaseId: String,
   val status: WorkflowStepStatus,
@@ -29,26 +19,19 @@ data class FeatureTaskRuntimePhaseRecord(
   val executionOrigin: FeatureTaskRuntimePhaseExecutionOrigin =
     FeatureTaskRuntimePhaseExecutionOrigin.AGENT_EXECUTED,
   val outputArtifact: String? = null,
-  /**
-   * Schema-rejected agent output kept as diagnostic evidence. Held apart from [outputArtifact] because it
-   * is invalid by construction: storing it as an output makes resume hydration re-validate and reject it.
-   */
+
   val rejectedOutput: String? = null,
   val blockedReason: String? = null,
   val failureDisposition: FeatureTaskRuntimeFailureDisposition? = null,
   val fileManifestBefore: List<String> = emptyList(),
   val fileManifestAfter: List<String> = emptyList(),
   val fileManifestIntroduced: List<String> = emptyList(),
-  /** Latest backward-edge context for the resume watermark: the loop and per-edge iteration. */
+
   val loopId: String? = null,
   val edgeIteration: Int? = null,
   val reviewPassNumber: Int? = null,
   val repairEvidence: FeatureTaskRuntimePhaseOutputRepairEvidence? = null,
-  /**
-   * The model the phase's child was actually launched with, exactly as handed to the agent CLI —
-   * including Cursor's merged `model[effort=…]` form. Null when the phase ran with no model
-   * directive, which is also the shape every record written before this field holds.
-   */
+
   val launchedModel: String? = null,
   val launchedEffort: String? = null,
   val reviewRunId: String? = null,
@@ -174,7 +157,7 @@ data class FeatureTaskRuntimePhaseRecord(
   }
 
   companion object {
-    /** Strict decode; loud-fails on any missing or malformed required field. */
+
     internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimePhaseRecord {
       requireCompatibleShape(raw)
       val phaseId =
@@ -264,10 +247,6 @@ data class FeatureTaskRuntimePhaseRecord(
         else -> null
       }
       if (missing.isNotEmpty() || unknown.isNotEmpty() || identityDetail != null) {
-        // The cause must be named. The contract version is shared across record kinds, so an
-        // additive key on this record alone cannot bump it — meaning a newer row read by an older
-        // build fails on `unknown` while its version string matches. Reporting only the version
-        // would send the operator hunting a migration that does not exist.
         incompatiblePhaseRecord(
           listOfNotNull(
             identityDetail,

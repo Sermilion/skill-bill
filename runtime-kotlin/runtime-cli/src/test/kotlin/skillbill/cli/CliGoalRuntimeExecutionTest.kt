@@ -250,7 +250,7 @@ class CliGoalRuntimeExecutionTest {
         workflowGitOperations = GoalTestWorkflowGitOperations,
         agentRunLauncher = launcher,
         goalPullRequestPort = fixture.pullRequests,
-        // No --agent and no SKILL_BILL_AGENT: detection must resolve claude.
+
         environment = mapOf("CLAUDECODE" to "1"),
         executableLookup = ExecutableLookup { true },
       ),
@@ -278,7 +278,7 @@ class CliGoalRuntimeExecutionTest {
     )
 
     assertEquals(0, result.exitCode, result.stdout)
-    // --agent codex (from goalCommand) wins over SKILL_BILL_AGENT and detection.
+
     assertEquals(listOf("codex"), launcher.childLaunches.map { it.agentId }.distinct())
   }
 
@@ -436,11 +436,9 @@ class CliGoalRuntimeExecutionTest {
     assertEquals(0, status.exitCode, status.stdout)
     assertContains(status.stdout, "current_subtask: 1")
     assertContains(status.stdout, "current_step: implement")
-    // SKILL-103 AC1: the CLI child carries no persisted agent attribution, so active_agent
-    // is omitted (rendered as none) rather than leaked from the caller's --agent codex.
+
     assertContains(status.stdout, "active_agent: none")
-    // SKILL-175: the continuation child is a RUNTIME-mode workflow with no live worker ownership,
-    // so liveness is idle (UNKNOWN is reserved for lease-read failure / non-runtime-mode rows).
+
     assertContains(status.stdout, "execution_liveness: idle")
     assertContains(status.stdout, "latest_liveness_signal: liveness=durable_progress phase=implement")
     assertContains(status.stdout, "role=phase_subagent sequence=12")

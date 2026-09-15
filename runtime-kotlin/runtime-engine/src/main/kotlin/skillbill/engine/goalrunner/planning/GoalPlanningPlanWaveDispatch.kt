@@ -127,13 +127,6 @@ private fun DefaultGoalPlanningSweep.producePlanUnit(
   }
 }
 
-/**
- * Forwards one planning unit's streamed output to the shared sink one whole line at a time, tagged
- * with the subtask that produced it. The provider transport hands over arbitrary chunks from a
- * stdout and a stderr drain, so partial lines are buffered per stream and only completed lines
- * reach the delegate; every delegate write goes through the fan-out port's mutual exclusion so a
- * line from one unit cannot land inside a line from another.
- */
 private class SubtaskAttributedOutputSink(
   private val fanOutPort: BoundedWorkFanOutPort,
   private val delegate: AgentRunOutputSink,

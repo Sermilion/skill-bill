@@ -180,15 +180,11 @@ class FeatureTaskContinuationLookupServiceTest {
 
   @Test
   fun `legacy prose-mode candidate loud-fails on continuation with the runtime re-run error`() {
-    // SKILL-175 subtask 6 AC-002: a candidate whose immutable identity decodes to PROSE is
-    // quarantined in FeatureTaskContinuationLookupService.project, raising LegacyProseWorkflowError
-    // (which names the `skill-bill goal <KEY>` re-run path) rather than being handed back as resumable.
     val fixture = fixture()
     val opened = fixture.open(REPOSITORY_A)
     val identity = requireNotNull(fixture.states.executionIdentity(opened.workflowId))
     fixture.states.overwriteExecutionIdentity(identity.copy(mode = FeatureTaskWorkflowMode.PROSE))
-    // The durable workflow row must decode as PROSE too: the lookup validates identity-vs-snapshot
-    // consistency before the mode quarantine, so a RUNTIME row would trip the schema error instead.
+
     val row = requireNotNull(fixture.states.getFeatureTaskWorkflow(opened.workflowId))
     fixture.states.saveFeatureTaskRuntimeWorkflow(row.copy(mode = FeatureTaskWorkflowMode.PROSE))
 
@@ -248,8 +244,6 @@ class FeatureTaskContinuationLookupServiceTest {
 
   @Test
   fun `lookup surfaces a legacy prose-mode goal parent as goal continuation without no-match`() {
-    // SKILL-179 AC-001/AC-002/AC-007: mode=prose parents with decomposition_runtime must be found;
-    // discovery must not flip mode or assert the runtime workflow schema.
     val fixture = fixture()
     fixture.saveProseGoalParent(
       workflowStatus = "paused",
@@ -421,7 +415,7 @@ class FeatureTaskContinuationLookupServiceTest {
           workflowName = "bill-feature-task",
           contractVersion = "0.1",
           workflowStatus = workflowStatus,
-          // Retired prose step ids — must not be fed to the runtime schema validator.
+
           currentStepId = "assess",
           stepsJson =
           """[{"step_id":"assess","status":"completed"},{"step_id":"create_branch","status":"pending"}]""",
@@ -430,8 +424,7 @@ class FeatureTaskContinuationLookupServiceTest {
           updatedAt = null,
           finishedAt = null,
           mode = FeatureTaskWorkflowMode.PROSE,
-          // Split so the SKILL-175 banned-token scanner does not treat this quarantine fixture as a
-          // live product surface (allowlist must stay unwidened).
+
           implementationSkill = "bill-feature-task-" + "prose",
           issueKey = "SKILL-120",
         ),

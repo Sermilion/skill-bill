@@ -81,11 +81,6 @@ internal fun detectCodexAgentsTargets(
     .map { target -> AgentTarget(target.name, target.path.toFileLocation()) }
 }
 
-/**
- * Installation context bundling staging-cache inputs so callers can pre-resolve them once and
- * reuse them across a multi-skill install (review F-015). Defaults preserve the legacy behavior
- * of `installSkill` callers that don't care about staging.
- */
 internal data class InstallContext(
   val repoRoot: Path? = null,
   val home: Path = Path.of(System.getProperty("user.home")),

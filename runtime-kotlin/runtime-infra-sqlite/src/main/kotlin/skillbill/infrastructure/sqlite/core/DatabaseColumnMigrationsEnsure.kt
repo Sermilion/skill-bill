@@ -30,8 +30,6 @@ internal object DatabaseColumnMigrationsEnsure {
     ensureStaleReasonColumn(connection, "quality_check_sessions")
   }
 
-  // Nullable with no backfill: a row that predates the column keeps NULL, so no historical terminal is
-  // retrospectively attributed to the reconciler.
   private fun ensureStaleReasonColumn(connection: Connection, tableName: String) {
     ensureColumn(connection, tableName, "stale_reason", "TEXT")
   }
@@ -89,21 +87,16 @@ internal object DatabaseColumnMigrationsEnsure {
       columnName = "orchestrated_run",
       definition = "INTEGER NOT NULL DEFAULT 0",
     )
-    // execution_mode ships in the fresh schema, but legacy stores predate it and backfillReviewExecutionModes
-    // below updates it on every open. Heal the column first so opening a legacy store cannot fail on it.
+
     ensureColumn(connection, "review_runs", "execution_mode", "TEXT")
     ensureColumn(connection, "review_runs", "routed_skill_canonical", "TEXT NOT NULL DEFAULT 'unresolved'")
     ensureColumn(connection, "review_runs", "detected_stack_canonical", "TEXT NOT NULL DEFAULT 'unresolved'")
     ensureColumn(connection, "review_runs", "detected_scope_canonical", "TEXT NOT NULL DEFAULT 'unresolved'")
     ensureColumn(connection, "review_runs", "detected_scope_detail", "TEXT")
-    // Specialist completion and integration completion are distinct durable boundaries, so the
-    // integration pass records its own terminal state rather than being inferred from lane rows.
-    // The sequence digest pins which commit sequence that state belongs to: a resume against a
-    // different sequence must re-run the pass instead of trusting a stale terminal state.
+
     ensureColumn(connection, "review_runs", "integration_terminal_outcome", "TEXT")
     ensureColumn(connection, "review_runs", "integration_commit_sequence_digest", "TEXT")
-    // Created here rather than in the base schema: a legacy store still lacks routed_skill_canonical
-    // when createBaseSchema runs, so the index can only be declared once the column is healed.
+
     connection.createStatement().use { statement ->
       statement.execute(
         "CREATE INDEX IF NOT EXISTS idx_review_runs_routed_skill_canonical " +

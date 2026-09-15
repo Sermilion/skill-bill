@@ -99,7 +99,6 @@ class BoundaryMemoryHeadingParserTest {
     assertEquals("body", entries.single().body)
   }
 
-  // Both boundary skills mandate newest-entry-first, so a positional id would go stale on every write.
   @Test
   fun `heading ids survive prepending a newer entry`() {
     val path = "modules/a/agent/history.md"
@@ -163,7 +162,6 @@ class BoundaryMemoryHeadingParserTest {
     assertContains(entries.last().body, "second occurrence")
   }
 
-  // The boundary skills document the entry form with a fenced example, so this is expected content.
   @Test
   fun `a fenced heading inside a body is body text, not a new entry`() {
     val content = """
@@ -214,8 +212,6 @@ class BoundaryMemoryHeadingParserTest {
     assertContains(entries.single().body, "## [2026-01-01] not-an-entry")
   }
 
-  // Newest-first writing means an unclosed fence in the newest entry would otherwise hide the whole
-  // history behind it, so the parser rescans without fence tracking rather than losing entries.
   @Test
   fun `an unterminated fence does not swallow the entries behind it`() {
     val content = """

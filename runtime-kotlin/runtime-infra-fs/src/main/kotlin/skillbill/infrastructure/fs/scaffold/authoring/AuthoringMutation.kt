@@ -61,8 +61,7 @@ private fun collectTargetIssues(target: AuthoringTarget, repoRoot: Path?, issues
   if (repoRoot != null && isSourceOwnedSkillTarget(repoRoot, target)) {
     collectSourceSidecarIssues(repoRoot, target, issues)
   }
-  // Validate content.md frontmatter only — content.md is the authored surface and may contain
-  // rich body markdown (fenced code, tables, H1s) that the wrapper rules reject.
+
   try {
     validateSkillMdShape(target.contentFile, validateBodyShape = false)
   } catch (error: ShellContentContractException) {

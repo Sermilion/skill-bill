@@ -57,10 +57,6 @@ class JdkFeatureTaskRuntimeWorkerSupervisorTest {
 
   @Test
   fun `a live worker whose stored boot identity came from the drifting fallback still reads live`() {
-    // The replaced fallback derived this value from the calling process's start instant minus its
-    // accumulated CPU time, so it moved as a process ran. Rows written by it are still in durable
-    // state, and treating one as a boot mismatch reported the live owner as gone: `goal stop` then
-    // found no live lease and left the runner running, and a second runner could reclaim the lease.
     val supervisor = JdkFeatureTaskRuntimeWorkerSupervisor(RecordingDiagnostics())
     val current = supervisor.currentProcess()
 
@@ -146,7 +142,6 @@ class JdkFeatureTaskRuntimeWorkerSupervisorTest {
 
   @Test
   fun `a reused pid is still caught when the boot check abstains`() {
-    // With the boot comparison abstaining, process-birth evidence is the whole reused-pid guard.
     val supervisor = JdkFeatureTaskRuntimeWorkerSupervisor(RecordingDiagnostics())
     val current = supervisor.currentProcess()
 

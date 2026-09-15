@@ -9,11 +9,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-/**
- * End-to-end proof over the production composition that a delegated review runs exactly one bounded
- * integration pass after its specialist lanes finish, that the pass does not scale with commit
- * count, and that specialist completion and integration completion are distinct durable boundaries.
- */
 class ParallelCodeReviewIntegrationPassTest {
   private val pack = sparseReviewPack(
     slug = "kotlin",
@@ -102,7 +97,6 @@ class ParallelCodeReviewIntegrationPassTest {
     )
   }
 
-  // AC-001: an unusable cited commit costs its own finding, never the whole finished review.
   @Test fun `a finding naming an unknown commit is dropped instead of failing the finished review`() {
     val recorder = ReviewRecorder()
 
@@ -164,7 +158,7 @@ class ParallelCodeReviewIntegrationPassTest {
 
   @Test fun `a crash between specialist completion and integration resumes into the integration pass alone`() {
     val recorder = ReviewRecorder()
-    // First attempt: every lane completes, then the integration launch dies before reporting.
+
     reviewHarness(
       delegatedConfig(sixCommitPaths) { request ->
         RecordedWorkerResponse(spawnFailed = request.skillRunRequest.issueKey == INTEGRATION_ISSUE_KEY)
@@ -199,14 +193,13 @@ class ParallelCodeReviewIntegrationPassTest {
   @Test fun `a resume whose routing grew launches the newly routed lane instead of failing aggregation`() {
     val recorder = ReviewRecorder()
     val narrow = listOf("src/api/Auth.kt")
-    // First attempt: the only routed lane times out, so it holds a durable incomplete row.
+
     reviewHarness(
       delegatedConfig(narrow) { RecordedWorkerResponse(timedOut = true) },
       recorder,
     ).run(delegatedRequest(reviewRunId = RUN_ID))
     val afterFirst = recorder.specialistLaunches.size
 
-    // The resume compiles a lane that has no durable row at all. It must launch, not be dropped.
     val resumed = reviewHarness(delegatedConfig(narrow + "src/db/Repo.kt"), recorder)
       .run(delegatedRequest(reviewRunId = RUN_ID))
 
@@ -243,7 +236,6 @@ class ParallelCodeReviewIntegrationPassTest {
     paths: List<String>,
     response: (GoalRunnerSubtaskLaunchRequest) -> RecordedWorkerResponse = { RecordedWorkerResponse() },
   ): ReviewHarnessConfig {
-    // The last commit of a range is the head revision, exactly as a real base..head walk resolves.
     val shas = paths.indices.map { index ->
       if (index == paths.lastIndex) HARNESS_HEAD_REVISION else "c$index"
     }
@@ -263,7 +255,6 @@ class ParallelCodeReviewIntegrationPassTest {
   }
 }
 
-/** Integration-pass launches, split from the specialist parent launches by their issue key. */
 private val ReviewRecorder.integrationLaunches: List<GoalRunnerSubtaskLaunchRequest>
   get() = parentLaunches.filter { it.skillRunRequest.issueKey == "code-review-integration" }
 

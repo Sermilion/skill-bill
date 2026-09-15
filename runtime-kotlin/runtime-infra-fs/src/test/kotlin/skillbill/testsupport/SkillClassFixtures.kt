@@ -7,8 +7,6 @@ import java.nio.file.StandardCopyOption
 object SkillClassFixtures {
   private const val SHIPPED_DIR = "orchestration/skill-classes"
 
-  // Copies every shipped class manifest from the real Skill Bill repo into [repoRoot] so tests
-  // constructing a fake repo in a tmpdir can resolve skill classes via the normal loader.
   fun seedShippedSkillClasses(repoRoot: Path) {
     val sourceDir = findRealRepoRoot().resolve(SHIPPED_DIR)
     val destDir = repoRoot.resolve(SHIPPED_DIR)

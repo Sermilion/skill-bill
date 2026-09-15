@@ -22,7 +22,6 @@ data class ReviewScopeFacts(
   val coverageFact: ReviewCommitCoverageFact,
 )
 
-/** Lane selection and the commit/lane routing that produced it travel together; one decides the other. */
 data class ReviewLaneSelection(
   val decisions: List<ReviewLaneDecision>,
   val routingMatrix: ReviewCommitLaneRoutingMatrix,

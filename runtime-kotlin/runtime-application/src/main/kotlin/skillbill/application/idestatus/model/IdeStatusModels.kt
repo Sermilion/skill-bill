@@ -88,7 +88,6 @@ enum class IdeStatusProblemCode(val wireValue: String) {
   SCHEMA_INCOMPATIBLE("schema_incompatible"),
 }
 
-/** Selection-tier ranking used only inside the application selector (not on the wire). */
 enum class IdeStatusSelectionTier {
   ACTIVE,
   PAUSED,
@@ -123,17 +122,10 @@ data class IdeStatusCurrentSubtask(
   val activeDurationAsOf: Instant? = null,
 )
 
-/**
- * The model the current phase's child was launched with. [effort] is null when the model string
- * already carries it (Cursor's merged `model[effort=…]`) or when no effort was resolved.
- */
 data class IdeStatusCurrentModel(
   val model: String,
   val effort: String? = null,
-  /**
-   * The phase the model belongs to. A goal's `current_step` is a goal-level label — often
-   * `planning` — so without this the payload names a model whose phase appears nowhere in it.
-   */
+
   val phaseId: String? = null,
 ) {
   init {
@@ -143,15 +135,14 @@ data class IdeStatusCurrentModel(
   }
 }
 
-/** Goal planning progress mirrored from [skillbill.goalrunner.model.GoalPlanningStatusSnapshot]. */
 data class IdeStatusPlanning(
   val state: GoalPlanningStatusState,
   val sharedPreplanPrepared: Boolean,
   val plannedSubtaskCount: Int,
   val totalSubtaskCount: Int,
-  /** Wire-shaped subtask id; the goal projection carries it as an Int. */
+
   val currentPlanningSubtaskId: String? = null,
-  /** Wire-shaped ids of the subtasks the current planning wave covers, in manifest order. */
+
   val planningWaveSubtaskIds: List<String> = emptyList(),
   val reason: String? = null,
 ) {
@@ -171,10 +162,6 @@ data class IdeStatusPlanning(
   }
 }
 
-/**
- * Controlled vocabulary for [IdeStatusCurrentPhaseExecution.kind]. Distinguishes semantic
- * loops/passes from gate runs, capped backward edges, and generic phase attempts.
- */
 enum class IdeStatusCurrentPhaseExecutionKind(val wireValue: String) {
   PASS("pass"),
   SEMANTIC_LOOP("semantic_loop"),
@@ -183,10 +170,6 @@ enum class IdeStatusCurrentPhaseExecutionKind(val wireValue: String) {
   ATTEMPT("attempt"),
 }
 
-/**
- * Authoritative current-phase execution measure. [total] is set only for a meaningful bounded
- * edge cap; semantic loops, passes, gate runs, and attempts omit it.
- */
 data class IdeStatusCurrentPhaseExecution(
   val phaseId: String,
   val kind: IdeStatusCurrentPhaseExecutionKind,
@@ -215,9 +198,6 @@ data class IdeStatusProblem(
   }
 }
 
-/**
- * In-process selection candidate for IDE status precedence. Not a wire DTO.
- */
 data class IdeStatusCandidate(
   val workflowId: String,
   val workflowFamily: IdeStatusWorkflowFamily,
@@ -231,16 +211,12 @@ data class IdeStatusCandidate(
   val isGoalAuthoritative: Boolean = workflowFamily == IdeStatusWorkflowFamily.FEATURE_GOAL,
 )
 
-/** Result of resolving `--repo-root` into a canonical repository identity. */
 sealed class IdeStatusRepositoryResolution {
   data class Ok(val identity: String, val repoRoot: Path) : IdeStatusRepositoryResolution()
   data class Invalid(val message: String) : IdeStatusRepositoryResolution()
   data class Missing(val message: String) : IdeStatusRepositoryResolution()
 }
 
-/**
- * Application-layer IDE status snapshot. [toStatusWireMap] is the schema-validated emit shape.
- */
 data class IdeStatusSnapshot(
   val repositoryIdentity: String,
   val lifecycleState: IdeStatusLifecycleState,
@@ -254,20 +230,17 @@ data class IdeStatusSnapshot(
   val progress: IdeStatusProgress? = null,
   val startedAt: Instant? = null,
   val currentSubtask: IdeStatusCurrentSubtask? = null,
-  // Null default: optional context, so a snapshot whose current phase has no recorded model
-  // stays wire-identical.
+
   val currentModel: IdeStatusCurrentModel? = null,
-  // Null default: only projectGoal populates planning, so every other family stays wire-identical.
+
   val planning: IdeStatusPlanning? = null,
-  // Null default: optional current-phase execution; omitted when absent so older snapshots stay
-  // wire-identical and planning-only goals never duplicate planning counts here.
+
   val currentPhaseExecution: IdeStatusCurrentPhaseExecution? = null,
-  // Null defaults: only projectGoal populates the pause signals, so every other family stays
-  // wire-identical. pause_requested is never emitted as false for the same reason.
+
   val pauseRequested: Boolean? = null,
   val pausedAt: Instant? = null,
   val pauseReason: IdeStatusPauseReason? = null,
-  // Execution time rather than wall clock since startedAt; see the contract's active_duration_ms.
+
   val activeDurationMs: Long? = null,
   val activeDurationAsOf: Instant? = null,
   val lastAgentActivityAt: Instant? = null,
@@ -337,10 +310,6 @@ data class IdeStatusSnapshot(
     )
   }
 
-  /**
-   * Omitted entirely when the current phase recorded no model, so a snapshot without it stays
-   * wire-identical. `effort` needs no blank guard here: [IdeStatusCurrentModel] rejects a blank one.
-   */
   private fun MutableMap<String, Any?>.putCurrentModel() {
     val model = currentModel ?: return
     put(
@@ -353,10 +322,6 @@ data class IdeStatusSnapshot(
     )
   }
 
-  /**
-   * Omitted entirely when no reliable current-phase execution value exists, so older producers and
-   * planning-only snapshots stay wire-identical.
-   */
   private fun MutableMap<String, Any?>.putCurrentPhaseExecution() {
     val execution = currentPhaseExecution ?: return
     put(
@@ -370,7 +335,6 @@ data class IdeStatusSnapshot(
     )
   }
 
-  /** Both keys are optional and goal-family-only, so a snapshot without them stays wire-identical. */
   private fun MutableMap<String, Any?>.putPauseReason() {
     val reason = pauseReason ?: return
     put(

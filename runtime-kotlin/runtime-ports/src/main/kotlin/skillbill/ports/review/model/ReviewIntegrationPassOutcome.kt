@@ -4,10 +4,6 @@ import skillbill.review.context.model.ReviewIntegrationTerminalOutcome
 import skillbill.review.model.ParallelReviewRawFinding
 import skillbill.review.model.ReviewFindingCitationDiagnosticWithFinding
 
-/**
- * Terminal result of the single integration pass. It is a separate durable boundary from any
- * lane's result: a resume that finds every lane complete but this absent re-runs only this pass.
- */
 data class ReviewIntegrationPassOutcome(
   val commitSequenceDigest: String,
   val terminalOutcome: ReviewIntegrationTerminalOutcome,
@@ -34,7 +30,6 @@ data class ReviewIntegrationPassOutcome(
 
   val completed: Boolean get() = terminalOutcome == ReviewIntegrationTerminalOutcome.COMPLETED
 
-  /** A pass is a settled durable boundary only when it will not be re-run on resume. */
   val durable: Boolean get() = terminalOutcome.isDurablyComplete
 
   companion object {

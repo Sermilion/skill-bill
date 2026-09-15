@@ -9,7 +9,7 @@ data class ReviewAssignment(
   val assignedPaths: List<String>,
   val assignedHunks: List<String>,
   val assignedBundle: ReviewLaneBundle = ReviewLaneBundle.EMPTY,
-  /** This lane's column of the routing matrix: why each commit was focused into or skipped for it. */
+
   val laneRouting: List<ReviewCommitLaneDecision> = emptyList(),
   val criteriaReferences: List<String> = emptyList(),
   val matchedRules: List<ReviewRuleReference> = emptyList(),
@@ -26,8 +26,7 @@ data class ReviewAssignment(
     require(assignedPaths.distinct().size == assignedPaths.size) { "Assigned paths must be unique." }
     assignedPaths.forEach(::requireRepositoryRelativePath)
     require(assignedHunks.distinct().size == assignedHunks.size) { "Assigned hunk ids must be unique." }
-    // Full coverage is asserted where the packet is in hand (preparation validation and launch);
-    // here the bundle can only be checked against the assignment's own hunk surface.
+
     require(assignedBundle.hunkIds.all { it in assignedHunks }) {
       "Assignment '$lane' bundle attributes hunks that are not assigned to the lane."
     }
@@ -38,10 +37,7 @@ data class ReviewAssignment(
     require(laneRouting.map { it.orderIndex }.zipWithNext().all { (previous, next) -> previous < next }) {
       "Assignment '$lane' routing must preserve packet commit order."
     }
-    // A focused commit contributes no bundle entry when it owns no hunk under the lane's paths, so
-    // the bundle is a subset here; exact equality is asserted where the packet's hunks are in hand.
-    // Only the routing column's explicit skips are rejected here; commits absent from the column
-    // (outside the packet) are owned by packet validation so the reason stays specific.
+
     val explicitlySkipped = laneRouting.filterNot { it.focused }.map { it.commitSha }.toSet()
     val fromSkipped = assignedBundle.entries.map { it.commitSha }.filter { it in explicitlySkipped }
     require(fromSkipped.isEmpty()) {

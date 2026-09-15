@@ -10,14 +10,12 @@ internal object MigrationLedger {
   ) {
     fun hasPendingWork(migrationNames: List<String>): Boolean = when {
       !tableExists -> true
-      // ensureNameKeyed rebuilds the table, so a version-keyed ledger is pending work by itself.
+
       versionKeyed -> true
       else -> migrationNames.any { name -> name !in appliedNames }
     }
   }
 
-  // Read-only snapshot of the ledger, safe to take outside the write transaction. A version-keyed
-  // ledger still needs ensureNameKeyed under the lock, so callers must treat versionKeyed as work.
   fun readState(connection: Connection): State {
     val exists = tableExists(connection)
     return State(
@@ -27,9 +25,6 @@ internal object MigrationLedger {
     )
   }
 
-  // Version numbers are assigned per branch, so two lineages can ship different migrations under the
-  // same number. A version-keyed ledger records whichever ran first and skips the other forever.
-  // Identity is the name; the version column is retained as ordering metadata only.
   fun ensureNameKeyed(connection: Connection) {
     if (!tableExists(connection)) return
     if (!versionIsPrimaryKey(connection)) return

@@ -9,7 +9,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
-/** AC-004, AC-007: the payload must round-trip every raw fact identity is derived from, verbatim. */
 class SharedReviewEvidenceCodecTest {
   private fun commitRecord() = SharedReviewEvidenceRecord(
     aggregateDiff = "diff --git a/src/A.kt b/src/A.kt\n@@ -1,1 +1,2 @@\n+alpha\n",
@@ -18,7 +17,7 @@ class SharedReviewEvidenceCodecTest {
       headRevision = "head",
       commits = listOf(
         RawCommitDiff("c1", "base", "subject with\nan embedded newline", "diff --git a/A b/A\n@@ -1 +1 @@\n+a\n"),
-        // A body whose own lines look like length prefixes must not confuse the framing.
+
         RawCommitDiff("head", "c1", "12\nnot a length", "7\nseven\n0\n\n"),
       ),
       syntheticSource = null,

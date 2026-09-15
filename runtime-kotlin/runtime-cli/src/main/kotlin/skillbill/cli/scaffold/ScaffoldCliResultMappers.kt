@@ -1,6 +1,5 @@
 package skillbill.cli.scaffold
 
-import skillbill.cli.kernel.CliOutput
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.ports.scaffold.catalog.model.ScaffoldExplainResult
 import skillbill.ports.scaffold.catalog.model.ScaffoldListResult
@@ -13,23 +12,6 @@ import skillbill.ports.scaffold.source.model.ScaffoldEditWithBodyFileResult
 import skillbill.ports.scaffold.source.model.ScaffoldFillResult
 import skillbill.ports.scaffold.source.model.ScaffoldSaveExactContentResult
 
-/**
- * SKILL-52.3 subtask 3 — Adapter-side mappers that convert the fully typed scaffold
- * result models into the wire-shape `LinkedHashMap` payloads consumed by [CliOutput]
- * and the CliScaffoldRuntime tests.
- *
- * SKILL-52.1 subtask 3 typed only the top-level scalars and carried the rest of the
- * wire shape in an open `payload` field. SKILL-52.3 subtask 3 retired that field:
- * every wire key is now rebuilt here from typed fields in
- * the EXACT producer key order the prior `skillbill.infrastructure.fs.scaffold.AuthoringOperations`
- * raw-map producers emitted. The byte-equivalence contract is locked by
- * `runtime-cli/src/test/kotlin/skillbill/cli/CliScaffoldRuntimeTest.kt`
- * (field-by-field + key-order assertions) and `AuthoringOperationsTest.kt`.
- *
- * Both success and error envelope paths flow through `authoringResult { ... }` /
- * `errorResult(...)` in `ScaffoldCliPayloadRuns.kt`; errors are surfaced by the catch
- * blocks in `authoringResult` and do not pass through these mappers.
- */
 internal fun ScaffoldListResult.toCliMap(): Map<String, Any?> = linkedMapOf(
   "repo_root" to repoRoot,
   "skill_count" to skillCount,

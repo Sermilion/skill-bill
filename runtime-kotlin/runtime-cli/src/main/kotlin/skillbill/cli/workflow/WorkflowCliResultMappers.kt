@@ -6,24 +6,9 @@ import skillbill.application.workflow.model.WorkflowLatestResult
 import skillbill.application.workflow.model.WorkflowListResult
 import skillbill.application.workflow.model.WorkflowOpenResult
 import skillbill.application.workflow.model.WorkflowResumeResult
-import skillbill.cli.kernel.CliOutput
-import skillbill.cli.kernel.CliRunState
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.workflow.goal.GoalObservabilityEventValidator
 
-/**
- * SKILL-52.1 — Adapter-side mappers that convert typed
- * `WorkflowService` results into the wire-shape `LinkedHashMap`
- * payloads consumed by [CliRunState.complete] / [CliOutput].
- *
- * Each mapper preserves the EXACT key order produced by the prior
- * `WorkflowContracts.*` serializers. Goldens locking the wire shape:
- *
- *  - `runtime-cli/src/test/resources/golden/cli-verify-workflow-show.json`
- *
- * Any field-order change here will break those goldens; update the
- * goldens deliberately rather than reordering the mapper.
- */
 internal fun WorkflowOpenResult.toCliMap(
   goalObservabilityEventValidator: GoalObservabilityEventValidator,
 ): Map<String, Any?> = when (this) {

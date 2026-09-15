@@ -70,10 +70,6 @@ class TelemetryRuntimeTest {
     assertEquals(false, payload.supportsStats)
   }
 
-  // SKILL-236 AC-005: a relay fork that rewrites or drops event properties cannot carry the
-  // deduplication key, so every retried batch would land upstream as a fresh duplicate. Sending
-  // anyway degrades silently. A relay that omits the field is an older relay that forwards
-  // properties verbatim, which is what makes the producer-first rollout order safe.
   @Test
   fun `a relay that cannot carry the deduplication property fails the ingest handshake loudly`() {
     val settings = telemetrySettings(Files.createTempFile("telemetry-dedup-capability", ".json"))
@@ -93,8 +89,6 @@ class TelemetryRuntimeTest {
     )
   }
 
-  // SKILL-236 AC-003: a row blocked after five rejections is only actionable if the recorded error
-  // names the refusal. Discarding the relay response left the operator with "rejected" and no reason.
   @Test
   fun `a rejected batch carries the relay status and reason`() {
     val requester =

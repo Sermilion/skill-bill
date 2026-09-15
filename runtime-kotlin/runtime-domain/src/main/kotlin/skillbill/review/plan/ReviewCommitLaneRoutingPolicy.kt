@@ -8,11 +8,6 @@ import skillbill.review.context.model.ReviewCommitLaneRoutingMatrix
 import skillbill.review.context.model.ReviewCommitUnit
 import skillbill.review.plan.model.ReviewRoutedLane
 
-/**
- * Decides, once and finally, which commits each specialist lane sees. Relevance is never deferred:
- * every commit/lane pair leaves here as focused or skipped with a reason falsifiable against that
- * commit's own changed hunks, because no downstream worker re-decides it.
- */
 object ReviewCommitLaneRoutingPolicy {
   const val REQUIRED_BASELINE_SIGNAL: String = "required-baseline"
 
@@ -29,10 +24,6 @@ object ReviewCommitLaneRoutingPolicy {
     return ReviewCommitLaneRoutingMatrix(ordered.map { it.commitSha }, lanes.map { it.laneKey }, decisions)
   }
 
-  /**
-   * Evidence is the commit's own incremental hunks — paths and changed content. The commit subject
-   * is deliberately never read: a message can neither create nor excuse a lane inclusion.
-   */
   private fun decide(unit: ReviewCommitUnit, lane: ReviewRoutedLane): ReviewCommitLaneDecision {
     val descriptor = lane.descriptor
     if (descriptor.required) {

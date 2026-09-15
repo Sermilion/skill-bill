@@ -83,14 +83,6 @@ class TriageAndLearningsRuntimeTest {
   }
 }
 
-/**
- * SKILL-136 subtask 6 AC-002. The resolution recorded in the change is that `learnings` is live
- * schema with a working promotion path, not dead schema and not a broken promotion from
- * `session_learnings` (which is a downstream cache of already-resolved learnings, not an upstream
- * source). These tests are the coverage for that resolution: they pin that promotion actually
- * populates the source columns, that it fails loudly on an unknown pair, and that the existing
- * ON DELETE SET NULL and paired-null contracts still hold.
- */
 class LearningPromotionTest {
   @Test
   fun `promoting a rejected finding records the originating review run and finding`() {

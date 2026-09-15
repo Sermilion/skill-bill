@@ -17,9 +17,6 @@ class ValidationGateResolver(
     val manifests = try {
       installedCatalog.manifests()
     } catch (e: ShellContentContractException) {
-      // Blocks rather than degrading to the agent-run fallback: unreadable packs are not the same
-      // as no declared gate, and reporting validate as satisfied without pack-attested execution
-      // would be worse than stopping.
       return ValidationGateResolution.Incompatible(
         "Installed platform pack discovery failed: ${e.message ?: e.javaClass.simpleName}. " +
           "Repair the installed platform packs before running validation.",
@@ -41,16 +38,6 @@ class ValidationGateResolver(
     }
   }
 
-  /**
-   * Pick the pack whose validation_gate (if any) the build/validate phases should run.
-   *
-   * Catalog order must not decide this: review routing can co-route a no-gate fallback (e.g. generic
-   * for an unmatched `.txt`) alongside the stack pack that owns the `.kt` files. Taking
-   * `manifests.first { slug in routed }` then preferred `generic` alphabetically and blocked build
-   * even though Kotlin declared the gate. Prefer routed packs that declare a gate, ranked by how
-   * many changed paths they own. With no routed slugs, keep the prior empty-path fallback: first
-   * pack that declares a gate.
-   */
   private fun selectDominantPack(
     manifests: List<PlatformManifest>,
     routing: ReviewStackRoutingResult,

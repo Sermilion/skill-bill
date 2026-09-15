@@ -18,8 +18,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class GoalPlanningPreparationValidatorTest {
-  // The real projection validator, not a stand-in: the write path must reject exactly what the
-  // consumer launch seam rejects, and a weaker validator here would prove nothing about that.
+
   private val validator = GoalPlanningPreparationValidator(
     FeatureTaskRuntimePhaseOutputValidatorAdapter(),
     FeatureTaskRuntimePlanningProjectionValidatorAdapter(),
@@ -32,7 +31,6 @@ class GoalPlanningPreparationValidatorTest {
 
   @Test
   fun `a projection-valid pair still checkpoints unchanged after the producer gate is added`() {
-    // Acceptance side of AC-004: the gate narrows nothing that was already valid.
     validator.validate(validRecord(parentGoalWorkflowId = "goal-2", subtaskId = 3))
   }
 

@@ -3,11 +3,6 @@ package skillbill.review
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-/**
- * SKILL-136 subtask 4 AC-001: canonicalization moved to ingestion, so the parser must hand the
- * agent-authored routed_skill through byte-for-byte while issue categorisation keeps behaving as
- * it did against the normalized value (AC-008 adjacency).
- */
 class ReviewRawAttributionPreservationTest {
   private fun review(routedSkillLine: String) = ReviewParser.parseReview(
     """

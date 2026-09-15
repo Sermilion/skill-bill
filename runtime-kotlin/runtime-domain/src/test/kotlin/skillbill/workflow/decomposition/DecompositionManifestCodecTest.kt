@@ -54,9 +54,6 @@ class DecompositionManifestCodecTest {
 
   @Test
   fun `codec loads a 0_2-era manifest without spec_source, preserving the version and defaulting local`() {
-    // SKILL-71 back-compatibility sweep: a manifest written before the spec_source contract bump
-    // carries contract_version "0.2" and no spec_source. The load path must still decode it,
-    // preserve the recorded version verbatim (no silent rewrite), and resolve spec_source to local.
     val wireMap = validManifest().toWireMap().toMutableMap()
     wireMap["contract_version"] = "0.2"
     wireMap.remove("spec_source")
@@ -113,7 +110,6 @@ class DecompositionManifestCodecTest {
 
   @Test
   fun `codec loads a legacy manifest without agent attribution fields, defaulting to null and empty`() {
-    // A decomposition-manifest.yaml written before SKILL-89 omits both agent keys entirely.
     val wireMap = validManifest().toWireMap().toMutableMap()
     val subtasks = requireNotNull(JsonCodec.anyToStringAnyMapList((wireMap["subtasks"]))).map { subtask ->
       subtask.toMutableMap().apply {
@@ -128,7 +124,7 @@ class DecompositionManifestCodecTest {
     val subtask = decoded.subtasks.single()
     assertEquals(null, subtask.finalizingAgentId)
     assertEquals(emptyList(), subtask.participatingAgentIds)
-    // The legacy manifest round-trips cleanly (re-encode then decode is stable).
+
     assertEquals(decoded, DecompositionManifestWireCodec.decode(decoded.toWireMap()))
   }
 

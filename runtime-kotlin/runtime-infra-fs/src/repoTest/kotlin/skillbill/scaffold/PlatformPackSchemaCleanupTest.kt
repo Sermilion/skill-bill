@@ -27,15 +27,7 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertFailsWith
 
-/**
- * SKILL-48 cleanup acceptance tests covering C2, C4, C7, and C8. Each test below pins one
- * acceptance criterion so a regression that drops or weakens the cleanup fails loudly.
- */
 class PlatformPackSchemaCleanupTest {
-
-  // -----------------------------------------------------------------------
-  // C7 — schema identity assertion (loaded $id and contract_version.const)
-  // -----------------------------------------------------------------------
 
   @Test
   fun `C7 classpath shadow with mismatched schema id loud-fails`() {
@@ -75,18 +67,12 @@ class PlatformPackSchemaCleanupTest {
 
   @Test
   fun `C7 canonical schema on disk passes identity assertion`() {
-    // Pin the happy path: the bundled canonical schema MUST satisfy both halves of the
-    // assertion. If the schema is reshape mid-flight this catches the drift immediately.
     val schemaPath: Path = repoRootFromTest()
       .resolve(PlatformPackSchemaPaths.REPO_RELATIVE_PATH)
     val node = YAMLMapper().readTree(Files.readString(schemaPath))
-    // Must not throw.
+
     assertSchemaIdentity(node)
   }
-
-  // -----------------------------------------------------------------------
-  // SKILL-48 Subtask 2a — workflow-state schema classpath-shadow guard
-  // -----------------------------------------------------------------------
 
   @Test
   fun `workflow-state schema classpath shadow with mismatched id loud-fails`() {
@@ -129,13 +115,9 @@ class PlatformPackSchemaCleanupTest {
     val schemaPath: Path = repoRootFromTest()
       .resolve(WorkflowStateSchemaPaths.REPO_RELATIVE_PATH)
     val node = YAMLMapper().readTree(Files.readString(schemaPath))
-    // Must not throw.
+
     assertWorkflowStateSchemaIdentity(node)
   }
-
-  // -----------------------------------------------------------------------
-  // SKILL-48 Subtask 2b — install-plan schema classpath-shadow guard
-  // -----------------------------------------------------------------------
 
   @Test
   fun `install-plan schema classpath shadow with mismatched id loud-fails`() {
@@ -180,14 +162,9 @@ class PlatformPackSchemaCleanupTest {
     val schemaPath: Path = repoRootFromTest()
       .resolve(InstallPlanSchemaPaths.REPO_RELATIVE_PATH)
     val yamlText = Files.readString(schemaPath)
-    // Must not throw.
+
     InstallPlanSchemaValidator.assertIdentity(yamlText)
   }
-
-  // -----------------------------------------------------------------------
-  // SKILL-48 Subtask 2c — native-agent composition schema classpath-shadow
-  // guard (mirrors 2a/2b)
-  // -----------------------------------------------------------------------
 
   @Test
   fun `native-agent composition schema classpath shadow with mismatched id loud-fails`() {
@@ -230,13 +207,9 @@ class PlatformPackSchemaCleanupTest {
     val schemaPath: Path = repoRootFromTest()
       .resolve(NativeAgentCompositionSchemaPaths.REPO_RELATIVE_PATH)
     val yamlText = Files.readString(schemaPath)
-    // Must not throw.
+
     NativeAgentCompositionSchemaValidator.assertIdentity(yamlText)
   }
-
-  // -----------------------------------------------------------------------
-  // C4 — declared_code_review_areas uniqueItems
-  // -----------------------------------------------------------------------
 
   @Test
   fun `C4 duplicate entries in declared_code_review_areas loud-fail through canonical validator`() {
@@ -260,10 +233,6 @@ class PlatformPackSchemaCleanupTest {
     assertContains(message, "declared_code_review_areas")
   }
 
-  // -----------------------------------------------------------------------
-  // C8 — shared repoRootFromTest() helper, no private copies
-  // -----------------------------------------------------------------------
-
   @Test
   fun `C8 no migrated test still declares a private repoRootFromTest function`() {
     val repoRoot = repoRootFromTest()
@@ -283,13 +252,12 @@ class PlatformPackSchemaCleanupTest {
     )
     migratedSources.filter(Files::exists).forEach { source ->
       val text = Files.readString(source)
-      // Allow imports of the shared helper but reject any private/local re-declaration.
+
       val redeclared = Regex("""fun\s+repoRootFromTest\s*\(""").containsMatchIn(text)
       check(!redeclared) {
         "SKILL-48 C8 regression: $source still declares a local repoRootFromTest function."
       }
-      // C8 also rejects the near-identical `repoRoot()` helper that ShellContentLoaderParityTest
-      // previously shipped — same logic, different name, but covered by the SKILL-48 cleanup intent.
+
       val nearIdenticalRedeclared = Regex("""private\s+fun\s+repoRoot\s*\(""").containsMatchIn(text)
       check(!nearIdenticalRedeclared) {
         "SKILL-48 C8 regression: $source still declares a private repoRoot() helper that duplicates " +
@@ -298,16 +266,8 @@ class PlatformPackSchemaCleanupTest {
     }
   }
 
-  // -----------------------------------------------------------------------
-  // C2 — PlatformPackSchemaValidator.validate signature is Map<String, Any?>
-  // -----------------------------------------------------------------------
-
   @Test
   fun `C2 validate accepts Map of String to Any-question for a well-formed manifest`() {
-    // SKILL-48 C2: the tightened signature is `(parsedYaml: Map<String, Any?>, slug: String)`.
-    // This test exercises that signature with a syntactically valid manifest and confirms the
-    // validator returns without throwing. We deliberately pin the parameter type via a typed
-    // local so a future signature regression breaks compilation here.
     val typedManifest: Map<String, Any?> = mapOf(
       "platform" to "scenarioslug",
       "contract_version" to SHELL_CONTRACT_VERSION,

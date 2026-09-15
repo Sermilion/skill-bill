@@ -86,7 +86,7 @@ Decomposed goal runs use `same_branch_commit_per_subtask`: each completed subtas
 
 ## Writing And Comments
 
-Write direct, active prose; drop filler, stale phrases, praise, and repetition, but preserve names, numbers, and qualifications. Commits/PRs/docs: lead with the outcome, state what changed and why, and avoid unsupported terms such as "successfully", "perfect", "comprehensive", and "robust". Prefer clear names and small functions over comments; comment only a non-obvious *why* code cannot express — never explain *what* code does.
+Write direct, active prose; drop filler, stale phrases, praise, and repetition, but preserve names, numbers, and qualifications. Commits/PRs/docs: lead with the outcome, state what changed and why, and avoid unsupported terms such as "successfully", "perfect", "comprehensive", and "robust". Prefer clear names and small functions over comments; do not add `//` or block comments in scoped Kotlin, and keep KDoc only on interfaces and their members (see Comments).
 
 ## Testing
 
@@ -94,13 +94,19 @@ Write few, high-value tests; name the realistic bug each would catch before auth
 
 ## Comments
 
-NO COMMENTS, DON'T WRITE ANY NEW COMMENTS. NONE!!! IF YOU SEE A COMMENT - REMOVE IT!!!
+Authored Kotlin under `runtime-kotlin`, `intellij-plugin`, and
+`runtime-kotlin/build-logic` must contain no `//` line comments and no non-KDoc
+`/* */` block comments. `/** */` KDoc is allowed only on `interface` declarations
+and their members (including nested types inside an interface). Irreducible
+why-only rationale belongs in the owning area `agent/decisions.md`, not in source
+comments. `CommentAndInterfaceKdocArchitectureTest` enforces this alongside
+`PrincipleEnforcementInventory.enforceableRules`.
 
 ## Coding Conventions
 
 Before designing, changing, or reviewing `runtime-kotlin`, read and apply [Design Principles](runtime-kotlin/ARCHITECTURE.md#design-principles). That section owns requirements for dependency direction, state and resource ownership, persistence, contract enforcement, simplicity, and test value. Its enforcement status distinguishes current checks from implementation gaps tracked by SKILL-239 and SKILL-238. Existing violations do not authorize new ones.
 
-Follow [Code Principles](docs/code-principles.md) for Kotlin patterns, package clustering, imports, file-size limits, and architecture guards. Mechanical enforcement lives under `runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/` (`InlineFqnArchitectureTest`, `ProductionFileLineCeilingArchitectureTest`, `PrincipleEnforcementInventory`, and siblings).
+Follow [Code Principles](docs/code-principles.md) for Kotlin patterns, package clustering, imports, file-size limits, and architecture guards. Mechanical enforcement lives under `runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/` (`CommentAndInterfaceKdocArchitectureTest`, `InlineFqnArchitectureTest`, `ProductionFileLineCeilingArchitectureTest`, `PrincipleEnforcementInventory`, and siblings).
 
 **Wire and payload keys.** Never inline contract or wire map keys as string literals in `get`, `put`, `mapOf("key" to …)`, or bracket access at governed payload seams (see `runtime-kotlin/ARCHITECTURE.md` Wire vocabulary). Declare each key once in an owning `*Keys` or `*PayloadKeys` object in `runtime-contracts` (`SharedPayloadKeys` for workflow phase-output envelope keys; `DecompositionManifestPayloadKeys` and `DecompositionPlanningPayloadKeys` for decomposition manifests; area-owned keys such as `ReviewVerificationSignalKeys` beside their contract family). Downstream modules reference those constants; they do not restate wire strings. Enum wire tokens use `wireValue` on the owning enum; do not restate them in local `setOf`/`mapOf` collections. `WireVocabularyArchitectureTest` enforces governed seams via `WireVocabularyGovernedSeamInventory`.
 

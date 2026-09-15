@@ -15,9 +15,6 @@ import kotlin.test.assertTrue
 
 private const val CHECKPOINT_PREFIX = "refs/skill-bill/checkpoints/"
 
-/**
- * Real temporary git repositories only: the behaviour under test is git's own amend and ref plumbing.
- */
 class GitCheckpointHistoryOperationsTest {
   private lateinit var repo: Path
 
@@ -40,8 +37,6 @@ class GitCheckpointHistoryOperationsTest {
     repo.toFile().deleteRecursively()
   }
 
-  // An implementation reaching for `commit -a` or `git add` would sweep the unstaged edit into the
-  // amended commit, silently publishing work the checkpoint does not own.
   @Test
   fun `amend commits only the index and leaves an unstaged edit unstaged`() {
     val before = head()
@@ -67,8 +62,6 @@ class GitCheckpointHistoryOperationsTest {
     )
   }
 
-  // `git commit --amend --no-edit` happily succeeds on an empty index, rewriting the previous
-  // commit's sha and orphaning every checkpoint identity that pointed at it.
   @Test
   fun `amend with an empty index fails and leaves HEAD unchanged`() {
     val before = head()
@@ -79,8 +72,6 @@ class GitCheckpointHistoryOperationsTest {
     assertEquals(before, head())
   }
 
-  // The accident this guards: a run whose branch resolution lands on an integration branch amends
-  // its tip, then force-pushes, replacing commits merged after the run started.
   @Test
   fun `amend refuses while HEAD sits on a protected branch`() {
     git("checkout", "main")
@@ -95,7 +86,6 @@ class GitCheckpointHistoryOperationsTest {
     assertEquals(before, head())
   }
 
-  // The same-branch amend hazard: subtask N's first checkpoint must not destroy subtask N-1's commit.
   @Test
   fun `amend refuses when HEAD is not the caller-owned commit`() {
     val before = head()
@@ -133,7 +123,6 @@ class GitCheckpointHistoryOperationsTest {
     assertEquals("", absent.value.trim())
   }
 
-  // A namespace escape would move or delete a real branch ref, destroying delivered work.
   @Test
   fun `ref operations reject a name outside the namespace prefix and leave it untouched`() {
     val sha = head()
@@ -155,9 +144,6 @@ class GitCheckpointHistoryOperationsTest {
     assertEquals(emptyMap(), listedRefs())
   }
 
-  // AC-006/AC-007: the amend discards a commit from branch history, so the ref written first is the
-  // only thing that can still reach it. A ref that did not survive the amend means the runtime threw
-  // away a checkpoint nothing can recover.
   @Test
   fun `a pre-amend ref keeps the discarded commit reachable while git log never lists it`() {
     val preAmend = head()
@@ -184,7 +170,6 @@ class GitCheckpointHistoryOperationsTest {
     )
   }
 
-  // The create-or-amend fallback reads the subtask trailer off HEAD, so the whole body must come back.
   @Test
   fun `the HEAD commit message read returns the full body including its trailer`() {
     write("owned/Base.kt", "trailered\n")

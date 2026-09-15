@@ -32,7 +32,6 @@ enum class FeatureTaskRuntimeFailureDisposition(val wireValue: String, val retry
   }
 }
 
-/** Actions for the append-only phase attempt/event ledger. */
 enum class FeatureTaskRuntimePhaseLedgerAction(val wireValue: String) {
   START("start"),
   RESUME("resume"),
@@ -54,10 +53,6 @@ enum class FeatureTaskRuntimePhaseLedgerAction(val wireValue: String) {
   }
 }
 
-/**
- * One append-only phase ledger entry with a monotonic [sequenceNumber] and an
- * application-minted [timestamp].
- */
 data class FeatureTaskRuntimePhaseLedgerEntry(
   val action: FeatureTaskRuntimePhaseLedgerAction,
   val sequenceNumber: Int,
@@ -69,7 +64,7 @@ data class FeatureTaskRuntimePhaseLedgerEntry(
     FeatureTaskRuntimePhaseExecutionOrigin.AGENT_EXECUTED,
   val fixLoopIteration: Int? = null,
   val blockedReason: String? = null,
-  /** Authoritative per-edge trail for a backward-edge re-entry, distinct from [attemptCount]. */
+
   val loopId: String? = null,
   val edgeIteration: Int? = null,
 ) {
@@ -109,7 +104,7 @@ data class FeatureTaskRuntimePhaseLedgerEntry(
   }
 
   companion object {
-    /** Strict decode; loud-fails on any missing or malformed required field. */
+
     internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimePhaseLedgerEntry =
       FeatureTaskRuntimePhaseLedgerEntry(
         action = FeatureTaskRuntimePhaseLedgerAction.fromWire(

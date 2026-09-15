@@ -242,7 +242,7 @@ class GoalTelemetryStoreTest {
   fun `emitted telemetry aggregates per-agent finalized and recovery-handoff participant counts`() {
     withConnection { connection ->
       val store = LifecycleTelemetryStore(connection)
-      // Subtask 1: codex finalizes solo. Subtask 2: codex started, claude resumed + finalized (handoff).
+
       store.goalSubtaskFinished(attributedSubtask(1, "codex", listOf("codex")), "full")
       store.goalSubtaskFinished(attributedSubtask(2, "claude", listOf("codex", "claude")), "full")
 
@@ -250,7 +250,6 @@ class GoalTelemetryStoreTest {
         .filter { it.eventName == "skillbill_goal_subtask_finished" }
         .map { parsePayload(it.payloadJson) }
 
-      // Assert each full-level payload explicitly contains the attribution keys at the right types.
       payloads.forEachIndexed { index, payload ->
         assertNotNull(payload["finalizing_agent_id"], "payload[$index] must contain finalizing_agent_id key")
         assertIs<String>(payload["finalizing_agent_id"], "payload[$index].finalizing_agent_id must be a String")
@@ -267,7 +266,7 @@ class GoalTelemetryStoreTest {
       }.groupingBy { it }.eachCount()
 
       assertEquals(mapOf("codex" to 1, "claude" to 1), finalizedByAgent)
-      // codex finalized subtask 1 but only participated (handoff source) in subtask 2.
+
       assertEquals(mapOf("codex" to 1), handoffParticipantByAgent)
     }
   }

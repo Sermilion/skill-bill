@@ -11,28 +11,6 @@ import java.nio.file.LinkOption
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 
-/*
- * SKILL-76 Subtask 2: runtime-owned per-skill reconcile APPLY (file operations). Split
- * out of [computeReconciliationPlan]'s policy file so the file-IO helpers do not push the
- * policy file over detekt's function-count threshold. Reuses the policy's
- * [enumerateSkills] + [classifyReconciliation] so apply derives the SAME plan the compute
- * path produces (never a second classification scheme). [ReconcileApplyOutput] lives in
- * the policy file alongside the other reconcile data models.
- */
-
-/**
- * Recompute the plan ONCE from the same upstream/local inputs the compute path uses, then
- * replace every skill dir in the live (`local`) tree whose upstream counterpart differs
- * and delete every `skills/` or `platform-packs/` entry upstream no longer ships. Only
- * user-owned `agent-addons/` entries survive without an upstream counterpart. Returns the
- * plan, the paths installed, and the paths deleted.
- *
- * Atomicity: each skill dir is replaced individually via [replaceSkillDirAtomically]
- * (stage upstream into a temp sibling under the live skill's parent, RENAME the existing
- * live dir aside to a backup, move the staged dir into place, then drop the backup —
- * restoring the backup if the move-in fails) so an interrupted apply never destroys the
- * live skill and never performs an all-or-nothing whole-tree `rm`.
- */
 internal fun applyReconciliation(
   upstream: ReconcileSourceRoots,
   local: ReconcileSourceRoots,
@@ -59,11 +37,7 @@ internal fun applyReconciliation(
     replaceSkillDirAtomically(upstreamDir, liveDir)
     installedPaths.add(skillPath)
   }
-  // The per-skill swap above owns ALL platform-pack skill dirs. The remaining platform-pack
-  // files (platform.yaml, addon markdown, pack-level metadata) are shared, non-skill-keyed
-  // metadata with no baseline; adopt them always from upstream (idempotent: a byte-identical
-  // copy is a no-op). The shell no longer blanket-copies the pack tree, so this is the SOLE
-  // writer of the platform-packs tree.
+
   val prunedPaths = plan.outcomes
     .filterIsInstance<SkillReconciliationOutcome.Prune>()
     .map { outcome ->
@@ -74,12 +48,6 @@ internal fun applyReconciliation(
   return ReconcileApplyOutput(plan = plan, installedPaths = installedPaths, prunedPaths = prunedPaths)
 }
 
-/**
- * Refuse to prune when the upstream enumeration produced NO skills at all. A mis-staged or
- * truncated candidate tree would otherwise classify the entire live install as prune and
- * delete it irrecoverably, so an empty upstream with live content is a loud failure rather
- * than a wipe.
- */
 private fun guardPruneAgainstEmptyUpstream(
   plan: ReconciliationPlan,
   upstreamSkills: Map<String, ReconcileSkillEntry>,
@@ -97,15 +65,6 @@ private fun guardPruneAgainstEmptyUpstream(
   }
 }
 
-/**
- * Mirror the non-skill part of the UPSTREAM platform-packs tree into the LOCAL one: copy
- * every upstream file that is NOT inside an enumerated skill's sourceDir, then delete every
- * live non-skill file upstream no longer ships and drop the directories left empty.
- * Enumerated platform-pack skill dirs are excluded because the per-skill swap and the prune
- * step are their sole writers. Non-skill files have no baseline and are adopt-always; a
- * copy that lands byte-identical bytes is an idempotent no-op. A missing upstream pack tree
- * means nothing to adopt.
- */
 private fun adoptPlatformPackNonSkillFiles(
   upstream: ReconcileSourceRoots,
   local: ReconcileSourceRoots,
@@ -125,7 +84,6 @@ private fun adoptPlatformPackNonSkillFiles(
         return@forEach
       }
       if (packSkillDirs.any { skillDir -> path.startsWith(skillDir) }) {
-        // Inside an enumerated pack skill: owned by the per-skill swap, skip.
         return@forEach
       }
       val dest = livePacks.resolve(upstreamPacks.relativize(path).toString())
@@ -142,12 +100,6 @@ private fun adoptPlatformPackNonSkillFiles(
   deleteLivePackFilesAbsentUpstream(upstreamPacks, livePacks, local, upstreamSkills)
 }
 
-/**
- * Delete every live non-skill platform-pack file with no upstream counterpart, then remove
- * the directories that leaves empty (deepest first, so a whole removed pack root goes with
- * its contents). Live files inside a skill dir that is still enumerated upstream are
- * skipped — that dir is owned by the per-skill swap.
- */
 private fun deleteLivePackFilesAbsentUpstream(
   upstreamPacks: Path,
   livePacks: Path,
@@ -186,11 +138,6 @@ private fun outcomeInstallsUpstream(outcome: SkillReconciliationOutcome): Boolea
   is SkillReconciliationOutcome.LocallyAuthored -> false
 }
 
-/**
- * Resolve the live (target) skill dir for a skill-relative path under the LOCAL roots.
- * Base skills key off the skills root, platform-pack skills off the platform-packs root,
- * each under a `skills/` or `platform-packs/` category prefix.
- */
 private fun liveSkillDir(local: ReconcileSourceRoots, skillRelativePath: String): Path = when {
   skillRelativePath.startsWith(SKILLS_PREFIX) ->
     local.skillsRoot.resolve(skillRelativePath.removePrefix(SKILLS_PREFIX))
@@ -204,16 +151,6 @@ private fun liveSkillDir(local: ReconcileSourceRoots, skillRelativePath: String)
   )
 }
 
-/**
- * Replace [liveDir] with a deep copy of [upstreamDir] WITHOUT a destructive delete window.
- * The upstream tree is first copied into a temp sibling under the live dir's PARENT (same
- * filesystem, so ATOMIC_MOVE works). Then, if a live dir exists, it is RENAMED ASIDE to a
- * sibling backup (never deleted up front) and only the staged copy is moved into place. On
- * success the backup is removed in `finally`; if the move-in fails, the backup is moved
- * back to [liveDir] (best-effort restore) before the error propagates — so a crash or
- * failure never leaves the live skill destroyed. A best-effort plain-move fallback handles
- * filesystems that refuse ATOMIC_MOVE.
- */
 private fun replaceSkillDirAtomically(upstreamDir: Path, liveDir: Path) {
   val parent = liveDir.toAbsolutePath().normalize().parent
     ?: throw ReconciliationConflictError(
@@ -226,8 +163,7 @@ private fun replaceSkillDirAtomically(upstreamDir: Path, liveDir: Path) {
   copyTreeDeep(upstreamDir, stagedSkill)
   val hasLive = Files.exists(liveDir, LinkOption.NOFOLLOW_LINKS)
   val backup = if (hasLive) Files.createTempDirectory(parent, ".reconcile-backup-") else null
-  // createTempDirectory makes the backup target dir; remove it so the rename-aside lands
-  // the live dir AT that path rather than nesting inside it.
+
   backup?.let(Files::deleteIfExists)
   try {
     if (hasLive && backup != null) {
@@ -236,7 +172,6 @@ private fun replaceSkillDirAtomically(upstreamDir: Path, liveDir: Path) {
     try {
       moveDir(stagedSkill, liveDir)
     } catch (error: IOException) {
-      // Restore the renamed-aside live dir so a failed swap never destroys the install.
       if (backup != null && Files.exists(backup, LinkOption.NOFOLLOW_LINKS) &&
         !Files.exists(liveDir, LinkOption.NOFOLLOW_LINKS)
       ) {

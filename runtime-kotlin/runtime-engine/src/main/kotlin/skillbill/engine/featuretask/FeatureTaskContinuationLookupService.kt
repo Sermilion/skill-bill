@@ -109,9 +109,7 @@ class FeatureTaskContinuationLookupService(
     if (identityConflictsWithWorkflow(identity, candidate)) {
       invalidIdentity(candidate, "immutable identity conflicts with workflow snapshot")
     }
-    // SKILL-175: the prose engine is retired. A PROSE-mode candidate is quarantined here rather than
-    // classified as resumable — continuation of a legacy prose row must loud-fail, not degrade into a
-    // (deleted) prose definition or reinterpret the row as a runtime candidate.
+
     if (identity.mode == FeatureTaskWorkflowMode.PROSE) {
       throw LegacyProseWorkflowError(candidate.workflow.workflowId, candidate.workflow.issueKey)
     }

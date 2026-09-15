@@ -11,32 +11,10 @@ data class GoalRunnerLaunchFacts(
   companion object {
     const val STDERR_EXCERPT_MAX_CHARS: Int = 3_000
 
-    /**
-     * Diagnostic class emitted when the supervisor killed a child whose last known liveness state
-     * was [GoalRunnerLivenessState.WORKING] or [GoalRunnerLivenessState.PROGRESSING]. A kill at
-     * this state is unexpected and warrants a separate diagnostic so telemetry can surface it
-     * distinct from ordinary idle-timeout or unresponsive kills.
-     */
     const val DIAGNOSTIC_CLASS_CONFIRMED_ALIVE_KILL = "supervisor_killed_confirmed_alive"
   }
 }
 
-/**
- * SKILL-64 Subtask 3 (AC23): documented, testable liveness taxonomy derived
- * ONLY from declared facts plus process liveness. Source-file mtimes, stdout
- * chatter, and token movement are non-authoritative hints and never determine
- * this state.
- *
- * - [WORKING]: an explicitly long declared operation is active and its process
- *   is alive. Disarms the idle timeout (AC22).
- * - [PROGRESSING]: a durable workflow event advanced within the interval.
- *   Disarms the idle timeout for the current interval.
- * - [IDLE]: no active explicitly long operation and no durable advance within
- *   the idle window. The ONLY state that arms the idle timeout.
- * - [UNRESPONSIVE]: the child/process is gone or a declared operation overran
- *   its deadline (or the wall-clock cap elapsed). A deterministic block, not an
- *   inference; does not arm the idle timeout because the decision is terminal.
- */
 enum class GoalRunnerLivenessState(val wireValue: String) {
   WORKING("working"),
   PROGRESSING("progressing"),
@@ -49,16 +27,10 @@ enum class GoalRunnerLivenessState(val wireValue: String) {
       value?.trim()?.let { candidate -> entries.firstOrNull { it.wireValue == candidate } }
   }
 
-  /** Idle is the only state that arms the progress-idle timeout (AC22, AC23). */
   val armsIdleTimeout: Boolean
     get() = this == IDLE
 }
 
-/**
- * Declared facts the classifier reads. All fields are pure inputs computed by
- * the adapter from declared progress events plus process liveness; the
- * classifier itself performs no effects.
- */
 data class GoalRunnerLivenessInputs(
   val processAlive: Boolean,
   val operationActive: Boolean,
@@ -103,12 +75,6 @@ enum class GoalRunnerContinuationMode(val wireValue: String) {
   }
 }
 
-/**
- * Pure classifier mapping declared facts to a [GoalRunnerLivenessState] and an
- * arm/disarm idle-timeout decision. Ordering encodes the documented semantics:
- * terminal unresponsive signals win first, then a live explicitly long
- * operation (working), then a durable advance (progressing), else idle.
- */
 object GoalRunnerLivenessClassifier {
   fun classify(inputs: GoalRunnerLivenessInputs): GoalRunnerLivenessDecision {
     val state = when {
@@ -136,7 +102,7 @@ data class GoalRunnerLivenessSnapshot(
   val lastFileActivityLabel: String? = null,
   val lastOutputAt: String? = null,
   val livenessState: GoalRunnerLivenessState? = null,
-  /** True when the process was classified alive (WORKING or PROGRESSING) at the moment of capture. */
+
   val aliveAtKill: Boolean = false,
 )
 

@@ -1,6 +1,5 @@
 package skillbill.review.plan
 
-/** Shared path-condition semantics for stack, lane, assignment, and add-on routing. */
 object ReviewPathMatcher {
   fun matches(path: String, signal: String): Boolean {
     val normalizedPath = path.lowercase()

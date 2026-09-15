@@ -93,11 +93,6 @@ internal object FeatureTaskRuntimePhaseWorkflowProjectionDeclarations {
     ),
   )
 
-  /**
-   * Closed-world projection matrix for every phase. Every upstream edge has an explicit typed
-   * declaration; an omitted phase or edge is a contract error rather than permission to deliver a
-   * complete producer receipt.
-   */
   val phaseProjectionMatrix: Map<String, List<PhaseHandoffProjectionDeclaration>> = mapOf(
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN to emptyList(),
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN to listOf(

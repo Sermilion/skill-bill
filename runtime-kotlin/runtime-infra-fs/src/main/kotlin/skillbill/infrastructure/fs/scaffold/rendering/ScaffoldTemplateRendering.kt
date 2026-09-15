@@ -97,10 +97,7 @@ internal fun renderContentBody(
   internalFor: String? = null,
 ): String {
   val resolvedDescription = description.ifBlank { inferSkillDescription(context) }
-  // Reject caller-supplied bodies that already carry a YAML frontmatter block. We always render
-  // a fresh canonical frontmatter from `context`/`description`, so accepting an inline one would
-  // silently produce two stacked `---` blocks (the validator regex matches the first; the second
-  // becomes body content). Fail fast with a clear error instead.
+
   contentBody?.let { raw ->
     if (FRONTMATTER_BLOCK_LEADING.containsMatchIn(raw.trimStart())) {
       throw SkillBillRuntimeException(

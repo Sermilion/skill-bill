@@ -15,12 +15,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-/**
- * SKILL-48 Subtask 2a AC2: pins `contract_version` parity between the
- * canonical schema file (`orchestration/contracts/workflow-state-schema.yaml`)
- * and the runtime constant `WORKFLOW_STATE_CONTRACT_VERSION`. Bumping
- * one without the other is a build break, by design.
- */
 class WorkflowStateSchemaContractVersionTest {
   @Test
   fun `workflow state schema bundled on runtime contracts classpath matches canonical schema`() {
@@ -56,12 +50,6 @@ class WorkflowStateSchemaContractVersionTest {
     )
   }
 
-  /**
-   * F-205: the contract_version parity is a THREE-way invariant — the
-   * runtime constant, the canonical schema's const, and every shipped
-   * `WorkflowDefinition.contractVersion` must agree. Pin all three so
-   * bumping one without the others is a build break, by design.
-   */
   @Test
   fun `every shipped WorkflowDefinition contractVersion matches WORKFLOW_STATE_CONTRACT_VERSION`() {
     assertEquals(
@@ -72,15 +60,6 @@ class WorkflowStateSchemaContractVersionTest {
     )
   }
 
-  /**
-   * F-302: pins the per-skill enum sets in the schema's `oneOf` branches
-   * to every shipped `WorkflowDefinition`'s `stepIds` /
-   * `workflowStatuses` — both directions, so neither side can silently
-   * drift. The schema branch enums add an empty-string allowance to
-   * `current_step_id` (a freshly opened record before the first step
-   * transition); every OTHER enum must be identical to the Kotlin
-   * definition's set.
-   */
   @Test
   fun `featureVerify branch enums match FeatureVerifyWorkflowDefinition`() {
     val schema = loadSchemaNode()
@@ -103,19 +82,12 @@ class WorkflowStateSchemaContractVersionTest {
     assertBranchStepsStepIdMatch(branch, definition.stepIds.toSet(), "featureTaskRuntimeBranch")
   }
 
-  /**
-   * SKILL-135 Subtask 1 AC6: the feature-task-runtime branch constrains the step-id MEMBERSHIP set
-   * and never its order, which is why reordering the phase pipeline to audit-first needed no
-   * `FEATURE_TASK_RUNTIME_CONTRACT_VERSION` bump. Pinned explicitly so a future change that makes the
-   * schema order-sensitive, or that adds a step id, cannot silently skip the bump decision.
-   */
   @Test
   fun `featureTaskRuntime branch pins the step-id set only, so reordering needs no contract bump`() {
     val branch = loadSchemaNode().path("\$defs").path("featureTaskRuntimeBranch")
     val definition = FeatureTaskRuntimePhaseWorkflowDefinition.definition
     assertBranchStepsStepIdMatch(branch, definition.stepIds.toSet(), "featureTaskRuntimeBranch")
-    // Order-insensitivity is a property of the schema KEYWORDS, not of comparing an equal set twice:
-    // `steps` must constrain each item uniformly, never positionally.
+
     val steps = branch.path("properties").path("steps")
     assertTrue(
       steps.path("prefixItems").isMissingNode && steps.path("items").path("prefixItems").isMissingNode,
@@ -129,13 +101,6 @@ class WorkflowStateSchemaContractVersionTest {
     )
   }
 
-  /**
-   * SKILL-141 Subtask 1 AC-001/AC-007 plus SKILL-142 AC-014: `paused` is the non-terminal resumable
-   * status. SKILL-142 scoped it to the featureTaskRuntime child, which pauses on an unresolved
-   * Blocker rather than forking a second pause mechanism. It stays excluded from `terminalStatuses`,
-   * stays rejected on featureVerify, and remains a purely additive enum value — no existing record
-   * becomes invalid, so no contract-version bump.
-   */
   @Test
   fun `paused is a non-terminal status on the featureTaskRuntime branch`() {
     val schema = loadSchemaNode()
@@ -191,8 +156,7 @@ class WorkflowStateSchemaContractVersionTest {
 
   private fun assertBranchCurrentStepIdsMatch(branch: JsonNode, expected: Set<String>, branchName: String) {
     val actual = branch.path("properties").path("current_step_id").enumStrings()
-    // Schema allows the empty string as a freshly-opened-record sentinel;
-    // strip it before comparing to the definition's step set.
+
     val actualWithoutEmpty = actual - ""
     assertEquals(
       expected,
@@ -208,8 +172,7 @@ class WorkflowStateSchemaContractVersionTest {
 
   private fun assertBranchStepsStepIdMatch(branch: JsonNode, expected: Set<String>, branchName: String) {
     val items = branch.path("properties").path("steps").path("items")
-    // The schema declares `items.allOf[1].properties.step_id.enum`; walk
-    // the allOf array to find the entry that carries the step_id enum.
+
     val allOf = items.path("allOf")
     assertTrue(allOf.isArray, "Schema $branchName.steps.items.allOf must be an array.")
     val stepIdEnum = allOf.elements().asSequence()

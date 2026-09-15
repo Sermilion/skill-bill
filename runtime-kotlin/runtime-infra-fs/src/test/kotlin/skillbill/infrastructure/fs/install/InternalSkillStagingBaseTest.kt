@@ -163,8 +163,7 @@ class InternalSkillStagingBaseTest : InternalSkillStagingTestSupport() {
   @Test
   fun `staged output is byte-identical to a repo without internal-for declarations`() {
     val fixture = setupParentWithInternalChild()
-    // Remove the internal-for declaration so the child becomes listed; re-stage and confirm the
-    // parent's staged output carries no sidecar.
+
     Files.writeString(
       fixture.childDir.resolve("content.md"),
       """
@@ -267,16 +266,12 @@ class InternalSkillStagingBaseTest : InternalSkillStagingTestSupport() {
 
     val sidecar = written.single()
     assertEquals("${fixture.childName}.md", sidecar.fileName.toString())
-    // Independent expectation: render the wrapper through the authoring seam directly.
+
     assertEquals(
       renderWrapper(resolveTarget(fixture.repoRoot, fixture.childName)),
       Files.readString(sidecar),
     )
   }
-
-  // ---------------------------------------------------------------------------------------------
-  // Standalone-install and native-agent filters (criteria 4 and 5)
-  // ---------------------------------------------------------------------------------------------
 
   @Test
   fun `standaloneInstallableSkills excludes internal skills that nativeAgentSourceRoots retains`() {

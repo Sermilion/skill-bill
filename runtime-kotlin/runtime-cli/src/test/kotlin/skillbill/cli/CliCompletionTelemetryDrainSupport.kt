@@ -7,11 +7,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.DriverManager
 
-/**
- * Writes the durable config the telemetry settings provider resolves from [userHome], so a CLI
- * test can drive an install whose resolved level is enabled (or explicitly `off`) without ever
- * reading the developer's real config.
- */
 internal fun writeTelemetryConfig(userHome: Path, level: String, proxyUrl: String) {
   val configPath = userHome.resolve(".config/skill-bill/config.json")
   Files.createDirectories(configPath.parent)
@@ -26,13 +21,8 @@ internal fun writeTelemetryConfig(userHome: Path, level: String, proxyUrl: Strin
   )
 }
 
-/** Unroutable by construction: a fixture that reached it would be making a real network call. */
 internal const val TELEMETRY_FIXTURE_PROXY_URL = "http://127.0.0.1:9/telemetry"
 
-/**
- * Creates the fixture database through the runtime's own schema bootstrap rather than hand-authored
- * DDL, so seeded outbox rows always match the schema the runtime itself creates.
- */
 internal fun materializeTelemetryDatabase(userHome: Path, dbPath: Path, level: String, context: CliRuntimeContext) {
   writeTelemetryConfig(userHome, level = level, proxyUrl = TELEMETRY_FIXTURE_PROXY_URL)
   DatabaseRuntime.ensureDatabase(dbPath).close()

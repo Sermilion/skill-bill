@@ -3,10 +3,6 @@ package skillbill.ports.review
 import skillbill.ports.review.model.GovernedReviewEvidenceEndpointDescriptor
 import java.nio.file.Path
 
-/**
- * Binds nothing. Fixtures that never spawn a child process still have to satisfy the
- * supplied-together requirement a governed launch carries.
- */
 fun stubGovernedReviewEvidenceEndpointBinder(root: Path): GovernedReviewEvidenceEndpointBinder =
   object : GovernedReviewEvidenceEndpointBinder {
     override fun bind(

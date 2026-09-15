@@ -25,11 +25,7 @@ object InstallCleanupOperations {
         .filter { path -> Files.isDirectory(path) && Files.exists(path.resolve(managedInstallMarker)) }
         .forEach { path -> removeCleanupTarget(path, managedInstallMarker, removed, skipped) }
     }
-    // Ownership sweep: any symlink pointing into the Skill Bill installed-skills
-    // cache is Skill Bill-managed, regardless of its name. This prunes orphans
-    // whose skill was removed or renamed without a RENAMED_SKILL_PAIRS entry
-    // (for example a deleted platform pack), which the name-based pass below
-    // cannot match. readSymbolicLink is used so dangling orphans are still seen.
+
     if (installedSkillsRoot != null) {
       val root = installedSkillsRoot.toAbsolutePath().normalize()
       val owned = Files.list(targetDir).use { stream ->

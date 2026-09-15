@@ -12,11 +12,7 @@ import dev.skillbill.intellij.infrastructure.prefs.SkillBillApplicationSettings
 import java.nio.file.Files
 import java.nio.file.Path
 
-/**
- * The settings editor is the only in-IDE way to point the plugin at a CLI its PATH
- * lookup cannot see, so an editor that fails to persist the entered path leaves the
- * status widget permanently unavailable.
- */
+
 class SkillBillSettingsConfigurableFixtureTest : BasePlatformTestCase() {
     private lateinit var launcher: Path
 

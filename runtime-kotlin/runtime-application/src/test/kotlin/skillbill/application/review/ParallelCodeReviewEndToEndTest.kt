@@ -8,11 +8,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-/**
- * Recording end-to-end proof over the production parallel-review composition: a small Kotlin diff
- * and a layered KMP diff, each driven through real preparation, flattening, inline lane launch, and
- * accounting seams.
- */
 class ParallelCodeReviewEndToEndTest {
   private val kotlinAreas = listOf("architecture", "security", "testing")
   private val kmpAreas = listOf("platform-correctness", "ui")

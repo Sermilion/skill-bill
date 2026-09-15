@@ -5,16 +5,6 @@ import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
 
-/**
- * Renders the on-disk content of a pointer file as a single relative path.
- *
- * Pointer files live at `<packRoot>/<spec.skillRelativeDir>/<spec.name>` and contain a single
- * forward-slash-separated relative path from that location to `<repoRoot>/<spec.target>`. No
- * leading `./`, no double slashes, and no trailing newline. The renderer fails loud if the
- * declared target file does not exist, surfacing migration mistakes at render time rather than
- * leaking past validation. Failures are raised as [IllegalArgumentException] so they propagate
- * through `runWithUpgradeRollback` and trigger the rollback path.
- */
 fun renderPointer(repoRoot: Path, packRoot: Path, spec: PointerSpec): String {
   val resolvedRepoRoot = repoRoot.toAbsolutePath().normalize()
   val resolvedPackRoot = packRoot.toAbsolutePath().normalize()

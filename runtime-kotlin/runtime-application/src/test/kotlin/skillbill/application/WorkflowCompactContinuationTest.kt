@@ -19,17 +19,11 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-/**
- * The closed-world launch declaration bounds the lossless projection before
- * either the compact or full adapter payload is produced.
- */
 private const val WORKFLOW_INPUT_PROJECTION_BYTE_CEILING = 64 * 1024
 
 class WorkflowCompactContinuationTest {
   @Test
   fun `continueWorkflow compact projection inlines small current-step artifacts`() {
-    // SKILL-175: the runtime resolves upstream `plan` from the private per-phase records store,
-    // not a top-level key. The branch/preplan_digest keys stay unrelated private context.
     val (service, opened) =
       newBlockedImplementService(
         mapOf(
@@ -86,9 +80,6 @@ class WorkflowCompactContinuationTest {
 
   @Test
   fun `continueWorkflow compact projection bounds large current-step artifacts with a preview`() {
-    // The runtime compact view has a hard inline byte ceiling; a large upstream output is never
-    // blown into the compact payload. It stays present (the phase record exists), but is omitted
-    // with a bounded preview so the operator can inspect it via `workflow show`.
     val (service, opened) =
       newBlockedImplementService(
         mapOf(
@@ -122,8 +113,6 @@ class WorkflowCompactContinuationTest {
 
   @Test
   fun `compact continuation stays within projection budget and omits private artifacts`() {
-    // The plan is declared phase input and must stay bounded: it is omitted with a preview, never
-    // expanded. The unrelated preplan digest remains private even though it is also large.
     val (service, opened) =
       newBlockedImplementService(
         mapOf(
@@ -158,7 +147,7 @@ class WorkflowCompactContinuationTest {
     )
     assertFalse(serialized.contains("\"step_artifacts\""))
     assertFalse(serialized.contains("\"artifacts\":"))
-    // The 12k-char plan is omitted with a bounded preview; its full body never appears.
+
     assertFalse(serialized.contains("x".repeat(2000)))
     assertFalse(serialized.contains("y".repeat(2000)))
     val planSummary = standard.view.compact.currentStepArtifacts.single { it.key == "plan" }
@@ -182,8 +171,7 @@ class WorkflowCompactContinuationTest {
     val standard = assertIs<WorkflowContinueResult.Standard>(
       service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, opened.workflowId),
     )
-    // The explicit diagnostic shape is operator-only: its step_artifacts field
-    // stays projected, while its resume snapshot may expose private durable state.
+
     val fullMap = mapOf(
       "step_artifacts" to standard.view.stepArtifacts,
       "artifacts" to standard.view.resume.snapshot.artifacts,
@@ -207,11 +195,6 @@ private fun newService(): WorkflowService = WorkflowService(
   goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
 )
 
-/**
- * Opens a blocked `implement` TASK_RUNTIME workflow and applies the given [artifactsPatch] through
- * the same durable update seam every test in this file drives. Returns the service and the opened
- * result so callers can `continueWorkflow` and assert on the compact/full projections.
- */
 private fun newBlockedImplementService(
   artifactsPatch: Map<String, Any?>,
 ): Pair<WorkflowService, WorkflowOpenResult.Ok> {
@@ -236,10 +219,6 @@ private fun newBlockedImplementService(
   return service to opened
 }
 
-// A durable completed `plan` per-phase record. The runtime resume gate judges upstream presence
-// from this private records store, so a blocked `implement` row only reopens once the plan phase
-// record is completed here. [outputArtifact] carries the phase output as the durable JSON string
-// the compact view resolves the current-step artifact from.
 private fun completedPlanPhaseRecord(outputArtifact: String? = null): Map<String, Any?> = linkedMapOf(
   "contract_version" to FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION,
   "record_kind" to "private_phase_record",

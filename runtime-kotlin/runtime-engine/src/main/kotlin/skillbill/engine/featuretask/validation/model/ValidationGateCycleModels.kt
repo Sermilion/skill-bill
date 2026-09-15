@@ -87,7 +87,6 @@ sealed interface ValidationGateCycleTerminalOutcome {
   ) : ValidationGateCycleTerminalOutcome
 }
 
-/** Durable (or test) sink for live validate-gate progress, including remaining findings on exhaust. */
 fun interface ValidationGateProgressStore {
   fun persist(workflowId: String, progress: FeatureTaskRuntimeValidationGateProgress)
 
@@ -117,7 +116,6 @@ data class ValidationGateProgressWrite(
   }
 }
 
-/** Inputs for one runtime-owned validate gate cycle. */
 data class ValidationGateCycleRequest(
   val repoRoot: Path,
   val request: FeatureTaskRuntimeRunRequest,

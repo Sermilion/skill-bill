@@ -8,15 +8,6 @@ import skillbill.review.context.model.ReviewCommitSource
 import skillbill.review.context.model.ReviewCommitUnit
 import java.nio.file.Path
 
-/**
- * The raw repository facts one checkpoint's commit sequence is assembled from: each commit's own
- * incremental diff, or the declared synthetic source when the checkpoint has no attributable commit
- * chain.
- *
- * Derived identities are deliberately absent. The record carries only what Git reported, so
- * rebuilding evidence from a stored record runs the same construction on the same inputs and can
- * never drift from a fresh derivation.
- */
 internal data class SharedReviewEvidenceCommits(
   val baseRevision: String,
   val headRevision: String,
@@ -34,18 +25,12 @@ internal data class SharedReviewEvidenceCommits(
   }
 }
 
-/** One checkpoint's assembled evidence: the authoritative delta plus the commit sequence over it. */
 internal data class SharedReviewEvidenceRecord(
   val aggregateDiff: String,
   val sequence: SharedReviewEvidenceCommits,
   val storePath: String? = null,
 )
 
-/**
- * Phase-neutral assembly of one checkpoint's review evidence. All Git access stays here behind the
- * existing [DiffResolverPort] seam; the review phase is one consumer of the result rather than its
- * owner, so the shared deriver can invoke it for any phase.
- */
 class SharedReviewEvidenceAssembler(private val diffResolver: DiffResolverPort) {
   internal fun assemble(
     scope: ParallelReviewScope,
@@ -67,7 +52,6 @@ class SharedReviewEvidenceAssembler(private val diffResolver: DiffResolverPort) 
     }
     val shas = revList(repoRoot, range)
     if (shas.isEmpty()) {
-      // A PR whose commits are not present locally is a declared synthetic source, never a fabricated chain.
       return synthetic(
         range,
         ReviewCommitSource.SYNTHETIC_AGGREGATE_PR_DIFF,
@@ -76,9 +60,6 @@ class SharedReviewEvidenceAssembler(private val diffResolver: DiffResolverPort) 
     }
     val commits = shas.map { readCommit(repoRoot, it, range.baseRevision) }
     if (commits.first().parentSha != range.baseRevision) {
-      // Once main has been merged into the branch, the first-parent walk starts at the original
-      // branch point rather than the merge base, so the sequence cannot own the whole delta. That
-      // is ordinary topology, not corruption: declare the degradation instead of aborting the review.
       return synthetic(
         range,
         ReviewCommitSource.SYNTHETIC_AGGREGATE_PR_DIFF,
@@ -104,10 +85,6 @@ class SharedReviewEvidenceAssembler(private val diffResolver: DiffResolverPort) 
       syntheticReason = reason,
     )
 
-  /**
-   * A null result is a failed git invocation, never an absent-commit degradation: reporting it as
-   * the latter would attach a false degraded_reason to a packet whose sequence was simply unread.
-   */
   private fun revList(repoRoot: Path, range: ReviewCommitRange): List<String> {
     val output = diffResolver
       .runProcess(listOf("git", "rev-list", "--first-parent", "--reverse", range.span), repoRoot)
@@ -119,7 +96,7 @@ class SharedReviewEvidenceAssembler(private val diffResolver: DiffResolverPort) 
     val metadata = diffResolver.runProcess(listOf("git", "show", "-s", "--format=%P%n%s", sha), repoRoot)
       ?: throw DiffResolutionException("Could not read commit metadata for '$sha'.")
     val lines = metadata.lines()
-    // A root commit reports no parent; the review base is then its only meaningful predecessor.
+
     val parent = lines.firstOrNull()?.trim()?.split(" ")?.firstOrNull()?.takeIf { it.isNotEmpty() } ?: baseRevision
     val subject = lines.drop(1).joinToString("\n").trim()
     val diff = diffResolver.runProcess(listOf("git", "diff", parent, sha), repoRoot)
@@ -128,10 +105,6 @@ class SharedReviewEvidenceAssembler(private val diffResolver: DiffResolverPort) 
   }
 }
 
-/**
- * Turns an assembled record into the ordered unit sequence a review packet is built from. Pure over
- * the record, so a record recovered from the shared store projects to byte-identical identities.
- */
 object SharedReviewEvidenceProjection {
   internal fun project(record: SharedReviewEvidenceCommits, aggregate: ReviewDiffEvidence): ResolvedCommitSequence {
     val range = ReviewCommitRange(record.baseRevision, record.headRevision)
@@ -162,10 +135,6 @@ object SharedReviewEvidenceProjection {
     )
   }
 
-  /**
-   * A checked chain-and-ownership property, never textual concatenation equality: every path the
-   * authoritative base-to-head delta touches is attributable to some commit in the sequence.
-   */
   private fun verifyCoverage(units: List<ReviewCommitUnit>, aggregate: ReviewDiffEvidence, range: ReviewCommitRange) {
     coverageViolation(units, aggregate, range)?.let { throw DiffResolutionException(it) }
   }
@@ -196,11 +165,6 @@ object SharedReviewEvidenceProjection {
   }
 }
 
-/**
- * Ordered per-commit units built from each commit's incremental diff. Reuses the single record
- * parser, so malformed records fail loudly here exactly as they do for an aggregate diff. An
- * empty commit yields a zero-hunk unit rather than vanishing from the sequence.
- */
 internal fun parseCommitUnits(commits: List<RawCommitDiff>): List<ReviewCommitUnit> =
   commits.mapIndexed { index, commit ->
     ReviewCommitUnit.ofCommit(

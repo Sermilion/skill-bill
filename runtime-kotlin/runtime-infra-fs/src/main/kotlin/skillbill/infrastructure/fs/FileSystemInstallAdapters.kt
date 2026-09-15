@@ -134,9 +134,7 @@ class FileSystemInstallReconcileApply(
     val baseline = baselineManifestPersistence
       .readBaseline(ReadBaselineManifestRequest(installHome = request.home))
       .manifest
-    // Per-skill FILE operations against the live tree (gated on conflicts inside the
-    // policy). The baseline refresh derives from the SAME returned plan, in the
-    // application overlay, so the refresh-eligibility rule lives in ONE place.
+
     val output = applyReconciliation(
       upstream = ReconcileSourceRoots(
         repoRoot = request.upstreamRepoRoot,

@@ -11,7 +11,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class TelemetryProxyPayloadMappersTest {
-  // SKILL-163 AC-004: the row's own recorded version rides alongside install_id.
+
   @Test
   fun `a recorded version is injected next to install_id`() {
     val payload = telemetryProxyBatchPayload(settings(), listOf(row(id = 1, version = "1.2.3")))
@@ -21,7 +21,6 @@ class TelemetryProxyPayloadMappersTest {
     assertEquals("test-install-id", properties["install_id"])
   }
 
-  // SKILL-163 AC-005: version-absent rows still upload; the property is simply omitted.
   @Test
   fun `rows with no recorded version still produce well-formed events`() {
     val rows =
@@ -42,9 +41,6 @@ class TelemetryProxyPayloadMappersTest {
     assertTrue("skill_bill_version" in payload.batch.last().properties)
   }
 
-  // AC-001: the receiver deduplicates a retried batch on this property alone. Two rows carrying the
-  // same payload and the same timestamp are two real emissions and must stay two logical events, so
-  // the identity has to come from the row rather than from anything the payload could reproduce.
   @Test
   fun `the row identity is mapped onto the receiver deduplication key and stays per-row`() {
     val rows =

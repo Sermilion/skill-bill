@@ -39,10 +39,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/**
- * Covers ChildAwareGoalPlanningRefreshLiveness: parent-lease absence is IDLE for the owning
- * prepare(), and only the current child's RUNTIME lease can refuse refresh (AC-004).
- */
 class GoalPlanningRefreshLivenessTest {
   private val now = Instant.parse("2026-08-11T00:00:00Z")
   private val clock = Clock.fixed(now, ZoneOffset.UTC)
@@ -93,7 +89,7 @@ class GoalPlanningRefreshLivenessTest {
   @Test
   fun `current child whose workflow mode is not RUNTIME is UNKNOWN`() {
     val harness = RefreshLivenessHarness(clock)
-    // Row absent from RUNTIME storage → existingWorkflowMode returns null → UNKNOWN.
+
     val state = manifestState(childWorkflowId = "wfl-missing")
 
     assertEquals(ExecutionLiveness.UNKNOWN, harness.liveness.resolve(state))

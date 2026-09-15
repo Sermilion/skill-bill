@@ -19,10 +19,6 @@ import skillbill.domain.skillremove.model.SkillRemovalTarget
 import skillbill.ports.skillremove.SkillRemoveFileSystem
 import kotlin.test.assertFailsWith
 
-/**
- * SKILL-46 AC9: per-scope preview tests, refusal tests, and Failed-with-rollbackComplete=false
- * coverage. Uses [FakeSkillRemoveFileSystem] to script every port response deterministically.
- */
 class SkillRemoveTest {
   @Test
   fun `previewRemoval HorizontalSkill returns dossier with cascaded skill names`() {
@@ -39,9 +35,7 @@ class SkillRemoveTest {
       ),
     )
     val request = SkillRemovalRequest(
-      // SKILL-49: `bill-*` horizontal skills are the product surface; the maintainer path that
-      // genuinely needs to cascade-remove a deprecated one passes `allowShipped = true` (same
-      // shape as `kotlin` / `kmp`). The UI never offers this affordance.
+
       target = SkillRemovalTarget.HorizontalSkill(skillName = "bill-foo", allowShipped = true),
       repoRootAbsolutePath = "/repo",
     )
@@ -54,10 +48,6 @@ class SkillRemoveTest {
 
   @Test
   fun `previewRemoval refuses bill-prefixed horizontal product skill without allowShipped`() {
-    // SKILL-49: every `bill-*` horizontal skill is a shipped product surface and joins the
-    // existing `kotlin` / `kmp` shipped-protection set. The desktop UI hides the Delete
-    // affordance via `isBuiltInName`; this test pins the matching domain refusal so even a
-    // CLI request without `--allow-shipped` is rejected.
     val fs = FakeSkillRemoveFileSystem()
     val request = SkillRemovalRequest(
       target = SkillRemovalTarget.HorizontalSkill(skillName = "bill-code-review", allowShipped = false),
@@ -161,9 +151,6 @@ class SkillRemoveTest {
 
   @Test
   fun `previewRemoval accepts shipped kotlin platform pack without allowShipped`() {
-    // SKILL-49: platform packs are the user-extension surface; shipped first-party packs
-    // (`kotlin`, `kmp`) are user-removable from the desktop UI and CLI without `--allow-shipped`.
-    // Only `.bill-shared` remains unconditionally protected on the platform axis.
     val fs = FakeSkillRemoveFileSystem(filesystemPaths = listOf("platform-packs/kotlin"))
     val request = SkillRemovalRequest(
       target = SkillRemovalTarget.PlatformPack(platform = "kotlin", allowShipped = false),
@@ -176,9 +163,6 @@ class SkillRemoveTest {
 
   @Test
   fun `previewRemoval refuses dot-bill-shared platform pack`() {
-    // SKILL-49: `.bill-shared` stays unconditionally protected on the platform-pack axis even
-    // though shipped kotlin/kmp packs are now user-removable. It is the only platform name
-    // protected here.
     val fs = FakeSkillRemoveFileSystem()
     val request = SkillRemovalRequest(
       target = SkillRemovalTarget.PlatformPack(platform = ".bill-shared", allowShipped = true),
@@ -207,7 +191,7 @@ class SkillRemoveTest {
       applyThrows = RuntimeException("disk on fire"),
     )
     val request = SkillRemovalRequest(
-      // SKILL-49: maintainer path for cascade-remove of a deprecated `bill-*` skill.
+
       target = SkillRemovalTarget.HorizontalSkill(skillName = "bill-foo", allowShipped = true),
       repoRootAbsolutePath = "/repo",
     )
@@ -223,7 +207,7 @@ class SkillRemoveTest {
       applyThrows = SkillBillRollbackException("rollback failed"),
     )
     val request = SkillRemovalRequest(
-      // SKILL-49: maintainer path for cascade-remove of a deprecated `bill-*` skill.
+
       target = SkillRemovalTarget.HorizontalSkill(skillName = "bill-foo", allowShipped = true),
       repoRootAbsolutePath = "/repo",
     )
@@ -241,7 +225,7 @@ class SkillRemoveTest {
       ),
     )
     val request = SkillRemovalRequest(
-      // SKILL-49: maintainer path for cascade-remove of a deprecated `bill-*` skill.
+
       target = SkillRemovalTarget.HorizontalSkill(skillName = "bill-foo", allowShipped = true),
       repoRootAbsolutePath = "/repo",
     )

@@ -16,10 +16,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-/**
- * Decomposition continue lives on WorkflowService for TASK_RUNTIME; these tests
- * seed via the service, not the removed CLI.
- */
 class CliWorkflowContinuationRuntimeTest {
   @Test
   fun `runtime workflow continue accepts decomposed parent issue key via service`() {

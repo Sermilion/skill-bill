@@ -6,10 +6,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-/**
- * SKILL-136 subtask 6 AC-006/AC-007. The prune surface must never treat the live store as a
- * candidate, and it must be the only thing that deletes a snapshot.
- */
 class FileSystemReviewSnapshotGatewayTest {
   private val gateway = FileSystemReviewSnapshotGateway()
 

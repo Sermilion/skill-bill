@@ -93,7 +93,3 @@ internal fun previewManifestPreviews(plan: ScaffoldPlan, repoRoot: Path): Map<Pa
   }
   else -> emptyMap()
 }
-
-// SKILL-52.1 subtask 3 (AC1): `validateScaffold` and `plannedAuthoringTarget` now live on
-// `FileSystemScaffoldRepoValidation`. Callsites delegate to
-// `scaffoldRepoValidation.validateScaffold(...)`.

@@ -551,8 +551,6 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
 
   @Test
   fun `object trailed by prose containing a stray brace still validates`() {
-    // The naive first-`{`-to-last-`}` slice overshoots to the stray brace in the trailing prose and
-    // parses as neither; the balanced-object scan isolates the genuine object.
     val withTrailingBrace =
       """
       {"contract_version":"0.6","phase_id":"plan","status":"completed",
@@ -572,8 +570,6 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
 
   @Test
   fun `a top-level json array of criteria still fails validation`() {
-    // A verifying phase that answers with a bare array carries no envelope object; no extraction can
-    // salvage it, so the gate must still fail loudly (the retry directive is what corrects the agent).
     assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
       FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(
         """[{"criterion":"AC-1","met":true},{"criterion":"AC-2","met":false}]""",

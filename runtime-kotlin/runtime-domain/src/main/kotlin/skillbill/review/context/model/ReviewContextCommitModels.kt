@@ -12,7 +12,6 @@ enum class ReviewCommitSource {
   val isSynthetic: Boolean get() = this != COMMIT_RANGE
 }
 
-/** One ordered review unit: a real commit's incremental hunks, or a synthetic whole-delta unit. */
 data class ReviewCommitUnit(
   val commitSha: String,
   val parentSha: String,
@@ -52,11 +51,6 @@ data class ReviewCommitUnit(
     }
   }
 
-  /**
-   * A commit owns its hunks as a set, so every identity and projection reads this order rather than
-   * the order a fact port or parser happened to enumerate them in. The unit's own uniqueness
-   * invariant makes (path, newStart, oldStart) a total order over its hunks.
-   */
   val canonicalHunks: List<ReviewChangedHunk>
     get() = hunks.sortedWith(
       compareBy(ReviewChangedHunk::path, ReviewChangedHunk::newStart, ReviewChangedHunk::oldStart),
@@ -78,7 +72,6 @@ data class ReviewCommitUnit(
   companion object {
     fun commitScopeKey(commitSha: String, orderIndex: Int): String = "$commitSha@$orderIndex"
 
-    /** Builds a COMMIT_RANGE unit, scoping every hunk to this commit so its identity is commit-owned. */
     fun ofCommit(
       commitSha: String,
       parentSha: String,
@@ -111,10 +104,6 @@ data class ReviewCommitUnit(
   }
 }
 
-/**
- * The checked base-to-head equivalence fact: the ordered units cover the authoritative delta with
- * no silent omission or duplication. A unit sequence that cannot assert the chain must say why.
- */
 data class ReviewCommitCoverageFact(
   val baseRevision: String,
   val headRevision: String,

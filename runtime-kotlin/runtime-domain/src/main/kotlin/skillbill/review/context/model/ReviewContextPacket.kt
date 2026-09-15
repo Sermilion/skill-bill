@@ -66,11 +66,6 @@ data class ReviewContextPacket(
     requireRoutingMatrix()
   }
 
-  /**
-   * Sparse routing decides lane selection: a lane survives exactly when it focused at least one
-   * commit, so a selected lane with no focused commit — or a dropped lane that focused one — is a
-   * routing/selection contradiction rather than a recoverable state.
-   */
   private fun requireRoutingMatrix() {
     val orderedShas = commitUnits.sortedBy { it.orderIndex }.map { it.commitSha }
     require(routingMatrix.commitShas == orderedShas) {
@@ -84,7 +79,6 @@ data class ReviewContextPacket(
     }
   }
 
-  /** The hunks a lane may claim: its owned paths restricted to the commits routing focused for it. */
   fun focusedHunkIds(laneDecision: ReviewLaneDecision): Set<String> {
     val focused = routingMatrix.focusedCommits(laneDecision.lane).toSet()
     val ownedPaths = laneDecision.normalizedOwnedPaths.toSet()
@@ -97,11 +91,6 @@ data class ReviewContextPacket(
     commitUnits.map { it.commitSha }.toSet()
   }
 
-  /**
-   * Stable identity of the reviewed commit sequence, over the ordered commit unit ids alone. It is
-   * deliberately narrower than [digest]: lane selection or a rule excerpt changing must not change
-   * which sequence a lane or integration result claims to cover, but reordering commits must.
-   */
   val commitSequenceDigest: String by lazy(LazyThreadSafetyMode.PUBLICATION) {
     sha256(canonicalFieldList(commitUnits.sortedBy { it.orderIndex }.map { it.commitUnitId }))
   }
@@ -141,7 +130,7 @@ data class ReviewContextPacket(
       .map { it.canonical }.let { canonicalFieldList(it) },
     changedHunks.sortedBy { it.packetCanonical() }
       .map { it.packetCanonical() }.let { canonicalFieldList(it) },
-    // Declared order, never sorted by content: reordering commits must stay digest-visible.
+
     commitUnits.sortedBy { it.orderIndex }
       .map { it.canonicalValue() }.let { canonicalFieldList(it) },
     coverageFact.canonical,

@@ -153,8 +153,6 @@ private fun bindFeatureTaskRuntimeFinishedUpdate(
 
 private fun Boolean?.toSqlInt(): Int = if (this == true) 1 else 0
 
-// An empty list is stored as NULL: a run whose phases resolved nothing has not measured an empty set,
-// it has measured nothing, and the payload must report that as unavailable rather than as "none".
 private fun List<String>?.namesJson(): String? = this?.takeIf { it.isNotEmpty() }?.let(::listJson)
 
 private fun Any?.availabilityWire(): String = if (this == null) {

@@ -30,7 +30,7 @@ class SkillContentIdentityTest {
     assertEquals(sourceIdentity, SkillContentIdentity.fromSource(symlink))
     assertContains(sourceIdentity.compact(), "exact_content_sha256")
     assertContains(sourceIdentity.compact(), "normalized_metadata")
-    // The installed body is deliberately absent; the compact marker is the only installed input.
+
     assertFalse(Files.exists(staged.resolve("SKILL.md")))
   }
 

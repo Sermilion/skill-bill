@@ -2,11 +2,6 @@ package skillbill.workflow.taskruntime.model
 
 import skillbill.contracts.SharedPayloadKeys
 
-/**
- * Compact-reference kinds. [runtimeResolvable] marks the kinds a runtime-owned deterministic
- * operation can dereference; the others are plain identifiers the consumer reads as-is. No kind
- * introduces arbitrary model-driven retrieval.
- */
 internal val REPOSITORY_CHECKPOINT_FIELD: String
   get() = FeatureTaskRuntimeCompactReferenceKind.REPOSITORY_CHECKPOINT.wireValue
 
@@ -24,7 +19,6 @@ enum class FeatureTaskRuntimeCompactReferenceKind(val wireValue: String, val run
   }
 }
 
-/** Closed set of projection value shapes. Nothing here can carry a nested open map or raw blob. */
 sealed interface FeatureTaskRuntimeHandoffProjectionValue {
   val utf8ByteSize: Int
   val itemCount: Int
@@ -48,7 +42,6 @@ sealed interface FeatureTaskRuntimeHandoffProjectionValue {
   }
 }
 
-/** Field names a projection must never carry, because each names an unbounded raw-context channel. */
 val FEATURE_TASK_RUNTIME_FORBIDDEN_PROJECTION_FIELD_NAMES: Set<String> = setOf(
   "upstream_outputs_by_phase_id",
   "raw_payload",

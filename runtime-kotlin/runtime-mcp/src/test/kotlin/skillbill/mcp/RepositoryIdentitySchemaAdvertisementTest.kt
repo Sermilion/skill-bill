@@ -7,12 +7,6 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-/**
- * Every `repository_identity` argument is validated against the
- * `repo-root-realpath-v1:` prefix, but that requirement is otherwise
- * undocumented on the wire: a caller sees only the MCP input schema. These
- * tests pin the schema so the prefix cannot silently stop being advertised.
- */
 class RepositoryIdentitySchemaAdvertisementTest {
   @Test
   fun `every tool taking repository_identity advertises the required prefix`() {

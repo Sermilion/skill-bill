@@ -9,18 +9,6 @@ class InvalidInstallPlanSchemaError(
   cause,
 )
 
-/**
- * SKILL-48 Subtask 2c: surfaced when a native-agent composition source
- * fails the canonical
- * `orchestration/contracts/native-agent-composition-schema.yaml` Draft
- * 2020-12 schema. The composed message carries the source label (the
- * on-disk path or another caller-supplied identifier) and the
- * collected violation messages so callers and tests can pinpoint the
- * regression without parsing raw networknt validator output. Mirrors
- * [InvalidInstallPlanSchemaError]; the dedicated subclass keeps
- * native-agent parse-seam failures distinguishable from install-plan,
- * workflow-state, and platform-pack failures in logs and tests.
- */
 class InvalidNativeAgentCompositionSchemaError(
   val sourceLabel: String,
   val reason: String,
@@ -30,19 +18,6 @@ class InvalidNativeAgentCompositionSchemaError(
   cause,
 )
 
-/**
- * SKILL-48 Subtask 2d: surfaced when a telemetry event envelope fails
- * the canonical `orchestration/contracts/telemetry-event-schema.yaml`
- * Draft 2020-12 schema. The composed message carries the dotted
- * `fieldPath` of the first offending value AND the offending
- * `eventName` (nullable: unknown-event-name violations may report a
- * null name) so callers and tests can grep telemetry parse-seam
- * regressions by event name without parsing raw networknt validator
- * output. Mirrors [InvalidInstallPlanSchemaError]; the dedicated
- * subclass keeps telemetry parse-seam failures distinguishable from
- * install-plan, workflow-state, native-agent composition, and
- * platform-pack failures in logs and tests.
- */
 class InvalidTelemetryEventSchemaError(
   val fieldPath: String,
   val eventName: String?,
@@ -54,14 +29,6 @@ class InvalidTelemetryEventSchemaError(
   cause,
 )
 
-/**
- * Surfaced when a durable goal-observability event stored in workflow
- * artifacts_json fails the canonical
- * `orchestration/contracts/goal-observability-event-schema.yaml` Draft
- * 2020-12 schema. The composed message carries the artifact/source
- * label plus the offending field path so malformed latest-event or
- * run-history records fail loudly at the workflow artifact seam.
- */
 class InvalidGoalObservabilityEventSchemaError(
   val sourceLabel: String,
   val fieldPath: String,
@@ -73,14 +40,6 @@ class InvalidGoalObservabilityEventSchemaError(
   cause,
 )
 
-/**
- * SKILL-64 Subtask 3: surfaced when a durable goal declared-progress event
- * stored in workflow artifacts_json fails the canonical
- * `orchestration/contracts/goal-progress-event-schema.yaml` Draft 2020-12
- * schema. The composed message carries the artifact/source label plus the
- * offending field path so malformed declared-progress records fail loudly at
- * the workflow artifact seam, distinct from goal-observability event failures.
- */
 class InvalidGoalProgressEventSchemaError(
   val sourceLabel: String,
   val fieldPath: String,
@@ -92,11 +51,6 @@ class InvalidGoalProgressEventSchemaError(
   cause,
 )
 
-/**
- * SKILL-148 Subtask 1: surfaced when an IDE status snapshot fails the canonical
- * `orchestration/contracts/ide-status-schema.yaml` Draft 2020-12 schema, or when
- * the bundled schema resource itself is missing or identity-mismatched.
- */
 class InvalidIdeStatusSchemaError(
   val sourceLabel: String,
   val fieldPath: String,
@@ -165,15 +119,6 @@ class MalformedInstallSelectionRecordError(
   cause,
 )
 
-/**
- * SKILL-76 Subtask 2: surfaced when the durable baseline manifest at
- * `~/.skill-bill/baseline-manifest.json` exists but cannot be read or parsed
- * (IO/permission failure, malformed JSON, unknown/blank keys, or an unsupported
- * contract version). The message names the offending path so reconciliation
- * fails loudly at the read seam instead of silently falling back. Mirrors
- * [UnreadableInstallSelectionRecordError]; the dedicated subclass keeps baseline
- * read failures distinguishable from install-selection failures.
- */
 class UnreadableBaselineManifestError(
   val path: String,
   val reason: String? = null,
@@ -184,13 +129,6 @@ class UnreadableBaselineManifestError(
   cause,
 )
 
-/**
- * SKILL-76 Subtask 2: surfaced when per-skill reconciliation classification cannot
- * be completed loudly — e.g. an upstream/local source root that is required for a
- * computed outcome is unreadable, or a reconciliation invariant is violated. The
- * message names the offending skill-relative path and the failure reason so the
- * shell aborts the whole install with a clear message rather than half-applying.
- */
 class ReconciliationConflictError(
   val skillRelativePath: String,
   val reason: String,
@@ -200,13 +138,6 @@ class ReconciliationConflictError(
   cause,
 )
 
-/**
- * SKILL-71 Subtask 1 (AC3): surfaced when the repo-local `.skill-bill/config.yaml`
- * exists but cannot be read (IO/permission failure). The message names the
- * offending file path so config-load failures fail loudly at the read seam.
- * Mirrors [UnreadableInstallSelectionRecordError]; the dedicated subclass keeps
- * repo-local config failures distinguishable from install-selection failures.
- */
 class UnreadableRepoLocalConfigError(
   val path: String,
   cause: Throwable? = null,
@@ -215,12 +146,6 @@ class UnreadableRepoLocalConfigError(
   cause,
 )
 
-/**
- * SKILL-71 Subtask 1 (AC3): surfaced when the repo-local `.skill-bill/config.yaml`
- * is malformed YAML, or carries an unknown/invalid value for a known key. The
- * composed message names the file path AND the offending key/value so callers
- * and tests can pinpoint the regression without guessing which key failed.
- */
 class MalformedRepoLocalConfigError(
   val path: String,
   val key: String,

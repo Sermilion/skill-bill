@@ -13,11 +13,6 @@ import skillbill.workflow.decomposition.model.requireAccepted
 import java.nio.file.NoSuchFileException
 import java.nio.file.Path
 
-/**
- * Decomposition manifest parse/emission seam. This is where workflow artifact maps and
- * repo-local YAML text from the workflow file-store port are schema-validated before
- * callers persist or return them.
- */
 fun loadDecompositionManifest(
   path: Path,
   fileStore: DecompositionManifestStore,
@@ -41,10 +36,6 @@ fun loadValidatedDecompositionManifest(
   )
 }
 
-/**
- * Keeps a repaired read-back inside the caller's atomic write transaction. A second repair means
- * the first repair did not produce a stable validated document, so the caller must roll back.
- */
 fun loadValidatedDecompositionManifestPersistingRepair(
   path: Path,
   fileStore: DecompositionManifestStore,

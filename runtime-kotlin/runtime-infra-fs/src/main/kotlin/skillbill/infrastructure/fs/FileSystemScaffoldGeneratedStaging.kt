@@ -8,15 +8,6 @@ import skillbill.ports.scaffold.staging.model.ScaffoldStageFileResult
 import java.nio.file.Files
 import java.nio.file.Path
 
-/**
- * Filesystem adapter for [ScaffoldGeneratedStagingPort]. Owns the directory-creation /
- * file-write seam that the scaffold transaction uses to produce generated artifacts. Mirrors
- * the historical `stageFile` helper inside `ScaffoldService.kt` — refuses to clobber an
- * existing target and reports every directory it created so rollback can clean up precisely.
- *
- * The legacy scaffold pipeline still calls `stageFile` directly inside its rollback transaction
- * because reusing that transaction context here is out of scope for subtask 2.
- */
 @Inject
 class FileSystemScaffoldGeneratedStaging : ScaffoldGeneratedStagingPort {
   override fun stageFile(request: ScaffoldStageFileRequest): ScaffoldStageFileResult {

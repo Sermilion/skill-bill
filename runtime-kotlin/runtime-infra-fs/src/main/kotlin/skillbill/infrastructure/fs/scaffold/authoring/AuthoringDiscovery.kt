@@ -149,8 +149,7 @@ private fun recordSkillTarget(repoRoot: Path, discovered: MutableMap<String, Aut
   val displayName =
     platform.takeIf { it.isNotBlank() }?.let(::displayNameFromSlug)
       ?: displayNameFromSlug(skillName.removePrefix("bill-"))
-  // A blank internal-for value is preserved so classification can fail loudly instead of
-  // silently treating the skill as listed.
+
   val internalFor = parseInternalForFrontmatter(contentFile)
   discovered[skillName] =
     AuthoringTarget(

@@ -54,11 +54,6 @@ class GoalPlanningLogService(
     )
   }
 
-  /**
-   * Diagnostics are keyed by the goal-planning diagnostic phase id (`preplan`, `plan:<subtask>`),
-   * which is not enumerable from the store, so the whole workflow's diagnostics are read once and
-   * joined in memory rather than issued as one query per observed phase.
-   */
   private fun readRejections(parentWorkflowId: String): Map<String, RejectedOutputDiagnostic> = runCatching {
     database.transaction { unitOfWork ->
       val repository = unitOfWork.rejectedOutputDiagnostics ?: return@transaction emptyList()
@@ -70,18 +65,6 @@ class GoalPlanningLogService(
     .getOrDefault(emptyList())
     .associateBy { record -> rejectionKey(record.phaseId, record.attempt) }
 
-  /**
-   * Pairs each start with its own completion.
-   *
-   * A relaunched goal re-mints the same `<phase>:<subtask>:attempt:<n>` operation name for work it
-   * retries, so the name does not identify one interval. Keying a start map and a completion map by
-   * name alone kept the newest start and the newest completion independently, which paired a
-   * relaunch's start with the previous segment's completion and reported a finish stamped before its
-   * own start. Every start opens its own occurrence here, and a completion closes the newest
-   * occurrence still open for that name: planning attempts do not overlap, so the completion belongs
-   * to the attempt that started most recently, and an attempt whose process died without one stays
-   * open and reports as in-flight rather than borrowing a sibling's finish.
-   */
   private fun assembleAttempts(
     events: List<GoalProgressEvent>,
     rejections: Map<String, RejectedOutputDiagnostic>,
@@ -112,8 +95,6 @@ class GoalPlanningLogService(
       }
     }
 
-    // Each resumed run restarts its progress sequence at zero, so ledger order interleaves segments.
-    // Only the timestamps totally order attempts across a goal that blocked and was relaunched.
     return occurrences.mapNotNull { occurrence ->
       val parsed = parseOperation(occurrence.operation) ?: return@mapNotNull null
       val rejection = rejections[rejectionKey(parsed.diagnosticPhaseId, parsed.attempt)]
@@ -133,13 +114,6 @@ class GoalPlanningLogService(
     }.sortedBy { attempt -> attempt.startedAt ?: attempt.finishedAt ?: Instant.EPOCH }
   }
 
-  /**
-   * One start-to-completion interval for an operation name that repeats across resumed runs.
-   *
-   * Holds the two values the log reads from a completion rather than the event itself: the interval
-   * and the outcome are what an attempt is, and keeping the raw event here would carry the whole
-   * progress row into a projection that never reads the rest of it.
-   */
   private class AttemptOccurrence(val operation: String, val startedAt: Instant?) {
     var finishedAt: Instant? = null
       private set
@@ -148,7 +122,7 @@ class GoalPlanningLogService(
 
     fun settle(finishedAt: Instant?, outcome: String?) {
       this.finishedAt = finishedAt
-      // A completion that names no outcome is no more settled than an absent one.
+
       this.outcome = outcome?.let(GoalPlanningAttemptOutcome::fromWire) ?: GoalPlanningAttemptOutcome.IN_FLIGHT
     }
   }
@@ -160,7 +134,6 @@ class GoalPlanningLogService(
 
   private data class ParsedOperation(val diagnosticPhaseId: String, val subtaskId: Int, val attempt: Int)
 
-  /** Operation names are minted as `<phase>:<subtask>:attempt:<n>` by the planning attempt recorder. */
   private fun parseOperation(operation: String): ParsedOperation? {
     val parts = operation.split(":")
     if (parts.size != OPERATION_NAME_SEGMENTS || parts[OPERATION_LITERAL_INDEX] != "attempt") return null

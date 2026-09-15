@@ -17,14 +17,6 @@ private val SELF_REFERENTIAL_CONTENT_POINTER_PATTERN =
 private val FENCE_START_PATTERN = Regex("""^\s*(?:```|~~~)""")
 private val TITLE_HEADING_PATTERN = Regex("""^#\s+\S.*$""")
 
-/**
- * Support pointer files that the renderer writes into installed staging and references from the
- * auto-generated `## Ceremony` section (see `renderCeremonySection`). Authored `content.md` must
- * not duplicate those links inline — the install-time ceremony already exposes them.
- *
- * Keep this set in lockstep with `renderCeremonySection` in
- * `runtime-core/.../scaffold/ScaffoldCeremonyRendering.kt`.
- */
 private val GENERATED_SUPPORT_POINTER_FILENAMES: Set<String> =
   setOf(
     "shell-ceremony.md",
@@ -41,21 +33,9 @@ private val GENERATED_SUPPORT_POINTER_FILENAMES: Set<String> =
 private val GENERATED_SUPPORT_POINTER_LINK_PATTERN =
   Regex("""\[(${GENERATED_SUPPORT_POINTER_FILENAMES.joinToString("|") { Regex.escape(it) }})]\(\1\)""")
 
-/**
- * The renderer emits `### Subagent Spawn Runtime Notes` automatically when a skill has
- * `native-agents/` sources (see `renderSubagentSpawnRuntimeNotes`). Authored `content.md` must not
- * own that heading — neither at the literal name nor at the common shortened form — because the
- * wrapper will either duplicate it or fight with it after heading demotion.
- */
 private val SUBAGENT_RUNTIME_NOTES_HEADING_PATTERN =
   Regex("""^#{1,6}\s+Subagent(?:\s+Spawn)?\s+Runtime\s+Notes\s*$""", RegexOption.IGNORE_CASE)
 
-/**
- * Prose form of the same ceremony pointer the link-pattern check guards. Catches "follow the
- * shared <name> playbook" / "shared <name> contract" wording that re-directs readers to a
- * generated support pointer instead of just stating authored behavior. The bare slug is matched
- * (no `.md` suffix) so authors can't switch to prose to evade the link guard.
- */
 private val GENERATED_SUPPORT_POINTER_SLUGS: String =
   GENERATED_SUPPORT_POINTER_FILENAMES.joinToString("|") { Regex.escape(it.removeSuffix(".md")) }
 
@@ -76,9 +56,7 @@ internal fun validateAuthoredContent(contentFile: Path, text: String): List<Stri
   if (hasSelfReferentialPointer) {
     issues += "$contentFile: content.md contains self-referential wrapper pointer text instead of authored guidance"
   }
-  // Skills whose class fully describes them (governed shells) may have an empty content.md body —
-  // the framework prose lives in `orchestration/skill-classes/<class>.yaml` and is rendered into
-  // SKILL.md at install time. For everyone else, we still require authored guidance beyond the title.
+
   if (!classDeclaresSections) {
     if (visibleLines.isEmpty()) {
       issues += "$contentFile: content.md is missing required authored content"
@@ -226,11 +204,6 @@ private fun classSectionHeadingClashes(body: String, classHeadings: List<String>
   return seen.toList()
 }
 
-/**
- * Resolve a skill class for a content.md file by walking up to the repo root and using the same
- * loader as the renderer. Returns null when no class manifest matches — that path lets the
- * validator stay permissive for non-governed test fixtures and ad-hoc repos.
- */
 private fun resolveSkillClassForPath(contentFile: Path): SkillClassManifest? {
   val skillName = contentFile.parent?.fileName?.toString() ?: return null
   return runCatching { resolveSkillClassForSkill(skillName, contentFile) }.getOrNull()

@@ -18,11 +18,6 @@ import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 
-/**
- * Returns the stored artifact only on a clean fingerprint hit whose projection passes schema
- * validation. Anything missing, unparseable, truncated, or schema-invalid returns null so the
- * caller re-derives; only a well-formed envelope that contradicts its own address throws.
- */
 internal fun readStored(
   mapper: ObjectMapper,
   artifactDir: Path,
@@ -44,7 +39,6 @@ internal fun readStored(
   }
 }
 
-/** The envelope's own fingerprint, or null once a blank one has been recorded as a corrupt entry. */
 private fun recordedFingerprint(envelope: ObjectNode, envelopeLabel: String, addressed: String): String? {
   val recorded = envelope.path("fingerprint").asText("")
   if (recorded.isBlank()) {
@@ -108,7 +102,7 @@ private fun resolutionOf(
   ).apply {
     baseRef?.takeIf { it.isNotBlank() }?.let { put("base_ref", it) }
     headRef?.takeIf { it.isNotBlank() }?.let { put("head_ref", it) }
-    // A stored payload that inlined diff content is schema-invalid: never serve it.
+
     if (stored.envelope.has("diff_content") || stored.envelope.has("diff_bytes")) {
       put("diff_content", stored.envelope.path("diff_content").asText("present"))
     }
@@ -128,7 +122,6 @@ private fun resolutionOf(
     diffPayload = stored.payloadText,
   )
 } catch (error: IllegalArgumentException) {
-  // A well-formed envelope carrying blank index entries is still a corrupt cache entry.
   degraded(
     seam = "stored_envelope_index",
     used = "re-derive",
@@ -137,7 +130,6 @@ private fun resolutionOf(
   )
 }
 
-/** The stored payload ref, or null once the defect that makes it unservable has been recorded. */
 private fun intactPayloadRef(
   artifactDir: Path,
   envelope: ObjectNode,
@@ -161,7 +153,6 @@ private fun intactPayloadRef(
   return FeatureTaskRuntimeSharedEvidenceDiffPayloadRef(relativePath, actualSize)
 }
 
-/** An unreadable payload is a corrupt cache entry like any other: record it and re-derive. */
 private fun readPayloadText(payload: Path): String? = try {
   Files.readString(payload)
 } catch (error: IOException) {

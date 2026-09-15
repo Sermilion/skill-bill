@@ -12,10 +12,7 @@ import dev.skillbill.intellij.domain.StatusDiagnostic
 import dev.skillbill.intellij.domain.UnavailableReason
 import java.nio.file.Path
 
-/**
- * CLI-backed [StatusRepository]. Runs
- * `skill-bill work status --repo-root <canonical> --format json` off the EDT.
- */
+
 class CliSkillBillStatusRepository(
     private val preferences: PreferenceCachePort,
     private val processRunner: ProcessRunner,
@@ -73,7 +70,7 @@ class CliSkillBillStatusRepository(
                 ),
             )
         } catch (_: Exception) {
-            // Never leak command output or paths from the failure surface.
+
             return SkillBillStatusOutcome.Unavailable(
                 observedAt = observedAt,
                 summary = "Skill Bill status command failed to start",

@@ -249,7 +249,6 @@ private class FakeWorkerSupervisor(
     }
   }
 
-  /** Drives one renewal the way the real loop does, including latching a proven fencing loss. */
   fun runHeartbeatTick(): FeatureTaskRuntimeHeartbeatTick {
     val outcome = requireNotNull(tick) { "startHeartbeat was never called." }.invoke()
     if (outcome is FeatureTaskRuntimeHeartbeatTick.FencingLost) fencingLostReason = outcome.reason

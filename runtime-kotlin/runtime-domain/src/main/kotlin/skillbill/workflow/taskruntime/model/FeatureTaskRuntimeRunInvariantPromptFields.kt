@@ -1,9 +1,5 @@
 package skillbill.workflow.taskruntime.model
 
-/**
- * Distinguishes run identity from the other run-invariant categories so a per-phase allowlist can
- * select prompt-visible invariants without collapsing them into one undifferentiated block.
- */
 enum class FeatureTaskRuntimeRunInvariantFieldCategory {
   IDENTITY,
   ACCEPTANCE_CONTRACT,

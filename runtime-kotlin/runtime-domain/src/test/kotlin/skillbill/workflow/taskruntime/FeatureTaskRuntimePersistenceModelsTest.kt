@@ -54,7 +54,6 @@ class FeatureTaskRuntimePersistenceModelsTest {
 
   @Test
   fun `phase record written before the launched model fields still decodes`() {
-    // The shape every live workflow row holds: neither key present, and neither may be required.
     val preChangeWire = FeatureTaskRuntimePhaseRecord(
       phaseId = "implement",
       status = "running",
@@ -302,7 +301,7 @@ class FeatureTaskRuntimePersistenceModelsTest {
     val malformed = mapOf(
       "phase_id" to "plan",
       "status" to "completed",
-      // attempt_count missing
+
       "started_at" to "2026-06-02T10:00:00Z",
       "resolved_agent_id" to "agent-plan-1",
     )
@@ -489,7 +488,7 @@ class FeatureTaskRuntimePersistenceModelsTest {
     assertEquals("review-fix", map["loop_id"])
     assertEquals(3, map["edge_iteration"])
     assertEquals(entry, FeatureTaskRuntimePhaseLedgerEntry.fromArtifactMap(map))
-    // An old ledger map without the loop fields decodes unchanged.
+
     val legacy = mapOf(
       "action" to "retry",
       "sequence_number" to 0,
@@ -606,7 +605,7 @@ class FeatureTaskRuntimePersistenceModelsTest {
     val malformed = mapOf(
       "action" to "start",
       "sequence_number" to 0,
-      // timestamp missing
+
       "phase_id" to "plan",
       "attempt_count" to 1,
     )
@@ -638,8 +637,6 @@ class FeatureTaskRuntimePersistenceModelsTest {
   }
 }
 
-// Goal-continuation artifact/outcome persistence. Kept outside
-// [FeatureTaskRuntimePersistenceModelsTest] so that suite stays under the detekt LargeClass threshold.
 class FeatureTaskRuntimeGoalContinuationPersistenceModelsTest {
   @Test
   fun `goal-continuation artifact retains the immutable review mode and optional parallel lane`() {

@@ -15,20 +15,14 @@ import java.nio.file.Path
 class FileSystemReviewAttribution(
   private val installedCatalog: InstalledPlatformPackCatalogPort,
 ) : ReviewAttributionPort {
-  /**
-   * Telemetry attribution only, and an absent installation legitimately yields no mappings — so an
-   * unreadable pack degrades here instead of failing the unrelated command that is reporting. Review
-   * routing reads the same catalog and still surfaces contract failures loudly.
-   */
+
   override fun routedSkillPlatformSlugs(): Map<String, String> =
     runCatching { platformReviewAttributionMappings(installedCatalog.manifests()) }.getOrDefault(emptyMap())
 
   override fun composedLaunchPlan(routedPackSlug: String): ReviewLaunchPlan {
     val manifests = installedCatalog.manifests()
     if (manifests.none { it.slug == routedPackSlug }) return ReviewLaunchPlan(routedPackSlug, emptyList())
-    // The routed pack's own composition, never the union across every installed manifest: that union
-    // put areas this pack never declares into its plan, and the completeness ledger reads a plan lane
-    // as a lane the run launched.
+
     val selectedAreas = ReviewLaunchPlanPolicy.composedAreas(routedPackSlug, manifests)
     return ReviewLaunchPlanPolicy.flatten(routedPackSlug, manifests, selectedAreas)
   }

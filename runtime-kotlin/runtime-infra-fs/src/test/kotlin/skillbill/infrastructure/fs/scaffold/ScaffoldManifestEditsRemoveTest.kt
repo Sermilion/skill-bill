@@ -11,15 +11,6 @@ import skillbill.infrastructure.fs.scaffold.manifest.removeDeclaredQualityCheckF
 import skillbill.infrastructure.fs.scaffold.manifest.removeSkillClassPointer
 import java.nio.file.Path
 
-/**
- * SKILL-46 AC9: round-trip coverage of [removeCodeReviewArea] and [removeDeclaredQualityCheckFile].
- *
- * Tests verify each helper:
- * - Strips the entry across all three locations (`declared_code_review_areas`, `declared_files.areas`,
- *   `area_metadata.<area>`).
- * - Is idempotent — calling it twice does not re-write the file.
- * - Collapses to the inline empty form when the last entry is removed.
- */
 class ScaffoldManifestEditsRemoveTest {
   @Test
   fun `removeCodeReviewArea strips declared list, declared_files area, and area_metadata`(@TempDir tempDir: Path) {
@@ -56,7 +47,7 @@ class ScaffoldManifestEditsRemoveTest {
     assertFalse(updated.contains("\"ui\""), "expected 'ui' list entry to be removed")
     assertFalse(updated.contains("ui: \"code-review/bill-foo-code-review-ui/content.md\""))
     assertFalse(updated.contains("focus: \"UI review\""))
-    // 'perf' is left intact.
+
     Assertions.assertTrue(updated.contains("\"perf\""))
   }
 

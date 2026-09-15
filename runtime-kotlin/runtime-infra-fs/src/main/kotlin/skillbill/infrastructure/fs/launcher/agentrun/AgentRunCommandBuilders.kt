@@ -22,14 +22,9 @@ data class AgentRunCommand(
   val inheritEnvironment: Boolean = true,
   val idlePolicy: AgentRunIdlePolicy = AgentRunIdlePolicy.DB_PROGRESS_ONLY,
   val conversationIsolation: ConversationIsolation? = null,
-  /** Overrides the builder's default decoder when this command selects a different output format. */
+
   val outputDecoder: AgentRunOutputDecoder? = null,
-  /**
-   * Additional parent-environment keys to pass through during an isolated launch
-   * (inheritEnvironment = false). Builders declare the keys their agent CLI needs from the ambient
-   * environment (provider credentials, endpoint overrides, proxy settings) so the infra runner does
-   * not need per-agent knowledge. Has no effect when inheritEnvironment is true.
-   */
+
   val environmentPassthroughKeys: Set<String> = emptySet(),
 )
 
@@ -51,9 +46,6 @@ internal val GoalContinuationEnvironment: Map<String, String> = mapOf(
   "SKILL_BILL_GOAL_CONTINUATION" to "1",
 )
 
-// Provider credentials and endpoint overrides the Claude CLI reads from the environment. Passed
-// through during isolated review launches so the delegated worker authenticates via the same
-// provider configuration as the parent process, regardless of what is on disk.
 internal val PROXY_PASSTHROUGH_KEYS: Set<String> = setOf(
   "HTTP_PROXY",
   "HTTPS_PROXY",
@@ -90,11 +82,6 @@ internal val CURSOR_PROVIDER_PASSTHROUGH_KEYS: Set<String> = setOf(
   "CURSOR_API_KEY",
 ) + PROXY_PASSTHROUGH_KEYS
 
-/**
- * Claude Code sizes its own auto-compaction trigger against the model's context window, so a phase
- * on a 1M-context model never compacts at the few-hundred-thousand tokens a phase actually reaches.
- * These variables re-point that trigger at the window the runtime chose for the phase.
- */
 internal fun compactionEnvironment(request: SkillRunRequest): Map<String, String> =
   request.compaction?.let { directive ->
     mapOf(
@@ -118,16 +105,6 @@ internal fun goalContinuationEnvironment(request: SkillRunRequest): Map<String, 
     }
   }.orEmpty()
 
-/**
- * Resolves a feature-task model directive for a claude child against the provider the parent
- * process was launched with. A directive naming an Anthropic model (`claude-*` or an
- * opus/sonnet/haiku alias) is only servable by the official Anthropic endpoint. A non-Anthropic
- * endpoint (for example `api.deepseek.com`) does not serve those names and silently substitutes
- * its own model, so the child would run on a model the operator never chose. In that case the
- * child falls back to the model the parent process itself was launched with — the only model the
- * operator actually selected. A directive naming an explicit model the endpoint serves (for
- * example `deepseek-v4-flash`) passes through unchanged.
- */
 internal fun resolveClaudeModelDirective(directive: String?, providerEnvironment: Map<String, String>): String? {
   if (directive == null) return null
   val endpoint = providerEnvironment["ANTHROPIC_BASE_URL"]
@@ -175,8 +152,7 @@ class ClaudeAgentRunCommandBuilder(
         add("claude")
         add("--print")
         add("--output-format")
-        // stream-json emits one NDJSON event per turn instead of a single buffered object at
-        // exit, so a launch with no durable progress signal can still prove it is working.
+
         add(if (streaming) "stream-json" else "json")
         if (streaming) add("--verbose")
         resolveClaudeModelDirective(request.modelOverride, providerEnvironment)?.let {

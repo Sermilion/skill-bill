@@ -62,8 +62,3 @@ internal fun GoalRunnerControlState.toArtifactMap(): Map<String, Any?> = mapOf(
   "pending_causing_loop_entry_by_subtask" to
     pendingCausingLoopEntryBySubtask.entries.associate { (k, v) -> k.toString() to v },
 )
-
-/**
- * The allowed-key whitelist is strict in both directions: an older binary reading a record that
- * carries `paused_at` fails here. Accepted — goal runner durable state is same-binary-version.
- */

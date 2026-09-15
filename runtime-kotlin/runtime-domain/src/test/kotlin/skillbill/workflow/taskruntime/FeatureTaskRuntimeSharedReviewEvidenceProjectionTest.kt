@@ -12,10 +12,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/**
- * The delivered shape of the shared review evidence projection. These assert what reaches the prompt,
- * not what the store holds: the whole point of the reference is that the diff bytes never arrive here.
- */
 class FeatureTaskRuntimeSharedReviewEvidenceProjectionTest {
   private val def = FeatureTaskRuntimePhaseWorkflowDefinition
 
@@ -54,8 +50,7 @@ class FeatureTaskRuntimeSharedReviewEvidenceProjectionTest {
       .utf8ByteSize
 
     assertEquals(bytes(hunksPerFile = 1), bytes(hunksPerFile = 1))
-    // A diff two orders of magnitude larger over the same files must not grow the delivered payload
-    // beyond the per-file hunk counter's own digits.
+
     assertTrue(bytes(hunksPerFile = 200) - bytes(hunksPerFile = 1) <= 12 * 2)
   }
 

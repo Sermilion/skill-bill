@@ -118,8 +118,6 @@ private fun ensureFeatureTaskRuntimeSessionVerificationColumns(connection: Conne
   ensureFeatureTaskRuntimeSessionAvailabilityColumns(connection)
 }
 
-// Nullable with no default and no backfill: a row written before these columns existed keeps NULL and
-// reports unknown, so no historical run is credited with a measurement nobody took.
 private fun ensureFeatureTaskRuntimeSessionAvailabilityColumns(connection: Connection) {
   listOf(
     "review_fix_cap_exhausted_availability",
@@ -141,8 +139,6 @@ private fun ensureFeatureTaskRuntimeSessionAvailabilityColumns(connection: Conne
   }
 }
 
-// Nullable with no backfill: a session started before these columns existed has no recoverable
-// correlation identity, and its payload declares that rather than joining on a blank id.
 internal fun ensureFeatureTaskRuntimeSessionCorrelationColumns(connection: Connection) {
   listOf("workflow_id", "goal_parent_workflow_id").forEach { column ->
     DatabaseColumnMigrationsEnsure.ensureColumn(connection, "feature_task_runtime_sessions", column, "TEXT")

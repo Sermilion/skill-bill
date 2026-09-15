@@ -11,13 +11,8 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeSharedEvidenceFile
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeSharedEvidenceHunkEntry
 import java.nio.file.Path
 
-/**
- * Separates the checkpoint key's segments. NUL cannot occur in a scope name or a revision, so no
- * pair of distinct queries can collide by concatenation.
- */
 private const val KEY_SEPARATOR: String = "\u0000"
 
-/** The repository-scoped question one resolve answers, and the whole basis of the checkpoint key. */
 internal data class SharedReviewEvidenceQuery(
   val repoRoot: Path,
   val workflowId: String,
@@ -26,13 +21,6 @@ internal data class SharedReviewEvidenceQuery(
   val suppliedDiff: Boolean,
 )
 
-/**
- * Resolves one checkpoint's shared review evidence exactly once, through the checkpoint-keyed store.
- *
- * The stored artifact is a derived cache: a miss, an unreadable payload, or a payload that no longer
- * decodes falls through to in-line derivation. Nothing here can fail a review that would otherwise
- * have run.
- */
 class SharedReviewEvidenceResolution(
   private val sharedEvidenceResolver: FeatureTaskRuntimeSharedEvidenceResolverPort,
   private val diffResolver: DiffResolverPort,
@@ -80,12 +68,6 @@ class SharedReviewEvidenceResolution(
     return record.copy(storePath = resolution.storePath)
   }
 
-  /**
-   * The checkpoint the artifact is keyed on. A commit range is fully identified by its immutable
-   * base and head, so a hit there needs no repository access at all. A working-tree or supplied-diff
-   * review has no such identity; rather than key it on a range that cannot change when the tree does,
-   * this returns null and the caller derives in line every time.
-   */
   private fun checkpoint(query: SharedReviewEvidenceQuery): FeatureTaskRuntimeRepositoryCheckpoint? {
     val scope = query.scope
     val range = query.range
@@ -99,10 +81,6 @@ class SharedReviewEvidenceResolution(
     )
   }
 
-  /**
-   * The port's derivation view of a record. The file and hunk indexes are the artifact's addressable
-   * summary; the payload carries the raw facts a consumer rebuilds identities from.
-   */
   private fun derivationOf(record: SharedReviewEvidenceRecord): FeatureTaskRuntimeSharedEvidenceDerivation {
     val evidence = runCatching { ReviewDiffEvidence.parse(record.aggregateDiff) }.getOrNull()
     return FeatureTaskRuntimeSharedEvidenceDerivation(

@@ -185,10 +185,6 @@ val copyNativeAgentLinkInventorySchema =
     }
   }
 
-// SKILL-52.3 Subtask 1: the three schema validators moved here from
-// runtime-contracts, so the schema resources they read at runtime must
-// ship on this module's classpath alongside the platform-pack and
-// native-agent composition schemas above.
 val canonicalWorkflowStateSchemaPath: String =
   rootProject.projectDir.parentFile
     .resolve("orchestration/contracts/workflow-state-schema.yaml")

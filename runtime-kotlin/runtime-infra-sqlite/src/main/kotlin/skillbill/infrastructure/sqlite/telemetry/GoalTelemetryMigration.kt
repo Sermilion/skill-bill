@@ -2,19 +2,6 @@ package skillbill.infrastructure.sqlite.telemetry
 
 import java.sql.Connection
 
-/**
- * SKILL-66 Subtask 2: creates the goal telemetry tables for the
- * `goal_started`/`goal_subtask_finished`/`goal_finished` event family.
- *
- * `goal_run_sessions` is keyed by `workflow_id` (one row per run segment);
- * finished columns are nullable until the run reaches a terminal outcome,
- * mirroring the `*_event_emitted_at` nullability of existing lifecycle tables.
- * `goal_subtask_events` enforces the parent-spec resume-dedupe identity
- * `(issue_key, subtask_id, workflow_id)` as its composite PRIMARY KEY so a
- * resumed run cannot double-count a subtask (the store inserts ON CONFLICT
- * DO NOTHING). Emitter-minted timestamps/durations are persisted verbatim;
- * the separate `*_event_emitted_at` columns serve outbox idempotency.
- */
 internal object GoalTelemetryMigration {
   fun apply(connection: Connection) {
     connection.createStatement().use { statement ->

@@ -34,8 +34,6 @@ class FileSystemGoalPlanningBoundaryBodyResolverTest {
     val stale = BoundaryMemoryHeadingParser.headingId(relative, "## [2026-01-01] never-existed")
     val catalog = catalogOf(repo)
 
-    // Both ids are admitted to the catalog set so this proves the file re-parse rejects them,
-    // not merely that catalog membership does.
     val resolved = resolve(repo, listOf(stale, "not-even-an-id"), catalog, extraIds = setOf(stale, "not-even-an-id"))
 
     assertTrue(resolved.bodies.isEmpty(), "a stale id never borrows another entry's body")
@@ -69,7 +67,6 @@ class FileSystemGoalPlanningBoundaryBodyResolverTest {
     assertTrue(offCatalog.bodies.isEmpty(), "an off-catalog id must not reach the filesystem")
     assertEquals(listOf(forged), offCatalog.unresolvedHeadingIds)
 
-    // Even if the catalog itself were forged, the path is not governed boundary memory.
     val forgedCatalog = resolve(repo, listOf(forged), catalogOf(repo), extraIds = setOf(forged))
     assertTrue(forgedCatalog.bodies.isEmpty(), "only <dir>/agent/{history,decisions}.md is boundary memory")
     assertEquals(listOf(forged), forgedCatalog.unresolvedHeadingIds)

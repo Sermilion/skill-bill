@@ -160,10 +160,6 @@ internal class FeatureTaskRuntimeWorkerStore(
     }
   }
 
-  // Composed inside the caller's UnitOfWork transaction (FeatureTaskRuntimeCrashReconciler and the
-  // goal-parent recoverAndPersistTerminalOutcome each run this under database.transaction); it must
-  // not open its own transaction, or the nested BEGIN IMMEDIATE would fail on real SQLite.
-
   override fun reconcileFeatureTaskRuntimeCrashedWorker(
     workflowId: String,
     ownerToken: String,
@@ -185,8 +181,7 @@ internal class FeatureTaskRuntimeWorkerStore(
       statement.executeUpdate() == 1
     }
     if (!leaseReleased) return false
-    // A concurrent writer may have moved the row out of 'running' between the candidate scan and
-    // this write; that is a lost race, not a fault, so report no-op instead of asserting.
+
     return connection.prepareStatement(
       """
       UPDATE feature_task_workflows

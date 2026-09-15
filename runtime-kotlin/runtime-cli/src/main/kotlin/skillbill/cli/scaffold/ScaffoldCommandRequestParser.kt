@@ -17,19 +17,6 @@ import skillbill.scaffold.model.command.ScaffoldCommandRequest
 import skillbill.scaffold.model.command.isRetiredPartialScaffoldCommandKindAlias
 import skillbill.scaffold.model.command.rejectRetiredPartialScaffoldCommandKind
 
-/**
- * SKILL-52.2 subtask 2: CLI raw-map → typed [ScaffoldCommandRequest] parser. Runs at the CLI
- * adapter boundary so the application + port surface no longer accepts a `Map<String, Any?>`.
- *
- * Loud-fail invariants preserved from the legacy map seam:
- *  - missing/blank `scaffold_payload_version` → [InvalidScaffoldPayloadError]
- *  - mismatched `scaffold_payload_version` → [ScaffoldPayloadVersionMismatchError]
- *  - missing/blank/unsupported `kind` → [InvalidScaffoldPayloadError] / [UnknownSkillKindError]
- *  - per-variant required-field shape errors → [InvalidScaffoldPayloadError]
- *  - field type mismatches → [InvalidScaffoldPayloadError]
- *
- * The repo-root override is carried verbatim; the runtime resolves the default fallback.
- */
 fun parseScaffoldCommandRequest(payload: Map<String, Any?>): ScaffoldCommandRequest {
   val (version, kind) = validateVersionAndKind(payload)
   val repoRoot = requireOptionalNonBlank(payload, "repo_root")
@@ -42,11 +29,6 @@ fun parseScaffoldCommandRequest(payload: Map<String, Any?>): ScaffoldCommandRequ
   }
 }
 
-/**
- * Validates the scaffold-payload envelope `(scaffold_payload_version, kind)` and returns the
- * parsed pair. Encapsulates the two top-level loud-fails (version mismatch + unsupported kind)
- * so [parseScaffoldCommandRequest] keeps its throw count at the per-function limit.
- */
 private fun validateVersionAndKind(payload: Map<String, Any?>): Pair<String, String> {
   val version = requireString(payload, "scaffold_payload_version")
   if (version != SCAFFOLD_COMMAND_PAYLOAD_VERSION) {

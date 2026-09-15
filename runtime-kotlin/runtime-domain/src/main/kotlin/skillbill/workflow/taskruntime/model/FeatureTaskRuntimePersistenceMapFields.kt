@@ -4,9 +4,6 @@ import skillbill.error.InvalidWorkflowStateSchemaError
 import java.math.BigDecimal
 import java.math.BigInteger
 
-// Strict field decoders. The optional variants return null only when the key is
-// absent; a present-but-malformed value still loud-fails rather than defaulting.
-
 internal fun Map<String, Any?>.requireStringField(key: String): String {
   val value = this[key]
     ?: throw InvalidWorkflowStateSchemaError(

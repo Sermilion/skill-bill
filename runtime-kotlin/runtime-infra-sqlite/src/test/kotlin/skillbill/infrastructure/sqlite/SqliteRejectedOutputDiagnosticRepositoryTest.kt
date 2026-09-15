@@ -145,8 +145,6 @@ class SqliteRejectedOutputDiagnosticRepositoryTest {
       repository.retainProducerOutput(evidence(second, phaseId = "validate", repairTurn = 2))
       repository.retainProducerOutput(evidence(third, phaseId = "validate", repairTurn = 3))
 
-      // A consumer knows the attempt it wants, never how many turns that attempt ran, so the read
-      // resolves the newest retained turn.
       val read = repository.readProducerOutput("workflow-1", "validate", 1, "codex", 0)
       assertEquals(3, read?.repairTurn)
       assertContentEquals(third, read?.payload)
@@ -179,8 +177,7 @@ class SqliteRejectedOutputDiagnosticRepositoryTest {
         listOf(1, 2),
         repository.select(RejectedOutputDiagnosticSelector("workflow-1")).map { it.repairTurn }.sorted(),
       )
-      // Without a repair-turn selector the attempt resolves to both rows, which is what makes a
-      // raw-body read ambiguous for any attempt that ran a gate repair cycle.
+
       assertEquals(
         listOf(turnTwo.metadata.identity),
         repository.select(RejectedOutputDiagnosticSelector("workflow-1", "plan", 1, repairTurn = 2))

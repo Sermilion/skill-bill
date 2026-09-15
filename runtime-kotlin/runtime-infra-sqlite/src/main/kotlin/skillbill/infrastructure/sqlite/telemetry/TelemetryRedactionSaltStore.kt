@@ -6,10 +6,6 @@ import java.sql.Connection
 private const val REDACTION_SALT_KEY = "telemetry_redaction_salt"
 private const val SALT_BYTE_LENGTH = 32
 
-/**
- * Machine-local salt backing [redactIssueKey]. It is generated once, never leaves this machine, and
- * never appears in any telemetry payload.
- */
 fun telemetryRedactionSalt(connection: Connection): String {
   readRedactionSalt(connection)?.let { return it }
   val generated = hexEncode(ByteArray(SALT_BYTE_LENGTH).also(SecureRandom()::nextBytes))

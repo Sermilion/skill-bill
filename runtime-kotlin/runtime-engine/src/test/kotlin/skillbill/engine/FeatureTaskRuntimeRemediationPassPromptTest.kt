@@ -23,9 +23,7 @@ class FeatureTaskRuntimeRemediationPassPromptTest {
 
     assertContains(prompt, "Address every finding verify_findings carried")
     assertContains(prompt, "Every carried finding — Blocker, Major, Minor, and Nit — is in scope")
-    // The earlier "every *verified* finding" wording read as a narrower scope than the coverage gate
-    // measured, so a round that skipped a refuted finding was correct by the prose and rejected by
-    // the gate. Carried is now the only scope word, and the refuted carve-out is stated once.
+
     assertContains(prompt, "a finding verification refuted is not carried at all")
     assertFalse(prompt.contains("Address every verified finding"))
     assertFalse(

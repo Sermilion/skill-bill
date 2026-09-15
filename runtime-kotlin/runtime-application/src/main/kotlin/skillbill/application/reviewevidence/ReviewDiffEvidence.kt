@@ -2,7 +2,6 @@ package skillbill.application.reviewevidence
 
 import skillbill.review.context.model.ReviewChangedHunk
 
-/** Immutable, single-parse evidence used by routing, ownership, preparation, and add-on selection. */
 internal data class ReviewDiffEvidence(
   val hunks: List<ReviewChangedHunk>,
   val files: List<ReviewChangedFileEvidence>,
@@ -20,7 +19,6 @@ internal data class ReviewDiffEvidence(
   }
 }
 
-/** One commit's Git-reported identity paired with its incremental diff against its first parent. */
 internal data class RawCommitDiff(
   val commitSha: String,
   val parentSha: String,

@@ -23,7 +23,6 @@ class FeatureTaskRuntimeRejectionMeasurementTest {
 
   @Test
   fun `a length violation is not absorbed by the broader type phrasing it also matches`() {
-    // "must be at most N characters" also contains "must be a"; ordering is what keeps it LENGTH.
     val reason = "artifact_ref: must be at most 256 characters long"
 
     assertEquals(FeatureTaskRuntimeRejectionViolationClass.LENGTH, featureTaskRuntimeRejectionViolationClassOf(reason))

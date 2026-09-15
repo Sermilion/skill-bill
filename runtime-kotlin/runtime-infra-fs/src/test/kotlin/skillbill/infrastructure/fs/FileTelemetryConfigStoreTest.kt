@@ -96,7 +96,6 @@ class FileTelemetryConfigStoreTest {
     )
   }
 
-  // SKILL-52.3: the random install-id seed moved out of the pure domain into this adapter.
   @Test
   fun `ensure prefers the injected install id env value when none is persisted`(@TempDir tempDir: Path) {
     val configPath = tempDir.resolve("config.json")

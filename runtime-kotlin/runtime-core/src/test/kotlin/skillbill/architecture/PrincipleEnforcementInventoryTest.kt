@@ -5,9 +5,9 @@ import kotlin.test.assertEquals
 
 class PrincipleEnforcementInventoryTest {
   @Test
-  fun `inventory lists eighteen enforceable rules and deliberate review-only rules`() {
-    assertEquals(18, PrincipleEnforcementInventory.enforceableRules.size)
-    assertEquals(4, PrincipleEnforcementInventory.reviewOnlyRules.size)
+  fun `inventory lists nineteen enforceable rules and deliberate review-only rules`() {
+    assertEquals(19, PrincipleEnforcementInventory.enforceableRules.size)
+    assertEquals(3, PrincipleEnforcementInventory.reviewOnlyRules.size)
     assertEquals(10, PrincipleEnforcementInventory.parseBoundarySites.size)
     assertEquals(emptyMap(), PrincipleEnforcementInventory.productionLineCeilingExemptions)
     assertEquals(emptySet(), PrincipleEnforcementInventory.spilloverFileNameExemptions)

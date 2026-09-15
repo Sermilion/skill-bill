@@ -10,13 +10,6 @@ import skillbill.ports.install.baseline.model.InstalledWorkspaceBaselineStatusRe
 import skillbill.ports.install.baseline.model.InstalledWorkspaceBaselineStatusResult
 import skillbill.ports.install.baseline.model.ReadBaselineManifestRequest
 
-/**
- * SKILL-77 Subtask 4: computes per-skill modified-vs-baseline status for the installed
- * workspace by re-enumerating the live `skills/` + `platform-packs/` trees with the SAME
- * [enumerateSkills]/`computeInstallContentHash` path the reconcile policy uses, then
- * comparing each live hash against the recorded baseline entry. Read-only: it reads the
- * baseline through [BaselineManifestPersistencePort.readBaseline] and never writes.
- */
 @Inject
 class FileSystemInstalledWorkspaceBaselineStatus(
   private val baselinePersistence: BaselineManifestPersistencePort,

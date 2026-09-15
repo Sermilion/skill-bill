@@ -9,10 +9,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-/**
- * Real temporary git repositories only: the behaviour under test is git's own reachability plumbing
- * across remote-tracking refs.
- */
 class GitLocalBranchUnpushedCommitsTest {
   private lateinit var repo: Path
   private lateinit var origin: Path
@@ -39,8 +35,6 @@ class GitLocalBranchUnpushedCommitsTest {
     origin.toFile().deleteRecursively()
   }
 
-  // The first checkpoint of every new goal runs on a branch that cannot have an origin counterpart
-  // yet. Reporting it as unpushed made the subtask-commit ownership gate refuse every new goal.
   @Test
   fun `a new branch off a pushed base reports no unpushed commits`() {
     git("checkout", "-b", "feat/new-goal")

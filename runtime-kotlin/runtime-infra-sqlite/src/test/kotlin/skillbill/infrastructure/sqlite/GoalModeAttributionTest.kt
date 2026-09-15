@@ -40,7 +40,6 @@ class GoalModeAttributionTest {
         level = "full",
       )
 
-      // The legacy prose row is retained verbatim in the store (read-only surface).
       val storedMode = connection.prepareStatement(
         "SELECT mode FROM goal_run_sessions WHERE workflow_id = ?",
       ).use { stmt ->
@@ -54,7 +53,6 @@ class GoalModeAttributionTest {
 
       val stats = ReviewStatsRuntime.goalStats(connection)
 
-      // Prose rows contribute to the overall totals but never surface as a live prose bucket.
       assertEquals(1, stats.totalRuns)
       assertEquals(1, stats.finishedRuns)
       assertFalse(stats.byMode.containsKey("prose"), "goal stats must not emit a live prose bucket")
@@ -108,7 +106,7 @@ class GoalModeAttributionTest {
   @Test
   fun `DatabaseColumnMigrations adds mode column to pre-feature goal_run_sessions and legacy rows read as runtime`() {
     withConnection { connection ->
-      // Create the table without the mode column to simulate a pre-feature DB.
+
       connection.createStatement().use { stmt ->
         stmt.execute(
           """
@@ -165,8 +163,6 @@ class GoalModeAttributionTest {
       finishedRun(store, workflowId = "wf-rt-2", mode = "runtime", status = "blocked", durationMs = 120_000)
       finishedRun(store, workflowId = "wf-prose-1", mode = "prose", status = "completed", durationMs = 90_000)
 
-      // Simulate a legacy row whose mode defaults to 'runtime' via column DEFAULT.
-      // We insert directly without the mode column to confirm the DB default applies.
       connection.prepareStatement(
         """
         INSERT INTO goal_run_sessions
@@ -184,11 +180,10 @@ class GoalModeAttributionTest {
 
       assertEquals(4, stats.totalRuns)
 
-      // The retained prose row contributes to the total but must not produce a live prose bucket.
       assertFalse(stats.byMode.containsKey("prose"), "goal stats must not emit a live prose bucket")
 
       val runtimeStats = requireNotNull(stats.byMode["runtime"])
-      // 2 explicit runtime + 1 legacy (defaulted to runtime) = 3; prose run excluded from buckets.
+
       assertEquals(3, runtimeStats.totalRuns)
       assertEquals(3, runtimeStats.finishedRuns)
       assertEquals(2, runtimeStats.completedRuns)

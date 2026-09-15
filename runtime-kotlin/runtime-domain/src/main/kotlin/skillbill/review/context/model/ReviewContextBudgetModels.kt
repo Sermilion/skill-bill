@@ -43,11 +43,6 @@ data class ReviewContextBudgetPolicy(
   companion object {
     val DEFAULT: ReviewContextBudgetPolicy = ReviewContextBudgetPolicy()
 
-    /**
-     * [maxLaneEvidenceBytes] is the cumulative broker `read_evidence` allowance for this lane's
-     * assigned surface, scaled from [basePolicy] by the lane's share of packet hunk content bytes,
-     * not a flat cap independent of assignment breadth.
-     */
     fun deriveLaneEvidenceBytes(
       basePolicy: ReviewContextBudgetPolicy,
       assignment: ReviewAssignment,
@@ -73,19 +68,12 @@ sealed interface ReviewBudgetOutcome {
   val type: String
 }
 
-/** Loud failure used when preparation reaches an enforceable budget boundary before a worker starts. */
 class ReviewContextBudgetExceededException(
   val outcome: ReviewContextBudgetExceeded,
 ) : RuntimeException(
   "${outcome.type}: ${outcome.budgetKind.wireValue} ${outcome.observedValue} > ${outcome.configuredLimit}",
 )
 
-/**
- * Loud failure raised when the lane register parse seam throws. It names the seam and the lane and
- * bounds the cause detail, so a parser throw-site that echoes the lane output into its own message
- * still cannot turn this message into a lane body dump; the untruncated cause stays reachable
- * through [cause].
- */
 class ReviewRegisterParseSeamException(
   val seam: String,
   val lane: String,
@@ -134,10 +122,6 @@ data class ReviewLaneIdentity(val lane: String, val packetDigest: String, val as
     fun of(assignment: ReviewAssignment): ReviewLaneIdentity =
       ReviewLaneIdentity(assignment.lane, assignment.packetDigest, assignment.digest)
 
-    /**
-     * The dual-agent parallel runner has no packet; its lane identity is content-addressed over the
-     * authoritative parent prompt it hands each agent, which is the only scope artifact that exists there.
-     */
     fun ofParallelLane(agentId: String, parentPrompt: String): ReviewLaneIdentity = ReviewLaneIdentity(
       lane = agentId,
       packetDigest = sha256(parentPrompt.replace("\r\n", "\n")),

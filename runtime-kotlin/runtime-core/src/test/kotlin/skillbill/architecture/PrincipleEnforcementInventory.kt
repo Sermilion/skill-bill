@@ -75,17 +75,8 @@ object PrincipleEnforcementInventory {
     else -> null
   }
 
-  /**
-   * Leaf packages every command area may import: the shared CLI kernel and the CLI model. Anything
-   * else in an area's transitive closure means the area cannot be built or tested on its own.
-   */
   val cliSharedLeafAreas: Set<String> = setOf("kernel", "model")
 
-  /**
-   * The only `skillbill.cli` area allowed to import a command area. Every other area is probed for
-   * isolation, so a one-directional hub edge between siblings cannot hide behind an empty cycle
-   * baseline.
-   */
   const val CLI_COMPOSITION_ROOT_AREA: String = "core"
 
   val spilloverFileNameExemptions: Set<String> = emptySet()
@@ -95,10 +86,6 @@ object PrincipleEnforcementInventory {
       "runtime/ScaffoldStandaloneEntrypoint.kt",
   )
 
-  /**
-   * Repository-relative main-source paths exempt from ambient-environment baseline recording.
-   * Exempt sites may still read the process environment at a named process boundary.
-   */
   val ambientEnvironmentExemptions: Set<String> = setOf(
     "runtime-kotlin/runtime-mcp/src/main/kotlin/skillbill/mcp/core/Main.kt",
     "runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/RuntimeBootstrapBindings.kt",
@@ -139,6 +126,8 @@ object PrincipleEnforcementInventory {
       "serialization or IO library, both asserted as an empty violation list without a baseline.",
     "Composition-only construction: no main-source site outside skillbill.di may construct a " +
       "concrete class the RuntimeComponent binds; sanctioned second entrypoints are named explicitly.",
+    "Comment and KDoc policy: authored Kotlin under inlineFqnScanRoots must contain no // line comments, " +
+      "no non-KDoc block comments, and no KDoc except on interfaces and their members.",
   )
 
   val parseBoundarySites: List<ArchitectureScanSupport.ParseBoundarySite> = listOf(
@@ -256,7 +245,6 @@ object PrincipleEnforcementInventory {
   )
 
   val reviewOnlyRules: List<String> = listOf(
-    "Comment quality and density — subjective editorial standards resist deterministic source scans.",
     "Naming taste beyond noun-family clustering — mechanical naming rules false-positive on " +
       "intentional domain vocabulary.",
     "Deeper noun-family relatedness inside a single area cluster — only cross-area loose-file " +

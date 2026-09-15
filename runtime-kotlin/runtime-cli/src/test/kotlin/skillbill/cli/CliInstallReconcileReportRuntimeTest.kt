@@ -10,12 +10,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-/**
- * Contract test for the STABLE line-oriented machine report install.sh consumes. Drives
- * the REAL `install reconcile` command through the real CliOutput emit path
- * (CliRuntime.run -> completeText) so the shell parser is tested against the real bytes
- * and the fake-CLI stub format can never silently drift from the real format.
- */
 class CliInstallReconcileReportRuntimeTest {
   private fun seedSkill(repoRoot: Path, name: String, body: String) {
     val skillDir = repoRoot.resolve("skills/$name")

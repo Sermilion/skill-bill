@@ -1,13 +1,5 @@
 package skillbill.engine.featuretask.model
 
-import skillbill.engine.featuretask.FeatureTaskRuntimeAgentResolver
-
-/**
- * Static per-phase agent assignment: a design-time phase-id-to-agent map plus an optional run-wide
- * [override] that wins at the launch seam. A running agent cannot choose its own assignment; the
- * map is a property of the run request. Resolution order lives in
- * [skillbill.application.FeatureTaskRuntimeAgentResolver].
- */
 data class FeatureTaskRuntimeAgentAssignment(
   val perPhaseAgentIds: Map<String, String> = emptyMap(),
   val override: String? = null,
@@ -29,13 +21,12 @@ data class FeatureTaskRuntimeAgentAssignment(
   }
 }
 
-/** The resolved effective agent ids for one phase. */
 data class FeatureTaskRuntimeResolvedPhaseAgent(
   val phaseId: String,
   val invokedAgentId: String,
   val configuredAgentOverrideId: String?,
 ) {
-  /** The agent that actually executes the phase: the override when present, else the invoked. */
+
   val resolvedAgentId: String = configuredAgentOverrideId ?: invokedAgentId
 
   init {

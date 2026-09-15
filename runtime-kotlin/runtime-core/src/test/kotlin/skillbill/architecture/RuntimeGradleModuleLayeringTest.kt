@@ -79,11 +79,6 @@ class RuntimeGradleModuleLayeringTest {
       .toSet()
   }
 
-  /**
-   * Layering constrains the shipped dependency graph, so only main-source configurations are
-   * checked. Test and test-fixture code binds real adapters on purpose; that crossing is pinned
-   * per module by [RuntimeAdapterDependencyAllowlistTest].
-   */
   private fun assertNoProjectDependencies(moduleName: String, vararg bannedDependencies: String) {
     val modulePath = moduleName.replace(':', '/')
     val buildFile = runtimeRoot.resolve("$modulePath/build.gradle.kts")

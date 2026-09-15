@@ -4,11 +4,6 @@ import skillbill.review.context.ReviewExecutionModePolicy
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-/**
- * SKILL-159 AC-002: `auto` resolves through named rules and the deciding rule is reportable. Both
- * rules now resolve inline — first pass, later passes, and a standalone review with no pass number —
- * so the delegated fan-out is reachable only through an explicit selection.
- */
 class ReviewDepthAutoRuleTest {
   @Test
   fun `auto on pass one resolves inline by the pass-number rule`() {

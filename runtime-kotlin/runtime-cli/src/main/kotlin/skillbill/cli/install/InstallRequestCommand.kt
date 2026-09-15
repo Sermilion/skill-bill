@@ -179,7 +179,7 @@ abstract class InstallRequestCommand(
     "full" -> InstallTelemetryLevel.FULL
     "off" -> InstallTelemetryLevel.OFF
     "anonymous" -> InstallTelemetryLevel.ANONYMOUS
-    else -> InstallTelemetryLevel.ANONYMOUS // open CLI flag value: unrecognized defaults to anonymous
+    else -> InstallTelemetryLevel.ANONYMOUS
   }
 
   private fun windowsSymlinkPreflightState(): WindowsSymlinkPreflightState = when (windowsSymlinkState) {
@@ -187,14 +187,14 @@ abstract class InstallRequestCommand(
     "requires-elevation-or-developer-mode" -> WindowsSymlinkPreflightState.REQUIRES_ELEVATION_OR_DEVELOPER_MODE
     "decision-required" -> WindowsSymlinkPreflightState.DECISION_REQUIRED
     "not-windows" -> WindowsSymlinkPreflightState.NOT_WINDOWS
-    else -> WindowsSymlinkPreflightState.NOT_WINDOWS // open CLI flag value: unrecognized defaults to NOT_WINDOWS
+    else -> WindowsSymlinkPreflightState.NOT_WINDOWS
   }
 
   private fun windowsSymlinkPreflightDecision(): WindowsSymlinkDecision = when (windowsSymlinkDecision) {
     "proceed-with-symlinks" -> WindowsSymlinkDecision.PROCEED_WITH_SYMLINKS
     "require-user-action" -> WindowsSymlinkDecision.REQUIRE_USER_ACTION
     "not-required" -> WindowsSymlinkDecision.NOT_REQUIRED
-    else -> WindowsSymlinkDecision.NOT_REQUIRED // open CLI flag value: unrecognized defaults to NOT_REQUIRED
+    else -> WindowsSymlinkDecision.NOT_REQUIRED
   }
 }
 

@@ -10,13 +10,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/**
- * SKILL-102 subtask 1 (PD1): internal-skill classification parsing and loud-fail rules.
- *
- * Each rule (unknown parent, internal parent, self parent, missing/empty value) has a typed error
- * (`InvalidInternalSkillClassificationError`) with an actionable message naming the offending skill
- * and the rule violated. Fixtures are created inside the tests, not from repo skills.
- */
 class InternalSkillClassificationTest {
   private val tempDirs = mutableListOf<Path>()
 
@@ -75,8 +68,7 @@ class InternalSkillClassificationTest {
       Body.
       """.trimIndent(),
     )
-    // An empty string (not null) so downstream classification loud-fails instead of treating the
-    // skill as listed.
+
     assertEquals("", parseInternalForFrontmatter(contentFile))
   }
 
@@ -150,8 +142,6 @@ class InternalSkillClassificationTest {
 
   @Test
   fun `classification fails when parent is itself internal`() {
-    // `bill-other` is a discovered listed skill so `bill-feature` (internal-for: bill-other) is a
-    // valid internal skill; the only violation is `bill-feature-task` chaining onto `bill-feature`.
     val targets = mapOf(
       "bill-other" to target("bill-other", internalFor = null),
       "bill-feature" to target("bill-feature", internalFor = "bill-other"),
@@ -165,7 +155,6 @@ class InternalSkillClassificationTest {
 
   @Test
   fun `classification passes when a platform-pack skill declares internal-for on a listed base parent`() {
-    // SKILL-104 (PD1): the base-skill-only restriction is relaxed; a pack skill may now be internal.
     val targets = mapOf(
       "bill-code-review" to target("bill-code-review", internalFor = null),
       "bill-kotlin-code-review" to target(
@@ -225,7 +214,6 @@ class InternalSkillClassificationTest {
 
   @Test
   fun `classification fails when a platform-pack skill declares a pack-skill parent`() {
-    // PD1 preserved rule: a pack skill can never be a parent.
     val targets = mapOf(
       "bill-kotlin-code-review" to target(
         "bill-kotlin-code-review",
@@ -246,7 +234,6 @@ class InternalSkillClassificationTest {
 
   @Test
   fun `classification fails when a platform-pack skill chains onto an internal base skill`() {
-    // PD1 preserved rule: chained internal-for stays forbidden (depth is 1).
     val targets = mapOf(
       "bill-feature" to target("bill-feature", internalFor = null),
       "bill-feature-task" to target("bill-feature-task", internalFor = "bill-feature"),

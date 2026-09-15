@@ -12,16 +12,12 @@ const val STATUS_RUNNING = "running"
 const val STATUS_COMPLETED = "completed"
 const val STATUS_BLOCKED = "blocked"
 
-// SKILL-141's non-terminal resumable workflow status, consumed rather than forked: an unresolved
-// Blocker disposition pauses the child here instead of blocking it.
 const val STATUS_PAUSED = "paused"
 
-// The operator's abandon_subtask decision ends the subtask without repairing it.
 const val STATUS_ABANDONED = "abandoned"
 const val BRANCH_SETUP_AGENT_ID = "branch-setup"
 const val SCHEMA_GATE_DETAIL_MAX_CHARS = 500
 
-// The phase-output envelope's own status vocabulary, distinct from the durable phase-row status above.
 val NON_FILE_MUTATING_PHASES = setOf(
   FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN,
   FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN,
@@ -42,18 +38,12 @@ fun transitionsFor(request: FeatureTaskRuntimeRunRequest): FeatureTaskRuntimeTra
   request.transitionsOverride ?: phasesFor(request).let { phases ->
     FeatureTaskRuntimeTransitionDeclaration(
       forwardPhaseIds = phases,
-      // Backward edges whose endpoints both survive the goal-continuation truncation. An edge naming a
-      // phase the resolved pipeline dropped would fail the declaration's endpoint invariant here,
-      // outside the runner's failure handling. A regeneration edge whose producer was truncated away
-      // therefore simply does not exist for this run: the launch seam finds no matching edge and
-      // blocks durably with an actionable reason instead of attempting an impossible re-entry.
+
       backwardEdges = FeatureTaskRuntimePhaseWorkflowDefinition.transitions.backwardEdges
         .filter { it.fromPhaseId in phases && it.destinationPhaseId in phases },
       loopOnlyPhaseIds = FeatureTaskRuntimePhaseWorkflowDefinition.transitions.loopOnlyPhaseIds
         .filter { it in phases }.toSet(),
-      // Gates whose endpoints both survive the goal-continuation truncation. A gate naming a phase
-      // the resolved pipeline dropped would fail the declaration's precedes-invariant here, outside
-      // the runner's failure handling, so a truncation point turns into a crash rather than a gate.
+
       entryGates = FeatureTaskRuntimePhaseWorkflowDefinition.transitions.entryGates
         .filter { it.phaseId in phases && it.requiredPhaseId in phases },
       loopOnlySuccessors = FeatureTaskRuntimePhaseWorkflowDefinition.transitions.loopOnlySuccessors
@@ -77,10 +67,7 @@ internal fun mutatingReconciliationGateReason(
 ): String? {
   if (phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT) return null
   if (!FeatureTaskRuntimePhaseWorkflowDefinition.isMutatingPhase(phaseId)) return null
-  // Only a completion claim owes a reconciliation report. A retryable blocked or failed envelope is a
-  // schema-valid terminal outcome that never claimed the tree reached target, so charging it with a
-  // missing reconciliation report converted it into a schema-gate rejection and denied it the terminal
-  // path it belongs on.
+
   if ((outputMap[SharedPayloadKeys.STATUS] as? String).workflowStepStatus() != WorkflowStepStatus.COMPLETED) return null
   val producedOutputs = outputMap[SharedPayloadKeys.PRODUCED_OUTPUTS] as? Map<*, *>
   val nestedReconciled = (producedOutputs?.get("reconciled_state") as? Map<*, *>)?.get("reconciled")
@@ -95,12 +82,6 @@ internal fun mutatingReconciliationGateReason(
   }
 }
 
-/**
- * The single ceiling on validator-authored detail. Every path that carries a validation failure onward —
- * an operator-facing blocked reason through [withSchemaGateDetail], and the constraint text a fix-loop
- * retry prompt and its private diagnostic row receive — passes through this one bound, so no validator
- * message can widen either surface past [SCHEMA_GATE_DETAIL_MAX_CHARS].
- */
 fun boundedSchemaGateDetail(validationReason: String): String =
   if (validationReason.length <= SCHEMA_GATE_DETAIL_MAX_CHARS) {
     validationReason

@@ -15,17 +15,6 @@ import java.nio.file.Path
 import java.nio.file.StandardCopyOption.ATOMIC_MOVE
 import java.nio.file.StandardCopyOption.REPLACE_EXISTING
 
-/**
- * SKILL-76 Subtask 2: durable baseline manifest adapter. Mirrors
- * [FileSystemInstallSelectionPersistence] EXACTLY — resolves
- * `<home>/.skill-bill/baseline-manifest.json`, loud-fails typed read errors, and
- * writes atomically (temp file + ATOMIC_MOVE with a REPLACE_EXISTING fallback).
- *
- * Difference from install-selection: a MISSING baseline manifest is not an error
- * (first install / freshly copied source with no manifest yet). The read returns
- * an empty manifest with `existed = false` so the reconcile policy classifies
- * every skill as new-upstream on a fresh install.
- */
 @Inject
 class FileSystemBaselineManifestPersistence : BaselineManifestPersistencePort {
   override fun readBaseline(request: ReadBaselineManifestRequest): ReadBaselineManifestResult {
@@ -49,7 +38,7 @@ class FileSystemBaselineManifestPersistence : BaselineManifestPersistencePort {
     if (durablePayload.toByteArray(StandardCharsets.UTF_8).size > MAX_BASELINE_MANIFEST_BYTES) {
       throw unreadableBaseline(manifestPath, "Manifest exceeds the maximum size of $MAX_BASELINE_MANIFEST_BYTES bytes")
     }
-    // Parse-on-write round-trip guard: a malformed render loud-fails before disk is touched.
+
     parseBaselineManifestPayload(manifestPath, payload)
     writeBaselineRecord(manifestPath, durablePayload)
     return WriteBaselineManifestResult(path = manifestPath)

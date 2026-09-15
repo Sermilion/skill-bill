@@ -30,12 +30,6 @@ enum class InstallAgent(
   }
 }
 
-/**
- * The headless CLI a runtime launch execs for an agent, in preference order, plus how an operator
- * obtains it. Agent detection during install keys off the agent's home directory, which an IDE
- * creates without ever installing a headless CLI, so availability of the launch binary is a
- * separate fact that only this catalog answers.
- */
 data class AgentLauncherCli(
   val executables: List<String>,
   val installHint: String,
@@ -45,9 +39,6 @@ data class AgentLauncherCli(
   }
 }
 
-// Single source of truth for launcher-binary availability. The CLI preflight and the launcher's
-// spawn-boundary backstop both derive from it, so an agent whose CLI is absent is refused by name
-// with an install hint instead of surfacing as an opaque spawn failure several layers up.
 val AGENT_LAUNCHER_CLIS: Map<InstallAgent, AgentLauncherCli> = mapOf(
   InstallAgent.CLAUDE to AgentLauncherCli(
     executables = listOf("claude"),
@@ -61,18 +52,13 @@ val AGENT_LAUNCHER_CLIS: Map<InstallAgent, AgentLauncherCli> = mapOf(
     executables = listOf("junie"),
     installHint = "install the Junie CLI from JetBrains",
   ),
-  // Current Cursor installs symlink both names; older ones ship only cursor-agent.
+
   InstallAgent.CURSOR to AgentLauncherCli(
     executables = listOf("agent", "cursor-agent"),
     installHint = "install the Cursor Agent CLI (curl https://cursor.com/install -fsS | bash)",
   ),
 )
 
-/**
- * Returns an actionable refusal when [agentId] names an agent whose headless CLI cannot be found by
- * [onPath], or null when the agent is unknown, has no declared launcher, or is available. [onPath]
- * is supplied by the caller so this stays effect-free and testable.
- */
 fun unavailableAgentLauncherReason(agentId: String?, onPath: (String) -> Boolean): String? {
   val normalized = agentId?.trim()?.lowercase()?.takeIf(String::isNotBlank) ?: return null
   val agent = InstallAgent.entries.firstOrNull { candidate -> candidate.id == normalized }
@@ -98,42 +84,14 @@ fun supportsModelDirective(agentId: String?): Boolean {
   return MODEL_DIRECTIVE_CAPABLE_AGENTS.any { capable -> capable.id == normalized }
 }
 
-/**
- * SKILL-64 Subtask 3 (AC18): pure, effect-free mapping from an already-read
- * execution-context environment map to the [InstallAgent] that most likely
- * invoked `skill-bill goal`. The function never reads process state itself; the
- * CLI/adapter layer reads the process environment (or test fixtures) and passes
- * the resulting immutable map in, keeping detection deterministic and testable.
- *
- * Detection is conservative: it returns `null` when the invoking agent cannot
- * be determined, and callers refuse to launch rather than guessing an agent.
- * Agent-specific markers are checked in a stable order; if multiple markers are
- * present the first matching agent in [INVOKING_AGENT_CONTEXT_SIGNALS] order
- * wins.
- */
 object InvokingAgentContextResolver {
-  /**
-   * Ordered context signals mapping environment-variable markers to agents.
-   * Order is significant: earlier entries win when several markers are present.
-   * Markers are matched only when the variable is present with a non-blank
-   * value, mirroring how each agent populates its own execution context.
-   *
-   * Every marker here must be one an agent sets for the duration of its own
-   * session. Config-location variables such as `CODEX_HOME` are deliberately
-   * excluded: operators export them from their shell profile and the runtime
-   * itself forwards them into isolated child launches, so a present value says
-   * nothing about who is running.
-   */
+
   val INVOKING_AGENT_CONTEXT_SIGNALS: List<InvokingAgentContextSignal> = listOf(
     InvokingAgentContextSignal(InstallAgent.CLAUDE, listOf("CLAUDECODE", "CLAUDE_CODE", "CLAUDE_CODE_ENTRYPOINT")),
     InvokingAgentContextSignal(InstallAgent.CODEX, listOf("CODEX_SANDBOX", "CODEX_SANDBOX_ENV")),
     InvokingAgentContextSignal(InstallAgent.CURSOR, listOf("CURSOR_AGENT", "CURSOR_INVOKED_AS")),
   )
 
-  /**
-   * Resolve the invoking agent from [environment]. Returns `null` when no
-   * agent-specific marker is present.
-   */
   fun detect(environment: Map<String, String>): InstallAgent? = INVOKING_AGENT_CONTEXT_SIGNALS
     .firstOrNull { signal -> signal.markerKeys.any { key -> environment[key]?.isNotBlank() == true } }
     ?.agent

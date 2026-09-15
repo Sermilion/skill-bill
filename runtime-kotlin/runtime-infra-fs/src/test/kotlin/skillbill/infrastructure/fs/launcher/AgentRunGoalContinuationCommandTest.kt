@@ -133,7 +133,7 @@ class AgentRunGoalContinuationCommandTest {
   @Test
   fun `every agent goal-continuation child spawns skill-bill feature-task and never the skill`() {
     val runner = RecordingAgentRunProcessRunner()
-    // Remaining runtime agents each spawn skill-bill feature-task directly.
+
     listOf(InstallAgent.CLAUDE, InstallAgent.CODEX, InstallAgent.JUNIE, InstallAgent.CURSOR).forEach { agent ->
       requireNotNull(adapters(runner)[agent]).launch(skillRunRequest())
     }

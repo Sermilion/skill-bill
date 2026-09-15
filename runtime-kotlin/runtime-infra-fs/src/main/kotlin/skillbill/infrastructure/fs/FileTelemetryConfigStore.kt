@@ -43,14 +43,6 @@ internal fun readTelemetryConfigFile(path: Path): TelemetryConfigDocument? {
   return TelemetryConfigDocument(TelemetryOpenDocument.from(payload))
 }
 
-/**
- * SKILL-52.3: the random install-id seed is an effect, so it is resolved here in infra-fs rather
- * than inside the pure [defaultLocalTelemetryConfig]. We prefer an explicitly injected
- * [INSTALL_ID_ENVIRONMENT_KEY] env value (keeps deterministic test/CI installs stable) and only
- * mint a fresh [UUID] when none is supplied. The minted/injected id is a FALLBACK only:
- * [normalizedInstallId] still prefers an existing persisted `install_id`, so a fresh id is written
- * only on first install.
- */
 internal fun ensureTelemetryConfigFile(
   path: Path,
   environment: Map<String, String> = System.getenv(),

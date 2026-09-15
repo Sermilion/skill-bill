@@ -24,12 +24,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-/**
- * SKILL-52.2 subtask 2 (Task 11): coverage for the raw-map scaffold-payload policy helpers that
- * moved from `runtime-domain.scaffold.policy` to `runtime-infra-fs.scaffold` as `internal`
- * helpers. These are exercised here because the legacy filesystem orchestrator path inside
- * `runtime-infra-fs` still consumes raw maps internally.
- */
 class ScaffoldPayloadMapPolicyTest {
   @Test
   fun `validatePayloadVersion accepts the canonical wire version`() {

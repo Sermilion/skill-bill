@@ -14,14 +14,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-/**
- * Apply coverage for the runtime-owned per-skill reconcile APPLY. Reuses
- * [InstallApplyTestSupport]'s seed helpers and the real `computeInstallContentHash` (via
- * [computeReconciliationPlan]) to assert the FILE results of the upstream-always-wins
- * rule: a skill shipped upstream overwrites the live copy even when the user edited it,
- * a skill or pack upstream no longer ships is deleted, and only user-owned agent add-ons
- * survive without an upstream counterpart.
- */
 class InstallReconcileApplyTest : InstallApplyTestSupport() {
   private fun roots(repoRoot: Path) = ReconcileSourceRoots(
     repoRoot = repoRoot,
@@ -53,7 +45,6 @@ class InstallReconcileApplyTest : InstallApplyTestSupport() {
     val home = home()
     val baseline = baselineFromUpstream(upstream, home)
 
-    // bill-code-review: both sides changed. bill-code-check: only the local side changed.
     val upstreamReviewBytes = content("bill-code-review") + "\nUPSTREAM REVIEW\n"
     Files.writeString(reviewContent(upstream), upstreamReviewBytes)
     Files.writeString(reviewContent(local), content("bill-code-review") + "\nLOCAL REVIEW\n")

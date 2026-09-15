@@ -18,10 +18,6 @@ fun interface AgentRunActivityProbe {
   }
 }
 
-/**
- * Liveness observations available when the durable-progress idle window has elapsed.
- * [lastOutputNanos] is null until the child has written its first stdout/stderr byte.
- */
 data class AgentRunIdleSignals(
   val lastLiveHeartbeatNanos: Long,
   val lastOutputNanos: Long?,
@@ -38,10 +34,6 @@ fun interface AgentRunIdlePolicy {
     }
     val DB_PROGRESS_ONLY: AgentRunIdlePolicy = AgentRunIdlePolicy { false }
 
-    /**
-     * For launches that report progress only by producing output. Incremental provider output
-     * keeps the window open; a silent child still dies at the idle deadline.
-     */
     val OUTPUT_EXTENDED: AgentRunIdlePolicy = AgentRunIdlePolicy { signals ->
       signals.lastOutputNanos?.let { observed -> signals.nowNanos - observed < signals.idleTimeoutNanos } == true
     }
@@ -60,12 +52,10 @@ data class AgentRunProcessResult(
   val interrupted: Boolean,
   val spawnFailed: Boolean,
   val liveness: AgentRunLivenessSnapshot? = null,
-  // Defaulted from spawnFailed rather than to a bare false: the two are one fact, and a runner that
-  // omitted this used to report "never started" for a child that ran — which downstream turns into a
-  // cleared launched-model stamp. Deriving the default makes the coherent value the automatic one.
+
   val processStarted: Boolean = !spawnFailed,
   val mcpStartupObserved: Boolean = false,
-  /** True when raw output exceeded the retention cap, so [stdout] is missing trailing content. */
+
   val stdoutTruncated: Boolean = false,
   val stdoutByteSize: Long = stdoutBytes.size.toLong(),
   val stdoutSha256: String = MessageDigest.getInstance("SHA-256")

@@ -49,7 +49,7 @@ class DatabaseAccessFailureTest {
     val tempDir = createTempDirectory("skill-bill-db-access")
     val dbPath = tempDir.resolve("review-metrics.db")
     Files.write(dbPath, "this is not a sqlite database".toByteArray())
-    // A read-only open of a non-database file must not keep the file handle that would block deletion.
+
     runCatching { DatabaseRuntime.openReadDb(cliValue = dbPath.toString(), environment = emptyMap()).close() }
 
     assertTrue(Files.deleteIfExists(dbPath), "the temp database file could not be deleted after the failed open")
@@ -69,8 +69,7 @@ class DatabaseAccessFailureTest {
 
   private fun unopenableDatabasePath(): Path {
     val tempDir = createTempDirectory("skill-bill-db-unopenable")
-    // A directory standing in for the database file exists, so the read path skips bootstrap and
-    // fails inside SQLite's open instead.
+
     return tempDir.resolve("review-metrics.db").also { it.createDirectories() }
   }
 }

@@ -26,26 +26,16 @@ data class GoalRunnerExecutionLease(
   }
 }
 
-/** An operator asked for a pause and the runner honoured it at its next boundary. */
 const val GOAL_PAUSE_REASON_OPERATOR_REQUEST: String = "operator_request"
 
-/** The runner reached the operator's `stop_after` subtask target. */
 const val GOAL_PAUSE_REASON_STOP_AFTER_SUBTASK: String = "stop_after_subtask"
 
-/** An operator ran `goal stop`: intent written durably before the runner process was terminated. */
 const val GOAL_PAUSE_REASON_OPERATOR_STOP: String = "operator_stop"
 
-/** The runner process was terminated from outside; its shutdown hook recorded the interruption. */
 const val GOAL_PAUSE_REASON_RUNNER_INTERRUPTED: String = "runner_interrupted"
 
-/**
- * Longest heartbeat gap that still counts as execution. A live runner heartbeats every
- * `GoalRunnerExecutionCoordinator.HEARTBEAT_SECONDS`; a larger gap means the runner was gone and the
- * interval was downtime, so it must not be folded into the active total.
- */
 const val GOAL_ACTIVE_HEARTBEAT_GAP_LIMIT_MS: Long = 20_000
 
-/** Durable parent-owned pause, stop-after, and execution state, separate from the checked-in manifest. */
 data class GoalRunnerControlState(
   val stopAfterSubtaskId: Int? = null,
   val pauseRequested: Boolean = false,
@@ -56,8 +46,7 @@ data class GoalRunnerControlState(
   val stopAfterConsumed: Boolean = false,
   val repositoryIdentity: String? = null,
   val executionLease: GoalRunnerExecutionLease? = null,
-  // Time this goal spent actually executing, which is not the wall clock since it was opened: a goal
-  // sits blocked, paused, or simply unattended between runs, and those gaps are not work.
+
   val activeDurationMs: Long = 0,
   val activeDurationAsOf: String? = null,
   val currentSubtaskId: Int? = null,

@@ -244,11 +244,6 @@ class FeatureTaskRuntimeRunCommand(
   }
 }
 
-/**
- * Explicit `run` subcommand mirroring the documented `feature-task run <issue_key>
- * <spec_path>` form. Without it, clikt silently consumes `run` as the optional issue-key
- * positional of the parent command and misparses the remaining arguments.
- */
 @Inject
 class FeatureTaskRuntimeExplicitRunCommand(
   private val deps: FeatureTaskRuntimeRunDependencies,

@@ -165,7 +165,7 @@ class FeatureTaskRuntimePhaseBriefingBudgetTest {
         message = "finalization phase '$phaseId' lost the operator mandates; " +
           "the allowlist is their only delivery path",
       )
-      // Identity stays durable state on the briefing even when it is not prompt-rendered.
+
       assertEquals(invariants.acceptanceCriteria, briefing.acceptanceCriteria)
       assertContains(briefing.briefingText, "spec_reference:")
     }
@@ -255,7 +255,7 @@ class FeatureTaskRuntimePhaseBriefingBudgetTest {
     ).forEach { phaseId ->
       val small = projectionBytes(phaseId, hunksPerFile = 1)
       val large = projectionBytes(phaseId, hunksPerFile = 400)
-      // Digits of the hunk counter may grow slightly; the payload must not scale with hunk bodies.
+
       assertTrue(
         large - small <= 8 * 2,
         "shared evidence briefing size for $phaseId grew from $small to $large across hunk counts",

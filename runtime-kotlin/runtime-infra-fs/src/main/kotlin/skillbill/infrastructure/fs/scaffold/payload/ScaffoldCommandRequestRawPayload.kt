@@ -9,19 +9,6 @@ import skillbill.scaffold.policy.scaffold.SKILL_KIND_HORIZONTAL
 import skillbill.scaffold.policy.scaffold.SKILL_KIND_PLATFORM_OVERRIDE_PILOTED
 import skillbill.scaffold.policy.scaffold.SKILL_KIND_PLATFORM_PACK
 
-/**
- * SKILL-52.2 subtask 2: interim adapter from typed [ScaffoldCommandRequest] back to the legacy
- * raw `Map<String, Any?>` payload shape consumed by `scaffoldWithAdapters(...)`. This bridge
- * preserves byte-equivalent scaffold outputs (AC4) while the new typed boundary is wired into
- * place; Phase 5 of SKILL-52.2 subtask 2 replaces the orchestrator internals with typed inputs
- * and deletes this bridge along with the legacy raw-map overload.
- *
- * Lives in `runtime-infra-fs` (the only consumer); it is NOT a public application surface and
- * therefore does not require an architecture allow-list entry — the raw-map scanner does not
- * walk `runtime-infra-fs`.
- *
- * The per-kind appenders are split into private helpers to keep each function short and linear.
- */
 internal fun ScaffoldCommandRequest.toRawScaffoldPayload(): Map<String, Any?> {
   val base = linkedMapOf<String, Any?>(
     "scaffold_payload_version" to scaffoldPayloadVersion,

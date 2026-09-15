@@ -88,11 +88,9 @@ class IdeStatusSelectionPolicyTest {
   @Test
   fun `failed and terminal work stops being selectable once it ages out`() {
     for (lifecycle in listOf(IdeStatusLifecycleState.FAILED, IdeStatusLifecycleState.TERMINAL)) {
-      // Within the reporting window the settled event is still worth surfacing.
       val reported = candidate("a", lifecycle, "w-reported", "2026-08-06T09:00:00Z")
       assertEquals("w-reported", IdeStatusSelectionPolicy.select(listOf(reported), OBSERVED)?.workflowId)
 
-      // Past it there is no ongoing work, so the repository must read as idle.
       val settled = candidate("b", lifecycle, "w-settled", "2026-08-06T05:00:00Z")
       assertNull(IdeStatusSelectionPolicy.select(listOf(settled), OBSERVED))
     }
@@ -100,8 +98,6 @@ class IdeStatusSelectionPolicyTest {
 
   @Test
   fun `settled work outlives its fresh window so a stale reading can still be reported`() {
-    // A settled ceiling equal to FRESH_WINDOW makes retention and freshness exact
-    // complements, and `freshness: stale` becomes unobservable on any settled lifecycle.
     val staleAge = IdeStatusFreshnessClassifier.FRESH_WINDOW.plusMinutes(1)
     for (lifecycle in listOf(
       IdeStatusLifecycleState.BLOCKED,
@@ -120,15 +116,12 @@ class IdeStatusSelectionPolicyTest {
 
   @Test
   fun `blocked work waiting on the user outlives the settled ceiling`() {
-    // Blocked is a prompt for the user, not a finished event; aging it out on the
-    // failed/terminal ceiling would hide the state the surface exists to surface.
     val waiting = candidate("a", IdeStatusLifecycleState.BLOCKED, "w-waiting", "2026-08-06T01:00:00Z")
     assertEquals("w-waiting", IdeStatusSelectionPolicy.select(listOf(waiting), OBSERVED)?.workflowId)
   }
 
   @Test
   fun `a days-old blocked goal never occupies the surface`() {
-    // Regression: SKILL-161 sat blocked for ~57h and held the status bar hostage.
     val abandoned = candidate("a", IdeStatusLifecycleState.BLOCKED, "w-161", "2026-08-04T20:07:54Z")
     assertNull(IdeStatusSelectionPolicy.select(listOf(abandoned), OBSERVED))
   }
@@ -146,8 +139,6 @@ class IdeStatusSelectionPolicyTest {
 
   @Test
   fun `a finished goal still claiming running loses to the work that is moving`() {
-    // Regression: SKILL-190 completed but its durable goal row stayed `running`, so the ACTIVE tier
-    // held the surface for hours while SKILL-201 was the live run.
     val finishedClaimingRunning =
       candidate("SKILL-190", IdeStatusLifecycleState.ACTIVE, "w-190", "2026-08-06T02:00:00Z")
     val live = candidate("SKILL-201", IdeStatusLifecycleState.BLOCKED, "w-201", "2026-08-06T11:58:00Z")

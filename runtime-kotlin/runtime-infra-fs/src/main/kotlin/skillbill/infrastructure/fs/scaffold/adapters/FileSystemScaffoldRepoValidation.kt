@@ -22,26 +22,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 import skillbill.scaffold.policy.scaffold.parseBaselineLayerPayload as policyParseBaselineLayerPayload
 
-/**
- * Filesystem adapter for [ScaffoldRepoValidationPort]. Builds the existing
- * `skillbill.scaffold.AuthoringTarget` model from the typed request and delegates to the
- * existing `validateTarget` IO seam in `runtime-infra-fs`. The structured result lets
- * pure-policy callers branch on pass/fail without reading the filesystem themselves.
- *
- * SKILL-52.1 subtask 3 also collected the IO-coupled validators that previously lived at
- * top-level inside `skillbill.scaffold.ScaffoldService.kt` into this adapter:
- *  - [validateBaselineLayerPayloadReferences] (reads `platform.yaml` from each referenced pack)
- *  - [validateScaffold] (post-stage validation that performs `validateTarget` and
- *    `loadPlatformPack` IO)
- *  - [plannedAuthoringTarget] (pure projection retained alongside `validateScaffold` because
- *    it is exclusively consumed by validation callers — keeping it adjacent to its sole
- *    caller preserves cohesion without leaking ownership).
- *  - [optionalBaselineLayers] (parsing + cross-pack validation entrypoint) follows the
- *    validator it consumes.
- *
- * The architecture test `ImplementationOwnershipArchitectureTest` asserts the FQN of those
- * functions resolves to this adapter, not to top-level `skillbill.scaffold`.
- */
 @Inject
 class FileSystemScaffoldRepoValidation : ScaffoldRepoValidationPort {
   override fun validateAuthoringTarget(
@@ -61,13 +41,6 @@ class FileSystemScaffoldRepoValidation : ScaffoldRepoValidationPort {
     return ScaffoldAuthoringValidationResult(issues = issues)
   }
 
-  /**
-   * Parses the optional `baseline_layers` payload entry and validates cross-pack
-   * references. Returns an empty list when the entry is absent.
-   *
-   * Replaces the legacy top-level `optionalBaselineLayers` in
-   * `skillbill.scaffold.ScaffoldService.kt`.
-   */
   internal fun optionalBaselineLayers(
     payload: Map<String, Any?>,
     repoRoot: Path,
@@ -85,13 +58,6 @@ class FileSystemScaffoldRepoValidation : ScaffoldRepoValidationPort {
     return layers
   }
 
-  /**
-   * Cross-pack reference validator for `baseline_layers` entries. Reads each referenced
-   * platform pack's `platform.yaml` to confirm the layer target exists.
-   *
-   * Replaces the legacy top-level `validateBaselineLayerPayloadReferences` in
-   * `skillbill.scaffold.ScaffoldService.kt`.
-   */
   internal fun validateBaselineLayerPayloadReferences(
     layers: List<CodeReviewBaselineLayer>,
     repoRoot: Path,
@@ -118,14 +84,6 @@ class FileSystemScaffoldRepoValidation : ScaffoldRepoValidationPort {
     }
   }
 
-  /**
-   * Post-stage validation. For horizontal skills, asserts the staged authoring target
-   * passes `validateTarget`. For other kinds, loads the owning platform pack to confirm
-   * the manifest still parses after staging.
-   *
-   * Replaces the legacy top-level `validateScaffold` in
-   * `skillbill.scaffold.ScaffoldService.kt`.
-   */
   internal fun validateScaffold(plan: ScaffoldPlan, repoRoot: Path) {
     if (plan.kind == SKILL_KIND_AGENT_ADDON) {
       discoverAgentAddons(repoRoot)
@@ -141,11 +99,6 @@ class FileSystemScaffoldRepoValidation : ScaffoldRepoValidationPort {
     loadPlatformPack(repoRoot.resolve("platform-packs").resolve(plan.platform))
   }
 
-  /**
-   * Pure projection from a scaffold plan to its authoring-target view. Kept alongside
-   * [validateScaffold] because that function is the sole caller; relocating it here
-   * preserves cohesion while complying with AC1's no-top-level-validator rule.
-   */
   internal fun plannedAuthoringTarget(plan: ScaffoldPlan): AuthoringTarget = AuthoringTarget(
     skillName = plan.skillName,
     packageName = plan.platform.ifBlank { "base" },

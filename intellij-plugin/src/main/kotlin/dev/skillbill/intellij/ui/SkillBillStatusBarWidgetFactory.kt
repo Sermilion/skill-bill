@@ -8,10 +8,7 @@ import com.intellij.openapi.wm.StatusBarWidgetFactory
 import kotlinx.coroutines.CoroutineScope
 import org.jetbrains.annotations.Nls
 
-/**
- * Registers the Skill Bill status-bar widget for normal project windows with a
- * resolvable project context. Extension id, factory id, and widget id are identical.
- */
+
 class SkillBillStatusBarWidgetFactory : StatusBarWidgetFactory {
     override fun getId(): String = SkillBillStatusBarIds.ID
 

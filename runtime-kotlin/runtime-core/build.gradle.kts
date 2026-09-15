@@ -2,9 +2,7 @@ plugins {
   alias(libs.plugins.ksp)
   id("skillbill.jvm-library")
   id("skillbill.quality")
-  // SKILL-48 C8: publish the shared `repoRootFromTest()` helper to downstream test code
-  // (runtime-core's own tests) via the
-  // `java-test-fixtures` plugin so the four prior copies collapse into one source.
+
   `java-test-fixtures`
 }
 
@@ -20,8 +18,7 @@ dependencies {
   implementation(project(":runtime-infra-sqlite"))
   implementation(libs.kotlin.inject.runtime)
   ksp(libs.kotlin.inject.compiler)
-  // SKILL-129 subtask 5: the durable/telemetry redaction proof drives the production review runner
-  // through the shared recording harness rather than hand-building an accounting summary.
+
   testImplementation(testFixtures(project(":runtime-application")))
   testImplementation(testFixtures(project(":runtime-engine")))
   testImplementation(testFixtures(project(":runtime-ports")))

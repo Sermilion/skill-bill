@@ -14,12 +14,12 @@ data class FeatureTaskRuntimeGoalContinuationArtifact(
   val goalBranch: String,
   val parentWorkflowId: String? = null,
   val codeReviewMode: CodeReviewExecutionMode,
-  /** Null means the durable row never recorded a depth (pre-contract / key absent). */
+
   val validationDepth: ValidationDepth? = null,
-  /** Null means the durable row never recorded a selection (pre-contract / key absent). */
+
   val qualityGateSelection: FeatureTaskRuntimeQualityGateSelection? = null,
   val parallelReviewAgent: String? = null,
-  /** The manifest subtask `name`; null when the durable row never recorded one. */
+
   val subtaskName: String? = null,
   val agentAddonSelection: AgentAddonSelection = AgentAddonSelection(),
 ) {

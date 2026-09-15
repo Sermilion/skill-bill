@@ -33,10 +33,6 @@ data class CorrectiveRepairPromptProjection(
   val includesExactBody: Boolean
     get() = availability == CorrectiveRepairResponseAvailability.EXACT_RESPONSE_INCLUDED
 
-  /**
-   * Renders the authorized repair section only. Payload-free failure guidance and the required
-   * output contract stay outside this section at the composer seam.
-   */
   fun renderAuthorizedRepairSection(): String = if (includesExactBody) {
     renderExactUntrustedSection(
       body = requireNotNull(exactResponseBody),
@@ -65,8 +61,6 @@ data class CorrectiveRepairPromptProjection(
 
   companion object {
     fun from(context: FeatureTaskRuntimeCorrectiveRepairContext): CorrectiveRepairPromptProjection {
-      // One captured response is one collection item. Enforce before any body framing so an
-      // undersized collection budget cannot silently omit or truncate projection entries.
       context.budget.requireCollectionWithinLimit(itemCount = 1)
       val captured = context.captured
       if (captured is CorrectiveRepairCapturedResponse.Exact) {
@@ -100,9 +94,7 @@ data class CorrectiveRepairPromptProjection(
           diagnosticDegradationClass = context.diagnosticDegradationClass,
         )
       }
-      // Already-truncated / exceeds-budget / unavailable paths also render a payload-free section;
-      // measure that section against the prompt budget so a tiny maxPromptUtf8Bytes cannot ship
-      // an over-budget fallback.
+
       return requireWithinPromptBudget(
         CorrectiveRepairPromptProjection(
           availability = captured.availability,

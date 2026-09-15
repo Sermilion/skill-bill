@@ -144,8 +144,6 @@ class FileSystemDeclaredReviewSpecialistsTest {
     return packsRoot
   }
 
-  // Mirrors FileSystemInstalledPlatformPackCatalog: the installed selection is where pack discovery
-  // and its loud-fail validation now live, so these cases exercise it through the same seam.
   private fun installedCatalog(packsRoot: Path) =
     InstalledPlatformPackCatalogPort { discoverPlatformPackManifests(packsRoot) }
 

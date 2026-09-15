@@ -39,16 +39,13 @@ private fun String.hasWellFormedUtf16(): Boolean {
   return true
 }
 
-/** Injective UTF-8 length-prefixed encoding used by every content-addressed review identity. */
 internal fun canonicalFields(vararg values: Any): String = canonicalFieldList(values.asList())
 
-/** List form of [canonicalFields] for callers that already hold a collection. */
 internal fun canonicalFieldList(values: List<Any>): String = values.joinToString("") { value ->
   val text = value.toString()
   "${text.toByteArray(Charsets.UTF_8).size}:$text"
 }
 
-/** JSON scalar encoding keeps path data from becoming launch-payload structure. */
 fun structuredString(value: String): String = buildString {
   append('"')
   value.forEach { char ->

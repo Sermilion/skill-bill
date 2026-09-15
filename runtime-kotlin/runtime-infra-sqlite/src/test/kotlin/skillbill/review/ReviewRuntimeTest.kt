@@ -50,8 +50,6 @@ class ReviewRuntimeTest {
     }
   }
 
-  // SKILL-136 subtask 4 AC-001/AC-002: canonical attribution round trips through the store, and a
-  // re-import that only changes a canonical value is still detected as changed.
   @Test
   fun `canonical attribution round trips and participates in change detection`() {
     val (_, connection) = tempDbConnection("review-canonical")

@@ -1,15 +1,5 @@
 package skillbill.model
 
-/**
- * A filesystem location the domain can carry, compare and compose without importing `java.nio`.
- *
- * The wrapped string is whatever the adapter that produced it printed, so interpolating a
- * [FileLocation] yields the same text a `java.nio.file.Path` did. Adapters convert at the field
- * boundary through the `toPath` / `toFileLocation` extensions in `runtime-ports`.
- *
- * Every member is pure segment arithmetic over `/`-separated values; nothing here touches a
- * filesystem or a working directory, so a relative value stays relative.
- */
 @JvmInline
 value class FileLocation(val value: String) : Comparable<FileLocation> {
   val fileName: String get() = value.trimEnd(SEPARATOR).substringAfterLast(SEPARATOR)

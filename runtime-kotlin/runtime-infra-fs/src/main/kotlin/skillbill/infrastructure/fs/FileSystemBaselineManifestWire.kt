@@ -6,19 +6,11 @@ import skillbill.error.UnreadableBaselineManifestError
 import skillbill.install.model.BaselineManifest
 import java.nio.file.Path
 
-/**
- * SKILL-76 Subtask 2: wire codec for the baseline manifest. Mirrors
- * [FileSystemInstallSelectionWire] — `JsonCodec.mapToJsonString`, a
- * `contract_version`, and SORTED keys so writes are byte-stable and a no-change
- * reinstall produces a byte-identical file (AC-9 idempotency). The persistence
- * adapter round-trips the rendered JSON through [parseBaselineManifestPayload]
- * before committing so a malformed write loud-fails before touching disk.
- */
 internal fun BaselineManifest.toBaselineManifestJson(): String = JsonCodec.mapToJsonString(toWireMap())
 
 private fun BaselineManifest.toWireMap(): Map<String, Any?> = linkedMapOf(
   SharedPayloadKeys.CONTRACT_VERSION to BASELINE_MANIFEST_CONTRACT_VERSION,
-  // Sorted keys give a deterministic, byte-stable serialization for idempotent writes.
+
   "baselines" to LinkedHashMap<String, Any?>(entries.toSortedMap()),
 )
 

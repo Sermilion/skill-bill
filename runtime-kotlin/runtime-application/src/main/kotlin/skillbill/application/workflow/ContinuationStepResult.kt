@@ -12,12 +12,6 @@ import skillbill.workflow.decomposition.model.DecompositionContinuationSelection
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 
-/**
- * SKILL-52.1 — Internal continuation-step result. Wraps a typed
- * [WorkflowContinueResult] plus the optional projection artifacts JSON
- * that the application persists to disk after the transaction
- * commits.
- */
 internal data class ContinuationStepResult(
   val result: WorkflowContinueResult,
   val projectionArtifactsJson: String? = null,

@@ -25,11 +25,6 @@ import kotlin.test.assertTrue
 
 private const val STALE_CONTRACT_VERSION: String = "0.9"
 
-/**
- * Unit tests for the reconcile hash-compare policy and the baseline manifest persistence
- * adapter. Reuses [InstallApplyTestSupport]'s seed helpers; all hashes come from the
- * shared `computeInstallContentHash`.
- */
 class InstallReconcileTest : InstallApplyTestSupport() {
   private fun roots(repoRoot: Path) = ReconcileSourceRoots(
     repoRoot = repoRoot,
@@ -64,9 +59,8 @@ class InstallReconcileTest : InstallApplyTestSupport() {
     val home = home()
     val baseline = baselineFromUpstream(upstream, local, home)
 
-    // bill-code-review: local edited, upstream untouched — the old keep-local case.
     Files.writeString(local.resolve("skills/bill-code-review/content.md"), content("bill-code-review") + "\nlocal\n")
-    // bill-code-check: both sides changed — the old conflict case.
+
     Files.writeString(local.resolve("skills/bill-code-check/content.md"), content("bill-code-check") + "\nlocal\n")
     Files.writeString(
       upstream.resolve("skills/bill-code-check/content.md"),

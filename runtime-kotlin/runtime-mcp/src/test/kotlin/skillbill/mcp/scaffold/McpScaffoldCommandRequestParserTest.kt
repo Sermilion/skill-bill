@@ -12,11 +12,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
-/**
- * SKILL-52.2 subtask 2: MCP-adapter parser tests. Brought to parity with the CLI counterpart so
- * MCP <-> CLI diagnostics stay aligned (same typed exceptions at the same semantic points, same
- * field-path messages). The duplicated coverage is deliberate.
- */
 class McpScaffoldCommandRequestParserTest {
   @Test
   fun `parses horizontal skill request with all fields`() {

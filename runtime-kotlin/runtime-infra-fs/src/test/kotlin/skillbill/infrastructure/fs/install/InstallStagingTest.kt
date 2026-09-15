@@ -38,15 +38,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-/**
- * SKILL-40 subtask 2: install staging pipeline.
- *
- * These tests assert that `installSkill`/`stageInstalledSkill` materialize a per-skill staging
- * directory under `~/.skill-bill/installed-skills/<slug>-<hash>/` outside the repo, copy authored
- * companions other than `content.md` (which remains a hash input only), render `SKILL.md` and
- * pointer files, and never write back into the source tree. Failure paths (malformed frontmatter,
- * missing pointer target) must fail closed without leaving a partial staging dir.
- */
 class InstallStagingTest {
   private val tempDirs = mutableListOf<Path>()
 
@@ -284,8 +275,7 @@ class InstallStagingTest {
     val agentRoot = fixture.home.resolve("agents")
     Files.createDirectories(agentRoot)
     val agent = AgentTarget("test-agent", agentRoot.toFileLocation())
-    // Compute the expected staging dir from production helpers BEFORE calling installSkill so the
-    // oracle is independent of the SUT (no second stageInstalledSkill call after the install).
+
     val pointers = applicablePointers(fixture.repoRoot, fixture.skillDir)
     val authored = authoredFilesFor(fixture.skillDir, pointers)
     val expectedHash = computeInstallContentHash(fixture.skillDir, authored, pointers)
@@ -325,7 +315,7 @@ class InstallStagingTest {
   @Test
   fun `install fails closed when a declared pointer target is missing`() {
     val fixture = setupFixture()
-    // Remove a pointer target file so renderPointer throws IllegalArgumentException.
+
     val firstSpec = fixture.pointerSpecs.first().second
     Files.delete(fixture.repoRoot.resolve(firstSpec.target))
     val cacheRoot = installedSkillsCacheRoot(fixture.home)
@@ -347,8 +337,7 @@ class InstallStagingTest {
 
     val first = stageInstalledSkill(fixture.repoRoot, fixture.skillDir, fixture.home)
     val cacheRoot = installedSkillsCacheRoot(fixture.home)
-    // Drop a sentinel into the staging dir AFTER the first install. If the second install reuses
-    // the dir verbatim, the sentinel survives. If the staging dir is rebuilt the sentinel is gone.
+
     val sentinel = first.stagingDir.resolve("sentinel.txt")
     Files.writeString(sentinel.toPath(), "x")
 
@@ -366,21 +355,17 @@ class InstallStagingTest {
 
   @Test
   fun `prune does not delete unrelated skills whose slug shares the current slug as a prefix`() {
-    // F-016 regression: slugs are not delimiter-bounded — `bill-sample-code-review` is a prefix
-    // of `bill-sample-code-review-security`. The prune predicate must NOT match unrelated skills.
     val fixture = setupFixture()
-    // First install: produces ~/.skill-bill/installed-skills/<slug>-<hashA>/
+
     val first = stageInstalledSkill(fixture.repoRoot, fixture.skillDir, fixture.home)
     val cacheRoot = installedSkillsCacheRoot(fixture.home)
-    // Plant a sibling cache dir for an unrelated, longer-named skill that happens to share the
-    // current slug as a prefix. Its leaf must still match the strict `<slug>-<16-hex>` shape so
-    // the regression case (its name starting with `<currentSlug>-`) is exercised correctly.
+
     val firstSlug = first.stagingDir.fileName.substringBeforeLast('-')
     val unrelatedLeaf = "$firstSlug-security-0123456789abcdef"
     val unrelatedDir = cacheRoot.resolve(unrelatedLeaf)
     Files.createDirectories(unrelatedDir)
     Files.writeString(unrelatedDir.resolve("marker.txt"), "keep me")
-    // Mutate the source so the next install yields a different content hash and triggers prune.
+
     Files.writeString(fixture.skillDir.resolve("notes.md"), "verbatim notes v2\n")
 
     val second = stageInstalledSkill(fixture.repoRoot, fixture.skillDir, fixture.home)
@@ -393,7 +378,7 @@ class InstallStagingTest {
       Files.isRegularFile(unrelatedDir.resolve("marker.txt"), LinkOption.NOFOLLOW_LINKS),
       "prune mutated an unrelated skill's staging dir contents",
     )
-    // Sanity: the prior same-slug staging dir (different hash) IS pruned.
+
     assertFalse(
       Files.isDirectory(first.stagingDir.toPath(), LinkOption.NOFOLLOW_LINKS),
       "expected prior same-slug staging dir ${first.stagingDir} to be pruned by ${second.stagingDir}",
@@ -529,12 +514,6 @@ class InstallStagingTest {
 
   @Test
   fun `content-managed staging target resolves under the home cache outside the source repoRoot`() {
-    // SKILL-76 AC-2: install.sh copies authored source into ~/.skill-bill and repoints
-    // --repo-root/--skills/--platform-packs at that COPY. Here `repoRoot` models the copy.
-    // resolveStagedSymlinkTarget must route a content-managed skill into the home staging cache
-    // (keyed off the copy's source), never back into the source repoRoot. This exercises the
-    // dispatcher's content-managed branch; it cannot prove "never a sibling clone" because no
-    // clone path is ever injected into the SUT.
     val fixture = setupFixture()
 
     val target = resolveStagedSymlinkTarget(
@@ -558,15 +537,10 @@ class InstallStagingTest {
 
   @Test
   fun `non-content-managed fallback targets the copy skill dir and never a sibling clone`() {
-    // SKILL-76 AC-4 / AC-12: skills with no content.md fall back to a direct source symlink. The
-    // fallback must target the COPY under ~/.skill-bill (what subtask 1 repoints --skills at), never
-    // the fetched clone. To prove source-location agnosticism we materialize an identically-named
-    // skill dir in a sibling CLONE too; the fallback must return the copy path passed as resolvedSkill
-    // and the result must NOT resolve under the clone.
     val home = Files.createTempDirectory("skillbill-fallback-copy-home").also(tempDirs::add)
     val copyRoot = home.resolve(".skill-bill/source").also { Files.createDirectories(it) }
     val cloneRoot = Files.createTempDirectory("skillbill-fallback-clone-repo").also(tempDirs::add)
-    // Identically-named, non-content-managed skill in BOTH trees (no content.md present).
+
     val copySkillDir = copyRoot.resolve("skills/legacy-link-skill")
     val cloneSkillDir = cloneRoot.resolve("skills/legacy-link-skill")
     listOf(copySkillDir, cloneSkillDir).forEach { dir ->
@@ -597,10 +571,6 @@ class InstallStagingTest {
       "non-content-managed fallback must never resolve into the clone, was $target",
     )
   }
-
-  // ---------------------------------------------------------------------------------------------
-  // Fixture builder
-  // ---------------------------------------------------------------------------------------------
 
   private fun setupFixture(): Fixture {
     val repoRoot = Files.createTempDirectory("skillbill-install-staging-repo").also(tempDirs::add)
@@ -663,7 +633,7 @@ class InstallStagingTest {
       |---
     """.trimMargin() + "\n\nAuthored body.\n"
     Files.writeString(skillDir.resolve("content.md"), frontmatter)
-    // A sibling authored file (e.g. a sidecar) that should be copied verbatim.
+
     Files.writeString(skillDir.resolve("notes.md"), "verbatim notes\n")
   }
 
@@ -687,11 +657,6 @@ class InstallStagingTest {
     }
   }
 
-  /**
-   * Snapshot every entry under [root] with kind + content so symlinks, empty files, and dirs are
-   * all surfaced in equality checks. F-004 (review): byte-only snapshots silently drop these and
-   * would let regressions slip through.
-   */
   private fun snapshotTree(root: Path): Map<String, TreeEntry> = Files.walk(root).use { stream ->
     stream
       .sorted()

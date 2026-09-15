@@ -15,10 +15,7 @@ import kotlin.io.path.isRegularFile
 import kotlin.io.path.readText
 import kotlin.streams.asSequence
 
-/**
- * Pure JVM architecture checks — no IDE fixture. Rejects presentation→infrastructure
- * shortcuts and forbidden Skill Bill runtime / JDBC / SQLite imports.
- */
+
 class PluginArchitectureTest {
     private val mainRoot: Path = locateMainSources()
 

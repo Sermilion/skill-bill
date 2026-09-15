@@ -11,13 +11,6 @@ import skillbill.workflow.specsource.SpecSourceSpecReader
 import java.nio.file.NoSuchFileException
 import java.nio.file.Path
 
-/**
- * Artifact-only resolver of the persisted `spec_source` stamp. Prepared runs read it from the
- * sibling decomposition manifest, which is the sole prepared-feature authority marker. A
- * manifest-absent runtime workflow may predate that invariant, so its already-persisted spec stamp
- * remains the compatibility fallback. Config is never consulted and benign absence resolves to
- * [SpecSource.LOCAL].
- */
 @Inject
 class SpecSourceResolver(
   private val fileStore: DecompositionManifestStore,

@@ -22,16 +22,6 @@ class RuntimeImageConventionPlugin : Plugin<Project> {
   private companion object {
     const val LINK_JDK_VERSION = 21
 
-    // F-002: explicit additive module set. Non-modular jlink cannot derive the module
-    // set via jdeps reliably for the kotlin-inject / kotlinx.serialization automatic
-    // modules, so pin an explicit, additive set. `java.net.http` is REQUIRED: the
-    // telemetry HTTP client (runtime-infra-http `JdkHttpRequester` /
-    // `HttpTelemetryClient`, resolved at runtime via RuntimeComponent/kotlin-inject)
-    // uses `java.net.http.HttpClient` in production (MCP telemetry_remote_stats /
-    // telemetry_proxy_capabilities, telemetry outbox sendBatch). HTTPS endpoints rely
-    // on `jdk.crypto.ec` (present) plus TLS in java.base; `java.security.sasl` /
-    // `jdk.crypto.cryptoki` are NOT needed for standard HTTPS, so they are deliberately
-    // omitted to keep the set minimal but complete.
     val IMAGE_MODULES =
       listOf(
         "java.base",
@@ -63,9 +53,6 @@ class RuntimeImageConventionPlugin : Plugin<Project> {
       configureStartScriptJavaGuard()
       configureStaticRuntimeWiring(hostRuntimeToken)
 
-      // imageBaseName is the only consumer-supplied input and is set inside the
-      // `runtimeImage {}` block AFTER this plugin's apply() runs. Defer everything that
-      // reads it to afterEvaluate so the base name is resolved exactly once, lazily.
       afterEvaluate {
         val baseName = extension.imageBaseName.get()
         val zipName = imageZipName(baseName, project.version.toString(), hostRuntimeToken)
@@ -80,10 +67,7 @@ class RuntimeImageConventionPlugin : Plugin<Project> {
 
   private fun Project.logUnsupportedHost(hostRuntimeToken: String?) {
     if (hostRuntimeToken != null) return
-    // F-001: unsupported host (e.g. arm64 Linux) is an OPTIONAL known-gap target. Do NOT
-    // hard-fail at configuration time — `check` / installDist and IDE sync must succeed
-    // on any arch. Log a clear known-gap message; image tasks are still registered but
-    // fail loudly only when actually invoked.
+
     logger.lifecycle(
       "SKILL-55: host os.name='${System.getProperty("os.name")}' " +
         "os.arch='${System.getProperty("os.arch")}' is not a supported runtime-image " +
@@ -93,9 +77,6 @@ class RuntimeImageConventionPlugin : Plugin<Project> {
   }
 
   private fun Project.configureStaticRuntimeWiring(hostRuntimeToken: String?) {
-    // F-006: keep the link toolchain LAZY. Map the launcher provider to a path String
-    // instead of `.get()`-ing it at config time, so unrelated builds (`check`,
-    // installDist) never provision the JDK21 toolchain on a config-cache miss.
     val toolchains = extensions.getByType<JavaToolchainService>()
     val linkJavaHomeProvider: Provider<String> =
       toolchains
@@ -103,24 +84,17 @@ class RuntimeImageConventionPlugin : Plugin<Project> {
         .map { it.metadata.installationPath.asFile.absolutePath }
 
     extensions.configure<RuntimePluginExtension>("runtime") {
-      // F-006: pass the LAZY provider; Badass resolves javaHome at execution time.
       javaHome.set(linkJavaHomeProvider)
-      // Trim the linked runtime: drop debug symbols, headers, man pages, compress.
+
       addOptions("--no-header-files", "--no-man-pages", "--strip-debug", "--compress", "2")
-      // `additive` keeps the explicit modules on top of any the plugin already detects.
+
       additive.set(true)
       modules.set(IMAGE_MODULES)
     }
 
-    // The project enables the configuration cache globally (gradle.properties); every
-    // Badass runtime task opts out via the supported API. Only image-building tasks
-    // degrade to no-cache; check / installDist keep a warm configuration cache.
     tasks.withType<BaseTask>().configureEach {
       notCompatibleWithConfigurationCache(CC_OPT_OUT_REASON)
       if (hostRuntimeToken == null) {
-        // F-001: fail loudly at EXECUTION time on every Badass image task when the host
-        // is an unsupported known-gap target, so the failure surfaces before expensive
-        // jlink work and unrelated tasks (check/installDist) still succeed on any arch.
         doFirst {
           error(unsupportedHostMessage())
         }
@@ -129,7 +103,6 @@ class RuntimeImageConventionPlugin : Plugin<Project> {
   }
 
   private fun Project.configureRuntimeImageZip(zipName: String) {
-    // Versioned archive name derived from project.version — never hardcoded (AC6).
     extensions.configure<RuntimePluginExtension>("runtime") {
       imageZip.set(layout.buildDirectory.file("runtime-image/$zipName"))
     }
@@ -141,9 +114,6 @@ class RuntimeImageConventionPlugin : Plugin<Project> {
   }
 
   private fun Project.registerSha256Task(baseName: String, zipName: String): TaskProvider<*> {
-    // AC2: write a SHA-256 sidecar next to the produced image zip. F-101: the zip path
-    // is resolved to a primitive String OUTSIDE the doLast closure; the closure captures
-    // only Strings, never a Gradle File/Provider.
     val runtimeImageZipPath =
       layout.buildDirectory
         .file("runtime-image/$zipName")
@@ -159,9 +129,6 @@ class RuntimeImageConventionPlugin : Plugin<Project> {
       outputs.file(checksumPath)
       notCompatibleWithConfigurationCache("Sidecar follows the not-cacheable runtimeZip task.")
       doLast {
-        // F-001: delegate to the shared sidecar writer so the `<hex>  <name>\n` format
-        // stays byte-identical across release artifacts. The sidecar it
-        // writes (<archive>.sha256) is exactly the declared `checksumPath` output above.
         writeSha256Sidecar(File(archivePath))
       }
     }
@@ -218,9 +185,6 @@ class RuntimeImageConventionPlugin : Plugin<Project> {
     licenseVerificationTask: TaskProvider<*>,
     sha256Task: TaskProvider<*>,
   ) {
-    // F-008: SINGLE runtimeZip configuration block — description + sha256 finalizer.
-    // Fail-fast for an unsupported host (F-001) is handled on every BaseTask in
-    // configureStaticRuntimeWiring, so this block stays config-time safe on any arch.
     val tokenSegment = hostRuntimeToken ?: UNSUPPORTED_HOST_SEGMENT
     tasks.named("runtimeZip") {
       group = "distribution"

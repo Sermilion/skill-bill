@@ -27,9 +27,7 @@ import kotlin.test.assertTrue
 private val NOW: Instant = Instant.parse("2026-09-15T10:00:00Z")
 
 class TelemetryDeliveryRecoveryTest {
-  // SKILL-236 AC-002: the relay may hand the batch upstream and then lose the acknowledgement behind
-  // a timeout or its own 502. Discarding the rows loses delivered events; re-minting their identity
-  // makes the retry arrive as a fresh duplicate. The row must stay recoverable, unchanged.
+
   @Test
   fun `an unconfirmed delivery keeps one recoverable entry with its original identity`() {
     withOutbox { store ->
@@ -52,8 +50,6 @@ class TelemetryDeliveryRecoveryTest {
     }
   }
 
-  // SKILL-236 AC-003: a send that succeeds and then fails to record locally used to leave the rows
-  // unclaimed and pending, so the very next loop pass resent the whole batch, without bound.
   @Test
   fun `a failed local acknowledgement does not resend the batch without bound`() {
     withOutbox { store ->
@@ -78,9 +74,6 @@ class TelemetryDeliveryRecoveryTest {
     }
   }
 
-  // SKILL-236 AC-003: autoSync runs at every CLI completion and every MCP tool call, so a few
-  // offline minutes produce dozens of unconfirmed attempts. Charging them to the permanent attempt
-  // budget would leave the queue blocked forever once connectivity returned, with no path back.
   @Test
   fun `an unconfirmed transport failure leaves the queue drainable once delivery recovers`() {
     withOutbox { store ->
@@ -109,8 +102,6 @@ class TelemetryDeliveryRecoveryTest {
     }
   }
 
-  // SKILL-236 AC-006: recording delivery health must not feed the drain it is failing to complete.
-  // Every repeated failure that enqueued a diagnostic event grew the queue it could not drain.
   @Test
   fun `repeated delivery failure enqueues no new telemetry and the drain terminates`() {
     withOutbox { store ->
@@ -132,9 +123,6 @@ class TelemetryDeliveryRecoveryTest {
     }
   }
 
-  // SKILL-236 AC-003/AC-006: a client failure other than a transport IOException escaped the drain
-  // with the batch still claimed and no recorded cause, so the rows were undeliverable until the
-  // five-minute lease expired and autoSync's broad catch swallowed the reason.
   @Test
   fun `an unexpected client failure is recorded and releases the batch instead of escaping`() {
     withOutbox { store ->
@@ -168,9 +156,6 @@ class TelemetryDeliveryRecoveryTest {
     }
   }
 
-  // SKILL-236 AC-003: with every queued row held by a concurrent drain's live claim, this drain
-  // delivered nothing yet reported `synced` with zero events, so a caller keying off status alone
-  // read a stalled drain as a clean one.
   @Test
   fun `a drain that claims nothing while rows stay queued does not report a clean sync`() {
     withOutbox { store ->

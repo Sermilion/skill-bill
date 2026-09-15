@@ -19,13 +19,11 @@ class GoalRunnerProgressEventEmitter(
 
   override fun emit(emission: AgentRunProgressEmission) {
     val workflowId = runCatching { resolveWorkflowId() }.getOrNull()?.takeIf(String::isNotBlank)
-      ?: return // No-op until the child workflow id is durably known.
+      ?: return
     val event = GoalProgressEvent(
       eventKind = emission.eventKind,
       workflowId = workflowId,
-      // AC25/AC21: the supervisor declares a long child operation. The workflow
-      // phase is the supervision phase; the operation descriptors carry the
-      // long-op identity and the authoritative process-alive signal.
+
       workflowPhase = "goal_runner_supervision",
       processAlive = emission.processAlive,
       sequenceNumber = sequence++,

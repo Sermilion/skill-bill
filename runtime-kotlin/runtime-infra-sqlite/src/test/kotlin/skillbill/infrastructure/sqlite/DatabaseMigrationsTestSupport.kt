@@ -58,8 +58,7 @@ internal fun seedPreRepairTurnDiagnosticsForMigration29(
       statement.executeUpdate(PRE_REPAIR_TURN_PRODUCER_OUTPUT_EVIDENCE_SQL)
       statement.executeUpdate("DROP TABLE rejected_output_diagnostics")
       statement.executeUpdate(PRE_REPAIR_TURN_REJECTED_OUTPUT_DIAGNOSTICS_SQL)
-      // A real pre-v29 store carries the narrow selector index, so the base schema's widened
-      // CREATE INDEX IF NOT EXISTS is a name no-op on it rather than an error.
+
       statement.executeUpdate(
         """
           CREATE INDEX idx_rejected_output_diagnostics_selector
@@ -1043,7 +1042,6 @@ const val SCHEMA_MIGRATIONS_TABLE: String = "schema_migrations"
 const val REAL_STORE_ENV: String = "SKILL_BILL_REAL_STORE_DB"
 const val MIGRATION_FIXTURE_ENV: String = "SKILL_BILL_MIGRATION_FIXTURE_DB"
 
-// The routed_skill and detected_stack prose variants actually observed in the real store.
 val LEGACY_ROUTED_SKILL_VARIANTS: List<String> = listOf(
   "bill-kmp-code-review",
   "bill-kmp-code-review (parallel)",

@@ -12,12 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
-/**
- * Project-scoped ViewModel. Exposes immutable [StateFlow] of UI state, maps
- * domain outcomes exhaustively, accepts explicit refresh/lifecycle intents, and
- * derives elapsed durations via an injected clock. Contains no process, JSON,
- * filesystem, or IntelliJ status-bar rendering code.
- */
+
 class SkillBillStatusViewModel(
     private val coordinator: StatusRefreshCoordinator,
     private val clock: StatusClock,

@@ -2,7 +2,6 @@ package skillbill.review.model
 
 import skillbill.review.context.model.ReviewLaneSegmentAccounting
 
-/** Minimal JSON codec for persisting segment accounting on [ReviewRunLane] rows. */
 object ReviewRunLaneSegmentAccountingJson {
   fun encode(segments: List<ReviewLaneSegmentAccounting>): String? {
     if (segments.isEmpty()) return null

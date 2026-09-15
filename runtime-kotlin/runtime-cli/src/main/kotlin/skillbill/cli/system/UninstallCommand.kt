@@ -292,7 +292,7 @@ private fun currentOs(rawOsName: String): DesktopOs {
   return when {
     "mac" in osName || "darwin" in osName -> DesktopOs.MAC
     "win" in osName -> DesktopOs.WINDOWS
-    else -> DesktopOs.LINUX // open host OS name: unrecognized platforms default to Linux layout
+    else -> DesktopOs.LINUX
   }
 }
 

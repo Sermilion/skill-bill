@@ -6,10 +6,6 @@ import skillbill.contracts.review.ReviewVerificationSignalKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION
 import skillbill.error.InvalidWorkflowStateSchemaError
 
-/**
- * One delivered handoff envelope, recorded per consumer phase and iteration. Carries only the
- * projection envelope: there is no field on this record that can hold a complete phase output.
- */
 data class FeatureTaskRuntimeDeliveredProjectionRecord(
   val workflowId: String,
   val consumerPhaseId: String,
@@ -89,8 +85,7 @@ data class FeatureTaskRuntimeDeliveredProjectionRecord(
         ?: missing("consumer_delivery_iteration"),
       envelope = FeatureTaskRuntimeHandoffEnvelope.fromEnvelopeMap(
         JsonCodec.anyToStringAnyMap(raw["handoff_envelope"])
-          // Named explicitly: the private phase-output artifact is never an acceptable substitute
-          // for the delivered projection, so an absent envelope is a hard decode failure.
+
           ?: missing("handoff_envelope"),
       ),
       sourceProducerIterations = decodeSourceProducerIterations(raw),
@@ -143,7 +138,6 @@ data class FeatureTaskRuntimeDeliveredProjectionRecord(
       }
     }
 
-    // Single throw seam so the strict decoder stays within the throw-count budget.
     private fun missing(field: String): Nothing = throw InvalidWorkflowStateSchemaError(
       "Feature-task-runtime delivered-projection record is missing field '$field'; " +
         "$FEATURE_TASK_RUNTIME_INCOMPATIBLE_RECORD_GUIDANCE.",

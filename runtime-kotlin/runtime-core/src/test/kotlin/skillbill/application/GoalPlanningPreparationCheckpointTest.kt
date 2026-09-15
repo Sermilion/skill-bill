@@ -154,7 +154,7 @@ class GoalPlanningPreparationCheckpointTest {
   @Test
   fun `a stored preplan failing its projection contract reads as regenerable rather than as a fatal read`() {
     val harness = checkpointHarness()
-    // Written before the projection gate existed: schema-valid phase output, no bounded projection.
+
     harness.storeRawShared(
       validShared(payload = payloadJson("preplan", producedOutputsJson = """{"notes":"legacy"}""")),
     )
@@ -175,7 +175,6 @@ class GoalPlanningPreparationCheckpointTest {
       governedSubSpecPath = descriptor().governedSubSpecPath,
     )
 
-    // Reported missing, so the sweep re-produces it under the gate instead of wedging the goal.
     assertNull(recovered)
   }
 
@@ -238,10 +237,6 @@ class GoalPlanningPreparationCheckpointTest {
 
   @Test
   fun `a goal wedged on legacy projection-invalid records recovers in band across the real store`() {
-    // The SKILL-141 wedge end to end: both durable records were written before the projection gate, so
-    // recovery reports nothing prepared, the sweep re-produces each under the gate, and the replacement
-    // lands. Before the replace path existed, step three threw and the goal could only be repaired by
-    // hand-editing the database.
     val harness = checkpointHarness()
     harness.storeRawShared(validShared(payload = payloadJson("preplan", producedOutputsJson = """{"n":"legacy"}""")))
     harness.storeRawPlan(
@@ -303,7 +298,6 @@ class GoalPlanningPreparationCheckpointTest {
       checkpoint.checkpointSharedPreplan(validShared())
     }
 
-    // Bypasses the write gate to reproduce a record persisted before the gate existed.
     fun storeRawShared(checkpoint: SharedGoalPreplanCheckpoint) {
       database.selfManagedWrite { it.goalPlanningPreparations.checkpointSharedPreplan(checkpoint) }
     }
@@ -359,8 +353,6 @@ class GoalPlanningPreparationCheckpointTest {
       )
     }
 
-    // The checkpoint write path now runs the shared producer projection gate, so a prepared payload
-    // must carry the real bounded projection its phase owns.
     fun payloadJson(
       phaseId: String,
       contractVersion: String = FEATURE_TASK_RUNTIME_CONTRACT_VERSION,
@@ -371,7 +363,6 @@ class GoalPlanningPreparationCheckpointTest {
       "produced_outputs":$producedOutputsJson}
     """.trimIndent().replace("\n", "")
 
-    // The SKILL-141 escape shape: a settled plan whose only task carries no test obligations.
     const val MISSING_VALUE_PLAN_PROJECTION = """{"prompt":"optional only"}"""
 
     fun projectionJson(phaseId: String): String = if (phaseId == "preplan") {

@@ -4,15 +4,8 @@ import skillbill.review.plan.model.ReviewRoutingChangedFile
 import skillbill.review.plan.model.ReviewStackRoutingResult
 import skillbill.scaffold.model.PlatformManifest
 
-/**
- * Single authority for mapping changed files to the platform packs a review routes to.
- *
- * The review launch seam and the review-phase native-agent preflight gate both route through this
- * object. A second, weaker routing approximation on either path is a defect: the preflight would
- * then demand specialists for packs the review never launches.
- */
 object ReviewStackRouting {
-  /** Path-only routing for genuinely unavailable content, such as a deleted file. */
+
   fun routeByPath(manifests: List<PlatformManifest>, paths: List<String>): ReviewStackRoutingResult =
     route(manifests, paths.map { ReviewRoutingChangedFile(it, "") })
 

@@ -84,9 +84,6 @@ internal fun addReviewRunLaneAttribution(connection: Connection) {
   DatabaseReviewColumnMigrations.ensureReviewRunLaneDispositionColumns(connection)
 }
 
-// The unaddressed_findings key columns go through ensureColumn (which also runs unconditionally on
-// every startup) rather than being appended to an already-applied CREATE body, which would be a
-// silent no-op for every existing store.
 internal fun addReviewFindingOutcomeKey(connection: Connection) {
   DatabaseReviewColumnMigrations.ensureReviewFindingOutcomeKeyColumns(connection)
   DatabaseReviewLedgerSchema.reviewFindingOutcomeStatements.forEach { sql ->
@@ -98,8 +95,6 @@ internal fun addReviewFindingOutcomeKey(connection: Connection) {
 internal fun rekeyProducerOutputEvidenceByAgent(connection: Connection) {
   if (producerOutputEvidencePrimaryKeyIncludesAgentId(connection)) return
   connection.createStatement().use {
-    // SQLite cannot widen a PRIMARY KEY in place, so the table is rebuilt. agent_id was already
-    // NOT NULL on every row written by the current runtime, so no backfill is required.
     it.execute(
       "ALTER TABLE producer_output_evidence RENAME TO producer_output_evidence_pre_agent",
     )

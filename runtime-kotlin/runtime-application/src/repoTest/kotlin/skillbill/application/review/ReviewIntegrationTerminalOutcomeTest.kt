@@ -7,11 +7,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class ReviewIntegrationTerminalOutcomeTest {
-  /**
-   * The integration pass has its own terminal-state vocabulary, and it must stay identical to the
-   * governed schema enum: a state the runtime can emit but the schema will not accept is a review
-   * that dies at the validator instead of reporting how it actually ended.
-   */
+
   @Test fun `integration terminal states match the governed schema enum`() {
     val schema = Files.readString(findRepositoryFile("orchestration/contracts/review-context-schema.yaml"))
     val enumLine = schema.lines()

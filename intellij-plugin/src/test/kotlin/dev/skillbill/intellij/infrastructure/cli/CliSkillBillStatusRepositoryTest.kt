@@ -110,7 +110,7 @@ class CliSkillBillStatusRepositoryTest {
             clock = StatusClock.fixed(Instant.parse("2026-08-06T10:00:00Z")),
             executableResolver = { CliExecutableResolution.Found("/usr/bin/skill-bill", CliExecutableSource.SEARCH_PATH) },
         )
-        // Need a real path for toRealPath()
+
         val root = temp.newFolder("repo").toPath()
         Files.createDirectories(root)
         val outcome = repo.fetchStatus(root)

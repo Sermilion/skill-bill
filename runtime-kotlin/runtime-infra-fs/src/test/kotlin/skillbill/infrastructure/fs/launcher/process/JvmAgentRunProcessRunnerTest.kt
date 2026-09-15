@@ -373,11 +373,6 @@ class JvmAgentRunProcessRunnerTest {
     assertEquals(1, process.forcibleCount)
   }
 
-  /**
-   * SKILL-141: a delegated review lane launches with inheritEnvironment=false. Clearing the whole
-   * environment left the worker with no PATH to exec from and no home under which its registered
-   * native agents live, so preflight reported every review worker as uninstalled.
-   */
   @Test
   fun `isolated launch keeps the agent locatable and its user installation resolvable`() {
     val parent = mapOf(

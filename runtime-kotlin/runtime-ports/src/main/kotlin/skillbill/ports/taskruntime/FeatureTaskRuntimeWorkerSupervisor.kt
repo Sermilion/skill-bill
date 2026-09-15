@@ -44,9 +44,3 @@ interface FeatureTaskRuntimeHeartbeat {
    */
   fun fencingLostReason(): String?
 }
-
-/**
- * Default supervisor for seams that do not perform process liveness (tests, artifact-only stores).
- * Every inspection is [FeatureTaskRuntimeProcessInspection.Unsupported] — ambiguous evidence that is
- * never confirmed dead — so a seam wired with this default never reconciles.
- */

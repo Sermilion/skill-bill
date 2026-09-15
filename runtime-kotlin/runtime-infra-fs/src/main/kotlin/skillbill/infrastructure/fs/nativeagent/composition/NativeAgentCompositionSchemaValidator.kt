@@ -19,34 +19,11 @@ import java.util.logging.Logger
 
 private val log: Logger = Logger.getLogger("skillbill.nativeagent.NativeAgentCompositionSchemaValidator")
 
-/**
- * SKILL-48 Subtask 2c: validates a native-agent composition source
- * against the canonical JSON-Schema document at
- * `orchestration/contracts/native-agent-composition-schema.yaml`.
- *
- * Mirrors [skillbill.install.model.InstallPlanSchemaValidator]. The
- * schema is loaded ONCE per process via the [schema] lazy and the
- * compiled [JsonSchema] is cached for every subsequent call. Coherence
- * rules (cross-field validation, filename-vs-name parity) stay in the
- * parse seams in `NativeAgentBundle.kt` / `NativeAgentSource.kt`; see
- * `x-coherence-checks` in the schema file for the named list.
- *
- * `validate` throws [InvalidNativeAgentCompositionSchemaError] carrying
- * the `sourceLabel` and the collected violation messages so callers
- * and tests can pinpoint the regression.
- */
 object NativeAgentCompositionSchemaValidator {
   private val schema: JsonSchema by lazy { loadSchema() }
   private val yamlMapper: YAMLMapper by lazy { YAMLMapper() }
   private val jsonMapper: ObjectMapper by lazy { ObjectMapper() }
 
-  /**
-   * Validates the raw YAML text of a native-agent source against the
-   * canonical schema. On any violation, throws
-   * [InvalidNativeAgentCompositionSchemaError] whose message names the
-   * `sourceLabel` and the violation list so the failure surface stays
-   * loud and useful.
-   */
   fun validate(yamlText: String, sourceLabel: String) {
     val instance: JsonNode = try {
       yamlMapper.readTree(yamlText)
@@ -60,12 +37,6 @@ object NativeAgentCompositionSchemaValidator {
     validateNode(instance, sourceLabel)
   }
 
-  /**
-   * Validates a pre-parsed YAML node (e.g. produced by the frontmatter
-   * extractor in `NativeAgentSource.kt`). Mirrors
-   * [InstallPlanSchemaValidator]'s parsed-node entry point so callers
-   * that already hold a parsed map can validate without re-serializing.
-   */
   fun validateParsedNode(node: JsonNode, sourceLabel: String) {
     validateNode(node, sourceLabel)
   }
@@ -75,22 +46,13 @@ object NativeAgentCompositionSchemaValidator {
     if (errors.isEmpty()) {
       return
     }
-    // F-401 (carried over from 2a/2b): emit a structured WARN log
-    // BEFORE throwing so a slow-rolling schema-drift incident shows up
-    // in dashboards without depending on an unhandled-exception
-    // monitor.
+
     log.log(Level.WARNING, buildSchemaDriftLog(errors, sourceLabel))
     val sorted = errors.sortedWith(violationOrdering)
     val reason = formatValidationReason(sorted)
     throw InvalidNativeAgentCompositionSchemaError(sourceLabel = sourceLabel, reason = reason)
   }
 
-  /**
-   * Asserts the loaded canonical schema document's `$id` and
-   * `$defs.contractVersion.const` match the runtime's expected values.
-   * Visible to tests so they can drive the assertion with synthesized
-   * YAML nodes; called from the lazy schema load below.
-   */
   fun assertIdentity(yamlText: String) {
     val yamlNode = yamlMapper.readTree(yamlText)
     assertIdentity(yamlNode)

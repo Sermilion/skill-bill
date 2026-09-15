@@ -11,15 +11,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-/**
- * SKILL-48 Subtask 2d AC3: pins `contract_version` parity between the
- * canonical schema file (`orchestration/contracts/telemetry-event-schema.yaml`)
- * and the runtime constant `TELEMETRY_EVENT_CONTRACT_VERSION`. Bumping
- * one without the other is a build break, by design.
- *
- * Mirrors `InstallPlanSchemaContractVersionTest` (Subtask 2b) and
- * `WorkflowStateSchemaContractVersionTest` (Subtask 2a).
- */
 class TelemetryEventSchemaContractVersionTest {
   @Test
   fun `schema contract_version const matches TELEMETRY_EVENT_CONTRACT_VERSION`() {
@@ -40,12 +31,6 @@ class TelemetryEventSchemaContractVersionTest {
     )
   }
 
-  /**
-   * Every per-event branch under `$defs/<event>Event` re-states
-   * `contract_version` as a const so a single branch is self-contained
-   * when read in isolation. Pin all branches to the runtime constant
-   * so a future schema author cannot bump only some branches.
-   */
   @Test
   fun `every per-event branch pins contract_version to TELEMETRY_EVENT_CONTRACT_VERSION`() {
     val schemaFile = repoRootFromTest().resolve(TelemetryEventSchemaPaths.REPO_RELATIVE_PATH)
@@ -55,8 +40,6 @@ class TelemetryEventSchemaContractVersionTest {
 
     defs.fields().forEach { (defName, defNode) ->
       if (!defName.endsWith("Event")) {
-        // Skip shared enum/shape `$defs` entries; only per-event
-        // branches carry a `contract_version` const.
         return@forEach
       }
       val branchConst = defNode.path("properties").path("contract_version").path("const")

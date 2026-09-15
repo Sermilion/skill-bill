@@ -36,7 +36,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-/** Six-commit bundled lane review over preparation, launch projection, and a fake lane worker. */
 class ParallelCodeReviewBundledLaneReviewTest {
   private val hunkUi = ReviewChangedHunk("src/ui/View.kt", 1, 1, 1, 2, "+ui tweak")
   private val hunkDb = ReviewChangedHunk("src/db/Repo.kt", 1, 1, 1, 2, "+persist")

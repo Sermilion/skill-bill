@@ -22,17 +22,11 @@ data class GoalSubtaskReviewCompactFinding(
   val severity: String,
   val label: String,
   val text: String,
-  /**
-   * The id the review output itself carried (the `F-XXX` register id). Persisted so the reserved
-   * remediation pass dispositions against the ids the agent actually saw rather than positional
-   * stand-ins the correspondence could not be verified against. Absent on records written before the
-   * id was captured, which fall back to the positional id.
-   */
+
   val findingId: String? = null,
 ) {
   val isBlocker: Boolean get() = severity == GOAL_SUBTASK_REVIEW_BLOCKER_SEVERITY
 
-  /** Whether this finding severity blocks advancing: Blocker or Major. [isBlocker] stays Blocker-only. */
   val blocksAdvance: Boolean get() = severity == GOAL_SUBTASK_REVIEW_BLOCKER_SEVERITY || severity == "major"
 
   init {
@@ -63,12 +57,6 @@ data class GoalSubtaskReviewCompactFinding(
   }
 }
 
-/**
- * The closed vocabulary a durable goal-review pass result may carry. [FeatureTaskRuntimeVerdict.fromWire]
- * accepts any non-blank value so durable records round-trip, so the producer of a pass result must
- * canonicalize an emitted verdict into this set rather than persisting whatever string the review
- * happened to write.
- */
 data class GoalSubtaskReviewPassResult(
   val passNumber: Int,
   val verdict: FeatureTaskRuntimeVerdict,
@@ -76,7 +64,7 @@ data class GoalSubtaskReviewPassResult(
   val unresolvedFindingCount: Int,
   val findings: List<GoalSubtaskReviewCompactFinding>,
   val executedMode: CodeReviewExecutionMode? = null,
-  /** Present only for a delegated pass over a real commit sequence; never fabricated otherwise. */
+
   val commitFocusedAccounting: GoalSubtaskCommitFocusedAccounting? = null,
 ) {
   init {
@@ -93,11 +81,6 @@ data class GoalSubtaskReviewPassResult(
     }
   }
 
-  /**
-   * Blocker or Major severity blocks advancing. A compact summary may carry a positive unresolved
-   * count with no itemised findings, so an empty finding list stays blocking; an itemised list must
-   * name a Blocker or Major.
-   */
   val blocksAdvance: Boolean get() = blocksAdvance(unresolvedFindingCount, findings)
 
   internal fun toArtifactMap(): Map<String, Any?> = linkedMapOf<String, Any?>(
@@ -149,11 +132,6 @@ data class GoalSubtaskReviewPassResult(
   }
 }
 
-/**
- * The indivisible durable identity of a goal-review child. A regular feature-task runtime
- * workflow has none of these artifacts; a goal child has all of them. Decoding them together
- * prevents a damaged child row from being mistaken for a standalone runtime workflow.
- */
 data class GoalSubtaskReviewArtifacts(
   val continuation: FeatureTaskRuntimeGoalContinuationArtifact,
   val state: GoalSubtaskReviewState,
@@ -223,17 +201,8 @@ object GoalSubtaskReviewArtifactDecoder {
     )
   }
 
-  /**
-   * Continuation alone, tolerant of a not-yet-captured review state. A goal child whose review
-   * state has not been captured yet (or disappeared) is still resumable by its continuation
-   * identity; whether that absence blocks progress is for the phase that actually needs review
-   * state to decide (see goal-review reservation), not every reader of the continuation.
-   */
   internal fun decodeContinuationOnlyWire(artifacts: Map<String, Any?>): FeatureTaskRuntimeGoalContinuationArtifact? {
     if (FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY !in artifacts) {
-      // A review state (or its raw results) without a continuation is not a legitimate "not
-      // captured yet" shape the way a missing state is: continuation is written first on every
-      // child-open path, so its absence alongside either one is genuine corruption.
       if (GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY in artifacts) {
         reviewStateError(
           FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY,
@@ -255,11 +224,6 @@ object GoalSubtaskReviewArtifactDecoder {
     }
   }
 
-  /**
-   * Review state alone, tolerant of it not existing yet: returns null instead of failing when the
-   * durable row simply has not captured review state (or it disappeared), deferring to the caller
-   * to decide whether that absence blocks it.
-   */
   internal fun decodeReviewStateOnlyWire(artifacts: Map<String, Any?>): GoalSubtaskReviewState? =
     if (GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY !in artifacts) null else decodeWire(artifacts)?.state
 
@@ -277,8 +241,6 @@ object GoalSubtaskReviewArtifactDecoder {
 
   private fun rawResults(artifacts: Map<String, Any?>, state: GoalSubtaskReviewState): Map<String, String> {
     if (state.completedPassCount == 0) {
-      // Review invalidation clears results through an empty map because the durable artifact patch
-      // merges keys and cannot express removal.
       val cleared = artifacts[GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY]
         ?.asGoalReviewArtifactMap(GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY)
         .orEmpty()

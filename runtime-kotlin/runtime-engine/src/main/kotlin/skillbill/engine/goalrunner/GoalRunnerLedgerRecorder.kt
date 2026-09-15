@@ -18,18 +18,12 @@ class GoalRunnerLedgerRecorder(
   private val clock: Clock,
   private val diagnostics: RuntimeDiagnostics,
 ) {
-  // SKILL-64 Subtask 3 (F-D01): the durable attempt ledger is append-only
-  // across resume runs. Seed its monotonic counter from the persisted max
-  // sequence for this issue so a resume continues the stream instead of
-  // restarting at 0 and emitting duplicate, non-monotonic sequence numbers. A
-  // fresh run (no durable entries) starts from the base.
+
   private val watermarks = runCatching {
     outcomeStore.ledgerSequenceWatermarks(request.issueKey)
   }.getOrNull()
   private var ledgerSequence: Int = watermarks?.maxLedgerSequence?.let { it + 1 } ?: 0
 
-  // Cumulative backward-edge counts keyed by "subtaskId:loopId". Seeded from persisted watermarks
-  // so a resume continues each loop's count rather than restarting from 0.
   private val cumulativeBackwardEdgeCounts: MutableMap<String, Int> =
     watermarks?.backwardEdgeCounts?.toMutableMap() ?: mutableMapOf()
 
@@ -67,8 +61,7 @@ class GoalRunnerLedgerRecorder(
       launchOutcome = facts?.let(::launchFinalStatus),
       timedOut = facts?.timedOut,
       interrupted = facts?.interrupted,
-      // SKILL-64 Subtask 3 (AC11): carry the provider-neutral child session
-      // path/id from launch facts instead of the prior hardcoded nulls.
+
       childSessionPath = facts?.childSessionPath,
       childSessionId = facts?.childSessionId,
       finalReconciledResult = context.finalReconciledResult?.takeIf(String::isNotBlank),
@@ -104,10 +97,6 @@ class GoalRunnerLedgerRecorder(
       }
   }
 
-  // SKILL-64 Subtask 3 (F-R02): best-effort ledger writes must never fail the
-  // run, but a silent gap must be detectable. Log WARNING on both a thrown
-  // failure and a false return (workflow not found). The message carries only
-  // workflowId/action/subtaskId — never secrets or prompt content.
   private fun logBestEffortFailure(action: String, workflowId: String, subtaskId: Int, error: Throwable) {
     diagnostics.warning(
       "Best-effort goal ledger write failed: action='$action' workflowId='$workflowId' subtaskId=$subtaskId " +

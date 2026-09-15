@@ -27,11 +27,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.CancellationException
 
-/**
- * Starts polling only while a project service/widget consumer is active.
- * Uses a configurable conservative interval, prevents overlapping polls, and
- * cancels the loop (and downstream process work via [onCancelProcesses]) on dispose.
- */
+
 class StatusRefreshCoordinator(
     private val statusRepository: StatusRepository,
     private val preferences: PreferenceCachePort,
@@ -48,7 +44,7 @@ class StatusRefreshCoordinator(
     private val _events = MutableSharedFlow<CoordinatorEvent>(extraBufferCapacity = 16)
     val events: SharedFlow<CoordinatorEvent> = _events.asSharedFlow()
 
-    /** Guarded by [refreshMutex]; read and written only inside [refreshOnce]. */
+    
     private var unconfirmedIdleSamples = 0
 
     @Volatile
@@ -110,8 +106,8 @@ class StatusRefreshCoordinator(
                 emit(transportFailureFallback(UnavailableReason.PROCESS_FAILURE) ?: return)
                 return
             }
-            // A single unconfirmed idle is usually the gap between two runtime records,
-            // not a finished goal: hold the live display until a second sample agrees.
+
+
             if (outcome.isUncorroboratedIdle()) {
                 val held = _outcomes.value
                 if (held != null && held.isLiveOutcome()) {

@@ -227,8 +227,6 @@ class WorkflowServiceTest {
 
   @Test
   fun `abandon terminalizes a legacy prose-mode goal parent without flipping mode`() {
-    // SKILL-179 AC-005/AC-007: prose parents terminalize through abandon with operator reason,
-    // preserved history, and mode left as prose.
     val workflows = InMemoryWorkflowStates()
     val service = WorkflowService(
       database = FakeDatabaseSessionFactory(workflows),
@@ -277,11 +275,6 @@ class WorkflowServiceTest {
     assertContains(repeated.error, "already terminal")
   }
 
-  /**
-   * SKILL-141 Subtask 1 AC-005: the new non-terminal parent status must not soften explicit operator
-   * abandonment. That path stays terminal with its reason artifact, and `paused` never enters the
-   * runtime family's vocabulary at all.
-   */
   @Test
   fun `explicit operator abandonment stays terminal and never resolves to the paused status`() {
     val workflows = InMemoryWorkflowStates()
@@ -425,8 +418,7 @@ class WorkflowServiceTest {
   @Test
   fun `update validation error does not carry a dbPath wire field`() {
     val service = newService()
-    // Validation-time error: invalid workflow_status string is rejected
-    // before the unit of work runs, so the typed error carries no dbPath.
+
     val result = service.update(
       WorkflowFamilyKind.TASK_RUNTIME,
       WorkflowUpdateRequest(
@@ -448,9 +440,7 @@ class WorkflowServiceTest {
   @Test
   fun `update unknown-workflow error does not carry a dbPath wire field`() {
     val service = newService()
-    // Unknown-workflow error inside the transaction: the legacy wire
-    // envelope intentionally omitted `db_path` on this branch, so the
-    // typed result must keep dbPath null even though the transaction ran.
+
     val result = service.update(
       WorkflowFamilyKind.TASK_RUNTIME,
       WorkflowUpdateRequest(
@@ -512,11 +502,6 @@ class WorkflowServiceTest {
 
   @Test
   fun `continueWorkflow on a blocked runtime row with a missing required phase record stays blocked`() {
-    // SKILL-175: the prose engine's input-projection selector (which rejected a missing declared
-    // projection with a typed error) is retired. The runtime resume gate judges upstream presence
-    // from the private per-phase records store, not top-level keys: with no completed `plan` phase
-    // record the row cannot resume, so continue stays blocked and names the missing upstream
-    // artifact instead of reopening.
     val service = newService()
     val opened = assertIs<WorkflowOpenResult.Ok>(service.openTestRuntime("ftr-001"))
     service.update(
@@ -543,13 +528,6 @@ class WorkflowServiceTest {
 
   @Test
   fun `InvalidWorkflowStateSchemaError loud-fails through WorkflowService get and continue before projection`() {
-    // SKILL-52.3 subtask 1: the concrete workflow-state schema validator now
-    // lives in `runtime-infra-fs` and is reached through the injected
-    // `WorkflowSnapshotValidator` port. This test pins the seam contract: the
-    // engine read path invokes the injected validator and surfaces its typed
-    // `InvalidWorkflowStateSchemaError` through the service. Real-schema
-    // coverage (which inputs trigger the error) lives in the infra-fs
-    // `WorkflowStateSchemaViolationsTest`.
     val workflows = InMemoryWorkflowStates()
     val record = testWorkflowEngine.openRecord(
       FeatureTaskRuntimePhaseWorkflowDefinition.definition,
@@ -905,11 +883,6 @@ class WorkflowServiceDecomposedParentTest {
     assertEquals("wfl-abandoned-progressed", selected?.workflowId)
   }
 
-  /**
-   * SKILL-141 Subtask 1 AC-006: the stale-lineage GC targets `abandoned` bookkeeping rows only. A
-   * `paused` parent is live work interrupted mid-run, so it is reused even when the manifest on disk
-   * has since been re-numbered — discarding it would orphan its planning preparations.
-   */
   @Test
   fun `decomposed parent lookup reuses a paused row whose subtask lineage predates a manifest edit`() {
     val workflows = InMemoryWorkflowStates()
@@ -1072,11 +1045,6 @@ class WorkflowServiceGoalManifestStoreTest {
     }
   }
 
-  /**
-   * SKILL-141 Subtask 1 AC-002/AC-003/AC-004: reconstructing the parent from a checked-in manifest
-   * stamps the non-terminal `paused` status instead of `abandoned`, and a subsequent resume reuses
-   * the same parent id, so the `GoalPlanningIdentity` its planning preparations are keyed on holds.
-   */
   @Test
   fun `goal manifest store imports a paused parent and resume reuses its id and planning identity`() {
     val repoRoot = Files.createTempDirectory("skillbill-goal-manifest-paused-import")
@@ -1237,12 +1205,6 @@ class WorkflowServiceGoalManifestStoreTest {
     )
   }
 
-  /**
-   * A scoped replan discards the subtask's stored plan, but a child hydrated from that plan keeps the
-   * old planning bytes as its own import. Leaving the child behind made the next launch fail the
-   * hydration provenance check and strand the goal on advice to hard reset, discarding every
-   * completed subtask's commit mapping to recover one amended subtask.
-   */
   @Test
   fun `scoped replan deletes the replanned subtask's hydrated child and preserves completed siblings`() {
     val workflows = RecordingGoalChildDeletionWorkflowStates(childStatus = "paused")
@@ -1423,8 +1385,6 @@ class WorkflowGoalStatusProjectionTest {
 
   @Test
   fun `goal status reports runner_interrupted pause for a legacy prose-mode parent`() {
-    // SKILL-179 AC-003: discovering a prose parent must not assert the runtime schema; status still
-    // reports the durable control pause including runner_interrupted.
     val workflows = InMemoryWorkflowStates()
     val controls = RecordingGoalRunnerControlRepository()
     val manifest = decompositionRuntime(status = "in_progress")
@@ -1643,7 +1603,6 @@ private object DivergedHeadGitOperations : WorkflowGitOperations by HeadShaGitOp
   ): WorkflowGitOperationResult = WorkflowGitOperationResult.Failed(error = "remote does not contain HEAD")
 }
 
-/** Kept separate from [WorkflowGoalRunnerOutcomeStoreTest] to stay under the detekt LargeClass threshold. */
 class GoalRunnerCommitShaRecoveryTest {
   @Test
   fun `goal runner outcome store completes blocked commit push when remote contains head`() {
@@ -1795,9 +1754,6 @@ class GoalRunnerCommitShaRecoveryTest {
 
   @Test
   fun `reconciliation backfills a pre-existing complete-without-sha outcome from measured git head`() {
-    // SKILL-68 AC6 case iv: a previously persisted complete-without-SHA store row is healed on the
-    // next reconciliation (manifest-workflowId-independent) — the measured HEAD SHA is durably
-    // backfilled and the subtask resolves COMPLETE.
     val workflows = InMemoryWorkflowStates()
     workflows.saveFeatureImplementWorkflow(completeWithoutShaOutcome("wfl-child"))
     val store = testWorkflowGoalRunnerOutcomeStore(
@@ -1818,8 +1774,6 @@ class GoalRunnerCommitShaRecoveryTest {
 
   @Test
   fun `reconciliation without a repo root leaves a complete-without-sha outcome unmeasured`() {
-    // SKILL-68 AC5 control: a pure read caller (repoRoot=null) never measures git HEAD, so a
-    // complete-without-SHA outcome is not silently healed by a status read.
     val workflows = InMemoryWorkflowStates()
     workflows.saveFeatureImplementWorkflow(completeWithoutShaOutcome("wfl-child"))
     val store = testWorkflowGoalRunnerOutcomeStore(
@@ -1909,8 +1863,6 @@ class GoalRunnerCommitShaRecoveryTest {
     ).toRecord()
   }
 
-  // A child stranded in the legacy bug state: commit_push completed under suppress_pr and a durable
-  // goal_continuation_outcome already records `complete`, but the SHA was dropped.
   private fun completeWithoutShaOutcome(workflowId: String): WorkflowStateRecord {
     val opened = testWorkflowEngine.openRecord(
       FeatureTaskRuntimePhaseWorkflowDefinition.definition,
@@ -1952,11 +1904,6 @@ class GoalRunnerCommitShaRecoveryTest {
   }
 }
 
-/**
- * SKILL-64 Subtask 4 (AC1, AC2): the compact workflow-update acknowledgement
- * byte-budget regression. Kept in its own class so it does not push the broad
- * [WorkflowServiceTest] over the detekt LargeClass threshold.
- */
 class WorkflowUpdateAcknowledgementBudgetTest {
   @Test
   fun `compact update acknowledgement stays under byte ceiling and omits full durable state`() {
@@ -2070,8 +2017,6 @@ class WorkflowGoalRunnerOutcomeStoreTest {
             ),
           ),
         ),
-        // SKILL-176: a stored blocked continuation outcome must corroborate against the durable
-        // workflow status, or it is treated as stale and displaced rather than read as authoritative.
         workflowStatus = "blocked",
       ),
     )
@@ -2270,9 +2215,6 @@ class WorkflowGoalRunnerReconciliationTest {
 
   @Test
   fun `goal runner reconciles crashed runtime row without outcome to real last completed phase not preplan`() {
-    // AC5/AC8: a crashed runtime row with completed preplan/plan records, no running step, and no
-    // goal_continuation_outcome must reconcile to its real resume boundary (implement), never
-    // mis-default to preplan.
     val workflows = InMemoryWorkflowStates()
     val definition = FeatureTaskRuntimePhaseWorkflowDefinition.definition
     val opened = testWorkflowEngine.openRecord(definition, "wftr-child", "ftr-001", "preplan")
@@ -2331,11 +2273,6 @@ class WorkflowGoalRunnerReconciliationTest {
 
   @Test
   fun `goal runner resumes a clean-review runtime row at audit not the loop-only implement_fix`() {
-    // PS-24 regression: implement_fix is loop-only and sits before review in definition order. A
-    // reconciled runtime row whose review completed CLEAN must resume at the real forward boundary
-    // (audit), never park at implement_fix (the first definition-ordered loop-only step still pending),
-    // which a review verdict of APPROVED never triggers. The boundary scan must skip loop-only steps
-    // exactly as the forward transition does.
     val workflows = InMemoryWorkflowStates()
     val definition = FeatureTaskRuntimePhaseWorkflowDefinition.definition
     val opened = testWorkflowEngine.openRecord(definition, "wftr-clean-review", "ftr-002", "preplan")
@@ -2350,7 +2287,6 @@ class WorkflowGoalRunnerReconciliationTest {
             mapOf("step_id" to "preplan", "status" to "completed", "attempt_count" to 1),
             mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1),
             mapOf("step_id" to "implement", "status" to "completed", "attempt_count" to 1),
-            // implement_fix stays pending (the clean review never triggered the review_fix edge).
             mapOf("step_id" to "review", "status" to "completed", "attempt_count" to 1),
           ),
         ),
@@ -2385,10 +2321,6 @@ class WorkflowGoalRunnerReconciliationTest {
 
   @Test
   fun `goal runner resumes a runtime row genuinely parked at the loop-only implement_fix there`() {
-    // PS-24 positive counterpart: filtering loop-only steps out of the boundary scan must not
-    // over-skip a row that is genuinely mid-fix. When a review verdict of CHANGES_REQUESTED took the
-    // review_fix backward edge, implement_fix is the active (running) step, so the running-step
-    // short-circuit in blockedStepId returns it before the loop-only filter is ever consulted.
     val workflows = InMemoryWorkflowStates()
     val definition = FeatureTaskRuntimePhaseWorkflowDefinition.definition
     val opened = testWorkflowEngine.openRecord(definition, "wftr-mid-fix", "ftr-003", "preplan")
@@ -2403,7 +2335,6 @@ class WorkflowGoalRunnerReconciliationTest {
             mapOf("step_id" to "preplan", "status" to "completed", "attempt_count" to 1),
             mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1),
             mapOf("step_id" to "implement", "status" to "completed", "attempt_count" to 1),
-            // review completed with CHANGES_REQUESTED, taking the review_fix edge back to implement_fix.
             mapOf("step_id" to "review", "status" to "completed", "attempt_count" to 1),
             mapOf("step_id" to "implement_fix", "status" to "running", "attempt_count" to 1),
           ),
@@ -2438,9 +2369,6 @@ class WorkflowGoalRunnerReconciliationTest {
 
   @Test
   fun `only the runtime family carries loop-only steps so non-runtime boundary scans stay strict`() {
-    // The loop-only filter in the resume-boundary scan is family-scoped. VERIFY runs a strict
-    // forward pipeline, so its loopOnlyStepIds stay empty and its boundary resolution is unchanged;
-    // only TASK_RUNTIME inherits the runtime definition's loop-only phases.
     assertEquals(emptySet<String>(), WorkflowFamily.VERIFY.loopOnlyStepIds)
     assertEquals(
       FeatureTaskRuntimePhaseWorkflowDefinition.transitions.loopOnlyPhaseIds,
@@ -2569,17 +2497,9 @@ private fun activeRetryChildRecord(definition: WorkflowDefinition) = testWorkflo
   ),
 )
 
-// Goal-runner progress projection, progress/session/ledger persistence, and subtask resume
-// alignment for the outcome store. Split out of WorkflowGoalRunnerOutcomeStoreTest so each class
-// stays under the detekt LargeClass threshold.
 class WorkflowGoalRunnerProgressStoreTest {
   @Test
   fun `goal runner progress keeps declared liveness when goal observability latest event is malformed`() {
-    // SKILL-64 Subtask 3 (F-R01): a corrupt goal_observability_latest_event must
-    // NOT return null for the whole poll (callers wrap progress() in
-    // runCatching{}.getOrNull()) — that would permanently disable deterministic
-    // declared-progress liveness and revert to legacy false-kill heuristics.
-    // The declared-progress read is independent of the observability decode.
     val workflows = InMemoryWorkflowStates()
     workflows.saveFeatureImplementWorkflow(
       workflowRecord(
@@ -2724,9 +2644,6 @@ class WorkflowGoalRunnerProgressStoreTest {
     assertEquals("needs approval", confirmation["reason"])
   }
 
-  // SKILL-64 Subtask 3 (F-T01): the durable appendHistoryArtifact write seam
-  // (decode artifacts_json -> append -> sequence-ordered prune -> latest-event
-  // mirror) had zero coverage. These exercise it through the real outcome store.
   @Test
   fun `record progress event accumulates append-only and mirrors latest-event key`() {
     val workflows = InMemoryWorkflowStates()
@@ -2759,8 +2676,6 @@ class WorkflowGoalRunnerProgressStoreTest {
       testWorkflowSnapshotValidator,
     )
 
-    // Append more than the bounded history limit, deliberately out of order, to
-    // assert sequence-ordered retention that drops the OLDEST (lowest sequence).
     val total = GOAL_PROGRESS_HISTORY_LIMIT + 5
     (total - 1 downTo 0).forEach { sequence ->
       store.recordProgressEvent(progressEventRequest("wfl-child", sequenceNumber = sequence))
@@ -2790,9 +2705,6 @@ class WorkflowGoalRunnerProgressStoreTest {
 
   @Test
   fun `record progress event loud-fails through the schema validator at the write seam`() {
-    // SKILL-64 Subtask 3 (F-A01): a malformed declared-progress event must be
-    // rejected at the durable write seam through the injected validator port,
-    // not silently persisted and then dropped by the soft supervisor read.
     val workflows = InMemoryWorkflowStates()
     workflows.saveFeatureImplementWorkflow(workflowRecord("wfl-child", emptyMap()))
     val store = testWorkflowGoalRunnerOutcomeStore(
@@ -2849,8 +2761,6 @@ class WorkflowGoalRunnerProgressStoreTest {
 
   @Test
   fun `ledger sequence watermarks report the persisted max across continuation children`() {
-    // SKILL-64 Subtask 3 (F-D01): the recorder seeds its monotonic counters from
-    // these watermarks so a resume run continues the append-only stream.
     val workflows = InMemoryWorkflowStates()
     workflows.saveFeatureImplementWorkflow(
       workflowRecord(
@@ -2864,10 +2774,7 @@ class WorkflowGoalRunnerProgressStoreTest {
     )
     store.recordAttemptLedgerEntry(attemptLedgerRequest("wfl-child", sequenceNumber = 0))
     store.recordAttemptLedgerEntry(attemptLedgerRequest("wfl-child", sequenceNumber = 1))
-    // SKILL-64 Subtask 3 (F-NT03): goal_progress is the exact stream the
-    // production supervisor emitter seeds from (GoalRunner.kt watermarkSeed =
-    // maxProgressSequence). Record events out of order to prove the watermark is
-    // the MAX of the persisted goal_progress_run_history, not the last write.
+
     store.recordProgressEvent(progressEventRequest("wfl-child", sequenceNumber = 3))
     store.recordProgressEvent(progressEventRequest("wfl-child", sequenceNumber = 2))
 
@@ -2876,8 +2783,7 @@ class WorkflowGoalRunnerProgressStoreTest {
     assertEquals(1, watermarks.maxLedgerSequence)
     assertEquals(3, watermarks.maxProgressSequence)
     assertNull(store.ledgerSequenceWatermarks("SKILL-other").maxLedgerSequence)
-    // No goal_progress recorded for the unrelated issue, so its progress
-    // watermark must be absent (null) rather than 0.
+
     assertNull(store.ledgerSequenceWatermarks("SKILL-other").maxProgressSequence)
   }
 
@@ -2971,12 +2877,6 @@ class WorkflowGoalRunnerProgressStoreTest {
   }
 }
 
-/**
- * SKILL-64 Subtask 4 (AC1, AC2): named ceiling for the compact workflow-update
- * acknowledgement. The compact ack carries only summary fields + read-only
- * guidance, so it stays tiny regardless of how large the persisted artifacts
- * are; echoing the full durable state back would blow past this.
- */
 private const val COMPACT_UPDATE_ACK_PAYLOAD_BYTE_CEILING = 1024
 
 private fun decodeWorkflowStepsForTest(stepsJson: String): Map<String, String> {
@@ -3141,7 +3041,6 @@ private fun scopedReplanStore(
   )
 }
 
-// A temp repoRoot keeps the projection writer off the process cwd, which other tests assert stays clean.
 private fun scopedReplanState(manifest: DecompositionManifest, tempPrefix: String) = GoalRunnerManifestState(
   "wfl-parent",
   "/fake/metrics.db",
@@ -3204,8 +3103,6 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
 
   @Test
   fun `hydrated preplan and plan record goal-planning-hydrated provenance at attempt 1`() {
-    // AC-007: preplan and plan execute once at the parent and are hydrated into the child. The producer
-    // gate added on the goal side must not introduce a path that re-executes settled planning.
     val harness = hydrationHarness()
 
     harness.store.saveNewChildWorkflow(harness.state, harness.setup)
@@ -3266,8 +3163,6 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
 
   @Test
   fun `hydrating a projection-invalid stored plan loud-fails before any child artifact is written`() {
-    // AC-004: the hydrator runs the phase-output schema gate, so an import missing plan value is
-    // refused here rather than deferred to implement's launch seam.
     val harness = hydrationHarness(
       variant = "projection_invalid",
       phaseOutputValidator = realFeatureTaskRuntimePhaseOutputValidator,
@@ -3282,11 +3177,6 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
     assertNull(harness.workflows.executionIdentity(CHILD_ID))
   }
 
-  /**
-   * SKILL-141: a hydrated planning projection that fails its consumer gate re-enters the plan
-   * phase's own bounded fix loop, which rewrites the child's plan record and step. That repair is
-   * documented behaviour, so resume must still recognise the import instead of bricking the child.
-   */
   @Test
   fun `resume accepts a child whose imported plan phase was repaired by its own fix loop`() {
     val harness = hydrationHarness()
@@ -3371,11 +3261,6 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
     assertContains(error.message.orEmpty(), "stored import provenance differs from the hydration request")
   }
 
-  /**
-   * SKILL-141 F-009: resume must reject when the child carries no goal_planning_import artifact at
-   * all — the very first branch in firstDivergence returns "child carries no goal planning import
-   * artifact".
-   */
   @Test
   fun `resume rejects a child that carries no goal planning import artifact`() {
     val harness = hydrationHarness()
@@ -3394,15 +3279,11 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
     assertContains(error.message.orEmpty(), "child carries no goal planning import artifact")
   }
 
-  /**
-   * SKILL-141 F-009: resume must reject when the parent's preparation checkpoints are no longer
-   * available (preparedMatches returns false).
-   */
   @Test
   fun `resume rejects a child when parent planning checkpoints are no longer available`() {
     val harness = hydrationHarness()
     harness.store.saveNewChildWorkflow(harness.state, harness.setup)
-    // Evict the shared checkpoint so preparedMatches sees shared == null
+
     harness.preparations.shared = null
 
     val error = assertFailsWith<IncompatibleGoalPlanningPreparationRecoveryError> {
@@ -3415,10 +3296,6 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
     )
   }
 
-  /**
-   * SKILL-141 F-009: resume must reject when the stored planning ledger prefix no longer matches
-   * the goal-planning-import contract (ledgerMatches returns false).
-   */
   @Test
   fun `resume rejects a child whose planning ledger prefix no longer matches the import`() {
     val harness = hydrationHarness()
@@ -3441,10 +3318,6 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
     assertContains(error.message.orEmpty(), "phase ledger no longer opens with the goal planning import prefix")
   }
 
-  /**
-   * SKILL-141 F-009 / F-003: a completed plan phase record with a missing output_artifact must not
-   * be considered settled — resume must reject it so the import is not silently swallowed.
-   */
   @Test
   fun `resume rejects a child whose completed plan phase is missing its output artifact`() {
     val harness = hydrationHarness()
@@ -3462,10 +3335,6 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
     assertContains(error.message.orEmpty(), "child planning phases are not settled as completed")
   }
 
-  /**
-   * SKILL-141 F-009 / F-002: a plan phase that is `running` with a non-blank `rejected_output`
-   * is in the fix-loop and must be accepted as settled — the import identity is still intact.
-   */
   @Test
   fun `resume accepts a child whose plan phase is in the fix loop with output moved to rejected`() {
     val harness = hydrationHarness()
@@ -3478,9 +3347,7 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
       planRecord["finished_at"] = null
       planRecord
     }
-    // invalidateQuarantinedProducerRecord writes the record and its step from one record set, so the
-    // step must move to running with the record. Leaving it completed models state production cannot
-    // emit and would let this test pass against a stepsSettled that still demands completed.
+
     val quarantinedStepsJson = child.stepsJson.replace(
       "\"step_id\":\"plan\",\"status\":\"completed\"",
       "\"step_id\":\"plan\",\"status\":\"running\"",
@@ -3493,7 +3360,6 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
       ),
     )
 
-    // Must not throw — a running record with rejected_output is considered settled
     harness.store.saveNewChildWorkflow(harness.state, harness.setup)
 
     val resumed = requireNotNull(harness.workflows.getFeatureTaskRuntimeWorkflow(CHILD_ID))
@@ -3712,12 +3578,10 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
   ) {
     val state = GoalRunnerManifestState("goal-parent", "/fake/metrics.db", manifest)
 
-    /** Shared by every store this harness builds, so control writes survive across stores. */
     val controls = RecordingGoalRunnerControlRepository()
     val store = newStore()
     val setup = setupFor(1)
 
-    /** Same store, but with a fixed clock so every paused=true write has an assertable timestamp. */
     fun newClockedStore(instant: String = PAUSE_CLOCK_INSTANT) = testWorkflowGoalRunnerManifestStore(
       database = FakeDatabaseSessionFactory(
         workflows,
@@ -3765,8 +3629,6 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
     const val LATER_PAUSE_CLOCK_INSTANT = "2026-08-07T13:00:00Z"
     val REPOSITORY_IDENTITY = "repo-root-realpath-v1:${Path.of("").toAbsolutePath().normalize()}"
 
-    // Hydration payloads carry real bounded projections: the hydrator now runs the shared producer
-    // projection gate, so a placeholder produced_outputs would be rejected before any child artifact.
     val PREPLAN_PAYLOAD = """
       {
         "contract_version":"$FEATURE_TASK_RUNTIME_CONTRACT_VERSION",
@@ -3775,7 +3637,6 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
       }
     """.trimIndent()
 
-    // A settled plan whose produced_outputs omits the required non-blank value.
     val EMPTY_VALUE_PLAN_PAYLOAD = """
       {
         "contract_version":"$FEATURE_TASK_RUNTIME_CONTRACT_VERSION",
@@ -3914,10 +3775,6 @@ private class RecordingGoalRunnerControlRepository : GoalRunnerControlRepository
   }
 }
 
-/**
- * Mirrors `WorkflowStateStore.deleteGoalChildWorkflow`, whose SQL predicate removes a goal child only
- * when [childStatus] is one of the requested scope's deletable statuses.
- */
 internal class RecordingGoalChildDeletionWorkflowStates(
   private val childStatus: String = "blocked",
   delegate: InMemoryWorkflowStates = InMemoryWorkflowStates(),
@@ -4093,11 +3950,6 @@ class DecompositionDiskBootstrapTest {
     assertTrue(workflows.listFeatureTaskRuntimeWorkflows(Int.MAX_VALUE).isEmpty())
   }
 
-  /**
-   * SKILL-141 Subtask 1 AC-002/AC-004: the disk bootstrap reconstructs an interrupted parent, so it
-   * must stamp the resumable `paused` status. Stamping `abandoned` made the row terminal and stale
-   * lineage, which orphaned the planning preparations keyed on that parent id.
-   */
   @Test
   fun `continueDecomposedParentByIssueKey bootstraps the parent as paused rather than abandoned`() {
     val repoRoot = Files.createTempDirectory("skillbill-disk-bootstrap-paused")
@@ -4151,12 +4003,6 @@ class DecompositionDiskBootstrapTest {
     )
   }
 
-  /**
-   * SKILL-141 Subtask 1 AC-004: when a pre-existing parent row has a corrupt decomposition artifact
-   * (findDecomposedParentWorkflow requires a valid decode and filters it out), the secondary
-   * issue-key plus legacy plan-marker search must reclaim it so bootstrap does not mint a second
-   * orphaned id.
-   */
   @Test
   fun `continueDecomposedParentByIssueKey reuses existing parent when decomposition artifact is corrupt`() {
     val (workflows, continuation) = corruptParentContinuation()
@@ -4166,8 +4012,7 @@ class DecompositionDiskBootstrapTest {
     }
     val parentRow = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wfl-corrupt-parent"))
     assertEquals("paused", parentRow.workflowStatus)
-    // No second parent should have been minted: only one row must carry both the
-    // decompose-mode plan artifact and the issue key (child subtask rows don't have it).
+
     val parentRows = workflows.decomposedParentRows("SKILL-TEST")
     assertEquals(1, parentRows.size, "Bootstrap must reuse the existing parent, not mint a second one.")
     assertEquals("wfl-corrupt-parent", parentRows.single().workflowId)
@@ -4225,10 +4070,6 @@ class DecompositionDiskBootstrapTest {
     )
   }
 
-  /**
-   * SKILL-141 F-009 AC-004: two back-to-back calls for the same issue key must not mint a second
-   * parent row — the second call must find the row that the first call bootstrapped.
-   */
   @Test
   fun `continueDecomposedParentByIssueKey is idempotent and does not mint a second parent row`() {
     val repoRoot = Files.createTempDirectory("skillbill-disk-bootstrap-idempotent")
@@ -4287,11 +4128,6 @@ class DecompositionDiskBootstrapTest {
     )
   }
 
-  /**
-   * SKILL-141 F-009: corrupt-fallback idempotency — two consecutive calls with a pre-existing corrupt
-   * parent must both operate on the same workflowId. First call reclaims via corrupt-fallback;
-   * second call finds the now-repaired row via the canonical finder. Neither call mints a fresh id.
-   */
   @Test
   fun `continueDecomposedParentByIssueKey is idempotent when starting from a corrupt parent row`() {
     val repoRoot = Files.createTempDirectory("skillbill-corrupt-idempotent")
@@ -4352,10 +4188,6 @@ class DecompositionDiskBootstrapTest {
     assertEquals("wfl-corrupt-idempotent", parentRows.single().workflowId, "Both calls must reuse the original row")
   }
 
-  /**
-   * SKILL-141 F-011 AC-007: an explicitly abandoned corrupt parent must NOT be reclaimed or
-   * resurrected to paused. The IMPLEMENT_TERMINAL_STATUSES gate must exclude it.
-   */
   @Test
   fun `continueDecomposedParentByIssueKey does not reclaim an explicitly abandoned corrupt parent`() {
     val repoRoot = Files.createTempDirectory("skillbill-abandoned-corrupt")

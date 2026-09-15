@@ -10,10 +10,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-/**
- * SKILL-136 subtask 6 AC-006/AC-007: pruning is opt-in. The default invocation is a dry run that
- * deletes nothing, and deletion happens only behind an explicit confirmation.
- */
 class ReviewSnapshotPruneServiceTest {
   @Test
   fun `the default invocation lists candidates and deletes nothing`() {

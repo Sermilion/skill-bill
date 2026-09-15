@@ -121,15 +121,7 @@ class RejectedOutputDiagnosticService(
   }
 
   companion object {
-    // SKILL-152: this identity stays generation-blind. It is stored durably on quarantine entries as
-    // `diagnosticIdentity`, so adding the review generation would rewrite already-persisted identities.
-    // A review-generation restart can therefore still collide here; that widening is tracked separately.
-    //
-    // SKILL-185: the repair-turn ordinal is folded into the preimage only when it is non-zero. A gate
-    // repair cycle re-runs an agent under one unchanged attempt, so two consecutively rejected turns
-    // need distinct identities; every ordinary attempt stays at turn 0 and therefore keeps hashing the
-    // exact preimage it always did, which is what keeps an identity already persisted on a quarantine
-    // entry resolvable.
+
     fun stableIdentity(workflowId: String, phaseId: String, attempt: Int, repairTurn: Int = 0): String {
       val base = "$workflowId\u0000$phaseId\u0000$attempt"
       val preimage = if (repairTurn == 0) base else "$base\u0000$repairTurn"

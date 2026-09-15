@@ -25,10 +25,6 @@ private const val PARENT_WORKFLOW_ID = "wftr-pairing"
 private const val ISSUE_KEY = "SKILL-1"
 private const val OPERATION = "plan:3:attempt:1"
 
-/**
- * A relaunched goal re-mints the same operation name for the attempt it retries, so the name alone
- * does not identify one interval. These pin that each start keeps its own completion.
- */
 class GoalPlanningLogPairingTest {
   @Test
   fun `a relaunched attempt does not borrow the previous segment's completion`() {
@@ -132,7 +128,6 @@ private class StubOutcomeStore(private val events: List<GoalProgressEvent>) :
   override fun progressEvents(workflowId: String) = events
 }
 
-/** Rejection metadata is a separate read the log degrades past; refusing it keeps these on pairing. */
 private object UnreadableDatabase : DatabaseSessionFactory {
   override fun resolveDbPath(): Path = Path.of("/fake/metrics.db")
 

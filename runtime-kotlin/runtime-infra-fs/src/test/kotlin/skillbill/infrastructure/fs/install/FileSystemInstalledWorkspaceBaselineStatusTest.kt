@@ -14,12 +14,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-/**
- * SKILL-77 Subtask 4: exercises the installed-workspace modified-vs-baseline status against
- * the REAL SKILL-76 wire format and `computeInstallContentHash` hasher — baselines are
- * captured with [enumerateSkills] and persisted through [FileSystemBaselineManifestPersistence],
- * exactly as install does, so a match/mismatch/add/remove/missing case reflects production.
- */
 class FileSystemInstalledWorkspaceBaselineStatusTest : InstallApplyTestSupport() {
   private val persistence = FileSystemBaselineManifestPersistence()
   private val status = FileSystemInstalledWorkspaceBaselineStatus(persistence)

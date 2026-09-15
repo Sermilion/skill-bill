@@ -10,10 +10,6 @@ import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_SHARED_EVIDENCE_PROJECT
 const val FEATURE_TASK_RUNTIME_INCOMPATIBLE_RECORD_GUIDANCE: String =
   "restart the active run or use the documented out-of-band migration procedure"
 
-/**
- * Immutable identity of the exact producer attempt from which a consumer projection was derived.
- * A phase id alone is insufficient on retries and backward edges.
- */
 data class FeatureTaskRuntimeProducerIteration(
   val phaseId: String,
   val iteration: Int,
@@ -24,10 +20,6 @@ data class FeatureTaskRuntimeProducerIteration(
   }
 }
 
-/**
- * Privacy-safe projection accounting. This type intentionally has no prompt, payload, source,
- * receipt, diff, log, or arbitrary metadata field.
- */
 data class FeatureTaskRuntimeProjectionMeasurement(
   val workflowId: String,
   val consumerPhaseId: String,
@@ -82,11 +74,6 @@ data class FeatureTaskRuntimeProjectionMeasurement(
   }
 }
 
-/**
- * Privacy-safe shared-evidence accounting. Carries identifiers, the resolve outcome, and bounded
- * index counters only — never file paths, diff content, or prompt bodies — so reuse rate is
- * computable from the emitted fields alone.
- */
 data class FeatureTaskRuntimeSharedEvidenceMeasurement(
   val workflowId: String,
   val checkpointFingerprint: String,
@@ -126,15 +113,6 @@ enum class FeatureTaskRuntimeSharedEvidenceOutcome(val wireValue: String) {
   CHECKPOINT_CHANGE_REDERIVATION("checkpoint_change_rederivation"),
 }
 
-/**
- * Privacy-safe accounting for an attempt the schema gate REJECTED. The projection measurement above
- * records only projections that passed, so without this type an exhausted fix loop is invisible to
- * everyone except the operator reading the block — which is how a recurring over-length receipt field
- * reached users before anyone could see it happening.
- *
- * The same payload-free boundary the retry path enforces applies here: the pointer and the
- * classification are emitted, never the offending value. [observedLength] is a length, not content.
- */
 data class FeatureTaskRuntimeRejectionMeasurement(
   val workflowId: String,
   val phaseId: String,
@@ -144,12 +122,7 @@ data class FeatureTaskRuntimeRejectionMeasurement(
   val violationClass: FeatureTaskRuntimeRejectionViolationClass,
   val declaredCap: Int? = null,
   val observedLength: Int? = null,
-  /**
-   * Whether this rejection is the one that spent the phase's output-gate correction budget, or `null`
-   * when no output-gate budget governs it (a process failure and a reconciliation rejection are
-   * counted elsewhere). The run loop that owns the cap supplies it; it is never read back out of the
-   * rejection reason text, which is how every record came to claim an intact budget.
-   */
+
   val exhaustedFixLoop: Boolean? = null,
 ) {
   init {
@@ -188,14 +161,6 @@ data class FeatureTaskRuntimeRejectionMeasurement(
   }
 }
 
-/**
- * Privacy-safe accounting for a diagnostic-persistence failure the runtime degraded instead of
- * throwing. The durable [FeatureTaskRuntimeDiagnosticSignal] is the operator record; this event is
- * the countable aggregate of the same payload-free fields.
- *
- * [repairTurn] is omitted from the map when the failure was not scoped to one turn, matching the
- * newest-turn read path. [attempt] is the phase attempt, not a projection iteration.
- */
 data class FeatureTaskRuntimeDiagnosticDegradationMeasurement(
   val workflowId: String,
   val phaseId: String,
@@ -241,10 +206,6 @@ data class FeatureTaskRuntimeDiagnosticDegradationMeasurement(
   }
 }
 
-/**
- * Why the gate rejected, at the coarsest granularity that still separates repairable field errors from
- * an unparseable response. [LENGTH] is the one this vocabulary exists to make countable.
- */
 enum class FeatureTaskRuntimeRejectionViolationClass(val wireValue: String) {
   LENGTH("length"),
   MISSING("missing"),
@@ -254,24 +215,12 @@ enum class FeatureTaskRuntimeRejectionViolationClass(val wireValue: String) {
   OTHER("other"),
 }
 
-// The validator groups digits past a thousand ("4,096"), so the separator belongs to the number.
 private val REJECTION_LENGTH_PATTERN =
   Regex("""(?:must be|allows) at most ([0-9][0-9,]*) characters""", RegexOption.IGNORE_CASE)
 
-/**
- * The declared cap a validator reason names, or null when it names none. Reading the figure from the
- * message rather than from a constant is what lets one classifier serve every bounded field regardless
- * of its cap.
- */
 fun featureTaskRuntimeRejectionCapOf(validationReason: String): Int? =
   REJECTION_LENGTH_PATTERN.find(validationReason)?.groupValues?.get(1)?.replace(",", "")?.toIntOrNull()
 
-/**
- * Classifies a validator reason into the countable vocabulary. Ordered most-specific first: a length
- * violation is recognised by its stated cap (or a bare `maxLength` mention) before the broader type and
- * shape phrasings, which would otherwise absorb it — "must be at most N characters" also matches "must
- * be a".
- */
 fun featureTaskRuntimeRejectionViolationClassOf(validationReason: String): FeatureTaskRuntimeRejectionViolationClass =
   when {
     featureTaskRuntimeRejectionCapOf(validationReason) != null || validationReason.contains("maxLength") ->

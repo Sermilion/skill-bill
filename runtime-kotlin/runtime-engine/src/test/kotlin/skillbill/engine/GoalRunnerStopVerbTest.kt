@@ -350,7 +350,6 @@ private class StopFakeManifestStore(
   override fun releaseExecutionLease(parentWorkflowId: String, ownerToken: String, generation: Long): Boolean = false
 }
 
-/** Records every supervisor interaction in order so tests can assert graceful-before-forcible and refusals. */
 private class RecordingSupervisor(
   private val inspection: FeatureTaskRuntimeProcessInspection,
   private val throwOnTerminate: Boolean = false,

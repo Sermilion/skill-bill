@@ -10,9 +10,6 @@ internal object TestRepositoryFingerprintOperations : RepositoryFingerprintGitOp
     WorkflowGitOperationResult.Ok(value = "test-repository-fingerprint")
 }
 
-// A measurable, empty inventory: the CLI fakes run against no real worktree, so the scope genuinely
-// owns nothing. The helper exists because an absent implementation now fails loudly rather than
-// silently reporting that same empty answer.
 internal object TestRepositoryOwnedPathsOperations : RepositoryOwnedPathsGitOperations {
   override fun ownedPaths(repoRoot: Path): WorkflowGitOperationResult = WorkflowGitOperationResult.Ok(value = "")
 }

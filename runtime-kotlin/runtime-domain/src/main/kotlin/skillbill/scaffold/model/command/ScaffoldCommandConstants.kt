@@ -13,16 +13,6 @@ import skillbill.scaffold.policy.scaffold.SUPPORTED_SKILL_KINDS
 import skillbill.scaffold.policy.scaffold.isRetiredPartialScaffoldKindAlias
 import skillbill.scaffold.policy.scaffold.rejectRetiredPartialScaffoldKind
 
-/**
- * SKILL-52.2 subtask 2: re-export of the scaffold wire-payload constants that adapter parsers
- * (CLI / MCP / Desktop) need. The constants themselves live in `skillbill.scaffold.policy` so
- * the legacy filesystem orchestrator continues to reference them by their canonical names;
- * exposing them here under `skillbill.scaffold.model.command.*` keeps adapter imports inside
- * the architecturally-allowed `skillbill.scaffold.model.*` prefix (see
- * `runtime-core/src/test/kotlin/skillbill/architecture/RuntimeImplementationImportRules.kt`).
- *
- * No values are duplicated — these are aliases of the policy constants.
- */
 val SCAFFOLD_COMMAND_PAYLOAD_VERSION: String get() = SCAFFOLD_PAYLOAD_VERSION
 val SCAFFOLD_COMMAND_KIND_HORIZONTAL: String get() = SKILL_KIND_HORIZONTAL
 val SCAFFOLD_COMMAND_KIND_PLATFORM_OVERRIDE_PILOTED: String get() = SKILL_KIND_PLATFORM_OVERRIDE_PILOTED

@@ -7,17 +7,6 @@ import kotlin.io.path.name
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-/**
- * SKILL-140 Subtask 3 (AC-004): the Noop planning-projection validator leaves the canonical Draft
- * 2020-12 schema unenforced, so it belongs only in tests asserting the typed Kotlin rules in isolation,
- * incidental prompt/harness wiring, or the deliberate Noop-vs-real parity contrast. Every gate,
- * launch-seam, and schema-behavior assertion runs against the real infra-fs validator (the
- * RealValidator* integration suites and EdgeTest's real-validator cases).
- *
- * This guard enumerates the permitted test consumers with a rationale each. A new test that reaches for
- * the Noop stand-in — the exact regression that let asymmetric-seam bugs ship green — fails the build
- * until it is either switched to the real validator or added here with an explicit justification.
- */
 class PlanningProjectionNoopValidatorGuardTest {
   private val runtimeRoot: Path =
     Path.of("").toAbsolutePath().normalize().let { workingDir ->
@@ -26,7 +15,6 @@ class PlanningProjectionNoopValidatorGuardTest {
 
   private val noopSymbol = "NoopFeatureTaskRuntimePlanningProjectionValidator"
 
-  // File name -> why this test may leave the canonical schema unenforced.
   private val permittedConsumers: Map<String, String> = mapOf(
     "FeatureTaskRuntimeRunnerTestSupport.kt" to
       "Shared run-loop harness default; runner-behavior tests do not assert schema-projection " +

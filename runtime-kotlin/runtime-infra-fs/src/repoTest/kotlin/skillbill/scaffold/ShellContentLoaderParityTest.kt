@@ -343,10 +343,6 @@ class ShellContentLoaderParityTest {
 
   @Test
   fun `valid frontmatter passes shape validator regardless of body markdown`() {
-    // Body-shape rules (fenced code, H1, H3, tables, intro content) are no longer enforced
-    // by the SkillMdShapeValidator on content.md callsites; only SKILL.md callers opt in via
-    // validateBodyShape=true. This test confirms content.md tolerates rich body markdown all the
-    // way through the loadPlatformPack integration path that consumes content.md in production.
     val root = copyFixture("valid_pack")
     val contentFile = root.resolve("code-review").resolve("content.md")
     val richBody = """
@@ -371,7 +367,7 @@ class ShellContentLoaderParityTest {
       |
     """.trimMargin()
     Files.writeString(contentFile, richBody)
-    // Calling the shape validator directly remains intentionally independent of governed body conformance.
+
     validateSkillMdShape(contentFile, validateBodyShape = false)
   }
 }

@@ -4,10 +4,6 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.infrastructure.fs.contracts.workflow.FeatureTaskRuntimeImplementationAttemptSchemaValidator
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeImplementationAttemptValidator
 
-/**
- * Bridges the domain-owned [FeatureTaskRuntimeImplementationAttemptValidator] port to the concrete
- * [FeatureTaskRuntimeImplementationAttemptSchemaValidator].
- */
 @Inject
 class FeatureTaskRuntimeImplementationAttemptValidatorAdapter : FeatureTaskRuntimeImplementationAttemptValidator {
   override fun validateImplementationAttemptRecord(attemptRecord: Any, sourceLabel: String) {

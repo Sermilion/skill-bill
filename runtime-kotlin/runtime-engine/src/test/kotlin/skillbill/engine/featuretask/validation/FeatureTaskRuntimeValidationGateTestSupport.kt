@@ -207,7 +207,6 @@ internal fun kotlinPackWithoutGate(): PlatformManifest = PlatformManifest(
   validationGate = null,
 )
 
-/** Review-fallback pack: co-routed for unmatched paths; must not steal build/validate gate selection. */
 internal fun reviewFallbackPackWithoutGate(): PlatformManifest = PlatformManifest(
   slug = "generic",
   packRoot = validationGateTestRepoRoot.resolve("platform-packs/generic").toFileLocation(),

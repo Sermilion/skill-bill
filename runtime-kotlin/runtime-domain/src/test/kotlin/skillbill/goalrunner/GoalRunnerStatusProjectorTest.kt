@@ -34,8 +34,6 @@ class GoalRunnerStatusProjectorTest {
     assertEquals(0, projection.pendingCount)
   }
 
-  // Only supervisor events are persisted, so a block recorded when a prior run stopped is still the newest
-  // stored event while a relaunched child runs. Rendering it would contradict the live workflow status.
   @Test
   fun `a block liveness signal is withheld while the child workflow runs`() {
     val projection = GoalRunnerStatusProjector.project(

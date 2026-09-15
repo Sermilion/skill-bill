@@ -71,7 +71,6 @@ data class ReviewDependencyAllowlist(val paths: List<String>) {
   }
 }
 
-/** Closed-world policy for paths that are untracked at the selected review base. */
 data class ReviewBaselineUntrackedPolicy(
   val includedPaths: List<String> = emptyList(),
   val excludedPaths: List<String> = emptyList(),

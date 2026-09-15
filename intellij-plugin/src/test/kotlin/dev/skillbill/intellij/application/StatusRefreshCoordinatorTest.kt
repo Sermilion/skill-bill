@@ -47,7 +47,7 @@ class StatusRefreshCoordinatorTest {
         assertEquals(0, repo.callCount.get())
         coordinator.addConsumer()
         awaitCallCount(repo, 1)
-        // Second refresh while first is gated should serialize via mutex (max in-flight 1).
+
         coordinator.requestRefresh()
         delay(50)
         assertEquals(1, repo.maxInFlight.get())
@@ -137,7 +137,7 @@ class StatusRefreshCoordinatorTest {
         assertEquals("B", (rootB.coordinator.outcomes.value as SkillBillStatusOutcome.Idle).summary)
         rootA.dispose()
         delay(100)
-        // B continues independently after A disposal.
+
         val bCalls = repoB.callCount.get()
         assertTrue(bCalls >= 1)
         rootB.viewModel.onWidgetActivated()
@@ -251,7 +251,7 @@ class StatusRefreshCoordinatorTest {
         pollTimes(coordinator, repo, 1)
         assertEquals(writesAfterLive, prefs.cacheWriteAttempts.get())
         assertEquals(cacheAfterLive, prefs.getLastKnownDisplayCache())
-        // The held emission is the prior live outcome, never a cache-derived stale one.
+
         assertEquals(active(), coordinator.outcomes.value)
         coordinator.dispose()
     }

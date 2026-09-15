@@ -55,9 +55,7 @@ open class InternalSkillStagingTestSupport {
       "bill-code-check",
       "Routes quality checks and dispatches to pack sidecars.",
     )
-    // `supportingFileTargets` references `platform-packs/kmp/addons/...`; seeding those addons
-    // creates a `kmp` directory, and `discoverTargets` then requires a `platform.yaml` inside it.
-    // Seed a minimal valid pack so authoring discovery resolves cleanly.
+
     seedKmpPlatformPack(repoRoot)
     seedSupportingTargets(repoRoot)
     return repoRoot to home
@@ -95,9 +93,6 @@ open class InternalSkillStagingTestSupport {
     )
 
   protected fun seedSupportingTargets(repoRoot: Path) {
-    // Seed only the orchestration-derived supporting targets. The kmp add-on targets in
-    // `supportingFileTargets` would create a platform-packs/kmp directory without a manifest,
-    // which discovery rejects; the feature-skill family does not consume those add-ons.
     val targets = supportingFileTargets(repoRoot)
     val orchestrationTargets = targets.values.filter { it.startsWith(repoRoot.resolve("orchestration")) }
     orchestrationTargets.forEach { target ->

@@ -33,7 +33,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
-/** Every fixture commit is relevant to every selected lane unless a test says otherwise. */
 private fun focusedMatrix(scope: ReviewScopeFacts, lanes: List<String>) = ReviewCommitLaneRoutingMatrix(
   scope.commitUnits.sortedBy { it.orderIndex }.map { it.commitSha },
   lanes,
@@ -44,7 +43,6 @@ private fun focusedMatrix(scope: ReviewScopeFacts, lanes: List<String>) = Review
   },
 )
 
-/** Preparation threads commit evidence into packets and per-lane bundles without changing routing. */
 class ReviewPreparationCommitBundleTest {
   private val hunkA = ReviewChangedHunk("src/A.kt", 1, 1, 1, 2, "+alpha")
   private val hunkB = ReviewChangedHunk("src/B.kt", 4, 1, 4, 1, "+beta")
@@ -115,7 +113,6 @@ class ReviewPreparationCommitBundleTest {
     ReviewCommitCoverageFact("base", "head", 2, chainVerified = true, pathCoverageVerified = true),
   )
 
-  // AC-001, AC-008
   @Test fun `a multi-commit packet carries ordered units and per-lane bundles`() {
     val result = service(
       multiCommitScope,
@@ -136,7 +133,6 @@ class ReviewPreparationCommitBundleTest {
     assertTrue(result.packet.coverageFact.chainVerified)
   }
 
-  // AC-005
   @Test fun `a staged-scope packet carries exactly one synthetic unit`() {
     val scope = ReviewScopeFacts(
       "acme/repo",
@@ -166,7 +162,6 @@ class ReviewPreparationCommitBundleTest {
     )
   }
 
-  /** Routing that focuses only the named commits for a lane, skipping the rest with a reason. */
   private fun sparseService(
     scope: ReviewScopeFacts,
     decisions: List<ReviewLaneDecision>,
@@ -191,7 +186,6 @@ class ReviewPreparationCommitBundleTest {
     return serviceWith(scope, decisions, matrix)
   }
 
-  // AC-005, AC-001
   @Test fun `a lane bundle carries only its focused commits' hunks in commit order`() {
     val hunkA2 = ReviewChangedHunk("src/A.kt", 9, 1, 9, 2, "+later alpha")
     val scope = multiCommitScope.copy(
@@ -215,7 +209,6 @@ class ReviewPreparationCommitBundleTest {
     assertTrue(security.laneRouting.single { it.commitSha == "head" }.reason.isNotBlank())
   }
 
-  // AC-001, AC-005
   @Test fun `validation rejects an assignment claiming a hunk from a commit skipped for its lane`() {
     val hunkA2 = ReviewChangedHunk("src/A.kt", 9, 1, 9, 2, "+later alpha")
     val scope = multiCommitScope.copy(
@@ -235,8 +228,6 @@ class ReviewPreparationCommitBundleTest {
     }
     assertTrue("skipped" in error.message.orEmpty(), error.message.orEmpty())
 
-    // The same violation is unrepresentable one level down: an assignment cannot bundle a hunk
-    // under a commit its own routing column skipped.
     val bundled = assertFailsWith<IllegalArgumentException> {
       prepared.assignments.single().copy(
         assignedHunks = listOf(hunkA.hunkId, hunkA2.hunkId),
@@ -251,7 +242,6 @@ class ReviewPreparationCommitBundleTest {
     assertTrue("skipped" in bundled.message.orEmpty(), bundled.message.orEmpty())
   }
 
-  // AC-006
   @Test fun `flipping a disposition or a skip reason moves the packet and assignment digests`() {
     val decisions = listOf(decision("security", "src/A.kt"), decision("testing", "src/B.kt"))
     val focused = mapOf("security" to setOf("c1"), "testing" to setOf("head"))
@@ -285,7 +275,6 @@ class ReviewPreparationCommitBundleTest {
     )
   }
 
-  // AC-003
   @Test fun `validation rejects an assignment claiming a commit unit outside its packet`() {
     val prepared = service(
       multiCommitScope,
@@ -308,7 +297,6 @@ class ReviewPreparationCommitBundleTest {
     assertTrue("packet does not own" in failure.message.orEmpty(), failure.message.orEmpty())
   }
 
-  // AC-005
   @Test fun `a shuffled commitUnits input still yields bundle entries in packet commit order`() {
     val shuffled = multiCommitScope.copy(
       commitUnits = listOf(
@@ -332,7 +320,6 @@ class ReviewPreparationCommitBundleTest {
     }
   }
 
-  // AC-006
   @Test fun `changing an owned hunk id moves the assignment digest`() {
     val decisions = listOf(decision("security", "src/A.kt"))
     val focused = mapOf("security" to setOf("c1"))
@@ -346,7 +333,6 @@ class ReviewPreparationCommitBundleTest {
     assertTrue(security.digest != retargeted.digest, "an owned-hunk change left the assignment digest unchanged")
   }
 
-  // AC-005, AC-007
   @Test fun `sparse routing preserves lane order owning pack add-ons and origin chains`() {
     val security = decision("security", "src/A.kt").copy(
       orderIndex = 0,
@@ -373,7 +359,6 @@ class ReviewPreparationCommitBundleTest {
     assertEquals(listOf("test-notes"), result.assignments[1].laneDecision.addOns)
   }
 
-  // AC-007
   @Test fun `staged and unstaged synthetic scopes keep inclusion-equivalent lane ownership`() {
     listOf("staged", "unstaged").forEach { status ->
       val synthetic = ReviewCommitUnit.synthetic(

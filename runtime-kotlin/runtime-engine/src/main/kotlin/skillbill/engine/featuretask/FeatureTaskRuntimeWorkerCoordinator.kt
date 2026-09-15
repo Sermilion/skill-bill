@@ -17,13 +17,6 @@ import java.time.Duration
 import java.time.Instant
 import java.util.UUID
 
-/**
- * Confirmed-dead verdict for crash reconciliation, derived only from the injected supervisor's
- * process inspection. Only [FeatureTaskRuntimeProcessInspection.NotRunning] is confirmed dead;
- * [ExactLive] is alive, and OwnershipMismatch/Unsupported are ambiguous evidence that must never
- * trigger reconciliation. This keeps liveness detection behind the injectable supervisor port with
- * no agent-identity branching (AC-005).
- */
 @RuntimeSingleton
 @Inject
 class FeatureTaskRuntimeWorkerCoordinator(
@@ -42,7 +35,7 @@ class FeatureTaskRuntimeWorkerCoordinator(
         it.workflowStates.releaseFeatureTaskRuntimeWorker(workflowId, ownership.ownerToken, ownership.generation)
       }
     }
-    // Checked after the block rather than inside the finally so a failing block reports its own cause.
+
     heartbeats.fencingLostReason()?.let { reason ->
       error("Worker for workflow '$workflowId' lost lease fencing mid-phase: $reason")
     }

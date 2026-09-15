@@ -76,9 +76,6 @@ class GoalProgressEventSchemaValidatorTest {
     }
   }
 
-  // SKILL-64 Subtask 3 (F-T02): negative tests at the validator/contract seam.
-  // These are the malformed-durable-record paths the seam exists to reject and
-  // which the durable write seam (recordProgressEvent) now routes through.
   @Test
   fun `operation event missing operation name fails loudly with typed error`() {
     val malformed = linkedMapOf<String, Any?>(

@@ -93,11 +93,6 @@ import java.time.Clock
 import java.util.Collections
 import kotlin.time.Duration
 
-/**
- * A recording harness around the production [ParallelCodeReviewRunner]. It records what the
- * production composition, inline lane launch, and accounting seams actually did; it never restates
- * a routing, budget, or accounting policy of its own.
- */
 class ReviewRecorder {
   val parentLaunches: MutableList<GoalRunnerSubtaskLaunchRequest> =
     Collections.synchronizedList(mutableListOf())
@@ -106,11 +101,6 @@ class ReviewRecorder {
   val savedAccounting: MutableList<ReviewAccountingRecord> =
     Collections.synchronizedList(mutableListOf())
 
-  /**
-   * Durable review state the harness carries across runs, so a second run against the same recorder
-   * is a real resume: lane rows and the integration boundary are stored and read back separately,
-   * exactly as the two distinct durable boundaries they are.
-   */
   val durableLanes: MutableList<ReviewRunLane> = Collections.synchronizedList(mutableListOf())
 
   @Volatile var durableIntegrationPass: ReviewIntegrationPassRecord? = null
@@ -130,10 +120,8 @@ class ReviewRecorder {
   val stageDegradations: MutableList<ReviewStageDegradationMeasurement> =
     Collections.synchronizedList(mutableListOf())
 
-  /** Set true to model a degradation store that rejects every write. */
   @Volatile var failStageDegradationWrite: Boolean = false
 
-  /** The prompts the inline parent lanes were actually launched with. */
   val parentPrompts: List<String>
     get() = parentLaunches.mapNotNull { it.skillRunRequest.promptOverride }
 }
@@ -149,7 +137,6 @@ data class RecordedWorkerResponse(
   val liveness: AgentRunLivenessSnapshot? = null,
 )
 
-/** One commit of a harness commit-range fixture, in sequence order. */
 data class RecordedCommit(val sha: String, val subject: String, val diff: String)
 
 data class ReviewHarnessConfig(
@@ -161,14 +148,11 @@ data class ReviewHarnessConfig(
   val evidenceBrokerFactory: ReviewEvidenceBrokerFactory =
     ReviewEvidenceBrokerFactory { binding -> FileSystemReviewEvidenceBroker(binding) },
   val parentLaunch: ((GoalRunnerSubtaskLaunchRequest) -> AgentRunLaunchOutcome)? = null,
-  /** Set false to model a worker that answered without reading its assigned evidence. */
+
   val simulateEvidenceReads: Boolean = true,
   val evidenceEndpointBinder: GovernedReviewEvidenceEndpointBinder =
     stubGovernedReviewEvidenceEndpointBinder(Files.createTempDirectory("review-endpoint")),
-  /**
-   * Commit range the fixture enumerates. Empty keeps the default single synthetic unit; the last
-   * entry's sha must be the request's head revision, exactly as a real range resolves.
-   */
+
   val commits: List<RecordedCommit> = emptyList(),
 )
 
@@ -261,16 +245,13 @@ fun reviewHarness(config: ReviewHarnessConfig, recorder: ReviewRecorder): Parall
   )
 }
 
-/** The base revision every harness request declares; the root commit of a fixture range parents onto it. */
 const val HARNESS_BASE_REVISION: String = "base-revision"
 
-/** The head revision every harness request declares; a fixture range must end on it. */
 const val HARNESS_HEAD_REVISION: String = "head-revision"
 
 private fun parentOf(commits: List<RecordedCommit>, commit: RecordedCommit): String =
   commits.getOrNull(commits.indexOf(commit) - 1)?.sha ?: HARNESS_BASE_REVISION
 
-/** Runs both lanes to completion in a fixed order so recorded evidence stays deterministic. */
 private fun recordingRubricResolver(recorder: ReviewRecorder, rubricBody: (String) -> String) =
   object : ReviewRubricResolver {
     override fun resolve(manifest: PlatformManifest?): ResolvedReviewRubric {
@@ -475,10 +456,6 @@ fun reviewPack(
   fallbackCapabilities = if (fallback) setOf("code-review") else emptySet(),
 )
 
-/**
- * Pack whose specialist path signals drive sparse commit/lane routing in harness fixtures: a required
- * baseline plus optional areas keyed by the given path prefixes.
- */
 fun sparseReviewPack(
   slug: String,
   requiredArea: String,
@@ -515,12 +492,6 @@ fun diffForChanges(vararg changes: Pair<String, String>): String = changes.joinT
   """.trimIndent()
 }
 
-/** Replays the one thing the stub launcher cannot fake: the lane's own governed evidence reads. */
-/**
- * Replays the one thing a launcher stub cannot fake: the lane's own governed evidence reads. Paths
- * come from the launch prompt's own `Owned paths:` lines, so this stays correct for any fixture
- * without the test having to restate its assignment.
- */
 fun simulateGovernedEvidenceReads(request: SkillRunRequest) {
   val protocol = request.nativeReviewOperations ?: return
   val lane = request.reviewEvidenceBroker?.accounting()?.lane ?: return
@@ -545,10 +516,6 @@ private val OWNED_PATH = Regex("\"([^\"]+)\"")
 
 fun reviewFileSystemDiffResolver(): DiffResolverPort = FileSystemDiffResolver()
 
-/**
- * The harness broker with one lane-evidence denial injected where the runner reads it. A fixture
- * packet carries no materializable hunk bodies, so a byte-driven refusal cannot be provoked here.
- */
 fun brokerDenyingUnit(deniedPath: String): ReviewEvidenceBrokerFactory = ReviewEvidenceBrokerFactory { binding ->
   val delegate = FileSystemReviewEvidenceBroker(binding)
   val hunkId = binding.projectedHunks.first { it.path == deniedPath }.hunkId

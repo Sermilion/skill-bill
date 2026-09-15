@@ -1,17 +1,7 @@
 package skillbill.engine.work
 
-/**
- * SKILL-167 follow-up: the IDE status surface reports work for the checked-out branch,
- * not the whole repository. Feature branches carry their issue key by construction
- * (`feat/SKILL-167-...`), so scoping matches candidate issue keys against the branch
- * name instead of requiring a durable branch column on every work row.
- */
 object IdeStatusBranchScope {
 
-  /**
-   * Case-insensitive whole-token containment: `SKILL-16` must not match
-   * `feat/skill-167-x`, so both neighbors of a hit must be non-alphanumeric.
-   */
   fun branchReferencesIssueKey(branch: String, issueKey: String): Boolean {
     val haystack = branch.lowercase()
     val needle = issueKey.trim().lowercase()

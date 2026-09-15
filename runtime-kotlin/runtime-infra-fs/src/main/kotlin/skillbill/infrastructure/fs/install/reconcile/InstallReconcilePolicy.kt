@@ -40,32 +40,6 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.security.MessageDigest
 
-/**
- * SKILL-76 Subtask 2: per-skill reconcile hash-compare POLICY. Kept in
- * `runtime-infra-fs` because it reuses the module-internal staging helpers
- * (`applicablePointers` / `generatedSupportPointersFor` / `authoredFilesFor` /
- * `computeInstallContentHash`) that key the install staging leaf. This is the SAME
- * hash, never a second scheme.
- *
- * Enumeration: skills are discovered via [InstallPlanPolicy.buildPlanDraft] over a
- * synthetic ALL-platform request for each source root, exactly like the install
- * planning seam. For each skill-relative path (the skill `sourceDir` relativized
- * against its repo root), the UPSTREAM (candidate/clone source root) and LOCAL (copied
- * `~/.skill-bill` source root) hashes are computed. The BASELINE (manifest last-copied-in)
- * hash is carried through for recording only; it no longer influences classification.
- *
- * Classification (upstream always wins):
- *  - no upstream counterpart, `agent-addons/` -> locally-authored (user-owned, preserved)
- *  - no upstream counterpart, otherwise       -> prune (delete; the installed tree mirrors source)
- *  - upstream hash == local hash              -> unchanged (no file op, baseline recorded)
- *  - otherwise                                -> adopt (install upstream, record baseline)
- *
- * Local enumeration tolerates stale `contract_version` values in preserved platform-pack
- * manifests because upstream always replaces them on adopt; upstream enumeration stays strict.
- *
- * Idempotent: identical upstream and local inputs yield only unchanged outcomes and no
- * baseline change.
- */
 internal const val SKILLS_PREFIX = "skills/"
 internal const val PLATFORM_PACKS_PREFIX = "platform-packs/"
 internal const val AGENT_ADDONS_PREFIX = "agent-addons/"
@@ -83,17 +57,11 @@ internal enum class ReconcileSourceSide {
 
 private fun ReconcileSourceSide.enforcesPlatformPackContractVersion(): Boolean = this == ReconcileSourceSide.UPSTREAM
 
-/**
- * One enumerated skill: its content hash plus the on-disk skill directory it was
- * enumerated from. The directory lets the APPLY map a skill-relative path back to the
- * concrete live/upstream dir to replace, without reconstructing paths from string keys.
- */
 internal data class ReconcileSkillEntry(
   val hash: String,
   val sourceDir: Path,
 )
 
-/** Result of the runtime-owned per-skill apply: the computed plan + the paths installed. */
 internal data class ReconcileApplyOutput(
   val plan: ReconciliationPlan,
   val installedPaths: List<String>,
@@ -169,13 +137,6 @@ private fun classifySkill(
   )
 }
 
-/**
- * Enumerate every skill under [roots] and map its skill-relative path -> ([content
- * hash] + on-disk skill dir). Returns an empty map when a source root is absent (e.g. a
- * fresh install with no copied `~/.skill-bill` source yet) so reconciliation classifies
- * upstream skills as adopt rather than failing. The skill dir is carried so the
- * APPLY can replace the live dir from the upstream dir without rebuilding paths.
- */
 internal fun enumerateSkills(
   roots: ReconcileSourceRoots,
   home: Path,
@@ -185,8 +146,7 @@ internal fun enumerateSkills(
   val skillEntries = if (Files.isDirectory(roots.skillsRoot)) {
     val request = reconcileEnumerationRequest(roots, home)
     val platformManifests = discoverPlatformManifests(roots.platformPacksRoot, enforceContractVersion)
-    // Reuse the approved builder seam for skill enumeration so this policy never
-    // references the domain InstallPlanPolicy directly (adapter-ownership rule).
+
     val skills = enumerateInstallPlanSkills(request, enforceContractVersion)
     val selectedPackSkills = skills.filter { candidate ->
       candidate.kind == InstallPlanSkillKind.PLATFORM_PACK && candidate.internalFor != null
@@ -285,13 +245,6 @@ private fun reconcileSkillHash(
   )
 }
 
-/**
- * Stable skill-relative key, INDEPENDENT of where the candidate tree is staged on
- * disk. Base skills key off the skills root, platform skills off the platform-packs
- * root, each under a category prefix so the same logical skill matches across the
- * upstream candidate, the local copy, and the baseline manifest regardless of their
- * absolute paths.
- */
 private fun skillRelativePath(roots: ReconcileSourceRoots, skill: InstallPlanSkill): String {
   val resolvedSource = skill.sourceDir.toPath().toAbsolutePath().normalize()
   return when (skill.kind) {

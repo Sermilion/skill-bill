@@ -29,8 +29,7 @@ internal fun writeRenderedSupportPointerFiles(
   require(resolvedSource.resolve(pointer.name).normalize() != targetFile) {
     "Supporting pointer '${pointer.name}' resolves to itself at '$targetFile'."
   }
-  // Inline the canonical doc instead of a repo-relative path: the installed-skills cache is detached
-  // from the repo, so a relative pointer dangles when an agent resolves it from the cache location.
+
   val rendered = normalizeMarkdownLineEndings(Files.readString(targetFile)).trimEnd() + "\n"
   Files.write(pointerFile, rendered.toByteArray(StandardCharsets.UTF_8))
   pointerFile

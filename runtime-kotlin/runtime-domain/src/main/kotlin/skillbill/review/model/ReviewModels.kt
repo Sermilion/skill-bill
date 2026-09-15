@@ -13,11 +13,6 @@ data class ImportedFinding(
   val laneSkillName: String? = null,
 )
 
-/**
- * One review lane a run actually launched, with its identity taken from the composed launch plan.
- * [resolutionState] is `unresolved` only for a lane a run reported that the plan does not contain;
- * its [laneSkillName] then holds the reported text verbatim.
- */
 data class ReviewRunLane(
   val laneSkillName: String,
   val packSlug: String,
@@ -27,11 +22,7 @@ data class ReviewRunLane(
   val orderIndex: Int,
   val originLayerChain: List<String>,
   val resolutionState: ReviewLaneResolutionState,
-  /**
-   * Durable single-pass disposition. Deliberately has no default: a row may only claim `complete`
-   * where a durable complete result was observed, so every writer states it explicitly and an
-   * unknown disposition can never fail open into skipped resume coverage.
-   */
+
   val reviewDisposition: ReviewLaneReviewDisposition,
   val bundleCompositionDigest: String? = null,
   val segmentAccountingJson: String? = null,
@@ -73,7 +64,7 @@ data class ImportedReview(
   val detectedStackCanonical: String = "unresolved",
   val detectedScopeCanonical: String = "unresolved",
   val detectedScopeDetail: String? = null,
-  /** Plan-sourced lane attribution for this run; empty only when no launch plan could be composed. */
+
   val planLanes: List<ReviewRunLane> = emptyList(),
 )
 

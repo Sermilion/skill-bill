@@ -11,15 +11,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-/**
- * SKILL-142 AC-018: pins `contract_version` parity between the canonical
- * schema file (`orchestration/contracts/goal-subtask-review-state-schema.yaml`)
- * and `GOAL_SUBTASK_REVIEW_STATE_CONTRACT_VERSION`. Bumping one without the
- * other is a build break, by design.
- *
- * Also validates that the pass-accounting fields declare no upper bound, so the
- * remediation loop terminates on the Blocker disposition rather than a ceiling.
- */
 class GoalSubtaskReviewStateContractVersionTest {
   @Test
   fun `schema contract_version const matches GOAL_SUBTASK_REVIEW_STATE_CONTRACT_VERSION`() {

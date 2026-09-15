@@ -21,22 +21,12 @@ object FeatureTaskRuntimePhaseSafetyPolicy {
     .sorted()
     .toList()
 
-  /**
-   * Paths still present in the tree after the phase: modifies, adds, untracked files, and rename
-   * destinations. Pure deletes are excluded — they are not introductions and must not widen
-   * [FeatureTaskRuntimePhaseFileManifest.introduced] or trip the outside-inventory checkpoint block
-   * when a package move leaves ` D old` beside `?? new/`.
-   */
   fun changedPaths(status: String): List<String> = porcelainEntries(status)
     .mapNotNull(PorcelainEntry::retainedPath)
     .filterNot(::isRuntimePrivatePath)
     .distinct()
     .sorted()
 
-  /**
-   * Paths removed from the tree: worktree/index deletes and rename sources. Checkpoint ownership
-   * must absorb these so a package move can stage the delete half, not only the destination.
-   */
   fun deletedPaths(status: String): List<String> = porcelainEntries(status)
     .mapNotNull(PorcelainEntry::removedPath)
     .filterNot(::isRuntimePrivatePath)

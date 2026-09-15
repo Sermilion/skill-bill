@@ -31,7 +31,7 @@ class FakePreferenceCache(
 ) : PreferenceCachePort {
     val rejectedWrites = CopyOnWriteArrayList<String>()
 
-    /** Counts every attempted display-cache write, accepted or rejected. */
+    
     val cacheWriteAttempts = AtomicInteger(0)
 
     override fun getCliExecutableOverride(): String? = cliOverride
@@ -125,18 +125,14 @@ class FakeGoalMutationRepository(
     }
 }
 
-/** [threadName] is recorded so tests can prove dispatch happened off the EDT. */
+
 data class MutationInvocation(
     val projectRoot: Path,
     val issueKey: String,
     val threadName: String,
 )
 
-/**
- * Scripted [ProcessFactory] that never spawns a real process. A held process models an
- * in-flight poll: it stays alive until [release] so a concurrent mutation can be shown
- * to start its own process rather than joining the poll.
- */
+
 class ScriptedProcessFactory(
     private val exitCode: Int = 0,
     private val stdout: String = "",
@@ -173,7 +169,7 @@ class ScriptedProcessFactory(
     }
 }
 
-/** Active UI state carrying the goal-control inputs, so tests do not restate every field. */
+
 fun activeUiState(
     issueKey: String? = "SKILL-168",
     workflowFamily: String? = FEATURE_GOAL_WORKFLOW_FAMILY,

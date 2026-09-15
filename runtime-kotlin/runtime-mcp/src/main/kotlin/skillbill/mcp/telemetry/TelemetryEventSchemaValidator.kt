@@ -21,53 +21,13 @@ import java.util.logging.Logger
 
 private val log: Logger = Logger.getLogger("skillbill.mcp.TelemetryEventSchemaValidator")
 
-// Mirrors runtime-infra-fs's locale pin (this module does not depend on it): networknt renders violation
-// messages through MessageFormat under the JVM default locale, so a rejection reason would otherwise
-// regroup numbers or translate outright depending on the host. `pathType` restates the factory's LEGACY
-// default, which supplying any config would otherwise switch to JSON_POINTER.
 private val LOCALE_STABLE_SCHEMA_CONFIG: SchemaValidatorsConfig =
   SchemaValidatorsConfig.builder().locale(Locale.ENGLISH).pathType(PathType.LEGACY).build()
 
-/**
- * SKILL-48 Subtask 2d: validates a telemetry-event-shaped
- * `Map<String, Any?>` (envelope: `event_name` + `contract_version` +
- * per-event payload fields) against the canonical JSON-Schema document
- * at `orchestration/contracts/telemetry-event-schema.yaml`.
- *
- * Mirrors [skillbill.install.model.InstallPlanSchemaValidator]. The
- * schema is loaded ONCE per process via the [schema] lazy and the
- * compiled [JsonSchema] is cached for every subsequent call. Coherence
- * rules (cross-field validation) stay in `McpToolDispatcher` and
- * surrounding seam code; see `x-coherence-checks` in the schema file
- * for the named list.
- *
- * `validate` throws [InvalidTelemetryEventSchemaError] carrying the
- * dotted `fieldPath` of the first offending value AND the offending
- * `eventName` (nullable: unknown-event-name violations may report a
- * null name) so callers and tests can pinpoint the regression.
- * `assertIdentity` checks the loaded schema's `$id` and
- * `properties.contract_version.const` match the runtime's expected
- * values; downstream JARs shipping a stale classpath copy loud-fail at
- * first validator use.
- */
 object TelemetryEventSchemaValidator {
   private val schema: JsonSchema by lazy { loadSchema() }
   private val mapper: ObjectMapper by lazy { ObjectMapper() }
 
-  /**
-   * Validates the telemetry-event envelope against the canonical
-   * schema. On any violation, throws
-   * [InvalidTelemetryEventSchemaError] whose `fieldPath` names the
-   * offending field and whose `eventName` carries the envelope's
-   * `event_name` (when present) so the failure surface stays loud and
-   * useful.
-   *
-   * Callers normally derive `eventName` from the tool dispatch context
-   * (`McpToolRegistry.toolNames`) so violations remain greppable even
-   * when the envelope itself omits `event_name`. When the caller knows
-   * the event name a-priori, pass it via [eventName]; otherwise pass
-   * `null` and the validator best-effort reads it from the envelope.
-   */
   fun validate(envelope: Map<String, Any?>, eventName: String? = null) {
     val instance: JsonNode = mapper.valueToTree(envelope)
     val resolvedEventName: String? = eventName ?: (envelope["event_name"] as? String)
@@ -76,10 +36,7 @@ object TelemetryEventSchemaValidator {
       validateCoherence(envelope, resolvedEventName)
       return
     }
-    // F-401 (carried over from 2a/2b): emit a structured WARN log
-    // BEFORE throwing so a slow-rolling schema-drift incident shows up
-    // in dashboards without depending on an unhandled-exception
-    // monitor.
+
     log.log(Level.WARNING, buildSchemaDriftLog(errors, instance, resolvedEventName))
     val sorted = errors.sortedWith(violationOrdering)
     val firstError = sorted.first()
@@ -93,12 +50,6 @@ object TelemetryEventSchemaValidator {
     )
   }
 
-  /**
-   * Asserts the loaded canonical schema document's `$id` and
-   * `properties.contract_version.const` match the runtime's expected
-   * values. Visible to tests so they can drive the assertion with
-   * synthesized YAML nodes; called from the lazy schema load below.
-   */
   fun assertIdentity(yamlText: String) {
     val yamlNode = YAMLMapper().readTree(yamlText)
     assertIdentity(yamlNode)
@@ -192,12 +143,6 @@ object TelemetryEventSchemaValidator {
     )
   }
 
-  /**
-   * `final_failure_count` is nullable on the wire so a reconciler-closed check can report that it never
-   * observed one. Only that terminal may carry the null: every other producer holds a counted value,
-   * and the handler that builds the typed model defaults a missing count to zero, so accepting a null
-   * anywhere else turns an unmeasured check into a measured clean gate.
-   */
   private fun validateQualityCheckFailureCountCoherence(envelope: Map<String, Any?>, resolvedEventName: String?) {
     if (resolvedEventName != "quality_check_finished") return
     if (!envelope.containsKey(LifecycleTelemetryPayloadKeys.FINAL_FAILURE_COUNT)) return
@@ -221,16 +166,6 @@ internal const val TELEMETRY_EVENT_SCHEMA_CLASSPATH_RESOURCE: String =
 internal const val TELEMETRY_EVENT_SCHEMA_REPO_RELATIVE_PATH: String =
   TelemetryEventSchemaPaths.REPO_RELATIVE_PATH
 
-/**
- * Loads the canonical schema YAML text from the runtime-mcp classpath
- * resource bundled by the `copyTelemetryEventSchema` Gradle task. The
- * MCP adapter is forbidden from touching the local filesystem
- * directly (see `RuntimeArchitectureTest.mcp adapter avoids direct
- * filesystem...`), so the classpath resource is the only legitimate
- * runtime source. Re-emits as JSON before handing to networknt so the
- * validator gets a predictable JSON tree regardless of how the schema
- * is authored.
- */
 private fun loadSchema(): JsonSchema {
   var failure: Throwable? = null
   try {
@@ -288,13 +223,6 @@ private fun readSchemaText(): String {
     .getResourceAsStream(TELEMETRY_EVENT_SCHEMA_CLASSPATH_RESOURCE)
     ?.use { return it.readBytes().toString(Charsets.UTF_8) }
 
-  // The MCP adapter is forbidden from touching the local filesystem
-  // directly (see `RuntimeArchitectureTest.mcp adapter avoids direct
-  // filesystem...`). The canonical telemetry-event schema MUST ship on
-  // the runtime-mcp classpath via the `copyTelemetryEventSchema` Gradle
-  // task. A missing resource here means the deploy artifact was
-  // misbuilt; loud-fail at first validator use so the regression
-  // surfaces in dashboards (F-403).
   throw InvalidTelemetryEventSchemaError(
     fieldPath = "",
     eventName = null,
@@ -305,12 +233,6 @@ private fun readSchemaText(): String {
   )
 }
 
-/**
- * Visible-to-tests pure helper for offending-value extraction from a
- * networknt `instanceLocation`. Supports both reporting formats
- * networknt has used across versions (JSONPath and JSON-Pointer). See
- * the install-plan validator's analogous helper for the rationale.
- */
 fun extractOffendingValueFromTelemetryInstance(instance: JsonNode, instanceLocation: String): String {
   val dotted = telemetryEventSchemaDottedFieldPath(instanceLocation)
   if (dotted.isBlank()) return ""

@@ -90,7 +90,7 @@ class CliAuthoringParityTest {
     val context = CliRuntimeContext(userHome = tempDir)
     val skillName = "bill-validate-fail-fixture"
     val repoRoot = authoringFixtureRepo(tempDir.resolve("validate-fail-repo"), skillName)
-    // Break the authored content.md by stripping the required `description:` frontmatter key.
+
     val contentFile = repoRoot.resolve("skills").resolve(skillName).resolve("content.md")
     Files.writeString(
       contentFile,

@@ -4,11 +4,6 @@ import skillbill.application.workflow.WorkflowWireProjections
 import skillbill.application.workflow.model.WorkflowUpdateResult
 import skillbill.contracts.SharedPayloadKeys
 
-/**
- * Wire shape for every workflow-mutating CLI command, whichever command area owns it. The key order
- * matches the prior `WorkflowContracts.*` serializers; the golden
- * `runtime-cli/src/test/resources/golden/cli-verify-workflow-show.json` locks it.
- */
 internal fun WorkflowUpdateResult.toPayload(): Map<String, Any?> = when (this) {
   is WorkflowUpdateResult.Ok -> LinkedHashMap(
     WorkflowWireProjections.updateAcknowledgementMap(acknowledgement).toPayload(),

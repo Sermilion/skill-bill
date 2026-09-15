@@ -23,22 +23,6 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertFailsWith
 
-/**
- * SKILL-52.3 subtask 1 AC5/AC8: proves install-plan and decomposition
- * validation still loud-fail with the existing typed errors after the
- * validators moved to `runtime-infra-fs` and are reached through the
- * domain-owned ports.
- *
- * Both seams drive through the real port adapters
- * (`InstallPlanWireValidatorAdapter` / `DecompositionManifestValidatorAdapter`)
- * wired into `RuntimeComponent` in production — never the deleted concrete
- * classes directly — so this exercises the inverted seam end-to-end.
- *
- * Install-plan CLI-seam coverage lives in the runtime-cli
- * `CliInstallPlanApplyRuntimeTest`; the builder-seam concrete violation set
- * lives in the infra-fs `InstallPlanSchemaViolationsTest`. This test pins the
- * shared loud-fail contract through the ports themselves.
- */
 class SchemaValidatorPortLoudFailTest {
   private val installValidator: InstallPlanWireValidator = InstallPlanWireValidatorAdapter()
   private val decompositionValidator: DecompositionManifestValidator = DecompositionManifestValidatorAdapter()
@@ -128,9 +112,6 @@ class SchemaValidatorPortLoudFailTest {
 
   @Test
   fun `stacked-branch manifest mismatch loud-fails through the injected port`() {
-    // execution_model = stacked_branches but stack branches declared out of
-    // subtask order: the coherence check must reject the same_branch-vs-
-    // stacked_branches shape mismatch.
     val manifest = validSameBranchManifest().copy(
       executionModel = DecompositionExecutionModel.STACKED_BRANCHES,
       featureBranch = null,

@@ -143,9 +143,6 @@ object DatabaseRuntime {
     return openWriteConnectionAt(path)
   }
 
-  // A zero-byte file is a valid empty SQLite database with no tables, so emptiness of sqlite_master
-  // is the check rather than file size: it also catches a store whose creation was interrupted after
-  // the file appeared but before createBaseSchema committed.
   private fun isSchemaless(dbPath: Path): Boolean = asTypedFailure(dbPath, DatabaseAccessOperation.READ) {
     DriverManager.getConnection(
       "jdbc:sqlite:${dbPath.toAbsolutePath().normalize()}",
@@ -161,7 +158,7 @@ object DatabaseRuntime {
 
   private fun configureConnection(connection: Connection, enableWal: Boolean) {
     connection.createStatement().use { statement ->
-      // busy_timeout before journal_mode so the WAL switch tolerates a concurrent writer on the shared DB.
+
       statement.execute("PRAGMA busy_timeout = 5000")
       if (enableWal) statement.execute("PRAGMA journal_mode = WAL")
       statement.execute("PRAGMA foreign_keys = ON")

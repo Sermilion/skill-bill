@@ -1,10 +1,5 @@
 package skillbill.review.context.model
 
-/**
- * What one finished specialist lane reports upward to the integration pass. It is a summary by
- * construction: identity, coverage disposition, and bounded prose. No hunk bodies, no rubric, and
- * no transcript, so a lane's raw evidence cannot reach the integration worker through a sibling.
- */
 data class ReviewSpecialistSummary(
   val lane: String,
   val assignmentDigest: String,
@@ -54,7 +49,6 @@ data class ReviewSpecialistSummary(
   }
 }
 
-/** Terminal state of the single integration pass, distinct from any lane's terminal state. */
 enum class ReviewIntegrationTerminalOutcome {
   COMPLETED,
   SKIPPED_NOT_APPLICABLE,
@@ -70,7 +64,6 @@ enum class ReviewIntegrationTerminalOutcome {
 
   val wireValue: String get() = name.lowercase()
 
-  /** Only a completed pass is a durable boundary; anything else must be re-run on resume. */
   val isDurablyComplete: Boolean
     get() = this == COMPLETED || this == SKIPPED_NOT_APPLICABLE || this == NO_OP_RESUME
 
@@ -79,14 +72,6 @@ enum class ReviewIntegrationTerminalOutcome {
   }
 }
 
-/**
- * The one bounded pass that runs after every selected lane reaches a terminal state. It carries
- * final-state evidence targets, commit identity metadata, and per-lane summaries — never a lane
- * bundle, a sibling's hunk bodies, an aggregate diff, or a parent transcript.
- *
- * Its cost is fixed at one pass: it does not scale with commit count and never re-launches a
- * specialist rubric.
- */
 data class GovernedReviewIntegrationLaunch(
   val packet: ReviewContextPacket,
   val specialistSummaries: List<ReviewSpecialistSummary>,
@@ -113,17 +98,12 @@ data class GovernedReviewIntegrationLaunch(
 
   val commitSequenceDigest: String get() = packet.commitSequenceDigest
 
-  /**
-   * Final-state evidence: the head-revision view of every path any summarized lane touched. Cross-
-   * commit interactions live in the composed end state, not in any single lane's incremental hunks.
-   */
   val finalStateEvidenceTargets: List<ReviewEvidenceTarget>
     get() {
       val summarizedPaths = specialistSummaries.flatMap { it.assignedPaths }.toSet()
       return packet.evidenceTargets.filter { it.path in summarizedPaths }.sortedBy { it.targetId }
     }
 
-  /** Lanes whose coverage was not clean; the integration pass never closes these gaps. */
   val incompleteLanes: List<String>
     get() = specialistSummaries.filterNot { it.isCleanCoverage }.map { it.lane }.sorted()
 }

@@ -10,18 +10,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-/**
- * SKILL-48 Subtask 2b AC2: pins `contract_version` parity between the
- * canonical schema file (`orchestration/contracts/install-plan-schema.yaml`)
- * loaded from the classpath bundle and the runtime constant
- * [INSTALL_PLAN_CONTRACT_VERSION]. Bumping one without the other is a
- * build break, by design.
- *
- * Mirrors `WorkflowStateSchemaContractVersionTest` but lives in
- * `runtime-domain` so we can read the classpath resource the validator
- * loads, instead of resolving the on-disk path (which would require the
- * repo-root testing helper).
- */
 class InstallPlanSchemaContractVersionTest {
   @Test
   fun `schema contract_version const matches INSTALL_PLAN_CONTRACT_VERSION`() {

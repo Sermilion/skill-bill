@@ -11,18 +11,6 @@ import skillbill.workflow.taskruntime.model.PhaseHandoffProjectionDeclaration
 internal object FeatureTaskRuntimeHandoffProjectionEnvelopeWire {
   const val REPOSITORY_CHECKPOINT_FIELD: String = "repository_checkpoint"
 
-  /**
-   * Applies the declared checkpoint policy and returns the fields the consumer actually receives.
-   *
-   * The fingerprint a receipt carries is authored by the producing agent and is not comparable to the
-   * runtime's own: the resolved value is a content hash over HEAD, the staged/unstaged diffs, and
-   * untracked contents, while the carried value is whatever string the agent wrote. Comparing them
-   * would reject or "refresh" on producer phrasing rather than on repository movement, so the carried
-   * value is treated as an opaque claim throughout.
-   *
-   * `must_match` is retained as a legacy durable wire value. Like `refresh_from_repository`, it
-   * requires and substitutes a freshly resolved checkpoint without rejecting repository movement.
-   */
   fun enforceCheckpointPolicy(
     inputs: FeatureTaskRuntimeHandoffProjectionInputs,
     declaration: PhaseHandoffProjectionDeclaration,
@@ -98,8 +86,6 @@ internal object FeatureTaskRuntimeHandoffProjectionEnvelopeWire {
     field
   }
 
-  // Re-projecting an already-substituted field must keep the producer's original claim rather than
-  // promote the runtime fingerprint written over it, so an appended claim wins over the whole value.
   private fun receiptCarriedCheckpointFingerprint(fields: List<FeatureTaskRuntimeHandoffProjectionField>): String? =
     fields.firstOrNull { it.name == REPOSITORY_CHECKPOINT_FIELD }
       ?.value

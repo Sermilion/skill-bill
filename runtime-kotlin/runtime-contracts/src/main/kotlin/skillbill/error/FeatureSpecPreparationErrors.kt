@@ -1,9 +1,5 @@
 package skillbill.error
 
-/**
- * SKILL-59 Subtask 1: typed loud-fail error for the shared
- * feature-spec preparation intake contract.
- */
 class InvalidFeatureSpecPreparationRequestError(
   val fieldPath: String,
   val reason: String,

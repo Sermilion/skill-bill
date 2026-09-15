@@ -13,13 +13,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
-/**
- * Regression coverage for SKILL-40 subtask 1 fixes:
- *  - F-C: renderContentBody must reject caller-supplied bodies that already start with a YAML
- *    frontmatter block (would otherwise stack two `---` blocks).
- *  - F-D: coerceFullContentText must fail explicitly with a clear message when neither the
- *    supplied body nor the existing content.md provides a frontmatter block.
- */
 class AuthoringContentMutationTest {
   @Test
   fun `renderContentBody rejects content body that already carries frontmatter`() {
@@ -46,12 +39,9 @@ class AuthoringContentMutationTest {
     val context = TemplateContext("bill-example", "code-review", "kotlin", "", "Kotlin")
     val rendered = renderContentBody(context, "An example skill description.", "Plain body without frontmatter.\n")
 
-    // Exactly one leading frontmatter block — two `---` fences and no extras. `>= 2` would
-    // silently accept a stacked second block, which is exactly the regression renderContentBody
-    // is supposed to prevent.
     val frontmatterFenceCount = Regex("(?m)^---$").findAll(rendered).count()
     assertEquals(2, frontmatterFenceCount, "Expected exactly one canonical frontmatter, got: $rendered")
-    // Lock the canonical leading shape — frontmatter must start at offset 0 with `---\nname:`.
+
     assertTrue(rendered.startsWith("---\nname:"), "Rendered output must start with `---\\nname:`, got: $rendered")
     assertContains(rendered, "name: bill-example")
     assertContains(rendered, "description: An example skill description.")
@@ -96,7 +86,7 @@ class AuthoringContentMutationTest {
       |Authored body.
       """.trimMargin() + "\n",
     )
-    // Intentionally do NOT create SKILL.md — this is the orphan path recordSkillTarget supports.
+
     val target = AuthoringTarget(
       skillName = "bill-orphan",
       packageName = "base",

@@ -434,9 +434,6 @@ class GoalSubtaskReviewSummaryReducerTest {
 
   @Test
   fun `compact summaries remove location details while ledger preserves them`() {
-    // A finding message containing a path, a line reference, and a diff hunk is sanitized out of
-    // the compact goal-facing summary. The same finding's location survives in the UnaddressedFinding
-    // ledger row, so location-bearing evidence is retrievable through `skill-bill goal findings`.
     val output = mapOf(
       "produced_outputs" to mapOf(
         "findings" to listOf(
@@ -456,7 +453,6 @@ class GoalSubtaskReviewSummaryReducerTest {
       ),
     )
 
-    // Compact summary strips all location-bearing details
     val summary = GoalSubtaskReviewSummaryReducer.fromOutput(output)
     assertEquals(2, summary.size)
     val rendered = summary.joinToString(" ") { "${it.label} ${it.text}" }
@@ -467,7 +463,6 @@ class GoalSubtaskReviewSummaryReducerTest {
     assertTrue(rendered.contains("OrderService"), "compact summary must retain class name")
     assertTrue(rendered.contains("CheckoutService"), "compact summary must retain class name")
 
-    // Ledger preserves full location-bearing evidence
     val ledger = GoalSubtaskReviewSummaryReducer.unaddressedFindings(
       output,
       UnaddressedFindingLedgerScope("SKILL-142", 1, "wf-1", 1),

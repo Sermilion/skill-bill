@@ -121,12 +121,6 @@ class GoalRunnerTelemetryEmitter(
     )
   }
 
-  /**
-   * A goal that stopped at a durable pause boundary is resumable state, not a blocker, and the
-   * distinction is the whole content of the IDE and CLI surfaces an operator acts on. Kept in
-   * lockstep with `goalRunExitCode`, where [GoalRunnerStopReason.PAUSED] alone is exit code 2:
-   * every other stop reason is reported blocked there and must stay blocked here.
-   */
   private fun goalFinishedStatus(report: GoalRunnerRunReport): String = when {
     report is GoalRunnerRunReport.Completed -> "completed"
     (report as? GoalRunnerRunReport.Stopped)?.stop?.reason == GoalRunnerStopReason.PAUSED -> "paused"

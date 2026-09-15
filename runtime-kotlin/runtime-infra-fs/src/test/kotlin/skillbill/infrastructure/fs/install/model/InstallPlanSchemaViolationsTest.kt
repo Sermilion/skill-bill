@@ -8,16 +8,6 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
-/**
- * SKILL-48 Subtask 2b AC5: per-violation tests. Each case starts from a
- * known-valid wire map and mutates one field; the test asserts that
- * `InstallPlanSchemaValidator.validate` throws
- * [InvalidInstallPlanSchemaError] with the expected dotted `fieldPath`.
- *
- * Mirrors `WorkflowStateSchemaViolationsTest`. The known-valid base
- * map is constructed by hand (not via `buildInstallPlanWireMap`) so
- * the test exercises the validator in isolation from the builder.
- */
 class InstallPlanSchemaViolationsTest {
   private class ValidInstallPlanFixture {
     val skills: MutableList<MutableMap<String, Any?>> = mutableListOf(
@@ -84,8 +74,6 @@ class InstallPlanSchemaViolationsTest {
 
   @Test
   fun `valid base wire map passes validation`() {
-    // Sanity-check that the fixture is itself clean — otherwise every
-    // violation test below would be ambiguous.
     InstallPlanSchemaValidator.validate(validBaseWireMap())
   }
 
@@ -107,10 +95,7 @@ class InstallPlanSchemaViolationsTest {
     wireMap.remove("staging_root")
 
     val error = assertFailsWith<InvalidInstallPlanSchemaError> { InstallPlanSchemaValidator.validate(wireMap) }
-    // Required-property violations surface at the parent path; for a top-level
-    // required key the parent is the root, which the validator maps to "".
-    // Pin both fieldPath and reason so a future refactor that drops
-    // `staging_root` from the message also trips this assertion.
+
     assertEquals("", error.fieldPath)
     assertContains(error.reason, "staging_root")
   }
@@ -130,8 +115,7 @@ class InstallPlanSchemaViolationsTest {
     wireMap["bogus_extra"] = true
 
     val error = assertFailsWith<InvalidInstallPlanSchemaError> { InstallPlanSchemaValidator.validate(wireMap) }
-    // additionalProperties violations may report the parent path; the
-    // reason MUST name the offending key so callers can pinpoint it.
+
     assertContains(error.reason, "bogus_extra")
   }
 

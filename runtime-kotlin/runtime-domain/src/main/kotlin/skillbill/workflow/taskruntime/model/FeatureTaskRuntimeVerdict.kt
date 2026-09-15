@@ -2,17 +2,6 @@ package skillbill.workflow.taskruntime.model
 
 import skillbill.error.InvalidWorkflowStateSchemaError
 
-/**
- * Effect-free typed verdict a verifying phase's structured output yields, which the bounded-cyclic
- * transition function reads to decide whether to re-enter an upstream phase or progress forward. The
- * abstraction is intentionally generic: this subtask defines only the type and a default
- * [ADVANCE]-only verdict for phases with no verifying output; concrete review/audit verdict schemas
- * are added in later subtasks.
- *
- * [wireValue] is stable for durable persistence and [fromWire] is a strict decode mirroring
- * [FeatureTaskRuntimePhaseLedgerAction]'s wire pattern, so a persisted verdict round-trips and an
- * unknown wire value loud-fails rather than being coerced.
- */
 data class FeatureTaskRuntimeVerdict(
   val wireValue: String,
 ) {
@@ -21,41 +10,25 @@ data class FeatureTaskRuntimeVerdict(
   }
 
   companion object {
-    /** The default verdict for a phase with no verifying output: always progresses forward. */
+
     val ADVANCE: FeatureTaskRuntimeVerdict = FeatureTaskRuntimeVerdict("advance")
 
-    /** A review verdict with no unresolved Blocker findings: the run advances past review. */
     val APPROVED: FeatureTaskRuntimeVerdict = FeatureTaskRuntimeVerdict("approved")
 
-    /**
-     * A review verdict carrying unresolved Blocker findings: the run takes the `review_fix`
-     * backward edge to the `implement_fix` phase to reconcile them on the current tree.
-     */
     val CHANGES_REQUESTED: FeatureTaskRuntimeVerdict = FeatureTaskRuntimeVerdict("changes_requested")
 
     val FINDINGS_VERIFIED: FeatureTaskRuntimeVerdict = FeatureTaskRuntimeVerdict("findings_verified")
 
     val NO_FINDINGS_VERIFIED: FeatureTaskRuntimeVerdict = FeatureTaskRuntimeVerdict("no_findings_verified")
 
-    /**
-     * Goal-only continuation verdict retained so legacy durable records stay decodable. SKILL-157
-     * retired the count-based stop that minted it; pass accounting never produces it again.
-     */
     val REVIEW_CAP_REACHED: FeatureTaskRuntimeVerdict = FeatureTaskRuntimeVerdict("review_cap_reached")
 
     val REVIEW_SKIPPED_BY_USER: FeatureTaskRuntimeVerdict = FeatureTaskRuntimeVerdict("review_skipped_by_user")
 
-    /** An audit verdict with no unmet acceptance criteria: the run advances past audit to validate. */
     val SATISFIED: FeatureTaskRuntimeVerdict = FeatureTaskRuntimeVerdict("satisfied")
 
     val GAPS_FOUND: FeatureTaskRuntimeVerdict = FeatureTaskRuntimeVerdict("gaps_found")
 
-    /**
-     * A synthetic launch-seam verdict: a consumer phase rejected an upstream producer's durable
-     * record at projection validation. The run takes the producer's regeneration backward edge to
-     * re-run the producer under a bounded cap, quarantining the rejected record as private evidence.
-     * It is not an agent-emitted verdict; the runtime mints it when a launch seam quarantines a record.
-     */
     val RECORD_REJECTED: FeatureTaskRuntimeVerdict = FeatureTaskRuntimeVerdict("record_rejected")
 
     val REPAIR_PLANNED: FeatureTaskRuntimeVerdict = FeatureTaskRuntimeVerdict("repair_planned")
@@ -74,11 +47,6 @@ data class FeatureTaskRuntimeVerdict(
       return verdict
     }
 
-    /**
-     * The closed audit vocabulary. [fromWire] deliberately accepts any non-blank value so durable
-     * records round-trip, so a consumer that acts on an audit verdict — the `review` entry gate —
-     * matches against this set rather than trusting an arbitrary emitted string.
-     */
     val AUDIT_VERDICTS: Set<FeatureTaskRuntimeVerdict> = setOf(SATISFIED)
 
     fun fromWire(value: String): FeatureTaskRuntimeVerdict =

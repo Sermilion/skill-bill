@@ -128,9 +128,7 @@ class InstallerShellReuseLastSelectionTest {
   private fun seedRepo(testRepo: Path) {
     Files.writeString(testRepo.resolve("install.sh"), Files.readString(repoRoot.resolve("install.sh")))
     testRepo.resolve("install.sh").toFile().setExecutable(true)
-    // SKILL-76: copy_in_authored_source copies skills/, platform-packs/, and the WHOLE
-    // orchestration/ tree into $HOME/.skill-bill as REAL files before linking. All three
-    // source roots must exist (non-empty) or install_packaged_runtime_distribution errors.
+
     val skillDir = testRepo.resolve("skills/bill-sample")
     Files.createDirectories(skillDir)
     Files.writeString(
@@ -226,8 +224,7 @@ class InstallerShellReuseLastSelectionTest {
     run.home.toString(),
     "install",
     "apply",
-    // SKILL-76 AC-2: --repo-root/--skills/--platform-packs point at the COPY under
-    // $HOME/.skill-bill that copy_in_authored_source materialized, NOT the clone.
+
     "--repo-root",
     run.home.resolve(".skill-bill").toString(),
     "--skills",

@@ -23,12 +23,6 @@ fun featureTaskRuntimeStartedPayload(row: Map<String, Any?>, level: String, salt
     }
   }
 
-/**
- * The workflow id goes out through the same issue-key redaction the goal events use, so a run stays
- * joinable to its goal, rejection, and diagnostic records at every level without an unredacted
- * tracker key ever reaching the wire. A run that is not a goal child has no parent or subtask id,
- * which [CORRELATION_AVAILABILITY] distinguishes from a row that never recorded one.
- */
 private fun correlationFields(row: Map<String, Any?>, level: String, salt: String): Map<String, Any?> {
   val workflowId = row.stringOrEmpty("workflow_id")
   val issueKey = row.stringOrEmpty("issue_key")
@@ -79,12 +73,6 @@ fun featureTaskRuntimeFinishedPayload(row: Map<String, Any?>, level: String, sal
     }
   }
 
-/**
- * The review-fix budget reads as exhausted only when the row declares the measurement available. A
- * row written before the availability column existed reports unknown and carries no boolean, so an
- * ordinary repair round that the old producer flagged from an iteration count no longer reads as an
- * exhausted budget.
- */
 private fun reviewFixCapExhaustionFields(row: Map<String, Any?>): Map<String, Any?> {
   val availability = row.availability(LifecycleTelemetryPayloadKeys.REVIEW_FIX_CAP_EXHAUSTED_AVAILABILITY)
   val exhausted = if (availability.measured) {
@@ -98,11 +86,6 @@ private fun reviewFixCapExhaustionFields(row: Map<String, Any?>): Map<String, An
   )
 }
 
-/**
- * Audit-loop reporting at the one grain the runtime durably owns: audit-gap rounds per run. The
- * recurrence, new-gap, attempted and resolved repair-item counters have no per-criterion gap identity
- * in durable state, so they are reported as unsupported rather than as a zero nobody measured.
- */
 private fun auditGapFields(row: Map<String, Any?>): Map<String, Any?> {
   val availability = row.availability(LifecycleTelemetryPayloadKeys.AUDIT_GAP_AVAILABILITY)
   val iterations = row.nullableInt(LifecycleTelemetryPayloadKeys.AUDIT_GAP_ITERATION_COUNT)
@@ -160,12 +143,6 @@ fun qualityCheckStartedPayload(row: Map<String, Any?>): Map<String, Any?> {
   }
 }
 
-/**
- * A stale terminal is a check that never reported back, not a check that finished with nothing
- * failing. Its final failure count is absent with a declared availability, and [COMPLETION] separates
- * an operator-completed check from a reconciler-marked stale one, so no consumer can build a
- * clean-gate denominator out of a zero the check never produced.
- */
 fun qualityCheckFinishedPayload(row: Map<String, Any?>, level: String): Map<String, Any?> {
   val result = row.stringOrEmpty(LifecycleTelemetryPayloadKeys.RESULT).ifBlank { "skipped" }
   val reconcilerStale = result == STALE_RESULT

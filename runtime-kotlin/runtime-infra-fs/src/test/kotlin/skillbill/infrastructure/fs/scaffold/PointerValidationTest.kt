@@ -54,7 +54,6 @@ class PointerValidationTest {
   @Test
   fun `flags missing when a declared pointer file is absent on disk`() {
     val repoRoot = setupBasicPack()
-    // declared but not written: shell-ceremony.md
 
     val report = validatePlatformPackPointers(repoRoot)
 
@@ -67,8 +66,6 @@ class PointerValidationTest {
 
   @Test
   fun `does not flag a multi-line markdown file as a pointer orphan`() {
-    // F-016 negative case (i): a non-pointer-shaped markdown file in a specialist directory must
-    // not be flagged orphan.
     val repoRoot = setupBasicPack()
     writePointer(
       repoRoot,
@@ -89,7 +86,6 @@ class PointerValidationTest {
 
   @Test
   fun `does not flag a markdown file larger than the pointer size limit`() {
-    // F-016 negative case (ii): files larger than the 500-byte cap must not be flagged orphan.
     val repoRoot = setupBasicPack()
     writePointer(
       repoRoot,
@@ -108,7 +104,6 @@ class PointerValidationTest {
 
   @Test
   fun `does not flag pointer-shaped files inside addons or native-agents subtrees`() {
-    // F-011: orphan walk must skip addons/ and native-agents/ subdirectories.
     val repoRoot = setupBasicPack()
     writePointer(
       repoRoot,
@@ -129,7 +124,6 @@ class PointerValidationTest {
 
   @Test
   fun `accumulates multiple issues across packs and returns sorted list`() {
-    // F-017: drift in pack A + missing in pack B; assert both reported, sorted, passed=false.
     val repoRoot = temp.resolve("multi-issue-repo")
     Files.createDirectories(repoRoot.resolve("shared"))
     Files.writeString(repoRoot.resolve("shared/shell.md"), "# shell")
@@ -160,7 +154,7 @@ class PointerValidationTest {
         """.trimIndent(),
       )
     }
-    // pack 'apack' has drift; pack 'bpack' is missing on disk.
+
     writePointer(
       repoRoot,
       "platform-packs/apack/code-review/skill/shell-ceremony.md",
@@ -189,7 +183,7 @@ class PointerValidationTest {
       "platform-packs/fixturepack/code-review/skill/shell-ceremony.md",
       "../../../../shared/shell.md",
     )
-    // Add an orphan in a sibling specialist directory
+
     val orphanDir = repoRoot.resolve("platform-packs/fixturepack/code-review/specialist")
     Files.createDirectories(orphanDir)
     Files.writeString(orphanDir.resolve("rogue.md"), "../../../../shared/shell.md")
@@ -241,11 +235,6 @@ class PointerValidationTest {
     )
   }
 
-  /**
-   * Writes a minimal repo with one platform pack named `fixturepack`, declaring a single pointer
-   * `code-review/skill/shell-ceremony.md` -> `shared/shell.md`. Does NOT write the pointer file
-   * itself; tests are responsible for placing or omitting it.
-   */
   private fun setupBasicPack(): Path {
     val repoRoot = temp.resolve("repo")
     Files.createDirectories(repoRoot.resolve("shared"))

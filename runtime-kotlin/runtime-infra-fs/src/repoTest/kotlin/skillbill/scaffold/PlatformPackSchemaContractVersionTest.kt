@@ -13,17 +13,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
-/**
- * SKILL-47 AC2: pins `contract_version` parity between the canonical
- * schema file (`orchestration/contracts/platform-pack-schema.yaml`) and
- * `SHELL_CONTRACT_VERSION`. Bumping one without the other is a build
- * break, by design.
- *
- * F-007: also pins the `$defs/codeReviewArea` enum to
- * `APPROVED_CODE_REVIEW_AREAS`. The enum is now declared once in the
- * schema via `$defs`; this parity test guarantees the schema and the
- * Kotlin set cannot drift in either direction.
- */
 class PlatformPackSchemaContractVersionTest {
   @Test
   fun `schema contract_version const matches SHELL_CONTRACT_VERSION`() {
@@ -46,10 +35,6 @@ class PlatformPackSchemaContractVersionTest {
 
   @Test
   fun `schema defs codeReviewArea enum equals APPROVED_CODE_REVIEW_AREAS`() {
-    // F-007: the canonical schema declares the approved-area enum exactly once under
-    // `$defs/codeReviewArea`. Every consumer in the schema (`declared_code_review_areas.items`,
-    // `declared_files.areas.propertyNames`, `area_metadata.propertyNames`) `$ref`s into this
-    // single definition. This parity test fails loudly if either side drifts.
     val schemaFile = repoRootFromTest().resolve(PlatformPackSchemaPaths.REPO_RELATIVE_PATH)
     assertTrue(Files.isRegularFile(schemaFile), "Canonical schema file is missing at $schemaFile.")
 

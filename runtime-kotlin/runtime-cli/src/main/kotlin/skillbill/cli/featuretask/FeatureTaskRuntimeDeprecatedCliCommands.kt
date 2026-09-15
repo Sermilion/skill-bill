@@ -17,14 +17,6 @@ import skillbill.ports.workflow.model.FeatureTaskRouteScope
 private const val FEATURE_TASK_RUNTIME_DEPRECATION_NOTE: String =
   "feature-task-runtime is a deprecated alias for feature-task. Use feature-task; behavior is unchanged.\n"
 
-/**
- * SKILL-67 Subtask 1 (AC2): hidden deprecated alias for the canonical `feature-task`
- * command. Reuses the same dependencies, services, and
- * [FeatureTaskRuntimePhaseAgentCommand] base, so behavior is identical to the canonical
- * command; the only difference is a stderr deprecation note emitted on every invocation
- * (the parent `run()` always executes before any subcommand). Kept registered for the
- * removal window.
- */
 @Inject
 class FeatureTaskRuntimeDeprecatedRunCommand(
   private val deps: FeatureTaskRuntimeRunDependencies,

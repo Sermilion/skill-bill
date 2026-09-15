@@ -15,8 +15,7 @@ data class TelemetryProxyCapabilities(
   val supportsIngest: Boolean,
   val supportsStats: Boolean,
   val supportedWorkflows: List<String>,
-  // Defaults to true because a relay forwards event properties verbatim unless it says otherwise;
-  // only a relay that explicitly declares it cannot carry the deduplication property opts out.
+
   val supportsEventDeduplication: Boolean = true,
   val additionalFields: CustomFieldMap = CustomFieldMap.EMPTY,
 )
