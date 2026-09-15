@@ -119,7 +119,8 @@ internal val databaseSchemaStatementsLate: List<String> =
         subtasks_skipped INTEGER,
         finished_event_emitted_at TEXT,
         mode TEXT NOT NULL DEFAULT 'runtime',
-        stop_reason TEXT
+        stop_reason TEXT,
+        parent_workflow_id TEXT
       )
     """.trimIndent(),
     """

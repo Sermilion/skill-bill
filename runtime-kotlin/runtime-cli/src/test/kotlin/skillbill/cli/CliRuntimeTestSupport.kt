@@ -130,7 +130,10 @@ internal fun assertReviewStatsPayload(dbPath: Path, context: CliRuntimeContext) 
   assertEquals(1, statsPayload["unresolved_findings"])
   val reviewHealth = statsPayload["health"] as Map<*, *>
   assertEquals(1, reviewHealth["total_review_payload_records"])
-  assertEquals(mapOf("standalone" to 1, "embedded" to 0, "malformed" to 0), reviewHealth["source_counts"])
+  assertEquals(
+    mapOf("standalone" to 1, "embedded" to 0, "malformed" to 0, "unknown" to 0),
+    reviewHealth["source_counts"],
+  )
 }
 
 internal fun assertFeatureStatsAliases(dbPath: Path, context: CliRuntimeContext) {

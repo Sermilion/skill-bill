@@ -12,11 +12,19 @@ these seams:
 - a retry, timeout, cap, truncation, or sampling decision
 - a capability that resolves to absent and is skipped
 - spec-intent resolution that records `spec_context: none` (`no_spec_found`, `ambiguous_match`, `not_applicable_scope`) or falls through from an unreadable decomposition manifest to branch-derived glob search; records carry reason, rung, and resolved path only, never spec body
-- a skipped adjudication stage, a verification or adjudication worker that failed to launch or return, and a stage that ended without a reached boundary; each emits `skillbill_review_stage_degradation` with seam, expected, actual, and a closed reason, carrying `review_run_id` only
+- a skipped adjudication stage, a review worker that did not return usable output, and a stage that ended without a reached boundary; each emits `skillbill_review_stage_degradation` with seam, expected, actual, and a closed reason, carrying `review_run_id` only. Worker failure is reported by cause, not as one bucket: `worker_process_failed` (spawned and died, was interrupted, or exited with an unknown status), `worker_timed_out`, `worker_output_unusable` (returned, but its verification or adjudication output did not parse), `worker_launch_budget_exceeded` (a launch or retained output over `max_lane_launch_bytes`), and `worker_launch_or_return_failed` for an unsupported-agent refusal, which names no failure mode of its own. Classification is by exact rejection reason: a reason no cause recognizes emits no worker-failure record at all, because the selector cannot tell it apart from an ordinary rejected verdict. Adding a rejection reason means adding its cause here, or the failure goes unreported rather than being attributed to a cause nobody checked
 - a legacy-record migration, quarantine, or regeneration
 - a runtime refusal or migration normalization; records use `record_kind: refusal` or
   `record_kind: migration` and carry the seam, value used, expected value, and bounded cause
 - a reconciliation that repairs drift between durable state and disk
+- a rejected-output diagnostic write that cannot land: a same-identity conflict, a
+  permission refusal, a corrupt or oversized row, an unavailable repository, or a
+  schema violation. The rejection that triggered the write is what the run reports —
+  the diagnostic failure never replaces it and never fails the run. A bounded,
+  payload-free signal is appended to the workflow's own durable artifacts naming the
+  operation, failure class, conflicting key, phase, attempt, repair turn, and
+  generation; it carries no agent bytes. A caller-construction defect
+  (`InvalidRequest`, `InvalidConfiguration`) is a loud-fail, not a degradation
 - checkpoint-ref prune: `FeatureTaskRuntimeCheckpointRefPrune.pruneSubtaskCheckpointRefs`
   when listing or deleting a ref under `refs/skill-bill/checkpoints/` fails, or when
   pruning is skipped because `commit_sha` is still blank
@@ -53,6 +61,60 @@ degradations the caller can still trust.
 
 Bounded output rules still apply: records carry counts, identities, and sanitized
 labels, never raw payloads, diff hunks, or unbounded child output.
+
+## An unmeasured quantity is declared absent, never emitted as zero
+
+A metric the runtime did not measure is not `0`, not `false`, and not an empty list.
+Those are legitimate measured outcomes, and emitting one for a quantity nobody
+counted makes an unknown indistinguishable from a real result — a run that never
+recorded a review-fix cap reads exactly like a run whose cap was never spent.
+
+Every such field is a pair: the value, and an availability token from
+`TelemetryMeasurementAvailability`.
+
+| Token | Meaning |
+| --- | --- |
+| `measured` | The runtime counted it. The value is present and trustworthy. |
+| `unavailable_no_durable_state` | Nothing durable recorded it — typically a row written before the column existed. Backfill is not possible, so no value is emitted. |
+| `unavailable_unsupported` | No measurement applies at this seam. A process failure and a reconciliation rejection spend no output-gate correction budget, so neither reports one. |
+| `unavailable_incomplete` | Measurement started but did not reach a countable state. |
+| `unknown` | The availability itself could not be resolved. |
+
+When the token is anything but `measured`, the value key is emitted as `null` or
+omitted — never defaulted. Consumers filter on the availability token first and
+treat any non-`measured` row as outside the denominator, not as a zero inside it.
+
+Migrations that add these columns are nullable with no backfill, for the same
+reason: a historical row has no recoverable value, and inventing one would convert
+a gap in the record into a fabricated outcome.
+
+Where a count could be read at more than one grain, the payload states the grain it
+used rather than leaving consumers to guess — `audit_gap_measurement_grain` carries
+`audit_gap_rounds_per_run`.
+
+Rates follow the same rule. A run the stale reconciler closed was never observed
+reaching a terminal, so it is not evidence about how runs end: `observed_runs` is
+the denominator for every rate, `reconciler_closed_runs` is published on its own,
+and a terminal row states which it is through `completion`
+(`operator_completed` or `reconciler_stale`).
+
+## Correlation identifiers join records without exposing an identity
+
+A lifecycle record, the rejections of the same run, and its diagnostics are only
+useful together, so each carries the identifiers needed to join them:
+`redacted_workflow_id`, `goal_parent_workflow_id`, and `goal_subtask_id`, alongside
+`correlation_availability`.
+
+- The workflow id and goal parent id are redacted at the emission seam with the same
+  salted hash the issue key uses, so anonymous mode keeps the join without ever
+  putting a raw identifier or an issue key substring on the wire.
+- A standalone run has no goal parent and no subtask id. Those fields are absent —
+  absence is the fact, not a sentinel.
+- A run whose workflow id the runtime does not know reports
+  `correlation_availability: unknown` and emits no id.
+- Delivery identity (`$insert_id`) and `skill_bill_version` stay owned by the
+  envelope and the transport. Payloads do not restate them; a second authority for
+  event identity is how two records of one event come to disagree.
 
 ## Telemetry delivery health records on the row, never in the queue
 

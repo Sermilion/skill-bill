@@ -2,6 +2,7 @@ package skillbill.mcp.core
 
 import skillbill.application.workflow.model.WorkflowFamilyKind
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
 import skillbill.mcp.featuretask.featureTaskPhaseBlock
 import skillbill.mcp.featuretask.featureTaskPhaseComplete
 import skillbill.mcp.lifecycle.featureVerifyFinished
@@ -144,6 +145,7 @@ object McpToolDispatcher {
     val stack = normalizeQualityCheckStack(arguments["detected_stack"]?.toString())
     val fallback = arguments["fallback"] == true || stack.fallback
     return arguments.toMutableMap().apply {
+      keys.removeAll(RUNTIME_OWNED_QUALITY_CHECK_KEYS)
       put("routed_skill", normalizeQualityCheckRoutedSkill(arguments["routed_skill"]?.toString()))
       put("detected_stack", stack.stack)
       put("fallback", fallback)
@@ -154,6 +156,17 @@ object McpToolDispatcher {
     }
   }
 }
+
+/**
+ * Keys the emission seam derives and no handler reads. They exist on the shared `quality_check_finished`
+ * branch because the same branch validates the emitted payload, so a caller could otherwise declare a
+ * reconciler terminal it did not reach and carry a null failure count past the coherence rule.
+ */
+private val RUNTIME_OWNED_QUALITY_CHECK_KEYS: Set<String> = setOf(
+  LifecycleTelemetryPayloadKeys.COMPLETION,
+  LifecycleTelemetryPayloadKeys.FINAL_FAILURE_COUNT_AVAILABILITY,
+  LifecycleTelemetryPayloadKeys.STALE_REASON,
+)
 
 private class NormalizedQualityCheckStack(
   val stack: String,

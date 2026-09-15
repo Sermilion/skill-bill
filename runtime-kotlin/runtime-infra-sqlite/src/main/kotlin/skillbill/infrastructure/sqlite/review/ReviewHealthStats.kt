@@ -1,5 +1,6 @@
 package skillbill.infrastructure.sqlite.review
 
+import skillbill.review.model.ReviewDeliveryGrainStats
 import skillbill.review.model.ReviewHealthStats
 import java.sql.Connection
 
@@ -10,6 +11,8 @@ val reviewHealthScopes = listOf("branch_diff", "unstaged_changes", "working_tree
 data class ReviewHealthPayload(
   val source: String,
   val payload: Map<String, Any?>,
+  val deliveryIdentity: String? = null,
+  val deliveryAttempts: Int? = null,
 )
 
 fun buildReviewHealthStats(connection: Connection, reviewRunId: String?): ReviewHealthStats {
@@ -54,5 +57,23 @@ fun buildReviewHealthStats(connection: Connection, reviewRunId: String?): Review
     platformCounts = aggregatePayloadValueCounts(includedPayloads, "platform_slug", emptyList(), "unknown"),
     scopeCounts = aggregatePayloadValueCounts(includedPayloads, "scope_type", reviewHealthScopes, "unknown"),
     sourceCounts = countReviewHealthSources(includedPayloads, malformedRecords),
+    reviewDeliveryGrain = reviewDeliveryGrain(scopedPayloads, includedPayloads),
+  )
+}
+
+private fun reviewDeliveryGrain(
+  scopedPayloads: List<ReviewHealthPayload>,
+  includedPayloads: List<ReviewHealthPayload>,
+): ReviewDeliveryGrainStats {
+  val identities = scopedPayloads.map { it.deliveryIdentity?.takeIf(String::isNotBlank) }
+  val reviewRunIds = includedPayloads.map { it.payload.stringHealthValue("review_run_id").takeIf(String::isNotBlank) }
+  return ReviewDeliveryGrainStats(
+    queuedDeliveryRows = scopedPayloads.count { it.deliveryAttempts != null },
+    deliveryAttempts = scopedPayloads.sumOf { it.deliveryAttempts ?: 0 },
+    logicalEvents = identities.filterNotNull().distinct().size,
+    rowsWithUnknownDeliveryIdentity = scopedPayloads.count { it.deliveryAttempts != null }
+      - identities.count { it != null },
+    logicalReviews = reviewRunIds.filterNotNull().distinct().size,
+    recordsWithUnknownReview = reviewRunIds.count { it == null },
   )
 }

@@ -39,6 +39,21 @@ object FeatureTaskRuntimeAttemptBudgets {
     outputGateBlockReason(phaseId, malformedAttemptCount)
 
   /**
+   * Whether the rejection now being recorded is the one that spends the phase's correction budget.
+   * The block decision and the telemetry both route through here, so a record cannot report an intact
+   * budget on the same attempt the loop refuses to relaunch. A phase that never relaunches on invalid
+   * output has no budget to spend beyond this rejection, so the first one is already terminal.
+   */
+  fun outputGateRejectionExhaustsBudget(phaseId: String, priorOutputGateFailures: Int): Boolean {
+    require(priorOutputGateFailures >= 0) {
+      "priorOutputGateFailures must be >= 0, was $priorOutputGateFailures."
+    }
+    val relaunches = FeatureTaskRuntimePhaseWorkflowDefinition.retriesOnInvalidOutput(phaseId) &&
+      !FeatureTaskRuntimePhaseWorkflowDefinition.singleAgentSessionOnly(phaseId)
+    return !relaunches || outputGateBlockReason(phaseId, priorOutputGateFailures + 1) != null
+  }
+
+  /**
    * Whether a round that reported it tried and could not close a finding may try that finding again.
    *
    * One retry per finding, tracked by finding reference rather than by attempt count: a first failed

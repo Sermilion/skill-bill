@@ -119,7 +119,7 @@ The Worker `/stats` route returns compact remote workflow summaries. Rich review
 Use the same filtering rules in PostHog dashboards:
 
 - choose an explicit health window, commonly the last 60 days
-- excluded rows: `source = test` and `source = synthetic`
+- excluded rows: malformed records only. The runtime emits no test or synthetic source marker, so a dashboard cannot filter on one; if a project's events include test traffic, report that caveat rather than filtering on a property nothing sets
 - data-quality debt: malformed session ids, unknown sources, duplicate terminal events, invalid/long-running durations, malformed child steps, and malformed review payloads
 - review health sources: standalone `skillbill_review_finished`
 - large-feature guidance: report `LARGE` completion, abandonment, and error separately, and recommend decomposition or earlier blocking when large-feature unhealthy rate is non-zero and at least the overall unhealthy rate

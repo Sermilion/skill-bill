@@ -2,7 +2,7 @@ package skillbill.infrastructure.sqlite.review
 
 import skillbill.contracts.review.ReviewFindingPayloadKeys
 
-private val reviewHealthSources = listOf("standalone", "embedded", "malformed")
+private val reviewHealthSources = listOf("standalone", "embedded", "malformed", UNKNOWN_REVIEW_HEALTH_SOURCE)
 private val reviewHealthOutcomes =
   listOf("finding_accepted", "fix_applied", "finding_edited", "fix_rejected", "false_positive")
 
@@ -54,10 +54,15 @@ fun aggregatePayloadValueCounts(
 
 fun countReviewHealthSources(payloads: List<ReviewHealthPayload>, malformedRecords: Int): Map<String, Int> {
   val counts = reviewHealthSources.associateWith { 0 }.toMutableMap()
-  payloads.forEach { payload -> counts[payload.source] = counts.getValue(payload.source) + 1 }
+  payloads.forEach { payload ->
+    val source = payload.source.takeIf(counts::containsKey) ?: UNKNOWN_REVIEW_HEALTH_SOURCE
+    counts[source] = counts.getValue(source) + 1
+  }
   counts["malformed"] = malformedRecords
   return counts.toMap()
 }
+
+const val UNKNOWN_REVIEW_HEALTH_SOURCE: String = "unknown"
 
 fun aggregateCategorySeverityCrossTab(payloads: List<ReviewHealthPayload>): Map<String, Map<String, Int>> {
   val crossTab = mutableMapOf<String, MutableMap<String, Int>>()

@@ -22,7 +22,7 @@ fun emitFeatureTaskRuntimeFinished(connection: Connection, sessionId: String, le
   emitOnce(
     LifecycleEmitRequest(connection, row, "feature_task_runtime_sessions", "finished_event_emitted_at"),
     "skillbill_feature_task_runtime_finished",
-  ) { featureTaskRuntimeFinishedPayload(row, level) }
+  ) { featureTaskRuntimeFinishedPayload(row, level, telemetryRedactionSalt(connection)) }
 }
 
 fun emitQualityCheckStarted(connection: Connection, sessionId: String) {

@@ -11,6 +11,8 @@ import com.networknt.schema.SchemaValidatorsConfig
 import com.networknt.schema.SpecVersion
 import com.networknt.schema.ValidationMessage
 import skillbill.contracts.logSchemaLoadFailure
+import skillbill.contracts.telemetry.LifecycleSessionCompletion
+import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
 import skillbill.error.InvalidTelemetryEventSchemaError
 import java.io.IOException
 import java.util.Locale
@@ -176,6 +178,7 @@ object TelemetryEventSchemaValidator {
   )
 
   private fun validateCoherence(envelope: Map<String, Any?>, resolvedEventName: String?) {
+    validateQualityCheckFailureCountCoherence(envelope, resolvedEventName)
     if (resolvedEventName != "skillbill_review_finished") return
     val platformSlug = envelope["platform_slug"] as? String
     val reviewPlatform = envelope["review_platform"] as? String
@@ -186,6 +189,28 @@ object TelemetryEventSchemaValidator {
       eventName = resolvedEventName,
       reason = "skillbill_review_finished requires review_platform, detected_stack, and platform_slug to be equal " +
         "normalized slugs.",
+    )
+  }
+
+  /**
+   * `final_failure_count` is nullable on the wire so a reconciler-closed check can report that it never
+   * observed one. Only that terminal may carry the null: every other producer holds a counted value,
+   * and the handler that builds the typed model defaults a missing count to zero, so accepting a null
+   * anywhere else turns an unmeasured check into a measured clean gate.
+   */
+  private fun validateQualityCheckFailureCountCoherence(envelope: Map<String, Any?>, resolvedEventName: String?) {
+    if (resolvedEventName != "quality_check_finished") return
+    if (!envelope.containsKey(LifecycleTelemetryPayloadKeys.FINAL_FAILURE_COUNT)) return
+    if (envelope[LifecycleTelemetryPayloadKeys.FINAL_FAILURE_COUNT] != null) return
+    if (envelope[LifecycleTelemetryPayloadKeys.COMPLETION] == LifecycleSessionCompletion.RECONCILER_STALE.wireValue) {
+      return
+    }
+    throw InvalidTelemetryEventSchemaError(
+      fieldPath = LifecycleTelemetryPayloadKeys.FINAL_FAILURE_COUNT,
+      eventName = resolvedEventName,
+      reason = "quality_check_finished may omit final_failure_count only on a " +
+        "${LifecycleSessionCompletion.RECONCILER_STALE.wireValue} terminal the runtime itself writes. A check " +
+        "that reports its own terminal must carry the count it measured.",
     )
   }
 }

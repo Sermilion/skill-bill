@@ -45,7 +45,7 @@ Progress is visible without digging into the database:
 skill-bill feature-task status <workflow_id>
 ```
 
-prints `audit_first_pass_convergence`, `audit_recurring_gap_count`, `audit_new_gap_count`, `audit_attempted_repair_item_count`, `audit_resolved_repair_item_count`, and `audit_gap_iteration_count` for the run. The same counters ride the finished telemetry event (see `docs/review-telemetry.md`).
+prints the run's phase records and its blocked reason. Audit-loop accounting rides the finished telemetry event instead, at one grain: `audit_gap_iteration_count` (audit-gap rounds per run) and `audit_first_pass_convergence`, each paired with `audit_gap_availability` so an unmeasured run never reads as a converged one. Per-gap and per-repair-item counters are not produced; see `docs/review-telemetry.md`.
 
 </details>
 

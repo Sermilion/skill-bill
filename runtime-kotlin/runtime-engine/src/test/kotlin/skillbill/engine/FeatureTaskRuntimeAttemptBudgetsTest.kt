@@ -107,4 +107,27 @@ class FeatureTaskRuntimeAttemptBudgetsTest {
     assertTrue(!repeated.contains("F-003"), "only the repeated finding exhausted its retry: $repeated")
     assertContains(repeated, detail)
   }
+
+  @Test
+  fun `a rejection reports the budget spent exactly when the loop refuses to relaunch`() {
+    val phase = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT
+    (0..3).forEach { priorFailures ->
+      assertEquals(
+        FeatureTaskRuntimeAttemptBudgets.outputGateBlockReason(phase, priorFailures + 1) != null,
+        FeatureTaskRuntimeAttemptBudgets.outputGateRejectionExhaustsBudget(phase, priorFailures),
+        "the rejection record and the block decision must agree at $priorFailures prior failures",
+      )
+    }
+  }
+
+  @Test
+  fun `a phase that never relaunches on invalid output spends its budget on the first rejection`() {
+    assertTrue(
+      FeatureTaskRuntimeAttemptBudgets.outputGateRejectionExhaustsBudget(
+        FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
+        priorOutputGateFailures = 0,
+      ),
+      "a single-agent-session phase blocks on its first rejection, so that rejection spent the budget",
+    )
+  }
 }

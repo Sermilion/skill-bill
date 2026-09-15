@@ -134,6 +134,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
         observedSha256 = captured.sha256,
         truncated = captured.truncated,
         repairTurn = targeting.repairTurn,
+        exhaustedFixLoop = args.exhaustedFixLoop,
       ),
       state.evidenceGeneration(targeting.phaseId),
     )
@@ -362,6 +363,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
         targeting = FeatureTaskRuntimeRunLoopAttemptSettlement.rejectedOutputTargeting(
           defaultRejectedOutputTargetingArgs(run),
         ),
+        exhaustedFixLoop = args.rejectionExhaustsFixLoop,
       ),
     )
   }
@@ -400,6 +402,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
             ),
           ),
         ),
+        exhaustedFixLoop = output.rejectionExhaustsFixLoop,
       ),
     )
   }
@@ -494,6 +497,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
         targeting = FeatureTaskRuntimeRunLoopAttemptSettlement.rejectedOutputTargeting(
           defaultRejectedOutputTargetingArgs(run, RejectedOutputTargetingOverrides(path = path)),
         ),
+        exhaustedFixLoop = args.rejectionExhaustsFixLoop,
       ),
     )
     val repairEvidence = FeatureTaskRuntimeRunLoopOutputVerification

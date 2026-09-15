@@ -119,6 +119,7 @@ class FeatureTaskRuntimeRejectedOutputRecorder(
           pointerPath = request.path.ifBlank { "/" },
           violationClass = featureTaskRuntimeRejectionViolationClassOf(request.reason),
           declaredCap = featureTaskRuntimeRejectionCapOf(request.reason),
+          exhaustedFixLoop = request.exhaustedFixLoop,
         ),
       )
     }

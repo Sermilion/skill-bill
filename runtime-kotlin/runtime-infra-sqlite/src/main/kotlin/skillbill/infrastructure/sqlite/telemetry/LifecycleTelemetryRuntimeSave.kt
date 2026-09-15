@@ -1,6 +1,7 @@
 package skillbill.infrastructure.sqlite.telemetry
 
 import skillbill.contracts.JsonCodec
+import skillbill.contracts.telemetry.TelemetryMeasurementAvailability
 import skillbill.telemetry.model.FeatureTaskRuntimeFinishedRecord
 import skillbill.telemetry.model.FeatureTaskRuntimeStartedRecord
 import java.sql.Connection
@@ -14,8 +15,9 @@ fun saveFeatureTaskRuntimeStarted(connection: Connection, record: FeatureTaskRun
   connection.prepareStatement(
     """
     INSERT INTO feature_task_runtime_sessions (
-      session_id, feature_size, issue_key, feature_name
-    ) VALUES (?, ?, ?, ?)
+      session_id, feature_size, issue_key, feature_name,
+      workflow_id, goal_parent_workflow_id, goal_subtask_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)
     """.trimIndent(),
   ).use { statement ->
     statement.bind(
@@ -23,6 +25,9 @@ fun saveFeatureTaskRuntimeStarted(connection: Connection, record: FeatureTaskRun
       record.featureSize,
       record.issueKey,
       record.featureName,
+      record.workflowId,
+      record.goalParentWorkflowId,
+      record.goalSubtaskId,
     )
     statement.executeUpdate()
   }
@@ -34,7 +39,10 @@ private fun updateFeatureTaskRuntimeStarted(connection: Connection, record: Feat
     UPDATE feature_task_runtime_sessions SET
       feature_size = ?,
       issue_key = ?,
-      feature_name = ?
+      feature_name = ?,
+      workflow_id = ?,
+      goal_parent_workflow_id = ?,
+      goal_subtask_id = ?
     WHERE session_id = ?
     """.trimIndent(),
   ).use { statement ->
@@ -42,6 +50,9 @@ private fun updateFeatureTaskRuntimeStarted(connection: Connection, record: Feat
       record.featureSize,
       record.issueKey,
       record.featureName,
+      record.workflowId,
+      record.goalParentWorkflowId,
+      record.goalSubtaskId,
       record.sessionId,
     )
     statement.executeUpdate()
@@ -92,6 +103,11 @@ private fun updateFeatureTaskRuntimeFinished(
       finding_verification_verified_count = ?,
       finding_verification_rejected_count = ?,
       review_fix_cap_exhausted = ?,
+      review_fix_cap_exhausted_availability = ?,
+      audit_gap_iteration_count = ?,
+      audit_gap_availability = ?,
+      resolved_agent_ids = ?,
+      launched_models = ?,
       finished_at = CURRENT_TIMESTAMP
     WHERE session_id = ?
       AND (finished_event_emitted_at IS NULL OR completion_status = 'stale')
@@ -125,9 +141,26 @@ private fun bindFeatureTaskRuntimeFinishedUpdate(
     record.estimatedTotalTokens,
     record.findingVerificationVerifiedCount,
     record.findingVerificationRejectedCount,
-    if (record.reviewFixCapExhausted) 1 else 0,
+    record.reviewFixCapExhausted.toSqlInt(),
+    record.reviewFixCapExhausted.availabilityWire(),
+    record.auditGapIterationCount,
+    record.auditGapIterationCount.availabilityWire(),
+    record.resolvedAgentIds.namesJson(),
+    record.launchedModels.namesJson(),
     record.sessionId,
   )
+}
+
+private fun Boolean?.toSqlInt(): Int = if (this == true) 1 else 0
+
+// An empty list is stored as NULL: a run whose phases resolved nothing has not measured an empty set,
+// it has measured nothing, and the payload must report that as unavailable rather than as "none".
+private fun List<String>?.namesJson(): String? = this?.takeIf { it.isNotEmpty() }?.let(::listJson)
+
+private fun Any?.availabilityWire(): String = if (this == null) {
+  TelemetryMeasurementAvailability.UNAVAILABLE_NO_DURABLE_STATE.wireValue
+} else {
+  TelemetryMeasurementAvailability.MEASURED.wireValue
 }
 
 private fun regenerationOutcomeCountsJson(record: FeatureTaskRuntimeFinishedRecord): String? =
@@ -152,8 +185,10 @@ private fun insertFeatureTaskRuntimeFinished(
       crash_reconciliation_count, crash_reconciliation_reason_counts_json,
       estimated_phase_tokens_json, estimated_total_tokens,
       finding_verification_verified_count, finding_verification_rejected_count,
-      review_fix_cap_exhausted, finished_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      review_fix_cap_exhausted, review_fix_cap_exhausted_availability,
+      audit_gap_iteration_count, audit_gap_availability,
+      resolved_agent_ids, launched_models, finished_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     """.trimIndent(),
   ).use { statement ->
     statement.bind(
@@ -174,7 +209,12 @@ private fun insertFeatureTaskRuntimeFinished(
       record.estimatedTotalTokens,
       record.findingVerificationVerifiedCount,
       record.findingVerificationRejectedCount,
-      if (record.reviewFixCapExhausted) 1 else 0,
+      record.reviewFixCapExhausted.toSqlInt(),
+      record.reviewFixCapExhausted.availabilityWire(),
+      record.auditGapIterationCount,
+      record.auditGapIterationCount.availabilityWire(),
+      record.resolvedAgentIds.namesJson(),
+      record.launchedModels.namesJson(),
     )
     statement.executeUpdate()
   }

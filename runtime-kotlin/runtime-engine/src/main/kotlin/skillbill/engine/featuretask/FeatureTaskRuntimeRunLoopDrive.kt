@@ -193,17 +193,18 @@ object FeatureTaskRuntimeRunLoopDrive {
         context.resumeInFlightReviewFix(it)
       }
     }?.let { return it }
+    val edgeIterationCount = edge?.let {
+      FeatureTaskRuntimeRunLoopPlanningBranch.effectiveEdgeIterationCount(state, it)
+    } ?: 0
+    edge?.perEdgeCap?.takeIf { edgeIterationCount >= it }?.let { declaredCap ->
+      observability.loopCapExhausted(phaseId, edge.loopId, declaredCap, effectiveVerdict)
+    }
     val transition = runCatching {
       FeatureTaskRuntimeTransitionFunction.nextTransition(
         declaration = transitions,
         currentPhaseId = phaseId,
         verdict = effectiveVerdict,
-        edgeIterationCount = edge?.let {
-          FeatureTaskRuntimeRunLoopPlanningBranch.effectiveEdgeIterationCount(
-            state,
-            it,
-          )
-        } ?: 0,
+        edgeIterationCount = edgeIterationCount,
         context = FeatureTaskRuntimeTransitionContext(
           settledVerdictsByPhaseId = state.settledVerdictsByPhaseId,
         ),

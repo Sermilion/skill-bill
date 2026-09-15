@@ -8,7 +8,7 @@ import java.sql.Connection
 
 fun loadStandaloneReviewPayloads(connection: Connection): List<ReviewHealthPayload> = connection.prepareStatement(
   """
-    SELECT payload_json
+    SELECT payload_json, event_uuid, delivery_attempts
     FROM telemetry_outbox
     WHERE event_name = 'skillbill_review_finished'
     ORDER BY id
@@ -18,16 +18,18 @@ fun loadStandaloneReviewPayloads(connection: Connection): List<ReviewHealthPaylo
     buildList {
       while (resultSet.next()) {
         val raw = resultSet.getString("payload_json")
+        val identity = resultSet.getString("event_uuid")
+        val attempts = resultSet.getInt("delivery_attempts")
         val parsed = parseHealthJsonObject(raw)
         if (parsed.isEmpty() && raw.trim() != "{}") {
-          add(ReviewHealthPayload("malformed", emptyMap()))
+          add(ReviewHealthPayload("malformed", emptyMap(), identity, attempts))
           continue
         }
         val materialized = materializeReviewFinishedPayload(connection, parsed)
         if (materialized.isEmpty() && parsed.isNotEmpty()) {
-          add(ReviewHealthPayload("malformed", emptyMap()))
+          add(ReviewHealthPayload("malformed", emptyMap(), identity, attempts))
         } else {
-          add(ReviewHealthPayload("standalone", materialized))
+          add(ReviewHealthPayload("standalone", materialized, identity, attempts))
         }
       }
     }

@@ -432,10 +432,48 @@ Both `anonymous` and `full`:
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `final_failure_count` | integer | Failing checks after the last fix attempt |
+| `final_failure_count` | integer \| null | Failing checks after the last fix attempt. Null unless `final_failure_count_availability` is `measured`. |
+| `final_failure_count_availability` | string | `measured`, `unavailable_incomplete` (the reconciler closed this check), or `unknown` (a row that predates the field). |
+| `completion` | string | `operator_completed` for a check that reported its own terminal; `reconciler_stale` for one the reconciler closed after it stopped reporting. |
+| `stale_reason` | string | Present only on a `reconciler_stale` row; a closed token, today always `no_terminal_before_threshold`. |
 | `iterations` | integer | Fix-run cycles |
-| `result` | string | `pass`, `fail`, `skipped`, or `unsupported_stack` |
+| `result` | string | `pass`, `fail`, `skipped`, `stale`, or `unsupported_stack` |
 | `duration_seconds` | integer | Wall-clock seconds from started to finished |
+
+**Clean-gate queries.** Filter on `completion = 'operator_completed'` **and**
+`final_failure_count_availability = 'measured'` together, in both the numerator and the denominator.
+A `reconciler_stale` row carries no failure count at all, so a query that treats a missing count as
+zero reports checks as clean that nobody ever observed finishing.
+
+The same rule governs the local aggregates. `skill-bill feature-task-stats` reports `finished_runs`
+(rows with a terminal of any kind), `observed_runs` (terminals the run itself reported), and
+`reconciler_closed_runs`. Every rate — `completed_rate`, `blocked_rate`, `decomposed_rate`,
+`error_rate` — is over `observed_runs`, not `finished_runs`. Mirror that denominator in any dashboard
+query rather than dividing by the terminal count.
+
+`skill-bill goal-stats` has the same shape at a different grain. A `goal_run_sessions` row is one
+invocation segment, and every resume writes a new one, so `total_runs` counts invocations rather than
+goals. Read `logical_goals` for the goal count, `resumed_invocations` for how many of those segments
+were restarts, and `goal_identity_availability` to know whether the attribution is complete:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `total_runs` | integer | Invocation segments in the store, resumes included |
+| `logical_goals` | integer | Distinct goals those segments belong to |
+| `resumed_invocations` | integer | Segments that restarted an already-started goal |
+| `invocations_with_unknown_goal` | integer | Segments written before the parent id was persisted |
+| `goal_identity_availability` | string | `measured`, `unavailable_incomplete`, or `unavailable_no_durable_state` |
+
+Segments recorded before the parent id existed are not attributable and are never folded into
+`logical_goals` as one anonymous goal; they are counted in `invocations_with_unknown_goal` and drop
+`goal_identity_availability` below `measured`. A dashboard that divides by `total_runs` is reporting
+a per-invocation rate, which is a different question from how often goals succeed — say which one it
+answers.
+
+Remotely, the same split already exists as two events: `skillbill_goal_finished` is per invocation
+segment, and `skillbill_goal_issue_finished` is the goal, carrying `parent_workflow_id`,
+`total_invocations`, `total_resumes`, and `total_blocks`. Build goal-level rates on
+`skillbill_goal_issue_finished`; counting `skillbill_goal_finished` rows counts restarts.
 
 `full` level additionally includes in `_finished`:
 
@@ -510,23 +548,35 @@ Both levels:
 
 ## Audit-repair counters
 
-Runtime-mode feature-task sessions report their own terminal event directly from the foreground runtime driver's lifecycle telemetry, emitted as `skillbill_feature_task_runtime_finished`. Alongside `review_fix_iteration_count` and `audit_gap_iteration_count`, that event carries five counters describing how the completeness-audit repair loop behaved. They are compact numbers and one boolean — no gap text, criterion text, diagnoses, evidence strings, paths, or agent output is sent at any telemetry level.
+Runtime-mode feature-task sessions report their own terminal event directly from the foreground runtime driver's lifecycle telemetry, emitted as `skillbill_feature_task_runtime_finished`. Alongside `review_fix_iteration_count`, that event describes the completeness-audit loop at the one grain the runtime durably owns. They are compact numbers and booleans — no gap text, criterion text, diagnoses, evidence strings, paths, or agent output is sent at any telemetry level.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `audit_first_pass_convergence` | boolean | Whether the first audit was satisfied outright, with no audit-gap iteration at all. True only when `audit_gap_iteration_count` is 0. |
-| `audit_recurring_gap_count` | integer | Gaps still carried as recurring in the run's final durable audit state — reported unmet again under their original identity after a repair pass had already attempted them. |
-| `audit_new_gap_count` | integer | Gaps raised under a new identity by a later audit rather than as a recurrence of a gap it inherited. |
-| `audit_attempted_repair_item_count` | integer | Repair items remediation carried and returned a terminal result for; never smaller than the terminal results held in durable state. |
-| `audit_resolved_repair_item_count` | integer | Carried repair items that reached a terminal resolved outcome (`fixed` or `already_satisfied`) with the required evidence. |
+| `audit_gap_availability` | string | `measured` when the run held a durable phase ledger to count from; `unavailable_no_durable_state` when it did not; `unknown` on a row written before this field existed. |
+| `audit_gap_measurement_grain` | string | Always `audit_gap_rounds_per_run`. Stated on the wire so no consumer has to guess what one unit counts. |
+| `audit_gap_iteration_count` | integer \| null | Audit-gap rounds the run durably entered: one per `audit_ac_retry` continuation the audit phase recorded, plus one per legacy `audit_gap` loop edge on runs that predate the stateless audit. Null unless `audit_gap_availability` is `measured`. |
+| `audit_first_pass_convergence` | boolean \| null | Whether the first audit was satisfied outright. True only when `audit_gap_iteration_count` is 0; null whenever that count is null. |
+| `audit_repair_item_availability` | string | Always `unavailable_unsupported`. Per-gap and per-repair-item accounting has no durable identity in runtime state, so no such counter is emitted. |
 
-What an operator can read from them:
+Read `audit_gap_availability` before `audit_gap_iteration_count`. A null count is "nobody measured this run", which is a different fact from a measured zero, and a clean-rate denominator built without that distinction silently counts unmeasured runs as converged.
 
-- `audit_first_pass_convergence` is the headline quality signal for the implementation phase: a high rate means implementation is landing acceptance criteria the first time, and a falling rate means specs, planning, or review are letting unmet criteria through to the audit.
-- `audit_recurring_gap_count` above zero means a repair pass ran and did not fix what it was asked to fix. Sustained recurrence is the leading indicator of the non-progress block described in `docs/capabilities.md`, and usually points at a mis-diagnosed gap rather than a lazy repair.
-- `audit_new_gap_count` distinguishes discovery from failure. New gaps mean later audits are finding genuinely different problems — closer to an under-specified spec than to a broken repair loop.
-- `audit_attempted_repair_item_count` measures how much repair scope the audit created; comparing it against `audit_gap_iteration_count` shows whether one audit described the whole repair scope or the loop discovered it piecemeal.
-- `audit_resolved_repair_item_count` compared to the attempted count is the repair-pass yield. The runtime requires every carried item to reach a terminal result, so a durable gap between the two is a signal to inspect the run rather than a normal steady state.
+`audit_first_pass_convergence` is the headline quality signal for the implementation phase: across runs where it is non-null, a high rate means implementation is landing acceptance criteria the first time, and a falling rate means specs, planning, or review are letting unmet criteria through to the audit.
+
+Recurring-gap, new-gap, attempted-repair-item, and resolved-repair-item counters are **not** emitted. Earlier revisions of this document described them; no runtime producer ever computed them. Reconstructing them needs a per-criterion gap identity that durable audit state does not carry, so `audit_repair_item_availability` declares them unsupported rather than reporting a zero nobody measured.
+
+## Resolved agent and model context
+
+The same terminal event reports which agents and models the run's phases actually resolved, read from the durable phase records rather than from anything an agent reported about itself.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `agent_context_measurement_grain` | string | Always `distinct_resolved_agents_per_run`. One unit is the distinct set observed across the run's phases, not a per-phase value. |
+| `resolved_agent_availability` | string | `measured` when at least one durable phase record named a resolved agent; `unavailable_no_durable_state` when none did. |
+| `resolved_agent_ids` | array \| null | Distinct, sorted agent slugs the run's phases resolved. Null unless `resolved_agent_availability` is `measured`. |
+| `launched_model_availability` | string | `measured` when at least one phase launched under a model directive; `unavailable_no_durable_state` when none did. |
+| `launched_models` | array \| null | Distinct, sorted model strings the phases were launched with, in the exact form handed to the agent CLI. Null unless `launched_model_availability` is `measured`. |
+
+A run can know its agents and not its models: a phase that ran with no model directive resolves an agent and launches no model. Segment on `resolved_agent_ids` only after filtering on `resolved_agent_availability`; a null set means the run recorded nothing, never that it ran without an agent.
 
 ## PostHog dashboard spec
 
@@ -581,14 +631,44 @@ Mirror to local stats:
 
 ### Health stat defaults
 
-Local health views use the rows available in the local telemetry database. They exclude `source = test` and `source = synthetic` telemetry from health denominators by default. Excluded and malformed records are still reported as data-quality debt so dashboards do not hide instrumentation problems.
+Local health views use the rows available in the local telemetry database. `source_counts` buckets
+every record by where its payload came from — `standalone` (a review run's own record), `embedded` (a
+record carried inside another workflow's payload), `malformed` (a record that did not parse), and
+`unknown` (a record whose source this surface could not classify). `unknown` is always present, at
+zero when nothing landed in it, so a reader can tell "no unclassified records" apart from a view that
+cannot report unclassified records at all.
+
+Review health publishes three grains separately, because no single count over "records" answers more
+than one of the questions a reader usually means:
+
+| Aggregate | Unit | Definition |
+|-----------|------|------------|
+| `queued_delivery_rows` | transport row | Review payloads that reached the local outbox. An embedded payload never did and is not counted here. |
+| `delivery_attempts` | transport attempt | Sum of `telemetry_outbox.delivery_attempts`. One event retried three times contributes three. Never a review denominator. |
+| `logical_events` | minted event | Distinct `telemetry_outbox.event_uuid`. A retry is the same event; a re-emission after a correction is a new one. |
+| `rows_with_unknown_delivery_identity` | transport row | Outbox rows written before `event_uuid` existed. Reported, never folded into `logical_events`. |
+| `logical_reviews` | review | Distinct non-blank `review_run_id` across included payloads. The only honest review denominator. |
+| `records_with_unknown_review` | record | Included payloads carrying no `review_run_id`. Reported, never counted as a review of its own. |
+
+Exclusion defaults: malformed records stay out of every finding denominator; unattributable rows are
+reported in their own counter rather than being assigned to a bucket; and no row is excluded on a
+source classification, because none is stored (see below).
+
+There is no test or synthetic marker on a review payload record, so health views cannot exclude one.
+Nothing durable distinguishes a record produced by a test harness from a record produced by a real
+review, and classifying rows on a signal nobody stores would be a guess reported as a fact. If a
+local database has been exercised by tests, its health numbers include that traffic; say so rather
+than filtering on a field that does not exist.
+
+Malformed records stay in `malformed_review_payload_records` and `data_quality_debt_records` and out
+of every finding denominator, so an instrumentation problem shows up as debt instead of vanishing.
 
 Review health combines two review payload sources:
 
 - standalone `skillbill_review_finished` events
 - embedded code-review entries inside historical `skillbill_feature_task_prose_finished.child_steps` rows (legacy prose lane; no new rows are produced)
 
-Do not attempt to de-duplicate standalone and embedded review payloads unless a stable shared key is present. Local stats report `source_counts` for `standalone`, `embedded`, and `malformed`. Rejected findings mean reviewer feedback explicitly rejected or marked a finding false positive. Unresolved findings mean the latest finding outcome is missing or not accepted/rejected.
+Do not attempt to de-duplicate standalone and embedded review payloads unless a stable shared key is present. Local stats report `source_counts` for `standalone`, `embedded`, `malformed`, and `unknown`. Rejected findings mean reviewer feedback explicitly rejected or marked a finding false positive. Unresolved findings mean the latest finding outcome is missing or not accepted/rejected.
 
 Feature-task health uses production rows with valid `fis-*` session ids as the denominator. It reports `source_counts`, excluded non-production rows, malformed session ids, unknown sources, duplicate terminal finished calls, invalid durations, synthetic zero-duration runs, long-running durations, and malformed `child_steps` as exclusion or data-quality signals. Duration averages, medians, and p90 values use only normal production durations.
 

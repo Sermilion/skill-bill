@@ -27,11 +27,20 @@ internal object DatabaseColumnMigrationsEnsure {
       columnName = "duplicate_terminal_finished_events",
       definition = "INTEGER NOT NULL DEFAULT 0",
     )
+    ensureStaleReasonColumn(connection, "quality_check_sessions")
+  }
+
+  // Nullable with no backfill: a row that predates the column keeps NULL, so no historical terminal is
+  // retrospectively attributed to the reconciler.
+  private fun ensureStaleReasonColumn(connection: Connection, tableName: String) {
+    ensureColumn(connection, tableName, "stale_reason", "TEXT")
   }
 
   fun ensureFeatureTaskRuntimeSessionColumns(connection: Connection) {
     ensureFeatureTaskRuntimeSessionLifecycleColumns(connection)
     ensureFeatureTaskRuntimeSessionMetricColumns(connection)
+    ensureFeatureTaskRuntimeSessionCorrelationColumns(connection)
+    ensureStaleReasonColumn(connection, "feature_task_runtime_sessions")
   }
 
   fun ensureFeatureVerifyWorkflowColumns(connection: Connection) {
@@ -195,6 +204,7 @@ internal object DatabaseColumnMigrationsEnsure {
       columnName = "duplicate_terminal_finished_events",
       definition = "INTEGER NOT NULL DEFAULT 0",
     )
+    ensureStaleReasonColumn(connection, "feature_verify_sessions")
   }
 
   fun backfillFeatureImplementStartedAt(connection: Connection) {

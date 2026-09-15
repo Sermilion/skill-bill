@@ -146,6 +146,30 @@ fun FeatureTaskRuntimeRunObservability.loopEdge(
   )
 }
 
+/**
+ * The durable transition at which a named backward-edge budget is actually spent: the edge matched,
+ * its declared cap denied re-entry, and the run advanced anyway. Without this entry an exhausted
+ * budget is indistinguishable from an ordinary repair round that the loop-edge trail also records.
+ */
+fun FeatureTaskRuntimeRunObservability.loopCapExhausted(
+  phaseId: String,
+  loopId: String,
+  declaredCap: Int,
+  drivingVerdict: FeatureTaskRuntimeVerdict,
+) {
+  appendLedger(
+    FeatureTaskRuntimePhaseLedgerRequest(
+      workflowId = observabilityRequest.workflowId,
+      action = FeatureTaskRuntimePhaseLedgerAction.LOOP_CAP_EXHAUSTED,
+      phaseId = phaseId,
+      attemptCount = 1,
+      loopId = loopId,
+      edgeIteration = declaredCap,
+      blockedReason = "declared_cap=$declaredCap driving_verdict=${drivingVerdict.wireValue}",
+    ),
+  )
+}
+
 val FeatureTaskRuntimeRunObservability.observabilityRequest get() = request
 fun FeatureTaskRuntimeRunObservability.emitSafely(event: FeatureTaskRuntimeRunEvent) {
   emitFeatureTaskRuntimeEventSafely(

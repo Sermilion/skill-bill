@@ -5,6 +5,19 @@ data class FeatureTaskRuntimeStartedRequest(
   val issueKey: String,
   val featureName: String,
   val sessionId: String = "",
+  val correlation: FeatureTaskRuntimeCorrelation = FeatureTaskRuntimeCorrelation(),
+)
+
+/**
+ * The identifiers that let a lifecycle record be joined to the rejection and diagnostic records of the
+ * same run. Every field is blank/null when the runtime does not know it; nothing here is inferred, and
+ * the workflow id is redacted at the emission seam with the same salt the issue key uses so anonymous
+ * mode keeps the join without exposing a raw identifier.
+ */
+data class FeatureTaskRuntimeCorrelation(
+  val workflowId: String = "",
+  val goalParentWorkflowId: String? = null,
+  val goalSubtaskId: Int? = null,
 )
 
 data class FeatureTaskRuntimeFinishedRequest(
@@ -30,7 +43,14 @@ data class FeatureTaskRuntimeFinishedRequest(
   val estimatedTotalTokens: Int? = null,
   val findingVerificationVerifiedCount: Int = 0,
   val findingVerificationRejectedCount: Int = 0,
-  val reviewFixCapExhausted: Boolean = false,
+  val reviewFixCapExhausted: Boolean? = null,
+  val auditGapIterationCount: Int? = null,
+  val agentContext: FeatureTaskRuntimeAgentContext = FeatureTaskRuntimeAgentContext(),
+)
+
+data class FeatureTaskRuntimeAgentContext(
+  val resolvedAgentIds: List<String>? = null,
+  val launchedModels: List<String>? = null,
 )
 
 /**
@@ -43,10 +63,15 @@ data class FeatureTaskRuntimeRegenerationTelemetry(
   val outcomeCounts: Map<String, Int> = emptyMap(),
 )
 
+/**
+ * [reviewFixCapExhausted] is tri-state: exhausted, not exhausted, or `null` when the run holds no
+ * durable state to read it from. It is never defaulted to false, because an unmeasured budget and a
+ * budget measured as intact are different facts.
+ */
 data class FeatureTaskRuntimeFindingVerificationTelemetry(
   val verifiedCount: Int = 0,
   val rejectedCount: Int = 0,
-  val reviewFixCapExhausted: Boolean = false,
+  val reviewFixCapExhausted: Boolean? = null,
 )
 
 data class QualityCheckStartedRequest(

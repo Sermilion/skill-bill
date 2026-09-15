@@ -725,7 +725,7 @@ object FeatureTaskRuntimeRunLoopValidationGate {
     val attempt = with(FeatureTaskRuntimeRunLoopRecordRejection) {
       this@resolveFixLoopOutcome.attemptOnce(
         recordRejectionAttemptArgs(
-          PhaseAttemptContext(run, state, loop.iteration, observability),
+          PhaseAttemptContext(run, state, loop.iteration, observability, loop.outputGateFailures),
           priorCorrection = loop.priorCorrection,
           phaseTokenAccumulator = phaseTokenAccumulator,
         ),

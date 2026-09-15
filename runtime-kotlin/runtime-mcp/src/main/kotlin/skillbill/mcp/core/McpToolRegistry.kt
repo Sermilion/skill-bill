@@ -2,6 +2,8 @@ package skillbill.mcp.core
 
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
+import skillbill.contracts.telemetry.LifecycleSessionCompletion
+import skillbill.contracts.telemetry.TelemetryMeasurementAvailability
 
 data class McpToolSpec(
   val name: String,
@@ -240,6 +242,13 @@ object McpToolRegistry {
         ),
         properties = mapOf(
           "final_failure_count" to integerSchema,
+          "final_failure_count_availability" to stringSchema(
+            enum = TelemetryMeasurementAvailability.entries.map(TelemetryMeasurementAvailability::wireValue),
+          ),
+          "completion" to stringSchema(
+            enum = LifecycleSessionCompletion.entries.map(LifecycleSessionCompletion::wireValue),
+          ),
+          "stale_reason" to stringSchema(),
           "iterations" to integerSchema,
           "result" to stringSchema(enum = listOf("pass", "fail", "skipped", "unsupported_stack")),
           "session_id" to stringSchema(),
