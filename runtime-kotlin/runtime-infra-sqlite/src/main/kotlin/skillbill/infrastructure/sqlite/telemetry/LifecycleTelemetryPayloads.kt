@@ -2,6 +2,11 @@ package skillbill.infrastructure.sqlite.telemetry
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.telemetry.AGENT_CONTEXT_MEASUREMENT_GRAIN_DISTINCT_PER_RUN
+import skillbill.contracts.telemetry.AUDIT_GAP_MEASUREMENT_GRAIN_PER_RUN
+import skillbill.contracts.telemetry.LifecycleSessionCompletion
+import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
+import skillbill.contracts.telemetry.TelemetryMeasurementAvailability
 import skillbill.review.normalizeRoutedSkill
 import skillbill.review.normalizeStackLabel
 import skillbill.telemetry.model.PrDescriptionGeneratedRecord
@@ -12,20 +17,49 @@ fun featureTaskRuntimeStartedPayload(row: Map<String, Any?>, level: String, salt
     "feature_size" to row.stringOrEmpty("feature_size"),
     SharedPayloadKeys.ISSUE_KEY to redactIssueKey(row.stringOrEmpty("issue_key"), level, salt),
   ).apply {
+    putAll(correlationFields(row, level, salt))
     if (level == "full") {
       put("feature_name", row.stringOrEmpty("feature_name"))
     }
   }
 
-fun featureTaskRuntimeFinishedPayload(row: Map<String, Any?>, level: String): Map<String, Any?> =
+/**
+ * The workflow id goes out through the same issue-key redaction the goal events use, so a run stays
+ * joinable to its goal, rejection, and diagnostic records at every level without an unredacted
+ * tracker key ever reaching the wire. A run that is not a goal child has no parent or subtask id,
+ * which [CORRELATION_AVAILABILITY] distinguishes from a row that never recorded one.
+ */
+private fun correlationFields(row: Map<String, Any?>, level: String, salt: String): Map<String, Any?> {
+  val workflowId = row.stringOrEmpty("workflow_id")
+  val issueKey = row.stringOrEmpty("issue_key")
+  val parentWorkflowId = row.stringOrEmpty("goal_parent_workflow_id")
+  val availability = if (workflowId.isBlank()) {
+    TelemetryMeasurementAvailability.UNKNOWN
+  } else {
+    TelemetryMeasurementAvailability.MEASURED
+  }
+  return linkedMapOf(
+    LifecycleTelemetryPayloadKeys.CORRELATION_AVAILABILITY to availability.wireValue,
+    LifecycleTelemetryPayloadKeys.REDACTED_WORKFLOW_ID to
+      workflowId.takeIf { it.isNotBlank() }?.let { redactIssueKeyReferences(it, issueKey, level, salt) },
+    LifecycleTelemetryPayloadKeys.GOAL_PARENT_WORKFLOW_ID to
+      parentWorkflowId.takeIf { it.isNotBlank() }?.let { redactIssueKeyReferences(it, issueKey, level, salt) },
+    LifecycleTelemetryPayloadKeys.GOAL_SUBTASK_ID to row.nullableInt(LifecycleTelemetryPayloadKeys.GOAL_SUBTASK_ID),
+  )
+}
+
+fun featureTaskRuntimeFinishedPayload(row: Map<String, Any?>, level: String, salt: String): Map<String, Any?> =
   linkedMapOf<String, Any?>("session_id" to row.stringOrEmpty("session_id")).apply {
+    putAll(correlationFields(row, level, salt))
     put("completion_status", row.stringOrEmpty("completion_status"))
     put("completed_phase_ids", JsonCodec.parseArrayOrEmpty(row.stringOrEmpty("completed_phase_ids")))
     put("phase_outcomes", parsePhaseOutcomes(row.stringOrEmpty("phase_outcomes")))
     put("review_fix_iteration_count", row.intOrZero("review_fix_iteration_count"))
     put("finding_verification_verified_count", row.intOrZero("finding_verification_verified_count"))
     put("finding_verification_rejected_count", row.intOrZero("finding_verification_rejected_count"))
-    put("review_fix_cap_exhausted", row.intOrZero("review_fix_cap_exhausted") == 1)
+    putAll(reviewFixCapExhaustionFields(row))
+    putAll(auditGapFields(row))
+    putAll(agentContextFields(row))
     put("regeneration_activation_count", row.intOrZero("regeneration_activation_count"))
     put("regeneration_attempt_count", row.intOrZero("regeneration_attempt_count"))
     put("regeneration_outcome_counts", parsePhaseOutcomes(row.stringOrEmpty("regeneration_outcome_counts_json")))
@@ -37,10 +71,71 @@ fun featureTaskRuntimeFinishedPayload(row: Map<String, Any?>, level: String): Ma
     put("last_incomplete_phase", row.stringOrEmpty("last_incomplete_phase"))
     put("blocked_reason", row.stringOrEmpty("blocked_reason"))
     put("duration_seconds", durationSeconds(row))
+    row.stringOrEmpty(LifecycleTelemetryPayloadKeys.STALE_REASON).takeIf(String::isNotBlank)?.let {
+      put(LifecycleTelemetryPayloadKeys.STALE_REASON, it)
+    }
     if (level == "full") {
       put("resolved_branch", row.stringOrEmpty("resolved_branch"))
     }
   }
+
+/**
+ * The review-fix budget reads as exhausted only when the row declares the measurement available. A
+ * row written before the availability column existed reports unknown and carries no boolean, so an
+ * ordinary repair round that the old producer flagged from an iteration count no longer reads as an
+ * exhausted budget.
+ */
+private fun reviewFixCapExhaustionFields(row: Map<String, Any?>): Map<String, Any?> {
+  val availability = row.availability(LifecycleTelemetryPayloadKeys.REVIEW_FIX_CAP_EXHAUSTED_AVAILABILITY)
+  val exhausted = if (availability.measured) {
+    row.intOrZero(LifecycleTelemetryPayloadKeys.REVIEW_FIX_CAP_EXHAUSTED) == 1
+  } else {
+    null
+  }
+  return linkedMapOf(
+    LifecycleTelemetryPayloadKeys.REVIEW_FIX_CAP_EXHAUSTED_AVAILABILITY to availability.wireValue,
+    LifecycleTelemetryPayloadKeys.REVIEW_FIX_CAP_EXHAUSTED to exhausted,
+  )
+}
+
+/**
+ * Audit-loop reporting at the one grain the runtime durably owns: audit-gap rounds per run. The
+ * recurrence, new-gap, attempted and resolved repair-item counters have no per-criterion gap identity
+ * in durable state, so they are reported as unsupported rather than as a zero nobody measured.
+ */
+private fun auditGapFields(row: Map<String, Any?>): Map<String, Any?> {
+  val availability = row.availability(LifecycleTelemetryPayloadKeys.AUDIT_GAP_AVAILABILITY)
+  val iterations = row.nullableInt(LifecycleTelemetryPayloadKeys.AUDIT_GAP_ITERATION_COUNT)
+    .takeIf { availability.measured }
+  return linkedMapOf(
+    LifecycleTelemetryPayloadKeys.AUDIT_GAP_AVAILABILITY to availability.wireValue,
+    LifecycleTelemetryPayloadKeys.AUDIT_GAP_MEASUREMENT_GRAIN to AUDIT_GAP_MEASUREMENT_GRAIN_PER_RUN,
+    LifecycleTelemetryPayloadKeys.AUDIT_GAP_ITERATION_COUNT to iterations,
+    LifecycleTelemetryPayloadKeys.AUDIT_FIRST_PASS_CONVERGENCE to iterations?.let { it == 0 },
+    LifecycleTelemetryPayloadKeys.AUDIT_REPAIR_ITEM_AVAILABILITY to
+      TelemetryMeasurementAvailability.UNAVAILABLE_UNSUPPORTED.wireValue,
+  )
+}
+
+private fun agentContextFields(row: Map<String, Any?>): Map<String, Any?> {
+  val agents = row.nameList(LifecycleTelemetryPayloadKeys.RESOLVED_AGENT_IDS)
+  val models = row.nameList(LifecycleTelemetryPayloadKeys.LAUNCHED_MODELS)
+  return linkedMapOf(
+    LifecycleTelemetryPayloadKeys.AGENT_CONTEXT_MEASUREMENT_GRAIN to AGENT_CONTEXT_MEASUREMENT_GRAIN_DISTINCT_PER_RUN,
+    LifecycleTelemetryPayloadKeys.RESOLVED_AGENT_AVAILABILITY to agents.availability().wireValue,
+    LifecycleTelemetryPayloadKeys.RESOLVED_AGENT_IDS to agents,
+    LifecycleTelemetryPayloadKeys.LAUNCHED_MODEL_AVAILABILITY to models.availability().wireValue,
+    LifecycleTelemetryPayloadKeys.LAUNCHED_MODELS to models,
+  )
+}
+
+private fun Map<String, Any?>.nameList(name: String): List<Any?>? =
+  stringOrEmpty(name).takeIf(String::isNotBlank)?.let(JsonCodec::parseArrayOrEmpty)?.takeIf { it.isNotEmpty() }
+
+private fun List<Any?>?.availability(): TelemetryMeasurementAvailability = when (this) {
+  null -> TelemetryMeasurementAvailability.UNAVAILABLE_NO_DURABLE_STATE
+  else -> TelemetryMeasurementAvailability.MEASURED
+}
 
 private fun parsePhaseOutcomes(rawValue: String): Map<String, Any?> = JsonCodec.parseObjectOrNull(rawValue)
   ?.mapValues { (_, value) -> JsonCodec.jsonElementToValue(value) }
@@ -65,17 +160,54 @@ fun qualityCheckStartedPayload(row: Map<String, Any?>): Map<String, Any?> {
   }
 }
 
-fun qualityCheckFinishedPayload(row: Map<String, Any?>, level: String): Map<String, Any?> =
-  qualityCheckStartedPayload(row).toMutableMap().apply {
-    put("final_failure_count", row.intOrZero("final_failure_count"))
-    put("iterations", row.intOrZero("iterations"))
-    put("result", row.stringOrEmpty("result").ifBlank { "skipped" })
-    put("duration_seconds", durationSeconds(row))
+/**
+ * A stale terminal is a check that never reported back, not a check that finished with nothing
+ * failing. Its final failure count is absent with a declared availability, and [COMPLETION] separates
+ * an operator-completed check from a reconciler-marked stale one, so no consumer can build a
+ * clean-gate denominator out of a zero the check never produced.
+ */
+fun qualityCheckFinishedPayload(row: Map<String, Any?>, level: String): Map<String, Any?> {
+  val result = row.stringOrEmpty(LifecycleTelemetryPayloadKeys.RESULT).ifBlank { "skipped" }
+  val reconcilerStale = result == STALE_RESULT
+  val finalFailureCount = row.nullableInt(LifecycleTelemetryPayloadKeys.FINAL_FAILURE_COUNT)
+    .takeUnless { reconcilerStale }
+  return qualityCheckStartedPayload(row).toMutableMap().apply {
+    put(LifecycleTelemetryPayloadKeys.FINAL_FAILURE_COUNT, finalFailureCount)
+    put(
+      LifecycleTelemetryPayloadKeys.FINAL_FAILURE_COUNT_AVAILABILITY,
+      when {
+        reconcilerStale -> TelemetryMeasurementAvailability.UNAVAILABLE_INCOMPLETE
+        finalFailureCount == null -> TelemetryMeasurementAvailability.UNKNOWN
+        else -> TelemetryMeasurementAvailability.MEASURED
+      }.wireValue,
+    )
+    put(
+      LifecycleTelemetryPayloadKeys.COMPLETION,
+      when (reconcilerStale) {
+        true -> LifecycleSessionCompletion.RECONCILER_STALE
+        false -> LifecycleSessionCompletion.OPERATOR_COMPLETED
+      }.wireValue,
+    )
+    put(LifecycleTelemetryPayloadKeys.ITERATIONS, row.intOrZero(LifecycleTelemetryPayloadKeys.ITERATIONS))
+    put(LifecycleTelemetryPayloadKeys.RESULT, result)
+    put(LifecycleTelemetryPayloadKeys.DURATION_SECONDS, durationSeconds(row))
+    row.stringOrEmpty(LifecycleTelemetryPayloadKeys.STALE_REASON).takeIf(String::isNotBlank)?.let {
+      put(LifecycleTelemetryPayloadKeys.STALE_REASON, it)
+    }
     if (level == "full") {
-      put("failing_check_names", JsonCodec.parseArrayOrEmpty(row.stringOrEmpty("failing_check_names")))
-      put("unsupported_reason", row.stringOrEmpty("unsupported_reason"))
+      put(
+        LifecycleTelemetryPayloadKeys.FAILING_CHECK_NAMES,
+        JsonCodec.parseArrayOrEmpty(row.stringOrEmpty(LifecycleTelemetryPayloadKeys.FAILING_CHECK_NAMES)),
+      )
+      put(
+        LifecycleTelemetryPayloadKeys.UNSUPPORTED_REASON,
+        row.stringOrEmpty(LifecycleTelemetryPayloadKeys.UNSUPPORTED_REASON),
+      )
     }
   }
+}
+
+const val STALE_RESULT: String = "stale"
 
 fun featureVerifyStartedPayload(row: Map<String, Any?>, level: String): Map<String, Any?> = linkedMapOf<String, Any?>(
   "session_id" to row.stringOrEmpty("session_id"),

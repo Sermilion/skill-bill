@@ -33,4 +33,34 @@ object LifecycleTelemetryPayloadKeys {
   const val WAS_EDITED_BY_USER: String = "was_edited_by_user"
   const val PR_CREATED: String = "pr_created"
   const val PR_TITLE: String = "pr_title"
+  const val REVIEW_FIX_CAP_EXHAUSTED: String = "review_fix_cap_exhausted"
+  const val REVIEW_FIX_CAP_EXHAUSTED_AVAILABILITY: String = "review_fix_cap_exhausted_availability"
+  const val AUDIT_GAP_ITERATION_COUNT: String = "audit_gap_iteration_count"
+  const val AUDIT_FIRST_PASS_CONVERGENCE: String = "audit_first_pass_convergence"
+  const val AUDIT_GAP_AVAILABILITY: String = "audit_gap_availability"
+  const val AUDIT_GAP_MEASUREMENT_GRAIN: String = "audit_gap_measurement_grain"
+  const val AUDIT_REPAIR_ITEM_AVAILABILITY: String = "audit_repair_item_availability"
+  const val FINAL_FAILURE_COUNT_AVAILABILITY: String = "final_failure_count_availability"
+  const val COMPLETION: String = "completion"
+  const val STALE_REASON: String = "stale_reason"
+  const val REDACTED_WORKFLOW_ID: String = "redacted_workflow_id"
+  const val GOAL_PARENT_WORKFLOW_ID: String = "goal_parent_workflow_id"
+  const val GOAL_SUBTASK_ID: String = "goal_subtask_id"
+  const val CORRELATION_AVAILABILITY: String = "correlation_availability"
+  const val RESOLVED_AGENT_IDS: String = "resolved_agent_ids"
+  const val RESOLVED_AGENT_AVAILABILITY: String = "resolved_agent_availability"
+  const val LAUNCHED_MODELS: String = "launched_models"
+  const val LAUNCHED_MODEL_AVAILABILITY: String = "launched_model_availability"
+  const val AGENT_CONTEXT_MEASUREMENT_GRAIN: String = "agent_context_measurement_grain"
+}
+
+/** The grain an audit-loop measurement is counted at, stated on the wire so no consumer guesses it. */
+const val AUDIT_GAP_MEASUREMENT_GRAIN_PER_RUN: String = "audit_gap_rounds_per_run"
+
+const val AGENT_CONTEXT_MEASUREMENT_GRAIN_DISTINCT_PER_RUN: String = "distinct_resolved_agents_per_run"
+
+/** How a lifecycle session reached its terminal row. */
+enum class LifecycleSessionCompletion(val wireValue: String) {
+  OPERATOR_COMPLETED("operator_completed"),
+  RECONCILER_STALE("reconciler_stale"),
 }

@@ -13,6 +13,7 @@ import skillbill.ports.agentrun.model.UnsupportedAgentRunLaunch
 import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
 import skillbill.ports.goalrunner.runner.model.GoalRunnerSubtaskLaunchRequest
 import skillbill.review.ReviewFindingFieldCodec
+import skillbill.review.ReviewStageDegradationSelection
 import skillbill.review.context.ReviewContextEnvelopeValidator
 import skillbill.review.context.model.GovernedReviewVerificationLaunch
 import skillbill.review.context.model.ResolvedReviewExecutionMode
@@ -28,6 +29,8 @@ import skillbill.review.model.ReviewFindingCitation
 import skillbill.review.model.ReviewFindingCitationDiagnosticWithFinding
 import skillbill.review.model.ReviewFindingVerdict
 import skillbill.review.model.ReviewStage
+import skillbill.review.model.ReviewStageDegradationReason
+import skillbill.review.model.ReviewVerificationNonSuccess
 import java.time.Clock
 
 class ReviewClaimVerificationRunner(
@@ -95,9 +98,9 @@ class ReviewClaimVerificationRunner(
 
   private fun verifyReviewOutput(input: ProseVerificationInput): ReviewClaimVerificationOutcome {
     if (input.reviewOutput.isBlank()) {
-      return ReviewClaimVerificationOutcome(
-        verdicts = emptyList(),
-        skipReason = "the review phase produced no output to verify",
+      return nonSuccessOutcome(
+        ReviewStageDegradationReason.REVIEW_PASS_OUTPUT_ABSENT,
+        "the review phase produced no output to verify",
       )
     }
     val phaseInput = AgentPhaseInput(
@@ -109,9 +112,9 @@ class ReviewClaimVerificationRunner(
       input.launch.promptSuffix,
     )
     if (prompt.toByteArray(Charsets.UTF_8).size.toLong() > input.launch.budget.maxLaneLaunchBytes) {
-      return ReviewClaimVerificationOutcome(
-        verdicts = emptyList(),
-        skipReason = "verification phase launch exceeded max_lane_launch_bytes",
+      return nonSuccessOutcome(
+        ReviewStageDegradationReason.WORKER_LAUNCH_BUDGET_EXCEEDED,
+        "verification phase launch exceeded max_lane_launch_bytes",
       )
     }
     val outcome = launcher.launch(
@@ -128,17 +131,40 @@ class ReviewClaimVerificationRunner(
       ),
     )
     return when (outcome) {
-      is UnsupportedAgentRunLaunch -> ReviewClaimVerificationOutcome(
-        verdicts = emptyList(),
-        skipReason = "unsupported agent: ${outcome.reason}",
+      is UnsupportedAgentRunLaunch -> nonSuccessOutcome(
+        ReviewStageDegradationReason.WORKER_LAUNCH_OR_RETURN_FAILED,
+        "unsupported agent: ${outcome.reason}",
       )
-      is AgentRunLaunchFacts -> ReviewClaimVerificationOutcome(
-        verdicts = emptyList(),
-        output = AgentPhaseOutput(outcome.stdout),
-        skipReason = launchFailureReason(outcome),
-      )
+      is AgentRunLaunchFacts -> proseVerificationOutcome(outcome)
     }
   }
+
+  private fun proseVerificationOutcome(facts: AgentRunLaunchFacts): ReviewClaimVerificationOutcome {
+    launchFailureReason(facts)?.let { reason ->
+      val classified = ReviewStageDegradationSelection.workerFailureReason(reason)
+        ?: ReviewStageDegradationReason.WORKER_LAUNCH_OR_RETURN_FAILED
+      return nonSuccessOutcome(classified, reason, AgentPhaseOutput(facts.stdout))
+    }
+    if (facts.stdout.isBlank()) {
+      return nonSuccessOutcome(
+        ReviewStageDegradationReason.WORKER_OUTPUT_UNUSABLE,
+        "the verification worker returned without publishing a verification result",
+        AgentPhaseOutput(facts.stdout),
+      )
+    }
+    return ReviewClaimVerificationOutcome(verdicts = emptyList(), output = AgentPhaseOutput(facts.stdout))
+  }
+
+  private fun nonSuccessOutcome(
+    reason: ReviewStageDegradationReason,
+    detail: String,
+    output: AgentPhaseOutput? = null,
+  ): ReviewClaimVerificationOutcome = ReviewClaimVerificationOutcome(
+    verdicts = emptyList(),
+    output = output,
+    skipReason = detail,
+    nonSuccess = ReviewVerificationNonSuccess(reason, detail),
+  )
 
   private data class VerificationFindingOutcome(
     val verdict: ReviewFindingVerdict,

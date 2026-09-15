@@ -40,8 +40,15 @@ Five producers enqueue without consulting the telemetry level:
 - `ParallelCodeReviewRunner` / `LifecycleTelemetryStore.reviewStageDegradation` enqueues
   `skillbill_review_stage_degradation` with no telemetry gate; the row carries `review_run_id`,
   seam, expected, actual, and a closed reason (`spec_context_none`, `adjudication_skipped`,
-  `worker_launch_or_return_failed`, `stage_boundary_unreached`). It never carries finding text,
-  spec excerpts, or paths.
+  `worker_process_failed`, `worker_timed_out`, `worker_output_unusable`,
+  `worker_launch_budget_exceeded`, `worker_launch_or_return_failed`, `stage_boundary_unreached`,
+  and the `evidence_boundary_*` tokens). It never carries finding text, spec excerpts, or paths.
+  The four `worker_*` causes were one token until SKILL-236; a worker that never started, one that
+  ran past its deadline, one that returned output nobody could parse, and one refused by a launch
+  budget each route to a different fix, so each reports separately. `worker_launch_or_return_failed`
+  survives for the unsupported-agent refusal alone. A rejection reason no cause recognizes emits no
+  worker-failure record rather than being attributed to a cause nobody classified, so a new reason
+  has to be classified here to stay observable.
 
 Nothing is transmitted while the level is `off`: `TelemetryService.sync` and
 `TelemetryService.autoSync` return before upload when the resolved settings are disabled.
@@ -61,6 +68,16 @@ enabling.
 | `install_id` (also the `distinct_id`) | — | ✓ | ✓ | `telemetryProperties` |
 | `skill_bill_version` | — | ✓ | ✓ | `telemetryProperties`, from the `telemetry_outbox.skill_bill_version` column; omitted on rows enqueued before release attribution existed |
 | `$process_person_profile` (always `false`) | — | ✓ | ✓ | `telemetryProperties` |
+| `$insert_id` (delivery identity) | — | ✓ | ✓ | `telemetryProperties`, from the `telemetry_outbox.event_uuid` column; omitted on rows that predate the column and were already synced |
+
+`$insert_id` is a random UUID minted in the same write that enqueues the row. It is content-free:
+never derived from payload bytes, event name, timestamp, `install_id`, or any machine property, so
+it discloses nothing beyond "this is one distinct queued event". It is the receiver's deduplication
+key, so it is assigned once and never re-minted on rebatch, retry, restart, or reclaim — and it is
+independent per database file, so two installs cannot produce the same identity.
+
+Redaction is unchanged by it: the anonymous-level redaction path still governs event content, and
+`$insert_id` is not part of that content.
 
 ### `skillbill_goal_started`, `skillbill_goal_finished`, `skillbill_goal_issue_finished`, `skillbill_goal_subtask_finished`
 
@@ -80,9 +97,40 @@ enabling.
 |-------|-----|-----------|------|--------|
 | `session_id`, `feature_size` | — | ✓ | ✓ | `featureTaskRuntimeStartedPayload` |
 | `issue_key` | — | hashed | ✓ | `redactIssueKey` |
-| `completion_status`, `completed_phase_ids`, `phase_outcomes`, `review_fix_iteration_count`, `audit_*` counters, `regeneration_*` counters, `crash_reconciliation_*` counters, `last_incomplete_phase`, `blocked_reason`, `duration_seconds` | — | ✓ | ✓ | `featureTaskRuntimeFinishedPayload` |
+| `completion_status`, `completed_phase_ids`, `phase_outcomes`, `review_fix_iteration_count`, `audit_*` fields, `regeneration_*` counters, `crash_reconciliation_*` counters, `last_incomplete_phase`, `blocked_reason`, `stale_reason`, `duration_seconds` | — | ✓ | ✓ | `featureTaskRuntimeFinishedPayload` |
+| `correlation_availability`, `redacted_workflow_id`, `goal_parent_workflow_id` | — | hashed where the issue key is embedded | ✓ | `correlationFields` → `redactIssueKeyReferences` |
+| `goal_subtask_id` | — | ✓ | ✓ | `correlationFields` |
+| `agent_context_measurement_grain`, `resolved_agent_ids`, `resolved_agent_availability`, `launched_models`, `launched_model_availability` | — | ✓ | ✓ | `agentContextFields` |
 | `feature_name` | — | — | ✓ | `featureTaskRuntimeStartedPayload` |
 | `resolved_branch` | — | — | ✓ | `featureTaskRuntimeFinishedPayload` |
+
+Both the started and finished events carry the correlation fields, so a run is joinable to its goal,
+its rejection records, and its diagnostic records from either end. The workflow id goes through the
+same salted redaction the goal events and the issue key use, so at `anonymous` the join survives
+without a raw tracker key reaching the wire. A run that is not a goal child has no
+`goal_parent_workflow_id` and no `goal_subtask_id`; `correlation_availability` is `unknown` only on a
+session started before these columns existed, which is never rewritten into a measured value.
+
+`resolved_agent_ids` and `launched_models` are the distinct agent slugs and model strings the run's
+own phases resolved, read from the durable phase records and reported at the
+`distinct_resolved_agents_per_run` grain the payload states. They are runtime configuration, not user
+content: no prompt, repository path, issue text, or agent output rides them, which is why they are
+carried at `anonymous` while `feature_name` and `resolved_branch` are not. A run whose phases
+launched with no model directive reports `launched_model_availability` as
+`unavailable_no_durable_state` and a null list, never an empty one.
+
+### Availability fields
+
+Several measurements pair a value with a sibling `*_availability` field
+(`TelemetryMeasurementAvailability`): `measured`, `unavailable_no_durable_state`,
+`unavailable_unsupported`, `unavailable_incomplete`, or `unknown`. Read the availability first. The
+value is null whenever the availability is not `measured`, and it is never defaulted to `0` or
+`false` — an unmeasured budget and a budget measured as intact are different facts, and collapsing
+them is what let historical rows report exhausted fix loops and clean quality gates that nobody
+observed. `unknown` is what a row written before its availability column existed reports; no current
+producer writes it, and no migration backfills it.
+
+Availability fields carry no run content: each is a fixed token from a closed vocabulary.
 
 ### `skillbill_feature_task_runtime_projection_measurement`
 
@@ -130,8 +178,16 @@ is present on the map.
 | Field | off | anonymous | full | Source |
 |-------|-----|-----------|------|--------|
 | `session_id`, `routed_skill`, `detected_stack`, `fallback`, `fallback_reason`, `scope_type`, `initial_failure_count`, `orchestrated` | — | ✓ | ✓ | `qualityCheckStartedPayload` |
-| `final_failure_count`, `iterations`, `result`, `duration_seconds` | — | ✓ | ✓ | `qualityCheckFinishedPayload` |
+| `final_failure_count`, `final_failure_count_availability`, `iterations`, `result`, `completion`, `stale_reason`, `duration_seconds` | — | ✓ | ✓ | `qualityCheckFinishedPayload` |
 | `failing_check_names`, `unsupported_reason` | — | — | ✓ | `qualityCheckFinishedPayload` |
+
+`completion` separates a check the operator ran to a terminal (`operator_completed`) from one the
+stale reconciler closed without ever observing it finish (`reconciler_stale`). A
+`reconciler_stale` row carries `final_failure_count: null` with
+`final_failure_count_availability: unavailable_incomplete` and a normalized `stale_reason`; it never
+reports a zero failure count, so it cannot land in a clean-gate numerator or denominator. Build a
+clean rate only over rows that are both `operator_completed` and `final_failure_count_availability:
+measured`.
 
 ### `skillbill_feature_verify_started` / `skillbill_feature_verify_finished`
 
@@ -218,6 +274,12 @@ At `off`, no telemetry is transmitted and no telemetry config is required. Paylo
 skipped for every event except the producers listed in
 [What is still queued at `off`](#what-is-still-queued-at-off), which are enqueued locally without
 consulting the level and are not discarded when telemetry is later enabled.
+
+Opting out still deletes rows. A consent downgrade, a move to `off`, and an explicit queue clear all
+delete the pending outbox rows outright; the delivery identity lives in a column on those same rows,
+so deleting them deletes the identity with them. Nothing in the drain, the migration backfill, or the
+receiver's deduplication window can reconstruct a discarded event: the backfill only ever fills a
+missing identity on a row that still exists, and it never recreates one.
 
 ## What correlates events
 

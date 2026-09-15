@@ -2,6 +2,7 @@ package skillbill.review
 
 import skillbill.SAMPLE_REVIEW
 import skillbill.contracts.JsonCodec
+import skillbill.contracts.telemetry.TelemetryMeasurementAvailability
 import skillbill.infrastructure.sqlite.SQLiteLearningStore
 import skillbill.infrastructure.sqlite.review.ReviewFinishedPayloadBuildRequest
 import skillbill.infrastructure.sqlite.review.ReviewRuntime
@@ -74,13 +75,20 @@ class ReviewStatsRuntimeTest {
       assertEquals(1, health.issueCategoryCounts["testing"])
       assertEquals(2, health.platformCounts["kotlin"])
       assertEquals(1, health.scopeCounts["branch_diff"])
-      assertEquals(mapOf("standalone" to 1, "embedded" to 1, "malformed" to 1), health.sourceCounts)
+      assertEquals(
+        mapOf("standalone" to 1, "embedded" to 1, "malformed" to 1, "unknown" to 0),
+        health.sourceCounts,
+        "the unknown bucket is reported even at zero, so a reader can tell none from cannot-tell",
+      )
 
       val runHealth = ReviewStatsRuntime.statsSnapshot(connection, review.reviewRunId).health
       assertEquals(1, runHealth.totalReviewPayloadRecords)
       assertEquals(1, runHealth.includedReviewPayloadRecords)
       assertEquals(0, runHealth.malformedReviewPayloadRecords)
-      assertEquals(mapOf("standalone" to 1, "embedded" to 0, "malformed" to 0), runHealth.sourceCounts)
+      assertEquals(
+        mapOf("standalone" to 1, "embedded" to 0, "malformed" to 0, "unknown" to 0),
+        runHealth.sourceCounts,
+      )
     }
   }
 
@@ -204,7 +212,10 @@ class ReviewStatsRuntimeTest {
       assertEquals(0, health.totalReviewPayloadRecords)
       assertEquals(0, health.includedReviewPayloadRecords)
       assertEquals(0.0, health.acceptedRate)
-      assertEquals(mapOf("standalone" to 0, "embedded" to 0, "malformed" to 0), health.sourceCounts)
+      assertEquals(
+        mapOf("standalone" to 0, "embedded" to 0, "malformed" to 0, "unknown" to 0),
+        health.sourceCounts,
+      )
       assertEquals(mapOf("Blocker" to 0, "Major" to 0, "Minor" to 0), health.severityCounts)
     }
   }
@@ -366,8 +377,16 @@ class ReviewStatsRuntimeTest {
     assertEquals("completed", finishedPayload?.get("completion_status")?.let { it.toString().trim('"') })
     assertEquals("completed", finishedPayload?.get("last_incomplete_phase")?.let { it.toString().trim('"') })
     assertEquals("", finishedPayload?.get("blocked_reason")?.let { it.toString().trim('"') })
-    assertTrue(finishedPayload?.containsKey("audit_gap_iteration_count") != true)
-    assertTrue(finishedPayload?.containsKey("audit_first_pass_convergence") != true)
+    assertEquals(
+      TelemetryMeasurementAvailability.UNAVAILABLE_NO_DURABLE_STATE.wireValue,
+      finishedPayload?.get("audit_gap_availability")?.let { it.toString().trim('"') },
+    )
+    assertEquals("null", finishedPayload?.get("audit_gap_iteration_count").toString())
+    assertEquals("null", finishedPayload?.get("audit_first_pass_convergence").toString())
+    assertEquals(
+      TelemetryMeasurementAvailability.UNAVAILABLE_UNSUPPORTED.wireValue,
+      finishedPayload?.get("audit_repair_item_availability")?.let { it.toString().trim('"') },
+    )
     assertTrue(finishedPayload?.containsKey("audit_recurring_gap_count") != true)
     assertTrue(finishedPayload?.containsKey("audit_new_gap_count") != true)
     assertTrue(finishedPayload?.containsKey("audit_attempted_repair_item_count") != true)

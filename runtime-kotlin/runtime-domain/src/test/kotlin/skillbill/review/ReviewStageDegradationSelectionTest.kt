@@ -4,6 +4,7 @@ import skillbill.review.model.ReviewEvidenceBoundaryAccounting
 import skillbill.review.model.ReviewStageDegradationMeasurement
 import skillbill.review.model.ReviewStageDegradationReason
 import skillbill.review.model.ReviewStageDegradationSelectionRequest
+import skillbill.review.model.ReviewVerificationNonSuccess
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -127,6 +128,26 @@ class ReviewStageDegradationSelectionTest {
     assertEquals(ReviewStageDegradationReason.EVIDENCE_BOUNDARY_OPERATION_REFUSED, refused.reason)
     assertEquals("refused_operations=2", refused.actual)
     assertCountsOnly(refused)
+  }
+
+  @Test
+  fun `a verification non-success is reported as its closed reason, not the worker's prose`() {
+    val record = ReviewStageDegradationSelection.select(
+      ReviewStageDegradationSelectionRequest(
+        reviewRunId = "rvw-236",
+        spec = null,
+        boundaries = emptyList(),
+        verdicts = emptyList(),
+        claims = null,
+        verificationNonSuccess = ReviewVerificationNonSuccess(
+          reason = ReviewStageDegradationReason.WORKER_OUTPUT_UNUSABLE,
+          detail = "worker stdout:\ndiff --git a/src/Main.kt\n[F-001] Major",
+        ),
+      ),
+    ).single { it.reason == ReviewStageDegradationReason.WORKER_OUTPUT_UNUSABLE }
+
+    assertEquals(ReviewStageDegradationReason.WORKER_OUTPUT_UNUSABLE.wireValue, record.actual)
+    assertCountsOnly(record)
   }
 
   private fun evidenceReasons(

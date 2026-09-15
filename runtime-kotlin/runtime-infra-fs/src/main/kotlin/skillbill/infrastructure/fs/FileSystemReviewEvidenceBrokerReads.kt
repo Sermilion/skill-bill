@@ -47,8 +47,13 @@ internal class FileSystemReviewEvidenceBrokerReadState(
   var authorizedReadCount: Int = 0
   var terminalOutcome: ReviewBudgetOutcome? = null
   val expansionLedger = mutableListOf<ReviewExpansionRecord>()
-  val admittedEvidenceTargets = mutableSetOf<String>()
+  val servedEvidenceScopes = mutableMapOf<String, ReviewEvidenceScope>()
   val deniedUnits = mutableListOf<String>()
+}
+
+internal enum class ReviewEvidenceScope {
+  PROJECTED_HUNKS,
+  COMPLETE_FILE,
 }
 
 private fun readOneEvidence(
@@ -63,47 +68,71 @@ private fun readOneEvidence(
   state.policy.classify(operation)?.let { return refusedEvidence(state, it) }
   requireRepositoryRelativePath(exactPath)
   val normalizedTarget = normalizeEvidenceIdentity(exactPath)
-  if (!state.admittedEvidenceTargets.add(normalizedTarget)) {
+  val servedScope = state.servedEvidenceScopes[normalizedTarget]
+  val assigned = state.policy.isAssigned(exactPath)
+  val expansion = request.authorizedExpansion
+  val scope = if (assigned && expansion == null) {
+    ReviewEvidenceScope.PROJECTED_HUNKS
+  } else {
+    ReviewEvidenceScope.COMPLETE_FILE
+  }
+  if (servedScope != null && servedScope != scope) {
     return refusedEvidence(
       state,
       ForbiddenReviewOperation(
-        "repeated_evidence_read",
+        "evidence_scope_expansion_repeat",
         exactPath,
-        "The normalized evidence target was already read by this lane.",
+        "The normalized evidence target was already served at ${servedScope.name.lowercase()} scope; " +
+          "a repeat may not re-scope it to ${scope.name.lowercase()}.",
       ),
     )
   }
-  val assigned = state.policy.isAssigned(exactPath)
-  val expansion = request.authorizedExpansion
   if (!assigned || expansion != null) {
-    val expansion = requireNotNull(request.authorizedExpansion) {
-      "Unassigned evidence requires an authorized expansion record."
-    }
-    require(expansion.authorized) { "Expansion '${expansion.expansionId}' is not authorized." }
-    require(expansion.assignmentDigest == state.assignment.digest) {
-      "Expansion '${expansion.expansionId}' does not belong to this assignment."
-    }
-    require(expansion.requestedPath == exactPath) {
-      "Expansion '${expansion.expansionId}' does not authorize '$exactPath'."
-    }
-    require(expansion.reachabilityReason == request.reachabilityReason) {
-      "Expansion '${expansion.expansionId}' reason provenance changed before admission."
-    }
-    require(expansion !in state.expansionLedger) { "Expansion '${expansion.expansionId}' was already admitted." }
-    require(expansion in state.authorizedExpansionLedger) {
-      "Expansion '${expansion.expansionId}' was not authorized by this assignment's measured broker."
-    }
-    state.expansionLedger += expansion
-    if (state.expansionLedger.size > state.budget.maxAssignmentExpansions) {
-      return exceededEvidence(
-        state,
-        ReviewBudgetKind.ASSIGNMENT_EXPANSIONS,
-        state.budget.maxAssignmentExpansions.toLong(),
-        state.expansionLedger.size.toLong(),
-      )
-    }
+    admitExpansion(state, request, exactPath, alreadyServed = servedScope != null)?.let { return it }
   }
-  return readAdmittedFile(state, exactPath, assigned, expansion != null)
+  state.servedEvidenceScopes[normalizedTarget] = scope
+  return readAdmittedFile(state, exactPath, assigned, expansion != null, repeat = servedScope != null)
+}
+
+private fun admitExpansion(
+  state: FileSystemReviewEvidenceBrokerReadState,
+  request: ReviewEvidenceRequest,
+  exactPath: String,
+  alreadyServed: Boolean,
+): ReviewEvidenceResult? {
+  val expansion = requireNotNull(request.authorizedExpansion) {
+    "Unassigned evidence requires an authorized expansion record."
+  }
+  require(expansion.authorized) { "Expansion '${expansion.expansionId}' is not authorized." }
+  require(expansion.assignmentDigest == state.assignment.digest) {
+    "Expansion '${expansion.expansionId}' does not belong to this assignment."
+  }
+  require(expansion.requestedPath == exactPath) {
+    "Expansion '${expansion.expansionId}' does not authorize '$exactPath'."
+  }
+  require(expansion.reachabilityReason == request.reachabilityReason) {
+    "Expansion '${expansion.expansionId}' reason provenance changed before admission."
+  }
+  require(expansion in state.authorizedExpansionLedger) {
+    "Expansion '${expansion.expansionId}' was not authorized by this assignment's measured broker."
+  }
+  if (alreadyServed) {
+    require(expansion in state.expansionLedger) {
+      "Expansion '${expansion.expansionId}' did not authorize the already-served read of '$exactPath'."
+    }
+    return null
+  }
+  require(expansion !in state.expansionLedger) { "Expansion '${expansion.expansionId}' was already admitted." }
+  state.expansionLedger += expansion
+  if (state.expansionLedger.size > state.budget.maxAssignmentExpansions) {
+    return exceededEvidence(
+      state,
+      ReviewBudgetKind.ASSIGNMENT_EXPANSIONS,
+      state.budget.maxAssignmentExpansions.toLong(),
+      state.expansionLedger.size.toLong(),
+    )
+  }
+  return null
 }
 
 private fun readAdmittedFile(
@@ -111,16 +140,21 @@ private fun readAdmittedFile(
   normalized: String,
   assigned: Boolean,
   completeFileAuthorized: Boolean,
+  repeat: Boolean,
 ): ReviewEvidenceResult {
   state.authorizedReadCount += 1
   return if (assigned && !completeFileAuthorized) {
-    readProjectedHunks(state, normalized)
+    readProjectedHunks(state, normalized, repeat)
   } else {
-    readCompleteFile(state, normalized, assigned)
+    readCompleteFile(state, normalized, assigned, repeat)
   }
 }
 
-private fun readProjectedHunks(state: FileSystemReviewEvidenceBrokerReadState, path: String): ReviewEvidenceResult {
+private fun readProjectedHunks(
+  state: FileSystemReviewEvidenceBrokerReadState,
+  path: String,
+  repeat: Boolean,
+): ReviewEvidenceResult {
   val hunks = state.projectedHunks
     .filter { it.path == path }
     .sortedWith(compareBy({ it.newStart }, { it.oldStart }, { it.hunkId }))
@@ -128,6 +162,10 @@ private fun readProjectedHunks(state: FileSystemReviewEvidenceBrokerReadState, p
   for (hunk in hunks) {
     val body = materializeAssignedHunk(state, hunk)
     val bytes = body.toByteArray(StandardCharsets.UTF_8).size.toLong()
+    if (repeat) {
+      delivered += body
+      continue
+    }
     assignedHunkBudgetOutcome(state, bytes, unitForHunk(state, hunk))?.let { exceeded ->
       return if (delivered.isEmpty()) {
         exceeded
@@ -178,6 +216,7 @@ private fun readCompleteFile(
   state: FileSystemReviewEvidenceBrokerReadState,
   path: String,
   assigned: Boolean,
+  repeat: Boolean,
 ): ReviewEvidenceResult {
   val real = resolveRepositoryFile(state.root, path)
   val expectedDigest = state.completeFileCheckpoint.getValue(path)
@@ -190,17 +229,20 @@ private fun readCompleteFile(
   if (expectedDigest == null || digest(contentBytes) != expectedDigest) {
     rejectCheckpointDrift(state, path)
   }
-  return serveEvidence(state, path, contentBytes)
+  return serveEvidence(state, path, contentBytes, repeat)
 }
 
 private fun serveEvidence(
   state: FileSystemReviewEvidenceBrokerReadState,
   path: String,
   contentBytes: ByteArray,
+  repeat: Boolean,
 ): ReviewEvidenceResult {
   val bytes = contentBytes.size.toLong()
-  evidenceBudgetOutcome(state, bytes, unitAtPath(state, path))?.let { return it }
-  state.cumulativeBytes += bytes
+  if (!repeat) {
+    evidenceBudgetOutcome(state, bytes, unitAtPath(state, path))?.let { return it }
+    state.cumulativeBytes += bytes
+  }
   return ReviewEvidenceResult(
     contentBytes.toString(StandardCharsets.UTF_8),
     bytes,

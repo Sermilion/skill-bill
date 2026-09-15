@@ -39,6 +39,7 @@ enum class FeatureTaskRuntimePhaseLedgerAction(val wireValue: String) {
   RETRY("retry"),
   FIX_LOOP_ITERATION("fix_loop_iteration"),
   LOOP_EDGE("loop_edge"),
+  LOOP_CAP_EXHAUSTED("loop_cap_exhausted"),
   BLOCKED("blocked"),
   PAUSED("paused"),
   COMPLETE("complete"),

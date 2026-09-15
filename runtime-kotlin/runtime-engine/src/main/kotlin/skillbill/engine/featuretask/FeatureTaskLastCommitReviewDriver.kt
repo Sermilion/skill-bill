@@ -10,6 +10,7 @@ import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
 import skillbill.ports.goalrunner.runner.model.GoalRunnerSubtaskLaunchRequest
 import skillbill.review.ParallelReviewFindingParser
 import skillbill.review.ParallelReviewMerger
+import skillbill.review.context.model.ReviewLaneReviewDisposition
 import skillbill.review.model.ParallelReviewLaneResult
 import skillbill.review.model.ParallelReviewMergeResult
 
@@ -51,6 +52,11 @@ class FeatureTaskLastCommitReviewDriver(
         agentId = agentId,
         success = true,
         droppedCandidateDiagnostic = droppedCandidateDiagnostic(parsed.rejections.size, parsed.candidateCount),
+        reviewDisposition = if (facts.stdout.isBlank()) {
+          ReviewLaneReviewDisposition.INCOMPLETE
+        } else {
+          ReviewLaneReviewDisposition.COMPLETE
+        },
       ),
     )
   }

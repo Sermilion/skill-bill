@@ -40,6 +40,7 @@ object FeatureTaskRuntimeRunLoopCheckpoint {
         concurrentlyModifiedOwnedPaths = FeatureTaskRuntimeRunLoopCheckpointRemediation
           .concurrentlyModifiedOwnedPaths(request, session, phaseGates, precedingPhaseId, ownedInventory),
         deletedPaths = preparation.deletedPaths,
+        workflowId = request.workflowId,
       ),
     )
   }
@@ -220,6 +221,7 @@ object FeatureTaskRuntimeRunLoopCheckpoint {
     repoRoot = request.repoRoot,
     issueKey = request.issueKey,
     specReference = request.runInvariants.specReference,
+    workflowId = request.workflowId,
     paths = (preparation.seedOwned + preparation.deletedPaths)
       .filterNot { path -> isFeatureSpecPathForIssue(path, request.issueKey) },
   )

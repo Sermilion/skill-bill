@@ -40,6 +40,14 @@ fun validateRemoteStatsRequest(request: RemoteStatsRequest) {
   }
 }
 
+fun validateIngestCapabilities(capabilities: TelemetryProxyCapabilities) {
+  require(!capabilities.supportsIngest || capabilities.supportsEventDeduplication) {
+    "Configured telemetry proxy accepts ingest but cannot carry the event deduplication property, " +
+      "so a retried batch would be ingested as duplicate events. Capabilities URL: " +
+      capabilities.capabilitiesUrl
+  }
+}
+
 fun validateRemoteStatsCapabilities(
   request: RemoteStatsRequest,
   settings: TelemetrySettings,

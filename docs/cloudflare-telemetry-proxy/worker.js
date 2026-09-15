@@ -1,7 +1,7 @@
 const DEFAULT_POSTHOG_INGEST_HOST = "https://us.i.posthog.com";
 const DEFAULT_POSTHOG_APP_HOST = "https://us.posthog.com";
 const MAX_BATCH_SIZE = 100;
-const CONTRACT_VERSION = "1";
+const CONTRACT_VERSION = "2";
 
 const PRODUCTION_INSTALL_FILTER = `
       AND properties.install_id IS NOT NULL
@@ -120,6 +120,11 @@ function capabilitiesPayload(env) {
     supports_stats: supportsStats,
     supported_workflows: supportsStats ? ["bill-feature-verify"] : [],
     stats_auth_required: Boolean(env.PROXY_STATS_BEARER_TOKEN),
+    // isValidEvent inspects properties without rewriting them and transformBatch spreads them into
+    // every branch, so the producer's $insert_id reaches PostHog unchanged and a retried batch
+    // deduplicates. A fork that drops or rewrites properties must report false here instead, which
+    // makes the client refuse to send undeduplicated batches rather than degrade silently.
+    supports_event_deduplication: true,
   };
 }
 
@@ -155,6 +160,12 @@ function transformBatch(batch) {
   });
 }
 
+// Acknowledgement semantics: this relay acknowledges a batch only after PostHog has accepted it.
+// The 10s abort and the 502 rewrite below are both lost-acknowledgement sources — the upstream may
+// have accepted the batch before the abort fired or before the error surfaced — so the client must
+// treat a timeout or a 502 from here as an unknown outcome, keep the rows pending with their
+// original $insert_id, and let PostHog deduplicate the retry. Treating either as a rejection would
+// discard delivered events; treating either as success would drop undelivered ones.
 async function forwardBatch(env, batch) {
   if (!env.POSTHOG_API_KEY) {
     return jsonResponse(500, { error: "POSTHOG_API_KEY is not configured." });

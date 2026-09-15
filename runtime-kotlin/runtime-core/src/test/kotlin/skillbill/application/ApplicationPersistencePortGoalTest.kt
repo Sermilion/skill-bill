@@ -3,6 +3,7 @@ package skillbill.application
 import skillbill.application.review.ReviewService
 import skillbill.application.review.model.GoalStatsResult
 import skillbill.application.telemetry.toRecord
+import skillbill.contracts.telemetry.TelemetryMeasurementAvailability
 import skillbill.model.EnvironmentContext
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.goalrunner.EmptyGoalPlanningPreparationRepository
@@ -81,6 +82,10 @@ class ApplicationPersistencePortGoalTest {
           subtaskTotal = 4,
         ),
         topBlockedSubtasks = emptyList(),
+        logicalGoals = 2,
+        invocationsWithUnknownGoal = 0,
+        goalIdentityAvailability = TelemetryMeasurementAvailability.MEASURED.wireValue,
+        resumedInvocations = 0,
       )
     val repository: WorkflowStatsRepository = FakeGoalStatsRepository(expected)
 
@@ -113,6 +118,10 @@ class ApplicationPersistencePortGoalTest {
       averageAttemptCount = 3.0,
       mostRecentRun = null,
       topBlockedSubtasks = listOf(blockedSummary),
+      logicalGoals = 1,
+      invocationsWithUnknownGoal = 0,
+      goalIdentityAvailability = TelemetryMeasurementAvailability.MEASURED.wireValue,
+      resumedInvocations = 0,
     )
     val database = FakeDatabaseSessionFactory(reviews = FakeGoalStatsReviewRepository(seededStats))
     val service = ReviewService(
@@ -158,6 +167,10 @@ class ApplicationPersistencePortGoalTest {
       averageAttemptCount = 2.0,
       mostRecentRun = null,
       topBlockedSubtasks = listOf(blockedEntry),
+      logicalGoals = 1,
+      invocationsWithUnknownGoal = 0,
+      goalIdentityAvailability = TelemetryMeasurementAvailability.MEASURED.wireValue,
+      resumedInvocations = 0,
     )
 
     assertEquals(1.0, allBlockedStats.blockedRate)
@@ -184,6 +197,10 @@ class ApplicationPersistencePortGoalTest {
       averageAttemptCount = 0.0,
       mostRecentRun = null,
       topBlockedSubtasks = emptyList(),
+      logicalGoals = 1,
+      invocationsWithUnknownGoal = 0,
+      goalIdentityAvailability = TelemetryMeasurementAvailability.MEASURED.wireValue,
+      resumedInvocations = 0,
     )
 
     assertEquals(3, allSkippedStats.subtaskOutcomeCounts["skipped"])
@@ -219,6 +236,10 @@ class ApplicationPersistencePortGoalTest {
       averageAttemptCount = 1.0,
       mostRecentRun = singleRunSummary,
       topBlockedSubtasks = emptyList(),
+      logicalGoals = 1,
+      invocationsWithUnknownGoal = 0,
+      goalIdentityAvailability = TelemetryMeasurementAvailability.MEASURED.wireValue,
+      resumedInvocations = 0,
     )
 
     assertEquals(1, singleRunStats.totalRuns)

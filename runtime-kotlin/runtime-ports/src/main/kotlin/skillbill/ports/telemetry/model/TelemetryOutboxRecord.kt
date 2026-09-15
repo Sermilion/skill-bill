@@ -8,4 +8,6 @@ data class TelemetryOutboxRecord(
   val syncedAt: String?,
   val lastError: String,
   val skillBillVersion: String? = null,
+  val eventUuid: String = "",
+  val deliveryAttempts: Int = 0,
 )

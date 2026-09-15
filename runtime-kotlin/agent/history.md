@@ -1,3 +1,30 @@
+## [2026-09-15] SKILL-236 subtask 2 — Truthful lifecycle metrics and correlated diagnostics
+Areas: runtime-kotlin/{runtime-contracts,runtime-domain,runtime-application,runtime-engine,runtime-infra-sqlite,runtime-mcp,runtime-core,runtime-cli}, orchestration/contracts, docs, docs/cloudflare-telemetry-proxy
+- Every lifecycle, rejection, quality-check and aggregate metric that can be unknown now emits a `TelemetryMeasurementAvailability` token beside its value and emits explicit null rather than a defaulted zero or false whenever that token is not `measured`; a measured zero stays distinguishable from absent. reusable
+- Reusable pattern: an availability token plus a nullable value is the only honest shape for a metric whose source may not exist — a defaulted zero and a fabricated false are the same defect, and key-absence is not a substitute because consumers cannot tell it from a dropped field. reusable
+- New columns (`feature_task_runtime_sessions` workflow/goal-parent/goal-subtask + availability, `goal_run_sessions.parent_workflow_id`) are nullable, un-backfilled, and added through the idempotent `DatabaseColumnMigrationsEnsure.ensureColumn` path, so historical rows stay honestly unknown instead of being retroactively approved.
+- Review-fix cap exhaustion reads `LOOP_CAP_EXHAUSTED` from the existing append-only phase ledger (`FeatureTaskRuntimeReviewFixBudget`) instead of a new column: the ledger already survives resume and already records the cap decision, and a second durable store would be a second authority for one fact. reusable
+- `FeatureTaskRuntimeAttemptBudgets.outputGateRejectionExhaustsBudget` resolves `exhaustedFixLoop` from the run loop that owns the cap, so a rejection record cannot claim an intact budget on the attempt the loop refuses to relaunch.
+- Review-worker degradation split into five causes in both `ReviewStageDegradationReason` and the schema enum, with unrecognized reasons retaining the unsplit token. The enum widening deliberately did **not** bump `TELEMETRY_EVENT_CONTRACT_VERSION` (1.11.0) — additive-only, and a bump would loud-fail in-flight records; `FEATURE_TASK_RUNTIME_REJECTION_MEASUREMENT` went 0.1→0.2 because its wire shape changed. reusable
+- Feature-task rates are now over `observed_runs` with `reconciler_closed_runs` published separately, so a reconciler-closed run never depresses the completed rate; goal stats report `logical_goals` beside invocation-grain `total_runs` with an unattributed bucket for segments written before the parent id existed.
+- Removed rather than faked: `audit_*_gap_count` counters existed only in docs and no source; `resolved_provider`/`resolved_model` have no durable column anywhere; a payload-level delivery id would duplicate subtask 1's `$insert_id`. Docs were corrected to match what the runtime emits.
+- Known limitations: review-health cannot exclude test/synthetic traffic or split delivery rows from correction attempts because no durable source marker exists — the caveat is documented instead of filtered on, and adding the marker must come first. `FeatureTaskRuntimeRunLoopAttemptSettlement.kt` remains a pre-existing 919-line ceiling violation needing its own decomposition.
+Feature flag: N/A
+Acceptance criteria: 6/7 implemented (AC-6 partial: logical-event grain and unknown-source reporting landed; test/synthetic exclusion blocked on a missing durable source marker)
+
+## [2026-09-15] SKILL-236 subtask 1 — Durable telemetry delivery identity and replay recovery
+Areas: runtime-kotlin/{runtime-application,runtime-contracts,runtime-domain,runtime-infra-http,runtime-infra-sqlite,runtime-ports,runtime-cli,runtime-mcp}, docs/cloudflare-telemetry-proxy, docs
+- `telemetry_outbox` gained `event_uuid`, `delivery_attempts`, `claim_token`, `claimed_at` in the base schema plus ledger migration 37 with an unconditional `ensureColumns` net; the migration backfills one UUID per pending row, scoped per database file, and reconstructs nothing an operator cleared.
+- Identity is minted inside the enqueue INSERT, so it survives rebatching, payload rewrite and restart; it rides to the receiver as `$insert_id` through the contracts-owned `TelemetryProxyPayloadKeys`.
+- The drain claims rows with a token and a five-minute lease before sending, counts progress only after a durable `markSynced`, and stops at a five-attempt budget; blocked rows surface as `blocked_events` instead of retrying forever.
+- Transport outcomes split into ACCEPTED / REJECTED / UNKNOWN with 408, 429 and 5xx as UNKNOWN, so a lost acknowledgement leaves the row pending under its original identity; a status outside 100..599 raises `InvalidTelemetryTransportOutcomeError`.
+- Reusable pattern: an outbox drain needs a claim lease, an attempt budget and a three-way transport outcome together — any two of the three still lose rows or replay them. reusable
+- Delivery health is written onto the failing row as `last_error` + `delivery_attempts` and never re-enqueued as telemetry; `autoSyncTelemetry` now swallows delivery failures so the MCP exception-capture path cannot grow the queue it failed to drain, while explicit `telemetry sync` still fails loudly.
+- Relay contract and worker are both at version 2 and advertise `supports_event_deduplication`; the capability handshake fails loudly when a relay accepts ingest but cannot carry the property. Producer-first rollout order is documented.
+- Known limitations: receiver deduplication is a finite retention window, not exactly-once; pre-identity events cannot be deduplicated retroactively and historical gaps are not proven zeros; the receiver-side duplication cause is reproduced on the sender side only.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
 ## [2026-09-14] SKILL-239 subtask 4 — Architecture enforcement and wire vocabulary
 Areas: runtime-kotlin/{architecture,runtime-contracts,runtime-domain,runtime-application,runtime-engine,runtime-infra-{fs,sqlite}}, platform-pack manifests
 - Governed payload seams now validate undeclared literals and schema fields independently of key-owner scans; decomposition and workflow keys use runtime-contract owners.

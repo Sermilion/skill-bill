@@ -1,6 +1,7 @@
 package skillbill.mcp.telemetry
 
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.telemetry.TelemetryProxyPayloadKeys
 import skillbill.telemetry.model.TelemetryProxyCapabilities
 import skillbill.telemetry.model.TelemetryRemoteStatsResult
 
@@ -12,6 +13,7 @@ internal fun TelemetryProxyCapabilities.toMcpMap(): Map<String, Any?> = linkedMa
   "supports_ingest" to supportsIngest,
   "supports_stats" to supportsStats,
   "supported_workflows" to supportedWorkflows,
+  TelemetryProxyPayloadKeys.SUPPORTS_EVENT_DEDUPLICATION to supportsEventDeduplication,
 ).apply {
   additionalFields.forEach { (key, value) -> putIfAbsent(key, value) }
 }

@@ -1,6 +1,7 @@
 package skillbill.application.review
 
 import skillbill.application.review.model.ParallelCodeReviewResult
+import skillbill.application.review.model.ParallelReviewLaneStatus
 import skillbill.application.review.model.ReviewClaimVerificationOutcome
 import skillbill.application.review.model.ReviewClaimVerificationRunRequest
 import skillbill.application.review.model.ReviewSpecAdjudicationOutcome
@@ -9,12 +10,15 @@ import skillbill.application.runtimepersistence.RuntimeOwnedPersistenceBoundary
 import skillbill.contracts.review.REVIEW_CONTEXT_CONTRACT_VERSION
 import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
 import skillbill.review.context.ReviewContextEnvelopeValidator
+import skillbill.review.context.model.ReviewLaneReviewDisposition
 import skillbill.review.context.model.SpecIntentResolution
 import skillbill.review.model.ParallelReviewMergedFinding
 import skillbill.review.model.ReviewFindingVerdict
 import skillbill.review.model.ReviewStage
 import skillbill.review.model.ReviewStageBoundary
+import skillbill.review.model.ReviewStageDegradationReason
 import skillbill.review.model.ReviewStageReached
+import skillbill.review.model.ReviewVerificationNonSuccess
 import java.time.Clock
 
 class ParallelCodeReviewRunnerVerificationStages(
@@ -49,9 +53,15 @@ class ParallelCodeReviewRunnerVerificationStages(
     }
     val verificationInput = verificationReviewOutput(result.output, claims)
     if (claims.isEmpty()) {
-      emptyClaimsVerificationShortCircuit(reviewRunId, boundaries, verificationInput, existing)?.let { verdicts ->
-        return ReviewClaimVerificationOutcome(verdicts = verdicts)
-      }
+      emptyClaimsVerificationShortCircuit(
+        EmptyClaimsShortCircuitInput(
+          reviewRunId = reviewRunId,
+          boundaries = boundaries,
+          verificationInput = verificationInput,
+          existing = existing,
+          lane = result.lane1,
+        ),
+      )?.let { return it }
     }
     val outcome = ReviewClaimVerificationRunner(parentReviewLauncher, reviewContextEnvelopeValidator, clock).run(
       ReviewClaimVerificationRunRequest(
@@ -63,12 +73,21 @@ class ParallelCodeReviewRunnerVerificationStages(
         launch = initial.delegatedStageLaunch(),
       ),
     )
-    val verdicts = persistClaimVerificationOutcome(reviewRunId, claims, existing, outcome)
+    val verdicts = persistClaimVerificationOutcome(
+      PersistClaimVerificationInput(
+        reviewRunId = reviewRunId,
+        claims = claims,
+        existing = existing,
+        outcome = outcome,
+        lane = result.lane1,
+      ),
+    )
     return ReviewClaimVerificationOutcome(
       verdicts = verdicts,
       output = outcome.output,
       skipReason = outcome.skipReason,
       citationDiagnostics = outcome.citationDiagnostics,
+      nonSuccess = outcome.nonSuccess ?: withheldReviewPassNonSuccess(claims, outcome, result.lane1),
     )
   }
 
@@ -172,32 +191,67 @@ internal fun ParallelCodeReviewRunnerVerificationStages.reviewFindingVerdicts(
   ) { unitOfWork -> unitOfWork.reviews.fetchFindingVerdicts(reviewRunId) }
 }
 
+internal data class EmptyClaimsShortCircuitInput(
+  val reviewRunId: String?,
+  val boundaries: List<ReviewStageBoundary>,
+  val verificationInput: String,
+  val existing: List<ReviewFindingVerdict>,
+  val lane: ParallelReviewLaneStatus,
+)
+
+internal data class PersistClaimVerificationInput(
+  val reviewRunId: String?,
+  val claims: List<ParallelReviewMergedFinding>,
+  val existing: List<ReviewFindingVerdict>,
+  val outcome: ReviewClaimVerificationOutcome,
+  val lane: ParallelReviewLaneStatus,
+)
+
+internal fun reviewPassNonSuccess(lane: ParallelReviewLaneStatus): ReviewVerificationNonSuccess? {
+  if (lane.success && lane.reviewDisposition == ReviewLaneReviewDisposition.COMPLETE) return null
+  return ReviewVerificationNonSuccess(
+    reason = ReviewStageDegradationReason.REVIEW_PASS_OUTPUT_ABSENT,
+    detail = lane.failureReason?.takeIf(String::isNotBlank)
+      ?: "the review pass returned ${lane.reviewDisposition.wireValue} output, so there is no disposition to verify",
+  )
+}
+
+internal fun withheldReviewPassNonSuccess(
+  claims: List<ParallelReviewMergedFinding>,
+  outcome: ReviewClaimVerificationOutcome,
+  lane: ParallelReviewLaneStatus,
+): ReviewVerificationNonSuccess? {
+  if (claims.isNotEmpty() || outcome.skipReason != null) return null
+  return reviewPassNonSuccess(lane)
+}
+
 internal fun ParallelCodeReviewRunnerVerificationStages.emptyClaimsVerificationShortCircuit(
-  reviewRunId: String?,
-  boundaries: List<ReviewStageBoundary>,
-  verificationInput: String,
-  existing: List<ReviewFindingVerdict>,
-): List<ReviewFindingVerdict>? {
+  input: EmptyClaimsShortCircuitInput,
+): ReviewClaimVerificationOutcome? {
+  val reviewRunId = input.reviewRunId
   if (
     reviewRunId != null &&
-    boundaries.any { it.stage == ReviewStage.VERIFICATION && it.reached == ReviewStageReached.REACHED }
+    input.boundaries.any { it.stage == ReviewStage.VERIFICATION && it.reached == ReviewStageReached.REACHED }
   ) {
-    return existing
+    return ReviewClaimVerificationOutcome(verdicts = input.existing)
   }
-  if (!reviewOutputNeedsProseVerification(verificationInput)) {
-    if (reviewRunId != null) recordVerificationBoundary(reviewRunId)
-    return existing
-  }
-  return null
+  if (reviewOutputNeedsProseVerification(input.verificationInput)) return null
+  val nonSuccess = reviewPassNonSuccess(input.lane)
+  if (nonSuccess == null && reviewRunId != null) recordVerificationBoundary(reviewRunId)
+  return ReviewClaimVerificationOutcome(
+    verdicts = input.existing,
+    skipReason = nonSuccess?.detail,
+    nonSuccess = nonSuccess,
+  )
 }
 
 internal fun ParallelCodeReviewRunnerVerificationStages.persistClaimVerificationOutcome(
-  reviewRunId: String?,
-  claims: List<ParallelReviewMergedFinding>,
-  existing: List<ReviewFindingVerdict>,
-  outcome: ReviewClaimVerificationOutcome,
+  input: PersistClaimVerificationInput,
 ): List<ReviewFindingVerdict> {
-  if (reviewRunId == null) return existing + outcome.verdicts
+  val reviewRunId = input.reviewRunId
+  val outcome = input.outcome
+  val claims = input.claims
+  if (reviewRunId == null) return input.existing + outcome.verdicts
   if (outcome.verdicts.isNotEmpty()) {
     runtimeOwnedPersistence.requiredWrite(
       seam = "ParallelCodeReviewRunner.persistClaimVerificationOutcome",
@@ -206,16 +260,16 @@ internal fun ParallelCodeReviewRunnerVerificationStages.persistClaimVerification
       unitOfWork.reviews.recordFindingVerdicts(reviewRunId, outcome.verdicts)
     }
   }
-  val recordedRefs = (existing + outcome.verdicts)
+  val recordedRefs = (input.existing + outcome.verdicts)
     .filter { it.stage == ReviewStage.VERIFICATION }
     .map { it.findingRef }
     .toSet()
   if (claims.isNotEmpty() && claims.all { it.fNumber in recordedRefs }) {
     recordVerificationBoundary(reviewRunId)
-  } else if (claims.isEmpty() && outcome.skipReason == null) {
+  } else if (claims.isEmpty() && outcome.skipReason == null && reviewPassNonSuccess(input.lane) == null) {
     recordVerificationBoundary(reviewRunId)
   }
-  return existing + outcome.verdicts
+  return input.existing + outcome.verdicts
 }
 
 internal fun ParallelCodeReviewRunnerVerificationStages.recordVerificationBoundary(reviewRunId: String) {

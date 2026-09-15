@@ -2,6 +2,7 @@ package skillbill.engine.featuretask
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.telemetry.LifecycleTelemetryService
+import skillbill.application.telemetry.model.FeatureTaskRuntimeCorrelation
 import skillbill.application.telemetry.model.FeatureTaskRuntimeStartedRequest
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeFinishedTelemetryContext
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
@@ -20,6 +21,11 @@ class FeatureTaskRuntimeLifecycleTelemetry(
         issueKey = request.issueKey,
         featureName = request.runInvariants.specReference,
         sessionId = request.sessionId,
+        correlation = FeatureTaskRuntimeCorrelation(
+          workflowId = request.workflowId,
+          goalParentWorkflowId = request.goalContinuation?.parentWorkflowId,
+          goalSubtaskId = request.goalContinuation?.subtaskId,
+        ),
       ),
     ).toPayload()["session_id"]?.toString().orEmpty()
   }
@@ -38,7 +44,7 @@ class FeatureTaskRuntimeLifecycleTelemetry(
     }
   }
 
-  fun finishedError(context: FeatureTaskRuntimeFinishedTelemetryContext) {
+  fun finishedError(context: FeatureTaskRuntimeFinishedTelemetryContext, error: Throwable? = null) {
     if (context.telemetrySessionId.isBlank()) {
       return
     }
@@ -52,7 +58,7 @@ class FeatureTaskRuntimeLifecycleTelemetry(
           )
         }
         .getOrDefault(emptyMap())
-      emitFeatureTaskRuntimeFinishedError(lifecycleTelemetryService, context, outcomes)
+      emitFeatureTaskRuntimeFinishedError(lifecycleTelemetryService, context, outcomes, error)
     }
   }
 

@@ -45,9 +45,10 @@ fun FeatureTaskRuntimeRunner.executePreparedRun(
   val transitions = transitionsFor(runRequest)
   val report = runCatching {
     driveExecutePreparedRunLoop(runRequest, specSource, transitions, observability, phaseTokenAccumulator)
-  }.onFailure {
+  }.onFailure { error ->
     lifecycleTelemetry.finishedError(
       telemetryContext.copy(phaseTokenData = { serializeTokenData(phaseTokenAccumulator) }),
+      error,
     )
   }.getOrThrow()
   val terminalReport = finalizeExecutePreparedRunReport(runRequest, report, specSource)
@@ -102,23 +103,20 @@ fun FeatureTaskRuntimeRunner.loadReviewFixIterationCount(request: FeatureTaskRun
 fun FeatureTaskRuntimeRunner.loadFindingVerificationTelemetry(
   request: FeatureTaskRuntimeRunRequest,
 ): FeatureTaskRuntimeFindingVerificationTelemetry {
+  val capExhausted = reviewFixCapExhaustion(request.workflowId)
   val verifyRecord = recorder.loadPhaseRecords(request.workflowId)
     ?.get(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS)
-    ?: return FeatureTaskRuntimeFindingVerificationTelemetry(
-      reviewFixCapExhausted = loadReviewFixIterationCount(request) >= 1,
-    )
+    ?: return FeatureTaskRuntimeFindingVerificationTelemetry(reviewFixCapExhausted = capExhausted)
   val outputMap = verifyRecord.outputArtifact
     ?.let(JsonCodec::parseObjectOrNull)
     ?.let(JsonCodec::jsonElementToValue)
     ?.let(JsonCodec::anyToStringAnyMap)
     ?.toWorkflowArtifactMap()
-    ?: return FeatureTaskRuntimeFindingVerificationTelemetry(
-      reviewFixCapExhausted = loadReviewFixIterationCount(request) >= 1,
-    )
+    ?: return FeatureTaskRuntimeFindingVerificationTelemetry(reviewFixCapExhausted = capExhausted)
   return FeatureTaskRuntimeFindingVerificationTelemetry(
     verifiedCount = FeatureTaskRuntimeOutputVerification.verifiedFindingDispositions(outputMap).size,
     rejectedCount = FeatureTaskRuntimeOutputVerification.rejectedFindingDispositions(outputMap).size,
-    reviewFixCapExhausted = loadReviewFixIterationCount(request) >= 1,
+    reviewFixCapExhausted = capExhausted,
   )
 }
 

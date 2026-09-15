@@ -113,20 +113,15 @@ class ParallelCodeReviewRunner(
       initial.request.reviewRunId,
       verificationOutcome.verdicts + adjudicationOutcome.verdicts,
     )
-    resultAssembly.emitReviewStageDegradations(initial.request.reviewRunId, outcomes)
+    resultAssembly.emitReviewStageDegradations(
+      initial.request.reviewRunId,
+      outcomes,
+      verificationOutcome.nonSuccess,
+    )
     val prose = result.output
     val assembled = ParallelReviewMerger.withRecordedVerdicts(result.mergeResult, recordedVerdicts)
       .copy(formattedOutput = prose)
-    result.accountingSummary?.let { summary ->
-      runtimeOwnedPersistence.requiredWrite(
-        seam = "ParallelCodeReviewRunner.saveAccounting",
-        expected = "runtime-owned review accounting",
-      ) { unitOfWork ->
-        unitOfWork.reviews.saveAccounting(
-          ReviewAccountingRecord(summary.reviewId, summary.packetDigest, summary.toBoundedPayload()),
-        )
-      }
-    }
+    persistAccounting(result)
     return result.copy(
       mergeResult = assembled,
       stageResume = resultAssembly.stageResumeReport(initial.request.reviewRunId),
@@ -134,6 +129,18 @@ class ParallelCodeReviewRunner(
         verificationOutcome.citationDiagnostics +
         adjudicationOutcome.citationDiagnostics,
     )
+  }
+
+  private fun persistAccounting(result: ParallelCodeReviewResult) {
+    val summary = result.accountingSummary ?: return
+    runtimeOwnedPersistence.requiredWrite(
+      seam = "ParallelCodeReviewRunner.saveAccounting",
+      expected = "runtime-owned review accounting",
+    ) { unitOfWork ->
+      unitOfWork.reviews.saveAccounting(
+        ReviewAccountingRecord(summary.reviewId, summary.packetDigest, summary.toBoundedPayload()),
+      )
+    }
   }
 
   private fun earlyEmptyDelta(originalRequest: ParallelCodeReviewRequest): ParallelCodeReviewResult? {

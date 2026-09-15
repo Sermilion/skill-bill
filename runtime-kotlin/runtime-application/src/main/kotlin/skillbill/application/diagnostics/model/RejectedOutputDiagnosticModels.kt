@@ -40,6 +40,11 @@ data class RejectedOutputDiagnosticRequest(
    * launches several agent turns under one attempt, and each turn's rejection is its own diagnostic.
    */
   val repairTurn: Int = 0,
+  /**
+   * Whether this rejection spends the phase's output-gate correction budget, or null where no such
+   * budget governs it. Supplied by the run loop that owns the cap, never derived from [reason].
+   */
+  val exhaustedFixLoop: Boolean? = null,
 )
 
 /**

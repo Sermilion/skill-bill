@@ -185,13 +185,14 @@ private fun expectedMcpRemoteStatsRequests(): List<Map<String, Any?>> = listOf(
 )
 
 private fun expectedMcpCapabilitiesPayload(): Map<String, Any?> = linkedMapOf(
-  "contract_version" to "1",
+  "contract_version" to "2",
   "source" to "remote_proxy",
   "proxy_url" to "https://telemetry.example.dev/ingest",
   "capabilities_url" to "https://telemetry.example.dev/ingest/capabilities",
   "supports_ingest" to true,
   "supports_stats" to true,
   "supported_workflows" to listOf("bill-feature-verify"),
+  "supports_event_deduplication" to true,
   "region" to "eu",
 )
 

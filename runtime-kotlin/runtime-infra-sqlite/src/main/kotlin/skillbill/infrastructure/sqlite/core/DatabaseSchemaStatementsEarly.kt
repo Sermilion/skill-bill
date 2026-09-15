@@ -165,7 +165,13 @@ internal val databaseSchemaStatementsEarly: List<String> =
         last_error TEXT,
         -- Nullable with no default: a row enqueued before release attribution existed has no
         -- version to report, and NULL keeps it distinguishable from a genuine recorded version.
-        skill_bill_version TEXT
+        skill_bill_version TEXT,
+        -- Opaque origin-scoped delivery identity, minted in the enqueue INSERT and never recomputed.
+        -- Nullable only so add-telemetry-outbox-delivery-identity can backfill legacy pending rows.
+        event_uuid TEXT,
+        delivery_attempts INTEGER NOT NULL DEFAULT 0,
+        claim_token TEXT,
+        claimed_at TEXT
       )
     """.trimIndent(),
     """

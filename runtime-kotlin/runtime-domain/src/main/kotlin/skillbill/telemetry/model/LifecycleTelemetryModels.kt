@@ -5,6 +5,11 @@ data class FeatureTaskRuntimeStartedRecord(
   val featureSize: String,
   val issueKey: String,
   val featureName: String,
+  // SKILL-236: correlation identity the emission seam redacts. Blank/null means the runtime did not
+  // know it; a goal parent and subtask id are absent for a standalone run, which is not a goal run.
+  val workflowId: String = "",
+  val goalParentWorkflowId: String? = null,
+  val goalSubtaskId: Int? = null,
 )
 
 data class FeatureTaskRuntimeFinishedRecord(
@@ -30,7 +35,12 @@ data class FeatureTaskRuntimeFinishedRecord(
   val estimatedTotalTokens: Int? = null,
   val findingVerificationVerifiedCount: Int = 0,
   val findingVerificationRejectedCount: Int = 0,
-  val reviewFixCapExhausted: Boolean = false,
+  // SKILL-236: both are null when no durable state backed the measurement. A stored null reads back as
+  // unknown rather than as a measured false or a measured zero.
+  val reviewFixCapExhausted: Boolean? = null,
+  val auditGapIterationCount: Int? = null,
+  val resolvedAgentIds: List<String>? = null,
+  val launchedModels: List<String>? = null,
 )
 
 data class QualityCheckStartedRecord(

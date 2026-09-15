@@ -27,7 +27,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class FileSystemReviewEvidenceBrokerTest {
-  @Test fun `assigned reads return only projected hunk bodies and normalized target is single use`() {
+  @Test fun `an unchanged assigned target read twice is served again and charged once`() {
     val root = repo("A.kt" to "outside\nowned\noutside")
     val hunk = ReviewChangedHunk("A.kt", 2, 1, 2, 1, "@@ -2 +2 @@\n-owned\n+changed")
     val base = assignment(listOf("A.kt"))
@@ -43,6 +43,7 @@ class FileSystemReviewEvidenceBrokerTest {
     )
 
     val first = broker.readBatch(batch("A.kt")).results.single()
+    val chargedAfterFirst = broker.accounting().evidenceBytes
     val repeated = broker.readBatch(
       ReviewEvidenceBatchRequest.of(
         ReviewEvidenceRequest("security", "A.kt", offset = 1, limit = 1, paginationToken = "next"),
@@ -51,7 +52,33 @@ class FileSystemReviewEvidenceBrokerTest {
 
     assertEquals(hunk.content, first.content)
     assertEquals(hunk.content.toByteArray(Charsets.UTF_8).size.toLong(), first.bytes)
-    assertEquals("repeated_evidence_read", repeated.forbidden?.category)
+    assertNull(repeated.forbidden)
+    assertEquals(hunk.content, repeated.content)
+    assertEquals(chargedAfterFirst, broker.accounting().evidenceBytes)
+    assertEquals(0, broker.accounting().refusedOperationCount)
+  }
+
+  @Test fun `a repeat that widens projected hunks to a complete file is refused`() {
+    val root = repo("A.kt" to "outside\nowned\noutside")
+    val hunk = ReviewChangedHunk("A.kt", 2, 1, 2, 1, "@@ -2 +2 @@\n-owned\n+changed")
+    val scoped = assignment(listOf("A.kt")).copy(assignedHunks = listOf(hunk.hunkId))
+    val expansionRequest = expansionRequest(scoped, "A.kt", "needs the whole file")
+    val broker = FileSystemReviewEvidenceBroker(
+      ReviewEvidenceBrokerBinding(
+        root,
+        scoped,
+        "security",
+        policy(),
+        projectedHunks = listOf(hunk),
+        trustedExpansionLedger = listOf(requireNotNull(expansionRequest.authorizedExpansion)),
+      ),
+    )
+
+    broker.readBatch(batch("A.kt"))
+    val widened = broker.readBatch(ReviewEvidenceBatchRequest.of(expansionRequest)).results.single()
+
+    assertEquals("evidence_scope_expansion_repeat", widened.forbidden?.category)
+    assertNull(widened.content)
   }
 
   @Test fun `filesystem unsafe assigned path is rejected while broker is constructed`() {
@@ -373,6 +400,32 @@ class FileSystemReviewEvidenceBrokerTest {
     }
     assertTrue(broker.accounting().expansions.isEmpty())
     assertEquals(0, broker.accounting().evidenceBytes)
+  }
+
+  @Test fun `an expansion carrying another assignment's identity is rejected`() {
+    val root = repo("A.kt" to "assigned", "B.kt" to "dep")
+    val assignment = assignment(listOf("A.kt"), listOf("B.kt"))
+    val foreign = ReviewExpansionRecord(
+      "exp-foreign",
+      "b".repeat(64),
+      "B.kt",
+      "called by assigned symbol",
+      true,
+      0,
+    )
+    val broker = broker(root, assignment, trustedExpansionLedger = listOf(foreign))
+
+    val error = assertFailsWith<IllegalArgumentException> {
+      broker.readBatch(
+        ReviewEvidenceBatchRequest.of(
+          ReviewEvidenceRequest("security", "B.kt", "called by assigned symbol", foreign),
+        ),
+      )
+    }
+
+    assertTrue("does not belong to this assignment" in error.message.orEmpty())
+    assertEquals(0, broker.accounting().evidenceBytes)
+    assertTrue(broker.accounting().expansions.isEmpty())
   }
 
   @Test fun `unassigned read without a reason is a forbidden operation, not an expansion`() {

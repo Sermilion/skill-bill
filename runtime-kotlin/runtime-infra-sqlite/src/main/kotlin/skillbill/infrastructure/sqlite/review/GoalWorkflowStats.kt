@@ -1,6 +1,7 @@
 package skillbill.infrastructure.sqlite.review
 
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.telemetry.TelemetryMeasurementAvailability
 import skillbill.review.model.GoalBlockedSubtaskSummary
 import skillbill.review.model.GoalModeStats
 import skillbill.review.model.GoalRunSummary
@@ -89,7 +90,20 @@ fun buildGoalStats(runRows: List<Map<String, Any?>>, subtaskRows: List<Map<Strin
         )
       },
     byMode = buildByModeStats(runs),
+    logicalGoals = runs.mapNotNull { it.parentWorkflowId }.distinct().size,
+    invocationsWithUnknownGoal = runs.count { it.parentWorkflowId == null },
+    goalIdentityAvailability = goalIdentityAvailability(runs).wireValue,
+    resumedInvocations = runs.count { it.resumed },
   )
+}
+
+private fun goalIdentityAvailability(runs: List<GoalRunRow>): TelemetryMeasurementAvailability {
+  val unattributed = runs.count { it.parentWorkflowId == null }
+  return when {
+    unattributed == 0 -> TelemetryMeasurementAvailability.MEASURED
+    unattributed == runs.size -> TelemetryMeasurementAvailability.UNAVAILABLE_NO_DURABLE_STATE
+    else -> TelemetryMeasurementAvailability.UNAVAILABLE_INCOMPLETE
+  }
 }
 
 private const val RETIRED_PROSE_MODE = "prose"
@@ -125,6 +139,7 @@ internal data class GoalRunRow(
   val finishedAt: String,
   val durationMs: Long,
   val mode: String,
+  val parentWorkflowId: String?,
 )
 
 internal data class GoalSubtaskRow(
@@ -160,6 +175,7 @@ private fun parseGoalRunRow(row: Map<String, Any?>): GoalRunRow {
     finishedAt = finishedAtRaw,
     durationMs = if (finished) row.requireNonNegativeLong("finished_duration_ms", identity) else 0L,
     mode = row.requireNonBlankString("mode", identity),
+    parentWorkflowId = row["parent_workflow_id"]?.toString()?.takeIf(String::isNotBlank),
   )
 }
 

@@ -13,6 +13,7 @@ import skillbill.ports.taskruntime.model.FeatureTaskRuntimeSharedEvidenceLocator
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeSharedEvidenceRequest
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeSharedEvidenceResolution
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeSharedEvidenceResolveOutcome
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeRunEvidenceAddress
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeSharedEvidenceArtifact
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeSharedEvidenceDiffPayloadRef
 import java.nio.file.AtomicMoveNotSupportedException
@@ -234,16 +235,7 @@ internal fun storePath(repoRoot: Path, artifactDir: Path): String =
 internal fun artifactDir(request: FeatureTaskRuntimeSharedEvidenceRequest): Path = request.repoRoot
   .resolve(".skill-bill")
   .resolve("run-evidence")
-  .resolve(pathSegment(request.workflowId))
-  .resolve(pathSegment(request.checkpoint.fingerprint))
+  .resolve(FeatureTaskRuntimeRunEvidenceAddress.pathSegment(request.workflowId))
+  .resolve(FeatureTaskRuntimeRunEvidenceAddress.pathSegment(request.checkpoint.fingerprint))
   .toAbsolutePath()
   .normalize()
-
-private const val SAFE_SEGMENT_PUNCTUATION: String = "._-"
-
-private fun pathSegment(raw: String): String {
-  val sanitized = raw.map { char ->
-    if (char.isLetterOrDigit() || char in SAFE_SEGMENT_PUNCTUATION) char else '_'
-  }.joinToString("")
-  return if (sanitized.isBlank() || sanitized.all { it == '.' }) "_$sanitized" else sanitized
-}

@@ -1,6 +1,6 @@
 # SKILL-236 Subtask 1 - Durable telemetry delivery identity and replay recovery
 
-Parent spec: [spec.md](./spec.md)
+Parent spec: [spec.md](spec.md)
 Issue key: SKILL-236
 
 ## Scope

@@ -289,6 +289,7 @@ object FeatureTaskRuntimeRunLoopRecordRejection {
           captured = requireNotNull(launch.capturedPhaseOutput),
           observability = observability,
           fileManifest = fileManifest,
+          outputGateFailuresBefore = args.context.outputGateFailuresBefore,
         ),
       )
     }

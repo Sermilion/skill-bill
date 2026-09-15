@@ -146,7 +146,7 @@ class ReviewStageTelemetryTest {
       )
       emitDegradations(it, "rvw-worker-fail")
       val reasons = degradationReasons(it)
-      assertTrue(ReviewStageDegradationReason.WORKER_LAUNCH_OR_RETURN_FAILED.wireValue in reasons)
+      assertTrue(ReviewStageDegradationReason.WORKER_PROCESS_FAILED.wireValue in reasons)
     }
   }
 
@@ -168,7 +168,7 @@ class ReviewStageTelemetryTest {
         ),
       )
       emitDegradations(it, "rvw-unparseable")
-      assertTrue(ReviewStageDegradationReason.WORKER_LAUNCH_OR_RETURN_FAILED.wireValue in degradationReasons(it))
+      assertTrue(ReviewStageDegradationReason.WORKER_OUTPUT_UNUSABLE.wireValue in degradationReasons(it))
       repository.recordFindingVerdicts(
         "rvw-unsettled",
         listOf(
@@ -191,7 +191,7 @@ class ReviewStageTelemetryTest {
           if (payload["review_run_id"] != "rvw-unsettled") return@mapNotNull null
           payload["reason"] as? String
         }
-      assertTrue(ReviewStageDegradationReason.WORKER_LAUNCH_OR_RETURN_FAILED.wireValue !in unsettledReasons)
+      assertTrue(ReviewStageDegradationReason.WORKER_OUTPUT_UNUSABLE.wireValue !in unsettledReasons)
     }
   }
 
@@ -295,6 +295,56 @@ class ReviewStageTelemetryTest {
         TelemetryOutboxStore(it).listPending(null).none { record ->
           record.eventName == REVIEW_FINISHED_LEGACY_REGENERATED_EVENT_NAME
         },
+      )
+    }
+  }
+
+  @Test
+  fun `a timed-out worker and a launch-budget refusal are recorded as causes of their own`() {
+    assertWorkerFailureCause(
+      "stage-degrade-timeout",
+      rejectionReason = "agent timed out",
+      expected = ReviewStageDegradationReason.WORKER_TIMED_OUT,
+    )
+    assertWorkerFailureCause(
+      "stage-degrade-launch-budget",
+      rejectionReason = "verification launch exceeded max_lane_launch_bytes",
+      expected = ReviewStageDegradationReason.WORKER_LAUNCH_BUDGET_EXCEEDED,
+    )
+  }
+
+  private fun assertWorkerFailureCause(
+    dbName: String,
+    rejectionReason: String,
+    expected: ReviewStageDegradationReason,
+  ) {
+    val (_, connection) = tempDbConnection(dbName)
+    connection.use {
+      SQLiteReviewRunCompletenessRepository(it).recordFindingVerdicts(
+        dbName,
+        listOf(
+          ReviewFindingVerdict(
+            stage = ReviewStage.VERIFICATION,
+            findingRef = "F-001",
+            claimVerdict = ReviewClaimVerdict.UNRESOLVED,
+            recordedAt = "2026-08-14T08:00:00Z",
+            rejectionReason = rejectionReason,
+          ),
+        ),
+      )
+      emitDegradations(it, dbName)
+      val reasons = degradationReasons(it)
+      assertTrue(expected.wireValue in reasons, "'$rejectionReason' was not recorded as ${expected.wireValue}")
+      val otherWorkerCauses = listOf(
+        ReviewStageDegradationReason.WORKER_PROCESS_FAILED,
+        ReviewStageDegradationReason.WORKER_TIMED_OUT,
+        ReviewStageDegradationReason.WORKER_OUTPUT_UNUSABLE,
+        ReviewStageDegradationReason.WORKER_LAUNCH_BUDGET_EXCEEDED,
+        ReviewStageDegradationReason.WORKER_LAUNCH_OR_RETURN_FAILED,
+      ).filterNot { cause -> cause == expected }.map(ReviewStageDegradationReason::wireValue)
+      assertTrue(
+        otherWorkerCauses.none { cause -> cause in reasons },
+        "'$rejectionReason' must reach an operator as one cause, not several: $reasons",
       )
     }
   }
