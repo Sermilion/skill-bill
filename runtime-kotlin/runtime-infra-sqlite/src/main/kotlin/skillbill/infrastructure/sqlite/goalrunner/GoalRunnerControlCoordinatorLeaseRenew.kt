@@ -65,10 +65,10 @@ internal fun GoalRunnerControlCoordinator.bindRepositoryIdentity(
   require(repositoryIdentity.isNotBlank()) { "repositoryIdentity is required." }
   val parent = requireParent(unitOfWork, parentWorkflowId)
   val existing = unitOfWork.goalRunnerControls.controlState(parent.workflowId)
+  unitOfWork.goalPlanningPreparations.rebindRepositoryIdentity(parent.workflowId, repositoryIdentity)
   if (existing.repositoryIdentity == repositoryIdentity) {
     existing
   } else {
-    unitOfWork.goalPlanningPreparations.rebindRepositoryIdentity(parent.workflowId, repositoryIdentity)
     unitOfWork.goalRunnerControls.persistControlState(
       parent.workflowId,
       existing.copy(repositoryIdentity = repositoryIdentity),
