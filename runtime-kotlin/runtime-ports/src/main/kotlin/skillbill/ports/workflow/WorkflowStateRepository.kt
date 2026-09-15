@@ -101,6 +101,8 @@ interface FeatureTaskWorkflowStateRepository :
   FeatureTaskWorkflowRowRepository
 
 interface GoalChildWorkflowStateRepository {
+  fun listGoalChildWorkflowIdsByParent(parentWorkflowId: String): List<String> = emptyList()
+
   fun deleteGoalChildWorkflowsByParent(parentWorkflowId: String): Int =
     error("Goal-child workflow deletion is not implemented by this persistence adapter.")
 

@@ -136,6 +136,12 @@ abstract class GoalRunnerManifestStoreDefaults : GoalRunnerManifestStore {
     setup: GoalRunnerChildWorkflowSetup,
   ): GoalRunnerManifestState = error("Goal runner manifest store must atomically persist new child workflow state.")
 
+  override fun listOwnedGoalChildWorkflowIds(parentWorkflowId: String): List<String> = emptyList()
+
+  override fun purgeDecomposedGoal(parentWorkflowId: String) {
+    error("Goal runner manifest store must atomically purge a decomposed goal.")
+  }
+
   override fun reviewMode(parentWorkflowId: String): CodeReviewExecutionMode? = null
 
   override fun persistReviewMode(parentWorkflowId: String, mode: CodeReviewExecutionMode): CodeReviewExecutionMode =

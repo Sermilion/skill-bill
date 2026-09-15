@@ -26,4 +26,9 @@ interface WorkflowGitCommitHistoryOperations {
   fun resolveCommit(repoRoot: Path, revision: String): WorkflowGitOperationResult = WorkflowGitOperationResult.Failed(
     error = "This git operations implementation cannot resolve commit '$revision'.",
   )
+
+  fun readHeadTrackedFile(repoRoot: Path, repoRelativePath: String): WorkflowGitOperationResult =
+    WorkflowGitOperationResult.Failed(
+      error = "This git operations implementation cannot read tracked file '$repoRelativePath' at HEAD.",
+    )
 }

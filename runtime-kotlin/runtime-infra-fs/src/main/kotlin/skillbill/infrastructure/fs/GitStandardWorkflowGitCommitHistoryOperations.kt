@@ -24,4 +24,18 @@ internal object GitStandardWorkflowGitCommitHistoryOperations : WorkflowGitCommi
 
   override fun resolveCommit(repoRoot: Path, revision: String): WorkflowGitOperationResult =
     gitResolveCommit(repoRoot, revision)
+
+  override fun readHeadTrackedFile(repoRoot: Path, repoRelativePath: String): WorkflowGitOperationResult {
+    val path = repoRelativePath.trim().removePrefix("./")
+    if (path.isBlank()) {
+      return WorkflowGitOperationResult.Failed(error = "A repository-relative path is required.")
+    }
+    val tracked = runGitCommand(repoRoot, "ls-files", "--error-unmatch", path)
+    if (tracked !is WorkflowGitOperationResult.Ok) {
+      return WorkflowGitOperationResult.Failed(
+        error = "Path '$path' is not tracked at HEAD (${tracked.error}).",
+      )
+    }
+    return runGitCommand(repoRoot, "show", "HEAD:$path")
+  }
 }

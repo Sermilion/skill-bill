@@ -38,6 +38,7 @@ private class ManifestStoreDelegate(
   leases: WorkflowGoalRunnerManifestLeaseOpsImpl,
   control: WorkflowGoalRunnerManifestControlOpsImpl,
   writes: WorkflowGoalRunnerManifestWriteOpsImpl,
+  purge: WorkflowGoalRunnerManifestPurgeOpsImpl,
   review: WorkflowGoalRunnerManifestReviewOpsImpl,
 ) : GoalRunnerManifestStore,
   GoalRunnerManifestLookup by lookup,
@@ -45,15 +46,18 @@ private class ManifestStoreDelegate(
   GoalRunnerManifestExecutionLease by leases,
   GoalRunnerManifestControlCommands by control,
   GoalRunnerManifestPersistenceCommands by writes,
+  GoalRunnerManifestPurgeCommands by purge,
   GoalRunnerManifestReviewCommands by review
 
 private fun buildParts(ctx: WorkflowGoalRunnerManifestStoreContext): ManifestStoreDelegate {
   val writes = WorkflowGoalRunnerManifestWriteOpsImpl(ctx)
+  val purge = WorkflowGoalRunnerManifestPurgeOpsImpl(ctx)
   return ManifestStoreDelegate(
     lookup = WorkflowGoalRunnerManifestLookupOps(ctx, writes::save),
     leases = WorkflowGoalRunnerManifestLeaseOpsImpl(ctx),
     control = WorkflowGoalRunnerManifestControlOpsImpl(ctx),
     writes = writes,
+    purge = purge,
     review = WorkflowGoalRunnerManifestReviewOpsImpl(ctx),
   )
 }

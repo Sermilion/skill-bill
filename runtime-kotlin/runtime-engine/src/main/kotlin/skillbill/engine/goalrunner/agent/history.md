@@ -1,5 +1,14 @@
 # goalrunner boundary history
 
+## [2026-09-15] SKILL-245 — Goal purge command
+Areas: runtime-kotlin/{runtime-engine/{goalrunner,featuretask}, runtime-infra-sqlite/{goalrunner,workflow}, runtime-infra-fs, runtime-cli/goal, runtime-ports, runtime-contracts}
+- Added confirmed `goal purge` orchestration that refuses live leases, deletes goal-owned durable state, restores the prepared manifest/spec tree, and prunes issue checkpoint refs without changing branches, commits, standalone workflows, or telemetry.
+- Added SQLite purge persistence, git restoration, CLI confirmation/formatting, purge ports, and regression coverage across persistence, engine, and CLI boundaries.
+- Pattern: keep destructive goal purge separate from hard reset and coordinate database deletion with authored-spec restoration. reusable
+- Limitation: a dedicated CLI confirmed-purge plus preflight `new_work` integration assertion remains follow-up coverage.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
 ## [2026-09-14] SKILL-346 subtask 2 — Hard reset and commit-span recovery
 Areas: runtime-kotlin/{runtime-engine/{goalrunner,featuretask}, runtime-infra-fs, runtime-ports, runtime-contracts, runtime-cli}
 - Hard reset now preflights same-goal trailer spans, refuses when publication or parent ownership cannot be proven, and documents or performs the required branch action before clearing durable identity.
