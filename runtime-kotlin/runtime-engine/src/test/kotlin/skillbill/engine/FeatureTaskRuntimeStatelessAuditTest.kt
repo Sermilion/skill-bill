@@ -2,9 +2,9 @@ package skillbill.engine
 
 import skillbill.application.realFeatureTaskRuntimePhaseOutputValidator
 import skillbill.engine.featuretask.GoalContinuationStateRecordRequest
-import skillbill.engine.featuretask.reviewState
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
+import skillbill.engine.featuretask.reviewState
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.review.context.model.CodeReviewExecutionMode
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY
@@ -265,58 +265,66 @@ class FeatureTaskRuntimeStatelessAuditTest {
         },
       )
       harness.recorder.ensureWorkflowOpen(WORKFLOW_ID, SESSION_ID)
-      check(
-        harness.goalContinuationRecorder.recordGoalContinuationState(
-          GoalContinuationStateRecordRequest(
-            workflowId = WORKFLOW_ID,
-            continuation = FeatureTaskRuntimeGoalContinuationArtifact(
-              issueKey = RUNNER_TEST_ISSUE_KEY,
-              subtaskId = 5,
-              suppressPr = true,
-              goalBranch = "feat/existing-runtime-branch",
-              parentWorkflowId = "wfl-parent",
-              codeReviewMode = CodeReviewExecutionMode.DEFAULT,
-            ),
-            reviewBaseline = GoalSubtaskReviewBaseline("0".repeat(40), emptyList()),
-          ),
-        ),
-      )
-      val capped = requireNotNull(
-        harness.goalContinuationRecorder.updateReviewState(WORKFLOW_ID) { state ->
-          state.reserveNextPass().completeReservedPass(
-            verdict = FeatureTaskRuntimeVerdict.CHANGES_REQUESTED,
-            unresolvedFindingCount = 1,
-            findings = listOf(
-              GoalSubtaskReviewCompactFinding(
-                severity = "blocker",
-                label = "Missing behavior",
-                text = "The required behavior is still absent.",
-                findingId = "F-001",
-              ),
-            ),
-          ).copy(disposition = GoalSubtaskReviewDisposition.REVIEW_CAP_REACHED)
-        },
-      )
-      val artifacts = harness.repository.taskRuntimeArtifacts(WORKFLOW_ID).toMutableMap()
-      artifacts[GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY] =
-        capped.passResults.associate { it.passNumber.toString() to VALID_REVIEW_OUTPUT }
-      harness.repository.replaceTaskRuntimeArtifacts(WORKFLOW_ID, artifacts)
+      recordReviewCap(harness)
       seedPlanningUpstreamPhases(harness)
 
       harness.runner.run(harness.request())
 
-      assertEquals(0, harness.launchedPromptPhaseOrder().count { it == "review" })
-      assertEquals(
-        WorkflowStepStatus.COMPLETED,
-        harness.recorder.loadPhaseRecords(WORKFLOW_ID)?.get("review")?.status,
-      )
-      assertEquals(
-        1,
-        harness.goalContinuationRecorder.reviewState(WORKFLOW_ID)?.completedPassCount,
-      )
+      assertReviewCapWasCarriedForward(harness)
     } finally {
       root.toFile().deleteRecursively()
     }
+  }
+
+  private fun recordReviewCap(harness: RunnerHarness) {
+    check(
+      harness.goalContinuationRecorder.recordGoalContinuationState(
+        GoalContinuationStateRecordRequest(
+          workflowId = WORKFLOW_ID,
+          continuation = FeatureTaskRuntimeGoalContinuationArtifact(
+            issueKey = RUNNER_TEST_ISSUE_KEY,
+            subtaskId = 5,
+            suppressPr = true,
+            goalBranch = "feat/existing-runtime-branch",
+            parentWorkflowId = "wfl-parent",
+            codeReviewMode = CodeReviewExecutionMode.DEFAULT,
+          ),
+          reviewBaseline = GoalSubtaskReviewBaseline("0".repeat(40), emptyList()),
+        ),
+      ),
+    )
+    val capped = requireNotNull(
+      harness.goalContinuationRecorder.updateReviewState(WORKFLOW_ID) { state ->
+        state.reserveNextPass().completeReservedPass(
+          verdict = FeatureTaskRuntimeVerdict.CHANGES_REQUESTED,
+          unresolvedFindingCount = 1,
+          findings = listOf(
+            GoalSubtaskReviewCompactFinding(
+              severity = "blocker",
+              label = "Missing behavior",
+              text = "The required behavior is still absent.",
+              findingId = "F-001",
+            ),
+          ),
+        ).copy(disposition = GoalSubtaskReviewDisposition.REVIEW_CAP_REACHED)
+      },
+    )
+    val artifacts = harness.repository.taskRuntimeArtifacts(WORKFLOW_ID).toMutableMap()
+    artifacts[GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY] =
+      capped.passResults.associate { it.passNumber.toString() to VALID_REVIEW_OUTPUT }
+    harness.repository.replaceTaskRuntimeArtifacts(WORKFLOW_ID, artifacts)
+  }
+
+  private fun assertReviewCapWasCarriedForward(harness: RunnerHarness) {
+    assertEquals(0, harness.launchedPromptPhaseOrder().count { it == "review" })
+    assertEquals(
+      WorkflowStepStatus.COMPLETED,
+      harness.recorder.loadPhaseRecords(WORKFLOW_ID)?.get("review")?.status,
+    )
+    assertEquals(
+      1,
+      harness.goalContinuationRecorder.reviewState(WORKFLOW_ID)?.completedPassCount,
+    )
   }
 
   @Test

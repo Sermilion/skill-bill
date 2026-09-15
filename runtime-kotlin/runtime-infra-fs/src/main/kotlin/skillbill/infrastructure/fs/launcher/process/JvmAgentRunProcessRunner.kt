@@ -114,28 +114,25 @@ class JvmAgentRunProcessRunner(
     val degradation = ProcessRunDegradationRecorder()
     val outputTracker = OutputObservationTracker()
     val lifecycleEmitter = ProcessLifecycleEmitter(request, degradation)
-    val stdout = CappedUtf8Drain(
-      input = stdoutStream,
-      limitBytes = AGENT_RUN_OUTPUT_LIMIT_BYTES,
-      outputStream = AgentRunOutputStream.STDOUT,
-      outputSink = request.outputSink,
-      onChunkRead = { outputTracker.markObserved() },
-    )
-    val stderr = CappedUtf8Drain(
-      input = stderrStream,
-      limitBytes = AGENT_RUN_OUTPUT_LIMIT_BYTES,
-      outputStream = AgentRunOutputStream.STDERR,
-      outputSink = request.outputSink,
-      onChunkRead = { outputTracker.markObserved() },
-    )
-    val lifetime = ProcessRunLifetime(process, liveProcesses, stdout, stderr, degradation)
+    val resources =
+      createProcessResources(
+        ProcessResourceRequest(
+          process,
+          stdoutStream,
+          stderrStream,
+          request,
+          outputTracker,
+          degradation,
+        ),
+      )
     var mcpStartupObservedAtStart = false
     var waitResult: Result<ProcessWait>? = null
     var primaryFailure: Throwable? = null
+    var cleanupFailure: Throwable? = null
     try {
       mcpStartupObservedAtStart = request.mcpStartupProbe.readStartupObserved(degradation).value == true
-      stdout.start()
-      stderr.start()
+      resources.stdout.start()
+      resources.stderr.start()
       writeAndCloseStdin(process, request.stdinText, degradation)
       lifecycleEmitter.emitStarted(process.isAlive)
       waitResult = runCatching {
@@ -143,22 +140,18 @@ class JvmAgentRunProcessRunner(
       }
       waitResult.exceptionOrNull()
         ?.takeUnless { it is InterruptedException }
-        ?.let { throw it }
-    } catch (failure: Throwable) {
+        ?.let(::rethrow)
+    } catch (failure: IOException) {
       primaryFailure = failure
-      throw failure
+      rethrow(failure)
     } finally {
-      val cleanupFailure = runCatching { lifetime.release(waitResult) }.exceptionOrNull()
+      cleanupFailure = runCatching { resources.lifetime.release(waitResult) }.exceptionOrNull()
       exportRunDegradationEvidence(degradation, request.outputSink)
-      when {
-        primaryFailure != null -> {
-          if (cleanupFailure != null && cleanupFailure !== primaryFailure) {
-            primaryFailure.addSuppressed(cleanupFailure)
-          }
-        }
-        cleanupFailure != null -> throw cleanupFailure
+      if (primaryFailure != null && cleanupFailure != null && cleanupFailure !== primaryFailure) {
+        primaryFailure.addSuppressed(cleanupFailure)
       }
     }
+    if (primaryFailure == null) cleanupFailure?.let(::rethrow)
     return buildRunResult(
       BuildRunResultInput(
         process = process,
@@ -166,12 +159,51 @@ class JvmAgentRunProcessRunner(
         waitResult = requireNotNull(waitResult),
         outputTracker = outputTracker,
         lifecycleEmitter = lifecycleEmitter,
-        lifetime = lifetime,
+        lifetime = resources.lifetime,
         degradation = degradation,
         mcpStartupObservedAtStart = mcpStartupObservedAtStart,
       ),
     )
   }
+
+  private data class ProcessResources(
+    val stdout: CappedUtf8Drain,
+    val stderr: CappedUtf8Drain,
+    val lifetime: ProcessRunLifetime,
+  )
+
+  private data class ProcessResourceRequest(
+    val process: Process,
+    val stdoutStream: InputStream,
+    val stderrStream: InputStream,
+    val request: AgentRunProcessRequest,
+    val outputTracker: OutputObservationTracker,
+    val degradation: ProcessRunDegradationRecorder,
+  )
+
+  private fun createProcessResources(args: ProcessResourceRequest): ProcessResources {
+    val stdout = CappedUtf8Drain(
+      input = args.stdoutStream,
+      limitBytes = AGENT_RUN_OUTPUT_LIMIT_BYTES,
+      outputStream = AgentRunOutputStream.STDOUT,
+      outputSink = args.request.outputSink,
+      onChunkRead = { args.outputTracker.markObserved() },
+    )
+    val stderr = CappedUtf8Drain(
+      input = args.stderrStream,
+      limitBytes = AGENT_RUN_OUTPUT_LIMIT_BYTES,
+      outputStream = AgentRunOutputStream.STDERR,
+      outputSink = args.request.outputSink,
+      onChunkRead = { args.outputTracker.markObserved() },
+    )
+    return ProcessResources(
+      stdout = stdout,
+      stderr = stderr,
+      lifetime = ProcessRunLifetime(args.process, liveProcesses, stdout, stderr, args.degradation),
+    )
+  }
+
+  private fun rethrow(failure: Throwable): Nothing = throw failure
 
   private data class BuildRunResultInput(
     val process: Process,

@@ -86,10 +86,7 @@ internal class ProcessRunDegradationRecorder(
   }
 }
 
-internal fun exportRunDegradationEvidence(
-  degradation: ProcessRunDegradationRecorder,
-  outputSink: AgentRunOutputSink,
-) {
+internal fun exportRunDegradationEvidence(degradation: ProcessRunDegradationRecorder, outputSink: AgentRunOutputSink) {
   val payload = degradation.appendToStderr("")
   if (payload.isBlank()) {
     return

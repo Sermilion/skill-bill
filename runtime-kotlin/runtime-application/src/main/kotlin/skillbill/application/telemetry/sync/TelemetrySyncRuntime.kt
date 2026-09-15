@@ -3,6 +3,8 @@ package skillbill.application.telemetry.sync
 import skillbill.application.telemetry.model.TelemetryOutboxStatusSnapshot
 import skillbill.application.telemetry.model.TelemetryStatusResult
 import skillbill.application.telemetry.model.TelemetrySyncStatusResult
+import skillbill.ports.concurrency.InterruptSignalPort
+import skillbill.ports.concurrency.JvmInterruptSignalPort
 import skillbill.ports.telemetry.TelemetryClient
 import skillbill.ports.telemetry.TelemetryOutboxRepository
 import skillbill.telemetry.model.SyncResult
@@ -19,10 +21,11 @@ object TelemetrySyncRuntime {
     outboxRepository: TelemetryOutboxRepository,
     client: TelemetryClient,
     nowSupplier: () -> Instant,
+    interruptSignal: InterruptSignalPort = JvmInterruptSignalPort,
   ): SyncResult = if (!settings.enabled) {
     disabledSyncResult(settings)
   } else {
-    syncEnabledTelemetry(settings, outboxRepository, client, nowSupplier)
+    syncEnabledTelemetry(settings, outboxRepository, client, nowSupplier, interruptSignal)
   }
 
   fun syncResult(result: SyncResult): TelemetrySyncStatusResult = TelemetrySyncStatusResult(
@@ -56,19 +59,19 @@ object TelemetrySyncRuntime {
     outboxRepository: TelemetryOutboxRepository,
     client: TelemetryClient,
     nowSupplier: () -> Instant,
-  ): SyncResult? =
-    runCatching { syncTelemetry(settings, outboxRepository, client, nowSupplier) }
-      .getOrElse { thrown ->
-        when (thrown) {
-          is CancellationException, is java.util.concurrent.CancellationException -> throw thrown
-          is InterruptedException -> {
-            Thread.currentThread().interrupt()
-            throw thrown
-          }
-          is Exception -> null
-          else -> throw thrown
+    interruptSignal: InterruptSignalPort = JvmInterruptSignalPort,
+  ): SyncResult? = runCatching { syncTelemetry(settings, outboxRepository, client, nowSupplier, interruptSignal) }
+    .getOrElse { thrown ->
+      when (thrown) {
+        is CancellationException -> throw thrown
+        is InterruptedException -> {
+          interruptSignal.restore()
+          throw thrown
         }
+        is Exception -> null
+        else -> throw thrown
       }
+    }
 }
 
 fun telemetrySyncTarget(settings: TelemetrySettings): String = when {
@@ -82,6 +85,7 @@ private fun syncEnabledTelemetry(
   outboxRepository: TelemetryOutboxRepository,
   client: TelemetryClient,
   nowSupplier: () -> Instant,
+  interruptSignal: InterruptSignalPort,
 ): SyncResult {
   val pendingBefore = outboxRepository.pendingCount()
   val syncContext = syncContext(settings, pendingBefore)
@@ -95,6 +99,7 @@ private fun syncEnabledTelemetry(
         client = client,
         syncContext = syncContext,
         nowSupplier = nowSupplier,
+        interruptSignal = interruptSignal,
       ),
     )
   }

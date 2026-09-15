@@ -105,6 +105,7 @@ class TelemetryOutboxStoreTest {
       val token = "drain-all"
       store.claimPending(claimRequest(token, limit = 10))
       store.markFailed(ids, token, "transient")
+      store.claimPending(claimRequest(token, limit = 10))
       store.markSynced(ids, token)
 
       assertTrue(store.listPending().isEmpty(), "Every synced row must leave the pending set.")

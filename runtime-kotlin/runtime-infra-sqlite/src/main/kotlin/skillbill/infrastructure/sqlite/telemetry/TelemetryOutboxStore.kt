@@ -183,7 +183,7 @@ class TelemetryOutboxStore(
       UPDATE telemetry_outbox
       SET synced_at = CURRENT_TIMESTAMP, last_error = NULL, claim_token = NULL, claimed_at = NULL
       WHERE id IN ($placeholders) AND claim_token = ? AND synced_at IS NULL
-      """.trimIndent(),
+        """.trimIndent(),
       ).use { statement ->
         eventIds.forEachIndexed { index, eventId ->
           statement.setLong(index + 1, eventId)
@@ -235,7 +235,7 @@ class TelemetryOutboxStore(
       UPDATE telemetry_outbox
       SET $assignments
       WHERE id IN ($placeholders) AND claim_token = ? AND synced_at IS NULL
-      """.trimIndent(),
+        """.trimIndent(),
       ).use { statement ->
         statement.setString(1, lastError)
         eventIds.forEachIndexed { index, eventId ->

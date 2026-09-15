@@ -1,6 +1,6 @@
 package skillbill.application.telemetry
 
-import skillbill.application.telemetry.sync.TelemetrySyncRuntime
+import skillbill.ports.concurrency.JvmInterruptSignalPort
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.goalrunner.EmptyGoalPlanningPreparationRepository
@@ -23,14 +23,13 @@ import skillbill.ports.telemetry.model.TelemetryReconciliationRequest
 import skillbill.ports.telemetry.model.TelemetryReconciliationResult
 import skillbill.ports.work.EmptyWorkListRepository
 import skillbill.ports.workflow.WorkflowStateRepository
-import skillbill.telemetry.model.TelemetryConfigDocument
-import skillbill.workflow.engine.model.TelemetryOpenDocument
 import skillbill.telemetry.model.RemoteStatsRequest
-import skillbill.telemetry.model.TelemetryDeliveryOutcome
+import skillbill.telemetry.model.TelemetryConfigDocument
 import skillbill.telemetry.model.TelemetryDeliveryReport
 import skillbill.telemetry.model.TelemetryProxyCapabilities
 import skillbill.telemetry.model.TelemetryRemoteStatsResult
 import skillbill.telemetry.model.TelemetrySettings
+import skillbill.workflow.engine.model.TelemetryOpenDocument
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Clock
@@ -94,12 +93,13 @@ class TelemetryAutoSyncDiagnosticTest {
       telemetryClient = FailingTelemetryClient(),
       clock = Clock.fixed(Instant.parse("2026-09-15T10:00:00Z"), ZoneOffset.UTC),
       levelMutationService =
-        TelemetryLevelMutationService(
-          database = database,
-          settingsProvider = settingsProvider,
-          configStore = DiagnosticTelemetryConfigStore(),
-        ),
+      TelemetryLevelMutationService(
+        database = database,
+        settingsProvider = settingsProvider,
+        configStore = DiagnosticTelemetryConfigStore(),
+      ),
       diagnostics = diagnostics,
+      interruptSignal = JvmInterruptSignalPort,
     )
   }
 }
@@ -125,16 +125,15 @@ private class FailingTelemetryClient : TelemetryClient {
 }
 
 private class EnabledSettingsProvider : TelemetrySettingsProvider {
-  override fun load(materialize: Boolean): TelemetrySettings =
-    TelemetrySettings(
-      configPath = Files.createTempFile("auto-sync", ".json").toFileLocation(),
-      level = "anonymous",
-      enabled = true,
-      installId = "install",
-      proxyUrl = "https://telemetry.example.dev/ingest",
-      customProxyUrl = "https://telemetry.example.dev/ingest",
-      batchSize = 50,
-    )
+  override fun load(materialize: Boolean): TelemetrySettings = TelemetrySettings(
+    configPath = Files.createTempFile("auto-sync", ".json").toFileLocation(),
+    level = "anonymous",
+    enabled = true,
+    installId = "install",
+    proxyUrl = "https://telemetry.example.dev/ingest",
+    customProxyUrl = "https://telemetry.example.dev/ingest",
+    batchSize = 50,
+  )
 }
 
 private class DiagnosticTelemetryConfigStore : TelemetryConfigStore {
@@ -144,15 +143,14 @@ private class DiagnosticTelemetryConfigStore : TelemetryConfigStore {
 
   override fun read(): TelemetryConfigDocument? = null
 
-  override fun ensure(): TelemetryConfigDocument =
-    TelemetryConfigDocument(
-      TelemetryOpenDocument.from(
-        mapOf(
-          "install_id" to "install",
-          "telemetry" to mapOf("level" to "anonymous", "proxy_url" to "", "batch_size" to 50),
-        ),
+  override fun ensure(): TelemetryConfigDocument = TelemetryConfigDocument(
+    TelemetryOpenDocument.from(
+      mapOf(
+        "install_id" to "install",
+        "telemetry" to mapOf("level" to "anonymous", "proxy_url" to "", "batch_size" to 50),
       ),
-    )
+    ),
+  )
 
   override fun write(document: TelemetryConfigDocument) = Unit
 }
@@ -167,17 +165,16 @@ private class PendingOutbox(
     return 1L
   }
 
-  override fun claimPending(request: TelemetryOutboxClaimRequest): List<TelemetryOutboxRecord> =
-    listOf(
-      TelemetryOutboxRecord(
-        id = 1L,
-        eventName = "skillbill_goal_finished",
-        payloadJson = "{}",
-        createdAt = "2026-09-15T10:00:00Z",
-        syncedAt = null,
-        lastError = "",
-      ),
-    )
+  override fun claimPending(request: TelemetryOutboxClaimRequest): List<TelemetryOutboxRecord> = listOf(
+    TelemetryOutboxRecord(
+      id = 1L,
+      eventName = "skillbill_goal_finished",
+      payloadJson = "{}",
+      createdAt = "2026-09-15T10:00:00Z",
+      syncedAt = null,
+      lastError = "",
+    ),
+  )
 
   override fun pendingCount(): Int = 1
 
@@ -219,27 +216,26 @@ private class DiagnosticDatabaseSessionFactory(
 
   override fun <T> transaction(block: (UnitOfWork) -> T): T = block(unitOfWork())
 
-  private fun unitOfWork(): UnitOfWork =
-    object : UnitOfWorkDefaults() {
-      override val dbPath: Path = Path.of("diagnostic.db")
-      override val telemetryOutbox: TelemetryOutboxRepository = outbox
-      override val telemetryReconciliation: TelemetryReconciliationRepository =
-        object : TelemetryReconciliationRepository {
-          override fun reconcileStaleSessions(request: TelemetryReconciliationRequest): TelemetryReconciliationResult {
-            reconciliationFailure?.let { throw it }
-            return TelemetryReconciliationResult.Empty
-          }
+  private fun unitOfWork(): UnitOfWork = object : UnitOfWorkDefaults() {
+    override val dbPath: Path = Path.of("diagnostic.db")
+    override val telemetryOutbox: TelemetryOutboxRepository = outbox
+    override val telemetryReconciliation: TelemetryReconciliationRepository =
+      object : TelemetryReconciliationRepository {
+        override fun reconcileStaleSessions(request: TelemetryReconciliationRequest): TelemetryReconciliationResult {
+          reconciliationFailure?.let { throw it }
+          return TelemetryReconciliationResult.Empty
         }
-      override val workflowStates: WorkflowStateRepository
-        get() = error("not exercised")
-      override val workList = EmptyWorkListRepository
-      override val learnings: LearningRepository
-        get() = error("not exercised")
-      override val reviews: ReviewRepository
-        get() = error("not exercised")
-      override val lifecycleTelemetry: LifecycleTelemetryRepository
-        get() = error("not exercised")
-      override val goalPlanningPreparations = EmptyGoalPlanningPreparationRepository
-      override val goalRunnerControls = EmptyGoalRunnerControlRepository
-    }
+      }
+    override val workflowStates: WorkflowStateRepository
+      get() = error("not exercised")
+    override val workList = EmptyWorkListRepository
+    override val learnings: LearningRepository
+      get() = error("not exercised")
+    override val reviews: ReviewRepository
+      get() = error("not exercised")
+    override val lifecycleTelemetry: LifecycleTelemetryRepository
+      get() = error("not exercised")
+    override val goalPlanningPreparations = EmptyGoalPlanningPreparationRepository
+    override val goalRunnerControls = EmptyGoalRunnerControlRepository
+  }
 }

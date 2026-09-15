@@ -33,14 +33,14 @@ internal object RuntimeBootstrapBindings {
     val resolvedTransport =
       inputTransport.copy(
         requester =
-          inputTransport.requester ?: if (
-            inputTransport.connectTimeout == null &&
-            inputTransport.requestTimeout == null
-          ) {
-            JdkHttpRequester
-          } else {
-            JdkHttpRemoteTransport.create(inputTransport.connectTimeout, inputTransport.requestTimeout)
-          },
+        inputTransport.requester ?: if (
+          inputTransport.connectTimeout == null &&
+          inputTransport.requestTimeout == null
+        ) {
+          JdkHttpRequester
+        } else {
+          JdkHttpRemoteTransport.create(inputTransport.connectTimeout, inputTransport.requestTimeout)
+        },
       )
     val resolvedRepositoryRoot =
       if (environmentWithEnv.repositoryRoot == EnvironmentContext.UnspecifiedRepositoryRoot) {

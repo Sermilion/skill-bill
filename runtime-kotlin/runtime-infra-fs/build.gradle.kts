@@ -1,4 +1,6 @@
 import org.gradle.api.plugins.JavaPluginExtension
+import org.gradle.api.tasks.Copy
+import org.gradle.api.tasks.TaskProvider
 import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
 import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 import java.io.File
@@ -32,796 +34,369 @@ tasks.named<org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile>("compileTestKotl
   )
 }
 
-val canonicalPlatformPackSchemaPath: String =
-  rootProject.projectDir.parentFile
-    .resolve("orchestration/contracts/platform-pack-schema.yaml")
-    .absolutePath
+enum class GovernedResourceDestination(val dirSuffix: String) {
+  INFRA_FS_CONTRACTS("skillbill/infrastructure/fs/contracts"),
+  SHARED_CONTRACTS("skillbill/contracts"),
+  JVM("skillbill/infrastructure/fs/jvm"),
+  REVIEW("skillbill/review"),
+}
 
-val canonicalAgentAddonSchemaPath: String =
-  rootProject.projectDir.parentFile
-    .resolve("orchestration/contracts/agent-addon-schema.yaml")
-    .absolutePath
+data class GovernedResourceCopy(
+  val taskName: String,
+  val repoRelativeSource: String,
+  val destination: GovernedResourceDestination,
+  val missingSourceMessage: String,
+  val sourceFromRuntimeKotlinProject: Boolean = false,
+  val requireSourceIsFile: Boolean = false,
+  val includeInMainProcessResources: Boolean = true,
+  val includeInTestProcessResources: Boolean = true,
+)
 
-val copyAgentAddonSchema =
-  tasks.register<Copy>("copyAgentAddonSchema") {
-    val schemaPath = canonicalAgentAddonSchemaPath
-    from(schemaPath)
-    into(
-      layout.buildDirectory.dir(
-        "generated/skillbill-infrastructure-fs/skillbill/infrastructure/fs/contracts",
-      ),
-    )
-    inputs.file(schemaPath)
-    doFirst {
-      require(File(schemaPath).exists()) {
-        "SKILL-122: canonical agent-addon schema is missing at $schemaPath."
+private val repoRootDir = rootProject.projectDir.parentFile
+private val runtimeKotlinProjectDir = rootProject.projectDir
+
+private fun resolveCanonicalSource(spec: GovernedResourceCopy): File {
+  val base = if (spec.sourceFromRuntimeKotlinProject) runtimeKotlinProjectDir else repoRootDir
+  return base.resolve(spec.repoRelativeSource)
+}
+
+private fun registerGovernedCopy(spec: GovernedResourceCopy): TaskProvider<Copy> {
+  val sourceFile = resolveCanonicalSource(spec)
+  val sourcePath = sourceFile.absolutePath
+  val missingSourceMessageTemplate = spec.missingSourceMessage
+  val requireSourceIsFile = spec.requireSourceIsFile
+  val validateSource =
+    tasks.register("validate${spec.taskName.replaceFirstChar { it.uppercase() }}Source") {
+      doLast {
+        val failureMessage =
+          missingSourceMessageTemplate
+            .replace("\$schemaPath", sourcePath)
+            .replace("\$guardPath", sourcePath)
+            .replace("\$contractPath", sourcePath)
+        if (requireSourceIsFile) {
+          require(sourceFile.isFile) { failureMessage }
+        } else {
+          require(sourceFile.exists()) { failureMessage }
+        }
       }
     }
-  }
-
-val canonicalJavaGuardPath: String =
-  rootProject.projectDir
-    .resolve("build-logic/convention/src/main/resources/skill-bill-java-guard.sh")
-    .absolutePath
-
-val copyJavaGuard =
-  tasks.register<Copy>("copyJavaGuard") {
-    val guardPath = canonicalJavaGuardPath
-    from(guardPath)
+  return tasks.register<Copy>(spec.taskName) {
+    dependsOn(validateSource)
+    from(sourcePath)
     into(
       layout.buildDirectory.dir(
-        "generated/skillbill-infrastructure-fs/skillbill/infrastructure/fs/jvm",
+        "generated/skillbill-infrastructure-fs/${spec.destination.dirSuffix}",
       ),
     )
-    inputs.file(guardPath)
-    doFirst {
-      require(File(guardPath).exists()) {
-        "SKILL-244: canonical Java guard script is missing at $guardPath. " +
-          "The runtime image must ship the single authored guard so gate JVM resolution has a rule."
-      }
-    }
+    inputs.file(sourcePath)
   }
+}
 
-val canonicalReviewContextSchemaPath: String =
-  rootProject.projectDir.parentFile
-    .resolve("orchestration/contracts/review-context-schema.yaml").absolutePath
-
-val canonicalSpecialistContractPath: String =
-  rootProject.projectDir.parentFile
-    .resolve("orchestration/review-orchestrator/specialist-contract.md")
-    .absolutePath
-
-val copySpecialistContract =
-  tasks.register<Copy>("copySpecialistContract") {
-    val contractPath = canonicalSpecialistContractPath
-    from(contractPath)
-    into(layout.buildDirectory.dir("generated/skillbill-infrastructure-fs/skillbill/review"))
-    inputs.file(contractPath)
-    doFirst {
-      require(File(contractPath).isFile) {
-        "Authoritative delegated-review specialist contract is missing at $contractPath."
-      }
-    }
-  }
-
-val copyReviewContextSchema =
-  tasks.register<Copy>("copyReviewContextSchema") {
-    val schemaPath = canonicalReviewContextSchemaPath
-    from(schemaPath)
-    into(
-      layout.buildDirectory.dir(
-        "generated/skillbill-infrastructure-fs/skillbill/contracts",
-      ),
-    )
-    inputs.file(schemaPath)
-    doFirst {
-      require(File(schemaPath).exists()) {
-        "SKILL-125: canonical review-context schema is missing at $schemaPath."
-      }
-    }
-  }
-
-val copyPlatformPackSchema =
-  tasks.register<Copy>("copyPlatformPackSchema") {
-    val schemaPath = canonicalPlatformPackSchemaPath
-    from(schemaPath)
-    into(
-      layout.buildDirectory.dir(
-        "generated/skillbill-infrastructure-fs/skillbill/infrastructure/fs/contracts",
-      ),
-    )
-    inputs.file(schemaPath)
-    doFirst {
-      require(File(schemaPath).exists()) {
-        "SKILL-52: canonical platform-pack schema is missing at $schemaPath. " +
+private val governedResourceCopies =
+  listOf(
+    GovernedResourceCopy(
+      taskName = "copyAgentAddonSchema",
+      repoRelativeSource = "orchestration/contracts/agent-addon-schema.yaml",
+      destination = GovernedResourceDestination.INFRA_FS_CONTRACTS,
+      missingSourceMessage = "SKILL-122: canonical agent-addon schema is missing at \$schemaPath.",
+    ),
+    GovernedResourceCopy(
+      taskName = "copyJavaGuard",
+      repoRelativeSource = "build-logic/convention/src/main/resources/skill-bill-java-guard.sh",
+      destination = GovernedResourceDestination.JVM,
+      missingSourceMessage =
+        "SKILL-244: canonical Java guard script is missing at \$guardPath. " +
+          "The runtime image must ship the single authored guard " +
+          "so gate JVM resolution has a rule.",
+      sourceFromRuntimeKotlinProject = true,
+    ),
+    GovernedResourceCopy(
+      taskName = "copySpecialistContract",
+      repoRelativeSource = "orchestration/review-orchestrator/specialist-contract.md",
+      destination = GovernedResourceDestination.REVIEW,
+      missingSourceMessage =
+        "Authoritative delegated-review specialist contract is missing at " +
+          "\$contractPath.",
+      requireSourceIsFile = true,
+    ),
+    GovernedResourceCopy(
+      taskName = "copyReviewContextSchema",
+      repoRelativeSource = "orchestration/contracts/review-context-schema.yaml",
+      destination = GovernedResourceDestination.SHARED_CONTRACTS,
+      missingSourceMessage =
+        "SKILL-125: canonical review-context schema is missing at " +
+          "\$schemaPath.",
+    ),
+    GovernedResourceCopy(
+      taskName = "copyPlatformPackSchema",
+      repoRelativeSource = "orchestration/contracts/" + "platform-pack-schema.yaml",
+      destination = GovernedResourceDestination.INFRA_FS_CONTRACTS,
+      missingSourceMessage =
+        "SKILL-52: canonical platform-pack schema is missing at \$schemaPath. " +
           "Run from the repo root and ensure " +
-          "`orchestration/contracts/platform-pack-schema.yaml` exists."
-      }
-    }
-  }
-
-val canonicalNativeAgentCompositionSchemaPath: String =
-  rootProject.projectDir.parentFile
-    .resolve("orchestration/contracts/native-agent-composition-schema.yaml")
-    .absolutePath
-
-val copyNativeAgentCompositionSchema =
-  tasks.register<Copy>("copyNativeAgentCompositionSchema") {
-    val schemaPath = canonicalNativeAgentCompositionSchemaPath
-    from(schemaPath)
-    into(
-      layout.buildDirectory.dir(
-        "generated/skillbill-infrastructure-fs/skillbill/infrastructure/fs/contracts",
-      ),
-    )
-    inputs.file(schemaPath)
-    doFirst {
-      require(File(schemaPath).exists()) {
-        "SKILL-52: canonical native-agent composition schema is missing at $schemaPath. " +
-          "Run from the repo root and ensure the schema file exists."
-      }
-    }
-  }
-
-val canonicalNativeAgentLinkInventorySchemaPath: String =
-  rootProject.projectDir.parentFile
-    .resolve("orchestration/contracts/native-agent-link-inventory-schema.yaml")
-    .absolutePath
-
-val copyNativeAgentLinkInventorySchema =
-  tasks.register<Copy>("copyNativeAgentLinkInventorySchema") {
-    val schemaPath = canonicalNativeAgentLinkInventorySchemaPath
-    from(schemaPath)
-    into(
-      layout.buildDirectory.dir(
-        "generated/skillbill-infrastructure-fs/skillbill/infrastructure/fs/contracts",
-      ),
-    )
-    inputs.file(schemaPath)
-    doFirst {
-      require(File(schemaPath).exists()) {
-        "SKILL-129: canonical native-agent link inventory schema is missing at $schemaPath."
-      }
-    }
-  }
-
-val canonicalWorkflowStateSchemaPath: String =
-  rootProject.projectDir.parentFile
-    .resolve("orchestration/contracts/workflow-state-schema.yaml")
-    .absolutePath
-
-val copyWorkflowStateSchema =
-  tasks.register<Copy>("copyWorkflowStateSchema") {
-    val schemaPath = canonicalWorkflowStateSchemaPath
-    from(schemaPath)
-    into(
-      layout.buildDirectory.dir(
-        "generated/skillbill-infrastructure-fs/skillbill/infrastructure/fs/contracts",
-      ),
-    )
-    inputs.file(schemaPath)
-    doFirst {
-      require(File(schemaPath).exists()) {
-        "SKILL-52: canonical workflow-state schema is missing at $schemaPath. " +
-          "Run from the repo root and ensure the schema file exists."
-      }
-    }
-  }
-
-val canonicalInstallPlanSchemaPath: String =
-  rootProject.projectDir.parentFile
-    .resolve("orchestration/contracts/install-plan-schema.yaml")
-    .absolutePath
-
-val copyInstallPlanSchema =
-  tasks.register<Copy>("copyInstallPlanSchema") {
-    val schemaPath = canonicalInstallPlanSchemaPath
-    from(schemaPath)
-    into(
-      layout.buildDirectory.dir(
-        "generated/skillbill-infrastructure-fs/skillbill/infrastructure/fs/contracts",
-      ),
-    )
-    inputs.file(schemaPath)
-    doFirst {
-      require(File(schemaPath).exists()) {
-        "SKILL-52: canonical install-plan schema is missing at $schemaPath. " +
-          "Run from the repo root and ensure the schema file exists."
-      }
-    }
-  }
-
-val canonicalDecompositionManifestSchemaPath: String =
-  rootProject.projectDir.parentFile
-    .resolve("orchestration/contracts/decomposition-manifest-schema.yaml")
-    .absolutePath
-
-val copyDecompositionManifestSchema =
-  tasks.register<Copy>("copyDecompositionManifestSchema") {
-    val schemaPath = canonicalDecompositionManifestSchemaPath
-    from(schemaPath)
-    into(
-      layout.buildDirectory.dir(
-        "generated/skillbill-infrastructure-fs/skillbill/infrastructure/fs/contracts",
-      ),
-    )
-    inputs.file(schemaPath)
-    doFirst {
-      require(File(schemaPath).exists()) {
-        "SKILL-52: canonical decomposition manifest schema is missing at $schemaPath. " +
-          "Run from the repo root and ensure the schema file exists."
-      }
-    }
-  }
-
-val canonicalGoalObservabilityEventSchemaPath: String =
-  rootProject.projectDir.parentFile
-    .resolve("orchestration/contracts/goal-observability-event-schema.yaml")
-    .absolutePath
-
-val copyGoalObservabilityEventSchema =
-  tasks.register<Copy>("copyGoalObservabilityEventSchema") {
-    val schemaPath = canonicalGoalObservabilityEventSchemaPath
-    from(schemaPath)
-    into(
-      layout.buildDirectory.dir(
-        "generated/skillbill-infrastructure-fs/skillbill/infrastructure/fs/contracts",
-      ),
-    )
-    inputs.file(schemaPath)
-    doFirst {
-      require(File(schemaPath).exists()) {
-        "SKILL-61: canonical goal-observability event schema is missing at $schemaPath. " +
-          "Run from the repo root and ensure the schema file exists."
-      }
-    }
-  }
-
-val canonicalGoalProgressEventSchemaPath: String =
-  rootProject.projectDir.parentFile
-    .resolve("orchestration/contracts/goal-progress-event-schema.yaml")
-    .absolutePath
-
-val copyGoalProgressEventSchema =
-  tasks.register<Copy>("copyGoalProgressEventSchema") {
-    val schemaPath = canonicalGoalProgressEventSchemaPath
-    from(schemaPath)
-    into(
-      layout.buildDirectory.dir(
-        "generated/skillbill-infrastructure-fs/skillbill/infrastructure/fs/contracts",
-      ),
-    )
-    inputs.file(schemaPath)
-    doFirst {
-      require(File(schemaPath).exists()) {
-        "SKILL-64: canonical goal progress event schema is missing at $schemaPath. " +
-          "Run from the repo root and ensure the schema file exists."
-      }
-    }
-  }
-
-val canonicalIdeStatusSchemaPath: String =
-  rootProject.projectDir.parentFile
-    .resolve("orchestration/contracts/ide-status-schema.yaml")
-    .absolutePath
-
-val copyIdeStatusSchema =
-  tasks.register<Copy>("copyIdeStatusSchema") {
-    val schemaPath = canonicalIdeStatusSchemaPath
-    from(schemaPath)
-    into(
-      layout.buildDirectory.dir(
-        "generated/skillbill-infrastructure-fs/skillbill/infrastructure/fs/contracts",
-      ),
-    )
-    inputs.file(schemaPath)
-    doFirst {
-      require(File(schemaPath).exists()) {
-        "SKILL-148: canonical IDE status schema is missing at $schemaPath. " +
-          "Run from the repo root and ensure the schema file exists."
-      }
-    }
-  }
-
-val canonicalGoalSubtaskReviewStateSchemaPath: String =
-  rootProject.projectDir.parentFile
-    .resolve("orchestration/contracts/goal-subtask-review-state-schema.yaml")
-    .absolutePath
-
-val copyGoalSubtaskReviewStateSchema =
-  tasks.register<Copy>("copyGoalSubtaskReviewStateSchema") {
-    val schemaPath = canonicalGoalSubtaskReviewStateSchemaPath
-    from(schemaPath)
-    into(
-      layout.buildDirectory.dir(
-        "generated/skillbill-infrastructure-fs/skillbill/infrastructure/fs/contracts",
-      ),
-    )
-    inputs.file(schemaPath)
-    doFirst {
-      require(File(schemaPath).exists()) {
-        "SKILL-119: canonical goal-subtask review-state schema is missing at $schemaPath."
-      }
-    }
-  }
-
-val canonicalFeatureTaskRuntimePhaseOutputSchemaPath: String =
-  rootProject.projectDir.parentFile
-    .resolve("orchestration/contracts/feature-task-runtime-phase-output-schema.yaml")
-    .absolutePath
-
-val canonicalRejectedOutputDiagnosticSchemaPath: String =
-  rootProject.projectDir.parentFile
-    .resolve("orchestration/contracts/rejected-output-diagnostic-schema.yaml")
-    .absolutePath
-
-val copyRejectedOutputDiagnosticSchema =
-  tasks.register<Copy>("copyRejectedOutputDiagnosticSchema") {
-    val schemaPath = canonicalRejectedOutputDiagnosticSchemaPath
-    from(schemaPath)
-    into(
-      layout.buildDirectory.dir(
-        "generated/skillbill-infrastructure-fs/skillbill/infrastructure/fs/contracts",
-      ),
-    )
-    inputs.file(schemaPath)
-    doFirst {
-      require(File(schemaPath).exists()) {
-        "SKILL-134: canonical rejected-output diagnostic schema is missing at $schemaPath."
-      }
-    }
-  }
-
-val canonicalProducerOutputEvidenceSchemaPath: String =
-  rootProject.projectDir.parentFile
-    .resolve("orchestration/contracts/producer-output-evidence-schema.yaml")
-    .absolutePath
-
-val copyProducerOutputEvidenceSchema =
-  tasks.register<Copy>("copyProducerOutputEvidenceSchema") {
-    val schemaPath = canonicalProducerOutputEvidenceSchemaPath
-    from(schemaPath)
-    into(
-      layout.buildDirectory.dir(
-        "generated/skillbill-infrastructure-fs/skillbill/infrastructure/fs/contracts",
-      ),
-    )
-    inputs.file(schemaPath)
-    doFirst {
-      require(File(schemaPath).exists()) {
-        "SKILL-152: canonical producer output evidence schema is missing at $schemaPath."
-      }
-    }
-  }
-
-val canonicalFeatureTaskExecutionIdentitySchemaPath: String =
-  rootProject.projectDir.parentFile
-    .resolve("orchestration/contracts/feature-task-execution-identity-schema.yaml")
-    .absolutePath
-
-val canonicalFeatureTaskRuntimeWorkerOwnershipSchemaPath: String =
-  rootProject.projectDir.parentFile
-    .resolve("orchestration/contracts/feature-task-runtime-worker-ownership-schema.yaml")
-    .absolutePath
-
-val copyFeatureTaskRuntimeWorkerOwnershipSchema =
-  tasks.register<Copy>("copyFeatureTaskRuntimeWorkerOwnershipSchema") {
-    val schemaPath = canonicalFeatureTaskRuntimeWorkerOwnershipSchemaPath
-    from(schemaPath)
-    into(
-      layout.buildDirectory.dir(
-        "generated/skillbill-infrastructure-fs/skillbill/infrastructure/fs/contracts",
-      ),
-    )
-    inputs.file(schemaPath)
-    doFirst {
-      require(File(schemaPath).exists()) {
-        "SKILL-120: canonical feature-task runtime worker-ownership schema is missing " +
-          "at $schemaPath."
-      }
-    }
-  }
-
-val copyFeatureTaskExecutionIdentitySchema =
-  tasks.register<Copy>("copyFeatureTaskExecutionIdentitySchema") {
-    val schemaPath = canonicalFeatureTaskExecutionIdentitySchemaPath
-    from(schemaPath)
-    into(
-      layout.buildDirectory.dir(
-        "generated/skillbill-infrastructure-fs/skillbill/infrastructure/fs/contracts",
-      ),
-    )
-    inputs.file(schemaPath)
-    doFirst {
-      require(File(schemaPath).exists()) {
-        "SKILL-120: canonical feature-task execution-identity schema is missing at $schemaPath."
-      }
-    }
-  }
-
-val copyFeatureTaskRuntimePhaseOutputSchema =
-  tasks.register<Copy>("copyFeatureTaskRuntimePhaseOutputSchema") {
-    val schemaPath = canonicalFeatureTaskRuntimePhaseOutputSchemaPath
-    from(schemaPath)
-    into(
-      layout.buildDirectory.dir(
-        "generated/skillbill-infrastructure-fs/skillbill/infrastructure/fs/contracts",
-      ),
-    )
-    inputs.file(schemaPath)
-    doFirst {
-      require(File(schemaPath).exists()) {
-        "SKILL-65: canonical feature-task-runtime phase output schema is missing at $schemaPath. " +
-          "Run from the repo root and ensure the schema file exists."
-      }
-    }
-  }
-
-val canonicalFeatureTaskRuntimeHandoffEnvelopeSchemaPath: String =
-  rootProject.projectDir.parentFile
-    .resolve("orchestration/contracts/feature-task-runtime-handoff-envelope-schema.yaml")
-    .absolutePath
-
-val copyFeatureTaskRuntimeHandoffEnvelopeSchema =
-  tasks.register<Copy>("copyFeatureTaskRuntimeHandoffEnvelopeSchema") {
-    val schemaPath = canonicalFeatureTaskRuntimeHandoffEnvelopeSchemaPath
-    from(schemaPath)
-    into(
-      layout.buildDirectory.dir(
-        "generated/skillbill-infrastructure-fs/skillbill/infrastructure/fs/contracts",
-      ),
-    )
-    inputs.file(schemaPath)
-    doFirst {
-      require(File(schemaPath).exists()) {
-        "SKILL-137: canonical handoff-envelope schema is missing at $schemaPath."
-      }
-    }
-  }
-
-val canonicalFeatureTaskRuntimePhaseLaunchBriefingSchemaPath: String =
-  rootProject.projectDir.parentFile
-    .resolve("orchestration/contracts/feature-task-runtime-phase-launch-briefing-schema.yaml")
-    .absolutePath
-
-val copyFeatureTaskRuntimePhaseLaunchBriefingSchema =
-  tasks.register<Copy>("copyFeatureTaskRuntimePhaseLaunchBriefingSchema") {
-    val schemaPath = canonicalFeatureTaskRuntimePhaseLaunchBriefingSchemaPath
-    from(schemaPath)
-    into(
-      layout.buildDirectory.dir(
-        "generated/skillbill-infrastructure-fs/skillbill/infrastructure/fs/contracts",
-      ),
-    )
-    inputs.file(schemaPath)
-    doFirst {
-      require(File(schemaPath).exists()) {
-        "SKILL-146: canonical phase-launch-briefing schema is missing at $schemaPath."
-      }
-    }
-  }
-
-val canonicalFeatureTaskRuntimePhaseHandoffSchemaPath: String =
-  rootProject.projectDir.parentFile
-    .resolve("orchestration/contracts/feature-task-runtime-phase-handoff-schema.yaml")
-    .absolutePath
-
-val copyFeatureTaskRuntimePhaseHandoffSchema =
-  tasks.register<Copy>("copyFeatureTaskRuntimePhaseHandoffSchema") {
-    val schemaPath = canonicalFeatureTaskRuntimePhaseHandoffSchemaPath
-    from(schemaPath)
-    into(
-      layout.buildDirectory.dir(
-        "generated/skillbill-infrastructure-fs/skillbill/infrastructure/fs/contracts",
-      ),
-    )
-    inputs.file(schemaPath)
-    doFirst {
-      require(File(schemaPath).exists()) {
-        "SKILL-146: canonical phase-handoff schema is missing at $schemaPath."
-      }
-    }
-  }
-
-val canonicalFeatureTaskRuntimePersistenceSchemaPath: String =
-  rootProject.projectDir.parentFile
-    .resolve("orchestration/contracts/feature-task-runtime-persistence-schema.yaml")
-    .absolutePath
-
-val copyFeatureTaskRuntimePersistenceSchema =
-  tasks.register<Copy>("copyFeatureTaskRuntimePersistenceSchema") {
-    val schemaPath = canonicalFeatureTaskRuntimePersistenceSchemaPath
-    from(schemaPath)
-    into(
-      layout.buildDirectory.dir(
-        "generated/skillbill-infrastructure-fs/skillbill/infrastructure/fs/contracts",
-      ),
-    )
-    inputs.file(schemaPath)
-    doFirst {
-      require(File(schemaPath).exists()) {
-        "SKILL-146: canonical feature-task-runtime persistence schema is missing at $schemaPath."
-      }
-    }
-  }
-
-val canonicalFeatureTaskRuntimeProjectionMeasurementSchemaPath: String =
-  rootProject.projectDir.parentFile
-    .resolve("orchestration/contracts/feature-task-runtime-projection-measurement-schema.yaml")
-    .absolutePath
-
-val copyFeatureTaskRuntimeProjectionMeasurementSchema =
-  tasks.register<Copy>("copyFeatureTaskRuntimeProjectionMeasurementSchema") {
-    val schemaPath = canonicalFeatureTaskRuntimeProjectionMeasurementSchemaPath
-    from(schemaPath)
-    into(
-      layout.buildDirectory.dir(
-        "generated/skillbill-infrastructure-fs/skillbill/infrastructure/fs/contracts",
-      ),
-    )
-    inputs.file(schemaPath)
-    doFirst {
-      require(File(schemaPath).exists()) {
-        "SKILL-146: canonical projection-measurement schema is missing at $schemaPath."
-      }
-    }
-  }
-
-val canonicalFeatureTaskRuntimeSharedEvidenceProjectionSchemaPath: String =
-  rootProject.projectDir.parentFile
-    .resolve("orchestration/contracts/feature-task-runtime-shared-evidence-projection-schema.yaml")
-    .absolutePath
-
-val copyFeatureTaskRuntimeSharedEvidenceProjectionSchema =
-  tasks.register<Copy>("copyFeatureTaskRuntimeSharedEvidenceProjectionSchema") {
-    val schemaPath = canonicalFeatureTaskRuntimeSharedEvidenceProjectionSchemaPath
-    from(schemaPath)
-    into(
-      layout.buildDirectory.dir(
-        "generated/skillbill-infrastructure-fs/skillbill/infrastructure/fs/contracts",
-      ),
-    )
-    inputs.file(schemaPath)
-    doFirst {
-      require(File(schemaPath).exists()) {
+          "`orchestration/contracts/platform-pack-schema.yaml` exists.",
+    ),
+    GovernedResourceCopy(
+      taskName = "copyNativeAgentCompositionSchema",
+      repoRelativeSource = "orchestration/contracts/native-agent-composition-schema.yaml",
+      destination = GovernedResourceDestination.INFRA_FS_CONTRACTS,
+      missingSourceMessage =
+        "SKILL-52: canonical native-agent composition schema is missing at \$schemaPath. " +
+          "Run from the repo root and ensure the schema file exists.",
+    ),
+    GovernedResourceCopy(
+      taskName = "copyNativeAgentLinkInventorySchema",
+      repoRelativeSource = "orchestration/contracts/native-agent-link-inventory-schema.yaml",
+      destination = GovernedResourceDestination.INFRA_FS_CONTRACTS,
+      missingSourceMessage =
+        "SKILL-129: canonical native-agent link inventory schema is missing at " +
+          "\$schemaPath.",
+    ),
+    GovernedResourceCopy(
+      taskName = "copyWorkflowStateSchema",
+      repoRelativeSource = "orchestration/contracts/workflow-state-schema.yaml",
+      destination = GovernedResourceDestination.INFRA_FS_CONTRACTS,
+      missingSourceMessage =
+        "SKILL-52: canonical workflow-state schema is missing at \$schemaPath. " +
+          "Run from the repo root and ensure the schema file exists.",
+    ),
+    GovernedResourceCopy(
+      taskName = "copyInstallPlanSchema",
+      repoRelativeSource = "orchestration/contracts/install-plan-schema.yaml",
+      destination = GovernedResourceDestination.INFRA_FS_CONTRACTS,
+      missingSourceMessage =
+        "SKILL-52: canonical install-plan schema is missing at \$schemaPath. " +
+          "Run from the repo root and ensure the schema file exists.",
+    ),
+    GovernedResourceCopy(
+      taskName = "copyDecompositionManifestSchema",
+      repoRelativeSource = "orchestration/contracts/decomposition-manifest-schema.yaml",
+      destination = GovernedResourceDestination.INFRA_FS_CONTRACTS,
+      missingSourceMessage =
+        "SKILL-52: canonical decomposition manifest schema is missing at \$schemaPath. " +
+          "Run from the repo root and ensure the schema file exists.",
+    ),
+    GovernedResourceCopy(
+      taskName = "copyGoalObservabilityEventSchema",
+      repoRelativeSource = "orchestration/contracts/goal-observability-event-schema.yaml",
+      destination = GovernedResourceDestination.INFRA_FS_CONTRACTS,
+      missingSourceMessage =
+        "SKILL-61: canonical goal-observability event schema is missing at \$schemaPath. " +
+          "Run from the repo root and ensure the schema file exists.",
+    ),
+    GovernedResourceCopy(
+      taskName = "copyGoalProgressEventSchema",
+      repoRelativeSource = "orchestration/contracts/goal-progress-event-schema.yaml",
+      destination = GovernedResourceDestination.INFRA_FS_CONTRACTS,
+      missingSourceMessage =
+        "SKILL-64: canonical goal progress event schema is missing at \$schemaPath. " +
+          "Run from the repo root and ensure the schema file exists.",
+    ),
+    GovernedResourceCopy(
+      taskName = "copyIdeStatusSchema",
+      repoRelativeSource = "orchestration/contracts/ide-status-schema.yaml",
+      destination = GovernedResourceDestination.INFRA_FS_CONTRACTS,
+      missingSourceMessage =
+        "SKILL-148: canonical IDE status schema is missing at \$schemaPath. " +
+          "Run from the repo root and ensure the schema file exists.",
+    ),
+    GovernedResourceCopy(
+      taskName = "copyGoalSubtaskReviewStateSchema",
+      repoRelativeSource = "orchestration/contracts/goal-subtask-review-state-schema.yaml",
+      destination = GovernedResourceDestination.INFRA_FS_CONTRACTS,
+      missingSourceMessage =
+        "SKILL-119: canonical goal-subtask review-state schema is missing at " +
+          "\$schemaPath.",
+    ),
+    GovernedResourceCopy(
+      taskName = "copyRejectedOutputDiagnosticSchema",
+      repoRelativeSource = "orchestration/contracts/rejected-output-diagnostic-schema.yaml",
+      destination = GovernedResourceDestination.INFRA_FS_CONTRACTS,
+      missingSourceMessage =
+        "SKILL-134: canonical rejected-output diagnostic schema is missing at " +
+          "\$schemaPath.",
+      includeInTestProcessResources = false,
+    ),
+    GovernedResourceCopy(
+      taskName = "copyProducerOutputEvidenceSchema",
+      repoRelativeSource = "orchestration/contracts/producer-output-evidence-schema.yaml",
+      destination = GovernedResourceDestination.INFRA_FS_CONTRACTS,
+      missingSourceMessage =
+        "SKILL-152: canonical producer output evidence schema is missing at " +
+          "\$schemaPath.",
+      includeInTestProcessResources = false,
+    ),
+    GovernedResourceCopy(
+      taskName = "copyFeatureTaskRuntimeWorkerOwnershipSchema",
+      repoRelativeSource =
+        "orchestration/contracts/" + "feature-task-runtime-worker-ownership-schema.yaml",
+      destination = GovernedResourceDestination.INFRA_FS_CONTRACTS,
+      missingSourceMessage =
+        "SKILL-120: canonical feature-task runtime worker-ownership schema is missing at " +
+          "\$schemaPath.",
+    ),
+    GovernedResourceCopy(
+      taskName = "copyFeatureTaskExecutionIdentitySchema",
+      repoRelativeSource = "orchestration/contracts/feature-task-execution-identity-schema.yaml",
+      destination = GovernedResourceDestination.INFRA_FS_CONTRACTS,
+      missingSourceMessage =
+        "SKILL-120: canonical feature-task execution-identity schema is missing at " +
+          "\$schemaPath.",
+    ),
+    GovernedResourceCopy(
+      taskName = "copyFeatureTaskRuntimePhaseOutputSchema",
+      repoRelativeSource =
+        "orchestration/contracts/" + "feature-task-runtime-phase-output-schema.yaml",
+      destination = GovernedResourceDestination.INFRA_FS_CONTRACTS,
+      missingSourceMessage =
+        "SKILL-65: canonical feature-task-runtime phase output schema is missing at " +
+          "\$schemaPath. Run from the repo root and ensure the schema file exists.",
+    ),
+    GovernedResourceCopy(
+      taskName = "copyFeatureTaskRuntimeHandoffEnvelopeSchema",
+      repoRelativeSource =
+        "orchestration/contracts/" +
+          "feature-task-runtime-handoff-envelope-schema.yaml",
+      destination = GovernedResourceDestination.INFRA_FS_CONTRACTS,
+      missingSourceMessage =
+        "SKILL-137: canonical handoff-envelope schema is missing at " +
+          "\$schemaPath.",
+    ),
+    GovernedResourceCopy(
+      taskName = "copyFeatureTaskRuntimePhaseLaunchBriefingSchema",
+      repoRelativeSource =
+        "orchestration/contracts/" + "feature-task-runtime-phase-launch-briefing-schema.yaml",
+      destination = GovernedResourceDestination.INFRA_FS_CONTRACTS,
+      missingSourceMessage =
+        "SKILL-146: canonical phase-launch-briefing schema is missing at " +
+          "\$schemaPath.",
+    ),
+    GovernedResourceCopy(
+      taskName = "copyFeatureTaskRuntimePhaseHandoffSchema",
+      repoRelativeSource =
+        "orchestration/contracts/" + "feature-task-runtime-phase-handoff-schema.yaml",
+      destination = GovernedResourceDestination.INFRA_FS_CONTRACTS,
+      missingSourceMessage =
+        "SKILL-146: canonical phase-handoff schema is missing at " +
+          "\$schemaPath.",
+    ),
+    GovernedResourceCopy(
+      taskName = "copyFeatureTaskRuntimePersistenceSchema",
+      repoRelativeSource =
+        "orchestration/contracts/" + "feature-task-runtime-persistence-schema.yaml",
+      destination = GovernedResourceDestination.INFRA_FS_CONTRACTS,
+      missingSourceMessage =
+        "SKILL-146: canonical feature-task-runtime persistence schema is missing at " +
+          "\$schemaPath.",
+    ),
+    GovernedResourceCopy(
+      taskName = "copyFeatureTaskRuntimeProjectionMeasurementSchema",
+      repoRelativeSource =
+        "orchestration/contracts/" + "feature-task-runtime-projection-measurement-schema.yaml",
+      destination = GovernedResourceDestination.INFRA_FS_CONTRACTS,
+      missingSourceMessage =
+        "SKILL-146: canonical projection-measurement schema is missing at " +
+          "\$schemaPath.",
+    ),
+    GovernedResourceCopy(
+      taskName = "copyFeatureTaskRuntimeSharedEvidenceProjectionSchema",
+      repoRelativeSource =
+        "orchestration/contracts/" + "feature-task-runtime-shared-evidence-projection-schema.yaml",
+      destination = GovernedResourceDestination.INFRA_FS_CONTRACTS,
+      missingSourceMessage =
         "SKILL-164: canonical shared-evidence projection schema is missing at " +
           "orchestration/contracts/feature-task-runtime-shared-evidence-projection-schema.yaml " +
-          "(resolved path: $schemaPath)."
-      }
-    }
-  }
+          "(resolved path: \$schemaPath).",
+    ),
+    GovernedResourceCopy(
+      taskName = "copyFeatureTaskRuntimeBuildReceiptSchema",
+      repoRelativeSource = "orchestration/contracts/feature-task-runtime-build-receipt.yaml",
+      destination = GovernedResourceDestination.INFRA_FS_CONTRACTS,
+      missingSourceMessage =
+        "SKILL-204: canonical build-receipt schema is missing at " +
+          "\$schemaPath.",
+    ),
+    GovernedResourceCopy(
+      taskName = "copyFeatureTaskRuntimeValidationEvidenceSchema",
+      repoRelativeSource =
+        "orchestration/contracts/" + "feature-task-runtime-validation-evidence-schema.yaml",
+      destination = GovernedResourceDestination.INFRA_FS_CONTRACTS,
+      missingSourceMessage =
+        "SKILL-360: canonical validation-evidence schema is missing at " +
+          "\$schemaPath.",
+    ),
+    GovernedResourceCopy(
+      taskName = "copyGoalPlanningPreparationSchema",
+      repoRelativeSource = "orchestration/contracts/goal-planning-preparation-schema.yaml",
+      destination = GovernedResourceDestination.INFRA_FS_CONTRACTS,
+      missingSourceMessage =
+        "SKILL-128: canonical goal planning preparation schema is missing at " +
+          "\$schemaPath.",
+    ),
+    GovernedResourceCopy(
+      taskName = "copyFeatureTaskRuntimePlanningProjectionsSchema",
+      repoRelativeSource =
+        "orchestration/contracts/" + "feature-task-runtime-planning-projections-schema.yaml",
+      destination = GovernedResourceDestination.INFRA_FS_CONTRACTS,
+      missingSourceMessage =
+        "SKILL-137: canonical planning-projections schema is missing at " +
+          "\$schemaPath.",
+    ),
+    GovernedResourceCopy(
+      taskName = "copyFeatureTaskRuntimeImplementationAttemptSchema",
+      repoRelativeSource =
+        "orchestration/contracts/" + "feature-task-runtime-implementation-attempt-schema.yaml",
+      destination = GovernedResourceDestination.INFRA_FS_CONTRACTS,
+      missingSourceMessage =
+        "SKILL-150: canonical implementation-attempt schema is missing at " +
+          "\$schemaPath.",
+    ),
+    GovernedResourceCopy(
+      taskName = "copyFeatureTaskRuntimeCheckpointIdentitySchema",
+      repoRelativeSource =
+        "orchestration/contracts/" + "feature-task-runtime-checkpoint-identity-schema.yaml",
+      destination = GovernedResourceDestination.INFRA_FS_CONTRACTS,
+      missingSourceMessage =
+        "SKILL-150: canonical checkpoint-identity schema is missing at " +
+          "\$schemaPath.",
+    ),
+    GovernedResourceCopy(
+      taskName = "copyFeatureTaskRuntimeQuarantineSchema",
+      repoRelativeSource = "orchestration/contracts/feature-task-runtime-quarantine-schema.yaml",
+      destination = GovernedResourceDestination.INFRA_FS_CONTRACTS,
+      missingSourceMessage = "SKILL-140: canonical quarantine schema is missing at \$schemaPath.",
+    ),
+  )
 
-val canonicalFeatureTaskRuntimeBuildReceiptSchemaPath: String =
-  rootProject.projectDir.parentFile
-    .resolve("orchestration/contracts/feature-task-runtime-build-receipt.yaml")
-    .absolutePath
-
-val canonicalFeatureTaskRuntimeValidationEvidenceSchemaPath: String =
-  rootProject.projectDir.parentFile
-    .resolve("orchestration/contracts/feature-task-runtime-validation-evidence-schema.yaml")
-    .absolutePath
-
-val copyFeatureTaskRuntimeBuildReceiptSchema =
-  tasks.register<Copy>("copyFeatureTaskRuntimeBuildReceiptSchema") {
-    val schemaPath = canonicalFeatureTaskRuntimeBuildReceiptSchemaPath
-    from(schemaPath)
-    into(
-      layout.buildDirectory.dir(
-        "generated/skillbill-infrastructure-fs/skillbill/infrastructure/fs/contracts",
-      ),
-    )
-    inputs.file(schemaPath)
-    doFirst {
-      require(File(schemaPath).exists()) {
-        "SKILL-204: canonical build-receipt schema is missing at $schemaPath."
-      }
-    }
-  }
-
-val copyFeatureTaskRuntimeValidationEvidenceSchema =
-  tasks.register<Copy>("copyFeatureTaskRuntimeValidationEvidenceSchema") {
-    val schemaPath = canonicalFeatureTaskRuntimeValidationEvidenceSchemaPath
-    from(schemaPath)
-    into(
-      layout.buildDirectory.dir(
-        "generated/skillbill-infrastructure-fs/skillbill/infrastructure/fs/contracts",
-      ),
-    )
-    inputs.file(schemaPath)
-    doFirst {
-      require(File(schemaPath).exists()) {
-        "SKILL-360: canonical validation-evidence schema is missing at $schemaPath."
-      }
-    }
-  }
-
-val canonicalGoalPlanningPreparationSchemaPath: String =
-  rootProject.projectDir.parentFile
-    .resolve("orchestration/contracts/goal-planning-preparation-schema.yaml")
-    .absolutePath
-
-val copyGoalPlanningPreparationSchema =
-  tasks.register<Copy>("copyGoalPlanningPreparationSchema") {
-    val schemaPath = canonicalGoalPlanningPreparationSchemaPath
-    from(schemaPath)
-    into(
-      layout.buildDirectory.dir(
-        "generated/skillbill-infrastructure-fs/skillbill/infrastructure/fs/contracts",
-      ),
-    )
-    inputs.file(schemaPath)
-    doFirst {
-      require(File(schemaPath).exists()) {
-        "SKILL-128: canonical goal planning preparation schema is missing at $schemaPath."
-      }
-    }
-  }
-
-val canonicalFeatureTaskRuntimePlanningProjectionsSchemaPath: String =
-  rootProject.projectDir.parentFile
-    .resolve("orchestration/contracts/feature-task-runtime-planning-projections-schema.yaml")
-    .absolutePath
-
-val copyFeatureTaskRuntimePlanningProjectionsSchema =
-  tasks.register<Copy>("copyFeatureTaskRuntimePlanningProjectionsSchema") {
-    val schemaPath = canonicalFeatureTaskRuntimePlanningProjectionsSchemaPath
-    from(schemaPath)
-    into(
-      layout.buildDirectory.dir(
-        "generated/skillbill-infrastructure-fs/skillbill/infrastructure/fs/contracts",
-      ),
-    )
-    inputs.file(schemaPath)
-    doFirst {
-      require(File(schemaPath).exists()) {
-        "SKILL-137: canonical planning-projections schema is missing at $schemaPath."
-      }
-    }
-  }
-
-val canonicalFeatureTaskRuntimeImplementationAttemptSchemaPath: String =
-  rootProject.projectDir.parentFile
-    .resolve("orchestration/contracts/feature-task-runtime-implementation-attempt-schema.yaml")
-    .absolutePath
-
-val copyFeatureTaskRuntimeImplementationAttemptSchema =
-  tasks.register<Copy>("copyFeatureTaskRuntimeImplementationAttemptSchema") {
-    val schemaPath = canonicalFeatureTaskRuntimeImplementationAttemptSchemaPath
-    from(schemaPath)
-    into(
-      layout.buildDirectory.dir(
-        "generated/skillbill-infrastructure-fs/skillbill/infrastructure/fs/contracts",
-      ),
-    )
-    inputs.file(schemaPath)
-    doFirst {
-      require(File(schemaPath).exists()) {
-        "SKILL-150: canonical implementation-attempt schema is missing at $schemaPath."
-      }
-    }
-  }
-
-val canonicalFeatureTaskRuntimeCheckpointIdentitySchemaPath: String =
-  rootProject.projectDir.parentFile
-    .resolve("orchestration/contracts/feature-task-runtime-checkpoint-identity-schema.yaml")
-    .absolutePath
-
-val copyFeatureTaskRuntimeCheckpointIdentitySchema =
-  tasks.register<Copy>("copyFeatureTaskRuntimeCheckpointIdentitySchema") {
-    val schemaPath = canonicalFeatureTaskRuntimeCheckpointIdentitySchemaPath
-    from(schemaPath)
-    into(
-      layout.buildDirectory.dir(
-        "generated/skillbill-infrastructure-fs/skillbill/infrastructure/fs/contracts",
-      ),
-    )
-    inputs.file(schemaPath)
-    doFirst {
-      require(File(schemaPath).exists()) {
-        "SKILL-150: canonical checkpoint-identity schema is missing at $schemaPath."
-      }
-    }
-  }
-
-val canonicalFeatureTaskRuntimeQuarantineSchemaPath: String =
-  rootProject.projectDir.parentFile
-    .resolve("orchestration/contracts/feature-task-runtime-quarantine-schema.yaml")
-    .absolutePath
-
-val copyFeatureTaskRuntimeQuarantineSchema =
-  tasks.register<Copy>("copyFeatureTaskRuntimeQuarantineSchema") {
-    val schemaPath = canonicalFeatureTaskRuntimeQuarantineSchemaPath
-    from(schemaPath)
-    into(
-      layout.buildDirectory.dir(
-        "generated/skillbill-infrastructure-fs/skillbill/infrastructure/fs/contracts",
-      ),
-    )
-    inputs.file(schemaPath)
-    doFirst {
-      require(File(schemaPath).exists()) {
-        "SKILL-140: canonical quarantine schema is missing at $schemaPath."
-      }
-    }
-  }
+private val governedCopyTasks = governedResourceCopies.map { registerGovernedCopy(it) }
 
 sourceSets.named("main") {
   resources.srcDir(layout.buildDirectory.dir("generated/skillbill-infrastructure-fs"))
 }
 
 tasks.named("processResources") {
-  dependsOn(copyJavaGuard)
-  dependsOn(copySpecialistContract)
-  dependsOn(copyAgentAddonSchema)
-  dependsOn(copyReviewContextSchema)
-  dependsOn(copyPlatformPackSchema)
-  dependsOn(copyNativeAgentCompositionSchema)
-  dependsOn(copyNativeAgentLinkInventorySchema)
-  dependsOn(copyWorkflowStateSchema)
-  dependsOn(copyInstallPlanSchema)
-  dependsOn(copyDecompositionManifestSchema)
-  dependsOn(copyGoalObservabilityEventSchema)
-  dependsOn(copyGoalProgressEventSchema)
-  dependsOn(copyIdeStatusSchema)
-  dependsOn(copyGoalSubtaskReviewStateSchema)
-  dependsOn(copyFeatureTaskRuntimePhaseOutputSchema)
-  dependsOn(copyRejectedOutputDiagnosticSchema)
-  dependsOn(copyProducerOutputEvidenceSchema)
-  dependsOn(copyFeatureTaskRuntimeHandoffEnvelopeSchema)
-  dependsOn(copyFeatureTaskRuntimePhaseLaunchBriefingSchema)
-  dependsOn(copyFeatureTaskRuntimePhaseHandoffSchema)
-  dependsOn(copyFeatureTaskRuntimePersistenceSchema)
-  dependsOn(copyFeatureTaskRuntimeProjectionMeasurementSchema)
-  dependsOn(copyFeatureTaskRuntimeSharedEvidenceProjectionSchema)
-  dependsOn(copyFeatureTaskRuntimeBuildReceiptSchema)
-  dependsOn(copyFeatureTaskRuntimeValidationEvidenceSchema)
-  dependsOn(copyFeatureTaskExecutionIdentitySchema)
-  dependsOn(copyFeatureTaskRuntimeWorkerOwnershipSchema)
-  dependsOn(copyGoalPlanningPreparationSchema)
-  dependsOn(copyFeatureTaskRuntimePlanningProjectionsSchema)
-  dependsOn(copyFeatureTaskRuntimeQuarantineSchema)
-  dependsOn(copyFeatureTaskRuntimeImplementationAttemptSchema)
-  dependsOn(copyFeatureTaskRuntimeCheckpointIdentitySchema)
+  governedResourceCopies.zip(governedCopyTasks).forEach { (spec, task) ->
+    if (spec.includeInMainProcessResources) {
+      dependsOn(task)
+    }
+  }
 }
 
 tasks.named("processTestResources") {
-  dependsOn(copyJavaGuard)
-  dependsOn(copySpecialistContract)
-  dependsOn(copyAgentAddonSchema)
-  dependsOn(copyReviewContextSchema)
-  dependsOn(copyPlatformPackSchema)
-  dependsOn(copyNativeAgentCompositionSchema)
-  dependsOn(copyNativeAgentLinkInventorySchema)
-  dependsOn(copyWorkflowStateSchema)
-  dependsOn(copyInstallPlanSchema)
-  dependsOn(copyDecompositionManifestSchema)
-  dependsOn(copyGoalObservabilityEventSchema)
-  dependsOn(copyGoalProgressEventSchema)
-  dependsOn(copyIdeStatusSchema)
-  dependsOn(copyGoalSubtaskReviewStateSchema)
-  dependsOn(copyFeatureTaskRuntimePhaseOutputSchema)
-  dependsOn(copyFeatureTaskRuntimeHandoffEnvelopeSchema)
-  dependsOn(copyFeatureTaskRuntimePhaseLaunchBriefingSchema)
-  dependsOn(copyFeatureTaskRuntimePhaseHandoffSchema)
-  dependsOn(copyFeatureTaskRuntimePersistenceSchema)
-  dependsOn(copyFeatureTaskRuntimeProjectionMeasurementSchema)
-  dependsOn(copyFeatureTaskRuntimeSharedEvidenceProjectionSchema)
-  dependsOn(copyFeatureTaskRuntimeBuildReceiptSchema)
-  dependsOn(copyFeatureTaskRuntimeValidationEvidenceSchema)
-  dependsOn(copyFeatureTaskExecutionIdentitySchema)
-  dependsOn(copyFeatureTaskRuntimeWorkerOwnershipSchema)
-  dependsOn(copyGoalPlanningPreparationSchema)
-  dependsOn(copyFeatureTaskRuntimePlanningProjectionsSchema)
-  dependsOn(copyFeatureTaskRuntimeQuarantineSchema)
-  dependsOn(copyFeatureTaskRuntimeImplementationAttemptSchema)
-  dependsOn(copyFeatureTaskRuntimeCheckpointIdentitySchema)
+  governedResourceCopies.zip(governedCopyTasks).forEach { (spec, task) ->
+    if (spec.includeInTestProcessResources) {
+      dependsOn(task)
+    }
+  }
 }
 
 tasks.register<JavaExec>("platformPackSubstanceReport") {
   group = "verification"
   description = "Emit the maintained platform-pack substance report in text or JSON form."
   classpath = sourceSets.main.get().runtimeClasspath
-  mainClass.set("skillbill.infrastructure.fs.scaffold.substance.PlatformPackSubstanceReportMainKt")
+  mainClass.set(
+    "skillbill.infrastructure.fs.scaffold.substance.PlatformPackSubstanceReportMainKt",
+  )
   args(
     "--repo-root=${providers.gradleProperty(
       "repoRoot",

@@ -17,11 +17,11 @@ import skillbill.infrastructure.fs.launcher.testAgentRunProcessRequest
 import skillbill.ports.agentrun.model.AgentRunMcpStartupProbe
 import skillbill.ports.agentrun.model.AgentRunOutputSink
 import skillbill.ports.agentrun.model.AgentRunOutputStream
-import skillbill.ports.review.GovernedReviewEvidenceEndpointHandle
 import skillbill.ports.agentrun.model.AgentRunProgressProbe
 import skillbill.ports.agentrun.model.AgentRunSpawnAuthorization
 import skillbill.ports.agentrun.model.ConversationIsolation
 import skillbill.ports.review.BrokerBackedNativeReviewOperationProtocol
+import skillbill.ports.review.GovernedReviewEvidenceEndpointHandle
 import skillbill.ports.review.ReviewEvidenceBroker
 import skillbill.ports.review.model.GovernedReviewEvidenceEndpointDescriptor
 import skillbill.ports.review.model.ReviewEvidenceBatchRequest
@@ -223,9 +223,9 @@ class JvmAgentRunProcessRunnerTest {
         testAgentRunProcessRequest(listOf("true"), Path.of(".")) {
           outputSink = sink
           reviewEvidenceEndpoint = endpoint
-        reviewEvidenceBroker = TeardownProbeBroker
-        nativeReviewOperations = BrokerBackedNativeReviewOperationProtocol(TeardownProbeBroker)
-        conversationIsolation = ConversationIsolation.NONE
+          reviewEvidenceBroker = TeardownProbeBroker
+          nativeReviewOperations = BrokerBackedNativeReviewOperationProtocol(TeardownProbeBroker)
+          conversationIsolation = ConversationIsolation.NONE
         },
       )
     }
@@ -708,14 +708,11 @@ private class FakeReapableProcess(
   var forcibleCount = 0
     private set
 
-  override fun getOutputStream() =
-    if (streamsAvailable) ByteArrayOutputStream() else error("unused")
+  override fun getOutputStream() = if (streamsAvailable) ByteArrayOutputStream() else error("unused")
 
-  override fun getInputStream() =
-    if (streamsAvailable) ByteArrayInputStream(ByteArray(0)) else error("unused")
+  override fun getInputStream() = if (streamsAvailable) ByteArrayInputStream(ByteArray(0)) else error("unused")
 
-  override fun getErrorStream() =
-    if (streamsAvailable) ByteArrayInputStream(ByteArray(0)) else error("unused")
+  override fun getErrorStream() = if (streamsAvailable) ByteArrayInputStream(ByteArray(0)) else error("unused")
   override fun waitFor(): Int = error("unused")
   override fun exitValue(): Int = error("unused")
   override fun destroy() {

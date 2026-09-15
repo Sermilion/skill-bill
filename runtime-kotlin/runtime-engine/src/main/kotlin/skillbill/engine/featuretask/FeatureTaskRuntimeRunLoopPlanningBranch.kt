@@ -9,8 +9,6 @@ import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeBackwardEdge
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseDeclaration
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeReviewFinding
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.model.ReviewPassResolution
 
 object FeatureTaskRuntimeRunLoopPlanningBranch {
@@ -87,12 +85,7 @@ object FeatureTaskRuntimeRunLoopPlanningBranch {
       BuildPhaseRunArgs(phaseId, args.request, declaration, args.specSource, args.reentry),
     )
     FeatureTaskRuntimeRunLoopPhaseRunner.preLaunchBlock(
-      request = context.request,
-      recorder = context.recorder,
-      goalContinuationRecorder = context.goalContinuationRecorder,
-      phaseGates = context.phaseGates,
-      diagnostics = context.diagnostics,
-      session = context.session,
+      context = context,
       run = run,
       state = args.state,
       observability = args.observability,
@@ -149,13 +142,7 @@ object FeatureTaskRuntimeRunLoopPlanningBranch {
     )
     return when (
       val prepared = FeatureTaskRuntimeRunLoopPhaseRunner.prepareGoalReviewRun(
-        request = context.request,
-        recorder = context.recorder,
-        goalContinuationRecorder = context.goalContinuationRecorder,
-        phaseGates = context.phaseGates,
-        outputValidator = context.outputValidator,
-        session = context.session,
-        state = state,
+        context = goalReviewContext(context, run, state, observability),
         run = run,
         observability = observability,
       )
@@ -183,17 +170,28 @@ object FeatureTaskRuntimeRunLoopPlanningBranch {
       }
       GoalReviewRunPreparation.CarryForward ->
         FeatureTaskRuntimeRunLoopPhaseRunner.settleCarriedForwardGoalReview(
-          request = context.request,
-          recorder = context.recorder,
-          goalContinuationRecorder = context.goalContinuationRecorder,
-          outputValidator = context.outputValidator,
-          state = state,
-          run = run,
-          observability = observability,
+          context = goalReviewContext(context, run, state, observability),
         )
       is GoalReviewRunPreparation.Blocked -> PhaseOutcome.blocked(prepared.reason)
     }
   }
+
+  private fun goalReviewContext(
+    context: FeatureTaskRuntimeRunLoopContext,
+    run: PhaseRun,
+    state: FeatureTaskRuntimeRunState,
+    observability: FeatureTaskRuntimeRunObservability,
+  ): FeatureTaskRuntimeRunLoopPhaseRunner.GoalReviewContext = FeatureTaskRuntimeRunLoopPhaseRunner.GoalReviewContext(
+    request = context.request,
+    recorder = context.recorder,
+    goalContinuationRecorder = context.goalContinuationRecorder,
+    phaseGates = context.phaseGates,
+    outputValidator = context.outputValidator,
+    session = context.session,
+    state = state,
+    run = run,
+    observability = observability,
+  )
 
   fun remediationCheckpointBlockedReason(branch: String, error: String): String =
     "Feature-task-runtime could not establish a remediation checkpoint on the feature branch '$branch' " +

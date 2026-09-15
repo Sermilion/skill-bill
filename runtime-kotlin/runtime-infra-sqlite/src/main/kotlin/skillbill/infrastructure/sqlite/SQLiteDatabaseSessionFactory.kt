@@ -32,24 +32,20 @@ class SQLiteDatabaseSessionFactory(
   override fun databaseExists(): Boolean = Files.exists(resolveDbPath())
 
   override fun <T> read(block: (UnitOfWork) -> T): T = DatabaseRuntime.openReadDbAt(resolveDbPath()).use { openDb ->
-    try {
+    runCatching {
       openDb.connection.inReadTransaction(openDb.dbPath) {
         block(SQLiteUnitOfWork(openDb.connection, openDb.dbPath))
       }
-    } catch (error: SQLException) {
-      throw databaseAccessError(openDb.dbPath, DatabaseAccessOperation.READ, error)
-    }
+    }.getOrElse { error -> throwReadFailure(openDb.dbPath, error) }
   }
 
   override fun <T> readIfPresent(block: (UnitOfWork) -> T): T? =
     DatabaseRuntime.openReadDbIfPresentAt(resolveDbPath())?.use { openDb ->
-      try {
+      runCatching {
         openDb.connection.inReadTransaction(openDb.dbPath) {
           block(SQLiteUnitOfWork(openDb.connection, openDb.dbPath))
         }
-      } catch (error: SQLException) {
-        throw databaseAccessError(openDb.dbPath, DatabaseAccessOperation.READ, error)
-      }
+      }.getOrElse { error -> throwReadFailure(openDb.dbPath, error) }
     }
 
   override fun <T> selfManagedWrite(block: (UnitOfWork) -> T): T = withWriteDatabase { openDb ->
@@ -88,13 +84,12 @@ private fun <T> Connection.inTransaction(dbPath: Path, block: () -> T): T {
   var committed = false
   var primaryFailure: Throwable? = null
   return try {
-    val result = block()
-    typedStatement(dbPath, "COMMIT", DatabaseAccessOperation.OPEN)
-    committed = true
-    result
-  } catch (failure: Throwable) {
-    primaryFailure = failure
-    throw failure
+    runCatching {
+      val result = block()
+      typedStatement(dbPath, "COMMIT", DatabaseAccessOperation.OPEN)
+      committed = true
+      result
+    }.onFailure { primaryFailure = it }.getOrThrow()
   } finally {
     if (!committed) {
       rollbackAfterFailedTransaction(primaryFailure)
@@ -107,13 +102,12 @@ private fun <T> Connection.inReadTransaction(dbPath: Path, block: () -> T): T {
   var committed = false
   var primaryFailure: Throwable? = null
   return try {
-    val result = block()
-    typedStatement(dbPath, "COMMIT", DatabaseAccessOperation.READ)
-    committed = true
-    result
-  } catch (failure: Throwable) {
-    primaryFailure = failure
-    throw failure
+    runCatching {
+      val result = block()
+      typedStatement(dbPath, "COMMIT", DatabaseAccessOperation.READ)
+      committed = true
+      result
+    }.onFailure { primaryFailure = it }.getOrThrow()
   } finally {
     if (!committed) {
       rollbackAfterFailedTransaction(primaryFailure)
@@ -122,9 +116,21 @@ private fun <T> Connection.inReadTransaction(dbPath: Path, block: () -> T): T {
 }
 
 private fun Connection.typedStatement(dbPath: Path, sql: String, operation: DatabaseAccessOperation) {
-  try {
+  runCatching {
     createStatement().use { it.execute(sql) }
-  } catch (error: SQLException) {
+  }.getOrElse { error -> throwTypedStatementFailure(dbPath, operation, error) }
+}
+
+private fun throwReadFailure(dbPath: Path, error: Throwable): Nothing {
+  if (error is SQLException) {
+    throw databaseAccessError(dbPath, DatabaseAccessOperation.READ, error)
+  }
+  throw error
+}
+
+private fun throwTypedStatementFailure(dbPath: Path, operation: DatabaseAccessOperation, error: Throwable): Nothing {
+  if (error is SQLException) {
     throw databaseAccessError(dbPath, operation, error)
   }
+  throw error
 }

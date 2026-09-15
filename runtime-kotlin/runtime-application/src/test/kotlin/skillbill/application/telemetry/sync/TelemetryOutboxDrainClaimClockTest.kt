@@ -1,12 +1,12 @@
 package skillbill.application.telemetry.sync
 
 import skillbill.application.telemetry.sync.TelemetrySyncRuntime.syncTelemetry
+import skillbill.ports.repository.toFileLocation
 import skillbill.ports.telemetry.TelemetryClient
 import skillbill.ports.telemetry.TelemetryOutboxRepository
 import skillbill.ports.telemetry.model.TelemetryOutboxClaimRequest
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
 import skillbill.ports.telemetry.model.TelemetryOutboxSettlementResult
-import skillbill.ports.repository.toFileLocation
 import skillbill.telemetry.model.RemoteStatsRequest
 import skillbill.telemetry.model.TelemetryDeliveryOutcome
 import skillbill.telemetry.model.TelemetryDeliveryReport

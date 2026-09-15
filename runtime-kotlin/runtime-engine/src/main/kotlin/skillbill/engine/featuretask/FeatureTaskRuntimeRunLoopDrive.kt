@@ -10,6 +10,7 @@ import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeQualityGateRouting
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeTransitionFunction
 import skillbill.workflow.taskruntime.envelopeWireMap
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeNextPhase
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairEvidence
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeTransitionContext
@@ -194,27 +195,7 @@ object FeatureTaskRuntimeRunLoopDrive {
     edge?.perEdgeCap?.takeIf { edgeIterationCount >= it }?.let { declaredCap ->
       context.observability.loopCapExhausted(phaseId, edge.loopId, declaredCap, effectiveVerdict)
     }
-    val transition = runCatching {
-      FeatureTaskRuntimeTransitionFunction.nextTransition(
-        declaration = context.transitions,
-        currentPhaseId = phaseId,
-        verdict = effectiveVerdict,
-        edgeIterationCount = edgeIterationCount,
-        context = FeatureTaskRuntimeTransitionContext(
-          settledVerdictsByPhaseId = context.state.settledVerdictsByPhaseId,
-        ),
-      )
-    }.getOrElse { error ->
-      if (error !is FeatureTaskRuntimePhaseOrderViolationError) throw error
-      FeatureTaskRuntimeRunLoopPlanningBranch.blockAt(
-        context.request,
-        context.state,
-        context.session,
-        error.phaseId,
-        error.message.orEmpty(),
-      )
-      return null
-    }
+    val transition = resolveNextTransition(context, phaseId, effectiveVerdict, edgeIterationCount) ?: return null
     val routed = FeatureTaskRuntimeQualityGateRouting.applyAfterBuild(
       phaseId,
       FeatureTaskRuntimeQualityGateRouting.applyAfterReview(
@@ -233,21 +214,47 @@ object FeatureTaskRuntimeRunLoopDrive {
     }
   }
 
-  internal fun carriedForwardGoalReviewSettlement(args: CarriedForwardGoalReviewArgs): PhaseSettlement? =
-    runCatching {
-      args.goalContinuationRecorder.reviewState(args.request.workflowId)
-    }.fold(
-      onSuccess = { reviewState ->
-        reviewState
-          ?.takeIf { it.reviewCapReached || it.reviewSkippedByUser }
-          ?.let {
-            settleCarriedForwardGoalReview(args, it, args.session.activeReentry)
-          }
-      },
-      onFailure = { error ->
-        blockCarriedForwardReview(args.request, args.state, args.session, error.message.orEmpty())
-      },
+  private fun resolveNextTransition(
+    context: FeatureTaskRuntimeRunLoopContext,
+    phaseId: String,
+    verdict: FeatureTaskRuntimeVerdict,
+    edgeIterationCount: Int,
+  ): FeatureTaskRuntimeNextPhase? = runCatching {
+    FeatureTaskRuntimeTransitionFunction.nextTransition(
+      declaration = context.transitions,
+      currentPhaseId = phaseId,
+      verdict = verdict,
+      edgeIterationCount = edgeIterationCount,
+      context = FeatureTaskRuntimeTransitionContext(
+        settledVerdictsByPhaseId = context.state.settledVerdictsByPhaseId,
+      ),
     )
+  }.getOrElse { error ->
+    if (error !is FeatureTaskRuntimePhaseOrderViolationError) throw error
+    FeatureTaskRuntimeRunLoopPlanningBranch.blockAt(
+      context.request,
+      context.state,
+      context.session,
+      error.phaseId,
+      error.message.orEmpty(),
+    )
+    null
+  }
+
+  internal fun carriedForwardGoalReviewSettlement(args: CarriedForwardGoalReviewArgs): PhaseSettlement? = runCatching {
+    args.goalContinuationRecorder.reviewState(args.request.workflowId)
+  }.fold(
+    onSuccess = { reviewState ->
+      reviewState
+        ?.takeIf { it.reviewCapReached || it.reviewSkippedByUser }
+        ?.let {
+          settleCarriedForwardGoalReview(args, it, args.session.activeReentry)
+        }
+    },
+    onFailure = { error ->
+      blockCarriedForwardReview(args.request, args.state, args.session, error.message.orEmpty())
+    },
+  )
 
   internal fun settleCarriedForwardGoalReview(
     args: CarriedForwardGoalReviewArgs,

@@ -11,6 +11,7 @@ import skillbill.application.telemetry.settings.telemetryMutationResult
 import skillbill.application.telemetry.settings.telemetrySettingsOrNull
 import skillbill.application.telemetry.sync.TelemetrySyncRuntime
 import skillbill.application.telemetry.sync.syncResult
+import skillbill.ports.concurrency.InterruptSignalPort
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.telemetry.TelemetryClient
@@ -38,6 +39,7 @@ class TelemetryService(
   private val clock: Clock,
   private val levelMutationService: TelemetryLevelMutationService,
   private val diagnostics: RuntimeDiagnostics,
+  private val interruptSignal: InterruptSignalPort,
 ) {
   fun isEnabled(): Boolean = telemetrySettingsOrNull(settingsProvider)?.enabled ?: false
 
@@ -75,6 +77,7 @@ class TelemetryService(
           sessionTelemetryOutboxRepository(database),
           telemetryClient,
           clock::instant,
+          interruptSignal,
         )
       }
     return TelemetrySyncPayload(
@@ -94,16 +97,15 @@ class TelemetryService(
           sessionTelemetryOutboxRepository(database),
           telemetryClient,
           clock::instant,
+          interruptSignal,
         )
       if (result == null || result.status == TelemetrySyncStatus.FAILED) {
         recordBackgroundSyncFailure(null)
       }
     } catch (cancelled: CancellationException) {
       throw cancelled
-    } catch (cancelled: java.util.concurrent.CancellationException) {
-      throw cancelled
     } catch (interrupted: InterruptedException) {
-      Thread.currentThread().interrupt()
+      interruptSignal.restore()
       throw interrupted
     }
   }
@@ -168,16 +170,20 @@ class TelemetryService(
       }
     }.onFailure { error ->
       when (error) {
-        is CancellationException, is java.util.concurrent.CancellationException -> throw error
-        is InterruptedException -> {
-          Thread.currentThread().interrupt()
-          throw error
-        }
+        is CancellationException -> rethrowTelemetryFailure(error)
+        is InterruptedException -> rethrowTelemetryInterrupted(error, interruptSignal)
         is Exception -> captureException("telemetry_stale_session_reconciliation", error)
-        else -> throw error
+        else -> rethrowTelemetryFailure(error)
       }
     }
   }
+}
+
+private fun rethrowTelemetryFailure(error: Throwable): Nothing = throw error
+
+private fun rethrowTelemetryInterrupted(error: InterruptedException, interruptSignal: InterruptSignalPort): Nothing {
+  interruptSignal.restore()
+  throw error
 }
 
 private fun sessionTelemetryOutboxRepository(database: DatabaseSessionFactory): TelemetryOutboxRepository =
@@ -211,11 +217,10 @@ private fun sessionTelemetryOutboxRepository(database: DatabaseSessionFactory): 
       eventIds: List<Long>,
       claimToken: String,
       lastError: String,
-    ): TelemetryOutboxSettlementResult =
-      database.transaction {
+    ): TelemetryOutboxSettlementResult = database.transaction {
         unitOfWork ->
-        unitOfWork.telemetryOutbox.markUnconfirmed(eventIds, claimToken, lastError)
-      }
+      unitOfWork.telemetryOutbox.markUnconfirmed(eventIds, claimToken, lastError)
+    }
 
     override fun clear(): Int = database.transaction { unitOfWork -> unitOfWork.telemetryOutbox.clear() }
   }

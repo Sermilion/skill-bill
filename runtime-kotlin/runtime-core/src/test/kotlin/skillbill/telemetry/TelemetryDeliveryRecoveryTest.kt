@@ -217,7 +217,16 @@ class TelemetryDeliveryRecoveryTest {
       }
 
     assertFailsWith<CancellationException> {
-      TelemetrySyncRuntime.autoSyncTelemetry(settings(), cancellingRepository, StubTelemetryClient(TelemetryDeliveryOutcome.ACCEPTED), { NOW })
+      TelemetrySyncRuntime.autoSyncTelemetry(
+        settings(),
+        cancellingRepository,
+        StubTelemetryClient(
+          TelemetryDeliveryOutcome.ACCEPTED,
+        ),
+        {
+          NOW
+        },
+      )
     }
   }
 
@@ -257,10 +266,8 @@ class TelemetryDeliveryRecoveryTest {
       val id = store.enqueue(eventName = "skillbill_goal_finished", payloadJson = "{}")
       val cancellingAcknowledgement =
         object : TelemetryOutboxRepository by store {
-          override fun markSynced(
-            eventIds: List<Long>,
-            claimToken: String,
-          ): TelemetryOutboxSettlementResult = throw CancellationException("ack-cancelled")
+          override fun markSynced(eventIds: List<Long>, claimToken: String): TelemetryOutboxSettlementResult =
+            throw CancellationException("ack-cancelled")
         }
 
       assertFailsWith<CancellationException> {

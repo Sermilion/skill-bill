@@ -8,8 +8,11 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse.BodyHandlers
 import java.time.Duration
 
-internal val DEFAULT_HTTP_CONNECT_TIMEOUT: Duration = Duration.ofSeconds(10)
-internal val DEFAULT_HTTP_REQUEST_TIMEOUT: Duration = Duration.ofMinutes(4)
+private const val DEFAULT_HTTP_CONNECT_TIMEOUT_SECONDS = 10L
+private const val DEFAULT_HTTP_REQUEST_TIMEOUT_MINUTES = 4L
+
+internal val DEFAULT_HTTP_CONNECT_TIMEOUT: Duration = Duration.ofSeconds(DEFAULT_HTTP_CONNECT_TIMEOUT_SECONDS)
+internal val DEFAULT_HTTP_REQUEST_TIMEOUT: Duration = Duration.ofMinutes(DEFAULT_HTTP_REQUEST_TIMEOUT_MINUTES)
 
 class JdkHttpRemoteTransport(
   private val httpClient: HttpClient,
@@ -38,24 +41,20 @@ class JdkHttpRemoteTransport(
         .connectTimeout(DEFAULT_HTTP_CONNECT_TIMEOUT)
         .build()
 
-    fun create(
-      connectTimeout: Duration? = null,
-      requestTimeout: Duration? = null,
-    ): RemoteTransportPort =
+    fun create(connectTimeout: Duration? = null, requestTimeout: Duration? = null): RemoteTransportPort =
       JdkHttpRemoteTransport(
         httpClient = httpClient(connectTimeout ?: DEFAULT_HTTP_CONNECT_TIMEOUT),
         requestTimeout = requestTimeout ?: DEFAULT_HTTP_REQUEST_TIMEOUT,
       )
 
-    private fun httpClient(connectTimeout: Duration): HttpClient =
-      if (connectTimeout == DEFAULT_HTTP_CONNECT_TIMEOUT) {
-        defaultClient
-      } else {
-        HttpClient
-          .newBuilder()
-          .connectTimeout(connectTimeout)
-          .build()
-      }
+    private fun httpClient(connectTimeout: Duration): HttpClient = if (connectTimeout == DEFAULT_HTTP_CONNECT_TIMEOUT) {
+      defaultClient
+    } else {
+      HttpClient
+        .newBuilder()
+        .connectTimeout(connectTimeout)
+        .build()
+    }
   }
 }
 

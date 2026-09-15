@@ -19,17 +19,9 @@ interface TelemetryOutboxRepository {
 
   fun markSynced(eventIds: List<Long>, claimToken: String): TelemetryOutboxSettlementResult
 
-  fun markFailed(
-    eventIds: List<Long>,
-    claimToken: String,
-    lastError: String,
-  ): TelemetryOutboxSettlementResult
+  fun markFailed(eventIds: List<Long>, claimToken: String, lastError: String): TelemetryOutboxSettlementResult
 
-  fun markUnconfirmed(
-    eventIds: List<Long>,
-    claimToken: String,
-    lastError: String,
-  ): TelemetryOutboxSettlementResult
+  fun markUnconfirmed(eventIds: List<Long>, claimToken: String, lastError: String): TelemetryOutboxSettlementResult
 
   fun clear(): Int
 }

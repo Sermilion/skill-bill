@@ -9,6 +9,7 @@ import skillbill.application.review.model.UsageValidationException
 import skillbill.application.reviewevidence.model.DiffResolutionException
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
 import skillbill.error.InvalidReviewContextSchemaError
 import skillbill.error.UnreadableSpecIntentProjectionError
 import skillbill.goalrunner.subtaskreview.FeatureTaskRuntimeVerificationSignalKeys
@@ -25,21 +26,39 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeReviewPassSequence
 import skillbill.workflow.taskruntime.model.NormalizedFeatureTaskRuntimePhaseOutput
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
 import skillbill.workflow.taskruntime.model.requireAcceptedOutput
 import java.time.Clock
 import kotlin.coroutines.cancellation.CancellationException
 
+internal data class RuntimeOwnedReviewPreparationArgs(
+  val request: FeatureTaskRuntimeRunRequest,
+  val recorder: FeatureTaskRuntimePhaseRecorder,
+  val goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
+  val phaseGates: FeatureTaskRuntimePhaseGates,
+  val clock: Clock,
+  val state: FeatureTaskRuntimeRunState,
+  val run: PhaseRun,
+)
+
+private data class ReviewStartArgs(
+  val request: FeatureTaskRuntimeRunRequest,
+  val state: FeatureTaskRuntimeRunState,
+  val recorder: FeatureTaskRuntimePhaseRecorder,
+  val goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
+  val run: PhaseRun,
+  val iteration: Int,
+  val reviewRunId: String,
+)
+
 object FeatureTaskRuntimeRunLoopReview {
-  internal fun prepareRuntimeOwnedReview(
-    request: FeatureTaskRuntimeRunRequest,
-    recorder: FeatureTaskRuntimePhaseRecorder,
-    goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
-    phaseGates: FeatureTaskRuntimePhaseGates,
-    clock: Clock,
-    state: FeatureTaskRuntimeRunState,
-    run: PhaseRun,
-  ): RuntimeOwnedReviewPrep {
+  internal fun prepareRuntimeOwnedReview(args: RuntimeOwnedReviewPreparationArgs): RuntimeOwnedReviewPrep {
+    val request = args.request
+    val recorder = args.recorder
+    val goalContinuationRecorder = args.goalContinuationRecorder
+    val phaseGates = args.phaseGates
+    val clock = args.clock
+    val state = args.state
+    val run = args.run
     val input = run.goalReviewInput
       ?: return RuntimeOwnedReviewBlocked(
         PhaseOutcome.blocked("Runtime-owned review is missing the child-owned review input."),
@@ -54,7 +73,7 @@ object FeatureTaskRuntimeRunLoopReview {
     val pinnedMode = run.request.runInvariants.codeReviewMode
     val resolution = FeatureTaskRuntimeReviewPassSequence.resolveForPass(pinnedMode, passNumber)
     val reviewRunId = resolveReviewRunId(clock, state.recordFor(run.phaseId), passNumber)
-    persistReviewStart(request, state, recorder, goalContinuationRecorder, run, iteration, reviewRunId)
+    persistReviewStart(ReviewStartArgs(request, state, recorder, goalContinuationRecorder, run, iteration, reviewRunId))
     val checkpoint = phaseGates.gitOperations.repositoryFingerprint(run.request.repoRoot).value
       .takeIf(String::isNotBlank)
       ?: return RuntimeOwnedReviewBlocked(
@@ -86,29 +105,21 @@ object FeatureTaskRuntimeRunLoopReview {
     )
   }
 
-  private fun persistReviewStart(
-    request: FeatureTaskRuntimeRunRequest,
-    state: FeatureTaskRuntimeRunState,
-    recorder: FeatureTaskRuntimePhaseRecorder,
-    goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
-    run: PhaseRun,
-    iteration: Int,
-    reviewRunId: String,
-  ) {
+  private fun persistReviewStart(args: ReviewStartArgs) {
     FeatureTaskRuntimeRunLoopOutputPersistence.persistPhase(
-      request,
-      state,
-      recorder,
-      goalContinuationRecorder,
+      args.request,
+      args.state,
+      args.recorder,
+      args.goalContinuationRecorder,
       PersistPhaseArgs(
         write = PhaseStateWriteArgs(
-          run = run,
-          iteration = iteration,
+          run = args.run,
+          iteration = args.iteration,
           status = STATUS_RUNNING,
           finished = false,
           outputArtifact = null,
         ),
-        reviewRunId = reviewRunId,
+        reviewRunId = args.reviewRunId,
       ),
     )
   }

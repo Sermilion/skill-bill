@@ -1,10 +1,13 @@
 package skillbill.application.telemetry.sync
 
+import skillbill.ports.concurrency.InterruptSignalPort
+import skillbill.ports.concurrency.JvmInterruptSignalPort
 import skillbill.ports.telemetry.TelemetryClient
 import skillbill.ports.telemetry.TelemetryOutboxRepository
 import skillbill.ports.telemetry.model.TELEMETRY_DELIVERY_ATTEMPT_BUDGET
 import skillbill.ports.telemetry.model.TelemetryOutboxClaimRequest
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
+import skillbill.ports.telemetry.model.TelemetryOutboxSettlementResult
 import skillbill.telemetry.model.SyncResult
 import skillbill.telemetry.model.TelemetryDeliveryOutcome
 import skillbill.telemetry.model.TelemetryDeliveryReport
@@ -28,6 +31,21 @@ internal data class DrainRequest(
   val client: TelemetryClient,
   val syncContext: SyncContext,
   val nowSupplier: () -> Instant,
+  val interruptSignal: InterruptSignalPort = JvmInterruptSignalPort,
+)
+
+private data class FailedDelivery(
+  val request: DrainRequest,
+  val eventIds: List<Long>,
+  val claimToken: String,
+  val message: String,
+  val consumesAttempt: Boolean,
+  val syncedTotal: Int,
+)
+
+private data class Acknowledgement(
+  val settlement: TelemetryOutboxSettlementResult,
+  val failure: SyncResult?,
 )
 
 internal fun drainPendingBatches(request: DrainRequest): SyncResult {
@@ -70,12 +88,14 @@ private fun deliverBatch(
   if (report.outcome != TelemetryDeliveryOutcome.ACCEPTED) {
     val settlement =
       settleFailedDelivery(
-        request,
-        eventIds,
-        claimToken,
-        report.detail,
-        consumesAttempt = report.outcome == TelemetryDeliveryOutcome.REJECTED,
-        syncedTotal = syncedTotal,
+        FailedDelivery(
+          request = request,
+          eventIds = eventIds,
+          claimToken = claimToken,
+          message = report.detail,
+          consumesAttempt = report.outcome == TelemetryDeliveryOutcome.REJECTED,
+          syncedTotal = syncedTotal,
+        ),
       )
     if (settlement != null) {
       return settlement
@@ -86,22 +106,36 @@ private fun deliverBatch(
       report.detail,
     )
   }
-  val acknowledgement =
+  val acknowledgement = acknowledgeBatch(request, eventIds, claimToken, syncedTotal)
+  acknowledgement.failure?.let { return it }
+  return if (acknowledgement.settlement.lostClaim) {
+    lostClaimBatchResult(request, syncedTotal)
+  } else {
+    null
+  }
+}
+
+private fun acknowledgeBatch(
+  request: DrainRequest,
+  eventIds: List<Long>,
+  claimToken: String,
+  syncedTotal: Int,
+): Acknowledgement {
+  val settlement =
     runCatching { request.outboxRepository.markSynced(eventIds, claimToken) }
-      .fold(
-        onSuccess = { it },
-        onFailure = { thrown ->
-          if (thrown.isCooperativeCancellation()) {
-            throw thrown
-          }
-          if (thrown is InterruptedException) {
-            Thread.currentThread().interrupt()
-            throw thrown
-          }
-          if (thrown !is Exception) {
-            throw thrown
-          }
-          return failedBatchResult(
+      .getOrElse { thrown ->
+        if (thrown.isCooperativeCancellation()) {
+          rethrowCancellation(thrown)
+        }
+        if (thrown is InterruptedException) {
+          rethrowInterrupted(thrown, request.interruptSignal)
+        }
+        if (thrown !is Exception) {
+          rethrowUnexpected(thrown)
+        }
+        return Acknowledgement(
+          settlement = TelemetryOutboxSettlementResult.forRequest(eventIds, updatedRows = 0),
+          failure = failedBatchResult(
             request,
             syncedTotal,
             "delivery accepted but the local acknowledgement failed: ${thrown.message.orEmpty()}",
@@ -112,45 +146,34 @@ private fun deliverBatch(
                 "delivery accepted but the local acknowledgement failed: ${thrown.message.orEmpty()}",
               )
             },
-          )
-        },
-      )
-  if (acknowledgement.lostClaim) {
-    return lostClaimBatchResult(request, syncedTotal)
-  }
-  return null
+          ),
+        )
+      }
+  return Acknowledgement(settlement, failure = null)
 }
 
-private fun settleFailedDelivery(
-  request: DrainRequest,
-  eventIds: List<Long>,
-  claimToken: String,
-  message: String,
-  consumesAttempt: Boolean,
-  syncedTotal: Int,
-): SyncResult? {
+private fun settleFailedDelivery(args: FailedDelivery): SyncResult? {
   val settlement =
     runCatching {
-      if (consumesAttempt) {
-        request.outboxRepository.markFailed(eventIds, claimToken, message)
+      if (args.consumesAttempt) {
+        args.request.outboxRepository.markFailed(args.eventIds, args.claimToken, args.message)
       } else {
-        request.outboxRepository.markUnconfirmed(eventIds, claimToken, message)
+        args.request.outboxRepository.markUnconfirmed(args.eventIds, args.claimToken, args.message)
       }
     }.getOrElse { thrown ->
       if (thrown.isCooperativeCancellation()) {
-        throw thrown
+        rethrowCancellation(thrown)
       }
       if (thrown is InterruptedException) {
-        Thread.currentThread().interrupt()
-        throw thrown
+        rethrowInterrupted(thrown, args.request.interruptSignal)
       }
       if (thrown !is Exception) {
-        throw thrown
+        rethrowUnexpected(thrown)
       }
-      return failedBatchResult(request, syncedTotal, message = thrown.message.orEmpty())
+      return failedBatchResult(args.request, args.syncedTotal, message = thrown.message.orEmpty())
     }
   if (settlement.lostClaim) {
-    return lostClaimBatchResult(request, syncedTotal)
+    return lostClaimBatchResult(args.request, args.syncedTotal)
   }
   return null
 }
@@ -160,14 +183,13 @@ private fun attemptDelivery(request: DrainRequest, rows: List<TelemetryOutboxRec
     runCatching { request.client.sendBatch(request.settings, rows) }
       .getOrElse { thrown ->
         if (thrown.isCooperativeCancellation()) {
-          throw thrown
+          rethrowCancellation(thrown)
         }
         if (thrown is InterruptedException) {
-          Thread.currentThread().interrupt()
-          throw thrown
+          rethrowInterrupted(thrown, request.interruptSignal)
         }
         if (thrown !is Exception) {
-          throw thrown
+          rethrowUnexpected(thrown)
         }
         return TelemetryDeliveryReport(TelemetryDeliveryOutcome.UNKNOWN, unconfirmedMessage(failureDetail(thrown)))
       }
@@ -207,14 +229,13 @@ private fun failedBatchResult(
   )
 }
 
-private fun lostClaimBatchResult(request: DrainRequest, syncedTotal: Int): SyncResult =
-  syncResult(
-    status = TelemetrySyncStatus.FAILED,
-    syncedEvents = syncedTotal,
-    pendingEvents = request.outboxRepository.pendingCount(),
-    syncContext = request.syncContext,
-    message = LOST_CLAIM_MESSAGE,
-  )
+private fun lostClaimBatchResult(request: DrainRequest, syncedTotal: Int): SyncResult = syncResult(
+  status = TelemetrySyncStatus.FAILED,
+  syncedEvents = syncedTotal,
+  pendingEvents = request.outboxRepository.pendingCount(),
+  syncContext = request.syncContext,
+  message = LOST_CLAIM_MESSAGE,
+)
 
 private fun drainedSyncResult(request: DrainRequest, syncedTotal: Int): SyncResult {
   val pending = request.outboxRepository.pendingCount()
@@ -257,5 +278,13 @@ private fun batchBudget(pendingEvents: Int, batchSize: Int): Int {
   return pendingEvents / batchSize + 1
 }
 
-private fun Throwable.isCooperativeCancellation(): Boolean =
-  this is CancellationException || this is java.util.concurrent.CancellationException
+private fun Throwable.isCooperativeCancellation(): Boolean = this is CancellationException
+
+private fun rethrowCancellation(error: Throwable): Nothing = throw error
+
+private fun rethrowInterrupted(error: InterruptedException, interruptSignal: InterruptSignalPort): Nothing {
+  interruptSignal.restore()
+  throw error
+}
+
+private fun rethrowUnexpected(error: Throwable): Nothing = throw error

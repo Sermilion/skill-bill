@@ -13,13 +13,12 @@ internal inline fun <T> Connection.inImmediateTransaction(block: Connection.() -
   var committed = false
   var primaryFailure: Throwable? = null
   return try {
-    val result = block()
-    createStatement().use { it.execute("COMMIT") }
-    committed = true
-    result
-  } catch (failure: Throwable) {
-    primaryFailure = failure
-    throw failure
+    runCatching {
+      val result = block()
+      createStatement().use { it.execute("COMMIT") }
+      committed = true
+      result
+    }.onFailure { primaryFailure = it }.getOrThrow()
   } finally {
     if (!committed) {
       rollbackAfterFailedTransaction(primaryFailure)
