@@ -169,33 +169,31 @@ private fun decodeIntegralPrimitive(primitive: JsonPrimitive): Any? {
 }
 
 @OptIn(ExperimentalSerializationApi::class)
-private fun jsonPrimitiveElement(value: Any?): JsonElement? = when (value) {
-  null -> JsonNull
-  is JsonElement -> value
-  is String -> JsonPrimitive(value)
-  is Boolean -> JsonPrimitive(value)
-  is Int -> JsonPrimitive(value)
-  is Long -> JsonPrimitive(value)
+private fun jsonPrimitiveElement(value: Any?): JsonElement? = when {
+  value == null -> JsonNull
+  value is JsonElement -> value
+  value is String -> JsonPrimitive(value)
+  value is Boolean -> JsonPrimitive(value)
+  value is Int -> JsonPrimitive(value)
+  value is Long -> JsonPrimitive(value)
+  value is Number -> numberJsonElement(value)
+  else -> null
+}
+
+@OptIn(ExperimentalSerializationApi::class)
+private fun numberJsonElement(value: Number): JsonElement = when (value) {
   is BigInteger -> JsonUnquotedLiteral(value.toString())
   is BigDecimal -> JsonUnquotedLiteral(value.toPlainString())
-  is Float -> if (value.isFinite()) {
-    JsonPrimitive(value)
-  } else {
+  is Float -> finiteJsonPrimitive(value)
+  is Double -> finiteJsonPrimitive(value)
+  else -> finiteJsonPrimitive(value.toDouble())
+}
+
+private fun finiteJsonPrimitive(value: Number): JsonPrimitive {
+  if (!value.toDouble().isFinite()) {
     throw UnsupportedJsonValueError("JSON number must be finite")
   }
-  is Double -> if (value.isFinite()) {
-    JsonPrimitive(value)
-  } else {
-    throw UnsupportedJsonValueError("JSON number must be finite")
-  }
-  is Number -> {
-    val doubleValue = value.toDouble()
-    if (!doubleValue.isFinite()) {
-      throw UnsupportedJsonValueError("JSON number must be finite")
-    }
-    JsonPrimitive(doubleValue)
-  }
-  else -> null
+  return JsonPrimitive(value)
 }
 
 private fun JsonCodec.collectionJsonElement(value: Any?): JsonElement? =

@@ -74,8 +74,10 @@ object GoalVerificationBoundaryCaps {
       document,
       "goal verification boundary caps contract is not a YAML mapping",
     )
-  } catch (error: PackagedYamlMappingFailure) {
-    throw InvalidGoalVerificationBoundaryCapsSchemaError(error.message.orEmpty())
+  } catch (_: PackagedYamlMappingFailure) {
+    throw InvalidGoalVerificationBoundaryCapsSchemaError(
+      "goal verification boundary caps contract is not a YAML mapping",
+    )
   }
 
   private fun requireKnownKeysOnly(root: Map<*, *>) {

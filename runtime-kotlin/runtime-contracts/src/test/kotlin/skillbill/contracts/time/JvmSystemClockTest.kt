@@ -24,7 +24,6 @@ class JvmSystemClockTest {
   }
 
   private fun spinUntilMillisAdvance(startMillis: Long) {
-    while (System.currentTimeMillis() <= startMillis) {
-    }
+    while (System.currentTimeMillis() <= startMillis) Thread.onSpinWait()
   }
 }

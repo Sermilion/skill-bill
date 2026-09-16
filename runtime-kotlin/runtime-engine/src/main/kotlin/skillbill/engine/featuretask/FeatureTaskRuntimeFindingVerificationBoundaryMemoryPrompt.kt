@@ -117,7 +117,7 @@ fun FeatureTaskRuntimeFindingVerificationBoundaryMemory.promptSection(
                 mapOf(
                   "heading_id" to heading.headingId,
                   "source_path" to heading.sourcePath,
-                  "kind" to heading.kind,
+                  "kind" to heading.kind.wireValue,
                   "heading" to heading.heading,
                 )
               },

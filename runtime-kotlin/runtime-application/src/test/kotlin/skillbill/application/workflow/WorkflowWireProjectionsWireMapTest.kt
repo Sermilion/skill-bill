@@ -5,8 +5,8 @@ import skillbill.contracts.workflow.WorkflowContinueSessionSummary
 import skillbill.contracts.workflow.WorkflowWirePayloadKeys
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowCompactContinueView
-import skillbill.workflow.engine.model.WorkflowContinueView
 import skillbill.workflow.engine.model.WorkflowContinuationFieldMap
+import skillbill.workflow.engine.model.WorkflowContinueView
 import skillbill.workflow.engine.model.WorkflowResumeView
 import skillbill.workflow.engine.model.WorkflowSnapshotView
 import skillbill.workflow.engine.model.WorkflowStepArtifactMap

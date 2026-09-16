@@ -222,7 +222,7 @@ class McpRuntimeTest {
       assertEquals(0, telemetryPayload["total_findings"])
       assertEquals(0, telemetryPayload["accepted_findings"])
       assertEquals(0, telemetryPayload["unresolved_findings"])
-      assertEquals(0.0, telemetryPayload["accepted_rate"])
+      assertEquals(0.0, (telemetryPayload["accepted_rate"] as Number).toDouble())
       assertEquals(emptyList<Map<String, Any?>>(), telemetryPayload["accepted_finding_details"])
       assertEquals(emptyList<Map<String, Any?>>(), telemetryPayload["rejected_finding_details"])
       val learnings = telemetryPayload["learnings"] as Map<*, *>
@@ -1185,7 +1185,8 @@ private fun goldenJson(fileName: String, vararg replacements: Pair<String, Strin
 }
 
 private fun assertGoldenPayload(fileName: String, payload: Map<String, *>, vararg replacements: Pair<String, String>) {
-  assertEquals(decodeJsonObject(goldenJson(fileName, *replacements)), payload)
+  val normalizedPayload = decodeJsonObject(JsonCodec.mapToJsonString(payload.mapValues { (_, value) -> value }))
+  assertEquals(decodeJsonObject(goldenJson(fileName, *replacements)), normalizedPayload)
 }
 
 private fun assertWorkflowIdShape(workflowId: String, prefix: String) {

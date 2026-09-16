@@ -36,7 +36,6 @@ enum class FeatureTaskRuntimePhaseOutputFailureCode(
   companion object {
     private const val HIERARCHY = "FeatureTaskRuntimePhaseOutputFailureCode"
 
-    fun fromWire(value: String): FeatureTaskRuntimePhaseOutputFailureCode =
-      entries.failureWireByValue(value, HIERARCHY)
+    fun fromWire(value: String): FeatureTaskRuntimePhaseOutputFailureCode = entries.failureWireByValue(value, HIERARCHY)
   }
 }

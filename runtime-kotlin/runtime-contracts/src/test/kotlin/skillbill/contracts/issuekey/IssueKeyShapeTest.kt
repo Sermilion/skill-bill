@@ -1,5 +1,6 @@
 package skillbill.contracts.issuekey
 
+import skillbill.error.InvalidIssueKeySchemaError
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -26,7 +27,7 @@ class IssueKeyShapeTest {
       ?.use { stream -> stream.readBytes().decodeToString() }
       ?.replace("maxLength: 128", "maxLength: 1.9")
       ?: error("issue-key schema is missing from the classpath")
-    assertFailsWith<skillbill.error.InvalidIssueKeySchemaError> {
+    assertFailsWith<InvalidIssueKeySchemaError> {
       IssueKeyShape.parse(document)
     }
   }
@@ -39,7 +40,7 @@ class IssueKeyShapeTest {
       ?.replace("maxLength: 128", "maxLength: 4294967297")
       ?: error("issue-key schema is missing from the classpath")
 
-    assertFailsWith<skillbill.error.InvalidIssueKeySchemaError> {
+    assertFailsWith<InvalidIssueKeySchemaError> {
       IssueKeyShape.parse(document)
     }
   }

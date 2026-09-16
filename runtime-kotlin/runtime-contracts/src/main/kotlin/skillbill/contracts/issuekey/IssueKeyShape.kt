@@ -68,8 +68,8 @@ object IssueKeyShape {
 
   private fun loadRootMapping(document: String): Map<*, *> = try {
     loadPackagedYamlRootMapping(document, "issue-key schema is not a YAML mapping")
-  } catch (error: PackagedYamlMappingFailure) {
-    throw InvalidIssueKeySchemaError(error.message.orEmpty())
+  } catch (_: PackagedYamlMappingFailure) {
+    throw InvalidIssueKeySchemaError("issue-key schema is not a YAML mapping")
   }
 
   private fun requireSchemaIdAndType(root: Map<*, *>) {

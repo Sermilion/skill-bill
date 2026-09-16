@@ -1,11 +1,10 @@
 package skillbill.contracts.goalplanning
 
-import org.yaml.snakeyaml.Yaml
-import org.yaml.snakeyaml.error.YAMLException
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.packaged.PackagedYamlMappingFailure
+import skillbill.contracts.packaged.loadPackagedYamlRootMapping
 import skillbill.contracts.packaged.requireUniqueStringItems
 import skillbill.error.InvalidGoalPlanningDiscoveryExclusionsSchemaError
-import kotlin.coroutines.cancellation.CancellationException
 
 object GoalPlanningDiscoveryExclusions {
   const val CONTRACT_VERSION = "0.3"
@@ -59,19 +58,13 @@ object GoalPlanningDiscoveryExclusions {
     )
   }
 
-  private fun loadRootMapping(document: String): Map<*, *> {
-    val loaded = try {
-      Yaml().load<Any?>(document) as? Map<*, *>
-    } catch (error: CancellationException) {
-      throw error
-    } catch (error: VirtualMachineError) {
-      throw error
-    } catch (_: YAMLException) {
-      null
-    } catch (_: ClassCastException) {
-      null
-    }
-    return loaded ?: throw InvalidGoalPlanningDiscoveryExclusionsSchemaError(
+  private fun loadRootMapping(document: String): Map<*, *> = try {
+    loadPackagedYamlRootMapping(
+      document,
+      "goal planning discovery exclusion contract is not a YAML mapping",
+    )
+  } catch (_: PackagedYamlMappingFailure) {
+    throw InvalidGoalPlanningDiscoveryExclusionsSchemaError(
       "goal planning discovery exclusion contract is not a YAML mapping",
     )
   }
@@ -94,20 +87,25 @@ object GoalPlanningDiscoveryExclusions {
   }
 
   private fun requiredStringList(root: Map<*, *>, key: String): List<String> {
-    val entries = (root[key] as? List<*>)?.map { entry ->
-      entry as? String ?: throw InvalidGoalPlanningDiscoveryExclusionsSchemaError(
-        "goal planning discovery exclusion $key entry '$entry' is not a string",
-      )
-    }.orEmpty()
+    val entries = (root[key] as? List<*>)?.map { entry -> requiredStringListEntry(entry, key) }.orEmpty()
+    requireStringListNotEmpty(entries, key)
+    requireUniqueStringItems(entries, "goal planning discovery exclusion $key") { message ->
+      throw InvalidGoalPlanningDiscoveryExclusionsSchemaError(message)
+    }
+    return entries
+  }
+
+  private fun requiredStringListEntry(entry: Any?, key: String): String =
+    entry as? String ?: throw InvalidGoalPlanningDiscoveryExclusionsSchemaError(
+      "goal planning discovery exclusion $key entry '$entry' is not a string",
+    )
+
+  private fun requireStringListNotEmpty(entries: List<String>, key: String) {
     if (entries.isEmpty()) {
       throw InvalidGoalPlanningDiscoveryExclusionsSchemaError(
         "goal planning discovery exclusion contract declares no $key",
       )
     }
-    requireUniqueStringItems(entries, "goal planning discovery exclusion $key") { message ->
-      throw InvalidGoalPlanningDiscoveryExclusionsSchemaError(message)
-    }
-    return entries
   }
 
   private fun requireBareDirectoryName(name: String) {

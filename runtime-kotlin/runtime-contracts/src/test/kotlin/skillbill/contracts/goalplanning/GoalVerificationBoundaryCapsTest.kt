@@ -1,5 +1,6 @@
 package skillbill.contracts.goalplanning
 
+import skillbill.error.InvalidGoalVerificationBoundaryCapsSchemaError
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -35,22 +36,22 @@ class GoalVerificationBoundaryCapsTest {
       max_total_body_bytes: 10
       max_boundary_file_bytes: 10
     """.trimIndent()
-    assertFailsWith<skillbill.error.InvalidGoalVerificationBoundaryCapsSchemaError> {
+    assertFailsWith<InvalidGoalVerificationBoundaryCapsSchemaError> {
       GoalVerificationBoundaryCaps.parse(
         base.replace("max_discovery_file_count: 10", "max_discovery_file_count: 1.9"),
       )
     }
-    assertFailsWith<skillbill.error.InvalidGoalVerificationBoundaryCapsSchemaError> {
+    assertFailsWith<InvalidGoalVerificationBoundaryCapsSchemaError> {
       GoalVerificationBoundaryCaps.parse(
         base.replace("max_discovery_file_count: 10", "max_discovery_file_count: 4294967297"),
       )
     }
-    assertFailsWith<skillbill.error.InvalidGoalVerificationBoundaryCapsSchemaError> {
+    assertFailsWith<InvalidGoalVerificationBoundaryCapsSchemaError> {
       GoalVerificationBoundaryCaps.parse(
         base.replace("max_discovery_file_count: 10", "max_discovery_file_count: 0"),
       )
     }
-    assertFailsWith<skillbill.error.InvalidGoalVerificationBoundaryCapsSchemaError> {
+    assertFailsWith<InvalidGoalVerificationBoundaryCapsSchemaError> {
       GoalVerificationBoundaryCaps.parse(
         base.replace("max_discovery_file_count: 10", "max_discovery_file_count: .nan"),
       )
@@ -72,7 +73,7 @@ class GoalVerificationBoundaryCapsTest {
     """.trimIndent()
 
     assertEquals(Long.MAX_VALUE, GoalVerificationBoundaryCaps.parse(base).maxBoundaryFileBytes)
-    assertFailsWith<skillbill.error.InvalidGoalVerificationBoundaryCapsSchemaError> {
+    assertFailsWith<InvalidGoalVerificationBoundaryCapsSchemaError> {
       GoalVerificationBoundaryCaps.parse(
         base.replace(
           "max_boundary_file_bytes: 9223372036854775807",
@@ -80,7 +81,7 @@ class GoalVerificationBoundaryCapsTest {
         ),
       )
     }
-    assertFailsWith<skillbill.error.InvalidGoalVerificationBoundaryCapsSchemaError> {
+    assertFailsWith<InvalidGoalVerificationBoundaryCapsSchemaError> {
       GoalVerificationBoundaryCaps.parse(
         base.replace(
           "max_boundary_file_bytes: 9223372036854775807",
