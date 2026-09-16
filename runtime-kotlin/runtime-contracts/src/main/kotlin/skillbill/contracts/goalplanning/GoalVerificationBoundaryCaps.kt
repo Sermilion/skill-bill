@@ -1,7 +1,10 @@
 package skillbill.contracts.goalplanning
 
-import org.yaml.snakeyaml.Yaml
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.packaged.PackagedYamlMappingFailure
+import skillbill.contracts.packaged.loadPackagedYamlRootMapping
+import skillbill.contracts.packaged.packagedPositiveInt
+import skillbill.contracts.packaged.packagedPositiveLong
 import skillbill.error.InvalidGoalVerificationBoundaryCapsSchemaError
 
 object GoalVerificationBoundaryCaps {
@@ -51,10 +54,7 @@ object GoalVerificationBoundaryCaps {
       )
 
   internal fun parse(document: String): Contract {
-    val root = runCatching { Yaml().load<Any?>(document) }.getOrNull() as? Map<*, *>
-      ?: throw InvalidGoalVerificationBoundaryCapsSchemaError(
-        "goal verification boundary caps contract is not a YAML mapping",
-      )
+    val root = loadRootMapping(document)
     requireKnownKeysOnly(root)
     requireSupportedVersion(root[SharedPayloadKeys.CONTRACT_VERSION])
     return Contract(
@@ -65,8 +65,17 @@ object GoalVerificationBoundaryCaps {
       maxSelectedBodies = requiredPositiveInt(root, "max_selected_bodies"),
       maxBodyBytes = requiredPositiveInt(root, "max_body_bytes"),
       maxTotalBodyBytes = requiredPositiveInt(root, "max_total_body_bytes"),
-      maxBoundaryFileBytes = requiredPositiveInt(root, "max_boundary_file_bytes").toLong(),
+      maxBoundaryFileBytes = requiredPositiveLong(root, "max_boundary_file_bytes"),
     )
+  }
+
+  private fun loadRootMapping(document: String): Map<*, *> = try {
+    loadPackagedYamlRootMapping(
+      document,
+      "goal verification boundary caps contract is not a YAML mapping",
+    )
+  } catch (error: PackagedYamlMappingFailure) {
+    throw InvalidGoalVerificationBoundaryCapsSchemaError(error.message.orEmpty())
   }
 
   private fun requireKnownKeysOnly(root: Map<*, *>) {
@@ -86,17 +95,13 @@ object GoalVerificationBoundaryCaps {
     }
   }
 
-  private fun requiredPositiveInt(root: Map<*, *>, key: String): Int {
-    val value = root[key] as? Number
-      ?: throw InvalidGoalVerificationBoundaryCapsSchemaError(
-        "goal verification boundary caps $key must be a positive integer",
-      )
-    val intValue = value.toInt()
-    if (intValue < 1) {
-      throw InvalidGoalVerificationBoundaryCapsSchemaError(
-        "goal verification boundary caps $key must be a positive integer",
-      )
+  private fun requiredPositiveInt(root: Map<*, *>, key: String): Int =
+    root[key].packagedPositiveInt("goal verification boundary caps $key") { message ->
+      throw InvalidGoalVerificationBoundaryCapsSchemaError(message)
     }
-    return intValue
-  }
+
+  private fun requiredPositiveLong(root: Map<*, *>, key: String): Long =
+    root[key].packagedPositiveLong("goal verification boundary caps $key") { message ->
+      throw InvalidGoalVerificationBoundaryCapsSchemaError(message)
+    }
 }

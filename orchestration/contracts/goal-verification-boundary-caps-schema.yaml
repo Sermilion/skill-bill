@@ -24,24 +24,32 @@ properties:
   max_discovery_file_count:
     type: integer
     minimum: 1
+    maximum: 2147483647
   max_headings_per_file:
     type: integer
     minimum: 1
+    maximum: 2147483647
   max_catalog_headings:
     type: integer
     minimum: 1
+    maximum: 2147483647
   history_recency_days:
     type: integer
     minimum: 1
+    maximum: 2147483647
   max_selected_bodies:
     type: integer
     minimum: 1
+    maximum: 2147483647
   max_body_bytes:
     type: integer
     minimum: 1
+    maximum: 2147483647
   max_total_body_bytes:
     type: integer
     minimum: 1
+    maximum: 2147483647
   max_boundary_file_bytes:
     type: integer
     minimum: 1
+    maximum: 9223372036854775807

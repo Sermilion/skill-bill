@@ -3,6 +3,7 @@ package skillbill.contracts.goalplanning
 import org.yaml.snakeyaml.Yaml
 import org.yaml.snakeyaml.error.YAMLException
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.packaged.requireUniqueStringItems
 import skillbill.error.InvalidGoalPlanningDiscoveryExclusionsSchemaError
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -63,6 +64,8 @@ object GoalPlanningDiscoveryExclusions {
       Yaml().load<Any?>(document) as? Map<*, *>
     } catch (error: CancellationException) {
       throw error
+    } catch (error: VirtualMachineError) {
+      throw error
     } catch (_: YAMLException) {
       null
     } catch (_: ClassCastException) {
@@ -100,6 +103,9 @@ object GoalPlanningDiscoveryExclusions {
       throw InvalidGoalPlanningDiscoveryExclusionsSchemaError(
         "goal planning discovery exclusion contract declares no $key",
       )
+    }
+    requireUniqueStringItems(entries, "goal planning discovery exclusion $key") { message ->
+      throw InvalidGoalPlanningDiscoveryExclusionsSchemaError(message)
     }
     return entries
   }

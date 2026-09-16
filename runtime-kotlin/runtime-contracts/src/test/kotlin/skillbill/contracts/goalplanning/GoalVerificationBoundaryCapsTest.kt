@@ -2,6 +2,7 @@ package skillbill.contracts.goalplanning
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 
 class GoalVerificationBoundaryCapsTest {
   @Test
@@ -19,5 +20,73 @@ class GoalVerificationBoundaryCapsTest {
     assertEquals(parsed.maxBodyBytes, GoalVerificationBoundaryCaps.maxBodyBytes)
     assertEquals(parsed.maxTotalBodyBytes, GoalVerificationBoundaryCaps.maxTotalBodyBytes)
     assertEquals(parsed.maxBoundaryFileBytes, GoalVerificationBoundaryCaps.maxBoundaryFileBytes)
+  }
+
+  @Test
+  fun `fractional and overflow cap values are rejected instead of coerced`() {
+    val base = """
+      contract_version: "0.2"
+      max_discovery_file_count: 10
+      max_headings_per_file: 10
+      max_catalog_headings: 10
+      history_recency_days: 10
+      max_selected_bodies: 10
+      max_body_bytes: 10
+      max_total_body_bytes: 10
+      max_boundary_file_bytes: 10
+    """.trimIndent()
+    assertFailsWith<skillbill.error.InvalidGoalVerificationBoundaryCapsSchemaError> {
+      GoalVerificationBoundaryCaps.parse(
+        base.replace("max_discovery_file_count: 10", "max_discovery_file_count: 1.9"),
+      )
+    }
+    assertFailsWith<skillbill.error.InvalidGoalVerificationBoundaryCapsSchemaError> {
+      GoalVerificationBoundaryCaps.parse(
+        base.replace("max_discovery_file_count: 10", "max_discovery_file_count: 4294967297"),
+      )
+    }
+    assertFailsWith<skillbill.error.InvalidGoalVerificationBoundaryCapsSchemaError> {
+      GoalVerificationBoundaryCaps.parse(
+        base.replace("max_discovery_file_count: 10", "max_discovery_file_count: 0"),
+      )
+    }
+    assertFailsWith<skillbill.error.InvalidGoalVerificationBoundaryCapsSchemaError> {
+      GoalVerificationBoundaryCaps.parse(
+        base.replace("max_discovery_file_count: 10", "max_discovery_file_count: .nan"),
+      )
+    }
+  }
+
+  @Test
+  fun `Long-backed boundary bytes retain the Long range without narrowing`() {
+    val base = """
+      contract_version: "0.2"
+      max_discovery_file_count: 10
+      max_headings_per_file: 10
+      max_catalog_headings: 10
+      history_recency_days: 10
+      max_selected_bodies: 10
+      max_body_bytes: 10
+      max_total_body_bytes: 10
+      max_boundary_file_bytes: 9223372036854775807
+    """.trimIndent()
+
+    assertEquals(Long.MAX_VALUE, GoalVerificationBoundaryCaps.parse(base).maxBoundaryFileBytes)
+    assertFailsWith<skillbill.error.InvalidGoalVerificationBoundaryCapsSchemaError> {
+      GoalVerificationBoundaryCaps.parse(
+        base.replace(
+          "max_boundary_file_bytes: 9223372036854775807",
+          "max_boundary_file_bytes: 9223372036854775808",
+        ),
+      )
+    }
+    assertFailsWith<skillbill.error.InvalidGoalVerificationBoundaryCapsSchemaError> {
+      GoalVerificationBoundaryCaps.parse(
+        base.replace(
+          "max_boundary_file_bytes: 9223372036854775807",
+          "max_boundary_file_bytes: 9.223372036854776E18",
+        ),
+      )
+    }
   }
 }

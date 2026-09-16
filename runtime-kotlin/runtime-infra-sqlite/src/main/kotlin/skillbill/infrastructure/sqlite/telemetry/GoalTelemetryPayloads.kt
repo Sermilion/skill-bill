@@ -2,6 +2,7 @@ package skillbill.infrastructure.sqlite.telemetry
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.error.ShellContentContractException
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDateTime
@@ -23,13 +24,14 @@ private fun parseAgentIdArray(rawValue: String, workflowId: String): List<Any?> 
     )
     return emptyList()
   }
-  return JsonCodec.parseArrayOrEmpty(trimmed).also { result ->
-    if (result.isEmpty() && trimmed != "[]") {
-      goalTelemetryPayloadLog.warning(
-        "skillbill telemetry: failed to parse participating_agent_ids for workflow $workflowId; " +
-          "value: $rawValue",
-      )
-    }
+  return try {
+    JsonCodec.parseJsonArrayStrict(trimmed)
+  } catch (_: ShellContentContractException) {
+    goalTelemetryPayloadLog.warning(
+      "skillbill telemetry: failed to parse participating_agent_ids for workflow $workflowId; " +
+        "value: $rawValue",
+    )
+    emptyList()
   }
 }
 

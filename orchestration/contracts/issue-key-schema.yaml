@@ -1,6 +1,9 @@
 $schema: "https://json-schema.org/draft/2020-12/schema"
 $id: "https://skill-bill.dev/contracts/issue-key-schema.yaml"
 title: Issue key
+description: >-
+  String-shaped issue keys. minLength and maxLength are positive integers bounded by
+  2147483647; the Kotlin loader rejects non-integer YAML numbers and overflow before use.
 type: string
 minLength: 1
 maxLength: 128

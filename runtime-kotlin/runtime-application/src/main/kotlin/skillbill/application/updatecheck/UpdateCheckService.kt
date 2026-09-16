@@ -7,6 +7,7 @@ import skillbill.application.updatecheck.model.Semver
 import skillbill.application.updatecheck.model.UpdateCheckResult
 import skillbill.application.updatecheck.model.UpdateCheckStatus
 import skillbill.contracts.JsonCodec
+import skillbill.error.ShellContentContractException
 import skillbill.model.TransportContext
 import skillbill.ports.telemetry.RemoteTransportPort
 import skillbill.ports.telemetry.model.RemoteTransportResponse
@@ -90,18 +91,20 @@ class UpdateCheckService(
   }
 
   private fun parseReleasesResponse(response: RemoteTransportResponse): ReleaseFetchResult {
-    val parsed = JsonCodec.parseArrayOrEmpty(response.body)
     val errorReason = when {
       response.statusCode == HTTP_FORBIDDEN || response.statusCode == HTTP_TOO_MANY_REQUESTS ->
         "GitHub API rate limit or access limit"
       response.statusCode !in HTTP_SUCCESS_RANGE ->
         "GitHub Releases request failed with HTTP ${response.statusCode}"
-      parsed.isEmpty() && response.body.trim() != "[]" ->
-        "malformed GitHub Releases payload"
       else -> null
     }
     if (errorReason != null) {
       return ReleaseFetchResult(failure = unknown(errorReason))
+    }
+    val parsed = try {
+      JsonCodec.parseJsonArrayStrict(response.body)
+    } catch (_: ShellContentContractException) {
+      return ReleaseFetchResult(failure = unknown("malformed GitHub Releases payload"))
     }
     return ReleaseFetchResult(releases = parsed)
   }

@@ -89,6 +89,26 @@ class GoalPlanningDiscoveryExclusionsTest {
   }
 
   @Test
+  fun `duplicate excluded roots are rejected`() {
+    val failure = assertFailsWith<InvalidGoalPlanningDiscoveryExclusionsSchemaError> {
+      GoalPlanningDiscoveryExclusions.parse(
+        contract(roots = listOf("platform-packs/", "platform-packs/")),
+      )
+    }
+    assertContains(failure.message.orEmpty(), "duplicate")
+  }
+
+  @Test
+  fun `duplicate excluded directory names are rejected`() {
+    val failure = assertFailsWith<InvalidGoalPlanningDiscoveryExclusionsSchemaError> {
+      GoalPlanningDiscoveryExclusions.parse(
+        contract(directoryNames = listOf("build", "build")),
+      )
+    }
+    assertContains(failure.message.orEmpty(), "duplicate")
+  }
+
+  @Test
   fun `malformed contracts loud fail instead of degrading to allow all`() {
     val emptyRoots = assertFailsWith<InvalidGoalPlanningDiscoveryExclusionsSchemaError> {
       GoalPlanningDiscoveryExclusions.parse(contract(roots = emptyList()))

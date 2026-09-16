@@ -1,18 +1,19 @@
 package skillbill.infrastructure.sqlite.review
 
 import skillbill.contracts.JsonCodec
+import skillbill.error.ShellContentContractException
 
 internal fun embeddedReviewPayloads(row: Map<String, Any?>): List<ReviewHealthPayload> {
   val rawChildSteps = row.stringValue("child_steps_json")
   if (rawChildSteps.isBlank()) {
     return emptyList()
   }
-  val parsed = JsonCodec.parseArrayOrEmpty(rawChildSteps)
-  return if (parsed.isEmpty() && rawChildSteps.trim() != "[]") {
-    listOf(ReviewHealthPayload("malformed", emptyMap()))
-  } else {
-    parsed.mapNotNull(::childStepToReviewPayload)
+  val parsed = try {
+    JsonCodec.parseJsonArrayStrict(rawChildSteps.trim())
+  } catch (_: ShellContentContractException) {
+    return listOf(ReviewHealthPayload("malformed", emptyMap()))
   }
+  return parsed.mapNotNull(::childStepToReviewPayload)
 }
 
 private fun childStepToReviewPayload(childStep: Any?): ReviewHealthPayload? {

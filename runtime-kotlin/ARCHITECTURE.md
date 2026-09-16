@@ -390,6 +390,16 @@ runtime-ports
   contract.
 - `skillbill.contracts.*`: contract DTOs, JSON helpers, runtime surface
   contracts, `*SchemaPaths` constants, and `*_CONTRACT_VERSION` constants.
+  Three packaged YAML resources are copied into this module at build time and
+  validated with lightweight SnakeYAML document reads (not a generic schema
+  engine): `goal-verification-boundary-caps.yaml`, `goal-planning-discovery-exclusions.yaml`,
+  and `issue-key-schema.yaml`. Kotlin loaders enforce the same numeric bounds and
+  `uniqueItems` rules as the canonical schemas; `JsonCodec` exposes strict array
+  parsing for callers that must distinguish malformed text, wrong roots, and empty
+  arrays, while tolerant object probes remain for optional external text. Numeric
+  conversion preserves exact `BigInteger`/`BigDecimal` values; unsupported map keys
+  and value types fail explicitly. Telemetry and update-check callers choose failure
+  or bounded degradation when durable JSON arrays are corrupt.
   Mapping from application/domain/port models into contract DTOs belongs in
   application or adapter-owned packages. This package spans two modules: the
   DTOs, helpers, and constants compile in `runtime-contracts`, and the schema
