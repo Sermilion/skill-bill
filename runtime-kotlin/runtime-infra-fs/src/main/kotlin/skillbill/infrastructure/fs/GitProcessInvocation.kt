@@ -136,12 +136,23 @@ private class GitProcessSession(
     }
     if (!timedOut && !process.isAlive) {
       exitCode = process.exitValue()
-      if (ownedDescendants.any { it.isAlive }) {
-        readFailure.compareAndSet(null, IOException("git exited with an owned descendant still running"))
-      }
+      settleOwnedDescendants()
     }
     if (timedOut || primaryFailure == null) {
       attemptCleanup { destroyProcessTree() }
+    }
+  }
+
+  private fun settleOwnedDescendants() {
+    val deadlineNanos = minOf(
+      operationDeadlineNanos,
+      System.nanoTime() + TimeUnit.SECONDS.toNanos(GIT_PROCESS_CLEANUP_BUDGET_SECONDS),
+    )
+    while (ownedDescendants.any { it.isAlive } && System.nanoTime() < deadlineNanos) {
+      Thread.sleep(GIT_PROCESS_POLL_MILLIS)
+    }
+    if (ownedDescendants.any { it.isAlive }) {
+      readFailure.compareAndSet(null, IOException("git exited with an owned descendant still running"))
     }
   }
 

@@ -185,6 +185,35 @@ class GitProcessLifetimeBehaviorTest {
   }
 
   @Test
+  fun `short lived git descendants can finish within the cleanup budget`() {
+    val root = createTempGitRepo()
+    val pidFile = root.resolve("settling.pid")
+    var child: ProcessHandle? = null
+    try {
+      val captured = runGitProcessWithCapturedChild(
+        root,
+        listOf(
+          "-c",
+          "alias.settle=!perl -e 'my \$pid=fork; if (\$pid == 0) { " +
+            "open(F, \">\", \"$pidFile\"); print F \"\$\$\"; close(F); sleep 2; } else { sleep 1; } exit 0'",
+          "settle",
+        ),
+        pidFile = pidFile,
+      )
+      child = captured.child
+
+      assertEquals(0, captured.result.exitCode)
+      assertEquals(null, captured.result.readFailure)
+      assertFalse(captured.result.timedOut)
+      assertFalse(awaitDead(requireNotNull(child)))
+    } finally {
+      child?.destroyForcibly()
+      destroyProcessFrom(pidFile)
+      root.toFile().deleteRecursively()
+    }
+  }
+
+  @Test
   fun `stdin write failure keeps IOException as readFailure`() {
     val root = createTempGitRepo()
     val pidFile = root.resolve("stdin-failure.pid")
