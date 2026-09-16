@@ -1,5 +1,13 @@
 # Boundary History — runtime-kotlin/runtime-infra-fs
 
+## [2026-09-16] SKILL-248 subtask 2 — Bound git process lifetime
+Areas: runtime-infra-fs/GitProcessCommands, GitProcessInvocation, GitProcessLifetimeBehaviorTest
+- `invokeGitProcess` owns git child registration, concurrent stdin/stdout I/O, one operation deadline from `gitTimeoutSeconds`, and a finite cleanup budget for drain join and hook-descendant teardown via `ProcessHandle`.
+- Interruption preserves `InterruptedException`, destroys only owned processes, and never leaves a live drain worker after cleanup. Unsettled stdout after the deadline surfaces as `readFailure` or timeout, not success with partial capture.
+- `GitProcessLifetimeBehaviorTest` covers pipe backpressure, inherited stdout handles, timeout, interruption, and ordinary status; journal recovery probes (F-003) stay in subtask 3.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
 ## [2026-09-15] SKILL-247 subtask 4 — Consolidate governed resource copying in runtime-infra-fs
 Areas: runtime-infra-fs Gradle resource wiring
 - `runtime-infra-fs/build.gradle.kts` now declares each governed copy once via `GovernedResourceCopy` and `registerGovernedCopy`, with main/test `processResources` dependencies driven from the same registration list (main-only: rejected-output diagnostic and producer-output evidence schemas).

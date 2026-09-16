@@ -558,6 +558,30 @@ four drain-join windows for the two streams; stdin and process-stream closes
 occur in the existing ordered cleanup path and are not used as a total bound
 for a live drain worker.
 
+### Git workflow process I/O (SKILL-248 subtask 2)
+
+`runGitProcess` in runtime-infra-fs delegates to `invokeGitProcess`, which
+registers the child process, input writer, stdout drain worker, and stream
+handles before any blocking stdin delivery, wait, or join. Stdin writes and
+stdout draining run concurrently so a full pipe cannot deadlock ordinary
+NUL-delimited staging input. One operation deadline derived from
+`gitTimeoutSeconds` covers stdin delivery, `Process.waitFor`, and output
+settlement; a separate
+`GIT_PROCESS_CLEANUP_BUDGET_SECONDS` window bounds post-failure teardown
+(drain join after closing the process input stream, stream closure, and
+`destroyOwnedProcessTree` over the started process handle and its descendants).
+
+Cooperative `Thread.interrupt` during wait or I/O destroys only processes this
+invocation started (via `ProcessHandle` descendants from the git child),
+rethrows `InterruptedException`, and runs the same cleanup owner in `finally`.
+Secondary cleanup failures attach with `addSuppressed` and do not replace the
+primary `IOException`, timeout, or interruption. Unsettled stdout after the
+deadline becomes `readFailure` or timeout semantics, never
+`WorkflowGitOperationResult.Ok` with unfinished capture. Behavior tests in
+`GitProcessLifetimeBehaviorTest` cover interruption, pipe backpressure,
+inherited stdout handles, timeout, and ordinary completion; journal recovery
+probes (F-003) remain subtask 3.
+
 ## Boundary Rules
 
 1. CLI and MCP data gateways are entry adapters. They validate and

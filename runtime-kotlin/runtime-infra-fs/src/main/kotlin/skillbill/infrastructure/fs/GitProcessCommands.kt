@@ -3,8 +3,6 @@ package skillbill.infrastructure.fs
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import java.io.IOException
 import java.nio.file.Path
-import java.util.concurrent.TimeUnit
-import kotlin.concurrent.thread
 
 internal const val GIT_TIMEOUT_SECONDS = 30L
 internal const val GIT_HOOKED_COMMAND_TIMEOUT_SECONDS = 600L
@@ -69,42 +67,8 @@ internal fun runGitCommandWithStdin(repoRoot: Path, args: List<String>, stdin: B
   }
 }
 
-internal fun runGitProcess(repoRoot: Path, args: List<String>, stdin: ByteArray? = null): GitProcessResult {
-  val process = ProcessBuilder(listOf("git", "-C", repoRoot.toString()) + args)
-    .redirectErrorStream(true)
-    .start()
-  if (stdin != null) {
-    try {
-      process.outputStream.use { it.write(stdin) }
-    } catch (error: IOException) {
-      process.destroyForcibly()
-      return GitProcessResult(output = "", readFailure = error)
-    }
-  } else {
-    runCatching { process.outputStream.close() }
-  }
-  val output = StringBuilder()
-  var readFailure: IOException? = null
-  val outputThread = thread(start = true, name = "skill-bill-git-output") {
-    try {
-      process.inputStream.bufferedReader().use { reader ->
-        output.append(reader.readText())
-      }
-    } catch (error: IOException) {
-      readFailure = error
-    }
-  }
-  val timeoutSeconds = gitTimeoutSeconds(args)
-  val finished = process.waitFor(timeoutSeconds, TimeUnit.SECONDS)
-  return if (!finished) {
-    process.destroyForcibly()
-    closeInputAndJoin(process, outputThread)
-    GitProcessResult(output = output.toString().trim(), readFailure = readFailure, timedOut = true)
-  } else {
-    outputThread.join()
-    GitProcessResult(output = output.toString().trim(), readFailure = readFailure, exitCode = process.exitValue())
-  }
-}
+internal fun runGitProcess(repoRoot: Path, args: List<String>, stdin: ByteArray? = null): GitProcessResult =
+  invokeGitProcess(repoRoot, args, stdin)
 
 internal data class GitProcessResult(
   val output: String,
@@ -113,17 +77,7 @@ internal data class GitProcessResult(
   val exitCode: Int = -1,
 )
 
-internal fun closeInputAndJoin(process: Process, outputThread: Thread) {
-  outputThread.join(GIT_OUTPUT_THREAD_JOIN_MILLIS)
-  if (outputThread.isAlive) {
-    process.inputStream.close()
-    outputThread.join(GIT_OUTPUT_THREAD_JOIN_MILLIS)
-  }
-}
-
 internal fun WorkflowGitOperationResult.withValue(value: String): WorkflowGitOperationResult = when (this) {
   is WorkflowGitOperationResult.Ok -> copy(value = value)
   is WorkflowGitOperationResult.Failed -> this
 }
-
-private const val GIT_OUTPUT_THREAD_JOIN_MILLIS = 1_000L
