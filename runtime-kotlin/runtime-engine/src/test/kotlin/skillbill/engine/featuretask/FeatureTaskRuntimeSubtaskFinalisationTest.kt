@@ -114,7 +114,7 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
   }
 
   @Test
-  fun `an enumerated feature-spec path is excluded from the commit and left dirty`() {
+  fun `commit_push includes feature-spec paths in the subtask commit`() {
     val repo = repoWithRemote()
     Files.createDirectories(repo.root.resolve(".feature-specs/$issueKey"))
     Files.writeString(repo.root.resolve(".feature-specs/$issueKey/spec.md"), "spec\n")
@@ -127,16 +127,13 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
       finalise(repo, durableCommitSha = null, paths = listOf("owned.txt", ".feature-specs/$issueKey/spec.md")),
     )
 
-    assertEquals(listOf("owned.txt"), finalised.stagedPaths)
-    assertEquals(listOf(".feature-specs/$issueKey/spec.md"), finalised.excludedSpecPaths)
-    assertEquals("owned.txt", git(repo.root, "diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD"))
-    assertEquals(
-      ".feature-specs/$issueKey/spec.md",
-      git(repo.root, "diff", "--name-only"),
-      "the governed spec must stay modified in the working tree",
-    )
-    assertEquals("", git(repo.root, "diff", "--cached", "--name-only"), "and must never reach the index")
-    assertTrue(records.any { it.contains("cause=governed feature specs are workflow input") })
+    val committed = git(repo.root, "diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD")
+      .lines().filter { it.isNotBlank() }.sorted()
+    assertEquals(listOf(".feature-specs/$issueKey/spec.md", "owned.txt"), committed)
+    assertEquals(committed, finalised.stagedPaths.sorted())
+    assertEquals("", git(repo.root, "diff", "--name-only"), "no deliverable dirt may remain")
+    assertEquals("", git(repo.root, "diff", "--cached", "--name-only"))
+    assertTrue(records.none { it.contains("governed feature specs") })
   }
 
   @Test
@@ -344,14 +341,15 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
       finalise(repo, durableCommitSha = checkpointSha, paths = listOf(".feature-specs/$issueKey/spec.md")),
     )
 
-    assertEquals(emptyList(), finalised.stagedPaths)
+    assertEquals(listOf(".feature-specs/$issueKey/spec.md"), finalised.stagedPaths)
     assertEquals(agentSubject, git(repo.root, "log", "-1", "--format=%s"))
     assertEquals("checkpoint\n", git(repo.root, "show", "HEAD:owned.txt") + "\n")
+    assertEquals("spec only\n", git(repo.root, "show", "HEAD:.feature-specs/$issueKey/spec.md") + "\n")
     assertEquals(finalised.commitSha, git(repo.remote, "rev-parse", branch))
   }
 
   @Test
-  fun `a finalisation with only governed spec dirt still publishes the checkpoint tree`() {
+  fun `a finalisation with only feature-spec dirt commits that dirt`() {
     val repo = repoWithRemote()
     Files.createDirectories(repo.root.resolve(".feature-specs/$issueKey"))
     Files.writeString(repo.root.resolve(".feature-specs/$issueKey/spec.md"), "spec baseline\n")
@@ -367,20 +365,16 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
       finalise(repo, durableCommitSha = checkpointSha, paths = listOf(".feature-specs/$issueKey/spec.md")),
     )
 
-    assertEquals(emptyList(), finalised.stagedPaths)
-    assertEquals(listOf(".feature-specs/$issueKey/spec.md"), finalised.excludedSpecPaths)
+    assertEquals(listOf(".feature-specs/$issueKey/spec.md"), finalised.stagedPaths)
     assertEquals("checkpoint\n", git(repo.root, "show", "HEAD:owned.txt") + "\n")
-    assertEquals(
-      ".feature-specs/$issueKey/spec.md",
-      git(repo.root, "diff", "--name-only"),
-      "the governed spec must stay modified in the working tree",
-    )
+    assertEquals("spec only\n", git(repo.root, "show", "HEAD:.feature-specs/$issueKey/spec.md") + "\n")
+    assertEquals("", git(repo.root, "diff", "--name-only"), "no deliverable dirt may remain")
     assertEquals("", git(repo.root, "diff", "--cached", "--name-only"), "nothing may be left staged")
     assertEquals(finalised.commitSha, git(repo.remote, "rev-parse", branch))
   }
 
   @Test
-  fun `an already-finalised HEAD still pushes when only the governed spec is dirty`() {
+  fun `an already-finalised HEAD commits leftover feature-spec dirt`() {
     val repo = repoWithRemote()
     Files.createDirectories(repo.root.resolve(".feature-specs/$issueKey"))
     Files.writeString(
@@ -415,10 +409,10 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
     assertEquals(pushed.commitSha, git(repo.remote, "rev-parse", branch))
     assertEquals("final\n", git(repo.root, "show", "HEAD:owned.txt") + "\n")
     assertEquals(
-      ".feature-specs/$issueKey/decomposition-manifest.yaml",
-      git(repo.root, "diff", "--name-only"),
-      "the governed spec must stay dirty locally",
+      "status: blocked\n",
+      git(repo.root, "show", "HEAD:.feature-specs/$issueKey/decomposition-manifest.yaml") + "\n",
     )
+    assertEquals("", git(repo.root, "diff", "--name-only"), "no deliverable dirt may remain")
   }
 
   @Test
@@ -479,12 +473,11 @@ class FeatureTaskRuntimeSubtaskFinalisationTest {
 
     val committed = git(repo.root, "diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD")
       .lines().filter { it.isNotBlank() }.sorted()
-    assertEquals(listOf("leftover.txt", "owned.txt"), committed)
     assertEquals(
-      ".feature-specs/$issueKey/spec.md",
-      git(repo.root, "diff", "--name-only"),
-      "governed specs stay dirty locally",
+      listOf(".feature-specs/$issueKey/spec.md", "leftover.txt", "owned.txt"),
+      committed,
     )
+    assertEquals("", git(repo.root, "diff", "--name-only"), "no deliverable dirt may remain")
     assertEquals(finalised.commitSha, remoteBranchTip(repo.remote))
   }
 

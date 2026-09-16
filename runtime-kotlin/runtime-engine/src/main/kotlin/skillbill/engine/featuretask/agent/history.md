@@ -1,5 +1,14 @@
 # featuretask runtime boundary history
 
+## [2026-09-16] commit_push stages every dirty path including feature specs
+Areas: runtime-kotlin/runtime-engine/featuretask
+- commit_push briefing no longer tells the agent to omit `.feature-specs/` from `changed_paths`.
+- Finalisation stages every dirty non-ignored path, including `.feature-specs/`, so spec moves are not left uncommitted.
+- Pattern: do not invent an extra-files category at a non-retrying phase; one envelope lists the whole dirty tree. reusable
+- Limitation: goal finalize still ignores leftover spec dirt after the parent records `commit_sha`, so same-branch completion does not block on that post-commit write.
+Feature flag: N/A
+Acceptance criteria: 1/1 implemented
+
 ## [2026-09-15] SKILL-247 subtask 3 — Narrow run-loop helper dependencies
 Areas: runtime-kotlin/runtime-engine/featuretask, runtime-kotlin/ARCHITECTURE.md
 - Narrowed run-loop helper seams to request facts, state operations, recorder/observability capabilities, and cohesive collaborators instead of all-access loop context.

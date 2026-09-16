@@ -22,13 +22,12 @@ class FeatureTaskRuntimeSubtaskFinalisation(
   fun finalise(request: FeatureTaskRuntimeSubtaskFinaliseRequest): FeatureTaskRuntimeSubtaskFinalisationResult {
     val dirtyOrError = gitOperations.dirtyImplementationPaths(repoRoot)
     if (dirtyOrError is DirtyPathsError) return blocked(dirtyOrError.reason)
-    val paths = stageablePathsFrom((dirtyOrError as DirtyPaths).paths)
-    if (paths.excluded.isNotEmpty()) record(specExclusionRecord(request.identity, paths.excluded))
-    val staging = when (val outcome = prepareStaging(paths.stageable)) {
+    val paths = (dirtyOrError as DirtyPaths).paths
+    val staging = when (val outcome = prepareStaging(paths)) {
       is FinalisationStagingBlocked -> return outcome.result
       is FinalisationStagingReady -> outcome
     }
-    return commitAndPush(request, paths.stageable, paths.excluded, staging.restoreState)
+    return commitAndPush(request, paths, staging.restoreState)
   }
 
   internal companion object {
@@ -68,7 +67,6 @@ internal fun FeatureTaskRuntimeSubtaskFinalisation.prepareStaging(stageable: Lis
 fun FeatureTaskRuntimeSubtaskFinalisation.commitAndPush(
   request: FeatureTaskRuntimeSubtaskFinaliseRequest,
   stageable: List<String>,
-  excluded: List<String>,
   restoreState: String,
 ): FeatureTaskRuntimeSubtaskFinalisationResult {
   val branch = request.metadata.branch
@@ -114,7 +112,6 @@ fun FeatureTaskRuntimeSubtaskFinalisation.commitAndPush(
       request = request,
       branch = branch,
       stageable = stageable,
-      excluded = excluded,
       commitSha = commitSha,
       rewrites = rewrites,
     ),
@@ -125,7 +122,6 @@ private data class FinalizeCommittedSubtaskInput(
   val request: FeatureTaskRuntimeSubtaskFinaliseRequest,
   val branch: String,
   val stageable: List<String>,
-  val excluded: List<String>,
   val commitSha: String,
   val rewrites: Boolean,
 )
@@ -151,7 +147,6 @@ private fun FeatureTaskRuntimeSubtaskFinalisation.finalizeCommittedSubtask(
   return FeatureTaskRuntimeSubtaskFinalised(
     commitSha = input.commitSha,
     stagedPaths = input.stageable,
-    excludedSpecPaths = input.excluded,
     forcedWithLease = forcedWithLease,
   )
 }

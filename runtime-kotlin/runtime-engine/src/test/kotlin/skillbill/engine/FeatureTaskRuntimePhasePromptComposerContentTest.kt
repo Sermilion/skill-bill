@@ -203,14 +203,14 @@ class FeatureTaskRuntimePhasePromptComposerContentTest {
   }
 
   @Test
-  fun `commit_push prompt carries the feature-spec exclusion directive`() {
+  fun `commit_push prompt forbids amending foreign commits and includes every dirty path`() {
     val prompt = composePromptForPhase("commit_push")
 
-    assertContains(prompt, "Feature-spec commit exclusion")
-    assertContains(prompt, ".feature-specs/$PROMPT_COMPOSER_ISSUE_KEY-")
-    assertContains(prompt, "decomposition-manifest.yaml")
-    assertContains(prompt, "Never list any `.feature-specs/`")
+    assertContains(prompt, "Commit ownership")
     assertContains(prompt, "Never amend, reset, or restage a commit this runtime does not own")
+    assertContains(prompt, "including `.feature-specs/`")
+    assertTrue(!prompt.contains("Never list any `.feature-specs/`"))
+    assertTrue(!prompt.contains("Feature-spec commit exclusion"))
     assertTrue(
       !prompt.contains("do not add, amend,"),
       "the blanket amend prohibition is replaced by a scope bound to runtime-owned commits",
@@ -219,12 +219,13 @@ class FeatureTaskRuntimePhasePromptComposerContentTest {
   }
 
   @Test
-  fun `feature-spec exclusion directive is absent on non-commit phases`() {
+  fun `commit ownership directive is absent on non-commit phases`() {
     val implementPrompt = composePhasePrompt(
       PROMPT_COMPOSER_ISSUE_KEY,
       promptComposerBriefingFor("implement"),
     )
 
+    assertTrue(!implementPrompt.contains("Commit ownership"))
     assertTrue(!implementPrompt.contains("Feature-spec commit exclusion"))
   }
 

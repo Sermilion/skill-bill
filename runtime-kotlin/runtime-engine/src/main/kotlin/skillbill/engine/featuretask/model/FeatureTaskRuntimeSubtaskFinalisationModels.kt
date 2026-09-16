@@ -20,7 +20,6 @@ sealed interface FeatureTaskRuntimeSubtaskFinalisationResult
 data class FeatureTaskRuntimeSubtaskFinalised(
   val commitSha: String,
   val stagedPaths: List<String>,
-  val excludedSpecPaths: List<String>,
   val forcedWithLease: Boolean,
 ) : FeatureTaskRuntimeSubtaskFinalisationResult
 

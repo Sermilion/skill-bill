@@ -52,7 +52,7 @@ fun phasePromptMiddleSections(inputs: FeatureTaskRuntimePhasePromptComposeInputs
       priorReviewContext = inputs.priorReviewContext,
     ),
   ),
-  commitExclusionDirective(inputs.briefing.phaseId, inputs.issueKey),
+  commitExclusionDirective(inputs.briefing.phaseId),
   inputs.briefing.briefingText,
 )
 
