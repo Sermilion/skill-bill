@@ -1,8 +1,10 @@
 package skillbill.telemetry
 
 import skillbill.application.telemetry.sync.TelemetrySyncRuntime
+import skillbill.infrastructure.concurrency.JvmInterruptSignalPort
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
 import skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxStore
+import skillbill.ports.concurrency.InterruptSignalPort
 import skillbill.ports.repository.toFileLocation
 import skillbill.ports.telemetry.TelemetryClient
 import skillbill.ports.telemetry.TelemetryOutboxRepository
@@ -43,6 +45,7 @@ class TelemetryDeliveryRecoveryTest {
           store,
           StubTelemetryClient(TelemetryDeliveryOutcome.UNKNOWN),
           { NOW },
+          JvmInterruptSignalPort,
         )
 
       assertEquals(TelemetrySyncStatus.FAILED, result.status)
@@ -68,7 +71,7 @@ class TelemetryDeliveryRecoveryTest {
         }
 
       val result =
-        TelemetrySyncRuntime.syncTelemetry(settings(batchSize = 1), brokenAcknowledgement, client, { NOW })
+        TelemetrySyncRuntime.syncTelemetry(settings(batchSize = 1), brokenAcknowledgement, client, { NOW }, JvmInterruptSignalPort)
 
       assertEquals(TelemetrySyncStatus.FAILED, result.status)
       assertEquals(1, client.sentBatches.size, "The invocation must stop, not resend on every pass.")
@@ -84,7 +87,7 @@ class TelemetryDeliveryRecoveryTest {
       val unreachable = StubTelemetryClient(TelemetryDeliveryOutcome.UNKNOWN)
 
       repeat(TELEMETRY_DELIVERY_ATTEMPT_BUDGET * 2) {
-        TelemetrySyncRuntime.syncTelemetry(settings(), store, unreachable, { NOW })
+        TelemetrySyncRuntime.syncTelemetry(settings(), store, unreachable, { NOW }, JvmInterruptSignalPort)
       }
 
       assertEquals(
@@ -98,6 +101,7 @@ class TelemetryDeliveryRecoveryTest {
           store,
           StubTelemetryClient(TelemetryDeliveryOutcome.ACCEPTED),
           { NOW },
+          JvmInterruptSignalPort,
         )
 
       assertEquals(TelemetrySyncStatus.SYNCED, recovered.status)
@@ -112,7 +116,7 @@ class TelemetryDeliveryRecoveryTest {
       val client =
         StubTelemetryClient(TelemetryDeliveryOutcome.REJECTED, detail = "HTTP 422: unknown event property")
 
-      repeat(10) { TelemetrySyncRuntime.syncTelemetry(settings(), store, client, { NOW }) }
+      repeat(10) { TelemetrySyncRuntime.syncTelemetry(settings(), store, client, { NOW }, JvmInterruptSignalPort) }
 
       assertEquals(1, store.pendingCount(), "The failing drain must not enqueue anything of its own.")
       assertTrue(
@@ -139,7 +143,7 @@ class TelemetryDeliveryRecoveryTest {
         }
 
       val result =
-        TelemetrySyncRuntime.autoSyncTelemetry(settings(), store, throwingClient, { NOW })
+        TelemetrySyncRuntime.autoSyncTelemetry(settings(), store, throwingClient, { NOW }, JvmInterruptSignalPort)
 
       assertEquals(TelemetrySyncStatus.FAILED, result?.status, "The failure must be reported, not swallowed.")
       assertEquals(1, store.pendingCount(), "The queue must not grow from its own failure.")
@@ -173,7 +177,7 @@ class TelemetryDeliveryRecoveryTest {
       )
       val client = StubTelemetryClient(TelemetryDeliveryOutcome.ACCEPTED)
 
-      val result = TelemetrySyncRuntime.syncTelemetry(settings(), store, client, { NOW })
+      val result = TelemetrySyncRuntime.syncTelemetry(settings(), store, client, { NOW }, JvmInterruptSignalPort)
 
       assertNotEquals(TelemetrySyncStatus.SYNCED, result.status)
       assertEquals(1, result.pendingEvents, "The queued row must stay visible as pending.")
@@ -226,6 +230,7 @@ class TelemetryDeliveryRecoveryTest {
         {
           NOW
         },
+        JvmInterruptSignalPort,
       )
     }
   }
@@ -243,7 +248,7 @@ class TelemetryDeliveryRecoveryTest {
         }
 
       assertFailsWith<CancellationException> {
-        TelemetrySyncRuntime.syncTelemetry(settings(), store, cancellingClient, { NOW })
+        TelemetrySyncRuntime.syncTelemetry(settings(), store, cancellingClient, { NOW }, JvmInterruptSignalPort)
       }
       assertEquals(id, store.listPending().single().id)
       assertEquals(0, store.listPending().single().deliveryAttempts)
@@ -254,6 +259,7 @@ class TelemetryDeliveryRecoveryTest {
           store,
           StubTelemetryClient(TelemetryDeliveryOutcome.ACCEPTED),
           { NOW.plusSeconds(301) },
+          JvmInterruptSignalPort,
         )
       assertEquals(TelemetrySyncStatus.SYNCED, recovered.status)
       assertEquals(0, store.pendingCount())
@@ -276,6 +282,7 @@ class TelemetryDeliveryRecoveryTest {
           cancellingAcknowledgement,
           StubTelemetryClient(TelemetryDeliveryOutcome.ACCEPTED),
           { NOW },
+          JvmInterruptSignalPort,
         )
       }
       assertEquals(id, store.listPending().single().id)
@@ -288,6 +295,7 @@ class TelemetryDeliveryRecoveryTest {
   fun `interrupted delivery is rethrown with the thread interrupt signal preserved`() {
     withOutbox { store ->
       store.enqueue(eventName = "skillbill_goal_finished", payloadJson = "{}")
+      val interruptSignal = RecordingInterruptSignalPort()
       val interruptedClient =
         object : TelemetryClient by StubTelemetryClient(TelemetryDeliveryOutcome.ACCEPTED) {
           override fun sendBatch(
@@ -298,9 +306,10 @@ class TelemetryDeliveryRecoveryTest {
 
       try {
         assertFailsWith<InterruptedException> {
-          TelemetrySyncRuntime.syncTelemetry(settings(), store, interruptedClient, { NOW })
+          TelemetrySyncRuntime.syncTelemetry(settings(), store, interruptedClient, { NOW }, interruptSignal)
         }
         assertTrue(Thread.currentThread().isInterrupted)
+        assertEquals(1, interruptSignal.restoreCount)
         assertEquals(0, store.listPending().single().deliveryAttempts)
       } finally {
         Thread.interrupted()
@@ -324,6 +333,15 @@ class TelemetryDeliveryRecoveryTest {
     customProxyUrl = "https://telemetry.example.dev/ingest",
     batchSize = batchSize,
   )
+}
+
+private class RecordingInterruptSignalPort : InterruptSignalPort {
+  var restoreCount = 0
+
+  override fun restore() {
+    restoreCount++
+    Thread.currentThread().interrupt()
+  }
 }
 
 private class StubTelemetryClient(

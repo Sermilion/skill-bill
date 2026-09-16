@@ -34,7 +34,7 @@ import skillbill.learnings.model.RejectedLearningSourceOutcome
 import skillbill.learnings.model.UpdateLearningRequest
 import skillbill.model.EnvironmentContext
 import skillbill.model.RepositoryRoot
-import skillbill.ports.concurrency.JvmInterruptSignalPort
+import skillbill.infrastructure.concurrency.JvmInterruptSignalPort
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership

@@ -161,7 +161,7 @@ internal fun parallelCodeReviewCaptureLane(lane: () -> ParallelReviewLaneOutcome
   if (outcome.isSuccess) return outcome.getOrThrow()
   val error = outcome.exceptionOrNull()!!
   val terminal = when (error) {
-    is ReviewRegisterParseSeamException, is CancellationException -> error
+    is ReviewRegisterParseSeamException, is CancellationException, is InterruptedException -> error
     is Exception -> return ParallelReviewLaneOutcome(
       success = false,
       rawOutput = "",

@@ -9,7 +9,7 @@ import skillbill.application.telemetry.TelemetryService
 import skillbill.learnings.model.LearningScope
 import skillbill.learnings.model.RejectedLearningSourceOutcome
 import skillbill.model.EnvironmentContext
-import skillbill.ports.concurrency.JvmInterruptSignalPort
+import skillbill.infrastructure.concurrency.JvmInterruptSignalPort
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.review.EmptyReviewAttributionPort
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord

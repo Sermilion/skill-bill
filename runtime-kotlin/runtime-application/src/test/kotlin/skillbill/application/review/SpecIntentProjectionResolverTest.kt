@@ -8,6 +8,7 @@ import skillbill.application.reviewevidence.ReviewDiffEvidence
 import skillbill.application.testDecompositionManifestValidator
 import skillbill.error.UnreadableSpecIntentProjectionError
 import skillbill.ports.repository.toFileLocation
+import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.review.context.ReviewContextEnvelopeValidator
 import skillbill.review.context.model.GovernedReviewLaunch
 import skillbill.review.context.model.ReviewCommitCoverageFact
@@ -318,6 +319,40 @@ class SpecIntentProjectionResolverTest {
     val projection = assertIs<SpecIntentResolution.Resolved>(resolved).projection
     assertEquals(".feature-specs/SKILL-191-runtime/spec.md", projection.provenance.specPath)
     assertTrue(resolved.degradations.any { it.reason == "manifest_unreadable" && it.rung == "glob" })
+  }
+
+  @Test
+  fun `an interrupted manifest read propagates instead of falling through to glob search`() {
+    val repo = tempRepo()
+    val manifestPath = repo.resolve("decomposition-manifest.yaml")
+    val store = object : DecompositionManifestStore by TestDecompositionManifestStore {
+      override fun findDecompositionManifestFiles(repoRoot: Path): List<Path> = listOf(manifestPath)
+
+      override fun isRegularFile(path: Path) = true
+
+      override fun readText(path: Path): String = throw InterruptedException("interrupted")
+    }
+    val projectionResolver = SpecIntentProjectionResolver(
+      store,
+      testDecompositionManifestValidator,
+      SpecIntentProjectionExtractor(
+        object : ReviewContextEnvelopeValidator {
+          override fun validate(envelope: ReviewContextWireMap, sourceLabel: String) = Unit
+
+          override fun validateSpecIntentProjection(envelope: ReviewContextWireMap, sourceLabel: String) = Unit
+        },
+        store,
+      ),
+    )
+
+    assertFailsWith<InterruptedException> {
+      projectionResolver.resolve(
+        SpecIntentProjectionResolveRequest(
+          repoRoot = repo.toFileLocation(),
+          branchName = "feat/SKILL-191-runtime",
+        ),
+      )
+    }
   }
 
   @Test

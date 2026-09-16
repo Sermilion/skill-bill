@@ -1,6 +1,7 @@
 package skillbill.application.review
 
 import me.tatarka.inject.annotations.Inject
+import skillbill.application.rethrowIfCooperativeCancellationOrInterruption
 import skillbill.application.decomposition.repoRelativePath
 import skillbill.application.decomposition.resolvedParentSpecPath
 import skillbill.error.InvalidReviewContextSchemaError
@@ -80,7 +81,8 @@ class SpecIntentProjectionExtractor(
     }
     return try {
       fileStore.readText(path).toByteArray(Charsets.UTF_8)
-    } catch (_: Exception) {
+    } catch (error: Exception) {
+      error.rethrowIfCooperativeCancellationOrInterruption()
       fail(path, explicit, "unreadable")
     }
   }

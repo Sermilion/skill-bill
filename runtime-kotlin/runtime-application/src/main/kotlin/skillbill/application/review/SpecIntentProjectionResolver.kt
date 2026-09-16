@@ -2,6 +2,7 @@ package skillbill.application.review
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.decomposition.repoRelativePath
+import skillbill.application.rethrowIfCooperativeCancellationOrInterruption
 import skillbill.contracts.issuekey.issueKeyFromBranch
 import skillbill.model.toPath
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
@@ -127,7 +128,8 @@ class SpecIntentProjectionResolver(
         is DecompositionManifestValidationResult.AcceptedAfterRepair -> result.manifest
         is DecompositionManifestValidationResult.Rejected -> null
       }
-    } catch (_: Exception) {
+    } catch (error: Exception) {
+      error.rethrowIfCooperativeCancellationOrInterruption()
       null
     }
   }

@@ -103,6 +103,31 @@ class RuntimeLayerBoundaryArchitectureTest {
   }
 
   @Test
+  fun `runtime ports avoid concrete thread interrupt restoration`() {
+    val portMainFiles = sourceFilesIn(runtimeArchitectureRoot.resolve("runtime-ports/src/main/kotlin"))
+    assertNoBannedSourceReferences(
+      files = portMainFiles,
+      bannedReferences = listOf(
+        "Thread.currentThread",
+        ".interrupt()",
+      ),
+      description = "concrete thread interrupt restoration",
+    )
+  }
+
+  @Test
+  fun `runtime application does not select the JVM interrupt adapter`() {
+    val applicationMainFiles = sourceFilesIn(runtimeArchitectureRoot.resolve("runtime-application/src/main/kotlin"))
+    assertNoBannedImports(
+      files = applicationMainFiles,
+      bannedImports = listOf(
+        "skillbill.infrastructure.concurrency.JvmInterruptSignalPort",
+        "skillbill.ports.concurrency.JvmInterruptSignalPort",
+      ),
+    )
+  }
+
+  @Test
   fun `runtime application owns no direct timing logging or threading environment APIs`() {
     val applicationMainFiles = sourceFilesIn(runtimeArchitectureRoot.resolve("runtime-application/src/main/kotlin"))
     assertTrue(applicationMainFiles.isNotEmpty(), "runtime-application main source scan must be non-vacuous.")

@@ -1,3 +1,12 @@
+## [2026-09-16] SKILL-347 subtask 1 — Cooperative cancellation and review endpoint lifetime
+Areas: runtime-application/{review,idestatus,updatecheck,runtimepersistence,telemetry}, runtime-infra-fs/concurrency, runtime-core/di, runtime-ports/concurrency
+- Governed review endpoints enter `use` before Cursor staging and parent launch so staging failures close exactly once and never start a worker.
+- Optional-result seams rethrow `CancellationException` and `InterruptedException` before typed degradation; required persistence keeps `initCause` on `RuntimeOwnedFactUnavailable`.
+- `JvmInterruptSignalPort` lives in `runtime-infra-fs`; `runtime-application` sync/drain entry points require an injected `InterruptSignalPort` with no JVM default.
+- Pattern: shared `rethrowIfCooperativeCancellationOrInterruption` at application optional seams; architecture scan rejects inward thread restoration and application adapter imports. reusable
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented (validate phase owns pack gate)
+
 ## [2026-08-28] SKILL-215 subtask 1 — Execution clocks for goal and current subtask
 Areas: runtime-application/{goalrunner,work,model}, runtime-domain/goalrunner/model, runtime-infra-sqlite, runtime-ports/persistence, orchestration/contracts, intellij-plugin/{domain,presentation}
 - Goal-runner control state now keeps a current-subtask execution total beside `activeDurationMs`. Heartbeats fold both through the same gap cap; lease reacquire after downtime does not count the gap on either clock.

@@ -84,8 +84,7 @@ class UpdateCheckService(
       lastUnknown = unknown("network failure: ${errorMessage(error)}")
       null
     } catch (error: InterruptedException) {
-      lastUnknown = unknown("network failure: ${errorMessage(error)}")
-      null
+      throw error
     } catch (error: IllegalArgumentException) {
       lastUnknown = unknown("network failure: ${errorMessage(error)}")
       null

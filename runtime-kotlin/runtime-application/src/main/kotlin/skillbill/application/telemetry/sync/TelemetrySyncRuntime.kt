@@ -4,7 +4,6 @@ import skillbill.application.telemetry.model.TelemetryOutboxStatusSnapshot
 import skillbill.application.telemetry.model.TelemetryStatusResult
 import skillbill.application.telemetry.model.TelemetrySyncStatusResult
 import skillbill.ports.concurrency.InterruptSignalPort
-import skillbill.ports.concurrency.JvmInterruptSignalPort
 import skillbill.ports.telemetry.TelemetryClient
 import skillbill.ports.telemetry.TelemetryOutboxRepository
 import skillbill.telemetry.model.SyncResult
@@ -21,7 +20,7 @@ object TelemetrySyncRuntime {
     outboxRepository: TelemetryOutboxRepository,
     client: TelemetryClient,
     nowSupplier: () -> Instant,
-    interruptSignal: InterruptSignalPort = JvmInterruptSignalPort,
+    interruptSignal: InterruptSignalPort,
   ): SyncResult = if (!settings.enabled) {
     disabledSyncResult(settings)
   } else {
@@ -59,14 +58,13 @@ object TelemetrySyncRuntime {
     outboxRepository: TelemetryOutboxRepository,
     client: TelemetryClient,
     nowSupplier: () -> Instant,
-    interruptSignal: InterruptSignalPort = JvmInterruptSignalPort,
+    interruptSignal: InterruptSignalPort,
   ): SyncResult? = runCatching { syncTelemetry(settings, outboxRepository, client, nowSupplier, interruptSignal) }
     .getOrElse { thrown ->
       when (thrown) {
         is CancellationException -> throw thrown
         is InterruptedException -> {
-          interruptSignal.restore()
-          throw thrown
+          rethrowInterrupted(thrown, interruptSignal)
         }
         is Exception -> null
         else -> throw thrown

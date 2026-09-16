@@ -37,8 +37,8 @@ import skillbill.model.RuntimeContext
 import skillbill.model.TransportContext
 import skillbill.model.WorkflowOpsContext
 import skillbill.ports.agentaddon.ExternalAgentAddonSourceConfigPort
+import skillbill.infrastructure.concurrency.JvmInterruptSignalPort
 import skillbill.ports.concurrency.InterruptSignalPort
-import skillbill.ports.concurrency.JvmInterruptSignalPort
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.featurespec.FeatureSpecPathResolverPort

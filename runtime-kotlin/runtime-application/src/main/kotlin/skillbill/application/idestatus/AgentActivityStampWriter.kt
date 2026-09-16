@@ -1,6 +1,8 @@
 package skillbill.application.idestatus
 
 import me.tatarka.inject.annotations.Inject
+import skillbill.application.getOrElseUnlessCooperative
+import skillbill.application.rethrowIfCooperativeCancellationOrInterruption
 import skillbill.idestatus.model.AgentActivityLabel
 import skillbill.idestatus.model.AgentActivityStamp
 import skillbill.ports.agentrun.model.AgentRunActivityStampSink
@@ -15,7 +17,9 @@ class AgentActivityStampWriter(
 ) {
   fun lazySink(resolveWorkflowId: () -> String?, parentWorkflowId: String?): AgentRunActivityStampSink =
     AgentRunActivityStampSink { label ->
-      val workflowId = runCatching { resolveWorkflowId() }.getOrNull()?.takeIf(String::isNotBlank)
+      val workflowId = runCatching { resolveWorkflowId() }
+        .getOrElseUnlessCooperative { null }
+        ?.takeIf(String::isNotBlank)
         ?: return@AgentRunActivityStampSink
       record(
         StampContext(
@@ -80,7 +84,7 @@ class AgentActivityStampWriter(
           writeStamp(unitOfWork.agentActivityStamps, parentId, stamp)
         }
       }
-    }
+    }.exceptionOrNull()?.rethrowIfCooperativeCancellationOrInterruption()
   }
 
   private fun writeStamp(repository: AgentActivityStampRepository, workflowId: String, stamp: AgentActivityStamp) {

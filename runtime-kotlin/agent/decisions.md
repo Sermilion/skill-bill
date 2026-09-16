@@ -4,6 +4,21 @@ This file records architectural and implementation decisions that span the
 `runtime-kotlin/` boundary. Each entry is dated and explains the trade-off,
 not the implementation detail.
 
+## 2026-09-16 — JVM interrupt restoration stays in outer infrastructure
+
+**Context.** `InterruptSignalPort` is the inward contract for restoring the
+thread interrupt flag after `InterruptedException`. A JVM implementation in
+`runtime-ports` let application sync helpers default to concrete thread APIs
+without passing through `runtime-core`.
+
+**Decision.** Keep `InterruptSignalPort` in `runtime-ports`. Implement
+`JvmInterruptSignalPort` in `runtime-infra-fs` and supply it only from
+`RuntimeComponent`. Application telemetry sync/drain APIs require callers to pass
+the port explicitly.
+
+**Reason.** Mechanism belongs in outer adapters; application code keeps
+cooperative failure propagation without selecting environment APIs.
+
 ## 2026-09-14 — Validate is collect-all, fix, exit; runtime confirms
 
 **Context.** Validate blocked on agent `validation-evidence` JSON (schema cap=1)

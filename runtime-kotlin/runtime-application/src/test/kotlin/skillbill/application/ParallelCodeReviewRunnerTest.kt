@@ -41,6 +41,7 @@ import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
 import skillbill.ports.goalrunner.runner.model.GoalRunnerSubtaskLaunchRequest
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.repository.toFileLocation
+import skillbill.ports.review.GovernedReviewEvidenceEndpointBinder
 import skillbill.ports.review.ReviewEvidenceBroker
 import skillbill.ports.review.ReviewEvidenceBrokerFactory
 import skillbill.ports.review.ReviewLaunchAgentStagingPort
@@ -1377,6 +1378,7 @@ internal data class RunnerFixtureConfig(
   val nativeAgentPreflight: ReviewNativeAgentPreflightPort = ReviewNativeAgentPreflightPort.NONE,
   val reviewLaunchAgentStaging: ReviewLaunchAgentStagingPort = ReviewLaunchAgentStagingPort.NONE,
   val evidenceEndpointRoot: Path? = null,
+  val evidenceEndpointBinder: GovernedReviewEvidenceEndpointBinder? = null,
   val registerParse: (String) -> ParallelReviewParseResult =
     ParallelReviewFindingParser::parse,
 ) {
@@ -1467,7 +1469,8 @@ internal fun createRunner(launcher: GoalRunnerSubtaskLauncher, config: RunnerFix
         override fun terminalOutcome() = null
       }
     },
-    governedEvidenceEndpointBinder = stubGovernedReviewEvidenceEndpointBinder(endpointRoot),
+    governedEvidenceEndpointBinder =
+      config.evidenceEndpointBinder ?: stubGovernedReviewEvidenceEndpointBinder(endpointRoot),
     reviewLaunchAgentStaging = config.reviewLaunchAgentStaging,
     sharedEvidenceLocatorReader = sharedEvidenceLocatorReader,
   )
@@ -1763,7 +1766,7 @@ private class RealProcessDiffResolver : DiffResolverPort {
   }
 }
 
-private fun stubCatalogGateway(manifests: List<PlatformManifest> = emptyList()): ScaffoldCatalogGateway =
+internal fun stubCatalogGateway(manifests: List<PlatformManifest> = emptyList()): ScaffoldCatalogGateway =
   object : ScaffoldCatalogGateway {
     override fun approvedCodeReviewAreas() = emptySet<String>()
     override fun preShellFamilies() = emptySet<String>()
@@ -1789,7 +1792,7 @@ private fun throwingCatalogGateway(): ScaffoldCatalogGateway = object : Scaffold
     BaselineReviewCatalog(packs = emptyList(), compositionEdges = emptyList(), layerSuggestions = emptyList())
 }
 
-private fun platformManifest(slug: String, strongSignals: List<String>) = PlatformManifest(
+internal fun platformManifest(slug: String, strongSignals: List<String>) = PlatformManifest(
   slug = slug,
   packRoot = Path.of("platform-packs/$slug").toFileLocation(),
   contractVersion = "1.3",

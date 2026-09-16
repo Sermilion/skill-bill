@@ -1,6 +1,7 @@
 package skillbill.application.telemetry.sync
 
 import skillbill.application.telemetry.sync.TelemetrySyncRuntime.syncTelemetry
+import skillbill.ports.concurrency.InterruptSignalPort
 import skillbill.ports.repository.toFileLocation
 import skillbill.ports.telemetry.TelemetryClient
 import skillbill.ports.telemetry.TelemetryOutboxRepository
@@ -45,6 +46,7 @@ class TelemetryOutboxDrainClaimClockTest {
         now = now.plusSeconds(120)
         current
       },
+      interruptSignal = NoopInterruptSignalPort,
     )
 
     assertTrue(repository.claimedAtTimestamps.size >= 2)
@@ -117,6 +119,10 @@ private class RecordingClaimClockRepository : TelemetryOutboxRepository {
   ): TelemetryOutboxSettlementResult = TelemetryOutboxSettlementResult.forRequest(eventIds, updatedRows = 0)
 
   override fun clear(): Int = 0
+}
+
+private object NoopInterruptSignalPort : InterruptSignalPort {
+  override fun restore() = Unit
 }
 
 private class AcceptingTelemetryClient : TelemetryClient {
