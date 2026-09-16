@@ -302,7 +302,10 @@ runtime-core
   install plan/apply, install staging, governed scaffold/load/render,
   repo validation, native-agent rendering/linking, launcher MCP registration,
   git workflow operations, decomposition-manifest file storage, and
-  skill-remove filesystem cascades. It also owns the concrete JSON-Schema
+  skill-remove filesystem cascades. The injected `FileSystemAgentRunLauncher`
+  constructor takes the composition-selected `ExecutableLookup` (explicit
+  callback override, else default PATH discovery); availability policy is not a
+  process sandbox. It also owns the concrete JSON-Schema
   validators (`AgentAddonSchemaValidator`, `InstallPlanSchemaValidator`,
   `WorkflowStateSchemaValidator`, `DecompositionManifestSchemaValidator`,
   and the `DecompositionManifestCoherenceValidator`) plus their schema-resource
@@ -376,7 +379,13 @@ runtime-ports
   `RuntimeReviewAddonCatalogProvides`, `RuntimeScaffoldValidationProvides`,
   `RuntimeGoalPlanningSweepProvides`), never by pairing two areas. Each
   `@Provides` is declared once, and `RuntimeBootstrapBindings` holds only the
-  ambient construction seam.
+  ambient construction seam. `RuntimeComponent` memoizes the first
+  `RuntimeBootstrapBindings.runtimeContext` result for the component instance;
+  later `runtimeContext()` calls and generated CLI or MCP parent access reuse that
+  snapshot, so database, telemetry config, and transport requester selection
+  cannot drift when ambient `user.home` or PATH changes mid-invocation. A new
+  component may resolve fresh ambient facts; there is no process-global context
+  cache.
 - `skillbill.application`: use cases, workflow orchestration, lifecycle
   telemetry orchestration, repository-port coordination, and application-owned
   mappers. Public inputs and results live in area-owned `skillbill.application.<area>.model` packages.

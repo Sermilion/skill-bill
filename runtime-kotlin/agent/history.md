@@ -1,3 +1,11 @@
+## [2026-09-16] SKILL-350 subtask 1 — Stabilize runtime component inputs and launcher lookup
+Areas: runtime-kotlin/{runtime-core/di,runtime-infra-fs/launcher/agentrun,runtime-core tests}, runtime-kotlin/ARCHITECTURE.md
+- RuntimeComponent memoizes the first bootstrap-resolved RuntimeContext so generated CLI/MCP parent calls, database factory inputs, telemetry config paths, and transport requester selection stay on one invocation snapshot; a new component may take fresh ambient facts.
+- FileSystemAgentRunLauncher's inject constructor now receives composition ExecutableLookup; refusing lookup keeps controlled PATH fixtures off the launch path without starting a process.
+- Regression tests cover split-home stability, non-default connect-timeout requester reuse, supplied requester identity, separate-component scoped isolation, and lookup refusal with an explicit missing-executable setup.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented (validate phase owns pack gate)
+
 ## [2026-09-16] SKILL-348 subtask 1 — Own update and uninstall execution
 Areas: runtime-kotlin/{runtime-application/{updatecheck,uninstall},runtime-cli/{core,model,system},runtime-ports/process,runtime-infra-{fs,http},runtime-core/di}, runtime-kotlin/ARCHITECTURE.md
 - Update execution now downloads the installer fully before bounded process execution; download and installer failures preserve nonzero outcomes and bounded output.
