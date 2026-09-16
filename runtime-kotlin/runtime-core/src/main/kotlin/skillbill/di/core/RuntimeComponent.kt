@@ -15,10 +15,12 @@ import skillbill.application.scaffold.SkillRemove
 import skillbill.application.system.SystemService
 import skillbill.application.telemetry.lifecycle.LifecycleTelemetryService
 import skillbill.application.telemetry.service.TelemetryService
+import skillbill.application.typesafe.SystemOneService
 import skillbill.application.uninstall.SkillBillUninstallService
 import skillbill.application.updatecheck.SkillBillUpdateService
 import skillbill.application.work.WorkListService
 import skillbill.application.workflow.service.WorkflowService
+import skillbill.di.RuntimeTypeSafeProvides
 import skillbill.di.experiment.RuntimeExperimentProvides
 import skillbill.di.experiment.RuntimeExperimentTelemetryProvides
 import skillbill.di.featurespec.RuntimeFeatureSpecProvides
@@ -107,7 +109,8 @@ abstract class RuntimeComponent(
   RuntimeInstallerProvides,
   RuntimeExperimentProvides,
   RuntimeExperimentTelemetryProvides,
-  RuntimeDiagnosticsProvides {
+  RuntimeDiagnosticsProvides,
+  RuntimeTypeSafeProvides {
   private val resolvedRuntimeContext: RuntimeContext by lazy {
     RuntimeBootstrapBindings.runtimeContext(inputRuntimeContext)
   }
@@ -197,6 +200,7 @@ abstract class RuntimeComponent(
   abstract val telemetryConfigStorePort: TelemetryConfigStore
   abstract val telemetryLevelMutator: TelemetryLevelMutator
   abstract val telemetryService: TelemetryService
+  abstract val systemOneService: SystemOneService
   abstract val uninstallPathsPort: UninstallPathsPort
   abstract val unsupportedScaffoldGateway: UnsupportedScaffoldGateway
   abstract val workflowService: WorkflowService

@@ -469,6 +469,7 @@ object PrincipleEnforcementInventory {
     "scaffoldCatalogGateway",
     "scaffoldGateway",
     "skillRemove",
+    "systemOneService",
     "systemService",
     "skillBillUpdateService",
     "skillBillUninstallService",

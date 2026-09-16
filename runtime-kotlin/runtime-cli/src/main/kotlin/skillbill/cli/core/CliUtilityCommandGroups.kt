@@ -14,6 +14,7 @@ import skillbill.cli.system.UninstallCommand
 import skillbill.cli.system.UpdateCheckCommand
 import skillbill.cli.system.UpdateCommand
 import skillbill.cli.system.VersionCommand
+import skillbill.cli.typesafe.TypeSafeTopLevelCommand
 import skillbill.cli.work.WorkTopLevelCommands
 import skillbill.cli.workflow.WorkflowTopLevelCommands
 @Inject
@@ -41,4 +42,5 @@ class MiscCliCommands(
   val configCommand: ConfigCommand,
   val workCommands: WorkTopLevelCommands,
   val agentAddonCommand: AgentAddonCommand,
+  val typeSafeTopLevelCommand: TypeSafeTopLevelCommand,
 )
