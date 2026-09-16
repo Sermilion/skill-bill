@@ -25,7 +25,7 @@ class CliRuntimeGoalStatsTest {
     assertEquals(0, result.exitCode)
     assertEquals("bill-goal-run", payload["workflow"])
     assertEquals(1, payload["total_runs"])
-    assertEquals(1.0, payload["blocked_rate"])
+    assertEquals(1.0, (payload["blocked_rate"] as Number).toDouble())
     assertEquals(dbPath.toAbsolutePath().normalize().toString(), payload["db_path"])
     assertEquals(1, (payload["top_blocked_subtasks"] as List<*>).size)
   }

@@ -1,9 +1,9 @@
 package skillbill.infrastructure.fs.phaseoutput
 
 import skillbill.contracts.JsonCodec
+import skillbill.error.FeatureTaskRuntimePhaseOutputFailureCode
 import skillbill.infrastructure.fs.FeatureTaskRuntimePhaseOutputValidatorAdapter
 import skillbill.workflow.taskruntime.envelopeWireMap
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputFailureCode
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputFormat
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairOperation
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputValidationResult

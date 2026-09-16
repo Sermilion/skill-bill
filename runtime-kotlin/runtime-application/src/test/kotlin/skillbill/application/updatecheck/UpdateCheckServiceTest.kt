@@ -99,6 +99,13 @@ class UpdateCheckServiceTest {
   }
 
   @Test
+  fun `whitespace formatted empty release arrays are not treated as malformed`() {
+    val result = service(responseBody = "[ ]").check(includePrereleases = false)
+    assertEquals(UpdateCheckStatus.UNKNOWN, result.status)
+    assertEquals("no GitHub releases returned", result.reason)
+  }
+
+  @Test
   fun `maps soft failures to unknown`() {
     assertEquals(UpdateCheckStatus.UNKNOWN, service(responseBody = "not-json").check(false).status)
     assertEquals(UpdateCheckStatus.UNKNOWN, service(responseBody = "[]").check(false).status)

@@ -70,7 +70,7 @@ data class DecompositionPlanningResult(
       if (mode != "decompose") {
         return DecompositionPlanningResult(mode = mode, subtasks = emptyList())
       }
-      val rawSubtasks = wireMap.listValue(DecompositionPlanningPayloadKeys.SUBTASKS)
+      val rawSubtasks = wireMap.listValue(DecompositionPlanningPayloadKeys.SUBTASKS, sourceLabel)
       if (rawSubtasks.isEmpty()) {
         invalidPlanning(sourceLabel, "decomposition planning result must contain at least one subtask.")
       }
@@ -136,7 +136,7 @@ private fun Map<String, Any?>.toPlanningSubtask(sourceLabel: String, index: Int)
 }
 
 private fun Map<String, Any?>.parseStackBranches(sourceLabel: String): List<DecompositionPlanningStackBranchWire> =
-  listValue(DecompositionPlanningPayloadKeys.STACK_BRANCHES).mapIndexed { index, raw ->
+  listValue(DecompositionPlanningPayloadKeys.STACK_BRANCHES, sourceLabel).mapIndexed { index, raw ->
     val item = raw.asMap(sourceLabel, "${DecompositionPlanningPayloadKeys.STACK_BRANCHES}[$index]")
     DecompositionPlanningStackBranchWire(
       subtaskId = item.intValue(
@@ -213,7 +213,13 @@ private fun Map<String, Any?>.booleanValueOrDefault(key: String, default: Boolea
     else -> invalidPlanning(sourceLabel, "$key must be a boolean.")
   }
 
-private fun Map<String, Any?>.listValue(key: String): List<Any?> = (this[key] as? List<*>).orEmpty()
+private fun Map<String, Any?>.listValue(key: String, sourceLabel: String): List<Any?> {
+  if (!containsKey(key) || this[key] == null) {
+    return emptyList()
+  }
+  return (this[key] as? List<*>)
+    ?: invalidPlanning(sourceLabel, "$key must be a list.")
+}
 
 private fun Any?.asMap(sourceLabel: String, fieldPath: String): Map<String, Any?> =
   (this as? Map<*, *>)?.entries?.associateTo(LinkedHashMap<String, Any?>()) { (key, value) ->

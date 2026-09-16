@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputFailureCode
+import skillbill.error.FeatureTaskRuntimePhaseOutputFailureCode
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputFormat
 import kotlin.coroutines.cancellation.CancellationException
 

@@ -199,6 +199,53 @@ class LifecycleTelemetryTruthfulnessTest {
   }
 
   @Test
+  fun `corrupt agent id arrays report incomplete availability instead of absent durable state`() {
+    val payload = featureTaskRuntimeFinishedPayload(
+      mapOf(
+        "session_id" to "ftr-truth",
+        "workflow_id" to RUNTIME_WORKFLOW_ID,
+        "issue_key" to ISSUE_KEY,
+        LifecycleTelemetryPayloadKeys.RESOLVED_AGENT_IDS to "{not-an-array}",
+        LifecycleTelemetryPayloadKeys.LAUNCHED_MODELS to "{not-an-array}",
+      ),
+      level = "full",
+      salt = "salt",
+    )
+    assertEquals(
+      TelemetryMeasurementAvailability.UNAVAILABLE_INCOMPLETE.wireValue,
+      payload[LifecycleTelemetryPayloadKeys.RESOLVED_AGENT_AVAILABILITY],
+    )
+    assertEquals(
+      TelemetryMeasurementAvailability.UNAVAILABLE_INCOMPLETE.wireValue,
+      payload[LifecycleTelemetryPayloadKeys.LAUNCHED_MODEL_AVAILABILITY],
+    )
+  }
+
+  @Test
+  fun `whitespace formatted empty agent and model arrays remain valid unavailable measurements`() {
+    val payload = featureTaskRuntimeFinishedPayload(
+      mapOf(
+        "session_id" to "ftr-whitespace",
+        "workflow_id" to RUNTIME_WORKFLOW_ID,
+        "issue_key" to ISSUE_KEY,
+        LifecycleTelemetryPayloadKeys.RESOLVED_AGENT_IDS to "[ ]",
+        LifecycleTelemetryPayloadKeys.LAUNCHED_MODELS to "[ ]",
+      ),
+      level = "full",
+      salt = "salt",
+    )
+
+    assertEquals(
+      TelemetryMeasurementAvailability.UNAVAILABLE_NO_DURABLE_STATE.wireValue,
+      payload[LifecycleTelemetryPayloadKeys.RESOLVED_AGENT_AVAILABILITY],
+    )
+    assertEquals(
+      TelemetryMeasurementAvailability.UNAVAILABLE_NO_DURABLE_STATE.wireValue,
+      payload[LifecycleTelemetryPayloadKeys.LAUNCHED_MODEL_AVAILABILITY],
+    )
+  }
+
+  @Test
   fun `a row written before the availability columns existed reports unknown and no value`() {
     withConnection { connection ->
       val store = LifecycleTelemetryStore(connection)

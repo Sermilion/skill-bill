@@ -7,9 +7,14 @@ import skillbill.contracts.telemetry.AUDIT_GAP_MEASUREMENT_GRAIN_PER_RUN
 import skillbill.contracts.telemetry.LifecycleSessionCompletion
 import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
 import skillbill.contracts.telemetry.TelemetryMeasurementAvailability
+import skillbill.error.ShellContentContractException
 import skillbill.review.normalizeRoutedSkill
 import skillbill.review.normalizeStackLabel
 import skillbill.telemetry.model.PrDescriptionGeneratedRecord
+import java.util.logging.Logger
+
+private val lifecycleTelemetryPayloadLog: Logger =
+  Logger.getLogger("skillbill.telemetry.lifecycle.payload")
 
 fun featureTaskRuntimeStartedPayload(row: Map<String, Any?>, level: String, salt: String): Map<String, Any?> =
   linkedMapOf<String, Any?>(
@@ -46,7 +51,10 @@ fun featureTaskRuntimeFinishedPayload(row: Map<String, Any?>, level: String, sal
   linkedMapOf<String, Any?>("session_id" to row.stringOrEmpty("session_id")).apply {
     putAll(correlationFields(row, level, salt))
     put("completion_status", row.stringOrEmpty("completion_status"))
-    put("completed_phase_ids", JsonCodec.parseArrayOrEmpty(row.stringOrEmpty("completed_phase_ids")))
+    put(
+      "completed_phase_ids",
+      parseStoredJsonArray(row.stringOrEmpty("completed_phase_ids"), "completed_phase_ids"),
+    )
     put("phase_outcomes", parsePhaseOutcomes(row.stringOrEmpty("phase_outcomes")))
     put("review_fix_iteration_count", row.intOrZero("review_fix_iteration_count"))
     put("finding_verification_verified_count", row.intOrZero("finding_verification_verified_count"))
@@ -106,23 +114,49 @@ private fun agentContextFields(row: Map<String, Any?>): Map<String, Any?> {
   return linkedMapOf(
     LifecycleTelemetryPayloadKeys.AGENT_CONTEXT_MEASUREMENT_GRAIN to AGENT_CONTEXT_MEASUREMENT_GRAIN_DISTINCT_PER_RUN,
     LifecycleTelemetryPayloadKeys.RESOLVED_AGENT_AVAILABILITY to agents.availability().wireValue,
-    LifecycleTelemetryPayloadKeys.RESOLVED_AGENT_IDS to agents,
+    LifecycleTelemetryPayloadKeys.RESOLVED_AGENT_IDS to agents.values.takeIf { it.isNotEmpty() },
     LifecycleTelemetryPayloadKeys.LAUNCHED_MODEL_AVAILABILITY to models.availability().wireValue,
-    LifecycleTelemetryPayloadKeys.LAUNCHED_MODELS to models,
+    LifecycleTelemetryPayloadKeys.LAUNCHED_MODELS to models.values.takeIf { it.isNotEmpty() },
   )
 }
 
-private fun Map<String, Any?>.nameList(name: String): List<Any?>? =
-  stringOrEmpty(name).takeIf(String::isNotBlank)?.let(JsonCodec::parseArrayOrEmpty)?.takeIf { it.isNotEmpty() }
+private data class ParsedNameList(val values: List<Any?>, val corrupt: Boolean)
 
-private fun List<Any?>?.availability(): TelemetryMeasurementAvailability = when (this) {
-  null -> TelemetryMeasurementAvailability.UNAVAILABLE_NO_DURABLE_STATE
+private fun Map<String, Any?>.nameList(name: String): ParsedNameList {
+  val raw = stringOrEmpty(name)
+  if (raw.isBlank()) {
+    return ParsedNameList(values = emptyList(), corrupt = false)
+  }
+  return try {
+    ParsedNameList(values = JsonCodec.parseJsonArrayStrict(raw.trim()), corrupt = false)
+  } catch (_: ShellContentContractException) {
+    ParsedNameList(values = emptyList(), corrupt = true)
+  }
+}
+
+private fun ParsedNameList.availability(): TelemetryMeasurementAvailability = when {
+  corrupt -> TelemetryMeasurementAvailability.UNAVAILABLE_INCOMPLETE
+  values.isEmpty() -> TelemetryMeasurementAvailability.UNAVAILABLE_NO_DURABLE_STATE
   else -> TelemetryMeasurementAvailability.MEASURED
 }
 
 private fun parsePhaseOutcomes(rawValue: String): Map<String, Any?> = JsonCodec.parseObjectOrNull(rawValue)
   ?.mapValues { (_, value) -> JsonCodec.jsonElementToValue(value) }
   .orEmpty()
+
+private fun parseStoredJsonArray(rawValue: String, fieldName: String): List<Any?> {
+  if (rawValue.isBlank()) {
+    return emptyList()
+  }
+  return try {
+    JsonCodec.parseJsonArrayStrict(rawValue.trim())
+  } catch (_: ShellContentContractException) {
+    lifecycleTelemetryPayloadLog.warning(
+      "skillbill telemetry: degraded malformed JSON array in $fieldName",
+    )
+    emptyList()
+  }
+}
 
 fun qualityCheckStartedPayload(row: Map<String, Any?>): Map<String, Any?> {
   val normalizedStack = normalizeStackLabel(row.stringOrEmpty("detected_stack"))
@@ -174,7 +208,10 @@ fun qualityCheckFinishedPayload(row: Map<String, Any?>, level: String): Map<Stri
     if (level == "full") {
       put(
         LifecycleTelemetryPayloadKeys.FAILING_CHECK_NAMES,
-        JsonCodec.parseArrayOrEmpty(row.stringOrEmpty(LifecycleTelemetryPayloadKeys.FAILING_CHECK_NAMES)),
+        parseStoredJsonArray(
+          row.stringOrEmpty(LifecycleTelemetryPayloadKeys.FAILING_CHECK_NAMES),
+          LifecycleTelemetryPayloadKeys.FAILING_CHECK_NAMES,
+        ),
       )
       put(
         LifecycleTelemetryPayloadKeys.UNSUPPORTED_REASON,
@@ -207,7 +244,10 @@ fun featureVerifyFinishedPayload(row: Map<String, Any?>, level: String): Map<Str
     put("history_helpfulness", row.stringOrEmpty("history_helpfulness").ifBlank { "none" })
     put("duration_seconds", durationSeconds(row))
     if (level == "full") {
-      put("gaps_found", JsonCodec.parseArrayOrEmpty(row.stringOrEmpty("gaps_found")))
+      put(
+        "gaps_found",
+        parseStoredJsonArray(row.stringOrEmpty("gaps_found"), "gaps_found"),
+      )
     }
   }
 

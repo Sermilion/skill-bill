@@ -1,10 +1,15 @@
 package skillbill.infrastructure.sqlite.review
 
 import skillbill.contracts.JsonCodec
+import skillbill.error.ShellContentContractException
 import java.sql.ResultSet
 import java.time.Duration
 import java.time.LocalDateTime
 import java.util.Locale
+import java.util.logging.Logger
+
+private val reviewStatsLog: Logger =
+  Logger.getLogger("skillbill.review.stats")
 
 fun rate(count: Int, total: Int): Double = if (total == 0) {
   0.0
@@ -18,8 +23,26 @@ fun average(values: List<Int>): Double = if (values.isEmpty()) {
   String.format(Locale.US, "%.2f", values.average()).toDouble()
 }
 
-fun parseJsonList(rawValue: Any?): List<Any?> =
-  if (rawValue is String) JsonCodec.parseArrayOrEmpty(rawValue) else emptyList()
+fun parseJsonList(rawValue: Any?): List<Any?> = when (rawValue) {
+  null -> emptyList()
+  is String -> {
+    val trimmed = rawValue.trim()
+    if (trimmed.isEmpty()) {
+      emptyList()
+    } else {
+      try {
+        JsonCodec.parseJsonArrayStrict(trimmed)
+      } catch (_: ShellContentContractException) {
+        reviewStatsLog.warning("skillbill review stats: degraded malformed JSON array")
+        emptyList()
+      }
+    }
+  }
+  else -> {
+    reviewStatsLog.warning("skillbill review stats: degraded non-text JSON array")
+    emptyList()
+  }
+}
 
 fun durationSeconds(row: Map<String, Any?>): Int {
   val startedAt = row.stringValue("started_at")

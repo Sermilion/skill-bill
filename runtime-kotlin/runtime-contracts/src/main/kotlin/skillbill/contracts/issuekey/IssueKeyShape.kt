@@ -1,6 +1,8 @@
 package skillbill.contracts.issuekey
 
-import org.yaml.snakeyaml.Yaml
+import skillbill.contracts.packaged.PackagedYamlMappingFailure
+import skillbill.contracts.packaged.loadPackagedYamlRootMapping
+import skillbill.contracts.packaged.packagedPositiveInt
 import skillbill.error.InvalidIssueKeySchemaError
 
 const val ISSUE_KEY_SCHEMA_ID: String = "https://skill-bill.dev/contracts/issue-key-schema.yaml"
@@ -64,9 +66,11 @@ object IssueKeyShape {
     )
   }
 
-  private fun loadRootMapping(document: String): Map<*, *> =
-    runCatching { Yaml().load<Any?>(document) }.getOrNull() as? Map<*, *>
-      ?: throw InvalidIssueKeySchemaError("issue-key schema is not a YAML mapping")
+  private fun loadRootMapping(document: String): Map<*, *> = try {
+    loadPackagedYamlRootMapping(document, "issue-key schema is not a YAML mapping")
+  } catch (_: PackagedYamlMappingFailure) {
+    throw InvalidIssueKeySchemaError("issue-key schema is not a YAML mapping")
+  }
 
   private fun requireSchemaIdAndType(root: Map<*, *>) {
     if (root["\$id"] != ISSUE_KEY_SCHEMA_ID) {
@@ -88,20 +92,16 @@ object IssueKeyShape {
     }
   }
 
-  private fun requiredPositiveInt(root: Map<*, *>, key: String): Int {
-    val value = root[key] as? Number
-      ?: throw InvalidIssueKeySchemaError("issue-key schema $key must be a positive integer")
-    val intValue = value.toInt()
-    if (intValue < 1) {
-      throw InvalidIssueKeySchemaError("issue-key schema $key must be a positive integer")
+  private fun requiredPositiveInt(root: Map<*, *>, key: String): Int =
+    root[key].packagedPositiveInt("issue-key schema $key") { message ->
+      throw InvalidIssueKeySchemaError(message)
     }
-    return intValue
-  }
 
   private val KNOWN_KEYS = setOf(
     "\$schema",
     "\$id",
     "title",
+    "description",
     "type",
     "minLength",
     "maxLength",

@@ -1,9 +1,9 @@
 package skillbill.infrastructure.fs.contracts.workflow
 
+import skillbill.error.FeatureTaskRuntimePhaseOutputFailureCode
 import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import skillbill.infrastructure.fs.FeatureTaskRuntimePhaseOutputValidatorAdapter
 import skillbill.workflow.taskruntime.envelopeWireMap
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputFailureCode
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputValidationResult
 import kotlin.test.Test
 import kotlin.test.assertContains
@@ -451,9 +451,12 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
         """"verdict":"remediation_required","produced_outputs":{"value":"- AC-002 still open"}}"""
     val normalized = FeatureTaskRuntimePhaseOutputSchemaValidator.normalizePhaseOutput(inventedVerdict, "audit")
     assertNull(normalized.envelopeWireMap()["verdict"])
-    assertEquals("- AC-002 still open", normalized.envelopeWireMap()["produced_outputs"].let {
-      (it as Map<*, *>)["value"]
-    })
+    assertEquals(
+      "- AC-002 still open",
+      normalized.envelopeWireMap()["produced_outputs"].let {
+        (it as Map<*, *>)["value"]
+      },
+    )
   }
 
   @Test

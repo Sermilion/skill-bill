@@ -2,7 +2,7 @@ package skillbill.infrastructure.fs.phaseoutput
 
 import com.fasterxml.jackson.databind.JsonNode
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputFailureCode
+import skillbill.error.FeatureTaskRuntimePhaseOutputFailureCode
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputFormat
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairEvidence
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairOperation

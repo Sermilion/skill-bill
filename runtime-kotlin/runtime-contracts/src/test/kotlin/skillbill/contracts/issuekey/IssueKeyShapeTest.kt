@@ -1,7 +1,9 @@
 package skillbill.contracts.issuekey
 
+import skillbill.error.InvalidIssueKeySchemaError
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -16,6 +18,31 @@ class IssueKeyShapeTest {
     assertEquals(parsed.maxLength, IssueKeyShape.maxLength)
     assertEquals(parsed.pattern, IssueKeyShape.jsonSchemaPattern)
     assertEquals(parsed.maxLength, MAX_ISSUE_KEY_LENGTH)
+  }
+
+  @Test
+  fun `schema loader rejects fractional maxLength values`() {
+    val document = IssueKeyShape::class.java.classLoader
+      .getResourceAsStream(IssueKeyShape.RESOURCE_PATH)
+      ?.use { stream -> stream.readBytes().decodeToString() }
+      ?.replace("maxLength: 128", "maxLength: 1.9")
+      ?: error("issue-key schema is missing from the classpath")
+    assertFailsWith<InvalidIssueKeySchemaError> {
+      IssueKeyShape.parse(document)
+    }
+  }
+
+  @Test
+  fun `schema loader rejects maxLength overflow instead of narrowing to Int`() {
+    val document = IssueKeyShape::class.java.classLoader
+      .getResourceAsStream(IssueKeyShape.RESOURCE_PATH)
+      ?.use { stream -> stream.readBytes().decodeToString() }
+      ?.replace("maxLength: 128", "maxLength: 4294967297")
+      ?: error("issue-key schema is missing from the classpath")
+
+    assertFailsWith<InvalidIssueKeySchemaError> {
+      IssueKeyShape.parse(document)
+    }
   }
 
   @Test
