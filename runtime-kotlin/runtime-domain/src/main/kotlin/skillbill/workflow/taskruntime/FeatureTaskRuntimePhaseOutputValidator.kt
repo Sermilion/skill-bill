@@ -2,7 +2,7 @@ package skillbill.workflow.taskruntime
 
 import skillbill.contracts.JsonCodec
 import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputFailureCode
+import skillbill.error.FeatureTaskRuntimePhaseOutputFailureCode
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputValidationResult
 import skillbill.workflow.taskruntime.model.NormalizedFeatureTaskRuntimePhaseOutput
 

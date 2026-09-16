@@ -6,9 +6,11 @@ import java.time.ZoneId
 import java.time.ZoneOffset
 
 object JvmSystemClock : Clock() {
+  private val liveUtc: Clock = Clock.tickMillis(ZoneOffset.UTC)
+
   override fun getZone(): ZoneId = ZoneOffset.UTC
 
-  override fun withZone(zone: ZoneId): Clock = fixed(instant(), zone)
+  override fun withZone(zone: ZoneId): Clock = liveUtc.withZone(zone)
 
-  override fun instant(): Instant = Instant.ofEpochMilli(System.currentTimeMillis())
+  override fun instant(): Instant = liveUtc.instant()
 }

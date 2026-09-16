@@ -6,7 +6,7 @@ import skillbill.error.FeatureTaskRuntimePhaseOutputFailureKind
 import skillbill.error.UnrecognizedFailureWireCodeError
 import skillbill.error.coarseFailureKindForPhaseOutputWireCode
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationFailureCode
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputFailureCode
+import skillbill.error.FeatureTaskRuntimePhaseOutputFailureCode
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

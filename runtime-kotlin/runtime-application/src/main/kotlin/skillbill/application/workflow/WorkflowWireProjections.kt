@@ -3,7 +3,6 @@ package skillbill.application.workflow
 import skillbill.contracts.JsonPayloadContract
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
-import skillbill.contracts.workflow.WorkflowContracts
 import skillbill.contracts.workflow.WorkflowWirePayloadKeys
 import skillbill.workflow.engine.model.WorkflowCompactContinueView
 import skillbill.workflow.engine.model.WorkflowContinuationArtifactSummary
@@ -17,76 +16,56 @@ import skillbill.workflow.engine.model.WorkflowUpdateAcknowledgementView
 
 object WorkflowWireProjections {
   fun snapshotMap(view: WorkflowSnapshotView): JsonPayloadContract = payload(
-    WorkflowContracts.fullWorkflowPayload(
-      linkedMapOf(
-        SharedPayloadKeys.WORKFLOW_ID to view.workflowId,
-        WorkflowWirePayloadKeys.SESSION_ID to view.sessionId,
-        WorkflowWirePayloadKeys.WORKFLOW_NAME to view.workflowName,
-        WorkflowWirePayloadKeys.MODE to view.mode,
-        SharedPayloadKeys.CONTRACT_VERSION to view.contractVersion,
-        WorkflowWirePayloadKeys.WORKFLOW_STATUS to view.workflowStatus,
-        WorkflowWirePayloadKeys.CURRENT_STEP_ID to view.currentStepId,
-        WorkflowWirePayloadKeys.STEPS to view.steps.map(::workflowStepWireMap),
-        WorkflowWirePayloadKeys.ARTIFACTS to view.artifacts.toMap(),
-        WorkflowWirePayloadKeys.STARTED_AT to view.startedAt,
-        WorkflowWirePayloadKeys.UPDATED_AT to view.updatedAt,
-        WorkflowWirePayloadKeys.FINISHED_AT to view.finishedAt,
-      ),
-    ),
+    linkedMapOf<String, Any?>().apply {
+      putSnapshotFields(view)
+      removeModeWhenNull(view.mode)
+    },
   )
 
   fun summaryMap(view: WorkflowSummaryView): JsonPayloadContract = payload(
-    WorkflowContracts.summaryWorkflowPayload(
-      linkedMapOf(
-        SharedPayloadKeys.WORKFLOW_ID to view.workflowId,
-        WorkflowWirePayloadKeys.SESSION_ID to view.sessionId,
-        WorkflowWirePayloadKeys.WORKFLOW_NAME to view.workflowName,
-        WorkflowWirePayloadKeys.MODE to view.mode,
-        SharedPayloadKeys.CONTRACT_VERSION to view.contractVersion,
-        WorkflowWirePayloadKeys.WORKFLOW_STATUS to view.workflowStatus,
-        WorkflowWirePayloadKeys.CURRENT_STEP_ID to view.currentStepId,
-        WorkflowWirePayloadKeys.STARTED_AT to view.startedAt,
-        WorkflowWirePayloadKeys.UPDATED_AT to view.updatedAt,
-        WorkflowWirePayloadKeys.FINISHED_AT to view.finishedAt,
-      ),
-    ),
+    linkedMapOf<String, Any?>().apply {
+      put(SharedPayloadKeys.WORKFLOW_ID, view.workflowId)
+      put(WorkflowWirePayloadKeys.SESSION_ID, view.sessionId)
+      put(WorkflowWirePayloadKeys.WORKFLOW_NAME, view.workflowName)
+      put(WorkflowWirePayloadKeys.MODE, view.mode)
+      put(SharedPayloadKeys.CONTRACT_VERSION, view.contractVersion)
+      put(WorkflowWirePayloadKeys.WORKFLOW_STATUS, view.workflowStatus)
+      put(WorkflowWirePayloadKeys.CURRENT_STEP_ID, view.currentStepId)
+      put(WorkflowWirePayloadKeys.STARTED_AT, view.startedAt)
+      put(WorkflowWirePayloadKeys.UPDATED_AT, view.updatedAt)
+      put(WorkflowWirePayloadKeys.FINISHED_AT, view.finishedAt)
+      removeModeWhenNull(view.mode)
+    },
   )
 
   fun resumeMap(view: WorkflowResumeView): JsonPayloadContract = payload(
-    WorkflowContracts.resumePayload(
-      snapshotMap(view.snapshot).toPayload(),
-      linkedMapOf(
-        WorkflowWirePayloadKeys.RESUME_MODE to view.resumeMode.wireValue,
-        WorkflowWirePayloadKeys.RESUME_STEP_ID to view.resumeStepId,
-        WorkflowWirePayloadKeys.LAST_COMPLETED_STEP_ID to view.lastCompletedStepId,
-        WorkflowWirePayloadKeys.AVAILABLE_ARTIFACTS to view.availableArtifacts,
-        WorkflowWirePayloadKeys.REQUIRED_ARTIFACTS to view.requiredArtifacts,
-        WorkflowWirePayloadKeys.MISSING_ARTIFACTS to view.missingArtifacts,
-        WorkflowWirePayloadKeys.CAN_RESUME to view.canResume,
-        WorkflowWirePayloadKeys.NEXT_ACTION to view.nextAction,
-      ),
-    ),
+    linkedMapOf<String, Any?>().apply {
+      putSnapshotFields(view.snapshot)
+      removeModeWhenNull(view.snapshot.mode)
+      putResumeFields(view)
+    },
   )
 
   fun continueMap(view: WorkflowContinueView): JsonPayloadContract = payload(
-    WorkflowContracts.continuePayload(
-      resumeMap(view.resume).toPayload(),
-      linkedMapOf(
-        WorkflowWirePayloadKeys.SKILL_NAME to view.skillName,
-        WorkflowWirePayloadKeys.WORKFLOW_STATUS_BEFORE_CONTINUE to view.workflowStatusBeforeContinue,
-        WorkflowWirePayloadKeys.CONTINUE_STATUS to view.continueStatus.wireValue,
-        WorkflowWirePayloadKeys.CONTINUE_STEP_ID to view.continueStepId,
-        WorkflowWirePayloadKeys.CONTINUE_STEP_LABEL to view.continueStepLabel,
-        WorkflowWirePayloadKeys.CONTINUE_STEP_DIRECTIVE to view.continueStepDirective,
-        WorkflowWirePayloadKeys.REFERENCE_SECTIONS to view.referenceSections,
-        WorkflowWirePayloadKeys.STEP_ARTIFACT_KEYS to view.stepArtifactKeys,
-        WorkflowWirePayloadKeys.STEP_ARTIFACTS to view.stepArtifacts.toMap(),
-        WorkflowWirePayloadKeys.SESSION_SUMMARY to view.sessionSummary.toPayload(),
-        WorkflowWirePayloadKeys.CONTINUATION_BRIEF to view.continuationBrief,
-        WorkflowWirePayloadKeys.CONTINUATION_ENTRY_PROMPT to view.continuationEntryPrompt,
-        WorkflowWirePayloadKeys.EXTRA_FIELDS to view.extraFields.toMap(),
-      ),
-    ),
+    linkedMapOf<String, Any?>().apply {
+      putSnapshotFields(view.resume.snapshot)
+      removeModeWhenNull(view.resume.snapshot.mode)
+      putResumeFields(view.resume)
+      put(WorkflowWirePayloadKeys.SKILL_NAME, view.skillName)
+      put(WorkflowWirePayloadKeys.CONTINUATION_MODE, "resume_existing_workflow")
+      put(WorkflowWirePayloadKeys.WORKFLOW_STATUS_BEFORE_CONTINUE, view.workflowStatusBeforeContinue)
+      put(WorkflowWirePayloadKeys.CONTINUE_STATUS, view.continueStatus.wireValue)
+      put(WorkflowWirePayloadKeys.CONTINUE_STEP_ID, view.continueStepId)
+      put(WorkflowWirePayloadKeys.CONTINUE_STEP_LABEL, view.continueStepLabel)
+      put(WorkflowWirePayloadKeys.CONTINUE_STEP_DIRECTIVE, view.continueStepDirective)
+      put(WorkflowWirePayloadKeys.REFERENCE_SECTIONS, view.referenceSections)
+      put(WorkflowWirePayloadKeys.STEP_ARTIFACT_KEYS, view.stepArtifactKeys)
+      put(WorkflowWirePayloadKeys.STEP_ARTIFACTS, view.stepArtifacts.toMap())
+      view.extraFields.forEach { (key, value) -> put(key, value) }
+      put(WorkflowWirePayloadKeys.SESSION_SUMMARY, view.sessionSummary.toPayload())
+      put(WorkflowWirePayloadKeys.CONTINUATION_BRIEF, view.continuationBrief)
+      put(WorkflowWirePayloadKeys.CONTINUATION_ENTRY_PROMPT, view.continuationEntryPrompt)
+    },
   )
 
   fun compactContinueMap(view: WorkflowCompactContinueView): JsonPayloadContract = payload(
@@ -141,6 +120,38 @@ object WorkflowWireProjections {
   )
 
   private fun payload(map: Map<String, Any?>): JsonPayloadContract = WorkflowWirePayload(map)
+
+  private fun MutableMap<String, Any?>.putSnapshotFields(view: WorkflowSnapshotView) {
+    put(SharedPayloadKeys.WORKFLOW_ID, view.workflowId)
+    put(WorkflowWirePayloadKeys.SESSION_ID, view.sessionId)
+    put(WorkflowWirePayloadKeys.WORKFLOW_NAME, view.workflowName)
+    put(WorkflowWirePayloadKeys.MODE, view.mode)
+    put(SharedPayloadKeys.CONTRACT_VERSION, view.contractVersion)
+    put(WorkflowWirePayloadKeys.WORKFLOW_STATUS, view.workflowStatus)
+    put(WorkflowWirePayloadKeys.CURRENT_STEP_ID, view.currentStepId)
+    put(WorkflowWirePayloadKeys.STEPS, view.steps.map(::workflowStepWireMap))
+    put(WorkflowWirePayloadKeys.ARTIFACTS, view.artifacts.toMap())
+    put(WorkflowWirePayloadKeys.STARTED_AT, view.startedAt)
+    put(WorkflowWirePayloadKeys.UPDATED_AT, view.updatedAt)
+    put(WorkflowWirePayloadKeys.FINISHED_AT, view.finishedAt)
+  }
+
+  private fun MutableMap<String, Any?>.putResumeFields(view: WorkflowResumeView) {
+    put(WorkflowWirePayloadKeys.RESUME_MODE, view.resumeMode.wireValue)
+    put(WorkflowWirePayloadKeys.RESUME_STEP_ID, view.resumeStepId)
+    put(WorkflowWirePayloadKeys.LAST_COMPLETED_STEP_ID, view.lastCompletedStepId)
+    put(WorkflowWirePayloadKeys.AVAILABLE_ARTIFACTS, view.availableArtifacts)
+    put(WorkflowWirePayloadKeys.REQUIRED_ARTIFACTS, view.requiredArtifacts)
+    put(WorkflowWirePayloadKeys.MISSING_ARTIFACTS, view.missingArtifacts)
+    put(WorkflowWirePayloadKeys.CAN_RESUME, view.canResume)
+    put(WorkflowWirePayloadKeys.NEXT_ACTION, view.nextAction)
+  }
+
+  private fun MutableMap<String, Any?>.removeModeWhenNull(mode: String?) {
+    if (mode == null) {
+      remove(WorkflowWirePayloadKeys.MODE)
+    }
+  }
 }
 
 private fun artifactSummaryMap(summary: WorkflowContinuationArtifactSummary): Map<String, Any?> = linkedMapOf(

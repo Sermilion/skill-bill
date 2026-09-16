@@ -20,6 +20,7 @@ object WorkflowWirePayloadKeys {
   const val CAN_RESUME: String = "can_resume"
   const val NEXT_ACTION: String = "next_action"
   const val SKILL_NAME: String = "skill_name"
+  const val CONTINUATION_MODE: String = "continuation_mode"
   const val WORKFLOW_STATUS_BEFORE_CONTINUE: String = "workflow_status_before_continue"
   const val CONTINUE_STATUS: String = "continue_status"
   const val CONTINUE_STEP_ID: String = "continue_step_id"

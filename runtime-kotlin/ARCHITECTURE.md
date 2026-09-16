@@ -268,8 +268,12 @@ runtime-core
   `skillbill.error` runtime exception taxonomy. It no longer owns the JSON-Schema
   validators or their schema-resource copy tasks; those moved to
   `runtime-infra-fs` (see below). It also owns `skillbill.contracts.time.JvmSystemClock`,
-  the single ambient wall-clock seam, which cannot live in `runtime-domain` because
-  domain effect purity forbids `System.currentTimeMillis`.
+  the single ambient wall-clock seam (UTC default zone, millisecond precision, and live
+  JDK-clock delegation in `instant()` and `withZone`), which
+  cannot live in `runtime-domain` because domain effect purity forbids ambient time reads.
+  `skillbill.error.FeatureTaskRuntimePhaseOutputFailureCode` owns the eleven
+  phase-output failure wire tokens and their coarse `FeatureTaskRuntimePhaseOutputFailureKind`
+  mapping; `coarseFailureKindForPhaseOutputWireCode` delegates to that enum.
 - `runtime-domain`: pure agent-add-on, learning, review, telemetry, workflow,
   install-plan, scaffold, and skill-remove models/rules. Public domain data
   types live in area-owned `model` packages, including the
@@ -775,7 +779,8 @@ skillbill.workflow.verify
   `runtime-contracts`. The JVM JSON-Schema validators, their typed schema
   errors, and their classpath-resource copy tasks live in `runtime-infra-fs`,
   reached only through the domain-neutral ports `InstallPlanWireValidator`,
-  `DecompositionManifestValidator`, and `WorkflowSnapshotValidator`.
+  `DecompositionManifestValidator`, and `WorkflowSnapshotValidator`. Validator modules
+  load schema resources from the infra-fs classpath copy tasks, not from `runtime-contracts`.
 - Workflow-state schema validation is owned by
   `skillbill.infrastructure.fs.contracts.workflow.WorkflowStateSchemaValidator`, compiled into
   `runtime-infra-fs`. The runtime-domain workflow engine MUST NOT import that
@@ -798,10 +803,10 @@ skillbill.workflow.verify
   stdlib-typed `parseValue` / `valueToJsonString` facade that keeps
   `kotlinx.serialization` out of `runtime-domain` — the `*_CONTRACT_VERSION`
   constants, `InstallPlanSchemaPaths`, and the typed
-  `InvalidWorkflowStateSchemaError` / `MalformedJsonTextError`. The
-  `WorkflowContracts` ordering helper is no longer reachable from
-  `runtime-domain`; it moved with the wire maps to
-  `skillbill.application.workflow.WorkflowWireProjections`.)
+  `InvalidWorkflowStateSchemaError` / `MalformedJsonTextError`. Workflow wire payloads are
+  built once in `skillbill.application.workflow.WorkflowWireProjections` using
+  `WorkflowWirePayloadKeys` and `SharedPayloadKeys`; there is no contracts-module
+  ordering helper on that path.)
 - Install-plan schema validation is owned by
   `skillbill.infrastructure.fs.contracts.install.InstallPlanSchemaValidator`, compiled into
   `runtime-infra-fs` and reached through the domain-owned port
@@ -1407,7 +1412,10 @@ source. A port whose absence a production call site actually reaches is
 nullable, and the reached site names its fallback (`?: JdkHttpRequester`,
 `?: git`) or returns the absent answer. The substitutes that tests still need
 live in the owning module's `src/testFixtures` under their original packages,
-so they are unreachable from a published runtime.
+so they are unreachable from a published runtime. The former
+`RecordingNullObjectDiagnostics` global bind was removed under SKILL-233 (see
+`runtime-kotlin/agent/decisions.md`); SKILL-349 deletes the leftover contracts-module
+declaration with no replacement recorder.
 
 `RuntimeContractModuleImportRulesTest` pins the two inward layers: `runtime-ports`
 declares interfaces and DTOs and imports no adapter machinery
