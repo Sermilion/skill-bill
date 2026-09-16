@@ -8,6 +8,7 @@ import skillbill.application.review.model.CodeReviewExecutionMode
 import skillbill.cli.kernel.parseAgentAddonSelection
 import skillbill.cli.kernel.refuseUnavailableAgentLaunchers
 import skillbill.cli.kernel.refuseUnsupportedModelDirectives
+import skillbill.cli.kernel.resolveCliRepositoryRoot
 import skillbill.engine.featuretask.FeatureTaskRuntimeAgentResolver
 import skillbill.engine.featuretask.FeatureTaskRuntimeModelResolver
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeAgentAssignment
@@ -22,9 +23,12 @@ import java.nio.file.Path
 
 internal fun FeatureTaskRuntimePhaseAgentCommand.prepareRuntimeRun(
   deps: FeatureTaskRuntimeRunDependencies,
+  resolvedRepoRoot: Path = resolveCliRepositoryRoot(repoRoot, deps.inputs),
 ): PreparedRuntimeRun {
   val environment = deps.inputs.environment
-  val repoRoot = repoRoot?.let(Path::of) ?: deps.inputs.repositoryRoot
+  val requestedReviewMode = requestedCodeReviewMode()
+  val goalContinuation = parseGoalContinuationContext(requestedReviewMode, environment)
+  val operatorDecision = requestedOperatorDecision()
   val invokedAgentId = resolveInvokedRuntimeAgentId(agent, environment)
   val phaseAgentMap = parsePhaseAgents(phaseAgents).toMutableMap()
   val agentAssignment = FeatureTaskRuntimeAgentAssignment(
@@ -62,12 +66,15 @@ internal fun FeatureTaskRuntimePhaseAgentCommand.prepareRuntimeRun(
     )
   }
   return PreparedRuntimeRun(
-    repoRoot,
+    resolvedRepoRoot,
     invokedAgentId,
     agentAssignment,
     modelAssignment,
     compactionSettings,
     hydratedSelection,
+    requestedReviewMode,
+    goalContinuation,
+    operatorDecision,
   )
 }
 

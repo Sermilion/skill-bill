@@ -6,8 +6,10 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import skillbill.cli.core.CliRuntime
+import skillbill.cli.kernel.CliRunState
 import skillbill.cli.model.CliExecutionResult
 import skillbill.cli.model.CliRuntimeContext
+import skillbill.cli.scaffold.readCliTextFile
 import skillbill.contracts.JsonCodec
 import java.nio.file.Files
 import java.nio.file.Path
@@ -18,6 +20,28 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class CliScaffoldRuntimeTest {
+  @Test
+  fun `attached payload stdin form is consumed after parsing`() {
+    val tempDir = Files.createTempDirectory("skillbill-cli-scaffold-payload-stdin")
+    val result = CliRuntime.run(
+      listOf("new-skill", "--payload=-", "--dry-run", "--format", "json"),
+      CliRuntimeContext(
+        userHome = tempDir,
+        stdinText = """{"scaffold_payload_version":"1.0","kind":"horizontal","name":"bill-payload-stdin"}""",
+      ),
+    )
+
+    assertEquals(0, result.exitCode, result.stdout)
+    assertContains(result.stdout, "bill-payload-stdin")
+  }
+
+  @Test
+  fun `dash body input preserves authored line endings`() {
+    val body = "first\r\nsecond\r\n"
+
+    assertEquals(body, readCliTextFile("-", CliRunState(body)))
+  }
+
   @Test
   fun `new skill and new alias share the scaffold payload contract`() {
     val tempDir = Files.createTempDirectory("skillbill-cli-scaffold-new")

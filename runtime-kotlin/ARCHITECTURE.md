@@ -566,6 +566,38 @@ four drain-join windows for the two streams; stdin and process-stream closes
 occur in the existing ordered cleanup path and are not used as a total bound
 for a live drain worker.
 
+### Installer update fetch and process I/O (SKILL-348 subtask 1)
+
+`SkillBillUpdateService` in runtime-application owns update planning, release
+skip/check_failed handling, installer script fetch, and post-download execution.
+It downloads `install.sh` through `InstallerScriptFetchPort` (production adapter
+`HttpInstallerScriptFetchAdapter` in runtime-infra-http) and only calls
+`InstallerProcessPort` after a complete 2xx body is persisted. Failed or
+interrupted fetch deletes partial staging bytes and never executes a script path.
+The fetch port owns its temporary staging directory and removes it after the
+installer process settles.
+
+`InstallerProcessAdapter` in runtime-infra-fs starts an argv vector with an
+explicit environment map, closes child stdin immediately after start, captures
+merged stdout/stderr with a 1 MiB cap and `INSTALLER_OUTPUT_TRUNCATION_SENTINEL`,
+and applies `DEFAULT_INSTALLER_PROCESS_DEADLINE_SECONDS` (600s) from the request
+object. Tests inject shorter deadlines through that field; the CLI exposes no
+public timeout flag. Post-failure teardown uses `GIT_PROCESS_CLEANUP_BUDGET_SECONDS`
+(5s), `destroyOwnedProcessTree`, and `DESTROY_WAIT_TIMEOUT_MILLIS` (1s) over the
+owned process handle and its descendants only. `RuntimeInstallerProvides` wires
+production adapters from `RuntimeComponent`; `OptionalCallbacks` supplies test
+substitutes for both ports.
+
+`SkillBillUninstallService` owns uninstall plan construction and mutation
+sequencing; the CLI keeps confirmation, dry-run rendering, and goal-continuation
+refusal. Cooperative cancellation and interruption rethrow at each mutation seam
+before later agent, MCP, launcher, desktop, or state-root work continues.
+
+Checked CLI scope for this subtask: command-area import isolation plus a
+production-source ban on `ProcessBuilder` under `skillbill.cli`, enforced by
+`RuntimeCliAreaIsolationArchitectureTest` and the ProcessBuilder scan beside it.
+This is not a universal SOLID certification claim.
+
 ### Git workflow process I/O (SKILL-248 subtask 2)
 
 `runGitProcess` in runtime-infra-fs delegates to `invokeGitProcess`, which
@@ -1294,6 +1326,14 @@ never a sibling command area and never the composition root
 `skillbill.cli.core`. A cycle baseline can be emptied by moving a single import
 even when the areas stay entangled through one-directional hub edges, so the
 closure assertion is the guard that any command area builds and tests alone.
+`RuntimeCliAreaIsolationArchitectureTest` also rejects `featuretask` production
+sources that construct `RejectedOutputDiagnosticService` or call
+`unitOfWork.diagnosticService`; rejected-output CLI routes through
+`RejectedOutputDiagnosticCliSession` in `runtime-application` instead. The
+scanner does not treat Clikt `.default(".")` on `--repo-root` as equivalent to
+`Path.of("")`; omitted roots resolve through `resolveCliRepositoryRoot` and
+`CliRunInputs.repositoryRoot`.
+
 The scan enumerates every area it finds under `skillbill.cli` and exempts one
 name, `CLI_COMPOSITION_ROOT_AREA`; probing a single hand-picked area would let a
 one-directional edge such as `goal -> featuretask` pass both guards.

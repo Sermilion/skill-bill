@@ -1,3 +1,13 @@
+## [2026-09-16] SKILL-348 subtask 1 — Own update and uninstall execution
+Areas: runtime-kotlin/{runtime-application/{updatecheck,uninstall},runtime-cli/{core,model,system},runtime-ports/process,runtime-infra-{fs,http},runtime-core/di}, runtime-kotlin/ARCHITECTURE.md
+- Update execution now downloads the installer fully before bounded process execution; download and installer failures preserve nonzero outcomes and bounded output.
+- Installer execution owns stdin EOF, stream drains, child settlement, interruption, deadlines, and cleanup without replacing the primary failure.
+- Uninstall planning and mutation policy now live in one application operation; cancellation stops later mutations while recoverable target failures remain explicit degradations.
+- The CLI retains parsing, confirmation, dry-run, and typed rendering; runtime-core wires the installer ports and infrastructure adapters. reusable
+- Limitation: filesystem and configuration mutations remain best-effort rather than transactional; no general process-runner rewrite was introduced.
+Feature flag: N/A
+Acceptance criteria: 8/8 implemented (validate phase owns pack gate)
+
 ## [2026-09-15] SKILL-247 subtask 2 — Preserve evidence through failed cleanup
 Areas: runtime-kotlin/{runtime-infra-sqlite/{sqlite,core},runtime-infra-fs/launcher/process}, runtime-kotlin/ARCHITECTURE.md, runtime-kotlin/{runtime-infra-fs tests,runtime-infra-sqlite tests}
 - SQLite read, write, and immediate transactions now preserve the body or commit failure as primary, attach rollback failure as suppressed evidence, and emit only bounded rollback diagnostics; snapshot and BEGIN modes stay unchanged.

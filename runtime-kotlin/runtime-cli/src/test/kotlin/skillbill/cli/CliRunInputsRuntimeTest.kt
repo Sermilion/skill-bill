@@ -12,6 +12,51 @@ import kotlin.test.assertTrue
 
 class CliRunInputsRuntimeTest {
   @Test
+  fun `omitted repository root resolves from the embedding invocation`() {
+    val repoRoot = Files.createTempDirectory("skillbill-cli-config-injected-root")
+    Files.createDirectories(repoRoot.resolve(".skill-bill"))
+    Files.writeString(repoRoot.resolve(".skill-bill/config.yaml"), "spec_type: linear\n")
+
+    val result = CliRuntime.run(
+      listOf("config", "resolve-spec-type"),
+      CliRuntimeContext(
+        repositoryRoot = repoRoot,
+        userHome = repoRoot,
+        environment = emptyMap(),
+      ),
+    )
+
+    assertEquals(0, result.exitCode, result.stdout)
+    assertEquals("linear", result.stdout.trim())
+  }
+
+  @Test
+  fun `relative explicit repository root resolves against the process directory`() {
+    val embeddingRoot = Files.createTempDirectory("skillbill-cli-relative-embedding")
+    val processRoot = Path.of("").toAbsolutePath().normalize()
+    val relativeRoot = processRoot.resolve("build/skillbill-cli-relative-root-${System.nanoTime()}")
+    Files.createDirectories(relativeRoot.resolve(".skill-bill"))
+    Files.writeString(relativeRoot.resolve(".skill-bill/config.yaml"), "spec_type: linear\n")
+
+    try {
+      val relativePath = processRoot.relativize(relativeRoot).toString()
+      val result = CliRuntime.run(
+        listOf("config", "resolve-spec-type", "--repo-root", relativePath),
+        CliRuntimeContext(
+          repositoryRoot = embeddingRoot,
+          userHome = embeddingRoot,
+          environment = emptyMap(),
+        ),
+      )
+
+      assertEquals(0, result.exitCode, result.stdout)
+      assertEquals("linear", result.stdout.trim())
+    } finally {
+      relativeRoot.toFile().deleteRecursively()
+    }
+  }
+
+  @Test
   fun `--home beats the embedding context for an adapter-resolved path in both option forms`() {
     val contextHome = Files.createTempDirectory("skillbill-cli-context-home")
     val selectedHome = Files.createTempDirectory("skillbill-cli-selected-home")

@@ -1,6 +1,6 @@
 package skillbill.cli.scaffold
 
-import skillbill.cli.model.CliRunInputs
+import skillbill.cli.kernel.CliRunState
 import skillbill.contracts.JsonCodec
 import java.nio.file.Path
 import java.time.Clock
@@ -8,10 +8,10 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 
-internal fun createAndFillContentPayload(body: String?, bodyFile: String?, inputs: CliRunInputs): Map<String, String> {
+internal fun createAndFillContentPayload(body: String?, bodyFile: String?, state: CliRunState): Map<String, String> {
   val contentBody =
     body ?: bodyFile?.let { path ->
-      readCliTextFile(path, inputs)
+      readCliTextFile(path, state)
     }
   return if (contentBody == null) emptyMap() else mapOf("content_body" to contentBody)
 }
@@ -20,13 +20,13 @@ internal fun createAndFillScaffoldPayload(
   scaffoldPayload: Map<String, *>,
   body: String?,
   bodyFile: String?,
-  inputs: CliRunInputs,
+  state: CliRunState,
 ): Map<String, *> {
   val kind = scaffoldPayload["kind"]?.toString().orEmpty()
   require(kind !in setOf("platform-pack", "add-on")) {
     "create-and-fill can only scaffold one content-managed skill; kind '$kind' is not supported."
   }
-  return scaffoldPayload + createAndFillContentPayload(body, bodyFile, inputs)
+  return scaffoldPayload + createAndFillContentPayload(body, bodyFile, state)
 }
 
 internal fun newAddonPayload(args: NewAddonPayloadArgs): Map<String, Any> = buildMap {
@@ -34,7 +34,7 @@ internal fun newAddonPayload(args: NewAddonPayloadArgs): Map<String, Any> = buil
   put("kind", "add-on")
   put("platform", args.platform.orEmpty())
   put("name", args.name.orEmpty())
-  (args.body ?: args.bodyFile?.let { path -> readCliTextFile(path, args.inputs) })
+  (args.body ?: args.bodyFile?.let { path -> readCliTextFile(path, args.state) })
     ?.let { addonBody -> put("body", addonBody) }
   args.addonLocationPath?.takeIf { it.isNotBlank() }?.let { path -> put("addon_location_path", path) }
   if (args.consumerSkillDirs.isNotEmpty()) {
@@ -42,19 +42,19 @@ internal fun newAddonPayload(args: NewAddonPayloadArgs): Map<String, Any> = buil
   }
 }
 
-internal fun readCliTextFile(path: String, inputs: CliRunInputs): String =
-  if (path == "-") inputs.stdinText.orEmpty() else Path.of(path).toFile().readText()
+internal fun readCliTextFile(path: String, state: CliRunState): String =
+  if (path == "-") state.wholeStdinText() else Path.of(path).toFile().readText()
 
-internal fun readScaffoldPayload(payloadPath: String?, inputs: CliRunInputs): Map<String, Any?> {
-  val payloadText = readScaffoldPayloadText(payloadPath, inputs)
+internal fun readScaffoldPayload(payloadPath: String?, state: CliRunState): Map<String, Any?> {
+  val payloadText = readScaffoldPayloadText(payloadPath, state)
   val payload = parseScaffoldPayloadObject(payloadText).toMutableMap()
   payload["scaffold_payload_version"] = payload["scaffold_payload_version"]?.toString()
   return payload
 }
 
-internal fun readScaffoldPayloadText(payloadPath: String?, inputs: CliRunInputs): String = when {
+internal fun readScaffoldPayloadText(payloadPath: String?, state: CliRunState): String = when {
   payloadPath == null -> throw IllegalArgumentException("--payload is required for this command.")
-  payloadPath == "-" -> inputs.stdinText.orEmpty()
+  payloadPath == "-" -> state.wholeStdinText()
   else -> Path.of(payloadPath).toFile().readText()
 }
 

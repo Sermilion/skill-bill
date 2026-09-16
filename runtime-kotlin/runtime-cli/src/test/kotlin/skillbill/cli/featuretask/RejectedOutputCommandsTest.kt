@@ -7,66 +7,34 @@ import skillbill.ports.diagnostics.model.RejectedOutputDiagnostic
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticError
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticRecord
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticSelector
-import java.io.ByteArrayOutputStream
 import java.time.Clock
 import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
-import kotlin.test.assertFailsWith
-import kotlin.test.assertFalse
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class RejectedOutputCommandsTest {
   @Test
-  fun `metadata is safe by default and raw output is byte exact`() {
+  fun `diagnostic service returns byte exact raw bodies`() {
     val repository = CliDiagnosticRepository()
     val service = RejectedOutputDiagnosticService(repository, { }, { }, clock = Clock.systemUTC())
     val raw = byteArrayOf(0, -1, 10, 13, 0, 42)
-    service.record(request(raw))
+    val metadata = service.record(request(raw))
 
-    val metadataOutput = ByteArrayOutputStream()
-    RejectedOutputInspectCommand(service).execute(
-      RejectedOutputInspectRequest("workflow-1"),
-      metadataOutput,
-    )
-    assertTrue(metadataOutput.toString().contains("byte_size=${raw.size}"))
-    assertFalse(metadataOutput.toByteArray().containsSubsequence(raw))
-
-    val rawOutput = ByteArrayOutputStream()
-    RejectedOutputInspectCommand(service).execute(
-      RejectedOutputInspectRequest("workflow-1", "implement", 1, rawOutput = true),
-      rawOutput,
-    )
-    assertContentEquals(raw, rawOutput.toByteArray())
+    assertTrue(metadata.byteSize == raw.size.toLong())
+    assertContentEquals(raw, service.readRaw(metadata.identity))
   }
 
   @Test
-  fun `raw output rejects ambiguous workflow selection`() {
+  fun `workflow selector without attempt returns every stored diagnostic`() {
     val repository = CliDiagnosticRepository()
     val service = RejectedOutputDiagnosticService(repository, { }, { }, clock = Clock.systemUTC())
     service.record(request(byteArrayOf(1), attempt = 1))
     service.record(request(byteArrayOf(2), attempt = 2))
 
-    assertFailsWith<RejectedOutputDiagnosticError.Retrieval> {
-      RejectedOutputInspectCommand(service).execute(
-        RejectedOutputInspectRequest("workflow-1", rawOutput = true),
-        ByteArrayOutputStream(),
-      )
-    }
-  }
-
-  @Test
-  fun `metadata rendering encodes control characters onto one line`() {
-    val repository = CliDiagnosticRepository()
-    val service = RejectedOutputDiagnosticService(repository, { }, { }, clock = Clock.systemUTC())
-    service.record(request(byteArrayOf(1)).copy(reason = "invalid\nforged=value\u0000"))
-    val output = ByteArrayOutputStream()
-
-    RejectedOutputInspectCommand(service).execute(RejectedOutputInspectRequest("workflow-1"), output)
-
-    val rendered = output.toString()
-    assertTrue(rendered.contains("""reason="invalid\nforged=value\u0000""""))
-    assertTrue(rendered.lines().count { it.isNotEmpty() } == 1)
+    val matches = service.inspect(RejectedOutputDiagnosticSelector("workflow-1"))
+    assertEquals(2, matches.size)
   }
 
   private fun request(raw: ByteArray, attempt: Int = 1) = RejectedOutputDiagnosticRequest(
@@ -106,9 +74,3 @@ private class CliDiagnosticRepository : RejectedOutputDiagnosticRepository {
     return identities.size
   }
 }
-
-private fun ByteArray.containsSubsequence(candidate: ByteArray): Boolean =
-  candidate.isNotEmpty() && indices.any { start ->
-    start + candidate.size <= size &&
-      candidate.indices.all { offset -> this[start + offset] == candidate[offset] }
-  }

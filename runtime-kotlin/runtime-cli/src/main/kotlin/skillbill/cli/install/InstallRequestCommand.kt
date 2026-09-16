@@ -7,6 +7,7 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.choice
 import skillbill.cli.kernel.DocumentedCliCommand
 import skillbill.cli.kernel.formatOption
+import skillbill.cli.kernel.resolveCliRepositoryRoot
 import skillbill.cli.model.CliRunInputs
 import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallAgentSelection
@@ -32,8 +33,8 @@ abstract class InstallRequestCommand(
 ) : DocumentedCliCommand(name, help) {
   private val repoRoot by option(
     "--repo-root",
-    help = "Repository root containing skills/ and platform-packs/. Defaults to the current working directory.",
-  ).default(".")
+    help = "Repository root containing skills/ and platform-packs/. Defaults to the invocation repository root.",
+  )
   private val skillsRoot by option("--skills", help = "Base skills root. Defaults to <repo-root>/skills.")
   private val platformPacksRoot by option(
     "--platform-packs",
@@ -110,7 +111,7 @@ abstract class InstallRequestCommand(
   protected val format by formatOption()
 
   protected fun toRequest(inputs: CliRunInputs): InstallPlanRequest {
-    val resolvedRepoRoot = Path.of(repoRoot).toAbsolutePath().normalize()
+    val resolvedRepoRoot = resolveCliRepositoryRoot(repoRoot, inputs)
     val explicitTargets = parseAgentTargets(agentTargets)
     val manualAgents = agents.map(InstallAgent::fromId).toSet()
     return InstallPlanRequest(

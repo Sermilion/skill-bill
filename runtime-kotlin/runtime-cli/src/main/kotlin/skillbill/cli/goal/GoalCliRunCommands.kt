@@ -14,6 +14,7 @@ import skillbill.cli.kernel.DocumentedCliCommand
 import skillbill.cli.kernel.formatOption
 import skillbill.cli.kernel.invokingAgentResolutionHelp
 import skillbill.cli.kernel.requireSupportedOptionalAgentId
+import skillbill.cli.kernel.resolveCliRepositoryRoot
 import skillbill.cli.model.CliRunInputs
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.review.ReviewFindingPayloadKeys
@@ -31,7 +32,6 @@ import skillbill.goalrunner.model.UnaddressedFindingsLedger
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFindingVerificationDisposition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairLedger
 import skillbill.workflow.taskruntime.projectionWireMap
-import java.nio.file.Path
 
 @Inject
 class GoalPreflightCommand(
@@ -63,8 +63,7 @@ class GoalPreflightCommand(
   private val format by formatOption()
 
   override fun run() {
-    val root = repoRoot?.let(Path::of)?.toAbsolutePath()?.normalize()
-      ?: inputs.repositoryRoot
+    val root = resolveCliRepositoryRoot(repoRoot, inputs)
     val invokedAgentId = resolveInvokedAgentId(agent, inputs.environment)
     val agentOverrideId = requireSupportedOptionalAgentId(agentOverride, "--agent-override")
     val result = service.preflight(
@@ -195,7 +194,7 @@ class GoalPlanningLogCommand(
     val log = planningLogService.log(
       GoalPlanningLogRequest(
         issueKey = issueKey,
-        repoRoot = repoRoot?.let(Path::of),
+        repoRoot = resolveCliRepositoryRoot(repoRoot, inputs),
         subtaskId = subtask,
         failuresOnly = failuresOnly,
       ),
@@ -271,7 +270,6 @@ internal fun renderPlanningLog(log: GoalPlanningLog): String = buildString {
 class GoalFindingsCommand(
   private val ledgerService: UnaddressedFindingsLedgerService,
   private val state: CliRunState,
-  private val inputs: CliRunInputs,
 ) : DocumentedCliCommand("findings", "Show the goal-wide unaddressed-findings ledger.") {
   private val issueKey by option("--issue-key", help = "Parent issue key.").required()
 

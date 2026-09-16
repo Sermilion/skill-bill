@@ -38,8 +38,12 @@ class ReviewService(
     return review.toReviewPreviewResult()
   }
 
-  fun importReview(input: String, finishZeroFindingTelemetry: Boolean = true): ImportedReviewResult {
-    val (text, sourcePath) = reviewInputSource.readInput(input, context.stdinText)
+  fun importReview(
+    input: String,
+    finishZeroFindingTelemetry: Boolean = true,
+    stdinText: String? = null,
+  ): ImportedReviewResult {
+    val (text, sourcePath) = reviewInputSource.readInput(input, stdinText ?: context.stdinText)
     val (knownPackSkillNames, knownPlatformSlugs) = canonicalAttributionPorts(reviewAttributionPort)
     val parsed = ReviewParser.parseReview(text).withCanonicalAttribution(
       knownPackSkillNames = knownPackSkillNames,

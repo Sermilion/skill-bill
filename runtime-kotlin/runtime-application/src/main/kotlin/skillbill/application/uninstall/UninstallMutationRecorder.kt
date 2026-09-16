@@ -1,8 +1,10 @@
-package skillbill.cli.system
+package skillbill.application.uninstall
 
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 
-internal class UninstallMutationRecorder(private val diagnostics: RuntimeDiagnostics) {
+class UninstallMutationRecorder(
+  private val diagnostics: RuntimeDiagnostics,
+) {
   private val failures = mutableListOf<String>()
 
   fun recordFailure(description: String, error: Throwable) {
@@ -10,7 +12,7 @@ internal class UninstallMutationRecorder(private val diagnostics: RuntimeDiagnos
     failures += "$description: ${error.message.orEmpty()}"
   }
 
-  fun failureMessages(): List<String> = failures.toList()
-
   fun failed(): Boolean = failures.isNotEmpty()
+
+  fun failureMessages(): List<String> = failures.toList()
 }

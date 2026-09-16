@@ -1,11 +1,11 @@
 package skillbill.cli.install
 
-import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.install.ExternalAddonOverlayService
 import skillbill.cli.kernel.CliRunState
 import skillbill.cli.kernel.DocumentedCliCommand
+import skillbill.cli.kernel.resolveCliRepositoryRoot
 import skillbill.cli.model.CliRunInputs
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.ShellContentContractException
@@ -23,7 +23,7 @@ class InstallApplyExternalAddonsCommand(
   private val repoRoot by option(
     "--repo-root",
     help = "Repository root containing platform-packs/. Defaults to the current working directory.",
-  ).default(".")
+  )
   private val platformPacksRoot by option(
     "--platform-packs",
     help = "Platform packs root. Defaults to <repo-root>/platform-packs.",
@@ -33,7 +33,7 @@ class InstallApplyExternalAddonsCommand(
     if (state.refuseInstallMutationDuringGoalContinuation(inputs, "apply-external-addons")) {
       return
     }
-    val resolvedRepoRoot = Path.of(repoRoot).toAbsolutePath().normalize()
+    val resolvedRepoRoot = resolveCliRepositoryRoot(repoRoot, inputs)
     val resolvedPlatformPacks = platformPacksRoot?.let(Path::of)?.toAbsolutePath()?.normalize()
       ?: resolvedRepoRoot.resolve("platform-packs")
     val result = try {

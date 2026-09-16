@@ -8,16 +8,21 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.choice
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.system.SystemService
+import skillbill.application.updatecheck.SkillBillUpdateService
 import skillbill.application.updatecheck.UpdateCheckService
 import skillbill.application.updatecheck.model.UpdateCheckResult
 import skillbill.application.updatecheck.model.UpdateCheckStatus
+import skillbill.application.updatecheck.model.UpdateRunPlan
+import skillbill.application.updatecheck.model.UpdateRunRequest
+import skillbill.application.updatecheck.model.UpdateRunResult
+import skillbill.application.updatecheck.model.UpdateRunStatus
 import skillbill.cli.kernel.CliRunState
 import skillbill.cli.kernel.DocumentedCliCommand
 import skillbill.cli.kernel.formatOption
+import skillbill.cli.kernel.resolveCliRepositoryRoot
 import skillbill.cli.kernel.toPayload
 import skillbill.cli.model.CliExecutionResult
 import skillbill.cli.model.CliRunInputs
-import skillbill.cli.model.ExternalCommand
 import skillbill.contracts.SharedPayloadKeys
 
 @Inject
@@ -55,7 +60,7 @@ class UpdateCheckCommand(
 
 @Inject
 class UpdateCommand(
-  private val updateCheckService: UpdateCheckService,
+  private val updateService: SkillBillUpdateService,
   private val state: CliRunState,
   private val inputs: CliRunInputs,
 ) : DocumentedCliCommand("update", "Update Skill Bill by running the official installer.") {
@@ -69,105 +74,59 @@ class UpdateCommand(
   private val format by formatOption()
 
   override fun run() {
-    val plan = updatePlan()
-    if (dryRun) {
-      state.complete(plan.toPayload("dry_run"), format)
-      return
-    }
-    if (release == null) {
-      val updateCheck = updateCheckService.check(includePrereleases = false)
-      if (updateCheck.status != UpdateCheckStatus.UPDATE_AVAILABLE) {
-        completeSkippedUpdate(updateCheck, plan)
-        return
-      }
-    }
-    val result = runInstaller(plan.command)
-    val payload = plan.toPayload(if (result.exitCode == 0) "completed" else "failed") +
-      ("exit_code" to result.exitCode) +
-      ("installer_output" to result.output)
-    if (format.wireName == "json") {
-      state.complete(payload, format, exitCode = result.exitCode)
-    } else {
-      state.completeText(result.output, payload, exitCode = result.exitCode)
-    }
-  }
-
-  private fun updatePlan(): UpdateCommandPlan {
-    val installerArgs = buildList {
-      add("--reuse-last-selection")
-      release?.let {
-        add("--release")
-        add(it)
-      }
-      if (clean) add("--clean")
-    }
-    val command = buildString {
-      append("curl -fsSL ")
-      append(INSTALL_SCRIPT_URL)
-      append(" | bash -s --")
-      installerArgs.forEach { arg ->
-        append(' ')
-        append(shellQuote(arg))
-      }
-    }
-    return UpdateCommandPlan(command = command, installerArgs = installerArgs)
-  }
-
-  private fun runInstaller(command: String): InstallerRunResult {
-    val environment = inputs.environment.toMutableMap().apply {
-      put("HOME", inputs.userHome.toString())
-    }
-    val result = inputs.externalCommandRunner.run(
-      ExternalCommand(
-        executable = "bash",
-        arguments = listOf("-c", command),
-        environment = environment,
-      ),
+    val request = UpdateRunRequest(
+      releaseTag = release,
+      clean = clean,
+      dryRun = dryRun,
+      userHome = inputs.userHome,
+      environment = inputs.environment,
     )
-    return InstallerRunResult(exitCode = result.exitCode, output = result.output)
-  }
-
-  private fun completeSkippedUpdate(updateCheck: UpdateCheckResult, plan: UpdateCommandPlan) {
-    val exitCode = if (updateCheck.status == UpdateCheckStatus.UNKNOWN) 1 else 0
-    val status = if (updateCheck.status == UpdateCheckStatus.UNKNOWN) "check_failed" else "skipped"
-    val payload = plan.toPayload(status) +
-      ("update_check" to updateCheck.toPayload()) +
-      ("reason" to updateSkipReason(updateCheck))
+    val result = updateService.run(request)
+    val wireStatus = result.status.toWireStatus()
+    val mergedPayload = buildMap {
+      putAll(result.plan.toPayload(wireStatus))
+      put("exit_code", result.exitCode)
+      put("installer_output", result.installerOutput)
+      result.updateCheck?.let { put("update_check", it.toPayload()) }
+      result.reason?.let { put("reason", it) }
+    }
     if (format.wireName == "json") {
-      state.complete(payload, format, exitCode = exitCode)
+      state.complete(mergedPayload, format, exitCode = result.exitCode)
     } else {
-      state.completeText(updateSkipText(updateCheck), payload, exitCode = exitCode)
+      state.completeText(result.toText(mergedPayload), mergedPayload, exitCode = result.exitCode)
     }
   }
-
-  private fun UpdateCommandPlan.toPayload(status: String): Map<String, Any?> = linkedMapOf(
-    SharedPayloadKeys.STATUS to status,
-    "command" to command,
-    "installer_args" to installerArgs,
-  )
-
-  private data class UpdateCommandPlan(
-    val command: String,
-    val installerArgs: List<String>,
-  )
-
-  private data class InstallerRunResult(
-    val exitCode: Int,
-    val output: String,
-  )
 }
 
-private fun updateSkipReason(updateCheck: UpdateCheckResult): String = when (updateCheck.status) {
-  UpdateCheckStatus.UP_TO_DATE -> "installed version is already the latest release"
-  UpdateCheckStatus.AHEAD_OF_RELEASE -> "installed version is newer than the latest release"
-  UpdateCheckStatus.UNKNOWN -> "could not determine the latest release"
-  UpdateCheckStatus.UPDATE_AVAILABLE -> "update is available"
+private fun UpdateRunStatus.toWireStatus(): String = when (this) {
+  UpdateRunStatus.COMPLETED -> "completed"
+  UpdateRunStatus.FAILED -> "failed"
+  UpdateRunStatus.DRY_RUN -> "dry_run"
+  UpdateRunStatus.SKIPPED -> "skipped"
+  UpdateRunStatus.CHECK_FAILED -> "check_failed"
+  UpdateRunStatus.DOWNLOAD_FAILED -> "failed"
 }
 
-private fun updateSkipText(updateCheck: UpdateCheckResult): String = buildString {
-  append(updateCheck.toText())
-  appendLine("update_status: ${if (updateCheck.status == UpdateCheckStatus.UNKNOWN) "check_failed" else "skipped"}")
-  appendLine("reason: ${updateSkipReason(updateCheck)}")
+private fun UpdateRunPlan.toPayload(status: String): Map<String, Any?> = linkedMapOf(
+  SharedPayloadKeys.STATUS to status,
+  "command" to command,
+  "installer_args" to installerArgs,
+)
+
+private fun UpdateRunResult.toText(payload: Map<String, Any?>): String = when {
+  status == UpdateRunStatus.DRY_RUN -> buildString {
+    appendLine("status: ${payload[SharedPayloadKeys.STATUS]}")
+    appendLine("command: ${plan.command}")
+    appendLine("installer_args: ${plan.installerArgs}")
+  }
+  updateCheck != null -> buildString {
+    val check = requireNotNull(updateCheck)
+    append(check.toText())
+    appendLine("update_status: ${payload[SharedPayloadKeys.STATUS]}")
+    appendLine("reason: ${reason.orEmpty()}")
+  }
+  installerOutput != null -> installerOutput.orEmpty()
+  else -> "status: ${payload[SharedPayloadKeys.STATUS]}\n"
 }
 
 @Inject
@@ -179,7 +138,10 @@ class DoctorCliCommand(
   private val subject by argument(help = "Optional diagnostic subject. Use `skill` for one governed skill.")
     .optional()
   private val skillName by argument(help = "Governed skill name when diagnosing one skill.").optional()
-  private val repoRoot by option("--repo-root", help = "Repo root to inspect when using `doctor skill`.").default(".")
+  private val repoRoot by option(
+    "--repo-root",
+    help = "Repo root to inspect when using `doctor skill`. Defaults to the invocation repository root.",
+  )
   private val content by option("--content", help = "How much content.md text to include when using `doctor skill`.")
     .choice("none", "preview", "full")
     .default("preview")
@@ -189,7 +151,8 @@ class DoctorCliCommand(
     if (subject == null) {
       state.complete(service.doctor().toPayload(), format)
     } else {
-      state.result = retiredSubjectResult(subject.orEmpty(), skillName.orEmpty(), repoRoot, content)
+      val resolvedRoot = resolveCliRepositoryRoot(repoRoot, inputs).toString()
+      state.result = retiredSubjectResult(subject.orEmpty(), skillName.orEmpty(), resolvedRoot, content)
     }
   }
 }
@@ -254,13 +217,3 @@ private fun UpdateCheckResult.toPayload(): Map<String, Any?> = linkedMapOf(
   "reason" to reason,
   "release_notes" to releaseNotes,
 )
-
-private const val INSTALL_SCRIPT_URL = "https://raw.githubusercontent.com/oila-gmbh/skill-bill/main/install.sh"
-
-private val SHELL_SAFE_PATTERN = Regex("[A-Za-z0-9_./:=@%+-]+")
-
-private fun shellQuote(value: String): String = if (SHELL_SAFE_PATTERN.matches(value)) {
-  value
-} else {
-  "'${value.replace("'", "'\"'\"'")}'"
-}

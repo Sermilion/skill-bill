@@ -1,5 +1,6 @@
 package skillbill.architecture
 
+import kotlin.io.path.readText
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -12,6 +13,20 @@ class RuntimeCliAreaIsolationArchitectureTest {
       sharedAreas = PrincipleEnforcementInventory.cliSharedLeafAreas,
       compositionRootArea = PrincipleEnforcementInventory.CLI_COMPOSITION_ROOT_AREA,
     )
+    assertEquals(emptyList(), violations, violations.joinToString("\n"))
+  }
+
+  @Test
+  fun `runtime-cli production sources do not reference ProcessBuilder`() {
+    val violations =
+      ArchitectureScanSupport.kotlinFilesUnder(
+        ArchitectureScanSupport.runtimeRoot.resolve(PrincipleEnforcementInventory.RUNTIME_CLI_MAIN),
+      ).mapNotNull { sourceFile ->
+        val relativePath = ArchitectureScanSupport.runtimeRoot.relativize(sourceFile).toString().replace('\\', '/')
+        if ("/test/" in relativePath) return@mapNotNull null
+        val source = sourceFile.readText()
+        if ("ProcessBuilder" in source) relativePath else null
+      }
     assertEquals(emptyList(), violations, violations.joinToString("\n"))
   }
 
@@ -58,6 +73,26 @@ class RuntimeCliAreaIsolationArchitectureTest {
       ),
       violations,
     )
+  }
+
+  @Test
+  fun `runtime-cli featuretask commands do not construct rejected-output diagnostic services`() {
+    val featureTaskRoot =
+      ArchitectureScanSupport.runtimeRoot.resolve(
+        "${PrincipleEnforcementInventory.RUNTIME_CLI_MAIN}/skillbill/cli/featuretask",
+      )
+    val violations =
+      ArchitectureScanSupport.kotlinFilesUnder(featureTaskRoot).mapNotNull { sourceFile ->
+        val relativePath = ArchitectureScanSupport.runtimeRoot.relativize(sourceFile).toString().replace('\\', '/')
+        if ("/test/" in relativePath) return@mapNotNull null
+        val source = sourceFile.readText()
+        when {
+          "RejectedOutputDiagnosticService(" in source -> relativePath
+          "unitOfWork.diagnosticService" in source -> relativePath
+          else -> null
+        }
+      }
+    assertEquals(emptyList(), violations, violations.joinToString("\n"))
   }
 
   @Test

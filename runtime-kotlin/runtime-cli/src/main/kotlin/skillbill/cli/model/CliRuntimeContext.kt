@@ -8,6 +8,8 @@ import skillbill.model.WorkflowOpsContext
 import skillbill.ports.agentrun.AgentRunLauncher
 import skillbill.ports.agentrun.ExecutableLookup
 import skillbill.ports.goalrunner.runner.GoalPullRequestPort
+import skillbill.ports.process.InstallerProcessPort
+import skillbill.ports.process.InstallerScriptFetchPort
 import skillbill.ports.review.ReviewNativeAgentPreflightPort
 import skillbill.ports.system.HostPlatformPort
 import skillbill.ports.telemetry.RemoteTransportPort
@@ -19,7 +21,6 @@ data class CliRuntimeContext(
   val dbPathOverride: String? = null,
   val stdinText: String? = null,
   val environment: Map<String, String> = EnvironmentContext.UnspecifiedEnvironment,
-  val externalCommandRunner: ExternalCommandRunner = ProcessExternalCommandRunner,
   val userHome: Path = EnvironmentContext.UnspecifiedUserHome,
   val requester: RemoteTransportPort? = null,
   val workflowGitOperations: WorkflowGitOperations? = null,
@@ -29,6 +30,8 @@ data class CliRuntimeContext(
   val reviewNativeAgentPreflight: ReviewNativeAgentPreflightPort? = null,
   val runtimeTimingPort: RuntimeTimingPort? = null,
   val hostPlatformPort: HostPlatformPort? = null,
+  val installerProcessPort: InstallerProcessPort? = null,
+  val installerScriptFetchPort: InstallerScriptFetchPort? = null,
   val repositoryRoot: Path? = null,
   val liveStdout: (String) -> Unit = {},
   val liveStderr: (String) -> Unit = {},
@@ -51,6 +54,8 @@ data class CliRuntimeContext(
         reviewNativeAgentPreflight = reviewNativeAgentPreflight,
         runtimeTimingPort = runtimeTimingPort,
         hostPlatformPort = hostPlatformPort,
+        installerProcessPort = installerProcessPort,
+        installerScriptFetchPort = installerScriptFetchPort,
       ),
     )
 }

@@ -7,10 +7,10 @@ import com.github.ajalt.clikt.parameters.options.option
 import me.tatarka.inject.annotations.Inject
 import skillbill.cli.kernel.CliRunState
 import skillbill.cli.kernel.DocumentedCliCommand
+import skillbill.cli.kernel.resolveCliRepositoryRoot
 import skillbill.cli.model.CliRunInputs
 import skillbill.engine.goalrunner.GoalRunnerStatusService
 import skillbill.engine.goalrunner.model.GoalRunnerPurgeRequest
-import java.nio.file.Path
 
 @Inject
 class GoalPurgeCommand(
@@ -39,7 +39,7 @@ class GoalPurgeCommand(
     val result = goalRunnerStatusService.purge(
       GoalRunnerPurgeRequest(
         issueKey = issueKey,
-        repoRoot = repoRoot?.let(Path::of)?.toAbsolutePath()?.normalize() ?: inputs.repositoryRoot,
+        repoRoot = resolveCliRepositoryRoot(repoRoot, inputs),
       ),
     )
     val payload = result.toGoalPurgeCliMap()

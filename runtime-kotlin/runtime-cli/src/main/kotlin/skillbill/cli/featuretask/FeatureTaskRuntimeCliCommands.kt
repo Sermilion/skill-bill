@@ -14,6 +14,7 @@ import skillbill.application.workflow.WorkflowService
 import skillbill.cli.kernel.DocumentedCliCommand
 import skillbill.cli.kernel.drainTelemetryOnCompletion
 import skillbill.cli.kernel.invokingAgentResolutionHelp
+import skillbill.cli.kernel.resolveCliRepositoryRoot
 import skillbill.cli.model.DEFAULT_GOAL_MAX_WALL_CLOCK_MINUTES
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
 import skillbill.ports.featurespec.model.FeatureSpecPathResolveInput
@@ -73,6 +74,7 @@ abstract class FeatureTaskRuntimePhaseAgentCommand(
     "--goal-parent-workflow-id",
     help = "Optional parent workflow id for non-interactive goal-continuation runtime runs.",
   )
+
   internal val goalLastResumableStep by option(
     "--goal-last-resumable-step",
     help = "Optional durable resume step supplied by the goal runner.",
@@ -118,7 +120,7 @@ abstract class FeatureTaskRuntimePhaseAgentCommand(
     workflowService: WorkflowService,
     issueKey: String,
     specPath: String,
-    repoRoot: String,
+    repoRoot: Path,
   ): String = explicitWorkflowId?.takeIf(String::isNotBlank)
     ?: workflowService.openRuntimeWorkflowId(
       issueKey,
@@ -127,20 +129,14 @@ abstract class FeatureTaskRuntimePhaseAgentCommand(
       if (goalParentIssueKey != null) FeatureTaskRouteScope.GOAL_CHILD else FeatureTaskRouteScope.STANDALONE,
     )
 
-  protected fun validateRuntimeRunConfiguration(deps: FeatureTaskRuntimeRunDependencies) {
-    prepareRuntimeRun(deps)
-  }
-
-  protected fun executeRuntimeRun(
+  internal fun executeRuntimeRun(
     deps: FeatureTaskRuntimeRunDependencies,
     issueKey: String,
     specPath: String,
+    prepared: PreparedRuntimeRun,
     workflowId: () -> String,
   ) {
     val state = deps.state
-    val requestedReviewMode = requestedCodeReviewMode()
-    val goalContinuation = parseGoalContinuationContext(requestedReviewMode, deps.inputs.environment)
-    val prepared = prepareRuntimeRun(deps)
     val resolvedWorkflowId = workflowId()
     val report = deps.workerCoordinator.runOwned(resolvedWorkflowId) {
       deps.runner.run(
@@ -159,9 +155,9 @@ abstract class FeatureTaskRuntimePhaseAgentCommand(
           environment = deps.inputs.environment,
           repoRoot = prepared.repoRoot,
           timeout = maxWallClockMinutes.takeIf { it > 0 }?.minutes,
-          requestedCodeReviewMode = requestedReviewMode,
-          goalContinuation = goalContinuation,
-          operatorDecision = requestedOperatorDecision(),
+          requestedCodeReviewMode = prepared.requestedReviewMode,
+          goalContinuation = prepared.goalContinuation,
+          operatorDecision = prepared.operatorDecision,
           agentAddonSelection = prepared.agentAddonSelection,
           eventSink = runtimeRunEventSink(deps.inputs, monitor),
         ),
@@ -176,12 +172,13 @@ abstract class FeatureTaskRuntimePhaseAgentCommand(
     deps: FeatureTaskRuntimeRunDependencies,
     issueKey: String,
     explicitSpecPath: String?,
+    repositoryRoot: Path,
   ): String {
     val result = deps.specPathResolver.resolve(
       FeatureSpecPathResolveInput(
         issueKey = issueKey,
         explicitSpecPath = explicitSpecPath,
-        repoRoot = repoRoot?.let(Path::of) ?: deps.inputs.repositoryRoot,
+        repoRoot = repositoryRoot,
       ),
     )
     return when (result) {
@@ -234,12 +231,15 @@ class FeatureTaskRuntimeRunCommand(
       return
     }
     val runIssueKey = issueKey ?: throw UsageError("issue_key is required for feature-task run.")
-    val runSpecPath = resolveSpecPath(deps, runIssueKey, specPath)
+    val resolvedRepoRoot = resolveCliRepositoryRoot(repoRoot, deps.inputs)
+    val runSpecPath = resolveSpecPath(deps, runIssueKey, specPath, resolvedRepoRoot)
+    val prepared = prepareRuntimeRun(deps, resolvedRepoRoot)
     executeRuntimeRun(
       deps = deps,
       issueKey = runIssueKey,
       specPath = runSpecPath,
-      workflowId = { resolveRunWorkflowId(workflowService, runIssueKey, runSpecPath, repoRoot ?: ".") },
+      prepared = prepared,
+      workflowId = { resolveRunWorkflowId(workflowService, runIssueKey, runSpecPath, prepared.repoRoot) },
     )
   }
 }
@@ -256,12 +256,15 @@ class FeatureTaskRuntimeExplicitRunCommand(
   private val specPath by argument(help = "Path to the governed spec the run implements.").optional()
 
   override fun run() {
-    val runSpecPath = resolveSpecPath(deps, issueKey, specPath)
+    val resolvedRepoRoot = resolveCliRepositoryRoot(repoRoot, deps.inputs)
+    val runSpecPath = resolveSpecPath(deps, issueKey, specPath, resolvedRepoRoot)
+    val prepared = prepareRuntimeRun(deps, resolvedRepoRoot)
     executeRuntimeRun(
       deps = deps,
       issueKey = issueKey,
       specPath = runSpecPath,
-      workflowId = { resolveRunWorkflowId(workflowService, issueKey, runSpecPath, repoRoot ?: ".") },
+      prepared = prepared,
+      workflowId = { resolveRunWorkflowId(workflowService, issueKey, runSpecPath, prepared.repoRoot) },
     )
   }
 }

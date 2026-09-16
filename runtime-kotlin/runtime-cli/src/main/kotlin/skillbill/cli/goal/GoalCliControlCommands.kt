@@ -9,6 +9,7 @@ import com.github.ajalt.clikt.parameters.types.int
 import me.tatarka.inject.annotations.Inject
 import skillbill.cli.kernel.CliRunState
 import skillbill.cli.kernel.DocumentedCliCommand
+import skillbill.cli.kernel.resolveCliRepositoryRoot
 import skillbill.cli.model.CliRunInputs
 import skillbill.engine.goalrunner.GoalOperatorDecisionService
 import skillbill.engine.goalrunner.GoalRunnerStatusService
@@ -18,7 +19,6 @@ import skillbill.engine.goalrunner.model.GoalRunnerRepairRequest
 import skillbill.engine.goalrunner.model.GoalRunnerReplanRequest
 import skillbill.engine.goalrunner.model.GoalRunnerResetRequest
 import skillbill.workflow.goal.model.GoalSubtaskOperatorDecision
-import java.nio.file.Path
 
 @Inject
 class GoalPauseCommand(
@@ -32,7 +32,7 @@ class GoalPauseCommand(
   override fun run() {
     val result = goalRunnerStatusService.pause(
       issueKey,
-      repoRoot?.let(Path::of)?.toAbsolutePath()?.normalize() ?: inputs.repositoryRoot,
+      resolveCliRepositoryRoot(repoRoot, inputs),
     )
     val payload = result.toGoalPauseCliMap()
     state.completeText(goalPauseText(payload), payload, exitCode = payload.goalPauseExitCode())
@@ -51,7 +51,7 @@ class GoalStopCommand(
   override fun run() {
     val result = goalRunnerStatusService.stop(
       issueKey,
-      repoRoot?.let(Path::of)?.toAbsolutePath()?.normalize() ?: inputs.repositoryRoot,
+      resolveCliRepositoryRoot(repoRoot, inputs),
     )
     val payload = result.toGoalStopCliMap()
     state.completeText(goalStopText(payload), payload, exitCode = payload.goalStopExitCode())
@@ -70,7 +70,7 @@ class GoalResumeCommand(
   override fun run() {
     val result = goalRunnerStatusService.resume(
       issueKey,
-      repoRoot?.let(Path::of)?.toAbsolutePath()?.normalize() ?: inputs.repositoryRoot,
+      resolveCliRepositoryRoot(repoRoot, inputs),
     )
     val payload = result.toGoalResumeCliMap()
     state.completeText(goalResumeText(payload), payload, exitCode = payload.goalPauseExitCode())
@@ -137,7 +137,7 @@ class GoalResetCommand(
         preservePlanning = preservePlanning,
         subtaskId = subtaskId,
         deleteChildWorkflow = deleteChildWorkflow,
-        repoRoot = repoRoot?.let(Path::of)?.toAbsolutePath()?.normalize() ?: inputs.repositoryRoot,
+        repoRoot = resolveCliRepositoryRoot(repoRoot, inputs),
       ),
     )
     val payload = result.toGoalResetCliMap(issueKey, hard)
@@ -183,7 +183,7 @@ class GoalReplanCommand(
       GoalRunnerReplanRequest(
         issueKey = issueKey,
         subtaskId = subtaskId,
-        repoRoot = repoRoot?.let(Path::of) ?: inputs.repositoryRoot,
+        repoRoot = resolveCliRepositoryRoot(repoRoot, inputs),
         includeSharedPreplan = includeSharedPreplan,
       ),
     )
@@ -221,7 +221,7 @@ class GoalAcceptCommand(
         subtaskId = subtaskId,
         commitSha = commit,
         reason = reason,
-        repoRoot = repoRoot?.let(Path::of) ?: inputs.repositoryRoot,
+        repoRoot = resolveCliRepositoryRoot(repoRoot, inputs),
         restoreAfterHardReset = restoreAfterHardReset,
       ),
     )
@@ -267,7 +267,7 @@ class GoalRepairCommand(
         issueKey = issueKey,
         apply = apply,
         subtaskId = subtaskId,
-        repoRoot = repoRoot?.let(Path::of) ?: inputs.repositoryRoot,
+        repoRoot = resolveCliRepositoryRoot(repoRoot, inputs),
       ),
     )
     val payload = result.toGoalRepairCliMap()
@@ -309,7 +309,7 @@ class GoalOperatorDecisionCommand(
         issueKey = issueKey,
         subtaskId = subtaskId,
         decision = parsed,
-        repoRoot = repoRoot?.let(Path::of) ?: inputs.repositoryRoot,
+        repoRoot = resolveCliRepositoryRoot(repoRoot, inputs),
       ),
     )
     val payload = result.toGoalOperatorDecisionCliMap()

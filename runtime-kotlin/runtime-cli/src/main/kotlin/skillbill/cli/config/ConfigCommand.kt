@@ -8,11 +8,12 @@ import skillbill.application.config.ConfigResolutionService
 import skillbill.cli.kernel.CliRunState
 import skillbill.cli.kernel.DocumentedCliCommand
 import skillbill.cli.kernel.DocumentedNoOpCliCommand
+import skillbill.cli.kernel.resolveCliRepositoryRoot
+import skillbill.cli.model.CliRunInputs
 import skillbill.config.model.SpecType
 import skillbill.config.model.parseSpecType
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.ShellContentContractException
-import java.nio.file.Path
 
 @Inject
 class ConfigCommand(
@@ -36,6 +37,7 @@ class ConfigCommand(
 class ConfigResolveSpecTypeCommand(
   private val configResolutionService: ConfigResolutionService,
   private val state: CliRunState,
+  private val inputs: CliRunInputs,
 ) : DocumentedCliCommand(
   "resolve-spec-type",
   "Resolve the effective spec-source mode (arg > config spec_type > local).",
@@ -47,12 +49,12 @@ class ConfigResolveSpecTypeCommand(
   private val repoRoot by option(
     "--repo-root",
     help = "Repository root whose .skill-bill/config.yaml is read.",
-  ).default(".")
+  )
 
   override fun run() {
     val explicit = resolveExplicit() ?: return
     val resolved = try {
-      configResolutionService.resolveSpecType(Path.of(repoRoot), explicit.value)
+      configResolutionService.resolveSpecType(resolveCliRepositoryRoot(repoRoot, inputs), explicit.value)
     } catch (error: ShellContentContractException) {
       state.completeText("${error.message}\n", failurePayload(error.message), exitCode = 1)
       return

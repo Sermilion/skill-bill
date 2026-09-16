@@ -1,7 +1,6 @@
 package skillbill.cli.featuretask
 
 import com.github.ajalt.clikt.parameters.arguments.argument
-import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import me.tatarka.inject.annotations.Inject
@@ -12,6 +11,7 @@ import skillbill.application.workflow.model.WorkflowUpdateResult
 import skillbill.cli.kernel.CliRunState
 import skillbill.cli.kernel.DocumentedCliCommand
 import skillbill.cli.kernel.formatOption
+import skillbill.cli.kernel.resolveCliRepositoryRoot
 import skillbill.cli.kernel.toPayload
 import skillbill.cli.model.CliRunInputs
 import skillbill.contracts.SharedPayloadKeys
@@ -32,13 +32,16 @@ class FeatureTaskLookupCommand(
   "Read-only, repository-scoped lookup of DB-authoritative feature-task continuation state.",
 ) {
   private val issueKey by argument(help = "Issue key to find.")
-  private val repoRoot by option("--repo-root", help = "Path within the Git worktree.").required()
+  private val repoRoot by option(
+    "--repo-root",
+    help = "Path within the Git worktree. Defaults to the invocation repository root.",
+  )
   private val workflowId by option("--workflow-id", help = "Explicit matching workflow selection.")
   private val format by formatOption()
 
   override fun run() {
     val result =
-      lookupService.lookup(issueKey, repositoryIdentity(Path.of(repoRoot)), workflowId)
+      lookupService.lookup(issueKey, repositoryIdentity(resolveCliRepositoryRoot(repoRoot, inputs)), workflowId)
     val payload = result.toCliPayload()
     state.complete(payload, format, if (result is FeatureTaskContinuationLookupResult.Ambiguous) 2 else 0)
   }
@@ -96,7 +99,6 @@ private fun FeatureTaskContinuationCandidate.toMap(): Map<String, Any?> = mapOf(
 class FeatureTaskRuntimeStatusCommand(
   private val statusService: FeatureTaskRuntimeStatusService,
   private val state: CliRunState,
-  private val inputs: CliRunInputs,
 ) : DocumentedCliCommand("status", "Show read-only feature-task phase status.") {
   private val workflowId by argument(help = "Runtime workflow id whose phase status to show.")
 
@@ -122,15 +124,15 @@ class FeatureTaskRuntimeResumeCommand(
   private val specPath by argument(help = "Path to the governed spec the run implements.")
 
   override fun run() {
-    validateRuntimeRunConfiguration(deps)
+    val resolvedRepoRoot = resolveCliRepositoryRoot(repoRoot, deps.inputs)
+    val prepared = prepareRuntimeRun(deps, resolvedRepoRoot)
     verifyRuntimeResume(
       VerifyRuntimeResumeArgs(
         lookupService = lookupService,
-        inputs = deps.inputs,
         workflowId = workflowId,
         issueKey = issueKey,
         specPath = specPath,
-        repoRoot = repoRoot ?: ".",
+        repoRoot = prepared.repoRoot,
         goalChild = goalParentIssueKey != null,
       ),
     )
@@ -138,6 +140,7 @@ class FeatureTaskRuntimeResumeCommand(
       deps = deps,
       issueKey = requireNotNull(issueKey),
       specPath = specPath,
+      prepared = prepared,
       workflowId = { workflowId },
     )
   }
@@ -147,7 +150,6 @@ class FeatureTaskRuntimeResumeCommand(
 class FeatureTaskRuntimeAbandonCommand(
   private val workflowService: WorkflowService,
   private val state: CliRunState,
-  private val inputs: CliRunInputs,
 ) : DocumentedCliCommand(
   "abandon",
   "Explicitly terminalize a nonterminal feature-task workflow while preserving its durable history.",
@@ -166,7 +168,6 @@ class FeatureTaskRuntimeAbandonCommand(
 class FeatureTaskRuntimeRetryBlockedCommand(
   private val workflowService: WorkflowService,
   private val state: CliRunState,
-  private val inputs: CliRunInputs,
 ) : DocumentedCliCommand(
   "retry-blocked",
   "Reopen one blocked runtime phase after an operator-applied fix.",
@@ -194,12 +195,15 @@ class FeatureTaskRuntimeRepairIdentityCommand(
   private val workflowId by argument(help = "Exact runtime workflow id whose identity is missing.")
   private val issueKey by argument(help = "Issue key persisted by the workflow.")
   private val specPath by argument(help = "Governed spec path for the workflow.")
-  private val repoRoot by option("--repo-root", help = "Canonical repository root.").default(".")
+  private val repoRoot by option(
+    "--repo-root",
+    help = "Canonical repository root. Defaults to the invocation repository root.",
+  )
   private val reason by option("--reason", help = "Required operator reason recorded with the repair.").required()
   private val format by formatOption()
 
   override fun run() {
-    val root = Path.of(repoRoot)
+    val root = resolveCliRepositoryRoot(repoRoot, inputs)
     val result = workflowService.repairFeatureTaskRuntimeIdentity(
       RepairFeatureTaskRuntimeIdentityArgs(
         workflowId = workflowId,

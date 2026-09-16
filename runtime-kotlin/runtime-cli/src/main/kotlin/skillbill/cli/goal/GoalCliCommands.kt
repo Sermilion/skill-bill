@@ -16,6 +16,7 @@ import skillbill.cli.kernel.CliRunState
 import skillbill.cli.kernel.DocumentedCliCommand
 import skillbill.cli.kernel.drainTelemetryOnCompletion
 import skillbill.cli.kernel.invokingAgentResolutionHelp
+import skillbill.cli.kernel.resolveCliRepositoryRoot
 import skillbill.cli.model.CliRunInputs
 import skillbill.cli.model.DEFAULT_GOAL_MAX_WALL_CLOCK_MINUTES
 import skillbill.engine.goalrunner.GoalRunner
@@ -159,8 +160,7 @@ class GoalRunCommand(
     if (currentContext.invokedSubcommand != null) {
       return
     }
-    val effectiveRepoRoot = repoRoot?.let(Path::of)?.toAbsolutePath()?.normalize()
-      ?: inputs.repositoryRoot
+    val effectiveRepoRoot = resolveCliRepositoryRoot(repoRoot, inputs)
     val invokedAgentId = resolveInvokedAgentId(agent, inputs.environment)
     validateGoalRunInputs(
       GoalRunInputValidationArgs(

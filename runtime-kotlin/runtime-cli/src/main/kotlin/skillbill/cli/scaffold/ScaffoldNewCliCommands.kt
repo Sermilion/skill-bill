@@ -252,7 +252,7 @@ class NewAddonCommand(
               bodyFile = bodyFile,
               addonLocationPath = addonLocationPath,
               consumerSkillDirs = consumerSkillDirs,
-              inputs = inputs,
+              state = state,
             ),
           ),
           NativeScaffoldRunArgs(

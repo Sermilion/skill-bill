@@ -6,7 +6,7 @@ import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import java.nio.file.Path
 
 internal fun verifyRuntimeResume(args: VerifyRuntimeResumeArgs) {
-  val effectiveRoot = resumeRepositoryRoot(args.repoRoot, Path.of(args.specPath))
+  val effectiveRoot = args.repoRoot
   val identity = repositoryIdentity(effectiveRoot)
   val result = if (args.goalChild) {
     args.lookupService.lookupGoalChild(args.issueKey, identity, args.workflowId)

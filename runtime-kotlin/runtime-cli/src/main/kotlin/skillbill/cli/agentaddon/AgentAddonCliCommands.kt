@@ -13,6 +13,7 @@ import skillbill.cli.kernel.DocumentedCliCommand
 import skillbill.cli.kernel.DocumentedNoOpCliCommand
 import skillbill.cli.kernel.formatOption
 import skillbill.cli.kernel.parseAgentAddonSelection
+import skillbill.cli.kernel.resolveCliRepositoryRoot
 import skillbill.cli.model.CliRunInputs
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.ShellContentContractException
@@ -20,7 +21,6 @@ import skillbill.model.toPath
 import skillbill.ports.agentaddon.AgentAddonSelectionPort
 import skillbill.ports.agentaddon.ExternalAgentAddonSourceConfigPort
 import skillbill.ports.agentaddon.model.ExternalAgentAddonSourceConfigRequest
-import java.nio.file.Path
 
 @Inject
 class AgentAddonCommand(
@@ -41,7 +41,7 @@ class AgentAddonResolveSelectionCommand(
 ) : DocumentedCliCommand("resolve-selection", "Resolve ordered agent-addon:<slug> tokens without side effects.") {
   private val tokens by option("--token", help = "Ordered agent-addon:<slug> token.").multiple()
   private val receivingAgents by option("--receiving-agent", help = "Agent that will receive the selection.").multiple()
-  private val repoRoot by option("--repo-root").default(".")
+  private val repoRoot by option("--repo-root", help = "Repository root. Defaults to the invocation repository root.")
   private val format by formatOption()
 
   override fun run() {
@@ -53,7 +53,7 @@ class AgentAddonResolveSelectionCommand(
     }
     complete {
       val selection = resolver.resolveInitial(
-        Path.of(repoRoot).toAbsolutePath().normalize(),
+        resolveCliRepositoryRoot(repoRoot, inputs),
         slugs,
         AgentAddonConsumer.BILL_FEATURE,
         receivingAgents,

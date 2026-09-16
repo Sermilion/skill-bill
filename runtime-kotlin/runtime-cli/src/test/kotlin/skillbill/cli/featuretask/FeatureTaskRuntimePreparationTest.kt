@@ -1,0 +1,57 @@
+package skillbill.cli.featuretask
+
+import skillbill.cli.core.CliRuntime
+import skillbill.cli.model.CliRuntimeContext
+import skillbill.infrastructure.sqlite.SQLiteDatabaseSessionFactory
+import skillbill.model.EnvironmentContext
+import java.nio.file.Files
+import kotlin.test.Test
+import kotlin.test.assertContains
+import kotlin.test.assertEquals
+
+class FeatureTaskRuntimePreparationTest {
+  @Test
+  fun `invalid operator and conflicting review options fail before creating a workflow`() {
+    val home = Files.createTempDirectory("skillbill-feature-task-preparation")
+    val db = home.resolve("metrics.db")
+    val context = CliRuntimeContext(userHome = home, environment = emptyMap())
+    val invocations = listOf(
+      listOf(
+        "--db",
+        db.toString(),
+        "feature-task",
+        "SKILL-348",
+        "--operator-decision",
+        "unknown",
+      ),
+      listOf(
+        "--db",
+        db.toString(),
+        "feature-task",
+        "SKILL-348",
+        "--code-review-mode",
+        "inline",
+        "--code-review-mode",
+        "auto",
+      ),
+    )
+
+    invocations.forEach { arguments ->
+      val result = CliRuntime.run(arguments, context)
+
+      assertEquals(1, result.exitCode, result.stdout)
+      assertContains(result.stdout, "Error:")
+    }
+
+    val database = SQLiteDatabaseSessionFactory(
+      EnvironmentContext(
+        dbPathOverride = db.toString(),
+        userHome = home,
+        environment = emptyMap(),
+      ),
+    )
+    database.transaction { unitOfWork ->
+      assertEquals(emptyList(), unitOfWork.workflowStates.listFeatureTaskRuntimeWorkflows())
+    }
+  }
+}

@@ -3,29 +3,21 @@ package skillbill.cli.system
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import me.tatarka.inject.annotations.Inject
-import skillbill.application.scaffold.InstallAgentService
+import skillbill.application.uninstall.SkillBillUninstallService
+import skillbill.application.uninstall.model.UninstallPlan
+import skillbill.application.uninstall.model.UninstallRequest
+import skillbill.application.uninstall.model.UninstallResult
 import skillbill.cli.kernel.CliRunState
 import skillbill.cli.kernel.DocumentedCliCommand
 import skillbill.cli.kernel.formatOption
 import skillbill.cli.model.CliRunInputs
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.ports.diagnostics.RuntimeDiagnostics
-import skillbill.ports.install.mcp.InstallMcpRegistrationPort
-import skillbill.ports.install.nativeagent.InstallNativeAgentLinkPort
-import skillbill.ports.system.HostPlatformPort
-import skillbill.ports.system.UninstallPathsPort
-import java.nio.file.Path
 
 @Inject
 class UninstallCommand(
   private val state: CliRunState,
   private val inputs: CliRunInputs,
-  private val installAgentService: InstallAgentService,
-  private val installNativeAgentLinkPort: InstallNativeAgentLinkPort,
-  private val installMcpRegistrationPort: InstallMcpRegistrationPort,
-  private val uninstallFileSystem: UninstallPathsPort,
-  private val hostPlatform: HostPlatformPort,
-  private val diagnostics: RuntimeDiagnostics,
+  private val uninstallService: SkillBillUninstallService,
 ) : DocumentedCliCommand("uninstall", "Uninstall Skill Bill from local agents and runtime state.") {
   private val yes by option("--yes", "-y", help = "Skip the interactive confirmation prompt.")
     .flag(default = false)
@@ -51,7 +43,12 @@ class UninstallCommand(
       return
     }
 
-    val plan = uninstallPlan()
+    val request = UninstallRequest(
+      home = inputs.userHome,
+      environment = inputs.environment,
+      desktopAppDir = desktopAppDir,
+    )
+    val plan = uninstallService.plan(request)
     if (!dryRun && !yes && !confirmed(plan)) {
       val payload = plan.toPayload(
         status = "aborted",
@@ -68,71 +65,8 @@ class UninstallCommand(
       return
     }
 
-    val result = applyUninstall(plan)
+    val result = uninstallService.apply(plan)
     completeUninstall(result.toText(), result.toPayload(), result.exitCode)
-  }
-
-  private fun uninstallPlan(): UninstallPlan {
-    val home = inputs.userHome
-    val stateRoot = home.resolve(".skill-bill")
-    val skillNames = installedSkillNames(uninstallFileSystem, stateRoot.resolve("installed-skills"))
-    val legacyNames = legacySkillNames(skillNames)
-    val claudeTargets = installAgentService.claudeRoots(home, inputs.environment).flatMap { root ->
-      listOf(root.resolve("skills"), root.resolve("commands"))
-    }
-    val codexTargets = installAgentService.codexRoots(home, inputs.environment)
-      .map { root -> root.resolve("skills") }
-    val agentTargets = listOf(
-      home.resolve(".copilot/skills"),
-      home.resolve(".agents/skills"),
-      home.resolve(".junie/skills"),
-      home.resolve(".cursor/skills"),
-    ) + claudeTargets + codexTargets
-    val stateRuntimeRoot = stateRoot.resolve("runtime")
-    val binDir = inputs.environment["SKILL_BILL_BIN_DIR"]?.let(Path::of) ?: home.resolve(".local/bin")
-    return UninstallPlan(
-      home = home,
-      stateRoot = stateRoot,
-      skillNames = skillNames,
-      legacyNames = legacyNames,
-      agentTargets = agentTargets.distinct(),
-      nativeSourceRoots = listOf(stateRoot.resolve("platform-packs"), stateRoot.resolve("skills")),
-      mcpAgents = listOf("claude", "codex", "junie", "cursor"),
-      launchers = listOf(
-        LauncherRemoval(binDir.resolve("skill-bill"), stateRuntimeRoot.resolve("runtime-cli/bin/runtime-cli")),
-        LauncherRemoval(binDir.resolve("skill-bill-mcp"), stateRuntimeRoot.resolve("runtime-mcp/bin/runtime-mcp")),
-      ),
-      desktop = desktopPlan(
-        home = home,
-        binDir = binDir,
-        desktopAppDir = desktopAppDir,
-        environment = inputs.environment,
-        os = currentOs(hostPlatform.osName),
-      ),
-    )
-  }
-
-  private fun applyUninstall(plan: UninstallPlan): UninstallResult {
-    val removed = mutableListOf<String>()
-    val skipped = mutableListOf<String>()
-    val recorder = UninstallMutationRecorder(diagnostics)
-
-    cleanupAgentInstallTargets(plan, installAgentService, removed, skipped, recorder)
-    cleanupNativeAgentInstallLinks(plan, installNativeAgentLinkPort, uninstallFileSystem, removed, recorder)
-    cleanupMcpRegistrations(plan, installMcpRegistrationPort, removed, recorder)
-
-    plan.launchers.forEach { launcher ->
-      removeLauncher(uninstallFileSystem, launcher, removed, skipped, recorder)
-    }
-    removeDesktop(uninstallFileSystem, plan.desktop, removed, skipped, recorder)
-    removeRecursively(uninstallFileSystem, plan.stateRoot, removed, recorder)
-
-    return UninstallResult(
-      failed = recorder.failed(),
-      removed = removed,
-      skipped = skipped,
-      warnings = recorder.failureMessages(),
-    )
   }
 
   private fun confirmed(plan: UninstallPlan): Boolean {
@@ -152,243 +86,35 @@ class UninstallCommand(
 
 private const val GOAL_CONTINUATION_ENV = "SKILL_BILL_GOAL_CONTINUATION"
 private const val GOAL_CONTINUATION_REFUSAL_EXIT_CODE = 64
-private val STAGED_SKILL_DIRECTORY = Regex("""^(.+)-[0-9a-f]{16}$""")
 
-private val RENAMED_SKILL_PAIRS = listOf(
-  "bill-kotlin-code-review-correctness" to "bill-kotlin-code-review-platform-correctness",
-  "bill-kmp-code-review-correctness" to "bill-kmp-code-review-platform-correctness",
+private fun UninstallPlan.toPayload(
+  status: String,
+  removed: List<String>,
+  skipped: List<String>,
+  warnings: List<String>,
+): Map<String, Any?> = linkedMapOf(
+  SharedPayloadKeys.STATUS to status,
+  "state_root" to stateRoot.toString(),
+  "skill_names" to skillNames,
+  "legacy_names" to legacyNames,
+  "agent_targets" to agentTargets.map { it.toString() },
+  "mcp_agents" to mcpAgents,
+  "launchers" to launchers.map {
+    mapOf("path" to it.path.toString(), "expected_target" to it.expectedTarget.toString())
+  },
+  "desktop" to mapOf(
+    "launcher" to desktop.launcher?.path?.toString(),
+    "files" to desktop.files.map { it.toString() },
+    "directories" to desktop.directories.map { it.toString() },
+  ),
+  "removed" to removed,
+  "skipped" to skipped,
+  "warnings" to warnings,
 )
 
-private fun installedSkillNames(fileSystem: UninstallPathsPort, installedSkillsRoot: Path): List<String> {
-  val names = mutableSetOf<String>()
-  fileSystem.listImmediateDirectoryNames(installedSkillsRoot).forEach { name ->
-    val match = STAGED_SKILL_DIRECTORY.matchEntire(name)
-    if (match != null && !name.startsWith("native-agents-")) {
-      names += match.groupValues[1]
-    }
-  }
-  return names.sorted()
-}
-
-private fun legacySkillNames(skillNames: List<String>): List<String> {
-  val names = mutableSetOf(".bill-shared")
-  skillNames.filter { it.startsWith("bill-") }.forEach { skill ->
-    names += "mdp-${skill.removePrefix("bill-")}"
-  }
-  RENAMED_SKILL_PAIRS.forEach { (oldName, newName) ->
-    names += oldName
-    names += "mdp-${oldName.removePrefix("bill-")}"
-    names += "mdp-${newName.removePrefix("bill-")}"
-  }
-  return names.sorted()
-}
-
-internal fun removeLauncher(
-  fileSystem: UninstallPathsPort,
-  launcher: LauncherRemoval,
-  removed: MutableList<String>,
-  skipped: MutableList<String>,
-  recorder: UninstallMutationRecorder,
-) {
-  if (!fileSystem.exists(launcher.path) && !fileSystem.isSymbolicLink(launcher.path)) {
-    return
-  }
-  if (!fileSystem.isSymbolicLink(launcher.path)) {
-    skipped += "${launcher.path} (not a symlink)"
-    return
-  }
-  val target = runCatching { fileSystem.readSymbolicLink(launcher.path) }.getOrElse { error ->
-    recorder.recordFailure("could not read launcher ${launcher.path}", error)
-    return
-  }
-  if (target != launcher.expectedTarget) {
-    skipped += "${launcher.path} (points to $target)"
-    return
-  }
-  runCatching { fileSystem.deleteIfExists(launcher.path) }
-    .onSuccess { removed += launcher.path.toString() }
-    .onFailure { error -> recorder.recordFailure("could not remove launcher ${launcher.path}", error) }
-}
-
-private fun removeDesktop(
-  fileSystem: UninstallPathsPort,
-  desktop: DesktopRemoval,
-  removed: MutableList<String>,
-  skipped: MutableList<String>,
-  recorder: UninstallMutationRecorder,
-) {
-  desktop.launcher?.let { removeLauncher(fileSystem, it, removed, skipped, recorder) }
-  desktop.files.forEach { file ->
-    if (!fileSystem.exists(file)) return@forEach
-    runCatching { fileSystem.deleteIfExists(file) }
-      .onSuccess { removed += file.toString() }
-      .onFailure { error -> recorder.recordFailure("could not remove $file", error) }
-  }
-  desktop.directories.forEach { directory -> removeRecursively(fileSystem, directory, removed, recorder) }
-}
-
-internal fun removeRecursively(
-  fileSystem: UninstallPathsPort,
-  path: Path,
-  removed: MutableList<String>,
-  recorder: UninstallMutationRecorder,
-) {
-  if (!fileSystem.exists(path) && !fileSystem.isSymbolicLink(path)) {
-    return
-  }
-  runCatching { fileSystem.removeTree(path) }
-    .onSuccess { entries -> entries.forEach { entry -> removed += entry.toString() } }
-    .onFailure { error -> recorder.recordFailure("could not remove $path", error) }
-}
-
-private fun desktopPlan(
-  home: Path,
-  binDir: Path,
-  desktopAppDir: String?,
-  environment: Map<String, String>,
-  os: DesktopOs,
-): DesktopRemoval {
-  val appDir = desktopAppDir?.let(Path::of) ?: defaultDesktopAppDir(home, environment, os)
-  val executable = when (os) {
-    DesktopOs.WINDOWS -> appDir.resolve("SkillBill.exe")
-    DesktopOs.MAC,
-    DesktopOs.LINUX,
-    -> appDir.resolve("bin/skillbill-desktop")
-  }
-  val launcher = when (os) {
-    DesktopOs.WINDOWS -> null
-    DesktopOs.MAC,
-    DesktopOs.LINUX,
-    -> LauncherRemoval(binDir.resolve("skillbill-desktop"), executable)
-  }
-  val dataHome = environment["XDG_DATA_HOME"]?.let(Path::of) ?: home.resolve(".local/share")
-  val linuxFiles = if (os == DesktopOs.LINUX) {
-    listOf(
-      dataHome.resolve("applications/skillbill.desktop"),
-      dataHome.resolve("icons/hicolor/256x256/apps/skillbill.png"),
-    )
-  } else {
-    emptyList()
-  }
-  val windowsLauncher = if (os == DesktopOs.WINDOWS) {
-    listOf(binDir.resolve("skillbill-desktop.cmd"))
-  } else {
-    emptyList()
-  }
-  return DesktopRemoval(launcher = launcher, files = linuxFiles + windowsLauncher, directories = listOf(appDir))
-}
-
-private fun defaultDesktopAppDir(home: Path, environment: Map<String, String>, os: DesktopOs): Path = when (os) {
-  DesktopOs.MAC -> Path.of("/Applications/SkillBill.app")
-  DesktopOs.WINDOWS -> environment["LOCALAPPDATA"]?.let(Path::of)
-    ?.resolve("SkillBill/Desktop/SkillBill")
-    ?: home.resolve("AppData/Local/SkillBill/Desktop/SkillBill")
-  DesktopOs.LINUX -> (environment["XDG_DATA_HOME"]?.let(Path::of) ?: home.resolve(".local/share"))
-    .resolve("skillbill/desktop/SkillBill")
-}
-
-private fun currentOs(rawOsName: String): DesktopOs {
-  val osName = rawOsName.lowercase()
-  return when {
-    "mac" in osName || "darwin" in osName -> DesktopOs.MAC
-    "win" in osName -> DesktopOs.WINDOWS
-    else -> DesktopOs.LINUX
-  }
-}
-
-private enum class DesktopOs {
-  LINUX,
-  MAC,
-  WINDOWS,
-}
-
-internal data class LauncherRemoval(
-  val path: Path,
-  val expectedTarget: Path,
+private fun UninstallResult.toPayload(): Map<String, Any?> = linkedMapOf(
+  SharedPayloadKeys.STATUS to status,
+  "removed" to removed,
+  "skipped" to skipped,
+  "warnings" to warnings,
 )
-
-internal data class DesktopRemoval(
-  val launcher: LauncherRemoval?,
-  val files: List<Path>,
-  val directories: List<Path>,
-)
-
-internal data class UninstallPlan(
-  val home: Path,
-  val stateRoot: Path,
-  val skillNames: List<String>,
-  val legacyNames: List<String>,
-  val agentTargets: List<Path>,
-  val nativeSourceRoots: List<Path>,
-  val mcpAgents: List<String>,
-  val launchers: List<LauncherRemoval>,
-  val desktop: DesktopRemoval,
-) {
-  fun confirmationText(): String = buildString {
-    appendLine("This will uninstall Skill Bill from:")
-    appendLine("- ${agentTargets.size} agent target directories")
-    appendLine("- ${mcpAgents.size} MCP configurations")
-    appendLine("- $stateRoot")
-    append("Continue? [y/N] ")
-  }
-
-  fun toText(status: String): String = buildString {
-    appendLine("uninstall_status: $status")
-    appendLine("state_root: $stateRoot")
-    appendLine("agent_targets: ${agentTargets.size}")
-    appendLine("skill_names: ${skillNames.size}")
-  }
-
-  fun toPayload(
-    status: String,
-    removed: List<String>,
-    skipped: List<String>,
-    warnings: List<String>,
-  ): Map<String, Any?> = linkedMapOf(
-    SharedPayloadKeys.STATUS to status,
-    "state_root" to stateRoot.toString(),
-    "skill_names" to skillNames,
-    "legacy_names" to legacyNames,
-    "agent_targets" to agentTargets.map(Path::toString),
-    "mcp_agents" to mcpAgents,
-    "launchers" to launchers.map {
-      mapOf("path" to it.path.toString(), "expected_target" to it.expectedTarget.toString())
-    },
-    "desktop" to mapOf(
-      "launcher" to desktop.launcher?.path?.toString(),
-      "files" to desktop.files.map(Path::toString),
-      "directories" to desktop.directories.map(Path::toString),
-    ),
-    "removed" to removed,
-    "skipped" to skipped,
-    "warnings" to warnings,
-  )
-}
-
-internal data class UninstallResult(
-  val failed: Boolean,
-  val removed: List<String>,
-  val skipped: List<String>,
-  val warnings: List<String>,
-) {
-  val status: String = if (failed) "failed_with_degradations" else "completed"
-
-  val exitCode: Int = if (failed) 1 else 0
-
-  fun toText(): String = buildString {
-    appendLine("uninstall_status: $status")
-    appendLine("removed: ${removed.size}")
-    appendLine("skipped: ${skipped.size}")
-    if (warnings.isNotEmpty()) {
-      appendLine("warnings:")
-      warnings.forEach { warning -> appendLine("- $warning") }
-    }
-  }
-
-  fun toPayload(): Map<String, Any?> = linkedMapOf(
-    SharedPayloadKeys.STATUS to status,
-    "removed" to removed,
-    "skipped" to skipped,
-    "warnings" to warnings,
-  )
-}
