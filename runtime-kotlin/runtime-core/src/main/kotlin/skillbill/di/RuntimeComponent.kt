@@ -82,8 +82,12 @@ abstract class RuntimeComponent(
   RuntimeScaffoldValidationProvides,
   RuntimeInstallerProvides,
   RuntimeDiagnosticsProvides {
+  private val resolvedRuntimeContext: RuntimeContext by lazy {
+    RuntimeBootstrapBindings.runtimeContext(inputRuntimeContext)
+  }
+
   @Provides @JvmSynthetic
-  fun runtimeContext(): RuntimeContext = RuntimeBootstrapBindings.runtimeContext(inputRuntimeContext)
+  fun runtimeContext(): RuntimeContext = resolvedRuntimeContext
 
   @Provides @JvmSynthetic
   fun environmentContext(ctx: RuntimeContext): EnvironmentContext = ctx.environment

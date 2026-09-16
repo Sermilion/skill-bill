@@ -117,15 +117,20 @@ object PrincipleEnforcementInventory {
       "declaration, may carry the spillover signature (Extras, Continued, Helpers, Support, Misc, Fns, " +
       "letter-plus-digit, or bare trailing-digit siblings) outside a named exemption; bare Support, Helpers, " +
       "Misc, and Extras apply to main sources only.",
-    "Gradle module edges: every module api(project(...)) and implementation(project(...)) set is pinned " +
-      "to today's edges.",
+    "Gradle module edges: every module api(project(...)) and implementation(project(...)) set is pinned in " +
+      "RuntimeModuleCatalog.moduleEdgeExpectations and compared to build.gradle.kts independently.",
     "Port null-object absence: no runtime module main source declares an Unavailable, Noop, Empty, or " +
       "Unconfigured substitute; a reached absence is a nullable port resolved at the call site and the " +
       "test-only substitutes live in testFixtures.",
     "Inward-layer import rules: runtime-ports imports no adapter machinery and runtime-domain imports no " +
       "serialization or IO library, both asserted as an empty violation list without a baseline.",
-    "Composition-only construction: no main-source site outside skillbill.di may construct a " +
-      "concrete class the RuntimeComponent binds; sanctioned second entrypoints are named explicitly.",
+    "Composition-only construction: no main-source site outside skillbill.di may construct a concrete class " +
+      "censused from @Provides parameter types and explicit Provides constructions; import aliases count, " +
+      "comments and string literals are ignored, unrelated same-named functions are skipped, and sanctioned " +
+      "second entrypoints are named explicitly.",
+    "RuntimeComponent composition surface: abstract service properties are pinned separately from @Provides " +
+      "generated wiring; any other public function on RuntimeComponent or a Runtime*Provides mixin fails " +
+      "even when the abstract property set is unchanged.",
     "Comment and KDoc policy: authored Kotlin under inlineFqnScanRoots must contain no // line comments, " +
       "no non-KDoc block comments, and no KDoc except on interfaces and their members.",
   )

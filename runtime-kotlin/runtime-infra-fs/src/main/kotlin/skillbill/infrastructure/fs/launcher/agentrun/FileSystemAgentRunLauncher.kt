@@ -21,8 +21,10 @@ class FileSystemAgentRunLauncher internal constructor(
   constructor(
     processRunner: JvmAgentRunProcessRunner,
     databaseSessionFactory: DatabaseSessionFactory,
+    executableLookup: ExecutableLookup,
   ) : this(
     processRunner = processRunner as AgentRunProcessRunner,
+    executableLookup = executableLookup,
     databasePath = databaseSessionFactory.resolveDbPath(),
   )
 

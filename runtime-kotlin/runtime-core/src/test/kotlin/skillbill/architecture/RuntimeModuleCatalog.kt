@@ -1,6 +1,11 @@
 package skillbill.architecture
 
 object RuntimeModuleCatalog {
+  data class ModuleEdgeExpectation(
+    val api: Set<String>,
+    val implementation: Set<String>,
+  )
+
   val declaredGradleModules: List<String> =
     listOf(
       "runtime-application",
@@ -14,6 +19,92 @@ object RuntimeModuleCatalog {
       "runtime-cli",
       "runtime-mcp",
       "runtime-ports",
+    )
+
+  val moduleEdgeExpectations: Map<String, ModuleEdgeExpectation> =
+    mapOf(
+      "runtime-application" to ModuleEdgeExpectation(
+        api = setOf("runtime-contracts", "runtime-domain", "runtime-ports"),
+        implementation = emptySet(),
+      ),
+      "runtime-contracts" to ModuleEdgeExpectation(
+        api = emptySet(),
+        implementation = emptySet(),
+      ),
+      "runtime-core" to ModuleEdgeExpectation(
+        api = setOf("runtime-application", "runtime-engine", "runtime-ports"),
+        implementation = setOf(
+          "runtime-domain",
+          "runtime-contracts",
+          "runtime-infra-fs",
+          "runtime-infra-http",
+          "runtime-infra-sqlite",
+        ),
+      ),
+      "runtime-engine" to ModuleEdgeExpectation(
+        api = setOf("runtime-application", "runtime-contracts", "runtime-domain", "runtime-ports"),
+        implementation = emptySet(),
+      ),
+      "runtime-domain" to ModuleEdgeExpectation(
+        api = emptySet(),
+        implementation = setOf("runtime-contracts"),
+      ),
+      "runtime-infra-fs" to ModuleEdgeExpectation(
+        api = emptySet(),
+        implementation = setOf("runtime-contracts", "runtime-domain", "runtime-ports"),
+      ),
+      "runtime-infra-http" to ModuleEdgeExpectation(
+        api = emptySet(),
+        implementation = setOf("runtime-contracts", "runtime-domain", "runtime-ports"),
+      ),
+      "runtime-infra-sqlite" to ModuleEdgeExpectation(
+        api = emptySet(),
+        implementation = setOf("runtime-contracts", "runtime-domain", "runtime-ports"),
+      ),
+      "runtime-cli" to ModuleEdgeExpectation(
+        api = emptySet(),
+        implementation = setOf(
+          "runtime-application",
+          "runtime-contracts",
+          "runtime-core",
+          "runtime-domain",
+          "runtime-engine",
+          "runtime-ports",
+        ),
+      ),
+      "runtime-mcp" to ModuleEdgeExpectation(
+        api = emptySet(),
+        implementation = setOf(
+          "runtime-application",
+          "runtime-contracts",
+          "runtime-core",
+          "runtime-domain",
+          "runtime-engine",
+          "runtime-ports",
+        ),
+      ),
+      "runtime-ports" to ModuleEdgeExpectation(
+        api = setOf("runtime-contracts", "runtime-domain"),
+        implementation = emptySet(),
+      ),
+    )
+
+  val mainProjectDependenciesByModule: Map<String, Set<String>> =
+    moduleEdgeExpectations.mapValues { (_, expectation) -> expectation.api + expectation.implementation }
+
+  val testFixturesProjectDependenciesByModule: Map<String, Set<String>> =
+    mapOf(
+      "runtime-application" to setOf("runtime-domain", "runtime-infra-fs", "runtime-infra-sqlite", "runtime-ports"),
+      "runtime-contracts" to emptySet(),
+      "runtime-core" to emptySet(),
+      "runtime-engine" to setOf("runtime-application", "runtime-domain", "runtime-infra-sqlite", "runtime-ports"),
+      "runtime-domain" to emptySet(),
+      "runtime-infra-fs" to emptySet(),
+      "runtime-infra-http" to emptySet(),
+      "runtime-infra-sqlite" to emptySet(),
+      "runtime-cli" to emptySet(),
+      "runtime-mcp" to emptySet(),
+      "runtime-ports" to emptySet(),
     )
 
   val declaredSubsystemPackages: List<String> =

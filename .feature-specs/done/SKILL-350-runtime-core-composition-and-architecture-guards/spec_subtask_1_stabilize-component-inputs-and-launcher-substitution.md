@@ -1,6 +1,6 @@
 # SKILL-350 Subtask 1 - Stabilize component inputs and launcher substitution
 
-Parent spec: [.feature-specs/SKILL-350-runtime-core-composition-and-architecture-guards/spec.md](./spec.md)
+Parent spec: [.feature-specs/SKILL-350-runtime-core-composition-and-architecture-guards/spec.md](spec.md)
 Issue key: SKILL-350
 
 ## Scope

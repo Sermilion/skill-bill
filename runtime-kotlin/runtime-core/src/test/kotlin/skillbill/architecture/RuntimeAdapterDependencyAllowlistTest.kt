@@ -19,12 +19,12 @@ class RuntimeAdapterDependencyAllowlistTest {
   fun `every declared module has only the curated main-source runtime project dependencies`() {
     assertEquals(
       RuntimeModuleCatalog.declaredGradleModules.toSet(),
-      ModuleAllowlists.MAIN_PROJECT_DEPENDENCIES.keys,
+      RuntimeModuleCatalog.mainProjectDependenciesByModule.keys,
       "RuntimeAdapterDependencyAllowlistTest must classify every declared Gradle module.",
     )
 
     val drift = RuntimeModuleCatalog.declaredGradleModules.mapNotNull { moduleName ->
-      val expected = ModuleAllowlists.MAIN_PROJECT_DEPENDENCIES.getValue(moduleName)
+      val expected = RuntimeModuleCatalog.mainProjectDependenciesByModule.getValue(moduleName)
       val actual = mainProjectDependencies(moduleName)
       val missing = expected - actual
       val extra = actual - expected
@@ -56,12 +56,12 @@ class RuntimeAdapterDependencyAllowlistTest {
   fun `every declared module has only the curated test-fixtures runtime project dependencies`() {
     assertEquals(
       RuntimeModuleCatalog.declaredGradleModules.toSet(),
-      ModuleAllowlists.TEST_FIXTURES_PROJECT_DEPENDENCIES.keys,
+      RuntimeModuleCatalog.testFixturesProjectDependenciesByModule.keys,
       "RuntimeAdapterDependencyAllowlistTest must classify every declared Gradle module.",
     )
 
     val drift = RuntimeModuleCatalog.declaredGradleModules.mapNotNull { moduleName ->
-      val expected = ModuleAllowlists.TEST_FIXTURES_PROJECT_DEPENDENCIES.getValue(moduleName)
+      val expected = RuntimeModuleCatalog.testFixturesProjectDependenciesByModule.getValue(moduleName)
       val actual = testFixturesProjectDependencies(moduleName)
       val missing = expected - actual
       val extra = actual - expected
@@ -151,63 +151,5 @@ class RuntimeAdapterDependencyAllowlistTest {
       }
     }
     return projectDependencies
-  }
-
-  private object ModuleAllowlists {
-    val MAIN_PROJECT_DEPENDENCIES: Map<String, Set<String>> = mapOf(
-      "runtime-application" to setOf("runtime-contracts", "runtime-domain", "runtime-ports"),
-      "runtime-contracts" to emptySet(),
-      "runtime-core" to setOf(
-        "runtime-application",
-        "runtime-contracts",
-        "runtime-domain",
-        "runtime-engine",
-        "runtime-infra-fs",
-        "runtime-infra-http",
-        "runtime-infra-sqlite",
-        "runtime-ports",
-      ),
-      "runtime-engine" to setOf(
-        "runtime-application",
-        "runtime-contracts",
-        "runtime-domain",
-        "runtime-ports",
-      ),
-      "runtime-domain" to setOf("runtime-contracts"),
-      "runtime-infra-fs" to setOf("runtime-contracts", "runtime-domain", "runtime-ports"),
-      "runtime-infra-http" to setOf("runtime-contracts", "runtime-domain", "runtime-ports"),
-      "runtime-infra-sqlite" to setOf("runtime-contracts", "runtime-domain", "runtime-ports"),
-      "runtime-cli" to setOf(
-        "runtime-application",
-        "runtime-contracts",
-        "runtime-core",
-        "runtime-domain",
-        "runtime-engine",
-        "runtime-ports",
-      ),
-      "runtime-mcp" to setOf(
-        "runtime-application",
-        "runtime-contracts",
-        "runtime-core",
-        "runtime-domain",
-        "runtime-engine",
-        "runtime-ports",
-      ),
-      "runtime-ports" to setOf("runtime-contracts", "runtime-domain"),
-    )
-
-    val TEST_FIXTURES_PROJECT_DEPENDENCIES: Map<String, Set<String>> = mapOf(
-      "runtime-application" to setOf("runtime-domain", "runtime-infra-fs", "runtime-infra-sqlite", "runtime-ports"),
-      "runtime-contracts" to emptySet(),
-      "runtime-core" to emptySet(),
-      "runtime-engine" to setOf("runtime-application", "runtime-domain", "runtime-infra-sqlite", "runtime-ports"),
-      "runtime-domain" to emptySet(),
-      "runtime-infra-fs" to emptySet(),
-      "runtime-infra-http" to emptySet(),
-      "runtime-infra-sqlite" to emptySet(),
-      "runtime-cli" to emptySet(),
-      "runtime-mcp" to emptySet(),
-      "runtime-ports" to emptySet(),
-    )
   }
 }

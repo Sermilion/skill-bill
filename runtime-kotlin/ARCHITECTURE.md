@@ -302,7 +302,10 @@ runtime-core
   install plan/apply, install staging, governed scaffold/load/render,
   repo validation, native-agent rendering/linking, launcher MCP registration,
   git workflow operations, decomposition-manifest file storage, and
-  skill-remove filesystem cascades. It also owns the concrete JSON-Schema
+  skill-remove filesystem cascades. The injected `FileSystemAgentRunLauncher`
+  constructor takes the composition-selected `ExecutableLookup` (explicit
+  callback override, else default PATH discovery); availability policy is not a
+  process sandbox. It also owns the concrete JSON-Schema
   validators (`AgentAddonSchemaValidator`, `InstallPlanSchemaValidator`,
   `WorkflowStateSchemaValidator`, `DecompositionManifestSchemaValidator`,
   and the `DecompositionManifestCoherenceValidator`) plus their schema-resource
@@ -376,7 +379,19 @@ runtime-ports
   `RuntimeReviewAddonCatalogProvides`, `RuntimeScaffoldValidationProvides`,
   `RuntimeGoalPlanningSweepProvides`), never by pairing two areas. Each
   `@Provides` is declared once, and `RuntimeBootstrapBindings` holds only the
-  ambient construction seam.
+  ambient construction seam. The logical service surface is the pinned abstract
+  property set on `RuntimeComponent`; `@Provides` methods (including
+  `@JvmSynthetic` generated parent wiring such as `runtimeContext` and
+  `databaseSessionFactory`) are the integration surface and are not duplicated
+  in a second signature table. Any other public function on `RuntimeComponent`
+  or a `Runtime*Provides` mixin is rejected even when abstract properties are
+  unchanged. `RuntimeComponent` memoizes the first
+  `RuntimeBootstrapBindings.runtimeContext` result for the component instance;
+  later `runtimeContext()` calls and generated CLI or MCP parent access reuse that
+  snapshot, so database, telemetry config, and transport requester selection
+  cannot drift when ambient `user.home` or PATH changes mid-invocation. A new
+  component may resolve fresh ambient facts; there is no process-global context
+  cache.
 - `skillbill.application`: use cases, workflow orchestration, lifecycle
   telemetry orchestration, repository-port coordination, and application-owned
   mappers. Public inputs and results live in area-owned `skillbill.application.<area>.model` packages.
@@ -1261,9 +1276,15 @@ The architecture tests enforce the following rules:
   trailing-digit siblings) outside a named exemption; the bare `Support`,
   `Helpers`, `Misc`, and `Extras` forms apply to `src/main` only, the numbered
   forms to every `src` tree.
-- No main-source site outside `skillbill.di` constructs a concrete class
-  `RuntimeComponent` binds; `RuntimeCompositionGuardArchitectureTest` enforces
-  the census and names sanctioned second entrypoints explicitly.
+- No main-source site outside `skillbill.di` constructs a concrete class censused
+  from `@Provides` parameter types and explicit Provides constructions;
+  `RuntimeCompositionGuardArchitectureTest` matches import aliases, ignores comments
+  and string literals, skips unrelated same-named functions, and names sanctioned
+  second entrypoints explicitly.
+- `RuntimeComponent` logical service properties are pinned separately from `@Provides`
+  generated wiring; `RuntimeComponentInboundApiArchitectureTest` rejects any other
+  public function on `RuntimeComponent` or a `Runtime*Provides` mixin even when the
+  abstract property set is unchanged.
 - `skillbill.infrastructure.fs.scaffold.runtime.ScaffoldStandaloneEntrypoint` is the sanctioned
   second scaffold entrypoint for in-tree parity and rollback tests that cannot
   reach `RuntimeComponent`; production paths use `FileSystemScaffoldOrchestrator`.
@@ -1390,8 +1411,9 @@ with string literals and comments stripped. File violations are keyed on
 repository-relative paths and identifier violations on `path#name`, both against
 `baselines/spillover-file-name-baseline.txt`.
 
-`RuntimeCoreCompositionOnlyTest` pins every module's `api(project(...))` and
-`implementation(project(...))` sets to today's edges, alongside the retained
+`RuntimeModuleCatalog.moduleEdgeExpectations` owns every module's expected
+`api(project(...))` and `implementation(project(...))` sets; `RuntimeCoreCompositionOnlyTest`
+compares Gradle files to that authority alongside the retained
 infrastructure-and-entrypoint `api` ban on `runtime-core`. `runtime-core` keeps
 `api(:runtime-application)` and `api(:runtime-ports)` as the kotlin-inject ABI
 edges. `runtime-infra-fs`, `runtime-infra-http`, and `runtime-infra-sqlite`

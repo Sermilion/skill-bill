@@ -1,3 +1,21 @@
+## [2026-09-16] SKILL-350 subtask 2 — Correct and simplify composition architecture checks
+Areas: runtime-kotlin/{runtime-core, architecture guards, ARCHITECTURE.md}
+- Composition checks now scan ordinary public callables and inherited provider mixins while allowing only the constrained generated wiring surface.
+- Binding and construction censuses use declared provider types plus import-aware, alias-preserving matching; comments, strings, and unrelated same-named functions remain outside the match.
+- RuntimeModuleCatalog centralizes expected production module edges and module sets while keeping test-fixture edges separate; serialization JSON remains test-scoped.
+- Reusable pattern: keep architecture guards bounded and syntax-aware, with actual Gradle declarations as independent evidence. reusable
+- Known limitation: construction matching intentionally covers the documented provider and composition forms rather than acting as a general Kotlin parser.
+Feature flag: N/A
+Acceptance criteria: 8/8 implemented (validate phase owns pack gate)
+
+## [2026-09-16] SKILL-350 subtask 1 — Stabilize runtime component inputs and launcher lookup
+Areas: runtime-kotlin/{runtime-core/di,runtime-infra-fs/launcher/agentrun,runtime-core tests}, runtime-kotlin/ARCHITECTURE.md
+- RuntimeComponent memoizes the first bootstrap-resolved RuntimeContext so generated CLI/MCP parent calls, database factory inputs, telemetry config paths, and transport requester selection stay on one invocation snapshot; a new component may take fresh ambient facts.
+- FileSystemAgentRunLauncher's inject constructor now receives composition ExecutableLookup; refusing lookup keeps controlled PATH fixtures off the launch path without starting a process.
+- Regression tests cover split-home stability, non-default connect-timeout requester reuse, supplied requester identity, separate-component scoped isolation, and lookup refusal with an explicit missing-executable setup.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented (validate phase owns pack gate)
+
 ## [2026-09-16] SKILL-348 subtask 1 — Own update and uninstall execution
 Areas: runtime-kotlin/{runtime-application/{updatecheck,uninstall},runtime-cli/{core,model,system},runtime-ports/process,runtime-infra-{fs,http},runtime-core/di}, runtime-kotlin/ARCHITECTURE.md
 - Update execution now downloads the installer fully before bounded process execution; download and installer failures preserve nonzero outcomes and bounded output.

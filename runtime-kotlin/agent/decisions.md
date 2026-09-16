@@ -4,6 +4,32 @@ This file records architectural and implementation decisions that span the
 `runtime-kotlin/` boundary. Each entry is dated and explains the trade-off,
 not the implementation detail.
 
+## 2026-09-16 — SKILL-350 subtask 1: component invocation snapshot and launcher lookup wiring
+
+**Context.** Generated CLI and MCP graphs call parent `runtimeContext()` and
+scoped providers directly. Re-entering `RuntimeBootstrapBindings` on each call
+let database paths and telemetry config diverge after ambient `user.home`
+changed, and repeated transport resolution could mint extra HTTP clients. The
+injected `FileSystemAgentRunLauncher` constructor ignored composition
+`ExecutableLookup`, so host PATH could launch a fixture even when callbacks
+supplied a refusing lookup.
+
+**Decision.** Memoize one resolved `RuntimeContext` on each `RuntimeComponent`
+instance (lazy first call to `RuntimeBootstrapBindings.runtimeContext`). Keep
+`RuntimeBootstrapBindings` as the sole ambient seam; keep `@RuntimeSingleton`
+on stateful collaborators; leave stateless use cases invocation-local. Pass
+composition `ExecutableLookup` into the `@Inject` launcher constructor; keep
+internal defaults and explicit `AgentRunLauncher` overrides.
+
+**Alternatives considered.** Rely on `@RuntimeSingleton` alone for providers
+the generated graph calls as methods (does not stabilize direct parent calls).
+Process-global context cache (rejected: breaks separate-component isolation).
+
+**Limits.** `ExecutableLookup` is availability policy, not sandboxing. Infra
+adapters may still apply `withProcessDefaults` when input carries unspecified
+placeholders; the snapshot must already carry resolved environment facts from
+bootstrap.
+
 ## [2026-09-16] Dev snapshot from latest stable tag, not git describe ancestry
 Context: After a release, source builds must become the next patch SNAPSHOT so they are ahead of that release. `git describe` only sees ancestor tags, so an off-main release tag left `main` on the matching SNAPSHOT and update-check treated it as behind.
 Decision: List every local `v[0-9]*` tag, take the newest stable `X.Y.Z`, and set `X.Y.(Z+1)-SNAPSHOT`. Release builds still use `RELEASE_VERSION`. Do not bump minor.

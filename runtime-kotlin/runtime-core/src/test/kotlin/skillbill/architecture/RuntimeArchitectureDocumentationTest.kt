@@ -59,6 +59,7 @@ class RuntimeArchitectureDocumentationTest {
     assertContains(architecture, AREA_ISOLATION_GUARDRAIL)
     assertContains(architecture, SPILLOVER_FILENAME_GUARDRAIL)
     assertContains(architecture, COMPOSITION_GUARD_GUARDRAIL)
+    assertContains(architecture, RUNTIME_COMPONENT_COMPOSITION_GUARDRAIL)
     assertContains(architecture, SCAFFOLD_STANDALONE_ENTRYPOINT_GUARDRAIL)
     assertContains(architecture, "RuntimeCompositionGuardArchitectureTest")
     assertFalse(architecture.contains("compatibility umbrella"))
@@ -239,9 +240,17 @@ class RuntimeArchitectureDocumentationTest {
         "forms to every `src` tree."
 
     const val COMPOSITION_GUARD_GUARDRAIL =
-      "- No main-source site outside `skillbill.di` constructs a concrete class\n  " +
-        "`RuntimeComponent` binds; `RuntimeCompositionGuardArchitectureTest` enforces\n  " +
-        "the census and names sanctioned second entrypoints explicitly."
+      "- No main-source site outside `skillbill.di` constructs a concrete class censused\n  " +
+        "from `@Provides` parameter types and explicit Provides constructions;\n  " +
+        "`RuntimeCompositionGuardArchitectureTest` matches import aliases, ignores comments\n  " +
+        "and string literals, skips unrelated same-named functions, and names sanctioned\n  " +
+        "second entrypoints explicitly."
+
+    const val RUNTIME_COMPONENT_COMPOSITION_GUARDRAIL =
+      "- `RuntimeComponent` logical service properties are pinned separately from `@Provides`\n  " +
+        "generated wiring; `RuntimeComponentInboundApiArchitectureTest` rejects any other\n  " +
+        "public function on `RuntimeComponent` or a `Runtime*Provides` mixin even when the\n  " +
+        "abstract property set is unchanged."
 
     const val SCAFFOLD_STANDALONE_ENTRYPOINT_GUARDRAIL =
       "- `skillbill.infrastructure.fs.scaffold.runtime.ScaffoldStandaloneEntrypoint` is the sanctioned\n  " +

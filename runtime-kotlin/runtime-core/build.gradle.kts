@@ -12,7 +12,7 @@ dependencies {
   api(project(":runtime-engine"))
   implementation(project(":runtime-domain"))
   implementation(project(":runtime-contracts"))
-  implementation(libs.kotlinx.serialization.json)
+  testImplementation(libs.kotlinx.serialization.json)
   implementation(project(":runtime-infra-fs"))
   implementation(project(":runtime-infra-http"))
   implementation(project(":runtime-infra-sqlite"))
