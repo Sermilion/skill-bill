@@ -1,5 +1,14 @@
 # Boundary History — runtime-kotlin/runtime-infra-fs
 
+## [2026-09-16] SKILL-248 subtask 3 — Validate recovery ownership and simplify persistence adapters
+Areas: runtime-infra-fs/decomposition journal and contracts, runtime-infra-sqlite/goalrunner and readiness, runtime-contracts, runtime-core architecture
+- Journal recovery validates the versioned envelope, transaction-owned paths, symlink/traversal containment, unique entries, and staged or already-applied digests before moves or cleanup; invalid records retain evidence and raise typed actionable failures.
+- Canonical journal schema, owning wire keys/version, classpath resource copy, and parity tests keep the persisted contract and packaged resource aligned; historical 0.1 compatibility remains explicit.
+- WorkflowGoalRunnerProgressBridge and duplicate private progress forwarding interfaces were removed; existing progress/ledger contracts retain transaction ownership. Database readiness reuses observed identity values for cache decisions while preserving locked recheck and recovery. reusable
+- Known limitation: journal recovery remains roll-forward, not a filesystem transaction; corrupt or unsupported records require operator recovery from retained staging evidence.
+Feature flag: N/A
+Acceptance criteria: 8/8 implemented
+
 ## [2026-09-16] SKILL-248 subtask 2 — Bound git process lifetime
 Areas: runtime-infra-fs/GitProcessCommands, GitProcessInvocation, GitProcessLifetimeBehaviorTest
 - `invokeGitProcess` owns git child registration, concurrent stdin/stdout I/O, one operation deadline from `gitTimeoutSeconds`, and a finite cleanup budget for drain join and hook-descendant teardown via `ProcessHandle`.

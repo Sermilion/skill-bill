@@ -1,8 +1,8 @@
 package skillbill.infrastructure.fs
 
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
-import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.decomposition.DecompositionManifestBundleJournalPayloadKeys
 import skillbill.error.InvalidDecompositionManifestSchemaError
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
@@ -85,12 +85,12 @@ internal object DecompositionManifestBundleJournalCreate {
       yamlMapper.writeValueAsString(
         mapOf(
           SharedPayloadKeys.CONTRACT_VERSION to DecompositionManifestBundleJournal.BUNDLE_CONTRACT_VERSION,
-          "staging_directory" to stagingDirectory.toString(),
-          "entries" to entries.map { entry ->
+          DecompositionManifestBundleJournalPayloadKeys.STAGING_DIRECTORY to stagingDirectory.toString(),
+          DecompositionManifestBundleJournalPayloadKeys.ENTRIES to entries.map { entry ->
             mapOf(
-              "target" to entry.target.toString(),
-              "staged" to entry.staged.toString(),
-              "sha256" to entry.sha256,
+              DecompositionManifestBundleJournalPayloadKeys.TARGET to entry.target.toString(),
+              DecompositionManifestBundleJournalPayloadKeys.STAGED to entry.staged.toString(),
+              DecompositionManifestBundleJournalPayloadKeys.SHA256 to entry.sha256,
             )
           },
         ),
@@ -102,16 +102,22 @@ internal object DecompositionManifestBundleJournalCreate {
 
 internal object DecompositionManifestBundleJournalIo {
   fun apply(transaction: DecompositionManifestBundleTransaction) {
+    DecompositionManifestBundleJournalValidation.validateTransaction(transaction)
     transaction.entries.forEach { entry ->
       when {
         Files.isRegularFile(entry.staged) -> moveAtomically(entry.staged, entry.target)
-        Files.isRegularFile(entry.target) && sha256(Files.readString(entry.target)) == entry.sha256 -> Unit
+        Files.isRegularFile(entry.target) -> Unit
         else -> error("Decomposition manifest bundle journal is incomplete for '${entry.target}'.")
       }
     }
   }
 
   fun cleanup(transaction: DecompositionManifestBundleTransaction) {
+    DecompositionManifestBundleJournalValidation.validateTransaction(transaction)
+    cleanupValidated(transaction)
+  }
+
+  fun cleanupValidated(transaction: DecompositionManifestBundleTransaction) {
     Files.deleteIfExists(transaction.marker)
     deleteRecursively(transaction.stagingDirectory)
   }
@@ -119,36 +125,9 @@ internal object DecompositionManifestBundleJournalIo {
   fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")
     .digest(value.toByteArray(Charsets.UTF_8))
     .joinToString("") { byte -> "%02x".format(byte) }
-  fun read(marker: Path, yamlMapper: YAMLMapper): DecompositionManifestBundleTransaction {
-    val raw = requireNotNull(
-      JsonCodec.anyToStringAnyMap(yamlMapper.readValue(Files.readString(marker), Map::class.java)),
-    )
-    require(raw[SharedPayloadKeys.CONTRACT_VERSION] == DecompositionManifestBundleJournal.BUNDLE_CONTRACT_VERSION) {
-      "Unsupported decomposition manifest bundle journal contract."
-    }
-    val stagingDirectory = Path.of(requireNotNull(raw["staging_directory"] as? String))
-    val entries = requireNotNull(raw["entries"] as? List<*>)
-      .map { rawEntry ->
-        val entry = rawEntry as? Map<*, *> ?: error("Malformed decomposition manifest bundle journal entry.")
-        DecompositionManifestBundleEntry(
-          target = Path.of(requireNotNull(entry["target"] as? String)).toAbsolutePath().normalize(),
-          staged = Path.of(requireNotNull(entry["staged"] as? String)).toAbsolutePath().normalize(),
-          sha256 = requireNotNull(entry["sha256"] as? String),
-        )
-      }
-    require(stagingDirectory.toAbsolutePath().normalize().parent == marker.parent.toAbsolutePath().normalize()) {
-      "Decomposition manifest bundle journal staging directory is outside its parent."
-    }
-    entries.forEach { entry ->
-      require(entry.target.parent == marker.parent.toAbsolutePath().normalize()) {
-        "Decomposition manifest bundle journal target is outside its parent."
-      }
-      require(entry.staged.parent == stagingDirectory.toAbsolutePath().normalize()) {
-        "Decomposition manifest bundle journal entry is outside its staging directory."
-      }
-    }
-    return DecompositionManifestBundleTransaction(marker, stagingDirectory, entries)
-  }
+
+  fun read(marker: Path): DecompositionManifestBundleTransaction =
+    DecompositionManifestBundleJournalValidation.readValidated(marker)
 
   internal fun moveAtomically(source: Path, target: Path) {
     Files.createDirectories(requireNotNull(target.parent))

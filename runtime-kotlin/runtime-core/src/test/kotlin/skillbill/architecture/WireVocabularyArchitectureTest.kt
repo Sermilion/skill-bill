@@ -193,6 +193,11 @@ class WireVocabularyArchitectureTest {
           const val FAILURE_DISPOSITION: String = "failure_disposition"
           const val DERIVED_NOTES: String = "derived_notes"
           const val VERDICT: String = "verdict"
+          const val ENTRIES: String = "entries"
+          const val STAGING_DIRECTORY: String = "staging_directory"
+          const val TARGET: String = "target"
+          const val STAGED: String = "staged"
+          const val SHA256: String = "sha256"
         }
         """.trimIndent(),
       ),

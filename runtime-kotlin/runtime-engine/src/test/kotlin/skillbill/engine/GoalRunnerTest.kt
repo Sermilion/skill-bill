@@ -4202,7 +4202,7 @@ private class ThrowingDiagnostics : RuntimeDiagnostics {
 
   override fun warning(message: String, error: Throwable?) {
     warningMessages += message
-    throw IllegalStateException("diagnostics failed")
+    error("diagnostics failed")
   }
 
   override fun error(message: String, error: Throwable?) = Unit

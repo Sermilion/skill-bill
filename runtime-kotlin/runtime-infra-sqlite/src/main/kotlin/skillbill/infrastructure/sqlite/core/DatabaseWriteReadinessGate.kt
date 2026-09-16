@@ -13,13 +13,13 @@ internal class DatabaseWriteReadinessGate {
     val normalized = dbPath.toAbsolutePath().normalize()
     val cached = published
     val current = DatabaseIdentity.read(normalized)
-    if (cached != null && current != null && cached.matchesFile(normalized)) {
+    if (cached != null && current != null && cached.matches(current)) {
       return
     }
     synchronized(lock) {
       val cachedAgain = published
       val currentAgain = DatabaseIdentity.read(normalized)
-      if (cachedAgain != null && currentAgain != null && cachedAgain.matchesFile(normalized)) {
+      if (cachedAgain != null && currentAgain != null && cachedAgain.matches(currentAgain)) {
         return
       }
       published = null

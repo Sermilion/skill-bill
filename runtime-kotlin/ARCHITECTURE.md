@@ -156,6 +156,13 @@ Run compatibility repair at a documented initialization or recovery boundary;
 do not remove required repair or cache success forever by pathname alone.
 Measure repeated work before adding a cache, connection pool, or replacement library.
 
+`DatabaseWriteReadinessGate` compares the `DatabaseIdentity` snapshot already read
+for each cache decision (`DatabaseIdentity.matches`) instead of rereading the file
+and `PRAGMA user_version` through `matchesFile`. The synchronized initialization
+path still performs a second identity observation after acquiring the lock.
+`DatabaseWriteReadinessTest` asserts the warm-cache path performs one identity read
+per `ensureReady` call.
+
 ### Contract Ownership And Enforcement
 
 Canonical schemas own wire shape. Kotlin contract owners declare keys and versions;
@@ -296,7 +303,8 @@ runtime-core
   `WorkflowStateSchemaValidator`, `DecompositionManifestSchemaValidator`,
   and the `DecompositionManifestCoherenceValidator`) plus their schema-resource
   copy tasks (`copyInstallPlanSchema`, `copyWorkflowStateSchema`,
-  `copyDecompositionManifestSchema`), reached only through domain-neutral ports.
+  `copyDecompositionManifestSchema`, `copyDecompositionManifestBundleJournalSchema`),
+  reached only through domain-neutral ports.
 - `runtime-core`: Kotlin-Inject component definitions and DI
   providers. It may know concrete adapters only inside composition code.
   `runtime-core` publishes only the generated Kotlin-Inject ABI edges that its
@@ -579,8 +587,19 @@ primary `IOException`, timeout, or interruption. Unsettled stdout after the
 deadline becomes `readFailure` or timeout semantics, never
 `WorkflowGitOperationResult.Ok` with unfinished capture. Behavior tests in
 `GitProcessLifetimeBehaviorTest` cover interruption, pipe backpressure,
-inherited stdout handles, timeout, and ordinary completion; journal recovery
-probes (F-003) remain subtask 3.
+inherited stdout handles, timeout, and ordinary completion.
+
+Decomposition manifest bundle journals (`DecompositionManifestBundleJournal` in
+`runtime-infra-fs`) persist a governed `0.1` envelope
+(`orchestration/contracts/decomposition-manifest-bundle-journal-schema.yaml`,
+`copyDecompositionManifestBundleJournalSchema`). Recovery validates the full marker,
+transaction-owned staging directory (real-path containment, marker name binding),
+unique targets, and every staged or already-applied digest before applying pending
+moves or deleting staging evidence. Rejected journals raise
+`InvalidDecompositionManifestBundleJournalError`, retain the marker and staging
+artifacts, and do not replay SQLite mutations — operators back up evidence and
+remove the marker manually after review. Valid interrupted `0.1` journals still
+roll forward through `recoverPending`.
 
 ## Boundary Rules
 

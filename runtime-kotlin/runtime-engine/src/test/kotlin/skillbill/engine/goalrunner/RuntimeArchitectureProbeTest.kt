@@ -1,17 +1,5 @@
 package skillbill.engine.goalrunner
 
-import java.lang.reflect.Proxy
-import java.nio.file.Path
-import java.time.Clock
-import java.time.Instant
-import java.time.ZoneOffset
-import java.util.concurrent.CancellationException
-import kotlin.test.Test
-import kotlin.test.assertFails
-import kotlin.test.assertFalse
-import kotlin.test.assertNull
-import kotlin.test.assertSame
-import kotlin.test.assertTrue
 import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
 import skillbill.goalrunner.model.GoalRunnerExecutionLease
 import skillbill.ports.agentrun.model.AgentRunProgressEmission
@@ -26,6 +14,18 @@ import skillbill.ports.taskruntime.FeatureTaskRuntimeHeartbeat
 import skillbill.ports.taskruntime.FeatureTaskRuntimeWorkerSupervisor
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeProcessIdentity
 import skillbill.workflow.goal.model.GoalProgressEventKind
+import java.lang.reflect.Proxy
+import java.nio.file.Path
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
+import java.util.concurrent.CancellationException
+import kotlin.test.Test
+import kotlin.test.assertFails
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
+import kotlin.test.assertSame
+import kotlin.test.assertTrue
 
 class RuntimeArchitectureProbeTest {
   private val clock = Clock.fixed(Instant.parse("2026-09-16T10:00:00Z"), ZoneOffset.UTC)
@@ -59,35 +59,35 @@ class RuntimeArchitectureProbeTest {
           state.lease = null
           true
         }
-        else -> error("Unexpected store call $name")
+        else -> unexpectedCall(name)
       }
     }
     val supervisor = proxy<FeatureTaskRuntimeWorkerSupervisor> { name, _ ->
       when (name) {
         "currentProcess" -> FeatureTaskRuntimeProcessIdentity("host", "boot", 1, "birth")
         "startHeartbeat" -> {
-          heartbeatStartFailure?.let { throw it }
+          heartbeatStartFailure?.let(::throwFailure)
           object : FeatureTaskRuntimeHeartbeat {
             override fun stop() {
-              heartbeatStopFailure?.let { throw it }
+              heartbeatStopFailure?.let(::throwFailure)
               state.stopped = true
             }
 
             override fun fencingLostReason(): String? = null
           }
         }
-        else -> error("Unexpected supervisor call $name")
+        else -> unexpectedCall(name)
       }
     }
     val hooks = ShutdownHookPort {
-      hookStartFailure?.let { throw it }
+      hookStartFailure?.let(::throwFailure)
       ShutdownHookRegistration {
-        hookStopFailure?.let { throw it }
+        hookStopFailure?.let(::throwFailure)
         state.unregistered = true
         true
       }
     }
-    val daemon = proxy<DaemonThreadPort> { _, _ -> error("No shutdown execution expected") }
+    val daemon = proxy<DaemonThreadPort> { _, _ -> unexpectedCall("No shutdown execution expected") }
     return DefaultGoalRunnerExecutionCoordinator(
       store,
       supervisor,
@@ -184,8 +184,8 @@ class RuntimeArchitectureProbeTest {
     val diagnostics = proxy<RuntimeDiagnostics> { _, _ -> null }
     val store = proxy<GoalRunnerWorkflowOutcomeStore> { name, _ ->
       when (name) {
-        "ledgerSequenceWatermarks" -> throw IllegalStateException("read failed")
-        else -> error("Unexpected store call $name")
+        "ledgerSequenceWatermarks" -> error("read failed")
+        else -> unexpectedCall(name)
       }
     }
     assertFails {
@@ -201,8 +201,12 @@ class RuntimeArchitectureProbeTest {
   private inline fun assertFailsWithCancellation(block: () -> Unit) {
     try {
       block()
-      error("Expected CancellationException")
+      check(false) { "Expected CancellationException" }
     } catch (_: CancellationException) {
     }
   }
+
+  private fun unexpectedCall(name: String): Nothing = error("Unexpected call $name")
+
+  private fun throwFailure(failure: Throwable): Nothing = throw failure
 }

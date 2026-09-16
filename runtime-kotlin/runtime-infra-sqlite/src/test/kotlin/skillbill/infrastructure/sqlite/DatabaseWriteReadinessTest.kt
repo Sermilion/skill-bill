@@ -3,13 +3,19 @@ package skillbill.infrastructure.sqlite
 import org.junit.jupiter.api.parallel.Execution
 import org.junit.jupiter.api.parallel.ExecutionMode
 import skillbill.error.DatabaseAccessError
+import skillbill.infrastructure.sqlite.core.DatabaseIdentity
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
+import skillbill.infrastructure.sqlite.core.DatabaseWriteReadinessGate
 import skillbill.model.EnvironmentContext
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
+import java.sql.DriverManager
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -17,6 +23,29 @@ import kotlin.test.assertTrue
 
 @Execution(ExecutionMode.SAME_THREAD)
 class DatabaseWriteReadinessTest {
+  @Test
+  fun `warm readiness cache performs one identity observation per write acquisition`() {
+    val tempDir = Files.createTempDirectory("skillbill-write-readiness-identity-count")
+    val dbPath = tempDir.resolve("metrics.db")
+    DatabaseRuntime.resetWriteReadinessForTests()
+    DatabaseIdentity.resetIdentityReadCountForTests()
+    val database = SQLiteDatabaseSessionFactory(
+      EnvironmentContext(
+        dbPathOverride = dbPath.toString(),
+        environment = emptyMap(),
+        userHome = tempDir,
+      ),
+    )
+    database.transaction { unitOfWork ->
+      unitOfWork.workflowStates.saveFeatureTaskRuntimeWorkflow(sampleWorkflow("wftr-identity-warm"))
+    }
+    DatabaseIdentity.resetIdentityReadCountForTests()
+    database.transaction { unitOfWork ->
+      unitOfWork.workflowStates.saveFeatureTaskRuntimeWorkflow(sampleWorkflow("wftr-identity-warm-2"))
+    }
+    assertEquals(1, DatabaseIdentity.identityReadCountForTests)
+  }
+
   @Test
   fun `repeated write acquisitions establish schema once until database identity changes`() {
     val tempDir = Files.createTempDirectory("skillbill-write-readiness")
@@ -70,6 +99,60 @@ class DatabaseWriteReadinessTest {
       unitOfWork.workflowStates.saveFeatureTaskRuntimeWorkflow(sampleWorkflow("wftr-truncate-2"))
     }
     assertTrue(DatabaseRuntime.writeReadinessEstablishmentCount() > afterInit)
+  }
+
+  @Test
+  fun `changing database user version at the same path forces schema re-establishment`() {
+    val tempDir = Files.createTempDirectory("skillbill-write-readiness-version")
+    val dbPath = tempDir.resolve("metrics.db")
+    DatabaseRuntime.resetWriteReadinessForTests()
+    val database = SQLiteDatabaseSessionFactory(
+      EnvironmentContext(
+        dbPathOverride = dbPath.toString(),
+        environment = emptyMap(),
+        userHome = tempDir,
+      ),
+    )
+    database.transaction { unitOfWork ->
+      unitOfWork.workflowStates.saveFeatureTaskRuntimeWorkflow(sampleWorkflow("wftr-version"))
+    }
+    val afterInit = DatabaseRuntime.writeReadinessEstablishmentCount()
+
+    DriverManager.getConnection("jdbc:sqlite:$dbPath").use { connection ->
+      connection.createStatement().use { statement ->
+        statement.execute("PRAGMA user_version = 7")
+      }
+    }
+
+    database.transaction { unitOfWork ->
+      unitOfWork.workflowStates.saveFeatureTaskRuntimeWorkflow(sampleWorkflow("wftr-version-2"))
+    }
+    assertTrue(DatabaseRuntime.writeReadinessEstablishmentCount() > afterInit)
+  }
+
+  @Test
+  fun `concurrent readiness initialization publishes one recoverable result`() {
+    val tempDir = Files.createTempDirectory("skillbill-write-readiness-concurrent")
+    val dbPath = tempDir.resolve("metrics.db")
+    val gate = DatabaseWriteReadinessGate()
+    val ready = CountDownLatch(1)
+    val executor = Executors.newFixedThreadPool(2)
+    val failures = mutableListOf<Throwable>()
+    repeat(2) {
+      executor.submit {
+        ready.await()
+        runCatching { gate.ensureReady(dbPath) }.exceptionOrNull()?.let { failure ->
+          synchronized(failures) { failures += failure }
+        }
+      }
+    }
+    ready.countDown()
+    executor.shutdown()
+    assertTrue(executor.awaitTermination(30, TimeUnit.SECONDS))
+
+    assertTrue(failures.isEmpty(), failures.joinToString { failure -> failure.toString() })
+    assertEquals(1, gate.schemaEstablishmentExecutions)
+    assertTrue(Files.isRegularFile(dbPath))
   }
 
   @Test

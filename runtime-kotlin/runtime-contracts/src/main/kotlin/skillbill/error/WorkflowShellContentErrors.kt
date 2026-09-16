@@ -64,3 +64,13 @@ class InvalidDecompositionManifestSchemaError(
   "Decomposition manifest '${sourceLabel.ifBlank { "<unknown>" }}' fails schema validation: $reason",
   cause,
 )
+
+class InvalidDecompositionManifestBundleJournalError(
+  val sourceLabel: String,
+  val reason: String,
+  val failureCode: String? = null,
+  cause: Throwable? = null,
+) : ShellContentContractException(
+  "Decomposition manifest bundle journal '${sourceLabel.ifBlank { "<unknown>" }}' is invalid: $reason",
+  cause,
+)

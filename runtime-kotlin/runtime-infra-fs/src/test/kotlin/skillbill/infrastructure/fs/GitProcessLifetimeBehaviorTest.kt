@@ -161,7 +161,8 @@ class GitProcessLifetimeBehaviorTest {
         root,
         listOf(
           "-c",
-          "alias.leak=!perl -e 'my \$pid=fork; if (\$pid == 0) { open(F, \">\", \"$pidFile\"); print F \"\$\$\"; close(F); sleep 3600; } exit 0'",
+          "alias.leak=!perl -e 'my \$pid=fork; if (\$pid == 0) { " +
+            "open(F, \">\", \"$pidFile\"); print F \"\$\$\"; close(F); sleep 3600; } exit 0'",
           "leak",
         ),
       )
@@ -192,7 +193,8 @@ class GitProcessLifetimeBehaviorTest {
         root,
         listOf(
           "-c",
-          "alias.fast=!echo \$\$ > $pidFile; while [ ! -f $releaseFile ]; do sleep 0.01; done; exec 0<&-; exec sleep 120",
+          "alias.fast=!echo \$\$ > $pidFile; while [ ! -f $releaseFile ]; do " +
+            "sleep 0.01; done; exec 0<&-; exec sleep 120",
           "fast",
         ),
         payload,

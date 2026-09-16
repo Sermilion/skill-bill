@@ -2800,6 +2800,30 @@ class WorkflowGoalRunnerProgressStoreTest {
   }
 
   @Test
+  fun `direct progress recording owner preserves public progress events and ledger summary`() {
+    val workflows = InMemoryWorkflowStates()
+    workflows.saveFeatureImplementWorkflow(
+      workflowRecord(
+        "wfl-child",
+        mapOf("goal_continuation" to mapOf("issue_key" to "SKILL-64", "subtask_id" to 1)),
+      ),
+    )
+    val store = testWorkflowGoalRunnerOutcomeStore(
+      FakeDatabaseSessionFactory(workflows),
+      testWorkflowSnapshotValidator,
+    )
+
+    store.recordAttemptLedgerEntry(attemptLedgerRequest("wfl-child", sequenceNumber = 0))
+    store.recordProgressEvent(progressEventRequest("wfl-child", sequenceNumber = 4))
+
+    assertEquals(listOf(4), store.progressEvents("wfl-child").map { event -> event.sequenceNumber })
+    assertEquals(
+      1,
+      store.readAttemptLedgerSummary("SKILL-64").phaseAttemptCounts["initial_start"],
+    )
+  }
+
+  @Test
   fun `subtask resume alignment keeps later running step over stale manifest step`() {
     val workflows = InMemoryWorkflowStates()
     val definition = FeatureTaskRuntimePhaseWorkflowDefinition.definition

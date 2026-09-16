@@ -22,6 +22,9 @@ import skillbill.infrastructure.sqlite.decomposition.decodeArtifacts
 import skillbill.infrastructure.sqlite.featuretask.artifact.decodePhaseRecords
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.goalrunner.persistence.model.HistoryArtifactAppend
+import skillbill.ports.goalrunner.runner.GoalRunnerAttemptLedgerStore
+import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowLedgerWriteStore
+import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowProgressStore
 import skillbill.ports.goalrunner.runner.model.GoalRunnerAttemptLedgerRecordRequest
 import skillbill.ports.goalrunner.runner.model.GoalRunnerLedgerSequenceWatermarks
 import skillbill.ports.goalrunner.runner.model.GoalRunnerProgressEventRecordRequest
@@ -60,8 +63,10 @@ internal class WorkflowGoalRunnerProgressRecording(
   private val engine: WorkflowEngine,
   private val goalObservabilityEventValidator: GoalObservabilityEventValidator,
   private val goalProgressEventValidator: GoalProgressEventValidator,
-) {
-  fun progress(workflowId: String): GoalRunnerWorkflowProgress? = database.read { unitOfWork ->
+) : GoalRunnerWorkflowProgressStore,
+  GoalRunnerWorkflowLedgerWriteStore,
+  GoalRunnerAttemptLedgerStore {
+  override fun progress(workflowId: String): GoalRunnerWorkflowProgress? = database.read { unitOfWork ->
     val family = workflowFamilyFor(unitOfWork.workflowStates, workflowId) ?: return@read null
     val record = family.get(unitOfWork.workflowStates, workflowId) ?: return@read null
     engine.snapshotView(family.definition, record)
@@ -98,7 +103,7 @@ internal class WorkflowGoalRunnerProgressRecording(
     )
   }
 
-  fun recordObservabilityEvent(request: GoalRunnerObservabilityRecordRequest): Boolean =
+  override fun recordObservabilityEvent(request: GoalRunnerObservabilityRecordRequest): Boolean =
     database.transaction { unitOfWork ->
       val family = workflowFamilyFor(unitOfWork.workflowStates, request.workflowId)
         ?: return@transaction false
@@ -127,7 +132,7 @@ internal class WorkflowGoalRunnerProgressRecording(
       true
     }
 
-  fun recordProgressEvent(request: GoalRunnerProgressEventRecordRequest): Boolean {
+  override fun recordProgressEvent(request: GoalRunnerProgressEventRecordRequest): Boolean {
     val entryMap = request.event.toPersistenceWire()
     goalProgressEventValidator.validate(entryMap, GOAL_PROGRESS_LATEST_EVENT_ARTIFACT_KEY)
     return appendHistoryArtifact(
@@ -141,7 +146,7 @@ internal class WorkflowGoalRunnerProgressRecording(
     )
   }
 
-  fun recordAttemptLedgerEntry(request: GoalRunnerAttemptLedgerRecordRequest): Boolean = appendHistoryArtifact(
+  override fun recordAttemptLedgerEntry(request: GoalRunnerAttemptLedgerRecordRequest): Boolean = appendHistoryArtifact(
     HistoryArtifactAppend(
       workflowId = request.workflowId,
       latestKey = null,
@@ -151,7 +156,7 @@ internal class WorkflowGoalRunnerProgressRecording(
     ),
   )
 
-  fun progressEvents(workflowId: String): List<GoalProgressEvent> = database.transaction { unitOfWork ->
+  override fun progressEvents(workflowId: String): List<GoalProgressEvent> = database.transaction { unitOfWork ->
     val family = workflowFamilyFor(unitOfWork.workflowStates, workflowId)
       ?: return@transaction emptyList()
     val record = family.get(unitOfWork.workflowStates, workflowId)
@@ -163,7 +168,7 @@ internal class WorkflowGoalRunnerProgressRecording(
       .map { map -> map.decodeDeclaredGoalProgressEvent(GOAL_PROGRESS_RUN_HISTORY_ARTIFACT_KEY) }
   }
 
-  fun recordWorkerSubtaskRequestOutcomes(
+  override fun recordWorkerSubtaskRequestOutcomes(
     workflowId: String,
     outcomes: List<GoalRunnerWorkerSubtaskRequestOutcome>,
   ): Boolean = database.transaction { unitOfWork ->
@@ -195,32 +200,33 @@ internal class WorkflowGoalRunnerProgressRecording(
     true
   }
 
-  fun ledgerSequenceWatermarks(issueKey: String): GoalRunnerLedgerSequenceWatermarks = database.read { unitOfWork ->
-    val normalizedIssueKey = issueKey.trim()
-    var maxLedger: Int? = null
-    var maxProgress: Int? = null
-    val backwardEdgeCounts = mutableMapOf<String, Int>()
-    listOf(WorkflowFamily.TASK_RUNTIME).forEach { family ->
-      family.list(unitOfWork.workflowStates, Int.MAX_VALUE).forEach { snapshot ->
-        val artifacts = decodeArtifacts(snapshot.artifactsJson)
-        if (goalContinuation(artifacts)?.issueKey != normalizedIssueKey) {
-          return@forEach
-        }
-        maxLedger = maxHistorySequence(artifacts, GOAL_ATTEMPT_LEDGER_ARTIFACT_KEY, maxLedger)
-        maxProgress = maxHistorySequence(artifacts, GOAL_PROGRESS_RUN_HISTORY_ARTIFACT_KEY, maxProgress)
-        backwardEdgeCountsFromLedger(artifacts).forEach { (key, count) ->
-          backwardEdgeCounts.merge(key, count, ::maxOf)
+  override fun ledgerSequenceWatermarks(issueKey: String): GoalRunnerLedgerSequenceWatermarks =
+    database.read { unitOfWork ->
+      val normalizedIssueKey = issueKey.trim()
+      var maxLedger: Int? = null
+      var maxProgress: Int? = null
+      val backwardEdgeCounts = mutableMapOf<String, Int>()
+      listOf(WorkflowFamily.TASK_RUNTIME).forEach { family ->
+        family.list(unitOfWork.workflowStates, Int.MAX_VALUE).forEach { snapshot ->
+          val artifacts = decodeArtifacts(snapshot.artifactsJson)
+          if (goalContinuation(artifacts)?.issueKey != normalizedIssueKey) {
+            return@forEach
+          }
+          maxLedger = maxHistorySequence(artifacts, GOAL_ATTEMPT_LEDGER_ARTIFACT_KEY, maxLedger)
+          maxProgress = maxHistorySequence(artifacts, GOAL_PROGRESS_RUN_HISTORY_ARTIFACT_KEY, maxProgress)
+          backwardEdgeCountsFromLedger(artifacts).forEach { (key, count) ->
+            backwardEdgeCounts.merge(key, count, ::maxOf)
+          }
         }
       }
+      GoalRunnerLedgerSequenceWatermarks(
+        maxLedgerSequence = maxLedger,
+        maxProgressSequence = maxProgress,
+        backwardEdgeCounts = backwardEdgeCounts,
+      )
     }
-    GoalRunnerLedgerSequenceWatermarks(
-      maxLedgerSequence = maxLedger,
-      maxProgressSequence = maxProgress,
-      backwardEdgeCounts = backwardEdgeCounts,
-    )
-  }
 
-  fun childWorkflowLoopIterations(workflowId: String): Map<String, Int> = database.read { unitOfWork ->
+  override fun childWorkflowLoopIterations(workflowId: String): Map<String, Int> = database.read { unitOfWork ->
     val family = workflowFamilyFor(unitOfWork.workflowStates, workflowId) ?: return@read emptyMap()
     val record = family.get(unitOfWork.workflowStates, workflowId) ?: return@read emptyMap()
     val artifacts = decodeArtifacts(record.artifactsJson)
@@ -233,20 +239,21 @@ internal class WorkflowGoalRunnerProgressRecording(
     result
   }
 
-  fun readAttemptLedgerSummary(issueKey: String): GoalRunnerAttemptLedgerSummary = database.read { unitOfWork ->
-    val normalizedIssueKey = issueKey.trim()
-    val acc = AttemptLedgerAccumulator()
-    listOf(WorkflowFamily.TASK_RUNTIME).forEach { family ->
-      family.list(unitOfWork.workflowStates, Int.MAX_VALUE).forEach { snapshot ->
-        val artifacts = decodeArtifacts(snapshot.artifactsJson)
-        if (goalContinuation(artifacts)?.issueKey != normalizedIssueKey) return@forEach
-        (artifacts[GOAL_ATTEMPT_LEDGER_ARTIFACT_KEY] as? List<*>).orEmpty().forEach { item ->
-          (item as? Map<*, *>)?.let(acc::accumulate)
+  override fun readAttemptLedgerSummary(issueKey: String): GoalRunnerAttemptLedgerSummary =
+    database.read { unitOfWork ->
+      val normalizedIssueKey = issueKey.trim()
+      val acc = AttemptLedgerAccumulator()
+      listOf(WorkflowFamily.TASK_RUNTIME).forEach { family ->
+        family.list(unitOfWork.workflowStates, Int.MAX_VALUE).forEach { snapshot ->
+          val artifacts = decodeArtifacts(snapshot.artifactsJson)
+          if (goalContinuation(artifacts)?.issueKey != normalizedIssueKey) return@forEach
+          (artifacts[GOAL_ATTEMPT_LEDGER_ARTIFACT_KEY] as? List<*>).orEmpty().forEach { item ->
+            (item as? Map<*, *>)?.let(acc::accumulate)
+          }
         }
       }
+      acc.toSummary()
     }
-    acc.toSummary()
-  }
 
   private fun appendHistoryArtifact(append: HistoryArtifactAppend): Boolean = database.transaction { unitOfWork ->
     val family = workflowFamilyFor(unitOfWork.workflowStates, append.workflowId)

@@ -81,24 +81,29 @@ class GoalRunnerLedgerRecorder(
       reAttemptCause = context.reAttemptCause?.takeIf(String::isNotBlank),
       findingsInScope = context.findingsInScope,
     )
-    val recorded = try {
+    val result = runCatching {
       outcomeStore.recordAttemptLedgerEntry(
         GoalRunnerAttemptLedgerRecordRequest(workflowId = targetWorkflowId, entry = entry),
       )
-    } catch (cancellation: CancellationException) {
-      throw cancellation
-    } catch (interrupted: InterruptedException) {
-      Thread.currentThread().interrupt()
-      throw interrupted
-    } catch (error: Throwable) {
-      logBestEffortFailure("attempt_ledger:${context.action.wireValue}", targetWorkflowId, context.subtaskId, error)
-      return
     }
-    if (!recorded) {
-      logBestEffortMissingWorkflow(
+    when (val failure = result.exceptionOrNull()) {
+      null -> if (!result.getOrThrow()) {
+        logBestEffortMissingWorkflow(
+          "attempt_ledger:${context.action.wireValue}",
+          targetWorkflowId,
+          context.subtaskId,
+        )
+      }
+      is CancellationException -> throw failure
+      is InterruptedException -> {
+        Thread.currentThread().interrupt()
+        throw failure
+      }
+      else -> logBestEffortFailure(
         "attempt_ledger:${context.action.wireValue}",
         targetWorkflowId,
         context.subtaskId,
+        failure,
       )
     }
   }

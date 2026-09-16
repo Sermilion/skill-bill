@@ -24,6 +24,14 @@ internal data class WireVocabularyScanResult(
   val remainingViolationCount: Int,
 )
 
+private data class WireVocabularyScanContext(
+  val tokenValues: Set<String>,
+  val keyValues: Set<String>,
+  val includePayloadKeyAccesses: Boolean,
+  val enforceGovernedSeams: Boolean,
+  val governedKeys: Map<String, Set<String>>,
+)
+
 internal object WireVocabularyArchitectureSupport {
   fun scanRuntimeMainSources(): WireVocabularyScanResult = scanSourceFiles(
     RuntimeModuleCatalog.declaredGradleModules
@@ -46,55 +54,90 @@ internal object WireVocabularyArchitectureSupport {
         .thenBy { it.relativePath }
         .thenBy { it.line },
     )
-    val tokenValues = declarations
-      .filter { it.category == "token" || it.category == "alias" }
-      .map { it.value }
-      .toSet()
+    val tokenValues = declarations.filter { it.category == "token" || it.category == "alias" }
+      .map { it.value }.toSet()
     val keyValues = declarations.filter { it.category == "key" }.map { it.value }.toSet()
-    val governedSchemaPropertyKeysByPath = if (enforceGovernedSeams) {
-      WireVocabularyGovernedSeamInventory.seams.associate { seam ->
-        seam.schemaRepoRelativePath to (
-          schemaPropertyKeysByPath?.get(seam.schemaRepoRelativePath)
-            ?: WireVocabularyGovernedSeamInventory.closedSchemaPropertyKeys(seam.schemaRepoRelativePath)
-          )
-      }
-    } else {
-      emptyMap()
-    }
-    val payloadKeyValues =
-      if (enforceGovernedSeams) governedSchemaPropertyKeysByPath.values.flatten().toSet() else keyValues
-    val violations = buildList {
-      addAll(duplicateDeclarations(declarations))
-      if (enforceGovernedSeams) {
-        WireVocabularyGovernedSeamInventory.seams.forEach { seam ->
-          addAll(
-            WireVocabularyGovernedSeamInventory.schemaFieldsMissingKotlinOwner(
-              governedSchemaPropertyKeysByPath.getValue(seam.schemaRepoRelativePath),
-              seam.schemaRepoRelativePath,
-              keyValues,
-            ),
-          )
-        }
-      }
-      files.forEach { file ->
-        addAll(localVocabularyRestatements(file, tokenValues, declarations))
-        if (
-          includePayloadKeyAccesses &&
-          (
-            !enforceGovernedSeams ||
-              WireVocabularyGovernedSeamInventory.fileMatchesGovernedSeam(file.relativePath)
-            )
-        ) {
-          addAll(payloadKeyAccesses(file, payloadKeyValues, declarations))
-        }
-      }
-    }.distinct().sorted()
+    val governedKeys = governedSchemaPropertyKeys(enforceGovernedSeams, schemaPropertyKeysByPath)
+    val violations = findViolations(
+      files,
+      declarations,
+      WireVocabularyScanContext(
+        tokenValues,
+        keyValues,
+        includePayloadKeyAccesses,
+        enforceGovernedSeams,
+        governedKeys,
+      ),
+    )
     return WireVocabularyScanResult(
       declarations = declarations,
       violations = violations,
       baselineViolationCount = violations.size,
       remainingViolationCount = violations.size,
     )
+  }
+
+  private fun governedSchemaPropertyKeys(
+    enforceGovernedSeams: Boolean,
+    schemaPropertyKeysByPath: Map<String, Set<String>>?,
+  ): Map<String, Set<String>> = if (enforceGovernedSeams) {
+    WireVocabularyGovernedSeamInventory.seams.associate { seam ->
+      seam.schemaRepoRelativePath to (
+        schemaPropertyKeysByPath?.get(seam.schemaRepoRelativePath)
+          ?: WireVocabularyGovernedSeamInventory.closedSchemaPropertyKeys(seam.schemaRepoRelativePath)
+        )
+    }
+  } else {
+    emptyMap()
+  }
+
+  private fun findViolations(
+    files: List<SourceFile>,
+    declarations: List<WireVocabularyDeclaration>,
+    context: WireVocabularyScanContext,
+  ): List<String> = buildList {
+    addAll(duplicateDeclarations(declarations))
+    if (context.enforceGovernedSeams) {
+      addAll(governedSeamViolations(context.governedKeys, context.keyValues))
+    }
+    files.forEach { file ->
+      addAll(localVocabularyRestatements(file, context.tokenValues, declarations))
+      if (context.includePayloadKeyAccesses) {
+        addAll(
+          filePayloadKeyViolations(
+            file,
+            context.keyValues,
+            declarations,
+            context.enforceGovernedSeams,
+            context.governedKeys,
+          ),
+        )
+      }
+    }
+  }.distinct().sorted()
+
+  private fun governedSeamViolations(governedKeys: Map<String, Set<String>>, keyValues: Set<String>): List<String> =
+    WireVocabularyGovernedSeamInventory.seams.flatMap { seam ->
+      WireVocabularyGovernedSeamInventory.schemaFieldsMissingKotlinOwner(
+        governedKeys.getValue(seam.schemaRepoRelativePath),
+        seam.schemaRepoRelativePath,
+        keyValues,
+      )
+    }
+
+  private fun filePayloadKeyViolations(
+    file: SourceFile,
+    keyValues: Set<String>,
+    declarations: List<WireVocabularyDeclaration>,
+    enforceGovernedSeams: Boolean,
+    governedKeys: Map<String, Set<String>>,
+  ): List<String> {
+    if (!enforceGovernedSeams) return payloadKeyAccesses(file, keyValues, declarations)
+    return WireVocabularyGovernedSeamInventory.seams
+      .filter { seam -> seam.governedRelativePathMarkers.any(file.relativePath::contains) }
+      .flatMap { seam ->
+        payloadKeyAccesses(file, governedKeys.getValue(seam.schemaRepoRelativePath), declarations)
+      }
   }
 
   fun vocabularyDelta(before: WireVocabularyScanResult, after: WireVocabularyScanResult): Int =

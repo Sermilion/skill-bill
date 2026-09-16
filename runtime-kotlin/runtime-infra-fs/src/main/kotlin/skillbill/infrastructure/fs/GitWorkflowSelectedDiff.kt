@@ -46,30 +46,43 @@ internal fun readSelectedDiffHunks(
   val process = ProcessBuilder(listOf("git", "-C", repoRoot.toString()) + args)
     .redirectErrorStream(true)
     .start()
-  val parser = SelectedDiffHunkParser(staged, budget)
-  val errorOutput = StringBuilder()
-  var readFailure: IOException? = null
-  var outputThread: Thread? = null
-  var result: SelectedDiffReadResult? = null
-  var primaryFailure: Throwable? = null
-  var cleanupFailure: Throwable? = null
-  val ownedDescendants = linkedSetOf<ProcessHandle>()
-  val parserTruncated = CountDownLatch(1)
-  fun recordCleanupFailure(failure: Throwable) {
-    cleanupFailure = cleanupFailure?.also { existing -> existing.addSuppressed(failure) } ?: failure
+  return SelectedDiffProcess(process, args, staged, budget).run()
+}
+
+private class SelectedDiffProcess(
+  private val process: Process,
+  private val args: List<String>,
+  staged: Boolean,
+  private val budget: SelectedDiffBudget,
+) {
+  private val parser = SelectedDiffHunkParser(staged, budget)
+  private val errorOutput = StringBuilder()
+  private val ownedDescendants = linkedSetOf<ProcessHandle>()
+  private val parserTruncated = CountDownLatch(1)
+  private var readFailure: IOException? = null
+  private var outputThread: Thread? = null
+  private var result: SelectedDiffReadResult? = null
+  private var primaryFailure: Throwable? = null
+  private var cleanupFailure: Throwable? = null
+
+  fun run(): SelectedDiffReadResult {
+    try {
+      startOutputCapture()
+      captureOwnedDescendants()
+      val finished = awaitProcess()
+      destroyProcessTree()
+      result = if (finished) settledResult() else timedOutResult()
+    } catch (interrupted: InterruptedException) {
+      primaryFailure = interrupted
+      destroyForInterrupted(interrupted)
+      throw interrupted
+    } finally {
+      cleanup()
+    }
+    return requireNotNull(result)
   }
-  fun captureOwnedDescendants() {
-    runCatching {
-      ownedDescendants += process.toHandle().descendants().toList()
-    }.onFailure(::recordCleanupFailure)
-  }
-  fun destroyProcessTree() {
-    destroyOwnedProcessTree(process, ownedDescendants)
-  }
-  fun attemptCleanup(action: () -> Unit) {
-    runCatching(action).exceptionOrNull()?.let(::recordCleanupFailure)
-  }
-  try {
+
+  private fun startOutputCapture() {
     outputThread = thread(start = true, name = "skill-bill-selected-diff-output") {
       try {
         process.inputStream.bufferedReader().use { reader ->
@@ -89,78 +102,72 @@ internal fun readSelectedDiffHunks(
           }
         }
       } catch (error: IOException) {
-        if (!parser.truncated) {
-          readFailure = error
-        }
+        if (!parser.truncated) readFailure = error
       }
     }
-    captureOwnedDescendants()
-    val timeoutSeconds = gitTimeoutSeconds(args)
-    val finished = try {
-      val deadlineNanos = System.nanoTime() + TimeUnit.SECONDS.toNanos(timeoutSeconds)
-      while (process.isAlive) {
-        captureOwnedDescendants()
-        val remainingNanos = deadlineNanos - System.nanoTime()
-        if (remainingNanos <= 0L) {
-          break
-        }
-        process.waitFor(
-          minOf(remainingNanos, TimeUnit.MILLISECONDS.toNanos(50)),
-          TimeUnit.NANOSECONDS,
-        )
-        if (parserTruncated.await(0, TimeUnit.NANOSECONDS)) {
-          runCatching { destroyProcessTree() }
-            .onFailure(::recordCleanupFailure)
-        }
-      }
-      !process.isAlive
-    } catch (interrupted: InterruptedException) {
-      primaryFailure = interrupted
-      runCatching { destroyProcessTree() }
-        .onFailure(interrupted::addSuppressed)
-      throw interrupted
-    }
-    destroyProcessTree()
-    if (!finished) {
-      result = SelectedDiffReadResult(
-        status = WorkflowGitOperationStatus.ERROR,
-        error = gitTimedOutError(args),
+  }
+
+  private fun awaitProcess(): Boolean {
+    val deadlineNanos = System.nanoTime() + TimeUnit.SECONDS.toNanos(gitTimeoutSeconds(args))
+    while (process.isAlive) {
+      captureOwnedDescendants()
+      val remainingNanos = deadlineNanos - System.nanoTime()
+      if (remainingNanos <= 0L) return false
+      process.waitFor(
+        minOf(remainingNanos, TimeUnit.MILLISECONDS.toNanos(GIT_PROCESS_POLL_MILLIS)),
+        TimeUnit.NANOSECONDS,
       )
-    } else {
-      val cleanupDeadlineNanos = System.nanoTime() + TimeUnit.SECONDS.toNanos(GIT_PROCESS_CLEANUP_BUDGET_SECONDS)
-      if (
-        !closeInputAndJoin(process, requireNotNull(outputThread), cleanupDeadlineNanos) &&
-        readFailure == null
-      ) {
-        readFailure = IOException("selected diff output capture did not settle before deadline")
-      }
-      val failure = readFailure
-      val parsed = parser.result()
-      result = when {
-        failure != null ->
-          SelectedDiffReadResult(status = WorkflowGitOperationStatus.ERROR, error = failure.message.orEmpty())
-        !parsed.truncated && process.exitValue() != 0 ->
-          SelectedDiffReadResult(status = WorkflowGitOperationStatus.ERROR, error = errorOutput.toString().trim())
-        else -> SelectedDiffReadResult(status = WorkflowGitOperationStatus.OK, hunks = parsed)
+      if (parserTruncated.await(0, TimeUnit.NANOSECONDS)) {
+        attemptCleanup { destroyProcessTree() }
       }
     }
-  } catch (interrupted: InterruptedException) {
-    if (primaryFailure == null) {
-      primaryFailure = interrupted
+    return true
+  }
+
+  private fun settledResult(): SelectedDiffReadResult {
+    val cleanupDeadlineNanos = System.nanoTime() + TimeUnit.SECONDS.toNanos(GIT_PROCESS_CLEANUP_BUDGET_SECONDS)
+    if (!closeInputAndJoin(process, requireNotNull(outputThread), cleanupDeadlineNanos) && readFailure == null) {
+      readFailure = IOException("selected diff output capture did not settle before deadline")
     }
-    throw interrupted
-  } finally {
+    val parsed = parser.result()
+    return when {
+      readFailure != null ->
+        SelectedDiffReadResult(status = WorkflowGitOperationStatus.ERROR, error = readFailure?.message.orEmpty())
+      !parsed.truncated && process.exitValue() != 0 ->
+        SelectedDiffReadResult(status = WorkflowGitOperationStatus.ERROR, error = errorOutput.toString().trim())
+      else -> SelectedDiffReadResult(status = WorkflowGitOperationStatus.OK, hunks = parsed)
+    }
+  }
+
+  private fun timedOutResult(): SelectedDiffReadResult = SelectedDiffReadResult(
+    status = WorkflowGitOperationStatus.ERROR,
+    error = gitTimedOutError(args),
+  )
+
+  private fun destroyForInterrupted(interrupted: InterruptedException) {
+    runCatching { destroyProcessTree() }.onFailure(interrupted::addSuppressed)
+  }
+
+  private fun destroyProcessTree() {
+    destroyOwnedProcessTree(process, ownedDescendants)
+  }
+
+  private fun captureOwnedDescendants() {
+    runCatching {
+      ownedDescendants += process.toHandle().descendants().toList()
+    }.onFailure(::recordCleanupFailure)
+  }
+
+  private fun cleanup() {
     attemptCleanup { destroyProcessTree() }
     attemptCleanup { process.outputStream.close() }
     outputThread?.let { drainThread ->
       attemptCleanup {
-        if (
-          !closeInputAndJoin(
+        if (!closeInputAndJoin(
             process,
             drainThread,
             System.nanoTime() + TimeUnit.SECONDS.toNanos(GIT_PROCESS_CLEANUP_BUDGET_SECONDS),
-          ) &&
-          readFailure == null
+          ) && readFailure == null
         ) {
           readFailure = IOException("selected diff output capture did not settle before deadline")
         }
@@ -170,16 +177,20 @@ internal fun readSelectedDiffHunks(
     attemptCleanup { process.outputStream.close() }
     cleanupFailure?.let { failure ->
       if (primaryFailure != null) {
-        primaryFailure.addSuppressed(failure)
+        primaryFailure?.addSuppressed(failure)
       } else if (result?.status == WorkflowGitOperationStatus.OK) {
-        result = SelectedDiffReadResult(
-          status = WorkflowGitOperationStatus.ERROR,
-          error = failure.message.orEmpty(),
-        )
+        result = SelectedDiffReadResult(status = WorkflowGitOperationStatus.ERROR, error = failure.message.orEmpty())
       }
     }
   }
-  return requireNotNull(result)
+
+  private fun attemptCleanup(action: () -> Unit) {
+    runCatching(action).exceptionOrNull()?.let(::recordCleanupFailure)
+  }
+
+  private fun recordCleanupFailure(failure: Throwable) {
+    cleanupFailure = cleanupFailure?.also { existing -> existing.addSuppressed(failure) } ?: failure
+  }
 }
 
 internal data class SelectedDiffReadResult(

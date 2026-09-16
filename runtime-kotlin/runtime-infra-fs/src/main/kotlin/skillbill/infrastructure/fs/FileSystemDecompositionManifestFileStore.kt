@@ -93,7 +93,7 @@ class FileSystemDecompositionManifestFileStore :
             }
           }.onFailure(failure::addSuppressed)
         }
-        runCatching { bundleJournal.cleanup(transaction) }.onFailure(failure::addSuppressed)
+        runCatching { cleanupValidatedBundleJournal(transaction) }.onFailure(failure::addSuppressed)
         throw failure
       }
     }

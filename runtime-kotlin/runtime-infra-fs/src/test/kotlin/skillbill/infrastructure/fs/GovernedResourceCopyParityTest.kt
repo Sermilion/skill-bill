@@ -97,6 +97,7 @@ class GovernedResourceCopyParityTest {
         "copyWorkflowStateSchema",
         "copyInstallPlanSchema",
         "copyDecompositionManifestSchema",
+        "copyDecompositionManifestBundleJournalSchema",
         "copyGoalObservabilityEventSchema",
         "copyGoalProgressEventSchema",
         "copyIdeStatusSchema",

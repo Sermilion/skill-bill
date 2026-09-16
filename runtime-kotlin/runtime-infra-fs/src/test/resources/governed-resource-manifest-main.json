@@ -2,6 +2,7 @@
   "skillbill/contracts/review-context-schema.yaml": "a77be8b41d8375ef51b349a0f6db963e1ea98d483f27715f3de8f5b803d9854b",
   "skillbill/infrastructure/fs/contracts/agent-addon-schema.yaml": "531618fe52fb6f24b4d82ff58234f9851fe77626aa3ff384360569c4eaf9cf7e",
   "skillbill/infrastructure/fs/contracts/decomposition-manifest-schema.yaml": "bf55aa6fc1c8e80aa06e92dd28fea5c5fdb6001c64b4d7ef51e6bc43e971a7b5",
+  "skillbill/infrastructure/fs/contracts/decomposition-manifest-bundle-journal-schema.yaml": "3b4f7c25b05ec9cad1e03daf8098b7f4a1b62116558d1f7472ffbdc40eab21fe",
   "skillbill/infrastructure/fs/contracts/feature-task-execution-identity-schema.yaml": "63b329dfe5b03c0c4c45e66a5cafe469c6cb0bc51c3f113d53dc0be1f6d3b871",
   "skillbill/infrastructure/fs/contracts/feature-task-runtime-build-receipt.yaml": "609c99ebfc49d1aa98cb6e0c16bfc1dab53568598392ed4217d156792b847954",
   "skillbill/infrastructure/fs/contracts/feature-task-runtime-checkpoint-identity-schema.yaml": "58e3c5e2b8583ef21458e5e17ec043aa85c2bdeeebe8b1548273b5ac9913db7d",

@@ -34,8 +34,8 @@ class GoalRunnerObservabilityEmitter(
   }
 
   internal fun record(subject: GoalRunnerObservabilitySubject, signal: GoalRunnerObservabilitySignal) {
-    try {
-      val recorded = outcomeStore.recordObservabilityEvent(
+    val result = runCatching {
+      outcomeStore.recordObservabilityEvent(
         request = GoalRunnerObservabilityRecordRequest(
           workflowId = subject.workflowId,
           issueKey = subject.issueKey,
@@ -48,16 +48,15 @@ class GoalRunnerObservabilityEmitter(
           timestamp = clock.instant().toString(),
         ),
       )
-      if (!recorded) {
-        logBestEffortMissingWorkflow(subject, signal)
+    }
+    when (val failure = result.exceptionOrNull()) {
+      null -> if (!result.getOrThrow()) logBestEffortMissingWorkflow(subject, signal)
+      is CancellationException -> throw failure
+      is InterruptedException -> {
+        Thread.currentThread().interrupt()
+        throw failure
       }
-    } catch (cancellation: CancellationException) {
-      throw cancellation
-    } catch (interrupted: InterruptedException) {
-      Thread.currentThread().interrupt()
-      throw interrupted
-    } catch (error: Throwable) {
-      logBestEffortFailure(subject, signal, error)
+      else -> logBestEffortFailure(subject, signal, failure)
     }
   }
 
@@ -82,7 +81,7 @@ class GoalRunnerObservabilityEmitter(
       diagnostics.warning(
         "Best-effort goal observability emit failed: workflowId='${subject.workflowId}' " +
           "livenessClass='${signal.livenessClass}' errorType='${error::class.qualifiedName}' " +
-            "message='${error.message.orEmpty().take(MAX_DIAGNOSTIC_MESSAGE_LENGTH)}'",
+          "message='${error.message.orEmpty().take(MAX_DIAGNOSTIC_MESSAGE_LENGTH)}'",
         error,
       )
     }
