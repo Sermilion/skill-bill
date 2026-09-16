@@ -282,9 +282,7 @@ private fun Throwable.isCooperativeCancellation(): Boolean = this is Cancellatio
 private fun rethrowCancellation(error: Throwable): Nothing = throw error
 
 internal fun rethrowInterrupted(error: InterruptedException, interruptSignal: InterruptSignalPort): Nothing {
-  try {
-    interruptSignal.restore()
-  } catch (restorationFailure: Throwable) {
+  runCatching { interruptSignal.restore() }.exceptionOrNull()?.let { restorationFailure ->
     if (restorationFailure !== error) {
       error.addSuppressed(restorationFailure)
     }

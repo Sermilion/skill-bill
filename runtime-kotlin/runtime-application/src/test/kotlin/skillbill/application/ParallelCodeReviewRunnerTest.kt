@@ -6,6 +6,7 @@ import skillbill.agentaddon.model.HydratedAgentAddonSelectionEntry
 import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
 import skillbill.application.idestatus.AgentActivityStampWriter
 import skillbill.application.review.ParallelCodeReviewRunner
+import skillbill.application.review.ParallelCodeReviewRunnerComposition
 import skillbill.application.review.RecordedWorkerResponse
 import skillbill.application.review.ReviewClaimVerificationRunner
 import skillbill.application.review.ReviewHarnessConfig
@@ -16,8 +17,7 @@ import skillbill.application.review.diffForChanges
 import skillbill.application.review.diffForPaths
 import skillbill.application.review.harnessRequest
 import skillbill.application.review.model.ParallelCodeReviewRequest
-import skillbill.application.review.model.ParallelCodeReviewRunnerLaneLaunchBoundaries
-import skillbill.application.review.model.ParallelCodeReviewRunnerPlanningBoundaries
+import skillbill.application.review.model.ParallelCodeReviewRunnerBoundaries
 import skillbill.application.review.model.StackDetectionException
 import skillbill.application.review.model.UsageValidationException
 import skillbill.application.review.reviewHarness
@@ -1405,7 +1405,7 @@ internal fun runner(
 internal fun createRunner(launcher: GoalRunnerSubtaskLauncher, config: RunnerFixtureConfig): ParallelCodeReviewRunner {
   val endpointRoot = config.evidenceEndpointRoot ?: Files.createTempDirectory("endpoint")
   val sharedEvidenceLocatorReader = FeatureTaskRuntimeSharedEvidenceLocatorReadPort.NONE
-  val planningBoundaries = ParallelCodeReviewRunnerPlanningBoundaries(
+  val boundaries = ParallelCodeReviewRunnerBoundaries(
     diffResolver = config.diffResolver,
     repoLocalConfig = object : RepoLocalConfigPort {
       override fun readRepoLocalConfig(request: ReadRepoLocalConfigRequest) =
@@ -1436,9 +1436,6 @@ internal fun createRunner(launcher: GoalRunnerSubtaskLauncher, config: RunnerFix
     diagnostics = NoopRuntimeDiagnostics,
     clock = testHarnessClock,
     repositoryEnclosingRootPort = TestRepositoryEnclosingRoot,
-  )
-  val laneLaunchBoundaries = ParallelCodeReviewRunnerLaneLaunchBoundaries(
-    parentReviewLauncher = launcher,
     reviewEvidenceBrokerFactory = ReviewEvidenceBrokerFactory { binding ->
       object : ReviewEvidenceBroker {
         override fun readBatch(request: ReviewEvidenceBatchRequest) = ReviewEvidenceBatchResult(
@@ -1470,14 +1467,14 @@ internal fun createRunner(launcher: GoalRunnerSubtaskLauncher, config: RunnerFix
       }
     },
     governedEvidenceEndpointBinder =
-      config.evidenceEndpointBinder ?: stubGovernedReviewEvidenceEndpointBinder(endpointRoot),
+    config.evidenceEndpointBinder ?: stubGovernedReviewEvidenceEndpointBinder(endpointRoot),
     reviewLaunchAgentStaging = config.reviewLaunchAgentStaging,
-    sharedEvidenceLocatorReader = sharedEvidenceLocatorReader,
   )
   return ParallelCodeReviewRunner(
-    planningBoundaries,
-    laneLaunchBoundaries,
-    AgentActivityStampWriter(config.database, Clock.systemUTC(), NoopRuntimeDiagnostics),
+    ParallelCodeReviewRunnerComposition(
+      boundaries,
+      AgentActivityStampWriter(config.database, Clock.systemUTC(), NoopRuntimeDiagnostics),
+    ),
   )
 }
 

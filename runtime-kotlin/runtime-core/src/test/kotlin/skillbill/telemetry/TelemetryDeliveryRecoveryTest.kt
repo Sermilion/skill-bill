@@ -1,7 +1,7 @@
 package skillbill.telemetry
 
 import skillbill.application.telemetry.sync.TelemetrySyncRuntime
-import skillbill.infrastructure.concurrency.JvmInterruptSignalPort
+import skillbill.infrastructure.fs.concurrency.JvmInterruptSignalPort
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
 import skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxStore
 import skillbill.ports.concurrency.InterruptSignalPort
@@ -71,7 +71,9 @@ class TelemetryDeliveryRecoveryTest {
         }
 
       val result =
-        TelemetrySyncRuntime.syncTelemetry(settings(batchSize = 1), brokenAcknowledgement, client, { NOW }, JvmInterruptSignalPort)
+        TelemetrySyncRuntime.syncTelemetry(settings(batchSize = 1), brokenAcknowledgement, client, {
+          NOW
+        }, JvmInterruptSignalPort)
 
       assertEquals(TelemetrySyncStatus.FAILED, result.status)
       assertEquals(1, client.sentBatches.size, "The invocation must stop, not resend on every pass.")

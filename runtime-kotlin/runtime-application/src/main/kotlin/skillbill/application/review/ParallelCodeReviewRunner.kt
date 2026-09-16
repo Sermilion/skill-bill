@@ -1,14 +1,10 @@
 package skillbill.application.review
 
 import me.tatarka.inject.annotations.Inject
-import skillbill.application.idestatus.AgentActivityStampWriter
 import skillbill.application.review.model.ParallelCodeReviewRequest
 import skillbill.application.review.model.ParallelCodeReviewResult
-import skillbill.application.review.model.ParallelCodeReviewRunnerLaneLaunchBoundaries
-import skillbill.application.review.model.ParallelCodeReviewRunnerPlanningBoundaries
 import skillbill.application.review.model.ReviewWorkerKind
 import skillbill.application.reviewevidence.model.ParallelReviewScope
-import skillbill.application.runtimepersistence.RuntimeOwnedPersistenceBoundary
 import skillbill.ports.review.model.ReviewAccountingRecord
 import skillbill.ports.review.model.ReviewNativeAgentPreflightRequest
 import skillbill.review.ParallelReviewMerger
@@ -16,66 +12,14 @@ import skillbill.review.context.model.ResolvedReviewExecutionMode
 
 @Inject
 class ParallelCodeReviewRunner(
-  planningBoundaries: ParallelCodeReviewRunnerPlanningBoundaries,
-  laneLaunchBoundaries: ParallelCodeReviewRunnerLaneLaunchBoundaries,
-  private val activityStampWriter: AgentActivityStampWriter,
+  composition: ParallelCodeReviewRunnerComposition,
 ) {
-  private val parentReviewLauncher = planningBoundaries.parentReviewLauncher
-  private val diffResolver = planningBoundaries.diffResolver
-  private val repoLocalConfig = planningBoundaries.repoLocalConfig
-  private val reviewContextEnvelopeValidator = planningBoundaries.reviewContextEnvelopeValidator
-  private val reviewRubricResolver = planningBoundaries.reviewRubricResolver
-  private val reviewSpecialistContractProvider = planningBoundaries.reviewSpecialistContractProvider
-  private val database = planningBoundaries.database
-  private val installedPackCatalog = planningBoundaries.installedPackCatalog
-  private val sharedEvidenceResolver = planningBoundaries.sharedEvidenceResolver
-  private val sharedEvidenceLocatorReader = planningBoundaries.sharedEvidenceLocatorReader
-  private val specIntentProjectionResolver = planningBoundaries.specIntentProjectionResolver
-  private val reviewEvidenceBrokerFactory = laneLaunchBoundaries.reviewEvidenceBrokerFactory
-  private val governedEvidenceEndpointBinder = laneLaunchBoundaries.governedEvidenceEndpointBinder
-  private val nativeAgentPreflight = planningBoundaries.nativeAgentPreflight
-  private val reviewLaunchAgentStaging = laneLaunchBoundaries.reviewLaunchAgentStaging
-  private val registerParse = planningBoundaries.registerParse
-  private val diagnostics = planningBoundaries.diagnostics
-  private val clock = planningBoundaries.clock
-  private val repositoryEnclosingRootPort = planningBoundaries.repositoryEnclosingRootPort
-  private val runtimeOwnedPersistence = RuntimeOwnedPersistenceBoundary(database, diagnostics)
-  private val failureAdmission = ParallelCodeReviewRunnerFailureAdmission(registerParse)
-  private val rubricPlanning = ParallelCodeReviewRunnerRubricPlanning(reviewRubricResolver, installedPackCatalog)
-  private val planning = ParallelCodeReviewRunnerPlanning(
-    diffResolver = diffResolver,
-    repoLocalConfig = repoLocalConfig,
-    reviewContextEnvelopeValidator = reviewContextEnvelopeValidator,
-    reviewSpecialistContractProvider = reviewSpecialistContractProvider,
-    installedPackCatalog = installedPackCatalog,
-    sharedEvidenceResolver = sharedEvidenceResolver,
-    sharedEvidenceLocatorReader = sharedEvidenceLocatorReader,
-    specIntentProjectionResolver = specIntentProjectionResolver,
-    rubricPlanning = rubricPlanning,
-    lanePlanRecording = ParallelCodeReviewRunnerLanePlanRecording(runtimeOwnedPersistence, clock),
-    repositoryEnclosingRootPort = repositoryEnclosingRootPort,
-  )
-  private val laneLaunch = ParallelCodeReviewRunnerLaneLaunch(
-    parentReviewLauncher = laneLaunchBoundaries.parentReviewLauncher,
-    reviewEvidenceBrokerFactory = laneLaunchBoundaries.reviewEvidenceBrokerFactory,
-    governedEvidenceEndpointBinder = laneLaunchBoundaries.governedEvidenceEndpointBinder,
-    reviewLaunchAgentStaging = laneLaunchBoundaries.reviewLaunchAgentStaging,
-    sharedEvidenceLocatorReader = laneLaunchBoundaries.sharedEvidenceLocatorReader,
-    failureAdmission = failureAdmission,
-    activityStampWriter = activityStampWriter,
-  )
-  private val resultAssembly = ParallelCodeReviewRunnerResultAssembly(
-    parentReviewLauncher,
-    reviewContextEnvelopeValidator,
-    runtimeOwnedPersistence,
-    clock,
-  )
-  private val verificationStages = ParallelCodeReviewRunnerVerificationStages(
-    parentReviewLauncher,
-    reviewContextEnvelopeValidator,
-    runtimeOwnedPersistence,
-    clock,
-  )
+  private val planning = composition.planning
+  private val laneLaunch = composition.laneLaunch
+  private val resultAssembly = composition.resultAssembly
+  private val verificationStages = composition.verificationStages
+  private val runtimeOwnedPersistence = composition.runtimeOwnedPersistence
+  private val nativeAgentPreflight = composition.nativeAgentPreflight
 
   fun run(originalRequest: ParallelCodeReviewRequest): ParallelCodeReviewResult {
     earlyEmptyDelta(originalRequest)?.let { return it }

@@ -1,12 +1,23 @@
 package skillbill.application.idestatus
 
 import skillbill.idestatus.model.AgentActivityLabel
-import skillbill.infrastructure.sqlite.SQLiteDatabaseSessionFactory
-import skillbill.model.EnvironmentContext
+import skillbill.idestatus.model.AgentActivityStamp
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
+import skillbill.ports.goalrunner.GoalPlanningPreparationRepository
+import skillbill.ports.goalrunner.GoalRunnerControlRepository
+import skillbill.ports.idestatus.AgentActivityStampRepository
+import skillbill.ports.learning.LearningRepository
 import skillbill.ports.persistence.UnitOfWork
+import skillbill.ports.persistence.UnitOfWorkDefaults
+import skillbill.ports.review.ReviewRepository
+import skillbill.ports.telemetry.LifecycleTelemetryRepository
+import skillbill.ports.telemetry.TelemetryOutboxRepository
+import skillbill.ports.telemetry.TelemetryReconciliationRepository
+import skillbill.ports.work.WorkListRepository
+import skillbill.ports.workflow.WorkflowStateRepository
 import java.nio.file.Files
+import java.nio.file.Path
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
@@ -26,8 +37,8 @@ class AgentActivityStampWriterOwnershipTest {
     val instant = Instant.parse("2026-09-16T10:00:00Z")
     val clock = Clock.fixed(instant, ZoneOffset.UTC)
     val workflowId = "wfl-shared"
-    val firstDb = sqliteFactory("activity-owner-a")
-    val secondDb = sqliteFactory("activity-owner-b")
+    val firstDb = memoryFactory("activity-owner-a")
+    val secondDb = memoryFactory("activity-owner-b")
     val firstWriter = AgentActivityStampWriter(firstDb, clock, NoopDiagnostics)
     val secondWriter = AgentActivityStampWriter(secondDb, clock, NoopDiagnostics)
     firstWriter.sink(workflowId, null).stamp(AgentActivityLabel.STDOUT)
@@ -52,7 +63,7 @@ class AgentActivityStampWriterOwnershipTest {
         return current
       }
     }
-    val base = sqliteFactory("activity-retry")
+    val base = memoryFactory("activity-retry")
     val attempts = AtomicInteger(0)
     val database = object : DatabaseSessionFactory {
       override fun resolveDbPath() = base.resolveDbPath()
@@ -84,7 +95,7 @@ class AgentActivityStampWriterOwnershipTest {
 
   @Test
   fun `same-label activity remains debounced while evidence reads publish`() {
-    val database = CountingDatabase(sqliteFactory("activity-debounce"))
+    val database = CountingDatabase(memoryFactory("activity-debounce"))
     val writer = AgentActivityStampWriter(
       database,
       StepClock(Instant.parse("2026-09-16T10:00:00Z"), stepMillis = 1),
@@ -109,7 +120,7 @@ class AgentActivityStampWriterOwnershipTest {
   fun `concurrent completion preserves timestamp ordering and parent publication`() {
     val instant = Instant.parse("2026-09-16T10:00:00Z")
     val clock = StepClock(instant)
-    val database = ControlledDatabase(sqliteFactory("activity-concurrency"))
+    val database = ControlledDatabase(memoryFactory("activity-concurrency"))
     database.failFirstWrite = true
     val writer = AgentActivityStampWriter(database, clock, NoopDiagnostics)
     val workflowId = "wfl-child"
@@ -137,9 +148,53 @@ class AgentActivityStampWriterOwnershipTest {
     }
   }
 
-  private fun sqliteFactory(name: String): SQLiteDatabaseSessionFactory {
-    val tempDir = Files.createTempDirectory(name)
-    return SQLiteDatabaseSessionFactory(EnvironmentContext(userHome = tempDir))
+  private fun memoryFactory(name: String): MemoryDatabaseSessionFactory =
+    MemoryDatabaseSessionFactory(Files.createTempDirectory(name).resolve("activity.db"))
+}
+
+private class MemoryDatabaseSessionFactory(
+  private val dbPath: Path,
+) : DatabaseSessionFactory {
+  private val stamps = mutableMapOf<String, AgentActivityStamp>()
+  private val repository = object : AgentActivityStampRepository {
+    override fun record(workflowId: String, stamp: AgentActivityStamp) {
+      stamps[workflowId] = stamp
+    }
+
+    override fun read(workflowId: String): AgentActivityStamp? = stamps[workflowId]
+  }
+
+  override fun resolveDbPath(): Path = dbPath
+
+  override fun databaseExists(): Boolean = true
+
+  override fun <T> read(block: (UnitOfWork) -> T): T = block(unit())
+
+  override fun <T> selfManagedWrite(block: (UnitOfWork) -> T): T = block(unit())
+
+  override fun <T> transaction(block: (UnitOfWork) -> T): T = block(unit())
+
+  private fun unit(): UnitOfWork = object : UnitOfWorkDefaults() {
+    override val dbPath: Path = this@MemoryDatabaseSessionFactory.dbPath
+    override val agentActivityStamps: AgentActivityStampRepository = repository
+    override val workflowStates: WorkflowStateRepository
+      get() = error("Workflow states are not exercised.")
+    override val learnings: LearningRepository
+      get() = error("Learnings are not exercised.")
+    override val reviews: ReviewRepository
+      get() = error("Reviews are not exercised.")
+    override val lifecycleTelemetry: LifecycleTelemetryRepository
+      get() = error("Lifecycle telemetry is not exercised.")
+    override val telemetryReconciliation: TelemetryReconciliationRepository
+      get() = error("Telemetry reconciliation is not exercised.")
+    override val telemetryOutbox: TelemetryOutboxRepository
+      get() = error("Telemetry outbox is not exercised.")
+    override val workList: WorkListRepository
+      get() = error("Work list is not exercised.")
+    override val goalPlanningPreparations: GoalPlanningPreparationRepository
+      get() = error("Goal planning preparations are not exercised.")
+    override val goalRunnerControls: GoalRunnerControlRepository
+      get() = error("Goal runner controls are not exercised.")
   }
 }
 
@@ -159,7 +214,7 @@ private class RecordingDiagnostics : RuntimeDiagnostics {
   override fun error(message: String, error: Throwable?) = Unit
 }
 
-private class ControlledDatabase(val factory: SQLiteDatabaseSessionFactory) : DatabaseSessionFactory by factory {
+private class ControlledDatabase(val factory: MemoryDatabaseSessionFactory) : DatabaseSessionFactory by factory {
   val firstWriteStarted = CountDownLatch(1)
   val releaseFirstWrite = CountDownLatch(1)
   val secondWriteFinished = CountDownLatch(1)
@@ -171,7 +226,7 @@ private class ControlledDatabase(val factory: SQLiteDatabaseSessionFactory) : Da
     if (writeNumber == 1) {
       firstWriteStarted.countDown()
       check(releaseFirstWrite.await(5, TimeUnit.SECONDS))
-      if (failFirstWrite) throw IllegalStateException("older activity write failed")
+      if (failFirstWrite) check(false) { "older activity write failed" }
     }
     val result = factory.selfManagedWrite(block)
     if (writeNumber == 2) secondWriteFinished.countDown()
@@ -179,7 +234,7 @@ private class ControlledDatabase(val factory: SQLiteDatabaseSessionFactory) : Da
   }
 }
 
-private class CountingDatabase(val factory: SQLiteDatabaseSessionFactory) : DatabaseSessionFactory by factory {
+private class CountingDatabase(val factory: MemoryDatabaseSessionFactory) : DatabaseSessionFactory by factory {
   val writes = AtomicInteger(0)
 
   override fun <T> selfManagedWrite(block: (UnitOfWork) -> T): T {

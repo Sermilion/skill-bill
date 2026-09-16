@@ -2,17 +2,23 @@ package skillbill.application
 
 import skillbill.application.reviewevidence.model.ParallelReviewScope
 import skillbill.install.model.InstallAgent
+import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.UnsupportedAgentRunLaunch
 import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
+import skillbill.ports.goalrunner.runner.model.GoalRunnerSubtaskLaunchRequest
 import skillbill.ports.review.GovernedReviewEvidenceEndpointBinder
 import skillbill.ports.review.GovernedReviewEvidenceEndpointHandle
 import skillbill.ports.review.NativeReviewOperationProtocol
 import skillbill.ports.review.ReviewLaunchAgentStagingPort
+import skillbill.ports.review.ReviewRubricResolver
+import skillbill.ports.review.model.ResolvedReviewRubric
 import skillbill.ports.review.stubGovernedReviewEvidenceEndpointBinder
 import skillbill.review.context.model.CodeReviewExecutionMode
 import java.nio.file.Files
+import java.nio.file.Path
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.reflect.KClass
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -77,94 +83,7 @@ class ParallelCodeReviewRunnerLaneLaunchOwnershipTest {
 
   @Test
   fun `lane launch ownership matrix preserves primary failure and exactly once close`() {
-    val cases = listOf(
-      LaunchOwnershipCase(
-        name = "successful launch",
-        staging = ReviewLaunchAgentStagingPort { },
-        launcher = RecordingSubtaskLauncher(),
-        expectLaunch = true,
-        expectSuccess = true,
-      ),
-      LaunchOwnershipCase(
-        name = "unsupported launch",
-        staging = ReviewLaunchAgentStagingPort { },
-        launcher = GoalRunnerSubtaskLauncher {
-          UnsupportedAgentRunLaunch(
-            agent = InstallAgent.fromNormalizedId("cursor", label = "agentId"),
-            reason = "unsupported",
-          )
-        },
-        expectLaunch = true,
-        expectSuccess = false,
-      ),
-      LaunchOwnershipCase(
-        name = "throwing launch",
-        staging = ReviewLaunchAgentStagingPort { },
-        launcher = GoalRunnerSubtaskLauncher { throw IllegalStateException("launch failed") },
-        expectLaunch = false,
-        expectSuccess = false,
-      ),
-      LaunchOwnershipCase(
-        name = "cancellation",
-        staging = ReviewLaunchAgentStagingPort { },
-        launcher = GoalRunnerSubtaskLauncher { throw CancellationException("cancelled") },
-        expectLaunch = false,
-        expectSuccess = false,
-        expectThrown = CancellationException::class,
-      ),
-      LaunchOwnershipCase(
-        name = "interrupted launch",
-        staging = ReviewLaunchAgentStagingPort { },
-        launcher = GoalRunnerSubtaskLauncher { throw InterruptedException("interrupted") },
-        expectLaunch = false,
-        expectSuccess = false,
-        expectThrown = InterruptedException::class,
-      ),
-      LaunchOwnershipCase(
-        name = "staging failure",
-        staging = ReviewLaunchAgentStagingPort { throw IllegalStateException("staging failed") },
-        launcher = RecordingSubtaskLauncher(),
-        expectLaunch = false,
-        expectSuccess = false,
-      ),
-    )
-
-    cases.forEach { case ->
-      val endpointRoot = Files.createTempDirectory("lane-ownership-${case.name}")
-      val closeCount = AtomicInteger(0)
-      val runner = createRunner(
-        case.launcher,
-        RunnerFixtureConfig(
-          evidenceEndpointRoot = endpointRoot,
-          catalogGateway = stubCatalogGateway(listOf(platformManifest("kotlin", listOf("*.kt")))),
-          diffResolver = RecordingDiffResolver(default = diffFor("src/FooTest.kt")),
-          rubricResolver = delegatedCursorRubricResolver(),
-          reviewLaunchAgentStaging = case.staging,
-          evidenceEndpointBinder = countingEndpointBinder(endpointRoot, closeCount),
-        ),
-      )
-      val run = {
-        runner.run(
-          baseRequest(agent1Id = "cursor", scope = ParallelReviewScope.STAGED)
-            .copy(codeReviewMode = CodeReviewExecutionMode.DELEGATED),
-        )
-      }
-      if (case.expectThrown != null) {
-        assertFailsWith(case.expectThrown) { run() }
-      } else {
-        val result = run()
-        assertEquals(case.expectSuccess, result.lane1.success, case.name)
-      }
-      if (case.launcher is RecordingSubtaskLauncher) {
-        val launchCount = case.launcher.requests.size
-        if (case.expectLaunch) {
-          assertEquals(1, launchCount, case.name)
-        } else {
-          assertEquals(0, launchCount, case.name)
-        }
-      }
-      assertEquals(1, closeCount.get(), case.name)
-    }
+    launchOwnershipCases().forEach(::assertLaunchOwnershipCase)
   }
 
   @Test
@@ -201,68 +120,143 @@ class ParallelCodeReviewRunnerLaneLaunchOwnershipTest {
   }
 }
 
+private fun launchOwnershipCases(): List<LaunchOwnershipCase> = listOf(
+  LaunchOwnershipCase("successful launch", noOpStaging(), RecordingSubtaskLauncher(), true, true),
+  LaunchOwnershipCase("unsupported launch", noOpStaging(), unsupportedLauncher(), true, false),
+  LaunchOwnershipCase(
+    "throwing launch",
+    noOpStaging(),
+    throwingLauncher(IllegalStateException("launch failed")),
+    false,
+    false,
+  ),
+  LaunchOwnershipCase(
+    "cancellation",
+    noOpStaging(),
+    throwingLauncher(CancellationException("cancelled")),
+    false,
+    false,
+    CancellationException::class,
+  ),
+  LaunchOwnershipCase(
+    "interrupted launch",
+    noOpStaging(),
+    throwingLauncher(InterruptedException("interrupted")),
+    false,
+    false,
+    InterruptedException::class,
+  ),
+  LaunchOwnershipCase("staging failure", throwingStaging(), RecordingSubtaskLauncher(), false, false),
+)
+
+private fun assertLaunchOwnershipCase(case: LaunchOwnershipCase) {
+  val endpointRoot = Files.createTempDirectory("lane-ownership-${case.name}")
+  val closeCount = AtomicInteger(0)
+  val runner = createRunner(
+    case.launcher,
+    RunnerFixtureConfig(
+      evidenceEndpointRoot = endpointRoot,
+      catalogGateway = stubCatalogGateway(listOf(platformManifest("kotlin", listOf("*.kt")))),
+      diffResolver = RecordingDiffResolver(default = diffFor("src/FooTest.kt")),
+      rubricResolver = delegatedCursorRubricResolver(),
+      reviewLaunchAgentStaging = case.staging,
+      evidenceEndpointBinder = countingEndpointBinder(endpointRoot, closeCount),
+    ),
+  )
+  val run = {
+    runner.run(
+      baseRequest(agent1Id = "cursor", scope = ParallelReviewScope.STAGED)
+        .copy(codeReviewMode = CodeReviewExecutionMode.DELEGATED),
+    )
+  }
+  if (case.expectThrown != null) {
+    assertFailsWith(case.expectThrown) { run() }
+  } else {
+    assertEquals(case.expectSuccess, run().lane1.success, case.name)
+  }
+  assertLaunchCount(case)
+  assertEquals(1, closeCount.get(), case.name)
+}
+
+private fun assertLaunchCount(case: LaunchOwnershipCase) {
+  if (case.launcher is RecordingSubtaskLauncher) {
+    assertEquals(if (case.expectLaunch) 1 else 0, case.launcher.requests.size, case.name)
+  }
+}
+
+private fun noOpStaging(): ReviewLaunchAgentStagingPort = ReviewLaunchAgentStagingPort { }
+
+private fun throwingStaging(): ReviewLaunchAgentStagingPort =
+  ReviewLaunchAgentStagingPort { throw IllegalStateException("staging failed") }
+
+private fun throwingLauncher(error: Throwable): GoalRunnerSubtaskLauncher = GoalRunnerSubtaskLauncher { throw error }
+
+private fun unsupportedLauncher(): GoalRunnerSubtaskLauncher = GoalRunnerSubtaskLauncher {
+  UnsupportedAgentRunLaunch(
+    agent = InstallAgent.fromNormalizedId("cursor", label = "agentId"),
+    reason = "unsupported",
+  )
+}
+
 private data class LaunchOwnershipCase(
   val name: String,
   val staging: ReviewLaunchAgentStagingPort,
   val launcher: GoalRunnerSubtaskLauncher,
   val expectLaunch: Boolean,
   val expectSuccess: Boolean,
-  val expectThrown: kotlin.reflect.KClass<out Throwable>? = null,
+  val expectThrown: KClass<out Throwable>? = null,
 )
 
 private fun countingEndpointBinder(
-  root: java.nio.file.Path,
+  root: Path,
   closeCount: AtomicInteger,
   closeFailure: Throwable? = null,
-): GovernedReviewEvidenceEndpointBinder =
-  object : GovernedReviewEvidenceEndpointBinder {
-    override fun bind(
-      lane: String,
-      protocol: NativeReviewOperationProtocol,
-      onEvidenceRead: (() -> Unit)?,
-    ): GovernedReviewEvidenceEndpointHandle {
-      val delegate = stubGovernedReviewEvidenceEndpointBinder(root).bind(lane, protocol, onEvidenceRead)
-      return object : GovernedReviewEvidenceEndpointHandle {
-        override val descriptor = delegate.descriptor
+): GovernedReviewEvidenceEndpointBinder = object : GovernedReviewEvidenceEndpointBinder {
+  override fun bind(
+    lane: String,
+    protocol: NativeReviewOperationProtocol,
+    onEvidenceRead: (() -> Unit)?,
+  ): GovernedReviewEvidenceEndpointHandle {
+    val delegate = stubGovernedReviewEvidenceEndpointBinder(root).bind(lane, protocol, onEvidenceRead)
+    return object : GovernedReviewEvidenceEndpointHandle {
+      override val descriptor = delegate.descriptor
 
-        override fun close() {
-          closeCount.incrementAndGet()
-          delegate.close()
-          closeFailure?.let { throw it }
-        }
+      override fun close() {
+        closeCount.incrementAndGet()
+        delegate.close()
+        closeFailure?.let { throw it }
       }
     }
   }
-
-private class RecordingSubtaskLauncher : GoalRunnerSubtaskLauncher {
-  val requests = mutableListOf<skillbill.ports.goalrunner.runner.model.GoalRunnerSubtaskLaunchRequest>()
-
-  override fun launch(request: skillbill.ports.goalrunner.runner.model.GoalRunnerSubtaskLaunchRequest) =
-    skillbill.ports.agentrun.model.AgentRunLaunchFacts(
-      agent = skillbill.install.model.InstallAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
-      exitStatus = 0,
-      stdout = "NO_FINDINGS",
-      stderr = "",
-      timedOut = false,
-      interrupted = false,
-      spawnFailed = false,
-      liveness = null,
-      processStarted = true,
-      mcpStartupObserved = false,
-    ).also { requests += request }
 }
 
-private fun delegatedCursorRubricResolver(): skillbill.ports.review.ReviewRubricResolver =
-  skillbill.ports.review.ReviewRubricResolver {
-    skillbill.ports.review.model.ResolvedReviewRubric(
-      "bill-kotlin-code-review",
-      "parent routing rubric",
-      specialists = listOf(
-        skillbill.ports.review.model.ResolvedReviewRubric(
-          "bill-kotlin-code-review-architecture",
-          "architecture specialist rubric",
-          area = "architecture",
-        ),
+private class RecordingSubtaskLauncher : GoalRunnerSubtaskLauncher {
+  val requests = mutableListOf<GoalRunnerSubtaskLaunchRequest>()
+
+  override fun launch(request: GoalRunnerSubtaskLaunchRequest) = AgentRunLaunchFacts(
+    agent = InstallAgent.fromNormalizedId(request.invokedAgentId, label = "agentId"),
+    exitStatus = 0,
+    stdout = "NO_FINDINGS",
+    stderr = "",
+    timedOut = false,
+    interrupted = false,
+    spawnFailed = false,
+    liveness = null,
+    processStarted = true,
+    mcpStartupObserved = false,
+  ).also { requests += request }
+}
+
+private fun delegatedCursorRubricResolver(): ReviewRubricResolver = ReviewRubricResolver {
+  ResolvedReviewRubric(
+    "bill-kotlin-code-review",
+    "parent routing rubric",
+    specialists = listOf(
+      ResolvedReviewRubric(
+        "bill-kotlin-code-review-architecture",
+        "architecture specialist rubric",
+        area = "architecture",
       ),
-    )
-  }
+    ),
+  )
+}

@@ -31,13 +31,13 @@ import skillbill.engine.goalrunner.GoalRunnerStatusService
 import skillbill.engine.goalrunner.findings.UnaddressedFindingsLedgerService
 import skillbill.engine.goalrunner.planning.GoalPlanningLogService
 import skillbill.engine.work.IdeStatusService
+import skillbill.infrastructure.fs.concurrency.JvmInterruptSignalPort
 import skillbill.model.EnvironmentContext
 import skillbill.model.OptionalCallbacks
 import skillbill.model.RuntimeContext
 import skillbill.model.TransportContext
 import skillbill.model.WorkflowOpsContext
 import skillbill.ports.agentaddon.ExternalAgentAddonSourceConfigPort
-import skillbill.infrastructure.concurrency.JvmInterruptSignalPort
 import skillbill.ports.concurrency.InterruptSignalPort
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics

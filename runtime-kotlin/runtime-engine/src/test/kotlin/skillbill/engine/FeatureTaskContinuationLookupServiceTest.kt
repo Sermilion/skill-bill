@@ -326,7 +326,7 @@ class FeatureTaskContinuationLookupServiceTest {
       decompositionManifestWriter = testDecompositionManifestWriter,
       repositoryRoot = testRepositoryRoot,
       goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
-    runtimeDiagnostics = NoopRuntimeDiagnostics,
+      runtimeDiagnostics = NoopRuntimeDiagnostics,
     )
     return Fixture(
       states = states,

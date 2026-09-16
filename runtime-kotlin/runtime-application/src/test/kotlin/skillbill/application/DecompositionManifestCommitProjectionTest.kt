@@ -1,15 +1,15 @@
 package skillbill.application
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
 import skillbill.application.decomposition.DecompositionManifestProjectionFailurePersistence
-import skillbill.application.decomposition.DecompositionManifestWriter
 import skillbill.application.decomposition.DecompositionManifestWriteGuard
+import skillbill.application.decomposition.DecompositionManifestWriter
 import skillbill.application.decomposition.clearDecompositionManifestProjectionFailure
-import skillbill.application.decomposition.persistDecompositionManifestProjectionFailure
 import skillbill.application.decomposition.decompositionPlanningResult
 import skillbill.application.decomposition.decompositionPlanningSubtask
 import skillbill.application.decomposition.loadDecompositionManifest
 import skillbill.application.decomposition.model.DecompositionManifestRuntimeUpdate
 import skillbill.application.decomposition.model.DecompositionManifestWriteRequest
+import skillbill.application.decomposition.persistDecompositionManifestProjectionFailure
 import skillbill.application.workflow.WorkflowService
 import skillbill.application.workflow.decompositionRuntime
 import skillbill.application.workflow.model.WorkflowContinueResult
@@ -491,7 +491,7 @@ class DecompositionManifestCommitProjectionTest {
       decompositionManifestWriter = DecompositionManifestWriter(),
       repositoryRoot = RepositoryRoot(repoRoot),
       goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
-    runtimeDiagnostics = NoopRuntimeDiagnostics,
+      runtimeDiagnostics = NoopRuntimeDiagnostics,
     )
     val opened = assertIs<WorkflowOpenResult.Ok>(
       service.open(

@@ -1,4 +1,4 @@
-package skillbill.infrastructure.concurrency
+package skillbill.infrastructure.fs.concurrency
 
 import kotlin.test.Test
 import kotlin.test.assertTrue

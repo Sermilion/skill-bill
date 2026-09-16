@@ -133,9 +133,15 @@ internal fun phaseOutputObjectNodeToMap(node: JsonNode, sourceLabel: String): Ma
 }
 
 internal fun dropSpuriousAuditCompletedVerdict(parsed: MutableMap<String, Any?>) {
-  if (parsed[SharedPayloadKeys.PHASE_ID] != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT) return
-  if ((parsed[SharedPayloadKeys.STATUS] as? String).workflowStepStatus() != WorkflowStepStatus.COMPLETED) return
-  val verdict = parsed[SharedPayloadKeys.VERDICT] as? String ?: return
-  if (verdict == FeatureTaskRuntimeVerdict.SATISFIED.wireValue) return
-  parsed.remove(SharedPayloadKeys.VERDICT)
+  val isAuditPhase = parsed[SharedPayloadKeys.PHASE_ID] ==
+    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT
+  val isCompleted = (parsed[SharedPayloadKeys.STATUS] as? String).workflowStepStatus() ==
+    WorkflowStepStatus.COMPLETED
+  val verdict = parsed[SharedPayloadKeys.VERDICT] as? String
+  val isSpurious = verdict != null &&
+    verdict != FeatureTaskRuntimeVerdict.SATISFIED.wireValue &&
+    verdict != FeatureTaskRuntimeVerdict.GAPS_FOUND.wireValue
+  if (isAuditPhase && isCompleted && isSpurious) {
+    parsed.remove(SharedPayloadKeys.VERDICT)
+  }
 }

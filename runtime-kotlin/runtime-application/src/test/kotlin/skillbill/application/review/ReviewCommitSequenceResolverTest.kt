@@ -1,6 +1,9 @@
 package skillbill.application.review
+
 import skillbill.application.reviewevidence.ReviewCommitRange
 import skillbill.application.reviewevidence.ReviewDiffEvidence
+import skillbill.application.reviewevidence.SharedReviewEvidenceAssembler
+import skillbill.application.reviewevidence.SharedReviewEvidenceProjection
 import skillbill.application.reviewevidence.model.DiffResolutionException
 import skillbill.application.reviewevidence.model.ParallelReviewScope
 import skillbill.ports.diff.DiffResolverPort
@@ -55,12 +58,14 @@ class ReviewCommitSequenceResolverTest {
     scope: ParallelReviewScope,
     aggregateDiff: String,
     supplied: Boolean = false,
-  ) = ReviewCommitSequenceResolver(git).resolve(
-    scope,
-    repoRoot,
-    ReviewCommitRange("base", "head"),
+  ) = SharedReviewEvidenceProjection.project(
+    SharedReviewEvidenceAssembler(git).assemble(
+      scope,
+      repoRoot,
+      ReviewCommitRange("base", "head"),
+      supplied,
+    ),
     ReviewDiffEvidence.parse(aggregateDiff),
-    supplied,
   )
 
   @Test fun `a six commit branch resolves an ordered first-parent sequence`() {

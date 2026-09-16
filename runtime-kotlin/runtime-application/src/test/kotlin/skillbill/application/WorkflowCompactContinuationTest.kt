@@ -194,7 +194,7 @@ private fun newService(): WorkflowService = WorkflowService(
   decompositionManifestWriter = testDecompositionManifestWriter,
   repositoryRoot = testRepositoryRoot,
   goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
-runtimeDiagnostics = NoopRuntimeDiagnostics,
+  runtimeDiagnostics = NoopRuntimeDiagnostics,
 )
 
 private fun newBlockedImplementService(

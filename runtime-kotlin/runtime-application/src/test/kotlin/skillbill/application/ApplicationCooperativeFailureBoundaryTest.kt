@@ -16,10 +16,10 @@ import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.telemetry.RemoteTransportPort
 import skillbill.ports.telemetry.TelemetrySettingsProvider
 import skillbill.ports.telemetry.model.RemoteTransportResponse
-import skillbill.telemetry.model.TelemetrySettings
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.review.context.ReviewContextEnvelopeValidator
 import skillbill.review.context.model.ReviewContextBudgetPolicy
+import skillbill.telemetry.model.TelemetrySettings
 import skillbill.workflow.engine.model.ReviewContextWireMap
 import java.io.IOException
 import java.nio.file.Files
@@ -94,7 +94,11 @@ class ApplicationCooperativeFailureBoundaryTest {
   fun `activity write cancellation propagates`() {
     val database = FailingDatabase(CancellationException("cancelled"))
     assertFailsWith<CancellationException> {
-      AgentActivityStampWriter(database, Clock.systemUTC(), NoopRuntimeDiagnostics).recordEvidenceRead(UUID.randomUUID().toString(), null)
+      AgentActivityStampWriter(
+        database,
+        Clock.systemUTC(),
+        NoopRuntimeDiagnostics,
+      ).recordEvidenceRead(UUID.randomUUID().toString(), null)
     }
     assertEquals(1, database.calls)
   }
@@ -103,7 +107,11 @@ class ApplicationCooperativeFailureBoundaryTest {
   fun `activity write interruption propagates`() {
     val database = FailingDatabase(InterruptedException("interrupted"))
     assertFailsWith<InterruptedException> {
-      AgentActivityStampWriter(database, Clock.systemUTC(), NoopRuntimeDiagnostics).recordEvidenceRead(UUID.randomUUID().toString(), null)
+      AgentActivityStampWriter(
+        database,
+        Clock.systemUTC(),
+        NoopRuntimeDiagnostics,
+      ).recordEvidenceRead(UUID.randomUUID().toString(), null)
     }
     assertEquals(1, database.calls)
   }
@@ -172,7 +180,7 @@ class ApplicationCooperativeFailureBoundaryTest {
   fun `required persistence retains the store cause when diagnostics also fail`() {
     val root = IOException("store-down")
     val diagnostics = object : RuntimeDiagnostics {
-      override fun warning(message: String, error: Throwable?): Unit = throw IllegalStateException("diagnostics-down")
+      override fun warning(message: String, error: Throwable?): Unit = check(false) { "diagnostics-down" }
 
       override fun error(message: String, error: Throwable?) = Unit
     }

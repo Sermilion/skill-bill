@@ -34,7 +34,7 @@ class WorkflowIssueKeyPersistenceTest {
       decompositionManifestWriter = testDecompositionManifestWriter,
       repositoryRoot = testRepositoryRoot,
       goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
-    runtimeDiagnostics = NoopRuntimeDiagnostics,
+      runtimeDiagnostics = NoopRuntimeDiagnostics,
     )
 
     val firstRuntime = assertIs<WorkflowOpenResult.Ok>(
@@ -78,7 +78,7 @@ class WorkflowIssueKeyPersistenceTest {
       decompositionManifestWriter = testDecompositionManifestWriter,
       repositoryRoot = testRepositoryRoot,
       goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
-    runtimeDiagnostics = NoopRuntimeDiagnostics,
+      runtimeDiagnostics = NoopRuntimeDiagnostics,
     )
 
     assertFailsWith<InvalidFeatureTaskExecutionIdentitySchemaError> {

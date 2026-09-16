@@ -1,3 +1,11 @@
+## [2026-09-16] SKILL-347 subtask 3 — Review composition and stateless use cases
+Areas: runtime-application/{review,telemetry/config,featurespec,updatecheck}, runtime-core/architecture
+- Before: runner unwrapped dual boundary bags and rebuilt planning, lane launch, result assembly, and verification; duplicate launcher and evidence-locator bindings; mutable update-check parser flags; unused `TelemetryConfigMutationRuntime`, `ReviewCommitSequenceResolver`, and `TelemetryConfigRuntime` forwarding; test-only feature-preparation aliases.
+- After: `ParallelCodeReviewRunnerComposition` is the sole collaborator graph with one `ParallelCodeReviewRunnerBoundaries` input; runner sequences `run` only; update-check failures are invocation-local; telemetry settings parse via domain functions; `FeatureSpecPreparationRuntime.prepareForFeatureSpec` remains the injected seam; `InstallAgentService` retained per decisions log.
+- Tests: review entry-point harness unchanged in behavior; commit-sequence coverage targets `SharedReviewEvidenceAssembler` / `SharedReviewEvidenceProjection`; overlapping update-check regression added.
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented (validate phase owns pack gate)
+
 ## [2026-09-16] SKILL-347 subtask 2 — Activity and decomposition projection ownership
 Areas: runtime-application/{idestatus,workflow,decomposition}
 - `AgentActivityStampWriter` keeps throttle state per writer instance (LRU cap 512 workflow keys), advances persistence acknowledgement only after a successful write, and emits bounded `RuntimeDiagnostics` warnings on ordinary write failures.

@@ -1,4 +1,4 @@
-package skillbill.infrastructure.concurrency
+package skillbill.infrastructure.fs.concurrency
 
 import skillbill.ports.concurrency.InterruptSignalPort
 

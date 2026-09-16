@@ -36,12 +36,13 @@ class UpdateCheckService(
     installed: Semver,
     includePrereleases: Boolean,
   ): UpdateCheckResult {
-    val releases = fetchReleases()
-    val latest = releases?.let { selectLatestRelease(it, includePrereleases) }
-    val status = latest?.let { latestCandidate -> updateStatus(installed, latestCandidate.version) }
-    return status?.let { resolvedStatus ->
-      updateResult(installedVersion, latest, resolvedStatus)
-    } ?: lastUnknown
+    val fetch = fetchReleases()
+    return fetch.failure ?: fetch.releases?.let { releases ->
+      val selection = selectLatestRelease(releases, includePrereleases)
+      selection.failure ?: selection.candidate?.let { latest ->
+        updateResult(installedVersion, latest, updateStatus(installed, latest.version))
+      }
+    } ?: unknown("release check did not complete")
   }
 
   private fun updateResult(
@@ -67,12 +68,10 @@ class UpdateCheckService(
     else -> UpdateCheckStatus.UP_TO_DATE
   }
 
-  private var lastUnknown: UpdateCheckResult = unknown("release check did not complete")
-
   private fun requireRequester(): RemoteTransportPort = transportContext.requester
     ?: error("Remote transport is not configured for this runtime context.")
 
-  private fun fetchReleases(): List<Any?>? {
+  private fun fetchReleases(): ReleaseFetchResult {
     val response = try {
       requireRequester().execute(
         method = "GET",
@@ -81,18 +80,16 @@ class UpdateCheckService(
         headers = mapOf("Accept" to "application/vnd.github+json", "User-Agent" to USER_AGENT),
       )
     } catch (error: IOException) {
-      lastUnknown = unknown("network failure: ${errorMessage(error)}")
-      null
+      return ReleaseFetchResult(failure = unknown("network failure: ${errorMessage(error)}"))
     } catch (error: InterruptedException) {
       throw error
     } catch (error: IllegalArgumentException) {
-      lastUnknown = unknown("network failure: ${errorMessage(error)}")
-      null
+      return ReleaseFetchResult(failure = unknown("network failure: ${errorMessage(error)}"))
     }
-    return response?.let(::parseReleasesResponse)
+    return parseReleasesResponse(response)
   }
 
-  private fun parseReleasesResponse(response: RemoteTransportResponse): List<Any?>? {
+  private fun parseReleasesResponse(response: RemoteTransportResponse): ReleaseFetchResult {
     val parsed = JsonCodec.parseArrayOrEmpty(response.body)
     val errorReason = when {
       response.statusCode == HTTP_FORBIDDEN || response.statusCode == HTTP_TOO_MANY_REQUESTS ->
@@ -104,49 +101,66 @@ class UpdateCheckService(
       else -> null
     }
     if (errorReason != null) {
-      lastUnknown = unknown(errorReason)
+      return ReleaseFetchResult(failure = unknown(errorReason))
     }
-    return parsed.takeIf { errorReason == null }
+    return ReleaseFetchResult(releases = parsed)
   }
 
-  private fun selectLatestRelease(releases: List<Any?>, includePrereleases: Boolean): ReleaseCandidate? {
-    releasePayloadMalformed = false
-    releaseEntryMalformed = false
-    val candidates = releases.mapNotNull { release -> releaseCandidate(release, includePrereleases) }
+  private fun selectLatestRelease(releases: List<Any?>, includePrereleases: Boolean): ReleaseSelection {
+    val parsedCandidates = releases.map { release -> releaseCandidate(release, includePrereleases) }
+    val candidates = parsedCandidates.mapNotNull { it.candidate }
     val reason = when {
       releases.isEmpty() -> "no GitHub releases returned"
-      releasePayloadMalformed -> "malformed GitHub Releases payload"
-      releaseEntryMalformed -> "malformed release entry"
+      parsedCandidates.any { it.malformedPayload } -> "malformed GitHub Releases payload"
+      parsedCandidates.any { it.malformedEntry } -> "malformed release entry"
       candidates.isEmpty() -> "no usable semver GitHub release found"
       else -> null
     }
     if (reason != null) {
-      lastUnknown = unknown(reason)
+      return ReleaseSelection(failure = unknown(reason))
     }
-    return candidates.maxByOrNull { candidate -> candidate.version }.takeIf { reason == null }
+    return ReleaseSelection(candidate = candidates.maxByOrNull { candidate -> candidate.version })
   }
 
-  private var releasePayloadMalformed = false
-  private var releaseEntryMalformed = false
-
-  private fun releaseCandidate(release: Any?, includePrereleases: Boolean): ReleaseCandidate? {
+  private fun releaseCandidate(release: Any?, includePrereleases: Boolean): ReleaseCandidateParseResult {
     val entry = JsonCodec.anyToStringAnyMap(release)
-    releasePayloadMalformed = releasePayloadMalformed || entry == null
-    return entry?.takeUnless { it["draft"] as? Boolean ?: false }
-      ?.takeUnless { !includePrereleases && it["prerelease"] as? Boolean ?: false }
-      ?.let { candidateFromEntry(it, includePrereleases) }
+    if (entry == null) {
+      return ReleaseCandidateParseResult(malformedPayload = true)
+    }
+    if (entry["draft"] as? Boolean ?: false) return ReleaseCandidateParseResult()
+    if (!includePrereleases && entry["prerelease"] as? Boolean ?: false) {
+      return ReleaseCandidateParseResult()
+    }
+    return candidateFromEntry(entry, includePrereleases)
   }
 
-  private fun candidateFromEntry(entry: Map<String, Any?>, includePrereleases: Boolean): ReleaseCandidate? {
+  private fun candidateFromEntry(entry: Map<String, Any?>, includePrereleases: Boolean): ReleaseCandidateParseResult {
     val tagName = entry["tag_name"] as? String
     val url = entry["html_url"] as? String
     val body = entry["body"] as? String
-    releaseEntryMalformed = releaseEntryMalformed || tagName == null || url == null
+    val malformedEntry = tagName == null || url == null
     val version = tagName?.let(Semver::parse)
-    return version
+    val candidate = version
       ?.takeUnless { !includePrereleases && it.isPrerelease }
       ?.let { ReleaseCandidate(tagName = tagName, version = it, url = url.orEmpty(), body = body) }
+    return ReleaseCandidateParseResult(candidate = candidate, malformedEntry = malformedEntry)
   }
+
+  private data class ReleaseCandidateParseResult(
+    val candidate: ReleaseCandidate? = null,
+    val malformedPayload: Boolean = false,
+    val malformedEntry: Boolean = false,
+  )
+
+  private data class ReleaseFetchResult(
+    val releases: List<Any?>? = null,
+    val failure: UpdateCheckResult? = null,
+  )
+
+  private data class ReleaseSelection(
+    val candidate: ReleaseCandidate? = null,
+    val failure: UpdateCheckResult? = null,
+  )
 
   private data class ReleaseCandidate(
     val tagName: String,

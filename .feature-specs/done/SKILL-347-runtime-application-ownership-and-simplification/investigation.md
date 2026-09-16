@@ -11,7 +11,7 @@ The corrective plan is [SKILL-347](spec.md). It preserves the current modules an
 ## Scope and evidence
 
 - Refreshed on 2026-09-15 at commit `2ef12ad7e76b8282a1cfa2bb8cdfd795d3e79c7f`. This updates the existing SKILL-347 investigation and pending implementation bundle.
-- Current census covers all 173 production Kotlin files under `runtime-kotlin/runtime-application`, with 16,593 physical lines including imports and blank lines. [The refreshed inventory](evidence/source-inventory-refresh.csv) records each path, area, line count, and SHA-256. The [original inventory](evidence/source-inventory.csv) remains historical evidence.
+- Current census covers all 173 production Kotlin files under `../../../runtime-kotlin/runtime-application`, with 16,593 physical lines including imports and blank lines. [The refreshed inventory](evidence/source-inventory-refresh.csv) records each path, area, line count, and SHA-256. The [original inventory](evidence/source-inventory.csv) remains historical evidence.
 - Compared all current production hashes with the original census. 170 files are unchanged. TelemetryService, TelemetrySyncRuntime, and TelemetryOutboxDrain account for the three changed files and received a fresh behavioral and dependency review. The new InterruptSignalPort implementation and runtime-core binding were traced across module boundaries.
 - Rechecked the endpoint cleanup path, optional spec reads and persistence, activity state, issue-key continuation, projection settlement, update-check scratch fields, review dependency groups, and repository-wide callers for the deletion candidates. All seven findings remain open. F-002 now describes the implementation in runtime-ports and concrete application defaults rather than the former direct Thread calls.
 - The original whole-module inspection covered dependencies, package ownership, exported declarations, mutable state, catch and fallback sites, caller references, and test placement across every area in the coverage table. This refresh retains that evidence for unchanged files. Model and mapper coverage is structural, not exhaustive path testing of every function.
@@ -182,7 +182,7 @@ A conservative estimate is about 80 net production lines removed, excluding any 
 
 ## Over-engineering register
 
-Paths below are relative to `runtime-kotlin/runtime-application/src/main/kotlin/skillbill/application`. Ordered by straightforward gross deletion size; review composition savings are unestimated.
+Paths below are relative to `../../../runtime-kotlin/runtime-application/src/main/kotlin/skillbill/application`. Ordered by straightforward gross deletion size; review composition savings are unestimated.
 
 - `telemetry/config/TelemetryConfigRuntime.kt:L13-37: shrink: forwarding facade. Call the existing domain parsers from TelemetrySettingsFromStore; delete the unused forwarding methods.`
 - `telemetry/config/TelemetryConfigMutationRuntime.kt:L8-32: delete: unused mutation forwarding object. Existing TelemetryConfigMutations remains the live owner.`

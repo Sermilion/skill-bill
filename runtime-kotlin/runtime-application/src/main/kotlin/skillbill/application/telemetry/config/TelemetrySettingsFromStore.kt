@@ -10,6 +10,9 @@ import skillbill.telemetry.TELEMETRY_LEVEL_ENVIRONMENT_KEY
 import skillbill.telemetry.TELEMETRY_PROXY_URL_ENVIRONMENT_KEY
 import skillbill.telemetry.model.TelemetryConfigDocument
 import skillbill.telemetry.model.TelemetrySettings
+import skillbill.telemetry.parsePositiveTelemetryInt
+import skillbill.telemetry.parseTelemetryBoolValue
+import skillbill.telemetry.parseTelemetryLevelValue
 import skillbill.telemetry.telemetryProxyUrl
 import java.nio.file.Path
 
@@ -75,10 +78,10 @@ private fun telemetryLevelFromConfig(telemetry: Map<String, Any?>): String {
   val levelRaw = telemetry["level"]
   val enabledRaw = telemetry["enabled"]
   return when {
-    levelRaw != null -> TelemetryConfigRuntime.parseTelemetryLevel(levelRaw.toString(), "telemetry.level")
+    levelRaw != null -> parseTelemetryLevelValue(levelRaw.toString(), "telemetry.level")
     enabledRaw is Boolean -> if (enabledRaw) "anonymous" else "off"
     enabledRaw is String ->
-      if (TelemetryConfigRuntime.parseBoolValue(enabledRaw, "telemetry.enabled")) {
+      if (parseTelemetryBoolValue(enabledRaw, "telemetry.enabled")) {
         "anonymous"
       } else {
         "off"
@@ -92,7 +95,7 @@ private fun telemetryBatchSize(telemetry: Map<String, Any?>): Int = when (val ba
   is Int -> batchSizeRaw
   is Number -> batchSizeRaw.toInt()
   null -> DEFAULT_TELEMETRY_BATCH_SIZE
-  else -> TelemetryConfigRuntime.parsePositiveInt(batchSizeRaw.toString(), "telemetry.batch_size")
+  else -> parsePositiveTelemetryInt(batchSizeRaw.toString(), "telemetry.batch_size")
 }
 
 private fun applyEnvironmentOverrides(
@@ -105,9 +108,9 @@ private fun applyEnvironmentOverrides(
   var installId = settings.installId
 
   environment[TELEMETRY_LEVEL_ENVIRONMENT_KEY]?.takeIf(String::isNotBlank)?.let {
-    level = TelemetryConfigRuntime.parseTelemetryLevel(it, TELEMETRY_LEVEL_ENVIRONMENT_KEY)
+    level = parseTelemetryLevelValue(it, TELEMETRY_LEVEL_ENVIRONMENT_KEY)
   } ?: environment[TELEMETRY_ENABLED_ENVIRONMENT_KEY]?.takeIf(String::isNotBlank)?.let {
-    level = if (TelemetryConfigRuntime.parseBoolValue(it, TELEMETRY_ENABLED_ENVIRONMENT_KEY)) "anonymous" else "off"
+    level = if (parseTelemetryBoolValue(it, TELEMETRY_ENABLED_ENVIRONMENT_KEY)) "anonymous" else "off"
   }
   environment[TELEMETRY_PROXY_URL_ENVIRONMENT_KEY]
     ?.takeIf(String::isNotBlank)
@@ -116,7 +119,7 @@ private fun applyEnvironmentOverrides(
     ?.takeIf(String::isNotBlank)
     ?.let { installId = it.trim() }
   environment[TELEMETRY_BATCH_SIZE_ENVIRONMENT_KEY]?.takeIf(String::isNotBlank)?.let {
-    batchSize = TelemetryConfigRuntime.parsePositiveInt(it, TELEMETRY_BATCH_SIZE_ENVIRONMENT_KEY)
+    batchSize = parsePositiveTelemetryInt(it, TELEMETRY_BATCH_SIZE_ENVIRONMENT_KEY)
   }
   return MutableTelemetrySettings(
     level = level,

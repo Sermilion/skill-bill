@@ -4,6 +4,7 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.application.decomposition.repoRelativePath
 import skillbill.application.rethrowIfCooperativeCancellationOrInterruption
 import skillbill.contracts.issuekey.issueKeyFromBranch
+import skillbill.error.InvalidDecompositionManifestSchemaError
 import skillbill.model.toPath
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.review.context.model.SpecIntentAbsenceReason
@@ -16,6 +17,7 @@ import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationResult
 import skillbill.workflow.decomposition.model.DecompositionSubtask
+import java.io.IOException
 import java.nio.file.Path
 
 @Inject
@@ -128,8 +130,10 @@ class SpecIntentProjectionResolver(
         is DecompositionManifestValidationResult.AcceptedAfterRepair -> result.manifest
         is DecompositionManifestValidationResult.Rejected -> null
       }
-    } catch (error: Exception) {
+    } catch (error: IOException) {
       error.rethrowIfCooperativeCancellationOrInterruption()
+      null
+    } catch (_: InvalidDecompositionManifestSchemaError) {
       null
     }
   }

@@ -103,9 +103,9 @@ class TelemetryService(
         recordBackgroundSyncFailure(null)
       }
     } catch (cancelled: CancellationException) {
-      throw cancelled
+      rethrowTelemetryFailure(cancelled)
     } catch (interrupted: InterruptedException) {
-      throw interrupted
+      rethrowTelemetryInterrupted(interrupted, interruptSignal)
     }
   }
 
@@ -199,9 +199,7 @@ class TelemetryService(
 private fun rethrowTelemetryFailure(error: Throwable): Nothing = throw error
 
 private fun rethrowTelemetryInterrupted(error: InterruptedException, interruptSignal: InterruptSignalPort): Nothing {
-  try {
-    interruptSignal.restore()
-  } catch (restorationFailure: Throwable) {
+  runCatching { interruptSignal.restore() }.exceptionOrNull()?.let { restorationFailure ->
     if (restorationFailure !== error) {
       error.addSuppressed(restorationFailure)
     }

@@ -95,45 +95,44 @@ internal class ParallelCodeReviewRunnerLaneLaunch(
     }
   }
 
-  private fun launchedBoundParent(args: LaunchedBoundParentArgs): ParallelReviewLaneOutcome =
-    args.bound.endpoint.use {
-      if (args.launch.agentId == "cursor" && args.resolvedMode == ResolvedReviewExecutionMode.DELEGATED) {
-        reviewLaunchAgentStaging.stage(
-          ReviewLaunchAgentStagingRequest(
-            agentId = args.launch.agentId,
-            reviewLaunchDirectory = args.bound.endpoint.descriptor.mcpConfigPath.parent,
-            logicalWorkerNames = args.launch.selected
-              .filter { it.workerKind == ReviewWorkerKind.PROVIDER_NATIVE }
-              .mapNotNull { it.logicalWorkerName }
-              .distinct(),
-          ),
-        )
-      }
-      val outcome = parentReviewLauncher.launch(
-        GoalRunnerSubtaskLaunchRequest(
-          invokedAgentId = args.launch.agentId,
-          configuredAgentOverrideId = null,
-          skillRunRequest = SkillRunRequest(
-            issueKey = "code-review",
-            repoRoot = args.request.repoRoot,
-            timeout = args.request.timeout,
-            promptOverride = args.request.withSelectedAgentAddons(args.launch.prompt),
-            modelOverride = args.modelOverride,
-            conversationIsolation = ConversationIsolation.NONE,
-            reviewEvidenceBroker = args.bound.broker,
-            nativeReviewOperations = args.bound.protocol,
-            reviewEvidenceEndpoint = args.bound.endpoint,
-            nativeReviewWorkerName = PARALLEL_REVIEW_INLINE_NATIVE_WORKER
-              .takeIf { args.resolvedMode == ResolvedReviewExecutionMode.INLINE },
-            reviewFanOut = args.resolvedMode == ResolvedReviewExecutionMode.DELEGATED,
-          ),
+  private fun launchedBoundParent(args: LaunchedBoundParentArgs): ParallelReviewLaneOutcome = args.bound.endpoint.use {
+    if (args.launch.agentId == "cursor" && args.resolvedMode == ResolvedReviewExecutionMode.DELEGATED) {
+      reviewLaunchAgentStaging.stage(
+        ReviewLaunchAgentStagingRequest(
+          agentId = args.launch.agentId,
+          reviewLaunchDirectory = args.bound.endpoint.descriptor.mcpConfigPath.parent,
+          logicalWorkerNames = args.launch.selected
+            .filter { it.workerKind == ReviewWorkerKind.PROVIDER_NATIVE }
+            .mapNotNull { it.logicalWorkerName }
+            .distinct(),
         ),
       )
-      when (outcome) {
-        is UnsupportedAgentRunLaunch -> unsupportedParentOutcome(args.launch, outcome)
-        is AgentRunLaunchFacts -> launchedParentOutcome(args.launch, outcome, args.budget, args.bound.broker)
-      }
     }
+    val outcome = parentReviewLauncher.launch(
+      GoalRunnerSubtaskLaunchRequest(
+        invokedAgentId = args.launch.agentId,
+        configuredAgentOverrideId = null,
+        skillRunRequest = SkillRunRequest(
+          issueKey = "code-review",
+          repoRoot = args.request.repoRoot,
+          timeout = args.request.timeout,
+          promptOverride = args.request.withSelectedAgentAddons(args.launch.prompt),
+          modelOverride = args.modelOverride,
+          conversationIsolation = ConversationIsolation.NONE,
+          reviewEvidenceBroker = args.bound.broker,
+          nativeReviewOperations = args.bound.protocol,
+          reviewEvidenceEndpoint = args.bound.endpoint,
+          nativeReviewWorkerName = PARALLEL_REVIEW_INLINE_NATIVE_WORKER
+            .takeIf { args.resolvedMode == ResolvedReviewExecutionMode.INLINE },
+          reviewFanOut = args.resolvedMode == ResolvedReviewExecutionMode.DELEGATED,
+        ),
+      ),
+    )
+    when (outcome) {
+      is UnsupportedAgentRunLaunch -> unsupportedParentOutcome(args.launch, outcome)
+      is AgentRunLaunchFacts -> launchedParentOutcome(args.launch, outcome, args.budget, args.bound.broker)
+    }
+  }
 
   private fun bindGovernedEvidence(
     selected: List<ReviewSpecialistLaunchRequest>,

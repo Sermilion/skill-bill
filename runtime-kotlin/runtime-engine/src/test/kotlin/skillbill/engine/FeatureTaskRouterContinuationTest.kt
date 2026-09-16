@@ -41,7 +41,7 @@ class FeatureTaskRouterContinuationTest {
       decompositionManifestWriter = testDecompositionManifestWriter,
       repositoryRoot = testRepositoryRoot,
       goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
-    runtimeDiagnostics = NoopRuntimeDiagnostics,
+      runtimeDiagnostics = NoopRuntimeDiagnostics,
     )
     val lookup = FeatureTaskContinuationLookupService(
       database,

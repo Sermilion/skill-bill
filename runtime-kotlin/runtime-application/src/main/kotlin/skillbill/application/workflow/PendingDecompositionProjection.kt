@@ -26,15 +26,13 @@ internal fun resolveDecompositionProjectionOwner(
   validator: DecompositionManifestValidator,
 ): String? {
   val manifest = record.decompositionRuntime(validator) ?: return null
-  if (record.isGoalContinuationChildWorkflow()) {
+  return if (record.isGoalContinuationChildWorkflow()) {
     unitOfWork.workflowStates.findDecomposedParentWorkflowForRuntime(manifest, validator)
       ?.workflowId
-      ?.let { return it }
-    val parentFromContinuation = goalContinuationParentWorkflowId(record.artifactsJson)
-    if (!parentFromContinuation.isNullOrBlank()) return parentFromContinuation
-    return null
+      ?: goalContinuationParentWorkflowId(record.artifactsJson)
+  } else {
+    record.workflowId
   }
-  return record.workflowId
 }
 
 internal fun goalContinuationParentWorkflowIdForSettlement(artifactsJson: String): String? =

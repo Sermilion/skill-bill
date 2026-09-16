@@ -1,8 +1,8 @@
 package skillbill.application.workflow
 
 import me.tatarka.inject.annotations.Inject
-import skillbill.application.decomposition.DecompositionManifestWriter
 import skillbill.application.decomposition.DecompositionManifestProjectionFailurePersistence
+import skillbill.application.decomposition.DecompositionManifestWriter
 import skillbill.application.decomposition.clearDecompositionManifestProjectionFailure
 import skillbill.application.decomposition.model.RetryDecompositionManifestProjectionArgs
 import skillbill.application.decomposition.persistDecompositionManifestProjectionFailure
@@ -188,26 +188,30 @@ class WorkflowService(
         decompositionManifestValidator,
       )
     }
-    val pendingProjection = if (runtimeInput.updated) {
-      val ownerWorkflowId = resolveDecompositionProjectionOwner(updated, unitOfWork, decompositionManifestValidator)
-      if (ownerWorkflowId == null) {
-        runtimeDiagnostics.warning(
-          "seam=decomposition_projection_settlement value_expected=projection_owner_workflow_id " +
-            "value_used=absent workflow_id=${request.workflowId}",
-        )
-        null
-      } else {
-        PendingDecompositionProjection(
-          ownerWorkflowId = ownerWorkflowId,
-          artifactsJson = updated.artifactsJson,
-        )
-      }
-    } else {
-      null
-    }
     return WorkflowUpdatePersistence(
       result = buildUpdateOk(engine, family.definition, updated, effectiveInput, unitOfWork.dbPath.toString()),
-      pendingProjection = pendingProjection,
+      pendingProjection = pendingDecompositionProjection(runtimeInput, updated, request, unitOfWork),
+    )
+  }
+
+  private fun pendingDecompositionProjection(
+    runtimeInput: DecompositionRuntimeInput,
+    updated: WorkflowStateSnapshot,
+    request: WorkflowUpdateRequest,
+    unitOfWork: UnitOfWork,
+  ): PendingDecompositionProjection? {
+    if (!runtimeInput.updated) return null
+    val ownerWorkflowId = resolveDecompositionProjectionOwner(updated, unitOfWork, decompositionManifestValidator)
+    if (ownerWorkflowId == null) {
+      runtimeDiagnostics.warning(
+        "seam=decomposition_projection_settlement value_expected=projection_owner_workflow_id " +
+          "value_used=absent workflow_id=${request.workflowId}",
+      )
+      return null
+    }
+    return PendingDecompositionProjection(
+      ownerWorkflowId = ownerWorkflowId,
+      artifactsJson = updated.artifactsJson,
     )
   }
 

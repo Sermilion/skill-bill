@@ -380,8 +380,7 @@ class SpecIntentProjectionResolverTest {
       launch.brokerId,
       ReviewContextBudgetPolicy.DEFAULT,
     ).toLaunchEnvelope().asWireMap().let { wireMap ->
-      @Suppress("UNCHECKED_CAST")
-      wireMap["criteria_references"] as List<String>
+      (wireMap["criteria_references"] as? List<*>)?.filterIsInstance<String>().orEmpty()
     }
     assertEquals(criteria, launchCriteria)
     assertTrue(launchCriteria.none { it == "independent branch-diff specialist review" })

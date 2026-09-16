@@ -1,6 +1,6 @@
 # SKILL-347 Subtask 3 - Simplify review composition and stateless use cases
 
-Parent spec: [.feature-specs/SKILL-347-runtime-application-ownership-and-simplification/spec.md](./spec.md)
+Parent spec: [.feature-specs/SKILL-347-runtime-application-ownership-and-simplification/spec.md](spec.md)
 Issue key: SKILL-347
 
 ## Scope

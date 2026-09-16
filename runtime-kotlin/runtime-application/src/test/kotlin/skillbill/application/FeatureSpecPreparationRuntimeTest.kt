@@ -9,10 +9,10 @@ import kotlin.test.assertEquals
 
 class FeatureSpecPreparationRuntimeTest {
   @Test
-  fun `feature-spec, feature-task, and goal wrappers share the same preparation core`() {
-    var invocationCount = 0
+  fun `feature-spec preparation uses the injected core`() {
+    var seenIntake: FeatureSpecPreparationIntake? = null
     val runtime = FeatureSpecPreparationRuntime { intake ->
-      invocationCount += 1
+      seenIntake = intake
       FeatureSpecPreparationDecision(
         issueKey = intake.issueKey,
         intendedOutcome = intake.intendedOutcome,
@@ -24,22 +24,15 @@ class FeatureSpecPreparationRuntimeTest {
     }
 
     val intake = FeatureSpecPreparationIntake(
-      issueKey = "SKILL-59",
-      intendedOutcome = "decomposed",
-      acceptanceCriteria = listOf("AC1"),
-      constraints = listOf("Constraint 1"),
+      issueKey = "SKILL-1",
+      intendedOutcome = "outcome",
+      acceptanceCriteria = listOf("AC-1"),
+      constraints = emptyList(),
+      nonGoals = emptyList(),
     )
+    val decision = runtime.prepareForFeatureSpec(intake)
 
-    val featureSpecDecision = runtime.prepareForFeatureSpec(intake)
-    val featureImplementDecision = runtime.prepareForFeatureImplement(intake)
-    val goalDecision = runtime.prepareForGoal(intake)
-
-    assertEquals(3, invocationCount)
-    assertEquals(FeatureSpecPreparationMode.DECOMPOSED, featureSpecDecision.mode)
-    assertEquals(FeatureSpecPreparationMode.DECOMPOSED, featureImplementDecision.mode)
-    assertEquals(FeatureSpecPreparationMode.DECOMPOSED, goalDecision.mode)
-    assertEquals(featureSpecDecision, featureImplementDecision)
-    assertEquals(featureSpecDecision, goalDecision)
-    assertEquals(featureImplementDecision, goalDecision)
+    assertEquals(intake, seenIntake)
+    assertEquals(FeatureSpecPreparationMode.DECOMPOSED, decision.mode)
   }
 }

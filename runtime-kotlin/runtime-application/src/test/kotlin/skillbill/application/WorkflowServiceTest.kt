@@ -157,7 +157,7 @@ class WorkflowServiceTest {
       decompositionManifestWriter = testDecompositionManifestWriter,
       repositoryRoot = testRepositoryRoot,
       goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
-    runtimeDiagnostics = NoopRuntimeDiagnostics,
+      runtimeDiagnostics = NoopRuntimeDiagnostics,
     )
 
     val first = assertIs<WorkflowOpenResult.Ok>(
@@ -200,7 +200,7 @@ class WorkflowServiceTest {
       decompositionManifestWriter = testDecompositionManifestWriter,
       repositoryRoot = testRepositoryRoot,
       goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
-    runtimeDiagnostics = NoopRuntimeDiagnostics,
+      runtimeDiagnostics = NoopRuntimeDiagnostics,
     )
     val opened = assertIs<WorkflowOpenResult.Ok>(
       service.openFeatureTask(
@@ -240,7 +240,7 @@ class WorkflowServiceTest {
       decompositionManifestWriter = testDecompositionManifestWriter,
       repositoryRoot = testRepositoryRoot,
       goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
-    runtimeDiagnostics = NoopRuntimeDiagnostics,
+      runtimeDiagnostics = NoopRuntimeDiagnostics,
     )
     val historyArtifact = """{"plan":{"mode":"decompose"},"history_note":"retain-me"}"""
     workflows.saveFeatureImplementWorkflow(
@@ -291,7 +291,7 @@ class WorkflowServiceTest {
       decompositionManifestWriter = testDecompositionManifestWriter,
       repositoryRoot = testRepositoryRoot,
       goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
-    runtimeDiagnostics = NoopRuntimeDiagnostics,
+      runtimeDiagnostics = NoopRuntimeDiagnostics,
     )
     val opened = assertIs<WorkflowOpenResult.Ok>(
       service.openFeatureTask(
@@ -329,7 +329,7 @@ class WorkflowServiceTest {
       decompositionManifestWriter = testDecompositionManifestWriter,
       repositoryRoot = testRepositoryRoot,
       goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
-    runtimeDiagnostics = NoopRuntimeDiagnostics,
+      runtimeDiagnostics = NoopRuntimeDiagnostics,
     )
     val opened = assertIs<WorkflowOpenResult.Ok>(
       service.openFeatureTask(
@@ -383,7 +383,7 @@ class WorkflowServiceTest {
       decompositionManifestWriter = testDecompositionManifestWriter,
       repositoryRoot = testRepositoryRoot,
       goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
-    runtimeDiagnostics = NoopRuntimeDiagnostics,
+      runtimeDiagnostics = NoopRuntimeDiagnostics,
     )
     val opened = assertIs<WorkflowOpenResult.Ok>(
       service.openFeatureTask(
@@ -681,7 +681,7 @@ class WorkflowServiceTest {
       decompositionManifestWriter = testDecompositionManifestWriter,
       repositoryRoot = testRepositoryRoot,
       goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
-    runtimeDiagnostics = NoopRuntimeDiagnostics,
+      runtimeDiagnostics = NoopRuntimeDiagnostics,
     )
   }
 }
@@ -3443,7 +3443,7 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
       decompositionManifestWriter = testDecompositionManifestWriter,
       repositoryRoot = testRepositoryRoot,
       goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
-    runtimeDiagnostics = NoopRuntimeDiagnostics,
+      runtimeDiagnostics = NoopRuntimeDiagnostics,
     )
 
     val opened = service.openFeatureTask(
