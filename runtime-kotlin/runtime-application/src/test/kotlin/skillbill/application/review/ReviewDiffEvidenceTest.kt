@@ -1,6 +1,8 @@
 package skillbill.application.review
+
 import skillbill.application.reviewevidence.RawCommitDiff
 import skillbill.application.reviewevidence.ReviewDiffEvidence
+import skillbill.application.reviewevidence.parseCommitUnits
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

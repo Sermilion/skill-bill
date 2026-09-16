@@ -1,6 +1,6 @@
 package skillbill.application.telemetry
 
-import skillbill.ports.concurrency.JvmInterruptSignalPort
+import skillbill.ports.concurrency.InterruptSignalPort
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.goalrunner.EmptyGoalPlanningPreparationRepository
@@ -37,6 +37,7 @@ import java.time.Instant
 import java.time.ZoneOffset
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
@@ -53,6 +54,23 @@ class TelemetryAutoSyncDiagnosticTest {
     assertFailsWith<CancellationException> {
       service.sync()
     }
+  }
+
+  @Test
+  fun `manual sync propagates interruption from stale-session reconciliation`() {
+    val interruptSignal = RecordingInterruptSignalPort()
+    val service =
+      telemetryService(
+        diagnostics = RecordingDiagnostics(),
+        failingEnqueue = false,
+        reconciliationFailure = InterruptedException("reconciliation-interrupted"),
+        interruptSignal = interruptSignal,
+      )
+
+    assertFailsWith<InterruptedException> {
+      service.sync()
+    }
+    assertEquals(1, interruptSignal.restoreCount)
   }
 
   @Test
@@ -83,6 +101,7 @@ class TelemetryAutoSyncDiagnosticTest {
     diagnostics: RuntimeDiagnostics,
     failingEnqueue: Boolean,
     reconciliationFailure: Throwable? = null,
+    interruptSignal: InterruptSignalPort = NoopInterruptSignalPort,
   ): TelemetryService {
     val outbox = PendingOutbox(failingEnqueue)
     val database = DiagnosticDatabaseSessionFactory(outbox, reconciliationFailure)
@@ -99,7 +118,7 @@ class TelemetryAutoSyncDiagnosticTest {
         configStore = DiagnosticTelemetryConfigStore(),
       ),
       diagnostics = diagnostics,
-      interruptSignal = JvmInterruptSignalPort,
+      interruptSignal = interruptSignal,
     )
   }
 }
@@ -237,5 +256,17 @@ private class DiagnosticDatabaseSessionFactory(
       get() = error("not exercised")
     override val goalPlanningPreparations = EmptyGoalPlanningPreparationRepository
     override val goalRunnerControls = EmptyGoalRunnerControlRepository
+  }
+}
+
+private object NoopInterruptSignalPort : InterruptSignalPort {
+  override fun restore() = Unit
+}
+
+private class RecordingInterruptSignalPort : InterruptSignalPort {
+  var restoreCount = 0
+
+  override fun restore() {
+    restoreCount++
   }
 }

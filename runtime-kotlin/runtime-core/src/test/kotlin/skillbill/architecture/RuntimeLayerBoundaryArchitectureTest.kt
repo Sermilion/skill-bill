@@ -91,14 +91,37 @@ class RuntimeLayerBoundaryArchitectureTest {
         "skillbill.infrastructure",
         "skillbill.review.ReviewRuntime",
         "skillbill.review.TriageRuntime",
-        "skillbill.application.telemetry.config.TelemetryConfigRuntime",
-        "skillbill.application.telemetry.config.TelemetryConfigMutationRuntime",
         "skillbill.application.telemetry.http.TelemetryHttpRuntime",
         "skillbill.application.telemetry.http.TelemetryRemoteStatsRuntime",
       )
     assertNoBannedImports(
       files = applicationFiles,
       bannedImports = applicationPersistenceBannedImports,
+    )
+  }
+
+  @Test
+  fun `runtime ports avoid concrete thread interrupt restoration`() {
+    val portMainFiles = sourceFilesIn(runtimeArchitectureRoot.resolve("runtime-ports/src/main/kotlin"))
+    assertNoBannedSourceReferences(
+      files = portMainFiles,
+      bannedReferences = listOf(
+        "Thread.currentThread",
+        ".interrupt()",
+      ),
+      description = "concrete thread interrupt restoration",
+    )
+  }
+
+  @Test
+  fun `runtime application does not select the JVM interrupt adapter`() {
+    val applicationMainFiles = sourceFilesIn(runtimeArchitectureRoot.resolve("runtime-application/src/main/kotlin"))
+    assertNoBannedImports(
+      files = applicationMainFiles,
+      bannedImports = listOf(
+        "skillbill.infrastructure.fs.concurrency.JvmInterruptSignalPort",
+        "skillbill.ports.concurrency.JvmInterruptSignalPort",
+      ),
     )
   }
 
@@ -419,5 +442,63 @@ class RuntimeLayerBoundaryArchitectureTest {
         "skillbill.mcp",
       ),
     )
+  }
+
+  @Test
+  fun `parallel review composition root owns collaborator wiring`() {
+    val runnerSource = Files.readString(
+      sourcePath("skillbill/application/review/ParallelCodeReviewRunner.kt"),
+    )
+    val compositionSource = Files.readString(
+      sourcePath("skillbill/application/review/ParallelCodeReviewRunnerComposition.kt"),
+    )
+    val boundariesSource = Files.readString(
+      sourcePath("skillbill/application/review/model/ParallelCodeReviewRunnerBoundaries.kt"),
+    )
+    assertTrue(
+      !runnerSource.contains("ParallelCodeReviewRunnerBoundaries"),
+      "ParallelCodeReviewRunner must not unwrap boundary bags or rebuild the collaborator graph.",
+    )
+    assertTrue(
+      "ParallelCodeReviewRunnerPlanningBoundaries" !in boundariesSource &&
+        "ParallelCodeReviewRunnerLaneLaunchBoundaries" !in boundariesSource,
+      "The review composition must not retain the two copied boundary groups.",
+    )
+    assertTrue(
+      "interface " !in compositionSource && "data class " !in compositionSource,
+      "The composition root must not become a replacement role interface or dependency bag.",
+    )
+    assertContains(compositionSource, "private val failureAdmission")
+    assertContains(compositionSource, "internal val planning")
+    assertContains(compositionSource, "ParallelCodeReviewRunnerLaneLaunch(")
+    assertContains(compositionSource, "parentReviewLauncher = boundaries.parentReviewLauncher")
+    assertContains(compositionSource, "sharedEvidenceLocatorReader = boundaries.sharedEvidenceLocatorReader")
+  }
+
+  @Test
+  fun `retired review and telemetry adapters stay absent from production main`() {
+    val retiredProductionPaths = listOf(
+      "runtime-application/src/main/kotlin/skillbill/application/review/ReviewCommitSequenceResolver.kt",
+      "runtime-application/src/main/kotlin/skillbill/application/telemetry/config/TelemetryConfigMutationRuntime.kt",
+      "runtime-application/src/main/kotlin/skillbill/application/telemetry/config/TelemetryConfigRuntime.kt",
+    )
+    val survivors = retiredProductionPaths.filter { relativePath ->
+      Files.exists(runtimeArchitectureRoot.resolve(relativePath))
+    }
+    assertEquals(
+      emptyList(),
+      survivors,
+      "Deleted adapters must not remain in runtime-application production main.",
+    )
+  }
+
+  @Test
+  fun `update check service keeps parser state invocation local`() {
+    val source = Files.readString(
+      sourcePath("skillbill/application/updatecheck/UpdateCheckService.kt"),
+    )
+    assertTrue(!source.contains("lastUnknown"), "UpdateCheckService must not cache last UNKNOWN results.")
+    assertTrue(!source.contains("releasePayloadMalformed"), "Malformed payload flags must stay invocation-local.")
+    assertTrue(!source.contains("releaseEntryMalformed"), "Malformed entry flags must stay invocation-local.")
   }
 }

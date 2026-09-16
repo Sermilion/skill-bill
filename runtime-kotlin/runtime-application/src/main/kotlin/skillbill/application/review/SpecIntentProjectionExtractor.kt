@@ -3,6 +3,7 @@ package skillbill.application.review
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.decomposition.repoRelativePath
 import skillbill.application.decomposition.resolvedParentSpecPath
+import skillbill.application.rethrowIfCooperativeCancellationOrInterruption
 import skillbill.error.InvalidReviewContextSchemaError
 import skillbill.error.UnreadableSpecIntentProjectionError
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
@@ -14,6 +15,7 @@ import skillbill.review.context.model.SpecIntentSurroundingContext
 import skillbill.review.spec.GovernedSpecSectionParser
 import skillbill.review.spec.GovernedSpecSectionParser.ACCEPTANCE_CRITERIA_PREFIX
 import skillbill.workflow.engine.model.ReviewContextWireMap
+import java.io.IOException
 import java.nio.file.Path
 import java.security.MessageDigest
 
@@ -80,7 +82,8 @@ class SpecIntentProjectionExtractor(
     }
     return try {
       fileStore.readText(path).toByteArray(Charsets.UTF_8)
-    } catch (_: Exception) {
+    } catch (error: IOException) {
+      error.rethrowIfCooperativeCancellationOrInterruption()
       fail(path, explicit, "unreadable")
     }
   }

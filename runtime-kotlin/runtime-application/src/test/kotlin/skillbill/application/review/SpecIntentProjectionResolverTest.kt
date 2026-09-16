@@ -8,6 +8,7 @@ import skillbill.application.reviewevidence.ReviewDiffEvidence
 import skillbill.application.testDecompositionManifestValidator
 import skillbill.error.UnreadableSpecIntentProjectionError
 import skillbill.ports.repository.toFileLocation
+import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.review.context.ReviewContextEnvelopeValidator
 import skillbill.review.context.model.GovernedReviewLaunch
 import skillbill.review.context.model.ReviewCommitCoverageFact
@@ -321,6 +322,40 @@ class SpecIntentProjectionResolverTest {
   }
 
   @Test
+  fun `an interrupted manifest read propagates instead of falling through to glob search`() {
+    val repo = tempRepo()
+    val manifestPath = repo.resolve("decomposition-manifest.yaml")
+    val store = object : DecompositionManifestStore by TestDecompositionManifestStore {
+      override fun findDecompositionManifestFiles(repoRoot: Path): List<Path> = listOf(manifestPath)
+
+      override fun isRegularFile(path: Path) = true
+
+      override fun readText(path: Path): String = throw InterruptedException("interrupted")
+    }
+    val projectionResolver = SpecIntentProjectionResolver(
+      store,
+      testDecompositionManifestValidator,
+      SpecIntentProjectionExtractor(
+        object : ReviewContextEnvelopeValidator {
+          override fun validate(envelope: ReviewContextWireMap, sourceLabel: String) = Unit
+
+          override fun validateSpecIntentProjection(envelope: ReviewContextWireMap, sourceLabel: String) = Unit
+        },
+        store,
+      ),
+    )
+
+    assertFailsWith<InterruptedException> {
+      projectionResolver.resolve(
+        SpecIntentProjectionResolveRequest(
+          repoRoot = repo.toFileLocation(),
+          branchName = "feat/SKILL-191-runtime",
+        ),
+      )
+    }
+  }
+
+  @Test
   fun `resolved projection criteria populate assignment and launch envelopes`() {
     val criteria = listOf("First criterion.", "Second criterion.")
     val launch = compileCriteria(
@@ -345,8 +380,7 @@ class SpecIntentProjectionResolverTest {
       launch.brokerId,
       ReviewContextBudgetPolicy.DEFAULT,
     ).toLaunchEnvelope().asWireMap().let { wireMap ->
-      @Suppress("UNCHECKED_CAST")
-      wireMap["criteria_references"] as List<String>
+      (wireMap["criteria_references"] as? List<*>)?.filterIsInstance<String>().orEmpty()
     }
     assertEquals(criteria, launchCriteria)
     assertTrue(launchCriteria.none { it == "independent branch-diff specialist review" })

@@ -4,6 +4,57 @@ This file records architectural and implementation decisions that span the
 `runtime-kotlin/` boundary. Each entry is dated and explains the trade-off,
 not the implementation detail.
 
+## 2026-09-16 — SKILL-347 subtask 3: review composition, stateless update check, adapter census
+
+**Context.** Subtask 3 collapses review runner wiring, deletes production-unused
+telemetry and review adapters, removes feature-preparation aliases, and makes
+update-check parsing invocation-local.
+
+**Before census (production main).** `ParallelCodeReviewRunner` copied every
+field from `ParallelCodeReviewRunnerPlanningBoundaries` and
+`ParallelCodeReviewRunnerLaneLaunchBoundaries`, binding `parentReviewLauncher`
+and `sharedEvidenceLocatorReader` twice while reconstructing planning, lane
+launch, result assembly, and verification collaborators in the runner
+constructor. `TelemetryConfigMutationRuntime` and `ReviewCommitSequenceResolver`
+had zero production callers. `TelemetryConfigRuntime` only forwarded domain
+telemetry parsers for `TelemetrySettingsFromStore`. `FeatureSpecPreparationRuntime`
+exposed `prepareForFeatureImplement` and `prepareForGoal` with test-only callers.
+`UpdateCheckService` kept `lastUnknown`, `releasePayloadMalformed`, and
+`releaseEntryMalformed` as mutable fields across overlapping `check` calls.
+
+**After census.** One `ParallelCodeReviewRunnerBoundaries` bag feeds
+`ParallelCodeReviewRunnerComposition`, which is the sole production site that
+binds `parentReviewLauncher` and `sharedEvidenceLocatorReader` into executable
+collaborators; the runner sequences `run` only. Production declarations removed:
+`ReviewCommitSequenceResolver.kt`, `TelemetryConfigMutationRuntime.kt`,
+`TelemetryConfigRuntime.kt`. `TelemetrySettingsFromStore` calls
+`parseTelemetryLevelValue`, `parseTelemetryBoolValue`, and
+`parsePositiveTelemetryInt` directly; `TelemetryLevelMutationService` still uses
+`TelemetryConfigMutations`. `FeatureSpecPreparationRuntime` keeps
+`prepareForFeatureSpec` as the injected seam. `UpdateCheckService` returns
+failures through invocation-local `ReleaseFetchResult` / `ReleaseSelection`
+values. **`InstallAgentService` stays** (SKILL-238 decision unchanged): CLI
+adaptation is not a rename.
+
+**Architecture enforcement.** `RuntimeLayerBoundaryArchitectureTest` asserts the
+composition root owns lane launch wiring, retired adapter files stay absent from
+production main, and update-check parser flags stay out of service fields.
+
+## 2026-09-16 — JVM interrupt restoration stays in outer infrastructure
+
+**Context.** `InterruptSignalPort` is the inward contract for restoring the
+thread interrupt flag after `InterruptedException`. A JVM implementation in
+`runtime-ports` let application sync helpers default to concrete thread APIs
+without passing through `runtime-core`.
+
+**Decision.** Keep `InterruptSignalPort` in `runtime-ports`. Implement
+`JvmInterruptSignalPort` in `runtime-infra-fs` and supply it only from
+`RuntimeComponent`. Application telemetry sync/drain APIs require callers to pass
+the port explicitly.
+
+**Reason.** Mechanism belongs in outer adapters; application code keeps
+cooperative failure propagation without selecting environment APIs.
+
 ## 2026-09-14 — Validate is collect-all, fix, exit; runtime confirms
 
 **Context.** Validate blocked on agent `validation-evidence` JSON (schema cap=1)
@@ -1676,7 +1727,6 @@ Machine-parseable rows: `path | symbol | rule | why`. Complexity rule names neve
 | runtime-engine/src/test/kotlin/skillbill/engine/FeatureTaskRuntimeRunnerTestSupport.kt | noopPort | UNCHECKED_CAST | Dynamic port proxy returns typed facade from erased invoke |
 | runtime-engine/src/test/kotlin/skillbill/engine/FeatureTaskRuntimeRunnerTestSupport.kt | recordHarnessFindingVerdicts | UNCHECKED_CAST | Dynamic ReviewRepository proxy passes typed verdict list through erased invoke |
 | runtime-application/src/test/kotlin/skillbill/application/ParallelCodeReviewRunnerTest.kt | RecordingReviewDatabase | UNCHECKED_CAST | Dynamic ReviewRepository proxy passes typed args through erased invoke |
-| runtime-application/src/test/kotlin/skillbill/application/review/SpecIntentProjectionResolverTest.kt | SpecIntentProjectionResolverTest | UNCHECKED_CAST | Launch envelope wire map stores criteria_references as strings |
 
 
 ## [2026-09-04] Guard recalibration: line ceiling 1200, TooManyFunctions 40/45, constructor threshold 12, LargeClass 1200 (SKILL-233 subtask 1)

@@ -9,9 +9,4 @@ class FeatureSpecPreparationRuntime(
   private val prepareCore: (FeatureSpecPreparationIntake) -> FeatureSpecPreparationDecision,
 ) {
   fun prepareForFeatureSpec(intake: FeatureSpecPreparationIntake): FeatureSpecPreparationDecision = prepareCore(intake)
-
-  fun prepareForFeatureImplement(intake: FeatureSpecPreparationIntake): FeatureSpecPreparationDecision =
-    prepareCore(intake)
-
-  fun prepareForGoal(intake: FeatureSpecPreparationIntake): FeatureSpecPreparationDecision = prepareCore(intake)
 }

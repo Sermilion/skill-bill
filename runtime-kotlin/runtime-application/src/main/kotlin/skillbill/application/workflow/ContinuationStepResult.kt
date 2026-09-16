@@ -15,11 +15,16 @@ import skillbill.workflow.engine.model.WorkflowStateSnapshot
 internal data class ContinuationStepResult(
   val result: WorkflowContinueResult,
   val projectionArtifactsJson: String? = null,
+  val projectionOwnerWorkflowId: String? = null,
 ) {
   fun withProjection(
     manifest: DecompositionManifest,
     validator: DecompositionManifestValidator,
-  ): ContinuationStepResult = copy(projectionArtifactsJson = decompositionRuntimeArtifactsJson(manifest, validator))
+    ownerWorkflowId: String,
+  ): ContinuationStepResult = withPendingProjection(
+    ownerWorkflowId = ownerWorkflowId,
+    artifactsJson = decompositionRuntimeArtifactsJson(manifest, validator),
+  )
 
   fun withProjectionArtifactsIfMissing(artifactsJson: String?): ContinuationStepResult =
     if (projectionArtifactsJson == null && artifactsJson != null) {

@@ -1,7 +1,6 @@
 package skillbill.application.telemetry.sync
 
 import skillbill.ports.concurrency.InterruptSignalPort
-import skillbill.ports.concurrency.JvmInterruptSignalPort
 import skillbill.ports.telemetry.TelemetryClient
 import skillbill.ports.telemetry.TelemetryOutboxRepository
 import skillbill.ports.telemetry.model.TELEMETRY_DELIVERY_ATTEMPT_BUDGET
@@ -31,7 +30,7 @@ internal data class DrainRequest(
   val client: TelemetryClient,
   val syncContext: SyncContext,
   val nowSupplier: () -> Instant,
-  val interruptSignal: InterruptSignalPort = JvmInterruptSignalPort,
+  val interruptSignal: InterruptSignalPort,
 )
 
 private data class FailedDelivery(
@@ -282,8 +281,12 @@ private fun Throwable.isCooperativeCancellation(): Boolean = this is Cancellatio
 
 private fun rethrowCancellation(error: Throwable): Nothing = throw error
 
-private fun rethrowInterrupted(error: InterruptedException, interruptSignal: InterruptSignalPort): Nothing {
-  interruptSignal.restore()
+internal fun rethrowInterrupted(error: InterruptedException, interruptSignal: InterruptSignalPort): Nothing {
+  runCatching { interruptSignal.restore() }.exceptionOrNull()?.let { restorationFailure ->
+    if (restorationFailure !== error) {
+      error.addSuppressed(restorationFailure)
+    }
+  }
   throw error
 }
 

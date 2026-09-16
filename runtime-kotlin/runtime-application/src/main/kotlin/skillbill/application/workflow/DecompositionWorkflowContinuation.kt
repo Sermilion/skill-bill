@@ -150,16 +150,25 @@ class DecompositionWorkflowContinuation(
       AdvancementResult(manifest)
     }
     if (advancement.error != null) {
-      return ContinuationStepResult(
+      val blocked = ContinuationStepResult(
         blockedGitResult(parentRecord.workflowId, manifest.issueKey, unitOfWork.dbPath.toString(), advancement.error),
         advancement.projectionArtifactsJson,
+        projectionOwnerWorkflowId = parentRecord.workflowId.takeIf { advancement.projectionArtifactsJson != null },
       )
+      return blocked
     }
     val advancedManifest = advancement.manifest
     val projectionArtifactsJson =
       if (advancedManifest != manifest) decompositionRuntimeArtifactsJson(advancedManifest, validator) else null
     return selectedContinuation(parentRecord, advancedManifest, unitOfWork, requestedSubtaskId)
       .withProjectionArtifactsIfMissing(projectionArtifactsJson)
+      .let { step ->
+        if (step.projectionOwnerWorkflowId == null && step.projectionArtifactsJson != null) {
+          step.copy(projectionOwnerWorkflowId = parentRecord.workflowId)
+        } else {
+          step
+        }
+      }
   }
 
   private fun selectedContinuation(
@@ -283,7 +292,7 @@ class DecompositionWorkflowContinuation(
         manifestWriter = manifestWriter,
       ),
     )
-      .withProjection(updatedManifest, validator)
+      .withProjection(updatedManifest, validator, parentRecord.workflowId)
       .withDecompositionFields(
         issueKey = manifest.issueKey,
         subtaskId = selection.subtask.id,

@@ -1,5 +1,6 @@
 package skillbill.application.review
 
+import skillbill.application.getOrElseUnlessCooperative
 import skillbill.application.idestatus.AgentActivityStampWriter
 import skillbill.application.review.model.ParallelCodeReviewRequest
 import skillbill.application.review.model.ReviewSpecialistLaunchRequest
@@ -34,7 +35,6 @@ import skillbill.review.context.model.ReviewLaneCompletionState
 import skillbill.review.context.model.ReviewLaneIdentity
 import skillbill.review.model.ReviewEvidenceBoundaryAccounting
 import java.nio.file.Path
-import kotlin.coroutines.cancellation.CancellationException
 
 internal class ParallelCodeReviewRunnerLaneLaunch(
   private val parentReviewLauncher: GoalRunnerSubtaskLauncher,
@@ -95,7 +95,7 @@ internal class ParallelCodeReviewRunnerLaneLaunch(
     }
   }
 
-  private fun launchedBoundParent(args: LaunchedBoundParentArgs): ParallelReviewLaneOutcome {
+  private fun launchedBoundParent(args: LaunchedBoundParentArgs): ParallelReviewLaneOutcome = args.bound.endpoint.use {
     if (args.launch.agentId == "cursor" && args.resolvedMode == ResolvedReviewExecutionMode.DELEGATED) {
       reviewLaunchAgentStaging.stage(
         ReviewLaunchAgentStagingRequest(
@@ -108,29 +108,27 @@ internal class ParallelCodeReviewRunnerLaneLaunch(
         ),
       )
     }
-    val outcome = args.bound.endpoint.use {
-      parentReviewLauncher.launch(
-        GoalRunnerSubtaskLaunchRequest(
-          invokedAgentId = args.launch.agentId,
-          configuredAgentOverrideId = null,
-          skillRunRequest = SkillRunRequest(
-            issueKey = "code-review",
-            repoRoot = args.request.repoRoot,
-            timeout = args.request.timeout,
-            promptOverride = args.request.withSelectedAgentAddons(args.launch.prompt),
-            modelOverride = args.modelOverride,
-            conversationIsolation = ConversationIsolation.NONE,
-            reviewEvidenceBroker = args.bound.broker,
-            nativeReviewOperations = args.bound.protocol,
-            reviewEvidenceEndpoint = args.bound.endpoint,
-            nativeReviewWorkerName = PARALLEL_REVIEW_INLINE_NATIVE_WORKER
-              .takeIf { args.resolvedMode == ResolvedReviewExecutionMode.INLINE },
-            reviewFanOut = args.resolvedMode == ResolvedReviewExecutionMode.DELEGATED,
-          ),
+    val outcome = parentReviewLauncher.launch(
+      GoalRunnerSubtaskLaunchRequest(
+        invokedAgentId = args.launch.agentId,
+        configuredAgentOverrideId = null,
+        skillRunRequest = SkillRunRequest(
+          issueKey = "code-review",
+          repoRoot = args.request.repoRoot,
+          timeout = args.request.timeout,
+          promptOverride = args.request.withSelectedAgentAddons(args.launch.prompt),
+          modelOverride = args.modelOverride,
+          conversationIsolation = ConversationIsolation.NONE,
+          reviewEvidenceBroker = args.bound.broker,
+          nativeReviewOperations = args.bound.protocol,
+          reviewEvidenceEndpoint = args.bound.endpoint,
+          nativeReviewWorkerName = PARALLEL_REVIEW_INLINE_NATIVE_WORKER
+            .takeIf { args.resolvedMode == ResolvedReviewExecutionMode.INLINE },
+          reviewFanOut = args.resolvedMode == ResolvedReviewExecutionMode.DELEGATED,
         ),
-      )
-    }
-    return when (outcome) {
+      ),
+    )
+    when (outcome) {
       is UnsupportedAgentRunLaunch -> unsupportedParentOutcome(args.launch, outcome)
       is AgentRunLaunchFacts -> launchedParentOutcome(args.launch, outcome, args.budget, args.bound.broker)
     }
@@ -141,14 +139,14 @@ internal class ParallelCodeReviewRunnerLaneLaunch(
     request: ParallelCodeReviewRequest,
   ): ParallelCodeReviewGovernedEvidenceBind {
     val broker = runCatching { parentEvidenceBroker(selected, request.repoRoot) }
-      .getOrElseRethrowingCancellation {
+      .getOrElseUnlessCooperative {
         return ParallelCodeReviewGovernedEvidenceBind.Unbound(
           ReviewEvidenceBoundaryAccounting.GOVERNED_EVIDENCE_SEAM,
           ParallelCodeReviewGovernedEvidenceBindFault.CONSTRUCTION,
         )
       }
     val protocol = runCatching { BrokerBackedNativeReviewOperationProtocol(broker) }
-      .getOrElseRethrowingCancellation {
+      .getOrElseUnlessCooperative {
         return ParallelCodeReviewGovernedEvidenceBind.Unbound(
           ReviewEvidenceBoundaryAccounting.GOVERNED_EVIDENCE_SEAM,
           ParallelCodeReviewGovernedEvidenceBindFault.PROTOCOL,
@@ -168,7 +166,7 @@ internal class ParallelCodeReviewRunnerLaneLaunch(
         protocol,
         governedEvidenceEndpointBinder.bind(broker.accounting().lane, protocol, onEvidenceRead),
       )
-    }.getOrElseRethrowingCancellation {
+    }.getOrElseUnlessCooperative {
       ParallelCodeReviewGovernedEvidenceBind.Unbound(
         ReviewEvidenceBoundaryAccounting.GOVERNED_EVIDENCE_SEAM,
         ParallelCodeReviewGovernedEvidenceBindFault.ENDPOINT,
@@ -244,11 +242,6 @@ internal class ParallelCodeReviewRunnerLaneLaunch(
 
   fun parentEvidenceBroker(selected: List<ReviewSpecialistLaunchRequest>, repoRoot: Path): ReviewEvidenceBroker =
     reviewEvidenceBrokerFactory.brokerFor(parentBrokerBinding(selected, repoRoot))
-}
-
-private inline fun <T> Result<T>.getOrElseRethrowingCancellation(onFailure: () -> T): T {
-  exceptionOrNull()?.let { if (it is CancellationException) throw it }
-  return getOrElse { onFailure() }
 }
 
 internal fun unsupportedParentOutcome(

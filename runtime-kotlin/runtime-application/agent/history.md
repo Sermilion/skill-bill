@@ -1,3 +1,29 @@
+## [2026-09-16] SKILL-347 subtask 3 — Review composition and stateless use cases
+Areas: runtime-application/{review,telemetry/config,featurespec,updatecheck}, runtime-core/architecture
+- Before: runner unwrapped dual boundary bags and rebuilt planning, lane launch, result assembly, and verification; duplicate launcher and evidence-locator bindings; mutable update-check parser flags; unused `TelemetryConfigMutationRuntime`, `ReviewCommitSequenceResolver`, and `TelemetryConfigRuntime` forwarding; test-only feature-preparation aliases.
+- After: `ParallelCodeReviewRunnerComposition` is the sole collaborator graph with one `ParallelCodeReviewRunnerBoundaries` input; runner sequences `run` only; update-check failures are invocation-local; telemetry settings parse via domain functions; `FeatureSpecPreparationRuntime.prepareForFeatureSpec` remains the injected seam; `InstallAgentService` retained per decisions log.
+- Tests: review entry-point harness unchanged in behavior; commit-sequence coverage targets `SharedReviewEvidenceAssembler` / `SharedReviewEvidenceProjection`; overlapping update-check regression added.
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented (validate phase owns pack gate)
+
+## [2026-09-16] SKILL-347 subtask 2 — Activity and decomposition projection ownership
+Areas: runtime-application/{idestatus,workflow,decomposition}
+- `AgentActivityStampWriter` keeps throttle state per writer instance (LRU cap 512 workflow keys), advances persistence acknowledgement only after a successful write, and emits bounded `RuntimeDiagnostics` warnings on ordinary write failures.
+- `continueWorkflow` and workflow updates carry `PendingDecompositionProjection` with the authoritative parent workflow id through post-commit manifest settlement; missing owners surface via diagnostics instead of silent no-ops.
+- `persistDecompositionManifestProjectionFailure` returns `OWNER_ABSENT` when the target row is missing; projection-only retry behavior is unchanged.
+- Pattern: separate observed activity from persisted acknowledgement; bind filesystem projection settlement to the parent workflow id resolved inside the transaction. reusable
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented (validate phase owns pack gate)
+
+## [2026-09-16] SKILL-347 subtask 1 — Cooperative cancellation and review endpoint lifetime
+Areas: runtime-application/{review,idestatus,updatecheck,runtimepersistence,telemetry}, runtime-infra-fs/concurrency, runtime-core/di, runtime-ports/concurrency
+- Governed review endpoints enter `use` before Cursor staging and parent launch so staging failures close exactly once and never start a worker.
+- Optional-result seams rethrow `CancellationException` and `InterruptedException` before typed degradation; required persistence keeps `initCause` on `RuntimeOwnedFactUnavailable`.
+- `JvmInterruptSignalPort` lives in `runtime-infra-fs`; `runtime-application` sync/drain entry points require an injected `InterruptSignalPort` with no JVM default.
+- Pattern: shared `rethrowIfCooperativeCancellationOrInterruption` at application optional seams; architecture scan rejects inward thread restoration and application adapter imports. reusable
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented (validate phase owns pack gate)
+
 ## [2026-08-28] SKILL-215 subtask 1 — Execution clocks for goal and current subtask
 Areas: runtime-application/{goalrunner,work,model}, runtime-domain/goalrunner/model, runtime-infra-sqlite, runtime-ports/persistence, orchestration/contracts, intellij-plugin/{domain,presentation}
 - Goal-runner control state now keeps a current-subtask execution total beside `activeDurationMs`. Heartbeats fold both through the same gap cap; lease reacquire after downtime does not count the gap on either clock.

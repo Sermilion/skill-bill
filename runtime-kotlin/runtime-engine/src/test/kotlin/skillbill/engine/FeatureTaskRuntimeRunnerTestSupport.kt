@@ -885,7 +885,7 @@ private fun harnessRunner(deps: HarnessRunnerDeps): FeatureTaskRuntimeRunner {
     phaseSettlementService = harnessPhaseSettlement(),
     diagnostics = deps.diagnostics,
     clock = testHarnessClock,
-    activityStampWriter = AgentActivityStampWriter(deps.database, Clock.systemUTC()),
+    activityStampWriter = AgentActivityStampWriter(deps.database, Clock.systemUTC(), deps.diagnostics),
   )
 }
 
@@ -1003,7 +1003,7 @@ private fun telemetryHarnessRunner(
     phaseSettlementService = harnessPhaseSettlement(),
     diagnostics = NoopRuntimeDiagnostics,
     clock = testHarnessClock,
-    activityStampWriter = AgentActivityStampWriter(database, Clock.systemUTC()),
+    activityStampWriter = AgentActivityStampWriter(database, Clock.systemUTC(), NoopRuntimeDiagnostics),
   )
 }
 

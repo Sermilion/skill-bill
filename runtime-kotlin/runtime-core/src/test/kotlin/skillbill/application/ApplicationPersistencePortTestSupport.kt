@@ -27,6 +27,7 @@ import skillbill.infrastructure.fs.FeatureTaskRuntimeHandoffEnvelopeValidatorInf
 import skillbill.infrastructure.fs.FeatureTaskRuntimeHandoffFoundationValidatorInfraAdapter
 import skillbill.infrastructure.fs.FileSystemDecompositionManifestFileStore
 import skillbill.infrastructure.fs.WorkflowSnapshotValidatorInfraAdapter
+import skillbill.infrastructure.fs.concurrency.JvmInterruptSignalPort
 import skillbill.learnings.model.CreateLearningRequest
 import skillbill.learnings.model.LearningRecord
 import skillbill.learnings.model.LearningSourceValidation
@@ -34,7 +35,6 @@ import skillbill.learnings.model.RejectedLearningSourceOutcome
 import skillbill.learnings.model.UpdateLearningRequest
 import skillbill.model.EnvironmentContext
 import skillbill.model.RepositoryRoot
-import skillbill.ports.concurrency.JvmInterruptSignalPort
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
@@ -1081,6 +1081,7 @@ internal fun testWorkflowService(
   decompositionManifestWriter = DecompositionManifestWriter(),
   repositoryRoot = RepositoryRoot(Path.of("").toAbsolutePath().normalize()),
   goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
+  runtimeDiagnostics = NoopRuntimeDiagnostics,
 )
 
 internal fun loadTestDecompositionManifest(path: Path) =

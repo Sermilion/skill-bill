@@ -1,0 +1,3 @@
+primary_failure=primary-probe-failure
+rollback_attempted=true
+suppressed_cleanup_failures=0

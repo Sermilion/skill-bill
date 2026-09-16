@@ -6,6 +6,7 @@ import skillbill.agentaddon.model.HydratedAgentAddonSelectionEntry
 import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
 import skillbill.application.idestatus.AgentActivityStampWriter
 import skillbill.application.review.ParallelCodeReviewRunner
+import skillbill.application.review.ParallelCodeReviewRunnerComposition
 import skillbill.application.review.RecordedWorkerResponse
 import skillbill.application.review.ReviewClaimVerificationRunner
 import skillbill.application.review.ReviewHarnessConfig
@@ -16,8 +17,7 @@ import skillbill.application.review.diffForChanges
 import skillbill.application.review.diffForPaths
 import skillbill.application.review.harnessRequest
 import skillbill.application.review.model.ParallelCodeReviewRequest
-import skillbill.application.review.model.ParallelCodeReviewRunnerLaneLaunchBoundaries
-import skillbill.application.review.model.ParallelCodeReviewRunnerPlanningBoundaries
+import skillbill.application.review.model.ParallelCodeReviewRunnerBoundaries
 import skillbill.application.review.model.StackDetectionException
 import skillbill.application.review.model.UsageValidationException
 import skillbill.application.review.reviewHarness
@@ -41,6 +41,7 @@ import skillbill.ports.goalrunner.runner.GoalRunnerSubtaskLauncher
 import skillbill.ports.goalrunner.runner.model.GoalRunnerSubtaskLaunchRequest
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.repository.toFileLocation
+import skillbill.ports.review.GovernedReviewEvidenceEndpointBinder
 import skillbill.ports.review.ReviewEvidenceBroker
 import skillbill.ports.review.ReviewEvidenceBrokerFactory
 import skillbill.ports.review.ReviewLaunchAgentStagingPort
@@ -1377,6 +1378,7 @@ internal data class RunnerFixtureConfig(
   val nativeAgentPreflight: ReviewNativeAgentPreflightPort = ReviewNativeAgentPreflightPort.NONE,
   val reviewLaunchAgentStaging: ReviewLaunchAgentStagingPort = ReviewLaunchAgentStagingPort.NONE,
   val evidenceEndpointRoot: Path? = null,
+  val evidenceEndpointBinder: GovernedReviewEvidenceEndpointBinder? = null,
   val registerParse: (String) -> ParallelReviewParseResult =
     ParallelReviewFindingParser::parse,
 ) {
@@ -1403,7 +1405,7 @@ internal fun runner(
 internal fun createRunner(launcher: GoalRunnerSubtaskLauncher, config: RunnerFixtureConfig): ParallelCodeReviewRunner {
   val endpointRoot = config.evidenceEndpointRoot ?: Files.createTempDirectory("endpoint")
   val sharedEvidenceLocatorReader = FeatureTaskRuntimeSharedEvidenceLocatorReadPort.NONE
-  val planningBoundaries = ParallelCodeReviewRunnerPlanningBoundaries(
+  val boundaries = ParallelCodeReviewRunnerBoundaries(
     diffResolver = config.diffResolver,
     repoLocalConfig = object : RepoLocalConfigPort {
       override fun readRepoLocalConfig(request: ReadRepoLocalConfigRequest) =
@@ -1434,9 +1436,6 @@ internal fun createRunner(launcher: GoalRunnerSubtaskLauncher, config: RunnerFix
     diagnostics = NoopRuntimeDiagnostics,
     clock = testHarnessClock,
     repositoryEnclosingRootPort = TestRepositoryEnclosingRoot,
-  )
-  val laneLaunchBoundaries = ParallelCodeReviewRunnerLaneLaunchBoundaries(
-    parentReviewLauncher = launcher,
     reviewEvidenceBrokerFactory = ReviewEvidenceBrokerFactory { binding ->
       object : ReviewEvidenceBroker {
         override fun readBatch(request: ReviewEvidenceBatchRequest) = ReviewEvidenceBatchResult(
@@ -1467,14 +1466,15 @@ internal fun createRunner(launcher: GoalRunnerSubtaskLauncher, config: RunnerFix
         override fun terminalOutcome() = null
       }
     },
-    governedEvidenceEndpointBinder = stubGovernedReviewEvidenceEndpointBinder(endpointRoot),
+    governedEvidenceEndpointBinder =
+    config.evidenceEndpointBinder ?: stubGovernedReviewEvidenceEndpointBinder(endpointRoot),
     reviewLaunchAgentStaging = config.reviewLaunchAgentStaging,
-    sharedEvidenceLocatorReader = sharedEvidenceLocatorReader,
   )
   return ParallelCodeReviewRunner(
-    planningBoundaries,
-    laneLaunchBoundaries,
-    AgentActivityStampWriter(config.database, Clock.systemUTC()),
+    ParallelCodeReviewRunnerComposition(
+      boundaries,
+      AgentActivityStampWriter(config.database, Clock.systemUTC(), NoopRuntimeDiagnostics),
+    ),
   )
 }
 
@@ -1763,7 +1763,7 @@ private class RealProcessDiffResolver : DiffResolverPort {
   }
 }
 
-private fun stubCatalogGateway(manifests: List<PlatformManifest> = emptyList()): ScaffoldCatalogGateway =
+internal fun stubCatalogGateway(manifests: List<PlatformManifest> = emptyList()): ScaffoldCatalogGateway =
   object : ScaffoldCatalogGateway {
     override fun approvedCodeReviewAreas() = emptySet<String>()
     override fun preShellFamilies() = emptySet<String>()
@@ -1789,7 +1789,7 @@ private fun throwingCatalogGateway(): ScaffoldCatalogGateway = object : Scaffold
     BaselineReviewCatalog(packs = emptyList(), compositionEdges = emptyList(), layerSuggestions = emptyList())
 }
 
-private fun platformManifest(slug: String, strongSignals: List<String>) = PlatformManifest(
+internal fun platformManifest(slug: String, strongSignals: List<String>) = PlatformManifest(
   slug = slug,
   packRoot = Path.of("platform-packs/$slug").toFileLocation(),
   contractVersion = "1.3",

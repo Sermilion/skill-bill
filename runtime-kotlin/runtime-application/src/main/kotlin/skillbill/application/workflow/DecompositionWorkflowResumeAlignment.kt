@@ -37,6 +37,7 @@ internal fun WorkflowEngine.continueExistingWorkflow(
   val sessionSummary = family.sessionSummary(unitOfWork.workflowStates, record.sessionId.orEmpty())
   var decision = continueDecision(family.definition, record, sessionSummary)
   var projectionArtifactsJson: String? = null
+  var projectionOwnerWorkflowId: String? = null
   if (decision.shouldReopen) {
     val originalContinueStatus = decision.view.continueStatus
     val originalWorkflowStatus = decision.view.workflowStatusBeforeContinue
@@ -61,13 +62,12 @@ internal fun WorkflowEngine.continueExistingWorkflow(
     val reopened = updateRecord(family.definition, record, effectiveInput)
     family.save(unitOfWork.workflowStates, reopened)
     record = family.get(unitOfWork.workflowStates, workflowId) ?: reopened
-    val validator = args.validator
-    if (
-      family == WorkflowFamily.TASK_RUNTIME &&
-      validator != null &&
-      record.decompositionRuntime(validator) != null
-    ) {
-      projectionArtifactsJson = record.artifactsJson
+    val reopenValidator = args.validator
+    if (family == WorkflowFamily.TASK_RUNTIME && reopenValidator != null) {
+      projectionOwnerWorkflowId = resolveDecompositionProjectionOwner(record, unitOfWork, reopenValidator)
+      if (projectionOwnerWorkflowId != null) {
+        projectionArtifactsJson = record.artifactsJson
+      }
     }
     decision = continueDecision(
       family.definition,
@@ -83,6 +83,7 @@ internal fun WorkflowEngine.continueExistingWorkflow(
       view = decision.view,
     ),
     projectionArtifactsJson = projectionArtifactsJson,
+    projectionOwnerWorkflowId = projectionOwnerWorkflowId,
   )
 }
 

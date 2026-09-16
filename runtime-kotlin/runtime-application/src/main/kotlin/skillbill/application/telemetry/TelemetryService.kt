@@ -103,10 +103,9 @@ class TelemetryService(
         recordBackgroundSyncFailure(null)
       }
     } catch (cancelled: CancellationException) {
-      throw cancelled
+      rethrowTelemetryFailure(cancelled)
     } catch (interrupted: InterruptedException) {
-      interruptSignal.restore()
-      throw interrupted
+      rethrowTelemetryInterrupted(interrupted, interruptSignal)
     }
   }
 
@@ -117,7 +116,12 @@ class TelemetryService(
         if (!database.databaseExists()) {
           return@runCatching
         }
-        val level = runCatching { telemetrySettingsOrNull(settingsProvider)?.level }.getOrNull().orEmpty()
+        val level = runCatching { telemetrySettingsOrNull(settingsProvider)?.level }
+          .getOrElse { thrown ->
+            rethrowIfCooperative(thrown)
+            null
+          }
+          .orEmpty()
         enqueueRuntimeException(
           sessionTelemetryOutboxRepository(database),
           "telemetry_background_sync",
@@ -125,8 +129,9 @@ class TelemetryService(
           level,
         )
       }
-    if (enqueueResult.isFailure) {
-      diagnostics.warning(TELEMETRY_BACKGROUND_SYNC_FAILURE_SIGNATURE, enqueueResult.exceptionOrNull())
+    enqueueResult.exceptionOrNull()?.let { thrown ->
+      rethrowIfCooperative(thrown)
+      diagnostics.warning(TELEMETRY_BACKGROUND_SYNC_FAILURE_SIGNATURE, thrown)
     }
   }
 
@@ -156,10 +161,22 @@ class TelemetryService(
 
   fun captureException(workflowPhase: String, error: Exception) {
     if (!database.databaseExists()) return
-    val level = runCatching { telemetrySettingsOrNull(settingsProvider)?.level }.getOrNull().orEmpty()
-    runCatching {
+    val level = runCatching { telemetrySettingsOrNull(settingsProvider)?.level }
+      .getOrElse { thrown ->
+        rethrowIfCooperative(thrown)
+        null
+      }
+      .orEmpty()
+    val enqueueResult = runCatching {
       enqueueRuntimeException(sessionTelemetryOutboxRepository(database), workflowPhase, error, level)
     }
+    enqueueResult.exceptionOrNull()?.let(::rethrowIfCooperative)
+  }
+
+  private fun rethrowIfCooperative(error: Throwable): Nothing? = when (error) {
+    is CancellationException -> throw error
+    is InterruptedException -> rethrowTelemetryInterrupted(error, interruptSignal)
+    else -> null
   }
 
   private fun reconcileBeforeSync(request: TelemetryReconciliationRequest) {
@@ -182,7 +199,11 @@ class TelemetryService(
 private fun rethrowTelemetryFailure(error: Throwable): Nothing = throw error
 
 private fun rethrowTelemetryInterrupted(error: InterruptedException, interruptSignal: InterruptSignalPort): Nothing {
-  interruptSignal.restore()
+  runCatching { interruptSignal.restore() }.exceptionOrNull()?.let { restorationFailure ->
+    if (restorationFailure !== error) {
+      error.addSuppressed(restorationFailure)
+    }
+  }
   throw error
 }
 

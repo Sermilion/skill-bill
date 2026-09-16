@@ -22,7 +22,7 @@ import skillbill.review.model.ParallelReviewParseResult
 import java.time.Clock
 
 @Inject
-data class ParallelCodeReviewRunnerPlanningBoundaries(
+data class ParallelCodeReviewRunnerBoundaries(
   val diffResolver: DiffResolverPort,
   val repoLocalConfig: RepoLocalConfigPort,
   val reviewContextEnvelopeValidator: ReviewContextEnvelopeValidator,
@@ -39,13 +39,7 @@ data class ParallelCodeReviewRunnerPlanningBoundaries(
   val diagnostics: RuntimeDiagnostics,
   val clock: Clock,
   val repositoryEnclosingRootPort: RepositoryEnclosingRootPort,
-)
-
-@Inject
-data class ParallelCodeReviewRunnerLaneLaunchBoundaries(
-  val parentReviewLauncher: GoalRunnerSubtaskLauncher,
   val reviewEvidenceBrokerFactory: ReviewEvidenceBrokerFactory,
   val governedEvidenceEndpointBinder: GovernedReviewEvidenceEndpointBinder,
   val reviewLaunchAgentStaging: ReviewLaunchAgentStagingPort,
-  val sharedEvidenceLocatorReader: FeatureTaskRuntimeSharedEvidenceLocatorReadPort,
 )

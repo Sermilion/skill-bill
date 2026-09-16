@@ -1,10 +1,9 @@
 package skillbill.application.runtimepersistence
 
+import skillbill.application.rethrowIfCooperativeCancellationOrInterruption
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.persistence.UnitOfWork
-import kotlin.coroutines.cancellation.CancellationException
-
 class RuntimeOwnedFactUnavailable(message: String) : IllegalStateException(message)
 
 class RuntimeOwnedPersistenceBoundary(
@@ -42,7 +41,8 @@ class RuntimeOwnedPersistenceBoundary(
   private inline fun <T> invokeOrHandle(onFailure: (Exception) -> T, block: () -> T): T {
     val outcome = runCatching(block)
     val error = outcome.exceptionOrNull() ?: return outcome.getOrThrow()
-    if (error is Exception && error !is CancellationException && error !is RuntimeOwnedFactUnavailable) {
+    error.rethrowIfCooperativeCancellationOrInterruption()
+    if (error is Exception && error !is RuntimeOwnedFactUnavailable) {
       return onFailure(error)
     }
     throw error
@@ -53,7 +53,7 @@ class RuntimeOwnedPersistenceBoundary(
     recordFailure(seam, expected, used, error)
     throw RuntimeOwnedFactUnavailable(
       "Runtime-owned persistence fact '$expected' could not be established at $seam: $cause",
-    )
+    ).apply { initCause(error) }
   }
 
   private fun recordFailure(seam: String, expected: String, used: String, error: Exception) {

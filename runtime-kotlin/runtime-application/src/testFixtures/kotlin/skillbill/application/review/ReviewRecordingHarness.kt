@@ -2,8 +2,7 @@ package skillbill.application.review
 
 import skillbill.application.idestatus.AgentActivityStampWriter
 import skillbill.application.review.model.ParallelCodeReviewRequest
-import skillbill.application.review.model.ParallelCodeReviewRunnerLaneLaunchBoundaries
-import skillbill.application.review.model.ParallelCodeReviewRunnerPlanningBoundaries
+import skillbill.application.review.model.ParallelCodeReviewRunnerBoundaries
 import skillbill.application.review.model.ReviewPrelaunchExpansion
 import skillbill.application.reviewevidence.model.ParallelReviewScope
 import skillbill.config.model.RepoLocalConfig
@@ -181,7 +180,7 @@ fun reviewHarness(config: ReviewHarnessConfig, recorder: ReviewRecorder): Parall
     ) as AgentRunLaunchOutcome
   }
   val sharedEvidenceLocatorReader = FeatureTaskRuntimeSharedEvidenceLocatorReadPort.NONE
-  val planningBoundaries = ParallelCodeReviewRunnerPlanningBoundaries(
+  val boundaries = ParallelCodeReviewRunnerBoundaries(
     diffResolver = object : DiffResolverPort {
       override fun readDiff(path: Path, maxBytes: Long): String? = null
 
@@ -230,18 +229,15 @@ fun reviewHarness(config: ReviewHarnessConfig, recorder: ReviewRecorder): Parall
     diagnostics = NoopRuntimeDiagnostics,
     clock = Clock.systemUTC(),
     repositoryEnclosingRootPort = CanonicalRepositoryRoot,
-  )
-  val laneLaunchBoundaries = ParallelCodeReviewRunnerLaneLaunchBoundaries(
-    parentReviewLauncher = launcher,
     reviewEvidenceBrokerFactory = config.evidenceBrokerFactory,
     governedEvidenceEndpointBinder = config.evidenceEndpointBinder,
     reviewLaunchAgentStaging = ReviewLaunchAgentStagingPort.NONE,
-    sharedEvidenceLocatorReader = sharedEvidenceLocatorReader,
   )
   return ParallelCodeReviewRunner(
-    planningBoundaries,
-    laneLaunchBoundaries,
-    AgentActivityStampWriter(database, Clock.systemUTC()),
+    ParallelCodeReviewRunnerComposition(
+      boundaries,
+      AgentActivityStampWriter(database, Clock.systemUTC(), NoopRuntimeDiagnostics),
+    ),
   )
 }
 

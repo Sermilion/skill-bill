@@ -12,6 +12,8 @@ import skillbill.ports.telemetry.model.RemoteTransportResponse
 import skillbill.telemetry.model.TelemetrySettings
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -86,6 +88,17 @@ class UpdateCheckServiceTest {
   }
 
   @Test
+  fun `missing and malformed installed versions stay unknown without release lookup`() {
+    val missing = service(versionValue = "", responseBody = releases("v9.9.9")).check(false)
+    assertEquals(UpdateCheckStatus.UNKNOWN, missing.status)
+    assertEquals("missing local version metadata", missing.reason)
+
+    val malformed = service(versionValue = "not-semver", responseBody = releases("v9.9.9")).check(false)
+    assertEquals(UpdateCheckStatus.UNKNOWN, malformed.status)
+    assertEquals("local version is not semver", malformed.reason)
+  }
+
+  @Test
   fun `maps soft failures to unknown`() {
     assertEquals(UpdateCheckStatus.UNKNOWN, service(responseBody = "not-json").check(false).status)
     assertEquals(UpdateCheckStatus.UNKNOWN, service(responseBody = "[]").check(false).status)
@@ -93,11 +106,61 @@ class UpdateCheckServiceTest {
     assertEquals(UpdateCheckStatus.UNKNOWN, service(responseBody = releases("nonsense")).check(false).status)
   }
 
-  private fun service(statusCode: Int = 200, responseBody: String): UpdateCheckService = UpdateCheckService(
+  @Test
+  fun `overlapping checks keep independent failure reasons and valid results`() {
+    val validBody = releases("v0.4.0")
+    val malformedBody = "[{\"tag_name\":\"v0.4.0\"}]"
+    val callCount = AtomicInteger(0)
+    val firstEntered = CountDownLatch(1)
+    val releaseFirst = CountDownLatch(1)
+    val shared = UpdateCheckService(
+      systemService = SystemService(
+        TestDatabaseSessionFactory(),
+        TestTelemetrySettingsProvider,
+        versionValue = installedVersion,
+      ),
+      transportContext = TransportContext(
+        requester = RemoteTransportPort { _, _, _, _ ->
+          when (callCount.incrementAndGet()) {
+            1 -> {
+              firstEntered.countDown()
+              releaseFirst.await()
+              RemoteTransportResponse(statusCode = 200, body = malformedBody)
+            }
+            else -> {
+              releaseFirst.countDown()
+              RemoteTransportResponse(statusCode = 200, body = validBody)
+            }
+          }
+        },
+      ),
+    )
+    var malformedReason: String? = null
+    var validStatus: UpdateCheckStatus? = null
+    val malformedThread = Thread {
+      malformedReason = shared.check(includePrereleases = false).reason
+    }
+    val validThread = Thread {
+      firstEntered.await()
+      validStatus = shared.check(includePrereleases = false).status
+    }
+    malformedThread.start()
+    validThread.start()
+    malformedThread.join()
+    validThread.join()
+    assertEquals("malformed release entry", malformedReason)
+    assertEquals(UpdateCheckStatus.UPDATE_AVAILABLE, validStatus)
+  }
+
+  private fun service(
+    statusCode: Int = 200,
+    responseBody: String,
+    versionValue: String = installedVersion,
+  ): UpdateCheckService = UpdateCheckService(
     systemService = SystemService(
       TestDatabaseSessionFactory(),
       TestTelemetrySettingsProvider,
-      versionValue = installedVersion,
+      versionValue = versionValue,
     ),
     transportContext = TransportContext(
       requester = RemoteTransportPort { method, url, _, headers ->
