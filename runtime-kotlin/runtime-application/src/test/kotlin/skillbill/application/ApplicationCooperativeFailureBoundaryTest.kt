@@ -94,7 +94,7 @@ class ApplicationCooperativeFailureBoundaryTest {
   fun `activity write cancellation propagates`() {
     val database = FailingDatabase(CancellationException("cancelled"))
     assertFailsWith<CancellationException> {
-      AgentActivityStampWriter(database, Clock.systemUTC()).recordEvidenceRead(UUID.randomUUID().toString(), null)
+      AgentActivityStampWriter(database, Clock.systemUTC(), NoopRuntimeDiagnostics).recordEvidenceRead(UUID.randomUUID().toString(), null)
     }
     assertEquals(1, database.calls)
   }
@@ -103,7 +103,7 @@ class ApplicationCooperativeFailureBoundaryTest {
   fun `activity write interruption propagates`() {
     val database = FailingDatabase(InterruptedException("interrupted"))
     assertFailsWith<InterruptedException> {
-      AgentActivityStampWriter(database, Clock.systemUTC()).recordEvidenceRead(UUID.randomUUID().toString(), null)
+      AgentActivityStampWriter(database, Clock.systemUTC(), NoopRuntimeDiagnostics).recordEvidenceRead(UUID.randomUUID().toString(), null)
     }
     assertEquals(1, database.calls)
   }
@@ -113,6 +113,7 @@ class ApplicationCooperativeFailureBoundaryTest {
     val writer = AgentActivityStampWriter(
       FailingDatabase(CancellationException("cancelled")),
       Clock.systemUTC(),
+      NoopRuntimeDiagnostics,
     )
     assertFailsWith<CancellationException> {
       writer.lazySink({ throw CancellationException("cancelled") }, null).stamp(

@@ -1,12 +1,18 @@
 package skillbill.application
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
+import skillbill.application.decomposition.DecompositionManifestProjectionFailurePersistence
 import skillbill.application.decomposition.DecompositionManifestWriter
+import skillbill.application.decomposition.DecompositionManifestWriteGuard
+import skillbill.application.decomposition.clearDecompositionManifestProjectionFailure
+import skillbill.application.decomposition.persistDecompositionManifestProjectionFailure
 import skillbill.application.decomposition.decompositionPlanningResult
 import skillbill.application.decomposition.decompositionPlanningSubtask
 import skillbill.application.decomposition.loadDecompositionManifest
 import skillbill.application.decomposition.model.DecompositionManifestRuntimeUpdate
 import skillbill.application.decomposition.model.DecompositionManifestWriteRequest
 import skillbill.application.workflow.WorkflowService
+import skillbill.application.workflow.decompositionRuntime
+import skillbill.application.workflow.model.WorkflowContinueResult
 import skillbill.application.workflow.model.WorkflowFamilyKind
 import skillbill.application.workflow.model.WorkflowOpenResult
 import skillbill.application.workflow.model.WorkflowServiceOpenArgs
@@ -16,15 +22,18 @@ import skillbill.contracts.JsonCodec
 import skillbill.contracts.decomposition.DecompositionPlanningResult
 import skillbill.model.RepositoryRoot
 import skillbill.model.toPath
+import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.ports.workflow.gitops.NoopWorkflowGitOperations
 import skillbill.ports.workflow.model.FeatureTaskExecutionIdentity
 import skillbill.ports.workflow.model.FeatureTaskRouteScope
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
+import skillbill.ports.workflow.model.toSnapshot
 import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.runtime.DECOMPOSITION_MANIFEST_PROJECTION_FAILURE_ARTIFACT_KEY
 import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
+import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.goal.NoopGoalObservabilityEventValidator
@@ -263,6 +272,91 @@ class DecompositionManifestCommitProjectionTest {
   }
 
   @Test
+  fun `continueWorkflow by issue key records projection failure on the parent workflow row`() {
+    val setup = createProjectionRetrySetup()
+    val plan = decompositionPlanningResult(
+      parentSpecPath = setup.parentSpecPath.toString(),
+      subtasks = listOf(
+        decompositionPlanningSubtask(id = 1, name = "foundation", specPath = setup.subtaskSpec.toString()),
+      ),
+    )
+    persistProjectionRetryPlan(setup.service, setup.opened.workflowId, plan)
+    setup.failure.enabled = true
+    setup.service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
+    val parent = requireNotNull(setup.workflows.getFeatureTaskRuntimeWorkflow(setup.opened.workflowId))
+    assertContains(parent.artifactsJson, DECOMPOSITION_MANIFEST_PROJECTION_FAILURE_ARTIFACT_KEY)
+  }
+
+  @Test
+  fun `continueWorkflow by child workflow id records projection failure on the parent workflow row`() {
+    val setup = createProjectionRetrySetup()
+    val plan = decompositionPlanningResult(
+      parentSpecPath = setup.parentSpecPath.toString(),
+      subtasks = listOf(
+        decompositionPlanningSubtask(id = 1, name = "foundation", specPath = setup.subtaskSpec.toString()),
+      ),
+    )
+    persistProjectionRetryPlan(setup.service, setup.opened.workflowId, plan)
+    setup.service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
+    val parentBefore = requireNotNull(setup.workflows.getFeatureTaskRuntimeWorkflow(setup.opened.workflowId))
+    val childWorkflowId = parentBefore.toSnapshot().decompositionRuntime(testDecompositionManifestValidator)
+      ?.subtasks
+      ?.single()
+      ?.workflowId
+      ?: error("expected started subtask workflow id")
+    setup.failure.enabled = true
+    setup.service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, childWorkflowId)
+    val parent = requireNotNull(setup.workflows.getFeatureTaskRuntimeWorkflow(setup.opened.workflowId))
+    assertContains(parent.artifactsJson, DECOMPOSITION_MANIFEST_PROJECTION_FAILURE_ARTIFACT_KEY)
+  }
+
+  @Test
+  fun `missing projection owner returns a typed settlement failure`() {
+    val workflows = InMemoryWorkflowStates()
+    val database = FakeDatabaseSessionFactory(workflows)
+    val outcome = database.transaction { unitOfWork ->
+      persistDecompositionManifestProjectionFailure(
+        engine = WorkflowEngine(testWorkflowSnapshotValidator),
+        unitOfWork = unitOfWork,
+        workflowId = "missing-owner",
+        outcome = DecompositionManifestProjectionOutcome.Failed(
+          operation = DecompositionManifestWriteGuard.projectionOperationLabel(),
+          targetPath = "decomposition-manifest.yaml",
+        ),
+      )
+    }
+
+    assertEquals(DecompositionManifestProjectionFailurePersistence.OWNER_ABSENT, outcome)
+  }
+
+  @Test
+  fun `missing projection owner is also visible when clearing after a written projection`() {
+    val workflows = InMemoryWorkflowStates()
+    val database = FakeDatabaseSessionFactory(workflows)
+    val outcome = database.transaction { unitOfWork ->
+      clearDecompositionManifestProjectionFailure(
+        engine = WorkflowEngine(testWorkflowSnapshotValidator),
+        unitOfWork = unitOfWork,
+        workflowId = "missing-owner",
+      )
+    }
+
+    assertEquals(DecompositionManifestProjectionFailurePersistence.OWNER_ABSENT, outcome)
+  }
+
+  @Test
+  fun `continueWorkflow preserves unknown workflow lookup`() {
+    val setup = createProjectionRetrySetup()
+
+    val result = setup.service.continueWorkflow(
+      WorkflowFamilyKind.TASK_RUNTIME,
+      "missing-workflow",
+    )
+
+    assertIs<WorkflowContinueResult.UnknownWorkflow>(result)
+  }
+
+  @Test
   fun `projection retry preserves committed workflow state and child count`() {
     val setup = createProjectionRetrySetup()
     val repoRoot = setup.repoRoot
@@ -313,7 +407,52 @@ class DecompositionManifestCommitProjectionTest {
     assertContains(afterRetry.artifactsJson, "projection_probe")
     assertTrue(DECOMPOSITION_MANIFEST_PROJECTION_FAILURE_ARTIFACT_KEY !in afterRetry.artifactsJson)
     assertEquals(afterFailure.currentStepId, afterRetry.currentStepId)
+    assertEquals(afterFailure.workflowStatus, afterRetry.workflowStatus)
+    assertEquals(afterFailure.stepsJson, afterRetry.stepsJson)
     assertEquals(childrenBeforeFailure, workflows.countGoalChildIdentities("SKILL-51"))
+  }
+
+  @Test
+  fun `projection retry clears a parent failure recorded by child continuation`() {
+    val setup = createProjectionRetrySetup()
+    val plan = decompositionPlanningResult(
+      parentSpecPath = setup.parentSpecPath.toString(),
+      subtasks = listOf(
+        decompositionPlanningSubtask(id = 1, name = "foundation", specPath = setup.subtaskSpec.toString()),
+      ),
+    )
+    persistProjectionRetryPlan(setup.service, setup.opened.workflowId, plan)
+    setup.service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-51")
+    val parentBeforeFailure = requireNotNull(
+      setup.workflows.getFeatureTaskRuntimeWorkflow(setup.opened.workflowId),
+    )
+    val childWorkflowId = parentBeforeFailure.toSnapshot()
+      .decompositionRuntime(testDecompositionManifestValidator)
+      ?.subtasks
+      ?.single()
+      ?.workflowId
+      ?: error("expected started subtask workflow id")
+    val childBeforeFailure = requireNotNull(setup.workflows.getFeatureTaskRuntimeWorkflow(childWorkflowId))
+    val childrenBeforeFailure = setup.workflows.countGoalChildIdentities("SKILL-51")
+
+    setup.failure.enabled = true
+    setup.service.continueWorkflow(WorkflowFamilyKind.TASK_RUNTIME, childWorkflowId)
+    val parentAfterFailure = requireNotNull(
+      setup.workflows.getFeatureTaskRuntimeWorkflow(setup.opened.workflowId),
+    )
+    assertContains(parentAfterFailure.artifactsJson, DECOMPOSITION_MANIFEST_PROJECTION_FAILURE_ARTIFACT_KEY)
+
+    setup.failure.enabled = false
+    val retryOutcome = setup.service.retryDecompositionManifestProjection(setup.opened.workflowId)
+    assertIs<DecompositionManifestProjectionOutcome.Written>(retryOutcome)
+    val parentAfterRetry = requireNotNull(
+      setup.workflows.getFeatureTaskRuntimeWorkflow(setup.opened.workflowId),
+    )
+    val childAfterRetry = requireNotNull(setup.workflows.getFeatureTaskRuntimeWorkflow(childWorkflowId))
+    assertTrue(DECOMPOSITION_MANIFEST_PROJECTION_FAILURE_ARTIFACT_KEY !in parentAfterRetry.artifactsJson)
+    assertEquals(childBeforeFailure.currentStepId, childAfterRetry.currentStepId)
+    assertEquals(childBeforeFailure.workflowStatus, childAfterRetry.workflowStatus)
+    assertEquals(childrenBeforeFailure, setup.workflows.countGoalChildIdentities("SKILL-51"))
   }
 
   private fun createProjectionRetrySetup(): ProjectionRetrySetup {
@@ -352,6 +491,7 @@ class DecompositionManifestCommitProjectionTest {
       decompositionManifestWriter = DecompositionManifestWriter(),
       repositoryRoot = RepositoryRoot(repoRoot),
       goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
+    runtimeDiagnostics = NoopRuntimeDiagnostics,
     )
     val opened = assertIs<WorkflowOpenResult.Ok>(
       service.open(

@@ -1,12 +1,14 @@
 package skillbill.application.workflow
 
 import skillbill.application.decomposition.DecompositionManifestWriter
+import skillbill.application.decomposition.DecompositionManifestProjectionFailurePersistence
 import skillbill.application.decomposition.clearDecompositionManifestProjectionFailure
 import skillbill.application.decomposition.persistDecompositionManifestProjectionFailure
 import skillbill.application.workflow.model.WorkflowUpdateResult
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.model.RepositoryRoot
 import skillbill.ports.db.DatabaseSessionFactory
+import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.ports.workflow.get
@@ -40,6 +42,7 @@ class WorkflowServiceBlockedPhaseRetry(
   private val decompositionManifestStore: DecompositionManifestStore,
   private val decompositionManifestWriter: DecompositionManifestWriter,
   private val repositoryRoot: RepositoryRoot,
+  private val runtimeDiagnostics: RuntimeDiagnostics,
 ) {
   fun retry(
     database: DatabaseSessionFactory,
@@ -70,22 +73,45 @@ class WorkflowServiceBlockedPhaseRetry(
     val persistence = database.transaction { unitOfWork ->
       retryInTransaction(unitOfWork, request)
     }
-    persistence.projectionArtifactsJson?.let { artifactsJson ->
+    persistence.pendingProjection?.let { pending ->
       when (
         val outcome = decompositionManifestWriter.writeProjectionFromWorkflowState(
           repositoryRoot.path,
-          artifactsJson,
+          pending.artifactsJson,
           decompositionManifestValidator,
           decompositionManifestStore,
         )
       ) {
         is DecompositionManifestProjectionOutcome.Failed ->
           database.transaction { unitOfWork ->
-            persistDecompositionManifestProjectionFailure(engine, unitOfWork, request.workflowId, outcome)
+            when (
+              persistDecompositionManifestProjectionFailure(
+                engine,
+                unitOfWork,
+                pending.ownerWorkflowId,
+                outcome,
+              )
+            ) {
+              DecompositionManifestProjectionFailurePersistence.PERSISTED -> Unit
+              DecompositionManifestProjectionFailurePersistence.OWNER_ABSENT ->
+                runtimeDiagnostics.warning(
+                  "seam=decomposition_projection_settlement value_expected=workflow_row " +
+                    "value_used=absent owner_workflow_id=${pending.ownerWorkflowId}",
+                )
+            }
           }
         is DecompositionManifestProjectionOutcome.Written ->
           database.transaction { unitOfWork ->
-            clearDecompositionManifestProjectionFailure(engine, unitOfWork, request.workflowId)
+            when (
+              clearDecompositionManifestProjectionFailure(engine, unitOfWork, pending.ownerWorkflowId)
+            ) {
+              DecompositionManifestProjectionFailurePersistence.PERSISTED -> Unit
+              DecompositionManifestProjectionFailurePersistence.OWNER_ABSENT ->
+                runtimeDiagnostics.warning(
+                  "seam=decomposition_projection_settlement value_expected=workflow_row " +
+                    "value_used=absent owner_workflow_id=${pending.ownerWorkflowId}",
+                )
+            }
           }
         DecompositionManifestProjectionOutcome.Absent -> Unit
       }
@@ -201,9 +227,14 @@ class WorkflowServiceBlockedPhaseRetry(
       phaseId = request.phaseId,
       validator = decompositionManifestValidator,
     )
+    val pendingProjection = projectionArtifactsJson?.let { artifactsJson ->
+      val ownerWorkflowId = goalContinuationParentWorkflowIdForSettlement(updated.artifactsJson)
+        ?: request.workflowId
+      PendingDecompositionProjection(ownerWorkflowId, artifactsJson)
+    }
     return BlockedPhaseRetryPersistence(
       result = buildUpdateOk(engine, family.definition, updated, input, unitOfWork.dbPath.toString()),
-      projectionArtifactsJson = projectionArtifactsJson,
+      pendingProjection = pendingProjection,
     )
   }
 }
@@ -237,10 +268,10 @@ private data class BlockedPhaseRetryState(
 
 private data class BlockedPhaseRetryPersistence(
   val result: WorkflowUpdateResult,
-  val projectionArtifactsJson: String?,
+  val pendingProjection: PendingDecompositionProjection?,
 ) {
   companion object {
     fun error(result: WorkflowUpdateResult.Error): BlockedPhaseRetryPersistence =
-      BlockedPhaseRetryPersistence(result, projectionArtifactsJson = null)
+      BlockedPhaseRetryPersistence(result, pendingProjection = null)
   }
 }

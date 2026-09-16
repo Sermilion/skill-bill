@@ -1,3 +1,12 @@
+## [2026-09-16] SKILL-347 subtask 2 — Activity and decomposition projection ownership
+Areas: runtime-application/{idestatus,workflow,decomposition}
+- `AgentActivityStampWriter` keeps throttle state per writer instance (LRU cap 512 workflow keys), advances persistence acknowledgement only after a successful write, and emits bounded `RuntimeDiagnostics` warnings on ordinary write failures.
+- `continueWorkflow` and workflow updates carry `PendingDecompositionProjection` with the authoritative parent workflow id through post-commit manifest settlement; missing owners surface via diagnostics instead of silent no-ops.
+- `persistDecompositionManifestProjectionFailure` returns `OWNER_ABSENT` when the target row is missing; projection-only retry behavior is unchanged.
+- Pattern: separate observed activity from persisted acknowledgement; bind filesystem projection settlement to the parent workflow id resolved inside the transaction. reusable
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented (validate phase owns pack gate)
+
 ## [2026-09-16] SKILL-347 subtask 1 — Cooperative cancellation and review endpoint lifetime
 Areas: runtime-application/{review,idestatus,updatecheck,runtimepersistence,telemetry}, runtime-infra-fs/concurrency, runtime-core/di, runtime-ports/concurrency
 - Governed review endpoints enter `use` before Cursor staging and parent launch so staging failures close exactly once and never start a worker.

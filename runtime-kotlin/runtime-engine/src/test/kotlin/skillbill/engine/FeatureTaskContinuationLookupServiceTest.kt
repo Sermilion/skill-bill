@@ -18,6 +18,7 @@ import skillbill.engine.featuretask.FeatureTaskContinuationLookupService
 import skillbill.engine.featuretask.model.FeatureTaskContinuationLookupResult
 import skillbill.error.InvalidFeatureTaskExecutionIdentitySchemaError
 import skillbill.error.LegacyProseWorkflowError
+import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.workflow.decomposition.UnavailableDecompositionManifestStore
 import skillbill.ports.workflow.gitops.NoopWorkflowGitOperations
 import skillbill.ports.workflow.model.FeatureTaskRouteScope
@@ -325,6 +326,7 @@ class FeatureTaskContinuationLookupServiceTest {
       decompositionManifestWriter = testDecompositionManifestWriter,
       repositoryRoot = testRepositoryRoot,
       goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
+    runtimeDiagnostics = NoopRuntimeDiagnostics,
     )
     return Fixture(
       states = states,

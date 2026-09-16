@@ -1477,7 +1477,7 @@ internal fun createRunner(launcher: GoalRunnerSubtaskLauncher, config: RunnerFix
   return ParallelCodeReviewRunner(
     planningBoundaries,
     laneLaunchBoundaries,
-    AgentActivityStampWriter(config.database, Clock.systemUTC()),
+    AgentActivityStampWriter(config.database, Clock.systemUTC(), NoopRuntimeDiagnostics),
   )
 }
 

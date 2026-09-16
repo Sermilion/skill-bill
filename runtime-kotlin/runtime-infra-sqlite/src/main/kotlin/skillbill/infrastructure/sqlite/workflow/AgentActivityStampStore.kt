@@ -22,7 +22,42 @@ internal class AgentActivityStampStore(
       ON CONFLICT(workflow_id) DO UPDATE SET
         recorded_at = excluded.recorded_at,
         label = excluded.label
-      WHERE excluded.recorded_at > agent_activity_stamps.recorded_at
+      WHERE (
+        CASE
+          WHEN instr(excluded.recorded_at, '.') = 0
+            THEN substr(excluded.recorded_at, 1, length(excluded.recorded_at) - 1) ||
+              '.000000000Z'
+          ELSE substr(excluded.recorded_at, 1, instr(excluded.recorded_at, '.')) ||
+            printf(
+              '%09d',
+              CAST(
+                substr(
+                  excluded.recorded_at,
+                  instr(excluded.recorded_at, '.') + 1,
+                  length(excluded.recorded_at) - instr(excluded.recorded_at, '.') - 1
+                ) AS INTEGER
+              )
+            ) || 'Z'
+        END
+      ) > (
+        CASE
+          WHEN instr(agent_activity_stamps.recorded_at, '.') = 0
+            THEN substr(agent_activity_stamps.recorded_at, 1, length(agent_activity_stamps.recorded_at) - 1) ||
+              '.000000000Z'
+          ELSE substr(agent_activity_stamps.recorded_at, 1, instr(agent_activity_stamps.recorded_at, '.')) ||
+            printf(
+              '%09d',
+              CAST(
+                substr(
+                  agent_activity_stamps.recorded_at,
+                  instr(agent_activity_stamps.recorded_at, '.') + 1,
+                  length(agent_activity_stamps.recorded_at) -
+                    instr(agent_activity_stamps.recorded_at, '.') - 1
+                ) AS INTEGER
+              )
+            ) || 'Z'
+        END
+      )
       """.trimIndent(),
     ).use { statement ->
       statement.setString(WORKFLOW_ID_INDEX, workflowId)

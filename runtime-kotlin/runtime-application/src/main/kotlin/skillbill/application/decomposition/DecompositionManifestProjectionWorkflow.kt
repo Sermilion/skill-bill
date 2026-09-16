@@ -13,14 +13,20 @@ import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 
+internal enum class DecompositionManifestProjectionFailurePersistence {
+  PERSISTED,
+  OWNER_ABSENT,
+}
+
 internal fun persistDecompositionManifestProjectionFailure(
   engine: WorkflowEngine,
   unitOfWork: UnitOfWork,
   workflowId: String,
   outcome: DecompositionManifestProjectionOutcome.Failed,
-) {
+): DecompositionManifestProjectionFailurePersistence {
   val family = WorkflowFamily.TASK_RUNTIME
-  val existing = family.get(unitOfWork.workflowStates, workflowId) ?: return
+  val existing = family.get(unitOfWork.workflowStates, workflowId)
+    ?: return DecompositionManifestProjectionFailurePersistence.OWNER_ABSENT
   val updated = engine.updateRecord(
     family.definition,
     existing,
@@ -38,15 +44,17 @@ internal fun persistDecompositionManifestProjectionFailure(
     ),
   )
   family.save(unitOfWork.workflowStates, updated)
+  return DecompositionManifestProjectionFailurePersistence.PERSISTED
 }
 
 internal fun clearDecompositionManifestProjectionFailure(
   engine: WorkflowEngine,
   unitOfWork: UnitOfWork,
   workflowId: String,
-) {
+): DecompositionManifestProjectionFailurePersistence {
   val family = WorkflowFamily.TASK_RUNTIME
-  val existing = family.get(unitOfWork.workflowStates, workflowId) ?: return
+  val existing = family.get(unitOfWork.workflowStates, workflowId)
+    ?: return DecompositionManifestProjectionFailurePersistence.OWNER_ABSENT
   val updated = engine.updateRecord(
     family.definition,
     existing,
@@ -64,6 +72,7 @@ internal fun clearDecompositionManifestProjectionFailure(
     ),
   )
   family.save(unitOfWork.workflowStates, updated)
+  return DecompositionManifestProjectionFailurePersistence.PERSISTED
 }
 
 fun retryDecompositionManifestProjectionFromAuthoritativeState(
@@ -86,8 +95,11 @@ fun retryDecompositionManifestProjectionFromAuthoritativeState(
     fileStore = decompositionManifestStore,
   )
   if (outcome is DecompositionManifestProjectionOutcome.Written) {
-    database.transaction { unitOfWork ->
+    val cleared = database.transaction { unitOfWork ->
       clearDecompositionManifestProjectionFailure(engine, unitOfWork, workflowId)
+    }
+    if (cleared == DecompositionManifestProjectionFailurePersistence.OWNER_ABSENT) {
+      return DecompositionManifestProjectionOutcome.Absent
     }
   }
   return outcome

@@ -54,7 +54,7 @@ import java.time.Clock
 
 internal fun testActivityStampWriter(
   database: DatabaseSessionFactory = TestGoalActivityStampDatabase,
-): AgentActivityStampWriter = AgentActivityStampWriter(database, Clock.systemUTC())
+): AgentActivityStampWriter = AgentActivityStampWriter(database, Clock.systemUTC(), NoopRuntimeDiagnostics)
 
 internal data class GoalRunnerTestWiring(
   val runBoundaries: GoalRunnerRunBoundaries,

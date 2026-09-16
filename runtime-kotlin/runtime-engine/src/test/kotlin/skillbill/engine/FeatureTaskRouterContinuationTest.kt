@@ -15,6 +15,7 @@ import skillbill.application.workflow.openFeatureTask
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION
 import skillbill.engine.featuretask.FeatureTaskContinuationLookupService
 import skillbill.engine.featuretask.model.FeatureTaskContinuationLookupResult
+import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.workflow.decomposition.UnavailableDecompositionManifestStore
 import skillbill.ports.workflow.gitops.NoopWorkflowGitOperations
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
@@ -40,6 +41,7 @@ class FeatureTaskRouterContinuationTest {
       decompositionManifestWriter = testDecompositionManifestWriter,
       repositoryRoot = testRepositoryRoot,
       goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
+    runtimeDiagnostics = NoopRuntimeDiagnostics,
     )
     val lookup = FeatureTaskContinuationLookupService(
       database,

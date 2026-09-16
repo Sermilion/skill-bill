@@ -2,6 +2,7 @@ package skillbill.application.workflow
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.decomposition.DecompositionManifestWriter
+import skillbill.application.decomposition.DecompositionManifestProjectionFailurePersistence
 import skillbill.application.decomposition.clearDecompositionManifestProjectionFailure
 import skillbill.application.decomposition.model.RetryDecompositionManifestProjectionArgs
 import skillbill.application.decomposition.persistDecompositionManifestProjectionFailure
@@ -25,6 +26,7 @@ import skillbill.application.workflow.model.WorkflowUpdateResult
 import skillbill.contracts.issuekey.normalizeIssueKey
 import skillbill.model.RepositoryRoot
 import skillbill.ports.db.DatabaseSessionFactory
+import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.ports.workflow.get
@@ -40,6 +42,7 @@ import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.WorkflowSnapshotValidator
+import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.goal.GoalObservabilityEventValidator
 
@@ -53,6 +56,7 @@ class WorkflowService(
   private val decompositionManifestWriter: DecompositionManifestWriter,
   private val repositoryRoot: RepositoryRoot,
   val goalObservabilityEventValidator: GoalObservabilityEventValidator,
+  private val runtimeDiagnostics: RuntimeDiagnostics,
 ) {
 
   private val engine: WorkflowEngine = WorkflowEngine(workflowSnapshotValidator) {
@@ -67,6 +71,7 @@ class WorkflowService(
     decompositionManifestStore,
     decompositionManifestWriter,
     repositoryRoot,
+    runtimeDiagnostics,
   )
   private val featureTaskIdentityRepair = WorkflowServiceFeatureTaskIdentityRepair(engine)
 
@@ -119,11 +124,8 @@ class WorkflowService(
     val persisted = database.transaction { unitOfWork ->
       persistUpdate(family, request, input, unitOfWork)
     }
-    persisted.projectionArtifactsJson?.let { artifactsJson ->
-      reconcileDecompositionManifestProjectionAfterCommit(
-        workflowId = request.workflowId,
-        artifactsJson = artifactsJson,
-      )
+    persisted.pendingProjection?.let { pending ->
+      reconcileDecompositionManifestProjectionAfterCommit(pending)
     }
     return persisted.result
   }
@@ -153,7 +155,7 @@ class WorkflowService(
           request.workflowId,
           "Unknown workflow_id '${request.workflowId}'.",
         ),
-        null,
+        pendingProjection = null,
       )
     val runtimeInput = family.withDecompositionRuntime(
       DecompositionRuntimeWriteArgs(
@@ -186,9 +188,26 @@ class WorkflowService(
         decompositionManifestValidator,
       )
     }
+    val pendingProjection = if (runtimeInput.updated) {
+      val ownerWorkflowId = resolveDecompositionProjectionOwner(updated, unitOfWork, decompositionManifestValidator)
+      if (ownerWorkflowId == null) {
+        runtimeDiagnostics.warning(
+          "seam=decomposition_projection_settlement value_expected=projection_owner_workflow_id " +
+            "value_used=absent workflow_id=${request.workflowId}",
+        )
+        null
+      } else {
+        PendingDecompositionProjection(
+          ownerWorkflowId = ownerWorkflowId,
+          artifactsJson = updated.artifactsJson,
+        )
+      }
+    } else {
+      null
+    }
     return WorkflowUpdatePersistence(
       result = buildUpdateOk(engine, family.definition, updated, effectiveInput, unitOfWork.dbPath.toString()),
-      projectionArtifactsJson = updated.artifactsJson.takeIf { runtimeInput.updated },
+      pendingProjection = pendingProjection,
     )
   }
 
@@ -304,7 +323,7 @@ class WorkflowService(
   }
 
   fun continueWorkflow(kind: WorkflowFamilyKind, workflowId: String, subtaskId: Int? = null): WorkflowContinueResult {
-    var projectionArtifactsJson: String? = null
+    var pendingProjection: PendingDecompositionProjection? = null
     val result = database.transaction { unitOfWork ->
       val family = kind.workflowFamily()
       var record = family.get(unitOfWork.workflowStates, workflowId)
@@ -318,14 +337,14 @@ class WorkflowService(
             repositoryRoot.path,
             decompositionManifestWriter,
           ).continueDecomposedParentByIssueKey(workflowId, unitOfWork, subtaskId)
-        projectionArtifactsJson = resolved.projectionArtifactsJson ?: projectionArtifactsJson
+        pendingProjection = mergePendingProjection(pendingProjection, resolved)
         return@transaction resolved.result
       }
       record ?: return@transaction WorkflowContinueResult.UnknownWorkflow(
         dbPath = unitOfWork.dbPath.toString(),
         workflowId = workflowId,
       )
-      engine.continueExistingWorkflow(
+      val continuation = engine.continueExistingWorkflow(
         family,
         record,
         unitOfWork,
@@ -335,35 +354,94 @@ class WorkflowService(
           repoRoot = repositoryRoot.path,
           manifestWriter = decompositionManifestWriter,
         ),
-      ).also { continuation ->
-        projectionArtifactsJson = continuation.projectionArtifactsJson ?: projectionArtifactsJson
-      }.result
-    }
-    projectionArtifactsJson?.let { artifactsJson ->
-      reconcileDecompositionManifestProjectionAfterCommit(
-        workflowId = workflowId,
-        artifactsJson = artifactsJson,
       )
+      pendingProjection = mergePendingProjection(pendingProjection, continuation)
+        ?: currentParentProjectionForChild(record, unitOfWork)
+      continuation.result
+    }
+    pendingProjection?.let { pending ->
+      reconcileDecompositionManifestProjectionAfterCommit(pending)
     }
     return result
   }
 
-  private fun reconcileDecompositionManifestProjectionAfterCommit(workflowId: String, artifactsJson: String) {
+  private fun mergePendingProjection(
+    existing: PendingDecompositionProjection?,
+    continuation: ContinuationStepResult,
+  ): PendingDecompositionProjection? {
+    val artifactsJson = continuation.projectionArtifactsJson ?: return existing
+    val ownerWorkflowId = continuation.projectionOwnerWorkflowId?.takeIf(String::isNotBlank)
+      ?: return existing
+    return PendingDecompositionProjection(ownerWorkflowId, artifactsJson)
+  }
+
+  private fun currentParentProjectionForChild(
+    childRecord: WorkflowStateSnapshot,
+    unitOfWork: UnitOfWork,
+  ): PendingDecompositionProjection? {
+    if (!childRecord.isGoalContinuationChildWorkflow()) return null
+    val ownerWorkflowId = resolveDecompositionProjectionOwner(
+      childRecord,
+      unitOfWork,
+      decompositionManifestValidator,
+    )
+    if (ownerWorkflowId == null) {
+      runtimeDiagnostics.warning(
+        "seam=decomposition_projection_settlement value_expected=projection_owner_workflow_id " +
+          "value_used=absent workflow_id=${childRecord.workflowId}",
+      )
+      return null
+    }
+    val ownerRecord = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, ownerWorkflowId)
+    if (ownerRecord == null) {
+      runtimeDiagnostics.warning(
+        "seam=decomposition_projection_settlement value_expected=workflow_row " +
+          "value_used=absent owner_workflow_id=$ownerWorkflowId",
+      )
+      return null
+    }
+    return PendingDecompositionProjection(ownerWorkflowId, ownerRecord.artifactsJson)
+  }
+
+  private fun reconcileDecompositionManifestProjectionAfterCommit(pending: PendingDecompositionProjection) {
+    val ownerWorkflowId = pending.ownerWorkflowId.trim()
+    if (ownerWorkflowId.isEmpty()) {
+      runtimeDiagnostics.warning(
+        "seam=decomposition_projection_settlement value_expected=projection_owner_workflow_id value_used=blank",
+      )
+      return
+    }
     when (
       val outcome = decompositionManifestWriter.writeProjectionFromWorkflowState(
         repositoryRoot.path,
-        artifactsJson,
+        pending.artifactsJson,
         decompositionManifestValidator,
         decompositionManifestStore,
       )
     ) {
       is DecompositionManifestProjectionOutcome.Written ->
         database.transaction { unitOfWork ->
-          clearDecompositionManifestProjectionFailure(engine, unitOfWork, workflowId)
+          when (clearDecompositionManifestProjectionFailure(engine, unitOfWork, ownerWorkflowId)) {
+            DecompositionManifestProjectionFailurePersistence.PERSISTED -> Unit
+            DecompositionManifestProjectionFailurePersistence.OWNER_ABSENT ->
+              runtimeDiagnostics.warning(
+                "seam=decomposition_projection_settlement value_expected=workflow_row " +
+                  "value_used=absent owner_workflow_id=$ownerWorkflowId",
+              )
+          }
         }
       is DecompositionManifestProjectionOutcome.Failed ->
         database.transaction { unitOfWork ->
-          persistDecompositionManifestProjectionFailure(engine, unitOfWork, workflowId, outcome)
+          when (
+            persistDecompositionManifestProjectionFailure(engine, unitOfWork, ownerWorkflowId, outcome)
+          ) {
+            DecompositionManifestProjectionFailurePersistence.PERSISTED -> Unit
+            DecompositionManifestProjectionFailurePersistence.OWNER_ABSENT ->
+              runtimeDiagnostics.warning(
+                "seam=decomposition_projection_settlement value_expected=workflow_row " +
+                  "value_used=absent owner_workflow_id=$ownerWorkflowId",
+              )
+          }
         }
       DecompositionManifestProjectionOutcome.Absent -> Unit
     }
@@ -372,5 +450,5 @@ class WorkflowService(
 
 private data class WorkflowUpdatePersistence(
   val result: WorkflowUpdateResult,
-  val projectionArtifactsJson: String?,
+  val pendingProjection: PendingDecompositionProjection?,
 )

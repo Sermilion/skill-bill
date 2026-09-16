@@ -1081,6 +1081,7 @@ internal fun testWorkflowService(
   decompositionManifestWriter = DecompositionManifestWriter(),
   repositoryRoot = RepositoryRoot(Path.of("").toAbsolutePath().normalize()),
   goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
+runtimeDiagnostics = NoopRuntimeDiagnostics,
 )
 
 internal fun loadTestDecompositionManifest(path: Path) =

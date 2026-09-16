@@ -241,7 +241,7 @@ fun reviewHarness(config: ReviewHarnessConfig, recorder: ReviewRecorder): Parall
   return ParallelCodeReviewRunner(
     planningBoundaries,
     laneLaunchBoundaries,
-    AgentActivityStampWriter(database, Clock.systemUTC()),
+    AgentActivityStampWriter(database, Clock.systemUTC(), NoopRuntimeDiagnostics),
   )
 }
 

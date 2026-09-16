@@ -7,6 +7,7 @@ import skillbill.idestatus.model.AgentActivityLabel
 import skillbill.idestatus.model.AgentActivityStamp
 import skillbill.ports.agentrun.model.AgentRunActivityStampSink
 import skillbill.ports.db.DatabaseSessionFactory
+import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.idestatus.AgentActivityStampRepository
 import java.time.Clock
 
@@ -14,6 +15,7 @@ import java.time.Clock
 class AgentActivityStampWriter(
   private val database: DatabaseSessionFactory,
   private val clock: Clock,
+  private val diagnostics: RuntimeDiagnostics,
 ) {
   fun lazySink(resolveWorkflowId: () -> String?, parentWorkflowId: String?): AgentRunActivityStampSink =
     AgentRunActivityStampSink { label ->
@@ -51,40 +53,62 @@ class AgentActivityStampWriter(
   private fun record(context: StampContext, label: AgentActivityLabel) {
     if (context.workflowId.isBlank()) return
     val now = clock.instant()
-    val stampToPersist = synchronized(latestByWorkflow) {
-      val latest = latestByWorkflow.getOrPut(context.workflowId) { LatestStamp() }
-      val previous = latest.stamp
-      if (previous != null && !now.isAfter(previous.recordedAt)) return
-      if (previous?.label == label &&
-        now.toEpochMilli() - previous.recordedAt.toEpochMilli() < DEBOUNCE_WINDOW_MILLIS
+    val stampToPersist = synchronized(throttleState) {
+      val latest = throttleState.getOrPut(context.workflowId) { LatestStamp() }
+      val lastPersisted = latest.lastPersistedStamp
+      if (lastPersisted != null && !now.isAfter(lastPersisted.recordedAt)) return
+      if (
+        lastPersisted?.label == label &&
+        now.toEpochMilli() - lastPersisted.recordedAt.toEpochMilli() < DEBOUNCE_WINDOW_MILLIS
       ) {
         return
       }
-      val stamp = AgentActivityStamp(recordedAt = now, label = label)
-      latest.stamp = stamp
-      val lastPersist = latest.lastPersistNanos
+      val lastPersistNanos = latest.lastPersistNanos
       val nowNanos = System.nanoTime()
-      if (label != AgentActivityLabel.EVIDENCE_READ &&
-        lastPersist != 0L &&
-        nowNanos - lastPersist < DEBOUNCE_WINDOW_NANOS
+      if (
+        label != AgentActivityLabel.EVIDENCE_READ &&
+        lastPersistNanos != 0L &&
+        nowNanos - lastPersistNanos < DEBOUNCE_WINDOW_NANOS
       ) {
         return
       }
-      latest.lastPersistNanos = nowNanos
-      stamp
+      AgentActivityStamp(recordedAt = now, label = label)
     }
-    persist(context, stampToPersist)
+    if (persist(context, stampToPersist)) {
+      synchronized(throttleState) {
+        val latest = throttleState[context.workflowId] ?: return
+        val lastPersisted = latest.lastPersistedStamp
+        if (lastPersisted == null || stampToPersist.recordedAt.isAfter(lastPersisted.recordedAt)) {
+          latest.lastPersistedStamp = stampToPersist
+          latest.lastPersistNanos = System.nanoTime()
+        }
+      }
+    }
   }
 
-  private fun persist(context: StampContext, stamp: AgentActivityStamp) {
-    runCatching {
+  private fun persist(context: StampContext, stamp: AgentActivityStamp): Boolean {
+    val outcome = runCatching {
       database.selfManagedWrite { unitOfWork ->
         writeStamp(unitOfWork.agentActivityStamps, context.workflowId, stamp)
         context.parentWorkflowId?.let { parentId ->
           writeStamp(unitOfWork.agentActivityStamps, parentId, stamp)
         }
       }
-    }.exceptionOrNull()?.rethrowIfCooperativeCancellationOrInterruption()
+    }
+    outcome.exceptionOrNull()?.rethrowIfCooperativeCancellationOrInterruption()
+    val error = outcome.exceptionOrNull()
+    if (error != null) {
+      val cause = (error.message?.takeIf(String::isNotBlank) ?: error::class.simpleName.orEmpty())
+        .take(MAX_DIAGNOSTIC_CAUSE_LENGTH)
+      runCatching {
+        diagnostics.warning(
+          "seam=agent_activity_stamp_persist value_expected=persisted_stamp value_used=failed " +
+            "workflow_id=${context.workflowId} label=${stamp.label.wireValue} cause=$cause",
+        )
+      }
+      return false
+    }
+    return true
   }
 
   private fun writeStamp(repository: AgentActivityStampRepository, workflowId: String, stamp: AgentActivityStamp) {
@@ -97,13 +121,19 @@ class AgentActivityStampWriter(
   )
 
   private class LatestStamp {
-    var stamp: AgentActivityStamp? = null
+    var lastPersistedStamp: AgentActivityStamp? = null
     var lastPersistNanos: Long = 0L
+  }
+
+  private val throttleState = object : LinkedHashMap<String, LatestStamp>(16, 0.75f, true) {
+    override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, LatestStamp>?): Boolean =
+      size > MAX_TRACKED_WORKFLOWS
   }
 
   private companion object {
     const val DEBOUNCE_WINDOW_MILLIS: Long = 250L
     const val DEBOUNCE_WINDOW_NANOS: Long = DEBOUNCE_WINDOW_MILLIS * 1_000_000L
-    val latestByWorkflow = HashMap<String, LatestStamp>()
+    const val MAX_TRACKED_WORKFLOWS: Int = 512
+    const val MAX_DIAGNOSTIC_CAUSE_LENGTH: Int = 256
   }
 }

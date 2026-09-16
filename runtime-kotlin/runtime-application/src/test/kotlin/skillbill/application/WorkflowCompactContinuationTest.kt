@@ -7,6 +7,7 @@ import skillbill.application.workflow.model.WorkflowServiceOpenArgs
 import skillbill.application.workflow.model.WorkflowUpdateRequest
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION
+import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.workflow.decomposition.UnavailableDecompositionManifestStore
 import skillbill.ports.workflow.gitops.NoopWorkflowGitOperations
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
@@ -193,6 +194,7 @@ private fun newService(): WorkflowService = WorkflowService(
   decompositionManifestWriter = testDecompositionManifestWriter,
   repositoryRoot = testRepositoryRoot,
   goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
+runtimeDiagnostics = NoopRuntimeDiagnostics,
 )
 
 private fun newBlockedImplementService(

@@ -11,6 +11,7 @@ import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeHandoffFoundation
 import skillbill.engine.goalrunner.testPhaseRecorder
 import skillbill.error.InvalidFeatureTaskExecutionIdentitySchemaError
 import skillbill.error.WorkflowIssueKeyConflictError
+import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.workflow.decomposition.UnavailableDecompositionManifestStore
 import skillbill.ports.workflow.gitops.NoopWorkflowGitOperations
 import skillbill.workflow.goal.NoopGoalObservabilityEventValidator
@@ -33,6 +34,7 @@ class WorkflowIssueKeyPersistenceTest {
       decompositionManifestWriter = testDecompositionManifestWriter,
       repositoryRoot = testRepositoryRoot,
       goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
+    runtimeDiagnostics = NoopRuntimeDiagnostics,
     )
 
     val firstRuntime = assertIs<WorkflowOpenResult.Ok>(
@@ -76,6 +78,7 @@ class WorkflowIssueKeyPersistenceTest {
       decompositionManifestWriter = testDecompositionManifestWriter,
       repositoryRoot = testRepositoryRoot,
       goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
+    runtimeDiagnostics = NoopRuntimeDiagnostics,
     )
 
     assertFailsWith<InvalidFeatureTaskExecutionIdentitySchemaError> {
