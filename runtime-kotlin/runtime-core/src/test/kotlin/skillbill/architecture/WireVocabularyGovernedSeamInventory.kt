@@ -2,6 +2,7 @@ package skillbill.architecture
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
+import skillbill.contracts.decomposition.DecompositionManifestBundleJournalSchemaPaths
 import skillbill.contracts.workflow.DecompositionManifestSchemaPaths
 import skillbill.contracts.workflow.FeatureTaskRuntimePhaseOutputSchemaPaths
 import skillbill.testing.repoRootFromTest
@@ -35,6 +36,13 @@ internal object WireVocabularyGovernedSeamInventory {
       ),
     ),
     GovernedPayloadSeam(
+      seamId = "decomposition-manifest-bundle-journal",
+      schemaRepoRelativePath = DecompositionManifestBundleJournalSchemaPaths.REPO_RELATIVE_PATH,
+      governedRelativePathMarkers = listOf(
+        "DecompositionManifestBundleJournal",
+      ),
+    ),
+    GovernedPayloadSeam(
       seamId = "workflow-phase-output-envelope",
       schemaRepoRelativePath = FeatureTaskRuntimePhaseOutputSchemaPaths.REPO_RELATIVE_PATH,
       governedRelativePathMarkers = listOf(
@@ -52,6 +60,9 @@ internal object WireVocabularyGovernedSeamInventory {
     DecompositionManifestSchemaPaths.REPO_RELATIVE_PATH -> decompositionManifestGovernedKeys(
       loadRepoSchema(schemaRepoRelativePath),
     )
+    DecompositionManifestBundleJournalSchemaPaths.REPO_RELATIVE_PATH -> bundleJournalGovernedKeys(
+      loadRepoSchema(schemaRepoRelativePath),
+    )
     FeatureTaskRuntimePhaseOutputSchemaPaths.REPO_RELATIVE_PATH -> phaseOutputEnvelopeGovernedKeys(
       loadRepoSchema(schemaRepoRelativePath),
     )
@@ -64,6 +75,13 @@ internal object WireVocabularyGovernedSeamInventory {
     listOf("subtask", "dependency", "stackBranch", "currentSubtaskIntent").forEach { defName ->
       keys += propertyNames(schema.path("\$defs").path(defName).path("properties"))
     }
+    return keys
+  }
+
+  private fun bundleJournalGovernedKeys(schema: JsonNode): Set<String> {
+    val keys = mutableSetOf<String>()
+    keys += propertyNames(schema.path("properties"))
+    keys += propertyNames(schema.path("\$defs").path("entry").path("properties"))
     return keys
   }
 

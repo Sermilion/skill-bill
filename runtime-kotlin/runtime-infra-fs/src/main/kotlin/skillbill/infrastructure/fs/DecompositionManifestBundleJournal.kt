@@ -1,6 +1,7 @@
 package skillbill.infrastructure.fs
 
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
+import skillbill.contracts.decomposition.BUNDLE_JOURNAL_CONTRACT_VERSION
 import java.nio.channels.FileChannel
 import java.nio.file.Files
 import java.nio.file.Path
@@ -45,16 +46,15 @@ internal class DecompositionManifestBundleJournal {
   }
 
   internal fun read(marker: Path): DecompositionManifestBundleTransaction =
-    DecompositionManifestBundleJournalIo.read(marker, yamlMapper)
+    DecompositionManifestBundleJournalIo.read(marker)
 
   internal companion object {
-    const val BUNDLE_CONTRACT_VERSION = "0.1"
+    const val BUNDLE_CONTRACT_VERSION = BUNDLE_JOURNAL_CONTRACT_VERSION
     const val BUNDLE_PREFIX = ".decomposition-manifest-bundle-"
     const val MARKER_SUFFIX = ".commit"
     const val STAGING_SUFFIX = ".staging"
   }
 }
-
 private val processBundleLocks = ConcurrentHashMap<Path, ReentrantLock>()
 
 internal fun <T> withDecompositionManifestBundleLock(parent: Path?, action: () -> T): T {
@@ -88,6 +88,9 @@ private fun decompositionManifestLockPath(parent: Path): Path {
     .resolve(LOCK_DIRECTORY_NAME)
     .resolve("$digest$LOCK_FILE_SUFFIX")
 }
+
+internal fun cleanupValidatedBundleJournal(transaction: DecompositionManifestBundleTransaction) =
+  DecompositionManifestBundleJournalIo.cleanupValidated(transaction)
 
 private fun lockOwner(parent: Path): Path {
   var current = parent

@@ -3,10 +3,14 @@ package skillbill.infrastructure.fs
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.parallel.Execution
 import org.junit.jupiter.api.parallel.ExecutionMode
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardCopyOption
 import java.security.MessageDigest
 import kotlin.test.Test
 import kotlin.test.assertContains
@@ -15,7 +19,49 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
 @Execution(ExecutionMode.SAME_THREAD)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class GovernedResourceCopyParityTest {
+  private lateinit var fixtureRoot: Path
+
+  @BeforeAll
+  fun prepareIsolatedBuild() {
+    fixtureRoot = Files.createTempDirectory("governed-resource-build")
+    val sourceRoot = locateSourceRepoRoot()
+    listOf("runtime-kotlin", "orchestration").forEach { directory ->
+      sourceRoot.resolve(directory).toFile().walkTopDown()
+        .onEnter { it.name !in setOf("build", ".gradle", ".kotlin") }
+        .forEach { source ->
+          val target = fixtureRoot.resolve(sourceRoot.relativize(source.toPath()))
+          if (source.isDirectory) {
+            Files.createDirectories(target)
+          } else {
+            Files.copy(source.toPath(), target, StandardCopyOption.COPY_ATTRIBUTES)
+          }
+        }
+    }
+    git(fixtureRoot, "init", "--initial-branch=main")
+    git(
+      fixtureRoot,
+      "-c",
+      "user.name=Resource fixture",
+      "-c",
+      "user.email=resource-fixture@test",
+      "-c",
+      "core.hooksPath=.git/hooks",
+      "commit",
+      "--allow-empty",
+      "-m",
+      "Initialize resource fixture",
+    )
+    git(fixtureRoot, "update-ref", "refs/remotes/origin/main", "HEAD")
+    runGradle(locateRuntimeKotlinRoot(), ":runtime-infra-fs:processResources")
+  }
+
+  @AfterAll
+  fun removeIsolatedBuild() {
+    if (::fixtureRoot.isInitialized) fixtureRoot.toFile().deleteRecursively()
+  }
+
   @Test
   fun `processResources output matches pre refactor golden manifest`() {
     val tree = resourceTreeHashes(generatedResourceRoot())
@@ -57,7 +103,7 @@ class GovernedResourceCopyParityTest {
 
   @Test
   fun `missing workflow state schema fails with task attribution before copy output`() {
-    val repoRoot = locateRepoRoot()
+    val repoRoot = fixtureRoot
     val runtimeKotlin = locateRuntimeKotlinRoot()
     val schema = repoRoot.resolve("orchestration/contracts/workflow-state-schema.yaml")
     val backup =
@@ -97,6 +143,7 @@ class GovernedResourceCopyParityTest {
         "copyWorkflowStateSchema",
         "copyInstallPlanSchema",
         "copyDecompositionManifestSchema",
+        "copyDecompositionManifestBundleJournalSchema",
         "copyGoalObservabilityEventSchema",
         "copyGoalProgressEventSchema",
         "copyIdeStatusSchema",
@@ -176,9 +223,9 @@ class GovernedResourceCopyParityTest {
     return json.mapValues { (_, value) -> value.jsonPrimitive.content }.toMap()
   }
 
-  private fun locateRuntimeKotlinRoot(): Path = locateRepoRoot().resolve("runtime-kotlin")
+  private fun locateRuntimeKotlinRoot(): Path = fixtureRoot.resolve("runtime-kotlin")
 
-  private fun locateRepoRoot(): Path {
+  private fun locateSourceRepoRoot(): Path {
     var current: Path? = Path.of("").toAbsolutePath().normalize()
     while (current != null) {
       if (Files.isRegularFile(current.resolve("runtime-kotlin/settings.gradle.kts"))) {

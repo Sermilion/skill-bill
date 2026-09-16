@@ -1,11 +1,8 @@
 package skillbill.infrastructure.sqlite.goalrunner
 
 import me.tatarka.inject.annotations.Inject
-import skillbill.goalrunner.model.GoalRunnerAttemptLedgerSummary
-import skillbill.goalrunner.model.GoalRunnerObservabilityRecordRequest
 import skillbill.goalrunner.model.GoalRunnerStoredOutcome
 import skillbill.goalrunner.model.GoalRunnerSupervisionEvent
-import skillbill.goalrunner.model.GoalRunnerWorkerSubtaskRequestOutcome
 import skillbill.infrastructure.sqlite.decomposition.decodeArtifacts
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.decomposition.DecompositionManifestProjectionWriter
@@ -20,12 +17,10 @@ import skillbill.ports.goalrunner.persistence.model.GoalSubtaskIdentity
 import skillbill.ports.goalrunner.runner.GoalRunnerAttemptLedgerStore
 import skillbill.ports.goalrunner.runner.GoalRunnerReviewOutcomeStore
 import skillbill.ports.goalrunner.runner.GoalRunnerTerminalOutcomeStore
+import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowLedgerWriteStore
 import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowOutcomeStore
-import skillbill.ports.goalrunner.runner.model.GoalRunnerAttemptLedgerRecordRequest
-import skillbill.ports.goalrunner.runner.model.GoalRunnerLedgerSequenceWatermarks
-import skillbill.ports.goalrunner.runner.model.GoalRunnerProgressEventRecordRequest
+import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowProgressStore
 import skillbill.ports.goalrunner.runner.model.GoalRunnerReconcileGate
-import skillbill.ports.goalrunner.runner.model.GoalRunnerWorkflowProgress
 import skillbill.ports.taskruntime.FeatureTaskRuntimeWorkerSupervisor
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.ports.workflow.get
@@ -92,13 +87,12 @@ class WorkflowGoalRunnerOutcomeStoreBridgeBuilder @Inject constructor(
       goalObservabilityEventValidator,
       goalProgressEventValidator,
     )
-    val progressBridge = WorkflowGoalRunnerProgressBridge(progressRecording)
     val workflowBridge = WorkflowGoalRunnerOutcomeWorkflowBridge(
       terminal = WorkflowGoalRunnerTerminalBridge(database, terminalPersistence, gitOperations),
       review = WorkflowGoalRunnerReviewBridge(database, engine, phaseOutputValidator),
       reconcile = WorkflowGoalRunnerReconcileBridge(database, outcomeReconcile),
       blocks = WorkflowGoalRunnerBlockBridge(database, blockWrites),
-      progress = progressBridge,
+      progress = progressRecording,
     )
     val childRepairBridge = WorkflowGoalRunnerChildRepairBridge(
       database,
@@ -110,7 +104,7 @@ class WorkflowGoalRunnerOutcomeStoreBridgeBuilder @Inject constructor(
     )
     return WorkflowGoalRunnerOutcomeStoreBridges(
       workflow = workflowBridge,
-      ledger = progressBridge,
+      ledger = progressRecording,
       childRepair = childRepairBridge,
     )
   }
@@ -382,78 +376,19 @@ internal class WorkflowGoalRunnerBlockBridge(
   }
 }
 
-internal interface WorkflowGoalRunnerProgressReadStore {
-  fun progress(workflowId: String): GoalRunnerWorkflowProgress?
-
-  fun progressEvents(workflowId: String): List<GoalProgressEvent>
-
-  fun ledgerSequenceWatermarks(issueKey: String): GoalRunnerLedgerSequenceWatermarks
-
-  fun childWorkflowLoopIterations(workflowId: String): Map<String, Int>
-}
-
-internal interface WorkflowGoalRunnerProgressWriteStore {
-  fun recordObservabilityEvent(request: GoalRunnerObservabilityRecordRequest): Boolean
-
-  fun recordProgressEvent(request: GoalRunnerProgressEventRecordRequest): Boolean
-
-  fun recordAttemptLedgerEntry(request: GoalRunnerAttemptLedgerRecordRequest): Boolean
-
-  fun recordWorkerSubtaskRequestOutcomes(
-    workflowId: String,
-    outcomes: List<GoalRunnerWorkerSubtaskRequestOutcome>,
-  ): Boolean
-}
-
-internal interface WorkflowGoalRunnerProgressOutcomeStore :
-  WorkflowGoalRunnerProgressReadStore,
-  WorkflowGoalRunnerProgressWriteStore
-
-internal class WorkflowGoalRunnerProgressBridge(
-  private val progressRecording: WorkflowGoalRunnerProgressRecording,
-) : GoalRunnerAttemptLedgerStore,
-  WorkflowGoalRunnerProgressOutcomeStore {
-  override fun progress(workflowId: String): GoalRunnerWorkflowProgress? = progressRecording.progress(workflowId)
-
-  override fun recordObservabilityEvent(request: GoalRunnerObservabilityRecordRequest): Boolean =
-    progressRecording.recordObservabilityEvent(request)
-
-  override fun recordProgressEvent(request: GoalRunnerProgressEventRecordRequest): Boolean =
-    progressRecording.recordProgressEvent(request)
-
-  override fun progressEvents(workflowId: String): List<GoalProgressEvent> =
-    progressRecording.progressEvents(workflowId)
-
-  override fun recordAttemptLedgerEntry(request: GoalRunnerAttemptLedgerRecordRequest): Boolean =
-    progressRecording.recordAttemptLedgerEntry(request)
-
-  override fun recordWorkerSubtaskRequestOutcomes(
-    workflowId: String,
-    outcomes: List<GoalRunnerWorkerSubtaskRequestOutcome>,
-  ): Boolean = progressRecording.recordWorkerSubtaskRequestOutcomes(workflowId, outcomes)
-
-  override fun ledgerSequenceWatermarks(issueKey: String): GoalRunnerLedgerSequenceWatermarks =
-    progressRecording.ledgerSequenceWatermarks(issueKey)
-
-  override fun childWorkflowLoopIterations(workflowId: String): Map<String, Int> =
-    progressRecording.childWorkflowLoopIterations(workflowId)
-
-  override fun readAttemptLedgerSummary(issueKey: String): GoalRunnerAttemptLedgerSummary =
-    progressRecording.readAttemptLedgerSummary(issueKey)
-}
-
 internal class WorkflowGoalRunnerOutcomeWorkflowBridge(
   terminal: GoalRunnerTerminalOutcomeStore,
   review: GoalRunnerReviewOutcomeStore,
   private val reconcile: WorkflowGoalRunnerReconcileOutcomeStore,
   private val blocks: WorkflowGoalRunnerBlockOutcomeStore,
-  private val progress: WorkflowGoalRunnerProgressOutcomeStore,
+  private val progress: WorkflowGoalRunnerProgressRecording,
 ) : GoalRunnerWorkflowOutcomeStore,
   GoalRunnerTerminalOutcomeStore by terminal,
   GoalRunnerReviewOutcomeStore by review,
   WorkflowGoalRunnerReconcileOutcomeStore by reconcile,
   WorkflowGoalRunnerBlockOutcomeStore by blocks,
-  WorkflowGoalRunnerProgressOutcomeStore by progress {
+  GoalRunnerWorkflowProgressStore by progress,
+  GoalRunnerWorkflowLedgerWriteStore by progress {
   override fun authoritativeOutcomes(issueKey: String): Map<Int, GoalRunnerStoredOutcome> =
     reconcile.authoritativeOutcomes(issueKey)
 

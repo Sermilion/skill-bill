@@ -8,15 +8,13 @@ import skillbill.ports.process.ShutdownHookRegistration
 class JdkShutdownHookPort : ShutdownHookPort {
   override fun register(action: () -> Unit): ShutdownHookRegistration {
     val hook = Thread(action)
-    val registered = runCatching { Runtime.getRuntime().addShutdownHook(hook) }.isSuccess
-    return JdkShutdownHookRegistration(hook, registered)
+    Runtime.getRuntime().addShutdownHook(hook)
+    return JdkShutdownHookRegistration(hook)
   }
 
   private class JdkShutdownHookRegistration(
     private val hook: Thread,
-    private val registered: Boolean,
   ) : ShutdownHookRegistration {
-    override fun unregister(): Boolean =
-      registered && runCatching { Runtime.getRuntime().removeShutdownHook(hook) }.isSuccess
+    override fun unregister(): Boolean = Runtime.getRuntime().removeShutdownHook(hook)
   }
 }

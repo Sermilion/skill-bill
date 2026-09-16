@@ -9,6 +9,8 @@ import skillbill.ports.goalrunner.runner.GoalRunnerManifestStore
 import skillbill.ports.process.DaemonThreadPort
 import skillbill.ports.process.IdentifierGeneratorPort
 import skillbill.ports.process.ShutdownHookPort
+import skillbill.ports.process.ShutdownHookRegistration
+import skillbill.ports.taskruntime.FeatureTaskRuntimeHeartbeat
 import skillbill.ports.taskruntime.FeatureTaskRuntimeWorkerSupervisor
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeHeartbeatPlan
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeHeartbeatTick
@@ -57,6 +59,11 @@ class DefaultGoalRunnerExecutionCoordinator(
   private val identifierGeneratorPort: IdentifierGeneratorPort,
 ) : GoalRunnerExecutionCoordinator {
   override fun <T> runOwned(parentWorkflowId: String, block: () -> T): T {
+    val lease = acquireLease(parentWorkflowId)
+    return runWithLease(parentWorkflowId, lease, block)
+  }
+
+  private fun acquireLease(parentWorkflowId: String): GoalRunnerExecutionLease {
     val existing = manifestStore.executionLease(parentWorkflowId)
     val expectedOwnerToken = existing?.let { reclaimableOwnerToken(parentWorkflowId, it) }
     val lease = newLease(existing, supervisor.currentProcess())
@@ -69,40 +76,118 @@ class DefaultGoalRunnerExecutionCoordinator(
     if (existing != null && leaseIsExpired(existing)) {
       clearStalePauseOrReleaseLease(parentWorkflowId, lease)
     }
+    return lease
+  }
+
+  private fun <T> runWithLease(parentWorkflowId: String, lease: GoalRunnerExecutionLease, block: () -> T): T {
     val plan = FeatureTaskRuntimeHeartbeatPlan(
       label = parentWorkflowId,
       intervalSeconds = HEARTBEAT_SECONDS,
       leaseSeconds = LEASE_DURATION.seconds,
     )
-    val heartbeat = supervisor.startHeartbeat(plan) {
-      val now = clock.instant()
-      val updated = lease.copy(heartbeatAt = now.toString(), expiresAt = now.plus(LEASE_DURATION).toString())
-      if (manifestStore.heartbeatExecutionLease(parentWorkflowId, updated)) {
-        FeatureTaskRuntimeHeartbeatTick.Renewed
-      } else {
-        FeatureTaskRuntimeHeartbeatTick.FencingLost(
-          "goal parent '$parentWorkflowId' execution lease fencing was lost",
-        )
+    val heartbeat = startHeartbeat(parentWorkflowId, lease, plan)
+    val shutdownHookRegistration = registerShutdownHook(parentWorkflowId, lease, heartbeat)
+    val bodyResult = executeBody(block)
+    val teardownFailure = teardown(parentWorkflowId, lease, heartbeat, shutdownHookRegistration)
+    return completeRun(parentWorkflowId, bodyResult, teardownFailure, heartbeat)
+  }
+
+  private fun <T> executeBody(block: () -> T): Result<T> =
+    runCatching(block).also { it.exceptionOrNull()?.let(::preserveInterruption) }
+
+  private fun teardown(
+    parentWorkflowId: String,
+    lease: GoalRunnerExecutionLease,
+    heartbeat: FeatureTaskRuntimeHeartbeat,
+    shutdownHookRegistration: ShutdownHookRegistration,
+  ): Throwable? {
+    var teardownFailure: Throwable? = null
+    cleanupFailure {
+      if (!shutdownHookRegistration.unregister()) {
+        error("Goal parent '$parentWorkflowId' shutdown hook could not be unregistered.")
       }
+    }?.let { teardownFailure = it }
+    cleanupFailure { heartbeat.stop() }?.let { next ->
+      teardownFailure = mergeTeardownFailure(teardownFailure, next)
     }
-    val shutdownHookRegistration = shutdownHookPort.register {
-      recordInterruption(parentWorkflowId)
+    cleanupFailure { releaseExecutionLease(parentWorkflowId, lease) }?.let { next ->
+      teardownFailure = mergeTeardownFailure(teardownFailure, next)
     }
-    val result = try {
-      block()
-    } finally {
-      shutdownHookRegistration.unregister()
-      heartbeat.stop()
-      manifestStore.releaseExecutionLease(
-        parentWorkflowId,
-        lease.ownerToken,
-        lease.generation,
-      )
+    return teardownFailure
+  }
+
+  private fun mergeTeardownFailure(existing: Throwable?, next: Throwable): Throwable =
+    existing?.also { addSuppressedIfDistinct(it, next) } ?: next
+
+  private fun <T> completeRun(
+    parentWorkflowId: String,
+    bodyResult: Result<T>,
+    teardownFailure: Throwable?,
+    heartbeat: FeatureTaskRuntimeHeartbeat,
+  ): T {
+    val bodyFailure = bodyResult.exceptionOrNull()
+    val fencingFailure = heartbeat.fencingLostReason()?.let { reason ->
+      GoalRunnerExecutionAlreadyRunningException(parentWorkflowId, reason)
     }
-    heartbeat.fencingLostReason()?.let { reason ->
-      throw GoalRunnerExecutionAlreadyRunningException(parentWorkflowId, reason)
+    val failure = bodyFailure?.also { primary ->
+      teardownFailure?.let { secondary -> addSuppressedIfDistinct(primary, secondary) }
+    } ?: fencingFailure?.also { primary ->
+      teardownFailure?.let { secondary -> addSuppressedIfDistinct(primary, secondary) }
     }
-    return result
+      ?: teardownFailure
+    failure?.let { throw it }
+    return bodyResult.getOrThrow()
+  }
+
+  private fun startHeartbeat(
+    parentWorkflowId: String,
+    lease: GoalRunnerExecutionLease,
+    plan: FeatureTaskRuntimeHeartbeatPlan,
+  ): FeatureTaskRuntimeHeartbeat {
+    return runCatching {
+      supervisor.startHeartbeat(plan) {
+        val now = clock.instant()
+        val updated = lease.copy(heartbeatAt = now.toString(), expiresAt = now.plus(LEASE_DURATION).toString())
+        if (manifestStore.heartbeatExecutionLease(parentWorkflowId, updated)) {
+          FeatureTaskRuntimeHeartbeatTick.Renewed
+        } else {
+          FeatureTaskRuntimeHeartbeatTick.FencingLost(
+            "goal parent '$parentWorkflowId' execution lease fencing was lost",
+          )
+        }
+      }
+    }.getOrElse { failure ->
+      preserveInterruption(failure)
+      runCatching {
+        releaseExecutionLease(parentWorkflowId, lease)
+      }.onFailure { cleanupFailure ->
+        preserveInterruption(cleanupFailure)
+        addSuppressedIfDistinct(failure, cleanupFailure)
+      }
+      throw failure
+    }
+  }
+
+  private fun registerShutdownHook(
+    parentWorkflowId: String,
+    lease: GoalRunnerExecutionLease,
+    heartbeat: FeatureTaskRuntimeHeartbeat,
+  ): ShutdownHookRegistration {
+    return runCatching {
+      shutdownHookPort.register {
+        recordInterruption(parentWorkflowId)
+      }
+    }.getOrElse { failure ->
+      preserveInterruption(failure)
+      cleanupFailure { heartbeat.stop() }?.let { failure.addSuppressed(it) }
+      runCatching {
+        releaseExecutionLease(parentWorkflowId, lease)
+      }.onFailure { cleanupFailure ->
+        preserveInterruption(cleanupFailure)
+        addSuppressedIfDistinct(failure, cleanupFailure)
+      }
+      throw failure
+    }
   }
 
   private fun clearStalePauseOrReleaseLease(parentWorkflowId: String, lease: GoalRunnerExecutionLease) {
@@ -110,14 +195,35 @@ class DefaultGoalRunnerExecutionCoordinator(
       clearStaleRunnerInterruptedPause(parentWorkflowId)
     }.exceptionOrNull()
     if (failure != null) {
+      preserveInterruption(failure)
       runCatching {
-        manifestStore.releaseExecutionLease(
-          parentWorkflowId,
-          lease.ownerToken,
-          lease.generation,
-        )
-      }.onFailure { failure.addSuppressed(it) }
+        releaseExecutionLease(parentWorkflowId, lease)
+      }.onFailure { cleanupFailure ->
+        preserveInterruption(cleanupFailure)
+        addSuppressedIfDistinct(failure, cleanupFailure)
+      }
       throw failure
+    }
+  }
+
+  private fun releaseExecutionLease(parentWorkflowId: String, lease: GoalRunnerExecutionLease) {
+    if (!manifestStore.releaseExecutionLease(parentWorkflowId, lease.ownerToken, lease.generation)) {
+      error("Goal parent '$parentWorkflowId' execution lease release lost fencing.")
+    }
+  }
+
+  private fun cleanupFailure(action: () -> Unit): Throwable? =
+    runCatching(action).exceptionOrNull()?.also(::preserveInterruption)
+
+  private fun preserveInterruption(failure: Throwable) {
+    if (failure is InterruptedException) {
+      Thread.currentThread().interrupt()
+    }
+  }
+
+  private fun addSuppressedIfDistinct(primary: Throwable, secondary: Throwable) {
+    if (primary !== secondary) {
+      primary.addSuppressed(secondary)
     }
   }
 

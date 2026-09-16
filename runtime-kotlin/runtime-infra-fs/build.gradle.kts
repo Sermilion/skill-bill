@@ -177,6 +177,16 @@ private val governedResourceCopies =
           "Run from the repo root and ensure the schema file exists.",
     ),
     GovernedResourceCopy(
+      taskName = "copyDecompositionManifestBundleJournalSchema",
+      repoRelativeSource =
+        "orchestration/contracts/decomposition-manifest-bundle-journal-schema.yaml",
+      destination = GovernedResourceDestination.INFRA_FS_CONTRACTS,
+      missingSourceMessage =
+        "SKILL-248: canonical decomposition manifest bundle journal schema is missing " +
+          "at \$schemaPath. " +
+          "Run from the repo root and ensure the schema file exists.",
+    ),
+    GovernedResourceCopy(
       taskName = "copyGoalObservabilityEventSchema",
       repoRelativeSource = "orchestration/contracts/goal-observability-event-schema.yaml",
       destination = GovernedResourceDestination.INFRA_FS_CONTRACTS,

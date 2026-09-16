@@ -156,6 +156,13 @@ Run compatibility repair at a documented initialization or recovery boundary;
 do not remove required repair or cache success forever by pathname alone.
 Measure repeated work before adding a cache, connection pool, or replacement library.
 
+`DatabaseWriteReadinessGate` compares the `DatabaseIdentity` snapshot already read
+for each cache decision (`DatabaseIdentity.matches`) instead of rereading the file
+and `PRAGMA user_version` through `matchesFile`. The synchronized initialization
+path still performs a second identity observation after acquiring the lock.
+`DatabaseWriteReadinessTest` asserts the warm-cache path performs one identity read
+per `ensureReady` call.
+
 ### Contract Ownership And Enforcement
 
 Canonical schemas own wire shape. Kotlin contract owners declare keys and versions;
@@ -296,7 +303,8 @@ runtime-core
   `WorkflowStateSchemaValidator`, `DecompositionManifestSchemaValidator`,
   and the `DecompositionManifestCoherenceValidator`) plus their schema-resource
   copy tasks (`copyInstallPlanSchema`, `copyWorkflowStateSchema`,
-  `copyDecompositionManifestSchema`), reached only through domain-neutral ports.
+  `copyDecompositionManifestSchema`, `copyDecompositionManifestBundleJournalSchema`),
+  reached only through domain-neutral ports.
 - `runtime-core`: Kotlin-Inject component definitions and DI
   providers. It may know concrete adapters only inside composition code.
   `runtime-core` publishes only the generated Kotlin-Inject ABI edges that its
@@ -425,6 +433,37 @@ runtime-ports
   and stamp types for IDE status presentation owned by `runtime-domain`.
 - `skillbill.engine`: feature-task run loop, goal runner, goal planning, and
   planning projection use cases owned by `runtime-engine`.
+
+### Goal-runner execution lifetime (`DefaultGoalRunnerExecutionCoordinator`)
+
+Owned foreground goal runs acquire the parent execution lease first, then start
+the worker heartbeat and register the shutdown hook. Heartbeat start failure
+after a successful acquire releases the exact acquired owner token and
+generation before the goal body runs. Shutdown-hook registration failure stops
+the heartbeat and releases the lease before surfacing the registration error.
+
+Teardown runs in order: unregister the shutdown hook, stop the heartbeat, release
+the execution lease. Each step uses `runCatching` so a secondary failure does
+not skip later cleanup. A goal-body or cancellation failure remains primary;
+secondary teardown failures attach as suppressed exceptions. A body that
+completed normally still fails the run when required teardown fails.
+
+`GoalRunnerProgressEventEmitter` and `GoalRunnerProgressReader` propagate
+`CancellationException` and `InterruptedException` from workflow identity
+resolution instead of treating them as absent workflow identity. Optional
+progress, ledger, and observability store write failures emit bounded
+`RuntimeDiagnostics.warning` text; diagnostic port failures are wrapped in
+`runCatching` so they cannot mask the primary outcome or block coordinator
+teardown.
+
+`GoalRunnerLedgerRecorder` seeds sequence numbers from persisted ledger
+watermarks. A failed watermark read fails construction rather than silently
+starting at sequence zero; empty watermarks still legitimately start at zero.
+
+`RuntimeArchitectureProbeTest` and `GoalRunnerExecutionCoordinatorTest` regress
+startup rollback, per-teardown-step failure, primary-error preservation,
+cooperative cancellation on progress emit, and healthy versus failed watermark
+reads through the production coordinator and recorders.
 - `skillbill.infrastructure.fs.goalplanning`: filesystem discovery of shared
   repository and validation context owned by `runtime-infra-fs`, plus
   headings-first boundary memory: a programmatic parse of governed
@@ -526,6 +565,41 @@ run's drain and destroy cleanup is therefore capped at destroy wait plus up to
 four drain-join windows for the two streams; stdin and process-stream closes
 occur in the existing ordered cleanup path and are not used as a total bound
 for a live drain worker.
+
+### Git workflow process I/O (SKILL-248 subtask 2)
+
+`runGitProcess` in runtime-infra-fs delegates to `invokeGitProcess`, which
+registers the child process, input writer, stdout drain worker, and stream
+handles before any blocking stdin delivery, wait, or join. Stdin writes and
+stdout draining run concurrently so a full pipe cannot deadlock ordinary
+NUL-delimited staging input. One operation deadline derived from
+`gitTimeoutSeconds` covers stdin delivery, `Process.waitFor`, and output
+settlement; a separate
+`GIT_PROCESS_CLEANUP_BUDGET_SECONDS` window bounds post-failure teardown
+(drain join after closing the process input stream, stream closure, and
+`destroyOwnedProcessTree` over the started process handle and its descendants).
+
+Cooperative `Thread.interrupt` during wait or I/O destroys only processes this
+invocation started (via `ProcessHandle` descendants from the git child),
+rethrows `InterruptedException`, and runs the same cleanup owner in `finally`.
+Secondary cleanup failures attach with `addSuppressed` and do not replace the
+primary `IOException`, timeout, or interruption. Unsettled stdout after the
+deadline becomes `readFailure` or timeout semantics, never
+`WorkflowGitOperationResult.Ok` with unfinished capture. Behavior tests in
+`GitProcessLifetimeBehaviorTest` cover interruption, pipe backpressure,
+inherited stdout handles, timeout, and ordinary completion.
+
+Decomposition manifest bundle journals (`DecompositionManifestBundleJournal` in
+`runtime-infra-fs`) persist a governed `0.1` envelope
+(`orchestration/contracts/decomposition-manifest-bundle-journal-schema.yaml`,
+`copyDecompositionManifestBundleJournalSchema`). Recovery validates the full marker,
+transaction-owned staging directory (real-path containment, marker name binding),
+unique targets, and every staged or already-applied digest before applying pending
+moves or deleting staging evidence. Rejected journals raise
+`InvalidDecompositionManifestBundleJournalError`, retain the marker and staging
+artifacts, and do not replay SQLite mutations — operators back up evidence and
+remove the marker manually after review. Valid interrupted `0.1` journals still
+roll forward through `recoverPending`.
 
 ## Boundary Rules
 

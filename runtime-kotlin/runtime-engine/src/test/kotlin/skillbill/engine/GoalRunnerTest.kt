@@ -11,6 +11,9 @@ import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
 import skillbill.engine.goalrunner.GoalRunnerLaunchReconciler
 import skillbill.engine.goalrunner.GoalRunnerLedgerContext
 import skillbill.engine.goalrunner.GoalRunnerLedgerRecorder
+import skillbill.engine.goalrunner.GoalRunnerObservabilityEmitter
+import skillbill.engine.goalrunner.GoalRunnerObservabilitySignal
+import skillbill.engine.goalrunner.GoalRunnerObservabilitySubject
 import skillbill.engine.goalrunner.GoalRunnerProgressEventEmitter
 import skillbill.engine.goalrunner.GoalRunnerProgressReader
 import skillbill.engine.goalrunner.GoalRunnerStatusService
@@ -61,6 +64,7 @@ import skillbill.ports.agentrun.model.AgentRunProgressEmission
 import skillbill.ports.agentrun.model.AgentRunSpawnAuthorization
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
+import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerLeaseState.ACTIVE
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
 import skillbill.ports.goalrunner.EmptyGoalPlanningPreparationRepository
@@ -139,6 +143,7 @@ import java.nio.file.Path
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -146,6 +151,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import skillbill.goalrunner.model.GoalPlanningStatusState.NOT_STARTED as GoalPlanningStatusStateNOT_STARTED
 
@@ -2517,6 +2523,71 @@ class GoalRunnerObservabilityTest {
   }
 
   @Test
+  fun `observability callback propagates cancellation from the outcome store`() {
+    val cancellation = CancellationException("observability cancelled")
+    val outcomes = RecordingOutcomeStore().apply { observabilityRecordFailure = cancellation }
+    val emitter = GoalRunnerObservabilityEmitter(
+      outcomeStore = outcomes,
+      clock = testHarnessClock,
+      diagnostics = NoopRuntimeDiagnostics,
+      request = runRequest(),
+    )
+
+    val thrown = assertFailsWith<CancellationException> {
+      emitter.record(
+        GoalRunnerObservabilitySubject("wfl-child", "SKILL-56", 1),
+        GoalRunnerObservabilitySignal("implement", "heartbeat", "still working"),
+      )
+    }
+
+    assertSame(cancellation, thrown)
+  }
+
+  @Test
+  fun `observability callback propagates interruption and restores the interrupt flag`() {
+    val outcomes = RecordingOutcomeStore().apply {
+      observabilityRecordFailure = InterruptedException("observability interrupted")
+    }
+    val emitter = GoalRunnerObservabilityEmitter(
+      outcomeStore = outcomes,
+      clock = testHarnessClock,
+      diagnostics = NoopRuntimeDiagnostics,
+      request = runRequest(),
+    )
+
+    val thrown = assertFailsWith<InterruptedException> {
+      emitter.record(
+        GoalRunnerObservabilitySubject("wfl-child", "SKILL-56", 1),
+        GoalRunnerObservabilitySignal("implement", "heartbeat", "still working"),
+      )
+    }
+
+    assertEquals("observability interrupted", thrown.message)
+    assertTrue(Thread.interrupted())
+  }
+
+  @Test
+  fun `observability write reports a bounded diagnostic even when diagnostics fail`() {
+    val outcomes = RecordingOutcomeStore().apply {
+      observabilityRecordFailure = IllegalStateException("x".repeat(2_000))
+    }
+    val diagnostics = ThrowingDiagnostics()
+    val emitter = GoalRunnerObservabilityEmitter(
+      outcomeStore = outcomes,
+      clock = testHarnessClock,
+      diagnostics = diagnostics,
+      request = runRequest(),
+    )
+
+    emitter.record(
+      GoalRunnerObservabilitySubject("wfl-child", "SKILL-56", 1),
+      GoalRunnerObservabilitySignal("implement", "heartbeat", "still working"),
+    )
+
+    assertTrue(diagnostics.warningMessages.single().length < 600)
+  }
+
+  @Test
   fun `observability progress exception does not block terminal completion`() {
     val store = InMemoryGoalManifestStore(manifest = manifest(subtaskCount = 1))
     val outcomes = RecordingOutcomeStore()
@@ -3482,6 +3553,75 @@ class GoalRunnerLedgerRecorderSeedingTest {
     assertEquals(0, outcomes.attemptLedgerRecords.single().entry.sequenceNumber)
   }
 
+  @Test
+  fun `recorder refuses construction when ledger watermark read fails`() {
+    val outcomes = RecordingOutcomeStore().apply { throwOnLedgerWatermarks = true }
+    assertFailsWith<IllegalStateException> {
+      GoalRunnerLedgerRecorder(outcomes, ledgerRunRequest(), testHarnessClock, NoopRuntimeDiagnostics)
+    }
+  }
+
+  @Test
+  fun `ledger write diagnostic failure does not mask the store failure`() {
+    val outcomes = RecordingOutcomeStore().apply {
+      attemptLedgerRecordFailure = IllegalStateException("x".repeat(2_000))
+    }
+    val diagnostics = ThrowingDiagnostics()
+    val recorder = GoalRunnerLedgerRecorder(outcomes, ledgerRunRequest(), testHarnessClock, diagnostics)
+    recorder.recordLedgerEntry(
+      GoalRunnerLedgerContext(
+        workflowId = "wfl-child",
+        action = GoalAttemptLedgerAction.CHILD_ACTIVATION,
+        issueKey = "SKILL-56",
+        subtaskId = 1,
+      ),
+    )
+    assertTrue(outcomes.attemptLedgerRecords.isEmpty())
+    assertTrue(diagnostics.warningMessages.single().length < 600)
+  }
+
+  @Test
+  fun `ledger write propagates cancellation from the outcome store`() {
+    val cancellation = CancellationException("ledger cancelled")
+    val outcomes = RecordingOutcomeStore().apply { attemptLedgerRecordFailure = cancellation }
+    val recorder = GoalRunnerLedgerRecorder(outcomes, ledgerRunRequest(), testHarnessClock, NoopRuntimeDiagnostics)
+
+    val thrown = assertFailsWith<CancellationException> {
+      recorder.recordLedgerEntry(
+        GoalRunnerLedgerContext(
+          workflowId = "wfl-child",
+          action = GoalAttemptLedgerAction.CHILD_ACTIVATION,
+          issueKey = "SKILL-56",
+          subtaskId = 1,
+        ),
+      )
+    }
+
+    assertSame(cancellation, thrown)
+  }
+
+  @Test
+  fun `ledger write propagates interruption and restores the interrupt flag`() {
+    val outcomes = RecordingOutcomeStore().apply {
+      attemptLedgerRecordFailure = InterruptedException("ledger interrupted")
+    }
+    val recorder = GoalRunnerLedgerRecorder(outcomes, ledgerRunRequest(), testHarnessClock, NoopRuntimeDiagnostics)
+
+    val thrown = assertFailsWith<InterruptedException> {
+      recorder.recordLedgerEntry(
+        GoalRunnerLedgerContext(
+          workflowId = "wfl-child",
+          action = GoalAttemptLedgerAction.CHILD_ACTIVATION,
+          issueKey = "SKILL-56",
+          subtaskId = 1,
+        ),
+      )
+    }
+
+    assertEquals("ledger interrupted", thrown.message)
+    assertTrue(Thread.interrupted())
+  }
+
   private fun ledgerRunRequest(): GoalRunnerRunRequest = GoalRunnerRunRequest(
     issueKey = "SKILL-56",
     repoRoot = Path.of("/tmp/skillbill-goal-runner"),
@@ -3576,6 +3716,85 @@ class GoalRunnerProgressEventEmitterTest {
     )
 
     emitter.emit(emission(GoalProgressEventKind.OPERATION_STARTED, processAlive = true))
+  }
+
+  @Test
+  fun `emitter propagates cancellation from the outcome store`() {
+    val cancellation = CancellationException("progress cancelled")
+    val outcomes = RecordingOutcomeStore().apply { progressEventFailure = cancellation }
+    val emitter = GoalRunnerProgressEventEmitter(
+      outcomeStore = outcomes,
+      resolveWorkflowId = { "wfl-child" },
+      watermarkSeed = null,
+      clock = testHarnessClock,
+      diagnostics = NoopRuntimeDiagnostics,
+    )
+
+    val thrown = assertFailsWith<CancellationException> {
+      emitter.emit(emission(GoalProgressEventKind.OPERATION_STARTED, processAlive = true))
+    }
+
+    assertSame(cancellation, thrown)
+  }
+
+  @Test
+  fun `emitter propagates interruption from the outcome store`() {
+    val outcomes = RecordingOutcomeStore().apply {
+      progressEventFailure = InterruptedException("progress interrupted")
+    }
+    val emitter = GoalRunnerProgressEventEmitter(
+      outcomeStore = outcomes,
+      resolveWorkflowId = { "wfl-child" },
+      watermarkSeed = null,
+      clock = testHarnessClock,
+      diagnostics = NoopRuntimeDiagnostics,
+    )
+
+    val thrown = assertFailsWith<InterruptedException> {
+      emitter.emit(emission(GoalProgressEventKind.OPERATION_STARTED, processAlive = true))
+    }
+
+    assertEquals("progress interrupted", thrown.message)
+    assertTrue(Thread.interrupted())
+  }
+
+  @Test
+  fun `emitter write failure reports a bounded diagnostic even when diagnostics fail`() {
+    val outcomes = RecordingOutcomeStore().apply {
+      progressEventFailure = IllegalStateException("x".repeat(2_000))
+    }
+    val diagnostics = ThrowingDiagnostics()
+    val emitter = GoalRunnerProgressEventEmitter(
+      outcomeStore = outcomes,
+      resolveWorkflowId = { "wfl-child" },
+      watermarkSeed = null,
+      clock = testHarnessClock,
+      diagnostics = diagnostics,
+    )
+
+    emitter.emit(emission(GoalProgressEventKind.OPERATION_STARTED, processAlive = true))
+
+    assertTrue(diagnostics.warningMessages.single().length < 600)
+  }
+
+  @Test
+  fun `emitter propagates interruption from workflow identity resolution`() {
+    val outcomes = RecordingOutcomeStore()
+    val emitter = GoalRunnerProgressEventEmitter(
+      outcomeStore = outcomes,
+      resolveWorkflowId = { throw InterruptedException("interrupted") },
+      watermarkSeed = null,
+      clock = testHarnessClock,
+      diagnostics = NoopRuntimeDiagnostics,
+    )
+
+    val thrown = assertFailsWith<InterruptedException> {
+      emitter.emit(emission(GoalProgressEventKind.OPERATION_STARTED, processAlive = true))
+    }
+    assertEquals("interrupted", thrown.message)
+    assertTrue(Thread.interrupted())
+    Thread.interrupted()
+    assertTrue(outcomes.progressEventRecords.isEmpty())
   }
 
   private fun emission(
@@ -3712,6 +3931,71 @@ class GoalRunnerLaunchReconcilerWiringTest {
     assertTrue(outcomes.progressEventRecords.isEmpty())
   }
 
+  @Test
+  fun `reconciler progress identity resolution propagates interruption`() {
+    val store = InMemoryGoalManifestStore(
+      manifest = manifest(subtaskCount = 1).withWorkflowId(subtaskId = 1, workflowId = "wfl-1"),
+    )
+    val interruption = InterruptedException("progress interrupted")
+    val outcomes = RecordingOutcomeStore().apply { progressFailure = interruption }
+    val reconciler = GoalRunnerLaunchReconciler(
+      manifestStore = store,
+      outcomeStore = outcomes,
+      progressReader = GoalRunnerProgressReader(outcomes),
+      activityStampWriter = testActivityStampWriter(),
+      clock = testHarnessClock,
+      diagnostics = NoopRuntimeDiagnostics,
+    )
+    val launchRequest = reconciler.subtaskLaunchRequest(
+      SubtaskLaunchRequestArgs(
+        issueKey = "SKILL-56",
+        subtaskId = 1,
+        request = wiringRunRequest(),
+        assignedWorkflowId = null,
+        reviewBaseline = null,
+        spawnAuthorization = null,
+      ),
+    )
+
+    val thrown = assertFailsWith<InterruptedException> {
+      launchRequest.skillRunRequest.progressEmitter.emit(
+        supervisorEmission(GoalProgressEventKind.OPERATION_STARTED, processAlive = true),
+      )
+    }
+
+    assertSame(interruption, thrown)
+    assertTrue(Thread.interrupted())
+  }
+
+  @Test
+  fun `reconciler refuses to create a progress emitter when watermark read fails`() {
+    val store = InMemoryGoalManifestStore(
+      manifest = manifest(subtaskCount = 1).withWorkflowId(subtaskId = 1, workflowId = "wfl-1"),
+    )
+    val outcomes = RecordingOutcomeStore().apply { throwOnLedgerWatermarks = true }
+    val reconciler = GoalRunnerLaunchReconciler(
+      manifestStore = store,
+      outcomeStore = outcomes,
+      progressReader = GoalRunnerProgressReader(outcomes),
+      activityStampWriter = testActivityStampWriter(),
+      clock = testHarnessClock,
+      diagnostics = NoopRuntimeDiagnostics,
+    )
+
+    assertFailsWith<IllegalStateException> {
+      reconciler.subtaskLaunchRequest(
+        SubtaskLaunchRequestArgs(
+          issueKey = "SKILL-56",
+          subtaskId = 1,
+          request = wiringRunRequest(),
+          assignedWorkflowId = null,
+          reviewBaseline = null,
+          spawnAuthorization = null,
+        ),
+      )
+    }
+  }
+
   private fun supervisorEmission(
     kind: GoalProgressEventKind,
     processAlive: Boolean,
@@ -3746,7 +4030,9 @@ internal class RecordingOutcomeStore : GoalRunnerWorkflowOutcomeStore {
   val recoveredMissingResultPrefixOutputs: MutableList<RecoveredMissingResultPrefixOutput> = mutableListOf()
   var observabilityRecordResult: Boolean = true
   var throwOnObservabilityRecord: Boolean = false
+  var observabilityRecordFailure: Throwable? = null
   var throwOnProgress: Boolean = false
+  var progressFailure: Throwable? = null
   var workerSubtaskRequestOutcomeRecordResult: Boolean = true
   var throwOnWorkerSubtaskRequestOutcomeRecord: Boolean = false
   var lastReconcileRequest: ReconcileRequest? = null
@@ -3841,6 +4127,7 @@ internal class RecordingOutcomeStore : GoalRunnerWorkflowOutcomeStore {
   }
 
   override fun progress(workflowId: String): GoalRunnerWorkflowProgress? {
+    progressFailure?.let { throw it }
     if (throwOnProgress) {
       error("progress read failed")
     }
@@ -3850,6 +4137,7 @@ internal class RecordingOutcomeStore : GoalRunnerWorkflowOutcomeStore {
   override fun progressEvents(workflowId: String) = emptyList<GoalProgressEvent>()
 
   override fun recordObservabilityEvent(request: GoalRunnerObservabilityRecordRequest): Boolean {
+    observabilityRecordFailure?.let { throw it }
     if (throwOnObservabilityRecord) {
       error("observability persistence failed")
     }
@@ -3874,8 +4162,13 @@ internal class RecordingOutcomeStore : GoalRunnerWorkflowOutcomeStore {
   val progressEventRecords: MutableList<GoalRunnerProgressEventRecordRequest> = mutableListOf()
   val attemptLedgerRecords: MutableList<GoalRunnerAttemptLedgerRecordRequest> = mutableListOf()
   var throwOnProgressEventRecord: Boolean = false
+  var throwOnAttemptLedgerRecord: Boolean = false
+  var progressEventFailure: Throwable? = null
+  var attemptLedgerRecordFailure: Throwable? = null
+  var throwOnLedgerWatermarks: Boolean = false
 
   override fun recordProgressEvent(request: GoalRunnerProgressEventRecordRequest): Boolean {
+    progressEventFailure?.let { throw it }
     if (throwOnProgressEventRecord) {
       error("progress event persistence failed")
     }
@@ -3884,15 +4177,35 @@ internal class RecordingOutcomeStore : GoalRunnerWorkflowOutcomeStore {
   }
 
   override fun recordAttemptLedgerEntry(request: GoalRunnerAttemptLedgerRecordRequest): Boolean {
+    attemptLedgerRecordFailure?.let { throw it }
+    if (throwOnAttemptLedgerRecord) {
+      error("attempt ledger persistence failed")
+    }
     attemptLedgerRecords += request
     return true
   }
 
   var ledgerSequenceWatermarks: GoalRunnerLedgerSequenceWatermarks = GoalRunnerLedgerSequenceWatermarks()
 
-  override fun ledgerSequenceWatermarks(issueKey: String): GoalRunnerLedgerSequenceWatermarks = ledgerSequenceWatermarks
+  override fun ledgerSequenceWatermarks(issueKey: String): GoalRunnerLedgerSequenceWatermarks {
+    if (throwOnLedgerWatermarks) {
+      error("ledger watermark read failed")
+    }
+    return ledgerSequenceWatermarks
+  }
 
   override fun childWorkflowLoopIterations(workflowId: String): Map<String, Int> = emptyMap()
+}
+
+private class ThrowingDiagnostics : RuntimeDiagnostics {
+  val warningMessages: MutableList<String> = mutableListOf()
+
+  override fun warning(message: String, error: Throwable?) {
+    warningMessages += message
+    error("diagnostics failed")
+  }
+
+  override fun error(message: String, error: Throwable?) = Unit
 }
 
 internal data class BlockedWorkflow(

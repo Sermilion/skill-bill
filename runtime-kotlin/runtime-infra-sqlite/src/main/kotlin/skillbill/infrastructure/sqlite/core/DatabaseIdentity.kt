@@ -10,15 +10,21 @@ internal data class DatabaseIdentity(
   val fileIdentity: String,
   val fileSizeBytes: Long,
 ) {
-  fun matchesFile(path: Path): Boolean = read(path)?.let { current ->
-    current.absolutePath == absolutePath &&
-      current.userVersion == userVersion &&
-      current.fileIdentity == fileIdentity &&
-      current.fileSizeBytes >= fileSizeBytes
-  } == true
+  fun matches(current: DatabaseIdentity): Boolean = current.absolutePath == absolutePath &&
+    current.userVersion == userVersion &&
+    current.fileIdentity == fileIdentity &&
+    current.fileSizeBytes >= fileSizeBytes
 
   companion object {
+    @Volatile
+    internal var identityReadCountForTests: Int = 0
+
+    internal fun resetIdentityReadCountForTests() {
+      identityReadCountForTests = 0
+    }
+
     fun read(path: Path): DatabaseIdentity? {
+      identityReadCountForTests += 1
       if (!Files.exists(path)) return null
       val normalized = path.toAbsolutePath().normalize()
       val attrs = Files.readAttributes(normalized, BasicFileAttributes::class.java)
