@@ -3,17 +3,18 @@ package skillbill.infrastructure.fs
 import skillbill.ports.process.DEFAULT_INSTALLER_PROCESS_DEADLINE_SECONDS
 import skillbill.ports.process.INSTALLER_OUTPUT_TRUNCATION_SENTINEL
 import skillbill.ports.process.INSTALLER_PROCESS_OUTPUT_CAP_BYTES
-import skillbill.ports.process.InstallerProcessRequest
+import skillbill.ports.process.model.InstallerProcessRequest
 import java.nio.file.Files
+import java.nio.file.Path
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
+import kotlin.concurrent.thread
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-import kotlin.concurrent.thread
 
 class InstallerProcessAdapterLifetimeTest {
   private val adapter = InstallerProcessAdapter()
@@ -74,7 +75,7 @@ class InstallerProcessAdapterLifetimeTest {
       adapter.run(
         InstallerProcessRequest(
           executable = "/bin/bash",
-          arguments = listOf("-c", "echo $$ > '${pidFile}'; exec sleep 120"),
+          arguments = listOf("-c", "echo $$ > '$pidFile'; exec sleep 120"),
           environment = shellEnvironment(),
           deadlineSeconds = 2L,
         ),
@@ -103,7 +104,7 @@ class InstallerProcessAdapterLifetimeTest {
           adapter.run(
             InstallerProcessRequest(
               executable = "/bin/bash",
-              arguments = listOf("-c", "echo $$ > '${ownedPidFile}'; exec 1>&- 2>&-; exec sleep 120"),
+              arguments = listOf("-c", "echo $$ > '$ownedPidFile'; exec 1>&- 2>&-; exec sleep 120"),
               environment = shellEnvironment(),
               deadlineSeconds = DEFAULT_INSTALLER_PROCESS_DEADLINE_SECONDS,
             ),
@@ -132,7 +133,7 @@ class InstallerProcessAdapterLifetimeTest {
   private fun shellEnvironment(): Map<String, String> =
     mapOf("PATH" to "/usr/bin:/bin", "HOME" to System.getProperty("user.home").orEmpty())
 
-  private fun awaitOwnedPid(pidFile: java.nio.file.Path) {
+  private fun awaitOwnedPid(pidFile: Path) {
     val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5)
     while ((!Files.exists(pidFile) || Files.size(pidFile) == 0L) && System.nanoTime() < deadline) {
       Thread.sleep(10)

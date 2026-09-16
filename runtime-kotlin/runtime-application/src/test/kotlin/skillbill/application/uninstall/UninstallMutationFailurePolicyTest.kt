@@ -1,5 +1,8 @@
 package skillbill.application.uninstall
 
+import skillbill.application.uninstall.model.DesktopRemoval
+import skillbill.application.uninstall.model.LauncherRemoval
+import skillbill.application.uninstall.model.UninstallPlan
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.install.mcp.InstallMcpRegistrationPort
 import skillbill.ports.install.mcp.model.InstallMcpRegistrationRequest
@@ -125,4 +128,3 @@ private object ThrowingMcpRegistrationPort : InstallMcpRegistrationPort {
 
 private val RUNTIME_BIN_TARGET: Path =
   Path.of("/tmp/skillbill-uninstall-policy/.skill-bill/runtime/runtime-cli/bin/runtime-cli")
-

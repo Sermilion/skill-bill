@@ -2,11 +2,7 @@ package skillbill.cli
 
 import com.github.ajalt.clikt.parsers.CommandLineParser
 import skillbill.application.scaffold.InstallAgentService
-import skillbill.application.uninstall.DesktopRemoval
-import skillbill.application.uninstall.LauncherRemoval
 import skillbill.application.uninstall.SkillBillUninstallService
-import skillbill.application.uninstall.UninstallMutationRecorder
-import skillbill.application.uninstall.UninstallPlan
 import skillbill.cli.kernel.CliRunState
 import skillbill.cli.model.CliExecutionResult
 import skillbill.cli.model.CliRunInputs
@@ -78,7 +74,6 @@ class UninstallMutationFailurePolicyTest {
       state = state,
       inputs = CliRunInputs(
         databasePath = null,
-        stdinText = null,
         environment = emptyMap(),
         userHome = HOME,
         repositoryRoot = HOME,

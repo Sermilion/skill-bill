@@ -8,11 +8,10 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.application.workflow.WorkflowService
 import skillbill.cli.kernel.CliRunState
 import skillbill.cli.kernel.DocumentedCliCommand
-import skillbill.cli.model.CliRunInputs
+import skillbill.cli.kernel.resolveCliRepositoryRoot
 import skillbill.engine.featuretask.FeatureTaskContinuationLookupService
 import skillbill.engine.featuretask.FeatureTaskRuntimeStatusService
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeStatusRequest
-import skillbill.ports.workflow.model.FeatureTaskRouteScope
 
 private const val FEATURE_TASK_RUNTIME_DEPRECATION_NOTE: String =
   "feature-task-runtime is a deprecated alias for feature-task. Use feature-task; behavior is unchanged.\n"
@@ -49,17 +48,20 @@ class FeatureTaskRuntimeDeprecatedRunCommand(
       return
     }
     val runIssueKey = issueKey ?: throw UsageError("issue_key is required for feature-task run.")
-    val runSpecPath = resolveSpecPath(deps, runIssueKey, specPath)
+    val resolvedRepoRoot = resolveCliRepositoryRoot(repoRoot, deps.inputs)
+    val runSpecPath = resolveSpecPath(deps, runIssueKey, specPath, resolvedRepoRoot)
+    val prepared = prepareRuntimeRun(deps, resolvedRepoRoot)
     executeRuntimeRun(
       deps = deps,
       issueKey = runIssueKey,
       specPath = runSpecPath,
+      prepared = prepared,
       workflowId = {
-        workflowService.openRuntimeWorkflowId(
+        resolveRunWorkflowId(
+          workflowService,
           runIssueKey,
           runSpecPath,
-          repoRoot ?: ".",
-          if (goalParentIssueKey != null) FeatureTaskRouteScope.GOAL_CHILD else FeatureTaskRouteScope.STANDALONE,
+          prepared.repoRoot,
         )
       },
     )
@@ -78,17 +80,20 @@ class FeatureTaskRuntimeDeprecatedExplicitRunCommand(
   private val specPath by argument(help = "Path to the governed spec the run implements.").optional()
 
   override fun run() {
-    val runSpecPath = resolveSpecPath(deps, issueKey, specPath)
+    val resolvedRepoRoot = resolveCliRepositoryRoot(repoRoot, deps.inputs)
+    val runSpecPath = resolveSpecPath(deps, issueKey, specPath, resolvedRepoRoot)
+    val prepared = prepareRuntimeRun(deps, resolvedRepoRoot)
     executeRuntimeRun(
       deps = deps,
       issueKey = issueKey,
       specPath = runSpecPath,
+      prepared = prepared,
       workflowId = {
-        workflowService.openRuntimeWorkflowId(
+        resolveRunWorkflowId(
+          workflowService,
           issueKey,
           runSpecPath,
-          repoRoot ?: ".",
-          if (goalParentIssueKey != null) FeatureTaskRouteScope.GOAL_CHILD else FeatureTaskRouteScope.STANDALONE,
+          prepared.repoRoot,
         )
       },
     )
@@ -99,7 +104,6 @@ class FeatureTaskRuntimeDeprecatedExplicitRunCommand(
 class FeatureTaskRuntimeDeprecatedStatusCommand(
   private val statusService: FeatureTaskRuntimeStatusService,
   private val state: CliRunState,
-  private val inputs: CliRunInputs,
 ) : DocumentedCliCommand("status", "Show read-only feature-task phase status.") {
   private val workflowId by argument(help = "Runtime workflow id whose phase status to show.")
 
@@ -125,24 +129,24 @@ class FeatureTaskRuntimeDeprecatedResumeCommand(
   private val specPath by argument(help = "Path to the governed spec the run implements.")
 
   override fun run() {
+    val resolvedRepoRoot = resolveCliRepositoryRoot(repoRoot, deps.inputs)
+    val prepared = prepareRuntimeRun(deps, resolvedRepoRoot)
+    verifyRuntimeResume(
+      VerifyRuntimeResumeArgs(
+        lookupService = lookupService,
+        workflowId = workflowId,
+        issueKey = issueKey,
+        specPath = specPath,
+        repoRoot = prepared.repoRoot,
+        goalChild = goalParentIssueKey != null,
+      ),
+    )
     executeRuntimeRun(
       deps = deps,
       issueKey = issueKey,
       specPath = specPath,
-      workflowId = {
-        verifyRuntimeResume(
-          VerifyRuntimeResumeArgs(
-            lookupService = lookupService,
-            inputs = deps.inputs,
-            workflowId = workflowId,
-            issueKey = issueKey,
-            specPath = specPath,
-            repoRoot = repoRoot ?: ".",
-            goalChild = goalParentIssueKey != null,
-          ),
-        )
-        workflowId
-      },
+      prepared = prepared,
+      workflowId = { workflowId },
     )
   }
 }

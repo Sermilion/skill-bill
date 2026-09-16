@@ -63,5 +63,5 @@ internal data class NewAddonPayloadArgs(
   val bodyFile: String?,
   val addonLocationPath: String?,
   val consumerSkillDirs: List<String>,
-  val inputs: CliRunInputs,
+  val state: CliRunState,
 )

@@ -1,13 +1,29 @@
 package skillbill.application.uninstall
 
 import skillbill.application.scaffold.InstallAgentService
+import skillbill.application.uninstall.model.DesktopRemoval
+import skillbill.application.uninstall.model.UninstallPlan
 import skillbill.install.model.ClaudeMcpProfileFailure
 import skillbill.install.model.McpProfileOutcome
 import skillbill.ports.diagnostics.RuntimeDiagnostics
+import skillbill.ports.install.agent.InstallAgentTargetPort
+import skillbill.ports.install.agent.model.ClaudeConfigRootsRequest
+import skillbill.ports.install.agent.model.ClaudeConfigRootsResult
+import skillbill.ports.install.agent.model.CodexConfigRootsRequest
+import skillbill.ports.install.agent.model.CodexConfigRootsResult
+import skillbill.ports.install.agent.model.DetectInstallAgentTargetsRequest
+import skillbill.ports.install.agent.model.DetectInstallAgentTargetsResult
+import skillbill.ports.install.agent.model.InstallAgentDirectoryRequest
+import skillbill.ports.install.agent.model.InstallAgentDirectoryResult
+import skillbill.ports.install.agent.model.InstallAgentPathRequest
+import skillbill.ports.install.agent.model.InstallAgentPathResult
+import skillbill.ports.install.agent.model.InstallAgentTargetCleanupRequest
+import skillbill.ports.install.agent.model.InstallAgentTargetCleanupResult
 import skillbill.ports.install.mcp.InstallMcpRegistrationPort
 import skillbill.ports.install.mcp.model.InstallMcpRegistrationRequest
 import skillbill.ports.install.mcp.model.InstallMcpRegistrationResult
 import skillbill.ports.install.mcp.model.InstallMcpUnregistrationRequest
+import skillbill.ports.install.model.InstallCleanupResult
 import skillbill.ports.install.nativeagent.InstallNativeAgentLinkPort
 import skillbill.ports.install.nativeagent.model.InstallNativeAgentLinkOperationRequest
 import skillbill.ports.install.nativeagent.model.InstallNativeAgentLinkOperationResult
@@ -135,31 +151,29 @@ private object AbsentUninstallPathsPort : UninstallPathsPort {
   override fun removeTree(path: Path): List<Path> = emptyList()
 }
 
-private object StubInstallAgentTargetPort : skillbill.ports.install.agent.InstallAgentTargetPort {
-  override fun agentPath(request: skillbill.ports.install.agent.model.InstallAgentPathRequest) =
-    skillbill.ports.install.agent.model.InstallAgentPathResult(Path.of("/tmp/skillbill-uninstall-cancel"))
+private object StubInstallAgentTargetPort : InstallAgentTargetPort {
+  override fun agentPath(request: InstallAgentPathRequest) =
+    InstallAgentPathResult(Path.of("/tmp/skillbill-uninstall-cancel"))
 
-  override fun detectAgentTargets(request: skillbill.ports.install.agent.model.DetectInstallAgentTargetsRequest) =
-    skillbill.ports.install.agent.model.DetectInstallAgentTargetsResult(emptyList())
+  override fun detectAgentTargets(request: DetectInstallAgentTargetsRequest) =
+    DetectInstallAgentTargetsResult(emptyList())
 
-  override fun claudeConfigRoots(request: skillbill.ports.install.agent.model.ClaudeConfigRootsRequest) =
-    skillbill.ports.install.agent.model.ClaudeConfigRootsResult(emptyList())
+  override fun claudeConfigRoots(request: ClaudeConfigRootsRequest) = ClaudeConfigRootsResult(emptyList())
 
-  override fun codexConfigRoots(request: skillbill.ports.install.agent.model.CodexConfigRootsRequest) =
-    skillbill.ports.install.agent.model.CodexConfigRootsResult(emptyList())
+  override fun codexConfigRoots(request: CodexConfigRootsRequest) = CodexConfigRootsResult(emptyList())
 
-  override fun agentDirectory(request: skillbill.ports.install.agent.model.InstallAgentDirectoryRequest) =
-    skillbill.ports.install.agent.model.InstallAgentDirectoryResult(Path.of("/tmp/skillbill-uninstall-cancel"))
+  override fun agentDirectory(request: InstallAgentDirectoryRequest) =
+    InstallAgentDirectoryResult(Path.of("/tmp/skillbill-uninstall-cancel"))
 
-  override fun cleanupAgentTarget(request: skillbill.ports.install.agent.model.InstallAgentTargetCleanupRequest) =
-    skillbill.ports.install.agent.model.InstallAgentTargetCleanupResult(
-      skillbill.ports.install.model.InstallCleanupResult(emptyList(), emptyList()),
-    )
+  override fun cleanupAgentTarget(request: InstallAgentTargetCleanupRequest) = InstallAgentTargetCleanupResult(
+    InstallCleanupResult(emptyList(), emptyList()),
+  )
 }
 
 private object StubInstallNativeAgentLinkPort : InstallNativeAgentLinkPort {
-  override fun linkNativeAgents(request: InstallNativeAgentLinkOperationRequest): InstallNativeAgentLinkOperationResult =
-    throw UnsupportedOperationException()
+  override fun linkNativeAgents(
+    request: InstallNativeAgentLinkOperationRequest,
+  ): InstallNativeAgentLinkOperationResult = throw UnsupportedOperationException()
 
   override fun unlinkNativeAgents(
     request: InstallNativeAgentLinkOperationRequest,

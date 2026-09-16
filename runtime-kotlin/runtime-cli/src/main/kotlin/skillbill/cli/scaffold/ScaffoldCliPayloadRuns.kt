@@ -18,7 +18,7 @@ import java.nio.file.Path
 internal fun runNativeScaffoldPayload(args: NativeScaffoldPayloadPathArgs): CliExecutionResult {
   val payload =
     try {
-      args.transform(readScaffoldPayload(args.payloadPath, args.run.inputs))
+      args.transform(readScaffoldPayload(args.payloadPath, args.run.state))
     } catch (error: SkillBillRuntimeException) {
       return errorResult(error.message.orEmpty(), args.run.format)
     } catch (error: IllegalArgumentException) {
@@ -98,7 +98,7 @@ internal fun createAndFillResult(args: CreateAndFillArgs): CliExecutionResult {
           scaffoldGateway = args.scaffoldGateway,
         ),
         transform = { scaffoldPayload ->
-          createAndFillScaffoldPayload(scaffoldPayload, content.body, content.bodyFile, args.inputs)
+          createAndFillScaffoldPayload(scaffoldPayload, content.body, content.bodyFile, args.state)
         },
       ),
     )

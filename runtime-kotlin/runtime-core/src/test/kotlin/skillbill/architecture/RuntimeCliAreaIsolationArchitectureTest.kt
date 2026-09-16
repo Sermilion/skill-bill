@@ -76,6 +76,26 @@ class RuntimeCliAreaIsolationArchitectureTest {
   }
 
   @Test
+  fun `runtime-cli featuretask commands do not construct rejected-output diagnostic services`() {
+    val featureTaskRoot =
+      ArchitectureScanSupport.runtimeRoot.resolve(
+        "${PrincipleEnforcementInventory.RUNTIME_CLI_MAIN}/skillbill/cli/featuretask",
+      )
+    val violations =
+      ArchitectureScanSupport.kotlinFilesUnder(featureTaskRoot).mapNotNull { sourceFile ->
+        val relativePath = ArchitectureScanSupport.runtimeRoot.relativize(sourceFile).toString().replace('\\', '/')
+        if ("/test/" in relativePath) return@mapNotNull null
+        val source = sourceFile.readText()
+        when {
+          "RejectedOutputDiagnosticService(" in source -> relativePath
+          "unitOfWork.diagnosticService" in source -> relativePath
+          else -> null
+        }
+      }
+    assertEquals(emptyList(), violations, violations.joinToString("\n"))
+  }
+
+  @Test
   fun `area isolation scanner accepts a closure of shared leaves only`() {
     val violations = ArchitectureScanSupport.areaIsolationViolationsForEdges(
       edges = mapOf(

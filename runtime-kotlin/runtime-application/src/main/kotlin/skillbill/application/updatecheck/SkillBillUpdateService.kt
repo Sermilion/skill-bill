@@ -2,16 +2,17 @@ package skillbill.application.updatecheck
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.updatecheck.model.INSTALL_SCRIPT_URL
+import skillbill.application.updatecheck.model.UpdateCheckResult
 import skillbill.application.updatecheck.model.UpdateCheckStatus
 import skillbill.application.updatecheck.model.UpdateRunPlan
 import skillbill.application.updatecheck.model.UpdateRunRequest
 import skillbill.application.updatecheck.model.UpdateRunResult
 import skillbill.application.updatecheck.model.UpdateRunStatus
 import skillbill.ports.process.InstallerProcessPort
-import skillbill.ports.process.InstallerProcessRequest
 import skillbill.ports.process.InstallerScriptFetchPort
-import skillbill.ports.process.InstallerScriptFetchRequest
-import skillbill.ports.process.InstallerScriptFetchResult
+import skillbill.ports.process.model.InstallerProcessRequest
+import skillbill.ports.process.model.InstallerScriptFetchRequest
+import skillbill.ports.process.model.InstallerScriptFetchResult
 import java.nio.file.Path
 
 @Inject
@@ -101,13 +102,12 @@ class SkillBillUpdateService(
   }
 }
 
-private fun updateSkipReason(updateCheck: skillbill.application.updatecheck.model.UpdateCheckResult): String =
-  when (updateCheck.status) {
-    UpdateCheckStatus.UP_TO_DATE -> "installed version is already the latest release"
-    UpdateCheckStatus.AHEAD_OF_RELEASE -> "installed version is newer than the latest release"
-    UpdateCheckStatus.UNKNOWN -> "could not determine the latest release"
-    UpdateCheckStatus.UPDATE_AVAILABLE -> "update is available"
-  }
+private fun updateSkipReason(updateCheck: UpdateCheckResult): String = when (updateCheck.status) {
+  UpdateCheckStatus.UP_TO_DATE -> "installed version is already the latest release"
+  UpdateCheckStatus.AHEAD_OF_RELEASE -> "installed version is newer than the latest release"
+  UpdateCheckStatus.UNKNOWN -> "could not determine the latest release"
+  UpdateCheckStatus.UPDATE_AVAILABLE -> "update is available"
+}
 
 private val SHELL_SAFE_PATTERN = Regex("[A-Za-z0-9_./:=@%+-]+")
 

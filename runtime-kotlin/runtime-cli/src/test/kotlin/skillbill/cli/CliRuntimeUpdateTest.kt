@@ -3,8 +3,8 @@ package skillbill.cli
 import org.junit.jupiter.api.Assumptions
 import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliRuntimeContext
-import skillbill.ports.process.InstallerProcessResult
-import skillbill.ports.process.InstallerScriptFetchResult
+import skillbill.ports.process.model.InstallerProcessResult
+import skillbill.ports.process.model.InstallerScriptFetchResult
 import skillbill.ports.telemetry.RemoteTransportPort
 import skillbill.ports.telemetry.model.RemoteTransportResponse
 import java.nio.file.Files

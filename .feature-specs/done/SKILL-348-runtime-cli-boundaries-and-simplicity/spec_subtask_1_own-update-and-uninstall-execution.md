@@ -1,6 +1,6 @@
 # SKILL-348 Subtask 1 - Own update and uninstall execution
 
-Parent spec: [.feature-specs/SKILL-348-runtime-cli-boundaries-and-simplicity/spec.md](./spec.md)
+Parent spec: [.feature-specs/SKILL-348-runtime-cli-boundaries-and-simplicity/spec.md](spec.md)
 Issue key: SKILL-348
 
 ## Scope

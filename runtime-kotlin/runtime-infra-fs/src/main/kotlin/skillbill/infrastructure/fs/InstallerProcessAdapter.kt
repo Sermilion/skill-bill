@@ -5,8 +5,8 @@ import skillbill.infrastructure.fs.launcher.process.DESTROY_WAIT_TIMEOUT_MILLIS
 import skillbill.ports.process.INSTALLER_OUTPUT_TRUNCATION_SENTINEL
 import skillbill.ports.process.INSTALLER_PROCESS_OUTPUT_CAP_BYTES
 import skillbill.ports.process.InstallerProcessPort
-import skillbill.ports.process.InstallerProcessRequest
-import skillbill.ports.process.InstallerProcessResult
+import skillbill.ports.process.model.InstallerProcessRequest
+import skillbill.ports.process.model.InstallerProcessResult
 import java.io.IOException
 import java.io.InputStream
 import java.util.concurrent.TimeUnit
@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicReference
 import kotlin.concurrent.thread
 
 @Inject
-class InstallerProcessAdapter() : InstallerProcessPort {
+class InstallerProcessAdapter : InstallerProcessPort {
   override fun run(request: InstallerProcessRequest): InstallerProcessResult {
     val deadlineSeconds = request.deadlineSeconds.coerceAtLeast(1L)
     val session = InstallerProcessSession(request, deadlineSeconds)
@@ -62,7 +62,10 @@ private class InstallerProcessSession(
       runCatching {
         ProcessBuilder(listOf(request.executable) + request.arguments)
           .redirectErrorStream(true)
-          .apply { environment().clear(); environment().putAll(request.environment) }
+          .apply {
+            environment().clear()
+            environment().putAll(request.environment)
+          }
           .start()
       }.getOrElse { failure ->
         primaryFailure = failure
@@ -179,11 +182,13 @@ private class InstallerProcessSession(
         active.waitFor(DESTROY_WAIT_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
       }
     }.onFailure(::recordCleanupFailure)
-    if (cleanupFailure != null && primaryFailure == null && !timedOut && readFailure.get() == null) {
-      readFailure.set(IOException("installer cleanup failed").also { failure ->
-        failure.addSuppressed(requireNotNull(cleanupFailure))
-      })
-    }
+    if (cleanupFailure == null) return
+    if (primaryFailure != null || timedOut || readFailure.get() != null) return
+    readFailure.set(
+      IOException("installer cleanup failed").also { failure ->
+        failure.addSuppressed(cleanupFailure)
+      },
+    )
   }
 
   private fun buildResult(): InstallerProcessResult {

@@ -4,16 +4,16 @@ import skillbill.SAMPLE_REVIEW
 import skillbill.SkillBillVersion
 import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliRuntimeContext
-import skillbill.ports.process.InstallerProcessPort
-import skillbill.ports.process.InstallerProcessRequest
-import skillbill.ports.process.InstallerProcessResult
-import skillbill.ports.process.InstallerScriptFetchPort
-import skillbill.ports.process.InstallerScriptFetchRequest
-import skillbill.ports.process.InstallerScriptFetchResult
 import skillbill.contracts.JsonCodec
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
 import skillbill.infrastructure.sqlite.telemetry.LifecycleTelemetryStore
 import skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxStore
+import skillbill.ports.process.InstallerProcessPort
+import skillbill.ports.process.InstallerScriptFetchPort
+import skillbill.ports.process.model.InstallerProcessRequest
+import skillbill.ports.process.model.InstallerProcessResult
+import skillbill.ports.process.model.InstallerScriptFetchRequest
+import skillbill.ports.process.model.InstallerScriptFetchResult
 import skillbill.ports.telemetry.RemoteTransportPort
 import skillbill.ports.telemetry.model.RemoteTransportResponse
 import skillbill.telemetry.CONFIG_ENVIRONMENT_KEY
@@ -339,7 +339,8 @@ internal const val EXPECTED_INSTALL_COMMAND =
   "skill-bill update"
 
 internal const val EXPECTED_UPDATE_COMMAND =
-  "fetch https://raw.githubusercontent.com/oila-gmbh/skill-bill/main/install.sh then bash <script> --reuse-last-selection"
+  "fetch https://raw.githubusercontent.com/oila-gmbh/skill-bill/main/install.sh " +
+    "then bash <script> --reuse-last-selection"
 
 internal class CapturingInstallerProcessPort(
   internal val result: InstallerProcessResult,

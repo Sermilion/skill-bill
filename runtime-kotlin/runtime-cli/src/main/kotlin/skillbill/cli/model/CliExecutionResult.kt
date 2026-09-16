@@ -4,4 +4,6 @@ data class CliExecutionResult(
   val exitCode: Int,
   val stdout: String,
   val payload: Map<String, Any?>? = null,
+  val rawStdout: ByteArray? = null,
+  val stdoutCompletion: CliStdoutCompletion = CliStdoutCompletion.IMPLICIT,
 )

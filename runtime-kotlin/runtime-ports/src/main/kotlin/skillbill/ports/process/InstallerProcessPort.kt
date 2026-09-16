@@ -1,22 +1,11 @@
 package skillbill.ports.process
 
+import skillbill.ports.process.model.InstallerProcessRequest
+import skillbill.ports.process.model.InstallerProcessResult
+
 interface InstallerProcessPort {
   fun run(request: InstallerProcessRequest): InstallerProcessResult
 }
-
-data class InstallerProcessRequest(
-  val executable: String,
-  val arguments: List<String>,
-  val environment: Map<String, String>,
-  val deadlineSeconds: Long = DEFAULT_INSTALLER_PROCESS_DEADLINE_SECONDS,
-)
-
-data class InstallerProcessResult(
-  val exitCode: Int,
-  val output: String,
-  val timedOut: Boolean = false,
-  val launchFailure: Boolean = false,
-)
 
 const val DEFAULT_INSTALLER_PROCESS_DEADLINE_SECONDS: Long = 600L
 

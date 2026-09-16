@@ -1,5 +1,7 @@
 package skillbill.application.updatecheck.model
 
+import java.nio.file.Path
+
 enum class UpdateRunStatus {
   COMPLETED,
   FAILED,
@@ -13,7 +15,7 @@ data class UpdateRunRequest(
   val releaseTag: String?,
   val clean: Boolean,
   val dryRun: Boolean,
-  val userHome: java.nio.file.Path,
+  val userHome: Path,
   val environment: Map<String, String>,
 )
 

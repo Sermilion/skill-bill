@@ -14,10 +14,10 @@ import skillbill.application.runtime.RuntimeSingleton
 import skillbill.application.scaffold.InstallAgentService
 import skillbill.application.scaffold.SkillRemove
 import skillbill.application.system.SystemService
-import skillbill.application.uninstall.SkillBillUninstallService
-import skillbill.application.updatecheck.SkillBillUpdateService
 import skillbill.application.telemetry.LifecycleTelemetryService
 import skillbill.application.telemetry.TelemetryService
+import skillbill.application.uninstall.SkillBillUninstallService
+import skillbill.application.updatecheck.SkillBillUpdateService
 import skillbill.application.work.WorkListService
 import skillbill.application.workflow.WorkflowService
 import skillbill.engine.featuretask.FeatureTaskContinuationLookupService

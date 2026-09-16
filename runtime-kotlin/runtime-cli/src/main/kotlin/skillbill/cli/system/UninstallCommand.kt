@@ -4,8 +4,9 @@ import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.uninstall.SkillBillUninstallService
-import skillbill.application.uninstall.UninstallPlan
-import skillbill.application.uninstall.UninstallRequest
+import skillbill.application.uninstall.model.UninstallPlan
+import skillbill.application.uninstall.model.UninstallRequest
+import skillbill.application.uninstall.model.UninstallResult
 import skillbill.cli.kernel.CliRunState
 import skillbill.cli.kernel.DocumentedCliCommand
 import skillbill.cli.kernel.formatOption
@@ -85,3 +86,35 @@ class UninstallCommand(
 
 private const val GOAL_CONTINUATION_ENV = "SKILL_BILL_GOAL_CONTINUATION"
 private const val GOAL_CONTINUATION_REFUSAL_EXIT_CODE = 64
+
+private fun UninstallPlan.toPayload(
+  status: String,
+  removed: List<String>,
+  skipped: List<String>,
+  warnings: List<String>,
+): Map<String, Any?> = linkedMapOf(
+  SharedPayloadKeys.STATUS to status,
+  "state_root" to stateRoot.toString(),
+  "skill_names" to skillNames,
+  "legacy_names" to legacyNames,
+  "agent_targets" to agentTargets.map { it.toString() },
+  "mcp_agents" to mcpAgents,
+  "launchers" to launchers.map {
+    mapOf("path" to it.path.toString(), "expected_target" to it.expectedTarget.toString())
+  },
+  "desktop" to mapOf(
+    "launcher" to desktop.launcher?.path?.toString(),
+    "files" to desktop.files.map { it.toString() },
+    "directories" to desktop.directories.map { it.toString() },
+  ),
+  "removed" to removed,
+  "skipped" to skipped,
+  "warnings" to warnings,
+)
+
+private fun UninstallResult.toPayload(): Map<String, Any?> = linkedMapOf(
+  SharedPayloadKeys.STATUS to status,
+  "removed" to removed,
+  "skipped" to skipped,
+  "warnings" to warnings,
+)

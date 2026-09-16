@@ -2,6 +2,9 @@ package skillbill.application.uninstall
 
 import skillbill.application.rethrowIfCooperativeCancellationOrInterruption
 import skillbill.application.scaffold.InstallAgentService
+import skillbill.application.uninstall.model.DesktopRemoval
+import skillbill.application.uninstall.model.LauncherRemoval
+import skillbill.application.uninstall.model.UninstallPlan
 import skillbill.install.model.ClaudeMcpProfileFailure
 import skillbill.ports.install.mcp.InstallMcpRegistrationPort
 import skillbill.ports.install.mcp.model.InstallMcpUnregistrationRequest

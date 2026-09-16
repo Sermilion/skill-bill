@@ -76,7 +76,7 @@ The seven architecture test classes exercised command-area isolation, the adapte
 
 ## Risk register
 
-Paths below are relative to `runtime-kotlin/runtime-cli/src/main/kotlin/skillbill/cli/` unless stated otherwise. Line anchors refer to the recorded source snapshot.
+Paths below are relative to `../../../runtime-kotlin/runtime-cli/src/main/kotlin/skillbill/cli` unless stated otherwise. Line anchors refer to the recorded source snapshot.
 
 - [F-001] Major | High | system/SystemCliCommands.kt:105 and model/ExternalCommandRunner.kt:23 | Update can report a failed download as completed and can leave an installer process alive after interruption.
 - [F-002] Major | High | system/UninstallCommand.kt:115 and system/UninstallCommandApply.kt:76 | Uninstall owns destructive application policy in the CLI and treats cancellation as a recoverable mutation failure.

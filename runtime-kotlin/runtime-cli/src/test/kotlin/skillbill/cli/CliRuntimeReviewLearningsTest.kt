@@ -11,6 +11,20 @@ import kotlin.test.assertEquals
 
 class CliRuntimeReviewLearningsTest {
   @Test
+  fun `import-review without a path consumes stdin after command parsing`() {
+    val tempDir = Files.createTempDirectory("skillbill-cli-import-stdin-default")
+    val dbPath = tempDir.resolve("metrics.db")
+
+    val result = CliRuntime.run(
+      listOf("--db", dbPath.toString(), "import-review", "--format", "json"),
+      CliRuntimeContext(stdinText = SAMPLE_REVIEW.trimIndent()),
+    )
+
+    assertEquals(0, result.exitCode, result.stdout)
+    assertEquals("rvw-20260402-001", decodeJsonObject(result.stdout)["review_run_id"])
+  }
+
+  @Test
   fun `import-review emits stable json payload`() {
     val tempDir = Files.createTempDirectory("skillbill-cli-import")
     val dbPath = tempDir.resolve("metrics.db")

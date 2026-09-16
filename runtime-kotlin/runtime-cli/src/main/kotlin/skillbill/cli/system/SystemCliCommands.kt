@@ -19,6 +19,7 @@ import skillbill.application.updatecheck.model.UpdateRunStatus
 import skillbill.cli.kernel.CliRunState
 import skillbill.cli.kernel.DocumentedCliCommand
 import skillbill.cli.kernel.formatOption
+import skillbill.cli.kernel.resolveCliRepositoryRoot
 import skillbill.cli.kernel.toPayload
 import skillbill.cli.model.CliExecutionResult
 import skillbill.cli.model.CliRunInputs
@@ -106,16 +107,13 @@ private fun UpdateRunStatus.toWireStatus(): String = when (this) {
   UpdateRunStatus.DOWNLOAD_FAILED -> "failed"
 }
 
-private fun UpdateRunPlan.toPayload(status: String): Map<String, Any?> =
-  linkedMapOf(
-    SharedPayloadKeys.STATUS to status,
-    "command" to command,
-    "installer_args" to installerArgs,
-  )
+private fun UpdateRunPlan.toPayload(status: String): Map<String, Any?> = linkedMapOf(
+  SharedPayloadKeys.STATUS to status,
+  "command" to command,
+  "installer_args" to installerArgs,
+)
 
-private fun UpdateRunResult.toText(
-  payload: Map<String, Any?>,
-): String = when {
+private fun UpdateRunResult.toText(payload: Map<String, Any?>): String = when {
   status == UpdateRunStatus.DRY_RUN -> buildString {
     appendLine("status: ${payload[SharedPayloadKeys.STATUS]}")
     appendLine("command: ${plan.command}")
@@ -140,7 +138,10 @@ class DoctorCliCommand(
   private val subject by argument(help = "Optional diagnostic subject. Use `skill` for one governed skill.")
     .optional()
   private val skillName by argument(help = "Governed skill name when diagnosing one skill.").optional()
-  private val repoRoot by option("--repo-root", help = "Repo root to inspect when using `doctor skill`.").default(".")
+  private val repoRoot by option(
+    "--repo-root",
+    help = "Repo root to inspect when using `doctor skill`. Defaults to the invocation repository root.",
+  )
   private val content by option("--content", help = "How much content.md text to include when using `doctor skill`.")
     .choice("none", "preview", "full")
     .default("preview")
@@ -150,7 +151,8 @@ class DoctorCliCommand(
     if (subject == null) {
       state.complete(service.doctor().toPayload(), format)
     } else {
-      state.result = retiredSubjectResult(subject.orEmpty(), skillName.orEmpty(), repoRoot, content)
+      val resolvedRoot = resolveCliRepositoryRoot(repoRoot, inputs).toString()
+      state.result = retiredSubjectResult(subject.orEmpty(), skillName.orEmpty(), resolvedRoot, content)
     }
   }
 }

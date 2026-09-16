@@ -2,13 +2,13 @@ package skillbill.cli.repovalidation
 
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.optional
-import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import me.tatarka.inject.annotations.Inject
 import skillbill.cli.kernel.CliRunState
 import skillbill.cli.kernel.DocumentedCliCommand
 import skillbill.cli.kernel.formatOption
+import skillbill.cli.kernel.resolveCliRepositoryRoot
 import skillbill.cli.model.CliFormat
 import skillbill.cli.model.CliRunInputs
 import skillbill.contracts.SharedPayloadKeys
@@ -22,23 +22,27 @@ class RepoValidationCliCommands(
   private val repoValidationGateway: RepoValidationGateway,
 ) {
   val commands = listOf(
-    ValidateAgentConfigsCommand(state, repoValidationGateway),
+    ValidateAgentConfigsCommand(state, inputs, repoValidationGateway),
     ValidateReleaseRefCommand(state, inputs, repoValidationGateway),
   )
 }
 
 class ValidateAgentConfigsCommand(
   private val state: CliRunState,
+  private val inputs: CliRunInputs,
   private val repoValidationGateway: RepoValidationGateway,
 ) : DocumentedCliCommand(
   "validate-agent-configs",
   "Validate Skill Bill governed skills, platform packs, add-ons, docs catalog, and workflow contracts.",
 ) {
-  private val repoRoot by option("--repo-root", help = "Repository root to inspect.").default(".")
+  private val repoRoot by option(
+    "--repo-root",
+    help = "Repository root to inspect. Defaults to the invocation repository root.",
+  )
   private val format by formatOption()
 
   override fun run() {
-    val report = repoValidationGateway.validateRepo(Path.of(repoRoot))
+    val report = repoValidationGateway.validateRepo(resolveCliRepositoryRoot(repoRoot, inputs))
     val payload = report.toContract().toPayload()
     if (format == CliFormat.JSON) {
       state.complete(payload, format, exitCode = if (report.passed) 0 else 1)
@@ -77,7 +81,10 @@ class ValidateReleaseRefCommand(
     "--github-output",
     help = "Optional file path where GitHub Actions step outputs should be appended.",
   )
-  private val repoRoot by option("--repo-root", help = "Repository root whose LICENSE is evaluated.").default(".")
+  private val repoRoot by option(
+    "--repo-root",
+    help = "Repository root whose LICENSE is evaluated. Defaults to the invocation repository root.",
+  )
   private val forcePrerelease by option(
     "--force-prerelease",
     help = "Require a manual staging version to carry a SemVer prerelease identifier.",
@@ -101,7 +108,7 @@ class ValidateReleaseRefCommand(
     }
 
     val metadata = try {
-      repoValidationGateway.validateReleaseRef(Path.of(repoRoot), rawRef, forcePrerelease)
+      repoValidationGateway.validateReleaseRef(resolveCliRepositoryRoot(repoRoot, inputs), rawRef, forcePrerelease)
     } catch (error: IllegalArgumentException) {
       val payload = mapOf(SharedPayloadKeys.STATUS to "failed", "error" to error.message.orEmpty())
       if (format == CliFormat.JSON) {

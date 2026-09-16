@@ -10,6 +10,7 @@ import skillbill.cli.kernel.CliRunState
 import skillbill.cli.model.CliExecutionResult
 import skillbill.cli.model.CliRunInputs
 import skillbill.cli.model.CliRuntimeContext
+import skillbill.cli.model.CliStdoutCompletion
 import skillbill.di.RuntimeComponent
 import skillbill.di.create
 import skillbill.error.DatabaseAccessError
@@ -29,7 +30,6 @@ object CliRuntime {
     val runState = CliRunState(context.stdinText)
     val runInputs = CliRunInputs(
       databasePath = resolved.dbPathOverride,
-      stdinText = context.stdinText,
       environment = resolved.environment,
       userHome = resolved.userHome,
       repositoryRoot = resolved.repositoryRoot,
@@ -42,7 +42,11 @@ object CliRuntime {
     return try {
       CommandLineParser.parseAndRun(rootCommand, arguments) { command -> command.run() }
       cliComponent.runState.result
-        ?: CliExecutionResult(exitCode = 0, stdout = rootCommand.getFormattedHelp().orEmpty())
+        ?: CliExecutionResult(
+          exitCode = 0,
+          stdout = rootCommand.getFormattedHelp().orEmpty(),
+          stdoutCompletion = CliStdoutCompletion.IMPLICIT,
+        )
     } catch (error: CliktError) {
       CliExecutionResult(
         exitCode = error.statusCode,

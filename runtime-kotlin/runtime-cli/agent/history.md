@@ -1,3 +1,14 @@
+## [2026-09-16] SKILL-348 — authoritative CLI invocation inputs and output (subtask 2)
+Areas: runtime-cli/{core,kernel,model,featuretask,workflow,codereview,scaffold,config,install,review}, runtime-application/diagnostics
+- `CliRunState` now marks explicit text, raw-byte, and empty completions; `Main` and `CliRuntime` no longer append root help or a synthetic newline after settled raw or empty results.
+- Rejected-output inspect/cleanup route through `RejectedOutputDiagnosticCliSession` in `runtime-application`; `featuretask` CLI no longer constructs `RejectedOutputDiagnosticService` from `UnitOfWork`.
+- Stdin is consumed on demand after Clikt parse for `import-review`, `--body-file=-`, and `--payload=-`; `resolveCliRepositoryRoot` centralizes omitted `--repo-root` resolution.
+- Verify-workflow commands are collapsed to concrete implementations; `CodeReviewDriverCommand` merged into `CodeReviewCommand`.
+- Architecture guard: `featuretask` must not reference `RejectedOutputDiagnosticService(` or `unitOfWork.diagnosticService`. Clikt `.default(".")` on repo roots is not scanned.
+- Known limitation: malformed `--step-updates` and omitted-versus-empty update-array coverage remains a follow-up test seam.
+Feature flag: N/A
+Acceptance criteria: 9/9 implemented
+
 ## [2026-09-11] SKILL-233 — named standalone code-review targets
 Areas: runtime-cli/codereview
 - Positional `pr`, `uncommitted`, `staged`, `unstaged`, `last`, and `HEAD` map to the matching packet. A SHA still reviews that commit against its first parent.

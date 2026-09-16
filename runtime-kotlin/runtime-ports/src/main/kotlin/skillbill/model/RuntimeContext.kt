@@ -3,12 +3,12 @@ package skillbill.model
 import skillbill.ports.agentrun.AgentRunLauncher
 import skillbill.ports.agentrun.ExecutableLookup
 import skillbill.ports.goalrunner.runner.GoalPullRequestPort
+import skillbill.ports.process.InstallerProcessPort
+import skillbill.ports.process.InstallerScriptFetchPort
 import skillbill.ports.review.ReviewNativeAgentPreflightPort
 import skillbill.ports.system.HostPlatformPort
 import skillbill.ports.telemetry.RemoteTransportPort
 import skillbill.ports.time.RuntimeTimingPort
-import skillbill.ports.process.InstallerProcessPort
-import skillbill.ports.process.InstallerScriptFetchPort
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import java.nio.file.Path
 import java.time.Duration

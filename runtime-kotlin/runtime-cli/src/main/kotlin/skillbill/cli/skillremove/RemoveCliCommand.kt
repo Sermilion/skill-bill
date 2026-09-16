@@ -11,6 +11,7 @@ import skillbill.application.scaffold.SkillRemove
 import skillbill.cli.kernel.CliRunState
 import skillbill.cli.kernel.DocumentedCliCommand
 import skillbill.cli.kernel.formatOption
+import skillbill.cli.kernel.resolveCliRepositoryRoot
 import skillbill.cli.model.CliRunInputs
 
 @Inject
@@ -29,9 +30,8 @@ class RemoveCliCommand(
   ).optional()
   private val repoRoot by option(
     "--repo-root",
-    help = "Repo root to operate on. Defaults to the current working directory.",
+    help = "Repo root to operate on. Defaults to the invocation repository root.",
   )
-    .default(".")
   private val dryRun by option("--dry-run", help = "Preview the removal cascade without touching disk.")
     .flag(default = false)
   private val allowShipped by option(
@@ -47,7 +47,7 @@ class RemoveCliCommand(
         inputs = inputs,
         skillRemove = skillRemove,
         rawTarget = target,
-        repoRoot = repoRoot,
+        repoRoot = resolveCliRepositoryRoot(repoRoot, inputs).toString(),
         dryRun = dryRun,
         allowShipped = allowShipped,
         format = format,

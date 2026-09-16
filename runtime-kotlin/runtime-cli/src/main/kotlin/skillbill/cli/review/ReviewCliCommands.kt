@@ -59,13 +59,13 @@ class ReviewTopLevelCommands(
 class ImportReviewCommand(
   private val service: ReviewService,
   private val state: CliRunState,
-  private val inputs: CliRunInputs,
 ) : DocumentedCliCommand("import-review", "Import a review output file or stdin into the local SQLite store.") {
   private val input by argument(help = "Path to review text, or '-' for stdin.").default("-")
   private val format by formatOption()
 
   override fun run() {
-    state.complete(service.importReview(input).toCliMap(), format)
+    val stdinForImport = if (input == "-") state.wholeStdinText() else null
+    state.complete(service.importReview(input, stdinText = stdinForImport).toCliMap(), format)
   }
 }
 
@@ -73,7 +73,6 @@ class ImportReviewCommand(
 class RecordFeedbackCommand(
   private val service: ReviewService,
   private val state: CliRunState,
-  private val inputs: CliRunInputs,
 ) : DocumentedCliCommand("record-feedback", "Record explicit feedback events for findings in an imported review run.") {
   private val runId by option("--run-id", help = "Imported review run id.").required()
   private val event by option("--event", help = "Canonical finding outcome to record.").required()
@@ -92,7 +91,6 @@ class RecordFeedbackCommand(
 class TriageCommand(
   private val service: ReviewService,
   private val state: CliRunState,
-  private val inputs: CliRunInputs,
 ) : DocumentedCliCommand(
   "triage",
   "Show numbered findings for a review run and record triage decisions by number.",
@@ -124,7 +122,6 @@ class TriageCommand(
 class ReviewStatsCommand(
   private val service: ReviewService,
   private val state: CliRunState,
-  private val inputs: CliRunInputs,
 ) : DocumentedCliCommand(
   "stats",
   "Show aggregate or per-run review acceptance metrics, including per-stage verdict distribution and refutation rate.",
@@ -141,7 +138,6 @@ class ReviewStatsCommand(
 class PruneReviewSnapshotsCommand(
   private val service: ReviewSnapshotPruneService,
   private val state: CliRunState,
-  private val inputs: CliRunInputs,
 ) : DocumentedCliCommand(
   "prune-snapshots",
   "List and optionally delete ~/.skill-bill/review-metrics.<label>.db snapshots. " +
@@ -172,7 +168,6 @@ class PruneReviewSnapshotsCommand(
 class FeatureVerifyStatsCommand(
   private val service: ReviewService,
   private val state: CliRunState,
-  private val inputs: CliRunInputs,
 ) : DocumentedCliCommand("verify-stats", "Show aggregate bill-feature-verify metrics.") {
   private val format by formatOption()
 
@@ -185,7 +180,6 @@ class FeatureVerifyStatsCommand(
 class FeatureTaskStatsCommand(
   private val service: ReviewService,
   private val state: CliRunState,
-  private val inputs: CliRunInputs,
 ) : DocumentedCliCommand("feature-task-stats", "Show aggregate feature-task metrics.") {
   private val format by formatOption()
 
@@ -220,7 +214,6 @@ class FeatureTaskRuntimeStatsCommand(
 class GoalStatsCommand(
   private val service: ReviewService,
   private val state: CliRunState,
-  private val inputs: CliRunInputs,
 ) : DocumentedCliCommand("goal-stats", "Show aggregate decomposed-goal run metrics.") {
   private val format by formatOption()
 

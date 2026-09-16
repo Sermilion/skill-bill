@@ -7,6 +7,7 @@ import skillbill.infrastructure.fs.GitWorkflowGitOperations
 import skillbill.ports.workflow.gitops.repositoryFingerprint
 import skillbill.telemetry.CONFIG_ENVIRONMENT_KEY
 import skillbill.telemetry.INSTALL_ID_ENVIRONMENT_KEY
+import java.io.InputStream
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
@@ -16,6 +17,36 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class CliRuntimeShellCommandsTest {
+  @Test
+  fun `help does not consume stdin`() {
+    val original = System.`in`
+    System.setIn(object : InputStream() {
+      override fun read(): Int = error("help must not read stdin")
+    })
+
+    try {
+      val result = CliRuntime.run(listOf("--help"))
+      assertEquals(0, result.exitCode, result.stdout)
+    } finally {
+      System.setIn(original)
+    }
+  }
+
+  @Test
+  fun `an unrelated dash argument does not consume stdin`() {
+    val original = System.`in`
+    System.setIn(object : InputStream() {
+      override fun read(): Int = error("unrelated commands must not read stdin")
+    })
+
+    try {
+      val result = CliRuntime.run(listOf("version", "-"))
+      assertEquals(1, result.exitCode)
+    } finally {
+      System.setIn(original)
+    }
+  }
+
   @Test
   fun `doctor and version expose stable metadata`() {
     val tempDir = Files.createTempDirectory("skillbill-cli-doctor")
@@ -241,7 +272,9 @@ class CliRuntimeShellCommandsTest {
     assertEquals(1, result.exitCode)
     assertEquals(
       "doctor skill was retired in SKILL-32; use " +
-        "`skill-bill show bill-feature --repo-root . --content none` instead.",
+        "`skill-bill show bill-feature --repo-root ${
+          Path.of("").toAbsolutePath().normalize()
+        } --content none` instead.",
       result.stdout,
     )
   }

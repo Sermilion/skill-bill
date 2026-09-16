@@ -16,7 +16,7 @@ import java.nio.file.Path
 internal fun WorkflowService.openRuntimeWorkflowId(
   issueKey: String?,
   specPath: String,
-  repoRoot: String,
+  repoRoot: Path,
   routeScope: FeatureTaskRouteScope,
 ): String = when (
   val opened = openFeatureTask(
@@ -25,8 +25,8 @@ internal fun WorkflowService.openRuntimeWorkflowId(
       sessionId = "",
       currentStepId = null,
       issueKey = requireNotNull(issueKey),
-      repositoryIdentity = repositoryIdentity(Path.of(repoRoot)),
-      governedSpecPath = governedSpecPath(Path.of(repoRoot), Path.of(specPath)),
+      repositoryIdentity = repositoryIdentity(repoRoot),
+      governedSpecPath = governedSpecPath(repoRoot, Path.of(specPath)),
       routeScope = routeScope,
     ),
   )
@@ -65,20 +65,12 @@ internal fun governedSpecPath(repositoryRoot: Path, specPath: Path): String {
 
 internal data class VerifyRuntimeResumeArgs(
   val lookupService: FeatureTaskContinuationLookupService,
-  val inputs: CliRunInputs,
   val workflowId: String,
   val issueKey: String,
   val specPath: String,
-  val repoRoot: String,
+  val repoRoot: Path,
   val goalChild: Boolean,
 )
-
-internal fun resumeRepositoryRoot(repoRoot: String, specPath: Path): Path {
-  if (repoRoot != "." || !specPath.isAbsolute) return Path.of(repoRoot)
-  var candidate: Path? = specPath.parent
-  while (candidate != null && candidate.fileName?.toString() != ".feature-specs") candidate = candidate.parent
-  return candidate?.parent ?: Path.of(repoRoot)
-}
 
 internal fun runtimeRunEventSink(inputs: CliRunInputs, monitor: Boolean): FeatureTaskRuntimeRunEventSink =
   if (!monitor) {

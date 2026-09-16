@@ -2,6 +2,11 @@ package skillbill.application.uninstall
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.scaffold.InstallAgentService
+import skillbill.application.uninstall.model.DesktopRemoval
+import skillbill.application.uninstall.model.LauncherRemoval
+import skillbill.application.uninstall.model.UninstallPlan
+import skillbill.application.uninstall.model.UninstallRequest
+import skillbill.application.uninstall.model.UninstallResult
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.install.mcp.InstallMcpRegistrationPort
 import skillbill.ports.install.nativeagent.InstallNativeAgentLinkPort

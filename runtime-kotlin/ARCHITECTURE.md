@@ -1326,6 +1326,14 @@ never a sibling command area and never the composition root
 `skillbill.cli.core`. A cycle baseline can be emptied by moving a single import
 even when the areas stay entangled through one-directional hub edges, so the
 closure assertion is the guard that any command area builds and tests alone.
+`RuntimeCliAreaIsolationArchitectureTest` also rejects `featuretask` production
+sources that construct `RejectedOutputDiagnosticService` or call
+`unitOfWork.diagnosticService`; rejected-output CLI routes through
+`RejectedOutputDiagnosticCliSession` in `runtime-application` instead. The
+scanner does not treat Clikt `.default(".")` on `--repo-root` as equivalent to
+`Path.of("")`; omitted roots resolve through `resolveCliRepositoryRoot` and
+`CliRunInputs.repositoryRoot`.
+
 The scan enumerates every area it finds under `skillbill.cli` and exempts one
 name, `CLI_COMPOSITION_ROOT_AREA`; probing a single hand-picked area would let a
 one-directional edge such as `goal -> featuretask` pass both guards.
