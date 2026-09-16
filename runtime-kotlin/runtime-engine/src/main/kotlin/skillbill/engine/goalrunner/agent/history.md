@@ -1,5 +1,14 @@
 # goalrunner boundary history
 
+## [2026-09-16] SKILL-248 subtask 1 — Own goal execution cleanup and failure propagation
+Areas: runtime-kotlin/{ARCHITECTURE.md, runtime-engine/{goalrunner, tests}}
+- Goal-runner execution now owns reverse-order lease/heartbeat/shutdown-hook cleanup across startup, cancellation, interruption, body, and teardown failures while preserving primary errors and continuing cleanup.
+- Progress, ledger, and observability callbacks propagate cancellation/interruption; failed watermark reads stay visible, and optional write failures emit bounded diagnostics without masking primary outcomes.
+- Pattern: keep fenced release and bounded shutdown facilities at the coordinator boundary; record authoritative ledger watermarks before resumed writes. reusable
+- Limitation: expired-lease policy, heartbeat cadence, workflow ordering, and ledger schema remain unchanged.
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented
+
 ## [2026-09-15] SKILL-245 — Goal purge command
 Areas: runtime-kotlin/{runtime-engine/{goalrunner,featuretask}, runtime-infra-sqlite/{goalrunner,workflow}, runtime-infra-fs, runtime-cli/goal, runtime-ports, runtime-contracts}
 - Added confirmed `goal purge` orchestration that refuses live leases, deletes goal-owned durable state, restores the prepared manifest/spec tree, and prunes issue checkpoint refs without changing branches, commits, standalone workflows, or telemetry.

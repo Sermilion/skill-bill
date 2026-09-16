@@ -21,6 +21,10 @@ public class GoalRunnerProgressReader(
         onFailure = { error ->
           when (error) {
             is CancellationException -> throw error
+            is InterruptedException -> {
+              Thread.currentThread().interrupt()
+              throw error
+            }
             is ShellContentContractException -> throw error
             else -> {
               val exception = error as? Exception ?: throw error

@@ -9,6 +9,7 @@ import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowOutcomeStore
 import skillbill.ports.goalrunner.runner.model.GoalRunnerWorkflowProgress
 import java.time.Clock
+import kotlin.coroutines.cancellation.CancellationException
 
 class GoalRunnerObservabilityEmitter(
   private val outcomeStore: GoalRunnerWorkflowOutcomeStore,
@@ -33,8 +34,8 @@ class GoalRunnerObservabilityEmitter(
   }
 
   internal fun record(subject: GoalRunnerObservabilitySubject, signal: GoalRunnerObservabilitySignal) {
-    runCatching {
-      outcomeStore.recordObservabilityEvent(
+    try {
+      val recorded = outcomeStore.recordObservabilityEvent(
         request = GoalRunnerObservabilityRecordRequest(
           workflowId = subject.workflowId,
           issueKey = subject.issueKey,
@@ -47,11 +48,41 @@ class GoalRunnerObservabilityEmitter(
           timestamp = clock.instant().toString(),
         ),
       )
-    }.onFailure { error ->
+      if (!recorded) {
+        logBestEffortMissingWorkflow(subject, signal)
+      }
+    } catch (cancellation: CancellationException) {
+      throw cancellation
+    } catch (interrupted: InterruptedException) {
+      Thread.currentThread().interrupt()
+      throw interrupted
+    } catch (error: Throwable) {
+      logBestEffortFailure(subject, signal, error)
+    }
+  }
+
+  private fun logBestEffortMissingWorkflow(
+    subject: GoalRunnerObservabilitySubject,
+    signal: GoalRunnerObservabilitySignal,
+  ) {
+    runCatching {
+      diagnostics.warning(
+        "Best-effort goal observability emit skipped (workflow not found): " +
+          "workflowId='${subject.workflowId}' livenessClass='${signal.livenessClass}'",
+      )
+    }
+  }
+
+  private fun logBestEffortFailure(
+    subject: GoalRunnerObservabilitySubject,
+    signal: GoalRunnerObservabilitySignal,
+    error: Throwable,
+  ) {
+    runCatching {
       diagnostics.warning(
         "Best-effort goal observability emit failed: workflowId='${subject.workflowId}' " +
           "livenessClass='${signal.livenessClass}' errorType='${error::class.qualifiedName}' " +
-          "message='${error.message.orEmpty()}'",
+            "message='${error.message.orEmpty().take(MAX_DIAGNOSTIC_MESSAGE_LENGTH)}'",
         error,
       )
     }
@@ -151,3 +182,5 @@ internal data class GoalRunnerObservabilitySignal(
   val livenessClass: String,
   val activitySummary: String,
 )
+
+private const val MAX_DIAGNOSTIC_MESSAGE_LENGTH = 240

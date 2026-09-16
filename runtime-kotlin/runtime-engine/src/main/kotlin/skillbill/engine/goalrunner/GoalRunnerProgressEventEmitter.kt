@@ -1,5 +1,6 @@
 package skillbill.engine.goalrunner
 
+import kotlin.coroutines.cancellation.CancellationException
 import skillbill.ports.agentrun.model.AgentRunProgressEmission
 import skillbill.ports.agentrun.model.AgentRunProgressEmitter
 import skillbill.ports.diagnostics.RuntimeDiagnostics
@@ -18,8 +19,7 @@ class GoalRunnerProgressEventEmitter(
   private var sequence: Int = watermarkSeed?.let { it + 1 } ?: 0
 
   override fun emit(emission: AgentRunProgressEmission) {
-    val workflowId = runCatching { resolveWorkflowId() }.getOrNull()?.takeIf(String::isNotBlank)
-      ?: return
+    val workflowId = resolveEmitWorkflowId() ?: return
     val event = GoalProgressEvent(
       eventKind = emission.eventKind,
       workflowId = workflowId,
@@ -33,27 +33,55 @@ class GoalRunnerProgressEventEmitter(
       expectedLong = emission.expectedLong,
       outcome = emission.outcome,
     )
-    runCatching {
+    val recorded = try {
       outcomeStore.recordProgressEvent(
         GoalRunnerProgressEventRecordRequest(workflowId = workflowId, event = event),
       )
+    } catch (cancellation: CancellationException) {
+      throw cancellation
+    } catch (interrupted: InterruptedException) {
+      Thread.currentThread().interrupt()
+      throw interrupted
+    } catch (error: Throwable) {
+      logBestEffortFailure(emission, workflowId, error)
+      return
     }
-      .onFailure { error -> logBestEffortFailure(emission, workflowId, error) }
-      .onSuccess { recorded -> if (!recorded) logBestEffortMissingWorkflow(emission, workflowId) }
+    if (!recorded) {
+      logBestEffortMissingWorkflow(emission, workflowId)
+    }
   }
 
+  private fun resolveEmitWorkflowId(): String? =
+    try {
+      resolveWorkflowId()?.takeIf(String::isNotBlank)
+    } catch (cancellation: CancellationException) {
+      throw cancellation
+    } catch (interrupted: InterruptedException) {
+      Thread.currentThread().interrupt()
+      throw interrupted
+    }
+
   private fun logBestEffortFailure(emission: AgentRunProgressEmission, workflowId: String, error: Throwable) {
-    diagnostics.warning(
-      "Best-effort goal progress emit failed: action='${emission.eventKind.wireValue}' " +
-        "workflowId='$workflowId' errorType='${error::class.qualifiedName}' message='${error.message.orEmpty()}'",
-      error,
-    )
+    runCatching {
+      diagnostics.warning(
+        "Best-effort goal progress emit failed: action='${emission.eventKind.wireValue}' " +
+          "workflowId='$workflowId' errorType='${error::class.qualifiedName}' " +
+          "message='${error.message.orEmpty().take(MAX_DIAGNOSTIC_MESSAGE_LENGTH)}'",
+        error,
+      )
+    }
   }
 
   private fun logBestEffortMissingWorkflow(emission: AgentRunProgressEmission, workflowId: String) {
-    diagnostics.warning(
-      "Best-effort goal progress emit skipped (workflow not found): " +
-        "action='${emission.eventKind.wireValue}' workflowId='$workflowId'",
-    )
+    runCatching {
+      diagnostics.warning(
+        "Best-effort goal progress emit skipped (workflow not found): " +
+          "action='${emission.eventKind.wireValue}' workflowId='$workflowId'",
+      )
+    }
+  }
+
+  private companion object {
+    const val MAX_DIAGNOSTIC_MESSAGE_LENGTH = 240
   }
 }

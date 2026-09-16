@@ -24,12 +24,14 @@ import java.time.Clock
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneOffset
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.system.measureTimeMillis
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 class GoalRunnerExecutionCoordinatorTest {
@@ -279,6 +281,137 @@ class GoalRunnerExecutionCoordinatorTest {
   }
 
   @Test
+  fun `heartbeat startup failure preserves its failure when lease cleanup also fails`() {
+    val store = InMemoryExecutionLeaseStore(null)
+    val failure = IllegalStateException("start heartbeat")
+    val releaseFailure = IllegalStateException("release heartbeat startup lease")
+    store.releaseFailure = releaseFailure
+    val supervisor = FakeGoalSupervisor(NOT_RUNNING, heartbeatStartFailure = failure)
+    val coordinator = testCoordinator(store, supervisor)
+    var bodyRan = false
+
+    val thrown = assertFailsWith<IllegalStateException> {
+      coordinator.runOwned("parent-1") {
+        bodyRan = true
+        "never"
+      }
+    }
+
+    assertSame(failure, thrown)
+    assertTrue(thrown.suppressed.any { it === releaseFailure })
+    assertEquals(listOf(Triple("parent-1", "test-owner-token", 1L)), store.releaseCalls)
+    assertEquals(1L, store.executionLeaseValue?.generation)
+    assertFalse(bodyRan)
+  }
+
+  @Test
+  fun `hook registration failure stops heartbeat releases lease and does not run the goal body`() {
+    val store = InMemoryExecutionLeaseStore(null)
+    val failure = IllegalStateException("register hook")
+    val supervisor = FakeGoalSupervisor(NOT_RUNNING)
+    val coordinator = DefaultGoalRunnerExecutionCoordinator(
+      manifestStore = store,
+      supervisor = supervisor,
+      clock = fixedClock(),
+      shutdownHookPort = FailingRegisterShutdownHookPort(failure),
+      daemonThreadPort = FakeDaemonThreadPort,
+      identifierGeneratorPort = FakeIdentifierGeneratorPort,
+    )
+    var bodyRan = false
+
+    val thrown = assertFailsWith<IllegalStateException> {
+      coordinator.runOwned("parent-1") {
+        bodyRan = true
+        "never"
+      }
+    }
+
+    assertEquals("register hook", thrown.message)
+    assertNull(store.executionLeaseValue)
+    assertTrue(supervisor.heartbeatStopped)
+    assertFalse(bodyRan)
+  }
+
+  @Test
+  fun `goal body failure stays primary when hook unregister fails during teardown`() {
+    val store = InMemoryExecutionLeaseStore(null)
+    val primary = IllegalArgumentException("body failed")
+    val secondary = IllegalStateException("unregister hook")
+    val supervisor = FakeGoalSupervisor(NOT_RUNNING)
+    val coordinator = DefaultGoalRunnerExecutionCoordinator(
+      manifestStore = store,
+      supervisor = supervisor,
+      clock = fixedClock(),
+      shutdownHookPort = FailingUnregisterShutdownHookPort(secondary),
+      daemonThreadPort = FakeDaemonThreadPort,
+      identifierGeneratorPort = FakeIdentifierGeneratorPort,
+    )
+
+    val thrown = assertFailsWith<IllegalArgumentException> {
+      coordinator.runOwned("parent-1") { throw primary }
+    }
+
+    assertEquals("body failed", thrown.message)
+    assertTrue(thrown.suppressed.any { it === secondary })
+    assertNull(store.executionLeaseValue)
+    assertTrue(supervisor.heartbeatStopped)
+  }
+
+  @Test
+  fun `goal body cancellation stays primary when lease teardown fails`() {
+    val store = InMemoryExecutionLeaseStore(null)
+    val primary = CancellationException("body cancelled")
+    val secondary = IllegalStateException("release failed")
+    store.releaseFailure = secondary
+    val coordinator = testCoordinator(store, FakeGoalSupervisor(NOT_RUNNING))
+
+    val thrown = assertFailsWith<CancellationException> {
+      coordinator.runOwned("parent-1") { throw primary }
+    }
+
+    assertSame(primary, thrown)
+    assertTrue(thrown.suppressed.any { it === secondary })
+    assertTrue(store.releaseCalls.isNotEmpty())
+  }
+
+  @Test
+  fun `heartbeat stop failure still releases the execution lease`() {
+    val store = InMemoryExecutionLeaseStore(null)
+    val failure = IllegalStateException("stop heartbeat")
+    val supervisor = FakeGoalSupervisor(NOT_RUNNING, heartbeatStopFailure = failure)
+    val coordinator = testCoordinator(store, supervisor)
+
+    val thrown = assertFailsWith<IllegalStateException> {
+      coordinator.runOwned("parent-1") { "done" }
+    }
+
+    assertEquals("stop heartbeat", thrown.message)
+    assertNull(store.executionLeaseValue)
+  }
+
+  @Test
+  fun `successful goal body does not return when lease release fails`() {
+    val store = InMemoryExecutionLeaseStore(null)
+    store.releaseFailure = IllegalStateException("release failed")
+    val coordinator = testCoordinator(store, FakeGoalSupervisor(NOT_RUNNING))
+
+    assertFailsWith<IllegalStateException> {
+      coordinator.runOwned("parent-1") { "done" }
+    }
+  }
+
+  @Test
+  fun `successful nullable goal body preserves its null result`() {
+    val store = InMemoryExecutionLeaseStore(null)
+    val coordinator = testCoordinator(store, FakeGoalSupervisor(NOT_RUNNING))
+
+    val result: String? = coordinator.runOwned("parent-1") { null }
+
+    assertNull(result)
+    assertNull(store.executionLeaseValue)
+  }
+
+  @Test
   fun `a parent heartbeat tick that lost fencing fails the goal instead of reporting success`() {
     val store = InMemoryExecutionLeaseStore(lease(generation = 1, ownerToken = "old-owner"))
     val supervisor = FakeGoalSupervisor(FeatureTaskRuntimeProcessInspection.NotRunning)
@@ -384,9 +517,11 @@ private class InMemoryExecutionLeaseStore(
   var executionLeaseValue: GoalRunnerExecutionLease? = initialLease
   var controlStateValue: GoalRunnerControlState = GoalRunnerControlState()
   val pauseNowCalls: MutableList<Triple<String, String, Boolean>> = mutableListOf()
+  val releaseCalls: MutableList<Triple<String, String, Long>> = mutableListOf()
   var persistControlStateCalls: Int = 0
   var pauseNowFailure: (() -> Nothing)? = null
   var pauseNowBlocksForever: Boolean = false
+  var releaseFailure: Throwable? = null
 
   override fun controlState(parentWorkflowId: String): GoalRunnerControlState = controlStateValue
 
@@ -441,6 +576,8 @@ private class InMemoryExecutionLeaseStore(
   }
 
   override fun releaseExecutionLease(parentWorkflowId: String, ownerToken: String, generation: Long): Boolean {
+    releaseCalls += Triple(parentWorkflowId, ownerToken, generation)
+    releaseFailure?.let { throw it }
     if (executionLeaseValue?.ownerToken != ownerToken || executionLeaseValue?.generation != generation) return false
     executionLeaseValue = null
     return true
@@ -452,6 +589,8 @@ private class FakeGoalSupervisor(
   private val current: FeatureTaskRuntimeProcessIdentity =
     FeatureTaskRuntimeProcessIdentity("host", "boot", 200, "birth-200"),
   private val markNotRunningAfterAwait: Boolean = true,
+  private val heartbeatStartFailure: Throwable? = null,
+  private val heartbeatStopFailure: Throwable? = null,
 ) : FeatureTaskRuntimeWorkerSupervisor {
   private var inspection = initialInspection
   private var tick: (() -> FeatureTaskRuntimeHeartbeatTick)? = null
@@ -461,6 +600,8 @@ private class FakeGoalSupervisor(
   var lastAwaitTimeout: Duration? = null
     private set
   var capturedPlan: FeatureTaskRuntimeHeartbeatPlan? = null
+    private set
+  var heartbeatStopped: Boolean = false
     private set
 
   override fun currentProcess(): FeatureTaskRuntimeProcessIdentity = current
@@ -483,10 +624,14 @@ private class FakeGoalSupervisor(
     plan: FeatureTaskRuntimeHeartbeatPlan,
     heartbeat: () -> FeatureTaskRuntimeHeartbeatTick,
   ): FeatureTaskRuntimeHeartbeat {
+    heartbeatStartFailure?.let { throw it }
     capturedPlan = plan
     tick = heartbeat
     return object : FeatureTaskRuntimeHeartbeat {
-      override fun stop() = Unit
+      override fun stop() {
+        heartbeatStopFailure?.let { throw it }
+        heartbeatStopped = true
+      }
 
       override fun fencingLostReason(): String? = fencingLostReason
     }
@@ -517,6 +662,24 @@ private fun testCoordinator(
 private object FakeShutdownHookPort : ShutdownHookPort {
   override fun register(action: () -> Unit): ShutdownHookRegistration = object : ShutdownHookRegistration {
     override fun unregister(): Boolean = true
+  }
+}
+
+private class FailingRegisterShutdownHookPort(
+  private val failure: Throwable,
+) : ShutdownHookPort {
+  override fun register(action: () -> Unit): ShutdownHookRegistration {
+    throw failure
+  }
+}
+
+private class FailingUnregisterShutdownHookPort(
+  private val failure: Throwable,
+) : ShutdownHookPort {
+  override fun register(action: () -> Unit): ShutdownHookRegistration = object : ShutdownHookRegistration {
+    override fun unregister(): Boolean {
+      throw failure
+    }
   }
 }
 

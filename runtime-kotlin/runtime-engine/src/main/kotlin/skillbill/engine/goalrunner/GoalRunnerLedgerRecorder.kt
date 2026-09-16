@@ -11,6 +11,7 @@ import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowOutcomeStore
 import skillbill.ports.goalrunner.runner.model.GoalRunnerAttemptLedgerRecordRequest
 import skillbill.ports.goalrunner.runner.model.GoalRunnerWorkflowProgress
 import java.time.Clock
+import kotlin.coroutines.cancellation.CancellationException
 
 class GoalRunnerLedgerRecorder(
   private val outcomeStore: GoalRunnerWorkflowOutcomeStore,
@@ -19,13 +20,15 @@ class GoalRunnerLedgerRecorder(
   private val diagnostics: RuntimeDiagnostics,
 ) {
 
-  private val watermarks = runCatching {
+  private val watermarkLoad = try {
     outcomeStore.ledgerSequenceWatermarks(request.issueKey)
-  }.getOrNull()
-  private var ledgerSequence: Int = watermarks?.maxLedgerSequence?.let { it + 1 } ?: 0
-
+  } catch (interrupted: InterruptedException) {
+    Thread.currentThread().interrupt()
+    throw interrupted
+  }
+  private var ledgerSequence: Int = watermarkLoad.maxLedgerSequence?.let { it + 1 } ?: 0
   private val cumulativeBackwardEdgeCounts: MutableMap<String, Int> =
-    watermarks?.backwardEdgeCounts?.toMutableMap() ?: mutableMapOf()
+    watermarkLoad.backwardEdgeCounts.toMutableMap()
 
   internal fun recordBackwardEdgeEntry(edge: GoalRunnerBackwardEdge) {
     val key = "${edge.subtaskId}:${edge.loopId}"
@@ -78,38 +81,46 @@ class GoalRunnerLedgerRecorder(
       reAttemptCause = context.reAttemptCause?.takeIf(String::isNotBlank),
       findingsInScope = context.findingsInScope,
     )
-    runCatching {
+    val recorded = try {
       outcomeStore.recordAttemptLedgerEntry(
         GoalRunnerAttemptLedgerRecordRequest(workflowId = targetWorkflowId, entry = entry),
       )
+    } catch (cancellation: CancellationException) {
+      throw cancellation
+    } catch (interrupted: InterruptedException) {
+      Thread.currentThread().interrupt()
+      throw interrupted
+    } catch (error: Throwable) {
+      logBestEffortFailure("attempt_ledger:${context.action.wireValue}", targetWorkflowId, context.subtaskId, error)
+      return
     }
-      .onFailure { error ->
-        logBestEffortFailure("attempt_ledger:${context.action.wireValue}", targetWorkflowId, context.subtaskId, error)
-      }
-      .onSuccess { recorded ->
-        if (!recorded) {
-          logBestEffortMissingWorkflow(
-            "attempt_ledger:${context.action.wireValue}",
-            targetWorkflowId,
-            context.subtaskId,
-          )
-        }
-      }
+    if (!recorded) {
+      logBestEffortMissingWorkflow(
+        "attempt_ledger:${context.action.wireValue}",
+        targetWorkflowId,
+        context.subtaskId,
+      )
+    }
   }
 
   private fun logBestEffortFailure(action: String, workflowId: String, subtaskId: Int, error: Throwable) {
-    diagnostics.warning(
-      "Best-effort goal ledger write failed: action='$action' workflowId='$workflowId' subtaskId=$subtaskId " +
-        "errorType='${error::class.qualifiedName}' message='${error.message.orEmpty()}'",
-      error,
-    )
+    runCatching {
+      diagnostics.warning(
+        "Best-effort goal ledger write failed: action='$action' workflowId='$workflowId' subtaskId=$subtaskId " +
+          "errorType='${error::class.qualifiedName}' " +
+          "message='${error.message.orEmpty().take(MAX_DIAGNOSTIC_MESSAGE_LENGTH)}'",
+        error,
+      )
+    }
   }
 
   private fun logBestEffortMissingWorkflow(action: String, workflowId: String, subtaskId: Int) {
-    diagnostics.warning(
-      "Best-effort goal ledger write skipped (workflow not found): action='$action' " +
-        "workflowId='$workflowId' subtaskId=$subtaskId",
-    )
+    runCatching {
+      diagnostics.warning(
+        "Best-effort goal ledger write skipped (workflow not found): action='$action' " +
+          "workflowId='$workflowId' subtaskId=$subtaskId",
+      )
+    }
   }
 
   private fun launchFinalStatus(facts: AgentRunLaunchFacts): GoalAttemptLaunchOutcome = when {
@@ -117,6 +128,10 @@ class GoalRunnerLedgerRecorder(
     facts.timedOut -> GoalAttemptLaunchOutcome.TimedOut
     facts.interrupted -> GoalAttemptLaunchOutcome.Interrupted
     else -> GoalAttemptLaunchOutcome.Exited(facts.exitStatus)
+  }
+
+  private companion object {
+    const val MAX_DIAGNOSTIC_MESSAGE_LENGTH = 240
   }
 }
 

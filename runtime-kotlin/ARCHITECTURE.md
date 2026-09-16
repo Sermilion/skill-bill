@@ -425,6 +425,37 @@ runtime-ports
   and stamp types for IDE status presentation owned by `runtime-domain`.
 - `skillbill.engine`: feature-task run loop, goal runner, goal planning, and
   planning projection use cases owned by `runtime-engine`.
+
+### Goal-runner execution lifetime (`DefaultGoalRunnerExecutionCoordinator`)
+
+Owned foreground goal runs acquire the parent execution lease first, then start
+the worker heartbeat and register the shutdown hook. Heartbeat start failure
+after a successful acquire releases the exact acquired owner token and
+generation before the goal body runs. Shutdown-hook registration failure stops
+the heartbeat and releases the lease before surfacing the registration error.
+
+Teardown runs in order: unregister the shutdown hook, stop the heartbeat, release
+the execution lease. Each step uses `runCatching` so a secondary failure does
+not skip later cleanup. A goal-body or cancellation failure remains primary;
+secondary teardown failures attach as suppressed exceptions. A body that
+completed normally still fails the run when required teardown fails.
+
+`GoalRunnerProgressEventEmitter` and `GoalRunnerProgressReader` propagate
+`CancellationException` and `InterruptedException` from workflow identity
+resolution instead of treating them as absent workflow identity. Optional
+progress, ledger, and observability store write failures emit bounded
+`RuntimeDiagnostics.warning` text; diagnostic port failures are wrapped in
+`runCatching` so they cannot mask the primary outcome or block coordinator
+teardown.
+
+`GoalRunnerLedgerRecorder` seeds sequence numbers from persisted ledger
+watermarks. A failed watermark read fails construction rather than silently
+starting at sequence zero; empty watermarks still legitimately start at zero.
+
+`RuntimeArchitectureProbeTest` and `GoalRunnerExecutionCoordinatorTest` regress
+startup rollback, per-teardown-step failure, primary-error preservation,
+cooperative cancellation on progress emit, and healthy versus failed watermark
+reads through the production coordinator and recorders.
 - `skillbill.infrastructure.fs.goalplanning`: filesystem discovery of shared
   repository and validation context owned by `runtime-infra-fs`, plus
   headings-first boundary memory: a programmatic parse of governed
