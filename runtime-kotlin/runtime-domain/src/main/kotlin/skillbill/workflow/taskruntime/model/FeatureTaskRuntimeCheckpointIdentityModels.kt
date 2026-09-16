@@ -130,20 +130,21 @@ data class FeatureTaskRuntimeCheckpointIdentity(
         )
       }
       return try {
+        val reader = durableArtifactMapReader(raw)
         FeatureTaskRuntimeCheckpointIdentity(
-          sequenceNumber = raw.requireIntField("sequence_number"),
-          issueKey = raw.requireStringField(SharedPayloadKeys.ISSUE_KEY),
-          subtaskId = raw.requireStringField(SharedPayloadKeys.SUBTASK_ID),
-          checkpointRef = raw.requireStringField("checkpoint_ref"),
-          branch = raw.requireStringField(DecompositionPlanningPayloadKeys.BRANCH),
-          phaseId = raw.requireStringField(SharedPayloadKeys.PHASE_ID),
-          generation = raw.requireIntField("generation"),
-          ownedPathDigest = raw.requireStringField("owned_path_digest"),
-          ownedPathCount = raw.requireIntField("owned_path_count"),
-          commitSha = raw.requireStringField(DecompositionManifestPayloadKeys.COMMIT_SHA),
-          recordedAt = raw.requireStringField("recorded_at"),
-          loopId = raw.optionalStringField("loop_id"),
-          parentSha = raw.optionalStringField("parent_sha"),
+          sequenceNumber = reader.requiredInt("sequence_number"),
+          issueKey = reader.requiredString(SharedPayloadKeys.ISSUE_KEY),
+          subtaskId = reader.requiredString(SharedPayloadKeys.SUBTASK_ID),
+          checkpointRef = reader.requiredString("checkpoint_ref"),
+          branch = reader.requiredString(DecompositionPlanningPayloadKeys.BRANCH),
+          phaseId = reader.requiredString(SharedPayloadKeys.PHASE_ID),
+          generation = reader.requiredInt("generation"),
+          ownedPathDigest = reader.requiredString("owned_path_digest"),
+          ownedPathCount = reader.requiredInt("owned_path_count"),
+          commitSha = reader.requiredString(DecompositionManifestPayloadKeys.COMMIT_SHA),
+          recordedAt = reader.requiredString("recorded_at"),
+          loopId = reader.optionalString("loop_id"),
+          parentSha = reader.optionalString("parent_sha"),
         )
       } catch (error: IllegalArgumentException) {
         checkpointIdentityError(

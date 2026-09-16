@@ -48,7 +48,9 @@ private fun Map<String, Any?>.requireInt(key: String, index: Int): Int = this[ke
 
 private fun Map<String, Any?>.requireStringList(key: String, index: Int): List<String> =
   optionalStringList(key, index).takeIf(List<String>::isNotEmpty)
-    ?: planOutcomeSchemaError("Decompose plan subtask[$index].$key must contain at least one string.")
+    ?: planOutcomeSchemaError(
+      "Decompose plan subtask[$index].$key must contain at least one string.",
+    )
 
 private fun Map<String, Any?>.optionalStringList(key: String, index: Int): List<String> {
   val raw = this[key] ?: return emptyList()

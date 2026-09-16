@@ -25,12 +25,14 @@ data class FeatureTaskRuntimeGoalContinuationFieldAdoption(
   )
 
   companion object {
-    internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeGoalContinuationFieldAdoption =
-      FeatureTaskRuntimeGoalContinuationFieldAdoption(
-        field = raw.requireStringField("field"),
-        adoptedValue = raw.requireStringField("adopted_value"),
-        reason = raw.requireStringField("reason"),
+    internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeGoalContinuationFieldAdoption {
+      val reader = durableArtifactMapReader(raw)
+      return FeatureTaskRuntimeGoalContinuationFieldAdoption(
+        field = reader.requiredString("field"),
+        adoptedValue = reader.requiredString("adopted_value"),
+        reason = reader.requiredString("reason"),
       )
+    }
   }
 }
 

@@ -162,35 +162,36 @@ data class FeatureTaskRuntimePhaseRecord(
       requireCompatibleShape(raw)
       val phaseId =
         requireKnownFeatureTaskRuntimePhaseId(
-          raw.requireStringField(SharedPayloadKeys.PHASE_ID),
+          durableArtifactMapReader(raw).requiredString(SharedPayloadKeys.PHASE_ID),
           SharedPayloadKeys.PHASE_ID,
         )
       return try {
+        val reader = durableArtifactMapReader(raw)
         FeatureTaskRuntimePhaseRecord(
           phaseId = phaseId,
-          status = WorkflowStepStatus.fromWire(raw.requireStringField(SharedPayloadKeys.STATUS))
+          status = WorkflowStepStatus.fromWire(reader.requiredString(SharedPayloadKeys.STATUS))
             ?: incompatiblePhaseRecord(listOf("unknown status '${raw[SharedPayloadKeys.STATUS]}'")),
-          attemptCount = raw.requireIntField("attempt_count"),
-          startedAt = raw.requireStringField("started_at"),
-          firstStartedAt = raw.requireStringField("first_started_at"),
-          finishedAt = raw.optionalStringField("finished_at"),
-          durationMillis = raw.optionalLongField("duration_millis"),
-          resolvedAgentId = raw.requireStringField("resolved_agent_id"),
+          attemptCount = reader.requiredInt("attempt_count"),
+          startedAt = reader.requiredString("started_at"),
+          firstStartedAt = reader.requiredString("first_started_at"),
+          finishedAt = reader.optionalString("finished_at"),
+          durationMillis = reader.optionalLong("duration_millis"),
+          resolvedAgentId = reader.requiredString("resolved_agent_id"),
           executionOrigin = FeatureTaskRuntimePhaseExecutionOrigin.fromWireValue(
-            raw.requireStringField("execution_origin"),
+            reader.requiredString("execution_origin"),
           ),
-          outputArtifact = raw.optionalStringField("output_artifact"),
+          outputArtifact = reader.optionalString("output_artifact"),
           rejectedOutput = null,
-          blockedReason = raw.optionalStringField(DecompositionManifestPayloadKeys.BLOCKED_REASON),
-          failureDisposition = raw.optionalStringField(SharedPayloadKeys.FAILURE_DISPOSITION)?.let { value ->
+          blockedReason = reader.optionalString(DecompositionManifestPayloadKeys.BLOCKED_REASON),
+          failureDisposition = reader.optionalString(SharedPayloadKeys.FAILURE_DISPOSITION)?.let { value ->
             FeatureTaskRuntimeFailureDisposition.fromWireValue(value) ?: incompatiblePhaseRecord()
           },
-          fileManifestBefore = raw.optionalStringListField("file_manifest_before"),
-          fileManifestAfter = raw.optionalStringListField("file_manifest_after"),
-          fileManifestIntroduced = raw.optionalStringListField("file_manifest_introduced"),
-          loopId = raw.optionalStringField("loop_id"),
-          edgeIteration = raw.optionalIntField("edge_iteration"),
-          reviewPassNumber = raw.optionalIntField("review_pass_number"),
+          fileManifestBefore = reader.optionalStringList("file_manifest_before"),
+          fileManifestAfter = reader.optionalStringList("file_manifest_after"),
+          fileManifestIntroduced = reader.optionalStringList("file_manifest_introduced"),
+          loopId = reader.optionalString("loop_id"),
+          edgeIteration = reader.optionalInt("edge_iteration"),
+          reviewPassNumber = reader.optionalInt("review_pass_number"),
           repairEvidence = raw["repair_evidence"]?.let { value ->
             val evidence = value as? Map<*, *>
               ?: incompatiblePhaseRecord()
@@ -198,9 +199,9 @@ data class FeatureTaskRuntimePhaseRecord(
               evidence.entries.associate { (key, item) -> key.toString() to item },
             )
           },
-          launchedModel = raw.optionalStringField("launched_model"),
-          launchedEffort = raw.optionalStringField("launched_effort"),
-          reviewRunId = raw.optionalStringField("review_run_id"),
+          launchedModel = reader.optionalString("launched_model"),
+          launchedEffort = reader.optionalString("launched_effort"),
+          reviewRunId = reader.optionalString("review_run_id"),
         )
       } catch (_: IllegalArgumentException) {
         incompatiblePhaseRecord()

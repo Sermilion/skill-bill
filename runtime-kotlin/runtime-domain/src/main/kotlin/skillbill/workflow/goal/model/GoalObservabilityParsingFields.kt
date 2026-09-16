@@ -2,60 +2,30 @@ package skillbill.workflow.goal.model
 
 import skillbill.contracts.workflow.GOAL_OBSERVABILITY_EVENT_CONTRACT_VERSION
 import skillbill.workflow.goal.invalidGoalObservabilityEvent
+import skillbill.workflow.taskruntime.model.DurableArtifactMapReader
+import skillbill.workflow.taskruntime.model.toStringKeyedArtifactMap
 
-internal fun List<*>?.toStringList(): List<String> =
-  this?.mapNotNull { it?.toString()?.takeIf(String::isNotBlank) }.orEmpty()
-
-internal fun Map<String, Any?>.requiredString(field: String, sourceLabel: String): String = optionalString(field)
-  ?: throw invalidGoalObservabilityEvent(sourceLabel, field, "field is required and must be a non-empty string.")
-
-internal fun Map<String, Any?>.optionalString(field: String): String? =
-  (this[field] as? String)?.takeIf(String::isNotBlank)
-
-internal fun Map<String, Any?>.requiredInt(field: String, sourceLabel: String): Int =
-  this[field].asGoalObservabilityIntOrNull()
-    ?: throw invalidGoalObservabilityEvent(sourceLabel, field, "field is required and must be an integer.")
-
-internal fun Map<String, Any?>.requiredPositiveInt(field: String, sourceLabel: String): Int =
-  requiredInt(field, sourceLabel).also { value ->
-    if (value < 1) {
-      throw invalidGoalObservabilityEvent(sourceLabel, field, "field must be a positive integer.")
-    }
+internal fun goalObservabilityReader(
+  map: Map<*, *>,
+  sourceLabel: String,
+): DurableArtifactMapReader {
+  val converted = map.toStringKeyedArtifactMap { detail ->
+    throw invalidGoalObservabilityEvent(sourceLabel, "", detail)
   }
-
-internal fun Map<String, Any?>.requiredNonNegativeInt(field: String, sourceLabel: String): Int =
-  requiredInt(field, sourceLabel).also { value ->
-    if (value < 0) {
-      throw invalidGoalObservabilityEvent(sourceLabel, field, "field must be a non-negative integer.")
-    }
+  return DurableArtifactMapReader(converted) { detail ->
+    throw invalidGoalObservabilityEvent(sourceLabel, detail, "malformed durable field.")
   }
+}
 
-internal fun Map<String, Any?>.requiredContractVersion(sourceLabel: String): String =
-  requiredString("contract_version", sourceLabel).also { value ->
-    if (value != GOAL_OBSERVABILITY_EVENT_CONTRACT_VERSION) {
-      throw invalidGoalObservabilityEvent(
-        sourceLabel,
-        "contract_version",
-        "field must equal $GOAL_OBSERVABILITY_EVENT_CONTRACT_VERSION.",
-      )
-    }
+internal fun requireGoalObservabilityContractVersion(
+  reader: DurableArtifactMapReader,
+  sourceLabel: String,
+): String = reader.requiredString("contract_version").also { value ->
+  if (value != GOAL_OBSERVABILITY_EVENT_CONTRACT_VERSION) {
+    throw invalidGoalObservabilityEvent(
+      sourceLabel,
+      "contract_version",
+      "field must equal $GOAL_OBSERVABILITY_EVENT_CONTRACT_VERSION.",
+    )
   }
-
-internal fun Map<*, *>.requiredProjectedInt(field: String, sourceLabel: String): Int =
-  this[field].asGoalObservabilityIntOrNull()
-    ?: throw invalidGoalObservabilityEvent(sourceLabel, field, "field is required and must be an integer.")
-
-internal fun Map<*, *>.requiredProjectedNonNegativeInt(field: String, sourceLabel: String): Int =
-  requiredProjectedInt(field, sourceLabel).also { value ->
-    if (value < 0) {
-      throw invalidGoalObservabilityEvent(sourceLabel, field, "field must be a non-negative integer.")
-    }
-  }
-
-internal fun Any?.asGoalObservabilityIntOrNull(): Int? = when (this) {
-  is Int -> this
-  is Short -> toInt()
-  is Byte -> toInt()
-  is Long -> takeIf { value -> value in Int.MIN_VALUE..Int.MAX_VALUE }?.toInt()
-  else -> null
 }

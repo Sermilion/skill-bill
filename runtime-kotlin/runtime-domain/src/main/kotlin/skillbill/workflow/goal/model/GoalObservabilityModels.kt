@@ -3,6 +3,8 @@ package skillbill.workflow.goal.model
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.GOAL_OBSERVABILITY_EVENT_CONTRACT_VERSION
 import skillbill.contracts.workflow.GOAL_PROGRESS_EVENT_CONTRACT_VERSION
+import skillbill.error.InvalidGoalProgressEventSchemaError
+import skillbill.workflow.goal.invalidGoalObservabilityEvent
 
 const val GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY: String = "goal_observability_latest_event"
 const val GOAL_OBSERVABILITY_RUN_HISTORY_ARTIFACT_KEY: String = "goal_observability_run_history"
@@ -19,8 +21,9 @@ enum class GoalObservabilityRecordKind(val wireValue: String) {
   ;
 
   companion object {
-    fun fromWire(value: String): GoalObservabilityRecordKind = entries.firstOrNull { it.wireValue == value }
-      ?: throw IllegalArgumentException("Unknown goal observability record kind '$value'.")
+    fun fromWire(value: String): GoalObservabilityRecordKind =
+      entries.firstOrNull { it.wireValue == value }
+        ?: throw invalidGoalObservabilityEvent("record_kind", "record_kind", "unrecognized value '$value'.")
   }
 }
 
@@ -36,8 +39,9 @@ enum class GoalProgressEventKind(val wireValue: String) {
     get() = this == OPERATION_STARTED || this == OPERATION_HEARTBEAT || this == OPERATION_COMPLETED
 
   companion object {
-    fun fromWire(value: String): GoalProgressEventKind = entries.firstOrNull { it.wireValue == value }
-      ?: throw IllegalArgumentException("Unknown goal progress event kind '$value'.")
+    fun fromWire(value: String): GoalProgressEventKind =
+      entries.firstOrNull { it.wireValue == value }
+        ?: throw InvalidGoalProgressEventSchemaError("<wire>", "event_kind", "unrecognized value '$value'.")
   }
 }
 
@@ -50,8 +54,9 @@ enum class GoalProgressOutcome(val wireValue: String) {
   ;
 
   companion object {
-    fun fromWire(value: String): GoalProgressOutcome = entries.firstOrNull { it.wireValue == value }
-      ?: throw IllegalArgumentException("Unknown goal progress outcome '$value'.")
+    fun fromWire(value: String): GoalProgressOutcome =
+      entries.firstOrNull { it.wireValue == value }
+        ?: throw InvalidGoalProgressEventSchemaError("<wire>", "outcome", "unrecognized value '$value'.")
   }
 }
 

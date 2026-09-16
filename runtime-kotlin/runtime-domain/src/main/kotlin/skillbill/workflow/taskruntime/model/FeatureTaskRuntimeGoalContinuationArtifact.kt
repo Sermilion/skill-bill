@@ -62,17 +62,41 @@ data class FeatureTaskRuntimeGoalContinuationArtifact(
   companion object {
     internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeGoalContinuationArtifact {
       rejectUnknownGoalContinuationKeys(raw)
+      val reader = durableArtifactMapReader(raw)
+      val subtaskId = reader.requiredInt(SharedPayloadKeys.SUBTASK_ID)
+      if (subtaskId < 1) {
+        throw InvalidWorkflowStateSchemaError(
+          "Goal-continuation artifact field '${SharedPayloadKeys.SUBTASK_ID}' must be positive.",
+        )
+      }
       return FeatureTaskRuntimeGoalContinuationArtifact(
-        issueKey = raw.requireStringField(SharedPayloadKeys.ISSUE_KEY),
-        subtaskId = raw.requireIntField(SharedPayloadKeys.SUBTASK_ID),
-        suppressPr = raw.requireGoalContinuationSuppressPr(),
-        goalBranch = raw.requireStringField("goal_branch"),
-        parentWorkflowId = raw.optionalStringField("parent_workflow_id"),
-        codeReviewMode = raw.requireGoalContinuationCodeReviewMode(),
-        validationDepth = raw.optionalGoalContinuationValidationDepth(),
-        qualityGateSelection = raw.optionalGoalContinuationQualityGateSelection(),
-        parallelReviewAgent = raw.optionalStringField("parallel_review_agent"),
-        subtaskName = raw.optionalStringField("subtask_name"),
+        issueKey = reader.requiredString(SharedPayloadKeys.ISSUE_KEY),
+        subtaskId = subtaskId,
+        suppressPr = reader.optionalBoolean("suppress_pr")
+          ?: throw InvalidWorkflowStateSchemaError(
+            "Goal-continuation artifact field 'suppress_pr' must be a boolean.",
+          ),
+        goalBranch = reader.requiredString("goal_branch"),
+        parentWorkflowId = reader.optionalString("parent_workflow_id"),
+        codeReviewMode = reader.requiredString("code_review_mode").let { rawValue ->
+          CodeReviewExecutionMode.entries.firstOrNull { it.wireValue == rawValue }
+            ?: goalContinuationSchemaError(
+              "Goal-continuation artifact code_review_mode has unsupported value '$rawValue'.",
+            )
+        },
+        validationDepth = reader.optionalString("validation_depth")?.let { rawValue ->
+          try {
+            ValidationDepth.fromWire(rawValue)
+          } catch (error: IllegalArgumentException) {
+            goalContinuationSchemaError("Goal-continuation artifact validation_depth is invalid.", error)
+          }
+        },
+        qualityGateSelection = reader.optionalString("quality_gate_selection")?.let { rawValue ->
+          FeatureTaskRuntimeQualityGateSelection.entries.firstOrNull { it.wireValue == rawValue }
+            ?: goalContinuationSchemaError("Goal-continuation artifact quality_gate_selection is invalid.")
+        },
+        parallelReviewAgent = reader.optionalString("parallel_review_agent"),
+        subtaskName = reader.optionalString("subtask_name"),
         agentAddonSelection = raw.optionalGoalAgentAddonSelection(),
       )
     }
@@ -97,13 +121,11 @@ private fun Map<String, Any?>.optionalGoalAgentAddonSelection(): AgentAddonSelec
   val rawEntries = this["agent_addon_selection"] ?: return AgentAddonSelection()
   val entries = rawEntries as? List<*>
     ?: goalContinuationSchemaError("Goal-continuation agent_addon_selection must be a list.")
-  return try {
-    AgentAddonSelection(
-      entries.mapIndexed(::parseGoalAgentAddonEntry),
-    )
-  } catch (error: IllegalArgumentException) {
-    goalContinuationSchemaError("Goal-continuation agent_addon_selection is invalid.", error)
-  }
+    val parsed = entries.mapIndexed(::parseGoalAgentAddonEntry)
+    if (parsed.map { it.slug }.distinct().size != parsed.size) {
+      goalContinuationSchemaError("Goal-continuation agent_addon_selection must not contain duplicate slugs.")
+    }
+    return AgentAddonSelection(parsed)
 }
 
 private fun parseGoalAgentAddonEntry(index: Int, value: Any?): PersistedAgentAddonSelectionEntry {
@@ -112,14 +134,16 @@ private fun parseGoalAgentAddonEntry(index: Int, value: Any?): PersistedAgentAdd
   if (entry.keys != setOf("slug", "source_identity", "content_sha256")) {
     goalContinuationSchemaError("Goal-continuation agent_addon_selection entry $index has invalid fields.")
   }
-  return PersistedAgentAddonSelectionEntry(
-    entry["slug"] as? String
-      ?: goalContinuationSchemaError("Goal-continuation add-on entry $index is missing slug."),
-    entry["source_identity"] as? String
-      ?: goalContinuationSchemaError("Goal-continuation add-on entry $index is missing source_identity."),
-    entry["content_sha256"] as? String
-      ?: goalContinuationSchemaError("Goal-continuation add-on entry $index is missing content_sha256."),
-  )
+  val slug = (entry["slug"] as? String)?.takeIf(String::isNotBlank)
+    ?: goalContinuationSchemaError("Goal-continuation add-on entry $index is missing slug.")
+  val sourceIdentity = (entry["source_identity"] as? String)?.takeIf(String::isNotBlank)
+    ?: goalContinuationSchemaError("Goal-continuation add-on entry $index is missing source_identity.")
+  val contentSha256 = (entry["content_sha256"] as? String)?.takeIf { it.matches(Regex("[0-9a-f]{64}")) }
+    ?: goalContinuationSchemaError("Goal-continuation add-on entry $index has an invalid content_sha256.")
+  if (!slug.matches(Regex("[a-z0-9]+(?:-[a-z0-9]+)*"))) {
+    goalContinuationSchemaError("Goal-continuation add-on entry $index has an invalid slug.")
+  }
+  return PersistedAgentAddonSelectionEntry(slug, sourceIdentity, contentSha256)
 }
 
 private fun goalContinuationSchemaError(detail: String, cause: Throwable? = null): Nothing {
@@ -132,31 +156,3 @@ private fun rejectUnknownGoalContinuationKeys(raw: Map<String, Any?>) {
   }
 }
 
-private fun Map<String, Any?>.requireGoalContinuationSuppressPr(): Boolean = optionalBooleanField("suppress_pr")
-  ?: throw InvalidWorkflowStateSchemaError(
-    "Goal-continuation artifact field 'suppress_pr' must be a boolean.",
-  )
-
-private fun Map<String, Any?>.requireGoalContinuationCodeReviewMode(): CodeReviewExecutionMode = try {
-  CodeReviewExecutionMode.fromWire(requireStringField("code_review_mode"))
-} catch (error: IllegalArgumentException) {
-  throw InvalidWorkflowStateSchemaError("Goal-continuation artifact code_review_mode is invalid.", error)
-}
-
-private fun Map<String, Any?>.optionalGoalContinuationValidationDepth(): ValidationDepth? {
-  val raw = optionalStringField("validation_depth") ?: return null
-  return try {
-    ValidationDepth.fromWire(raw)
-  } catch (error: IllegalArgumentException) {
-    throw InvalidWorkflowStateSchemaError("Goal-continuation artifact validation_depth is invalid.", error)
-  }
-}
-
-private fun Map<String, Any?>.optionalGoalContinuationQualityGateSelection(): FeatureTaskRuntimeQualityGateSelection? {
-  val raw = optionalStringField("quality_gate_selection") ?: return null
-  return try {
-    FeatureTaskRuntimeQualityGateSelection.fromWire(raw)
-  } catch (error: IllegalArgumentException) {
-    throw InvalidWorkflowStateSchemaError("Goal-continuation artifact quality_gate_selection is invalid.", error)
-  }
-}

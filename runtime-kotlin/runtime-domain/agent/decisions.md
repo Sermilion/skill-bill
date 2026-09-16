@@ -1,28 +1,9 @@
-# runtime-domain boundary decisions
+## [2026-09-16] Unified durable artifact map reader and lenient workflow-step integers (SKILL-351 subtask 1)
 
-## [2026-08-19] Excluded fallback lanes transfer owned paths to the native winner (SKILL-196)
+Context: Durable artifact decoding duplicated nine map-field accessor families and fourteen integer coercions with divergent semantics. Workflow snapshot step decoding intentionally keeps a lenient integer coercion for legacy rows.
 
-Context: A fallback root exists because some changed files matched no native pack. Per-area fallback
-exclusion removes the fallback lane when a native routed pack already contributes a candidate for the
-same area, but those fallback-routed files would otherwise have no claimant for that area while
-coverage accounting must record exactly as before.
+Decision: (c) Retain `AttemptLedgerWorkflowDecoding.asLenientIntOrNull` as the sole lenient integer coercion (Int, Number→toInt, String→toIntOrNull). All other durable artifact seams use `DurableArtifactMapReader` with `BigDecimal.longValueExact` / exact integral narrowing via `asExactIntOrNull` and `asExactLongOrNull` in `FeatureTaskRuntimePersistenceMapFields.kt`. Review-state and goal-observability field helpers delegate to the exact coercion helpers rather than maintaining parallel parsers.
 
-Decision: When a fallback lane for area A is excluded, fold its `ownedPaths` and `changedHunkIds`
-into the winning native lane for area A before lane materialization, deduplicated and sorted. Claim
-transfer only — no rubric content from the fallback pack is composed into the native lane.
+Evidence: `FeatureTaskRuntimePersistenceMapFieldsTest`, `ReviewRunLaneSegmentAccountingJsonTest`, `TypedParseBoundaryArchitectureTest`.
 
-Reason: Keeps each area's file claim byte-identical to the pre-exclusion plan while lane count falls.
-`unreviewedSegmentIds`, segment accounting, coverage facts, and integration terminal state stay
-unchanged because the native winner still owns every path the removed fallback lane owned.
-
-Alternatives considered: Leave fallback-routed files unclaimed for the area and rely on the coverage
-ledger to treat them as out of scope — rejected because it risks recording those paths as unreviewed
-coverage or forcing an incomplete lane disposition when the fallback lane disappears. Silently
-dropping the paths — rejected by the parent spec.
-
-Evidence: `ReviewCrossRootLaneReconciliationTest` — `excluded fallback paths transfer into the
-surviving native lane for the area`; `ParallelReviewFallbackLaneExclusionTest` — `excluding a
-redundant fallback lane leaves area coverage and lane accounting untouched`.
-
-Revisit when: fallback exclusion moves to a model where fallback-routed files are never attributed
-to area-specific lanes.
+Revisit when: SKILL-352 replaces any remaining engine-local readers or workflow status moves to closed enums at the engine boundary.

@@ -3,22 +3,22 @@ contract_version: "0.5"
 issue_key: "SKILL-351"
 feature_name: "runtime-domain-boundaries-and-simplicity"
 parent_spec_path: ".feature-specs/SKILL-351-runtime-domain-boundaries-and-simplicity/spec.md"
-status: "pending"
+status: "in_progress"
 execution_model: "same_branch_commit_per_subtask"
 base_branch: "main"
 feature_branch: "feat/SKILL-351-runtime-domain-boundaries-and-simplicity"
 stack_branches: []
 current_subtask_intent:
   subtask_id: 1
-  action: "start"
+  action: "resume"
 subtasks:
 - id: 1
   name: "Unify durable decoding and failure reporting"
   spec_path: ".feature-specs/SKILL-351-runtime-domain-boundaries-and-simplicity/spec_subtask_1_unify-durable-decoding-and-failure-reporting.md"
-  status: "pending"
+  status: "in_progress"
   branch: null
   commit_sha: null
-  workflow_id: null
+  workflow_id: "wftr-20260916-203245-ap4k"
   blocked_reason: null
   last_resumable_step: null
   linear_issue_id: null

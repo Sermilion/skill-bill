@@ -15,19 +15,6 @@ fun goalObservabilityLatestEventFromArtifacts(
     ?.let { raw -> goalObservabilityEventFromArtifact(raw, GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY, validator) }
 }
 
-fun goalObservabilityLatestEventForLiveness(
-  artifacts: Any,
-  validator: GoalObservabilityEventValidator,
-): GoalObservabilityEvent? {
-  val artifactMap = artifacts.asGoalWorkflowArtifactMap("goal observability liveness artifacts")
-  val raw = artifactMap[GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY] ?: return null
-  val eventMap = JsonCodec.anyToStringAnyMap(raw) ?: return null
-  if (eventMap[SharedPayloadKeys.CONTRACT_VERSION] != GOAL_OBSERVABILITY_EVENT_CONTRACT_VERSION) return null
-  return runCatching {
-    goalObservabilityEventFromArtifact(raw, GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY, validator)
-  }.getOrNull()
-}
-
 fun goalObservabilityHistoryFromArtifacts(
   artifacts: Any,
   validator: GoalObservabilityEventValidator,
@@ -55,29 +42,39 @@ fun goalObservabilityEventFromArtifact(
   val eventMap = raw.toGoalObservabilityEventMap(sourceLabel)
   validator.validate(eventMap, sourceLabel)
   eventMap.requireOnlyKeys(GOAL_OBSERVABILITY_EVENT_KEYS, sourceLabel)
+  val reader = goalObservabilityReader(eventMap, sourceLabel)
   return GoalObservabilityEvent(
-    contractVersion = eventMap.requiredContractVersion(sourceLabel),
-    recordKind = eventMap["record_kind"]?.let {
-      it as? String ?: throw invalidGoalObservabilityEvent(sourceLabel, "record_kind", "field must be a string.")
-    }?.let(GoalObservabilityRecordKind::fromWire) ?: GoalObservabilityRecordKind.PROGRESS,
-    issueKey = eventMap.requiredString("issue_key", sourceLabel),
-    subtaskId = eventMap.requiredPositiveInt("subtask_id", sourceLabel),
-    workflowId = eventMap.optionalString("workflow_id"),
-    workflowPhase = eventMap.requiredString("workflow_phase", sourceLabel),
-    workerRole = eventMap.requiredString("worker_role", sourceLabel),
-    livenessClass = eventMap.requiredString("liveness_class", sourceLabel),
-    activitySummary = eventMap.requiredString("activity_summary", sourceLabel),
-    timestamp = eventMap.requiredString("timestamp", sourceLabel),
-    sequenceNumber = eventMap.requiredNonNegativeInt("sequence_number", sourceLabel),
-    changedFileSummary = eventMap.optionalMap("changed_file_summary", sourceLabel)?.toChangedFileSummary(sourceLabel),
-    diffStat = eventMap.optionalMap("diff_stat", sourceLabel)?.toDiffStat(sourceLabel),
-    changedFiles = eventMap.optionalStringList("changed_files", sourceLabel),
-    diffStatByFile = eventMap.optionalList("diff_stat_by_file", sourceLabel).toFileDiffStats(sourceLabel),
+    contractVersion = requireGoalObservabilityContractVersion(reader, sourceLabel),
+    recordKind = reader.optionalString("record_kind")?.let(GoalObservabilityRecordKind::fromWire)
+      ?: GoalObservabilityRecordKind.PROGRESS,
+    issueKey = reader.requiredString("issue_key"),
+    subtaskId = reader.requiredInt("subtask_id").also { value ->
+      if (value < 1) {
+        throw invalidGoalObservabilityEvent(sourceLabel, "subtask_id", "field must be a positive integer.")
+      }
+    },
+    workflowId = reader.optionalString("workflow_id"),
+    workflowPhase = reader.requiredString("workflow_phase"),
+    workerRole = reader.requiredString("worker_role"),
+    livenessClass = reader.requiredString("liveness_class"),
+    activitySummary = reader.requiredString("activity_summary"),
+    timestamp = reader.requiredString("timestamp"),
+    sequenceNumber = reader.requiredInt("sequence_number").also { value ->
+      if (value < 0) {
+        throw invalidGoalObservabilityEvent(sourceLabel, "sequence_number", "field must be non-negative.")
+      }
+    },
+    changedFileSummary = reader.optionalNestedObject("changed_file_summary")
+      ?.toChangedFileSummary(sourceLabel),
+    diffStat = reader.optionalNestedObject("diff_stat")?.toDiffStat(sourceLabel),
+    changedFiles = reader.optionalStringList("changed_files"),
+    diffStatByFile = reader.optionalList("diff_stat_by_file").toFileDiffStats(sourceLabel),
   )
 }
 
-internal fun Any.asGoalWorkflowArtifactMap(sourceLabel: String): Map<String, Any?> = JsonCodec.anyToStringAnyMap(this)
-  ?: throw IllegalArgumentException("Goal workflow artifacts at $sourceLabel must decode to an object.")
+internal fun Any.asGoalWorkflowArtifactMap(sourceLabel: String): Map<String, Any?> =
+  JsonCodec.anyToStringAnyMap(this)
+    ?: throw invalidGoalObservabilityEvent(sourceLabel, "", "artifacts must decode to an object.")
 
 private fun Any?.toGoalObservabilityEventMap(sourceLabel: String): Map<String, Any?> = JsonCodec.anyToStringAnyMap(this)
   ?: (this as? Map<*, *>)?.let { map ->
@@ -97,39 +94,41 @@ private fun List<*>?.toFileDiffStats(sourceLabel: String): List<GoalObservabilit
 
 private fun Map<*, *>.toChangedFileSummary(sourceLabel: String): GoalObservabilityChangedFileSummary =
   requireOnlyKeys(GOAL_OBSERVABILITY_CHANGED_FILE_SUMMARY_KEYS, "$sourceLabel.changed_file_summary").let {
+    val reader = goalObservabilityReader(this, "$sourceLabel.changed_file_summary")
     GoalObservabilityChangedFileSummary(
-      total = requiredProjectedNonNegativeInt("total", sourceLabel),
-      added = requiredProjectedNonNegativeInt("added", sourceLabel),
-      modified = requiredProjectedNonNegativeInt("modified", sourceLabel),
-      deleted = requiredProjectedNonNegativeInt("deleted", sourceLabel),
-      renamed = requiredProjectedNonNegativeInt("renamed", sourceLabel),
-      untracked = requiredProjectedNonNegativeInt("untracked", sourceLabel),
-      samplePaths = optionalProjectedStringList("sample_paths", sourceLabel),
+      total = reader.requiredInt("total").requireNonNegative(sourceLabel, "total"),
+      added = reader.requiredInt("added").requireNonNegative(sourceLabel, "added"),
+      modified = reader.requiredInt("modified").requireNonNegative(sourceLabel, "modified"),
+      deleted = reader.requiredInt("deleted").requireNonNegative(sourceLabel, "deleted"),
+      renamed = reader.requiredInt("renamed").requireNonNegative(sourceLabel, "renamed"),
+      untracked = reader.requiredInt("untracked").requireNonNegative(sourceLabel, "untracked"),
+      samplePaths = reader.optionalStringList("sample_paths"),
     )
   }
 
 private fun Map<*, *>.toDiffStat(sourceLabel: String): GoalObservabilityDiffStat =
   requireOnlyKeys(GOAL_OBSERVABILITY_DIFF_STAT_KEYS, "$sourceLabel.diff_stat").let {
+    val reader = goalObservabilityReader(this, "$sourceLabel.diff_stat")
     GoalObservabilityDiffStat(
-      filesChanged = requiredProjectedNonNegativeInt("files_changed", sourceLabel),
-      insertions = requiredProjectedNonNegativeInt("insertions", sourceLabel),
-      deletions = requiredProjectedNonNegativeInt("deletions", sourceLabel),
+      filesChanged = reader.requiredInt("files_changed").requireNonNegative(sourceLabel, "files_changed"),
+      insertions = reader.requiredInt("insertions").requireNonNegative(sourceLabel, "insertions"),
+      deletions = reader.requiredInt("deletions").requireNonNegative(sourceLabel, "deletions"),
     )
   }
 
 private fun Map<*, *>.toFileDiffStat(sourceLabel: String): GoalObservabilityFileDiffStat =
   requireOnlyKeys(GOAL_OBSERVABILITY_FILE_DIFF_STAT_KEYS, sourceLabel).let {
+    val reader = goalObservabilityReader(this, sourceLabel)
     GoalObservabilityFileDiffStat(
-      path = this["path"].asRequiredString(sourceLabel, "path")
-        ?: throw invalidGoalObservabilityEvent(
-          sourceLabel,
-          "path",
-          "field is required and must be a non-empty string.",
-        ),
-      insertions = requiredProjectedNonNegativeInt("insertions", sourceLabel),
-      deletions = requiredProjectedNonNegativeInt("deletions", sourceLabel),
+      path = reader.requiredString("path"),
+      insertions = reader.requiredInt("insertions").requireNonNegative(sourceLabel, "insertions"),
+      deletions = reader.requiredInt("deletions").requireNonNegative(sourceLabel, "deletions"),
     )
   }
+
+private fun Int.requireNonNegative(sourceLabel: String, field: String): Int =
+  takeIf { it >= 0 }
+    ?: throw invalidGoalObservabilityEvent(sourceLabel, field, "field must be a non-negative integer.")
 
 private val GOAL_OBSERVABILITY_EVENT_KEYS = setOf(
   "contract_version",

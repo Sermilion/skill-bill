@@ -8,6 +8,7 @@ import skillbill.workflow.decomposition.model.DecompositionSubtask
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class GoalRunnerWorkerSubtaskRequestParserTest {
@@ -81,6 +82,28 @@ class GoalRunnerWorkerSubtaskRequestParserTest {
       assertEquals(GoalRunnerWorkerSubtaskRequestRejectionReason.MALFORMED, rejected.reason)
       assertTrue(rejected.message.contains("dependencies"))
     }
+  }
+
+  @Test
+  fun `malformed payload and timestamp substitutions are recorded at their seams`() {
+    DurableDecodeSubstitutionObservations.drain()
+    val outcome = GoalRunnerWorkerSubtaskRequestParser.parse(
+      stdout = "SKILL_BILL_SUBTASK_REQUEST: {",
+      stderr = "",
+      manifest = manifest(),
+    ).single()
+    assertIs<GoalRunnerWorkerSubtaskRequestOutcome.Rejected>(outcome)
+    assertEquals("2026-09-16T22:49:00Z", parseInstantOrNull("2026-09-16T22:49:00Z")?.toString())
+    assertEquals("2026-09-16T22:49:00Z", parseInstantOrNull("2026-09-16 22:49:00")?.toString())
+    assertNull(parseInstantOrNull("not-a-timestamp"))
+    val records = DurableDecodeSubstitutionObservations.drain()
+    assertEquals(
+      listOf(
+        "GoalRunnerWorkerSubtaskRequestParser.parsePayloadMap",
+        "AttemptLedgerAccumulator.parseInstantOrNull",
+      ),
+      records.map { it.seam },
+    )
   }
 
   @Test

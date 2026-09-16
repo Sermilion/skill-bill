@@ -161,8 +161,8 @@ object PrincipleEnforcementInventory {
       functionNames = setOf(
         "fromWire",
         "fromArtifactMap",
-        "requireRepairEvidenceString",
-        "requireRepairEvidenceInt",
+        "requireRepairEvidenceExactFields",
+        "requireRepairEvidenceLocation",
         "phaseOutputRepairEvidenceSchemaError",
       ),
     ),
@@ -228,6 +228,141 @@ object PrincipleEnforcementInventory {
         "optionalGateArgv",
         "parseSuppressionMarkers",
       ),
+    ),
+    ArchitectureScanSupport.ParseBoundarySite(
+      relativePath =
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/review/model/ReviewStageState.kt",
+      functionNames = setOf(
+        "fromWire",
+        "decodeList",
+      ),
+    ),
+    ArchitectureScanSupport.ParseBoundarySite(
+      relativePath =
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/review/model/ReviewRunLaneSegmentAccountingJson.kt",
+      functionNames = setOf("decode", "decodeSegment", "encode"),
+    ),
+    ArchitectureScanSupport.ParseBoundarySite(
+      relativePath =
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/" +
+        "FeatureTaskRuntimePersistenceMapFields.kt",
+      functionNames = setOf("durableArtifactMapReader"),
+    ),
+    ArchitectureScanSupport.ParseBoundarySite(
+      relativePath =
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/" +
+        "FeatureTaskRuntimeGoalContinuationArtifact.kt",
+      functionNames = setOf("fromArtifactMap"),
+    ),
+    ArchitectureScanSupport.ParseBoundarySite(
+      relativePath =
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/" +
+        "FeatureTaskRuntimePhaseLedgerPersistenceModels.kt",
+      functionNames = setOf("fromArtifactMap", "fromWire", "fromWireValue"),
+    ),
+    ArchitectureScanSupport.ParseBoundarySite(
+      relativePath =
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/decomposition/DecompositionManifestWireCodec.kt",
+      functionNames = setOf("decode", "toDecompositionManifest", "toDecompositionSubtask", "decompositionReader"),
+    ),
+    ArchitectureScanSupport.ParseBoundarySite(
+      relativePath =
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/" +
+        "FeatureTaskRuntimeResolvedBranch.kt",
+      functionNames = setOf("fromArtifactMap"),
+    ),
+    ArchitectureScanSupport.ParseBoundarySite(
+      relativePath =
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/" +
+        "FeatureTaskRuntimeHandoffEnvelope.kt",
+      functionNames = setOf("fromEnvelopeMap", "projectionFromWire", "fieldFromWire", "handoffReader"),
+    ),
+    ArchitectureScanSupport.ParseBoundarySite(
+      relativePath =
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/" +
+        "FeatureTaskRuntimeImplementationAttemptModels.kt",
+      functionNames = setOf("fromArtifactMap", "featureTaskRuntimeImplementationAttemptsFromWire"),
+    ),
+    ArchitectureScanSupport.ParseBoundarySite(
+      relativePath =
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/" +
+        "FeatureTaskRuntimeGoalContinuationPersistenceModels.kt",
+      functionNames = setOf("fromArtifactMap"),
+    ),
+    ArchitectureScanSupport.ParseBoundarySite(
+      relativePath =
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/" +
+        "FeatureTaskRuntimeDecomposeTerminal.kt",
+      functionNames = setOf("fromArtifactMap"),
+    ),
+    ArchitectureScanSupport.ParseBoundarySite(
+      relativePath =
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/" +
+        "FeatureTaskRuntimePhaseRecord.kt",
+      functionNames = setOf("fromArtifactMap"),
+    ),
+    ArchitectureScanSupport.ParseBoundarySite(
+      relativePath =
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/goal/model/GoalObservabilityModels.kt",
+      functionNames = setOf("fromWire"),
+    ),
+    ArchitectureScanSupport.ParseBoundarySite(
+      relativePath =
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/goalrunner/model/GoalRunnerAccountingModels.kt",
+      functionNames = setOf("fromWire"),
+    ),
+    ArchitectureScanSupport.ParseBoundarySite(
+      relativePath =
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/goal/model/GoalObservabilityParsing.kt",
+      functionNames = setOf(
+        "goalObservabilityHistoryFromArtifacts",
+        "goalObservabilityEventFromArtifact",
+        "asGoalWorkflowArtifactMap",
+      ),
+    ),
+    ArchitectureScanSupport.ParseBoundarySite(
+      relativePath =
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/goal/model/GoalSubtaskReviewFindingArtifacts.kt",
+      functionNames = setOf("fromArtifactMap", "decodeWire", "decodeContinuationOnlyWire", "decodeContinuationDirect"),
+    ),
+    ArchitectureScanSupport.ParseBoundarySite(
+      relativePath =
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/goal/model/" +
+        "GoalSubtaskReviewStateDecoding.kt",
+      functionNames = setOf(
+        "reviewStateReader",
+        "toReviewStateMap",
+        "requireOnlyReviewStateKeys",
+      ),
+    ),
+    ArchitectureScanSupport.ParseBoundarySite(
+      relativePath =
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/goal/model/" +
+        "GoalObservabilityParsingFields.kt",
+      functionNames = setOf("goalObservabilityReader", "requireGoalObservabilityContractVersion"),
+    ),
+    ArchitectureScanSupport.ParseBoundarySite(
+      relativePath =
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/goalrunner/AttemptLedgerDecoding.kt",
+      functionNames = setOf("decodeDeclaredGoalProgressEvent", "requiredProgressEventKind", "optionalProgressOutcome"),
+    ),
+    ArchitectureScanSupport.ParseBoundarySite(
+      relativePath =
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/engine/" +
+        "AttemptLedgerWorkflowDecoding.kt",
+      functionNames = setOf("decodeWorkflowSteps", "parseWorkflowStepsArray", "decodeWorkflowStepAt"),
+    ),
+    ArchitectureScanSupport.ParseBoundarySite(
+      relativePath =
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/engine/" +
+        "WorkflowEngineSnapshotCodec.kt",
+      functionNames = setOf("snapshotViewFrom", "mergeStepUpdates"),
+    ),
+    ArchitectureScanSupport.ParseBoundarySite(
+      relativePath =
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/engine/" +
+        "WorkflowEngineSnapshotCodecDurable.kt",
+      functionNames = setOf("decodeSteps", "decodeObject"),
     ),
   )
 

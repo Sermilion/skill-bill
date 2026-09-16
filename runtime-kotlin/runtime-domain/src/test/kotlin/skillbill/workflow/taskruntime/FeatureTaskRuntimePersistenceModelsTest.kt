@@ -232,6 +232,18 @@ class FeatureTaskRuntimePersistenceModelsTest {
   }
 
   @Test
+  fun `resolved-branch decode rejects malformed list elements with a typed schema error`() {
+    assertFailsWith<InvalidWorkflowStateSchemaError> {
+      FeatureTaskRuntimeResolvedBranch.fromArtifactMap(
+        mapOf(
+          "branch" to "feat/example",
+          "baseline_owned_paths" to listOf("tracked.kt", 7),
+        ),
+      )
+    }
+  }
+
+  @Test
   fun `running per-phase record omits finish and duration and output`() {
     val record = FeatureTaskRuntimePhaseRecord(
       phaseId = "plan",
@@ -601,6 +613,20 @@ class FeatureTaskRuntimePersistenceModelsTest {
   }
 
   @Test
+  fun `ledger entry decode loud-fails when attempt count is zero`() {
+    val malformed = mapOf(
+      "action" to "start",
+      "sequence_number" to 0,
+      "timestamp" to "2026-06-02T10:00:00Z",
+      "phase_id" to "plan",
+      "attempt_count" to 0,
+    )
+    assertFailsWith<InvalidWorkflowStateSchemaError> {
+      FeatureTaskRuntimePhaseLedgerEntry.fromArtifactMap(malformed)
+    }
+  }
+
+  @Test
   fun `ledger entry decode loud-fails on missing timestamp`() {
     val malformed = mapOf(
       "action" to "start",
@@ -718,6 +744,29 @@ class FeatureTaskRuntimeGoalContinuationPersistenceModelsTest {
     }
     assertFailsWith<InvalidWorkflowStateSchemaError> {
       FeatureTaskRuntimeGoalContinuationArtifact.fromArtifactMap(complete + ("validation_depth" to "partial"))
+    }
+    assertFailsWith<InvalidWorkflowStateSchemaError> {
+      FeatureTaskRuntimeGoalContinuationArtifact.fromArtifactMap(complete + ("code_review_mode" to "partial"))
+    }
+    assertFailsWith<InvalidWorkflowStateSchemaError> {
+      FeatureTaskRuntimeGoalContinuationArtifact.fromArtifactMap(
+        complete + ("quality_gate_selection" to "unknown"),
+      )
+    }
+  }
+
+  @Test
+  fun `goal-continuation decode rejects non-positive subtask ids with a typed schema error`() {
+    val malformed = mapOf(
+      "issue_key" to "SKILL-119",
+      "subtask_id" to 0,
+      "suppress_pr" to true,
+      "goal_branch" to "feat/SKILL-119-subtask-2",
+      "code_review_mode" to "inline",
+    )
+
+    assertFailsWith<InvalidWorkflowStateSchemaError> {
+      FeatureTaskRuntimeGoalContinuationArtifact.fromArtifactMap(malformed)
     }
   }
 

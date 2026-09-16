@@ -1,10 +1,19 @@
 package skillbill.workflow.goal
 
+import skillbill.error.InvalidGoalProgressEventSchemaError
+import skillbill.error.InvalidGoalObservabilityEventSchemaError
+import skillbill.error.InvalidWorkflowStateSchemaError
+import skillbill.workflow.goal.model.goalObservabilityEventFromArtifact
 import skillbill.workflow.goal.model.GOAL_OBSERVABILITY_HISTORY_LIMIT
 import skillbill.workflow.goal.model.GoalObservabilityEvent
 import skillbill.workflow.goal.model.GoalObservabilityHistory
+import skillbill.workflow.goal.model.GoalObservabilityRecordKind
+import skillbill.workflow.goal.model.GoalProgressEventKind
+import skillbill.workflow.goal.model.GoalProgressOutcome
+import skillbill.goalrunner.model.GoalAttemptLedgerAction
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 
 class GoalObservabilityModelsTest {
@@ -18,6 +27,44 @@ class GoalObservabilityModelsTest {
     assertEquals(GOAL_OBSERVABILITY_HISTORY_LIMIT, history.events.size)
     assertEquals(3, history.events.first().sequenceNumber)
     assertEquals(GOAL_OBSERVABILITY_HISTORY_LIMIT + 2, history.events.last().sequenceNumber)
+  }
+
+  @Test
+  fun `unknown goal progress event kind wire token fails typed workflow error`() {
+    assertFailsWith<InvalidGoalProgressEventSchemaError> {
+      GoalProgressEventKind.fromWire("not-an-event-kind")
+    }
+  }
+
+  @Test
+  fun `unknown goal observability and ledger tokens fail with typed workflow errors`() {
+    assertFailsWith<InvalidGoalObservabilityEventSchemaError> {
+      GoalObservabilityRecordKind.fromWire("not-a-record-kind")
+    }
+    assertFailsWith<InvalidGoalProgressEventSchemaError> {
+      GoalProgressOutcome.fromWire("not-an-outcome")
+    }
+    assertFailsWith<InvalidWorkflowStateSchemaError> {
+      GoalAttemptLedgerAction.fromWire("not-an-action")
+    }
+  }
+
+  @Test
+  fun `goal observability decoder rejects malformed list elements with a typed error`() {
+    val malformed = event(1)
+      .toArtifactMap(includeHeavyFields = true)
+      .toMutableMap()
+      .apply { this["changed_files"] = listOf(7) }
+
+    assertFailsWith<InvalidGoalObservabilityEventSchemaError> {
+      goalObservabilityEventFromArtifact(
+        raw = malformed,
+        sourceLabel = "goal_observability_latest_event",
+        validator = object : GoalObservabilityEventValidator {
+          override fun validate(event: Any, sourceLabel: String) = Unit
+        },
+      )
+    }
   }
 
   @Test

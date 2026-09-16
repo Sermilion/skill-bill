@@ -7,6 +7,7 @@ import skillbill.workflow.engine.model.WorkflowDefinition
 import skillbill.workflow.engine.model.WorkflowSnapshotView
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepState
+import skillbill.workflow.taskruntime.model.asExactIntOrNull
 
 internal fun snapshotViewFrom(record: WorkflowStateSnapshot): WorkflowSnapshotView {
   val steps = decodeSteps(record.stepsJson).map { stepMap ->
@@ -60,11 +61,14 @@ internal fun mergeStepUpdates(
   val byStepId = existingSteps.associateByTo(LinkedHashMap()) { it[SharedPayloadKeys.STEP_ID].toString() }
   stepUpdates.forEach { update ->
     val stepId = update[SharedPayloadKeys.STEP_ID].toString()
-    val attemptCount = requireNotNull(update["attempt_count"].asExactIntOrNull()) {
-      "step_updates.attempt_count must be an integer >= 0."
-    }
-    require(attemptCount >= 0) {
-      "step_updates.attempt_count must be an integer >= 0."
+    val attemptCount = update["attempt_count"].asExactIntOrNull()
+      ?: throw InvalidWorkflowStateSchemaError(
+        "step_updates.attempt_count must be an integer >= 0.",
+      )
+    if (attemptCount < 0) {
+      throw InvalidWorkflowStateSchemaError(
+        "step_updates.attempt_count must be an integer >= 0.",
+      )
     }
     byStepId[stepId] = workflowStep(stepId, update[SharedPayloadKeys.STATUS].toString(), attemptCount)
   }

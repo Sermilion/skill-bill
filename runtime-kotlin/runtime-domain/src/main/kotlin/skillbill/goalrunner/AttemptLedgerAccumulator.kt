@@ -4,10 +4,12 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.goalrunner.model.GOAL_ATTEMPT_LEDGER_ARTIFACT_KEY
 import skillbill.goalrunner.model.GoalRunnerAttemptLedgerSummary
 import skillbill.workflow.goal.model.asGoalWorkflowArtifactMap
+import skillbill.goalrunner.recordDurableDecodeSubstitution
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 
 class AttemptLedgerAccumulator {
   var blockedAttemptCount = 0
@@ -80,9 +82,22 @@ fun backwardEdgeCountsFromLedger(artifacts: Any): Map<String, Int> {
   return counts
 }
 
-fun parseInstantOrNull(value: String): Instant? = runCatching { Instant.parse(value) }.getOrNull()
-  ?: runCatching {
+fun parseInstantOrNull(value: String): Instant? {
+  try {
+    return Instant.parse(value)
+  } catch (_: DateTimeParseException) {
+  }
+  return try {
     LocalDateTime.parse(value.trim(), SQLITE_TIMESTAMP_FORMATTER).toInstant(ZoneOffset.UTC)
-  }.getOrNull()
+  } catch (_: DateTimeParseException) {
+    recordDurableDecodeSubstitution(
+      seam = "AttemptLedgerAccumulator.parseInstantOrNull",
+      valueUsed = "null",
+      expectedValue = "instant_or_sqlite_timestamp",
+      reason = "timestamp_parse_failed",
+    )
+    null
+  }
+}
 
 val SQLITE_TIMESTAMP_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")

@@ -2,6 +2,7 @@ package skillbill.workflow.taskruntime.model
 
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.error.InvalidWorkflowStateSchemaError
+import skillbill.workflow.taskruntime.model.DurableArtifactMapReader
 
 const val FEATURE_TASK_RUNTIME_DECOMPOSE_TERMINAL_ARTIFACT_KEY: String =
   "feature_task_runtime_decompose_terminal"
@@ -37,32 +38,14 @@ data class FeatureTaskRuntimeDecomposeTerminal(
   )
 
   companion object {
-    internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeDecomposeTerminal =
-      FeatureTaskRuntimeDecomposeTerminal(
-        reason = raw.requireTerminalStringField("reason"),
-        parentSpecPath = raw.requireTerminalStringField(DecompositionPlanningPayloadKeys.PARENT_SPEC_PATH),
-        decompositionManifestPath = raw.requireTerminalStringField("decomposition_manifest_path"),
-        subtaskSpecPaths = raw.requireTerminalStringListField("subtask_spec_paths"),
+    internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeDecomposeTerminal {
+      val reader = durableArtifactMapReader(raw)
+      return FeatureTaskRuntimeDecomposeTerminal(
+        reason = reader.requiredString("reason"),
+        parentSpecPath = reader.requiredString(DecompositionPlanningPayloadKeys.PARENT_SPEC_PATH),
+        decompositionManifestPath = reader.requiredString("decomposition_manifest_path"),
+        subtaskSpecPaths = reader.requiredStringList("subtask_spec_paths"),
       )
+    }
   }
 }
-
-private fun Map<String, Any?>.requireTerminalStringField(key: String): String {
-  val value = this[key]
-    ?: terminalSchemaError("Feature-task-runtime decompose-terminal artifact is missing field '$key'.")
-  return (value as? String)?.takeIf(String::isNotBlank)
-    ?: terminalSchemaError("Feature-task-runtime decompose-terminal field '$key' must be a non-blank string.")
-}
-
-private fun Map<String, Any?>.requireTerminalStringListField(key: String): List<String> {
-  val value = this[key]
-    ?: terminalSchemaError("Feature-task-runtime decompose-terminal artifact is missing list field '$key'.")
-  val list = value as? List<*>
-    ?: terminalSchemaError("Feature-task-runtime decompose-terminal field '$key' must be a list.")
-  return list.mapIndexed { index, element ->
-    (element as? String)?.takeIf(String::isNotBlank)
-      ?: terminalSchemaError("Feature-task-runtime decompose-terminal field '$key[$index]' must be non-blank.")
-  }
-}
-
-private fun terminalSchemaError(detail: String): Nothing = throw InvalidWorkflowStateSchemaError(detail)

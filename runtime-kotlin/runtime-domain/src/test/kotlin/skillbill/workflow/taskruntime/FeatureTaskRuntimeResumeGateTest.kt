@@ -4,8 +4,11 @@ import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowDefinition
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
+import skillbill.workflow.engine.model.WorkflowSnapshotView
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.verify.FeatureVerifyWorkflowDefinition
+import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -180,6 +183,42 @@ class FeatureTaskRuntimeResumeGateTest {
 
     assertFailsWith<InvalidWorkflowStateSchemaError> {
       engine.resumeView(runtimeDefinition, record)
+    }
+  }
+
+  @Test
+  fun `runtime resume gate loud-fails on malformed quality gate selection`() {
+    val snapshot = WorkflowSnapshotView(
+      workflowId = "wftr-test",
+      sessionId = "ftr-test",
+      workflowName = runtimeDefinition.workflowName,
+      contractVersion = runtimeDefinition.contractVersion,
+      workflowStatus = "running",
+      currentStepId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_WRITE_HISTORY,
+      steps = emptyList(),
+      artifacts = DurableWorkflowArtifacts.fromMap(
+        mapOf(
+          FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY to mapOf(
+            "issue_key" to "SKILL-351",
+            "subtask_id" to 1,
+            "suppress_pr" to true,
+            "goal_branch" to "feat/SKILL-351",
+            "code_review_mode" to "inline",
+            "quality_gate_selection" to false,
+          ),
+        ),
+      ),
+      startedAt = "2026-06-18T10:00:00Z",
+      updatedAt = "2026-06-18T10:05:00Z",
+      finishedAt = "",
+    )
+
+    assertFailsWith<InvalidWorkflowStateSchemaError> {
+      FeatureTaskRuntimeRequiredArtifactPresenceResolver.missingRequiredArtifacts(
+        snapshot = snapshot,
+        resumeStepId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_WRITE_HISTORY,
+        requiredArtifacts = listOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE),
+      )
     }
   }
 

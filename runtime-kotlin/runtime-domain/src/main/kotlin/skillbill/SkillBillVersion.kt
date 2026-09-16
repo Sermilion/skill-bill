@@ -1,18 +1,31 @@
 package skillbill
 
+import skillbill.goalrunner.recordDurableDecodeSubstitution
+import java.io.InputStream
 import java.util.Properties
 
 object SkillBillVersion {
-  val VALUE: String = resourceVersion()
+  val VALUE: String = resourceVersion {
+    SkillBillVersion::class.java.classLoader.getResourceAsStream("skillbill/version.properties")
+  }
 }
 
-private fun resourceVersion(): String = SkillBillVersion::class.java.classLoader
-  .getResourceAsStream("skillbill/version.properties")
-  ?.use { stream ->
-    Properties()
-      .apply { load(stream) }
-      .getProperty("version")
-      ?.ifBlank { null }
+internal fun resourceVersion(load: () -> InputStream?): String {
+  val loaded = load()
+    ?.use { stream ->
+      Properties()
+        .apply { load(stream) }
+        .getProperty("version")
+        ?.ifBlank { null }
+    }
+  if (loaded != null) {
+    return loaded
   }
-
-  ?: "0.0.0-unknown"
+  recordDurableDecodeSubstitution(
+    seam = "SkillBillVersion.resourceVersion",
+    valueUsed = "0.0.0-unknown",
+    expectedValue = "packaged_version_property",
+    reason = "missing_or_blank_version_resource",
+  )
+  return "0.0.0-unknown"
+}

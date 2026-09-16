@@ -1,5 +1,15 @@
 # Boundary History — runtime-domain
 
+## [2026-09-16] SKILL-351 subtask 1 — Unify durable decoding and failure reporting
+Areas: runtime-domain/durable-decoding, runtime-domain/workflow, runtime-domain/goalrunner, runtime-domain/review, runtime-core/architecture, runtime-infra-sqlite/review
+- Durable map, list, object, boolean, integer, and long reads now share one typed-error boundary; malformed durable values reach quarantine instead of leaking generic argument or state failures.
+- Review enums, finding citations, workflow state, goal observability, phase records, and decomposition data preserve their family-specific failure identity; lane accounting uses `JsonCodec`.
+- Silent fallback seams record substitutions, and the dead goal-observability liveness reader was removed.
+- Pattern: centralize exact durable coercion and inject only the owning typed-error factory. reusable
+- Known limitations: two area-specific parsing helpers remain, and existing durable-seam tests outside the new domain coverage still need assertion retargeting.
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented
+
 ## [2026-09-12] SKILL-340 subtask 1 — File-level citation line normalization
 Areas: runtime-domain/review, runtime-domain/goalrunner/subtaskreview, runtime-application/review
 - Review citation ingestion now coerces zero and other non-positive numeric line values to `1` before constructing `ReviewFindingCitation`; positive lines remain unchanged.

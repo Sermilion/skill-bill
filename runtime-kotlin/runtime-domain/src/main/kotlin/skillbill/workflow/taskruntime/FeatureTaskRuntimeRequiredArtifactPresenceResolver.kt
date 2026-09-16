@@ -68,14 +68,17 @@ object FeatureTaskRuntimeRequiredArtifactPresenceResolver : RequiredArtifactPres
   private fun goalContinuationQualityGateSelection(
     snapshot: WorkflowSnapshotView,
   ): FeatureTaskRuntimeQualityGateSelection? {
-    val raw = snapshot.artifacts[FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY] as? Map<*, *>
+    val raw = snapshot.artifacts[FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY]
       ?: return null
-    val continuationMap = JsonCodec.anyToStringAnyMap(raw) ?: return null
-    return try {
-      FeatureTaskRuntimeGoalContinuationArtifact.fromArtifactMap(continuationMap).qualityGateSelection
-    } catch (_: InvalidWorkflowStateSchemaError) {
-      null
-    }
+    val rawMap = raw as? Map<*, *>
+      ?: throw InvalidWorkflowStateSchemaError(
+        "Feature-task-runtime goal-continuation artifact must decode to an object.",
+      )
+    val continuationMap = JsonCodec.anyToStringAnyMap(rawMap)
+      ?: throw InvalidWorkflowStateSchemaError(
+        "Feature-task-runtime goal-continuation artifact must decode to an object with string keys.",
+      )
+    return FeatureTaskRuntimeGoalContinuationArtifact.fromArtifactMap(continuationMap).qualityGateSelection
   }
 
   private fun completedPhaseIds(snapshot: WorkflowSnapshotView): Set<String> = decodePhaseRecords(snapshot)

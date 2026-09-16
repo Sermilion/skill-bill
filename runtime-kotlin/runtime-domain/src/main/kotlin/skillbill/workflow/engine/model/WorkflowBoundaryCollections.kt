@@ -21,6 +21,10 @@ class WorkflowArtifactPatch private constructor(
 ) : Map<String, Any?> by delegate {
   internal fun toMutableMap(): MutableMap<String, Any?> = LinkedHashMap(delegate)
 
+  override fun equals(other: Any?): Boolean = other is WorkflowArtifactPatch && delegate == other.delegate
+
+  override fun hashCode(): Int = delegate.hashCode()
+
   companion object {
     fun from(map: Map<String, Any?>?): WorkflowArtifactPatch? = map?.let { WorkflowArtifactPatch(LinkedHashMap(it)) }
 
@@ -31,6 +35,10 @@ class WorkflowArtifactPatch private constructor(
 class WorkflowContinuationFieldMap private constructor(
   private val delegate: Map<String, Any?>,
 ) : Map<String, Any?> by delegate {
+  override fun equals(other: Any?): Boolean = other is WorkflowContinuationFieldMap && delegate == other.delegate
+
+  override fun hashCode(): Int = delegate.hashCode()
+
   companion object {
     fun from(map: Map<String, Any?>): WorkflowContinuationFieldMap = WorkflowContinuationFieldMap(LinkedHashMap(map))
 
@@ -41,6 +49,10 @@ class WorkflowContinuationFieldMap private constructor(
 class WorkflowStepArtifactMap private constructor(
   private val delegate: Map<String, Any?>,
 ) : Map<String, Any?> by delegate {
+  override fun equals(other: Any?): Boolean = other is WorkflowStepArtifactMap && delegate == other.delegate
+
+  override fun hashCode(): Int = delegate.hashCode()
+
   companion object {
     fun from(map: Map<String, Any?>): WorkflowStepArtifactMap = WorkflowStepArtifactMap(LinkedHashMap(map))
 
@@ -51,6 +63,10 @@ class WorkflowStepArtifactMap private constructor(
 class WorkflowLaunchProjectionArtifacts private constructor(
   private val delegate: Map<String, Any?>,
 ) : Map<String, Any?> by delegate {
+  override fun equals(other: Any?): Boolean = other is WorkflowLaunchProjectionArtifacts && delegate == other.delegate
+
+  override fun hashCode(): Int = delegate.hashCode()
+
   companion object {
     fun from(map: Map<String, Any?>): WorkflowLaunchProjectionArtifacts =
       WorkflowLaunchProjectionArtifacts(LinkedHashMap(map))
@@ -70,6 +86,10 @@ class InlineContinuationArtifactValue private constructor(
 class DecompositionManifestWireMap private constructor(
   private val delegate: Map<String, Any?>,
 ) : Map<String, Any?> by delegate {
+  override fun equals(other: Any?): Boolean = other is DecompositionManifestWireMap && delegate == other.delegate
+
+  override fun hashCode(): Int = delegate.hashCode()
+
   companion object {
     fun from(map: Map<String, Any?>): DecompositionManifestWireMap = DecompositionManifestWireMap(LinkedHashMap(map))
 
@@ -83,6 +103,10 @@ class DecompositionManifestWireMap private constructor(
 class CustomFieldMap private constructor(
   private val delegate: Map<String, Any?>,
 ) : Map<String, Any?> by delegate {
+  override fun equals(other: Any?): Boolean = other is CustomFieldMap && delegate == other.delegate
+
+  override fun hashCode(): Int = delegate.hashCode()
+
   companion object {
     fun from(map: Map<String, Any?>): CustomFieldMap = CustomFieldMap(LinkedHashMap(map))
 
@@ -109,6 +133,10 @@ typealias ReviewContextWireMap = ReviewContextWireMapType
 class GovernedReviewJsonRpcArguments private constructor(
   private val delegate: Map<String, Any?>,
 ) : Map<String, Any?> by delegate {
+  override fun equals(other: Any?): Boolean = other is GovernedReviewJsonRpcArguments && delegate == other.delegate
+
+  override fun hashCode(): Int = delegate.hashCode()
+
   companion object {
     fun from(map: Map<String, Any?>): GovernedReviewJsonRpcArguments =
       GovernedReviewJsonRpcArguments(LinkedHashMap(map))

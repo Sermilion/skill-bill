@@ -65,17 +65,19 @@ data class FeatureTaskRuntimeDiagnosticSignal(
   )
 
   companion object {
-    internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeDiagnosticSignal =
-      FeatureTaskRuntimeDiagnosticSignal(
-        operation = raw.requireStringField("operation"),
-        failureClass = FeatureTaskRuntimeDiagnosticFailureClass.fromWire(raw.requireStringField("failure_class")),
-        conflictingKey = raw.requireStringField("conflicting_key"),
-        phaseId = raw.requireStringField(SharedPayloadKeys.PHASE_ID),
-        attempt = raw.requireIntField("attempt"),
-        repairTurn = raw["repair_turn"]?.let { raw.requireIntField("repair_turn") },
-        generation = raw.requireIntField("generation"),
-        recordedAt = raw.requireStringField("recorded_at"),
+    internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeDiagnosticSignal {
+      val reader = durableArtifactMapReader(raw)
+      return FeatureTaskRuntimeDiagnosticSignal(
+        operation = reader.requiredString("operation"),
+        failureClass = FeatureTaskRuntimeDiagnosticFailureClass.fromWire(reader.requiredString("failure_class")),
+        conflictingKey = reader.requiredString("conflicting_key"),
+        phaseId = reader.requiredString(SharedPayloadKeys.PHASE_ID),
+        attempt = reader.requiredInt("attempt"),
+        repairTurn = reader.optionalInt("repair_turn"),
+        generation = reader.requiredInt("generation"),
+        recordedAt = reader.requiredString("recorded_at"),
       )
+    }
   }
 }
 

@@ -91,18 +91,20 @@ data class FeatureTaskRuntimePhaseOutputRepairEvidence(
     internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimePhaseOutputRepairEvidence {
       requireRepairEvidenceExactFields(raw)
       val location = requireRepairEvidenceLocation(raw)
+      val reader = DurableArtifactMapReader(raw) { message -> phaseOutputRepairEvidenceSchemaError(message) }
+      val locationReader = DurableArtifactMapReader(location) { message -> phaseOutputRepairEvidenceSchemaError(message) }
       return FeatureTaskRuntimePhaseOutputRepairEvidence(
-        contractVersion = raw.requireRepairEvidenceString(SharedPayloadKeys.CONTRACT_VERSION),
-        validatorVersion = raw.requireRepairEvidenceString("validator_version"),
-        format = FeatureTaskRuntimePhaseOutputFormat.fromWire(raw.requireRepairEvidenceString("format")),
-        originalDigest = raw.requireRepairEvidenceString("original_digest"),
-        repairedDigest = raw.requireRepairEvidenceString("repaired_digest"),
-        operation = FeatureTaskRuntimePhaseOutputRepairOperation.fromWire(raw.requireRepairEvidenceString("operation")),
+        contractVersion = reader.requiredString(SharedPayloadKeys.CONTRACT_VERSION),
+        validatorVersion = reader.requiredString("validator_version"),
+        format = FeatureTaskRuntimePhaseOutputFormat.fromWire(reader.requiredString("format")),
+        originalDigest = reader.requiredString("original_digest"),
+        repairedDigest = reader.requiredString("repaired_digest"),
+        operation = FeatureTaskRuntimePhaseOutputRepairOperation.fromWire(reader.requiredString("operation")),
         sourceLocation = FeatureTaskRuntimePhaseOutputSourceLocation(
-          sourceLabel = location.requireRepairEvidenceString("source_label"),
-          offset = location.requireRepairEvidenceInt("offset"),
-          line = location.requireRepairEvidenceInt("line"),
-          column = location.requireRepairEvidenceInt("column"),
+          sourceLabel = locationReader.requiredString("source_label"),
+          offset = locationReader.requiredInt("offset"),
+          line = locationReader.requiredInt("line"),
+          column = locationReader.requiredInt("column"),
         ),
       )
     }
@@ -147,27 +149,23 @@ private fun requireRepairEvidenceExactFields(raw: Map<String, Any?>) {
   }
 }
 
-private fun requireRepairEvidenceLocation(raw: Map<String, Any?>): Map<*, *> {
-  val location = raw["source_location"] as? Map<*, *>
+private fun requireRepairEvidenceLocation(raw: Map<String, Any?>): Map<String, Any?> {
+  val location = raw["source_location"]
     ?: phaseOutputRepairEvidenceSchemaError(
       "Phase-output repair evidence source_location must be an object.",
     )
-  if (location.keys != setOf("source_label", "offset", "line", "column")) {
+  val locationMap = raw["source_location"] as? Map<*, *>
+    ?: phaseOutputRepairEvidenceSchemaError("Phase-output repair evidence source_location must be an object.")
+  val converted = locationMap.toStringKeyedArtifactMap { detail ->
+    phaseOutputRepairEvidenceSchemaError("Phase-output repair evidence source_location $detail")
+  }
+  if (converted.keys != setOf("source_label", "offset", "line", "column")) {
     phaseOutputRepairEvidenceSchemaError(
       "Phase-output repair evidence source_location contains unsupported fields.",
     )
   }
-  return location
+  return converted
 }
-
-private fun Map<*, *>.requireRepairEvidenceString(field: String): String = this[field] as? String
-  ?: phaseOutputRepairEvidenceSchemaError("Phase-output repair evidence field '$field' must be a string.")
-
-private fun Map<*, *>.requireRepairEvidenceInt(field: String): Int = when (val value = this[field]) {
-  is Int -> value
-  is Number -> value.toInt().takeIf { value.toDouble() == it.toDouble() }
-  else -> null
-} ?: phaseOutputRepairEvidenceSchemaError("Phase-output repair evidence field '$field' must be an integer.")
 
 sealed interface FeatureTaskRuntimePhaseOutputValidationResult {
   val contractVersion: String
