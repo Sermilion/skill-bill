@@ -428,6 +428,69 @@ object ArchitectureScanSupport {
   fun abstractPropertyNames(source: String): Set<String> =
     ABSTRACT_PROPERTY_PATTERN.findAll(source).map { match -> match.groupValues[1] }.toSet()
 
+  private val COMPOSITION_FUN_DECL_PATTERN =
+    Regex(
+      """^\s*((?:(?:public|internal|private|protected|open|abstract|final|override|suspend|inline|infix|""" +
+        """operator|tailrec|external|expect|actual)\s+)*)fun\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(""",
+      RegexOption.MULTILINE,
+    )
+
+  private fun compositionPrefixHasProvidesAnnotation(prefix: String): Boolean {
+    var lineEnd = prefix.length
+    while (lineEnd > 0) {
+      while (lineEnd > 0 && prefix[lineEnd - 1].isWhitespace()) lineEnd -= 1
+      if (lineEnd == 0) return false
+      val lineStart = prefix.lastIndexOf('\n', lineEnd - 1) + 1
+      val line = prefix.substring(lineStart, lineEnd).trim()
+      if (!line.startsWith("@")) return false
+      if (line.contains("@Provides")) return true
+      lineEnd = lineStart
+    }
+    return false
+  }
+
+  fun unclassifiedPublicFunctionNames(source: String): Set<String> {
+    val names = linkedSetOf<String>()
+    COMPOSITION_FUN_DECL_PATTERN.findAll(source).forEach { match ->
+      val modifiers = match.groupValues[1]
+      val name = match.groupValues[2]
+      if (modifiers.split(Regex("""\s+""")).any { modifier ->
+          modifier in setOf("internal", "private", "protected")
+        }
+      ) {
+        return@forEach
+      }
+      if (compositionPrefixHasProvidesAnnotation(source.substring(0, match.range.first))) return@forEach
+      names += name
+    }
+    return names
+  }
+
+  fun runtimeComponentCompositionSurfaceSources(diScanRoot: String): List<Path> {
+    val diRoot = runtimeRoot.resolve(diScanRoot)
+    val componentFile = runtimeRoot.resolve(PrincipleEnforcementInventory.RUNTIME_COMPONENT_SOURCE)
+    val providesFiles = kotlinFilesUnder(diRoot).filter { path ->
+      val fileName = path.fileName.toString()
+      fileName.startsWith("Runtime") && fileName.endsWith("Provides.kt")
+    }
+    return (listOfNotNull(componentFile.takeIf { Files.exists(it) }) + providesFiles).distinct()
+  }
+
+  fun runtimeComponentPublicCallableViolations(diScanRoot: String): List<String> =
+    runtimeComponentCompositionSurfaceSources(diScanRoot)
+      .flatMap { sourceFile ->
+        val relativePath = runtimeRoot.relativize(sourceFile).toString().replace('\\', '/')
+        unclassifiedPublicFunctionNames(sourceFile.readText()).map { name ->
+          "$relativePath exposes public function '$name' outside the @Provides generated-wiring surface."
+        }
+      }
+      .sorted()
+
+  fun runtimeComponentPublicCallableViolationsInSource(relativePath: String, source: String): List<String> =
+    unclassifiedPublicFunctionNames(source).map { name ->
+      "$relativePath exposes public function '$name' outside the @Provides generated-wiring surface."
+    }
+
   fun logicalTypeLineCounts(productionRoots: List<String>): Map<String, Int> = productionRoots
     .flatMap { productionRoot -> kotlinFilesUnder(runtimeRoot.resolve(productionRoot)) }
     .mapNotNull { sourceFile ->

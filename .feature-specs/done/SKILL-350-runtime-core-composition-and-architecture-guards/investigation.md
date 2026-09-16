@@ -70,9 +70,9 @@ Severity describes the demonstrated consequence. Medium findings need correction
 
 Source anchors:
 
-- [RuntimeComponent.kt](../../runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/RuntimeComponent.kt), lines 85-106.
-- [RuntimeBootstrapBindings.kt](../../runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/RuntimeBootstrapBindings.kt), lines 18-55.
-- [JdkHttpRemoteTransport.kt](../../runtime-kotlin/runtime-infra-http/src/main/kotlin/skillbill/infrastructure/http/JdkHttpRemoteTransport.kt), lines 40-62.
+- [RuntimeComponent.kt](../../../runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/RuntimeComponent.kt), lines 85-106.
+- [RuntimeBootstrapBindings.kt](../../../runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/RuntimeBootstrapBindings.kt), lines 18-55.
+- [JdkHttpRemoteTransport.kt](../../../runtime-kotlin/runtime-infra-http/src/main/kotlin/skillbill/infrastructure/http/JdkHttpRemoteTransport.kt), lines 40-62.
 - Generated InjectRuntimeComponent resolves `runtimeContext()` through environment, transport, callback, and workflow providers. Generated CLI and MCP code also calls parent providers directly.
 
 `runtimeContext()` calls the bootstrap resolver each time. The resolver reads an unspecified home and environment, resolves the repository path, and selects a requester. The component annotation does not scope every provider automatically. The database factory has its own explicit scope and retains the earlier EnvironmentContext.
@@ -87,10 +87,10 @@ Resolve invocation facts once per component and reuse the selected requester. Pr
 
 Source anchors:
 
-- [RuntimeGoalRunnerLaunchProvides.kt](../../runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/RuntimeGoalRunnerLaunchProvides.kt), lines 22-28.
-- [FileSystemAgentRunLauncher.kt](../../runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/launcher/agentrun/FileSystemAgentRunLauncher.kt), lines 15-30.
-- [PathExecutableLookup.kt](../../runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/launcher/agentrun/PathExecutableLookup.kt), lines 8-21.
-- [AgentRunServiceRuntimeComponentTest.kt](../../runtime-kotlin/runtime-core/src/test/kotlin/skillbill/application/AgentRunServiceRuntimeComponentTest.kt), lines 19-46.
+- [RuntimeGoalRunnerLaunchProvides.kt](../../../runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/RuntimeGoalRunnerLaunchProvides.kt), lines 22-28.
+- [FileSystemAgentRunLauncher.kt](../../../runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/launcher/agentrun/FileSystemAgentRunLauncher.kt), lines 15-30.
+- [PathExecutableLookup.kt](../../../runtime-kotlin/runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/launcher/agentrun/PathExecutableLookup.kt), lines 8-21.
+- [AgentRunServiceRuntimeComponentTest.kt](../../../runtime-kotlin/runtime-core/src/test/kotlin/skillbill/application/AgentRunServiceRuntimeComponentTest.kt), lines 19-46.
 
 The root selects OptionalCallbacks.executableLookup for consumers such as CLI preflight. The launcher's injected constructor accepts only the process runner and database factory. Delegation to its internal constructor therefore uses a fresh PathExecutableLookup and ignores the selected lookup.
 
@@ -104,10 +104,10 @@ Pass the existing lookup into the injected launcher constructor. Test the real g
 
 Source anchors:
 
-- [RuntimeComponentInboundApiArchitectureTest.kt](../../runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/RuntimeComponentInboundApiArchitectureTest.kt), lines 9-18.
-- [ArchitectureScanSupport.kt](../../runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/ArchitectureScanSupport.kt), lines 428-429.
-- [RuntimeWorkflowProvides.kt](../../runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/RuntimeWorkflowProvides.kt), lines 20-24.
-- [PrincipleEnforcementInventory.kt](../../runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/PrincipleEnforcementInventory.kt), line 260 and the following service-property inventory.
+- [RuntimeComponentInboundApiArchitectureTest.kt](../../../runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/RuntimeComponentInboundApiArchitectureTest.kt), lines 9-18.
+- [ArchitectureScanSupport.kt](../../../runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/ArchitectureScanSupport.kt), lines 428-429.
+- [RuntimeWorkflowProvides.kt](../../../runtime-kotlin/runtime-core/src/main/kotlin/skillbill/di/RuntimeWorkflowProvides.kt), lines 20-24.
+- [PrincipleEnforcementInventory.kt](../../../runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/PrincipleEnforcementInventory.kt), line 260 and the following service-property inventory.
 
 The check compares abstract property names only. Public functions and inherited provider methods do not participate. A separately compiled Kotlin probe called `component.gitWorkflowGitOperations()` and received the concrete filesystem adapter. `@JvmSynthetic` does not hide that member from Kotlin callers.
 
@@ -121,8 +121,8 @@ Keep the curated logical service API. Classify legitimate generated wiring metho
 
 Source anchors:
 
-- [ArchitectureScanGuardSupport.kt](../../runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/ArchitectureScanGuardSupport.kt), lines 335-405.
-- [RuntimeCompositionGuardArchitectureTest.kt](../../runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/RuntimeCompositionGuardArchitectureTest.kt), lines 8-43.
+- [ArchitectureScanGuardSupport.kt](../../../runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/ArchitectureScanGuardSupport.kt), lines 335-405.
+- [RuntimeCompositionGuardArchitectureTest.kt](../../../runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/RuntimeCompositionGuardArchitectureTest.kt), lines 8-43.
 
 The binding census recognizes parameter types only when parameter names match a hardcoded vocabulary such as adapter, store, service, or runner. Renaming `adapter: ExampleAdapter` to `implementation: ExampleAdapter` changes no dependency, but the real census drops ExampleAdapter.
 
@@ -134,11 +134,11 @@ Base the census on provider type information and resolve import aliases before m
 
 Source anchors:
 
-- [RuntimeCoreCompositionOnlyTest.kt](../../runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/RuntimeCoreCompositionOnlyTest.kt), line 134 and the per-configuration module edge table.
-- [RuntimeAdapterDependencyAllowlistTest.kt](../../runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/RuntimeAdapterDependencyAllowlistTest.kt), lines 157-207.
-- [RuntimeGradleModuleLayeringTest.kt](../../runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/RuntimeGradleModuleLayeringTest.kt), lines 21-36.
-- [RuntimeModuleCatalog.kt](../../runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/RuntimeModuleCatalog.kt), lines 3-17.
-- [runtime-core/build.gradle.kts](../../runtime-kotlin/runtime-core/build.gradle.kts), line 15.
+- [RuntimeCoreCompositionOnlyTest.kt](../../../runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/RuntimeCoreCompositionOnlyTest.kt), line 134 and the per-configuration module edge table.
+- [RuntimeAdapterDependencyAllowlistTest.kt](../../../runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/RuntimeAdapterDependencyAllowlistTest.kt), lines 157-207.
+- [RuntimeGradleModuleLayeringTest.kt](../../../runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/RuntimeGradleModuleLayeringTest.kt), lines 21-36.
+- [RuntimeModuleCatalog.kt](../../../runtime-kotlin/runtime-core/src/test/kotlin/skillbill/architecture/RuntimeModuleCatalog.kt), lines 3-17.
+- [runtime-core/build.gradle.kts](../../../runtime-kotlin/runtime-core/build.gradle.kts), line 15.
 
 The exact API and implementation edge table already defines the aggregate main project dependencies that another test restates. The module names are also repeated. An intentional edge change requires multiple edits to expected policy, which can drift without representing a distinct architectural decision.
 

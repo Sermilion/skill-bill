@@ -1,6 +1,6 @@
 # SKILL-350 Subtask 2 - Correct and simplify composition architecture checks
 
-Parent spec: [.feature-specs/SKILL-350-runtime-core-composition-and-architecture-guards/spec.md](./spec.md)
+Parent spec: [.feature-specs/SKILL-350-runtime-core-composition-and-architecture-guards/spec.md](spec.md)
 Issue key: SKILL-350
 
 ## Scope

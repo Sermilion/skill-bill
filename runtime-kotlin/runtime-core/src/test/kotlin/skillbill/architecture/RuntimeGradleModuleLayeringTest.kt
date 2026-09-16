@@ -18,22 +18,10 @@ class RuntimeGradleModuleLayeringTest {
 
   @Test
   fun `settings declares runtime modules`() {
-    val expectedModules =
-      setOf(
-        "runtime-application",
-        "runtime-contracts",
-        "runtime-core",
-        "runtime-domain",
-        "runtime-engine",
-        "runtime-infra-fs",
-        "runtime-infra-http",
-        "runtime-infra-sqlite",
-        "runtime-cli",
-        "runtime-mcp",
-        "runtime-ports",
-      )
-
-    assertEquals(expectedModules, declaredSettingsModules())
+    assertEquals(
+      RuntimeModuleCatalog.moduleEdgeExpectations.keys,
+      declaredSettingsModules(),
+    )
   }
 
   @Test

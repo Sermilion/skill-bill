@@ -1,5 +1,6 @@
 package skillbill.architecture
 
+import java.nio.file.Files
 import kotlin.io.path.readText
 
 private val INJECT_ANNOTATION_PATTERN = Regex("""@Inject\b""")
@@ -15,8 +16,6 @@ private val NON_PRIVATE_PROPERTY_DEFAULT_PATTERN =
       """([A-Za-z_][A-Za-z0-9_]*)\s*(?::[^=]*)?=""",
   )
 private val CLASS_HEADER_TERMINATOR = Regex("""\n\s*\n|\}|\b(?:class|object|interface|fun|typealias)\b""")
-private val STRING_LITERAL_PATTERN =
-  Regex("\"\"\"[\\s\\S]*?\"\"\"|\"(?:\\\\.|[^\"\\\\\\n])*\"|'(?:\\\\.|[^'\\\\\\n])*'")
 
 private val AMBIENT_CLOCK_FORMS: List<Pair<Regex, String>> = listOf(
   Regex("""\bInstant\.now\s*\(""") to "Instant.now()",
@@ -37,9 +36,94 @@ private fun codeWithoutComments(line: String): String {
   return withoutLineComment.replace(Regex("""/\*.*?\*/"""), "").substringBefore("/*")
 }
 
-private fun sourceWithoutCommentsOrLiterals(source: String): String =
-  source.lineSequence().joinToString("\n", transform = ::codeWithoutComments)
-    .replace(STRING_LITERAL_PATTERN, "")
+private fun sourceWithoutCommentsOrLiterals(source: String): String = buildString(source.length) {
+  var index = 0
+  while (index < source.length) {
+    index = when {
+      source.startsWith("//", index) -> appendLineComment(source, index)
+      source.startsWith("/*", index) -> appendBlockComment(source, index)
+      source.startsWith("\"\"\"", index) -> appendTripleQuotedLiteral(source, index)
+      source[index] == '"' || source[index] == '\'' -> appendQuotedLiteral(source, index)
+      else -> {
+        append(source[index])
+        index + 1
+      }
+    }
+  }
+}
+
+private fun StringBuilder.appendLineComment(source: String, start: Int): Int {
+  append("  ")
+  var index = start + 2
+  while (index < source.length && source[index] != '\n') {
+    append(' ')
+    index += 1
+  }
+  if (index < source.length) append('\n')
+  return index + 1
+}
+
+private fun StringBuilder.appendBlockComment(source: String, start: Int): Int {
+  append("  ")
+  var index = start + 2
+  var depth = 1
+  while (index < source.length && depth > 0) {
+    when {
+      source.startsWith("/*", index) -> {
+        append("  ")
+        depth += 1
+        index += 2
+      }
+      source.startsWith("*/", index) -> {
+        append("  ")
+        depth -= 1
+        index += 2
+      }
+      source[index] == '\n' -> {
+        append('\n')
+        index += 1
+      }
+      else -> {
+        append(' ')
+        index += 1
+      }
+    }
+  }
+  return index
+}
+
+private fun StringBuilder.appendTripleQuotedLiteral(source: String, start: Int): Int {
+  append("   ")
+  var index = start + 3
+  while (index < source.length && !source.startsWith("\"\"\"", index)) {
+    append(if (source[index] == '\n') '\n' else ' ')
+    index += 1
+  }
+  if (index < source.length) {
+    append("   ")
+    index += 3
+  }
+  return index
+}
+
+private fun StringBuilder.appendQuotedLiteral(source: String, start: Int): Int {
+  val quote = source[start]
+  append(' ')
+  var index = start + 1
+  var escaped = false
+  while (index < source.length && (escaped || source[index] != quote)) {
+    val character = source[index]
+    append(if (character == '\n') '\n' else ' ')
+    escaped = !escaped && character == '\\'
+    if (character != '\\') escaped = false
+    index += 1
+  }
+  if (index < source.length) {
+    append(' ')
+    index += 1
+  }
+  return index
+}
 
 private fun extractBalanced(source: String, openIndex: Int, open: Char, close: Char): String? {
   if (source.getOrNull(openIndex) != open) return null
@@ -328,17 +412,86 @@ private val TABLE_ROW_PATTERN =
     RegexOption.MULTILINE,
   )
 
-private val DI_BINDING_PARAMETER_TYPE_PATTERN = Regex(
-  """\b(?:adapter|gateway|store|service|client|provider|runner|resolver|factory|recorder|sweep|""" +
-    """coordinator|fileSystem|source|validator|adapter|port|mutator|emitter|binder|supervisor|writer|""" +
-    """loader|operations|adapter)\s*:\s*([A-Z][A-Za-z0-9_]*)""",
-)
+private val PROVIDES_FUNCTION_PATTERN =
+  Regex("""@Provides[\s\S]*?fun\s+[A-Za-z_][A-Za-z0-9_]*\s*\(([^)]*)\)""")
 
-private val DI_EXPLICIT_CONSTRUCTION_PATTERN =
-  Regex("""=\s*([A-Z][A-Za-z0-9_]*)\s*\(""")
+private val PROVIDES_EXPLICIT_CONSTRUCTION_PATTERN =
+  Regex(
+    """@Provides[\s\S]*?fun\s+[A-Za-z_][A-Za-z0-9_]*\s*\([^)]*\)\s*(?::[^={]+)?=\s*([A-Z][A-Za-z0-9_]*)\s*\(""",
+  )
 
 private val CLASS_DECLARATION_CONSTRUCTION_PATTERN =
   Regex("""\b(?:class|object|data\s+class|enum\s+class)\s+[A-Za-z_][A-Za-z0-9_]*\s*\(""")
+
+private val IMPORT_ALIAS_PATTERN =
+  Regex("""^\s*import\s+([A-Za-z0-9_.]+)(?:\s+as\s+([A-Za-z_][A-Za-z0-9_]*))?\s*$""", RegexOption.MULTILINE)
+private val COMPONENT_PROVIDER_RETURN_TYPE_PATTERN =
+  Regex("""^\s*fun\s+[A-Za-z_][A-Za-z0-9_]*\s*\([^)]*\)\s*:\s*([A-Z][A-Za-z0-9_]*)""", RegexOption.MULTILINE)
+
+private fun concreteTypeNamesFromProvidesParameterList(parameters: String): List<String> {
+  if (parameters.isBlank()) return emptyList()
+  return splitTopLevelParameters(parameters).mapNotNull { parameter ->
+    val typeSegment = parameter.substringAfter(':', "").substringBefore('=').trim()
+    if (typeSegment.isEmpty()) return@mapNotNull null
+    Regex("""([A-Z][A-Za-z0-9_]*)""")
+      .findAll(typeSegment)
+      .lastOrNull()
+      ?.value
+  }
+}
+
+private fun canonicalTypeName(source: String, typeName: String): String = IMPORT_ALIAS_PATTERN.findAll(source)
+  .firstOrNull { match -> match.groupValues[2] == typeName }
+  ?.groupValues
+  ?.get(1)
+  ?.substringAfterLast('.')
+  ?: typeName
+
+private fun componentProviderReturnTypeNames(source: String): Set<String> =
+  COMPONENT_PROVIDER_RETURN_TYPE_PATTERN.findAll(source)
+    .map { match -> canonicalTypeName(source, match.groupValues[1]) }
+    .toSet()
+
+private fun providesBoundConcreteTypeNames(
+  source: String,
+  excludedParameterTypeNames: Set<String> = emptySet(),
+): Set<String> {
+  val names = linkedSetOf<String>()
+  PROVIDES_FUNCTION_PATTERN.findAll(source).forEach { match ->
+    concreteTypeNamesFromProvidesParameterList(match.groupValues[1])
+      .map { typeName -> canonicalTypeName(source, typeName) }
+      .filterNot { typeName -> typeName in excludedParameterTypeNames }
+      .forEach(names::add)
+  }
+  PROVIDES_EXPLICIT_CONSTRUCTION_PATTERN.findAll(source).forEach { match ->
+    names += canonicalTypeName(source, match.groupValues[1])
+  }
+  return names
+}
+
+private fun importLocalNamesForSimpleType(source: String, simpleName: String): Set<String> {
+  val localNames = linkedSetOf(simpleName)
+  IMPORT_ALIAS_PATTERN.findAll(source).forEach { match ->
+    val imported = match.groupValues[1]
+    val alias = match.groupValues[2]
+    if (imported == simpleName || imported.endsWith(".$simpleName")) {
+      if (alias.isNotBlank()) {
+        localNames += alias
+      }
+    }
+  }
+  return localNames
+}
+
+private fun constructionTokenToBoundClass(source: String, boundClassNames: Set<String>): Map<String, String> {
+  val tokenToBound = linkedMapOf<String, String>()
+  boundClassNames.forEach { boundClass ->
+    importLocalNamesForSimpleType(source, boundClass).forEach { token ->
+      tokenToBound[token] = boundClass
+    }
+  }
+  return tokenToBound
+}
 
 private fun isClassDeclarationConstruction(source: String, matchStart: Int): Boolean {
   val lineStart = source.lastIndexOf('\n', matchStart - 1) + 1
@@ -346,25 +499,47 @@ private fun isClassDeclarationConstruction(source: String, matchStart: Int): Boo
   return CLASS_DECLARATION_CONSTRUCTION_PATTERN.containsMatchIn(source.substring(lineStart, lineEnd))
 }
 
-private fun constructionViolationsForPattern(pattern: Regex, relativePath: String, source: String): List<String> =
-  pattern.findAll(source).mapNotNull { match ->
-    if (isClassDeclarationConstruction(source, match.range.first)) return@mapNotNull null
-    "$relativePath constructs ${match.groupValues[1]} outside skillbill.di"
+private fun isSameNamedFunctionDeclaration(source: String, matchStart: Int, token: String): Boolean {
+  val lineStart = source.lastIndexOf('\n', matchStart - 1) + 1
+  val lineEnd = source.indexOf('\n', matchStart).let { index -> if (index < 0) source.length else index }
+  return Regex("""\bfun\s+${Regex.escape(token)}\s*\(""").containsMatchIn(source.substring(lineStart, lineEnd))
+}
+
+private fun constructionViolationsForBoundClasses(
+  relativePath: String,
+  source: String,
+  boundClassNames: Set<String>,
+): List<String> {
+  val scannable = sourceWithoutCommentsOrLiterals(source)
+  val tokenToBound = constructionTokenToBoundClass(source, boundClassNames)
+  if (tokenToBound.isEmpty()) return emptyList()
+  val pattern = Regex(
+    tokenToBound.keys.sortedByDescending(String::length).joinToString(separator = "|") { Regex.escape(it) }
+      .let { """\b($it)\s*\(""" },
+  )
+  return pattern.findAll(scannable).mapNotNull { match ->
+    val token = match.groupValues[1]
+    if (isClassDeclarationConstruction(scannable, match.range.first)) return@mapNotNull null
+    if (isSameNamedFunctionDeclaration(scannable, match.range.first, token)) return@mapNotNull null
+    val boundClass = tokenToBound[token] ?: return@mapNotNull null
+    "$relativePath constructs $boundClass outside skillbill.di"
   }.toList()
+}
 
 fun ArchitectureScanSupport.boundComponentConcreteClassNames(diScanRoot: String): Set<String> {
+  val componentFile = runtimeRoot.resolve(PrincipleEnforcementInventory.RUNTIME_COMPONENT_SOURCE)
+  val excludedParameterTypeNames = componentFile.takeIf { Files.exists(it) }
+    ?.let { componentProviderReturnTypeNames(it.readText()) }
+    .orEmpty()
   val names = linkedSetOf<String>()
   kotlinFilesUnder(runtimeRoot.resolve(diScanRoot)).forEach { sourceFile ->
-    val source = sourceFile.readText()
-    DI_BINDING_PARAMETER_TYPE_PATTERN.findAll(source).forEach { match ->
-      names += match.groupValues[1]
-    }
-    DI_EXPLICIT_CONSTRUCTION_PATTERN.findAll(source).forEach { match ->
-      names += match.groupValues[1]
-    }
+    names += providesBoundConcreteTypeNames(sourceFile.readText(), excludedParameterTypeNames)
   }
   return names
 }
+
+fun ArchitectureScanSupport.boundComponentConcreteClassNamesInSource(source: String): Set<String> =
+  providesBoundConcreteTypeNames(source)
 
 fun ArchitectureScanSupport.directComponentConstructionViolations(
   boundClassNames: Set<String>,
@@ -373,20 +548,16 @@ fun ArchitectureScanSupport.directComponentConstructionViolations(
   sanctionedEntrypoints: Set<String> = emptySet(),
 ): List<String> {
   if (boundClassNames.isEmpty()) return emptyList()
-  val pattern = Regex(
-    boundClassNames.sortedDescending().joinToString(separator = "|") { Regex.escape(it) }
-      .let { """\b($it)\s*\(""" },
-  )
   val violations = mutableListOf<String>()
   scanRoots.forEach { scanRoot ->
     kotlinFilesUnder(runtimeRoot.resolve(scanRoot)).forEach { sourceFile ->
       val relativePath = runtimeRoot.relativize(sourceFile).toString().replace('\\', '/')
       if (relativePath.startsWith(compositionDiRoot)) return@forEach
       if (relativePath in sanctionedEntrypoints) return@forEach
-      violations += constructionViolationsForPattern(
-        pattern,
+      violations += constructionViolationsForBoundClasses(
         relativePath,
         sourceFile.readText(),
+        boundClassNames,
       )
     }
   }
@@ -399,9 +570,5 @@ fun ArchitectureScanSupport.directComponentConstructionViolationsForSource(
   source: String,
 ): List<String> {
   if (boundClassNames.isEmpty()) return emptyList()
-  val pattern = Regex(
-    boundClassNames.sortedDescending().joinToString(separator = "|") { Regex.escape(it) }
-      .let { """\b($it)\s*\(""" },
-  )
-  return constructionViolationsForPattern(pattern, relativePath, source)
+  return constructionViolationsForBoundClasses(relativePath, source, boundClassNames)
 }

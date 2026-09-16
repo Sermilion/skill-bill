@@ -4,6 +4,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class RuntimeCoreCompositionOnlyTest {
@@ -12,7 +13,7 @@ class RuntimeCoreCompositionOnlyTest {
 
   @Test
   fun `every declared module has a Gradle edge expectation`() {
-    val covered = MODULE_EDGE_EXPECTATIONS.keys
+    val covered = RuntimeModuleCatalog.moduleEdgeExpectations.keys
     assertEquals(
       RuntimeModuleCatalog.declaredGradleModules.toSet(),
       covered,
@@ -22,27 +23,17 @@ class RuntimeCoreCompositionOnlyTest {
 
   @Test
   fun `module api edges match the recorded expectation`() {
-    MODULE_EDGE_EXPECTATIONS.forEach { (moduleName, expectation) ->
+    RuntimeModuleCatalog.moduleEdgeExpectations.forEach { (moduleName, expectation) ->
       val source = Files.readString(runtimeKotlinRoot.resolve("$moduleName/build.gradle.kts"))
-      val apiEdges = ArchitectureScanSupport.projectEdgesForConfiguration(source, "api")
-      assertEquals(
-        expectation.api,
-        apiEdges,
-        "$moduleName api(project(...)) edges drifted from the recorded expectation.",
-      )
+      assertModuleEdgesMatchExpectation(moduleName, source, expectation)
     }
   }
 
   @Test
   fun `module implementation edges match the recorded expectation`() {
-    MODULE_EDGE_EXPECTATIONS.forEach { (moduleName, expectation) ->
+    RuntimeModuleCatalog.moduleEdgeExpectations.forEach { (moduleName, expectation) ->
       val source = Files.readString(runtimeKotlinRoot.resolve("$moduleName/build.gradle.kts"))
-      val implementationEdges = ArchitectureScanSupport.projectEdgesForConfiguration(source, "implementation")
-      assertEquals(
-        expectation.implementation,
-        implementationEdges,
-        "$moduleName implementation(project(...)) edges drifted from the recorded expectation.",
-      )
+      assertModuleEdgesMatchExpectation(moduleName, source, expectation)
     }
   }
 
@@ -77,11 +68,13 @@ class RuntimeCoreCompositionOnlyTest {
       implementation(project(":runtime-extra"))
     }
     """.trimIndent()
-    val edges = ArchitectureScanSupport.projectEdgesForConfiguration(source, "implementation")
-    assertTrue(
-      edges != MODULE_EDGE_EXPECTATIONS.getValue("runtime-core").implementation,
-      "Added edge must change the implementation set.",
-    )
+    assertFailsWith<AssertionError> {
+      assertModuleEdgesMatchExpectation(
+        "runtime-core",
+        source,
+        RuntimeModuleCatalog.moduleEdgeExpectations.getValue("runtime-core"),
+      )
+    }
   }
 
   @Test
@@ -96,11 +89,13 @@ class RuntimeCoreCompositionOnlyTest {
         implementation(project(":runtime-infra-http"))
       }
     """.trimIndent()
-    val edges = ArchitectureScanSupport.projectEdgesForConfiguration(source, "implementation")
-    assertTrue(
-      edges != MODULE_EDGE_EXPECTATIONS.getValue("runtime-core").implementation,
-      "Removed edge must change the implementation set.",
-    )
+    assertFailsWith<AssertionError> {
+      assertModuleEdgesMatchExpectation(
+        "runtime-core",
+        source,
+        RuntimeModuleCatalog.moduleEdgeExpectations.getValue("runtime-core"),
+      )
+    }
   }
 
   @Test
@@ -116,86 +111,29 @@ class RuntimeCoreCompositionOnlyTest {
         implementation(project(":runtime-infra-sqlite"))
       }
     """.trimIndent()
-    val apiEdges = ArchitectureScanSupport.projectEdgesForConfiguration(source, "api")
-    val implementationEdges = ArchitectureScanSupport.projectEdgesForConfiguration(source, "implementation")
-    val expectation = MODULE_EDGE_EXPECTATIONS.getValue("runtime-core")
-    assertTrue(
-      apiEdges != expectation.api || implementationEdges != expectation.implementation,
-      "Reclassified edge must change at least one configuration set.",
-    )
+    assertFailsWith<AssertionError> {
+      assertModuleEdgesMatchExpectation(
+        "runtime-core",
+        source,
+        RuntimeModuleCatalog.moduleEdgeExpectations.getValue("runtime-core"),
+      )
+    }
   }
 
-  private data class ModuleEdgeExpectation(
-    val api: Set<String>,
-    val implementation: Set<String>,
-  )
-
-  private companion object {
-    val MODULE_EDGE_EXPECTATIONS: Map<String, ModuleEdgeExpectation> = mapOf(
-      "runtime-application" to ModuleEdgeExpectation(
-        api = setOf("runtime-contracts", "runtime-domain", "runtime-ports"),
-        implementation = emptySet(),
-      ),
-      "runtime-contracts" to ModuleEdgeExpectation(
-        api = emptySet(),
-        implementation = emptySet(),
-      ),
-      "runtime-core" to ModuleEdgeExpectation(
-        api = setOf("runtime-application", "runtime-engine", "runtime-ports"),
-        implementation = setOf(
-          "runtime-domain",
-          "runtime-contracts",
-          "runtime-infra-fs",
-          "runtime-infra-http",
-          "runtime-infra-sqlite",
-        ),
-      ),
-      "runtime-engine" to ModuleEdgeExpectation(
-        api = setOf("runtime-application", "runtime-contracts", "runtime-domain", "runtime-ports"),
-        implementation = emptySet(),
-      ),
-      "runtime-domain" to ModuleEdgeExpectation(
-        api = emptySet(),
-        implementation = setOf("runtime-contracts"),
-      ),
-      "runtime-infra-fs" to ModuleEdgeExpectation(
-        api = emptySet(),
-        implementation = setOf("runtime-contracts", "runtime-domain", "runtime-ports"),
-      ),
-      "runtime-infra-http" to ModuleEdgeExpectation(
-        api = emptySet(),
-        implementation = setOf("runtime-contracts", "runtime-domain", "runtime-ports"),
-      ),
-      "runtime-infra-sqlite" to ModuleEdgeExpectation(
-        api = emptySet(),
-        implementation = setOf("runtime-contracts", "runtime-domain", "runtime-ports"),
-      ),
-      "runtime-cli" to ModuleEdgeExpectation(
-        api = emptySet(),
-        implementation = setOf(
-          "runtime-application",
-          "runtime-contracts",
-          "runtime-core",
-          "runtime-domain",
-          "runtime-engine",
-          "runtime-ports",
-        ),
-      ),
-      "runtime-mcp" to ModuleEdgeExpectation(
-        api = emptySet(),
-        implementation = setOf(
-          "runtime-application",
-          "runtime-contracts",
-          "runtime-core",
-          "runtime-domain",
-          "runtime-engine",
-          "runtime-ports",
-        ),
-      ),
-      "runtime-ports" to ModuleEdgeExpectation(
-        api = setOf("runtime-contracts", "runtime-domain"),
-        implementation = emptySet(),
-      ),
+  private fun assertModuleEdgesMatchExpectation(
+    moduleName: String,
+    source: String,
+    expectation: RuntimeModuleCatalog.ModuleEdgeExpectation,
+  ) {
+    assertEquals(
+      expectation.api,
+      ArchitectureScanSupport.projectEdgesForConfiguration(source, "api"),
+      "$moduleName api(project(...)) edges drifted from the recorded expectation.",
+    )
+    assertEquals(
+      expectation.implementation,
+      ArchitectureScanSupport.projectEdgesForConfiguration(source, "implementation"),
+      "$moduleName implementation(project(...)) edges drifted from the recorded expectation.",
     )
   }
 }

@@ -7,8 +7,8 @@ import skillbill.infrastructure.fs.launcher.agentrun.PathExecutableLookup
 import skillbill.install.model.InstallAgent
 import skillbill.model.RuntimeContext
 import skillbill.ports.agentrun.ExecutableLookup
-import skillbill.ports.agentrun.model.AgentRunSpawnAuthorization
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
+import skillbill.ports.agentrun.model.AgentRunSpawnAuthorization
 import skillbill.ports.agentrun.model.SkillRunRequest
 import java.nio.file.Files
 import kotlin.test.Test
@@ -58,7 +58,7 @@ class AgentRunServiceRuntimeComponentTest {
       junie,
       """
       #!/bin/sh
-      touch "${marker}"
+      touch "$marker"
       echo SKILL350_CONTROLLED_EXECUTABLE
       """.trimIndent() + "\n",
     )
