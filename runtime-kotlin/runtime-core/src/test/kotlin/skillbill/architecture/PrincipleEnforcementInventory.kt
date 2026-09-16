@@ -294,6 +294,7 @@ object PrincipleEnforcementInventory {
     "scaffoldCatalogGateway",
     "scaffoldGateway",
     "skillRemove",
+    "systemOneService",
     "systemService",
     "telemetryConfigStorePort",
     "telemetryLevelMutator",

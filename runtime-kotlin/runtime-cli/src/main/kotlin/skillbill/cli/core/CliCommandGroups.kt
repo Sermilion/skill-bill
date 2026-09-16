@@ -52,6 +52,7 @@ class UtilityCliCommandGroup(
         misc.configCommand,
         misc.workCommands.command,
         misc.agentAddonCommand,
+        misc.typeSafeTopLevelCommand,
       )
 }
 

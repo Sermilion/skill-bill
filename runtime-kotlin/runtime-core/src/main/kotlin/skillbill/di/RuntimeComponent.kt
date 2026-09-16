@@ -16,6 +16,7 @@ import skillbill.application.scaffold.SkillRemove
 import skillbill.application.system.SystemService
 import skillbill.application.telemetry.LifecycleTelemetryService
 import skillbill.application.telemetry.TelemetryService
+import skillbill.application.typesafe.SystemOneService
 import skillbill.application.work.WorkListService
 import skillbill.application.workflow.WorkflowService
 import skillbill.engine.featuretask.FeatureTaskContinuationLookupService
@@ -78,7 +79,8 @@ abstract class RuntimeComponent(
   RuntimeFeatureTaskValidatorProvides,
   RuntimeScaffoldProvides,
   RuntimeScaffoldValidationProvides,
-  RuntimeDiagnosticsProvides {
+  RuntimeDiagnosticsProvides,
+  RuntimeTypeSafeProvides {
   @Provides @JvmSynthetic
   fun runtimeContext(): RuntimeContext = RuntimeBootstrapBindings.runtimeContext(inputRuntimeContext)
 
@@ -148,6 +150,7 @@ abstract class RuntimeComponent(
   abstract val telemetryConfigStorePort: TelemetryConfigStore
   abstract val telemetryLevelMutator: TelemetryLevelMutator
   abstract val telemetryService: TelemetryService
+  abstract val systemOneService: SystemOneService
   abstract val uninstallPathsPort: UninstallPathsPort
   abstract val unsupportedScaffoldGateway: UnsupportedScaffoldGateway
   abstract val workflowService: WorkflowService

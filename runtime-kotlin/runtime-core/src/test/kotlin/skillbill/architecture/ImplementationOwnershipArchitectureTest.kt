@@ -329,6 +329,7 @@ class ImplementationOwnershipArchitectureTest {
       "RuntimeScaffoldProvides.kt",
       "RuntimeScaffoldValidationProvides.kt",
       "RuntimeDiagnosticsProvides.kt",
+      "RuntimeTypeSafeProvides.kt",
     ).joinToString("\n") { fileName ->
       runtimeRoot.resolve("runtime-core/src/main/kotlin/skillbill/di/$fileName").readText()
     }
