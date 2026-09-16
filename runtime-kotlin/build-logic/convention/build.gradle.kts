@@ -85,6 +85,10 @@ tasks {
 
 gradlePlugin {
   plugins {
+    register("version") {
+      id = "skillbill.version"
+      implementationClass = "SkillBillVersionConventionPlugin"
+    }
     register("jvmLibrary") {
       id = "skillbill.jvm-library"
       implementationClass = "JvmLibraryConventionPlugin"

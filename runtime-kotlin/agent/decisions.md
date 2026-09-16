@@ -4,6 +4,12 @@ This file records architectural and implementation decisions that span the
 `runtime-kotlin/` boundary. Each entry is dated and explains the trade-off,
 not the implementation detail.
 
+## [2026-09-16] Dev snapshot from latest stable tag, not git describe ancestry
+Context: After a release, source builds must become the next patch SNAPSHOT so they are ahead of that release. `git describe` only sees ancestor tags, so an off-main release tag left `main` on the matching SNAPSHOT and update-check treated it as behind.
+Decision: List every local `v[0-9]*` tag, take the newest stable `X.Y.Z`, and set `X.Y.(Z+1)-SNAPSHOT`. Release builds still use `RELEASE_VERSION`. Do not bump minor.
+Reason: Patch is the unit that follows a patch release. Ancestry hides tags that exist but were not merged as the tagged commit. Treating same-base SNAPSHOT as newer would hide that class of tag mistakes instead of advancing the version.
+Alternatives considered: Auto-bump minor after every release; override SemVer so `X.Y.Z-SNAPSHOT` is newer than `X.Y.Z`.
+
 ## 2026-09-16 — SKILL-347 subtask 3: review composition, stateless update check, adapter census
 
 **Context.** Subtask 3 collapses review runner wiring, deletes production-unused
