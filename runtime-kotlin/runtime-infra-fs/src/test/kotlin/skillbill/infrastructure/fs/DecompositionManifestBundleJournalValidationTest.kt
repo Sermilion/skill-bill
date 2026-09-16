@@ -13,6 +13,32 @@ import kotlin.test.assertTrue
 
 class DecompositionManifestBundleJournalValidationTest {
   @Test
+  fun `recovery through a symlinked ancestor accepts missing targets and applied staged files`() {
+    val root = Files.createTempDirectory("bundle-journal-parent-alias")
+    try {
+      val realDirectory = Files.createDirectory(root.resolve("real"))
+      val alias = Files.createSymbolicLink(root.resolve("alias"), realDirectory)
+      val firstTarget = alias.resolve("first.md")
+      val secondTarget = alias.resolve("second.md")
+      val journal = DecompositionManifestBundleJournal()
+      val transaction = journal.create(
+        alias,
+        listOf(firstTarget to "first", secondTarget to "second"),
+      )
+      journal.apply(transaction.copy(entries = listOf(transaction.entries.first())))
+
+      journal.recoverPending(alias)
+
+      assertEquals("first", Files.readString(realDirectory.resolve("first.md")))
+      assertEquals("second", Files.readString(realDirectory.resolve("second.md")))
+      assertFalse(Files.exists(transaction.marker))
+      assertFalse(Files.exists(transaction.stagingDirectory))
+    } finally {
+      root.toFile().deleteRecursively()
+    }
+  }
+
+  @Test
   fun `recovery rejects staged bytes that differ from recorded digest`() {
     val root = Files.createTempDirectory("bundle-journal-staged-digest")
     try {

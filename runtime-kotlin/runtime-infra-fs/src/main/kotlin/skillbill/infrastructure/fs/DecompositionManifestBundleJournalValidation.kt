@@ -6,6 +6,7 @@ import skillbill.infrastructure.fs.contracts.workflow.DecompositionManifestBundl
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.InvalidPathException
+import java.nio.file.NoSuchFileException
 import java.nio.file.Path
 
 internal object DecompositionManifestBundleJournalValidation {
@@ -258,9 +259,16 @@ internal object DecompositionManifestBundleJournalValidation {
     val normalizedParent = parent.toAbsolutePath().normalize()
     val normalizedChild = child.toAbsolutePath().normalize()
     if (Files.isSymbolicLink(normalizedChild)) return false
-    val realParent = runCatching { normalizedParent.toRealPath() }.getOrDefault(normalizedParent)
-    val realChild = runCatching { normalizedChild.toRealPath() }.getOrDefault(normalizedChild)
+    val realParent = resolveExistingAncestor(normalizedParent)
+    val realChild = resolveExistingAncestor(normalizedChild)
     return realChild.startsWith(realParent)
+  }
+
+  private fun resolveExistingAncestor(path: Path): Path = try {
+    path.toRealPath()
+  } catch (error: NoSuchFileException) {
+    val parent = path.parent ?: throw error
+    resolveExistingAncestor(parent).resolve(path.fileName)
   }
 
   private fun journalError(sourceLabel: String, reason: String, failureCode: String) =

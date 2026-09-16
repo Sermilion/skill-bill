@@ -134,7 +134,12 @@ private class GitProcessSession(
         TimeUnit.NANOSECONDS,
       )
     }
-    if (!timedOut && !process.isAlive) exitCode = process.exitValue()
+    if (!timedOut && !process.isAlive) {
+      exitCode = process.exitValue()
+      if (ownedDescendants.any { it.isAlive }) {
+        readFailure.compareAndSet(null, IOException("git exited with an owned descendant still running"))
+      }
+    }
     if (timedOut || primaryFailure == null) {
       attemptCleanup { destroyProcessTree() }
     }
@@ -227,7 +232,7 @@ internal fun destroyOwnedProcessTree(process: Process, knownDescendants: Set<Pro
       ownedProcess.destroyForcibly()
     }
   }
-  attempt { process.destroyForcibly() }
+  attempt { if (process.isAlive) process.destroyForcibly() }
   failure?.let { throw it }
 }
 

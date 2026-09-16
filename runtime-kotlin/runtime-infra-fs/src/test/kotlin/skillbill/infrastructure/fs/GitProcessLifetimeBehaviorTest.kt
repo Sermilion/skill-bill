@@ -157,23 +157,26 @@ class GitProcessLifetimeBehaviorTest {
     var descendant: ProcessHandle? = null
     try {
       val started = System.nanoTime()
-      val result = runGitProcess(
+      val captured = runGitProcessWithCapturedChild(
         root,
         listOf(
           "-c",
           "alias.leak=!perl -e 'my \$pid=fork; if (\$pid == 0) { " +
-            "open(F, \">\", \"$pidFile\"); print F \"\$\$\"; close(F); sleep 3600; } exit 0'",
+            "open(F, \">\", \"$pidFile\"); print F \"\$\$\"; close(F); sleep 3600; } sleep 1; exit 0'",
           "leak",
         ),
+        pidFile = pidFile,
       )
+      val result = captured.result
       val elapsedSeconds = TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - started)
-      descendant = processHandleFrom(pidFile)
+      descendant = captured.child
       assertTrue(
         elapsedSeconds <= gitTimeoutSeconds(listOf("leak")) + GIT_PROCESS_CLEANUP_BUDGET_SECONDS + 5L,
         "inherited pipe join exceeded bounded deadline: ${elapsedSeconds}s",
       )
       assertTrue(result.readFailure != null || result.timedOut || result.exitCode != 0)
       assertFalse(result.exitCode == 0 && result.readFailure == null && !result.timedOut)
+      assertFalse(awaitDead(requireNotNull(descendant)), "inherited pipe child still alive after git exit")
     } finally {
       descendant?.destroyForcibly()
       destroyProcessFrom(pidFile)
@@ -199,6 +202,7 @@ class GitProcessLifetimeBehaviorTest {
         ),
         payload,
         releaseFile,
+        pidFile,
       )
       val result = captured.result
       child = captured.child
@@ -250,6 +254,7 @@ class GitProcessLifetimeBehaviorTest {
     args: List<String>,
     stdin: ByteArray? = null,
     releaseFile: Path? = null,
+    pidFile: Path = root.resolve("timeout.pid"),
   ): CapturedGitProcess {
     val result = AtomicReference<GitProcessResult?>()
     val failure = AtomicReference<Throwable?>()
@@ -264,12 +269,8 @@ class GitProcessLifetimeBehaviorTest {
       val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5)
       var child: ProcessHandle? = null
       while (child == null && System.nanoTime() < deadline) {
-        if (Files.exists(root.resolve("timeout.pid")) || Files.exists(root.resolve("stdin-failure.pid"))) {
-          child = processHandleFrom(
-            root.resolve(
-              if (Files.exists(root.resolve("timeout.pid"))) "timeout.pid" else "stdin-failure.pid",
-            ),
-          )
+        if (Files.exists(pidFile)) {
+          child = processHandleFrom(pidFile)
         } else {
           Thread.sleep(10)
         }
