@@ -14,6 +14,8 @@ import skillbill.application.runtime.RuntimeSingleton
 import skillbill.application.scaffold.InstallAgentService
 import skillbill.application.scaffold.SkillRemove
 import skillbill.application.system.SystemService
+import skillbill.application.uninstall.SkillBillUninstallService
+import skillbill.application.updatecheck.SkillBillUpdateService
 import skillbill.application.telemetry.LifecycleTelemetryService
 import skillbill.application.telemetry.TelemetryService
 import skillbill.application.work.WorkListService
@@ -78,6 +80,7 @@ abstract class RuntimeComponent(
   RuntimeFeatureTaskValidatorProvides,
   RuntimeScaffoldProvides,
   RuntimeScaffoldValidationProvides,
+  RuntimeInstallerProvides,
   RuntimeDiagnosticsProvides {
   @Provides @JvmSynthetic
   fun runtimeContext(): RuntimeContext = RuntimeBootstrapBindings.runtimeContext(inputRuntimeContext)
@@ -145,6 +148,8 @@ abstract class RuntimeComponent(
   abstract val scaffoldGateway: ScaffoldGateway
   abstract val skillRemove: SkillRemove
   abstract val systemService: SystemService
+  abstract val skillBillUpdateService: SkillBillUpdateService
+  abstract val skillBillUninstallService: SkillBillUninstallService
   abstract val telemetryConfigStorePort: TelemetryConfigStore
   abstract val telemetryLevelMutator: TelemetryLevelMutator
   abstract val telemetryService: TelemetryService

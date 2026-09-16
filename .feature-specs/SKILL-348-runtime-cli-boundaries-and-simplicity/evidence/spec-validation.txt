@@ -1,0 +1,4 @@
+shared_preparation_writer=passed
+runtime_manifest_schema_and_coherence=passed
+portable_manifest_runtime_schema_and_coherence=passed
+subtask_count=2

@@ -37,6 +37,53 @@ class CliUninstallRuntimeTest {
   }
 
   @Test
+  fun `uninstall refuses during goal continuation`() {
+    val home = Files.createTempDirectory("skillbill-cli-uninstall-goal")
+
+    val result = CliRuntime.run(
+      listOf("--home", home.toString(), "uninstall", "--yes"),
+      CliRuntimeContext(
+        userHome = home,
+        environment = mapOf("SKILL_BILL_GOAL_CONTINUATION" to "1"),
+      ),
+    )
+
+    assertEquals(64, result.exitCode, result.stdout)
+    assertContains(result.stdout, "Refusing to run skill-bill uninstall during skill-bill goal-continuation.")
+  }
+
+  @Test
+  fun `uninstall preserves a launcher symlink with an unexpected target`() {
+    val fixture = uninstallFixture()
+    Files.delete(fixture.skillBillLauncher)
+    Files.createSymbolicLink(fixture.skillBillLauncher, fixture.userLauncher)
+
+    val result = runUninstall(fixture.home, "--yes")
+
+    assertEquals(0, result.exitCode, result.stdout)
+    assertTrue(Files.isSymbolicLink(fixture.skillBillLauncher))
+    assertEquals(fixture.userLauncher, Files.readSymbolicLink(fixture.skillBillLauncher))
+  }
+
+  @Test
+  fun `uninstall uses the selected home instead of the embedding context home`() {
+    val selected = uninstallFixture()
+    val contextHome = Files.createTempDirectory("skillbill-cli-uninstall-context-home")
+
+    val result = CliRuntime.run(
+      listOf("--home", selected.home.toString(), "uninstall", "--yes"),
+      CliRuntimeContext(
+        userHome = contextHome,
+        environment = emptyMap(),
+      ),
+    )
+
+    assertEquals(0, result.exitCode, result.stdout)
+    assertFalse(Files.exists(selected.stateRoot))
+    assertFalse(Files.exists(contextHome.resolve(".skill-bill")))
+  }
+
+  @Test
   fun `uninstall removes managed install artifacts and preserves user files`() {
     val fixture = uninstallFixture()
 

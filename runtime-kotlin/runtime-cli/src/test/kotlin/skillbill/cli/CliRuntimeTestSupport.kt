@@ -4,9 +4,12 @@ import skillbill.SAMPLE_REVIEW
 import skillbill.SkillBillVersion
 import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliRuntimeContext
-import skillbill.cli.model.ExternalCommand
-import skillbill.cli.model.ExternalCommandResult
-import skillbill.cli.model.ExternalCommandRunner
+import skillbill.ports.process.InstallerProcessPort
+import skillbill.ports.process.InstallerProcessRequest
+import skillbill.ports.process.InstallerProcessResult
+import skillbill.ports.process.InstallerScriptFetchPort
+import skillbill.ports.process.InstallerScriptFetchRequest
+import skillbill.ports.process.InstallerScriptFetchResult
 import skillbill.contracts.JsonCodec
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
 import skillbill.infrastructure.sqlite.telemetry.LifecycleTelemetryStore
@@ -336,17 +339,32 @@ internal const val EXPECTED_INSTALL_COMMAND =
   "skill-bill update"
 
 internal const val EXPECTED_UPDATE_COMMAND =
-  "curl -fsSL https://raw.githubusercontent.com/oila-gmbh/skill-bill/main/install.sh | " +
-    "bash -s -- --reuse-last-selection"
+  "fetch https://raw.githubusercontent.com/oila-gmbh/skill-bill/main/install.sh then bash <script> --reuse-last-selection"
 
-internal class CapturingExternalCommandRunner(
-  internal val result: ExternalCommandResult,
-) : ExternalCommandRunner {
-  val commands: MutableList<ExternalCommand> = mutableListOf()
+internal class CapturingInstallerProcessPort(
+  internal val result: InstallerProcessResult,
+) : InstallerProcessPort {
+  val requests: MutableList<InstallerProcessRequest> = mutableListOf()
 
-  override fun run(command: ExternalCommand): ExternalCommandResult {
-    commands += command
+  override fun run(request: InstallerProcessRequest): InstallerProcessResult {
+    requests += request
     return result
+  }
+}
+
+internal class CapturingInstallerScriptFetchPort(
+  internal val result: InstallerScriptFetchResult,
+) : InstallerScriptFetchPort {
+  var fetchInvocations: Int = 0
+  var cleanupInvocations: Int = 0
+
+  override fun fetch(request: InstallerScriptFetchRequest): InstallerScriptFetchResult {
+    fetchInvocations++
+    return result
+  }
+
+  override fun cleanup(scriptPath: Path) {
+    cleanupInvocations++
   }
 }
 

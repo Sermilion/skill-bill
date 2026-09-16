@@ -1,0 +1,101 @@
+package skillbill.application.featurespec
+
+import skillbill.application.TestDecompositionManifestStore
+import skillbill.infrastructure.fs.DecompositionManifestValidatorAdapter
+import skillbill.application.testDecompositionManifestWriter
+import skillbill.featurespec.model.FeatureSpecPreparationDecision
+import skillbill.featurespec.model.FeatureSpecPreparationMode
+import skillbill.featurespec.model.FeatureSpecSubtaskPreparation
+import skillbill.featurespec.model.FeatureSpecWriteRequest
+import skillbill.workflow.decomposition.model.DecompositionManifestValidationResult
+import java.nio.file.Files
+import java.nio.file.Path
+import kotlin.test.Test
+import kotlin.test.assertTrue
+
+class CliInvestigationSpecPreparationTest {
+  @Test
+  fun prepareBundle() {
+    val root = Path.of("/tmp/skill-bill-348/staging")
+    Files.createDirectories(root)
+    val validator = DecompositionManifestValidatorAdapter()
+    val writer = FeatureSpecPreparationWriter(validator, TestDecompositionManifestStore, testDecompositionManifestWriter)
+    val request = FeatureSpecWriteRequest(
+      decision = FeatureSpecPreparationDecision(
+        issueKey = "SKILL-348",
+        intendedOutcome = "Give runtime-cli one authoritative invocation contract and move maintenance policy to its application owners, while removing unused command layers and preserving existing public behavior.",
+        acceptanceCriteria = listOf("Update reports download and execution failures accurately and leaves no owned installer process or drain running after interruption, timeout, or failed output capture.",
+"Uninstall cancellation stops later mutations. Application code owns maintenance policy while the CLI owns parsing, prompting, and presentation.",
+"CLI invocation inputs own repository selection and stdin consumption. Feature-task discovery, durable identity, resume, and launch use the same resolved request.",
+"Diagnostic output is byte exact where requested, completes once, and never acquires trailing root help. Its application entry point owns database and retention work.",
+"Malformed workflow step updates fail before durable mutation. Existing successful wire shapes, public commands, aliases, and refusal behavior remain compatible.",
+"Remove the six unused workflow generalizations, one code-review inheritance layer, dead prelaunch parser, duplicate installer result, and unused input injection in affected paths. Keep current adapter ports and useful sharing.",
+"Existing architecture rules remain enforced without broader baselines. Tests cover the concrete failures described in investigation.md and documentation states the checked scope."),
+        constraints = listOf("Follow runtime-kotlin/ARCHITECTURE.md design principles and docs/code-principles.md. Keep the current module graph, runtime-core composition root, Clikt, Kotlin-Inject, and command-area isolation.",
+"Preserve command names, aliases, options, exit-code families, JSON field names, dry-run behavior, goal-continuation mutation refusal, and existing confirmation gates. Changes to failure handling must correct the demonstrated failures without silently changing successful commands.",
+"Keep schema validation, typed errors, contract versions, managed-path checks, cancellation identity, transaction ownership, lease fencing, and diagnostics. Governed wire keys stay with their contract owners. Open presentation maps do not require a blanket schema migration.",
+"Use existing application areas and adapter ports. Introduce a port only for a demonstrated infrastructure or test-substitution boundary. Add no module, command registry framework, event bus, generic result library, coroutine migration, or interface for each helper.",
+"Tests must name and reproduce an observable regression through the real command or process boundary. Existing helper-only tests do not prove raw CLI output or process cleanup. Keep tests with their implementation changes.",
+"This is preparation only. Do not implement, commit, push, launch a goal, or alter the active SKILL-248 work as part of preparing this bundle. Recheck source hashes and current contracts when implementation starts.",
+"Do not expand architecture baselines or suppressions. Update owning documentation to match the behavior actually implemented. Run the governed quality gate during implementation, with bill-unit-test-value-check for any new or changed tests."),
+        nonGoals = listOf("A runtime-cli rewrite or a claim of certification against private Reddit, Microsoft, or Meta engineering standards.",
+"New CLI product capabilities, replacement of the dependency injection or parsing libraries, and changing goal/review phase orchestration.",
+"Uninstall transactionality across the filesystem and agent configurations, recovery journals for every command, or speculative rollback of all installer operations.",
+"Deleting required contract checks, aliases with current consumers, byte validation, permission enforcement, retention behavior, or useful single-adapter ports.",
+"Optimizing CLI startup or adding caches without a measurement that justifies the change."),
+        mode = FeatureSpecPreparationMode.DECOMPOSED,
+      ),
+      featureName = "runtime-cli-boundaries-and-simplicity",
+      parentSpecOverview = "The module has a defensible dependency graph and command-area isolation. The investigation found failures at invocation and maintenance boundaries, plus obsolete command generalizations. Keep the existing architecture and repair those owners.\n\nSee [investigation.md](investigation.md) for the architecture and SOLID assessment, seven source-anchored findings, public engineering references, rejected refactors, and coverage limits. See [evidence/validation.md](evidence/validation.md) for checks and six defect reproductions.\n\n| Finding | Required outcome | Subtask |\n| --- | --- | --- |\n| F-001 | Accurate update failure and bounded installer lifetime | 1 |\n| F-002 | Application-owned uninstall that propagates cancellation | 1 |\n| F-003 | One diagnostic output contract and application transaction owner | 2 |\n| F-004 | One repository root throughout each invocation | 2 |\n| F-005 | Reject malformed workflow updates before mutation | 2 |\n| F-006 | Read stdin only for the parsed command and preserve input text | 2 |\n| F-007 | Remove unused command inheritance, parser, and result copies | 1 and 2 |\n\nTwo subtasks are justified because maintenance lifecycle changes and invocation contract changes can ship independently. Each includes its own tests and documentation. The deletion work stays with those changes and does not pay for a separate implementation cycle.\n\nPrepared on 2026-09-16 in local spec mode. SKILL-348 follows the highest existing local key, SKILL-347. The CLI census is 114 production Kotlin files and 11,370 lines. The source baseline began at b76359a5a604fb81188bc83a9b5759293e438dc1 while unrelated SKILL-248 work continued in the shared checkout. The evidence inventory records the actual CLI file hashes. All subtasks start pending; this bundle does not authorize implementation by itself.",
+      validationStrategy = "Run behavior tests for the named failures, existing CLI compatibility coverage, and the relevant application/infrastructure suites. Preserve the current architecture guard scope and add targeted enforcement only where it tests a real boundary. Use the pack-declared bill-code-check gate during implementation and bill-unit-test-value-check for changed tests. Preparation evidence is recorded separately and is not a future review or quality-gate receipt.",
+      subtasks = listOf(
+        FeatureSpecSubtaskPreparation(
+          id = 1,
+          name = "Own update and uninstall execution",
+          scope = "Own findings F-001 and F-002. Refactor system/SystemCliCommands.kt, model/ExternalCommandRunner.kt, system/UninstallCommand.kt, system/UninstallCommandApply.kt, and system/UninstallMutationRecorder.kt with their application, port, infrastructure, and runtime-core bindings.\n\nUse the existing update application area for the update decision and install request. Download the installer completely before execution, preserve download and process failures, and establish bounded process ownership. Reuse a current process primitive only if its contract fits installer stdin, output, environment, and teardown needs. Do not force installer behavior through a Git-specific API. The subprocess implementation belongs outside the CLI model package.\n\nMove uninstall planning and mutation sequencing into a cohesive application operation using existing ports. Keep CLI prompting and rendering at the entry adapter. Make failure policy explicit: cancellation and interruption abort, while the currently supported ordinary per-target failures record degradation and continue. Keep managed-file ownership checks and partial-success reporting. Do not add a transaction across filesystem and configuration stores.\n\nDelete the installer result copy as part of this change. Add the bounded tests needed for these operations and update the documented composition boundary in the same commit.",
+          acceptanceCriteria = listOf("An installer download failure produces a nonzero update result and cannot run a partial downloaded script. A successful download followed by installer failure preserves the installer exit code and useful bounded output. A successful installer retains the existing completed result.",
+"The updater owns every process and stream it starts until settlement. Normal completion, launch failure, output failure, interruption, and deadline expiry close streams and settle owned child processes and drains within documented limits. Cleanup never kills unrelated processes or replaces the primary failure.",
+"The installer receives an explicit stdin policy so a child waiting for input cannot hang on an accidentally open unused pipe. Output capture is bounded, with explicit truncation evidence where needed. The default deadline is documented and testable through an injected boundary, without adding an arbitrary public option.",
+"Update orchestration belongs to the application update area and concrete process execution belongs to an existing infrastructure module. runtime-core wires the production adapter. No ProcessBuilder implementation remains in skillbill.cli.model and no application API imports CLI types.",
+"Uninstall plan and apply policy have one application owner. The CLI parses options, enforces its confirmation interaction, and renders typed results. Existing install, native-agent, MCP, host-platform, and filesystem ports remain the mutation boundaries.",
+"Cancellation or interruption at any uninstall mutation seam stops subsequent mutations. Cancellation propagates as the same signal; interruption follows the existing interrupt contract. Ordinary recoverable mutation failures still produce diagnostics and failed_with_degradations with a nonzero exit code while following the established best-effort policy.",
+"Uninstall dry-run, rejection during goal continuation, managed symlink checks, legacy cleanup rules, user-selected home, MCP partial-success accounting, and existing confirmation behavior remain intact.",
+"Delete the duplicate InstallerRunResult copy and avoid replacing it with a forwarding-only service or dependency bag. Keep one result owner for installer execution."),
+          nonGoals = listOf("No installer UX redesign, new download service framework, cross-store transaction, or general process-runner rewrite.",
+"No changes to feature-task worker leases, Git process execution, review scheduling, or the concurrent SKILL-248 recovery work."),
+          dependencyNotes = "No prerequisite. This commit can ship independently of the CLI invocation changes. It owns the update and uninstall files so the second subtask does not need to revisit them.",
+          validationStrategy = "Before authoring each regression, state its failure trigger. Exercise update with a fake curl or download adapter that emits a partial script and then fails; verify the script never executes. Test success and installer exit-code propagation. Use owned local processes to test stdin EOF, interruption, timeout, and bounded output; always clean up test children. Inject cancellation into uninstall cleanup and assert that later targets and state-root deletion do not run. Retain ordinary mutation-failure and managed-link tests. Run relevant application, infrastructure, and CLI suites plus dependency and composition guards, then the governed implementation quality gate.",
+          nextPath = "Continue to subtask 2 through the goal runtime.",
+        ),
+        FeatureSpecSubtaskPreparation(
+          id = 2,
+          name = "Make CLI invocation inputs and output authoritative",
+          scope = "Own findings F-003 through F-007. Update core/Main.kt, core/CliRuntime.kt, kernel/CliRunState.kt, model/CliExecutionResult.kt, model/CliRuntimeContext.kt, and model/CliRunInputs.kt only as required to give each invocation one input and output contract. Update command consumers in config, install, scaffold, skillremove, agentaddon, codereview, repovalidation, featuretask, workflow, and goal where they bypass that contract.\n\nResolve omitted roots from the supplied invocation context. Trace feature-task root selection through spec resolution, workflow opening, resume identity, and runner request construction. Prepare and validate one immutable set of execution facts before mutations. Keep these facts separate from the existing dependency graph; do not rename a dependency bag to context and call it resolved.\n\nProvide the smallest output representation that supports ordinary text and exact diagnostic bytes. Main owns terminal emission; command execution marks completion explicitly. Move diagnostic transaction/service composition to an injected application operation, preserve retention writes, and emit output after its owned work has settled. Do not convert raw bytes through String.\n\nReplace Main's raw argument scan with demand-driven stdin selection at the parsed input boundary. Preserve text content for authoring commands. Reject malformed step-updates before invoking the workflow service. Preserve JSON output on paths where that command promises JSON, and preserve framework help/usage behavior.\n\nWhile changing invocation plumbing, remove the six unused workflow generalization pairs, the one-consumer code-review base class, the unreachable prelaunch parser, and unused input parameters. Keep the get/show aliases and production-used sharing. Add behavioral regression tests and update architecture documentation in this same commit.",
+          acceptanceCriteria = listOf("Every omitted repository-root option resolves through the invocation inputs. Explicit roots keep documented precedence. Feature-task spec resolution, immutable workflow identity, resume verification, and runner launch receive the same resolved root. Relative explicit roots preserve shell invocation semantics, and embedding behavior has an explicit tested base.",
+"Feature-task run and resume prepare the effective request once before opening or mutating workflow state. Reuse the prepared root, agent/model settings, and verified add-on selection. Reject invalid option combinations and operator decisions before workflow creation or worker ownership acquisition.",
+"Rejected-output metadata and cleanup complete through the CLI result path. Raw output preserves exact bytes, including invalid UTF-8, NUL, CRLF, and missing terminal newline. No command appends root help or a synthetic newline after an explicitly completed empty or raw result.",
+"Diagnostic inspection and cleanup use an injected application entry point that owns database session and retention work. The CLI does not construct RejectedOutputDiagnosticService or obtain its repositories from UnitOfWork. Preserve metadata validation, permissions, expiry, digest checking, and ambiguous-selector refusal.",
+"Stdin is consumed on demand for the parsed command. import-review without a path and with an explicit dash both consume stdin. Accepted --body-file=- and --payload=- forms work. Help and unrelated commands do not read stdin because some other argument happens to equal a dash. Preserve authored text line endings for fill and edit inputs.",
+"A supplied --step-updates value must parse as an array of objects before calling WorkflowService.update. Malformed JSON and valid JSON of the wrong shape fail with a clear nonzero usage result and leave workflow status, steps, and artifacts unchanged. Omitted input and an explicitly empty array retain their distinct intended behavior.",
+"Collapse the six single-consumer workflow base/subclass pairs for open, update, list, latest, resume, and continue into their actual verify command implementations. Keep shared get/show behavior and both public aliases. Remove the one-consumer CodeReviewDriverCommand inheritance layer while retaining its production parser semantics and command options.",
+"Delete the unreferenced parseReviewPrelaunchExpansion helper and unused injected CliRunInputs parameters in the touched command paths. Do not turn command registration into reflection, a generic registry, or a family of new role interfaces.",
+"Keep command-area imports isolated to kernel and model. Extend existing guards only where they can detect the actual process, transaction, or input-ownership violation. Document remaining scanner limits instead of declaring universal SOLID compliance."),
+          nonGoals = listOf("No generic command bus, reflection-based registration, automatic command discovery, replacement DI container, or interface per command.",
+"No global rewrite of raw presentation maps, all exception classes, or JsonCodec callers outside the observed CLI input boundary.",
+"No changes to update/uninstall internals owned by subtask 1. Do not delete deprecated public commands merely because they forward."),
+          dependencyNotes = "No prerequisite. This commit can ship independently of subtask 1. It owns invocation and command plumbing; normal goal order applies subtask 1 first to make the final composition checks cover both changes.",
+          validationStrategy = "Use real CliRuntime and process-level Main invocations with temporary homes, repositories, and databases. Assert exact byte equality for raw diagnostic output and no trailing help for metadata/cleanup. Verify default and explicit stdin forms with EOF, CRLF, and help without waiting for input. Use two distinct roots to compare implicit and explicit root behavior, plus a feature-task workflow identity/launch regression. For malformed step updates, compare durable before/after state rather than only an error string. Retain help, alias, shell-command, config, scaffold, install, goal-control, workflow, and work-status tests. Run the complete CLI suite and relevant application tests, existing area-isolation, dependency, composition, ambient-input, and injection guards, then the governed implementation quality gate.",
+          nextPath = "All implementation subtasks are complete. Continue through the goal runtime completion path.",
+        ),
+      ),
+    )
+    val result = writer.write(root, request)
+    val manifestPath = root.resolve(result.decompositionManifestPath)
+    val portableYaml = Files.readString(manifestPath).replace(root.toString() + "/", "")
+    val validated = validator.validateYamlTextResult(portableYaml, manifestPath.toString())
+    assertTrue(validated is DecompositionManifestValidationResult.AcceptedUnchanged)
+    assertTrue(result.subtaskSpecPaths.size == 2)
+    Files.writeString(manifestPath, portableYaml)
+    Files.writeString(Path.of("/tmp/skill-bill-348/evidence/spec-validation.txt"), "shared_preparation_writer=passed\nruntime_manifest_schema_and_coherence=passed\nportable_manifest_runtime_schema_and_coherence=passed\nsubtask_count=2\n")
+  }
+}

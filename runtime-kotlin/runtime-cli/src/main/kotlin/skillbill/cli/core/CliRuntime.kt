@@ -31,7 +31,6 @@ object CliRuntime {
       databasePath = resolved.dbPathOverride,
       stdinText = context.stdinText,
       environment = resolved.environment,
-      externalCommandRunner = context.externalCommandRunner,
       userHome = resolved.userHome,
       repositoryRoot = resolved.repositoryRoot,
       repositoryEnclosingRootPort = runtimeComponent.repositoryEnclosingRootPort,

@@ -7,7 +7,6 @@ data class CliRunInputs(
   val databasePath: String?,
   val stdinText: String?,
   val environment: Map<String, String>,
-  val externalCommandRunner: ExternalCommandRunner,
   val userHome: Path,
   val repositoryRoot: Path,
   val repositoryEnclosingRootPort: RepositoryEnclosingRootPort,

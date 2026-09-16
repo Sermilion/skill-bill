@@ -3,7 +3,8 @@ package skillbill.cli
 import org.junit.jupiter.api.Assumptions
 import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliRuntimeContext
-import skillbill.cli.model.ExternalCommandResult
+import skillbill.ports.process.InstallerProcessResult
+import skillbill.ports.process.InstallerScriptFetchResult
 import skillbill.ports.telemetry.RemoteTransportPort
 import skillbill.ports.telemetry.model.RemoteTransportResponse
 import java.nio.file.Files
@@ -73,7 +74,9 @@ class CliRuntimeUpdateTest {
   @Test
   fun `update runs installer with selected home and configured environment`() {
     val home = Files.createTempDirectory("skillbill-update-home")
-    val runner = CapturingExternalCommandRunner(ExternalCommandResult(exitCode = 0, output = "installer ok\n"))
+    val scriptPath = Files.createTempFile(home, "install", ".sh")
+    val processPort = CapturingInstallerProcessPort(InstallerProcessResult(exitCode = 0, output = "installer ok\n"))
+    val fetchPort = CapturingInstallerScriptFetchPort(InstallerScriptFetchResult.Ready(scriptPath))
     val result = CliRuntime.run(
       listOf(
         "--home",
@@ -86,33 +89,36 @@ class CliRuntimeUpdateTest {
       ),
       CliRuntimeContext(
         environment = mapOf("HOME" to "/wrong-home", "PATH" to "/test/bin"),
-        externalCommandRunner = runner,
+        installerProcessPort = processPort,
+        installerScriptFetchPort = fetchPort,
       ),
     )
     val payload = decodeJsonObject(result.stdout)
-    val command = runner.commands.single()
+    val request = processPort.requests.single()
 
     assertEquals(0, result.exitCode, result.stdout)
     assertEquals("completed", payload["status"])
     assertEquals("installer ok\n", payload["installer_output"])
-    assertEquals("bash", command.executable)
-    assertEquals(
-      listOf("-c", "$EXPECTED_UPDATE_COMMAND --release v0.4.0"),
-      command.arguments,
-    )
-    assertEquals(home.toString(), command.environment["HOME"])
-    assertEquals("/test/bin", command.environment["PATH"])
+    assertEquals("bash", request.executable)
+    assertEquals(listOf(scriptPath.toString(), "--reuse-last-selection", "--release", "v0.4.0"), request.arguments)
+    assertEquals(home.toString(), request.environment["HOME"])
+    assertEquals("/test/bin", request.environment["PATH"])
+    assertEquals(1, fetchPort.fetchInvocations)
+    assertEquals(1, fetchPort.cleanupInvocations)
   }
 
   @Test
   fun `update propagates installer failure exit code and output`() {
     val capturedRequests = mutableListOf<Map<String, Any?>>()
-    val runner = CapturingExternalCommandRunner(ExternalCommandResult(exitCode = 7, output = "installer failed\n"))
+    val scriptPath = Files.createTempFile("install", ".sh")
+    val processPort = CapturingInstallerProcessPort(InstallerProcessResult(exitCode = 7, output = "installer failed\n"))
+    val fetchPort = CapturingInstallerScriptFetchPort(InstallerScriptFetchResult.Ready(scriptPath))
     val result = CliRuntime.run(
       listOf("update", "--format", "json"),
       CliRuntimeContext(
         requester = updateCheckRequester(capturedRequests),
-        externalCommandRunner = runner,
+        installerProcessPort = processPort,
+        installerScriptFetchPort = fetchPort,
       ),
     )
     val payload = decodeJsonObject(result.stdout)
@@ -121,6 +127,7 @@ class CliRuntimeUpdateTest {
     assertEquals("failed", payload["status"])
     assertEquals(7, payload["exit_code"])
     assertEquals("installer failed\n", payload["installer_output"])
+    assertEquals(1, fetchPort.cleanupInvocations)
   }
 
   @Test
@@ -130,12 +137,16 @@ class CliRuntimeUpdateTest {
       "cannot construct an older stable tag than $INSTALLED_VERSION",
     )
     val capturedRequests = mutableListOf<Map<String, Any?>>()
-    val runner = CapturingExternalCommandRunner(ExternalCommandResult(exitCode = 0, output = "should not run\n"))
+    val processPort = CapturingInstallerProcessPort(InstallerProcessResult(exitCode = 0, output = "should not run\n"))
+    val fetchPort = CapturingInstallerScriptFetchPort(
+      InstallerScriptFetchResult.Failed("fetch must not run when update is skipped"),
+    )
     val result = CliRuntime.run(
       listOf("update", "--format", "json"),
       CliRuntimeContext(
         requester = updateCheckRequester(capturedRequests, latest = OLDER_RELEASE_TAG),
-        externalCommandRunner = runner,
+        installerProcessPort = processPort,
+        installerScriptFetchPort = fetchPort,
       ),
     )
     val payload = decodeJsonObject(result.stdout)
@@ -145,8 +156,30 @@ class CliRuntimeUpdateTest {
     assertEquals("skipped", payload["status"])
     assertEquals("ahead_of_release", updateCheck["status"])
     assertEquals("installed version is newer than the latest release", payload["reason"])
-    assertTrue(runner.commands.isEmpty(), "installer must not run when local version is ahead")
+    assertTrue(processPort.requests.isEmpty(), "installer must not run when local version is ahead")
+    assertEquals(0, fetchPort.fetchInvocations)
     assertEquals(1, capturedRequests.size)
+  }
+
+  @Test
+  fun `update does not execute installer when script download fails`() {
+    val processPort = CapturingInstallerProcessPort(InstallerProcessResult(exitCode = 0, output = "should not run\n"))
+    val fetchPort = CapturingInstallerScriptFetchPort(
+      result = InstallerScriptFetchResult.Failed("simulated download failure"),
+    )
+    val result = CliRuntime.run(
+      listOf("update", "--release", "v0.0.0", "--format", "json"),
+      CliRuntimeContext(
+        installerProcessPort = processPort,
+        installerScriptFetchPort = fetchPort,
+      ),
+    )
+    val payload = decodeJsonObject(result.stdout)
+
+    assertEquals(1, result.exitCode, result.stdout)
+    assertEquals("failed", payload["status"])
+    assertTrue(processPort.requests.isEmpty(), "process adapter must not run after failed download")
+    assertEquals(1, fetchPort.fetchInvocations)
   }
 
   @Test
@@ -156,19 +189,23 @@ class CliRuntimeUpdateTest {
       "same-base snapshot comparison only applies to SNAPSHOT installs, not $INSTALLED_VERSION",
     )
     val capturedRequests = mutableListOf<Map<String, Any?>>()
-    val runner = CapturingExternalCommandRunner(ExternalCommandResult(exitCode = 0, output = "installer ok\n"))
+    val scriptPath = Files.createTempFile("install", ".sh")
+    val processPort = CapturingInstallerProcessPort(InstallerProcessResult(exitCode = 0, output = "installer ok\n"))
+    val fetchPort = CapturingInstallerScriptFetchPort(InstallerScriptFetchResult.Ready(scriptPath))
     val result = CliRuntime.run(
       listOf("update", "--format", "json"),
       CliRuntimeContext(
         requester = updateCheckRequester(capturedRequests, latest = INSTALLED_BASE_TAG),
-        externalCommandRunner = runner,
+        installerProcessPort = processPort,
+        installerScriptFetchPort = fetchPort,
       ),
     )
     val payload = decodeJsonObject(result.stdout)
 
     assertEquals(0, result.exitCode, result.stdout)
     assertEquals("completed", payload["status"])
-    assertEquals(1, runner.commands.size)
+    assertEquals(1, processPort.requests.size)
+    assertEquals(1, fetchPort.fetchInvocations)
     assertEquals(1, capturedRequests.size)
   }
 

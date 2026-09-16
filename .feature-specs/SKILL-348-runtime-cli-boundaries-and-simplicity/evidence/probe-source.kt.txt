@@ -1,0 +1,134 @@
+package skillbill.cli
+
+import skillbill.cli.core.CliRuntime
+import skillbill.cli.model.ExternalCommand
+import skillbill.cli.model.ProcessExternalCommandRunner
+import java.util.concurrent.atomic.AtomicReference
+import skillbill.cli.model.CliRuntimeContext
+import skillbill.cli.system.DesktopRemoval
+import skillbill.cli.system.UninstallMutationRecorder
+import skillbill.cli.system.UninstallPlan
+import skillbill.cli.system.cleanupMcpRegistrations
+import skillbill.ports.install.mcp.InstallMcpRegistrationPort
+import skillbill.ports.install.mcp.model.InstallMcpRegistrationRequest
+import skillbill.ports.install.mcp.model.InstallMcpRegistrationResult
+import skillbill.ports.install.mcp.model.InstallMcpUnregistrationRequest
+import java.io.ByteArrayOutputStream
+import java.io.PrintStream
+import java.nio.file.Files
+import java.util.concurrent.CancellationException
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+
+class CliArchitectureInvestigationTest {
+  @Test
+  fun malformedStepUpdatesCurrentlyAllowWorkflowMutation() {
+    val home = Files.createTempDirectory("cli348-workflow")
+    val context = CliRuntimeContext(userHome = home, repositoryRoot = home, environment = emptyMap(),
+      dbPathOverride = home.resolve("test.db").toString())
+    val opened = CliRuntime.run(listOf("verify-workflow", "open", "--format", "json"), context)
+    val workflow = opened.payload?.get("workflow_id").toString()
+    assertEquals(0, opened.exitCode, opened.stdout)
+    val result = CliRuntime.run(listOf("verify-workflow", "update", workflow, "--workflow-status", "running",
+      "--step-updates", "broken-json", "--format", "json"), context)
+    assertEquals(0, result.exitCode, result.stdout)
+    assertEquals("ok", result.payload?.get("status"))
+  }
+
+  @Test
+  fun interruptedInstallerLeavesItsChildAlive() {
+    val home = Files.createTempDirectory("cli348-process")
+    val pidFile = home.resolve("pid")
+    val completed = AtomicReference<Any?>()
+    val worker = Thread {
+      completed.set(ProcessExternalCommandRunner.run(ExternalCommand(
+        "/bin/bash", listOf("-c", "echo \$\$ > '${pidFile}'; exec 1>&- 2>&-; exec sleep 60"),
+        mapOf("PATH" to "/usr/bin:/bin"))))
+    }
+    worker.isDaemon = true
+    worker.start()
+    var child: ProcessHandle? = null
+    try {
+      val deadline = System.nanoTime() + 5_000_000_000L
+      while ((!Files.exists(pidFile) || Files.size(pidFile) == 0L) && System.nanoTime() < deadline) Thread.sleep(10)
+      child = ProcessHandle.of(Files.readString(pidFile).trim().toLong()).orElseThrow()
+      Thread.sleep(100)
+      worker.interrupt()
+      worker.join(1000)
+      assertTrue(child.isAlive, "current runner should expose the orphan before test cleanup")
+      assertTrue(completed.get() != null, "runner should have returned from interrupted waitFor")
+    } finally {
+      child?.destroyForcibly()
+      worker.join(1000)
+    }
+  }
+
+  @Test
+  fun failedDownloadIsCurrentlyReportedAsCompleted() {
+    val home = Files.createTempDirectory("cli348-update")
+    val bin = Files.createDirectories(home.resolve("bin"))
+    val curl = bin.resolve("curl")
+    Files.writeString(curl, "#!/bin/sh\necho simulated-download-failure >&2\nexit 22\n")
+    check(curl.toFile().setExecutable(true))
+    val result = CliRuntime.run(
+      listOf("update", "--release", "v0.0.0", "--format", "json"),
+      CliRuntimeContext(userHome = home, repositoryRoot = home,
+        environment = mapOf("PATH" to "$bin:/usr/bin:/bin")),
+    )
+    assertEquals(0, result.exitCode)
+    assertEquals("completed", result.payload?.get("status"))
+    assertTrue(result.stdout.contains("simulated-download-failure"))
+  }
+
+  @Test
+  fun diagnosticCleanupCurrentlyReturnsHelpAfterWritingItsOwnOutput() {
+    val home = Files.createTempDirectory("cli348-diagnostic")
+    val original = System.out
+    val captured = ByteArrayOutputStream()
+    val result = try {
+      System.setOut(PrintStream(captured))
+      CliRuntime.run(
+        listOf("feature-task", "rejected-output-cleanup", "--workflow", "nonexistent"),
+        CliRuntimeContext(userHome = home, repositoryRoot = home, environment = emptyMap(),
+          dbPathOverride = home.resolve("test.db").toString()),
+      )
+    } finally {
+      System.setOut(original)
+    }
+    assertEquals(0, result.exitCode)
+    assertTrue(result.stdout.contains("Usage:"), result.stdout)
+  }
+
+  @Test
+  fun configDefaultCurrentlyIgnoresInjectedRepositoryRoot() {
+    val home = Files.createTempDirectory("cli348-root")
+    Files.createDirectories(home.resolve(".skill-bill"))
+    Files.writeString(home.resolve(".skill-bill/config.yaml"), "spec_type: linear\n")
+    val context = CliRuntimeContext(userHome = home, repositoryRoot = home, environment = emptyMap())
+    val implicit = CliRuntime.run(listOf("config", "resolve-spec-type"), context)
+    val explicit = CliRuntime.run(listOf("config", "resolve-spec-type", "--repo-root", home.toString()), context)
+    assertEquals("linear\n", explicit.stdout)
+    assertEquals("local\n", implicit.stdout)
+  }
+
+  @Test
+  fun uninstallCurrentlyContinuesAfterCancellation() {
+    val home = Files.createTempDirectory("cli348-cancel")
+    val calls = mutableListOf<String>()
+    val cancelled = CancellationException("stop-uninstall")
+    val port = object : InstallMcpRegistrationPort {
+      override fun registerMcp(request: InstallMcpRegistrationRequest): InstallMcpRegistrationResult = error("unused")
+      override fun unregisterMcp(request: InstallMcpUnregistrationRequest): InstallMcpRegistrationResult {
+        calls += request.agent
+        throw cancelled
+      }
+    }
+    val plan = UninstallPlan(home, home.resolve(".skill-bill"), emptyList(), emptyList(), emptyList(),
+      emptyList(), listOf("claude", "codex"), emptyList(), DesktopRemoval(null, emptyList(), emptyList()))
+    val recorder = UninstallMutationRecorder(RecordingRuntimeDiagnostics())
+    cleanupMcpRegistrations(plan, port, mutableListOf(), recorder)
+    assertEquals(listOf("claude", "codex"), calls)
+    assertEquals(2, recorder.failureMessages().size)
+  }
+}
