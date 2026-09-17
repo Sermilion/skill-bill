@@ -1,5 +1,9 @@
 package skillbill.domain.skillremove.model
 
+import skillbill.install.model.SupportedAgent
+
+typealias AgentSymlinkProvider = SupportedAgent
+
 data class SkillRemovalPreview(
 
   val filesystemPaths: List<String>,
@@ -40,13 +44,6 @@ data class AgentSymlinkUnlink(
   val provider: AgentSymlinkProvider,
   val path: String,
 )
-
-enum class AgentSymlinkProvider {
-  CLAUDE,
-  CODEX,
-  JUNIE,
-  CURSOR,
-}
 
 data class ReadmeCatalogEdit(
   val readmePath: String,

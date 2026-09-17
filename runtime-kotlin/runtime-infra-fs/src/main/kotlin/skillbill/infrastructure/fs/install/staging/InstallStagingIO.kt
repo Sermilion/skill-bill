@@ -13,7 +13,7 @@ import skillbill.scaffold.model.PlatformManifest
 import skillbill.scaffold.model.PointerSpec
 import java.io.File
 import java.nio.charset.StandardCharsets
-import java.nio.file.AtomicMoveNotSupportedException
+import skillbill.infrastructure.fs.launcher.process.atomicMoveReplacing
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
@@ -170,16 +170,7 @@ internal fun promoteInstallStagingDir(tempDir: Path, finalStagingDir: Path) {
     promoteByBackupAndMove(tempDir, finalStagingDir)
     return
   }
-  try {
-    Files.move(
-      tempDir,
-      finalStagingDir,
-      StandardCopyOption.REPLACE_EXISTING,
-      StandardCopyOption.ATOMIC_MOVE,
-    )
-  } catch (_: AtomicMoveNotSupportedException) {
-    Files.move(tempDir, finalStagingDir, StandardCopyOption.REPLACE_EXISTING)
-  }
+  atomicMoveReplacing(tempDir, finalStagingDir)
 }
 
 internal fun cleanupInstallStagingOnFailure(tempDir: Path, finalStagingDir: Path, promoted: Boolean) {

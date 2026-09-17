@@ -9,7 +9,6 @@ import java.nio.ByteBuffer
 import java.nio.CharBuffer
 import java.nio.charset.CodingErrorAction
 import java.nio.charset.StandardCharsets
-import java.security.MessageDigest
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -84,7 +83,7 @@ internal class CappedUtf8Drain(
 
   @Volatile internal var truncated = false
   internal var totalByteSize = 0L
-  internal val digest = MessageDigest.getInstance("SHA-256")
+  internal val digest = newSha256Digest()
 
   @Volatile private var workerCompleted = false
 
@@ -200,7 +199,7 @@ internal class CappedUtf8Drain(
 
   fun totalByteSize(): Long = capture().totalByteSize
 
-  fun sha256(): String = capture().sha256
+  fun contentDigest(): String = capture().sha256
 }
 
 internal class OutputObservationTracker {

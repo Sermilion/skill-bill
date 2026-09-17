@@ -5,7 +5,7 @@ import skillbill.install.model.BaselineManifest
 import skillbill.install.model.ReconciliationPlan
 import skillbill.install.model.SkillReconciliationOutcome
 import java.io.IOException
-import java.nio.file.AtomicMoveNotSupportedException
+import skillbill.infrastructure.fs.launcher.process.atomicMoveReplacing
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
@@ -34,7 +34,7 @@ internal fun applyReconciliation(
         reason = "apply requires the upstream skill dir but it was not enumerated.",
       )
     val liveDir = liveSkillDir(local, skillPath)
-    replaceSkillDirAtomically(upstreamDir, liveDir)
+    reconcileSkillDirectory(upstreamDir, liveDir)
     installedPaths.add(skillPath)
   }
 
@@ -151,7 +151,7 @@ private fun liveSkillDir(local: ReconcileSourceRoots, skillRelativePath: String)
   )
 }
 
-private fun replaceSkillDirAtomically(upstreamDir: Path, liveDir: Path) {
+private fun reconcileSkillDirectory(upstreamDir: Path, liveDir: Path) {
   val parent = liveDir.toAbsolutePath().normalize().parent
     ?: throw ReconciliationConflictError(
       skillRelativePath = liveDir.toString(),
@@ -207,11 +207,7 @@ private fun copyTreeDeep(source: Path, target: Path) {
 }
 
 private fun moveDir(source: Path, target: Path) {
-  try {
-    Files.move(source, target, StandardCopyOption.ATOMIC_MOVE)
-  } catch (_: AtomicMoveNotSupportedException) {
-    Files.move(source, target)
-  }
+  atomicMoveReplacing(source, target)
 }
 
 private fun deleteTreeRecursively(root: Path) {

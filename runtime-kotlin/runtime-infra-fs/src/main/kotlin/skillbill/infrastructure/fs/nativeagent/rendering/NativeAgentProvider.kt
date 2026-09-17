@@ -2,50 +2,72 @@ package skillbill.infrastructure.fs.nativeagent.rendering
 
 import skillbill.infrastructure.fs.nativeagent.composition.NativeAgentSource
 import skillbill.infrastructure.fs.nativeagent.composition.declaresReadOnlyToolset
+import skillbill.infrastructure.fs.resolveEnvironmentMap
 import skillbill.infrastructure.fs.nativeagent.support.claudeConfigRoots
 import skillbill.infrastructure.fs.nativeagent.support.codexAgentsTargets
 import skillbill.infrastructure.fs.nativeagent.support.detectCodexAgentsTargets
+import skillbill.install.model.SupportedAgent
 import java.nio.file.Files
 import java.nio.file.Path
 
-enum class NativeAgentProvider(
-  val directoryName: String,
-  val extension: String,
-) {
-  Claude("claude-agents", "md") {
+enum class NativeAgentProvider {
+  Claude {
+    override val supportedAgent = SupportedAgent.CLAUDE
     override fun render(source: NativeAgentSource): String = renderFrontmatterAgent(source, toolsetFields(source))
-    override fun homeAgentDirs(home: Path): List<Path> = claudeConfigRoots(home).map { it.resolve("agents") }
+    override fun homeAgentDirs(home: Path, environment: Map<String, String>): List<Path> =
+      claudeConfigRoots(home, resolveEnvironmentMap(environment)).map { it.resolve("agents") }
   },
-  Codex("codex-agents", "toml") {
+  Codex {
+    override val supportedAgent = SupportedAgent.CODEX
     override fun render(source: NativeAgentSource): String = renderCodexAgentToml(source)
-    override fun homeAgentDirs(home: Path): List<Path> = codexAgentsTargets(home)
+    override fun homeAgentDirs(home: Path, environment: Map<String, String>): List<Path> =
+      codexAgentsTargets(home, resolveEnvironmentMap(environment))
   },
-  Junie("junie-agents", "md") {
+  Junie {
+    override val supportedAgent = SupportedAgent.JUNIE
     override fun render(source: NativeAgentSource): String = renderFrontmatterAgent(source, toolsetFields(source))
-    override fun homeAgentDirs(home: Path): List<Path> = listOf(home.resolve(".junie/agents"))
+    override fun homeAgentDirs(home: Path, environment: Map<String, String>): List<Path> =
+      listOf(home.resolve(requireNotNull(supportedAgent.simpleHomeDirectory)).resolve("agents"))
   },
-  Cursor("cursor-agents", "md") {
+  Cursor {
+    override val supportedAgent = SupportedAgent.CURSOR
     override fun render(source: NativeAgentSource): String =
       renderFrontmatterAgent(source, cursorCapabilityFields(source))
-    override fun homeAgentDirs(home: Path): List<Path> = listOf(home.resolve(".cursor/agents"))
+    override fun homeAgentDirs(home: Path, environment: Map<String, String>): List<Path> =
+      listOf(home.resolve(requireNotNull(supportedAgent.simpleHomeDirectory)).resolve("agents"))
   },
   ;
 
+  abstract val supportedAgent: SupportedAgent
+
+  val directoryName: String get() = supportedAgent.nativeAgentsKind
+
+  val extension: String get() = supportedAgent.nativeFileExtension
+
   abstract fun render(source: NativeAgentSource): String
 
-  abstract fun homeAgentDirs(home: Path): List<Path>
+  abstract fun homeAgentDirs(home: Path, environment: Map<String, String> = emptyMap()): List<Path>
 
   fun fileName(logicalName: String): String = "$logicalName.$extension"
 
-  fun activeHomeAgentDirs(home: Path): List<Path> = when (this) {
-    Claude -> homeAgentDirs(home)
-    Codex -> detectCodexAgentsTargets(home).map { it.path }
-    Junie -> homeAgentDirs(home).takeIf { Files.exists(home.resolve(".junie")) }.orEmpty()
-    Cursor -> homeAgentDirs(home).takeIf { Files.exists(home.resolve(".cursor")) }.orEmpty()
+  fun activeHomeAgentDirs(home: Path, environment: Map<String, String> = emptyMap()): List<Path> = when (this) {
+    Claude -> homeAgentDirs(home, environment)
+    Codex -> detectCodexAgentsTargets(home, resolveEnvironmentMap(environment)).map { it.path }
+    Junie,
+    Cursor,
+    -> homeAgentDirs(home, environment)
+      .takeIf { Files.exists(home.resolve(requireNotNull(supportedAgent.simpleHomeDirectory))) }
+      .orEmpty()
   }.map { it.toAbsolutePath().normalize() }
 
   fun cacheArtifactPath(cacheRoot: Path, logicalName: String): Path =
     cacheRoot.resolve(directoryName).resolve(fileName(logicalName)).toAbsolutePath().normalize()
+
+  companion object {
+    fun forSupportedAgent(agent: SupportedAgent): NativeAgentProvider = entries.first { provider ->
+      provider.supportedAgent == agent
+    }
+  }
 }
 
 private fun renderCodexAgentToml(agent: NativeAgentSource): String = buildString {

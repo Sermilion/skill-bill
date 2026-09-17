@@ -1,5 +1,7 @@
 package skillbill.infrastructure.fs
 
+import skillbill.infrastructure.fs.launcher.process.newSha256Digest
+import skillbill.infrastructure.fs.launcher.process.requirePathContainedIn
 import skillbill.ports.workflow.gitops.RepositoryFingerprintGitOperations
 import skillbill.ports.workflow.gitops.RuntimePhaseFileManifestGitOperations
 import skillbill.ports.workflow.gitops.SuppressionEvidenceGitOperations
@@ -14,12 +16,12 @@ import skillbill.workflow.goal.model.GoalObservabilityChangedFileSummary
 import skillbill.workflow.goal.model.GoalObservabilityDiffStat
 import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunk
 import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunks
+import java.security.MessageDigest
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
 import java.nio.file.attribute.BasicFileAttributes
-import java.security.MessageDigest
 
 internal object GitRepositoryFingerprintOperations : RepositoryFingerprintGitOperations {
   override fun repositoryFingerprint(repoRoot: Path): WorkflowGitOperationResult {
@@ -30,14 +32,14 @@ internal object GitRepositoryFingerprintOperations : RepositoryFingerprintGitOpe
     val failure = listOf(head, staged, unstaged, untracked).firstOrNull { it !is WorkflowGitOperationResult.Ok }
     if (failure != null) return failure
     return runCatching {
-      val digest = MessageDigest.getInstance("SHA-256")
+      val digest = newSha256Digest()
       UntrackedFingerprintDigest.digestPart(digest, "head", head.value.orEmpty().toByteArray())
       UntrackedFingerprintDigest.digestPart(digest, "staged", staged.value.orEmpty().toByteArray())
       UntrackedFingerprintDigest.digestPart(digest, "unstaged", unstaged.value.orEmpty().toByteArray())
       val root = repoRoot.normalize()
       untracked.value.orEmpty().split('\u0000').filter(String::isNotBlank).sorted().forEach { path ->
         val resolved = root.resolve(path).normalize()
-        require(resolved.startsWith(root)) { "Untracked path escapes repository root: $path" }
+        requirePathContainedIn(resolved, root) { "Untracked path escapes repository root: $path" }
         UntrackedFingerprintDigest.digestUntrackedEntry(digest, path, resolved)
       }
       WorkflowGitOperationResult.Ok(value = digest.digest().joinToString("") { "%02x".format(it) })
@@ -52,13 +54,13 @@ internal object GitRepositoryFingerprintOperations : RepositoryFingerprintGitOpe
     headCommit: String,
     ownedPaths: List<String>,
   ): WorkflowGitOperationResult = runCatching {
-    val digest = MessageDigest.getInstance("SHA-256")
+    val digest = newSha256Digest()
     UntrackedFingerprintDigest.digestPart(digest, "base", baseCommit.orEmpty().toByteArray())
     UntrackedFingerprintDigest.digestPart(digest, "head", headCommit.toByteArray())
     val root = repoRoot.normalize()
     ownedPaths.distinct().sorted().forEach { path ->
       val resolved = root.resolve(path).normalize()
-      require(resolved.startsWith(root)) { "Checkpoint path escapes repository root: $path" }
+      requirePathContainedIn(resolved, root) { "Checkpoint path escapes repository root: $path" }
       UntrackedFingerprintDigest.digestUntrackedEntry(digest, path, resolved)
     }
     WorkflowGitOperationResult.Ok(value = digest.digest().joinToString("") { "%02x".format(it) })

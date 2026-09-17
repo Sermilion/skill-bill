@@ -1,5 +1,7 @@
 package skillbill.infrastructure.fs.skillremove
 
+import skillbill.infrastructure.fs.resolveUserHome
+
 import skillbill.domain.skillremove.model.SkillRemovalRequest
 import skillbill.domain.skillremove.model.SkillRemovalTarget
 import java.nio.file.Path
@@ -16,7 +18,7 @@ internal fun skillRemoveExternalAddonFile(target: SkillRemovalTarget.ExternalAdd
 internal fun skillRemoveUserHome(request: SkillRemovalRequest, home: Path?): Path =
   request.userHomeAbsolutePath?.let { Path.of(it).toAbsolutePath().normalize() }
     ?: home
-    ?: Path.of(System.getProperty("user.home")).toAbsolutePath().normalize()
+    ?: resolveUserHome(null).toAbsolutePath().normalize()
 
 internal fun describeTargetForLog(target: SkillRemovalTarget): String = when (target) {
   is SkillRemovalTarget.HorizontalSkill -> "skill:${target.skillName}"

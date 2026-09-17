@@ -1,6 +1,7 @@
 package skillbill.infrastructure.fs.install.nativeagent
 
 import skillbill.error.InvalidNativeAgentLinkInventoryDecodeError
+import skillbill.infrastructure.fs.launcher.process.sha256Hex
 import skillbill.infrastructure.fs.nativeagent.rendering.NativeAgentProvider
 import java.io.IOException
 import java.nio.file.Files
@@ -79,7 +80,7 @@ internal object NativeAgentLinkInventoryBootstrap {
       return null
     }
     return try {
-      NativeAgentLinkInventoryPaths.sha256(Files.readAllBytes(resolved))
+      sha256Hex(Files.readAllBytes(resolved))
     } catch (error: IOException) {
       throw InvalidNativeAgentLinkInventoryDecodeError(
         path = resolved.toString(),

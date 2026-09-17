@@ -1,6 +1,8 @@
 package skillbill.infrastructure.fs.scaffold.runtime
 
 import skillbill.error.InvalidScaffoldPayloadError
+import skillbill.infrastructure.fs.JdkHostPlatformPort
+import skillbill.ports.system.HostPlatformPort
 import skillbill.error.MissingPlatformPackError
 import skillbill.error.SkillAlreadyExistsError
 import skillbill.error.UnknownSkillKindError
@@ -41,8 +43,11 @@ internal fun executeScaffold(
   )
 }
 
-internal fun resolveRepoRoot(payload: Map<String, Any?>): Path {
-  val repoRootRaw = payload["repo_root"] as? String ?: return defaultRepoRoot()
+internal fun resolveRepoRoot(
+  payload: Map<String, Any?>,
+  hostPlatform: HostPlatformPort = JdkHostPlatformPort,
+): Path {
+  val repoRootRaw = payload["repo_root"] as? String ?: return defaultRepoRoot(hostPlatform)
   if (repoRootRaw.isBlank()) {
     throw InvalidScaffoldPayloadError(
       "Scaffold payload field 'repo_root' must be a non-empty string when provided.",

@@ -1,7 +1,8 @@
 package skillbill.infrastructure.fs.install.support
 
 import java.io.IOException
-import java.nio.file.AtomicMoveNotSupportedException
+import skillbill.infrastructure.fs.launcher.process.atomicMoveReplacing
+import skillbill.infrastructure.fs.launcher.process.rollbackDeleteIfExists
 import java.nio.file.FileAlreadyExistsException
 import java.nio.file.FileSystemException
 import java.nio.file.Files
@@ -38,7 +39,7 @@ private fun createManagedSymlinkWithGuidance(linkPath: Path, linkTarget: Path, r
     restoreOriginalLinkIfNeeded(replaceExisting, oldTarget, linkPath)
     throw error
   } finally {
-    runCatching { Files.deleteIfExists(tempLink) }
+    runCatching { rollbackDeleteIfExists(tempLink) }
   }
 }
 
@@ -62,12 +63,7 @@ private fun moveManagedLink(tempLink: Path, linkPath: Path) {
   if (Files.exists(linkPath, LinkOption.NOFOLLOW_LINKS)) {
     throw FileAlreadyExistsException(linkPath.toString())
   }
-  try {
-    Files.move(tempLink, linkPath, StandardCopyOption.ATOMIC_MOVE)
-  } catch (error: AtomicMoveNotSupportedException) {
-    log.log(Level.FINE, "Atomic symlink replacement move is unsupported; falling back to regular move.", error)
-    Files.move(tempLink, linkPath)
-  }
+  atomicMoveReplacing(tempLink, linkPath)
 }
 
 private fun readSymlinkTargetOrNull(linkPath: Path): Path? = runCatching {

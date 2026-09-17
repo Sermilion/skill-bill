@@ -167,8 +167,8 @@ internal object FeatureTaskRuntimePhaseOutputStructuralRepair {
       ?: return selected
     val evidence = selected.evidence ?: FeatureTaskRuntimePhaseOutputRepairEvidence(
       format = FeatureTaskRuntimePhaseOutputFormat.JSON,
-      originalDigest = StructuralRepairSyntax.sha256(text),
-      repairedDigest = StructuralRepairSyntax.sha256(selected.text),
+      originalDigest = StructuralRepairSyntax.sha256Hex(text),
+      repairedDigest = StructuralRepairSyntax.sha256Hex(selected.text),
       operation = FeatureTaskRuntimePhaseOutputRepairOperation.REMOVE_EXTRA_CLOSING_DELIMITER,
       sourceLocation = StructuralRepairSyntax.sourceLocation(sourceLabel, text, extraCloser),
     )

@@ -1,7 +1,6 @@
 package skillbill.infrastructure.fs.launcher.process
 
 import skillbill.ports.agentrun.model.AgentRunLivenessSnapshot
-import java.security.MessageDigest
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
@@ -58,8 +57,7 @@ data class AgentRunProcessResult(
 
   val stdoutTruncated: Boolean = false,
   val stdoutByteSize: Long = stdoutBytes.size.toLong(),
-  val stdoutSha256: String = MessageDigest.getInstance("SHA-256")
-    .digest(stdoutBytes).joinToString("") { "%02x".format(it) },
+  val stdoutSha256: String = sha256Hex(stdoutBytes),
   val outputCaptureIncomplete: Boolean = false,
 )
 

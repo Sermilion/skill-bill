@@ -1,5 +1,7 @@
 package skillbill.infrastructure.fs
 
+import skillbill.infrastructure.fs.resolveUserHome
+
 import me.tatarka.inject.annotations.Inject
 import skillbill.model.EnvironmentContext
 import skillbill.ports.review.ReviewInputSource
@@ -37,12 +39,12 @@ class FileSystemReviewInputSource(
 internal fun EnvironmentContext.withProcessDefaults(): EnvironmentContext {
   val withUserHome =
     if (userHome == EnvironmentContext.UnspecifiedUserHome) {
-      copy(userHome = Path.of(System.getProperty("user.home")).toAbsolutePath().normalize())
+      copy(userHome = resolveUserHome(null).toAbsolutePath().normalize())
     } else {
       copy(userHome = userHome.toAbsolutePath().normalize())
     }
   return if (withUserHome.environment === EnvironmentContext.UnspecifiedEnvironment) {
-    withUserHome.copy(environment = System.getenv())
+    withUserHome.copy(environment = JdkHostPlatformPort.resolveEnvironment())
   } else {
     withUserHome
   }

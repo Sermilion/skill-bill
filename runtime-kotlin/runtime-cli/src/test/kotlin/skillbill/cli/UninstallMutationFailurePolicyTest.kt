@@ -147,6 +147,12 @@ private object StubInstallNativeAgentLinkPort : InstallNativeAgentLinkPort {
 }
 
 private object StubUninstallHostPlatformPort : HostPlatformPort {
+  override fun resolveUserHome(): java.nio.file.Path = java.nio.file.Path.of(System.getProperty("user.home"))
+  override fun resolveEnvironment(): Map<String, String> = System.getenv()
+  override fun resolveJavaHome(): java.nio.file.Path = java.nio.file.Path.of(System.getProperty("java.home"))
+  override fun resolveWorkingDirectory(): java.nio.file.Path = java.nio.file.Path.of(System.getProperty("user.dir"))
+  override fun resolveTemporaryDirectory(): java.nio.file.Path = java.nio.file.Path.of(System.getProperty("java.io.tmpdir"))
+
   override val osName: String = "Linux"
   override val jvmClassPath: String = ""
   override val pathSeparator: String = ":"

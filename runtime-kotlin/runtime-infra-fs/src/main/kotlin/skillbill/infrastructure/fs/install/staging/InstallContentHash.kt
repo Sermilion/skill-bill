@@ -1,6 +1,8 @@
 package skillbill.infrastructure.fs.install.staging
 
 import skillbill.infrastructure.fs.agentaddon.AgentAddonPointer
+import skillbill.infrastructure.fs.launcher.process.newSha256Digest
+import skillbill.infrastructure.fs.launcher.process.requirePathContainedIn
 import skillbill.model.toPath
 import skillbill.scaffold.model.PlatformManifest
 import skillbill.scaffold.model.PointerSpec
@@ -38,7 +40,7 @@ internal fun computeInstallContentHash(
 )
 
 internal fun computeInstallContentHash(inputs: InstallContentHashInputs): String {
-  val digest = MessageDigest.getInstance("SHA-256")
+  val digest = newSha256Digest()
   val newline = byteArrayOf('\n'.code.toByte())
   digest.update(INSTALL_STAGING_RECIPE_VERSION.toByteArray(StandardCharsets.UTF_8))
   digest.update(newline)
@@ -67,7 +69,7 @@ private fun updatePointerHash(digest: MessageDigest, newline: ByteArray, inputs:
       val repoRoot = manifest.packRoot.toPath().toAbsolutePath().normalize().parent?.parent
         ?: error("Platform pack '${manifest.slug}' root '${manifest.packRoot}' has no repo root parent.")
       val targetFile = repoRoot.resolve(spec.target).normalize()
-      require(targetFile.startsWith(repoRoot)) {
+      requirePathContainedIn(targetFile, repoRoot) {
         "Pointer '${spec.name}' under '${spec.skillRelativeDir}' targets '${spec.target}' outside repoRoot '$repoRoot'."
       }
       require(Files.isRegularFile(targetFile, LinkOption.NOFOLLOW_LINKS)) {

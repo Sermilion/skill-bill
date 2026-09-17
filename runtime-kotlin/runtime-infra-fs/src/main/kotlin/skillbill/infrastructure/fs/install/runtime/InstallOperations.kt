@@ -1,14 +1,18 @@
 package skillbill.infrastructure.fs.install.runtime
 
+import skillbill.infrastructure.fs.JdkHostPlatformPort
 import skillbill.infrastructure.fs.install.apply.applyInstallPlan
 import skillbill.infrastructure.fs.install.plan.buildInstallPlan
 import skillbill.infrastructure.fs.install.plan.detectAgents
+import skillbill.infrastructure.fs.install.plan.resolveInstallEnvironment
+import skillbill.infrastructure.fs.install.plan.resolveInstallHome
 import skillbill.install.model.AgentTarget
 import skillbill.install.model.InstallApplyResult
 import skillbill.install.model.InstallPlan
 import skillbill.install.model.InstallPlanRequest
 import skillbill.install.model.InstallPlanWireValidator
 import skillbill.ports.install.mcp.InstallMcpRegistrationPort
+import skillbill.ports.system.HostPlatformPort
 import skillbill.ports.telemetry.TelemetryConfigStore
 import skillbill.ports.telemetry.TelemetryLevelMutator
 import java.nio.file.Path
@@ -25,25 +29,57 @@ object InstallOperations {
     mcpRegistrationPort: InstallMcpRegistrationPort,
   ): InstallApplyResult = applyInstallPlan(plan, telemetryLevelMutator, telemetryConfigStore, mcpRegistrationPort)
 
-  fun agentPath(agent: String, home: Path? = null, environment: Map<String, String> = System.getenv()): Path =
-    InstallOperationsPaths.agentPath(agent, home, environment)
+  fun agentPath(
+    agent: String,
+    home: Path?,
+    environment: Map<String, String>,
+    hostPlatform: HostPlatformPort = JdkHostPlatformPort,
+  ): Path = InstallOperationsPaths.agentPath(agent, home, environment, hostPlatform)
 
-  fun detectAgentTargets(home: Path? = null, environment: Map<String, String> = System.getenv()): List<AgentTarget> =
-    detectAgents(home, environment)
+  fun detectAgentTargets(
+    home: Path?,
+    environment: Map<String, String>,
+    hostPlatform: HostPlatformPort = JdkHostPlatformPort,
+  ): List<AgentTarget> {
+    val resolvedHome = resolveInstallHome(home, hostPlatform)
+    val resolvedEnvironment = resolveInstallEnvironment(environment, hostPlatform)
+    return detectAgents(resolvedHome, resolvedEnvironment)
+  }
 
-  fun claudeRoots(home: Path? = null, environment: Map<String, String> = System.getenv()): List<Path> =
-    InstallOperationsPaths.claudeRoots(home, environment)
+  fun claudeRoots(
+    home: Path?,
+    environment: Map<String, String>,
+    hostPlatform: HostPlatformPort = JdkHostPlatformPort,
+  ): List<Path> =
+    InstallOperationsPaths.claudeRoots(home, environment, hostPlatform)
 
-  fun codexAgentsPath(home: Path? = null, environment: Map<String, String> = System.getenv()): Path =
-    planCodexAgentsPath(home, environment)
+  fun codexAgentsPath(
+    home: Path?,
+    environment: Map<String, String>,
+    hostPlatform: HostPlatformPort = JdkHostPlatformPort,
+  ): Path {
+    val resolvedHome = resolveInstallHome(home, hostPlatform)
+    val resolvedEnvironment = resolveInstallEnvironment(environment, hostPlatform)
+    return planCodexAgentsPath(resolvedHome, resolvedEnvironment)
+  }
 
-  fun codexRoots(home: Path? = null, environment: Map<String, String> = System.getenv()): List<Path> =
-    InstallOperationsPaths.codexRoots(home, environment)
+  fun codexRoots(
+    home: Path?,
+    environment: Map<String, String>,
+    hostPlatform: HostPlatformPort = JdkHostPlatformPort,
+  ): List<Path> =
+    InstallOperationsPaths.codexRoots(home, environment, hostPlatform)
 
-  fun claudeAgentsPath(home: Path? = null, environment: Map<String, String> = System.getenv()): Path =
-    InstallOperationsPaths.claudeAgentsPath(home, environment)
+  fun claudeAgentsPath(
+    home: Path?,
+    environment: Map<String, String>,
+    hostPlatform: HostPlatformPort = JdkHostPlatformPort,
+  ): Path =
+    InstallOperationsPaths.claudeAgentsPath(home, environment, hostPlatform)
 
-  fun junieAgentsPath(home: Path? = null): Path = InstallOperationsPaths.junieAgentsPath(home)
+  fun junieAgentsPath(home: Path?, hostPlatform: HostPlatformPort = JdkHostPlatformPort): Path =
+    InstallOperationsPaths.junieAgentsPath(home, hostPlatform)
 
-  fun cursorAgentsPath(home: Path? = null): Path = InstallOperationsPaths.cursorAgentsPath(home)
+  fun cursorAgentsPath(home: Path?, hostPlatform: HostPlatformPort = JdkHostPlatformPort): Path =
+    InstallOperationsPaths.cursorAgentsPath(home, hostPlatform)
 }

@@ -1,8 +1,8 @@
 package skillbill.infrastructure.fs.phaseoutput
 
+import skillbill.infrastructure.fs.launcher.process.sha256Hex as contentSha256Hex
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputFormat
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputSourceLocation
-import java.security.MessageDigest
 
 internal object StructuralRepairSyntax {
   fun generateCandidates(
@@ -124,7 +124,5 @@ internal object StructuralRepairSyntax {
     )
   }
 
-  fun sha256(value: String): String = MessageDigest.getInstance("SHA-256")
-    .digest(value.toByteArray(Charsets.UTF_8))
-    .joinToString("") { byte -> "%02x".format(byte) }
+  fun sha256Hex(value: String): String = contentSha256Hex(value)
 }

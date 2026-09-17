@@ -2,6 +2,7 @@ package skillbill.infrastructure.fs.scaffold.authoring
 
 import skillbill.error.ShellContentContractException
 import skillbill.error.SkillBillRuntimeException
+import skillbill.infrastructure.fs.launcher.process.rollbackRestoreBytes
 import skillbill.infrastructure.fs.scaffold.runtime.requiredSupportingFilesForSkill
 import skillbill.infrastructure.fs.scaffold.runtime.supportingFileTargets
 import skillbill.infrastructure.fs.scaffold.validation.validateAuthoredContent
@@ -50,7 +51,7 @@ private fun <T> runWithContentRollback(target: AuthoringTarget, contentBefore: B
 }
 
 private fun restoreContentFiles(target: AuthoringTarget, contentBefore: ByteArray) {
-  Files.write(target.contentFile, contentBefore)
+  rollbackRestoreBytes(target.contentFile, contentBefore)
 }
 
 private fun collectTargetIssues(target: AuthoringTarget, repoRoot: Path?, issues: MutableList<String>) {

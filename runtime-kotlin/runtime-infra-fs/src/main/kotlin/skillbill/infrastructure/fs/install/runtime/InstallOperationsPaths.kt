@@ -2,41 +2,47 @@ package skillbill.infrastructure.fs.install.runtime
 
 import skillbill.infrastructure.fs.install.plan.SUPPORTED_AGENTS
 import skillbill.infrastructure.fs.install.plan.agentPaths
+import skillbill.infrastructure.fs.install.plan.installConfigRoots
+import skillbill.infrastructure.fs.install.plan.resolveInstallHome
 import skillbill.infrastructure.fs.install.support.claudeConfigRoot
 import skillbill.infrastructure.fs.install.support.claudeConfigRoots
 import skillbill.infrastructure.fs.install.support.codexConfigRoots
+import skillbill.install.model.SupportedAgent
+import skillbill.ports.system.HostPlatformPort
 import java.nio.file.Path
 
 internal object InstallOperationsPaths {
-  fun agentPath(agent: String, home: Path? = null, environment: Map<String, String> = System.getenv()): Path {
-    require(agent in SUPPORTED_AGENTS) {
-      "Unknown agent '$agent'. Supported agents: ${SUPPORTED_AGENTS.joinToString(", ")}."
+  fun agentPath(agent: String, home: Path?, environment: Map<String, String>, hostPlatform: HostPlatformPort): Path {
+    val supported = SupportedAgent.fromWire(agent)
+    require(supported in SUPPORTED_AGENTS) {
+      "Unknown agent '$agent'. Supported agents: ${SUPPORTED_AGENTS.joinToString { it.wireValue }}."
     }
-    return agentPaths(home, environment).getValue(agent)
+    val resolvedHome = resolveInstallHome(home, hostPlatform)
+    return agentPaths(resolvedHome, installConfigRoots(resolvedHome, environment)).getValue(supported)
   }
 
-  fun claudeRoots(home: Path? = null, environment: Map<String, String> = System.getenv()): List<Path> {
-    val resolvedHome = home ?: Path.of(System.getProperty("user.home"))
+  fun claudeRoots(home: Path?, environment: Map<String, String>, hostPlatform: HostPlatformPort): List<Path> {
+    val resolvedHome = resolveInstallHome(home, hostPlatform)
     return claudeConfigRoots(resolvedHome, environment)
   }
 
-  fun codexRoots(home: Path? = null, environment: Map<String, String> = System.getenv()): List<Path> {
-    val resolvedHome = home ?: Path.of(System.getProperty("user.home"))
+  fun codexRoots(home: Path?, environment: Map<String, String>, hostPlatform: HostPlatformPort): List<Path> {
+    val resolvedHome = resolveInstallHome(home, hostPlatform)
     return codexConfigRoots(resolvedHome, environment)
   }
 
-  fun claudeAgentsPath(home: Path? = null, environment: Map<String, String> = System.getenv()): Path {
-    val resolvedHome = home ?: Path.of(System.getProperty("user.home"))
+  fun claudeAgentsPath(home: Path?, environment: Map<String, String>, hostPlatform: HostPlatformPort): Path {
+    val resolvedHome = resolveInstallHome(home, hostPlatform)
     return claudeConfigRoot(resolvedHome, environment).resolve("agents")
   }
 
-  fun junieAgentsPath(home: Path? = null): Path {
-    val resolvedHome = home ?: Path.of(System.getProperty("user.home"))
-    return resolvedHome.resolve(".junie/agents")
+  fun junieAgentsPath(home: Path?, hostPlatform: HostPlatformPort): Path {
+    val resolvedHome = resolveInstallHome(home, hostPlatform)
+    return resolvedHome.resolve(requireNotNull(SupportedAgent.JUNIE.simpleHomeDirectory)).resolve("agents")
   }
 
-  fun cursorAgentsPath(home: Path? = null): Path {
-    val resolvedHome = home ?: Path.of(System.getProperty("user.home"))
-    return resolvedHome.resolve(".cursor/agents")
+  fun cursorAgentsPath(home: Path?, hostPlatform: HostPlatformPort): Path {
+    val resolvedHome = resolveInstallHome(home, hostPlatform)
+    return resolvedHome.resolve(requireNotNull(SupportedAgent.CURSOR.simpleHomeDirectory)).resolve("agents")
   }
 }

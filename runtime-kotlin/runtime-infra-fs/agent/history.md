@@ -1,5 +1,14 @@
 # Boundary History — runtime-kotlin/runtime-infra-fs
 
+## [2026-09-17] SKILL-353 subtask 2 — one owner per process, agent, environment, and primitive
+Areas: runtime-infra-fs process/install/nativeagent/launcher/scaffold/skillremove, runtime-domain/install, runtime-ports/system, runtime-core architecture
+- Bounded external-process execution, teardown, and capture settlement now have one shared owner across git, gh, validation, review, and installer seams.
+- Supported agents, embedded native-agent names, host environment resolution, and agent-home/config paths now use canonical declarations and injected facts instead of duplicated literals or ambient reads.
+- Atomic writes and moves, directory replacement, SHA-256 digests, and path containment route through shared filesystem primitives; install, scaffold, removal, and evidence rollback callers reuse them. reusable
+- Known limitation: git and installer lifetime behavior retain dedicated sibling coverage while sharing the bounded process ownership model.
+Feature flag: N/A
+Acceptance criteria: 5/5 implemented
+
 ## [2026-09-17] SKILL-353 subtask 1 — one schema loader, typed failures, and recorded fallbacks
 Areas: runtime-infra-fs/contracts, runtime-infra-fs validators and install seams, runtime-core validator bindings, runtime-contracts errors
 - One classpath schema loader now owns schema compilation, identity, and contract-version checks; validators retain family-specific error shaping and ordered paths/values. reusable

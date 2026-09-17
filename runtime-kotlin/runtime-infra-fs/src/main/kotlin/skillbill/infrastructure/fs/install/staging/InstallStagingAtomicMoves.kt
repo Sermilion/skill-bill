@@ -1,11 +1,10 @@
 package skillbill.infrastructure.fs.install.staging
 
+import skillbill.infrastructure.fs.launcher.process.atomicMoveReplacing
 import java.io.IOException
-import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
-import java.nio.file.StandardCopyOption
 import java.util.UUID
 import java.util.logging.Level
 import java.util.logging.Logger
@@ -23,9 +22,9 @@ internal fun writeInternalStagingFile(tempDir: Path, name: String, bytes: ByteAr
 
 internal fun promoteByBackupAndMove(tempDir: Path, finalStagingDir: Path) {
   val backup = finalStagingDir.resolveSibling(".${finalStagingDir.fileName}.backup-${UUID.randomUUID()}")
-  moveWithAtomicFallback(finalStagingDir, backup)
+  atomicMoveReplacing(finalStagingDir, backup)
   try {
-    Files.move(tempDir, finalStagingDir, StandardCopyOption.REPLACE_EXISTING)
+    atomicMoveReplacing(tempDir, finalStagingDir)
   } catch (error: IOException) {
     restoreInstallStagingBackup(backup, finalStagingDir, error)
     throw error
@@ -33,18 +32,10 @@ internal fun promoteByBackupAndMove(tempDir: Path, finalStagingDir: Path) {
   suppressedDelete(backup)
 }
 
-internal fun moveWithAtomicFallback(source: Path, target: Path) {
-  try {
-    Files.move(source, target, StandardCopyOption.ATOMIC_MOVE)
-  } catch (_: AtomicMoveNotSupportedException) {
-    Files.move(source, target)
-  }
-}
-
 internal fun restoreInstallStagingBackup(backup: Path, finalStagingDir: Path, primaryError: Throwable) {
   suppressedDelete(finalStagingDir)
   try {
-    moveWithAtomicFallback(backup, finalStagingDir)
+    atomicMoveReplacing(backup, finalStagingDir)
   } catch (restoreError: IOException) {
     primaryError.addSuppressed(restoreError)
     stagingSupportLog.log(Level.SEVERE, "Failed to restore install staging backup '$backup'.", restoreError)

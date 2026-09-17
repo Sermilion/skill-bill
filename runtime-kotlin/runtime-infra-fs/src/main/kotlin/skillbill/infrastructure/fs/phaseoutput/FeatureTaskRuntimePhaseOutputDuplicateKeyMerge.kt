@@ -56,8 +56,8 @@ internal object DuplicateKeyMergeParser {
     val merged = merge(text, format)?.takeIf { it.node.isObject } ?: return null
     val evidence = FeatureTaskRuntimePhaseOutputRepairEvidence(
       format = merged.format,
-      originalDigest = StructuralRepairSyntax.sha256(text),
-      repairedDigest = StructuralRepairSyntax.sha256(merged.repairedText),
+      originalDigest = StructuralRepairSyntax.sha256Hex(text),
+      repairedDigest = StructuralRepairSyntax.sha256Hex(merged.repairedText),
       operation = FeatureTaskRuntimePhaseOutputRepairOperation.DEDUPLICATE_KEYS,
       sourceLocation = StructuralRepairSyntax.sourceLocation(
         sourceLabel,

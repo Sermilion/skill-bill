@@ -149,7 +149,7 @@ class ClaudeAgentRunCommandBuilder(
     val streaming = request.streamProviderOutput || request.streamOutputForLiveness
     return goalContinuationCommand(request, agent, databasePath) ?: AgentRunCommand(
       command = buildList {
-        add("claude")
+        add(InstallAgent.CLAUDE.wireValue)
         add("--print")
         add("--output-format")
 
@@ -214,7 +214,7 @@ class CodexAgentRunCommandBuilder(
     requireGovernedReviewLaunch(request, agent, governedReviewLaunchCapability)
     return goalContinuationCommand(request, agent, databasePath) ?: AgentRunCommand(
       command = buildList {
-        add("codex")
+        add(InstallAgent.CODEX.wireValue)
         add("exec")
         add("--json")
         add("--cd")

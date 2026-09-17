@@ -4,13 +4,11 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.ports.goalrunner.runner.GoalPullRequestPort
 import skillbill.ports.goalrunner.runner.model.GoalPullRequestRequest
 import skillbill.ports.goalrunner.runner.model.GoalPullRequestResult
-import java.io.ByteArrayOutputStream
+import skillbill.infrastructure.fs.launcher.process.BoundedExternalProcessRequest
+import skillbill.infrastructure.fs.launcher.process.BoundedExternalProcessRunner
 import java.io.File
-import java.io.IOException
-import java.io.InputStream
 import java.nio.file.Files
 import java.nio.file.Path
-import java.util.concurrent.TimeUnit
 
 @Inject
 class GhGoalPullRequestPort() : GoalPullRequestPort {
@@ -68,56 +66,27 @@ class GhGoalPullRequestPort() : GoalPullRequestPort {
   private fun runGh(root: Path, args: List<String>): CommandResult = runCatching {
     val executable = ghExecutableResolver(root)
       ?: return CommandResult(exitCode = 1, stdout = "GitHub CLI executable was not found on PATH.")
-    val processBuilder = ProcessBuilder(listOf(executable.toString()) + args)
-      .directory(root.toFile())
-      .redirectErrorStream(true)
-    processBuilder.environment()["GIT_TERMINAL_PROMPT"] = "0"
-    val process = processBuilder.start()
-    val capturedBytes = ByteArrayOutputStream()
-    val truncated = booleanArrayOf(false)
-    val readerThread = Thread {
-      drainCapped(process.inputStream, capturedBytes, truncated)
-    }.apply {
-      isDaemon = true
-      name = "GhGoalPullRequestPort-reader"
-      start()
-    }
-    val completed = process.waitFor(COMMAND_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-    if (!completed) {
-      process.destroyForcibly()
-      readerThread.join(READER_JOIN_TIMEOUT_MILLIS)
-      return CommandResult(exitCode = 124, stdout = "GitHub CLI timed out.")
-    }
-    readerThread.join(READER_JOIN_TIMEOUT_MILLIS)
-    if (truncated[0]) {
-      CommandResult(exitCode = 1, stdout = "GitHub CLI output exceeded $MAX_OUTPUT_BYTES bytes.")
+    val result = BoundedExternalProcessRunner.run(
+      BoundedExternalProcessRequest(
+        argv = listOf(executable.toString()) + args,
+        workingDirectory = root,
+        mergeEnvironment = mapOf("GIT_TERMINAL_PROMPT" to "0"),
+        deadlineSeconds = COMMAND_TIMEOUT_SECONDS,
+        outputCapBytes = MAX_OUTPUT_BYTES.toLong(),
+      ),
+    )
+    if (result.timedOut) {
+      CommandResult(exitCode = 124, stdout = "GitHub CLI timed out.")
+    } else if (result.launchFailure) {
+      CommandResult(exitCode = 1, stdout = result.output)
     } else {
-      CommandResult(exitCode = process.exitValue(), stdout = capturedBytes.toString(Charsets.UTF_8))
+      CommandResult(exitCode = result.exitCode, stdout = result.output)
     }
   }.getOrElse { error ->
     CommandResult(
       exitCode = 1,
       stdout = error.message?.let { "${error::class.simpleName}: $it" } ?: (error::class.simpleName ?: "Error"),
     )
-  }
-
-  private fun drainCapped(stream: InputStream, sink: ByteArrayOutputStream, truncated: BooleanArray) {
-    val buffer = ByteArray(BUFFER_BYTES)
-    try {
-      var done = false
-      while (!done) {
-        val count = stream.read(buffer)
-        if (count < 0) {
-          done = true
-        } else if (sink.size() + count > MAX_OUTPUT_BYTES) {
-          truncated[0] = true
-          done = true
-        } else {
-          sink.write(buffer, 0, count)
-        }
-      }
-    } catch (_: IOException) {
-    }
   }
 
   private fun describeGhFailure(result: CommandResult): String {
@@ -129,9 +98,10 @@ class GhGoalPullRequestPort() : GoalPullRequestPort {
 
   private fun resolveGhExecutable(root: Path): Path? {
     val names = executableNames("gh")
-    return System.getenv("PATH")
+    val host = JdkHostPlatformPort
+    return host.resolveEnvironment()["PATH"]
       .orEmpty()
-      .split(File.pathSeparator)
+      .split(host.pathSeparator)
       .asSequence()
       .mapNotNull { raw -> raw.takeIf(String::isNotBlank)?.let(Path::of) }
       .flatMap { directory -> names.asSequence().map(directory::resolve) }
@@ -142,7 +112,7 @@ class GhGoalPullRequestPort() : GoalPullRequestPort {
   }
 
   private fun executableNames(base: String): List<String> =
-    if (System.getProperty("os.name").contains("windows", ignoreCase = true)) {
+    if (JdkHostPlatformPort.osName.contains("windows", ignoreCase = true)) {
       listOf("$base.exe", "$base.cmd", "$base.bat", base)
     } else {
       listOf(base)

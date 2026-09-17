@@ -8,6 +8,8 @@ import skillbill.domain.skillremove.model.SkillRemovalRequest
 import skillbill.domain.skillremove.model.SkillRemovalTarget
 import skillbill.infrastructure.fs.install.nativeagent.InstallNativeAgentOperations
 import skillbill.infrastructure.fs.install.nativeagent.NativeAgentLinkRequest
+import skillbill.infrastructure.fs.launcher.process.rollbackDeletePathEntry
+import skillbill.infrastructure.fs.launcher.process.rollbackRestoreBytes
 import java.io.IOException
 import java.nio.file.FileVisitResult
 import java.nio.file.FileVisitResult.CONTINUE
@@ -131,29 +133,7 @@ internal class SkillRemoveJvmFileSystemApply(
   }
 
   internal fun deletePath(target: Path) {
-    if (Files.isSymbolicLink(target)) {
-      Files.deleteIfExists(target)
-      return
-    }
-    if (Files.isDirectory(target, LinkOption.NOFOLLOW_LINKS)) {
-      Files.walkFileTree(
-        target,
-        object : SimpleFileVisitor<Path>() {
-          override fun visitFile(file: Path, attrs: BasicFileAttributes): FileVisitResult {
-            Files.delete(file)
-            return CONTINUE
-          }
-
-          override fun postVisitDirectory(dir: Path, exc: IOException?): FileVisitResult {
-            if (exc != null) throw exc
-            Files.delete(dir)
-            return CONTINUE
-          }
-        },
-      )
-      return
-    }
-    Files.deleteIfExists(target)
+    rollbackDeletePathEntry(target)
   }
 
   internal fun attemptRollback(stash: List<RollbackEntry>): Boolean = try {
@@ -167,7 +147,7 @@ internal class SkillRemoveJvmFileSystemApply(
     stash.filterNot { it.wasDirectory }.forEach { entry ->
       val bytes = entry.bytes ?: return@forEach
       Files.createDirectories(entry.path.parent ?: return@forEach)
-      Files.write(entry.path, bytes)
+      rollbackRestoreBytes(entry.path, bytes)
     }
     true
   } catch (cancellation: CancellationException) {

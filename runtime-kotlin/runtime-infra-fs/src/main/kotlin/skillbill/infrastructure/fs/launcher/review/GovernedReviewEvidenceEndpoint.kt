@@ -1,15 +1,20 @@
 package skillbill.infrastructure.fs.launcher.review
+
+import skillbill.infrastructure.fs.resolveUserHome
+import skillbill.infrastructure.fs.JdkHostPlatformPort
 import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.JsonCodec
 import skillbill.error.GovernedReviewEvidenceTransportError
 import skillbill.error.ShellContentContractException
 import skillbill.infrastructure.fs.launcher.mcp.GovernedReviewMcpConfigWriter
+import skillbill.infrastructure.fs.launcher.process.rollbackDeleteIfExists
 import skillbill.model.EnvironmentContext
 import skillbill.ports.review.GovernedReviewEvidenceEndpointBinder
 import skillbill.ports.review.GovernedReviewEvidenceEndpointHandle
 import skillbill.ports.review.NativeReviewOperationProtocol
 import skillbill.ports.review.model.GovernedReviewEvidenceCodec
 import skillbill.ports.review.model.GovernedReviewEvidenceEndpointDescriptor
+import skillbill.ports.system.HostPlatformPort
 import skillbill.review.context.model.GovernedReviewJsonRpcArguments
 import skillbill.review.context.model.ReviewExpansionRecord
 import java.io.IOException
@@ -50,7 +55,8 @@ class UnixSocketGovernedReviewEvidenceEndpointBinder(
 internal fun bridgeCommand(environment: Map<String, String>, userHome: Path): List<String> {
   val configured = environment["SKILL_BILL_RUNTIME_MCP_BIN"]?.takeIf(String::isNotBlank)
   val home = userHome.takeUnless { it.toString().isBlank() }
-    ?: Path.of(environment["HOME"]?.takeIf(String::isNotBlank) ?: System.getProperty("user.home"))
+    ?: environment["HOME"]?.takeIf(String::isNotBlank)?.let(Path::of)
+    ?: resolveUserHome(null)
   val bin = configured?.let(Path::of)
     ?: home.resolve(".skill-bill").resolve("runtime").resolve("runtime-mcp").resolve("bin").resolve("runtime-mcp")
   if (!Files.isExecutable(bin)) {
@@ -83,13 +89,13 @@ class GovernedReviewEvidenceEndpoint private constructor(
     deleteDirectory()
   }
   private fun deleteDirectory() {
-    runCatching { Files.deleteIfExists(descriptor.socketPath) }
-    runCatching { Files.deleteIfExists(descriptor.mcpConfigPath) }
-    runCatching { Files.deleteIfExists(GovernedReviewMcpConfigWriter.tomlConfigPath(descriptor.mcpConfigPath)) }
+    runCatching { rollbackDeleteIfExists(descriptor.socketPath) }
+    runCatching { rollbackDeleteIfExists(descriptor.mcpConfigPath) }
+    runCatching { rollbackDeleteIfExists(GovernedReviewMcpConfigWriter.tomlConfigPath(descriptor.mcpConfigPath)) }
     val cursorConfig = GovernedReviewMcpConfigWriter.cursorProjectConfigPath(descriptor.mcpConfigPath)
-    runCatching { Files.deleteIfExists(cursorConfig) }
-    runCatching { Files.deleteIfExists(cursorConfig.parent) }
-    runCatching { Files.deleteIfExists(directory) }
+    runCatching { rollbackDeleteIfExists(cursorConfig) }
+    runCatching { rollbackDeleteIfExists(cursorConfig.parent) }
+    runCatching { rollbackDeleteIfExists(directory) }
   }
   private fun acceptLoop() {
     while (!closed) {
@@ -238,13 +244,13 @@ class GovernedReviewEvidenceEndpoint private constructor(
       } catch (error: CancellationException) {
         failure = error
       } catch (error: IOException) {
-        runCatching { Files.deleteIfExists(directory) }
+        runCatching { rollbackDeleteIfExists(directory) }
         failure = GovernedReviewEvidenceTransportError(
           "Failed to bind the governed review evidence endpoint for lane '$lane'.",
           error,
         )
       } catch (error: ShellContentContractException) {
-        runCatching { Files.deleteIfExists(directory) }
+        runCatching { rollbackDeleteIfExists(directory) }
         failure = GovernedReviewEvidenceTransportError(
           "Failed to bind the governed review evidence endpoint for lane '$lane'.",
           error,
@@ -256,18 +262,18 @@ class GovernedReviewEvidenceEndpoint private constructor(
 
     private fun rollbackGovernedReviewBindArtifacts(channel: ServerSocketChannel, socketPath: Path, directory: Path) {
       runCatching { channel.close() }
-      runCatching { Files.deleteIfExists(socketPath) }
-      runCatching { Files.deleteIfExists(directory.resolve("mcp.json")) }
+      runCatching { rollbackDeleteIfExists(socketPath) }
+      runCatching { rollbackDeleteIfExists(directory.resolve("mcp.json")) }
       runCatching {
-        Files.deleteIfExists(
+        rollbackDeleteIfExists(
           GovernedReviewMcpConfigWriter.tomlConfigPath(directory.resolve("mcp.json")),
         )
       }
       val cursorConfig = directory.resolve(".cursor").resolve("mcp.json")
-      runCatching { Files.deleteIfExists(cursorConfig) }
-      runCatching { Files.deleteIfExists(directory.resolve(".cursor").resolve("cli.json")) }
-      runCatching { Files.deleteIfExists(cursorConfig.parent) }
-      runCatching { Files.deleteIfExists(directory) }
+      runCatching { rollbackDeleteIfExists(cursorConfig) }
+      runCatching { rollbackDeleteIfExists(directory.resolve(".cursor").resolve("cli.json")) }
+      runCatching { rollbackDeleteIfExists(cursorConfig.parent) }
+      runCatching { rollbackDeleteIfExists(directory) }
     }
     private fun privateDirectory(): Path = try {
       Files.createTempDirectory(
@@ -278,8 +284,8 @@ class GovernedReviewEvidenceEndpoint private constructor(
     } catch (error: IOException) {
       throw GovernedReviewEvidenceTransportError("Failed to create the per-launch governed review directory.", error)
     }
-    internal fun perLaunchRoot(): Path {
-      val configured = Path.of(System.getProperty("java.io.tmpdir"))
+    internal fun perLaunchRoot(hostPlatform: HostPlatformPort = JdkHostPlatformPort): Path {
+      val configured = hostPlatform.resolveTemporaryDirectory()
       if (socketPathFits(configured)) return configured
       val shortest = Path.of("/tmp")
       return if (Files.isDirectory(shortest) && socketPathFits(shortest)) shortest else configured

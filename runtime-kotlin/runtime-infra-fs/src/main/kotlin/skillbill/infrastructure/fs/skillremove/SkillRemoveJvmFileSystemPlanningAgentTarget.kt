@@ -5,6 +5,7 @@ import skillbill.domain.skillremove.model.AgentSymlinkUnlink
 import skillbill.domain.skillremove.model.SkillRemovalRequest
 import skillbill.infrastructure.fs.nativeagent.support.claudeConfigRoots
 import skillbill.infrastructure.fs.nativeagent.support.codexAgentsTargets
+import skillbill.infrastructure.fs.resolveEnvironmentMap
 import java.nio.file.Path
 
 internal fun SkillRemoveJvmFileSystemPlanning.agentUnlinksForSkills(
@@ -12,7 +13,7 @@ internal fun SkillRemoveJvmFileSystemPlanning.agentUnlinksForSkills(
   cascadedSkillNames: List<String>,
 ): List<AgentSymlinkUnlink> {
   val resolvedHome = skillRemoveUserHome(request, home)
-  val environment = request.environment.ifEmpty { System.getenv() }
+  val environment = resolveEnvironmentMap(request.environment)
   val out = mutableListOf<AgentSymlinkUnlink>()
   cascadedSkillNames.forEach { name ->
     AgentSymlinkProvider.values().forEach { provider ->
@@ -30,7 +31,7 @@ internal fun SkillRemoveJvmFileSystemPlanning.agentUnlinksForPlatform(
   platform: String,
 ): List<AgentSymlinkUnlink> {
   val resolvedHome = skillRemoveUserHome(request, home)
-  val environment = request.environment.ifEmpty { System.getenv() }
+  val environment = resolveEnvironmentMap(request.environment)
   val out = mutableListOf<AgentSymlinkUnlink>()
   AgentSymlinkProvider.values().forEach { provider ->
     agentHomeDirs(provider, resolvedHome, environment).forEach { dir ->
@@ -50,6 +51,7 @@ internal fun SkillRemoveJvmFileSystemPlanning.agentHomeDirs(
 ): List<Path> = when (provider) {
   AgentSymlinkProvider.CLAUDE -> claudeConfigRoots(home, environment).map { it.resolve("agents") }
   AgentSymlinkProvider.CODEX -> codexAgentsTargets(home, environment)
-  AgentSymlinkProvider.JUNIE -> listOf(home.resolve(".junie/agents"))
-  AgentSymlinkProvider.CURSOR -> listOf(home.resolve(".cursor/agents"))
+  AgentSymlinkProvider.JUNIE,
+  AgentSymlinkProvider.CURSOR,
+  -> listOf(home.resolve(requireNotNull(provider.simpleHomeDirectory)).resolve("agents"))
 }

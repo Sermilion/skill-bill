@@ -4,7 +4,9 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.networknt.schema.JsonSchema
 import skillbill.error.InvalidNativeAgentLinkInventoryDecodeError
+import skillbill.infrastructure.fs.launcher.process.sha256Hex
 import skillbill.error.ShellContentContractException
+import skillbill.install.model.SupportedAgent
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
@@ -69,8 +71,8 @@ internal object NativeAgentLinkInventoryDecode {
         isCanonicalNativeAgentArtifactTarget(home, provider, entry.logicalName, resolved, managedRoots) &&
         Files.isRegularFile(resolved) &&
         Files.isReadable(resolved) &&
-        parseEmbeddedLogicalName(resolved, entry.provider) == entry.logicalName &&
-        NativeAgentLinkInventoryPaths.sha256(Files.readAllBytes(resolved)) == entry.contentDigest
+        parseEmbeddedLogicalName(resolved, SupportedAgent.fromWire(entry.provider)) == entry.logicalName &&
+        sha256Hex(Files.readAllBytes(resolved)) == entry.contentDigest
     }.getOrDefault(false)
   }
 
@@ -130,16 +132,6 @@ internal object NativeAgentLinkInventoryDecode {
         throw decodeError(path, "cache_target_path does not match a trusted provider artifact")
       }
     }
-  }
-
-  private fun parseEmbeddedLogicalName(path: Path, provider: String): String? {
-    val text = Files.readString(path)
-    val pattern = if (provider == "codex") {
-      Regex("(?m)^name\\s*=\\s*\\\"([^\\\"]+)\\\"")
-    } else {
-      Regex("(?m)^name:\\s*['\\\"]?([^'\\\"\\r\\n]+)")
-    }
-    return pattern.find(text)?.groupValues?.get(1)?.trim()
   }
 
   private fun JsonNode.requiredText(field: String, path: Path): String =

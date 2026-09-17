@@ -6,7 +6,8 @@ import skillbill.ports.review.model.ReviewCheckpointFileIdentity
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
-import java.util.concurrent.TimeUnit
+import skillbill.infrastructure.fs.launcher.process.BoundedExternalProcessRequest
+import skillbill.infrastructure.fs.launcher.process.BoundedExternalProcessRunner
 import java.util.logging.Level
 import java.util.logging.Logger
 
@@ -28,19 +29,21 @@ class FileSystemDiffResolver : DiffResolverPort {
   override fun runProcess(args: List<String>, workDir: Path): String? {
     val outputFile = Files.createTempFile("skillbill-diff", ".out")
     return try {
-      val process = ProcessBuilder(args)
-        .directory(workDir.toFile())
-        .redirectErrorStream(true)
-        .redirectOutput(outputFile.toFile())
-        .start()
-      val completed = process.waitFor(PROCESS_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-      if (!completed) {
-        process.destroyForcibly()
+      val result = BoundedExternalProcessRunner.run(
+        BoundedExternalProcessRequest(
+          argv = args,
+          workingDirectory = workDir,
+          redirectOutputFile = outputFile,
+          deadlineSeconds = PROCESS_TIMEOUT_SECONDS,
+          outputCapBytes = null,
+        ),
+      )
+      if (result.timedOut || result.launchFailure) {
         null
-      } else if (process.exitValue() in setOf(0, 1)) {
+      } else if (result.exitCode in setOf(0, 1)) {
         val sizeBytes = Files.size(outputFile)
         if (sizeBytes > MAX_DIFF_BYTES) return null
-        Files.readString(outputFile)
+        result.output
       } else {
         null
       }

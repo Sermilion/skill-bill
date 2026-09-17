@@ -6,6 +6,7 @@ import skillbill.install.model.InstallAgent
 import skillbill.install.model.InstallAgentDefaultTarget
 import skillbill.install.model.InstallAgentTarget
 import skillbill.install.model.InstallAgentTargetSource
+import skillbill.install.model.SupportedAgent
 import skillbill.install.model.InstallPlan
 import skillbill.install.model.InstallPlanRequest
 import skillbill.install.model.InstallPlanSkill
@@ -36,7 +37,7 @@ internal fun buildInstallPlan(request: InstallPlanRequest, wireValidator: Instal
 }
 
 private fun requireSupportedAgentContract() {
-  require(SUPPORTED_AGENTS == InstallAgent.supportedIds) {
+  require(SUPPORTED_AGENTS.map(SupportedAgent::wireValue) == InstallAgent.supportedIds) {
     "Install plan supported-agent contract drifted. Domain=${InstallAgent.supportedIds}; core=$SUPPORTED_AGENTS."
   }
 }
@@ -140,21 +141,22 @@ internal fun materializeSelectedPlatformSkills(
   }
 }
 
-private fun installPlanEnvironment(request: InstallPlanRequest): Map<String, String> =
-  request.environment.ifEmpty { System.getenv() }
+private fun installPlanEnvironment(request: InstallPlanRequest): Map<String, String> = request.environment
 
 private fun multiRootDefaultTargets(
   home: Path,
-  environment: Map<String, String> = System.getenv(),
-): List<InstallAgentDefaultTarget> = agentPaths(home, environment).flatMap { (agentId, path) ->
-  val agent = InstallAgent.fromId(agentId)
-  when (agentId) {
-    "claude" -> claudeSkillTargets(home, environment).map { skillPath ->
+  environment: Map<String, String>,
+): List<InstallAgentDefaultTarget> =
+  agentPaths(home, installConfigRoots(home, environment)).flatMap { (agent, path) ->
+  if (agent == SupportedAgent.CLAUDE) {
+    claudeSkillTargets(home, environment).map { skillPath ->
       InstallAgentDefaultTarget(agent = agent, path = skillPath.toFileLocation())
     }
-    "codex" -> codexSkillTargets(home, environment).map { skillPath ->
+  } else if (agent == SupportedAgent.CODEX) {
+    codexSkillTargets(home, environment).map { skillPath ->
       InstallAgentDefaultTarget(agent = agent, path = skillPath.toFileLocation())
     }
-    else -> listOf(InstallAgentDefaultTarget(agent = agent, path = path.toFileLocation()))
+  } else {
+    listOf(InstallAgentDefaultTarget(agent = agent, path = path.toFileLocation()))
   }
 }

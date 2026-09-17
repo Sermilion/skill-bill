@@ -7,29 +7,6 @@ data class AgentTarget(
   val path: FileLocation,
 )
 
-enum class InstallAgent(
-  val id: String,
-) {
-  CLAUDE("claude"),
-  CODEX("codex"),
-  JUNIE("junie"),
-  CURSOR("cursor"),
-  ;
-
-  companion object {
-    val supportedIds: List<String> = entries.map(InstallAgent::id)
-
-    fun fromId(id: String): InstallAgent = entries.firstOrNull { agent -> agent.id == id }
-      ?: throw IllegalArgumentException("Unknown agent '$id'. Supported agents: ${supportedIds.joinToString(", ")}.")
-
-    fun fromNormalizedId(id: String, label: String = "agent"): InstallAgent {
-      val normalized = id.trim().lowercase()
-      require(normalized.isNotBlank()) { "$label is required. Supported agents: ${supportedIds.joinToString(", ")}." }
-      return fromId(normalized)
-    }
-  }
-}
-
 data class AgentLauncherCli(
   val executables: List<String>,
   val installHint: String,
@@ -41,35 +18,35 @@ data class AgentLauncherCli(
 
 val AGENT_LAUNCHER_CLIS: Map<InstallAgent, AgentLauncherCli> = mapOf(
   InstallAgent.CLAUDE to AgentLauncherCli(
-    executables = listOf("claude"),
+    executables = listOf(InstallAgent.CLAUDE.wireValue),
     installHint = "install Claude Code (https://docs.claude.com/en/docs/claude-code/setup)",
   ),
   InstallAgent.CODEX to AgentLauncherCli(
-    executables = listOf("codex"),
+    executables = listOf(InstallAgent.CODEX.wireValue),
     installHint = "install the Codex CLI (npm install -g @openai/codex)",
   ),
   InstallAgent.JUNIE to AgentLauncherCli(
-    executables = listOf("junie"),
+    executables = listOf(InstallAgent.JUNIE.wireValue),
     installHint = "install the Junie CLI from JetBrains",
   ),
 
   InstallAgent.CURSOR to AgentLauncherCli(
-    executables = listOf("agent", "cursor-agent"),
+    executables = listOf("agent", "${InstallAgent.CURSOR.wireValue}-agent"),
     installHint = "install the Cursor Agent CLI (curl https://cursor.com/install -fsS | bash)",
   ),
 )
 
 fun unavailableAgentLauncherReason(agentId: String?, onPath: (String) -> Boolean): String? {
   val normalized = agentId?.trim()?.lowercase()?.takeIf(String::isNotBlank) ?: return null
-  val agent = InstallAgent.entries.firstOrNull { candidate -> candidate.id == normalized }
+  val agent = InstallAgent.entries.firstOrNull { candidate -> candidate.wireValue == normalized }
   val launcher = agent?.let(AGENT_LAUNCHER_CLIS::get) ?: return null
   if (launcher.executables.any(onPath)) return null
   return agentLauncherUnavailableMessage(agent, launcher.executables.first(), launcher.installHint)
 }
 
 fun agentLauncherUnavailableMessage(agent: InstallAgent, executable: String, installHint: String): String =
-  "Agent '${agent.id}' cannot run in runtime mode here: its headless CLI '$executable' is not on PATH. " +
-    "Having the ${agent.id} editor or its home directory installed is not enough — the headless CLI is a " +
+  "Agent '${agent.wireValue}' cannot run in runtime mode here: its headless CLI '$executable' is not on PATH. " +
+    "Having the ${agent.wireValue} editor or its home directory installed is not enough — the headless CLI is a " +
     "separate install. Either $installHint, or relaunch with a different --agent."
 
 val MODEL_DIRECTIVE_CAPABLE_AGENTS: Set<InstallAgent> = setOf(
@@ -81,7 +58,7 @@ val MODEL_DIRECTIVE_CAPABLE_AGENTS: Set<InstallAgent> = setOf(
 fun supportsModelDirective(agentId: String?): Boolean {
   if (agentId == null) return false
   val normalized = agentId.trim().lowercase()
-  return MODEL_DIRECTIVE_CAPABLE_AGENTS.any { capable -> capable.id == normalized }
+  return MODEL_DIRECTIVE_CAPABLE_AGENTS.any { capable -> capable.wireValue == normalized }
 }
 
 object InvokingAgentContextResolver {

@@ -7,12 +7,11 @@ import skillbill.model.toPath
 import skillbill.scaffold.model.PlatformManifest
 import skillbill.scaffold.model.PointerSpec
 import java.io.File
-import java.nio.file.AtomicMoveNotSupportedException
+import skillbill.infrastructure.fs.launcher.process.atomicWriteBytes
 import java.nio.file.FileSystemException
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
-import java.nio.file.StandardCopyOption
 
 data class PointerRegenerationResult(
   val regeneratedFiles: List<Path>,
@@ -105,9 +104,9 @@ private fun writePointerArtifact(pointerFile: Path, rendered: String, existed: B
   try {
     Files.createSymbolicLink(pointerFile, Path.of(rendered))
   } catch (_: FileSystemException) {
-    atomicWrite(pointerFile, rendered.toByteArray(Charsets.UTF_8))
+    atomicWriteBytes(pointerFile, rendered.toByteArray(Charsets.UTF_8))
   } catch (_: UnsupportedOperationException) {
-    atomicWrite(pointerFile, rendered.toByteArray(Charsets.UTF_8))
+    atomicWriteBytes(pointerFile, rendered.toByteArray(Charsets.UTF_8))
   }
 }
 
@@ -120,16 +119,3 @@ private fun requireMatchingContractVersion(pack: PlatformManifest) {
   }
 }
 
-private fun atomicWrite(target: Path, bytes: ByteArray) {
-  val tmp = Files.createTempFile(target.parent, target.fileName.toString() + ".", ".tmp")
-  try {
-    Files.write(tmp, bytes)
-    try {
-      Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
-    } catch (_: AtomicMoveNotSupportedException) {
-      Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING)
-    }
-  } finally {
-    Files.deleteIfExists(tmp)
-  }
-}

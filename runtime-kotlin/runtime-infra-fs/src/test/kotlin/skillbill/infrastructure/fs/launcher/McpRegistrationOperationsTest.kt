@@ -245,7 +245,7 @@ class McpRegistrationOperationsTest {
     """.trimIndent()
     Files.writeString(configPath, existingContent)
 
-    val result = McpRegistrationOperations.register("cursor", runtimeMcpBin, home)
+    val result = McpRegistrationOperations.register("cursor", runtimeMcpBin, home, environment = emptyMap())
 
     assertEquals(configPath, result.configPath.toPath())
     assertTrue(result.changed)
@@ -267,10 +267,10 @@ class McpRegistrationOperationsTest {
     Files.createDirectories(home.resolve(".cursor"))
     val configPath = home.resolve(".cursor/mcp.json")
 
-    McpRegistrationOperations.register("cursor", runtimeMcpBin, home)
+    McpRegistrationOperations.register("cursor", runtimeMcpBin, home, environment = emptyMap())
     val firstContent = Files.readString(configPath)
 
-    val result = McpRegistrationOperations.register("cursor", runtimeMcpBin, home)
+    val result = McpRegistrationOperations.register("cursor", runtimeMcpBin, home, environment = emptyMap())
     assertFalse(result.changed)
     assertEquals(firstContent, Files.readString(configPath))
   }
@@ -295,7 +295,7 @@ class McpRegistrationOperationsTest {
     """.trimIndent()
     Files.writeString(configPath, content)
 
-    val result = McpRegistrationOperations.unregister("cursor", home)
+    val result = McpRegistrationOperations.unregister("cursor", home, environment = emptyMap())
 
     assertTrue(result.changed)
     assertEquals(configPath, result.configPath.toPath())
@@ -315,7 +315,7 @@ class McpRegistrationOperationsTest {
     Files.writeString(configPath, "{ not valid json")
 
     val error = assertFailsWith<IllegalArgumentException> {
-      McpRegistrationOperations.register("cursor", runtimeMcpBin, home)
+      McpRegistrationOperations.register("cursor", runtimeMcpBin, home, environment = emptyMap())
     }
     assertTrue(error.message?.contains("mcp.json") == true)
     assertTrue(error.message?.contains("JSON") == true || error.message?.contains("json") == true)
@@ -327,7 +327,7 @@ class McpRegistrationOperationsTest {
     Files.createDirectories(home.resolve(".cursor"))
     val configPath = home.resolve(".cursor/mcp.json")
 
-    val resultAbsent = McpRegistrationOperations.register("cursor", runtimeMcpBin, home)
+    val resultAbsent = McpRegistrationOperations.register("cursor", runtimeMcpBin, home, environment = emptyMap())
     assertTrue(resultAbsent.changed)
     assertEquals(configPath, resultAbsent.configPath.toPath())
     val serverAbsent = skillBillServer(configPath)
@@ -335,7 +335,7 @@ class McpRegistrationOperationsTest {
     assertEquals("/tmp/runtime-mcp", serverAbsent["command"])
 
     Files.writeString(configPath, "{}")
-    val resultEmpty = McpRegistrationOperations.register("cursor", runtimeMcpBin, home)
+    val resultEmpty = McpRegistrationOperations.register("cursor", runtimeMcpBin, home, environment = emptyMap())
     assertTrue(resultEmpty.changed)
     val serverEmpty = skillBillServer(configPath)
     assertEquals("stdio", serverEmpty["type"])

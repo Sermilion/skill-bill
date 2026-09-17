@@ -1,5 +1,7 @@
 package skillbill.infrastructure.fs.install.nativeagent
 
+import skillbill.infrastructure.fs.resolveUserHome
+
 import skillbill.error.MissingInstalledNativeAgentError
 import skillbill.infrastructure.fs.nativeagent.composition.nativeAgentCompositionRepoRoot
 import skillbill.infrastructure.fs.nativeagent.rendering.NativeAgentInstallRenderOverrides
@@ -8,6 +10,7 @@ import skillbill.infrastructure.fs.nativeagent.rendering.NativeAgentOperations
 import skillbill.infrastructure.fs.nativeagent.rendering.NativeAgentProvider
 import skillbill.infrastructure.fs.nativeagent.validation.validateNativeAgentArtifactsForInstall
 import skillbill.install.model.AgentTarget
+import skillbill.install.model.SupportedAgent
 import java.nio.file.FileSystemException
 import java.nio.file.Files
 import java.nio.file.LinkOption
@@ -15,7 +18,7 @@ import java.nio.file.Path
 import java.nio.file.attribute.DosFileAttributeView
 import java.nio.file.attribute.PosixFileAttributeView
 import java.nio.file.attribute.PosixFilePermission
-import java.security.MessageDigest
+import skillbill.infrastructure.fs.launcher.process.sha256Hex
 
 internal fun linkProviderAgents(
   provider: NativeAgentProvider,
@@ -33,7 +36,7 @@ internal fun linkProviderAgents(
       request.selectedPlatforms,
       installNativeAgentCompositionContext(),
     )
-  val resolvedHome = request.home ?: Path.of(System.getProperty("user.home"))
+  val resolvedHome = request.home ?: resolveUserHome(null)
   val targets = detectTargets(resolvedHome)
   if (targets.isEmpty()) return NativeAgentLinkOutcome(emptyList(), emptyList())
   val cacheRoot = request.overrides.installCacheRoot?.toAbsolutePath()?.normalize()
@@ -100,22 +103,11 @@ internal fun verifyInstalledNativeAgent(entry: NativeAgentLinkInventoryEntry) {
     .getOrElse { fail("managed link is dangling or unreadable", it) }
   if (resolved != entry.cacheTargetPath.toRealPath()) fail("managed link resolves outside the current cache target")
   if (!Files.isReadable(resolved)) fail("rendered artifact is unreadable")
-  if (parseEmbeddedLogicalName(resolved, entry.provider) != entry.logicalName) {
+  if (parseEmbeddedLogicalName(resolved, SupportedAgent.fromWire(entry.provider)) != entry.logicalName) {
     fail("rendered artifact logical name does not match the launch worker")
   }
-  val digest = MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(resolved))
-    .joinToString("") { byte -> "%02x".format(byte) }
+  val digest = sha256Hex(Files.readAllBytes(resolved))
   if (digest != entry.contentDigest) fail("rendered artifact content digest is stale")
-}
-
-internal fun parseEmbeddedLogicalName(path: Path, provider: String): String? {
-  val text = Files.readString(path)
-  val pattern = if (provider == "codex") {
-    Regex("(?m)^name\\s*=\\s*\\\"([^\\\"]+)\\\"")
-  } else {
-    Regex("(?m)^name:\\s*['\\\"]?([^'\\\"\\r\\n]+)")
-  }
-  return pattern.find(text)?.groupValues?.get(1)?.trim()
 }
 
 internal class ProviderMutationJournal {
@@ -242,7 +234,7 @@ private enum class FileKind { Directory, Regular, SymbolicLink }
 internal fun isEmptyDirectory(path: Path): Boolean = Files.list(path).use { !it.findAny().isPresent }
 
 internal fun unlinkProviderAgents(provider: NativeAgentProvider, request: NativeAgentLinkRequest): List<Path> {
-  val resolvedHome = request.home ?: Path.of(System.getProperty("user.home"))
+  val resolvedHome = request.home ?: resolveUserHome(null)
   val compositionContext = installNativeAgentCompositionContext()
   val generated = NativeAgentOperations.renderInstallArtifacts(
     NativeAgentInstallRenderRequest(

@@ -2,11 +2,12 @@ package skillbill.infrastructure.fs
 
 import skillbill.contracts.decomposition.DecompositionManifestBundleJournalPayloadKeys
 import skillbill.error.InvalidDecompositionManifestBundleJournalError
+import skillbill.infrastructure.fs.launcher.process.pathContainedIn
+import skillbill.infrastructure.fs.launcher.process.sha256Hex
 import skillbill.infrastructure.fs.contracts.workflow.DecompositionManifestBundleJournalSchemaValidator
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.InvalidPathException
-import java.nio.file.NoSuchFileException
 import java.nio.file.Path
 
 internal object DecompositionManifestBundleJournalValidation {
@@ -182,7 +183,7 @@ internal object DecompositionManifestBundleJournalValidation {
   }
 
   private fun validateStagedDigest(entry: DecompositionManifestBundleEntry, sourceLabel: String) {
-    val digest = DecompositionManifestBundleJournalIo.sha256(Files.readString(entry.staged))
+    val digest = sha256Hex(Files.readString(entry.staged).toByteArray(Charsets.UTF_8))
     if (digest != entry.sha256) {
       throw journalError(
         sourceLabel,
@@ -193,7 +194,7 @@ internal object DecompositionManifestBundleJournalValidation {
   }
 
   private fun validateTargetDigest(entry: DecompositionManifestBundleEntry, sourceLabel: String) {
-    val digest = DecompositionManifestBundleJournalIo.sha256(Files.readString(entry.target))
+    val digest = sha256Hex(Files.readString(entry.target).toByteArray(Charsets.UTF_8))
     if (digest != entry.sha256) {
       throw journalError(
         sourceLabel,
@@ -254,22 +255,6 @@ internal object DecompositionManifestBundleJournalValidation {
     "${DecompositionManifestBundleJournal.BUNDLE_PREFIX}$transactionId" +
       DecompositionManifestBundleJournal.STAGING_SUFFIX,
   ).toAbsolutePath().normalize()
-
-  private fun pathContainedIn(child: Path, parent: Path): Boolean {
-    val normalizedParent = parent.toAbsolutePath().normalize()
-    val normalizedChild = child.toAbsolutePath().normalize()
-    if (Files.isSymbolicLink(normalizedChild)) return false
-    val realParent = resolveExistingAncestor(normalizedParent)
-    val realChild = resolveExistingAncestor(normalizedChild)
-    return realChild.startsWith(realParent)
-  }
-
-  private fun resolveExistingAncestor(path: Path): Path = try {
-    path.toRealPath()
-  } catch (error: NoSuchFileException) {
-    val parent = path.parent ?: throw error
-    resolveExistingAncestor(parent).resolve(path.fileName)
-  }
 
   private fun journalError(sourceLabel: String, reason: String, failureCode: String) =
     InvalidDecompositionManifestBundleJournalError(

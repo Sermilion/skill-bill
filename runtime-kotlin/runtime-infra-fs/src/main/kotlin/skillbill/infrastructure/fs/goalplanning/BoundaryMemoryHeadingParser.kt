@@ -1,6 +1,6 @@
 package skillbill.infrastructure.fs.goalplanning
 
-import java.security.MessageDigest
+import skillbill.infrastructure.fs.launcher.process.sha256Hex
 import java.time.LocalDate
 
 data class BoundaryMemoryEntry(
@@ -75,8 +75,5 @@ object BoundaryMemoryHeadingParser {
     }
   }
 
-  private fun digest(text: String): String = MessageDigest.getInstance("SHA-256")
-    .digest(text.encodeToByteArray())
-    .joinToString("") { byte -> "%02x".format(byte) }
-    .take(HEADING_ID_DIGEST_CHARS)
+  private fun digest(text: String): String = sha256Hex(text).take(HEADING_ID_DIGEST_CHARS)
 }

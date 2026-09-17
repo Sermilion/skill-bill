@@ -7,9 +7,10 @@ import skillbill.agentaddon.model.HydratedAgentAddonSelectionEntry
 import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
 import skillbill.error.AgentAddonSelectionDriftError
 import skillbill.error.InvalidAgentAddonSelectionError
+import skillbill.infrastructure.fs.launcher.process.sha256Hex
+import skillbill.install.model.SupportedAgent
 import java.nio.file.Files
 import java.nio.file.Path
-import java.security.MessageDigest
 
 internal fun verifyPersistedAgentAddonSelection(
   request: PersistedAgentAddonSelectionVerifyRequest,
@@ -58,7 +59,7 @@ private fun hydratePersistedAgentAddonEntry(
     )
   }
   val consumers = stringList(values, "consumers").map(AgentAddonConsumer::fromId)
-  val agents = stringList(values, "agent_ids").map(AgentAddonAgentIds::parse)
+  val agents = stringList(values, "agent_ids").map { id -> SupportedAgent.parseAgentAddonId(id).wireValue }
   validateCompatibility(recorded.slug, consumers, agents, consumer, receivingAgents)
   val contentPath = manifest.resolveSibling("content.md")
   if (!Files.isRegularFile(contentPath)) {
@@ -78,5 +79,4 @@ private fun hydratePersistedAgentAddonEntry(
 
 internal fun invalidAgentAddonSelection(message: String): Nothing = throw InvalidAgentAddonSelectionError(message)
 
-internal fun persistedAgentAddonSha256(bytes: ByteArray): String =
-  MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
+internal fun persistedAgentAddonSha256(bytes: ByteArray): String = sha256Hex(bytes)

@@ -4,6 +4,8 @@ package skillbill.infrastructure.fs.scaffold.runtime
 import skillbill.infrastructure.fs.scaffold.payload.detectKind
 import skillbill.infrastructure.fs.scaffold.payload.validatePayloadVersion
 import skillbill.ports.repository.toFileLocation
+import skillbill.ports.system.HostPlatformPort
+import skillbill.infrastructure.fs.JdkHostPlatformPort
 import skillbill.scaffold.model.CodeReviewBaselineLayer
 import skillbill.scaffold.model.PlatformManifest
 import skillbill.scaffold.model.ScaffoldResult
@@ -73,6 +75,7 @@ internal fun scaffoldWithAdapters(
   payload: Map<String, Any?>,
   dryRun: Boolean,
   adapters: ScaffoldAdapterSeams,
+  hostPlatform: HostPlatformPort = JdkHostPlatformPort,
 ): ScaffoldResult {
   require(payload.isNotEmpty()) {
     "Scaffold payload must be a JSON object mapping string keys to values."
@@ -80,7 +83,7 @@ internal fun scaffoldWithAdapters(
 
   validatePayloadVersion(payload)
   val kind = detectKind(payload)
-  val repoRoot = resolveRepoRoot(payload)
+  val repoRoot = resolveRepoRoot(payload, hostPlatform)
   val plan = planScaffold(payload, repoRoot, kind, adapters)
   return if (dryRun) {
     renderDryRunResult(plan, repoRoot)

@@ -128,8 +128,8 @@ internal object StructuralRepairCandidateEngine {
       }
       val evidence = FeatureTaskRuntimePhaseOutputRepairEvidence(
         format = if (mergedDuplicateKeys) FeatureTaskRuntimePhaseOutputFormat.JSON else candidate.format,
-        originalDigest = StructuralRepairSyntax.sha256(origin.originalText),
-        repairedDigest = StructuralRepairSyntax.sha256(candidate.text),
+        originalDigest = StructuralRepairSyntax.sha256Hex(origin.originalText),
+        repairedDigest = StructuralRepairSyntax.sha256Hex(candidate.text),
         operation = operation,
         sourceLocation = StructuralRepairSyntax.sourceLocation(
           origin.sourceLabel,

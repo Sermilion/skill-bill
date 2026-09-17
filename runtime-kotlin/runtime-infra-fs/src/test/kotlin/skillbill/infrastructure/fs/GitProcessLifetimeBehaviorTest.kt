@@ -245,6 +245,37 @@ class GitProcessLifetimeBehaviorTest {
   }
 
   @Test
+  fun `bounded line git capture reports timedOut for a blocking alias`() {
+    val root = createTempGitRepo()
+    val pidFile = root.resolve("bounded-lines-timeout.pid")
+    var child: ProcessHandle? = null
+    try {
+      val started = System.nanoTime()
+      val result = invokeGitProcessWithBoundedLines(
+        repoRoot = root,
+        args = listOf("-c", "alias.block=!echo \$\$ > $pidFile; exec sleep 120", "block"),
+        readLineMaxBytes = 4_096,
+        shouldStopReading = { false },
+        onLine = {},
+      )
+      if (Files.exists(pidFile)) {
+        child = processHandleFrom(pidFile)
+      }
+      val elapsedSeconds = TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - started)
+      assertTrue(result.timedOut)
+      assertTrue(
+        elapsedSeconds <= gitTimeoutSeconds(listOf("block")) + GIT_PROCESS_CLEANUP_BUDGET_SECONDS + 5L,
+        "bounded line capture exceeded git timeout budget: ${elapsedSeconds}s",
+      )
+      child?.let { handle -> assertFalse(awaitDead(handle), "timed out bounded line git left child alive") }
+    } finally {
+      child?.destroyForcibly()
+      destroyProcessFrom(pidFile)
+      root.toFile().deleteRecursively()
+    }
+  }
+
+  @Test
   fun `binary diff output remains a failed git result with captured patch text`() {
     val root = createTempGitRepo()
     try {
@@ -273,9 +304,9 @@ class GitProcessLifetimeBehaviorTest {
     }
   }
 
-  private fun processHandleFrom(pidFile: Path): ProcessHandle {
+  private fun processHandleFrom(pidFile: Path): ProcessHandle? {
     assertTrue(Files.exists(pidFile), "expected process pid file")
-    return ProcessHandle.of(Files.readString(pidFile).trim().toLong()).orElseThrow()
+    return ProcessHandle.of(Files.readString(pidFile).trim().toLong()).orElse(null)
   }
 
   private fun runGitProcessWithCapturedChild(
@@ -324,7 +355,8 @@ class GitProcessLifetimeBehaviorTest {
     }
   }
 
-  private fun awaitDead(handle: ProcessHandle): Boolean {
+  private fun awaitDead(handle: ProcessHandle?): Boolean {
+    if (handle == null) return true
     val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(GIT_PROCESS_CLEANUP_BUDGET_SECONDS + 2)
     while (System.nanoTime() < deadline && handle.isAlive) {
       Thread.sleep(20)

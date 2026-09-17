@@ -5,7 +5,7 @@ import skillbill.model.toPath
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
-import java.nio.file.StandardCopyOption.ATOMIC_MOVE
+import skillbill.infrastructure.fs.launcher.process.atomicMoveReplacing
 import java.nio.file.StandardCopyOption.REPLACE_EXISTING
 
 internal fun stageReviewCatalogPacks(platformPacksRoot: Path, selectedPlatforms: List<String>?, staging: Path) {
@@ -60,8 +60,8 @@ internal fun journalReviewCatalogSwap(catalogRoot: Path, staging: Path, journal:
 
 internal fun swapReviewCatalogIntoPlace(catalogRoot: Path, staging: Path, superseded: Path) {
   if (Files.exists(catalogRoot, LinkOption.NOFOLLOW_LINKS)) {
-    Files.move(catalogRoot, superseded, ATOMIC_MOVE)
+    atomicMoveReplacing(catalogRoot, superseded)
   }
-  Files.move(staging, catalogRoot, ATOMIC_MOVE)
+  atomicMoveReplacing(staging, catalogRoot)
   deleteRecursively(superseded)
 }

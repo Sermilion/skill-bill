@@ -6,15 +6,15 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 internal fun resolveTelemetryStateDir(
-  environment: Map<String, String> = System.getenv(),
-  userHome: Path = Path.of(System.getProperty("user.home")),
+  environment: Map<String, String>,
+  userHome: Path,
 ): Path = environment[STATE_DIR_ENVIRONMENT_KEY]?.takeIf(String::isNotBlank)?.let {
   expandAndNormalizeTelemetryPath(it, userHome)
 } ?: userHome.resolve(".skill-bill").toAbsolutePath().normalize()
 
 internal fun resolveTelemetryConfigPath(
-  environment: Map<String, String> = System.getenv(),
-  userHome: Path = Path.of(System.getProperty("user.home")),
+  environment: Map<String, String>,
+  userHome: Path,
 ): Path {
   environment[CONFIG_ENVIRONMENT_KEY]?.takeIf(String::isNotBlank)?.let {
     return expandAndNormalizeTelemetryPath(it, userHome)

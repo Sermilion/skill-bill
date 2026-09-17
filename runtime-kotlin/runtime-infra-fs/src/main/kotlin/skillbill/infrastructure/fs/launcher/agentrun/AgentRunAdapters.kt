@@ -8,6 +8,7 @@ import skillbill.infrastructure.fs.launcher.process.AgentRunProcessRequest
 import skillbill.infrastructure.fs.launcher.process.AgentRunProcessReviewFields
 import skillbill.infrastructure.fs.launcher.process.AgentRunProcessRunner
 import skillbill.infrastructure.fs.launcher.process.AgentRunProcessTimingFields
+import skillbill.infrastructure.fs.launcher.process.sha256Hex
 import skillbill.infrastructure.fs.launcher.review.CursorReviewStreamMalformedError
 import skillbill.install.model.AgentLauncherCli
 import skillbill.install.model.InstallAgent
@@ -16,7 +17,6 @@ import skillbill.ports.agentrun.ExecutableLookup
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.SkillRunRequest
 import java.nio.file.Path
-import java.security.MessageDigest
 
 interface AgentRunAdapter {
   val agent: InstallAgent
@@ -72,7 +72,7 @@ class ProcessAgentRunAdapter(
       mcpStartupObserved = result.mcpStartupObserved,
       stdoutTruncated = result.stdoutTruncated,
       stdoutByteSize = if (result.stdoutTruncated) result.stdoutByteSize else decodedBodyBytes.size.toLong(),
-      stdoutSha256 = if (result.stdoutTruncated) result.stdoutSha256 else sha256(decodedBodyBytes),
+      stdoutSha256 = if (result.stdoutTruncated) result.stdoutSha256 else sha256Hex(decodedBodyBytes),
       childSessionPath = command.workingDirectory.toString(),
       childSessionId = childSessionId(agent, request, command.workingDirectory),
       assistantEventCount = decoded.assistantEventCount,
@@ -163,8 +163,6 @@ class ProcessAgentRunAdapter(
     }
 }
 
-private fun sha256(bytes: ByteArray): String =
-  MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
 
 data class DecodedAgentRunOutput(
   val text: String,

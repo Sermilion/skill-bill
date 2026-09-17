@@ -1,5 +1,6 @@
 package skillbill.infrastructure.fs
 
+import skillbill.infrastructure.fs.launcher.process.newSha256Digest
 import skillbill.ports.workflow.gitops.GoalSubtaskReviewGitOperations
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaselineRecoveryRequest
@@ -10,7 +11,6 @@ import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInputResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import java.nio.file.Path
-import java.security.MessageDigest
 
 internal const val GOAL_SUBTASK_REVIEW_INPUT_MAX_BYTES: Int = 1_000_000
 
@@ -286,7 +286,7 @@ private fun materializeReviewInput(
 }
 
 private fun scopeFingerprint(repoRoot: Path, indexTree: String, ownedUntracked: List<String>): String {
-  val digest = MessageDigest.getInstance("SHA-256")
+  val digest = newSha256Digest()
   digest.update(indexTree.toByteArray())
   digest.update(0)
   ownedUntracked.sorted().forEach { path ->

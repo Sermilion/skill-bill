@@ -1,5 +1,7 @@
 package skillbill.infrastructure.fs.nativeagent.rendering
 
+import skillbill.infrastructure.fs.resolveUserHome
+
 import skillbill.infrastructure.fs.nativeagent.composition.NATIVE_AGENT_BUNDLE_FILE
 import skillbill.infrastructure.fs.nativeagent.composition.NATIVE_AGENT_SOURCE_DIR
 import skillbill.infrastructure.fs.nativeagent.composition.NativeAgentCompositionContext
@@ -10,11 +12,11 @@ import skillbill.infrastructure.fs.nativeagent.composition.parseNativeAgentSourc
 import skillbill.infrastructure.fs.nativeagent.discovery.discoverNativeAgentSourceEntries
 import skillbill.infrastructure.fs.nativeagent.discovery.discoverNativeAgentSourceEntriesInRoots
 import skillbill.infrastructure.fs.nativeagent.validation.validateNativeAgentArtifactsForInstall
+import skillbill.infrastructure.fs.launcher.process.sha256Bytes
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
-import java.security.MessageDigest
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.io.path.isDirectory
 import kotlin.io.path.name
@@ -59,7 +61,7 @@ data class NativeAgentRegenerationRequest(
   val repoRoot: Path,
   val compositionContext: NativeAgentCompositionContext,
   val skillNames: List<String> = emptyList(),
-  val home: Path = Path.of(System.getProperty("user.home")),
+  val home: Path = resolveUserHome(null),
   val originalBytes: MutableMap<Path, ByteArray>? = null,
   val createdPaths: MutableList<Path>? = null,
 )
@@ -224,7 +226,7 @@ object NativeAgentOperations {
       platformPacksRoot.toAbsolutePath().normalize().toString(),
       skillsRoot?.toAbsolutePath()?.normalize()?.toString(),
     ).joinToString("|")
-    val digest = MessageDigest.getInstance("SHA-256").digest(input.toByteArray(Charsets.UTF_8))
+    val digest = sha256Bytes(input.toByteArray(Charsets.UTF_8))
     return digest.take(NATIVE_AGENT_CACHE_KEY_BYTES).joinToString("") { byte -> "%02x".format(byte) }
   }
 }

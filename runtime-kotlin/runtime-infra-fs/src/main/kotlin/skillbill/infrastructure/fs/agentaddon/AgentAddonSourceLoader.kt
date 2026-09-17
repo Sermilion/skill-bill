@@ -7,6 +7,7 @@ import skillbill.agentaddon.model.AgentAddonConsumer
 import skillbill.agentaddon.model.AgentAddonDeclaration
 import skillbill.contracts.JsonCodec
 import skillbill.error.MissingAgentAddonDeclarationError
+import skillbill.install.model.SupportedAgent
 import skillbill.ports.repository.toFileLocation
 import java.nio.file.Files
 import java.nio.file.LinkOption
@@ -113,8 +114,8 @@ internal fun parseSource(sourceRoot: Path, validator: AgentAddonSchemaValidator)
     }
     val agentIds = values.stringList("agent_ids", sourceLabel)
     val agents = agentIds.map { id ->
-      runCatching { AgentAddonAgentIds.parse(id) }.getOrElse {
-        violations += "unknown agent id '$id'; supported: ${AgentAddonAgentIds.supportedIds.joinToString()}"
+      runCatching { SupportedAgent.parseAgentAddonId(id) }.getOrElse {
+        violations += "unknown agent id '$id'; supported: ${SupportedAgent.supportedIds.joinToString()}"
         null
       }
     }.filterNotNull()
@@ -130,7 +131,7 @@ internal fun parseSource(sourceRoot: Path, validator: AgentAddonSchemaValidator)
       contractVersion = values.string("contract_version", sourceLabel),
       slug = slug,
       description = description,
-      agents = agents,
+      agents = agents.map(SupportedAgent::wireValue),
       consumers = consumers,
       addonRoot = sourceRoot.toFileLocation(),
       manifestPath = manifest.toFileLocation(),

@@ -2,12 +2,15 @@ package skillbill.infrastructure.fs.jvm
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.ports.diagnostics.RuntimeDiagnostics
+import skillbill.ports.system.HostPlatformPort
+import skillbill.infrastructure.fs.JdkHostPlatformPort
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.attribute.PosixFilePermissions
-import java.util.concurrent.TimeUnit
+import skillbill.infrastructure.fs.launcher.process.BoundedExternalProcessRequest
+import skillbill.infrastructure.fs.launcher.process.BoundedExternalProcessRunner
 
 sealed interface GateJvmDisposition {
   data class Export(val javaHome: String) : GateJvmDisposition
@@ -28,9 +31,10 @@ fun GateJvmDisposition.applyTo(environment: MutableMap<String, String>) {
 @Inject
 class GateJvmResolver(
   private val diagnostics: RuntimeDiagnostics,
+  private val hostPlatform: HostPlatformPort = JdkHostPlatformPort,
 ) {
   fun resolve(childEnvironment: MutableMap<String, String>): GateJvmDisposition {
-    val imageRoot = runtimeImageRoot()
+    val imageRoot = runtimeImageRoot(hostPlatform)
     val rejected = rejectedCandidate(childEnvironment)
     val dropped = dropRuntimeImageJava(childEnvironment, imageRoot)
     val disposition = evaluateGuard(childEnvironment, rejected)
@@ -58,22 +62,22 @@ class GateJvmResolver(
   }
 
   private fun runGuard(guard: Path, environment: Map<String, String>): GuardEvaluation {
-    val builder = ProcessBuilder("sh", "-c", GUARD_PROGRAM, "sh", guard.toString())
-      .redirectError(ProcessBuilder.Redirect.DISCARD)
-    builder.environment().clear()
-    builder.environment().putAll(environment)
-    val process = try {
-      builder.start()
-    } catch (error: IOException) {
-      throw GateJvmGuardExecutionException("no POSIX sh available to evaluate $guard", error)
-    }
-    process.outputStream.close()
-    if (!process.waitFor(GUARD_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
-      process.destroyForcibly()
+    val result = BoundedExternalProcessRunner.run(
+      BoundedExternalProcessRequest(
+        argv = listOf("sh", "-c", GUARD_PROGRAM, "sh", guard.toString()),
+        environment = environment,
+        clearEnvironment = true,
+        deadlineSeconds = GUARD_TIMEOUT_SECONDS,
+        outputCapBytes = null,
+      ),
+    )
+    if (result.timedOut) {
       throw GateJvmGuardTimeoutException(GUARD_TIMEOUT_SECONDS)
     }
-    val stdout = process.inputStream.use { stream -> stream.readBytes().toString(Charsets.UTF_8) }
-    return GuardEvaluation(status = process.exitValue(), stdout = stdout)
+    if (result.launchFailure) {
+      throw GateJvmGuardExecutionException(result.output)
+    }
+    return GuardEvaluation(status = result.exitCode, stdout = result.output)
   }
 
   private fun dispositionOf(evaluation: GuardEvaluation, rejectedCandidate: String): GateJvmDisposition {
@@ -177,11 +181,11 @@ private data class GuardOutput(
   val reachedRemediation: Boolean,
 )
 
-internal fun runtimeImageRoot(): Path? = runningJavaHome()?.takeUnless(::hostsAJavaCompiler)
+internal fun runtimeImageRoot(hostPlatform: HostPlatformPort = JdkHostPlatformPort): Path? =
+  runningJavaHome(hostPlatform)?.takeUnless(::hostsAJavaCompiler)
 
-private fun runningJavaHome(): Path? = runCatching {
-  Path.of(System.getProperty("java.home").orEmpty()).toRealPath()
-}.getOrNull()
+private fun runningJavaHome(hostPlatform: HostPlatformPort): Path? =
+  runCatching { hostPlatform.resolveJavaHome().toRealPath() }.getOrNull()
 
 private fun hostsAJavaCompiler(home: Path): Boolean =
   JAVA_COMPILER_EXECUTABLES.any { name -> Files.isExecutable(home.resolve("bin").resolve(name)) }

@@ -5,11 +5,10 @@ import skillbill.contracts.nativeagent.NATIVE_AGENT_LINK_INVENTORY_CONTRACT_VERS
 import skillbill.error.InvalidNativeAgentLinkInventoryWriteError
 import skillbill.error.ShellContentContractException
 import java.io.IOException
-import java.nio.file.AtomicMoveNotSupportedException
+import skillbill.infrastructure.fs.launcher.process.atomicMoveReplacing
 import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
-import java.nio.file.StandardCopyOption
 import kotlin.coroutines.cancellation.CancellationException
 
 internal object NativeAgentLinkInventoryWrite {
@@ -45,11 +44,7 @@ internal object NativeAgentLinkInventoryWrite {
     try {
       Files.write(temporary, bytes)
       request.beforeMutation(request.path)
-      try {
-        Files.move(temporary, request.path, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
-      } catch (_: AtomicMoveNotSupportedException) {
-        Files.move(temporary, request.path, StandardCopyOption.REPLACE_EXISTING)
-      }
+      atomicMoveReplacing(temporary, request.path)
     } catch (error: CancellationException) {
       throw error
     } catch (error: ShellContentContractException) {

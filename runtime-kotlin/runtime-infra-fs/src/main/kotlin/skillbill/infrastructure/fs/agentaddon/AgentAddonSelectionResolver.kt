@@ -7,11 +7,12 @@ import skillbill.agentaddon.model.HydratedAgentAddonSelection
 import skillbill.agentaddon.model.HydratedAgentAddonSelectionEntry
 import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
 import skillbill.error.InvalidAgentAddonSelectionError
+import skillbill.install.model.SupportedAgent
 import skillbill.model.toPath
+import skillbill.infrastructure.fs.launcher.process.sha256Hex
 import skillbill.ports.agentaddon.AgentAddonSelectionPort
 import java.nio.file.Files
 import java.nio.file.Path
-import java.security.MessageDigest
 
 @Inject
 class AgentAddonSelectionResolver : AgentAddonSelectionPort {
@@ -71,7 +72,7 @@ class AgentAddonSelectionResolver : AgentAddonSelectionPort {
       persisted = PersistedAgentAddonSelectionEntry(
         slug,
         sourceIdentity.toString(),
-        sha256(bytes),
+        sha256Hex(bytes),
       ),
       description = description,
       content = bytes.toString(Charsets.UTF_8),
@@ -89,7 +90,7 @@ class AgentAddonSelectionResolver : AgentAddonSelectionPort {
     }
   }
 
-  private fun parseAgent(id: String): String = runCatching { AgentAddonAgentIds.parse(id) }.getOrElse {
+  private fun parseAgent(id: String): String = runCatching { SupportedAgent.parseAgentAddonId(id).wireValue }.getOrElse {
     throw InvalidAgentAddonSelectionError("Unknown receiving agent '$id'.")
   }
 
@@ -119,6 +120,4 @@ class AgentAddonSelectionResolver : AgentAddonSelectionPort {
   private fun invalidField(key: String): Nothing =
     throw InvalidAgentAddonSelectionError("Selected agent add-on manifest field '$key' is malformed.")
 
-  private fun sha256(bytes: ByteArray): String =
-    MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
 }
