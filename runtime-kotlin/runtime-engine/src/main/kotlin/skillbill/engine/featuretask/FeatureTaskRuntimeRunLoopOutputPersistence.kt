@@ -267,7 +267,7 @@ object FeatureTaskRuntimeRunLoopOutputPersistence {
       FeatureTaskRuntimeHandoffAssemblyRequest(
         declaration = run.declaration,
         runInvariants = run.request.runInvariants,
-        recordedOutputs = state.outputsForUpstreamResolution(run.declaration.consumedUpstreamPhaseIds),
+        recordedOutputs = state.outputs(run.declaration.consumedUpstreamPhaseIds),
         drivingVerdict = run.reentry?.drivingVerdict,
         repairLedger = null,
         repositoryCheckpoint = repositoryCheckpoint,

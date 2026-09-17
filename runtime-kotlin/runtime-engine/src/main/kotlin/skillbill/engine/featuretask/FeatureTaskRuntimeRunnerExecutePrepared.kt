@@ -6,8 +6,6 @@ import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
 import skillbill.engine.featuretask.model.RemediationBaseBlocked
 import skillbill.engine.featuretask.model.RemediationBaseCoherent
-import skillbill.engine.featuretask.validation.durableValidationChangedPaths
-import skillbill.engine.featuretask.validation.resolveRequiredValidationCommand
 import skillbill.error.FeatureTaskRuntimeOperatorDecisionRejectedError
 import skillbill.workflow.decomposition.model.SpecSource
 import skillbill.workflow.model.WorkflowStepStatus
@@ -102,21 +100,6 @@ internal fun FeatureTaskRuntimeRunner.createExecutePreparedRunState(
   durableInitialLedger = recorder.loadPhaseLedger(runRequest.workflowId).orEmpty(),
   outputValidator = outputValidator,
   initialReviewGeneration = recorder.reconcileReviewGeneration(runRequest.workflowId),
-  validationEvidenceCommandResolver = { validationEvidence ->
-    resolveRequiredValidationCommand(
-      resolver = phaseGates.validationGateResolver,
-      requiredCommandForDeclaration = { declaration ->
-        phaseGates.validationGateCoordinator.requiredValidationCommand(
-          runRequest.repoRoot,
-          runRequest.workflowId,
-          declaration,
-        )
-      },
-      changedPaths = durableValidationChangedPaths(recorder, runRequest.workflowId),
-      evidence = validationEvidence,
-      sourceLabel = "validate",
-    )
-  },
 )
 
 fun FeatureTaskRuntimeRunner.finalizeExecutePreparedRunReport(

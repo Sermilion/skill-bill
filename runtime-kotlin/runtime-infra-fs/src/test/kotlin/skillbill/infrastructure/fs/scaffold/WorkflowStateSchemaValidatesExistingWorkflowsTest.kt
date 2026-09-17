@@ -175,7 +175,8 @@ class WorkflowStateSchemaValidatesExistingWorkflowsTest {
   private fun assertBaselineBytes(name: String, actual: String) {
     val expected = Files.readAllBytes(
       compatibilityRepositoryRoot().resolve(
-        ".feature-specs/SKILL-351-runtime-domain-boundaries-and-simplicity/baselines/$name",
+        ".feature-specs/done/SKILL-351-runtime-domain-boundaries-and-simplicity/" +
+          "baselines/$name",
       ),
     )
     assertEquals(expected.toList(), actual.toByteArray().toList(), name)

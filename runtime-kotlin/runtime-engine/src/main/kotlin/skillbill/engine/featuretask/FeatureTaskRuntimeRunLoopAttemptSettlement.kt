@@ -476,21 +476,8 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
         ),
       )
     }
-    if (
-      run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE &&
-      run.agentRunValidateFallback
-    ) {
+    if (run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE) {
       return persistQualityCheckCompletion(args)
-    }
-    if (
-      run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE &&
-      !run.agentRunValidateFallback
-    ) {
-      return AttemptResult.settled(
-        PhaseOutcome.completed(
-          FeatureTaskRuntimeRunLoopValidationGate.gateRepairSegmentOutput(run, args.iteration),
-        ),
-      )
     }
     if (runtimeOwnedGateAgentTurn(run)) {
       val outputMap = FeatureTaskRuntimeRunLoopValidationGate.looseOutputEnvelope(args.captured.text)

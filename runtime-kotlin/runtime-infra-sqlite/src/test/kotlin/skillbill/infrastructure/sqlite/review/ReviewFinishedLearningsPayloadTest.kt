@@ -55,7 +55,8 @@ class ReviewFinishedLearningsPayloadTest {
     val actual = learningEntrySessionJson("bill-code-review", listOf(entry)).toByteArray()
     val expected = Files.readAllBytes(
       repositoryRoot().resolve(
-        ".feature-specs/SKILL-351-runtime-domain-boundaries-and-simplicity/baselines/learnings-session.json",
+        ".feature-specs/done/SKILL-351-runtime-domain-boundaries-and-simplicity/" +
+          "baselines/learnings-session.json",
       ),
     )
 

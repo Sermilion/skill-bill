@@ -69,10 +69,7 @@ fun phasePromptTrailingSections(
     inputs.briefing.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE &&
     !inputs.validationGateTriage
   ) {
-    runtimeOwnedValidateFinishedDirective(
-      inputs.briefing.phaseId,
-      inputs.packConfirmationGateCommand,
-    )
+    runtimeOwnedValidateFinishedDirective(inputs.briefing.phaseId)
   } else if (inputs.validationGateFindings != null) {
     gateRepairNoOutputSchemaDirective(inputs.briefing.phaseId, inputs.validationGateTriage)
   } else {

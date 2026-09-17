@@ -261,8 +261,9 @@ properties:
       Phase-specific structured payload forwarded to downstream phases as a
       declared upstream output. Value shapes are phase-specific by contract
       (strings, arrays, nested objects all occur), so they are left open; the
-      envelope guarantees the field is present, carries at least one entry
-      (an empty `{}` blocks the run), and uses only non-empty string keys.
+      envelope requires the field as an object with only non-empty string keys.
+      An empty `{}` is valid when this phase has no structured payload. Phases
+      that declare a shape in the allOf branches below still require that shape.
       Mutating phases (e.g. `implement`) MUST additionally carry a
       reconciliation report as an entry *inside this `produced_outputs`
       object* — a `reconciled_state` object (or a `reconciled` entry) with
@@ -277,7 +278,6 @@ properties:
       reconciliation check at the gate; it is documented here for authors.
       This is a description-only clarification and adds no JSON-Schema
       constraint.
-    minProperties: 1
     propertyNames:
       type: string
       minLength: 1

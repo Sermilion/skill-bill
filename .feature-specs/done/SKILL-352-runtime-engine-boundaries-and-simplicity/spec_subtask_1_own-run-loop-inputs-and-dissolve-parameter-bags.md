@@ -1,13 +1,13 @@
 # SKILL-352 Subtask 1 - Own run-loop inputs and dissolve parameter bags
 
-Parent spec: [.feature-specs/SKILL-352-runtime-engine-boundaries-and-simplicity/spec.md](./spec.md)
+Parent spec: [.feature-specs/SKILL-352-runtime-engine-boundaries-and-simplicity/spec.md](spec.md)
 Issue key: SKILL-352
 
 ## Scope
 
 Resolve F-001, F-002, and F-007 in [investigation.md](investigation.md).
 
-Own the 22 `FeatureTaskRuntimeRunLoop*.kt` files, `FeatureTaskRuntimeRunState.kt`, `FeatureTaskRuntimeRunStateValidation.kt`, `FeatureTaskRuntimeRunnerExecute.kt`, `GoalRunnerSharedArgs.kt`, `GoalRunnerLoopModels.kt`, `GoalRunnerGoalLoop.kt`, `GoalRunner.kt`, `GoalRunnerPerRunLoopAssembler.kt`, `GoalRunnerLedgerRecorder.kt`, the `@Inject data class` bundles under `featuretask/model`, `goalrunner/model`, and `goalrunner/planning/model`, the helper-input section of `runtime-kotlin/ARCHITECTURE.md`, and the detekt configuration and decision log where the function parameter threshold is recorded.
+Own the 22 `FeatureTaskRuntimeRunLoop*.kt` files, `FeatureTaskRuntimeRunState.kt`, `FeatureTaskRuntimeRunStateValidation.kt`, `FeatureTaskRuntimeRunnerExecute.kt`, `GoalRunnerSharedArgs.kt`, `GoalRunnerLoopModels.kt`, `GoalRunnerGoalLoop.kt`, `GoalRunner.kt`, `GoalRunnerPerRunLoopAssembler.kt`, `GoalRunnerLedgerRecorder.kt`, the `@Inject data class` bundles under `featuretask/model`, `goalrunner/model`, and `goalrunner/planning/model`, the helper-input section of `../../../runtime-kotlin/ARCHITECTURE.md`, and the detekt configuration and decision log where the function parameter threshold is recorded.
 
 Narrow the nine uncounted helper families (CheckpointRemediation, Checkpoint, OutputPersistence, Launch, BackwardEdge, RecordRejection, OutputVerification, Transitions, RepairReceipt, AuditRetry) by the rule the counted six already follow. Move phase-token accounting into `FeatureTaskRuntimeRunState` behind a named transition and delete the shared `MutableMap`; give `ValidationSettlementState` read-only views. Dissolve single-site fact-only `*Args` bags into parameters; convert bags carrying ports into named collaborators; delete `BuildDeclaredGoalProgressEventArgs`; model `GoalRunnerLedgerContext` as sealed ledger actions. Move the `*Boundaries` bundles beside their orchestrators, delete `GoalRunnerDeps` and the six forwarders, and add the sub-area acyclicity check for the engine. Record the `LongParameterList.functionThreshold` decision and the complete census.
 

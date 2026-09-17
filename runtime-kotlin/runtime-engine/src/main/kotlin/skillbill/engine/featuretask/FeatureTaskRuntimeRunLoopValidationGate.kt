@@ -559,7 +559,7 @@ object FeatureTaskRuntimeRunLoopValidationGate {
         """"${SharedPayloadKeys.PHASE_ID}":"${run.phaseId}",""" +
         """"${SharedPayloadKeys.STATUS}":"completed",""" +
         """"${SharedPayloadKeys.SUMMARY}":"bill-code-check completed.",""" +
-        """"${SharedPayloadKeys.PRODUCED_OUTPUTS}":{"${SharedPayloadKeys.VALUE}":"finished"}""",
+        """"${SharedPayloadKeys.PRODUCED_OUTPUTS}":{"${SharedPayloadKeys.VALUE}":"finished"}}""",
     )
 
   internal fun gateTriageSegmentOutput(

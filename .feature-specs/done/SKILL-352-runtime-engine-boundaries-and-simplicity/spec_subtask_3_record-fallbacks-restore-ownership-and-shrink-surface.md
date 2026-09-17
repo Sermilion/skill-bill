@@ -1,13 +1,13 @@
 # SKILL-352 Subtask 3 - Record fallbacks, restore ownership, and shrink surface
 
-Parent spec: [.feature-specs/SKILL-352-runtime-engine-boundaries-and-simplicity/spec.md](./spec.md)
+Parent spec: [.feature-specs/SKILL-352-runtime-engine-boundaries-and-simplicity/spec.md](spec.md)
 Issue key: SKILL-352
 
 ## Scope
 
 Resolve F-005, F-006, F-008, F-011, and F-012 in [investigation.md](investigation.md); apply F-013 to the test classes touched.
 
-Own `GoalRunnerStatusProjectionAssembler.kt`, `GoalRunnerRepairCoordinator.kt`, `GoalRunnerProgressEventEmitter.kt`, `GoalRunnerObservabilityEmitter.kt`, `GoalRunnerResetReplanCoordinator.kt`, `GoalRunnerPurgeCoordinator.kt`, `RuntimeOwnedPersistenceBoundary.kt`, `GoalRunnerLaunchModels.kt`, the `work` package, `runtime-application/src/main/kotlin/skillbill/application/idestatus/model/IdeStatusModels.kt`, the other 11 engine-only application declarations named in F-008, every public top-level declaration in `runtime-engine/src/main`, `RuntimeEngineInboundApiTest`, and the module and shared-edge sections of `runtime-kotlin/ARCHITECTURE.md`.
+Own `GoalRunnerStatusProjectionAssembler.kt`, `GoalRunnerRepairCoordinator.kt`, `GoalRunnerProgressEventEmitter.kt`, `GoalRunnerObservabilityEmitter.kt`, `GoalRunnerResetReplanCoordinator.kt`, `GoalRunnerPurgeCoordinator.kt`, `RuntimeOwnedPersistenceBoundary.kt`, `GoalRunnerLaunchModels.kt`, the `work` package, `runtime-application/src/main/kotlin/skillbill/application/idestatus/model/IdeStatusModels.kt`, the other 11 engine-only application declarations named in F-008, every public top-level declaration in `runtime-engine/src/main`, `RuntimeEngineInboundApiTest`, and the module and shared-edge sections of `../../../runtime-kotlin/ARCHITECTURE.md`.
 
 Make the four cited fallbacks fail typed or emit a bounded record and surface the degraded read in the projection; give the diagnostics-port guard one owner. Extract one best-effort recorder for the two emitters and delete the engine brace scanner in favour of the adapter that owns agent-output parsing. Move the 30 engine-only application types into the engine areas that produce them. Re-run the census, narrow visibility, delete the dead, and add the public-declaration guard. Type timestamps and closed vocabularies at the cited seams.
 

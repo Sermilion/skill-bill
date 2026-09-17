@@ -1,3 +1,11 @@
+## [2026-09-17] Empty phase-output produced_outputs
+Areas: orchestration/contracts, runtime-kotlin/{runtime-infra-fs,runtime-engine/featuretask}
+- Envelope `produced_outputs` stays required as an object and now accepts `{}` when the phase has no structured payload.
+- Plan, implement, audit, and other allOf shapes still require their keys; the generic phase prompt states empty `{}` as valid when no shape is named.
+- Finished-signal validate can complete the envelope without a dummy key. reusable
+Feature flag: N/A
+Acceptance criteria: 2/2 implemented
+
 ## [2026-09-17] SKILL-352 subtask 1 — Own run-loop inputs and dissolve parameter bags
 Areas: runtime-kotlin/{runtime-engine/{featuretask,goalrunner},runtime-domain/goalrunner,runtime-core/architecture}, runtime-kotlin/ARCHITECTURE.md
 - Narrowed FeatureTaskRuntimeRunLoop helper seams to explicit request, state, recorder, diagnostics, clock, and session inputs; retained context extensions only at orchestration seams.

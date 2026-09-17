@@ -11,7 +11,6 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeReviewFinding
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeTransitionDeclaration
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationEvidence
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
 import skillbill.workflow.taskruntime.model.requireAcceptedOutput
 import skillbill.workflow.taskruntime.toWorkflowArtifactMap
@@ -22,9 +21,6 @@ class FeatureTaskRuntimeRunState(
   durableInitialLedger: List<FeatureTaskRuntimePhaseLedgerEntry> = emptyList(),
   val outputValidator: FeatureTaskRuntimePhaseOutputValidator,
   initialReviewGeneration: Int = 0,
-  private val validationEvidenceCommandResolver: (FeatureTaskRuntimeValidationEvidence?) -> String? = {
-    it?.results?.lastOrNull()?.command
-  },
 ) {
   private val durableInitialRecords: Map<String, FeatureTaskRuntimePhaseRecord> = initialRecords
 
@@ -184,12 +180,10 @@ class FeatureTaskRuntimeRunState(
     if (hasDurableReviewInvalidationTombstone) resetInvalidatedReviewGeneration()
   }
 
-  fun outputs(): List<FeatureTaskRuntimePhaseOutput> = outputBuffer.toList()
-
-  internal fun outputsForUpstreamResolution(
-    requiredPhaseIds: Collection<String>,
-  ): List<FeatureTaskRuntimePhaseOutput> {
-    val inMemoryPhaseIds = outputBuffer.mapTo(mutableSetOf(), FeatureTaskRuntimePhaseOutput::phaseId)
+  fun outputs(requiredPhaseIds: Collection<String> = emptyList()): List<FeatureTaskRuntimePhaseOutput> {
+    val inMemory = outputBuffer.toList()
+    if (requiredPhaseIds.isEmpty()) return inMemory
+    val inMemoryPhaseIds = inMemory.mapTo(mutableSetOf(), FeatureTaskRuntimePhaseOutput::phaseId)
     val durableOutputs = requiredPhaseIds.asSequence()
       .filterNot(inMemoryPhaseIds::contains)
       .mapNotNull { phaseId ->
@@ -198,7 +192,7 @@ class FeatureTaskRuntimeRunState(
           ?.let(::validatedRecordToOutput)
       }
       .toList()
-    return outputBuffer + durableOutputs
+    return inMemory + durableOutputs
   }
 
   internal val phaseTokenView: Map<String, Pair<Int, Int>>
