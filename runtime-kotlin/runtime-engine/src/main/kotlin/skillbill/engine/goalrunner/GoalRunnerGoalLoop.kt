@@ -23,6 +23,8 @@ internal class GoalRunnerGoalLoop(
   private val pauseBoundary: GoalRunnerPauseBoundary,
   private val progressReader: GoalRunnerProgressReader,
 ) {
+  private val attemptState = GoalRunnerAttemptState()
+
   internal fun driveGoalLoop(args: DriveGoalLoopArgs): GoalRunnerIterationResult {
     var state = args.initialState
     var currentPlanning = args.planning
@@ -39,7 +41,7 @@ internal class GoalRunnerGoalLoop(
             terminalReport = finalization.finalizeGoal(
               state,
               args.request,
-              args.attempted,
+              attemptState.attempted,
               args.ledger,
             )
           is GoalRunnerSelection.Blocked ->
@@ -48,7 +50,7 @@ internal class GoalRunnerGoalLoop(
                 state = state,
                 selection = selection,
                 request = args.request,
-                attempted = args.attempted,
+                attempted = attemptState.attempted,
                 observability = args.observability,
                 ledger = args.ledger,
               ),
@@ -64,9 +66,9 @@ internal class GoalRunnerGoalLoop(
           }
         }
       }
-      args.telemetryEmitter.emitNewlyTerminalSubtasks(state.manifest, args.attempted)
+      args.telemetryEmitter.emitNewlyTerminalSubtasks(state.manifest, attemptState.attempted)
     }
-    return GoalRunnerIterationResult(state, requireNotNull(terminalReport))
+    return GoalRunnerIterationResult(state, requireNotNull(terminalReport), attemptState.attempted)
   }
 
   private data class RunSelectionAdvance(
@@ -94,7 +96,7 @@ internal class GoalRunnerGoalLoop(
             report = stopped(
               StoppedReportArgs(
                 issueKey = refreshedPlanning.issueKey,
-                attempted = args.attempted,
+                attempted = attemptState.attempted,
                 subtaskId = refreshedPlanning.currentSubtaskId,
                 reason = refreshedPlanning.reason,
                 blockedReason = refreshedPlanning.blockedReason,
@@ -111,7 +113,7 @@ internal class GoalRunnerGoalLoop(
         state = state,
         selection = selection,
         request = args.request,
-        attempted = args.attempted,
+        attempted = attemptState,
         observability = args.observability,
         ledger = args.ledger,
         telemetryEmitter = args.telemetryEmitter,
@@ -127,7 +129,7 @@ internal class GoalRunnerGoalLoop(
     val request = args.request
     val observability = args.observability
     val ledger = args.ledger
-    val attempted = args.attempted
+    val attempted = attemptState.attempted
     val saved = manifestStore.save(
       state.copy(manifest = state.manifest.withBlockedSelection(selection.subtask.id, selection.reason)),
     )

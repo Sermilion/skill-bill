@@ -90,7 +90,7 @@ object FeatureTaskRuntimeRunLoopPlanningBranch {
       state = args.state,
       observability = args.observability,
     )?.let { return it }
-    return runPreparedPhase(context, run, args.state, args.observability, args.phaseTokenAccumulator)
+    return runPreparedPhase(context, run, args.state, args.observability)
   }
 
   internal fun phaseDeclarationForRun(
@@ -133,12 +133,10 @@ object FeatureTaskRuntimeRunLoopPlanningBranch {
     run: PhaseRun,
     state: FeatureTaskRuntimeRunState,
     observability: FeatureTaskRuntimeRunObservability,
-    phaseTokenAccumulator: MutableMap<String, Pair<Int, Int>>?,
   ): PhaseOutcome {
     val gateContext = context.copy(
       state = state,
       observability = observability,
-      phaseTokenAccumulator = phaseTokenAccumulator ?: mutableMapOf(),
     )
     return when (
       val prepared = FeatureTaskRuntimeRunLoopPhaseRunner.prepareGoalReviewRun(

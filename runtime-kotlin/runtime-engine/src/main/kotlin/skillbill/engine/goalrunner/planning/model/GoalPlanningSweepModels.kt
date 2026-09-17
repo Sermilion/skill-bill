@@ -1,6 +1,5 @@
 package skillbill.engine.goalrunner.planning.model
 
-import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.workflow.GOAL_PLANNING_WAVE_CAP
 import skillbill.goalrunner.model.GoalPlanningStatusSnapshot
 import skillbill.goalrunner.model.GoalRunnerStopReason
@@ -127,7 +126,6 @@ data class GoalPlanningRejectionRecord(
   val rawEvidence: String,
 )
 
-@Inject
 data class GoalPlanningBurstSchedule(
   val planFanOutCap: Int,
   val emptyTurnBackoffBase: Duration,

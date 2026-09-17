@@ -70,7 +70,6 @@ class GoalRunner(
   private fun runPrepared(preparation: GoalRunPreparation.Prepared): GoalRunnerRunReport {
     var state = preparation.state
     val effectiveRequest = preparation.request
-    val attempted = mutableListOf<Int>()
     val observability = GoalRunnerObservabilityEmitter(outcomeStore, clock, diagnostics, effectiveRequest)
     val ledger = GoalRunnerLedgerRecorder(outcomeStore, effectiveRequest, clock, diagnostics)
     effectiveRequest.eventSink.emit(GoalRunnerRunEvent.Started(state.manifest.issueKey))
@@ -79,12 +78,12 @@ class GoalRunner(
         .also { it.goalStarted() }
     deps.pauseBoundary.pauseBeforeLaunch(state)?.let { paused ->
       val pausedReport = requireNotNull(paused.report)
-      closeGoalTelemetrySegment(telemetryEmitter, state, pausedReport, attempted)
+      closeGoalTelemetrySegment(telemetryEmitter, state, pausedReport, emptyList())
       return pausedReport
     }
     val sweepOutcome = goalPlanningSweep.prepare(state, effectiveRequest)
     if (sweepOutcome is GoalPlanningSweepOutcome.Stopped) {
-      return planningStoppedReport(effectiveRequest, state, telemetryEmitter, attempted, sweepOutcome)
+      return planningStoppedReport(effectiveRequest, state, telemetryEmitter, emptyList(), sweepOutcome)
     }
     val validationQualityState = GoalRunnerValidationQualityPendingState(manifestStore)
     validationQualityState.bind(state.parentWorkflowId)
@@ -94,7 +93,6 @@ class GoalRunner(
       DriveGoalLoopArgs(
         initialState = state,
         request = effectiveRequest,
-        attempted = attempted,
         observability = observability,
         ledger = ledger,
         telemetryEmitter = telemetryEmitter,
@@ -103,7 +101,7 @@ class GoalRunner(
     )
     state = loopResult.state
     val finalReport = requireNotNull(loopResult.report)
-    closeGoalTelemetrySegment(telemetryEmitter, state, finalReport, attempted)
+    closeGoalTelemetrySegment(telemetryEmitter, state, finalReport, loopResult.attempted)
     emitCompletedGoalEvent(effectiveRequest, finalReport)
     return finalReport
   }
@@ -112,7 +110,7 @@ class GoalRunner(
     effectiveRequest: GoalRunnerRunRequest,
     state: GoalRunnerManifestState,
     telemetryEmitter: GoalRunnerTelemetryEmitter,
-    attempted: MutableList<Int>,
+    attempted: List<Int>,
     sweepOutcome: GoalPlanningSweepOutcome.Stopped,
   ): GoalRunnerRunReport {
     val planningStop = stopped(

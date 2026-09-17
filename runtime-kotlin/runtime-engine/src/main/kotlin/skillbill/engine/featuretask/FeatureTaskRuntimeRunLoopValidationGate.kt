@@ -86,7 +86,7 @@ object FeatureTaskRuntimeRunLoopValidationGate {
         iteration,
       ),
     )?.let { return it }
-    val context = phaseAttemptAccumulatorContext(run, state, iteration, observability, phaseTokenAccumulator)
+    val context = phaseAttemptAccumulatorContext(run, state, iteration, observability)
     val cycle = phaseGates.buildGateCoordinator.execute(
       cycle = buildGateCycleRequest(
         ValidationGateCycleRequestArgs(
@@ -229,14 +229,12 @@ object FeatureTaskRuntimeRunLoopValidationGate {
     val state = args.context.attempt.state
     val iteration = args.context.attempt.iteration
     val observability = args.context.attempt.observability
-    val phaseTokenAccumulator = args.context.phaseTokenAccumulator
     val findings = args.findings
     val triageRun = run.copy(validationGateFindings = findings, validationGateTriage = true)
     val attempt = with(FeatureTaskRuntimeRunLoopRecordRejection) {
       this@launchValidationGateTriage.attemptOnce(
         recordRejectionAttemptArgs(
           PhaseAttemptContext(triageRun, state, iteration, observability),
-          phaseTokenAccumulator = args.context.phaseTokenAccumulator,
         ),
       )
     }
@@ -456,7 +454,6 @@ object FeatureTaskRuntimeRunLoopValidationGate {
     val state = args.context.attempt.state
     val iteration = args.context.attempt.iteration
     val observability = args.context.attempt.observability
-    val phaseTokenAccumulator = args.context.phaseTokenAccumulator
     val repairTurn = args.repairTurn
     val repairRun = run.copy(
       validationGateFindings = null,
@@ -468,7 +465,6 @@ object FeatureTaskRuntimeRunLoopValidationGate {
       this@launchValidationGateRepair.attemptOnce(
         recordRejectionAttemptArgs(
           PhaseAttemptContext(repairRun, state, iteration, observability),
-          phaseTokenAccumulator = phaseTokenAccumulator,
         ),
       )
     }
@@ -797,7 +793,6 @@ object FeatureTaskRuntimeRunLoopValidationGate {
             state,
             loop.iteration,
             observability,
-            phaseTokenAccumulator,
           ),
           loop = loop,
           agentId = agentId,
@@ -839,7 +834,6 @@ object FeatureTaskRuntimeRunLoopValidationGate {
     val run = args.context.attempt.run
     val state = args.context.attempt.state
     val observability = args.context.attempt.observability
-    val phaseTokenAccumulator = args.context.phaseTokenAccumulator
     val loop = args.loop
     val agentId = args.agentId
     val attempt = with(FeatureTaskRuntimeRunLoopRecordRejection) {
@@ -847,7 +841,6 @@ object FeatureTaskRuntimeRunLoopValidationGate {
         recordRejectionAttemptArgs(
           PhaseAttemptContext(run, state, loop.iteration, observability, loop.outputGateFailures),
           priorCorrection = loop.priorCorrection,
-          phaseTokenAccumulator = phaseTokenAccumulator,
         ),
       )
     }
@@ -894,7 +887,7 @@ object FeatureTaskRuntimeRunLoopValidationGate {
   internal fun FeatureTaskRuntimeRunLoopContext.runDeclaredValidationGateCycle(run: PhaseRun): PhaseOutcome {
     val checkpoint = FeatureTaskRuntimeRunLoopValidationGate.resolveValidationGateCheckpoint(phaseGates, run).orEmpty()
     val iteration = state.nextIteration(run.phaseId)
-    val context = phaseAttemptAccumulatorContext(run, state, iteration, observability, phaseTokenAccumulator)
+    val context = phaseAttemptAccumulatorContext(run, state, iteration, observability)
     val cycle = phaseGates.validationGateCoordinator.execute(
       cycle = validationGateCycleRequest(
         ValidationGateCycleRequestArgs(

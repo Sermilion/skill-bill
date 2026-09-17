@@ -56,6 +56,8 @@ class FeatureTaskRuntimeRunState(
 
   private val gateInvalidatedPhaseIds: MutableSet<String> = mutableSetOf()
 
+  private val phaseTokenUsage: MutableMap<String, Pair<Int, Int>> = mutableMapOf()
+
   private val parsedOutputsByPayloadStorage: MutableMap<String, FeatureTaskRuntimeWorkflowArtifactMap> = mutableMapOf()
 
   private val outputBuffer: MutableList<FeatureTaskRuntimePhaseOutput> = mutableListOf()
@@ -198,6 +200,13 @@ class FeatureTaskRuntimeRunState(
   }
 
   fun outputs(): List<FeatureTaskRuntimePhaseOutput> = outputBuffer.toList()
+
+  internal val phaseTokenView: Map<String, Pair<Int, Int>>
+    get() = phaseTokenUsage.toMap()
+
+  internal fun recordPhaseTokenUsage(phaseId: String, inputTokens: Int, outputTokens: Int) {
+    phaseTokenUsage[phaseId] = inputTokens to outputTokens
+  }
 
   fun phasesRequiringDurableGateInvalidation(): Set<String> = gateInvalidatedPhaseIds.toSet()
 

@@ -176,7 +176,6 @@ object FeatureTaskRuntimeRunLoopBackwardEdge {
           observability = observability,
           specSource = specSource,
           reentry = reentry,
-          phaseTokenAccumulator = phaseTokenAccumulator,
         ),
       )
     outcome.regenerationTargetPhaseId?.let {

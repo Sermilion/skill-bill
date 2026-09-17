@@ -43,7 +43,6 @@ internal data class PhaseAttemptContext(
 
 internal data class PhaseAttemptAccumulatorContext(
   val attempt: PhaseAttemptContext,
-  val phaseTokenAccumulator: MutableMap<String, Pair<Int, Int>>?,
 )
 
 internal data class SchemaInvalidArgs(
@@ -83,7 +82,6 @@ internal data class WriteUnattributableRejectedEvidenceArgs(
 internal data class RecordRejectionAttemptArgs(
   val context: PhaseAttemptContext,
   val priorCorrection: PriorAttemptCorrection?,
-  val phaseTokenAccumulator: MutableMap<String, Pair<Int, Int>>?,
 )
 
 internal data class ProducerEvidenceRecordRejectionArgs(
@@ -284,7 +282,6 @@ internal data class RunPhaseArgs(
   val observability: FeatureTaskRuntimeRunObservability,
   val specSource: SpecSource,
   val reentry: PendingReentry?,
-  val phaseTokenAccumulator: MutableMap<String, Pair<Int, Int>>?,
 )
 
 internal data class ImplementFixRepairReceiptArgs(
@@ -616,11 +613,9 @@ internal fun phaseBlockArgs(
 internal fun recordRejectionAttemptArgs(
   context: PhaseAttemptContext,
   priorCorrection: PriorAttemptCorrection? = null,
-  phaseTokenAccumulator: MutableMap<String, Pair<Int, Int>>? = null,
 ): RecordRejectionAttemptArgs = RecordRejectionAttemptArgs(
   context = context,
   priorCorrection = priorCorrection,
-  phaseTokenAccumulator = phaseTokenAccumulator,
 )
 
 internal fun phaseAttemptAccumulatorContext(
@@ -628,8 +623,6 @@ internal fun phaseAttemptAccumulatorContext(
   state: FeatureTaskRuntimeRunState,
   iteration: Int,
   observability: FeatureTaskRuntimeRunObservability,
-  phaseTokenAccumulator: MutableMap<String, Pair<Int, Int>>?,
 ): PhaseAttemptAccumulatorContext = PhaseAttemptAccumulatorContext(
   attempt = PhaseAttemptContext(run, state, iteration, observability),
-  phaseTokenAccumulator = phaseTokenAccumulator,
 )

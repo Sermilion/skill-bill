@@ -134,7 +134,6 @@ object FeatureTaskRuntimeRunLoopRecordRejection {
     val run = args.context.run
     val iteration = args.context.iteration
     val priorCorrection = args.priorCorrection
-    val phaseTokenAccumulator = args.phaseTokenAccumulator
     FeatureTaskRuntimeRunLoopOutputPersistence.persistPhase(
       request,
       state,

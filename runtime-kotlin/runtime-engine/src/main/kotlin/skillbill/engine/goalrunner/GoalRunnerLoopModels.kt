@@ -16,6 +16,17 @@ internal data class GoalRunnerIterationPendingState(
   val validationQualityState: GoalRunnerValidationQualityPendingState,
 )
 
+internal class GoalRunnerAttemptState {
+  private val attemptedSubtaskIds = mutableListOf<Int>()
+
+  val attempted: List<Int>
+    get() = attemptedSubtaskIds.toList()
+
+  fun record(subtaskId: Int) {
+    attemptedSubtaskIds += subtaskId
+  }
+}
+
 internal data class GoalRunnerIterationSession(
   val request: GoalRunnerRunRequest,
   val attempted: List<Int>,
@@ -42,6 +53,7 @@ internal data class CompletedIterationArgs(
 internal data class GoalRunnerIterationResult(
   val state: GoalRunnerManifestState,
   val report: GoalRunnerRunReport? = null,
+  val attempted: List<Int> = emptyList(),
 )
 
 internal data class PreparedLaunch(

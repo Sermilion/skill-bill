@@ -18,7 +18,7 @@ fun FeatureTaskRuntimeRunner.buildExecutePreparedRunTelemetryContext(
   runRequest: FeatureTaskRuntimeRunRequest,
   telemetrySessionId: String,
   reconciliation: FeatureTaskRuntimeCrashReconciliationResult,
-  phaseTokenAccumulator: MutableMap<String, Pair<Int, Int>>,
+  state: FeatureTaskRuntimeRunState,
 ) = FeatureTaskRuntimeFinishedTelemetryContext(
   telemetrySessionId = telemetrySessionId,
   phaseOutcomes = {
@@ -31,7 +31,7 @@ fun FeatureTaskRuntimeRunner.buildExecutePreparedRunTelemetryContext(
   agentContext = { featureTaskRuntimeAgentContext(runRequest.workflowId) },
   regenerationTelemetry = { loadRegenerationTelemetry(runRequest) },
   findingVerificationTelemetry = { loadFindingVerificationTelemetry(runRequest) },
-  phaseTokenData = { serializeTokenData(phaseTokenAccumulator) },
+  phaseTokenData = { serializeTokenData(state.phaseTokenView) },
   crashReconciliation = { reconciliation },
 )
 
@@ -40,7 +40,7 @@ fun FeatureTaskRuntimeRunner.driveExecutePreparedRunLoop(
   specSource: SpecSource,
   transitions: FeatureTaskRuntimeTransitionDeclaration,
   observability: FeatureTaskRuntimeRunObservability,
-  phaseTokenAccumulator: MutableMap<String, Pair<Int, Int>>,
+  state: FeatureTaskRuntimeRunState,
 ): FeatureTaskRuntimeRunReport {
   reopenCappedReviewOnChangedDelta(runRequest)
   if (isGoalContinuationRun(runRequest)) {
@@ -56,7 +56,6 @@ fun FeatureTaskRuntimeRunner.driveExecutePreparedRunLoop(
       is RemediationBaseCoherent -> Unit
     }
   }
-  val state = createExecutePreparedRunState(runRequest, transitions)
   val loop = FeatureTaskRuntimeRunLoop(
     context = FeatureTaskRuntimeRunLoopContext(
       runRequest,
@@ -64,7 +63,6 @@ fun FeatureTaskRuntimeRunner.driveExecutePreparedRunLoop(
       observability,
       specSource,
       transitions,
-      phaseTokenAccumulator,
       recorder,
       goalContinuationRecorder,
       outputValidator,

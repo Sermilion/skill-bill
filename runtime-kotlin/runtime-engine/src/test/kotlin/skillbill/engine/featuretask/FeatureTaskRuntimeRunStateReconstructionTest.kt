@@ -45,6 +45,57 @@ class FeatureTaskRuntimeRunStateReconstructionTest {
   }
 
   @Test
+  fun `phase token view is a snapshot of named state transitions`() {
+    val state = FeatureTaskRuntimeRunState(
+      initialRecords = emptyMap(),
+      transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
+      outputValidator = AlwaysValidValidator,
+    )
+
+    state.recordPhaseTokenUsage("implement", 11, 17)
+    val firstView = state.phaseTokenView
+    state.recordPhaseTokenUsage("review", 5, 9)
+
+    assertEquals(mapOf("implement" to (11 to 17)), firstView)
+    assertEquals(
+      mapOf("implement" to (11 to 17), "review" to (5 to 9)),
+      state.phaseTokenView,
+    )
+  }
+
+  @Test
+  fun `validation settlement owns mutable invalidation state behind read-only snapshots`() {
+    val completed = mutableSetOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE)
+    val invalidated = mutableSetOf<String>()
+    val settlement = ValidationSettlementState(
+      completed = completed,
+      initialRecords = emptyMap(),
+      transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
+      gateInvalidatedPhases = invalidated,
+    )
+
+    completed.clear()
+    invalidated += FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN
+    val completedView = settlement.completed
+    val invalidatedView = settlement.gateInvalidatedPhases
+    settlement.invalidateValidationPhase()
+
+    assertEquals(
+      setOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE),
+      completedView,
+    )
+    assertEquals(emptySet(), invalidatedView)
+    assertEquals(
+      emptySet(),
+      settlement.completed,
+    )
+    assertEquals(
+      setOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE),
+      settlement.gateInvalidatedPhases,
+    )
+  }
+
+  @Test
   fun `legacy blocked audit with loop id only normalizes to pending`() {
     val raw = auditPhaseRecord(
       status = WorkflowStepStatus.BLOCKED,

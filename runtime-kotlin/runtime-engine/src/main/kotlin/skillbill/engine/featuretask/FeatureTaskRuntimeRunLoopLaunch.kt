@@ -135,7 +135,7 @@ object FeatureTaskRuntimeRunLoopLaunch {
       run,
       prepared.briefing,
       outcome,
-      phaseTokenAccumulator,
+      state,
     )
     val fileManifest = when (
       val captured = FeatureTaskRuntimeRunLoopLaunch.buildLaunchFileManifest(phaseGates, run, before)
@@ -310,12 +310,12 @@ object FeatureTaskRuntimeRunLoopLaunch {
     run: PhaseRun,
     briefing: FeatureTaskRuntimePhaseLaunchBriefing,
     outcome: AgentRunLaunchOutcome,
-    phaseTokenAccumulator: MutableMap<String, Pair<Int, Int>>?,
+    state: FeatureTaskRuntimeRunState,
   ) {
-    if (outcome is AgentRunLaunchFacts && phaseTokenAccumulator != null) {
+    if (outcome is AgentRunLaunchFacts) {
       val inputTokens = estimateTokens(briefing.briefingText)
       val outputTokens = estimateTokens(outcome.stdout)
-      phaseTokenAccumulator[run.phaseId] = Pair(inputTokens, outputTokens)
+      state.recordPhaseTokenUsage(run.phaseId, inputTokens, outputTokens)
     }
   }
 

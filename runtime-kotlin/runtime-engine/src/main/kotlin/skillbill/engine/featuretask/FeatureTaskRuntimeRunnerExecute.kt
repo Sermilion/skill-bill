@@ -35,19 +35,19 @@ fun FeatureTaskRuntimeRunner.executePreparedRun(
   }
   val telemetrySessionId = lifecycleTelemetry.started(runRequest)
   val observability = FeatureTaskRuntimeRunObservability(recorder, runRequest, diagnostics)
-  val phaseTokenAccumulator: MutableMap<String, Pair<Int, Int>> = mutableMapOf()
+  val transitions = transitionsFor(runRequest)
+  val state = createExecutePreparedRunState(runRequest, transitions)
   val telemetryContext = buildExecutePreparedRunTelemetryContext(
     runRequest,
     telemetrySessionId,
     reconciliation,
-    phaseTokenAccumulator,
+    state,
   )
-  val transitions = transitionsFor(runRequest)
   val report = runCatching {
-    driveExecutePreparedRunLoop(runRequest, specSource, transitions, observability, phaseTokenAccumulator)
+    driveExecutePreparedRunLoop(runRequest, specSource, transitions, observability, state)
   }.onFailure { error ->
     lifecycleTelemetry.finishedError(
-      telemetryContext.copy(phaseTokenData = { serializeTokenData(phaseTokenAccumulator) }),
+      telemetryContext,
       error,
     )
   }.getOrThrow()

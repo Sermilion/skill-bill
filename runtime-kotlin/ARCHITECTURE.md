@@ -1,242 +1,202 @@
 # Skill Bill Runtime Architecture
 
-This document defines architecture requirements and enforcement boundaries for `runtime-kotlin`.
+This document is the architecture guideline for `runtime-kotlin`. It states
+module boundaries, ownership, and the rules new and changed code must follow.
+
+Feature-specific file inventories, ticket histories, per-class measurements,
+and case-by-case remediation notes do not belong here. The feature-task
+run-loop boundary census is the one architecture contract that stays beside
+its governing principle; the architecture test verifies that production
+source matches its current and retained counts. Other numeric censuses and
+baselines belong to architecture tests. Area `agent/decisions.md` owns why a
+threshold or exception exists. Feature specs own planned work.
+
+Kotlin coding patterns remain in [Code Principles](../docs/code-principles.md).
+Degradation and fallback recording remain in the
+[observability policy](../docs/observability-policy.md). The physical Gradle
+split decision is in
+[gradle-module-split-evaluation.md](../docs/architecture/gradle-module-split-evaluation.md).
 
 ## Design Principles
 
-Apply these principles when designing, implementing, or reviewing runtime changes.
-They are requirements for new and changed code. Existing violations remain tracked
-work, not examples to copy. [SKILL-239](../.feature-specs/done/SKILL-239-runtime-architecture-ownership-and-simplicity/spec.md)
-owns the implementation gaps identified below; publishing this document does not
-mean those fixes or checks have landed. Kotlin coding patterns remain in
-[Code Principles](../docs/code-principles.md).
+Apply these principles when designing, implementing, or reviewing runtime
+changes. They are requirements for new and changed code. Existing violations
+are tracked work, not examples to copy.
 
 ### Dependencies And Responsibilities
 
-Keep domain rules independent of entry frameworks and concrete adapters. Application
-and engine code coordinate use cases through ports; adapters handle filesystem,
-process, HTTP, and SQLite operations. The composition root wires implementations.
-Use the declared module graph and package ownership below rather than introducing
-another layer to satisfy an architecture label.
+Keep domain rules independent of entry frameworks and concrete adapters.
+Application and engine code coordinate use cases through ports. Adapters handle
+filesystem, process, HTTP, and SQLite operations. The composition root wires
+implementations. Use the declared module graph and package ownership below
+rather than introducing another layer to satisfy an architecture label.
 
-A component owns a responsibility whose changes can be understood together. A port
-describes operations its consumer needs, not getters for another object's entire
-dependency graph. An implementation must preserve the port's success, failure,
-cancellation, and transaction semantics so a caller can substitute it without
-changing its assumptions. Extend manifest-driven packs and injected process
-strategies instead of adding identity branches to shared runners.
+A component owns a responsibility whose changes can be understood together. A
+port describes operations its consumer needs, not getters for another object's
+entire dependency graph. An implementation must preserve the port's success,
+failure, cancellation, and transaction semantics so a caller can substitute it
+without changing its assumptions. Extend manifest-driven packs and injected
+process strategies instead of adding identity branches to shared runners.
 
 ### State Ownership
 
 Give each run one owner for coupled state transitions. Expose named transitions
-and read-only results; do not expose mutable collections or session fields to
+and read-only results. Do not expose mutable collections or session fields to
 helper objects. Model mutually exclusive outcomes as alternatives in a closed
 type, not independently nullable reports with accidental precedence.
 
 Pass helpers the facts or capabilities they use. Moving an all-access run-loop
-parameter into a context, callback bag, or role interface does not narrow access.
-Reconstruction from durable records must preserve the same invariants as live
-execution, including retry consumption, checkpoint ownership, and phase order.
+parameter into a context, callback bag, or role interface does not narrow
+access. Reconstruction from durable records must preserve the same invariants
+as live execution, including retry consumption, checkpoint ownership, and phase
+order.
 
-#### Feature-task run-loop helper inputs (SKILL-247 subtask 3)
-
-Investigation F-005 counted 122 `FeatureTaskRuntimeRunLoopContext` extension
-functions across 15 files under `skillbill.engine.featuretask`, backed by a
-17-field `FeatureTaskRuntimeRunLoopContext`. Before narrowing, extension counts
-per helper family in that package were: PlanningBranch 0 (only a context wrapper
-around `runPhase`), Drive 13, ValidationGate 21, AttemptSettlement 13, Review 8,
-PhaseAttempts 4 (carried-forward adjacency). PlanningBranch also duplicated many
-public APIs that differed only by accepting `FeatureTaskRuntimeRunLoop` versus
-narrowed request/state/recorder/session parameters; PhaseRunner and
-ValidationGate exposed companion entry points that took the run loop wholesale.
-
-After narrowing (same census rules): PlanningBranch stays at 0 context extensions;
-`runPhase`, `runPreparedPhase`, `buildPhaseRun`, and `phaseDeclarationForRun` take
-`RunPhaseArgs` and/or `FeatureTaskRuntimeRunLoopContext` without constructing
-`FeatureTaskRuntimeRunLoop`. Drive retains 2 context extensions —
-`invalidateReviewGenerationIfNeeded` and `runPhaseDriveLoop` — because the drive
-orchestrator still owns session transition wiring and the forward phase loop;
-resume, entry-gate, carried-forward review, advance routing, and cap exhaustion
-call sites use object functions with explicit request/state/recorder/session (or
-context passed as a value, not as an all-access receiver). ValidationGate keeps
-context extensions only at the gate-cycle and phase-attempt orchestration seams:
-the gate coordinator's agent-turn callbacks and the generic fix-loop launcher
-still need the launch, activity, diagnostics, clock, transition, and session
-ports together. Build/validation settlement, pack-command routing, and
-repository-checkpoint calculation use explicit arguments. Carried-forward goal
-review settlement uses `CarriedForwardGoalReviewArgs`;
-PhaseRunner and PlanningBranch enter through `context.copy(state, observability,
-phaseTokenAccumulator)` at the phase boundary. AttemptSettlement moves
-`gateOutput` / `settleValidatedOutput` / envelope settlement off the context
-receiver; `GateOutputArgs` and `SettleValidatedOutputArgs` carry the
-request/state/recorder/outputValidator/phaseGates/clock/diagnostics/
-goalContinuationRecorder/phaseSettlementService ports those paths use.
-`settlementContext` on those args remains only for the not-yet-peeled
-audit/checkpoint and accepted-output persistence tail inside
-`settleValidatedOutputAfterFingerprint`; implement-fix repair-receipt settlement
-and commit finalisation now receive their request/state/recorder/goal-recorder/
-diagnostics ports directly. Review
-narrows `prepareRuntimeOwnedReview` to explicit request/recorder/
-goalContinuationRecorder/phaseGates/clock/state parameters; driver execution
-remains on context where launch capture still needs session and phase gates.
-PhaseAttempts keeps `blockAndPersist` context and top-level overloads; governed
-block paths prefer the top-level `blockAndPersist(request, state, recorder,
-goalContinuationRecorder, args)` seam. `FeatureTaskRuntimeRunLoop` exposes only
-`drive()`, `report()`, and `applyOperatorDecision()` publicly; collaborator
-fields are internal to `FeatureTaskRuntimeRunLoopContext`.
-
-The named-family census is now PlanningBranch 0, Drive 2, ValidationGate 9,
-AttemptSettlement 3, Review 6, and PhaseAttempts 4 context extensions, down
-from 0, 13, 21, 13, 8, and 4 respectively. The remaining groups have these
-inputs:
-
-- PlanningBranch pure declarations and cap reasons take request facts, values,
-  recorder reads, or explicit state/session ports; `runPhase` and
-  `runPreparedPhase` retain the phase-boundary context for launch preparation.
-- Drive resume and routing calculations take request/state/recorder/
-  goal-recorder/transition values; carried-forward review takes
-  `CarriedForwardGoalReviewArgs`; only the forward drive loop and review
-  generation invalidation retain context.
-- ValidationGate settlement takes request/state/recorder/goal-recorder,
-  output-validator, phase-gates, observability, and session only for the
-  validation checkpoint lookup; gate-cycle and fix-loop orchestration retains
-  context for the launch callback graph.
-- AttemptSettlement gate output takes `GateOutputArgs`; validated output
-  settlement takes `SettleValidatedOutputArgs`; implement-fix receipt
-  settlement takes request/state/recorder/goal-recorder/diagnostics; the
-  audit/checkpoint and accepted-output persistence tail retains
-  `settlementContext`.
-- Review preparation takes request/recorder/goal-recorder/phase-gates/clock/
-  state; review driver execution and its worktree checkpoint retain context
-  for session and phase-gate ownership.
-- PhaseAttempts exposes top-level block/pause seams with request/state/
-  recorder/goal-recorder/observability arguments; its context overloads remain
-  only for the generic attempt-loop adjacency.
-
+Feature-task run-loop helpers take request, state, recorder, goal-recorder,
+diagnostics, clock, or session as explicit parameters. Context extensions remain
+only where an orchestration seam still needs launch, session, and phase-gate
+ports together: the forward drive loop, review-generation invalidation, launch
+capture, gate-cycle and fix-loop orchestration, and review driver execution. An
+architecture test owns the per-file extension census and fails when it grows.
 New helpers must not reintroduce run-loop or context-all-access parameters when
-a narrowed overload already exists; retained broad inputs require a concrete,
-current orchestration requirement documented here or in the owning area
-`agent/decisions.md`.
+a narrowed overload already exists.
+
+The SKILL-352 run-loop census is the contract for that architecture test. Counts
+are `FeatureTaskRuntimeRunLoopContext.` receiver extensions in production
+`FeatureTaskRuntimeRunLoop*.kt` files; the target is the retained count after
+the boundary refactor.
+
+| File | Current | Target |
+| --- | ---: | ---: |
+| `FeatureTaskRuntimeRunLoopAttemptSettlement.kt` | 4 | 4 |
+| `FeatureTaskRuntimeRunLoopAuditRetry.kt` | 3 | 0 |
+| `FeatureTaskRuntimeRunLoopBackwardEdge.kt` | 6 | 0 |
+| `FeatureTaskRuntimeRunLoopCheckpoint.kt` | 10 | 0 |
+| `FeatureTaskRuntimeRunLoopCheckpointRemediation.kt` | 12 | 0 |
+| `FeatureTaskRuntimeRunLoopDrive.kt` | 2 | 2 |
+| `FeatureTaskRuntimeRunLoop.kt` | 0 | 0 |
+| `FeatureTaskRuntimeRunLoopLaunch.kt` | 6 | 2 |
+| `FeatureTaskRuntimeRunLoopModels.kt` | 0 | 0 |
+| `FeatureTaskRuntimeRunLoopOutputPersistence.kt` | 7 | 0 |
+| `FeatureTaskRuntimeRunLoopOutputVerification.kt` | 5 | 0 |
+| `FeatureTaskRuntimeRunLoopPhaseAttempts.kt` | 4 | 4 |
+| `FeatureTaskRuntimeRunLoopPhaseRunner.kt` | 0 | 0 |
+| `FeatureTaskRuntimeRunLoopPlanningBranch.kt` | 0 | 0 |
+| `FeatureTaskRuntimeRunLoopRecordRejection.kt` | 5 | 0 |
+| `FeatureTaskRuntimeRunLoopRepairReceipt.kt` | 3 | 0 |
+| `FeatureTaskRuntimeRunLoopReview.kt` | 6 | 6 |
+| `FeatureTaskRuntimeRunLoopSession.kt` | 0 | 0 |
+| `FeatureTaskRuntimeRunLoopSharedArgs.kt` | 0 | 0 |
+| `FeatureTaskRuntimeRunLoopSubtaskCommit.kt` | 0 | 0 |
+| `FeatureTaskRuntimeRunLoopTransitions.kt` | 3 | 0 |
+| `FeatureTaskRuntimeRunLoopValidationGate.kt` | 9 | 9 |
+| **Total** | **85** | **27** |
 
 ### Resource Lifetime And Failure
 
 Successful acquisition immediately establishes one cleanup owner for a child
-process, stream, drain, endpoint, or lease. Every exit goes through that owner's
-cleanup, including callback exceptions and cancellation. A shutdown hook is a
-last resort, not the normal release path. Only terminate resources the invocation
-owns, with the existing identity and fencing checks.
+process, stream, drain, endpoint, or lease. Every exit goes through that
+owner's cleanup, including callback exceptions and cancellation. A shutdown
+hook is a last resort, not the normal release path. Only terminate resources
+the invocation owns, with the existing identity and fencing checks.
 
-Bound cleanup and drain settlement. Do not publish mutable or incomplete capture
-as settled evidence. Preserve the primary failure if teardown also fails, retain
-cancellation signals, and record secondary failures through an independent,
-bounded diagnostic path. Follow the [observability policy](../docs/observability-policy.md)
-for degradation and fallback; failure must not silently become normal absence.
+Bound cleanup and drain settlement. Do not publish mutable or incomplete
+capture as settled evidence. Preserve the primary failure if teardown also
+fails, retain cancellation signals, and record secondary failures through an
+independent, bounded diagnostic path. Follow the observability policy for
+degradation and fallback. Failure must not silently become normal absence.
+
+SQLite write and read sessions share one rollback owner after a failed body or
+commit. The primary failure still throws. A failed rollback attaches as a
+suppressed exception. Process runners always release the run-local lifetime in
+`finally`, keep interruption as the primary failure, and bound destroy and
+drain joins. Git and installer child processes register handles before any
+blocking wait, cover wait and settlement with one operation deadline, and use a
+separate cleanup budget after failure. Fetch never executes a partial installer
+script.
 
 ### Durable State And Projections
 
 Name the authoritative store and the transaction owner for each mutation. Keep
-related database changes atomic. SQLite and a filesystem projection do not share
-a transaction: distinguish committed state from projection success or failure.
-Regenerate a failed projection from authoritative state without replaying an
-already committed workflow mutation.
+related database changes atomic. SQLite and a filesystem projection do not
+share a transaction: distinguish committed state from projection success or
+failure. Regenerate a failed projection from authoritative state without
+replaying an already committed workflow mutation.
 
-Keep absent, completed, and failed operations distinguishable in boundary results.
-An adapter callback inside a transaction must preserve that transaction's snapshot
-and ownership. Do not move it outside merely to simplify a dependency diagram.
+Keep absent, completed, and failed operations distinguishable in boundary
+results. An adapter callback inside a transaction must preserve that
+transaction's snapshot and ownership. Do not move it outside merely to simplify
+a dependency diagram.
 
 ### Database Readiness And Routine Work
 
 Separate database readiness from opening a connection for ordinary work. Once
-readiness succeeds, routine writes must not rerun historical backfills or full-table
-repair scans. Keep required connection setup and the requested transaction.
+readiness succeeds, routine writes must not rerun historical backfills or
+full-table repair scans. Keep required connection setup and the requested
+transaction.
 
 Failed initialization must not publish readiness. Concurrent initialization,
-database replacement at the same path, and explicit reset must preserve recovery.
-Run compatibility repair at a documented initialization or recovery boundary;
-do not remove required repair or cache success forever by pathname alone.
-Measure repeated work before adding a cache, connection pool, or replacement library.
-
-`DatabaseWriteReadinessGate` compares the `DatabaseIdentity` snapshot already read
-for each cache decision (`DatabaseIdentity.matches`) instead of rereading the file
-and `PRAGMA user_version` through `matchesFile`. The synchronized initialization
-path still performs a second identity observation after acquiring the lock.
-`DatabaseWriteReadinessTest` asserts the warm-cache path performs one identity read
-per `ensureReady` call.
+database replacement at the same path, and explicit reset must preserve
+recovery. Run compatibility repair at a documented initialization or recovery
+boundary. Do not remove required repair or cache success forever by pathname
+alone. Measure repeated work before adding a cache, connection pool, or
+replacement library. A warm-cache readiness decision uses the identity snapshot
+already read for that call.
 
 ### Contract Ownership And Enforcement
 
-Canonical schemas own wire shape. Kotlin contract owners declare keys and versions;
-consumers reference those declarations. Keep open extension payloads distinct from
-governed envelopes. Type state whose invariants need compiler protection without
-closing manifest-authored extension vocabularies.
+Canonical schemas own wire shape. Kotlin contract owners declare keys and
+versions. Consumers reference those declarations. Keep open extension payloads
+distinct from governed envelopes. Type state whose invariants need compiler
+protection without closing manifest-authored extension vocabularies.
 
 A check for missing key ownership needs authority independent of existing key
 declarations. A key absent from the owner inventory must not escape enforcement
 because the scanner only searches that inventory. Test newly introduced schema
-fields and undeclared literals, as well as valid references and allowed extensions.
-State exactly which boundaries a scanner covers.
+fields and undeclared literals, as well as valid references and allowed
+extensions. State exactly which boundaries a scanner covers.
 
 ### Simplicity And Change Cost
 
-Keep an abstraction only when a current consumer, adapter boundary, or useful test
-substitute needs it. One production adapter can justify a hexagonal port. Repeating
-its dependencies in a same-module interface and implementation usually cannot.
-Delete dead helpers and pure forwarding layers before adding another abstraction.
+Keep an abstraction only when a current consumer, adapter boundary, or useful
+test substitute needs it. One production adapter can justify a hexagonal port.
+Repeating its dependencies in a same-module interface and implementation
+usually cannot. Delete dead helpers and pure forwarding layers before adding
+another abstraction.
 
 Use the existing modules and tooling unless a concrete requirement justifies a
-change. Do not add speculative extensibility, a generic workflow framework, or a
-blanket identifier-wrapper migration. Required schema validation, typed failures,
-compatibility recovery, lease fencing, and durable evidence remain requirements.
+change. Do not add speculative extensibility, a generic workflow framework, or
+a blanket identifier-wrapper migration. Required schema validation, typed
+failures, compatibility recovery, lease fencing, and durable evidence remain
+requirements.
 
-File size and constructor arity are signals, not definitions of cohesion. Do not
-split by count, merge unrelated responsibilities, or hide dependencies in bags to
-satisfy a threshold. Numeric limits and exemptions belong to their existing
-enforcement owners, not another handwritten table in this document.
+File size and constructor arity are signals, not definitions of cohesion. Do
+not split by count, merge unrelated responsibilities, or hide dependencies in
+bags to satisfy a threshold. Numeric limits and exemptions belong to their
+existing enforcement owners, not another handwritten table in this document.
 
 ### Tests And Evidence
 
-Before adding a test, name the concrete regression it catches. Prefer observable
-boundaries: a child is gone after failure, a write rolls back, a projection recovers,
-or resumed execution agrees with durable state. Exercise a scanner through its
-real entry point instead of reproducing its algorithm in a test.
+Before adding a test, name the concrete regression it catches. Prefer
+observable boundaries: a child is gone after failure, a write rolls back, a
+projection recovers, or resumed execution agrees with durable state. Exercise a
+scanner through its real entry point instead of reproducing its algorithm in a
+test.
 
-Keep schema, compatibility, transaction, and lease tests. Remove assertions that
-only pin incidental prose, trivial forwarding, or implementation structure without
-protecting a contract. Do not pin exact SQL counts or use timing assertions where
-the required property is absence of repeated maintenance.
+Keep schema, compatibility, transaction, and lease tests. Remove assertions
+that only pin incidental prose, trivial forwarding, or implementation structure
+without protecting a contract. Do not pin exact SQL counts or use timing
+assertions where the required property is absence of repeated maintenance.
 
-### Enforcement Status
+### Enforcement
 
-Review applies these requirements now. Mechanical checks prove only their tested
-scope. Keep the existing enforcement inventory and baselines as the record of
-implemented checks and tolerated debt; do not expand an exemption to make a change
-pass. Documentation must distinguish current enforcement from planned coverage.
+Review applies these requirements now. Mechanical checks prove only their
+tested scope. Keep the existing enforcement inventory and baselines as the
+record of implemented checks and tolerated debt. Do not expand an exemption to
+make a change pass. Documentation must distinguish current enforcement from
+planned coverage. Neither a green source scan nor an archived spec establishes
+universal compliance with Clean Architecture, SOLID, or YAGNI.
 
-| Requirement with an identified gap | Implementation owner |
-| --- | --- |
-| Cleanup after callback failure and incomplete drain settlement | SKILL-239 subtask 1 |
-| Database readiness and explicit projection outcomes | SKILL-239 subtask 2 — `:runtime-infra-sqlite` write-readiness gate keyed by `PRAGMA user_version` plus stable file identity; decomposition manifest projection outcomes (`absent` / `written` / `failed`) with projection-only retry |
-| Run-loop state ownership, narrow helper inputs, and engine cycle removal | SKILL-239 subtask 3 — `ApplicationPackageAcyclicityArchitectureTest` applies the per-module shrink-only package-cycle baselines; the `runtime-engine-package-cycle-baseline.txt` baseline is empty |
-| Independent wire-key coverage and truthful architecture documentation | SKILL-239 subtask 4 plus SKILL-351 subtask 2 — `WireVocabularyGovernedSeamInventory` loads decomposition-manifest, bundle-journal, and workflow phase-output envelope fields from canonical schema YAML and independently declares the goal-continuation artifact vocabulary; `WireVocabularyArchitectureSupport` fails schema fields without `*Keys` owners independently of the declaration scan, and literal payload-key accesses only inside declared path markers for those seams; `DecompositionManifestPayloadKeys`, `FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys`, plus `SharedPayloadKeys.DERIVED_NOTES`; `RuntimeArchitectureDocumentationTest` no longer bans incidental English phrases |
-| Redundant role interfaces and application forwarders | SKILL-238 |
-
-The owning subtask updates this status with the checks that actually landed.
-Neither a green source scan nor an archived spec establishes universal compliance
-with Clean Architecture, SOLID, or YAGNI.
-
-## DB-first feature-task continuation
-
-Feature-task continuation is repository-scoped and database-authoritative. At workflow creation, an immutable identity row binds the workflow id to a normalized issue key, canonical real-path Git-root identity, repository-relative governed spec path, persisted mode, and standalone/goal-child route scope. Read-only lookup never chooses among multiple eligible rows by timestamp.
-
-The feature `spec.md` remains the governed product contract; it is not a mutable workflow ledger. A sibling `decomposition-manifest.yaml` is the sole prepared-feature authority marker and always contains one or more executable subtasks; a bare `spec.md` is preparation intake. Continuation lookup remains authoritative and precedes artifact discovery. Pre-planning, planning, phase outputs, and the phase ledger remain durable database artifacts. Initial implementation continuation is hydrated from the completed `plan`. Audit is stateless: every invocation receives the complete planned acceptance-criteria list, inspects implementation and meaningful test coverage, runs up to three repair cycles in the same agent session, re-checks the full list after each cycle, and emits only terminal completion (`satisfied`) or an ordinary blocked/failed outcome with `failure_disposition` and no verdict. Remaining-criteria text that is not an explicit empty list names each leftover criterion and why it could not be fixed; the runtime does not validate that shape. That text starts a fresh audit session as a focus hint; `scoped_owned_paths` is checkpoint evidence, not a write allowlist, and files audit writes are checkpointed into the next round. The same remaining list as the prior session blocks rather than looping. Audit performs no audit-specific persistence, does not route to `implement`, and does not hand findings to downstream phases. Audit launch briefings and delivered projections stay in memory. Readers ignore retired audit briefing and projection entries before decoding their contents. No audit delivery measurements or completion fingerprints are persisted. Each resumed invocation starts a fresh process-failure budget while retaining ordinary attempt attribution. Criterion rendering preserves existing identifiers and never excludes previously checked criteria. Legacy `gaps_found` records, inner gap payloads, and `audit_gap` loop markers are normalized in memory on resume and status reconstruction through `normalizeForStatelessAudit` before run-state, status, budget, and continuation derivation without writing compatibility state. Fresh databases do not create audit-generation storage. Historical databases may retain migration version 23 and its audit-generation table; stateless audit does not read or write that legacy storage. Lifecycle telemetry never reads or writes audit-gap counters. Retired `prior_gap_memory` handoff sources loud-fail at parse and envelope validation; `FeatureTaskRuntimePriorGapMemory.fromMap` and audit-gap artifact decoders stay decode-only for legacy rows with no active writers or downstream projections. Review remediation is a single bounded round: `review` runs once, `changes_requested` may launch one `implement_fix` pass (`review_fix` cap 1, then advance to `validate`), and review does not run again after that fix.
-
-Decomposed goals execute discovery and preplan once at the parent, then persist a distinct immutable plan checkpoint for each ordered subtask. Normalized checkpoint tables are the continuation authority. Status reads only bounded fields: shared-preplan readiness, planned and total counts, first missing subtask, and a concise reason. Resume reuses compatible checkpoints; hard reset atomically invalidates planning and child continuation state.
-
-Child creation hydrates the shared preplan and child's plan as completed dependencies with goal-planning provenance. They add no child execution duration, tokens, or agent attribution. Standalone feature-task workflows retain directly executed and attributed preplan and plan phases.
-
-Runtime worker ownership is mutable state kept separately from immutable execution identity. A worker lease records a random owner token, monotonic fencing generation, host and boot identity, PID plus process-birth evidence, heartbeat/expiry, and the incomplete phase attempt. Every heartbeat, phase write, takeover reservation, transfer, and release must match both token and generation. Process liveness is exact only when host, boot, PID, and birth evidence agree; unverifiable or mismatched ownership must fail loudly instead of terminating a process or creating a replacement workflow. Confirmed takeover first reserves ownership with compare-and-set, then requests graceful shutdown and escalates only if the same process identity remains live.
-
-A non-terminal row orphaned by a killed child process self-heals: when its worker lease has expired and the injected supervisor confirms the process dead (only `NotRunning`; a live process, an active lease, or ambiguous evidence is left untouched), the row transitions to the resumable `pending` state at its existing step and the lease is released under owner-token/generation fencing. The pass runs unconditionally at runner startup and in the goal parent's child-supervision seam, before the resume point is resolved, and is idempotent and concurrent-safe through the lease machinery. Manual lease clearing and out-of-band row deletion remain the corruption fallback only.
+## Runtime Graph
 
 The runtime uses a hexagonal JVM graph with entry adapters at the outside,
 application use cases in the orchestration layer, ports as the dependency
@@ -261,96 +221,100 @@ runtime-core
   -> application services, engine services, ports, domain, and concrete adapters for DI wiring
 ```
 
+## Feature-Task Continuation
+
+Feature-task continuation is repository-scoped and database-authoritative. At
+workflow creation, an immutable identity row binds the workflow id to a
+normalized issue key, canonical real-path Git-root identity, repository-relative
+governed spec path, persisted mode, and standalone or goal-child route scope.
+Read-only lookup never chooses among multiple eligible rows by timestamp.
+
+The feature `spec.md` remains the governed product contract. It is not a
+mutable workflow ledger. A sibling `decomposition-manifest.yaml` is the sole
+prepared-feature authority marker and always contains one or more executable
+subtasks. A bare `spec.md` is preparation intake. Continuation lookup remains
+authoritative and precedes artifact discovery. Pre-planning, planning, phase
+outputs, and the phase ledger remain durable database artifacts.
+
+Audit is stateless. Every invocation receives the complete planned
+acceptance-criteria list, inspects implementation and meaningful test coverage,
+repairs fixable gaps in the same agent session, re-checks the full list, and
+emits only terminal completion or an ordinary blocked or failed outcome. Audit
+performs no audit-specific persistence, does not route to `implement`, and does
+not hand findings to downstream phases. Review remediation is a single bounded
+round: `review` runs once, `changes_requested` may launch one `implement_fix`
+pass, then the run advances to `validate`.
+
+Decomposed goals execute discovery and preplan once at the parent, then persist
+a distinct immutable plan checkpoint for each ordered subtask. Normalized
+checkpoint tables are the continuation authority. Resume reuses compatible
+checkpoints. Hard reset atomically invalidates planning and child continuation
+state. Child creation hydrates the shared preplan and child's plan as completed
+dependencies with goal-planning provenance. They add no child execution
+duration, tokens, or agent attribution.
+
+Runtime worker ownership is mutable state kept separately from immutable
+execution identity. A worker lease records a random owner token, monotonic
+fencing generation, host and boot identity, PID plus process-birth evidence,
+heartbeat and expiry, and the incomplete phase attempt. Every heartbeat, phase
+write, takeover reservation, transfer, and release must match both token and
+generation. Process liveness is exact only when host, boot, PID, and birth
+evidence agree. A non-terminal row orphaned by a killed child process
+self-heals when its lease has expired and the supervisor confirms the process
+dead. The pass runs at runner startup and in the goal parent's child-supervision
+seam.
+
+`bill-feature-task` is the public workflow identity for the runtime-backed
+feature-task engine. Feature-verify remains a distinct workflow family and
+store. Persisted rows use `workflow_name=bill-feature-task` and `mode=runtime`.
+Engine continuation dispatch uses
+`WorkflowDefinition.usesFeatureTaskRuntimeContinuation` rather than importing
+the feature-task runtime workflow definition.
+
 ## Gradle Modules
 
-- `runtime-contracts`: contract DTOs, JSON/ordered-map helpers, runtime surface
-  contracts, `*SchemaPaths` constants, `*_CONTRACT_VERSION` constants, and the
-  `skillbill.error` runtime exception taxonomy. It no longer owns the JSON-Schema
-  validators or their schema-resource copy tasks; those moved to
-  `runtime-infra-fs` (see below). It also owns `skillbill.contracts.time.JvmSystemClock`,
-  the single ambient wall-clock seam (UTC default zone, millisecond precision, and live
-  JDK-clock delegation in `instant()` and `withZone`), which
-  cannot live in `runtime-domain` because domain effect purity forbids ambient time reads.
-  `skillbill.error.FeatureTaskRuntimePhaseOutputFailureCode` owns the eleven
-  phase-output failure wire tokens and their coarse `FeatureTaskRuntimePhaseOutputFailureKind`
-  mapping; `coarseFailureKindForPhaseOutputWireCode` delegates to that enum.
-- `runtime-domain`: pure agent-add-on, learning, review, telemetry, workflow,
-  install-plan, scaffold, and skill-remove models/rules. Public domain data
-  types live in area-owned `model` packages, including the
-  `skillbill.model.FileLocation` value type that carries repo paths through domain
-  and port signatures without a `java.nio` dependency.
+- `runtime-contracts`: contract DTOs, JSON and ordered-map helpers, runtime
+  surface contracts, `*SchemaPaths` constants, `*_CONTRACT_VERSION` constants,
+  and the `skillbill.error` runtime exception taxonomy. It no longer owns the
+  JSON-Schema validators or their schema-resource copy tasks. Those moved to
+  `runtime-infra-fs`. It also owns the single ambient wall-clock seam, which
+  cannot live in `runtime-domain` because domain effect purity forbids ambient
+  time reads.
+- `runtime-domain`: pure models and rules for agent-add-on, learning, review,
+  telemetry, workflow, install-plan, scaffold, and skill-remove. Public domain
+  data types live in area-owned `model` packages.
 - `runtime-ports`: `skillbill.model.RuntimeContext`, persistence sessions,
   repositories, gateway interfaces, telemetry port interfaces, workflow git
-  operations, decomposition-manifest file-store ports, port-owned model types,
-  the `skillbill.model.toPath` and `skillbill.ports.repository.toFileLocation` bridges that adapters use to turn
-  a `FileLocation` into a `java.nio.file.Path`, and shared payload projection for
-  boundary events that must be consumed by both application and infrastructure
-  adapters.
-- `runtime-application`: CLI/MCP/shared use cases outside the engine run loop,
-  workflow orchestration, telemetry lifecycle orchestration,
-  presenter-to-contract mapping, and validated decomposition-manifest file/artifact projection through workflow ports.
+  operations, decomposition-manifest file-store ports, and shared payload
+  projection for boundary events that both application and infrastructure
+  consume.
+- `runtime-application`: CLI, MCP, and shared use cases outside the engine run
+  loop, workflow orchestration, telemetry lifecycle orchestration,
+  presenter-to-contract mapping, and validated decomposition-manifest file and
+  artifact projection through workflow ports.
 - `runtime-engine`: feature-task run loop, goal runner, goal planning, and
   planning projection use cases. It depends on `runtime-application` for the
   shared services those loops call today and exposes a pinned inbound API
   through `RuntimeComponent`.
-- `runtime-infra-sqlite`: SQLite schema, migrations, connection/session
+- `runtime-infra-sqlite`: SQLite schema, migrations, connection and session
   behavior, SQL-backed repositories, review persistence, review stats, and
   telemetry outbox persistence.
-- `runtime-infra-http`: telemetry HTTP client/requester implementation and
+- `runtime-infra-http`: telemetry HTTP client and requester implementation and
   telemetry proxy payload mapping.
-- `runtime-infra-fs`: filesystem and process adapters for telemetry config,
-  install plan/apply, install staging, governed scaffold/load/render,
-  repo validation, native-agent rendering/linking, launcher MCP registration,
-  git workflow operations, decomposition-manifest file storage, and
-  skill-remove filesystem cascades. The injected `FileSystemAgentRunLauncher`
-  constructor takes the composition-selected `ExecutableLookup` (explicit
-  callback override, else default PATH discovery); availability policy is not a
-  process sandbox. It also owns the concrete JSON-Schema
-  validators (`AgentAddonSchemaValidator`, `InstallPlanSchemaValidator`,
-  `WorkflowStateSchemaValidator`, `DecompositionManifestSchemaValidator`,
-  and the `DecompositionManifestCoherenceValidator`) plus their schema-resource
-  copy tasks (`copyInstallPlanSchema`, `copyWorkflowStateSchema`,
-  `copyDecompositionManifestSchema`, `copyDecompositionManifestBundleJournalSchema`),
-  reached only through domain-neutral ports.
-- `runtime-core`: Kotlin-Inject component definitions and DI
-  providers. It may know concrete adapters only inside composition code.
-  `runtime-core` publishes only the generated Kotlin-Inject ABI edges that its
-  public `RuntimeComponent` exposes today: `runtime-application` service types,
-  the pinned `runtime-engine` inbound API, and `runtime-ports` context/port types.
-  It does not publish `runtime-domain`, `runtime-contracts`, or concrete
-  infrastructure modules as API dependencies. Because those generated service,
-  engine, and port types have their own public signatures, the transitive public
-  ABI closure is currently runtime-application, runtime-engine, runtime-ports,
-  runtime-domain, and runtime-contracts; that closure is tested and must not grow
-  into infrastructure or entrypoint modules.
-  Downstream entry adapters and tests still declare the modules they use
-  directly instead of treating `runtime-core` as a broad dependency umbrella.
-  If Kotlin-Inject ever requires another generated ABI edge to be public, the
-  exact edge and generated type must be documented here and mirrored by an
-  architecture test. SKILL-52.2 subtask 5 adds
-  `RuntimeCoreCompositionOnlyTest` as a no-regression guard: the exact
-  `api(project(...))` and `implementation(project(...))` edge sets on
-  `runtime-core/build.gradle.kts` are pinned, and the test fails if any
-  infrastructure (`runtime-infra-*`) or entrypoint (`runtime-cli`, `runtime-mcp`)
-  module ever appears as `api(...)`.
+- `runtime-infra-fs`: filesystem and process adapters, plus the concrete
+  JSON-Schema validators and their schema-resource copy tasks, reached only
+  through domain-neutral ports. It also owns the concrete JSON-Schema
+  validators.
+- `runtime-core`: Kotlin-Inject component definitions and DI providers. It may
+  know concrete adapters only inside composition code. It publishes only the
+  generated ABI edges that public `RuntimeComponent` exposes:
+  `runtime-application` service types, the pinned `runtime-engine` inbound API,
+  and `runtime-ports` context and port types. Downstream entry adapters and
+  tests declare the modules they use directly.
 - `runtime-cli`: Clikt command tree, option validation, terminal rendering,
   JSON output, help, completion surfaces, and CLI runtime context creation.
-  SKILL-52.2 subtask 5 narrows the main-source project dependency allow-list to
-  `runtime-application`, `runtime-contracts`, `runtime-core`, `runtime-domain`,
-  and `runtime-ports`. `runtime-infra-fs` and `runtime-infra-http` are dropped
-  — runtime-cli has no concrete `skillbill.infrastructure.*` imports outside
-  test sources; the infrastructure adapters are resolved through
-  `RuntimeComponent` (kotlin-inject). The allow-list is enforced by
-  `RuntimeAdapterDependencyAllowlistTest`.
 - `runtime-mcp`: MCP adapter surface, MCP-specific payload shaping, stdio
   server, MCP telemetry schema validation, and MCP runtime context creation.
-  SKILL-52.2 subtask 5 narrows the main-source project dependency allow-list to
-  `runtime-application`, `runtime-contracts`, `runtime-core`, `runtime-domain`,
-  and `runtime-ports`. `runtime-infra-fs` and `runtime-infra-http` are dropped
-  — runtime-mcp has no concrete `skillbill.infrastructure.*` imports outside
-  test sources; the infrastructure adapters are resolved through
-  `RuntimeComponent`. The allow-list is enforced by
-  `RuntimeAdapterDependencyAllowlistTest`.
 
 The Gradle module set is:
 
@@ -372,295 +336,70 @@ runtime-ports
 
 - `skillbill`: runtime metadata that is safe for all runtime modules to read.
 - `skillbill.di`: Kotlin-Inject composition root, owned by `runtime-core`.
-  `RuntimeComponent` mixes in one `Runtime<Area>Provides` interface per area
-  (install, telemetry, goal planning, goal runner, review, feature task,
-  workflow, validators, scaffold, diagnostics); an area with more than ten
-  provides splits by its own sub-area (`RuntimeFeatureSpecProvides`,
-  `RuntimeReviewAddonCatalogProvides`, `RuntimeScaffoldValidationProvides`,
-  `RuntimeGoalPlanningSweepProvides`), never by pairing two areas. Each
-  `@Provides` is declared once, and `RuntimeBootstrapBindings` holds only the
-  ambient construction seam. The logical service surface is the pinned abstract
-  property set on `RuntimeComponent`; `@Provides` methods (including
-  `@JvmSynthetic` generated parent wiring such as `runtimeContext` and
-  `databaseSessionFactory`) are the integration surface and are not duplicated
-  in a second signature table. Any other public function on `RuntimeComponent`
-  or a `Runtime*Provides` mixin is rejected even when abstract properties are
-  unchanged. `RuntimeComponent` memoizes the first
-  `RuntimeBootstrapBindings.runtimeContext` result for the component instance;
-  later `runtimeContext()` calls and generated CLI or MCP parent access reuse that
-  snapshot, so database, telemetry config, and transport requester selection
-  cannot drift when ambient `user.home` or PATH changes mid-invocation. A new
-  component may resolve fresh ambient facts; there is no process-global context
-  cache.
+  `RuntimeComponent` is the logical service surface. `@Provides` methods are
+  the integration surface and are not duplicated in a second signature table.
+  The component memoizes the first resolved `RuntimeContext` for its instance
+  so database, telemetry config, and transport requester selection cannot drift
+  mid-invocation.
 - `skillbill.application`: use cases, workflow orchestration, lifecycle
   telemetry orchestration, repository-port coordination, and application-owned
-  mappers. Public inputs and results live in area-owned `skillbill.application.<area>.model` packages.
-- area-owned `skillbill.application.<area>.model` packages: public application input/result models.
+  mappers. Public inputs and results live in area-owned
+  `skillbill.application.<area>.model` packages.
 - `skillbill.model`: shared runtime model types that are not owned by a
-  narrower area: `RuntimeContext`, `EnvironmentContext`, `TransportContext`,
-  `WorkflowOpsContext`, `OptionalCallbacks`, and `RepositoryRoot`.
-- `skillbill.config.*`: repo-local configuration domain models and resolution
+  narrower area, including `RuntimeContext`.
+- `skillbill.config`: repo-local configuration domain models and resolution
   policy owned by `runtime-domain`.
-- `skillbill.ports.*`: port contracts for persistence, install, scaffold,
+- `skillbill.ports`: port contracts for persistence, install, scaffold,
   validation, telemetry, workflow git operations, and decomposition-manifest
-  file storage. Public port DTOs and results live in
-  `skillbill.ports.*.model`; shared adapter-facing payload projection may live
-  there when both application and infrastructure need the same boundary
-  contract.
-- `skillbill.contracts.*`: contract DTOs, JSON helpers, runtime surface
+  file storage. Public port DTOs live in `skillbill.ports.*.model`.
+- `skillbill.contracts`: contract DTOs, JSON helpers, runtime surface
   contracts, `*SchemaPaths` constants, and `*_CONTRACT_VERSION` constants.
-  Three packaged YAML resources are copied into this module at build time and
-  validated with lightweight SnakeYAML document reads (not a generic schema
-  engine): `goal-verification-boundary-caps.yaml`, `goal-planning-discovery-exclusions.yaml`,
-  and `issue-key-schema.yaml`. Kotlin loaders enforce the same numeric bounds and
-  `uniqueItems` rules as the canonical schemas; `JsonCodec` exposes strict array
-  parsing for callers that must distinguish malformed text, wrong roots, and empty
-  arrays, while tolerant object probes remain for optional external text. Numeric
-  conversion preserves exact `BigInteger`/`BigDecimal` values; unsupported map keys
-  and value types fail explicitly. Telemetry and update-check callers choose failure
-  or bounded degradation when durable JSON arrays are corrupt.
-  Mapping from application/domain/port models into contract DTOs belongs in
-  application or adapter-owned packages. This package spans two modules: the
-  DTOs, helpers, and constants compile in `runtime-contracts`, and the schema
-  validator classes compile into `runtime-infra-fs` under
-  `skillbill.infrastructure.fs.contracts` and its subpackages
-  (`SchemaValidatorLocale`, `install.InstallPlanSchemaValidator`,
-  `review.ReviewContextSchemaValidator` and `ReviewContextSchemaLocator`, and
-  the workflow, feature-task, goal, and decomposition schema validators plus
-  validator-only helpers such as `IssueKeySchemaRefInlining`). Phase-output
-  structural repair and strict parsing live in `skillbill.infrastructure.fs.phaseoutput`,
-  not under `skillbill.infrastructure.fs.contracts`, because they are
-  adapter-owned parse/repair engines rather than schema validators.
+  Mapping from application, domain, or port models into contract DTOs belongs
+  in application or adapter-owned packages. Schema validator classes compile
+  into `runtime-infra-fs`.
 - `skillbill.error`: runtime exception taxonomy.
-- `skillbill.agent.model`: phase handoff string envelopes for agent phase input and output owned by `runtime-domain`.
-- `skillbill.agentaddon` and `skillbill.agentaddon.model`: governed agent-add-on
-  filesystem discovery and schema validation owned by `runtime-infra-fs`, plus
-  typed declaration models owned by `runtime-domain`.
-- `skillbill.workflow.engine` and `skillbill.workflow.engine.model`: workflow
-  engine, snapshot codec, continuation assembly, and engine models owned by
+- `skillbill.agent.model`: phase handoff string envelopes owned by
   `runtime-domain`.
-- `skillbill.workflow.decomposition` and
-  `skillbill.workflow.decomposition.model`: decomposition manifest codec,
-  wire-map conversion, and decomposition models owned by `runtime-domain`.
-- `skillbill.workflow.goal` and `skillbill.workflow.goal.model`: goal
-  observability, progress events, subtask review artifacts, and goal models
-  owned by `runtime-domain`.
-- `skillbill.workflow.taskruntime` and
-  `skillbill.workflow.taskruntime.model`: feature-task runtime phase workflow,
-  handoff projections, phase records, and taskruntime models owned by
+- `skillbill.agentaddon`: governed agent-add-on filesystem discovery and schema
+  validation owned by `runtime-infra-fs`, plus typed declaration models owned
+  by `runtime-domain`.
+- `skillbill.workflow`: workflow engine, decomposition, goal, task-runtime,
+  IDE status, and spec-source models and rules owned by `runtime-domain`.
+- `skillbill.workflow.verify`: Feature Verify workflow definition owned by
   `runtime-domain`.
-- `skillbill.workflow.idestatus`: IDE status validation owned by
+- `skillbill.goalrunner`: pure goal-runner liveness policy, worker-subtask
+  parsing, status projection, accounting, and attempt-ledger models owned by
   `runtime-domain`.
-- `skillbill.workflow.specsource`: spec-source reading owned by
-  `runtime-domain`.
-- `skillbill.workflow.verify`: Feature Verify workflow definition
-  (`FeatureVerifyWorkflowDefinition`) owned by `runtime-domain`.
-- `skillbill.goalrunner` and `skillbill.goalrunner.model`: pure goal-runner
-  liveness policy, worker-subtask parsing, status projection, accounting, and
-  attempt-ledger models owned by `runtime-domain`.
-- `skillbill.idestatus` and `skillbill.idestatus.model`: agent activity label
-  and stamp types for IDE status presentation owned by `runtime-domain`.
+- `skillbill.idestatus`: agent activity label and stamp types for IDE status
+  presentation owned by `runtime-domain`.
 - `skillbill.engine`: feature-task run loop, goal runner, goal planning, and
   planning projection use cases owned by `runtime-engine`.
-
-### Goal-runner execution lifetime (`DefaultGoalRunnerExecutionCoordinator`)
-
-Owned foreground goal runs acquire the parent execution lease first, then start
-the worker heartbeat and register the shutdown hook. Heartbeat start failure
-after a successful acquire releases the exact acquired owner token and
-generation before the goal body runs. Shutdown-hook registration failure stops
-the heartbeat and releases the lease before surfacing the registration error.
-
-Teardown runs in order: unregister the shutdown hook, stop the heartbeat, release
-the execution lease. Each step uses `runCatching` so a secondary failure does
-not skip later cleanup. A goal-body or cancellation failure remains primary;
-secondary teardown failures attach as suppressed exceptions. A body that
-completed normally still fails the run when required teardown fails.
-
-`GoalRunnerProgressEventEmitter` and `GoalRunnerProgressReader` propagate
-`CancellationException` and `InterruptedException` from workflow identity
-resolution instead of treating them as absent workflow identity. Optional
-progress, ledger, and observability store write failures emit bounded
-`RuntimeDiagnostics.warning` text; diagnostic port failures are wrapped in
-`runCatching` so they cannot mask the primary outcome or block coordinator
-teardown.
-
-`GoalRunnerLedgerRecorder` seeds sequence numbers from persisted ledger
-watermarks. A failed watermark read fails construction rather than silently
-starting at sequence zero; empty watermarks still legitimately start at zero.
-
-`RuntimeArchitectureProbeTest` and `GoalRunnerExecutionCoordinatorTest` regress
-startup rollback, per-teardown-step failure, primary-error preservation,
-cooperative cancellation on progress emit, and healthy versus failed watermark
-reads through the production coordinator and recorders.
-- `skillbill.infrastructure.fs.goalplanning`: filesystem discovery of shared
-  repository and validation context owned by `runtime-infra-fs`, plus
-  headings-first boundary memory: a programmatic parse of governed
-  `## [<date>] <title>` entries into a bounded heading catalog (no model call in
-  the indexer), and a separate body resolver that materializes entry bodies only
-  for the heading ids preplanning selected.
-- `skillbill.featurespec` and `skillbill.featurespec.model`: feature-spec
-  preparation policy and typed preparation/write models owned by
-  `runtime-domain`.
-- `skillbill.install.model`: install-plan and install-apply domain models plus
-  install-plan wire-map conversion owned by `runtime-domain`.
-- `skillbill.scaffold.model`: platform manifest, scaffold result, skill-class,
+- `skillbill.featurespec`: feature-spec preparation policy and typed models
+  owned by `runtime-domain`.
+- `skillbill.install`: install-plan and install-apply domain models plus
+  install-plan wire-map conversion owned by `runtime-domain`. Pure install
+  policy lives in `skillbill.install.policy`.
+- `skillbill.scaffold`: platform manifest, scaffold result, skill-class,
   routing, add-on, and review-composition models owned by `runtime-domain`.
-- `skillbill.domain.skillremove` and `skillbill.domain.skillremove.model`: pure
-  skill-remove service, target validation, rollback/refusal types, and removal
-  models owned by `runtime-domain`.
-- `skillbill.learnings` and `skillbill.learnings.model`: learning scope/source
-  validation rules, learning payload helpers, and learning models owned by
-  `runtime-domain`.
-- `skillbill.review` and `skillbill.review.model`: pure review parsing, triage
-  decision normalization, and review models owned by `runtime-domain`.
-- `skillbill.telemetry.model`: telemetry settings normalization and lifecycle
+  Pure scaffold policy lives in `skillbill.scaffold.policy`.
+- `skillbill.domain.skillremove`: pure skill-remove service, target validation,
+  rollback and refusal types owned by `runtime-domain`.
+- `skillbill.learnings`: learning scope and source validation rules, payload
+  helpers, and models owned by `runtime-domain`. LearningRecord is owned by the learnings domain.
+- `skillbill.review`: pure review parsing, triage decision normalization, and
+  review models owned by `runtime-domain`. Review parsing and triage decision
+  normalization are pure surfaces.
+- `skillbill.telemetry`: telemetry settings normalization and lifecycle
   telemetry records owned by `runtime-domain`.
-- `skillbill.application.telemetry`: telemetry sync orchestration, config
-  mutation rules, and port-backed runtime surfaces owned by `runtime-application`.
-- `skillbill.text`: UTF-8 truncation and size helpers owned by `runtime-domain`.
-- `skillbill.infrastructure.fs`: filesystem gateways for repo validation,
-  install, scaffold, native-agent, launcher, telemetry config, git workflow,
-  review input loading, decomposition-manifest file storage, and skill-remove
-  ports.
-- `skillbill.infrastructure.http`: HTTP telemetry client and telemetry proxy
-  payload mapping.
-- `skillbill.infrastructure.sqlite`: SQLite session factory, schema, migrations,
-  SQL statement bindings, repositories, review stores, stats, and telemetry
-  outbox persistence owned by `runtime-infra-sqlite`.
+- `skillbill.text`: UTF-8 truncation and size helpers owned by
+  `runtime-domain`.
+- `skillbill.infrastructure`: filesystem, HTTP, and SQLite adapters. SQL-backed review persistence lives under `skillbill.infrastructure.sqlite.review`.
 - `skillbill.cli`: CLI adapter code. It validates CLI input, formats terminal
   output, maps typed results to contract payloads, and delegates behavior to
   application services or ports.
 - `skillbill.mcp`: MCP adapter code. It validates MCP input, shapes MCP
   payloads, owns MCP-specific schema seams, and delegates shared behavior to
   application services or ports.
-
-### Telemetry outbox delivery ownership
-
-Claim lease duration is five minutes (`CLAIM_LEASE_MINUTES` in
-`TelemetryOutboxDrain`). Each drain run holds one random `claimToken`; every
-batch claim reads the injected clock at claim time so a slow earlier HTTP
-request does not backdate a later batch lease. Settlement through
-`markSynced`, `markFailed`, and `markUnconfirmed` requires the active
-`claimToken` and `synced_at IS NULL`; zero updated rows set
-`TelemetryOutboxSettlementResult.lostClaim`, and a partial update also reports
-the lost portion so the drain does not count another owner's row as synced. The
-drain stops without altering another owner's row.
-
-`JdkHttpRemoteTransport` reuses one JDK `HttpClient` for the process. Default
-connect timeout is ten seconds and per-request timeout is four minutes, both
-below the claim lease; `TransportContext.connectTimeout` and
-`requestTimeout` override those defaults for tests only. Cooperative
-cancellation and `InterruptedException` propagate through manual sync, auto
-sync, drain, and stale-session reconciliation; cancellation does not consume
-delivery attempts or become an UNKNOWN delivery report. Ordinary auto-sync
-failure stays non-fatal to callers and records the payload-free
-`telemetry background sync failed` diagnostic; the same signature is emitted
-again when the follow-up outbox exception enqueue fails.
-
-SQLite integration tests prove stale-owner settlement rejection. A loopback
-HTTP peer that accepts a connection but never completes a response proves
-request deadlines and server teardown. Fakes at claim, transport, and
-acknowledgement prove cancellation propagation and durable row state. Those
-tests do not prove exactly-once remote delivery, protection against
-indefinite JVM pause beyond lease expiry, or behavior when the remote proxy
-ignores deduplication keys.
-
-### Transaction rollback and agent-run cleanup boundaries (SKILL-247)
-
-SQLite write and read session transactions share
-`Connection.rollbackAfterFailedTransaction`: a failed body or commit still
-throws its primary failure, a failed `ROLLBACK` is attached with
-`addSuppressed` when a primary exists, and a bounded `java.util.logging`
-record is emitted on rollback failure only. Successful rollback stays silent.
-
-`JvmAgentRunProcessRunner.runStartedProcess` always runs
-`ProcessRunLifetime.release` in `finally`, exports the run-local
-`ProcessRunDegradationRecorder` snapshot to stderr through the output sink
-before rethrowing, and keeps `InterruptedException` / cancellation as the
-primary failure over cleanup suppresseds. `ProcessLifecycleEmitter` records
-progress publication failures into the same recorder without replacing callback
-or cancellation failures.
-
-Governed review endpoint teardown reports close failure to stderr once; when
-the sink also fails, a bounded `skillbill.agent.run.teardown` logger record is
-emitted and the sink is not invoked again.
-
-Per-run process cleanup waits are bounded: forced destroy waits up to
-`DESTROY_WAIT_TIMEOUT_MILLIS` (1s), and each stdout/stderr drain join uses up
-to two `DRAIN_JOIN_TIMEOUT_MILLIS` (1s) joins after `input.close` when the
-worker remains alive, before the owner thread closes process streams. A single
-run's drain and destroy cleanup is therefore capped at destroy wait plus up to
-four drain-join windows for the two streams; stdin and process-stream closes
-occur in the existing ordered cleanup path and are not used as a total bound
-for a live drain worker.
-
-### Installer update fetch and process I/O (SKILL-348 subtask 1)
-
-`SkillBillUpdateService` in runtime-application owns update planning, release
-skip/check_failed handling, installer script fetch, and post-download execution.
-It downloads `install.sh` through `InstallerScriptFetchPort` (production adapter
-`HttpInstallerScriptFetchAdapter` in runtime-infra-http) and only calls
-`InstallerProcessPort` after a complete 2xx body is persisted. Failed or
-interrupted fetch deletes partial staging bytes and never executes a script path.
-The fetch port owns its temporary staging directory and removes it after the
-installer process settles.
-
-`InstallerProcessAdapter` in runtime-infra-fs starts an argv vector with an
-explicit environment map, closes child stdin immediately after start, captures
-merged stdout/stderr with a 1 MiB cap and `INSTALLER_OUTPUT_TRUNCATION_SENTINEL`,
-and applies `DEFAULT_INSTALLER_PROCESS_DEADLINE_SECONDS` (600s) from the request
-object. Tests inject shorter deadlines through that field; the CLI exposes no
-public timeout flag. Post-failure teardown uses `GIT_PROCESS_CLEANUP_BUDGET_SECONDS`
-(5s), `destroyOwnedProcessTree`, and `DESTROY_WAIT_TIMEOUT_MILLIS` (1s) over the
-owned process handle and its descendants only. `RuntimeInstallerProvides` wires
-production adapters from `RuntimeComponent`; `OptionalCallbacks` supplies test
-substitutes for both ports.
-
-`SkillBillUninstallService` owns uninstall plan construction and mutation
-sequencing; the CLI keeps confirmation, dry-run rendering, and goal-continuation
-refusal. Cooperative cancellation and interruption rethrow at each mutation seam
-before later agent, MCP, launcher, desktop, or state-root work continues.
-
-Checked CLI scope for this subtask: command-area import isolation plus a
-production-source ban on `ProcessBuilder` under `skillbill.cli`, enforced by
-`RuntimeCliAreaIsolationArchitectureTest` and the ProcessBuilder scan beside it.
-This is not a universal SOLID certification claim.
-
-### Git workflow process I/O (SKILL-248 subtask 2)
-
-`runGitProcess` in runtime-infra-fs delegates to `invokeGitProcess`, which
-registers the child process, input writer, stdout drain worker, and stream
-handles before any blocking stdin delivery, wait, or join. Stdin writes and
-stdout draining run concurrently so a full pipe cannot deadlock ordinary
-NUL-delimited staging input. One operation deadline derived from
-`gitTimeoutSeconds` covers stdin delivery, `Process.waitFor`, and output
-settlement; a separate
-`GIT_PROCESS_CLEANUP_BUDGET_SECONDS` window bounds post-failure teardown
-(drain join after closing the process input stream, stream closure, and
-`destroyOwnedProcessTree` over the started process handle and its descendants).
-
-Cooperative `Thread.interrupt` during wait or I/O destroys only processes this
-invocation started (via `ProcessHandle` descendants from the git child),
-rethrows `InterruptedException`, and runs the same cleanup owner in `finally`.
-Secondary cleanup failures attach with `addSuppressed` and do not replace the
-primary `IOException`, timeout, or interruption. Unsettled stdout after the
-deadline becomes `readFailure` or timeout semantics, never
-`WorkflowGitOperationResult.Ok` with unfinished capture. Behavior tests in
-`GitProcessLifetimeBehaviorTest` cover interruption, pipe backpressure,
-inherited stdout handles, timeout, and ordinary completion.
-
-Decomposition manifest bundle journals (`DecompositionManifestBundleJournal` in
-`runtime-infra-fs`) persist a governed `0.1` envelope
-(`orchestration/contracts/decomposition-manifest-bundle-journal-schema.yaml`,
-`copyDecompositionManifestBundleJournalSchema`). Recovery validates the full marker,
-transaction-owned staging directory (real-path containment, marker name binding),
-unique targets, and every staged or already-applied digest before applying pending
-moves or deleting staging evidence. Rejected journals raise
-`InvalidDecompositionManifestBundleJournalError`, retain the marker and staging
-artifacts, and do not replay SQLite mutations — operators back up evidence and
-remove the marker manually after review. Valid interrupted `0.1` journals still
-roll forward through `recoverPending`.
 
 ## Boundary Rules
 
@@ -675,68 +414,58 @@ roll forward through `recoverPending`.
 4. Port packages must not depend on application, infrastructure, entry
    adapters, or composition roots.
 5. Contracts packages must not depend on application, domain area packages,
-   ports, infrastructure, entry adapters, or composition roots. `runtime-contracts`
-   main source is a pure DTO/constants/exceptions leaf: it MUST NOT contain any
-   JSON-Schema validator, any `com.networknt.*` or `com.fasterxml.jackson.*`
-   reference, or any `java.nio.file.Files` filesystem call. The concrete schema
-   validators and their schema-resource copy tasks live in `runtime-infra-fs`,
-   and `runtime-domain` / `runtime-application` reach schema validation only
+   ports, infrastructure, entry adapters, or composition roots.
+   `runtime-contracts` main source is a pure DTO, constants, and exceptions
+   leaf. It MUST NOT contain any JSON-Schema validator, any
+   `com.networknt.*` or `com.fasterxml.jackson.*` reference, or any
+   `java.nio.file.Files` filesystem call. The concrete schema validators and
+   their schema-resource copy tasks live in `runtime-infra-fs`, and
+   `runtime-domain` / `runtime-application` reach schema validation only
    through the domain-owned ports `InstallPlanWireValidator`,
-   `DecompositionManifestValidator`, and `WorkflowSnapshotValidator` — never by
-   importing a concrete `*SchemaValidator` / `*CoherenceValidator`.
+   `DecompositionManifestValidator`, and `WorkflowSnapshotValidator`.
 6. Infrastructure packages implement ports and may depend on domain,
    contracts, ports, and JVM APIs. They must not depend on runtime-core or
    entry adapters.
 7. `runtime-core` is the composition layer. Its source packages are limited to
-   `skillbill` and `skillbill.di`; only composition code may import concrete
+   `skillbill` and `skillbill.di`. Only composition code may import concrete
    infrastructure implementations.
 8. Entry adapters must not bypass application services and ports by importing
-   concrete implementation packages such as filesystem install/scaffold,
+   concrete implementation packages such as filesystem install or scaffold,
    native-agent, launcher, skill-remove, SQLite, or HTTP adapter internals.
 9. Application use cases access SQLite through repository and unit-of-work
-   ports. Read use cases call a read session; write use cases call an explicit
+   ports. Read use cases call a read session. Write use cases call an explicit
    transaction session.
 10. Telemetry application use cases depend on `TelemetrySettingsProvider`,
     `TelemetryConfigStore`, `TelemetryClient`, and
     `TelemetryOutboxRepository`. HTTP request mechanics belong in
-    `skillbill.infrastructure.http`; config file IO belongs in
-    `skillbill.infrastructure.fs`; telemetry ports expose typed domain result
-    models from `skillbill.telemetry.model`; telemetry proxy wire DTOs belong
-    in `skillbill.contracts.telemetry`; telemetry proxy payload mapping belongs
-    with the HTTP adapter.
+    `skillbill.infrastructure.http`. Config file IO belongs in
+    `skillbill.infrastructure.fs`. Telemetry ports expose typed domain result
+    models from `skillbill.telemetry.model`. Telemetry proxy wire DTOs belong
+    in `skillbill.contracts.telemetry`. Telemetry proxy payload mapping belongs with the HTTP adapter.
 11. JSON maps, YAML maps, MCP payloads, CLI JSON payloads, and terminal strings
     are boundary concerns. Internal use cases expose typed models.
 
-    **Raw Map Boundary Rule (SKILL-52.1, zero-tolerance as of SKILL-52.5):**
+    **Raw Map Boundary Rule (zero-tolerance):**
     public declarations on `runtime-application`, `runtime-domain`, and
     `runtime-ports` MUST NOT return or accept `Map<String, Any?>`,
     `Map<String, Any>`, `Map<String, *>`, string-keyed `MutableMap`,
     `HashMap`, or `LinkedHashMap` variants, or type aliases to those
     shapes. There is no curated FQN allow-list and no production
-    annotation escape hatch. `RuntimeRawMapArchitectureTest.runtime
-    architecture forbids public raw map shapes in inner layers` fails on
-    any new public raw-map surface in those modules.
+    annotation escape hatch.
 
     Contain wire maps in `private` or `internal` adapter serializers, or
     replace them with typed models at the port or application boundary.
-    The scanner treats declarations inside non-public scopes and certain
-    adapter-local enclosing types (`*Map`, `*Payload`, `*Artifacts`,
-    `*Patch`, and related workflow patch carriers) as implementation
-    detail when they stay non-public.
-
     Inner-layer test sources in `runtime-application`, `runtime-domain`, and
-    `runtime-ports` are also part of this boundary: their `src/test/kotlin`,
-    `src/jvmTest/kotlin`, and `src/commonTest/kotlin` roots must not import
-    `skillbill.infrastructure.*`, `skillbill.cli.*`, or `skillbill.mcp.*`.
-    Adapter and infrastructure test trees are outside that inner-layer scan.
+    `runtime-ports` must not import `skillbill.infrastructure.*`,
+    `skillbill.cli.*`, or `skillbill.mcp.*`.
 12. `java.nio.file.Path` is allowed in application, domain, and port public
     models and contracts only as an inert value type: callers may carry,
     compare, resolve, normalize, and render path values as data. Filesystem IO,
     home-directory expansion, `System.getProperty`, and process environment
-    reads are adapter or composition concerns. Application/domain/port code must
-    not call `Files`, `kotlin.io.path` IO helpers, `System.getenv`, or
-    `System.getProperty`, and domain review parsing must stay limited to pure
-    string and regex parsing.
+    reads are adapter or composition concerns. Application, domain, and port
+    code must not call `Files`, `kotlin.io.path` IO helpers, `System.getenv`,
+    or `System.getProperty`, and domain review parsing must stay limited to
+    pure string and regex parsing.
 13. Public data, enum, and sealed declarations in application, domain, and port
     modules live under explicit `model` packages. Services, runtimes, and port
     interfaces import those models instead of declaring public models inline.
@@ -775,474 +504,116 @@ skillbill.workflow
 skillbill.workflow.verify
 ```
 
-## Feature-Task Workflow Family
-
-- `bill-feature-task` is the public workflow identity for the runtime-backed
-  feature-task engine. Feature-verify remains a distinct workflow family and
-  store.
-- The Kotlin runtime definition is
-  `skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition`
-  (id prefix `wftr`, contract version `FEATURE_TASK_RUNTIME_CONTRACT_VERSION`);
-  persisted rows use `workflow_name=bill-feature-task` and `mode=runtime`.
-- `skill-bill feature-task` and `feature-task-stats` are the CLI surfaces for
-  this workflow family.
-
 ## Runtime Contract And Schema Seams
 
-- Runtime contract schemas live in `orchestration/contracts/`. The
-  `*SchemaPaths` constants and `*_CONTRACT_VERSION` constants stay in
-  `runtime-contracts`. The JVM JSON-Schema validators, their typed schema
-  errors, and their classpath-resource copy tasks live in `runtime-infra-fs`,
-  reached only through the domain-neutral ports `InstallPlanWireValidator`,
-  `DecompositionManifestValidator`, and `WorkflowSnapshotValidator`. Validator modules
-  load schema resources from the infra-fs classpath copy tasks, not from `runtime-contracts`.
-- Workflow-state schema validation is owned by
-  `skillbill.infrastructure.fs.contracts.workflow.WorkflowStateSchemaValidator`, compiled into
-  `runtime-infra-fs`. The runtime-domain workflow engine MUST NOT import that
-  validator directly — instead it depends on the domain-owned port
-  `skillbill.workflow.engine.WorkflowSnapshotValidator`, which the composition root
-  wires to the infra adapter
-  `skillbill.infrastructure.fs.WorkflowSnapshotValidatorInfraAdapter`. The
-  port takes the typed `skillbill.workflow.engine.model.WorkflowStateSnapshot`, not a
-  `Map<String, Any?>`; projecting that record onto the canonical wire shape is
-  adapter work owned by
-  `skillbill.infrastructure.fs.WorkflowStateSnapshotWireMapper`, so
-  `WorkflowEngine` never builds a snapshot map. The owning read seam is still
-  `skillbill.workflow.engine.WorkflowEngine`; durable record
-  mapping stays pure and the next engine read rejects drift. Architecture
-  tests forbid any `skillbill.infrastructure.fs.contracts.workflow.*SchemaValidator*` or
-  `skillbill.infrastructure.fs.*Mapper` import under `runtime-domain` workflow
-  source. (SKILL-52.2 Subtask 4 narrowed the
-  `runtime-domain -> runtime-contracts` module-graph edge to non-validator
-  helpers only; SKILL-233 narrowed it further to `JsonCodec` — including its
-  stdlib-typed `parseValue` / `valueToJsonString` facade that keeps
-  `kotlinx.serialization` out of `runtime-domain` — the `*_CONTRACT_VERSION`
-  constants, `InstallPlanSchemaPaths`, and the typed
-  `InvalidWorkflowStateSchemaError` / `MalformedJsonTextError`. Workflow wire payloads are
-  built once in `skillbill.application.workflow.WorkflowWireProjections` using
-  `WorkflowWirePayloadKeys` and `SharedPayloadKeys`; there is no contracts-module
-  ordering helper on that path.)
+Runtime contract schemas live in `orchestration/contracts/`. The `*SchemaPaths`
+constants and `*_CONTRACT_VERSION` constants stay in `runtime-contracts`. The
+JVM JSON-Schema validators, their typed schema errors, and their classpath
+resource copy tasks live in `runtime-infra-fs`, reached only through the
+domain-neutral ports `InstallPlanWireValidator`,
+`DecompositionManifestValidator`, and `WorkflowSnapshotValidator`.
+
+- Workflow-state schema validation is owned by the infra-fs workflow validator,
+  compiled into `runtime-infra-fs`, and reached through the domain-owned
+  `WorkflowSnapshotValidator` port. The engine never builds a snapshot map.
+- Install-plan schema validation is owned by the infra-fs install validator
+  and reached through the domain-owned port
+  `skillbill.install.model.InstallPlanWireValidator`.
+- Decomposition-manifest schema validation is owned by the infra-fs
+  decomposition validator, compiled into `runtime-infra-fs`, and reached
+  through the domain-owned port
+  `skillbill.workflow.decomposition.DecompositionManifestValidator`. The owning
+  parse and emission seam is
+  `skillbill.application.decomposition.DecompositionManifestFileWrites`.
+  Repo-local manifest text persistence is owned by
+  `FileSystemDecompositionManifestFileStore` behind
+  `skillbill.ports.workflow.decomposition.DecompositionManifestStore`.
 - Feature-task runtime wire artifact schema validation ports live in
-  `runtime-domain` as `FeatureTaskRuntimeWireArtifactValidator` (closed
-  `FeatureTaskRuntimeWireArtifactKind`) plus `FeatureTaskRuntimePhaseOutputValidator`
-  and `DecompositionManifestValidator`. Infra implements them through
-  `FeatureTaskRuntimeWireArtifactValidatorAdapter` and the phase-output /
-  decomposition adapters under `runtime-infra-fs`; composition wires one adapter
-  instance per port. Goal progress, observability, and planning-preparation validator
-  names are type aliases to that same port and select their closed artifact kinds
-  through extension helpers. Extension helpers on the wire-artifact port preserve
-  call-site ergonomics without default port bodies. Goal-continuation artifact keys declare in
-  `FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys`; `WireVocabularyGovernedSeamInventory`
-  scans that encode/decode pair. `SkillBillVersion` reads `skillbill/version.properties`
-  from `runtime-core`; its `getResourceAsStream` call is the single documented
-  ambient-environment exception for packaged version metadata, and its missing-resource
-  fallback emits a durable-decode substitution record. Typed workflow boundary wrappers live in owning area `model`
-  packages rather than a monolithic `WorkflowBoundaryCollections` hub. Engine continuation
-  dispatch uses `WorkflowDefinition.usesFeatureTaskRuntimeContinuation` rather than importing
-  the feature-task runtime workflow definition.
-- Install-plan schema validation is owned by
-  `skillbill.infrastructure.fs.contracts.install.InstallPlanSchemaValidator`, compiled into
-  `runtime-infra-fs` and reached through the domain-owned port
-  `skillbill.install.model.InstallPlanWireValidator`. The owning seams are
-  install-plan building and CLI/MCP emission, both of which validate through the
-  injected port rather than importing the validator directly.
-- Decomposition-manifest schema validation is owned by
-  `skillbill.infrastructure.fs.contracts.workflow.DecompositionManifestSchemaValidator` (paired
-  with `DecompositionManifestCoherenceValidator`), compiled into
-  `runtime-infra-fs` and reached through the domain-owned port
-  `skillbill.workflow.decomposition.DecompositionManifestValidator`. The owning parse/emission
-  seam is `skillbill.application.decomposition.DecompositionManifestFileWrites`, which
-  validates YAML text and in-memory maps through that port before workflow
-  artifacts are persisted or returned. Repo-local manifest text persistence is
-  owned by
-  `skillbill.infrastructure.fs.FileSystemDecompositionManifestFileStore`
-  behind `skillbill.ports.workflow.decomposition.DecompositionManifestStore`.
-- Platform-pack manifest schema validation is owned by
-  `skillbill.scaffold.PlatformPackSchemaValidator` in `runtime-infra-fs`. The
-  owning parse seam is `skillbill.scaffold.ShellContentLoader.buildPack`.
-- Native-agent composition schema validation is owned by
-  `skillbill.nativeagent.NativeAgentCompositionSchemaValidator` in
-  `runtime-infra-fs`. The owning parse seam is native-agent source loading and
-  composition.
+  `runtime-domain` as `FeatureTaskRuntimeWireArtifactValidator` keyed by
+  `FeatureTaskRuntimeWireArtifactKind`. Infra implements them. Goal progress,
+  observability, and planning-preparation validator names are type aliases to that same port without default port bodies. Goal-continuation artifact keys
+  declare in `FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys`.
+- Platform-pack manifest schema validation is owned by the platform-pack
+  validator in `runtime-infra-fs`. The owning parse seam is pack loading.
+- Native-agent composition schema validation is owned by the native-agent
+  composition validator in `runtime-infra-fs`.
 - Telemetry-event schema validation is owned by the MCP adapter because the MCP
-  tool registry is the event-name source of truth. The owning parse seam is the
-  MCP telemetry tool input validator in `runtime-mcp`.
-- Goal declared-progress event schema validation
-  (`orchestration/contracts/goal-progress-event-schema.yaml`) is owned by
-  `skillbill.infrastructure.fs.contracts.workflow.GoalProgressEventSchemaValidator` in
-  `runtime-infra-fs`, reached through the domain-owned port
-  `skillbill.workflow.goal.GoalProgressEventValidator` (wired in `RuntimeComponent`
-  to `skillbill.infrastructure.fs.GoalProgressEventValidatorAdapter`, mirroring
-  `GoalObservabilityEventValidator`). The owning durable write/parse seam is
-  `skillbill.application.WorkflowGoalRunnerOutcomeStore.recordProgressEvent`,
-  which validates the declared-progress event map through the injected port
-  before it is appended to the bounded `goal_progress_run_history` /
-  `goal_progress_latest_event` workflow artifacts. The supervisor read seam
-  (`WorkflowGoalRunnerOutcomeStore.progress`) decodes the latest declared event
-  softly so a malformed stored record cannot disable deterministic liveness.
-- IDE status schema validation
-  (`orchestration/contracts/ide-status-schema.yaml`) is owned by
-  `skillbill.infrastructure.fs.contracts.workflow.IdeStatusSchemaValidator` in
-  `runtime-infra-fs`, reached through the domain-owned port
-  `skillbill.workflow.idestatus.IdeStatusValidator` (wired in `RuntimeComponent` to
-  `IdeStatusValidatorAdapter`). The owning emit seam is
-  `skillbill.application.work.IdeStatusService`, which validates before CLI
-  JSON emission.
-- IDE status selection has a **retention ceiling**
-  (`skillbill.application.work.IdeStatusSelectionPolicy.retainedAt`). The IDE
-  surface reports work the runtime is currently reporting on, never a ledger of
-  every unresolved row. Each tier ages out against its authoritative
-  `updated_at`: active/paused after `LIVE_RETENTION` (24h, generous enough that a
-  long quiet phase never drops a genuine run), blocked after `BLOCKED_RETENTION`
-  (also 24h — blocked work is a prompt awaiting the user, not a finished event),
-  and failed/terminal after `SETTLED_RETENTION` (6h). Past the ceiling the
-  candidate is dropped and the repository reports `no_matching_work`, so a
-  settled or abandoned workflow reads as idle rather than occupying the widget.
-  Clock skew (observation before update) never drops work.
-  `SETTLED_RETENTION` must stay strictly greater than
-  `IdeStatusFreshnessClassifier.FRESH_WINDOW`: equal values make retention and
-  freshness exact complements, and no settled snapshot could ever be emitted with
-  `freshness: "stale"`.
-- The authoritative `updated_at` for a candidate is resolved once, in
-  `IdeStatusService.authoritativeUpdatedAt`, and reused for retention, freshness
-  classification, and the emitted wire field. Projectors must not re-derive it —
-  two anchors for one candidate let the widget freeze its elapsed clocks against a
-  timestamp the selection never saw.
+  tool registry is the event-name source of truth.
+- Goal declared-progress and IDE status schema validation follow the same
+  domain-port plus infra-adapter pattern. IDE status selection has a retention
+  ceiling against authoritative `updated_at`. The IDE surface reports work the
+  runtime is currently reporting on, never a ledger of every unresolved row.
 
-## Phase Context Boundary (SKILL-137 handoff projections)
+`SkillBillVersion` reads packaged version metadata from `runtime-core`. Its
+`getResourceAsStream` call is the single documented ambient-environment
+exception for that metadata. A missing-resource fallback emits a
+durable-decode substitution record.
 
-SKILL-146 makes this boundary explicitly four-part: complete producer output is
-private evidence; a named consumer projection is the only prompt-visible
-derivative; repository state has an immutable checkpoint identity; and
-phase-local instructions use workflow-owned invariant allowlists. Declaration
-and persistence wires have independent incompatible `0.2` contracts. Delivered
-records identify the workflow, consumer, producer iteration, and checkpoint;
-the versioned, exact-decoded `FeatureTaskRuntimePhaseRecord` wire is the
-authoritative durable private-evidence record written and read by the phase
-recorder. It remains under the private phase-record artifact key, separate from
-the delivered-projection key and prompt-facing read API. Unknown fields,
-missing record identity, and unsupported versions are incompatible rather than
-defaulted.
-legacy records missing that identity loud-fail with restart or explicit
-out-of-band migration guidance. The operator action is deliberately identical at
-workflow, briefing, handoff, private-evidence, and delivered-projection read
-seams: restart the active run or use the documented out-of-band migration
-procedure. Unsupported versions are never defaulted or interpreted as the
-current least-context shape.
+## Phase Context Boundary
+
+Complete producer output is private evidence. A named consumer projection is
+the only prompt-visible derivative. Repository state has an immutable
+checkpoint identity. Phase-local instructions use workflow-owned invariant
+allowlists. Declaration and persistence wires have independent contracts.
+Unknown fields, missing record identity, and unsupported versions are
+incompatible rather than defaulted.
 
 Budgets are enforced before launch against serialized UTF-8 bytes and
 collection items. The runtime never truncates, drops fields, or falls back to a
-complete artifact. Measurements contain identifiers, byte/item counts, token
-estimates, and failure classifications only, never prompt or evidence bodies.
-They are written only through lifecycle telemetry and progress stores; no
-measurement or diagnostic field is added to a phase receipt or other
-prompt-consumable domain artifact.
+complete artifact. Measurements contain identifiers, counts, token estimates,
+and failure classifications only, never prompt or evidence bodies.
 
-A feature-task-runtime phase no longer receives the complete output of its
-upstream phases. Context reaching a phase is split into four parts with distinct
-owners, storage, and failure modes.
+**Private evidence.** Complete validated phase output stays on the durable
+phase record. Nothing reads it into a prompt directly.
 
-**1. Private evidence.** Complete validated phase output stays on
-`FeatureTaskRuntimePhaseRecord.outputArtifact` (and `rejectedOutput` for
-schema-rejected attempts) under the
-`feature_task_runtime_phase_records` artifact key. It is the run's durable record
-of what each phase actually produced. Nothing reads it into a prompt directly.
+**Consumer projection.** What a phase receives is declared, not inferred. A
+source with no declaration is never delivered. The validator rejects, never
+truncates, on a missing required source, malformed or undeclared field,
+unsupported contract version, duplicate name, budget overflow, invalid compact
+reference, or checkpoint-policy violation. Delivered envelopes persist
+separately from private evidence. The two artifact keys must never merge.
 
-**2. Consumer projection.** What a phase receives is declared, not inferred.
-`PhaseHandoffProjectionDeclaration` (`runtime-domain`) names one source, one
-projection contract id/version, prompt visibility, a UTF-8-byte and
-collection-item budget, and a repository-checkpoint policy.
-`FeatureTaskRuntimePhaseDeclaration.projectionDeclarations` is the sole place a
-source can be declared; `consumedUpstreamPhaseIds` is derived from it, so a
-recorded output with no declaration is never delivered.
-`FeatureTaskRuntimeHandoffProjectionValidator` turns declarations into a
-`FeatureTaskRuntimeHandoffEnvelope` of named typed projections and compact
-references. It rejects — never truncates — on a missing required source,
-malformed or undeclared field, unsupported contract version, duplicate
-projection name, budget overflow, invalid compact reference, or
-checkpoint-policy violation, each through
-`InvalidFeatureTaskRuntimeHandoffProjectionError` naming the workflow, consumer
-phase, projection, and contract without echoing payload bodies. The envelope has
-its own Draft 2020-12 contract
-(`orchestration/contracts/feature-task-runtime-handoff-envelope-schema.yaml`,
-pinned by `FEATURE_TASK_RUNTIME_HANDOFF_ENVELOPE_CONTRACT_VERSION` and
-`FeatureTaskRuntimeHandoffEnvelopeSchemaContractVersionTest`), reached from the
-domain only through the `FeatureTaskRuntimeHandoffEnvelopeValidator` port with
-`FeatureTaskRuntimeHandoffEnvelopeValidatorInfraAdapter` in `runtime-infra-fs` —
-the same domain/infra validator-boundary convention as
-`WorkflowSnapshotValidator`. Delivered envelopes persist separately from private
-evidence as `FeatureTaskRuntimeDeliveredProjectionRecord` under
-`feature_task_runtime_delivered_projections`; the two artifact keys must never
-merge, because merging them is exactly how a round trip could hand a consumer
-the private artifact in place of its projection. Raw-map exposure is confined to
-private adapter serializers outside the inner-layer public surface.
+**Repository-derived context.** A repository checkpoint carries a
+deterministic fingerprint and working-tree ownership. The domain stays
+git-agnostic. The application layer resolves the checkpoint through the
+workflow git port. Shared review evidence is derived once per fingerprint into
+a repo-local artifact. The delivered projection is a reference, never inlined
+diff bytes. Ownership never derives from a path prefix alone.
 
-A projection may declare `inlineAlternative` to deliver a lossless compact
-reference instead of inline content. A `private_evidence_artifact` reference is
-accepted only when the declaration also sets `allowsPrivateArtifactReference`,
-and the reference itself is minted by the runtime from the source's durable
-identity, so dereferencing it is a deterministic runtime operation rather than
-model-driven retrieval.
+The `build` phase runs only the pack `validation_gate.build_command` for
+compile and buildability proof. It never invokes the collect-all validation
+gate. Default standalone runs skip `build`. Goal continuation stamps which
+quality gate a child runs.
 
-**3. Repository-derived context.** `FeatureTaskRuntimeRepositoryCheckpoint`
-carries a deterministic fingerprint, optional base/head refs, and working-tree
-ownership. Policies are `not_required`, `must_match`, and
-`refresh_from_repository`. Both checkpoint-aware policies require and carry a
-freshly resolved checkpoint. `must_match` is retained as a legacy durable wire
-value and, like `refresh_from_repository`, accepts repository movement and
-re-derives the consumer scope. The domain stays git-agnostic: the application layer resolves
-the checkpoint in `FeatureTaskRuntimeRunLoop` through the existing
-`WorkflowGitOperations` port, reusing the same `repositoryFingerprint` extension
-the audit-repair path already depends on. No new git port was introduced.
+**Phase-local instructions.** Run identity remains durable state on every
+briefing, but prompt rendering is selected per phase by an invariant allowlist.
+Identity, ceremony, and policy mandates reach every phase. The acceptance
+contract is withheld from the finalization phases.
 
-**Shared review evidence (SKILL-164).** Branch/commit review evidence is derived
-once per `FeatureTaskRuntimeRepositoryCheckpoint.fingerprint` into a repo-local
-artifact under `.skill-bill/run-evidence/<workflowId>/<fingerprint>/`. The
-delivered projection is a reference only — `store_path` plus a bounded
-file/hunk index — never inlined diff bytes, so the planning-projection budget
-stays independent of branch diff size. The contract is
-`orchestration/contracts/feature-task-runtime-shared-evidence-projection-schema.yaml`,
-pinned by `FEATURE_TASK_RUNTIME_SHARED_EVIDENCE_PROJECTION_CONTRACT_VERSION` and
-validated on every store read: schema-invalid or unreadable content re-derives,
-while a fingerprint that contradicts its addressed location loud-fails. Audit
-consumes this projection as a floor alongside `scoped_repository_state`; it
-never replaces audit's scoped repository read, because audit's highest-value
-finding is a criterion with no code behind it and therefore no diff. Telemetry
-records each resolve as `skillbill_feature_task_runtime_shared_evidence` with
-outcome `derivation`, `reuse`, or `checkpoint_change_rederivation`.
-
-That publication address is also the ownership authority. `isRuntimePrivatePath`
-covers the rest of the `.skill-bill/` root but deliberately does not claim
-`run-evidence`; `FeatureTaskRuntimeCheckpointScope` resolves ownership through
-`FeatureTaskRuntimeRunEvidenceOwnership` against the active run's workflow id,
-so only artifacts at this run's own address are runtime-owned and non-blocking.
-Another workflow's artifact, or a file forged directly under the store root,
-receives no exemption: it is preserved and stays an ordinary actionable path.
-Ownership therefore never derives from the path prefix alone, and both failure
-directions are covered — a prefix-free rule would block the run's own evidence,
-and a blanket prefix rule would silently sweep the forged file.
-`FeatureTaskRuntimeRunEvidenceAddress` owns the single address derivation both
-the store adapter and the engine read. `reconcileCheckpointPathInventory` applies
-the same ownership test, so the run's own evidence never enters the durable
-`workflow_owned_paths` inventory the goal review pathspec and the checkpoint
-fingerprint are built from, whichever producer writes that inventory.
-
-Finalization path inventories come from the checkpoint's runtime-resolved
-base/head and scoped owned-path comparison. Implementation receipt paths are
-claims only: validation scope, boundary candidates, commit inclusions and
-exclusions, and PR changed paths are derived from the resolved inventory. Runtime
-continuation exposes bounded validation, boundary, history,
-commit, and PR requests or receipts; it never substitutes the private audit,
-review, implementation, validation, or history artifacts. The `build` phase
-(SKILL-204) runs only the pack `validation_gate.build_command` for
-compile/buildability proof and never invokes the collect-all validation gate.
-Default standalone runs skip `build` (`review -> validate`); goal continuation
-stamps which quality gate a child runs (subtask 2).
-
-**4. Phase-local instructions.** Run identity remains durable state on every
-briefing, but prompt rendering is selected per phase by
-`FeatureTaskRuntimeRunInvariantPromptAllowlist`.
-`FeatureTaskRuntimeRunInvariantPromptField` classifies each invariant as
-identity, acceptance-contract, policy, ceremony, review, add-on, or finalization.
-Identity, ceremony, and policy mandates reach every phase; the acceptance
-contract is withheld from the finalization phases (`write_history`,
-`commit_push`, `pr`), which act on work audit and validate already settled.
-Policy mandates are not withheld: they are free-form operator directives that
-govern the irreversible outward-facing phases, and this allowlist is their only
-delivery path.
-Hydrated add-on content is scoped by the manifest-owned
-`feature_addon_usage.feature-task` consumer assignment, which is run-scoped:
-every phase of a feature-task run is that consumer, so there is no narrower
-per-phase gate in `FeatureTaskRuntimePhasePromptComposer.budgetedAddonsFor`.
-What that seam does own is the budget — hydrated add-on content is budgeted
-independently of phase receipts, so neither budget can borrow the other's
-headroom and an oversized add-on rejects rather than inflating the briefing.
-
-`FEATURE_TASK_RUNTIME_PHASE_BRIEFING_PAYLOAD_BYTE_CEILING` now bounds only the
-non-projection framing. Projection bodies are bounded by their own declared
-budgets, which is what makes the no-truncation guarantee expressible: the
-assembler has no budget left to split, so it has nothing to truncate.
-
-The shipped per-edge declarations are currently one coarse whole-receipt
-projection per edge (`FeatureTaskRuntimePhaseWorkflowDefinition.upstreamReceiptProjections`).
-That proves the mechanism is load-bearing without yet claiming any edge is
-minimally scoped; fine-grained named-field projections replace them per edge
-later. Those coarse projections are declared `required = false` because presence
-of a declared upstream output is already gated ahead of launch by the run loop's
-missing-upstream block; the validator's required path stays load-bearing for
-declarations that own their own presence contract.
-
-Because those coarse receipts carry a whole phase output, their budgets are sized
-against recorded runtime phase outputs rather than picked as round numbers: no
-phase other than `preplan` exceeded 20,844 UTF-8 bytes across 239 durable
-outputs, while `preplan` reached 131,901. Hence `PHASE_RECEIPT` (65,536 bytes)
-for every edge and `PREPLAN_DIGEST_RECEIPT` (196,608 bytes) for the single
-`preplan` -> `plan` edge. A rejection therefore means a phase output grew far
-beyond every observed size, not that an ordinary run outgrew its budget. Re-size
-them from the same measurement when the delivered shape narrows to named fields.
-
-When a projection is rejected anyway, `FeatureTaskRuntimeRunLoop` catches
-`InvalidFeatureTaskRuntimeHandoffProjectionError` at the launch seam and blocks
-the phase through the ordinary `blockAndPersistInPhase` path with a
-`needs_user_action` disposition. The rejection is static declaration or
-configuration drift rather than agent output, so retrying without operator action
-reproduces it; blocking durably keeps the phase row and the run's finalization
-consistent instead of unwinding out of a run that already persisted
-`STATUS_RUNNING`.
-
-### Producer-side enforcement (SKILL-140 Subtask 1)
-
-A bounded planning projection was validated only at its consumer's launch seam,
-where the producing phase is already settled `completed`. A malformed digest,
-plan, or receipt therefore blocked the *next* phase — with no fix loop able to
-reach the phase that actually wrote it — and the run wedged. The producer gate
-closes that gap: a completed phase that owns a projection must emit one its
+A completed phase that owns a bounded planning projection must emit one its
 consumer can parse, checked at the producing phase's own schema gate so a
-violation re-enters that phase's bounded fix loop and blocks only at the existing
-cap.
+violation re-enters that phase's bounded fix loop. When a consumer still sees a
+malformed upstream record, the runtime quarantines the rejected bytes as
+private evidence and regenerates over a pinned consumer-to-producer edge.
+Static declaration drift and briefing overflow keep their first-occurrence
+durable block.
 
-`FeatureTaskRuntimePlanningProjectionContract.producedProjectionKindFor` is the
-single domain-owned routing map from producing phase id to the projection kind it
-owes (`preplan` -> `preplanning_digest`, `plan` -> `executable_plan`, `implement`
--> `implementation_receipt`, and null for every other phase, including the derived
-`plan_commitment`, which no phase produces). `producerProjectionGateReason` in
-`FeatureTaskRuntimeRunnerPolicies` reads that map and, for a completed envelope
-whose phase owns a kind, calls the same `featureTaskRuntimePlanningProjectionFromEnvelope`
-with the same `planningProjectionValidator` port the launch seam uses — no
-projection rule is restated at the gate. `FeatureTaskRuntimePlanningProjectionEdgeTest`
-binds the two sides so any envelope the gate accepts the launch seam accepts for
-the corresponding consumer edge, and neither can be made stricter than the other.
-
-The gate runs in `settleValidatedOutput` only after `terminalBlockedReasonFrom`,
-so a blocked or failed envelope — whose `produced_outputs` carries blocking
-reasons, not a projection claim — settles through the terminal path and never
-reaches the gate. A `decompose`-mode plan is likewise exempt: it terminates the
-run at planning and hands the planning stopper a separately-contracted
-decomposition package (`featureTaskRuntimeIsDecompositionPackage`), which no
-consumer parses as an executable plan. That exemption is scoped to the
-executable-plan producer (`plan`), the only phase with a decompose stopper
-backstop; a `preplan` or `implement` output merely shaped like a decomposition
-package has no backstop and still faces the gate, so it cannot settle `completed`
-and wedge its consumer. The rejection reason names the phase, the
-expected projection kind, and the underlying validation failure (its source label
-plus reason), bounded by the existing `SCHEMA_GATE_DETAIL_MAX_CHARS` schema-gate
-detail truncation — no second truncation rule.
-
-### Quarantine-and-regenerate (SKILL-140 Subtask 4)
-
-Producer-side gating (Subtask 1) reduces launch-seam rejections to legacy and
-drift records — precisely the population an in-band recovery edge can repair.
-When `FeatureTaskRuntimeRunLoop.launchAndCapture` catches
-`InvalidFeatureTaskRuntimePlanningProjectionSchemaError` or an
-`InvalidWorkflowStateSchemaError` on an upstream handoff envelope, it no longer
-blocks on first occurrence. Instead the consumer settles with the synthetic
-`RECORD_REJECTED` verdict, which drives the existing
-`FeatureTaskRuntimeTransitionFunction` over a pinned consumer→producer
-regeneration edge (`plan`→`preplan`, `implement`→`plan`, each with its own
-`regenerate_*` loop id and the `MAX_RECORD_REGENERATION_ATTEMPTS` cap). No
-parallel state machine is introduced: the same loop-id, edge-iteration,
-watermark, and crash-resume machinery the review-fix loop uses bounds
-regeneration, so a crash mid-regeneration resumes the same cap sequence without
-reset.
-
-Before the edge fires, the rejected record is appended to a durable, append-only
-quarantine store (`FEATURE_TASK_RUNTIME_QUARANTINED_RECORDS_ARTIFACT_KEY`,
-validated by the canonical quarantine schema). That store is private evidence: it
-is never resolved into an upstream projection, so no rejected byte reaches an
-agent prompt or briefing, and no runtime path ever mutates or deletes an entry —
-only out-of-band operator action may. The producer's settled `completed` status
-is invalidated through the existing phase-record machinery (its rejected payload
-moves to `rejected_output`, its status returns to `running`), so the handoff
-contract's `selectLatestOutputsByPhase` no longer surfaces the rejected record and
-the regenerated higher-iteration output supersedes it on this or any resumed run.
-
-Cap exhaustion blocks durably with a reason naming the quarantined record, its
-producing phase, and the attempt count. A record the runtime cannot attribute to
-a producing phase, or whose producer a goal-continuation truncation dropped from
-the resolved pipeline, blocks durably with an actionable reason rather than
-attempting an impossible re-entry. Static declaration/config drift
-(`InvalidFeatureTaskRuntimeHandoffProjectionError`), briefing byte-ceiling
-overflow keep their first-occurrence durable block: re-running a producer cannot
-fix them.
-Out-of-band row deletion or migration is the corruption fallback for records the
-edge cannot regenerate. Per-run regeneration telemetry records activation counts,
-attempt counts, and outcome-class tallies on the
-`skillbill_feature_task_runtime_finished` event — counts and class labels only, never record contents.
-
-Canonicalization and reconciliation of malformed durable projection records
-beyond this recovery edge belong to later SKILL-140 subtasks.
-
-## Install Policy Ownership (SKILL-52.1 install-policy-foundation)
+## Install And Scaffold Ownership
 
 Install request validation and pure install-plan construction live in
 `skillbill.install.policy` inside `runtime-domain`. The policy consumes typed
-snapshots from `skillbill.install.model`: discovered base skills, platform pack
-skills, detected agent targets, and default agent target paths. It resolves
-selected platforms, planned skills, agent targets, MCP registration intent, and
-the typed `InstallPlanDraft` without touching filesystem, process execution,
-staging hashes, symlink checks, binary discovery, or rollback mechanics.
+snapshots and produces a typed draft without touching filesystem, process
+execution, staging hashes, symlink checks, binary discovery, or rollback
+mechanics. `runtime-infra-fs` remains the owner of those mechanics and converts
+facts into typed snapshots before calling the policy.
 
-`runtime-infra-fs` remains the owner of filesystem/process mechanics: platform
-manifest discovery and schema parsing, base-skill directory scans, agent
-detection/default path probing, pointer realpath validation, content hashing,
-staging path computation, symlink/native-agent/MCP/apply side effects, Windows
-preflight, and rollback behavior. The infra builder converts those facts into
-typed snapshots before calling the policy.
+Scaffold payload-shape rules, kind discriminators, platform-pack selection, and
+manifest rendering that have no filesystem dependency live in
+`skillbill.scaffold.policy` inside `runtime-domain`. Scaffold IO is split
+across capability-named ports under `skillbill.ports.scaffold`. Matching
+filesystem adapters live in `runtime-infra-fs`. `ScaffoldGateway` is a typed
+port consumed by the CLI.
 
-The install-plan wire map remains the schema source of truth at both existing
-seams. `buildInstallPlan` still calls
-`validateInstallPlanWireSnapshot(plan)`, and the CLI emission boundary still
-revalidates the same helper output before emitting `installPlanPayload` or the
-planning prefix of `installApplyPayload`. New install policy APIs must use typed
-request/result/snapshot models and must not add public raw `Map<String, Any?>`
-returns outside the documented open-boundary allow-list. Adapter modules may
-call the shared wire-snapshot validator only at the approved builder and CLI
-emission seams; they must not import the schema validator directly or declare
-install planner/validator policy.
-
-## Scaffold Capability Ports And Pure-Policy Ownership (SKILL-52.1 subtask 2)
-
-The scaffold pipeline is being decomposed from the single legacy
-`ScaffoldGateway` raw-map surface into typed capability ports and a pure-policy
-module. Subtask 2 lands the port surface and the pure-policy ownership
-boundary; the `ScaffoldGateway` raw-map elimination and the 18 scaffold
-allow-list entries below are intentionally NOT yet removed — they remain
-deferred to subtask 3.
-
-- **Pure-policy ownership boundary:** every payload-shape rule, kind
-  discriminator, subagent-rejection rule, platform-pack selection/defaults/
-  notes computation, install-path builder, and platform-pack manifest YAML
-  renderer that has no filesystem dependency lives in
-  `skillbill.scaffold.policy` inside `runtime-domain`. Files in
-  `runtime-domain/src/main/kotlin/skillbill/scaffold/policy/` MUST NOT
-  import `skillbill.infrastructure.fs.*`,
-  `skillbill.scaffold.ScaffoldService`, or
-  `skillbill.scaffold.FileSystem*`. The
-  `ImplementationOwnershipArchitectureTest.scaffoldPolicyPackagesMustNotImportInfraFs`
-  test enforces this prospectively.
-- **Capability-port surface:** scaffold IO is split across five
-  capability-named ports under `skillbill.ports.scaffold.<capability>/`:
-  - `source/ScaffoldSourceLoaderPort` (with
-    `source/model/ScaffoldSourceLoaderModels`) — parses platform-pack
-    manifests from disk.
-  - `manifest/ScaffoldManifestPersistencePort` (with
-    `manifest/model/ScaffoldManifestPersistenceModels`) — owns the
-    `platform.yaml` read/snapshot/write/restore/render seams.
-  - `staging/ScaffoldGeneratedStagingPort` (with
-    `staging/model/ScaffoldGeneratedStagingModels`) — stages
-    scaffold-generated artifact files with rollback.
-  - `install/ScaffoldInstallLinkPort` (with
-    `install/model/ScaffoldInstallLinkModels`) — applies install links
-    to detected agent targets.
-  - `repo/ScaffoldRepoValidationPort` (with
-    `repo/model/ScaffoldRepoValidationModels`) — runs the post-stage
-    governed-skill validation seam.
-  - Each port has a matching `FileSystem<Capability>` adapter in
-    `runtime-infra-fs/src/main/kotlin/skillbill/infrastructure/fs/` that
-    delegates to the existing `skillbill.scaffold.AuthoringOperations`
-    and `skillbill.scaffold.scaffold` IO seams. The legacy
-    `FileSystemScaffoldGateway` adapter is intentionally retained — its
-    raw-map removal belongs to subtask 3.
 ## Architecture Guardrails
 
 The architecture tests enforce the following rules:
@@ -1273,202 +644,53 @@ The architecture tests enforce the following rules:
   composition roots, and implementation details.
 - Public application, domain, and port model declarations live under `model`
   packages.
-- LearningRecord is owned by the learnings domain.
-- review parsing and triage decision normalization are pure surfaces.
-- SQL-backed review persistence lives under `skillbill.infrastructure.sqlite.review`.
-- telemetry proxy payload mapping belongs with the HTTP adapter.
 - Learning, review, telemetry, workflow, install, scaffold, and skill-remove
   ownership stays in the packages named above.
 - Workflow-state, install-plan, decomposition-manifest, platform-pack,
   native-agent composition, and telemetry-event schema validators are exercised
   at their owning parse seams.
 - typed CLI presenter models are the input to CLI text rendering.
-- `docs/architecture/gradle-module-split-evaluation.md` records the physical
-  Gradle split decision and readiness rules.
 - Every `runtime-cli` command area's transitive `skillbill.cli` import closure
   contains only the shared `kernel` and `model` leaves, never a sibling command
   area and never the composition root `skillbill.cli.core`.
 - No runtime module source file, and no main-source file, type, or member
   declaration, carries the spillover signature (`*Extras`, `*Continued`,
   `*Helpers`, `*Support`, `*Misc`, `*Fns<N>`, letter-plus-digit, or bare
-  trailing-digit siblings) outside a named exemption; the bare `Support`,
+  trailing-digit siblings) outside a named exemption. The bare `Support`,
   `Helpers`, `Misc`, and `Extras` forms apply to `src/main` only, the numbered
   forms to every `src` tree.
-- No main-source site outside `skillbill.di` constructs a concrete class censused
-  from `@Provides` parameter types and explicit Provides constructions;
-  `RuntimeCompositionGuardArchitectureTest` matches import aliases, ignores comments
-  and string literals, skips unrelated same-named functions, and names sanctioned
-  second entrypoints explicitly.
-- `RuntimeComponent` logical service properties are pinned separately from `@Provides`
-  generated wiring; `RuntimeComponentInboundApiArchitectureTest` rejects any other
-  public function on `RuntimeComponent` or a `Runtime*Provides` mixin even when the
-  abstract property set is unchanged.
-- `skillbill.infrastructure.fs.scaffold.runtime.ScaffoldStandaloneEntrypoint` is the sanctioned
-  second scaffold entrypoint for in-tree parity and rollback tests that cannot
-  reach `RuntimeComponent`; production paths use `FileSystemScaffoldOrchestrator`.
-- A failed `uninstall` mutation is a recorded degradation with a non-zero exit
-  code, shared by launcher removal, desktop removal, recursive tree removal,
-  agent-target cleanup, native-agent unlinking, and MCP unregistration.
-- The Raw Map Boundary Rule (rule 11) is enforced by
-  `RuntimeRawMapArchitectureTest.runtime architecture forbids public raw map
-  shapes in inner layers` with zero-tolerance: no allow-list and no annotation
-  grandfather path.
-
-### SKILL-227 runtime-application guardrails
-
-`ProductionLogicalTypeLineCeilingArchitectureTest` attributes each production
-Kotlin file to a logical type: type-declaring files bill to the first top-level
-named type FQN; extension-only files bill every line to each distinct
-extension-receiver FQN. A shrink-only baseline records offenders above the
-1200-line ceiling; baselined units may only shrink and unlisted units must stay
-at or below the ceiling.
-
-`ApplicationPackageAcyclicityArchitectureTest` tracks mutual import pairs among
-the areas of one package prefix under one scan root, both passed as parameters.
-The `runtime-application` baseline is shrink-only; any new mutual-import pair
-not already baselined fails the build.
-
-`RuntimeApplicationAmbientClockArchitectureTest` bans `Instant.now()`,
-`LocalDateTime.now()`, `LocalDate.now()`, and `Clock.systemUTC()` under a
-parameterized scan root. The `runtime-application` baseline is shrink-only.
-
-`InjectConstructorDefaultsArchitectureTest` bans default arguments on
-`@Inject` constructors and dependency bags consumed by them, and non-private
-property initializers on an `@Inject` class that declares no primary
-constructor. Production wiring must bind every port explicitly in
-`RuntimeComponent`; test-only stubs such as `ApprovingReviewDriverStub` are
-never reachable through an unbound dependency.
-
-The scanner strips comments and string and character literals before it walks
-delimiters, so a default whose literal holds an unbalanced brace or paren does
-not hide the properties declared after it. The `runtime-application` baseline is
-empty by rule, not by census: the recorder never rewrites it and the test
-asserts it stays empty, so a new default fails the build instead of being
-recorded away.
-
-### SKILL-229 runtime-cli guardrails
-
-The acyclicity, ambient-clock, and `@Inject`-defaults scanners are shared, not
-copied: each takes its scan root (and, for acyclicity, its package prefix) as a
-parameter, and `runtime-cli` is a second case over the same scanner body. A
-second copy of a scanner scoped to another module is not an acceptable
-substitute.
-
-`AmbientEnvironmentArchitectureTest` bans `System.getenv`, `System.getProperty`,
-`Path.of("")`, and `Paths.get("")` under a parameterized scan root. Its scope is
-the scan root plus a recorded baseline per module, with no per-pattern carve-outs;
-test infrastructure stays outside the scanned root. Named file-path exemptions on
-`PrincipleEnforcementInventory.ambientEnvironmentExemptions` omit a process entry
-from baseline recording only; every other main-source site must still match an
-empty baseline. Today that list names
-`runtime-kotlin/runtime-mcp/src/main/kotlin/skillbill/mcp/core/Main.kt` as the
-MCP process boundary.
-
-The four `runtime-cli` baselines started as a census — 16 mutual-import pairs, 2
-ambient-clock sites, 22 ambient-environment sites, and `CliRunState`'s 8
-default-valued fields — and subtasks 2 and 3 emptied all four. Each
-`runtime-cli` case asserts set equality against its baseline rather than absence
-of unlisted sites, so a scanner that ignored its new scan-root or
-package-prefix parameter cannot pass against a stale baseline; with the
-baselines empty that equality is a hard ban. Regenerate these baselines from
-the scanners with `RECORD_ARCHITECTURE_BASELINES=1`, never by hand.
-
-`RuntimeCliAreaIsolationArchitectureTest` proves what an empty cycle baseline
-cannot: every command area's transitive `skillbill.cli` import closure must
-contain only the shared leaves `skillbill.cli.kernel` and `skillbill.cli.model`,
-never a sibling command area and never the composition root
-`skillbill.cli.core`. A cycle baseline can be emptied by moving a single import
-even when the areas stay entangled through one-directional hub edges, so the
-closure assertion is the guard that any command area builds and tests alone.
-`RuntimeCliAreaIsolationArchitectureTest` also rejects `featuretask` production
-sources that construct `RejectedOutputDiagnosticService` or call
-`unitOfWork.diagnosticService`; rejected-output CLI routes through
-`RejectedOutputDiagnosticCliSession` in `runtime-application` instead. The
-scanner does not treat Clikt `.default(".")` on `--repo-root` as equivalent to
-`Path.of("")`; omitted roots resolve through `resolveCliRepositoryRoot` and
-`CliRunInputs.repositoryRoot`.
-
-The scan enumerates every area it finds under `skillbill.cli` and exempts one
-name, `CLI_COMPOSITION_ROOT_AREA`; probing a single hand-picked area would let a
-one-directional edge such as `goal -> featuretask` pass both guards.
-`skillbill.cli.core` holds only the composition root — `CliComponent`,
-`CliRuntime`, `Main`, `SkillBillCommand`, `CliCommandGroups`, and
-`CliUtilityCommandGroups` — and it is the only package that may import a
-command area. `install` therefore owns its own command tree and top-level
-group, and the units two command areas share — the completion telemetry drain
-and the `WorkflowUpdateResult` payload mapper — live in `skillbill.cli.kernel`.
-
-`RuntimeSpilloverFileNameArchitectureTest` bans the spillover filename signature
-across every module source root. Exemptions are a named list on
-`PrincipleEnforcementInventory`, empty by rule, never an ad-hoc regex carve-out.
-The 1200-line per-file ceiling (2026-09-04 decision) moves only by decision
-entry, never by baseline or exemption: a re-merged unit above it fails the
-logical-type ceiling instead.
-
-### SKILL-231 inward-layer guardrails
-
-The package-acyclicity, ambient-clock, ambient-environment, and
-`@Inject`-defaults scanners are instantiated once per Gradle module through
-`PrincipleEnforcementInventory.moduleArchitectureScanCases`, driven by
-`RuntimeModuleCatalog.declaredGradleModules`. Each case supplies its own main
-scan root and package prefix (or scan root alone for ambient-environment and
-inject-defaults) rather than forking a second scanner class.
-
-`AmbientEnvironmentArchitectureTest` takes its scan root as a parameter; every
-module main source root has a recorded baseline. The `runtime-cli` baseline
-remains empty by rule.
-
-`RuntimeSpilloverFileNameArchitectureTest` scans every module's `src` tree
-(main and test), matching `*Extras`, `*Continued`, `*Helpers<N>`, `*Fns<N>`,
-`*Support<N>`, `*Misc<N>`, letter-plus-digit suffixes, and bare trailing-digit
-names when a de-digited or differently digitized sibling exists in the same
-package directory. Under `src/main` the bare `*Support`, `*Helpers`, `*Misc`,
-and `*Extras` forms are banned too, and the same pattern runs over every
-top-level and member declaration name (class, object, interface, fun, val, var)
-with string literals and comments stripped. File violations are keyed on
-repository-relative paths and identifier violations on `path#name`, both against
-`baselines/spillover-file-name-baseline.txt`.
-
-`RuntimeModuleCatalog.moduleEdgeExpectations` owns every module's expected
-`api(project(...))` and `implementation(project(...))` sets; `RuntimeCoreCompositionOnlyTest`
-compares Gradle files to that authority alongside the retained
-infrastructure-and-entrypoint `api` ban on `runtime-core`. `runtime-core` keeps
-`api(:runtime-application)` and `api(:runtime-ports)` as the kotlin-inject ABI
-edges. `runtime-infra-fs`, `runtime-infra-http`, and `runtime-infra-sqlite`
-narrow `api(:runtime-ports)` and `api(:runtime-domain)` to `implementation`.
-`runtime-cli` carries no `api` project edges.
-
-Baselines that were empty on main (`runtime-application` and `runtime-cli`
-package-cycle, ambient-clock, ambient-environment, and inject-defaults baselines,
-plus the runtime-application inject-defaults floor) stay empty by rule. Module
-baselines recorded here are shrink-only ceilings: they may only shrink, never
-grow without an explicit baseline update through the recorder.
+- No main-source site outside `skillbill.di` constructs a concrete class
+  censused from `@Provides` parameter types and explicit Provides
+  constructions. `RuntimeCompositionGuardArchitectureTest` matches import
+  aliases, ignores comments and string literals, skips unrelated same-named
+  functions, and names sanctioned second entrypoints explicitly.
+- `RuntimeComponent` logical service properties are pinned separately from
+  `@Provides` generated wiring. `RuntimeComponentInboundApiArchitectureTest`
+  rejects any other public function on `RuntimeComponent` or a
+  `Runtime*Provides` mixin even when the abstract property set is unchanged.
+- `skillbill.infrastructure.fs.scaffold.runtime.ScaffoldStandaloneEntrypoint`
+  is the sanctioned second scaffold entrypoint for in-tree parity and rollback
+  tests that cannot reach `RuntimeComponent`. Production paths use
+  `FileSystemScaffoldOrchestrator`.
+- Production files stay under the logical-type line ceiling. Package-import
+  cycles, ambient clock reads, ambient environment reads, and `@Inject`
+  constructor defaults use shrink-only baselines per module. Empty baselines
+  stay empty by rule.
+- `RuntimeCliAreaIsolationArchitectureTest` proves command-area isolation
+  beyond an empty cycle baseline.
+- `RuntimeContractModuleImportRulesTest` pins inward-layer import bans.
+- The Raw Map Boundary Rule is enforced with zero-tolerance: no allow-list and
+  no annotation grandfather path.
 
 ### Port null-object classification
 
 `PortNullObjectAbsenceArchitectureTest` requires that no `Unavailable`, `Noop`,
 `Empty`, or `Unconfigured` object is declared in any runtime module's main
 source. A port whose absence a production call site actually reaches is
-nullable, and the reached site names its fallback (`?: JdkHttpRequester`,
-`?: git`) or returns the absent answer. The substitutes that tests still need
-live in the owning module's `src/testFixtures` under their original packages,
-so they are unreachable from a published runtime. The former
-`RecordingNullObjectDiagnostics` global bind was removed under SKILL-233 (see
-`runtime-kotlin/agent/decisions.md`); SKILL-349 deletes the leftover contracts-module
-declaration with no replacement recorder.
-
-`RuntimeContractModuleImportRulesTest` pins the two inward layers: `runtime-ports`
-declares interfaces and DTOs and imports no adapter machinery
-(`java.io`, `java.nio.file.Files`, `kotlinx.serialization`, `me.tatarka.inject`,
-`org.yaml`), and `runtime-domain` imports no serialization, charset, or IO
-library (`java.io`, `java.nio.charset`, `com.fasterxml`, `kotlinx.serialization`,
-`org.yaml`). Domain code reaches JSON only through the stdlib-typed
-`skillbill.contracts.JsonCodec` facade and text encoding only through
-`kotlin.text.Charsets`. Both guards assert an empty violation list; neither
-carries a baseline.
-
-`data object` cases of a sealed hierarchy — `ValidationGateTriageResult.Empty`
-is the one in the tree — are not substitutes and the census excludes them.
+nullable, and the reached site names its fallback or returns the absent answer.
+The substitutes that tests still need live in the owning module's
+`src/testFixtures`. `data object` cases of a sealed hierarchy are not
+substitutes.
 
 ### Destructive command failure policy
 
@@ -1476,90 +698,43 @@ is the one in the tree — are not substitutes and the census excludes them.
 apply is a recorded degradation with a non-zero exit code, never a warning
 string on a zero exit. Launcher removal, desktop removal, recursive tree
 removal, agent-target cleanup, native-agent unlinking, and MCP unregistration
-share that one policy through `UninstallMutationRecorder`, which owns it: each
-site hands the recorder the failed mutation, the recorder emits a
-`skillbill.ports.diagnostics.RuntimeDiagnostics` error record and contributes
-to a failed outcome, and the command reports a non-zero exit code. No mutation
-site formats its own warning or decides its own severity. A partial uninstall —
-launcher symlink removed, state tree left behind — therefore cannot report
-success.
+share that one policy through `UninstallMutationRecorder`. No mutation site
+formats its own warning or decides its own severity.
 
 The completion telemetry drain is the one deliberate swallow that stays: it
 must not change the run's exit code and must not reach the run's stdout or
-stderr. It is not silent. Every abandonment path — the worker still alive after
-the join timeout, an interrupted join, and the worker's own failure — emits a
-`RuntimeDiagnostics` warning, which is the sanctioned channel under
-`docs/observability-policy.md` for a degradation that must stay off the run's
-output surfaces.
-
-`skillbill.application.runtime.RuntimeSingleton` scopes services and adapters that hold a cache, connection,
-or lease across accessor reads (`DatabaseSessionFactory`,
-`FeatureTaskRuntimeWorkerSupervisor`, `FeatureTaskRuntimeWorkerCoordinator`,
-`DurableGoalPlanningAttemptRecorder`). Deliberately unscoped services:
-
-- `GoalRunner` — per-access construction is intentional until subtask 2 makes
-  `validationQualityRetries` durable across accessor reads.
-- Stateless orchestration services (`WorkflowService`, `ReviewService`,
-  `ParallelCodeReviewRunner`, and similar) — no cross-call mutable state.
+stderr. It is not silent. Every abandonment path, including a worker still alive
+after the join timeout, an interrupted join, and the worker's own failure, emits
+a `RuntimeDiagnostics` warning.
 
 Runtime database selection belongs to the bound `EnvironmentContext`. The
-`DatabaseSessionFactory` resolves and retains one normalized path for its
-component lifetime; application and port operations do not accept database
-path overrides. CLI parsing selects `--db` before component creation, while
-MCP and embedded callers bind their selected path in the same context. The
-`EnvironmentContext.dbPathOverride` property is configuration at that
-composition boundary, not operation or request plumbing.
+session factory resolves and retains one normalized path for its component
+lifetime. Application and port operations do not accept database path
+overrides.
 
-## Workflow Git status inventory
+## Wire Vocabulary
 
-The closed workflow-Git result vocabulary is owned by
-`skillbill.ports.workflow.gitops.model`:
+Runtime-domain wire-token declarations own closed enum tokens and their
+aliases. Runtime-contracts `*Keys` declarations own durable and wire payload
+keys. `SharedPayloadKeys` is the shared owner for workflow phase-output
+envelope keys. Enum wire tokens use `wireValue` on the owning enum. Downstream
+modules reference those constants. They do not restate wire strings.
 
-- `WorkflowGitOperationResult` is the sealed `Ok`/`Failed` result. Its
-  non-null `value` and `error` payloads default to empty strings. The result
-  cases own the canonical `wireValue` tokens `ok` and `error`, and
-  `WorkflowGitOperationResult.fromWire` is the only decoder for that result.
-- `WorkflowGitOperationStatus` owns the same `ok` and `error` tokens for
-  structured Git DTOs and is the only decoder for those DTO status fields.
-  `WorkflowScopedPathContentsResult.status`,
-  `WorkflowSelectedDiffHunksResult.status`, and
-  `WorkflowWorktreeActivityResult.status` use this enum; none is an open
-  provider vocabulary.
-- `GoalSubtaskReviewBaselineResult.status` and
-  `GoalSubtaskReviewInputResult.status` remain the legacy Git review
-  operation envelope boundary. Their `ok`/`error` tokens are consumed only
-  by the review adapter and application recovery seams; they are not
-  `WorkflowGitOperationResult` values and do not authorize raw status access
-  on that sealed result.
+Closed workflow and decomposition decisions use domain-owned status
+vocabularies. Their `wireValue` members are the only declarations of the
+supported tokens, and `fromWire` is used at durable-map seams. Provider, pack,
+and versioned durable payloads whose vocabulary is owned by that boundary stay
+open at that boundary. Snapshot and observability payloads stay byte-identical
+for supported values.
 
-`recordsNothingToCommit` is a pure result extension that searches both
-  payloads. The Git adapter may normalize a recognized no-change failure to an
-  empty `Ok`, while goal finalization separately accepts a marker-bearing
-  `Failed`; both paths are intentional and preserve their existing payload
-  semantics.
-
-# Wire vocabulary
-
-Runtime-domain wire-token declarations own closed enum tokens and their aliases. Runtime-contracts
-`*Keys` declarations own durable and wire payload keys; `SharedPayloadKeys` is the shared owner for
-the feature-task phase-output envelope; `DecompositionManifestPayloadKeys` and
-`DecompositionPlanningPayloadKeys` own decomposition-manifest and planning-projection keys.
-`ProsePhaseOutputParse` delegates status normalization to `SettlementStatus`, while
-`DecompositionStatus` retains its separate `completed` input alias and `complete` output token.
-
-## Governed payload seams (mechanical scope)
-
-`WireVocabularyGovernedSeamInventory` is the independent expected-key authority. It reads canonical
-schema YAML for decomposition manifests, the decomposition bundle journal, and the workflow
-phase-output envelope (not a scan of existing `*Keys` objects). It also declares the closed
-goal-continuation artifact vocabulary independently from its Kotlin owner. For each seam it
-compares closed schema fields to declared `*Keys` / `*PayloadKeys` constants and fails when a
-schema field has no Kotlin owner.
-
-Literal payload-key enforcement runs only on production sources whose paths match the seam markers
-(documented in `WireVocabularyGovernedSeamInventory.seams`). Outside those markers, telemetry,
-CLI presentation, SQL column labels, and prompt prose may still carry string literals even when
-they spell the same token.
+`WireVocabularyGovernedSeamInventory` is the independent expected-key
+authority. It reads canonical schema YAML for decomposition manifests, the
+decomposition bundle journal, and the workflow phase-output envelope, and
+declares the closed goal-continuation artifact vocabulary independently from
+its Kotlin owner. Literal payload-key enforcement runs only on production
+sources whose paths match the inventory's governed markers. A green scan
+does not prove every `String` in the runtime is typed. The architecture test
+includes a fixture that fails when a governed seam accesses a literal key instead of its owner.
 
 | Seam | Schema authority | Open extension (not key-owned) |
 | --- | --- | --- |
@@ -1568,168 +743,45 @@ they spell the same token.
 | Workflow phase-output envelope | Top-level envelope fields only | `produced_outputs` entry maps (phase-specific keys stay open) |
 | Feature-task runtime goal-continuation artifact | `FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys` | None |
 
-A green `WireVocabularyArchitectureTest` on runtime main sources does not prove every `String` in
-the runtime is typed, that handoff-envelope projection bodies are fully keyed, or that unrelated
-payload families (telemetry, review, install) have been migrated. The inventory's governed markers
-cover the encode/decode pair for each listed seam; the architecture test includes a fixture that
-fails when a governed seam accesses a literal key instead of its owner.
+Workflow Git results are a closed `Ok` or `Failed` vocabulary owned by the
+workflow git-ops port model. Recognized no-change failures may normalize to
+empty `Ok` in the adapter, while goal finalization may accept a marker-bearing
+`Failed`. Both paths are intentional.
 
-`WireVocabularyArchitectureTest` discovers runtime main sources through `RuntimeModuleCatalog`,
-indexes declarations with source locations, rejects same-owner duplicates and local vocabulary
-restatements, and reports the measured baseline-to-final delta. Identical spellings in different
-enums remain separate when their decoding context differs. A collection literal restates a token
-only inside that owner's decoding context.
+## Native-Agent Installation
 
-# Native-agent installation integrity
+Native-agent rendering promotes artifacts atomically into the installed cache
+and records each Skill Bill-managed link in the user-home inventory.
+Reconciliation uses the complete prior inventory to remove obsolete or dangling
+managed links. It never deletes a regular file or a symlink that no longer
+resolves to its recorded managed target. Install verifies the linked artifact's
+logical name, digest, target, and readability before committing the inventory.
 
-Native-agent rendering promotes artifacts atomically into the installed cache and records each
-Skill Bill-managed link in the user-home `.skill-bill/native-agent-link-inventory.json`. The inventory stores
-the logical worker name, provider, installed path, cache target, and content digest. Reconciliation
-uses the complete prior inventory to remove obsolete or dangling managed links; it never deletes a
-regular file or a symlink that no longer resolves to its recorded managed target. Install verifies
-the linked artifact's logical name, digest, target, and readability before committing the inventory.
+## Delegated Code Review
 
-# Delegated code-review architecture
+`ParallelCodeReviewRunner` resolves scope, diff, dominant stack, rubrics, and
+project rules once for the whole review, then hands every top-level lane the
+same immutable parent packet. A lane never re-resolves a fact the parent
+already established.
 
-**One authoritative preparation.** `ParallelCodeReviewRunner` resolves scope, diff, dominant stack,
-rubrics, and project rules once for the whole review, then hands every top-level lane the same
-immutable parent packet. A lane never re-resolves a fact the parent already established, and the
-review runs one scope-discovery command regardless of how many specialists it launches.
+Manifest composition flattens to one direct specialist lane per selected area.
+The nearest owning layer wins. A composed root expands to its own specialists
+plus required baseline specialists. The baseline review skill is never launched
+as a nested orchestrator.
 
-**Flattened manifest layering.** `ReviewLaunchPlanPolicy.flatten` walks a routed pack's declared
-composition and emits one direct specialist lane per selected area, with the nearest owning layer
-winning and the full origin-layer chain retained for attribution. A composed root such as `kmp`
-therefore expands straight to its own specialists plus the required baseline specialists; the
-baseline review skill is never launched as a nested orchestrator.
+`ReviewOperationPolicy` classifies every operation a specialist requests
+without consulting platform, pack, or provider identity. Repository status,
+scope discovery, diff recomputation, build and test invocation, pack
+resolution, routing, learnings, telemetry ownership, and opaque searches are
+refused because the parent packet already carries those facts.
 
-**Forbidden child rediscovery.** `ReviewOperationPolicy` classifies every operation a specialist
-requests without consulting platform, pack, or provider identity. Repository status, scope and
-base/head discovery, diff recomputation, build and test invocation, pack and add-on resolution,
-routing, learnings resolution, telemetry ownership, project-guidance traversal, and opaque searches
-are refused because the parent packet already carries those facts. Project guidance reaches a
-specialist only as packet-attested matched rule references, never as a file body.
+`ReviewEvidenceBroker` is the single measured surface a specialist may act
+through. Assigned paths are served in bounded batches. Anything outside the
+assignment needs an authorized expansion whose record belongs to the parent
+packet. When delegated execution selects provider-native specialists, every
+assignment is verified against the managed native-agent link inventory before
+any worker starts. A missing, stale, or dangling link fails the whole review.
+There is no generic-worker fallback.
 
-**Bounded evidence and expansion ledger.** `ReviewEvidenceBroker` is the single measured surface a
-specialist may act through. Assigned paths are served in bounded batches; anything outside the
-assignment needs an authorized expansion whose record belongs to the parent packet's expansion
-ledger and whose assignment digest must match the requesting lane. Once a lane produces a terminal
-outcome the broker keeps returning that outcome instead of serving more context.
-
-**Native-agent preflight.** When delegated execution selects provider-native specialists, every
-`(agent, logical worker)` assignment is verified against the managed native-agent link inventory
-before any worker starts. A missing, stale, or dangling link fails the whole review with
-`MissingInstalledNativeAgentError` and its governed repair command; there is no generic-worker
-fallback.
-
-**Independent parallel lanes.** The two top-level lanes share the parent packet and nothing else.
-Each holds its own assignments, evidence brokers, budgets, and accounting nodes, so one lane's
-budget termination, timeout, or process failure never disturbs its sibling. Accounting folds each
-session exactly once: direct usage sums owned sessions, an inclusive provider report already
-containing its descendants is never added to them again, and counters aggregate the same way.
-
-# Closed status-family inventory
-
-Closed workflow and decomposition decisions use the domain-owned `DecompositionStatus`,
-`WorkflowStatus`, and `WorkflowStepStatus` vocabularies. Their `wireValue` members are the only
-declarations of the supported tokens, and `fromWire` is used at durable-map seams. The following
-fields are either typed here or remain open because their values are supplied by a provider, a pack,
-or a versioned durable payload whose vocabulary is intentionally owned by that boundary:
-
-- `skillbill.goalrunner.model.GoalRunnerLivenessSnapshot.processState`,
-  `skillbill.ports.agentrun.model.AgentRunLivenessSnapshot.processState`, and
-  `skillbill.goalrunner.model.GoalRunnerSupervisionEvent.continuationMode`/`processState` use the
-  domain-owned `GoalRunnerProcessState` and `GoalRunnerContinuationMode` enums. Their artifact
-  writers emit `wireValue`, and the supervision projection uses the explicit `UNKNOWN` process
-  state when no liveness snapshot is available.
-- `skillbill.goalrunner.model.GoalRunnerLivenessSnapshot.livenessState` and
-  `skillbill.ports.agentrun.model.AgentRunLivenessSnapshot.livenessState` use
-  `GoalRunnerLivenessState`, as does
-  `skillbill.goalrunner.model.GoalRunnerLivenessDecision.state`;
-  `skillbill.goalrunner.model.GoalPlanningStatusSnapshot.state` and
-  `skillbill.application.idestatus.model.IdeStatusPlanning.state` use `GoalPlanningStatusState`;
-  `skillbill.goalrunner.model.GoalRunnerStatusProjection.executionLiveness` and
-  `skillbill.goalrunner.model.GoalRunnerStatusProjectionRuntimeInputs.executionLiveness` use
-  `ExecutionLiveness`; `skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairLedgerEntry.status`
-  uses `FeatureTaskRuntimeRepairLedgerStatus`; and
-  `skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership.leaseState` uses
-  `FeatureTaskRuntimeWorkerLeaseState`. Each owning enum provides the sole `wireValue`/`fromWire`
-  mapping for its fields.
-
-- `skillbill.workflow.decomposition.model.DecompositionManifest.status` and
-  `DecompositionSubtask.status`: legacy manifest state accepts unknown future values and keeps the
-  raw wire value for forward-compatible read and rewrite.
-- `skillbill.workflow.engine.model.WorkflowStepState.status`, `WorkflowStateSnapshot.workflowStatus`,
-  and `Workflow*View.workflowStatus`: workflow definitions are pack-owned and may add statuses;
-  typed branches use the shared vocabulary where the runtime makes a closed decision.
-- `skillbill.ports.workflow.model.WorkflowStateRecord.workflowStatus`: this is the persisted port
-  record crossing the SQLite and workflow-engine compatibility seam, so it preserves unknown
-  definition values; consumers convert it with `workflowStatus()` before making closed decisions.
-- `skillbill.ports.featuretask.model.FeatureTaskRuntimeCrashReconciliationCandidate.workflowStatus`
-  and `skillbill.ports.workflow.decomposition.runtime.model.DecompositionManifestRuntimeUpdate.workflowStatus`
-  are read from SQLite worker/decomposition update rows and preserve the workflow-definition token
-  while crossing worker and decomposition update ports; their consumers convert it with
-  `workflowStatus()` before closed dispatch.
-- `skillbill.goalrunner.model.GoalRunnerObservabilityProgressInput.workflowStatus` preserves the
-  caller-supplied workflow-definition token while `WorkflowServiceInputMapping` projects
-  observability from durable artifacts; it is not a process or goal status owned by the
-  observability model.
-- `skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord.status` is owned by
-  `WorkflowStepStatus`, and `FeatureTaskRuntimeGoalContinuationOutcome.status` is owned by
-  `GoalRunnerTerminalStatus`; both durable decoders reject unknown values at their artifact seams.
-- `skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStatus.status` remains a
-  presentation string; `FeatureTaskRuntimeStatusService` decodes it with `WorkflowStepStatus`
-  before count and phase-selection decisions and emits the enum's `wireValue`.
-- `skillbill.engine.featuretask.model.FeatureTaskRuntimeSubtaskOutcome.status` is owned by
-  `GoalRunnerTerminalStatus`; `FeatureTaskRuntimeRunnerLaunchOutcomes` uses exhaustive typed
-  dispatch and the CLI presentation emits its `wireValue`.
-- `skillbill.telemetry.model.SyncResult.status` is owned by `TelemetrySyncStatus`; the remaining
-  `FeatureTaskRuntimeFinishedRecord.completionStatus`, `QualityCheckFinishedRecord.result`,
-  `FeatureVerifyFinishedRecord.auditResult`/`completionStatus`,
-  `GoalStartedRecord.status`, `GoalSubtaskFinishedRecord.status`, `GoalFinishedRecord.status`,
-  `GoalIssueFinishedRecord.status`, and telemetry mode fields are provider and telemetry labels
-  owned by their emitting contracts.
-- `skillbill.goalrunner.model.GoalRunnerProgressEvent.kind`,
-  `skillbill.goalrunner.model.GoalRunnerLivenessSnapshot.phase`,
-  `skillbill.goalrunner.model.GoalRunnerSupervisionEvent.phase`,
-  `skillbill.review.context.model.ReviewContextPacket.status`, and
-  `skillbill.review.context.model.ReviewBuildTestFact.kind`/`outcome` are exact open labels owned by
-  their emitting contracts. `skillbill.ports.scaffold.model.ScaffoldBaselineLayer.mode` is the
-  presentation of a pack-owned baseline mode and remains open at that port boundary.
-  `ImportedReview.executionMode` and `ReviewSummary.executionMode` are
-  owned by `ReviewExecutionMode`; the decoder preserves nullable absence and emits `wireValue`.
-- `skillbill.review.model.ReviewRunLane.resolutionState` is owned by
-  `ReviewLaneResolutionState`, and `ReviewRunLane.reviewDisposition` is owned by
-  `ReviewLaneReviewDisposition`; SQLite legacy null or unknown values fail closed to unresolved
-  and incomplete before application dispatch.
-- `skillbill.ports.review.model.ReviewScopeFacts.status`,
-  `skillbill.review.model.GoalRunSummary.status` preserve review-store and provider status labels;
-  the review scope and stats boundaries own those vocabularies and do not make closed decisions
-  from the raw values.
-- `skillbill.ports.scaffold.model.ScaffoldSkillStatus.completionStatus` is owned by
-  `ScaffoldCompletionStatus`, and `ScaffoldSectionStatus.status` is owned by
-  `ScaffoldSectionCompletionStatus`; both use their enum `wireValue`/`fromWire` pair at the
-  authoring adapter boundary. `ScaffoldValidateResult.mode` and `.status` use
-  `ScaffoldValidationMode` and `ScaffoldValidationStatus`, respectively, with decoding at the
-  authoring adapter boundary. `skillbill.scaffold.model.ScaffoldModels.mode`/`kind` and
-  `skillbill.ports.agentrun.model.AgentRunLauncherModels.phase` remain open because their values
-  are extension-owned labels. `GoalPlanningBoundaryHeading.kind` is owned by
-  `GoalPlanningBoundaryHeadingKind`; `GoalPlanningContext` has no `kind` field.
-- `skillbill.ports.featuretask.model.FeatureTaskPhaseSettlement.kind` uses the sealed
-  `FeatureTaskPhaseSettlementKind`. Service-produced values use its three canonical cases, while
-  durable reads retain an unknown wire token in `Unknown` for forward-compatible rewrite.
-- `skillbill.learnings.model.LearningRecord.status` and `LearningEntry.status` remain external
-  learning labels whose contracts validate presence and shape; the producer owns the
-  vocabulary.
-- `skillbill.workflow.taskruntime.model.SettlementEnvelopeRequest.status` uses
-  `SettlementStatus`; prose settlement accepts only the completed, blocked, and failed members.
-- `skillbill.workflow.taskruntime.model.FeatureTaskRuntimeAuditGapPause.pauseKind` uses
-  `FeatureTaskRuntimeAuditGapPauseKind` at its durable artifact boundary.
-- `skillbill.review.context.model.ReviewAccountingInput.terminalOutcome` and
-  `ReviewAccountingNode.terminalOutcome` use `ReviewAccountingTerminalOutcome`; integration
-  accounting continues to use `ReviewIntegrationTerminalOutcome`.
-- `skillbill.workflow.goal.model.GoalSubtaskCommitFocusedAccounting.integrationTerminalOutcome`
-  uses `ReviewIntegrationTerminalOutcome`; durable artifact decoding uses `fromWire` and emission
-  uses `wireValue`, preserving the existing integration tokens, unknown-value rejection, and
-  skipped-pass reason rule.
-- `skillbill.review.context.model.ReviewBudgetOutcome.budgetKind` uses `ReviewBudgetKind`; all
-  budget dimensions are decoded once at the review budget seam and emitted through `wireValue`.
+Independent parallel lanes share the parent packet and nothing else. One lane's
+budget termination, timeout, or process failure never disturbs its sibling.

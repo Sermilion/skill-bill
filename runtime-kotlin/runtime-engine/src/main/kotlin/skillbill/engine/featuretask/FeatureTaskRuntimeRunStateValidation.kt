@@ -12,12 +12,37 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeTransitionDeclarat
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationEvidence
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
 
-internal data class ValidationSettlementState(
-  val completed: MutableSet<String>,
+internal class ValidationSettlementState(
+  completed: Set<String>,
   val initialRecords: Map<String, FeatureTaskRuntimePhaseRecord>,
   val transitions: FeatureTaskRuntimeTransitionDeclaration,
-  val gateInvalidatedPhases: MutableSet<String>,
-)
+  gateInvalidatedPhases: Set<String>,
+) {
+  private val completedState = completed.toMutableSet()
+  private val gateInvalidatedState = gateInvalidatedPhases.toMutableSet()
+
+  val completed: Set<String>
+    get() = completedState.toSet()
+
+  val gateInvalidatedPhases: Set<String>
+    get() = gateInvalidatedState.toSet()
+
+  internal fun invalidateValidationPhase() {
+    completedState.remove(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE)
+    gateInvalidatedState += FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE
+  }
+
+  internal fun invalidateUnsatisfiedGateSuccessors(
+    durableVerdictFor: (String) -> FeatureTaskRuntimeVerdict,
+  ) {
+    FeatureTaskRuntimeRunStateReconstruction.invalidateUnsatisfiedGateSuccessors(
+      transitions,
+      completedState,
+      gateInvalidatedState,
+      durableVerdictFor,
+    )
+  }
+}
 
 internal data class ValidationSettlementValidation(
   val validatedRecordToOutput: (FeatureTaskRuntimePhaseRecord) -> FeatureTaskRuntimePhaseOutput?,
@@ -101,13 +126,7 @@ internal fun invalidateIncompleteValidationSettlement(
     true
   }.getOrDefault(false)
   if (!valid) {
-    state.completed.remove(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE)
-    state.gateInvalidatedPhases += FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE
-    FeatureTaskRuntimeRunStateReconstruction.invalidateUnsatisfiedGateSuccessors(
-      state.transitions,
-      state.completed,
-      state.gateInvalidatedPhases,
-      validation.durableVerdictFor,
-    )
+    state.invalidateValidationPhase()
+    state.invalidateUnsatisfiedGateSuccessors(validation.durableVerdictFor)
   }
 }
