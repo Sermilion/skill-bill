@@ -1,8 +1,11 @@
 package skillbill.goalrunner.model
 
+import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.decompositionStatus
+import java.time.Instant
+import java.time.format.DateTimeParseException
 
 data class GoalRunnerExecutionLease(
   val generation: Long,
@@ -14,6 +17,9 @@ data class GoalRunnerExecutionLease(
   val heartbeatAt: String,
   val expiresAt: String,
 ) {
+  val heartbeatAtInstant: Instant = parseExecutionLeaseInstant("heartbeat_at", heartbeatAt)
+  val expiresAtInstant: Instant = parseExecutionLeaseInstant("expires_at", expiresAt)
+
   init {
     require(generation > 0) { "execution lease generation must be positive." }
     require(ownerToken.isNotBlank()) { "execution lease ownerToken must not be blank." }
@@ -24,6 +30,12 @@ data class GoalRunnerExecutionLease(
     require(heartbeatAt.isNotBlank()) { "execution lease heartbeatAt must not be blank." }
     require(expiresAt.isNotBlank()) { "execution lease expiresAt must not be blank." }
   }
+}
+
+fun parseExecutionLeaseInstant(field: String, value: String): Instant = try {
+  Instant.parse(value)
+} catch (_: DateTimeParseException) {
+  throw InvalidWorkflowStateSchemaError("Goal runner execution lease field '$field' must be an RFC 3339 instant.")
 }
 
 const val GOAL_PAUSE_REASON_OPERATOR_REQUEST: String = "operator_request"

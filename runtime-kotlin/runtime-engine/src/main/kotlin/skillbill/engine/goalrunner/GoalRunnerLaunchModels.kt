@@ -1,5 +1,6 @@
 package skillbill.engine.goalrunner
 
+import skillbill.application.agentoutput.topLevelJsonObjectCandidates
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.ImplementationReturnContractPayloadKeys
@@ -78,7 +79,7 @@ internal fun malformedResultJsonDiagnostics(
     )
   }
 
-fun terminalJsonObjectWithoutResultPrefix(stdout: String, stderr: String): Map<String, Any?>? {
+internal fun terminalJsonObjectWithoutResultPrefix(stdout: String, stderr: String): Map<String, Any?>? {
   val combined = listOf(stdout, stderr)
     .filter(String::isNotBlank)
     .joinToString("\n")
@@ -93,7 +94,7 @@ fun terminalJsonObjectWithoutResultPrefix(stdout: String, stderr: String): Map<S
     ?.takeIf { it.isImplementationReturnContract() || it.isRuntimeTerminalEnvelope() }
 }
 
-fun childOutputHasJsonLikeContent(stdout: String, stderr: String): Boolean =
+internal fun childOutputHasJsonLikeContent(stdout: String, stderr: String): Boolean =
   listOf(stdout, stderr).any { output -> output.contains('{') || output.contains('}') || output.contains("RESULT:") }
 
 fun Map<String, Any?>.isImplementationReturnContract(): Boolean = keys.containsAll(
@@ -110,33 +111,3 @@ fun Map<String, Any?>.isImplementationReturnContract(): Boolean = keys.containsA
 fun Map<String, Any?>.isRuntimeTerminalEnvelope(): Boolean =
   goalContinuationTerminalStatus(this[SharedPayloadKeys.STATUS]?.toString()) != null &&
     this[SharedPayloadKeys.WORKFLOW_ID]?.toString().orEmpty().isNotBlank()
-
-fun topLevelJsonObjectCandidates(text: String): List<String> {
-  val candidates = mutableListOf<String>()
-  var depth = 0
-  var start = -1
-  var inString = false
-  var escaped = false
-  text.forEachIndexed { index, char ->
-    when {
-      escaped -> escaped = false
-      inString && char == '\\' -> escaped = true
-      char == '"' -> inString = !inString
-      inString -> Unit
-      char == '{' -> {
-        if (depth == 0) {
-          start = index
-        }
-        depth += 1
-      }
-      char == '}' && depth > 0 -> {
-        depth -= 1
-        if (depth == 0 && start >= 0) {
-          candidates += text.substring(start, index + 1)
-          start = -1
-        }
-      }
-    }
-  }
-  return candidates
-}

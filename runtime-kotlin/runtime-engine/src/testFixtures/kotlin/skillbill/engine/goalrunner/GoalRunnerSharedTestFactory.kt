@@ -26,6 +26,7 @@ import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.goalrunner.persistence.GoalRunnerChildRepairStore
+import skillbill.ports.goalrunner.runner.GoalRunnerAttemptLedgerStore
 import skillbill.ports.goalrunner.runner.GoalRunnerManifestStore
 import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowOutcomeStore
 import skillbill.ports.goalrunner.runner.NoopGoalRunnerAttemptLedgerStore
@@ -51,6 +52,8 @@ data class GoalRunnerStatusTestPorts(
   val gitOperations: WorkflowGitOperations = NoopWorkflowGitOperations,
   val workerSupervisor: FeatureTaskRuntimeWorkerSupervisor = NoopFeatureTaskRuntimeWorkerSupervisor,
   val childRepairStore: GoalRunnerChildRepairStore = NoopGoalRunnerChildRepairStore,
+  val attemptLedgerStore: GoalRunnerAttemptLedgerStore = NoopGoalRunnerAttemptLedgerStore,
+  val diagnostics: RuntimeDiagnostics = NoopRuntimeDiagnostics,
   val runtimeStatusService: FeatureTaskRuntimeStatusService? = null,
   val validationGatePlatformManifests: List<PlatformManifest> = emptyList(),
   val repoLocalConfig: RepoLocalConfigPort = object : RepoLocalConfigPort {
@@ -73,13 +76,13 @@ fun testGoalRunnerStatusService(
       manifestStore = manifestStore,
       outcomeStore = outcomeStore,
       phaseRecorder = phaseRecorder,
-      attemptLedgerStore = NoopGoalRunnerAttemptLedgerStore,
+      attemptLedgerStore = ports.attemptLedgerStore,
     ),
     gitOperations = ports.gitOperations,
     clock = clock,
     workerSupervisor = ports.workerSupervisor,
     planningStatusReasonCoherence = GoalPlanningStatusReasonCoherence.NONE,
-    diagnostics = NoopRuntimeDiagnostics,
+    diagnostics = ports.diagnostics,
     runtimeStatusService = ports.runtimeStatusService,
     repositoryRoot = testRepositoryRoot,
     validationDependencies = GoalRunnerStatusProjectionValidationDependencies(
@@ -103,7 +106,7 @@ fun testGoalRunnerStatusService(
       manifestStore = manifestStore,
       outcomeStore = outcomeStore,
       gitOperations = ports.gitOperations,
-      diagnostics = NoopRuntimeDiagnostics,
+      diagnostics = ports.diagnostics,
       projectionAssembler = projectionAssembler,
       repositoryRoot = testRepositoryRoot,
       repositoryEnclosingRootPort = TestRepositoryEnclosingRoot,

@@ -1,6 +1,7 @@
 package skillbill.engine.goalrunner
 
 import me.tatarka.inject.annotations.Inject
+import skillbill.error.SkillBillRuntimeException
 import skillbill.goalrunner.model.GOAL_PAUSE_REASON_RUNNER_INTERRUPTED
 import skillbill.goalrunner.model.GoalRunnerExecutionLease
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerLeaseState
@@ -18,8 +19,6 @@ import skillbill.ports.taskruntime.model.FeatureTaskRuntimeProcessIdentity
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeProcessInspection
 import java.time.Clock
 import java.time.Duration
-import java.time.Instant
-import skillbill.error.SkillBillRuntimeException
 
 interface GoalRunnerExecutionCoordinator {
   fun <T> runOwned(parentWorkflowId: String, block: () -> T): T
@@ -245,7 +244,7 @@ class DefaultGoalRunnerExecutionCoordinator(
   }
 
   private fun leaseIsExpired(lease: GoalRunnerExecutionLease): Boolean =
-    !Instant.parse(lease.expiresAt).isAfter(clock.instant())
+    !lease.expiresAtInstant.isAfter(clock.instant())
 
   private fun clearStaleRunnerInterruptedPause(parentWorkflowId: String) {
     manifestStore.clearRunnerInterruptedPause(parentWorkflowId)

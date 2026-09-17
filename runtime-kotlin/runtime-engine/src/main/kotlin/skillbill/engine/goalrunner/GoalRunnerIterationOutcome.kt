@@ -2,6 +2,7 @@ package skillbill.engine.goalrunner
 
 import skillbill.engine.featuretask.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.goalrunner.findings.UnaddressedFindingsLedgerService
+import skillbill.engine.goalrunner.model.GoalRunnerObservabilityLivenessClass
 import skillbill.engine.goalrunner.model.GoalRunnerRunEvent
 import skillbill.goalrunner.model.GoalAttemptLedgerAction
 import skillbill.goalrunner.model.GoalRunnerControlState
@@ -104,9 +105,9 @@ internal class GoalRunnerIterationOutcome(
         signal = GoalRunnerObservabilitySignal(
           workflowPhase = stoppedOutcome.lastResumableStep,
           livenessClass = if (stoppedOutcome.reason == GoalRunnerStopReason.FAILED) {
-            "failure"
+            GoalRunnerObservabilityLivenessClass.FAILURE
           } else {
-            "block"
+            GoalRunnerObservabilityLivenessClass.BLOCK
           },
           activitySummary = stoppedOutcome.blockedReason,
         ),
@@ -221,9 +222,8 @@ internal class GoalRunnerIterationOutcome(
       state.manifest.issueKey,
     )?.findings?.count { it.subtaskId == subtaskId }
     ledger.recordLedgerEntry(
-      stoppedLedgerContext(
+      progress.stoppedLedgerContext(
         args,
-        progress,
         reAttemptCause,
         causingLoopEntry,
         nextSafeAction,
@@ -246,9 +246,8 @@ internal class GoalRunnerIterationOutcome(
     causingLoopEntry?.let { validationQualityState.storePendingCausingLoopEntry(subtaskId, it) }
   }
 
-  private fun stoppedLedgerContext(
+  private fun GoalRunnerWorkflowProgress?.stoppedLedgerContext(
     args: RecordStoppedLedgerEntriesArgs,
-    progress: GoalRunnerWorkflowProgress?,
     reAttemptCause: String?,
     causingLoopEntry: String?,
     nextSafeAction: String,
@@ -259,7 +258,7 @@ internal class GoalRunnerIterationOutcome(
       workflowId = args.workflowId,
       issueKey = args.state.manifest.issueKey,
       subtaskId = args.subtaskId,
-      progress = progress,
+      progress = this,
       blockedReason = args.stoppedOutcome.blockedReason,
       finalReconciledResult = args.stoppedOutcome.reason.name.lowercase(),
       stopReason = args.stoppedOutcome.reason.name.lowercase(),
@@ -345,7 +344,7 @@ internal class GoalRunnerIterationOutcome(
       subject = GoalRunnerObservabilitySubject(reconciled.workflowId, completed.manifest.issueKey, subtaskId),
       signal = GoalRunnerObservabilitySignal(
         workflowPhase = reconciled.lastResumableStep,
-        livenessClass = "completion",
+        livenessClass = GoalRunnerObservabilityLivenessClass.COMPLETION,
         activitySummary = "Subtask $subtaskId completed with commit ${reconciled.commitSha}.",
       ),
     )

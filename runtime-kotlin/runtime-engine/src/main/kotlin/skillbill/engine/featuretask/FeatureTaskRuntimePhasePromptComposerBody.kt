@@ -1,7 +1,7 @@
 package skillbill.engine.featuretask
 
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeCorrectiveRepairContext
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeCorrectiveRepairContext
 
 fun composePhasePrompt(inputs: FeatureTaskRuntimePhasePromptComposeInputs): String =
   phasePromptSections(inputs).filter(String::isNotBlank).joinToString(separator = "\n\n")
@@ -22,8 +22,7 @@ fun phasePromptSections(inputs: FeatureTaskRuntimePhasePromptComposeInputs): Lis
     phasePromptTrailingSections(effectiveInputs, effectiveContinuation)
 }
 
-private fun FeatureTaskRuntimePhasePromptComposeInputs.auditRetryScoped():
-  FeatureTaskRuntimePhasePromptComposeInputs {
+private fun FeatureTaskRuntimePhasePromptComposeInputs.auditRetryScoped(): FeatureTaskRuntimePhasePromptComposeInputs {
   val focusHint = auditRetryFocusHint?.takeIf(String::isNotBlank)
   if (briefing.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT || focusHint == null) return this
   return copy(briefing = briefing.forAuditRetry(focusHint))

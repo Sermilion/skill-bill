@@ -1,6 +1,5 @@
 package skillbill.application
 
-import skillbill.application.decomposition.encodeDecompositionManifestYaml
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.install.INSTALL_PLAN_CONTRACT_VERSION
 import skillbill.error.InvalidDecompositionManifestSchemaError
@@ -10,6 +9,7 @@ import skillbill.infrastructure.fs.FileSystemDecompositionManifestFileStore
 import skillbill.infrastructure.fs.InstallPlanWireValidatorAdapter
 import skillbill.install.model.InstallPlanWireMap
 import skillbill.install.model.InstallPlanWireValidator
+import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
@@ -200,3 +200,15 @@ class SchemaValidatorPortLoudFailTest {
     "replace_existing_skill_bill_links" to false,
   )
 }
+
+private fun encodeDecompositionManifestYaml(
+  manifest: DecompositionManifest,
+  validator: DecompositionManifestValidator,
+  fileStore: DecompositionManifestStore,
+  sourceLabel: String = "<in-memory>",
+): String = skillbill.application.decomposition.encodeValidatedDecompositionManifestYaml(
+  manifest,
+  validator,
+  fileStore,
+  sourceLabel,
+).yamlText

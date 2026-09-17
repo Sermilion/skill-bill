@@ -44,18 +44,6 @@ data class FeatureTaskRuntimeAgentContext(
   val launchedModels: List<String>? = null,
 )
 
-data class FeatureTaskRuntimeRegenerationTelemetry(
-  val activationCount: Int = 0,
-  val attemptCount: Int = 0,
-  val outcomeCounts: Map<String, Int> = emptyMap(),
-)
-
-data class FeatureTaskRuntimeFindingVerificationTelemetry(
-  val verifiedCount: Int = 0,
-  val rejectedCount: Int = 0,
-  val reviewFixCapExhausted: Boolean? = null,
-)
-
 data class QualityCheckStartedRequest(
   val routedSkill: String,
   val detectedStack: String,

@@ -6,7 +6,7 @@ import skillbill.application.review.model.ReviewRubricProjection
 import skillbill.application.review.model.ReviewSpecialistLaunchRequest
 import skillbill.application.review.model.ReviewWorkerKind
 import skillbill.application.reviewevidence.ResolvedCommitSequence
-import skillbill.application.reviewevidence.ReviewDiffEvidence
+import skillbill.application.reviewevidence.model.ReviewDiffEvidence
 import skillbill.ports.repository.RepositoryEnclosingRootPort
 import skillbill.ports.review.ReviewBuildTestFactsPort
 import skillbill.ports.review.ReviewGuidancePort

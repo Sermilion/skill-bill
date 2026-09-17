@@ -1,6 +1,7 @@
 package skillbill.application.reviewevidence
 
 import skillbill.application.reviewevidence.model.ParallelReviewScope
+import skillbill.application.reviewevidence.model.ReviewDiffEvidence
 import skillbill.ports.diff.DiffResolverPort
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceResolverPort
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeSharedEvidenceDerivation

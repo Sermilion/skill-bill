@@ -1,5 +1,6 @@
 package skillbill.engine.goalrunner
 
+import skillbill.engine.goalrunner.model.GoalRunnerObservabilityLivenessClass
 import skillbill.engine.goalrunner.model.GoalRunnerRunEvent
 import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
 import skillbill.engine.goalrunner.planning.GoalPlanningSweep
@@ -138,7 +139,7 @@ internal class GoalRunnerGoalLoop(
         subject = GoalRunnerObservabilitySubject(workflowId, saved.manifest.issueKey, selection.subtask.id),
         signal = GoalRunnerObservabilitySignal(
           workflowPhase = selection.subtask.lastResumableStep.orEmpty().ifBlank { "preplan" },
-          livenessClass = "block",
+          livenessClass = GoalRunnerObservabilityLivenessClass.BLOCK,
           activitySummary = selection.reason,
         ),
       )

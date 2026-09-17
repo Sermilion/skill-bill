@@ -40,7 +40,7 @@ class RuntimeEngineInboundApiTest {
     )
   }
 
-  private companion object {
+  internal companion object {
     val PINNED_ENGINE_INBOUND_API_TYPES: Set<String> = setOf(
       "skillbill.engine.featuretask.FeatureTaskContinuationLookupService",
       "skillbill.engine.featuretask.FeatureTaskPhaseSettlementService",
@@ -107,6 +107,10 @@ class RuntimeEngineInboundApiTest {
       "skillbill.engine.goalrunner.planning.model.GoalPlanningLogRequest",
       "skillbill.engine.work.IdeStatusProjector",
       "skillbill.engine.work.IdeStatusService",
+      "skillbill.engine.work.model.IdeStatusRequest",
+      "skillbill.engine.work.model.IdeStatusResult",
+      "skillbill.engine.work.model.IdeStatusSnapshot",
+      "skillbill.engine.work.model.IdeStatusProblemCode",
     )
   }
 }

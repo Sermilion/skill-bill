@@ -3,8 +3,6 @@ package skillbill.goalrunner.model
 import skillbill.workflow.goal.model.GoalObservabilityChangedFileSummary
 import skillbill.workflow.goal.model.GoalObservabilityDiffStat
 import skillbill.workflow.goal.model.GoalObservabilityEvent
-import skillbill.workflow.goal.model.GoalProgressEventKind
-import skillbill.workflow.goal.model.GoalProgressOutcome
 
 data class GoalRunnerObservabilityRecordRequest(
   val workflowId: String,

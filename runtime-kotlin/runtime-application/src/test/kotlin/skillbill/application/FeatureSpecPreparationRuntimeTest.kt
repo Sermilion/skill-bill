@@ -1,6 +1,6 @@
 package skillbill.application
 
-import skillbill.application.featurespec.FeatureSpecPreparationRuntime
+import skillbill.engine.featuretask.FeatureSpecPreparationRuntime
 import skillbill.featurespec.model.FeatureSpecPreparationDecision
 import skillbill.featurespec.model.FeatureSpecPreparationIntake
 import skillbill.featurespec.model.FeatureSpecPreparationMode

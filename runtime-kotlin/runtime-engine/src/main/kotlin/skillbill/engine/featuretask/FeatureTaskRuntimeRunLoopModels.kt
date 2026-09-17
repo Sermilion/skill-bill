@@ -1,16 +1,16 @@
 package skillbill.engine.featuretask
 
 import skillbill.application.diagnostics.RejectedOutputDiagnosticService
-import skillbill.application.diagnostics.model.FeatureTaskRuntimeRejectedOutputWrite
 import skillbill.application.review.model.ParallelCodeReviewRequest
 import skillbill.application.review.model.ParallelCodeReviewResult
 import skillbill.config.model.PhaseCompactionDirective
 import skillbill.config.model.PhaseModelDirective
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseLaunchBriefing
+import skillbill.engine.featuretask.model.FeatureTaskRuntimeRejectedOutputWrite
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeResolvedPhaseAgent
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
 import skillbill.engine.featuretask.validation.model.ValidationFindingSetProjection
-import skillbill.ports.diagnostics.RuntimeDiagnostics
+import skillbill.error.SkillBillRuntimeException
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInput
 import skillbill.review.context.model.CodeReviewExecutionMode
 import skillbill.workflow.decomposition.model.SpecSource
@@ -23,9 +23,7 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeProducerIteration
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepositoryCheckpoint
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
-import skillbill.error.SkillBillRuntimeException
 import skillbill.workflow.taskruntime.model.NormalizedFeatureTaskRuntimePhaseOutput
-import java.time.Clock
 
 internal data class RemediationCheckpointCommit(val commitSha: String, val parentSha: String?)
 
@@ -220,20 +218,20 @@ internal class GateOutput(
   val run: PhaseRun,
   val iteration: Int,
   val captured: CapturedPhaseOutput,
-  val observability: FeatureTaskRuntimeRunObservability,
   val fileManifest: FeatureTaskRuntimePhaseFileManifest,
   val outputGateFailuresBefore: Int? = null,
-  val request: FeatureTaskRuntimeRunRequest,
-  val state: FeatureTaskRuntimeRunState,
-  val recorder: FeatureTaskRuntimePhaseRecorder,
-  val outputValidator: FeatureTaskRuntimePhaseOutputValidator,
-  val phaseGates: FeatureTaskRuntimePhaseGates,
-  val clock: Clock,
-  val diagnostics: RuntimeDiagnostics,
-  val goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
-  val phaseSettlementService: FeatureTaskPhaseSettlementService,
   val settlementContext: FeatureTaskRuntimeRunLoopContext,
 ) {
+  val request get() = settlementContext.request
+  val state get() = settlementContext.state
+  val recorder get() = settlementContext.recorder
+  val outputValidator get() = settlementContext.outputValidator
+  val phaseGates get() = settlementContext.phaseGates
+  val clock get() = settlementContext.clock
+  val diagnostics get() = settlementContext.diagnostics
+  val goalContinuationRecorder get() = settlementContext.goalContinuationRecorder
+  val phaseSettlementService get() = settlementContext.phaseSettlementService
+  val observability get() = settlementContext.observability
 
   val rejectionExhaustsFixLoop: Boolean?
     get() = outputGateFailuresBefore?.let {
@@ -253,18 +251,19 @@ internal class SettleValidatedOutput(
   val run: PhaseRun,
   val iteration: Int,
   val output: SettledOutputContext,
-  val request: FeatureTaskRuntimeRunRequest,
-  val state: FeatureTaskRuntimeRunState,
-  val recorder: FeatureTaskRuntimePhaseRecorder,
-  val outputValidator: FeatureTaskRuntimePhaseOutputValidator,
-  val phaseGates: FeatureTaskRuntimePhaseGates,
-  val clock: Clock,
-  val diagnostics: RuntimeDiagnostics,
-  val goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
-  val phaseSettlementService: FeatureTaskPhaseSettlementService,
-  val observability: FeatureTaskRuntimeRunObservability,
   val settlementContext: FeatureTaskRuntimeRunLoopContext,
-)
+) {
+  val request get() = settlementContext.request
+  val state get() = settlementContext.state
+  val recorder get() = settlementContext.recorder
+  val outputValidator get() = settlementContext.outputValidator
+  val phaseGates get() = settlementContext.phaseGates
+  val clock get() = settlementContext.clock
+  val diagnostics get() = settlementContext.diagnostics
+  val goalContinuationRecorder get() = settlementContext.goalContinuationRecorder
+  val phaseSettlementService get() = settlementContext.phaseSettlementService
+  val observability get() = settlementContext.observability
+}
 
 internal data class PhaseStateWriteArgs(
   val run: PhaseRun,

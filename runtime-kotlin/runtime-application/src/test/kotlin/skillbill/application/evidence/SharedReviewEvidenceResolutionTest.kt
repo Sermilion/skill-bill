@@ -1,11 +1,11 @@
 package skillbill.application.evidence
 
 import skillbill.application.reviewevidence.ReviewCommitRange
-import skillbill.application.reviewevidence.ReviewDiffEvidence
 import skillbill.application.reviewevidence.SharedReviewEvidenceProjection
 import skillbill.application.reviewevidence.SharedReviewEvidenceQuery
 import skillbill.application.reviewevidence.SharedReviewEvidenceResolution
 import skillbill.application.reviewevidence.model.ParallelReviewScope
+import skillbill.application.reviewevidence.model.ReviewDiffEvidence
 import skillbill.ports.diff.DiffResolverPort
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceDeriver
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceResolverPort

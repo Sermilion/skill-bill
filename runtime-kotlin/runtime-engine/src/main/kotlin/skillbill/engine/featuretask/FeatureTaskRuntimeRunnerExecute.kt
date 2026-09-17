@@ -1,8 +1,8 @@
 package skillbill.engine.featuretask
-import skillbill.application.telemetry.model.FeatureTaskRuntimeFindingVerificationTelemetry
-import skillbill.application.telemetry.model.FeatureTaskRuntimeRegenerationTelemetry
 import skillbill.contracts.JsonCodec
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeCrashReconciliationResult
+import skillbill.engine.featuretask.model.FeatureTaskRuntimeFindingVerificationTelemetry
+import skillbill.engine.featuretask.model.FeatureTaskRuntimeRegenerationTelemetry
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunEvent
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
@@ -89,7 +89,7 @@ fun FeatureTaskRuntimeRunner.reviewBaseline(
   ?.let { FeatureTaskRuntimeScopedReviewBaseline.of(phaseGates.gitOperations, request.repoRoot, it, reviewBaseSha) }
   ?: GoalSubtaskReviewBaseline(reviewBaseSha, state.baselineUntrackedPaths)
 
-fun FeatureTaskRuntimeRunner.loadReviewFixIterationCount(request: FeatureTaskRuntimeRunRequest): Int =
+internal fun FeatureTaskRuntimeRunner.loadReviewFixIterationCount(request: FeatureTaskRuntimeRunRequest): Int =
   recorder.loadPhaseLedger(request.workflowId)
     .orEmpty()
     .filter {
@@ -100,7 +100,7 @@ fun FeatureTaskRuntimeRunner.loadReviewFixIterationCount(request: FeatureTaskRun
     .maxOrNull()
     ?: 0
 
-fun FeatureTaskRuntimeRunner.loadFindingVerificationTelemetry(
+internal fun FeatureTaskRuntimeRunner.loadFindingVerificationTelemetry(
   request: FeatureTaskRuntimeRunRequest,
 ): FeatureTaskRuntimeFindingVerificationTelemetry {
   val capExhausted = reviewFixCapExhaustion(request.workflowId)
@@ -120,7 +120,7 @@ fun FeatureTaskRuntimeRunner.loadFindingVerificationTelemetry(
   )
 }
 
-fun FeatureTaskRuntimeRunner.loadRegenerationTelemetry(
+internal fun FeatureTaskRuntimeRunner.loadRegenerationTelemetry(
   request: FeatureTaskRuntimeRunRequest,
 ): FeatureTaskRuntimeRegenerationTelemetry {
   val ledger = recorder.loadPhaseLedger(request.workflowId).orEmpty()
@@ -157,8 +157,8 @@ fun FeatureTaskRuntimeRunner.loadRegenerationTelemetry(
   )
 }
 
-fun FeatureTaskRuntimeRunner.finalizingAgentId(request: FeatureTaskRuntimeRunRequest): String? =
+internal fun FeatureTaskRuntimeRunner.finalizingAgentId(request: FeatureTaskRuntimeRunRequest): String? =
   agentAttributionFromPhaseState(recorder, request.workflowId).finalizingAgentId
 
-val FeatureTaskRuntimeRunner.lifecycleTelemetry get() = phaseGates.lifecycleTelemetry
-val FeatureTaskRuntimeRunner.specSourceResolver get() = phaseGates.specGate.specSourceResolver
+internal val FeatureTaskRuntimeRunner.lifecycleTelemetry get() = phaseGates.lifecycleTelemetry
+internal val FeatureTaskRuntimeRunner.specSourceResolver get() = phaseGates.specGate.specSourceResolver

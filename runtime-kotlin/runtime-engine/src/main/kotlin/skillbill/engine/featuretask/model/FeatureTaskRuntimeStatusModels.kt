@@ -1,6 +1,6 @@
 package skillbill.engine.featuretask.model
 
-import skillbill.application.idestatus.model.IdeStatusCurrentPhaseExecution
+import skillbill.engine.work.model.IdeStatusCurrentPhaseExecution
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateExecutionEvidence
 
 data class FeatureTaskRuntimeStatusRequest(

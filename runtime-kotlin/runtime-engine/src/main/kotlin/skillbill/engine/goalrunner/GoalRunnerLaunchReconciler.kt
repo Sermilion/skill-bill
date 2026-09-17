@@ -28,7 +28,7 @@ import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.time.Clock
 
 @Inject
-public class GoalRunnerLaunchReconciler(
+class GoalRunnerLaunchReconciler(
   private val manifestStore: GoalRunnerManifestStore,
   private val outcomeStore: GoalRunnerWorkflowOutcomeStore,
   private val progressReader: GoalRunnerProgressReader,
@@ -223,7 +223,7 @@ public class GoalRunnerLaunchReconciler(
   }
 }
 
-fun AgentRunLaunchOutcome.toGoalRunnerLaunchFacts(): GoalRunnerLaunchFacts = when (this) {
+internal fun AgentRunLaunchOutcome.toGoalRunnerLaunchFacts(): GoalRunnerLaunchFacts = when (this) {
   is AgentRunLaunchFacts -> GoalRunnerLaunchFacts(
     timedOut = timedOut,
     interrupted = interrupted,

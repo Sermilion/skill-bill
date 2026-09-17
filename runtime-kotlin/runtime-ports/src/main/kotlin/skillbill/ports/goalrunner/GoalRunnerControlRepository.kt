@@ -4,10 +4,10 @@ import skillbill.goalrunner.model.GOAL_ACTIVE_HEARTBEAT_GAP_LIMIT_MS
 import skillbill.goalrunner.model.GOAL_PAUSE_REASON_RUNNER_INTERRUPTED
 import skillbill.goalrunner.model.GoalRunnerControlState
 import skillbill.goalrunner.model.GoalRunnerExecutionLease
+import skillbill.goalrunner.model.parseExecutionLeaseInstant
 import skillbill.ports.goalrunner.runner.model.GoalRunnerOutOfBandAcceptance
 import skillbill.ports.goalrunner.runner.model.GoalRunnerReviewPolicy
 import java.time.Duration
-import java.time.Instant
 
 interface GoalRunnerControlRepository {
   fun controlState(parentWorkflowId: String): GoalRunnerControlState
@@ -101,7 +101,8 @@ fun GoalRunnerControlRepository.releaseExecutionLeaseIfExpired(
   val state = controlState(parentWorkflowId)
   val current = state.executionLease ?: return false
   if (current.ownerToken != ownerToken || current.generation != generation) return false
-  if (Instant.parse(current.expiresAt).isAfter(Instant.parse(nowInstant))) return false
+  val now = parseExecutionLeaseInstant("now_instant", nowInstant)
+  if (current.expiresAtInstant.isAfter(now)) return false
   return releaseExecutionLease(parentWorkflowId, ownerToken, generation)
 }
 
@@ -122,9 +123,10 @@ private fun GoalRunnerControlState.advancedBy(heartbeatAt: String): GoalRunnerCo
 
 private fun advanceAccumulator(accumulatedMs: Long, asOf: String?, heartbeatAt: String): Pair<Long, String?> {
   val previous = asOf ?: return accumulatedMs to heartbeatAt
-  val elapsedMs = runCatching {
-    Duration.between(Instant.parse(previous), Instant.parse(heartbeatAt)).toMillis()
-  }.getOrNull() ?: return accumulatedMs to heartbeatAt
+  val elapsedMs = Duration.between(
+    parseExecutionLeaseInstant("active_duration_as_of", previous),
+    parseExecutionLeaseInstant("heartbeat_at", heartbeatAt),
+  ).toMillis()
   val counted = elapsedMs.coerceIn(0, GOAL_ACTIVE_HEARTBEAT_GAP_LIMIT_MS)
   return accumulatedMs + counted to heartbeatAt
 }

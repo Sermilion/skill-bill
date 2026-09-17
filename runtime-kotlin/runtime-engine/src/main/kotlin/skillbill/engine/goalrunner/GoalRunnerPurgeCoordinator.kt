@@ -2,8 +2,8 @@ package skillbill.engine.goalrunner
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.decomposition.DECOMPOSITION_MANIFEST_FILENAME
-import skillbill.application.decomposition.encodeDecompositionManifestYaml
-import skillbill.application.decomposition.findMatchingDecompositionManifests
+import skillbill.engine.decomposition.encodeDecompositionManifestYaml
+import skillbill.engine.decomposition.findMatchingDecompositionManifests
 import skillbill.engine.featuretask.pruneGoalPurgeCheckpointRefs
 import skillbill.engine.goalrunner.model.GoalRunnerPurgeRequest
 import skillbill.engine.goalrunner.model.GoalRunnerPurgeResult
@@ -108,12 +108,13 @@ class GoalRunnerPurgeCoordinator(
     childWorkflowIds: List<String>,
     issueKey: String,
   ): GoalRunnerPurgeResult? {
-    val parentLiveness = projectionAssembler.resolveParentExecutionLiveness(parentWorkflowId)
+    val durableRead = GoalRunnerStatusDurableReadTracker(projectionAssembler.diagnostics)
+    val parentLiveness = projectionAssembler.resolveParentExecutionLiveness(parentWorkflowId, durableRead)
     if (parentLiveness == ExecutionLiveness.LIVE || parentLiveness == ExecutionLiveness.UNKNOWN) {
       return refused(issueKey, parentWorkflowId, childWorkflowIds, parentLiveness)
     }
     childWorkflowIds.forEach { childWorkflowId ->
-      val childLiveness = projectionAssembler.resolveChildExecutionLiveness(childWorkflowId)
+      val childLiveness = projectionAssembler.resolveChildExecutionLiveness(childWorkflowId, durableRead)
       if (childLiveness == ExecutionLiveness.LIVE || childLiveness == ExecutionLiveness.UNKNOWN) {
         return refused(issueKey, parentWorkflowId, childWorkflowIds, childLiveness)
       }

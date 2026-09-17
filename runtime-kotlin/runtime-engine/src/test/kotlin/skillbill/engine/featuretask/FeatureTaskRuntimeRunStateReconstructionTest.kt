@@ -16,16 +16,17 @@ import skillbill.model.EnvironmentContext
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.WorkflowStateRecord
-import skillbill.workflow.model.WorkflowStepStatus
+import skillbill.workflow.engine.WorkflowSnapshotValidator
+import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.model.WorkflowStatus
+import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerAction
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerEntry
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
-import skillbill.workflow.engine.WorkflowSnapshotValidator
-import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import java.nio.file.Files
+import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -160,32 +161,9 @@ class FeatureTaskRuntimeRunStateReconstructionTest {
   @Test
   fun `sqlite durable phase records reconstruct the live checkpoint state`() {
     val tempDir = Files.createTempDirectory("skill-bill-run-state-resume")
-    val database = SQLiteDatabaseSessionFactory(
-      EnvironmentContext(
-        dbPathOverride = tempDir.resolve("runtime.db").toString(),
-        environment = emptyMap(),
-        userHome = tempDir,
-      ),
-    )
+    val database = sqliteResumeDatabase(tempDir)
     val workflowId = "wftr-sqlite-resume"
-    database.transaction { unitOfWork ->
-      unitOfWork.workflowStates.saveFeatureTaskRuntimeWorkflow(
-        WorkflowStateRecord(
-          workflowId = workflowId,
-          sessionId = "ftr-sqlite-resume",
-          workflowName = "bill-feature-task",
-          contractVersion = "0.1",
-          workflowStatus = WorkflowStatus.RUNNING.wireValue,
-          currentStepId = "implement",
-          stepsJson = "[]",
-          artifactsJson = "{}",
-          startedAt = null,
-          updatedAt = null,
-          finishedAt = null,
-          mode = FeatureTaskWorkflowMode.RUNTIME,
-        ),
-      )
-    }
+    seedSqliteResumeWorkflow(database, workflowId)
     val recorder = featureTaskRuntimePhaseRecorder(
       database,
       NoopWorkflowSnapshotValidator,
@@ -236,6 +214,35 @@ class FeatureTaskRuntimeRunStateReconstructionTest {
       resumed.edgeIterationCount(FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID),
     )
     assertEquals(live.outputFor(output.phaseId)?.payload, resumed.outputFor(output.phaseId)?.payload)
+  }
+
+  private fun sqliteResumeDatabase(tempDir: Path): SQLiteDatabaseSessionFactory = SQLiteDatabaseSessionFactory(
+    EnvironmentContext(
+      dbPathOverride = tempDir.resolve("runtime.db").toString(),
+      environment = emptyMap(),
+      userHome = tempDir,
+    ),
+  )
+
+  private fun seedSqliteResumeWorkflow(database: SQLiteDatabaseSessionFactory, workflowId: String) {
+    database.transaction { unitOfWork ->
+      unitOfWork.workflowStates.saveFeatureTaskRuntimeWorkflow(
+        WorkflowStateRecord(
+          workflowId = workflowId,
+          sessionId = "ftr-sqlite-resume",
+          workflowName = "bill-feature-task",
+          contractVersion = "0.1",
+          workflowStatus = WorkflowStatus.RUNNING.wireValue,
+          currentStepId = "implement",
+          stepsJson = "[]",
+          artifactsJson = "{}",
+          startedAt = null,
+          updatedAt = null,
+          finishedAt = null,
+          mode = FeatureTaskWorkflowMode.RUNTIME,
+        ),
+      )
+    }
   }
 
   @Test

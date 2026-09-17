@@ -1,8 +1,10 @@
-package skillbill.application.reviewevidence
+package skillbill.application.reviewevidence.model
 
+import skillbill.application.reviewevidence.parseAttributableReviewDiffEvidence
+import skillbill.application.reviewevidence.parseReviewDiffEvidence
 import skillbill.review.context.model.ReviewChangedHunk
 
-internal data class ReviewDiffEvidence(
+data class ReviewDiffEvidence(
   val hunks: List<ReviewChangedHunk>,
   val files: List<ReviewChangedFileEvidence>,
 ) {
@@ -19,25 +21,10 @@ internal data class ReviewDiffEvidence(
   }
 }
 
-internal data class RawCommitDiff(
-  val commitSha: String,
-  val parentSha: String,
-  val subject: String,
-  val diff: String,
-)
-
-internal data class ReviewChangedFileEvidence(
+data class ReviewChangedFileEvidence(
   val path: String,
   val changedContent: String,
   val fullRecord: String,
   val oldPath: String? = path,
   val newPath: String? = path,
 )
-
-internal fun diffRecords(diff: String): List<String> {
-  val normalized = diff.replace("\r\n", "\n")
-  val gitRecords = normalized.split(Regex("(?m)(?=^diff --git )")).filter { it.startsWith("diff --git ") }
-  return gitRecords.ifEmpty {
-    normalized.split(Regex("(?m)(?=^\\+\\+\\+ )")).filter { it.startsWith("+++ ") }
-  }
-}

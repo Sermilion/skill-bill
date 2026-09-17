@@ -1,6 +1,7 @@
 package skillbill.engine.featuretask
 
 import skillbill.config.model.PhaseModelDirective
+import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseLedgerRequest
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunEvent
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
@@ -45,12 +46,11 @@ fun emitFeatureTaskRuntimeEventSafely(diagnostics: RuntimeDiagnostics, seam: Str
     .exceptionOrNull()
     ?.let { error ->
       if (error is CancellationException) throw error
-      runCatching {
-        diagnostics.warning(
-          "Feature-task-runtime $seam failed; the run is unaffected.",
-          error,
-        )
-      }
+      RuntimeDiagnosticsBestEffortWarning.record(
+        diagnostics,
+        "Feature-task-runtime $seam failed; the run is unaffected.",
+        error,
+      )
     }
 }
 

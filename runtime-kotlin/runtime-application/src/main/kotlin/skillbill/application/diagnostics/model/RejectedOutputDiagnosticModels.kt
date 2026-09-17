@@ -2,7 +2,6 @@ package skillbill.application.diagnostics.model
 
 import skillbill.application.diagnostics.RejectedOutputDiagnosticService
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnosticError
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDiagnosticFailureClass
 import java.time.Duration
 
 private const val DEFAULT_MAXIMUM_PAYLOAD_BYTES: Long = 1_048_576
@@ -40,10 +39,3 @@ data class RejectedOutputDiagnosticRequest(
 
   val exhaustedFixLoop: Boolean? = null,
 )
-
-sealed class FeatureTaskRuntimeRejectedOutputWrite {
-  data class Written(val identity: String) : FeatureTaskRuntimeRejectedOutputWrite()
-  data class Degraded(
-    val failureClass: FeatureTaskRuntimeDiagnosticFailureClass,
-  ) : FeatureTaskRuntimeRejectedOutputWrite()
-}

@@ -11,7 +11,7 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerWorkflowProgress
 import kotlin.coroutines.cancellation.CancellationException
 
 @Inject
-public class GoalRunnerProgressReader(
+class GoalRunnerProgressReader(
   private val outcomeStore: GoalRunnerWorkflowOutcomeStore,
 ) {
   internal fun read(workflowId: String): GoalRunnerChildProgressRead =
@@ -42,7 +42,7 @@ public class GoalRunnerProgressReader(
 }
 
 @Inject
-public class GoalRunnerPauseBoundary(
+class GoalRunnerPauseBoundary(
   private val manifestStore: GoalRunnerManifestStore,
 ) {
   internal fun pauseBeforeLaunch(

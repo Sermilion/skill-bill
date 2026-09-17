@@ -1,9 +1,9 @@
 package skillbill.application.work
 
-import skillbill.application.idestatus.model.IdeStatusLifecycleState
-import skillbill.application.idestatus.model.IdeStatusPauseReasonCode
-import skillbill.application.idestatus.model.IdeStatusRequest
-import skillbill.application.idestatus.model.IdeStatusWorkflowFamily
+import skillbill.engine.work.model.IdeStatusLifecycleState
+import skillbill.engine.work.model.IdeStatusPauseReasonCode
+import skillbill.engine.work.model.IdeStatusRequest
+import skillbill.engine.work.model.IdeStatusWorkflowFamily
 import skillbill.goalrunner.model.GoalPlanningStatusState
 import skillbill.goalrunner.model.GoalRunnerControlState
 import skillbill.goalrunner.model.GoalRunnerExecutionLease

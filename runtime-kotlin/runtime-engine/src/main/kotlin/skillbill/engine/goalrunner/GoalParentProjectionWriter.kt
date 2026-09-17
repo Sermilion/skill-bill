@@ -4,6 +4,7 @@ import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
 import skillbill.application.workflow.decompositionRuntime
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.contracts.issuekey.normalizeRequiredIssueKey
+import skillbill.engine.featuretask.FeatureTaskRuntimeWorkflowPersistence
 import skillbill.goalrunner.GOAL_OUT_OF_BAND_ACCEPTANCE_ARTIFACT_KEY
 import skillbill.goalrunner.GOAL_REVIEW_POLICY_ARTIFACT_KEY
 import skillbill.ports.persistence.UnitOfWork
@@ -15,7 +16,6 @@ import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
-import skillbill.engine.featuretask.FeatureTaskRuntimeWorkflowPersistence
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 
 class GoalParentProjectionWriter(

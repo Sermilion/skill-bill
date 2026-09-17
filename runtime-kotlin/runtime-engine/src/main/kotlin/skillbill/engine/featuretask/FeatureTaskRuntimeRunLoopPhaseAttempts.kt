@@ -1,8 +1,8 @@
 package skillbill.engine.featuretask
 
-import skillbill.application.diagnostics.model.FeatureTaskRuntimeRejectedOutputWrite
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeProducerOutputRead
+import skillbill.engine.featuretask.model.FeatureTaskRuntimeRejectedOutputWrite
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
 import skillbill.engine.featuretask.model.ProducerOutputQueryArgs
 import skillbill.ports.diagnostics.model.ProducerOutputEvidence

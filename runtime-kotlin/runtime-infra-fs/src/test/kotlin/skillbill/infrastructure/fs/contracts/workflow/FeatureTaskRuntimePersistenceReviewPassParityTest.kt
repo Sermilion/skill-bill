@@ -27,7 +27,8 @@ class FeatureTaskRuntimePersistenceReviewPassParityTest {
       )
       assertEquals(
         pass,
-        decodePhaseRecordFromArtifact(record.asWorkflowArtifactEntry().toWorkflowArtifactMap()).reviewPassNumber,
+        requireNotNull(decodePhaseRecordFromArtifact(record.asWorkflowArtifactEntry().toWorkflowArtifactMap()))
+          .reviewPassNumber,
         "round-trip verdict for pass $pass",
       )
     }
@@ -57,7 +58,7 @@ class FeatureTaskRuntimePersistenceReviewPassParityTest {
       )
       assertEquals(
         record.launchedModel to record.launchedEffort,
-        decodePhaseRecordFromArtifact(record.asWorkflowArtifactEntry().toWorkflowArtifactMap())
+        requireNotNull(decodePhaseRecordFromArtifact(record.asWorkflowArtifactEntry().toWorkflowArtifactMap()))
           .let { it.launchedModel to it.launchedEffort },
       )
     }
@@ -87,7 +88,8 @@ class FeatureTaskRuntimePersistenceReviewPassParityTest {
     )
     assertEquals(
       FeatureTaskRuntimePhaseOutputRepairOperation.DEDUPLICATE_KEYS,
-      decodePhaseRecordFromArtifact(record.asWorkflowArtifactEntry().toWorkflowArtifactMap()).repairEvidence?.operation,
+      requireNotNull(decodePhaseRecordFromArtifact(record.asWorkflowArtifactEntry().toWorkflowArtifactMap()))
+        .repairEvidence?.operation,
     )
   }
 

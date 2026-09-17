@@ -63,38 +63,13 @@ internal fun GoalRunnerStatusProjection?.toGoalStatusCliMap(issueKey: String): M
     "current_step" to it.currentStep,
     "active_agent" to it.activeAgent,
     "execution_liveness" to it.executionLiveness.wireValue,
+    "degraded_durable_read" to it.degradedDurableRead,
     "latest_liveness_signal" to it.latestLivenessSignal,
     "paused" to it.paused,
     "pause_requested" to it.pauseRequested,
     "pause_reason" to it.pauseReason,
     "stop_after_subtask" to it.stopAfterSubtaskId,
-  ).apply {
-    it.planning?.let { planning ->
-      put(
-        "planning",
-        linkedMapOf(
-          "state" to planning.state.wireValue,
-          "shared_preplan_prepared" to planning.sharedPreplanPrepared,
-          "planned_subtask_count" to planning.plannedSubtaskCount,
-          "total_subtask_count" to planning.totalSubtaskCount,
-          "current_planning_subtask" to planning.currentPlanningSubtaskId,
-          "planning_wave_subtasks" to planning.planningWaveSubtaskIds,
-          "reason" to planning.reason,
-        ),
-      )
-    }
-    it.latestObservabilityEvent?.let { event -> put("latest_observability_event", event.toCompactSummaryWire()) }
-    it.requestedDiffStat?.let { stat -> put("diff_stat", stat.toGoalDiffStatCliMap()) }
-    it.selectedDiffHunks?.let { hunks -> put("selected_diff_hunks", hunks.toGoalSelectedDiffHunksCliMap()) }
-    putGoalLedgerCliEntries(it)
-    it.outOfBandAcceptances.toGoalAcceptanceCliList()?.let { list -> put("out_of_band_acceptances", list) }
-    if (it.completedSubtaskValidation.isNotEmpty()) {
-      put(
-        ValidationEvidencePayloadKeys.COMPLETED_SUBTASK_VALIDATION,
-        it.completedSubtaskValidation.map { evidence -> evidence.toStatusWire() },
-      )
-    }
-  }
+  ).apply { putGoalStatusDetails(it) }
 } ?: linkedMapOf(
   SharedPayloadKeys.STATUS to "not_found",
   SharedPayloadKeys.ISSUE_KEY to issueKey,
@@ -111,6 +86,38 @@ internal fun GoalRunnerStatusProjection?.toGoalStatusCliMap(issueKey: String): M
   "pause_reason" to null,
   "stop_after_subtask" to null,
 )
+
+private fun MutableMap<String, Any?>.putGoalStatusDetails(projection: GoalRunnerStatusProjection) {
+  projection.planning?.let { planning ->
+    put(
+      "planning",
+      linkedMapOf(
+        "state" to planning.state.wireValue,
+        "shared_preplan_prepared" to planning.sharedPreplanPrepared,
+        "planned_subtask_count" to planning.plannedSubtaskCount,
+        "total_subtask_count" to planning.totalSubtaskCount,
+        "current_planning_subtask" to planning.currentPlanningSubtaskId,
+        "planning_wave_subtasks" to planning.planningWaveSubtaskIds,
+        "reason" to planning.reason,
+      ),
+    )
+  }
+  projection.latestObservabilityEvent?.let { event ->
+    put("latest_observability_event", event.toCompactSummaryWire())
+  }
+  projection.requestedDiffStat?.let { stat -> put("diff_stat", stat.toGoalDiffStatCliMap()) }
+  projection.selectedDiffHunks?.let { hunks -> put("selected_diff_hunks", hunks.toGoalSelectedDiffHunksCliMap()) }
+  putGoalLedgerCliEntries(projection)
+  projection.outOfBandAcceptances.toGoalAcceptanceCliList()?.let { list ->
+    put("out_of_band_acceptances", list)
+  }
+  if (projection.completedSubtaskValidation.isNotEmpty()) {
+    put(
+      ValidationEvidencePayloadKeys.COMPLETED_SUBTASK_VALIDATION,
+      projection.completedSubtaskValidation.map { evidence -> evidence.toStatusWire() },
+    )
+  }
+}
 
 internal fun GoalRunnerStatusProjection?.toBoundedGoalStatusCliMap(issueKey: String): Map<String, Any?> = this?.let {
   linkedMapOf(

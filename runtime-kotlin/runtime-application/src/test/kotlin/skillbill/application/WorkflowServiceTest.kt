@@ -1,7 +1,6 @@
 package skillbill.application
 
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
-import skillbill.application.decomposition.encodeDecompositionManifestYaml
 import skillbill.application.decomposition.executionModel
 import skillbill.application.decomposition.parentSpecPath
 import skillbill.application.workflow.DecompositionWorkflowContinuation
@@ -687,6 +686,18 @@ class WorkflowServiceTest {
     )
   }
 }
+
+private fun encodeDecompositionManifestYaml(
+  manifest: DecompositionManifest,
+  validator: DecompositionManifestValidator,
+  fileStore: DecompositionManifestStore,
+  sourceLabel: String = "<in-memory>",
+): String = skillbill.application.decomposition.encodeValidatedDecompositionManifestYaml(
+  manifest,
+  validator,
+  fileStore,
+  sourceLabel,
+).yamlText
 
 class WorkflowServiceDecomposedParentTest {
   @Test

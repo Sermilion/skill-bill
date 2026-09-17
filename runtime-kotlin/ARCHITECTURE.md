@@ -1677,7 +1677,7 @@ or a versioned durable payload whose vocabulary is intentionally owned by that b
   `GoalRunnerLivenessState`, as does
   `skillbill.goalrunner.model.GoalRunnerLivenessDecision.state`;
   `skillbill.goalrunner.model.GoalPlanningStatusSnapshot.state` and
-  `skillbill.application.idestatus.model.IdeStatusPlanning.state` use `GoalPlanningStatusState`;
+  `skillbill.engine.work.model.IdeStatusPlanning.state` use `GoalPlanningStatusState`;
   `skillbill.goalrunner.model.GoalRunnerStatusProjection.executionLiveness` and
   `skillbill.goalrunner.model.GoalRunnerStatusProjectionRuntimeInputs.executionLiveness` use
   `ExecutionLiveness`; `skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairLedgerEntry.status`

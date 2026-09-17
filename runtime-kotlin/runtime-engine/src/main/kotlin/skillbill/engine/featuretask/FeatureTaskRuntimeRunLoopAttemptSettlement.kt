@@ -1,12 +1,13 @@
 package skillbill.engine.featuretask
 
-import skillbill.application.diagnostics.model.FeatureTaskRuntimeRejectedOutputWrite
 import skillbill.application.diagnostics.model.RejectedOutputDiagnosticRequest
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeCommitPushHandoff
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeCommitPushHandoffInvalid
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeCommitPushHandoffValid
+import skillbill.engine.featuretask.model.FeatureTaskRuntimeRejectedOutputWrite
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeSubtaskCommitIdentity
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeSubtaskFinalisationBlocked
@@ -89,16 +90,6 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
             fileManifest = args.fileManifest,
             captured = args.captured,
           ),
-          request = args.request,
-          state = args.state,
-          recorder = args.recorder,
-          outputValidator = args.outputValidator,
-          phaseGates = args.phaseGates,
-          clock = args.clock,
-          diagnostics = args.diagnostics,
-          goalContinuationRecorder = args.goalContinuationRecorder,
-          phaseSettlementService = args.phaseSettlementService,
-          observability = args.observability,
           settlementContext = args.settlementContext,
         ),
       )
@@ -179,10 +170,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
   }
 
   internal fun persistChildProcessFailureOutput(
-    request: FeatureTaskRuntimeRunRequest,
-    state: FeatureTaskRuntimeRunState,
-    recorder: FeatureTaskRuntimePhaseRecorder,
-    diagnostics: RuntimeDiagnostics,
+    context: FeatureTaskRuntimeRunLoopContext,
     run: PhaseRun,
     iteration: Int,
     reason: String,
@@ -191,8 +179,8 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
     val output = childOutput ?: return
     runCatching {
       recordRejectedOutput(
-        state,
-        recorder,
+        context.state,
+        context.recorder,
         RecordRejectedOutputArgs(
           run = run,
           iteration = iteration,
@@ -203,9 +191,10 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
         ),
       )
     }.onFailure { error ->
-      diagnostics.warning(
+      RuntimeDiagnosticsBestEffortWarning.record(
+        context.diagnostics,
         "Feature-task-runtime could not persist the child process-failure diagnostic for issue " +
-          "${request.issueKey}, workflow ${request.workflowId}, phase '${run.phaseId}'. The block " +
+          "${context.request.issueKey}, workflow ${context.request.workflowId}, phase '${run.phaseId}'. The block " +
           "reason keeps its bounded excerpt; the full child output is lost.",
         error,
       )
@@ -363,16 +352,6 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
             fileManifest = args.fileManifest,
             captured = args.captured,
           ),
-          request = args.request,
-          state = args.state,
-          recorder = args.recorder,
-          outputValidator = args.outputValidator,
-          phaseGates = args.phaseGates,
-          clock = args.clock,
-          diagnostics = args.diagnostics,
-          goalContinuationRecorder = args.goalContinuationRecorder,
-          phaseSettlementService = args.phaseSettlementService,
-          observability = args.observability,
           settlementContext = args.settlementContext,
         ),
       )
@@ -1014,7 +993,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
     return FeatureTaskRuntimeSubtaskFinalisation(
       gitOperations = phaseGates.gitOperations,
       repoRoot = request.repoRoot,
-      record = { record -> runCatching { diagnostics.warning(record) } },
+      record = { record -> RuntimeDiagnosticsBestEffortWarning.record(diagnostics, record) },
       recordCommit = { commitSha, stagedPaths ->
         FeatureTaskRuntimeRunLoopSubtaskCommit.recordFinalisedCheckpointIdentity(
           request,

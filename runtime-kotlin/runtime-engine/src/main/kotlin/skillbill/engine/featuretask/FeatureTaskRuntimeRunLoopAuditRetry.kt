@@ -47,7 +47,8 @@ object FeatureTaskRuntimeRunLoopAuditRetry {
     }
     val established =
       with(FeatureTaskRuntimeRunLoopCheckpointRemediation) {
-        FeatureTaskRuntimeRunLoopCheckpointRemediation.checkpointEstablished(context,
+        FeatureTaskRuntimeRunLoopCheckpointRemediation.checkpointEstablished(
+          context,
           precedingPhaseId = precedingPhaseId,
           loopId = null,
           intent = FeatureTaskRuntimeCheckpointMessage.INTENT_AUDITED_IMPLEMENTATION,
@@ -75,23 +76,25 @@ object FeatureTaskRuntimeRunLoopAuditRetry {
     run: PhaseRun,
     iteration: Int,
     fileManifest: FeatureTaskRuntimePhaseFileManifest?,
-  ): AttemptResult = with(context) { AttemptResult.settled(
-    FeatureTaskRuntimeRunLoopPhaseAttempts.blockInPhase(
-      request,
-      state,
-      recorder,
-      observability,
-      PhaseBlockRequest(
-        run = run,
-        attemptCount = iteration,
-        reason = "Audit completed with a whitespace-only remaining-criteria final response; the run blocks " +
-          "rather than treating it as an empty list or launching a retry.",
-        observability = observability,
-        payload = BlockAndPersistPayload(fileManifest = fileManifest),
-        failureDisposition = FeatureTaskRuntimeFailureDisposition.INVALID_OUTPUT,
+  ): AttemptResult = with(context) {
+    AttemptResult.settled(
+      FeatureTaskRuntimeRunLoopPhaseAttempts.blockInPhase(
+        request,
+        state,
+        recorder,
+        observability,
+        PhaseBlockRequest(
+          run = run,
+          attemptCount = iteration,
+          reason = "Audit completed with a whitespace-only remaining-criteria final response; the run blocks " +
+            "rather than treating it as an empty list or launching a retry.",
+          observability = observability,
+          payload = BlockAndPersistPayload(fileManifest = fileManifest),
+          failureDisposition = FeatureTaskRuntimeFailureDisposition.INVALID_OUTPUT,
+        ),
       ),
-    ),
-  ) }
+    )
+  }
 
   internal fun clearRetryHintOnFreshLaunch(
     state: FeatureTaskRuntimeRunState,

@@ -32,9 +32,7 @@ internal class ValidationSettlementState(
     gateInvalidatedState += FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE
   }
 
-  internal fun invalidateUnsatisfiedGateSuccessors(
-    durableVerdictFor: (String) -> FeatureTaskRuntimeVerdict,
-  ) {
+  internal fun invalidateUnsatisfiedGateSuccessors(durableVerdictFor: (String) -> FeatureTaskRuntimeVerdict) {
     FeatureTaskRuntimeRunStateReconstruction.invalidateUnsatisfiedGateSuccessors(
       transitions,
       completedState,

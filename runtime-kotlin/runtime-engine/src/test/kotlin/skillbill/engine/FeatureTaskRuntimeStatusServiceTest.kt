@@ -2,7 +2,6 @@ package skillbill.engine
 
 import skillbill.application.decomposition.decompositionManifestPath
 import skillbill.application.decomposition.parentSpecPath
-import skillbill.application.idestatus.model.IdeStatusCurrentPhaseExecutionKind
 import skillbill.application.testHarnessClock
 import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.contracts.JsonCodec
@@ -11,13 +10,14 @@ import skillbill.engine.featuretask.FeatureTaskRuntimeContinuationKind
 import skillbill.engine.featuretask.FeatureTaskRuntimeDecomposeTerminalRecorder
 import skillbill.engine.featuretask.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.FeatureTaskRuntimeRunInvariantsStore
-import skillbill.engine.featuretask.FeatureTaskRuntimeWorkflowPersistence
 import skillbill.engine.featuretask.FeatureTaskRuntimeStatusService
+import skillbill.engine.featuretask.FeatureTaskRuntimeWorkflowPersistence
 import skillbill.engine.featuretask.agentAttributionFromPhaseState
 import skillbill.engine.featuretask.featureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseLedgerRequest
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeStatusRequest
+import skillbill.engine.work.model.IdeStatusCurrentPhaseExecutionKind
 import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics

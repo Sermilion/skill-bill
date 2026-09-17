@@ -61,11 +61,7 @@ object FeatureTaskRuntimeRunLoopDrive {
     entryGateBlockReason(context.state, context.transitions, phaseId)
       ?: with(FeatureTaskRuntimeRunLoopBackwardEdge) {
         FeatureTaskRuntimeRunLoopBackwardEdge.capExhaustedOnResume(
-          context.session,
-          context.state,
-          context.transitions,
-          context.request,
-          context.recorder,
+          context,
           phaseId,
         )
       }
@@ -428,13 +424,7 @@ object FeatureTaskRuntimeRunLoopDrive {
         ?.takeIf { phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN }
         ?.let {
           FeatureTaskRuntimeRunLoopBackwardEdge.applyPlanningStop(
-            request = context.request,
-            state = context.state,
-            recorder = context.recorder,
-            observability = context.observability,
-            session = context.session,
-            phaseGates = context.phaseGates,
-            specSource = context.specSource,
+            context = context,
             phaseId = phaseId,
             planOutput = it,
           )
@@ -442,24 +432,11 @@ object FeatureTaskRuntimeRunLoopDrive {
     } else {
       with(FeatureTaskRuntimeRunLoopBackwardEdge) {
         FeatureTaskRuntimeRunLoopBackwardEdge.establishBranchIfNeeded(
-          phaseGates = context.phaseGates,
-          request = context.request,
-          observability = context.observability,
-          recorder = context.recorder,
-          state = context.state,
-          session = context.session,
+          context = context,
           phaseId = phaseId,
         )
           ?: FeatureTaskRuntimeRunLoopBackwardEdge.runPhaseFor(
             context = context,
-            request = context.request,
-            state = context.state,
-            recorder = context.recorder,
-            observability = context.observability,
-            transitions = context.transitions,
-            phaseGates = context.phaseGates,
-            specSource = context.specSource,
-            session = context.session,
             phaseId = phaseId,
           )
       }

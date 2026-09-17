@@ -1,6 +1,7 @@
 package skillbill.engine.featuretask
 
 import skillbill.contracts.JsonCodec
+import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
 import skillbill.engine.featuretask.model.AppendCheckpointIdentityArgs
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
 import skillbill.ports.diagnostics.RuntimeDiagnostics
@@ -23,14 +24,13 @@ object FeatureTaskRuntimeRunLoopSubtaskCommit {
     val head = phaseGates.gitOperations.headCommitSha(request.repoRoot)
     val sha = head.value.orEmpty().trim().takeIf { head is WorkflowGitOperationResult.Ok && it.isNotBlank() }
       ?: return CommitPushNotApplicable
-    runCatching {
-      diagnostics.warning(
-        "seam=FeatureTaskRuntimeRunLoop.finaliseSubtaskCommit value_used='measured HEAD $sha' " +
-          "value_expected=a runtime-finalised subtask commit for '${request.issueKey}' " +
-          "cause=the run has no resolved, unprotected, checked-out branch, so finalisation could not " +
-          "stage, amend, or push and the commit sha degrades to whatever HEAD already names",
-      )
-    }
+    RuntimeDiagnosticsBestEffortWarning.record(
+      diagnostics,
+      "seam=FeatureTaskRuntimeRunLoop.finaliseSubtaskCommit value_used='measured HEAD $sha' " +
+        "value_expected=a runtime-finalised subtask commit for '${request.issueKey}' " +
+        "cause=the run has no resolved, unprotected, checked-out branch, so finalisation could not " +
+        "stage, amend, or push and the commit sha degrades to whatever HEAD already names",
+    )
     return CommitPushSettled(
       revalidated(
         outputValidator,
@@ -86,14 +86,13 @@ object FeatureTaskRuntimeRunLoopSubtaskCommit {
     }
     if (appended.getOrDefault(false)) return null
     val cause = appended.exceptionOrNull()?.message ?: "the workflow row was absent"
-    runCatching {
-      diagnostics.warning(
-        "seam=FeatureTaskRuntimeRunLoop.recordFinalisedCheckpointIdentity " +
-          "value_used='no durable identity for finalised commit $commitSha' " +
-          "value_expected=an appended checkpoint identity for '${request.issueKey}' " +
-          "cause=$cause",
-      )
-    }
+    RuntimeDiagnosticsBestEffortWarning.record(
+      diagnostics,
+      "seam=FeatureTaskRuntimeRunLoop.recordFinalisedCheckpointIdentity " +
+        "value_used='no durable identity for finalised commit $commitSha' " +
+        "value_expected=an appended checkpoint identity for '${request.issueKey}' " +
+        "cause=$cause",
+    )
     return "needs_human: the finalised subtask commit '$commitSha' was written but its durable " +
       "checkpoint identity could not be recorded ($cause), so it was not pushed. Without that pointer " +
       "a resumed run would open a second commit for this subtask instead of amending this one. Repair " +

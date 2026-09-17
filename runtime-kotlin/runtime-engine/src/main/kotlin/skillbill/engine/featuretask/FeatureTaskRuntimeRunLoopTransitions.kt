@@ -18,32 +18,34 @@ object FeatureTaskRuntimeRunLoopTransitions {
     edge: FeatureTaskRuntimeBackwardEdge?,
     effectiveVerdict: FeatureTaskRuntimeVerdict,
     transition: FeatureTaskRuntimeNextPhase,
-  ): String? = with(context) { when (transition) {
-    is FeatureTaskRuntimeNextPhase.TerminalAdvance -> null
-    is FeatureTaskRuntimeNextPhase.TerminalBlock -> {
-      FeatureTaskRuntimeRunLoopPlanningBranch.blockOnCapExhaustion(
-        BlockOnCapExhaustionArgs(
-          request = request,
-          state = state,
-          recorder = recorder,
-          observability = observability,
-          session = session,
-          goalContinuationRecorder = goalContinuationRecorder,
-          specSource = specSource,
-          phaseId = phaseId,
-          transition = transition,
-        ),
+  ): String? = with(context) {
+    when (transition) {
+      is FeatureTaskRuntimeNextPhase.TerminalAdvance -> null
+      is FeatureTaskRuntimeNextPhase.TerminalBlock -> {
+        FeatureTaskRuntimeRunLoopPlanningBranch.blockOnCapExhaustion(
+          BlockOnCapExhaustionArgs(
+            request = request,
+            state = state,
+            recorder = recorder,
+            observability = observability,
+            session = session,
+            goalContinuationRecorder = goalContinuationRecorder,
+            specSource = specSource,
+            phaseId = phaseId,
+            transition = transition,
+          ),
+        )
+        null
+      }
+      is FeatureTaskRuntimeNextPhase.Next -> nextTransitionTarget(
+        context,
+        phaseId,
+        edge,
+        effectiveVerdict,
+        transition,
       )
-      null
     }
-    is FeatureTaskRuntimeNextPhase.Next -> nextTransitionTarget(
-      context,
-      phaseId,
-      edge,
-      effectiveVerdict,
-      transition,
-    )
-  } }
+  }
 
   internal fun nextTransitionTarget(
     context: FeatureTaskRuntimeRunLoopContext,
@@ -67,14 +69,9 @@ object FeatureTaskRuntimeRunLoopTransitions {
       else -> {
         with(FeatureTaskRuntimeRunLoopBackwardEdge) {
           FeatureTaskRuntimeRunLoopBackwardEdge.recordBackwardEdge(
-            request,
-            state,
-            recorder,
-            transitions,
+            context,
             session,
             edge = requireNotNull(edge),
-            destinationPhaseId = transition.phaseId,
-            loopId = loopId,
             edgeIteration = requireNotNull(transition.edgeIteration),
             verdict = effectiveVerdict,
           )
@@ -116,21 +113,24 @@ object FeatureTaskRuntimeRunLoopTransitions {
     context: FeatureTaskRuntimeRunLoopContext,
     precedingPhaseId: String,
     destinationPhaseId: String,
-  ): Boolean = with(context) { if (
-    precedingPhaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT &&
-    destinationPhaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW
-  ) {
-    with(FeatureTaskRuntimeRunLoopCheckpointRemediation) {
-      FeatureTaskRuntimeRunLoopCheckpointRemediation.checkpointEstablished(context,
-        precedingPhaseId = precedingPhaseId,
-        loopId = null,
-        intent = FeatureTaskRuntimeCheckpointMessage.INTENT_AUDITED_IMPLEMENTATION,
-        blockedReason = { branch, error ->
-          FeatureTaskRuntimeRunLoopPlanningBranch.auditReviewCheckpointBlockedReason(branch, error)
-        },
-      )
+  ): Boolean = with(context) {
+    if (
+      precedingPhaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT &&
+      destinationPhaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW
+    ) {
+      with(FeatureTaskRuntimeRunLoopCheckpointRemediation) {
+        FeatureTaskRuntimeRunLoopCheckpointRemediation.checkpointEstablished(
+          context,
+          precedingPhaseId = precedingPhaseId,
+          loopId = null,
+          intent = FeatureTaskRuntimeCheckpointMessage.INTENT_AUDITED_IMPLEMENTATION,
+          blockedReason = { branch, error ->
+            FeatureTaskRuntimeRunLoopPlanningBranch.auditReviewCheckpointBlockedReason(branch, error)
+          },
+        )
+      }
+    } else {
+      true
     }
-  } else {
-    true
-  } }
+  }
 }

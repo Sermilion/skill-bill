@@ -1,6 +1,7 @@
 package skillbill.engine.featuretask
 
 import me.tatarka.inject.annotations.Inject
+import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeCrashReconciliationReason
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeCrashReconciliationResult
 import skillbill.ports.db.DatabaseSessionFactory
@@ -22,7 +23,11 @@ class FeatureTaskRuntimeCrashReconciler(
     val candidates = runCatching {
       database.read { it.workflowStates.findFeatureTaskRuntimeCrashReconciliationCandidates(now) }
     }.getOrElse { error ->
-      diagnostics.warning("Crash-reconciliation candidate scan failed; startup is unaffected.", error)
+      RuntimeDiagnosticsBestEffortWarning.record(
+        diagnostics,
+        "Crash-reconciliation candidate scan failed; startup is unaffected.",
+        error,
+      )
       return FeatureTaskRuntimeCrashReconciliationResult.NONE
     }
     if (candidates.isEmpty()) return FeatureTaskRuntimeCrashReconciliationResult.NONE
@@ -55,7 +60,8 @@ class FeatureTaskRuntimeCrashReconciler(
     }
     if (reconciled) reason.wireValue else null
   }.getOrElse { error ->
-    diagnostics.warning(
+    RuntimeDiagnosticsBestEffortWarning.record(
+      diagnostics,
       "Crash reconciliation faulted on a candidate; the pass continues and the fault is counted.",
       error,
     )

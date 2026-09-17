@@ -103,6 +103,7 @@ data class GoalRunnerStatusProjection(
   val activeDurationAsOf: String? = null,
   val subtaskActiveDurationMs: Long = 0,
   val subtaskActiveDurationAsOf: String? = null,
+  val degradedDurableRead: Boolean = false,
 )
 
 data class GoalRunnerSubtaskValidationEvidence(
@@ -164,6 +165,7 @@ data class GoalRunnerStatusProjectionRuntimeInputs(
   val activeDurationAsOf: String? = null,
   val subtaskActiveDurationMs: Long = 0,
   val subtaskActiveDurationAsOf: String? = null,
+  val degradedDurableRead: Boolean = false,
 )
 
 object GoalRunnerStatusProjector {

@@ -1,4 +1,4 @@
-package skillbill.application.featurespec
+package skillbill.engine.featuretask
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.featurespec.model.FeatureSpecPreparationDecision

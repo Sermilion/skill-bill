@@ -1,5 +1,7 @@
 package skillbill.engine.goalrunner
 import skillbill.application.agentoutput.stderrExcerpt
+import skillbill.engine.goalrunner.model.GoalRunnerObservabilityLivenessClass
+import skillbill.engine.goalrunner.model.GoalRunnerObservabilityWorkerRole
 import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
 import skillbill.goalrunner.model.GoalRunnerLaunchFacts
 import skillbill.goalrunner.model.GoalRunnerObservabilityRecordRequest
@@ -9,9 +11,8 @@ import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.goalrunner.runner.GoalRunnerWorkflowOutcomeStore
 import skillbill.ports.goalrunner.runner.model.GoalRunnerWorkflowProgress
 import java.time.Clock
-import kotlin.coroutines.cancellation.CancellationException
 
-class GoalRunnerObservabilityEmitter(
+internal class GoalRunnerObservabilityEmitter(
   private val outcomeStore: GoalRunnerWorkflowOutcomeStore,
   private val clock: Clock,
   private val diagnostics: RuntimeDiagnostics,
@@ -34,57 +35,33 @@ class GoalRunnerObservabilityEmitter(
   }
 
   internal fun record(subject: GoalRunnerObservabilitySubject, signal: GoalRunnerObservabilitySignal) {
-    val result = runCatching {
-      outcomeStore.recordObservabilityEvent(
-        request = GoalRunnerObservabilityRecordRequest(
-          workflowId = subject.workflowId,
-          issueKey = subject.issueKey,
-          subtaskId = subject.subtaskId,
-          workflowPhase = signal.workflowPhase.takeIf(String::isNotBlank) ?: "goal_runner_supervision",
-          workerRole = "goal_runner_supervisor",
-          livenessClass = signal.livenessClass,
-          activitySummary = signal.activitySummary.takeIf(String::isNotBlank) ?: signal.livenessClass,
-          sequenceNumber = sequence++,
-          timestamp = clock.instant().toString(),
-        ),
-      )
-    }
-    when (val failure = result.exceptionOrNull()) {
-      null -> if (!result.getOrThrow()) logBestEffortMissingWorkflow(subject, signal)
-      is CancellationException -> throw failure
-      is InterruptedException -> {
-        Thread.currentThread().interrupt()
-        throw failure
-      }
-      else -> logBestEffortFailure(subject, signal, failure)
-    }
-  }
-
-  private fun logBestEffortMissingWorkflow(
-    subject: GoalRunnerObservabilitySubject,
-    signal: GoalRunnerObservabilitySignal,
-  ) {
-    runCatching {
-      diagnostics.warning(
+    GoalRunnerBestEffortEmission.record(
+      diagnostics = diagnostics,
+      write = {
+        outcomeStore.recordObservabilityEvent(
+          request = GoalRunnerObservabilityRecordRequest(
+            workflowId = subject.workflowId,
+            issueKey = subject.issueKey,
+            subtaskId = subject.subtaskId,
+            workflowPhase = signal.workflowPhase.takeIf(String::isNotBlank) ?: "goal_runner_supervision",
+            workerRole = signal.workerRole.wireValue,
+            livenessClass = signal.livenessClass.wireValue,
+            activitySummary = signal.activitySummary.takeIf(String::isNotBlank) ?: signal.livenessClass.wireValue,
+            sequenceNumber = sequence++,
+            timestamp = clock.instant().toString(),
+          ),
+        )
+      },
+      missingMessage = {
         "Best-effort goal observability emit skipped (workflow not found): " +
-          "workflowId='${subject.workflowId}' livenessClass='${signal.livenessClass}'",
-      )
-    }
-  }
-
-  private fun logBestEffortFailure(
-    subject: GoalRunnerObservabilitySubject,
-    signal: GoalRunnerObservabilitySignal,
-    error: Throwable,
-  ) {
-    runCatching {
-      diagnostics.warning(
+          "workflowId='${subject.workflowId}' livenessClass='${signal.livenessClass.wireValue}'"
+      },
+      failureMessage = { error ->
         "Best-effort goal observability emit failed: workflowId='${subject.workflowId}' " +
-          "livenessClass='${signal.livenessClass}' errorType='${error::class.qualifiedName}' " +
-          "message='${error.message.orEmpty().take(MAX_DIAGNOSTIC_MESSAGE_LENGTH)}'",
-        error,
-      )
-    }
+          "livenessClass='${signal.livenessClass.wireValue}' errorType='${error::class.qualifiedName}' " +
+          "message='${GoalRunnerBestEffortEmission.boundedMessage(error.message.orEmpty())}'"
+      },
+    )
   }
 
   private fun recordStart(
@@ -96,7 +73,11 @@ class GoalRunnerObservabilityEmitter(
       subject = subject,
       signal = GoalRunnerObservabilitySignal(
         workflowPhase = progress?.currentStepId?.takeIf(String::isNotBlank) ?: "preplan",
-        livenessClass = if (action == "resume") "resume" else "subtask_start",
+        livenessClass = if (action == "resume") {
+          GoalRunnerObservabilityLivenessClass.RESUME
+        } else {
+          GoalRunnerObservabilityLivenessClass.SUBTASK_START
+        },
         activitySummary = "Goal runner ${action}s subtask ${subject.subtaskId}.",
       ),
     )
@@ -107,7 +88,7 @@ class GoalRunnerObservabilityEmitter(
       subject = subject,
       signal = GoalRunnerObservabilitySignal(
         workflowPhase = child.currentStepId,
-        livenessClass = "phase_change",
+        livenessClass = GoalRunnerObservabilityLivenessClass.PHASE_CHANGE,
         activitySummary = "Child workflow is at step ${child.currentStepId}.",
       ),
     )
@@ -116,7 +97,7 @@ class GoalRunnerObservabilityEmitter(
         subject = subject,
         signal = GoalRunnerObservabilitySignal(
           workflowPhase = child.currentStepId,
-          livenessClass = "heartbeat",
+          livenessClass = GoalRunnerObservabilityLivenessClass.HEARTBEAT,
           activitySummary = signal,
         ),
       )
@@ -134,7 +115,7 @@ class GoalRunnerObservabilityEmitter(
       subject = subject,
       signal = GoalRunnerObservabilitySignal(
         workflowPhase = phase,
-        livenessClass = "heartbeat",
+        livenessClass = GoalRunnerObservabilityLivenessClass.HEARTBEAT,
         activitySummary = "process_state=${liveness.processState.wireValue}; reason=${liveness.reason}",
       ),
     )
@@ -143,7 +124,7 @@ class GoalRunnerObservabilityEmitter(
         subject = subject,
         signal = GoalRunnerObservabilitySignal(
           workflowPhase = phase,
-          livenessClass = "file_activity",
+          livenessClass = GoalRunnerObservabilityLivenessClass.FILE_ACTIVITY,
           activitySummary = liveness.lastFileActivityLabel ?: "file activity observed at $at",
         ),
       )
@@ -162,7 +143,7 @@ class GoalRunnerObservabilityEmitter(
       subject = subject,
       signal = GoalRunnerObservabilitySignal(
         workflowPhase = progress?.currentStepId ?: facts.liveness?.workflowStep ?: "goal_runner_supervision",
-        livenessClass = "worker_output_summary",
+        livenessClass = GoalRunnerObservabilityLivenessClass.WORKER_OUTPUT_SUMMARY,
         activitySummary = "stdout_chars=${facts.stdout.length}; stderr_chars=${facts.stderr.length}; " +
           "exit_status=${facts.exitStatus ?: "none"}$stderrDetail",
       ),
@@ -178,8 +159,7 @@ internal data class GoalRunnerObservabilitySubject(
 
 internal data class GoalRunnerObservabilitySignal(
   val workflowPhase: String,
-  val livenessClass: String,
+  val workerRole: GoalRunnerObservabilityWorkerRole = GoalRunnerObservabilityWorkerRole.GOAL_RUNNER_SUPERVISOR,
+  val livenessClass: GoalRunnerObservabilityLivenessClass,
   val activitySummary: String,
 )
-
-private const val MAX_DIAGNOSTIC_MESSAGE_LENGTH = 240

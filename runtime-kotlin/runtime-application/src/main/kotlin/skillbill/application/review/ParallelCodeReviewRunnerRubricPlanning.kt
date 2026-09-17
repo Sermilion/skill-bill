@@ -1,8 +1,8 @@
 package skillbill.application.review
 import skillbill.application.review.model.ReviewRubricProjection
 import skillbill.application.review.model.ReviewWorkerKind.GENERIC
-import skillbill.application.reviewevidence.ReviewChangedFileEvidence
-import skillbill.application.reviewevidence.ReviewDiffEvidence
+import skillbill.application.reviewevidence.model.ReviewChangedFileEvidence
+import skillbill.application.reviewevidence.model.ReviewDiffEvidence
 import skillbill.ports.review.ReviewRubricResolver
 import skillbill.ports.review.model.ReviewOwnedFileEvidence
 import skillbill.ports.scaffold.install.InstalledPlatformPackCatalogPort

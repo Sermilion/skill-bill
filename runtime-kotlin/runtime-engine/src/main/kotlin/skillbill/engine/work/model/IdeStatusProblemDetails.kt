@@ -1,4 +1,4 @@
-package skillbill.application.idestatus.model
+package skillbill.engine.work.model
 
 class IdeStatusProblemDetails private constructor(
   private val delegate: Map<String, Any?>,

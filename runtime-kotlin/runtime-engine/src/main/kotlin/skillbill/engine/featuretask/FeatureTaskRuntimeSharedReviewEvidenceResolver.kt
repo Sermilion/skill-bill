@@ -1,6 +1,7 @@
-package skillbill.application.reviewevidence
+package skillbill.engine.featuretask
 
-import skillbill.application.reviewevidence.model.FeatureTaskRuntimeSharedReviewEvidenceResolved
+import skillbill.application.reviewevidence.model.ReviewDiffEvidence
+import skillbill.engine.featuretask.model.FeatureTaskRuntimeSharedReviewEvidenceResolved
 import skillbill.ports.diff.DiffResolverPort
 import skillbill.ports.taskruntime.FeatureTaskRuntimeSharedEvidenceResolverPort
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeSharedEvidenceDerivation

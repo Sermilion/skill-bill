@@ -1,7 +1,7 @@
 package skillbill.application.work
 
-import skillbill.application.idestatus.model.IdeStatusFreshness
 import skillbill.engine.work.IdeStatusFreshnessClassifier
+import skillbill.engine.work.model.IdeStatusFreshness
 import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals

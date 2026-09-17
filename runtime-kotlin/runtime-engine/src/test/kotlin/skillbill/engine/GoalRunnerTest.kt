@@ -6,6 +6,7 @@ import skillbill.application.RecordingSpecScratchStore
 import skillbill.application.TestDecompositionManifestStore
 import skillbill.application.decomposition.parentSpecPath
 import skillbill.application.testHarnessClock
+import skillbill.contracts.JsonCodec
 import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeWireArtifactValidator
 import skillbill.engine.featuretask.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
@@ -26,6 +27,7 @@ import skillbill.engine.goalrunner.goalRunnerDeps
 import skillbill.engine.goalrunner.model.GoalRunnerAcceptRequest
 import skillbill.engine.goalrunner.model.GoalRunnerAcceptResult
 import skillbill.engine.goalrunner.model.GoalRunnerEventSink
+import skillbill.engine.goalrunner.model.GoalRunnerObservabilityLivenessClass
 import skillbill.engine.goalrunner.model.GoalRunnerResetRequest
 import skillbill.engine.goalrunner.model.GoalRunnerRunEvent
 import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
@@ -37,8 +39,10 @@ import skillbill.engine.goalrunner.testPhaseRecorder
 import skillbill.engine.goalrunner.testWorkflowGoalRunnerManifestStore
 import skillbill.engine.goalrunner.testWorkflowGoalRunnerOutcomeStore
 import skillbill.error.IncompatibleGoalPlanningPreparationRecoveryError
+import skillbill.goalrunner.GoalObservabilityArtifacts
 import skillbill.goalrunner.model.ExecutionLiveness
 import skillbill.goalrunner.model.GoalObservabilityProgressEvent
+import skillbill.goalrunner.model.GoalObservabilityRuntimeEventInput
 import skillbill.goalrunner.model.GoalPlanningStatusReasons
 import skillbill.goalrunner.model.GoalPlanningStatusReasons.NOT_STARTED
 import skillbill.goalrunner.model.GoalPlanningStatusSnapshot
@@ -58,9 +62,10 @@ import skillbill.goalrunner.model.GoalRunnerSupervisionEvent
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
 import skillbill.goalrunner.model.GoalRunnerWorkerSubtaskRequestOutcome
 import skillbill.goalrunner.model.UnaddressedFinding
-import skillbill.infrastructure.sqlite.SQLiteDatabaseSessionFactory
 import skillbill.goalrunner.planning.cascadeEligiblePlanSubtaskIds
+import skillbill.infrastructure.sqlite.SQLiteDatabaseSessionFactory
 import skillbill.install.model.InstallAgent
+import skillbill.model.EnvironmentContext
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
 import skillbill.ports.agentrun.model.AgentRunProgressEmission
@@ -119,8 +124,8 @@ import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksResult
 import skillbill.ports.workflow.gitops.model.WorkflowWorktreeActivityResult
 import skillbill.ports.workflow.model.FeatureImplementSessionSummary
 import skillbill.ports.workflow.model.FeatureTaskExecutionIdentity
-import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.FeatureTaskWorkflowCandidate
+import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.FeatureVerifySessionSummary
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.review.context.model.CodeReviewExecutionMode
@@ -132,6 +137,8 @@ import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.decomposition.model.SpecSource
 import skillbill.workflow.engine.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.goal.NoopGoalObservabilityEventValidator
+import skillbill.workflow.goal.model.GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GoalObservabilityDiffStat
 import skillbill.workflow.goal.model.GoalProgressEvent
 import skillbill.workflow.goal.model.GoalProgressEventKind
@@ -143,7 +150,6 @@ import skillbill.workflow.goal.model.ValidationDepth
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeQualityGateSelection
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
-import skillbill.model.EnvironmentContext
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Clock
@@ -152,6 +158,7 @@ import java.time.ZoneOffset
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.test.Test
 import kotlin.test.assertContains
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
@@ -173,25 +180,7 @@ class GoalRunnerTest {
       ),
     )
     val workflowId = "goal-parent-sqlite-resume"
-    database.transaction { unitOfWork ->
-      unitOfWork.workflowStates.saveFeatureTaskRuntimeWorkflow(
-        WorkflowStateRecord(
-          workflowId = workflowId,
-          sessionId = "goal-parent-session",
-          workflowName = "bill-feature-task",
-          contractVersion = "0.1",
-          workflowStatus = WorkflowStatus.RUNNING.wireValue,
-          currentStepId = "commit_push",
-          stepsJson = "[]",
-          artifactsJson = "{}",
-          startedAt = null,
-          updatedAt = null,
-          finishedAt = null,
-          mode = FeatureTaskWorkflowMode.RUNTIME,
-          issueKey = "SKILL-352",
-        ),
-      )
-    }
+    seedGoalRunnerResumeWorkflow(database, workflowId)
     val manifestStore = testWorkflowGoalRunnerManifestStore(
       database = database,
       decompositionManifestStore = TestDecompositionManifestStore,
@@ -225,6 +214,28 @@ class GoalRunnerTest {
     val completed = assertIs<GoalRunnerRunReport.Completed>(report)
     assertEquals(emptyList(), completed.attemptedSubtasks)
     assertEquals("sha-1", manifestStore.loadByIssueKey("SKILL-352", root)?.manifest?.subtasks?.single()?.commitSha)
+  }
+
+  private fun seedGoalRunnerResumeWorkflow(database: SQLiteDatabaseSessionFactory, workflowId: String) {
+    database.transaction { unitOfWork ->
+      unitOfWork.workflowStates.saveFeatureTaskRuntimeWorkflow(
+        WorkflowStateRecord(
+          workflowId = workflowId,
+          sessionId = "goal-parent-session",
+          workflowName = "bill-feature-task",
+          contractVersion = "0.1",
+          workflowStatus = WorkflowStatus.RUNNING.wireValue,
+          currentStepId = "commit_push",
+          stepsJson = "[]",
+          artifactsJson = "{}",
+          startedAt = null,
+          updatedAt = null,
+          finishedAt = null,
+          mode = FeatureTaskWorkflowMode.RUNTIME,
+          issueKey = "SKILL-352",
+        ),
+      )
+    }
   }
 
   @Test
@@ -1925,6 +1936,11 @@ class GoalRunnerStatusProjectionTest {
         statusServiceForLiveness(failingHarness, "wfl-failing").status(goalStatusRequest()),
       ).executionLiveness,
     )
+    assertTrue(
+      requireNotNull(
+        statusServiceForLiveness(failingHarness, "wfl-failing").status(goalStatusRequest()),
+      ).degradedDurableRead,
+    )
     assertEquals(0, failingHarness.ownershipWriteCount)
   }
 
@@ -2607,7 +2623,11 @@ class GoalRunnerObservabilityTest {
     val thrown = assertFailsWith<CancellationException> {
       emitter.record(
         GoalRunnerObservabilitySubject("wfl-child", "SKILL-56", 1),
-        GoalRunnerObservabilitySignal("implement", "heartbeat", "still working"),
+        GoalRunnerObservabilitySignal(
+          workflowPhase = "implement",
+          livenessClass = GoalRunnerObservabilityLivenessClass.HEARTBEAT,
+          activitySummary = "still working",
+        ),
       )
     }
 
@@ -2629,7 +2649,11 @@ class GoalRunnerObservabilityTest {
     val thrown = assertFailsWith<InterruptedException> {
       emitter.record(
         GoalRunnerObservabilitySubject("wfl-child", "SKILL-56", 1),
-        GoalRunnerObservabilitySignal("implement", "heartbeat", "still working"),
+        GoalRunnerObservabilitySignal(
+          workflowPhase = "implement",
+          livenessClass = GoalRunnerObservabilityLivenessClass.HEARTBEAT,
+          activitySummary = "still working",
+        ),
       )
     }
 
@@ -2652,7 +2676,11 @@ class GoalRunnerObservabilityTest {
 
     emitter.record(
       GoalRunnerObservabilitySubject("wfl-child", "SKILL-56", 1),
-      GoalRunnerObservabilitySignal("implement", "heartbeat", "still working"),
+      GoalRunnerObservabilitySignal(
+        workflowPhase = "implement",
+        livenessClass = GoalRunnerObservabilityLivenessClass.HEARTBEAT,
+        activitySummary = "still working",
+      ),
     )
 
     assertTrue(diagnostics.warningMessages.single().length < 600)
@@ -3789,6 +3817,77 @@ class GoalRunnerProgressEventEmitterTest {
 
     assertEquals(listOf(42, 43), outcomes.progressEventRecords.map { it.event.sequenceNumber })
   }
+
+  @Test
+  fun `supported progress and observability emissions preserve their wire bytes`() {
+    val emissionClock = Clock.fixed(Instant.parse("2026-01-01T00:00:00Z"), ZoneOffset.UTC)
+    assertProgressWireBytes(emissionClock)
+    assertObservabilityWireBytes(emissionClock)
+  }
+
+  private fun assertProgressWireBytes(emissionClock: Clock) {
+    val progressOutcomes = RecordingOutcomeStore()
+    GoalRunnerProgressEventEmitter(
+      outcomeStore = progressOutcomes,
+      resolveWorkflowId = { "wfl-child" },
+      watermarkSeed = null,
+      clock = emissionClock,
+      diagnostics = NoopRuntimeDiagnostics,
+    ).emit(emission(GoalProgressEventKind.OPERATION_STARTED, processAlive = true))
+
+    val progressBytes = jsonBytes(progressOutcomes.progressEventRecords.single().event.toPersistenceWire())
+    assertContentEquals(
+      (
+        """{"contract_version":"0.1","event_kind":"operation_started","workflow_id":"wfl-child",""" +
+          """"workflow_phase":"goal_runner_supervision","process_alive":true,"sequence_number":0,""" +
+          """"timestamp":"2026-01-01T00:00:00Z","operation_name":"child_agent_run",""" +
+          """"operation_kind":"long_child_run","expected_long":true}"""
+        )
+        .encodeToByteArray(),
+      progressBytes,
+    )
+  }
+
+  private fun assertObservabilityWireBytes(emissionClock: Clock) {
+    val observabilityOutcomes = RecordingOutcomeStore()
+    GoalRunnerObservabilityEmitter(
+      outcomeStore = observabilityOutcomes,
+      clock = emissionClock,
+      diagnostics = NoopRuntimeDiagnostics,
+      request = GoalRunnerRunRequest(
+        issueKey = "SKILL-56",
+        repoRoot = Path.of("/tmp/skillbill-goal-runner"),
+        invokedAgentId = "claude",
+        observabilitySequenceStart = 0,
+      ),
+    ).record(
+      GoalRunnerObservabilitySubject("wfl-child", "SKILL-56", 1),
+      GoalRunnerObservabilitySignal(
+        workflowPhase = "goal_runner_supervision",
+        livenessClass = GoalRunnerObservabilityLivenessClass.PHASE_CHANGE,
+        activitySummary = "Child workflow is at step goal_runner_supervision.",
+      ),
+    )
+
+    val observabilityEvent = GoalObservabilityArtifacts.patchForRuntimeEvent(
+      input = GoalObservabilityRuntimeEventInput(
+        artifacts = emptyMap<String, Any?>(),
+        request = observabilityOutcomes.observabilityRecords.single(),
+      ),
+      validator = NoopGoalObservabilityEventValidator,
+    ).let { patch -> (patch as Map<*, *>)[GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY] }
+    val observabilityBytes = jsonBytes(observabilityEvent)
+    val expected = (
+      "{\"contract_version\":\"0.2\",\"record_kind\":\"progress\",\"issue_key\":\"SKILL-56\",\"subtask_id\":1," +
+        "\"workflow_id\":\"wfl-child\",\"workflow_phase\":\"goal_runner_supervision\"," +
+        "\"worker_role\":\"goal_runner_supervisor\",\"liveness_class\":\"phase_change\"," +
+        "\"activity_summary\":\"Child workflow is at step goal_runner_supervision.\"," +
+        "\"timestamp\":\"2026-01-01T00:00:00Z\",\"sequence_number\":0}"
+      ).encodeToByteArray()
+    assertContentEquals(expected, observabilityBytes)
+  }
+
+  private fun jsonBytes(value: Any?): ByteArray = JsonCodec.valueToJsonString(value).encodeToByteArray()
 
   @Test
   fun `emitter is a no-op until the child workflow id is known`() {

@@ -3,6 +3,7 @@ package skillbill.engine.featuretask
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
+import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
 import skillbill.engine.featuretask.validation.FeatureTaskRuntimeBuildGateCoordinator
 import skillbill.ports.diagnostics.RuntimeDiagnostics
@@ -79,15 +80,14 @@ internal object FeatureTaskRuntimeCommitPushUpstreamHeadFallback {
           normalizedOutput = accepted.normalizedOutput,
         ),
       )
-      runCatching {
-        diagnostics.warning(
-          "seam=FeatureTaskRuntimeCommitPushUpstreamHeadFallback.reconcile " +
-            "value_used='repository HEAD $headSha' " +
-            "value_expected=a settled durable output for phase '$phaseId' " +
-            "cause=commit_push resumed while '$phaseId' was completed without output; " +
-            "the runtime synthesized a HEAD-backed receipt so finalisation can proceed",
-        )
-      }
+      RuntimeDiagnosticsBestEffortWarning.record(
+        diagnostics,
+        "seam=FeatureTaskRuntimeCommitPushUpstreamHeadFallback.reconcile " +
+          "value_used='repository HEAD $headSha' " +
+          "value_expected=a settled durable output for phase '$phaseId' " +
+          "cause=commit_push resumed while '$phaseId' was completed without output; " +
+          "the runtime synthesized a HEAD-backed receipt so finalisation can proceed",
+      )
     }
   }
 

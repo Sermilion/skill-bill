@@ -3,10 +3,10 @@ import skillbill.application.review.model.ParallelCodeReviewRequest
 import skillbill.application.review.model.ParallelCodeReviewResult
 import skillbill.application.review.model.ParallelReviewLaneStatus
 import skillbill.application.reviewevidence.ReviewCommitRange
-import skillbill.application.reviewevidence.ReviewDiffEvidence
 import skillbill.application.reviewevidence.SharedReviewEvidenceProjection
 import skillbill.application.reviewevidence.SharedReviewEvidenceQuery
 import skillbill.application.reviewevidence.SharedReviewEvidenceResolution
+import skillbill.application.reviewevidence.model.ReviewDiffEvidence
 import skillbill.error.ReviewHunkEvidenceLocatorMissingError
 import skillbill.ports.config.RepoLocalConfigPort
 import skillbill.ports.config.model.ReadRepoLocalConfigRequest

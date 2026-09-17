@@ -1,8 +1,8 @@
 package skillbill.engine.featuretask
 
-import skillbill.engine.featuretask.validation.model.ValidationFindingSetProjection
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeImplementationContinuation
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseLaunchBriefing
+import skillbill.engine.featuretask.validation.model.ValidationFindingSetProjection
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInput
 import skillbill.review.context.model.CodeReviewExecutionMode
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeCorrectiveRepairContext

@@ -14,7 +14,8 @@ internal fun featureSizeFromArtifacts(artifacts: Map<String, Any?>): FeatureTask
   val raw = artifacts[FEATURE_TASK_RUNTIME_RUN_INVARIANTS_ARTIFACT_KEY] as? Map<*, *>
     ?: return FeatureTaskRuntimeFeatureSize.MEDIUM
   val invariantsMap = JsonCodec.anyToStringAnyMap(raw) ?: return FeatureTaskRuntimeFeatureSize.MEDIUM
-  return decodeRunInvariantsFromArtifact(invariantsMap).featureSize
+  return decodeRunInvariantsFromArtifact(invariantsMap)?.featureSize
+    ?: FeatureTaskRuntimeFeatureSize.MEDIUM
 }
 
 fun diagnoseUnsettledCompletedUpstreamPhaseId(

@@ -26,13 +26,12 @@ class FeatureTaskRuntimeParameterBagArchitectureTest {
     assertTrue(production.contains("internal class RuntimeOwnedValidationSettlement("))
     assertTrue(
       Regex(
-        """internal fun DefaultGoalPlanningSweep\.producePlan\(\s*shared:\s*GoalPlanningSharedContext""",
+        """internal fun DefaultGoalPlanningSweep\.producePlan\(\s*args:\s*ProduceMissingPlansArgs""",
       ).containsMatchIn(production),
     )
-    assertTrue(
-      Regex(
-        """class RuntimeOwnedValidationSettlement\([\s\S]*?private val recorder:\s*FeatureTaskRuntimePhaseRecorder[\s\S]*?private val outputValidator:\s*FeatureTaskRuntimePhaseOutputValidator[\s\S]*?private val phaseGates:\s*FeatureTaskRuntimePhaseGates""",
-      ).containsMatchIn(production),
-    )
+    assertTrue(production.contains("private val recorder: FeatureTaskRuntimePhaseRecorder"))
+    assertTrue(production.contains("private val goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder"))
+    assertTrue(production.contains("private val outputValidator: FeatureTaskRuntimePhaseOutputValidator"))
+    assertTrue(production.contains("private val phaseGates: FeatureTaskRuntimePhaseGates"))
   }
 }

@@ -12,9 +12,9 @@ import skillbill.engine.goalrunner.planning.GoalPlanningAttemptRecorder
 import skillbill.engine.goalrunner.planning.GoalPlanningRefreshLiveness
 import skillbill.engine.goalrunner.planning.GoalPlanningRejectionRecorder
 import skillbill.engine.goalrunner.planning.GoalPlanningSweep
-import skillbill.engine.goalrunner.planning.model.GoalPlanningBurstSchedule
 import skillbill.engine.goalrunner.planning.GoalPlanningSweepCheckpointBoundaries
 import skillbill.engine.goalrunner.planning.GoalPlanningSweepLaunchBoundaries
+import skillbill.engine.goalrunner.planning.model.GoalPlanningBurstSchedule
 import skillbill.ports.concurrency.BoundedWorkFanOutPort
 import skillbill.ports.concurrency.SequentialBoundedWorkFanOutPort
 import skillbill.ports.db.DatabaseSessionFactory

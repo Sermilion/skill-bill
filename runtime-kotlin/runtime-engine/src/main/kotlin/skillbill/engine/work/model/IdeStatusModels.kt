@@ -1,4 +1,4 @@
-package skillbill.application.idestatus.model
+package skillbill.engine.work.model
 
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.GOAL_PLANNING_WAVE_CAP

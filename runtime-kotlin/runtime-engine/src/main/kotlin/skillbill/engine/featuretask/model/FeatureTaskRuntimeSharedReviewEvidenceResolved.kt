@@ -1,4 +1,4 @@
-package skillbill.application.reviewevidence.model
+package skillbill.engine.featuretask.model
 
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeSharedEvidenceMeasurement
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeSharedReviewEvidenceReference

@@ -25,7 +25,7 @@ import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.nio.file.Path
 
 @Inject
-public class GoalRunnerSubtaskLaunchPrepare(
+class GoalRunnerSubtaskLaunchPrepare(
   private val launchBoundaries: GoalRunnerSubtaskLaunchBoundaries,
   private val repositoryEnclosingRootPort: RepositoryEnclosingRootPort,
 ) {

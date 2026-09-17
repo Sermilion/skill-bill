@@ -14,7 +14,7 @@ import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeTransitionDeclaration
 
-fun FeatureTaskRuntimeRunner.buildExecutePreparedRunTelemetryContext(
+internal fun FeatureTaskRuntimeRunner.buildExecutePreparedRunTelemetryContext(
   runRequest: FeatureTaskRuntimeRunRequest,
   telemetrySessionId: String,
   reconciliation: FeatureTaskRuntimeCrashReconciliationResult,

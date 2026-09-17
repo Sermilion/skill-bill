@@ -2,13 +2,13 @@ package skillbill.engine.featuretask
 
 import skillbill.application.RecordingLifecycleTelemetryRepository
 import skillbill.application.diagnostics.RejectedOutputDiagnosticService
-import skillbill.application.diagnostics.model.FeatureTaskRuntimeRejectedOutputWrite
 import skillbill.application.diagnostics.model.RejectedOutputDiagnosticRequest
 import skillbill.application.testHarnessClock
 import skillbill.contracts.JsonCodec
 import skillbill.engine.InMemoryRuntimeWorkflowRepository
 import skillbill.engine.RuntimeFakeDatabaseSessionFactory
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeProducerOutputRead
+import skillbill.engine.featuretask.model.FeatureTaskRuntimeRejectedOutputWrite
 import skillbill.engine.featuretask.model.ProducerOutputQueryArgs
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.diagnostics.model.ProducerOutputEvidence

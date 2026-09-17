@@ -1,9 +1,9 @@
 package skillbill.architecture
 
+import kotlin.io.path.readText
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-import kotlin.io.path.readText
 
 class ApplicationPackageAcyclicityArchitectureTest {
   @Test

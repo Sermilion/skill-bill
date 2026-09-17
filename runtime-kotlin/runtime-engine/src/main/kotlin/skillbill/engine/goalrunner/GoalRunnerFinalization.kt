@@ -1,8 +1,10 @@
 package skillbill.engine.goalrunner
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.decomposition.resolvedParentSpecPath
+import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeCheckpointRefPruneRequest
 import skillbill.engine.featuretask.pruneCompletedSubtaskCheckpointRefs
+import skillbill.engine.goalrunner.model.GoalRunnerObservabilityLivenessClass
 import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
 import skillbill.error.InvalidUnaddressedFindingsLedgerSchemaError
 import skillbill.error.UnaddressedFindingsLedgerAbsentError
@@ -24,7 +26,7 @@ import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.nio.file.Path
 
 @Inject
-public class GoalRunnerFinalization(
+class GoalRunnerFinalization(
   boundaries: GoalRunnerFinalizationBoundaries,
   progressReader: GoalRunnerProgressReader,
 ) {
@@ -106,7 +108,8 @@ public class GoalRunnerFinalization(
     val resolved = resolvedParentSpecPath(request.repoRoot, Path.of(specPath))
     runCatching { specScratchStore.deleteFileIfExists(resolved) }
       .onFailure { error ->
-        diagnostics.warning(
+        RuntimeDiagnosticsBestEffortWarning.record(
+          diagnostics,
           "Goal linear-mode subtask spec scratch deletion at '$resolved' failed; the completed " +
             "subtask is unaffected and the scratch can be cleaned up manually.",
           error,
@@ -114,7 +117,7 @@ public class GoalRunnerFinalization(
       }
   }
 
-  fun pruneCompletedCheckpointRefs(
+  internal fun pruneCompletedCheckpointRefs(
     completed: GoalRunnerManifestState,
     subtaskId: Int,
     reconciled: GoalRunnerReconciledOutcome.Complete,
@@ -135,7 +138,7 @@ public class GoalRunnerFinalization(
           GoalRunnerObservabilitySubject(reconciled.workflowId, completed.manifest.issueKey, subtaskId),
           GoalRunnerObservabilitySignal(
             workflowPhase = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_COMMIT_PUSH,
-            livenessClass = "degradation",
+            livenessClass = GoalRunnerObservabilityLivenessClass.DEGRADATION,
             activitySummary = message,
           ),
         )
@@ -144,7 +147,7 @@ public class GoalRunnerFinalization(
   }
 }
 
-fun GoalRunnerFinalization.reconcileBeforeFinalization(
+internal fun GoalRunnerFinalization.reconcileBeforeFinalization(
   state: GoalRunnerManifestState,
   request: GoalRunnerRunRequest,
   ledger: GoalRunnerLedgerRecorder,
@@ -179,7 +182,7 @@ fun GoalRunnerFinalization.reconcileBeforeFinalization(
     }
 }
 
-fun GoalRunnerFinalization.commitAllRemainingWorktree(
+internal fun GoalRunnerFinalization.commitAllRemainingWorktree(
   manifest: DecompositionManifest,
   request: GoalRunnerRunRequest,
 ): String? {
@@ -199,7 +202,7 @@ fun GoalRunnerFinalization.commitAllRemainingWorktree(
   return commitAndPushDirtyWorktree(manifest, request, featureBranch, implementationPaths)
 }
 
-fun GoalRunnerFinalization.commitAndPushDirtyWorktree(
+internal fun GoalRunnerFinalization.commitAndPushDirtyWorktree(
   manifest: DecompositionManifest,
   request: GoalRunnerRunRequest,
   featureBranch: String,
@@ -223,7 +226,7 @@ fun GoalRunnerFinalization.commitAndPushDirtyWorktree(
   return commitError ?: verifyWorktreeCleanAfterCommitAll(request)
 }
 
-fun GoalRunnerFinalization.stageCommitAndPushAll(
+internal fun GoalRunnerFinalization.stageCommitAndPushAll(
   manifest: DecompositionManifest,
   request: GoalRunnerRunRequest,
   featureBranch: String,
@@ -251,7 +254,7 @@ fun GoalRunnerFinalization.stageCommitAndPushAll(
   }
 }
 
-fun GoalRunnerFinalization.verifyWorktreeCleanAfterCommitAll(request: GoalRunnerRunRequest): String? {
+internal fun GoalRunnerFinalization.verifyWorktreeCleanAfterCommitAll(request: GoalRunnerRunRequest): String? {
   val after = gitOperations.worktreeStatus(request.repoRoot)
   if (after !is WorkflowGitOperationResult.Ok) {
     return "Goal finalization could not re-verify worktree cleanliness after commit-all: ${after.error}"
@@ -270,7 +273,7 @@ fun GoalRunnerFinalization.verifyWorktreeCleanAfterCommitAll(request: GoalRunner
   }
 }
 
-fun GoalRunnerFinalization.pushUnpushedFeatureBranchIfNeeded(featureBranch: String, repoRoot: Path): String? {
+internal fun GoalRunnerFinalization.pushUnpushedFeatureBranchIfNeeded(featureBranch: String, repoRoot: Path): String? {
   if (featureBranch.isBlank()) return null
   val unpushed = gitOperations.localBranchHasUnpushedCommits(repoRoot, featureBranch)
   if (unpushed !is WorkflowGitOperationResult.Ok) {
@@ -284,7 +287,7 @@ fun GoalRunnerFinalization.pushUnpushedFeatureBranchIfNeeded(featureBranch: Stri
       ?.let { "Goal finalization found unpushed commits on '$featureBranch' but could not push: ${it.error}" }
 }
 
-fun GoalRunnerFinalization.requireFeatureBranchForFinalize(featureBranch: String, repoRoot: Path): String? {
+internal fun GoalRunnerFinalization.requireFeatureBranchForFinalize(featureBranch: String, repoRoot: Path): String? {
   protectedBranchName(featureBranch)?.let { protected ->
     return "Goal finalization commit-all refuses protected branch '$protected'."
   }
@@ -300,7 +303,7 @@ fun GoalRunnerFinalization.requireFeatureBranchForFinalize(featureBranch: String
   return null
 }
 
-fun GoalRunnerFinalization.deleteGoalSpecScratchOnSuccess(
+internal fun GoalRunnerFinalization.deleteGoalSpecScratchOnSuccess(
   manifest: DecompositionManifest,
   request: GoalRunnerRunRequest,
 ) {
@@ -309,7 +312,8 @@ fun GoalRunnerFinalization.deleteGoalSpecScratchOnSuccess(
   val specDir = parentSpec.parent ?: return
   runCatching { specScratchStore.deleteDirectoryIfExists(specDir) }
     .onFailure { error ->
-      diagnostics.warning(
+      RuntimeDiagnosticsBestEffortWarning.record(
+        diagnostics,
         "Goal linear-mode spec scratch deletion at '$specDir' failed; the completed goal is " +
           "unaffected and the scratch can be cleaned up manually.",
         error,
@@ -317,7 +321,7 @@ fun GoalRunnerFinalization.deleteGoalSpecScratchOnSuccess(
     }
 }
 
-fun GoalRunnerFinalization.resolveFindingsLedger(issueKey: String): UnaddressedFindingsLedger? {
+internal fun GoalRunnerFinalization.resolveFindingsLedger(issueKey: String): UnaddressedFindingsLedger? {
   val service = unaddressedFindingsLedgerService ?: return null
   return try {
     service.ledger(issueKey)

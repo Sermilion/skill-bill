@@ -1,13 +1,13 @@
 package skillbill.engine.work
 
-import skillbill.application.idestatus.model.IdeStatusCurrentModel
-import skillbill.application.idestatus.model.IdeStatusCurrentSubtask
-import skillbill.application.idestatus.model.IdeStatusLifecycleState
-import skillbill.application.idestatus.model.IdeStatusPlanning
-import skillbill.application.idestatus.model.IdeStatusStep
-import skillbill.application.idestatus.model.IdeStatusWorkflowFamily
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeOperatorDecisionPause
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStatus
+import skillbill.engine.work.model.IdeStatusCurrentModel
+import skillbill.engine.work.model.IdeStatusCurrentSubtask
+import skillbill.engine.work.model.IdeStatusLifecycleState
+import skillbill.engine.work.model.IdeStatusPlanning
+import skillbill.engine.work.model.IdeStatusStep
+import skillbill.engine.work.model.IdeStatusWorkflowFamily
 import skillbill.goalrunner.model.GoalPlanningStatusSnapshot
 import skillbill.goalrunner.model.GoalRunnerStatusProjection
 import skillbill.ports.work.model.WorkItemKind

@@ -1,22 +1,22 @@
 package skillbill.application.work
 
 import skillbill.application.TestRepositoryEnclosingRoot
-import skillbill.application.idestatus.model.IdeStatusRequest
-import skillbill.application.idestatus.model.IdeStatusResult
 import skillbill.application.testHarnessClock
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.workflow.IDE_STATUS_CONTRACT_VERSION
 import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeWireArtifactValidator
 import skillbill.engine.featuretask.FeatureTaskRuntimeDecomposeTerminalRecorder
 import skillbill.engine.featuretask.FeatureTaskRuntimeRunInvariantsStore
-import skillbill.engine.featuretask.FeatureTaskRuntimeWorkflowPersistence
 import skillbill.engine.featuretask.FeatureTaskRuntimeStatusService
+import skillbill.engine.featuretask.FeatureTaskRuntimeWorkflowPersistence
 import skillbill.engine.featuretask.featureTaskRuntimePhaseRecorder
 import skillbill.engine.goalrunner.GoalRunnerStatusTestPorts
 import skillbill.engine.goalrunner.goalRepositoryIdentity
 import skillbill.engine.goalrunner.testGoalRunnerStatusService
 import skillbill.engine.work.IdeStatusProjector
 import skillbill.engine.work.IdeStatusService
+import skillbill.engine.work.model.IdeStatusRequest
+import skillbill.engine.work.model.IdeStatusResult
 import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.goalrunner.model.GoalPlanningStatusSnapshot
 import skillbill.goalrunner.model.GoalPlanningStatusState

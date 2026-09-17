@@ -33,19 +33,18 @@ fun outputContract(briefing: FeatureTaskRuntimePhaseLaunchBriefing, agentRunVali
   """.trimIndent()
 }
 
-private fun verdictContractLine(phaseId: String): String =
-  when (phaseId) {
-    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT ->
-      "\n    - \"verdict\": omit for audit unless every criterion is met; never invent review-style tokens " +
-        "(for example remediation_required or changes_requested). Remaining criteria belong only in " +
-        "produced_outputs.value."
-    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW,
-    FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS,
-    ->
-      "\n    - \"verdict\": optional top-level string; this verifying phase sets it to drive the " +
-        "advance-vs-remediation decision — see the verifying-phase signal above"
-    else -> ""
-  }
+private fun verdictContractLine(phaseId: String): String = when (phaseId) {
+  FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT ->
+    "\n    - \"verdict\": omit for audit unless every criterion is met; never invent review-style tokens " +
+      "(for example remediation_required or changes_requested). Remaining criteria belong only in " +
+      "produced_outputs.value."
+  FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW,
+  FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS,
+  ->
+    "\n    - \"verdict\": optional top-level string; this verifying phase sets it to drive the " +
+      "advance-vs-remediation decision — see the verifying-phase signal above"
+  else -> ""
+}
 
 private fun producedOutputsAddendum(
   briefing: FeatureTaskRuntimePhaseLaunchBriefing,

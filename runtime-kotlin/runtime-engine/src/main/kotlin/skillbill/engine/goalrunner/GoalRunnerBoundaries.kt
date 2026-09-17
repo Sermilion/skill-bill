@@ -3,7 +3,6 @@ package skillbill.engine.goalrunner
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.telemetry.GoalLifecycleTelemetryEmitter
 import skillbill.engine.featuretask.FeatureTaskRuntimePhaseRecorder
-import skillbill.engine.goalrunner.GoalRunnerExecutionCoordinator
 import skillbill.engine.goalrunner.findings.UnaddressedFindingsLedgerService
 import skillbill.engine.goalrunner.planning.GoalPlanningSweep
 import skillbill.ports.diagnostics.RuntimeDiagnostics

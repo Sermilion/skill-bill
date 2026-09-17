@@ -3,8 +3,8 @@ package skillbill.application.review
 import skillbill.application.review.model.ParallelCodeReviewRequest
 import skillbill.application.review.model.ReviewDelegatedStageLaunch
 import skillbill.application.review.model.ReviewSpecialistLaunchRequest
-import skillbill.application.reviewevidence.ReviewDiffEvidence
 import skillbill.application.reviewevidence.SharedReviewEvidenceCommits
+import skillbill.application.reviewevidence.model.ReviewDiffEvidence
 import skillbill.ports.review.GovernedReviewEvidenceEndpointHandle
 import skillbill.ports.review.NativeReviewOperationProtocol
 import skillbill.ports.review.ReviewEvidenceBroker

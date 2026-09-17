@@ -3,13 +3,13 @@ package skillbill.engine.goalrunner
 import skillbill.application.FakeDatabaseSessionFactory
 import skillbill.application.InMemoryWorkflowStates
 import skillbill.application.TestDecompositionManifestStore
-import skillbill.application.decomposition.encodeDecompositionManifestYaml
 import skillbill.application.decomposition.loadDecompositionManifest
 import skillbill.application.testDecompositionManifestValidator
 import skillbill.application.testWorkflowSnapshotValidator
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_WORKER_OWNERSHIP_CONTRACT_VERSION
 import skillbill.engine.InMemoryGoalManifestStore
 import skillbill.engine.RecordingOutcomeStore
+import skillbill.engine.decomposition.encodeDecompositionManifestYaml
 import skillbill.engine.goalrunner.model.GoalRunnerPurgeRequest
 import skillbill.engine.manifest
 import skillbill.goalrunner.model.GoalRunnerExecutionLease

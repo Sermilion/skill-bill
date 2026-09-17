@@ -2,11 +2,11 @@ package skillbill.application.featurespec
 
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.application.TestDecompositionManifestStore
-import skillbill.application.decomposition.encodeDecompositionManifestYaml
 import skillbill.application.decomposition.loadDecompositionManifest
 import skillbill.application.testDecompositionManifestValidator
 import skillbill.application.testDecompositionManifestWriter
 import skillbill.contracts.JsonCodec
+import skillbill.engine.featuretask.FeatureSpecPreparationWriter
 import skillbill.error.InvalidDecompositionManifestSchemaError
 import skillbill.error.InvalidFeatureSpecPreparationRequestError
 import skillbill.featurespec.model.FeatureSpecPreparationDecision
@@ -553,3 +553,15 @@ private class PreparationCountingManifestFileStore :
     TestDecompositionManifestStore.writeTextAtomically(target, content)
   }
 }
+
+private fun encodeDecompositionManifestYaml(
+  manifest: DecompositionManifest,
+  validator: DecompositionManifestValidator,
+  fileStore: DecompositionManifestStore,
+  sourceLabel: String = "<in-memory>",
+): String = skillbill.application.decomposition.encodeValidatedDecompositionManifestYaml(
+  manifest,
+  validator,
+  fileStore,
+  sourceLabel,
+).yamlText

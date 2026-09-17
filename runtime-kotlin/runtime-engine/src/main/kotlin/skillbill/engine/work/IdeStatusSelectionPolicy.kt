@@ -1,9 +1,9 @@
 package skillbill.engine.work
 
-import skillbill.application.idestatus.model.IdeStatusCandidate
-import skillbill.application.idestatus.model.IdeStatusFreshness
-import skillbill.application.idestatus.model.IdeStatusLifecycleState
-import skillbill.application.idestatus.model.IdeStatusSelectionTier
+import skillbill.engine.work.model.IdeStatusCandidate
+import skillbill.engine.work.model.IdeStatusFreshness
+import skillbill.engine.work.model.IdeStatusLifecycleState
+import skillbill.engine.work.model.IdeStatusSelectionTier
 import java.time.Duration
 import java.time.Instant
 
