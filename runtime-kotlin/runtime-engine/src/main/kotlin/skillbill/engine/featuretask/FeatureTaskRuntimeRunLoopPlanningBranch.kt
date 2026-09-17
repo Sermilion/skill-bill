@@ -6,6 +6,7 @@ import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
 import skillbill.workflow.decomposition.model.SpecSource
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_BLOCKER_SEVERITY
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
+import skillbill.workflow.decomposition.model.SpecSource
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeBackwardEdge
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition

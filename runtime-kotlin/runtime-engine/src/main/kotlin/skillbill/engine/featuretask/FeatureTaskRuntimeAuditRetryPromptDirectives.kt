@@ -13,9 +13,7 @@ fun auditRetryFocusDirective(focusHint: String?): String {
   """.trimIndent()
 }
 
-internal fun FeatureTaskRuntimePhaseLaunchBriefing.forAuditRetry(
-  focusHint: String,
-): FeatureTaskRuntimePhaseLaunchBriefing {
+internal fun FeatureTaskRuntimePhaseLaunchBriefing.forAuditRetry(focusHint: String): FeatureTaskRuntimePhaseLaunchBriefing {
   require(focusHint.isNotBlank()) { "Audit retry focus hint must be non-blank." }
   return copy(
     acceptanceCriteria = focusHint.lines().filter(String::isNotBlank),

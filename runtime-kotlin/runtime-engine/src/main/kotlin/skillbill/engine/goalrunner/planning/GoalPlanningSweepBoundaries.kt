@@ -12,6 +12,7 @@ import skillbill.ports.time.RuntimeTimingPort
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
+import skillbill.engine.goalrunner.planning.model.GoalPlanningBurstSchedule
 
 @Inject
 data class GoalPlanningSweepCheckpointBoundaries(

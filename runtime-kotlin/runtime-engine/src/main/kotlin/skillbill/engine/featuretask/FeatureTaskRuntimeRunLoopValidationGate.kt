@@ -63,7 +63,10 @@ internal class RuntimeOwnedValidationSettlement(
     return finish(run, iteration, outputText, acceptedOutput, observability)
   }
 
-  private fun validate(run: PhaseRun, outputText: String): Result<AcceptedFeatureTaskRuntimePhaseOutput> = runCatching {
+  private fun validate(
+    run: PhaseRun,
+    outputText: String,
+  ): Result<AcceptedFeatureTaskRuntimePhaseOutput> = runCatching {
     val accepted = outputValidator.validatePhaseOutput(
       outputText,
       sourceLabel = run.phaseId,
@@ -105,7 +108,27 @@ internal class RuntimeOwnedValidationSettlement(
     observability: FeatureTaskRuntimeRunObservability,
   ): PhaseOutcome {
     val normalizedOutput = acceptedOutput.normalizedOutput
-    if (!persistCompleted(run, iteration, outputText, acceptedOutput)) {
+    val persisted = recorder.recordCompletedPhase(
+      FeatureTaskRuntimeRunLoopOutputPersistence.phaseStateRequest(
+        request,
+        state,
+        goalContinuationRecorder,
+        PhaseStateRequestArgs(
+          write = PhaseStateWriteArgs(
+            run = run,
+            iteration = iteration,
+            status = STATUS_COMPLETED,
+            finished = true,
+            outputArtifact = outputText,
+          ),
+          extras = PhaseStateRequestAttachments(
+            normalizedOutput = normalizedOutput,
+            repairEvidence = acceptedOutput.repairEvidence,
+          ),
+        ),
+      ),
+    )
+    if (!persisted) {
       return FeatureTaskRuntimeRunLoopPhaseAttempts.blockInPhase(
         request,
         state,
@@ -131,32 +154,6 @@ internal class RuntimeOwnedValidationSettlement(
       ),
     )
   }
-
-  private fun persistCompleted(
-    run: PhaseRun,
-    iteration: Int,
-    outputText: String,
-    acceptedOutput: AcceptedFeatureTaskRuntimePhaseOutput,
-  ): Boolean = recorder.recordCompletedPhase(
-    FeatureTaskRuntimeRunLoopOutputPersistence.phaseStateRequest(
-      request,
-      state,
-      goalContinuationRecorder,
-      PhaseStateRequestArgs(
-        write = PhaseStateWriteArgs(
-          run = run,
-          iteration = iteration,
-          status = STATUS_COMPLETED,
-          finished = true,
-          outputArtifact = outputText,
-        ),
-        extras = PhaseStateRequestAttachments(
-          normalizedOutput = acceptedOutput.normalizedOutput,
-          repairEvidence = acceptedOutput.repairEvidence,
-        ),
-      ),
-    ),
-  )
 }
 
 internal class ValidationGateCycleSettlement(
@@ -170,47 +167,14 @@ internal class ValidationGateCycleSettlement(
 ) {
   internal fun settle(cycle: ValidationGateCycleResult): PhaseOutcome {
     return when (cycle) {
-      ValidationGateCycleResult.AbsentFallback -> settleAbsentFallback()
-      is ValidationGateCycleResult.Terminal -> settleTerminal(cycle.outcome)
-    }
-  }
-
-  private fun settleAbsentFallback(): PhaseOutcome {
-    startPhase()
-    return FeatureTaskRuntimeRunLoopPhaseAttempts.blockInPhase(
-      request,
-      context.attempt.state,
-      recorder,
-      context.attempt.observability,
-      PhaseBlockRequest(
-        run = context.attempt.run,
-        attemptCount = context.attempt.iteration,
-        reason = FeatureTaskRuntimeValidationGateCoordinator.ABSENT_VALIDATION_GATE_REASON,
-        observability = context.attempt.observability,
-        failureDisposition = FeatureTaskRuntimeFailureDisposition.NEEDS_USER_ACTION,
-      ),
-    )
-  }
-
-  private fun settleTerminal(outcome: ValidationGateCycleTerminalOutcome): PhaseOutcome {
-    startPhase()
-    return when (outcome) {
-      is ValidationGateCycleTerminalOutcome.Completed ->
-        RuntimeOwnedValidationSettlement(
-          request = request,
-          state = context.attempt.state,
-          recorder = recorder,
-          goalContinuationRecorder = goalContinuationRecorder,
-          outputValidator = outputValidator,
-          phaseGates = phaseGates,
-          session = session,
-        ).settle(
-          run = context.attempt.run,
-          iteration = context.attempt.iteration,
-          outputText = outcome.output.payload,
-          observability = context.attempt.observability,
+      ValidationGateCycleResult.AbsentFallback -> {
+        context.attempt.observability.started(
+          context.attempt.run.phaseId,
+          context.attempt.run.resolvedAgent.resolvedAgentId,
+          context.attempt.iteration,
+          context.attempt.run.modelDirective,
+          FeatureTaskRuntimePhaseStartReentry.FIRST_VISIT,
         )
-      is ValidationGateCycleTerminalOutcome.Blocked ->
         FeatureTaskRuntimeRunLoopPhaseAttempts.blockInPhase(
           request,
           context.attempt.state,
@@ -219,23 +183,54 @@ internal class ValidationGateCycleSettlement(
           PhaseBlockRequest(
             run = context.attempt.run,
             attemptCount = context.attempt.iteration,
-            reason = outcome.reason,
+            reason = FeatureTaskRuntimeValidationGateCoordinator.ABSENT_VALIDATION_GATE_REASON,
             observability = context.attempt.observability,
-            failureDisposition = outcome.failureDisposition
-              ?: FeatureTaskRuntimeFailureDisposition.NEEDS_USER_ACTION,
+            failureDisposition = FeatureTaskRuntimeFailureDisposition.NEEDS_USER_ACTION,
           ),
         )
+      }
+      is ValidationGateCycleResult.Terminal -> {
+        context.attempt.observability.started(
+          context.attempt.run.phaseId,
+          context.attempt.run.resolvedAgent.resolvedAgentId,
+          context.attempt.iteration,
+          context.attempt.run.modelDirective,
+          FeatureTaskRuntimePhaseStartReentry.FIRST_VISIT,
+        )
+        when (val terminal = cycle.outcome) {
+          is ValidationGateCycleTerminalOutcome.Completed ->
+            RuntimeOwnedValidationSettlement(
+              request = request,
+              state = context.attempt.state,
+              recorder = recorder,
+              goalContinuationRecorder = goalContinuationRecorder,
+              outputValidator = outputValidator,
+              phaseGates = phaseGates,
+              session = session,
+            ).settle(
+              run = context.attempt.run,
+              iteration = context.attempt.iteration,
+              outputText = terminal.output.payload,
+              observability = context.attempt.observability,
+            )
+          is ValidationGateCycleTerminalOutcome.Blocked ->
+            FeatureTaskRuntimeRunLoopPhaseAttempts.blockInPhase(
+              request,
+              context.attempt.state,
+              recorder,
+              context.attempt.observability,
+              PhaseBlockRequest(
+                run = context.attempt.run,
+                attemptCount = context.attempt.iteration,
+                reason = terminal.reason,
+                observability = context.attempt.observability,
+                failureDisposition = terminal.failureDisposition
+                  ?: FeatureTaskRuntimeFailureDisposition.NEEDS_USER_ACTION,
+              ),
+            )
+        }
+      }
     }
-  }
-
-  private fun startPhase() {
-    context.attempt.observability.started(
-      context.attempt.run.phaseId,
-      context.attempt.run.resolvedAgent.resolvedAgentId,
-      context.attempt.iteration,
-      context.attempt.run.modelDirective,
-      FeatureTaskRuntimePhaseStartReentry.FIRST_VISIT,
-    )
   }
 }
 
@@ -268,7 +263,27 @@ internal class RuntimeOwnedBuildSettlement(
       )
     }
     val normalizedOutput = acceptedOutput.normalizedOutput
-    if (!persistCompleted(run, iteration, outputText, acceptedOutput)) {
+    val persisted = recorder.recordCompletedPhase(
+      FeatureTaskRuntimeRunLoopOutputPersistence.phaseStateRequest(
+        request,
+        state,
+        goalContinuationRecorder,
+        PhaseStateRequestArgs(
+          write = PhaseStateWriteArgs(
+            run = run,
+            iteration = iteration,
+            status = STATUS_COMPLETED,
+            finished = true,
+            outputArtifact = outputText,
+          ),
+          extras = PhaseStateRequestAttachments(
+            normalizedOutput = normalizedOutput,
+            repairEvidence = acceptedOutput.repairEvidence,
+          ),
+        ),
+      ),
+    )
+    if (!persisted) {
       return FeatureTaskRuntimeRunLoopPhaseAttempts.blockInPhase(
         request,
         state,
@@ -295,33 +310,10 @@ internal class RuntimeOwnedBuildSettlement(
     )
   }
 
-  private fun persistCompleted(
+  private fun accept(
     run: PhaseRun,
-    iteration: Int,
     outputText: String,
-    acceptedOutput: AcceptedFeatureTaskRuntimePhaseOutput,
-  ): Boolean = recorder.recordCompletedPhase(
-    FeatureTaskRuntimeRunLoopOutputPersistence.phaseStateRequest(
-      request,
-      state,
-      goalContinuationRecorder,
-      PhaseStateRequestArgs(
-        write = PhaseStateWriteArgs(
-          run = run,
-          iteration = iteration,
-          status = STATUS_COMPLETED,
-          finished = true,
-          outputArtifact = outputText,
-        ),
-        extras = PhaseStateRequestAttachments(
-          normalizedOutput = acceptedOutput.normalizedOutput,
-          repairEvidence = acceptedOutput.repairEvidence,
-        ),
-      ),
-    ),
-  )
-
-  private fun accept(run: PhaseRun, outputText: String): Result<AcceptedFeatureTaskRuntimePhaseOutput> = runCatching {
+  ): Result<AcceptedFeatureTaskRuntimePhaseOutput> = runCatching {
     val accepted = outputValidator.validatePhaseOutput(outputText, sourceLabel = run.phaseId)
       .requireAcceptedOutput(run.phaseId)
     val buildReceipt = JsonCodec.anyToStringAnyMap(
@@ -496,8 +488,7 @@ object FeatureTaskRuntimeRunLoopValidationGate {
     val findings = args.findings
     val triageRun = run.copy(validationGateFindings = findings, validationGateTriage = true)
     val attempt = with(FeatureTaskRuntimeRunLoopRecordRejection) {
-      FeatureTaskRuntimeRunLoopRecordRejection.attemptOnce(
-        this@launchValidationGateTriage,
+      FeatureTaskRuntimeRunLoopRecordRejection.attemptOnce(this@launchValidationGateTriage,
         recordRejectionAttemptArgs(
           PhaseAttemptContext(triageRun, state, iteration, observability),
         ),
@@ -635,8 +626,7 @@ object FeatureTaskRuntimeRunLoopValidationGate {
       validationGateRepair = true,
     )
     val attempt = with(FeatureTaskRuntimeRunLoopRecordRejection) {
-      FeatureTaskRuntimeRunLoopRecordRejection.attemptOnce(
-        this@launchValidationGateRepair,
+      FeatureTaskRuntimeRunLoopRecordRejection.attemptOnce(this@launchValidationGateRepair,
         recordRejectionAttemptArgs(
           PhaseAttemptContext(repairRun, state, iteration, observability),
         ),
@@ -869,8 +859,7 @@ object FeatureTaskRuntimeRunLoopValidationGate {
     val loop = args.loop
     val agentId = args.agentId
     val attempt = with(FeatureTaskRuntimeRunLoopRecordRejection) {
-      FeatureTaskRuntimeRunLoopRecordRejection.attemptOnce(
-        this@resolveFixLoopOutcome,
+      FeatureTaskRuntimeRunLoopRecordRejection.attemptOnce(this@resolveFixLoopOutcome,
         recordRejectionAttemptArgs(
           PhaseAttemptContext(run, state, loop.iteration, observability, loop.outputGateFailures),
           priorCorrection = loop.priorCorrection,
@@ -982,4 +971,5 @@ object FeatureTaskRuntimeRunLoopValidationGate {
 
   internal fun resolveValidationGateCheckpoint(phaseGates: FeatureTaskRuntimePhaseGates, run: PhaseRun): String? =
     phaseGates.gitOperations.repositoryFingerprint(run.request.repoRoot).value.takeIf(String::isNotBlank)
+
 }

@@ -47,23 +47,16 @@ fun Map<*, *>.decodeDeclaredGoalProgressEvent(sourceLabel: String): GoalProgress
     }
   }
   val outcome = optionalProgressOutcome(reader, sourceLabel)
-  return try {
-    GoalProgressEvent(
-      eventKind = eventKind,
-      workflowId = workflowId,
-      workflowPhase = workflowPhase,
-      processAlive = reader.optionalBoolean("process_alive") ?: false,
-      sequenceNumber = sequenceNumber,
-      timestamp = timestamp,
-      stepId = reader.optionalString(SharedPayloadKeys.STEP_ID),
-      operationName = reader.optionalString("operation_name"),
-      operationKind = reader.optionalString("operation_kind"),
-      expectedLong = reader.optionalBoolean("expected_long") ?: false,
-      outcome = outcome,
-    )
-  } catch (error: IllegalArgumentException) {
-    throw InvalidGoalProgressEventSchemaError(sourceLabel, "<root>", error.message ?: "invalid event.", error)
-  }
+  return buildDeclaredGoalProgressEvent(
+    sourceLabel = sourceLabel,
+    eventKind = eventKind,
+    workflowId = workflowId,
+    workflowPhase = workflowPhase,
+    sequenceNumber = sequenceNumber,
+    timestamp = timestamp,
+    outcome = outcome,
+    reader = reader,
+  )
 }
 
 private fun invalidDeclaredGoalProgressEvent(sourceLabel: String, field: String, detail: String): Nothing =
@@ -79,4 +72,31 @@ private fun optionalProgressOutcome(reader: DurableArtifactMapReader, sourceLabe
   val outcomeWire = reader.optionalString("outcome") ?: return GoalProgressOutcome.NONE
   return GoalProgressOutcome.entries.firstOrNull { it.wireValue == outcomeWire }
     ?: throw InvalidGoalProgressEventSchemaError(sourceLabel, "outcome", "unrecognized value '$outcomeWire'.")
+}
+
+private fun Map<*, *>.buildDeclaredGoalProgressEvent(
+  sourceLabel: String,
+  eventKind: GoalProgressEventKind,
+  workflowId: String,
+  workflowPhase: String,
+  sequenceNumber: Int,
+  timestamp: String,
+  outcome: GoalProgressOutcome,
+  reader: DurableArtifactMapReader,
+): GoalProgressEvent = try {
+  GoalProgressEvent(
+    eventKind = eventKind,
+    workflowId = workflowId,
+    workflowPhase = workflowPhase,
+    processAlive = reader.optionalBoolean("process_alive") ?: false,
+    sequenceNumber = sequenceNumber,
+    timestamp = timestamp,
+    stepId = reader.optionalString(SharedPayloadKeys.STEP_ID),
+    operationName = reader.optionalString("operation_name"),
+    operationKind = reader.optionalString("operation_kind"),
+    expectedLong = reader.optionalBoolean("expected_long") ?: false,
+    outcome = outcome,
+  )
+} catch (error: IllegalArgumentException) {
+  throw InvalidGoalProgressEventSchemaError(sourceLabel, "<root>", error.message ?: "invalid event.", error)
 }

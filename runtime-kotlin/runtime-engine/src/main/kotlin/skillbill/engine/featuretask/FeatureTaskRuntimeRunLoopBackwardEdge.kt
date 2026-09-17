@@ -1,18 +1,19 @@
 package skillbill.engine.featuretask
 
-import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePlanningStopDecision
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
+import skillbill.workflow.decomposition.model.SpecSource
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeBackwardEdge
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeCapExhaustionBehavior
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeReviewFinding
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeTransitionDeclaration
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
 
 object FeatureTaskRuntimeRunLoopBackwardEdge {
@@ -45,17 +46,21 @@ object FeatureTaskRuntimeRunLoopBackwardEdge {
     )
     session.transitionReentryPair(pendingReentry, pendingReentry)
     return edge.destinationPhaseId
-  }
+
+    }
 
   internal fun recordBackwardEdge(
-    context: FeatureTaskRuntimeRunLoopContext,
+    request: FeatureTaskRuntimeRunRequest,
+    state: FeatureTaskRuntimeRunState,
+    recorder: FeatureTaskRuntimePhaseRecorder,
+    transitions: FeatureTaskRuntimeTransitionDeclaration,
     session: FeatureTaskRuntimeRunLoopSession,
     edge: FeatureTaskRuntimeBackwardEdge,
+    destinationPhaseId: String,
+    loopId: String,
     edgeIteration: Int,
     verdict: FeatureTaskRuntimeVerdict,
-  ) = with(context) {
-    val destinationPhaseId = edge.destinationPhaseId
-    val loopId = edge.loopId
+  ) {
     val reopenedSpan = FeatureTaskRuntimeRunLoopTransitions.spanBetween(
       transitions,
       destinationPhaseId,
@@ -94,10 +99,11 @@ object FeatureTaskRuntimeRunLoopBackwardEdge {
   ) {
     val threshold = edge.warnAfterIterations ?: return
     if (edgeIteration != threshold + 1) return
-    RuntimeDiagnosticsBestEffortWarning.record(
-      diagnostics,
-      thresholdCrossingWarning(request, edge.loopId, threshold, edgeIteration),
-    )
+    runCatching {
+      diagnostics.warning(
+        thresholdCrossingWarning(request, edge.loopId, threshold, edgeIteration),
+      )
+    }
   }
 
   internal fun thresholdCrossingWarning(
@@ -110,22 +116,34 @@ object FeatureTaskRuntimeRunLoopBackwardEdge {
     "${request.goalContinuation?.subtaskId ?: request.issueKey}, spec " +
     "${request.runInvariants.specReference}."
 
-  internal fun capExhaustedOnResume(context: FeatureTaskRuntimeRunLoopContext, phaseId: String): String? =
-    with(context) {
-      if (FeatureTaskRuntimeRunLoopPhaseAttempts.operatorReopenedPhase(session, phaseId)) return null
-      val record = state.recordFor(phaseId) ?: return null
-      return FeatureTaskRuntimeRunLoopBackwardEdge.capExhaustionForRecord(
-        context,
-        phaseId,
-        record,
-      )
-    }
+  internal fun capExhaustedOnResume(
+    session: FeatureTaskRuntimeRunLoopSession,
+    state: FeatureTaskRuntimeRunState,
+    transitions: FeatureTaskRuntimeTransitionDeclaration,
+    request: FeatureTaskRuntimeRunRequest,
+    recorder: FeatureTaskRuntimePhaseRecorder,
+    phaseId: String,
+  ): String? {
+    if (FeatureTaskRuntimeRunLoopPhaseAttempts.operatorReopenedPhase(session, phaseId)) return null
+    val record = state.recordFor(phaseId) ?: return null
+    return FeatureTaskRuntimeRunLoopBackwardEdge.capExhaustionForRecord(
+      state,
+      transitions,
+      request,
+      recorder,
+      phaseId,
+      record,
+    )
+  }
 
   internal fun capExhaustionForRecord(
-    context: FeatureTaskRuntimeRunLoopContext,
+    state: FeatureTaskRuntimeRunState,
+    transitions: FeatureTaskRuntimeTransitionDeclaration,
+    request: FeatureTaskRuntimeRunRequest,
+    recorder: FeatureTaskRuntimePhaseRecorder,
     phaseId: String,
     record: FeatureTaskRuntimePhaseRecord,
-  ): String? = with(context) {
+  ): String? {
     val loopId = record.loopId
     val iteration = record.edgeIteration
     if (loopId == null || iteration == null || state.isLoopLiveClaimed(loopId)) {
@@ -158,13 +176,25 @@ object FeatureTaskRuntimeRunLoopBackwardEdge {
           ),
         )
       }
+
   }
 
   internal fun blocksWhenCapExhausted(edge: FeatureTaskRuntimeBackwardEdge, iteration: Int): Boolean =
     edge.capExhaustionBehavior == FeatureTaskRuntimeCapExhaustionBehavior.BLOCK &&
       edge.perEdgeCap?.let { iteration >= it } == true
 
-  internal fun runPhaseFor(context: FeatureTaskRuntimeRunLoopContext, phaseId: String): String? = with(context) {
+  internal fun runPhaseFor(
+    context: FeatureTaskRuntimeRunLoopContext,
+    request: FeatureTaskRuntimeRunRequest,
+    state: FeatureTaskRuntimeRunState,
+    recorder: FeatureTaskRuntimePhaseRecorder,
+    observability: FeatureTaskRuntimeRunObservability,
+    transitions: FeatureTaskRuntimeTransitionDeclaration,
+    phaseGates: FeatureTaskRuntimePhaseGates,
+    specSource: SpecSource,
+    session: FeatureTaskRuntimeRunLoopSession,
+    phaseId: String,
+  ): String? {
     val briefingReentry = session.pendingReentry?.takeIf { it.phaseId == phaseId }
     if (briefingReentry != null) session.transitionPendingReentry(null)
     val reentry = briefingReentry ?: session.activeReentry?.takeIf { active ->
@@ -200,24 +230,41 @@ object FeatureTaskRuntimeRunLoopBackwardEdge {
       state.recordCompleted(completedOutput)
       session.consumeOperatorBlockRetryCompletion(phaseId)
       applyPlanningStop(
-        context = context,
+        request = request,
+        state = state,
+        recorder = recorder,
+        observability = observability,
+        session = session,
+        phaseGates = phaseGates,
+        specSource = specSource,
         phaseId = phaseId,
         planOutput = completedOutput,
       )
     }
-  }
+
+    }
 
   internal fun applyPlanningStop(
-    context: FeatureTaskRuntimeRunLoopContext,
+    request: FeatureTaskRuntimeRunRequest,
+    state: FeatureTaskRuntimeRunState,
+    recorder: FeatureTaskRuntimePhaseRecorder,
+    observability: FeatureTaskRuntimeRunObservability,
+    session: FeatureTaskRuntimeRunLoopSession,
+    phaseGates: FeatureTaskRuntimePhaseGates,
+    specSource: SpecSource,
     phaseId: String,
     planOutput: FeatureTaskRuntimePhaseOutput,
-  ): String? = with(context) {
+  ): String? {
     if (phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN) {
       return null
     }
     return when (
       val decision = resolvePlanningStop(
-        context,
+        phaseGates,
+        request,
+        state,
+        session,
+        specSource,
         planOutput,
       )
     ) {
@@ -234,14 +281,18 @@ object FeatureTaskRuntimeRunLoopBackwardEdge {
   }
 
   internal fun resolvePlanningStop(
-    context: FeatureTaskRuntimeRunLoopContext,
+    phaseGates: FeatureTaskRuntimePhaseGates,
+    request: FeatureTaskRuntimeRunRequest,
+    state: FeatureTaskRuntimeRunState,
+    session: FeatureTaskRuntimeRunLoopSession,
+    specSource: SpecSource,
     planOutput: FeatureTaskRuntimePhaseOutput,
-  ): FeatureTaskRuntimePlanningStopDecision = context.phaseGates.planningStopper.resolve(
-    request = context.request,
+  ): FeatureTaskRuntimePlanningStopDecision = phaseGates.planningStopper.resolve(
+    request = request,
     completedOutput = planOutput,
-    completedPhaseIds = context.state.completedPhaseIds(),
-    resolvedBranch = context.session.resolvedBranch,
-    specSource = context.specSource,
+    completedPhaseIds = state.completedPhaseIds(),
+    resolvedBranch = session.resolvedBranch,
+    specSource = specSource,
   )
 
   internal fun persistPlanningStopBlock(
@@ -271,27 +322,26 @@ object FeatureTaskRuntimeRunLoopBackwardEdge {
     observability.blocked(phaseId, resolvedAgentId, 1, reason)
   }
 
-  internal fun establishBranchIfNeeded(context: FeatureTaskRuntimeRunLoopContext, phaseId: String): String? =
-    with(context) {
-      if (!isFileMutating(phaseId)) {
-        return null
-      }
-      val setup = phaseGates.branchSetupRunner.ensureFeatureBranch(
-        request,
-        observability,
-      )
-      return setup.blockedReason?.also { reason ->
-        FeatureTaskRuntimeRunLoopPlanningBranch.persistBranchSetupBlock(
-          request,
-          recorder,
-          observability,
-          phaseId,
-          reason,
-        )
-      } ?: run {
-        session.transitionResolvedBranch(requireNotNull(setup.establishedBranch))
-        FeatureTaskRuntimeRunLoopPlanningBranch.clearRecoveredBranchSetupBlock(state, phaseId)
-        null
-      }
+  internal fun establishBranchIfNeeded(
+    phaseGates: FeatureTaskRuntimePhaseGates,
+    request: FeatureTaskRuntimeRunRequest,
+    observability: FeatureTaskRuntimeRunObservability,
+    recorder: FeatureTaskRuntimePhaseRecorder,
+    state: FeatureTaskRuntimeRunState,
+    session: FeatureTaskRuntimeRunLoopSession,
+    phaseId: String,
+  ): String? {
+    if (!isFileMutating(phaseId)) {
+      return null
     }
+    val setup = phaseGates.branchSetupRunner.ensureFeatureBranch(request, observability)
+    return setup.blockedReason?.also { reason ->
+      FeatureTaskRuntimeRunLoopPlanningBranch.persistBranchSetupBlock(request, recorder, observability, phaseId, reason)
+    } ?: run {
+      session.transitionResolvedBranch(requireNotNull(setup.establishedBranch))
+      FeatureTaskRuntimeRunLoopPlanningBranch.clearRecoveredBranchSetupBlock(state, phaseId)
+      null
+    }
+
+  }
 }
