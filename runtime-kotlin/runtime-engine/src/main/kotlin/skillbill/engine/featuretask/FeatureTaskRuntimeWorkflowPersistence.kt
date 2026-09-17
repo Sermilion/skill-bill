@@ -4,38 +4,38 @@ import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.contracts.issuekey.normalizeIssueKey
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStepWireUpdate
+import skillbill.engine.goalrunner.GOAL_CHILD_REPAIR_EVIDENCE_ARTIFACT_KEY
 import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.error.WorkflowIssueKeyConflictError
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
-import skillbill.engine.goalrunner.GOAL_CHILD_REPAIR_EVIDENCE_ARTIFACT_KEY
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.save
-import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
 import skillbill.ports.workflow.saveRecord
 import skillbill.ports.workflow.toRecord
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.WorkflowSnapshotValidator
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
+import skillbill.workflow.goal.model.GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY
+import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
+import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_OUTCOME_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_STATUS_BLOCKED
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_STATUS_PAUSED
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_STATUS_PENDING
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeImplementationAttemptStatus
-import skillbill.workflow.engine.model.DurableWorkflowArtifacts
-import skillbill.workflow.goal.model.GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY
-import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
-import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_OUTCOME_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_RUN_INVARIANTS_ARTIFACT_KEY
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeImplementationAttemptStatus
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRunInvariants
 import java.security.MessageDigest
@@ -163,8 +163,7 @@ internal object FeatureTaskRuntimeWorkflowArtifactPatches {
   fun goalContinuationArtifact(entry: Any): Map<String, Any?> =
     mapOf(FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY to entry)
 
-  fun goalSubtaskReviewState(entry: Any): Map<String, Any?> =
-    mapOf(GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to entry)
+  fun goalSubtaskReviewState(entry: Any): Map<String, Any?> = mapOf(GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY to entry)
 
   fun goalReviewBaseRecoveries(entries: List<Any?>): Map<String, Any?> =
     mapOf(GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY to entries)

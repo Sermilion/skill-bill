@@ -5,7 +5,10 @@ import skillbill.error.SkillBillRuntimeException
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.persistence.UnitOfWork
-class RuntimeOwnedFactUnavailable(message: String) : SkillBillRuntimeException(message)
+class RuntimeOwnedFactUnavailable(
+  message: String,
+  cause: Throwable? = null,
+) : SkillBillRuntimeException(message, cause)
 
 class RuntimeOwnedPersistenceBoundary(
   private val database: DatabaseSessionFactory,
@@ -54,7 +57,8 @@ class RuntimeOwnedPersistenceBoundary(
     recordFailure(seam, expected, used, error)
     throw RuntimeOwnedFactUnavailable(
       "Runtime-owned persistence fact '$expected' could not be established at $seam: $cause",
-    ).apply { initCause(error) }
+      error,
+    )
   }
 
   private fun recordFailure(seam: String, expected: String, used: String, error: Exception) {

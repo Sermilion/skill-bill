@@ -2,9 +2,9 @@ package skillbill.engine.featuretask
 
 import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.decodeImplementationAttemptFromArtifact
-import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeImplementationAttempt
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeImplementationAttemptStatus
+import skillbill.workflow.taskruntime.toWorkflowArtifactMap
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -39,7 +39,9 @@ class FeatureTaskRuntimeImplementationContinuationTest {
     val inProcessRetry = featureTaskRuntimeImplementationContinuationFrom("implement", history, obligations())
     val freshProcessResume = featureTaskRuntimeImplementationContinuationFrom(
       "implement",
-      history.map { decodeImplementationAttemptFromArtifact(it.asWorkflowArtifactEntry().toWorkflowArtifactMap()) },
+      history.map {
+        requireNotNull(decodeImplementationAttemptFromArtifact(it.asWorkflowArtifactEntry().toWorkflowArtifactMap()))
+      },
       obligations(),
     )
 

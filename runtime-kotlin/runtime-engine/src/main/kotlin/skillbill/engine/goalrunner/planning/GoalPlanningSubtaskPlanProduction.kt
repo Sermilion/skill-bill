@@ -2,8 +2,6 @@ package skillbill.engine.goalrunner.planning
 import skillbill.engine.goalrunner.ProduceMissingPlansArgs
 import skillbill.engine.goalrunner.planning.model.GoalPlanningPhaseProduction
 import skillbill.engine.goalrunner.planning.model.GoalPlanningSweepOutcome
-import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
-import skillbill.ports.goalrunner.model.GoalPlanningContractProvenance
 import skillbill.ports.goalrunner.model.GoalPlanningIdentity
 import skillbill.ports.goalrunner.model.GoalSubtaskPlanCheckpoint
 import skillbill.ports.goalrunner.model.GovernedGoalSubtaskDescriptor
@@ -29,13 +27,14 @@ internal fun DefaultGoalPlanningSweep.produceMissingPlans(args: ProduceMissingPl
 }
 
 internal fun DefaultGoalPlanningSweep.producePlan(
-  shared: GoalPlanningSharedContext,
-  request: GoalRunnerRunRequest,
+  args: ProduceMissingPlansArgs,
   subtask: DecompositionSubtask,
   descriptor: GovernedGoalSubtaskDescriptor,
-  provenance: GoalPlanningContractProvenance,
-  preplanPayload: String,
 ): GoalPlanningSweepOutcome.Stopped? {
+  val shared = args.shared
+  val request = args.request
+  val provenance = args.provenance
+  val preplanPayload = args.sharedCheckpoint.preplanPayload
   val resolvedSpecPath = resolvedSubSpecPath(shared.repoRoot, subtask.specPath, repositoryEnclosingRootPort)
     ?: return stopped(shared, subtask.id, unresolvedSpecReason(subtask), GoalPlanningSweepConstants.PHASE_PLAN)
   val runInvariants = runCatching { invariantsSource.read(resolvedSpecPath) }.getOrElse { error ->

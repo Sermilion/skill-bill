@@ -1,7 +1,6 @@
 package skillbill.engine.featuretask
 
 import me.tatarka.inject.annotations.Inject
-import skillbill.application.diagnostics.model.FeatureTaskRuntimeRejectedOutputWrite
 import skillbill.application.diagnostics.model.RejectedOutputDiagnosticRequest
 import skillbill.engine.featuretask.model.AppendCheckpointIdentityArgs
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseLaunchBriefing
@@ -9,6 +8,7 @@ import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseLedgerRequest
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeProducerOutputRead
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeProjectionRejection
+import skillbill.engine.featuretask.model.FeatureTaskRuntimeRejectedOutputWrite
 import skillbill.engine.featuretask.model.GoalReviewPhaseCompletionRequest
 import skillbill.engine.featuretask.model.ProducerOutputQueryArgs
 import skillbill.error.InvalidFeatureTaskRuntimeHandoffProjectionError
@@ -48,6 +48,11 @@ class FeatureTaskRuntimePhaseRecorder @Inject constructor(
   producerOutputEvidenceValidator: ProducerOutputEvidenceValidator,
   diagnostics: RuntimeDiagnostics,
   clock: Clock,
+) : FeatureTaskRuntimePhaseEvidenceApi by FeatureTaskRuntimePhaseEvidenceApiDelegate(
+  database,
+  workflowSnapshotValidator,
+  wireArtifactValidator,
+  clock,
 ) {
   private val workflowPersistence = FeatureTaskRuntimeWorkflowPersistence(database, workflowSnapshotValidator)
   private val runtimeOwnedPersistence = RuntimeOwnedPersistenceBoundary(database, diagnostics)
@@ -70,20 +75,17 @@ class FeatureTaskRuntimePhaseRecorder @Inject constructor(
     workflowPersistence,
     runtimeOwnedPersistence,
   )
-  private val goalReviewCompletion = FeatureTaskRuntimeGoalReviewCompletionRecorder(database, workflowPersistence, clock)
+  private val goalReviewCompletion = FeatureTaskRuntimeGoalReviewCompletionRecorder(
+    database,
+    workflowPersistence,
+    clock,
+  )
   private val briefingRecorder = FeatureTaskRuntimePhaseBriefingRecorder(
     database,
     workflowPersistence,
     wireArtifactValidator,
   )
   private val gateProgress = FeatureTaskRuntimeGateProgressRecorder(database, workflowPersistence)
-  private val evidence = FeatureTaskRuntimePhaseEvidenceRecorder(
-    database,
-    workflowPersistence,
-    wireArtifactValidator,
-    clock,
-  )
-
   fun existingWorkflowMode(workflowId: String): FeatureTaskWorkflowMode? =
     workflowPersistence.existingWorkflowMode(workflowId)
 
@@ -93,7 +95,7 @@ class FeatureTaskRuntimePhaseRecorder @Inject constructor(
   fun ensureWorkflowOpen(workflowId: String, sessionId: String, issueKey: String? = null): Boolean =
     workflowPersistence.ensureWorkflowOpen(workflowId, sessionId, issueKey)
 
-  fun recordRejectedOutput(
+  internal fun recordRejectedOutput(
     request: RejectedOutputDiagnosticRequest,
     producerGeneration: Int = 0,
   ): FeatureTaskRuntimeRejectedOutputWrite = rejectedOutput.recordRejectedOutput(request, producerGeneration)
@@ -106,8 +108,7 @@ class FeatureTaskRuntimePhaseRecorder @Inject constructor(
   fun loadDiagnosticSignals(workflowId: String): List<FeatureTaskRuntimeDiagnosticSignal> =
     rejectedOutput.loadDiagnosticSignals(workflowId)
 
-  fun recordPhaseState(request: FeatureTaskRuntimePhaseStateRequest): Boolean =
-    phaseState.recordPhaseState(request)
+  fun recordPhaseState(request: FeatureTaskRuntimePhaseStateRequest): Boolean = phaseState.recordPhaseState(request)
 
   fun recordCompletedPhase(request: FeatureTaskRuntimePhaseStateRequest): Boolean =
     phaseState.recordCompletedPhase(request)
@@ -189,7 +190,12 @@ class FeatureTaskRuntimePhaseRecorder @Inject constructor(
     consumerPhaseId: String,
     error: InvalidFeatureTaskRuntimeHandoffProjectionError,
     repositoryCheckpointFingerprint: String?,
-  ): Boolean = briefingRecorder.recordProjectionRejection(workflowId, consumerPhaseId, error, repositoryCheckpointFingerprint)
+  ): Boolean = briefingRecorder.recordProjectionRejection(
+    workflowId,
+    consumerPhaseId,
+    error,
+    repositoryCheckpointFingerprint,
+  )
 
   fun recordProjectionRejection(rejection: FeatureTaskRuntimeProjectionRejection): Boolean =
     briefingRecorder.recordProjectionRejection(rejection)
@@ -217,31 +223,57 @@ class FeatureTaskRuntimePhaseRecorder @Inject constructor(
 
   fun persistBuildGateProgress(workflowId: String, progress: FeatureTaskRuntimeValidationGateProgress) =
     gateProgress.persistBuildGateProgress(workflowId, progress)
+}
 
-  fun appendLedgerEntry(request: FeatureTaskRuntimePhaseLedgerRequest): Boolean =
+private interface FeatureTaskRuntimePhaseEvidenceApi {
+  fun appendLedgerEntry(request: FeatureTaskRuntimePhaseLedgerRequest): Boolean
+  fun appendQuarantineEntry(workflowId: String, entry: FeatureTaskRuntimeQuarantineEntry): Boolean
+  fun loadQuarantinedRecords(workflowId: String): List<FeatureTaskRuntimeQuarantineEntry>?
+  fun recordResolvedBranch(workflowId: String, resolvedBranch: FeatureTaskRuntimeResolvedBranch): Boolean
+  fun loadResolvedBranch(workflowId: String): FeatureTaskRuntimeResolvedBranch?
+  fun appendCheckpointIdentity(args: AppendCheckpointIdentityArgs): Boolean
+  fun loadCheckpointIdentities(workflowId: String): List<FeatureTaskRuntimeCheckpointIdentity>?
+  fun quarantineCheckpointIdentities(workflowId: String): Boolean
+  fun recordWorkflowOwnedPaths(workflowId: String, ownedPaths: List<String>): Boolean
+}
+
+private class FeatureTaskRuntimePhaseEvidenceApiDelegate(
+  database: DatabaseSessionFactory,
+  workflowSnapshotValidator: WorkflowSnapshotValidator,
+  wireArtifactValidator: FeatureTaskRuntimeWireArtifactValidator,
+  clock: Clock,
+) : FeatureTaskRuntimePhaseEvidenceApi {
+  private val evidence = FeatureTaskRuntimePhaseEvidenceRecorder(
+    database,
+    FeatureTaskRuntimeWorkflowPersistence(database, workflowSnapshotValidator),
+    wireArtifactValidator,
+    clock,
+  )
+
+  override fun appendLedgerEntry(request: FeatureTaskRuntimePhaseLedgerRequest): Boolean =
     evidence.appendLedgerEntry(request)
 
-  fun appendQuarantineEntry(workflowId: String, entry: FeatureTaskRuntimeQuarantineEntry): Boolean =
+  override fun appendQuarantineEntry(workflowId: String, entry: FeatureTaskRuntimeQuarantineEntry): Boolean =
     evidence.appendQuarantineEntry(workflowId, entry)
 
-  fun loadQuarantinedRecords(workflowId: String): List<FeatureTaskRuntimeQuarantineEntry>? =
+  override fun loadQuarantinedRecords(workflowId: String): List<FeatureTaskRuntimeQuarantineEntry>? =
     evidence.loadQuarantinedRecords(workflowId)
 
-  fun recordResolvedBranch(workflowId: String, resolvedBranch: FeatureTaskRuntimeResolvedBranch): Boolean =
+  override fun recordResolvedBranch(workflowId: String, resolvedBranch: FeatureTaskRuntimeResolvedBranch): Boolean =
     evidence.recordResolvedBranch(workflowId, resolvedBranch)
 
-  fun loadResolvedBranch(workflowId: String): FeatureTaskRuntimeResolvedBranch? =
+  override fun loadResolvedBranch(workflowId: String): FeatureTaskRuntimeResolvedBranch? =
     evidence.loadResolvedBranch(workflowId)
 
-  fun appendCheckpointIdentity(args: AppendCheckpointIdentityArgs): Boolean =
+  override fun appendCheckpointIdentity(args: AppendCheckpointIdentityArgs): Boolean =
     evidence.appendCheckpointIdentity(args)
 
-  fun loadCheckpointIdentities(workflowId: String): List<FeatureTaskRuntimeCheckpointIdentity>? =
+  override fun loadCheckpointIdentities(workflowId: String): List<FeatureTaskRuntimeCheckpointIdentity>? =
     evidence.loadCheckpointIdentities(workflowId)
 
-  fun quarantineCheckpointIdentities(workflowId: String): Boolean =
+  override fun quarantineCheckpointIdentities(workflowId: String): Boolean =
     evidence.quarantineCheckpointIdentities(workflowId)
 
-  fun recordWorkflowOwnedPaths(workflowId: String, ownedPaths: List<String>): Boolean =
+  override fun recordWorkflowOwnedPaths(workflowId: String, ownedPaths: List<String>): Boolean =
     evidence.recordWorkflowOwnedPaths(workflowId, ownedPaths)
 }

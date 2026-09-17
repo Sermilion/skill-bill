@@ -37,37 +37,36 @@ class FeatureTaskRuntimePhaseEvidenceRecorder(
   val quarantineValidator: FeatureTaskRuntimeWireArtifactValidator,
   val clock: Clock,
 ) {
-  fun appendLedgerEntry(request: FeatureTaskRuntimePhaseLedgerRequest): Boolean =
-    database.transaction { unitOfWork ->
-      val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, request.workflowId)
-        ?: return@transaction false
-      val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
-      val existingEntries = decodePhaseLedger(artifacts)
-      val nextSequence = (existingEntries.maxOfOrNull { it.sequenceNumber } ?: -1) + 1
-      val entry = FeatureTaskRuntimePhaseLedgerEntry(
-        action = request.action,
-        sequenceNumber = nextSequence,
-        timestamp = clock.instant().toString(),
-        phaseId = request.phaseId,
-        attemptCount = request.attemptCount,
-        resolvedAgentId = request.resolvedAgentId,
-        fixLoopIteration = request.fixLoopIteration,
-        blockedReason = request.blockedReason,
-        loopId = request.loopId,
-        edgeIteration = request.edgeIteration,
-      )
-      val updatedLedger = appendBoundedHistoryBySequence(
-        existing = workflowArtifactEntryMaps(existingEntries.map { it.asWorkflowArtifactEntry() }),
-        entry = workflowArtifactEntryMap(entry.asWorkflowArtifactEntry()),
-        retentionLimit = FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT,
-      )
-      workflowPersistence.persistArtifactsPatch(
-        unitOfWork.workflowStates,
-        record,
-        mapOf(FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY to updatedLedger),
-      )
-      true
-    }
+  fun appendLedgerEntry(request: FeatureTaskRuntimePhaseLedgerRequest): Boolean = database.transaction { unitOfWork ->
+    val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, request.workflowId)
+      ?: return@transaction false
+    val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
+    val existingEntries = decodePhaseLedger(artifacts)
+    val nextSequence = (existingEntries.maxOfOrNull { it.sequenceNumber } ?: -1) + 1
+    val entry = FeatureTaskRuntimePhaseLedgerEntry(
+      action = request.action,
+      sequenceNumber = nextSequence,
+      timestamp = clock.instant().toString(),
+      phaseId = request.phaseId,
+      attemptCount = request.attemptCount,
+      resolvedAgentId = request.resolvedAgentId,
+      fixLoopIteration = request.fixLoopIteration,
+      blockedReason = request.blockedReason,
+      loopId = request.loopId,
+      edgeIteration = request.edgeIteration,
+    )
+    val updatedLedger = appendBoundedHistoryBySequence(
+      existing = workflowArtifactEntryMaps(existingEntries.map { it.asWorkflowArtifactEntry() }),
+      entry = workflowArtifactEntryMap(entry.asWorkflowArtifactEntry()),
+      retentionLimit = FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT,
+    )
+    workflowPersistence.persistArtifactsPatch(
+      unitOfWork.workflowStates,
+      record,
+      mapOf(FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY to updatedLedger),
+    )
+    true
+  }
   fun appendQuarantineEntry(workflowId: String, entry: FeatureTaskRuntimeQuarantineEntry): Boolean =
     database.transaction { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)

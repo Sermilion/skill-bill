@@ -16,7 +16,6 @@ import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
-import skillbill.engine.featuretask.FeatureTaskRuntimeWorkflowPersistence
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 
 class GoalParentProjectionWriter(

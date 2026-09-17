@@ -1,9 +1,9 @@
 package skillbill.engine.featuretask
 import skillbill.application.diagnostics.RejectedOutputDiagnosticService
-import skillbill.application.diagnostics.model.FeatureTaskRuntimeRejectedOutputWrite
 import skillbill.application.diagnostics.model.RejectedOutputDiagnosticRequest
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeProducerOutputRead
+import skillbill.engine.featuretask.model.FeatureTaskRuntimeRejectedOutputWrite
 import skillbill.engine.featuretask.model.ProducerOutputQueryArgs
 import skillbill.engine.featuretask.model.RejectedOutputDiagnosticDegradeRequest
 import skillbill.engine.featuretask.model.RejectedOutputDiagnosticPersistRequest
@@ -45,7 +45,7 @@ private fun RejectedOutputDiagnosticError.degradableFailureClass(): FeatureTaskR
     -> null
   }
 
-class FeatureTaskRuntimeRejectedOutputRecorder(
+internal class FeatureTaskRuntimeRejectedOutputRecorder(
   private val database: DatabaseSessionFactory,
   private val workflowPersistence: FeatureTaskRuntimeWorkflowPersistence,
   private val rejectedOutputDiagnosticMetadataValidator: RejectedOutputDiagnosticMetadataValidator,
@@ -252,7 +252,9 @@ class FeatureTaskRuntimeRejectedOutputRecorder(
         val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
           ?: return@transaction
         val existing = decodeDiagnosticSignalsFromArtifact(
-          FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)[FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS_ARTIFACT_KEY],
+          FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(
+            record,
+          )[FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS_ARTIFACT_KEY],
         )
         workflowPersistence.persistArtifactsPatch(
           unitOfWork.workflowStates,
@@ -270,7 +272,9 @@ class FeatureTaskRuntimeRejectedOutputRecorder(
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
         ?: return@read emptyList()
       decodeDiagnosticSignalsFromArtifact(
-        FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)[FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS_ARTIFACT_KEY],
+        FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(
+          record,
+        )[FEATURE_TASK_RUNTIME_DIAGNOSTIC_SIGNALS_ARTIFACT_KEY],
       )
     }
 

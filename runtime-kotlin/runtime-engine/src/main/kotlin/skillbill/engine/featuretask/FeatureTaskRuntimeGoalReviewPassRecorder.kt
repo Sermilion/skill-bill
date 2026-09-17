@@ -82,7 +82,9 @@ class FeatureTaskRuntimeGoalReviewPassRecorder(
     transform: (GoalSubtaskReviewState) -> GoalSubtaskReviewState,
   ): GoalSubtaskReviewState? = database.transaction { unitOfWork ->
     val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@transaction null
-    val state = reviewStateFromArtifacts(FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)) ?: return@transaction null
+    val state = reviewStateFromArtifacts(
+      FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record),
+    ) ?: return@transaction null
     val updated = transform(state)
     if (updated == state) return@transaction state
     patcher.save(

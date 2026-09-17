@@ -105,19 +105,18 @@ class FeatureTaskRuntimePhaseBriefingRecorder(
         wireArtifactValidator.validateEnvelope(envelope, workflowId)
       }
     }
-  fun loadDeliveredProjections(
-    workflowId: String,
-  ): Map<String, FeatureTaskRuntimeDeliveredProjectionRecord>? = database.read { unitOfWork ->
-    val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
-      ?: return@read null
-    deliveredProjectionsFrom(
-      FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record),
-      validateEnvelope = { envelope -> wireArtifactValidator.validateEnvelope(envelope, workflowId) },
-      validatePersistenceRecord = { persistence ->
-        wireArtifactValidator.validatePersistenceRecord(persistence, "delivered-projection:$workflowId")
-      },
-    )
-  }
+  fun loadDeliveredProjections(workflowId: String): Map<String, FeatureTaskRuntimeDeliveredProjectionRecord>? =
+    database.read { unitOfWork ->
+      val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
+        ?: return@read null
+      deliveredProjectionsFrom(
+        FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record),
+        validateEnvelope = { envelope -> wireArtifactValidator.validateEnvelope(envelope, workflowId) },
+        validatePersistenceRecord = { persistence ->
+          wireArtifactValidator.validatePersistenceRecord(persistence, "delivered-projection:$workflowId")
+        },
+      )
+    }
 }
 
 fun FeatureTaskRuntimePhaseBriefingRecorder.nextDeliveredProjectionRecord(

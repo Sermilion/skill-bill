@@ -107,12 +107,9 @@ private fun DefaultGoalPlanningSweep.producePlanUnit(
   val sink = SubtaskAttributedOutputSink(fanOutPort, produce.request.outputSink, subtaskId)
   return try {
     producePlan(
-      shared = shared,
-      request = produce.request.copy(outputSink = sink),
+      args = produce.copy(request = produce.request.copy(outputSink = sink)),
       subtask = subtask,
       descriptor = args.descriptors.single { it.subtaskId == subtaskId },
-      provenance = produce.provenance,
-      preplanPayload = produce.sharedCheckpoint.preplanPayload,
     )
   } finally {
     sink.flushTrailingLines()

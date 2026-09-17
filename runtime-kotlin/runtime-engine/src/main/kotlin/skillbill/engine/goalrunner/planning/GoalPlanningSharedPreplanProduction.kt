@@ -12,6 +12,7 @@ import skillbill.ports.goalrunner.model.GoalPlanningIdentity
 import skillbill.ports.goalrunner.model.SharedGoalPreplanCheckpoint
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.text.sha256HexUtf8
+import java.nio.file.Path
 
 internal fun produceSharedPreplan(
   sweep: DefaultGoalPlanningSweep,
@@ -103,28 +104,13 @@ internal fun gatherSharedContext(
   val decompositionManifestHash = goalPlanningImmutableDecompositionHash(state.manifest)
   val repositoryIdentity = "repo-root-realpath-v1:$canonicalRepository"
   val planningPacket = recoveredPacket?.let(GoalPlanningSharedContextPacket::migrate)
-    ?: sweep.contextDiscovery.discover(canonicalRepository).let { discovered ->
-      val packet = linkedMapOf<String, Any?>(
-        GoalPlanningSharedContextPacketPayloadKeys.PACKET_VERSION to GoalPlanningSharedContextPacket.VERSION,
-        GoalPlanningSharedContextPacketPayloadKeys.REPOSITORY_IDENTITY to repositoryIdentity,
-        GoalPlanningSharedContextPacketPayloadKeys.NORMALIZED_ISSUE_KEY to state.manifest.issueKey.trim().uppercase(),
-        DecompositionPlanningPayloadKeys.PARENT_SPEC_PATH to parentSpecGoverningPath,
-        GoalPlanningSharedContextPacketPayloadKeys.PARENT_SPEC to
-          parentSpec.take(GoalPlanningSharedContextPacket.MAX_GOVERNED_CONTEXT_CHARS),
-        GoalPlanningSharedContextPacketPayloadKeys.DECOMPOSITION_MANIFEST to
-          decomposition.take(GoalPlanningSharedContextPacket.MAX_GOVERNED_CONTEXT_CHARS),
-        GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY to GoalPlanningSharedContextPacket.catalog(discovered),
-        GoalPlanningSharedContextPacketPayloadKeys.VALIDATION_GUIDANCE to discovered.validationGuidance.take(
-          GoalPlanningSharedContextPacket.MAX_GOVERNED_CONTEXT_CHARS,
-        ),
-        GoalPlanningSharedContextPacketPayloadKeys.ORDERED_SUBTASKS to
-          GoalPlanningSharedContextPacket.orderedSubtasks(state.manifest.subtasks),
-      )
-      packet + (
-        GoalPlanningSharedContextPacketPayloadKeys.INTEGRITY_SHA256 to
-          GoalPlanningSharedContextPacket.digest(packet)
-        )
-    }
+    ?: sweep.createPlanningPacket(
+      state,
+      canonicalRepository,
+      parentSpecGoverningPath,
+      parentSpec,
+      decomposition,
+    )
   GoalPlanningSharedContextPacket.validate(
     packet = planningPacket,
     repositoryIdentity = repositoryIdentity,
@@ -149,4 +135,34 @@ internal fun gatherSharedContext(
     parentSpecPath = resolvedParentSpecPath,
     planningPacket = planningPacket,
   )
+}
+
+private fun DefaultGoalPlanningSweep.createPlanningPacket(
+  state: GoalRunnerManifestState,
+  canonicalRepository: Path,
+  parentSpecGoverningPath: String,
+  parentSpec: String,
+  decomposition: String,
+): Map<String, Any?> {
+  val discovered = contextDiscovery.discover(canonicalRepository)
+  val packet = linkedMapOf<String, Any?>(
+    GoalPlanningSharedContextPacketPayloadKeys.PACKET_VERSION to GoalPlanningSharedContextPacket.VERSION,
+    GoalPlanningSharedContextPacketPayloadKeys.REPOSITORY_IDENTITY to
+      "repo-root-realpath-v1:$canonicalRepository",
+    GoalPlanningSharedContextPacketPayloadKeys.NORMALIZED_ISSUE_KEY to state.manifest.issueKey.trim().uppercase(),
+    DecompositionPlanningPayloadKeys.PARENT_SPEC_PATH to parentSpecGoverningPath,
+    GoalPlanningSharedContextPacketPayloadKeys.PARENT_SPEC to
+      parentSpec.take(GoalPlanningSharedContextPacket.MAX_GOVERNED_CONTEXT_CHARS),
+    GoalPlanningSharedContextPacketPayloadKeys.DECOMPOSITION_MANIFEST to
+      decomposition.take(GoalPlanningSharedContextPacket.MAX_GOVERNED_CONTEXT_CHARS),
+    GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY to GoalPlanningSharedContextPacket.catalog(discovered),
+    GoalPlanningSharedContextPacketPayloadKeys.VALIDATION_GUIDANCE to
+      discovered.validationGuidance.take(GoalPlanningSharedContextPacket.MAX_GOVERNED_CONTEXT_CHARS),
+    GoalPlanningSharedContextPacketPayloadKeys.ORDERED_SUBTASKS to
+      GoalPlanningSharedContextPacket.orderedSubtasks(state.manifest.subtasks),
+  )
+  return packet + (
+    GoalPlanningSharedContextPacketPayloadKeys.INTEGRITY_SHA256 to
+      GoalPlanningSharedContextPacket.digest(packet)
+    )
 }

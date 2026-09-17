@@ -4,6 +4,7 @@ import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.contracts.goalplanning.GoalPlanningSharedContextPacketPayloadKeys
+import skillbill.engine.goalrunner.planning.model.GoalPlanningSubtaskPlanningDisposition
 import skillbill.ports.goalrunner.planning.model.GoalPlanningBoundaryHeadingKind
 import skillbill.ports.goalrunner.planning.model.GoalPlanningContext
 import skillbill.text.sha256HexUtf8
@@ -33,10 +34,7 @@ object GoalPlanningSharedContextPacketValidation {
     DecompositionPlanningPayloadKeys.OPTIONAL,
     DecompositionPlanningPayloadKeys.SKIPPED,
   )
-  private val DISPOSITIONS = setOf(
-    "included",
-    DecompositionPlanningPayloadKeys.SKIPPED,
-  )
+  private val DISPOSITIONS = GoalPlanningSubtaskPlanningDisposition.entries.map { it.wireValue }.toSet()
 
   fun requireValidCatalog(value: Any?) {
     val boundaryMemory = value as? Map<*, *>
@@ -52,18 +50,21 @@ object GoalPlanningSharedContextPacketValidation {
     }
     if (boundaryMemory[GoalPlanningSharedContextPacketPayloadKeys.TRUNCATED] !is Boolean) {
       invalidGoalPlanningSharedContextPacket(
-        "${GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY}.${GoalPlanningSharedContextPacketPayloadKeys.TRUNCATED}",
+        "${GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY}." +
+          GoalPlanningSharedContextPacketPayloadKeys.TRUNCATED,
         "shared context boundary memory truncation flag is invalid",
       )
     }
     val catalog = boundaryMemory[GoalPlanningSharedContextPacketPayloadKeys.CATALOG] as? List<*>
       ?: invalidGoalPlanningSharedContextPacket(
-        "${GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY}.${GoalPlanningSharedContextPacketPayloadKeys.CATALOG}",
+        "${GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY}." +
+          GoalPlanningSharedContextPacketPayloadKeys.CATALOG,
         "shared context boundary memory catalog is invalid",
       )
     if (catalog.size > GoalPlanningContext.MAX_CATALOG_HEADINGS) {
       invalidGoalPlanningSharedContextPacket(
-        "${GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY}.${GoalPlanningSharedContextPacketPayloadKeys.CATALOG}",
+        "${GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY}." +
+          GoalPlanningSharedContextPacketPayloadKeys.CATALOG,
         "shared context boundary memory catalog exceeds the heading cap",
       )
     }
@@ -76,26 +77,33 @@ object GoalPlanningSharedContextPacketValidation {
   private fun validateCatalogEntry(raw: Any?, headingIds: MutableSet<String>) {
     val entry = raw as? Map<*, *>
       ?: invalidGoalPlanningSharedContextPacket(
-        "${GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY}.${GoalPlanningSharedContextPacketPayloadKeys.CATALOG}",
+        "${GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY}." +
+          GoalPlanningSharedContextPacketPayloadKeys.CATALOG,
         "shared context boundary memory catalog entry is invalid",
       )
     if (entry.keys != CATALOG_ENTRY_FIELDS || !entry.values.all { it is String }) {
       invalidGoalPlanningSharedContextPacket(
-        "${GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY}.${GoalPlanningSharedContextPacketPayloadKeys.CATALOG}",
+        "${GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY}." +
+          GoalPlanningSharedContextPacketPayloadKeys.CATALOG,
         "shared context boundary memory catalog entry is invalid",
       )
     }
     val sourcePath = entry[GoalPlanningSharedContextPacketPayloadKeys.SOURCE_PATH] as String
     if (sourcePath.isBlank() || sourcePath.startsWith("/") || ".." in sourcePath) {
       invalidGoalPlanningSharedContextPacket(
-        "${GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY}.${GoalPlanningSharedContextPacketPayloadKeys.CATALOG}." +
+        "${GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY}." +
+          "${GoalPlanningSharedContextPacketPayloadKeys.CATALOG}." +
           GoalPlanningSharedContextPacketPayloadKeys.SOURCE_PATH,
         "shared context boundary memory source path is invalid",
       )
     }
-    if (GoalPlanningBoundaryHeadingKind.fromWire(entry[GoalPlanningSharedContextPacketPayloadKeys.KIND] as String) !in CATALOG_KINDS) {
+    if (
+      GoalPlanningBoundaryHeadingKind.fromWire(entry[GoalPlanningSharedContextPacketPayloadKeys.KIND] as String) !in
+      CATALOG_KINDS
+    ) {
       invalidGoalPlanningSharedContextPacket(
-        "${GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY}.${GoalPlanningSharedContextPacketPayloadKeys.CATALOG}." +
+        "${GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY}." +
+          "${GoalPlanningSharedContextPacketPayloadKeys.CATALOG}." +
           GoalPlanningSharedContextPacketPayloadKeys.KIND,
         "shared context boundary memory kind is invalid",
       )
@@ -104,14 +112,16 @@ object GoalPlanningSharedContextPacketValidation {
       GoalPlanningContext.MAX_HEADING_TEXT_CHARS
     ) {
       invalidGoalPlanningSharedContextPacket(
-        "${GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY}.${GoalPlanningSharedContextPacketPayloadKeys.CATALOG}." +
+        "${GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY}." +
+          "${GoalPlanningSharedContextPacketPayloadKeys.CATALOG}." +
           GoalPlanningSharedContextPacketPayloadKeys.HEADING,
         "shared context boundary memory heading exceeds the length cap",
       )
     }
     if (!headingIds.add(entry[GoalPlanningSharedContextPacketPayloadKeys.HEADING_ID] as String)) {
       invalidGoalPlanningSharedContextPacket(
-        "${GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY}.${GoalPlanningSharedContextPacketPayloadKeys.CATALOG}." +
+        "${GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY}." +
+          "${GoalPlanningSharedContextPacketPayloadKeys.CATALOG}." +
           GoalPlanningSharedContextPacketPayloadKeys.HEADING_ID,
         "shared context boundary memory heading ids must be unique",
       )
@@ -148,7 +158,8 @@ object GoalPlanningSharedContextPacketValidation {
         )
       val specPath = subtask[DecompositionPlanningPayloadKeys.SPEC_PATH] as? String
         ?: invalidGoalPlanningSharedContextPacket(
-          "${GoalPlanningSharedContextPacketPayloadKeys.ORDERED_SUBTASKS}.${DecompositionPlanningPayloadKeys.SPEC_PATH}",
+          "${GoalPlanningSharedContextPacketPayloadKeys.ORDERED_SUBTASKS}." +
+            DecompositionPlanningPayloadKeys.SPEC_PATH,
           "shared context ordered subtask spec path is invalid",
         )
       val disposition = subtask[GoalPlanningSharedContextPacketPayloadKeys.PLANNING_DISPOSITION] as? String
