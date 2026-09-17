@@ -373,8 +373,6 @@ class FeatureTaskRuntimeRunState(
   fun outputFor(phaseId: String): FeatureTaskRuntimePhaseOutput? =
     outputBuffer.filter { it.phaseId == phaseId }.maxByOrNull { it.iteration }
 
-  fun outputCountFor(phaseId: String): Int = outputBuffer.count { it.phaseId == phaseId }
-
   fun nextIteration(phaseId: String): Int {
     val latestOutputIteration = outputBuffer.filter { it.phaseId == phaseId }.maxOfOrNull { it.iteration } ?: 0
     val persistedAttempts = persistedAttemptCounts[phaseId] ?: 0

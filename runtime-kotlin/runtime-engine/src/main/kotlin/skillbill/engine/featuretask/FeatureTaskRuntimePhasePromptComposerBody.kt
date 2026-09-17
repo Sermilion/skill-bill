@@ -1,6 +1,5 @@
 package skillbill.engine.featuretask
 
-import skillbill.engine.featuretask.model.FeatureTaskRuntimePhasePromptComposeInputs
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeCorrectiveRepairContext
 
 fun composePhasePrompt(inputs: FeatureTaskRuntimePhasePromptComposeInputs): String =

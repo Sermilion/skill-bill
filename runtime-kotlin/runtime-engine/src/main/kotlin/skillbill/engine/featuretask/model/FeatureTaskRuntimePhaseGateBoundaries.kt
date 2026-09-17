@@ -1,4 +1,4 @@
-package skillbill.engine.featuretask.model
+package skillbill.engine.featuretask
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.review.SpecIntentProjectionResolver

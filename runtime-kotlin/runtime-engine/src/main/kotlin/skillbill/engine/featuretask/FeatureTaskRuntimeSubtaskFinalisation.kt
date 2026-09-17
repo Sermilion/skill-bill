@@ -4,7 +4,6 @@ import skillbill.engine.featuretask.model.FeatureTaskRuntimeCheckpointRefPruneRe
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeCommitPushHandoffResult
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeSubtaskFinalisationBlocked
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeSubtaskFinalisationResult
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeSubtaskFinaliseRequest
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeSubtaskFinalised
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.captureIndexState

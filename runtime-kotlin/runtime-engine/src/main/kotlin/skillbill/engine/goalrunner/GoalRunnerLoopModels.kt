@@ -2,7 +2,6 @@ package skillbill.engine.goalrunner
 
 import skillbill.engine.goalrunner.model.GoalRunnerRunEvent
 import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
-import skillbill.goalrunner.model.GoalAttemptLedgerAction
 import skillbill.goalrunner.model.GoalRunnerReconciledOutcome
 import skillbill.goalrunner.model.GoalRunnerRunReport
 import skillbill.goalrunner.model.GoalRunnerSelection
@@ -108,25 +107,37 @@ internal fun recordLaunchObservabilityAndLedger(
     launchOutcome = launchOutcome,
   )
   ledger.recordLedgerEntry(
-    GoalRunnerLedgerContext(
-      workflowId = workflowId,
-      action = if (context.selection.decision.action == GoalRunnerSubtaskAction.RESUME) {
-        GoalAttemptLedgerAction.RESUME
-      } else {
-        GoalAttemptLedgerAction.CHILD_ACTIVATION
-      },
-      issueKey = context.refreshed.manifest.issueKey,
-      subtaskId = subtaskId,
-      progress = progress,
-      launchOutcome = launchOutcome,
-      diagnosticClass = (launchOutcome as? AgentRunLaunchFacts)?.takeIf {
-        it.spawnFailed || it.interrupted || it.timedOut || (it.exitStatus != null && it.exitStatus != 0)
-      }?.let { "child_process_failed" },
-      recoverableJsonPresent = null,
-      nextSafeAction = "read_terminal_workflow_state",
-      reAttemptCause = context.reAttemptCause,
-      causingLoopEntry = context.causingLoopEntry,
-    ),
+    if (context.selection.decision.action == GoalRunnerSubtaskAction.RESUME) {
+      GoalRunnerLedgerContext.Resume(
+        workflowId = workflowId,
+        issueKey = context.refreshed.manifest.issueKey,
+        subtaskId = subtaskId,
+        progress = progress,
+        launchOutcome = launchOutcome,
+        diagnosticClass = (launchOutcome as? AgentRunLaunchFacts)?.takeIf {
+          it.spawnFailed || it.interrupted || it.timedOut || (it.exitStatus != null && it.exitStatus != 0)
+        }?.let { "child_process_failed" },
+        recoverableJsonPresent = null,
+        nextSafeAction = "read_terminal_workflow_state",
+        reAttemptCause = context.reAttemptCause,
+        causingLoopEntry = context.causingLoopEntry,
+      )
+    } else {
+      GoalRunnerLedgerContext.ChildActivation(
+        workflowId = workflowId,
+        issueKey = context.refreshed.manifest.issueKey,
+        subtaskId = subtaskId,
+        progress = progress,
+        launchOutcome = launchOutcome,
+        diagnosticClass = (launchOutcome as? AgentRunLaunchFacts)?.takeIf {
+          it.spawnFailed || it.interrupted || it.timedOut || (it.exitStatus != null && it.exitStatus != 0)
+        }?.let { "child_process_failed" },
+        recoverableJsonPresent = null,
+        nextSafeAction = "read_terminal_workflow_state",
+        reAttemptCause = context.reAttemptCause,
+        causingLoopEntry = context.causingLoopEntry,
+      )
+    },
   )
 }
 

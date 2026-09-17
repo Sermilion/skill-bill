@@ -14,9 +14,10 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeReviewFinding
 
 object FeatureTaskRuntimeRunLoopBackwardEdge {
-  internal fun FeatureTaskRuntimeRunLoopContext.resumeInFlightReviewFix(
+  internal fun resumeInFlightReviewFix(context: FeatureTaskRuntimeRunLoopContext,
     edge: FeatureTaskRuntimeBackwardEdge,
   ): String? {
+    with(context) {
     if (
       edge.loopId != FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID ||
       state.isLoopLiveClaimed(edge.loopId) ||
@@ -39,9 +40,11 @@ object FeatureTaskRuntimeRunLoopBackwardEdge {
     )
     session.transitionReentryPair(pendingReentry, pendingReentry)
     return edge.destinationPhaseId
-  }
 
-  internal fun FeatureTaskRuntimeRunLoopContext.recordBackwardEdge(args: BackwardEdgeRecordArgs) {
+    }}
+
+  internal fun recordBackwardEdge(context: FeatureTaskRuntimeRunLoopContext, args: BackwardEdgeRecordArgs) {
+    with(context) {
     val edge = args.edge
     val destinationPhaseId = args.destinationPhaseId
     val loopId = args.loopId
@@ -77,7 +80,8 @@ object FeatureTaskRuntimeRunLoopBackwardEdge {
     session.transitionReentryPair(pendingReentry, pendingReentry)
     observability.loopEdge(destinationPhaseId, loopId, edgeIteration, verdict)
     warnOnThresholdCrossing(request, diagnostics, edge, edgeIteration)
-  }
+
+    }}
 
   internal fun warnOnThresholdCrossing(
     request: FeatureTaskRuntimeRunRequest,
@@ -104,16 +108,19 @@ object FeatureTaskRuntimeRunLoopBackwardEdge {
     "${request.goalContinuation?.subtaskId ?: request.issueKey}, spec " +
     "${request.runInvariants.specReference}."
 
-  internal fun FeatureTaskRuntimeRunLoopContext.capExhaustedOnResume(phaseId: String): String? {
+  internal fun capExhaustedOnResume(context: FeatureTaskRuntimeRunLoopContext, phaseId: String): String? {
+    with(context) {
     if (FeatureTaskRuntimeRunLoopPhaseAttempts.operatorReopenedPhase(session, phaseId)) return null
     val record = state.recordFor(phaseId) ?: return null
-    return capExhaustionForRecord(phaseId, record)
-  }
+    return FeatureTaskRuntimeRunLoopBackwardEdge.capExhaustionForRecord(context, phaseId, record)
 
-  internal fun FeatureTaskRuntimeRunLoopContext.capExhaustionForRecord(
+    }}
+
+  internal fun capExhaustionForRecord(context: FeatureTaskRuntimeRunLoopContext,
     phaseId: String,
     record: FeatureTaskRuntimePhaseRecord,
   ): String? {
+    with(context) {
     val loopId = record.loopId
     val iteration = record.edgeIteration
     if (loopId == null || iteration == null || state.isLoopLiveClaimed(loopId)) {
@@ -146,13 +153,15 @@ object FeatureTaskRuntimeRunLoopBackwardEdge {
           ),
         )
       }
-  }
+
+    }}
 
   internal fun blocksWhenCapExhausted(edge: FeatureTaskRuntimeBackwardEdge, iteration: Int): Boolean =
     edge.capExhaustionBehavior == FeatureTaskRuntimeCapExhaustionBehavior.BLOCK &&
       edge.perEdgeCap?.let { iteration >= it } == true
 
-  internal fun FeatureTaskRuntimeRunLoopContext.runPhaseFor(phaseId: String): String? {
+  internal fun runPhaseFor(context: FeatureTaskRuntimeRunLoopContext, phaseId: String): String? {
+    with(context) {
     val briefingReentry = session.pendingReentry?.takeIf { it.phaseId == phaseId }
     if (briefingReentry != null) session.transitionPendingReentry(null)
     val reentry = briefingReentry ?: session.activeReentry?.takeIf { active ->
@@ -193,7 +202,8 @@ object FeatureTaskRuntimeRunLoopBackwardEdge {
         completedOutput,
       )
     }
-  }
+
+    }}
 
   internal fun applyPlanningStop(
     context: FeatureTaskRuntimeRunLoopContext,
@@ -254,7 +264,8 @@ object FeatureTaskRuntimeRunLoopBackwardEdge {
     observability.blocked(phaseId, resolvedAgentId, 1, reason)
   }
 
-  internal fun FeatureTaskRuntimeRunLoopContext.establishBranchIfNeeded(phaseId: String): String? {
+  internal fun establishBranchIfNeeded(context: FeatureTaskRuntimeRunLoopContext, phaseId: String): String? {
+    with(context) {
     if (!isFileMutating(phaseId)) {
       return null
     }
@@ -266,5 +277,6 @@ object FeatureTaskRuntimeRunLoopBackwardEdge {
       FeatureTaskRuntimeRunLoopPlanningBranch.clearRecoveredBranchSetupBlock(state, phaseId)
       null
     }
-  }
+
+    }}
 }

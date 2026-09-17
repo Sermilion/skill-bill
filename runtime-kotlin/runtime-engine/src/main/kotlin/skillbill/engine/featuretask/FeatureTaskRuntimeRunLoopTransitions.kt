@@ -12,12 +12,13 @@ object FeatureTaskRuntimeRunLoopTransitions {
   internal fun qualityGateSelection(request: FeatureTaskRuntimeRunRequest): FeatureTaskRuntimeQualityGateSelection =
     request.goalContinuation?.qualityGateSelection ?: FeatureTaskRuntimeQualityGateSelection.VALIDATE
 
-  internal fun FeatureTaskRuntimeRunLoopContext.transitionTarget(
+  internal fun transitionTarget(
+    context: FeatureTaskRuntimeRunLoopContext,
     phaseId: String,
     edge: FeatureTaskRuntimeBackwardEdge?,
     effectiveVerdict: FeatureTaskRuntimeVerdict,
     transition: FeatureTaskRuntimeNextPhase,
-  ): String? = when (transition) {
+  ): String? = with(context) { when (transition) {
     is FeatureTaskRuntimeNextPhase.TerminalAdvance -> null
     is FeatureTaskRuntimeNextPhase.TerminalBlock -> {
       FeatureTaskRuntimeRunLoopPlanningBranch.blockOnCapExhaustion(
@@ -36,33 +37,36 @@ object FeatureTaskRuntimeRunLoopTransitions {
       null
     }
     is FeatureTaskRuntimeNextPhase.Next -> nextTransitionTarget(
+      context,
       phaseId,
       edge,
       effectiveVerdict,
       transition,
     )
-  }
+  } }
 
-  internal fun FeatureTaskRuntimeRunLoopContext.nextTransitionTarget(
+  internal fun nextTransitionTarget(
+    context: FeatureTaskRuntimeRunLoopContext,
     phaseId: String,
     edge: FeatureTaskRuntimeBackwardEdge?,
     effectiveVerdict: FeatureTaskRuntimeVerdict,
     transition: FeatureTaskRuntimeNextPhase.Next,
-  ): String? {
+  ): String? = with(context) {
     val loopId = transition.loopId
     return when {
       loopId == null && !establishForwardCheckpoint(
+        context,
         precedingPhaseId = phaseId,
         destinationPhaseId = transition.phaseId,
       ) -> null
       loopId == null -> transition.phaseId
       reentersMutatingPhase(transitions, requireNotNull(edge), transition.phaseId) &&
         !with(FeatureTaskRuntimeRunLoopCheckpointRemediation) {
-          this@nextTransitionTarget.establishRemediationCheckpoint(phaseId, loopId)
+          FeatureTaskRuntimeRunLoopCheckpointRemediation.establishRemediationCheckpoint(context, phaseId, loopId)
         } -> null
       else -> {
         with(FeatureTaskRuntimeRunLoopBackwardEdge) {
-          this@nextTransitionTarget.recordBackwardEdge(
+          FeatureTaskRuntimeRunLoopBackwardEdge.recordBackwardEdge(context,
             BackwardEdgeRecordArgs(
               edge = edge,
               destinationPhaseId = transition.phaseId,
@@ -93,15 +97,16 @@ object FeatureTaskRuntimeRunLoopTransitions {
     sourcePhaseId: String,
   ): List<String> = transitions.spanBetween(destinationPhaseId, sourcePhaseId)
 
-  internal fun FeatureTaskRuntimeRunLoopContext.establishForwardCheckpoint(
+  internal fun establishForwardCheckpoint(
+    context: FeatureTaskRuntimeRunLoopContext,
     precedingPhaseId: String,
     destinationPhaseId: String,
-  ): Boolean = if (
+  ): Boolean = with(context) { if (
     precedingPhaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT &&
     destinationPhaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW
   ) {
     with(FeatureTaskRuntimeRunLoopCheckpointRemediation) {
-      this@establishForwardCheckpoint.checkpointEstablished(
+      FeatureTaskRuntimeRunLoopCheckpointRemediation.checkpointEstablished(context,
         precedingPhaseId = precedingPhaseId,
         loopId = null,
         intent = FeatureTaskRuntimeCheckpointMessage.INTENT_AUDITED_IMPLEMENTATION,
@@ -112,5 +117,5 @@ object FeatureTaskRuntimeRunLoopTransitions {
     }
   } else {
     true
-  }
+  } }
 }

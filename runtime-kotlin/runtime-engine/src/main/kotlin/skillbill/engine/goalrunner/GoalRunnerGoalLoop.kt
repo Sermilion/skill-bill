@@ -5,7 +5,6 @@ import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
 import skillbill.engine.goalrunner.planning.GoalPlanningSweep
 import skillbill.engine.goalrunner.planning.model.GoalPlanningSweepOutcome
 import skillbill.goalrunner.GoalRunnerPlanner
-import skillbill.goalrunner.model.GoalAttemptLedgerAction
 import skillbill.goalrunner.model.GoalRunnerRunReport
 import skillbill.goalrunner.model.GoalRunnerSelection
 import skillbill.goalrunner.model.GoalRunnerStopReason
@@ -113,7 +112,8 @@ internal class GoalRunnerGoalLoop(
         state = state,
         selection = selection,
         request = args.request,
-        attempted = attemptState,
+        attempted = attemptState.attempted,
+        recordAttempt = attemptState::record,
         observability = args.observability,
         ledger = args.ledger,
         telemetryEmitter = args.telemetryEmitter,
@@ -143,9 +143,8 @@ internal class GoalRunnerGoalLoop(
         ),
       )
       ledger.recordLedgerEntry(
-        GoalRunnerLedgerContext(
+        GoalRunnerLedgerContext.PolicyBlock(
           workflowId = workflowId,
-          action = GoalAttemptLedgerAction.POLICY_BLOCK,
           issueKey = saved.manifest.issueKey,
           subtaskId = selection.subtask.id,
           progress = progressReader.safeProgress(workflowId),
@@ -215,9 +214,8 @@ internal class GoalRunnerGoalLoop(
     }
     val saved = manifestStore.save(state.copy(manifest = blockedManifest))
     ledger.recordLedgerEntry(
-      GoalRunnerLedgerContext(
+      GoalRunnerLedgerContext.PolicyBlock(
         workflowId = saved.parentWorkflowId,
-        action = GoalAttemptLedgerAction.POLICY_BLOCK,
         issueKey = saved.manifest.issueKey,
         subtaskId = subtaskId,
         blockedReason = violation,

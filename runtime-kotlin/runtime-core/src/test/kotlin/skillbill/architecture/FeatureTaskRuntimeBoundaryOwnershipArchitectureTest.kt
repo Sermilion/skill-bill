@@ -2,6 +2,7 @@ package skillbill.architecture
 
 import kotlin.io.path.readText
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -15,6 +16,7 @@ class FeatureTaskRuntimeBoundaryOwnershipArchitectureTest {
       .joinToString("\n") { path -> path.readText() }
 
     assertFalse(production.contains("phaseTokenAccumulator"))
+    assertEquals(1, Regex("""fun recordPhaseTokenUsage\(""").findAll(production).count())
     assertTrue(production.contains("fun recordPhaseTokenUsage("))
     assertTrue(production.contains("val phaseTokenView: Map<String, Pair<Int, Int>>"))
     assertFalse(
@@ -23,5 +25,9 @@ class FeatureTaskRuntimeBoundaryOwnershipArchitectureTest {
     assertFalse(
       Regex("""attempted:\s*MutableList<""").containsMatchIn(production),
     )
+    assertFalse(
+      Regex("""attempted:\s*GoalRunnerAttemptState""").containsMatchIn(production),
+    )
+    assertTrue(production.contains("recordAttempt: (Int) -> Unit"))
   }
 }

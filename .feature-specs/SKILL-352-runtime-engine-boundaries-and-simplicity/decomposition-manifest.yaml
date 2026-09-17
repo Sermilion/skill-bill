@@ -20,7 +20,7 @@ subtasks:
   commit_sha: null
   workflow_id: "wftr-20260917-073641-bqds"
   blocked_reason: null
-  last_resumable_step: null
+  last_resumable_step: "audit"
   linear_issue_id: null
   finalizing_agent_id: null
   participating_agent_ids: []

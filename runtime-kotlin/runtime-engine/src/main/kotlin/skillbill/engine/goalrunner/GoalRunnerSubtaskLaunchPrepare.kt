@@ -3,7 +3,6 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.application.workflow.generateWorkflowId
 import skillbill.engine.goalrunner.model.GoalRunnerRunEvent
 import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
-import skillbill.engine.goalrunner.model.GoalRunnerSubtaskLaunchBoundaries
 import skillbill.engine.goalrunner.planning.goalPlanningChildImportConflictBlockedReason
 import skillbill.engine.goalrunner.planning.model.GoalPlanningSweepOutcome
 import skillbill.error.IncompatibleGoalPlanningPreparationRecoveryError

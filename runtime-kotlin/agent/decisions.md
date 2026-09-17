@@ -8,9 +8,10 @@ not the implementation detail.
 Context: The runtime-engine boundary cleanup needs a repeatable count while
 fact-only argument bags and port-carrying collaborators are dissolved.
 Decision: Keep `LongParameterList.functionThreshold` at `6`. The current
-production census is 16 `Args`, 19 `Context`, 5 `Inputs`, 1 `Deps`, and 3
-`Boundaries` declarations; the cleanup must reduce this census without adding
-another bag or a suppression.
+runtime-engine production census is 115 `Args`, 22
+`Context`, 5 `Inputs`, 0 `Deps`, and 7 `Boundaries` declarations. This is the
+current census, not an exemption for the remaining fact-only bags; the
+dissolution must not add another bag or suppression.
 Reason: Six parameters is the existing detekt limit and leaves collaborator
 constructors explicit. Raising it would hide a dependency surface that the
 boundary cleanup is intended to expose.

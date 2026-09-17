@@ -11,7 +11,6 @@ import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeSubtaskCommitIdentity
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeSubtaskFinalisationBlocked
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeSubtaskFinalisationResult
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeSubtaskFinaliseRequest
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeSubtaskFinalised
 import skillbill.error.FeatureTaskRuntimePhaseOutputFailureKind
 import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
@@ -753,7 +752,8 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
     args: SettleValidatedOutputAfterFingerprintArgs,
   ): AttemptResult {
     return with(FeatureTaskRuntimeRunLoopOutputVerification) {
-      completionProjectionRejection(
+      FeatureTaskRuntimeRunLoopOutputVerification.completionProjectionRejection(
+        this@settleValidatedOutputAfterPause,
         CompletionProjectionRejectionArgs(
           run = args.capture.run,
           normalizedOutput = args.attested,
@@ -784,7 +784,8 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
         )
       }
       ?: with(FeatureTaskRuntimeRunLoopAuditRetry) {
-        this@settleValidatedOutputAfterPause.settleCompletedAuditRound(
+        settleCompletedAuditRound(
+          this@settleValidatedOutputAfterPause,
           args.capture,
           args.attested.envelopeWireMap(),
         )
@@ -831,7 +832,8 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
     commitBlocked?.let { return it }
     FeatureTaskRuntimeRunLoopAttemptSettlement.retainSettledProducerOutput(request, state, recorder, clock, capture)
     return with(FeatureTaskRuntimeRunLoopOutputVerification) {
-      this@finalizeValidatedOutputAcceptance.persistAcceptedOutput(
+      FeatureTaskRuntimeRunLoopOutputVerification.persistAcceptedOutput(
+        this@finalizeValidatedOutputAcceptance,
         PersistAcceptedOutputArgs(
           run = run,
           iteration = capture.iteration,

@@ -1,9 +1,11 @@
 
 package skillbill.engine
+import skillbill.engine.featuretask.auditPhaseTaskDirective
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFeatureSize
 import kotlin.test.Test
 import kotlin.test.assertContains
+import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -271,6 +273,29 @@ class FeatureTaskRuntimePhasePromptComposerContentTest {
     assertContains(prompt, "Validation owns test execution")
     assertTrue(!prompt.contains("TEST EXCLUSION"))
     assertTrue(!prompt.contains("free-form note prose"))
+  }
+
+  @Test
+  fun `audit remaining-criteria briefing is identical across shipped platform pack gates`() {
+    val briefing = promptComposerBriefingFor("audit")
+    val baseline = composePhasePrompt(PROMPT_COMPOSER_ISSUE_KEY, briefing)
+    val slugs = shippedPlatformPackSlugs()
+    assertTrue(slugs.isNotEmpty(), "expected shipped platform packs under platform-packs/")
+    (slugs + "unshipped-pack").forEach { slug ->
+      val prompt = composePhasePrompt(PROMPT_COMPOSER_ISSUE_KEY, briefing) {
+        copy(
+          packCollectAllCommand = "collect-all-$slug",
+          packConfirmationGateCommand = "confirm-$slug",
+          packBuildCommand = "build-$slug",
+        )
+      }
+      assertEquals(baseline, prompt, "audit remaining-criteria contract forked for pack $slug")
+      assertContains(prompt, auditPhaseTaskDirective())
+      assertContains(prompt, "The runtime does not validate remaining-list shape")
+      assertTrue(!prompt.contains("collect-all-$slug"))
+      assertTrue(!prompt.contains("confirm-$slug"))
+      assertTrue(!prompt.contains("build-$slug"))
+    }
   }
 
   @Test

@@ -1,8 +1,6 @@
 package skillbill.engine.featuretask
 
 import me.tatarka.inject.annotations.Inject
-import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseGateBranchBoundaries
-import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseGateValidationBoundaries
 
 @Inject
 class FeatureTaskRuntimePhaseGates(

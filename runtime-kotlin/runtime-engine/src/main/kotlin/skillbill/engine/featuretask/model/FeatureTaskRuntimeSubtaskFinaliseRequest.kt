@@ -1,6 +1,7 @@
-package skillbill.engine.featuretask.model
+package skillbill.engine.featuretask
 
-import skillbill.engine.featuretask.FeatureTaskRuntimeCheckpointMetadata
+import skillbill.engine.featuretask.model.FeatureTaskRuntimeCommitPushHandoff
+import skillbill.engine.featuretask.model.FeatureTaskRuntimeSubtaskCommitIdentity
 
 data class FeatureTaskRuntimeSubtaskFinaliseRequest(
   val identity: FeatureTaskRuntimeSubtaskCommitIdentity,

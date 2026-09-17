@@ -1,4 +1,4 @@
-package skillbill.engine.goalrunner.planning.model
+package skillbill.engine.goalrunner.planning
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.engine.goalplanning.GoalPlanningPreparationCheckpoint

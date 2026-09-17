@@ -3,11 +3,9 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.application.decomposition.resolvedParentSpecPath
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeCheckpointRefPruneRequest
 import skillbill.engine.featuretask.pruneCompletedSubtaskCheckpointRefs
-import skillbill.engine.goalrunner.model.GoalRunnerFinalizationBoundaries
 import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
 import skillbill.error.InvalidUnaddressedFindingsLedgerSchemaError
 import skillbill.error.UnaddressedFindingsLedgerAbsentError
-import skillbill.goalrunner.model.GoalAttemptLedgerAction
 import skillbill.goalrunner.model.GoalPullRequestStatus
 import skillbill.goalrunner.model.GoalRunnerReconciledOutcome
 import skillbill.goalrunner.model.GoalRunnerRunReport
@@ -161,9 +159,8 @@ fun GoalRunnerFinalization.reconcileBeforeFinalization(
     .lastOrNull { subtask -> !subtask.workflowId.isNullOrBlank() }
     ?.let { subtask ->
       ledger.recordLedgerEntry(
-        GoalRunnerLedgerContext(
+        GoalRunnerLedgerContext.FinalReconciledOutcome(
           workflowId = subtask.workflowId,
-          action = GoalAttemptLedgerAction.FINAL_RECONCILED_OUTCOME,
           issueKey = state.manifest.issueKey,
           subtaskId = subtask.id,
           progress = subtask.workflowId?.let { progressReader.safeProgress(it) },

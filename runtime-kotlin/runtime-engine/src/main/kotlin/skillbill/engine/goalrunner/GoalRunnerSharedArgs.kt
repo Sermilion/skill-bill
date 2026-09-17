@@ -17,8 +17,6 @@ import skillbill.ports.goalrunner.planning.model.GoalPlanningResolvedBoundaryBod
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.workflow.decomposition.model.DecompositionSubtask
-import skillbill.workflow.goal.model.GoalProgressEventKind
-import skillbill.workflow.goal.model.GoalProgressOutcome
 
 internal data class DriveGoalLoopArgs(
   val initialState: GoalRunnerManifestState,
@@ -51,7 +49,8 @@ internal data class RunSelectedSubtaskArgs(
   val state: GoalRunnerManifestState,
   val selection: GoalRunnerSelection.Run,
   val request: GoalRunnerRunRequest,
-  val attempted: GoalRunnerAttemptState,
+  val attempted: List<Int>,
+  val recordAttempt: (Int) -> Unit,
   val observability: GoalRunnerObservabilityEmitter,
   val ledger: GoalRunnerLedgerRecorder,
   val telemetryEmitter: GoalRunnerTelemetryEmitter?,
@@ -65,7 +64,7 @@ internal data class DispatchWorkerResultArgs(
   val workerRequestResult: GoalRunnerWorkerRequestHandlingResult,
   val launchReconciliation: GoalRunnerLaunchReconciliation,
   val request: GoalRunnerRunRequest,
-  val attempted: GoalRunnerAttemptState,
+  val attempted: List<Int>,
   val observability: GoalRunnerObservabilityEmitter,
   val ledger: GoalRunnerLedgerRecorder,
   val attemptStartMillis: Long?,
@@ -162,12 +161,3 @@ internal data class EmptyOrStoppedArgs(
   val durationMs: Long,
 )
 
-internal data class BuildDeclaredGoalProgressEventArgs(
-  val sourceLabel: String,
-  val eventKind: GoalProgressEventKind,
-  val workflowId: String,
-  val workflowPhase: String,
-  val sequenceNumber: Int,
-  val timestamp: String,
-  val outcome: GoalProgressOutcome,
-)

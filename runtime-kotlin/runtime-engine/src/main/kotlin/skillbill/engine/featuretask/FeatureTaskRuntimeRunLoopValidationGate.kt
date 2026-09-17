@@ -232,7 +232,7 @@ object FeatureTaskRuntimeRunLoopValidationGate {
     val findings = args.findings
     val triageRun = run.copy(validationGateFindings = findings, validationGateTriage = true)
     val attempt = with(FeatureTaskRuntimeRunLoopRecordRejection) {
-      this@launchValidationGateTriage.attemptOnce(
+      FeatureTaskRuntimeRunLoopRecordRejection.attemptOnce(this@launchValidationGateTriage,
         recordRejectionAttemptArgs(
           PhaseAttemptContext(triageRun, state, iteration, observability),
         ),
@@ -462,7 +462,7 @@ object FeatureTaskRuntimeRunLoopValidationGate {
       validationGateRepair = true,
     )
     val attempt = with(FeatureTaskRuntimeRunLoopRecordRejection) {
-      this@launchValidationGateRepair.attemptOnce(
+      FeatureTaskRuntimeRunLoopRecordRejection.attemptOnce(this@launchValidationGateRepair,
         recordRejectionAttemptArgs(
           PhaseAttemptContext(repairRun, state, iteration, observability),
         ),
@@ -837,7 +837,7 @@ object FeatureTaskRuntimeRunLoopValidationGate {
     val loop = args.loop
     val agentId = args.agentId
     val attempt = with(FeatureTaskRuntimeRunLoopRecordRejection) {
-      this@resolveFixLoopOutcome.attemptOnce(
+      FeatureTaskRuntimeRunLoopRecordRejection.attemptOnce(this@resolveFixLoopOutcome,
         recordRejectionAttemptArgs(
           PhaseAttemptContext(run, state, loop.iteration, observability, loop.outputGateFailures),
           priorCorrection = loop.priorCorrection,

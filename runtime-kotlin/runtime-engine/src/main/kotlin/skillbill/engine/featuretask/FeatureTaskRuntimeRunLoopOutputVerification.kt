@@ -93,14 +93,14 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
       ?.takeIf { it.priorValueSegments.isNotEmpty() }
   }
 
-  internal fun FeatureTaskRuntimeRunLoopContext.completionProjectionRejection(
+  internal fun completionProjectionRejection(context: FeatureTaskRuntimeRunLoopContext,
     args: CompletionProjectionRejectionArgs,
   ): Pair<String, String>? = producerProjectionGateReason(
     args.run.phaseId,
     args.normalizedOutput.envelopeWireMap(),
     phaseGates.planningProjectionValidator,
   )?.let { "producer-projection" to it }
-    ?: immediateConsumerProjectionGateReason(
+    ?: FeatureTaskRuntimeRunLoopOutputVerification.immediateConsumerProjectionGateReason(context,
       ImmediateConsumerProjectionGateArgs(
         run = args.run,
         iteration = args.iteration,
@@ -125,9 +125,10 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
     outputMap,
   )?.let { "mutating-reconciliation" to it }
 
-  internal fun FeatureTaskRuntimeRunLoopContext.immediateConsumerProjectionGateReason(
+  internal fun immediateConsumerProjectionGateReason(context: FeatureTaskRuntimeRunLoopContext,
     args: ImmediateConsumerProjectionGateArgs,
   ): String? {
+    with(context) {
     val run = args.run
     val iteration = args.iteration
     val normalizedOutput = args.normalizedOutput
@@ -183,7 +184,8 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
       "Phase '${run.phaseId}' reported 'completed' but its output cannot frame immediate consumer " +
         "'$consumerPhaseId': ${boundedSchemaGateDetail(error.message.orEmpty())}"
     }
-  }
+
+    }}
 
   internal fun recordedFindingVerdictsForFixHandoff(
     recorder: FeatureTaskRuntimePhaseRecorder,
@@ -531,7 +533,8 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
     )
   }
 
-  internal fun FeatureTaskRuntimeRunLoopContext.persistAcceptedOutput(args: PersistAcceptedOutputArgs): AttemptResult {
+  internal fun persistAcceptedOutput(context: FeatureTaskRuntimeRunLoopContext, args: PersistAcceptedOutputArgs): AttemptResult {
+    with(context) {
     val run = args.run
     val iteration = args.iteration
     val normalizedOutput = args.normalizedOutput
@@ -553,11 +556,11 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
     if (FeatureTaskRuntimeRunLoopOutputPersistence.isGoalReviewRun(run)) {
       with(FeatureTaskRuntimeRunLoopOutputPersistence) {
         FeatureTaskRuntimeRunLoopOutputPersistence.ReviewOutputPersistenceContext(
-          request = this@persistAcceptedOutput.request,
-          state = this@persistAcceptedOutput.state,
-          recorder = this@persistAcceptedOutput.recorder,
+          request = context.request,
+          state = context.state,
+          recorder = context.recorder,
           observability = observability,
-          goalContinuationRecorder = this@persistAcceptedOutput.goalContinuationRecorder,
+          goalContinuationRecorder = context.goalContinuationRecorder,
         ).persistGoalReviewCompletion(
           reviewArgs,
           normalizedOutput,
@@ -567,7 +570,7 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
         return AttemptResult.settled(outcome)
       }
     } else {
-      persistStandardAcceptedOutput(
+      FeatureTaskRuntimeRunLoopOutputVerification.persistStandardAcceptedOutput(context,
         PersistStandardAcceptedOutputArgs(
           accepted = PersistAcceptedOutputArgs(
             run = run,
@@ -584,7 +587,8 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
     }
     observability.completedEvent(run.phaseId, run.resolvedAgent.resolvedAgentId, iteration)
     return completedAttemptResult(run, iteration, outputText, normalizedOutput, repairEvidence)
-  }
+
+    }}
 
   internal fun buildRepositoryCheckpoint(
     args: RepositoryCheckpointResolutionArgs,
@@ -786,9 +790,10 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
     ),
   )
 
-  internal fun FeatureTaskRuntimeRunLoopContext.persistStandardAcceptedOutput(
+  internal fun persistStandardAcceptedOutput(context: FeatureTaskRuntimeRunLoopContext,
     args: PersistStandardAcceptedOutputArgs,
   ): AttemptResult? {
+    with(context) {
     val accepted = args.accepted
     val run = accepted.run
     val iteration = accepted.iteration
@@ -798,7 +803,7 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
     val fileManifest = accepted.fileManifest
     val repositoryFingerprint = accepted.repositoryFingerprint
     val outputText = args.outputText
-    persistRejectedVerificationFindingsIfNeeded(run, normalizedOutput)
+    FeatureTaskRuntimeRunLoopOutputVerification.persistRejectedVerificationFindingsIfNeeded(context, run, normalizedOutput)
     val persisted = recorder.recordCompletedPhase(
       FeatureTaskRuntimeRunLoopOutputPersistence.phaseStateRequest(
         request,
@@ -840,12 +845,14 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
       )
     }
     return null
-  }
 
-  private fun FeatureTaskRuntimeRunLoopContext.persistRejectedVerificationFindingsIfNeeded(
+    }}
+
+  private fun persistRejectedVerificationFindingsIfNeeded(context: FeatureTaskRuntimeRunLoopContext,
     run: PhaseRun,
     normalizedOutput: NormalizedFeatureTaskRuntimePhaseOutput,
   ) {
+    with(context) {
     if (run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VERIFY_FINDINGS) return
     FeatureTaskRuntimeRunLoopOutputPersistence.persistRejectedVerificationFindings(
       PersistRejectedVerificationFindingsArgs(
@@ -857,7 +864,8 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
         normalizedOutput.envelopeWireMap(),
       ),
     )
-  }
+
+    }}
 
   internal fun completedAttemptResult(
     run: PhaseRun,

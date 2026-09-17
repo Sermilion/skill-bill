@@ -2,7 +2,6 @@ package skillbill.engine.goalrunner
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.engine.goalrunner.model.GoalRunPreparation
-import skillbill.engine.goalrunner.model.GoalRunnerDeps
 import skillbill.engine.goalrunner.model.GoalRunnerRunEvent
 import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
 import skillbill.engine.goalrunner.planning.model.GoalPlanningSweepOutcome
@@ -12,16 +11,16 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 
 @Inject
 class GoalRunner(
-  private val deps: GoalRunnerDeps,
+  private val runBoundaries: GoalRunnerRunBoundaries,
+  private val runPreparation: GoalRunnerRunPreparation,
+  private val perRunLoopAssembler: GoalRunnerPerRunLoopAssembler,
 ) {
-  private val perRunLoopAssembler = GoalRunnerPerRunLoopAssembler(deps)
-
-  private val manifestStore get() = deps.runBoundaries.manifestStore
-  private val outcomeStore get() = deps.runBoundaries.outcomeStore
-  private val goalPlanningSweep get() = deps.runBoundaries.goalPlanningSweep
-  private val clock get() = deps.runBoundaries.clock
-  private val diagnostics get() = deps.runBoundaries.diagnostics
-  private val executionCoordinator get() = deps.runBoundaries.executionCoordinator
+  private val manifestStore = runBoundaries.manifestStore
+  private val outcomeStore = runBoundaries.outcomeStore
+  private val goalPlanningSweep = runBoundaries.goalPlanningSweep
+  private val clock = runBoundaries.clock
+  private val diagnostics = runBoundaries.diagnostics
+  private val executionCoordinator = runBoundaries.executionCoordinator
 
   fun run(request: GoalRunnerRunRequest): GoalRunnerRunReport {
     val loadedState = manifestStore.loadByIssueKey(request.issueKey, request.repoRoot)
@@ -29,7 +28,7 @@ class GoalRunner(
     return try {
       executionCoordinator.runOwned(loadedState.parentWorkflowId) {
         val state = reconcileStateBeforeRun(loadedState)
-        when (val preparation = deps.runPreparation.prepareRun(state, request)) {
+        when (val preparation = runPreparation.prepareRun(state, request)) {
           is GoalRunPreparation.PreparationBlocked -> preparation.report
           is GoalRunPreparation.Prepared -> runPrepared(preparation)
         }
@@ -74,9 +73,9 @@ class GoalRunner(
     val ledger = GoalRunnerLedgerRecorder(outcomeStore, effectiveRequest, clock, diagnostics)
     effectiveRequest.eventSink.emit(GoalRunnerRunEvent.Started(state.manifest.issueKey))
     val telemetryEmitter =
-      GoalRunnerTelemetryEmitter(deps.runBoundaries.telemetry, clock, state)
+      GoalRunnerTelemetryEmitter(runBoundaries.telemetry, clock, state)
         .also { it.goalStarted() }
-    deps.pauseBoundary.pauseBeforeLaunch(state)?.let { paused ->
+    pauseBoundary.pauseBeforeLaunch(state)?.let { paused ->
       val pausedReport = requireNotNull(paused.report)
       closeGoalTelemetrySegment(telemetryEmitter, state, pausedReport, emptyList())
       return pausedReport

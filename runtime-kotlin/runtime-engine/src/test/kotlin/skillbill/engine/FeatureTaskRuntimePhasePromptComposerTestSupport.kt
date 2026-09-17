@@ -1,5 +1,7 @@
 
 package skillbill.engine
+import java.nio.file.Files
+import java.nio.file.Path
 import skillbill.application.realPlanningProjectionValidator
 import skillbill.engine.featuretask.FeatureTaskRuntimePhaseBriefingAssembler
 import skillbill.engine.featuretask.FeatureTaskRuntimePhasePromptComposer
@@ -146,6 +148,29 @@ internal fun promptComposerImplementationContinuation() = FeatureTaskRuntimeImpl
   latestPrompt = "optional directive",
   failureDisposition = null,
 )
+
+internal fun shippedPlatformPackSlugs(): List<String> {
+  val packs = locateAncestorDirectory("platform-packs")
+  return Files.list(packs).use { stream ->
+    stream
+      .filter { path -> Files.isDirectory(path) && Files.isRegularFile(path.resolve("platform.yaml")) }
+      .map { path -> path.fileName.toString() }
+      .sorted()
+      .toList()
+  }
+}
+
+internal fun locateAncestorDirectory(name: String): Path {
+  var dir: Path? = Path.of("").toAbsolutePath().normalize()
+  while (dir != null) {
+    val candidate = dir.resolve(name)
+    if (Files.isDirectory(candidate)) {
+      return candidate
+    }
+    dir = dir.parent
+  }
+  error("test working directory has no ancestor named $name")
+}
 
 internal fun promptComposerCorrectiveContext(body: String): FeatureTaskRuntimeCorrectiveRepairContext =
   FeatureTaskRuntimeCorrectiveRepairContext(

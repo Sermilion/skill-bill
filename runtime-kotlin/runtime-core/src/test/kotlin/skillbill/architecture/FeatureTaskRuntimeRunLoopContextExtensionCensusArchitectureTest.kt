@@ -12,7 +12,17 @@ class FeatureTaskRuntimeRunLoopContextExtensionCensusArchitectureTest {
     val documented = documentedCensus()
 
     assertEquals(documented.keys, actual.keys)
-    assertEquals(documented.mapValues { (_, counts) -> counts.current }, actual)
+    assertEquals(documented.mapValues { (_, counts) -> counts.target }, actual)
+    assertEquals(
+      documented.mapValues { (_, counts) -> counts.target },
+      documented.mapValues { (_, counts) -> counts.current },
+      "The documented current census must equal its retained target.",
+    )
+    assertEquals(
+      27,
+      actual.values.sum(),
+      "The run-loop context extension surface must not grow beyond the retained target.",
+    )
     assertEquals(
       documented.values.sumOf { counts -> counts.target },
       27,

@@ -1,4 +1,4 @@
-package skillbill.engine.goalrunner.model
+package skillbill.engine.goalrunner
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.telemetry.GoalLifecycleTelemetryEmitter

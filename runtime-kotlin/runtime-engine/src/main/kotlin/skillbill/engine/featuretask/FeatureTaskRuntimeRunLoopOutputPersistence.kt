@@ -1,7 +1,6 @@
 package skillbill.engine.featuretask
 
 import skillbill.application.review.RuntimeOwnedReviewMode
-import skillbill.engine.featuretask.model.FeatureTaskRuntimePhasePromptComposeInputs
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
 import skillbill.engine.featuretask.model.GoalReviewPhaseCompletionRequest
@@ -212,7 +211,8 @@ object FeatureTaskRuntimeRunLoopOutputPersistence {
     ),
   )
 
-  internal fun FeatureTaskRuntimeRunLoopContext.prepareLaunch(args: PrepareLaunchArgs): PreparedLaunch {
+  internal fun prepareLaunch(context: FeatureTaskRuntimeRunLoopContext, args: PrepareLaunchArgs): PreparedLaunch {
+    with(context) {
     val run = args.run
     val state = args.state
     val priorCorrection = args.priorCorrection
@@ -248,7 +248,7 @@ object FeatureTaskRuntimeRunLoopOutputPersistence {
         sharedEvidence?.measurement,
       )
     }
-    val prompt = composeLaunchPrompt(
+    val prompt = FeatureTaskRuntimeRunLoopOutputPersistence.composeLaunchPrompt(context,
       ComposeLaunchPromptArgs(
         run,
         state,
@@ -259,7 +259,8 @@ object FeatureTaskRuntimeRunLoopOutputPersistence {
       ),
     )
     return PreparedLaunch(briefing, prompt)
-  }
+
+    }}
 
   private fun assembleLaunchHandoff(
     request: FeatureTaskRuntimeRunRequest,
@@ -289,14 +290,17 @@ object FeatureTaskRuntimeRunLoopOutputPersistence {
     ),
   )
 
-  private fun FeatureTaskRuntimeRunLoopContext.composeLaunchPrompt(args: ComposeLaunchPromptArgs): String {
-    return FeatureTaskRuntimePhasePromptComposer.compose(composeLaunchPromptInputs(args)) +
+  private fun composeLaunchPrompt(context: FeatureTaskRuntimeRunLoopContext, args: ComposeLaunchPromptArgs): String {
+    with(context) {
+    return FeatureTaskRuntimePhasePromptComposer.compose(FeatureTaskRuntimeRunLoopOutputPersistence.composeLaunchPromptInputs(context, args)) +
       FeatureTaskRuntimeRunLoopLaunch.verifyFindingsSpecIntentSection(state, recorder, session, phaseGates, args.run)
-  }
 
-  private fun FeatureTaskRuntimeRunLoopContext.composeLaunchPromptInputs(
+    }}
+
+  private fun composeLaunchPromptInputs(context: FeatureTaskRuntimeRunLoopContext,
     args: ComposeLaunchPromptArgs,
   ): FeatureTaskRuntimePhasePromptComposeInputs {
+    with(context) {
     val run = args.run
     val state = args.state
     val handoff = args.handoff
@@ -304,7 +308,7 @@ object FeatureTaskRuntimeRunLoopOutputPersistence {
     val briefing = args.briefing
     val context = this
     val resolvedBranchRecord = recorder.loadResolvedBranch(run.request.workflowId)
-    val (passNumber, depthResolution, executedTier) = context.resolveReviewPromptTier(run, state)
+    val (passNumber, depthResolution, executedTier) = FeatureTaskRuntimeRunLoopOutputPersistence.resolveReviewPromptTier(context, run, state)
     return FeatureTaskRuntimePhasePromptComposeInputs(
       issueKey = run.request.issueKey,
       briefing = briefing,
@@ -330,46 +334,54 @@ object FeatureTaskRuntimeRunLoopOutputPersistence {
       validationGateRepair = run.validationGateRepair,
       validationGateTriage = run.validationGateTriage,
       agentRunValidateFallback = run.agentRunValidateFallback,
-      packCollectAllCommand = packCollectAllCommand(run),
-      packConfirmationGateCommand = packConfirmationGateCommand(run),
-      packBuildCommand = packBuildCommand(run),
+      packCollectAllCommand = FeatureTaskRuntimeRunLoopOutputPersistence.packCollectAllCommand(context, run),
+      packConfirmationGateCommand = FeatureTaskRuntimeRunLoopOutputPersistence.packConfirmationGateCommand(context, run),
+      packBuildCommand = FeatureTaskRuntimeRunLoopOutputPersistence.packBuildCommand(context, run),
       auditRetryFocusHint = session.auditRetryFocusHint?.takeIf {
         run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT
       },
     )
-  }
 
-  private fun FeatureTaskRuntimeRunLoopContext.packCollectAllCommand(run: PhaseRun): String? =
-    FeatureTaskRuntimeRunLoopValidationGate.packCollectAllCommand(
-      phaseGates,
-      recorder,
-      goalContinuationRecorder,
-      session,
-      run,
-    )
+    }}
 
-  private fun FeatureTaskRuntimeRunLoopContext.packConfirmationGateCommand(run: PhaseRun): String? =
-    FeatureTaskRuntimeRunLoopValidationGate.packConfirmationGateCommand(
-      phaseGates,
-      recorder,
-      goalContinuationRecorder,
-      session,
-      run,
-    )
+  private fun packCollectAllCommand(context: FeatureTaskRuntimeRunLoopContext, run: PhaseRun): String? =
+    with(context) {
+      FeatureTaskRuntimeRunLoopValidationGate.packCollectAllCommand(
+        phaseGates,
+        recorder,
+        goalContinuationRecorder,
+        session,
+        run,
+      )
+    }
 
-  private fun FeatureTaskRuntimeRunLoopContext.packBuildCommand(run: PhaseRun): String? =
-    FeatureTaskRuntimeRunLoopValidationGate.packBuildCommand(
-      phaseGates,
-      recorder,
-      goalContinuationRecorder,
-      session,
-      run,
-    )
+  private fun packConfirmationGateCommand(context: FeatureTaskRuntimeRunLoopContext, run: PhaseRun): String? =
+    with(context) {
+      FeatureTaskRuntimeRunLoopValidationGate.packConfirmationGateCommand(
+        phaseGates,
+        recorder,
+        goalContinuationRecorder,
+        session,
+        run,
+      )
+    }
 
-  private fun FeatureTaskRuntimeRunLoopContext.resolveReviewPromptTier(
+  private fun packBuildCommand(context: FeatureTaskRuntimeRunLoopContext, run: PhaseRun): String? =
+    with(context) {
+      FeatureTaskRuntimeRunLoopValidationGate.packBuildCommand(
+        phaseGates,
+        recorder,
+        goalContinuationRecorder,
+        session,
+        run,
+      )
+    }
+
+  private fun resolveReviewPromptTier(context: FeatureTaskRuntimeRunLoopContext,
     run: PhaseRun,
     state: FeatureTaskRuntimeRunState,
   ): Triple<Int?, ReviewPassResolution?, CodeReviewExecutionMode> {
+    with(context) {
     val passNumber = reviewPassNumber(request, goalContinuationRecorder, run, state)
     val resolution = passNumber?.let { pass ->
       FeatureTaskRuntimeReviewPassSequence.resolveForPass(run.request.runInvariants.codeReviewMode, pass)
@@ -386,7 +398,8 @@ object FeatureTaskRuntimeRunLoopOutputPersistence {
       )
     }
     return Triple(passNumber, resolution, executedTier)
-  }
+
+    }}
 
   internal fun persistPhase(
     request: FeatureTaskRuntimeRunRequest,

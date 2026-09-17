@@ -84,6 +84,87 @@ class ApplicationPackageAcyclicityArchitectureTest {
     assertTrue(violations.single().contains("alpha <-> beta"))
   }
 
+  @Test
+  fun `engine model subareas have an empty parent import baseline`() {
+    val forbiddenEdges = listOf(
+      "skillbill.engine.featuretask.model" to "skillbill.engine.featuretask",
+      "skillbill.engine.goalrunner.model" to "skillbill.engine.goalrunner",
+      "skillbill.engine.goalrunner.planning.model" to "skillbill.engine.goalrunner.planning",
+    )
+    val engineRoot = ArchitectureScanSupport.runtimeRoot.resolve(
+      "runtime-kotlin/runtime-engine/src/main/kotlin",
+    )
+    val violations = ArchitectureScanSupport.kotlinFilesUnder(engineRoot).flatMap { sourceFile ->
+      val source = sourceFile.readText()
+      val declaredPackage = ArchitectureScanSupport.declaredPackage(source)
+      if (declaredPackage == null) {
+        emptyList()
+      } else {
+        forbiddenEdges.flatMap { (modelPackage, parentPackage) ->
+          if (declaredPackage != modelPackage) {
+            emptyList()
+          } else {
+            ArchitectureScanSupport.declaredImports(source)
+              .filter { imported -> imported == parentPackage || imported.startsWith("$parentPackage.") }
+              .map { imported -> "${engineRoot.relativize(sourceFile)}: $modelPackage -> $imported" }
+          }
+        }
+      }
+    }
+    assertEquals(emptyList(), violations)
+  }
+
+  @Test
+  fun `engine subareas have an empty package cycle baseline`() {
+    val engineRoot = "runtime-kotlin/runtime-engine/src/main/kotlin"
+    val subareas = listOf(
+      "skillbill.engine.featuretask",
+      "skillbill.engine.goalrunner",
+      "skillbill.engine.goalrunner.planning",
+    )
+    val violations = subareas.flatMap { packagePrefix ->
+      ArchitectureScanSupport.packageCycleViolations(
+        baselineCycles = emptySet(),
+        scanRoot = engineRoot,
+        packagePrefix = packagePrefix,
+      ).map { violation -> "$packagePrefix: $violation" }
+    }
+    assertEquals(emptyList(), violations)
+  }
+
+  @Test
+  fun `engine model packages contain no injected data classes or goal runner dependency bag`() {
+    val engineRoot = ArchitectureScanSupport.runtimeRoot.resolve(
+      "runtime-kotlin/runtime-engine/src/main/kotlin",
+    )
+    val violations = ArchitectureScanSupport.kotlinFilesUnder(engineRoot).flatMap { sourceFile ->
+      val source = sourceFile.readText()
+      val packageName = ArchitectureScanSupport.declaredPackage(source).orEmpty()
+      buildList {
+        if (packageName.endsWith(".model") &&
+          Regex("""@Inject\s+data\s+class""").containsMatchIn(source)
+        ) {
+          add("${engineRoot.relativize(sourceFile)} declares an injected model data class")
+        }
+        if (Regex("""\b(?:class|data class|interface)\s+GoalRunnerDeps\b""").containsMatchIn(source)) {
+          add("${engineRoot.relativize(sourceFile)} declares GoalRunnerDeps")
+        }
+      }
+    }
+    assertEquals(emptyList(), violations)
+  }
+
+  @Test
+  fun `goal runner exposes direct dependencies below the constructor threshold`() {
+    val source = ArchitectureScanSupport.runtimeRoot.resolve(
+      "runtime-kotlin/runtime-engine/src/main/kotlin/skillbill/engine/goalrunner/GoalRunner.kt",
+    ).readText()
+    val constructor = source.substringAfter("class GoalRunner(").substringBefore(") {")
+    assertEquals(3, Regex("""private val \w+:""").findAll(constructor).count())
+    assertTrue(!Regex("""\bfun\s+get\s*\(""").containsMatchIn(source))
+    assertTrue(!Regex("""\bGoalRunnerDeps\b""").containsMatchIn(source))
+  }
+
   private fun assertPackageCyclesMatchBaseline(moduleName: String) {
     val scanCase = PrincipleEnforcementInventory.moduleArchitectureScanCases
       .single { scanCase -> scanCase.moduleName == moduleName }

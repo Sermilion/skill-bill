@@ -60,7 +60,7 @@ object FeatureTaskRuntimeRunLoopDrive {
   internal fun phaseEntryBlockReason(context: FeatureTaskRuntimeRunLoopContext, phaseId: String): String? =
     entryGateBlockReason(context.state, context.transitions, phaseId)
       ?: with(FeatureTaskRuntimeRunLoopBackwardEdge) {
-        context.capExhaustedOnResume(phaseId)
+        FeatureTaskRuntimeRunLoopBackwardEdge.capExhaustedOnResume(context, phaseId)
       }
       ?: reconcileCompletedGoalReviewPass(context, phaseId)
 
@@ -186,7 +186,7 @@ object FeatureTaskRuntimeRunLoopDrive {
     val edge = FeatureTaskRuntimeRunLoopCheckpoint.matchingBackwardEdge(context.transitions, phaseId, effectiveVerdict)
     edge?.let {
       with(FeatureTaskRuntimeRunLoopBackwardEdge) {
-        context.resumeInFlightReviewFix(it)
+        FeatureTaskRuntimeRunLoopBackwardEdge.resumeInFlightReviewFix(context, it)
       }
     }?.let { return it }
     val edgeIterationCount = edge?.let {
@@ -205,7 +205,8 @@ object FeatureTaskRuntimeRunLoopDrive {
       ),
     )
     return with(FeatureTaskRuntimeRunLoopTransitions) {
-      context.transitionTarget(
+      transitionTarget(
+        context,
         phaseId,
         edge,
         effectiveVerdict,
@@ -417,8 +418,8 @@ object FeatureTaskRuntimeRunLoopDrive {
         }
     } else {
       with(FeatureTaskRuntimeRunLoopBackwardEdge) {
-        context.establishBranchIfNeeded(phaseId)
-          ?: context.runPhaseFor(phaseId)
+        FeatureTaskRuntimeRunLoopBackwardEdge.establishBranchIfNeeded(context, phaseId)
+          ?: FeatureTaskRuntimeRunLoopBackwardEdge.runPhaseFor(context, phaseId)
       }
     }
 

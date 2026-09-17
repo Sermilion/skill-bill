@@ -3,6 +3,7 @@ package skillbill.engine
 import skillbill.agentaddon.model.AgentAddonSelection
 import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
 import skillbill.application.RecordingSpecScratchStore
+import skillbill.application.TestDecompositionManifestStore
 import skillbill.application.decomposition.parentSpecPath
 import skillbill.application.testHarnessClock
 import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeWireArtifactValidator
@@ -33,9 +34,10 @@ import skillbill.engine.goalrunner.testActivityStampWriter
 import skillbill.engine.goalrunner.testGoalRunner
 import skillbill.engine.goalrunner.testGoalRunnerStatusService
 import skillbill.engine.goalrunner.testPhaseRecorder
+import skillbill.engine.goalrunner.testWorkflowGoalRunnerManifestStore
+import skillbill.engine.goalrunner.testWorkflowGoalRunnerOutcomeStore
 import skillbill.error.IncompatibleGoalPlanningPreparationRecoveryError
 import skillbill.goalrunner.model.ExecutionLiveness
-import skillbill.goalrunner.model.GoalAttemptLedgerAction
 import skillbill.goalrunner.model.GoalObservabilityProgressEvent
 import skillbill.goalrunner.model.GoalPlanningStatusReasons
 import skillbill.goalrunner.model.GoalPlanningStatusReasons.NOT_STARTED
@@ -56,6 +58,7 @@ import skillbill.goalrunner.model.GoalRunnerSupervisionEvent
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
 import skillbill.goalrunner.model.GoalRunnerWorkerSubtaskRequestOutcome
 import skillbill.goalrunner.model.UnaddressedFinding
+import skillbill.infrastructure.sqlite.SQLiteDatabaseSessionFactory
 import skillbill.goalrunner.planning.cascadeEligiblePlanSubtaskIds
 import skillbill.install.model.InstallAgent
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
@@ -116,6 +119,7 @@ import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksResult
 import skillbill.ports.workflow.gitops.model.WorkflowWorktreeActivityResult
 import skillbill.ports.workflow.model.FeatureImplementSessionSummary
 import skillbill.ports.workflow.model.FeatureTaskExecutionIdentity
+import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.FeatureTaskWorkflowCandidate
 import skillbill.ports.workflow.model.FeatureVerifySessionSummary
 import skillbill.ports.workflow.model.WorkflowStateRecord
@@ -139,6 +143,7 @@ import skillbill.workflow.goal.model.ValidationDepth
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeQualityGateSelection
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
+import skillbill.model.EnvironmentContext
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Clock
@@ -157,6 +162,71 @@ import kotlin.test.assertTrue
 import skillbill.goalrunner.model.GoalPlanningStatusState.NOT_STARTED as GoalPlanningStatusStateNOT_STARTED
 
 class GoalRunnerTest {
+  @Test
+  fun `sqlite goal runner resume preserves completed subtask state`() {
+    val root = Files.createTempDirectory("goal-runner-sqlite-resume")
+    val database = SQLiteDatabaseSessionFactory(
+      EnvironmentContext(
+        dbPathOverride = root.resolve("runtime.db").toString(),
+        environment = emptyMap(),
+        userHome = root,
+      ),
+    )
+    val workflowId = "goal-parent-sqlite-resume"
+    database.transaction { unitOfWork ->
+      unitOfWork.workflowStates.saveFeatureTaskRuntimeWorkflow(
+        WorkflowStateRecord(
+          workflowId = workflowId,
+          sessionId = "goal-parent-session",
+          workflowName = "bill-feature-task",
+          contractVersion = "0.1",
+          workflowStatus = WorkflowStatus.RUNNING.wireValue,
+          currentStepId = "commit_push",
+          stepsJson = "[]",
+          artifactsJson = "{}",
+          startedAt = null,
+          updatedAt = null,
+          finishedAt = null,
+          mode = FeatureTaskWorkflowMode.RUNTIME,
+          issueKey = "SKILL-352",
+        ),
+      )
+    }
+    val manifestStore = testWorkflowGoalRunnerManifestStore(
+      database = database,
+      decompositionManifestStore = TestDecompositionManifestStore,
+      clock = testHarnessClock,
+    )
+    val manifest = manifest(1)
+      .copy(issueKey = "SKILL-352")
+      .withCompletedSubtask(1, workflowId = "wfl-1", commitSha = "sha-1")
+    manifestStore.save(
+      GoalRunnerManifestState(
+        parentWorkflowId = workflowId,
+        dbPath = root.resolve("runtime.db").toString(),
+        manifest = manifest,
+        repoRoot = root,
+      ),
+    )
+    val outcomeStore = testWorkflowGoalRunnerOutcomeStore(database)
+    val report = testGoalRunner(
+      manifestStore = manifestStore,
+      subtaskLauncher = TestNoopGoalRunnerSubtaskLauncher,
+      outcomeStore = outcomeStore,
+      pullRequestPort = RecordingPullRequestPort(),
+    ).run(
+      GoalRunnerRunRequest(
+        issueKey = "SKILL-352",
+        repoRoot = root,
+        invokedAgentId = "claude",
+      ),
+    )
+
+    val completed = assertIs<GoalRunnerRunReport.Completed>(report)
+    assertEquals(emptyList(), completed.attemptedSubtasks)
+    assertEquals("sha-1", manifestStore.loadByIssueKey("SKILL-352", root)?.manifest?.subtasks?.single()?.commitSha)
+  }
+
   @Test
   fun `happy path launches each subtask once and opens one final pr`() {
     val store = InMemoryGoalManifestStore(manifest = manifest(subtaskCount = 2))
@@ -3527,9 +3597,8 @@ class GoalRunnerLedgerRecorderSeedingTest {
     val recorder = GoalRunnerLedgerRecorder(outcomes, ledgerRunRequest(), testHarnessClock, NoopRuntimeDiagnostics)
 
     recorder.recordLedgerEntry(
-      GoalRunnerLedgerContext(
+      GoalRunnerLedgerContext.ChildActivation(
         workflowId = "wfl-child",
-        action = GoalAttemptLedgerAction.CHILD_ACTIVATION,
         issueKey = "SKILL-56",
         subtaskId = 1,
       ),
@@ -3543,15 +3612,56 @@ class GoalRunnerLedgerRecorderSeedingTest {
     val recorder = GoalRunnerLedgerRecorder(outcomes, ledgerRunRequest(), testHarnessClock, NoopRuntimeDiagnostics)
 
     recorder.recordLedgerEntry(
-      GoalRunnerLedgerContext(
+      GoalRunnerLedgerContext.ChildActivation(
         workflowId = "wfl-child",
-        action = GoalAttemptLedgerAction.CHILD_ACTIVATION,
         issueKey = "SKILL-56",
         subtaskId = 1,
       ),
     )
 
     assertEquals(0, outcomes.attemptLedgerRecords.single().entry.sequenceNumber)
+  }
+
+  @Test
+  fun `ledger action variants do not inherit launch fields from another action`() {
+    val outcomes = RecordingOutcomeStore()
+    val recorder = GoalRunnerLedgerRecorder(outcomes, ledgerRunRequest(), testHarnessClock, NoopRuntimeDiagnostics)
+    recorder.recordLedgerEntry(
+      GoalRunnerLedgerContext.ChildActivation(
+        workflowId = "wfl-child",
+        issueKey = "SKILL-56",
+        subtaskId = 1,
+        progress = null,
+        launchOutcome = AgentRunLaunchFacts(
+          agent = InstallAgent.CLAUDE,
+          exitStatus = 0,
+          stdout = "",
+          stderr = "",
+          timedOut = false,
+          spawnFailed = false,
+        ),
+        diagnosticClass = null,
+        recoverableJsonPresent = null,
+        nextSafeAction = null,
+        causingLoopEntry = null,
+        reAttemptCause = null,
+      ),
+    )
+    recorder.recordLedgerEntry(
+      GoalRunnerLedgerContext.PolicyBlock(
+        workflowId = "wfl-child",
+        issueKey = "SKILL-56",
+        subtaskId = 1,
+        progress = null,
+        blockedReason = "policy",
+        stopReason = "policy_blocked",
+      ),
+    )
+
+    val blocked = outcomes.attemptLedgerRecords.last().entry
+    assertNull(blocked.launchOutcome)
+    assertNull(blocked.finalReconciledResult)
+    assertEquals("policy_block", blocked.action.wireValue)
   }
 
   @Test
@@ -3570,9 +3680,8 @@ class GoalRunnerLedgerRecorderSeedingTest {
     val diagnostics = ThrowingDiagnostics()
     val recorder = GoalRunnerLedgerRecorder(outcomes, ledgerRunRequest(), testHarnessClock, diagnostics)
     recorder.recordLedgerEntry(
-      GoalRunnerLedgerContext(
+      GoalRunnerLedgerContext.ChildActivation(
         workflowId = "wfl-child",
-        action = GoalAttemptLedgerAction.CHILD_ACTIVATION,
         issueKey = "SKILL-56",
         subtaskId = 1,
       ),
@@ -3589,9 +3698,8 @@ class GoalRunnerLedgerRecorderSeedingTest {
 
     val thrown = assertFailsWith<CancellationException> {
       recorder.recordLedgerEntry(
-        GoalRunnerLedgerContext(
+        GoalRunnerLedgerContext.ChildActivation(
           workflowId = "wfl-child",
-          action = GoalAttemptLedgerAction.CHILD_ACTIVATION,
           issueKey = "SKILL-56",
           subtaskId = 1,
         ),
@@ -3610,9 +3718,8 @@ class GoalRunnerLedgerRecorderSeedingTest {
 
     val thrown = assertFailsWith<InterruptedException> {
       recorder.recordLedgerEntry(
-        GoalRunnerLedgerContext(
+        GoalRunnerLedgerContext.ChildActivation(
           workflowId = "wfl-child",
-          action = GoalAttemptLedgerAction.CHILD_ACTIVATION,
           issueKey = "SKILL-56",
           subtaskId = 1,
         ),
