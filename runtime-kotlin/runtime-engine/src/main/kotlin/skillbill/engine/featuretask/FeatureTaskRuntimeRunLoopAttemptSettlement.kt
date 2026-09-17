@@ -510,7 +510,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
     return null
   }
 
-  private fun persistQualityCheckCompletion(args: GateOutputArgs): AttemptResult {
+  private fun persistQualityCheckCompletion(args: GateOutput): AttemptResult {
     val completion = FeatureTaskRuntimeRunLoopValidationGate.qualityCheckCompletionOutput(
       args.run,
       args.iteration,
@@ -527,19 +527,18 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
         error,
       )
     }
-    return with(FeatureTaskRuntimeRunLoopOutputVerification) {
-      args.settlementContext.persistAcceptedOutput(
-        PersistAcceptedOutputArgs(
-          run = args.run,
-          iteration = args.iteration,
-          normalizedOutput = accepted.normalizedOutput,
-          repairEvidence = accepted.repairEvidence,
-          observability = args.observability,
-          fileManifest = args.fileManifest,
-          repositoryFingerprint = null,
-        ),
-      )
-    }
+    return FeatureTaskRuntimeRunLoopOutputVerification.persistAcceptedOutput(
+      args.settlementContext,
+      PersistAcceptedOutputArgs(
+        run = args.run,
+        iteration = args.iteration,
+        normalizedOutput = accepted.normalizedOutput,
+        repairEvidence = accepted.repairEvidence,
+        observability = args.observability,
+        fileManifest = args.fileManifest,
+        repositoryFingerprint = null,
+      ),
+    )
   }
 
   private fun runtimeOwnedGateAgentTurn(run: PhaseRun): Boolean {
