@@ -29,7 +29,6 @@ internal class GoalRunnerSelectedSubtaskLoop(
     val state = args.state
     val selection = args.selection
     val request = args.request
-    val attempted = args.attempted
     val observability = args.observability
     val ledger = args.ledger
     val telemetryEmitter = args.telemetryEmitter
@@ -43,7 +42,7 @@ internal class GoalRunnerSelectedSubtaskLoop(
         prepared,
         selection,
         request,
-        attempted,
+        args.recordAttempt,
         telemetryEmitter,
       )
     ) {
@@ -75,7 +74,7 @@ internal class GoalRunnerSelectedSubtaskLoop(
         workerRequestResult = launch.workerRequestResult,
         launchReconciliation = launch.reconciliation,
         request = request,
-        attempted = attempted,
+        attempted = args.attemptedSnapshot(),
         observability = observability,
         ledger = ledger,
         attemptStartMillis = launch.attemptStartMillis,
@@ -137,7 +136,7 @@ internal class GoalRunnerSelectedSubtaskLoop(
     prepared: SelectedSubtaskPreparation.Ready,
     selection: GoalRunnerSelection.Run,
     request: GoalRunnerRunRequest,
-    attempted: MutableList<Int>,
+    recordAttempt: (Int) -> Unit,
     telemetryEmitter: GoalRunnerTelemetryEmitter?,
   ): SelectedSubtaskLaunch {
     val subtaskId = prepared.subtaskId
@@ -150,7 +149,7 @@ internal class GoalRunnerSelectedSubtaskLoop(
         deniedLaunchPause(prepared, launchAuthorization.controlState),
       )
     }
-    attempted += subtaskId
+    recordAttempt(subtaskId)
     emitSubtaskStarted(prepared.attemptedState, subtaskId, selection, request, telemetryEmitter)
     val attemptStartMillis = clock.millis()
     val (launchReconciliation, workerRequestResult) = try {

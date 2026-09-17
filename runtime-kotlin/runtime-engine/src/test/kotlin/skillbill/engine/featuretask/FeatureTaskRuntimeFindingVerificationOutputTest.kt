@@ -151,24 +151,26 @@ class FeatureTaskRuntimeFindingVerificationOutputTest {
     assertEquals(
       disposition,
       decodeFindingVerificationDispositionFromArtifact(
-        disposition.asWorkflowArtifactEntry(),
+        disposition.asWorkflowArtifactEntry().toWorkflowArtifactMap(),
         "finding_dispositions[0]",
-      )!!,
+      ),
     )
   }
 
   @Test
   fun `census-only disposition ignores extra keys`() {
-    val disposition = decodeFindingVerificationDispositionFromArtifact(
-      mapOf(
-        "finding_id" to "F-001",
-        "disposition" to "verified",
-        "severity" to "major",
-        "location" to "Example.kt",
-        "message" to "Finding",
+    val disposition = requireNotNull(
+      decodeFindingVerificationDispositionFromArtifact(
+        mapOf(
+          "finding_id" to "F-001",
+          "disposition" to "verified",
+          "severity" to "major",
+          "location" to "Example.kt",
+          "message" to "Finding",
+        ),
+        "finding_dispositions[0]",
       ),
-      "finding_dispositions[0]",
-    )!!
+    )
     assertEquals("F-001", disposition.findingId)
     assertNull(disposition.reason)
   }

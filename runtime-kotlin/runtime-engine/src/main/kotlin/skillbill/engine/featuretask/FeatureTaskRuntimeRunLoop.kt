@@ -20,7 +20,6 @@ internal data class FeatureTaskRuntimeRunLoopContext(
   val observability: FeatureTaskRuntimeRunObservability,
   val specSource: SpecSource,
   val transitions: FeatureTaskRuntimeTransitionDeclaration,
-  val phaseTokenAccumulator: MutableMap<String, Pair<Int, Int>>,
   val recorder: FeatureTaskRuntimePhaseRecorder,
   val goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
   val outputValidator: FeatureTaskRuntimePhaseOutputValidator,

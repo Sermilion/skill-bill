@@ -1,14 +1,14 @@
 package skillbill.application.idestatus
 
-import skillbill.application.idestatus.model.IdeStatusCurrentModel
-import skillbill.application.idestatus.model.IdeStatusCurrentPhaseExecution
-import skillbill.application.idestatus.model.IdeStatusCurrentPhaseExecutionKind
-import skillbill.application.idestatus.model.IdeStatusFreshness
-import skillbill.application.idestatus.model.IdeStatusLifecycleState
-import skillbill.application.idestatus.model.IdeStatusPlanning
-import skillbill.application.idestatus.model.IdeStatusSnapshot
-import skillbill.application.idestatus.model.IdeStatusStep
-import skillbill.application.idestatus.model.IdeStatusWorkflowFamily
+import skillbill.engine.work.model.IdeStatusCurrentModel
+import skillbill.engine.work.model.IdeStatusCurrentPhaseExecution
+import skillbill.engine.work.model.IdeStatusCurrentPhaseExecutionKind
+import skillbill.engine.work.model.IdeStatusFreshness
+import skillbill.engine.work.model.IdeStatusLifecycleState
+import skillbill.engine.work.model.IdeStatusPlanning
+import skillbill.engine.work.model.IdeStatusSnapshot
+import skillbill.engine.work.model.IdeStatusStep
+import skillbill.engine.work.model.IdeStatusWorkflowFamily
 import skillbill.goalrunner.model.GoalPlanningStatusState
 import java.time.Instant
 import kotlin.test.Test

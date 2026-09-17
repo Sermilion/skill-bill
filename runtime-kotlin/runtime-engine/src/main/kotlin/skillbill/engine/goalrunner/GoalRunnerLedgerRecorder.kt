@@ -35,9 +35,8 @@ class GoalRunnerLedgerRecorder(
     val newCount = (cumulativeBackwardEdgeCounts[key] ?: 0) + edge.edgeIteration.coerceAtLeast(1)
     cumulativeBackwardEdgeCounts[key] = newCount
     recordLedgerEntry(
-      GoalRunnerLedgerContext(
+      GoalRunnerLedgerContext.BackwardEdgeEntry(
         workflowId = edge.workflowId,
-        action = GoalAttemptLedgerAction.BACKWARD_EDGE_ENTRY,
         issueKey = edge.issueKey,
         subtaskId = edge.subtaskId,
         progress = edge.progress,
@@ -49,38 +48,9 @@ class GoalRunnerLedgerRecorder(
 
   internal fun recordLedgerEntry(context: GoalRunnerLedgerContext) {
     val targetWorkflowId = context.workflowId?.takeIf(String::isNotBlank) ?: return
-    val facts = context.launchOutcome as? AgentRunLaunchFacts
-    val entry = GoalAttemptLedgerEntry(
-      action = context.action,
-      sequenceNumber = ledgerSequence++,
-      timestamp = clock.instant().toString(),
-      issueKey = context.issueKey.takeIf(String::isNotBlank),
-      subtaskId = context.subtaskId.takeIf { it > 0 },
-      previousWorkflowId = targetWorkflowId,
-      previousStatus = context.progress?.workflowStatus,
-      previousStep = context.progress?.currentStepId,
-      blockedReason = context.blockedReason?.takeIf(String::isNotBlank),
-      latestLiveness = context.progress?.latestLivenessSignal,
-      launchOutcome = facts?.let(::launchFinalStatus),
-      timedOut = facts?.timedOut,
-      interrupted = facts?.interrupted,
-
-      childSessionPath = facts?.childSessionPath,
-      childSessionId = facts?.childSessionId,
-      finalReconciledResult = context.finalReconciledResult?.takeIf(String::isNotBlank),
-      stopReason = context.stopReason?.takeIf(String::isNotBlank),
-      diagnosticClass = context.diagnosticClass?.takeIf(String::isNotBlank),
-      currentStep = context.progress?.currentStepId?.takeIf(String::isNotBlank),
-      exitStatus = facts?.exitStatus,
-      recoverableJsonPresent = context.recoverableJsonPresent,
-      nextSafeAction = context.nextSafeAction?.takeIf(String::isNotBlank),
-      loopId = context.loopId?.takeIf(String::isNotBlank),
-      cumulativeLoopCount = context.cumulativeLoopCount,
-      attemptDurationMillis = context.attemptDurationMillis,
-      causingLoopEntry = context.causingLoopEntry?.takeIf(String::isNotBlank),
-      reAttemptCause = context.reAttemptCause?.takeIf(String::isNotBlank),
-      findingsInScope = context.findingsInScope,
-    )
+    val details = context.details()
+    val launchFacts = details.launchOutcome as? AgentRunLaunchFacts
+    val entry = buildLedgerEntry(context, targetWorkflowId, details, launchFacts)
     val result = runCatching {
       outcomeStore.recordAttemptLedgerEntry(
         GoalRunnerAttemptLedgerRecordRequest(workflowId = targetWorkflowId, entry = entry),
@@ -108,24 +78,58 @@ class GoalRunnerLedgerRecorder(
     }
   }
 
+  private fun buildLedgerEntry(
+    context: GoalRunnerLedgerContext,
+    targetWorkflowId: String,
+    details: GoalRunnerLedgerDetails,
+    launchFacts: AgentRunLaunchFacts?,
+  ): GoalAttemptLedgerEntry = GoalAttemptLedgerEntry(
+    action = context.action,
+    sequenceNumber = ledgerSequence++,
+    timestamp = clock.instant().toString(),
+    issueKey = context.issueKey.takeIf(String::isNotBlank),
+    subtaskId = context.subtaskId.takeIf { it > 0 },
+    previousWorkflowId = targetWorkflowId,
+    previousStatus = details.progress?.workflowStatus,
+    previousStep = details.progress?.currentStepId,
+    blockedReason = details.blockedReason?.takeIf(String::isNotBlank),
+    latestLiveness = details.progress?.latestLivenessSignal,
+    launchOutcome = launchFacts?.let(::launchFinalStatus),
+    timedOut = launchFacts?.timedOut,
+    interrupted = launchFacts?.interrupted,
+    childSessionPath = launchFacts?.childSessionPath,
+    childSessionId = launchFacts?.childSessionId,
+    finalReconciledResult = details.finalReconciledResult?.takeIf(String::isNotBlank),
+    stopReason = details.stopReason?.takeIf(String::isNotBlank),
+    diagnosticClass = details.diagnosticClass?.takeIf(String::isNotBlank),
+    currentStep = details.progress?.currentStepId?.takeIf(String::isNotBlank),
+    exitStatus = launchFacts?.exitStatus,
+    recoverableJsonPresent = details.recoverableJsonPresent,
+    nextSafeAction = details.nextSafeAction?.takeIf(String::isNotBlank),
+    loopId = details.loopId?.takeIf(String::isNotBlank),
+    cumulativeLoopCount = details.cumulativeLoopCount,
+    attemptDurationMillis = details.attemptDurationMillis,
+    causingLoopEntry = details.causingLoopEntry?.takeIf(String::isNotBlank),
+    reAttemptCause = details.reAttemptCause?.takeIf(String::isNotBlank),
+    findingsInScope = details.findingsInScope,
+  )
+
   private fun logBestEffortFailure(action: String, workflowId: String, subtaskId: Int, error: Throwable) {
-    runCatching {
-      diagnostics.warning(
-        "Best-effort goal ledger write failed: action='$action' workflowId='$workflowId' subtaskId=$subtaskId " +
-          "errorType='${error::class.qualifiedName}' " +
-          "message='${error.message.orEmpty().take(MAX_DIAGNOSTIC_MESSAGE_LENGTH)}'",
-        error,
-      )
-    }
+    GoalRunnerBestEffortEmission.recordWarning(
+      diagnostics,
+      "Best-effort goal ledger write failed: action='$action' workflowId='$workflowId' subtaskId=$subtaskId " +
+        "errorType='${error::class.qualifiedName}' " +
+        "message='${GoalRunnerBestEffortEmission.boundedMessage(error.message.orEmpty())}'",
+      error,
+    )
   }
 
   private fun logBestEffortMissingWorkflow(action: String, workflowId: String, subtaskId: Int) {
-    runCatching {
-      diagnostics.warning(
-        "Best-effort goal ledger write skipped (workflow not found): action='$action' " +
-          "workflowId='$workflowId' subtaskId=$subtaskId",
-      )
-    }
+    GoalRunnerBestEffortEmission.recordWarning(
+      diagnostics,
+      "Best-effort goal ledger write skipped (workflow not found): action='$action' " +
+        "workflowId='$workflowId' subtaskId=$subtaskId",
+    )
   }
 
   private fun launchFinalStatus(facts: AgentRunLaunchFacts): GoalAttemptLaunchOutcome = when {
@@ -133,10 +137,6 @@ class GoalRunnerLedgerRecorder(
     facts.timedOut -> GoalAttemptLaunchOutcome.TimedOut
     facts.interrupted -> GoalAttemptLaunchOutcome.Interrupted
     else -> GoalAttemptLaunchOutcome.Exited(facts.exitStatus)
-  }
-
-  private companion object {
-    const val MAX_DIAGNOSTIC_MESSAGE_LENGTH = 240
   }
 }
 
@@ -149,11 +149,247 @@ internal data class GoalRunnerBackwardEdge(
   val progress: GoalRunnerWorkflowProgress?,
 )
 
-internal data class GoalRunnerLedgerContext(
+internal data class StoppedLedgerContextValues(
   val workflowId: String?,
-  val action: GoalAttemptLedgerAction,
   val issueKey: String,
   val subtaskId: Int,
+  val progress: GoalRunnerWorkflowProgress?,
+  val blockedReason: String?,
+  val finalReconciledResult: String?,
+  val stopReason: String?,
+  val diagnosticClass: String?,
+  val recoverableJsonPresent: Boolean?,
+  val nextSafeAction: String?,
+  val attemptDurationMillis: Long?,
+  val causingLoopEntry: String?,
+  val reAttemptCause: String?,
+  val findingsInScope: Int?,
+)
+
+internal sealed interface GoalRunnerLedgerContext {
+  val workflowId: String?
+  val action: GoalAttemptLedgerAction
+  val issueKey: String
+  val subtaskId: Int
+
+  data class ChildActivation(
+    override val workflowId: String?,
+    override val issueKey: String,
+    override val subtaskId: Int,
+    val progress: GoalRunnerWorkflowProgress? = null,
+    val launchOutcome: AgentRunLaunchOutcome? = null,
+    val diagnosticClass: String? = null,
+    val recoverableJsonPresent: Boolean? = null,
+    val nextSafeAction: String? = null,
+    val causingLoopEntry: String? = null,
+    val reAttemptCause: String? = null,
+  ) : GoalRunnerLedgerContext {
+    override val action: GoalAttemptLedgerAction = GoalAttemptLedgerAction.CHILD_ACTIVATION
+  }
+
+  data class Resume(
+    override val workflowId: String?,
+    override val issueKey: String,
+    override val subtaskId: Int,
+    val progress: GoalRunnerWorkflowProgress? = null,
+    val launchOutcome: AgentRunLaunchOutcome? = null,
+    val diagnosticClass: String? = null,
+    val recoverableJsonPresent: Boolean? = null,
+    val nextSafeAction: String? = null,
+    val causingLoopEntry: String? = null,
+    val reAttemptCause: String? = null,
+  ) : GoalRunnerLedgerContext {
+    override val action: GoalAttemptLedgerAction = GoalAttemptLedgerAction.RESUME
+  }
+
+  data class Retry(
+    override val workflowId: String?,
+    override val issueKey: String,
+    override val subtaskId: Int,
+    val progress: GoalRunnerWorkflowProgress?,
+    val blockedReason: String?,
+    val finalReconciledResult: String?,
+    val stopReason: String?,
+    val diagnosticClass: String?,
+    val recoverableJsonPresent: Boolean?,
+    val nextSafeAction: String?,
+    val attemptDurationMillis: Long?,
+    val causingLoopEntry: String?,
+    val reAttemptCause: String?,
+    val findingsInScope: Int?,
+  ) : GoalRunnerLedgerContext {
+    override val action: GoalAttemptLedgerAction = GoalAttemptLedgerAction.RETRY
+
+    constructor(values: StoppedLedgerContextValues) : this(
+      values.workflowId,
+      values.issueKey,
+      values.subtaskId,
+      values.progress,
+      values.blockedReason,
+      values.finalReconciledResult,
+      values.stopReason,
+      values.diagnosticClass,
+      values.recoverableJsonPresent,
+      values.nextSafeAction,
+      values.attemptDurationMillis,
+      values.causingLoopEntry,
+      values.reAttemptCause,
+      values.findingsInScope,
+    )
+  }
+
+  data class TerminalDoneCheck(
+    override val workflowId: String?,
+    override val issueKey: String,
+    override val subtaskId: Int,
+    val progress: GoalRunnerWorkflowProgress?,
+    val finalReconciledResult: String?,
+    val attemptDurationMillis: Long?,
+  ) : GoalRunnerLedgerContext {
+    override val action: GoalAttemptLedgerAction = GoalAttemptLedgerAction.TERMINAL_DONE_CHECK
+  }
+
+  data class PolicyBlock(
+    override val workflowId: String?,
+    override val issueKey: String,
+    override val subtaskId: Int,
+    val progress: GoalRunnerWorkflowProgress?,
+    val blockedReason: String?,
+    val stopReason: String?,
+  ) : GoalRunnerLedgerContext {
+    override val action: GoalAttemptLedgerAction = GoalAttemptLedgerAction.POLICY_BLOCK
+  }
+
+  data class Timeout(
+    override val workflowId: String?,
+    override val issueKey: String,
+    override val subtaskId: Int,
+    val progress: GoalRunnerWorkflowProgress?,
+    val blockedReason: String?,
+    val finalReconciledResult: String?,
+    val stopReason: String?,
+    val diagnosticClass: String?,
+    val recoverableJsonPresent: Boolean?,
+    val nextSafeAction: String?,
+    val attemptDurationMillis: Long?,
+    val causingLoopEntry: String?,
+    val reAttemptCause: String?,
+    val findingsInScope: Int?,
+  ) : GoalRunnerLedgerContext {
+    override val action: GoalAttemptLedgerAction = GoalAttemptLedgerAction.TIMEOUT
+
+    constructor(values: StoppedLedgerContextValues) : this(
+      values.workflowId,
+      values.issueKey,
+      values.subtaskId,
+      values.progress,
+      values.blockedReason,
+      values.finalReconciledResult,
+      values.stopReason,
+      values.diagnosticClass,
+      values.recoverableJsonPresent,
+      values.nextSafeAction,
+      values.attemptDurationMillis,
+      values.causingLoopEntry,
+      values.reAttemptCause,
+      values.findingsInScope,
+    )
+  }
+
+  data class Interruption(
+    override val workflowId: String?,
+    override val issueKey: String,
+    override val subtaskId: Int,
+    val progress: GoalRunnerWorkflowProgress?,
+    val blockedReason: String?,
+    val finalReconciledResult: String?,
+    val stopReason: String?,
+    val diagnosticClass: String?,
+    val recoverableJsonPresent: Boolean?,
+    val nextSafeAction: String?,
+    val attemptDurationMillis: Long?,
+    val causingLoopEntry: String?,
+    val reAttemptCause: String?,
+    val findingsInScope: Int?,
+  ) : GoalRunnerLedgerContext {
+    override val action: GoalAttemptLedgerAction = GoalAttemptLedgerAction.INTERRUPTION
+
+    constructor(values: StoppedLedgerContextValues) : this(
+      values.workflowId,
+      values.issueKey,
+      values.subtaskId,
+      values.progress,
+      values.blockedReason,
+      values.finalReconciledResult,
+      values.stopReason,
+      values.diagnosticClass,
+      values.recoverableJsonPresent,
+      values.nextSafeAction,
+      values.attemptDurationMillis,
+      values.causingLoopEntry,
+      values.reAttemptCause,
+      values.findingsInScope,
+    )
+  }
+
+  data class FinalReconciledOutcome(
+    override val workflowId: String?,
+    override val issueKey: String,
+    override val subtaskId: Int,
+    val progress: GoalRunnerWorkflowProgress?,
+    val blockedReason: String?,
+    val finalReconciledResult: String?,
+    val stopReason: String?,
+    val diagnosticClass: String?,
+    val recoverableJsonPresent: Boolean?,
+    val nextSafeAction: String?,
+    val attemptDurationMillis: Long?,
+    val causingLoopEntry: String?,
+    val reAttemptCause: String?,
+    val findingsInScope: Int?,
+  ) : GoalRunnerLedgerContext {
+    override val action: GoalAttemptLedgerAction = GoalAttemptLedgerAction.FINAL_RECONCILED_OUTCOME
+
+    constructor(values: StoppedLedgerContextValues) : this(
+      values.workflowId,
+      values.issueKey,
+      values.subtaskId,
+      values.progress,
+      values.blockedReason,
+      values.finalReconciledResult,
+      values.stopReason,
+      values.diagnosticClass,
+      values.recoverableJsonPresent,
+      values.nextSafeAction,
+      values.attemptDurationMillis,
+      values.causingLoopEntry,
+      values.reAttemptCause,
+      values.findingsInScope,
+    )
+  }
+
+  data class DiagnosticInspection(
+    override val workflowId: String?,
+    override val issueKey: String,
+    override val subtaskId: Int,
+    val progress: GoalRunnerWorkflowProgress?,
+  ) : GoalRunnerLedgerContext {
+    override val action: GoalAttemptLedgerAction = GoalAttemptLedgerAction.DIAGNOSTIC_INSPECTION
+  }
+
+  data class BackwardEdgeEntry(
+    override val workflowId: String?,
+    override val issueKey: String,
+    override val subtaskId: Int,
+    val progress: GoalRunnerWorkflowProgress?,
+    val loopId: String,
+    val cumulativeLoopCount: Int,
+  ) : GoalRunnerLedgerContext {
+    override val action: GoalAttemptLedgerAction = GoalAttemptLedgerAction.BACKWARD_EDGE_ENTRY
+  }
+}
+
+private data class GoalRunnerLedgerDetails(
   val progress: GoalRunnerWorkflowProgress? = null,
   val launchOutcome: AgentRunLaunchOutcome? = null,
   val blockedReason: String? = null,
@@ -169,3 +405,106 @@ internal data class GoalRunnerLedgerContext(
   val reAttemptCause: String? = null,
   val findingsInScope: Int? = null,
 )
+
+private fun GoalRunnerLedgerContext.details(): GoalRunnerLedgerDetails = when (this) {
+  is GoalRunnerLedgerContext.ChildActivation -> detailsForLedger()
+  is GoalRunnerLedgerContext.Resume -> detailsForLedger()
+  is GoalRunnerLedgerContext.Retry -> detailsForLedger()
+  is GoalRunnerLedgerContext.TerminalDoneCheck -> GoalRunnerLedgerDetails(
+    progress = progress,
+    finalReconciledResult = finalReconciledResult,
+    attemptDurationMillis = attemptDurationMillis,
+  )
+  is GoalRunnerLedgerContext.PolicyBlock -> GoalRunnerLedgerDetails(
+    progress = progress,
+    blockedReason = blockedReason,
+    stopReason = stopReason,
+  )
+  is GoalRunnerLedgerContext.Timeout -> detailsForLedger()
+  is GoalRunnerLedgerContext.Interruption -> detailsForLedger()
+  is GoalRunnerLedgerContext.FinalReconciledOutcome -> detailsForLedger()
+  is GoalRunnerLedgerContext.DiagnosticInspection -> GoalRunnerLedgerDetails(progress = progress)
+  is GoalRunnerLedgerContext.BackwardEdgeEntry -> GoalRunnerLedgerDetails(
+    progress = progress,
+    loopId = loopId,
+    cumulativeLoopCount = cumulativeLoopCount,
+  )
+}
+
+private fun GoalRunnerLedgerContext.ChildActivation.detailsForLedger(): GoalRunnerLedgerDetails =
+  GoalRunnerLedgerDetails(
+    progress = progress,
+    launchOutcome = launchOutcome,
+    diagnosticClass = diagnosticClass,
+    recoverableJsonPresent = recoverableJsonPresent,
+    nextSafeAction = nextSafeAction,
+    causingLoopEntry = causingLoopEntry,
+    reAttemptCause = reAttemptCause,
+  )
+
+private fun GoalRunnerLedgerContext.Resume.detailsForLedger(): GoalRunnerLedgerDetails = GoalRunnerLedgerDetails(
+  progress = progress,
+  launchOutcome = launchOutcome,
+  diagnosticClass = diagnosticClass,
+  recoverableJsonPresent = recoverableJsonPresent,
+  nextSafeAction = nextSafeAction,
+  causingLoopEntry = causingLoopEntry,
+  reAttemptCause = reAttemptCause,
+)
+
+private fun GoalRunnerLedgerContext.Retry.detailsForLedger(): GoalRunnerLedgerDetails = GoalRunnerLedgerDetails(
+  progress = progress,
+  blockedReason = blockedReason,
+  finalReconciledResult = finalReconciledResult,
+  stopReason = stopReason,
+  diagnosticClass = diagnosticClass,
+  recoverableJsonPresent = recoverableJsonPresent,
+  nextSafeAction = nextSafeAction,
+  attemptDurationMillis = attemptDurationMillis,
+  causingLoopEntry = causingLoopEntry,
+  reAttemptCause = reAttemptCause,
+  findingsInScope = findingsInScope,
+)
+
+private fun GoalRunnerLedgerContext.Timeout.detailsForLedger(): GoalRunnerLedgerDetails = GoalRunnerLedgerDetails(
+  progress = progress,
+  blockedReason = blockedReason,
+  finalReconciledResult = finalReconciledResult,
+  stopReason = stopReason,
+  diagnosticClass = diagnosticClass,
+  recoverableJsonPresent = recoverableJsonPresent,
+  nextSafeAction = nextSafeAction,
+  attemptDurationMillis = attemptDurationMillis,
+  causingLoopEntry = causingLoopEntry,
+  reAttemptCause = reAttemptCause,
+  findingsInScope = findingsInScope,
+)
+
+private fun GoalRunnerLedgerContext.Interruption.detailsForLedger(): GoalRunnerLedgerDetails = GoalRunnerLedgerDetails(
+  progress = progress,
+  blockedReason = blockedReason,
+  finalReconciledResult = finalReconciledResult,
+  stopReason = stopReason,
+  diagnosticClass = diagnosticClass,
+  recoverableJsonPresent = recoverableJsonPresent,
+  nextSafeAction = nextSafeAction,
+  attemptDurationMillis = attemptDurationMillis,
+  causingLoopEntry = causingLoopEntry,
+  reAttemptCause = reAttemptCause,
+  findingsInScope = findingsInScope,
+)
+
+private fun GoalRunnerLedgerContext.FinalReconciledOutcome.detailsForLedger(): GoalRunnerLedgerDetails =
+  GoalRunnerLedgerDetails(
+    progress = progress,
+    blockedReason = blockedReason,
+    finalReconciledResult = finalReconciledResult,
+    stopReason = stopReason,
+    diagnosticClass = diagnosticClass,
+    recoverableJsonPresent = recoverableJsonPresent,
+    nextSafeAction = nextSafeAction,
+    attemptDurationMillis = attemptDurationMillis,
+    causingLoopEntry = causingLoopEntry,
+    reAttemptCause = reAttemptCause,
+    findingsInScope = findingsInScope,
+  )

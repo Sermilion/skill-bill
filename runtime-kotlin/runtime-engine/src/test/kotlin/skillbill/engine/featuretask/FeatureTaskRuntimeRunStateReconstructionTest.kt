@@ -1,5 +1,6 @@
 package skillbill.engine.featuretask
 
+import skillbill.application.testHarnessClock
 import skillbill.engine.IMPLEMENT_OUTPUT
 import skillbill.engine.PLAN_OUTPUT
 import skillbill.engine.PREPLAN_OUTPUT
@@ -10,12 +11,22 @@ import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
 import skillbill.engine.runnerHarness
 import skillbill.engine.satisfiedAuditLauncher
+import skillbill.infrastructure.sqlite.SQLiteDatabaseSessionFactory
+import skillbill.model.EnvironmentContext
+import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
+import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
+import skillbill.ports.workflow.model.WorkflowStateRecord
+import skillbill.workflow.engine.WorkflowSnapshotValidator
+import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerAction
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerEntry
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
+import java.nio.file.Files
+import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -42,6 +53,228 @@ class FeatureTaskRuntimeRunStateReconstructionTest {
 
     assertEquals(listOf(output), state.outputs())
     assertEquals(listOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT), state.completedPhaseIds())
+  }
+
+  @Test
+  fun `phase token view is a snapshot of named state transitions`() {
+    val state = FeatureTaskRuntimeRunState(
+      initialRecords = emptyMap(),
+      transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
+      outputValidator = AlwaysValidValidator,
+    )
+
+    state.recordPhaseTokenUsage("implement", 11, 17)
+    val firstView = state.phaseTokenView
+    state.recordPhaseTokenUsage("review", 5, 9)
+
+    assertEquals(mapOf("implement" to (11 to 17)), firstView)
+    assertEquals(
+      mapOf("implement" to (11 to 17), "review" to (5 to 9)),
+      state.phaseTokenView,
+    )
+  }
+
+  @Test
+  fun `resumed phase token telemetry matches live execution for the current phase`() {
+    val durableRecords = mapOf(
+      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT to FeatureTaskRuntimePhaseRecord(
+        phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,
+        status = WorkflowStepStatus.COMPLETED,
+        attemptCount = 1,
+        startedAt = "2026-01-01T00:00:00Z",
+        resolvedAgentId = "claude",
+        outputArtifact = "{}",
+      ),
+    )
+    val live = FeatureTaskRuntimeRunState(
+      initialRecords = durableRecords,
+      transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
+      outputValidator = AlwaysValidValidator,
+    )
+    val resumed = FeatureTaskRuntimeRunState(
+      initialRecords = durableRecords,
+      transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
+      outputValidator = AlwaysValidValidator,
+    )
+
+    live.recordPhaseTokenUsage("review", 13, 21)
+    resumed.recordPhaseTokenUsage("review", 13, 21)
+
+    assertEquals(
+      serializeTokenData(live.phaseTokenView),
+      serializeTokenData(resumed.phaseTokenView),
+    )
+  }
+
+  @Test
+  fun `resume reconstruction preserves completed phase and backward edge state`() {
+    val transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions
+    val live = FeatureTaskRuntimeRunState(
+      initialRecords = emptyMap(),
+      transitions = transitions,
+      outputValidator = AlwaysValidValidator,
+    )
+    val output = FeatureTaskRuntimePhaseOutput(
+      phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,
+      iteration = 1,
+      payload = "{}",
+    )
+    live.recordEdgeIteration(FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID, 2)
+    live.recordCompleted(output)
+
+    val resumed = FeatureTaskRuntimeRunState(
+      initialRecords = mapOf(
+        output.phaseId to FeatureTaskRuntimePhaseRecord(
+          phaseId = output.phaseId,
+          status = WorkflowStepStatus.COMPLETED,
+          attemptCount = 1,
+          startedAt = "2026-01-01T00:00:00Z",
+          resolvedAgentId = "claude",
+          outputArtifact = output.payload,
+          loopId = FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID,
+          edgeIteration = 2,
+        ),
+      ),
+      transitions = transitions,
+      durableInitialLedger = listOf(
+        FeatureTaskRuntimePhaseLedgerEntry(
+          action = FeatureTaskRuntimePhaseLedgerAction.LOOP_EDGE,
+          sequenceNumber = 1,
+          timestamp = "2026-01-01T00:00:00Z",
+          phaseId = output.phaseId,
+          attemptCount = 1,
+          loopId = FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID,
+          edgeIteration = 2,
+        ),
+      ),
+      outputValidator = AlwaysValidValidator,
+    )
+
+    assertEquals(live.completedPhaseIds(), resumed.completedPhaseIds())
+    assertEquals(
+      live.edgeIterationCount(FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID),
+      resumed.edgeIterationCount(FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID),
+    )
+    assertEquals(live.outputFor(output.phaseId)?.payload, resumed.outputFor(output.phaseId)?.payload)
+  }
+
+  @Test
+  fun `sqlite durable phase records reconstruct the live checkpoint state`() {
+    val tempDir = Files.createTempDirectory("skill-bill-run-state-resume")
+    val database = sqliteResumeDatabase(tempDir)
+    val workflowId = "wftr-sqlite-resume"
+    seedSqliteResumeWorkflow(database, workflowId)
+    val recorder = featureTaskRuntimePhaseRecorder(
+      database,
+      NoopWorkflowSnapshotValidator,
+      AcceptingFeatureTaskRuntimeWireArtifactValidator,
+      AcceptingFeatureTaskRuntimeWireArtifactValidator,
+      testHarnessClock,
+      NoopRuntimeDiagnostics,
+    )
+    val output = FeatureTaskRuntimePhaseOutput(
+      phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,
+      iteration = 1,
+      payload = "{}",
+    )
+    assertTrue(
+      recorder.recordCompletedPhase(
+        FeatureTaskRuntimePhaseStateRequest(
+          workflowId = workflowId,
+          phaseId = output.phaseId,
+          status = WorkflowStepStatus.COMPLETED.wireValue,
+          attemptCount = output.iteration,
+          resolvedAgentId = "claude",
+          finished = true,
+          outputArtifact = output.payload,
+          loopId = FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID,
+          edgeIteration = 2,
+        ),
+      ),
+    )
+
+    val live = FeatureTaskRuntimeRunState(
+      initialRecords = emptyMap(),
+      transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
+      outputValidator = AlwaysValidValidator,
+    ).also {
+      it.recordEdgeIteration(FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID, 2)
+      it.recordCompleted(output)
+    }
+    val resumed = FeatureTaskRuntimeRunState(
+      initialRecords = recorder.loadPhaseRecords(workflowId).orEmpty(),
+      transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
+      durableInitialLedger = recorder.loadPhaseLedger(workflowId).orEmpty(),
+      outputValidator = AlwaysValidValidator,
+    )
+
+    assertEquals(live.completedPhaseIds(), resumed.completedPhaseIds())
+    assertEquals(
+      live.edgeIterationCount(FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID),
+      resumed.edgeIterationCount(FeatureTaskRuntimePhaseWorkflowDefinition.REVIEW_FIX_LOOP_ID),
+    )
+    assertEquals(live.outputFor(output.phaseId)?.payload, resumed.outputFor(output.phaseId)?.payload)
+  }
+
+  private fun sqliteResumeDatabase(tempDir: Path): SQLiteDatabaseSessionFactory = SQLiteDatabaseSessionFactory(
+    EnvironmentContext(
+      dbPathOverride = tempDir.resolve("runtime.db").toString(),
+      environment = emptyMap(),
+      userHome = tempDir,
+    ),
+  )
+
+  private fun seedSqliteResumeWorkflow(database: SQLiteDatabaseSessionFactory, workflowId: String) {
+    database.transaction { unitOfWork ->
+      unitOfWork.workflowStates.saveFeatureTaskRuntimeWorkflow(
+        WorkflowStateRecord(
+          workflowId = workflowId,
+          sessionId = "ftr-sqlite-resume",
+          workflowName = "bill-feature-task",
+          contractVersion = "0.1",
+          workflowStatus = WorkflowStatus.RUNNING.wireValue,
+          currentStepId = "implement",
+          stepsJson = "[]",
+          artifactsJson = "{}",
+          startedAt = null,
+          updatedAt = null,
+          finishedAt = null,
+          mode = FeatureTaskWorkflowMode.RUNTIME,
+        ),
+      )
+    }
+  }
+
+  @Test
+  fun `validation settlement owns mutable invalidation state behind read-only snapshots`() {
+    val completed = mutableSetOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE)
+    val invalidated = mutableSetOf<String>()
+    val settlement = ValidationSettlementState(
+      completed = completed,
+      initialRecords = emptyMap(),
+      transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
+      gateInvalidatedPhases = invalidated,
+    )
+
+    completed.clear()
+    invalidated += FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN
+    val completedView = settlement.completed
+    val invalidatedView = settlement.gateInvalidatedPhases
+    settlement.invalidateValidationPhase()
+
+    assertEquals(
+      setOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE),
+      completedView,
+    )
+    assertEquals(emptySet(), invalidatedView)
+    assertEquals(
+      emptySet(),
+      settlement.completed,
+    )
+    assertEquals(
+      setOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE),
+      settlement.gateInvalidatedPhases,
+    )
   }
 
   @Test
@@ -286,4 +519,8 @@ class FeatureTaskRuntimeRunStateReconstructionTest {
     outputArtifact = outputArtifact,
     finishedAt = if (status == WorkflowStepStatus.COMPLETED) "2026-01-01T00:01:00Z" else null,
   )
+
+  private object NoopWorkflowSnapshotValidator : WorkflowSnapshotValidator {
+    override fun validate(snapshot: WorkflowStateSnapshot, slug: String) = Unit
+  }
 }

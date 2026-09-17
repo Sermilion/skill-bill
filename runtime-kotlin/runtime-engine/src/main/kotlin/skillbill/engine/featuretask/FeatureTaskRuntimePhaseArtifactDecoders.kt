@@ -47,8 +47,7 @@ internal fun <T> decodeStrictKeyedArtifactMap(
 
 internal fun decodePhaseRecords(artifacts: Map<String, Any?>): Map<String, FeatureTaskRuntimePhaseRecord> =
   decodeStrictKeyedArtifactMap(artifacts, FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY) { phaseId, recordMap ->
-    decodePhaseRecordFromArtifact(recordMap)
-      ?: schemaError("Feature-task-runtime phase record for '$phaseId' must decode to a map.")
+    requireNotNull(decodePhaseRecordFromArtifact(recordMap))
   }
 
 internal fun resolvedBranchFromWorkflowArtifacts(artifacts: Map<String, Any?>): FeatureTaskRuntimeResolvedBranch? {
@@ -58,9 +57,6 @@ internal fun resolvedBranchFromWorkflowArtifacts(artifacts: Map<String, Any?>): 
       "Feature-task-runtime artifact '$FEATURE_TASK_RUNTIME_RESOLVED_BRANCH_ARTIFACT_KEY' must decode to a map.",
     )
   return decodeResolvedBranchFromArtifact(entryMap)
-    ?: schemaError(
-      "Feature-task-runtime artifact '$FEATURE_TASK_RUNTIME_RESOLVED_BRANCH_ARTIFACT_KEY' must decode to a map.",
-    )
 }
 
 internal fun reviewGenerationFrom(artifacts: Map<String, Any?>): Int {
@@ -103,10 +99,6 @@ internal fun goalContinuationFieldAdoptionFromWorkflowArtifacts(
         "'$FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_FIELD_ADOPTION_ARTIFACT_KEY' must decode to a map.",
     )
   return decodeGoalContinuationFieldAdoptionFromArtifact(entryMap)
-    ?: schemaError(
-      "Feature-task-runtime artifact " +
-        "'$FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_FIELD_ADOPTION_ARTIFACT_KEY' must decode to a map.",
-    )
 }
 
 private fun Map<String, Any?>.requiredOperatorRetryString(field: String): String =
@@ -125,9 +117,6 @@ internal fun decomposeTerminalFromWorkflowArtifacts(
       "Feature-task-runtime artifact '$FEATURE_TASK_RUNTIME_DECOMPOSE_TERMINAL_ARTIFACT_KEY' must decode to a map.",
     )
   return decodeDecomposeTerminalFromArtifact(entryMap)
-    ?: schemaError(
-      "Feature-task-runtime artifact '$FEATURE_TASK_RUNTIME_DECOMPOSE_TERMINAL_ARTIFACT_KEY' must decode to a map.",
-    )
 }
 
 internal fun decodePhaseLedger(artifacts: Map<String, Any?>): List<FeatureTaskRuntimePhaseLedgerEntry> {
@@ -141,9 +130,6 @@ internal fun decodePhaseLedger(artifacts: Map<String, Any?>): List<FeatureTaskRu
       ?: schemaError(
         "Feature-task-runtime phase ledger entry must decode to a string-keyed map.",
       )
-    decodePhaseLedgerEntryFromArtifact(entryMap)
-      ?: schemaError(
-        "Feature-task-runtime phase ledger entry must decode to a string-keyed map.",
-      )
+    requireNotNull(decodePhaseLedgerEntryFromArtifact(entryMap))
   }
 }

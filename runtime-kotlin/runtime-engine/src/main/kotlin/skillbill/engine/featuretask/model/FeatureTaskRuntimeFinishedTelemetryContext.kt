@@ -1,9 +1,7 @@
 package skillbill.engine.featuretask.model
 
 import skillbill.application.telemetry.model.FeatureTaskRuntimeAgentContext
-import skillbill.application.telemetry.model.FeatureTaskRuntimeFindingVerificationTelemetry
-import skillbill.application.telemetry.model.FeatureTaskRuntimeRegenerationTelemetry
-data class FeatureTaskRuntimeFinishedTelemetryContext(
+internal data class FeatureTaskRuntimeFinishedTelemetryContext(
   val telemetrySessionId: String,
   val phaseOutcomes: () -> Map<String, String>,
   val reviewFixIterationCount: () -> Int,

@@ -1,6 +1,6 @@
 package skillbill.engine.work
 
-import skillbill.application.idestatus.model.IdeStatusFreshness
+import skillbill.engine.work.model.IdeStatusFreshness
 import java.time.Duration
 import java.time.Instant
 

@@ -183,5 +183,5 @@ fun validationGateFindingsDirective(
 }
 
 fun auditNoEarlierAuditLine(): String =
-  "      Every audit invocation re-checks the complete listed criterion set from scratch against the\n" +
+  "      Every audit invocation re-checks the complete in-scope criterion set from scratch against the\n" +
     "      current tree. Prior partial checks, provider sessions, and repair receipts do not skip checks.\n"

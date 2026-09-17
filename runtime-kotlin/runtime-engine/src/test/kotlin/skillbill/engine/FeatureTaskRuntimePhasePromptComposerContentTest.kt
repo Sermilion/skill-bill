@@ -1,9 +1,11 @@
 
 package skillbill.engine
+import skillbill.engine.featuretask.auditPhaseTaskDirective
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFeatureSize
 import kotlin.test.Test
 import kotlin.test.assertContains
+import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -261,16 +263,34 @@ class FeatureTaskRuntimePhasePromptComposerContentTest {
     assertContains(prompt, "test cases whose assertions verify that behavior")
     assertContains(prompt, "Missing implementation, missing tests")
     assertContains(prompt, "mock-only interaction, or tautological assertion is not coverage")
-    assertContains(prompt, "up to three repair cycles in this same agent session")
-    assertContains(prompt, "re-check the entire criterion list from the beginning")
-    assertContains(prompt, "reason it could not be fixed")
-    assertContains(prompt, "without validating their structure")
-    assertContains(prompt, "Reason: no search tool could locate the literals")
-    assertContains(prompt, "The runtime does not validate remaining-list shape")
+    assertContains(prompt, "Repair every fixable gap in this same agent session")
+    assertContains(prompt, "re-check the entire in-scope criterion list from the beginning")
     assertContains(prompt, "Do not spawn subagents, invoke repair skills, or hand findings")
     assertContains(prompt, "Validation owns test execution")
     assertTrue(!prompt.contains("TEST EXCLUSION"))
     assertTrue(!prompt.contains("free-form note prose"))
+  }
+
+  @Test
+  fun `audit remaining-criteria briefing is identical across shipped platform pack gates`() {
+    val briefing = promptComposerBriefingFor("audit")
+    val baseline = composePhasePrompt(PROMPT_COMPOSER_ISSUE_KEY, briefing)
+    val slugs = shippedPlatformPackSlugs()
+    assertTrue(slugs.isNotEmpty(), "expected shipped platform packs under platform-packs/")
+    (slugs + "unshipped-pack").forEach { slug ->
+      val prompt = composePhasePrompt(PROMPT_COMPOSER_ISSUE_KEY, briefing) {
+        copy(
+          packCollectAllCommand = "collect-all-$slug",
+          packConfirmationGateCommand = "confirm-$slug",
+          packBuildCommand = "build-$slug",
+        )
+      }
+      assertEquals(baseline, prompt, "audit remaining-criteria contract forked for pack $slug")
+      assertContains(prompt, auditPhaseTaskDirective())
+      assertTrue(!prompt.contains("collect-all-$slug"))
+      assertTrue(!prompt.contains("confirm-$slug"))
+      assertTrue(!prompt.contains("build-$slug"))
+    }
   }
 
   @Test

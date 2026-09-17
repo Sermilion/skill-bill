@@ -1,6 +1,8 @@
 package skillbill.engine.goalrunner
 
 import me.tatarka.inject.annotations.Inject
+import skillbill.engine.featuretask.FeatureTaskRuntimeWorkflowPersistence
+import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.goalrunner.persistence.GoalRunnerChildRepairRunnerPort
 import skillbill.ports.goalrunner.persistence.model.GoalRunnerChildRepairApplyRequest
 import skillbill.ports.goalrunner.persistence.model.GoalRunnerChildRepairApplyResult
@@ -17,15 +19,18 @@ const val GOAL_CHILD_REPAIR_EVIDENCE_ARTIFACT_KEY: String = "goal_child_repair_e
 
 @Inject
 class GoalRunnerChildRepairOperations(
+  database: DatabaseSessionFactory,
   workflowSnapshotValidator: WorkflowSnapshotValidator,
   private val gitOperations: WorkflowGitOperations,
   private val decompositionManifestValidator: DecompositionManifestValidator,
   private val clock: Clock,
 ) : GoalRunnerChildRepairRunnerPort {
   private val engine = WorkflowEngine(workflowSnapshotValidator)
+  private val workflowPersistence = FeatureTaskRuntimeWorkflowPersistence(database, workflowSnapshotValidator)
   private val wedgeDiagnosis = GoalRunnerChildRepairWedgeDiagnosis(gitOperations, clock)
   private val wedgeApplyLoop = GoalRunnerChildRepairWedgeApplyLoop(
     engine,
+    workflowPersistence,
     gitOperations,
     wedgeDiagnosis,
     decompositionManifestValidator,

@@ -12,13 +12,14 @@ import skillbill.workflow.taskruntime.model.QUARANTINE_REJECTION_CLASS_PLANNING_
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNotNull
 
 class FeatureTaskRuntimeWorkflowArtifactWireRoundTripTest {
   @Test
   fun `handoff envelope wire round-trips through the public artifact seam`() {
     val envelope = FeatureTaskRuntimeHandoffEnvelope(consumerPhaseId = "implement")
     val wire = envelope.asWorkflowArtifactEntry()
-    val decoded = decodeHandoffEnvelopeFromArtifact(wire)!!
+    val decoded = decodeHandoffEnvelopeFromArtifact(assertNotNull(JsonCodec.anyToStringAnyMap(wire)))
     assertEquals(
       JsonCodec.anyToStringAnyMap(wire),
       JsonCodec.anyToStringAnyMap(decoded.asWorkflowArtifactEntry()),
@@ -39,7 +40,7 @@ class FeatureTaskRuntimeWorkflowArtifactWireRoundTripTest {
       ),
     )
     val wire = receipt.asWorkflowArtifactEntry()
-    val decoded = decodeRepairReceiptFromArtifact(wire, "repair_receipt")!!
+    val decoded = decodeRepairReceiptFromArtifact(assertNotNull(JsonCodec.anyToStringAnyMap(wire)), "repair_receipt")
     assertEquals(
       JsonCodec.anyToStringAnyMap(wire),
       JsonCodec.anyToStringAnyMap(decoded.asWorkflowArtifactEntry()),

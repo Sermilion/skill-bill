@@ -1,3 +1,13 @@
+## [2026-09-17] SKILL-352 subtask 1 — Own run-loop inputs and dissolve parameter bags
+Areas: runtime-kotlin/{runtime-engine/{featuretask,goalrunner},runtime-domain/goalrunner,runtime-core/architecture}, runtime-kotlin/ARCHITECTURE.md
+- Narrowed FeatureTaskRuntimeRunLoop helper seams to explicit request, state, recorder, diagnostics, clock, and session inputs; retained context extensions only at orchestration seams.
+- Moved phase-token accumulation into a named run-state transition with read-only views, and replaced mutable settlement/goal-loop exposure with owned state projections.
+- Dissolved fact-only argument bags, converted capability-bearing bags into named collaborators, and modeled goal-runner ledger context as sealed actions.
+- Pattern: keep ownership-bearing collaborators explicit and keep mutable workflow state behind its owning transition. reusable
+- Known limitation: this subtask changes boundaries and architecture census only; persistence and wire-key changes remain in later subtasks.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
 ## [2026-09-16] SKILL-350 subtask 2 — Correct and simplify composition architecture checks
 Areas: runtime-kotlin/{runtime-core, architecture guards, ARCHITECTURE.md}
 - Composition checks now scan ordinary public callables and inherited provider mixins while allowing only the constrained generated wiring surface.

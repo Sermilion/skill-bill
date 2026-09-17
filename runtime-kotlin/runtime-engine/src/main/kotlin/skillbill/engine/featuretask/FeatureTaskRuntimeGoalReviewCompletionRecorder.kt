@@ -1,5 +1,4 @@
 package skillbill.engine.featuretask
-import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.contracts.JsonCodec
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
@@ -38,8 +37,8 @@ class FeatureTaskRuntimeGoalReviewCompletionRecorder(
   private val database: DatabaseSessionFactory,
   private val workflowPersistence: FeatureTaskRuntimeWorkflowPersistence,
   private val clock: Clock,
-) : FeatureTaskRuntimePhaseReviewApi {
-  override fun completeGoalReviewPhase(completion: GoalReviewPhaseCompletionRequest): Boolean {
+) {
+  fun completeGoalReviewPhase(completion: GoalReviewPhaseCompletionRequest): Boolean {
     val request = validatedGoalReviewPhaseState(completion)
     return database.transaction { unitOfWork ->
       persistCompletedGoalReview(unitOfWork, request, completion)
@@ -59,7 +58,7 @@ class FeatureTaskRuntimeGoalReviewCompletionRecorder(
       write.completedState.completedPassCount,
       write.dispositions,
     )
-    workflowPersistence.persistPatch(
+    workflowPersistence.persistArtifactsPatch(
       unitOfWork.workflowStates,
       write.record,
       mapOf(
@@ -103,7 +102,7 @@ class FeatureTaskRuntimeGoalReviewCompletionRecorder(
   ): GoalReviewCompletionWrite? {
     val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, request.workflowId)
       ?: return null
-    val artifacts = decodeWorkflowArtifacts(record.artifactsJson)
+    val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
     val reviewArtifacts = GoalSubtaskReviewArtifactDecoder.decode(artifacts) ?: return null
     val reservedPass = reviewArtifacts.state.reservedPassNumber ?: 1
     val envelope = requireNotNull(request.normalizedOutput) {

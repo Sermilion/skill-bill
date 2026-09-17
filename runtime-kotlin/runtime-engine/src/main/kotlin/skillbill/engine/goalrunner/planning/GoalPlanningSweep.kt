@@ -3,8 +3,6 @@ package skillbill.engine.goalrunner.planning
 import me.tatarka.inject.annotations.Inject
 import skillbill.engine.goalrunner.ProduceMissingPlansArgs
 import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
-import skillbill.engine.goalrunner.planning.model.GoalPlanningSweepCheckpointBoundaries
-import skillbill.engine.goalrunner.planning.model.GoalPlanningSweepLaunchBoundaries
 import skillbill.engine.goalrunner.planning.model.GoalPlanningSweepOutcome
 import skillbill.goalrunner.model.GoalRunnerControlState
 import skillbill.ports.goalrunner.model.GoalPlanningIdentity

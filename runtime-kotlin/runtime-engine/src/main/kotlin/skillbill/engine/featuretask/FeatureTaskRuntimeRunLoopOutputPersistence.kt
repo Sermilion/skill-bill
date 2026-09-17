@@ -1,7 +1,8 @@
 package skillbill.engine.featuretask
 
 import skillbill.application.review.RuntimeOwnedReviewMode
-import skillbill.engine.featuretask.model.FeatureTaskRuntimePhasePromptComposeInputs
+import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
+import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseLaunchBriefing
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
 import skillbill.engine.featuretask.model.GoalReviewPhaseCompletionRequest
@@ -18,8 +19,10 @@ import skillbill.workflow.taskruntime.model.AcceptedFeatureTaskRuntimePhaseOutpu
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeCorrectiveRepairContext
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffAssemblyRequest
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseHandoff
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairEvidence
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepositoryCheckpoint
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeResolvedBranch
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeReviewPassSequence
 import skillbill.workflow.taskruntime.model.NormalizedFeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.ReviewPassResolution
@@ -60,7 +63,7 @@ object FeatureTaskRuntimeRunLoopOutputPersistence {
       recordedVerdicts = recordedVerdicts,
     )
     rejectedResult.truncationRecords.forEach { record ->
-      runCatching { diagnostics.warning(record) }
+      RuntimeDiagnosticsBestEffortWarning.record(diagnostics, record)
     }
     if (rejectedResult.findings.isEmpty()) return
     recorder.appendRejectedVerificationFindings(
@@ -202,144 +205,158 @@ object FeatureTaskRuntimeRunLoopOutputPersistence {
     retryReason: String = operatorReason,
     correctiveRepairContext: FeatureTaskRuntimeCorrectiveRepairContext? = null,
   ): AttemptResult = AttemptResult.schemaInvalid(
-    SchemaInvalidArgs(
-      operatorReason = operatorReason,
-      fileManifest = fileManifest,
-      rejectedOutput = null,
-      malformedOutput = malformedOutput,
-      retryReason = retryReason,
-      correctiveRepairContext = correctiveRepairContext,
-    ),
+    operatorReason = operatorReason,
+    fileManifest = fileManifest,
+    malformedOutput = malformedOutput,
+    retryReason = retryReason,
+    correctiveRepairContext = correctiveRepairContext,
   )
 
-  internal fun FeatureTaskRuntimeRunLoopContext.prepareLaunch(args: PrepareLaunchArgs): PreparedLaunch {
-    val run = args.run
-    val state = args.state
-    val priorCorrection = args.priorCorrection
-    val repositoryCheckpoint = args.repositoryCheckpoint
-    val resolvedBranchRecord = recorder.loadResolvedBranch(run.request.workflowId)
-    val handoff = assembleLaunchHandoff(
-      request,
-      recorder,
-      AssembleLaunchHandoffArgs(
+  internal fun prepareLaunch(
+    context: FeatureTaskRuntimeRunLoopContext,
+    run: PhaseRun,
+    priorCorrection: PriorAttemptCorrection?,
+    repositoryCheckpoint: FeatureTaskRuntimeRepositoryCheckpoint?,
+  ): PreparedLaunch {
+    with(context) {
+      val resolvedBranchRecord = recorder.loadResolvedBranch(run.request.workflowId)
+      val handoff = assembleLaunchHandoff(
+        context,
         run,
-        state,
         repositoryCheckpoint,
         resolvedBranchRecord,
-      ),
-    )
-    recorder.validateHandoffDeclarations(handoff.projectionDeclarations)
-    val sharedEvidence = FeatureTaskRuntimeRunLoopOutputVerification.resolveSharedReviewEvidence(
-      phaseGates,
-      run,
-      repositoryCheckpoint,
-    )
-    val briefing = FeatureTaskRuntimePhaseBriefingAssembler.assemble(
-      handoff,
-      run.request.workflowId,
-      phaseGates.planningProjectionValidator,
-      run.request.agentAddonSelection,
-      sharedEvidence?.reference,
-    )
-    if (!FeatureTaskRuntimePhaseWorkflowDefinition.singleAgentSessionOnly(run.phaseId)) {
-      recorder.recordPhaseBriefing(
-        run.request.workflowId,
-        briefing,
-        sharedEvidence?.measurement,
       )
-    }
-    val prompt = composeLaunchPrompt(
-      ComposeLaunchPromptArgs(
+      recorder.validateHandoffDeclarations(handoff.projectionDeclarations)
+      val sharedEvidence = FeatureTaskRuntimeRunLoopOutputVerification.resolveSharedReviewEvidence(
+        phaseGates,
         run,
-        state,
+        repositoryCheckpoint,
+      )
+      val briefing = FeatureTaskRuntimePhaseBriefingAssembler.assemble(
+        handoff,
+        run.request.workflowId,
+        phaseGates.planningProjectionValidator,
+        run.request.agentAddonSelection,
+        sharedEvidence?.reference,
+      )
+      if (!FeatureTaskRuntimePhaseWorkflowDefinition.singleAgentSessionOnly(run.phaseId)) {
+        recorder.recordPhaseBriefing(
+          run.request.workflowId,
+          briefing,
+          sharedEvidence?.measurement,
+        )
+      }
+      val prompt = FeatureTaskRuntimeRunLoopOutputPersistence.composeLaunchPrompt(
+        context,
+        run,
         handoff,
         priorCorrection,
-
         briefing,
-      ),
-    )
-    return PreparedLaunch(briefing, prompt)
+      )
+      return PreparedLaunch(briefing, prompt)
+    }
   }
 
   private fun assembleLaunchHandoff(
-    request: FeatureTaskRuntimeRunRequest,
-    recorder: FeatureTaskRuntimePhaseRecorder,
-    args: AssembleLaunchHandoffArgs,
-  ) = FeatureTaskRuntimeHandoffContract.assembleHandoff(
-    FeatureTaskRuntimeHandoffAssemblyRequest(
-      declaration = args.run.declaration,
-      runInvariants = args.run.request.runInvariants,
-      recordedOutputs = args.state.outputs(),
-      drivingVerdict = args.run.reentry?.drivingVerdict,
-      repairLedger = null,
-      repositoryCheckpoint = args.repositoryCheckpoint,
-      expectedRepositoryCheckpoint = expectedCheckpointForLaunch(args.run, args.repositoryCheckpoint)
-        ?.let(::FeatureTaskRuntimeRepositoryCheckpoint),
-      branchIdentity = args.resolvedBranchRecord?.branch,
-      baseBranch = args.resolvedBranchRecord?.baseBranch ?: "main",
-      validationDepth = args.run.request.goalContinuation?.validationDepth ?: ValidationDepth.DEFAULT,
-      qualityGateSelection = FeatureTaskRuntimeRunLoopTransitions.qualityGateSelection(request),
-    ),
-  ).copy(
-    recordedFindingVerdicts = FeatureTaskRuntimeRunLoopOutputVerification.recordedFindingVerdictsForFixHandoff(
-      recorder,
-      args.run,
-
-      args.state,
-    ),
-  )
-
-  private fun FeatureTaskRuntimeRunLoopContext.composeLaunchPrompt(args: ComposeLaunchPromptArgs): String {
-    return FeatureTaskRuntimePhasePromptComposer.compose(composeLaunchPromptInputs(args)) +
-      FeatureTaskRuntimeRunLoopLaunch.verifyFindingsSpecIntentSection(state, recorder, session, phaseGates, args.run)
-  }
-
-  private fun FeatureTaskRuntimeRunLoopContext.composeLaunchPromptInputs(
-    args: ComposeLaunchPromptArgs,
-  ): FeatureTaskRuntimePhasePromptComposeInputs {
-    val run = args.run
-    val state = args.state
-    val handoff = args.handoff
-    val priorCorrection = args.priorCorrection
-    val briefing = args.briefing
-    val context = this
-    val resolvedBranchRecord = recorder.loadResolvedBranch(run.request.workflowId)
-    val (passNumber, depthResolution, executedTier) = context.resolveReviewPromptTier(run, state)
-    return FeatureTaskRuntimePhasePromptComposeInputs(
-      issueKey = run.request.issueKey,
-      briefing = briefing,
-      suppressDecomposition = isGoalContinuationRun(run.request),
-      codeReviewMode = executedTier,
-      reviewPassNumber = passNumber,
-      goalSubtaskReviewInput = run.goalReviewInput,
-      baselineUntrackedPaths = resolvedBranchRecord?.baselineUntrackedPaths.orEmpty(),
-      resolvedReviewTier = depthResolution?.let { executedTier },
-      reviewDecidingRule = depthResolution?.decidingRule,
-      repairLedger = handoff.repairLedger,
-      priorReviewContext = null,
-      priorSchemaFailure = priorCorrection?.schemaGateReason,
-      priorTerminalFailure = priorCorrection?.retryableTerminalReason,
-      priorFindingCoverage = priorCorrection?.findingCoverageReason,
-      correctiveRepairContext = priorCorrection?.correctiveRepairContext,
-      operatorBlockRetry = session.operatorBlockRetry
-        ?.takeIf { it.phaseId == run.phaseId && !session.operatorBlockRetryCompleted },
-      implementationContinuation =
-      FeatureTaskRuntimeRunLoopOutputVerification.implementationContinuationFor(recorder, run),
-      validationGateFindings = run.validationGateFindings,
-      validationGateTriagePlan = run.validationGateTriagePlan,
-      validationGateRepair = run.validationGateRepair,
-      validationGateTriage = run.validationGateTriage,
-      agentRunValidateFallback = run.agentRunValidateFallback,
-      packCollectAllCommand = packCollectAllCommand(run),
-      packConfirmationGateCommand = packConfirmationGateCommand(run),
-      packBuildCommand = packBuildCommand(run),
-      auditRetryFocusHint = session.auditRetryFocusHint?.takeIf {
-        run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT
-      },
+    context: FeatureTaskRuntimeRunLoopContext,
+    run: PhaseRun,
+    repositoryCheckpoint: FeatureTaskRuntimeRepositoryCheckpoint?,
+    resolvedBranchRecord: FeatureTaskRuntimeResolvedBranch?,
+  ) = with(context) {
+    FeatureTaskRuntimeHandoffContract.assembleHandoff(
+      FeatureTaskRuntimeHandoffAssemblyRequest(
+        declaration = run.declaration,
+        runInvariants = run.request.runInvariants,
+        recordedOutputs = state.outputs(),
+        drivingVerdict = run.reentry?.drivingVerdict,
+        repairLedger = null,
+        repositoryCheckpoint = repositoryCheckpoint,
+        expectedRepositoryCheckpoint = expectedCheckpointForLaunch(run, repositoryCheckpoint)
+          ?.let(::FeatureTaskRuntimeRepositoryCheckpoint),
+        branchIdentity = resolvedBranchRecord?.branch,
+        baseBranch = resolvedBranchRecord?.baseBranch ?: "main",
+        validationDepth = run.request.goalContinuation?.validationDepth ?: ValidationDepth.DEFAULT,
+        qualityGateSelection = FeatureTaskRuntimeRunLoopTransitions.qualityGateSelection(request),
+      ),
+    ).copy(
+      recordedFindingVerdicts = FeatureTaskRuntimeRunLoopOutputVerification.recordedFindingVerdictsForFixHandoff(
+        recorder,
+        run,
+        state,
+      ),
     )
   }
 
-  private fun FeatureTaskRuntimeRunLoopContext.packCollectAllCommand(run: PhaseRun): String? =
+  private fun composeLaunchPrompt(
+    context: FeatureTaskRuntimeRunLoopContext,
+    run: PhaseRun,
+    handoff: FeatureTaskRuntimePhaseHandoff,
+    priorCorrection: PriorAttemptCorrection?,
+    briefing: FeatureTaskRuntimePhaseLaunchBriefing,
+  ): String {
+    with(context) {
+      return FeatureTaskRuntimePhasePromptComposer.compose(
+        FeatureTaskRuntimeRunLoopOutputPersistence.composeLaunchPromptInputs(
+          context,
+          run,
+          handoff,
+          priorCorrection,
+          briefing,
+        ),
+      ) +
+        FeatureTaskRuntimeRunLoopLaunch.verifyFindingsSpecIntentSection(state, recorder, session, phaseGates, run)
+    }
+  }
+
+  private fun composeLaunchPromptInputs(
+    context: FeatureTaskRuntimeRunLoopContext,
+    run: PhaseRun,
+    handoff: FeatureTaskRuntimePhaseHandoff,
+    priorCorrection: PriorAttemptCorrection?,
+    briefing: FeatureTaskRuntimePhaseLaunchBriefing,
+  ): FeatureTaskRuntimePhasePromptComposeInputs {
+    with(context) {
+      val context = this
+      val resolvedBranchRecord = recorder.loadResolvedBranch(run.request.workflowId)
+      val (passNumber, depthResolution, executedTier) =
+        FeatureTaskRuntimeRunLoopOutputPersistence.resolveReviewPromptTier(context, run, state)
+      return FeatureTaskRuntimePhasePromptComposeInputs(
+        issueKey = run.request.issueKey,
+        briefing = briefing,
+        suppressDecomposition = isGoalContinuationRun(run.request),
+        codeReviewMode = executedTier,
+        reviewPassNumber = passNumber,
+        goalSubtaskReviewInput = run.goalReviewInput,
+        baselineUntrackedPaths = resolvedBranchRecord?.baselineUntrackedPaths.orEmpty(),
+        resolvedReviewTier = depthResolution?.let { executedTier },
+        reviewDecidingRule = depthResolution?.decidingRule,
+        repairLedger = handoff.repairLedger,
+        priorReviewContext = null,
+        priorSchemaFailure = priorCorrection?.schemaGateReason,
+        priorTerminalFailure = priorCorrection?.retryableTerminalReason,
+        priorFindingCoverage = priorCorrection?.findingCoverageReason,
+        correctiveRepairContext = priorCorrection?.correctiveRepairContext,
+        operatorBlockRetry = session.operatorBlockRetry
+          ?.takeIf { it.phaseId == run.phaseId && !session.operatorBlockRetryCompleted },
+        implementationContinuation =
+        FeatureTaskRuntimeRunLoopOutputVerification.implementationContinuationFor(recorder, run),
+        validationGateFindings = run.validationGateFindings,
+        validationGateTriagePlan = run.validationGateTriagePlan,
+        validationGateRepair = run.validationGateRepair,
+        validationGateTriage = run.validationGateTriage,
+        agentRunValidateFallback = run.agentRunValidateFallback,
+        packCollectAllCommand = FeatureTaskRuntimeRunLoopOutputPersistence.packCollectAllCommand(context, run),
+        packConfirmationGateCommand =
+        FeatureTaskRuntimeRunLoopOutputPersistence.packConfirmationGateCommand(context, run),
+        packBuildCommand = FeatureTaskRuntimeRunLoopOutputPersistence.packBuildCommand(context, run),
+        auditRetryFocusHint = session.auditRetryFocusHint?.takeIf {
+          run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT
+        },
+      )
+    }
+  }
+
+  private fun packCollectAllCommand(context: FeatureTaskRuntimeRunLoopContext, run: PhaseRun): String? = with(context) {
     FeatureTaskRuntimeRunLoopValidationGate.packCollectAllCommand(
       phaseGates,
       recorder,
@@ -347,17 +364,20 @@ object FeatureTaskRuntimeRunLoopOutputPersistence {
       session,
       run,
     )
+  }
 
-  private fun FeatureTaskRuntimeRunLoopContext.packConfirmationGateCommand(run: PhaseRun): String? =
-    FeatureTaskRuntimeRunLoopValidationGate.packConfirmationGateCommand(
-      phaseGates,
-      recorder,
-      goalContinuationRecorder,
-      session,
-      run,
-    )
+  private fun packConfirmationGateCommand(context: FeatureTaskRuntimeRunLoopContext, run: PhaseRun): String? =
+    with(context) {
+      FeatureTaskRuntimeRunLoopValidationGate.packConfirmationGateCommand(
+        phaseGates,
+        recorder,
+        goalContinuationRecorder,
+        session,
+        run,
+      )
+    }
 
-  private fun FeatureTaskRuntimeRunLoopContext.packBuildCommand(run: PhaseRun): String? =
+  private fun packBuildCommand(context: FeatureTaskRuntimeRunLoopContext, run: PhaseRun): String? = with(context) {
     FeatureTaskRuntimeRunLoopValidationGate.packBuildCommand(
       phaseGates,
       recorder,
@@ -365,27 +385,31 @@ object FeatureTaskRuntimeRunLoopOutputPersistence {
       session,
       run,
     )
+  }
 
-  private fun FeatureTaskRuntimeRunLoopContext.resolveReviewPromptTier(
+  private fun resolveReviewPromptTier(
+    context: FeatureTaskRuntimeRunLoopContext,
     run: PhaseRun,
     state: FeatureTaskRuntimeRunState,
   ): Triple<Int?, ReviewPassResolution?, CodeReviewExecutionMode> {
-    val passNumber = reviewPassNumber(request, goalContinuationRecorder, run, state)
-    val resolution = passNumber?.let { pass ->
-      FeatureTaskRuntimeReviewPassSequence.resolveForPass(run.request.runInvariants.codeReviewMode, pass)
-    }
-    val executedTier = RuntimeOwnedReviewMode.execute(
-      resolution?.resolvedTier ?: run.request.runInvariants.codeReviewMode,
-    )
-    resolution?.let {
-      FeatureTaskRuntimeRunLoopPlanningBranch.persistResolvedReviewTier(
-        request,
-        goalContinuationRecorder,
-        run,
-        it,
+    with(context) {
+      val passNumber = reviewPassNumber(request, goalContinuationRecorder, run, state)
+      val resolution = passNumber?.let { pass ->
+        FeatureTaskRuntimeReviewPassSequence.resolveForPass(run.request.runInvariants.codeReviewMode, pass)
+      }
+      val executedTier = RuntimeOwnedReviewMode.execute(
+        resolution?.resolvedTier ?: run.request.runInvariants.codeReviewMode,
       )
+      resolution?.let {
+        FeatureTaskRuntimeRunLoopPlanningBranch.persistResolvedReviewTier(
+          request,
+          goalContinuationRecorder,
+          run,
+          it,
+        )
+      }
+      return Triple(passNumber, resolution, executedTier)
     }
-    return Triple(passNumber, resolution, executedTier)
   }
 
   internal fun persistPhase(

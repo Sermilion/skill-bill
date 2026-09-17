@@ -56,6 +56,8 @@ class FeatureTaskRuntimeRunState(
 
   private val gateInvalidatedPhaseIds: MutableSet<String> = mutableSetOf()
 
+  private val phaseTokenUsage: MutableMap<String, Pair<Int, Int>> = mutableMapOf()
+
   private val parsedOutputsByPayloadStorage: MutableMap<String, FeatureTaskRuntimeWorkflowArtifactMap> = mutableMapOf()
 
   private val outputBuffer: MutableList<FeatureTaskRuntimePhaseOutput> = mutableListOf()
@@ -90,19 +92,24 @@ class FeatureTaskRuntimeRunState(
         )
       }
       .also { completedSet ->
+        val validationState = ValidationSettlementState(
+          completed = completedSet,
+          initialRecords = this.initialRecords,
+          transitions = transitions,
+          gateInvalidatedPhases = gateInvalidatedPhaseIds,
+        )
         invalidateIncompleteValidationSettlement(
-          state = ValidationSettlementState(
-            completed = completedSet,
-            initialRecords = this.initialRecords,
-            transitions = transitions,
-            gateInvalidatedPhases = gateInvalidatedPhaseIds,
-          ),
+          state = validationState,
           validation = ValidationSettlementValidation(
             validatedRecordToOutput = ::validatedRecordToOutput,
             validationEvidenceCommandResolver = validationEvidenceCommandResolver,
             durableVerdictFor = ::durableVerdictFor,
           ),
         )
+        completedSet.clear()
+        completedSet += validationState.completed
+        gateInvalidatedPhaseIds.clear()
+        gateInvalidatedPhaseIds += validationState.gateInvalidatedPhases
       }
   init {
     this.initialRecords.values
@@ -198,6 +205,13 @@ class FeatureTaskRuntimeRunState(
   }
 
   fun outputs(): List<FeatureTaskRuntimePhaseOutput> = outputBuffer.toList()
+
+  internal val phaseTokenView: Map<String, Pair<Int, Int>>
+    get() = phaseTokenUsage.toMap()
+
+  internal fun recordPhaseTokenUsage(phaseId: String, inputTokens: Int, outputTokens: Int) {
+    phaseTokenUsage[phaseId] = inputTokens to outputTokens
+  }
 
   fun phasesRequiringDurableGateInvalidation(): Set<String> = gateInvalidatedPhaseIds.toSet()
 
@@ -363,8 +377,6 @@ class FeatureTaskRuntimeRunState(
 
   fun outputFor(phaseId: String): FeatureTaskRuntimePhaseOutput? =
     outputBuffer.filter { it.phaseId == phaseId }.maxByOrNull { it.iteration }
-
-  fun outputCountFor(phaseId: String): Int = outputBuffer.count { it.phaseId == phaseId }
 
   fun nextIteration(phaseId: String): Int {
     val latestOutputIteration = outputBuffer.filter { it.phaseId == phaseId }.maxOfOrNull { it.iteration } ?: 0

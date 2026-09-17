@@ -14,7 +14,6 @@ import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.workflowStatus
 import java.time.Clock
 import java.time.Duration
-import java.time.Instant
 import java.util.UUID
 
 @RuntimeSingleton
@@ -118,7 +117,7 @@ class FeatureTaskRuntimeWorkerCoordinator(
   }
 
   private fun leaseIsActive(ownership: FeatureTaskRuntimeWorkerOwnership): Boolean =
-    Instant.parse(ownership.expiresAt).isAfter(clock.instant())
+    ownership.expiresAtInstant.isAfter(clock.instant())
 
   private fun stopExactWorker(existing: FeatureTaskRuntimeWorkerOwnership) {
     supervisor.terminateGracefully(existing)

@@ -55,6 +55,19 @@ class FeatureTaskRuntimeSubtaskCommitResolverTest {
     assertEquals(true, decision.recoveredFromTrailer)
   }
 
+  @Test
+  fun `a stale pointer still amends a matching HEAD trailer`() {
+    val decision = assertIs<FeatureTaskRuntimeSubtaskCommitAmend>(
+      decide(
+        durableCommitSha = OTHER_SHA,
+        headCommitMessage = "wip\n\nSkill-Bill-Subtask: $ISSUE/3\n",
+      ),
+    )
+
+    assertEquals(HEAD_SHA, decision.ownedHeadSha)
+    assertEquals(true, decision.recoveredFromTrailer)
+  }
+
   private fun decide(
     durableCommitSha: String?,
     headCommitMessage: String?,

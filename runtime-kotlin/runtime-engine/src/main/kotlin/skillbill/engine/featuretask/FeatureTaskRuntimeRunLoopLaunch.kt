@@ -120,7 +120,7 @@ object FeatureTaskRuntimeRunLoopLaunch {
         )
     }
     val prepared = when (
-      val preparation = prepareLaunchForCapture(run, state, priorCorrection)
+      val preparation = FeatureTaskRuntimeRunLoopLaunch.prepareLaunchForCapture(this, run, state, priorCorrection)
     ) {
       is PreparedLaunchReady -> preparation.value
       is LaunchPreparationRejected -> return preparation.result
@@ -135,7 +135,7 @@ object FeatureTaskRuntimeRunLoopLaunch {
       run,
       prepared.briefing,
       outcome,
-      phaseTokenAccumulator,
+      state,
     )
     val fileManifest = when (
       val captured = FeatureTaskRuntimeRunLoopLaunch.buildLaunchFileManifest(phaseGates, run, before)
@@ -179,27 +179,31 @@ object FeatureTaskRuntimeRunLoopLaunch {
     }
     .toMap()
 
-  internal fun FeatureTaskRuntimeRunLoopContext.prepareLaunchForCapture(
+  internal fun prepareLaunchForCapture(
+    context: FeatureTaskRuntimeRunLoopContext,
     run: PhaseRun,
     state: FeatureTaskRuntimeRunState,
     priorCorrection: PriorAttemptCorrection?,
   ): LaunchPreparation {
-    val measurementContext = when (
-      val resolution = resolveLaunchMeasurementContext(run)
-    ) {
-      is LaunchMeasurementContextReady -> resolution.value
-      is LaunchPreparationRejected -> return resolution
-      is PreparedLaunchReady -> error("Unexpected launch measurement result.")
-    }
-    return prepareDeclaredLaunch(
-      DeclaredLaunchArgs(
-        run,
-        state,
-        priorCorrection,
+    with(context) {
+      val measurementContext = when (
+        val resolution = FeatureTaskRuntimeRunLoopLaunch.resolveLaunchMeasurementContext(context, run)
+      ) {
+        is LaunchMeasurementContextReady -> resolution.value
+        is LaunchPreparationRejected -> return resolution
+        is PreparedLaunchReady -> error("Unexpected launch measurement result.")
+      }
+      return FeatureTaskRuntimeRunLoopLaunch.prepareDeclaredLaunch(
+        context,
+        DeclaredLaunchArgs(
+          run,
+          state,
+          priorCorrection,
 
-        measurementContext,
-      ),
-    )
+          measurementContext,
+        ),
+      )
+    }
   }
 
   internal data class LaunchCaptureBeforeState(
@@ -310,12 +314,12 @@ object FeatureTaskRuntimeRunLoopLaunch {
     run: PhaseRun,
     briefing: FeatureTaskRuntimePhaseLaunchBriefing,
     outcome: AgentRunLaunchOutcome,
-    phaseTokenAccumulator: MutableMap<String, Pair<Int, Int>>?,
+    state: FeatureTaskRuntimeRunState,
   ) {
-    if (outcome is AgentRunLaunchFacts && phaseTokenAccumulator != null) {
+    if (outcome is AgentRunLaunchFacts) {
       val inputTokens = estimateTokens(briefing.briefingText)
       val outputTokens = estimateTokens(outcome.stdout)
-      phaseTokenAccumulator[run.phaseId] = Pair(inputTokens, outputTokens)
+      state.recordPhaseTokenUsage(run.phaseId, inputTokens, outputTokens)
     }
   }
 
@@ -325,54 +329,61 @@ object FeatureTaskRuntimeRunLoopLaunch {
     return isReviewPhase to isVerifyFindingsPhase
   }
 
-  internal fun FeatureTaskRuntimeRunLoopContext.resolveLaunchMeasurementContext(run: PhaseRun): LaunchPreparation {
-    val producerIteration = run.declaration.projectionDeclarations
-      .map { declaration ->
-        val phaseId = declaration.producerIteration.phaseId
-        state.outputFor(phaseId)?.let { FeatureTaskRuntimeProducerIteration(phaseId, it.iteration) }
-          ?: declaration.producerIteration
+  internal fun resolveLaunchMeasurementContext(
+    context: FeatureTaskRuntimeRunLoopContext,
+    run: PhaseRun,
+  ): LaunchPreparation {
+    with(context) {
+      val producerIteration = run.declaration.projectionDeclarations
+        .map { declaration ->
+          val phaseId = declaration.producerIteration.phaseId
+          state.outputFor(phaseId)?.let { FeatureTaskRuntimeProducerIteration(phaseId, it.iteration) }
+            ?: declaration.producerIteration
+        }
+        .maxByOrNull(FeatureTaskRuntimeProducerIteration::iteration)
+        ?: FeatureTaskRuntimeProducerIteration(run.phaseId, 1)
+      return try {
+        LaunchMeasurementContextReady(
+          LaunchRejectionMeasurementContext(
+            producerIteration = producerIteration,
+            repositoryCheckpoint = with(FeatureTaskRuntimeRunLoopOutputVerification) {
+              resolveRepositoryCheckpoint(
+                RepositoryCheckpointResolutionArgs(
+                  recorder = recorder,
+                  goalContinuationRecorder = goalContinuationRecorder,
+                  phaseGates = phaseGates,
+                  session = session,
+                  run = run,
+                ),
+              )
+            },
+          ),
+        )
+      } catch (error: InvalidFeatureTaskRuntimeHandoffProjectionError) {
+        recordLaunchSeamRejection(
+          recorder,
+          LaunchSeamRejectionArgs(
+            run = run,
+            state = state,
+            classification = FeatureTaskRuntimeProjectionFailureClassification.BUDGET_OVERFLOW,
+            sourceLabel = error.projectionName,
+            fallbackProducerIteration = producerIteration,
+            repositoryCheckpoint = null,
+          ),
+        )
+        LaunchPreparationRejected(
+          LaunchResult.projectionRejected(
+            "Feature-task-runtime phase '${run.phaseId}' could not resolve its repository checkpoint: ${error.message}",
+          ),
+        )
       }
-      .maxByOrNull(FeatureTaskRuntimeProducerIteration::iteration)
-      ?: FeatureTaskRuntimeProducerIteration(run.phaseId, 1)
-    return try {
-      LaunchMeasurementContextReady(
-        LaunchRejectionMeasurementContext(
-          producerIteration = producerIteration,
-          repositoryCheckpoint = with(FeatureTaskRuntimeRunLoopOutputVerification) {
-            resolveRepositoryCheckpoint(
-              RepositoryCheckpointResolutionArgs(
-                recorder = recorder,
-                goalContinuationRecorder = goalContinuationRecorder,
-                phaseGates = phaseGates,
-                session = session,
-                run = run,
-              ),
-            )
-          },
-        ),
-      )
-    } catch (error: InvalidFeatureTaskRuntimeHandoffProjectionError) {
-      recordLaunchSeamRejection(
-        recorder,
-        LaunchSeamRejectionArgs(
-          run = run,
-          state = state,
-          classification = FeatureTaskRuntimeProjectionFailureClassification.BUDGET_OVERFLOW,
-          sourceLabel = error.projectionName,
-          fallbackProducerIteration = producerIteration,
-          repositoryCheckpoint = null,
-        ),
-      )
-      LaunchPreparationRejected(
-        LaunchResult.projectionRejected(
-          "Feature-task-runtime phase '${run.phaseId}' could not resolve its repository checkpoint: ${error.message}",
-        ),
-      )
     }
   }
 
-  internal fun FeatureTaskRuntimeRunLoopContext.prepareDeclaredLaunch(args: DeclaredLaunchArgs): LaunchPreparation =
-    prepareDeclaredLaunchBody(args)
+  internal fun prepareDeclaredLaunch(
+    context: FeatureTaskRuntimeRunLoopContext,
+    args: DeclaredLaunchArgs,
+  ): LaunchPreparation = FeatureTaskRuntimeRunLoopLaunch.prepareDeclaredLaunchBody(context, args)
 
   internal fun recordLaunchSeamRejection(recorder: FeatureTaskRuntimePhaseRecorder, args: LaunchSeamRejectionArgs) {
     val run = args.run
@@ -427,14 +438,14 @@ object FeatureTaskRuntimeRunLoopLaunch {
           )
         }
       ?: LaunchResult.captured(
-        LaunchCapturedArgs(
-          stdout = outcome.stdout,
-          stdoutBytes = outcome.stdoutBytes,
-          stdoutTruncated = outcome.stdoutTruncated,
-          stdoutByteSize = outcome.stdoutByteSize,
-          stdoutSha256 = outcome.stdoutSha256,
-          fileManifest = fileManifest,
+        CapturedPhaseOutput(
+          text = outcome.stdout,
+          bytes = outcome.stdoutBytes,
+          truncated = outcome.stdoutTruncated,
+          byteSize = outcome.stdoutByteSize,
+          sha256 = outcome.stdoutSha256,
         ),
+        fileManifest = fileManifest,
       )
   }
 
@@ -456,34 +467,33 @@ object FeatureTaskRuntimeRunLoopLaunch {
     return LaunchPreparationRejected(LaunchResult.projectionRejected(args.message))
   }
 
-  internal fun FeatureTaskRuntimeRunLoopContext.prepareDeclaredLaunchBody(
+  internal fun prepareDeclaredLaunchBody(
+    context: FeatureTaskRuntimeRunLoopContext,
     args: DeclaredLaunchArgs,
   ): LaunchPreparation {
-    val run = args.run
-    val state = args.state
-    val priorCorrection = args.priorCorrection
-    val context = args.context
-    return try {
-      PreparedLaunchReady(
-        with(FeatureTaskRuntimeRunLoopOutputPersistence) {
-          this@prepareDeclaredLaunchBody.prepareLaunch(
-            PrepareLaunchArgs(
-              run,
-              state,
-              priorCorrection,
-              context.repositoryCheckpoint,
-            ),
-          )
-        },
-      )
-    } catch (error: InvalidFeatureTaskRuntimeHandoffProjectionError) {
-      rejectedHandoffLaunch(recorder, run, state, error, context)
-    } catch (error: InvalidFeatureTaskRuntimePhaseBriefingFramingError) {
-      rejectedBriefingLaunch(recorder, run, state, error, context)
-    } catch (error: InvalidFeatureTaskRuntimePlanningProjectionSchemaError) {
-      rejectedPlanningProjectionLaunch(recorder, run, state, error, context)
-    } catch (error: InvalidWorkflowStateSchemaError) {
-      rejectedDurableBriefingLaunch(recorder, run, state, error, context)
+    with(context) {
+      val run = args.run
+      val state = args.state
+      val priorCorrection = args.priorCorrection
+      val measurementContext = args.context
+      return try {
+        PreparedLaunchReady(
+          FeatureTaskRuntimeRunLoopOutputPersistence.prepareLaunch(
+            context,
+            run = run,
+            priorCorrection = priorCorrection,
+            repositoryCheckpoint = measurementContext.repositoryCheckpoint,
+          ),
+        )
+      } catch (error: InvalidFeatureTaskRuntimeHandoffProjectionError) {
+        rejectedHandoffLaunch(recorder, run, state, error, measurementContext)
+      } catch (error: InvalidFeatureTaskRuntimePhaseBriefingFramingError) {
+        rejectedBriefingLaunch(recorder, run, state, error, measurementContext)
+      } catch (error: InvalidFeatureTaskRuntimePlanningProjectionSchemaError) {
+        rejectedPlanningProjectionLaunch(recorder, run, state, error, measurementContext)
+      } catch (error: InvalidWorkflowStateSchemaError) {
+        rejectedDurableBriefingLaunch(recorder, run, state, error, measurementContext)
+      }
     }
   }
 
@@ -736,13 +746,19 @@ internal sealed interface AttemptResult {
       fileManifest: FeatureTaskRuntimePhaseFileManifest,
       failureDisposition: FeatureTaskRuntimeFailureDisposition,
     ): AttemptResult = RetryableTerminal(operatorReason, operatorReason, fileManifest, failureDisposition)
-    fun schemaInvalid(args: SchemaInvalidArgs): AttemptResult = SchemaInvalid(
-      operatorReason = args.operatorReason,
-      retryReason = args.retryReason ?: args.operatorReason,
-      fileManifest = args.fileManifest,
-      rejectedOutput = args.rejectedOutput,
-      malformedOutput = args.malformedOutput,
-      correctiveRepairContext = args.correctiveRepairContext,
+    fun schemaInvalid(
+      operatorReason: String,
+      fileManifest: FeatureTaskRuntimePhaseFileManifest,
+      malformedOutput: Boolean = false,
+      retryReason: String = operatorReason,
+      correctiveRepairContext: FeatureTaskRuntimeCorrectiveRepairContext? = null,
+    ): AttemptResult = SchemaInvalid(
+      operatorReason = operatorReason,
+      retryReason = retryReason,
+      fileManifest = fileManifest,
+      rejectedOutput = null,
+      malformedOutput = malformedOutput,
+      correctiveRepairContext = correctiveRepairContext,
     )
   }
 }

@@ -1,5 +1,4 @@
 package skillbill.engine.featuretask
-import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.engine.featuretask.model.PersistHealedRemediationBaseRequest
@@ -59,7 +58,7 @@ class FeatureTaskRuntimeRemediationBaseReconciler(
     database.transaction { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
         ?: return@transaction
-      val artifacts = decodeWorkflowArtifacts(record.artifactsJson)
+      val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
       val rejected = artifacts[FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_ARTIFACT_KEY]
         ?: return@transaction
       val existing = (artifacts[CHECKPOINT_IDENTITY_QUARANTINE_ARTIFACT_KEY] as? List<*>).orEmpty()
@@ -83,7 +82,7 @@ class FeatureTaskRuntimeRemediationBaseReconciler(
 
   private fun readRemediationSnapshot(workflowId: String): RemediationReconcileSnapshot? = database.read { unitOfWork ->
     val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@read null
-    val artifacts = decodeWorkflowArtifacts(record.artifactsJson)
+    val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
     runCatching {
       val state = reviewStateFromArtifacts(artifacts) ?: return@read null
       val continuation = continuationFromArtifacts(artifacts) ?: return@read null
@@ -99,7 +98,7 @@ class FeatureTaskRuntimeRemediationBaseReconciler(
   internal fun appendRemediationRollbackDegradationEvidence(workflowId: String, signal: RemediationDegradationSignal) {
     database.transaction { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@transaction
-      val artifacts = decodeWorkflowArtifacts(record.artifactsJson)
+      val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
       val goalBranch = continuationFromArtifacts(artifacts)?.goalBranch.orEmpty()
       val evidenceEntry = remediationBaseRecoveryEvidenceEntry(
         RemediationBaseRecovery(
@@ -354,7 +353,7 @@ internal fun FeatureTaskRuntimeRemediationBaseReconciler.appendRemediationBaseRe
 ) {
   database.transaction { unitOfWork ->
     val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@transaction
-    val artifacts = decodeWorkflowArtifacts(record.artifactsJson)
+    val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
     val evidenceEntry = remediationBaseRecoveryEvidenceEntry(recovery, signal)
     val priorEvidence = (artifacts[GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY] as? List<*>).orEmpty()
     patcher.save(

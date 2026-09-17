@@ -12,7 +12,7 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerReviewPolicy
 import skillbill.ports.repository.RepositoryEnclosingRootPort
 
 @Inject
-public class GoalRunnerRunPreparation(
+class GoalRunnerRunPreparation(
   private val manifestStore: GoalRunnerManifestStore,
   private val repositoryEnclosingRootPort: RepositoryEnclosingRootPort,
 ) {

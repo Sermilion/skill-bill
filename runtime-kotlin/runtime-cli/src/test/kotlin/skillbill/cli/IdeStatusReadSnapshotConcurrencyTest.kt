@@ -1,12 +1,12 @@
 package skillbill.cli
 
-import skillbill.application.idestatus.model.IdeStatusProblemCode
-import skillbill.application.idestatus.model.IdeStatusRequest
-import skillbill.application.idestatus.model.IdeStatusResult
 import skillbill.di.RuntimeComponent
 import skillbill.di.create
 import skillbill.engine.work.IdeStatusProjector
 import skillbill.engine.work.IdeStatusService
+import skillbill.engine.work.model.IdeStatusProblemCode
+import skillbill.engine.work.model.IdeStatusRequest
+import skillbill.engine.work.model.IdeStatusResult
 import skillbill.goalrunner.model.GoalRunnerControlState
 import skillbill.infrastructure.fs.CanonicalRepositoryRoot
 import skillbill.infrastructure.sqlite.SQLiteDatabaseSessionFactory

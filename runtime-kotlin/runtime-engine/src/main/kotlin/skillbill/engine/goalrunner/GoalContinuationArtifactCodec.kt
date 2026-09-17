@@ -2,6 +2,7 @@ package skillbill.engine.goalrunner
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.workflow.FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys
 import skillbill.engine.goalrunner.model.GoalContinuation
 import skillbill.error.InvalidGoalSubtaskReviewStateSchemaError
 import skillbill.error.InvalidWorkflowStateSchemaError
@@ -20,10 +21,11 @@ import skillbill.workflow.goal.model.GoalSubtaskReviewPassResult
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.envelopeWireMap
+import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.requireAcceptedOutput
 
 fun goalContinuation(artifacts: Map<String, Any?>): GoalContinuation? =
-  (artifacts["goal_continuation"] as? Map<*, *>)?.let { payload ->
+  (artifacts[FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY] as? Map<*, *>)?.let { payload ->
     val issueKey = payload[SharedPayloadKeys.ISSUE_KEY]?.toString()?.takeIf(String::isNotBlank)
     val subtaskId = payload[SharedPayloadKeys.SUBTASK_ID].asGoalRunnerIntOrNull()
     if (issueKey == null || subtaskId == null) {
@@ -32,8 +34,10 @@ fun goalContinuation(artifacts: Map<String, Any?>): GoalContinuation? =
       GoalContinuation(
         issueKey = issueKey,
         subtaskId = subtaskId,
-        suppressPr = payload["suppress_pr"] == true,
-        goalBranch = payload["goal_branch"]?.toString()?.takeIf(String::isNotBlank),
+        suppressPr = payload[FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.SUPPRESS_PR] == true,
+        goalBranch = payload[FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.GOAL_BRANCH]
+          ?.toString()
+          ?.takeIf(String::isNotBlank),
       )
     }
   }

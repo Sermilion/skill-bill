@@ -34,22 +34,30 @@ data class FeatureTaskRuntimeHandoffEnvelope(
   companion object {
     internal fun fromEnvelopeMap(raw: Map<String, Any?>): FeatureTaskRuntimeHandoffEnvelope {
       val reader = handoffReader(raw)
-      return FeatureTaskRuntimeHandoffEnvelope(
-        consumerPhaseId = reader.requiredString("consumer_phase_id"),
-        projections = reader.requiredList("projections").map(::projectionFromWire),
-        repositoryCheckpoint = reader.optionalNestedObject(ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT)?.let {
-          val checkpointReader = handoffReader(it)
-          FeatureTaskRuntimeRepositoryCheckpoint(
-            fingerprint = checkpointReader.requiredString(
-              ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT_FINGERPRINT,
-            ),
-            baseRef = checkpointReader.optionalString("base_ref"),
-            headRef = checkpointReader.optionalString("head_ref"),
-            workingTreeOwnedPaths = checkpointReader.optionalStringList("working_tree_owned_paths"),
-          )
-        },
-        contractVersion = reader.requiredString(SharedPayloadKeys.CONTRACT_VERSION),
-      )
+      return try {
+        FeatureTaskRuntimeHandoffEnvelope(
+          consumerPhaseId = reader.requiredString("consumer_phase_id"),
+          projections = reader.requiredList("projections").map(::projectionFromWire),
+          repositoryCheckpoint = reader.optionalNestedObject(ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT)?.let {
+            val checkpointReader = handoffReader(it)
+            FeatureTaskRuntimeRepositoryCheckpoint(
+              fingerprint = checkpointReader.requiredString(
+                ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT_FINGERPRINT,
+              ),
+              baseRef = checkpointReader.optionalString("base_ref"),
+              headRef = checkpointReader.optionalString("head_ref"),
+              workingTreeOwnedPaths = checkpointReader.optionalStringList("working_tree_owned_paths"),
+            )
+          },
+          contractVersion = reader.requiredString(SharedPayloadKeys.CONTRACT_VERSION),
+        )
+      } catch (error: IllegalArgumentException) {
+        throw InvalidFeatureTaskRuntimePhaseHandoffSchemaError(
+          sourceLabel = "<wire>",
+          reason = error.message ?: "handoff envelope is invalid.",
+          cause = error,
+        )
+      }
     }
 
     private fun projectionFromWire(raw: Any?): FeatureTaskRuntimeHandoffProjection {

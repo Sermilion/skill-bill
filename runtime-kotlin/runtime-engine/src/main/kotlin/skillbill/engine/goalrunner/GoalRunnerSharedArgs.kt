@@ -7,23 +7,17 @@ import skillbill.goalrunner.model.GoalRunnerReconciledOutcome
 import skillbill.goalrunner.model.GoalRunnerSelection
 import skillbill.goalrunner.model.GoalRunnerStopReason
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
-import skillbill.ports.agentrun.model.AgentRunOutputSink
 import skillbill.ports.agentrun.model.AgentRunSpawnAuthorization
 import skillbill.ports.goalrunner.model.GoalPlanningContractProvenance
 import skillbill.ports.goalrunner.model.GoalPlanningIdentity
-import skillbill.ports.goalrunner.model.GovernedGoalSubtaskDescriptor
 import skillbill.ports.goalrunner.model.SharedGoalPreplanCheckpoint
-import skillbill.ports.goalrunner.planning.model.GoalPlanningResolvedBoundaryBodies
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.workflow.decomposition.model.DecompositionSubtask
-import skillbill.workflow.goal.model.GoalProgressEventKind
-import skillbill.workflow.goal.model.GoalProgressOutcome
 
 internal data class DriveGoalLoopArgs(
   val initialState: GoalRunnerManifestState,
   val request: GoalRunnerRunRequest,
-  val attempted: MutableList<Int>,
   val observability: GoalRunnerObservabilityEmitter,
   val ledger: GoalRunnerLedgerRecorder,
   val telemetryEmitter: GoalRunnerTelemetryEmitter,
@@ -52,7 +46,8 @@ internal data class RunSelectedSubtaskArgs(
   val state: GoalRunnerManifestState,
   val selection: GoalRunnerSelection.Run,
   val request: GoalRunnerRunRequest,
-  val attempted: MutableList<Int>,
+  val attemptedSnapshot: () -> List<Int>,
+  val recordAttempt: (Int) -> Unit,
   val observability: GoalRunnerObservabilityEmitter,
   val ledger: GoalRunnerLedgerRecorder,
   val telemetryEmitter: GoalRunnerTelemetryEmitter?,
@@ -66,7 +61,7 @@ internal data class DispatchWorkerResultArgs(
   val workerRequestResult: GoalRunnerWorkerRequestHandlingResult,
   val launchReconciliation: GoalRunnerLaunchReconciliation,
   val request: GoalRunnerRunRequest,
-  val attempted: MutableList<Int>,
+  val attempted: List<Int>,
   val observability: GoalRunnerObservabilityEmitter,
   val ledger: GoalRunnerLedgerRecorder,
   val attemptStartMillis: Long?,
@@ -143,17 +138,6 @@ internal data class ProduceMissingPlansArgs(
   val activeSubtasks: List<DecompositionSubtask>,
 )
 
-internal data class ProducePlanArgs(
-  val shared: GoalPlanningSharedContext,
-  val request: GoalRunnerRunRequest,
-  val subtask: DecompositionSubtask,
-  val descriptor: GovernedGoalSubtaskDescriptor,
-  val provenance: GoalPlanningContractProvenance,
-  val preplanPayload: String,
-  val resolvedBodies: GoalPlanningResolvedBoundaryBodies,
-  val outputSink: AgentRunOutputSink,
-)
-
 internal data class EmptyOrStoppedArgs(
   val outcome: AgentRunLaunchOutcome,
   val shared: GoalPlanningSharedContext,
@@ -161,14 +145,4 @@ internal data class EmptyOrStoppedArgs(
   val currentSubtaskId: Int,
   val phaseId: String,
   val durationMs: Long,
-)
-
-internal data class BuildDeclaredGoalProgressEventArgs(
-  val sourceLabel: String,
-  val eventKind: GoalProgressEventKind,
-  val workflowId: String,
-  val workflowPhase: String,
-  val sequenceNumber: Int,
-  val timestamp: String,
-  val outcome: GoalProgressOutcome,
 )

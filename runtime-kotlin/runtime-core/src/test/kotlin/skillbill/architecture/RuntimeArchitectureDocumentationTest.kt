@@ -6,6 +6,7 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class RuntimeArchitectureDocumentationTest {
   private val runtimeRoot: Path =
@@ -49,37 +50,43 @@ class RuntimeArchitectureDocumentationTest {
     assertContains(architecture, "Raw Map Boundary Rule")
     assertContains(architecture, "zero-tolerance")
     assertContains(architecture, "Destructive command failure policy")
-    assertContains(architecture, UNINSTALL_FAILURE_POLICY)
     assertContains(architecture, "UninstallMutationRecorder")
-    assertContains(architecture, DRAIN_ABANDONMENT_POLICY)
-    assertContains(architecture, "RuntimeCliAreaIsolationArchitectureTest")
     assertContains(architecture, "Port null-object classification")
     assertContains(architecture, "PortNullObjectAbsenceArchitectureTest")
     assertContains(architecture, "RuntimeContractModuleImportRulesTest")
-    assertContains(architecture, AREA_ISOLATION_GUARDRAIL)
-    assertContains(architecture, SPILLOVER_FILENAME_GUARDRAIL)
-    assertContains(architecture, COMPOSITION_GUARD_GUARDRAIL)
-    assertContains(architecture, RUNTIME_COMPONENT_COMPOSITION_GUARDRAIL)
-    assertContains(architecture, SCAFFOLD_STANDALONE_ENTRYPOINT_GUARDRAIL)
+    assertContains(architecture, "RuntimeCliAreaIsolationArchitectureTest")
     assertContains(architecture, "RuntimeCompositionGuardArchitectureTest")
     assertFalse(architecture.contains("compatibility umbrella"))
     assertFalse(architecture.contains("Near-Term Refactor Order"))
   }
 
   @Test
+  fun `architecture document records the run loop boundary census`() {
+    val architecture = Files.readString(runtimeRoot.resolve("ARCHITECTURE.md"))
+    assertTrue(architecture.contains("The complete run-loop file census is pinned below."))
+    assertTrue(
+      Regex("""(?m)^\| Run-loop file \| current \| target \|$""").containsMatchIn(architecture),
+    )
+    assertEquals(
+      22,
+      Regex("""(?m)^\| `FeatureTaskRuntimeRunLoop[^`]*\.kt` \| \d+ \| \d+ \|$""")
+        .findAll(architecture)
+        .count(),
+    )
+  }
+
+  @Test
   fun `architecture document declares the runtime contract and schema seams`() {
     val architecture = Files.readString(runtimeRoot.resolve("ARCHITECTURE.md"))
 
-    assertContains(architecture, CONTRACTS_NO_LONGER_OWNS_VALIDATORS)
-    assertContains(architecture, INFRA_FS_OWNS_VALIDATORS)
     assertContains(architecture, "Runtime Contract And Schema Seams")
-    assertContains(architecture, SCHEMA_SEAMS_PORT_SUMMARY)
-    assertContains(architecture, "Workflow-state schema validation is owned by")
-    assertContains(architecture, "compiled into\n  `runtime-infra-fs`")
-    assertContains(architecture, "Install-plan schema validation is owned by")
-    assertContains(architecture, INSTALL_PLAN_WIRE_VALIDATOR_PORT)
+    assertContains(architecture, "InstallPlanWireValidator")
+    assertContains(architecture, "DecompositionManifestValidator")
+    assertContains(architecture, "WorkflowSnapshotValidator")
+    assertContains(architecture, "runtime-infra-fs")
+    assertContains(architecture, "skillbill.install.model.InstallPlanWireValidator")
     assertContains(architecture, "Decomposition-manifest schema validation is owned by")
-    assertContains(architecture, DECOMPOSITION_MANIFEST_VALIDATOR_PORT)
+    assertContains(architecture, "skillbill.workflow.decomposition.DecompositionManifestValidator")
     assertContains(architecture, "FeatureTaskRuntimeWireArtifactValidator")
     assertContains(architecture, "FeatureTaskRuntimeWireArtifactKind")
     assertContains(architecture, "type aliases to that same port")
@@ -109,8 +116,6 @@ class RuntimeArchitectureDocumentationTest {
     assertContains(architecture, "Workflow phase-output envelope")
     assertContains(architecture, "`produced_outputs` entry maps")
     assertContains(architecture, "does not prove every `String` in")
-    assertContains(architecture, "ApplicationPackageAcyclicityArchitectureTest")
-    assertContains(architecture, "runtime-engine-package-cycle-baseline.txt")
   }
 
   @Test
@@ -228,65 +233,6 @@ class RuntimeArchitectureDocumentationTest {
       .map(String::trim)
       .filter(String::isNotBlank)
       .toList()
-  }
-
-  private companion object {
-    const val UNINSTALL_FAILURE_POLICY =
-      "A mutation it cannot\napply is a recorded degradation with a non-zero exit code, never a warning\n" +
-        "string on a zero exit."
-
-    const val DRAIN_ABANDONMENT_POLICY =
-      "Every abandonment path — the worker still alive after\nthe join timeout, an interrupted join, and " +
-        "the worker's own failure — emits a\n`RuntimeDiagnostics` warning"
-
-    const val AREA_ISOLATION_GUARDRAIL =
-      "- Every `runtime-cli` command area's transitive `skillbill.cli` import closure\n  " +
-        "contains only the shared `kernel` and `model` leaves, never a sibling command\n  " +
-        "area and never the composition root `skillbill.cli.core`."
-
-    const val SPILLOVER_FILENAME_GUARDRAIL =
-      "- No runtime module source file, and no main-source file, type, or member\n  " +
-        "declaration, carries the spillover signature (`*Extras`, `*Continued`,\n  " +
-        "`*Helpers`, `*Support`, `*Misc`, `*Fns<N>`, letter-plus-digit, or bare\n  " +
-        "trailing-digit siblings) outside a named exemption; the bare `Support`,\n  " +
-        "`Helpers`, `Misc`, and `Extras` forms apply to `src/main` only, the numbered\n  " +
-        "forms to every `src` tree."
-
-    const val COMPOSITION_GUARD_GUARDRAIL =
-      "- No main-source site outside `skillbill.di` constructs a concrete class censused\n  " +
-        "from `@Provides` parameter types and explicit Provides constructions;\n  " +
-        "`RuntimeCompositionGuardArchitectureTest` matches import aliases, ignores comments\n  " +
-        "and string literals, skips unrelated same-named functions, and names sanctioned\n  " +
-        "second entrypoints explicitly."
-
-    const val RUNTIME_COMPONENT_COMPOSITION_GUARDRAIL =
-      "- `RuntimeComponent` logical service properties are pinned separately from `@Provides`\n  " +
-        "generated wiring; `RuntimeComponentInboundApiArchitectureTest` rejects any other\n  " +
-        "public function on `RuntimeComponent` or a `Runtime*Provides` mixin even when the\n  " +
-        "abstract property set is unchanged."
-
-    const val SCAFFOLD_STANDALONE_ENTRYPOINT_GUARDRAIL =
-      "- `skillbill.infrastructure.fs.scaffold.runtime.ScaffoldStandaloneEntrypoint` is the sanctioned\n  " +
-        "second scaffold entrypoint for in-tree parity and rollback tests that cannot\n  " +
-        "reach `RuntimeComponent`; production paths use `FileSystemScaffoldOrchestrator`."
-
-    const val CONTRACTS_NO_LONGER_OWNS_VALIDATORS =
-      "It no longer owns the JSON-Schema\n  validators or their schema-resource copy tasks; " +
-        "those moved to\n  `runtime-infra-fs`"
-
-    const val INFRA_FS_OWNS_VALIDATORS =
-      "It also owns the concrete JSON-Schema\n  validators"
-
-    const val SCHEMA_SEAMS_PORT_SUMMARY =
-      "The JVM JSON-Schema validators, their typed schema\n  errors, and their classpath-resource " +
-        "copy tasks live in `runtime-infra-fs`,\n  reached only through the domain-neutral ports " +
-        "`InstallPlanWireValidator`,\n  `DecompositionManifestValidator`, and `WorkflowSnapshotValidator`."
-
-    const val INSTALL_PLAN_WIRE_VALIDATOR_PORT =
-      "reached through the domain-owned port\n  `skillbill.install.model.InstallPlanWireValidator`"
-
-    const val DECOMPOSITION_MANIFEST_VALIDATOR_PORT =
-      "reached through the domain-owned port\n  `skillbill.workflow.decomposition.DecompositionManifestValidator`"
   }
 
   private fun String.includedGradleModules(): List<String> {

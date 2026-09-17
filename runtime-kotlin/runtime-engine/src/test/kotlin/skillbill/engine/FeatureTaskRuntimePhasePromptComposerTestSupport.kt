@@ -17,6 +17,8 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffAssemblyReq
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepositoryCheckpoint
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRunInvariants
+import java.nio.file.Files
+import java.nio.file.Path
 import kotlin.test.assertContains
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -146,6 +148,29 @@ internal fun promptComposerImplementationContinuation() = FeatureTaskRuntimeImpl
   latestPrompt = "optional directive",
   failureDisposition = null,
 )
+
+internal fun shippedPlatformPackSlugs(): List<String> {
+  val packs = locateAncestorDirectory("platform-packs")
+  return Files.list(packs).use { stream ->
+    stream
+      .filter { path -> Files.isDirectory(path) && Files.isRegularFile(path.resolve("platform.yaml")) }
+      .map { path -> path.fileName.toString() }
+      .sorted()
+      .toList()
+  }
+}
+
+internal fun locateAncestorDirectory(name: String): Path {
+  var dir: Path? = Path.of("").toAbsolutePath().normalize()
+  while (dir != null) {
+    val candidate = dir.resolve(name)
+    if (Files.isDirectory(candidate)) {
+      return candidate
+    }
+    dir = dir.parent
+  }
+  error("test working directory has no ancestor named $name")
+}
 
 internal fun promptComposerCorrectiveContext(body: String): FeatureTaskRuntimeCorrectiveRepairContext =
   FeatureTaskRuntimeCorrectiveRepairContext(

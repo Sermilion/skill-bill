@@ -1,5 +1,7 @@
 package skillbill.application.reviewevidence
 
+import skillbill.application.reviewevidence.model.ReviewChangedFileEvidence
+import skillbill.application.reviewevidence.model.ReviewDiffEvidence
 import skillbill.review.context.model.ReviewChangedHunk
 
 internal fun parseAttributableReviewDiffEvidence(diff: String): ReviewDiffEvidence? =

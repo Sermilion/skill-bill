@@ -1,6 +1,5 @@
 package skillbill.engine.featuretask
 
-import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.engine.featuretask.model.PersistHealedRemediationBaseRequest
 import skillbill.engine.featuretask.model.ResolvedReviewFixCheckpoint
@@ -33,7 +32,7 @@ internal fun FeatureTaskRuntimeRemediationBaseReconciler.persistHealedRemediatio
   return database.transaction { unitOfWork ->
     val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, request.workflowId)
       ?: return@transaction null
-    val artifacts = decodeWorkflowArtifacts(record.artifactsJson)
+    val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
     val latest = reviewStateFromArtifacts(artifacts) ?: return@transaction null
     if (latest.remediationBaseSha == request.target) return@transaction latest
     val updated = latest.copy(remediationBaseSha = request.target)

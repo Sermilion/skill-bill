@@ -21,7 +21,7 @@ fun featureTaskRuntimeParseRepairReceiptOrNull(
     ("pre_fix_checkpoint_sha" to remediationBaseSha) +
     ("round_number" to roundNumber)
   return try {
-    decodeRepairReceiptFromArtifactWithObservations(map, "repair_receipt")!!.also { decoded ->
+    requireNotNull(decodeRepairReceiptFromArtifactWithObservations(map, "repair_receipt")).also { decoded ->
       decoded.observations.truncationRecords.forEach(recordTruncation)
     }.receipt
   } catch (error: InvalidFeatureTaskRuntimeRepairReceiptError) {

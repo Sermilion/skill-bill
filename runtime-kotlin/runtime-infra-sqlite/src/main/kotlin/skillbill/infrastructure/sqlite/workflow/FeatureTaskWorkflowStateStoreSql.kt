@@ -12,8 +12,6 @@ import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import java.sql.Connection
 import java.sql.PreparedStatement
 import java.sql.ResultSet
-import java.time.Instant
-import java.time.format.DateTimeParseException
 
 internal object FeatureTaskWorkflowStateStoreSql
 
@@ -92,8 +90,8 @@ internal fun decodeWorkerLeaseState(workflowId: String, value: String): FeatureT
     )
 
 internal fun validateWorkerOwnership(ownership: FeatureTaskRuntimeWorkerOwnership) {
-  val heartbeatAt = parseOwnershipInstant(ownership, "heartbeat_at", ownership.heartbeatAt)
-  val expiresAt = parseOwnershipInstant(ownership, "expires_at", ownership.expiresAt)
+  val heartbeatAt = ownership.heartbeatAtInstant
+  val expiresAt = ownership.expiresAtInstant
   val failure = when {
     ownership.contractVersion != FEATURE_TASK_RUNTIME_WORKER_OWNERSHIP_CONTRACT_VERSION ->
       "unsupported contract_version '${ownership.contractVersion}'"
@@ -107,19 +105,6 @@ internal fun validateWorkerOwnership(ownership: FeatureTaskRuntimeWorkerOwnershi
     else -> null
   }
   failure?.let { throw InvalidFeatureTaskRuntimeWorkerOwnershipSchemaError(ownership.workflowId, it) }
-}
-
-internal fun parseOwnershipInstant(
-  ownership: FeatureTaskRuntimeWorkerOwnership,
-  field: String,
-  value: String,
-): Instant = try {
-  Instant.parse(value)
-} catch (_: DateTimeParseException) {
-  throw InvalidFeatureTaskRuntimeWorkerOwnershipSchemaError(
-    ownership.workflowId,
-    "$field must be an RFC 3339 instant",
-  )
 }
 
 internal fun Connection.featureTaskIdentity(workflowId: String): FeatureTaskExecutionIdentity? = prepareStatement(

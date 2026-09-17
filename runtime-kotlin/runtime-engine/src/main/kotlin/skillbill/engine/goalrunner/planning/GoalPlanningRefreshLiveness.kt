@@ -7,7 +7,6 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import java.time.Clock
-import java.time.Instant
 
 fun interface GoalPlanningRefreshLiveness {
   fun resolve(state: GoalRunnerManifestState): ExecutionLiveness
@@ -41,7 +40,7 @@ fun resolveChildExecutionLiveness(
       ExecutionLiveness.UNKNOWN
     } else {
       val ownership = phaseRecorder.workerOwnership(workflowId)
-      if (ownership != null && Instant.parse(ownership.expiresAt).isAfter(clock.instant())) {
+      if (ownership != null && ownership.expiresAtInstant.isAfter(clock.instant())) {
         ExecutionLiveness.LIVE
       } else {
         ExecutionLiveness.IDLE

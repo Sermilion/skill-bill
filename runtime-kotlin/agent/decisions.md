@@ -4,6 +4,25 @@ This file records architectural and implementation decisions that span the
 `runtime-kotlin/` boundary. Each entry is dated and explains the trade-off,
 not the implementation detail.
 
+## [2026-09-17] Runtime engine bundle census and parameter threshold
+Context: The runtime-engine boundary cleanup needs a repeatable count while
+fact-only argument bags and port-carrying collaborators are dissolved.
+Decision: Keep `LongParameterList.functionThreshold` at `6`. After dissolving
+the remaining single-use planning and validation bags, the runtime-engine
+production census is 97 `Args`, 23
+`Context`, 5 `Inputs`, 0 `Deps`, and 7 `Boundaries` declarations. This is the
+current census, not an exemption for the remaining fact-only bags; the
+dissolution must not add another bag or suppression.
+Reason: Six parameters is the existing detekt limit and leaves collaborator
+constructors explicit. Raising it would hide a dependency surface that the
+boundary cleanup is intended to expose.
+
+## [2026-09-17] ARCHITECTURE.md is a guideline, not a case log
+Context: The runtime architecture document had grown into a ticket-by-ticket inventory of files, censuses, and spec cases, and documentation tests froze that prose.
+Decision: Keep `runtime-kotlin/ARCHITECTURE.md` as general module, ownership, and boundary rules. Architecture tests own numeric censuses and file inventories. This decisions log owns why a threshold or exception exists.
+Reason: A guideline that lists current files and issue keys goes stale the moment the tree moves, and it stops being usable as architecture.
+Alternatives considered: Keep per-file tables in the document and pin them with phrase tests.
+
 ## 2026-09-16 — SKILL-350 subtask 1: component invocation snapshot and launcher lookup wiring
 
 **Context.** Generated CLI and MCP graphs call parent `runtimeContext()` and

@@ -1,5 +1,6 @@
 package skillbill.engine.featuretask
 
+import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
 import skillbill.goalrunner.model.UNADDRESSED_FINDING_REJECTED_DISPOSITION
 import skillbill.ports.diagnostics.RuntimeDiagnostics
@@ -70,7 +71,8 @@ object FeatureTaskRuntimeRunLoopRepairReceipt {
     diagnostics: RuntimeDiagnostics,
     error: Throwable,
   ) {
-    diagnostics.warning(
+    RuntimeDiagnosticsBestEffortWarning.record(
+      diagnostics,
       "Feature-task-runtime could not persist the implement_fix repair receipt for issue " +
         "${request.issueKey}, workflow ${request.workflowId}.",
       error,
@@ -143,7 +145,7 @@ object FeatureTaskRuntimeRunLoopRepairReceipt {
         produced,
         anchor.baseSha,
         anchor.roundNumber,
-        recordTruncation = { record -> runCatching { diagnostics.warning(record) } },
+        recordTruncation = { record -> RuntimeDiagnosticsBestEffortWarning.record(diagnostics, record) },
       )
     ) {
       FeatureTaskRuntimeRepairReceiptMissing -> RepairReceiptSettlement.None
@@ -194,7 +196,8 @@ object FeatureTaskRuntimeRunLoopRepairReceipt {
         .mapNotNull { finding -> finding.findingId?.takeIf(String::isNotBlank) }
         .toSet()
     }.getOrElse { error ->
-      diagnostics.warning(
+      RuntimeDiagnosticsBestEffortWarning.record(
+        diagnostics,
         "Feature-task-runtime could not read the unaddressed-findings ledger for issue " +
           "${request.issueKey}, workflow ${request.workflowId}; repair-receipt coverage waives no " +
           "refuted finding for this round.",
@@ -236,13 +239,12 @@ object FeatureTaskRuntimeRunLoopRepairReceipt {
     diagnostics: RuntimeDiagnostics,
     reason: String,
   ) {
-    runCatching {
-      diagnostics.warning(
-        "Feature-task-runtime did not record the implement_fix repair receipt for issue " +
-          "${request.issueKey}, workflow ${request.workflowId}: $reason. The remediation repair " +
-          "ledger loses this round.",
-      )
-    }
+    RuntimeDiagnosticsBestEffortWarning.record(
+      diagnostics,
+      "Feature-task-runtime did not record the implement_fix repair receipt for issue " +
+        "${request.issueKey}, workflow ${request.workflowId}: $reason. The remediation repair " +
+        "ledger loses this round.",
+    )
   }
 
   internal fun settleCompletedImplementationOutput(args: CompletedImplementationSettlementArgs): AttemptResult? =
@@ -282,17 +284,19 @@ object FeatureTaskRuntimeRunLoopRepairReceipt {
     return false
   }
 
-  private fun FeatureTaskRuntimeRunLoopContext.blockCheckpointAfterIndexMutation(
+  private fun blockCheckpointAfterIndexMutation(
+    context: FeatureTaskRuntimeRunLoopContext,
     args: CommitCheckpointArgs,
     error: String,
     indexSnapshot: String,
   ): Boolean = with(FeatureTaskRuntimeRunLoopCheckpoint) {
-    this@blockCheckpointAfterIndexMutation.blockCheckpoint(
+    FeatureTaskRuntimeRunLoopCheckpoint.blockCheckpoint(
+      context,
       args.precedingPhaseId,
       args.branch,
       FeatureTaskRuntimeRunLoopCheckpoint.withIndexRestoreOutcome(
-        request,
-        phaseGates,
+        context.request,
+        context.phaseGates,
         error,
         args.ownedPaths,
         indexSnapshot,
@@ -301,69 +305,81 @@ object FeatureTaskRuntimeRunLoopRepairReceipt {
     )
   }
 
-  internal fun FeatureTaskRuntimeRunLoopContext.commitCheckpoint(args: CommitCheckpointArgs): Boolean {
-    val snapshot = phaseGates.gitOperations.captureIndexState(request.repoRoot, args.ownedPaths)
-    if (snapshot !is WorkflowGitOperationResult.Ok) {
+  internal fun commitCheckpoint(context: FeatureTaskRuntimeRunLoopContext, args: CommitCheckpointArgs): Boolean {
+    with(context) {
+      val snapshot = phaseGates.gitOperations.captureIndexState(request.repoRoot, args.ownedPaths)
+      if (snapshot !is WorkflowGitOperationResult.Ok) {
+        return with(FeatureTaskRuntimeRunLoopCheckpoint) {
+          FeatureTaskRuntimeRunLoopCheckpoint.blockCheckpoint(
+            context,
+            args.precedingPhaseId,
+            args.branch,
+            snapshot.error,
+            args.blockedReason,
+          )
+        }
+      }
+      val parentSha = phaseGates.gitOperations.headCommitSha(request.repoRoot)
+        .takeIf { it is WorkflowGitOperationResult.Ok }?.value?.trim()?.takeIf(String::isNotBlank)
+      val attempt = FeatureTaskRuntimeRunLoopRepairReceipt.stageAndWriteCheckpoint(context, args)
+      val commitSha = attempt.commitSha
+        ?: return FeatureTaskRuntimeRunLoopRepairReceipt.blockCheckpointAfterIndexMutation(
+          context,
+          args,
+          attempt.error,
+          snapshot.value.orEmpty(),
+        )
       return with(FeatureTaskRuntimeRunLoopCheckpoint) {
-        this@commitCheckpoint.blockCheckpoint(
-          args.precedingPhaseId,
-          args.branch,
-          snapshot.error,
-          args.blockedReason,
+        FeatureTaskRuntimeRunLoopCheckpoint.recordCheckpointIdentity(
+          context,
+          RecordCheckpointIdentityArgs(
+            precedingPhaseId = args.precedingPhaseId,
+            branch = args.branch,
+            loopId = args.loopId,
+            ownedPaths = args.ownedPaths,
+            parentSha = parentSha,
+            commitSha = commitSha,
+            blockedReason = args.blockedReason,
+          ),
         )
       }
     }
-    val parentSha = phaseGates.gitOperations.headCommitSha(request.repoRoot)
-      .takeIf { it is WorkflowGitOperationResult.Ok }?.value?.trim()?.takeIf(String::isNotBlank)
-    val attempt = stageAndWriteCheckpoint(args)
-    val commitSha = attempt.commitSha
-      ?: return blockCheckpointAfterIndexMutation(args, attempt.error, snapshot.value.orEmpty())
-    return with(FeatureTaskRuntimeRunLoopCheckpoint) {
-      this@commitCheckpoint.recordCheckpointIdentity(
-        RecordCheckpointIdentityArgs(
-          precedingPhaseId = args.precedingPhaseId,
-          branch = args.branch,
-          loopId = args.loopId,
-          ownedPaths = args.ownedPaths,
-          parentSha = parentSha,
-          commitSha = commitSha,
-          blockedReason = args.blockedReason,
-        ),
-      )
-    }
   }
 
-  private fun FeatureTaskRuntimeRunLoopContext.stageAndWriteCheckpoint(
+  private fun stageAndWriteCheckpoint(
+    context: FeatureTaskRuntimeRunLoopContext,
     args: CommitCheckpointArgs,
   ): CheckpointCommitAttempt {
-    val staged = phaseGates.gitOperations.stagePaths(request.repoRoot, args.ownedPaths)
-    if (staged !is WorkflowGitOperationResult.Ok) {
-      return CheckpointCommitAttempt(commitSha = null, error = staged.error)
-    }
-    val subtaskIdentity = FeatureTaskRuntimeRunLoopCheckpoint.subtaskCommitIdentity(request)
-    val message = FeatureTaskRuntimeRunLoopCheckpoint.checkpointCommitMessage(
-      request,
-      state,
-      diagnostics,
-      CheckpointCommitMessageArgs(
-        branch = args.branch,
-        phaseId = args.precedingPhaseId,
-        loopId = args.loopId,
-        identity = subtaskIdentity,
-        intent = args.intent,
-      ),
-    )
-    val commit = with(FeatureTaskRuntimeRunLoopCheckpoint) {
-      this@stageAndWriteCheckpoint.writeSubtaskCommit(args.branch, message, subtaskIdentity)
-    }
-    if (commit !is WorkflowGitOperationResult.Ok) {
-      return CheckpointCommitAttempt(commitSha = null, error = commit.error)
-    }
-    val commitSha = commit.value.orEmpty().trim()
-    return if (commitSha.isBlank()) {
-      CheckpointCommitAttempt(commitSha = null, error = "the checkpoint commit returned an empty sha")
-    } else {
-      CheckpointCommitAttempt(commitSha = commitSha, error = "")
+    with(context) {
+      val staged = phaseGates.gitOperations.stagePaths(request.repoRoot, args.ownedPaths)
+      if (staged !is WorkflowGitOperationResult.Ok) {
+        return CheckpointCommitAttempt(commitSha = null, error = staged.error)
+      }
+      val subtaskIdentity = FeatureTaskRuntimeRunLoopCheckpoint.subtaskCommitIdentity(request)
+      val message = FeatureTaskRuntimeRunLoopCheckpoint.checkpointCommitMessage(
+        request,
+        state,
+        diagnostics,
+        CheckpointCommitMessageArgs(
+          branch = args.branch,
+          phaseId = args.precedingPhaseId,
+          loopId = args.loopId,
+          identity = subtaskIdentity,
+          intent = args.intent,
+        ),
+      )
+      val commit = with(FeatureTaskRuntimeRunLoopCheckpoint) {
+        FeatureTaskRuntimeRunLoopCheckpoint.writeSubtaskCommit(context, args.branch, message, subtaskIdentity)
+      }
+      if (commit !is WorkflowGitOperationResult.Ok) {
+        return CheckpointCommitAttempt(commitSha = null, error = commit.error)
+      }
+      val commitSha = commit.value.orEmpty().trim()
+      return if (commitSha.isBlank()) {
+        CheckpointCommitAttempt(commitSha = null, error = "the checkpoint commit returned an empty sha")
+      } else {
+        CheckpointCommitAttempt(commitSha = commitSha, error = "")
+      }
     }
   }
 }

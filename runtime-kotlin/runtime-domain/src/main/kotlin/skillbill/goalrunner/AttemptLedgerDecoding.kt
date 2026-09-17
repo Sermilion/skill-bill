@@ -1,7 +1,6 @@
 package skillbill.goalrunner
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.InvalidGoalProgressEventSchemaError
-import skillbill.goalrunner.model.BuildDeclaredGoalProgressEventArgs
 import skillbill.goalrunner.model.GoalRunnerProgressEvent
 import skillbill.workflow.goal.model.GOAL_PROGRESS_LATEST_EVENT_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GoalProgressEvent
@@ -48,18 +47,23 @@ fun Map<*, *>.decodeDeclaredGoalProgressEvent(sourceLabel: String): GoalProgress
     }
   }
   val outcome = optionalProgressOutcome(reader, sourceLabel)
-  return buildDeclaredGoalProgressEvent(
-    BuildDeclaredGoalProgressEventArgs(
-      sourceLabel = sourceLabel,
+  return try {
+    GoalProgressEvent(
       eventKind = eventKind,
       workflowId = workflowId,
       workflowPhase = workflowPhase,
+      processAlive = reader.optionalBoolean("process_alive") ?: false,
       sequenceNumber = sequenceNumber,
       timestamp = timestamp,
+      stepId = reader.optionalString(SharedPayloadKeys.STEP_ID),
+      operationName = reader.optionalString("operation_name"),
+      operationKind = reader.optionalString("operation_kind"),
+      expectedLong = reader.optionalBoolean("expected_long") ?: false,
       outcome = outcome,
-    ),
-    reader,
-  )
+    )
+  } catch (error: IllegalArgumentException) {
+    throw InvalidGoalProgressEventSchemaError(sourceLabel, "<root>", error.message ?: "invalid event.", error)
+  }
 }
 
 private fun invalidDeclaredGoalProgressEvent(sourceLabel: String, field: String, detail: String): Nothing =
@@ -75,25 +79,4 @@ private fun optionalProgressOutcome(reader: DurableArtifactMapReader, sourceLabe
   val outcomeWire = reader.optionalString("outcome") ?: return GoalProgressOutcome.NONE
   return GoalProgressOutcome.entries.firstOrNull { it.wireValue == outcomeWire }
     ?: throw InvalidGoalProgressEventSchemaError(sourceLabel, "outcome", "unrecognized value '$outcomeWire'.")
-}
-
-private fun Map<*, *>.buildDeclaredGoalProgressEvent(
-  args: BuildDeclaredGoalProgressEventArgs,
-  reader: DurableArtifactMapReader,
-): GoalProgressEvent = try {
-  GoalProgressEvent(
-    eventKind = args.eventKind,
-    workflowId = args.workflowId,
-    workflowPhase = args.workflowPhase,
-    processAlive = reader.optionalBoolean("process_alive") ?: false,
-    sequenceNumber = args.sequenceNumber,
-    timestamp = args.timestamp,
-    stepId = reader.optionalString(SharedPayloadKeys.STEP_ID),
-    operationName = reader.optionalString("operation_name"),
-    operationKind = reader.optionalString("operation_kind"),
-    expectedLong = reader.optionalBoolean("expected_long") ?: false,
-    outcome = args.outcome,
-  )
-} catch (error: IllegalArgumentException) {
-  throw InvalidGoalProgressEventSchemaError(args.sourceLabel, "<root>", error.message ?: "invalid event.", error)
 }

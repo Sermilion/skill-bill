@@ -4,6 +4,8 @@ import skillbill.agentaddon.model.AgentAddonSelection
 import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.workflow.FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys
+import skillbill.error.InvalidAgentAddonSelectionError
 import skillbill.ports.goalrunner.GoalRunnerPersistenceSession
 import skillbill.ports.goalrunner.runner.model.GoalRunnerOutOfBandAcceptance
 import skillbill.ports.goalrunner.runner.model.GoalRunnerReviewPolicy
@@ -76,21 +78,45 @@ fun outOfBandAcceptancesFromLegacyArtifacts(
 
 private fun decodeGoalAgentAddonSelection(raw: Any?): AgentAddonSelection {
   val values = raw ?: return AgentAddonSelection()
-  val entries = values as? List<*> ?: error("Goal review policy agent_addon_selection must be a list.")
+  val entries = values as? List<*>
+    ?: throw InvalidAgentAddonSelectionError("Goal review policy agent_addon_selection must be a list.")
   return AgentAddonSelection(
-    entries.mapIndexed { index, value ->
-      val entry = JsonCodec.anyToStringAnyMap(value)
-        ?: error("Goal review policy agent_addon_selection entry $index must be a map.")
-      check(entry.keys == setOf("slug", "source_identity", "content_sha256")) {
-        "Goal review policy agent_addon_selection entry $index has invalid fields."
-      }
-      PersistedAgentAddonSelectionEntry(
-        entry["slug"] as? String ?: error("Goal review policy add-on entry $index is missing slug."),
-        entry["source_identity"] as? String
-          ?: error("Goal review policy add-on entry $index is missing source_identity."),
-        entry["content_sha256"] as? String
-          ?: error("Goal review policy add-on entry $index is missing content_sha256."),
-      )
-    },
+    entries.mapIndexed(::decodeGoalAgentAddonSelectionEntry),
   )
 }
+
+private fun decodeGoalAgentAddonSelectionEntry(index: Int, value: Any?): PersistedAgentAddonSelectionEntry {
+  val entry = JsonCodec.anyToStringAnyMap(value)
+    ?: throw InvalidAgentAddonSelectionError(
+      "Goal review policy agent_addon_selection entry $index must be a map.",
+    )
+  val expectedKeys = setOf(
+    FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_SLUG,
+    FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_SOURCE_IDENTITY,
+    FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_CONTENT_SHA256,
+  )
+  if (entry.keys != expectedKeys) {
+    throw InvalidAgentAddonSelectionError(
+      "Goal review policy agent_addon_selection entry $index has invalid fields.",
+    )
+  }
+  return PersistedAgentAddonSelectionEntry(
+    requiredAddonField(entry, index, FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_SLUG, "slug"),
+    requiredAddonField(
+      entry,
+      index,
+      FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_SOURCE_IDENTITY,
+      "source_identity",
+    ),
+    requiredAddonField(
+      entry,
+      index,
+      FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_CONTENT_SHA256,
+      "content_sha256",
+    ),
+  )
+}
+
+private fun requiredAddonField(entry: Map<String, Any?>, index: Int, key: String, label: String): String =
+  entry[key] as? String
+    ?: throw InvalidAgentAddonSelectionError("Goal review policy add-on entry $index is missing $label.")

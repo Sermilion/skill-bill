@@ -8,9 +8,9 @@ import skillbill.application.FakeDatabaseSessionFactory
 import skillbill.application.InMemoryWorkflowStates
 import skillbill.application.TestDecompositionManifestStore
 import skillbill.application.TestRepositoryEnclosingRoot
-import skillbill.application.decomposition.encodeDecompositionManifestYaml
 import skillbill.application.testDecompositionManifestValidator
 import skillbill.application.testWorkflowSnapshotValidator
+import skillbill.engine.decomposition.encodeDecompositionManifestYaml
 import skillbill.engine.featuretask.FeatureTaskContinuationLookupService
 import skillbill.engine.goalrunner.GoalPreflightService
 import skillbill.engine.goalrunner.model.GoalPreflightRequest

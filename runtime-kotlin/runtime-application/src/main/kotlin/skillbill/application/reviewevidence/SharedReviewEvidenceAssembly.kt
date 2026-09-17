@@ -2,6 +2,7 @@ package skillbill.application.reviewevidence
 
 import skillbill.application.reviewevidence.model.DiffResolutionException
 import skillbill.application.reviewevidence.model.ParallelReviewScope
+import skillbill.application.reviewevidence.model.ReviewDiffEvidence
 import skillbill.ports.diff.DiffResolverPort
 import skillbill.review.context.model.ReviewCommitCoverageFact
 import skillbill.review.context.model.ReviewCommitSource

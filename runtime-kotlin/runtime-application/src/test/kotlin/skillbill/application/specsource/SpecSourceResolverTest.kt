@@ -1,10 +1,12 @@
 package skillbill.application.specsource
 
 import skillbill.application.TestDecompositionManifestStore
-import skillbill.application.decomposition.encodeDecompositionManifestYaml
 import skillbill.application.decomposition.parentSpecPath
 import skillbill.application.decomposition.writeDecompositionManifestText
 import skillbill.application.testDecompositionManifestValidator
+import skillbill.engine.featuretask.SpecSourceResolver
+import skillbill.ports.workflow.decomposition.DecompositionManifestStore
+import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask
@@ -118,3 +120,15 @@ class SpecSourceResolverTest {
     )
   }
 }
+
+private fun encodeDecompositionManifestYaml(
+  manifest: DecompositionManifest,
+  validator: DecompositionManifestValidator,
+  fileStore: DecompositionManifestStore,
+  sourceLabel: String = "<in-memory>",
+): String = skillbill.application.decomposition.encodeValidatedDecompositionManifestYaml(
+  manifest,
+  validator,
+  fileStore,
+  sourceLabel,
+).yamlText

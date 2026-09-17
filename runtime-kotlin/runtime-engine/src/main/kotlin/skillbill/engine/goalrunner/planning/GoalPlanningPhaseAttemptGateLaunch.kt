@@ -1,7 +1,7 @@
 package skillbill.engine.goalrunner.planning
 import skillbill.engine.featuretask.FeatureTaskRuntimePhaseBriefingAssembler
+import skillbill.engine.featuretask.FeatureTaskRuntimePhasePromptComposeInputs
 import skillbill.engine.featuretask.FeatureTaskRuntimePhasePromptComposer
-import skillbill.engine.featuretask.model.FeatureTaskRuntimePhasePromptComposeInputs
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
 import skillbill.ports.agentrun.model.AgentRunOutputStream
 import skillbill.ports.agentrun.model.SkillRunRequest

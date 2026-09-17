@@ -2,17 +2,17 @@ package skillbill.engine.featuretask
 
 import skillbill.application.telemetry.LifecycleTelemetryService
 import skillbill.application.telemetry.model.FeatureTaskRuntimeAgentContext
-import skillbill.application.telemetry.model.FeatureTaskRuntimeFindingVerificationTelemetry
 import skillbill.application.telemetry.model.FeatureTaskRuntimeFinishedRequest
-import skillbill.application.telemetry.model.FeatureTaskRuntimeRegenerationTelemetry
 import skillbill.application.telemetry.normalizedBlockedReason
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeCrashReconciliationResult
+import skillbill.engine.featuretask.model.FeatureTaskRuntimeFindingVerificationTelemetry
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeFinishedTelemetryContext
+import skillbill.engine.featuretask.model.FeatureTaskRuntimeRegenerationTelemetry
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 
-fun emitFeatureTaskRuntimeFinished(
+internal fun emitFeatureTaskRuntimeFinished(
   lifecycleTelemetryService: LifecycleTelemetryService,
   report: FeatureTaskRuntimeRunReport,
   context: FeatureTaskRuntimeFinishedTelemetryContext,
@@ -46,7 +46,7 @@ fun emitFeatureTaskRuntimeFinished(
   )
 }
 
-fun emitFeatureTaskRuntimeFinishedError(
+internal fun emitFeatureTaskRuntimeFinishedError(
   lifecycleTelemetryService: LifecycleTelemetryService,
   context: FeatureTaskRuntimeFinishedTelemetryContext,
   outcomes: Map<String, String>,
@@ -121,7 +121,7 @@ internal fun resolvedFeatureTaskRuntimeTelemetryPayload(
   )
 }
 
-fun completionStatusOf(report: FeatureTaskRuntimeRunReport): String = when (report) {
+internal fun completionStatusOf(report: FeatureTaskRuntimeRunReport): String = when (report) {
   is FeatureTaskRuntimeRunReport.Completed -> "completed"
   is FeatureTaskRuntimeRunReport.Blocked -> "blocked"
   is FeatureTaskRuntimeRunReport.Paused -> "paused"

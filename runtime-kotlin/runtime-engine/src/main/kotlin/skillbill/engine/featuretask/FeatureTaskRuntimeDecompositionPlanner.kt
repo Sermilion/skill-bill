@@ -1,8 +1,6 @@
 package skillbill.engine.featuretask
 
 import me.tatarka.inject.annotations.Inject
-import skillbill.application.featurespec.FeatureSpecPreparationRuntime
-import skillbill.application.featurespec.FeatureSpecPreparationWriter
 import skillbill.featurespec.model.FeatureSpecPreparationIntake
 import skillbill.featurespec.model.FeatureSpecPreparationMode
 import skillbill.featurespec.model.FeatureSpecSubtaskPreparation

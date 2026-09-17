@@ -4,7 +4,7 @@ import skillbill.application.TestRepositoryEnclosingRoot
 import skillbill.application.review.model.ReviewRubricProjection
 import skillbill.application.review.model.ReviewSpecialistLaunchRequest
 import skillbill.application.reviewevidence.ResolvedCommitSequence
-import skillbill.application.reviewevidence.ReviewDiffEvidence
+import skillbill.application.reviewevidence.model.ReviewDiffEvidence
 import skillbill.application.testDecompositionManifestValidator
 import skillbill.error.UnreadableSpecIntentProjectionError
 import skillbill.ports.repository.toFileLocation

@@ -7,18 +7,14 @@ import skillbill.application.telemetry.GoalLifecycleTelemetryEmitter
 import skillbill.engine.featuretask.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.goalplanning.GoalPlanningPreparationCheckpoint
 import skillbill.engine.goalrunner.findings.UnaddressedFindingsLedgerService
-import skillbill.engine.goalrunner.model.GoalRunnerDeps
-import skillbill.engine.goalrunner.model.GoalRunnerFinalizationBoundaries
-import skillbill.engine.goalrunner.model.GoalRunnerRunBoundaries
-import skillbill.engine.goalrunner.model.GoalRunnerSubtaskLaunchBoundaries
 import skillbill.engine.goalrunner.planning.DefaultGoalPlanningSweep
 import skillbill.engine.goalrunner.planning.GoalPlanningAttemptRecorder
 import skillbill.engine.goalrunner.planning.GoalPlanningRefreshLiveness
 import skillbill.engine.goalrunner.planning.GoalPlanningRejectionRecorder
 import skillbill.engine.goalrunner.planning.GoalPlanningSweep
+import skillbill.engine.goalrunner.planning.GoalPlanningSweepCheckpointBoundaries
+import skillbill.engine.goalrunner.planning.GoalPlanningSweepLaunchBoundaries
 import skillbill.engine.goalrunner.planning.model.GoalPlanningBurstSchedule
-import skillbill.engine.goalrunner.planning.model.GoalPlanningSweepCheckpointBoundaries
-import skillbill.engine.goalrunner.planning.model.GoalPlanningSweepLaunchBoundaries
 import skillbill.ports.concurrency.BoundedWorkFanOutPort
 import skillbill.ports.concurrency.SequentialBoundedWorkFanOutPort
 import skillbill.ports.db.DatabaseSessionFactory
@@ -104,7 +100,7 @@ internal fun testGoalRunnerWiring(params: GoalRunnerTestWiringParams): GoalRunne
   return GoalRunnerTestWiring(runBoundaries, launchBoundaries, finalizationBoundaries)
 }
 
-internal data class GoalRunnerDepsCompat(
+internal data class GoalRunnerTestInputs(
   val manifestStore: GoalRunnerManifestStore,
   val subtaskLauncher: GoalRunnerSubtaskLauncher,
   val outcomeStore: GoalRunnerWorkflowOutcomeStore,
@@ -153,40 +149,47 @@ internal fun goalRunnerDeps(
   subtaskLauncher: GoalRunnerSubtaskLauncher,
   outcomeStore: GoalRunnerWorkflowOutcomeStore,
   pullRequestPort: GoalPullRequestPort,
-): GoalRunnerDepsCompat = GoalRunnerDepsCompat(
+): GoalRunnerTestInputs = GoalRunnerTestInputs(
   manifestStore = manifestStore,
   subtaskLauncher = subtaskLauncher,
   outcomeStore = outcomeStore,
   pullRequestPort = pullRequestPort,
 )
 
-internal fun testGoalRunner(deps: GoalRunnerDepsCompat): GoalRunner = testGoalRunner(deps.toWiring())
+internal fun testGoalRunner(deps: GoalRunnerTestInputs): GoalRunner = testGoalRunner(deps.toWiring())
 
 internal fun testGoalRunner(wiring: GoalRunnerTestWiring): GoalRunner {
   val progressReader = GoalRunnerProgressReader(wiring.runBoundaries.outcomeStore)
   val finalization = GoalRunnerFinalization(wiring.finalizationBoundaries, progressReader)
+  val workerRequestHandler = GoalRunnerWorkerRequestHandler(
+    wiring.runBoundaries.manifestStore,
+    wiring.runBoundaries.outcomeStore,
+  )
+  val reconciler = GoalRunnerLaunchReconciler(
+    wiring.runBoundaries.manifestStore,
+    wiring.runBoundaries.outcomeStore,
+    progressReader,
+    testActivityStampWriter(),
+    wiring.runBoundaries.clock,
+    wiring.runBoundaries.diagnostics,
+  )
+  val pauseBoundary = GoalRunnerPauseBoundary(wiring.runBoundaries.manifestStore)
+  val launchPrepare = GoalRunnerSubtaskLaunchPrepare(wiring.launchBoundaries, TestRepositoryEnclosingRoot)
+  val perRunLoopAssembler = GoalRunnerPerRunLoopAssembler(
+    runBoundaries = wiring.runBoundaries,
+    launchBoundaries = wiring.launchBoundaries,
+    workerRequestHandler = workerRequestHandler,
+    reconciler = reconciler,
+    progressReader = progressReader,
+    pauseBoundary = pauseBoundary,
+    launchPrepare = launchPrepare,
+    finalization = finalization,
+  )
   return GoalRunner(
-    deps = GoalRunnerDeps(
-      runBoundaries = wiring.runBoundaries,
-      launchBoundaries = wiring.launchBoundaries,
-      workerRequestHandler = GoalRunnerWorkerRequestHandler(
-        wiring.runBoundaries.manifestStore,
-        wiring.runBoundaries.outcomeStore,
-      ),
-      reconciler = GoalRunnerLaunchReconciler(
-        wiring.runBoundaries.manifestStore,
-        wiring.runBoundaries.outcomeStore,
-        progressReader,
-        testActivityStampWriter(),
-        wiring.runBoundaries.clock,
-        wiring.runBoundaries.diagnostics,
-      ),
-      progressReader = progressReader,
-      pauseBoundary = GoalRunnerPauseBoundary(wiring.runBoundaries.manifestStore),
-      runPreparation = GoalRunnerRunPreparation(wiring.runBoundaries.manifestStore, TestRepositoryEnclosingRoot),
-      launchPrepare = GoalRunnerSubtaskLaunchPrepare(wiring.launchBoundaries, TestRepositoryEnclosingRoot),
-      finalization = finalization,
-    ),
+    runBoundaries = wiring.runBoundaries,
+    runPreparation = GoalRunnerRunPreparation(wiring.runBoundaries.manifestStore, TestRepositoryEnclosingRoot),
+    perRunLoopAssembler = perRunLoopAssembler,
+    pauseBoundary = pauseBoundary,
   )
 }
 

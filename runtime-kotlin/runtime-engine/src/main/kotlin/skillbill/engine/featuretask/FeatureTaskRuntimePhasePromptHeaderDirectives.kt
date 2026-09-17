@@ -76,9 +76,8 @@ fun ceremonyDirective(briefing: FeatureTaskRuntimePhaseLaunchBriefing): String {
         "change for defects and record concrete file references."
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT ->
       "Apply ${scaling.auditCeremony.promptLabel}. Keep the audit gate real: verify every acceptance " +
-        "criterion for implementation and meaningful test coverage, run up to three repair cycles in " +
-        "this same session, re-check the full list after each cycle, and include a reason on any " +
-        "remaining criterion."
+        "criterion in scope for implementation and meaningful test coverage, repair fixable gaps in this " +
+        "same session, and re-check the in-scope list before completion."
     else ->
       "Use the resolved feature size for ceremony expectations; all runtime gates remain mandatory."
   }

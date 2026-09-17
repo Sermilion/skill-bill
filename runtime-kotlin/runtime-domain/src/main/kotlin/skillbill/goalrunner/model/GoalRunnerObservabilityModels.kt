@@ -3,8 +3,6 @@ package skillbill.goalrunner.model
 import skillbill.workflow.goal.model.GoalObservabilityChangedFileSummary
 import skillbill.workflow.goal.model.GoalObservabilityDiffStat
 import skillbill.workflow.goal.model.GoalObservabilityEvent
-import skillbill.workflow.goal.model.GoalProgressEventKind
-import skillbill.workflow.goal.model.GoalProgressOutcome
 
 data class GoalRunnerObservabilityRecordRequest(
   val workflowId: String,
@@ -68,16 +66,6 @@ data class GoalRunnerAttemptLedgerSummary(
   val cumulativeFixIterations: Map<String, Int> = emptyMap(),
   val reAttemptCauseCounts: Map<String, Int> = emptyMap(),
   val findingsInScope: Int? = null,
-)
-
-data class BuildDeclaredGoalProgressEventArgs(
-  val sourceLabel: String,
-  val eventKind: GoalProgressEventKind,
-  val workflowId: String,
-  val workflowPhase: String,
-  val sequenceNumber: Int,
-  val timestamp: String,
-  val outcome: GoalProgressOutcome,
 )
 
 data class GoalContinuation(

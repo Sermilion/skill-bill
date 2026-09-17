@@ -4,14 +4,11 @@ import skillbill.application.RecordingLifecycleTelemetryRepository
 import skillbill.application.RecordingSpecScratchStore
 import skillbill.application.RecordingSpecStatusWriter
 import skillbill.application.TestDecompositionManifestStore
-import skillbill.application.featurespec.FeatureSpecPreparationRuntime
-import skillbill.application.featurespec.FeatureSpecPreparationWriter
 import skillbill.application.idestatus.AgentActivityStampWriter
 import skillbill.application.review.SpecIntentProjectionExtractor
 import skillbill.application.review.SpecIntentProjectionResolver
 import skillbill.application.review.model.ParallelReviewLaneStatus
 import skillbill.application.seedHarnessSpecIntentProjection
-import skillbill.application.specsource.SpecSourceResolver
 import skillbill.application.telemetry.LifecycleTelemetryService
 import skillbill.application.testDecompositionManifestValidator
 import skillbill.application.testDecompositionManifestWriter
@@ -23,6 +20,8 @@ import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITY_CON
 import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeWireArtifactValidator
 import skillbill.engine.featuretask.AlwaysValidValidator
 import skillbill.engine.featuretask.ApprovingReviewDriverStub
+import skillbill.engine.featuretask.FeatureSpecPreparationRuntime
+import skillbill.engine.featuretask.FeatureSpecPreparationWriter
 import skillbill.engine.featuretask.FeatureTaskPhaseSettlementService
 import skillbill.engine.featuretask.FeatureTaskRuntimeBranchSetupRunner
 import skillbill.engine.featuretask.FeatureTaskRuntimeCrashReconciler
@@ -31,6 +30,8 @@ import skillbill.engine.featuretask.FeatureTaskRuntimeDecompositionPlanner
 import skillbill.engine.featuretask.FeatureTaskRuntimeFindingVerificationBoundaryMemory
 import skillbill.engine.featuretask.FeatureTaskRuntimeGoalContinuationRecorder
 import skillbill.engine.featuretask.FeatureTaskRuntimeLifecycleTelemetry
+import skillbill.engine.featuretask.FeatureTaskRuntimePhaseGateBranchBoundaries
+import skillbill.engine.featuretask.FeatureTaskRuntimePhaseGateValidationBoundaries
 import skillbill.engine.featuretask.FeatureTaskRuntimePhaseGates
 import skillbill.engine.featuretask.FeatureTaskRuntimePhaseOutputTestValidator
 import skillbill.engine.featuretask.FeatureTaskRuntimePhaseRecorder
@@ -39,12 +40,12 @@ import skillbill.engine.featuretask.FeatureTaskRuntimeReviewDriver
 import skillbill.engine.featuretask.FeatureTaskRuntimeRunInvariantsStore
 import skillbill.engine.featuretask.FeatureTaskRuntimeRunner
 import skillbill.engine.featuretask.FeatureTaskRuntimeSpecGate
+import skillbill.engine.featuretask.FeatureTaskRuntimeWorkflowPersistence
 import skillbill.engine.featuretask.InMemoryFeatureTaskPhaseSettlementRepository
+import skillbill.engine.featuretask.SpecSourceResolver
 import skillbill.engine.featuretask.featureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeAgentAssignment
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeGoalContinuationContext
-import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseGateBranchBoundaries
-import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseGateValidationBoundaries
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseLedgerRequest
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunEvent
@@ -759,7 +760,7 @@ private fun harnessWorkflowParts(database: RuntimeFakeDatabaseSessionFactory): R
     ),
     runInvariantsStore = FeatureTaskRuntimeRunInvariantsStore(
       database,
-      NoopWorkflowSnapshotValidator,
+      FeatureTaskRuntimeWorkflowPersistence(database, NoopWorkflowSnapshotValidator),
     ),
   )
 

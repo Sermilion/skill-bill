@@ -3,6 +3,7 @@ import skillbill.application.review.RuntimeOwnedReviewMode
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
+import skillbill.workflow.decomposition.model.SpecSource
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_BLOCKER_SEVERITY
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
@@ -82,7 +83,11 @@ object FeatureTaskRuntimeRunLoopPlanningBranch {
     val phaseId = args.phaseId
     val declaration = phaseDeclarationForRun(args.request, phaseId)
     val run = buildPhaseRun(
-      BuildPhaseRunArgs(phaseId, args.request, declaration, args.specSource, args.reentry),
+      phaseId = phaseId,
+      request = args.request,
+      declaration = declaration,
+      specSource = args.specSource,
+      reentry = args.reentry,
     )
     FeatureTaskRuntimeRunLoopPhaseRunner.preLaunchBlock(
       context = context,
@@ -90,7 +95,7 @@ object FeatureTaskRuntimeRunLoopPlanningBranch {
       state = args.state,
       observability = args.observability,
     )?.let { return it }
-    return runPreparedPhase(context, run, args.state, args.observability, args.phaseTokenAccumulator)
+    return runPreparedPhase(context, run, args.state, args.observability)
   }
 
   internal fun phaseDeclarationForRun(
@@ -102,11 +107,13 @@ object FeatureTaskRuntimeRunLoopPlanningBranch {
     FeatureTaskRuntimeRunLoopTransitions.qualityGateSelection(request),
   )
 
-  internal fun buildPhaseRun(args: BuildPhaseRunArgs): PhaseRun {
-    val phaseId = args.phaseId
-    val declaration = args.declaration
-    val reentry = args.reentry
-    val request = args.request
+  internal fun buildPhaseRun(
+    phaseId: String,
+    request: FeatureTaskRuntimeRunRequest,
+    declaration: FeatureTaskRuntimePhaseDeclaration,
+    specSource: SpecSource,
+    reentry: PendingReentry?,
+  ): PhaseRun {
     val resolvedAgent = FeatureTaskRuntimeAgentResolver.resolve(
       phaseId = phaseId,
       assignment = request.agentAssignment,
@@ -123,7 +130,7 @@ object FeatureTaskRuntimeRunLoopPlanningBranch {
       ),
       compaction = request.compactionSettings.directiveFor(phaseId),
       request = request,
-      specSource = args.specSource,
+      specSource = specSource,
       reentry = reentry,
     )
   }
@@ -133,12 +140,10 @@ object FeatureTaskRuntimeRunLoopPlanningBranch {
     run: PhaseRun,
     state: FeatureTaskRuntimeRunState,
     observability: FeatureTaskRuntimeRunObservability,
-    phaseTokenAccumulator: MutableMap<String, Pair<Int, Int>>?,
   ): PhaseOutcome {
     val gateContext = context.copy(
       state = state,
       observability = observability,
-      phaseTokenAccumulator = phaseTokenAccumulator ?: mutableMapOf(),
     )
     return when (
       val prepared = FeatureTaskRuntimeRunLoopPhaseRunner.prepareGoalReviewRun(

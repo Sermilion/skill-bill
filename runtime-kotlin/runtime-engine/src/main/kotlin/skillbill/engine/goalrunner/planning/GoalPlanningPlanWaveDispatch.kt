@@ -1,13 +1,11 @@
 package skillbill.engine.goalrunner.planning
 
 import skillbill.engine.goalrunner.ProduceMissingPlansArgs
-import skillbill.engine.goalrunner.ProducePlanArgs
 import skillbill.engine.goalrunner.planning.model.GoalPlanningSweepOutcome
 import skillbill.ports.agentrun.model.AgentRunOutputSink
 import skillbill.ports.agentrun.model.AgentRunOutputStream
 import skillbill.ports.concurrency.BoundedWorkFanOutPort
 import skillbill.ports.goalrunner.model.GovernedGoalSubtaskDescriptor
-import skillbill.ports.goalrunner.planning.model.GoalPlanningResolvedBoundaryBodies
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 
 private data class MissingPlanSet(
@@ -19,7 +17,6 @@ private data class PlanWaveArgs(
   val produce: ProduceMissingPlansArgs,
   val descriptors: List<GovernedGoalSubtaskDescriptor>,
   val subtasksById: Map<Int, DecompositionSubtask>,
-  val resolvedBodies: GoalPlanningResolvedBoundaryBodies,
   val wave: List<Int>,
 )
 
@@ -70,7 +67,6 @@ private fun DefaultGoalPlanningSweep.dispatchPlanWaves(
     produce = args,
     descriptors = descriptors,
     subtasksById = args.activeSubtasks.associateBy(DecompositionSubtask::id),
-    resolvedBodies = GoalPlanningResolvedBoundaryBodies(),
     wave = emptyList(),
   )
   val waves = missingSubtaskIds.chunked(burstSchedule.planFanOutCap)
@@ -111,16 +107,9 @@ private fun DefaultGoalPlanningSweep.producePlanUnit(
   val sink = SubtaskAttributedOutputSink(fanOutPort, produce.request.outputSink, subtaskId)
   return try {
     producePlan(
-      ProducePlanArgs(
-        shared = shared,
-        request = produce.request,
-        subtask = subtask,
-        descriptor = args.descriptors.single { it.subtaskId == subtaskId },
-        provenance = produce.provenance,
-        preplanPayload = produce.sharedCheckpoint.preplanPayload,
-        resolvedBodies = args.resolvedBodies,
-        outputSink = sink,
-      ),
+      args = produce.copy(request = produce.request.copy(outputSink = sink)),
+      subtask = subtask,
+      descriptor = args.descriptors.single { it.subtaskId == subtaskId },
     )
   } finally {
     sink.flushTrailingLines()

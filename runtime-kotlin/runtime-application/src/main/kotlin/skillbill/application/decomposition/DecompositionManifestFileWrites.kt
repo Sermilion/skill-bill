@@ -91,15 +91,6 @@ fun validateDecompositionManifestYaml(
   }
 }
 
-fun encodeDecompositionManifestYaml(
-  manifest: DecompositionManifest,
-  validator: DecompositionManifestValidator,
-  fileStore: DecompositionManifestStore,
-  sourceLabel: String = "<in-memory>",
-): String {
-  return encodeValidatedDecompositionManifestYaml(manifest, validator, fileStore, sourceLabel).yamlText
-}
-
 fun encodeValidatedDecompositionManifestYaml(
   manifest: DecompositionManifest,
   validator: DecompositionManifestValidator,

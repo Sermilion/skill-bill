@@ -5,14 +5,13 @@ import skillbill.goalrunner.model.GoalRunnerTerminalStatus
 import skillbill.ports.goalrunner.persistence.model.CrashReconcileExpiredWorkerRequest
 import skillbill.ports.taskruntime.model.isConfirmedDead
 import java.time.Clock
-import java.time.Instant
 
 internal fun crashReconcileExpiredWorkerToResumable(
   request: CrashReconcileExpiredWorkerRequest,
   clock: Clock,
 ): GoalRunnerStoredOutcome? {
   val now = clock.instant()
-  if (!runCatching { Instant.parse(request.ownership.expiresAt).isBefore(now) }.getOrDefault(false)) return null
+  if (!request.ownership.expiresAtInstant.isBefore(now)) return null
   if (!request.workerSupervisor.inspect(request.ownership).isConfirmedDead()) return null
   val reconciled = request.workflowStates.reconcileFeatureTaskRuntimeCrashedWorker(
     workflowId = request.workflowId,

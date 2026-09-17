@@ -21,7 +21,7 @@ class FeatureTaskRuntimePhasePromptComposerRepairTest {
   @Test
   fun `audit prompt always requires full-list recheck without prior-gap memory`() {
     val auditPrompt = composePromptForPhase("audit")
-    assertContains(auditPrompt, "complete listed criterion set from scratch")
+    assertContains(auditPrompt, "complete in-scope criterion set from scratch")
     assertTrue(!auditPrompt.contains("prior_gap_memory"))
     assertTrue(!auditPrompt.contains("Prior-gap memory"))
   }

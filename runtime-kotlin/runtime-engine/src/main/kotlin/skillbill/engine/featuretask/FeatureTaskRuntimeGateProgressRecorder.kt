@@ -1,5 +1,4 @@
 package skillbill.engine.featuretask
-import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.contracts.JsonCodec
 import skillbill.error.InvalidWorkflowStateSchemaError
@@ -16,24 +15,24 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateProg
 class FeatureTaskRuntimeGateProgressRecorder(
   private val database: DatabaseSessionFactory,
   private val workflowPersistence: FeatureTaskRuntimeWorkflowPersistence,
-) : FeatureTaskRuntimePhaseGateApi {
-  override fun loadValidationGateProgress(workflowId: String): FeatureTaskRuntimeValidationGateProgress? =
+) {
+  fun loadValidationGateProgress(workflowId: String): FeatureTaskRuntimeValidationGateProgress? =
     database.read { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@read null
-      val raw = decodeWorkflowArtifacts(
-        record.artifactsJson,
-      )[FEATURE_TASK_RUNTIME_VALIDATION_GATE_PROGRESS_ARTIFACT_KEY]
+      val raw = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)[
+        FEATURE_TASK_RUNTIME_VALIDATION_GATE_PROGRESS_ARTIFACT_KEY,
+      ]
       val artifact = JsonCodec.anyToStringAnyMap(raw) ?: return@read null
-      decodeValidationGateProgressFromArtifact(artifact)!!
+      decodeValidationGateProgressFromArtifact(artifact)
     }
 
-  override fun persistValidationGateProgress(workflowId: String, progress: FeatureTaskRuntimeValidationGateProgress) {
+  fun persistValidationGateProgress(workflowId: String, progress: FeatureTaskRuntimeValidationGateProgress) {
     database.transaction { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
         ?: throw InvalidWorkflowStateSchemaError(
           "Cannot persist validation gate progress: workflow '$workflowId' is missing.",
         )
-      workflowPersistence.persistPatch(
+      workflowPersistence.persistArtifactsPatch(
         unitOfWork.workflowStates,
         record,
         mapOf(FEATURE_TASK_RUNTIME_VALIDATION_GATE_PROGRESS_ARTIFACT_KEY to progress.asWorkflowArtifactEntry()),
@@ -41,28 +40,32 @@ class FeatureTaskRuntimeGateProgressRecorder(
     }
   }
 
-  override fun loadBuildGateProgress(workflowId: String): FeatureTaskRuntimeValidationGateProgress? =
+  fun loadBuildGateProgress(workflowId: String): FeatureTaskRuntimeValidationGateProgress? =
     database.read { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@read null
-      val raw = decodeWorkflowArtifacts(record.artifactsJson)[FEATURE_TASK_RUNTIME_BUILD_GATE_PROGRESS_ARTIFACT_KEY]
+      val raw = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)[
+        FEATURE_TASK_RUNTIME_BUILD_GATE_PROGRESS_ARTIFACT_KEY,
+      ]
       val artifact = JsonCodec.anyToStringAnyMap(raw) ?: return@read null
-      decodeValidationGateProgressFromArtifact(artifact)!!
+      decodeValidationGateProgressFromArtifact(artifact)
     }
 
-  override fun loadGoalContinuationQualityGateSelection(workflowId: String): FeatureTaskRuntimeQualityGateSelection? =
+  fun loadGoalContinuationQualityGateSelection(workflowId: String): FeatureTaskRuntimeQualityGateSelection? =
     database.read { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@read null
-      GoalSubtaskReviewArtifactDecoder.decodeContinuationOnly(decodeWorkflowArtifacts(record.artifactsJson))
+      GoalSubtaskReviewArtifactDecoder.decodeContinuationOnly(
+        FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record),
+      )
         ?.qualityGateSelection
     }
 
-  override fun persistBuildGateProgress(workflowId: String, progress: FeatureTaskRuntimeValidationGateProgress) {
+  fun persistBuildGateProgress(workflowId: String, progress: FeatureTaskRuntimeValidationGateProgress) {
     database.transaction { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
         ?: throw InvalidWorkflowStateSchemaError(
           "Cannot persist build gate progress: workflow '$workflowId' is missing.",
         )
-      workflowPersistence.persistPatch(
+      workflowPersistence.persistArtifactsPatch(
         unitOfWork.workflowStates,
         record,
         mapOf(FEATURE_TASK_RUNTIME_BUILD_GATE_PROGRESS_ARTIFACT_KEY to progress.asWorkflowArtifactEntry()),

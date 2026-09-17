@@ -3,19 +3,29 @@ package skillbill.engine.goalrunner.planning
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
+import skillbill.contracts.goalplanning.GoalPlanningSharedContextPacketPayloadKeys
+import skillbill.engine.goalrunner.planning.model.GoalPlanningSubtaskPlanningDisposition
 import skillbill.ports.goalrunner.planning.model.GoalPlanningBoundaryHeadingKind
 import skillbill.ports.goalrunner.planning.model.GoalPlanningContext
 import skillbill.text.sha256HexUtf8
 
 object GoalPlanningSharedContextPacketValidation {
-  private val BOUNDARY_MEMORY_FIELDS = setOf("catalog", "truncated")
-  private val CATALOG_ENTRY_FIELDS = setOf("heading_id", "source_path", "kind", "heading")
+  private val BOUNDARY_MEMORY_FIELDS = setOf(
+    GoalPlanningSharedContextPacketPayloadKeys.CATALOG,
+    GoalPlanningSharedContextPacketPayloadKeys.TRUNCATED,
+  )
+  private val CATALOG_ENTRY_FIELDS = setOf(
+    GoalPlanningSharedContextPacketPayloadKeys.HEADING_ID,
+    GoalPlanningSharedContextPacketPayloadKeys.SOURCE_PATH,
+    GoalPlanningSharedContextPacketPayloadKeys.KIND,
+    GoalPlanningSharedContextPacketPayloadKeys.HEADING,
+  )
   private val CATALOG_KINDS = setOf(GoalPlanningContext.KIND_HISTORY, GoalPlanningContext.KIND_DECISIONS)
   private val SUBTASK_FIELDS = setOf(
     DecompositionPlanningPayloadKeys.ID,
     DecompositionPlanningPayloadKeys.NAME,
     DecompositionPlanningPayloadKeys.SPEC_PATH,
-    "planning_disposition",
+    GoalPlanningSharedContextPacketPayloadKeys.PLANNING_DISPOSITION,
 
     DecompositionPlanningPayloadKeys.DEPENDENCIES,
   )
@@ -24,15 +34,39 @@ object GoalPlanningSharedContextPacketValidation {
     DecompositionPlanningPayloadKeys.OPTIONAL,
     DecompositionPlanningPayloadKeys.SKIPPED,
   )
-  private val DISPOSITIONS = setOf("included", DecompositionPlanningPayloadKeys.SKIPPED)
+  private val DISPOSITIONS = GoalPlanningSubtaskPlanningDisposition.entries.map { it.wireValue }.toSet()
 
   fun requireValidCatalog(value: Any?) {
-    val boundaryMemory = value as? Map<*, *> ?: error("shared context boundary memory is invalid")
-    require(boundaryMemory.keys == BOUNDARY_MEMORY_FIELDS) { "shared context boundary memory is invalid" }
-    require(boundaryMemory["truncated"] is Boolean) { "shared context boundary memory truncation flag is invalid" }
-    val catalog = boundaryMemory["catalog"] as? List<*> ?: error("shared context boundary memory catalog is invalid")
-    require(catalog.size <= GoalPlanningContext.MAX_CATALOG_HEADINGS) {
-      "shared context boundary memory catalog exceeds the heading cap"
+    val boundaryMemory = value as? Map<*, *>
+      ?: invalidGoalPlanningSharedContextPacket(
+        GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY,
+        "shared context boundary memory is invalid",
+      )
+    if (boundaryMemory.keys != BOUNDARY_MEMORY_FIELDS) {
+      invalidGoalPlanningSharedContextPacket(
+        GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY,
+        "shared context boundary memory is invalid",
+      )
+    }
+    if (boundaryMemory[GoalPlanningSharedContextPacketPayloadKeys.TRUNCATED] !is Boolean) {
+      invalidGoalPlanningSharedContextPacket(
+        "${GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY}." +
+          GoalPlanningSharedContextPacketPayloadKeys.TRUNCATED,
+        "shared context boundary memory truncation flag is invalid",
+      )
+    }
+    val catalog = boundaryMemory[GoalPlanningSharedContextPacketPayloadKeys.CATALOG] as? List<*>
+      ?: invalidGoalPlanningSharedContextPacket(
+        "${GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY}." +
+          GoalPlanningSharedContextPacketPayloadKeys.CATALOG,
+        "shared context boundary memory catalog is invalid",
+      )
+    if (catalog.size > GoalPlanningContext.MAX_CATALOG_HEADINGS) {
+      invalidGoalPlanningSharedContextPacket(
+        "${GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY}." +
+          GoalPlanningSharedContextPacketPayloadKeys.CATALOG,
+        "shared context boundary memory catalog exceeds the heading cap",
+      )
     }
     val headingIds = mutableSetOf<String>()
     for (raw in catalog) {
@@ -41,43 +75,111 @@ object GoalPlanningSharedContextPacketValidation {
   }
 
   private fun validateCatalogEntry(raw: Any?, headingIds: MutableSet<String>) {
-    val entry = raw as? Map<*, *> ?: error("shared context boundary memory catalog entry is invalid")
-    require(entry.keys == CATALOG_ENTRY_FIELDS) { "shared context boundary memory catalog entry fields are invalid" }
-    require(entry.values.all { it is String }) { "shared context boundary memory catalog entry is invalid" }
-    val sourcePath = entry["source_path"] as String
-    require(sourcePath.isNotBlank() && !sourcePath.startsWith("/") && ".." !in sourcePath) {
-      "shared context boundary memory source path is invalid"
+    val entry = raw as? Map<*, *>
+      ?: invalidGoalPlanningSharedContextPacket(
+        "${GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY}." +
+          GoalPlanningSharedContextPacketPayloadKeys.CATALOG,
+        "shared context boundary memory catalog entry is invalid",
+      )
+    if (entry.keys != CATALOG_ENTRY_FIELDS || !entry.values.all { it is String }) {
+      invalidGoalPlanningSharedContextPacket(
+        "${GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY}." +
+          GoalPlanningSharedContextPacketPayloadKeys.CATALOG,
+        "shared context boundary memory catalog entry is invalid",
+      )
     }
-    require(GoalPlanningBoundaryHeadingKind.fromWire(entry["kind"] as String) in CATALOG_KINDS) {
-      "shared context boundary memory kind is invalid"
+    val sourcePath = entry[GoalPlanningSharedContextPacketPayloadKeys.SOURCE_PATH] as String
+    if (sourcePath.isBlank() || sourcePath.startsWith("/") || ".." in sourcePath) {
+      invalidGoalPlanningSharedContextPacket(
+        "${GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY}." +
+          "${GoalPlanningSharedContextPacketPayloadKeys.CATALOG}." +
+          GoalPlanningSharedContextPacketPayloadKeys.SOURCE_PATH,
+        "shared context boundary memory source path is invalid",
+      )
     }
-    require((entry["heading"] as String).length <= GoalPlanningContext.MAX_HEADING_TEXT_CHARS) {
-      "shared context boundary memory heading exceeds the length cap"
+    if (
+      GoalPlanningBoundaryHeadingKind.fromWire(entry[GoalPlanningSharedContextPacketPayloadKeys.KIND] as String) !in
+      CATALOG_KINDS
+    ) {
+      invalidGoalPlanningSharedContextPacket(
+        "${GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY}." +
+          "${GoalPlanningSharedContextPacketPayloadKeys.CATALOG}." +
+          GoalPlanningSharedContextPacketPayloadKeys.KIND,
+        "shared context boundary memory kind is invalid",
+      )
     }
-    require(headingIds.add(entry["heading_id"] as String)) {
-      "shared context boundary memory heading ids must be unique"
+    if ((entry[GoalPlanningSharedContextPacketPayloadKeys.HEADING] as String).length >
+      GoalPlanningContext.MAX_HEADING_TEXT_CHARS
+    ) {
+      invalidGoalPlanningSharedContextPacket(
+        "${GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY}." +
+          "${GoalPlanningSharedContextPacketPayloadKeys.CATALOG}." +
+          GoalPlanningSharedContextPacketPayloadKeys.HEADING,
+        "shared context boundary memory heading exceeds the length cap",
+      )
+    }
+    if (!headingIds.add(entry[GoalPlanningSharedContextPacketPayloadKeys.HEADING_ID] as String)) {
+      invalidGoalPlanningSharedContextPacket(
+        "${GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY}." +
+          "${GoalPlanningSharedContextPacketPayloadKeys.CATALOG}." +
+          GoalPlanningSharedContextPacketPayloadKeys.HEADING_ID,
+        "shared context boundary memory heading ids must be unique",
+      )
     }
   }
 
   fun normalizedSubtasks(value: Any?): List<Map<String, Any?>> {
-    val entries = value as? List<*> ?: error("shared context ordered subtasks must be a list")
+    val entries = value as? List<*>
+      ?: invalidGoalPlanningSharedContextPacket(
+        GoalPlanningSharedContextPacketPayloadKeys.ORDERED_SUBTASKS,
+        "shared context ordered subtasks must be a list",
+      )
     return entries.map { entry ->
-      val subtask = entry as? Map<*, *> ?: error("shared context ordered subtask must be an object")
-      require(subtask.keys == SUBTASK_FIELDS) { "shared context ordered subtask fields are invalid" }
+      val subtask = entry as? Map<*, *>
+        ?: invalidGoalPlanningSharedContextPacket(
+          GoalPlanningSharedContextPacketPayloadKeys.ORDERED_SUBTASKS,
+          "shared context ordered subtask must be an object",
+        )
+      if (subtask.keys != SUBTASK_FIELDS) {
+        invalidGoalPlanningSharedContextPacket(
+          GoalPlanningSharedContextPacketPayloadKeys.ORDERED_SUBTASKS,
+          "shared context ordered subtask fields are invalid",
+        )
+      }
       val id = (subtask[DecompositionPlanningPayloadKeys.ID] as? Number)?.toInt()
-        ?: error("shared context ordered subtask id is invalid")
+        ?: invalidGoalPlanningSharedContextPacket(
+          "${GoalPlanningSharedContextPacketPayloadKeys.ORDERED_SUBTASKS}.${DecompositionPlanningPayloadKeys.ID}",
+          "shared context ordered subtask id is invalid",
+        )
       val name = subtask[DecompositionPlanningPayloadKeys.NAME] as? String
-        ?: error("shared context ordered subtask name is invalid")
+        ?: invalidGoalPlanningSharedContextPacket(
+          "${GoalPlanningSharedContextPacketPayloadKeys.ORDERED_SUBTASKS}.${DecompositionPlanningPayloadKeys.NAME}",
+          "shared context ordered subtask name is invalid",
+        )
       val specPath = subtask[DecompositionPlanningPayloadKeys.SPEC_PATH] as? String
-        ?: error("shared context ordered subtask spec path is invalid")
-      val disposition = subtask["planning_disposition"] as? String
-        ?: error("shared context ordered subtask planning disposition is invalid")
-      require(disposition in DISPOSITIONS) { "shared context ordered subtask planning disposition is invalid" }
+        ?: invalidGoalPlanningSharedContextPacket(
+          "${GoalPlanningSharedContextPacketPayloadKeys.ORDERED_SUBTASKS}." +
+            DecompositionPlanningPayloadKeys.SPEC_PATH,
+          "shared context ordered subtask spec path is invalid",
+        )
+      val disposition = subtask[GoalPlanningSharedContextPacketPayloadKeys.PLANNING_DISPOSITION] as? String
+        ?: invalidGoalPlanningSharedContextPacket(
+          "${GoalPlanningSharedContextPacketPayloadKeys.ORDERED_SUBTASKS}." +
+            GoalPlanningSharedContextPacketPayloadKeys.PLANNING_DISPOSITION,
+          "shared context ordered subtask planning disposition is invalid",
+        )
+      if (disposition !in DISPOSITIONS) {
+        invalidGoalPlanningSharedContextPacket(
+          "${GoalPlanningSharedContextPacketPayloadKeys.ORDERED_SUBTASKS}." +
+            GoalPlanningSharedContextPacketPayloadKeys.PLANNING_DISPOSITION,
+          "shared context ordered subtask planning disposition is invalid",
+        )
+      }
       linkedMapOf(
         DecompositionPlanningPayloadKeys.ID to id,
         DecompositionPlanningPayloadKeys.NAME to name,
         DecompositionPlanningPayloadKeys.SPEC_PATH to specPath,
-        "planning_disposition" to disposition,
+        GoalPlanningSharedContextPacketPayloadKeys.PLANNING_DISPOSITION to disposition,
         DecompositionPlanningPayloadKeys.DEPENDENCIES to normalizedDependencies(
           subtask[DecompositionPlanningPayloadKeys.DEPENDENCIES],
         ),
@@ -86,22 +188,50 @@ object GoalPlanningSharedContextPacketValidation {
   }
 
   private fun normalizedDependencies(value: Any?): List<Map<String, Any?>> {
-    val dependencies = value as? List<*> ?: error("shared context subtask dependencies must be a list")
+    val dependencies = value as? List<*>
+      ?: invalidGoalPlanningSharedContextPacket(
+        "${GoalPlanningSharedContextPacketPayloadKeys.ORDERED_SUBTASKS}." +
+          DecompositionPlanningPayloadKeys.DEPENDENCIES,
+        "shared context subtask dependencies must be a list",
+      )
     return dependencies.map { entry ->
-      val dependency = entry as? Map<*, *> ?: error("shared context subtask dependency must be an object")
-      require(dependency.keys == DEPENDENCY_FIELDS) { "shared context subtask dependency fields are invalid" }
+      val dependency = entry as? Map<*, *>
+        ?: invalidGoalPlanningSharedContextPacket(
+          "${GoalPlanningSharedContextPacketPayloadKeys.ORDERED_SUBTASKS}." +
+            DecompositionPlanningPayloadKeys.DEPENDENCIES,
+          "shared context subtask dependency must be an object",
+        )
+      if (dependency.keys != DEPENDENCY_FIELDS) {
+        invalidGoalPlanningSharedContextPacket(
+          "${GoalPlanningSharedContextPacketPayloadKeys.ORDERED_SUBTASKS}." +
+            DecompositionPlanningPayloadKeys.DEPENDENCIES,
+          "shared context subtask dependency fields are invalid",
+        )
+      }
       linkedMapOf(
         SharedPayloadKeys.SUBTASK_ID to (
           (dependency[SharedPayloadKeys.SUBTASK_ID] as? Number)?.toInt()
-            ?: error("shared context dependency subtask id is invalid")
+            ?: invalidGoalPlanningSharedContextPacket(
+              "${GoalPlanningSharedContextPacketPayloadKeys.ORDERED_SUBTASKS}." +
+                DecompositionPlanningPayloadKeys.DEPENDENCIES,
+              "shared context dependency subtask id is invalid",
+            )
           ),
         DecompositionPlanningPayloadKeys.OPTIONAL to (
           dependency[DecompositionPlanningPayloadKeys.OPTIONAL] as? Boolean
-            ?: error("shared context dependency optional flag is invalid")
+            ?: invalidGoalPlanningSharedContextPacket(
+              "${GoalPlanningSharedContextPacketPayloadKeys.ORDERED_SUBTASKS}." +
+                DecompositionPlanningPayloadKeys.DEPENDENCIES,
+              "shared context dependency optional flag is invalid",
+            )
           ),
         DecompositionPlanningPayloadKeys.SKIPPED to (
           dependency[DecompositionPlanningPayloadKeys.SKIPPED] as? Boolean
-            ?: error("shared context dependency skipped flag is invalid")
+            ?: invalidGoalPlanningSharedContextPacket(
+              "${GoalPlanningSharedContextPacketPayloadKeys.ORDERED_SUBTASKS}." +
+                DecompositionPlanningPayloadKeys.DEPENDENCIES,
+              "shared context dependency skipped flag is invalid",
+            )
           ),
       )
     }

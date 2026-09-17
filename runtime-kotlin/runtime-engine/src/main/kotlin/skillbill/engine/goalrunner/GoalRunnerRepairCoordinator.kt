@@ -13,6 +13,7 @@ import skillbill.engine.goalrunner.model.GoalRunnerWedgeFinding
 import skillbill.engine.goalrunner.planning.goalPlanningHardResetRemedy
 import skillbill.goalrunner.model.GOAL_PAUSE_REASON_RUNNER_INTERRUPTED
 import skillbill.model.RepositoryRoot
+import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
 import skillbill.ports.goalrunner.persistence.GoalRunnerChildRepairStore
 import skillbill.ports.goalrunner.runner.GoalRunnerManifestStore
@@ -24,9 +25,8 @@ import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.model.decompositionStatus
 import java.nio.file.Path
 import java.time.Clock
-import java.time.Instant
 
-class GoalRunnerRepairCoordinator(
+internal class GoalRunnerRepairCoordinator(
   private val manifestStore: GoalRunnerManifestStore,
   private val phaseRecorder: FeatureTaskRuntimePhaseRecorder,
   private val workerSupervisor: FeatureTaskRuntimeWorkerSupervisor,
@@ -35,6 +35,7 @@ class GoalRunnerRepairCoordinator(
   private val repositoryRoot: RepositoryRoot,
   private val repositoryEnclosingRootPort: RepositoryEnclosingRootPort,
   private val clock: Clock,
+  private val diagnostics: RuntimeDiagnostics,
 ) {
   private val parentWedgeDiagnosis = GoalRunnerParentRepairWedgeDiagnosis(clock)
 
@@ -337,13 +338,21 @@ class GoalRunnerRepairCoordinator(
   }
 
   private fun childWorkerLeaseLive(workflowId: String): Boolean {
-    val ownership = runCatching { phaseRecorder.workerOwnership(workflowId) }.getOrNull()
-      ?: return false
+    val tracker = GoalRunnerStatusDurableReadTracker(diagnostics)
+    val ownership = runCatching { phaseRecorder.workerOwnership(workflowId) }.getOrElse { error ->
+      tracker.recordDegradedRead(
+        seam = "goal-repair.child_worker_ownership",
+        expected = "ownership_row",
+        used = "degraded",
+        error = error,
+      )
+      return false
+    } ?: return false
     return workerLeaseLive(ownership)
   }
 
   private fun workerLeaseLive(ownership: FeatureTaskRuntimeWorkerOwnership): Boolean {
-    if (Instant.parse(ownership.expiresAt).isAfter(clock.instant())) return true
+    if (ownership.expiresAtInstant.isAfter(clock.instant())) return true
     return workerSupervisor.inspect(ownership) == FeatureTaskRuntimeProcessInspection.ExactLive
   }
 }

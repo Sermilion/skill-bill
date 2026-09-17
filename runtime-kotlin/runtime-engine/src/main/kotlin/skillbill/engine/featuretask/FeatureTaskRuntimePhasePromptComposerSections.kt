@@ -1,7 +1,6 @@
 package skillbill.engine.featuretask
 
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeImplementationContinuation
-import skillbill.engine.featuretask.model.FeatureTaskRuntimePhasePromptComposeInputs
 import skillbill.engine.featuretask.model.PhasePromptHeaderInputs
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 

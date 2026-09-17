@@ -1,14 +1,14 @@
 package skillbill.engine.work
 
 import me.tatarka.inject.annotations.Inject
-import skillbill.application.idestatus.model.IdeStatusCandidate
-import skillbill.application.idestatus.model.IdeStatusRepositoryResolution
-import skillbill.application.idestatus.model.IdeStatusRequest
-import skillbill.application.idestatus.model.IdeStatusResult
-import skillbill.application.idestatus.model.IdeStatusSnapshot
-import skillbill.application.idestatus.model.IdeStatusWorkflowFamily
 import skillbill.engine.featuretask.FeatureTaskRuntimeBranchSetup
 import skillbill.engine.goalrunner.goalRepositoryIdentity
+import skillbill.engine.work.model.IdeStatusCandidate
+import skillbill.engine.work.model.IdeStatusRepositoryResolution
+import skillbill.engine.work.model.IdeStatusRequest
+import skillbill.engine.work.model.IdeStatusResult
+import skillbill.engine.work.model.IdeStatusSnapshot
+import skillbill.engine.work.model.IdeStatusWorkflowFamily
 import skillbill.error.InvalidWorkListRowError
 import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.ports.db.DatabaseSessionFactory

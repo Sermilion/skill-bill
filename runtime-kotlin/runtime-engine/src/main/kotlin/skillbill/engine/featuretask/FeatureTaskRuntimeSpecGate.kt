@@ -2,7 +2,7 @@ package skillbill.engine.featuretask
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.decomposition.resolvedParentSpecPath
-import skillbill.application.specsource.SpecSourceResolver
+import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
 import skillbill.ports.diagnostics.RuntimeDiagnostics
@@ -41,7 +41,8 @@ class FeatureTaskRuntimeSpecGate(
     runCatching {
       specStatusWriter.writeFinalizingAgent(Path.of(request.runInvariants.specReference), agentId)
     }.onFailure { error ->
-      diagnostics.warning(
+      RuntimeDiagnosticsBestEffortWarning.record(
+        diagnostics,
         "Feature-task-runtime single-spec Agent line reconciliation for workflow " +
           "'${request.workflowId}' failed; the successful run is unaffected.",
         error,
@@ -64,7 +65,8 @@ class FeatureTaskRuntimeSpecGate(
       ?: return
     runCatching { specScratchStore.deleteDirectoryIfExists(specDir) }
       .onFailure { error ->
-        diagnostics.warning(
+        RuntimeDiagnosticsBestEffortWarning.record(
+          diagnostics,
           "Feature-task-runtime linear-mode spec scratch deletion at '$specDir' failed; " +
             "the successful run is unaffected and the scratch can be cleaned up manually.",
           error,

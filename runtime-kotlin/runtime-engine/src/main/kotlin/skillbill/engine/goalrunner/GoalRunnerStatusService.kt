@@ -58,6 +58,7 @@ class GoalRunnerStatusService(
     repositoryRoot = projectionAssembler.repositoryRoot,
     repositoryEnclosingRootPort = repositoryEnclosingRootPort,
     clock = clock,
+    diagnostics = projectionAssembler.diagnostics,
   )
 
   private val acceptanceCoordinator = GoalRunnerAcceptanceCoordinator(

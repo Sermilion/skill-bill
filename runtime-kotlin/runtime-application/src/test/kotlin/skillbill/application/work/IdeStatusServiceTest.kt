@@ -1,12 +1,12 @@
 package skillbill.application.work
 
-import skillbill.application.idestatus.model.IdeStatusCurrentPhaseExecutionKind
-import skillbill.application.idestatus.model.IdeStatusFreshness
-import skillbill.application.idestatus.model.IdeStatusLifecycleState
-import skillbill.application.idestatus.model.IdeStatusProblemCode
-import skillbill.application.idestatus.model.IdeStatusRequest
-import skillbill.application.idestatus.model.IdeStatusWorkflowFamily
 import skillbill.contracts.JsonCodec
+import skillbill.engine.work.model.IdeStatusCurrentPhaseExecutionKind
+import skillbill.engine.work.model.IdeStatusFreshness
+import skillbill.engine.work.model.IdeStatusLifecycleState
+import skillbill.engine.work.model.IdeStatusProblemCode
+import skillbill.engine.work.model.IdeStatusRequest
+import skillbill.engine.work.model.IdeStatusWorkflowFamily
 import skillbill.goalrunner.model.GoalRunnerControlState
 import skillbill.ports.goalrunner.EmptyGoalRunnerControlRepository
 import skillbill.ports.goalrunner.GoalRunnerControlRepository

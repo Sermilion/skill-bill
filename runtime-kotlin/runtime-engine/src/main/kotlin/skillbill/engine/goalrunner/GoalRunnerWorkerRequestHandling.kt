@@ -14,7 +14,7 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.workflow.decomposition.model.DecompositionManifest
 
 @Inject
-public class GoalRunnerWorkerRequestHandler(
+class GoalRunnerWorkerRequestHandler(
   private val manifestStore: GoalRunnerManifestStore,
   private val outcomeStore: GoalRunnerWorkflowOutcomeStore,
 ) {
@@ -103,7 +103,7 @@ internal data class GoalRunnerWorkerRequestHandlingResult(
   val operatorConfirmationStop: GoalRunnerReconciledOutcome.Stop? = null,
 )
 
-fun DecompositionManifest.workflowIdFor(subtaskId: Int): String? =
+internal fun DecompositionManifest.workflowIdFor(subtaskId: Int): String? =
   subtasks.firstOrNull { subtask -> subtask.id == subtaskId }?.workflowId?.takeIf(String::isNotBlank)
 
 private data class WorkerLaunchOutput(

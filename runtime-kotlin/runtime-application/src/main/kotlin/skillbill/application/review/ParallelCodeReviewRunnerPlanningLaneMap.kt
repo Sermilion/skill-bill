@@ -3,9 +3,9 @@ package skillbill.application.review
 import skillbill.application.review.model.ParallelCodeReviewRequest
 import skillbill.application.review.model.StackDetectionException
 import skillbill.application.review.model.UsageValidationException
-import skillbill.application.reviewevidence.ReviewDiffEvidence
 import skillbill.application.reviewevidence.model.DiffResolutionException
 import skillbill.application.reviewevidence.model.ParallelReviewScope
+import skillbill.application.reviewevidence.model.ReviewDiffEvidence
 import skillbill.install.model.InstallAgent
 import skillbill.review.plan.ReviewStackRouting
 import skillbill.review.plan.model.ReviewRoutingChangedFile

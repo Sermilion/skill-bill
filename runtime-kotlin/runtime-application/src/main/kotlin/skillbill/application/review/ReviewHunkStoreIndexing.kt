@@ -1,8 +1,8 @@
 package skillbill.application.review
-import skillbill.application.reviewevidence.ReviewDiffEvidence
 import skillbill.application.reviewevidence.SharedReviewEvidenceCodec
 import skillbill.application.reviewevidence.SharedReviewEvidenceCommits
 import skillbill.application.reviewevidence.SharedReviewEvidenceRecord
+import skillbill.application.reviewevidence.model.ReviewDiffEvidence
 import skillbill.error.ReviewHunkEvidenceIntegrityError
 import skillbill.error.ReviewHunkEvidenceLocatorMissingError
 import skillbill.error.ReviewHunkEvidenceLocatorUnreadableError

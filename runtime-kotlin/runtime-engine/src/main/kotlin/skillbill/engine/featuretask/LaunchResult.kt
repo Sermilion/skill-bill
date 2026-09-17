@@ -58,16 +58,6 @@ internal sealed interface LaunchResult {
         fileManifest,
       )
 
-    fun captured(args: LaunchCapturedArgs): LaunchResult = captured(
-      CapturedPhaseOutput(
-        text = args.stdout,
-        bytes = args.stdoutBytes,
-        truncated = args.stdoutTruncated,
-        byteSize = args.stdoutByteSize,
-        sha256 = args.stdoutSha256,
-      ),
-      args.fileManifest,
-    )
     fun infraFailure(
       reason: String,
       fileManifest: FeatureTaskRuntimePhaseFileManifest? = null,

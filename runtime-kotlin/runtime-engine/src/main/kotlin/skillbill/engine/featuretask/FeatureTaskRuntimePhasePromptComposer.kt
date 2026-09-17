@@ -2,7 +2,6 @@ package skillbill.engine.featuretask
 
 import skillbill.agentaddon.model.HydratedAgentAddonSelection
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseLaunchBriefing
-import skillbill.engine.featuretask.model.FeatureTaskRuntimePhasePromptComposeInputs
 
 object FeatureTaskRuntimePhasePromptComposer {
   fun compose(

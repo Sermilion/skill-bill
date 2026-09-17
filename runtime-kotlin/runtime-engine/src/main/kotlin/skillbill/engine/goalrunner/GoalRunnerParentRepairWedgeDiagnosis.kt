@@ -4,8 +4,8 @@ import skillbill.engine.goalrunner.model.GoalRunnerWedgeClass
 import skillbill.engine.goalrunner.model.GoalRunnerWedgeFinding
 import skillbill.goalrunner.model.GOAL_PAUSE_REASON_RUNNER_INTERRUPTED
 import skillbill.goalrunner.model.GoalRunnerControlState
+import skillbill.goalrunner.model.GoalRunnerExecutionLease
 import java.time.Clock
-import java.time.Instant
 
 const val PASSED_PARENT_EXECUTION_LEASE: String = "parent_execution_lease_absent_or_unexpired"
 const val PASSED_PARENT_PAUSE_STATE: String = "parent_pause_not_runner_interrupted"
@@ -34,7 +34,7 @@ internal class GoalRunnerParentRepairWedgeDiagnosis(
     passed: MutableList<String>,
   ) {
     val lease = controlState.executionLease
-    if (lease == null || !leaseExpired(lease.expiresAt)) {
+    if (lease == null || !leaseExpired(lease)) {
       passed += PASSED_PARENT_EXECUTION_LEASE
       return
     }
@@ -63,5 +63,5 @@ internal class GoalRunnerParentRepairWedgeDiagnosis(
     )
   }
 
-  private fun leaseExpired(expiresAt: String): Boolean = !Instant.parse(expiresAt).isAfter(clock.instant())
+  private fun leaseExpired(lease: GoalRunnerExecutionLease): Boolean = !lease.expiresAtInstant.isAfter(clock.instant())
 }

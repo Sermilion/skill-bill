@@ -12,12 +12,35 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeTransitionDeclarat
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationEvidence
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
 
-internal data class ValidationSettlementState(
-  val completed: MutableSet<String>,
+internal class ValidationSettlementState(
+  completed: Set<String>,
   val initialRecords: Map<String, FeatureTaskRuntimePhaseRecord>,
   val transitions: FeatureTaskRuntimeTransitionDeclaration,
-  val gateInvalidatedPhases: MutableSet<String>,
-)
+  gateInvalidatedPhases: Set<String>,
+) {
+  private val completedState = completed.toMutableSet()
+  private val gateInvalidatedState = gateInvalidatedPhases.toMutableSet()
+
+  val completed: Set<String>
+    get() = completedState.toSet()
+
+  val gateInvalidatedPhases: Set<String>
+    get() = gateInvalidatedState.toSet()
+
+  internal fun invalidateValidationPhase() {
+    completedState.remove(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE)
+    gateInvalidatedState += FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE
+  }
+
+  internal fun invalidateUnsatisfiedGateSuccessors(durableVerdictFor: (String) -> FeatureTaskRuntimeVerdict) {
+    FeatureTaskRuntimeRunStateReconstruction.invalidateUnsatisfiedGateSuccessors(
+      transitions,
+      completedState,
+      gateInvalidatedState,
+      durableVerdictFor,
+    )
+  }
+}
 
 internal data class ValidationSettlementValidation(
   val validatedRecordToOutput: (FeatureTaskRuntimePhaseRecord) -> FeatureTaskRuntimePhaseOutput?,
@@ -43,12 +66,10 @@ internal fun requireValidationEvidenceForValidateSettlement(
     )
   evidence.requireSuccessfulCommand(
     FeatureTaskRuntimeRunLoopValidationGate.requiredValidationCommand(
-      FeatureTaskRuntimeRunLoopValidationGate.RequiredValidationCommandArgs(
-        phaseGates = phaseGates,
-        run = run,
-        evidence = evidence,
-        changedPaths = durableValidationChangedPaths(recorder, run.request.workflowId),
-      ),
+      phaseGates = phaseGates,
+      run = run,
+      evidence = evidence,
+      changedPaths = durableValidationChangedPaths(recorder, run.request.workflowId),
     ),
     run.phaseId,
   )
@@ -64,7 +85,7 @@ internal fun validationEvidenceFromEnvelope(
   )
   return JsonCodec.anyToStringAnyMap(
     result?.get(ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE),
-  )?.let { raw -> decodeValidationEvidenceFromArtifact(raw, sourceLabel)!! }
+  )?.let { raw -> decodeValidationEvidenceFromArtifact(raw, sourceLabel) }
 }
 
 internal fun invalidateIncompleteValidationSettlement(
@@ -89,7 +110,7 @@ internal fun invalidateIncompleteValidationSettlement(
       decodeValidationEvidenceFromArtifact(
         raw,
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE,
-      )!!
+      )
     }
     val decodedEvidence = evidence ?: return@runCatching false
     val requiredCommand = validation.validationEvidenceCommandResolver(decodedEvidence)
@@ -101,13 +122,7 @@ internal fun invalidateIncompleteValidationSettlement(
     true
   }.getOrDefault(false)
   if (!valid) {
-    state.completed.remove(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE)
-    state.gateInvalidatedPhases += FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE
-    FeatureTaskRuntimeRunStateReconstruction.invalidateUnsatisfiedGateSuccessors(
-      state.transitions,
-      state.completed,
-      state.gateInvalidatedPhases,
-      validation.durableVerdictFor,
-    )
+    state.invalidateValidationPhase()
+    state.invalidateUnsatisfiedGateSuccessors(validation.durableVerdictFor)
   }
 }

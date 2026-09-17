@@ -1,14 +1,15 @@
 package skillbill.engine.goalrunner
-import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
+import skillbill.engine.featuretask.FeatureTaskRuntimeWorkflowPersistence
 import skillbill.engine.featuretask.decodePhaseRecords
 import skillbill.engine.featuretask.diagnoseUnsettledCompletedUpstreamPhaseId
 import skillbill.engine.featuretask.featureSizeFromArtifacts
 import skillbill.engine.goalrunner.model.GoalRunnerChildWedgeDiagnosis
 import skillbill.engine.goalrunner.model.GoalRunnerWedgeClass
 import skillbill.engine.goalrunner.model.GoalRunnerWedgeFinding
+import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
@@ -21,7 +22,6 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationAr
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeQualityGateSelection
 import java.nio.file.Path
 import java.time.Clock
-import java.time.Instant
 
 const val PASSED_VALIDATION_DEPTH: String = "validation_depth_present"
 const val PASSED_QUALITY_GATE_SELECTION: String = "quality_gate_selection_present"
@@ -45,7 +45,7 @@ class GoalRunnerChildRepairWedgeDiagnosis(
   ): GoalRunnerChildWedgeDiagnosis {
     val record = WorkflowFamily.TASK_RUNTIME.get(workflowStates, workflowId)
       ?: return healthyDiagnosis(subtaskId, workflowId)
-    val artifacts = decodeWorkflowArtifacts(record.artifactsJson)
+    val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
     val wedges = mutableListOf<GoalRunnerWedgeFinding>()
     val passed = mutableListOf<String>()
 
@@ -98,7 +98,7 @@ class GoalRunnerChildRepairWedgeDiagnosis(
     passed: MutableList<String>,
   ) {
     val ownership = workflowStates.getFeatureTaskRuntimeWorkerOwnership(workflowId)
-    if (ownership == null || !leaseExpired(ownership.expiresAt)) {
+    if (ownership == null || !leaseExpired(ownership)) {
       passed += PASSED_WORKER_LEASE
       return
     }
@@ -109,7 +109,8 @@ class GoalRunnerChildRepairWedgeDiagnosis(
     )
   }
 
-  private fun leaseExpired(expiresAt: String): Boolean = !Instant.parse(expiresAt).isAfter(clock.instant())
+  private fun leaseExpired(ownership: FeatureTaskRuntimeWorkerOwnership): Boolean =
+    !ownership.expiresAtInstant.isAfter(clock.instant())
 
   private fun diagnosePhaseOutputContract(
     artifacts: Map<String, Any?>,

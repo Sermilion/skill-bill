@@ -1,13 +1,13 @@
 package skillbill.application.work
 
-import skillbill.application.idestatus.model.IdeStatusCurrentSubtask
-import skillbill.application.idestatus.model.IdeStatusFreshness
-import skillbill.application.idestatus.model.IdeStatusLifecycleState
-import skillbill.application.idestatus.model.IdeStatusSnapshot
-import skillbill.application.idestatus.model.IdeStatusStep
-import skillbill.application.idestatus.model.IdeStatusWorkflowFamily
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.workflow.IDE_STATUS_CONTRACT_VERSION
+import skillbill.engine.work.model.IdeStatusCurrentSubtask
+import skillbill.engine.work.model.IdeStatusFreshness
+import skillbill.engine.work.model.IdeStatusLifecycleState
+import skillbill.engine.work.model.IdeStatusSnapshot
+import skillbill.engine.work.model.IdeStatusStep
+import skillbill.engine.work.model.IdeStatusWorkflowFamily
 import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals

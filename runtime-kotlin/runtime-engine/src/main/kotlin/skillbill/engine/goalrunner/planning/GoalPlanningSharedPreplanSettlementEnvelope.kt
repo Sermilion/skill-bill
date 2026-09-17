@@ -2,6 +2,7 @@ package skillbill.engine.goalrunner.planning
 
 import skillbill.application.decomposition.DECOMPOSITION_MANIFEST_FILENAME
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
+import skillbill.contracts.goalplanning.GoalPlanningSharedContextPacketPayloadKeys
 import skillbill.engine.goalrunner.planning.model.GoalPlanningSweepOutcome
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 
@@ -18,19 +19,24 @@ internal fun DefaultGoalPlanningSweep.freshPlanningPacket(
     ),
   )
   val packet = linkedMapOf<String, Any?>(
-    "packet_version" to GoalPlanningSharedContextPacket.VERSION,
-    "repository_identity" to shared.repositoryIdentity,
-    "normalized_issue_key" to shared.normalizedIssueKey,
+    GoalPlanningSharedContextPacketPayloadKeys.PACKET_VERSION to GoalPlanningSharedContextPacket.VERSION,
+    GoalPlanningSharedContextPacketPayloadKeys.REPOSITORY_IDENTITY to shared.repositoryIdentity,
+    GoalPlanningSharedContextPacketPayloadKeys.NORMALIZED_ISSUE_KEY to shared.normalizedIssueKey,
     DecompositionPlanningPayloadKeys.PARENT_SPEC_PATH to state.manifest.parentSpecPath,
-    "parent_spec" to shared.parentSpec.take(GoalPlanningSharedContextPacket.MAX_GOVERNED_CONTEXT_CHARS),
-    "decomposition_manifest" to decomposition.take(GoalPlanningSharedContextPacket.MAX_GOVERNED_CONTEXT_CHARS),
-    "boundary_memory" to GoalPlanningSharedContextPacket.catalog(discovered),
-    "validation_guidance" to discovered.validationGuidance.take(
+    GoalPlanningSharedContextPacketPayloadKeys.PARENT_SPEC to
+      shared.parentSpec.take(GoalPlanningSharedContextPacket.MAX_GOVERNED_CONTEXT_CHARS),
+    GoalPlanningSharedContextPacketPayloadKeys.DECOMPOSITION_MANIFEST to
+      decomposition.take(GoalPlanningSharedContextPacket.MAX_GOVERNED_CONTEXT_CHARS),
+    GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY to GoalPlanningSharedContextPacket.catalog(discovered),
+    GoalPlanningSharedContextPacketPayloadKeys.VALIDATION_GUIDANCE to discovered.validationGuidance.take(
       GoalPlanningSharedContextPacket.MAX_GOVERNED_CONTEXT_CHARS,
     ),
-    "ordered_subtasks" to GoalPlanningSharedContextPacket.orderedSubtasks(state.manifest.subtasks),
+    GoalPlanningSharedContextPacketPayloadKeys.ORDERED_SUBTASKS to
+      GoalPlanningSharedContextPacket.orderedSubtasks(state.manifest.subtasks),
   )
-  return packet + ("integrity_sha256" to GoalPlanningSharedContextPacket.digest(packet))
+  return packet + (
+    GoalPlanningSharedContextPacketPayloadKeys.INTEGRITY_SHA256 to GoalPlanningSharedContextPacket.digest(packet)
+    )
 }
 
 internal fun incompatibleProvenance(

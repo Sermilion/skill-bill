@@ -1,9 +1,0 @@
-package skillbill.application.reviewevidence.model
-
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeSharedEvidenceMeasurement
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeSharedReviewEvidenceReference
-
-data class FeatureTaskRuntimeSharedReviewEvidenceResolved(
-  val reference: FeatureTaskRuntimeSharedReviewEvidenceReference,
-  val measurement: FeatureTaskRuntimeSharedEvidenceMeasurement,
-)

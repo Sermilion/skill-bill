@@ -4,6 +4,7 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.application.telemetry.LifecycleTelemetryService
 import skillbill.application.telemetry.model.FeatureTaskRuntimeCorrelation
 import skillbill.application.telemetry.model.FeatureTaskRuntimeStartedRequest
+import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeFinishedTelemetryContext
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
@@ -30,7 +31,7 @@ class FeatureTaskRuntimeLifecycleTelemetry(
     ).toPayload()["session_id"]?.toString().orEmpty()
   }
 
-  fun finished(report: FeatureTaskRuntimeRunReport, context: FeatureTaskRuntimeFinishedTelemetryContext) {
+  internal fun finished(report: FeatureTaskRuntimeRunReport, context: FeatureTaskRuntimeFinishedTelemetryContext) {
     if (context.telemetrySessionId.isBlank()) {
       return
     }
@@ -44,14 +45,15 @@ class FeatureTaskRuntimeLifecycleTelemetry(
     }
   }
 
-  fun finishedError(context: FeatureTaskRuntimeFinishedTelemetryContext, error: Throwable? = null) {
+  internal fun finishedError(context: FeatureTaskRuntimeFinishedTelemetryContext, error: Throwable? = null) {
     if (context.telemetrySessionId.isBlank()) {
       return
     }
     isolate("finishedError", Unit) {
       val outcomes = runCatching(context.phaseOutcomes)
         .onFailure { error ->
-          diagnostics.warning(
+          RuntimeDiagnosticsBestEffortWarning.record(
+            diagnostics,
             "Feature-task-runtime lifecycle telemetry error outcome loading failed; " +
               "emitting terminal error without outcomes.",
             error,
@@ -64,7 +66,8 @@ class FeatureTaskRuntimeLifecycleTelemetry(
 
   private fun <T> isolate(stage: String, fallback: T, block: () -> T): T = runCatching(block)
     .onFailure { error ->
-      diagnostics.warning(
+      RuntimeDiagnosticsBestEffortWarning.record(
+        diagnostics,
         "Feature-task-runtime lifecycle telemetry $stage emission failed; the run is unaffected.",
         error,
       )

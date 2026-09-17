@@ -1,3 +1,21 @@
+## [2026-09-17] SKILL-352 subtask 3 — Record fallbacks, restore ownership, and shrink surface
+Areas: runtime-kotlin/{runtime-engine,runtime-domain,runtime-ports,runtime-application,runtime-infra-sqlite,runtime-core}
+- Goal-runner durable-read fallbacks now emit bounded diagnostics and project degraded status; lease timestamps and closed runtime vocabularies use typed domain values.
+- Consolidated best-effort diagnostic emission, removed the engine JSON scanner, and moved engine-only declarations behind their producing boundary while narrowing public surface.
+- Pattern: keep fallback recording, projection degradation, and ownership decisions at typed runtime seams. reusable
+- Limitation: the full engine visibility census and test-class/prose-assertion split remain partial follow-up work.
+Feature flag: N/A
+Acceptance criteria: 6/8 implemented
+
+## [2026-09-17] SKILL-352 subtask 2 — One persistence seam and typed durable failures
+Areas: runtime-kotlin/{runtime-application,runtime-contracts,runtime-core,runtime-domain,runtime-engine,runtime-infra-fs,runtime-infra-sqlite}
+- Consolidated feature-task workflow artifact reads and writes behind the runtime-engine persistence owner and removed recorder role-interface bundles.
+- Routed goal-planning and review-policy artifact decoding through declared wire-key owners, typed durable errors, and non-null domain decoder overloads.
+- Pattern: keep artifact encoding, decoding, and persistence patches at one typed runtime boundary. reusable
+- Limitation: several shared-context integrity paths still use `require`/`error`; unsupported packet versions use the typed failure path.
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented
+
 ## [2026-09-14] WE-4789 — Validation gate execution evidence
 Areas: orchestration/contracts, runtime-kotlin/{runtime-contracts,runtime-domain,runtime-engine,runtime-infra-fs,runtime-infra-sqlite,runtime-cli,runtime-ports}
 - Validation gate settlement now projects `executed_work_units`, `executed_checks`, and top-level `checks` from `ValidationGateRunResult` instead of discarding gate task identities at the coordinator seam.

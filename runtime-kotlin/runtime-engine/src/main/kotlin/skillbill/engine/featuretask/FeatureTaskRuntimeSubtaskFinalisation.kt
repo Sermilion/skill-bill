@@ -4,7 +4,6 @@ import skillbill.engine.featuretask.model.FeatureTaskRuntimeCheckpointRefPruneRe
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeCommitPushHandoffResult
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeSubtaskFinalisationBlocked
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeSubtaskFinalisationResult
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeSubtaskFinaliseRequest
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeSubtaskFinalised
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.captureIndexState
@@ -70,22 +69,22 @@ fun FeatureTaskRuntimeSubtaskFinalisation.commitAndPush(
   restoreState: String,
 ): FeatureTaskRuntimeSubtaskFinalisationResult {
   val branch = request.metadata.branch
-  val decision = promoteSupersededCheckpointCreate(
-    PromoteSupersededCheckpointCreateArgs(
-      gitOperations = gitOperations,
-      repoRoot = repoRoot,
-      branch = branch,
-      decision = decide(
+  val decision = decide(
+    branch = branch,
+    identity = request.identity,
+    durableCommitSha = request.durableCommitSha,
+    sequenceNumber = request.sequenceNumber,
+  ).let { decision ->
+    SupersededCheckpointPromoter(gitOperations).run {
+      decision.promote(
+        repoRoot = repoRoot,
         branch = branch,
-        identity = request.identity,
         durableCommitSha = request.durableCommitSha,
         sequenceNumber = request.sequenceNumber,
-      ),
-      durableCommitSha = request.durableCommitSha,
-      sequenceNumber = request.sequenceNumber,
-      stageable = stageable,
-    ),
-  )
+        stageable = stageable,
+      )
+    }
+  }
   val rewrites = decision is FeatureTaskRuntimeSubtaskCommitAmend
   val message = FeatureTaskRuntimeCheckpointMessage.finalise(
     request.handoff.outcomeMessage,

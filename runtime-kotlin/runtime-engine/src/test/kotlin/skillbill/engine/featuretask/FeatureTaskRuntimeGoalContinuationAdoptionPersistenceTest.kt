@@ -242,7 +242,10 @@ class FeatureTaskRuntimeGoalContinuationAdoptionPersistenceTest {
         testHarnessClock,
       )
     val runInvariantsStore =
-      FeatureTaskRuntimeRunInvariantsStore(database, testWorkflowSnapshotValidator)
+      FeatureTaskRuntimeRunInvariantsStore(
+        database,
+        FeatureTaskRuntimeWorkflowPersistence(database, testWorkflowSnapshotValidator),
+      )
     return AdoptionHarness(
       repository = repository,
       preparation = FeatureTaskRuntimeRunPreparation(recorder, continuationRecorder, runInvariantsStore),

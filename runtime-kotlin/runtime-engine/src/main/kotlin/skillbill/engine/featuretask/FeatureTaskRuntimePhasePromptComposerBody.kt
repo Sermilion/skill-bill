@@ -1,23 +1,31 @@
 package skillbill.engine.featuretask
 
-import skillbill.engine.featuretask.model.FeatureTaskRuntimePhasePromptComposeInputs
+import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeCorrectiveRepairContext
 
 fun composePhasePrompt(inputs: FeatureTaskRuntimePhasePromptComposeInputs): String =
   phasePromptSections(inputs).filter(String::isNotBlank).joinToString(separator = "\n\n")
 
 fun phasePromptSections(inputs: FeatureTaskRuntimePhasePromptComposeInputs): List<String> {
+  val effectiveInputs = inputs.auditRetryScoped()
   requireComposableInputs(
-    issueKey = inputs.issueKey,
-    priorSchemaFailure = inputs.priorSchemaFailure,
-    priorTerminalFailure = inputs.priorTerminalFailure,
-    priorFindingCoverage = inputs.priorFindingCoverage,
-    correctiveRepairContext = inputs.correctiveRepairContext,
+    issueKey = effectiveInputs.issueKey,
+    priorSchemaFailure = effectiveInputs.priorSchemaFailure,
+    priorTerminalFailure = effectiveInputs.priorTerminalFailure,
+    priorFindingCoverage = effectiveInputs.priorFindingCoverage,
+    correctiveRepairContext = effectiveInputs.correctiveRepairContext,
   )
-  val effectiveContinuation = inputs.implementationContinuation.takeUnless { inputs.correctiveRepairContext != null }
-  return phasePromptLeadingSections(inputs) +
-    phasePromptMiddleSections(inputs) +
-    phasePromptTrailingSections(inputs, effectiveContinuation)
+  val effectiveContinuation =
+    effectiveInputs.implementationContinuation.takeUnless { effectiveInputs.correctiveRepairContext != null }
+  return phasePromptLeadingSections(effectiveInputs) +
+    phasePromptMiddleSections(effectiveInputs) +
+    phasePromptTrailingSections(effectiveInputs, effectiveContinuation)
+}
+
+private fun FeatureTaskRuntimePhasePromptComposeInputs.auditRetryScoped(): FeatureTaskRuntimePhasePromptComposeInputs {
+  val focusHint = auditRetryFocusHint?.takeIf(String::isNotBlank)
+  if (briefing.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT || focusHint == null) return this
+  return copy(briefing = briefing.forAuditRetry(focusHint))
 }
 
 private fun requireComposableInputs(

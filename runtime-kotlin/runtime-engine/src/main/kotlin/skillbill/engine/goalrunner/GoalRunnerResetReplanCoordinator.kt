@@ -1,6 +1,7 @@
 package skillbill.engine.goalrunner
 
 import me.tatarka.inject.annotations.Inject
+import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
 import skillbill.engine.featuretask.pruneResetSubtaskCheckpointRefs
 import skillbill.engine.goalrunner.model.GoalRunnerChildRecoveryDiagnostic
 import skillbill.engine.goalrunner.model.GoalRunnerReplanRequest
@@ -138,7 +139,7 @@ class GoalRunnerResetReplanCoordinator(
         repoRoot = requireNotNull(repoRoot),
         issueKey = saved.manifest.issueKey,
         subtaskIds = before.subtasks.map { it.id },
-        record = { message -> runCatching { diagnostics.warning(message) } },
+        record = { message -> RuntimeDiagnosticsBestEffortWarning.record(diagnostics, message) },
       )
     }
     return saved
@@ -222,6 +223,7 @@ class GoalRunnerResetReplanCoordinator(
     val liveness = projectionAssembler.resolveExecutionLiveness(
       parentWorkflowId = loaded.parentWorkflowId,
       currentSubtask = currentSubtask,
+      durableRead = GoalRunnerStatusDurableReadTracker(diagnostics),
     )
     require(liveness == ExecutionLiveness.IDLE) {
       when (liveness) {
@@ -311,7 +313,7 @@ class GoalRunnerResetReplanCoordinator(
       repoRoot = request.repoRoot ?: repositoryRoot.path,
       issueKey = saved.manifest.issueKey,
       subtaskIds = listOf(subtaskId),
-      record = { message -> runCatching { diagnostics.warning(message) } },
+      record = { message -> RuntimeDiagnosticsBestEffortWarning.record(diagnostics, message) },
     )
     return GoalRunnerResetResult(
       issueKey = saved.manifest.issueKey,

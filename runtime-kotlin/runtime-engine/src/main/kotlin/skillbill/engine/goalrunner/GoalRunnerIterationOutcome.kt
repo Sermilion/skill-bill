@@ -2,6 +2,7 @@ package skillbill.engine.goalrunner
 
 import skillbill.engine.featuretask.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.goalrunner.findings.UnaddressedFindingsLedgerService
+import skillbill.engine.goalrunner.model.GoalRunnerObservabilityLivenessClass
 import skillbill.engine.goalrunner.model.GoalRunnerRunEvent
 import skillbill.goalrunner.model.GoalAttemptLedgerAction
 import skillbill.goalrunner.model.GoalRunnerControlState
@@ -104,9 +105,9 @@ internal class GoalRunnerIterationOutcome(
         signal = GoalRunnerObservabilitySignal(
           workflowPhase = stoppedOutcome.lastResumableStep,
           livenessClass = if (stoppedOutcome.reason == GoalRunnerStopReason.FAILED) {
-            "failure"
+            GoalRunnerObservabilityLivenessClass.FAILURE
           } else {
-            "block"
+            GoalRunnerObservabilityLivenessClass.BLOCK
           },
           activitySummary = stoppedOutcome.blockedReason,
         ),
@@ -209,34 +210,24 @@ internal class GoalRunnerIterationOutcome(
     val childLoopIterations = outcomeStore.childWorkflowLoopIterations(workflowId)
     val reAttemptCause = reAttemptCauseFor(stoppedOutcome.reason, childLoopIterations)
     val causingLoopEntry = causingLoopEntryFor(childLoopIterations)
+    val nextSafeAction = launchDiagnostics?.nextSafeAction ?: recoverySafeAction(
+      issueKey = state.manifest.issueKey,
+      subtaskId = subtaskId,
+      progress = progress,
+      fallback = stoppedOutcome.reason.nextSafeAction(),
+      subtaskStatus = state.manifest.subtasks.firstOrNull { it.id == subtaskId }?.status?.decompositionStatus(),
+    )
+    val findingsInScope = resolveUnaddressedFindingsLedger(
+      unaddressedFindingsLedgerService,
+      state.manifest.issueKey,
+    )?.findings?.count { it.subtaskId == subtaskId }
     ledger.recordLedgerEntry(
-      GoalRunnerLedgerContext(
-        workflowId = workflowId,
-        action = stoppedOutcome.reason.toLedgerAction(),
-        issueKey = state.manifest.issueKey,
-        subtaskId = subtaskId,
-        progress = progress,
-        blockedReason = stoppedOutcome.blockedReason,
-        finalReconciledResult = stoppedOutcome.reason.name.lowercase(),
-        stopReason = stoppedOutcome.reason.name.lowercase(),
-        diagnosticClass = launchDiagnostics?.diagnosticClass
-          ?: confirmedAliveKillDiagnosticClass(reconciled.liveness)
-          ?: stoppedOutcome.reason.toDiagnosticClass(),
-        recoverableJsonPresent = launchDiagnostics?.recoverableJsonPresent ?: false,
-        nextSafeAction = launchDiagnostics?.nextSafeAction ?: recoverySafeAction(
-          issueKey = state.manifest.issueKey,
-          subtaskId = subtaskId,
-          progress = progress,
-          fallback = stoppedOutcome.reason.nextSafeAction(),
-          subtaskStatus = state.manifest.subtasks.firstOrNull { it.id == subtaskId }?.status?.decompositionStatus(),
-        ),
-        attemptDurationMillis = attemptDurationMillis,
-        reAttemptCause = reAttemptCause,
-        causingLoopEntry = causingLoopEntry,
-        findingsInScope = resolveUnaddressedFindingsLedger(
-          unaddressedFindingsLedgerService,
-          state.manifest.issueKey,
-        )?.findings?.count { it.subtaskId == subtaskId },
+      progress.stoppedLedgerContext(
+        args,
+        reAttemptCause,
+        causingLoopEntry,
+        nextSafeAction,
+        findingsInScope,
       ),
     )
     childLoopIterations.forEach { (loopId, edgeIteration) ->
@@ -253,6 +244,40 @@ internal class GoalRunnerIterationOutcome(
     }
     if (reAttemptCause != null) validationQualityState.storePendingReAttemptCause(subtaskId, reAttemptCause)
     causingLoopEntry?.let { validationQualityState.storePendingCausingLoopEntry(subtaskId, it) }
+  }
+
+  private fun GoalRunnerWorkflowProgress?.stoppedLedgerContext(
+    args: RecordStoppedLedgerEntriesArgs,
+    reAttemptCause: String?,
+    causingLoopEntry: String?,
+    nextSafeAction: String,
+    findingsInScope: Int?,
+  ): GoalRunnerLedgerContext {
+    val action = args.stoppedOutcome.reason.toLedgerAction()
+    val common = StoppedLedgerContextValues(
+      workflowId = args.workflowId,
+      issueKey = args.state.manifest.issueKey,
+      subtaskId = args.subtaskId,
+      progress = this,
+      blockedReason = args.stoppedOutcome.blockedReason,
+      finalReconciledResult = args.stoppedOutcome.reason.name.lowercase(),
+      stopReason = args.stoppedOutcome.reason.name.lowercase(),
+      diagnosticClass = args.launchDiagnostics?.diagnosticClass
+        ?: confirmedAliveKillDiagnosticClass(args.reconciled.liveness)
+        ?: args.stoppedOutcome.reason.toDiagnosticClass(),
+      recoverableJsonPresent = args.launchDiagnostics?.recoverableJsonPresent ?: false,
+      nextSafeAction = nextSafeAction,
+      attemptDurationMillis = args.attemptDurationMillis,
+      reAttemptCause = reAttemptCause,
+      causingLoopEntry = causingLoopEntry,
+      findingsInScope = findingsInScope,
+    )
+    return when (action) {
+      GoalAttemptLedgerAction.RETRY -> GoalRunnerLedgerContext.Retry(common)
+      GoalAttemptLedgerAction.TIMEOUT -> GoalRunnerLedgerContext.Timeout(common)
+      GoalAttemptLedgerAction.INTERRUPTION -> GoalRunnerLedgerContext.Interruption(common)
+      else -> GoalRunnerLedgerContext.FinalReconciledOutcome(common)
+    }
   }
 
   private fun validationRetryIteration(
@@ -319,14 +344,13 @@ internal class GoalRunnerIterationOutcome(
       subject = GoalRunnerObservabilitySubject(reconciled.workflowId, completed.manifest.issueKey, subtaskId),
       signal = GoalRunnerObservabilitySignal(
         workflowPhase = reconciled.lastResumableStep,
-        livenessClass = "completion",
+        livenessClass = GoalRunnerObservabilityLivenessClass.COMPLETION,
         activitySummary = "Subtask $subtaskId completed with commit ${reconciled.commitSha}.",
       ),
     )
     ledger.recordLedgerEntry(
-      GoalRunnerLedgerContext(
+      GoalRunnerLedgerContext.TerminalDoneCheck(
         workflowId = reconciled.workflowId,
-        action = GoalAttemptLedgerAction.TERMINAL_DONE_CHECK,
         issueKey = completed.manifest.issueKey,
         subtaskId = subtaskId,
         progress = progressReader.safeProgress(reconciled.workflowId),

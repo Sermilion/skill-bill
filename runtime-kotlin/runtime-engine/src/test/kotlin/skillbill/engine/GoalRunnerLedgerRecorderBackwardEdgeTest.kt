@@ -1,6 +1,7 @@
 package skillbill.engine
 import skillbill.application.testHarnessClock
 import skillbill.engine.goalrunner.GoalRunnerBackwardEdge
+import skillbill.engine.goalrunner.GoalRunnerLedgerContext
 import skillbill.engine.goalrunner.GoalRunnerLedgerRecorder
 import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
@@ -8,6 +9,7 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerLedgerSequenceWatermark
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 class GoalRunnerLedgerRecorderBackwardEdgeTest {
   private fun recorder(outcomes: RecordingOutcomeStore): GoalRunnerLedgerRecorder = GoalRunnerLedgerRecorder(
@@ -84,5 +86,43 @@ class GoalRunnerLedgerRecorderBackwardEdgeTest {
       entry.cumulativeLoopCount,
       "a seeded watermark of 3 plus a child edge iteration of 2 must compose to 5",
     )
+  }
+
+  @Test
+  fun `policy block ledger action cannot inherit launch-only fields`() {
+    val outcomes = RecordingOutcomeStore()
+    val recorder = recorder(outcomes)
+
+    recorder.recordLedgerEntry(
+      GoalRunnerLedgerContext.ChildActivation(
+        workflowId = "wfl-1",
+        issueKey = "SKILL-142",
+        subtaskId = 1,
+        progress = null,
+        launchOutcome = null,
+        diagnosticClass = "child_process_failed",
+        recoverableJsonPresent = true,
+        nextSafeAction = "resume",
+        causingLoopEntry = null,
+        reAttemptCause = null,
+      ),
+    )
+    recorder.recordLedgerEntry(
+      GoalRunnerLedgerContext.PolicyBlock(
+        workflowId = "wfl-1",
+        issueKey = "SKILL-142",
+        subtaskId = 1,
+        progress = null,
+        blockedReason = "policy denied",
+        stopReason = null,
+      ),
+    )
+
+    val blocked = outcomes.attemptLedgerRecords.last().entry
+    assertEquals("policy denied", blocked.blockedReason)
+    assertNull(blocked.launchOutcome)
+    assertNull(blocked.childSessionId)
+    assertNull(blocked.exitStatus)
+    assertNull(blocked.recoverableJsonPresent)
   }
 }

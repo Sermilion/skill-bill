@@ -1,23 +1,24 @@
 package skillbill.engine.work
 
 import me.tatarka.inject.annotations.Inject
-import skillbill.application.idestatus.model.IdeStatusCandidate
-import skillbill.application.idestatus.model.IdeStatusCurrentModel
-import skillbill.application.idestatus.model.IdeStatusCurrentPhaseExecution
-import skillbill.application.idestatus.model.IdeStatusLifecycleState
-import skillbill.application.idestatus.model.IdeStatusPauseReason
-import skillbill.application.idestatus.model.IdeStatusPauseReasonCode
-import skillbill.application.idestatus.model.IdeStatusProgress
-import skillbill.application.idestatus.model.IdeStatusSnapshot
-import skillbill.application.idestatus.model.IdeStatusStep
-import skillbill.application.idestatus.model.IdeStatusWorkflowFamily
 import skillbill.application.workflow.model.WorkflowFamily
+import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
 import skillbill.engine.featuretask.FeatureTaskRuntimeStatusService
 import skillbill.engine.featuretask.OPERATOR_DECISION_QUALITY_GATE_PHASE_IDS
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeOperatorDecisionPause
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeStatusRequest
 import skillbill.engine.goalrunner.GoalRunnerStatusService
 import skillbill.engine.goalrunner.model.GoalRunnerStatusRequest
+import skillbill.engine.work.model.IdeStatusCandidate
+import skillbill.engine.work.model.IdeStatusCurrentModel
+import skillbill.engine.work.model.IdeStatusCurrentPhaseExecution
+import skillbill.engine.work.model.IdeStatusLifecycleState
+import skillbill.engine.work.model.IdeStatusPauseReason
+import skillbill.engine.work.model.IdeStatusPauseReasonCode
+import skillbill.engine.work.model.IdeStatusProgress
+import skillbill.engine.work.model.IdeStatusSnapshot
+import skillbill.engine.work.model.IdeStatusStep
+import skillbill.engine.work.model.IdeStatusWorkflowFamily
 import skillbill.error.ShellContentContractException
 import skillbill.goalrunner.model.ExecutionLiveness
 import skillbill.goalrunner.model.GoalPlanningStatusState
@@ -202,10 +203,10 @@ class IdeStatusProjector(
         FeatureTaskRuntimeStatusRequest(workflowId = workflowId),
       )
     } catch (error: ShellContentContractException) {
-      diagnostics.warning(degraded, error)
+      RuntimeDiagnosticsBestEffortWarning.record(diagnostics, degraded, error)
       null
     } catch (error: IOException) {
-      diagnostics.warning(degraded, error)
+      RuntimeDiagnosticsBestEffortWarning.record(diagnostics, degraded, error)
       null
     } ?: return ChildOptionalContext.EMPTY
     return ChildOptionalContext(

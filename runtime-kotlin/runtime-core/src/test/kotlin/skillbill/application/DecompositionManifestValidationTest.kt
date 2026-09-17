@@ -1,6 +1,5 @@
 package skillbill.application
 
-import skillbill.application.decomposition.encodeDecompositionManifestYaml
 import skillbill.contracts.JsonCodec
 import skillbill.error.InvalidDecompositionManifestSchemaError
 import skillbill.infrastructure.fs.DecompositionManifestValidatorAdapter
@@ -340,3 +339,15 @@ class DecompositionManifestValidationTest {
     return mutableIntent
   }
 }
+
+private fun encodeDecompositionManifestYaml(
+  manifest: DecompositionManifest,
+  validator: DecompositionManifestValidator,
+  fileStore: DecompositionManifestStore,
+  sourceLabel: String = "<in-memory>",
+): String = skillbill.application.decomposition.encodeValidatedDecompositionManifestYaml(
+  manifest,
+  validator,
+  fileStore,
+  sourceLabel,
+).yamlText

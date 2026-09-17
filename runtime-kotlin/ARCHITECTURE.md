@@ -65,10 +65,10 @@ still need the launch, activity, diagnostics, clock, transition, and session
 ports together. Build/validation settlement, pack-command routing, and
 repository-checkpoint calculation use explicit arguments. Carried-forward goal
 review settlement uses `CarriedForwardGoalReviewArgs`;
-PhaseRunner and PlanningBranch enter through `context.copy(state, observability,
-phaseTokenAccumulator)` at the phase boundary. AttemptSettlement moves
+PhaseRunner and PlanningBranch enter through the phase-boundary state and
+observability values. AttemptSettlement moves
 `gateOutput` / `settleValidatedOutput` / envelope settlement off the context
-receiver; `GateOutputArgs` and `SettleValidatedOutputArgs` carry the
+receiver; `GateOutput` and `SettleValidatedOutput` carry the
 request/state/recorder/outputValidator/phaseGates/clock/diagnostics/
 goalContinuationRecorder/phaseSettlementService ports those paths use.
 `settlementContext` on those args remains only for the not-yet-peeled
@@ -101,8 +101,8 @@ inputs:
   output-validator, phase-gates, observability, and session only for the
   validation checkpoint lookup; gate-cycle and fix-loop orchestration retains
   context for the launch callback graph.
-- AttemptSettlement gate output takes `GateOutputArgs`; validated output
-  settlement takes `SettleValidatedOutputArgs`; implement-fix receipt
+- AttemptSettlement gate output takes `GateOutput`; validated output
+  settlement takes `SettleValidatedOutput`; implement-fix receipt
   settlement takes request/state/recorder/goal-recorder/diagnostics; the
   audit/checkpoint and accepted-output persistence tail retains
   `settlementContext`.
@@ -117,6 +117,37 @@ New helpers must not reintroduce run-loop or context-all-access parameters when
 a narrowed overload already exists; retained broad inputs require a concrete,
 current orchestration requirement documented here or in the owning area
 `agent/decisions.md`.
+
+The complete run-loop file census is pinned below. `current` is the source-tree
+count and `target` is the retained orchestration count enforced by
+`FeatureTaskRuntimeRunLoopContextExtensionCensusArchitectureTest`; a new
+extension requires an intentional update to both the implementation and this
+table.
+
+| Run-loop file | current | target |
+| --- | ---: | ---: |
+| `FeatureTaskRuntimeRunLoop.kt` | 0 | 0 |
+| `FeatureTaskRuntimeRunLoopAttemptSettlement.kt` | 3 | 3 |
+| `FeatureTaskRuntimeRunLoopAuditRetry.kt` | 0 | 0 |
+| `FeatureTaskRuntimeRunLoopBackwardEdge.kt` | 0 | 0 |
+| `FeatureTaskRuntimeRunLoopCheckpoint.kt` | 0 | 0 |
+| `FeatureTaskRuntimeRunLoopCheckpointRemediation.kt` | 0 | 0 |
+| `FeatureTaskRuntimeRunLoopDrive.kt` | 2 | 2 |
+| `FeatureTaskRuntimeRunLoopLaunch.kt` | 2 | 2 |
+| `FeatureTaskRuntimeRunLoopModels.kt` | 0 | 0 |
+| `FeatureTaskRuntimeRunLoopOutputPersistence.kt` | 0 | 0 |
+| `FeatureTaskRuntimeRunLoopOutputVerification.kt` | 0 | 0 |
+| `FeatureTaskRuntimeRunLoopPhaseAttempts.kt` | 4 | 4 |
+| `FeatureTaskRuntimeRunLoopPhaseRunner.kt` | 0 | 0 |
+| `FeatureTaskRuntimeRunLoopPlanningBranch.kt` | 0 | 0 |
+| `FeatureTaskRuntimeRunLoopRecordRejection.kt` | 0 | 0 |
+| `FeatureTaskRuntimeRunLoopRepairReceipt.kt` | 0 | 0 |
+| `FeatureTaskRuntimeRunLoopReview.kt` | 6 | 6 |
+| `FeatureTaskRuntimeRunLoopSession.kt` | 0 | 0 |
+| `FeatureTaskRuntimeRunLoopSharedArgs.kt` | 0 | 0 |
+| `FeatureTaskRuntimeRunLoopSubtaskCommit.kt` | 0 | 0 |
+| `FeatureTaskRuntimeRunLoopTransitions.kt` | 0 | 0 |
+| `FeatureTaskRuntimeRunLoopValidationGate.kt` | 9 | 9 |
 
 ### Resource Lifetime And Failure
 
@@ -228,7 +259,7 @@ with Clean Architecture, SOLID, or YAGNI.
 
 Feature-task continuation is repository-scoped and database-authoritative. At workflow creation, an immutable identity row binds the workflow id to a normalized issue key, canonical real-path Git-root identity, repository-relative governed spec path, persisted mode, and standalone/goal-child route scope. Read-only lookup never chooses among multiple eligible rows by timestamp.
 
-The feature `spec.md` remains the governed product contract; it is not a mutable workflow ledger. A sibling `decomposition-manifest.yaml` is the sole prepared-feature authority marker and always contains one or more executable subtasks; a bare `spec.md` is preparation intake. Continuation lookup remains authoritative and precedes artifact discovery. Pre-planning, planning, phase outputs, and the phase ledger remain durable database artifacts. Initial implementation continuation is hydrated from the completed `plan`. Audit is stateless: every invocation receives the complete planned acceptance-criteria list, inspects implementation and meaningful test coverage, runs up to three repair cycles in the same agent session, re-checks the full list after each cycle, and emits only terminal completion (`satisfied`) or an ordinary blocked/failed outcome with `failure_disposition` and no verdict. Remaining-criteria text that is not an explicit empty list names each leftover criterion and why it could not be fixed; the runtime does not validate that shape. That text starts a fresh audit session as a focus hint; `scoped_owned_paths` is checkpoint evidence, not a write allowlist, and files audit writes are checkpointed into the next round. The same remaining list as the prior session blocks rather than looping. Audit performs no audit-specific persistence, does not route to `implement`, and does not hand findings to downstream phases. Audit launch briefings and delivered projections stay in memory. Readers ignore retired audit briefing and projection entries before decoding their contents. No audit delivery measurements or completion fingerprints are persisted. Each resumed invocation starts a fresh process-failure budget while retaining ordinary attempt attribution. Criterion rendering preserves existing identifiers and never excludes previously checked criteria. Legacy `gaps_found` records, inner gap payloads, and `audit_gap` loop markers are normalized in memory on resume and status reconstruction through `normalizeForStatelessAudit` before run-state, status, budget, and continuation derivation without writing compatibility state. Fresh databases do not create audit-generation storage. Historical databases may retain migration version 23 and its audit-generation table; stateless audit does not read or write that legacy storage. Lifecycle telemetry never reads or writes audit-gap counters. Retired `prior_gap_memory` handoff sources loud-fail at parse and envelope validation; `FeatureTaskRuntimePriorGapMemory.fromMap` and audit-gap artifact decoders stay decode-only for legacy rows with no active writers or downstream projections. Review remediation is a single bounded round: `review` runs once, `changes_requested` may launch one `implement_fix` pass (`review_fix` cap 1, then advance to `validate`), and review does not run again after that fix.
+The feature `spec.md` remains the governed product contract; it is not a mutable workflow ledger. A sibling `decomposition-manifest.yaml` is the sole prepared-feature authority marker and always contains one or more executable subtasks; a bare `spec.md` is preparation intake. Continuation lookup remains authoritative and precedes artifact discovery. Pre-planning, planning, phase outputs, and the phase ledger remain durable database artifacts. Initial implementation continuation is hydrated from the completed `plan`. Audit is stateless: every invocation receives the complete planned acceptance-criteria list, inspects implementation and meaningful test coverage, runs up to three repair cycles in the same agent session, re-checks the full list after each cycle, and emits only terminal completion (`satisfied`) or an ordinary blocked/failed outcome with `failure_disposition` and no verdict. Remaining-criteria text that is not an explicit empty list names each leftover criterion and why it could not be fixed; the runtime does not validate that shape. The remaining-criteria briefing is runtime-owned and identical for every dominant platform pack; packs do not author it. That text starts a fresh audit session as a focus hint; `scoped_owned_paths` is checkpoint evidence, not a write allowlist, and files audit writes are checkpointed into the next round. The same remaining list as the prior session blocks rather than looping. Audit performs no audit-specific persistence, does not route to `implement`, and does not hand findings to downstream phases. Audit launch briefings and delivered projections stay in memory. Readers ignore retired audit briefing and projection entries before decoding their contents. No audit delivery measurements or completion fingerprints are persisted. Each resumed invocation starts a fresh process-failure budget while retaining ordinary attempt attribution. Criterion rendering preserves existing identifiers and never excludes previously checked criteria. Legacy `gaps_found` records, inner gap payloads, and `audit_gap` loop markers are normalized in memory on resume and status reconstruction through `normalizeForStatelessAudit` before run-state, status, budget, and continuation derivation without writing compatibility state. Fresh databases do not create audit-generation storage. Historical databases may retain migration version 23 and its audit-generation table; stateless audit does not read or write that legacy storage. Lifecycle telemetry never reads or writes audit-gap counters. Retired `prior_gap_memory` handoff sources loud-fail at parse and envelope validation; `FeatureTaskRuntimePriorGapMemory.fromMap` and audit-gap artifact decoders stay decode-only for legacy rows with no active writers or downstream projections. Review remediation is a single bounded round: `review` runs once, `changes_requested` may launch one `implement_fix` pass (`review_fix` cap 1, then advance to `validate`), and review does not run again after that fix.
 
 Decomposed goals execute discovery and preplan once at the parent, then persist a distinct immutable plan checkpoint for each ordered subtask. Normalized checkpoint tables are the continuation authority. Status reads only bounded fields: shared-preplan readiness, planned and total counts, first missing subtask, and a concise reason. Resume reuses compatible checkpoints; hard reset atomically invalidates planning and child continuation state.
 
@@ -1646,7 +1677,7 @@ or a versioned durable payload whose vocabulary is intentionally owned by that b
   `GoalRunnerLivenessState`, as does
   `skillbill.goalrunner.model.GoalRunnerLivenessDecision.state`;
   `skillbill.goalrunner.model.GoalPlanningStatusSnapshot.state` and
-  `skillbill.application.idestatus.model.IdeStatusPlanning.state` use `GoalPlanningStatusState`;
+  `skillbill.engine.work.model.IdeStatusPlanning.state` use `GoalPlanningStatusState`;
   `skillbill.goalrunner.model.GoalRunnerStatusProjection.executionLiveness` and
   `skillbill.goalrunner.model.GoalRunnerStatusProjectionRuntimeInputs.executionLiveness` use
   `ExecutionLiveness`; `skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairLedgerEntry.status`
