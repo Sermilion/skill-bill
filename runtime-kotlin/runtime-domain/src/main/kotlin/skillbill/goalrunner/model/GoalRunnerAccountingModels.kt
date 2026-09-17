@@ -22,9 +22,8 @@ enum class GoalAttemptLedgerAction(val wireValue: String) {
   ;
 
   companion object {
-    fun fromWire(value: String): GoalAttemptLedgerAction =
-      entries.firstOrNull { it.wireValue == value }
-        ?: throw InvalidWorkflowStateSchemaError("Unknown goal attempt ledger action '$value'.")
+    fun fromWire(value: String): GoalAttemptLedgerAction = entries.firstOrNull { it.wireValue == value }
+      ?: throw InvalidWorkflowStateSchemaError("Unknown goal attempt ledger action '$value'.")
   }
 }
 

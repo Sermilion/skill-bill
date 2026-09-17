@@ -7,8 +7,10 @@ import skillbill.infrastructure.fs.WorkflowSnapshotValidatorInfraAdapter
 import skillbill.infrastructure.fs.WorkflowStateSnapshotWireMapper
 import skillbill.infrastructure.fs.contracts.workflow.WorkflowStateSchemaValidator
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowDefinition
 import skillbill.workflow.engine.model.WorkflowSnapshotView
+import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.model.WorkflowStatus
@@ -58,11 +60,8 @@ class WorkflowStateSchemaValidatesExistingWorkflowsTest {
       workflowMode = null,
     )
     val engine = WorkflowEngine(
-      object : skillbill.workflow.engine.WorkflowSnapshotValidator {
-        override fun validate(
-          snapshot: skillbill.workflow.engine.model.WorkflowStateSnapshot,
-          slug: String,
-        ) = Unit
+      object : WorkflowSnapshotValidator {
+        override fun validate(snapshot: WorkflowStateSnapshot, slug: String) = Unit
       },
     )
     val record = engine.openRecord(definition, "wf-1", "sess", "implement").copy(
@@ -72,8 +71,8 @@ class WorkflowStateSchemaValidatesExistingWorkflowsTest {
     )
     val snapshotJson = JsonCodec.mapToJsonString(
       WorkflowWireProjections.snapshotMap(engine.snapshotView(definition, record)).toPayload(),
-    )
-    val stepJson = record.stepsJson
+    ) + "\n"
+    val stepJson = record.stepsJson + "\n"
 
     assertBaselineBytes("workflow-snapshot-wire.json", snapshotJson)
     assertBaselineBytes("workflow-step-wire.json", stepJson)

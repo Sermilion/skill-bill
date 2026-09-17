@@ -32,6 +32,7 @@ import skillbill.workflow.goal.model.GoalSubtaskReviewCompactFinding
 import skillbill.workflow.goal.model.GoalSubtaskReviewDisposition
 import skillbill.workflow.goal.model.GoalSubtaskReviewPassResult
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.asCheckpointIdentitiesArtifactEntry
 import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_ARTIFACT_KEY
@@ -56,7 +57,6 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import skillbill.workflow.model.WorkflowStatus
 
 class GoalSubtaskReviewStateDurablePersistenceTest {
   private val workflowId = "wftr-skill142-1"

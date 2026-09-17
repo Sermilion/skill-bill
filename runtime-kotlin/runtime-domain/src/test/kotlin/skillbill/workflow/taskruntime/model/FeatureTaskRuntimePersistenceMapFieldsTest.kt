@@ -1,10 +1,10 @@
 package skillbill.workflow.taskruntime.model
 
+import skillbill.error.InvalidWorkflowStateSchemaError
 import java.math.BigDecimal
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import skillbill.error.InvalidWorkflowStateSchemaError
 
 class FeatureTaskRuntimePersistenceMapFieldsTest {
   @Test

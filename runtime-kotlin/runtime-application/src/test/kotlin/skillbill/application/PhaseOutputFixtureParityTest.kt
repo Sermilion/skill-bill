@@ -1,8 +1,7 @@
 package skillbill.application
-import skillbill.workflow.taskruntime.validatePlanningProjection
-
 import skillbill.contracts.JsonCodec
 import skillbill.error.InvalidFeatureTaskRuntimePlanningProjectionSchemaError
+import skillbill.workflow.taskruntime.validatePlanningProjection
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.fail

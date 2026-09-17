@@ -1,6 +1,5 @@
 package skillbill.application
 
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
 import skillbill.application.decomposition.encodeDecompositionManifestYaml
 import skillbill.application.decomposition.executionModel
@@ -106,6 +105,7 @@ import skillbill.workflow.goal.NoopGoalObservabilityEventValidator
 import skillbill.workflow.goal.model.GOAL_PROGRESS_HISTORY_LIMIT
 import skillbill.workflow.goal.model.GoalProgressEvent
 import skillbill.workflow.goal.model.GoalProgressEventKind
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactKind
@@ -124,7 +124,6 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import skillbill.workflow.model.WorkflowStatus
 private fun WorkflowService.openTestRuntime(sessionId: String = "", currentStepId: String? = null): WorkflowOpenResult =
   openFeatureTask(
     WorkflowServiceOpenFeatureTaskArgs(
@@ -1987,7 +1986,7 @@ class WorkflowUpdateAcknowledgementBudgetTest {
       SharedPayloadKeys.STATUS to ack.status,
       SharedPayloadKeys.WORKFLOW_ID to ack.workflowId,
       WorkflowWirePayloadKeys.WORKFLOW_NAME to ack.workflowName,
-      WorkflowWirePayloadKeys.WORKFLOW_STATUS to ack.workflowStatus,
+      WorkflowWirePayloadKeys.WORKFLOW_STATUS to ack.workflowStatus.wireValue,
       WorkflowWirePayloadKeys.CURRENT_STEP_ID to ack.currentStepId,
       WorkflowWirePayloadKeys.UPDATED_STEP_IDS to ack.updatedStepIds,
       WorkflowWirePayloadKeys.UPDATED_ARTIFACT_KEYS to ack.updatedArtifactKeys,
@@ -3912,7 +3911,7 @@ class DecompositionDiskBootstrapTest {
       status = "in_progress",
       executionModel = DecompositionExecutionModel.SAME_BRANCH_COMMIT_PER_SUBTASK,
       baseBranch = "main",
-      featureBranch = "",
+      featureBranch = "feat/SKILL-TEST",
       currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "implement"),
       subtasks = listOf(
         DecompositionSubtask(
@@ -3964,7 +3963,7 @@ class DecompositionDiskBootstrapTest {
       status = "in_progress",
       executionModel = DecompositionExecutionModel.SAME_BRANCH_COMMIT_PER_SUBTASK,
       baseBranch = "main",
-      featureBranch = "",
+      featureBranch = "feat/SKILL-TEST",
       currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "implement"),
       subtasks = listOf(
         DecompositionSubtask(
@@ -4009,7 +4008,7 @@ class DecompositionDiskBootstrapTest {
       status = "in_progress",
       executionModel = DecompositionExecutionModel.SAME_BRANCH_COMMIT_PER_SUBTASK,
       baseBranch = "main",
-      featureBranch = "",
+      featureBranch = "feat/SKILL-TEST",
       currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "implement"),
       subtasks = listOf(
         DecompositionSubtask(
@@ -4080,7 +4079,7 @@ class DecompositionDiskBootstrapTest {
       status = "in_progress",
       executionModel = DecompositionExecutionModel.SAME_BRANCH_COMMIT_PER_SUBTASK,
       baseBranch = "main",
-      featureBranch = "",
+      featureBranch = "feat/SKILL-TEST",
       currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "implement"),
       subtasks = listOf(
         DecompositionSubtask(
@@ -4129,7 +4128,7 @@ class DecompositionDiskBootstrapTest {
       status = "in_progress",
       executionModel = DecompositionExecutionModel.SAME_BRANCH_COMMIT_PER_SUBTASK,
       baseBranch = "main",
-      featureBranch = "",
+      featureBranch = "feat/SKILL-TEST",
       currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "implement"),
       subtasks = listOf(
         DecompositionSubtask(
@@ -4187,7 +4186,7 @@ class DecompositionDiskBootstrapTest {
       status = "in_progress",
       executionModel = DecompositionExecutionModel.SAME_BRANCH_COMMIT_PER_SUBTASK,
       baseBranch = "main",
-      featureBranch = "",
+      featureBranch = "feat/SKILL-TEST",
       currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "implement"),
       subtasks = listOf(
         DecompositionSubtask(
@@ -4247,7 +4246,7 @@ class DecompositionDiskBootstrapTest {
       status = "in_progress",
       executionModel = DecompositionExecutionModel.SAME_BRANCH_COMMIT_PER_SUBTASK,
       baseBranch = "main",
-      featureBranch = "",
+      featureBranch = "feat/SKILL-TEST",
       currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "implement"),
       subtasks = listOf(
         DecompositionSubtask(

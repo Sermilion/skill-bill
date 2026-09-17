@@ -3,7 +3,6 @@ package skillbill.application.learning
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.learning.LearningAppliedSessionWire
 import skillbill.contracts.learning.LearningEntryDto
-import skillbill.contracts.learning.LearningSummaryWire
 import skillbill.learnings.model.LearningEntry
 import skillbill.learnings.model.LearningRecord
 import skillbill.learnings.model.LearningScope
@@ -44,13 +43,12 @@ fun learningAppliedSessionWire(skillName: String?, payloadEntries: List<Learning
     scopeCounts = scopeCountsFromDtos(payloadEntries),
   )
 
-fun learningEntrySessionJson(skillName: String?, entries: List<LearningEntry>): String = JsonCodec.mapToJsonString(
-  learningAppliedSessionWire(skillName, entries.map(::learningEntryDto)).toPayload(),
-)
+fun learningEntrySessionJson(skillName: String?, entries: List<LearningEntry>): String =
+  JsonCodec.mapToJsonString(learningAppliedSessionWire(skillName, entries.map(::learningEntryDto)).toPayload()) + "\n"
 
-private fun scopeCountsFromDtos(payloads: List<LearningEntryDto>): Map<String, Int> = LearningScope.emptyScopeCounts().apply {
+private fun scopeCountsFromDtos(payloads: List<LearningEntryDto>): Map<String, Int> = linkedMapOf<String, Int>().apply {
   payloads.forEach { payload ->
     val scope = LearningScope.fromWireNameOrNull(payload.scope) ?: return@forEach
-    put(scope.wireName, getValue(scope.wireName) + 1)
+    put(scope.wireName, getOrDefault(scope.wireName, 0) + 1)
   }
 }

@@ -1,7 +1,6 @@
 package skillbill.di
 
 import me.tatarka.inject.annotations.Provides
-import skillbill.SkillBillVersion
 import skillbill.application.telemetry.GoalLifecycleTelemetryEmitter
 import skillbill.application.telemetry.LifecycleTelemetryService
 import skillbill.application.telemetry.TelemetryLevelMutationService

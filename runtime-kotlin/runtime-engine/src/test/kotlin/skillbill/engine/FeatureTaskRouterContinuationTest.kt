@@ -21,12 +21,12 @@ import skillbill.ports.workflow.gitops.NoopWorkflowGitOperations
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.goal.NoopGoalObservabilityEventValidator
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
-import skillbill.workflow.model.WorkflowStatus
 
 class FeatureTaskRouterContinuationTest {
   @Test

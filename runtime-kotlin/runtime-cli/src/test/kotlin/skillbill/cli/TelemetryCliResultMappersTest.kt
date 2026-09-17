@@ -1,9 +1,9 @@
 package skillbill.cli
 
 import skillbill.cli.telemetry.toCliMap
+import skillbill.telemetry.model.TelemetryOpenDocument
 import skillbill.telemetry.model.TelemetryProxyCapabilities
 import skillbill.telemetry.model.TelemetryRemoteStatsResult
-import skillbill.telemetry.model.TelemetryOpenDocument
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

@@ -36,11 +36,11 @@ import skillbill.ports.workflow.gitops.model.WorkflowWorktreeActivityResult
 import skillbill.workflow.goal.model.GoalObservabilityDiffStat
 import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunk
 import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunks
+import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.DriverManager
 import kotlin.test.assertTrue
-import skillbill.workflow.model.WorkflowStatus
 
 internal fun startRunningRuntimeGoalChild(fixture: GoalCliFixture): String {
   val childWorkflowId = startRunningGoalChild(fixture)

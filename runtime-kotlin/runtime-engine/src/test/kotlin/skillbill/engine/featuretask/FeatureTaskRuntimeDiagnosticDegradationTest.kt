@@ -1,6 +1,5 @@
 package skillbill.engine.featuretask
 
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.application.RecordingLifecycleTelemetryRepository
 import skillbill.application.diagnostics.RejectedOutputDiagnosticService
 import skillbill.application.diagnostics.model.FeatureTaskRuntimeRejectedOutputWrite

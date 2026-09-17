@@ -55,8 +55,10 @@ data class InstallPlan(
 )
 
 data class InstallTransaction(
-  val createdSymlinks: MutableList<FileLocation> = mutableListOf(),
-)
+  val createdSymlinks: List<FileLocation> = emptyList(),
+) {
+  fun withRecordedSymlink(path: FileLocation): InstallTransaction = copy(createdSymlinks = createdSymlinks + path)
+}
 
 data class McpProfileOutcome(val configPath: FileLocation, val changed: Boolean)
 

@@ -24,6 +24,7 @@ import skillbill.application.workflow.model.WorkflowServiceOpenArgs
 import skillbill.application.workflow.model.WorkflowUpdateRequest
 import skillbill.application.workflow.model.WorkflowUpdateResult
 import skillbill.contracts.issuekey.normalizeIssueKey
+import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.model.RepositoryRoot
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
@@ -117,7 +118,11 @@ class WorkflowService(
 
   fun update(kind: WorkflowFamilyKind, request: WorkflowUpdateRequest): WorkflowUpdateResult {
     val family = kind.workflowFamily()
-    val input = request.toWorkflowUpdateInput()
+    val input = try {
+      request.toWorkflowUpdateInput()
+    } catch (error: InvalidWorkflowStateSchemaError) {
+      return WorkflowUpdateResult.Error(request.workflowId, error.message.orEmpty())
+    }
     WorkflowEngine.validateUpdate(family.definition, input)?.let { error ->
       return WorkflowUpdateResult.Error(request.workflowId, error)
     }

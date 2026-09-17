@@ -7,6 +7,7 @@ import skillbill.application.workflow.model.WorkflowUpdateRequest
 import skillbill.application.workflow.model.WorkflowUpdateResult
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
 import java.nio.file.Files
 import kotlin.test.Test
@@ -14,7 +15,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-import skillbill.workflow.model.WorkflowStatus
 
 class ApplicationPersistencePortDecompositionWorkflowTest {
   fun `workflow service writes decomposition manifest when implement plan decomposes`() {

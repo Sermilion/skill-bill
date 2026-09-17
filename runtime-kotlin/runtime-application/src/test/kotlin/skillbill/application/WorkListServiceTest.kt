@@ -19,12 +19,12 @@ import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.workflow.engine.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Path
 import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import skillbill.workflow.model.WorkflowStatus
 
 class WorkListServiceTest {
   @Test

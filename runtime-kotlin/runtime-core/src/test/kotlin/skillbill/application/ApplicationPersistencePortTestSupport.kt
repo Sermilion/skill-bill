@@ -1,6 +1,5 @@
 package skillbill.application
 
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.application.decomposition.DecompositionManifestWriter
 import skillbill.application.decomposition.loadDecompositionManifest
 import skillbill.application.review.ReviewService
@@ -100,13 +99,14 @@ import skillbill.telemetry.model.RemoteStatsRequest
 import skillbill.telemetry.model.TelemetryConfigDocument
 import skillbill.telemetry.model.TelemetryDeliveryOutcome
 import skillbill.telemetry.model.TelemetryDeliveryReport
+import skillbill.telemetry.model.TelemetryOpenDocument
 import skillbill.telemetry.model.TelemetryProxyCapabilities
 import skillbill.telemetry.model.TelemetryRemoteStatsResult
 import skillbill.telemetry.model.TelemetrySettings
-import skillbill.telemetry.model.TelemetryOpenDocument
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.goal.NoopGoalObservabilityEventValidator
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
@@ -135,7 +135,6 @@ import java.time.Clock
 import kotlin.test.assertEquals
 import java.lang.Double.TYPE as DoubleTYPE
 import java.lang.Long.TYPE as LongTYPE
-import skillbill.workflow.model.WorkflowStatus
 internal fun <T> noopPort(type: Class<T>): T {
   @Suppress("UNCHECKED_CAST")
   return Proxy.newProxyInstance(type.classLoader, arrayOf(type)) { _, method, _ ->

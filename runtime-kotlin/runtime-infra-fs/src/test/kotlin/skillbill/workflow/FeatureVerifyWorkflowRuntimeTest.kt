@@ -4,11 +4,11 @@ import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.verify.FeatureVerifyWorkflowDefinition
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-import skillbill.workflow.model.WorkflowStatus
 
 class FeatureVerifyWorkflowRuntimeTest {
   private val definition = FeatureVerifyWorkflowDefinition.definition

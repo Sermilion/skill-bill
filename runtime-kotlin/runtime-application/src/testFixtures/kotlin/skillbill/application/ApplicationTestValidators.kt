@@ -16,9 +16,6 @@ val testDecompositionManifestValidator: DecompositionManifestValidator =
       ),
       sourceLabel,
     )
-    override fun validateYamlTextResult(
-      yamlText: String,
-      sourceLabel: String,
-    ): DecompositionManifestValidationResult =
+    override fun validateYamlTextResult(yamlText: String, sourceLabel: String): DecompositionManifestValidationResult =
       DecompositionManifestValidationResult.AcceptedUnchanged(validateYamlText(yamlText, sourceLabel), yamlText)
   }

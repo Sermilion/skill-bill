@@ -1,9 +1,6 @@
 package skillbill.engine.goalrunner.planning
 
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactKind
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.application.realFeatureTaskRuntimePhaseOutputValidator
-import skillbill.engine.featuretask.FeatureTaskRuntimePhaseOutputTestValidator
 import skillbill.application.realPlanningProjectionValidator
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
@@ -13,6 +10,7 @@ import skillbill.engine.InMemoryGoalManifestStore
 import skillbill.engine.PlanningProjectionFixtures
 import skillbill.engine.RecordingOutcomeStore
 import skillbill.engine.RecordingPullRequestPort
+import skillbill.engine.featuretask.FeatureTaskRuntimePhaseOutputTestValidator
 import skillbill.engine.goalplanning.GoalPlanningPreparationCheckpoint
 import skillbill.engine.goalrunner.GoalPlanningSweepPortsParams
 import skillbill.engine.goalrunner.goalRunnerDeps
@@ -77,10 +75,13 @@ import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.text.sha256HexUtf8
 import skillbill.workflow.NoopGoalPlanningPreparationEnvelopeValidator
 import skillbill.workflow.decomposition.model.DecompositionManifest
+import skillbill.workflow.decomposition.model.DecompositionManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.decomposition.model.SpecSource
-import skillbill.workflow.decomposition.model.DecompositionManifestWireMap
 import skillbill.workflow.goal.model.GoalProgressEventKind
+import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactKind
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.taskruntime.NoopFeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFeatureSize
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputFormat
@@ -104,7 +105,6 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
@@ -1919,11 +1919,7 @@ class GoalPlanningSweepTimingTest {
   fun `preplan settles without consulting the planning projection producer gate`() {
     val labels = mutableListOf<String>()
     val validator = object : FeatureTaskRuntimeWireArtifactValidator {
-      override fun validate(
-        kind: FeatureTaskRuntimeWireArtifactKind,
-        payload: Any,
-        sourceLabel: String,
-      ) {
+      override fun validate(kind: FeatureTaskRuntimeWireArtifactKind, payload: Any, sourceLabel: String) {
         if (kind == FeatureTaskRuntimeWireArtifactKind.PLANNING_PROJECTION) {
           labels += sourceLabel
         }
@@ -2568,6 +2564,11 @@ private class FakePhaseOutputValidator : FeatureTaskRuntimePhaseOutputTestValida
       throw malformed(sourceLabel, "produced_outputs must be a non-empty object.")
     }
   }
+
+  override fun normalizePhaseOutput(
+    phaseOutputText: String,
+    sourceLabel: String,
+  ): NormalizedFeatureTaskRuntimePhaseOutput = normalizedPlanningOutput(phaseOutputText)
 
   private fun malformed(sourceLabel: String, reason: String): InvalidFeatureTaskRuntimePhaseOutputSchemaError =
     InvalidFeatureTaskRuntimePhaseOutputSchemaError(sourceLabel = sourceLabel, reason = reason)

@@ -11,9 +11,8 @@ enum class ReviewStage(val wireValue: String) {
   ;
 
   companion object {
-    fun fromWire(value: String): ReviewStage =
-      entries.firstOrNull { it.wireValue == value }
-        ?: throw InvalidReviewContextSchemaError("review_stage", "Unknown review stage '$value'.")
+    fun fromWire(value: String): ReviewStage = entries.firstOrNull { it.wireValue == value }
+      ?: throw InvalidReviewContextSchemaError("review_stage", "Unknown review stage '$value'.")
   }
 }
 
@@ -24,9 +23,8 @@ enum class ReviewClaimVerdict(val wireValue: String) {
   ;
 
   companion object {
-    fun fromWire(value: String): ReviewClaimVerdict =
-      entries.firstOrNull { it.wireValue == value }
-        ?: throw InvalidReviewContextSchemaError("claim_verdict", "Unknown claim verdict '$value'.")
+    fun fromWire(value: String): ReviewClaimVerdict = entries.firstOrNull { it.wireValue == value }
+      ?: throw InvalidReviewContextSchemaError("claim_verdict", "Unknown claim verdict '$value'.")
   }
 }
 
@@ -38,9 +36,8 @@ enum class ReviewScopeDisposition(val wireValue: String) {
   ;
 
   companion object {
-    fun fromWire(value: String): ReviewScopeDisposition =
-      entries.firstOrNull { it.wireValue == value }
-        ?: throw InvalidReviewContextSchemaError("scope_disposition", "Unknown scope disposition '$value'.")
+    fun fromWire(value: String): ReviewScopeDisposition = entries.firstOrNull { it.wireValue == value }
+      ?: throw InvalidReviewContextSchemaError("scope_disposition", "Unknown scope disposition '$value'.")
   }
 }
 
@@ -50,12 +47,11 @@ enum class ReviewSeverityAdjustmentDirection(val wireValue: String) {
   ;
 
   companion object {
-    fun fromWire(value: String): ReviewSeverityAdjustmentDirection =
-      entries.firstOrNull { it.wireValue == value }
-        ?: throw InvalidReviewContextSchemaError(
-          "severity_adjustment_direction",
-          "Unknown severity adjustment direction '$value'.",
-        )
+    fun fromWire(value: String): ReviewSeverityAdjustmentDirection = entries.firstOrNull { it.wireValue == value }
+      ?: throw InvalidReviewContextSchemaError(
+        "severity_adjustment_direction",
+        "Unknown severity adjustment direction '$value'.",
+      )
   }
 }
 
@@ -65,9 +61,8 @@ enum class ReviewStageReached(val wireValue: String) {
   ;
 
   companion object {
-    fun fromWire(value: String): ReviewStageReached =
-      entries.firstOrNull { it.wireValue == value }
-        ?: throw InvalidReviewContextSchemaError("stage_reached", "Unknown stage reached state '$value'.")
+    fun fromWire(value: String): ReviewStageReached = entries.firstOrNull { it.wireValue == value }
+      ?: throw InvalidReviewContextSchemaError("stage_reached", "Unknown stage reached state '$value'.")
   }
 }
 

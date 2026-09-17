@@ -28,6 +28,7 @@ import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.workflow.engine.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Clock
@@ -37,7 +38,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import skillbill.workflow.model.WorkflowStatus
 
 class IdeStatusReadSnapshotConcurrencyTest {
   private val observedAt: Instant = Instant.parse("2026-08-06T12:00:00Z")

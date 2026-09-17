@@ -33,6 +33,7 @@ import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.goal.NoopGoalObservabilityEventValidator
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -40,7 +41,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
-import skillbill.workflow.model.WorkflowStatus
 
 class FeatureTaskContinuationLookupServiceTest {
   @Test

@@ -25,9 +25,8 @@ object WorkflowStateSnapshotWireMapper {
     snapshot.mode?.let { mode -> put(WorkflowWirePayloadKeys.MODE, mode) }
   }
 
-  fun workflowStatusFromWire(raw: String, field: String): WorkflowStatus =
-    WorkflowStatus.fromWire(raw)
-      ?: throw InvalidWorkflowStateSchemaError("Workflow state $field has unsupported value '$raw'.")
+  fun workflowStatusFromWire(raw: String, field: String): WorkflowStatus = WorkflowStatus.fromWire(raw)
+    ?: throw InvalidWorkflowStateSchemaError("Workflow state $field has unsupported value '$raw'.")
 
   private fun decodeArray(rawValue: String, field: String): List<Map<String, Any?>> {
     val parsed = parse(rawValue, field) as? List<*>

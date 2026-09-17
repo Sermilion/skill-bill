@@ -1,6 +1,5 @@
 package skillbill.engine.goalrunner.planning
 
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import org.junit.jupiter.api.Test
 import skillbill.application.testHarnessClock
 import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeWireArtifactValidator
@@ -32,6 +31,7 @@ import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.engine.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Path
 import java.time.Clock
 import java.time.Instant
@@ -39,7 +39,6 @@ import java.time.ZoneOffset
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import skillbill.workflow.model.WorkflowStatus
 
 class GoalPlanningRefreshLivenessTest {
   private val now = Instant.parse("2026-08-11T00:00:00Z")

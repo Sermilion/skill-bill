@@ -5,12 +5,12 @@ import skillbill.workflow.engine.artifactsFingerprint
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.progressToken
 import skillbill.workflow.goal.model.GOAL_PROGRESS_LATEST_EVENT_ARTIFACT_KEY
+import skillbill.workflow.model.WorkflowStatus
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
-import skillbill.workflow.model.WorkflowStatus
 
 class AttemptLedgerWorkflowDecodingTest {
   @Test

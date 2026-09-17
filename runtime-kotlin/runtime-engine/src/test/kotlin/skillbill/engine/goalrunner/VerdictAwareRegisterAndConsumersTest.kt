@@ -1,7 +1,5 @@
 package skillbill.engine.goalrunner
 
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
-
 import skillbill.goalrunner.subtaskreview.GoalSubtaskReviewSummaryReducer
 import skillbill.goalrunner.subtaskreview.model.UnaddressedFindingLedgerScope
 import skillbill.review.ParallelReviewMerger

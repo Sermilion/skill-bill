@@ -23,8 +23,8 @@ import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
-import java.nio.file.Path
 import skillbill.workflow.model.WorkflowStatus
+import java.nio.file.Path
 
 class DecompositionWorkflowContinuation(
   private val engine: WorkflowEngine,

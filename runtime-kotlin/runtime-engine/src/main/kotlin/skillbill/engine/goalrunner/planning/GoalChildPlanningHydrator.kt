@@ -1,6 +1,5 @@
 package skillbill.engine.goalrunner.planning
 
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.engine.featuretask.workflowArtifactEntryMap
@@ -20,6 +19,7 @@ import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.envelopeWireMap
 import skillbill.workflow.taskruntime.model.AcceptedFeatureTaskRuntimePhaseOutput

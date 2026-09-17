@@ -45,5 +45,4 @@ object FeatureTaskRuntimePhaseLedgerDecoder {
     "Workflow artifact '$FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY' $reason.",
     cause,
   )
-
 }

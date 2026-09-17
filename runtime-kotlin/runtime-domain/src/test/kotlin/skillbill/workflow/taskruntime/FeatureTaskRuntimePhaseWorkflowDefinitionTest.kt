@@ -1,10 +1,11 @@
 package skillbill.workflow.taskruntime
 
-import skillbill.contracts.workflow.WORKFLOW_STATE_CONTRACT_VERSION
 import skillbill.contracts.JsonCodec
+import skillbill.contracts.workflow.WORKFLOW_STATE_CONTRACT_VERSION
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeCapExhaustionBehavior
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFeatureSize
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffSourceRef
@@ -15,7 +16,6 @@ import skillbill.workflow.verify.FeatureVerifyWorkflowDefinition
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-import skillbill.workflow.model.WorkflowStatus
 
 class FeatureTaskRuntimePhaseWorkflowDefinitionTest {
   private val definition = FeatureTaskRuntimePhaseWorkflowDefinition.definition

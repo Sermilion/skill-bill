@@ -1,12 +1,10 @@
 package skillbill.infrastructure.fs.contracts.workflow
-import skillbill.workflow.taskruntime.validateEnvelope
-
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_HANDOFF_ENVELOPE_CONTRACT_VERSION
 import skillbill.error.FeatureTaskRuntimeHandoffProjectionFailureKind
 import skillbill.error.InvalidFeatureTaskRuntimeHandoffProjectionError
 import skillbill.infrastructure.fs.FeatureTaskRuntimeWireArtifactValidatorAdapter
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactKind
+import skillbill.workflow.taskruntime.validateEnvelope
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals

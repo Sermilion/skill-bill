@@ -1,8 +1,5 @@
 package skillbill.application.work
 
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
-import skillbill.workflow.model.WorkflowStatus
-
 import skillbill.application.TestRepositoryEnclosingRoot
 import skillbill.application.idestatus.model.IdeStatusRequest
 import skillbill.application.idestatus.model.IdeStatusResult
@@ -72,6 +69,7 @@ import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.goal.model.GoalProgressEvent
 import skillbill.workflow.goal.model.GoalSubtaskReviewPassResult
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY

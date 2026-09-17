@@ -1,8 +1,6 @@
 package skillbill.workflow.taskruntime.model
 
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
-import skillbill.error.InvalidWorkflowStateSchemaError
-import skillbill.workflow.taskruntime.model.DurableArtifactMapReader
 
 const val FEATURE_TASK_RUNTIME_DECOMPOSE_TERMINAL_ARTIFACT_KEY: String =
   "feature_task_runtime_decompose_terminal"

@@ -11,10 +11,10 @@ import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowUpdateAcknowledgementView
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.engine.model.isTerminalStatus
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.workflowStatus
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
-import skillbill.workflow.model.WorkflowStatus
 
 class WorkflowServiceFeatureTaskAbandon(
   private val engine: WorkflowEngine,

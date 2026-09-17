@@ -17,13 +17,13 @@ import skillbill.ports.workflow.gitops.model.WorkflowWorktreeActivityResult
 import skillbill.telemetry.CONFIG_ENVIRONMENT_KEY
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
+import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-import skillbill.workflow.model.WorkflowStatus
 
 class McpWorkflowContinuationRuntimeTest {
   @Test

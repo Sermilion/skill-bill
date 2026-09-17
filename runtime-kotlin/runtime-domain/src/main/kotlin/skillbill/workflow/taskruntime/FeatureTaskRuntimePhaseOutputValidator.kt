@@ -4,10 +4,7 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputValidat
 import skillbill.workflow.taskruntime.model.NormalizedFeatureTaskRuntimePhaseOutput
 
 interface FeatureTaskRuntimePhaseOutputValidator {
-  fun validatePhaseOutput(
-    phaseOutputText: String,
-    sourceLabel: String,
-  ): FeatureTaskRuntimePhaseOutputValidationResult
+  fun validatePhaseOutput(phaseOutputText: String, sourceLabel: String): FeatureTaskRuntimePhaseOutputValidationResult
 
   fun validatePhaseOutputText(phaseOutputText: String, sourceLabel: String)
 

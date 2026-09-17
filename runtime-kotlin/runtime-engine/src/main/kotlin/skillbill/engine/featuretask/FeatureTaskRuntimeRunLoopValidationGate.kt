@@ -1,6 +1,4 @@
 package skillbill.engine.featuretask
-import skillbill.workflow.taskruntime.validateBuildReceipt
-
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
@@ -31,6 +29,7 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationEvidence
 import skillbill.workflow.taskruntime.model.requireAcceptedOutput
 import skillbill.workflow.taskruntime.toWorkflowArtifactMap
+import skillbill.workflow.taskruntime.validateBuildReceipt
 
 internal data class RuntimeOwnedValidationSettlementArgs(
   val request: FeatureTaskRuntimeRunRequest,

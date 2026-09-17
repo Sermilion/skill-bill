@@ -6,6 +6,7 @@ import skillbill.infrastructure.sqlite.core.DatabaseRuntime
 import skillbill.model.EnvironmentContext
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.WorkflowStateRecord
+import skillbill.workflow.model.WorkflowStatus
 import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Method
 import java.lang.reflect.Proxy
@@ -21,7 +22,6 @@ import java.util.logging.Logger
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-import skillbill.workflow.model.WorkflowStatus
 
 @Execution(ExecutionMode.SAME_THREAD)
 class DatabaseWriteMaintenanceRegressionTest {

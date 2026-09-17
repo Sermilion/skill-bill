@@ -21,9 +21,9 @@ import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionExecutionModel
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionManifestPlan
+import skillbill.workflow.decomposition.model.DecompositionManifestWireMap
 import skillbill.workflow.decomposition.runtime.invalidManifest
 import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
-import skillbill.workflow.decomposition.model.DecompositionManifestWireMap
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import java.io.IOException
 import java.nio.file.Path

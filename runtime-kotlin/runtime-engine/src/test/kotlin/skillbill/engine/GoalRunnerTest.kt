@@ -1,6 +1,5 @@
 package skillbill.engine
 
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.agentaddon.model.AgentAddonSelection
 import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
 import skillbill.application.RecordingSpecScratchStore
@@ -137,6 +136,7 @@ import skillbill.workflow.goal.model.GoalSubtaskReviewCompactFinding
 import skillbill.workflow.goal.model.GoalSubtaskReviewPassResult
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.goal.model.ValidationDepth
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeQualityGateSelection
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
 import java.nio.file.Files
@@ -155,7 +155,6 @@ import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import skillbill.goalrunner.model.GoalPlanningStatusState.NOT_STARTED as GoalPlanningStatusStateNOT_STARTED
-import skillbill.workflow.model.WorkflowStatus
 
 class GoalRunnerTest {
   @Test

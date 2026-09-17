@@ -9,12 +9,12 @@ import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.decomposeTerminalFromWorkflowArtifacts
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_DECOMPOSE_TERMINAL_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDecomposeTerminal
-import skillbill.workflow.model.WorkflowStatus
 
 @Inject
 class FeatureTaskRuntimeDecomposeTerminalRecorder(

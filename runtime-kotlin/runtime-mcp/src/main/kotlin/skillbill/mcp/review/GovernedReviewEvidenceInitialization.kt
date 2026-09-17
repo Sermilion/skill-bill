@@ -1,6 +1,6 @@
 package skillbill.mcp.review
 
-import skillbill.SkillBillVersion
+import skillbill.di.SkillBillVersion
 import skillbill.ports.review.model.GovernedReviewEvidenceCodec
 
 internal fun initializeResult(): Map<String, Any?> = linkedMapOf(

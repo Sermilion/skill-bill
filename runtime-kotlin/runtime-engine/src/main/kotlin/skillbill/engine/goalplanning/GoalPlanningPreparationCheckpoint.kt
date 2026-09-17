@@ -1,6 +1,5 @@
 package skillbill.engine.goalplanning
 
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
@@ -22,11 +21,12 @@ import skillbill.workflow.goal.GoalPlanningPreparationEnvelopeValidator
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.envelopeWireMap
-import skillbill.workflow.taskruntime.validateGoalPlanningPreparationEnvelope
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairEvidence
 import skillbill.workflow.taskruntime.model.requireAcceptedOutput
+import skillbill.workflow.taskruntime.validateGoalPlanningPreparationEnvelope
 
 @Inject
 class GoalPlanningPreparationCheckpoint(

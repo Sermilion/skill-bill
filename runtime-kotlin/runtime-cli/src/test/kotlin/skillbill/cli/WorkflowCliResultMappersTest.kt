@@ -1,9 +1,9 @@
 package skillbill.cli
 
+import skillbill.application.workflow.WorkflowWireProjections
 import skillbill.application.workflow.model.WorkflowContinueResult
 import skillbill.application.workflow.model.WorkflowGetResult
 import skillbill.application.workflow.model.WorkflowUpdateResult
-import skillbill.application.workflow.WorkflowWireProjections
 import skillbill.cli.goal.toGoalDiffStatCliMap
 import skillbill.cli.goal.toGoalSelectedDiffHunksCliMap
 import skillbill.cli.kernel.toPayload
@@ -23,17 +23,17 @@ import skillbill.workflow.goal.GoalObservabilityEventValidator
 import skillbill.workflow.goal.model.GoalObservabilityDiffStat
 import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunk
 import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunks
+import skillbill.workflow.model.WorkflowStatus
+import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactKind
+import java.nio.file.Files
+import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-import skillbill.workflow.model.WorkflowStatus
-import skillbill.workflow.model.WorkflowStepStatus
-import java.nio.file.Files
-import java.nio.file.Path
 
 class WorkflowCliResultMappersTest {
   @Test
@@ -80,7 +80,7 @@ class WorkflowCliResultMappersTest {
     )
     val actual = JsonCodec.mapToJsonString(
       WorkflowWireProjections.updateAcknowledgementMap(acknowledgement).toPayload(),
-    )
+    ) + "\n"
     val expected = Files.readAllBytes(
       cliCompatibilityRepositoryRoot().resolve(
         ".feature-specs/SKILL-351-runtime-domain-boundaries-and-simplicity/baselines/workflow-update-ack-wire.json",

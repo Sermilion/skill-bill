@@ -13,6 +13,7 @@ import skillbill.ports.taskruntime.model.FeatureTaskRuntimeProcessIdentity
 import skillbill.ports.taskruntime.model.FeatureTaskRuntimeProcessInspection
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.WorkflowStateRecord
+import skillbill.workflow.model.WorkflowStatus
 import java.time.Duration
 import java.time.Instant
 import kotlin.test.Test
@@ -21,7 +22,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import skillbill.workflow.model.WorkflowStatus
 
 class FeatureTaskRuntimeWorkerCoordinatorTest {
   @Test

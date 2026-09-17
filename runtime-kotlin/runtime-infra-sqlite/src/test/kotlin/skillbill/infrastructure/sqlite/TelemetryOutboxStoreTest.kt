@@ -1,7 +1,7 @@
 package skillbill.infrastructure.sqlite
 
-import skillbill.SkillBillRuntimeVersion
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
+import skillbill.infrastructure.sqlite.telemetry.SkillBillRuntimeVersion
 import skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxStore
 import skillbill.ports.telemetry.model.TELEMETRY_DELIVERY_ATTEMPT_BUDGET
 import skillbill.ports.telemetry.model.TelemetryOutboxClaimRequest

@@ -24,9 +24,9 @@ import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.model.DecompositionStatus
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.decompositionStatus
 import java.nio.file.Path
-import skillbill.workflow.model.WorkflowStatus
 
 internal class WorkflowGoalRunnerManifestLoader(
   private val database: DatabaseSessionFactory,

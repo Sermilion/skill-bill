@@ -9,10 +9,9 @@ object ReviewRawOutputFallbackValidator : FeatureTaskRuntimePhaseOutputValidator
   override fun validatePhaseOutput(
     phaseOutputText: String,
     sourceLabel: String,
-  ): FeatureTaskRuntimePhaseOutputValidationResult =
-    FeatureTaskRuntimePhaseOutputValidationResult.AcceptedUnchanged(
-      normalizePhaseOutput(phaseOutputText, sourceLabel),
-    )
+  ): FeatureTaskRuntimePhaseOutputValidationResult = FeatureTaskRuntimePhaseOutputValidationResult.AcceptedUnchanged(
+    normalizePhaseOutput(phaseOutputText, sourceLabel),
+  )
 
   override fun validatePhaseOutputText(phaseOutputText: String, sourceLabel: String) {
     validatePhaseOutput(phaseOutputText, sourceLabel)

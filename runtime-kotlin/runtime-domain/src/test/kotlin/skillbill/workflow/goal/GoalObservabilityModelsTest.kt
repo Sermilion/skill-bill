@@ -1,17 +1,17 @@
 package skillbill.workflow.goal
 
-import skillbill.error.InvalidGoalProgressEventSchemaError
 import skillbill.error.InvalidGoalObservabilityEventSchemaError
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactKind
+import skillbill.error.InvalidGoalProgressEventSchemaError
 import skillbill.error.InvalidWorkflowStateSchemaError
-import skillbill.workflow.goal.model.goalObservabilityEventFromArtifact
+import skillbill.goalrunner.model.GoalAttemptLedgerAction
 import skillbill.workflow.goal.model.GOAL_OBSERVABILITY_HISTORY_LIMIT
 import skillbill.workflow.goal.model.GoalObservabilityEvent
 import skillbill.workflow.goal.model.GoalObservabilityHistory
 import skillbill.workflow.goal.model.GoalObservabilityRecordKind
 import skillbill.workflow.goal.model.GoalProgressEventKind
 import skillbill.workflow.goal.model.GoalProgressOutcome
-import skillbill.goalrunner.model.GoalAttemptLedgerAction
+import skillbill.workflow.goal.model.goalObservabilityEventFromArtifact
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactKind
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

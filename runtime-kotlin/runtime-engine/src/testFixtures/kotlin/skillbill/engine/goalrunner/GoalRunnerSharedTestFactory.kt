@@ -1,7 +1,5 @@
 package skillbill.engine.goalrunner
 
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
-
 import skillbill.application.FakeDatabaseSessionFactory
 import skillbill.application.InMemoryWorkflowStates
 import skillbill.application.TestRepositoryEnclosingRoot
@@ -41,6 +39,7 @@ import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.scaffold.model.PlatformManifest
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.engine.WorkflowSnapshotValidator
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import java.time.Clock
 
 fun goalRunnerDefaultPhaseRecorder(): FeatureTaskRuntimePhaseRecorder = testPhaseRecorder(

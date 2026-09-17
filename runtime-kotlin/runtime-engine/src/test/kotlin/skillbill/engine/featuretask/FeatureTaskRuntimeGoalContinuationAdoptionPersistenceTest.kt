@@ -1,6 +1,5 @@
 package skillbill.engine.featuretask
 
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.application.testHarnessClock
 import skillbill.application.testWorkflowSnapshotValidator
 import skillbill.application.workflow.model.WorkflowFamily
@@ -20,6 +19,7 @@ import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.goal.model.ValidationDepth
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_FIELD_ADOPTION_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFeatureSize
@@ -33,7 +33,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import skillbill.workflow.model.WorkflowStatus
 
 class FeatureTaskRuntimeGoalContinuationAdoptionPersistenceTest {
   private val workflowId = "wftr-skill176-adopt-1"

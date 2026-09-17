@@ -4,6 +4,7 @@ import skillbill.engine.featuretask.model.CompletedUpstreamRepairRequest
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
@@ -18,7 +19,6 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
-import skillbill.workflow.model.WorkflowStatus
 
 fun phasesToReopenForCompletedUpstreamRepair(
   request: CompletedUpstreamRepairRequest,

@@ -65,31 +65,31 @@ data class FeatureTaskRuntimeImplementationAttempt(
       }
       val reader = durableArtifactMapReader(raw)
       return FeatureTaskRuntimeImplementationAttempt(
-          sequenceNumber = reader.requiredInt("sequence_number"),
-          phaseId = reader.requiredString(SharedPayloadKeys.PHASE_ID),
-          attemptNumber = reader.requiredInt("attempt_number").also { attempt ->
-            if (attempt < 1) {
-              implementationAttemptError(
-                "Feature-task-runtime implementation-attempt attempt_number must be >= 1, was $attempt.",
-              )
-            }
-          },
-          agentId = reader.requiredString("agent_id"),
-          status = FeatureTaskRuntimeImplementationAttemptStatus.fromWireValue(
-            reader.requiredString(SharedPayloadKeys.STATUS),
-          ),
-          recordedAt = reader.requiredString("recorded_at"),
-          value = reader.requiredString(SharedPayloadKeys.VALUE),
-          loopId = reader.optionalString("loop_id"),
-          edgeIteration = reader.optionalInt("edge_iteration"),
-          failureDisposition = reader.optionalString(SharedPayloadKeys.FAILURE_DISPOSITION)?.let { value ->
-            FeatureTaskRuntimeFailureDisposition.fromWireValue(value)
-              ?: implementationAttemptError(
-                "Feature-task-runtime implementation-attempt 'failure_disposition' has unsupported value.",
-              )
-          },
-          prompt = reader.optionalString(SharedPayloadKeys.PROMPT),
-        )
+        sequenceNumber = reader.requiredInt("sequence_number"),
+        phaseId = reader.requiredString(SharedPayloadKeys.PHASE_ID),
+        attemptNumber = reader.requiredInt("attempt_number").also { attempt ->
+          if (attempt < 1) {
+            implementationAttemptError(
+              "Feature-task-runtime implementation-attempt attempt_number must be >= 1, was $attempt.",
+            )
+          }
+        },
+        agentId = reader.requiredString("agent_id"),
+        status = FeatureTaskRuntimeImplementationAttemptStatus.fromWireValue(
+          reader.requiredString(SharedPayloadKeys.STATUS),
+        ),
+        recordedAt = reader.requiredString("recorded_at"),
+        value = reader.requiredString(SharedPayloadKeys.VALUE),
+        loopId = reader.optionalString("loop_id"),
+        edgeIteration = reader.optionalInt("edge_iteration"),
+        failureDisposition = reader.optionalString(SharedPayloadKeys.FAILURE_DISPOSITION)?.let { value ->
+          FeatureTaskRuntimeFailureDisposition.fromWireValue(value)
+            ?: implementationAttemptError(
+              "Feature-task-runtime implementation-attempt 'failure_disposition' has unsupported value.",
+            )
+        },
+        prompt = reader.optionalString(SharedPayloadKeys.PROMPT),
+      )
     }
 
     private val ALLOWED_FIELDS = setOf(

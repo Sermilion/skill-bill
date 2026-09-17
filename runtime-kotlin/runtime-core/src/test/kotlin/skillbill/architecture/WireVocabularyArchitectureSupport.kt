@@ -76,7 +76,7 @@ internal object WireVocabularyArchitectureSupport {
           FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_SOURCE_IDENTITY,
           FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_CONTENT_SHA256,
         )
-    ).toSet()
+      ).toSet()
     val governedKeys = governedSchemaPropertyKeys(enforceGovernedSeams, schemaPropertyKeysByPath)
     val violations = findViolations(
       files,

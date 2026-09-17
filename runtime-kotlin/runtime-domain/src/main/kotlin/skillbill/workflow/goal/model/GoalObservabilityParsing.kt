@@ -1,10 +1,11 @@
 package skillbill.workflow.goal.model
 
 import skillbill.contracts.JsonCodec
-import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.GOAL_OBSERVABILITY_EVENT_CONTRACT_VERSION
 import skillbill.workflow.goal.GoalObservabilityEventValidator
 import skillbill.workflow.goal.invalidGoalObservabilityEvent
+import skillbill.workflow.taskruntime.model.DurableArtifactMapReader
+import skillbill.workflow.taskruntime.model.toStringKeyedArtifactMap
 import skillbill.workflow.taskruntime.validateGoalObservabilityEvent
 
 fun goalObservabilityLatestEventFromArtifacts(
@@ -73,9 +74,8 @@ fun goalObservabilityEventFromArtifact(
   )
 }
 
-internal fun Any.asGoalWorkflowArtifactMap(sourceLabel: String): Map<String, Any?> =
-  JsonCodec.anyToStringAnyMap(this)
-    ?: throw invalidGoalObservabilityEvent(sourceLabel, "", "artifacts must decode to an object.")
+internal fun Any.asGoalWorkflowArtifactMap(sourceLabel: String): Map<String, Any?> = JsonCodec.anyToStringAnyMap(this)
+  ?: throw invalidGoalObservabilityEvent(sourceLabel, "", "artifacts must decode to an object.")
 
 private fun Any?.toGoalObservabilityEventMap(sourceLabel: String): Map<String, Any?> = JsonCodec.anyToStringAnyMap(this)
   ?: (this as? Map<*, *>)?.let { map ->
@@ -127,9 +127,8 @@ private fun Map<*, *>.toFileDiffStat(sourceLabel: String): GoalObservabilityFile
     )
   }
 
-private fun Int.requireNonNegative(sourceLabel: String, field: String): Int =
-  takeIf { it >= 0 }
-    ?: throw invalidGoalObservabilityEvent(sourceLabel, field, "field must be a non-negative integer.")
+private fun Int.requireNonNegative(sourceLabel: String, field: String): Int = takeIf { it >= 0 }
+  ?: throw invalidGoalObservabilityEvent(sourceLabel, field, "field must be a non-negative integer.")
 
 private val GOAL_OBSERVABILITY_EVENT_KEYS = setOf(
   "contract_version",
@@ -162,3 +161,36 @@ private val GOAL_OBSERVABILITY_CHANGED_FILE_SUMMARY_KEYS = setOf(
 private val GOAL_OBSERVABILITY_DIFF_STAT_KEYS = setOf("files_changed", "insertions", "deletions")
 
 private val GOAL_OBSERVABILITY_FILE_DIFF_STAT_KEYS = setOf("path", "insertions", "deletions")
+
+internal fun Map<*, *>.requireOnlyKeys(allowedKeys: Set<String>, sourceLabel: String) {
+  keys.forEach { key ->
+    val stringKey = key as? String
+      ?: throw invalidGoalObservabilityEvent(sourceLabel, "", "event keys must be strings.")
+    if (stringKey !in allowedKeys) {
+      throw invalidGoalObservabilityEvent(sourceLabel, stringKey, "unknown field is not allowed.")
+    }
+  }
+}
+
+internal fun Any?.asRequiredMap(sourceLabel: String): Map<*, *> = this as? Map<*, *>
+  ?: throw invalidGoalObservabilityEvent(sourceLabel, "", "field must be an object.")
+
+internal fun goalObservabilityReader(map: Map<*, *>, sourceLabel: String): DurableArtifactMapReader {
+  val converted = map.toStringKeyedArtifactMap { detail ->
+    throw invalidGoalObservabilityEvent(sourceLabel, "", detail)
+  }
+  return DurableArtifactMapReader(converted) { detail ->
+    throw invalidGoalObservabilityEvent(sourceLabel, detail, "malformed durable field.")
+  }
+}
+
+internal fun requireGoalObservabilityContractVersion(reader: DurableArtifactMapReader, sourceLabel: String): String =
+  reader.requiredString("contract_version").also { value ->
+    if (value != GOAL_OBSERVABILITY_EVENT_CONTRACT_VERSION) {
+      throw invalidGoalObservabilityEvent(
+        sourceLabel,
+        "contract_version",
+        "field must equal $GOAL_OBSERVABILITY_EVENT_CONTRACT_VERSION.",
+      )
+    }
+  }

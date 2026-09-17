@@ -11,6 +11,7 @@ import skillbill.application.workflow.model.WorkflowUpdateResult
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.issuekey.normalizeIssueKey
+import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.goalrunner.GoalObservabilityArtifacts
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
@@ -27,7 +28,6 @@ import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.goal.GoalObservabilityEventValidator
-import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Path
 import java.time.OffsetDateTime
@@ -101,7 +101,7 @@ val resolveEffectiveSessionId =
 fun WorkflowUpdateRequest.toWorkflowUpdateInput(): WorkflowUpdateInput = WorkflowUpdateInput(
   workflowStatus = WorkflowStatus.fromWire(workflowStatus)
     ?: throw InvalidWorkflowStateSchemaError(
-      "Workflow update workflow_status has unsupported value '$workflowStatus'.",
+      "Invalid workflow_status '$workflowStatus'.",
     ),
   currentStepId = currentStepId,
   stepUpdates = stepUpdates,

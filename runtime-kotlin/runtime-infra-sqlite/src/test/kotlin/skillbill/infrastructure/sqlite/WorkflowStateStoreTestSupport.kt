@@ -8,13 +8,13 @@ import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
 import skillbill.ports.workflow.model.FeatureTaskExecutionIdentity
 import skillbill.ports.workflow.model.FeatureTaskRouteScope
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Path
 import java.sql.Connection
 import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import skillbill.workflow.model.WorkflowStatus
 
 internal fun assertRuntimeAndVerifyStateTransitions(
   store: WorkflowStateStore,
@@ -30,7 +30,9 @@ internal fun assertRuntimeAndVerifyStateTransitions(
   val runtimeInserted = assertNotNull(store.getFeatureTaskRuntimeWorkflow("wftr-state-entry"))
   assertEquals(startedAt, runtimeInserted.stateEnteredAt)
 
-  store.saveFeatureTaskRuntimeWorkflow(runtimeInserted.copy(workflowStatus = WorkflowStatus.BLOCKED.wireValue, currentStepId = "plan"))
+  store.saveFeatureTaskRuntimeWorkflow(
+    runtimeInserted.copy(workflowStatus = WorkflowStatus.BLOCKED.wireValue, currentStepId = "plan"),
+  )
   val runtimeTransitioned = assertNotNull(store.getFeatureTaskRuntimeWorkflow("wftr-state-entry"))
   assertTrue(Instant.parse(runtimeTransitioned.stateEnteredAt).isAfter(Instant.parse(startedAt)))
   assertEquals(false, runtimeTransitioned.stateEnteredAtEstimated)
@@ -56,7 +58,9 @@ internal fun assertRuntimeAndVerifyStateTransitions(
   val verifySameStatus = assertNotNull(store.getFeatureVerifyWorkflow("wfv-state-entry"))
   assertEquals(startedAt, verifySameStatus.stateEnteredAt)
 
-  store.saveFeatureVerifyWorkflow(verifySameStatus.copy(workflowStatus = WorkflowStatus.COMPLETED.wireValue, currentStepId = "finish"))
+  store.saveFeatureVerifyWorkflow(
+    verifySameStatus.copy(workflowStatus = WorkflowStatus.COMPLETED.wireValue, currentStepId = "finish"),
+  )
   val verifyTransitioned = assertNotNull(store.getFeatureVerifyWorkflow("wfv-state-entry"))
   assertTrue(Instant.parse(verifyTransitioned.stateEnteredAt).isAfter(Instant.parse(startedAt)))
   assertEquals(false, verifyTransitioned.stateEnteredAtEstimated)

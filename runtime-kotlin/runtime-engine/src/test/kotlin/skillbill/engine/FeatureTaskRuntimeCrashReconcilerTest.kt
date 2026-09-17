@@ -13,12 +13,12 @@ import skillbill.ports.taskruntime.model.FeatureTaskRuntimeProcessInspection
 import skillbill.ports.taskruntime.model.isConfirmedDead
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode.RUNTIME
 import skillbill.ports.workflow.model.WorkflowStateRecord
+import skillbill.workflow.model.WorkflowStatus
 import java.time.Duration
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-import skillbill.workflow.model.WorkflowStatus
 
 class FeatureTaskRuntimeCrashReconcilerTest {
   @Test

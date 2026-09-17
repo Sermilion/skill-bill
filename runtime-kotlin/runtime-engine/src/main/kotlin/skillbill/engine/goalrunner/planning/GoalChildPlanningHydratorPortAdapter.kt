@@ -1,6 +1,5 @@
 package skillbill.engine.goalrunner.planning
 
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import me.tatarka.inject.annotations.Inject
 import skillbill.engine.goalrunner.planning.model.GoalChildPlanningHydration
 import skillbill.ports.goalrunner.GoalRunnerPersistenceSession
@@ -10,6 +9,7 @@ import skillbill.ports.goalrunner.runner.model.GoalChildPlanningHydrationRequest
 import skillbill.ports.goalrunner.runner.model.GoalRunnerChildWorkflowSetup
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import java.time.Clock
 
 @Inject

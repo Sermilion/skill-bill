@@ -1,6 +1,5 @@
 package skillbill.engine.featuretask
 
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.application.testHarnessClock
 import skillbill.application.testWorkflowSnapshotValidator
 import skillbill.application.workflow.decodeWorkflowArtifacts
@@ -13,13 +12,13 @@ import skillbill.ports.workflow.toRecord
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_CHECKPOINT_ARTIFACT_KEY
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
-import skillbill.workflow.model.WorkflowStatus
 
 class FeatureTaskRuntimeFindingVerificationDurableDecodeTest {
   @Test

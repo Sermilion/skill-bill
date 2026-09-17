@@ -1,6 +1,5 @@
 package skillbill.engine.featuretask.validation
 
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.application.testHarnessClock
 import skillbill.application.testWorkflowSnapshotValidator
 import skillbill.engine.InMemoryRuntimeWorkflowRepository

@@ -1,7 +1,6 @@
 package skillbill.mcp
 
 import skillbill.SAMPLE_REVIEW
-import skillbill.SkillBillVersion
 import skillbill.ZERO_FINDING_REVIEW
 import skillbill.application.review.toFeatureTaskRuntimeStatsPayload
 import skillbill.application.telemetry.model.FeatureTaskRuntimeFinishedRequest
@@ -17,6 +16,7 @@ import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliExecutionResult
 import skillbill.cli.model.CliRuntimeContext
 import skillbill.contracts.JsonCodec
+import skillbill.di.SkillBillVersion
 import skillbill.infrastructure.fs.CanonicalRepositoryRoot
 import skillbill.infrastructure.fs.GitWorkflowGitOperations
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
@@ -39,6 +39,7 @@ import skillbill.ports.workflow.gitops.repositoryFingerprint
 import skillbill.telemetry.CONFIG_ENVIRONMENT_KEY
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
+import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.Connection
@@ -46,7 +47,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-import skillbill.workflow.model.WorkflowStatus
 
 class McpRuntimeTest {
   @Test

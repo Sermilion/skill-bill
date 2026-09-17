@@ -77,7 +77,8 @@ data class FeatureTaskRuntimeGoalContinuationArtifact(
         subtaskId = subtaskId,
         suppressPr = reader.optionalBoolean(FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.SUPPRESS_PR)
           ?: throw InvalidWorkflowStateSchemaError(
-            "Goal-continuation artifact field '${FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.SUPPRESS_PR}' must be a boolean.",
+            "Goal-continuation artifact field " +
+              "'${FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.SUPPRESS_PR}' must be a boolean.",
           ),
         goalBranch = reader.requiredString(FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.GOAL_BRANCH),
         parentWorkflowId = reader.optionalString(
@@ -135,11 +136,11 @@ private fun Map<String, Any?>.optionalGoalAgentAddonSelection(): AgentAddonSelec
     ?: return AgentAddonSelection()
   val entries = rawEntries as? List<*>
     ?: goalContinuationSchemaError("Goal-continuation agent_addon_selection must be a list.")
-    val parsed = entries.mapIndexed(::parseGoalAgentAddonEntry)
-    if (parsed.map { it.slug }.distinct().size != parsed.size) {
-      goalContinuationSchemaError("Goal-continuation agent_addon_selection must not contain duplicate slugs.")
-    }
-    return AgentAddonSelection(parsed)
+  val parsed = entries.mapIndexed(::parseGoalAgentAddonEntry)
+  if (parsed.map { it.slug }.distinct().size != parsed.size) {
+    goalContinuationSchemaError("Goal-continuation agent_addon_selection must not contain duplicate slugs.")
+  }
+  return AgentAddonSelection(parsed)
 }
 
 private fun parseGoalAgentAddonEntry(index: Int, value: Any?): PersistedAgentAddonSelectionEntry {

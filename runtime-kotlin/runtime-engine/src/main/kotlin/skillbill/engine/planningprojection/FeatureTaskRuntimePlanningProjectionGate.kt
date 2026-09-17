@@ -1,10 +1,10 @@
 package skillbill.engine.planningprojection
 
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.InvalidGoalPlanningPreparationSchemaError
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePlanningProjectionContract
 
 private const val SCHEMA_GATE_DETAIL_MAX_CHARS = 500

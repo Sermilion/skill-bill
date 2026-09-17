@@ -1,7 +1,5 @@
 package skillbill.architecture
 
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
-
 enum class PortNullObjectKind {
   TOTAL_REFUSAL,
   RECORDING_NULL_OBJECT,

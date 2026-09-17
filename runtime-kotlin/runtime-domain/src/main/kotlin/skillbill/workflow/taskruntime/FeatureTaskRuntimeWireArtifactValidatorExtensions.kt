@@ -8,7 +8,10 @@ fun FeatureTaskRuntimeWireArtifactValidator.validatePlanningProjection(producedO
   validate(FeatureTaskRuntimeWireArtifactKind.PLANNING_PROJECTION, producedOutputs, sourceLabel)
 }
 
-fun FeatureTaskRuntimeWireArtifactValidator.validateImplementationAttemptRecord(attemptRecord: Any, sourceLabel: String) {
+fun FeatureTaskRuntimeWireArtifactValidator.validateImplementationAttemptRecord(
+  attemptRecord: Any,
+  sourceLabel: String,
+) {
   validate(FeatureTaskRuntimeWireArtifactKind.IMPLEMENTATION_ATTEMPT, attemptRecord, sourceLabel)
 }
 

@@ -1,10 +1,9 @@
 package skillbill.engine.featuretask
 
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
-
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.workflow.engine.WorkflowSnapshotValidator
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import java.time.Clock
 
 fun featureTaskRuntimePhaseRecorder(

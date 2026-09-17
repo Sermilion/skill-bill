@@ -40,15 +40,14 @@ fun learningAppliedSessionWire(
 ): LearningAppliedSessionWire = LearningAppliedSessionWire(
   skillName = skillName,
   entries = payloadEntries,
-  scopeCounts = LearningScope.emptyScopeCounts().apply {
+  scopeCounts = linkedMapOf<String, Int>().apply {
     payloadEntries.forEach { payload ->
       LearningScope.fromWireNameOrNull(payload.scope)?.let { scope ->
-        put(scope.wireName, getValue(scope.wireName) + 1)
+        put(scope.wireName, getOrDefault(scope.wireName, 0) + 1)
       }
     }
   },
 )
 
-fun learningEntrySessionJson(skillName: String?, entries: List<LearningEntry>): String = JsonCodec.mapToJsonString(
-  learningAppliedSessionWire(skillName, entries.map(::learningEntryDto)).toPayload(),
-)
+fun learningEntrySessionJson(skillName: String?, entries: List<LearningEntry>): String =
+  JsonCodec.mapToJsonString(learningAppliedSessionWire(skillName, entries.map(::learningEntryDto)).toPayload()) + "\n"

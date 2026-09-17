@@ -9,6 +9,7 @@ import skillbill.infrastructure.sqlite.core.DatabaseWriteReadinessGate
 import skillbill.model.EnvironmentContext
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.WorkflowStateRecord
+import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
@@ -20,7 +21,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
-import skillbill.workflow.model.WorkflowStatus
 
 @Execution(ExecutionMode.SAME_THREAD)
 class DatabaseWriteReadinessTest {

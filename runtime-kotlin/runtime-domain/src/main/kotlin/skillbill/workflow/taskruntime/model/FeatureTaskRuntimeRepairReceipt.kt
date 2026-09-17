@@ -150,7 +150,7 @@ data class FeatureTaskRuntimeRepairReceiptEntry(
     internal fun fromArtifactMap(
       raw: Map<String, Any?>,
       path: String,
-      observations: FeatureTaskRuntimeRepairReceiptDecodeObservations? = null,
+      collector: FeatureTaskRuntimeRepairReceiptDecodeObservations.Collector? = null,
     ): FeatureTaskRuntimeRepairReceiptEntry = anchoredToDecodePath(path) {
       val reader = reviewStateReader(raw, path)
       FeatureTaskRuntimeRepairReceiptEntry(
@@ -160,13 +160,13 @@ data class FeatureTaskRuntimeRepairReceiptEntry(
           reader.optionalString("no_edit_reason"),
           "$path.no_edit_reason",
           REPAIR_RECEIPT_MAX_NO_EDIT_REASON_UTF8_BYTES,
-          observations,
+          collector,
         ),
         unresolvedReason = forwardOptionalReceiptReason(
           reader.optionalString("unresolved_reason"),
           "$path.unresolved_reason",
           REPAIR_RECEIPT_MAX_UNRESOLVED_REASON_UTF8_BYTES,
-          observations,
+          collector,
         ),
       )
     }
@@ -210,7 +210,7 @@ data class FeatureTaskRuntimeRepairReceipt(
     internal fun fromArtifactMap(
       raw: Map<String, Any?>,
       path: String,
-      observations: FeatureTaskRuntimeRepairReceiptDecodeObservations? = null,
+      collector: FeatureTaskRuntimeRepairReceiptDecodeObservations.Collector? = null,
     ): FeatureTaskRuntimeRepairReceipt {
       raw.requireOnlyReviewStateKeys(
         setOf(
@@ -233,7 +233,7 @@ data class FeatureTaskRuntimeRepairReceipt(
         FeatureTaskRuntimeRepairReceiptEntry.fromArtifactMap(
           value.toReviewStateMap("$path.entries[$index]"),
           "$path.entries[$index]",
-          observations,
+          collector,
         )
       }
       return anchoredToDecodePath(path) {
@@ -249,13 +249,13 @@ data class FeatureTaskRuntimeRepairReceipt(
     internal fun validateEntries(
       raw: Map<String, Any?>,
       path: String,
-      observations: FeatureTaskRuntimeRepairReceiptDecodeObservations? = null,
+      collector: FeatureTaskRuntimeRepairReceiptDecodeObservations.Collector? = null,
     ) {
       reviewStateReader(raw, path).requiredList("entries").forEachIndexed { index, value ->
         FeatureTaskRuntimeRepairReceiptEntry.fromArtifactMap(
           value.toReviewStateMap("$path.entries[$index]"),
           "$path.entries[$index]",
-          observations,
+          collector,
         )
       }
     }

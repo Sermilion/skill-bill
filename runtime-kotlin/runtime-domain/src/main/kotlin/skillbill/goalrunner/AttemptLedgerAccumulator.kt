@@ -4,51 +4,45 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.goalrunner.model.GOAL_ATTEMPT_LEDGER_ARTIFACT_KEY
 import skillbill.goalrunner.model.GoalRunnerAttemptLedgerSummary
 import skillbill.workflow.goal.model.asGoalWorkflowArtifactMap
-import skillbill.goalrunner.recordDurableDecodeSubstitution
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 
-class AttemptLedgerAccumulator {
+fun summarizeAttemptLedgerFromEntries(entries: Iterable<Map<*, *>>): GoalRunnerAttemptLedgerSummary {
   var blockedAttemptCount = 0
   var supervisorKillCount = 0
-  val phaseAttemptCounts = mutableMapOf<String, Int>()
-  val cumulativeFixIterations = mutableMapOf<String, Int>()
-  val reAttemptCauseCounts = mutableMapOf<String, Int>()
+  val phaseAttemptCounts = linkedMapOf<String, Int>()
+  val cumulativeFixIterations = linkedMapOf<String, Int>()
+  val reAttemptCauseCounts = linkedMapOf<String, Int>()
   var findingsInScope: Int? = null
-
-  fun accumulate(entry: Map<*, *>) {
-    val action = entry["action"]?.toString() ?: return
+  entries.forEach { entry ->
+    val action = entry["action"]?.toString() ?: return@forEach
     if (entry["stop_reason"] != null) {
-      if (isBlockStopReason(entry["stop_reason"]?.toString())) blockedAttemptCount++
+      blockedAttemptCount += blockStopReasonCount(entry["stop_reason"]?.toString())
       entry["re_attempt_cause"]?.toString()?.takeIf(String::isNotBlank)?.let { cause ->
         reAttemptCauseCounts.merge(cause, 1, Int::plus)
       }
       entry["findings_in_scope"].asGoalRunnerIntOrNull()?.let { findingsInScope = it }
     }
     if (entry["diagnostic_class"]?.toString() == "supervisor_killed_confirmed_alive") supervisorKillCount++
-    if (action == "child_activation" || action == "resume") {
-      val step = entry["current_step"]?.toString()?.takeIf(String::isNotBlank)
-        ?: entry["previous_step"]?.toString()?.takeIf(String::isNotBlank)
-        ?: "initial_start"
-      phaseAttemptCounts.merge(step, 1, Int::plus)
+    when (action) {
+      "child_activation", "resume" -> {
+        val step = entry["current_step"]?.toString()?.takeIf(String::isNotBlank)
+          ?: entry["previous_step"]?.toString()?.takeIf(String::isNotBlank)
+          ?: "initial_start"
+        phaseAttemptCounts.merge(step, 1, Int::plus)
+      }
+      "backward_edge_entry" -> {
+        val subtaskId = entry[SharedPayloadKeys.SUBTASK_ID].asGoalRunnerIntOrNull() ?: return@forEach
+        val loopId = entry["loop_id"]?.toString()?.takeIf(String::isNotBlank) ?: return@forEach
+        val count = entry["cumulative_loop_count"].asGoalRunnerIntOrNull() ?: return@forEach
+        cumulativeFixIterations.merge("$subtaskId:$loopId", count, ::maxOf)
+      }
     }
-    if (action == "backward_edge_entry") accumulateBackwardEdge(entry)
   }
-
-  private fun accumulateBackwardEdge(entry: Map<*, *>) {
-    val subtaskId = entry[SharedPayloadKeys.SUBTASK_ID].asGoalRunnerIntOrNull() ?: return
-    val loopId = entry["loop_id"]?.toString()?.takeIf(String::isNotBlank) ?: return
-    val count = entry["cumulative_loop_count"].asGoalRunnerIntOrNull() ?: return
-    cumulativeFixIterations.merge("$subtaskId:$loopId", count, ::maxOf)
-  }
-
-  private fun isBlockStopReason(stopReason: String?): Boolean =
-    stopReason != null && stopReason.lowercase() in BLOCK_STOP_REASONS
-
-  fun toSummary() = GoalRunnerAttemptLedgerSummary(
+  return GoalRunnerAttemptLedgerSummary(
     blockedAttemptCount = blockedAttemptCount,
     supervisorKillCount = supervisorKillCount,
     phaseAttemptCounts = phaseAttemptCounts,
@@ -99,5 +93,10 @@ fun parseInstantOrNull(value: String): Instant? {
     null
   }
 }
+
+private fun isBlockStopReason(stopReason: String?): Boolean =
+  stopReason != null && stopReason.lowercase() in BLOCK_STOP_REASONS
+
+private fun blockStopReasonCount(stopReason: String?): Int = if (isBlockStopReason(stopReason)) 1 else 0
 
 val SQLITE_TIMESTAMP_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")

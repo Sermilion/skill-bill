@@ -24,10 +24,10 @@ import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.FeatureVerifySessionSummary
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.review.model.ReviewFindingVerdict
+import skillbill.workflow.model.WorkflowStatus
 import java.lang.reflect.Proxy
 import java.nio.file.Path
 import java.time.Instant
-import skillbill.workflow.model.WorkflowStatus
 
 private fun passThroughReviewRepository(): ReviewRepository = Proxy.newProxyInstance(
   ReviewRepository::class.java.classLoader,

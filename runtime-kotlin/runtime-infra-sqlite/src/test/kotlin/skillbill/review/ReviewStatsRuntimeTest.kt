@@ -1,6 +1,8 @@
 package skillbill.review
 
 import skillbill.SAMPLE_REVIEW
+import skillbill.application.learning.learningAppliedSessionWire
+import skillbill.application.learning.learningEntryDto
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.telemetry.TelemetryMeasurementAvailability
 import skillbill.infrastructure.sqlite.SQLiteLearningStore
@@ -11,8 +13,6 @@ import skillbill.infrastructure.sqlite.review.TriageRuntime
 import skillbill.infrastructure.sqlite.telemetry.LifecycleTelemetryStore
 import skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxStore
 import skillbill.infrastructure.sqlite.telemetry.listJson
-import skillbill.application.learning.learningAppliedSessionWire
-import skillbill.application.learning.learningEntryDto
 import skillbill.learnings.model.CreateLearningRequest
 import skillbill.learnings.model.LearningScope
 import skillbill.learnings.model.LearningSourceValidation

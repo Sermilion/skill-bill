@@ -1,11 +1,11 @@
 package skillbill.review.model
 
+import skillbill.error.InvalidReviewContextSchemaError
+import skillbill.review.context.model.ReviewLaneSegmentAccounting
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
-import skillbill.error.InvalidReviewContextSchemaError
-import skillbill.review.context.model.ReviewLaneSegmentAccounting
 
 class ReviewRunLaneSegmentAccountingJsonTest {
   @Test
@@ -14,7 +14,9 @@ class ReviewRunLaneSegmentAccountingJsonTest {
     assertEquals(emptyList(), ReviewRunLaneSegmentAccountingJson.decode(null))
     assertEquals(emptyList(), ReviewRunLaneSegmentAccountingJson.decode("[]"))
 
-    val legacy = """[{"segment_id":"legacy","measured_bytes":42,"entry_count":3,"composition_digest":"${"d".repeat(64)}"}]"""
+    val legacy = """[{"segment_id":"legacy","measured_bytes":42,"entry_count":3,"composition_digest":"${"d".repeat(
+      64,
+    )}"}]"""
     assertEquals(
       listOf(
         ReviewLaneSegmentAccounting(

@@ -6,13 +6,13 @@ import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.engine.goalrunner.testWorkflowGoalRunnerOutcomeStore
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
 import skillbill.ports.goalrunner.runner.model.GoalRunnerReconcileGate
+import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Path
 import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import skillbill.workflow.model.WorkflowStatus
 
 class WorkflowGoalRunnerOutcomeStoreTaskRuntimeBlockedTest {
   @Test

@@ -4,7 +4,6 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.WorkflowWirePayloadKeys
 import skillbill.workflow.engine.model.WorkflowDefinition
 import skillbill.workflow.engine.model.WorkflowUpdateInput
-import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
 
 internal fun validateWorkflowOpen(definition: WorkflowDefinition, currentStepId: String): String? =

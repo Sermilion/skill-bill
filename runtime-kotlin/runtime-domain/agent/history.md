@@ -1,5 +1,14 @@
 # Boundary History — runtime-domain
 
+## [2026-09-17] SKILL-351 subtask 3 — Shrink surface and merge count-split units
+Areas: runtime-domain, runtime-contracts, runtime-core/architecture, runtime-engine/featuretask, runtime-infra-fs, runtime-infra-sqlite
+- Removed unused runtime declarations and merged canonicalizer and goal-observability helper families into responsibility-owned units; deleted the closed-key parity branch and retired the remote-stats runtime wrapper.
+- Reduced ledger accumulation to pure summary reduction, carried truncation records through decode results, and made install transaction symlink state immutable with a named transition.
+- Pattern: keep boundary transformations pure and return diagnostics as typed result data; consolidate helper buckets only when one responsibility owns them. reusable
+- Known limitation: no runtime behavior changes are intended; canonicalizer output and existing ledger/install semantics remain compatibility boundaries.
+Feature flag: N/A
+Acceptance criteria: 6/6 implemented
+
 ## [2026-09-17] SKILL-351 subtask 2 — Restore ownership and typed boundaries
 Areas: runtime-domain, runtime-application, runtime-core, runtime-engine, runtime-infra-fs, runtime-infra-sqlite, runtime-ports, runtime-cli, runtime-mcp, runtime-contracts, runtime-kotlin docs
 - Consolidated feature-task wire validation behind one closed artifact-kind boundary, moved ownership to domain/application seams, and removed redundant forwarding ports, adapters, and fixtures.

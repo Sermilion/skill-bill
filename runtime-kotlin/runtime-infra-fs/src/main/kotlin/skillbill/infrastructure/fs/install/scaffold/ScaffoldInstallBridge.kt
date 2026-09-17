@@ -27,7 +27,7 @@ internal fun performScaffoldInstall(
   repoRoot: Path,
 ): Pair<List<Path>, List<String>> {
   val agents = detectAgents()
-  val installTx = InstallTransaction()
+  var installTx = InstallTransaction()
   val internalPlatformSkills = internalPlatformInstallSkills(plan)
   val installPaths = when (plan.kind) {
     SKILL_KIND_ADD_ON -> emptyList()
@@ -44,7 +44,9 @@ internal fun performScaffoldInstall(
   )
   val targets =
     installPaths.flatMap { installPath ->
-      installSkill(installPath, agents, transaction = installTx, context = context)
+      val outcome = installSkill(installPath, agents, transaction = installTx, context = context)
+      installTx = outcome.transaction ?: installTx
+      outcome.linkPaths
     }
   txn.installTargets += targets
   val notes = when {

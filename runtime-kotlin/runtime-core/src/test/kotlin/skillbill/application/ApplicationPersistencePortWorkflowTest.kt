@@ -16,6 +16,7 @@ import skillbill.error.InvalidFeatureTaskRuntimeHandoffProjectionError
 import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_DELIVERED_PROJECTIONS_ARTIFACT_KEY
@@ -28,7 +29,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import skillbill.workflow.model.WorkflowStatus
 
 class ApplicationPersistencePortWorkflowTest {
   @Test
@@ -337,7 +337,12 @@ class ApplicationPersistencePortWorkflowTest {
 
     assertTrue(recorder.recordRuntimePhase(workflowId, "preplan", status = "running", finished = false))
     assertEquals("running", stepStatusFor(workflowRepository, workflowId, "preplan"))
-    assertRuntimeWorkflowRow(workflowRepository, workflowId, currentStepId = "preplan", workflowStatus = WorkflowStatus.RUNNING.wireValue)
+    assertRuntimeWorkflowRow(
+      workflowRepository,
+      workflowId,
+      currentStepId = "preplan",
+      workflowStatus = WorkflowStatus.RUNNING.wireValue,
+    )
 
     assertTrue(recorder.recordRuntimePhase(workflowId, "preplan", status = "completed", finished = true))
     assertEquals("completed", stepStatusFor(workflowRepository, workflowId, "preplan"))
@@ -346,7 +351,12 @@ class ApplicationPersistencePortWorkflowTest {
     assertEquals("running", stepStatusFor(workflowRepository, workflowId, "plan"))
 
     assertEquals("completed", stepStatusFor(workflowRepository, workflowId, "preplan"))
-    assertRuntimeWorkflowRow(workflowRepository, workflowId, currentStepId = "plan", workflowStatus = WorkflowStatus.RUNNING.wireValue)
+    assertRuntimeWorkflowRow(
+      workflowRepository,
+      workflowId,
+      currentStepId = "plan",
+      workflowStatus = WorkflowStatus.RUNNING.wireValue,
+    )
 
     assertTrue(recorder.recordRuntimePhase(workflowId, "plan", status = "completed", finished = true))
     assertEquals("completed", stepStatusFor(workflowRepository, workflowId, "plan"))
@@ -361,7 +371,12 @@ class ApplicationPersistencePortWorkflowTest {
       ),
     )
     assertEquals("blocked", stepStatusFor(workflowRepository, workflowId, "implement"))
-    assertRuntimeWorkflowRow(workflowRepository, workflowId, currentStepId = "implement", workflowStatus = WorkflowStatus.BLOCKED.wireValue)
+    assertRuntimeWorkflowRow(
+      workflowRepository,
+      workflowId,
+      currentStepId = "implement",
+      workflowStatus = WorkflowStatus.BLOCKED.wireValue,
+    )
 
     assertEquals("pending", stepStatusFor(workflowRepository, workflowId, "review"))
   }

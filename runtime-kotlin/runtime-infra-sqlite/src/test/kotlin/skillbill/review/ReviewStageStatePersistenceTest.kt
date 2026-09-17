@@ -1,8 +1,8 @@
 package skillbill.review
 
+import skillbill.error.InvalidReviewContextSchemaError
 import skillbill.infrastructure.sqlite.SQLiteReviewRunCompletenessRepository
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
-import skillbill.error.InvalidReviewContextSchemaError
 import skillbill.review.model.ParallelReviewMergedFinding
 import skillbill.review.model.ParallelReviewSeverity
 import skillbill.review.model.ReviewClaimVerdict

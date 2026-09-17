@@ -10,6 +10,7 @@ import skillbill.infrastructure.sqlite.workflow.WorkflowStateRow
 import skillbill.infrastructure.sqlite.workflow.WorkflowStateStore
 import skillbill.ports.workflow.model.FeatureTaskRouteScope
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Files
 import java.sql.DriverManager
 import java.time.Instant
@@ -22,7 +23,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import skillbill.workflow.model.WorkflowStatus
 
 class WorkflowStateStoreTest {
   @Test
@@ -127,7 +127,10 @@ class WorkflowStateStoreTest {
         "bill-feature-task",
         "implement",
         FeatureTaskWorkflowMode.RUNTIME,
-      ).copy(workflowStatus = WorkflowStatus.RUNNING.wireValue, artifactsJson = """{"phase_records":{"preplan":"done"}}""")
+      ).copy(
+        workflowStatus = WorkflowStatus.RUNNING.wireValue,
+        artifactsJson = """{"phase_records":{"preplan":"done"}}""",
+      )
       store.saveFeatureTaskRuntimeWorkflow(row)
       val updatedAt = assertNotNull(store.getFeatureTaskRuntimeWorkflow(row.workflowId)).updatedAt
       val ownership = workerOwnership(row.workflowId, generation = 1, ownerToken = "owner-token-crash0001")
@@ -377,7 +380,9 @@ class WorkflowStateStoreTest {
       ).copy(artifactsJson = """{"plan":{"mode":"decompose"}}""")
 
       store.saveFeatureTaskRuntimeWorkflow(initialRow)
-    store.saveFeatureTaskRuntimeWorkflow(initialRow.copy(workflowStatus = WorkflowStatus.PAUSED.wireValue, finishedAt = null))
+      store.saveFeatureTaskRuntimeWorkflow(
+        initialRow.copy(workflowStatus = WorkflowStatus.PAUSED.wireValue, finishedAt = null),
+      )
 
       val saved = assertNotNull(store.getFeatureTaskRuntimeWorkflow("wftr-paused-parent"))
       assertEquals("wftr-paused-parent", saved.workflowId)
@@ -416,7 +421,9 @@ class WorkflowStateStoreLifecycleTest {
       assertEquals(startedAt, sameStatus.stateEnteredAt)
       assertEquals(false, sameStatus.stateEnteredAtEstimated)
 
-    store.saveFeatureTaskRuntimeWorkflow(sameStatus.copy(workflowStatus = WorkflowStatus.BLOCKED.wireValue, currentStepId = "plan"))
+      store.saveFeatureTaskRuntimeWorkflow(
+        sameStatus.copy(workflowStatus = WorkflowStatus.BLOCKED.wireValue, currentStepId = "plan"),
+      )
       val transitioned = assertNotNull(store.getFeatureTaskRuntimeWorkflow("wftr-state-entry-main"))
       assertEquals("blocked", transitioned.workflowStatus)
       assertTrue(Instant.parse(transitioned.stateEnteredAt).isAfter(Instant.parse(startedAt)))

@@ -13,13 +13,13 @@ import skillbill.ports.workflow.gitops.NoopWorkflowGitOperations
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.goal.NoopGoalObservabilityEventValidator
+import skillbill.workflow.model.WorkflowStatus
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import skillbill.workflow.model.WorkflowStatus
 
 private const val WORKFLOW_INPUT_PROJECTION_BYTE_CEILING = 64 * 1024
 
@@ -209,7 +209,7 @@ private fun newBlockedImplementService(
     WorkflowFamilyKind.TASK_RUNTIME,
     WorkflowUpdateRequest(
       workflowId = opened.workflowId,
-        workflowStatus = WorkflowStatus.BLOCKED.wireValue,
+      workflowStatus = WorkflowStatus.BLOCKED.wireValue,
       currentStepId = "implement",
       stepUpdates = WorkflowStepUpdates.from(
         listOf(

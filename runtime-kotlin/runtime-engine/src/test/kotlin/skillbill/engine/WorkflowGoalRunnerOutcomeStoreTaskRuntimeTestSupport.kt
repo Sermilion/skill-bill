@@ -25,6 +25,7 @@ import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GoalProgressEvent
 import skillbill.workflow.goal.model.GoalProgressEventKind
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
@@ -37,7 +38,6 @@ import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
-import skillbill.workflow.model.WorkflowStatus
 
 internal fun outcomeStoreSqliteTimestamp(instant: Instant): String = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
   .withZone(ZoneOffset.UTC)

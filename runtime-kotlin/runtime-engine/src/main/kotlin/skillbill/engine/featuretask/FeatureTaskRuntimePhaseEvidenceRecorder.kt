@@ -1,7 +1,4 @@
 package skillbill.engine.featuretask
-import skillbill.workflow.taskruntime.validateQuarantineRecord
-
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.contracts.JsonCodec
@@ -12,6 +9,7 @@ import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.workflow.get
 import skillbill.workflow.goal.model.appendBoundedHistoryBySequence
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.taskruntime.asCheckpointIdentitiesArtifactEntry
 import skillbill.workflow.taskruntime.asQuarantineWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
@@ -31,6 +29,7 @@ import skillbill.workflow.taskruntime.model.featureTaskRuntimeAppendCheckpointId
 import skillbill.workflow.taskruntime.model.featureTaskRuntimeCheckpointRefName
 import skillbill.workflow.taskruntime.model.featureTaskRuntimeOwnedPathDigest
 import skillbill.workflow.taskruntime.resolvedBranchFromWorkflowArtifacts
+import skillbill.workflow.taskruntime.validateQuarantineRecord
 import java.time.Clock
 
 class FeatureTaskRuntimePhaseEvidenceRecorder(

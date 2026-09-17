@@ -53,7 +53,7 @@ class InternalSkillStagingPackTest : InternalSkillStagingTestSupport() {
       skillPath = fixture.parentDir,
       agentTargets = listOf(AgentTarget("test-agent", agentRoot.toFileLocation())),
       context = InstallContext(repoRoot = fixture.repoRoot, home = fixture.home),
-    )
+    ).linkPaths
     val parentLink = links.single()
     assertTrue(Files.isSymbolicLink(parentLink))
 

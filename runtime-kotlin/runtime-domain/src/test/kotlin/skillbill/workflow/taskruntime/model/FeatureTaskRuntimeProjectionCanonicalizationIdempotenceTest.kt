@@ -6,6 +6,21 @@ import kotlin.test.assertTrue
 
 class FeatureTaskRuntimeProjectionCanonicalizationIdempotenceTest {
   @Test
+  fun `existing fixture keeps its canonical output shape`() {
+    val fixture = FeatureTaskRuntimeProjectionCanonicalizationFixtures.ALL.single()
+
+    assertEquals(
+      mapOf(
+        "completed_task_ids" to listOf("task-01"),
+        "changed_paths" to listOf("src/Foo.kt"),
+        "tests_executed" to listOf(mapOf("name" to "FooTest.kt", "outcome" to "passed")),
+        "reconciliation_evidence" to mapOf("reconciled" to true, "evidence" to "ok"),
+      ),
+      FeatureTaskRuntimeProjectionCanonicalizer.canonicalize(fixture).canonical,
+    )
+  }
+
+  @Test
   fun `canonicalize equals canonicalize applied twice across every canned fixture`() {
     FeatureTaskRuntimeProjectionCanonicalizationFixtures.ALL.forEachIndexed { index, fixture ->
       val first = FeatureTaskRuntimeProjectionCanonicalizer.canonicalize(fixture)

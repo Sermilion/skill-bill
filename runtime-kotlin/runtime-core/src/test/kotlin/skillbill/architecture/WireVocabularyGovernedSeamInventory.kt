@@ -3,9 +3,9 @@ package skillbill.architecture
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.contracts.workflow.FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys
 import skillbill.contracts.decomposition.DecompositionManifestBundleJournalSchemaPaths
 import skillbill.contracts.workflow.DecompositionManifestSchemaPaths
+import skillbill.contracts.workflow.FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys
 import skillbill.contracts.workflow.FeatureTaskRuntimePhaseOutputSchemaPaths
 import skillbill.testing.repoRootFromTest
 import java.nio.file.Files

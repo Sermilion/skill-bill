@@ -7,12 +7,12 @@ import skillbill.di.create
 import skillbill.model.RuntimeContext
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
+import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertTrue
 import skillbill.application.workflow.model.WorkflowOpenResult.Ok as WorkflowOpenResultOk
-import skillbill.workflow.model.WorkflowStatus
 
 class WorkflowServiceRuntimeComponentTest {
   @Test

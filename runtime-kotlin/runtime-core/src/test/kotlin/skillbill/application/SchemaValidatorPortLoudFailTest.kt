@@ -16,9 +16,9 @@ import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
 import skillbill.workflow.decomposition.model.DecompositionDependency
 import skillbill.workflow.decomposition.model.DecompositionExecutionModel
 import skillbill.workflow.decomposition.model.DecompositionManifest
+import skillbill.workflow.decomposition.model.DecompositionManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionStackBranch
 import skillbill.workflow.decomposition.model.DecompositionSubtask
-import skillbill.workflow.decomposition.model.DecompositionManifestWireMap
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertFailsWith

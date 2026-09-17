@@ -1,4 +1,4 @@
-package skillbill
+package skillbill.di
 
 import skillbill.goalrunner.DurableDecodeSubstitutionObservations
 import skillbill.goalrunner.DurableDecodeSubstitutionRecord

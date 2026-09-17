@@ -23,8 +23,8 @@ import skillbill.workflow.decomposition.model.DecompositionManifestRepairOperati
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationFormat
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationResult
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationSourceLocation
-import skillbill.workflow.decomposition.model.SpecSource
 import skillbill.workflow.decomposition.model.DecompositionManifestWireMap
+import skillbill.workflow.decomposition.model.SpecSource
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test

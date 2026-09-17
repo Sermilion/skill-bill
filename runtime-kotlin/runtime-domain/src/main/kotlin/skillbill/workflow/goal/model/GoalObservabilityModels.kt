@@ -21,9 +21,8 @@ enum class GoalObservabilityRecordKind(val wireValue: String) {
   ;
 
   companion object {
-    fun fromWire(value: String): GoalObservabilityRecordKind =
-      entries.firstOrNull { it.wireValue == value }
-        ?: throw invalidGoalObservabilityEvent("record_kind", "record_kind", "unrecognized value '$value'.")
+    fun fromWire(value: String): GoalObservabilityRecordKind = entries.firstOrNull { it.wireValue == value }
+      ?: throw invalidGoalObservabilityEvent("record_kind", "record_kind", "unrecognized value '$value'.")
   }
 }
 
@@ -39,9 +38,8 @@ enum class GoalProgressEventKind(val wireValue: String) {
     get() = this == OPERATION_STARTED || this == OPERATION_HEARTBEAT || this == OPERATION_COMPLETED
 
   companion object {
-    fun fromWire(value: String): GoalProgressEventKind =
-      entries.firstOrNull { it.wireValue == value }
-        ?: throw InvalidGoalProgressEventSchemaError("<wire>", "event_kind", "unrecognized value '$value'.")
+    fun fromWire(value: String): GoalProgressEventKind = entries.firstOrNull { it.wireValue == value }
+      ?: throw InvalidGoalProgressEventSchemaError("<wire>", "event_kind", "unrecognized value '$value'.")
   }
 }
 
@@ -54,9 +52,8 @@ enum class GoalProgressOutcome(val wireValue: String) {
   ;
 
   companion object {
-    fun fromWire(value: String): GoalProgressOutcome =
-      entries.firstOrNull { it.wireValue == value }
-        ?: throw InvalidGoalProgressEventSchemaError("<wire>", "outcome", "unrecognized value '$value'.")
+    fun fromWire(value: String): GoalProgressOutcome = entries.firstOrNull { it.wireValue == value }
+      ?: throw InvalidGoalProgressEventSchemaError("<wire>", "outcome", "unrecognized value '$value'.")
   }
 }
 

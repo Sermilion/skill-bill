@@ -1,6 +1,6 @@
 # SKILL-351 Subtask 3 - Shrink surface and merge count-split units
 
-Parent spec: [.feature-specs/SKILL-351-runtime-domain-boundaries-and-simplicity/spec.md](./spec.md)
+Parent spec: [.feature-specs/SKILL-351-runtime-domain-boundaries-and-simplicity/spec.md](spec.md)
 Issue key: SKILL-351
 
 ## Scope
@@ -17,7 +17,7 @@ Convert `AttemptLedgerAccumulator` to a pure reduction returning `GoalRunnerAtte
 
 1. Every declaration deleted appears in the re-run census as unreferenced; every module in runtime-kotlin compiles; the full runtime-kotlin test suite passes; the surface census shows zero public domain declarations with no consumer outside the module except those a written note keeps for documented generated or reflective use.
 2. `TelemetryRemoteStatsRuntime` is gone and its callers use the top-level function. `runtime-domain/build.gradle.kts` declares no serialization dependency and the inward-layer import rule still passes.
-3. The canonicalizer is one or two files under the 1,200-line and 40-function ceilings with no qualified sibling-object call chains; `GoalObservabilityParsing` is one unit. Remaining multi-file families are split by named responsibility, and the note that justifies each remaining split is in the module `agent/decisions.md`.
+3. The canonicalizer is one or two files under the 1,200-line and 40-function ceilings with no qualified sibling-object call chains; `GoalObservabilityParsing` is one unit. Remaining multi-file families are split by named responsibility, and the note that justifies each remaining split is in the module `../../../agent/decisions.md`.
 4. The closed-key branch either discards unknown top-level keys for every projection kind its schema authority lists, with a parity test that fails when a schema property lacks a Kotlin owner, or the branch, constant, and `repoTest` are deleted. Canonicalization output for existing fixtures is unchanged.
 5. No domain model exposes a public `var` or mutable collection. `AttemptLedgerAccumulator`'s consumer reads the same summary for the same ledger entries. Truncation records reach the same callers through the decode result.
 6. Spillover, line-ceiling, logical-type, and clustering guards pass with no new exemption or baseline row.

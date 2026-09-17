@@ -37,6 +37,7 @@ import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.goal.NoopGoalObservabilityEventValidator
+import skillbill.workflow.model.WorkflowStatus
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
@@ -46,7 +47,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import skillbill.workflow.model.WorkflowStatus
 
 class DecompositionManifestCommitProjectionTest {
   @Test

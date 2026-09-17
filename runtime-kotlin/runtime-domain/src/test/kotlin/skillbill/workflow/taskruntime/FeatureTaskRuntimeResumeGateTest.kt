@@ -3,19 +3,19 @@ package skillbill.workflow.taskruntime
 import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.WorkflowSnapshotValidator
-import skillbill.workflow.engine.model.WorkflowDefinition
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
+import skillbill.workflow.engine.model.WorkflowDefinition
 import skillbill.workflow.engine.model.WorkflowSnapshotView
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
-import skillbill.workflow.verify.FeatureVerifyWorkflowDefinition
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
+import skillbill.workflow.verify.FeatureVerifyWorkflowDefinition
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
-import skillbill.workflow.model.WorkflowStatus
 
 class FeatureTaskRuntimeResumeGateTest {
   private val engine = WorkflowEngine(NoopWorkflowSnapshotValidator)

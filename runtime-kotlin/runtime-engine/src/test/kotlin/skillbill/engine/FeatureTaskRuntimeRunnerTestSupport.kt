@@ -1,8 +1,5 @@
 package skillbill.engine
 
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
-import skillbill.workflow.model.WorkflowStatus
-
 import skillbill.application.RecordingLifecycleTelemetryRepository
 import skillbill.application.RecordingSpecScratchStore
 import skillbill.application.RecordingSpecStatusWriter
@@ -35,6 +32,7 @@ import skillbill.engine.featuretask.FeatureTaskRuntimeFindingVerificationBoundar
 import skillbill.engine.featuretask.FeatureTaskRuntimeGoalContinuationRecorder
 import skillbill.engine.featuretask.FeatureTaskRuntimeLifecycleTelemetry
 import skillbill.engine.featuretask.FeatureTaskRuntimePhaseGates
+import skillbill.engine.featuretask.FeatureTaskRuntimePhaseOutputTestValidator
 import skillbill.engine.featuretask.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.FeatureTaskRuntimePlanningStopper
 import skillbill.engine.featuretask.FeatureTaskRuntimeReviewDriver
@@ -153,9 +151,10 @@ import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
-import skillbill.engine.featuretask.FeatureTaskRuntimePhaseOutputTestValidator
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.taskruntime.NoopFeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.taskruntime.envelopeWireMap
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_ARTIFACT_KEY

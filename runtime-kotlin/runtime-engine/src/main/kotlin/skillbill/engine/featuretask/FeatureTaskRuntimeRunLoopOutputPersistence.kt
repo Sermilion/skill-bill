@@ -48,8 +48,7 @@ object FeatureTaskRuntimeRunLoopOutputPersistence {
     val reviewState = goalContinuationRecorder.reviewState(run.request.workflowId)
     val passNumber = reviewState?.completedPassCount?.takeIf { it > 0 } ?: 1
     val recordedVerdicts = recorder.recordedFindingVerdicts(reviewOutput)
-    val truncationRecords = mutableListOf<String>()
-    val rejected = GoalSubtaskReviewSummaryReducer.rejectedVerificationFindings(
+    val rejectedResult = GoalSubtaskReviewSummaryReducer.rejectedVerificationFindings(
       verifyOutput = verifyOutput,
       reviewOutput = reviewOutput,
       scope = UnaddressedFindingLedgerScope(
@@ -59,16 +58,15 @@ object FeatureTaskRuntimeRunLoopOutputPersistence {
         reviewPassNumber = passNumber,
       ),
       recordedVerdicts = recordedVerdicts,
-      truncationRecords = truncationRecords,
     )
-    truncationRecords.forEach { record ->
+    rejectedResult.truncationRecords.forEach { record ->
       runCatching { diagnostics.warning(record) }
     }
-    if (rejected.isEmpty()) return
+    if (rejectedResult.findings.isEmpty()) return
     recorder.appendRejectedVerificationFindings(
       workflowId = run.request.workflowId,
       passNumber = passNumber,
-      rejected = rejected,
+      rejected = rejectedResult.findings,
     )
   }
 

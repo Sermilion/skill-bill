@@ -261,7 +261,7 @@ class FeatureTaskRuntimeCorrectiveRespawnIntegrationTest {
             facts(defaultPhaseOutput(request))
           }
         },
-          validator = object : FeatureTaskRuntimePhaseOutputTestValidator() {
+        validator = object : FeatureTaskRuntimePhaseOutputTestValidator() {
           override fun validatePhaseOutputText(phaseOutputText: String, sourceLabel: String) {
             if (sourceLabel != "audit") return
             if (phaseOutputText.contains("SKILL187-TRUNCATED-EXCERPT")) {

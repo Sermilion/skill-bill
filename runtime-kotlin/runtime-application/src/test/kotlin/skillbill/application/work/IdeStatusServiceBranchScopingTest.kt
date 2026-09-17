@@ -16,13 +16,13 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerWorkflowProgress
 import skillbill.ports.work.model.WorkItemKind
 import skillbill.ports.workflow.model.FeatureTaskRouteScope
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
+import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Path
 import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
-import skillbill.workflow.model.WorkflowStatus
 
 class IdeStatusServiceBranchScopingTest {
 

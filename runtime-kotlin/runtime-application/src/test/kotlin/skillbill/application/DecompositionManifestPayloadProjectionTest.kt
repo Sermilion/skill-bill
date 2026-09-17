@@ -9,12 +9,12 @@ import skillbill.workflow.decomposition.encodeManifestWireMap
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
+import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
-import skillbill.workflow.model.WorkflowStatus
 
 class DecompositionManifestPayloadProjectionTest {
   @Test

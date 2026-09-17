@@ -8,7 +8,6 @@ import skillbill.error.MalformedJsonTextError
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepState
 import skillbill.workflow.model.WorkflowStepStatus
-import skillbill.workflow.model.workflowStepStatus
 
 fun WorkflowStateSnapshot.progressToken(): String = listOf(
   workflowId,

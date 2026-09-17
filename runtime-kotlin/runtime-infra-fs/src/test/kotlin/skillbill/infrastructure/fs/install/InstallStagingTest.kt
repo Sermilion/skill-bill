@@ -285,7 +285,7 @@ class InstallStagingTest {
       skillPath = fixture.skillDir,
       agentTargets = listOf(agent),
       context = InstallContext(repoRoot = fixture.repoRoot, home = fixture.home),
-    )
+    ).linkPaths
 
     assertEquals(1, created.size)
     val link = created.single()

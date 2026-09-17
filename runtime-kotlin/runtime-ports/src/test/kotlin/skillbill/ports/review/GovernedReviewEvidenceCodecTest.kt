@@ -5,8 +5,8 @@ import skillbill.ports.review.model.GovernedReviewEvidenceCodec
 import skillbill.ports.review.model.ReviewEvidenceBatchResult
 import skillbill.ports.review.model.ReviewEvidenceResult
 import skillbill.review.context.model.ForbiddenReviewOperation
-import skillbill.review.context.model.ReviewExpansionRecord
 import skillbill.review.context.model.GovernedReviewJsonRpcArguments
+import skillbill.review.context.model.ReviewExpansionRecord
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

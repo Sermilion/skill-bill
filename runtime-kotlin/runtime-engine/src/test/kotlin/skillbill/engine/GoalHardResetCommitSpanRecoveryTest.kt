@@ -13,6 +13,7 @@ import skillbill.engine.goalrunner.testGoalRunnerStatusService
 import skillbill.ports.goalrunner.runner.model.GoalRunnerWorkflowProgress
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
+import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertContains
@@ -21,7 +22,6 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
-import skillbill.workflow.model.WorkflowStatus
 
 class GoalHardResetCommitSpanRecoveryTest {
   private val issueKey = "SKILL-346"

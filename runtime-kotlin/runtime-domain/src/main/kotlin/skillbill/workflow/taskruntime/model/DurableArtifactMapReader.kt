@@ -63,9 +63,8 @@ internal class DurableArtifactMapReader(
       ?: fail("Feature-task-runtime artifact field '$key' must decode to a boolean when present.")
   }
 
-  fun requiredBoolean(key: String): Boolean =
-    optionalBoolean(key)
-      ?: fail("Feature-task-runtime artifact map is missing required boolean field '$key'.")
+  fun requiredBoolean(key: String): Boolean = optionalBoolean(key)
+    ?: fail("Feature-task-runtime artifact map is missing required boolean field '$key'.")
 
   fun optionalStringList(key: String): List<String> {
     if (!map.containsKey(key) || map[key] == null) {
@@ -120,9 +119,8 @@ internal class DurableArtifactMapReader(
       ?: fail("Feature-task-runtime artifact field '$key' must decode to an object when present.")
   }
 
-  fun nestedObjectFromValue(value: Any?, fieldPath: String): Map<String, Any?> =
-    value.asStringKeyMap()
-      ?: fail("Feature-task-runtime artifact field '$fieldPath' must decode to an object.")
+  fun nestedObjectFromValue(value: Any?, fieldPath: String): Map<String, Any?> = value.asStringKeyMap()
+    ?: fail("Feature-task-runtime artifact field '$fieldPath' must decode to an object.")
 }
 
 internal fun durableArtifactMapReader(map: Map<String, Any?>): DurableArtifactMapReader =

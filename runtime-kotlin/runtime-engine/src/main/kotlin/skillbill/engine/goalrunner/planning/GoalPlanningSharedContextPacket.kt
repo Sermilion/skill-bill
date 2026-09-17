@@ -140,14 +140,14 @@ object GoalPlanningSharedContextPacket {
     )
   }
 
-  fun includedSubtaskIds(packet: Map<String, Any?>): Set<Int> =
-    GoalPlanningSharedContextPacketValidation.normalizedSubtasks(packet["ordered_subtasks"])
-      .mapNotNull { subtask ->
-        (subtask[DecompositionPlanningPayloadKeys.ID] as Int).takeIf {
-          subtask["planning_disposition"] == "included"
-        }
+  fun includedSubtaskIds(packet: Map<String, Any?>): Set<Int> {
+    val subtasks = GoalPlanningSharedContextPacketValidation.normalizedSubtasks(packet["ordered_subtasks"])
+    return subtasks.mapNotNull { subtask ->
+      (subtask[DecompositionPlanningPayloadKeys.ID] as Int).takeIf {
+        subtask["planning_disposition"] == "included"
       }
-      .toSet()
+    }.toSet()
+  }
 
   fun digest(packet: Map<String, Any?>): String = GoalPlanningSharedContextPacketValidation.digest(packet)
 }

@@ -1,7 +1,5 @@
 package skillbill.application
 
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
-
 import skillbill.application.workflow.WorkflowService
 import skillbill.application.workflow.model.WorkflowFamilyKind
 import skillbill.application.workflow.model.WorkflowOpenResult

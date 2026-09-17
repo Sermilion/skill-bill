@@ -21,16 +21,16 @@ object GoalSubtaskReviewVerificationRejection {
     reviewOutput: Any,
     scope: UnaddressedFindingLedgerScope,
     recordedVerdicts: List<ReviewFindingVerdict> = emptyList(),
-    truncationRecords: MutableList<String>? = null,
-  ): List<UnaddressedFinding> {
+  ): RejectedVerificationFindingsResult {
+    val truncationCollector = RejectedVerificationTruncationCollector()
     val reviewRunId = GoalSubtaskReviewStructuredFindingsParse.reviewRunIdOf(reviewOutput)
     val reviewFindings = GoalSubtaskReviewStructuredFindingsParse.structuredFindings(reviewOutput, recordedVerdicts)
     val reviewById = reviewFindings.associateBy { it.findingId.orEmpty() }
     val dispositionsRaw = verifyOutput.asGoalSubtaskReviewPhaseOutputMap()[SharedPayloadKeys.PRODUCED_OUTPUTS]
       ?.let(JsonCodec::anyToStringAnyMap)
       ?.get(FeatureTaskRuntimeVerificationSignalKeys.FINDINGS_VERIFICATION_DISPOSITIONS) as? List<*>
-      ?: return emptyList()
-    return dispositionsRaw.mapIndexedNotNull { index, entry ->
+      ?: return RejectedVerificationFindingsResult(emptyList(), emptyList())
+    val findings = dispositionsRaw.mapIndexedNotNull { index, entry ->
       rejectedVerificationFinding(
         RejectedVerificationFindingInput(
           entry = entry,
@@ -39,10 +39,11 @@ object GoalSubtaskReviewVerificationRejection {
           reviewFindings = reviewFindings,
           reviewById = reviewById,
           scope = scope,
-          truncationRecords = truncationRecords,
+          truncationCollector = truncationCollector,
         ),
       )
     }
+    return RejectedVerificationFindingsResult(findings, truncationCollector.finish())
   }
 
   private fun rejectedVerificationFinding(input: RejectedVerificationFindingInput): UnaddressedFinding? {
@@ -55,7 +56,7 @@ object GoalSubtaskReviewVerificationRejection {
       input.reviewFindings.indexOfFirst { candidate -> candidate.findingId == findingId }
         .takeIf { it >= 0 }?.plus(1)
     }
-    val verificationReason = verificationReason(map, findingId, input.truncationRecords)
+    val verificationReason = verificationReason(map, findingId, input.truncationCollector)
     val severity = reviewFinding?.severity ?: UNADDRESSED_FINDING_DEFAULT_SEVERITY
     return UnaddressedFinding(
       issueKey = input.scope.issueKey,
@@ -83,11 +84,11 @@ object GoalSubtaskReviewVerificationRejection {
   private fun verificationReason(
     map: Map<String, Any?>,
     findingId: String,
-    truncationRecords: MutableList<String>?,
+    truncationCollector: RejectedVerificationTruncationCollector?,
   ): String? = (map["reason"] as? String)?.takeIf(String::isNotBlank)?.let { rawReason ->
     val truncated = Utf8Text.truncateToUtf8Bytes(rawReason, REJECTED_VERIFICATION_REASON_MAX_UTF8_BYTES)
     if (Utf8Text.utf8Size(truncated) < Utf8Text.utf8Size(rawReason)) {
-      truncationRecords?.add(rejectedVerificationReasonTruncationRecord(findingId))
+      truncationCollector?.add(rejectedVerificationReasonTruncationRecord(findingId))
     }
     truncated
   }

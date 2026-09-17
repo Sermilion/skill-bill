@@ -38,6 +38,4 @@ const val FEATURE_TASK_RUNTIME_PHASE_STATUS_PENDING: String = "pending"
 
 const val FEATURE_TASK_RUNTIME_PHASE_STATUS_PAUSED: String = "paused"
 
-const val FEATURE_TASK_RUNTIME_PHASE_STATUS_COMPLETED: String = "completed"
-
 const val FEATURE_TASK_RUNTIME_PHASE_BRIEFINGS_ARTIFACT_KEY: String = "feature_task_runtime_phase_briefings"

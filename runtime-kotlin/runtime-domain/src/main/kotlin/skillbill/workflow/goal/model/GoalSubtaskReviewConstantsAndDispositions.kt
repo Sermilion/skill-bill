@@ -23,15 +23,6 @@ enum class GoalSubtaskOperatorDecision(val wireValue: String) {
   }
 }
 
-enum class GoalSubtaskPauseRelease {
-
-  RETRY_FIX,
-
-  ADVANCE,
-
-  ABANDON,
-}
-
 enum class GoalSubtaskBlockerDispositionVerdict(val wireValue: String) {
   RESOLVED("resolved"),
   UNRESOLVED("unresolved"),

@@ -15,6 +15,7 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeQuarantineEntry
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairLedgerEntry
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairReceipt
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairReceiptDecodeObservations
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairReceiptDecoded
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepositoryCheckpoint
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeResolvedBranch
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationEvidence
@@ -32,8 +33,6 @@ import skillbill.workflow.taskruntime.phaseartifacts.operatorBlockRetryFrom
 import skillbill.workflow.taskruntime.phaseartifacts.phaseLedgerFrom
 import skillbill.workflow.taskruntime.phaseartifacts.phaseRecordsFrom
 import skillbill.workflow.taskruntime.phaseartifacts.resolvedBranchFrom
-import skillbill.workflow.taskruntime.phaseartifacts.reviewGenerationFrom
-
 private fun artifactsMap(artifacts: Any?): Map<String, Any?> = when {
   artifacts == null -> emptyMap()
   else -> JsonCodec.anyToStringAnyMap(artifacts)
@@ -60,8 +59,6 @@ fun phaseRecordsFromWorkflowArtifacts(artifacts: Any?): Map<String, FeatureTaskR
 
 fun resolvedBranchFromWorkflowArtifacts(artifacts: Any?): FeatureTaskRuntimeResolvedBranch? =
   resolvedBranchFrom(artifactsMap(artifacts))
-
-fun reviewGenerationFromWorkflowArtifacts(artifacts: Any?): Int = reviewGenerationFrom(artifactsMap(artifacts))
 
 fun operatorBlockRetryFromWorkflowArtifacts(artifacts: Any?): FeatureTaskRuntimeOperatorBlockRetry? =
   operatorBlockRetryFrom(artifactsMap(artifacts))
@@ -109,12 +106,15 @@ fun FeatureTaskRuntimeRepairReceipt.asWorkflowArtifactEntry(): Any = toArtifactM
 fun decodeRepairReceiptFromArtifact(raw: Any?, sourceLabel: String): FeatureTaskRuntimeRepairReceipt? =
   JsonCodec.anyToStringAnyMap(raw)?.let { FeatureTaskRuntimeRepairReceipt.fromArtifactMap(it, sourceLabel) }
 
-fun decodeRepairReceiptFromArtifact(
+fun decodeRepairReceiptFromArtifactWithObservations(
   raw: Any?,
   sourceLabel: String,
-  observations: FeatureTaskRuntimeRepairReceiptDecodeObservations,
-): FeatureTaskRuntimeRepairReceipt? = JsonCodec.anyToStringAnyMap(raw)?.let {
-  FeatureTaskRuntimeRepairReceipt.fromArtifactMap(it, sourceLabel, observations)
+): FeatureTaskRuntimeRepairReceiptDecoded? {
+  val collector = FeatureTaskRuntimeRepairReceiptDecodeObservations.Collector()
+  val receipt = JsonCodec.anyToStringAnyMap(raw)?.let {
+    FeatureTaskRuntimeRepairReceipt.fromArtifactMap(it, sourceLabel, collector)
+  } ?: return null
+  return FeatureTaskRuntimeRepairReceiptDecoded(receipt, collector.finish())
 }
 
 fun validateRepairReceiptWireEntries(raw: Any, path: String) {

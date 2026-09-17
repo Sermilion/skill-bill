@@ -1,7 +1,4 @@
 package skillbill.engine.featuretask
-import skillbill.workflow.taskruntime.validateImplementationAttemptRecord
-
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.contracts.JsonCodec
@@ -13,6 +10,7 @@ import skillbill.workflow.goal.model.appendBoundedHistoryBySequence
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.decodeImplementationAttemptsFromArtifact
 import skillbill.workflow.taskruntime.envelopeWireMap
@@ -33,6 +31,7 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerEntry
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.featureTaskRuntimeAppendImplementationAttempt
 import skillbill.workflow.taskruntime.operatorBlockRetryFromWorkflowArtifacts
+import skillbill.workflow.taskruntime.validateImplementationAttemptRecord
 import java.time.Clock
 
 class FeatureTaskRuntimePhaseStateRecorder(

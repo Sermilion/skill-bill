@@ -1,6 +1,5 @@
 package skillbill.infrastructure.sqlite.telemetry
 
-import skillbill.SkillBillRuntimeVersion
 import skillbill.ports.telemetry.TelemetryOutboxRepository
 import skillbill.ports.telemetry.model.TelemetryOutboxClaimRequest
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord

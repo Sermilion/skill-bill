@@ -1,8 +1,8 @@
 package skillbill.mcp
 
 import skillbill.SAMPLE_REVIEW
-import skillbill.SkillBillVersion
 import skillbill.contracts.JsonCodec
+import skillbill.di.SkillBillVersion
 import skillbill.mcp.core.McpStdioServer
 import skillbill.mcp.shared.McpRuntimeContext
 import java.nio.file.Files

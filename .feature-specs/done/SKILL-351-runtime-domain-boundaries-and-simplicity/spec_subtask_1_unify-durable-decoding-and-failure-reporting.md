@@ -1,6 +1,6 @@
 # SKILL-351 Subtask 1 - Unify durable decoding and failure reporting
 
-Parent spec: [.feature-specs/SKILL-351-runtime-domain-boundaries-and-simplicity/spec.md](./spec.md)
+Parent spec: [.feature-specs/SKILL-351-runtime-domain-boundaries-and-simplicity/spec.md](spec.md)
 Issue key: SKILL-351
 
 ## Scope

@@ -11,14 +11,14 @@ import skillbill.workflow.engine.model.WorkflowSnapshotView
 import skillbill.workflow.engine.model.WorkflowStepState
 import skillbill.workflow.engine.model.WorkflowUpdateAcknowledgementView
 import skillbill.workflow.goal.GoalObservabilityEventValidator
+import skillbill.workflow.model.WorkflowStatus
+import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactKind
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
-import skillbill.workflow.model.WorkflowStatus
-import skillbill.workflow.model.WorkflowStepStatus
 
 class WorkflowMcpResultMappersTest {
   @Test

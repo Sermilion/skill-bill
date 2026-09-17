@@ -1,6 +1,5 @@
 package skillbill.engine
 
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.application.decomposition.decompositionManifestPath
 import skillbill.application.decomposition.parentSpecPath
 import skillbill.application.idestatus.model.IdeStatusCurrentPhaseExecutionKind

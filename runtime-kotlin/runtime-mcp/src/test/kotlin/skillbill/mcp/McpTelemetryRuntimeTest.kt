@@ -11,9 +11,9 @@ import skillbill.telemetry.CONFIG_ENVIRONMENT_KEY
 import skillbill.telemetry.TELEMETRY_PROXY_STATS_TOKEN_ENVIRONMENT_KEY
 import skillbill.telemetry.TELEMETRY_PROXY_URL_ENVIRONMENT_KEY
 import skillbill.telemetry.model.RemoteStatsRequest
+import skillbill.telemetry.model.TelemetryOpenDocument
 import skillbill.telemetry.model.TelemetryProxyCapabilities
 import skillbill.telemetry.model.TelemetryRemoteStatsResult
-import skillbill.telemetry.model.TelemetryOpenDocument
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test

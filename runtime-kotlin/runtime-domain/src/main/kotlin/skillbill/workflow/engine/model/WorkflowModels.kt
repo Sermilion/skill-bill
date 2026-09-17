@@ -100,8 +100,7 @@ data class WorkflowDefinition(
     RequiredArtifactPresenceResolver.DEFAULT,
 )
 
-fun WorkflowDefinition.isTerminalStatus(status: WorkflowStatus): Boolean =
-  status in terminalStatusEnums
+fun WorkflowDefinition.isTerminalStatus(status: WorkflowStatus): Boolean = status in terminalStatusEnums
 
 fun WorkflowDefinition.isTerminalStatus(status: String): Boolean {
   val decoded = WorkflowStatus.fromWire(status)

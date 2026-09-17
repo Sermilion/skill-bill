@@ -1,10 +1,10 @@
 package skillbill.engine.featuretask
 
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.InvalidGoalPlanningPreparationSchemaError
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePlanningProjectionContract
 

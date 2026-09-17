@@ -1,13 +1,13 @@
 # SKILL-351 Subtask 2 - Restore ownership and typed boundaries
 
-Parent spec: [.feature-specs/SKILL-351-runtime-domain-boundaries-and-simplicity/spec.md](./spec.md)
+Parent spec: [.feature-specs/SKILL-351-runtime-domain-boundaries-and-simplicity/spec.md](spec.md)
 Issue key: SKILL-351
 
 ## Scope
 
 Resolve F-005, F-008, F-009, and F-011 in [investigation.md](investigation.md).
 
-Validator ports: pick one home and record it in `runtime-kotlin/ARCHITECTURE.md` and the module `agent/decisions.md`. Remove production logic from `FeatureTaskRuntimePhaseOutputValidator` and `DecompositionManifestValidator` default bodies and the `= Unit` default from `FeatureTaskRuntimeHandoffFoundationValidator`; the adapter or a domain function owns that logic. Collapse the seven identical `(Any, String)` ports into one port keyed by a closed artifact-kind enum, or give each a named payload type; remove the forwarding adapters and fixtures the change makes redundant. Move SKILL-numbered narrative KDoc to `agent/decisions.md`.
+Validator ports: pick one home and record it in `../../../runtime-kotlin/ARCHITECTURE.md` and the module `agent/decisions.md`. Remove production logic from `FeatureTaskRuntimePhaseOutputValidator` and `DecompositionManifestValidator` default bodies and the `= Unit` default from `FeatureTaskRuntimeHandoffFoundationValidator`; the adapter or a domain function owns that logic. Collapse the seven identical `(Any, String)` ports into one port keyed by a closed artifact-kind enum, or give each a named payload type; remove the forwarding adapters and fixtures the change makes redundant. Move SKILL-numbered narrative KDoc to `agent/decisions.md`.
 
 Ownership: move `learningEntryDto`, `learningEntrySessionJson`, and the other DTO helpers from `skillbill.learnings` to their application owner and delete the duplicate overload. Move `SkillBillVersion` to `runtime-core` or make its fallback observable, and extend `AmbientEnvironmentArchitectureTest` to classpath reads or document the exception. Relocate each `WorkflowBoundaryCollections.kt` wrapper to its area's `model` package or remove it. Replace the two `workflowName == FeatureTaskRuntimePhaseWorkflowDefinition.definition.workflowName` comparisons in `workflow.engine` with a `WorkflowDefinition` field the feature-task definition sets, removing the engine's import of `taskruntime`.
 

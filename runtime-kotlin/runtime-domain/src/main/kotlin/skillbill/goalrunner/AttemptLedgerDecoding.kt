@@ -31,10 +31,12 @@ fun declaredProgressEventFrom(artifacts: Any): GoalProgressEvent? {
 }
 
 fun Map<*, *>.decodeDeclaredGoalProgressEvent(sourceLabel: String): GoalProgressEvent {
-  val reader = DurableArtifactMapReader(toStringKeyedArtifactMap {
-    throw InvalidGoalProgressEventSchemaError(sourceLabel, "<root>", it)
-  }) { detail ->
-    throw InvalidGoalProgressEventSchemaError(sourceLabel, "<root>", detail)
+  val reader = DurableArtifactMapReader(
+    toStringKeyedArtifactMap {
+      invalidDeclaredGoalProgressEvent(sourceLabel, "<root>", it)
+    },
+  ) { detail ->
+    invalidDeclaredGoalProgressEvent(sourceLabel, "<root>", detail)
   }
   val eventKind = requiredProgressEventKind(reader, sourceLabel)
   val workflowId = reader.requiredString("workflow_id")
@@ -42,7 +44,7 @@ fun Map<*, *>.decodeDeclaredGoalProgressEvent(sourceLabel: String): GoalProgress
   val timestamp = reader.requiredString("timestamp")
   val sequenceNumber = reader.requiredInt("sequence_number").also { value ->
     if (value < 0) {
-      throw InvalidGoalProgressEventSchemaError(sourceLabel, "sequence_number", "must be non-negative.")
+      invalidDeclaredGoalProgressEvent(sourceLabel, "sequence_number", "must be non-negative.")
     }
   }
   val outcome = optionalProgressOutcome(reader, sourceLabel)
@@ -60,19 +62,16 @@ fun Map<*, *>.decodeDeclaredGoalProgressEvent(sourceLabel: String): GoalProgress
   )
 }
 
-private fun requiredProgressEventKind(
-  reader: DurableArtifactMapReader,
-  sourceLabel: String,
-): GoalProgressEventKind {
+private fun invalidDeclaredGoalProgressEvent(sourceLabel: String, field: String, detail: String): Nothing =
+  throw InvalidGoalProgressEventSchemaError(sourceLabel, field, detail)
+
+private fun requiredProgressEventKind(reader: DurableArtifactMapReader, sourceLabel: String): GoalProgressEventKind {
   val wire = reader.requiredString("event_kind")
   return GoalProgressEventKind.entries.firstOrNull { it.wireValue == wire }
     ?: throw InvalidGoalProgressEventSchemaError(sourceLabel, "event_kind", "unrecognized value '$wire'.")
 }
 
-private fun optionalProgressOutcome(
-  reader: DurableArtifactMapReader,
-  sourceLabel: String,
-): GoalProgressOutcome {
+private fun optionalProgressOutcome(reader: DurableArtifactMapReader, sourceLabel: String): GoalProgressOutcome {
   val outcomeWire = reader.optionalString("outcome") ?: return GoalProgressOutcome.NONE
   return GoalProgressOutcome.entries.firstOrNull { it.wireValue == outcomeWire }
     ?: throw InvalidGoalProgressEventSchemaError(sourceLabel, "outcome", "unrecognized value '$outcomeWire'.")
@@ -81,22 +80,20 @@ private fun optionalProgressOutcome(
 private fun Map<*, *>.buildDeclaredGoalProgressEvent(
   args: BuildDeclaredGoalProgressEventArgs,
   reader: DurableArtifactMapReader,
-): GoalProgressEvent =
-  try {
-    GoalProgressEvent(
-      eventKind = args.eventKind,
-      workflowId = args.workflowId,
-      workflowPhase = args.workflowPhase,
-      processAlive = reader.optionalBoolean("process_alive") ?: false,
-      sequenceNumber = args.sequenceNumber,
-      timestamp = args.timestamp,
-      stepId = reader.optionalString(SharedPayloadKeys.STEP_ID),
-      operationName = reader.optionalString("operation_name"),
-      operationKind = reader.optionalString("operation_kind"),
-      expectedLong = reader.optionalBoolean("expected_long") ?: false,
-      outcome = args.outcome,
-    )
-  } catch (error: IllegalArgumentException) {
-    throw InvalidGoalProgressEventSchemaError(args.sourceLabel, "<root>", error.message ?: "invalid event.", error)
-  }
-
+): GoalProgressEvent = try {
+  GoalProgressEvent(
+    eventKind = args.eventKind,
+    workflowId = args.workflowId,
+    workflowPhase = args.workflowPhase,
+    processAlive = reader.optionalBoolean("process_alive") ?: false,
+    sequenceNumber = args.sequenceNumber,
+    timestamp = args.timestamp,
+    stepId = reader.optionalString(SharedPayloadKeys.STEP_ID),
+    operationName = reader.optionalString("operation_name"),
+    operationKind = reader.optionalString("operation_kind"),
+    expectedLong = reader.optionalBoolean("expected_long") ?: false,
+    outcome = args.outcome,
+  )
+} catch (error: IllegalArgumentException) {
+  throw InvalidGoalProgressEventSchemaError(args.sourceLabel, "<root>", error.message ?: "invalid event.", error)
+}

@@ -1,12 +1,11 @@
 package skillbill.workflow.taskruntime.model
 
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
-import skillbill.workflow.taskruntime.validateDeclaration
-
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_PHASE_HANDOFF_CONTRACT_VERSION
 import skillbill.error.InvalidFeatureTaskRuntimePhaseHandoffSchemaError
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
+import skillbill.workflow.taskruntime.validateDeclaration
 
 data class PhaseHandoffProjectionDeclaration(
   val consumerPhaseId: String,

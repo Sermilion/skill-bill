@@ -1,5 +1,6 @@
 package skillbill.engine.featuretask
 
+import skillbill.contracts.JsonCodec
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputValidationResult
 import skillbill.workflow.taskruntime.model.NormalizedFeatureTaskRuntimePhaseOutput
 
@@ -13,12 +14,23 @@ object AlwaysValidValidator : FeatureTaskRuntimePhaseOutputTestValidator() {
   override fun validatePhaseOutputText(phaseOutputText: String, sourceLabel: String) = Unit
 
   override fun validateAndReadPhaseOutput(phaseOutputText: String, sourceLabel: String): Any =
-    emptyMap<String, Any?>()
+    phaseOutputMap(phaseOutputText)
 
   override fun normalizePhaseOutput(
     phaseOutputText: String,
     sourceLabel: String,
-  ): NormalizedFeatureTaskRuntimePhaseOutput {
-    return NormalizedFeatureTaskRuntimePhaseOutput(phaseOutputText, emptyMap())
+  ): NormalizedFeatureTaskRuntimePhaseOutput = normalizedPhaseOutput(phaseOutputText)
+
+  private fun normalizedPhaseOutput(phaseOutputText: String): NormalizedFeatureTaskRuntimePhaseOutput {
+    val envelope = phaseOutputMap(phaseOutputText)
+    return NormalizedFeatureTaskRuntimePhaseOutput(
+      canonicalJson = JsonCodec.mapToJsonString(envelope),
+      envelope = envelope,
+    )
   }
+
+  private fun phaseOutputMap(phaseOutputText: String): Map<String, Any?> = JsonCodec.parseObjectOrNull(phaseOutputText)
+    ?.let(JsonCodec::jsonElementToValue)
+    ?.let(JsonCodec::anyToStringAnyMap)
+    ?: error("fixture phase output is not an object")
 }

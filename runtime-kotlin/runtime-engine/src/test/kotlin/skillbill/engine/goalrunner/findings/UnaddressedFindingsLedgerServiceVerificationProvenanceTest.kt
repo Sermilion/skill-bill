@@ -10,10 +10,10 @@ import skillbill.ports.workflow.toRecord
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_DISPOSITIONS_ARTIFACT_KEY
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import skillbill.workflow.model.WorkflowStatus
 
 class UnaddressedFindingsLedgerServiceVerificationProvenanceTest {
   @Test

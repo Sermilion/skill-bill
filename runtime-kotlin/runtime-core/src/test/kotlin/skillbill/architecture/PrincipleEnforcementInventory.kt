@@ -245,7 +245,7 @@ object PrincipleEnforcementInventory {
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
       "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/taskruntime/model/" +
-        "FeatureTaskRuntimePersistenceMapFields.kt",
+        "DurableArtifactMapReader.kt",
       functionNames = setOf("durableArtifactMapReader"),
     ),
     ArchitectureScanSupport.ParseBoundarySite(
@@ -262,8 +262,15 @@ object PrincipleEnforcementInventory {
     ),
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
-      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/decomposition/DecompositionManifestWireCodec.kt",
-      functionNames = setOf("decode", "toDecompositionManifest", "toDecompositionSubtask", "decompositionReader"),
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/decomposition/" +
+        "DecompositionManifestWireCodec.kt",
+      functionNames =
+      setOf(
+        "decode",
+        "toDecompositionManifest",
+        "toDecompositionSubtask",
+        "decompositionReader",
+      ),
     ),
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
@@ -322,8 +329,15 @@ object PrincipleEnforcementInventory {
     ),
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
-      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/goal/model/GoalSubtaskReviewFindingArtifacts.kt",
-      functionNames = setOf("fromArtifactMap", "decodeWire", "decodeContinuationOnlyWire", "decodeContinuationDirect"),
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/goal/model/" +
+        "GoalSubtaskReviewFindingArtifacts.kt",
+      functionNames =
+      setOf(
+        "fromArtifactMap",
+        "decodeWire",
+        "decodeContinuationOnlyWire",
+        "decodeContinuationDirect",
+      ),
     ),
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
@@ -338,7 +352,7 @@ object PrincipleEnforcementInventory {
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
       "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/goal/model/" +
-        "GoalObservabilityParsingFields.kt",
+        "GoalObservabilityParsing.kt",
       functionNames = setOf("goalObservabilityReader", "requireGoalObservabilityContractVersion"),
     ),
     ArchitectureScanSupport.ParseBoundarySite(

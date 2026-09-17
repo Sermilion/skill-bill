@@ -1,8 +1,5 @@
 package skillbill.telemetry.model
 
-import skillbill.telemetry.model.CustomFieldMap
-import skillbill.telemetry.model.TelemetryOpenDocument
-
 data class TelemetryConfigDocument(
   val payload: TelemetryOpenDocument,
 )

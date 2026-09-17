@@ -92,7 +92,8 @@ data class FeatureTaskRuntimePhaseOutputRepairEvidence(
       requireRepairEvidenceExactFields(raw)
       val location = requireRepairEvidenceLocation(raw)
       val reader = DurableArtifactMapReader(raw) { message -> phaseOutputRepairEvidenceSchemaError(message) }
-      val locationReader = DurableArtifactMapReader(location) { message -> phaseOutputRepairEvidenceSchemaError(message) }
+      val locationReader =
+        DurableArtifactMapReader(location) { message -> phaseOutputRepairEvidenceSchemaError(message) }
       return FeatureTaskRuntimePhaseOutputRepairEvidence(
         contractVersion = reader.requiredString(SharedPayloadKeys.CONTRACT_VERSION),
         validatorVersion = reader.requiredString("validator_version"),

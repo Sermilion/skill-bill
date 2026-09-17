@@ -23,6 +23,7 @@ import skillbill.workflow.goal.model.GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.asCheckpointIdentitiesArtifactEntry
 import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
@@ -44,7 +45,6 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import skillbill.workflow.model.WorkflowStatus
 class RemediationBaseReconciliationUnderAmendTest {
   private val workflowId = "wftr-skill190-reconcile"
   private val issueKey = "SKILL-190"

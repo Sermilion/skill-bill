@@ -1,6 +1,5 @@
 package skillbill.engine
 
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.application.FakeDatabaseSessionFactory
 import skillbill.application.InMemoryWorkflowStates
 import skillbill.application.TestDecompositionManifestStore
@@ -78,6 +77,7 @@ import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GoalSubtaskReviewArtifactDecoder
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.goal.model.ValidationDepth
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationArtifact
@@ -95,7 +95,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import skillbill.workflow.model.WorkflowStatus
 
 private const val ISSUE_KEY = "SKILL-176"
 private const val GOAL_BRANCH = "feat/SKILL-176-goal-child-resume-self-heal"
