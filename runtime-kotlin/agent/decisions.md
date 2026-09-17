@@ -4,6 +4,12 @@ This file records architectural and implementation decisions that span the
 `runtime-kotlin/` boundary. Each entry is dated and explains the trade-off,
 not the implementation detail.
 
+## [2026-09-17] Empty produced_outputs is valid envelope payload
+Context: Runtime-owned validate finishes without agent JSON, and the envelope schema rejected `produced_outputs: {}` before the runtime could stamp gate evidence.
+Decision: Keep `produced_outputs` required as an object. Drop envelope `minProperties: 1`. Empty `{}` is valid when a phase has no payload. Phase allOf branches still require their shapes.
+Reason: The envelope should not invent a payload for phases that have none. Plan, implement, audit, and other shaped phases still fail without their keys. Review and build keep their Kotlin gates.
+Alternatives considered: A dummy `value: ""` stub, or skipping schema only for validate.
+
 ## [2026-09-17] Runtime engine bundle census and parameter threshold
 Context: The runtime-engine boundary cleanup needs a repeatable count while
 fact-only argument bags and port-carrying collaborators are dissolved.

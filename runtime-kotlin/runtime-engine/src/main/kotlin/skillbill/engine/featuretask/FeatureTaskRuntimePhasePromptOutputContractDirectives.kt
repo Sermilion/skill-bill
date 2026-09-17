@@ -21,9 +21,8 @@ fun outputContract(briefing: FeatureTaskRuntimePhaseLaunchBriefing, agentRunVali
       "retryable", "non_retryable_policy_conflict", "needs_user_action", "process_failure", or
       "invalid_output". Omit it when status is "completed".
     - "summary": non-empty string describing what this phase did
-    - "produced_outputs": object with at least one entry carrying this phase's concrete
-      result for downstream phases (for example plan steps, changed files, findings, or
-      validation results)${producedOutputsAddendum(
+    - "produced_outputs": object. Empty {} is valid when this phase has no structured
+      payload. When this briefing names a required shape below, that shape is required${producedOutputsAddendum(
     briefing,
     agentRunValidateFallback,
   )}

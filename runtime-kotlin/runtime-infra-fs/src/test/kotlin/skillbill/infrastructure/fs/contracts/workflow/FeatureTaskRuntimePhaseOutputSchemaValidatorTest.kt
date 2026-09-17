@@ -137,7 +137,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorTest {
   }
 
   @Test
-  fun `output with an empty produced_outputs object fails validation`() {
+  fun `plan output with empty produced_outputs fails because value is required`() {
     val emptyProducedOutputs =
       """
       contract_version: "0.6"
@@ -149,6 +149,19 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorTest {
     assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
       FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(emptyProducedOutputs, "plan")
     }
+  }
+
+  @Test
+  fun `validate output with empty produced_outputs passes envelope validation`() {
+    val emptyProducedOutputs =
+      """
+      contract_version: "0.6"
+      phase_id: "validate"
+      status: "completed"
+      summary: "Gate repair segment."
+      produced_outputs: {}
+      """.trimIndent()
+    FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(emptyProducedOutputs, "validate")
   }
 
   @Test
