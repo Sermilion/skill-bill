@@ -8,43 +8,16 @@ private const val VALIDATE_PHASE_FORBIDDEN_EXTRAS: String =
 val RUNTIME_OWNED_VALIDATE_PHASE_TASK: String =
   runtimeOwnedValidateAgentPhaseTask(packCollectAllCommand = null, packConfirmationCommand = null)
 
-private const val VALIDATE_AGENT_FORBIDDEN_CONFIRMATION: String =
-  "Do not run `bill-code-check` or validation_gate.cache_bypassing_collect_all_full_gate_command — " +
-    "the runtime runs confirmation after you stop. "
-
 private const val VALIDATE_TRIAGE_FORBIDDEN_PACK_GATE: String =
   "Do not run `bill-code-check`, the pack validation_gate collect_all_full_gate_command, " +
     "cache_bypassing_collect_all_full_gate_command, or any other pack-declared full-suite argv " +
     "during this triage turn. "
 
-const val VALIDATE_REPAIR_FIX_ALL_NO_MID_PROOF: String =
-  "Run the pack collect-all once at the start of this turn, read that output, and fix every finding " +
-    "in this session. Do not rerun collect-all after each item. You may run narrowly scoped proof " +
-    "commands while working when a finding or local inspection names a concrete task, script, or tool. " +
-    "Do not run the confirmation argv; the runtime runs pack confirmation after you stop. "
-
 fun runtimeOwnedValidateAgentPhaseTask(packCollectAllCommand: String?, packConfirmationCommand: String?): String {
-  val collectAllDetail = when {
-    !packCollectAllCommand.isNullOrBlank() ->
-      "Run this collect-all argv once: `$packCollectAllCommand`."
-    else ->
-      "Run validation_gate.collect_all_full_gate_command from the dominant platform pack once."
-  }
-  val confirmationDetail = when {
-    !packConfirmationCommand.isNullOrBlank() ->
-      "After you stop, the runtime alone runs this confirmation argv: `$packConfirmationCommand` — you never run it."
-    else ->
-      "After you stop, the runtime alone runs validation_gate.cache_bypassing_collect_all_full_gate_command — " +
-        "you never run that confirmation argv."
-  }
-  return "You are the only validate agent for this step — do not spawn delegated subagents. $collectAllDetail " +
-    "Read that output and fix every finding in this same session. When the pass is done, stop. " +
-    "Do not emit phase-output JSON, validation_result, or validation_evidence. $confirmationDetail " +
-    "If confirmation is still red, the runtime starts a fresh validate session with the same rules " +
-    "(up to three validate agent sessions, no injected finding list). Finished does not claim pass or fail. " +
+  return "Invoke `bill-code-check` exactly once. It routes to the dominant platform pack and owns " +
+    "the collect-all check, repairs, confirmation, and terminal result. Do not run a pack command " +
+    "directly, do not spawn delegated subagents, and stop when `bill-code-check` finishes. " +
     VALIDATE_PHASE_FORBIDDEN_EXTRAS +
-    VALIDATE_AGENT_FORBIDDEN_CONFIRMATION +
-    VALIDATE_REPAIR_FIX_ALL_NO_MID_PROOF +
     "Never silence findings with annotations, baselines, disabled rules, weakened configuration, or skipped " +
     "tests; fix root causes instead."
 }
@@ -92,23 +65,11 @@ fun runtimeOwnedValidateFinishedDirective(phaseId: String, packConfirmationComma
   if (phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE) {
     return gateRepairNoOutputSchemaDirective(phaseId, triage = false)
   }
-  val confirmationLine = when {
-    !packConfirmationCommand.isNullOrBlank() ->
-      "the pack confirmation argv `$packConfirmationCommand`"
-    else ->
-      "validation_gate.cache_bypassing_collect_all_full_gate_command from the dominant platform pack"
-  }
   return """
-    ## Validate — finished signal only
-    This launch is a runtime-owned validate agent turn. Do not emit a Required final output JSON object,
-    validation_result, validation_evidence, validation_receipt, gate_run_count, or any other phase envelope.
-    Do not spawn delegated subagents. Run the pack collect-all once, fix every finding, then stop — the
-    runtime treats that as finished and immediately runs $confirmationLine (not you). If confirmation is
-    still red, the runtime starts a fresh validate session. Finished does not mean pass or fail.
-
-    No structured input is injected (no finding list). Use the repository, subtask context, and the
-    collect-all output. You may run targeted local proofs while editing; do not run bill-code-check or
-    the confirmation argv to substitute for finishing.
+    ## Validate — quality-check owned
+    Invoke `bill-code-check` exactly once. It routes to the dominant platform pack and owns the
+    collect-all check, repairs, confirmation, and terminal result. Do not emit a phase envelope or
+    validation evidence, do not run pack commands directly, and stop when `bill-code-check` finishes.
   """.trimIndent()
 }
 

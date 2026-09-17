@@ -162,7 +162,7 @@ object FeatureTaskRuntimeRunLoopPlanningBranch {
           )
         run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE ->
           with(FeatureTaskRuntimeRunLoopValidationGate) {
-            gateContext.runDeclaredValidationGateCycle(prepared.run)
+            gateContext.runPhaseAttempts(prepared.run.copy(agentRunValidateFallback = true))
           }
         run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_BUILD ->
           with(FeatureTaskRuntimeRunLoopValidationGate) {

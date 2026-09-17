@@ -91,26 +91,6 @@ class FeatureTaskRuntimeRunState(
           ::durableVerdictFor,
         )
       }
-      .also { completedSet ->
-        val validationState = ValidationSettlementState(
-          completed = completedSet,
-          initialRecords = this.initialRecords,
-          transitions = transitions,
-          gateInvalidatedPhases = gateInvalidatedPhaseIds,
-        )
-        invalidateIncompleteValidationSettlement(
-          state = validationState,
-          validation = ValidationSettlementValidation(
-            validatedRecordToOutput = ::validatedRecordToOutput,
-            validationEvidenceCommandResolver = validationEvidenceCommandResolver,
-            durableVerdictFor = ::durableVerdictFor,
-          ),
-        )
-        completedSet.clear()
-        completedSet += validationState.completed
-        gateInvalidatedPhaseIds.clear()
-        gateInvalidatedPhaseIds += validationState.gateInvalidatedPhases
-      }
   init {
     this.initialRecords.values
       .mapNotNull(::validatedRecordToOutput)
@@ -205,6 +185,21 @@ class FeatureTaskRuntimeRunState(
   }
 
   fun outputs(): List<FeatureTaskRuntimePhaseOutput> = outputBuffer.toList()
+
+  internal fun outputsForUpstreamResolution(
+    requiredPhaseIds: Collection<String>,
+  ): List<FeatureTaskRuntimePhaseOutput> {
+    val inMemoryPhaseIds = outputBuffer.mapTo(mutableSetOf(), FeatureTaskRuntimePhaseOutput::phaseId)
+    val durableOutputs = requiredPhaseIds.asSequence()
+      .filterNot(inMemoryPhaseIds::contains)
+      .mapNotNull { phaseId ->
+        initialRecords[phaseId]
+          ?.takeIf { it.status.workflowStepStatus() == WorkflowStepStatus.COMPLETED }
+          ?.let(::validatedRecordToOutput)
+      }
+      .toList()
+    return outputBuffer + durableOutputs
+  }
 
   internal val phaseTokenView: Map<String, Pair<Int, Int>>
     get() = phaseTokenUsage.toMap()

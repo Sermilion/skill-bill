@@ -478,6 +478,12 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
     }
     if (
       run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE &&
+      run.agentRunValidateFallback
+    ) {
+      return persistQualityCheckCompletion(args)
+    }
+    if (
+      run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE &&
       !run.agentRunValidateFallback
     ) {
       return AttemptResult.settled(
@@ -502,6 +508,38 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
       }
     }
     return null
+  }
+
+  private fun persistQualityCheckCompletion(args: GateOutputArgs): AttemptResult {
+    val completion = FeatureTaskRuntimeRunLoopValidationGate.qualityCheckCompletionOutput(
+      args.run,
+      args.iteration,
+    )
+    val accepted = try {
+      args.outputValidator
+        .validatePhaseOutput(completion.payload, sourceLabel = args.run.phaseId)
+        .requireAcceptedOutput(args.run.phaseId)
+    } catch (error: InvalidFeatureTaskRuntimePhaseOutputSchemaError) {
+      return gateOutputSchemaInvalid(
+        args.state,
+        args.recorder,
+        args,
+        error,
+      )
+    }
+    return with(FeatureTaskRuntimeRunLoopOutputVerification) {
+      args.settlementContext.persistAcceptedOutput(
+        PersistAcceptedOutputArgs(
+          run = args.run,
+          iteration = args.iteration,
+          normalizedOutput = accepted.normalizedOutput,
+          repairEvidence = accepted.repairEvidence,
+          observability = args.observability,
+          fileManifest = args.fileManifest,
+          repositoryFingerprint = null,
+        ),
+      )
+    }
   }
 
   private fun runtimeOwnedGateAgentTurn(run: PhaseRun): Boolean {

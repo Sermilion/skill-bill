@@ -150,7 +150,10 @@ object FeatureTaskRuntimeRunLoopPhaseRunner {
   }
 
   internal fun missingRequiredUpstream(run: PhaseRun, state: FeatureTaskRuntimeRunState): List<String>? =
-    missingUpstream(run.declaration, state.outputs())?.takeIf(List<String>::isNotEmpty)
+    missingUpstream(
+      run.declaration,
+      state.outputsForUpstreamResolution(run.declaration.consumedUpstreamPhaseIds),
+    )?.takeIf(List<String>::isNotEmpty)
 
   fun isRetryableGoalReviewPreparation(phaseId: String, reason: String): Boolean {
     if (phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW) return false
