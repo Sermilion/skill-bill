@@ -148,7 +148,7 @@ internal fun validProducedOutputs(phaseId: String, commitPushChangedPaths: List<
     else -> """{"tasks":["task-1"]}"""
   }
 
-private fun validateProducedOutputs(): String = """{"validation_result":{
+private fun validateProducedOutputs(): String = """{"value":"finished","validation_result":{
       "validation_status":"passed",
       "checks":["FooTest"],
       "repository_checkpoint":{"fingerprint":"fixture-checkpoint-1"},

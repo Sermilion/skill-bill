@@ -180,9 +180,7 @@ class FeatureTaskRuntimeRunState(
     if (hasDurableReviewInvalidationTombstone) resetInvalidatedReviewGeneration()
   }
 
-  fun outputs(
-    requiredPhaseIds: Collection<String> = emptyList(),
-  ): List<FeatureTaskRuntimePhaseOutput> {
+  fun outputs(requiredPhaseIds: Collection<String> = emptyList()): List<FeatureTaskRuntimePhaseOutput> {
     val inMemory = outputBuffer.toList()
     if (requiredPhaseIds.isEmpty()) return inMemory
     val inMemoryPhaseIds = inMemory.mapTo(mutableSetOf(), FeatureTaskRuntimePhaseOutput::phaseId)

@@ -186,8 +186,8 @@ class FeatureTaskRuntimePhasePromptComposerTest {
       validatePrompt.contains(ownershipTitle),
       "validate must not carry the non-validate forbid; it owns the gate",
     )
-    assertContains(validatePrompt, "validation_gate")
-    assertContains(validatePrompt, "confirmation argv")
+    assertContains(validatePrompt, "bill-code-check")
+    assertContains(validatePrompt, "Do not run a pack command directly")
     assertFalse(validatePrompt.contains("Invoke bill-code-check for collect-all and confirmation"))
 
     val reviewPrompt = composePhasePrompt(
@@ -239,13 +239,10 @@ class FeatureTaskRuntimePhasePromptComposerTest {
       promptComposerBriefingFor(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE),
     )
 
-    assertContains(prompt, "validation_gate")
-    assertContains(prompt, "only validate agent for this step")
+    assertContains(prompt, "Invoke `bill-code-check` exactly once")
     assertContains(prompt, "do not spawn delegated subagents")
-    assertContains(prompt, "up to three validate agent sessions")
-    assertContains(prompt, "Validate — finished signal only")
-    assertContains(prompt, "Finished does not mean pass or fail")
-    assertContains(prompt, "No structured input is injected")
+    assertContains(prompt, "Validate — quality-check owned")
+    assertContains(prompt, "Do not emit a phase envelope or")
     assertContains(prompt, "Do not run `skill-bill validate`")
     assertContains(prompt, "`npx agnix`")
     assertFalse(prompt.contains("Required final output (validated schema gate)"))
@@ -263,9 +260,11 @@ class FeatureTaskRuntimePhasePromptComposerTest {
       )
     }
 
-    assertContains(prompt, "cargo test --offline")
-    assertContains(prompt, "cargo test --all-features")
-    assertContains(prompt, "cache_bypassing_collect_all_full_gate_command")
+    assertFalse(prompt.contains("cargo test --offline"))
+    assertFalse(prompt.contains("cargo test --all-features"))
+    assertFalse(prompt.contains("cache_bypassing_collect_all_full_gate_command"))
+    assertContains(prompt, "Invoke `bill-code-check` exactly once")
+    assertContains(prompt, "Do not run a pack command directly")
     assertContains(prompt, "Do not run `skill-bill validate`")
     assertContains(prompt, "`npx agnix`")
     assertContains(prompt, "scripts/validate_agent_configs")
@@ -294,8 +293,8 @@ class FeatureTaskRuntimePhasePromptComposerTest {
       promptComposerBriefingFor(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE),
     ) { copy(agentRunValidateFallback = true) }
 
-    assertContains(prompt, "Validate — finished signal only")
-    assertContains(prompt, "collect_all_full_gate_command")
+    assertContains(prompt, "Validate — quality-check owned")
+    assertContains(prompt, "Invoke `bill-code-check` exactly once")
     assertFalse(prompt.contains("Invoke bill-code-check for collect-all and confirmation"))
     assertFalse(prompt.contains("Validation gate degradation"))
     assertFalse(prompt.contains("Required final output (validated schema gate)"))
@@ -303,7 +302,6 @@ class FeatureTaskRuntimePhasePromptComposerTest {
       prompt,
       "Never silence findings with annotations, baselines, disabled rules, weakened configuration, or skipped tests",
     )
-    assertContains(prompt, "narrowly scoped proof commands")
     assertFalse(prompt.contains("\"validation_result\": {"))
     assertFalse(prompt.contains("First action every repair turn"))
     assertFalse(prompt.contains("findings_open"))
@@ -321,22 +319,19 @@ class FeatureTaskRuntimePhasePromptComposerTest {
     )
 
     listOf(fullPrompt, defaultPrompt).forEach { prompt ->
-      assertContains(prompt, "validation_gate")
-      assertContains(prompt, "cache_bypassing_collect_all_full_gate_command")
+      assertContains(prompt, "Invoke `bill-code-check` exactly once")
+      assertContains(prompt, "Do not run a pack command directly")
       assertContains(prompt, "Do not run `skill-bill validate`")
       assertContains(prompt, "`npx agnix`")
       assertContains(prompt, "scripts/validate_agent_configs")
-      assertContains(prompt, "only validate agent for this step")
       assertContains(prompt, "do not spawn delegated subagents")
-      assertContains(prompt, "up to three validate agent sessions")
-      assertContains(prompt, "no injected finding list")
-      assertContains(prompt, "narrowly scoped proof commands")
+      assertContains(prompt, "Validate — quality-check owned")
       assertContains(
         prompt,
         "Never silence findings with annotations, baselines, disabled rules, weakened configuration, or skipped tests",
       )
       assertTrue(prompt.contains("bill-code-check"))
-      assertContains(prompt, "collect_all_full_gate_command")
+      assertFalse(prompt.contains("cache_bypassing_collect_all_full_gate_command"))
       assertFalse(prompt.contains("Invoke bill-code-check for collect-all and confirmation"))
       assertFalse(prompt.contains("Goal-continuation validate depth"))
     }
@@ -359,9 +354,8 @@ class FeatureTaskRuntimePhasePromptComposerTest {
     listOf(fullPrompt, defaultPrompt).forEach { prompt ->
       assertFalse(prompt.contains("A prior gate run parsed these items"))
       assertFalse(prompt.contains("module=m id=t"))
-      assertContains(prompt, "Validate — finished signal only")
-      assertContains(prompt, "No structured input is injected")
-      assertContains(prompt, "collect_all_full_gate_command")
+      assertContains(prompt, "Validate — quality-check owned")
+      assertContains(prompt, "Invoke `bill-code-check` exactly once")
       assertFalse(prompt.contains("Required final output (validated schema gate)"))
     }
   }
@@ -420,10 +414,9 @@ class FeatureTaskRuntimePhasePromptComposerTest {
     }
     assertContains(repairPrompt, "Do not run `skill-bill validate`")
     assertContains(repairPrompt, "bill-code-check")
-    assertContains(repairPrompt, "collect_all_full_gate_command")
-    assertContains(repairPrompt, "cache_bypassing_collect_all_full_gate_command")
-    assertContains(repairPrompt, "Run the pack collect-all once")
-    assertContains(repairPrompt, "Validate — finished signal only")
+    assertContains(repairPrompt, "Invoke `bill-code-check` exactly once")
+    assertContains(repairPrompt, "Validate — quality-check owned")
+    assertFalse(repairPrompt.contains("Run the pack collect-all once"))
     assertContains(triagePrompt, "triage")
     assertContains(triagePrompt, "validation_repair_plan")
   }
@@ -461,7 +454,7 @@ class FeatureTaskRuntimePhasePromptComposerTest {
     assertFalse(validatePrompt.contains("Invoke bill-code-check for collect-all and confirmation"))
     assertFalse(validatePrompt.contains("Invoke bill-kotlin-code-check"))
     assertFalse(validatePrompt.contains("Required final output (validated schema gate)"))
-    assertContains(validatePrompt, "Validate — finished signal only")
+    assertContains(validatePrompt, "Validate — quality-check owned")
 
     val nonValidatePhases = listOf(
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN,
@@ -558,7 +551,7 @@ class FeatureTaskRuntimePhasePromptComposerTest {
       assertContains(prompt, "Scaling changes scope and verbosity only", false, "gate integrity for $phaseId")
       assertContains(prompt, PROMPT_COMPOSER_SPEC_REFERENCE, false, "spec reference for $phaseId")
       if (phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE) {
-        assertContains(prompt, "Validate — finished signal only", false, "validate finished directive for $phaseId")
+        assertContains(prompt, "Validate — quality-check owned", false, "validate finished directive for $phaseId")
         assertFalse(
           prompt.contains("Required final output (validated schema gate)"),
           "validate must not require phase JSON for $phaseId",

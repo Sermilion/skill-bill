@@ -83,7 +83,8 @@ class WorkflowCliResultMappersTest {
     ) + "\n"
     val expected = Files.readAllBytes(
       cliCompatibilityRepositoryRoot().resolve(
-        ".feature-specs/SKILL-351-runtime-domain-boundaries-and-simplicity/baselines/workflow-update-ack-wire.json",
+        ".feature-specs/done/SKILL-351-runtime-domain-boundaries-and-simplicity/" +
+          "baselines/workflow-update-ack-wire.json",
       ),
     )
 

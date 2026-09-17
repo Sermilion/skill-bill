@@ -477,15 +477,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
       )
     }
     if (run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE) {
-      return if (run.agentRunValidateFallback) {
-        persistQualityCheckCompletion(args)
-      } else {
-        AttemptResult.settled(
-          PhaseOutcome.completed(
-            FeatureTaskRuntimeRunLoopValidationGate.gateRepairSegmentOutput(run, args.iteration),
-          ),
-        )
-      }
+      return persistQualityCheckCompletion(args)
     }
     if (runtimeOwnedGateAgentTurn(run)) {
       val outputMap = FeatureTaskRuntimeRunLoopValidationGate.looseOutputEnvelope(args.captured.text)
