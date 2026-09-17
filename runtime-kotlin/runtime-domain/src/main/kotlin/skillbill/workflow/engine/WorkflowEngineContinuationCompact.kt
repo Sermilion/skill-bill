@@ -8,10 +8,11 @@ import skillbill.workflow.engine.model.WorkflowInputProjection
 import skillbill.workflow.engine.model.WorkflowResumeView
 import skillbill.workflow.engine.model.WorkflowSnapshotView
 import skillbill.workflow.model.WorkflowContinueStatus
+import skillbill.workflow.model.WorkflowStatus
 
 internal data class ContinueStepPresentation(
   val continueStatus: WorkflowContinueStatus,
-  val workflowStatusBeforeContinue: String,
+  val workflowStatusBeforeContinue: WorkflowStatus,
   val continueStepLabel: String,
   val continueStepDirective: String,
 )

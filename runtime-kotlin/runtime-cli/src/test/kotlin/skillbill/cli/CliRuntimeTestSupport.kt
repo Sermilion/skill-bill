@@ -1,10 +1,10 @@
 package skillbill.cli
 
 import skillbill.SAMPLE_REVIEW
-import skillbill.SkillBillVersion
 import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliRuntimeContext
 import skillbill.contracts.JsonCodec
+import skillbill.di.SkillBillVersion
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
 import skillbill.infrastructure.sqlite.telemetry.LifecycleTelemetryStore
 import skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxStore

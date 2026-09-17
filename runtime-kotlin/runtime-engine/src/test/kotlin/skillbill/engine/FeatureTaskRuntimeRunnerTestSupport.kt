@@ -20,8 +20,7 @@ import skillbill.config.model.RepoLocalConfig
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.time.JvmSystemClock
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITY_CONTRACT_VERSION
-import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeHandoffEnvelopeValidator
-import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeHandoffFoundationValidator
+import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeWireArtifactValidator
 import skillbill.engine.featuretask.AlwaysValidValidator
 import skillbill.engine.featuretask.ApprovingReviewDriverStub
 import skillbill.engine.featuretask.FeatureTaskPhaseSettlementService
@@ -33,6 +32,7 @@ import skillbill.engine.featuretask.FeatureTaskRuntimeFindingVerificationBoundar
 import skillbill.engine.featuretask.FeatureTaskRuntimeGoalContinuationRecorder
 import skillbill.engine.featuretask.FeatureTaskRuntimeLifecycleTelemetry
 import skillbill.engine.featuretask.FeatureTaskRuntimePhaseGates
+import skillbill.engine.featuretask.FeatureTaskRuntimePhaseOutputTestValidator
 import skillbill.engine.featuretask.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.FeatureTaskRuntimePlanningStopper
 import skillbill.engine.featuretask.FeatureTaskRuntimeReviewDriver
@@ -151,12 +151,11 @@ import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeBuildReceiptValidator
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePlanningProjectionValidator
-import skillbill.workflow.taskruntime.NoopFeatureTaskRuntimeBuildReceiptValidator
-import skillbill.workflow.taskruntime.NoopFeatureTaskRuntimePlanningProjectionValidator
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
+import skillbill.workflow.taskruntime.NoopFeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.taskruntime.envelopeWireMap
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_CHECKPOINT_IDENTITIES_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
@@ -424,7 +423,7 @@ internal class RunnerHarness(
         sessionId = SESSION_ID,
         workflowName = "bill-feature-task",
         contractVersion = "0.1",
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING.wireValue,
         currentStepId = "implement",
         stepsJson = "[]",
         artifactsJson = "{}",
@@ -552,10 +551,10 @@ internal data class RuntimeHarnessConfig(
   val useRealDecompositionPlanner: Boolean = false,
   val eventSink: FeatureTaskRuntimeRunEventSink? = null,
   val acceptanceCriteria: List<String> = listOf("AC-1", "AC-2"),
-  val planningProjectionValidator: FeatureTaskRuntimePlanningProjectionValidator =
-    NoopFeatureTaskRuntimePlanningProjectionValidator,
-  val buildReceiptValidator: FeatureTaskRuntimeBuildReceiptValidator =
-    NoopFeatureTaskRuntimeBuildReceiptValidator,
+  val planningProjectionValidator: FeatureTaskRuntimeWireArtifactValidator =
+    NoopFeatureTaskRuntimeWireArtifactValidator,
+  val buildReceiptValidator: FeatureTaskRuntimeWireArtifactValidator =
+    NoopFeatureTaskRuntimeWireArtifactValidator,
   val codeReviewMode: CodeReviewExecutionMode = CodeReviewExecutionMode.DEFAULT,
   val sharedEvidenceResolver: FeatureTaskRuntimeSharedEvidenceResolverPort =
     FeatureTaskRuntimeSharedEvidenceResolverPort.NONE,
@@ -581,10 +580,10 @@ private data class RuntimePhaseGatesDeps(
   val lifecycleTelemetry: FeatureTaskRuntimeLifecycleTelemetry,
   val gitOperations: WorkflowGitOperations = NoopWorkflowGitOperations,
   val specGate: FeatureTaskRuntimeSpecGate = testSpecGate(),
-  val planningProjectionValidator: FeatureTaskRuntimePlanningProjectionValidator =
-    NoopFeatureTaskRuntimePlanningProjectionValidator,
-  val buildReceiptValidator: FeatureTaskRuntimeBuildReceiptValidator =
-    NoopFeatureTaskRuntimeBuildReceiptValidator,
+  val planningProjectionValidator: FeatureTaskRuntimeWireArtifactValidator =
+    NoopFeatureTaskRuntimeWireArtifactValidator,
+  val buildReceiptValidator: FeatureTaskRuntimeWireArtifactValidator =
+    NoopFeatureTaskRuntimeWireArtifactValidator,
   val sharedEvidenceResolver: FeatureTaskRuntimeSharedEvidenceResolverPort =
     FeatureTaskRuntimeSharedEvidenceResolverPort.NONE,
   val diffResolver: DiffResolverPort = object : DiffResolverPort {
@@ -735,8 +734,8 @@ private fun harnessPhaseRecorder(database: RuntimeFakeDatabaseSessionFactory): F
   featureTaskRuntimePhaseRecorder(
     database,
     NoopWorkflowSnapshotValidator,
-    AcceptingFeatureTaskRuntimeHandoffEnvelopeValidator,
-    AcceptingFeatureTaskRuntimeHandoffFoundationValidator,
+    AcceptingFeatureTaskRuntimeWireArtifactValidator,
+    AcceptingFeatureTaskRuntimeWireArtifactValidator,
     testHarnessClock,
     NoopRuntimeDiagnostics,
   )
@@ -1607,7 +1606,7 @@ internal class RuntimeRecordingLauncher(
     return handler(request)
   }
 }
-internal class ThrowingValidator(private val failPhases: Set<String>) : FeatureTaskRuntimePhaseOutputValidator {
+internal class ThrowingValidator(private val failPhases: Set<String>) : FeatureTaskRuntimePhaseOutputTestValidator() {
   override fun validatePhaseOutputText(phaseOutputText: String, sourceLabel: String) {
     if (sourceLabel in failPhases) {
       throw InvalidFeatureTaskRuntimePhaseOutputSchemaError(sourceLabel, "rejected by fake validator")
@@ -1615,7 +1614,7 @@ internal class ThrowingValidator(private val failPhases: Set<String>) : FeatureT
   }
 }
 
-internal object RepairingImplementOutputValidator : FeatureTaskRuntimePhaseOutputValidator {
+internal object RepairingImplementOutputValidator : FeatureTaskRuntimePhaseOutputTestValidator() {
   override fun validatePhaseOutputText(phaseOutputText: String, sourceLabel: String) = Unit
 
   override fun validatePhaseOutput(
@@ -1640,7 +1639,7 @@ internal object RepairingImplementOutputValidator : FeatureTaskRuntimePhaseOutpu
   }
 }
 
-internal object CanonicalWrapperTestValidator : FeatureTaskRuntimePhaseOutputValidator {
+internal object CanonicalWrapperTestValidator : FeatureTaskRuntimePhaseOutputTestValidator() {
   private val fencedBlock = Regex("```[ \\t]*[A-Za-z0-9_-]*\\r?\\n(.*?)```", RegexOption.DOT_MATCHES_ALL)
 
   override fun validatePhaseOutputText(phaseOutputText: String, sourceLabel: String) {
@@ -2011,7 +2010,7 @@ internal class InMemoryRuntimeWorkflowRepository : WorkflowStateRepository {
     val row = taskRuntimeRows[workflowId] ?: return@synchronized false
     if (row.workflowStatus != "running") return@synchronized false
     workerOwnership = null
-    taskRuntimeRows[workflowId] = row.copy(workflowStatus = "pending")
+    taskRuntimeRows[workflowId] = row.copy(workflowStatus = WorkflowStatus.PENDING.wireValue)
     reconciledInterruptionReasons[workflowId] = interruptionReason
     true
   }

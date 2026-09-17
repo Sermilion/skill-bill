@@ -28,6 +28,21 @@ internal object FeatureTaskRuntimePhaseWorkflowGraph {
       WorkflowStatus.FAILED.wireValue,
       WorkflowStatus.ABANDONED.wireValue,
     ),
+    workflowStatusEnums = setOf(
+      WorkflowStatus.PENDING,
+      WorkflowStatus.RUNNING,
+      WorkflowStatus.COMPLETED,
+      WorkflowStatus.FAILED,
+      WorkflowStatus.ABANDONED,
+      WorkflowStatus.BLOCKED,
+      WorkflowStatus.PAUSED,
+    ),
+    stepStatusEnums = WorkflowStepStatus.entries.toSet(),
+    terminalStatusEnums = setOf(
+      WorkflowStatus.COMPLETED,
+      WorkflowStatus.FAILED,
+      WorkflowStatus.ABANDONED,
+    ),
     defaultInitialStepId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PREPLAN,
     stepIds =
     listOf(
@@ -137,6 +152,7 @@ internal object FeatureTaskRuntimePhaseWorkflowGraph {
     openPriorStepsCompleted = false,
 
     completedTerminalSummaryArtifact = FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY,
+    usesFeatureTaskRuntimeContinuation = true,
     workflowMode = "runtime",
     requiredArtifactPresenceResolver = FeatureTaskRuntimeRequiredArtifactPresenceResolver,
   )

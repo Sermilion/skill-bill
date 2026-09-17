@@ -23,6 +23,7 @@ import skillbill.workflow.goal.model.GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.asCheckpointIdentitiesArtifactEntry
 import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
@@ -398,7 +399,7 @@ class RemediationBaseReconciliationUnderAmendTest {
       definition,
       opened,
       WorkflowUpdateInput(
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING,
         currentStepId = "review",
         stepUpdates = null,
         artifactsPatch = WorkflowArtifactPatch.from(artifactsPatch),

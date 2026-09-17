@@ -105,7 +105,7 @@ fun PhaseHandoffProjectionDeclaration.asWorkflowArtifactEntry(): Any = toArtifac
 
 fun decodePhaseHandoffProjectionDeclarationFromArtifact(
   raw: Any?,
-  foundationValidator: FeatureTaskRuntimeHandoffFoundationValidator,
+  foundationValidator: FeatureTaskRuntimeWireArtifactValidator,
 ): PhaseHandoffProjectionDeclaration? =
   JsonCodec.anyToStringAnyMap(raw)?.let { PhaseHandoffProjectionDeclaration.fromArtifactMap(it, foundationValidator) }
 

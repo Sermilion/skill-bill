@@ -5,6 +5,7 @@ import skillbill.workflow.engine.artifactsFingerprint
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.progressToken
 import skillbill.workflow.goal.model.GOAL_PROGRESS_LATEST_EVENT_ARTIFACT_KEY
+import skillbill.workflow.model.WorkflowStatus
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -64,7 +65,7 @@ class AttemptLedgerWorkflowDecodingTest {
     sessionId = "session-1",
     workflowName = "bill-feature-task",
     contractVersion = "1.0",
-    workflowStatus = "running",
+    workflowStatus = WorkflowStatus.RUNNING,
     currentStepId = "validate",
     stepsJson = """[{"step_id":"validate","status":"running","attempt_count":1}]""",
     artifactsJson = artifactsJson,

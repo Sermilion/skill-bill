@@ -63,32 +63,33 @@ data class FeatureTaskRuntimeImplementationAttempt(
             "quarantined and regenerated rather than reinterpreted.",
         )
       }
-      return try {
-        FeatureTaskRuntimeImplementationAttempt(
-          sequenceNumber = raw.requireIntField("sequence_number"),
-          phaseId = raw.requireStringField(SharedPayloadKeys.PHASE_ID),
-          attemptNumber = raw.requireIntField("attempt_number"),
-          agentId = raw.requireStringField("agent_id"),
-          status = FeatureTaskRuntimeImplementationAttemptStatus.fromWireValue(
-            raw.requireStringField(SharedPayloadKeys.STATUS),
-          ),
-          recordedAt = raw.requireStringField("recorded_at"),
-          value = raw.requireStringField(SharedPayloadKeys.VALUE),
-          loopId = raw.optionalStringField("loop_id"),
-          edgeIteration = raw.optionalAttemptIntField("edge_iteration"),
-          failureDisposition = raw.optionalStringField(SharedPayloadKeys.FAILURE_DISPOSITION)?.let { value ->
-            FeatureTaskRuntimeFailureDisposition.fromWireValue(value)
-              ?: implementationAttemptError(
-                "Feature-task-runtime implementation-attempt 'failure_disposition' has unsupported value.",
-              )
-          },
-          prompt = raw.optionalStringField(SharedPayloadKeys.PROMPT),
-        )
-      } catch (error: IllegalArgumentException) {
-        implementationAttemptError(
-          "Feature-task-runtime implementation-attempt entry violates its invariants: ${error.message.orEmpty()}",
-        )
-      }
+      val reader = durableArtifactMapReader(raw)
+      return FeatureTaskRuntimeImplementationAttempt(
+        sequenceNumber = reader.requiredInt("sequence_number"),
+        phaseId = reader.requiredString(SharedPayloadKeys.PHASE_ID),
+        attemptNumber = reader.requiredInt("attempt_number").also { attempt ->
+          if (attempt < 1) {
+            implementationAttemptError(
+              "Feature-task-runtime implementation-attempt attempt_number must be >= 1, was $attempt.",
+            )
+          }
+        },
+        agentId = reader.requiredString("agent_id"),
+        status = FeatureTaskRuntimeImplementationAttemptStatus.fromWireValue(
+          reader.requiredString(SharedPayloadKeys.STATUS),
+        ),
+        recordedAt = reader.requiredString("recorded_at"),
+        value = reader.requiredString(SharedPayloadKeys.VALUE),
+        loopId = reader.optionalString("loop_id"),
+        edgeIteration = reader.optionalInt("edge_iteration"),
+        failureDisposition = reader.optionalString(SharedPayloadKeys.FAILURE_DISPOSITION)?.let { value ->
+          FeatureTaskRuntimeFailureDisposition.fromWireValue(value)
+            ?: implementationAttemptError(
+              "Feature-task-runtime implementation-attempt 'failure_disposition' has unsupported value.",
+            )
+        },
+        prompt = reader.optionalString(SharedPayloadKeys.PROMPT),
+      )
     }
 
     private val ALLOWED_FIELDS = setOf(
@@ -131,20 +132,17 @@ internal fun featureTaskRuntimeImplementationAttemptRecordToWire(
 internal fun featureTaskRuntimeImplementationAttemptsFromWire(
   raw: Any?,
 ): List<FeatureTaskRuntimeImplementationAttempt> {
-  val map = raw as? Map<*, *>
+  val map = JsonCodec.anyToStringAnyMap(raw)
     ?: implementationAttemptError("Feature-task-runtime implementation-attempt record must be an object.")
-  val version = map[SharedPayloadKeys.CONTRACT_VERSION]
+  val reader = durableArtifactMapReader(map)
+  val version = reader.requiredString(SharedPayloadKeys.CONTRACT_VERSION)
   if (version != FEATURE_TASK_RUNTIME_IMPLEMENTATION_ATTEMPT_CONTRACT_VERSION) {
     implementationAttemptError(
       "Feature-task-runtime implementation-attempt record uses unsupported contract version '$version'; " +
         "$FEATURE_TASK_RUNTIME_INCOMPATIBLE_RECORD_GUIDANCE.",
     )
   }
-  val attempts = map["attempts"] as? List<*>
-    ?: implementationAttemptError(
-      "Feature-task-runtime implementation-attempt record must carry an 'attempts' array.",
-    )
-  return attempts.map { entry ->
+  return reader.requiredList("attempts").map { entry ->
     FeatureTaskRuntimeImplementationAttempt.fromArtifactMap(
       JsonCodec.anyToStringAnyMap(entry)
         ?: implementationAttemptError("Feature-task-runtime implementation-attempt entry must be an object."),
@@ -175,11 +173,3 @@ fun featureTaskRuntimeAppendImplementationAttempt(
 }
 
 private fun implementationAttemptError(detail: String): Nothing = throw InvalidWorkflowStateSchemaError(detail)
-
-private fun Map<String, Any?>.optionalAttemptIntField(key: String): Int? {
-  if (!containsKey(key) || this[key] == null) return null
-  return (this[key] as? Number)?.toInt()
-    ?: implementationAttemptError(
-      "Feature-task-runtime artifact field '$key' must decode to an integer when present.",
-    )
-}

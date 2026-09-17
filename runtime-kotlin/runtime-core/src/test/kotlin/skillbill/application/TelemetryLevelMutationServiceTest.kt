@@ -27,8 +27,8 @@ import skillbill.ports.work.EmptyWorkListRepository
 import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.telemetry.CONFIG_ENVIRONMENT_KEY
 import skillbill.telemetry.model.TelemetryConfigDocument
+import skillbill.telemetry.model.TelemetryOpenDocument
 import skillbill.telemetry.model.TelemetrySettings
-import skillbill.workflow.engine.model.TelemetryOpenDocument
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test

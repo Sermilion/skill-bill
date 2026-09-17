@@ -16,9 +16,6 @@ import skillbill.workflow.model.WorkflowContinueStatus
 import skillbill.workflow.model.WorkflowResumeMode
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
-import skillbill.workflow.model.workflowStatus
-import skillbill.workflow.model.workflowStepStatus
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 
 internal val workflowResumableStepStatuses =
   setOf(WorkflowStepStatus.RUNNING, WorkflowStepStatus.BLOCKED, WorkflowStepStatus.PENDING)
@@ -29,9 +26,9 @@ internal fun continueStatusFor(
   currentStep: WorkflowStepState?,
 ): WorkflowContinueStatus {
   val alreadyRunning =
-    snapshot.workflowStatus.workflowStatus() == WorkflowStatus.RUNNING &&
+    snapshot.workflowStatus == WorkflowStatus.RUNNING &&
       snapshot.currentStepId == resume.resumeStepId &&
-      currentStep?.status?.workflowStepStatus() == WorkflowStepStatus.RUNNING
+      currentStep?.status == WorkflowStepStatus.RUNNING
   return when {
     resume.resumeMode == WorkflowResumeMode.DONE -> WorkflowContinueStatus.DONE
     resume.canResume && alreadyRunning -> WorkflowContinueStatus.ALREADY_RUNNING
@@ -95,7 +92,7 @@ internal data class AssembleContinueTextsRequest(
 internal data class BuildContinueDecisionRequest(
   val context: ContinueAssemblyContext,
   val continueStatus: WorkflowContinueStatus,
-  val workflowStatusBeforeContinue: String,
+  val workflowStatusBeforeContinue: WorkflowStatus,
   val actualContinueStatus: WorkflowContinueStatus,
   val nextAttemptCount: Int,
   val sessionSummary: WorkflowContinueSessionSummary,
@@ -117,7 +114,7 @@ internal fun assembleContinueTexts(request: AssembleContinueTextsRequest): Assem
     omittedArtifactKeys = resume.availableArtifacts.filterNot(resume.requiredArtifacts::contains),
   )
   val extraFields =
-    if (definition.workflowName == FeatureTaskRuntimePhaseWorkflowDefinition.definition.workflowName) {
+    if (definition.usesFeatureTaskRuntimeContinuation) {
       implementExtraFields(snapshot.artifacts)
     } else {
       emptyMap()

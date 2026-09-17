@@ -3,7 +3,6 @@ package skillbill.workflow.engine
 import skillbill.contracts.workflow.WorkflowContinueSessionSummary
 import skillbill.workflow.engine.model.WorkflowDefinition
 import skillbill.workflow.model.WorkflowContinueStatus
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 
 internal data class ContinuationArtifactKeys(
   val currentStepArtifactKeys: List<String>,
@@ -74,7 +73,7 @@ internal fun continuationEntryPrompt(request: ContinuationEntryPromptRequest): S
       "Resume step: ${identity.resumeStepId} " +
         "(${request.definition.stepLabels[identity.resumeStepId] ?: identity.resumeStepId})",
     )
-  if (request.definition.workflowName == FeatureTaskRuntimePhaseWorkflowDefinition.definition.workflowName) {
+  if (request.definition.usesFeatureTaskRuntimeContinuation) {
     commonLines += "Feature: ${(request.extraFields["feature_name"] as String).ifBlank { "(unknown)" }}"
     commonLines += "Feature size: ${(request.extraFields["feature_size"] as String).ifBlank { "(unknown)" }}"
     commonLines += "Branch: ${(request.extraFields["branch_name"] as String).ifBlank { "(unknown)" }}"

@@ -65,6 +65,26 @@ object FeatureVerifyWorkflowDefinition {
       WorkflowStatus.FAILED.wireValue,
       WorkflowStatus.ABANDONED.wireValue,
     ),
+    workflowStatusEnums = setOf(
+      WorkflowStatus.PENDING,
+      WorkflowStatus.RUNNING,
+      WorkflowStatus.COMPLETED,
+      WorkflowStatus.FAILED,
+      WorkflowStatus.ABANDONED,
+    ),
+    stepStatusEnums = setOf(
+      WorkflowStepStatus.PENDING,
+      WorkflowStepStatus.RUNNING,
+      WorkflowStepStatus.COMPLETED,
+      WorkflowStepStatus.FAILED,
+      WorkflowStepStatus.BLOCKED,
+      WorkflowStepStatus.SKIPPED,
+    ),
+    terminalStatusEnums = setOf(
+      WorkflowStatus.COMPLETED,
+      WorkflowStatus.FAILED,
+      WorkflowStatus.ABANDONED,
+    ),
     defaultInitialStepId = "gather_diff",
     stepIds =
     listOf(

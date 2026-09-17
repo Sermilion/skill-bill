@@ -1,6 +1,8 @@
 package skillbill.workflow.goal.model
 
 import skillbill.review.context.model.ReviewIntegrationTerminalOutcome
+import skillbill.workflow.taskruntime.model.asExactIntOrNull
+import skillbill.workflow.taskruntime.model.asExactLongOrNull
 
 data class GoalSubtaskCommitFocusedAccounting(
   val commitSequenceDigest: String,
@@ -69,32 +71,39 @@ data class GoalSubtaskCommitFocusedAccounting(
 
     internal fun fromArtifactMap(raw: Map<String, Any?>, path: String): GoalSubtaskCommitFocusedAccounting {
       raw.requireOnlyReviewStateKeys(ARTIFACT_KEYS, path)
+      val reader = reviewStateReader(raw, path)
       return GoalSubtaskCommitFocusedAccounting(
-        commitSequenceDigest = raw.requireReviewStateString("commit_sequence_digest", path),
-        commitCount = raw.requireReviewStateInt("commit_count", path),
-        laneCount = raw.requireReviewStateInt("lane_count", path),
-        focusedCommitCount = raw.requireReviewStateInt("focused_commit_count", path),
-        skippedCommitCount = raw.requireReviewStateInt("skipped_commit_count", path),
+        commitSequenceDigest = reader.requiredString("commit_sequence_digest"),
+        commitCount = reader.requiredInt("commit_count"),
+        laneCount = reader.requiredInt("lane_count"),
+        focusedCommitCount = reader.requiredInt("focused_commit_count"),
+        skippedCommitCount = reader.requiredInt("skipped_commit_count"),
         integrationTerminalOutcome = requireNotNull(
           ReviewIntegrationTerminalOutcome.fromWire(
-            raw.requireReviewStateString("integration_terminal_outcome", path),
+            reader.requiredString("integration_terminal_outcome"),
           ),
         ) {
           "Unknown integration terminal outcome at '$path.integration_terminal_outcome'."
         },
-        routingDigest = raw.optionalReviewStateString("routing_digest", path),
-        focusedPairCount = raw.optionalReviewStateInt("focused_pair_count", path),
-        skippedPairCount = raw.optionalReviewStateInt("skipped_pair_count", path),
+        routingDigest = reader.optionalString("routing_digest"),
+        focusedPairCount = reader.optionalInt("focused_pair_count"),
+        skippedPairCount = reader.optionalInt("skipped_pair_count"),
         laneBundleSizes = raw.longCountMap("lane_bundle_sizes", path),
         laneSegmentCounts = raw.longCountMap("lane_segment_counts", path)
-          .mapValues { (_, value) -> value.toInt() },
-        incompleteLanes = raw.optionalReviewStateList("incomplete_lanes", path)
+          .mapValues { (entryKey, value) ->
+            value.asExactIntOrNull()
+              ?: reviewStateError("$path.lane_segment_counts.$entryKey", "must be an integer.")
+          },
+        incompleteLanes = reader.optionalList("incomplete_lanes")
           .orEmpty()
-          .map { it.toString() },
-        parentAnalysisPairs = raw.optionalReviewStateInt("parent_analysis_pairs", path),
-        parentAnalysisBytes = raw.optionalReviewStateInt("parent_analysis_bytes", path)?.toLong(),
-        integrationSkipReason = raw.optionalReviewStateString("integration_skip_reason", path),
-        integrationFindingCount = raw.optionalReviewStateInt("integration_finding_count", path),
+          .mapIndexed { index, value ->
+            (value as? String)?.takeIf(String::isNotBlank)
+              ?: reviewStateError("$path.incomplete_lanes[$index]", "must be a non-blank string.")
+          },
+        parentAnalysisPairs = reader.optionalInt("parent_analysis_pairs"),
+        parentAnalysisBytes = reader.optionalInt("parent_analysis_bytes")?.toLong(),
+        integrationSkipReason = reader.optionalString("integration_skip_reason"),
+        integrationFindingCount = reader.optionalInt("integration_finding_count"),
       )
     }
 
@@ -119,8 +128,9 @@ data class GoalSubtaskCommitFocusedAccounting(
 
     private fun Map<String, Any?>.longCountMap(key: String, path: String): Map<String, Long> {
       val raw = this[key] ?: return emptyMap()
-      return raw.asReviewStateMap("$path.$key").mapValues { (_, value) ->
-        (value as? Number)?.toLong() ?: 0L
+      return raw.toReviewStateMap("$path.$key").mapValues { (entryKey, value) ->
+        value.asExactLongOrNull()
+          ?: reviewStateError("$path.$key.$entryKey", "must be an integer.")
       }
     }
   }

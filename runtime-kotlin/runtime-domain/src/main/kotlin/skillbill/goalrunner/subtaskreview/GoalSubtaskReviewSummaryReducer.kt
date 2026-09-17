@@ -120,13 +120,11 @@ object GoalSubtaskReviewSummaryReducer {
     reviewOutput: Any,
     scope: UnaddressedFindingLedgerScope,
     recordedVerdicts: List<ReviewFindingVerdict> = emptyList(),
-    truncationRecords: MutableList<String>? = null,
-  ): List<UnaddressedFinding> = GoalSubtaskReviewVerificationRejection.rejectedVerificationFindings(
+  ): RejectedVerificationFindingsResult = GoalSubtaskReviewVerificationRejection.rejectedVerificationFindings(
     verifyOutput,
     reviewOutput,
     scope,
     recordedVerdicts,
-    truncationRecords,
   )
 
   fun reviewFindingOutcomes(

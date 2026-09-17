@@ -2,9 +2,9 @@
 package skillbill.engine
 import skillbill.application.assertNoRawResponseSpan
 import skillbill.application.assertPrivateDiagnosticRejection
+import skillbill.engine.featuretask.FeatureTaskRuntimePhaseOutputTestValidator
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
 import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -80,7 +80,7 @@ class FeatureTaskRuntimeRejectionConstraintPrivacyTest {
           auditAttempts += 1
           facts(if (auditAttempts == 1) rejectedBody else defaultPhaseOutput(request))
         },
-        validator = object : FeatureTaskRuntimePhaseOutputValidator {
+        validator = object : FeatureTaskRuntimePhaseOutputTestValidator() {
           override fun validatePhaseOutputText(phaseOutputText: String, sourceLabel: String) {
             if (sourceLabel != "audit") return
             if (phaseOutputText.contains("SKILL187-GATEOUTPUT-SENTINEL")) {
@@ -110,7 +110,7 @@ class FeatureTaskRuntimeRejectionConstraintPrivacyTest {
     var auditAttempts = 0
     return runnerHarness(
       RuntimeHarnessConfig(
-        validator = object : FeatureTaskRuntimePhaseOutputValidator {
+        validator = object : FeatureTaskRuntimePhaseOutputTestValidator() {
           override fun validatePhaseOutputText(phaseOutputText: String, sourceLabel: String) {
             if (sourceLabel != "audit") return
             auditAttempts += 1

@@ -9,6 +9,7 @@ import skillbill.ports.workflow.gitops.model.WorkflowGitOperationStatus
 import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksRequest
 import skillbill.ports.workflow.gitops.model.WorkflowSelectedDiffHunksResult
 import skillbill.ports.workflow.gitops.model.WorkflowWorktreeActivityResult
+import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
@@ -27,7 +28,7 @@ class CliWorkflowContinuationRuntimeTest {
       RuntimeWorkflowTestSupport.UpdateArgs(
         dbPath = fixture.dbPath,
         workflowId = workflowId,
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING.wireValue,
         currentStepId = "plan",
         stepUpdates = RuntimeWorkflowTestSupport.parseStepUpdates(
           """[{"step_id":"plan","status":"completed","attempt_count":1}]""",
@@ -67,7 +68,7 @@ class CliWorkflowContinuationRuntimeTest {
       RuntimeWorkflowTestSupport.UpdateArgs(
         dbPath = fixture.dbPath,
         workflowId = workflowId,
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING.wireValue,
         currentStepId = "plan",
         stepUpdates = RuntimeWorkflowTestSupport.parseStepUpdates(
           """[{"step_id":"plan","status":"completed","attempt_count":1}]""",

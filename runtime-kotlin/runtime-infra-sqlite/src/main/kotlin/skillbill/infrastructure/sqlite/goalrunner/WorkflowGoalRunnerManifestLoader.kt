@@ -24,6 +24,7 @@ import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.model.DecompositionStatus
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.decompositionStatus
 import java.nio.file.Path
 
@@ -97,7 +98,7 @@ internal class WorkflowGoalRunnerManifestLoader(
         WorkflowFamily.TASK_RUNTIME.definition,
         base,
         WorkflowUpdateInput(
-          workflowStatus = "paused",
+          workflowStatus = WorkflowStatus.PAUSED,
           currentStepId = "plan",
           stepUpdates = if (existing != null) {
             null

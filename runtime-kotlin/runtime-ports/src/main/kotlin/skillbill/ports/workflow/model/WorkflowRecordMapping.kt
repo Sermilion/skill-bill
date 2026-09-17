@@ -3,7 +3,9 @@ package skillbill.ports.workflow.model
 import skillbill.contracts.workflow.FeatureImplementSessionSummaryContract
 import skillbill.contracts.workflow.FeatureVerifySessionSummaryContract
 import skillbill.contracts.workflow.WorkflowContinueSessionSummary
+import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.model.WorkflowStatus
 
 fun WorkflowStateRecord.toSnapshot(): WorkflowStateSnapshot = WorkflowStateSnapshot(
   workflowId = workflowId,
@@ -11,7 +13,10 @@ fun WorkflowStateRecord.toSnapshot(): WorkflowStateSnapshot = WorkflowStateSnaps
   workflowName = workflowName,
   mode = mode?.wireValue,
   contractVersion = contractVersion,
-  workflowStatus = workflowStatus,
+  workflowStatus = WorkflowStatus.fromWire(workflowStatus)
+    ?: throw InvalidWorkflowStateSchemaError(
+      "Workflow state workflow_status has unsupported value '$workflowStatus'.",
+    ),
   currentStepId = currentStepId,
   stepsJson = stepsJson,
   artifactsJson = artifactsJson,

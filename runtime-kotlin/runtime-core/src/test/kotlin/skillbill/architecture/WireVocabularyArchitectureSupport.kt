@@ -1,5 +1,7 @@
 package skillbill.architecture
 
+import skillbill.contracts.workflow.FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys
+
 private val wireVocabularyEnumPattern = Regex("""enum\s+class\s+([A-Za-z0-9_]+)([^\{]*)\{""")
 private val wireVocabularyObjectPattern = Regex("""object\s+([A-Za-z0-9_]*(?:Keys|PayloadKeys))\s*\{""")
 private val wireVocabularyEnumEntryPattern = Regex("""(?m)^\s*[A-Z][A-Z0-9_]*\s*\(\s*"([^"]+)"""")
@@ -56,7 +58,25 @@ internal object WireVocabularyArchitectureSupport {
     )
     val tokenValues = declarations.filter { it.category == "token" || it.category == "alias" }
       .map { it.value }.toSet()
-    val keyValues = declarations.filter { it.category == "key" }.map { it.value }.toSet()
+    val keyValues = (
+      declarations.filter { it.category == "key" }.map { it.value } +
+        setOf(
+          FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ISSUE_KEY,
+          FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.SUBTASK_ID,
+          FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.SUPPRESS_PR,
+          FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.GOAL_BRANCH,
+          FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.PARENT_WORKFLOW_ID,
+          FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.CODE_REVIEW_MODE,
+          FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.VALIDATION_DEPTH,
+          FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.QUALITY_GATE_SELECTION,
+          FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.PARALLEL_REVIEW_AGENT,
+          FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.SUBTASK_NAME,
+          FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.AGENT_ADDON_SELECTION,
+          FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_SLUG,
+          FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_SOURCE_IDENTITY,
+          FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_CONTENT_SHA256,
+        )
+      ).toSet()
     val governedKeys = governedSchemaPropertyKeys(enforceGovernedSeams, schemaPropertyKeysByPath)
     val violations = findViolations(
       files,

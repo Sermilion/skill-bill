@@ -11,6 +11,7 @@ import skillbill.application.workflow.model.WorkflowUpdateResult
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.issuekey.normalizeIssueKey
+import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.goalrunner.GoalObservabilityArtifacts
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
@@ -27,6 +28,7 @@ import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.goal.GoalObservabilityEventValidator
+import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Path
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
@@ -97,7 +99,10 @@ val resolveEffectiveSessionId =
   }
 
 fun WorkflowUpdateRequest.toWorkflowUpdateInput(): WorkflowUpdateInput = WorkflowUpdateInput(
-  workflowStatus = workflowStatus,
+  workflowStatus = WorkflowStatus.fromWire(workflowStatus)
+    ?: throw InvalidWorkflowStateSchemaError(
+      "Invalid workflow_status '$workflowStatus'.",
+    ),
   currentStepId = currentStepId,
   stepUpdates = stepUpdates,
   artifactsPatch = artifactsPatch,
@@ -105,7 +110,7 @@ fun WorkflowUpdateRequest.toWorkflowUpdateInput(): WorkflowUpdateInput = Workflo
 )
 
 fun WorkflowContinueDecision.toReopenInput(sessionId: String): WorkflowUpdateInput = WorkflowUpdateInput(
-  workflowStatus = "running",
+  workflowStatus = WorkflowStatus.RUNNING,
   currentStepId = resumeStepId,
   stepUpdates = WorkflowStepUpdates.from(
     listOf(
@@ -140,7 +145,7 @@ fun WorkflowUpdateInput.withGoalObservabilityArtifacts(
       input = GoalObservabilityProgressInput(
         artifacts = mergedArtifacts,
         workflowId = workflowId,
-        workflowStatus = workflowStatus,
+        workflowStatus = workflowStatus.wireValue,
         currentStepId = currentStepId,
         worktreeActivity = gitOperations.worktreeActivity(repoRoot.normalize())
           .takeIf { activity -> activity.status == WorkflowGitOperationStatus.OK }

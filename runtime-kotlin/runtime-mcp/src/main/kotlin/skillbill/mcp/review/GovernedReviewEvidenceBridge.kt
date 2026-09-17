@@ -1,8 +1,8 @@
 package skillbill.mcp.review
 
 import kotlinx.serialization.json.JsonObject
-import skillbill.SkillBillVersion
 import skillbill.contracts.JsonCodec
+import skillbill.di.SkillBillVersion
 import skillbill.error.GovernedReviewEvidenceTransportError
 import skillbill.ports.review.model.GovernedReviewEvidenceCodec
 import java.io.BufferedReader

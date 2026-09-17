@@ -13,6 +13,7 @@ import skillbill.ports.workflow.gitops.NoopWorkflowGitOperations
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.goal.NoopGoalObservabilityEventValidator
+import skillbill.workflow.model.WorkflowStatus
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -43,8 +44,8 @@ class WorkflowCompactContinuationTest {
 
     assertEquals("reopened", compact.continueStatus.wireValue)
     assertEquals("reopened", standard.view.continueStatus.wireValue)
-    assertEquals("blocked", compact.workflowStatusBeforeContinue)
-    assertEquals("blocked", standard.view.workflowStatusBeforeContinue)
+    assertEquals("blocked", compact.workflowStatusBeforeContinue.wireValue)
+    assertEquals("blocked", standard.view.workflowStatusBeforeContinue.wireValue)
     assertEquals(opened.workflowId, compact.workflowId)
     assertEquals("bill-feature-task", compact.skillName)
     assertEquals("implement", compact.resumeStepId)
@@ -208,7 +209,7 @@ private fun newBlockedImplementService(
     WorkflowFamilyKind.TASK_RUNTIME,
     WorkflowUpdateRequest(
       workflowId = opened.workflowId,
-      workflowStatus = "blocked",
+      workflowStatus = WorkflowStatus.BLOCKED.wireValue,
       currentStepId = "implement",
       stepUpdates = WorkflowStepUpdates.from(
         listOf(

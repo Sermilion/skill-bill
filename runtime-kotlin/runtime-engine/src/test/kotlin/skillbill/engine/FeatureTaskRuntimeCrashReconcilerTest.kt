@@ -13,6 +13,7 @@ import skillbill.ports.taskruntime.model.FeatureTaskRuntimeProcessInspection
 import skillbill.ports.taskruntime.model.isConfirmedDead
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode.RUNTIME
 import skillbill.ports.workflow.model.WorkflowStateRecord
+import skillbill.workflow.model.WorkflowStatus
 import java.time.Duration
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -136,7 +137,7 @@ class FeatureTaskRuntimeCrashReconcilerTest {
           sessionId = SESSION_ID,
           workflowName = "bill-feature-task",
           contractVersion = "0.1",
-          workflowStatus = "running",
+          workflowStatus = WorkflowStatus.RUNNING.wireValue,
           currentStepId = "implement",
           stepsJson = "[]",
           artifactsJson = "{}",

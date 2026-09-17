@@ -7,6 +7,7 @@ import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerLeaseState
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.WorkflowStateRecord
+import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.Connection
@@ -37,7 +38,7 @@ class SQLiteDatabaseSessionFactoryTest {
             sessionId = "ftr-rollback",
             workflowName = "bill-feature-task",
             contractVersion = "",
-            workflowStatus = "running",
+            workflowStatus = WorkflowStatus.RUNNING.wireValue,
             currentStepId = "implement",
             stepsJson = "[]",
             artifactsJson = "{}",
@@ -384,7 +385,7 @@ class SQLiteDatabaseSessionFactoryTest {
     sessionId = "ftr-crash-reconcile",
     workflowName = "bill-feature-task",
     contractVersion = "1.0",
-    workflowStatus = "running",
+    workflowStatus = WorkflowStatus.RUNNING.wireValue,
     currentStepId = "implement",
     stepsJson = "[]",
     artifactsJson = "{}",
@@ -454,7 +455,7 @@ class SQLiteDatabaseSessionFactoryTest {
     sessionId = "ftr-write-reservation",
     workflowName = "bill-feature-task",
     contractVersion = "1.0",
-    workflowStatus = "running",
+    workflowStatus = WorkflowStatus.RUNNING.wireValue,
     currentStepId = "implement",
     stepsJson = "[]",
     artifactsJson = "{}",

@@ -1,7 +1,7 @@
 package skillbill.scaffold.model
 
 import skillbill.model.FileLocation
-import skillbill.workflow.engine.model.CustomFieldMap
+import skillbill.telemetry.model.CustomFieldMap
 
 data class RoutingSignals(
   val strong: List<String>,

@@ -25,6 +25,7 @@ import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GoalProgressEvent
 import skillbill.workflow.goal.model.GoalProgressEventKind
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
@@ -96,7 +97,8 @@ internal fun blockedContinuationRecord(fixture: BlockedContinuationRecordFixture
     definition,
     opened,
     WorkflowUpdateInput(
-      workflowStatus = workflowStatus,
+      workflowStatus = WorkflowStatus.fromWire(workflowStatus)
+        ?: error("Unknown workflow status '$workflowStatus'."),
       currentStepId = "review",
       stepUpdates = WorkflowStepUpdates.from(
         listOf(
@@ -117,7 +119,7 @@ internal fun completeWithoutShaContinuationRecord(workflowId: String): WorkflowS
     definition,
     opened,
     WorkflowUpdateInput(
-      workflowStatus = "running",
+      workflowStatus = WorkflowStatus.RUNNING,
       currentStepId = "commit_push",
       stepUpdates = WorkflowStepUpdates.from(
         listOf(
@@ -153,7 +155,7 @@ internal fun runtimeCandidateRecordNoDeclaredEvent(workflowId: String, updatedAt
     definition,
     opened,
     WorkflowUpdateInput(
-      workflowStatus = "running",
+      workflowStatus = WorkflowStatus.RUNNING,
       currentStepId = "implement",
       stepUpdates = WorkflowStepUpdates.from(
         listOf(
@@ -186,7 +188,7 @@ internal fun goalReviewWorkflowRecord(
     definition,
     opened,
     WorkflowUpdateInput(
-      workflowStatus = "running",
+      workflowStatus = WorkflowStatus.RUNNING,
       currentStepId = "review",
       stepUpdates = null,
       artifactsPatch = WorkflowArtifactPatch.from(
@@ -226,7 +228,7 @@ internal fun runtimeCandidateRecord(workflowId: String, declaredProgressTimestam
     definition,
     opened,
     WorkflowUpdateInput(
-      workflowStatus = "running",
+      workflowStatus = WorkflowStatus.RUNNING,
       currentStepId = "implement",
       stepUpdates = WorkflowStepUpdates.from(
         listOf(
@@ -256,7 +258,7 @@ internal fun taskRuntimeWorkflowRecord(workflowId: String): WorkflowStateRecord 
     definition,
     opened,
     WorkflowUpdateInput(
-      workflowStatus = "running",
+      workflowStatus = WorkflowStatus.RUNNING,
       currentStepId = "implement",
       stepUpdates = null,
       artifactsPatch = WorkflowArtifactPatch.from(emptyMap()),
@@ -285,7 +287,7 @@ internal fun tornBlockedReviewRecord(workflowId: String): WorkflowStateRecord {
     definition,
     opened,
     WorkflowUpdateInput(
-      workflowStatus = "blocked",
+      workflowStatus = WorkflowStatus.BLOCKED,
       currentStepId = "review",
       stepUpdates = WorkflowStepUpdates.from(
         listOf(
@@ -317,7 +319,7 @@ internal fun crashedChildRecord(workflowId: String): WorkflowStateRecord {
     definition,
     opened,
     WorkflowUpdateInput(
-      workflowStatus = "running",
+      workflowStatus = WorkflowStatus.RUNNING,
       currentStepId = "implement",
       stepUpdates = null,
       artifactsPatch = WorkflowArtifactPatch.from(

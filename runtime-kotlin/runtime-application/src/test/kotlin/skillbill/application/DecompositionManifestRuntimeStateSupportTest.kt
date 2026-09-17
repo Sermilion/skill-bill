@@ -8,6 +8,7 @@ import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
+import skillbill.workflow.model.WorkflowStatus
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -60,7 +61,7 @@ class DecompositionManifestRuntimeStateSupportTest {
       manifest = baseManifest(),
       update = DecompositionManifestRuntimeUpdate(
         workflowId = "wfl-subtask-5",
-        workflowStatus = "blocked",
+        workflowStatus = WorkflowStatus.BLOCKED.wireValue,
         currentStepId = "validate",
         artifactsPatch = WorkflowArtifactPatch.from(mapOf("blocked_reason" to "validation: schema gate failed")),
       ),
@@ -76,7 +77,7 @@ class DecompositionManifestRuntimeStateSupportTest {
       manifest = baseManifest(),
       update = DecompositionManifestRuntimeUpdate(
         workflowId = "wfl-subtask-5",
-        workflowStatus = "blocked",
+        workflowStatus = WorkflowStatus.BLOCKED.wireValue,
         currentStepId = "review",
         artifactsPatch = WorkflowArtifactPatch.from(mapOf("blocked_reason" to "review failed")),
       ),
@@ -106,7 +107,7 @@ class DecompositionManifestRuntimeStateSupportTest {
       manifest = baseManifest(),
       update = DecompositionManifestRuntimeUpdate(
         workflowId = "wfl-subtask-5",
-        workflowStatus = "blocked",
+        workflowStatus = WorkflowStatus.BLOCKED.wireValue,
         currentStepId = "audit",
       ),
       status = "blocked",
@@ -120,7 +121,7 @@ class DecompositionManifestRuntimeStateSupportTest {
     goalContinuationOutcome: Map<String, Any?>? = null,
   ): DecompositionManifestRuntimeUpdate = DecompositionManifestRuntimeUpdate(
     workflowId = "wfl-subtask-5",
-    workflowStatus = "running",
+    workflowStatus = WorkflowStatus.RUNNING.wireValue,
     currentStepId = "commit_push",
     stepUpdates = WorkflowStepUpdates.from(
       listOf(

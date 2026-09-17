@@ -8,6 +8,7 @@ import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
 import skillbill.ports.workflow.model.FeatureTaskExecutionIdentity
 import skillbill.ports.workflow.model.FeatureTaskRouteScope
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
+import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Path
 import java.sql.Connection
 import java.time.Instant
@@ -29,7 +30,9 @@ internal fun assertRuntimeAndVerifyStateTransitions(
   val runtimeInserted = assertNotNull(store.getFeatureTaskRuntimeWorkflow("wftr-state-entry"))
   assertEquals(startedAt, runtimeInserted.stateEnteredAt)
 
-  store.saveFeatureTaskRuntimeWorkflow(runtimeInserted.copy(workflowStatus = "blocked", currentStepId = "plan"))
+  store.saveFeatureTaskRuntimeWorkflow(
+    runtimeInserted.copy(workflowStatus = WorkflowStatus.BLOCKED.wireValue, currentStepId = "plan"),
+  )
   val runtimeTransitioned = assertNotNull(store.getFeatureTaskRuntimeWorkflow("wftr-state-entry"))
   assertTrue(Instant.parse(runtimeTransitioned.stateEnteredAt).isAfter(Instant.parse(startedAt)))
   assertEquals(false, runtimeTransitioned.stateEnteredAtEstimated)
@@ -39,7 +42,7 @@ internal fun assertRuntimeAndVerifyStateTransitions(
     sessionId = "fvr-state-entry",
     workflowName = "bill-feature-verify",
     contractVersion = "0.1",
-    workflowStatus = "running",
+    workflowStatus = WorkflowStatus.RUNNING.wireValue,
     currentStepId = "gather_diff",
     stepsJson = "[]",
     artifactsJson = "{}",
@@ -55,7 +58,9 @@ internal fun assertRuntimeAndVerifyStateTransitions(
   val verifySameStatus = assertNotNull(store.getFeatureVerifyWorkflow("wfv-state-entry"))
   assertEquals(startedAt, verifySameStatus.stateEnteredAt)
 
-  store.saveFeatureVerifyWorkflow(verifySameStatus.copy(workflowStatus = "completed", currentStepId = "finish"))
+  store.saveFeatureVerifyWorkflow(
+    verifySameStatus.copy(workflowStatus = WorkflowStatus.COMPLETED.wireValue, currentStepId = "finish"),
+  )
   val verifyTransitioned = assertNotNull(store.getFeatureVerifyWorkflow("wfv-state-entry"))
   assertTrue(Instant.parse(verifyTransitioned.stateEnteredAt).isAfter(Instant.parse(startedAt)))
   assertEquals(false, verifyTransitioned.stateEnteredAtEstimated)
@@ -93,7 +98,7 @@ internal fun seedRunningRowWithLease(
       "bill-feature-task",
       "implement",
       FeatureTaskWorkflowMode.RUNTIME,
-    ).copy(workflowStatus = "running"),
+    ).copy(workflowStatus = WorkflowStatus.RUNNING.wireValue),
   )
   val updatedAt = requireNotNull(store.getFeatureTaskRuntimeWorkflow(workflowId)).updatedAt
   val ownership = workerOwnership(workflowId, generation = 1, ownerToken = ownerToken).copy(expiresAt = expiresAt)
@@ -258,7 +263,7 @@ internal fun workflowRow(
   sessionId = sessionId,
   workflowName = workflowName,
   contractVersion = "0.1",
-  workflowStatus = "running",
+  workflowStatus = WorkflowStatus.RUNNING.wireValue,
   currentStepId = currentStepId,
   stepsJson = "[]",
   artifactsJson = "{}",

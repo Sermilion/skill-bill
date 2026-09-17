@@ -4,9 +4,8 @@ import skillbill.error.InvalidFeatureTaskRuntimeRepairReceiptError
 import skillbill.error.InvalidGoalSubtaskReviewStateSchemaError
 import skillbill.workflow.goal.model.GoalSubtaskReviewCompactFinding
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
-import skillbill.workflow.taskruntime.decodeRepairReceiptFromArtifact
+import skillbill.workflow.taskruntime.decodeRepairReceiptFromArtifactWithObservations
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairReceipt
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepairReceiptDecodeObservations
 import skillbill.workflow.taskruntime.model.coversCarriedFindings
 import skillbill.workflow.taskruntime.model.featureTaskRuntimeRemediationRoundNumber
 import skillbill.workflow.taskruntime.validateRepairReceiptWireEntries
@@ -21,11 +20,10 @@ fun featureTaskRuntimeParseRepairReceiptOrNull(
   val map = requireRepairReceiptMap(raw) +
     ("pre_fix_checkpoint_sha" to remediationBaseSha) +
     ("round_number" to roundNumber)
-  val observations = FeatureTaskRuntimeRepairReceiptDecodeObservations()
   return try {
-    decodeRepairReceiptFromArtifact(map, "repair_receipt", observations)!!.also {
-      observations.truncationRecords.forEach(recordTruncation)
-    }
+    decodeRepairReceiptFromArtifactWithObservations(map, "repair_receipt")!!.also { decoded ->
+      decoded.observations.truncationRecords.forEach(recordTruncation)
+    }.receipt
   } catch (error: InvalidFeatureTaskRuntimeRepairReceiptError) {
     throw error
   } catch (error: InvalidGoalSubtaskReviewStateSchemaError) {

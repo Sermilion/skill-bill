@@ -10,6 +10,7 @@ import skillbill.ports.workflow.toRecord
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_DISPOSITIONS_ARTIFACT_KEY
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -73,7 +74,7 @@ private fun seedWorkflow(repository: InMemoryRuntimeWorkflowRepository, workflow
     definition,
     opened,
     WorkflowUpdateInput(
-      workflowStatus = "running",
+      workflowStatus = WorkflowStatus.RUNNING,
       currentStepId = "verify_findings",
       stepUpdates = null,
       artifactsPatch = WorkflowArtifactPatch.from(decodeWorkflowArtifacts(artifactsJson)),

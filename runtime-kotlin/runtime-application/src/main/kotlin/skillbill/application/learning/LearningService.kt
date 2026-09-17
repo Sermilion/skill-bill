@@ -9,7 +9,6 @@ import skillbill.application.learning.model.LearningRecordResult
 import skillbill.application.learning.model.LearningResolveResult
 import skillbill.learnings.LearningsRuntime
 import skillbill.learnings.learningEntry
-import skillbill.learnings.learningEntrySessionJson
 import skillbill.learnings.model.CreateLearningRequest
 import skillbill.learnings.model.LearningScope
 import skillbill.learnings.model.UpdateLearningRequest

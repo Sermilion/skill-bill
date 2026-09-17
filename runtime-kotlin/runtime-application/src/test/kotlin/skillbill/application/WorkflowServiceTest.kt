@@ -1,4 +1,5 @@
 package skillbill.application
+
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
 import skillbill.application.decomposition.encodeDecompositionManifestYaml
 import skillbill.application.decomposition.executionModel
@@ -27,8 +28,7 @@ import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_PERSISTENCE_CONTRACT_VERSION
 import skillbill.contracts.workflow.WorkflowWirePayloadKeys
 import skillbill.engine.RecordingWorkflowGitOperations
-import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeHandoffEnvelopeValidator
-import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeHandoffFoundationValidator
+import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeWireArtifactValidator
 import skillbill.engine.featuretask.AlwaysValidValidator
 import skillbill.engine.goalrunner.GoalRunnerStatusService
 import skillbill.engine.goalrunner.OutcomeStoreTestArtifactPorts
@@ -105,8 +105,10 @@ import skillbill.workflow.goal.NoopGoalObservabilityEventValidator
 import skillbill.workflow.goal.model.GOAL_PROGRESS_HISTORY_LIMIT
 import skillbill.workflow.goal.model.GoalProgressEvent
 import skillbill.workflow.goal.model.GoalProgressEventKind
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactKind
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Clock
@@ -140,7 +142,7 @@ class WorkflowServiceTest {
     val service = newService()
     val result = service.openTestRuntime("ftr-001")
     val ok = assertIs<WorkflowOpenResult.Ok>(result)
-    assertEquals("running", ok.snapshot.workflowStatus)
+    assertEquals("running", ok.snapshot.workflowStatus.wireValue)
     assertEquals("preplan", ok.snapshot.currentStepId)
     assertEquals("/fake/metrics.db", ok.dbPath)
   }
@@ -217,10 +219,10 @@ class WorkflowServiceTest {
       service.abandonFeatureTaskRuntime(opened.workflowId, "Superseded after a deterministic policy block."),
     )
 
-    assertEquals("abandoned", abandoned.acknowledgement.workflowStatus)
+    assertEquals("abandoned", abandoned.acknowledgement.workflowStatus.wireValue)
     assertEquals(listOf("operator_abandonment"), abandoned.acknowledgement.updatedArtifactKeys)
     val saved = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(opened.workflowId)).toSnapshot()
-    assertEquals("abandoned", saved.workflowStatus)
+    assertEquals("abandoned", saved.workflowStatus.wireValue)
     assertContains(saved.artifactsJson, "Superseded after a deterministic policy block.")
     val repeated = assertIs<WorkflowUpdateResult.Error>(
       service.abandonFeatureTaskRuntime(opened.workflowId, "Try again."),
@@ -249,7 +251,7 @@ class WorkflowServiceTest {
         sessionId = "fis-legacy-prose-parent",
         workflowName = "bill-feature-task",
         contractVersion = "0.1",
-        workflowStatus = "paused",
+        workflowStatus = WorkflowStatus.PAUSED.wireValue,
         currentStepId = "assess",
         stepsJson = """[{"step_id":"assess","status":"completed"}]""",
         artifactsJson = historyArtifact,
@@ -266,7 +268,7 @@ class WorkflowServiceTest {
       service.abandonFeatureTaskRuntime("wfl-legacy-prose-parent", "Retire legacy prose goal parent."),
     )
 
-    assertEquals("abandoned", abandoned.acknowledgement.workflowStatus)
+    assertEquals("abandoned", abandoned.acknowledgement.workflowStatus.wireValue)
     assertEquals(listOf("operator_abandonment"), abandoned.acknowledgement.updatedArtifactKeys)
     val saved = requireNotNull(workflows.getFeatureTaskWorkflow("wfl-legacy-prose-parent"))
     assertEquals("abandoned", saved.workflowStatus)
@@ -308,12 +310,12 @@ class WorkflowServiceTest {
       service.abandonFeatureTaskRuntime(opened.workflowId, "Operator abandoned the goal."),
     )
 
-    assertEquals("abandoned", abandoned.acknowledgement.workflowStatus)
+    assertEquals("abandoned", abandoned.acknowledgement.workflowStatus.wireValue)
     assertEquals(listOf("operator_abandonment"), abandoned.acknowledgement.updatedArtifactKeys)
     val saved = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow(opened.workflowId)).toSnapshot()
     assertContains(saved.artifactsJson, "Operator abandoned the goal.")
-    assertTrue(saved.workflowStatus in FeatureTaskRuntimePhaseWorkflowDefinition.definition.terminalStatuses)
-    assertTrue("paused" in FeatureTaskRuntimePhaseWorkflowDefinition.definition.workflowStatuses)
+    assertTrue(saved.workflowStatus.wireValue in FeatureTaskRuntimePhaseWorkflowDefinition.definition.terminalStatuses)
+    assertTrue(WorkflowStatus.PAUSED.wireValue in FeatureTaskRuntimePhaseWorkflowDefinition.definition.workflowStatuses)
     assertIs<WorkflowUpdateResult.Error>(service.abandonFeatureTaskRuntime(opened.workflowId, "Again."))
   }
 
@@ -452,7 +454,7 @@ class WorkflowServiceTest {
       WorkflowFamilyKind.TASK_RUNTIME,
       WorkflowUpdateRequest(
         workflowId = "missing",
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING.wireValue,
         currentStepId = "preplan",
         sessionId = "",
       ),
@@ -515,7 +517,7 @@ class WorkflowServiceTest {
       WorkflowFamilyKind.TASK_RUNTIME,
       WorkflowUpdateRequest(
         workflowId = opened.workflowId,
-        workflowStatus = "blocked",
+        workflowStatus = WorkflowStatus.BLOCKED.wireValue,
         currentStepId = "implement",
         stepUpdates = WorkflowStepUpdates.from(
           listOf(
@@ -597,7 +599,7 @@ class WorkflowServiceTest {
         WorkflowFamilyKind.TASK_RUNTIME,
         WorkflowUpdateRequest(
           workflowId = "wftr-update-loud",
-          workflowStatus = "running",
+          workflowStatus = WorkflowStatus.RUNNING.wireValue,
           currentStepId = "preplan",
           stepUpdates = WorkflowStepUpdates.from(
             listOf(
@@ -633,7 +635,7 @@ class WorkflowServiceTest {
       WorkflowFamilyKind.TASK_RUNTIME,
       WorkflowUpdateRequest(
         workflowId = opened.workflowId,
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING.wireValue,
         currentStepId = "implement",
         stepUpdates = WorkflowStepUpdates.from(
           listOf(
@@ -816,7 +818,7 @@ class WorkflowServiceDecomposedParentTest {
               testDecompositionManifestValidator.encodeManifestWireMap(staleLineage),
           ),
         ),
-        workflowStatus = "abandoned",
+        workflowStatus = WorkflowStatus.ABANDONED,
       ),
     )
     val currentManifest = staleLineage.copy(
@@ -871,7 +873,7 @@ class WorkflowServiceDecomposedParentTest {
               testDecompositionManifestValidator.encodeManifestWireMap(progressedLineage),
           ),
         ),
-        workflowStatus = "abandoned",
+        workflowStatus = WorkflowStatus.ABANDONED,
       ),
     )
     val currentManifest = progressedLineage.copy(
@@ -917,7 +919,7 @@ class WorkflowServiceDecomposedParentTest {
               testDecompositionManifestValidator.encodeManifestWireMap(pausedLineage),
           ),
         ),
-        workflowStatus = "paused",
+        workflowStatus = WorkflowStatus.PAUSED,
       ),
     )
     val currentManifest = pausedLineage.copy(
@@ -1405,7 +1407,7 @@ class WorkflowGoalStatusProjectionTest {
         sessionId = "fis-prose-parent",
         workflowName = "bill-feature-task",
         contractVersion = "0.1",
-        workflowStatus = "paused",
+        workflowStatus = WorkflowStatus.PAUSED.wireValue,
         currentStepId = "assess",
         stepsJson = """[{"step_id":"assess","status":"completed"},{"step_id":"create_branch","status":"pending"}]""",
         artifactsJson = JsonCodec.mapToJsonString(
@@ -1488,7 +1490,7 @@ class WorkflowGoalStatusProjectionTest {
       FeatureTaskRuntimePhaseWorkflowDefinition.definition,
       opened,
       WorkflowUpdateInput(
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING,
         currentStepId = "implement",
         stepUpdates = WorkflowStepUpdates.from(
           listOf(
@@ -1513,7 +1515,7 @@ class WorkflowGoalStatusProjectionTest {
       FeatureTaskRuntimePhaseWorkflowDefinition.definition,
       opened,
       WorkflowUpdateInput(
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING,
         currentStepId = "commit_push",
         stepUpdates = WorkflowStepUpdates.from(
           listOf(
@@ -1582,8 +1584,8 @@ class WorkflowGoalStatusProjectionTest {
       phaseRecorder = testPhaseRecorder(
         database,
         testWorkflowSnapshotValidator,
-        AcceptingFeatureTaskRuntimeHandoffEnvelopeValidator,
-        AcceptingFeatureTaskRuntimeHandoffFoundationValidator,
+        AcceptingFeatureTaskRuntimeWireArtifactValidator,
+        AcceptingFeatureTaskRuntimeWireArtifactValidator,
       ),
     )
   }
@@ -1810,7 +1812,7 @@ class GoalRunnerCommitShaRecoveryTest {
       FeatureTaskRuntimePhaseWorkflowDefinition.definition,
       opened,
       WorkflowUpdateInput(
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING,
         currentStepId = "commit_push",
         stepUpdates = WorkflowStepUpdates.from(
           listOf(
@@ -1843,7 +1845,7 @@ class GoalRunnerCommitShaRecoveryTest {
       FeatureTaskRuntimePhaseWorkflowDefinition.definition,
       opened,
       WorkflowUpdateInput(
-        workflowStatus = "blocked",
+        workflowStatus = WorkflowStatus.BLOCKED,
         currentStepId = "commit_push",
         stepUpdates = WorkflowStepUpdates.from(
           listOf(
@@ -1885,7 +1887,7 @@ class GoalRunnerCommitShaRecoveryTest {
       FeatureTaskRuntimePhaseWorkflowDefinition.definition,
       opened,
       WorkflowUpdateInput(
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING,
         currentStepId = "commit_push",
         stepUpdates = WorkflowStepUpdates.from(
           listOf(
@@ -1924,7 +1926,7 @@ class WorkflowUpdateAcknowledgementBudgetTest {
       WorkflowFamilyKind.TASK_RUNTIME,
       WorkflowUpdateRequest(
         workflowId = opened.workflowId,
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING.wireValue,
         currentStepId = "implement",
         stepUpdates = WorkflowStepUpdates.from(
           listOf(
@@ -1945,7 +1947,7 @@ class WorkflowUpdateAcknowledgementBudgetTest {
     val ack = ok.acknowledgement
     assertEquals("ok", ack.status)
     assertEquals(opened.workflowId, ack.workflowId)
-    assertEquals("running", ack.workflowStatus)
+    assertEquals("running", ack.workflowStatus.wireValue)
     assertEquals("implement", ack.currentStepId)
     assertEquals(listOf("implement"), ack.updatedStepIds)
     assertEquals(listOf("plan", "preplan_digest"), ack.updatedArtifactKeys)
@@ -1984,7 +1986,7 @@ class WorkflowUpdateAcknowledgementBudgetTest {
       SharedPayloadKeys.STATUS to ack.status,
       SharedPayloadKeys.WORKFLOW_ID to ack.workflowId,
       WorkflowWirePayloadKeys.WORKFLOW_NAME to ack.workflowName,
-      WorkflowWirePayloadKeys.WORKFLOW_STATUS to ack.workflowStatus,
+      WorkflowWirePayloadKeys.WORKFLOW_STATUS to ack.workflowStatus.wireValue,
       WorkflowWirePayloadKeys.CURRENT_STEP_ID to ack.currentStepId,
       WorkflowWirePayloadKeys.UPDATED_STEP_IDS to ack.updatedStepIds,
       WorkflowWirePayloadKeys.UPDATED_ARTIFACT_KEYS to ack.updatedArtifactKeys,
@@ -2029,7 +2031,7 @@ class WorkflowGoalRunnerOutcomeStoreTest {
             ),
           ),
         ),
-        workflowStatus = "blocked",
+        workflowStatus = WorkflowStatus.BLOCKED.wireValue,
       ),
     )
     val store = testWorkflowGoalRunnerOutcomeStore(
@@ -2064,7 +2066,7 @@ class WorkflowGoalRunnerReconciliationTest {
     assertEquals(GoalRunnerTerminalStatus.COMPLETE, subtaskOutcome.status)
     assertEquals("wfl-authoritative", subtaskOutcome.workflowId)
     val stale = requireNotNull(workflows.getFeatureTaskWorkflow("wfl-stale")).toSnapshot()
-    assertEquals("blocked", stale.workflowStatus)
+    assertEquals("blocked", stale.workflowStatus.wireValue)
     assertEquals("blocked", decodeWorkflowStepsForTest(stale.stepsJson).getValue("implement"))
     assertContains(stale.artifactsJson, "stale running child 'wfl-stale'")
   }
@@ -2078,7 +2080,7 @@ class WorkflowGoalRunnerReconciliationTest {
       definition,
       opened,
       WorkflowUpdateInput(
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING,
         currentStepId = "implement",
         stepUpdates = WorkflowStepUpdates.from(
           listOf(
@@ -2109,7 +2111,7 @@ class WorkflowGoalRunnerReconciliationTest {
     assertEquals(GoalRunnerTerminalStatus.BLOCKED, outcome.status)
     assertEquals("wfl-orphan", outcome.workflowId)
     val orphan = requireNotNull(workflows.getFeatureTaskWorkflow("wfl-orphan")).toSnapshot()
-    assertEquals("blocked", orphan.workflowStatus)
+    assertEquals("blocked", orphan.workflowStatus.wireValue)
     assertContains(orphan.artifactsJson, "no longer active")
   }
 
@@ -2122,7 +2124,7 @@ class WorkflowGoalRunnerReconciliationTest {
       definition,
       opened,
       WorkflowUpdateInput(
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING,
         currentStepId = "implement",
         stepUpdates = WorkflowStepUpdates.from(
           listOf(
@@ -2151,7 +2153,7 @@ class WorkflowGoalRunnerReconciliationTest {
 
     assertTrue(outcomes.isEmpty())
     val active = requireNotNull(workflows.getFeatureTaskWorkflow("wfl-active")).toSnapshot()
-    assertEquals("running", active.workflowStatus)
+    assertEquals("running", active.workflowStatus.wireValue)
     assertEquals("running", decodeWorkflowStepsForTest(active.stepsJson).getValue("implement"))
   }
 
@@ -2172,10 +2174,10 @@ class WorkflowGoalRunnerReconciliationTest {
     assertEquals(GoalRunnerTerminalStatus.BLOCKED, outcome.status)
     assertEquals("wfl-blocked", outcome.workflowId)
     val stillActive = requireNotNull(workflows.getFeatureTaskWorkflow("wfl-active")).toSnapshot()
-    assertEquals("running", stillActive.workflowStatus)
+    assertEquals("running", stillActive.workflowStatus.wireValue)
     assertEquals("running", decodeWorkflowStepsForTest(stillActive.stepsJson).getValue("implement"))
     val stillBlocked = requireNotNull(workflows.getFeatureTaskWorkflow("wfl-blocked")).toSnapshot()
-    assertEquals("blocked", stillBlocked.workflowStatus)
+    assertEquals("blocked", stillBlocked.workflowStatus.wireValue)
   }
 
   @Test
@@ -2187,7 +2189,7 @@ class WorkflowGoalRunnerReconciliationTest {
       definition,
       opened,
       WorkflowUpdateInput(
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING,
         currentStepId = "implement",
         stepUpdates = WorkflowStepUpdates.from(
           listOf(
@@ -2218,7 +2220,7 @@ class WorkflowGoalRunnerReconciliationTest {
 
     assertEquals("implement", blockedStep)
     val saved = requireNotNull(workflows.getFeatureTaskWorkflow("wfl-child")).toSnapshot()
-    assertEquals("blocked", saved.workflowStatus)
+    assertEquals("blocked", saved.workflowStatus.wireValue)
     assertEquals("implement", saved.currentStepId)
     val steps = decodeWorkflowStepsForTest(saved.stepsJson)
     assertEquals("completed", steps.getValue("preplan"))
@@ -2234,7 +2236,7 @@ class WorkflowGoalRunnerReconciliationTest {
       definition,
       opened,
       WorkflowUpdateInput(
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING,
         currentStepId = "plan",
         stepUpdates = WorkflowStepUpdates.from(
           listOf(
@@ -2292,7 +2294,7 @@ class WorkflowGoalRunnerReconciliationTest {
       definition,
       opened,
       WorkflowUpdateInput(
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING,
         currentStepId = "audit",
         stepUpdates = WorkflowStepUpdates.from(
           listOf(
@@ -2340,7 +2342,7 @@ class WorkflowGoalRunnerReconciliationTest {
       definition,
       opened,
       WorkflowUpdateInput(
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING,
         currentStepId = "implement_fix",
         stepUpdates = WorkflowStepUpdates.from(
           listOf(
@@ -2408,7 +2410,7 @@ private fun staleRunningChildRecord(definition: WorkflowDefinition) = testWorkfl
   definition,
   testWorkflowEngine.openRecord(definition, "wfl-stale", "ftr-001", "preplan"),
   WorkflowUpdateInput(
-    workflowStatus = "running",
+    workflowStatus = WorkflowStatus.RUNNING,
     currentStepId = "implement",
     stepUpdates = WorkflowStepUpdates.from(
       listOf(
@@ -2433,7 +2435,7 @@ private fun authoritativeCompleteChildRecord(definition: WorkflowDefinition) = t
   definition,
   testWorkflowEngine.openRecord(definition, "wfl-authoritative", "ftr-002", "preplan"),
   WorkflowUpdateInput(
-    workflowStatus = "running",
+    workflowStatus = WorkflowStatus.RUNNING,
     currentStepId = "commit_push",
     stepUpdates = WorkflowStepUpdates.from(
       listOf(
@@ -2465,7 +2467,7 @@ private fun blockedSiblingChildRecord(definition: WorkflowDefinition) = testWork
   definition,
   testWorkflowEngine.openRecord(definition, "wfl-blocked", "ftr-001", "preplan"),
   WorkflowUpdateInput(
-    workflowStatus = "blocked",
+    workflowStatus = WorkflowStatus.BLOCKED,
     currentStepId = "review",
     stepUpdates = WorkflowStepUpdates.from(
       listOf(
@@ -2489,7 +2491,7 @@ private fun activeRetryChildRecord(definition: WorkflowDefinition) = testWorkflo
   definition,
   testWorkflowEngine.openRecord(definition, "wfl-active", "ftr-002", "preplan"),
   WorkflowUpdateInput(
-    workflowStatus = "running",
+    workflowStatus = WorkflowStatus.RUNNING,
     currentStepId = "implement",
     stepUpdates = WorkflowStepUpdates.from(
       listOf(
@@ -2542,7 +2544,7 @@ class WorkflowGoalRunnerProgressStoreTest {
       workflowSnapshotValidator = testWorkflowSnapshotValidator,
       artifactPorts = OutcomeStoreTestArtifactPorts(
         goalObservabilityEventValidator = object : GoalObservabilityEventValidator {
-          override fun validate(event: Any, sourceLabel: String) {
+          override fun validate(kind: FeatureTaskRuntimeWireArtifactKind, payload: Any, sourceLabel: String) {
             throw InvalidGoalObservabilityEventSchemaError(sourceLabel, "subtask_id", "subtask_id is required.")
           }
         },
@@ -2724,7 +2726,7 @@ class WorkflowGoalRunnerProgressStoreTest {
       workflowSnapshotValidator = testWorkflowSnapshotValidator,
       artifactPorts = OutcomeStoreTestArtifactPorts(
         goalProgressEventValidator = object : GoalProgressEventValidator {
-          override fun validate(event: Any, sourceLabel: String) {
+          override fun validate(kind: FeatureTaskRuntimeWireArtifactKind, payload: Any, sourceLabel: String) {
             throw InvalidGoalProgressEventSchemaError(
               sourceLabel,
               "operation_name",
@@ -2832,7 +2834,7 @@ class WorkflowGoalRunnerProgressStoreTest {
       definition,
       opened,
       WorkflowUpdateInput(
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING,
         currentStepId = "implement",
         stepUpdates = WorkflowStepUpdates.from(
           listOf(
@@ -2957,7 +2959,7 @@ private fun attemptLedgerRequest(workflowId: String, sequenceNumber: Int): GoalR
   )
 
 private fun assertProgressEventAcknowledgement(ok: WorkflowUpdateResult.Ok) {
-  assertEquals("running", ok.acknowledgement.workflowStatus)
+  assertEquals("running", ok.acknowledgement.workflowStatus.wireValue)
   assertEquals("implement", ok.acknowledgement.currentStepId)
   assertEquals(listOf("implement"), ok.acknowledgement.updatedStepIds)
   assertEquals(
@@ -2991,7 +2993,7 @@ private val testWorkflowEngine: WorkflowEngine = WorkflowEngine(testWorkflowSnap
 
 private val testGoalObservabilityEventValidator: GoalObservabilityEventValidator =
   object : GoalObservabilityEventValidator {
-    override fun validate(event: Any, sourceLabel: String) = Unit
+    override fun validate(kind: FeatureTaskRuntimeWireArtifactKind, payload: Any, sourceLabel: String) = Unit
   }
 
 private fun workflowRecord(
@@ -3005,7 +3007,8 @@ private fun workflowRecord(
     definition,
     opened,
     WorkflowUpdateInput(
-      workflowStatus = workflowStatus,
+      workflowStatus = WorkflowStatus.fromWire(workflowStatus)
+        ?: error("Unknown workflow status '$workflowStatus'."),
       currentStepId = "plan",
       stepUpdates = null,
       artifactsPatch = artifactsPatch,
@@ -3023,6 +3026,12 @@ private fun workflowRecord(
   WorkflowArtifactPatch.from(artifactsPatch),
   workflowStatus,
 )
+
+private fun workflowRecord(
+  workflowId: String,
+  artifactsPatch: WorkflowArtifactPatch?,
+  workflowStatus: WorkflowStatus,
+): WorkflowStateRecord = workflowRecord(workflowId, artifactsPatch, workflowStatus.wireValue)
 
 private const val LEGACY_CONTRACT_MANIFEST_YAML: String = """
 ---
@@ -3902,7 +3911,7 @@ class DecompositionDiskBootstrapTest {
       status = "in_progress",
       executionModel = DecompositionExecutionModel.SAME_BRANCH_COMMIT_PER_SUBTASK,
       baseBranch = "main",
-      featureBranch = "",
+      featureBranch = "feat/SKILL-TEST",
       currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "implement"),
       subtasks = listOf(
         DecompositionSubtask(
@@ -3954,7 +3963,7 @@ class DecompositionDiskBootstrapTest {
       status = "in_progress",
       executionModel = DecompositionExecutionModel.SAME_BRANCH_COMMIT_PER_SUBTASK,
       baseBranch = "main",
-      featureBranch = "",
+      featureBranch = "feat/SKILL-TEST",
       currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "implement"),
       subtasks = listOf(
         DecompositionSubtask(
@@ -3999,7 +4008,7 @@ class DecompositionDiskBootstrapTest {
       status = "in_progress",
       executionModel = DecompositionExecutionModel.SAME_BRANCH_COMMIT_PER_SUBTASK,
       baseBranch = "main",
-      featureBranch = "",
+      featureBranch = "feat/SKILL-TEST",
       currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "implement"),
       subtasks = listOf(
         DecompositionSubtask(
@@ -4070,7 +4079,7 @@ class DecompositionDiskBootstrapTest {
       status = "in_progress",
       executionModel = DecompositionExecutionModel.SAME_BRANCH_COMMIT_PER_SUBTASK,
       baseBranch = "main",
-      featureBranch = "",
+      featureBranch = "feat/SKILL-TEST",
       currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "implement"),
       subtasks = listOf(
         DecompositionSubtask(
@@ -4119,7 +4128,7 @@ class DecompositionDiskBootstrapTest {
       status = "in_progress",
       executionModel = DecompositionExecutionModel.SAME_BRANCH_COMMIT_PER_SUBTASK,
       baseBranch = "main",
-      featureBranch = "",
+      featureBranch = "feat/SKILL-TEST",
       currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "implement"),
       subtasks = listOf(
         DecompositionSubtask(
@@ -4177,7 +4186,7 @@ class DecompositionDiskBootstrapTest {
       status = "in_progress",
       executionModel = DecompositionExecutionModel.SAME_BRANCH_COMMIT_PER_SUBTASK,
       baseBranch = "main",
-      featureBranch = "",
+      featureBranch = "feat/SKILL-TEST",
       currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "implement"),
       subtasks = listOf(
         DecompositionSubtask(
@@ -4237,7 +4246,7 @@ class DecompositionDiskBootstrapTest {
       status = "in_progress",
       executionModel = DecompositionExecutionModel.SAME_BRANCH_COMMIT_PER_SUBTASK,
       baseBranch = "main",
-      featureBranch = "",
+      featureBranch = "feat/SKILL-TEST",
       currentSubtaskIntent = CurrentSubtaskIntent(subtaskId = 1, action = "implement"),
       subtasks = listOf(
         DecompositionSubtask(
@@ -4256,7 +4265,7 @@ class DecompositionDiskBootstrapTest {
     workflows.saveFeatureImplementWorkflow(
       workflowRecord(
         workflowId = "wfl-abandoned-corrupt",
-        workflowStatus = "abandoned",
+        workflowStatus = WorkflowStatus.ABANDONED,
         artifactsPatch = WorkflowArtifactPatch.from(
           mapOf(
             "plan" to mapOf("mode" to "decompose"),

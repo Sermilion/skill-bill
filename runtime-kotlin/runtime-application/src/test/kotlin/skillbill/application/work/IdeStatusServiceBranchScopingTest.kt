@@ -16,6 +16,7 @@ import skillbill.ports.goalrunner.runner.model.GoalRunnerWorkflowProgress
 import skillbill.ports.work.model.WorkItemKind
 import skillbill.ports.workflow.model.FeatureTaskRouteScope
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
+import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Path
 import java.time.Instant
 import kotlin.test.Test
@@ -94,7 +95,7 @@ class IdeStatusServiceBranchScopingTest {
     )
     val staleProgress = GoalRunnerWorkflowProgress(
       workflowId = "w-child",
-      workflowStatus = "running",
+      workflowStatus = WorkflowStatus.RUNNING,
       currentStepId = "verify_findings",
       progressToken = "stale-verify-findings",
       latestLivenessSignal = "workflow_status=running; step=verify_findings",

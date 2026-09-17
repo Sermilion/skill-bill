@@ -1,5 +1,6 @@
 package skillbill.engine.featuretask.model
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePlanningProjectionValidator
+
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseHandoff
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeSharedReviewEvidenceReference
 import skillbill.workflow.taskruntime.model.PhaseHandoffProjectionDeclaration
@@ -8,7 +9,7 @@ data class FeatureTaskRuntimeBriefingProjectionInputs(
   val handoff: FeatureTaskRuntimePhaseHandoff,
   val declarations: List<PhaseHandoffProjectionDeclaration>,
   val workflowId: String?,
-  val planningProjectionValidator: FeatureTaskRuntimePlanningProjectionValidator,
+  val planningProjectionValidator: FeatureTaskRuntimeWireArtifactValidator,
   val sharedReviewEvidence: FeatureTaskRuntimeSharedReviewEvidenceReference?,
   val addonContentBySlug: Map<String, String>,
 )

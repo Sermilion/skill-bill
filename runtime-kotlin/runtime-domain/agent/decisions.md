@@ -1,28 +1,39 @@
-# runtime-domain boundary decisions
+## [2026-09-17] Remaining multi-file families after merge-count shrink (SKILL-351 subtask 3)
 
-## [2026-08-19] Excluded fallback lanes transfer owned paths to the native winner (SKILL-196)
+Context: Subtask 3 merges count-driven split files where ceilings allow and documents responsibility-based splits that remain.
 
-Context: A fallback root exists because some changed files matched no native pack. Per-area fallback
-exclusion removes the fallback lane when a native routed pack already contributes a candidate for the
-same area, but those fallback-routed files would otherwise have no claimant for that area while
-coverage accounting must record exactly as before.
+Decision: `FeatureTaskRuntimeProjectionCanonicalizer` is one implementation file plus `FeatureTaskRuntimeProjectionCanonicalizationTypes.kt` for shared types and key sets. `GoalObservabilityParsing` is a single file. `FeatureTaskRuntimeHandoffProjection*` stays split by lifecycle: core projection model (`model/FeatureTaskRuntimeHandoffProjection*.kt`), envelope wire (`FeatureTaskRuntimeHandoffProjectionEnvelopeWire.kt`), validator and field resolution (`FeatureTaskRuntimeHandoffProjectionValidator.kt`, `FeatureTaskRuntimeHandoffProjectionFieldResolver.kt`, `FeatureTaskRuntimeHandoffProjectionValueBuilder.kt`, `FeatureTaskRuntimeHandoffProjectionFinalization.kt`, `FeatureTaskRuntimeHandoffProjectionDeclarationChecks.kt`, `FeatureTaskRuntimeHandoffProjectionSourceFields.kt`) because validator plus builder paths exceed a single file without spillover suffixes. `WorkflowEngine*` splits snapshot codec (`WorkflowEngineSnapshotCodec.kt`, `WorkflowEngineSnapshotCodecDurable.kt`), continuation assembly (`WorkflowEngineContinuationAssembly.kt`, `WorkflowEngineContinuationCompact.kt`, `WorkflowEngineContinuationPrompts.kt`), validation (`WorkflowEngineValidation.kt`), and numeric coercion (`WorkflowEngineNumericCoercion.kt`) around distinct persistence and continuation responsibilities. `FeatureTaskRuntimePhaseWorkflow*` keeps `FeatureTaskRuntimePhaseWorkflowDefinition.kt` as the graph owner with `FeatureTaskRuntimePhaseWorkflowGraph.kt`, `FeatureTaskRuntimePhaseWorkflowTransitions.kt`, `FeatureTaskRuntimePhaseWorkflowQueries.kt`, and `FeatureTaskRuntimePhaseWorkflowProjectionDeclarations.kt` as named graph, transition, query, and projection-declaration units.
 
-Decision: When a fallback lane for area A is excluded, fold its `ownedPaths` and `changedHunkIds`
-into the winning native lane for area A before lane materialization, deduplicated and sorted. Claim
-transfer only — no rubric content from the fallback pack is composed into the native lane.
+Evidence: `ProductionFileLineCeilingArchitectureTest`, merged canonicalizer and goal observability units in this subtask.
 
-Reason: Keeps each area's file claim byte-identical to the pre-exclusion plan while lane count falls.
-`unreviewedSegmentIds`, segment accounting, coverage facts, and integration terminal state stay
-unchanged because the native winner still owns every path the removed fallback lane owned.
+Revisit when: Any family grows past ceilings without a clearer responsibility boundary.
 
-Alternatives considered: Leave fallback-routed files unclaimed for the area and rely on the coverage
-ledger to treat them as out of scope — rejected because it risks recording those paths as unreviewed
-coverage or forcing an incomplete lane disposition when the fallback lane disappears. Silently
-dropping the paths — rejected by the parent spec.
+## [2026-09-16] Validator port home, wire artifact collapse, version ownership, wrapper policy (SKILL-351 subtask 2)
 
-Evidence: `ReviewCrossRootLaneReconciliationTest` — `excluded fallback paths transfer into the
-surviving native lane for the area`; `ParallelReviewFallbackLaneExclusionTest` — `excluding a
-redundant fallback lane leaves area coverage and lane accounting untouched`.
+Context: Subtask 2 restores ownership and typed boundaries across validator ports, learnings session wiring, workflow continuation typing, and wire-key governance.
 
-Revisit when: fallback exclusion moves to a model where fallback-routed files are never attributed
-to area-specific lanes.
+Decision: (a) Feature-task runtime JSON-schema validator ports live in `runtime-domain` under `skillbill.workflow.taskruntime` and `skillbill.workflow.decomposition`; concrete Draft 2020-12 validators stay in `runtime-infra-fs`. (b) The identical-shape task-runtime and goal wire validators use `FeatureTaskRuntimeWireArtifactValidator` keyed by `FeatureTaskRuntimeWireArtifactKind`; infra dispatches through `FeatureTaskRuntimeWireArtifactValidatorAdapter`. (c) `SkillBillVersion` and `skillbill/version.properties` live in `runtime-core`; the packaged resource read remains the single ambient seam documented in `ARCHITECTURE.md`. (d) Typed boundary wrappers move out of the monolithic `WorkflowBoundaryCollections.kt` into owning area `model` packages (`workflow/decomposition`, `telemetry`, `review/context`, `workflow/engine`); delete the aggregate file rather than retaining a re-export hub. (e) `WorkflowDefinition.usesFeatureTaskRuntimeContinuation` replaces engine imports of `workflow.taskruntime` for continuation branching. (f) Governed goal-continuation artifact keys declare once in `FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys`; `WireVocabularyGovernedSeamInventory` scans the encode/decode pair.
+
+Evidence: `../../../.feature-specs/done/SKILL-351-runtime-domain-boundaries-and-simplicity`, `FeatureTaskRuntimeWireArtifactValidatorAdapter`, `LearningSessionWire.kt`, `WorkflowEngineBoundaryMaps.kt`, `WireVocabularyArchitectureTest`.
+
+Revisit when: Subtask 3 shrinks remaining surface and merge-count split units land.
+
+## [2026-09-16] Decomposition manifest validator port (SKILL-52.3)
+
+Context: Decomposition manifest schema validation previously lived only in infra; application reached it through ad hoc imports.
+
+Decision: `DecompositionManifestValidator` in `runtime-domain` is the domain-owned port; `DecompositionManifestValidatorAdapter` in `runtime-infra-fs` runs JSON Schema plus coherence checks and throws `InvalidDecompositionManifestSchemaError` on violation.
+
+Evidence: `DecompositionManifestValidatorAdapter`, decomposition manifest rejection tests in `runtime-infra-fs`.
+
+Revisit when: Manifest schema or repair orchestration changes ownership again.
+
+## [2026-09-16] Unified durable artifact map reader and lenient workflow-step integers (SKILL-351 subtask 1)
+
+Context: Durable artifact decoding duplicated nine map-field accessor families and fourteen integer coercions with divergent semantics. Workflow snapshot step decoding intentionally keeps a lenient integer coercion for legacy rows.
+
+Decision: (c) Retain `AttemptLedgerWorkflowDecoding.asLenientIntOrNull` as the sole lenient integer coercion (Int, Number→toInt, String→toIntOrNull). All other durable artifact seams use `DurableArtifactMapReader` with `BigDecimal.longValueExact` / exact integral narrowing via `asExactIntOrNull` and `asExactLongOrNull` in `FeatureTaskRuntimePersistenceMapFields.kt`. Review-state and goal-observability field helpers delegate to the exact coercion helpers rather than maintaining parallel parsers.
+
+Evidence: `FeatureTaskRuntimePersistenceMapFieldsTest`, `ReviewRunLaneSegmentAccountingJsonTest`, `TypedParseBoundaryArchitectureTest`.
+
+Revisit when: SKILL-352 replaces any remaining engine-local readers or workflow status moves to closed enums at the engine boundary.

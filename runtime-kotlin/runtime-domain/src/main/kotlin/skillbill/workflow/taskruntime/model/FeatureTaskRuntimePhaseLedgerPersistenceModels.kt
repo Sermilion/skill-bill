@@ -105,26 +105,41 @@ data class FeatureTaskRuntimePhaseLedgerEntry(
 
   companion object {
 
-    internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimePhaseLedgerEntry =
-      FeatureTaskRuntimePhaseLedgerEntry(
-        action = FeatureTaskRuntimePhaseLedgerAction.fromWire(
-          raw.requireStringField(DecompositionManifestPayloadKeys.ACTION),
-        ),
-        sequenceNumber = raw.requireIntField("sequence_number"),
-        timestamp = raw.requireStringField("timestamp"),
-        phaseId = requireKnownFeatureTaskRuntimePhaseId(
-          raw.requireStringField(SharedPayloadKeys.PHASE_ID),
-          SharedPayloadKeys.PHASE_ID,
-        ),
-        attemptCount = raw.requireIntField("attempt_count"),
-        resolvedAgentId = raw.optionalStringField("resolved_agent_id"),
-        executionOrigin = raw.optionalStringField("execution_origin")?.let(
-          FeatureTaskRuntimePhaseExecutionOrigin::fromWireValue,
-        ) ?: FeatureTaskRuntimePhaseExecutionOrigin.AGENT_EXECUTED,
-        fixLoopIteration = raw.optionalIntField("fix_loop_iteration"),
-        blockedReason = raw.optionalStringField(DecompositionManifestPayloadKeys.BLOCKED_REASON),
-        loopId = raw.optionalStringField("loop_id"),
-        edgeIteration = raw.optionalIntField("edge_iteration"),
-      )
+    internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimePhaseLedgerEntry {
+      val reader = durableArtifactMapReader(raw)
+      val attemptCount = reader.requiredInt("attempt_count")
+      if (attemptCount < 1) {
+        throw InvalidWorkflowStateSchemaError(
+          "Feature-task-runtime phase ledger entry attempt_count must be >= 1, was $attemptCount.",
+        )
+      }
+      return try {
+        FeatureTaskRuntimePhaseLedgerEntry(
+          action = FeatureTaskRuntimePhaseLedgerAction.fromWire(
+            reader.requiredString(DecompositionManifestPayloadKeys.ACTION),
+          ),
+          sequenceNumber = reader.requiredInt("sequence_number"),
+          timestamp = reader.requiredString("timestamp"),
+          phaseId = requireKnownFeatureTaskRuntimePhaseId(
+            reader.requiredString(SharedPayloadKeys.PHASE_ID),
+            SharedPayloadKeys.PHASE_ID,
+          ),
+          attemptCount = attemptCount,
+          resolvedAgentId = reader.optionalString("resolved_agent_id"),
+          executionOrigin = reader.optionalString("execution_origin")?.let(
+            FeatureTaskRuntimePhaseExecutionOrigin::fromWireValue,
+          ) ?: FeatureTaskRuntimePhaseExecutionOrigin.AGENT_EXECUTED,
+          fixLoopIteration = reader.optionalInt("fix_loop_iteration"),
+          blockedReason = reader.optionalString(DecompositionManifestPayloadKeys.BLOCKED_REASON),
+          loopId = reader.optionalString("loop_id"),
+          edgeIteration = reader.optionalInt("edge_iteration"),
+        )
+      } catch (error: IllegalArgumentException) {
+        throw InvalidWorkflowStateSchemaError(
+          "Feature-task-runtime phase ledger entry is invalid.",
+          error,
+        )
+      }
+    }
   }
 }

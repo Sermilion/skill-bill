@@ -14,6 +14,8 @@ import skillbill.workflow.engine.model.WorkflowStepState
 import skillbill.workflow.engine.model.WorkflowSummaryView
 import skillbill.workflow.model.WorkflowContinueStatus
 import skillbill.workflow.model.WorkflowResumeMode
+import skillbill.workflow.model.WorkflowStatus
+import skillbill.workflow.model.WorkflowStepStatus
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -119,9 +121,9 @@ class WorkflowWireProjectionsWireMapTest {
     sessionId = "sess",
     workflowName = "bill-feature",
     contractVersion = "0.1",
-    workflowStatus = "running",
+    workflowStatus = WorkflowStatus.RUNNING,
     currentStepId = "implement",
-    steps = listOf(WorkflowStepState("implement", "running", 1)),
+    steps = listOf(WorkflowStepState("implement", WorkflowStepStatus.RUNNING, 1)),
     artifacts = DurableWorkflowArtifacts.EMPTY,
     startedAt = "1970-01-01T00:00:00Z",
     updatedAt = "1970-01-01T00:00:00Z",
@@ -133,7 +135,7 @@ class WorkflowWireProjectionsWireMapTest {
     sessionId = "sess",
     workflowName = "bill-feature",
     contractVersion = "0.1",
-    workflowStatus = "running",
+    workflowStatus = WorkflowStatus.RUNNING,
     currentStepId = "implement",
     startedAt = "1970-01-01T00:00:00Z",
     updatedAt = "1970-01-01T00:00:00Z",
@@ -155,7 +157,7 @@ class WorkflowWireProjectionsWireMapTest {
   private fun continueView(extraFields: Map<String, Any?>): WorkflowContinueView = WorkflowContinueView(
     resume = resumeView(),
     skillName = "bill-feature",
-    workflowStatusBeforeContinue = "running",
+    workflowStatusBeforeContinue = WorkflowStatus.RUNNING,
     continueStatus = WorkflowContinueStatus.REOPENED,
     continueStepId = "implement",
     continueStepLabel = "Implement",
@@ -175,7 +177,7 @@ class WorkflowWireProjectionsWireMapTest {
       workflowId = "wf-1",
       skillName = "bill-feature",
       continueStatus = WorkflowContinueStatus.REOPENED,
-      workflowStatusBeforeContinue = "running",
+      workflowStatusBeforeContinue = WorkflowStatus.RUNNING,
       startedAt = "1970-01-01T00:00:00Z",
       updatedAt = "1970-01-01T00:00:00Z",
       resumeStepId = "implement",

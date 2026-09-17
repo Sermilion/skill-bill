@@ -2,8 +2,10 @@ package skillbill.architecture
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
+import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionManifestBundleJournalSchemaPaths
 import skillbill.contracts.workflow.DecompositionManifestSchemaPaths
+import skillbill.contracts.workflow.FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys
 import skillbill.contracts.workflow.FeatureTaskRuntimePhaseOutputSchemaPaths
 import skillbill.testing.repoRootFromTest
 import java.nio.file.Files
@@ -54,7 +56,18 @@ internal object WireVocabularyGovernedSeamInventory {
         "application/workflow/WorkflowService",
       ),
     ),
+    GovernedPayloadSeam(
+      seamId = "feature-task-runtime-goal-continuation-artifact",
+      schemaRepoRelativePath = GOAL_CONTINUATION_ARTIFACT_SCHEMA_AUTHORITY,
+      governedRelativePathMarkers = listOf(
+        "taskruntime/model/FeatureTaskRuntimeGoalContinuationArtifact",
+        "infrastructure/sqlite/goalrunner/GoalContinuationArtifactCodec",
+      ),
+    ),
   )
+
+  const val GOAL_CONTINUATION_ARTIFACT_SCHEMA_AUTHORITY: String =
+    "internal/feature-task-runtime-goal-continuation-artifact"
 
   fun closedSchemaPropertyKeys(schemaRepoRelativePath: String): Set<String> = when (schemaRepoRelativePath) {
     DecompositionManifestSchemaPaths.REPO_RELATIVE_PATH -> decompositionManifestGovernedKeys(
@@ -66,8 +79,26 @@ internal object WireVocabularyGovernedSeamInventory {
     FeatureTaskRuntimePhaseOutputSchemaPaths.REPO_RELATIVE_PATH -> phaseOutputEnvelopeGovernedKeys(
       loadRepoSchema(schemaRepoRelativePath),
     )
+    GOAL_CONTINUATION_ARTIFACT_SCHEMA_AUTHORITY -> goalContinuationArtifactGovernedKeys()
     else -> emptySet()
   }
+
+  private fun goalContinuationArtifactGovernedKeys(): Set<String> = setOf(
+    SharedPayloadKeys.ISSUE_KEY,
+    SharedPayloadKeys.SUBTASK_ID,
+    FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.SUPPRESS_PR,
+    FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.GOAL_BRANCH,
+    FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.PARENT_WORKFLOW_ID,
+    FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.CODE_REVIEW_MODE,
+    FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.VALIDATION_DEPTH,
+    FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.QUALITY_GATE_SELECTION,
+    FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.PARALLEL_REVIEW_AGENT,
+    FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.SUBTASK_NAME,
+    FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.AGENT_ADDON_SELECTION,
+    FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_SLUG,
+    FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_SOURCE_IDENTITY,
+    FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_CONTENT_SHA256,
+  )
 
   private fun decompositionManifestGovernedKeys(schema: JsonNode): Set<String> {
     val keys = mutableSetOf<String>()

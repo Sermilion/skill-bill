@@ -1,5 +1,5 @@
 package skillbill.workflow.goal
 
-interface GoalPlanningPreparationEnvelopeValidator {
-  fun validate(envelope: Any, sourceLabel: String)
-}
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
+
+typealias GoalPlanningPreparationEnvelopeValidator = FeatureTaskRuntimeWireArtifactValidator

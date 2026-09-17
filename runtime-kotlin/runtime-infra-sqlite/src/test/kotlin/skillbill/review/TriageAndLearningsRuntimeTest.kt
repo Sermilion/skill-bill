@@ -1,14 +1,14 @@
 package skillbill.review
 
 import skillbill.SAMPLE_REVIEW
+import skillbill.application.learning.learningAppliedSessionWire
+import skillbill.application.learning.learningEntryDto
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.learning.LearningEntryDto
 import skillbill.infrastructure.sqlite.SQLiteLearningStore
 import skillbill.infrastructure.sqlite.review.ReviewRuntime
 import skillbill.infrastructure.sqlite.review.TriageRuntime
 import skillbill.learnings.LearningsRuntime
-import skillbill.learnings.learningAppliedSessionWire
-import skillbill.learnings.learningEntryDto
 import skillbill.learnings.model.CreateLearningRequest
 import skillbill.learnings.model.LearningScope
 import skillbill.learnings.model.LearningSourceValidation

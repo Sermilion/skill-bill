@@ -1,5 +1,6 @@
 package skillbill.cli
 
+import skillbill.application.workflow.WorkflowWireProjections
 import skillbill.application.workflow.model.WorkflowContinueResult
 import skillbill.application.workflow.model.WorkflowGetResult
 import skillbill.application.workflow.model.WorkflowUpdateResult
@@ -22,7 +23,12 @@ import skillbill.workflow.goal.GoalObservabilityEventValidator
 import skillbill.workflow.goal.model.GoalObservabilityDiffStat
 import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunk
 import skillbill.workflow.goal.model.GoalObservabilitySelectedDiffHunks
+import skillbill.workflow.model.WorkflowStatus
+import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactKind
+import java.nio.file.Files
+import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -39,7 +45,7 @@ class WorkflowCliResultMappersTest {
         status = "ok",
         workflowId = "wfl-1",
         workflowName = "bill-feature-task",
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING,
         currentStepId = "implement",
         updatedStepIds = listOf("implement"),
         updatedArtifactKeys = listOf("implementation_summary"),
@@ -61,6 +67,30 @@ class WorkflowCliResultMappersTest {
   }
 
   @Test
+  fun `workflow acknowledgement wire bytes remain identical to the captured baseline`() {
+    val acknowledgement = WorkflowUpdateAcknowledgementView(
+      status = "ok",
+      workflowId = "wf-1",
+      workflowName = "bill-feature",
+      workflowStatus = WorkflowStatus.RUNNING,
+      currentStepId = "implement",
+      updatedStepIds = listOf("implement"),
+      updatedArtifactKeys = emptyList(),
+      readOnlyFullStateGuidance = "guidance",
+    )
+    val actual = JsonCodec.mapToJsonString(
+      WorkflowWireProjections.updateAcknowledgementMap(acknowledgement).toPayload(),
+    ) + "\n"
+    val expected = Files.readAllBytes(
+      cliCompatibilityRepositoryRoot().resolve(
+        ".feature-specs/SKILL-351-runtime-domain-boundaries-and-simplicity/baselines/workflow-update-ack-wire.json",
+      ),
+    )
+
+    assertEquals(expected.toList(), actual.toByteArray().toList())
+  }
+
+  @Test
   fun `runtime continue mapper returns honest ok for a recoverable run instead of false missing artifacts error`() {
     val definition = FeatureTaskRuntimePhaseWorkflowDefinition.definition
     val engine = WorkflowEngine(NoopWorkflowSnapshotValidator)
@@ -69,7 +99,7 @@ class WorkflowCliResultMappersTest {
       sessionId = "ftr-001",
       workflowName = definition.workflowName,
       contractVersion = definition.contractVersion,
-      workflowStatus = "running",
+      workflowStatus = WorkflowStatus.RUNNING,
       currentStepId = "plan",
       stepsJson = """[{"step_id":"preplan","status":"completed","attempt_count":1},""" +
         """{"step_id":"plan","status":"completed","attempt_count":1},""" +
@@ -295,9 +325,9 @@ class WorkflowCliResultMappersTest {
     sessionId = "fis-1",
     workflowName = "bill-feature-task",
     contractVersion = "0.1",
-    workflowStatus = "running",
+    workflowStatus = WorkflowStatus.RUNNING,
     currentStepId = "implement",
-    steps = listOf(WorkflowStepState("implement", "running", 1)),
+    steps = listOf(WorkflowStepState("implement", WorkflowStepStatus.RUNNING, 1)),
     artifacts = DurableWorkflowArtifacts.fromMap(
       mapOf(
         "goal_observability_latest_event" to event,
@@ -323,12 +353,24 @@ class WorkflowCliResultMappersTest {
 
   private val testGoalObservabilityEventValidator: GoalObservabilityEventValidator =
     object : GoalObservabilityEventValidator {
-      override fun validate(event: Any, sourceLabel: String) {
-        GoalObservabilityEventSchemaValidator.validate(requireNotNull(JsonCodec.anyToStringAnyMap(event)), sourceLabel)
+      override fun validate(kind: FeatureTaskRuntimeWireArtifactKind, payload: Any, sourceLabel: String) {
+        GoalObservabilityEventSchemaValidator.validate(
+          requireNotNull(JsonCodec.anyToStringAnyMap(payload)),
+          sourceLabel,
+        )
       }
     }
 
   private object NoopWorkflowSnapshotValidator : WorkflowSnapshotValidator {
     override fun validate(snapshot: WorkflowStateSnapshot, slug: String) = Unit
   }
+}
+
+private fun cliCompatibilityRepositoryRoot(): Path {
+  var current: Path? = Path.of("").toAbsolutePath().normalize()
+  while (current != null) {
+    if (Files.isDirectory(current.resolve(".git"))) return current
+    current = current.parent
+  }
+  error("Repository root is not available from the test working directory.")
 }

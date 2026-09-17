@@ -2,20 +2,36 @@ package skillbill.workflow.taskruntime.model
 
 import skillbill.text.Utf8Text
 
-class FeatureTaskRuntimeRepairReceiptDecodeObservations {
-  val truncationRecords: MutableList<String> = mutableListOf()
+data class FeatureTaskRuntimeRepairReceiptDecodeObservations(
+  val truncationRecords: List<String> = emptyList(),
+) {
+  internal class Collector {
+    private val records = mutableListOf<String>()
+
+    fun add(record: String) {
+      records.add(record)
+    }
+
+    fun finish(): FeatureTaskRuntimeRepairReceiptDecodeObservations =
+      FeatureTaskRuntimeRepairReceiptDecodeObservations(records.toList())
+  }
 }
+
+data class FeatureTaskRuntimeRepairReceiptDecoded(
+  val receipt: FeatureTaskRuntimeRepairReceipt,
+  val observations: FeatureTaskRuntimeRepairReceiptDecodeObservations,
+)
 
 internal fun forwardOptionalReceiptReason(
   raw: String?,
   fieldPath: String,
   maxUtf8Bytes: Int,
-  observations: FeatureTaskRuntimeRepairReceiptDecodeObservations?,
+  collector: FeatureTaskRuntimeRepairReceiptDecodeObservations.Collector?,
 ): String? {
   val trimmed = raw?.trim()?.takeIf(String::isNotBlank) ?: return null
   val forwarded = Utf8Text.truncateToUtf8Bytes(trimmed, maxUtf8Bytes)
   if (Utf8Text.utf8Size(forwarded) < Utf8Text.utf8Size(trimmed)) {
-    observations?.truncationRecords?.add(repairReceiptReasonTruncationRecord(fieldPath, maxUtf8Bytes))
+    collector?.add(repairReceiptReasonTruncationRecord(fieldPath, maxUtf8Bytes))
   }
   return forwarded
 }

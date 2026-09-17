@@ -26,10 +26,10 @@ import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.telemetry.model.RemoteStatsRequest
 import skillbill.telemetry.model.TelemetryConfigDocument
 import skillbill.telemetry.model.TelemetryDeliveryReport
+import skillbill.telemetry.model.TelemetryOpenDocument
 import skillbill.telemetry.model.TelemetryProxyCapabilities
 import skillbill.telemetry.model.TelemetryRemoteStatsResult
 import skillbill.telemetry.model.TelemetrySettings
-import skillbill.workflow.engine.model.TelemetryOpenDocument
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Clock

@@ -1,10 +1,10 @@
 package skillbill.cli
 
-import skillbill.SkillBillVersion
 import skillbill.cli.core.CliRuntime
 import skillbill.cli.goal.GOAL_EXIT_BLOCKED
 import skillbill.cli.model.CliExecutionResult
 import skillbill.cli.model.CliRuntimeContext
+import skillbill.di.SkillBillVersion
 import skillbill.ports.agentrun.ExecutableLookup
 import java.sql.DriverManager
 import kotlin.test.Test

@@ -1,10 +1,8 @@
 package skillbill.goalrunner.model
 
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.workflow.taskruntime.model.optionalStringField
-import skillbill.workflow.taskruntime.model.optionalStringListField
-import skillbill.workflow.taskruntime.model.requireIntField
-import skillbill.workflow.taskruntime.model.requireStringField
+import skillbill.error.InvalidWorkflowStateSchemaError
+import skillbill.workflow.taskruntime.model.durableArtifactMapReader
 
 data class FeatureTaskRuntimeGoalContinuationOutcome(
   val issueKey: String,
@@ -67,19 +65,28 @@ data class FeatureTaskRuntimeGoalContinuationOutcome(
 
   companion object {
 
-    internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeGoalContinuationOutcome =
-      FeatureTaskRuntimeGoalContinuationOutcome(
-        issueKey = raw.requireStringField("issue_key"),
-        subtaskId = raw.requireIntField("subtask_id"),
-        status = requireNotNull(GoalRunnerTerminalStatus.fromWire(raw.requireStringField("status"))) {
-          "Unknown goal-continuation outcome status '${raw[SharedPayloadKeys.STATUS]}'."
-        },
-        workflowId = raw.requireStringField("workflow_id"),
-        commitSha = raw.optionalStringField("commit_sha"),
-        blockedReason = raw.optionalStringField("blocked_reason"),
-        lastResumableStep = raw.requireStringField("last_resumable_step"),
-        finalizingAgentId = raw.optionalStringField("finalizing_agent_id"),
-        participatingAgentIds = raw.optionalStringListField("participating_agent_ids"),
-      )
+    internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeGoalContinuationOutcome {
+      val reader = durableArtifactMapReader(raw)
+      return try {
+        FeatureTaskRuntimeGoalContinuationOutcome(
+          issueKey = reader.requiredString("issue_key"),
+          subtaskId = reader.requiredInt("subtask_id"),
+          status = requireNotNull(GoalRunnerTerminalStatus.fromWire(reader.requiredString("status"))) {
+            "Unknown goal-continuation outcome status '${raw[SharedPayloadKeys.STATUS]}'."
+          },
+          workflowId = reader.requiredString("workflow_id"),
+          commitSha = reader.optionalString("commit_sha"),
+          blockedReason = reader.optionalString("blocked_reason"),
+          lastResumableStep = reader.requiredString("last_resumable_step"),
+          finalizingAgentId = reader.optionalString("finalizing_agent_id"),
+          participatingAgentIds = reader.optionalStringList("participating_agent_ids"),
+        )
+      } catch (error: IllegalArgumentException) {
+        throw InvalidWorkflowStateSchemaError(
+          "Feature-task-runtime goal-continuation outcome is invalid.",
+          error,
+        )
+      }
+    }
   }
 }

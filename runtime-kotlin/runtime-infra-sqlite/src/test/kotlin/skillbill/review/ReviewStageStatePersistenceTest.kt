@@ -1,5 +1,6 @@
 package skillbill.review
 
+import skillbill.error.InvalidReviewContextSchemaError
 import skillbill.infrastructure.sqlite.SQLiteReviewRunCompletenessRepository
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
 import skillbill.review.model.ParallelReviewMergedFinding
@@ -18,9 +19,50 @@ import skillbill.review.model.ReviewStageReached
 import skillbill.tempDbConnection
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class ReviewStageStatePersistenceTest {
+  @Test
+  fun `malformed SQLite review tokens and citations retain the review typed error`() {
+    val (_, connection) = tempDbConnection("review-stage-malformed-row")
+    connection.use {
+      val repository = SQLiteReviewRunCompletenessRepository(it)
+      repository.recordStageBoundary(
+        "rvw-malformed",
+        ReviewStageBoundary(ReviewStage.REVIEW, ReviewStageReached.REACHED, "2026-08-14T08:00:00Z"),
+      )
+      repository.recordFindingVerdicts(
+        "rvw-malformed",
+        listOf(
+          ReviewFindingVerdict(
+            stage = ReviewStage.VERIFICATION,
+            findingRef = "F-001",
+            claimVerdict = ReviewClaimVerdict.CONFIRMED,
+            citations = listOf(ReviewFindingCitation("src/Main.kt", 12)),
+            recordedAt = "2026-08-14T08:00:00Z",
+          ),
+        ),
+      )
+      it.createStatement().use { statement ->
+        statement.execute("PRAGMA ignore_check_constraints = ON")
+        statement.executeUpdate(
+          "UPDATE review_run_stage_boundaries SET stage = 'unknown' WHERE review_run_id = 'rvw-malformed'",
+        )
+        statement.executeUpdate(
+          "UPDATE review_run_finding_verdicts SET citations = 'src/Main.kt\tnot-a-line' " +
+            "WHERE review_run_id = 'rvw-malformed'",
+        )
+      }
+      assertFailsWith<InvalidReviewContextSchemaError> {
+        repository.fetchStageBoundaries("rvw-malformed")
+      }
+      assertFailsWith<InvalidReviewContextSchemaError> {
+        repository.fetchFindingVerdicts("rvw-malformed")
+      }
+    }
+  }
+
   @Test
   fun `verdicts stage boundary and spec projection survive close and reopen`() {
     val (dbPath, first) = tempDbConnection("review-stage-durability")

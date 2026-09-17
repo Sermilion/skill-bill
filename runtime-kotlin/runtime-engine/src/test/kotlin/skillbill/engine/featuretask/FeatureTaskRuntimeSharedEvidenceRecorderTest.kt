@@ -1,4 +1,5 @@
 package skillbill.engine.featuretask
+
 import skillbill.application.RecordingLifecycleTelemetryRepository
 import skillbill.application.testHarnessClock
 import skillbill.engine.InMemoryRuntimeWorkflowRepository
@@ -82,8 +83,8 @@ class FeatureTaskRuntimeSharedEvidenceRecorderTest {
   private fun recorder(lifecycle: RecordingLifecycleTelemetryRepository) = featureTaskRuntimePhaseRecorder(
     RuntimeFakeDatabaseSessionFactory(InMemoryRuntimeWorkflowRepository(), lifecycle),
     NoopWorkflowSnapshotValidator,
-    AcceptingFeatureTaskRuntimeHandoffEnvelopeValidator,
-    AcceptingFeatureTaskRuntimeHandoffFoundationValidator,
+    AcceptingFeatureTaskRuntimeWireArtifactValidator,
+    AcceptingFeatureTaskRuntimeWireArtifactValidator,
     testHarnessClock,
     NoopRuntimeDiagnostics,
   )

@@ -1,0 +1,5 @@
+package skillbill.goalrunner.subtaskreview
+
+import skillbill.goalrunner.subtaskreview.model.RejectedVerificationFindingsResult as ModelRejectedVerificationFindingsResult
+
+typealias RejectedVerificationFindingsResult = ModelRejectedVerificationFindingsResult

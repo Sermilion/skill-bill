@@ -1,15 +1,16 @@
 package skillbill.workflow.engine.model
 
 import skillbill.workflow.model.WorkflowStatus
+import skillbill.workflow.model.WorkflowStepStatus
 
 data class WorkflowStepState(
   val stepId: String,
-  val status: String,
+  val status: WorkflowStepStatus,
   val attemptCount: Int,
 )
 
 data class WorkflowUpdateInput(
-  val workflowStatus: String,
+  val workflowStatus: WorkflowStatus,
   val currentStepId: String,
   val stepUpdates: WorkflowStepUpdates?,
   val artifactsPatch: WorkflowArtifactPatch?,
@@ -23,7 +24,7 @@ data class WorkflowStateSnapshot(
   val sessionId: String,
   val workflowName: String,
   val contractVersion: String,
-  val workflowStatus: String,
+  val workflowStatus: WorkflowStatus,
   val currentStepId: String,
   val stepsJson: String,
   val artifactsJson: String,
@@ -46,10 +47,6 @@ data class ResolvedRequiredArtifact(
 )
 
 fun interface RequiredArtifactPresenceResolver {
-  /**
-   * Returns the subset of [requiredArtifacts] (upstream phase/artifact ids the [resumeStepId]
-   * consumes) that are NOT present for [snapshot], preserving [requiredArtifacts] order.
-   */
   fun missingRequiredArtifacts(
     snapshot: WorkflowSnapshotView,
     resumeStepId: String,
@@ -83,6 +80,9 @@ data class WorkflowDefinition(
   val workflowStatuses: Set<String>,
   val stepStatuses: Set<String>,
   val terminalStatuses: Set<String>,
+  val workflowStatusEnums: Set<WorkflowStatus>,
+  val stepStatusEnums: Set<WorkflowStepStatus>,
+  val terminalStatusEnums: Set<WorkflowStatus>,
   val defaultInitialStepId: String,
   val stepIds: List<String>,
   val stepLabels: Map<String, String>,
@@ -94,17 +94,20 @@ data class WorkflowDefinition(
   val openPriorStepsCompleted: Boolean,
   val completedTerminalSummaryArtifact: String,
   val workflowMode: String? = null,
+  val usesFeatureTaskRuntimeContinuation: Boolean = false,
   val inputProjectionsByStep: Map<String, WorkflowInputProjectionDeclaration> = emptyMap(),
   val requiredArtifactPresenceResolver: RequiredArtifactPresenceResolver =
     RequiredArtifactPresenceResolver.DEFAULT,
 )
+
+fun WorkflowDefinition.isTerminalStatus(status: WorkflowStatus): Boolean = status in terminalStatusEnums
 
 fun WorkflowDefinition.isTerminalStatus(status: String): Boolean {
   val decoded = WorkflowStatus.fromWire(status)
   return if (decoded == null) {
     status in terminalStatuses
   } else {
-    decoded.wireValue in terminalStatuses
+    decoded in terminalStatusEnums
   }
 }
 

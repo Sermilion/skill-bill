@@ -1,9 +1,10 @@
 package skillbill.engine.planningprojection
+
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.InvalidGoalPlanningPreparationSchemaError
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePlanningProjectionValidator
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePlanningProjectionContract
 
 private const val SCHEMA_GATE_DETAIL_MAX_CHARS = 500
@@ -18,7 +19,7 @@ private fun boundedSchemaGateDetail(validationReason: String): String =
 fun producerProjectionGateReason(
   phaseId: String,
   outputMap: Map<String, Any?>,
-  planningProjectionValidator: FeatureTaskRuntimePlanningProjectionValidator,
+  planningProjectionValidator: FeatureTaskRuntimeWireArtifactValidator,
 ): String? {
   if ((outputMap[SharedPayloadKeys.STATUS] as? String).workflowStepStatus() != WorkflowStepStatus.COMPLETED) return null
   val expectedKind = FeatureTaskRuntimePlanningProjectionContract.producedProjectionKindFor(phaseId)
@@ -30,7 +31,7 @@ fun requireValidPlanningProjection(
   envelope: Map<String, Any?>,
   phaseId: String,
   sourceLabel: String,
-  planningProjectionValidator: FeatureTaskRuntimePlanningProjectionValidator,
+  planningProjectionValidator: FeatureTaskRuntimeWireArtifactValidator,
   fieldPath: String = "${phaseId}_payload",
 ) {
   producerProjectionGateReason(phaseId, envelope, planningProjectionValidator)?.let { reason ->
@@ -45,7 +46,7 @@ fun requireValidPlanningProjection(
 private fun unresolvedProducerProjectionKindReason(
   phaseId: String,
   expectedKind: String,
-  planningProjectionValidator: FeatureTaskRuntimePlanningProjectionValidator,
+  planningProjectionValidator: FeatureTaskRuntimeWireArtifactValidator,
 ): String {
   val validatorLabel = planningProjectionValidator::class.qualifiedName
     ?: planningProjectionValidator::class.java.name

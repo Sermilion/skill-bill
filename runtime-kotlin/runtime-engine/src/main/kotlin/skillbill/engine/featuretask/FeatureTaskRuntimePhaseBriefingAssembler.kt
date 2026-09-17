@@ -1,10 +1,11 @@
 package skillbill.engine.featuretask
+
 import skillbill.agentaddon.model.HydratedAgentAddonSelection
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeBriefingProjectionInputs
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseLaunchBriefing
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeHandoffProjectionValidator
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePlanningProjectionValidator
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffProjectionBudget
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffPromptVisibility
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffSourceRef
@@ -45,7 +46,7 @@ object FeatureTaskRuntimePhaseBriefingAssembler {
   fun assemble(
     handoff: FeatureTaskRuntimePhaseHandoff,
     workflowId: String? = null,
-    planningProjectionValidator: FeatureTaskRuntimePlanningProjectionValidator,
+    planningProjectionValidator: FeatureTaskRuntimeWireArtifactValidator,
     agentAddonSelection: HydratedAgentAddonSelection = HydratedAgentAddonSelection(),
     sharedReviewEvidence: FeatureTaskRuntimeSharedReviewEvidenceReference? = null,
   ): FeatureTaskRuntimePhaseLaunchBriefing {

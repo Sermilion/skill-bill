@@ -17,6 +17,7 @@ import skillbill.ports.workflow.gitops.model.WorkflowWorktreeActivityResult
 import skillbill.telemetry.CONFIG_ENVIRONMENT_KEY
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
+import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
@@ -94,7 +95,7 @@ private data class McpDecompositionFixture(
 ) {
   fun updateRequest(workflowId: String): WorkflowUpdateRequest = WorkflowUpdateRequest(
     workflowId = workflowId,
-    workflowStatus = "running",
+    workflowStatus = WorkflowStatus.RUNNING.wireValue,
     currentStepId = "plan",
     stepUpdates = WorkflowStepUpdates.from(
       listOf(mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1)),

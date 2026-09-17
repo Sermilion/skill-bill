@@ -7,6 +7,7 @@ import skillbill.di.create
 import skillbill.model.RuntimeContext
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
+import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
@@ -39,7 +40,7 @@ class WorkflowServiceRuntimeComponentTest {
           WorkflowFamilyKind.TASK_RUNTIME,
           WorkflowUpdateRequest(
             workflowId = workflowId,
-            workflowStatus = "running",
+            workflowStatus = WorkflowStatus.RUNNING.wireValue,
             currentStepId = "plan",
             stepUpdates = WorkflowStepUpdates.from(
               listOf(

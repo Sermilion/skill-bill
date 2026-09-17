@@ -2,16 +2,16 @@ package skillbill.workflow.engine
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.workflow.WorkflowWirePayloadKeys
 import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.error.MalformedJsonTextError
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepState
 import skillbill.workflow.model.WorkflowStepStatus
-import skillbill.workflow.model.workflowStepStatus
 
 fun WorkflowStateSnapshot.progressToken(): String = listOf(
   workflowId,
-  workflowStatus,
+  workflowStatus.wireValue,
   currentStepId,
   stepsJson,
   artifactsFingerprint(artifactsJson),
@@ -36,8 +36,9 @@ private fun decodeWorkflowStepAt(index: Int, raw: Any?): WorkflowStepState {
     ?: throw InvalidWorkflowStateSchemaError("Workflow steps[$index] must be an object.")
   return WorkflowStepState(
     stepId = item[SharedPayloadKeys.STEP_ID]?.toString().orEmpty(),
-    status = item[SharedPayloadKeys.STATUS]?.toString().orEmpty(),
-    attemptCount = item["attempt_count"].asLenientIntOrNull() ?: 0,
+    status = WorkflowStepStatus.fromWire(item[SharedPayloadKeys.STATUS]?.toString().orEmpty())
+      ?: throw InvalidWorkflowStateSchemaError("Workflow steps[$index].status has unsupported value."),
+    attemptCount = item[WorkflowWirePayloadKeys.ATTEMPT_COUNT].asLenientIntOrNull() ?: 0,
   )
 }
 
@@ -55,9 +56,9 @@ fun blockedStepId(
   definitionStepIds: List<String>,
 ): String = requestedStepId.takeIf { stepId ->
   stepId.isNotBlank() &&
-    steps.firstOrNull { step -> step.stepId == stepId }?.status?.workflowStepStatus() == WorkflowStepStatus.RUNNING
+    steps.firstOrNull { step -> step.stepId == stepId }?.status == WorkflowStepStatus.RUNNING
 }
-  ?: steps.firstOrNull { step -> step.status.workflowStepStatus() == WorkflowStepStatus.RUNNING }?.stepId
+  ?: steps.firstOrNull { step -> step.status == WorkflowStepStatus.RUNNING }?.stepId
   ?: firstUnfinishedStepId(steps, definitionStepIds)
   ?: record.currentStepId.takeIf(String::isNotBlank)
   ?: requestedStepId.takeIf(String::isNotBlank)
@@ -66,7 +67,7 @@ fun blockedStepId(
 fun firstUnfinishedStepId(steps: List<WorkflowStepState>, definitionStepIds: List<String>): String? {
   val statusByStepId = steps.associate { step -> step.stepId to step.status }
   return definitionStepIds.firstOrNull { stepId ->
-    statusByStepId[stepId]?.workflowStepStatus()?.let { status ->
+    statusByStepId[stepId]?.let { status ->
       status != WorkflowStepStatus.COMPLETED && status != WorkflowStepStatus.SKIPPED
     } ?: true
   }

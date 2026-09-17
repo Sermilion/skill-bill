@@ -259,37 +259,36 @@ data class GoalSubtaskReviewState(
         sourceLabel,
       )
       return try {
+        val reader = reviewStateReader(raw, sourceLabel)
         GoalSubtaskReviewState(
-          contractVersion = raw.requireReviewStateString("contract_version", sourceLabel),
-          reviewBaseSha = raw.requireReviewStateString("review_base_sha", sourceLabel),
-          baselineUntrackedPaths = raw.optionalReviewStateList("baseline_untracked_paths", sourceLabel)
+          contractVersion = reader.requiredString("contract_version"),
+          reviewBaseSha = reader.requiredString("review_base_sha"),
+          baselineUntrackedPaths = reader.optionalList("baseline_untracked_paths")
             ?.mapIndexed { index, value ->
-              value as? String ?: reviewStateError(
-                "$sourceLabel.baseline_untracked_paths[$index]",
-                "must be a string.",
-              )
+              (value as? String)?.takeIf(String::isNotBlank)
+                ?: reviewStateError("$sourceLabel.baseline_untracked_paths[$index]", "must be a non-blank string.")
             }
             .orEmpty(),
           codeReviewMode = CodeReviewExecutionMode.fromWire(
-            raw.requireReviewStateString("code_review_mode", sourceLabel),
+            reader.requiredString("code_review_mode"),
           ),
-          reservedPassNumber = raw.optionalReviewStateInt("reserved_pass_number", sourceLabel),
-          completedPassCount = raw.requireReviewStateInt("completed_pass_count", sourceLabel),
-          disposition = GoalSubtaskReviewDisposition.fromWire(raw.requireReviewStateString("disposition", sourceLabel)),
-          reviewInputArtifact = raw.optionalReviewStateString("review_input_artifact", sourceLabel),
-          reviewedDeltaDigest = raw.optionalReviewStateString("reviewed_delta_digest", sourceLabel),
-          reviewedTargetSha = raw.optionalReviewStateString("reviewed_target_sha", sourceLabel),
-          reviewedTreeSha = raw.optionalReviewStateString("reviewed_tree_sha", sourceLabel),
+          reservedPassNumber = reader.optionalInt("reserved_pass_number"),
+          completedPassCount = reader.requiredInt("completed_pass_count"),
+          disposition = GoalSubtaskReviewDisposition.fromWire(reader.requiredString("disposition")),
+          reviewInputArtifact = reader.optionalString("review_input_artifact"),
+          reviewedDeltaDigest = reader.optionalString("reviewed_delta_digest"),
+          reviewedTargetSha = reader.optionalString("reviewed_target_sha"),
+          reviewedTreeSha = reader.optionalString("reviewed_tree_sha"),
           passResults = decodePassResults(raw, sourceLabel),
-          emittedPassCount = raw.requireReviewStateInt("emitted_pass_count", sourceLabel),
+          emittedPassCount = reader.requiredInt("emitted_pass_count"),
           blockerDispositions = decodeBlockerDispositions(raw, sourceLabel),
-          operatorDecision = raw.optionalReviewStateString("operator_decision", sourceLabel)
+          operatorDecision = reader.optionalString("operator_decision")
             ?.let(GoalSubtaskOperatorDecision::fromWire),
-          operatorRetryRounds = raw.optionalReviewStateInt("operator_retry_rounds", sourceLabel) ?: 0,
-          resolvedTier = raw.optionalReviewStateString("resolved_tier", sourceLabel)
+          operatorRetryRounds = reader.optionalInt("operator_retry_rounds") ?: 0,
+          resolvedTier = reader.optionalString("resolved_tier")
             ?.let(CodeReviewExecutionMode::fromWire),
-          decidingRule = raw.optionalReviewStateString("deciding_rule", sourceLabel),
-          remediationBaseSha = raw.optionalReviewStateString("remediation_base_sha", sourceLabel),
+          decidingRule = reader.optionalString("deciding_rule"),
+          remediationBaseSha = reader.optionalString("remediation_base_sha"),
           repairReceipts = decodeRepairReceipts(raw, sourceLabel),
         )
       } catch (error: InvalidGoalSubtaskReviewStateSchemaError) {
@@ -300,9 +299,9 @@ data class GoalSubtaskReviewState(
     }
 
     private fun decodePassResults(raw: Map<String, Any?>, sourceLabel: String): List<GoalSubtaskReviewPassResult> =
-      raw.requireReviewStateList("pass_results", sourceLabel).mapIndexed { index, value ->
+      reviewStateReader(raw, sourceLabel).requiredList("pass_results").mapIndexed { index, value ->
         GoalSubtaskReviewPassResult.fromArtifactMap(
-          value.asReviewStateMap("$sourceLabel.pass_results[$index]"),
+          value.toReviewStateMap("$sourceLabel.pass_results[$index]"),
           "$sourceLabel.pass_results[$index]",
         )
       }
@@ -310,10 +309,10 @@ data class GoalSubtaskReviewState(
     private fun decodeBlockerDispositions(
       raw: Map<String, Any?>,
       sourceLabel: String,
-    ): List<GoalSubtaskBlockerDisposition> = raw.optionalReviewStateList("blocker_dispositions", sourceLabel)
+    ): List<GoalSubtaskBlockerDisposition> = reviewStateReader(raw, sourceLabel).optionalList("blocker_dispositions")
       ?.mapIndexed { index, value ->
         GoalSubtaskBlockerDisposition.fromArtifactMap(
-          value.asReviewStateMap("$sourceLabel.blocker_dispositions[$index]"),
+          value.toReviewStateMap("$sourceLabel.blocker_dispositions[$index]"),
           "$sourceLabel.blocker_dispositions[$index]",
         )
       }.orEmpty()
@@ -321,11 +320,11 @@ data class GoalSubtaskReviewState(
     private fun decodeRepairReceipts(
       raw: Map<String, Any?>,
       sourceLabel: String,
-    ): List<FeatureTaskRuntimeRepairReceipt> = raw.optionalReviewStateList("repair_receipts", sourceLabel)
+    ): List<FeatureTaskRuntimeRepairReceipt> = reviewStateReader(raw, sourceLabel).optionalList("repair_receipts")
       ?.mapIndexed { index, value ->
         try {
           FeatureTaskRuntimeRepairReceipt.fromArtifactMap(
-            value.asReviewStateMap("$sourceLabel.repair_receipts[$index]"),
+            value.toReviewStateMap("$sourceLabel.repair_receipts[$index]"),
             "$sourceLabel.repair_receipts[$index]",
           )
         } catch (error: InvalidFeatureTaskRuntimeRepairReceiptError) {

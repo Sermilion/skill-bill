@@ -1,4 +1,5 @@
 package skillbill.engine.featuretask
+
 import skillbill.application.RecordingLifecycleTelemetryRepository
 import skillbill.application.diagnostics.RejectedOutputDiagnosticService
 import skillbill.application.diagnostics.model.FeatureTaskRuntimeRejectedOutputWrite
@@ -227,8 +228,8 @@ class FeatureTaskRuntimeDiagnosticDegradationTest {
   private fun recorder(database: RuntimeFakeDatabaseSessionFactory) = featureTaskRuntimePhaseRecorder(
     database,
     NoopSnapshotValidator,
-    AcceptingFeatureTaskRuntimeHandoffEnvelopeValidator,
-    AcceptingFeatureTaskRuntimeHandoffFoundationValidator,
+    AcceptingFeatureTaskRuntimeWireArtifactValidator,
+    AcceptingFeatureTaskRuntimeWireArtifactValidator,
     testHarnessClock,
     NoopRuntimeDiagnostics,
   )

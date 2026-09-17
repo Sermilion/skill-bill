@@ -23,15 +23,6 @@ enum class GoalSubtaskOperatorDecision(val wireValue: String) {
   }
 }
 
-enum class GoalSubtaskPauseRelease {
-
-  RETRY_FIX,
-
-  ADVANCE,
-
-  ABANDON,
-}
-
 enum class GoalSubtaskBlockerDispositionVerdict(val wireValue: String) {
   RESOLVED("resolved"),
   UNRESOLVED("unresolved"),
@@ -73,15 +64,16 @@ data class GoalSubtaskBlockerDisposition(
   companion object {
     internal fun fromArtifactMap(raw: Map<String, Any?>, path: String): GoalSubtaskBlockerDisposition {
       raw.requireOnlyReviewStateKeys(setOf("finding_id", "verdict", "evidence"), path)
-      val evidence = raw.requireReviewStateList("evidence", path).mapIndexed { index, value ->
-        value as? String ?: reviewStateError(
+      val reader = reviewStateReader(raw, path)
+      val evidence = reader.requiredList("evidence").mapIndexed { index, value ->
+        (value as? String)?.takeIf(String::isNotBlank) ?: reviewStateError(
           "$path.evidence[$index]",
-          "must be a string.",
+          "must be a non-blank string.",
         )
       }
       return GoalSubtaskBlockerDisposition(
-        findingId = raw.requireReviewStateString("finding_id", path),
-        verdict = GoalSubtaskBlockerDispositionVerdict.fromWire(raw.requireReviewStateString("verdict", path)),
+        findingId = reader.requiredString("finding_id"),
+        verdict = GoalSubtaskBlockerDispositionVerdict.fromWire(reader.requiredString("verdict")),
         evidence = evidence,
       )
     }

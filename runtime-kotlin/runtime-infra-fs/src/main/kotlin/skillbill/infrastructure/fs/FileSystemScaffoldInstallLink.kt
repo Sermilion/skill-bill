@@ -20,7 +20,7 @@ class FileSystemScaffoldInstallLink : ScaffoldInstallLinkPort {
     val manifests = if (Files.isDirectory(packsRoot)) discoverPlatformPackManifests(packsRoot) else emptyList()
     val context = InstallContext(repoRoot = request.repoRoot, manifests = manifests)
     val targets = request.installPaths.flatMap { installPath ->
-      installSkill(installPath, agents, context = context)
+      installSkill(installPath, agents, context = context).linkPaths
     }
     return ScaffoldInstallLinkResult(installTargets = targets)
   }

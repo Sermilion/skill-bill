@@ -8,7 +8,7 @@ class PrincipleEnforcementInventoryTest {
   fun `inventory lists nineteen enforceable rules and deliberate review-only rules`() {
     assertEquals(20, PrincipleEnforcementInventory.enforceableRules.size)
     assertEquals(3, PrincipleEnforcementInventory.reviewOnlyRules.size)
-    assertEquals(10, PrincipleEnforcementInventory.parseBoundarySites.size)
+    assertEquals(32, PrincipleEnforcementInventory.parseBoundarySites.size)
     assertEquals(emptyMap(), PrincipleEnforcementInventory.productionLineCeilingExemptions)
     assertEquals(emptySet(), PrincipleEnforcementInventory.spilloverFileNameExemptions)
     assertEquals(

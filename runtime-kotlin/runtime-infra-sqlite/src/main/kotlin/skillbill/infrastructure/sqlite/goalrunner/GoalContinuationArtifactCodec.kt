@@ -1,6 +1,6 @@
 package skillbill.infrastructure.sqlite.goalrunner
 import skillbill.contracts.JsonCodec
-import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.workflow.FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys
 import skillbill.error.InvalidGoalSubtaskReviewStateSchemaError
 import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.goalrunner.asGoalRunnerIntOrNull
@@ -23,16 +23,21 @@ import skillbill.workflow.taskruntime.model.requireAcceptedOutput
 
 fun goalContinuation(artifacts: Map<String, Any?>): GoalContinuation? =
   (artifacts["goal_continuation"] as? Map<*, *>)?.let { payload ->
-    val issueKey = payload[SharedPayloadKeys.ISSUE_KEY]?.toString()?.takeIf(String::isNotBlank)
-    val subtaskId = payload[SharedPayloadKeys.SUBTASK_ID].asGoalRunnerIntOrNull()
+    val issueKey = payload[FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ISSUE_KEY]
+      ?.toString()
+      ?.takeIf(String::isNotBlank)
+    val subtaskId =
+      payload[FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.SUBTASK_ID].asGoalRunnerIntOrNull()
     if (issueKey == null || subtaskId == null) {
       null
     } else {
       GoalContinuation(
         issueKey = issueKey,
         subtaskId = subtaskId,
-        suppressPr = payload["suppress_pr"] == true,
-        goalBranch = payload["goal_branch"]?.toString()?.takeIf(String::isNotBlank),
+        suppressPr = payload[FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.SUPPRESS_PR] == true,
+        goalBranch = payload[FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.GOAL_BRANCH]
+          ?.toString()
+          ?.takeIf(String::isNotBlank),
       )
     }
   }

@@ -1,23 +1,18 @@
 package skillbill.engine.featuretask
+
 import me.tatarka.inject.annotations.Inject
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.ProducerOutputEvidenceValidator
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticMetadataValidator
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.workflow.engine.WorkflowSnapshotValidator
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeHandoffEnvelopeValidator
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeHandoffFoundationValidator
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeImplementationAttemptValidator
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeQuarantineValidator
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import java.time.Clock
 
 private class FeatureTaskRuntimePhaseRecorderParts(
   database: DatabaseSessionFactory,
   workflowSnapshotValidator: WorkflowSnapshotValidator,
-  handoffEnvelopeValidator: FeatureTaskRuntimeHandoffEnvelopeValidator,
-  handoffFoundationValidator: FeatureTaskRuntimeHandoffFoundationValidator,
-  quarantineValidator: FeatureTaskRuntimeQuarantineValidator,
-  implementationAttemptValidator: FeatureTaskRuntimeImplementationAttemptValidator,
+  wireArtifactValidator: FeatureTaskRuntimeWireArtifactValidator,
   rejectedOutputDiagnosticMetadataValidator: RejectedOutputDiagnosticMetadataValidator,
   producerOutputEvidenceValidator: ProducerOutputEvidenceValidator,
   diagnostics: RuntimeDiagnostics,
@@ -36,7 +31,7 @@ private class FeatureTaskRuntimePhaseRecorderParts(
     database,
     workflowPersistence,
     runtimeOwnedPersistence,
-    implementationAttemptValidator,
+    wireArtifactValidator,
     clock,
   )
   val reviewCheckpoint = FeatureTaskRuntimeReviewCheckpointRecorder(
@@ -48,14 +43,13 @@ private class FeatureTaskRuntimePhaseRecorderParts(
   val briefingRecorder = FeatureTaskRuntimePhaseBriefingRecorder(
     database,
     workflowPersistence,
-    handoffEnvelopeValidator,
-    handoffFoundationValidator,
+    wireArtifactValidator,
   )
   val gateProgress = FeatureTaskRuntimeGateProgressRecorder(database, workflowPersistence)
   val evidence = FeatureTaskRuntimePhaseEvidenceRecorder(
     database,
     workflowPersistence,
-    quarantineValidator,
+    wireArtifactValidator,
     clock,
   )
 }
@@ -74,10 +68,7 @@ class FeatureTaskRuntimePhaseRecorder private constructor(
   constructor(
     database: DatabaseSessionFactory,
     workflowSnapshotValidator: WorkflowSnapshotValidator,
-    handoffEnvelopeValidator: FeatureTaskRuntimeHandoffEnvelopeValidator,
-    handoffFoundationValidator: FeatureTaskRuntimeHandoffFoundationValidator,
-    quarantineValidator: FeatureTaskRuntimeQuarantineValidator,
-    implementationAttemptValidator: FeatureTaskRuntimeImplementationAttemptValidator,
+    wireArtifactValidator: FeatureTaskRuntimeWireArtifactValidator,
     rejectedOutputDiagnosticMetadataValidator: RejectedOutputDiagnosticMetadataValidator,
     producerOutputEvidenceValidator: ProducerOutputEvidenceValidator,
     diagnostics: RuntimeDiagnostics,
@@ -86,10 +77,7 @@ class FeatureTaskRuntimePhaseRecorder private constructor(
     FeatureTaskRuntimePhaseRecorderParts(
       database = database,
       workflowSnapshotValidator = workflowSnapshotValidator,
-      handoffEnvelopeValidator = handoffEnvelopeValidator,
-      handoffFoundationValidator = handoffFoundationValidator,
-      quarantineValidator = quarantineValidator,
-      implementationAttemptValidator = implementationAttemptValidator,
+      wireArtifactValidator = wireArtifactValidator,
       rejectedOutputDiagnosticMetadataValidator = rejectedOutputDiagnosticMetadataValidator,
       producerOutputEvidenceValidator = producerOutputEvidenceValidator,
       diagnostics = diagnostics,

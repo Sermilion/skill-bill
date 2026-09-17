@@ -11,8 +11,8 @@ import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionStackBranch
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.decomposition.model.SpecSource
-import java.math.BigDecimal
-import java.math.BigInteger
+import skillbill.workflow.taskruntime.model.DurableArtifactMapReader
+import skillbill.workflow.taskruntime.model.toStringKeyedArtifactMap
 
 internal object DecompositionManifestWireCodec {
   fun decode(wireMap: Map<String, Any?>, sourceLabel: String = "<in-memory>"): DecompositionManifest =
@@ -71,7 +71,8 @@ internal fun DecompositionManifest.toWireMap(): Map<String, Any?> = linkedMapOf(
 }
 
 private fun Map<String, Any?>.toDecompositionManifest(sourceLabel: String): DecompositionManifest {
-  val executionModelValue = stringValue(DecompositionPlanningPayloadKeys.EXECUTION_MODEL, sourceLabel)
+  val reader = decompositionReader(this, sourceLabel)
+  val executionModelValue = reader.requiredString(DecompositionPlanningPayloadKeys.EXECUTION_MODEL)
   val executionModel =
     DecompositionExecutionModel.fromWireValue(executionModelValue)
       ?: invalidDecompositionManifest(
@@ -79,7 +80,7 @@ private fun Map<String, Any?>.toDecompositionManifest(sourceLabel: String): Deco
         "${DecompositionPlanningPayloadKeys.EXECUTION_MODEL} '$executionModelValue' is not supported.",
       )
   val specSource = when (
-    val rawSpecSource = nullableStringValue(DecompositionPlanningPayloadKeys.SPEC_SOURCE, sourceLabel)
+    val rawSpecSource = reader.optionalString(DecompositionPlanningPayloadKeys.SPEC_SOURCE)
   ) {
     null -> SpecSource.LOCAL
     else -> SpecSource.fromWireValue(rawSpecSource)
@@ -88,50 +89,78 @@ private fun Map<String, Any?>.toDecompositionManifest(sourceLabel: String): Deco
         "${DecompositionPlanningPayloadKeys.SPEC_SOURCE} '$rawSpecSource' is not supported.",
       )
   }
-  val subtasks = listValue(DecompositionPlanningPayloadKeys.SUBTASKS).mapIndexed { index, raw ->
-    raw.asMap(
-      sourceLabel,
-      "${DecompositionPlanningPayloadKeys.SUBTASKS}[$index]",
-    ).toDecompositionSubtask(sourceLabel, index)
+  val subtasks = reader.requiredList(DecompositionPlanningPayloadKeys.SUBTASKS).mapIndexed { index, raw ->
+    raw.toDecompositionMap(sourceLabel, "${DecompositionPlanningPayloadKeys.SUBTASKS}[$index]")
+      .toDecompositionSubtask(sourceLabel, index)
   }
-  val current = this[DecompositionManifestPayloadKeys.CURRENT_SUBTASK_INTENT]
-    .asMap(sourceLabel, DecompositionManifestPayloadKeys.CURRENT_SUBTASK_INTENT)
+  val current = reader.requiredNestedObject(DecompositionManifestPayloadKeys.CURRENT_SUBTASK_INTENT)
   return DecompositionManifest(
-    contractVersion = stringValue(SharedPayloadKeys.CONTRACT_VERSION, sourceLabel),
-    issueKey = stringValue(SharedPayloadKeys.ISSUE_KEY, sourceLabel),
-    featureName = stringValue(DecompositionManifestPayloadKeys.FEATURE_NAME, sourceLabel),
-    parentSpecPath = stringValue(DecompositionPlanningPayloadKeys.PARENT_SPEC_PATH, sourceLabel),
+    contractVersion = reader.requiredString(SharedPayloadKeys.CONTRACT_VERSION),
+    issueKey = reader.requiredString(SharedPayloadKeys.ISSUE_KEY),
+    featureName = reader.requiredString(DecompositionManifestPayloadKeys.FEATURE_NAME),
+    parentSpecPath = reader.requiredString(DecompositionPlanningPayloadKeys.PARENT_SPEC_PATH),
     specSource = specSource,
-    status = nullableStringValue(SharedPayloadKeys.STATUS, sourceLabel) ?: "pending",
+    status = reader.optionalString(SharedPayloadKeys.STATUS) ?: "pending",
     executionModel = executionModel,
-    baseBranch = stringValue(DecompositionPlanningPayloadKeys.BASE_BRANCH, sourceLabel),
-    featureBranch = nullableStringValue(DecompositionManifestPayloadKeys.FEATURE_BRANCH, sourceLabel),
-    stackBranches = listValue(DecompositionPlanningPayloadKeys.STACK_BRANCHES).mapIndexed { index, raw ->
-      val item = raw.asMap(sourceLabel, "${DecompositionPlanningPayloadKeys.STACK_BRANCHES}[$index]")
+    baseBranch = reader.requiredString(DecompositionPlanningPayloadKeys.BASE_BRANCH),
+    featureBranch = reader.optionalString(DecompositionManifestPayloadKeys.FEATURE_BRANCH),
+    stackBranches = reader.requiredList(DecompositionPlanningPayloadKeys.STACK_BRANCHES).mapIndexed { index, raw ->
+      val item = raw.toDecompositionMap(sourceLabel, "${DecompositionPlanningPayloadKeys.STACK_BRANCHES}[$index]")
       DecompositionStackBranch(
-        subtaskId = item.intValue(SharedPayloadKeys.SUBTASK_ID, sourceLabel),
-        branch = item.stringValue(DecompositionPlanningPayloadKeys.BRANCH, sourceLabel),
-        baseBranch = item.stringValue(DecompositionPlanningPayloadKeys.BASE_BRANCH, sourceLabel),
+        subtaskId = decompositionReader(item, sourceLabel).requiredInt(SharedPayloadKeys.SUBTASK_ID),
+        branch = decompositionReader(item, sourceLabel).requiredString(DecompositionPlanningPayloadKeys.BRANCH),
+        baseBranch = decompositionReader(
+          item,
+          sourceLabel,
+        ).requiredString(DecompositionPlanningPayloadKeys.BASE_BRANCH),
       )
     },
     currentSubtaskIntent = CurrentSubtaskIntent(
-      subtaskId = current.intValue(SharedPayloadKeys.SUBTASK_ID, sourceLabel),
-      action = current.stringValue(DecompositionManifestPayloadKeys.ACTION, sourceLabel),
+      subtaskId = decompositionReader(current, sourceLabel).requiredInt(SharedPayloadKeys.SUBTASK_ID),
+      action = decompositionReader(current, sourceLabel).requiredString(DecompositionManifestPayloadKeys.ACTION),
     ),
     subtasks = subtasks,
   )
 }
 
 private fun Map<String, Any?>.toDecompositionSubtask(sourceLabel: String, index: Int): DecompositionSubtask {
-  val participatingAgentIds = when (val value = this[DecompositionManifestPayloadKeys.PARTICIPATING_AGENT_IDS]) {
+  val reader = decompositionReader(this, sourceLabel)
+  return DecompositionSubtask(
+    id = reader.requiredInt(DecompositionPlanningPayloadKeys.ID),
+    name = reader.requiredString(DecompositionPlanningPayloadKeys.NAME),
+    specPath = reader.requiredString(DecompositionPlanningPayloadKeys.SPEC_PATH),
+    status = reader.requiredString(SharedPayloadKeys.STATUS),
+    branch = reader.optionalString(DecompositionPlanningPayloadKeys.BRANCH),
+    commitSha = reader.optionalString(DecompositionManifestPayloadKeys.COMMIT_SHA),
+    workflowId = reader.optionalString(SharedPayloadKeys.WORKFLOW_ID),
+    blockedReason = reader.optionalString(DecompositionManifestPayloadKeys.BLOCKED_REASON),
+    lastResumableStep = reader.optionalString(DecompositionManifestPayloadKeys.LAST_RESUMABLE_STEP),
+    linearIssueId = reader.optionalString(DecompositionPlanningPayloadKeys.LINEAR_ISSUE_ID),
+    finalizingAgentId = finalizingAgentIdFrom(this, sourceLabel),
+    participatingAgentIds = participatingAgentIdsFrom(this, sourceLabel),
+    dependencies = reader
+      .requiredList(DecompositionPlanningPayloadKeys.DEPENDENCIES).mapIndexed { depIndex, dep ->
+        val dependency = dep.toDecompositionMap(sourceLabel, "subtasks[$index].dependencies[$depIndex]")
+        val dependencyReader = decompositionReader(dependency, sourceLabel)
+        DecompositionDependency(
+          subtaskId = dependencyReader.requiredInt(SharedPayloadKeys.SUBTASK_ID),
+          optional = dependencyReader.requiredBoolean(DecompositionPlanningPayloadKeys.OPTIONAL),
+          skipped = dependencyReader.requiredBoolean(DecompositionPlanningPayloadKeys.SKIPPED),
+        )
+      },
+  )
+}
+
+private fun participatingAgentIdsFrom(map: Map<String, Any?>, sourceLabel: String): List<String> =
+  when (val value = map[DecompositionManifestPayloadKeys.PARTICIPATING_AGENT_IDS]) {
     null -> emptyList()
     is List<*> -> value.map { element ->
-      val str = element as? String
+      val string = element as? String
         ?: invalidDecompositionManifest(
           sourceLabel,
           "${DecompositionManifestPayloadKeys.PARTICIPATING_AGENT_IDS} must be a list of strings.",
         )
-      str.takeIf(String::isNotBlank)
+      string.takeIf(String::isNotBlank)
         ?: invalidDecompositionManifest(
           sourceLabel,
           "${DecompositionManifestPayloadKeys.PARTICIPATING_AGENT_IDS} must be a list of non-blank strings.",
@@ -142,89 +171,28 @@ private fun Map<String, Any?>.toDecompositionSubtask(sourceLabel: String, index:
       "${DecompositionManifestPayloadKeys.PARTICIPATING_AGENT_IDS} must be a list of strings or null.",
     )
   }
-  return DecompositionSubtask(
-    id = intValue(DecompositionPlanningPayloadKeys.ID, sourceLabel),
-    name = stringValue(DecompositionPlanningPayloadKeys.NAME, sourceLabel),
-    specPath = stringValue(DecompositionPlanningPayloadKeys.SPEC_PATH, sourceLabel),
-    status = stringValue(SharedPayloadKeys.STATUS, sourceLabel),
-    branch = nullableStringValue(DecompositionPlanningPayloadKeys.BRANCH, sourceLabel),
-    commitSha = nullableStringValue(DecompositionManifestPayloadKeys.COMMIT_SHA, sourceLabel),
-    workflowId = nullableStringValue(SharedPayloadKeys.WORKFLOW_ID, sourceLabel),
-    blockedReason = nullableStringValue(DecompositionManifestPayloadKeys.BLOCKED_REASON, sourceLabel),
-    lastResumableStep = nullableStringValue(DecompositionManifestPayloadKeys.LAST_RESUMABLE_STEP, sourceLabel),
-    linearIssueId = nullableStringValue(DecompositionPlanningPayloadKeys.LINEAR_ISSUE_ID, sourceLabel),
-    finalizingAgentId = when (val raw = this[DecompositionManifestPayloadKeys.FINALIZING_AGENT_ID]) {
-      null -> null
-      is String -> raw.takeIf(String::isNotBlank)
-        ?: invalidDecompositionManifest(
-          sourceLabel,
-          "${DecompositionManifestPayloadKeys.FINALIZING_AGENT_ID} must be a non-blank string or null.",
-        )
-      else -> invalidDecompositionManifest(
-        sourceLabel,
-        "${DecompositionManifestPayloadKeys.FINALIZING_AGENT_ID} must be a string or null.",
-      )
-    },
-    participatingAgentIds = participatingAgentIds,
-    dependencies = listValue(DecompositionPlanningPayloadKeys.DEPENDENCIES).mapIndexed { depIndex, dep ->
-      val dependency = dep.asMap(sourceLabel, "subtasks[$index].dependencies[$depIndex]")
-      DecompositionDependency(
-        subtaskId = dependency.intValue(SharedPayloadKeys.SUBTASK_ID, sourceLabel),
-        optional = dependency.booleanValue(DecompositionPlanningPayloadKeys.OPTIONAL, sourceLabel),
-        skipped = dependency.booleanValue(DecompositionPlanningPayloadKeys.SKIPPED, sourceLabel),
-      )
-    },
-  )
-}
 
-private fun Map<String, Any?>.stringValue(key: String, sourceLabel: String): String = when (val value = this[key]) {
-  is String -> value
-  else -> invalidDecompositionManifest(sourceLabel, "$key must be a string.")
-}
-
-private fun Map<String, Any?>.nullableStringValue(key: String, sourceLabel: String): String? =
-  when (val value = this[key]) {
+private fun finalizingAgentIdFrom(map: Map<String, Any?>, sourceLabel: String): String? =
+  when (val raw = map[DecompositionManifestPayloadKeys.FINALIZING_AGENT_ID]) {
     null -> null
-    is String -> value
-    else -> invalidDecompositionManifest(sourceLabel, "$key must be a string or null.")
+    is String -> raw.takeIf(String::isNotBlank)
+      ?: invalidDecompositionManifest(
+        sourceLabel,
+        "${DecompositionManifestPayloadKeys.FINALIZING_AGENT_ID} must be a non-blank string or null.",
+      )
+    else -> invalidDecompositionManifest(
+      sourceLabel,
+      "${DecompositionManifestPayloadKeys.FINALIZING_AGENT_ID} must be a string or null.",
+    )
   }
 
-private fun Map<String, Any?>.intValue(key: String, sourceLabel: String): Int = this[key].asInt(sourceLabel, key)
+private fun Any?.toDecompositionMap(sourceLabel: String, fieldPath: String): Map<String, Any?> =
+  toStringKeyedArtifactMap { detail -> invalidDecompositionManifest(sourceLabel, "$fieldPath $detail") }
 
-private fun Map<String, Any?>.booleanValue(key: String, sourceLabel: String): Boolean = when (val value = this[key]) {
-  is Boolean -> value
-  else -> invalidDecompositionManifest(sourceLabel, "$key must be a boolean.")
-}
-
-private fun Map<String, Any?>.listValue(key: String): List<Any?> = (this[key] as? List<*>).orEmpty()
-
-private fun Any?.asMap(sourceLabel: String, fieldPath: String): Map<String, Any?> =
-  (this as? Map<*, *>)?.entries?.associateTo(LinkedHashMap<String, Any?>()) { (key, value) ->
-    val stringKey = key as? String ?: invalidDecompositionManifest(sourceLabel, "$fieldPath contains a non-string key.")
-    stringKey to value
-  } ?: invalidDecompositionManifest(sourceLabel, "$fieldPath must be an object.")
-
-private fun Any?.asInt(sourceLabel: String, fieldPath: String): Int = when (this) {
-  is Byte -> toInt()
-  is Short -> toInt()
-  is Int -> this
-  is Long -> try {
-    Math.toIntExact(this)
-  } catch (_: ArithmeticException) {
-    null
+private fun decompositionReader(map: Map<String, Any?>, sourceLabel: String): DurableArtifactMapReader =
+  DurableArtifactMapReader(map) { detail ->
+    invalidDecompositionManifest(sourceLabel, detail)
   }
-  is BigInteger -> try {
-    intValueExact()
-  } catch (_: ArithmeticException) {
-    null
-  }
-  is BigDecimal -> try {
-    toBigIntegerExact().intValueExact()
-  } catch (_: ArithmeticException) {
-    null
-  }
-  else -> null
-} ?: invalidDecompositionManifest(sourceLabel, "$fieldPath must be an exact Kotlin Int.")
 
 private fun invalidDecompositionManifest(sourceLabel: String, reason: String): Nothing =
   throw InvalidDecompositionManifestSchemaError(

@@ -1,4 +1,5 @@
 package skillbill.engine.featuretask
+
 import skillbill.application.testHarnessClock
 import skillbill.application.testWorkflowSnapshotValidator
 import skillbill.application.workflow.decodeWorkflowArtifacts
@@ -11,6 +12,7 @@ import skillbill.ports.workflow.toRecord
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_CHECKPOINT_ARTIFACT_KEY
 import kotlin.test.Test
 import kotlin.test.assertContains
@@ -91,7 +93,7 @@ private fun seedWorkflow(repository: InMemoryRuntimeWorkflowRepository, workflow
     definition,
     opened,
     WorkflowUpdateInput(
-      workflowStatus = "running",
+      workflowStatus = WorkflowStatus.RUNNING,
       currentStepId = "verify_findings",
       stepUpdates = null,
       artifactsPatch = WorkflowArtifactPatch.from(artifacts),
@@ -105,8 +107,8 @@ private fun recorderFor(repository: InMemoryRuntimeWorkflowRepository): FeatureT
   featureTaskRuntimePhaseRecorder(
     RuntimeFakeDatabaseSessionFactory(repository),
     testWorkflowSnapshotValidator,
-    AcceptingFeatureTaskRuntimeHandoffEnvelopeValidator,
-    AcceptingFeatureTaskRuntimeHandoffFoundationValidator,
+    AcceptingFeatureTaskRuntimeWireArtifactValidator,
+    AcceptingFeatureTaskRuntimeWireArtifactValidator,
     testHarnessClock,
     NoopRuntimeDiagnostics,
   )

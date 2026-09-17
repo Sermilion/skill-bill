@@ -4,10 +4,12 @@ import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_REPAIR_RECEIPT_CONTRACT
 import skillbill.error.InvalidFeatureTaskRuntimeRepairReceiptError
 import skillbill.workflow.goal.model.GoalSubtaskReviewCompactFinding
 import skillbill.workflow.goal.model.withoutRefutedFindings
+import skillbill.workflow.taskruntime.decodeRepairReceiptFromArtifactWithObservations
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class FeatureTaskRuntimeRepairReceiptTest {
@@ -189,7 +191,7 @@ class FeatureTaskRuntimeRepairReceiptTest {
 
   @Test
   fun `optional unresolved_reason forwards after truncation with observability record`() {
-    val observations = FeatureTaskRuntimeRepairReceiptDecodeObservations()
+    val collector = FeatureTaskRuntimeRepairReceiptDecodeObservations.Collector()
     val oversized = "x".repeat(REPAIR_RECEIPT_MAX_UNRESOLVED_REASON_UTF8_BYTES + 1)
     val entry = FeatureTaskRuntimeRepairReceiptEntry.fromArtifactMap(
       mapOf(
@@ -198,11 +200,35 @@ class FeatureTaskRuntimeRepairReceiptTest {
         "unresolved_reason" to oversized,
       ),
       "repair_receipt.entries[0]",
-      observations,
+      collector,
     )
-    assertTrue(observations.truncationRecords.isNotEmpty())
+    assertTrue(collector.finish().truncationRecords.isNotEmpty())
     val unresolvedBytes = entry.unresolvedReason.orEmpty().encodeToByteArray().size
     assertTrue(unresolvedBytes <= REPAIR_RECEIPT_MAX_UNRESOLVED_REASON_UTF8_BYTES)
+  }
+
+  @Test
+  fun `repair receipt decode result carries truncation observations`() {
+    val decoded = assertNotNull(
+      decodeRepairReceiptFromArtifactWithObservations(
+        raw = mapOf(
+          "contract_version" to FEATURE_TASK_RUNTIME_REPAIR_RECEIPT_CONTRACT_VERSION,
+          "round_number" to 1,
+          "pre_fix_checkpoint_sha" to sha,
+          "entries" to listOf(
+            mapOf(
+              "finding_id" to "F-011",
+              "outcome" to "attempted_unresolved",
+              "unresolved_reason" to "x".repeat(REPAIR_RECEIPT_MAX_UNRESOLVED_REASON_UTF8_BYTES + 1),
+            ),
+          ),
+        ),
+        sourceLabel = "repair_receipt",
+      ),
+    )
+
+    assertEquals(1, decoded.observations.truncationRecords.size)
+    assertTrue(decoded.observations.truncationRecords.single().contains("entries[0].unresolved_reason"))
   }
 
   @Test

@@ -83,7 +83,8 @@ class DecompositionManifestCodecTest {
     val error = assertFailsWith<InvalidDecompositionManifestSchemaError> {
       DecompositionManifestWireCodec.decode(wireMap, "codec-type-mapping")
     }
-    assertContains(error.reason, "issue_key must be a string")
+    assertContains(error.reason, "issue_key")
+    assertContains(error.reason, "string")
   }
 
   @Test

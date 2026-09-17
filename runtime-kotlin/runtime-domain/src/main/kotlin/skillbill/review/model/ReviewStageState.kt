@@ -1,6 +1,7 @@
 package skillbill.review.model
 
 import skillbill.contracts.review.REVIEW_CONTEXT_CONTRACT_VERSION
+import skillbill.error.InvalidReviewContextSchemaError
 import skillbill.review.context.model.requireRepositoryRelativePath
 
 enum class ReviewStage(val wireValue: String) {
@@ -10,8 +11,8 @@ enum class ReviewStage(val wireValue: String) {
   ;
 
   companion object {
-    fun fromWire(value: String): ReviewStage =
-      entries.firstOrNull { it.wireValue == value } ?: error("Unknown review stage '$value'.")
+    fun fromWire(value: String): ReviewStage = entries.firstOrNull { it.wireValue == value }
+      ?: throw InvalidReviewContextSchemaError("review_stage", "Unknown review stage '$value'.")
   }
 }
 
@@ -22,8 +23,8 @@ enum class ReviewClaimVerdict(val wireValue: String) {
   ;
 
   companion object {
-    fun fromWire(value: String): ReviewClaimVerdict =
-      entries.firstOrNull { it.wireValue == value } ?: error("Unknown claim verdict '$value'.")
+    fun fromWire(value: String): ReviewClaimVerdict = entries.firstOrNull { it.wireValue == value }
+      ?: throw InvalidReviewContextSchemaError("claim_verdict", "Unknown claim verdict '$value'.")
   }
 }
 
@@ -35,8 +36,8 @@ enum class ReviewScopeDisposition(val wireValue: String) {
   ;
 
   companion object {
-    fun fromWire(value: String): ReviewScopeDisposition =
-      entries.firstOrNull { it.wireValue == value } ?: error("Unknown scope disposition '$value'.")
+    fun fromWire(value: String): ReviewScopeDisposition = entries.firstOrNull { it.wireValue == value }
+      ?: throw InvalidReviewContextSchemaError("scope_disposition", "Unknown scope disposition '$value'.")
   }
 }
 
@@ -47,7 +48,10 @@ enum class ReviewSeverityAdjustmentDirection(val wireValue: String) {
 
   companion object {
     fun fromWire(value: String): ReviewSeverityAdjustmentDirection = entries.firstOrNull { it.wireValue == value }
-      ?: error("Unknown severity adjustment direction '$value'.")
+      ?: throw InvalidReviewContextSchemaError(
+        "severity_adjustment_direction",
+        "Unknown severity adjustment direction '$value'.",
+      )
   }
 }
 
@@ -57,8 +61,8 @@ enum class ReviewStageReached(val wireValue: String) {
   ;
 
   companion object {
-    fun fromWire(value: String): ReviewStageReached =
-      entries.firstOrNull { it.wireValue == value } ?: error("Unknown stage reached state '$value'.")
+    fun fromWire(value: String): ReviewStageReached = entries.firstOrNull { it.wireValue == value }
+      ?: throw InvalidReviewContextSchemaError("stage_reached", "Unknown stage reached state '$value'.")
   }
 }
 
@@ -77,7 +81,20 @@ data class ReviewFindingCitation(
   companion object {
     fun decodeList(raw: String?): List<ReviewFindingCitation> =
       raw.orEmpty().lineSequence().filter { it.isNotBlank() }.map { line ->
-        ReviewFindingCitation(line.substringBefore('\t'), normalizeLine(line.substringAfter('\t').toInt()))
+        val path = line.substringBefore('\t')
+        val lineToken = line.substringAfter('\t', missingDelimiterValue = "")
+        if (lineToken.isEmpty()) {
+          throw InvalidReviewContextSchemaError(
+            "finding_citation",
+            "Citation line must contain a tab-separated positive integer line number.",
+          )
+        }
+        val lineNumber = lineToken.toIntOrNull()
+          ?: throw InvalidReviewContextSchemaError(
+            "finding_citation",
+            "Citation line number must decode to a positive integer.",
+          )
+        ReviewFindingCitation(path, normalizeLine(lineNumber))
       }.toList()
 
     fun encodeList(citations: List<ReviewFindingCitation>): String =

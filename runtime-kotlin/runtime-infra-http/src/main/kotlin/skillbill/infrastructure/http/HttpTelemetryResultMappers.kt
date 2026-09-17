@@ -2,10 +2,10 @@ package skillbill.infrastructure.http
 
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.telemetry.TelemetryProxyPayloadKeys
+import skillbill.telemetry.model.CustomFieldMap
+import skillbill.telemetry.model.TelemetryOpenDocument
 import skillbill.telemetry.model.TelemetryProxyCapabilities
 import skillbill.telemetry.model.TelemetryRemoteStatsResult
-import skillbill.workflow.engine.model.CustomFieldMap
-import skillbill.workflow.engine.model.TelemetryOpenDocument
 
 internal fun Map<String, Any?>.toTelemetryProxyCapabilities(): TelemetryProxyCapabilities {
   val supportedWorkflows =

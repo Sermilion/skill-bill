@@ -9,7 +9,7 @@ import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.workflow.get
 import skillbill.workflow.goal.model.appendBoundedHistoryBySequence
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeQuarantineValidator
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.taskruntime.asCheckpointIdentitiesArtifactEntry
 import skillbill.workflow.taskruntime.asQuarantineWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
@@ -29,12 +29,13 @@ import skillbill.workflow.taskruntime.model.featureTaskRuntimeAppendCheckpointId
 import skillbill.workflow.taskruntime.model.featureTaskRuntimeCheckpointRefName
 import skillbill.workflow.taskruntime.model.featureTaskRuntimeOwnedPathDigest
 import skillbill.workflow.taskruntime.resolvedBranchFromWorkflowArtifacts
+import skillbill.workflow.taskruntime.validateQuarantineRecord
 import java.time.Clock
 
 class FeatureTaskRuntimePhaseEvidenceRecorder(
   val database: DatabaseSessionFactory,
   val workflowPersistence: FeatureTaskRuntimeWorkflowPersistence,
-  val quarantineValidator: FeatureTaskRuntimeQuarantineValidator,
+  val quarantineValidator: FeatureTaskRuntimeWireArtifactValidator,
   val clock: Clock,
 ) : FeatureTaskRuntimePhaseEvidenceApi {
   override fun appendLedgerEntry(request: FeatureTaskRuntimePhaseLedgerRequest): Boolean =

@@ -1,16 +1,26 @@
 package skillbill.infrastructure.fs.scaffold
 
 import skillbill.application.workflow.WorkflowWireProjections
+import skillbill.contracts.JsonCodec
+import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.infrastructure.fs.WorkflowSnapshotValidatorInfraAdapter
+import skillbill.infrastructure.fs.WorkflowStateSnapshotWireMapper
 import skillbill.infrastructure.fs.contracts.workflow.WorkflowStateSchemaValidator
 import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowDefinition
 import skillbill.workflow.engine.model.WorkflowSnapshotView
+import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.verify.FeatureVerifyWorkflowDefinition
+import java.nio.file.Files
+import java.nio.file.Path
 import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 
 class WorkflowStateSchemaValidatesExistingWorkflowsTest {
 
@@ -35,6 +45,46 @@ class WorkflowStateSchemaValidatesExistingWorkflowsTest {
   @Test
   fun `every feature-verify workflow_status snapshot from the engine validates clean`() {
     validateEveryWorkflowStatus(FeatureVerifyWorkflowDefinition.definition)
+  }
+
+  @Test
+  fun `snapshot and step wire bytes remain identical to the captured baselines`() {
+    val definition = FeatureVerifyWorkflowDefinition.definition.copy(
+      workflowName = "bill-feature",
+      contractVersion = "0.1",
+      defaultInitialStepId = "implement",
+      stepIds = listOf("implement"),
+      stepLabels = mapOf("implement" to "Implement"),
+      requiredArtifactsByStep = mapOf("implement" to emptyList()),
+      resumeActions = mapOf("implement" to "Resume."),
+      workflowMode = null,
+    )
+    val engine = WorkflowEngine(
+      object : WorkflowSnapshotValidator {
+        override fun validate(snapshot: WorkflowStateSnapshot, slug: String) = Unit
+      },
+    )
+    val record = engine.openRecord(definition, "wf-1", "sess", "implement").copy(
+      startedAt = "1970-01-01T00:00:00Z",
+      updatedAt = "1970-01-01T00:00:00Z",
+      finishedAt = "",
+    )
+    val snapshotJson = JsonCodec.mapToJsonString(
+      WorkflowWireProjections.snapshotMap(engine.snapshotView(definition, record)).toPayload(),
+    ) + "\n"
+    val stepJson = record.stepsJson + "\n"
+
+    assertBaselineBytes("workflow-snapshot-wire.json", snapshotJson)
+    assertBaselineBytes("workflow-step-wire.json", stepJson)
+  }
+
+  @Test
+  fun `unknown durable workflow status token raises the typed schema error`() {
+    val error = assertFailsWith<InvalidWorkflowStateSchemaError> {
+      WorkflowStateSnapshotWireMapper.workflowStatusFromWire("unknown", "workflow_status")
+    }
+
+    assertEquals("Workflow state workflow_status has unsupported value 'unknown'.", error.message)
   }
 
   private fun validateEverySnapshotPerStep(definition: WorkflowDefinition) {
@@ -83,7 +133,8 @@ class WorkflowStateSchemaValidatesExistingWorkflowsTest {
         definition = definition,
         existing = opened,
         input = WorkflowUpdateInput(
-          workflowStatus = status,
+          workflowStatus = WorkflowStatus.fromWire(status)
+            ?: error("Unsupported workflow status '$status'"),
           currentStepId = definition.defaultInitialStepId,
           stepUpdates = stepUpdates?.let(WorkflowStepUpdates::from),
           artifactsPatch = null,
@@ -120,4 +171,22 @@ class WorkflowStateSchemaValidatesExistingWorkflowsTest {
 
   private fun snapshotMap(view: WorkflowSnapshotView): Map<String, Any?> =
     WorkflowWireProjections.snapshotMap(view).toPayload()
+
+  private fun assertBaselineBytes(name: String, actual: String) {
+    val expected = Files.readAllBytes(
+      compatibilityRepositoryRoot().resolve(
+        ".feature-specs/SKILL-351-runtime-domain-boundaries-and-simplicity/baselines/$name",
+      ),
+    )
+    assertEquals(expected.toList(), actual.toByteArray().toList(), name)
+  }
+}
+
+private fun compatibilityRepositoryRoot(): Path {
+  var current: Path? = Path.of("").toAbsolutePath().normalize()
+  while (current != null) {
+    if (Files.isDirectory(current.resolve(".git"))) return current
+    current = current.parent
+  }
+  error("Repository root is not available from the test working directory.")
 }

@@ -6,7 +6,7 @@ import skillbill.error.IncompatibleGoalPlanningPreparationRecoveryError
 import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import skillbill.error.InvalidGoalPlanningPreparationSchemaError
 import skillbill.infrastructure.fs.FeatureTaskRuntimePhaseOutputValidatorAdapter
-import skillbill.infrastructure.fs.FeatureTaskRuntimePlanningProjectionValidatorAdapter
+import skillbill.infrastructure.fs.FeatureTaskRuntimeWireArtifactValidatorAdapter
 import skillbill.infrastructure.fs.GoalPlanningPreparationEnvelopeValidatorAdapter
 import skillbill.infrastructure.sqlite.SQLiteDatabaseSessionFactory
 import skillbill.model.EnvironmentContext
@@ -285,7 +285,7 @@ class GoalPlanningPreparationCheckpointTest {
       database = database,
       envelopeValidator = GoalPlanningPreparationEnvelopeValidatorAdapter(),
       phaseOutputValidator = FeatureTaskRuntimePhaseOutputValidatorAdapter(),
-      planningProjectionValidator = FeatureTaskRuntimePlanningProjectionValidatorAdapter(),
+      planningProjectionValidator = FeatureTaskRuntimeWireArtifactValidatorAdapter(),
     )
     return CheckpointHarness(checkpoint, database)
   }

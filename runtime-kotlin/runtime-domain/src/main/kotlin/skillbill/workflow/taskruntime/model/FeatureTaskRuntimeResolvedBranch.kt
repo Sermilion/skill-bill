@@ -1,6 +1,7 @@
 package skillbill.workflow.taskruntime.model
 
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
+import skillbill.error.InvalidWorkflowStateSchemaError
 
 data class FeatureTaskRuntimeResolvedBranch(
   val branch: String,
@@ -49,28 +50,27 @@ data class FeatureTaskRuntimeResolvedBranch(
 
   companion object {
 
-    internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeResolvedBranch =
-      FeatureTaskRuntimeResolvedBranch(
-        branch = raw.requireStringField(DecompositionPlanningPayloadKeys.BRANCH),
-        baseBranch = raw.optionalStringField(DecompositionPlanningPayloadKeys.BASE_BRANCH),
-        created = raw.optionalBooleanField("created") ?: false,
-        reviewBaseSha = raw.optionalStringField("review_base_sha"),
-        baselineUntrackedPaths = (raw["baseline_untracked_paths"] as? List<*>)
-          ?.map { it as? String ?: error("baseline_untracked_paths must contain only strings.") }
-          .orEmpty(),
-        baselineOwnedPaths = (raw["baseline_owned_paths"] as? List<*>)
-          ?.map { it as? String ?: error("baseline_owned_paths must contain only strings.") }
-          .orEmpty(),
-        workflowOwnedPaths = (raw["workflow_owned_paths"] as? List<*>)
-          ?.map { it as? String ?: error("workflow_owned_paths must contain only strings.") }
-          .orEmpty(),
-        boundaryHistoryPaths = (raw["boundary_history_paths"] as? List<*>)
-          ?.map { it as? String ?: error("boundary_history_paths must contain only strings.") }
-          .orEmpty(),
-        boundaryHistoryRoots = (raw["boundary_history_roots"] as? List<*>)
-          ?.map { it as? String ?: error("boundary_history_roots must contain only strings.") }
-          .orEmpty(),
-      )
+    internal fun fromArtifactMap(raw: Map<String, Any?>): FeatureTaskRuntimeResolvedBranch {
+      val reader = durableArtifactMapReader(raw)
+      return try {
+        FeatureTaskRuntimeResolvedBranch(
+          branch = reader.requiredString(DecompositionPlanningPayloadKeys.BRANCH),
+          baseBranch = reader.optionalString(DecompositionPlanningPayloadKeys.BASE_BRANCH),
+          created = reader.optionalBoolean("created") ?: false,
+          reviewBaseSha = reader.optionalString("review_base_sha"),
+          baselineUntrackedPaths = reader.optionalStringList("baseline_untracked_paths"),
+          baselineOwnedPaths = reader.optionalStringList("baseline_owned_paths"),
+          workflowOwnedPaths = reader.optionalStringList("workflow_owned_paths"),
+          boundaryHistoryPaths = reader.optionalStringList("boundary_history_paths"),
+          boundaryHistoryRoots = reader.optionalStringList("boundary_history_roots"),
+        )
+      } catch (error: IllegalArgumentException) {
+        throw InvalidWorkflowStateSchemaError(
+          "Feature-task-runtime resolved-branch artifact is invalid.",
+          error,
+        )
+      }
+    }
   }
 }
 

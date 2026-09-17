@@ -9,6 +9,7 @@ import skillbill.infrastructure.sqlite.core.DatabaseWriteReadinessGate
 import skillbill.model.EnvironmentContext
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.WorkflowStateRecord
+import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
@@ -195,7 +196,7 @@ class DatabaseWriteReadinessTest {
     sessionId = "ftr-readiness",
     workflowName = "bill-feature-task",
     contractVersion = "",
-    workflowStatus = "running",
+    workflowStatus = WorkflowStatus.RUNNING.wireValue,
     currentStepId = "implement",
     stepsJson = "[]",
     artifactsJson = "{}",

@@ -1,4 +1,5 @@
 package skillbill.engine
+
 import skillbill.application.FakeDatabaseSessionFactory
 import skillbill.application.InMemoryWorkflowStates
 import skillbill.application.TestDecompositionManifestStore
@@ -8,8 +9,7 @@ import skillbill.application.testHarnessClock
 import skillbill.application.testWorkflowSnapshotValidator
 import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
-import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeHandoffEnvelopeValidator
-import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeHandoffFoundationValidator
+import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeWireArtifactValidator
 import skillbill.engine.featuretask.featureTaskRuntimePhaseRecorder
 import skillbill.engine.goalrunner.GOAL_CHILD_REPAIR_EVIDENCE_ARTIFACT_KEY
 import skillbill.engine.goalrunner.GoalRunnerStatusService
@@ -77,6 +77,7 @@ import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GoalSubtaskReviewArtifactDecoder
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.goal.model.ValidationDepth
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationArtifact
@@ -351,7 +352,7 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
           workflowId = workflowId,
           continuation = continuationMap(includeValidationDepth = true),
           reviewState = healthyReviewState().copy(reviewBaseSha = unreachable),
-          workflowStatus = "failed",
+          workflowStatus = WorkflowStatus.FAILED.wireValue,
         ),
       ),
     )
@@ -401,7 +402,7 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
           workflowId = workflowId,
           continuation = continuationMap(includeValidationDepth = true),
           reviewState = healthyReviewState(),
-          workflowStatus = "running",
+          workflowStatus = WorkflowStatus.RUNNING.wireValue,
           goalContinuationOutcome = mapOf(
             "issue_key" to ISSUE_KEY,
             "subtask_id" to 1,
@@ -443,7 +444,7 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
           workflowId = workflowId,
           continuation = continuationMap(includeValidationDepth = true),
           reviewState = healthyReviewState(),
-          workflowStatus = "running",
+          workflowStatus = WorkflowStatus.RUNNING.wireValue,
           goalContinuationOutcome = mapOf(
             "issue_key" to ISSUE_KEY,
             "subtask_id" to 1,
@@ -502,7 +503,7 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
         definition,
         opened,
         WorkflowUpdateInput(
-          workflowStatus = "running",
+          workflowStatus = WorkflowStatus.RUNNING,
           currentStepId = "implement_fix",
           stepUpdates = null,
           artifactsPatch = WorkflowArtifactPatch.from(artifacts),
@@ -563,7 +564,7 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
         definition,
         opened,
         WorkflowUpdateInput(
-          workflowStatus = "running",
+          workflowStatus = WorkflowStatus.RUNNING,
           currentStepId = "write_history",
           stepUpdates = null,
           artifactsPatch = WorkflowArtifactPatch.from(artifacts),
@@ -602,7 +603,7 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
         definition,
         opened,
         WorkflowUpdateInput(
-          workflowStatus = "blocked",
+          workflowStatus = WorkflowStatus.BLOCKED,
           currentStepId = "write_history",
           stepUpdates = null,
           artifactsPatch = WorkflowArtifactPatch.from(artifacts),
@@ -660,7 +661,7 @@ internal class GoalRunnerRepairTest : GoalRunnerRepairFixtures() {
         definition,
         opened,
         WorkflowUpdateInput(
-          workflowStatus = "blocked",
+          workflowStatus = WorkflowStatus.BLOCKED,
           currentStepId = "implement_fix",
           stepUpdates = null,
           artifactsPatch = WorkflowArtifactPatch.from(artifacts),
@@ -756,7 +757,7 @@ internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {
         definition,
         opened,
         WorkflowUpdateInput(
-          workflowStatus = "blocked",
+          workflowStatus = WorkflowStatus.BLOCKED,
           currentStepId = "implement_fix",
           stepUpdates = null,
           artifactsPatch = WorkflowArtifactPatch.from(artifacts),
@@ -873,7 +874,7 @@ internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {
           workflowId = workflowId,
           continuation = continuationMap(includeValidationDepth = true),
           reviewState = healthyReviewState(),
-          workflowStatus = "running",
+          workflowStatus = WorkflowStatus.RUNNING.wireValue,
           goalContinuationOutcome = mapOf(
             "issue_key" to ISSUE_KEY,
             "subtask_id" to 1,
@@ -1037,8 +1038,8 @@ internal class GoalRunnerRepairContinuationTest : GoalRunnerRepairFixtures() {
     val phaseRecorder = featureTaskRuntimePhaseRecorder(
       database,
       testWorkflowSnapshotValidator,
-      AcceptingFeatureTaskRuntimeHandoffEnvelopeValidator,
-      AcceptingFeatureTaskRuntimeHandoffFoundationValidator,
+      AcceptingFeatureTaskRuntimeWireArtifactValidator,
+      AcceptingFeatureTaskRuntimeWireArtifactValidator,
       testHarnessClock,
       NoopRuntimeDiagnostics,
     )
@@ -1340,8 +1341,8 @@ internal class GoalRunnerRepairLeaseClearanceTest : GoalRunnerRepairFixtures() {
     val phaseRecorder = featureTaskRuntimePhaseRecorder(
       database,
       testWorkflowSnapshotValidator,
-      AcceptingFeatureTaskRuntimeHandoffEnvelopeValidator,
-      AcceptingFeatureTaskRuntimeHandoffFoundationValidator,
+      AcceptingFeatureTaskRuntimeWireArtifactValidator,
+      AcceptingFeatureTaskRuntimeWireArtifactValidator,
       testHarnessClock,
       NoopRuntimeDiagnostics,
     )
@@ -1459,7 +1460,7 @@ internal abstract class GoalRunnerRepairFixtures {
         definition,
         opened,
         WorkflowUpdateInput(
-          workflowStatus = "running",
+          workflowStatus = WorkflowStatus.RUNNING,
           currentStepId = "plan",
           stepUpdates = null,
           artifactsPatch = WorkflowArtifactPatch.from(
@@ -1535,7 +1536,8 @@ internal abstract class GoalRunnerRepairFixtures {
       definition,
       opened,
       WorkflowUpdateInput(
-        workflowStatus = args.workflowStatus,
+        workflowStatus = WorkflowStatus.fromWire(args.workflowStatus)
+          ?: error("Unknown workflow status '${args.workflowStatus}'."),
         currentStepId = currentStepId,
         stepUpdates = WorkflowStepUpdates.from(
           buildList {

@@ -33,6 +33,7 @@ import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.goal.NoopGoalObservabilityEventValidator
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -105,7 +106,7 @@ class FeatureTaskContinuationLookupServiceTest {
       WorkflowFamilyKind.TASK_RUNTIME,
       WorkflowUpdateRequest(
         workflowId = opened.workflowId,
-        workflowStatus = "blocked",
+        workflowStatus = WorkflowStatus.BLOCKED.wireValue,
         currentStepId = "implement",
         sessionId = "",
       ),
@@ -216,7 +217,7 @@ class FeatureTaskContinuationLookupServiceTest {
       WorkflowFamilyKind.TASK_RUNTIME,
       WorkflowUpdateRequest(
         workflowId = opened.workflowId,
-        workflowStatus = "blocked",
+        workflowStatus = WorkflowStatus.BLOCKED.wireValue,
         currentStepId = "preplan",
         sessionId = "",
       ),
@@ -231,7 +232,7 @@ class FeatureTaskContinuationLookupServiceTest {
   @Test
   fun `lookup surfaces a prepared goal that owns durable state instead of reporting no match`() {
     val fixture = fixture()
-    fixture.saveGoalParent(workflowStatus = "paused", manifestStatus = "in_progress")
+    fixture.saveGoalParent(workflowStatus = WorkflowStatus.PAUSED.wireValue, manifestStatus = "in_progress")
 
     val goal = assertIs<FeatureTaskContinuationLookupResult.GoalContinuation>(
       fixture.lookup.lookup("SKILL-120", REPOSITORY_A),
@@ -247,7 +248,7 @@ class FeatureTaskContinuationLookupServiceTest {
   fun `lookup surfaces a legacy prose-mode goal parent as goal continuation without no-match`() {
     val fixture = fixture()
     fixture.saveProseGoalParent(
-      workflowStatus = "paused",
+      workflowStatus = WorkflowStatus.PAUSED.wireValue,
       manifestStatus = "in_progress",
       completeCount = 2,
       pendingCount = 1,
@@ -271,7 +272,7 @@ class FeatureTaskContinuationLookupServiceTest {
   @Test
   fun `lookup reports a running goal so a second run is never started against the same state`() {
     val fixture = fixture()
-    fixture.saveGoalParent(workflowStatus = "running", manifestStatus = "in_progress")
+    fixture.saveGoalParent(workflowStatus = WorkflowStatus.RUNNING.wireValue, manifestStatus = "in_progress")
 
     val goal = assertIs<FeatureTaskContinuationLookupResult.GoalContinuation>(
       fixture.lookup.lookup("SKILL-120", REPOSITORY_A),
@@ -283,7 +284,7 @@ class FeatureTaskContinuationLookupServiceTest {
   @Test
   fun `lookup keeps a completed goal out of continuation`() {
     val fixture = fixture()
-    fixture.saveGoalParent(workflowStatus = "paused", manifestStatus = "complete")
+    fixture.saveGoalParent(workflowStatus = WorkflowStatus.PAUSED.wireValue, manifestStatus = "complete")
 
     assertIs<FeatureTaskContinuationLookupResult.NoMatch>(
       fixture.lookup.lookup("SKILL-120", REPOSITORY_A),
@@ -293,7 +294,7 @@ class FeatureTaskContinuationLookupServiceTest {
   @Test
   fun `lookup isolates a goal bound to another repository by its children`() {
     val fixture = fixture()
-    fixture.saveGoalParent(workflowStatus = "paused", manifestStatus = "in_progress")
+    fixture.saveGoalParent(workflowStatus = WorkflowStatus.PAUSED.wireValue, manifestStatus = "in_progress")
     assertIs<WorkflowOpenResult.Ok>(
       fixture.service.openFeatureTask(
         WorkflowServiceOpenFeatureTaskArgs(
@@ -370,7 +371,8 @@ class FeatureTaskContinuationLookupServiceTest {
           definition,
           opened,
           WorkflowUpdateInput(
-            workflowStatus = workflowStatus,
+            workflowStatus = WorkflowStatus.fromWire(workflowStatus)
+              ?: error("Unknown workflow status '$workflowStatus'."),
             currentStepId = "plan",
             stepUpdates = null,
             artifactsPatch = WorkflowArtifactPatch.from(

@@ -67,14 +67,15 @@ data class FeatureTaskRuntimeAuditGapPause(
           "Feature-task-runtime audit-gap pause artifact must have kind 'audit_gap_pause'.",
         )
       }
+      val reader = durableArtifactMapReader(raw)
       return FeatureTaskRuntimeAuditGapPause(
-        pauseKind = requireNotNull(FeatureTaskRuntimeAuditGapPauseKind.fromWire(raw.requireStringField("pause_kind"))) {
+        pauseKind = requireNotNull(FeatureTaskRuntimeAuditGapPauseKind.fromWire(reader.requiredString("pause_kind"))) {
           "Unknown FeatureTaskRuntimeAuditGapPause.pauseKind."
         },
-        reason = raw.requireStringField("reason"),
-        edgeIteration = raw.requireIntField("edge_iteration"),
-        operatorDecision = raw.optionalStringField("operator_decision"),
-        grantConsumed = raw.optionalBooleanField("grant_consumed") ?: false,
+        reason = reader.requiredString("reason"),
+        edgeIteration = reader.requiredInt("edge_iteration"),
+        operatorDecision = reader.optionalString("operator_decision"),
+        grantConsumed = reader.optionalBoolean("grant_consumed") ?: false,
       )
     }
 
@@ -124,9 +125,10 @@ data class FeatureTaskRuntimeAuditGapProgress(
           "Feature-task-runtime audit-gap progress artifact must have kind 'audit_gap_progress'.",
         )
       }
+      val reader = durableArtifactMapReader(raw)
       return FeatureTaskRuntimeAuditGapProgress(
-        criterionRefs = raw.optionalStringListField("previous_criterion_refs").toSet(),
-        repositoryFingerprint = raw.optionalStringField("previous_repository_fingerprint"),
+        criterionRefs = reader.optionalStringList("previous_criterion_refs").toSet(),
+        repositoryFingerprint = reader.optionalString("previous_repository_fingerprint"),
       )
     }
 

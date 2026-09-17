@@ -19,10 +19,13 @@ fun decodeFeatureTaskRuntimePhaseRecords(
   val raw = JsonCodec.anyToStringAnyMap(artifacts[FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY])
     ?: return emptyMap()
   return raw.mapValues { (_, value) ->
+    val entry = JsonCodec.anyToStringAnyMap(value)
+      ?: throw InvalidWorkflowStateSchemaError(
+        "Feature-task-runtime phase record entry is malformed.",
+      )
     decodePhaseRecordFromArtifact(
-      JsonCodec.anyToStringAnyMap(value)
-        ?: throw IllegalArgumentException("Feature-task-runtime phase record entry is malformed."),
-    ) ?: throw IllegalArgumentException("Feature-task-runtime phase record entry is malformed.")
+      entry,
+    ) ?: throw InvalidWorkflowStateSchemaError("Feature-task-runtime phase record entry is malformed.")
   }
 }
 
@@ -33,14 +36,8 @@ object FeatureTaskRuntimePhaseLedgerDecoder {
       ?: invalid("must decode to a JSON array")
     return raw.map { value ->
       val entry = JsonCodec.anyToStringAnyMap(value) ?: invalid("contains a malformed entry")
-      try {
-        decodePhaseLedgerEntryFromArtifact(entry)
-          ?: invalid("contains a malformed entry")
-      } catch (error: InvalidWorkflowStateSchemaError) {
-        rethrow(error)
-      } catch (error: IllegalArgumentException) {
-        invalid("contains a malformed entry", error)
-      }
+      decodePhaseLedgerEntryFromArtifact(entry)
+        ?: invalid("contains a malformed entry")
     }
   }
 
@@ -48,6 +45,4 @@ object FeatureTaskRuntimePhaseLedgerDecoder {
     "Workflow artifact '$FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY' $reason.",
     cause,
   )
-
-  private fun rethrow(error: InvalidWorkflowStateSchemaError): Nothing = throw error
 }

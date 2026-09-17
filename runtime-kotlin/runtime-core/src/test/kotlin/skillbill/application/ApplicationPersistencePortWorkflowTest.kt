@@ -16,6 +16,7 @@ import skillbill.error.InvalidFeatureTaskRuntimeHandoffProjectionError
 import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_DELIVERED_PROJECTIONS_ARTIFACT_KEY
@@ -43,7 +44,7 @@ class ApplicationPersistencePortWorkflowTest {
       WorkflowFamilyKind.TASK_RUNTIME,
       WorkflowUpdateRequest(
         workflowId = workflowId,
-        workflowStatus = "blocked",
+        workflowStatus = WorkflowStatus.BLOCKED.wireValue,
         currentStepId = "implement",
         stepUpdates = WorkflowStepUpdates.from(
           listOf(
@@ -68,10 +69,10 @@ class ApplicationPersistencePortWorkflowTest {
       as WorkflowContinueResult.Standard
 
     assertEquals(listOf("transaction", "transaction", "read", "read", "read", "transaction"), database.calls)
-    assertEquals("blocked", updated.acknowledgement.workflowStatus)
+    assertEquals("blocked", updated.acknowledgement.workflowStatus.wireValue)
     assertEquals(1, listed.workflowCount)
     assertEquals(workflowId, latest.summary.workflowId)
-    assertEquals(emptyList(), resumed.resume.missingArtifacts)
+    assertEquals(emptyList<String>(), resumed.resume.missingArtifacts)
     assertEquals("reopened", continued.view.continueStatus.wireValue)
   }
 
@@ -336,7 +337,12 @@ class ApplicationPersistencePortWorkflowTest {
 
     assertTrue(recorder.recordRuntimePhase(workflowId, "preplan", status = "running", finished = false))
     assertEquals("running", stepStatusFor(workflowRepository, workflowId, "preplan"))
-    assertRuntimeWorkflowRow(workflowRepository, workflowId, currentStepId = "preplan", workflowStatus = "running")
+    assertRuntimeWorkflowRow(
+      workflowRepository,
+      workflowId,
+      currentStepId = "preplan",
+      workflowStatus = WorkflowStatus.RUNNING.wireValue,
+    )
 
     assertTrue(recorder.recordRuntimePhase(workflowId, "preplan", status = "completed", finished = true))
     assertEquals("completed", stepStatusFor(workflowRepository, workflowId, "preplan"))
@@ -345,7 +351,12 @@ class ApplicationPersistencePortWorkflowTest {
     assertEquals("running", stepStatusFor(workflowRepository, workflowId, "plan"))
 
     assertEquals("completed", stepStatusFor(workflowRepository, workflowId, "preplan"))
-    assertRuntimeWorkflowRow(workflowRepository, workflowId, currentStepId = "plan", workflowStatus = "running")
+    assertRuntimeWorkflowRow(
+      workflowRepository,
+      workflowId,
+      currentStepId = "plan",
+      workflowStatus = WorkflowStatus.RUNNING.wireValue,
+    )
 
     assertTrue(recorder.recordRuntimePhase(workflowId, "plan", status = "completed", finished = true))
     assertEquals("completed", stepStatusFor(workflowRepository, workflowId, "plan"))
@@ -360,7 +371,12 @@ class ApplicationPersistencePortWorkflowTest {
       ),
     )
     assertEquals("blocked", stepStatusFor(workflowRepository, workflowId, "implement"))
-    assertRuntimeWorkflowRow(workflowRepository, workflowId, currentStepId = "implement", workflowStatus = "blocked")
+    assertRuntimeWorkflowRow(
+      workflowRepository,
+      workflowId,
+      currentStepId = "implement",
+      workflowStatus = WorkflowStatus.BLOCKED.wireValue,
+    )
 
     assertEquals("pending", stepStatusFor(workflowRepository, workflowId, "review"))
   }

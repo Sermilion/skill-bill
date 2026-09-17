@@ -1,4 +1,5 @@
 package skillbill.engine.goalplanning
+
 import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
@@ -20,18 +21,19 @@ import skillbill.workflow.goal.GoalPlanningPreparationEnvelopeValidator
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePlanningProjectionValidator
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.envelopeWireMap
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairEvidence
 import skillbill.workflow.taskruntime.model.requireAcceptedOutput
+import skillbill.workflow.taskruntime.validateGoalPlanningPreparationEnvelope
 
 @Inject
 class GoalPlanningPreparationCheckpoint(
   private val database: DatabaseSessionFactory,
   private val envelopeValidator: GoalPlanningPreparationEnvelopeValidator,
   private val phaseOutputValidator: FeatureTaskRuntimePhaseOutputValidator,
-  planningProjectionValidator: FeatureTaskRuntimePlanningProjectionValidator,
+  planningProjectionValidator: FeatureTaskRuntimeWireArtifactValidator,
 ) {
   private val gate =
     GoalPlanningPreparationProjectionGate(envelopeValidator, phaseOutputValidator, planningProjectionValidator)
@@ -40,7 +42,10 @@ class GoalPlanningPreparationCheckpoint(
 
   fun checkpoint(record: GoalPlanningPreparationRecord) {
     val canonical = preparationValidator.canonicalize(record)
-    envelopeValidator.validate(canonical.toEnvelopeMap(), "${canonical.parentGoalWorkflowId}#${canonical.subtaskId}")
+    envelopeValidator.validateGoalPlanningPreparationEnvelope(
+      canonical.toEnvelopeMap(),
+      "${canonical.parentGoalWorkflowId}#${canonical.subtaskId}",
+    )
     database.selfManagedWrite { unitOfWork ->
       unitOfWork.goalPlanningPreparations.markPrepared(canonical)
     }
@@ -48,7 +53,7 @@ class GoalPlanningPreparationCheckpoint(
 
   fun validate(record: GoalPlanningPreparationRecord) {
     val sourceLabel = "${record.parentGoalWorkflowId}#${record.subtaskId}"
-    envelopeValidator.validate(record.toEnvelopeMap(), sourceLabel)
+    envelopeValidator.validateGoalPlanningPreparationEnvelope(record.toEnvelopeMap(), sourceLabel)
     preparationValidator.validate(record)
   }
 
@@ -222,7 +227,7 @@ class GoalPlanningSharedPreplanRefresh(
 class GoalPlanningPreparationProjectionGate(
   private val envelopeValidator: GoalPlanningPreparationEnvelopeValidator,
   private val phaseOutputValidator: FeatureTaskRuntimePhaseOutputValidator,
-  private val planningProjectionValidator: FeatureTaskRuntimePlanningProjectionValidator,
+  private val planningProjectionValidator: FeatureTaskRuntimeWireArtifactValidator,
 ) {
   fun canonicalizeSharedPreplan(checkpoint: SharedGoalPreplanCheckpoint): SharedGoalPreplanCheckpoint {
     val accepted = phaseOutputValidator.validatePhaseOutput(checkpoint.preplanPayload, "preplan")
@@ -281,7 +286,7 @@ class GoalPlanningPreparationProjectionGate(
 
   private fun sharedPreplanEnvelope(checkpoint: SharedGoalPreplanCheckpoint): Pair<String, Map<String, Any?>> {
     val label = checkpoint.identity.parentGoalWorkflowId
-    envelopeValidator.validate(checkpoint.toEnvelopeMap(), label)
+    envelopeValidator.validateGoalPlanningPreparationEnvelope(checkpoint.toEnvelopeMap(), label)
     val normalized = phaseOutputValidator.validatePhaseOutput(checkpoint.preplanPayload, "preplan")
       .requireAcceptedOutput("preplan")
       .normalizedOutput
@@ -291,7 +296,7 @@ class GoalPlanningPreparationProjectionGate(
 
   private fun subtaskPlanEnvelope(checkpoint: GoalSubtaskPlanCheckpoint): Pair<String, Map<String, Any?>> {
     val label = "${checkpoint.identity.parentGoalWorkflowId}#${checkpoint.subtaskId}"
-    envelopeValidator.validate(checkpoint.toEnvelopeMap(), label)
+    envelopeValidator.validateGoalPlanningPreparationEnvelope(checkpoint.toEnvelopeMap(), label)
     val normalized = phaseOutputValidator.validatePhaseOutput(checkpoint.planPayload, "plan")
       .requireAcceptedOutput("plan")
       .normalizedOutput

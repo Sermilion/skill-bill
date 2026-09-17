@@ -1,11 +1,13 @@
 package skillbill.goalrunner
 
 import skillbill.contracts.JsonCodec
+import skillbill.error.MalformedJsonTextError
 import skillbill.goalrunner.model.GoalRunnerWorkerSubtaskRequest
 import skillbill.goalrunner.model.GoalRunnerWorkerSubtaskRequestOutcome
 import skillbill.goalrunner.model.GoalRunnerWorkerSubtaskRequestRejectionReason
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.model.DecompositionSubtask
+import skillbill.workflow.taskruntime.model.asExactIntOrNull
 
 object GoalRunnerWorkerSubtaskRequestParser {
   fun parse(
@@ -142,7 +144,7 @@ private fun Map<String, Any?>.dependencyIdsOrNull(): List<Int>? {
   var valid = true
   return dependencies
     .mapNotNull { value ->
-      value.asIntOrNull()?.takeIf { it > 0 } ?: run {
+      value.asExactIntOrNull()?.takeIf { it > 0 } ?: run {
         valid = false
         null
       }
@@ -170,10 +172,25 @@ private fun blockPayloads(text: String): List<String> = BLOCK_REGEX
   .filter(String::isNotBlank)
   .toList()
 
-private fun parsePayloadMap(payload: String): Map<String, Any?>? = runCatching {
-  val element = JsonCodec.json.parseToJsonElement(payload)
-  JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(element))
-}.getOrNull()
+private fun parsePayloadMap(payload: String): Map<String, Any?>? = try {
+  JsonCodec.anyToStringAnyMap(JsonCodec.parseValue(payload)) ?: run {
+    recordDurableDecodeSubstitution(
+      seam = "GoalRunnerWorkerSubtaskRequestParser.parsePayloadMap",
+      valueUsed = "null",
+      expectedValue = "json_object",
+      reason = "json_value_was_not_an_object",
+    )
+    null
+  }
+} catch (_: MalformedJsonTextError) {
+  recordDurableDecodeSubstitution(
+    seam = "GoalRunnerWorkerSubtaskRequestParser.parsePayloadMap",
+    valueUsed = "null",
+    expectedValue = "json_object",
+    reason = "malformed_json",
+  )
+  null
+}
 
 private data class WorkerOutput(
   val stream: String,
@@ -186,23 +203,6 @@ private val BLOCK_REGEX = Regex(
   "SKILL_BILL_SUBTASK_REQUEST_BEGIN\\s*(.*?)\\s*SKILL_BILL_SUBTASK_REQUEST_END",
   setOf(RegexOption.DOT_MATCHES_ALL),
 )
-
-private fun Any?.asIntOrNull(): Int? = when (this) {
-  is Int -> this
-  is Long -> takeIf { it in Int.MIN_VALUE.toLong()..Int.MAX_VALUE.toLong() }?.toInt()
-  is Short -> toInt()
-  is Byte -> toInt()
-  is Number -> {
-    val value = toDouble()
-    val isWhole = value.isFinite() && value % 1.0 == 0.0
-    val isInRange = value in Int.MIN_VALUE.toDouble()..Int.MAX_VALUE.toDouble()
-    value
-      .takeIf { isWhole && isInRange }
-      ?.toInt()
-  }
-  is String -> toIntOrNull()
-  else -> null
-}
 
 private fun String.isUnsafeRelativePath(): Boolean {
   val normalized = replace('\\', '/')

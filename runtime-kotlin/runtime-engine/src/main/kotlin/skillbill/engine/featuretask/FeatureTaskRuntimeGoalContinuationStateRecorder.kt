@@ -8,6 +8,7 @@ import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_FIELD_ADOPTION_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_OUTCOME_ARTIFACT_KEY
@@ -42,7 +43,10 @@ class FeatureTaskRuntimeGoalContinuationStateRecorder(
         WorkflowFamily.TASK_RUNTIME.definition,
         record,
         WorkflowUpdateInput(
-          workflowStatus = request.workflowStatus ?: record.workflowStatus,
+          workflowStatus = request.workflowStatus?.let { status ->
+            WorkflowStatus.fromWire(status)
+              ?: error("Unknown workflow status '$status'.")
+          } ?: record.workflowStatus,
           currentStepId = request.outcome?.lastResumableStep ?: record.currentStepId,
           stepUpdates = null,
           artifactsPatch = WorkflowArtifactPatch.from(

@@ -1,7 +1,8 @@
 package skillbill.workflow
 
-import skillbill.workflow.goal.GoalPlanningPreparationEnvelopeValidator
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactKind
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 
-object NoopGoalPlanningPreparationEnvelopeValidator : GoalPlanningPreparationEnvelopeValidator {
-  override fun validate(envelope: Any, sourceLabel: String) = Unit
+object NoopGoalPlanningPreparationEnvelopeValidator : FeatureTaskRuntimeWireArtifactValidator {
+  override fun validate(kind: FeatureTaskRuntimeWireArtifactKind, payload: Any, sourceLabel: String) = Unit
 }

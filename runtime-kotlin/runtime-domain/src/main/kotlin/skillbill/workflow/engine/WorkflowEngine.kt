@@ -11,12 +11,11 @@ import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowSummaryView
 import skillbill.workflow.engine.model.WorkflowUpdateAcknowledgementView
 import skillbill.workflow.engine.model.WorkflowUpdateInput
+import skillbill.workflow.engine.model.isTerminalStatus
 import skillbill.workflow.model.WorkflowContinueStatus
 import skillbill.workflow.model.WorkflowResumeMode
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
-import skillbill.workflow.model.workflowStatus
-import skillbill.workflow.model.workflowStepStatus
 
 private typealias CheckpointResolver = () -> String
 
@@ -37,7 +36,7 @@ class WorkflowEngine(
       sessionId = sessionId.trim(),
       workflowName = definition.workflowName,
       contractVersion = definition.contractVersion,
-      workflowStatus = "running",
+      workflowStatus = WorkflowStatus.RUNNING,
       currentStepId = currentStepId,
       stepsJson = jsonString(defaultSteps(definition, currentStepId)),
       artifactsJson = jsonString(emptyMap<String, Any?>()),
@@ -62,7 +61,7 @@ class WorkflowEngine(
       existingArtifacts.toMutableMap()
     }
     input.artifactsPatch?.let { patch -> mergedArtifacts.putAll(patch) }
-    val terminal = input.workflowStatus in definition.terminalStatuses
+    val terminal = definition.isTerminalStatus(input.workflowStatus)
     val updated = existing.copy(
       sessionId = input.sessionId.trim().ifBlank { existing.sessionId.orEmpty() },
       workflowStatus = input.workflowStatus,
@@ -119,22 +118,22 @@ class WorkflowEngine(
     val stepsById = snapshot.steps.associateBy { it.stepId }
     val lastCompletedStepId =
       definition.stepIds
-        .lastOrNull { stepId -> stepsById[stepId]?.status?.workflowStepStatus() == WorkflowStepStatus.COMPLETED }
+        .lastOrNull { stepId -> stepsById[stepId]?.status == WorkflowStepStatus.COMPLETED }
         .orEmpty()
 
     var resumeStepId = snapshot.currentStepId
     val resumeMode =
       when {
-        snapshot.workflowStatus.workflowStatus() == WorkflowStatus.COMPLETED -> WorkflowResumeMode.DONE
-        snapshot.workflowStatus in definition.terminalStatuses -> WorkflowResumeMode.RECOVER
+        snapshot.workflowStatus == WorkflowStatus.COMPLETED -> WorkflowResumeMode.DONE
+        definition.isTerminalStatus(snapshot.workflowStatus) -> WorkflowResumeMode.RECOVER
         else -> WorkflowResumeMode.RESUME
       }
     val currentStepCompleted =
-      stepsById[snapshot.currentStepId]?.status?.workflowStepStatus() == WorkflowStepStatus.COMPLETED
+      stepsById[snapshot.currentStepId]?.status == WorkflowStepStatus.COMPLETED
     if (resumeMode == WorkflowResumeMode.RESUME && currentStepCompleted) {
       resumeStepId =
         definition.stepIds.firstOrNull { stepId ->
-          stepsById[stepId]?.status?.workflowStepStatus() in workflowResumableStepStatuses
+          stepsById[stepId]?.status in workflowResumableStepStatuses
         }
           ?: snapshot.currentStepId
     }
@@ -169,7 +168,7 @@ class WorkflowEngine(
     record: WorkflowStateSnapshot,
     sessionSummary: WorkflowContinueSessionSummary = WorkflowContinueSessionSummary.EMPTY,
     continueStatusOverride: WorkflowContinueStatus? = null,
-    workflowStatusBeforeContinueOverride: String? = null,
+    workflowStatusBeforeContinueOverride: WorkflowStatus? = null,
   ): WorkflowContinueDecision {
     val resume = resumeView(definition, record)
     val snapshot = resume.snapshot

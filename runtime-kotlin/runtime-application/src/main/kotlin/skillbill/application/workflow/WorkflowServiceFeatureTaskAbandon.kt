@@ -11,6 +11,7 @@ import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowUpdateAcknowledgementView
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.engine.model.isTerminalStatus
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.workflowStatus
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
@@ -32,7 +33,7 @@ class WorkflowServiceFeatureTaskAbandon(
       )
     }
     val input = WorkflowUpdateInput(
-      workflowStatus = "abandoned",
+      workflowStatus = WorkflowStatus.ABANDONED,
       currentStepId = existing.currentStepId.orEmpty(),
       stepUpdates = null,
       artifactsPatch = WorkflowArtifactPatch.from(
@@ -69,7 +70,7 @@ class WorkflowServiceFeatureTaskAbandon(
       "abandoned_at" to abandonedAt,
     )
     val updated = existing.copy(
-      workflowStatus = "abandoned",
+      workflowStatus = WorkflowStatus.ABANDONED.wireValue,
       artifactsJson = JsonCodec.mapToJsonString(artifacts),
       finishedAt = abandonedAt,
     )
@@ -81,7 +82,7 @@ class WorkflowServiceFeatureTaskAbandon(
         status = "ok",
         workflowId = updated.workflowId,
         workflowName = updated.workflowName,
-        workflowStatus = "abandoned",
+        workflowStatus = WorkflowStatus.ABANDONED,
         currentStepId = updated.currentStepId,
         updatedStepIds = emptyList(),
         updatedArtifactKeys = listOf(FEATURE_TASK_RUNTIME_OPERATOR_ABANDONMENT_ARTIFACT_KEY),

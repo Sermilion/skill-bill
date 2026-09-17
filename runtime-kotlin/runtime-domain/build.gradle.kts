@@ -16,7 +16,6 @@ tasks.named<ProcessResources>("processResources") {
 
 dependencies {
   implementation(project(":runtime-contracts"))
-  implementation(libs.kotlinx.serialization.json)
   testImplementation(libs.jackson.databind)
   testImplementation(libs.jackson.dataformat.yaml)
   testImplementation(libs.junit.jupiter)

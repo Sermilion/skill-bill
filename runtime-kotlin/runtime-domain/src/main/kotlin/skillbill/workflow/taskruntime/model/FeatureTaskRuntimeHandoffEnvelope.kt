@@ -32,59 +32,59 @@ data class FeatureTaskRuntimeHandoffEnvelope(
   }
 
   companion object {
-    internal fun fromEnvelopeMap(raw: Map<String, Any?>): FeatureTaskRuntimeHandoffEnvelope =
-      FeatureTaskRuntimeHandoffEnvelope(
-        consumerPhaseId = raw.requireString("consumer_phase_id"),
-        projections = (raw["projections"] as? List<*>).orEmpty().map { projectionFromWire(it) },
-        repositoryCheckpoint = (
-          raw[ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT] as? Map<*, *>
-          )?.let { checkpoint ->
+    internal fun fromEnvelopeMap(raw: Map<String, Any?>): FeatureTaskRuntimeHandoffEnvelope {
+      val reader = handoffReader(raw)
+      return FeatureTaskRuntimeHandoffEnvelope(
+        consumerPhaseId = reader.requiredString("consumer_phase_id"),
+        projections = reader.requiredList("projections").map(::projectionFromWire),
+        repositoryCheckpoint = reader.optionalNestedObject(ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT)?.let {
+          val checkpointReader = handoffReader(it)
           FeatureTaskRuntimeRepositoryCheckpoint(
-            fingerprint = checkpoint.requireString(
+            fingerprint = checkpointReader.requiredString(
               ReviewVerificationSignalKeys.REPOSITORY_CHECKPOINT_FINGERPRINT,
             ),
-            baseRef = checkpoint["base_ref"] as? String,
-            headRef = checkpoint["head_ref"] as? String,
-            workingTreeOwnedPaths = (checkpoint["working_tree_owned_paths"] as? List<*>).orEmpty()
-              .map { it.requireDecodedString("working_tree_owned_paths") },
+            baseRef = checkpointReader.optionalString("base_ref"),
+            headRef = checkpointReader.optionalString("head_ref"),
+            workingTreeOwnedPaths = checkpointReader.optionalStringList("working_tree_owned_paths"),
           )
         },
-        contractVersion = raw.requireString(SharedPayloadKeys.CONTRACT_VERSION),
+        contractVersion = reader.requiredString(SharedPayloadKeys.CONTRACT_VERSION),
       )
+    }
 
     private fun projectionFromWire(raw: Any?): FeatureTaskRuntimeHandoffProjection {
-      val projection = raw as? Map<*, *> ?: decodeError("projections entries must be objects.")
+      val reader = handoffReader(raw.toStringKeyedArtifactMap(::decodeError))
       return FeatureTaskRuntimeHandoffProjection(
-        projectionName = projection.requireString("projection_name"),
-        sourceRef = FeatureTaskRuntimeHandoffSourceRef.fromWire(projection.requireString("source_ref")),
-        projectionContractId = projection.requireString("projection_contract_id"),
-        projectionContractVersion = projection.requireString("projection_contract_version"),
+        projectionName = reader.requiredString("projection_name"),
+        sourceRef = FeatureTaskRuntimeHandoffSourceRef.fromWire(reader.requiredString("source_ref")),
+        projectionContractId = reader.requiredString("projection_contract_id"),
+        projectionContractVersion = reader.requiredString("projection_contract_version"),
         promptVisibility = FeatureTaskRuntimeHandoffPromptVisibility
-          .fromWire(projection.requireString("prompt_visibility")),
-        producerIteration = (projection["producer_iteration"] as? Map<*, *>)?.let {
+          .fromWire(reader.requiredString("prompt_visibility")),
+        producerIteration = reader.requiredNestedObject("producer_iteration").let {
+          val iterationReader = handoffReader(it)
           FeatureTaskRuntimeProducerIteration(
-            phaseId = it.requireString(SharedPayloadKeys.PHASE_ID),
-            iteration = (it["iteration"] as? Number)?.toInt()
-              ?: decodeError("field 'producer_iteration.iteration' must be an integer."),
+            phaseId = iterationReader.requiredString(SharedPayloadKeys.PHASE_ID),
+            iteration = iterationReader.requiredInt("iteration"),
           )
-        } ?: decodeError("field 'producer_iteration' must decode to an object."),
-        fields = (projection["fields"] as? List<*>).orEmpty().map(::fieldFromWire),
+        },
+        fields = reader.requiredList("fields").map(::fieldFromWire),
       )
     }
 
     private fun fieldFromWire(raw: Any?): FeatureTaskRuntimeHandoffProjectionField {
-      val field = raw as? Map<*, *> ?: decodeError("projection fields entries must be objects.")
-      val name = field.requireString(DecompositionPlanningPayloadKeys.NAME)
+      val reader = handoffReader(raw.toStringKeyedArtifactMap(::decodeError))
+      val name = reader.requiredString(DecompositionPlanningPayloadKeys.NAME)
       return FeatureTaskRuntimeHandoffProjectionField(
         name = name,
-        value = when (val kind = field.requireString("kind")) {
-          "text" -> FeatureTaskRuntimeHandoffProjectionValue.Text(field.requireString("text"))
+        value = when (val kind = reader.requiredString("kind")) {
+          "text" -> FeatureTaskRuntimeHandoffProjectionValue.Text(reader.requiredString("text"))
           "text_list" -> FeatureTaskRuntimeHandoffProjectionValue.TextList(
-            (field["items"] as? List<*>).orEmpty().map { it.requireDecodedString("items") },
+            reader.optionalStringList("items"),
           )
           "compact_reference" -> FeatureTaskRuntimeHandoffProjectionValue.CompactReference(
-            kind = FeatureTaskRuntimeCompactReferenceKind.fromWire(field.requireString("reference_kind")),
-            value = field.requireString("reference_value"),
+            kind = FeatureTaskRuntimeCompactReferenceKind.fromWire(reader.requiredString("reference_kind")),
+            value = reader.requiredString("reference_value"),
           )
           else -> decodeError("projection field '$name' has unknown value kind '$kind'.")
         },
@@ -94,10 +94,7 @@ data class FeatureTaskRuntimeHandoffEnvelope(
     private fun decodeError(detail: String): Nothing =
       throw InvalidFeatureTaskRuntimePhaseHandoffSchemaError(sourceLabel = "<wire>", reason = detail)
 
-    private fun Map<*, *>.requireString(key: String): String = (this[key] as? String)?.takeIf(String::isNotBlank)
-      ?: decodeError("field '$key' must decode to a non-blank string.")
-
-    private fun Any?.requireDecodedString(key: String): String =
-      this as? String ?: decodeError("field '$key' must contain strings.")
+    private fun handoffReader(map: Map<String, Any?>): DurableArtifactMapReader =
+      DurableArtifactMapReader(map) { message -> decodeError(message) }
   }
 }

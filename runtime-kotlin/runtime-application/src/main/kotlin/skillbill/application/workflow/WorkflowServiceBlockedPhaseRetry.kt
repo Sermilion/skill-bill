@@ -21,6 +21,7 @@ import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.engine.model.isTerminalStatus
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStatus
 import skillbill.workflow.model.workflowStepStatus
@@ -212,7 +213,7 @@ private fun blockedPhaseRetryInput(
     resolvedAgentId = state.blockedRecord.resolvedAgentId,
   )
   return WorkflowUpdateInput(
-    workflowStatus = "running",
+    workflowStatus = WorkflowStatus.RUNNING,
     currentStepId = request.phaseId,
     stepUpdates = WorkflowStepUpdates.from(
       listOf(

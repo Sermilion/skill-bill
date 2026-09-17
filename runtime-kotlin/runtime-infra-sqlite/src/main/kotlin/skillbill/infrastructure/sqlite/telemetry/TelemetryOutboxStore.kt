@@ -1,6 +1,5 @@
 package skillbill.infrastructure.sqlite.telemetry
 
-import skillbill.SkillBillVersion
 import skillbill.ports.telemetry.TelemetryOutboxRepository
 import skillbill.ports.telemetry.model.TelemetryOutboxClaimRequest
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
@@ -22,7 +21,7 @@ private val FIXED_WIDTH_CLAIM_TIMESTAMP: DateTimeFormatter =
 
 class TelemetryOutboxStore(
   private val connection: Connection,
-  private val version: String = SkillBillVersion.VALUE,
+  private val version: String = SkillBillRuntimeVersion.VALUE,
 ) : TelemetryOutboxRepository {
   override fun enqueue(eventName: String, payloadJson: String): Long {
     connection.prepareStatement(

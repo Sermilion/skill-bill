@@ -325,20 +325,19 @@ class GoalSubtaskReviewSummaryReducerTest {
       ),
     )
     val scope = UnaddressedFindingLedgerScope("SKILL-202", 2, "wf-verify", 1)
-    val truncationRecords = mutableListOf<String>()
-    val rejected = GoalSubtaskReviewSummaryReducer.rejectedVerificationFindings(
+    val rejectedResult = GoalSubtaskReviewSummaryReducer.rejectedVerificationFindings(
       verifyOutput = verifyOutput,
       reviewOutput = reviewOutput,
       scope = scope,
-      truncationRecords = truncationRecords,
     )
+    val rejected = rejectedResult.findings
     assertEquals(1, rejected.size)
     assertEquals("rejected", rejected.single().verificationDisposition)
     assertEquals("False positive against spec intent.", rejected.single().verificationReason)
     assertEquals("minor", rejected.single().severity)
     assertEquals("Example.kt", rejected.single().location)
     assertEquals("Prefer clearer name", rejected.single().summary)
-    assertTrue(truncationRecords.isEmpty())
+    assertTrue(rejectedResult.truncationRecords.isEmpty())
   }
 
   @Test
@@ -369,7 +368,7 @@ class GoalSubtaskReviewSummaryReducerTest {
       verifyOutput = verifyOutput,
       reviewOutput = reviewOutput,
       scope = UnaddressedFindingLedgerScope("SKILL-216", 2, "wf-verify", 1),
-    )
+    ).findings
     assertEquals(1, rejected.size)
     assertNull(rejected.single().verificationReason)
     assertEquals("minor", rejected.single().severity)
@@ -401,20 +400,19 @@ class GoalSubtaskReviewSummaryReducerTest {
         ),
       ),
     )
-    val truncationRecords = mutableListOf<String>()
-    val rejected = GoalSubtaskReviewSummaryReducer.rejectedVerificationFindings(
+    val rejectedResult = GoalSubtaskReviewSummaryReducer.rejectedVerificationFindings(
       verifyOutput = verifyOutput,
       reviewOutput = reviewOutput,
       scope = UnaddressedFindingLedgerScope("SKILL-216", 2, "wf-verify", 1),
-      truncationRecords = truncationRecords,
     )
+    val rejected = rejectedResult.findings
     assertEquals(1, rejected.size)
     assertEquals(
       GoalSubtaskReviewSummaryReducer.REJECTED_VERIFICATION_REASON_MAX_UTF8_BYTES,
       Utf8Text.utf8Size(requireNotNull(rejected.single().verificationReason)),
     )
-    assertEquals(1, truncationRecords.size)
-    assertTrue(truncationRecords.single().contains("F-001"))
+    assertEquals(1, rejectedResult.truncationRecords.size)
+    assertTrue(rejectedResult.truncationRecords.single().contains("F-001"))
   }
 
   @Test

@@ -23,6 +23,7 @@ import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
+import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Path
 
 class DecompositionWorkflowContinuation(
@@ -97,7 +98,7 @@ class DecompositionWorkflowContinuation(
       WorkflowFamily.TASK_RUNTIME.definition,
       base,
       WorkflowUpdateInput(
-        workflowStatus = "paused",
+        workflowStatus = WorkflowStatus.PAUSED,
         currentStepId = "plan",
         stepUpdates = if (existing != null) {
           null
@@ -264,7 +265,7 @@ class DecompositionWorkflowContinuation(
       WorkflowFamily.TASK_RUNTIME.definition,
       opened,
       WorkflowUpdateInput(
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING,
         currentStepId = "preplan",
         stepUpdates = WorkflowStepUpdates.from(
           listOf(

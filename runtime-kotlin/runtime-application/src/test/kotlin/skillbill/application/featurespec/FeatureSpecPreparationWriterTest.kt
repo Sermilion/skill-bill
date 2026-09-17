@@ -23,8 +23,8 @@ import skillbill.workflow.decomposition.model.DecompositionManifestRepairOperati
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationFormat
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationResult
 import skillbill.workflow.decomposition.model.DecompositionManifestValidationSourceLocation
+import skillbill.workflow.decomposition.model.DecompositionManifestWireMap
 import skillbill.workflow.decomposition.model.SpecSource
-import skillbill.workflow.engine.model.DecompositionManifestWireMap
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
@@ -224,6 +224,12 @@ class FeatureSpecPreparationWriterTest {
 
       override fun validateYamlText(yamlText: String, sourceLabel: String): DecompositionManifest =
         throw InvalidDecompositionManifestSchemaError(sourceLabel, "typed YAML rejection", "schema_invalid")
+
+      override fun validateYamlTextResult(
+        yamlText: String,
+        sourceLabel: String,
+      ): DecompositionManifestValidationResult =
+        DecompositionManifestValidationResult.AcceptedUnchanged(validateYamlText(yamlText, sourceLabel), yamlText)
     }
 
     assertFailsWith<InvalidDecompositionManifestSchemaError> {
@@ -262,6 +268,12 @@ class FeatureSpecPreparationWriterTest {
           sourceLabel,
         )
       }
+
+      override fun validateYamlTextResult(
+        yamlText: String,
+        sourceLabel: String,
+      ): DecompositionManifestValidationResult =
+        DecompositionManifestValidationResult.AcceptedUnchanged(validateYamlText(yamlText, sourceLabel), yamlText)
     }
 
     assertFailsWith<InvalidDecompositionManifestSchemaError> {
@@ -315,6 +327,12 @@ class FeatureSpecPreparationWriterTest {
           sourceLabel,
         )
       }
+
+      override fun validateYamlTextResult(
+        yamlText: String,
+        sourceLabel: String,
+      ): DecompositionManifestValidationResult =
+        DecompositionManifestValidationResult.AcceptedUnchanged(validateYamlText(yamlText, sourceLabel), yamlText)
     }
 
     assertFailsWith<InvalidDecompositionManifestSchemaError> {

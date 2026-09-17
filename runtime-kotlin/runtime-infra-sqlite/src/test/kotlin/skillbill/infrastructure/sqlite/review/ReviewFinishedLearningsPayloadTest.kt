@@ -1,8 +1,13 @@
 package skillbill.infrastructure.sqlite.review
 
+import skillbill.application.learning.learningAppliedSessionWire
+import skillbill.application.learning.learningEntrySessionJson
 import skillbill.contracts.learning.LearningEntryDto
 import skillbill.contracts.learning.LearningPayloadKeys
-import skillbill.learnings.learningAppliedSessionWire
+import skillbill.learnings.model.LearningEntry
+import skillbill.learnings.model.LearningScope
+import java.nio.file.Files
+import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -32,4 +37,37 @@ class ReviewFinishedLearningsPayloadTest {
     assertEquals("Title", summary[LearningPayloadKeys.TITLE])
     assertEquals("Rule", summary[LearningPayloadKeys.RULE_TEXT])
   }
+
+  @Test
+  fun `learning session JSON remains byte-identical to the captured baseline`() {
+    val entry = LearningEntry(
+      id = 1,
+      reference = "L-001",
+      scope = LearningScope.REPO,
+      scopeKey = "skill-bill",
+      status = "active",
+      title = "Title",
+      ruleText = "Rule",
+      rationale = "Because",
+      sourceReviewRunId = null,
+      sourceFindingId = null,
+    )
+    val actual = learningEntrySessionJson("bill-code-review", listOf(entry)).toByteArray()
+    val expected = Files.readAllBytes(
+      repositoryRoot().resolve(
+        ".feature-specs/SKILL-351-runtime-domain-boundaries-and-simplicity/baselines/learnings-session.json",
+      ),
+    )
+
+    assertEquals(expected.toList(), actual.toList())
+  }
+}
+
+private fun repositoryRoot(): Path {
+  var current: Path? = Path.of("").toAbsolutePath().normalize()
+  while (current != null) {
+    if (Files.isDirectory(current.resolve(".git"))) return current
+    current = current.parent
+  }
+  error("Repository root is not available from the test working directory.")
 }

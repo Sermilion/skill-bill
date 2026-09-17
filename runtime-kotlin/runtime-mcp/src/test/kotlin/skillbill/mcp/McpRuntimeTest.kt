@@ -1,7 +1,6 @@
 package skillbill.mcp
 
 import skillbill.SAMPLE_REVIEW
-import skillbill.SkillBillVersion
 import skillbill.ZERO_FINDING_REVIEW
 import skillbill.application.review.toFeatureTaskRuntimeStatsPayload
 import skillbill.application.telemetry.model.FeatureTaskRuntimeFinishedRequest
@@ -17,6 +16,7 @@ import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliExecutionResult
 import skillbill.cli.model.CliRuntimeContext
 import skillbill.contracts.JsonCodec
+import skillbill.di.SkillBillVersion
 import skillbill.infrastructure.fs.CanonicalRepositoryRoot
 import skillbill.infrastructure.fs.GitWorkflowGitOperations
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
@@ -39,6 +39,7 @@ import skillbill.ports.workflow.gitops.repositoryFingerprint
 import skillbill.telemetry.CONFIG_ENVIRONMENT_KEY
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
+import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.Connection
@@ -572,7 +573,7 @@ class McpFeatureTaskRuntimeWorkflowTest {
       WorkflowFamilyKind.TASK_RUNTIME,
       WorkflowUpdateRequest(
         workflowId = workflowId,
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING.wireValue,
         currentStepId = "implement",
         stepUpdates = WorkflowStepUpdates.from(
           listOf(
@@ -829,7 +830,7 @@ private fun markVerifyWorkflowVerdictBlocked(workflowId: String, context: McpRun
     WorkflowFamilyKind.VERIFY,
     WorkflowUpdateRequest(
       workflowId = workflowId,
-      workflowStatus = "running",
+      workflowStatus = WorkflowStatus.RUNNING.wireValue,
       currentStepId = "verdict",
       stepUpdates = WorkflowStepUpdates.from(
         listOf(mapOf("step_id" to "verdict", "status" to "blocked", "attempt_count" to 1)),

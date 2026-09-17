@@ -18,6 +18,7 @@ import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.nio.file.Files
 import java.nio.file.Path
@@ -119,7 +120,7 @@ class DecompositionManifestWriterTest {
       ),
       runtimeUpdate = DecompositionManifestRuntimeUpdate(
         workflowId = "wfl-subtask-2",
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING.wireValue,
         currentStepId = "audit",
         stepUpdates = WorkflowStepUpdates.from(
           listOf(
@@ -181,7 +182,7 @@ class DecompositionManifestWriterTest {
       artifactsPatch = null,
       runtimeUpdate = DecompositionManifestRuntimeUpdate(
         workflowId = "wfl-subtask-1",
-        workflowStatus = "completed",
+        workflowStatus = WorkflowStatus.COMPLETED.wireValue,
         currentStepId = "complete",
         stepUpdates = WorkflowStepUpdates.from(
           listOf(
@@ -258,7 +259,7 @@ class DecompositionManifestWriterTest {
       artifactsPatch = WorkflowArtifactPatch.from(mapOf("review_result" to mapOf("finding_count" to 0))),
       runtimeUpdate = DecompositionManifestRuntimeUpdate(
         workflowId = "wfl-wrong-subtask",
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING.wireValue,
         currentStepId = "audit",
         stepUpdates = WorkflowStepUpdates.from(
           listOf(
@@ -296,7 +297,7 @@ class DecompositionManifestWriterTest {
       artifactsPatch = null,
       runtimeUpdate = DecompositionManifestRuntimeUpdate(
         workflowId = "wfl-subtask-1",
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING.wireValue,
         currentStepId = "audit",
         stepUpdates = WorkflowStepUpdates.from(
           listOf(
@@ -336,7 +337,7 @@ class DecompositionManifestWriterTest {
       artifactsPatch = WorkflowArtifactPatch.from(mapOf("validation_result" to mapOf("passed" to true))),
       runtimeUpdate = DecompositionManifestRuntimeUpdate(
         workflowId = "wfl-subtask-1",
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING.wireValue,
         currentStepId = "validate",
         stepUpdates = WorkflowStepUpdates.from(
           listOf(
@@ -385,7 +386,7 @@ class DecompositionManifestWriterTest {
       artifactsPatch = WorkflowArtifactPatch.from(mapOf("review_result" to mapOf("finding_count" to 0))),
       runtimeUpdate = DecompositionManifestRuntimeUpdate(
         workflowId = "wfl-subtask-1",
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING.wireValue,
         currentStepId = "audit",
         stepUpdates = WorkflowStepUpdates.from(
           listOf(
@@ -454,7 +455,7 @@ class DecompositionManifestWriterTest {
       artifactsPatch = null,
       runtimeUpdate = DecompositionManifestRuntimeUpdate(
         workflowId = "wfl-subtask-1",
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING.wireValue,
         currentStepId = "implement",
         stepUpdates = WorkflowStepUpdates.from(
           listOf(
@@ -511,7 +512,7 @@ class DecompositionManifestWriterTest {
       definition,
       opened,
       WorkflowUpdateInput(
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING,
         currentStepId = "implement",
         stepUpdates =
         WorkflowStepUpdates.from(

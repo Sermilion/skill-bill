@@ -1,7 +1,6 @@
 package skillbill.infrastructure.sqlite.goalrunner
 
 import skillbill.contracts.JsonCodec
-import skillbill.goalrunner.AttemptLedgerAccumulator
 import skillbill.goalrunner.GoalObservabilityArtifacts
 import skillbill.goalrunner.WORKER_SUBTASK_REQUEST_OUTCOMES_ARTIFACT_KEY
 import skillbill.goalrunner.WORKER_SUBTASK_REQUEST_OUTCOME_LIMIT
@@ -15,6 +14,7 @@ import skillbill.goalrunner.model.GoalRunnerAttemptLedgerSummary
 import skillbill.goalrunner.model.GoalRunnerObservabilityRecordRequest
 import skillbill.goalrunner.model.GoalRunnerWorkerSubtaskRequestOutcome
 import skillbill.goalrunner.progressEventFrom
+import skillbill.goalrunner.summarizeAttemptLedgerFromEntries
 import skillbill.goalrunner.summary
 import skillbill.goalrunner.toPersistenceWire
 import skillbill.goalrunner.toProgressEvent
@@ -49,8 +49,7 @@ import skillbill.workflow.goal.model.appendBoundedHistoryBySequence
 import skillbill.workflow.goal.model.goalObservabilityLatestEventFromArtifacts
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
-import skillbill.workflow.model.workflowStatus
-import skillbill.workflow.model.workflowStepStatus
+import skillbill.workflow.taskruntime.validateGoalProgressEvent
 
 private val PROGRESS_POLL_ARTIFACT_KEYS = setOf(
   "progress_event",
@@ -74,9 +73,9 @@ internal class WorkflowGoalRunnerProgressRecording(
     val artifacts = sparseArtifactKeys(record.artifactsJson, PROGRESS_POLL_ARTIFACT_KEYS)
     val finishCompleted = steps.any {
         step ->
-      step.stepId == "pr" && step.status.workflowStepStatus() == WorkflowStepStatus.COMPLETED
+      step.stepId == "pr" && step.status == WorkflowStepStatus.COMPLETED
     }
-    val currentStep = if (record.workflowStatus.workflowStatus() == WorkflowStatus.COMPLETED || finishCompleted) {
+    val currentStep = if (record.workflowStatus == WorkflowStatus.COMPLETED || finishCompleted) {
       "pr"
     } else {
       record.currentStepId
@@ -88,9 +87,7 @@ internal class WorkflowGoalRunnerProgressRecording(
     }.getOrNull()
     GoalRunnerWorkflowProgress(
       workflowId = record.workflowId,
-      workflowStatus = requireNotNull(record.workflowStatus.workflowStatus()) {
-        "Unknown workflow status '${record.workflowStatus}'."
-      },
+      workflowStatus = record.workflowStatus,
       currentStepId = currentStep,
       progressToken = record.progressToken(),
       latestDurableProgressEvent = progressEvent,
@@ -134,7 +131,7 @@ internal class WorkflowGoalRunnerProgressRecording(
 
   override fun recordProgressEvent(request: GoalRunnerProgressEventRecordRequest): Boolean {
     val entryMap = request.event.toPersistenceWire()
-    goalProgressEventValidator.validate(entryMap, GOAL_PROGRESS_LATEST_EVENT_ARTIFACT_KEY)
+    goalProgressEventValidator.validateGoalProgressEvent(entryMap, GOAL_PROGRESS_LATEST_EVENT_ARTIFACT_KEY)
     return appendHistoryArtifact(
       HistoryArtifactAppend(
         workflowId = request.workflowId,
@@ -242,17 +239,18 @@ internal class WorkflowGoalRunnerProgressRecording(
   override fun readAttemptLedgerSummary(issueKey: String): GoalRunnerAttemptLedgerSummary =
     database.read { unitOfWork ->
       val normalizedIssueKey = issueKey.trim()
-      val acc = AttemptLedgerAccumulator()
-      listOf(WorkflowFamily.TASK_RUNTIME).forEach { family ->
-        family.list(unitOfWork.workflowStates, Int.MAX_VALUE).forEach { snapshot ->
-          val artifacts = decodeArtifacts(snapshot.artifactsJson)
-          if (goalContinuation(artifacts)?.issueKey != normalizedIssueKey) return@forEach
-          (artifacts[GOAL_ATTEMPT_LEDGER_ARTIFACT_KEY] as? List<*>).orEmpty().forEach { item ->
-            (item as? Map<*, *>)?.let(acc::accumulate)
+      val entries = buildList {
+        listOf(WorkflowFamily.TASK_RUNTIME).forEach { family ->
+          family.list(unitOfWork.workflowStates, Int.MAX_VALUE).forEach { snapshot ->
+            val artifacts = decodeArtifacts(snapshot.artifactsJson)
+            if (goalContinuation(artifacts)?.issueKey != normalizedIssueKey) return@forEach
+            (artifacts[GOAL_ATTEMPT_LEDGER_ARTIFACT_KEY] as? List<*>).orEmpty().forEach { item ->
+              (item as? Map<*, *>)?.let(::add)
+            }
           }
         }
       }
-      acc.toSummary()
+      summarizeAttemptLedgerFromEntries(entries)
     }
 
   private fun appendHistoryArtifact(append: HistoryArtifactAppend): Boolean = database.transaction { unitOfWork ->

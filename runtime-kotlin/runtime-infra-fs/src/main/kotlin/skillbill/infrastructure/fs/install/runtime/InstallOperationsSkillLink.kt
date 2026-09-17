@@ -23,5 +23,5 @@ internal fun linkInstalledSkill(
       repoRoot = repoRoot?.toAbsolutePath()?.normalize(),
       home = home ?: Path.of(System.getProperty("user.home")),
     ),
-  )
+  ).linkPaths
 }

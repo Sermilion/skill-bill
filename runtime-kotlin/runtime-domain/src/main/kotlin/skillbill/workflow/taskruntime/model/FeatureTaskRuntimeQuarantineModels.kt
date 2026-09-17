@@ -101,32 +101,30 @@ data class FeatureTaskRuntimeQuarantineEntry(
         )
       }
       return try {
+        val reader = durableArtifactMapReader(raw)
         FeatureTaskRuntimeQuarantineEntry(
-          producingPhaseId = raw.requireStringField("producing_phase_id"),
-          consumingPhaseId = raw.requireStringField("consuming_phase_id"),
-          producingIteration = raw.requireIntField("producing_iteration"),
-          rejectionClass = raw.requireStringField("rejection_class"),
-          rejectionDetail = raw.requireStringField("rejection_detail"),
-          regenerationAttempt = raw.requireIntField("regeneration_attempt"),
-          quarantinedAtIteration = raw.requireIntField("quarantined_at_iteration"),
-          diagnosticIdentity = raw.optionalStringField("diagnostic_identity"),
-          rejectedRecordByteSize = raw.requireIntField("rejected_record_byte_size").toLong(),
-          rejectedRecordSha256 = raw.requireStringField("rejected_record_sha256"),
-          diagnosticDegraded = raw.requireDiagnosticDegradedFlag(),
+          producingPhaseId = reader.requiredString("producing_phase_id"),
+          consumingPhaseId = reader.requiredString("consuming_phase_id"),
+          producingIteration = reader.requiredInt("producing_iteration"),
+          rejectionClass = reader.requiredString("rejection_class"),
+          rejectionDetail = reader.requiredString("rejection_detail"),
+          regenerationAttempt = reader.requiredInt("regeneration_attempt"),
+          quarantinedAtIteration = reader.requiredInt("quarantined_at_iteration"),
+          diagnosticIdentity = reader.optionalString("diagnostic_identity"),
+          rejectedRecordByteSize = reader.requiredInt("rejected_record_byte_size").toLong(),
+          rejectedRecordSha256 = reader.requiredString("rejected_record_sha256"),
+          diagnosticDegraded = when (reader.optionalBoolean("diagnostic_degraded")) {
+            null -> false
+            true -> true
+            false -> quarantineSchemaError(
+              "Feature-task-runtime quarantine entry 'diagnostic_degraded' must be true when present.",
+            )
+          },
         )
       } catch (error: IllegalArgumentException) {
         quarantineSchemaError("Feature-task-runtime quarantine entry is malformed: ${error.message}")
       }
     }
-
-    private fun Map<String, Any?>.requireDiagnosticDegradedFlag(): Boolean =
-      when (optionalBooleanField("diagnostic_degraded")) {
-        null -> false
-        true -> true
-        false -> quarantineSchemaError(
-          "Feature-task-runtime quarantine entry 'diagnostic_degraded' must be true when present.",
-        )
-      }
   }
 }
 

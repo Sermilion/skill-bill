@@ -1,16 +1,17 @@
 package skillbill.engine.featuretask
+
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.InvalidGoalPlanningPreparationSchemaError
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePlanningProjectionValidator
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeWorkflowArtifactMap
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePlanningProjectionContract
 
 internal fun producerProjectionGateReason(
   phaseId: String,
   outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
-  planningProjectionValidator: FeatureTaskRuntimePlanningProjectionValidator,
+  planningProjectionValidator: FeatureTaskRuntimeWireArtifactValidator,
 ): String? {
   if ((outputMap[SharedPayloadKeys.STATUS] as? String).workflowStepStatus() != WorkflowStepStatus.COMPLETED) return null
   val expectedKind = FeatureTaskRuntimePlanningProjectionContract.producedProjectionKindFor(phaseId)
@@ -22,7 +23,7 @@ internal fun requireValidPlanningProjection(
   envelope: FeatureTaskRuntimeWorkflowArtifactMap,
   phaseId: String,
   sourceLabel: String,
-  planningProjectionValidator: FeatureTaskRuntimePlanningProjectionValidator,
+  planningProjectionValidator: FeatureTaskRuntimeWireArtifactValidator,
   fieldPath: String = "${phaseId}_payload",
 ) {
   producerProjectionGateReason(phaseId, envelope, planningProjectionValidator)?.let { reason ->
@@ -37,7 +38,7 @@ internal fun requireValidPlanningProjection(
 private fun unresolvedProducerProjectionKindReason(
   phaseId: String,
   expectedKind: String,
-  planningProjectionValidator: FeatureTaskRuntimePlanningProjectionValidator,
+  planningProjectionValidator: FeatureTaskRuntimeWireArtifactValidator,
 ): String {
   val validatorLabel = planningProjectionValidator::class.qualifiedName
     ?: planningProjectionValidator::class.java.name

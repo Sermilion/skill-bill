@@ -1,5 +1,5 @@
 package skillbill.workflow.goal
 
-interface GoalProgressEventValidator {
-  fun validate(event: Any, sourceLabel: String)
-}
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
+
+typealias GoalProgressEventValidator = FeatureTaskRuntimeWireArtifactValidator

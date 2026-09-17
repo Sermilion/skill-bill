@@ -13,7 +13,7 @@ class PlanningProjectionNoopValidatorGuardTest {
       if (workingDir.fileName.toString().startsWith("runtime-")) workingDir.parent else workingDir
     }
 
-  private val noopSymbol = "NoopFeatureTaskRuntimePlanningProjectionValidator"
+  private val noopSymbol = "NoopFeatureTaskRuntimeWireArtifactValidator"
 
   private val permittedConsumers: Map<String, String> = mapOf(
     "FeatureTaskRuntimeRunnerTestSupport.kt" to

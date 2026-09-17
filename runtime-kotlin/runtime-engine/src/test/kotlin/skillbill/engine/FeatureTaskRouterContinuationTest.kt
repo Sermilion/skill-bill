@@ -21,6 +21,7 @@ import skillbill.ports.workflow.gitops.NoopWorkflowGitOperations
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.goal.NoopGoalObservabilityEventValidator
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -83,7 +84,7 @@ class FeatureTaskRouterContinuationTest {
 
   private fun blockedAtImplementAfterPlan(workflowId: String): WorkflowUpdateRequest = WorkflowUpdateRequest(
     workflowId = workflowId,
-    workflowStatus = "blocked",
+    workflowStatus = WorkflowStatus.BLOCKED.wireValue,
     currentStepId = "implement",
     stepUpdates = WorkflowStepUpdates.from(
       listOf(

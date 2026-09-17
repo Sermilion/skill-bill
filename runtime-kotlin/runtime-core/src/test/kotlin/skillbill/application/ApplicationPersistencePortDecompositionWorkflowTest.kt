@@ -7,6 +7,7 @@ import skillbill.application.workflow.model.WorkflowUpdateRequest
 import skillbill.application.workflow.model.WorkflowUpdateResult
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY
 import java.nio.file.Files
 import kotlin.test.Test
@@ -32,7 +33,7 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
       WorkflowFamilyKind.TASK_RUNTIME,
       WorkflowUpdateRequest(
         workflowId = workflowId,
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING.wireValue,
         currentStepId = "plan",
         stepUpdates = WorkflowStepUpdates.from(
           listOf(
@@ -85,7 +86,7 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
       WorkflowFamilyKind.TASK_RUNTIME,
       WorkflowUpdateRequest(
         workflowId = workflowId,
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING.wireValue,
         currentStepId = "implement",
         stepUpdates = WorkflowStepUpdates.from(
           listOf(
@@ -133,7 +134,7 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
         WorkflowFamilyKind.TASK_RUNTIME,
         WorkflowUpdateRequest(
           workflowId = workflowId,
-          workflowStatus = "running",
+          workflowStatus = WorkflowStatus.RUNNING.wireValue,
           currentStepId = "plan",
           stepUpdates = WorkflowStepUpdates.from(
             listOf(
@@ -195,7 +196,7 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
       WorkflowFamilyKind.TASK_RUNTIME,
       WorkflowUpdateRequest(
         workflowId = workflowId,
-        workflowStatus = "blocked",
+        workflowStatus = WorkflowStatus.BLOCKED.wireValue,
         currentStepId = "validate",
         stepUpdates = WorkflowStepUpdates.from(
           listOf(
@@ -347,7 +348,7 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
       WorkflowFamilyKind.TASK_RUNTIME,
       WorkflowUpdateRequest(
         workflowId = first.view.resume.snapshot.workflowId,
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING.wireValue,
         currentStepId = "commit_push",
         stepUpdates = WorkflowStepUpdates.from(
           listOf(
@@ -408,7 +409,7 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
       WorkflowFamilyKind.TASK_RUNTIME,
       WorkflowUpdateRequest(
         workflowId = first.view.resume.snapshot.workflowId,
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING.wireValue,
         currentStepId = "commit_push",
         stepUpdates = WorkflowStepUpdates.from(
           listOf(
@@ -603,7 +604,7 @@ class ApplicationPersistencePortDecompositionWorkflowTest {
       WorkflowFamilyKind.TASK_RUNTIME,
       WorkflowUpdateRequest(
         workflowId = subtaskWorkflowId,
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING.wireValue,
         currentStepId = "validate",
         stepUpdates = WorkflowStepUpdates.from(
           listOf(

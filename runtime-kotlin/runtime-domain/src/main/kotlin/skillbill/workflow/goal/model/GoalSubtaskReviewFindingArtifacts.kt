@@ -47,11 +47,12 @@ data class GoalSubtaskReviewCompactFinding(
   companion object {
     internal fun fromArtifactMap(raw: Map<String, Any?>, path: String): GoalSubtaskReviewCompactFinding {
       raw.requireOnlyReviewStateKeys(setOf("severity", "label", "text", "finding_id"), path)
+      val reader = reviewStateReader(raw, path)
       return GoalSubtaskReviewCompactFinding(
-        severity = raw.requireReviewStateString("severity", path),
-        label = raw.requireReviewStateString("label", path),
-        text = raw.requireReviewStateString("text", path),
-        findingId = raw.optionalReviewStateString("finding_id", path),
+        severity = reader.requiredString("severity"),
+        label = reader.requiredString("label"),
+        text = reader.requiredString("text"),
+        findingId = reader.optionalString("finding_id"),
       )
     }
   }
@@ -108,22 +109,23 @@ data class GoalSubtaskReviewPassResult(
         ),
         path,
       )
-      val findings = raw.requireReviewStateList("findings", path).mapIndexed { index, value ->
+      val reader = reviewStateReader(raw, path)
+      val findings = reader.requiredList("findings").mapIndexed { index, value ->
         GoalSubtaskReviewCompactFinding.fromArtifactMap(
-          value.asReviewStateMap("$path.findings[$index]"),
+          value.toReviewStateMap("$path.findings[$index]"),
           "$path.findings[$index]",
         )
       }
       return GoalSubtaskReviewPassResult(
-        passNumber = raw.requireReviewStateInt("pass_number", path),
-        verdict = FeatureTaskRuntimeVerdict.fromWire(raw.requireReviewStateString("verdict", path)),
-        reviewResultArtifact = raw.requireReviewStateString("review_result_artifact", path),
-        unresolvedFindingCount = raw.requireReviewStateInt("unresolved_finding_count", path),
+        passNumber = reader.requiredInt("pass_number"),
+        verdict = FeatureTaskRuntimeVerdict.fromWire(reader.requiredString("verdict")),
+        reviewResultArtifact = reader.requiredString("review_result_artifact"),
+        unresolvedFindingCount = reader.requiredInt("unresolved_finding_count"),
         findings = findings,
-        executedMode = raw.optionalReviewStateString("executed_mode", path)?.let(CodeReviewExecutionMode::fromWire),
+        executedMode = reader.optionalString("executed_mode")?.let(CodeReviewExecutionMode::fromWire),
         commitFocusedAccounting = raw["commit_focused_accounting"]?.let {
           GoalSubtaskCommitFocusedAccounting.fromArtifactMap(
-            it.asReviewStateMap("$path.commit_focused_accounting"),
+            it.toReviewStateMap("$path.commit_focused_accounting"),
             "$path.commit_focused_accounting",
           )
         },
@@ -174,17 +176,15 @@ object GoalSubtaskReviewArtifactDecoder {
     }
     val continuation = try {
       FeatureTaskRuntimeGoalContinuationArtifact.fromArtifactMap(
-        artifacts.getValue(FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY).asGoalReviewArtifactMap(
+        artifacts.getValue(FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY).toReviewStateMap(
           FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY,
         ),
       )
     } catch (error: InvalidWorkflowStateSchemaError) {
       reviewStateError(FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY, error.message.orEmpty(), error)
-    } catch (error: IllegalArgumentException) {
-      reviewStateError(FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY, error.message.orEmpty(), error)
     }
     val state = GoalSubtaskReviewState.fromArtifactMap(
-      artifacts.getValue(GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY).asGoalReviewArtifactMap(
+      artifacts.getValue(GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY).toReviewStateMap(
         GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY,
       ),
     )
@@ -229,20 +229,18 @@ object GoalSubtaskReviewArtifactDecoder {
 
   private fun decodeContinuationDirect(artifacts: Map<String, Any?>): FeatureTaskRuntimeGoalContinuationArtifact = try {
     FeatureTaskRuntimeGoalContinuationArtifact.fromArtifactMap(
-      artifacts.getValue(FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY).asGoalReviewArtifactMap(
+      artifacts.getValue(FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY).toReviewStateMap(
         FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY,
       ),
     )
   } catch (error: InvalidWorkflowStateSchemaError) {
-    reviewStateError(FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY, error.message.orEmpty(), error)
-  } catch (error: IllegalArgumentException) {
     reviewStateError(FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY, error.message.orEmpty(), error)
   }
 
   private fun rawResults(artifacts: Map<String, Any?>, state: GoalSubtaskReviewState): Map<String, String> {
     if (state.completedPassCount == 0) {
       val cleared = artifacts[GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY]
-        ?.asGoalReviewArtifactMap(GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY)
+        ?.toReviewStateMap(GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY)
         .orEmpty()
       if (cleared.isNotEmpty()) {
         reviewStateError(
@@ -253,7 +251,7 @@ object GoalSubtaskReviewArtifactDecoder {
       return emptyMap()
     }
     val raw = artifacts[GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY]
-      ?.asGoalReviewArtifactMap(GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY)
+      ?.toReviewStateMap(GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY)
       ?: reviewStateError(
         GOAL_SUBTASK_REVIEW_RESULTS_ARTIFACT_KEY,
         "must contain the durable raw review result for every completed pass.",

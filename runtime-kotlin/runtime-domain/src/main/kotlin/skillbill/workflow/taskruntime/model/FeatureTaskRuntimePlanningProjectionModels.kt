@@ -17,22 +17,6 @@ const val FEATURE_TASK_RUNTIME_PROJECTION_LIST_MAX_COUNT: Int = 128
 
 const val FEATURE_TASK_RUNTIME_CHANGED_PATH_MAX_COUNT: Int = 512
 
-fun featureTaskRuntimeRenderOpenWorkItem(value: Any?): String? = when (value) {
-  null -> null
-  is String -> value.trim().takeIf(String::isNotBlank)
-  is Map<*, *> -> {
-    val ref = (value["ref"] as? String)?.trim().orEmpty()
-    val note = (value["note"] as? String)?.trim().orEmpty()
-    when {
-      ref.isNotBlank() && note.isNotBlank() -> "$ref: $note"
-      ref.isNotBlank() -> ref
-      note.isNotBlank() -> note
-      else -> value.toString().trim().takeIf(String::isNotBlank)
-    }
-  }
-  else -> value.toString().trim().takeIf(String::isNotBlank)
-}
-
 data class FeatureTaskRuntimeSharedReviewEvidenceReference(
   val storePath: String,
   val checkpointFingerprint: String,

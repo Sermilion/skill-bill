@@ -3,8 +3,12 @@ package skillbill.workflow.taskruntime
 import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.WorkflowSnapshotValidator
+import skillbill.workflow.engine.model.DurableWorkflowArtifacts
 import skillbill.workflow.engine.model.WorkflowDefinition
+import skillbill.workflow.engine.model.WorkflowSnapshotView
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.model.WorkflowStatus
+import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY
 import skillbill.workflow.verify.FeatureVerifyWorkflowDefinition
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -76,7 +80,7 @@ class FeatureTaskRuntimeResumeGateTest {
   fun `crashed runtime run with completed preplan and plan resumes at implement not preplan`() {
     val record = runtimeSnapshot(
       currentStepId = "plan",
-      workflowStatus = "running",
+      workflowStatus = WorkflowStatus.RUNNING,
       stepsJson = stepsJson(
         "preplan" to "completed",
         "plan" to "completed",
@@ -100,7 +104,7 @@ class FeatureTaskRuntimeResumeGateTest {
   fun `completed run done next-action dereferences a terminal-summary artifact present in the snapshot`() {
     val record = runtimeSnapshot(
       currentStepId = "pr",
-      workflowStatus = "completed",
+      workflowStatus = WorkflowStatus.COMPLETED,
       stepsJson = stepsJson(
         "preplan" to "completed",
         "plan" to "completed",
@@ -168,7 +172,7 @@ class FeatureTaskRuntimeResumeGateTest {
       sessionId = "ftr-test",
       workflowName = runtimeDefinition.workflowName,
       contractVersion = runtimeDefinition.contractVersion,
-      workflowStatus = "running",
+      workflowStatus = WorkflowStatus.RUNNING,
       currentStepId = "plan",
       stepsJson = stepsJson("preplan" to "completed", "plan" to "pending"),
       artifactsJson = corruptArtifactsJson,
@@ -183,12 +187,48 @@ class FeatureTaskRuntimeResumeGateTest {
     }
   }
 
+  @Test
+  fun `runtime resume gate loud-fails on malformed quality gate selection`() {
+    val snapshot = WorkflowSnapshotView(
+      workflowId = "wftr-test",
+      sessionId = "ftr-test",
+      workflowName = runtimeDefinition.workflowName,
+      contractVersion = runtimeDefinition.contractVersion,
+      workflowStatus = WorkflowStatus.RUNNING,
+      currentStepId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_WRITE_HISTORY,
+      steps = emptyList(),
+      artifacts = DurableWorkflowArtifacts.fromMap(
+        mapOf(
+          FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY to mapOf(
+            "issue_key" to "SKILL-351",
+            "subtask_id" to 1,
+            "suppress_pr" to true,
+            "goal_branch" to "feat/SKILL-351",
+            "code_review_mode" to "inline",
+            "quality_gate_selection" to false,
+          ),
+        ),
+      ),
+      startedAt = "2026-06-18T10:00:00Z",
+      updatedAt = "2026-06-18T10:05:00Z",
+      finishedAt = "",
+    )
+
+    assertFailsWith<InvalidWorkflowStateSchemaError> {
+      FeatureTaskRuntimeRequiredArtifactPresenceResolver.missingRequiredArtifacts(
+        snapshot = snapshot,
+        resumeStepId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_WRITE_HISTORY,
+        requiredArtifacts = listOf(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE),
+      )
+    }
+  }
+
   private fun runtimeSnapshot(
     currentStepId: String,
     stepsJson: String,
     phaseRecordStatuses: Map<String, String>,
     phaseRecordOutputs: Map<String, String> = emptyMap(),
-    workflowStatus: String = "running",
+    workflowStatus: WorkflowStatus = WorkflowStatus.RUNNING,
   ): WorkflowStateSnapshot = WorkflowStateSnapshot(
     workflowId = "wftr-test",
     sessionId = "ftr-test",
@@ -213,7 +253,7 @@ class FeatureTaskRuntimeResumeGateTest {
     sessionId = "impl-test",
     workflowName = definition.workflowName,
     contractVersion = definition.contractVersion,
-    workflowStatus = "running",
+    workflowStatus = WorkflowStatus.RUNNING,
     currentStepId = currentStepId,
     stepsJson = stepsJson,
     artifactsJson = "{}",

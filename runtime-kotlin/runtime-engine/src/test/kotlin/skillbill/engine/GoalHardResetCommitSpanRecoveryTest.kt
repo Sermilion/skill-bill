@@ -13,6 +13,7 @@ import skillbill.engine.goalrunner.testGoalRunnerStatusService
 import skillbill.ports.goalrunner.runner.model.GoalRunnerWorkflowProgress
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.workflow.decomposition.model.CurrentSubtaskIntent
+import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertContains
@@ -205,7 +206,7 @@ class GoalHardResetCommitSpanRecoveryTest {
     val outcomes = RecordingOutcomeStore().apply {
       progresses["wfl-interrupted"] = GoalRunnerWorkflowProgress(
         workflowId = "wfl-interrupted",
-        workflowStatus = "failed",
+        workflowStatus = WorkflowStatus.FAILED,
         currentStepId = "implement",
         progressToken = "token",
       )

@@ -89,12 +89,17 @@ internal data class InstallContext(
   val selectedPlatformSlugs: Set<String> = emptySet(),
 )
 
+internal data class InstallSkillOutcome(
+  val linkPaths: List<Path>,
+  val transaction: InstallTransaction?,
+)
+
 internal fun installSkill(
   skillPath: Path,
   agentTargets: Iterable<AgentTarget>,
   transaction: InstallTransaction? = null,
   context: InstallContext = InstallContext(),
-): List<Path> {
+): InstallSkillOutcome {
   val resolvedSkill = skillPath.toAbsolutePath().normalize()
   if (!Files.isDirectory(resolvedSkill)) {
     throw FileNotFoundException("Skill directory '$resolvedSkill' does not exist.")
@@ -117,32 +122,40 @@ internal fun installSkill(
     ),
   )
   val created = mutableListOf<Path>()
+  var currentTransaction = transaction
   for (target in agentTargets) {
-    installSkillSymlink(resolvedSkill, symlinkTarget, target, transaction)?.let(created::add)
+    val outcome = installSkillSymlink(resolvedSkill, symlinkTarget, target, currentTransaction)
+    outcome.linkPath?.let(created::add)
+    currentTransaction = outcome.transaction
   }
-  return created
+  return InstallSkillOutcome(created, currentTransaction)
 }
+
+private data class InstallSkillSymlinkOutcome(
+  val linkPath: Path?,
+  val transaction: InstallTransaction?,
+)
 
 private fun installSkillSymlink(
   resolvedSkill: Path,
   symlinkTarget: Path,
   target: AgentTarget,
   transaction: InstallTransaction?,
-): Path? {
+): InstallSkillSymlinkOutcome {
   Files.createDirectories(target.path.toPath())
   val linkPath = target.path.toPath().resolve(resolvedSkill.fileName)
   if (Files.isSymbolicLink(linkPath)) {
     val existingTarget = runCatching { Files.readSymbolicLink(linkPath).toAbsolutePath().normalize() }.getOrNull()
     if (existingTarget == symlinkTarget) {
-      return null
+      return InstallSkillSymlinkOutcome(null, transaction)
     }
     Files.deleteIfExists(linkPath)
   } else if (Files.exists(linkPath)) {
     Files.delete(linkPath)
   }
   Files.createSymbolicLink(linkPath, symlinkTarget)
-  transaction?.createdSymlinks?.add(linkPath.toFileLocation())
-  return linkPath
+  val updatedTransaction = transaction?.withRecordedSymlink(linkPath.toFileLocation())
+  return InstallSkillSymlinkOutcome(linkPath, updatedTransaction)
 }
 
 internal fun uninstallTargets(createdSymlinks: Iterable<Path>): List<Path> {

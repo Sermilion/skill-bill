@@ -7,12 +7,9 @@ import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_REPAIR_RECEIPT_CONTRACT
 import skillbill.error.InvalidFeatureTaskRuntimeRepairReceiptError
 import skillbill.workflow.goal.model.GoalSubtaskReviewCompactFinding
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
-import skillbill.workflow.goal.model.asReviewStateMap
-import skillbill.workflow.goal.model.optionalReviewStateString
 import skillbill.workflow.goal.model.requireOnlyReviewStateKeys
-import skillbill.workflow.goal.model.requireReviewStateInt
-import skillbill.workflow.goal.model.requireReviewStateList
-import skillbill.workflow.goal.model.requireReviewStateString
+import skillbill.workflow.goal.model.reviewStateReader
+import skillbill.workflow.goal.model.toReviewStateMap
 
 const val REPAIR_RECEIPT_MAX_ENTRIES: Int = 50
 const val REPAIR_RECEIPT_MAX_CONSTRUCTS_PER_ENTRY: Int = 16
@@ -89,10 +86,11 @@ data class FeatureTaskRuntimeRepairConstruct(
     internal fun fromArtifactMap(raw: Map<String, Any?>, path: String): FeatureTaskRuntimeRepairConstruct {
       raw.requireOnlyReviewStateKeys(setOf("symbol", "file"), path)
       return anchoredToDecodePath(path) {
-        val rawSymbol = raw.requireReviewStateString("symbol", path)
+        val reader = reviewStateReader(raw, path)
+        val rawSymbol = reader.requiredString("symbol")
         FeatureTaskRuntimeRepairConstruct(
           symbol = salvageCompactReceiptSymbol(rawSymbol) ?: rawSymbol,
-          file = raw.optionalReviewStateString("file", path),
+          file = reader.optionalString("file"),
         )
       }
     }
@@ -120,9 +118,10 @@ data class FeatureTaskRuntimeRepairDisturbedRemedy(
     internal fun fromArtifactMap(raw: Map<String, Any?>, path: String): FeatureTaskRuntimeRepairDisturbedRemedy {
       raw.requireOnlyReviewStateKeys(setOf("finding_ref", "reason"), path)
       return anchoredToDecodePath(path) {
+        val reader = reviewStateReader(raw, path)
         FeatureTaskRuntimeRepairDisturbedRemedy(
-          findingRef = raw.requireReviewStateString("finding_ref", path),
-          reason = raw.requireReviewStateString("reason", path),
+          findingRef = reader.requiredString("finding_ref"),
+          reason = reader.requiredString("reason"),
         )
       }
     }
@@ -151,22 +150,23 @@ data class FeatureTaskRuntimeRepairReceiptEntry(
     internal fun fromArtifactMap(
       raw: Map<String, Any?>,
       path: String,
-      observations: FeatureTaskRuntimeRepairReceiptDecodeObservations? = null,
+      collector: FeatureTaskRuntimeRepairReceiptDecodeObservations.Collector? = null,
     ): FeatureTaskRuntimeRepairReceiptEntry = anchoredToDecodePath(path) {
+      val reader = reviewStateReader(raw, path)
       FeatureTaskRuntimeRepairReceiptEntry(
-        outcome = FeatureTaskRuntimeRepairOutcome.fromWire(raw.requireReviewStateString("outcome", path)),
+        outcome = FeatureTaskRuntimeRepairOutcome.fromWire(reader.requiredString("outcome")),
         findingId = requireFindingRefAlias(raw, path),
         noEditReason = forwardOptionalReceiptReason(
-          raw.optionalReviewStateString("no_edit_reason", path),
+          reader.optionalString("no_edit_reason"),
           "$path.no_edit_reason",
           REPAIR_RECEIPT_MAX_NO_EDIT_REASON_UTF8_BYTES,
-          observations,
+          collector,
         ),
         unresolvedReason = forwardOptionalReceiptReason(
-          raw.optionalReviewStateString("unresolved_reason", path),
+          reader.optionalString("unresolved_reason"),
           "$path.unresolved_reason",
           REPAIR_RECEIPT_MAX_UNRESOLVED_REASON_UTF8_BYTES,
-          observations,
+          collector,
         ),
       )
     }
@@ -210,7 +210,7 @@ data class FeatureTaskRuntimeRepairReceipt(
     internal fun fromArtifactMap(
       raw: Map<String, Any?>,
       path: String,
-      observations: FeatureTaskRuntimeRepairReceiptDecodeObservations? = null,
+      collector: FeatureTaskRuntimeRepairReceiptDecodeObservations.Collector? = null,
     ): FeatureTaskRuntimeRepairReceipt {
       raw.requireOnlyReviewStateKeys(
         setOf(
@@ -228,18 +228,19 @@ data class FeatureTaskRuntimeRepairReceipt(
           "is removed; records naming it must be regenerated.",
         )
       }
-      val entries = raw.requireReviewStateList("entries", path).mapIndexed { index, value ->
+      val reader = reviewStateReader(raw, path)
+      val entries = reader.requiredList("entries").mapIndexed { index, value ->
         FeatureTaskRuntimeRepairReceiptEntry.fromArtifactMap(
-          value.asReviewStateMap("$path.entries[$index]"),
+          value.toReviewStateMap("$path.entries[$index]"),
           "$path.entries[$index]",
-          observations,
+          collector,
         )
       }
       return anchoredToDecodePath(path) {
         FeatureTaskRuntimeRepairReceipt(
-          contractVersion = raw.requireReviewStateString(SharedPayloadKeys.CONTRACT_VERSION, path),
-          roundNumber = raw.requireReviewStateInt("round_number", path),
-          preFixCheckpointSha = raw.requireReviewStateString("pre_fix_checkpoint_sha", path),
+          contractVersion = reader.requiredString(SharedPayloadKeys.CONTRACT_VERSION),
+          roundNumber = reader.requiredInt("round_number"),
+          preFixCheckpointSha = reader.requiredString("pre_fix_checkpoint_sha"),
           entries = entries,
         )
       }
@@ -248,13 +249,13 @@ data class FeatureTaskRuntimeRepairReceipt(
     internal fun validateEntries(
       raw: Map<String, Any?>,
       path: String,
-      observations: FeatureTaskRuntimeRepairReceiptDecodeObservations? = null,
+      collector: FeatureTaskRuntimeRepairReceiptDecodeObservations.Collector? = null,
     ) {
-      raw.requireReviewStateList("entries", path).forEachIndexed { index, value ->
+      reviewStateReader(raw, path).requiredList("entries").forEachIndexed { index, value ->
         FeatureTaskRuntimeRepairReceiptEntry.fromArtifactMap(
-          value.asReviewStateMap("$path.entries[$index]"),
+          value.toReviewStateMap("$path.entries[$index]"),
           "$path.entries[$index]",
-          observations,
+          collector,
         )
       }
     }

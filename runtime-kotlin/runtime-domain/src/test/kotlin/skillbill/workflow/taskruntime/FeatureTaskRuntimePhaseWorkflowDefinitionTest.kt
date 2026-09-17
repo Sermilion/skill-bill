@@ -1,12 +1,18 @@
 package skillbill.workflow.taskruntime
 
+import skillbill.contracts.JsonCodec
 import skillbill.contracts.workflow.WORKFLOW_STATE_CONTRACT_VERSION
+import skillbill.workflow.engine.WorkflowEngine
+import skillbill.workflow.engine.WorkflowSnapshotValidator
+import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeCapExhaustionBehavior
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFeatureSize
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffSourceRef
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeQualityGateSelection
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepositoryCheckpointPolicy
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
+import skillbill.workflow.verify.FeatureVerifyWorkflowDefinition
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -23,8 +29,80 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionTest {
   }
 
   @Test
+  fun `continuation extras are enabled only for the feature-task definition`() {
+    val engine = WorkflowEngine(NoopWorkflowSnapshotValidator)
+    val artifacts = JsonCodec.mapToJsonString(
+      mapOf(
+        "assessment" to mapOf("feature_name" to "typed boundaries", "feature_size" to "medium"),
+        "branch" to mapOf("branch_name" to "feat/SKILL-351"),
+      ),
+    )
+    val runtimeDecision = engine.continueDecision(
+      definition,
+      WorkflowStateSnapshot(
+        workflowId = "wftr-1",
+        sessionId = "sess",
+        workflowName = definition.workflowName,
+        contractVersion = definition.contractVersion,
+        workflowStatus = WorkflowStatus.BLOCKED,
+        currentStepId = "implement",
+        stepsJson = "[]",
+        artifactsJson = artifacts,
+        startedAt = null,
+        updatedAt = null,
+        finishedAt = null,
+        mode = definition.workflowMode,
+      ),
+    )
+    val verifyDefinition = FeatureVerifyWorkflowDefinition.definition
+    val verifyDecision = engine.continueDecision(
+      verifyDefinition,
+      WorkflowStateSnapshot(
+        workflowId = "wfv-1",
+        sessionId = "sess",
+        workflowName = verifyDefinition.workflowName,
+        contractVersion = verifyDefinition.contractVersion,
+        workflowStatus = WorkflowStatus.BLOCKED,
+        currentStepId = "gather_diff",
+        stepsJson = "[]",
+        artifactsJson = artifacts,
+        startedAt = null,
+        updatedAt = null,
+        finishedAt = null,
+        mode = verifyDefinition.workflowMode,
+      ),
+    )
+
+    assertEquals(
+      mapOf(
+        "feature_name" to "typed boundaries",
+        "feature_size" to "medium",
+        "branch_name" to "feat/SKILL-351",
+      ),
+      runtimeDecision.view.extraFields.toMap(),
+    )
+    assertEquals(emptyMap(), verifyDecision.view.extraFields.toMap())
+  }
+
+  @Test
   fun `durable workflow-state contract version is independent of the phase-output contract`() {
     assertEquals(WORKFLOW_STATE_CONTRACT_VERSION, definition.contractVersion)
+  }
+
+  @Test
+  fun `definition keeps typed statuses alongside their wire compatibility sets`() {
+    assertEquals(
+      definition.workflowStatusEnums.map { it.wireValue }.toSet(),
+      definition.workflowStatuses,
+    )
+    assertEquals(
+      definition.stepStatusEnums.map { it.wireValue }.toSet(),
+      definition.stepStatuses,
+    )
+    assertEquals(
+      definition.terminalStatusEnums.map { it.wireValue }.toSet(),
+      definition.terminalStatuses,
+    )
   }
 
   @Test
@@ -183,6 +261,10 @@ class FeatureTaskRuntimePhaseWorkflowDefinitionTest {
       declarations.getValue(FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN).derivedContextKeys,
     )
   }
+}
+
+private object NoopWorkflowSnapshotValidator : WorkflowSnapshotValidator {
+  override fun validate(snapshot: WorkflowStateSnapshot, slug: String) = Unit
 }
 
 internal fun phaseWorkflowDependenciesOf(phaseId: String): List<String> =

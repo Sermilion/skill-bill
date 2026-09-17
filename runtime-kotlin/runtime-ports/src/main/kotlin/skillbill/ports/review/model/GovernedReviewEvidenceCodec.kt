@@ -6,9 +6,9 @@ import skillbill.contracts.review.GovernedReviewEvidencePayloadKeys
 import skillbill.contracts.review.GovernedReviewToolSpecList
 import skillbill.contracts.review.GovernedReviewWirePayload
 import skillbill.error.InvalidReviewContextSchemaError
+import skillbill.review.context.model.GovernedReviewJsonRpcArguments
 import skillbill.review.context.model.ReviewEvidenceLimits
 import skillbill.review.context.model.ReviewExpansionRecord
-import skillbill.workflow.engine.model.GovernedReviewJsonRpcArguments
 
 object GovernedReviewEvidenceCodec {
   const val REQUEST_BYTES: Int = ReviewEvidenceLimits.REQUEST_BYTES
