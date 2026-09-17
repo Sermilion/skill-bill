@@ -1,6 +1,6 @@
 # SKILL-352 Subtask 2 - One persistence seam and typed durable failures
 
-Parent spec: [.feature-specs/SKILL-352-runtime-engine-boundaries-and-simplicity/spec.md](./spec.md)
+Parent spec: [.feature-specs/SKILL-352-runtime-engine-boundaries-and-simplicity/spec.md](spec.md)
 Issue key: SKILL-352
 
 ## Scope
