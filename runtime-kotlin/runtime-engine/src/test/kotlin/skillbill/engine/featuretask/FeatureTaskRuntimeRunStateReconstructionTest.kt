@@ -74,6 +74,38 @@ class FeatureTaskRuntimeRunStateReconstructionTest {
   }
 
   @Test
+  fun `resumed phase token telemetry matches live execution for the current phase`() {
+    val durableRecords = mapOf(
+      FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT to FeatureTaskRuntimePhaseRecord(
+        phaseId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,
+        status = WorkflowStepStatus.COMPLETED,
+        attemptCount = 1,
+        startedAt = "2026-01-01T00:00:00Z",
+        resolvedAgentId = "claude",
+        outputArtifact = "{}",
+      ),
+    )
+    val live = FeatureTaskRuntimeRunState(
+      initialRecords = durableRecords,
+      transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
+      outputValidator = AlwaysValidValidator,
+    )
+    val resumed = FeatureTaskRuntimeRunState(
+      initialRecords = durableRecords,
+      transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions,
+      outputValidator = AlwaysValidValidator,
+    )
+
+    live.recordPhaseTokenUsage("review", 13, 21)
+    resumed.recordPhaseTokenUsage("review", 13, 21)
+
+    assertEquals(
+      serializeTokenData(live.phaseTokenView),
+      serializeTokenData(resumed.phaseTokenView),
+    )
+  }
+
+  @Test
   fun `resume reconstruction preserves completed phase and backward edge state`() {
     val transitions = FeatureTaskRuntimePhaseWorkflowDefinition.transitions
     val live = FeatureTaskRuntimeRunState(

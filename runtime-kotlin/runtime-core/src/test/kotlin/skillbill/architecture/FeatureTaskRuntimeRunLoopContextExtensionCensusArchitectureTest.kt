@@ -12,6 +12,7 @@ class FeatureTaskRuntimeRunLoopContextExtensionCensusArchitectureTest {
     val documented = documentedCensus()
 
     assertEquals(documented.keys, actual.keys)
+    assertEquals(documented.mapValues { (_, counts) -> counts.current }, actual)
     assertEquals(documented.mapValues { (_, counts) -> counts.target }, actual)
     assertEquals(
       documented.mapValues { (_, counts) -> counts.target },

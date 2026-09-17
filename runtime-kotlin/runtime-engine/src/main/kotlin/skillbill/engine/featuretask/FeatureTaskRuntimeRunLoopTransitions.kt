@@ -66,14 +66,29 @@ object FeatureTaskRuntimeRunLoopTransitions {
         } -> null
       else -> {
         with(FeatureTaskRuntimeRunLoopBackwardEdge) {
-          FeatureTaskRuntimeRunLoopBackwardEdge.recordBackwardEdge(context,
-            BackwardEdgeRecordArgs(
-              edge = edge,
-              destinationPhaseId = transition.phaseId,
-              loopId = loopId,
-              edgeIteration = requireNotNull(transition.edgeIteration),
-              verdict = effectiveVerdict,
-            ),
+          FeatureTaskRuntimeRunLoopBackwardEdge.recordBackwardEdge(
+            request,
+            state,
+            recorder,
+            transitions,
+            session,
+            edge = requireNotNull(edge),
+            destinationPhaseId = transition.phaseId,
+            loopId = loopId,
+            edgeIteration = requireNotNull(transition.edgeIteration),
+            verdict = effectiveVerdict,
+          )
+          observability.loopEdge(
+            transition.phaseId,
+            loopId,
+            requireNotNull(transition.edgeIteration),
+            effectiveVerdict,
+          )
+          FeatureTaskRuntimeRunLoopBackwardEdge.warnOnThresholdCrossing(
+            request,
+            diagnostics,
+            requireNotNull(edge),
+            requireNotNull(transition.edgeIteration),
           )
         }
         transition.phaseId

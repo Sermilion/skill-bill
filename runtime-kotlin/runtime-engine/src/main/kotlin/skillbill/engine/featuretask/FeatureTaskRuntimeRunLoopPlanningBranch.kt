@@ -82,7 +82,11 @@ object FeatureTaskRuntimeRunLoopPlanningBranch {
     val phaseId = args.phaseId
     val declaration = phaseDeclarationForRun(args.request, phaseId)
     val run = buildPhaseRun(
-      BuildPhaseRunArgs(phaseId, args.request, declaration, args.specSource, args.reentry),
+      phaseId = phaseId,
+      request = args.request,
+      declaration = declaration,
+      specSource = args.specSource,
+      reentry = args.reentry,
     )
     FeatureTaskRuntimeRunLoopPhaseRunner.preLaunchBlock(
       context = context,
@@ -102,11 +106,13 @@ object FeatureTaskRuntimeRunLoopPlanningBranch {
     FeatureTaskRuntimeRunLoopTransitions.qualityGateSelection(request),
   )
 
-  internal fun buildPhaseRun(args: BuildPhaseRunArgs): PhaseRun {
-    val phaseId = args.phaseId
-    val declaration = args.declaration
-    val reentry = args.reentry
-    val request = args.request
+  internal fun buildPhaseRun(
+    phaseId: String,
+    request: FeatureTaskRuntimeRunRequest,
+    declaration: FeatureTaskRuntimePhaseDeclaration,
+    specSource: SpecSource,
+    reentry: PendingReentry?,
+  ): PhaseRun {
     val resolvedAgent = FeatureTaskRuntimeAgentResolver.resolve(
       phaseId = phaseId,
       assignment = request.agentAssignment,
@@ -123,7 +129,7 @@ object FeatureTaskRuntimeRunLoopPlanningBranch {
       ),
       compaction = request.compactionSettings.directiveFor(phaseId),
       request = request,
-      specSource = args.specSource,
+      specSource = specSource,
       reentry = reentry,
     )
   }

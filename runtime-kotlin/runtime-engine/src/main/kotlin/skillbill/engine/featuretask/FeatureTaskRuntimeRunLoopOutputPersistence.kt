@@ -201,32 +201,29 @@ object FeatureTaskRuntimeRunLoopOutputPersistence {
     retryReason: String = operatorReason,
     correctiveRepairContext: FeatureTaskRuntimeCorrectiveRepairContext? = null,
   ): AttemptResult = AttemptResult.schemaInvalid(
-    SchemaInvalidArgs(
-      operatorReason = operatorReason,
-      fileManifest = fileManifest,
-      rejectedOutput = null,
-      malformedOutput = malformedOutput,
-      retryReason = retryReason,
-      correctiveRepairContext = correctiveRepairContext,
-    ),
+    operatorReason = operatorReason,
+    fileManifest = fileManifest,
+    malformedOutput = malformedOutput,
+    retryReason = retryReason,
+    correctiveRepairContext = correctiveRepairContext,
   )
 
-  internal fun prepareLaunch(context: FeatureTaskRuntimeRunLoopContext, args: PrepareLaunchArgs): PreparedLaunch {
+  internal fun prepareLaunch(
+    context: FeatureTaskRuntimeRunLoopContext,
+    run: PhaseRun,
+    state: FeatureTaskRuntimeRunState,
+    priorCorrection: PriorAttemptCorrection?,
+    repositoryCheckpoint: FeatureTaskRuntimeRepositoryCheckpoint?,
+  ): PreparedLaunch {
     with(context) {
-    val run = args.run
-    val state = args.state
-    val priorCorrection = args.priorCorrection
-    val repositoryCheckpoint = args.repositoryCheckpoint
     val resolvedBranchRecord = recorder.loadResolvedBranch(run.request.workflowId)
     val handoff = assembleLaunchHandoff(
       request,
       recorder,
-      AssembleLaunchHandoffArgs(
-        run,
-        state,
-        repositoryCheckpoint,
-        resolvedBranchRecord,
-      ),
+      run,
+      state,
+      repositoryCheckpoint,
+      resolvedBranchRecord,
     )
     recorder.validateHandoffDeclarations(handoff.projectionDeclarations)
     val sharedEvidence = FeatureTaskRuntimeRunLoopOutputVerification.resolveSharedReviewEvidence(
@@ -248,15 +245,13 @@ object FeatureTaskRuntimeRunLoopOutputPersistence {
         sharedEvidence?.measurement,
       )
     }
-    val prompt = FeatureTaskRuntimeRunLoopOutputPersistence.composeLaunchPrompt(context,
-      ComposeLaunchPromptArgs(
-        run,
-        state,
-        handoff,
-        priorCorrection,
-
-        briefing,
-      ),
+    val prompt = FeatureTaskRuntimeRunLoopOutputPersistence.composeLaunchPrompt(
+      context,
+      run,
+      state,
+      handoff,
+      priorCorrection,
+      briefing,
     )
     return PreparedLaunch(briefing, prompt)
 
@@ -265,47 +260,64 @@ object FeatureTaskRuntimeRunLoopOutputPersistence {
   private fun assembleLaunchHandoff(
     request: FeatureTaskRuntimeRunRequest,
     recorder: FeatureTaskRuntimePhaseRecorder,
-    args: AssembleLaunchHandoffArgs,
+    run: PhaseRun,
+    state: FeatureTaskRuntimeRunState,
+    repositoryCheckpoint: FeatureTaskRuntimeRepositoryCheckpoint?,
+    resolvedBranchRecord: FeatureTaskRuntimeResolvedBranch?,
   ) = FeatureTaskRuntimeHandoffContract.assembleHandoff(
     FeatureTaskRuntimeHandoffAssemblyRequest(
-      declaration = args.run.declaration,
-      runInvariants = args.run.request.runInvariants,
-      recordedOutputs = args.state.outputs(),
-      drivingVerdict = args.run.reentry?.drivingVerdict,
+      declaration = run.declaration,
+      runInvariants = run.request.runInvariants,
+      recordedOutputs = state.outputs(),
+      drivingVerdict = run.reentry?.drivingVerdict,
       repairLedger = null,
-      repositoryCheckpoint = args.repositoryCheckpoint,
-      expectedRepositoryCheckpoint = expectedCheckpointForLaunch(args.run, args.repositoryCheckpoint)
+      repositoryCheckpoint = repositoryCheckpoint,
+      expectedRepositoryCheckpoint = expectedCheckpointForLaunch(run, repositoryCheckpoint)
         ?.let(::FeatureTaskRuntimeRepositoryCheckpoint),
-      branchIdentity = args.resolvedBranchRecord?.branch,
-      baseBranch = args.resolvedBranchRecord?.baseBranch ?: "main",
-      validationDepth = args.run.request.goalContinuation?.validationDepth ?: ValidationDepth.DEFAULT,
+      branchIdentity = resolvedBranchRecord?.branch,
+      baseBranch = resolvedBranchRecord?.baseBranch ?: "main",
+      validationDepth = run.request.goalContinuation?.validationDepth ?: ValidationDepth.DEFAULT,
       qualityGateSelection = FeatureTaskRuntimeRunLoopTransitions.qualityGateSelection(request),
     ),
   ).copy(
     recordedFindingVerdicts = FeatureTaskRuntimeRunLoopOutputVerification.recordedFindingVerdictsForFixHandoff(
       recorder,
-      args.run,
-
-      args.state,
+      run,
+      state,
     ),
   )
 
-  private fun composeLaunchPrompt(context: FeatureTaskRuntimeRunLoopContext, args: ComposeLaunchPromptArgs): String {
+  private fun composeLaunchPrompt(
+    context: FeatureTaskRuntimeRunLoopContext,
+    run: PhaseRun,
+    state: FeatureTaskRuntimeRunState,
+    handoff: FeatureTaskRuntimePhaseHandoff,
+    priorCorrection: PriorAttemptCorrection?,
+    briefing: FeatureTaskRuntimePhaseLaunchBriefing,
+  ): String {
     with(context) {
-    return FeatureTaskRuntimePhasePromptComposer.compose(FeatureTaskRuntimeRunLoopOutputPersistence.composeLaunchPromptInputs(context, args)) +
-      FeatureTaskRuntimeRunLoopLaunch.verifyFindingsSpecIntentSection(state, recorder, session, phaseGates, args.run)
+    return FeatureTaskRuntimePhasePromptComposer.compose(
+      FeatureTaskRuntimeRunLoopOutputPersistence.composeLaunchPromptInputs(
+        context,
+        run,
+        state,
+        handoff,
+        priorCorrection,
+        briefing,
+      ),
+    ) +
+      FeatureTaskRuntimeRunLoopLaunch.verifyFindingsSpecIntentSection(state, recorder, session, phaseGates, run)
 
     }}
 
   private fun composeLaunchPromptInputs(context: FeatureTaskRuntimeRunLoopContext,
-    args: ComposeLaunchPromptArgs,
+    run: PhaseRun,
+    state: FeatureTaskRuntimeRunState,
+    handoff: FeatureTaskRuntimePhaseHandoff,
+    priorCorrection: PriorAttemptCorrection?,
+    briefing: FeatureTaskRuntimePhaseLaunchBriefing,
   ): FeatureTaskRuntimePhasePromptComposeInputs {
     with(context) {
-    val run = args.run
-    val state = args.state
-    val handoff = args.handoff
-    val priorCorrection = args.priorCorrection
-    val briefing = args.briefing
     val context = this
     val resolvedBranchRecord = recorder.loadResolvedBranch(run.request.workflowId)
     val (passNumber, depthResolution, executedTier) = FeatureTaskRuntimeRunLoopOutputPersistence.resolveReviewPromptTier(context, run, state)

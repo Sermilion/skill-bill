@@ -65,8 +65,8 @@ still need the launch, activity, diagnostics, clock, transition, and session
 ports together. Build/validation settlement, pack-command routing, and
 repository-checkpoint calculation use explicit arguments. Carried-forward goal
 review settlement uses `CarriedForwardGoalReviewArgs`;
-PhaseRunner and PlanningBranch enter through `context.copy(state, observability,
-phaseTokenAccumulator)` at the phase boundary. AttemptSettlement moves
+PhaseRunner and PlanningBranch enter through the phase-boundary state and
+observability values. AttemptSettlement moves
 `gateOutput` / `settleValidatedOutput` / envelope settlement off the context
 receiver; `GateOutputArgs` and `SettleValidatedOutputArgs` carry the
 request/state/recorder/outputValidator/phaseGates/clock/diagnostics/
@@ -86,7 +86,7 @@ goalContinuationRecorder, args)` seam. `FeatureTaskRuntimeRunLoop` exposes only
 fields are internal to `FeatureTaskRuntimeRunLoopContext`.
 
 The named-family census is now PlanningBranch 0, Drive 2, ValidationGate 9,
-AttemptSettlement 3, Review 6, and PhaseAttempts 4 context extensions, down
+AttemptSettlement 4, Review 6, and PhaseAttempts 4 context extensions, down
 from 0, 13, 21, 13, 8, and 4 respectively. The remaining groups have these
 inputs:
 
@@ -117,6 +117,37 @@ New helpers must not reintroduce run-loop or context-all-access parameters when
 a narrowed overload already exists; retained broad inputs require a concrete,
 current orchestration requirement documented here or in the owning area
 `agent/decisions.md`.
+
+The complete run-loop file census is pinned below. `current` is the source-tree
+count and `target` is the retained orchestration count enforced by
+`FeatureTaskRuntimeRunLoopContextExtensionCensusArchitectureTest`; a new
+extension requires an intentional update to both the implementation and this
+table.
+
+| Run-loop file | current | target |
+| --- | ---: | ---: |
+| `FeatureTaskRuntimeRunLoop.kt` | 0 | 0 |
+| `FeatureTaskRuntimeRunLoopAttemptSettlement.kt` | 4 | 4 |
+| `FeatureTaskRuntimeRunLoopAuditRetry.kt` | 0 | 0 |
+| `FeatureTaskRuntimeRunLoopBackwardEdge.kt` | 0 | 0 |
+| `FeatureTaskRuntimeRunLoopCheckpoint.kt` | 0 | 0 |
+| `FeatureTaskRuntimeRunLoopCheckpointRemediation.kt` | 0 | 0 |
+| `FeatureTaskRuntimeRunLoopDrive.kt` | 2 | 2 |
+| `FeatureTaskRuntimeRunLoopLaunch.kt` | 2 | 2 |
+| `FeatureTaskRuntimeRunLoopModels.kt` | 0 | 0 |
+| `FeatureTaskRuntimeRunLoopOutputPersistence.kt` | 0 | 0 |
+| `FeatureTaskRuntimeRunLoopOutputVerification.kt` | 0 | 0 |
+| `FeatureTaskRuntimeRunLoopPhaseAttempts.kt` | 4 | 4 |
+| `FeatureTaskRuntimeRunLoopPhaseRunner.kt` | 0 | 0 |
+| `FeatureTaskRuntimeRunLoopPlanningBranch.kt` | 0 | 0 |
+| `FeatureTaskRuntimeRunLoopRecordRejection.kt` | 0 | 0 |
+| `FeatureTaskRuntimeRunLoopRepairReceipt.kt` | 0 | 0 |
+| `FeatureTaskRuntimeRunLoopReview.kt` | 6 | 6 |
+| `FeatureTaskRuntimeRunLoopSession.kt` | 0 | 0 |
+| `FeatureTaskRuntimeRunLoopSharedArgs.kt` | 0 | 0 |
+| `FeatureTaskRuntimeRunLoopSubtaskCommit.kt` | 0 | 0 |
+| `FeatureTaskRuntimeRunLoopTransitions.kt` | 0 | 0 |
+| `FeatureTaskRuntimeRunLoopValidationGate.kt` | 9 | 9 |
 
 ### Resource Lifetime And Failure
 

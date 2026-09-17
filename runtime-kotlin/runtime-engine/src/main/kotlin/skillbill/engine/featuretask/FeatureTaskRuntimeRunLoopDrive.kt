@@ -60,7 +60,14 @@ object FeatureTaskRuntimeRunLoopDrive {
   internal fun phaseEntryBlockReason(context: FeatureTaskRuntimeRunLoopContext, phaseId: String): String? =
     entryGateBlockReason(context.state, context.transitions, phaseId)
       ?: with(FeatureTaskRuntimeRunLoopBackwardEdge) {
-        FeatureTaskRuntimeRunLoopBackwardEdge.capExhaustedOnResume(context, phaseId)
+        FeatureTaskRuntimeRunLoopBackwardEdge.capExhaustedOnResume(
+          context.session,
+          context.state,
+          context.transitions,
+          context.request,
+          context.recorder,
+          phaseId,
+        )
       }
       ?: reconcileCompletedGoalReviewPass(context, phaseId)
 
@@ -186,7 +193,13 @@ object FeatureTaskRuntimeRunLoopDrive {
     val edge = FeatureTaskRuntimeRunLoopCheckpoint.matchingBackwardEdge(context.transitions, phaseId, effectiveVerdict)
     edge?.let {
       with(FeatureTaskRuntimeRunLoopBackwardEdge) {
-        FeatureTaskRuntimeRunLoopBackwardEdge.resumeInFlightReviewFix(context, it)
+        FeatureTaskRuntimeRunLoopBackwardEdge.resumeInFlightReviewFix(
+          context.request,
+          context.state,
+          context.recorder,
+          context.session,
+          it,
+        )
       }
     }?.let { return it }
     val edgeIterationCount = edge?.let {
@@ -414,12 +427,40 @@ object FeatureTaskRuntimeRunLoopDrive {
       context.state.outputFor(phaseId)
         ?.takeIf { phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN }
         ?.let {
-          FeatureTaskRuntimeRunLoopBackwardEdge.applyPlanningStop(context, phaseId, it)
+          FeatureTaskRuntimeRunLoopBackwardEdge.applyPlanningStop(
+            request = context.request,
+            state = context.state,
+            recorder = context.recorder,
+            observability = context.observability,
+            session = context.session,
+            phaseGates = context.phaseGates,
+            specSource = context.specSource,
+            phaseId = phaseId,
+            planOutput = it,
+          )
         }
     } else {
       with(FeatureTaskRuntimeRunLoopBackwardEdge) {
-        FeatureTaskRuntimeRunLoopBackwardEdge.establishBranchIfNeeded(context, phaseId)
-          ?: FeatureTaskRuntimeRunLoopBackwardEdge.runPhaseFor(context, phaseId)
+        FeatureTaskRuntimeRunLoopBackwardEdge.establishBranchIfNeeded(
+          phaseGates = context.phaseGates,
+          request = context.request,
+          observability = context.observability,
+          recorder = context.recorder,
+          state = context.state,
+          session = context.session,
+          phaseId = phaseId,
+        )
+          ?: FeatureTaskRuntimeRunLoopBackwardEdge.runPhaseFor(
+            request = context.request,
+            state = context.state,
+            recorder = context.recorder,
+            observability = context.observability,
+            transitions = context.transitions,
+            phaseGates = context.phaseGates,
+            specSource = context.specSource,
+            session = context.session,
+            phaseId = phaseId,
+          )
       }
     }
 

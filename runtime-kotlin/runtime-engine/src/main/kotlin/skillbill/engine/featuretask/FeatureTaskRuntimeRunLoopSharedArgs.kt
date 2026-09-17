@@ -13,7 +13,6 @@ import skillbill.review.context.model.CodeReviewExecutionMode
 import skillbill.workflow.decomposition.model.SpecSource
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.workflow.taskruntime.model.AcceptedFeatureTaskRuntimePhaseOutput
-import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeBackwardEdge
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeCorrectiveRepairContext
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeFailureDisposition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeNextPhase
@@ -43,15 +42,6 @@ internal data class PhaseAttemptContext(
 
 internal data class PhaseAttemptAccumulatorContext(
   val attempt: PhaseAttemptContext,
-)
-
-internal data class SchemaInvalidArgs(
-  val operatorReason: String,
-  val fileManifest: FeatureTaskRuntimePhaseFileManifest,
-  val rejectedOutput: String? = null,
-  val malformedOutput: Boolean = false,
-  val retryReason: String? = null,
-  val correctiveRepairContext: FeatureTaskRuntimeCorrectiveRepairContext? = null,
 )
 
 internal data class TerminalOutputAttemptArgs(
@@ -346,15 +336,6 @@ internal data class SettleValidatedOutputPauseArgs(
   val repositoryFingerprint: String?,
 )
 
-internal data class LaunchCapturedArgs(
-  val stdout: String,
-  val stdoutBytes: ByteArray,
-  val stdoutTruncated: Boolean,
-  val stdoutByteSize: Long,
-  val stdoutSha256: String,
-  val fileManifest: FeatureTaskRuntimePhaseFileManifest,
-)
-
 internal data class ReconstructFixLoopBudgetBasesArgs(
   val transitions: FeatureTaskRuntimeTransitionDeclaration,
   val edgeIterationByLoop: Map<String, Int>,
@@ -416,14 +397,6 @@ internal data class PhaseBlockRequest(
     FeatureTaskRuntimeFailureDisposition.NEEDS_USER_ACTION,
 )
 
-internal data class BackwardEdgeRecordArgs(
-  val edge: FeatureTaskRuntimeBackwardEdge,
-  val destinationPhaseId: String,
-  val loopId: String,
-  val edgeIteration: Int,
-  val verdict: FeatureTaskRuntimeVerdict,
-)
-
 internal data class CheckpointCommitMessageArgs(
   val branch: String,
   val phaseId: String,
@@ -479,14 +452,6 @@ internal data class WriteQuarantineRejectedOutputArgs(
   val producerEvidence: ProducerOutputEvidence,
 )
 
-internal data class BuildPhaseRunArgs(
-  val phaseId: String,
-  val request: FeatureTaskRuntimeRunRequest,
-  val declaration: FeatureTaskRuntimePhaseDeclaration,
-  val specSource: SpecSource,
-  val reentry: PendingReentry?,
-)
-
 internal data class RuntimeOwnedReviewDriverRequestArgs(
   val run: PhaseRun,
   val input: GoalSubtaskReviewInput,
@@ -525,28 +490,6 @@ internal data class FinalizeValidatedOutputAcceptanceArgs(
   val repairEvidence: FeatureTaskRuntimePhaseOutputRepairEvidence?,
   val observability: FeatureTaskRuntimeRunObservability,
   val repositoryFingerprint: String?,
-)
-
-internal data class PrepareLaunchArgs(
-  val run: PhaseRun,
-  val state: FeatureTaskRuntimeRunState,
-  val priorCorrection: PriorAttemptCorrection?,
-  val repositoryCheckpoint: FeatureTaskRuntimeRepositoryCheckpoint?,
-)
-
-internal data class AssembleLaunchHandoffArgs(
-  val run: PhaseRun,
-  val state: FeatureTaskRuntimeRunState,
-  val repositoryCheckpoint: FeatureTaskRuntimeRepositoryCheckpoint?,
-  val resolvedBranchRecord: FeatureTaskRuntimeResolvedBranch?,
-)
-
-internal data class ComposeLaunchPromptArgs(
-  val run: PhaseRun,
-  val state: FeatureTaskRuntimeRunState,
-  val handoff: FeatureTaskRuntimePhaseHandoff,
-  val priorCorrection: PriorAttemptCorrection?,
-  val briefing: FeatureTaskRuntimePhaseLaunchBriefing,
 )
 
 internal data class ShouldRetryPersistedBlockArgs(

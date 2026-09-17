@@ -431,14 +431,14 @@ object FeatureTaskRuntimeRunLoopLaunch {
           )
         }
       ?: LaunchResult.captured(
-        LaunchCapturedArgs(
-          stdout = outcome.stdout,
-          stdoutBytes = outcome.stdoutBytes,
-          stdoutTruncated = outcome.stdoutTruncated,
-          stdoutByteSize = outcome.stdoutByteSize,
-          stdoutSha256 = outcome.stdoutSha256,
-          fileManifest = fileManifest,
+        CapturedPhaseOutput(
+          text = outcome.stdout,
+          bytes = outcome.stdoutBytes,
+          truncated = outcome.stdoutTruncated,
+          byteSize = outcome.stdoutByteSize,
+          sha256 = outcome.stdoutSha256,
         ),
+        fileManifest = fileManifest,
       )
   }
 
@@ -472,12 +472,10 @@ object FeatureTaskRuntimeRunLoopLaunch {
       PreparedLaunchReady(
         FeatureTaskRuntimeRunLoopOutputPersistence.prepareLaunch(
           context,
-          PrepareLaunchArgs(
-            run,
-            state,
-            priorCorrection,
-            measurementContext.repositoryCheckpoint,
-          ),
+          run = run,
+          state = state,
+          priorCorrection = priorCorrection,
+          repositoryCheckpoint = measurementContext.repositoryCheckpoint,
         ),
       )
     } catch (error: InvalidFeatureTaskRuntimeHandoffProjectionError) {
@@ -741,13 +739,19 @@ internal sealed interface AttemptResult {
       fileManifest: FeatureTaskRuntimePhaseFileManifest,
       failureDisposition: FeatureTaskRuntimeFailureDisposition,
     ): AttemptResult = RetryableTerminal(operatorReason, operatorReason, fileManifest, failureDisposition)
-    fun schemaInvalid(args: SchemaInvalidArgs): AttemptResult = SchemaInvalid(
-      operatorReason = args.operatorReason,
-      retryReason = args.retryReason ?: args.operatorReason,
-      fileManifest = args.fileManifest,
-      rejectedOutput = args.rejectedOutput,
-      malformedOutput = args.malformedOutput,
-      correctiveRepairContext = args.correctiveRepairContext,
+    fun schemaInvalid(
+      operatorReason: String,
+      fileManifest: FeatureTaskRuntimePhaseFileManifest,
+      malformedOutput: Boolean = false,
+      retryReason: String = operatorReason,
+      correctiveRepairContext: FeatureTaskRuntimeCorrectiveRepairContext? = null,
+    ): AttemptResult = SchemaInvalid(
+      operatorReason = operatorReason,
+      retryReason = retryReason,
+      fileManifest = fileManifest,
+      rejectedOutput = null,
+      malformedOutput = malformedOutput,
+      correctiveRepairContext = correctiveRepairContext,
     )
   }
 }
