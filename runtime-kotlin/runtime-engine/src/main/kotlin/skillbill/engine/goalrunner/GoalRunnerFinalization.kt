@@ -164,7 +164,16 @@ fun GoalRunnerFinalization.reconcileBeforeFinalization(
           issueKey = state.manifest.issueKey,
           subtaskId = subtask.id,
           progress = subtask.workflowId?.let { progressReader.safeProgress(it) },
+          blockedReason = null,
           finalReconciledResult = "goal_finalize status=${state.manifest.status}",
+          stopReason = null,
+          diagnosticClass = null,
+          recoverableJsonPresent = null,
+          nextSafeAction = null,
+          attemptDurationMillis = null,
+          causingLoopEntry = null,
+          reAttemptCause = null,
+          findingsInScope = null,
         ),
       )
     }

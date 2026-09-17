@@ -94,7 +94,7 @@ object FeatureTaskRuntimeRunLoopCheckpoint {
       return worktreeDelta
     }
     val introduced = writingRecords.flatMap { it.fileManifestIntroduced + it.fileManifestAfter }.distinct()
-    return FeatureTaskRuntimeRunLoopCheckpoint.phaseWrittenPaths(context, worktreeDelta, introduced)
+    return skillbill.engine.featuretask.phaseWrittenPaths(worktreeDelta, introduced)
   }
 
   internal fun phaseWrittenPaths(context: FeatureTaskRuntimeRunLoopContext,
@@ -120,7 +120,7 @@ object FeatureTaskRuntimeRunLoopCheckpoint {
     val owned = persistedInventory.toSet()
     val ownedStillDirty = record.fileManifestAfter.filter { it in owned }
     val manifest = (record.fileManifestIntroduced + ownedStillDirty).distinct()
-    return FeatureTaskRuntimeRunLoopCheckpoint.phaseWrittenPaths(context, worktreeDelta, manifest)
+    return skillbill.engine.featuretask.phaseWrittenPaths(worktreeDelta, manifest)
 
     }}
 

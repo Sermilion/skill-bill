@@ -1,11 +1,13 @@
 package skillbill.engine.goalrunner.planning
 import skillbill.engine.goalrunner.ProduceMissingPlansArgs
-import skillbill.engine.goalrunner.ProducePlanArgs
 import skillbill.engine.goalrunner.planning.model.GoalPlanningPhaseProduction
 import skillbill.engine.goalrunner.planning.model.GoalPlanningSweepOutcome
+import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
+import skillbill.ports.goalrunner.model.GoalPlanningContractProvenance
 import skillbill.ports.goalrunner.model.GoalPlanningIdentity
 import skillbill.ports.goalrunner.model.GoalSubtaskPlanCheckpoint
 import skillbill.ports.goalrunner.model.GovernedGoalSubtaskDescriptor
+import skillbill.ports.goalrunner.planning.model.GoalPlanningResolvedBoundaryBodies
 import skillbill.text.sha256HexUtf8
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.model.DecompositionStatus
@@ -26,14 +28,14 @@ internal fun DefaultGoalPlanningSweep.produceMissingPlans(args: ProduceMissingPl
   return produceMissingPlansLoop(args, descriptors)
 }
 
-internal fun DefaultGoalPlanningSweep.producePlan(args: ProducePlanArgs): GoalPlanningSweepOutcome.Stopped? {
-  val shared = args.shared
-  val request = args.request
-  val subtask = args.subtask
-  val descriptor = args.descriptor
-  val provenance = args.provenance
-  val preplanPayload = args.preplanPayload
-  val resolvedBodies = args.resolvedBodies
+internal fun DefaultGoalPlanningSweep.producePlan(
+  shared: GoalPlanningSharedContext,
+  request: GoalRunnerRunRequest,
+  subtask: DecompositionSubtask,
+  descriptor: GovernedGoalSubtaskDescriptor,
+  provenance: GoalPlanningContractProvenance,
+  preplanPayload: String,
+): GoalPlanningSweepOutcome.Stopped? {
   val resolvedSpecPath = resolvedSubSpecPath(shared.repoRoot, subtask.specPath, repositoryEnclosingRootPort)
     ?: return stopped(shared, subtask.id, unresolvedSpecReason(subtask), GoalPlanningSweepConstants.PHASE_PLAN)
   val runInvariants = runCatching { invariantsSource.read(resolvedSpecPath) }.getOrElse { error ->
@@ -48,12 +50,12 @@ internal fun DefaultGoalPlanningSweep.producePlan(args: ProducePlanArgs): GoalPl
           subtask = subtask,
           runInvariants = runInvariants,
           phaseId = GoalPlanningSweepConstants.PHASE_PLAN,
-          outputSink = args.outputSink,
+          outputSink = request.outputSink,
         ),
         recordedOutputs = listOf(
           FeatureTaskRuntimePhaseOutput(GoalPlanningSweepConstants.PHASE_PREPLAN, 1, preplanPayload),
         ),
-        resolvedBodies = resolvedBodies,
+        resolvedBodies = GoalPlanningResolvedBoundaryBodies(),
       ),
     ),
   )

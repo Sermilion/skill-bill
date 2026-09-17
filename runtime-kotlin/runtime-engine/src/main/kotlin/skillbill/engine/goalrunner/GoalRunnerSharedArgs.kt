@@ -7,13 +7,10 @@ import skillbill.goalrunner.model.GoalRunnerReconciledOutcome
 import skillbill.goalrunner.model.GoalRunnerSelection
 import skillbill.goalrunner.model.GoalRunnerStopReason
 import skillbill.ports.agentrun.model.AgentRunLaunchOutcome
-import skillbill.ports.agentrun.model.AgentRunOutputSink
 import skillbill.ports.agentrun.model.AgentRunSpawnAuthorization
 import skillbill.ports.goalrunner.model.GoalPlanningContractProvenance
 import skillbill.ports.goalrunner.model.GoalPlanningIdentity
-import skillbill.ports.goalrunner.model.GovernedGoalSubtaskDescriptor
 import skillbill.ports.goalrunner.model.SharedGoalPreplanCheckpoint
-import skillbill.ports.goalrunner.planning.model.GoalPlanningResolvedBoundaryBodies
 import skillbill.ports.goalrunner.runner.model.GoalRunnerManifestState
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewBaseline
 import skillbill.workflow.decomposition.model.DecompositionSubtask
@@ -49,7 +46,7 @@ internal data class RunSelectedSubtaskArgs(
   val state: GoalRunnerManifestState,
   val selection: GoalRunnerSelection.Run,
   val request: GoalRunnerRunRequest,
-  val attempted: List<Int>,
+  val attemptedSnapshot: () -> List<Int>,
   val recordAttempt: (Int) -> Unit,
   val observability: GoalRunnerObservabilityEmitter,
   val ledger: GoalRunnerLedgerRecorder,
@@ -139,17 +136,6 @@ internal data class ProduceMissingPlansArgs(
   val provenance: GoalPlanningContractProvenance,
   val sharedCheckpoint: SharedGoalPreplanCheckpoint,
   val activeSubtasks: List<DecompositionSubtask>,
-)
-
-internal data class ProducePlanArgs(
-  val shared: GoalPlanningSharedContext,
-  val request: GoalRunnerRunRequest,
-  val subtask: DecompositionSubtask,
-  val descriptor: GovernedGoalSubtaskDescriptor,
-  val provenance: GoalPlanningContractProvenance,
-  val preplanPayload: String,
-  val resolvedBodies: GoalPlanningResolvedBoundaryBodies,
-  val outputSink: AgentRunOutputSink,
 )
 
 internal data class EmptyOrStoppedArgs(

@@ -14,6 +14,7 @@ class GoalRunner(
   private val runBoundaries: GoalRunnerRunBoundaries,
   private val runPreparation: GoalRunnerRunPreparation,
   private val perRunLoopAssembler: GoalRunnerPerRunLoopAssembler,
+  private val pauseBoundary: GoalRunnerPauseBoundary,
 ) {
   private val manifestStore = runBoundaries.manifestStore
   private val outcomeStore = runBoundaries.outcomeStore

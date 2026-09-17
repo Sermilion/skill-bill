@@ -92,19 +92,24 @@ class FeatureTaskRuntimeRunState(
         )
       }
       .also { completedSet ->
+        val validationState = ValidationSettlementState(
+          completed = completedSet,
+          initialRecords = this.initialRecords,
+          transitions = transitions,
+          gateInvalidatedPhases = gateInvalidatedPhaseIds,
+        )
         invalidateIncompleteValidationSettlement(
-          state = ValidationSettlementState(
-            completed = completedSet,
-            initialRecords = this.initialRecords,
-            transitions = transitions,
-            gateInvalidatedPhases = gateInvalidatedPhaseIds,
-          ),
+          state = validationState,
           validation = ValidationSettlementValidation(
             validatedRecordToOutput = ::validatedRecordToOutput,
             validationEvidenceCommandResolver = validationEvidenceCommandResolver,
             durableVerdictFor = ::durableVerdictFor,
           ),
         )
+        completedSet.clear()
+        completedSet += validationState.completed
+        gateInvalidatedPhaseIds.clear()
+        gateInvalidatedPhaseIds += validationState.gateInvalidatedPhases
       }
   init {
     this.initialRecords.values

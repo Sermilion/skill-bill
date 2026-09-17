@@ -175,13 +175,13 @@ internal sealed interface GoalRunnerLedgerContext {
     override val workflowId: String?,
     override val issueKey: String,
     override val subtaskId: Int,
-    val progress: GoalRunnerWorkflowProgress?,
-    val launchOutcome: AgentRunLaunchOutcome?,
-    val diagnosticClass: String?,
-    val recoverableJsonPresent: Boolean?,
-    val nextSafeAction: String?,
-    val causingLoopEntry: String?,
-    val reAttemptCause: String?,
+    val progress: GoalRunnerWorkflowProgress? = null,
+    val launchOutcome: AgentRunLaunchOutcome? = null,
+    val diagnosticClass: String? = null,
+    val recoverableJsonPresent: Boolean? = null,
+    val nextSafeAction: String? = null,
+    val causingLoopEntry: String? = null,
+    val reAttemptCause: String? = null,
   ) : GoalRunnerLedgerContext {
     override val action: GoalAttemptLedgerAction = GoalAttemptLedgerAction.CHILD_ACTIVATION
   }
@@ -190,13 +190,13 @@ internal sealed interface GoalRunnerLedgerContext {
     override val workflowId: String?,
     override val issueKey: String,
     override val subtaskId: Int,
-    val progress: GoalRunnerWorkflowProgress?,
-    val launchOutcome: AgentRunLaunchOutcome?,
-    val diagnosticClass: String?,
-    val recoverableJsonPresent: Boolean?,
-    val nextSafeAction: String?,
-    val causingLoopEntry: String?,
-    val reAttemptCause: String?,
+    val progress: GoalRunnerWorkflowProgress? = null,
+    val launchOutcome: AgentRunLaunchOutcome? = null,
+    val diagnosticClass: String? = null,
+    val recoverableJsonPresent: Boolean? = null,
+    val nextSafeAction: String? = null,
+    val causingLoopEntry: String? = null,
+    val reAttemptCause: String? = null,
   ) : GoalRunnerLedgerContext {
     override val action: GoalAttemptLedgerAction = GoalAttemptLedgerAction.RESUME
   }

@@ -388,7 +388,7 @@ object FeatureTaskRuntimeRunLoopReview {
     iteration: Int,
   ): ReviewCheckpointResult {
     val checkpointed = with(FeatureTaskRuntimeRunLoopCheckpointRemediation) {
-      FeatureTaskRuntimeRunLoopCheckpointRemediation.checkpointEstablished(this,
+      FeatureTaskRuntimeRunLoopCheckpointRemediation.checkpointEstablished(this@checkpointReviewChanges,
         precedingPhaseId = run.phaseId,
         loopId = null,
         intent = FeatureTaskRuntimeCheckpointMessage.INTENT_REMEDIATION,

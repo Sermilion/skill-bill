@@ -291,8 +291,8 @@ object FeatureTaskRuntimeRunLoopRepairReceipt {
       args.precedingPhaseId,
       args.branch,
       FeatureTaskRuntimeRunLoopCheckpoint.withIndexRestoreOutcome(
-        request,
-        phaseGates,
+        context.request,
+        context.phaseGates,
         error,
         args.ownedPaths,
         indexSnapshot,

@@ -4,26 +4,17 @@ import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import java.nio.file.Path
 
-internal data class PromoteSupersededCheckpointCreateArgs(
-  val gitOperations: WorkflowGitOperations,
-  val repoRoot: Path,
-  val branch: String,
-  val decision: FeatureTaskRuntimeSubtaskCommitDecision,
-  val durableCommitSha: String?,
-  val sequenceNumber: Int,
-  val stageable: List<String>,
-)
-
-internal fun promoteSupersededCheckpointCreate(
-  args: PromoteSupersededCheckpointCreateArgs,
-): FeatureTaskRuntimeSubtaskCommitDecision {
-  val gitOperations = args.gitOperations
-  val repoRoot = args.repoRoot
-  val branch = args.branch
-  val decision = args.decision
-  val durableCommitSha = args.durableCommitSha
-  val sequenceNumber = args.sequenceNumber
-  val stageable = args.stageable
+internal class SupersededCheckpointPromoter(
+  private val gitOperations: WorkflowGitOperations,
+) {
+  internal fun promote(
+    repoRoot: Path,
+    branch: String,
+    decision: FeatureTaskRuntimeSubtaskCommitDecision,
+    durableCommitSha: String?,
+    sequenceNumber: Int,
+    stageable: List<String>,
+  ): FeatureTaskRuntimeSubtaskCommitDecision {
   val replacement = if (decision is FeatureTaskRuntimeSubtaskCommitCreate && stageable.isEmpty()) {
     durableCommitSha?.trim()?.takeIf(String::isNotBlank)?.let { durable ->
       gitOperations.headCommitSha(repoRoot)
@@ -53,4 +44,5 @@ internal fun promoteSupersededCheckpointCreate(
     null
   }
   return replacement ?: decision
+  }
 }

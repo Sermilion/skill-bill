@@ -39,27 +39,22 @@ object FeatureTaskRuntimeSubtaskCommitResolver {
     sequenceNumber: Int,
   ): FeatureTaskRuntimeSubtaskCommitDecision {
     val durable = durableCommitSha?.trim()?.takeIf(String::isNotBlank)
-    if (durable != null) {
-      return amendOrCreateFromDurable(durable, headSha, head, sequenceNumber)
+    return when {
+      durable == headSha -> amendFromDurable(headSha, head, sequenceNumber)
+      else -> amendOrCreateFromTrailer(identity, head, headSha, sequenceNumber)
     }
-    return amendOrCreateFromTrailer(identity, head, headSha, sequenceNumber)
   }
 
-  private fun amendOrCreateFromDurable(
-    durable: String,
+  private fun amendFromDurable(
     headSha: String,
     head: FeatureTaskRuntimeSubtaskCommitHeadState,
     sequenceNumber: Int,
-  ): FeatureTaskRuntimeSubtaskCommitDecision = if (durable == headSha) {
-    FeatureTaskRuntimeSubtaskCommitAmend(
-      ownedHeadSha = headSha,
-      sequenceNumber = sequenceNumber,
-      recoveredFromTrailer = false,
-      rewritesPublishedHistory = !head.isUnpushed,
-    )
-  } else {
-    FeatureTaskRuntimeSubtaskCommitCreate
-  }
+  ): FeatureTaskRuntimeSubtaskCommitDecision = FeatureTaskRuntimeSubtaskCommitAmend(
+    ownedHeadSha = headSha,
+    sequenceNumber = sequenceNumber,
+    recoveredFromTrailer = false,
+    rewritesPublishedHistory = !head.isUnpushed,
+  )
 
   private fun amendOrCreateFromTrailer(
     identity: FeatureTaskRuntimeSubtaskCommitIdentity,
@@ -84,8 +79,8 @@ object FeatureTaskRuntimeSubtaskCommitResolver {
   fun trailerFallbackRecord(identity: FeatureTaskRuntimeSubtaskCommitIdentity, headSha: String): String =
     "seam=FeatureTaskRuntimeSubtaskCommitResolver.decide value_used='HEAD trailer $headSha' " +
       "value_expected=durable subtask-commit pointer for '${identity.issueKey}/${identity.subtaskId}' " +
-      "cause=no durable checkpoint identity recorded this subtask's commit, so the amend target was " +
-      "recovered from the Skill-Bill-Subtask trailer on HEAD"
+      "cause=durable checkpoint identity was absent or stale, so the amend target was recovered from the " +
+      "Skill-Bill-Subtask trailer on HEAD"
 
   fun publishedHistoryRewriteRecord(identity: FeatureTaskRuntimeSubtaskCommitIdentity, headSha: String): String =
     "seam=writeSubtaskCommitPreservingHistory value_used='an amend of the published commit $headSha' " +

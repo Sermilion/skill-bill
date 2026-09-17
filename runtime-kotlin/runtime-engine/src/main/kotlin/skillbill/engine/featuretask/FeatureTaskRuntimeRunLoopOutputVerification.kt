@@ -95,27 +95,28 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
 
   internal fun completionProjectionRejection(context: FeatureTaskRuntimeRunLoopContext,
     args: CompletionProjectionRejectionArgs,
-  ): Pair<String, String>? = producerProjectionGateReason(
-    args.run.phaseId,
-    args.normalizedOutput.envelopeWireMap(),
-    phaseGates.planningProjectionValidator,
-  )?.let { "producer-projection" to it }
-    ?: FeatureTaskRuntimeRunLoopOutputVerification.immediateConsumerProjectionGateReason(context,
-      ImmediateConsumerProjectionGateArgs(
+  ): Pair<String, String>? = with(context) {
+    producerProjectionGateReason(
+      args.run.phaseId,
+      args.normalizedOutput.envelopeWireMap(),
+      phaseGates.planningProjectionValidator,
+    )?.let { "producer-projection" to it }
+      ?: FeatureTaskRuntimeRunLoopOutputVerification.immediateConsumerProjectionGateReason(
+        context = context,
         run = args.run,
         iteration = args.iteration,
         normalizedOutput = args.normalizedOutput,
         repairEvidence = args.repairEvidence,
         repositoryFingerprint = args.repositoryFingerprint,
-      ),
-    )?.let { "consumer-projection" to it }
-    ?: FeatureTaskRuntimeRunLoopOutputVerification.outputVerificationGateReason(
-      state,
-      recorder,
-      phaseGates,
-      args.run,
-      args.normalizedOutput.envelopeWireMap(),
-    )?.let { "output-verification" to it }
+      )?.let { "consumer-projection" to it }
+      ?: FeatureTaskRuntimeRunLoopOutputVerification.outputVerificationGateReason(
+        state,
+        recorder,
+        phaseGates,
+        args.run,
+        args.normalizedOutput.envelopeWireMap(),
+      )?.let { "output-verification" to it }
+  }
 
   internal fun firstValidatedOutputRejection(
     phaseId: String,
@@ -125,15 +126,15 @@ object FeatureTaskRuntimeRunLoopOutputVerification {
     outputMap,
   )?.let { "mutating-reconciliation" to it }
 
-  internal fun immediateConsumerProjectionGateReason(context: FeatureTaskRuntimeRunLoopContext,
-    args: ImmediateConsumerProjectionGateArgs,
+  internal fun immediateConsumerProjectionGateReason(
+    context: FeatureTaskRuntimeRunLoopContext,
+    run: PhaseRun,
+    iteration: Int,
+    normalizedOutput: NormalizedFeatureTaskRuntimePhaseOutput,
+    repairEvidence: FeatureTaskRuntimePhaseOutputRepairEvidence?,
+    repositoryFingerprint: String?,
   ): String? {
     with(context) {
-    val run = args.run
-    val iteration = args.iteration
-    val normalizedOutput = args.normalizedOutput
-    val repairEvidence = args.repairEvidence
-    val repositoryFingerprint = args.repositoryFingerprint
     if (run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE) return null
     if (run.validationGateFindings != null) return null
     val producerIndex = transitions.forwardPhaseIds.indexOf(run.phaseId)

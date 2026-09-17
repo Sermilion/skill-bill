@@ -3,6 +3,7 @@ package skillbill.architecture
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.io.path.readText
 
 class ApplicationPackageAcyclicityArchitectureTest {
   @Test
@@ -160,7 +161,7 @@ class ApplicationPackageAcyclicityArchitectureTest {
       "runtime-kotlin/runtime-engine/src/main/kotlin/skillbill/engine/goalrunner/GoalRunner.kt",
     ).readText()
     val constructor = source.substringAfter("class GoalRunner(").substringBefore(") {")
-    assertEquals(3, Regex("""private val \w+:""").findAll(constructor).count())
+    assertEquals(4, Regex("""private val \w+:""").findAll(constructor).count())
     assertTrue(!Regex("""\bfun\s+get\s*\(""").containsMatchIn(source))
     assertTrue(!Regex("""\bGoalRunnerDeps\b""").containsMatchIn(source))
   }

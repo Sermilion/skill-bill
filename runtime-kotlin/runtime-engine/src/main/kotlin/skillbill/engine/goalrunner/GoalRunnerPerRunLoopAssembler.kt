@@ -3,7 +3,7 @@ package skillbill.engine.goalrunner
 import me.tatarka.inject.annotations.Inject
 
 @Inject
-internal class GoalRunnerPerRunLoopAssembler(
+class GoalRunnerPerRunLoopAssembler(
   private val runBoundaries: GoalRunnerRunBoundaries,
   private val launchBoundaries: GoalRunnerSubtaskLaunchBoundaries,
   private val workerRequestHandler: GoalRunnerWorkerRequestHandler,

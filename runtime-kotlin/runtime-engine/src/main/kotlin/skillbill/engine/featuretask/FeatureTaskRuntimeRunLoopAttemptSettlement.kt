@@ -70,7 +70,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
       repairTurn = args.repairTurn,
     )
 
-  internal fun gateOutput(args: GateOutputArgs): AttemptResult {
+  internal fun gateOutput(args: GateOutput): AttemptResult {
     gateOutputEarlyExit(args)?.let { return it }
     settleFromPersistedEnvelope(args)?.let { return it }
     return try {
@@ -79,7 +79,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
         .validatePhaseOutput(args.captured.text, sourceLabel = run.phaseId)
         .requireAcceptedOutput(run.phaseId)
       settleValidatedOutput(
-        SettleValidatedOutputArgs(
+        SettleValidatedOutput(
           run = run,
           iteration = args.iteration,
           output = SettledOutputContext(
@@ -178,7 +178,11 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
     )
   }
 
-  internal fun FeatureTaskRuntimeRunLoopContext.persistChildProcessFailureOutput(
+  internal fun persistChildProcessFailureOutput(
+    request: FeatureTaskRuntimeRunRequest,
+    state: FeatureTaskRuntimeRunState,
+    recorder: FeatureTaskRuntimePhaseRecorder,
+    diagnostics: RuntimeDiagnostics,
     run: PhaseRun,
     iteration: Int,
     reason: String,
@@ -208,7 +212,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
     }
   }
 
-  internal fun settleValidatedOutput(args: SettleValidatedOutputArgs): AttemptResult {
+  internal fun settleValidatedOutput(args: SettleValidatedOutput): AttemptResult {
     val run = args.run
     val iteration = args.iteration
     val attested = FeatureTaskRuntimeRunLoopOutputVerification.attestAbsentGateValidationReceipt(
@@ -249,7 +253,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
   }
 
   private fun settleValidatedOutputWithEvidence(
-    args: SettleValidatedOutputArgs,
+    args: SettleValidatedOutput,
     capture: ValidatedOutputCapture,
     attested: NormalizedFeatureTaskRuntimePhaseOutput,
   ): AttemptResult {
@@ -304,7 +308,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
     }
   }
 
-  internal fun settleFromPersistedEnvelope(args: GateOutputArgs): AttemptResult? {
+  internal fun settleFromPersistedEnvelope(args: GateOutput): AttemptResult? {
     val settlementEnvelope = loadPersistedSettlementEnvelope(
       args.state,
       args.recorder,
@@ -318,7 +322,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
     state: FeatureTaskRuntimeRunState,
     recorder: FeatureTaskRuntimePhaseRecorder,
     phaseSettlementService: FeatureTaskPhaseSettlementService,
-    args: GateOutputArgs,
+    args: GateOutput,
   ): FeatureTaskRuntimeWorkflowArtifactMap? {
     val run = args.run
     return try {
@@ -334,7 +338,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
   }
 
   private fun settlePersistedEnvelope(
-    args: GateOutputArgs,
+    args: GateOutput,
     settlementEnvelope: FeatureTaskRuntimeWorkflowArtifactMap,
   ): AttemptResult? {
     val run = args.run
@@ -349,7 +353,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
         acceptedOutput.normalizedOutput.envelopeWireMap(),
       )
       settleValidatedOutput(
-        SettleValidatedOutputArgs(
+        SettleValidatedOutput(
           run = run,
           iteration = args.iteration,
           output = SettledOutputContext(
@@ -408,7 +412,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
     state: FeatureTaskRuntimeRunState,
     recorder: FeatureTaskRuntimePhaseRecorder,
     phaseSettlementService: FeatureTaskPhaseSettlementService,
-    args: GateOutputArgs,
+    args: GateOutput,
     error: InvalidFeatureTaskRuntimeValidationEvidenceSchemaError,
   ) {
     val run = args.run
@@ -477,10 +481,10 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
     val state: FeatureTaskRuntimeRunState,
     val recorder: FeatureTaskRuntimePhaseRecorder,
     val phaseSettlementService: FeatureTaskPhaseSettlementService,
-    val args: GateOutputArgs,
+    val args: GateOutput,
     val error: InvalidFeatureTaskRuntimePhaseOutputSchemaError,
   )
-  internal fun gateOutputEarlyExit(args: GateOutputArgs): AttemptResult? {
+  internal fun gateOutputEarlyExit(args: GateOutput): AttemptResult? {
     val run = args.run
     if (run.validationGateTriage) {
       return AttemptResult.settled(
@@ -540,7 +544,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
   internal fun gateOutputSchemaInvalid(
     state: FeatureTaskRuntimeRunState,
     recorder: FeatureTaskRuntimePhaseRecorder,
-    args: GateOutputArgs,
+    args: GateOutput,
     error: InvalidFeatureTaskRuntimePhaseOutputSchemaError,
   ): AttemptResult {
     val run = args.run
@@ -848,7 +852,7 @@ object FeatureTaskRuntimeRunLoopAttemptSettlement {
   }
 
   internal fun rejectValidatedOutput(
-    settlement: SettleValidatedOutputArgs,
+    settlement: SettleValidatedOutput,
     capture: ValidatedOutputCapture,
     outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
     rule: String,

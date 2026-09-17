@@ -189,6 +189,7 @@ internal fun testGoalRunner(wiring: GoalRunnerTestWiring): GoalRunner {
     runBoundaries = wiring.runBoundaries,
     runPreparation = GoalRunnerRunPreparation(wiring.runBoundaries.manifestStore, TestRepositoryEnclosingRoot),
     perRunLoopAssembler = perRunLoopAssembler,
+    pauseBoundary = pauseBoundary,
   )
 }
 

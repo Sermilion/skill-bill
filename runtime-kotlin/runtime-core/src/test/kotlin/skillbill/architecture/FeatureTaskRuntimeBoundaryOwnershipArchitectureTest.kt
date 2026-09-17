@@ -19,9 +19,8 @@ class FeatureTaskRuntimeBoundaryOwnershipArchitectureTest {
     assertEquals(1, Regex("""fun recordPhaseTokenUsage\(""").findAll(production).count())
     assertTrue(production.contains("fun recordPhaseTokenUsage("))
     assertTrue(production.contains("val phaseTokenView: Map<String, Pair<Int, Int>>"))
-    assertFalse(
-      Regex("""class ValidationSettlementState[\s\S]*?MutableSet<""").containsMatchIn(production),
-    )
+    val settlementState = runtimeEngine.resolve("featuretask/FeatureTaskRuntimeRunStateValidation.kt").readText()
+    assertFalse(Regex("""class ValidationSettlementState[\s\S]*?MutableSet<""").containsMatchIn(settlementState))
     assertFalse(
       Regex("""attempted:\s*MutableList<""").containsMatchIn(production),
     )

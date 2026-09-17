@@ -142,20 +142,16 @@ private fun auditProducedOutputsAddendum(): String =
     "runtime reads your completed final response from produced_outputs.value. Only an explicit empty list " +
     "`[]` (ordinary whitespace or Markdown fencing allowed when the complete final response is exactly " +
     "that empty list) completes audit; any other non-blank text starts one fresh audit retry with that " +
-    "text forwarded verbatim as a focus hint alongside the full planned criterion list. Repair those " +
-    "remaining criteria in any files they require; scoped_owned_paths is checkpoint evidence, not a " +
-    "write allowlist. The same remaining list as the prior session blocks rather than looping.\n" +
+    "text forwarded verbatim as the only criterion scope for the next audit retry.\n" +
     "      REJECTED: a whitespace-only value; nesting the remaining-criteria list only inside summary.\n" +
     "      ACCEPTED completed example root: {\"contract_version\":\"$FEATURE_TASK_RUNTIME_CONTRACT_VERSION\"," +
     "\"phase_id\":\"audit\",\"status\":\"completed\"," +
     "\"summary\":\"<one sentence>\"," +
-    "\"produced_outputs\":{\"value\":\"[]\"}} when every criterion is met, or " +
-    "\"produced_outputs\":{\"value\":\"AC-002 still missing test coverage. Reason: no owning test file " +
-    "exists and creating one needs a validation run.\"} when criteria remain. The runtime does not " +
-    "validate remaining-list shape.\n" +
-    "      Run up to three repair cycles in this same session before you emit remaining criteria; each " +
-    "remaining item names why it could not be fixed. Use status blocked or failed with " +
-    "failure_disposition when the criterion list is missing or an external dependency prevents repair.\n" +
+    "\"produced_outputs\":{\"value\":\"[]\"}} when every in-scope criterion is met, or " +
+    "\"produced_outputs\":{\"value\":\"- AC-002 still missing test coverage\"} when criteria remain.\n" +
+    "      Repair fixable gaps in this same session before you emit the final remaining-criteria response. " +
+    "Use status blocked or failed with failure_disposition when the criterion list is missing or an " +
+    "external dependency prevents repair.\n" +
     auditNoEarlierAuditLine() +
     "      Inspect code and test coverage only: do not run builds, tests, or other commands as audit " +
     "evidence. Validation owns test execution and failures."

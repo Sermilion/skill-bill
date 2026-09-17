@@ -93,7 +93,7 @@ fun FeatureTaskRuntimeRunner.driveExecutePreparedRunLoop(
   return loop.report()
 }
 
-private fun FeatureTaskRuntimeRunner.createExecutePreparedRunState(
+internal fun FeatureTaskRuntimeRunner.createExecutePreparedRunState(
   runRequest: FeatureTaskRuntimeRunRequest,
   transitions: FeatureTaskRuntimeTransitionDeclaration,
 ): FeatureTaskRuntimeRunState = FeatureTaskRuntimeRunState(

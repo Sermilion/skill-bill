@@ -7,8 +7,9 @@ not the implementation detail.
 ## [2026-09-17] Runtime engine bundle census and parameter threshold
 Context: The runtime-engine boundary cleanup needs a repeatable count while
 fact-only argument bags and port-carrying collaborators are dissolved.
-Decision: Keep `LongParameterList.functionThreshold` at `6`. The current
-runtime-engine production census is 108 `Args`, 23
+Decision: Keep `LongParameterList.functionThreshold` at `6`. After dissolving
+the remaining single-use planning and validation bags, the runtime-engine
+production census is 97 `Args`, 23
 `Context`, 5 `Inputs`, 0 `Deps`, and 7 `Boundaries` declarations. This is the
 current census, not an exemption for the remaining fact-only bags; the
 dissolution must not add another bag or suppression.

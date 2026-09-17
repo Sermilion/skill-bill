@@ -213,7 +213,7 @@ internal data class CorrectiveRepairRejectionArgs(
   val rejection: CorrectiveRepairRejectionDetail,
 )
 
-internal data class GateOutputArgs(
+internal class GateOutput(
   val run: PhaseRun,
   val iteration: Int,
   val captured: CapturedPhaseOutput,
@@ -246,7 +246,7 @@ internal data class SettledOutputContext(
   val captured: CapturedPhaseOutput,
 )
 
-internal data class SettleValidatedOutputArgs(
+internal class SettleValidatedOutput(
   val run: PhaseRun,
   val iteration: Int,
   val output: SettledOutputContext,

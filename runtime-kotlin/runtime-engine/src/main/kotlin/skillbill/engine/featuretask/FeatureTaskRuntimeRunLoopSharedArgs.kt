@@ -5,7 +5,6 @@ import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseLaunchBriefing
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeSubtaskCommitIdentity
 import skillbill.engine.featuretask.validation.model.ValidationFindingSetProjection
-import skillbill.engine.featuretask.validation.model.ValidationGateCycleResult
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.diagnostics.model.ProducerOutputEvidence
 import skillbill.ports.workflow.gitops.model.GoalSubtaskReviewInput
@@ -90,17 +89,6 @@ internal data class QuarantineRecordRejectionArgs(
 internal data class ValidationGateCycleRequestArgs(
   val context: PhaseAttemptAccumulatorContext,
   val checkpoint: String,
-)
-
-internal data class SettleValidationGateCycleArgs(
-  val context: PhaseAttemptAccumulatorContext,
-  val cycle: ValidationGateCycleResult,
-  val request: FeatureTaskRuntimeRunRequest,
-  val recorder: FeatureTaskRuntimePhaseRecorder,
-  val goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
-  val outputValidator: FeatureTaskRuntimePhaseOutputValidator,
-  val phaseGates: FeatureTaskRuntimePhaseGates,
-  val session: FeatureTaskRuntimeRunLoopSession,
 )
 
 internal data class FixLoopOutcomeArgs(
@@ -412,14 +400,6 @@ internal data class DeclaredLaunchArgs(
   val context: LaunchRejectionMeasurementContext,
 )
 
-internal data class ImmediateConsumerProjectionGateArgs(
-  val run: PhaseRun,
-  val iteration: Int,
-  val normalizedOutput: NormalizedFeatureTaskRuntimePhaseOutput,
-  val repairEvidence: FeatureTaskRuntimePhaseOutputRepairEvidence?,
-  val repositoryFingerprint: String?,
-)
-
 internal data class PauseAndPersistInPhaseArgs(
   val run: PhaseRun,
   val attemptCount: Int,
@@ -506,32 +486,6 @@ internal data class RecordFinalisedCheckpointIdentityArgs(
   val ledger: SubtaskCommitLedgerState,
   val commitSha: String,
   val stagedPaths: List<String>,
-)
-
-internal data class PersistRuntimeOwnedBuildCompletionArgs(
-  val request: FeatureTaskRuntimeRunRequest,
-  val state: FeatureTaskRuntimeRunState,
-  val recorder: FeatureTaskRuntimePhaseRecorder,
-  val goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
-  val run: PhaseRun,
-  val iteration: Int,
-  val outputText: String,
-  val observability: FeatureTaskRuntimeRunObservability,
-  val acceptedOutput: AcceptedFeatureTaskRuntimePhaseOutput,
-)
-
-internal data class SettleBuildGateCycleResultArgs(
-  val request: FeatureTaskRuntimeRunRequest,
-  val state: FeatureTaskRuntimeRunState,
-  val recorder: FeatureTaskRuntimePhaseRecorder,
-  val goalContinuationRecorder: FeatureTaskRuntimeGoalContinuationRecorder,
-  val outputValidator: FeatureTaskRuntimePhaseOutputValidator,
-  val phaseGates: FeatureTaskRuntimePhaseGates,
-  val run: PhaseRun,
-  val iteration: Int,
-  val observability: FeatureTaskRuntimeRunObservability,
-  val checkpoint: String,
-  val cycle: ValidationGateCycleResult,
 )
 
 internal fun BlockAndPersistInPhaseArgs.withDisposition(

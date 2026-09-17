@@ -14,6 +14,7 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeReviewFinding
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeTransitionDeclaration
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
 
 object FeatureTaskRuntimeRunLoopBackwardEdge {
   internal fun resumeInFlightReviewFix(
@@ -183,6 +184,7 @@ object FeatureTaskRuntimeRunLoopBackwardEdge {
       edge.perEdgeCap?.let { iteration >= it } == true
 
   internal fun runPhaseFor(
+    context: FeatureTaskRuntimeRunLoopContext,
     request: FeatureTaskRuntimeRunRequest,
     state: FeatureTaskRuntimeRunState,
     recorder: FeatureTaskRuntimePhaseRecorder,
@@ -208,6 +210,7 @@ object FeatureTaskRuntimeRunLoopBackwardEdge {
     }?.copy(phaseId = phaseId)
     val outcome =
       FeatureTaskRuntimeRunLoopPlanningBranch.runPhase(
+        context,
         RunPhaseArgs(
           phaseId = phaseId,
           request = request,

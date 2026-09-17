@@ -68,12 +68,10 @@ internal fun requireValidationEvidenceForValidateSettlement(
     )
   evidence.requireSuccessfulCommand(
     FeatureTaskRuntimeRunLoopValidationGate.requiredValidationCommand(
-      FeatureTaskRuntimeRunLoopValidationGate.RequiredValidationCommandArgs(
-        phaseGates = phaseGates,
-        run = run,
-        evidence = evidence,
-        changedPaths = durableValidationChangedPaths(recorder, run.request.workflowId),
-      ),
+      phaseGates = phaseGates,
+      run = run,
+      evidence = evidence,
+      changedPaths = durableValidationChangedPaths(recorder, run.request.workflowId),
     ),
     run.phaseId,
   )

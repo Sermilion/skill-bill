@@ -32,13 +32,12 @@ class RuntimeArchitectureDocumentationTest {
     assertContains(architecture, "learning application use cases return typed results")
     assertContains(architecture, "repository and unit-of-work ports")
     assertContains(architecture, "LearningRecord is owned by the learnings domain")
-    assertContains(architecture, "Review parsing and triage decision")
-    assertContains(architecture, "normalization are pure surfaces")
+    assertContains(architecture, "review parsing and triage decision normalization are pure surfaces")
     assertContains(architecture, "SQL-backed review persistence")
     assertContains(architecture, "TelemetrySettingsProvider")
     assertContains(architecture, "TelemetryConfigStore")
     assertContains(architecture, "TelemetryClient")
-    assertContains(architecture, "Telemetry proxy payload mapping belongs with the HTTP adapter")
+    assertContains(architecture, "telemetry proxy payload mapping belongs with the HTTP adapter")
     assertContains(architecture, "schema_migrations")
     assertContains(architecture, "versioned database migrations")
     assertContains(architecture, "contract DTOs")
@@ -64,13 +63,13 @@ class RuntimeArchitectureDocumentationTest {
   @Test
   fun `architecture document records the run loop boundary census`() {
     val architecture = Files.readString(runtimeRoot.resolve("ARCHITECTURE.md"))
-    assertTrue(architecture.contains("The SKILL-352 run-loop census is the contract"))
+    assertTrue(architecture.contains("The complete run-loop file census is pinned below."))
     assertTrue(
-      Regex("""(?m)^\| File \| Current \| Target \|$""").containsMatchIn(architecture),
+      Regex("""(?m)^\| Run-loop file \| current \| target \|$""").containsMatchIn(architecture),
     )
     assertEquals(
       22,
-      Regex("""(?m)^\| `FeatureTaskRuntimeRunLoop[^`]+\.kt` \| \d+ \| \d+ \|$""")
+      Regex("""(?m)^\| `FeatureTaskRuntimeRunLoop[^`]*\.kt` \| \d+ \| \d+ \|$""")
         .findAll(architecture)
         .count(),
     )
@@ -112,7 +111,7 @@ class RuntimeArchitectureDocumentationTest {
   fun `architecture document declares governed wire seams and current enforcement state`() {
     val architecture = Files.readString(runtimeRoot.resolve("ARCHITECTURE.md"))
 
-    assertContains(architecture, "## Wire Vocabulary")
+    assertContains(architecture, "## Governed payload seams (mechanical scope)")
     assertContains(architecture, "Decomposition manifest")
     assertContains(architecture, "Workflow phase-output envelope")
     assertContains(architecture, "`produced_outputs` entry maps")

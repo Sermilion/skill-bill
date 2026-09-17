@@ -284,7 +284,7 @@ object FeatureTaskRuntimeRunLoopRecordRejection {
     }
     val fileManifest = requireNotNull(launch.fileManifest)
     return FeatureTaskRuntimeRunLoopAttemptSettlement.gateOutput(
-      GateOutputArgs(
+      GateOutput(
         run = run,
         iteration = iteration,
         captured = requireNotNull(launch.capturedPhaseOutput),
@@ -317,7 +317,7 @@ object FeatureTaskRuntimeRunLoopRecordRejection {
           args.context.run,
           args.context.iteration,
           reason,
-          observability,
+          context.observability,
           launch.fileManifest,
         ),
       )
@@ -331,14 +331,16 @@ object FeatureTaskRuntimeRunLoopRecordRejection {
   ): AttemptResult {
     with(context) {
     val run = args.context.run
-    with(FeatureTaskRuntimeRunLoopAttemptSettlement) {
-      persistChildProcessFailureOutput(
-        run,
-        args.context.iteration,
-        reason,
-        launch.infraFailureChildOutput,
-      )
-    }
+    FeatureTaskRuntimeRunLoopAttemptSettlement.persistChildProcessFailureOutput(
+      request,
+      state,
+      recorder,
+      diagnostics,
+      run,
+      args.context.iteration,
+      reason,
+      launch.infraFailureChildOutput,
+    )
     if (run.phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE) {
       return AttemptResult.settled(
         PhaseOutcome.completed(
@@ -372,12 +374,12 @@ object FeatureTaskRuntimeRunLoopRecordRejection {
     rejection: RecordRejection,
   ): AttemptResult = AttemptResult.settled(
     with(FeatureTaskRuntimeRunLoopPhaseAttempts) {
-      FeatureTaskRuntimeRunLoopRecordRejection.settleRecordRejection(context,
+      context.settleRecordRejection(
         SettleRecordRejectionArgs(
           args.context.run,
-          state,
+          context.state,
           args.context.iteration,
-          observability,
+          context.observability,
           rejection,
         ),
       )

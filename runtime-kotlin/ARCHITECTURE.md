@@ -68,7 +68,7 @@ review settlement uses `CarriedForwardGoalReviewArgs`;
 PhaseRunner and PlanningBranch enter through the phase-boundary state and
 observability values. AttemptSettlement moves
 `gateOutput` / `settleValidatedOutput` / envelope settlement off the context
-receiver; `GateOutputArgs` and `SettleValidatedOutputArgs` carry the
+receiver; `GateOutput` and `SettleValidatedOutput` carry the
 request/state/recorder/outputValidator/phaseGates/clock/diagnostics/
 goalContinuationRecorder/phaseSettlementService ports those paths use.
 `settlementContext` on those args remains only for the not-yet-peeled
@@ -86,7 +86,7 @@ goalContinuationRecorder, args)` seam. `FeatureTaskRuntimeRunLoop` exposes only
 fields are internal to `FeatureTaskRuntimeRunLoopContext`.
 
 The named-family census is now PlanningBranch 0, Drive 2, ValidationGate 9,
-AttemptSettlement 4, Review 6, and PhaseAttempts 4 context extensions, down
+AttemptSettlement 3, Review 6, and PhaseAttempts 4 context extensions, down
 from 0, 13, 21, 13, 8, and 4 respectively. The remaining groups have these
 inputs:
 
@@ -101,8 +101,8 @@ inputs:
   output-validator, phase-gates, observability, and session only for the
   validation checkpoint lookup; gate-cycle and fix-loop orchestration retains
   context for the launch callback graph.
-- AttemptSettlement gate output takes `GateOutputArgs`; validated output
-  settlement takes `SettleValidatedOutputArgs`; implement-fix receipt
+- AttemptSettlement gate output takes `GateOutput`; validated output
+  settlement takes `SettleValidatedOutput`; implement-fix receipt
   settlement takes request/state/recorder/goal-recorder/diagnostics; the
   audit/checkpoint and accepted-output persistence tail retains
   `settlementContext`.
@@ -127,7 +127,7 @@ table.
 | Run-loop file | current | target |
 | --- | ---: | ---: |
 | `FeatureTaskRuntimeRunLoop.kt` | 0 | 0 |
-| `FeatureTaskRuntimeRunLoopAttemptSettlement.kt` | 4 | 4 |
+| `FeatureTaskRuntimeRunLoopAttemptSettlement.kt` | 3 | 3 |
 | `FeatureTaskRuntimeRunLoopAuditRetry.kt` | 0 | 0 |
 | `FeatureTaskRuntimeRunLoopBackwardEdge.kt` | 0 | 0 |
 | `FeatureTaskRuntimeRunLoopCheckpoint.kt` | 0 | 0 |

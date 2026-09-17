@@ -70,16 +70,6 @@ data class GoalRunnerAttemptLedgerSummary(
   val findingsInScope: Int? = null,
 )
 
-data class BuildDeclaredGoalProgressEventArgs(
-  val sourceLabel: String,
-  val eventKind: GoalProgressEventKind,
-  val workflowId: String,
-  val workflowPhase: String,
-  val sequenceNumber: Int,
-  val timestamp: String,
-  val outcome: GoalProgressOutcome,
-)
-
 data class GoalContinuation(
   val issueKey: String,
   val subtaskId: Int,
