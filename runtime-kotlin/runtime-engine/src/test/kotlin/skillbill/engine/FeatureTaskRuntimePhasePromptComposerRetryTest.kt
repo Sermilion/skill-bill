@@ -52,7 +52,7 @@ class FeatureTaskRuntimePhasePromptComposerRetryTest {
     ) { copy(priorSchemaFailure = "<root> must be an object.") }
 
     assertContains(prompt, "complete listed criterion set from scratch")
-    assertContains(prompt, "Repair every fixable gap in this same agent session")
+    assertContains(prompt, "up to three repair cycles in this same agent session")
     assertTrue(!prompt.contains("salvage"))
     assertTrue(!prompt.contains("do not redo the phase work"))
     assertTrue(!prompt.contains("non_blocking_findings"))

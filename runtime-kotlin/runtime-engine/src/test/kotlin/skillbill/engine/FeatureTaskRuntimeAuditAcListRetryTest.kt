@@ -70,6 +70,8 @@ class FeatureTaskRuntimeAuditAcListRetryTest {
     assertContains(auditPrompt, "explicit empty list")
     assertContains(auditPrompt, "not a write allowlist")
     assertContains(auditPrompt, "re-check the entire criterion list from the beginning")
+    assertContains(auditPrompt, "up to three repair cycles")
+    assertContains(auditPrompt, "reason it could not be fixed")
     assertContains(auditPrompt, "Do not spawn subagents")
   }
 

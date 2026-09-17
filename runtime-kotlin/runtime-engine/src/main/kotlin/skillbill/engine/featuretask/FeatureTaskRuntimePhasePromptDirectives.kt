@@ -215,13 +215,17 @@ val phaseDirectives: Map<String, String> = mapOf(
     "The upstream implement value " +
     "is structured prose (implementation_receipt JSON stuffed inside value): read and interpret it as " +
     "a producer CLAIM, not evidence. Never mark a criterion satisfied because that string lists a " +
-    "completed task id, a changed path, or reconciliation_evidence claiming reconciled. Repair every " +
-    "fixable gap in this same agent session, then re-check the entire criterion list from the " +
-    "beginning before you complete. Do not spawn subagents, invoke repair skills, or hand findings to " +
-    "another phase. End your final response with the remaining acceptance criteria only: emit an explicit " +
-    "empty list `[]` when every criterion has implementation and meaningful test coverage after repairs; " +
-    "otherwise emit the remaining criteria as plain text, bullets, or a numbered list without validating " +
-    "their structure. Use status blocked or failed with a concrete failure_disposition when the planning " +
+    "completed task id, a changed path, or reconciliation_evidence claiming reconciled. Run up to three " +
+    "repair cycles in this same agent session. In each cycle inspect remaining criteria against the tree, " +
+    "repair every fixable gap in any files they require, then re-check the entire criterion list from " +
+    "the beginning. If criteria remain, record why this cycle could not close each one and start the next " +
+    "cycle. Stop early when a cycle leaves the remaining list unchanged. Do not spawn subagents, invoke " +
+    "repair skills, or hand findings to another phase. End your final response with the remaining " +
+    "acceptance criteria only: emit an explicit empty list `[]` when every criterion has implementation " +
+    "and meaningful test coverage after those cycles; otherwise emit each remaining criterion with a " +
+    "reason it could not be fixed, as plain text, bullets, or a numbered list without validating their " +
+    "structure. Example: AC-001: remove hardcoded strings. Reason: no search tool could locate the " +
+    "literals. Use status blocked or failed with a concrete failure_disposition when the planning " +
     "criterion list is missing or unreadable or an external dependency prevents repair. " +
     AUDIT_READONLY_EVIDENCE_SENTENCE,
   FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE to RUNTIME_OWNED_VALIDATE_PHASE_TASK,

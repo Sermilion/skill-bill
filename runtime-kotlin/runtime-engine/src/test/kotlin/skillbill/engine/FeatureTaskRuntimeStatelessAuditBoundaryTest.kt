@@ -179,8 +179,9 @@ class FeatureTaskRuntimeStatelessAuditBoundaryTest {
   }
 
   private fun assertAuditInstructions(prompt: String) {
-    assertContains(prompt, "Repair every fixable gap in this same agent session")
+    assertContains(prompt, "up to three repair cycles in this same agent session")
     assertContains(prompt, "re-check the entire criterion list from the beginning")
+    assertContains(prompt, "reason it could not be fixed")
     assertContains(prompt, "complete listed criterion set from scratch")
     assertContains(prompt, "mock-only interaction, or tautological assertion is not coverage")
     assertContains(prompt, "Do not spawn subagents, invoke repair skills, or hand findings")

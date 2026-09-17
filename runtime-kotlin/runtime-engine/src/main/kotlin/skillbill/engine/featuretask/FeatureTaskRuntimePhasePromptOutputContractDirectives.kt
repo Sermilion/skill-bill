@@ -150,10 +150,12 @@ private fun auditProducedOutputsAddendum(): String =
     "\"phase_id\":\"audit\",\"status\":\"completed\"," +
     "\"summary\":\"<one sentence>\"," +
     "\"produced_outputs\":{\"value\":\"[]\"}} when every criterion is met, or " +
-    "\"produced_outputs\":{\"value\":\"- AC-002 still missing test coverage\"} when criteria remain.\n" +
-    "      Repair fixable gaps in this same session before you emit the final remaining-criteria response. " +
-    "Use status blocked or failed with failure_disposition when the criterion list is missing or an " +
-    "external dependency prevents repair.\n" +
+    "\"produced_outputs\":{\"value\":\"AC-002 still missing test coverage. Reason: no owning test file " +
+    "exists and creating one needs a validation run.\"} when criteria remain. The runtime does not " +
+    "validate remaining-list shape.\n" +
+    "      Run up to three repair cycles in this same session before you emit remaining criteria; each " +
+    "remaining item names why it could not be fixed. Use status blocked or failed with " +
+    "failure_disposition when the criterion list is missing or an external dependency prevents repair.\n" +
     auditNoEarlierAuditLine() +
     "      Inspect code and test coverage only: do not run builds, tests, or other commands as audit " +
     "evidence. Validation owns test execution and failures."
