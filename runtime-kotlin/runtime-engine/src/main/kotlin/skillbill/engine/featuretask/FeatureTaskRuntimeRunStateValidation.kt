@@ -87,7 +87,7 @@ internal fun validationEvidenceFromEnvelope(
   )
   return JsonCodec.anyToStringAnyMap(
     result?.get(ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE),
-  )?.let { raw -> decodeValidationEvidenceFromArtifact(raw, sourceLabel)!! }
+  )?.let { raw -> decodeValidationEvidenceFromArtifact(raw, sourceLabel) }
 }
 
 internal fun invalidateIncompleteValidationSettlement(
@@ -112,7 +112,7 @@ internal fun invalidateIncompleteValidationSettlement(
       decodeValidationEvidenceFromArtifact(
         raw,
         FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE,
-      )!!
+      )
     }
     val decodedEvidence = evidence ?: return@runCatching false
     val requiredCommand = validation.validationEvidenceCommandResolver(decodedEvidence)

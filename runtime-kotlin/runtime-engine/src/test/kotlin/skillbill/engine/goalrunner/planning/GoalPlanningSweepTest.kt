@@ -25,6 +25,7 @@ import skillbill.engine.launchFacts
 import skillbill.engine.manifest
 import skillbill.error.IncompatibleGoalPlanningPreparationRecoveryError
 import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
+import skillbill.error.InvalidGoalPlanningPreparationSchemaError
 import skillbill.goalrunner.model.ExecutionLiveness
 import skillbill.goalrunner.model.GoalRunnerControlState
 import skillbill.goalrunner.model.GoalRunnerExecutionLease
@@ -180,12 +181,12 @@ class GoalPlanningSweepMigrateTest {
     )
     val legacy = legacyV02Packet(subtasks, boundaryMemory = emptyMap())
 
-    val tampered = assertFailsWith<IllegalArgumentException> {
+    val tampered = assertFailsWith<InvalidGoalPlanningPreparationSchemaError> {
       GoalPlanningSharedContextPacket.migrate(legacy + ("integrity_sha256" to "not-a-real-digest"))
     }
     assertContains(tampered.message.orEmpty(), "integrity is invalid")
 
-    val unsupported = assertFailsWith<IllegalStateException> {
+    val unsupported = assertFailsWith<InvalidGoalPlanningPreparationSchemaError> {
       GoalPlanningSharedContextPacket.migrate(legacy + ("packet_version" to "0.9"))
     }
     assertContains(unsupported.message.orEmpty(), "unsupported")
@@ -217,7 +218,7 @@ class GoalPlanningSweepMigrateTest {
     )
     val legacy = legacyV01Packet(subtasks, platformPacks = emptyMap())
 
-    val rawFailure = assertFailsWith<IllegalArgumentException> {
+    val rawFailure = assertFailsWith<InvalidGoalPlanningPreparationSchemaError> {
       GoalPlanningSharedContextPacket.validate(
         packet = legacy,
         repositoryIdentity = "repo-root-realpath-v1:/tmp/fixture",
@@ -239,12 +240,12 @@ class GoalPlanningSweepMigrateTest {
     )
     val legacy = legacyV01Packet(subtasks, platformPacks = emptyMap())
 
-    val unknownFailure = assertFailsWith<IllegalStateException> {
+    val unknownFailure = assertFailsWith<InvalidGoalPlanningPreparationSchemaError> {
       GoalPlanningSharedContextPacket.migrate(legacy + ("packet_version" to "0.0"))
     }
     assertContains(unknownFailure.message.orEmpty(), "unsupported")
 
-    val tamperedFailure = assertFailsWith<IllegalArgumentException> {
+    val tamperedFailure = assertFailsWith<InvalidGoalPlanningPreparationSchemaError> {
       GoalPlanningSharedContextPacket.migrate(legacy + ("integrity_sha256" to "not-a-real-digest"))
     }
     assertContains(tamperedFailure.message.orEmpty(), "integrity is invalid")
@@ -435,7 +436,9 @@ class GoalPlanningSweepPromptTest {
     val signed = body + ("integrity_sha256" to GoalPlanningSharedContextPacket.digest(body))
     val tampered = signed + ("validation_guidance" to "injected guidance the digest never covered")
 
-    val failure = assertFailsWith<IllegalArgumentException> { GoalPlanningSharedContextPacket.migrate(tampered) }
+      val failure = assertFailsWith<InvalidGoalPlanningPreparationSchemaError> {
+        GoalPlanningSharedContextPacket.migrate(tampered)
+      }
 
     assertContains(failure.message.orEmpty(), "integrity is invalid")
   }

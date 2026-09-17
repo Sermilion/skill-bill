@@ -1,5 +1,6 @@
 package skillbill.engine.goalrunner.planning
 
+import skillbill.contracts.goalplanning.GoalPlanningSharedContextPacketPayloadKeys
 import skillbill.contracts.workflow.GoalPlanningPreparationSchemaPaths
 import skillbill.engine.goalrunner.planning.model.GoalPlanningSweepOutcome
 import skillbill.goalrunner.planning.cascadeEligiblePlanSubtaskIds
@@ -174,7 +175,7 @@ internal fun DefaultGoalPlanningSweep.classifyRecoverability(
   if (existing == null) {
     return GoalPlanningProvenanceRecoverability.Reuse(current)
   }
-  val packetParentSpec = shared.planningPacket["parent_spec"] as? String
+  val packetParentSpec = shared.planningPacket[GoalPlanningSharedContextPacketPayloadKeys.PARENT_SPEC] as? String
   val savedParentSpec = if (existing.provenance.parentSpecHash == shared.parentSpecHash) {
     shared.parentSpec
   } else {

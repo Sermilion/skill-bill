@@ -58,8 +58,6 @@ class FeatureTaskRuntimePlanningStopper(
       resolveFromPlanOutput(request, completedOutput, completedPhaseIds, resolvedBranch, specSource)
     } catch (error: SkillBillRuntimeException) {
       FeatureTaskRuntimePlanningStopDecision.Blocked(malformedDecomposeReason(error.message.orEmpty()))
-    } catch (error: IllegalArgumentException) {
-      FeatureTaskRuntimePlanningStopDecision.Blocked(malformedDecomposeReason(error.message.orEmpty()))
     } catch (error: IOException) {
       FeatureTaskRuntimePlanningStopDecision.Blocked(malformedDecomposeReason(error.message.orEmpty()))
     }

@@ -1,8 +1,8 @@
 package skillbill.engine.goalrunner
-import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
+import skillbill.engine.featuretask.FeatureTaskRuntimeWorkflowPersistence
 import skillbill.engine.featuretask.decodePhaseRecords
 import skillbill.engine.featuretask.diagnoseUnsettledCompletedUpstreamPhaseId
 import skillbill.engine.featuretask.featureSizeFromArtifacts
@@ -45,7 +45,7 @@ class GoalRunnerChildRepairWedgeDiagnosis(
   ): GoalRunnerChildWedgeDiagnosis {
     val record = WorkflowFamily.TASK_RUNTIME.get(workflowStates, workflowId)
       ?: return healthyDiagnosis(subtaskId, workflowId)
-    val artifacts = decodeWorkflowArtifacts(record.artifactsJson)
+    val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
     val wedges = mutableListOf<GoalRunnerWedgeFinding>()
     val passed = mutableListOf<String>()
 

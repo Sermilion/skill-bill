@@ -4,6 +4,8 @@ import skillbill.agentaddon.model.AgentAddonSelection
 import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.workflow.FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys
+import skillbill.error.InvalidAgentAddonSelectionError
 import skillbill.ports.goalrunner.GoalRunnerPersistenceSession
 import skillbill.ports.goalrunner.runner.model.GoalRunnerOutOfBandAcceptance
 import skillbill.ports.goalrunner.runner.model.GoalRunnerReviewPolicy
@@ -76,20 +78,37 @@ fun outOfBandAcceptancesFromLegacyArtifacts(
 
 private fun decodeGoalAgentAddonSelection(raw: Any?): AgentAddonSelection {
   val values = raw ?: return AgentAddonSelection()
-  val entries = values as? List<*> ?: error("Goal review policy agent_addon_selection must be a list.")
+  val entries = values as? List<*>
+    ?: throw InvalidAgentAddonSelectionError("Goal review policy agent_addon_selection must be a list.")
   return AgentAddonSelection(
     entries.mapIndexed { index, value ->
       val entry = JsonCodec.anyToStringAnyMap(value)
-        ?: error("Goal review policy agent_addon_selection entry $index must be a map.")
-      check(entry.keys == setOf("slug", "source_identity", "content_sha256")) {
-        "Goal review policy agent_addon_selection entry $index has invalid fields."
+        ?: throw InvalidAgentAddonSelectionError(
+          "Goal review policy agent_addon_selection entry $index must be a map.",
+        )
+      if (entry.keys != setOf(
+          FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_SLUG,
+          FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_SOURCE_IDENTITY,
+          FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_CONTENT_SHA256,
+        )
+      ) {
+        throw InvalidAgentAddonSelectionError(
+          "Goal review policy agent_addon_selection entry $index has invalid fields.",
+        )
       }
       PersistedAgentAddonSelectionEntry(
-        entry["slug"] as? String ?: error("Goal review policy add-on entry $index is missing slug."),
-        entry["source_identity"] as? String
-          ?: error("Goal review policy add-on entry $index is missing source_identity."),
-        entry["content_sha256"] as? String
-          ?: error("Goal review policy add-on entry $index is missing content_sha256."),
+        entry[FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_SLUG] as? String
+          ?: throw InvalidAgentAddonSelectionError(
+            "Goal review policy add-on entry $index is missing slug.",
+          ),
+        entry[FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_SOURCE_IDENTITY] as? String
+          ?: throw InvalidAgentAddonSelectionError(
+            "Goal review policy add-on entry $index is missing source_identity.",
+          ),
+        entry[FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_CONTENT_SHA256] as? String
+          ?: throw InvalidAgentAddonSelectionError(
+            "Goal review policy add-on entry $index is missing content_sha256.",
+          ),
       )
     },
   )

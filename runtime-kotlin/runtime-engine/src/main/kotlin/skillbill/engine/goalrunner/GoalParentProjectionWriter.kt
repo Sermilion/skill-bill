@@ -1,7 +1,6 @@
 package skillbill.engine.goalrunner
 
 import skillbill.application.decomposition.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
-import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.decompositionRuntime
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.contracts.issuekey.normalizeRequiredIssueKey
@@ -16,19 +15,15 @@ import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.engine.featuretask.FeatureTaskRuntimeWorkflowPersistence
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 
 class GoalParentProjectionWriter(
   private val engine: WorkflowEngine,
   private val validator: DecompositionManifestValidator,
 ) {
-  fun artifacts(manifest: DecompositionManifest, existingArtifactsJson: String? = null): Map<String, Any?> =
-    LinkedHashMap(
-      existingArtifactsJson
-        ?.takeIf(String::isNotBlank)
-        ?.let(::decodeWorkflowArtifacts)
-        .orEmpty(),
-    ).apply {
+  fun artifacts(manifest: DecompositionManifest, existing: Map<String, Any?> = emptyMap()): Map<String, Any?> =
+    LinkedHashMap(existing).apply {
       remove(GOAL_REVIEW_POLICY_ARTIFACT_KEY)
       remove(GOAL_OUT_OF_BAND_ACCEPTANCE_ARTIFACT_KEY)
       put(
@@ -47,7 +42,9 @@ class GoalParentProjectionWriter(
         workflowStatus = existing.workflowStatus,
         currentStepId = existing.currentStepId,
         stepUpdates = null,
-        artifactsPatch = WorkflowArtifactPatch.from(artifacts(manifest, existing.artifactsJson)),
+        artifactsPatch = WorkflowArtifactPatch.from(
+          artifacts(manifest, FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(existing)),
+        ),
         sessionId = existing.sessionId,
         replaceArtifacts = true,
       ),

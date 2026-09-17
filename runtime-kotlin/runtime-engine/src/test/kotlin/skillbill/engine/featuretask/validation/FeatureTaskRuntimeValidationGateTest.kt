@@ -157,7 +157,7 @@ class FeatureTaskRuntimeValidationGateTest {
           "repair_window_phase" to "findings_open",
         ),
       ),
-    )!!
+    )
     assertEquals(FeatureTaskRuntimeValidationGateRepairWindowPhase.FINDINGS_OPEN, decodedOpen.repairWindowPhase)
     assertEquals(2, decodedOpen.completeFindings.size)
     assertEquals(0, decodedOpen.repairsUsed)
@@ -173,7 +173,7 @@ class FeatureTaskRuntimeValidationGateTest {
           "substantiation_receipts" to listOf(mapOf("identity" to "legacy")),
         ),
       ),
-    )!!
+    )
     assertEquals(FeatureTaskRuntimeValidationGateRepairWindowPhase.NONE, decodedLegacy.repairWindowPhase)
     assertEquals(1, decodedLegacy.gateRunCount)
     assertEquals(emptyList(), decodedLegacy.completeFindings)
@@ -190,7 +190,7 @@ class FeatureTaskRuntimeValidationGateTest {
           "repairs_used" to 3,
         ),
       ),
-    )!!
+    )
     assertEquals(3, decodedWithRepairsUsed.repairsUsed)
   }
 

@@ -31,9 +31,6 @@ fun WorkflowEngine.updateGoalParentForBlockedPhaseRetry(
       "Workflow artifact '$FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY' must be an object.",
     )
   val continuation = decodeGoalContinuationArtifactFromArtifact(continuationMap)
-    ?: invalidGoalRetryProjection(
-      "Workflow artifact '$FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY' is malformed.",
-    )
   val parentWorkflowId = continuation.parentWorkflowId ?: return null
   val parent = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, parentWorkflowId)
     ?: invalidGoalRetryProjection(

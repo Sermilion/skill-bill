@@ -9,6 +9,7 @@ import skillbill.contracts.workflow.IDE_STATUS_CONTRACT_VERSION
 import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeWireArtifactValidator
 import skillbill.engine.featuretask.FeatureTaskRuntimeDecomposeTerminalRecorder
 import skillbill.engine.featuretask.FeatureTaskRuntimeRunInvariantsStore
+import skillbill.engine.featuretask.FeatureTaskRuntimeWorkflowPersistence
 import skillbill.engine.featuretask.FeatureTaskRuntimeStatusService
 import skillbill.engine.featuretask.featureTaskRuntimePhaseRecorder
 import skillbill.engine.goalrunner.GoalRunnerStatusTestPorts
@@ -217,7 +218,10 @@ internal fun ideStatusService(
   )
   val runtimeStatusService = FeatureTaskRuntimeStatusService(
     recorder = phaseRecorder,
-    runInvariantsStore = FeatureTaskRuntimeRunInvariantsStore(database, snapshotValidator),
+    runInvariantsStore = FeatureTaskRuntimeRunInvariantsStore(
+      database,
+      FeatureTaskRuntimeWorkflowPersistence(database, snapshotValidator),
+    ),
     decomposeTerminalRecorder = FeatureTaskRuntimeDecomposeTerminalRecorder(database, snapshotValidator),
   )
   val projector = IdeStatusProjector(

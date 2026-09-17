@@ -104,7 +104,7 @@ class FeatureTaskPhaseSettlementService(
       ?.get(ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE)
       ?.let(JsonCodec::anyToStringAnyMap)
     if (evidence != null) {
-      decodeValidationEvidenceFromArtifact(evidence, "$phaseId settlement")!!
+      decodeValidationEvidenceFromArtifact(evidence, "$phaseId settlement")
     }
     return FeatureTaskPhaseSettlementEnvelope(envelope = wire)
   }

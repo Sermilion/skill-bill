@@ -1,11 +1,12 @@
 package skillbill.engine.featuretask
 
+import skillbill.error.SkillBillRuntimeException
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.persistence.UnitOfWork
 import kotlin.coroutines.cancellation.CancellationException
 
-class RuntimeOwnedFactUnavailable(message: String) : IllegalStateException(message)
+class RuntimeOwnedFactUnavailable(message: String) : SkillBillRuntimeException(message)
 
 class RuntimeOwnedPersistenceBoundary(
   private val database: DatabaseSessionFactory,

@@ -97,16 +97,7 @@ data class FeatureTaskRuntimePhaseLaunchBriefing(
       val rawValue = if (containsKey(key)) this[key] else schemaError(missingMessage(key, "object"))
       val envelope = JsonCodec.anyToStringAnyMap(rawValue)
         ?: schemaError("Feature-task-runtime briefing artifact field '$key' must decode to an object.")
-      return try {
-        decodeHandoffEnvelopeFromArtifact(envelope)
-          ?: schemaError("Feature-task-runtime briefing artifact field '$key' must decode to an object.")
-      } catch (error: IllegalArgumentException) {
-        throw InvalidWorkflowStateSchemaError(
-          "Feature-task-runtime briefing artifact field '$key' is not a valid handoff envelope: " +
-            "${error.message.orEmpty()}",
-          error,
-        )
-      }
+      return decodeHandoffEnvelopeFromArtifact(envelope)
     }
 
     private fun Map<String, Any?>.requireStringField(key: String): String {

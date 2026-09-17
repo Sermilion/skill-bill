@@ -19,6 +19,7 @@ import skillbill.ports.taskruntime.model.FeatureTaskRuntimeProcessInspection
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
+import skillbill.error.SkillBillRuntimeException
 
 interface GoalRunnerExecutionCoordinator {
   fun <T> runOwned(parentWorkflowId: String, block: () -> T): T
@@ -30,7 +31,7 @@ interface GoalRunnerExecutionCoordinator {
   }
 }
 
-class GoalRunnerExecutionAlreadyRunningException(parentWorkflowId: String, detail: String) : IllegalStateException(
+class GoalRunnerExecutionAlreadyRunningException(parentWorkflowId: String, detail: String) : SkillBillRuntimeException(
   "Goal parent '$parentWorkflowId' cannot start: $detail",
 )
 

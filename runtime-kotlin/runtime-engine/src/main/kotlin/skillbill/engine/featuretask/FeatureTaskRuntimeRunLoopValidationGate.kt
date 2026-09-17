@@ -80,7 +80,7 @@ internal class RuntimeOwnedValidationSettlement(
     val evidence = JsonCodec.anyToStringAnyMap(
       validationResult?.get(ValidationEvidencePayloadKeys.VALIDATION_EVIDENCE),
     )?.let { raw ->
-      decodeValidationEvidenceFromArtifact(raw, run.phaseId)!!
+      decodeValidationEvidenceFromArtifact(raw, run.phaseId)
     } ?: error("Runtime-owned validation evidence is missing.")
     evidence.requireSuccessfulCommand(
       FeatureTaskRuntimeRunLoopValidationGate.requiredValidationCommand(

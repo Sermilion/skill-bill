@@ -98,7 +98,7 @@ class FeatureTaskRuntimeValidationEvidenceSettlementTest {
       JsonCodec.anyToStringAnyMap(envelope[SharedPayloadKeys.PRODUCED_OUTPUTS])
         ?.get(ValidationEvidencePayloadKeys.VALIDATION_RESULT),
     ) ?: error("validation_result missing")
-    val gateEvidence = decodeValidationGateExecutionEvidenceFromArtifact(validationResult, "validate")!!
+    val gateEvidence = decodeValidationGateExecutionEvidenceFromArtifact(validationResult, "validate")
     assertEquals(
       listOf("runtime-engine|compileKotlin", "runtime-engine|test"),
       gateEvidence.checks,

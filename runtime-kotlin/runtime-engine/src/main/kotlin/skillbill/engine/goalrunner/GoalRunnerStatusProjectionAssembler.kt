@@ -184,7 +184,7 @@ private fun GoalRunnerStatusProjectionAssembler.completedSubtaskValidationFor(
   }
   val sourceLabel = "goal-status.subtask-${subtask.id}"
   return runCatching {
-    val evidence = decodeValidationEvidenceFromArtifact(rawEvidence, sourceLabel)!!
+    val evidence = decodeValidationEvidenceFromArtifact(rawEvidence, sourceLabel)
     val requiredCommand = requiredValidationCommandFor(
       workflowId = requireNotNull(workflowId),
       repoRoot = repoRoot,

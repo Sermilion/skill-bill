@@ -23,6 +23,7 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeProducerIteration
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepositoryCheckpoint
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
+import skillbill.error.SkillBillRuntimeException
 import skillbill.workflow.taskruntime.model.NormalizedFeatureTaskRuntimePhaseOutput
 import java.time.Clock
 
@@ -60,7 +61,9 @@ internal data class CarriedForwardGoalReviewArgs(
   val outputValidator: FeatureTaskRuntimePhaseOutputValidator,
 )
 
-class MissingCarriedForwardGoalReviewResultException : IllegalStateException()
+class MissingCarriedForwardGoalReviewResultException : SkillBillRuntimeException(
+  "Goal review result was not carried forward from the prior phase.",
+)
 
 internal sealed class RuntimeOwnedReviewPrep
 

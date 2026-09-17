@@ -2,6 +2,7 @@ package skillbill.engine.goalrunner.planning
 import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.goalplanning.GoalPlanningSharedContextPacketPayloadKeys
 import skillbill.contracts.workflow.GoalPlanningPreparationSchemaPaths
 import skillbill.engine.goalplanning.GoalPlanningPreparationCheckpoint
 import skillbill.engine.goalrunner.planning.model.GoalPlanningStatusAlignRequest
@@ -90,7 +91,7 @@ class LaunchAlignedGoalPlanningStatusReasonCoherence(
       ?.get("_goal_planning_shared_context")
       ?.let(JsonCodec::anyToStringAnyMap)
       ?: return null
-    return packet["parent_spec"] as? String
+    return packet[GoalPlanningSharedContextPacketPayloadKeys.PARENT_SPEC] as? String
   }
 
   private fun lexicalPath(canonicalRepository: Path, governingPath: String): Path {

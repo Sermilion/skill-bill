@@ -11,6 +11,7 @@ import skillbill.engine.featuretask.FeatureTaskRuntimeContinuationKind
 import skillbill.engine.featuretask.FeatureTaskRuntimeDecomposeTerminalRecorder
 import skillbill.engine.featuretask.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.FeatureTaskRuntimeRunInvariantsStore
+import skillbill.engine.featuretask.FeatureTaskRuntimeWorkflowPersistence
 import skillbill.engine.featuretask.FeatureTaskRuntimeStatusService
 import skillbill.engine.featuretask.agentAttributionFromPhaseState
 import skillbill.engine.featuretask.featureTaskRuntimePhaseRecorder
@@ -1091,7 +1092,10 @@ internal fun statusHarness(): StatusHarness {
     NoopRuntimeDiagnostics,
   )
   val decomposeTerminalRecorder = FeatureTaskRuntimeDecomposeTerminalRecorder(database, StatusNoopSnapshotValidator)
-  val runInvariantsStore = FeatureTaskRuntimeRunInvariantsStore(database, StatusNoopSnapshotValidator)
+  val runInvariantsStore = FeatureTaskRuntimeRunInvariantsStore(
+    database,
+    FeatureTaskRuntimeWorkflowPersistence(database, StatusNoopSnapshotValidator),
+  )
   return StatusHarness(
     recorder,
     decomposeTerminalRecorder,

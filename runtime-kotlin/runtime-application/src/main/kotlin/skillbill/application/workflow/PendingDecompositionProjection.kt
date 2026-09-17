@@ -42,5 +42,5 @@ private fun goalContinuationParentWorkflowId(artifactsJson: String): String? {
   val artifacts = decodeWorkflowArtifacts(artifactsJson)
   val raw = artifacts[FEATURE_TASK_RUNTIME_GOAL_CONTINUATION_ARTIFACT_KEY] ?: return null
   val map = JsonCodec.anyToStringAnyMap(raw) ?: return null
-  return decodeGoalContinuationArtifactFromArtifact(map)?.parentWorkflowId?.takeIf(String::isNotBlank)
+  return decodeGoalContinuationArtifactFromArtifact(map).parentWorkflowId?.takeIf(String::isNotBlank)
 }

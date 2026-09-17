@@ -32,6 +32,8 @@ internal object WireVocabularyGovernedSeamInventory {
         "infrastructure/sqlite/goalrunner/WorkflowGoalRunnerManifest",
         "infrastructure/sqlite/goalrunner/GoalContinuationArtifactCodec",
         "engine/goalrunner/planning/GoalPlanningShared",
+        "contracts/goalplanning/GoalPlanningSharedContextPacketPayloadKeys",
+        "contracts/workflow/ImplementationReturnContractPayloadKeys",
         "cli/workflow/WorkflowContinueCliBranchMapsDecomposition",
         "cli/workflow/WorkflowContinueMcpBranchMapsDecomposition",
         "mcp/workflow/WorkflowContinueMcpBranchMapsDecomposition",

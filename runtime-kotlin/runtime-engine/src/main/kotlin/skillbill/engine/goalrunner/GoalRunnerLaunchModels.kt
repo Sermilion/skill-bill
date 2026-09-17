@@ -2,6 +2,7 @@ package skillbill.engine.goalrunner
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.workflow.ImplementationReturnContractPayloadKeys
 import skillbill.goalrunner.goalContinuationTerminalStatus
 import skillbill.goalrunner.model.GoalRunnerReconciledOutcome
 import skillbill.goalrunner.model.GoalRunnerStopReason
@@ -97,12 +98,12 @@ fun childOutputHasJsonLikeContent(stdout: String, stderr: String): Boolean =
 
 fun Map<String, Any?>.isImplementationReturnContract(): Boolean = keys.containsAll(
   setOf(
-    "tasks_completed",
-    "files_created",
-    "files_modified",
-    "tests_written",
-    "plan_deviation_notes",
-    "notes_for_review",
+    ImplementationReturnContractPayloadKeys.TASKS_COMPLETED,
+    ImplementationReturnContractPayloadKeys.FILES_CREATED,
+    ImplementationReturnContractPayloadKeys.FILES_MODIFIED,
+    ImplementationReturnContractPayloadKeys.TESTS_WRITTEN,
+    ImplementationReturnContractPayloadKeys.PLAN_DEVIATION_NOTES,
+    ImplementationReturnContractPayloadKeys.NOTES_FOR_REVIEW,
   ),
 )
 

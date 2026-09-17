@@ -1,7 +1,7 @@
 package skillbill.engine.goalrunner.planning
 
-import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.engine.featuretask.FeatureTaskRuntimeWorkflowPersistence
 import skillbill.engine.featuretask.workflowArtifactEntryMap
 import skillbill.engine.goalrunner.planning.model.GoalChildPlanningHydration
 import skillbill.engine.planningprojection.requireValidPlanningProjection
@@ -274,7 +274,7 @@ private class GoalChildPlanningImportMatcher(
     setup: GoalRunnerChildWorkflowSetup,
     request: GoalChildPlanningHydrationRequest,
   ): String? {
-    val artifacts = decodeWorkflowArtifacts(existing.artifactsJson)
+    val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(existing)
     val expected = artifacts[FEATURE_TASK_RUNTIME_GOAL_PLANNING_IMPORT_ARTIFACT_KEY] as? Map<*, *>
       ?: return "child carries no goal planning import artifact"
     val shared = unitOfWork.goalPlanningPreparations.findSharedPreplan(request.identity)

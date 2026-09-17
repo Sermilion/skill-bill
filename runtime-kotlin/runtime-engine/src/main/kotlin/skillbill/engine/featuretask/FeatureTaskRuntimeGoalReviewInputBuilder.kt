@@ -1,6 +1,5 @@
 package skillbill.engine.featuretask
 
-import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.engine.featuretask.model.GoalSubtaskReviewInputBlocked
 import skillbill.engine.featuretask.model.GoalSubtaskReviewInputPreparation
@@ -32,7 +31,7 @@ class FeatureTaskRuntimeGoalReviewInputBuilder(
     workflowId: String,
   ): Pair<GoalSubtaskReviewState, FeatureTaskRuntimeGoalContinuationArtifact>? = database.read { unitOfWork ->
     val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@read null
-    val artifacts = decodeWorkflowArtifacts(record.artifactsJson)
+    val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
     val state = reviewStateFromArtifacts(artifacts) ?: return@read null
     val continuation = continuationFromArtifacts(artifacts) ?: return@read null
     state to continuation
@@ -138,7 +137,7 @@ class FeatureTaskRuntimeGoalReviewInputBuilder(
   ): GoalSubtaskReviewState? = database.transaction { unitOfWork ->
     val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, request.workflowId)
       ?: return@transaction null
-    val artifacts = decodeWorkflowArtifacts(record.artifactsJson)
+    val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
     val latest = reviewStateFromArtifacts(artifacts) ?: return@transaction null
     check(latest == request.state && latest.canRecoverReviewBase()) {
       "Goal-subtask review base can be recovered only while disposition is still pending."

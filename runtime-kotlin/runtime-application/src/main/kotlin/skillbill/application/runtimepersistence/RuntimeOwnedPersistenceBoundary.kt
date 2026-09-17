@@ -1,10 +1,11 @@
 package skillbill.application.runtimepersistence
 
 import skillbill.application.rethrowIfCooperativeCancellationOrInterruption
+import skillbill.error.SkillBillRuntimeException
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.persistence.UnitOfWork
-class RuntimeOwnedFactUnavailable(message: String) : IllegalStateException(message)
+class RuntimeOwnedFactUnavailable(message: String) : SkillBillRuntimeException(message)
 
 class RuntimeOwnedPersistenceBoundary(
   private val database: DatabaseSessionFactory,

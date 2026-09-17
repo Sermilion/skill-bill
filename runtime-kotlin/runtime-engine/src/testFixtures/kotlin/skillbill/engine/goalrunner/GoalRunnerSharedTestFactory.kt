@@ -127,8 +127,10 @@ private val testGoalChildPlanningHydratorPort = GoalChildPlanningHydratorPortAda
 )
 
 fun testGoalRunnerChildRepairExecutor(
+  database: DatabaseSessionFactory = FakeDatabaseSessionFactory(InMemoryWorkflowStates()),
   gitOperations: WorkflowGitOperations = NoopWorkflowGitOperations,
 ): GoalRunnerChildRepairOperations = GoalRunnerChildRepairOperations(
+  database,
   testWorkflowSnapshotValidator,
   gitOperations,
   testDecompositionManifestValidator,
@@ -166,7 +168,7 @@ fun testWorkflowGoalRunnerOutcomeStore(
   artifactPorts = artifactPorts,
   decompositionManifestValidator = testDecompositionManifestValidator,
   decompositionManifestWriter = testDecompositionManifestWriter,
-  childRepairExecutor = testGoalRunnerChildRepairExecutor(gitOperations),
+  childRepairExecutor = testGoalRunnerChildRepairExecutor(database, gitOperations),
 )
 
 fun testPhaseRecorder(

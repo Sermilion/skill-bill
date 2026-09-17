@@ -59,7 +59,7 @@ class FeatureTaskRuntimeValidationGateSettlementEvidenceTest {
     val gateEvidence = decodeValidationGateExecutionEvidenceFromArtifact(
       validationResultFrom(output.payload),
       "validate",
-    )!!
+    )
 
     assertEquals(3, gateEvidence.gateRuns.single().executedWorkUnits)
     assertEquals(result.executedCheckIdentities, gateEvidence.gateRuns.single().executedChecks)
@@ -144,7 +144,7 @@ class FeatureTaskRuntimeValidationGateSettlementEvidenceTest {
     val settledArtifact = decodeValidationGateExecutionEvidenceFromArtifact(
       validationResultFrom(completed.output.payload),
       "validate",
-    )!!
+    )
     assertEquals(
       listOf(ValidationGateRunOutcome.FAILED, ValidationGateRunOutcome.PASSED),
       settledArtifact.gateRuns.map { it.outcome },
@@ -181,7 +181,7 @@ class FeatureTaskRuntimeValidationGateSettlementEvidenceTest {
       requiredCommand = "./gradlew check --continue",
     )
     val validationResult = validationResultFrom(output.payload)
-    val gateEvidence = decodeValidationGateExecutionEvidenceFromArtifact(validationResult, "validate")!!
+    val gateEvidence = decodeValidationGateExecutionEvidenceFromArtifact(validationResult, "validate")
     FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(output.payload, "validate")
     assertEquals(0, gateEvidence.gateRuns.single().executedWorkUnits)
     assertFalse(gateEvidence.zeroWork)
@@ -229,7 +229,7 @@ class FeatureTaskRuntimeValidationGateSettlementEvidenceTest {
     val gateEvidence = decodeValidationGateExecutionEvidenceFromArtifact(
       validationResult,
       "validate",
-    )!!
+    )
     assertEquals(2, gateEvidence.gateRunCount)
     assertEquals(ValidationGateCacheMode.CACHE_ELIGIBLE, gateEvidence.gateRuns.first().cacheMode)
     assertEquals(ValidationGateRunOutcome.FAILED, gateEvidence.gateRuns.first().outcome)

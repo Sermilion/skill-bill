@@ -4,6 +4,7 @@ import skillbill.application.decomposition.DECOMPOSITION_MANIFEST_FILENAME
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
+import skillbill.contracts.goalplanning.GoalPlanningSharedContextPacketPayloadKeys
 import skillbill.engine.goalrunner.model.GoalRunnerRunRequest
 import skillbill.engine.goalrunner.planning.model.GoalPlanningPhaseProduction
 import skillbill.ports.goalrunner.model.GoalPlanningContractProvenance
@@ -104,19 +105,25 @@ internal fun gatherSharedContext(
   val planningPacket = recoveredPacket?.let(GoalPlanningSharedContextPacket::migrate)
     ?: sweep.contextDiscovery.discover(canonicalRepository).let { discovered ->
       val packet = linkedMapOf<String, Any?>(
-        "packet_version" to GoalPlanningSharedContextPacket.VERSION,
-        "repository_identity" to repositoryIdentity,
-        "normalized_issue_key" to state.manifest.issueKey.trim().uppercase(),
+        GoalPlanningSharedContextPacketPayloadKeys.PACKET_VERSION to GoalPlanningSharedContextPacket.VERSION,
+        GoalPlanningSharedContextPacketPayloadKeys.REPOSITORY_IDENTITY to repositoryIdentity,
+        GoalPlanningSharedContextPacketPayloadKeys.NORMALIZED_ISSUE_KEY to state.manifest.issueKey.trim().uppercase(),
         DecompositionPlanningPayloadKeys.PARENT_SPEC_PATH to parentSpecGoverningPath,
-        "parent_spec" to parentSpec.take(GoalPlanningSharedContextPacket.MAX_GOVERNED_CONTEXT_CHARS),
-        "decomposition_manifest" to decomposition.take(GoalPlanningSharedContextPacket.MAX_GOVERNED_CONTEXT_CHARS),
-        "boundary_memory" to GoalPlanningSharedContextPacket.catalog(discovered),
-        "validation_guidance" to discovered.validationGuidance.take(
+        GoalPlanningSharedContextPacketPayloadKeys.PARENT_SPEC to
+          parentSpec.take(GoalPlanningSharedContextPacket.MAX_GOVERNED_CONTEXT_CHARS),
+        GoalPlanningSharedContextPacketPayloadKeys.DECOMPOSITION_MANIFEST to
+          decomposition.take(GoalPlanningSharedContextPacket.MAX_GOVERNED_CONTEXT_CHARS),
+        GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY to GoalPlanningSharedContextPacket.catalog(discovered),
+        GoalPlanningSharedContextPacketPayloadKeys.VALIDATION_GUIDANCE to discovered.validationGuidance.take(
           GoalPlanningSharedContextPacket.MAX_GOVERNED_CONTEXT_CHARS,
         ),
-        "ordered_subtasks" to GoalPlanningSharedContextPacket.orderedSubtasks(state.manifest.subtasks),
+        GoalPlanningSharedContextPacketPayloadKeys.ORDERED_SUBTASKS to
+          GoalPlanningSharedContextPacket.orderedSubtasks(state.manifest.subtasks),
       )
-      packet + ("integrity_sha256" to GoalPlanningSharedContextPacket.digest(packet))
+      packet + (
+        GoalPlanningSharedContextPacketPayloadKeys.INTEGRITY_SHA256 to
+          GoalPlanningSharedContextPacket.digest(packet)
+        )
     }
   GoalPlanningSharedContextPacket.validate(
     packet = planningPacket,

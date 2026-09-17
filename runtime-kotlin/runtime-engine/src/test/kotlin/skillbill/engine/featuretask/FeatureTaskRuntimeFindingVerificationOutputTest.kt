@@ -151,9 +151,9 @@ class FeatureTaskRuntimeFindingVerificationOutputTest {
     assertEquals(
       disposition,
       decodeFindingVerificationDispositionFromArtifact(
-        disposition.asWorkflowArtifactEntry(),
+        disposition.asWorkflowArtifactEntry().toWorkflowArtifactMap(),
         "finding_dispositions[0]",
-      )!!,
+      ),
     )
   }
 
@@ -168,7 +168,7 @@ class FeatureTaskRuntimeFindingVerificationOutputTest {
         "message" to "Finding",
       ),
       "finding_dispositions[0]",
-    )!!
+    )
     assertEquals("F-001", disposition.findingId)
     assertNull(disposition.reason)
   }

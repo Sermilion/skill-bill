@@ -86,6 +86,9 @@ fun FeatureTaskRuntimeRepairLedgerEntry.projectionWireMap(): FeatureTaskRuntimeW
 fun decodeValidationGateProgressFromArtifact(raw: Any?): FeatureTaskRuntimeValidationGateProgress? =
   JsonCodec.anyToStringAnyMap(raw)?.let(FeatureTaskRuntimeValidationGateProgress::fromArtifactMap)
 
+fun decodeValidationGateProgressFromArtifact(raw: Map<String, Any?>): FeatureTaskRuntimeValidationGateProgress =
+  FeatureTaskRuntimeValidationGateProgress.fromArtifactMap(raw)
+
 fun FeatureTaskRuntimeValidationGateExecutionEvidence.asWorkflowArtifactEntry(repositoryCheckpoint: String): Any =
   toArtifactMap(repositoryCheckpoint)
 
@@ -96,15 +99,31 @@ fun decodeValidationGateExecutionEvidenceFromArtifact(
   FeatureTaskRuntimeValidationGateExecutionEvidence.fromArtifactMap(it, sourceLabel)
 }
 
+fun decodeValidationGateExecutionEvidenceFromArtifact(
+  raw: Map<String, Any?>,
+  sourceLabel: String,
+): FeatureTaskRuntimeValidationGateExecutionEvidence =
+  FeatureTaskRuntimeValidationGateExecutionEvidence.fromArtifactMap(raw, sourceLabel)
+
 fun FeatureTaskRuntimeValidationEvidence.asWorkflowArtifactEntry(): Any = toArtifactMap()
 
 fun decodeValidationEvidenceFromArtifact(raw: Any?, sourceLabel: String): FeatureTaskRuntimeValidationEvidence? =
   JsonCodec.anyToStringAnyMap(raw)?.let { FeatureTaskRuntimeValidationEvidence.fromArtifactMap(it, sourceLabel) }
 
+fun decodeValidationEvidenceFromArtifact(
+  raw: Map<String, Any?>,
+  sourceLabel: String,
+): FeatureTaskRuntimeValidationEvidence = FeatureTaskRuntimeValidationEvidence.fromArtifactMap(raw, sourceLabel)
+
 fun FeatureTaskRuntimeRepairReceipt.asWorkflowArtifactEntry(): Any = toArtifactMap()
 
 fun decodeRepairReceiptFromArtifact(raw: Any?, sourceLabel: String): FeatureTaskRuntimeRepairReceipt? =
   JsonCodec.anyToStringAnyMap(raw)?.let { FeatureTaskRuntimeRepairReceipt.fromArtifactMap(it, sourceLabel) }
+
+fun decodeRepairReceiptFromArtifact(
+  raw: Map<String, Any?>,
+  sourceLabel: String,
+): FeatureTaskRuntimeRepairReceipt = FeatureTaskRuntimeRepairReceipt.fromArtifactMap(raw, sourceLabel)
 
 fun decodeRepairReceiptFromArtifactWithObservations(
   raw: Any?,
@@ -114,6 +133,15 @@ fun decodeRepairReceiptFromArtifactWithObservations(
   val receipt = JsonCodec.anyToStringAnyMap(raw)?.let {
     FeatureTaskRuntimeRepairReceipt.fromArtifactMap(it, sourceLabel, collector)
   } ?: return null
+  return FeatureTaskRuntimeRepairReceiptDecoded(receipt, collector.finish())
+}
+
+fun decodeRepairReceiptFromArtifactWithObservations(
+  raw: Map<String, Any?>,
+  sourceLabel: String,
+): FeatureTaskRuntimeRepairReceiptDecoded {
+  val collector = FeatureTaskRuntimeRepairReceiptDecodeObservations.Collector()
+  val receipt = FeatureTaskRuntimeRepairReceipt.fromArtifactMap(raw, sourceLabel, collector)
   return FeatureTaskRuntimeRepairReceiptDecoded(receipt, collector.finish())
 }
 
@@ -146,6 +174,9 @@ fun FeatureTaskRuntimeHandoffEnvelope.asWorkflowArtifactEntry(): Any = toEnvelop
 fun decodeHandoffEnvelopeFromArtifact(raw: Any?): FeatureTaskRuntimeHandoffEnvelope? =
   JsonCodec.anyToStringAnyMap(raw)?.let(FeatureTaskRuntimeHandoffEnvelope::fromEnvelopeMap)
 
+fun decodeHandoffEnvelopeFromArtifact(raw: Map<String, Any?>): FeatureTaskRuntimeHandoffEnvelope =
+  FeatureTaskRuntimeHandoffEnvelope.fromEnvelopeMap(raw)
+
 fun FeatureTaskRuntimeHandoffProjection.asWorkflowArtifactEntry(): Any = toEnvelopeMap()
 
 fun FeatureTaskRuntimeRepositoryCheckpoint.asWorkflowArtifactEntry(): Any = toEnvelopeMap()
@@ -155,7 +186,13 @@ fun FeatureTaskRuntimePhaseRecord.asWorkflowArtifactEntry(): Any = toArtifactMap
 fun decodePhaseRecordFromArtifact(raw: Any?): FeatureTaskRuntimePhaseRecord? =
   JsonCodec.anyToStringAnyMap(raw)?.let(FeatureTaskRuntimePhaseRecord::fromArtifactMap)
 
+fun decodePhaseRecordFromArtifact(raw: Map<String, Any?>): FeatureTaskRuntimePhaseRecord =
+  FeatureTaskRuntimePhaseRecord.fromArtifactMap(raw)
+
 fun FeatureTaskRuntimePhaseLedgerEntry.asWorkflowArtifactEntry(): Any = toArtifactMap()
 
 fun decodePhaseLedgerEntryFromArtifact(raw: Any?): FeatureTaskRuntimePhaseLedgerEntry? =
   JsonCodec.anyToStringAnyMap(raw)?.let(FeatureTaskRuntimePhaseLedgerEntry::fromArtifactMap)
+
+fun decodePhaseLedgerEntryFromArtifact(raw: Map<String, Any?>): FeatureTaskRuntimePhaseLedgerEntry =
+  FeatureTaskRuntimePhaseLedgerEntry.fromArtifactMap(raw)

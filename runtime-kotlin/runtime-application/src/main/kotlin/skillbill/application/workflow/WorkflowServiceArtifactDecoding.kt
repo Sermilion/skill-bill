@@ -23,9 +23,7 @@ fun decodeFeatureTaskRuntimePhaseRecords(
       ?: throw InvalidWorkflowStateSchemaError(
         "Feature-task-runtime phase record entry is malformed.",
       )
-    decodePhaseRecordFromArtifact(
-      entry,
-    ) ?: throw InvalidWorkflowStateSchemaError("Feature-task-runtime phase record entry is malformed.")
+    decodePhaseRecordFromArtifact(entry)
   }
 }
 
@@ -37,7 +35,6 @@ object FeatureTaskRuntimePhaseLedgerDecoder {
     return raw.map { value ->
       val entry = JsonCodec.anyToStringAnyMap(value) ?: invalid("contains a malformed entry")
       decodePhaseLedgerEntryFromArtifact(entry)
-        ?: invalid("contains a malformed entry")
     }
   }
 
