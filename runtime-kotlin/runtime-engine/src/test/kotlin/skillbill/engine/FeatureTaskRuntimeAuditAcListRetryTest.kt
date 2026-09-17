@@ -68,8 +68,74 @@ class FeatureTaskRuntimeAuditAcListRetryTest {
       .first { phaseIdFromPrompt(it) == "audit" }
     assertContains(auditPrompt, "remaining acceptance criteria")
     assertContains(auditPrompt, "explicit empty list")
+    assertContains(auditPrompt, "not a write allowlist")
     assertContains(auditPrompt, "re-check the entire criterion list from the beginning")
     assertContains(auditPrompt, "Do not spawn subagents")
+  }
+
+  @Test
+  fun `the same remaining list twice blocks instead of looping`() {
+    var auditLaunches = 0
+    val launcher = RuntimeRecordingLauncher { request ->
+      val prompt = requireNotNull(request.skillRunRequest.promptOverride)
+      if (phaseIdFromPrompt(prompt) != "audit") return@RuntimeRecordingLauncher facts(defaultPhaseOutput(request))
+      auditLaunches += 1
+      facts(auditRemainingAcOutput(remainingHint))
+    }
+    val harness = runnerHarness(
+      RuntimeHarnessConfig(
+        acceptanceCriteria = CRITERIA,
+        launcher = launcher,
+        validator = realFeatureTaskRuntimePhaseOutputValidator,
+      ),
+    )
+    val blocked = assertIs<FeatureTaskRuntimeRunReport.Blocked>(harness.runner.run(harness.request()))
+    assertEquals(2, auditLaunches)
+    assertEquals("audit", blocked.lastIncompletePhase)
+    assertContains(blocked.blockedReason, "same remaining-criteria")
+    assertTrue("review" !in harness.launchOrder())
+  }
+
+  @Test
+  fun `audit remaining-criteria retry checkpoints files written outside implement inventory`() {
+    val git = RecordingWorkflowGitOperations(currentBranchValue = "feat/existing-runtime-branch")
+    var auditLaunches = 0
+    val launcher = RuntimeRecordingLauncher { request ->
+      val phaseId = phaseIdFromPrompt(requireNotNull(request.skillRunRequest.promptOverride))
+      when (phaseId) {
+        "implement" -> {
+          git.worktreeStatusValue = " M docs/OnlyDoc.md"
+          git.ownedPathsValue = listOf("docs/OnlyDoc.md")
+          facts(defaultPhaseOutput(request))
+        }
+        "audit" -> {
+          auditLaunches += 1
+          git.worktreeStatusValue = " M docs/OnlyDoc.md\n M src/AuditRepair.kt"
+          git.ownedPathsValue = listOf("docs/OnlyDoc.md", "src/AuditRepair.kt")
+          if (auditLaunches == 1) {
+            facts(auditRemainingAcOutput(remainingHint))
+          } else {
+            assertContains(requireNotNull(request.skillRunRequest.promptOverride), "src/AuditRepair.kt")
+            facts(auditSatisfiedOutput())
+          }
+        }
+        else -> facts(defaultPhaseOutput(request))
+      }
+    }
+    val harness = runnerHarness(
+      RuntimeHarnessConfig(
+        acceptanceCriteria = CRITERIA,
+        branchSetup = BranchSetupTestConfig(gitOperations = git),
+        launcher = launcher,
+        validator = realFeatureTaskRuntimePhaseOutputValidator,
+      ),
+    )
+    assertIs<FeatureTaskRuntimeRunReport.Completed>(harness.runner.run(harness.request()))
+    assertEquals(2, auditLaunches)
+    assertTrue(
+      git.stagePathsCalls.any { it.contains("src/AuditRepair.kt") },
+      git.stagePathsCalls.toString(),
+    )
   }
 
   @Test

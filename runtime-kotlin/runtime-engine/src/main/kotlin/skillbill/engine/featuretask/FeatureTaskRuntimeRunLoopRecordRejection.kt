@@ -420,6 +420,7 @@ const val MIN_RESPONSE_STRING_VALUE_LENGTH = 4
 val INVENTORY_EXTENDING_PHASES: Set<String> = setOf(
   FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT,
   FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_IMPLEMENT_FIX,
+  FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT,
   FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE,
   FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_WRITE_HISTORY,
 )

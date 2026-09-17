@@ -142,7 +142,9 @@ private fun auditProducedOutputsAddendum(): String =
     "runtime reads your completed final response from produced_outputs.value. Only an explicit empty list " +
     "`[]` (ordinary whitespace or Markdown fencing allowed when the complete final response is exactly " +
     "that empty list) completes audit; any other non-blank text starts one fresh audit retry with that " +
-    "text forwarded verbatim as a focus hint alongside the full planned criterion list.\n" +
+    "text forwarded verbatim as a focus hint alongside the full planned criterion list. Repair those " +
+    "remaining criteria in any files they require; scoped_owned_paths is checkpoint evidence, not a " +
+    "write allowlist. The same remaining list as the prior session blocks rather than looping.\n" +
     "      REJECTED: a whitespace-only value; nesting the remaining-criteria list only inside summary.\n" +
     "      ACCEPTED completed example root: {\"contract_version\":\"$FEATURE_TASK_RUNTIME_CONTRACT_VERSION\"," +
     "\"phase_id\":\"audit\",\"status\":\"completed\"," +

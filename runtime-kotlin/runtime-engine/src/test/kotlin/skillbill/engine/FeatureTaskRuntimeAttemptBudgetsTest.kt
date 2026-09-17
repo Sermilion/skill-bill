@@ -16,6 +16,13 @@ class FeatureTaskRuntimeAttemptBudgetsTest {
   }
 
   @Test
+  fun `the same remaining-criteria list as the prior audit session is a stall not another retry`() {
+    val reason = FeatureTaskRuntimeAttemptBudgets.auditRemainingUnchangedBlockReason()
+    assertContains(reason, "same remaining-criteria")
+    assertContains(reason, "no progress")
+  }
+
+  @Test
   fun `a phase that keeps dying before its output gate blocks on its own budget, not a repair loop`() {
     val below = FeatureTaskRuntimeAttemptBudgets.processFailureBlockReason(
       FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE,

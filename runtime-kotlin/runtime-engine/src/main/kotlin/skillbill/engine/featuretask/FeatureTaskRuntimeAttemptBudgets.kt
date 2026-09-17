@@ -6,6 +6,11 @@ object FeatureTaskRuntimeAttemptBudgets {
   const val MAX_FORMAT_RETRY_ATTEMPTS: Int = MAX_OUTPUT_GATE_RETRY_ATTEMPTS
   const val MAX_PROCESS_FAILURE_ATTEMPTS: Int = 3
 
+  fun auditRemainingUnchangedBlockReason(): String =
+    "Phase '${FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT}' returned the same remaining-criteria " +
+      "text as the prior session; the run blocks rather than relaunching an audit that made no progress " +
+      "on the remaining list."
+
   fun processFailureBlockReason(phaseId: String, processFailureCount: Int, lastFailureReason: String?): String? {
     require(processFailureCount >= 0) {
       "processFailureCount must be >= 0, was $processFailureCount."

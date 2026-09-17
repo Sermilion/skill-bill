@@ -2,6 +2,7 @@ package skillbill.engine.featuretask
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
@@ -73,6 +74,30 @@ object FeatureTaskRuntimeRunLoopAuditRetry {
     run: PhaseRun,
     iteration: Int,
     fileManifest: FeatureTaskRuntimePhaseFileManifest?,
+  ): AttemptResult = blockAuditRound(
+    request,
+    state,
+    recorder,
+    observability,
+    run,
+    iteration,
+    fileManifest,
+    "Audit completed with a whitespace-only remaining-criteria final response; the run blocks " +
+      "rather than treating it as an empty list or launching a retry.",
+    FeatureTaskRuntimeFailureDisposition.INVALID_OUTPUT,
+  )
+
+  private fun blockAuditRound(
+    request: FeatureTaskRuntimeRunRequest,
+    state: FeatureTaskRuntimeRunState,
+    recorder: FeatureTaskRuntimePhaseRecorder,
+    observability: FeatureTaskRuntimeRunObservability,
+    run: PhaseRun,
+    iteration: Int,
+    fileManifest: FeatureTaskRuntimePhaseFileManifest?,
+    reason: String,
+    failureDisposition: FeatureTaskRuntimeFailureDisposition =
+      FeatureTaskRuntimeFailureDisposition.NEEDS_USER_ACTION,
   ): AttemptResult = AttemptResult.settled(
     FeatureTaskRuntimeRunLoopPhaseAttempts.blockInPhase(
       request,
@@ -82,11 +107,10 @@ object FeatureTaskRuntimeRunLoopAuditRetry {
       PhaseBlockRequest(
         run = run,
         attemptCount = iteration,
-        reason = "Audit completed with a whitespace-only remaining-criteria final response; the run blocks " +
-          "rather than treating it as an empty list or launching a retry.",
+        reason = reason,
         observability = observability,
         payload = BlockAndPersistPayload(fileManifest = fileManifest),
-        failureDisposition = FeatureTaskRuntimeFailureDisposition.INVALID_OUTPUT,
+        failureDisposition = failureDisposition,
       ),
     ),
   )
@@ -124,28 +148,34 @@ object FeatureTaskRuntimeRunLoopAuditRetry {
             precedingPhaseId = run.phaseId,
             blockedReason = auditRoundCommitBlockedReason(
               branch,
-
               "audit retry could not commit current changes",
             ),
           )
           if (blocked != null) {
-            return AttemptResult.settled(
-              FeatureTaskRuntimeRunLoopPhaseAttempts.blockInPhase(
-                request,
-                state,
-                recorder,
-                observability,
-                PhaseBlockRequest(
-                  run = run,
-                  attemptCount = capture.iteration,
-                  reason = blocked,
-                  observability = observability,
-                  payload = BlockAndPersistPayload(fileManifest = capture.fileManifest),
-                  failureDisposition = FeatureTaskRuntimeFailureDisposition.NEEDS_USER_ACTION,
-                ),
-              ),
+            return blockAuditRound(
+              request,
+              state,
+              recorder,
+              observability,
+              run,
+              capture.iteration,
+              capture.fileManifest,
+              blocked,
             )
           }
+        }
+        val priorHint = session.auditRetryFocusHint
+        if (!priorHint.isNullOrBlank() && priorHint == interpretation.text) {
+          return blockAuditRound(
+            request,
+            state,
+            recorder,
+            observability,
+            run,
+            capture.iteration,
+            capture.fileManifest,
+            FeatureTaskRuntimeAttemptBudgets.auditRemainingUnchangedBlockReason(),
+          )
         }
         AttemptResult.auditRetry(
           focusHint = interpretation.text,

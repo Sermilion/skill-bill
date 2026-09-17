@@ -112,7 +112,8 @@ private fun derivedContextInstruction(key: String, sharedEvidenceDelivered: Bool
   FeatureTaskRuntimePhaseWorkflowDefinition.DERIVED_CONTEXT_SCOPED_REPOSITORY_STATE ->
     "read the repository at the resolved checkpoint above — the diff over base_ref/head_ref plus " +
       "the listed scoped_owned_paths — and treat that actual state, not any upstream receipt claim, " +
-      "as the evidence for every criterion"
+      "as the evidence for every criterion. scoped_owned_paths is checkpoint evidence, not a write " +
+      "allowlist; remaining-criteria repair may edit any files those criteria require"
   FeatureTaskRuntimePhaseWorkflowDefinition.DERIVED_CONTEXT_PR_BRANCH_DIFF ->
     SELF_READ_DIFF_INSTRUCTION
   else -> null

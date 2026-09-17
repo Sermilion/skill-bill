@@ -210,7 +210,9 @@ val phaseDirectives: Map<String, String> = mapOf(
     "behavior. Missing implementation, missing tests, and tests that do not exercise the criterion are " +
     "gaps. One meaningful test may cover several criteria; a test name, empty test, mock-only " +
     "interaction, or tautological assertion is not coverage. Read the tree at the resolved checkpoint " +
-    "— the diff over its base_ref/head_ref plus its scoped_owned_paths. The upstream implement value " +
+    "— the diff over its base_ref/head_ref plus its scoped_owned_paths. scoped_owned_paths is that " +
+    "checkpoint's evidence, not a write allowlist: repair remaining criteria in any files they require. " +
+    "The upstream implement value " +
     "is structured prose (implementation_receipt JSON stuffed inside value): read and interpret it as " +
     "a producer CLAIM, not evidence. Never mark a criterion satisfied because that string lists a " +
     "completed task id, a changed path, or reconciliation_evidence claiming reconciled. Repair every " +

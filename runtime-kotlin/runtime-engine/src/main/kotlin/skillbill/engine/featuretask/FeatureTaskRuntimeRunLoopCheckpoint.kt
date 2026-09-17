@@ -10,6 +10,7 @@ import skillbill.ports.workflow.gitops.headCommitMessage
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.ports.workflow.gitops.restoreIndexState
 import skillbill.ports.workflow.gitops.stagedPaths
+import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_STANDALONE_SUBTASK_ID
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeBackwardEdge
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeCheckpointIdentity
@@ -100,6 +101,13 @@ object FeatureTaskRuntimeRunLoopCheckpoint {
     worktreeDelta: List<String>,
     persistedInventory: List<String>,
   ): List<String> {
+    if (phaseId == FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT) {
+      return worktreeDelta.filter { path ->
+        path.isNotBlank() &&
+          !isRuntimePrivatePath(path) &&
+          !isFeatureSpecPathForIssue(path, request.issueKey)
+      }.distinct().sorted()
+    }
     val record = recorder.loadPhaseRecords(
       request.workflowId,
     )?.get(phaseId)
