@@ -6,14 +6,14 @@ private const val VALIDATE_PHASE_FORBIDDEN_EXTRAS: String =
     "repo-root checklist. Those commands are not this phase. "
 
 val RUNTIME_OWNED_VALIDATE_PHASE_TASK: String =
-  runtimeOwnedValidateAgentPhaseTask(packCollectAllCommand = null, packConfirmationCommand = null)
+  runtimeOwnedValidateAgentPhaseTask()
 
 private const val VALIDATE_TRIAGE_FORBIDDEN_PACK_GATE: String =
   "Do not run `bill-code-check`, the pack validation_gate collect_all_full_gate_command, " +
     "cache_bypassing_collect_all_full_gate_command, or any other pack-declared full-suite argv " +
     "during this triage turn. "
 
-fun runtimeOwnedValidateAgentPhaseTask(packCollectAllCommand: String?, packConfirmationCommand: String?): String {
+fun runtimeOwnedValidateAgentPhaseTask(): String {
   return "Invoke `bill-code-check` exactly once. It routes to the dominant platform pack and owns " +
     "the collect-all check, repairs, confirmation, and terminal result. Do not run a pack command " +
     "directly, do not spawn delegated subagents, and stop when `bill-code-check` finishes. " +
@@ -49,10 +49,7 @@ internal fun phaseTaskDirective(phaseId: String, args: PhaseTaskDirectiveArgs = 
     }
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE -> when {
       args.validationGateTriage -> validateGateTriagePhaseTask()
-      else -> runtimeOwnedValidateAgentPhaseTask(
-        packCollectAllCommand = args.packCollectAllCommand,
-        packConfirmationCommand = args.packConfirmationGateCommand,
-      )
+      else -> runtimeOwnedValidateAgentPhaseTask()
     }
     FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT ->
       auditPhaseTaskDirective()
@@ -61,7 +58,7 @@ internal fun phaseTaskDirective(phaseId: String, args: PhaseTaskDirectiveArgs = 
     else -> phaseDirectives[phaseId] ?: error("No phase directive for runtime phase '$phaseId'.")
   }
 
-fun runtimeOwnedValidateFinishedDirective(phaseId: String, packConfirmationCommand: String?): String {
+fun runtimeOwnedValidateFinishedDirective(phaseId: String): String {
   if (phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_VALIDATE) {
     return gateRepairNoOutputSchemaDirective(phaseId, triage = false)
   }
