@@ -2,7 +2,6 @@ package skillbill.engine.featuretask
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunRequest
 import skillbill.ports.workflow.gitops.model.WorkflowGitOperationResult
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
@@ -70,28 +69,7 @@ object FeatureTaskRuntimeRunLoopAuditRetry {
       )
     }
 
-  internal fun FeatureTaskRuntimeRunLoopContext.blockAuditWhitespaceOnlyFinalResponse(
-    run: PhaseRun,
-    iteration: Int,
-    fileManifest: FeatureTaskRuntimePhaseFileManifest?,
-  ): AttemptResult = blockAuditRound(
-    request,
-    state,
-    recorder,
-    observability,
-    run,
-    iteration,
-    fileManifest,
-    "Audit completed with a whitespace-only remaining-criteria final response; the run blocks " +
-      "rather than treating it as an empty list or launching a retry.",
-    FeatureTaskRuntimeFailureDisposition.INVALID_OUTPUT,
-  )
-
-  private fun blockAuditRound(
-    request: FeatureTaskRuntimeRunRequest,
-    state: FeatureTaskRuntimeRunState,
-    recorder: FeatureTaskRuntimePhaseRecorder,
-    observability: FeatureTaskRuntimeRunObservability,
+  private fun FeatureTaskRuntimeRunLoopContext.blockAuditInPhase(
     run: PhaseRun,
     iteration: Int,
     fileManifest: FeatureTaskRuntimePhaseFileManifest?,
@@ -115,6 +93,19 @@ object FeatureTaskRuntimeRunLoopAuditRetry {
     ),
   )
 
+  internal fun FeatureTaskRuntimeRunLoopContext.blockAuditWhitespaceOnlyFinalResponse(
+    run: PhaseRun,
+    iteration: Int,
+    fileManifest: FeatureTaskRuntimePhaseFileManifest?,
+  ): AttemptResult = blockAuditInPhase(
+    run,
+    iteration,
+    fileManifest,
+    "Audit completed with a whitespace-only remaining-criteria final response; the run blocks " +
+      "rather than treating it as an empty list or launching a retry.",
+    FeatureTaskRuntimeFailureDisposition.INVALID_OUTPUT,
+  )
+
   internal fun clearRetryHintOnFreshLaunch(
     state: FeatureTaskRuntimeRunState,
     session: FeatureTaskRuntimeRunLoopSession,
@@ -131,8 +122,10 @@ object FeatureTaskRuntimeRunLoopAuditRetry {
     outputMap: FeatureTaskRuntimeWorkflowArtifactMap,
   ): AttemptResult? {
     val run = capture.run
-    if (run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT) return null
-    if ((outputMap[SharedPayloadKeys.STATUS] as? String).workflowStepStatus() != WorkflowStepStatus.COMPLETED) {
+    if (
+      run.phaseId != FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_AUDIT ||
+      (outputMap[SharedPayloadKeys.STATUS] as? String).workflowStepStatus() != WorkflowStepStatus.COMPLETED
+    ) {
       return null
     }
     val finalResponse = FeatureTaskRuntimeOutputVerification.auditProseValue(outputMap)
@@ -152,25 +145,12 @@ object FeatureTaskRuntimeRunLoopAuditRetry {
             ),
           )
           if (blocked != null) {
-            return blockAuditRound(
-              request,
-              state,
-              recorder,
-              observability,
-              run,
-              capture.iteration,
-              capture.fileManifest,
-              blocked,
-            )
+            return blockAuditInPhase(run, capture.iteration, capture.fileManifest, blocked)
           }
         }
         val priorHint = session.auditRetryFocusHint
         if (!priorHint.isNullOrBlank() && priorHint == interpretation.text) {
-          return blockAuditRound(
-            request,
-            state,
-            recorder,
-            observability,
+          return blockAuditInPhase(
             run,
             capture.iteration,
             capture.fileManifest,
