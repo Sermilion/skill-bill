@@ -1,7 +1,8 @@
 package skillbill.infrastructure.fs.contracts.workflow
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_PLANNING_PROJECTIONS_CONTRACT_VERSION
 import skillbill.error.InvalidFeatureTaskRuntimePlanningProjectionSchemaError
-import skillbill.infrastructure.fs.FeatureTaskRuntimeWireArtifactValidatorAdapter
+import skillbill.infrastructure.fs.FeatureTaskRuntimeWireArtifactValidator
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeWireArtifactKind
 import skillbill.workflow.taskruntime.validatePlanningProjection
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -9,6 +10,20 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class FeatureTaskRuntimePlanningProjectionSchemaValidatorTest {
+  @Test
+  fun `non-object planning projection input fails with the typed schema error`() {
+    val error = assertFailsWith<InvalidFeatureTaskRuntimePlanningProjectionSchemaError> {
+      FeatureTaskRuntimeWireArtifactValidator().validate(
+        FeatureTaskRuntimeWireArtifactKind.PLANNING_PROJECTION,
+        listOf("not-an-object"),
+        "planning-projection#non-object",
+      )
+    }
+
+    assertEquals("planning-projection#non-object", error.sourceLabel)
+    assertTrue(error.reason.contains("<root>"), error.reason)
+  }
+
   @Test
   fun `a legacy implementation receipt is rejected by the reject-all schema`() {
     val error = assertFailsWith<InvalidFeatureTaskRuntimePlanningProjectionSchemaError> {
@@ -87,7 +102,7 @@ class FeatureTaskRuntimePlanningProjectionSchemaValidatorTest {
   @Test
   fun `the domain-facing adapter delegates to the canonical reject-all schema`() {
     val error = assertFailsWith<InvalidFeatureTaskRuntimePlanningProjectionSchemaError> {
-      FeatureTaskRuntimeWireArtifactValidatorAdapter().validatePlanningProjection(
+      FeatureTaskRuntimeWireArtifactValidator().validatePlanningProjection(
         producedOutputs = linkedMapOf<String, Any?>(
           "projection_kind" to "implementation_receipt",
           "contract_version" to FEATURE_TASK_RUNTIME_PLANNING_PROJECTIONS_CONTRACT_VERSION,

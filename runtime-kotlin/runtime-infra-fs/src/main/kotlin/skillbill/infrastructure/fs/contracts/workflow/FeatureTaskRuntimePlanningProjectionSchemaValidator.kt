@@ -1,35 +1,19 @@
 package skillbill.infrastructure.fs.contracts.workflow
 
-import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.node.ObjectNode
-import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import com.networknt.schema.JsonSchema
-import com.networknt.schema.JsonSchemaFactory
-import com.networknt.schema.SpecVersion
 import com.networknt.schema.ValidationMessage
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_PLANNING_PROJECTIONS_CONTRACT_VERSION
 import skillbill.contracts.workflow.FeatureTaskRuntimePlanningProjectionsSchemaPaths
 import skillbill.error.InvalidFeatureTaskRuntimePlanningProjectionSchemaError
-import skillbill.infrastructure.fs.contracts.LOCALE_STABLE_SCHEMA_CONFIG
-import java.io.IOException
-import java.nio.file.Files
-import java.nio.file.Path
-import kotlin.coroutines.cancellation.CancellationException
+import skillbill.infrastructure.fs.contracts.ClasspathContractSchemaLoader
 
 object FeatureTaskRuntimePlanningProjectionSchemaValidator {
-  private val schemaDocument: JsonNode by lazy { loadPlanningProjectionsSchemaDocument() }
-  private val schema: JsonSchema by lazy { compile(schemaDocument) }
-  private val variantSchemas: Map<String, JsonSchema> by lazy { compileVariants(schemaDocument) }
-  private val mapper: ObjectMapper by lazy { ObjectMapper() }
-
   fun validate(payload: Map<String, Any?>, sourceLabel: String) {
-    val instance: JsonNode = mapper.valueToTree(payload)
+    val instance: JsonNode = ClasspathContractSchemaLoader.valueToTree(payload)
 
-    val declaredKind = payload["projection_kind"] as? String
-    val effective = variantSchemas[declaredKind] ?: schema
-    val errors: Set<ValidationMessage> = effective.validate(instance)
+    val effective = schema()
+    val errors: Set<ValidationMessage> = ClasspathContractSchemaLoader.validate(effective, instance)
     if (errors.isNotEmpty()) {
       throw InvalidFeatureTaskRuntimePlanningProjectionSchemaError(
         sourceLabel = sourceLabel,
@@ -37,19 +21,6 @@ object FeatureTaskRuntimePlanningProjectionSchemaValidator {
       )
     }
   }
-
-  private fun compileVariants(document: JsonNode): Map<String, JsonSchema> =
-    PROJECTION_VARIANT_DEFS.associateWith { variant ->
-      val wrapper = document.deepCopy<ObjectNode>()
-      wrapper.remove("oneOf")
-      wrapper.put("\$ref", "#/\$defs/$variant")
-      compile(wrapper)
-    }
-
-  private fun compile(document: JsonNode): JsonSchema = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012)
-    .getSchema(ObjectMapper().writeValueAsString(document), LOCALE_STABLE_SCHEMA_CONFIG)
-
-  private val PROJECTION_VARIANT_DEFS: Set<String> = emptySet()
 
   private fun formatReason(errors: Set<ValidationMessage>): String = errors.sortedBy { instanceLocationOf(it) }
     .take(MAX_REPORTED_VIOLATIONS)
@@ -64,68 +35,38 @@ object FeatureTaskRuntimePlanningProjectionSchemaValidator {
 
   private fun instanceLocationOf(error: ValidationMessage): String = error.instanceLocation?.toString().orEmpty()
 
-  fun assertIdentity(yamlNode: JsonNode) {
-    val loadedId = yamlNode.path("\$id").asText("")
-    require(loadedId == FeatureTaskRuntimePlanningProjectionsSchemaPaths.EXPECTED_SCHEMA_ID) {
-      "Canonical feature-task-runtime planning-projections schema identity mismatch: loaded '$loadedId' but expected " +
-        "'${FeatureTaskRuntimePlanningProjectionsSchemaPaths.EXPECTED_SCHEMA_ID}'. A stale or shadowed copy of the " +
-        "schema is on the classpath."
-    }
-    val loadedConst = yamlNode.path("\$defs").path("contractVersion").path("const").asText("")
-    require(loadedConst == FEATURE_TASK_RUNTIME_PLANNING_PROJECTIONS_CONTRACT_VERSION) {
-      "Canonical feature-task-runtime planning-projections schema contractVersion.const mismatch: loaded " +
-        "'$loadedConst' but the runtime expects '$FEATURE_TASK_RUNTIME_PLANNING_PROJECTIONS_CONTRACT_VERSION'."
-    }
-  }
-
   private const val MAX_REPORTED_VIOLATIONS: Int = 3
 
   private const val ROOT_INSTANCE_LOCATION: String = "<root>"
 }
 
-private fun loadPlanningProjectionsSchemaDocument(): JsonNode = try {
-  val yamlNode = YAMLMapper().readTree(readPlanningProjectionsSchemaText())
-  FeatureTaskRuntimePlanningProjectionSchemaValidator.assertIdentity(yamlNode)
-  yamlNode
-} catch (error: InvalidFeatureTaskRuntimePlanningProjectionSchemaError) {
-  throw error
-} catch (error: CancellationException) {
-  throw error
-} catch (error: JsonProcessingException) {
-  throw InvalidFeatureTaskRuntimePlanningProjectionSchemaError(
-    sourceLabel = FeatureTaskRuntimePlanningProjectionsSchemaPaths.CLASSPATH_RESOURCE,
-    reason = error.message ?: error::class.simpleName.orEmpty(),
-    cause = error,
+private fun schema(): JsonSchema =
+  ClasspathContractSchemaLoader.compiledSchema(
+    cacheKey = FeatureTaskRuntimePlanningProjectionsSchemaPaths.CLASSPATH_RESOURCE,
+    classLoader = FeatureTaskRuntimePlanningProjectionSchemaValidator::class.java.classLoader,
+    classpathResource = FeatureTaskRuntimePlanningProjectionsSchemaPaths.CLASSPATH_RESOURCE,
+    missingResource = {
+      InvalidFeatureTaskRuntimePlanningProjectionSchemaError(
+        sourceLabel = FeatureTaskRuntimePlanningProjectionsSchemaPaths.CLASSPATH_RESOURCE,
+        reason = "Canonical feature-task-runtime planning-projections schema is missing. Expected classpath resource " +
+          "'${FeatureTaskRuntimePlanningProjectionsSchemaPaths.CLASSPATH_RESOURCE}'.",
+      )
+    },
+    processingFailure = { cause ->
+      InvalidFeatureTaskRuntimePlanningProjectionSchemaError(
+        sourceLabel = FeatureTaskRuntimePlanningProjectionsSchemaPaths.CLASSPATH_RESOURCE,
+        reason = cause.message ?: cause::class.simpleName.orEmpty(),
+        cause = cause,
+      )
+    },
+    loadFailureLogger = {},
+    expectedSchemaId = FeatureTaskRuntimePlanningProjectionsSchemaPaths.EXPECTED_SCHEMA_ID,
+    expectedContractVersion = FEATURE_TASK_RUNTIME_PLANNING_PROJECTIONS_CONTRACT_VERSION,
+    contractVersionPath = listOf("\$defs", "contractVersion", "const"),
+    identityFailure = { reason ->
+      InvalidFeatureTaskRuntimePlanningProjectionSchemaError(
+        sourceLabel = FeatureTaskRuntimePlanningProjectionsSchemaPaths.CLASSPATH_RESOURCE,
+        reason = reason,
+      )
+    },
   )
-} catch (error: IOException) {
-  throw InvalidFeatureTaskRuntimePlanningProjectionSchemaError(
-    sourceLabel = FeatureTaskRuntimePlanningProjectionsSchemaPaths.CLASSPATH_RESOURCE,
-    reason = error.message ?: error::class.simpleName.orEmpty(),
-    cause = error,
-  )
-} catch (error: IllegalArgumentException) {
-  throw InvalidFeatureTaskRuntimePlanningProjectionSchemaError(
-    sourceLabel = FeatureTaskRuntimePlanningProjectionsSchemaPaths.CLASSPATH_RESOURCE,
-    reason = error.message ?: error::class.simpleName.orEmpty(),
-    cause = error,
-  )
-}
-
-private fun readPlanningProjectionsSchemaText(): String {
-  FeatureTaskRuntimePlanningProjectionSchemaValidator::class.java.classLoader
-    .getResourceAsStream(FeatureTaskRuntimePlanningProjectionsSchemaPaths.CLASSPATH_RESOURCE)
-    ?.use { return it.readBytes().toString(Charsets.UTF_8) }
-
-  val walkAnchor: Path = Path.of("").toAbsolutePath()
-  var current: Path? = walkAnchor.normalize()
-  while (current != null) {
-    val candidate = current.resolve(FeatureTaskRuntimePlanningProjectionsSchemaPaths.REPO_RELATIVE_PATH)
-    if (Files.isRegularFile(candidate)) return Files.readString(candidate)
-    current = current.parent
-  }
-  throw IllegalStateException(
-    "Canonical feature-task-runtime planning-projections schema is missing. Expected it on the JVM classpath at " +
-      "'${FeatureTaskRuntimePlanningProjectionsSchemaPaths.CLASSPATH_RESOURCE}' or on disk under " +
-      "'${FeatureTaskRuntimePlanningProjectionsSchemaPaths.REPO_RELATIVE_PATH}' walked up from: $walkAnchor.",
-  )
-}

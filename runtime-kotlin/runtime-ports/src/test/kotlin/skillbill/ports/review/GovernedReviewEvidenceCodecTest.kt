@@ -1,6 +1,7 @@
 package skillbill.ports.review
 
 import skillbill.contracts.JsonCodec
+import skillbill.error.InvalidGovernedReviewEvidenceRequestError
 import skillbill.ports.review.model.GovernedReviewEvidenceCodec
 import skillbill.ports.review.model.ReviewEvidenceBatchResult
 import skillbill.ports.review.model.ReviewEvidenceResult
@@ -10,9 +11,25 @@ import skillbill.review.context.model.ReviewExpansionRecord
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class GovernedReviewEvidenceCodecTest {
+  @Test
+  fun `non-object read selector fails with typed request error`() {
+    val error = assertFailsWith<InvalidGovernedReviewEvidenceRequestError> {
+      GovernedReviewEvidenceCodec.readRequest(
+        lane = "lane-a",
+        arguments = GovernedReviewJsonRpcArguments.from(
+          mapOf("requests" to listOf("not-an-object")),
+        ),
+        expansionById = { null },
+      )
+    }
+
+    assertEquals("review-evidence", error.operation)
+  }
+
   @Test
   fun `a refused read serialises a reason and no content field`() {
     val payload = GovernedReviewEvidenceCodec.batchResultPayload(

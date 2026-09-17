@@ -169,18 +169,6 @@ class GovernedReviewEvidenceEndpoint private constructor(
       GOVERNED_REVIEW_EVIDENCE_JSON_RPC_INVALID_PARAMS,
       error.message.orEmpty(),
     )
-  } catch (error: IllegalArgumentException) {
-    governedReviewEvidenceErrorResponse(
-      id,
-      GOVERNED_REVIEW_EVIDENCE_JSON_RPC_INVALID_PARAMS,
-      error.message.orEmpty(),
-    )
-  } catch (error: IllegalStateException) {
-    governedReviewEvidenceErrorResponse(
-      id,
-      GOVERNED_REVIEW_EVIDENCE_JSON_RPC_INVALID_PARAMS,
-      error.message.orEmpty(),
-    )
   }
   private fun read(arguments: Map<String, Any?>): Map<String, Any?> {
     val request = GovernedReviewEvidenceCodec.readRequest(
@@ -233,10 +221,7 @@ class GovernedReviewEvidenceEndpoint private constructor(
       } catch (error: IOException) {
         rollbackGovernedReviewBindArtifacts(channel, socketPath, directory)
         failure = error
-      } catch (error: IllegalArgumentException) {
-        rollbackGovernedReviewBindArtifacts(channel, socketPath, directory)
-        failure = error
-      } catch (error: IllegalStateException) {
+      } catch (error: ShellContentContractException) {
         rollbackGovernedReviewBindArtifacts(channel, socketPath, directory)
         failure = error
       }
@@ -258,13 +243,7 @@ class GovernedReviewEvidenceEndpoint private constructor(
           "Failed to bind the governed review evidence endpoint for lane '$lane'.",
           error,
         )
-      } catch (error: IllegalArgumentException) {
-        runCatching { Files.deleteIfExists(directory) }
-        failure = GovernedReviewEvidenceTransportError(
-          "Failed to bind the governed review evidence endpoint for lane '$lane'.",
-          error,
-        )
-      } catch (error: IllegalStateException) {
+      } catch (error: ShellContentContractException) {
         runCatching { Files.deleteIfExists(directory) }
         failure = GovernedReviewEvidenceTransportError(
           "Failed to bind the governed review evidence endpoint for lane '$lane'.",

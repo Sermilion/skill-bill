@@ -9,7 +9,7 @@ import skillbill.infrastructure.fs.FileSystemInstallPlatformSkillMaterialization
 import skillbill.infrastructure.fs.FileSystemInstallSelectionPersistence
 import skillbill.infrastructure.fs.FileSystemInstallStagingIntent
 import skillbill.infrastructure.fs.FileSystemUninstallFileSystemGateway
-import skillbill.infrastructure.fs.InstallPlanWireValidatorAdapter
+import skillbill.infrastructure.fs.contracts.install.InstallPlanSchemaValidator
 import skillbill.infrastructure.fs.skillremove.FileSystemSkillRemoveFileSystem
 import skillbill.install.model.InstallPlanWireValidator
 import skillbill.ports.install.addon.ExternalAddonOverlayPort
@@ -42,7 +42,7 @@ internal interface RuntimeInstallPlanProvides {
     adapter
 
   @Provides @JvmSynthetic
-  fun installPlanWireValidator(adapter: InstallPlanWireValidatorAdapter): InstallPlanWireValidator = adapter
+  fun installPlanWireValidator(validator: InstallPlanSchemaValidator): InstallPlanWireValidator = validator
 
   @Provides @JvmSynthetic
   fun externalAddonOverlayPort(adapter: FileSystemExternalAddonOverlay): ExternalAddonOverlayPort = adapter

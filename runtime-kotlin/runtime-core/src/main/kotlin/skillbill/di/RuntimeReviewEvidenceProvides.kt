@@ -6,7 +6,7 @@ import skillbill.infrastructure.fs.FileSystemFeatureTaskRuntimeSharedEvidenceSto
 import skillbill.infrastructure.fs.FileSystemReviewEvidenceBroker
 import skillbill.infrastructure.fs.FileSystemReviewInputSource
 import skillbill.infrastructure.fs.FileSystemReviewSnapshotGateway
-import skillbill.infrastructure.fs.ReviewContextEnvelopeValidatorAdapter
+import skillbill.infrastructure.fs.contracts.review.ReviewContextSchemaValidator
 import skillbill.infrastructure.fs.launcher.review.UnixSocketGovernedReviewEvidenceEndpointBinder
 import skillbill.ports.diff.DiffResolverPort
 import skillbill.ports.review.GovernedReviewEvidenceEndpointBinder
@@ -21,8 +21,8 @@ import skillbill.review.model.ParallelReviewParseResult
 
 internal interface RuntimeReviewEvidenceProvides {
   @Provides @JvmSynthetic
-  fun reviewContextEnvelopeValidator(adapter: ReviewContextEnvelopeValidatorAdapter): ReviewContextEnvelopeValidator =
-    adapter
+  fun reviewContextEnvelopeValidator(validator: ReviewContextSchemaValidator): ReviewContextEnvelopeValidator =
+    validator
 
   @Provides @JvmSynthetic
   fun reviewEvidenceBrokerFactory(): ReviewEvidenceBrokerFactory =

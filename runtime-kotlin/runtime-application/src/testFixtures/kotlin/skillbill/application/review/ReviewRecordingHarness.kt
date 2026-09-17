@@ -8,7 +8,7 @@ import skillbill.application.reviewevidence.model.ParallelReviewScope
 import skillbill.config.model.RepoLocalConfig
 import skillbill.infrastructure.fs.CanonicalRepositoryRoot
 import skillbill.infrastructure.fs.ClasspathReviewSpecialistContractProvider
-import skillbill.infrastructure.fs.DecompositionManifestValidatorAdapter
+import skillbill.infrastructure.fs.contracts.workflow.DecompositionManifestSchemaValidator
 import skillbill.infrastructure.fs.FileSystemDecompositionManifestFileStore
 import skillbill.infrastructure.fs.FileSystemDiffResolver
 import skillbill.infrastructure.fs.FileSystemReviewEvidenceBroker
@@ -214,7 +214,7 @@ fun reviewHarness(config: ReviewHarnessConfig, recorder: ReviewRecorder): Parall
     sharedEvidenceLocatorReader = sharedEvidenceLocatorReader,
     specIntentProjectionResolver = SpecIntentProjectionResolver(
       FileSystemDecompositionManifestFileStore(),
-      DecompositionManifestValidatorAdapter(),
+      DecompositionManifestSchemaValidator(),
       SpecIntentProjectionExtractor(
         object : ReviewContextEnvelopeValidator {
           override fun validate(envelope: ReviewContextWireMap, sourceLabel: String) = Unit

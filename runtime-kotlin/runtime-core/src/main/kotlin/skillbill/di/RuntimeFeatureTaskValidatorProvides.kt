@@ -1,30 +1,30 @@
 package skillbill.di
 
 import me.tatarka.inject.annotations.Provides
-import skillbill.infrastructure.fs.FeatureTaskRuntimePhaseOutputValidatorAdapter
-import skillbill.infrastructure.fs.FeatureTaskRuntimeWireArtifactValidatorAdapter
-import skillbill.infrastructure.fs.ProducerOutputEvidenceValidatorAdapter
-import skillbill.infrastructure.fs.RejectedOutputDiagnosticMetadataValidatorAdapter
+import skillbill.infrastructure.fs.FeatureTaskRuntimePhaseOutputSchemaValidator
+import skillbill.infrastructure.fs.FeatureTaskRuntimeWireArtifactValidator
+import skillbill.infrastructure.fs.ProducerOutputEvidenceSchemaValidator
+import skillbill.infrastructure.fs.RejectedOutputDiagnosticSchemaValidator
 import skillbill.ports.diagnostics.ProducerOutputEvidenceValidator
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticMetadataValidator
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator as FeatureTaskRuntimeWireArtifactValidatorPort
 
 internal interface RuntimeFeatureTaskValidatorProvides {
   @Provides @JvmSynthetic
   fun featureTaskRuntimePhaseOutputValidator(
-    adapter: FeatureTaskRuntimePhaseOutputValidatorAdapter,
-  ): FeatureTaskRuntimePhaseOutputValidator = adapter
+    validator: FeatureTaskRuntimePhaseOutputSchemaValidator,
+  ): FeatureTaskRuntimePhaseOutputValidator = validator
 
   @Provides @JvmSynthetic
   fun featureTaskRuntimeWireArtifactValidator(
-    adapter: FeatureTaskRuntimeWireArtifactValidatorAdapter,
-  ): FeatureTaskRuntimeWireArtifactValidator = adapter
+    validator: FeatureTaskRuntimeWireArtifactValidator,
+  ): FeatureTaskRuntimeWireArtifactValidatorPort = validator
 
   @Provides @JvmSynthetic
   fun rejectedOutputDiagnosticMetadataValidator(): RejectedOutputDiagnosticMetadataValidator =
-    RejectedOutputDiagnosticMetadataValidatorAdapter()
+    RejectedOutputDiagnosticSchemaValidator()
 
   @Provides @JvmSynthetic
-  fun producerOutputEvidenceValidator(): ProducerOutputEvidenceValidator = ProducerOutputEvidenceValidatorAdapter()
+  fun producerOutputEvidenceValidator(): ProducerOutputEvidenceValidator = ProducerOutputEvidenceSchemaValidator()
 }

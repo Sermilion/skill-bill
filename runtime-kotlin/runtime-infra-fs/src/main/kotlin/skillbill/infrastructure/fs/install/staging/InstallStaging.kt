@@ -1,5 +1,8 @@
 package skillbill.infrastructure.fs.install.staging
 
+import skillbill.error.InvalidInstallStagingError
+import skillbill.error.ShellContentContractException
+import skillbill.error.SkillBillRuntimeException
 import skillbill.infrastructure.fs.install.identity.SKILL_CONTENT_IDENTITY_FILENAME
 import skillbill.infrastructure.fs.install.identity.suppliedSkillContentIdentity
 import skillbill.infrastructure.fs.scaffold.platformpack.discoverPlatformPackManifests
@@ -108,18 +111,34 @@ private fun requireWithinSource(path: Path, resolvedSourceSkillDir: Path) {
   val realPath = try {
     path.toRealPath()
   } catch (_: IOException) {
-    throw IllegalArgumentException(
-      "Authored path '$path' under '$resolvedSourceSkillDir' could not be resolved to a real path.",
+    throw InvalidInstallStagingError(
+      sourceLabel = resolvedSourceSkillDir.toString(),
+      reason = "Authored path '$path' could not be resolved to a real path.",
     )
   }
   val realRoot = resolvedSourceSkillDir.toRealPath()
-  require(realPath.startsWith(realRoot)) {
-    "Authored path '$path' resolves to '$realPath' which escapes source skill dir '$realRoot'."
+  if (!realPath.startsWith(realRoot)) {
+    throw InvalidInstallStagingError(
+      sourceLabel = resolvedSourceSkillDir.toString(),
+      reason = "Authored path '$path' resolves to '$realPath' which escapes source skill dir '$realRoot'.",
+    )
   }
 }
 
 internal fun stageInstalledSkill(input: StageInstalledSkillInput): RenderedSkill {
-  val prepared = prepareStageInstalledSkill(input)
+  val prepared = try {
+    prepareStageInstalledSkill(input)
+  } catch (error: CancellationException) {
+    throw error
+  } catch (error: ShellContentContractException) {
+    throw error
+  } catch (error: Exception) {
+    throw InvalidInstallStagingError(
+      sourceLabel = input.sourceSkillDir.toString(),
+      reason = error.message ?: error::class.simpleName.orEmpty(),
+      cause = error,
+    )
+  }
   tryReusePreparedStageInstalledSkill(prepared, input.suppliedCompactIdentity)?.let { reused ->
     log.fine(
       "stageInstalledSkill reuse=true skill=${prepared.skillName} " +
@@ -166,10 +185,13 @@ private fun buildFreshInstallStaging(inputs: FreshInstallInputs): RenderedSkill 
   } catch (error: IOException) {
     logInstallStagingFailure(inputs, tempDir, promoted, error)
     failure = error
-  } catch (error: IllegalArgumentException) {
+  } catch (error: ShellContentContractException) {
     logInstallStagingFailure(inputs, tempDir, promoted, error)
     failure = error
-  } catch (error: IllegalStateException) {
+  } catch (error: SkillBillRuntimeException) {
+    logInstallStagingFailure(inputs, tempDir, promoted, error)
+    failure = error
+  } catch (error: Exception) {
     logInstallStagingFailure(inputs, tempDir, promoted, error)
     failure = error
   }

@@ -1,3 +1,0 @@
-package skillbill.infrastructure.fs
-
-typealias GoalObservabilityEventValidatorAdapter = FeatureTaskRuntimeWireArtifactValidatorAdapter

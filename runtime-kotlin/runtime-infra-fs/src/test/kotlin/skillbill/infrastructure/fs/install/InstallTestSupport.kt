@@ -1,7 +1,7 @@
 package skillbill.infrastructure.fs.install
 
 import skillbill.infrastructure.fs.FileTelemetryConfigStore
-import skillbill.infrastructure.fs.InstallPlanWireValidatorAdapter
+import skillbill.infrastructure.fs.contracts.install.InstallPlanSchemaValidator
 import skillbill.infrastructure.fs.install.runtime.InstallOperations
 import skillbill.infrastructure.fs.launcher.mcp.McpRegistrationOperations
 import skillbill.install.model.InstallApplyResult
@@ -16,7 +16,7 @@ import skillbill.ports.install.mcp.model.InstallMcpRegistrationResult
 import skillbill.ports.install.mcp.model.InstallMcpUnregistrationRequest
 import skillbill.ports.telemetry.TelemetryLevelMutator
 
-internal val installTestWireValidator: InstallPlanWireValidator = InstallPlanWireValidatorAdapter()
+internal val installTestWireValidator: InstallPlanWireValidator = InstallPlanSchemaValidator()
 
 private class InstallTestMcpRegistrationPort(
   private val environment: Map<String, String>,

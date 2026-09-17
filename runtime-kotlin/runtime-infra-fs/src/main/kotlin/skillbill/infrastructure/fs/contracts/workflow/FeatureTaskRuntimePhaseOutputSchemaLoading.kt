@@ -1,22 +1,17 @@
 package skillbill.infrastructure.fs.contracts.workflow
 
-import com.fasterxml.jackson.core.JsonProcessingException
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import com.networknt.schema.JsonSchema
-import com.networknt.schema.JsonSchemaFactory
-import com.networknt.schema.SpecVersion
+import skillbill.contracts.logSchemaLoadFailure
+import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
 import skillbill.contracts.workflow.FeatureTaskRuntimePhaseOutputSchemaPaths
 import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
-import skillbill.infrastructure.fs.contracts.LOCALE_STABLE_SCHEMA_CONFIG
-import java.nio.file.Files
-import java.nio.file.Path
+import skillbill.infrastructure.fs.contracts.ClasspathContractSchemaLoader
 import java.util.logging.Level
 import java.util.logging.Logger
 import kotlin.coroutines.cancellation.CancellationException
 
 internal val featureTaskRuntimePhaseOutputLog: Logger =
-  Logger.getLogger("skillbill.contracts.workflow.FeatureTaskRuntimePhaseOutputSchemaValidator")
+  Logger.getLogger("skillbill.contracts.workflow.FeatureTaskRuntimePhaseOutputWireSchema")
 
 internal const val FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE: String =
   FeatureTaskRuntimePhaseOutputSchemaPaths.CLASSPATH_RESOURCE
@@ -24,26 +19,35 @@ internal const val FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE: 
 internal const val FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_REPO_RELATIVE_PATH: String =
   FeatureTaskRuntimePhaseOutputSchemaPaths.REPO_RELATIVE_PATH
 
-internal fun loadFeatureTaskRuntimePhaseOutputSchema(): JsonSchema {
-  var failure: Throwable? = null
-  try {
-    val yamlText = readFeatureTaskRuntimePhaseOutputSchemaText()
-    val yamlNode = YAMLMapper().readTree(yamlText)
-    FeatureTaskRuntimePhaseOutputSchemaValidator.assertIdentity(yamlNode)
-    val jsonText = ObjectMapper().writeValueAsString(yamlNode)
-    val factory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012)
-    return factory.getSchema(jsonText, LOCALE_STABLE_SCHEMA_CONFIG)
-  } catch (cancellation: CancellationException) {
-    failure = cancellation
-  } catch (error: InvalidFeatureTaskRuntimePhaseOutputSchemaError) {
-    logFeatureTaskRuntimePhaseOutputSchemaLoadFailure(error)
-    failure = error
-  } catch (error: JsonProcessingException) {
-    logFeatureTaskRuntimePhaseOutputSchemaLoadFailure(error)
-    failure = error
-  }
-  throw failure
-}
+internal fun loadFeatureTaskRuntimePhaseOutputSchema(): JsonSchema =
+  ClasspathContractSchemaLoader.compiledSchema(
+    cacheKey = FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE,
+    classLoader = FeatureTaskRuntimePhaseOutputWireSchema::class.java.classLoader,
+    classpathResource = FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE,
+    missingResource = {
+      InvalidFeatureTaskRuntimePhaseOutputSchemaError(
+        sourceLabel = FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE,
+        reason = "Canonical feature-task-runtime phase output schema is missing. Expected to find it on the JVM " +
+          "classpath at '$FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE'.",
+      )
+    },
+    processingFailure = { cause ->
+      InvalidFeatureTaskRuntimePhaseOutputSchemaError(
+        sourceLabel = FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE,
+        reason = cause.message ?: cause::class.simpleName.orEmpty(),
+        cause = cause,
+      )
+    },
+    loadFailureLogger = { error -> logFeatureTaskRuntimePhaseOutputSchemaLoadFailure(error) },
+    expectedSchemaId = FeatureTaskRuntimePhaseOutputSchemaPaths.EXPECTED_SCHEMA_ID,
+    expectedContractVersion = FEATURE_TASK_RUNTIME_CONTRACT_VERSION,
+    identityFailure = { reason ->
+      InvalidFeatureTaskRuntimePhaseOutputSchemaError(
+        sourceLabel = FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE,
+        reason = reason,
+      )
+    },
+  )
 
 private fun logFeatureTaskRuntimePhaseOutputSchemaLoadFailure(error: Throwable) {
   featureTaskRuntimePhaseOutputLog.log(
@@ -56,22 +60,18 @@ private fun logFeatureTaskRuntimePhaseOutputSchemaLoadFailure(error: Throwable) 
   )
 }
 
-internal fun readFeatureTaskRuntimePhaseOutputSchemaText(): String {
-  FeatureTaskRuntimePhaseOutputSchemaValidator::class.java.classLoader
-    .getResourceAsStream(FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE)
-    ?.use { return it.readBytes().toString(Charsets.UTF_8) }
-  val walkAnchor: Path = Path.of("").toAbsolutePath()
-  val resolved = walkForFeatureTaskRuntimePhaseOutputSchemaFile(walkAnchor)
-  if (resolved != null) {
-    return Files.readString(resolved)
-  }
-  throw InvalidFeatureTaskRuntimePhaseOutputSchemaError(
-    sourceLabel = FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE,
-    reason = "Canonical feature-task-runtime phase output schema is missing. Expected to find it on the JVM " +
-      "classpath at '$FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE' or on disk under " +
-      "'$FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_REPO_RELATIVE_PATH' walked up from: $walkAnchor.",
+internal fun readFeatureTaskRuntimePhaseOutputSchemaText(): String =
+  ClasspathContractSchemaLoader.readClasspathYamlText(
+    classLoader = FeatureTaskRuntimePhaseOutputWireSchema::class.java.classLoader,
+    resource = FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE,
+    missingError = {
+      InvalidFeatureTaskRuntimePhaseOutputSchemaError(
+        sourceLabel = FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE,
+        reason = "Canonical feature-task-runtime phase output schema is missing. Expected to find it on the JVM " +
+          "classpath at '$FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_CLASSPATH_RESOURCE'.",
+      )
+    },
   )
-}
 
 private val FENCED_BLOCK = Regex("```[ \\t]*[A-Za-z0-9_-]*\\r?\\n(.*?)```", RegexOption.DOT_MATCHES_ALL)
 
@@ -142,16 +142,4 @@ private class TopLevelObjectScanner(private val text: String) {
     start = -1
     return span
   }
-}
-
-private fun walkForFeatureTaskRuntimePhaseOutputSchemaFile(hint: Path): Path? {
-  var current: Path? = hint.toAbsolutePath().normalize()
-  while (current != null) {
-    val candidate = current.resolve(FEATURE_TASK_RUNTIME_PHASE_OUTPUT_SCHEMA_REPO_RELATIVE_PATH)
-    if (Files.isRegularFile(candidate)) {
-      return candidate
-    }
-    current = current.parent
-  }
-  return null
 }

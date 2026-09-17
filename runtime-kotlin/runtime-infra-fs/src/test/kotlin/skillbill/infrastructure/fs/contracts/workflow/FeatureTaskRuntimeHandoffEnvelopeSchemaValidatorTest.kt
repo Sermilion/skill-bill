@@ -2,7 +2,7 @@ package skillbill.infrastructure.fs.contracts.workflow
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_HANDOFF_ENVELOPE_CONTRACT_VERSION
 import skillbill.error.FeatureTaskRuntimeHandoffProjectionFailureKind
 import skillbill.error.InvalidFeatureTaskRuntimeHandoffProjectionError
-import skillbill.infrastructure.fs.FeatureTaskRuntimeWireArtifactValidatorAdapter
+import skillbill.infrastructure.fs.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactKind
 import skillbill.workflow.taskruntime.validateEnvelope
 import kotlin.test.Test
@@ -11,7 +11,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 class FeatureTaskRuntimeHandoffEnvelopeSchemaValidatorTest {
-  private val validator = FeatureTaskRuntimeWireArtifactValidatorAdapter()
+  private val validator = FeatureTaskRuntimeWireArtifactValidator()
 
   @Test
   fun `every closed wire artifact kind dispatches to its schema validator`() {

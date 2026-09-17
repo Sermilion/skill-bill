@@ -85,7 +85,7 @@ class GovernedReviewEvidenceEndpointTest {
     val tempRoot = GovernedReviewEvidenceEndpoint.perLaunchRoot()
     val before = perLaunchDirectories(tempRoot)
 
-    assertFailsWith<IllegalArgumentException> {
+    assertFailsWith<GovernedReviewEvidenceTransportError> {
       GovernedReviewEvidenceEndpoint.bind("architecture", RecordingProtocol(), emptyList())
     }
 

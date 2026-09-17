@@ -12,15 +12,17 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
 import skillbill.contracts.workflow.FeatureTaskRuntimePhaseOutputSchemaPaths
 import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
+import skillbill.infrastructure.fs.contracts.ClasspathContractSchemaLoader
 import skillbill.workflow.taskruntime.model.NormalizedFeatureTaskRuntimePhaseOutput
 import java.util.logging.Level
 
-object FeatureTaskRuntimePhaseOutputSchemaValidator {
-  internal val schema: JsonSchema by lazy { loadFeatureTaskRuntimePhaseOutputSchema() }
-  internal val mapper: ObjectMapper by lazy { ObjectMapper() }
-  internal val yamlMapper: YAMLMapper by lazy {
+object FeatureTaskRuntimePhaseOutputWireSchema {
+  internal val schema: JsonSchema
+    get() = loadFeatureTaskRuntimePhaseOutputSchema()
+  internal val mapper: ObjectMapper
+    get() = ClasspathContractSchemaLoader.sharedObjectMapper()
+  internal val yamlMapper: YAMLMapper =
     YAMLMapper(YAMLFactory().apply { enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION) })
-  }
   internal val mapType = object : TypeReference<Map<String, Any?>>() {}
 
   fun validate(phaseOutput: Map<String, Any?>, sourceLabel: String) {
@@ -88,24 +90,4 @@ object FeatureTaskRuntimePhaseOutputSchemaValidator {
     sourceLabel: String,
   ): NormalizedFeatureTaskRuntimePhaseOutput = normalizeVerifyingPhaseOutputLenient(phaseOutputText, sourceLabel)
 
-  fun assertIdentity(yamlNode: JsonNode) {
-    val loadedId = yamlNode.path("\$id").asText("")
-    if (loadedId != FeatureTaskRuntimePhaseOutputSchemaPaths.EXPECTED_SCHEMA_ID) {
-      throw InvalidFeatureTaskRuntimePhaseOutputSchemaError(
-        sourceLabel = FeatureTaskRuntimePhaseOutputSchemaPaths.CLASSPATH_RESOURCE,
-        reason = "Canonical feature-task-runtime phase output schema identity mismatch: loaded '\$id' is " +
-          "'$loadedId' but expected '${FeatureTaskRuntimePhaseOutputSchemaPaths.EXPECTED_SCHEMA_ID}'. A stale or " +
-          "shadowed copy of the schema is on the classpath.",
-      )
-    }
-    val loadedConst = yamlNode.path("properties").path("contract_version").path("const").asText("")
-    if (loadedConst != FEATURE_TASK_RUNTIME_CONTRACT_VERSION) {
-      throw InvalidFeatureTaskRuntimePhaseOutputSchemaError(
-        sourceLabel = FeatureTaskRuntimePhaseOutputSchemaPaths.CLASSPATH_RESOURCE,
-        reason = "Canonical feature-task-runtime phase output schema contract_version.const mismatch: loaded " +
-          "'$loadedConst' but the runtime expects '$FEATURE_TASK_RUNTIME_CONTRACT_VERSION'. The schema on the " +
-          "classpath is out of date relative to the running runtime-contracts.",
-      )
-    }
-  }
 }

@@ -1,6 +1,7 @@
 package skillbill.infrastructure.fs.agentaddon
 
 import skillbill.error.InvalidAgentAddonSchemaError
+import skillbill.error.InvalidAgentAddonAgentIdError
 import skillbill.error.MissingAgentAddonDeclarationError
 import skillbill.install.model.InstallAgent
 import skillbill.ports.repository.toFileLocation
@@ -12,6 +13,15 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class AgentAddonSourceLoaderTest {
+
+  @Test
+  fun `unknown agent id fails with typed parse error`() {
+    val error = assertFailsWith<InvalidAgentAddonAgentIdError> {
+      AgentAddonAgentIds.parse("unsupported-agent")
+    }
+
+    assertTrue(error.reason.contains("Unknown agent"), error.reason)
+  }
 
   @Test
   fun `absent and empty roots are valid`() {

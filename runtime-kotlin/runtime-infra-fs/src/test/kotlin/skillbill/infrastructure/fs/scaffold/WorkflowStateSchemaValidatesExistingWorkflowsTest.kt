@@ -3,7 +3,6 @@ package skillbill.infrastructure.fs.scaffold
 import skillbill.application.workflow.WorkflowWireProjections
 import skillbill.contracts.JsonCodec
 import skillbill.error.InvalidWorkflowStateSchemaError
-import skillbill.infrastructure.fs.WorkflowSnapshotValidatorInfraAdapter
 import skillbill.infrastructure.fs.WorkflowStateSnapshotWireMapper
 import skillbill.infrastructure.fs.contracts.workflow.WorkflowStateSchemaValidator
 import skillbill.workflow.engine.WorkflowEngine
@@ -25,7 +24,7 @@ import kotlin.test.assertFailsWith
 class WorkflowStateSchemaValidatesExistingWorkflowsTest {
 
   private val validator = WorkflowStateSchemaValidator()
-  private val engine: WorkflowEngine = WorkflowEngine(WorkflowSnapshotValidatorInfraAdapter())
+  private val engine: WorkflowEngine = WorkflowEngine(WorkflowStateSchemaValidator())
 
   @Test
   fun `every feature-task step snapshot from the engine validates clean`() {

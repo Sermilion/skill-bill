@@ -321,7 +321,7 @@ class InstallStagingTest {
     val cacheRoot = installedSkillsCacheRoot(fixture.home)
     val priorChildren = listCacheChildren(cacheRoot)
 
-    assertFailsWith<IllegalArgumentException> {
+    assertFailsWith<skillbill.error.InvalidInstallStagingError> {
       stageInstalledSkill(fixture.repoRoot, fixture.skillDir, fixture.home)
     }
     val newChildren = listCacheChildren(cacheRoot) - priorChildren

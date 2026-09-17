@@ -9,7 +9,9 @@ import java.nio.file.attribute.PosixFilePermissions
 
 object GovernedReviewMcpConfigWriter {
   fun write(configPath: Path, bridgeCommand: List<String>, socketPath: Path, token: String, lane: String): Path {
-    require(bridgeCommand.isNotEmpty()) { "A governed review MCP bridge command is required." }
+    if (bridgeCommand.isEmpty()) {
+      throw GovernedReviewEvidenceTransportError("A governed review MCP bridge command is required.")
+    }
     val env = linkedMapOf(
       GovernedReviewEvidenceCodec.SOCKET_ENV to socketPath.toString(),
       GovernedReviewEvidenceCodec.TOKEN_ENV to token,

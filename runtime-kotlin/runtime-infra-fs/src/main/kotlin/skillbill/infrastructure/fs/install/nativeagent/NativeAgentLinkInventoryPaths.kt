@@ -9,7 +9,6 @@ import java.security.MessageDigest
 internal object NativeAgentLinkInventoryLimits {
   const val MAX_BYTES = 1024 * 1024L
   const val DIGEST_HEX_LENGTH = 64
-  val EMPTY_DIGEST = "0".repeat(DIGEST_HEX_LENGTH)
   const val MAX_SOURCE_ROOT_LENGTH = 4096
   val LOGICAL_NAME = Regex("[a-z0-9](?:[a-z0-9-]*[a-z0-9])?")
   val CACHE_GENERATION = Regex("(?:[a-z0-9](?:[a-z0-9-]{0,31})-)?[0-9a-f]{16}")

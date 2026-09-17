@@ -11,7 +11,7 @@ import skillbill.featurespec.model.FeatureSpecPreparationMode
 import skillbill.featurespec.model.FeatureSpecSubtaskPreparation
 import skillbill.featurespec.model.FeatureSpecWriteRequest
 import skillbill.featurespec.model.FeatureSpecWriteResult
-import skillbill.infrastructure.fs.DecompositionManifestValidatorAdapter
+import skillbill.infrastructure.fs.contracts.workflow.DecompositionManifestSchemaValidator
 import skillbill.infrastructure.fs.FileSystemDecompositionManifestFileStore
 import skillbill.model.RuntimeContext
 import skillbill.workflow.decomposition.model.DecompositionManifest
@@ -24,7 +24,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class FeatureSpecPreparationWriterValidationTest {
-  private val validator = DecompositionManifestValidatorAdapter()
+  private val validator = DecompositionManifestSchemaValidator()
   private val fileStore = FileSystemDecompositionManifestFileStore()
   private val writer = FeatureSpecPreparationWriter(validator, fileStore, DecompositionManifestWriter())
 

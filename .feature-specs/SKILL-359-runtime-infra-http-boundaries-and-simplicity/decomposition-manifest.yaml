@@ -1,12 +1,12 @@
 ---
 contract_version: "0.5"
-issue_key: "SKILL-355"
+issue_key: "SKILL-359"
 feature_name: "runtime-infra-http-boundaries-and-simplicity"
-parent_spec_path: ".feature-specs/SKILL-355-runtime-infra-http-boundaries-and-simplicity/spec.md"
+parent_spec_path: ".feature-specs/SKILL-359-runtime-infra-http-boundaries-and-simplicity/spec.md"
 status: "pending"
 execution_model: "same_branch_commit_per_subtask"
 base_branch: "main"
-feature_branch: "feat/SKILL-355-runtime-infra-http-boundaries-and-simplicity"
+feature_branch: "feat/SKILL-359-runtime-infra-http-boundaries-and-simplicity"
 stack_branches: []
 current_subtask_intent:
   subtask_id: 1
@@ -14,7 +14,7 @@ current_subtask_intent:
 subtasks:
 - id: 1
   name: "Resolved dependencies, typed results, one transport, and adapter tests"
-  spec_path: ".feature-specs/SKILL-355-runtime-infra-http-boundaries-and-simplicity/spec_subtask_1_resolved-dependencies-typed-results-one-transport-and-adapter-tests.md"
+  spec_path: ".feature-specs/SKILL-359-runtime-infra-http-boundaries-and-simplicity/spec_subtask_1_resolved-dependencies-typed-results-one-transport-and-adapter-tests.md"
   status: "pending"
   branch: null
   commit_sha: null
@@ -27,7 +27,7 @@ subtasks:
   dependencies: []
 - id: 2
   name: "Own the telemetry proxy vocabulary once and register the seam"
-  spec_path: ".feature-specs/SKILL-355-runtime-infra-http-boundaries-and-simplicity/spec_subtask_2_own-the-telemetry-proxy-vocabulary-once-and-register-the-seam.md"
+  spec_path: ".feature-specs/SKILL-359-runtime-infra-http-boundaries-and-simplicity/spec_subtask_2_own-the-telemetry-proxy-vocabulary-once-and-register-the-seam.md"
   status: "pending"
   branch: null
   commit_sha: null

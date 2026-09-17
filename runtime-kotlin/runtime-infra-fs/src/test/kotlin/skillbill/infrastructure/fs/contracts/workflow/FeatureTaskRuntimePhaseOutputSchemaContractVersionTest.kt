@@ -55,7 +55,7 @@ class FeatureTaskRuntimePhaseOutputSchemaContractVersionTest {
   }
 
   private fun classpathSchema(): JsonNode {
-    val resourceStream = FeatureTaskRuntimePhaseOutputSchemaValidator::class.java.classLoader
+    val resourceStream = FeatureTaskRuntimePhaseOutputWireSchema::class.java.classLoader
       .getResourceAsStream(FeatureTaskRuntimePhaseOutputSchemaPaths.CLASSPATH_RESOURCE)
     assertNotNull(
       resourceStream,

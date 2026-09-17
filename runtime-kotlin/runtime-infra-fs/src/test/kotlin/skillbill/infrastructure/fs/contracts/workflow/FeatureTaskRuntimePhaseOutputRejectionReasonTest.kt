@@ -19,7 +19,7 @@ class FeatureTaskRuntimePhaseOutputRejectionReasonTest {
         """"status":"$offendingValue","summary":"Plan output.","produced_outputs":{"value":"Plan prose."}}"""
 
     val error = assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(envelope, "plan")
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(envelope, "plan")
     }
 
     assertContains(error.reason, offendingValue, message = "the private reason must keep the offending value")
@@ -42,7 +42,7 @@ class FeatureTaskRuntimePhaseOutputRejectionReasonTest {
         """"summary":"Plan output.","produced_outputs":{"value":"Plan prose."}}"""
 
     val error = assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(envelope, "plan")
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(envelope, "plan")
     }
 
     val payloadFree = assertNotNull(error.payloadFreeReason)
@@ -62,7 +62,7 @@ class FeatureTaskRuntimePhaseOutputRejectionReasonTest {
         """"summary":"Plan output.","produced_outputs":{"value":"Plan prose."}}"""
 
     val error = assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(envelope, "plan")
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(envelope, "plan")
     }
 
     assertContains(error.reason, "implement-but-lying")
@@ -75,7 +75,7 @@ class FeatureTaskRuntimePhaseOutputRejectionReasonTest {
   @Test
   fun `a malformed output keeps its composer key phrase without the offending token`() {
     val error = assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText("{\"a\": :}", "plan")
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText("{\"a\": :}", "plan")
     }
 
     val payloadFree = assertNotNull(error.payloadFreeReason)
@@ -87,7 +87,7 @@ class FeatureTaskRuntimePhaseOutputRejectionReasonTest {
   @Test
   fun `a root that is not an object carries the same value-free reason in both variants`() {
     val error = assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText("- just\n- a list", "plan")
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText("- just\n- a list", "plan")
     }
 
     assertEquals("<root> must be an object.", error.payloadFreeReason)
@@ -102,7 +102,7 @@ class FeatureTaskRuntimePhaseOutputRejectionReasonTest {
         """"verdict":"satisfied","produced_outputs":{"value":"$offendingValue"}}"""
 
     val error = assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(envelope, "audit")
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(envelope, "audit")
     }
 
     assertContains(error.reason, "value")

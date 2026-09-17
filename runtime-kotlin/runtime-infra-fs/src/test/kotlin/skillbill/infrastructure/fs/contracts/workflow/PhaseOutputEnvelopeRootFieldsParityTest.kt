@@ -9,7 +9,7 @@ import kotlin.test.assertNotNull
 class PhaseOutputEnvelopeRootFieldsParityTest {
   @Test
   fun `ENVELOPE_ROOT_FIELDS names exactly the schema's declared root properties`() {
-    val resourceStream = FeatureTaskRuntimePhaseOutputSchemaValidator::class.java.classLoader
+    val resourceStream = FeatureTaskRuntimePhaseOutputWireSchema::class.java.classLoader
       .getResourceAsStream(FeatureTaskRuntimePhaseOutputSchemaPaths.CLASSPATH_RESOURCE)
     assertNotNull(
       resourceStream,
@@ -30,7 +30,7 @@ class PhaseOutputEnvelopeRootFieldsParityTest {
 
   @Test
   fun `the closed root is what makes a stray key unambiguous`() {
-    val schema = FeatureTaskRuntimePhaseOutputSchemaValidator::class.java.classLoader
+    val schema = FeatureTaskRuntimePhaseOutputWireSchema::class.java.classLoader
       .getResourceAsStream(FeatureTaskRuntimePhaseOutputSchemaPaths.CLASSPATH_RESOURCE)
       .let { stream -> YAMLMapper().readTree(requireNotNull(stream).use { it.readBytes().toString(Charsets.UTF_8) }) }
 

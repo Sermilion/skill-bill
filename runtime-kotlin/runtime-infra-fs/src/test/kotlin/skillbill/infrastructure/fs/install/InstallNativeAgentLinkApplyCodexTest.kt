@@ -1,6 +1,6 @@
 package skillbill.infrastructure.fs.install
 
-import skillbill.error.InvalidNativeAgentLinkInventorySchemaError
+import skillbill.error.InvalidNativeAgentLinkInventoryDecodeError
 import skillbill.error.MissingInstalledNativeAgentError
 import skillbill.infrastructure.fs.FileSystemReviewNativeAgentPreflight
 import skillbill.infrastructure.fs.install.apply.currentNativeAgentApplyCacheRoot
@@ -42,7 +42,7 @@ class InstallNativeAgentLinkApplyCodexTest : InstallNativeAgentLinkApplyTestSupp
       ),
     )
 
-    assertFailsWith<InvalidNativeAgentLinkInventorySchemaError> {
+    assertFailsWith<InvalidNativeAgentLinkInventoryDecodeError> {
       NativeAgentLinkInventory.read(fixture.home, listOf(cacheRoot))
     }
   }
@@ -70,7 +70,7 @@ class InstallNativeAgentLinkApplyCodexTest : InstallNativeAgentLinkApplyTestSupp
       """.trimIndent(),
     )
 
-    assertFailsWith<InvalidNativeAgentLinkInventorySchemaError> {
+    assertFailsWith<InvalidNativeAgentLinkInventoryDecodeError> {
       NativeAgentLinkInventory.read(fixture.home, listOf(cacheRoot))
     }
   }

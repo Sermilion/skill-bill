@@ -2,7 +2,7 @@ package skillbill.infrastructure.fs.phaseoutput
 
 import skillbill.contracts.JsonCodec
 import skillbill.error.FeatureTaskRuntimePhaseOutputFailureCode
-import skillbill.infrastructure.fs.FeatureTaskRuntimePhaseOutputValidatorAdapter
+import skillbill.infrastructure.fs.FeatureTaskRuntimePhaseOutputSchemaValidator
 import skillbill.workflow.taskruntime.envelopeWireMap
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputFormat
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairOperation
@@ -14,7 +14,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 class FeatureTaskRuntimePhaseOutputStructuralRepairTest {
-  private val adapter = FeatureTaskRuntimePhaseOutputValidatorAdapter()
+  private val adapter = FeatureTaskRuntimePhaseOutputSchemaValidator()
 
   private val validJson =
     """{"contract_version":"0.6","phase_id":"plan","status":"completed","summary":"Plan output.",""" +

@@ -2,7 +2,7 @@ package skillbill.application
 
 import skillbill.contracts.JsonCodec
 import skillbill.error.InvalidDecompositionManifestSchemaError
-import skillbill.infrastructure.fs.DecompositionManifestValidatorAdapter
+import skillbill.infrastructure.fs.contracts.workflow.DecompositionManifestSchemaValidator
 import skillbill.infrastructure.fs.FileSystemDecompositionManifestFileStore
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.workflow.decomposition.DecompositionManifestValidator
@@ -23,7 +23,7 @@ import kotlin.test.assertTrue
 
 class DecompositionManifestValidationTest {
   private val realDecompositionManifestValidator: DecompositionManifestValidator =
-    DecompositionManifestValidatorAdapter()
+    DecompositionManifestSchemaValidator()
   private val fileStore = FileSystemDecompositionManifestFileStore()
 
   @Test

@@ -1,5 +1,5 @@
 package skillbill.workflow
-import skillbill.infrastructure.fs.WorkflowSnapshotValidatorInfraAdapter
+import skillbill.infrastructure.fs.contracts.workflow.WorkflowStateSchemaValidator
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
@@ -12,7 +12,7 @@ import kotlin.test.assertTrue
 
 class FeatureVerifyWorkflowRuntimeTest {
   private val definition = FeatureVerifyWorkflowDefinition.definition
-  private val validator = WorkflowSnapshotValidatorInfraAdapter()
+  private val validator = WorkflowStateSchemaValidator()
   private val engine = WorkflowEngine(validator) { "abc123" }
 
   @Test

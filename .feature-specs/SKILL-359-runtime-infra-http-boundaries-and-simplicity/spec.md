@@ -1,4 +1,4 @@
-# SKILL-355 - runtime-infra-http-boundaries-and-simplicity
+# SKILL-359 - runtime-infra-http-boundaries-and-simplicity
 
 ## Mode
 
@@ -19,7 +19,7 @@ The investigation covers all 6 production files and 2 test files in runtime-infr
 
 Two subtasks. The first reshapes the module and its composition, and moves its tests; it changes no byte on the wire. The second changes where the wire keys are declared across three modules and adds a guard seam; it is specified against the key set the first subtask leaves behind (F-003 removes the echoed request keys from the client), so it runs after the first lands. Each subtask is one commit on the feature branch.
 
-Prepared in local mode on 2026-09-17. SKILL-355 follows SKILL-354, the highest existing local spec key; the user authorised the next available key. Baseline HEAD is `d8a103a1ebf88662fc7f7db7b6efce4bfd24a905` with a clean tracked tree; the sorted production-file digest is `d1b3b7e8ac54513df6af55f4902d658d64cb63178a93379fba10c4bed56dade5`; the module suite passes with 4 tests. SKILL-354 later moves this module under `runtime-infra/` unchanged; nothing here depends on that move or blocks it. This bundle prepares work only; all subtasks start pending.
+Prepared in local mode on 2026-09-17. SKILL-359 follows SKILL-358, the highest existing local spec key; the user authorised the next available key. Baseline HEAD is `d8a103a1ebf88662fc7f7db7b6efce4bfd24a905` with a clean tracked tree; the sorted production-file digest is `d1b3b7e8ac54513df6af55f4902d658d64cb63178a93379fba10c4bed56dade5`; the module suite passes with 4 tests. SKILL-354 later moves this module under `runtime-infra/` unchanged; nothing here depends on that move or blocks it. This bundle prepares work only; all subtasks start pending.
 
 ## Acceptance Criteria
 
@@ -61,4 +61,4 @@ Name the regression before each test: a stats call that reads a stale default be
 
 ## Next path
 
-Run `skill-bill goal SKILL-355` when implementation is intended. The prepared manifest is the goal runner's input.
+Run `skill-bill goal SKILL-359` when implementation is intended. The prepared manifest is the goal runner's input.

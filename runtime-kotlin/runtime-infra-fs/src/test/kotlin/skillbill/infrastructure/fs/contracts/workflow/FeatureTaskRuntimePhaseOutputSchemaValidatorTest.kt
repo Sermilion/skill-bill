@@ -2,7 +2,7 @@ package skillbill.infrastructure.fs.contracts.workflow
 
 import skillbill.error.FeatureTaskRuntimePhaseOutputFailureCode
 import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
-import skillbill.infrastructure.fs.FeatureTaskRuntimePhaseOutputValidatorAdapter
+import skillbill.infrastructure.fs.FeatureTaskRuntimePhaseOutputSchemaValidator
 import skillbill.workflow.taskruntime.envelopeWireMap
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputValidationResult
 import kotlin.test.Test
@@ -11,7 +11,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertNull
-class FeatureTaskRuntimePhaseOutputSchemaValidatorTest {
+class FeatureTaskRuntimePhaseOutputWireSchemaTest {
   private val wellFormed =
     """
     contract_version: "0.6"
@@ -24,7 +24,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorTest {
 
   @Test
   fun `well-formed phase output passes validation`() {
-    FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(wellFormed, "plan")
+    FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(wellFormed, "plan")
   }
 
   @Test
@@ -33,7 +33,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorTest {
       """{"contract_version":"0.6","phase_id":"plan","status":"completed","summary":"ok",""" +
         """"produced_outputs":{"value":"Plan prose."}}]"""
 
-    val normalized = FeatureTaskRuntimePhaseOutputValidatorAdapter().normalizePhaseOutput(malformed, "plan")
+    val normalized = FeatureTaskRuntimePhaseOutputSchemaValidator().normalizePhaseOutput(malformed, "plan")
 
     assertContains(normalized.canonicalJson, "\"phase_id\":\"plan\"")
     assertEquals("plan", normalized.envelopeWireMap()["phase_id"])
@@ -45,7 +45,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorTest {
       .replace("status: \"completed\"", "status: \"blocked\"") +
       "\nfailure_disposition: \"non_retryable_policy_conflict\""
 
-    FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(blocked, "plan")
+    FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(blocked, "plan")
   }
 
   @Test
@@ -55,7 +55,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorTest {
       "\nfailure_disposition: \"try_forever\""
 
     assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(blocked, "plan")
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(blocked, "plan")
     }
   }
 
@@ -77,13 +77,13 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorTest {
         audit_repair_plan: {}
       """.trimIndent()
 
-    FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(legacy, "audit")
+    FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(legacy, "audit")
   }
 
   @Test
   fun `empty object fails validation`() {
     assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText("{}", "plan")
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText("{}", "plan")
     }
   }
 
@@ -98,7 +98,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorTest {
         value: "Plan prose."
       """.trimIndent()
     assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(missingSummary, "plan")
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(missingSummary, "plan")
     }
   }
 
@@ -115,7 +115,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorTest {
       rogue_field: "nope"
       """.trimIndent()
     assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(extraField, "plan")
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(extraField, "plan")
     }
   }
 
@@ -123,7 +123,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorTest {
   fun `output with the wrong contract version fails validation`() {
     val wrongVersion = wellFormed.replace("\"0.6\"", "\"9.9\"")
     assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(wrongVersion, "plan")
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(wrongVersion, "plan")
     }
   }
 
@@ -132,7 +132,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorTest {
     val wrongPhase = wellFormed.replace("phase_id: \"plan\"", "phase_id: \"implement\"")
 
     assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(wrongPhase, "plan")
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(wrongPhase, "plan")
     }
   }
 
@@ -147,7 +147,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorTest {
       produced_outputs: {}
       """.trimIndent()
     assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(emptyProducedOutputs, "plan")
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(emptyProducedOutputs, "plan")
     }
   }
 
@@ -161,7 +161,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorTest {
       summary: "Gate repair segment."
       produced_outputs: {}
       """.trimIndent()
-    FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(emptyProducedOutputs, "validate")
+    FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(emptyProducedOutputs, "validate")
   }
 
   @Test
@@ -176,13 +176,13 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorTest {
         value: "Plan prose."
         owner: "agent"
       """.trimIndent()
-    FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(populated, "plan")
+    FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(populated, "plan")
   }
 
   @Test
   fun `output with a non-empty derived_notes string passes validation`() {
     val withNotes = wellFormed + "\nderived_notes: \"a useful note\""
-    FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(withNotes, "plan")
+    FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(withNotes, "plan")
   }
 
   @Test
@@ -199,7 +199,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorTest {
           - severity: "blocker"
             message: "Foo.kt leaks a connection"
       """.trimIndent()
-    FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(reviewWithVerdict, "review")
+    FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(reviewWithVerdict, "review")
   }
 
   @Test
@@ -221,7 +221,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorTest {
             message: "ignored"
         legacy_sibling: "ignored"
       """.trimIndent()
-    FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(verifyFindings, "verify_findings")
+    FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(verifyFindings, "verify_findings")
   }
 
   @Test
@@ -231,7 +231,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorTest {
         """"summary":"verify","produced_outputs":{"finding_dispositions":""" +
         """[{"finding_id":"F-001","disposition":"verified"}]}}"""
     assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(missingVerdict, "verify_findings")
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(missingVerdict, "verify_findings")
     }
   }
 
@@ -242,7 +242,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorTest {
         """"summary":"verify","verdict":"mostly_verified",""" +
         """"produced_outputs":{"finding_dispositions":[{"finding_id":"F-001","disposition":"verified"}]}}"""
     assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(badVerdict, "verify_findings")
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(badVerdict, "verify_findings")
     }
   }
 
@@ -253,7 +253,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorTest {
         """"summary":"verify","verdict":"findings_verified",""" +
         """"produced_outputs":{"finding_dispositions":[{"finding_id":"F-001","disposition":"verified"}]}}"""
     assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(legacy, "verify_findings")
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(legacy, "verify_findings")
     }
   }
 
@@ -278,7 +278,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorTest {
             disposition: "verified"
             boundary_context_unavailable: true
       """.trimIndent()
-    FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(verifyFindings, "verify_findings")
+    FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(verifyFindings, "verify_findings")
   }
 
   @Test
@@ -304,20 +304,20 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorTest {
                 source_path: "runtime-kotlin/agent/history.md"
       """.trimIndent()
     assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(verifyFindings, "verify_findings")
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(verifyFindings, "verify_findings")
     }
   }
 
   @Test
   fun `output omitting the optional verdict still validates`() {
-    FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(wellFormed, "plan")
+    FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(wellFormed, "plan")
   }
 
   @Test
   fun `output with a null verdict fails validation`() {
     val nullVerdict = wellFormed + "\nverdict: null"
     assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(nullVerdict, "plan")
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(nullVerdict, "plan")
     }
   }
 
@@ -325,7 +325,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorTest {
   fun `output with a null derived_notes fails validation`() {
     val nullNotes = wellFormed + "\nderived_notes: null"
     assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(nullNotes, "plan")
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(nullNotes, "plan")
     }
   }
 
@@ -333,7 +333,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorTest {
   fun `output with an empty derived_notes string fails validation`() {
     val emptyNotes = wellFormed + "\nderived_notes: \"\""
     assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(emptyNotes, "plan")
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(emptyNotes, "plan")
     }
   }
 
@@ -341,14 +341,14 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorTest {
   fun `output with an invalid status enum fails validation`() {
     val badStatus = wellFormed.replace("status: \"completed\"", "status: \"halfway\"")
     assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(badStatus, "plan")
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(badStatus, "plan")
     }
   }
 
   @Test
   fun `malformed yaml fails validation`() {
     assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(
         "contract_version: \"0.1\"\n  : broken",
         "plan",
       )
@@ -358,7 +358,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorTest {
   @Test
   fun `non-object root fails validation`() {
     assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText("- just-a-list", "plan")
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText("- just-a-list", "plan")
     }
   }
 
@@ -367,7 +367,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorTest {
     val rawJson =
       """{"contract_version":"0.6","phase_id":"plan","status":"completed",""" +
         """"summary":"ok","produced_outputs":{"value":"Plan prose."}}"""
-    FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(rawJson, "plan")
+    FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(rawJson, "plan")
   }
 
   @Test
@@ -383,11 +383,11 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorTest {
 
       Done.
       """.trimIndent()
-    FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(fenced, "plan")
+    FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(fenced, "plan")
   }
 }
 
-class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
+class FeatureTaskRuntimePhaseOutputWireSchemaEnvelopeTest {
 
   @Test
   fun `json with surrounding prose passes validation`() {
@@ -398,7 +398,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
        "summary":"ok","produced_outputs":{"value":"Plan prose."}}
       Let me know if you need anything else.
       """.trimIndent()
-    FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(withProse, "plan")
+    FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(withProse, "plan")
   }
 
   @Test
@@ -417,7 +417,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
       ```
       """.trimIndent()
     val error = assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(twoBlocks, "plan")
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(twoBlocks, "plan")
     }
     assertContains(error.reason, "multiple conflicting schema-valid envelopes")
   }
@@ -434,7 +434,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
        "summary":"every criterion met","verdict":"satisfied","produced_outputs":{"value":"{\"gaps\":[]}"}}
       """.trimIndent()
     val error = assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(twoObjects, "audit")
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(twoObjects, "audit")
     }
     assertContains(error.reason, "multiple conflicting schema-valid envelopes")
   }
@@ -444,7 +444,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
     val emptyRemainingList =
       """{"contract_version":"0.6","phase_id":"audit","status":"completed","summary":"audit",""" +
         """"produced_outputs":{"value":"[]"}}"""
-    FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(emptyRemainingList, "audit")
+    FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(emptyRemainingList, "audit")
   }
 
   @Test
@@ -453,7 +453,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
       """{"contract_version":"0.6","phase_id":"audit","status":"completed","summary":"audit",""" +
         """"verdict":"mostly_satisfied","produced_outputs":{"value":"{\"gaps\":[]}"}}"""
     assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(badVerdict, "audit")
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(badVerdict, "audit")
     }
   }
 
@@ -462,7 +462,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
     val inventedVerdict =
       """{"contract_version":"0.6","phase_id":"audit","status":"completed","summary":"audit",""" +
         """"verdict":"remediation_required","produced_outputs":{"value":"- AC-002 still open"}}"""
-    val normalized = FeatureTaskRuntimePhaseOutputSchemaValidator.normalizePhaseOutput(inventedVerdict, "audit")
+    val normalized = FeatureTaskRuntimePhaseOutputWireSchema.normalizePhaseOutput(inventedVerdict, "audit")
     assertNull(normalized.envelopeWireMap()["verdict"])
     assertEquals(
       "- AC-002 still open",
@@ -478,7 +478,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
       """{"contract_version":"0.6","phase_id":"audit","status":"completed","summary":"audit",""" +
         """"verdict":"satisfied","produced_outputs":{"value":"   "}}"""
     assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(blankValue, "audit")
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(blankValue, "audit")
     }
   }
 
@@ -488,7 +488,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
       """{"contract_version":"0.6","phase_id":"audit","status":"completed","summary":"audit",""" +
         """"verdict":"gaps_found","produced_outputs":{"value":"{\"gaps\":[]}"}}"""
     assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(gapsFound, "audit")
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(gapsFound, "audit")
     }
   }
 
@@ -505,7 +505,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
         value: "Planning criterion list unreadable."
       """.trimIndent()
 
-    FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(blocked, "audit")
+    FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(blocked, "audit")
   }
 
   @Test
@@ -523,7 +523,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
       """.trimIndent()
 
     assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(blockedWithVerdict, "audit")
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(blockedWithVerdict, "audit")
     }
   }
 
@@ -540,7 +540,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
       """.trimIndent()
 
     assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(blocked, "audit")
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(blocked, "audit")
     }
   }
 
@@ -556,7 +556,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
     malformedCases.forEach { suffix ->
       val envelope =
         """{"contract_version":"0.6","phase_id":"audit","status":"completed","summary":"audit",$suffix}"""
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(envelope, "audit")
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(envelope, "audit")
     }
   }
 
@@ -565,7 +565,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
     val satisfiedGapLookingInner =
       """{"contract_version":"0.6","phase_id":"audit","status":"completed","summary":"audit",""" +
         """"verdict":"satisfied","produced_outputs":{"value":"AC-001: still missing wiring"}}"""
-    FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(satisfiedGapLookingInner, "audit")
+    FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(satisfiedGapLookingInner, "audit")
   }
 
   @Test
@@ -574,7 +574,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
       """{"contract_version":"0.4","phase_id":"audit","status":"completed","summary":"legacy",""" +
         """"verdict":"satisfied","produced_outputs":{"gaps":[]}}"""
     assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(legacy, "audit")
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(legacy, "audit")
     }
   }
 
@@ -586,7 +586,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
        "summary":"ok","produced_outputs":{"value":"Plan prose."}}
       Note: the template placeholder } above is intentional.
       """.trimIndent()
-    FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(withTrailingBrace, "plan")
+    FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(withTrailingBrace, "plan")
   }
 
   @Test
@@ -594,13 +594,13 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
     val braceInString =
       """{"contract_version":"0.6","phase_id":"plan","status":"completed",""" +
         """"summary":"handles a literal } brace in a value","produced_outputs":{"value":"Plan prose."}}"""
-    FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(braceInString, "plan")
+    FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(braceInString, "plan")
   }
 
   @Test
   fun `a top-level json array of criteria still fails validation`() {
     assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(
         """[{"criterion":"AC-1","met":true},{"criterion":"AC-2","met":false}]""",
         "audit",
       )
@@ -626,7 +626,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
       """.trimIndent()
 
     val error = assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(staleThenReal, "audit")
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(staleThenReal, "audit")
     }
 
     assertContains(error.reason, "summary")
@@ -649,7 +649,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
       ```
       """.trimIndent()
 
-    val normalized = FeatureTaskRuntimePhaseOutputValidatorAdapter().normalizePhaseOutput(draftThenReal, "audit")
+    val normalized = FeatureTaskRuntimePhaseOutputSchemaValidator().normalizePhaseOutput(draftThenReal, "audit")
 
     assertEquals("satisfied", normalized.envelopeWireMap()["verdict"])
   }
@@ -669,7 +669,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
       ```
       """.trimIndent()
 
-    FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(reordered, "plan")
+    FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(reordered, "plan")
   }
 
   @Test
@@ -687,7 +687,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
       """.trimIndent()
 
     val error = assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(reordered, "plan")
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(reordered, "plan")
     }
 
     assertContains(error.reason, "multiple conflicting schema-valid envelopes")
@@ -702,7 +702,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
       - Wire the repository through the service.
       """.trimIndent()
     assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(proseOnly, "plan")
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(proseOnly, "plan")
     }
   }
 
@@ -712,7 +712,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
       """{"contract_version":"0.6","phase_id":"audit","status":"completed","summary":"SKILL187-NESTED",""" +
         """"produced_outputs":{"value":"{\"gaps\":[]}","verdict":"satisfied"}}"""
 
-    FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(nested, "audit")
+    FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(nested, "audit")
   }
 
   @Test
@@ -721,7 +721,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
     val body =
       """{"contract_version":"0.6","phase_id":"audit","status":"completed","summary":"lenient-audit",""" +
         """"verdict":"satisfied","produced_outputs":{"value":"$innerValue"}}"""
-    val lenient = FeatureTaskRuntimePhaseOutputSchemaValidator.normalizeAuditPhaseOutputLenient(body, "audit")
+    val lenient = FeatureTaskRuntimePhaseOutputWireSchema.normalizeAuditPhaseOutputLenient(body, "audit")
 
     assertEquals("audit", lenient.envelopeWireMap()["phase_id"])
     assertEquals("satisfied", lenient.envelopeWireMap()["verdict"])
@@ -736,7 +736,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
         """"produced_outputs":{"finding_dispositions":[{"finding_id":"F-001",""" +
         """"disposition":"verified","reason":"$longReason","severity":"major",""" +
         """"location":"Example.kt","message":"Finding one","extra_field":"ignored"}]}}"""
-    val lenient = FeatureTaskRuntimePhaseOutputSchemaValidator.normalizeVerifyingPhaseOutputLenient(
+    val lenient = FeatureTaskRuntimePhaseOutputWireSchema.normalizeVerifyingPhaseOutputLenient(
       body,
       "verify_findings",
     )
@@ -747,7 +747,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
 
   @Test
   fun `completed implement_fix with a valid repair receipt validates`() {
-    FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(
+    FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(
       implementFixEnvelope(validRepairReceiptJson()),
       "implement_fix",
     )
@@ -758,7 +758,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
     val receipt =
       """{"contract_version":"0.3","entries":[{"finding_id":"F-001","outcome":"addressed",""" +
         """"constructs":[{"symbol":"Type.member"}],"intent":"ignored decoration"}]}"""
-    FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(
+    FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(
       implementFixEnvelope(receipt),
       "implement_fix",
     )
@@ -769,7 +769,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
     val legacyReceipt =
       """{"contract_version":"0.2","entries":[{"finding_id":"F-001","outcome":"addressed"}]}"""
     assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(
         implementFixEnvelope(legacyReceipt),
         "implement_fix",
       )
@@ -782,7 +782,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
       """{"contract_version":"0.6","phase_id":"implement_fix","status":"completed","summary":"fix",""" +
         """"produced_outputs":{"reconciled_state":{"reconciled":true,"evidence":"tree at target"}}}"""
     assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(envelope, "implement_fix")
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(envelope, "implement_fix")
     }
   }
 
@@ -791,7 +791,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
     val envelope =
       """{"contract_version":"0.6","phase_id":"implement_fix","status":"blocked","summary":"blocked",""" +
         """"failure_disposition":"needs_user_action","produced_outputs":{"reason":"operator pause"}}"""
-    FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(envelope, "implement_fix")
+    FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(envelope, "implement_fix")
   }
 
   private fun implementFixEnvelope(receiptJson: String): String =
@@ -812,7 +812,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
         """"gate_runs":[{"duration_ms":1,"outcome":"passed","cache_mode":"cache_eligible",""" +
         """"executed_work_units":1}]}""",
     )
-    FeatureTaskRuntimePhaseOutputValidatorAdapter().validatePhaseOutputText(envelope, "build")
+    FeatureTaskRuntimePhaseOutputSchemaValidator().validatePhaseOutputText(envelope, "build")
   }
 
   @Test
@@ -822,11 +822,11 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
       """{"contract_version":"0.1","validation_status":"passed","checks":[],""" +
         """"repository_checkpoint":{"fingerprint":"fp"}}""",
     )
-    val result = FeatureTaskRuntimePhaseOutputValidatorAdapter().validatePhaseOutput(envelope, "build")
+    val result = FeatureTaskRuntimePhaseOutputSchemaValidator().validatePhaseOutput(envelope, "build")
     val rejected = assertIs<FeatureTaskRuntimePhaseOutputValidationResult.Rejected>(result)
     assertEquals(FeatureTaskRuntimePhaseOutputFailureCode.SCHEMA_INVALID, rejected.code)
     assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputValidatorAdapter().validatePhaseOutputText(envelope, "build")
+      FeatureTaskRuntimePhaseOutputSchemaValidator().validatePhaseOutputText(envelope, "build")
     }
   }
 
@@ -841,7 +841,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
       produced_outputs:
         value: "Dense planning prose for the plan phase."
       """.trimIndent()
-    FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(preplan, "preplan")
+    FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(preplan, "preplan")
   }
 
   @Test
@@ -856,7 +856,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
         value: ""
       """.trimIndent()
     assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(preplan, "preplan")
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(preplan, "preplan")
     }
   }
 
@@ -872,7 +872,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
         value: "   "
       """.trimIndent()
     assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(preplan, "preplan")
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(preplan, "preplan")
     }
   }
 
@@ -888,7 +888,7 @@ class FeatureTaskRuntimePhaseOutputSchemaValidatorEnvelopeTest {
         prompt: "optional only"
       """.trimIndent()
     assertFailsWith<InvalidFeatureTaskRuntimePhaseOutputSchemaError> {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.validatePhaseOutputText(preplan, "preplan")
+      FeatureTaskRuntimePhaseOutputWireSchema.validatePhaseOutputText(preplan, "preplan")
     }
   }
 

@@ -1,21 +1,20 @@
 package skillbill.infrastructure.fs.contracts.review
 
-import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
-import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import com.networknt.schema.JsonSchema
-import com.networknt.schema.JsonSchemaFactory
-import com.networknt.schema.SpecVersion
 import com.networknt.schema.ValidationMessage
+import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.logSchemaLoadFailure
 import skillbill.contracts.review.REVIEW_CONTEXT_CONTRACT_VERSION
 import skillbill.contracts.review.ReviewContextSchemaPaths
 import skillbill.error.InvalidReviewContextSchemaError
-import skillbill.infrastructure.fs.contracts.LOCALE_STABLE_SCHEMA_CONFIG
-import java.io.IOException
+import skillbill.error.ShellContentContractException
+import skillbill.infrastructure.fs.contracts.ClasspathContractSchemaLoader
+import skillbill.review.context.ReviewContextEnvelopeValidator
+import skillbill.workflow.engine.model.ReviewContextWireMap
 import java.util.logging.Level
 import java.util.logging.Logger
 
@@ -24,9 +23,20 @@ private const val MAX_REPORTED_VIOLATIONS: Int = 4
 private val reviewContextLog: Logger =
   Logger.getLogger("skillbill.contracts.review.ReviewContextSchemaValidator")
 
-object ReviewContextSchemaValidator {
-  private val schemas: ReviewContextSchemas by lazy { loadReviewContextSchema() }
-  private val mapper: ObjectMapper by lazy { ObjectMapper() }
+@Inject
+class ReviewContextSchemaValidator() : ReviewContextEnvelopeValidator {
+  private val schemas: ReviewContextSchemas
+    get() = loadReviewContextSchema()
+  private val mapper: ObjectMapper
+    get() = ClasspathContractSchemaLoader.sharedObjectMapper()
+
+  override fun validate(envelope: ReviewContextWireMap, sourceLabel: String) {
+    validate(envelope as Map<String, Any?>, sourceLabel)
+  }
+
+  override fun validateSpecIntentProjection(envelope: ReviewContextWireMap, sourceLabel: String) {
+    validateSpecIntentProjection(envelope as Map<String, Any?>, sourceLabel)
+  }
 
   fun validate(envelope: Map<String, Any?>, sourceLabel: String) {
     val kind = envelope["kind"] as? String
@@ -62,35 +72,35 @@ object ReviewContextSchemaValidator {
     mapper,
   )
 
-  fun assertIdentity(yamlNode: JsonNode) {
-    val drift = identityDriftOrNull(yamlNode) ?: return
-    throw InvalidReviewContextSchemaError(
-      sourceLabel = ReviewContextSchemaPaths.CLASSPATH_RESOURCE,
-      reason = drift,
-    )
-  }
-}
+  companion object {
+    private val canonical = ReviewContextSchemaValidator()
 
-private fun identityDriftOrNull(yamlNode: JsonNode): String? {
-  val loadedId = yamlNode.path("\$id").asText("")
-  if (loadedId != ReviewContextSchemaPaths.EXPECTED_SCHEMA_ID) {
-    return "Canonical review context schema identity mismatch: loaded '\$id' is '$loadedId' but expected " +
-      "'${ReviewContextSchemaPaths.EXPECTED_SCHEMA_ID}'. A stale or shadowed copy is on the classpath."
+    fun validate(envelope: Map<String, Any?>, sourceLabel: String) = canonical.validate(envelope, sourceLabel)
+
+    fun validateParentPacket(envelope: Map<String, Any?>, sourceLabel: String) =
+      canonical.validateParentPacket(envelope, sourceLabel)
+
+    fun validateAssignment(envelope: Map<String, Any?>, sourceLabel: String) =
+      canonical.validateAssignment(envelope, sourceLabel)
+
+    fun validateLaunch(envelope: Map<String, Any?>, sourceLabel: String) = canonical.validateLaunch(envelope, sourceLabel)
+
+    fun validateIntegrationLaunch(envelope: Map<String, Any?>, sourceLabel: String) =
+      canonical.validateIntegrationLaunch(envelope, sourceLabel)
+
+    fun validateVerificationLaunch(envelope: Map<String, Any?>, sourceLabel: String) =
+      canonical.validateVerificationLaunch(envelope, sourceLabel)
+
+    fun validateAdjudicationLaunch(envelope: Map<String, Any?>, sourceLabel: String) =
+      canonical.validateAdjudicationLaunch(envelope, sourceLabel)
+
+    fun validateFindingVerdict(envelope: Map<String, Any?>, sourceLabel: String) =
+      canonical.validateFindingVerdict(envelope, sourceLabel)
+
+    fun validateSpecIntentProjection(payload: Map<String, Any?>, sourceLabel: String) =
+      canonical.validateSpecIntentProjection(payload, sourceLabel)
+
   }
-  val branches = yamlNode.path("\$defs").fields().asSequence()
-    .map { (name, node) -> name to node.path("properties").path("contract_version").path("const").asText("") }
-    .filter { (_, const) -> const.isNotBlank() }
-    .toList()
-  if (branches.isEmpty()) {
-    return "Canonical review context schema declares no contract_version const; the classpath copy is " +
-      "not a governed review-context contract."
-  }
-  val drifted = branches.filterNot { (_, const) -> const == REVIEW_CONTEXT_CONTRACT_VERSION }
-  if (drifted.isEmpty()) return null
-  return "Canonical review context schema contract_version.const mismatch for " +
-    "${drifted.map { "${it.first}='${it.second}'" }} but the runtime expects " +
-    "'$REVIEW_CONTEXT_CONTRACT_VERSION'. The schema on the classpath is out of date relative to the " +
-    "running runtime-contracts."
 }
 
 private fun validateExpectedKind(
@@ -241,14 +251,56 @@ private fun logReviewContextSchemaFailure(error: Throwable): Throwable {
 }
 
 private fun loadReviewContextSchema(): ReviewContextSchemas {
-  var failure: Throwable? = null
+  val yamlNode = try {
+    ClasspathContractSchemaLoader.readValidatedClasspathYamlNode(
+      classLoader = ReviewContextSchemaValidator::class.java.classLoader,
+      resource = REVIEW_CONTEXT_SCHEMA_CLASSPATH_RESOURCE,
+      missingResource = {
+        InvalidReviewContextSchemaError(
+          sourceLabel = REVIEW_CONTEXT_SCHEMA_CLASSPATH_RESOURCE,
+          reason = "Canonical review context schema is missing from the classpath.",
+        )
+      },
+      processingFailure = { cause ->
+        InvalidReviewContextSchemaError(
+          sourceLabel = REVIEW_CONTEXT_SCHEMA_CLASSPATH_RESOURCE,
+          reason = cause.message ?: cause::class.simpleName.orEmpty(),
+          cause = cause,
+        )
+      },
+      expectedSchemaId = ReviewContextSchemaPaths.EXPECTED_SCHEMA_ID,
+      expectedContractVersion = REVIEW_CONTEXT_CONTRACT_VERSION,
+      contractVersionMatches = { node, expected ->
+        node.path("\$defs").fields().asSequence()
+          .map { (_, definition) ->
+            definition.path("properties").path(SharedPayloadKeys.CONTRACT_VERSION).path("const").asText("")
+          }
+          .filter(String::isNotBlank)
+          .all { it == expected }
+      },
+      identityFailure = { reason ->
+        InvalidReviewContextSchemaError(
+          sourceLabel = REVIEW_CONTEXT_SCHEMA_CLASSPATH_RESOURCE,
+          reason = reason,
+        )
+      },
+    )
+  } catch (error: ShellContentContractException) {
+    throw logReviewContextSchemaFailure(error)
+  }
   try {
-    val yamlText = readReviewContextSchemaText()
-    val yamlNode = YAMLMapper().readTree(yamlText)
-    ReviewContextSchemaValidator.assertIdentity(yamlNode)
-    val mapper = ObjectMapper()
-    val factory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012)
-    val envelopeSchema = factory.getSchema(mapper.writeValueAsString(yamlNode), LOCALE_STABLE_SCHEMA_CONFIG)
+    val mapper = ClasspathContractSchemaLoader.sharedObjectMapper()
+    val envelopeSchema = ClasspathContractSchemaLoader.compiledSchemaFromYamlNode(
+      cacheKey = REVIEW_CONTEXT_SCHEMA_CLASSPATH_RESOURCE,
+      yamlNode = yamlNode,
+      processingFailure = { cause ->
+        InvalidReviewContextSchemaError(
+          sourceLabel = REVIEW_CONTEXT_SCHEMA_CLASSPATH_RESOURCE,
+          reason = cause.message ?: cause::class.simpleName.orEmpty(),
+          cause = cause,
+        )
+      },
+    )
     val defs = yamlNode.path("\$defs")
     val oneOfNames = yamlNode.path("oneOf").asSequence()
       .map { branch -> branch.path("\$ref").asText("").substringAfterLast('/') }
@@ -268,15 +320,21 @@ private fun loadReviewContextSchema(): ReviewContextSchemas {
       wrapper.put("\$schema", yamlNode.path("\$schema").asText())
       wrapper.put("\$ref", "#/\$defs/" + name)
       wrapper.set<ObjectNode>("\$defs", defs.deepCopy())
-      factory.getSchema(mapper.writeValueAsString(wrapper), LOCALE_STABLE_SCHEMA_CONFIG)
+      ClasspathContractSchemaLoader.compiledSchemaFromYamlNode(
+        cacheKey = "$REVIEW_CONTEXT_SCHEMA_CLASSPATH_RESOURCE#$name",
+        yamlNode = wrapper,
+        processingFailure = { cause ->
+          InvalidReviewContextSchemaError(
+            sourceLabel = REVIEW_CONTEXT_SCHEMA_CLASSPATH_RESOURCE,
+            reason = cause.message ?: cause::class.simpleName.orEmpty(),
+            definitionName = name,
+            cause = cause,
+          )
+        },
+      )
     }
     return ReviewContextSchemas(envelopeSchema, branches)
   } catch (error: InvalidReviewContextSchemaError) {
-    failure = logReviewContextSchemaFailure(error)
-  } catch (error: IOException) {
-    failure = logReviewContextSchemaFailure(error)
-  } catch (error: JsonProcessingException) {
-    failure = logReviewContextSchemaFailure(error)
+    throw logReviewContextSchemaFailure(error)
   }
-  throw failure
 }

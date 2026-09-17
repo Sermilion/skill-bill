@@ -23,10 +23,10 @@ import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseLaunchBriefing
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseLedgerRequest
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
 import skillbill.error.MissingCompositionLayerError
-import skillbill.infrastructure.fs.DecompositionManifestValidatorAdapter
-import skillbill.infrastructure.fs.FeatureTaskRuntimeWireArtifactValidatorAdapter
+import skillbill.infrastructure.fs.contracts.workflow.DecompositionManifestSchemaValidator
+import skillbill.infrastructure.fs.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.infrastructure.fs.FileSystemDecompositionManifestFileStore
-import skillbill.infrastructure.fs.WorkflowSnapshotValidatorInfraAdapter
+import skillbill.infrastructure.fs.contracts.workflow.WorkflowStateSchemaValidator
 import skillbill.infrastructure.fs.concurrency.JvmInterruptSignalPort
 import skillbill.learnings.model.CreateLearningRequest
 import skillbill.learnings.model.LearningRecord
@@ -1077,8 +1077,8 @@ internal fun testWorkflowService(
   database = database,
   gitOperations = gitOperations,
   decompositionManifestStore = FileSystemDecompositionManifestFileStore(),
-  workflowSnapshotValidator = WorkflowSnapshotValidatorInfraAdapter(),
-  decompositionManifestValidator = DecompositionManifestValidatorAdapter(),
+  workflowSnapshotValidator = WorkflowStateSchemaValidator(),
+  decompositionManifestValidator = DecompositionManifestSchemaValidator(),
   decompositionManifestWriter = DecompositionManifestWriter(),
   repositoryRoot = RepositoryRoot(Path.of("").toAbsolutePath().normalize()),
   goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
@@ -1086,7 +1086,7 @@ internal fun testWorkflowService(
 )
 
 internal fun loadTestDecompositionManifest(path: Path) =
-  loadDecompositionManifest(path, FileSystemDecompositionManifestFileStore(), DecompositionManifestValidatorAdapter())
+  loadDecompositionManifest(path, FileSystemDecompositionManifestFileStore(), DecompositionManifestSchemaValidator())
 
 internal class InMemoryWorkflowStateRepository(
   private val implementSessionSummary: FeatureImplementSessionSummary? = null,
@@ -1232,9 +1232,9 @@ internal fun numberedFinding(number: Int, findingId: String): NumberedFinding = 
 
 internal fun testPhaseRecorder(database: DatabaseSessionFactory) = featureTaskRuntimePhaseRecorder(
   database,
-  WorkflowSnapshotValidatorInfraAdapter(),
-  FeatureTaskRuntimeWireArtifactValidatorAdapter(),
-  FeatureTaskRuntimeWireArtifactValidatorAdapter(),
+  WorkflowStateSchemaValidator(),
+  FeatureTaskRuntimeWireArtifactValidator(),
+  FeatureTaskRuntimeWireArtifactValidator(),
   Clock.systemUTC(),
   NoopRuntimeDiagnostics,
 )

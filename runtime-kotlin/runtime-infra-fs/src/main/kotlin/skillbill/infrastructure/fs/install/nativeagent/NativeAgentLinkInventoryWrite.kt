@@ -2,6 +2,8 @@ package skillbill.infrastructure.fs.install.nativeagent
 
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.nativeagent.NATIVE_AGENT_LINK_INVENTORY_CONTRACT_VERSION
+import skillbill.error.InvalidNativeAgentLinkInventoryWriteError
+import skillbill.error.ShellContentContractException
 import java.io.IOException
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
@@ -29,11 +31,13 @@ internal object NativeAgentLinkInventoryWrite {
         .put("source_root", entry.sourceRoot.toAbsolutePath().normalize().toString())
     }
     val bytes = request.mapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(root)
-    require(bytes.size <= NativeAgentLinkInventoryLimits.MAX_BYTES) {
-      "native-agent link inventory exceeds ${NativeAgentLinkInventoryLimits.MAX_BYTES} bytes"
+    if (bytes.size > NativeAgentLinkInventoryLimits.MAX_BYTES) {
+      throw writeError(request.path, "native-agent link inventory exceeds ${NativeAgentLinkInventoryLimits.MAX_BYTES} bytes")
     }
     val schemaErrors = request.schema.validate(request.mapper.readTree(bytes))
-    require(schemaErrors.isEmpty()) { schemaErrors.joinToString("; ") { it.message } }
+    if (schemaErrors.isNotEmpty()) {
+      throw writeError(request.path, schemaErrors.joinToString("; ") { it.message })
+    }
     NativeAgentLinkInventoryDecode.validateSemanticEntries(request.entries, request.home, request.managedRoots)
     val temporary = Files.createTempFile(request.path.parent, "${request.path.fileName}.", ".tmp")
     request.afterTemporaryCreation(temporary)
@@ -48,12 +52,10 @@ internal object NativeAgentLinkInventoryWrite {
       }
     } catch (error: CancellationException) {
       throw error
+    } catch (error: ShellContentContractException) {
+      initiatingFailure = error
     } catch (error: IOException) {
-      initiatingFailure = error
-    } catch (error: IllegalArgumentException) {
-      initiatingFailure = error
-    } catch (error: IllegalStateException) {
-      initiatingFailure = error
+      initiatingFailure = writeError(request.path, error.message.orEmpty(), error)
     }
     val cleanupFailure = runCatching { Files.deleteIfExists(temporary) }.exceptionOrNull()
     cleanupFailure?.let { initiatingFailure?.addSuppressed(it) }
@@ -66,4 +68,11 @@ internal object NativeAgentLinkInventoryWrite {
       .takeWhile { !Files.exists(it, LinkOption.NOFOLLOW_LINKS) }.toList().asReversed()
     missing.forEach(beforeMutation)
   }
+
+  private fun writeError(
+    path: Path,
+    reason: String,
+    cause: Throwable? = null,
+  ): InvalidNativeAgentLinkInventoryWriteError =
+    InvalidNativeAgentLinkInventoryWriteError(path = path.toString(), reason = reason, cause = cause)
 }

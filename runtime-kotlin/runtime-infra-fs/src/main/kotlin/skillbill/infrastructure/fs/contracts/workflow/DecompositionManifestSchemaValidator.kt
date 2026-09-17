@@ -8,18 +8,30 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import com.networknt.schema.JsonSchema
-import com.networknt.schema.JsonSchemaFactory
-import com.networknt.schema.SpecVersion
 import com.networknt.schema.ValidationMessage
+import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.logSchemaLoadFailure
 import skillbill.contracts.workflow.DECOMPOSITION_MANIFEST_CONTRACT_VERSION
 import skillbill.contracts.workflow.DecompositionManifestSchemaPaths
+import skillbill.error.FeatureTaskRuntimePhaseOutputFailureCode
 import skillbill.error.InvalidDecompositionManifestSchemaError
-import skillbill.infrastructure.fs.contracts.LOCALE_STABLE_SCHEMA_CONFIG
-import java.io.IOException
-import java.nio.file.Files
-import java.nio.file.Path
+import skillbill.infrastructure.fs.contracts.ClasspathContractSchemaLoader
+import skillbill.infrastructure.fs.phaseoutput.FeatureTaskRuntimePhaseOutputStructuralRepair
+import skillbill.infrastructure.fs.phaseoutput.FeatureTaskRuntimePhaseOutputStructuralRepairDecision
+import skillbill.workflow.decomposition.DecompositionManifestValidator
+import skillbill.workflow.decomposition.decodeManifest
+import skillbill.workflow.decomposition.model.DecompositionManifestRepairEvidence
+import skillbill.workflow.decomposition.model.DecompositionManifestRepairOperation
+import skillbill.workflow.decomposition.model.DecompositionManifestValidationFailureCode
+import skillbill.workflow.decomposition.model.DecompositionManifestValidationFormat
+import skillbill.workflow.decomposition.model.DecompositionManifestValidationResult
+import skillbill.workflow.decomposition.model.DecompositionManifestValidationSourceLocation
+import skillbill.workflow.decomposition.model.DecompositionManifestWireMap
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputFormat
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairEvidence
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputRepairOperation
+import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutputSourceLocation
 import java.util.logging.Level
 import java.util.logging.Logger
 import kotlin.coroutines.cancellation.CancellationException
@@ -27,17 +39,20 @@ import kotlin.coroutines.cancellation.CancellationException
 private val decompositionManifestLog: Logger =
   Logger.getLogger("skillbill.contracts.workflow.DecompositionManifestSchemaValidator")
 
-object DecompositionManifestSchemaValidator {
-  private val schema: JsonSchema by lazy { loadDecompositionManifestSchema() }
-  private val mapper: ObjectMapper by lazy { ObjectMapper() }
-  private val yamlMapper: YAMLMapper by lazy {
+@Inject
+class DecompositionManifestSchemaValidator() : DecompositionManifestValidator {
+  private val yamlMapper: YAMLMapper =
     YAMLMapper(YAMLFactory().apply { enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION) })
-  }
   private val mapType = object : TypeReference<Map<String, Any?>>() {}
 
+  override fun validate(manifest: DecompositionManifestWireMap, sourceLabel: String) {
+    validate(manifest as Map<String, Any?>, sourceLabel)
+  }
+
   fun validate(manifest: Map<String, Any?>, sourceLabel: String) {
-    val instance: JsonNode = mapper.valueToTree(manifest)
-    val errors: Set<ValidationMessage> = schema.validate(instance)
+    val instance: JsonNode = ClasspathContractSchemaLoader.valueToTree(manifest)
+    val errors: Set<ValidationMessage> =
+      ClasspathContractSchemaLoader.validate(decompositionManifestSchema(), instance)
     if (errors.isEmpty()) {
       DecompositionManifestCoherenceValidator.validate(manifest, sourceLabel)
       return
@@ -50,7 +65,12 @@ object DecompositionManifestSchemaValidator {
     )
   }
 
-  fun validateYamlText(yamlText: String, sourceLabel: String): Map<String, Any?> {
+  override fun validateYamlText(yamlText: String, sourceLabel: String) = decodeManifest(
+    DecompositionManifestWireMap.from(validateYamlTextMap(yamlText, sourceLabel)),
+    sourceLabel,
+  )
+
+  fun validateYamlTextMap(yamlText: String, sourceLabel: String): Map<String, Any?> {
     val node = readYamlObjectNode(yamlText, sourceLabel)
     val parsed = yamlObjectNodeToMap(node, sourceLabel)
     validate(parsed, sourceLabel)
@@ -99,7 +119,7 @@ object DecompositionManifestSchemaValidator {
   }
 
   private fun yamlObjectNodeToMap(node: JsonNode, sourceLabel: String): Map<String, Any?> = try {
-    mapper.convertValue(node, mapType)
+    ClasspathContractSchemaLoader.sharedObjectMapper().convertValue(node, mapType)
   } catch (error: IllegalArgumentException) {
     throw InvalidDecompositionManifestSchemaError(
       sourceLabel = sourceLabel,
@@ -107,27 +127,6 @@ object DecompositionManifestSchemaValidator {
       failureCode = "invalid_shape",
       cause = error,
     )
-  }
-
-  fun assertIdentity(yamlNode: JsonNode) {
-    val loadedId = yamlNode.path("\$id").asText("")
-    if (loadedId != DecompositionManifestSchemaPaths.EXPECTED_SCHEMA_ID) {
-      throw InvalidDecompositionManifestSchemaError(
-        sourceLabel = DecompositionManifestSchemaPaths.CLASSPATH_RESOURCE,
-        reason = "Canonical decomposition manifest schema identity mismatch: loaded '\$id' is '$loadedId' but " +
-          "expected '${DecompositionManifestSchemaPaths.EXPECTED_SCHEMA_ID}'. A stale or shadowed copy of the " +
-          "schema is on the classpath.",
-      )
-    }
-    val loadedConst = yamlNode.path("properties").path(SharedPayloadKeys.CONTRACT_VERSION).path("const").asText("")
-    if (loadedConst != DECOMPOSITION_MANIFEST_CONTRACT_VERSION) {
-      throw InvalidDecompositionManifestSchemaError(
-        sourceLabel = DecompositionManifestSchemaPaths.CLASSPATH_RESOURCE,
-        reason = "Canonical decomposition manifest schema contract_version.const mismatch: loaded '$loadedConst' " +
-          "but the runtime expects '$DECOMPOSITION_MANIFEST_CONTRACT_VERSION'. The schema on the classpath is " +
-          "out of date relative to the running runtime-contracts.",
-      )
-    }
   }
 
   private fun buildSchemaDriftLog(sourceLabel: String, errors: Set<ValidationMessage>, instance: JsonNode): String {
@@ -175,6 +174,92 @@ object DecompositionManifestSchemaValidator {
     { it.instanceLocation?.toString().orEmpty() },
     { it.message.orEmpty() },
   )
+
+  override fun validateYamlTextResult(yamlText: String, sourceLabel: String): DecompositionManifestValidationResult {
+    val decision = FeatureTaskRuntimePhaseOutputStructuralRepair.inspectWholeDocument(yamlText, sourceLabel)
+    return when (decision) {
+      is FeatureTaskRuntimePhaseOutputStructuralRepairDecision.Rejected ->
+        DecompositionManifestValidationResult.Rejected(
+          code = decision.code.toManifestFailureCode(),
+          reason = decision.reason,
+          sourceLocation = decision.sourceLocation?.toManifestLocation(),
+        )
+      is FeatureTaskRuntimePhaseOutputStructuralRepairDecision.Accepted -> try {
+        val wireMap = DecompositionManifestWireMap.from(validateYamlTextMap(decision.text, sourceLabel))
+        val manifest = decodeManifest(wireMap, sourceLabel)
+        val evidence = decision.evidence?.toManifestEvidence()
+        if (evidence == null) {
+          DecompositionManifestValidationResult.AcceptedUnchanged(manifest, decision.text)
+        } else {
+          DecompositionManifestValidationResult.AcceptedAfterRepair(manifest, decision.text, evidence)
+        }
+      } catch (error: InvalidDecompositionManifestSchemaError) {
+        DecompositionManifestValidationResult.Rejected(
+          code = DecompositionManifestValidationFailureCode.fromWire(error.failureCode),
+          reason = error.reason,
+        )
+      }
+    }
+  }
+
+  private fun FeatureTaskRuntimePhaseOutputFailureCode.toManifestFailureCode():
+    DecompositionManifestValidationFailureCode =
+    when (this) {
+      FeatureTaskRuntimePhaseOutputFailureCode.MALFORMED ->
+        DecompositionManifestValidationFailureCode.MALFORMED
+      FeatureTaskRuntimePhaseOutputFailureCode.ROOT_NOT_OBJECT ->
+        DecompositionManifestValidationFailureCode.ROOT_NOT_OBJECT
+      FeatureTaskRuntimePhaseOutputFailureCode.DUPLICATE_KEY ->
+        DecompositionManifestValidationFailureCode.DUPLICATE_KEY
+      FeatureTaskRuntimePhaseOutputFailureCode.NO_REPAIR_CANDIDATE ->
+        DecompositionManifestValidationFailureCode.NO_REPAIR_CANDIDATE
+      FeatureTaskRuntimePhaseOutputFailureCode.AMBIGUOUS_REPAIR,
+      FeatureTaskRuntimePhaseOutputFailureCode.MULTIPLE_OUTPUT_CANDIDATES,
+      -> DecompositionManifestValidationFailureCode.AMBIGUOUS_REPAIR
+      FeatureTaskRuntimePhaseOutputFailureCode.REPAIR_LIMIT_EXCEEDED ->
+        DecompositionManifestValidationFailureCode.REPAIR_LIMIT_EXCEEDED
+      FeatureTaskRuntimePhaseOutputFailureCode.UNSUPPORTED_REPAIR ->
+        DecompositionManifestValidationFailureCode.UNSUPPORTED_REPAIR
+      FeatureTaskRuntimePhaseOutputFailureCode.SCHEMA_INVALID,
+      FeatureTaskRuntimePhaseOutputFailureCode.PHASE_ID_MISMATCH,
+      FeatureTaskRuntimePhaseOutputFailureCode.SEMANTIC_INVALID,
+      -> DecompositionManifestValidationFailureCode.SCHEMA_INVALID
+    }
+
+  private fun FeatureTaskRuntimePhaseOutputRepairEvidence.toManifestEvidence(): DecompositionManifestRepairEvidence =
+    DecompositionManifestRepairEvidence(
+      format = when (format) {
+        FeatureTaskRuntimePhaseOutputFormat.JSON -> DecompositionManifestValidationFormat.JSON
+        FeatureTaskRuntimePhaseOutputFormat.YAML -> DecompositionManifestValidationFormat.YAML
+      },
+      originalDigest = originalDigest,
+      repairedDigest = repairedDigest,
+      operation = when (operation) {
+        FeatureTaskRuntimePhaseOutputRepairOperation.REMOVE_EXTRA_CLOSING_DELIMITER ->
+          DecompositionManifestRepairOperation.REMOVE_EXTRA_CLOSING_DELIMITER
+        FeatureTaskRuntimePhaseOutputRepairOperation.ADD_MISSING_CLOSING_DELIMITER ->
+          DecompositionManifestRepairOperation.ADD_MISSING_CLOSING_DELIMITER
+        FeatureTaskRuntimePhaseOutputRepairOperation.DEDUPLICATE_KEYS,
+        FeatureTaskRuntimePhaseOutputRepairOperation.RESTORE_EXPECTED_SHAPE,
+        ->
+          error("Decomposition-manifest repair does not include ${operation.wireValue}.")
+      },
+      sourceLocation = sourceLocation.toManifestLocation(),
+    )
+
+  private fun FeatureTaskRuntimePhaseOutputSourceLocation.toManifestLocation():
+    DecompositionManifestValidationSourceLocation =
+    DecompositionManifestValidationSourceLocation(sourceLabel, offset, line, column)
+
+  companion object {
+    private val canonical = DecompositionManifestSchemaValidator()
+
+    fun validate(manifest: Map<String, Any?>, sourceLabel: String) = canonical.validate(manifest, sourceLabel)
+
+    fun validateYamlText(yamlText: String, sourceLabel: String): Map<String, Any?> =
+      canonical.validateYamlTextMap(yamlText, sourceLabel)
+
+  }
 }
 
 internal const val DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE: String =
@@ -183,63 +268,43 @@ internal const val DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE: String =
 internal const val DECOMPOSITION_MANIFEST_SCHEMA_REPO_RELATIVE_PATH: String =
   DecompositionManifestSchemaPaths.REPO_RELATIVE_PATH
 
-private fun loadDecompositionManifestSchema(): JsonSchema {
-  var failure: Throwable? = null
-  try {
-    val yamlText = readDecompositionManifestSchemaText()
-    val yamlNode = YAMLMapper().readTree(yamlText)
-    DecompositionManifestSchemaValidator.assertIdentity(yamlNode)
-    val jsonText = ObjectMapper().writeValueAsString(yamlNode)
-    val factory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012)
-    return factory.getSchema(jsonText, LOCALE_STABLE_SCHEMA_CONFIG)
-  } catch (error: InvalidDecompositionManifestSchemaError) {
-    logSchemaLoadFailure(
-      decompositionManifestLog,
-      "decomposition manifest",
-      DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE,
-      DECOMPOSITION_MANIFEST_SCHEMA_REPO_RELATIVE_PATH,
-      error,
-    )
-    failure = error
-  } catch (error: IOException) {
-    logSchemaLoadFailure(
-      decompositionManifestLog,
-      "decomposition manifest",
-      DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE,
-      DECOMPOSITION_MANIFEST_SCHEMA_REPO_RELATIVE_PATH,
-      error,
-    )
-    failure = error
-  } catch (error: JsonProcessingException) {
-    logSchemaLoadFailure(
-      decompositionManifestLog,
-      "decomposition manifest",
-      DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE,
-      DECOMPOSITION_MANIFEST_SCHEMA_REPO_RELATIVE_PATH,
-      error,
-    )
-    failure = error
-  }
-  throw failure
-}
-
-private fun readDecompositionManifestSchemaText(): String {
-  DecompositionManifestSchemaValidator::class.java.classLoader
-    .getResourceAsStream(DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE)
-    ?.use { return it.readBytes().toString(Charsets.UTF_8) }
-
-  val walkAnchor: Path = Path.of("").toAbsolutePath()
-  val resolved = walkForDecompositionManifestSchemaFile(walkAnchor)
-  if (resolved != null) {
-    return Files.readString(resolved)
-  }
-  throw InvalidDecompositionManifestSchemaError(
-    sourceLabel = DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE,
-    reason = "Canonical decomposition manifest schema is missing. Expected to find it on the JVM classpath at " +
-      "'$DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE' or on disk under " +
-      "'$DECOMPOSITION_MANIFEST_SCHEMA_REPO_RELATIVE_PATH' walked up from: $walkAnchor.",
+private fun decompositionManifestSchema(): JsonSchema =
+  ClasspathContractSchemaLoader.compiledSchema(
+    cacheKey = DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE,
+    classLoader = DecompositionManifestSchemaValidator::class.java.classLoader,
+    classpathResource = DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE,
+    missingResource = {
+      InvalidDecompositionManifestSchemaError(
+        sourceLabel = DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE,
+        reason = "Canonical decomposition manifest schema is missing. Expected to find it on the JVM classpath at " +
+          "'$DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE'.",
+      )
+    },
+    processingFailure = { cause ->
+      InvalidDecompositionManifestSchemaError(
+        sourceLabel = DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE,
+        reason = cause.message ?: cause::class.simpleName.orEmpty(),
+        cause = cause,
+      )
+    },
+    loadFailureLogger = { error ->
+      logSchemaLoadFailure(
+        decompositionManifestLog,
+        "decomposition manifest",
+        DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE,
+        DECOMPOSITION_MANIFEST_SCHEMA_REPO_RELATIVE_PATH,
+        error,
+      )
+    },
+    expectedSchemaId = DecompositionManifestSchemaPaths.EXPECTED_SCHEMA_ID,
+    expectedContractVersion = DECOMPOSITION_MANIFEST_CONTRACT_VERSION,
+    identityFailure = { reason ->
+      InvalidDecompositionManifestSchemaError(
+        sourceLabel = DECOMPOSITION_MANIFEST_SCHEMA_CLASSPATH_RESOURCE,
+        reason = reason,
+      )
+    },
   )
-}
 
 fun decompositionManifestDottedFieldPath(instanceLocation: String): String = when {
   instanceLocation.isBlank() || instanceLocation == "/" || instanceLocation == "$" -> ""
@@ -278,14 +343,3 @@ fun extractDecompositionManifestOffendingValue(instance: JsonNode, instanceLocat
   }
 }
 
-private fun walkForDecompositionManifestSchemaFile(hint: Path): Path? {
-  var current: Path? = hint.toAbsolutePath().normalize()
-  while (current != null) {
-    val candidate = current.resolve(DECOMPOSITION_MANIFEST_SCHEMA_REPO_RELATIVE_PATH)
-    if (Files.isRegularFile(candidate)) {
-      return candidate
-    }
-    current = current.parent
-  }
-  return null
-}

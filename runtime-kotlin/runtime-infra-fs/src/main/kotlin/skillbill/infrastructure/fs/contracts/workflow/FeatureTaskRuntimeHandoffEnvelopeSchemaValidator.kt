@@ -1,32 +1,20 @@
 package skillbill.infrastructure.fs.contracts.workflow
 
-import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import com.networknt.schema.JsonSchema
-import com.networknt.schema.JsonSchemaFactory
-import com.networknt.schema.SpecVersion
 import com.networknt.schema.ValidationMessage
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_HANDOFF_ENVELOPE_CONTRACT_VERSION
 import skillbill.contracts.workflow.FeatureTaskRuntimeHandoffEnvelopeSchemaPaths
 import skillbill.error.FeatureTaskRuntimeHandoffProjectionFailureKind
 import skillbill.error.InvalidFeatureTaskRuntimeHandoffProjectionContext
 import skillbill.error.InvalidFeatureTaskRuntimeHandoffProjectionError
-import skillbill.infrastructure.fs.contracts.LOCALE_STABLE_SCHEMA_CONFIG
-import java.io.IOException
-import java.nio.file.Files
-import java.nio.file.Path
-import kotlin.coroutines.cancellation.CancellationException
+import skillbill.infrastructure.fs.contracts.ClasspathContractSchemaLoader
 
 object FeatureTaskRuntimeHandoffEnvelopeSchemaValidator {
-  private val schema: JsonSchema by lazy { loadHandoffEnvelopeSchema() }
-  private val mapper: ObjectMapper by lazy { ObjectMapper() }
-
   fun validate(envelope: Map<String, Any?>, workflowId: String? = null) {
     val consumerPhaseId = envelope["consumer_phase_id"] as? String ?: ""
-    val instance: JsonNode = mapper.valueToTree(envelope)
-    val errors: Set<ValidationMessage> = schema.validate(instance)
+    val instance: JsonNode = ClasspathContractSchemaLoader.valueToTree(envelope)
+    val errors: Set<ValidationMessage> = ClasspathContractSchemaLoader.validate(schema(), instance)
     if (errors.isNotEmpty()) {
       throw InvalidFeatureTaskRuntimeHandoffProjectionError(
         context = InvalidFeatureTaskRuntimeHandoffProjectionContext(
@@ -54,88 +42,57 @@ object FeatureTaskRuntimeHandoffEnvelopeSchemaValidator {
         "${error.instanceLocation?.toString()?.ifBlank { "<root>" } ?: "<root>"}: ${error.message.orEmpty()}"
       } + if (errors.size > MAX_REPORTED_VIOLATIONS) " (+${errors.size - MAX_REPORTED_VIOLATIONS} more)" else ""
 
-  fun assertIdentity(yamlNode: JsonNode) {
-    val loadedId = yamlNode.path("\$id").asText("")
-    require(loadedId == FeatureTaskRuntimeHandoffEnvelopeSchemaPaths.EXPECTED_SCHEMA_ID) {
-      "Canonical feature-task-runtime handoff envelope schema identity mismatch: loaded '$loadedId' but expected " +
-        "'${FeatureTaskRuntimeHandoffEnvelopeSchemaPaths.EXPECTED_SCHEMA_ID}'. A stale or shadowed copy of the " +
-        "schema is on the classpath."
-    }
-    val loadedConst = yamlNode.path("properties").path("contract_version").path("const").asText("")
-    require(loadedConst == FEATURE_TASK_RUNTIME_HANDOFF_ENVELOPE_CONTRACT_VERSION) {
-      "Canonical feature-task-runtime handoff envelope schema contract_version.const mismatch: loaded " +
-        "'$loadedConst' but the runtime expects '$FEATURE_TASK_RUNTIME_HANDOFF_ENVELOPE_CONTRACT_VERSION'."
-    }
-  }
-
   private const val MAX_REPORTED_VIOLATIONS: Int = 3
 }
 
-private fun loadHandoffEnvelopeSchema(): JsonSchema = try {
-  val yamlNode = YAMLMapper().readTree(readHandoffEnvelopeSchemaText())
-  FeatureTaskRuntimeHandoffEnvelopeSchemaValidator.assertIdentity(yamlNode)
-  JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012)
-    .getSchema(ObjectMapper().writeValueAsString(yamlNode), LOCALE_STABLE_SCHEMA_CONFIG)
-} catch (error: InvalidFeatureTaskRuntimeHandoffProjectionError) {
-  throw error
-} catch (error: CancellationException) {
-  throw error
-} catch (error: JsonProcessingException) {
-  throw InvalidFeatureTaskRuntimeHandoffProjectionError(
-    context = InvalidFeatureTaskRuntimeHandoffProjectionContext(
-      workflowId = null,
-      consumerPhaseId = "<schema-load>",
-      projectionName = FeatureTaskRuntimeHandoffEnvelopeSchemaPaths.CLASSPATH_RESOURCE,
-      projectionContractId = FeatureTaskRuntimeHandoffEnvelopeSchemaPaths.EXPECTED_SCHEMA_ID,
-      projectionContractVersion = FEATURE_TASK_RUNTIME_HANDOFF_ENVELOPE_CONTRACT_VERSION,
-      failureKind = FeatureTaskRuntimeHandoffProjectionFailureKind.SCHEMA_INVALID,
-      reason = error.message ?: error::class.simpleName.orEmpty(),
-    ),
-    cause = error,
+private fun schema(): JsonSchema =
+  ClasspathContractSchemaLoader.compiledSchema(
+    cacheKey = FeatureTaskRuntimeHandoffEnvelopeSchemaPaths.CLASSPATH_RESOURCE,
+    classLoader = FeatureTaskRuntimeHandoffEnvelopeSchemaValidator::class.java.classLoader,
+    classpathResource = FeatureTaskRuntimeHandoffEnvelopeSchemaPaths.CLASSPATH_RESOURCE,
+    missingResource = {
+      InvalidFeatureTaskRuntimeHandoffProjectionError(
+        context = InvalidFeatureTaskRuntimeHandoffProjectionContext(
+          workflowId = null,
+          consumerPhaseId = "<schema-load>",
+          projectionName = FeatureTaskRuntimeHandoffEnvelopeSchemaPaths.CLASSPATH_RESOURCE,
+          projectionContractId = FeatureTaskRuntimeHandoffEnvelopeSchemaPaths.EXPECTED_SCHEMA_ID,
+          projectionContractVersion = FEATURE_TASK_RUNTIME_HANDOFF_ENVELOPE_CONTRACT_VERSION,
+          failureKind = FeatureTaskRuntimeHandoffProjectionFailureKind.SCHEMA_INVALID,
+          reason = "Canonical feature-task-runtime handoff envelope schema is missing on the classpath.",
+        ),
+      )
+    },
+    processingFailure = { cause ->
+      InvalidFeatureTaskRuntimeHandoffProjectionError(
+        context = InvalidFeatureTaskRuntimeHandoffProjectionContext(
+          workflowId = null,
+          consumerPhaseId = "<schema-load>",
+          projectionName = FeatureTaskRuntimeHandoffEnvelopeSchemaPaths.CLASSPATH_RESOURCE,
+          projectionContractId = FeatureTaskRuntimeHandoffEnvelopeSchemaPaths.EXPECTED_SCHEMA_ID,
+          projectionContractVersion = FEATURE_TASK_RUNTIME_HANDOFF_ENVELOPE_CONTRACT_VERSION,
+          failureKind = FeatureTaskRuntimeHandoffProjectionFailureKind.SCHEMA_INVALID,
+          reason = cause.message ?: cause::class.simpleName.orEmpty(),
+        ),
+      )
+    },
+    loadFailureLogger = {},
+    expectedSchemaId = FeatureTaskRuntimeHandoffEnvelopeSchemaPaths.EXPECTED_SCHEMA_ID,
+    expectedContractVersion = FEATURE_TASK_RUNTIME_HANDOFF_ENVELOPE_CONTRACT_VERSION,
+    identityFailure = ::featureTaskRuntimeHandoffEnvelopeIdentityMismatchError,
   )
-} catch (error: IOException) {
-  throw InvalidFeatureTaskRuntimeHandoffProjectionError(
-    context = InvalidFeatureTaskRuntimeHandoffProjectionContext(
-      workflowId = null,
-      consumerPhaseId = "<schema-load>",
-      projectionName = FeatureTaskRuntimeHandoffEnvelopeSchemaPaths.CLASSPATH_RESOURCE,
-      projectionContractId = FeatureTaskRuntimeHandoffEnvelopeSchemaPaths.EXPECTED_SCHEMA_ID,
-      projectionContractVersion = FEATURE_TASK_RUNTIME_HANDOFF_ENVELOPE_CONTRACT_VERSION,
-      failureKind = FeatureTaskRuntimeHandoffProjectionFailureKind.SCHEMA_INVALID,
-      reason = error.message ?: error::class.simpleName.orEmpty(),
-    ),
-    cause = error,
-  )
-} catch (error: IllegalArgumentException) {
-  throw InvalidFeatureTaskRuntimeHandoffProjectionError(
-    context = InvalidFeatureTaskRuntimeHandoffProjectionContext(
-      workflowId = null,
-      consumerPhaseId = "<schema-load>",
-      projectionName = FeatureTaskRuntimeHandoffEnvelopeSchemaPaths.CLASSPATH_RESOURCE,
-      projectionContractId = FeatureTaskRuntimeHandoffEnvelopeSchemaPaths.EXPECTED_SCHEMA_ID,
-      projectionContractVersion = FEATURE_TASK_RUNTIME_HANDOFF_ENVELOPE_CONTRACT_VERSION,
-      failureKind = FeatureTaskRuntimeHandoffProjectionFailureKind.SCHEMA_INVALID,
-      reason = error.message ?: error::class.simpleName.orEmpty(),
-    ),
-    cause = error,
-  )
-}
 
-private fun readHandoffEnvelopeSchemaText(): String {
-  FeatureTaskRuntimeHandoffEnvelopeSchemaValidator::class.java.classLoader
-    .getResourceAsStream(FeatureTaskRuntimeHandoffEnvelopeSchemaPaths.CLASSPATH_RESOURCE)
-    ?.use { return it.readBytes().toString(Charsets.UTF_8) }
-
-  val walkAnchor: Path = Path.of("").toAbsolutePath()
-  var current: Path? = walkAnchor.normalize()
-  while (current != null) {
-    val candidate = current.resolve(FeatureTaskRuntimeHandoffEnvelopeSchemaPaths.REPO_RELATIVE_PATH)
-    if (Files.isRegularFile(candidate)) return Files.readString(candidate)
-    current = current.parent
-  }
-  throw IllegalStateException(
-    "Canonical feature-task-runtime handoff envelope schema is missing. Expected it on the JVM classpath at " +
-      "'${FeatureTaskRuntimeHandoffEnvelopeSchemaPaths.CLASSPATH_RESOURCE}' or on disk under " +
-      "'${FeatureTaskRuntimeHandoffEnvelopeSchemaPaths.REPO_RELATIVE_PATH}' walked up from: $walkAnchor.",
+private fun featureTaskRuntimeHandoffEnvelopeIdentityMismatchError(
+  reason: String,
+): InvalidFeatureTaskRuntimeHandoffProjectionError =
+  InvalidFeatureTaskRuntimeHandoffProjectionError(
+    context = InvalidFeatureTaskRuntimeHandoffProjectionContext(
+      workflowId = null,
+      consumerPhaseId = "<schema-load>",
+      projectionName = FeatureTaskRuntimeHandoffEnvelopeSchemaPaths.CLASSPATH_RESOURCE,
+      projectionContractId = FeatureTaskRuntimeHandoffEnvelopeSchemaPaths.EXPECTED_SCHEMA_ID,
+      projectionContractVersion = FEATURE_TASK_RUNTIME_HANDOFF_ENVELOPE_CONTRACT_VERSION,
+      failureKind = FeatureTaskRuntimeHandoffProjectionFailureKind.SCHEMA_INVALID,
+      reason = reason,
+    ),
   )
-}

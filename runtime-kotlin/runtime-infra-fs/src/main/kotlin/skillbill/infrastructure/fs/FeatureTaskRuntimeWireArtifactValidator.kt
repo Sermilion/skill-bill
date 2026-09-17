@@ -1,6 +1,7 @@
 package skillbill.infrastructure.fs
 
 import me.tatarka.inject.annotations.Inject
+import skillbill.infrastructure.fs.contracts.requireFeatureTaskRuntimeArtifactMap
 import skillbill.infrastructure.fs.contracts.workflow.FeatureTaskRuntimeBuildReceiptSchemaValidator
 import skillbill.infrastructure.fs.contracts.workflow.FeatureTaskRuntimeHandoffEnvelopeSchemaValidator
 import skillbill.infrastructure.fs.contracts.workflow.FeatureTaskRuntimeImplementationAttemptSchemaValidator
@@ -17,9 +18,9 @@ import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactKind
 import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 
 @Inject
-class FeatureTaskRuntimeWireArtifactValidatorAdapter : FeatureTaskRuntimeWireArtifactValidator {
+class FeatureTaskRuntimeWireArtifactValidator() : FeatureTaskRuntimeWireArtifactValidator {
   override fun validate(kind: FeatureTaskRuntimeWireArtifactKind, payload: Any, sourceLabel: String) {
-    val wireMap = requireFeatureTaskRuntimeArtifactMap(payload, sourceLabel)
+    val wireMap = requireFeatureTaskRuntimeArtifactMap(kind, payload, sourceLabel)
     when (kind) {
       FeatureTaskRuntimeWireArtifactKind.QUARANTINE_RECORD ->
         FeatureTaskRuntimeQuarantineSchemaValidator.validate(wireMap, sourceLabel)

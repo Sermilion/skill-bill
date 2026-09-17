@@ -1,7 +1,7 @@
-# SKILL-355 Subtask 1 - Resolved dependencies, typed results, one transport, and adapter tests
+# SKILL-359 Subtask 1 - Resolved dependencies, typed results, one transport, and adapter tests
 
-Parent spec: [.feature-specs/SKILL-355-runtime-infra-http-boundaries-and-simplicity/spec.md](./spec.md)
-Issue key: SKILL-355
+Parent spec: [.feature-specs/SKILL-359-runtime-infra-http-boundaries-and-simplicity/spec.md](./spec.md)
+Issue key: SKILL-359
 
 ## Scope
 
@@ -39,4 +39,4 @@ Continue to `spec_subtask_2_own-the-telemetry-proxy-vocabulary-once-and-register
 
 ## Spec Path
 
-.feature-specs/SKILL-355-runtime-infra-http-boundaries-and-simplicity/spec_subtask_1_resolved-dependencies-typed-results-one-transport-and-adapter-tests.md
+.feature-specs/SKILL-359-runtime-infra-http-boundaries-and-simplicity/spec_subtask_1_resolved-dependencies-typed-results-one-transport-and-adapter-tests.md

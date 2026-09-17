@@ -1,5 +1,6 @@
 package skillbill.infrastructure.fs.scaffold
 
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import skillbill.contracts.install.INSTALL_PLAN_CONTRACT_VERSION
 import skillbill.contracts.install.InstallPlanSchemaPaths
@@ -9,14 +10,12 @@ import skillbill.error.InvalidInstallPlanSchemaError
 import skillbill.error.InvalidManifestSchemaError
 import skillbill.error.InvalidNativeAgentCompositionSchemaError
 import skillbill.error.InvalidWorkflowStateSchemaError
-import skillbill.infrastructure.fs.contracts.install.InstallPlanSchemaValidator
-import skillbill.infrastructure.fs.contracts.workflow.assertWorkflowStateSchemaIdentity
+import skillbill.error.ShellContentContractException
+import skillbill.infrastructure.fs.contracts.ClasspathContractSchemaLoader
 import skillbill.infrastructure.fs.nativeagent.composition.NATIVE_AGENT_COMPOSITION_CONTRACT_VERSION
 import skillbill.infrastructure.fs.nativeagent.composition.NativeAgentCompositionSchemaPaths
-import skillbill.infrastructure.fs.nativeagent.composition.NativeAgentCompositionSchemaValidator
 import skillbill.infrastructure.fs.scaffold.platformpack.PlatformPackSchemaPaths
 import skillbill.infrastructure.fs.scaffold.platformpack.PlatformPackSchemaValidator
-import skillbill.infrastructure.fs.scaffold.platformpack.assertSchemaIdentity
 import skillbill.infrastructure.fs.scaffold.platformpack.loadPlatformManifest
 import skillbill.infrastructure.fs.scaffold.runtime.SHELL_CONTRACT_VERSION
 import skillbill.infrastructure.fs.scaffold.runtime.scaffold
@@ -41,7 +40,11 @@ class PlatformPackSchemaCleanupTest {
     """.trimIndent()
     val node = YAMLMapper().readTree(mismatchedIdYaml)
 
-    val error = assertFailsWith<InvalidManifestSchemaError> { assertSchemaIdentity(node) }
+    val error = assertFailsWith<InvalidManifestSchemaError> {
+      validateIdentity(node, PlatformPackSchemaPaths.EXPECTED_SCHEMA_ID, SHELL_CONTRACT_VERSION) {
+        InvalidManifestSchemaError(it)
+      }
+    }
     val message = error.message.orEmpty()
     assertContains(message, "https://malicious.example/shadow-schema.yaml")
     assertContains(message, PlatformPackSchemaPaths.EXPECTED_SCHEMA_ID)
@@ -59,7 +62,11 @@ class PlatformPackSchemaCleanupTest {
     """.trimIndent()
     val node = YAMLMapper().readTree(mismatchedConstYaml)
 
-    val error = assertFailsWith<InvalidManifestSchemaError> { assertSchemaIdentity(node) }
+    val error = assertFailsWith<InvalidManifestSchemaError> {
+      validateIdentity(node, PlatformPackSchemaPaths.EXPECTED_SCHEMA_ID, SHELL_CONTRACT_VERSION) {
+        InvalidManifestSchemaError(it)
+      }
+    }
     val message = error.message.orEmpty()
     assertContains(message, "9.99")
     assertContains(message, SHELL_CONTRACT_VERSION)
@@ -71,7 +78,9 @@ class PlatformPackSchemaCleanupTest {
       .resolve(PlatformPackSchemaPaths.REPO_RELATIVE_PATH)
     val node = YAMLMapper().readTree(Files.readString(schemaPath))
 
-    assertSchemaIdentity(node)
+    validateIdentity(node, PlatformPackSchemaPaths.EXPECTED_SCHEMA_ID, SHELL_CONTRACT_VERSION) {
+      InvalidManifestSchemaError(it)
+    }
   }
 
   @Test
@@ -86,7 +95,11 @@ class PlatformPackSchemaCleanupTest {
     """.trimIndent()
     val node = YAMLMapper().readTree(mismatchedIdYaml)
 
-    val error = assertFailsWith<InvalidWorkflowStateSchemaError> { assertWorkflowStateSchemaIdentity(node) }
+    val error = assertFailsWith<InvalidWorkflowStateSchemaError> {
+      validateIdentity(node, WorkflowStateSchemaPaths.EXPECTED_SCHEMA_ID, WORKFLOW_STATE_CONTRACT_VERSION) {
+        InvalidWorkflowStateSchemaError(it)
+      }
+    }
     val message = error.message.orEmpty()
     assertContains(message, "https://malicious.example/shadow-workflow-state.yaml")
     assertContains(message, WorkflowStateSchemaPaths.EXPECTED_SCHEMA_ID)
@@ -104,7 +117,11 @@ class PlatformPackSchemaCleanupTest {
     """.trimIndent()
     val node = YAMLMapper().readTree(mismatchedConstYaml)
 
-    val error = assertFailsWith<InvalidWorkflowStateSchemaError> { assertWorkflowStateSchemaIdentity(node) }
+    val error = assertFailsWith<InvalidWorkflowStateSchemaError> {
+      validateIdentity(node, WorkflowStateSchemaPaths.EXPECTED_SCHEMA_ID, WORKFLOW_STATE_CONTRACT_VERSION) {
+        InvalidWorkflowStateSchemaError(it)
+      }
+    }
     val message = error.message.orEmpty()
     assertContains(message, "9.99")
     assertContains(message, WORKFLOW_STATE_CONTRACT_VERSION)
@@ -116,7 +133,9 @@ class PlatformPackSchemaCleanupTest {
       .resolve(WorkflowStateSchemaPaths.REPO_RELATIVE_PATH)
     val node = YAMLMapper().readTree(Files.readString(schemaPath))
 
-    assertWorkflowStateSchemaIdentity(node)
+    validateIdentity(node, WorkflowStateSchemaPaths.EXPECTED_SCHEMA_ID, WORKFLOW_STATE_CONTRACT_VERSION) {
+      InvalidWorkflowStateSchemaError(it)
+    }
   }
 
   @Test
@@ -131,7 +150,9 @@ class PlatformPackSchemaCleanupTest {
     """.trimIndent()
 
     val error = assertFailsWith<InvalidInstallPlanSchemaError> {
-      InstallPlanSchemaValidator.assertIdentity(mismatchedIdYaml)
+      validateIdentity(YAMLMapper().readTree(mismatchedIdYaml), InstallPlanSchemaPaths.EXPECTED_SCHEMA_ID, INSTALL_PLAN_CONTRACT_VERSION) {
+        InvalidInstallPlanSchemaError(fieldPath = "<schema>", reason = it)
+      }
     }
     val reason = error.reason
     assertContains(reason, "https://malicious.example/shadow-install-plan.yaml")
@@ -150,7 +171,9 @@ class PlatformPackSchemaCleanupTest {
     """.trimIndent()
 
     val error = assertFailsWith<InvalidInstallPlanSchemaError> {
-      InstallPlanSchemaValidator.assertIdentity(mismatchedConstYaml)
+      validateIdentity(YAMLMapper().readTree(mismatchedConstYaml), InstallPlanSchemaPaths.EXPECTED_SCHEMA_ID, INSTALL_PLAN_CONTRACT_VERSION) {
+        InvalidInstallPlanSchemaError(fieldPath = "<schema>", reason = it)
+      }
     }
     val reason = error.reason
     assertContains(reason, "9.99")
@@ -163,7 +186,9 @@ class PlatformPackSchemaCleanupTest {
       .resolve(InstallPlanSchemaPaths.REPO_RELATIVE_PATH)
     val yamlText = Files.readString(schemaPath)
 
-    InstallPlanSchemaValidator.assertIdentity(yamlText)
+    validateIdentity(YAMLMapper().readTree(yamlText), InstallPlanSchemaPaths.EXPECTED_SCHEMA_ID, INSTALL_PLAN_CONTRACT_VERSION) {
+      InvalidInstallPlanSchemaError(fieldPath = "<schema>", reason = it)
+    }
   }
 
   @Test
@@ -177,7 +202,12 @@ class PlatformPackSchemaCleanupTest {
     """.trimIndent()
 
     val error = assertFailsWith<InvalidNativeAgentCompositionSchemaError> {
-      NativeAgentCompositionSchemaValidator.assertIdentity(mismatchedIdYaml)
+      validateIdentity(
+        YAMLMapper().readTree(mismatchedIdYaml),
+        NativeAgentCompositionSchemaPaths.EXPECTED_SCHEMA_ID,
+        NATIVE_AGENT_COMPOSITION_CONTRACT_VERSION,
+        listOf("\$defs", "contractVersion", "const"),
+      ) { InvalidNativeAgentCompositionSchemaError(sourceLabel = "<schema>", reason = it) }
     }
     val reason = error.reason
     assertContains(reason, "https://malicious.example/shadow-native-agent-composition.yaml")
@@ -195,7 +225,12 @@ class PlatformPackSchemaCleanupTest {
     """.trimIndent()
 
     val error = assertFailsWith<InvalidNativeAgentCompositionSchemaError> {
-      NativeAgentCompositionSchemaValidator.assertIdentity(mismatchedConstYaml)
+      validateIdentity(
+        YAMLMapper().readTree(mismatchedConstYaml),
+        NativeAgentCompositionSchemaPaths.EXPECTED_SCHEMA_ID,
+        NATIVE_AGENT_COMPOSITION_CONTRACT_VERSION,
+        listOf("\$defs", "contractVersion", "const"),
+      ) { InvalidNativeAgentCompositionSchemaError(sourceLabel = "<schema>", reason = it) }
     }
     val reason = error.reason
     assertContains(reason, "9.99")
@@ -208,7 +243,12 @@ class PlatformPackSchemaCleanupTest {
       .resolve(NativeAgentCompositionSchemaPaths.REPO_RELATIVE_PATH)
     val yamlText = Files.readString(schemaPath)
 
-    NativeAgentCompositionSchemaValidator.assertIdentity(yamlText)
+    validateIdentity(
+      YAMLMapper().readTree(yamlText),
+      NativeAgentCompositionSchemaPaths.EXPECTED_SCHEMA_ID,
+      NATIVE_AGENT_COMPOSITION_CONTRACT_VERSION,
+      listOf("\$defs", "contractVersion", "const"),
+    ) { InvalidNativeAgentCompositionSchemaError(sourceLabel = "<schema>", reason = it) }
   }
 
   @Test
@@ -277,4 +317,21 @@ class PlatformPackSchemaCleanupTest {
     val validator = PlatformPackSchemaValidator()
     validator.validate(typedManifest, "scenarioslug")
   }
+}
+
+private fun validateIdentity(
+  node: JsonNode,
+  expectedSchemaId: String,
+  expectedContractVersion: String,
+  contractVersionPath: List<String> = listOf("properties", "contract_version", "const"),
+  error: (String) -> ShellContentContractException,
+) {
+  ClasspathContractSchemaLoader.validateSchemaIdentity(
+    yamlNode = node,
+    classpathResource = expectedSchemaId,
+    expectedSchemaId = expectedSchemaId,
+    expectedContractVersion = expectedContractVersion,
+    contractVersionPath = contractVersionPath,
+    identityFailure = error,
+  )
 }

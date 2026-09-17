@@ -16,7 +16,7 @@ internal fun readPhaseOutputObjectNode(phaseOutputText: String, sourceLabel: Str
     candidate.path("phase_id").asText("") == sourceLabel
   }
   val distinctValidEnvelopes = envelopeCandidates
-    .filter { candidate -> FeatureTaskRuntimePhaseOutputSchemaValidator.schema.validate(candidate).isEmpty() }
+    .filter { candidate -> FeatureTaskRuntimePhaseOutputWireSchema.schema.validate(candidate).isEmpty() }
     .distinctBy(::canonicalCandidateKey)
   if (distinctValidEnvelopes.size > 1) {
     throw InvalidFeatureTaskRuntimePhaseOutputSchemaError(
@@ -69,22 +69,22 @@ internal fun validateVerifyingEnvelopeShell(parsed: Map<String, Any?>, sourceLab
 }
 
 private fun canonicalCandidateKey(candidate: JsonNode): String =
-  FeatureTaskRuntimePhaseOutputSchemaValidator.mapper.writeValueAsString(canonicalizeCandidate(candidate))
+  FeatureTaskRuntimePhaseOutputWireSchema.mapper.writeValueAsString(canonicalizeCandidate(candidate))
 
 private fun canonicalizeCandidate(node: JsonNode): JsonNode = when {
-  node.isObject -> FeatureTaskRuntimePhaseOutputSchemaValidator.mapper.createObjectNode().apply {
+  node.isObject -> FeatureTaskRuntimePhaseOutputWireSchema.mapper.createObjectNode().apply {
     node.fieldNames().asSequence().sorted().forEach { field ->
       set<JsonNode>(field, canonicalizeCandidate(node.path(field)))
     }
   }
-  node.isArray -> FeatureTaskRuntimePhaseOutputSchemaValidator.mapper.createArrayNode().apply {
+  node.isArray -> FeatureTaskRuntimePhaseOutputWireSchema.mapper.createArrayNode().apply {
     node.forEach { element -> add(canonicalizeCandidate(element)) }
   }
   else -> node
 }
 
 private fun tryParseObjectNode(candidate: String): JsonNode? = try {
-  FeatureTaskRuntimePhaseOutputSchemaValidator.yamlMapper.readTree(candidate)?.takeIf(JsonNode::isObject)
+  FeatureTaskRuntimePhaseOutputWireSchema.yamlMapper.readTree(candidate)?.takeIf(JsonNode::isObject)
 } catch (error: JsonProcessingException) {
   featureTaskRuntimePhaseOutputLog.log(
     Level.FINE,
@@ -97,7 +97,7 @@ private fun tryParseObjectNode(candidate: String): JsonNode? = try {
 private fun parseObjectNodeStrict(text: String, sourceLabel: String): JsonNode {
   val node =
     try {
-      FeatureTaskRuntimePhaseOutputSchemaValidator.yamlMapper.readTree(text)
+      FeatureTaskRuntimePhaseOutputWireSchema.yamlMapper.readTree(text)
     } catch (error: JsonProcessingException) {
       throw InvalidFeatureTaskRuntimePhaseOutputSchemaError(
         sourceLabel = sourceLabel,
@@ -119,9 +119,9 @@ private fun parseObjectNodeStrict(text: String, sourceLabel: String): JsonNode {
 }
 
 internal fun phaseOutputObjectNodeToMap(node: JsonNode, sourceLabel: String): Map<String, Any?> = try {
-  FeatureTaskRuntimePhaseOutputSchemaValidator.mapper.convertValue(
+  FeatureTaskRuntimePhaseOutputWireSchema.mapper.convertValue(
     node,
-    FeatureTaskRuntimePhaseOutputSchemaValidator.mapType,
+    FeatureTaskRuntimePhaseOutputWireSchema.mapType,
   )
 } catch (error: IllegalArgumentException) {
   throw InvalidFeatureTaskRuntimePhaseOutputSchemaError(

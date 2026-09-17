@@ -1213,6 +1213,42 @@ selected platforms, planned skills, agent targets, MCP registration intent, and
 the typed `InstallPlanDraft` without touching filesystem, process execution,
 staging hashes, symlink checks, binary discovery, or rollback mechanics.
 
+### runtime-infra-fs `java.util.logging` (SKILL-353)
+
+Contract validators log schema drift at `WARNING` through `logSchemaLoadFailure`
+before throwing the family's `Invalid*SchemaError`; that is the operator signal
+for packaged-schema versus runtime-contract version skew, not a silent fallback.
+`FeatureTaskRuntimePhaseOutputSchemaValidatorSupportParsing` logs unparsable
+phase-output candidates at `FINE` while continuing envelope selection.
+`InstallStaging` and staging I/O log reuse and failure at `FINE`/`SEVERE`.
+`JvmAgentRunProcessRunner` and `ProcessRunDegradationRecorder` export bounded
+degradation lines to stderr; `degradationExportLogger` records sink failures
+only. `JdkRuntimeDiagnostics` mirrors `RuntimeDiagnostics` warnings when no
+injectable port exists at the JDK adapter seam.
+
+The remaining `java.util.logging` owners are `InstallStaging`,
+`InstallStagingIO`, `InstallStagingAtomicMoves`, and `InstallStagingPrune`
+(staging reuse, rollback, and cleanup have no diagnostics port);
+`InstallSymlinkReplacement` (symlink replacement cleanup);
+`FileSystemDiffResolver` (bounded git-diff failure context);
+`FileSystemFeatureTaskRuntimeSharedEvidenceStore` (projection-cache
+degradation export);
+`SkillRemoveJvmFileSystemApply` (uninstall cleanup);
+`NativeAgentCompositionSchemaValidator` (schema drift before a typed failure);
+`PlatformPackSchemaValidator` (tolerated legacy manifest version);
+`FeatureTaskRuntimePhaseOutputSchemaLoading` and
+`FeatureTaskRuntimePhaseOutputSchemaValidatorSupportParsing` (schema-load and
+candidate-selection diagnostics);
+`WorkflowStateSchemaValidator`, `IdeStatusSchemaValidator`,
+`GoalProgressEventSchemaValidator`, `GoalObservabilityEventSchemaValidator`,
+`GoalPlanningPreparationSchemaValidator`, `InstallPlanSchemaValidator`,
+`DecompositionManifestSchemaValidator`, and `ReviewContextSchemaValidator`
+(schema drift before typed rejection); and `JdkRuntimeDiagnostics`,
+`JvmAgentRunProcessRunner`, and `ProcessRunDegradationRecorder` (the JDK
+adapter and bounded process/degradation export seams have no injectable
+secondary sink). These are intentional adapter-boundary logs; new fallback
+degradations use `RuntimeDiagnostics`.
+
 `runtime-infra-fs` remains the owner of filesystem/process mechanics: platform
 manifest discovery and schema parsing, base-skill directory scans, agent
 detection/default path probing, pointer realpath validation, content hashing,

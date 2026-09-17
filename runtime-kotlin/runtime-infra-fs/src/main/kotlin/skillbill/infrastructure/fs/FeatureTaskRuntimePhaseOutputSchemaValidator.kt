@@ -7,7 +7,7 @@ import skillbill.error.FeatureTaskRuntimePhaseOutputFailureCode
 import skillbill.error.InvalidFeatureTaskRuntimeBuildReceiptSchemaError
 import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import skillbill.infrastructure.fs.contracts.workflow.FeatureTaskRuntimeBuildReceiptSchemaValidator
-import skillbill.infrastructure.fs.contracts.workflow.FeatureTaskRuntimePhaseOutputSchemaValidator
+import skillbill.infrastructure.fs.contracts.workflow.FeatureTaskRuntimePhaseOutputWireSchema
 import skillbill.infrastructure.fs.phaseoutput.FeatureTaskRuntimePhaseOutputStructuralRepair
 import skillbill.infrastructure.fs.phaseoutput.FeatureTaskRuntimePhaseOutputStructuralRepairDecision
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
@@ -18,7 +18,7 @@ import skillbill.workflow.taskruntime.model.NormalizedFeatureTaskRuntimePhaseOut
 import skillbill.workflow.taskruntime.model.requireAccepted
 
 @Inject
-class FeatureTaskRuntimePhaseOutputValidatorAdapter : FeatureTaskRuntimePhaseOutputValidator {
+class FeatureTaskRuntimePhaseOutputSchemaValidator : FeatureTaskRuntimePhaseOutputValidator {
   override fun validatePhaseOutput(
     phaseOutputText: String,
     sourceLabel: String,
@@ -37,12 +37,12 @@ class FeatureTaskRuntimePhaseOutputValidatorAdapter : FeatureTaskRuntimePhaseOut
 
       is FeatureTaskRuntimePhaseOutputStructuralRepairDecision.Accepted -> try {
         val normalized = if (sourceLabel in LENIENT_VERIFYING_PHASE_OUTPUT_SCHEMA) {
-          FeatureTaskRuntimePhaseOutputSchemaValidator.normalizeVerifyingPhaseOutputLenient(
+          FeatureTaskRuntimePhaseOutputWireSchema.normalizeVerifyingPhaseOutputLenient(
             decision.text,
             sourceLabel,
           )
         } else {
-          FeatureTaskRuntimePhaseOutputSchemaValidator.normalizePhaseOutput(
+          FeatureTaskRuntimePhaseOutputWireSchema.normalizePhaseOutput(
             decision.text,
             sourceLabel,
           )
@@ -83,7 +83,7 @@ class FeatureTaskRuntimePhaseOutputValidatorAdapter : FeatureTaskRuntimePhaseOut
       val canonical = JsonCodec.mapToJsonString(
         JsonCodec.anyToStringAnyMap(envelope) ?: emptyMap(),
       )
-      val normalized = FeatureTaskRuntimePhaseOutputSchemaValidator.normalizePhaseOutput(canonical, sourceLabel)
+      val normalized = FeatureTaskRuntimePhaseOutputWireSchema.normalizePhaseOutput(canonical, sourceLabel)
       FeatureTaskRuntimePhaseOutputValidationResult.AcceptedUnchanged(normalized)
     } catch (_: InvalidFeatureTaskRuntimePhaseOutputSchemaError) {
       null
@@ -93,7 +93,7 @@ class FeatureTaskRuntimePhaseOutputValidatorAdapter : FeatureTaskRuntimePhaseOut
   private fun leniently(phaseOutputText: String, sourceLabel: String): NormalizedFeatureTaskRuntimePhaseOutput? {
     if (sourceLabel !in LENIENT_VERIFYING_PHASE_OUTPUT_SCHEMA) return null
     return try {
-      val normalized = FeatureTaskRuntimePhaseOutputSchemaValidator.normalizeVerifyingPhaseOutputLenient(
+      val normalized = FeatureTaskRuntimePhaseOutputWireSchema.normalizeVerifyingPhaseOutputLenient(
         phaseOutputText,
         sourceLabel,
       )

@@ -1,7 +1,7 @@
-# SKILL-355 Subtask 2 - Own the telemetry proxy vocabulary once and register the seam
+# SKILL-359 Subtask 2 - Own the telemetry proxy vocabulary once and register the seam
 
-Parent spec: [.feature-specs/SKILL-355-runtime-infra-http-boundaries-and-simplicity/spec.md](./spec.md)
-Issue key: SKILL-355
+Parent spec: [.feature-specs/SKILL-359-runtime-infra-http-boundaries-and-simplicity/spec.md](./spec.md)
+Issue key: SKILL-359
 
 ## Scope
 
@@ -36,4 +36,4 @@ Goal complete after this subtask settles; the runtime finalises history and deci
 
 ## Spec Path
 
-.feature-specs/SKILL-355-runtime-infra-http-boundaries-and-simplicity/spec_subtask_2_own-the-telemetry-proxy-vocabulary-once-and-register-the-seam.md
+.feature-specs/SKILL-359-runtime-infra-http-boundaries-and-simplicity/spec_subtask_2_own-the-telemetry-proxy-vocabulary-once-and-register-the-seam.md

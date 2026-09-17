@@ -5,6 +5,7 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.InvalidScaffoldPayloadError
 import skillbill.error.MissingPlatformPackError
 import skillbill.error.UnknownPreShellFamilyError
+import skillbill.error.InvalidAgentAddonAgentIdError
 import skillbill.infrastructure.fs.agentaddon.AgentAddonAgentIds
 import skillbill.infrastructure.fs.agentaddon.AgentAddonSchemaValidator
 import skillbill.infrastructure.fs.scaffold.payload.requireStringListPayload
@@ -116,7 +117,7 @@ internal fun planAgentAddon(payload: Map<String, Any?>, repoRoot: Path): Scaffol
 internal fun validateAgentAddonAgentId(id: String) {
   try {
     AgentAddonAgentIds.parse(id)
-  } catch (error: IllegalArgumentException) {
+  } catch (error: InvalidAgentAddonAgentIdError) {
     throw InvalidScaffoldPayloadError(error.message ?: "Unknown agent '$id'.", error)
   }
 }
