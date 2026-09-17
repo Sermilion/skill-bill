@@ -195,7 +195,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
 
     assertTrue(outcomes.isEmpty(), "a live subtask must not be reconciled into a terminal outcome")
     val alive = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-alive")).toSnapshot()
-    assertEquals("running", alive.workflowStatus, "a live subtask must not be marked blocked")
+    assertEquals("running", alive.workflowStatus.wireValue, "a live subtask must not be marked blocked")
   }
 
   @Test
@@ -222,7 +222,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
     assertEquals(GoalRunnerTerminalStatus.BLOCKED, outcome.status)
     assertEquals("wftr-stale", outcome.workflowId)
     val stale = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-stale")).toSnapshot()
-    assertEquals("blocked", stale.workflowStatus)
+    assertEquals("blocked", stale.workflowStatus.wireValue)
   }
 
   @Test
@@ -249,7 +249,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
     assertEquals(GoalRunnerTerminalStatus.BLOCKED, outcome.status)
     assertEquals("wftr-old-updatedat", outcome.workflowId)
     val stale = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-old-updatedat")).toSnapshot()
-    assertEquals("blocked", stale.workflowStatus)
+    assertEquals("blocked", stale.workflowStatus.wireValue)
   }
 
   @Test
@@ -274,7 +274,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
 
     assertTrue(outcomes.isEmpty(), "a recent updated_at must keep the subtask out of a terminal outcome")
     val alive = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-recent-updatedat")).toSnapshot()
-    assertEquals("running", alive.workflowStatus, "a recently-updated subtask must not be marked blocked")
+    assertEquals("running", alive.workflowStatus.wireValue, "a recently-updated subtask must not be marked blocked")
   }
 
   @Test
@@ -296,7 +296,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeTest {
 
     assertTrue(outcomes.isEmpty(), "empty-liveness must bias to alive, not produce a terminal outcome")
     val alive = requireNotNull(workflows.getFeatureTaskRuntimeWorkflow("wftr-empty-liveness")).toSnapshot()
-    assertEquals("running", alive.workflowStatus, "empty-liveness must not be marked blocked")
+    assertEquals("running", alive.workflowStatus.wireValue, "empty-liveness must not be marked blocked")
   }
 
   @Test

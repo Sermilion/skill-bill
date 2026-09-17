@@ -10,7 +10,7 @@ import skillbill.telemetry.INSTALL_ID_ENVIRONMENT_KEY
 import skillbill.telemetry.defaultLocalTelemetryConfig
 import skillbill.telemetry.model.TelemetryConfigDocument
 import skillbill.telemetry.parseTelemetryBoolValue
-import skillbill.workflow.engine.model.TelemetryOpenDocument
+import skillbill.telemetry.model.TelemetryOpenDocument
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.UUID

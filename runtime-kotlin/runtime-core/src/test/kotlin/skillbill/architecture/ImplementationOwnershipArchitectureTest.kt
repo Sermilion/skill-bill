@@ -1,5 +1,7 @@
 package skillbill.architecture
 
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
+
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.extension
@@ -618,13 +620,8 @@ class ImplementationOwnershipArchitectureTest {
       "skillbill.infrastructure.fs.launcher.agentrun.PathExecutableLookup",
       "skillbill.infrastructure.fs.launcher.review.UnixSocketGovernedReviewEvidenceEndpointBinder",
       "skillbill.workflow.decomposition.DecompositionManifestValidator",
-      "skillbill.workflow.taskruntime.FeatureTaskRuntimeHandoffEnvelopeValidator",
-      "skillbill.workflow.taskruntime.FeatureTaskRuntimeHandoffFoundationValidator",
-      "skillbill.workflow.taskruntime.FeatureTaskRuntimeImplementationAttemptValidator",
       "skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator",
-      "skillbill.workflow.taskruntime.FeatureTaskRuntimePlanningProjectionValidator",
-      "skillbill.workflow.taskruntime.FeatureTaskRuntimeBuildReceiptValidator",
-      "skillbill.workflow.taskruntime.FeatureTaskRuntimeQuarantineValidator",
+      "skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator",
       "skillbill.workflow.goal.GoalObservabilityEventValidator",
       "skillbill.workflow.goal.GoalPlanningPreparationEnvelopeValidator",
       "skillbill.workflow.goal.GoalProgressEventValidator",

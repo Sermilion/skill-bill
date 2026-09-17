@@ -9,8 +9,6 @@ import skillbill.workflow.engine.model.WorkflowStepState
 import skillbill.workflow.goal.model.asGoalWorkflowArtifactMap
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
-import skillbill.workflow.model.workflowStatus
-import skillbill.workflow.model.workflowStepStatus
 
 fun terminalOutcomeFor(
   snapshot: WorkflowStateSnapshot,
@@ -70,7 +68,7 @@ fun nonCompleteStoredOutcomeIsCorroborated(
     derived?.status == GoalRunnerTerminalStatus.BLOCKED &&
       derived.blockedReason == stored.blockedReason
   GoalRunnerTerminalStatus.FAILED -> derived?.status == GoalRunnerTerminalStatus.FAILED
-  GoalRunnerTerminalStatus.PAUSED -> snapshot.workflowStatus.workflowStatus() == WorkflowStatus.PAUSED
+  GoalRunnerTerminalStatus.PAUSED -> snapshot.workflowStatus == WorkflowStatus.PAUSED
   GoalRunnerTerminalStatus.TIMEOUT -> true
   GoalRunnerTerminalStatus.COMPLETE,
   GoalRunnerTerminalStatus.NO_TERMINAL_STORE_OUTCOME,
@@ -90,11 +88,11 @@ fun terminalStatus(
     } else {
       GoalRunnerTerminalStatus.COMPLETE
     }
-  snapshot.workflowStatus.workflowStatus() == WorkflowStatus.FAILED ||
-    steps.any { it.status.workflowStepStatus() == WorkflowStepStatus.FAILED } -> GoalRunnerTerminalStatus.FAILED
-  snapshot.workflowStatus.workflowStatus() == WorkflowStatus.BLOCKED ||
+  snapshot.workflowStatus == WorkflowStatus.FAILED ||
+    steps.any { it.status == WorkflowStepStatus.FAILED } -> GoalRunnerTerminalStatus.FAILED
+  snapshot.workflowStatus == WorkflowStatus.BLOCKED ||
     liveBlockedStep(snapshot, steps) != null -> GoalRunnerTerminalStatus.BLOCKED
-  snapshot.workflowStatus.workflowStatus() in setOf(WorkflowStatus.COMPLETED, WorkflowStatus.ABANDONED) ->
+  snapshot.workflowStatus in setOf(WorkflowStatus.COMPLETED, WorkflowStatus.ABANDONED) ->
     GoalRunnerTerminalStatus.NO_TERMINAL_STORE_OUTCOME
   else -> null
 }
@@ -103,11 +101,11 @@ fun liveBlockedStep(snapshot: WorkflowStateSnapshot, steps: List<WorkflowStepSta
   val currentIndex = steps.indexOfFirst { it.stepId == snapshot.currentStepId }
   if (currentIndex < 0) {
     return steps.firstOrNull {
-      it.status.workflowStepStatus() == WorkflowStepStatus.BLOCKED
+      it.status == WorkflowStepStatus.BLOCKED
     }
   }
   return steps.drop(currentIndex).firstOrNull {
-    it.status.workflowStepStatus() == WorkflowStepStatus.BLOCKED
+    it.status == WorkflowStepStatus.BLOCKED
   }
 }
 
@@ -117,7 +115,7 @@ fun blockedReasonFrom(artifacts: Any, steps: List<WorkflowStepState>, status: Go
     ?: (wire["goal_continuation_outcome"] as? Map<*, *>)
       ?.get("blocked_reason")?.toString()?.takeIf(String::isNotBlank)
     ?: steps.firstOrNull {
-      it.status.workflowStepStatus() in setOf(WorkflowStepStatus.FAILED, WorkflowStepStatus.BLOCKED)
+      it.status in setOf(WorkflowStepStatus.FAILED, WorkflowStepStatus.BLOCKED)
     }?.let { step -> "Workflow step '${step.stepId}' is ${step.status}." }
     ?: "Workflow reached a terminal state without a goal-continuation commit SHA."
       .takeIf { status == GoalRunnerTerminalStatus.NO_TERMINAL_STORE_OUTCOME }
@@ -130,5 +128,5 @@ fun commitShaFrom(artifacts: Any): String? {
 
 fun commitPushCompletedUnderSuppressPr(steps: List<WorkflowStepState>, suppressPr: Boolean): Boolean =
   suppressPr && steps.any {
-    it.stepId == "commit_push" && it.status.workflowStepStatus() == WorkflowStepStatus.COMPLETED
+    it.stepId == "commit_push" && it.status == WorkflowStepStatus.COMPLETED
   }

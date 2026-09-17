@@ -10,6 +10,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
+import skillbill.workflow.model.WorkflowStatus
 
 class AttemptLedgerWorkflowDecodingTest {
   @Test
@@ -64,7 +65,7 @@ class AttemptLedgerWorkflowDecodingTest {
     sessionId = "session-1",
     workflowName = "bill-feature-task",
     contractVersion = "1.0",
-    workflowStatus = "running",
+    workflowStatus = WorkflowStatus.RUNNING,
     currentStepId = "validate",
     stepsJson = """[{"step_id":"validate","status":"running","attempt_count":1}]""",
     artifactsJson = artifactsJson,

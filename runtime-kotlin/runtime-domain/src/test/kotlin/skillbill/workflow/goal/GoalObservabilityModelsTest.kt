@@ -2,6 +2,7 @@ package skillbill.workflow.goal
 
 import skillbill.error.InvalidGoalProgressEventSchemaError
 import skillbill.error.InvalidGoalObservabilityEventSchemaError
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactKind
 import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.workflow.goal.model.goalObservabilityEventFromArtifact
 import skillbill.workflow.goal.model.GOAL_OBSERVABILITY_HISTORY_LIMIT
@@ -61,7 +62,7 @@ class GoalObservabilityModelsTest {
         raw = malformed,
         sourceLabel = "goal_observability_latest_event",
         validator = object : GoalObservabilityEventValidator {
-          override fun validate(event: Any, sourceLabel: String) = Unit
+          override fun validate(kind: FeatureTaskRuntimeWireArtifactKind, payload: Any, sourceLabel: String) = Unit
         },
       )
     }

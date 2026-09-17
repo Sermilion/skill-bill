@@ -1,3 +1,23 @@
+## [2026-09-16] Validator port home, wire artifact collapse, version ownership, wrapper policy (SKILL-351 subtask 2)
+
+Context: Subtask 2 restores ownership and typed boundaries across validator ports, learnings session wiring, workflow continuation typing, and wire-key governance.
+
+Decision: (a) Feature-task runtime JSON-schema validator ports live in `runtime-domain` under `skillbill.workflow.taskruntime` and `skillbill.workflow.decomposition`; concrete Draft 2020-12 validators stay in `runtime-infra-fs`. (b) The identical-shape task-runtime and goal wire validators use `FeatureTaskRuntimeWireArtifactValidator` keyed by `FeatureTaskRuntimeWireArtifactKind`; infra dispatches through `FeatureTaskRuntimeWireArtifactValidatorAdapter`. (c) `SkillBillVersion` and `skillbill/version.properties` live in `runtime-core`; the packaged resource read remains the single ambient seam documented in `ARCHITECTURE.md`. (d) Typed boundary wrappers move out of the monolithic `WorkflowBoundaryCollections.kt` into owning area `model` packages (`workflow/decomposition`, `telemetry`, `review/context`, `workflow/engine`); delete the aggregate file rather than retaining a re-export hub. (e) `WorkflowDefinition.usesFeatureTaskRuntimeContinuation` replaces engine imports of `workflow.taskruntime` for continuation branching. (f) Governed goal-continuation artifact keys declare once in `FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys`; `WireVocabularyGovernedSeamInventory` scans the encode/decode pair.
+
+Evidence: `.feature-specs/SKILL-351-runtime-domain-boundaries-and-simplicity/baselines/`, `FeatureTaskRuntimeWireArtifactValidatorAdapter`, `LearningSessionWire.kt`, `WorkflowEngineBoundaryMaps.kt`, `WireVocabularyArchitectureTest`.
+
+Revisit when: Subtask 3 shrinks remaining surface and merge-count split units land.
+
+## [2026-09-16] Decomposition manifest validator port (SKILL-52.3)
+
+Context: Decomposition manifest schema validation previously lived only in infra; application reached it through ad hoc imports.
+
+Decision: `DecompositionManifestValidator` in `runtime-domain` is the domain-owned port; `DecompositionManifestValidatorAdapter` in `runtime-infra-fs` runs JSON Schema plus coherence checks and throws `InvalidDecompositionManifestSchemaError` on violation.
+
+Evidence: `DecompositionManifestValidatorAdapter`, decomposition manifest rejection tests in `runtime-infra-fs`.
+
+Revisit when: Manifest schema or repair orchestration changes ownership again.
+
 ## [2026-09-16] Unified durable artifact map reader and lenient workflow-step integers (SKILL-351 subtask 1)
 
 Context: Durable artifact decoding duplicated nine map-field accessor families and fourteen integer coercions with divergent semantics. Workflow snapshot step decoding intentionally keeps a lenient integer coercion for legacy rows.

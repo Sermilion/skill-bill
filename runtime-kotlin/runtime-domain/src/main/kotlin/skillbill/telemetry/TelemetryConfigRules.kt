@@ -1,7 +1,7 @@
 package skillbill.telemetry
 
 import skillbill.telemetry.model.TelemetryConfigDocument
-import skillbill.workflow.engine.model.TelemetryOpenDocument
+import skillbill.telemetry.model.TelemetryOpenDocument
 
 fun defaultLocalTelemetryConfig(installId: String): TelemetryConfigDocument = TelemetryConfigDocument(
   payload = TelemetryOpenDocument.from(

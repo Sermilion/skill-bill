@@ -12,6 +12,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import skillbill.workflow.model.WorkflowStatus
 
 class WorkflowGoalRunnerOutcomeStoreTaskRuntimeBlockedTest {
   @Test
@@ -22,7 +23,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeBlockedTest {
       blockedContinuationRecord(
         BlockedContinuationRecordFixture(
           workflowId = "wftr-standing-block",
-          workflowStatus = "blocked",
+          workflowStatus = WorkflowStatus.BLOCKED.wireValue,
           stepStatus = "blocked",
           blockedReasonArtifact = reason,
           storedBlockedReason = reason,
@@ -48,7 +49,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeBlockedTest {
       blockedContinuationRecord(
         BlockedContinuationRecordFixture(
           workflowId = "wftr-standing-nested-reason",
-          workflowStatus = "blocked",
+          workflowStatus = WorkflowStatus.BLOCKED.wireValue,
           stepStatus = "blocked",
           blockedReasonArtifact = null,
           storedBlockedReason = reason,
@@ -90,7 +91,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeBlockedTest {
       blockedContinuationRecord(
         BlockedContinuationRecordFixture(
           workflowId = "wftr-20260808-175505-c5po",
-          workflowStatus = "running",
+          workflowStatus = WorkflowStatus.RUNNING.wireValue,
           stepStatus = "running",
           blockedReasonArtifact = null,
           storedBlockedReason = staleReason,
@@ -138,7 +139,7 @@ class WorkflowGoalRunnerOutcomeStoreTaskRuntimeBlockedTest {
       blockedContinuationRecord(
         BlockedContinuationRecordFixture(
           workflowId = "wftr-stale-idempotent",
-          workflowStatus = "running",
+          workflowStatus = WorkflowStatus.RUNNING.wireValue,
           stepStatus = "running",
           blockedReasonArtifact = null,
           storedBlockedReason = staleReason,

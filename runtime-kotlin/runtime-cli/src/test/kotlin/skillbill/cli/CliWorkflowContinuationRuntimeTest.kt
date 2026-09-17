@@ -15,6 +15,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import skillbill.workflow.model.WorkflowStatus
 
 class CliWorkflowContinuationRuntimeTest {
   @Test
@@ -27,7 +28,7 @@ class CliWorkflowContinuationRuntimeTest {
       RuntimeWorkflowTestSupport.UpdateArgs(
         dbPath = fixture.dbPath,
         workflowId = workflowId,
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING.wireValue,
         currentStepId = "plan",
         stepUpdates = RuntimeWorkflowTestSupport.parseStepUpdates(
           """[{"step_id":"plan","status":"completed","attempt_count":1}]""",
@@ -67,7 +68,7 @@ class CliWorkflowContinuationRuntimeTest {
       RuntimeWorkflowTestSupport.UpdateArgs(
         dbPath = fixture.dbPath,
         workflowId = workflowId,
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING.wireValue,
         currentStepId = "plan",
         stepUpdates = RuntimeWorkflowTestSupport.parseStepUpdates(
           """[{"step_id":"plan","status":"completed","attempt_count":1}]""",

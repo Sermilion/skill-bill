@@ -40,6 +40,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.DriverManager
 import kotlin.test.assertTrue
+import skillbill.workflow.model.WorkflowStatus
 
 internal fun startRunningRuntimeGoalChild(fixture: GoalCliFixture): String {
   val childWorkflowId = startRunningGoalChild(fixture)
@@ -241,7 +242,7 @@ internal fun completeRunningGoalChild(fixture: GoalCliFixture, childWorkflowId: 
     WorkflowUpdateFixture(
       dbPath = fixture.dbPath,
       workflowId = childWorkflowId,
-      workflowStatus = "completed",
+      workflowStatus = WorkflowStatus.COMPLETED.wireValue,
       currentStep = "commit_push",
       stepUpdates = """[{"step_id":"commit_push","status":"completed","attempt_count":1}]""",
       artifactsPatch = jsonString(
@@ -442,7 +443,7 @@ internal class GoalFixtureAgentRunLauncher(
       WorkflowUpdateFixture(
         dbPath = dbPath,
         workflowId = workflowId,
-        workflowStatus = "completed",
+        workflowStatus = WorkflowStatus.COMPLETED.wireValue,
         currentStep = "commit_push",
         stepUpdates = """[{"step_id":"commit_push","status":"completed","attempt_count":1}]""",
         artifactsPatch = jsonString(mapOf("commit_push_result" to mapOf("commit_sha" to "sha-$subtaskId"))),
@@ -457,7 +458,7 @@ internal class GoalFixtureAgentRunLauncher(
       WorkflowUpdateFixture(
         dbPath = dbPath,
         workflowId = workflowId,
-        workflowStatus = "failed",
+        workflowStatus = WorkflowStatus.FAILED.wireValue,
         currentStep = "review",
         stepUpdates = """[{"step_id":"review","status":"failed","attempt_count":1}]""",
         artifactsPatch = jsonString(mapOf("blocked_reason" to "forced failure")),

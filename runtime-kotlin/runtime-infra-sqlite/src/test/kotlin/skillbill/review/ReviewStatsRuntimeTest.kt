@@ -11,8 +11,8 @@ import skillbill.infrastructure.sqlite.review.TriageRuntime
 import skillbill.infrastructure.sqlite.telemetry.LifecycleTelemetryStore
 import skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxStore
 import skillbill.infrastructure.sqlite.telemetry.listJson
-import skillbill.learnings.learningAppliedSessionWire
-import skillbill.learnings.learningEntryDto
+import skillbill.application.learning.learningAppliedSessionWire
+import skillbill.application.learning.learningEntryDto
 import skillbill.learnings.model.CreateLearningRequest
 import skillbill.learnings.model.LearningScope
 import skillbill.learnings.model.LearningSourceValidation

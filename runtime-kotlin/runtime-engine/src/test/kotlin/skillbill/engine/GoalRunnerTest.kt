@@ -1,11 +1,12 @@
 package skillbill.engine
+
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.agentaddon.model.AgentAddonSelection
 import skillbill.agentaddon.model.PersistedAgentAddonSelectionEntry
 import skillbill.application.RecordingSpecScratchStore
 import skillbill.application.decomposition.parentSpecPath
 import skillbill.application.testHarnessClock
-import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeHandoffEnvelopeValidator
-import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeHandoffFoundationValidator
+import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeWireArtifactValidator
 import skillbill.engine.featuretask.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
 import skillbill.engine.goalrunner.GoalRunnerLaunchReconciler
@@ -154,6 +155,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import skillbill.goalrunner.model.GoalPlanningStatusState.NOT_STARTED as GoalPlanningStatusStateNOT_STARTED
+import skillbill.workflow.model.WorkflowStatus
 
 class GoalRunnerTest {
   @Test
@@ -412,7 +414,7 @@ class GoalRunnerTest {
 
     outcomes.progresses["wfl-1"] = GoalRunnerWorkflowProgress(
       workflowId = "wfl-1",
-      workflowStatus = "running",
+      workflowStatus = WorkflowStatus.RUNNING,
       currentStepId = "implement",
       progressToken = "child-progress-token",
     )
@@ -1928,7 +1930,7 @@ class GoalRunnerStatusProjectionTest {
     val outcomes = RecordingOutcomeStore()
     outcomes.progresses["wfl-1"] = GoalRunnerWorkflowProgress(
       workflowId = "wfl-1",
-      workflowStatus = "running",
+      workflowStatus = WorkflowStatus.RUNNING,
       currentStepId = "implement",
       progressToken = "child-progress-token",
       latestGoalObservabilityEvent = GoalObservabilityProgressEvent(
@@ -2150,7 +2152,7 @@ class GoalRunnerStatusProjectionTest {
       )
       progresses["wfl-active"] = GoalRunnerWorkflowProgress(
         workflowId = "wfl-active",
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING,
         currentStepId = "implement",
         progressToken = "tok",
         latestDurableProgressEvent = null,
@@ -2195,7 +2197,7 @@ class GoalRunnerStatusProjectionTest {
       )
       progresses["wfl-active"] = GoalRunnerWorkflowProgress(
         workflowId = "wfl-active",
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING,
         currentStepId = "implement",
         progressToken = "retry-token",
         latestDurableProgressEvent = null,
@@ -2976,7 +2978,7 @@ class GoalRunnerAcceptResetTest {
     val outcomes = RecordingOutcomeStore().apply {
       progresses["wfl-stale"] = GoalRunnerWorkflowProgress(
         workflowId = "wfl-stale",
-        workflowStatus = "failed",
+        workflowStatus = WorkflowStatus.FAILED,
         currentStepId = "implement",
         progressToken = "terminal",
       )
@@ -3012,7 +3014,7 @@ class GoalRunnerAcceptResetTest {
     val outcomes = RecordingOutcomeStore().apply {
       progresses["wfl-resumable"] = GoalRunnerWorkflowProgress(
         workflowId = "wfl-resumable",
-        workflowStatus = "paused",
+        workflowStatus = WorkflowStatus.PAUSED,
         currentStepId = "implement",
         progressToken = "resumable",
       )
@@ -4564,7 +4566,7 @@ class GoalRunnerStatusAttributionTest {
     val outcomes = RecordingOutcomeStore()
     outcomes.progresses["wfl-2"] = GoalRunnerWorkflowProgress(
       workflowId = "wfl-2",
-      workflowStatus = "running",
+      workflowStatus = WorkflowStatus.RUNNING,
       currentStepId = "implement",
       progressToken = "child-progress-token",
       latestLivenessSignal = "durable_progress step=implement attempt=1",
@@ -4650,8 +4652,8 @@ internal const val FAKE_PAUSED_AT = "2026-08-02T10:00:00Z"
 internal fun goalTestPhaseRecorder(): FeatureTaskRuntimePhaseRecorder = testPhaseRecorder(
   GoalTestEmptyDatabase,
   GoalTestNoopSnapshotValidator,
-  AcceptingFeatureTaskRuntimeHandoffEnvelopeValidator,
-  AcceptingFeatureTaskRuntimeHandoffFoundationValidator,
+  AcceptingFeatureTaskRuntimeWireArtifactValidator,
+  AcceptingFeatureTaskRuntimeWireArtifactValidator,
 )
 
 private class GoalStatusPhaseLedgerHarness {
@@ -4661,8 +4663,8 @@ private class GoalStatusPhaseLedgerHarness {
     testPhaseRecorder(
       database,
       GoalTestNoopSnapshotValidator,
-      AcceptingFeatureTaskRuntimeHandoffEnvelopeValidator,
-      AcceptingFeatureTaskRuntimeHandoffFoundationValidator,
+      AcceptingFeatureTaskRuntimeWireArtifactValidator,
+      AcceptingFeatureTaskRuntimeWireArtifactValidator,
     )
   var failOwnershipReads: Boolean
     get() = repository.failOwnershipReads

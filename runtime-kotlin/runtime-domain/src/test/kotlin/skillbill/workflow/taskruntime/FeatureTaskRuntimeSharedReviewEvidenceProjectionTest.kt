@@ -85,6 +85,6 @@ class FeatureTaskRuntimeSharedReviewEvidenceProjectionTest {
       resolvedCheckpoint = FeatureTaskRuntimeRepositoryCheckpoint(fingerprint = "fp"),
       sharedReviewEvidence = evidence,
       workflowId = "wftr-1",
-      planningProjectionValidator = NoopFeatureTaskRuntimePlanningProjectionValidator,
+      planningProjectionValidator = NoopFeatureTaskRuntimeWireArtifactValidator,
     )
 }

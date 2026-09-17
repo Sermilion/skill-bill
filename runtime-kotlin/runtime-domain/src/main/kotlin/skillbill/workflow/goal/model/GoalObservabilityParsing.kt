@@ -5,6 +5,7 @@ import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.GOAL_OBSERVABILITY_EVENT_CONTRACT_VERSION
 import skillbill.workflow.goal.GoalObservabilityEventValidator
 import skillbill.workflow.goal.invalidGoalObservabilityEvent
+import skillbill.workflow.taskruntime.validateGoalObservabilityEvent
 
 fun goalObservabilityLatestEventFromArtifacts(
   artifacts: Any,
@@ -40,7 +41,7 @@ fun goalObservabilityEventFromArtifact(
   validator: GoalObservabilityEventValidator,
 ): GoalObservabilityEvent {
   val eventMap = raw.toGoalObservabilityEventMap(sourceLabel)
-  validator.validate(eventMap, sourceLabel)
+  validator.validateGoalObservabilityEvent(eventMap, sourceLabel)
   eventMap.requireOnlyKeys(GOAL_OBSERVABILITY_EVENT_KEYS, sourceLabel)
   val reader = goalObservabilityReader(eventMap, sourceLabel)
   return GoalObservabilityEvent(

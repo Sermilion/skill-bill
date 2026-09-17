@@ -8,6 +8,7 @@ import skillbill.workflow.verify.FeatureVerifyWorkflowDefinition
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import skillbill.workflow.model.WorkflowStatus
 
 class FeatureVerifyWorkflowRuntimeTest {
   private val definition = FeatureVerifyWorkflowDefinition.definition
@@ -19,10 +20,10 @@ class FeatureVerifyWorkflowRuntimeTest {
     val record = engine.openRecord(definition, "wfv-001", "fvr-001", "code_review")
     val steps = engine.snapshotView(definition, record).steps
 
-    assertEquals("completed", steps.single { it.stepId == "collect_inputs" }.status)
-    assertEquals("completed", steps.single { it.stepId == "gather_diff" }.status)
-    assertEquals("running", steps.single { it.stepId == "code_review" }.status)
-    assertEquals("pending", steps.single { it.stepId == "verdict" }.status)
+    assertEquals("completed", steps.single { it.stepId == "collect_inputs" }.status.wireValue)
+    assertEquals("completed", steps.single { it.stepId == "gather_diff" }.status.wireValue)
+    assertEquals("running", steps.single { it.stepId == "code_review" }.status.wireValue)
+    assertEquals("pending", steps.single { it.stepId == "verdict" }.status.wireValue)
   }
 
   @Test
@@ -33,7 +34,7 @@ class FeatureVerifyWorkflowRuntimeTest {
         definition,
         running,
         WorkflowUpdateInput(
-          workflowStatus = "completed",
+          workflowStatus = WorkflowStatus.COMPLETED,
           currentStepId = "finish",
           stepUpdates = WorkflowStepUpdates.from(
             listOf(mapOf("step_id" to "finish", "status" to "completed", "attempt_count" to 1)),
@@ -42,7 +43,7 @@ class FeatureVerifyWorkflowRuntimeTest {
           sessionId = "",
         ),
       )
-    val failed = completed.copy(workflowStatus = "failed")
+    val failed = completed.copy(workflowStatus = WorkflowStatus.FAILED)
 
     assertEquals("done", engine.resumeView(definition, completed).resumeMode.wireValue)
     assertEquals("recover", engine.resumeView(definition, failed).resumeMode.wireValue)
@@ -55,7 +56,7 @@ class FeatureVerifyWorkflowRuntimeTest {
         definition,
         engine.openRecord(definition, "wfv-001", "fvr-001", "code_review"),
         WorkflowUpdateInput(
-          workflowStatus = "running",
+          workflowStatus = WorkflowStatus.RUNNING,
           currentStepId = "verdict",
           stepUpdates = WorkflowStepUpdates.from(
             listOf(mapOf("step_id" to "verdict", "status" to "blocked", "attempt_count" to 1)),
@@ -97,7 +98,7 @@ class FeatureVerifyWorkflowRuntimeTest {
   fun `verify validation preserves workflow status contract`() {
     val pending =
       WorkflowUpdateInput(
-        workflowStatus = "pending",
+        workflowStatus = WorkflowStatus.PENDING,
         currentStepId = "code_review",
         stepUpdates = WorkflowStepUpdates.from(
           listOf(mapOf("step_id" to "code_review", "status" to "failed", "attempt_count" to 1)),
@@ -105,14 +106,14 @@ class FeatureVerifyWorkflowRuntimeTest {
         artifactsPatch = null,
         sessionId = "",
       )
-    val abandoned = pending.copy(workflowStatus = "abandoned")
+    val abandoned = pending.copy(workflowStatus = WorkflowStatus.ABANDONED)
 
     assertEquals(null, WorkflowEngine.validateUpdate(definition, pending))
     assertEquals(null, WorkflowEngine.validateUpdate(definition, abandoned))
     assertEquals("recover", engine.resumeView(definition, completedAs("abandoned")).resumeMode.wireValue)
     assertEquals(
       "Invalid workflow_status 'blocked'. Allowed: pending, running, completed, failed, abandoned",
-      WorkflowEngine.validateUpdate(definition, pending.copy(workflowStatus = "blocked")),
+      WorkflowEngine.validateUpdate(definition, pending.copy(workflowStatus = WorkflowStatus.BLOCKED)),
     )
   }
 
@@ -139,7 +140,7 @@ class FeatureVerifyWorkflowRuntimeTest {
     definition,
     engine.openRecord(definition, "wfv-terminal", "fvr-001", "gather_diff"),
     WorkflowUpdateInput(
-      workflowStatus = status,
+      workflowStatus = WorkflowStatus.fromWire(status) ?: error("Unknown workflow status '$status'."),
       currentStepId = "finish",
       stepUpdates = WorkflowStepUpdates.from(
         listOf(mapOf("step_id" to "finish", "status" to "completed", "attempt_count" to 1)),

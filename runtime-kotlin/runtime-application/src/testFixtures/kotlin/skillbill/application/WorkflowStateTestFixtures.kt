@@ -27,6 +27,7 @@ import skillbill.review.model.ReviewFindingVerdict
 import java.lang.reflect.Proxy
 import java.nio.file.Path
 import java.time.Instant
+import skillbill.workflow.model.WorkflowStatus
 
 private fun passThroughReviewRepository(): ReviewRepository = Proxy.newProxyInstance(
   ReviewRepository::class.java.classLoader,
@@ -144,7 +145,7 @@ class InMemoryWorkflowStates : WorkflowStateRepository {
     ) {
       return false
     }
-    rows[workflowId] = existing.copy(workflowStatus = "running", updatedAt = "claimed")
+    rows[workflowId] = existing.copy(workflowStatus = WorkflowStatus.RUNNING.wireValue, updatedAt = "claimed")
     return true
   }
 
@@ -252,7 +253,7 @@ class InMemoryWorkflowStates : WorkflowStateRepository {
       row.workflowStatus == "running"
     if (!eligible) return false
     workerOwnershipById.remove(workflowId)
-    taskRuntime[workflowId] = row.copy(workflowStatus = "pending")
+    taskRuntime[workflowId] = row.copy(workflowStatus = WorkflowStatus.PENDING.wireValue)
     return true
   }
 }

@@ -47,10 +47,9 @@ import skillbill.workflow.goal.model.GOAL_PROGRESS_RUN_HISTORY_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GoalProgressEvent
 import skillbill.workflow.goal.model.appendBoundedHistoryBySequence
 import skillbill.workflow.goal.model.goalObservabilityLatestEventFromArtifacts
+import skillbill.workflow.taskruntime.validateGoalProgressEvent
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
-import skillbill.workflow.model.workflowStatus
-import skillbill.workflow.model.workflowStepStatus
 
 private val PROGRESS_POLL_ARTIFACT_KEYS = setOf(
   "progress_event",
@@ -74,9 +73,9 @@ internal class WorkflowGoalRunnerProgressRecording(
     val artifacts = sparseArtifactKeys(record.artifactsJson, PROGRESS_POLL_ARTIFACT_KEYS)
     val finishCompleted = steps.any {
         step ->
-      step.stepId == "pr" && step.status.workflowStepStatus() == WorkflowStepStatus.COMPLETED
+      step.stepId == "pr" && step.status == WorkflowStepStatus.COMPLETED
     }
-    val currentStep = if (record.workflowStatus.workflowStatus() == WorkflowStatus.COMPLETED || finishCompleted) {
+    val currentStep = if (record.workflowStatus == WorkflowStatus.COMPLETED || finishCompleted) {
       "pr"
     } else {
       record.currentStepId
@@ -88,9 +87,7 @@ internal class WorkflowGoalRunnerProgressRecording(
     }.getOrNull()
     GoalRunnerWorkflowProgress(
       workflowId = record.workflowId,
-      workflowStatus = requireNotNull(record.workflowStatus.workflowStatus()) {
-        "Unknown workflow status '${record.workflowStatus}'."
-      },
+      workflowStatus = record.workflowStatus,
       currentStepId = currentStep,
       progressToken = record.progressToken(),
       latestDurableProgressEvent = progressEvent,
@@ -134,7 +131,7 @@ internal class WorkflowGoalRunnerProgressRecording(
 
   override fun recordProgressEvent(request: GoalRunnerProgressEventRecordRequest): Boolean {
     val entryMap = request.event.toPersistenceWire()
-    goalProgressEventValidator.validate(entryMap, GOAL_PROGRESS_LATEST_EVENT_ARTIFACT_KEY)
+    goalProgressEventValidator.validateGoalProgressEvent(entryMap, GOAL_PROGRESS_LATEST_EVENT_ARTIFACT_KEY)
     return appendHistoryArtifact(
       HistoryArtifactAppend(
         workflowId = request.workflowId,

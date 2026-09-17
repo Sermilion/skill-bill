@@ -12,6 +12,7 @@ import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertTrue
 import skillbill.application.workflow.model.WorkflowOpenResult.Ok as WorkflowOpenResultOk
+import skillbill.workflow.model.WorkflowStatus
 
 class WorkflowServiceRuntimeComponentTest {
   @Test
@@ -39,7 +40,7 @@ class WorkflowServiceRuntimeComponentTest {
           WorkflowFamilyKind.TASK_RUNTIME,
           WorkflowUpdateRequest(
             workflowId = workflowId,
-            workflowStatus = "running",
+            workflowStatus = WorkflowStatus.RUNNING.wireValue,
             currentStepId = "plan",
             stepUpdates = WorkflowStepUpdates.from(
               listOf(

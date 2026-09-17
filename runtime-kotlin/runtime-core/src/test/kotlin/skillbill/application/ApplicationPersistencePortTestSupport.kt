@@ -1,4 +1,6 @@
 package skillbill.application
+
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.application.decomposition.DecompositionManifestWriter
 import skillbill.application.decomposition.loadDecompositionManifest
 import skillbill.application.review.ReviewService
@@ -23,8 +25,7 @@ import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseLedgerRequest
 import skillbill.engine.featuretask.model.FeatureTaskRuntimePhaseStateRequest
 import skillbill.error.MissingCompositionLayerError
 import skillbill.infrastructure.fs.DecompositionManifestValidatorAdapter
-import skillbill.infrastructure.fs.FeatureTaskRuntimeHandoffEnvelopeValidatorInfraAdapter
-import skillbill.infrastructure.fs.FeatureTaskRuntimeHandoffFoundationValidatorInfraAdapter
+import skillbill.infrastructure.fs.FeatureTaskRuntimeWireArtifactValidatorAdapter
 import skillbill.infrastructure.fs.FileSystemDecompositionManifestFileStore
 import skillbill.infrastructure.fs.WorkflowSnapshotValidatorInfraAdapter
 import skillbill.infrastructure.fs.concurrency.JvmInterruptSignalPort
@@ -102,7 +103,7 @@ import skillbill.telemetry.model.TelemetryDeliveryReport
 import skillbill.telemetry.model.TelemetryProxyCapabilities
 import skillbill.telemetry.model.TelemetryRemoteStatsResult
 import skillbill.telemetry.model.TelemetrySettings
-import skillbill.workflow.engine.model.TelemetryOpenDocument
+import skillbill.telemetry.model.TelemetryOpenDocument
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.goal.NoopGoalObservabilityEventValidator
@@ -134,6 +135,7 @@ import java.time.Clock
 import kotlin.test.assertEquals
 import java.lang.Double.TYPE as DoubleTYPE
 import java.lang.Long.TYPE as LongTYPE
+import skillbill.workflow.model.WorkflowStatus
 internal fun <T> noopPort(type: Class<T>): T {
   @Suppress("UNCHECKED_CAST")
   return Proxy.newProxyInstance(type.classLoader, arrayOf(type)) { _, method, _ ->
@@ -755,7 +757,7 @@ internal fun blockedGoalChildRetryFixture(): BlockedGoalChildRetryFixture {
     WorkflowFamilyKind.TASK_RUNTIME,
     WorkflowUpdateRequest(
       workflowId = childWorkflowId,
-      workflowStatus = "running",
+      workflowStatus = WorkflowStatus.RUNNING.wireValue,
       currentStepId = "preplan",
       stepUpdates = null,
       artifactsPatch = WorkflowArtifactPatch.from(
@@ -813,7 +815,7 @@ internal fun createDecompositionWorkflow(
     WorkflowFamilyKind.TASK_RUNTIME,
     WorkflowUpdateRequest(
       workflowId = workflowId,
-      workflowStatus = "running",
+      workflowStatus = WorkflowStatus.RUNNING.wireValue,
       currentStepId = "plan",
       stepUpdates = WorkflowStepUpdates.from(
         listOf(
@@ -834,7 +836,7 @@ internal fun markDecompositionSubtaskBlocked(service: WorkflowService, workflowI
     WorkflowFamilyKind.TASK_RUNTIME,
     WorkflowUpdateRequest(
       workflowId = workflowId,
-      workflowStatus = "blocked",
+      workflowStatus = WorkflowStatus.BLOCKED.wireValue,
       currentStepId = "validate",
       stepUpdates = WorkflowStepUpdates.from(
         listOf(
@@ -859,7 +861,7 @@ internal fun markDecompositionSubtaskSkipped(service: WorkflowService, workflowI
     WorkflowFamilyKind.TASK_RUNTIME,
     WorkflowUpdateRequest(
       workflowId = workflowId,
-      workflowStatus = "running",
+      workflowStatus = WorkflowStatus.RUNNING.wireValue,
       currentStepId = "pr",
       stepUpdates = WorkflowStepUpdates.from(
         listOf(
@@ -881,7 +883,7 @@ internal fun markDecompositionSubtaskComplete(service: WorkflowService, workflow
     WorkflowFamilyKind.TASK_RUNTIME,
     WorkflowUpdateRequest(
       workflowId = workflowId,
-      workflowStatus = "completed",
+      workflowStatus = WorkflowStatus.COMPLETED.wireValue,
       currentStepId = "pr",
       stepUpdates = WorkflowStepUpdates.from(
         listOf(
@@ -1232,8 +1234,8 @@ internal fun numberedFinding(number: Int, findingId: String): NumberedFinding = 
 internal fun testPhaseRecorder(database: DatabaseSessionFactory) = featureTaskRuntimePhaseRecorder(
   database,
   WorkflowSnapshotValidatorInfraAdapter(),
-  FeatureTaskRuntimeHandoffEnvelopeValidatorInfraAdapter(),
-  FeatureTaskRuntimeHandoffFoundationValidatorInfraAdapter(),
+  FeatureTaskRuntimeWireArtifactValidatorAdapter(),
+  FeatureTaskRuntimeWireArtifactValidatorAdapter(),
   Clock.systemUTC(),
   NoopRuntimeDiagnostics,
 )

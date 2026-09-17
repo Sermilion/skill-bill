@@ -20,6 +20,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
+import skillbill.workflow.model.WorkflowStatus
 
 @Execution(ExecutionMode.SAME_THREAD)
 class DatabaseWriteReadinessTest {
@@ -195,7 +196,7 @@ class DatabaseWriteReadinessTest {
     sessionId = "ftr-readiness",
     workflowName = "bill-feature-task",
     contractVersion = "",
-    workflowStatus = "running",
+    workflowStatus = WorkflowStatus.RUNNING.wireValue,
     currentStepId = "implement",
     stepsJson = "[]",
     artifactsJson = "{}",

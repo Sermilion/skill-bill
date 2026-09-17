@@ -15,6 +15,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
+import skillbill.workflow.model.WorkflowStatus
 
 class FeatureTaskRuntimeResumeGateTest {
   private val engine = WorkflowEngine(NoopWorkflowSnapshotValidator)
@@ -79,7 +80,7 @@ class FeatureTaskRuntimeResumeGateTest {
   fun `crashed runtime run with completed preplan and plan resumes at implement not preplan`() {
     val record = runtimeSnapshot(
       currentStepId = "plan",
-      workflowStatus = "running",
+      workflowStatus = WorkflowStatus.RUNNING,
       stepsJson = stepsJson(
         "preplan" to "completed",
         "plan" to "completed",
@@ -103,7 +104,7 @@ class FeatureTaskRuntimeResumeGateTest {
   fun `completed run done next-action dereferences a terminal-summary artifact present in the snapshot`() {
     val record = runtimeSnapshot(
       currentStepId = "pr",
-      workflowStatus = "completed",
+      workflowStatus = WorkflowStatus.COMPLETED,
       stepsJson = stepsJson(
         "preplan" to "completed",
         "plan" to "completed",
@@ -171,7 +172,7 @@ class FeatureTaskRuntimeResumeGateTest {
       sessionId = "ftr-test",
       workflowName = runtimeDefinition.workflowName,
       contractVersion = runtimeDefinition.contractVersion,
-      workflowStatus = "running",
+      workflowStatus = WorkflowStatus.RUNNING,
       currentStepId = "plan",
       stepsJson = stepsJson("preplan" to "completed", "plan" to "pending"),
       artifactsJson = corruptArtifactsJson,
@@ -193,7 +194,7 @@ class FeatureTaskRuntimeResumeGateTest {
       sessionId = "ftr-test",
       workflowName = runtimeDefinition.workflowName,
       contractVersion = runtimeDefinition.contractVersion,
-      workflowStatus = "running",
+      workflowStatus = WorkflowStatus.RUNNING,
       currentStepId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_WRITE_HISTORY,
       steps = emptyList(),
       artifacts = DurableWorkflowArtifacts.fromMap(
@@ -227,7 +228,7 @@ class FeatureTaskRuntimeResumeGateTest {
     stepsJson: String,
     phaseRecordStatuses: Map<String, String>,
     phaseRecordOutputs: Map<String, String> = emptyMap(),
-    workflowStatus: String = "running",
+    workflowStatus: WorkflowStatus = WorkflowStatus.RUNNING,
   ): WorkflowStateSnapshot = WorkflowStateSnapshot(
     workflowId = "wftr-test",
     sessionId = "ftr-test",
@@ -252,7 +253,7 @@ class FeatureTaskRuntimeResumeGateTest {
     sessionId = "impl-test",
     workflowName = definition.workflowName,
     contractVersion = definition.contractVersion,
-    workflowStatus = "running",
+    workflowStatus = WorkflowStatus.RUNNING,
     currentStepId = currentStepId,
     stepsJson = stepsJson,
     artifactsJson = "{}",

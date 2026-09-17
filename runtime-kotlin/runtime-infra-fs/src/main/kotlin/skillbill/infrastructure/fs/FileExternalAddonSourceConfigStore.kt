@@ -11,7 +11,7 @@ import skillbill.ports.install.addon.model.ExternalAddonSourceConfigResult
 import skillbill.ports.install.addon.model.ExternalAddonSourceRegistrationRequest
 import skillbill.ports.repository.toFileLocation
 import skillbill.telemetry.model.TelemetryConfigDocument
-import skillbill.workflow.engine.model.TelemetryOpenDocument
+import skillbill.telemetry.model.TelemetryOpenDocument
 import java.nio.file.Files
 import java.nio.file.Path
 

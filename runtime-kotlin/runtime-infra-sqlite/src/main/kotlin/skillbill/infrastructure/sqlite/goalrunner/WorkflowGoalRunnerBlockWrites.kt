@@ -22,7 +22,6 @@ import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.engine.model.isTerminalStatus
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
-import skillbill.workflow.model.workflowStatus
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_LEDGER_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_PHASE_LEDGER_LIMIT
@@ -72,7 +71,7 @@ internal class WorkflowGoalRunnerBlockWrites(
       write.family.definition,
       write.record,
       WorkflowUpdateInput(
-        workflowStatus = "blocked",
+        workflowStatus = WorkflowStatus.BLOCKED,
         currentStepId = stepId,
         stepUpdates = WorkflowStepUpdates.from(
           listOf(
@@ -128,13 +127,13 @@ internal class WorkflowGoalRunnerBlockWrites(
   private fun operatorReopenablePhaseRecord(
     phaseRecords: Map<String, FeatureTaskRuntimePhaseRecord>,
     preferredPhaseId: String,
-    workflowStatus: String,
+    workflowStatus: WorkflowStatus,
   ): FeatureTaskRuntimePhaseRecord? {
     val preferred = phaseRecords[preferredPhaseId]
     return preferred?.takeIf { it.status == WorkflowStepStatus.BLOCKED }
       ?: phaseRecords.values.firstOrNull { it.status == WorkflowStepStatus.BLOCKED }
       ?: preferred?.takeIf {
-        workflowStatus.workflowStatus() == WorkflowStatus.BLOCKED && it.status == WorkflowStepStatus.RUNNING
+        workflowStatus == WorkflowStatus.BLOCKED && it.status == WorkflowStepStatus.RUNNING
       }
   }
 
@@ -156,7 +155,7 @@ internal class WorkflowGoalRunnerBlockWrites(
       resolvedAgentId = blockedRecord.resolvedAgentId,
     )
     return WorkflowUpdateInput(
-      workflowStatus = "running",
+      workflowStatus = WorkflowStatus.RUNNING,
       currentStepId = blockedRecord.phaseId,
       stepUpdates = WorkflowStepUpdates.from(
         listOf(

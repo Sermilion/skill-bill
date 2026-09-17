@@ -1,11 +1,11 @@
 
 package skillbill.engine
 import skillbill.application.diagnostics.model.RejectedOutputDiagnosticRequest
+import skillbill.engine.featuretask.FeatureTaskRuntimePhaseOutputTestValidator
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
 import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import skillbill.install.model.InstallAgent.CLAUDE
 import skillbill.ports.agentrun.model.AgentRunLaunchFacts
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -73,7 +73,7 @@ class FeatureTaskRuntimeCorrectiveRespawnIntegrationTest {
             },
           )
         },
-        validator = object : FeatureTaskRuntimePhaseOutputValidator {
+        validator = object : FeatureTaskRuntimePhaseOutputTestValidator() {
           override fun validatePhaseOutputText(phaseOutputText: String, sourceLabel: String) {
             if (sourceLabel != "audit") return
             if (phaseOutputText.contains("SKILL187-ATTEMPT-1") || phaseOutputText.contains("SKILL187-ATTEMPT-2")) {
@@ -120,7 +120,7 @@ class FeatureTaskRuntimeCorrectiveRespawnIntegrationTest {
             else -> facts(defaultPhaseOutput(request))
           }
         },
-        validator = object : FeatureTaskRuntimePhaseOutputValidator {
+        validator = object : FeatureTaskRuntimePhaseOutputTestValidator() {
           override fun validatePhaseOutputText(phaseOutputText: String, sourceLabel: String) {
             if (sourceLabel == "plan" && phaseOutputText.contains("SKILL187-PLAN-STALE")) {
               throw InvalidFeatureTaskRuntimePhaseOutputSchemaError(
@@ -205,7 +205,7 @@ class FeatureTaskRuntimeCorrectiveRespawnIntegrationTest {
             auditAttempts += 1
             facts(if (auditAttempts == 1) rejectedBody else defaultPhaseOutput(request))
           },
-          validator = object : FeatureTaskRuntimePhaseOutputValidator {
+          validator = object : FeatureTaskRuntimePhaseOutputTestValidator() {
             override fun validatePhaseOutputText(phaseOutputText: String, sourceLabel: String) {
               if (sourceLabel != "audit") return
               if (phaseOutputText.contains(sentinel)) {
@@ -261,7 +261,7 @@ class FeatureTaskRuntimeCorrectiveRespawnIntegrationTest {
             facts(defaultPhaseOutput(request))
           }
         },
-        validator = object : FeatureTaskRuntimePhaseOutputValidator {
+          validator = object : FeatureTaskRuntimePhaseOutputTestValidator() {
           override fun validatePhaseOutputText(phaseOutputText: String, sourceLabel: String) {
             if (sourceLabel != "audit") return
             if (phaseOutputText.contains("SKILL187-TRUNCATED-EXCERPT")) {
@@ -315,7 +315,7 @@ class FeatureTaskRuntimeCorrectiveRespawnIntegrationTest {
             facts(defaultPhaseOutput(request))
           }
         },
-        validator = object : FeatureTaskRuntimePhaseOutputValidator {
+        validator = object : FeatureTaskRuntimePhaseOutputTestValidator() {
           override fun validatePhaseOutputText(phaseOutputText: String, sourceLabel: String) {
             if (sourceLabel != "audit") return
             if (phaseOutputText.contains("SKILL187-DEGRADED-EXCERPT")) {
@@ -355,8 +355,8 @@ class FeatureTaskRuntimeCorrectiveRespawnIntegrationTest {
     .map { requireNotNull(it.skillRunRequest.promptOverride) }
     .filter { phaseIdFromPrompt(it) == "audit" }
 
-  private fun rejectingOnceValidator(rejectedBody: String): FeatureTaskRuntimePhaseOutputValidator =
-    object : FeatureTaskRuntimePhaseOutputValidator {
+  private fun rejectingOnceValidator(rejectedBody: String): FeatureTaskRuntimePhaseOutputTestValidator =
+    object : FeatureTaskRuntimePhaseOutputTestValidator() {
       override fun validatePhaseOutputText(phaseOutputText: String, sourceLabel: String) {
         if (sourceLabel != "audit") return
         if (phaseOutputText.contains(rawSpan) || phaseOutputText == rejectedBody) {

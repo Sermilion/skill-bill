@@ -21,6 +21,7 @@ import java.util.logging.Logger
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import skillbill.workflow.model.WorkflowStatus
 
 @Execution(ExecutionMode.SAME_THREAD)
 class DatabaseWriteMaintenanceRegressionTest {
@@ -78,7 +79,7 @@ class DatabaseWriteMaintenanceRegressionTest {
     sessionId = "ftr-maintenance",
     workflowName = "bill-feature-task",
     contractVersion = "",
-    workflowStatus = "running",
+    workflowStatus = WorkflowStatus.RUNNING.wireValue,
     currentStepId = "implement",
     stepsJson = "[]",
     artifactsJson = "{}",

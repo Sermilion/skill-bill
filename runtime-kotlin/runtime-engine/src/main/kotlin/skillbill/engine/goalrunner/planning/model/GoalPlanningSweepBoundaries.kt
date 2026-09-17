@@ -1,4 +1,6 @@
 package skillbill.engine.goalrunner.planning.model
+
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import me.tatarka.inject.annotations.Inject
 import skillbill.engine.goalplanning.GoalPlanningPreparationCheckpoint
 import skillbill.engine.goalrunner.planning.GoalPlanningAttemptRecorder
@@ -12,7 +14,6 @@ import skillbill.ports.taskruntime.FeatureTaskRuntimeRunInvariantsSource
 import skillbill.ports.time.RuntimeTimingPort
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePlanningProjectionValidator
 
 @Inject
 data class GoalPlanningSweepCheckpointBoundaries(
@@ -21,7 +22,7 @@ data class GoalPlanningSweepCheckpointBoundaries(
   val invariantsSource: FeatureTaskRuntimeRunInvariantsSource,
   val manifestFileStore: DecompositionManifestStore,
   val contextDiscovery: GoalPlanningContextDiscovery,
-  val planningProjectionValidator: FeatureTaskRuntimePlanningProjectionValidator,
+  val planningProjectionValidator: FeatureTaskRuntimeWireArtifactValidator,
 )
 
 @Inject

@@ -1,5 +1,7 @@
 package skillbill.engine.goalrunner
 
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
+
 import skillbill.application.FakeDatabaseSessionFactory
 import skillbill.application.InMemoryWorkflowStates
 import skillbill.application.TestRepositoryEnclosingRoot
@@ -12,8 +14,7 @@ import skillbill.application.testHarnessClock
 import skillbill.application.testRepositoryRoot
 import skillbill.application.testWorkflowSnapshotValidator
 import skillbill.config.model.RepoLocalConfig
-import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeHandoffEnvelopeValidator
-import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeHandoffFoundationValidator
+import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeWireArtifactValidator
 import skillbill.engine.featuretask.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.FeatureTaskRuntimeStatusService
 import skillbill.engine.featuretask.featureTaskRuntimePhaseRecorder
@@ -40,8 +41,6 @@ import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.scaffold.model.PlatformManifest
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.engine.WorkflowSnapshotValidator
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeHandoffEnvelopeValidator
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeHandoffFoundationValidator
 import java.time.Clock
 
 fun goalRunnerDefaultPhaseRecorder(): FeatureTaskRuntimePhaseRecorder = testPhaseRecorder(
@@ -174,10 +173,10 @@ fun testWorkflowGoalRunnerOutcomeStore(
 fun testPhaseRecorder(
   database: DatabaseSessionFactory,
   workflowSnapshotValidator: WorkflowSnapshotValidator,
-  handoffEnvelopeValidator: FeatureTaskRuntimeHandoffEnvelopeValidator =
-    AcceptingFeatureTaskRuntimeHandoffEnvelopeValidator,
-  handoffFoundationValidator: FeatureTaskRuntimeHandoffFoundationValidator =
-    AcceptingFeatureTaskRuntimeHandoffFoundationValidator,
+  handoffEnvelopeValidator: FeatureTaskRuntimeWireArtifactValidator =
+    AcceptingFeatureTaskRuntimeWireArtifactValidator,
+  handoffFoundationValidator: FeatureTaskRuntimeWireArtifactValidator =
+    AcceptingFeatureTaskRuntimeWireArtifactValidator,
   diagnostics: RuntimeDiagnostics = NoopRuntimeDiagnostics,
 ): FeatureTaskRuntimePhaseRecorder = featureTaskRuntimePhaseRecorder(
   database = database,

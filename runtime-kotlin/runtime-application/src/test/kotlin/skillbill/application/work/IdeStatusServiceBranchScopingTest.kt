@@ -22,6 +22,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import skillbill.workflow.model.WorkflowStatus
 
 class IdeStatusServiceBranchScopingTest {
 
@@ -94,7 +95,7 @@ class IdeStatusServiceBranchScopingTest {
     )
     val staleProgress = GoalRunnerWorkflowProgress(
       workflowId = "w-child",
-      workflowStatus = "running",
+      workflowStatus = WorkflowStatus.RUNNING,
       currentStepId = "verify_findings",
       progressToken = "stale-verify-findings",
       latestLivenessSignal = "workflow_status=running; step=verify_findings",

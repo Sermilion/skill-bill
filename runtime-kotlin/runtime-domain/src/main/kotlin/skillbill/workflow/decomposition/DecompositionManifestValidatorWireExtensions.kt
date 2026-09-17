@@ -1,7 +1,7 @@
 package skillbill.workflow.decomposition
 
 import skillbill.workflow.decomposition.model.DecompositionManifest
-import skillbill.workflow.engine.model.DecompositionManifestWireMap
+import skillbill.workflow.decomposition.model.DecompositionManifestWireMap
 
 fun DecompositionManifestValidator.decodeManifest(
   wireMap: DecompositionManifestWireMap,

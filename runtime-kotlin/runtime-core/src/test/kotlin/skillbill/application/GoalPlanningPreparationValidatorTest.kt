@@ -7,7 +7,7 @@ import skillbill.engine.goalplanning.GoalPlanningPreparationValidator
 import skillbill.error.InvalidFeatureTaskRuntimePhaseOutputSchemaError
 import skillbill.error.InvalidGoalPlanningPreparationSchemaError
 import skillbill.infrastructure.fs.FeatureTaskRuntimePhaseOutputValidatorAdapter
-import skillbill.infrastructure.fs.FeatureTaskRuntimePlanningProjectionValidatorAdapter
+import skillbill.infrastructure.fs.FeatureTaskRuntimeWireArtifactValidatorAdapter
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationProvenance
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationRecord
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationState
@@ -21,7 +21,7 @@ class GoalPlanningPreparationValidatorTest {
 
   private val validator = GoalPlanningPreparationValidator(
     FeatureTaskRuntimePhaseOutputValidatorAdapter(),
-    FeatureTaskRuntimePlanningProjectionValidatorAdapter(),
+    FeatureTaskRuntimeWireArtifactValidatorAdapter(),
   )
 
   @Test

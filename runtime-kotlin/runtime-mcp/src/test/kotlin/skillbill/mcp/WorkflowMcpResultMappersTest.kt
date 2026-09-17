@@ -11,11 +11,14 @@ import skillbill.workflow.engine.model.WorkflowSnapshotView
 import skillbill.workflow.engine.model.WorkflowStepState
 import skillbill.workflow.engine.model.WorkflowUpdateAcknowledgementView
 import skillbill.workflow.goal.GoalObservabilityEventValidator
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactKind
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import skillbill.workflow.model.WorkflowStatus
+import skillbill.workflow.model.WorkflowStepStatus
 
 class WorkflowMcpResultMappersTest {
   @Test
@@ -27,7 +30,7 @@ class WorkflowMcpResultMappersTest {
         status = "ok",
         workflowId = "wfl-1",
         workflowName = "bill-feature-task",
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING,
         currentStepId = "implement",
         updatedStepIds = listOf("implement"),
         updatedArtifactKeys = listOf("implementation_summary"),
@@ -219,9 +222,9 @@ class WorkflowMcpResultMappersTest {
     sessionId = "fis-1",
     workflowName = "bill-feature-task",
     contractVersion = "0.1",
-    workflowStatus = "running",
+    workflowStatus = WorkflowStatus.RUNNING,
     currentStepId = "implement",
-    steps = listOf(WorkflowStepState("implement", "running", 1)),
+    steps = listOf(WorkflowStepState("implement", WorkflowStepStatus.RUNNING, 1)),
     artifacts = DurableWorkflowArtifacts.fromMap(
       mapOf(
         "goal_observability_latest_event" to event,
@@ -247,8 +250,11 @@ class WorkflowMcpResultMappersTest {
 
   private val testGoalObservabilityEventValidator: GoalObservabilityEventValidator =
     object : GoalObservabilityEventValidator {
-      override fun validate(event: Any, sourceLabel: String) {
-        GoalObservabilityEventSchemaValidator.validate(requireNotNull(JsonCodec.anyToStringAnyMap(event)), sourceLabel)
+      override fun validate(kind: FeatureTaskRuntimeWireArtifactKind, payload: Any, sourceLabel: String) {
+        GoalObservabilityEventSchemaValidator.validate(
+          requireNotNull(JsonCodec.anyToStringAnyMap(payload)),
+          sourceLabel,
+        )
       }
     }
 }

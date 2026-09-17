@@ -44,6 +44,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import skillbill.workflow.model.WorkflowStatus
 class RemediationBaseReconciliationUnderAmendTest {
   private val workflowId = "wftr-skill190-reconcile"
   private val issueKey = "SKILL-190"
@@ -398,7 +399,7 @@ class RemediationBaseReconciliationUnderAmendTest {
       definition,
       opened,
       WorkflowUpdateInput(
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING,
         currentStepId = "review",
         stepUpdates = null,
         artifactsPatch = WorkflowArtifactPatch.from(artifactsPatch),

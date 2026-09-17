@@ -23,6 +23,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import skillbill.workflow.model.WorkflowStatus
 
 class McpWorkflowContinuationRuntimeTest {
   @Test
@@ -94,7 +95,7 @@ private data class McpDecompositionFixture(
 ) {
   fun updateRequest(workflowId: String): WorkflowUpdateRequest = WorkflowUpdateRequest(
     workflowId = workflowId,
-    workflowStatus = "running",
+    workflowStatus = WorkflowStatus.RUNNING.wireValue,
     currentStepId = "plan",
     stepUpdates = WorkflowStepUpdates.from(
       listOf(mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1)),

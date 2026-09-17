@@ -9,6 +9,7 @@ import skillbill.workflow.goal.model.GOAL_OBSERVABILITY_RUN_HISTORY_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GoalObservabilityEvent
 import skillbill.workflow.goal.model.asGoalWorkflowArtifactMap
 import skillbill.workflow.goal.model.goalObservabilityHistoryFromArtifacts
+import skillbill.workflow.taskruntime.validateGoalObservabilityEvent
 
 object GoalObservabilityArtifacts {
   private data class RequiredProgressFields(
@@ -52,10 +53,10 @@ object GoalObservabilityArtifacts {
     validator: GoalObservabilityEventValidator,
   ): Map<String, Any?> {
     val eventMap = event.toArtifactMap()
-    validator.validate(eventMap, GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY)
+    validator.validateGoalObservabilityEvent(eventMap, GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY)
     val history = goalObservabilityHistoryFromArtifacts(artifacts, validator).append(event).toArtifactList()
     history.forEachIndexed { index, item ->
-      validator.validate(item, "$GOAL_OBSERVABILITY_RUN_HISTORY_ARTIFACT_KEY[$index]")
+      validator.validateGoalObservabilityEvent(item, "$GOAL_OBSERVABILITY_RUN_HISTORY_ARTIFACT_KEY[$index]")
     }
     return linkedMapOf(
       GOAL_OBSERVABILITY_LATEST_EVENT_ARTIFACT_KEY to eventMap,

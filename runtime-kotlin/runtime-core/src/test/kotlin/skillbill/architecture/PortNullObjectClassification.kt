@@ -1,5 +1,7 @@
 package skillbill.architecture
 
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
+
 enum class PortNullObjectKind {
   TOTAL_REFUSAL,
   RECORDING_NULL_OBJECT,
@@ -27,10 +29,7 @@ object PortNullObjectClassification {
     "NoopIdeStatusValidator" to PortNullObjectKind.RECORDING_NULL_OBJECT,
     "NoopGoalProgressEventValidator" to PortNullObjectKind.RECORDING_NULL_OBJECT,
     "NoopGoalObservabilityEventValidator" to PortNullObjectKind.RECORDING_NULL_OBJECT,
-    "NoopFeatureTaskRuntimeQuarantineValidator" to PortNullObjectKind.RECORDING_NULL_OBJECT,
-    "NoopFeatureTaskRuntimePlanningProjectionValidator" to PortNullObjectKind.RECORDING_NULL_OBJECT,
-    "NoopFeatureTaskRuntimeImplementationAttemptValidator" to PortNullObjectKind.RECORDING_NULL_OBJECT,
-    "NoopFeatureTaskRuntimeBuildReceiptValidator" to PortNullObjectKind.RECORDING_NULL_OBJECT,
+    "NoopFeatureTaskRuntimeWireArtifactValidator" to PortNullObjectKind.RECORDING_NULL_OBJECT,
     "NoopRuntimePhaseFileManifestGitOperations" to PortNullObjectKind.RECORDING_NULL_OBJECT,
     "NoopWorkflowGitWorktreeOperations" to PortNullObjectKind.RECORDING_NULL_OBJECT,
     "NoopWorkflowGitRemoteOperations" to PortNullObjectKind.RECORDING_NULL_OBJECT,

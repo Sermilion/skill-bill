@@ -1,5 +1,15 @@
 # Boundary History — runtime-domain
 
+## [2026-09-17] SKILL-351 subtask 2 — Restore ownership and typed boundaries
+Areas: runtime-domain, runtime-application, runtime-core, runtime-engine, runtime-infra-fs, runtime-infra-sqlite, runtime-ports, runtime-cli, runtime-mcp, runtime-contracts, runtime-kotlin docs
+- Consolidated feature-task wire validation behind one closed artifact-kind boundary, moved ownership to domain/application seams, and removed redundant forwarding ports, adapters, and fixtures.
+- Moved learning DTO/wire helpers to application ownership, relocated version ownership to runtime-core, and restored typed workflow status/resume boundaries.
+- Removed workflow-engine coupling to taskruntime, centralized artifact map keys, and expanded governed wire-vocabulary coverage without changing supported wire bytes.
+- Pattern: keep schema and wire vocabulary ownership at the boundary that validates or serializes it, with typed domain models crossing engine seams. reusable
+- Known limitation: fixture parity for the learning session remains a validation-phase check.
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented
+
 ## [2026-09-16] SKILL-351 subtask 1 — Unify durable decoding and failure reporting
 Areas: runtime-domain/durable-decoding, runtime-domain/workflow, runtime-domain/goalrunner, runtime-domain/review, runtime-core/architecture, runtime-infra-sqlite/review
 - Durable map, list, object, boolean, integer, and long reads now share one typed-error boundary; malformed durable values reach quarantine instead of leaking generic argument or state failures.

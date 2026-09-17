@@ -3,13 +3,14 @@ package skillbill.workflow.engine.model
 import skillbill.contracts.workflow.WorkflowContinueSessionSummary
 import skillbill.workflow.model.WorkflowContinueStatus
 import skillbill.workflow.model.WorkflowResumeMode
+import skillbill.workflow.model.WorkflowStatus
 
 data class WorkflowSnapshotView(
   val workflowId: String,
   val sessionId: String,
   val workflowName: String,
   val contractVersion: String,
-  val workflowStatus: String,
+  val workflowStatus: WorkflowStatus,
   val currentStepId: String,
   val steps: List<WorkflowStepState>,
   val artifacts: DurableWorkflowArtifacts,
@@ -24,7 +25,7 @@ data class WorkflowSummaryView(
   val sessionId: String,
   val workflowName: String,
   val contractVersion: String,
-  val workflowStatus: String,
+  val workflowStatus: WorkflowStatus,
   val currentStepId: String,
   val startedAt: String,
   val updatedAt: String,
@@ -36,7 +37,7 @@ data class WorkflowUpdateAcknowledgementView(
   val status: String,
   val workflowId: String,
   val workflowName: String,
-  val workflowStatus: String,
+  val workflowStatus: WorkflowStatus,
   val currentStepId: String,
   val updatedStepIds: List<String>,
   val updatedArtifactKeys: List<String>,
@@ -71,7 +72,7 @@ data class WorkflowCompactContinueView(
   val workflowId: String,
   val skillName: String,
   val continueStatus: WorkflowContinueStatus,
-  val workflowStatusBeforeContinue: String,
+  val workflowStatusBeforeContinue: WorkflowStatus,
   val startedAt: String,
   val updatedAt: String,
   val resumeStepId: String,
@@ -91,7 +92,7 @@ data class WorkflowCompactContinueView(
 data class WorkflowContinueView(
   val resume: WorkflowResumeView,
   val skillName: String,
-  val workflowStatusBeforeContinue: String,
+  val workflowStatusBeforeContinue: WorkflowStatus,
   val continueStatus: WorkflowContinueStatus,
   val continueStepId: String,
   val continueStepLabel: String,

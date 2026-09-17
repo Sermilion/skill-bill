@@ -14,6 +14,7 @@ import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.decomposeTerminalFromWorkflowArtifacts
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_DECOMPOSE_TERMINAL_ARTIFACT_KEY
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeDecomposeTerminal
+import skillbill.workflow.model.WorkflowStatus
 
 @Inject
 class FeatureTaskRuntimeDecomposeTerminalRecorder(
@@ -30,7 +31,7 @@ class FeatureTaskRuntimeDecomposeTerminalRecorder(
         WorkflowFamily.TASK_RUNTIME.definition,
         record,
         WorkflowUpdateInput(
-          workflowStatus = "completed",
+          workflowStatus = WorkflowStatus.COMPLETED,
           currentStepId = FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PLAN,
           stepUpdates = null,
           artifactsPatch = WorkflowArtifactPatch.from(

@@ -11,7 +11,7 @@ import skillbill.ports.review.NativeReviewOperationProtocol
 import skillbill.ports.review.model.GovernedReviewEvidenceCodec
 import skillbill.ports.review.model.GovernedReviewEvidenceEndpointDescriptor
 import skillbill.review.context.model.ReviewExpansionRecord
-import skillbill.workflow.engine.model.GovernedReviewJsonRpcArguments
+import skillbill.review.context.model.GovernedReviewJsonRpcArguments
 import java.io.IOException
 import java.net.StandardProtocolFamily
 import java.net.UnixDomainSocketAddress

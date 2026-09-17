@@ -1,4 +1,6 @@
 package skillbill.engine.goalrunner
+
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.application.TestRepositoryEnclosingRoot
 import skillbill.application.idestatus.AgentActivityStampWriter
 import skillbill.application.realPlanningProjectionValidator
@@ -48,7 +50,6 @@ import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import skillbill.ports.workflow.specscratch.SpecScratchStore
 import skillbill.ports.workflow.specscratch.UnavailableSpecScratchStore
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePlanningProjectionValidator
 import java.nio.file.Path
 import java.time.Clock
 
@@ -249,7 +250,7 @@ internal data class GoalPlanningSweepPortsParams(
   val invariantsSource: FeatureTaskRuntimeRunInvariantsSource,
   val manifestFileStore: DecompositionManifestStore,
   val contextDiscovery: GoalPlanningContextDiscovery,
-  val planningProjectionValidator: FeatureTaskRuntimePlanningProjectionValidator = realPlanningProjectionValidator,
+  val planningProjectionValidator: FeatureTaskRuntimeWireArtifactValidator = realPlanningProjectionValidator,
   val planningAttemptRecorder: GoalPlanningAttemptRecorder = GoalPlanningAttemptRecorder.NONE,
   val manifestStore: GoalRunnerManifestStore = TestNoopGoalPlanningManifestStore,
   val planningRejectionRecorder: GoalPlanningRejectionRecorder = GoalPlanningRejectionRecorder.NONE,

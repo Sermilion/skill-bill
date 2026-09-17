@@ -1,4 +1,7 @@
 package skillbill.engine.featuretask
+import skillbill.workflow.taskruntime.validateImplementationAttemptRecord
+
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.application.workflow.model.WorkflowFamily
 import skillbill.contracts.JsonCodec
@@ -9,7 +12,6 @@ import skillbill.ports.workflow.get
 import skillbill.workflow.goal.model.appendBoundedHistoryBySequence
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeImplementationAttemptValidator
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
 import skillbill.workflow.taskruntime.decodeImplementationAttemptsFromArtifact
@@ -37,7 +39,7 @@ class FeatureTaskRuntimePhaseStateRecorder(
   val database: DatabaseSessionFactory,
   val workflowPersistence: FeatureTaskRuntimeWorkflowPersistence,
   val runtimeOwnedPersistence: RuntimeOwnedPersistenceBoundary,
-  val implementationAttemptValidator: FeatureTaskRuntimeImplementationAttemptValidator,
+  val implementationAttemptValidator: FeatureTaskRuntimeWireArtifactValidator,
   val clock: Clock,
 ) : FeatureTaskRuntimePhaseStateApi {
   override fun recordPhaseState(request: FeatureTaskRuntimePhaseStateRequest): Boolean =

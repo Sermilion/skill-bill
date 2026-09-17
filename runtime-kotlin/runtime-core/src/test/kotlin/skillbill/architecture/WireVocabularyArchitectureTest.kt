@@ -104,6 +104,39 @@ class WireVocabularyArchitectureTest {
   }
 
   @Test
+  fun `goal continuation artifact seam rejects undeclared literal key access`() {
+    val files = listOf(
+      syntheticSourceFile(
+        "workflow/taskruntime/model/FeatureTaskRuntimeGoalContinuationArtifactKeys.kt",
+        """
+        package fixture
+
+        object FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys {
+          const val SUPPRESS_PR: String = "suppress_pr"
+        }
+        """.trimIndent(),
+      ),
+      syntheticSourceFile(
+        "workflow/taskruntime/model/FeatureTaskRuntimeGoalContinuationArtifact.kt",
+        """
+        package fixture
+
+        fun read(raw: Map<String, Any?>) = raw["suppress_pr"]
+        """.trimIndent(),
+      ),
+    )
+    val report = WireVocabularyArchitectureSupport.scanSourceFiles(
+      files,
+      includePayloadKeyAccesses = true,
+      enforceGovernedSeams = true,
+      schemaPropertyKeysByPath = mapOf(
+        WireVocabularyGovernedSeamInventory.GOAL_CONTINUATION_ARTIFACT_SCHEMA_AUTHORITY to setOf("suppress_pr"),
+      ),
+    )
+    assertTrue(report.violations.any { it.contains("accesses key 'suppress_pr'") })
+  }
+
+  @Test
   fun `new schema field without kotlin owner fails through the production scanner`() {
     val report = WireVocabularyArchitectureSupport.scanSourceFiles(
       files = listOf(

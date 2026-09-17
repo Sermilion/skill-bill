@@ -18,6 +18,7 @@ import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
+import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.model.workflowStepStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
@@ -37,7 +38,7 @@ internal data class WorkflowRowAdvance(
 ) {
   companion object {
     fun keepFrom(record: WorkflowStateSnapshot): WorkflowRowAdvance =
-      WorkflowRowAdvance(currentStepId = record.currentStepId, workflowStatus = record.workflowStatus)
+      WorkflowRowAdvance(currentStepId = record.currentStepId, workflowStatus = record.workflowStatus.wireValue)
   }
 }
 
@@ -57,7 +58,10 @@ class FeatureTaskRuntimeWorkflowPersistence(
       WorkflowFamily.TASK_RUNTIME.definition,
       record,
       WorkflowUpdateInput(
-        workflowStatus = advance.workflowStatus,
+        workflowStatus = WorkflowStatus.fromWire(advance.workflowStatus)
+          ?: throw InvalidWorkflowStateSchemaError(
+            "Workflow update workflow_status has unsupported value '${advance.workflowStatus}'.",
+          ),
         currentStepId = advance.currentStepId,
         stepUpdates = WorkflowStepUpdates.from(
           advance.stepUpdates?.map(FeatureTaskRuntimePhaseStepWireUpdate::toWireMap),

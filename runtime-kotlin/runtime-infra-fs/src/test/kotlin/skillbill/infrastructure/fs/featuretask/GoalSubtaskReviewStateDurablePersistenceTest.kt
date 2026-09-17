@@ -56,6 +56,7 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import skillbill.workflow.model.WorkflowStatus
 
 class GoalSubtaskReviewStateDurablePersistenceTest {
   private val workflowId = "wftr-skill142-1"
@@ -119,7 +120,7 @@ class GoalSubtaskReviewStateDurablePersistenceTest {
       definition,
       opened,
       WorkflowUpdateInput(
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING,
         currentStepId = "review",
         stepUpdates = null,
         artifactsPatch = WorkflowArtifactPatch.from(artifactsPatch),

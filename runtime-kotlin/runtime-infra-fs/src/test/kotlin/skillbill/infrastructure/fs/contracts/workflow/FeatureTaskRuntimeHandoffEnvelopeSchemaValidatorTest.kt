@@ -1,15 +1,56 @@
 package skillbill.infrastructure.fs.contracts.workflow
+import skillbill.workflow.taskruntime.validateEnvelope
+
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_HANDOFF_ENVELOPE_CONTRACT_VERSION
 import skillbill.error.FeatureTaskRuntimeHandoffProjectionFailureKind
 import skillbill.error.InvalidFeatureTaskRuntimeHandoffProjectionError
-import skillbill.infrastructure.fs.FeatureTaskRuntimeHandoffEnvelopeValidatorInfraAdapter
+import skillbill.infrastructure.fs.FeatureTaskRuntimeWireArtifactValidatorAdapter
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactKind
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 class FeatureTaskRuntimeHandoffEnvelopeSchemaValidatorTest {
-  private val validator = FeatureTaskRuntimeHandoffEnvelopeValidatorInfraAdapter()
+  private val validator = FeatureTaskRuntimeWireArtifactValidatorAdapter()
+
+  @Test
+  fun `every closed wire artifact kind dispatches to its schema validator`() {
+    val expectedErrors = mapOf(
+      FeatureTaskRuntimeWireArtifactKind.QUARANTINE_RECORD to
+        "InvalidFeatureTaskRuntimeQuarantineSchemaError",
+      FeatureTaskRuntimeWireArtifactKind.PLANNING_PROJECTION to
+        "InvalidFeatureTaskRuntimePlanningProjectionSchemaError",
+      FeatureTaskRuntimeWireArtifactKind.IMPLEMENTATION_ATTEMPT to
+        "InvalidFeatureTaskRuntimeImplementationAttemptSchemaError",
+      FeatureTaskRuntimeWireArtifactKind.BUILD_RECEIPT to
+        "InvalidFeatureTaskRuntimeBuildReceiptSchemaError",
+      FeatureTaskRuntimeWireArtifactKind.HANDOFF_DECLARATION to
+        "InvalidFeatureTaskRuntimePhaseHandoffSchemaError",
+      FeatureTaskRuntimeWireArtifactKind.HANDOFF_PERSISTENCE_RECORD to
+        "InvalidFeatureTaskRuntimePersistenceSchemaError",
+      FeatureTaskRuntimeWireArtifactKind.HANDOFF_MEASUREMENT to
+        "InvalidFeatureTaskRuntimeProjectionMeasurementSchemaError",
+      FeatureTaskRuntimeWireArtifactKind.HANDOFF_SHARED_EVIDENCE_PROJECTION to
+        "InvalidFeatureTaskRuntimeSharedEvidenceProjectionSchemaError",
+      FeatureTaskRuntimeWireArtifactKind.HANDOFF_ENVELOPE to
+        "InvalidFeatureTaskRuntimeHandoffProjectionError",
+      FeatureTaskRuntimeWireArtifactKind.GOAL_PROGRESS_EVENT to
+        "InvalidGoalProgressEventSchemaError",
+      FeatureTaskRuntimeWireArtifactKind.GOAL_OBSERVABILITY_EVENT to
+        "InvalidGoalObservabilityEventSchemaError",
+      FeatureTaskRuntimeWireArtifactKind.GOAL_PLANNING_PREPARATION_ENVELOPE to
+        "InvalidGoalPlanningPreparationSchemaError",
+    )
+
+    FeatureTaskRuntimeWireArtifactKind.entries.forEach { kind ->
+      val error = assertFailsWith<RuntimeException> {
+        validator.validate(kind, emptyMap<String, Any?>(), kind.name)
+      }
+      assertEquals(expectedErrors.getValue(kind), error::class.simpleName)
+    }
+  }
 
   @Test
   fun `a well-formed envelope validates through the domain port`() {

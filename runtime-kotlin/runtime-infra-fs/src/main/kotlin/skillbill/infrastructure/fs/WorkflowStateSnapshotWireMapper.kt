@@ -2,26 +2,32 @@ package skillbill.infrastructure.fs
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.workflow.WorkflowWirePayloadKeys
 import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.error.MalformedJsonTextError
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.model.WorkflowStatus
 
 object WorkflowStateSnapshotWireMapper {
   fun wireMap(snapshot: WorkflowStateSnapshot): Map<String, Any?> = linkedMapOf<String, Any?>(
     SharedPayloadKeys.WORKFLOW_ID to snapshot.workflowId,
-    "session_id" to snapshot.sessionId.orEmpty(),
-    "workflow_name" to snapshot.workflowName,
+    WorkflowWirePayloadKeys.SESSION_ID to snapshot.sessionId.orEmpty(),
+    WorkflowWirePayloadKeys.WORKFLOW_NAME to snapshot.workflowName,
     SharedPayloadKeys.CONTRACT_VERSION to snapshot.contractVersion,
-    "workflow_status" to snapshot.workflowStatus,
-    "current_step_id" to snapshot.currentStepId.orEmpty(),
-    "steps" to decodeArray(snapshot.stepsJson, "stepsJson"),
-    "artifacts" to decodeMap(snapshot.artifactsJson, "artifactsJson"),
-    "started_at" to snapshot.startedAt.orEmpty(),
-    "updated_at" to snapshot.updatedAt.orEmpty(),
-    "finished_at" to snapshot.finishedAt.orEmpty(),
+    WorkflowWirePayloadKeys.WORKFLOW_STATUS to snapshot.workflowStatus.wireValue,
+    WorkflowWirePayloadKeys.CURRENT_STEP_ID to snapshot.currentStepId.orEmpty(),
+    WorkflowWirePayloadKeys.STEPS to decodeArray(snapshot.stepsJson, "stepsJson"),
+    WorkflowWirePayloadKeys.ARTIFACTS to decodeMap(snapshot.artifactsJson, "artifactsJson"),
+    WorkflowWirePayloadKeys.STARTED_AT to snapshot.startedAt.orEmpty(),
+    WorkflowWirePayloadKeys.UPDATED_AT to snapshot.updatedAt.orEmpty(),
+    WorkflowWirePayloadKeys.FINISHED_AT to snapshot.finishedAt.orEmpty(),
   ).apply {
-    snapshot.mode?.let { mode -> put("mode", mode) }
+    snapshot.mode?.let { mode -> put(WorkflowWirePayloadKeys.MODE, mode) }
   }
+
+  fun workflowStatusFromWire(raw: String, field: String): WorkflowStatus =
+    WorkflowStatus.fromWire(raw)
+      ?: throw InvalidWorkflowStateSchemaError("Workflow state $field has unsupported value '$raw'.")
 
   private fun decodeArray(rawValue: String, field: String): List<Map<String, Any?>> {
     val parsed = parse(rawValue, field) as? List<*>

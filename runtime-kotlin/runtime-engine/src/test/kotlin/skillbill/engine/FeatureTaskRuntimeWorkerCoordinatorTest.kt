@@ -21,6 +21,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import skillbill.workflow.model.WorkflowStatus
 
 class FeatureTaskRuntimeWorkerCoordinatorTest {
   @Test
@@ -283,7 +284,7 @@ private fun unownedRuntimeRow(updatedAt: String) = WorkflowStateRecord(
   sessionId = "ftr-unowned",
   workflowName = "bill-feature-task",
   contractVersion = "0.1",
-  workflowStatus = "pending",
+  workflowStatus = WorkflowStatus.PENDING.wireValue,
   currentStepId = "implement",
   stepsJson = "[]",
   artifactsJson = "{}",

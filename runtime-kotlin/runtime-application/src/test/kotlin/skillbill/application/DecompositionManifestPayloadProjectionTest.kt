@@ -14,6 +14,7 @@ import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import skillbill.workflow.model.WorkflowStatus
 
 class DecompositionManifestPayloadProjectionTest {
   @Test
@@ -51,7 +52,7 @@ class DecompositionManifestPayloadProjectionTest {
       ),
       runtimeUpdate = DecompositionManifestRuntimeUpdate(
         workflowId = "wfl-subtask-1",
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING.wireValue,
         currentStepId = "validate",
         stepUpdates = WorkflowStepUpdates.from(
           listOf(

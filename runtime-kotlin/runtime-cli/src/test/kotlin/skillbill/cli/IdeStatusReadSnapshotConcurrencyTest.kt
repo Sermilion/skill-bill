@@ -37,6 +37,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import skillbill.workflow.model.WorkflowStatus
 
 class IdeStatusReadSnapshotConcurrencyTest {
   private val observedAt: Instant = Instant.parse("2026-08-06T12:00:00Z")
@@ -118,7 +119,7 @@ class IdeStatusReadSnapshotConcurrencyTest {
     sessionId = "ftr-$FOREIGN_CHILD_WORKFLOW_ID",
     workflowName = "bill-feature-task",
     contractVersion = "1.0",
-    workflowStatus = "running",
+    workflowStatus = WorkflowStatus.RUNNING.wireValue,
     currentStepId = "implement",
     stepsJson = "[]",
     artifactsJson = "{}",

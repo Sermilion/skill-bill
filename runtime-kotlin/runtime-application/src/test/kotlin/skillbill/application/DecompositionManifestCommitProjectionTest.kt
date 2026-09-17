@@ -46,6 +46,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import skillbill.workflow.model.WorkflowStatus
 
 class DecompositionManifestCommitProjectionTest {
   @Test
@@ -80,7 +81,7 @@ class DecompositionManifestCommitProjectionTest {
       ),
       runtimeUpdate = DecompositionManifestRuntimeUpdate(
         workflowId = "wfl-subtask-1",
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING.wireValue,
         currentStepId = "commit_push",
         stepUpdates = WorkflowStepUpdates.from(
           listOf(
@@ -118,7 +119,7 @@ class DecompositionManifestCommitProjectionTest {
       ),
       runtimeUpdate = DecompositionManifestRuntimeUpdate(
         workflowId = "wfl-subtask-1",
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING.wireValue,
         currentStepId = "commit_push",
         stepUpdates = WorkflowStepUpdates.from(
           listOf(
@@ -166,7 +167,7 @@ class DecompositionManifestCommitProjectionTest {
       ),
       runtimeUpdate = DecompositionManifestRuntimeUpdate(
         workflowId = "wfl-subtask-1",
-        workflowStatus = "completed",
+        workflowStatus = WorkflowStatus.COMPLETED.wireValue,
         currentStepId = "finish",
         stepUpdates = WorkflowStepUpdates.from(
           listOf(
@@ -381,7 +382,7 @@ class DecompositionManifestCommitProjectionTest {
       WorkflowFamilyKind.TASK_RUNTIME,
       WorkflowUpdateRequest(
         workflowId = opened.workflowId,
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING.wireValue,
         currentStepId = "implement",
         stepUpdates = WorkflowStepUpdates.from(
           listOf(mapOf("step_id" to "implement", "status" to "running", "attempt_count" to 1)),
@@ -524,7 +525,7 @@ class DecompositionManifestCommitProjectionTest {
       WorkflowFamilyKind.TASK_RUNTIME,
       WorkflowUpdateRequest(
         workflowId = workflowId,
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING.wireValue,
         currentStepId = "plan",
         stepUpdates = WorkflowStepUpdates.from(
           listOf(mapOf("step_id" to "plan", "status" to "completed", "attempt_count" to 1)),

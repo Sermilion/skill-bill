@@ -35,6 +35,7 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerEntry
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
+import skillbill.workflow.model.WorkflowStatus
 
 class WorkflowServiceBlockedPhaseRetry(
   private val engine: WorkflowEngine,
@@ -212,7 +213,7 @@ private fun blockedPhaseRetryInput(
     resolvedAgentId = state.blockedRecord.resolvedAgentId,
   )
   return WorkflowUpdateInput(
-    workflowStatus = "running",
+    workflowStatus = WorkflowStatus.RUNNING,
     currentStepId = request.phaseId,
     stepUpdates = WorkflowStepUpdates.from(
       listOf(

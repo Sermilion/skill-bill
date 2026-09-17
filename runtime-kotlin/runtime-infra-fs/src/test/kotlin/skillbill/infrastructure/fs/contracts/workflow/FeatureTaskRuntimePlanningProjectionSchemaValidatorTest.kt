@@ -1,11 +1,12 @@
 package skillbill.infrastructure.fs.contracts.workflow
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_PLANNING_PROJECTIONS_CONTRACT_VERSION
 import skillbill.error.InvalidFeatureTaskRuntimePlanningProjectionSchemaError
-import skillbill.infrastructure.fs.FeatureTaskRuntimePlanningProjectionValidatorAdapter
+import skillbill.infrastructure.fs.FeatureTaskRuntimeWireArtifactValidatorAdapter
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
+import skillbill.workflow.taskruntime.validatePlanningProjection
 
 class FeatureTaskRuntimePlanningProjectionSchemaValidatorTest {
   @Test
@@ -86,7 +87,7 @@ class FeatureTaskRuntimePlanningProjectionSchemaValidatorTest {
   @Test
   fun `the domain-facing adapter delegates to the canonical reject-all schema`() {
     val error = assertFailsWith<InvalidFeatureTaskRuntimePlanningProjectionSchemaError> {
-      FeatureTaskRuntimePlanningProjectionValidatorAdapter().validatePlanningProjection(
+      FeatureTaskRuntimeWireArtifactValidatorAdapter().validatePlanningProjection(
         producedOutputs = linkedMapOf<String, Any?>(
           "projection_kind" to "implementation_receipt",
           "contract_version" to FEATURE_TASK_RUNTIME_PLANNING_PROJECTIONS_CONTRACT_VERSION,

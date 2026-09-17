@@ -26,6 +26,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import skillbill.workflow.model.WorkflowStatus
 
 class FeatureTaskRouterContinuationTest {
   @Test
@@ -83,7 +84,7 @@ class FeatureTaskRouterContinuationTest {
 
   private fun blockedAtImplementAfterPlan(workflowId: String): WorkflowUpdateRequest = WorkflowUpdateRequest(
     workflowId = workflowId,
-    workflowStatus = "blocked",
+    workflowStatus = WorkflowStatus.BLOCKED.wireValue,
     currentStepId = "implement",
     stepUpdates = WorkflowStepUpdates.from(
       listOf(

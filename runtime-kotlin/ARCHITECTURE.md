@@ -217,7 +217,7 @@ pass. Documentation must distinguish current enforcement from planned coverage.
 | Cleanup after callback failure and incomplete drain settlement | SKILL-239 subtask 1 |
 | Database readiness and explicit projection outcomes | SKILL-239 subtask 2 — `:runtime-infra-sqlite` write-readiness gate keyed by `PRAGMA user_version` plus stable file identity; decomposition manifest projection outcomes (`absent` / `written` / `failed`) with projection-only retry |
 | Run-loop state ownership, narrow helper inputs, and engine cycle removal | SKILL-239 subtask 3 — `ApplicationPackageAcyclicityArchitectureTest` applies the per-module shrink-only package-cycle baselines; the `runtime-engine-package-cycle-baseline.txt` baseline is empty |
-| Independent wire-key coverage and truthful architecture documentation | SKILL-239 subtask 4 — `WireVocabularyGovernedSeamInventory` loads decomposition-manifest and workflow phase-output envelope fields from canonical schema YAML; `WireVocabularyArchitectureSupport` fails schema fields without `*Keys` owners independently of the declaration scan, and literal payload-key accesses only inside declared path markers for those seams; `DecompositionManifestPayloadKeys` plus `SharedPayloadKeys.DERIVED_NOTES`; `RuntimeArchitectureDocumentationTest` no longer bans incidental English phrases |
+| Independent wire-key coverage and truthful architecture documentation | SKILL-239 subtask 4 plus SKILL-351 subtask 2 — `WireVocabularyGovernedSeamInventory` loads decomposition-manifest, bundle-journal, and workflow phase-output envelope fields from canonical schema YAML and independently declares the goal-continuation artifact vocabulary; `WireVocabularyArchitectureSupport` fails schema fields without `*Keys` owners independently of the declaration scan, and literal payload-key accesses only inside declared path markers for those seams; `DecompositionManifestPayloadKeys`, `FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys`, plus `SharedPayloadKeys.DERIVED_NOTES`; `RuntimeArchitectureDocumentationTest` no longer bans incidental English phrases |
 | Redundant role interfaces and application forwarders | SKILL-238 |
 
 The owning subtask updates this status with the checks that actually landed.
@@ -822,6 +822,24 @@ skillbill.workflow.verify
   built once in `skillbill.application.workflow.WorkflowWireProjections` using
   `WorkflowWirePayloadKeys` and `SharedPayloadKeys`; there is no contracts-module
   ordering helper on that path.)
+- Feature-task runtime wire artifact schema validation ports live in
+  `runtime-domain` as `FeatureTaskRuntimeWireArtifactValidator` (closed
+  `FeatureTaskRuntimeWireArtifactKind`) plus `FeatureTaskRuntimePhaseOutputValidator`
+  and `DecompositionManifestValidator`. Infra implements them through
+  `FeatureTaskRuntimeWireArtifactValidatorAdapter` and the phase-output /
+  decomposition adapters under `runtime-infra-fs`; composition wires one adapter
+  instance per port. Goal progress, observability, and planning-preparation validator
+  names are type aliases to that same port and select their closed artifact kinds
+  through extension helpers. Extension helpers on the wire-artifact port preserve
+  call-site ergonomics without default port bodies. Goal-continuation artifact keys declare in
+  `FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys`; `WireVocabularyGovernedSeamInventory`
+  scans that encode/decode pair. `SkillBillVersion` reads `skillbill/version.properties`
+  from `runtime-core`; its `getResourceAsStream` call is the single documented
+  ambient-environment exception for packaged version metadata, and its missing-resource
+  fallback emits a durable-decode substitution record. Typed workflow boundary wrappers live in owning area `model`
+  packages rather than a monolithic `WorkflowBoundaryCollections` hub. Engine continuation
+  dispatch uses `WorkflowDefinition.usesFeatureTaskRuntimeContinuation` rather than importing
+  the feature-task runtime workflow definition.
 - Install-plan schema validation is owned by
   `skillbill.infrastructure.fs.contracts.install.InstallPlanSchemaValidator`, compiled into
   `runtime-infra-fs` and reached through the domain-owned port
@@ -1532,10 +1550,11 @@ the feature-task phase-output envelope; `DecompositionManifestPayloadKeys` and
 ## Governed payload seams (mechanical scope)
 
 `WireVocabularyGovernedSeamInventory` is the independent expected-key authority. It reads canonical
-schema YAML from `DecompositionManifestSchemaPaths.REPO_RELATIVE_PATH` and
-`FeatureTaskRuntimePhaseOutputSchemaPaths.REPO_RELATIVE_PATH` (not a scan of existing `*Keys`
-objects). For each seam it compares closed schema fields to declared `*Keys` / `*PayloadKeys`
-constants and fails when a schema field has no Kotlin owner.
+schema YAML for decomposition manifests, the decomposition bundle journal, and the workflow
+phase-output envelope (not a scan of existing `*Keys` objects). It also declares the closed
+goal-continuation artifact vocabulary independently from its Kotlin owner. For each seam it
+compares closed schema fields to declared `*Keys` / `*PayloadKeys` constants and fails when a
+schema field has no Kotlin owner.
 
 Literal payload-key enforcement runs only on production sources whose paths match the seam markers
 (documented in `WireVocabularyGovernedSeamInventory.seams`). Outside those markers, telemetry,
@@ -1545,11 +1564,15 @@ they spell the same token.
 | Seam | Schema authority | Open extension (not key-owned) |
 | --- | --- | --- |
 | Decomposition manifest | Root, subtask, dependency, stack branch, and current-intent closed objects | N/A at manifest root (`additionalProperties: false`) |
+| Decomposition manifest bundle journal | Bundle-journal root and entry closed objects | None |
 | Workflow phase-output envelope | Top-level envelope fields only | `produced_outputs` entry maps (phase-specific keys stay open) |
+| Feature-task runtime goal-continuation artifact | `FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys` | None |
 
 A green `WireVocabularyArchitectureTest` on runtime main sources does not prove every `String` in
 the runtime is typed, that handoff-envelope projection bodies are fully keyed, or that unrelated
-payload families (telemetry, review, install) have been migrated.
+payload families (telemetry, review, install) have been migrated. The inventory's governed markers
+cover the encode/decode pair for each listed seam; the architecture test includes a fixture that
+fails when a governed seam accesses a literal key instead of its owner.
 
 `WireVocabularyArchitectureTest` discovers runtime main sources through `RuntimeModuleCatalog`,
 indexes declarations with source locations, rejects same-owner duplicates and local vocabulary

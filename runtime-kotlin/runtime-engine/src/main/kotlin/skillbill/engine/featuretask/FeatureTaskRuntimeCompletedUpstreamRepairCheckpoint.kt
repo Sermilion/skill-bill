@@ -18,6 +18,7 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseOutput
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
+import skillbill.workflow.model.WorkflowStatus
 
 fun phasesToReopenForCompletedUpstreamRepair(
   request: CompletedUpstreamRepairRequest,
@@ -51,7 +52,7 @@ fun completedUpstreamRepairWorkflowUpdate(
   reopenedRecords: Map<String, FeatureTaskRuntimePhaseRecord>,
   retryEntry: FeatureTaskRuntimePhaseLedgerEntry,
 ): WorkflowUpdateInput = WorkflowUpdateInput(
-  workflowStatus = "running",
+  workflowStatus = WorkflowStatus.RUNNING,
   currentStepId = request.resumePhaseId,
   stepUpdates = WorkflowStepUpdates.from(
     phasesToReopen.map { phaseId ->

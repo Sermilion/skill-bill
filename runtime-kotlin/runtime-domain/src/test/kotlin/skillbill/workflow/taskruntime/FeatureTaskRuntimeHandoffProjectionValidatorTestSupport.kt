@@ -91,7 +91,7 @@ internal data class HandoffProjectionValidatorInputsFixture(
     workflowId = "wftr-1",
     validationDepth = validationDepth,
     qualityGateSelection = qualityGateSelection,
-    planningProjectionValidator = NoopFeatureTaskRuntimePlanningProjectionValidator,
+    planningProjectionValidator = NoopFeatureTaskRuntimeWireArtifactValidator,
   )
 }
 

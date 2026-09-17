@@ -22,6 +22,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import skillbill.workflow.model.WorkflowStatus
 
 class WorkflowStateStoreTest {
   @Test
@@ -40,13 +41,13 @@ class WorkflowStateStoreTest {
         )
           .copy(
             issueKey = "SKILL-128",
-            workflowStatus = "paused",
+            workflowStatus = WorkflowStatus.PAUSED.wireValue,
             artifactsJson = """{"plan":{"mode":"decompose"},"decomposition_runtime":{"issue_key":"SKILL-128"}}""",
           ),
       )
       store.saveFeatureTaskRuntimeWorkflow(
         workflowRow("wftr-legacy", "ftr-legacy", "bill-feature-task", "plan", FeatureTaskWorkflowMode.RUNTIME)
-          .copy(issueKey = "SKILL-128", workflowStatus = "paused"),
+          .copy(issueKey = "SKILL-128", workflowStatus = WorkflowStatus.PAUSED.wireValue),
       )
 
       val candidates = store.findStandaloneFeatureTaskCandidates("SKILL-128", "repo")
@@ -105,7 +106,7 @@ class WorkflowStateStoreTest {
 
       store.saveFeatureTaskRuntimeWorkflow(
         workflowRow("wftr-done", "ftr-done", "bill-feature-task", "implement", FeatureTaskWorkflowMode.RUNTIME)
-          .copy(workflowStatus = "completed"),
+          .copy(workflowStatus = WorkflowStatus.COMPLETED.wireValue),
       )
 
       val candidates = store.findFeatureTaskRuntimeCrashReconciliationCandidates("2026-07-14T10:06:00Z")
@@ -126,7 +127,7 @@ class WorkflowStateStoreTest {
         "bill-feature-task",
         "implement",
         FeatureTaskWorkflowMode.RUNTIME,
-      ).copy(workflowStatus = "running", artifactsJson = """{"phase_records":{"preplan":"done"}}""")
+      ).copy(workflowStatus = WorkflowStatus.RUNNING.wireValue, artifactsJson = """{"phase_records":{"preplan":"done"}}""")
       store.saveFeatureTaskRuntimeWorkflow(row)
       val updatedAt = assertNotNull(store.getFeatureTaskRuntimeWorkflow(row.workflowId)).updatedAt
       val ownership = workerOwnership(row.workflowId, generation = 1, ownerToken = "owner-token-crash0001")
@@ -166,7 +167,7 @@ class WorkflowStateStoreTest {
         "bill-feature-task",
         "implement",
         FeatureTaskWorkflowMode.RUNTIME,
-      ).copy(workflowStatus = "running")
+      ).copy(workflowStatus = WorkflowStatus.RUNNING.wireValue)
       store.saveFeatureTaskRuntimeWorkflow(row)
       val updatedAt = assertNotNull(store.getFeatureTaskRuntimeWorkflow(row.workflowId)).updatedAt
       val ownership = workerOwnership(row.workflowId, generation = 1, ownerToken = "owner-token-fence0001")
@@ -205,7 +206,7 @@ class WorkflowStateStoreTest {
         workflowName = "bill-feature-task",
         currentStepId = "implement",
         mode = FeatureTaskWorkflowMode.RUNTIME,
-      ).copy(workflowStatus = "running")
+      ).copy(workflowStatus = WorkflowStatus.RUNNING.wireValue)
       store.saveFeatureTaskRuntimeWorkflow(row)
       val updatedAt = assertNotNull(store.getFeatureTaskRuntimeWorkflow(row.workflowId)).updatedAt
       val initial = workerOwnership(row.workflowId, generation = 1, ownerToken = "owner-token-0001")
@@ -233,7 +234,7 @@ class WorkflowStateStoreTest {
         workflowName = "bill-feature-task",
         currentStepId = "implement",
         mode = FeatureTaskWorkflowMode.RUNTIME,
-      ).copy(workflowStatus = "paused")
+      ).copy(workflowStatus = WorkflowStatus.PAUSED.wireValue)
       store.saveFeatureTaskRuntimeWorkflow(row)
       val updatedAt = assertNotNull(store.getFeatureTaskRuntimeWorkflow(row.workflowId)).updatedAt
       val ownership = workerOwnership(row.workflowId, generation = 4, ownerToken = "owner-token-0004")
@@ -255,7 +256,7 @@ class WorkflowStateStoreTest {
         workflowName = "bill-feature-task",
         currentStepId = "implement",
         mode = FeatureTaskWorkflowMode.RUNTIME,
-      ).copy(workflowStatus = "paused")
+      ).copy(workflowStatus = WorkflowStatus.PAUSED.wireValue)
       store.saveFeatureTaskRuntimeWorkflow(row)
       val updatedAt = assertNotNull(store.getFeatureTaskRuntimeWorkflow(row.workflowId)).updatedAt
       assertTrue(
@@ -313,7 +314,7 @@ class WorkflowStateStoreTest {
           sessionId = "fvr-001",
           workflowName = "bill-feature-verify",
           contractVersion = "0.1",
-          workflowStatus = "running",
+          workflowStatus = WorkflowStatus.RUNNING.wireValue,
           currentStepId = "code_review",
           stepsJson = """[{"step_id":"code_review","status":"running"}]""",
           artifactsJson = """{"review_result":{"verdict":"approve"}}""",
@@ -349,7 +350,7 @@ class WorkflowStateStoreTest {
       store.saveFeatureTaskRuntimeWorkflow(initialRow)
       store.saveFeatureTaskRuntimeWorkflow(
         initialRow.copy(
-          workflowStatus = "abandoned",
+          workflowStatus = WorkflowStatus.ABANDONED.wireValue,
           currentStepId = "pr",
           finishedAt = "",
         ),
@@ -376,7 +377,7 @@ class WorkflowStateStoreTest {
       ).copy(artifactsJson = """{"plan":{"mode":"decompose"}}""")
 
       store.saveFeatureTaskRuntimeWorkflow(initialRow)
-      store.saveFeatureTaskRuntimeWorkflow(initialRow.copy(workflowStatus = "paused", finishedAt = null))
+    store.saveFeatureTaskRuntimeWorkflow(initialRow.copy(workflowStatus = WorkflowStatus.PAUSED.wireValue, finishedAt = null))
 
       val saved = assertNotNull(store.getFeatureTaskRuntimeWorkflow("wftr-paused-parent"))
       assertEquals("wftr-paused-parent", saved.workflowId)
@@ -415,7 +416,7 @@ class WorkflowStateStoreLifecycleTest {
       assertEquals(startedAt, sameStatus.stateEnteredAt)
       assertEquals(false, sameStatus.stateEnteredAtEstimated)
 
-      store.saveFeatureTaskRuntimeWorkflow(sameStatus.copy(workflowStatus = "blocked", currentStepId = "plan"))
+    store.saveFeatureTaskRuntimeWorkflow(sameStatus.copy(workflowStatus = WorkflowStatus.BLOCKED.wireValue, currentStepId = "plan"))
       val transitioned = assertNotNull(store.getFeatureTaskRuntimeWorkflow("wftr-state-entry-main"))
       assertEquals("blocked", transitioned.workflowStatus)
       assertTrue(Instant.parse(transitioned.stateEnteredAt).isAfter(Instant.parse(startedAt)))
@@ -559,7 +560,7 @@ class WorkflowStateStoreLifecycleTest {
           workflowName = "bill-feature-task",
           mode = FeatureTaskWorkflowMode.RUNTIME,
           contractVersion = "",
-          workflowStatus = "running",
+          workflowStatus = WorkflowStatus.RUNNING.wireValue,
           currentStepId = "plan",
           stepsJson = """[{"step_id":"plan","status":"completed"}]""",
           artifactsJson = artifactsJson,
@@ -758,7 +759,7 @@ class WorkflowStateStoreLifecycleTest {
       val store = WorkflowStateStore(connection)
       store.terminalizeLegacyProseFeatureTaskWorkflow(
         requireNotNull(store.getFeatureTaskWorkflow("wfl-legacy-prose-term-001")).copy(
-          workflowStatus = "abandoned",
+          workflowStatus = WorkflowStatus.ABANDONED.wireValue,
           artifactsJson =
           """{"history_note":"retain-me",""" +
             """"operator_abandonment":{"reason":"retire","abandoned_at":"2026-08-09T00:00:00Z"}}""",

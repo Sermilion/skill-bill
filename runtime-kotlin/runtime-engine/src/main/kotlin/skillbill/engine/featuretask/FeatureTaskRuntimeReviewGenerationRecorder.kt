@@ -64,7 +64,7 @@ class FeatureTaskRuntimeReviewGenerationRecorder(
       patch,
       WorkflowRowAdvance(
         currentStepId = record.currentStepId,
-        workflowStatus = record.workflowStatus,
+        workflowStatus = record.workflowStatus.wireValue,
         stepUpdates = stepUpdatesFrom(updatedRecords),
       ),
     )
@@ -117,7 +117,7 @@ class FeatureTaskRuntimeReviewGenerationRecorder(
       ),
       WorkflowRowAdvance(
         currentStepId = record.currentStepId,
-        workflowStatus = record.workflowStatus,
+        workflowStatus = record.workflowStatus.wireValue,
         stepUpdates = stepUpdatesFrom(updatedRecords),
       ),
     )

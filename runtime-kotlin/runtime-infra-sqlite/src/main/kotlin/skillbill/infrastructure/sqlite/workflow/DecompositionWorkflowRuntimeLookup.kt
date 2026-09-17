@@ -11,7 +11,7 @@ import skillbill.workflow.decomposition.decodeManifest
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import skillbill.workflow.decomposition.runtime.DECOMPOSITION_RUNTIME_ARTIFACT_KEY
 import skillbill.workflow.decomposition.runtime.isActiveGoalRuntime
-import skillbill.workflow.engine.model.DecompositionManifestWireMap
+import skillbill.workflow.decomposition.model.DecompositionManifestWireMap
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.workflowStatus

@@ -12,7 +12,7 @@ import skillbill.contracts.decomposition.DecompositionPlanningResult
 import skillbill.contracts.workflow.WorkflowArtifactKeys
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
-import skillbill.workflow.engine.model.DecompositionManifestWireMap
+import skillbill.workflow.decomposition.model.DecompositionManifestWireMap
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files

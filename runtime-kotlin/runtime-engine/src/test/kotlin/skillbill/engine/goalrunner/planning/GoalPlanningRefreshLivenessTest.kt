@@ -1,8 +1,9 @@
 package skillbill.engine.goalrunner.planning
+
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import org.junit.jupiter.api.Test
 import skillbill.application.testHarnessClock
-import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeHandoffEnvelopeValidator
-import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeHandoffFoundationValidator
+import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeWireArtifactValidator
 import skillbill.engine.featuretask.featureTaskRuntimePhaseRecorder
 import skillbill.engine.manifest
 import skillbill.goalrunner.model.ExecutionLiveness
@@ -38,6 +39,7 @@ import java.time.ZoneOffset
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import skillbill.workflow.model.WorkflowStatus
 
 class GoalPlanningRefreshLivenessTest {
   private val now = Instant.parse("2026-08-11T00:00:00Z")
@@ -135,8 +137,8 @@ private class RefreshLivenessHarness(clock: Clock) {
   val recorder = featureTaskRuntimePhaseRecorder(
     database,
     NoopRefreshLivenessSnapshotValidator,
-    AcceptingFeatureTaskRuntimeHandoffEnvelopeValidator,
-    AcceptingFeatureTaskRuntimeHandoffFoundationValidator,
+    AcceptingFeatureTaskRuntimeWireArtifactValidator,
+    AcceptingFeatureTaskRuntimeWireArtifactValidator,
     testHarnessClock,
     NoopRuntimeDiagnostics,
   )
@@ -149,7 +151,7 @@ private class RefreshLivenessHarness(clock: Clock) {
         sessionId = "session",
         workflowName = "bill-feature-task",
         contractVersion = "0.1",
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING.wireValue,
         currentStepId = "implement",
         stepsJson = "[]",
         artifactsJson = "{}",

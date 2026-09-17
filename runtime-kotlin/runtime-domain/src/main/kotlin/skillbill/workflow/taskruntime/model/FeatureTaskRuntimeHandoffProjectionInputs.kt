@@ -2,7 +2,7 @@ package skillbill.workflow.taskruntime.model
 
 import skillbill.review.model.ReviewFindingVerdict
 import skillbill.workflow.goal.model.ValidationDepth
-import skillbill.workflow.taskruntime.FeatureTaskRuntimePlanningProjectionValidator
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 
 data class FeatureTaskRuntimeHandoffProjectionInputs(
   val consumerPhaseId: String,
@@ -25,7 +25,7 @@ data class FeatureTaskRuntimeHandoffProjectionInputs(
 
   val validationDepth: ValidationDepth = ValidationDepth.DEFAULT,
   val qualityGateSelection: FeatureTaskRuntimeQualityGateSelection = FeatureTaskRuntimeQualityGateSelection.VALIDATE,
-  val planningProjectionValidator: FeatureTaskRuntimePlanningProjectionValidator,
+  val planningProjectionValidator: FeatureTaskRuntimeWireArtifactValidator,
 )
 
 const val MAX_REPOSITORY_FINGERPRINT_LENGTH: Int = 256

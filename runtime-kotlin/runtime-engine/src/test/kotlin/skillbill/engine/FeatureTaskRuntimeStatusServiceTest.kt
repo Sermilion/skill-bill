@@ -1,12 +1,13 @@
 package skillbill.engine
+
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.application.decomposition.decompositionManifestPath
 import skillbill.application.decomposition.parentSpecPath
 import skillbill.application.idestatus.model.IdeStatusCurrentPhaseExecutionKind
 import skillbill.application.testHarnessClock
 import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.contracts.JsonCodec
-import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeHandoffEnvelopeValidator
-import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeHandoffFoundationValidator
+import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeWireArtifactValidator
 import skillbill.engine.featuretask.FeatureTaskRuntimeContinuationKind
 import skillbill.engine.featuretask.FeatureTaskRuntimeDecomposeTerminalRecorder
 import skillbill.engine.featuretask.FeatureTaskRuntimePhaseRecorder
@@ -1085,8 +1086,8 @@ internal fun statusHarness(): StatusHarness {
   val recorder = featureTaskRuntimePhaseRecorder(
     database,
     StatusNoopSnapshotValidator,
-    AcceptingFeatureTaskRuntimeHandoffEnvelopeValidator,
-    AcceptingFeatureTaskRuntimeHandoffFoundationValidator,
+    AcceptingFeatureTaskRuntimeWireArtifactValidator,
+    AcceptingFeatureTaskRuntimeWireArtifactValidator,
     testHarnessClock,
     NoopRuntimeDiagnostics,
   )

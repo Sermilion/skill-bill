@@ -26,7 +26,7 @@ internal fun WorkflowFamily.withDecompositionRuntime(args: DecompositionRuntimeW
         artifactsPatch = args.input.artifactsPatch,
         runtimeUpdate = DecompositionManifestRuntimeUpdate(
           workflowId = args.workflowId,
-          workflowStatus = args.input.workflowStatus,
+          workflowStatus = args.input.workflowStatus.wireValue,
           currentStepId = args.input.currentStepId,
           stepUpdates = args.input.stepUpdates,
         ),

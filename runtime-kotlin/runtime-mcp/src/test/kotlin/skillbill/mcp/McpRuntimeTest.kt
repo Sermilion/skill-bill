@@ -46,6 +46,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import skillbill.workflow.model.WorkflowStatus
 
 class McpRuntimeTest {
   @Test
@@ -572,7 +573,7 @@ class McpFeatureTaskRuntimeWorkflowTest {
       WorkflowFamilyKind.TASK_RUNTIME,
       WorkflowUpdateRequest(
         workflowId = workflowId,
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING.wireValue,
         currentStepId = "implement",
         stepUpdates = WorkflowStepUpdates.from(
           listOf(
@@ -829,7 +830,7 @@ private fun markVerifyWorkflowVerdictBlocked(workflowId: String, context: McpRun
     WorkflowFamilyKind.VERIFY,
     WorkflowUpdateRequest(
       workflowId = workflowId,
-      workflowStatus = "running",
+      workflowStatus = WorkflowStatus.RUNNING.wireValue,
       currentStepId = "verdict",
       stepUpdates = WorkflowStepUpdates.from(
         listOf(mapOf("step_id" to "verdict", "status" to "blocked", "attempt_count" to 1)),

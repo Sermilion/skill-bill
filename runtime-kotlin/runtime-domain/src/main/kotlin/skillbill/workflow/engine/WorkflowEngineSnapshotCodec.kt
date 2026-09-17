@@ -1,20 +1,24 @@
 package skillbill.workflow.engine
 
-import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.workflow.WorkflowWirePayloadKeys
 import skillbill.error.InvalidWorkflowStateSchemaError
 import skillbill.workflow.engine.model.WorkflowDefinition
 import skillbill.workflow.engine.model.WorkflowSnapshotView
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowStepState
-import skillbill.workflow.taskruntime.model.asExactIntOrNull
+import skillbill.workflow.model.WorkflowStatus
+import skillbill.workflow.model.WorkflowStepStatus
 
 internal fun snapshotViewFrom(record: WorkflowStateSnapshot): WorkflowSnapshotView {
   val steps = decodeSteps(record.stepsJson).map { stepMap ->
+    val statusWire = stepMap[SharedPayloadKeys.STATUS] as? String
+      ?: throw InvalidWorkflowStateSchemaError("Workflow state step status must decode to a string.")
     WorkflowStepState(
       stepId = stepMap[SharedPayloadKeys.STEP_ID] as String,
-      status = stepMap[SharedPayloadKeys.STATUS] as String,
-      attemptCount = stepMap["attempt_count"].asExactIntOrNull()
+      status = WorkflowStepStatus.fromWire(statusWire)
+        ?: throw InvalidWorkflowStateSchemaError("Workflow state step status has unsupported value '$statusWire'."),
+      attemptCount = stepMap[WorkflowWirePayloadKeys.ATTEMPT_COUNT].asExactIntOrNull()
         ?: throw InvalidWorkflowStateSchemaError(
           "Workflow state step attempt_count must decode to an integer.",
         ),
@@ -42,10 +46,10 @@ internal fun defaultSteps(definition: WorkflowDefinition, initialStepId: String)
     when {
       stepId == initialStepId -> {
         seenInitial = true
-        workflowStep(stepId, "running", 1)
+        workflowStep(stepId, WorkflowStepStatus.RUNNING, 1)
       }
-      definition.openPriorStepsCompleted && !seenInitial -> workflowStep(stepId, "completed", 1)
-      else -> workflowStep(stepId, "pending", 0)
+      definition.openPriorStepsCompleted && !seenInitial -> workflowStep(stepId, WorkflowStepStatus.COMPLETED, 1)
+      else -> workflowStep(stepId, WorkflowStepStatus.PENDING, 0)
     }
   }
 }
@@ -61,7 +65,7 @@ internal fun mergeStepUpdates(
   val byStepId = existingSteps.associateByTo(LinkedHashMap()) { it[SharedPayloadKeys.STEP_ID].toString() }
   stepUpdates.forEach { update ->
     val stepId = update[SharedPayloadKeys.STEP_ID].toString()
-    val attemptCount = update["attempt_count"].asExactIntOrNull()
+    val attemptCount = update[WorkflowWirePayloadKeys.ATTEMPT_COUNT].asExactIntOrNull()
       ?: throw InvalidWorkflowStateSchemaError(
         "step_updates.attempt_count must be an integer >= 0.",
       )
@@ -70,12 +74,20 @@ internal fun mergeStepUpdates(
         "step_updates.attempt_count must be an integer >= 0.",
       )
     }
-    byStepId[stepId] = workflowStep(stepId, update[SharedPayloadKeys.STATUS].toString(), attemptCount)
+    val statusWire = update[SharedPayloadKeys.STATUS]?.toString()
+      ?: throw InvalidWorkflowStateSchemaError("step_updates.status must be a non-empty string.")
+    val status = WorkflowStepStatus.fromWire(statusWire)
+      ?: throw InvalidWorkflowStateSchemaError("step_updates.status has unsupported value '$statusWire'.")
+    byStepId[stepId] = workflowStep(stepId, status, attemptCount)
   }
   return definition.stepIds.mapNotNull(byStepId::get)
 }
 
-internal fun workflowStep(stepId: String, status: String, attemptCount: Int): Map<String, Any?> =
-  linkedMapOf(SharedPayloadKeys.STEP_ID to stepId, SharedPayloadKeys.STATUS to status, "attempt_count" to attemptCount)
+internal fun workflowStep(stepId: String, status: WorkflowStepStatus, attemptCount: Int): Map<String, Any?> =
+  linkedMapOf(
+    SharedPayloadKeys.STEP_ID to stepId,
+    SharedPayloadKeys.STATUS to status.wireValue,
+    WorkflowWirePayloadKeys.ATTEMPT_COUNT to attemptCount,
+  )
 
-internal fun jsonString(value: Any?): String = JsonCodec.valueToJsonString(value)
+internal fun jsonString(value: Any?): String = skillbill.contracts.JsonCodec.valueToJsonString(value)

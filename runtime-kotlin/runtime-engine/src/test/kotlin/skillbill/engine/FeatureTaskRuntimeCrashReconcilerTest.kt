@@ -18,6 +18,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import skillbill.workflow.model.WorkflowStatus
 
 class FeatureTaskRuntimeCrashReconcilerTest {
   @Test
@@ -136,7 +137,7 @@ class FeatureTaskRuntimeCrashReconcilerTest {
           sessionId = SESSION_ID,
           workflowName = "bill-feature-task",
           contractVersion = "0.1",
-          workflowStatus = "running",
+          workflowStatus = WorkflowStatus.RUNNING.wireValue,
           currentStepId = "implement",
           stepsJson = "[]",
           artifactsJson = "{}",

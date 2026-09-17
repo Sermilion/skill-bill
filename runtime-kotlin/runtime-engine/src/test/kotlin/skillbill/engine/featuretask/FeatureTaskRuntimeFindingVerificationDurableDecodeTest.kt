@@ -1,4 +1,6 @@
 package skillbill.engine.featuretask
+
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.application.testHarnessClock
 import skillbill.application.testWorkflowSnapshotValidator
 import skillbill.application.workflow.decodeWorkflowArtifacts
@@ -17,6 +19,7 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
+import skillbill.workflow.model.WorkflowStatus
 
 class FeatureTaskRuntimeFindingVerificationDurableDecodeTest {
   @Test
@@ -91,7 +94,7 @@ private fun seedWorkflow(repository: InMemoryRuntimeWorkflowRepository, workflow
     definition,
     opened,
     WorkflowUpdateInput(
-      workflowStatus = "running",
+      workflowStatus = WorkflowStatus.RUNNING,
       currentStepId = "verify_findings",
       stepUpdates = null,
       artifactsPatch = WorkflowArtifactPatch.from(artifacts),
@@ -105,8 +108,8 @@ private fun recorderFor(repository: InMemoryRuntimeWorkflowRepository): FeatureT
   featureTaskRuntimePhaseRecorder(
     RuntimeFakeDatabaseSessionFactory(repository),
     testWorkflowSnapshotValidator,
-    AcceptingFeatureTaskRuntimeHandoffEnvelopeValidator,
-    AcceptingFeatureTaskRuntimeHandoffFoundationValidator,
+    AcceptingFeatureTaskRuntimeWireArtifactValidator,
+    AcceptingFeatureTaskRuntimeWireArtifactValidator,
     testHarnessClock,
     NoopRuntimeDiagnostics,
   )

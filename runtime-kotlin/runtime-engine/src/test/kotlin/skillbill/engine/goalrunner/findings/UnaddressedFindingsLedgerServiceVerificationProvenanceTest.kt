@@ -13,6 +13,7 @@ import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.taskruntime.model.FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_DISPOSITIONS_ARTIFACT_KEY
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import skillbill.workflow.model.WorkflowStatus
 
 class UnaddressedFindingsLedgerServiceVerificationProvenanceTest {
   @Test
@@ -73,7 +74,7 @@ private fun seedWorkflow(repository: InMemoryRuntimeWorkflowRepository, workflow
     definition,
     opened,
     WorkflowUpdateInput(
-      workflowStatus = "running",
+      workflowStatus = WorkflowStatus.RUNNING,
       currentStepId = "verify_findings",
       stepUpdates = null,
       artifactsPatch = WorkflowArtifactPatch.from(decodeWorkflowArtifacts(artifactsJson)),

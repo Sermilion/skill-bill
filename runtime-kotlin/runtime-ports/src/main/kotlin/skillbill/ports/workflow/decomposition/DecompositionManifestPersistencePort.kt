@@ -1,6 +1,6 @@
 package skillbill.ports.workflow.decomposition
 
-import skillbill.workflow.engine.model.DecompositionManifestWireMap
+import skillbill.workflow.decomposition.model.DecompositionManifestWireMap
 import java.nio.file.Path
 
 interface DecompositionManifestPersistencePort {

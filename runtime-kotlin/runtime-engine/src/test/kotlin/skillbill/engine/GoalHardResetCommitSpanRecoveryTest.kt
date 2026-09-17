@@ -21,6 +21,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import skillbill.workflow.model.WorkflowStatus
 
 class GoalHardResetCommitSpanRecoveryTest {
   private val issueKey = "SKILL-346"
@@ -205,7 +206,7 @@ class GoalHardResetCommitSpanRecoveryTest {
     val outcomes = RecordingOutcomeStore().apply {
       progresses["wfl-interrupted"] = GoalRunnerWorkflowProgress(
         workflowId = "wfl-interrupted",
-        workflowStatus = "failed",
+        workflowStatus = WorkflowStatus.FAILED,
         currentStepId = "implement",
         progressToken = "token",
       )

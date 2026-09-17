@@ -1,4 +1,6 @@
 package skillbill.engine.featuretask
+
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.application.testHarnessClock
 import skillbill.application.testWorkflowSnapshotValidator
 import skillbill.application.workflow.model.WorkflowFamily
@@ -31,6 +33,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import skillbill.workflow.model.WorkflowStatus
 
 class FeatureTaskRuntimeGoalContinuationAdoptionPersistenceTest {
   private val workflowId = "wftr-skill176-adopt-1"
@@ -206,7 +209,7 @@ class FeatureTaskRuntimeGoalContinuationAdoptionPersistenceTest {
       definition,
       opened,
       WorkflowUpdateInput(
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING,
         currentStepId = "preplan",
         stepUpdates = null,
         artifactsPatch = WorkflowArtifactPatch.from(
@@ -227,8 +230,8 @@ class FeatureTaskRuntimeGoalContinuationAdoptionPersistenceTest {
     val recorder = featureTaskRuntimePhaseRecorder(
       database,
       testWorkflowSnapshotValidator,
-      AcceptingFeatureTaskRuntimeHandoffEnvelopeValidator,
-      AcceptingFeatureTaskRuntimeHandoffFoundationValidator,
+      AcceptingFeatureTaskRuntimeWireArtifactValidator,
+      AcceptingFeatureTaskRuntimeWireArtifactValidator,
       testHarnessClock,
       NoopRuntimeDiagnostics,
     )

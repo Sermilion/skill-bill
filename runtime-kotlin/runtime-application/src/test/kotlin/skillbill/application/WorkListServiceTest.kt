@@ -24,6 +24,7 @@ import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import skillbill.workflow.model.WorkflowStatus
 
 class WorkListServiceTest {
   @Test
@@ -35,7 +36,7 @@ class WorkListServiceTest {
         sessionId = "ftr-117",
         workflowName = "bill-feature-task",
         contractVersion = "0.1",
-        workflowStatus = "running",
+        workflowStatus = WorkflowStatus.RUNNING.wireValue,
         currentStepId = "preplan",
         stepsJson = "[]",
         artifactsJson = "{}",
@@ -82,7 +83,7 @@ class WorkListServiceTest {
             sessionId = "ftr-batch-$index",
             workflowName = "bill-feature-task",
             contractVersion = "0.1",
-            workflowStatus = "running",
+            workflowStatus = WorkflowStatus.RUNNING.wireValue,
             currentStepId = "implement",
             stepsJson = "[]",
             artifactsJson = "{}",

@@ -1,10 +1,9 @@
 package skillbill.workflow.goal
 
 import skillbill.error.InvalidGoalObservabilityEventSchemaError
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 
-interface GoalObservabilityEventValidator {
-  fun validate(event: Any, sourceLabel: String)
-}
+typealias GoalObservabilityEventValidator = FeatureTaskRuntimeWireArtifactValidator
 
 fun invalidGoalObservabilityEvent(
   sourceLabel: String,

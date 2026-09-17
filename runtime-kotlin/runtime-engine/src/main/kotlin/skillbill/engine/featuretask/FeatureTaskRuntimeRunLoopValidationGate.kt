@@ -1,4 +1,5 @@
 package skillbill.engine.featuretask
+import skillbill.workflow.taskruntime.validateBuildReceipt
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys

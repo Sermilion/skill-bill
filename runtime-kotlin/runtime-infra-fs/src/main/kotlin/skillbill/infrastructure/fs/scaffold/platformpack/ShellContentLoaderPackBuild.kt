@@ -5,7 +5,7 @@ import org.yaml.snakeyaml.Yaml
 import org.yaml.snakeyaml.error.YAMLException
 import skillbill.ports.repository.toFileLocation
 import skillbill.scaffold.model.PlatformManifest
-import skillbill.workflow.engine.model.CustomFieldMap
+import skillbill.telemetry.model.CustomFieldMap
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path

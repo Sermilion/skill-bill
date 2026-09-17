@@ -4,7 +4,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLMapper
 import me.tatarka.inject.annotations.Inject
 import skillbill.ports.workflow.decomposition.DecompositionManifestDiscoveryPort
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
-import skillbill.workflow.engine.model.DecompositionManifestWireMap
+import skillbill.workflow.decomposition.model.DecompositionManifestWireMap
 import java.nio.file.Files
 import java.nio.file.Path
 

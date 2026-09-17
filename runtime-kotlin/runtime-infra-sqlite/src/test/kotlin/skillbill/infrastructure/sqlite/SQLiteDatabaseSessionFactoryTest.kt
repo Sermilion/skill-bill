@@ -21,6 +21,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import skillbill.workflow.model.WorkflowStatus
 
 class SQLiteDatabaseSessionFactoryTest {
   @Test
@@ -37,7 +38,7 @@ class SQLiteDatabaseSessionFactoryTest {
             sessionId = "ftr-rollback",
             workflowName = "bill-feature-task",
             contractVersion = "",
-            workflowStatus = "running",
+            workflowStatus = WorkflowStatus.RUNNING.wireValue,
             currentStepId = "implement",
             stepsJson = "[]",
             artifactsJson = "{}",
@@ -384,7 +385,7 @@ class SQLiteDatabaseSessionFactoryTest {
     sessionId = "ftr-crash-reconcile",
     workflowName = "bill-feature-task",
     contractVersion = "1.0",
-    workflowStatus = "running",
+    workflowStatus = WorkflowStatus.RUNNING.wireValue,
     currentStepId = "implement",
     stepsJson = "[]",
     artifactsJson = "{}",
@@ -454,7 +455,7 @@ class SQLiteDatabaseSessionFactoryTest {
     sessionId = "ftr-write-reservation",
     workflowName = "bill-feature-task",
     contractVersion = "1.0",
-    workflowStatus = "running",
+    workflowStatus = WorkflowStatus.RUNNING.wireValue,
     currentStepId = "implement",
     stepsJson = "[]",
     artifactsJson = "{}",

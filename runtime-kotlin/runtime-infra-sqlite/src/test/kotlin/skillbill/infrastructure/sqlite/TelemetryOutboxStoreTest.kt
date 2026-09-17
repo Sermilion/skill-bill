@@ -1,6 +1,6 @@
 package skillbill.infrastructure.sqlite
 
-import skillbill.SkillBillVersion
+import skillbill.SkillBillRuntimeVersion
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
 import skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxStore
 import skillbill.ports.telemetry.model.TELEMETRY_DELIVERY_ATTEMPT_BUDGET
@@ -120,7 +120,7 @@ class TelemetryOutboxStoreTest {
       val id = store.enqueue(eventName = "skillbill_goal_finished", payloadJson = "{}")
 
       assertEquals(
-        SkillBillVersion.VALUE,
+        SkillBillRuntimeVersion.VALUE,
         scalarString(connection, "SELECT skill_bill_version FROM telemetry_outbox WHERE id = $id"),
       )
     }

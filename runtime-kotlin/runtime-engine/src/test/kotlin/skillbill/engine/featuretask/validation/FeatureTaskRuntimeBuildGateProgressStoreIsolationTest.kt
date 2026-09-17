@@ -1,10 +1,11 @@
 package skillbill.engine.featuretask.validation
+
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import skillbill.application.testHarnessClock
 import skillbill.application.testWorkflowSnapshotValidator
 import skillbill.engine.InMemoryRuntimeWorkflowRepository
 import skillbill.engine.RuntimeFakeDatabaseSessionFactory
-import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeHandoffEnvelopeValidator
-import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeHandoffFoundationValidator
+import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeWireArtifactValidator
 import skillbill.engine.featuretask.featureTaskRuntimePhaseRecorder
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateProgress
@@ -21,8 +22,8 @@ class FeatureTaskRuntimeBuildGateProgressStoreIsolationTest {
     val recorder = featureTaskRuntimePhaseRecorder(
       database,
       testWorkflowSnapshotValidator,
-      AcceptingFeatureTaskRuntimeHandoffEnvelopeValidator,
-      AcceptingFeatureTaskRuntimeHandoffFoundationValidator,
+      AcceptingFeatureTaskRuntimeWireArtifactValidator,
+      AcceptingFeatureTaskRuntimeWireArtifactValidator,
       testHarnessClock,
       NoopRuntimeDiagnostics,
     )

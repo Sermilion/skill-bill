@@ -1,13 +1,15 @@
 package skillbill.application.work
 
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
+import skillbill.workflow.model.WorkflowStatus
+
 import skillbill.application.TestRepositoryEnclosingRoot
 import skillbill.application.idestatus.model.IdeStatusRequest
 import skillbill.application.idestatus.model.IdeStatusResult
 import skillbill.application.testHarnessClock
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.workflow.IDE_STATUS_CONTRACT_VERSION
-import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeHandoffEnvelopeValidator
-import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeHandoffFoundationValidator
+import skillbill.engine.featuretask.AcceptingFeatureTaskRuntimeWireArtifactValidator
 import skillbill.engine.featuretask.FeatureTaskRuntimeDecomposeTerminalRecorder
 import skillbill.engine.featuretask.FeatureTaskRuntimeRunInvariantsStore
 import skillbill.engine.featuretask.FeatureTaskRuntimeStatusService
@@ -210,8 +212,8 @@ internal fun ideStatusService(
   val phaseRecorder = featureTaskRuntimePhaseRecorder(
     database,
     snapshotValidator,
-    AcceptingFeatureTaskRuntimeHandoffEnvelopeValidator,
-    AcceptingFeatureTaskRuntimeHandoffFoundationValidator,
+    AcceptingFeatureTaskRuntimeWireArtifactValidator,
+    AcceptingFeatureTaskRuntimeWireArtifactValidator,
     testHarnessClock,
     NoopRuntimeDiagnostics,
   )
@@ -372,7 +374,7 @@ internal fun verifyRecord(
   sessionId = "session-$workflowId",
   workflowName = "bill-feature-verify",
   contractVersion = "0.1",
-  workflowStatus = "running",
+  workflowStatus = WorkflowStatus.RUNNING.wireValue,
   currentStepId = currentStep,
   stepsJson = pipelineStepsJson(FeatureVerifyWorkflowDefinition.definition.stepIds, currentStep),
   artifactsJson = "{}",

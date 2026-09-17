@@ -19,6 +19,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import skillbill.workflow.model.WorkflowStatus
 
 private const val WORKFLOW_INPUT_PROJECTION_BYTE_CEILING = 64 * 1024
 
@@ -43,8 +44,8 @@ class WorkflowCompactContinuationTest {
 
     assertEquals("reopened", compact.continueStatus.wireValue)
     assertEquals("reopened", standard.view.continueStatus.wireValue)
-    assertEquals("blocked", compact.workflowStatusBeforeContinue)
-    assertEquals("blocked", standard.view.workflowStatusBeforeContinue)
+    assertEquals("blocked", compact.workflowStatusBeforeContinue.wireValue)
+    assertEquals("blocked", standard.view.workflowStatusBeforeContinue.wireValue)
     assertEquals(opened.workflowId, compact.workflowId)
     assertEquals("bill-feature-task", compact.skillName)
     assertEquals("implement", compact.resumeStepId)
@@ -208,7 +209,7 @@ private fun newBlockedImplementService(
     WorkflowFamilyKind.TASK_RUNTIME,
     WorkflowUpdateRequest(
       workflowId = opened.workflowId,
-      workflowStatus = "blocked",
+        workflowStatus = WorkflowStatus.BLOCKED.wireValue,
       currentStepId = "implement",
       stepUpdates = WorkflowStepUpdates.from(
         listOf(

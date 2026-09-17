@@ -29,7 +29,7 @@ object WorkflowWireProjections {
       put(WorkflowWirePayloadKeys.WORKFLOW_NAME, view.workflowName)
       put(WorkflowWirePayloadKeys.MODE, view.mode)
       put(SharedPayloadKeys.CONTRACT_VERSION, view.contractVersion)
-      put(WorkflowWirePayloadKeys.WORKFLOW_STATUS, view.workflowStatus)
+      put(WorkflowWirePayloadKeys.WORKFLOW_STATUS, view.workflowStatus.wireValue)
       put(WorkflowWirePayloadKeys.CURRENT_STEP_ID, view.currentStepId)
       put(WorkflowWirePayloadKeys.STARTED_AT, view.startedAt)
       put(WorkflowWirePayloadKeys.UPDATED_AT, view.updatedAt)
@@ -53,7 +53,7 @@ object WorkflowWireProjections {
       putResumeFields(view.resume)
       put(WorkflowWirePayloadKeys.SKILL_NAME, view.skillName)
       put(WorkflowWirePayloadKeys.CONTINUATION_MODE, "resume_existing_workflow")
-      put(WorkflowWirePayloadKeys.WORKFLOW_STATUS_BEFORE_CONTINUE, view.workflowStatusBeforeContinue)
+      put(WorkflowWirePayloadKeys.WORKFLOW_STATUS_BEFORE_CONTINUE, view.workflowStatusBeforeContinue.wireValue)
       put(WorkflowWirePayloadKeys.CONTINUE_STATUS, view.continueStatus.wireValue)
       put(WorkflowWirePayloadKeys.CONTINUE_STEP_ID, view.continueStepId)
       put(WorkflowWirePayloadKeys.CONTINUE_STEP_LABEL, view.continueStepLabel)
@@ -72,7 +72,7 @@ object WorkflowWireProjections {
     linkedMapOf(
       SharedPayloadKeys.WORKFLOW_ID to view.workflowId,
       WorkflowWirePayloadKeys.SKILL_NAME to view.skillName,
-      WorkflowWirePayloadKeys.WORKFLOW_STATUS_BEFORE_CONTINUE to view.workflowStatusBeforeContinue,
+      WorkflowWirePayloadKeys.WORKFLOW_STATUS_BEFORE_CONTINUE to view.workflowStatusBeforeContinue.wireValue,
       WorkflowWirePayloadKeys.STARTED_AT to view.startedAt,
       WorkflowWirePayloadKeys.UPDATED_AT to view.updatedAt,
       WorkflowWirePayloadKeys.CONTINUE_STATUS to view.continueStatus.wireValue,
@@ -101,7 +101,7 @@ object WorkflowWireProjections {
       SharedPayloadKeys.STATUS to view.status,
       SharedPayloadKeys.WORKFLOW_ID to view.workflowId,
       WorkflowWirePayloadKeys.WORKFLOW_NAME to view.workflowName,
-      WorkflowWirePayloadKeys.WORKFLOW_STATUS to view.workflowStatus,
+      WorkflowWirePayloadKeys.WORKFLOW_STATUS to view.workflowStatus.wireValue,
       WorkflowWirePayloadKeys.CURRENT_STEP_ID to view.currentStepId,
       WorkflowWirePayloadKeys.UPDATED_STEP_IDS to view.updatedStepIds,
       WorkflowWirePayloadKeys.UPDATED_ARTIFACT_KEYS to view.updatedArtifactKeys,
@@ -127,7 +127,7 @@ object WorkflowWireProjections {
     put(WorkflowWirePayloadKeys.WORKFLOW_NAME, view.workflowName)
     put(WorkflowWirePayloadKeys.MODE, view.mode)
     put(SharedPayloadKeys.CONTRACT_VERSION, view.contractVersion)
-    put(WorkflowWirePayloadKeys.WORKFLOW_STATUS, view.workflowStatus)
+    put(WorkflowWirePayloadKeys.WORKFLOW_STATUS, view.workflowStatus.wireValue)
     put(WorkflowWirePayloadKeys.CURRENT_STEP_ID, view.currentStepId)
     put(WorkflowWirePayloadKeys.STEPS, view.steps.map(::workflowStepWireMap))
     put(WorkflowWirePayloadKeys.ARTIFACTS, view.artifacts.toMap())
@@ -174,6 +174,6 @@ private class WorkflowWirePayload(
 
 private fun workflowStepWireMap(step: WorkflowStepState): Map<String, Any?> = linkedMapOf(
   SharedPayloadKeys.STEP_ID to step.stepId,
-  SharedPayloadKeys.STATUS to step.status,
+  SharedPayloadKeys.STATUS to step.status.wireValue,
   WorkflowWirePayloadKeys.ATTEMPT_COUNT to step.attemptCount,
 )

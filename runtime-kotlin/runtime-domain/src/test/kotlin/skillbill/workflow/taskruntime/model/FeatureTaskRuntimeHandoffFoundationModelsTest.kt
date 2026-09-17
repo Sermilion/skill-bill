@@ -1,6 +1,7 @@
 package skillbill.workflow.taskruntime.model
 
-import skillbill.workflow.taskruntime.FeatureTaskRuntimeHandoffFoundationValidator
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactKind
+import skillbill.workflow.taskruntime.FeatureTaskRuntimeWireArtifactValidator
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -124,9 +125,6 @@ class FeatureTaskRuntimeHandoffFoundationModelsTest {
   }
 }
 
-private object AcceptingFoundationValidator : FeatureTaskRuntimeHandoffFoundationValidator {
-  override fun validateDeclaration(payload: Any, sourceLabel: String) = Unit
-  override fun validatePersistenceRecord(payload: Any, sourceLabel: String) = Unit
-  override fun validateMeasurement(payload: Any, sourceLabel: String) = Unit
-  override fun validateSharedEvidenceProjection(payload: Any, sourceLabel: String) = Unit
+private object AcceptingFoundationValidator : FeatureTaskRuntimeWireArtifactValidator {
+  override fun validate(kind: FeatureTaskRuntimeWireArtifactKind, payload: Any, sourceLabel: String) = Unit
 }

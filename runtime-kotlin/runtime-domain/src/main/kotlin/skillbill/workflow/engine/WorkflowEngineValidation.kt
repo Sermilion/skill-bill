@@ -1,15 +1,20 @@
 package skillbill.workflow.engine
 
 import skillbill.contracts.SharedPayloadKeys
+import skillbill.contracts.workflow.WorkflowWirePayloadKeys
 import skillbill.workflow.engine.model.WorkflowDefinition
 import skillbill.workflow.engine.model.WorkflowUpdateInput
-import skillbill.workflow.taskruntime.model.asExactIntOrNull
+import skillbill.workflow.model.WorkflowStatus
+import skillbill.workflow.model.WorkflowStepStatus
 
 internal fun validateWorkflowOpen(definition: WorkflowDefinition, currentStepId: String): String? =
   validateWorkflowEnum(currentStepId, definition.stepIds, "current_step_id")
 
 internal fun validateWorkflowUpdate(definition: WorkflowDefinition, input: WorkflowUpdateInput): String? {
-  validateWorkflowEnum(input.workflowStatus, definition.workflowStatuses, "workflow_status")?.let { return it }
+  if (input.workflowStatus !in definition.workflowStatusEnums) {
+    return "Invalid workflow_status '${input.workflowStatus.wireValue}'. Allowed: " +
+      definition.workflowStatusEnums.joinToString { it.wireValue }
+  }
   if (input.currentStepId.isNotBlank()) {
     validateWorkflowEnum(input.currentStepId, definition.stepIds, "current_step_id")?.let { return it }
   }
@@ -50,8 +55,12 @@ private fun validateStepStatusAndAttempt(
   if (status.isNullOrBlank()) {
     return "step_updates[$index].status must be a non-empty string."
   }
-  validateWorkflowEnum(status, definition.stepStatuses, "step_updates.status")?.let { return it }
-  val attemptCount = update["attempt_count"].asExactIntOrNull()
+  val decodedStatus = WorkflowStepStatus.fromWire(status)
+  if (decodedStatus == null || decodedStatus !in definition.stepStatusEnums) {
+    return "Invalid step_updates.status '$status'. Allowed: " +
+      definition.stepStatusEnums.joinToString { it.wireValue }
+  }
+  val attemptCount = update[WorkflowWirePayloadKeys.ATTEMPT_COUNT].asExactIntOrNull()
   if (attemptCount == null || attemptCount < 0) {
     return "step_updates[$index].attempt_count must be an integer >= 0."
   }
