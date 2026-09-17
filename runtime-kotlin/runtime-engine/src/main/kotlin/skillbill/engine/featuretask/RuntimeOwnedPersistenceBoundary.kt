@@ -1,16 +1,12 @@
 package skillbill.engine.featuretask
 
-import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
 import skillbill.error.SkillBillRuntimeException
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.persistence.UnitOfWork
 import kotlin.coroutines.cancellation.CancellationException
 
-class RuntimeOwnedFactUnavailable(
-  message: String,
-  cause: Throwable? = null,
-) : SkillBillRuntimeException(message, cause)
+class RuntimeOwnedFactUnavailable(message: String) : SkillBillRuntimeException(message)
 
 class RuntimeOwnedPersistenceBoundary(
   private val database: DatabaseSessionFactory,
@@ -58,16 +54,16 @@ class RuntimeOwnedPersistenceBoundary(
     recordFailure(seam, expected, used, error)
     throw RuntimeOwnedFactUnavailable(
       "Runtime-owned persistence fact '$expected' could not be established at $seam: $cause",
-      error,
     )
   }
 
   private fun recordFailure(seam: String, expected: String, used: String, error: Exception) {
     val cause = causeOf(error)
-    RuntimeDiagnosticsBestEffortWarning.record(
-      diagnostics,
-      "seam=$seam value_expected=$expected value_used=$used cause=$cause",
-    )
+    runCatching {
+      diagnostics.warning(
+        "seam=$seam value_expected=$expected value_used=$used cause=$cause",
+      )
+    }
   }
 
   private fun causeOf(error: Exception): String =

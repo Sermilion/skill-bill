@@ -33,8 +33,11 @@ import skillbill.ports.workflow.save
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.model.DurableWorkflowArtifacts
+import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
+import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.goal.model.GOAL_REVIEW_BASE_RECOVERIES_ARTIFACT_KEY
+import skillbill.workflow.goal.model.GOAL_SUBTASK_REVIEW_STATE_ARTIFACT_KEY
 import skillbill.workflow.goal.model.GoalSubtaskReviewArtifactDecoder
 import skillbill.workflow.goal.model.GoalSubtaskReviewState
 import skillbill.workflow.goal.model.ValidationDepth
@@ -142,9 +145,7 @@ class GoalRunnerChildRepairWedgeApplyLoop(
     val depth = ValidationDepth.FULL
     val healed = continuation.copy(validationDepth = depth)
     state.workingContinuation = healed
-    state.patch.putAll(
-      FeatureTaskRuntimeWorkflowArtifactPatches.goalContinuationArtifact(healed.asWorkflowArtifactEntry()),
-    )
+    state.patch.putAll(FeatureTaskRuntimeWorkflowArtifactPatches.goalContinuationArtifact(healed.asWorkflowArtifactEntry()))
     recordChildRepairWedge(state, wedgeClass, priorValue = null, newValue = depth.wireValue)
   }
 
@@ -154,9 +155,7 @@ class GoalRunnerChildRepairWedgeApplyLoop(
     val selection = FeatureTaskRuntimeQualityGateSelection.VALIDATE
     val healed = continuation.copy(qualityGateSelection = selection)
     state.workingContinuation = healed
-    state.patch.putAll(
-      FeatureTaskRuntimeWorkflowArtifactPatches.goalContinuationArtifact(healed.asWorkflowArtifactEntry()),
-    )
+    state.patch.putAll(FeatureTaskRuntimeWorkflowArtifactPatches.goalContinuationArtifact(healed.asWorkflowArtifactEntry()))
     recordChildRepairWedge(state, wedgeClass, priorValue = null, newValue = selection.wireValue)
   }
 

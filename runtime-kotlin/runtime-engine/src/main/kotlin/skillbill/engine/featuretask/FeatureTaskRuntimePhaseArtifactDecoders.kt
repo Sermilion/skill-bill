@@ -47,7 +47,7 @@ internal fun <T> decodeStrictKeyedArtifactMap(
 
 internal fun decodePhaseRecords(artifacts: Map<String, Any?>): Map<String, FeatureTaskRuntimePhaseRecord> =
   decodeStrictKeyedArtifactMap(artifacts, FEATURE_TASK_RUNTIME_PHASE_RECORDS_ARTIFACT_KEY) { phaseId, recordMap ->
-    requireNotNull(decodePhaseRecordFromArtifact(recordMap))
+    decodePhaseRecordFromArtifact(recordMap)
   }
 
 internal fun resolvedBranchFromWorkflowArtifacts(artifacts: Map<String, Any?>): FeatureTaskRuntimeResolvedBranch? {
@@ -130,6 +130,6 @@ internal fun decodePhaseLedger(artifacts: Map<String, Any?>): List<FeatureTaskRu
       ?: schemaError(
         "Feature-task-runtime phase ledger entry must decode to a string-keyed map.",
       )
-    requireNotNull(decodePhaseLedgerEntryFromArtifact(entryMap))
+    decodePhaseLedgerEntryFromArtifact(entryMap)
   }
 }

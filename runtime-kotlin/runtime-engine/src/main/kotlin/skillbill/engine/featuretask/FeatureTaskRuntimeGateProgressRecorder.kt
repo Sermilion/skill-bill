@@ -53,9 +53,7 @@ class FeatureTaskRuntimeGateProgressRecorder(
   fun loadGoalContinuationQualityGateSelection(workflowId: String): FeatureTaskRuntimeQualityGateSelection? =
     database.read { unitOfWork ->
       val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@read null
-      GoalSubtaskReviewArtifactDecoder.decodeContinuationOnly(
-        FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record),
-      )
+      GoalSubtaskReviewArtifactDecoder.decodeContinuationOnly(FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record))
         ?.qualityGateSelection
     }
 

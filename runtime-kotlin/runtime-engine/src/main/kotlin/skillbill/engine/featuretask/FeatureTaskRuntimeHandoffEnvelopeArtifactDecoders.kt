@@ -62,9 +62,6 @@ internal fun deliveredProjectionHistoryFrom(
     )
   }
   val delivered = decodeDeliveredProjectionRecordFromArtifact(recordMap)
-    ?: schemaError(
-      "Feature-task-runtime delivered projection '$key' is malformed.",
-    )
   validateEnvelope(
     JsonCodec.anyToStringAnyMap(recordMap["handoff_envelope"])
       ?: schemaError(

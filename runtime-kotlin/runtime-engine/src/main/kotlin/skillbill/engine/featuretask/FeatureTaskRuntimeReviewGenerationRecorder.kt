@@ -133,11 +133,16 @@ class FeatureTaskRuntimeReviewGenerationRecorder(
     }
   }
 
-  fun fetchUnaddressedLedger(workflowId: String): List<UnaddressedFinding> = database.transaction { unitOfWork ->
-    unitOfWork.unaddressedFindings.fetchWorkflowLedger(workflowId)
-  }
+  fun fetchUnaddressedLedger(workflowId: String): List<UnaddressedFinding> =
+    database.transaction { unitOfWork ->
+      unitOfWork.unaddressedFindings.fetchWorkflowLedger(workflowId)
+    }
 
-  fun appendRejectedVerificationFindings(workflowId: String, passNumber: Int, rejected: List<UnaddressedFinding>) {
+  fun appendRejectedVerificationFindings(
+    workflowId: String,
+    passNumber: Int,
+    rejected: List<UnaddressedFinding>,
+  ) {
     if (rejected.isEmpty()) return
     database.transaction { unitOfWork ->
       val existing = unitOfWork.unaddressedFindings.fetchWorkflowLedger(workflowId)

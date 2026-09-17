@@ -25,7 +25,7 @@ object FeatureTaskRuntimeCensusCoverageTestSupport {
   fun parseVerifyDispositions(
     entries: List<Map<String, String>>,
   ): List<FeatureTaskRuntimeFindingVerificationDisposition> = entries.mapIndexed { index, entry ->
-    requireNotNull(decodeFindingVerificationDispositionFromArtifact(entry, "finding_dispositions[$index]"))
+    decodeFindingVerificationDispositionFromArtifact(entry, "finding_dispositions[$index]")
   }
 
   fun assertVerifyCoverageContains(

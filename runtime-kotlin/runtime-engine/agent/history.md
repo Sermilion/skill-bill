@@ -1,12 +1,3 @@
-## [2026-09-17] SKILL-352 subtask 3 — Record fallbacks, restore ownership, and shrink surface
-Areas: runtime-kotlin/{runtime-engine,runtime-domain,runtime-ports,runtime-application,runtime-infra-sqlite,runtime-core}
-- Goal-runner durable-read fallbacks now emit bounded diagnostics and project degraded status; lease timestamps and closed runtime vocabularies use typed domain values.
-- Consolidated best-effort diagnostic emission, removed the engine JSON scanner, and moved engine-only declarations behind their producing boundary while narrowing public surface.
-- Pattern: keep fallback recording, projection degradation, and ownership decisions at typed runtime seams. reusable
-- Limitation: the full engine visibility census and test-class/prose-assertion split remain partial follow-up work.
-Feature flag: N/A
-Acceptance criteria: 6/8 implemented
-
 ## [2026-09-17] SKILL-352 subtask 2 — One persistence seam and typed durable failures
 Areas: runtime-kotlin/{runtime-application,runtime-contracts,runtime-core,runtime-domain,runtime-engine,runtime-infra-fs,runtime-infra-sqlite}
 - Consolidated feature-task workflow artifact reads and writes behind the runtime-engine persistence owner and removed recorder role-interface bundles.

@@ -23,6 +23,7 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeProducerIteration
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeRepositoryCheckpoint
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeVerdict
+import skillbill.error.SkillBillRuntimeException
 import skillbill.workflow.taskruntime.model.NormalizedFeatureTaskRuntimePhaseOutput
 
 internal data class RemediationCheckpointCommit(val commitSha: String, val parentSha: String?)

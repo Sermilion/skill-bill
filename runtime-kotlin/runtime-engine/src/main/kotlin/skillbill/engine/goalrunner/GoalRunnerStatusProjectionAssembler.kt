@@ -3,7 +3,6 @@ import me.tatarka.inject.annotations.Inject
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.ValidationEvidencePayloadKeys
-import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
 import skillbill.engine.featuretask.FeatureTaskRuntimePhaseRecorder
 import skillbill.engine.featuretask.FeatureTaskRuntimeStatusService
 import skillbill.engine.featuretask.agentAttributionFromPhaseState
@@ -49,6 +48,7 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateExec
 import java.io.IOException
 import java.nio.file.Path
 import java.time.Clock
+import java.time.Instant
 
 private const val MAX_STATUS_ERROR_LENGTH = 240
 
@@ -102,18 +102,14 @@ class GoalRunnerStatusProjectionAssembler(
     )
   }
 
-  internal fun resolveExecutionLiveness(
-    parentWorkflowId: String,
-    currentSubtask: DecompositionSubtask?,
-    durableRead: GoalRunnerStatusDurableReadTracker,
-  ): ExecutionLiveness {
+  fun resolveExecutionLiveness(parentWorkflowId: String, currentSubtask: DecompositionSubtask?): ExecutionLiveness {
     val workflowId = currentSubtask?.workflowId?.takeIf(String::isNotBlank)
-      ?: return resolveParentExecutionLiveness(parentWorkflowId, durableRead)
-    val childLiveness = resolveChildExecutionLiveness(workflowId, durableRead)
+      ?: return resolveParentExecutionLiveness(parentWorkflowId)
+    val childLiveness = resolveChildExecutionLiveness(workflowId)
     if (childLiveness == ExecutionLiveness.LIVE || childLiveness == ExecutionLiveness.UNKNOWN) {
       return childLiveness
     }
-    return resolveParentExecutionLiveness(parentWorkflowId, durableRead)
+    return resolveParentExecutionLiveness(parentWorkflowId)
   }
 }
 
@@ -124,7 +120,6 @@ internal fun GoalRunnerStatusProjectionAssembler.statusProjectionRuntimeInputs(
   currentSubtask: DecompositionSubtask?,
   acceptances: Map<Int, GoalRunnerOutOfBandAcceptance>,
 ): GoalRunnerStatusProjectionRuntimeInputs {
-  val durableRead = GoalRunnerStatusDurableReadTracker(diagnostics)
   val childWorkflowId = currentSubtask?.workflowId?.takeIf(String::isNotBlank)
   val progress = childWorkflowId?.let { workflowId ->
     outcomeStore.progress(workflowId)
@@ -132,20 +127,11 @@ internal fun GoalRunnerStatusProjectionAssembler.statusProjectionRuntimeInputs(
   val derivedCurrentStep = derivedChildCurrentStep(childWorkflowId)
   val ledgerSummary = runCatching {
     attemptLedgerStore.readAttemptLedgerSummary(loadedState.manifest.issueKey)
-  }.getOrElse { error ->
-    durableRead.recordDegradedRead(
-      seam = "goal-status.attempt_ledger",
-      expected = "ledger_summary",
-      used = "degraded",
-      error = error,
-    )
-    null
-  }
+  }.getOrNull()
   return GoalRunnerStatusProjectionRuntimeInputs(
     executionLiveness = resolveExecutionLiveness(
       parentWorkflowId = loadedState.parentWorkflowId,
       currentSubtask = currentSubtask,
-      durableRead = durableRead,
     ),
     planning = alignedPlanningStatus(loadedState, request, manifest, currentSubtask),
     currentStepOverride = derivedCurrentStep ?: progress?.currentStepId,
@@ -174,7 +160,6 @@ internal fun GoalRunnerStatusProjectionAssembler.statusProjectionRuntimeInputs(
     activeDurationAsOf = loadedState.controlState.activeDurationAsOf,
     subtaskActiveDurationMs = loadedState.controlState.subtaskActiveDurationMs,
     subtaskActiveDurationAsOf = loadedState.controlState.subtaskActiveDurationAsOf,
-    degradedDurableRead = durableRead.degraded,
   )
 }
 
@@ -199,7 +184,7 @@ private fun GoalRunnerStatusProjectionAssembler.completedSubtaskValidationFor(
   }
   val sourceLabel = "goal-status.subtask-${subtask.id}"
   return runCatching {
-    val evidence = requireNotNull(decodeValidationEvidenceFromArtifact(rawEvidence, sourceLabel))
+    val evidence = decodeValidationEvidenceFromArtifact(rawEvidence, sourceLabel)
     val requiredCommand = requiredValidationCommandFor(
       workflowId = requireNotNull(workflowId),
       repoRoot = repoRoot,
@@ -341,16 +326,14 @@ internal fun GoalRunnerStatusProjectionAssembler.derivedChildCurrentStep(childWo
       ),
     )?.currentPhaseId?.takeIf(String::isNotBlank)
   } catch (error: ShellContentContractException) {
-    RuntimeDiagnosticsBestEffortWarning.record(
-      diagnostics,
+    diagnostics.warning(
       "Goal status omitted derived child phase for workflow '$workflowId': " +
         "the child's durable status could not be read.",
       error,
     )
     null
   } catch (error: IOException) {
-    RuntimeDiagnosticsBestEffortWarning.record(
-      diagnostics,
+    diagnostics.warning(
       "Goal status omitted derived child phase for workflow '$workflowId': " +
         "the child's durable status could not be read.",
       error,
@@ -359,50 +342,31 @@ internal fun GoalRunnerStatusProjectionAssembler.derivedChildCurrentStep(childWo
   }
 }
 
-internal fun GoalRunnerStatusProjectionAssembler.resolveChildExecutionLiveness(
-  workflowId: String,
-  durableRead: GoalRunnerStatusDurableReadTracker,
-): ExecutionLiveness = runCatching {
-  if (phaseRecorder.existingWorkflowMode(workflowId) != FeatureTaskWorkflowMode.RUNTIME) {
-    ExecutionLiveness.UNKNOWN
-  } else {
-    val ownership = phaseRecorder.workerOwnership(workflowId)
-    if (ownership != null && ownership.expiresAtInstant.isAfter(clock.instant())) {
-      livenessOfLeaseOwner(ownership)
+internal fun GoalRunnerStatusProjectionAssembler.resolveChildExecutionLiveness(workflowId: String): ExecutionLiveness =
+  runCatching {
+    if (phaseRecorder.existingWorkflowMode(workflowId) != FeatureTaskWorkflowMode.RUNTIME) {
+      ExecutionLiveness.UNKNOWN
     } else {
-      ExecutionLiveness.IDLE
+      val ownership = phaseRecorder.workerOwnership(workflowId)
+      if (ownership != null && Instant.parse(ownership.expiresAt).isAfter(clock.instant())) {
+        livenessOfLeaseOwner(ownership)
+      } else {
+        ExecutionLiveness.IDLE
+      }
     }
-  }
-}.getOrElse { error ->
-  durableRead.recordDegradedRead(
-    seam = "goal-status.child_execution_liveness",
-    expected = "live_or_idle",
-    used = ExecutionLiveness.UNKNOWN.wireValue,
-    error = error,
-  )
-  ExecutionLiveness.UNKNOWN
-}
+  }.getOrDefault(ExecutionLiveness.UNKNOWN)
 
 internal fun GoalRunnerStatusProjectionAssembler.resolveParentExecutionLiveness(
   parentWorkflowId: String,
-  durableRead: GoalRunnerStatusDurableReadTracker,
 ): ExecutionLiveness = runCatching {
   val lease = manifestStore.executionLease(parentWorkflowId)
     ?: return@runCatching ExecutionLiveness.IDLE
-  if (lease.expiresAtInstant.isAfter(clock.instant())) {
+  if (Instant.parse(lease.expiresAt).isAfter(clock.instant())) {
     livenessOfLeaseOwner(lease.asWorkerOwnership(parentWorkflowId))
   } else {
     ExecutionLiveness.IDLE
   }
-}.getOrElse { error ->
-  durableRead.recordDegradedRead(
-    seam = "goal-status.parent_execution_liveness",
-    expected = "live_or_idle",
-    used = ExecutionLiveness.UNKNOWN.wireValue,
-    error = error,
-  )
-  ExecutionLiveness.UNKNOWN
-}
+}.getOrDefault(ExecutionLiveness.UNKNOWN)
 
 internal fun GoalRunnerStatusProjectionAssembler.livenessOfLeaseOwner(
   ownership: FeatureTaskRuntimeWorkerOwnership,

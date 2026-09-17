@@ -13,12 +13,13 @@ class FeatureTaskRuntimeFindingVerificationRecorder(
   private val database: DatabaseSessionFactory,
   private val workflowPersistence: FeatureTaskRuntimeWorkflowPersistence,
 ) {
-  fun loadFindingVerificationCheckpoint(workflowId: String): List<FeatureTaskRuntimeFindingVerificationDisposition>? =
-    database.transaction { unitOfWork ->
-      val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@transaction null
-      val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
-      findingVerificationCheckpointFrom(artifacts[FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_CHECKPOINT_ARTIFACT_KEY])
-    }
+  fun loadFindingVerificationCheckpoint(
+    workflowId: String,
+  ): List<FeatureTaskRuntimeFindingVerificationDisposition>? = database.transaction { unitOfWork ->
+    val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId) ?: return@transaction null
+    val artifacts = FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record)
+    findingVerificationCheckpointFrom(artifacts[FEATURE_TASK_RUNTIME_FINDING_VERIFICATION_CHECKPOINT_ARTIFACT_KEY])
+  }
 
   fun loadFindingVerificationBoundarySelection(
     workflowId: String,

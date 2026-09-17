@@ -2,7 +2,6 @@ package skillbill.engine.goalrunner.findings
 
 import me.tatarka.inject.annotations.Inject
 import skillbill.application.workflow.model.WorkflowFamily
-import skillbill.engine.diagnostics.RuntimeDiagnosticsBestEffortWarning
 import skillbill.engine.featuretask.FeatureTaskRuntimeWorkflowPersistence
 import skillbill.error.InvalidUnaddressedFindingsLedgerSchemaError
 import skillbill.error.UnaddressedFindingsLedgerAbsentError
@@ -64,7 +63,7 @@ class UnaddressedFindingsLedgerService(
         }.getOrElse { error ->
           val message =
             "Malformed finding verification disposition artifact for issue '$issueKey' workflow '$workflowId'."
-          RuntimeDiagnosticsBestEffortWarning.record(diagnostics, message, error)
+          diagnostics.warning(message, error)
           throw InvalidUnaddressedFindingsLedgerSchemaError(message)
         }
       }
@@ -79,9 +78,7 @@ class UnaddressedFindingsLedgerService(
         val record = WorkflowFamily.TASK_RUNTIME.get(unitOfWork.workflowStates, workflowId)
           ?: return@mapNotNull null
         val state = runCatching {
-          GoalSubtaskReviewArtifactDecoder.decodeReviewStateOnly(
-            FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record),
-          )
+          GoalSubtaskReviewArtifactDecoder.decodeReviewStateOnly(FeatureTaskRuntimeWorkflowPersistence.artifactsFrom(record))
         }.getOrNull() ?: return@mapNotNull null
         runCatching { state.repairLedger }.getOrNull()
           ?.takeUnless(FeatureTaskRuntimeRepairLedger::isEmpty)

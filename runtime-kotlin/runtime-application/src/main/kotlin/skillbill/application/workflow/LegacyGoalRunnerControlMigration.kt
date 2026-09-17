@@ -81,42 +81,35 @@ private fun decodeGoalAgentAddonSelection(raw: Any?): AgentAddonSelection {
   val entries = values as? List<*>
     ?: throw InvalidAgentAddonSelectionError("Goal review policy agent_addon_selection must be a list.")
   return AgentAddonSelection(
-    entries.mapIndexed(::decodeGoalAgentAddonSelectionEntry),
+    entries.mapIndexed { index, value ->
+      val entry = JsonCodec.anyToStringAnyMap(value)
+        ?: throw InvalidAgentAddonSelectionError(
+          "Goal review policy agent_addon_selection entry $index must be a map.",
+        )
+      if (entry.keys != setOf(
+          FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_SLUG,
+          FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_SOURCE_IDENTITY,
+          FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_CONTENT_SHA256,
+        )
+      ) {
+        throw InvalidAgentAddonSelectionError(
+          "Goal review policy agent_addon_selection entry $index has invalid fields.",
+        )
+      }
+      PersistedAgentAddonSelectionEntry(
+        entry[FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_SLUG] as? String
+          ?: throw InvalidAgentAddonSelectionError(
+            "Goal review policy add-on entry $index is missing slug.",
+          ),
+        entry[FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_SOURCE_IDENTITY] as? String
+          ?: throw InvalidAgentAddonSelectionError(
+            "Goal review policy add-on entry $index is missing source_identity.",
+          ),
+        entry[FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_CONTENT_SHA256] as? String
+          ?: throw InvalidAgentAddonSelectionError(
+            "Goal review policy add-on entry $index is missing content_sha256.",
+          ),
+      )
+    },
   )
 }
-
-private fun decodeGoalAgentAddonSelectionEntry(index: Int, value: Any?): PersistedAgentAddonSelectionEntry {
-  val entry = JsonCodec.anyToStringAnyMap(value)
-    ?: throw InvalidAgentAddonSelectionError(
-      "Goal review policy agent_addon_selection entry $index must be a map.",
-    )
-  val expectedKeys = setOf(
-    FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_SLUG,
-    FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_SOURCE_IDENTITY,
-    FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_CONTENT_SHA256,
-  )
-  if (entry.keys != expectedKeys) {
-    throw InvalidAgentAddonSelectionError(
-      "Goal review policy agent_addon_selection entry $index has invalid fields.",
-    )
-  }
-  return PersistedAgentAddonSelectionEntry(
-    requiredAddonField(entry, index, FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_SLUG, "slug"),
-    requiredAddonField(
-      entry,
-      index,
-      FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_SOURCE_IDENTITY,
-      "source_identity",
-    ),
-    requiredAddonField(
-      entry,
-      index,
-      FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ADDON_CONTENT_SHA256,
-      "content_sha256",
-    ),
-  )
-}
-
-private fun requiredAddonField(entry: Map<String, Any?>, index: Int, key: String, label: String): String =
-  entry[key] as? String
-    ?: throw InvalidAgentAddonSelectionError("Goal review policy add-on entry $index is missing $label.")

@@ -436,9 +436,9 @@ class GoalPlanningSweepPromptTest {
     val signed = body + ("integrity_sha256" to GoalPlanningSharedContextPacket.digest(body))
     val tampered = signed + ("validation_guidance" to "injected guidance the digest never covered")
 
-    val failure = assertFailsWith<InvalidGoalPlanningPreparationSchemaError> {
-      GoalPlanningSharedContextPacket.migrate(tampered)
-    }
+      val failure = assertFailsWith<InvalidGoalPlanningPreparationSchemaError> {
+        GoalPlanningSharedContextPacket.migrate(tampered)
+      }
 
     assertContains(failure.message.orEmpty(), "integrity is invalid")
   }

@@ -3,9 +3,9 @@ package skillbill.engine.goalrunner.planning
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
-import skillbill.contracts.goalplanning.GoalPlanningDiscoveryExclusions
 import skillbill.contracts.goalplanning.GoalPlanningSharedContextPacketPayloadKeys
 import skillbill.error.InvalidGoalPlanningPreparationSchemaError
+import skillbill.contracts.goalplanning.GoalPlanningDiscoveryExclusions
 import skillbill.ports.goalrunner.planning.model.GoalPlanningContext
 import skillbill.workflow.decomposition.model.DecompositionSubtask
 import skillbill.workflow.model.DecompositionStatus
@@ -61,18 +61,6 @@ object GoalPlanningSharedContextPacket {
     parentSpecPath: String,
     subtasks: List<DecompositionSubtask>,
   ) {
-    validateIdentity(packet, repositoryIdentity, normalizedIssueKey, parentSpecPath)
-    validateContent(packet)
-    validateTopology(packet, subtasks)
-    validateIntegrity(packet)
-  }
-
-  private fun validateIdentity(
-    packet: Map<String, Any?>,
-    repositoryIdentity: String,
-    normalizedIssueKey: String,
-    parentSpecPath: String,
-  ) {
     if (packet.keys != PACKET_FIELDS) {
       invalidGoalPlanningSharedContextPacket("<root>", "shared context packet fields are invalid")
     }
@@ -100,9 +88,6 @@ object GoalPlanningSharedContextPacket {
         "shared context parent spec path is invalid",
       )
     }
-  }
-
-  private fun validateContent(packet: Map<String, Any?>) {
     if (packet[GoalPlanningSharedContextPacketPayloadKeys.PARENT_SPEC] !is String) {
       invalidGoalPlanningSharedContextPacket(
         GoalPlanningSharedContextPacketPayloadKeys.PARENT_SPEC,
@@ -126,9 +111,6 @@ object GoalPlanningSharedContextPacket {
         "shared context validation guidance is invalid",
       )
     }
-  }
-
-  private fun validateTopology(packet: Map<String, Any?>, subtasks: List<DecompositionSubtask>) {
     val recoveredTopology = GoalPlanningSharedContextPacketValidation.normalizedSubtasks(
       packet[GoalPlanningSharedContextPacketPayloadKeys.ORDERED_SUBTASKS],
     ).map { it - GoalPlanningSharedContextPacketPayloadKeys.PLANNING_DISPOSITION }
@@ -140,9 +122,6 @@ object GoalPlanningSharedContextPacket {
         "shared context ordered subtasks are invalid",
       )
     }
-  }
-
-  private fun validateIntegrity(packet: Map<String, Any?>) {
     if (JsonCodec.mapToJsonString(packet).length > MAX_PACKET_CHARS) {
       invalidGoalPlanningSharedContextPacket("<root>", "shared context packet exceeds the size limit")
     }
@@ -189,21 +168,20 @@ object GoalPlanningSharedContextPacket {
     GoalPlanningSharedContextPacketPayloadKeys.TRUNCATED to false,
   )
 
-  fun discardedCatalog(): Map<String, Any?> = linkedMapOf(
-    GoalPlanningSharedContextPacketPayloadKeys.CATALOG to emptyList<Map<String, Any?>>(),
-    GoalPlanningSharedContextPacketPayloadKeys.TRUNCATED to true,
-  )
-
-  fun catalogHeadingIds(packet: Map<String, Any?>): Set<String> = (
-    (packet[GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY] as? Map<*, *>)
-      ?.get(GoalPlanningSharedContextPacketPayloadKeys.CATALOG) as? List<*>
+  fun discardedCatalog(): Map<String, Any?> =
+    linkedMapOf(
+      GoalPlanningSharedContextPacketPayloadKeys.CATALOG to emptyList<Map<String, Any?>>(),
+      GoalPlanningSharedContextPacketPayloadKeys.TRUNCATED to true,
     )
-    .orEmpty()
-    .mapNotNull {
-        entry ->
-      (entry as? Map<*, *>)?.get(GoalPlanningSharedContextPacketPayloadKeys.HEADING_ID) as? String
-    }
-    .toSet()
+
+  fun catalogHeadingIds(packet: Map<String, Any?>): Set<String> =
+    ((packet[GoalPlanningSharedContextPacketPayloadKeys.BOUNDARY_MEMORY] as? Map<*, *>)
+      ?.get(GoalPlanningSharedContextPacketPayloadKeys.CATALOG) as? List<*>)
+      .orEmpty()
+      .mapNotNull {
+        entry -> (entry as? Map<*, *>)?.get(GoalPlanningSharedContextPacketPayloadKeys.HEADING_ID) as? String
+      }
+      .toSet()
 
   fun catalog(context: GoalPlanningContext): Map<String, Any?> = linkedMapOf(
     GoalPlanningSharedContextPacketPayloadKeys.CATALOG to context.boundaryCatalog.map { heading ->

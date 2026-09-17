@@ -94,7 +94,7 @@ class SqliteValidationGateEvidenceRoundTripTest {
           ?.get(SharedPayloadKeys.PRODUCED_OUTPUTS),
       )?.get(ValidationEvidencePayloadKeys.VALIDATION_RESULT),
     ) ?: error("validation_result missing")
-    return requireNotNull(decodeValidationGateExecutionEvidenceFromArtifact(validationResult, "validate"))
+    return decodeValidationGateExecutionEvidenceFromArtifact(validationResult, "validate")
   }
 
   private fun assertRoundTrip(decoded: FeatureTaskRuntimeValidationGateExecutionEvidence) {
