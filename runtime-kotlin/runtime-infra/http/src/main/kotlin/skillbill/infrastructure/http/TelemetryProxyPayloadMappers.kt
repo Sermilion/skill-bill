@@ -7,7 +7,7 @@ import skillbill.contracts.telemetry.TelemetryProxyPayloadKeys
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
 import skillbill.telemetry.model.TelemetrySettings
 
-fun telemetryProxyBatchPayload(
+internal fun telemetryProxyBatchPayload(
   settings: TelemetrySettings,
   rows: List<TelemetryOutboxRecord>,
 ): TelemetryProxyBatchPayload = TelemetryProxyBatchPayload(

@@ -361,7 +361,6 @@ class RuntimeArchitectureTest {
       files =
       listOf(
         sourcePath("skillbill/application/telemetry/config/TelemetrySettingsFromStore.kt"),
-        sourcePath("skillbill/application/telemetry/http/TelemetryHttpRuntime.kt"),
         sourcePath("skillbill/application/telemetry/sync/TelemetrySyncRuntime.kt"),
         sourcePath("skillbill/application/telemetry/config/TelemetryConfigMutations.kt"),
         sourcePath("skillbill/application/telemetry/settings/DefaultTelemetrySettingsProvider.kt"),

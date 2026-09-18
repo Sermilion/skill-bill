@@ -1,5 +1,6 @@
 package skillbill.di
 
+import skillbill.error.UnresolvedRemoteTransportPortError
 import skillbill.infrastructure.http.JdkHttpRequester
 import skillbill.infrastructure.workflow.GitWorkflowGitOperations
 import skillbill.model.EnvironmentContext
@@ -10,6 +11,7 @@ import skillbill.model.WorkflowOpsContext
 import skillbill.ports.telemetry.RemoteTransportPort
 import skillbill.ports.telemetry.model.RemoteTransportResponse
 import kotlin.test.Test
+import kotlin.test.assertFailsWith
 import kotlin.test.assertSame
 
 class AbsentOptionalPortResolutionTest {
@@ -43,6 +45,13 @@ class AbsentOptionalPortResolutionTest {
     )
 
     assertSame(supplied, resolved.transport.requester)
+  }
+
+  @Test
+  fun `an unresolved transport context raises a typed error`() {
+    assertFailsWith<UnresolvedRemoteTransportPortError> {
+      RuntimeBootstrapBindings.remoteTransportPort(TransportContext())
+    }
   }
 
   @Test

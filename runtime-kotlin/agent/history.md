@@ -1,3 +1,11 @@
+## [2026-09-18] SKILL-359 subtask 1 — Resolved dependencies, typed results, one transport, and adapter tests
+Areas: runtime-kotlin/{runtime-application,runtime-contracts,runtime-domain,runtime-infra-http,runtime-core,runtime-cli,runtime-mcp}, ARCHITECTURE.md
+- Resolved remote transport once at bootstrap, injected typed transport/results, and removed duplicate HTTP resolution and dead forwarders.
+- Kept peer and configuration failures typed; made fallback substitutions and installer cleanup observable through `RuntimeDiagnostics`.
+- Pattern: one transport factory/default, typed response mapping, one non-`Ready` teardown path, and adapter-owned staging. reusable
+- Known limitation: telemetry proxy wire-key ownership remains in subtask 2; feature flag: N/A.
+Acceptance criteria: 7/7 implemented
+
 ## [2026-09-18] SKILL-358 subtask 2 — One owner for every wire token
 Areas: runtime-kotlin/{runtime-ports,runtime-domain,runtime-contracts,runtime-application,runtime-engine,runtime-infra,runtime-core}, ARCHITECTURE.md
 - Centralized payload keys in `runtime-contracts`, status tokens in their owning enum, and replaced port raw-map carriers with typed models.

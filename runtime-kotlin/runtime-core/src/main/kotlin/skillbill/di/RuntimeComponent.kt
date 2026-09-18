@@ -57,6 +57,7 @@ import skillbill.ports.system.UninstallPathsPort
 import skillbill.ports.taskruntime.FeatureTaskRuntimeRunInvariantsSource
 import skillbill.ports.telemetry.TelemetryConfigStore
 import skillbill.ports.telemetry.TelemetryLevelMutator
+import skillbill.ports.telemetry.RemoteTransportPort
 import skillbill.ports.validation.RepoValidationGateway
 import java.time.Clock
 
@@ -96,6 +97,10 @@ abstract class RuntimeComponent(
 
   @Provides @JvmSynthetic
   fun transportContext(ctx: RuntimeContext): TransportContext = ctx.transport
+
+  @Provides @JvmSynthetic
+  fun remoteTransportPort(ctx: TransportContext): RemoteTransportPort =
+    RuntimeBootstrapBindings.remoteTransportPort(ctx)
 
   @Provides @JvmSynthetic
   fun workflowOpsContext(ctx: RuntimeContext): WorkflowOpsContext = ctx.workflowOps

@@ -1,15 +1,11 @@
 package skillbill.telemetry
 
-import skillbill.infrastructure.http.telemetryProxyBatchPayload
 import skillbill.infrastructure.sqlite.ensureTestDatabase
 import skillbill.infrastructure.sqlite.telemetryOutboxOnConnection
-import skillbill.ports.repository.toFileLocation
-import skillbill.telemetry.model.TelemetrySettings
 import java.nio.file.Files
 import java.sql.Connection
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 private const val ENQUEUE_TIME_VERSION = "7.7.7-enqueue"
@@ -24,9 +20,9 @@ class TelemetryReleaseAttributionTest {
         .enqueue(eventName = "skillbill_goal_finished", payloadJson = """{"name":"ok"}""")
 
       val uploadTimeStore = telemetryOutboxOnConnection(connection, UPLOAD_TIME_VERSION)
-      val payload = telemetryProxyBatchPayload(settings(), uploadTimeStore.listPending())
+      val pending = uploadTimeStore.listPending()
 
-      assertEquals(ENQUEUE_TIME_VERSION, payload.batch.single().properties["skill_bill_version"])
+      assertEquals(ENQUEUE_TIME_VERSION, pending.single().skillBillVersion)
     }
   }
 
@@ -45,13 +41,10 @@ class TelemetryReleaseAttributionTest {
       val pending = telemetryOutboxOnConnection(connection, UPLOAD_TIME_VERSION).listPending()
       assertEquals(1, pending.size, "The version-less row must stay pending, not be dropped by the reader.")
 
-      val payload = telemetryProxyBatchPayload(settings(), pending)
-
-      val event = payload.batch.single()
-      assertEquals("skillbill_goal_finished", event.event)
-      assertEquals("test-install-id", event.properties["install_id"])
-      assertFalse("skill_bill_version" in event.properties)
-      assertTrue(event.properties.containsKey("name"))
+      val event = pending.single()
+      assertEquals("skillbill_goal_finished", event.eventName)
+      assertEquals(null, event.skillBillVersion)
+      assertTrue(event.payloadJson.contains("name"))
     }
   }
 
@@ -60,13 +53,4 @@ class TelemetryReleaseAttributionTest {
     ensureTestDatabase(dbPath).use(block)
   }
 
-  private fun settings(): TelemetrySettings = TelemetrySettings(
-    configPath = Files.createTempFile("telemetry-attribution", ".json").toFileLocation(),
-    level = "anonymous",
-    enabled = true,
-    installId = "test-install-id",
-    proxyUrl = "https://telemetry.example.dev/ingest",
-    customProxyUrl = "https://telemetry.example.dev/ingest",
-    batchSize = 50,
-  )
 }

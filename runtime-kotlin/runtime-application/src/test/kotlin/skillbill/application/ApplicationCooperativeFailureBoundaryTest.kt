@@ -10,7 +10,6 @@ import skillbill.application.telemetry.settings.telemetrySettingsOrNull
 import skillbill.application.updatecheck.UpdateCheckService
 import skillbill.application.updatecheck.model.UpdateCheckStatus
 import skillbill.idestatus.model.AgentActivityLabel
-import skillbill.model.TransportContext
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.persistence.UnitOfWork
@@ -196,16 +195,14 @@ class ApplicationCooperativeFailureBoundaryTest {
   fun `update check interruption propagates`() {
     val service = UpdateCheckService(
       systemService = versionedSystemService("1.0.0"),
-      transportContext = TransportContext(
-        requester = object : RemoteTransportPort {
-          override fun execute(
-            method: String,
-            url: String,
-            bodyJson: String?,
-            headers: Map<String, String>,
-          ): RemoteTransportResponse = throw InterruptedException("cancelled")
-        },
-      ),
+      requester = object : RemoteTransportPort {
+        override fun execute(
+          method: String,
+          url: String,
+          bodyJson: String?,
+          headers: Map<String, String>,
+        ): RemoteTransportResponse = throw InterruptedException("cancelled")
+      },
     )
     assertFailsWith<InterruptedException> { service.check(includePrereleases = false) }
   }
@@ -214,16 +211,14 @@ class ApplicationCooperativeFailureBoundaryTest {
   fun `update check cancellation propagates`() {
     val service = UpdateCheckService(
       systemService = versionedSystemService("1.0.0"),
-      transportContext = TransportContext(
-        requester = object : RemoteTransportPort {
-          override fun execute(
-            method: String,
-            url: String,
-            bodyJson: String?,
-            headers: Map<String, String>,
-          ): RemoteTransportResponse = throw CancellationException("cancelled")
-        },
-      ),
+      requester = object : RemoteTransportPort {
+        override fun execute(
+          method: String,
+          url: String,
+          bodyJson: String?,
+          headers: Map<String, String>,
+        ): RemoteTransportResponse = throw CancellationException("cancelled")
+      },
     )
     assertFailsWith<CancellationException> { service.check(includePrereleases = false) }
   }
@@ -232,16 +227,14 @@ class ApplicationCooperativeFailureBoundaryTest {
   fun `update check malformed payload keeps unknown status`() {
     val service = UpdateCheckService(
       systemService = versionedSystemService("1.0.0"),
-      transportContext = TransportContext(
-        requester = object : RemoteTransportPort {
-          override fun execute(
-            method: String,
-            url: String,
-            bodyJson: String?,
-            headers: Map<String, String>,
-          ): RemoteTransportResponse = RemoteTransportResponse(200, "not-json")
-        },
-      ),
+      requester = object : RemoteTransportPort {
+        override fun execute(
+          method: String,
+          url: String,
+          bodyJson: String?,
+          headers: Map<String, String>,
+        ): RemoteTransportResponse = RemoteTransportResponse(200, "not-json")
+      },
     )
     val result = service.check(includePrereleases = false)
     assertEquals(UpdateCheckStatus.UNKNOWN, result.status)

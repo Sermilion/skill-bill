@@ -3,7 +3,6 @@ package skillbill.application.updatecheck
 import skillbill.application.system.SystemService
 import skillbill.application.updatecheck.model.RECOMMENDED_INSTALL_COMMAND
 import skillbill.application.updatecheck.model.UpdateCheckStatus
-import skillbill.model.TransportContext
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.persistence.UnitOfWork
@@ -79,9 +78,7 @@ class UpdateCheckServiceTest {
         NoopRuntimeDiagnostics,
         versionValue = "0.0.0-SNAPSHOT",
       ),
-      transportContext = TransportContext(
-        requester = RemoteTransportPort { _, _, _, _ -> error("release list must not be consulted") },
-      ),
+      requester = RemoteTransportPort { _, _, _, _ -> error("release list must not be consulted") },
     ).check(includePrereleases = false)
 
     assertEquals(UpdateCheckStatus.UNKNOWN, result.status)
@@ -129,21 +126,19 @@ class UpdateCheckServiceTest {
         NoopRuntimeDiagnostics,
         versionValue = installedVersion,
       ),
-      transportContext = TransportContext(
-        requester = RemoteTransportPort { _, _, _, _ ->
-          when (callCount.incrementAndGet()) {
-            1 -> {
-              firstEntered.countDown()
-              releaseFirst.await()
-              RemoteTransportResponse(statusCode = 200, body = malformedBody)
-            }
-            else -> {
-              releaseFirst.countDown()
-              RemoteTransportResponse(statusCode = 200, body = validBody)
-            }
+      requester = RemoteTransportPort { _, _, _, _ ->
+        when (callCount.incrementAndGet()) {
+          1 -> {
+            firstEntered.countDown()
+            releaseFirst.await()
+            RemoteTransportResponse(statusCode = 200, body = malformedBody)
           }
-        },
-      ),
+          else -> {
+            releaseFirst.countDown()
+            RemoteTransportResponse(statusCode = 200, body = validBody)
+          }
+        }
+      },
     )
     var malformedReason: String? = null
     var validStatus: UpdateCheckStatus? = null
@@ -173,14 +168,12 @@ class UpdateCheckServiceTest {
       NoopRuntimeDiagnostics,
       versionValue = versionValue,
     ),
-    transportContext = TransportContext(
-      requester = RemoteTransportPort { method, url, _, headers ->
-        assertEquals("GET", method)
-        assertEquals("https://api.github.com/repos/oila-gmbh/skill-bill/releases", url)
-        assertEquals("skill-bill-update-check", headers["User-Agent"])
-        RemoteTransportResponse(statusCode = statusCode, body = responseBody)
-      },
-    ),
+    requester = RemoteTransportPort { method, url, _, headers ->
+      assertEquals("GET", method)
+      assertEquals("https://api.github.com/repos/oila-gmbh/skill-bill/releases", url)
+      assertEquals("skill-bill-update-check", headers["User-Agent"])
+      RemoteTransportResponse(statusCode = statusCode, body = responseBody)
+    },
   )
 }
 

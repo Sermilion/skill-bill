@@ -15,7 +15,22 @@ data class TelemetryProxyCapabilities(
 
   val supportsEventDeduplication: Boolean = true,
   val additionalFields: CustomFieldMap = CustomFieldMap.EMPTY,
-)
+) {
+  companion object {
+    fun defaultProxyCapabilities(
+      proxyUrl: String,
+      capabilitiesUrl: String,
+    ): TelemetryProxyCapabilities = TelemetryProxyCapabilities(
+      contractVersion = "0",
+      source = "remote_proxy",
+      proxyUrl = proxyUrl,
+      capabilitiesUrl = capabilitiesUrl,
+      supportsIngest = true,
+      supportsStats = false,
+      supportedWorkflows = emptyList(),
+    )
+  }
+}
 
 data class TelemetryRemoteStatsResult(
   val workflow: String,

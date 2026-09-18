@@ -93,8 +93,6 @@ class RuntimeLayerBoundaryArchitectureTest {
         "skillbill.infrastructure",
         "skillbill.review.ReviewRuntime",
         "skillbill.review.TriageRuntime",
-        "skillbill.application.telemetry.http.TelemetryHttpRuntime",
-        "skillbill.application.telemetry.http.TelemetryRemoteStatsRuntime",
       )
     assertNoBannedImports(
       files = applicationFiles,
@@ -365,8 +363,6 @@ class RuntimeLayerBoundaryArchitectureTest {
         "skillbill.db",
         "skillbill.review",
         "skillbill.application.telemetry.config.TelemetryConfigRuntime",
-        "skillbill.application.telemetry.http.TelemetryHttpRuntime",
-        "skillbill.application.telemetry.http.TelemetryRemoteStatsRuntime",
         "skillbill.application.telemetry.sync.TelemetrySyncRuntime",
         "skillbill.learnings.LearningStore",
         "skillbill.learnings.LearningsRuntime",
@@ -385,7 +381,6 @@ class RuntimeLayerBoundaryArchitectureTest {
         "skillbill.learnings.LearningStore",
         "skillbill.learnings.LearningsRuntime",
         "skillbill.application.telemetry.config.TelemetryConfigRuntime",
-        "skillbill.application.telemetry.http.TelemetryRemoteStatsRuntime",
       ),
     )
   }
