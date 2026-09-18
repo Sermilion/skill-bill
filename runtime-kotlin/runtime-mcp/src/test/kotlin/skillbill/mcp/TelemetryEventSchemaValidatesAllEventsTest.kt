@@ -49,14 +49,19 @@ class TelemetryEventSchemaValidatesAllEventsTest {
   }
 
   private fun representativeValue(fieldSchema: Map<String, Any?>): Any? {
-    val type = fieldSchema["type"] as? String ?: "object"
-    return when (type) {
-      "string" -> representativeString(fieldSchema)
-      "integer" -> representativeInteger(fieldSchema)
-      "number" -> 0
-      "boolean" -> false
-      "array" -> emptyList<Any?>()
-      "object" -> emptyMap<String, Any?>()
+    val types = when (val type = fieldSchema["type"]) {
+      is String -> listOf(type)
+      is List<*> -> type.filterIsInstance<String>()
+      else -> emptyList()
+    }
+    return when {
+      "string" in types -> representativeString(fieldSchema)
+      "integer" in types -> representativeInteger(fieldSchema)
+      "number" in types -> 0
+      "boolean" in types -> false
+      "array" in types -> emptyList<Any?>()
+      "object" in types -> emptyMap<String, Any?>()
+      "null" in types -> null
       else -> ""
     }
   }

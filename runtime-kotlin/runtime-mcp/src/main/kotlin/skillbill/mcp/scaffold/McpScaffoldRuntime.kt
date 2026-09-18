@@ -1,7 +1,7 @@
 package skillbill.mcp.scaffold
 
 import skillbill.mcp.shared.McpComponent
-import java.time.Clock
+import skillbill.ports.time.RuntimeClock
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -48,7 +48,7 @@ internal object McpScaffoldRuntime {
     }
   }
 
-  private fun generateNewSkillSessionId(clock: Clock): String {
+  private fun generateNewSkillSessionId(clock: RuntimeClock): String {
     val date = LocalDate.ofInstant(clock.instant(), ZoneOffset.UTC).format(DateTimeFormatter.BASIC_ISO_DATE)
     val suffix = UUID.randomUUID().toString().take(NEW_SKILL_SESSION_ID_SUFFIX_LENGTH)
     return "nss-$date-$suffix"

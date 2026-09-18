@@ -1,8 +1,8 @@
 package skillbill.mcp
 
 import skillbill.contracts.JsonCodec
-import skillbill.infrastructure.sqlite.ensureTestDatabase
 import skillbill.error.InvalidMcpToolArgumentError
+import skillbill.infrastructure.sqlite.ensureTestDatabase
 import skillbill.mcp.core.McpToolDispatcher
 import skillbill.mcp.shared.McpRuntimeContext
 import skillbill.telemetry.CONFIG_ENVIRONMENT_KEY
@@ -11,8 +11,8 @@ import java.nio.file.Path
 import java.sql.Connection
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 
 class McpQualityCheckTelemetryNormalizationTest {
   @Test

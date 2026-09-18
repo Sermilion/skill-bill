@@ -2,8 +2,9 @@ package skillbill.application.telemetry
 
 import skillbill.application.telemetry.model.FeatureVerifyFinishedRequest
 
-private val auditResults = listOf("all_pass", "had_gaps", "skipped")
-private val featureVerifyCompletionStatuses = listOf("completed", "abandoned_at_review", "abandoned_at_audit", "error")
+val auditResults = listOf("all_pass", "had_gaps", "skipped")
+val featureVerifyCompletionStatuses =
+  listOf("completed", "abandoned_at_review", "abandoned_at_audit", "error")
 
 fun validateFeatureVerifyFinished(request: FeatureVerifyFinishedRequest): String? = listOfNotNull(
   validateEnum(request.auditResult, auditResults, "audit_result"),

@@ -45,9 +45,7 @@ internal object McpWorkflowRuntime {
   ): Map<String, Any?> = continueWorkflow(kind, workflowId, componentForLegacyContext(context), subtaskId)
 
   fun open(args: McpWorkflowOpenArgs): Map<String, Any?> {
-    val runtimeServices = args.component ?: componentForLegacyContext(
-      args.context ?: throw InvalidMcpToolArgumentError("workflow_open", "context", "is required"),
-    )
+    val runtimeServices = args.component ?: componentForLegacyContext(requireContext(args))
     val open = if (args.kind != WorkflowFamilyKind.VERIFY && args.issueKey != null) {
       runtimeServices.workflowService.openFeatureTask(
         WorkflowServiceOpenFeatureTaskArgs(
@@ -56,9 +54,9 @@ internal object McpWorkflowRuntime {
           currentStepId = args.currentStepId,
           issueKey = args.issueKey,
           repositoryIdentity = args.repositoryIdentity
-            ?: throw InvalidMcpToolArgumentError("feature_task_workflow_open", "repository_identity", "is required"),
+            ?: requiredRepositoryIdentity(),
           governedSpecPath = args.governedSpecPath
-            ?: throw InvalidMcpToolArgumentError("feature_task_workflow_open", "governed_spec_path", "is required"),
+            ?: requiredGovernedSpecPath(),
           routeScope = FeatureTaskRouteScope.STANDALONE,
         ),
       )
@@ -78,11 +76,7 @@ internal object McpWorkflowRuntime {
     return open.toMcpMap(runtimeServices.workflowService.goalObservabilityEventValidator)
   }
 
-  fun update(
-    kind: WorkflowFamilyKind,
-    request: WorkflowUpdateRequest,
-    component: McpComponent,
-  ): Map<String, Any?> {
+  fun update(kind: WorkflowFamilyKind, request: WorkflowUpdateRequest, component: McpComponent): Map<String, Any?> {
     val runtimeServices = component
     return runtimeServices.workflowService.update(
       kind,
@@ -90,30 +84,20 @@ internal object McpWorkflowRuntime {
     ).toMcpMap()
   }
 
-  fun get(
-    kind: WorkflowFamilyKind,
-    workflowId: String,
-    component: McpComponent,
-  ): Map<String, Any?> {
+  fun get(kind: WorkflowFamilyKind, workflowId: String, component: McpComponent): Map<String, Any?> {
     val runtimeServices = component
     return runtimeServices.workflowService.get(kind, workflowId)
       .toMcpMap(runtimeServices.workflowService.goalObservabilityEventValidator)
   }
 
-  fun list(
-    kind: WorkflowFamilyKind,
-    limit: Int = 20,
-    component: McpComponent,
-  ): Map<String, Any?> = component.workflowService.list(kind, limit).toMcpMap()
+  fun list(kind: WorkflowFamilyKind, limit: Int = 20, component: McpComponent): Map<String, Any?> =
+    component.workflowService.list(kind, limit).toMcpMap()
 
   fun latest(kind: WorkflowFamilyKind, component: McpComponent): Map<String, Any?> =
     component.workflowService.latest(kind).toMcpMap()
 
-  fun resume(
-    kind: WorkflowFamilyKind,
-    workflowId: String,
-    component: McpComponent,
-  ): Map<String, Any?> = component.workflowService.resume(kind, workflowId).toMcpMap()
+  fun resume(kind: WorkflowFamilyKind, workflowId: String, component: McpComponent): Map<String, Any?> =
+    component.workflowService.resume(kind, workflowId).toMcpMap()
 
   fun continueWorkflow(
     kind: WorkflowFamilyKind,
@@ -126,3 +110,12 @@ internal object McpWorkflowRuntime {
     subtaskId = subtaskId,
   ).toMcpMap()
 }
+
+private fun requireContext(args: McpWorkflowOpenArgs): Any =
+  args.context ?: throw InvalidMcpToolArgumentError("workflow_open", "context", "is required")
+
+private fun requiredRepositoryIdentity(): Nothing =
+  throw InvalidMcpToolArgumentError("feature_task_workflow_open", "repository_identity", "is required")
+
+private fun requiredGovernedSpecPath(): Nothing =
+  throw InvalidMcpToolArgumentError("feature_task_workflow_open", "governed_spec_path", "is required")

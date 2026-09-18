@@ -26,8 +26,7 @@ class McpProtocolFramingTest {
     assertEquals(emptyMap<String, Any?>(), JsonCodec.anyToStringAnyMap(evidencePing["result"]))
   }
 
-  private fun decode(response: String?): Map<String, Any?> =
-    JsonCodec.anyToStringAnyMap(
-      JsonCodec.parseObjectOrNull(requireNotNull(response))?.let(JsonCodec::jsonElementToValue),
-    ).orEmpty()
+  private fun decode(response: String?): Map<String, Any?> = JsonCodec.anyToStringAnyMap(
+    JsonCodec.parseObjectOrNull(requireNotNull(response))?.let(JsonCodec::jsonElementToValue),
+  ).orEmpty()
 }

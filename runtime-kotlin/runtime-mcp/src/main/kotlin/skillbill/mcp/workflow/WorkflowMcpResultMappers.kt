@@ -1,13 +1,13 @@
 package skillbill.mcp.workflow
 
 import skillbill.application.workflow.WorkflowWireProjections
+import skillbill.application.workflow.model.WorkflowContinueResult
 import skillbill.application.workflow.model.WorkflowGetResult
 import skillbill.application.workflow.model.WorkflowLatestResult
 import skillbill.application.workflow.model.WorkflowListResult
 import skillbill.application.workflow.model.WorkflowOpenResult
 import skillbill.application.workflow.model.WorkflowResumeResult
 import skillbill.application.workflow.model.WorkflowUpdateResult
-import skillbill.application.workflow.model.WorkflowContinueResult
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.workflow.goal.GoalObservabilityEventValidator
 

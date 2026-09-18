@@ -380,7 +380,7 @@ class RuntimeArchitectureTest {
   @Test
   fun `cli and mcp learning payloads use contract DTO mappers`() {
     val cliPayloads = Files.readString(sourcePath("skillbill/cli/kernel/LearningCliPayloads.kt"))
-    val mcpPayloads = Files.readString(sourcePath("skillbill/mcp/learning/McpLearningPayloads.kt"))
+    val mcpRuntime = Files.readString(sourcePath("skillbill/mcp/core/McpRuntime.kt"))
     val learningMappers = Files.readString(sourcePath("skillbill/application/learning/LearningContractMappers.kt"))
     val learningContracts = sourcePath("skillbill/contracts/learning/LearningContracts.kt")
     val systemContracts = sourcePath("skillbill/contracts/system/SystemContracts.kt")
@@ -388,10 +388,10 @@ class RuntimeArchitectureTest {
     assertTrue(Files.exists(learningContracts), "Missing learning contract DTOs")
     assertTrue(Files.exists(systemContracts), "Missing system contract DTOs")
     assertContains(cliPayloads, "skillbill.application.learning.toLearning")
-    assertContains(mcpPayloads, "skillbill.application.learning.toLearningResolveContract")
+    assertContains(mcpRuntime, "skillbill.application.learning.toLearningResolveContract")
     assertContains(learningMappers, "skillbill.contracts.learning")
     assertTrue("learningEntryPayload" !in cliPayloads)
-    assertTrue("learningEntryPayload" !in mcpPayloads)
+    assertTrue("learningEntryPayload" !in mcpRuntime)
   }
 
   @Test

@@ -9,6 +9,7 @@ import skillbill.ports.review.ReviewInputSource
 import skillbill.ports.telemetry.TelemetrySettingsProvider
 import skillbill.review.plan.model.ReviewLaunchPlan
 import skillbill.telemetry.model.TelemetrySettings
+import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -55,7 +56,15 @@ class ReviewServicePreviewImportTest {
 }
 
 private object PreviewImportBlockingDatabase : DatabaseSessionFactory {
+  override fun resolveDbPath(): Path = error("previewImport must not touch the database")
+
+  override fun databaseExists(): Boolean = error("previewImport must not touch the database")
+
+  override fun <T> read(block: (UnitOfWork) -> T): T = error("previewImport must not touch the database")
+
   override fun <T> transaction(block: (UnitOfWork) -> T): T = error("previewImport must not touch the database")
+
+  override fun <T> selfManagedWrite(block: (UnitOfWork) -> T): T = error("previewImport must not touch the database")
 }
 
 private object PreviewImportTelemetrySettings : TelemetrySettingsProvider {
@@ -65,7 +74,10 @@ private object PreviewImportTelemetrySettings : TelemetrySettingsProvider {
 private object PreviewImportReviewAttribution : ReviewAttributionPort {
   override fun routedSkillPlatformSlugs(): Map<String, String> = emptyMap()
 
-  override fun composedLaunchPlan(routedPackSlug: String): ReviewLaunchPlan = ReviewLaunchPlan(routedPackSlug, emptyList())
+  override fun composedLaunchPlan(routedPackSlug: String): ReviewLaunchPlan = ReviewLaunchPlan(
+    routedPackSlug,
+    emptyList(),
+  )
 }
 
 private object PreviewImportDiagnostics : RuntimeDiagnostics {

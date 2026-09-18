@@ -3,7 +3,6 @@ package skillbill.contracts.mcp
 import skillbill.contracts.JsonPayloadContract
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.learning.LearningPayloadKeys
-import skillbill.contracts.mcp.McpToolPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
 
 data class McpReviewImportSkippedContract(

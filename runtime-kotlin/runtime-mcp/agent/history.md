@@ -1,3 +1,12 @@
+## [2026-09-18] SKILL-357 subtask 2: one input schema projected from the contract
+Areas: runtime-kotlin/runtime-mcp, runtime-kotlin/runtime-application/telemetry, orchestration/contracts, runtime-kotlin
+- Projected every MCP tool's advertised input schema from the YAML `$defs` branch, inlining local refs and removing envelope metadata so validation and `tools/list` share one source.
+- Moved enum constraints and parity ownership into the telemetry contract, with a golden `tools/list` fixture preserving the published surface. reusable
+- Unified strict unknown-argument rejection through the shared validation seam across stdio and dispatcher paths; deleted duplicate Kotlin schemas and walkers.
+- Known limitation: runtime-internal telemetry emission branches remain unchanged.
+Feature flag: N/A
+Acceptance criteria: 7/7 implemented
+
 ## [2026-09-18] SKILL-357 subtask 1: one composition, one tool table, one framer
 Areas: runtime-kotlin/runtime-mcp, runtime-kotlin/runtime-contracts, runtime-kotlin/runtime-core, runtime-kotlin/runtime-application
 - Collapsed MCP startup and handlers onto one injected composition, preserving state across sequential stdio requests.

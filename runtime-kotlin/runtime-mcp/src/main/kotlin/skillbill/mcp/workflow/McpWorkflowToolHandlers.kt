@@ -5,9 +5,9 @@ import skillbill.application.workflow.model.WorkflowUpdateRequest
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningResult
+import skillbill.contracts.mcp.McpToolPayloadKeys
 import skillbill.contracts.workflow.WorkflowArtifactKeys
 import skillbill.error.InvalidMcpToolArgumentError
-import skillbill.contracts.mcp.McpToolPayloadKeys
 import skillbill.mcp.shared.McpComponent
 import skillbill.mcp.shared.componentForLegacyContext
 import skillbill.mcp.shared.int

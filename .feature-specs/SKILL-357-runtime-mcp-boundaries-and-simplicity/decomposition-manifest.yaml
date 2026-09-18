@@ -9,18 +9,18 @@ base_branch: "main"
 feature_branch: "feat/SKILL-357-runtime-mcp-boundaries-and-simplicity"
 stack_branches: []
 current_subtask_intent:
-  subtask_id: 1
+  subtask_id: 2
   action: "resume"
 subtasks:
 - id: 1
   name: "One composition, one tool table, one framer, and recorded degradations"
   spec_path: ".feature-specs/SKILL-357-runtime-mcp-boundaries-and-simplicity/spec_subtask_1_one-composition-one-tool-table-one-framer-and-recorded-degradations.md"
-  status: "in_progress"
+  status: "complete"
   branch: null
   commit_sha: null
   workflow_id: "wftr-20260918-161302-yyw7"
   blocked_reason: null
-  last_resumable_step: null
+  last_resumable_step: "commit_push"
   linear_issue_id: null
   finalizing_agent_id: null
   participating_agent_ids: []
@@ -28,10 +28,10 @@ subtasks:
 - id: 2
   name: "One input schema projected from the contract"
   spec_path: ".feature-specs/SKILL-357-runtime-mcp-boundaries-and-simplicity/spec_subtask_2_one-input-schema-projected-from-the-contract.md"
-  status: "pending"
+  status: "in_progress"
   branch: null
   commit_sha: null
-  workflow_id: null
+  workflow_id: "wftr-20260918-165116-cgch"
   blocked_reason: null
   last_resumable_step: null
   linear_issue_id: null

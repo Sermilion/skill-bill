@@ -4,6 +4,14 @@ This file records architectural and implementation decisions that span the
 `runtime-kotlin/` boundary. Each entry is dated and explains the trade-off,
 not the implementation detail.
 
+## [2026-09-18] SKILL-357: MCP input schemas project from telemetry YAML
+
+`orchestration/contracts/telemetry-event-schema.yaml` is the single source for
+MCP argument validation and `tools/list` advertisement. `McpInputSchemaProjection`
+strips envelope keys and inlines local `$ref`s; the hand-written
+`McpInputSchemas.kt` table and `validateStrictArguments` walker are removed so
+networknt `additionalProperties: false` is the one unknown-argument seam.
+
 ## [2026-09-18] SKILL-355: observed worktree edits are runtime-owned
 
 The worktree edit journal is written only from the wait-loop

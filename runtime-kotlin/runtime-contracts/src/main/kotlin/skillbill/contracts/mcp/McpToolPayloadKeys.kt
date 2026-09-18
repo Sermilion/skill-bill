@@ -57,6 +57,7 @@ object McpToolPayloadKeys {
   const val REVIEW_ITERATIONS: String = "review_iterations"
   const val AUDIT_RESULT: String = "audit_result"
   const val COMPLETION_STATUS: String = "completion_status"
+  const val FEATURE_VERIFY_FINISHED: String = "feature_verify_finished"
   const val HISTORY_RELEVANCE: String = "history_relevance"
   const val HISTORY_HELPFULNESS: String = "history_helpfulness"
   const val GAPS_FOUND: String = "gaps_found"

@@ -10,21 +10,24 @@ import com.networknt.schema.PathType
 import com.networknt.schema.SchemaValidatorsConfig
 import com.networknt.schema.SpecVersion
 import com.networknt.schema.ValidationMessage
+import skillbill.contracts.mcp.McpToolPayloadKeys
 import skillbill.contracts.telemetry.LifecycleSessionCompletion
 import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
-import skillbill.contracts.mcp.McpToolPayloadKeys
 import skillbill.error.InvalidTelemetryEventSchemaError
 import java.io.IOException
 import java.util.Locale
 
-internal const val TELEMETRY_EVENT_CONTRACT_VERSION: String = "1.11.0"
+internal const val TELEMETRY_EVENT_CONTRACT_VERSION: String = "1.12.0"
 
 private val LOCALE_STABLE_SCHEMA_CONFIG: SchemaValidatorsConfig =
   SchemaValidatorsConfig.builder().locale(Locale.ENGLISH).pathType(PathType.LEGACY).build()
 
 internal object TelemetryEventSchemaValidator {
-  private val schema: JsonSchema by lazy { loadSchema() }
+  private val schemaDocument: JsonNode by lazy { loadSchemaDocument() }
+  private val schema: JsonSchema by lazy { compileSchema(schemaDocument) }
   private val mapper: ObjectMapper by lazy { ObjectMapper() }
+
+  fun canonicalSchemaDocument(): JsonNode = schemaDocument
 
   fun validate(envelope: Map<String, Any?>, eventName: String? = null) {
     val instance: JsonNode = mapper.valueToTree(envelope)
@@ -147,12 +150,38 @@ private const val SCHEMA_CLASSPATH_RESOURCE: String =
 private const val SCHEMA_REPO_RELATIVE_PATH: String =
   "orchestration/contracts/telemetry-event-schema.yaml"
 
-private fun loadSchema(): JsonSchema {
+private fun loadSchemaDocument(): JsonNode {
   var failure: Throwable? = null
   try {
     val yamlText = readSchemaText()
     val yamlNode = YAMLMapper().readTree(yamlText)
     TelemetryEventSchemaValidator.assertIdentity(yamlNode)
+    return yamlNode
+  } catch (typed: InvalidTelemetryEventSchemaError) {
+    failure = typed
+  } catch (error: IOException) {
+    failure = InvalidTelemetryEventSchemaError(
+      fieldPath = "",
+      eventName = null,
+      reason = "Canonical telemetry-event schema document failed to load: ${error.message.orEmpty()}",
+      cause = error,
+    )
+  } catch (error: JsonProcessingException) {
+    failure = error.let {
+      InvalidTelemetryEventSchemaError(
+        fieldPath = "",
+        eventName = null,
+        reason = "Canonical telemetry-event schema document failed to load: ${error.message.orEmpty()}",
+        cause = error,
+      )
+    }
+  }
+  throw failure
+}
+
+private fun compileSchema(yamlNode: JsonNode): JsonSchema {
+  var failure: Throwable? = null
+  try {
     val jsonText = ObjectMapper().writeValueAsString(yamlNode)
     val factory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012)
     return factory.getSchema(jsonText, LOCALE_STABLE_SCHEMA_CONFIG)

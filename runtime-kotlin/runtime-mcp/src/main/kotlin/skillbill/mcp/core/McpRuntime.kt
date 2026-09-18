@@ -1,23 +1,20 @@
 package skillbill.mcp.core
 
+import skillbill.application.learning.toLearningResolveContract
 import skillbill.application.review.toReviewFinishedTelemetryPayload
 import skillbill.contracts.mcp.McpLearningsSkippedContract
 import skillbill.contracts.mcp.McpOrchestratedPayloadContract
 import skillbill.contracts.mcp.McpReviewImportSkippedContract
 import skillbill.contracts.mcp.McpTriageSkippedContract
-import skillbill.application.learning.toLearningResolveContract
-import skillbill.mcp.review.toMcpMap
+import skillbill.contracts.system.UpdateCheckContract
 import skillbill.mcp.scaffold.McpScaffoldRuntime
 import skillbill.mcp.shared.McpComponent
 import skillbill.mcp.shared.componentForLegacyContext
-import skillbill.contracts.system.UpdateCheckContract
+import skillbill.mcp.shared.toMcpMap
 
 internal object McpRuntime {
-  fun importReview(
-    reviewText: String,
-    orchestrated: Boolean = false,
-    context: Any,
-  ): Map<String, Any?> = importReview(reviewText, orchestrated, componentForLegacyContext(context))
+  fun importReview(reviewText: String, orchestrated: Boolean = false, context: Any): Map<String, Any?> =
+    importReview(reviewText, orchestrated, componentForLegacyContext(context))
 
   fun triageFindings(
     reviewRunId: String,
@@ -36,34 +33,24 @@ internal object McpRuntime {
   fun reviewStats(reviewRunId: String? = null, context: Any): Map<String, Any?> =
     reviewStats(reviewRunId, componentForLegacyContext(context))
 
-  fun featureVerifyStats(context: Any): Map<String, Any?> =
-    featureVerifyStats(componentForLegacyContext(context))
+  fun featureVerifyStats(context: Any): Map<String, Any?> = featureVerifyStats(componentForLegacyContext(context))
 
-  fun goalStats(context: Any): Map<String, Any?> =
-    goalStats(componentForLegacyContext(context))
+  fun goalStats(context: Any): Map<String, Any?> = goalStats(componentForLegacyContext(context))
 
-  fun version(context: Any): Map<String, Any?> =
-    version(componentForLegacyContext(context))
+  fun version(context: Any): Map<String, Any?> = version(componentForLegacyContext(context))
 
-  fun doctor(context: Any): Map<String, Any?> =
-    doctor(componentForLegacyContext(context))
+  fun doctor(context: Any): Map<String, Any?> = doctor(componentForLegacyContext(context))
 
-  fun updateCheck(context: Any): Map<String, Any?> =
-    updateCheck(componentForLegacyContext(context))
+  fun updateCheck(context: Any): Map<String, Any?> = updateCheck(componentForLegacyContext(context))
 
   fun newSkillScaffold(
     payload: Map<String, Any?>,
     dryRun: Boolean = false,
     orchestrated: Boolean = false,
     context: Any,
-  ): Map<String, Any?> =
-    newSkillScaffold(payload, dryRun, orchestrated, componentForLegacyContext(context))
+  ): Map<String, Any?> = newSkillScaffold(payload, dryRun, orchestrated, componentForLegacyContext(context))
 
-  fun importReview(
-    reviewText: String,
-    orchestrated: Boolean = false,
-    component: McpComponent,
-  ): Map<String, Any?> {
+  fun importReview(reviewText: String, orchestrated: Boolean = false, component: McpComponent): Map<String, Any?> {
     if (!component.telemetryService.isEnabled()) {
       val preview = component.reviewService.previewImport("-", stdinText = reviewText)
       return McpReviewImportSkippedContract(
@@ -148,14 +135,11 @@ internal object McpRuntime {
   fun featureVerifyStats(component: McpComponent): Map<String, Any?> =
     component.reviewService.featureVerifyStats().toMcpMap()
 
-  fun goalStats(component: McpComponent): Map<String, Any?> =
-    component.reviewService.goalStats().toMcpMap()
+  fun goalStats(component: McpComponent): Map<String, Any?> = component.reviewService.goalStats().toMcpMap()
 
-  fun version(component: McpComponent): Map<String, Any?> =
-    component.systemService.version().toPayload()
+  fun version(component: McpComponent): Map<String, Any?> = component.systemService.version().toPayload()
 
-  fun doctor(component: McpComponent): Map<String, Any?> =
-    component.systemService.doctor().toPayload()
+  fun doctor(component: McpComponent): Map<String, Any?> = component.systemService.doctor().toPayload()
 
   fun updateCheck(component: McpComponent): Map<String, Any?> {
     val result = component.updateCheckService.check(includePrereleases = false)

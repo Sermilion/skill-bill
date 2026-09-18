@@ -2,7 +2,7 @@ package skillbill.mcp.review
 
 import skillbill.contracts.JsonCodec
 import skillbill.error.GovernedReviewEvidenceTransportError
-import skillbill.mcp.core.McpProtocolFramer
+import skillbill.mcp.shared.McpProtocolFramer
 import skillbill.ports.review.model.GovernedReviewEvidenceCodec
 import java.io.BufferedReader
 import java.io.BufferedWriter

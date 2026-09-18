@@ -1,11 +1,11 @@
 package skillbill.mcp.lifecycle
 
+import skillbill.application.telemetry.historySignalValues
 import skillbill.application.telemetry.model.FeatureVerifyFinishedRequest
 import skillbill.application.telemetry.model.FeatureVerifyStartedRequest
 import skillbill.application.telemetry.model.PrDescriptionGeneratedRequest
 import skillbill.application.telemetry.model.QualityCheckFinishedRequest
 import skillbill.application.telemetry.model.QualityCheckStartedRequest
-import skillbill.application.telemetry.historySignalValues
 import skillbill.contracts.mcp.McpToolPayloadKeys
 import skillbill.mcp.shared.McpComponent
 import skillbill.mcp.shared.McpRuntimeLifecycle
@@ -71,7 +71,9 @@ internal fun featureVerifyFinished(arguments: Map<String, Any?>, component: McpC
       auditResult = arguments.string(McpToolPayloadKeys.AUDIT_RESULT),
       completionStatus = arguments.string(McpToolPayloadKeys.COMPLETION_STATUS),
       historyRelevance = arguments.optionalString(McpToolPayloadKeys.HISTORY_RELEVANCE) ?: historySignalValues.first(),
-      historyHelpfulness = arguments.optionalString(McpToolPayloadKeys.HISTORY_HELPFULNESS) ?: historySignalValues.first(),
+      historyHelpfulness = arguments.optionalString(
+        McpToolPayloadKeys.HISTORY_HELPFULNESS,
+      ) ?: historySignalValues.first(),
       sessionId = arguments.string(McpToolPayloadKeys.SESSION_ID),
       gapsFound = arguments.stringList(McpToolPayloadKeys.GAPS_FOUND),
       orchestrated = arguments.boolean(McpToolPayloadKeys.ORCHESTRATED),

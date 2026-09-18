@@ -2,8 +2,9 @@ package skillbill.mcp.review
 
 import kotlinx.serialization.json.JsonObject
 import skillbill.contracts.JsonCodec
-import skillbill.mcp.core.McpProtocolFramer
+import skillbill.mcp.shared.McpProtocolFramer
 import skillbill.ports.review.model.GovernedReviewEvidenceCodec
+import java.nio.file.Path
 
 internal object GovernedReviewEvidenceBridge {
   fun enabled(environment: Map<String, String>): Boolean =
@@ -12,7 +13,7 @@ internal object GovernedReviewEvidenceBridge {
   fun run(environment: Map<String, String>) {
     val socketPath = environment[GovernedReviewEvidenceCodec.SOCKET_ENV].orEmpty()
     val token = environment[GovernedReviewEvidenceCodec.TOKEN_ENV].orEmpty()
-    GovernedReviewEvidenceConnection.connect(java.nio.file.Path.of(socketPath), token).use { connection ->
+    GovernedReviewEvidenceConnection.connect(Path.of(socketPath), token).use { connection ->
       generateSequence(::readlnOrNull).forEach { line ->
         handleLine(line) { frame -> connection.forward(frame) }?.let(::println)
       }

@@ -1,4 +1,4 @@
-package skillbill.mcp.core
+package skillbill.mcp.shared
 
 import skillbill.contracts.JsonCodec
 import skillbill.di.SkillBillVersion
@@ -30,6 +30,9 @@ internal object McpProtocolFramer {
   const val SCHEMA_MIN_LENGTH_KEY: String = "minLength"
   const val SCHEMA_PATTERN_KEY: String = "pattern"
   const val SCHEMA_ITEMS_KEY: String = "items"
+  const val SCHEMA_DEFS_KEY: String = "\$defs"
+  const val SCHEMA_REF_KEY: String = "\$ref"
+  const val SCHEMA_CONST_KEY: String = "const"
   const val MCP_PROTOCOL_VERSION: String = "2025-11-25"
   const val PARSE_ERROR: Int = -32700
   const val METHOD_NOT_FOUND: Int = -32601

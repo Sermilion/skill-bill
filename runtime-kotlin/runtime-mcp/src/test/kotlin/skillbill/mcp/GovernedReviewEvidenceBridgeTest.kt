@@ -1,10 +1,11 @@
 package skillbill.mcp
 
 import skillbill.contracts.JsonCodec
+import skillbill.error.GovernedReviewEvidenceTransportError
 import skillbill.mcp.review.GovernedReviewEvidenceBridge
 import skillbill.mcp.review.GovernedReviewEvidenceConnection
-import skillbill.error.GovernedReviewEvidenceTransportError
 import skillbill.ports.review.model.GovernedReviewEvidenceCodec
+import java.net.StandardProtocolFamily
 import java.net.UnixDomainSocketAddress
 import java.nio.channels.Channels
 import java.nio.channels.ServerSocketChannel
@@ -57,7 +58,7 @@ class GovernedReviewEvidenceBridgeTest {
   fun `a forwarded response over the frame limit is rejected by a real unix socket`() {
     val socketPath = Files.createTempFile("skillbill-evidence", ".sock")
     Files.delete(socketPath)
-    val server = ServerSocketChannel.open(java.net.StandardProtocolFamily.UNIX)
+    val server = ServerSocketChannel.open(StandardProtocolFamily.UNIX)
     server.bind(UnixDomainSocketAddress.of(socketPath))
     val thread = Thread {
       server.use {
@@ -84,7 +85,7 @@ class GovernedReviewEvidenceBridgeTest {
   fun `a handshake refusal is reported as a transport error`() {
     val socketPath = Files.createTempFile("skillbill-evidence-refusal", ".sock")
     Files.delete(socketPath)
-    val server = ServerSocketChannel.open(java.net.StandardProtocolFamily.UNIX)
+    val server = ServerSocketChannel.open(StandardProtocolFamily.UNIX)
     server.bind(UnixDomainSocketAddress.of(socketPath))
     val thread = Thread {
       server.use {

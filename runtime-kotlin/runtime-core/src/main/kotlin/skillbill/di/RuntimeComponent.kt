@@ -57,8 +57,8 @@ import skillbill.ports.system.UninstallPathsPort
 import skillbill.ports.taskruntime.FeatureTaskRuntimeRunInvariantsSource
 import skillbill.ports.telemetry.TelemetryConfigStore
 import skillbill.ports.telemetry.TelemetryLevelMutator
+import skillbill.ports.time.RuntimeClock
 import skillbill.ports.validation.RepoValidationGateway
-import java.time.Clock
 
 @RuntimeSingleton
 @Component
@@ -110,7 +110,7 @@ abstract class RuntimeComponent(
   @Provides @RuntimeSingleton @JvmSynthetic
   fun databaseSessionFactory(
     context: EnvironmentContext,
-    clock: Clock,
+    clock: RuntimeClock,
     diagnostics: RuntimeDiagnostics,
   ): DatabaseSessionFactory = RuntimeBootstrapBindings.databaseSessionFactory(context, clock, diagnostics)
 
@@ -127,7 +127,7 @@ abstract class RuntimeComponent(
 
   abstract val parallelCodeReviewRunner: ParallelCodeReviewRunner
   abstract val configResolutionService: ConfigResolutionService
-  abstract val clock: Clock
+  abstract val clock: RuntimeClock
   abstract val externalAgentAddonSourceConfigPort: ExternalAgentAddonSourceConfigPort
   abstract val installService: InstallService
   abstract val externalAddonOverlayService: ExternalAddonOverlayService
