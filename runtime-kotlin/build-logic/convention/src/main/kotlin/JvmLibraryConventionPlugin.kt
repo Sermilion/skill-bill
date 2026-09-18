@@ -23,7 +23,7 @@ class JvmLibraryConventionPlugin : Plugin<Project> {
       return
     }
     tasks.named<Jar>("jar") {
-      archiveBaseName.set("$parentName-$name")
+      archiveBaseName.set("$parentName-${project.name}")
     }
   }
 }

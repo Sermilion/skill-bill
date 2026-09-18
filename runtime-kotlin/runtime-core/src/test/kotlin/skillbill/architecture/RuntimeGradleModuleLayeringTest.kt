@@ -76,7 +76,7 @@ class RuntimeGradleModuleLayeringTest {
     )
     assertContains(
       convention,
-      "archiveBaseName.set(\"${'$'}parentName-${'$'}name\")",
+      "archiveBaseName.set(\"${'$'}parentName-${'$'}{project.name}\")",
     )
     nestedInfrastructureModules.forEach { moduleName ->
       val build = Files.readString(
