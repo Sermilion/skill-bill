@@ -1,6 +1,6 @@
 # SKILL-353 Subtask 1 - One schema loader, typed failures, and recorded fallbacks
 
-Parent spec: [.feature-specs/SKILL-353-runtime-infra-fs-boundaries-and-simplicity/spec.md](./spec.md)
+Parent spec: [.feature-specs/SKILL-353-runtime-infra-fs-boundaries-and-simplicity/spec.md](spec.md)
 Issue key: SKILL-353
 
 ## Scope

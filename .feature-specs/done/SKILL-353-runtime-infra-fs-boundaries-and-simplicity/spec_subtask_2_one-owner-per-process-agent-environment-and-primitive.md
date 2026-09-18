@@ -1,6 +1,6 @@
 # SKILL-353 Subtask 2 - One owner per process, agent, environment read, and primitive
 
-Parent spec: [.feature-specs/SKILL-353-runtime-infra-fs-boundaries-and-simplicity/spec.md](./spec.md)
+Parent spec: [.feature-specs/SKILL-353-runtime-infra-fs-boundaries-and-simplicity/spec.md](spec.md)
 Issue key: SKILL-353
 
 ## Scope

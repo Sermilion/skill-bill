@@ -266,7 +266,7 @@ class GitProcessLifetimeBehaviorTest {
         onLine = {},
       )
       if (Files.exists(pidFile)) {
-        child = processHandleFrom(pidFile)
+        child = readProcessHandle(pidFile)
       }
       val elapsedSeconds = TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - started)
       assertTrue(result.timedOut)

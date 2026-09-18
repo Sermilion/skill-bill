@@ -50,6 +50,7 @@ private class GitProcessBoundedLineSession(
   private var exitCode = -1
   private var primaryFailure: Throwable? = null
   private var cleanupFailure: Throwable? = null
+  private var outputSettled = false
 
   fun run(): GitProcessBoundedLinesResult {
     try {
@@ -123,6 +124,7 @@ private class GitProcessBoundedLineSession(
     if (!closeInputAndJoin(process, requireNotNull(outputThread), cleanupDeadlineNanos) && readFailure == null) {
       readFailure = IOException("git bounded line capture did not settle before deadline")
     }
+    outputSettled = true
   }
 
   private fun destroyForInterrupted(interrupted: InterruptedException) {
@@ -142,15 +144,17 @@ private class GitProcessBoundedLineSession(
   private fun cleanup() {
     attemptCleanup { destroyProcessTree() }
     attemptCleanup { process.outputStream.close() }
-    outputThread?.let { drainThread ->
-      attemptCleanup {
-        if (!closeInputAndJoin(
-            process,
-            drainThread,
-            System.nanoTime() + TimeUnit.SECONDS.toNanos(GIT_PROCESS_CLEANUP_BUDGET_SECONDS),
-          ) && readFailure == null
-        ) {
-          readFailure = IOException("git bounded line capture did not settle before deadline")
+    if (!outputSettled) {
+      outputThread?.let { drainThread ->
+        attemptCleanup {
+          if (!closeInputAndJoin(
+              process,
+              drainThread,
+              System.nanoTime() + TimeUnit.SECONDS.toNanos(GIT_PROCESS_CLEANUP_BUDGET_SECONDS),
+            ) && readFailure == null
+          ) {
+            readFailure = IOException("git bounded line capture did not settle before deadline")
+          }
         }
       }
     }
