@@ -2,9 +2,9 @@ package skillbill.di
 
 import me.tatarka.inject.annotations.Provides
 import skillbill.application.agentrun.AgentRunGoalRunnerSubtaskLauncher
-import skillbill.infrastructure.fs.GhGoalPullRequestPort
-import skillbill.infrastructure.fs.launcher.agentrun.FileSystemAgentRunLauncher
-import skillbill.infrastructure.fs.launcher.agentrun.PathExecutableLookup
+import skillbill.infrastructure.launcher.agentrun.FileSystemAgentRunLauncher
+import skillbill.infrastructure.launcher.agentrun.PathExecutableLookup
+import skillbill.infrastructure.workflow.GhGoalPullRequestPort
 import skillbill.model.OptionalCallbacks
 import skillbill.ports.agentrun.AgentRunLauncher
 import skillbill.ports.agentrun.ExecutableLookup

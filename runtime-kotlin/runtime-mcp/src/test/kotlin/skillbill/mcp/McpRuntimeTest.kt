@@ -17,9 +17,9 @@ import skillbill.cli.model.CliExecutionResult
 import skillbill.cli.model.CliRuntimeContext
 import skillbill.contracts.JsonCodec
 import skillbill.di.SkillBillVersion
-import skillbill.infrastructure.fs.CanonicalRepositoryRoot
-import skillbill.infrastructure.fs.GitWorkflowGitOperations
+import skillbill.infrastructure.host.CanonicalRepositoryRoot
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
+import skillbill.infrastructure.workflow.GitWorkflowGitOperations
 import skillbill.mcp.core.McpRuntime
 import skillbill.mcp.core.importReview
 import skillbill.mcp.core.newSkillScaffold

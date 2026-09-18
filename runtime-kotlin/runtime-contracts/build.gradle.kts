@@ -33,7 +33,7 @@ val copyGoalPlanningDiscoveryExclusions =
     from(contractPath)
     into(
       layout.buildDirectory.dir(
-        "generated/skillbill-contracts/skillbill/infrastructure/fs/contracts",
+        "generated/skillbill-contracts/skillbill/infrastructure/contracts",
       ),
     )
     inputs.file(contractPath)
@@ -50,7 +50,7 @@ val copyGoalVerificationBoundaryCaps =
     from(contractPath)
     into(
       layout.buildDirectory.dir(
-        "generated/skillbill-contracts/skillbill/infrastructure/fs/contracts",
+        "generated/skillbill-contracts/skillbill/infrastructure/contracts",
       ),
     )
     inputs.file(contractPath)
@@ -67,7 +67,7 @@ val copyIssueKeySchema =
     from(contractPath)
     into(
       layout.buildDirectory.dir(
-        "generated/skillbill-contracts/skillbill/infrastructure/fs/contracts",
+        "generated/skillbill-contracts/skillbill/infrastructure/contracts",
       ),
     )
     inputs.file(contractPath)

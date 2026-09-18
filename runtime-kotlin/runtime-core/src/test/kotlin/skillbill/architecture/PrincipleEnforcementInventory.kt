@@ -64,16 +64,21 @@ object PrincipleEnforcementInventory {
     else -> "$baselineStem-ambient-clock-baseline.txt"
   }
 
-  private fun ambientEnvironmentBaselineForModule(moduleName: String, baselineStem: String): String = when (moduleName) {
-    "runtime-cli" -> "runtime-cli-ambient-environment-baseline.txt"
-    else -> "$baselineStem-ambient-environment-baseline.txt"
-  }
+  private fun ambientEnvironmentBaselineForModule(moduleName: String, baselineStem: String): String =
+    when (moduleName) {
+      "runtime-cli" -> "runtime-cli-ambient-environment-baseline.txt"
+      else -> "$baselineStem-ambient-environment-baseline.txt"
+    }
 
   private fun injectDefaultsBaselineForModule(moduleName: String, baselineStem: String): String? = when (moduleName) {
     "runtime-application" -> "inject-constructor-defaults-baseline.txt"
     "runtime-cli" -> "runtime-cli-inject-constructor-defaults-baseline.txt"
     "runtime-ports",
-    "runtime-infra:fs",
+    "runtime-infra:host",
+    "runtime-infra:contracts",
+    "runtime-infra:skills",
+    "runtime-infra:launcher",
+    "runtime-infra:workflow",
     "runtime-infra:http",
     "runtime-infra:sqlite",
     "runtime-mcp",
@@ -88,8 +93,8 @@ object PrincipleEnforcementInventory {
   val spilloverFileNameExemptions: Set<String> = emptySet()
 
   val sanctionedCompositionEntrypoints: Set<String> = setOf(
-    "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory("runtime-infra:fs")}/src/main/kotlin/" +
-      "skillbill/infrastructure/fs/scaffold/runtime/ScaffoldStandaloneEntrypoint.kt",
+    "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory("runtime-infra:skills")}/src/main/kotlin/" +
+      "skillbill/infrastructure/skills/scaffold/runtime/ScaffoldStandaloneEntrypoint.kt",
   )
 
   val ambientEnvironmentExemptions: Set<String> = setOf(
@@ -223,8 +228,8 @@ object PrincipleEnforcementInventory {
     ),
     ArchitectureScanSupport.ParseBoundarySite(
       relativePath =
-      "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory("runtime-infra:fs")}/src/main/kotlin/" +
-        "skillbill/infrastructure/fs/scaffold/platformpack/ShellContentLoaderValidationGate.kt",
+      "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory("runtime-infra:skills")}/src/main/kotlin/" +
+        "skillbill/infrastructure/skills/scaffold/platformpack/ShellContentLoaderValidationGate.kt",
       functionNames = setOf(
         "parseValidationGate",
         "parseValidationGateFindings",

@@ -8,7 +8,7 @@ object InstallPlanSchemaPaths {
     "orchestration/contracts/install-plan-schema.yaml"
 
   const val CLASSPATH_RESOURCE: String =
-    "skillbill/infrastructure/fs/contracts/install-plan-schema.yaml"
+    "skillbill/infrastructure/contracts/install-plan-schema.yaml"
 
   const val EXPECTED_SCHEMA_ID: String =
     "https://skill-bill.dev/contracts/install-plan-schema.yaml"

@@ -1,7 +1,7 @@
 package skillbill.engine.featuretask.validation
 
 import skillbill.contracts.JsonCodec
-import skillbill.infrastructure.fs.contracts.workflow.FeatureTaskRuntimeBuildReceiptSchemaValidator
+import skillbill.infrastructure.contracts.workflow.FeatureTaskRuntimeBuildReceiptSchemaValidator
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeValidationGateRunRecord
 import kotlin.test.Test
 

@@ -2,8 +2,8 @@ package skillbill.di
 
 import me.tatarka.inject.annotations.Provides
 import skillbill.application.decomposition.DecompositionManifestWriter
-import skillbill.infrastructure.fs.FileSystemDecompositionManifestFileStore
-import skillbill.infrastructure.fs.GitWorkflowGitOperations
+import skillbill.infrastructure.workflow.FileSystemDecompositionManifestFileStore
+import skillbill.infrastructure.workflow.GitWorkflowGitOperations
 import skillbill.model.EnvironmentContext
 import skillbill.model.RepositoryRoot
 import skillbill.model.WorkflowOpsContext

@@ -25,7 +25,9 @@ dependencies {
   implementation(libs.jackson.dataformat.yaml)
   ksp(libs.kotlin.inject.compiler)
 
-  testImplementation(project(":runtime-infra:fs"))
+  testImplementation(project(":runtime-infra:host"))
+  testImplementation(project(":runtime-infra:workflow"))
+  testImplementation(project(":runtime-infra:contracts"))
   testImplementation(project(":runtime-infra:http"))
   testImplementation(project(":runtime-cli"))
   testImplementation(project(":runtime-infra:sqlite"))
@@ -55,7 +57,7 @@ val copyTelemetryEventSchema =
     from(schemaPath)
     into(
       layout.buildDirectory.dir(
-        "generated/skillbill-contracts/skillbill/infrastructure/fs/contracts",
+        "generated/skillbill-contracts/skillbill/infrastructure/contracts",
       ),
     )
     inputs.file(schemaPath)

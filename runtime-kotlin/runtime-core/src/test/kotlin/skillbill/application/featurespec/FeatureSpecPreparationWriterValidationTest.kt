@@ -11,8 +11,8 @@ import skillbill.featurespec.model.FeatureSpecPreparationMode
 import skillbill.featurespec.model.FeatureSpecSubtaskPreparation
 import skillbill.featurespec.model.FeatureSpecWriteRequest
 import skillbill.featurespec.model.FeatureSpecWriteResult
-import skillbill.infrastructure.fs.FileSystemDecompositionManifestFileStore
-import skillbill.infrastructure.fs.contracts.workflow.DecompositionManifestSchemaValidator
+import skillbill.infrastructure.contracts.workflow.DecompositionManifestSchemaValidator
+import skillbill.infrastructure.workflow.FileSystemDecompositionManifestFileStore
 import skillbill.model.RuntimeContext
 import skillbill.workflow.decomposition.model.DecompositionManifest
 import java.nio.file.Files

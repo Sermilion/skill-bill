@@ -75,8 +75,12 @@ closed enum for pack-local file paths.
 
 **Reference examples.**
 
-- `runtime-kotlin/runtime-infra/fs/src/main/kotlin/skillbill/scaffold/platformpack/ShellContentLoader.kt` (`parseFallbackCapabilities`)
-- `runtime-kotlin/runtime-infra/fs/src/main/kotlin/skillbill/launcher/agentrun/AgentRunCommandBuildersLaunch.kt` (`GovernedReviewLaunchCapability`)
+Infrastructure Gradle directories: `runtime-infra/host`, `runtime-infra/contracts`, `runtime-infra/skills`,
+`runtime-infra/launcher`, `runtime-infra/workflow`, `runtime-infra/http`, and `runtime-infra/sqlite`
+(`:runtime-infra:host` through `:runtime-infra:sqlite`).
+
+- `runtime-kotlin/runtime-infra/skills/src/main/kotlin/skillbill/scaffold/platformpack/ShellContentLoader.kt` (`parseFallbackCapabilities`)
+- `runtime-kotlin/runtime-infra/skills/src/main/kotlin/skillbill/launcher/agentrun/AgentRunCommandBuildersLaunch.kt` (`GovernedReviewLaunchCapability`)
 - `runtime-kotlin/runtime-contracts/src/main/kotlin/skillbill/error/GovernedReviewShellContentErrors.kt`
 
 **Amendment (SKILL-220 subtask 3).** `fallback_capabilities`, native-agent

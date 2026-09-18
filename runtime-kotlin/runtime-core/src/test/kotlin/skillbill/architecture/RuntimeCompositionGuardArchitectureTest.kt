@@ -36,7 +36,7 @@ class RuntimeCompositionGuardArchitectureTest {
       relativePath = "runtime-kotlin/runtime-example/src/main/kotlin/skillbill/example/Example.kt",
       source = """
         package skillbill.example
-        import skillbill.infrastructure.fs.FileTelemetryConfigStore
+        import skillbill.infrastructure.host.FileTelemetryConfigStore
         class Example {
           fun leak() {
             FileTelemetryConfigStore(context)
@@ -61,8 +61,8 @@ class RuntimeCompositionGuardArchitectureTest {
     val violations = ArchitectureScanSupport.directComponentConstructionViolations(
       boundClassNames = setOf("FileSystemScaffoldRepoValidation", "FileSystemScaffoldSourceLoader"),
       scanRoots = listOf(
-        "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory("runtime-infra:fs")}/src/main/kotlin/" +
-          "skillbill/infrastructure/fs/scaffold/runtime/ScaffoldStandaloneEntrypoint.kt",
+        "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory("runtime-infra:skills")}/src/main/kotlin/" +
+          "skillbill/infrastructure/skills/scaffold/runtime/ScaffoldStandaloneEntrypoint.kt",
       ),
       compositionDiRoot = diRoot,
       sanctionedEntrypoints = PrincipleEnforcementInventory.sanctionedCompositionEntrypoints,
@@ -126,7 +126,7 @@ class RuntimeCompositionGuardArchitectureTest {
       relativePath = "runtime-kotlin/runtime-example/src/main/kotlin/skillbill/example/Example.kt",
       source = """
         package skillbill.example
-        import skillbill.infrastructure.fs.FileTelemetryConfigStore as StoreAlias
+        import skillbill.infrastructure.host.FileTelemetryConfigStore as StoreAlias
         class Example {
           fun leak() {
             StoreAlias(context)
@@ -148,7 +148,7 @@ class RuntimeCompositionGuardArchitectureTest {
     val boundClasses = ArchitectureScanSupport.boundComponentConcreteClassNamesInSource(
       """
         import me.tatarka.inject.annotations.Provides
-        import skillbill.infrastructure.fs.FileTelemetryConfigStore as StoreAlias
+        import skillbill.infrastructure.host.FileTelemetryConfigStore as StoreAlias
         @Provides
         fun bind(store: StoreAlias): TelemetryConfigStore = store
       """.trimIndent(),
@@ -158,7 +158,7 @@ class RuntimeCompositionGuardArchitectureTest {
       relativePath = "runtime-kotlin/runtime-example/src/main/kotlin/skillbill/example/Example.kt",
       source = """
         package skillbill.example
-        import skillbill.infrastructure.fs.FileTelemetryConfigStore
+        import skillbill.infrastructure.host.FileTelemetryConfigStore
         class Example {
           fun leak() {
             FileTelemetryConfigStore(context)

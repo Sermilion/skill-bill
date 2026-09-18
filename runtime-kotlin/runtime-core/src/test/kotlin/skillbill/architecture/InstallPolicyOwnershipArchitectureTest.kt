@@ -10,33 +10,29 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class InstallPolicyOwnershipArchitectureTest {
-  private val runtimeRoot: Path =
-    Path.of("").toAbsolutePath().normalize().let { workingDir ->
-      if (workingDir.fileName.toString().startsWith("runtime-")) {
-        workingDir.parent
-      } else {
-        workingDir
-      }
-    }
-  private val infraFsModule = RuntimeModuleCatalog.gradleModuleIdToDirectoryPath("runtime-infra:fs")
+  private val runtimeRoot: Path = ArchitectureScanSupport.runtimeRoot
+  private val infraSkillsModule = RuntimeModuleCatalog.runtimeKotlinModuleDirectory("runtime-infra:skills")
+  private val infraContractsModule = RuntimeModuleCatalog.runtimeKotlinModuleDirectory("runtime-infra:contracts")
   private val approvedPolicyCallers = setOf(
-    "$infraFsModule/src/main/kotlin/skillbill/infrastructure/fs/install/plan/InstallPlanBuilder.kt",
+    "$infraSkillsModule/src/main/kotlin/skillbill/infrastructure/skills/install/plan/InstallPlanBuilder.kt",
   )
 
   private val approvedValidationSeams = mapOf(
-    "$infraFsModule/src/main/kotlin/skillbill/infrastructure/fs/install/plan/InstallPlanBuilder.kt" to
+    "$infraSkillsModule/src/main/kotlin/skillbill/infrastructure/skills/install/plan/InstallPlanBuilder.kt" to
       "validateInstallPlanWireSnapshot",
-    "runtime-cli/src/main/kotlin/skillbill/cli/install/InstallCliPayloads.kt" to
+    "runtime-kotlin/runtime-cli/src/main/kotlin/skillbill/cli/install/InstallCliPayloads.kt" to
       "installService.validateInstallPlanWire",
   )
 
   private val approvedValidatorAdapters = setOf(
-    "$infraFsModule/src/main/kotlin/skillbill/infrastructure/fs/contracts/install/InstallPlanSchemaValidator.kt",
+    "$infraContractsModule/src/main/kotlin/skillbill/infrastructure/contracts/install/InstallPlanSchemaValidator.kt",
   )
 
   @Test
   fun `install policy package must not import filesystem or install implementation mechanics`() {
-    val policyRoot = runtimeRoot.resolve("runtime-domain/src/main/kotlin/skillbill/install/policy")
+    val policyRoot = runtimeRoot.resolve(
+      "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/install/policy",
+    )
     val policyFiles = kotlinFilesUnder(policyRoot)
     assertTrue(policyFiles.isNotEmpty(), "Install policy package must exist in runtime-domain.")
 
@@ -56,8 +52,8 @@ class InstallPolicyOwnershipArchitectureTest {
     assertEquals(
       emptyList(),
       violations,
-      "Install plan policy must stay pure: filesystem/process mechanics and infra-fs install implementation " +
-        "imports belong in runtime-infra:fs.",
+      "Install plan policy must stay pure: filesystem/process mechanics and install implementation " +
+        "imports belong in runtime-infra:skills.",
     )
   }
 
@@ -68,10 +64,10 @@ class InstallPolicyOwnershipArchitectureTest {
       "import java.io.File",
       "import java.nio.file.Files",
       "import java.lang.ProcessBuilder",
-      "import skillbill.infrastructure.fs.FileSystemInstallPlanningFacts",
-      "import skillbill.infrastructure.fs.install.InstallOperations",
-      "import skillbill.infrastructure.fs.install.InstallPlanBuilder",
-      "import skillbill.infrastructure.fs.install.computeInstallContentHash",
+      "import skillbill.infrastructure.skills.FileSystemInstallPlanningFacts",
+      "import skillbill.infrastructure.skills.install.InstallOperations",
+      "import skillbill.infrastructure.skills.install.InstallPlanBuilder",
+      "import skillbill.infrastructure.skills.install.computeInstallContentHash",
     )
     val mustNotBeDetectedAsForbidden = listOf(
       "import java.nio.file.Path",
@@ -89,7 +85,9 @@ class InstallPolicyOwnershipArchitectureTest {
   @Test
   fun `install policy delegates schema validation to the injected wire validator port`() {
     val policyText = runtimeRoot
-      .resolve("runtime-domain/src/main/kotlin/skillbill/install/policy/InstallPlanPolicy.kt")
+      .resolve(
+        "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/install/policy/InstallPlanPolicy.kt",
+      )
       .readText()
     assertTrue(
       policyText.contains("InstallPlanWireValidator") &&
@@ -102,7 +100,9 @@ class InstallPolicyOwnershipArchitectureTest {
     )
 
     val wireMapText = runtimeRoot
-      .resolve("runtime-domain/src/main/kotlin/skillbill/install/model/InstallPlanWireMap.kt")
+      .resolve(
+        "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/install/model/InstallPlanWireMap.kt",
+      )
       .readText()
     assertTrue(
       wireMapText.contains("validator: InstallPlanWireValidator") &&
@@ -123,8 +123,7 @@ class InstallPolicyOwnershipArchitectureTest {
     }
 
     val validatorOwnerFiles = setOf(
-      "$infraFsModule/src/main/kotlin/skillbill/infrastructure/fs/contracts/install/InstallPlanSchemaValidator.kt",
-      "$infraFsModule/src/main/kotlin/skillbill/infrastructure/fs/contracts/install/InstallPlanSchemaValidator.kt",
+      "$infraContractsModule/src/main/kotlin/skillbill/infrastructure/contracts/install/InstallPlanSchemaValidator.kt",
     )
     val adapterFiles = adapterKotlinFiles()
     val violations = adapterFiles
@@ -171,7 +170,7 @@ class InstallPolicyOwnershipArchitectureTest {
     assertEquals(
       emptyList(),
       adapterPolicyOwnershipViolations(
-        "$infraFsModule/src/main/kotlin/skillbill/infrastructure/fs/install/plan/InstallPlanBuilder.kt",
+        "$infraSkillsModule/src/main/kotlin/skillbill/infrastructure/skills/install/plan/InstallPlanBuilder.kt",
         """
         |import skillbill.install.policy.InstallPlanPolicy
         |import skillbill.install.model.validateInstallPlanWireSnapshot
@@ -244,9 +243,9 @@ class InstallPolicyOwnershipArchitectureTest {
   }
 
   private fun adapterKotlinFiles(): List<Path> = listOf(
-    runtimeRoot.resolve("runtime-cli/src/main/kotlin"),
-    runtimeRoot.resolve("runtime-mcp/src/main/kotlin"),
-    runtimeRoot.resolve("$infraFsModule/src/main/kotlin"),
+    runtimeRoot.resolve("runtime-kotlin/runtime-cli/src/main/kotlin"),
+    runtimeRoot.resolve("runtime-kotlin/runtime-mcp/src/main/kotlin"),
+    runtimeRoot.resolve("$infraSkillsModule/src/main/kotlin"),
     runtimeRoot.resolve(
       "${RuntimeModuleCatalog.gradleModuleIdToDirectoryPath("runtime-infra:http")}/src/main/kotlin",
     ),

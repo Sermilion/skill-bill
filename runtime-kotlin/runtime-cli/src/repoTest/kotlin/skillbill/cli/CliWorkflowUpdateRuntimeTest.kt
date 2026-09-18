@@ -1,8 +1,8 @@
 package skillbill.cli
 
 import skillbill.cli.core.CliRuntime
-import skillbill.infrastructure.fs.CanonicalRepositoryRoot
-import skillbill.infrastructure.fs.GitWorkflowGitOperations
+import skillbill.infrastructure.host.CanonicalRepositoryRoot
+import skillbill.infrastructure.workflow.GitWorkflowGitOperations
 import skillbill.ports.workflow.gitops.repositoryFingerprint
 import java.nio.file.Files
 import java.nio.file.Path

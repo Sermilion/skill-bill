@@ -8,7 +8,7 @@ object DecompositionManifestBundleJournalSchemaPaths {
     "orchestration/contracts/decomposition-manifest-bundle-journal-schema.yaml"
 
   const val CLASSPATH_RESOURCE: String =
-    "skillbill/infrastructure/fs/contracts/decomposition-manifest-bundle-journal-schema.yaml"
+    "skillbill/infrastructure/contracts/decomposition-manifest-bundle-journal-schema.yaml"
 
   const val EXPECTED_SCHEMA_ID: String =
     "https://skill-bill.dev/contracts/decomposition-manifest-bundle-journal-schema.yaml"

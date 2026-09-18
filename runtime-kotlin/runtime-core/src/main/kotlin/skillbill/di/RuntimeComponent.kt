@@ -33,7 +33,7 @@ import skillbill.engine.goalrunner.GoalRunnerStatusService
 import skillbill.engine.goalrunner.findings.UnaddressedFindingsLedgerService
 import skillbill.engine.goalrunner.planning.GoalPlanningLogService
 import skillbill.engine.work.IdeStatusService
-import skillbill.infrastructure.fs.concurrency.JvmInterruptSignalPort
+import skillbill.infrastructure.host.concurrency.JvmInterruptSignalPort
 import skillbill.model.EnvironmentContext
 import skillbill.model.OptionalCallbacks
 import skillbill.model.RuntimeContext

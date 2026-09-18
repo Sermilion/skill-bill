@@ -8,7 +8,7 @@ import skillbill.error.InvalidGoalPlanningDiscoveryExclusionsSchemaError
 
 object GoalPlanningDiscoveryExclusions {
   const val CONTRACT_VERSION = "0.3"
-  const val RESOURCE_PATH = "skillbill/infrastructure/fs/contracts/goal-planning-discovery-exclusions.yaml"
+  const val RESOURCE_PATH = "skillbill/infrastructure/contracts/goal-planning-discovery-exclusions.yaml"
   const val CONTRACT_FILE = "orchestration/contracts/goal-planning-discovery-exclusions.yaml"
   const val SCHEMA_FILE = "orchestration/contracts/goal-planning-discovery-exclusions-schema.yaml"
 

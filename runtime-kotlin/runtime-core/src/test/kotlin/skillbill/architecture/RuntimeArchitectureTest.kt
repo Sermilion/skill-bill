@@ -9,10 +9,10 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class RuntimeArchitectureTest {
-  private val infraFsModule = RuntimeModuleCatalog.gradleModuleIdToDirectoryPath("runtime-infra:fs")
+  private val infraContractsModule = RuntimeModuleCatalog.runtimeKotlinModuleDirectory("runtime-infra:contracts")
 
-  private fun infraFsPath(vararg segments: String): Path =
-    segments.fold(runtimeArchitectureRoot.resolve(infraFsModule)) { path, segment -> path.resolve(segment) }
+  private fun infraContractsPath(vararg segments: String): Path =
+    segments.fold(runtimeArchitectureRoot.resolve(infraContractsModule)) { path, segment -> path.resolve(segment) }
 
   @Test
   fun `touched domain contract foundation stays free of concrete adapters`() {
@@ -39,25 +39,25 @@ class RuntimeArchitectureTest {
   }
 
   @Test
-  fun `runtime schema validators and schema resources are owned by runtime infra-fs`() {
-    assertInfraFsSchemaValidatorFilesPresent()
+  fun `runtime schema validators and schema resources are owned by runtime infra-contracts`() {
+    assertInfraContractsSchemaValidatorFilesPresent()
     assertContractsSchemaPathFilesPresent()
     assertLegacySchemaValidatorFilesAbsent()
-    assertSchemaCopyTasksOwnedByInfraFs()
+    assertSchemaCopyTasksOwnedByInfraContracts()
   }
 
-  private fun assertInfraFsSchemaValidatorFilesPresent() {
+  private fun assertInfraContractsSchemaValidatorFilesPresent() {
     assertRegularFiles(
       listOf(
-        "$infraFsModule/src/main/kotlin/skillbill/infrastructure/fs/contracts/install/" +
+        "$infraContractsModule/src/main/kotlin/skillbill/infrastructure/contracts/install/" +
           "InstallPlanSchemaValidator.kt",
-        "$infraFsModule/src/main/kotlin/skillbill/infrastructure/fs/contracts/workflow/" +
+        "$infraContractsModule/src/main/kotlin/skillbill/infrastructure/contracts/workflow/" +
           "WorkflowStateSchemaValidator.kt",
-        "$infraFsModule/src/main/kotlin/skillbill/infrastructure/fs/contracts/workflow/" +
+        "$infraContractsModule/src/main/kotlin/skillbill/infrastructure/contracts/workflow/" +
           "DecompositionManifestSchemaValidator.kt",
-        "$infraFsModule/src/main/kotlin/skillbill/infrastructure/fs/contracts/workflow/" +
+        "$infraContractsModule/src/main/kotlin/skillbill/infrastructure/contracts/workflow/" +
           "DecompositionManifestCoherenceValidator.kt",
-        "$infraFsModule/src/main/kotlin/skillbill/infrastructure/fs/contracts/workflow/" +
+        "$infraContractsModule/src/main/kotlin/skillbill/infrastructure/contracts/workflow/" +
           "IdeStatusSchemaValidator.kt",
       ),
       present = true,
@@ -67,10 +67,11 @@ class RuntimeArchitectureTest {
   private fun assertContractsSchemaPathFilesPresent() {
     assertRegularFiles(
       listOf(
-        "runtime-contracts/src/main/kotlin/skillbill/contracts/install/InstallPlanSchemaPaths.kt",
-        "runtime-contracts/src/main/kotlin/skillbill/contracts/workflow/WorkflowStateSchemaPaths.kt",
-        "runtime-contracts/src/main/kotlin/skillbill/contracts/workflow/DecompositionManifestSchemaPaths.kt",
-        "runtime-contracts/src/main/kotlin/skillbill/contracts/workflow/IdeStatusSchemaPaths.kt",
+        "runtime-kotlin/runtime-contracts/src/main/kotlin/skillbill/contracts/install/InstallPlanSchemaPaths.kt",
+        "runtime-kotlin/runtime-contracts/src/main/kotlin/skillbill/contracts/workflow/WorkflowStateSchemaPaths.kt",
+        "runtime-kotlin/runtime-contracts/src/main/kotlin/skillbill/contracts/workflow/" +
+          "DecompositionManifestSchemaPaths.kt",
+        "runtime-kotlin/runtime-contracts/src/main/kotlin/skillbill/contracts/workflow/IdeStatusSchemaPaths.kt",
       ),
       present = true,
     )
@@ -79,43 +80,45 @@ class RuntimeArchitectureTest {
   private fun assertLegacySchemaValidatorFilesAbsent() {
     assertRegularFiles(
       listOf(
-        "$infraFsModule/src/main/kotlin/skillbill/contracts/install/" +
+        "$infraContractsModule/src/main/kotlin/skillbill/contracts/install/" +
           "InstallPlanSchemaValidator.kt",
-        "$infraFsModule/src/main/kotlin/skillbill/contracts/workflow/" +
+        "$infraContractsModule/src/main/kotlin/skillbill/contracts/workflow/" +
           "WorkflowStateSchemaValidator.kt",
-        "$infraFsModule/src/main/kotlin/skillbill/contracts/workflow/" +
+        "$infraContractsModule/src/main/kotlin/skillbill/contracts/workflow/" +
           "DecompositionManifestSchemaValidator.kt",
-        "$infraFsModule/src/main/kotlin/skillbill/contracts/workflow/" +
+        "$infraContractsModule/src/main/kotlin/skillbill/contracts/workflow/" +
           "DecompositionManifestCoherenceValidator.kt",
-        "$infraFsModule/src/main/kotlin/skillbill/contracts/workflow/" +
+        "$infraContractsModule/src/main/kotlin/skillbill/contracts/workflow/" +
           "IdeStatusSchemaValidator.kt",
-        "runtime-contracts/src/main/kotlin/skillbill/contracts/install/" +
+        "runtime-kotlin/runtime-contracts/src/main/kotlin/skillbill/contracts/install/" +
           "InstallPlanSchemaValidator.kt",
-        "runtime-contracts/src/main/kotlin/skillbill/contracts/workflow/" +
+        "runtime-kotlin/runtime-contracts/src/main/kotlin/skillbill/contracts/workflow/" +
           "WorkflowStateSchemaValidator.kt",
-        "runtime-contracts/src/main/kotlin/skillbill/contracts/workflow/" +
+        "runtime-kotlin/runtime-contracts/src/main/kotlin/skillbill/contracts/workflow/" +
           "DecompositionManifestSchemaValidator.kt",
-        "runtime-contracts/src/main/kotlin/skillbill/contracts/workflow/" +
+        "runtime-kotlin/runtime-contracts/src/main/kotlin/skillbill/contracts/workflow/" +
           "DecompositionManifestCoherenceValidator.kt",
-        "runtime-domain/src/main/kotlin/skillbill/workflow/DecompositionManifestSchemaValidator.kt",
-        "runtime-domain/src/main/kotlin/skillbill/workflow/DecompositionManifestSchemaPaths.kt",
-        "runtime-domain/src/main/kotlin/skillbill/workflow/WorkflowStateSchemaValidator.kt",
-        "runtime-domain/src/main/kotlin/skillbill/workflow/WorkflowStateSchemaPaths.kt",
-        "runtime-domain/src/main/kotlin/skillbill/install/model/InstallPlanSchemaValidator.kt",
-        "runtime-domain/src/main/kotlin/skillbill/install/model/InstallPlanSchemaPaths.kt",
+        "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/DecompositionManifestSchemaValidator.kt",
+        "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/DecompositionManifestSchemaPaths.kt",
+        "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/WorkflowStateSchemaValidator.kt",
+        "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/workflow/WorkflowStateSchemaPaths.kt",
+        "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/install/model/InstallPlanSchemaValidator.kt",
+        "runtime-kotlin/runtime-domain/src/main/kotlin/skillbill/install/model/InstallPlanSchemaPaths.kt",
       ),
       present = false,
     )
   }
 
-  private fun assertSchemaCopyTasksOwnedByInfraFs() {
-    val runtimeInfraFsBuild = Files.readString(infraFsPath("build.gradle.kts"))
-    assertContains(runtimeInfraFsBuild, "copyWorkflowStateSchema")
-    assertContains(runtimeInfraFsBuild, "copyInstallPlanSchema")
-    assertContains(runtimeInfraFsBuild, "copyDecompositionManifestSchema")
-    assertContains(runtimeInfraFsBuild, "copyIdeStatusSchema")
+  private fun assertSchemaCopyTasksOwnedByInfraContracts() {
+    val runtimeInfraContractsBuild = Files.readString(infraContractsPath("build.gradle.kts"))
+    assertContains(runtimeInfraContractsBuild, "copyWorkflowStateSchema")
+    assertContains(runtimeInfraContractsBuild, "copyInstallPlanSchema")
+    assertContains(runtimeInfraContractsBuild, "copyDecompositionManifestSchema")
+    assertContains(runtimeInfraContractsBuild, "copyIdeStatusSchema")
 
-    val runtimeContractsBuild = Files.readString(runtimeArchitectureRoot.resolve("runtime-contracts/build.gradle.kts"))
+    val runtimeContractsBuild = Files.readString(
+      runtimeArchitectureRoot.resolve("runtime-kotlin/runtime-contracts/build.gradle.kts"),
+    )
     assertTrue(
       "copyWorkflowStateSchema" !in runtimeContractsBuild &&
         "copyInstallPlanSchema" !in runtimeContractsBuild &&
@@ -124,7 +127,9 @@ class RuntimeArchitectureTest {
       "runtime-contracts must no longer own runtime schema copy tasks.",
     )
 
-    val runtimeDomainBuild = Files.readString(runtimeArchitectureRoot.resolve("runtime-domain/build.gradle.kts"))
+    val runtimeDomainBuild = Files.readString(
+      runtimeArchitectureRoot.resolve("runtime-kotlin/runtime-domain/build.gradle.kts"),
+    )
     assertTrue(
       "copyWorkflowStateSchema" !in runtimeDomainBuild &&
         "copyInstallPlanSchema" !in runtimeDomainBuild &&
@@ -137,7 +142,9 @@ class RuntimeArchitectureTest {
   @Test
   fun `runtime contracts main source is free of networknt jackson and nio files`() {
     val contractsFiles =
-      sourceFiles().filter { file -> file.relativePath.startsWith("runtime-contracts/src/main/kotlin/") }
+      sourceFiles().filter { file ->
+        file.relativePath.startsWith("runtime-kotlin/runtime-contracts/src/main/kotlin/")
+      }
     assertTrue(
       contractsFiles.isNotEmpty(),
       "runtime-contracts main source must exist for the purity lock to be meaningful.",
@@ -257,7 +264,7 @@ class RuntimeArchitectureTest {
 
   @Test
   fun `decomposition manifest application projection declares final parse seam ownership`() {
-    val architecture = Files.readString(runtimeArchitectureRoot.resolve("ARCHITECTURE.md"))
+    val architecture = Files.readString(runtimeArchitectureRoot.resolve("runtime-kotlin/ARCHITECTURE.md"))
     val projectionIo = Files.readString(
       sourcePath("skillbill/application/decomposition/DecompositionManifestFileWrites.kt"),
     )
@@ -294,7 +301,7 @@ class RuntimeArchitectureTest {
       "java.net.http.HttpClient",
     )
     assertContains(
-      Files.readString(sourcePath("skillbill/infrastructure/fs/FileTelemetryConfigStore.kt")),
+      Files.readString(sourcePath("skillbill/infrastructure/host/FileTelemetryConfigStore.kt")),
       "java.nio.file.Files",
     )
     assertContains(
@@ -398,7 +405,7 @@ class RuntimeArchitectureTest {
   @Test
   fun `gradle module split has an explicit evaluation decision`() {
     val evaluation = Files.readString(
-      runtimeArchitectureRoot.resolve("docs/architecture/gradle-module-split-evaluation.md"),
+      runtimeArchitectureRoot.resolve("runtime-kotlin/docs/architecture/gradle-module-split-evaluation.md"),
     )
 
     assertContains(evaluation, "Status: Deeper Split Implemented")
@@ -407,7 +414,11 @@ class RuntimeArchitectureTest {
     assertContains(evaluation, "runtime-domain")
     assertContains(evaluation, "runtime-application")
     assertContains(evaluation, "runtime-ports")
-    assertContains(evaluation, "runtime-infra:fs")
+    assertContains(evaluation, "runtime-infra:host")
+    assertContains(evaluation, "runtime-infra:contracts")
+    assertContains(evaluation, "runtime-infra:skills")
+    assertContains(evaluation, "runtime-infra:launcher")
+    assertContains(evaluation, "runtime-infra:workflow")
     assertContains(evaluation, "runtime-infra:sqlite")
     assertContains(evaluation, "runtime-infra:http")
     assertContains(evaluation, "runtime-cli")
@@ -423,7 +434,7 @@ class RuntimeArchitectureTest {
     val installPortFiles = sourceFiles()
       .filter { sourceFile ->
         sourceFile.relativePath.startsWith(
-          "runtime-ports/src/main/kotlin/skillbill/ports/install/",
+          "runtime-kotlin/runtime-ports/src/main/kotlin/skillbill/ports/install/",
         )
       }
     assertTrue(installPortFiles.isNotEmpty(), "Install capability ports must exist.")
@@ -486,7 +497,7 @@ class RuntimeArchitectureTest {
     assertNoBannedSourceReferences(
       files = reconciliationSources,
       bannedReferences = listOf(
-        "skillbill.infrastructure.fs.launcher.process",
+        "skillbill.infrastructure.launcher.process",
         "JvmAgentRunProcessRunner",
         "AgentRunCommandBuilder",
         "ProcessWaitLoop",

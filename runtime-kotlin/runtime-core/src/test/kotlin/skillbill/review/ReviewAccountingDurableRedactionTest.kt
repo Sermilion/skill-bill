@@ -11,7 +11,7 @@ import skillbill.application.review.reviewPack
 import skillbill.application.review.toBoundedPayload
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.review.REVIEW_CONTEXT_CONTRACT_VERSION
-import skillbill.infrastructure.fs.contracts.review.ReviewContextSchemaValidator
+import skillbill.infrastructure.contracts.review.ReviewContextSchemaValidator
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
 import skillbill.infrastructure.sqlite.review.loadReviewAccounting
 import skillbill.infrastructure.sqlite.review.upsertReviewAccounting

@@ -1,6 +1,0 @@
-package skillbill.infrastructure.fs
-
-import skillbill.infrastructure.fs.install.nativeagent.InstallNativeAgentPlatformPackLoader
-import skillbill.infrastructure.fs.nativeagent.platformpack.NativeAgentPlatformPackLoader
-
-object FileSystemNativeAgentPlatformPackLoader : NativeAgentPlatformPackLoader by InstallNativeAgentPlatformPackLoader

@@ -1,3 +1,8 @@
+## [2026-09-18] SKILL-354 subtask 2 — Split filesystem infrastructure by ownership
+
+Areas: runtime-kotlin/runtime-infra/{host,contracts,skills,launcher,workflow,http,sqlite}, runtime-kotlin/ARCHITECTURE.md, docs
+- Split the former filesystem adapter into `runtime-infra/host`, `runtime-infra/contracts`, `runtime-infra/skills`, and `runtime-infra/launcher`, while retaining the nested `runtime-infra/workflow`, `runtime-infra/http`, and `runtime-infra/sqlite` modules.
+
 ## [2026-09-18] SKILL-354 subtask 1 — Nest runtime infrastructure Gradle modules
 
 Areas: runtime-kotlin/settings.gradle.kts, runtime-kotlin/runtime-infra/{fs,http,sqlite}, build-logic/convention, runtime-core architecture tests
@@ -17,7 +22,7 @@ Feature flag: N/A
 Acceptance criteria: 7/7 implemented
 
 ## [2026-08-18] SKILL-197 subtask 2 — KMP uncovered area disposition
-Areas: docs/review-area-ownership, platform-packs/kmp/code-review/security, platform-packs/kmp/code-review/ux-accessibility, runtime-infra-fs/scaffold
+Areas: docs/review-area-ownership, platform-packs/kmp/code-review/security, platform-packs/kmp/code-review/ux-accessibility, runtime-infra/skills/scaffold
 - Recorded disposition for all four remaining kotlin-owned areas: `security` declared on `kmp` with on-device plus shared/JVM source-set rules; `performance`, `testing`, and `api-contracts` retained on `kotlin` with per-rule reachability audits in `docs/review-area-ownership.md`.
 - Declaring on `kmp` displaces the `kotlin` rubric for that area entirely — a `kmp` specialist cannot defer to the baseline `security` lane. reusable
 - `kmp` now owns seven physical areas and three inherited; scaffold composition tests and render snapshots pin that split. `ux-accessibility` boundary pointers name the `kmp` `security` specialist, not the kotlin baseline.

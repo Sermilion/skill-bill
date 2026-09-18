@@ -8,15 +8,15 @@ class RuntimeImplementationImportRulesTest {
   fun `adapter low-level implementation import scanner catches known bad packages`() {
     val mustBeDetected = listOf(
       "skillbill.infrastructure.sqlite.ReviewDatabase",
-      "skillbill.infrastructure.fs.FileSystemScaffoldGateway",
+      "skillbill.infrastructure.skills.FileSystemScaffoldGateway",
       "skillbill.infrastructure.http.HttpTelemetryClient",
       "skillbill.infrastructure.sqlite.SQLiteDatabaseSessionFactory",
-      "skillbill.infrastructure.fs.install.InstallOperations",
-      "skillbill.infrastructure.fs.launcher.McpRegistrationOperations",
-      "skillbill.infrastructure.fs.nativeagent.NativeAgentOperations",
+      "skillbill.infrastructure.skills.install.InstallOperations",
+      "skillbill.infrastructure.launcher.McpRegistrationOperations",
+      "skillbill.infrastructure.skills.nativeagent.NativeAgentOperations",
       "skillbill.review.ReviewRuntime",
-      "skillbill.infrastructure.fs.scaffold.ScaffoldService",
-      "skillbill.infrastructure.fs.skillremove.SkillRemoveJvmFileSystem",
+      "skillbill.infrastructure.skills.scaffold.ScaffoldService",
+      "skillbill.infrastructure.skills.skillremove.SkillRemoveJvmFileSystem",
       "skillbill.telemetry.TelemetryConfigRuntime",
       "skillbill.learnings.LearningsRuntime",
     )
@@ -44,12 +44,12 @@ class RuntimeImplementationImportRulesTest {
   @Test
   fun `schema or coherence validator import scanner catches known validators`() {
     val mustBeDetected = listOf(
-      "skillbill.infrastructure.fs.contracts.install.InstallPlanSchemaValidator",
-      "skillbill.infrastructure.fs.contracts.workflow.WorkflowStateSchemaValidator",
-      "skillbill.infrastructure.fs.contracts.workflow.DecompositionManifestSchemaValidator",
-      "skillbill.infrastructure.fs.contracts.workflow.DecompositionManifestCoherenceValidator",
-      "skillbill.infrastructure.fs.scaffold.PlatformPackSchemaValidator",
-      "skillbill.infrastructure.fs.nativeagent.NativeAgentCompositionSchemaValidator",
+      "skillbill.infrastructure.contracts.install.InstallPlanSchemaValidator",
+      "skillbill.infrastructure.contracts.workflow.WorkflowStateSchemaValidator",
+      "skillbill.infrastructure.contracts.workflow.DecompositionManifestSchemaValidator",
+      "skillbill.infrastructure.contracts.workflow.DecompositionManifestCoherenceValidator",
+      "skillbill.infrastructure.skills.scaffold.PlatformPackSchemaValidator",
+      "skillbill.infrastructure.skills.nativeagent.NativeAgentCompositionSchemaValidator",
     )
     val mustNotBeDetected = listOf(
 
@@ -58,7 +58,7 @@ class RuntimeImplementationImportRulesTest {
       "skillbill.workflow.engine.WorkflowSnapshotValidator",
 
       "skillbill.application.InstallService",
-      "skillbill.infrastructure.fs.contracts.install.InstallPlanSchemaPaths",
+      "skillbill.infrastructure.contracts.install.InstallPlanSchemaPaths",
     )
 
     assertEquals(

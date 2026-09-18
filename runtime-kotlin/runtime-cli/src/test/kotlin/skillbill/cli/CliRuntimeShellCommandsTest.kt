@@ -2,8 +2,8 @@ package skillbill.cli
 
 import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliRuntimeContext
-import skillbill.infrastructure.fs.CanonicalRepositoryRoot
-import skillbill.infrastructure.fs.GitWorkflowGitOperations
+import skillbill.infrastructure.host.CanonicalRepositoryRoot
+import skillbill.infrastructure.workflow.GitWorkflowGitOperations
 import skillbill.ports.workflow.gitops.repositoryFingerprint
 import skillbill.telemetry.CONFIG_ENVIRONMENT_KEY
 import skillbill.telemetry.INSTALL_ID_ENVIRONMENT_KEY

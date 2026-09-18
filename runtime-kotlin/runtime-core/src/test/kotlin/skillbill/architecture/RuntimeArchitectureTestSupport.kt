@@ -5,14 +5,7 @@ import java.nio.file.Path
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-internal val runtimeArchitectureRoot: Path =
-  Path.of("").toAbsolutePath().normalize().let { workingDir ->
-    if (workingDir.fileName.toString().startsWith("runtime-")) {
-      workingDir.parent
-    } else {
-      workingDir
-    }
-  }
+internal val runtimeArchitectureRoot: Path = ArchitectureScanSupport.runtimeRoot
 
 internal val runtimeArchitectureSourceRoots: List<Path> =
   RuntimeModuleCatalog.declaredGradleModules
@@ -63,7 +56,7 @@ internal fun engineInboundApiViolationMessage(
 
 internal fun mainPackageRootsForModule(moduleName: String): Set<String> {
   val root = runtimeArchitectureRoot.resolve(
-    "${RuntimeModuleCatalog.gradleModuleIdToDirectoryPath(moduleName)}/src/main/kotlin",
+    "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory(moduleName)}/src/main/kotlin",
   )
   if (!Files.isDirectory(root)) return emptySet()
   return Files.walk(root).use { paths ->
@@ -104,7 +97,7 @@ internal fun subsystemPackageRootViolationMessage(
 }
 
 internal const val MCP_SCAFFOLD_RUNTIME_PATH =
-  "runtime-mcp/src/main/kotlin/skillbill/mcp/scaffold/McpScaffoldRuntime.kt"
+  "runtime-kotlin/runtime-mcp/src/main/kotlin/skillbill/mcp/scaffold/McpScaffoldRuntime.kt"
 
 internal fun assertRegularFiles(relativePaths: List<String>, present: Boolean) {
   relativePaths.forEach { relative ->

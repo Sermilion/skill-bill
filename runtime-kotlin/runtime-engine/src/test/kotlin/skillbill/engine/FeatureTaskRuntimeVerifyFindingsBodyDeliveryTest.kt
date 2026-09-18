@@ -3,7 +3,7 @@ package skillbill.engine
 import skillbill.contracts.time.JvmSystemClock
 import skillbill.engine.featuretask.FeatureTaskRuntimeContinuationKind
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
-import skillbill.infrastructure.fs.goalplanning.FileSystemGoalPlanningContextDiscovery
+import skillbill.infrastructure.workflow.goalplanning.FileSystemGoalPlanningContextDiscovery
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerAction
 import java.nio.file.Files
 import java.time.LocalDate

@@ -155,7 +155,7 @@ consumed at three seams:
 
 | Concern | Where |
 |---|---|
-| Classification rules + parser (single source) | `runtime-kotlin/runtime-infra/fs/…/scaffold/authoring/InternalSkillClassification.kt` |
+| Classification rules + parser (single source) | `runtime-kotlin/runtime-infra/skills/…/scaffold/authoring/InternalSkillClassification.kt` |
 | Authoring discovery (reads the key, validates) | `…/scaffold/authoring/AuthoringDiscovery.kt` |
 | Install-plan discovery + plan-time validation | `…/install/plan/InstallPlanSkillDiscovery.kt`, `InstallPlanBuilder.kt` |
 | Sidecar discovery + render-once carrier | `…/install/staging/InternalSkillSidecars.kt` |
@@ -300,7 +300,7 @@ standalone `skills_dir` path (PD5).
 
 | Concern | Where |
 |---|---|
-| Relaxed rule (pack skills may carry `internal-for`) | `runtime-kotlin/runtime-infra/fs/.../scaffold/authoring/InternalSkillClassification.kt` |
+| Relaxed rule (pack skills may carry `internal-for`) | `runtime-kotlin/runtime-infra/skills/.../scaffold/authoring/InternalSkillClassification.kt` |
 | Selection-aware sidecar discovery | `.../install/staging/InternalSkillSidecars.kt` (consults `InstallPlanSkill.sourceDir`) |
 | Baseline co-presence guard | `.../install/plan/InstallPlanPolicy.kt`, `MissingBaselinePlatformSelectionError` in `ShellContentContractErrors.kt` |
 | Pack-internal README catalog exemption | `.../scaffold/runtime/RepoValidationRuntime.kt` (`validateReadme`) |

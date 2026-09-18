@@ -13,9 +13,13 @@ cleanly:
 - `runtime-domain`
 - `runtime-ports`
 - `runtime-application`
+- `runtime-infra/host (`:runtime-infra:host`)`
+- `runtime-infra/contracts (`:runtime-infra:contracts`)`
+- `runtime-infra/skills (`:runtime-infra:skills`)`
+- `runtime-infra/launcher (`:runtime-infra:launcher`)`
+- `runtime-infra/workflow (`:runtime-infra:workflow`)`
 - `runtime-infra/sqlite (`:runtime-infra:sqlite`)`
 - `runtime-infra/http (`:runtime-infra:http`)`
-- `runtime-infra/fs (`:runtime-infra:fs`)`
 - `runtime-core`
 - `runtime-cli`
 - `runtime-mcp`
@@ -33,13 +37,19 @@ of all runtime implementation code.
   telemetry ports, and port-owned model types.
 - `runtime-application`: CLI/MCP-shared use cases, application model DTOs,
   contract mappers, and port-backed telemetry orchestration.
+- `runtime-infra/host (`:runtime-infra:host`)`: JVM host platform, concurrency,
+  config stores, canonical repository root, and atomic filesystem primitives.
+- `runtime-infra/contracts (`:runtime-infra:contracts`)`: schema validators,
+  phase-output adapters, and governed contract resource copies.
+- `runtime-infra/skills (`:runtime-infra:skills`)`: install, scaffold,
+  native-agent, agent-addon, and skill-remove filesystem adapters.
+- `runtime-infra/launcher (`:runtime-infra:launcher`)`: agent-run process
+  launcher, MCP registration, and review launch staging.
+- `runtime-infra/workflow (`:runtime-infra:workflow`)`: git workflow ports,
+  decomposition stores, goal-planning filesystem adapters, and validation gates.
 - `runtime-infra/sqlite (`:runtime-infra:sqlite`)`: SQLite schema/migrations/stores/repositories and
   SQL-backed review helpers.
 - `runtime-infra/http (`:runtime-infra:http`)`: telemetry HTTP requester/client and proxy wire mapping.
-- `runtime-infra/fs (`:runtime-infra:fs`)`: telemetry config file adapter plus filesystem/process
-  ownership for install planning/apply/staging, governed scaffold/load/render,
-  native-agent rendering/linking, launcher MCP registration, and skill-remove
-  filesystem cascades.
 - `runtime-core`: Kotlin-Inject runtime composition root, module metadata, and
   compatibility API umbrella over the shared runtime modules.
 - `runtime-cli`: Clikt command tree, CLI option validation, terminal
@@ -58,9 +68,13 @@ composition surfaces.
 - `runtime-domain`
 - `runtime-ports`
 - `runtime-application`
+- `runtime-infra/host (`:runtime-infra:host`)`
+- `runtime-infra/contracts (`:runtime-infra:contracts`)`
+- `runtime-infra/skills (`:runtime-infra:skills`)`
+- `runtime-infra/launcher (`:runtime-infra:launcher`)`
+- `runtime-infra/workflow (`:runtime-infra:workflow`)`
 - `runtime-infra/sqlite (`:runtime-infra:sqlite`)`
 - `runtime-infra/http (`:runtime-infra:http`)`
-- `runtime-infra/fs (`:runtime-infra:fs`)`
 - `runtime-cli`
 - `runtime-mcp`
 
@@ -89,11 +103,11 @@ No known package-level upward dependencies remain for the implemented split.
   `LearningResolution` lives in `skillbill.ports.persistence.model`.
 - Runtime implementation packages formerly under `runtime-core`
   (`skillbill.install`, `skillbill.scaffold`, `skillbill.nativeagent`,
-  `skillbill.launcher`, and concrete `skillbill.skillremove`) now live in
-  `runtime-infra/fs (`:runtime-infra:fs`)`. Workflow runtime-surface metadata lives in
-  `runtime-application`; `runtime-core` is limited to DI composition and module
-  metadata while continuing to re-export the shared modules for existing
-  CLI/MCP callers.
+  `skillbill.launcher`, and concrete `skillbill.skillremove`) now live across
+  `runtime-infra/skills`, `runtime-infra/launcher`, and `runtime-infra/workflow`.
+  Workflow runtime-surface metadata lives in `runtime-application`; `runtime-core`
+  is limited to DI composition and module metadata while continuing to re-export
+  the shared modules for existing CLI/MCP callers.
 
 ## Proven Boundaries Today
 
@@ -117,7 +131,8 @@ and useful now:
   exercise internal migration/schema details without weakening production
   encapsulation.
 - Module-owned install, scaffold, native-agent, launcher, and skill-remove tests
-  now live with `runtime-infra/fs (`:runtime-infra:fs`)`, so internal filesystem adapters remain
+  now live with the `runtime-infra/skills`, `runtime-infra/launcher`, and
+  `runtime-infra/workflow` modules, so internal filesystem adapters remain
   covered without returning implementation packages to `runtime-core`.
 
 ## Deeper Split Readiness Criteria

@@ -50,7 +50,7 @@ class RuntimeEnforcementHardeningArchitectureTest {
       package skillbill.application
 
       class Leaky {
-        fun build(): Any = skillbill.infrastructure.fs.Foo()
+        fun build(): Any = skillbill.infrastructure.skills.Foo()
       }
       """.trimIndent()
     assertEquals(
@@ -59,11 +59,11 @@ class RuntimeEnforcementHardeningArchitectureTest {
         fixtureWithInlineReference,
         listOf("skillbill.cli", "skillbill.infrastructure", "skillbill.db"),
       ),
-      "Inline-FQN scanner must report a bare `skillbill.infrastructure.fs.Foo()` reference with no import.",
+      "Inline-FQN scanner must report a bare `skillbill.infrastructure.skills.Foo()` reference with no import.",
     )
 
     val wholeCommentLine = "// trailing comment skillbill.cli.Baz reference must be ignored"
-    val commentTailLine = "fun build(): Foo = Foo() // inline tail skillbill.infrastructure.fs.Qux"
+    val commentTailLine = "fun build(): Foo = Foo() // inline tail skillbill.infrastructure.skills.Qux"
     val cleanFixture =
       """
       package skillbill.application
@@ -72,7 +72,7 @@ class RuntimeEnforcementHardeningArchitectureTest {
 
       interface CleanDoc {
         /**
-         * Doc: see skillbill.infrastructure.fs.Foo for the adapter wiring.
+         * Doc: see skillbill.infrastructure.skills.Foo for the adapter wiring.
          * skillbill.infrastructure.sqlite.Bar is the legacy path.
          */
         fun documented(): Unit

@@ -1,7 +1,7 @@
 package skillbill.di
 
-import skillbill.infrastructure.fs.GitWorkflowGitOperations
 import skillbill.infrastructure.http.JdkHttpRequester
+import skillbill.infrastructure.workflow.GitWorkflowGitOperations
 import skillbill.model.RuntimeContext
 import skillbill.model.WorkflowOpsContext
 import skillbill.ports.telemetry.RemoteTransportPort

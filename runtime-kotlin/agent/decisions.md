@@ -4,6 +4,30 @@ This file records architectural and implementation decisions that span the
 `runtime-kotlin/` boundary. Each entry is dated and explains the trade-off,
 not the implementation detail.
 
+## [2026-09-18] SKILL-354 subtask 2: split infrastructure by measured ownership
+Context: This entry supersedes the 2026-06-12 decision to keep
+`runtime-infra/fs` as one adapter module. The measured module already
+simulated ten boundaries with source sets, `friendPaths`, ten compile tasks,
+and `verifyInfraFsAreaCompile`, recompiling 40,688 production lines eleven
+times.
+Decision: Keep seven nested infrastructure modules: `host`, `contracts`,
+`skills`, `launcher`, `workflow`, `http`, and `sqlite`. The measured
+dependency graph is `skills -> contracts, host`, `launcher -> skills, host`,
+and `workflow -> skills, contracts, host`; `host` and `contracts` are leaves.
+The profiles justify the cut: 22 of 26 contract files import networknt, seven
+skills files import SnakeYAML, host owns JDK and environment adapters, launcher
+owns child-process lifetimes, and workflow owns the Git, review, feature-task,
+goal-planning, and validation adapters. Runtime-core consumes 28 skills, 22
+workflow, 17 contracts, 12 host, and 6 launcher imports.
+Reason: Gradle project edges make the measured boundaries compile-time
+boundaries and replace repeated source-set compilation. Names consumed only
+inside a module become `internal`; cross-module consumers retain public
+visibility.
+Alternatives considered: Keep one adapter module (rejected: the simulated
+boundaries already impose the cost without real Gradle ownership), or split
+by every area (rejected: skills areas share the scaffold/install lifecycle and
+the measured graph does not justify additional projects).
+
 ## [2026-09-17] SKILL-353 subtask 3: platform-pack substance report Gradle task removed
 Context: SKILL-353 subtask 3 census. `platformPackSubstanceReport` and `PlatformPackSubstanceReportMain` were referenced only from `runtime-infra/fs/build.gradle.kts` and feature-spec investigation prose. No CI workflow, script, or operator doc invoked the task. `RepoValidationCollected` already calls `PlatformPackSubstanceAudit.audit` on the `skill-bill validate` path.
 Decision: Delete the Gradle `platformPackSubstanceReport` task and `PlatformPackSubstanceReportMain.kt`. Relocate the audit implementation from `scaffold/substance/` to `scaffold/platformpack/substanceaudit/` with the same `PlatformPackSubstanceAudit` entry point. Do not add a CLI report command — no measured operator caller.
@@ -1783,8 +1807,8 @@ Machine-parseable rows: `path | symbol | rule | why`. Complexity rule names neve
 
 | path | symbol | rule | why |
 |------|--------|------|-----|
-| runtime-infra/fs/src/main/kotlin/skillbill/infrastructure/fs/FileSystemExternalAddonOverlayApply.kt | asMutableMap | UNCHECKED_CAST | SnakeYAML returns an erased mutable map; ClassCastException guard keeps string-key overlay writes honest |
-| runtime-infra/fs/src/main/kotlin/skillbill/infrastructure/fs/FileSystemExternalAddonOverlayApply.kt | asMutableList | UNCHECKED_CAST | SnakeYAML returns an erased mutable list; ClassCastException guard keeps manifest list overlay writes honest |
+| runtime-infra/skills/src/main/kotlin/skillbill/infrastructure/skills/FileSystemExternalAddonOverlayApply.kt | asMutableMap | UNCHECKED_CAST | SnakeYAML returns an erased mutable map; ClassCastException guard keeps string-key overlay writes honest |
+| runtime-infra/skills/src/main/kotlin/skillbill/infrastructure/skills/FileSystemExternalAddonOverlayApply.kt | asMutableList | UNCHECKED_CAST | SnakeYAML returns an erased mutable list; ClassCastException guard keeps manifest list overlay writes honest |
 | runtime-application/src/testFixtures/kotlin/skillbill/application/review/ReviewRecordingHarness.kt | recordingDatabase | UNCHECKED_CAST | Dynamic ReviewRepository proxy passes typed args through erased invoke; casts mirror the repository contract |
 | runtime-core/src/test/kotlin/skillbill/application/ApplicationPersistencePortTestSupport.kt | noopPort | UNCHECKED_CAST | Dynamic port proxy returns typed facade from erased invoke |
 | runtime-engine/src/test/kotlin/skillbill/engine/FeatureTaskRuntimeRunnerTestSupport.kt | noopPort | UNCHECKED_CAST | Dynamic port proxy returns typed facade from erased invoke |

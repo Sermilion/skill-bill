@@ -7,7 +7,7 @@ import skillbill.engine.featuretask.model.FeatureTaskRuntimeSubtaskCommitIdentit
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeSubtaskFinalisationBlocked
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeSubtaskFinalisationResult
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeSubtaskFinalised
-import skillbill.infrastructure.fs.GitWorkflowGitOperations
+import skillbill.infrastructure.workflow.GitWorkflowGitOperations
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
 import java.nio.file.Files
 import java.nio.file.Path

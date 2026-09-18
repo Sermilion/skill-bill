@@ -7,39 +7,20 @@ abstract class GovernedResourcesExtension @Inject constructor(objects: ObjectFac
 
   private val entries = mutableListOf<GovernedResourceEntry>()
 
-  fun entry(
-    taskName: String,
-    repoRelativeSource: String,
-    destinationDir: String,
-    owner: String,
-    sourceFromRuntimeKotlinProject: Boolean = false,
-    requireSourceIsFile: Boolean = false,
-    includeInMainProcessResources: Boolean = true,
-    includeInTestProcessResources: Boolean = true,
-  ) {
-    entries +=
-      GovernedResourceEntry(
-        taskName = taskName,
-        repoRelativeSource = repoRelativeSource,
-        destinationDir = destinationDir,
-        owner = owner,
-        sourceFromRuntimeKotlinProject = sourceFromRuntimeKotlinProject,
-        requireSourceIsFile = requireSourceIsFile,
-        includeInMainProcessResources = includeInMainProcessResources,
-        includeInTestProcessResources = includeInTestProcessResources,
-      )
+  fun entry(entry: GovernedResourceEntry) {
+    entries += entry
   }
 
   internal fun registeredEntries(): List<GovernedResourceEntry> = entries.toList()
 }
 
-internal data class GovernedResourceEntry(
+data class GovernedResourceEntry(
   val taskName: String,
   val repoRelativeSource: String,
   val destinationDir: String,
   val owner: String,
-  val sourceFromRuntimeKotlinProject: Boolean,
-  val requireSourceIsFile: Boolean,
-  val includeInMainProcessResources: Boolean,
-  val includeInTestProcessResources: Boolean,
+  val sourceFromRuntimeKotlinProject: Boolean = false,
+  val requireSourceIsFile: Boolean = false,
+  val includeInMainProcessResources: Boolean = true,
+  val includeInTestProcessResources: Boolean = true,
 )

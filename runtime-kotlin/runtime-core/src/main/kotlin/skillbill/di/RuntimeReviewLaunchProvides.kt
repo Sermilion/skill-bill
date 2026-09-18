@@ -1,12 +1,12 @@
 package skillbill.di
 
 import me.tatarka.inject.annotations.Provides
-import skillbill.infrastructure.fs.AgentRunReviewIsolationResolver
-import skillbill.infrastructure.fs.ClasspathReviewSpecialistContractProvider
-import skillbill.infrastructure.fs.FileSystemReviewAttribution
-import skillbill.infrastructure.fs.FileSystemReviewLaunchAgentStaging
-import skillbill.infrastructure.fs.FileSystemReviewNativeAgentPreflight
-import skillbill.infrastructure.fs.FileSystemReviewRubricResolver
+import skillbill.infrastructure.launcher.AgentRunReviewIsolationResolver
+import skillbill.infrastructure.launcher.FileSystemReviewLaunchAgentStaging
+import skillbill.infrastructure.workflow.ClasspathReviewSpecialistContractProvider
+import skillbill.infrastructure.workflow.FileSystemReviewAttribution
+import skillbill.infrastructure.workflow.FileSystemReviewNativeAgentPreflight
+import skillbill.infrastructure.workflow.FileSystemReviewRubricResolver
 import skillbill.model.OptionalCallbacks
 import skillbill.ports.review.ReviewAttributionPort
 import skillbill.ports.review.ReviewLaunchAgentStagingPort

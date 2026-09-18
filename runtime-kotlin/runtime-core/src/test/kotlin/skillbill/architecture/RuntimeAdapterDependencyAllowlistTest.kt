@@ -6,14 +6,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class RuntimeAdapterDependencyAllowlistTest {
-  private val runtimeRoot: Path =
-    Path.of("").toAbsolutePath().normalize().let { workingDir ->
-      if (workingDir.fileName.toString().startsWith("runtime-")) {
-        workingDir.parent
-      } else {
-        workingDir
-      }
-    }
+  private val runtimeRoot: Path = ArchitectureScanSupport.runtimeRoot
 
   @Test
   fun `every declared module has only the curated main-source runtime project dependencies`() {
@@ -90,17 +83,27 @@ class RuntimeAdapterDependencyAllowlistTest {
   }
 
   @Test
-  fun `runtime-application declares no production dependency on runtime-infra fs (SKILL-140 AC-005)`() {
+  fun `runtime-application declares no production dependency on infrastructure adapters (SKILL-140 AC-005)`() {
+    val forbidden = setOf(
+      "runtime-infra:host",
+      "runtime-infra:contracts",
+      "runtime-infra:skills",
+      "runtime-infra:launcher",
+      "runtime-infra:workflow",
+      "runtime-infra:http",
+      "runtime-infra:sqlite",
+    )
+    val violations = forbidden.filter { moduleName -> moduleName in mainProjectDependencies("runtime-application") }
     assertEquals(
-      false,
-      "runtime-infra:fs" in mainProjectDependencies("runtime-application"),
-      "runtime-application must not gain a production dependency on runtime-infra:fs.",
+      emptyList(),
+      violations,
+      "runtime-application must not gain a production dependency on infrastructure modules.",
     )
   }
 
   private fun testFixturesProjectDependencies(moduleName: String): Set<String> {
     val buildFile = runtimeRoot.resolve(
-      "${RuntimeModuleCatalog.gradleModuleIdToDirectoryPath(moduleName)}/build.gradle.kts",
+      "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory(moduleName)}/build.gradle.kts",
     )
     val source = Files.readString(buildFile)
     val testFixturesConfigurations = listOf("testFixturesImplementation", "testFixturesApi")
@@ -117,7 +120,7 @@ class RuntimeAdapterDependencyAllowlistTest {
 
   private fun mainProjectDependencies(moduleName: String): Set<String> {
     val buildFile = runtimeRoot.resolve(
-      "${RuntimeModuleCatalog.gradleModuleIdToDirectoryPath(moduleName)}/build.gradle.kts",
+      "${RuntimeModuleCatalog.runtimeKotlinModuleDirectory(moduleName)}/build.gradle.kts",
     )
     val source = Files.readString(buildFile)
     val testConfigurations =

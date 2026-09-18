@@ -2,13 +2,13 @@ package skillbill.di
 
 import me.tatarka.inject.annotations.Provides
 import skillbill.contracts.time.JvmSystemClock
-import skillbill.infrastructure.fs.JdkBoundedWorkFanOutPort
-import skillbill.infrastructure.fs.JdkDaemonThreadPort
-import skillbill.infrastructure.fs.JdkIdentifierGeneratorPort
-import skillbill.infrastructure.fs.JdkRuntimeDiagnostics
-import skillbill.infrastructure.fs.JdkRuntimeTimingPort
-import skillbill.infrastructure.fs.JdkShutdownHookPort
-import skillbill.infrastructure.fs.jvm.JdkHostPlatformPort
+import skillbill.infrastructure.host.JdkBoundedWorkFanOutPort
+import skillbill.infrastructure.host.JdkDaemonThreadPort
+import skillbill.infrastructure.host.JdkIdentifierGeneratorPort
+import skillbill.infrastructure.host.JdkRuntimeDiagnostics
+import skillbill.infrastructure.host.JdkRuntimeTimingPort
+import skillbill.infrastructure.host.JdkShutdownHookPort
+import skillbill.infrastructure.host.jvm.JdkHostPlatformPort
 import skillbill.model.OptionalCallbacks
 import skillbill.ports.concurrency.BoundedWorkFanOutPort
 import skillbill.ports.diagnostics.RuntimeDiagnostics
