@@ -5,6 +5,13 @@ data class FeatureTaskRuntimeCommitPushHandoff(
   val changedPaths: List<String>,
 )
 
+data class FeatureTaskRuntimeCommitPushReceipt(
+  val commitSha: String?,
+  val branch: String? = null,
+  val baseBranch: String? = null,
+  val pushed: Boolean = false,
+)
+
 sealed interface FeatureTaskRuntimeCommitPushHandoffResult
 
 data class FeatureTaskRuntimeCommitPushHandoffValid(

@@ -3,6 +3,7 @@ package skillbill.workflow.taskruntime
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.decomposition.DecompositionManifestPayloadKeys
 import skillbill.contracts.decomposition.DecompositionPlanningPayloadKeys
+import skillbill.contracts.workflow.FeatureTaskRuntimeCommitPushPayloadKeys
 import skillbill.contracts.workflow.ValidationEvidencePayloadKeys
 import skillbill.workflow.engine.model.WorkflowDefinition
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeHandoffProjectionBudget
@@ -323,7 +324,7 @@ internal object FeatureTaskRuntimePhaseWorkflowProjectionDeclarations {
             DecompositionManifestPayloadKeys.COMMIT_SHA,
             DecompositionPlanningPayloadKeys.BRANCH,
             DecompositionPlanningPayloadKeys.BASE_BRANCH,
-            "pushed",
+            FeatureTaskRuntimeCommitPushPayloadKeys.PUSHED,
           ),
           checkpointPolicy = FeatureTaskRuntimeRepositoryCheckpointPolicy.NOT_REQUIRED,
           required = true,

@@ -1,5 +1,13 @@
 # featuretask runtime boundary history
 
+## [2026-09-18] commit_push is runtime-owned with no agent turn
+Areas: runtime-kotlin/runtime-engine/featuretask
+- `commit_push` no longer launches an agent. The runtime stages dirty paths, writes the commit subject from the issue key and subtask name, pushes, and records `commit_sha`.
+- Pattern: do not ask an agent for structured output when the runtime already owns the mutation and the only remaining field is a name the manifest already has. reusable
+- Limitation: commit subjects no longer describe the post-review outcome in agent prose; they use the planned subtask name.
+Feature flag: N/A
+Acceptance criteria: 1/1 implemented
+
 ## [2026-09-16] commit_push stages every dirty path including feature specs
 Areas: runtime-kotlin/runtime-engine/featuretask
 - commit_push briefing no longer tells the agent to omit `.feature-specs/` from `changed_paths`.

@@ -121,11 +121,12 @@ object FeatureTaskRuntimeCheckpointMessage {
     metadata: FeatureTaskRuntimeCheckpointMetadata,
     identity: FeatureTaskRuntimeSubtaskCommitIdentity,
   ): String {
-    val subject = subtaskName?.trim()?.takeIf(String::isNotBlank)
-      ?.let { "$issueKey: $it" }
-      ?: fallbackSubject(issueKey, identity.subtaskId)
-    return compose(subject, metadata, identity)
+    return compose(subject(issueKey, subtaskName, identity.subtaskId), metadata, identity)
   }
+
+  fun subject(issueKey: String, subtaskName: String?, subtaskId: String): String =
+    subtaskName?.trim()?.takeIf(String::isNotBlank)?.let { "$issueKey: $it" }
+      ?: fallbackSubject(issueKey, subtaskId)
 
   fun finalise(
     subject: String,
@@ -147,8 +148,8 @@ object FeatureTaskRuntimeCheckpointMessage {
   fun missingSubtaskNameRecord(issueKey: String, subtaskId: String): String =
     "seam=FeatureTaskRuntimeCheckpointMessage.build value_used='${fallbackSubject(issueKey, subtaskId)}' " +
       "value_expected=manifest subtask name for '$issueKey' subtask '$subtaskId' " +
-      "cause=the durable goal-continuation row carried no subtask name; the checkpoint subject " +
-      "degrades to the issue key until finalisation rewrites it"
+      "cause=the durable goal-continuation row carried no subtask name; the commit subject " +
+      "degrades to the issue key and subtask id"
 
   const val INTENT_AUDITED_IMPLEMENTATION: String = "audited implementation"
   const val INTENT_REMEDIATION: String = "remediation"

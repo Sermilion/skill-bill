@@ -228,16 +228,9 @@ val phaseDirectives: Map<String, String> = mapOf(
     "runtime change. Emit a bounded history_result containing changed_paths and decisions_recorded " +
     "alongside whether history was written or skipped; do not forward implementation or validation reports.",
   FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_COMMIT_PUSH to
-    "Run no git command in this phase. The runtime stages, commits, and pushes the subtask on the " +
-    "resolved feature branch from what you emit here. Emit commit_push_result with `message` (the " +
-    "commit subject describing the implemented, reviewed, audited, validated, and history-updated " +
-    "outcome) and optional `changed_paths` (advisory: every dirty path, including `.feature-specs/`). " +
-    "The runtime stages every dirty non-ignored worktree path — including `.feature-specs/`, validate " +
-    "repairs, and concurrent operator edits — so an incomplete list cannot strand deliverable dirt. " +
-    "A missing or blank `message` blocks the subtask rather than publishing a provisional subject. " +
-    "Do not emit commit_sha: the " +
-    "runtime captures it after the " +
-    "commit. If goal-continuation suppresses PR, this successful phase is the terminal success " +
+    "This phase does not launch an agent. The runtime stages every dirty non-ignored path, including " +
+    "`.feature-specs/`, commits with a subject from the issue key and subtask name, pushes, and " +
+    "records commit_sha. If goal-continuation suppresses PR, this phase is the terminal success " +
     "signal for the goal subtask.",
   FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_PR to
     "Invoke bill-pr-description, honor any repo-native PR template except its checklist, and " +
