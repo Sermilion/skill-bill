@@ -1,9 +1,5 @@
 package skillbill.infrastructure.sqlite.review
 import skillbill.contracts.review.ReviewFindingPayloadKeys
-import skillbill.infrastructure.sqlite.PARAM_FOUR
-import skillbill.infrastructure.sqlite.PARAM_ONE
-import skillbill.infrastructure.sqlite.PARAM_THREE
-import skillbill.infrastructure.sqlite.PARAM_TWO
 import skillbill.ports.review.model.ReviewIntegrationPassRecord
 import skillbill.review.context.model.ReviewLaneReviewDisposition
 import skillbill.review.model.ImportedFinding
@@ -13,14 +9,16 @@ import skillbill.review.model.ReviewLaneResolutionState
 import skillbill.review.model.ReviewRunLane
 import skillbill.review.model.toStoredSegmentIdList
 import java.sql.Connection
+import skillbill.infrastructure.sqlite.core.bindAll
+import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
 
-const val UNATTRIBUTED_LANE: String = "unattributed"
+internal const val UNATTRIBUTED_LANE: String = "unattributed"
 private const val UNRESOLVED_ROUTED_SKILL: String = "unresolved"
 
-fun replaceReviewRunLanes(connection: Connection, reviewRunId: String, lanes: List<ReviewRunLane>) {
+internal fun replaceReviewRunLanes(connection: Connection, reviewRunId: String, lanes: List<ReviewRunLane>) {
   reserveReviewRun(connection, reviewRunId)
   connection.prepareStatement("DELETE FROM review_run_lanes WHERE review_run_id = ?").use { statement ->
-    statement.setString(PARAM_ONE, reviewRunId)
+    statement.bindAll(reviewRunId)
     statement.executeUpdate()
   }
   lanes.forEach { lane ->
@@ -44,20 +42,22 @@ fun replaceReviewRunLanes(connection: Connection, reviewRunId: String, lanes: Li
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       """.trimIndent(),
     ).use { statement ->
-      statement.setString(PARAM_ONE, reviewRunId)
-      statement.setString(PARAM_TWO, lane.laneSkillName)
-      statement.setString(PARAM_THREE, lane.packSlug)
-      statement.setString(PARAM_FOUR, lane.area)
-      statement.setInt(PARAM_FIVE, lane.depth)
-      statement.setBoolean(PARAM_SIX, lane.required)
-      statement.setInt(PARAM_SEVEN, lane.orderIndex)
-      statement.setString(PARAM_EIGHT, lane.originLayerChain.joinToString("->"))
-      statement.setString(PARAM_NINE, lane.resolutionState.wireValue)
-      statement.setString(PARAM_TEN, lane.reviewDisposition.wireValue)
-      statement.setString(PARAM_ELEVEN, lane.bundleCompositionDigest)
-      statement.setString(PARAM_TWELVE, lane.segmentAccountingJson)
-      statement.setString(PARAM_THIRTEEN, lane.unreviewedSegmentIds.toStoredSegmentIdList())
-      statement.setString(PARAM_FOURTEEN, lane.budgetDimension)
+      statement.bindAll(
+        reviewRunId,
+        lane.laneSkillName,
+        lane.packSlug,
+        lane.area,
+        lane.depth,
+        lane.required,
+        lane.orderIndex,
+        lane.originLayerChain.joinToString("->"),
+        lane.resolutionState.wireValue,
+        lane.reviewDisposition.wireValue,
+        lane.bundleCompositionDigest,
+        lane.segmentAccountingJson,
+        lane.unreviewedSegmentIds.toStoredSegmentIdList(),
+        lane.budgetDimension,
+      )
       statement.executeUpdate()
     }
   }
@@ -67,15 +67,14 @@ internal fun reserveReviewRun(connection: Connection, reviewRunId: String) {
   connection.prepareStatement(
     "INSERT OR IGNORE INTO review_runs (review_run_id, review_session_id, raw_text) VALUES (?, ?, '')",
   ).use { statement ->
-    statement.setString(PARAM_ONE, reviewRunId)
-    statement.setString(PARAM_TWO, reviewRunId)
+    statement.bindAll(reviewRunId, reviewRunId)
     statement.executeUpdate()
   }
 }
 
-fun fetchReviewRunLanes(connection: Connection, reviewRunId: String): List<ReviewRunLane> =
+internal fun fetchReviewRunLanes(connection: Connection, reviewRunId: String): List<ReviewRunLane> =
   connection.prepareStatement(reviewRunLanesSql).use { statement ->
-    statement.setString(PARAM_ONE, reviewRunId)
+    statement.bindAll(reviewRunId)
     statement.executeQuery().use { resultSet ->
       buildList {
         while (resultSet.next()) {
@@ -97,7 +96,7 @@ fun fetchReviewRunLanes(connection: Connection, reviewRunId: String): List<Revie
                 ?: ReviewLaneReviewDisposition.INCOMPLETE,
               bundleCompositionDigest = resultSet.getString("bundle_composition_digest"),
               segmentAccountingJson = resultSet.getString("segment_accounting_json"),
-              unreviewedSegmentIds = resultSet.getString("unreviewed_segment_ids").orEmpty().toStoredSegmentIdList(),
+              unreviewedSegmentIds = resultSet.getString(SqliteReviewTelemetryPayloadKeys.UNREVIEWED_SEGMENT_IDS).orEmpty().toStoredSegmentIdList(),
               budgetDimension = resultSet.getString("budget_dimension"),
             ),
           )
@@ -106,7 +105,7 @@ fun fetchReviewRunLanes(connection: Connection, reviewRunId: String): List<Revie
     }
   }
 
-fun recordIntegrationPass(connection: Connection, reviewRunId: String, record: ReviewIntegrationPassRecord) {
+internal fun recordIntegrationPass(connection: Connection, reviewRunId: String, record: ReviewIntegrationPassRecord) {
   reserveReviewRun(connection, reviewRunId)
   connection.prepareStatement(
     """
@@ -115,19 +114,17 @@ fun recordIntegrationPass(connection: Connection, reviewRunId: String, record: R
     WHERE review_run_id = ?
     """.trimIndent(),
   ).use { statement ->
-    statement.setString(PARAM_ONE, record.terminalOutcome)
-    statement.setString(PARAM_TWO, record.commitSequenceDigest)
-    statement.setString(PARAM_THREE, reviewRunId)
+    statement.bindAll(record.terminalOutcome, record.commitSequenceDigest, reviewRunId)
     statement.executeUpdate()
   }
 }
 
-fun fetchIntegrationPass(connection: Connection, reviewRunId: String): ReviewIntegrationPassRecord? =
+internal fun fetchIntegrationPass(connection: Connection, reviewRunId: String): ReviewIntegrationPassRecord? =
   connection.prepareStatement(
     "SELECT integration_terminal_outcome, integration_commit_sequence_digest " +
       "FROM review_runs WHERE review_run_id = ?",
   ).use { statement ->
-    statement.setString(PARAM_ONE, reviewRunId)
+    statement.bindAll(reviewRunId)
     statement.executeQuery().use { resultSet ->
       if (!resultSet.next()) return null
       val outcome = resultSet.getString("integration_terminal_outcome") ?: return null
@@ -136,11 +133,10 @@ fun fetchIntegrationPass(connection: Connection, reviewRunId: String): ReviewInt
     }
   }
 
-fun queryReviewLaneEffectiveness(connection: Connection, reviewRunId: String?): List<ReviewLaneEffectivenessRow> {
+internal fun queryReviewLaneEffectiveness(connection: Connection, reviewRunId: String?): List<ReviewLaneEffectivenessRow> {
   val counters = linkedMapOf<Triple<String, String, String>, MutableList<String>>()
   connection.prepareStatement(laneEffectivenessSql).use { statement ->
-    statement.setString(PARAM_ONE, reviewRunId)
-    statement.setString(PARAM_TWO, reviewRunId)
+    statement.bindAll(reviewRunId, reviewRunId)
     statement.executeQuery().use { resultSet ->
       while (resultSet.next()) {
         val key = Triple(
@@ -148,7 +144,7 @@ fun queryReviewLaneEffectiveness(connection: Connection, reviewRunId: String?): 
           resultSet.getString("pack_slug") ?: UNATTRIBUTED_LANE,
           resultSet.getString("area") ?: UNATTRIBUTED_LANE,
         )
-        counters.getOrPut(key) { mutableListOf() } += resultSet.getString("outcome_type").orEmpty()
+        counters.getOrPut(key) { mutableListOf() } += resultSet.getString(SqliteReviewTelemetryPayloadKeys.OUTCOME_TYPE).orEmpty()
       }
     }
   }
@@ -164,7 +160,7 @@ fun queryReviewLaneEffectiveness(connection: Connection, reviewRunId: String?): 
   }
 }
 
-fun updateFindingLaneAttribution(
+internal fun updateFindingLaneAttribution(
   connection: Connection,
   review: ImportedReview,
   lanes: List<ReviewRunLane>,
@@ -180,17 +176,13 @@ fun updateFindingLaneAttribution(
     review.findings.forEach { finding ->
       val laneName = finding.effectiveLaneName(recordedLanes)
       val lane = laneName?.let(lanesByName::get)
-      statement.setString(PARAM_ONE, laneName)
-      statement.setString(PARAM_TWO, lane?.area)
-      statement.setString(PARAM_THREE, lane?.packSlug)
-      statement.setString(PARAM_FOUR, review.reviewRunId)
-      statement.setString(PARAM_FIVE, finding.findingId)
+      statement.bindAll(laneName, lane?.area, lane?.packSlug, review.reviewRunId, finding.findingId)
       statement.executeUpdate()
     }
   }
 }
 
-fun recordFindingLaneAttribution(connection: Connection, reviewRunId: String, attribution: Map<String, String>) {
+internal fun recordFindingLaneAttribution(connection: Connection, reviewRunId: String, attribution: Map<String, String>) {
   if (attribution.isEmpty()) return
   reserveReviewRun(connection, reviewRunId)
   connection.prepareStatement(
@@ -201,19 +193,17 @@ fun recordFindingLaneAttribution(connection: Connection, reviewRunId: String, at
     """.trimIndent(),
   ).use { statement ->
     attribution.forEach { (findingId, laneSkillName) ->
-      statement.setString(PARAM_ONE, reviewRunId)
-      statement.setString(PARAM_TWO, findingId)
-      statement.setString(PARAM_THREE, laneSkillName)
+      statement.bindAll(reviewRunId, findingId, laneSkillName)
       statement.executeUpdate()
     }
   }
 }
 
-fun fetchFindingLaneAttribution(connection: Connection, reviewRunId: String): Map<String, String> =
+internal fun fetchFindingLaneAttribution(connection: Connection, reviewRunId: String): Map<String, String> =
   connection.prepareStatement(
     "SELECT finding_id, lane_skill_name FROM review_run_finding_lanes WHERE review_run_id = ?",
   ).use { statement ->
-    statement.setString(PARAM_ONE, reviewRunId)
+    statement.bindAll(reviewRunId)
     statement.executeQuery().use { resultSet ->
       buildMap {
         while (resultSet.next()) {

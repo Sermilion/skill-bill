@@ -6,9 +6,9 @@ private const val MEDIAN_PERCENTILE = 50.0
 private const val P90_PERCENTILE = 90.0
 private const val PERCENT_SCALE = 100.0
 
-fun median(values: List<Int>): Double = percentile(values, MEDIAN_PERCENTILE)
+internal fun median(values: List<Int>): Double = percentile(values, MEDIAN_PERCENTILE)
 
-fun p90(values: List<Int>): Double = percentile(values, P90_PERCENTILE)
+internal fun p90(values: List<Int>): Double = percentile(values, P90_PERCENTILE)
 
 private fun percentile(values: List<Int>, percentile: Double): Double {
   if (values.isEmpty()) {

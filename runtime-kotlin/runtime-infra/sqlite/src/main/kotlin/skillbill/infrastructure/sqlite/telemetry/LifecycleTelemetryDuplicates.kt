@@ -1,16 +1,19 @@
 package skillbill.infrastructure.sqlite.telemetry
 
+import skillbill.infrastructure.sqlite.core.bindAll
+import skillbill.contracts.telemetry.GoalTelemetryPayloadKeys
+
 import java.sql.Connection
 
-fun lifecycleAlreadyFinished(connection: Connection, tableName: String, sessionId: String): Boolean =
+internal fun lifecycleAlreadyFinished(connection: Connection, tableName: String, sessionId: String): Boolean =
   connection.prepareStatement("SELECT finished_at FROM $tableName WHERE session_id = ?").use { statement ->
-    statement.setString(1, sessionId)
+    statement.bindAll(sessionId)
     statement.executeQuery().use { resultSet ->
-      resultSet.next() && !resultSet.getString("finished_at").isNullOrBlank()
+      resultSet.next() && !resultSet.getString(GoalTelemetryPayloadKeys.FINISHED_AT).isNullOrBlank()
     }
   }
 
-fun incrementDuplicateTerminalFinishedEvents(connection: Connection, tableName: String, sessionId: String) {
+internal fun incrementDuplicateTerminalFinishedEvents(connection: Connection, tableName: String, sessionId: String) {
   connection.prepareStatement(
     """
     UPDATE $tableName
@@ -18,12 +21,12 @@ fun incrementDuplicateTerminalFinishedEvents(connection: Connection, tableName: 
     WHERE session_id = ?
     """.trimIndent(),
   ).use { statement ->
-    statement.setString(1, sessionId)
+    statement.bindAll(sessionId)
     statement.executeUpdate()
   }
 }
 
-fun staleFinishedAlreadyEmitted(
+internal fun staleFinishedAlreadyEmitted(
   connection: Connection,
   tableName: String,
   terminalColumn: String,
@@ -35,7 +38,7 @@ fun staleFinishedAlreadyEmitted(
     WHERE session_id = ?
   """.trimIndent(),
 ).use { statement ->
-  statement.setString(1, sessionId)
+  statement.bindAll(sessionId)
   statement.executeQuery().use { resultSet ->
     resultSet.next() &&
       resultSet.getString(terminalColumn) == "stale" &&
@@ -43,7 +46,7 @@ fun staleFinishedAlreadyEmitted(
   }
 }
 
-fun terminalEventAlreadyEmitted(connection: Connection, tableName: String, sessionId: String): Boolean =
+internal fun terminalEventAlreadyEmitted(connection: Connection, tableName: String, sessionId: String): Boolean =
   connection.prepareStatement(
     """
     SELECT finished_event_emitted_at
@@ -51,7 +54,7 @@ fun terminalEventAlreadyEmitted(connection: Connection, tableName: String, sessi
     WHERE session_id = ?
     """.trimIndent(),
   ).use { statement ->
-    statement.setString(1, sessionId)
+    statement.bindAll(sessionId)
     statement.executeQuery().use { resultSet ->
       resultSet.next() && !resultSet.getString("finished_event_emitted_at").isNullOrBlank()
     }

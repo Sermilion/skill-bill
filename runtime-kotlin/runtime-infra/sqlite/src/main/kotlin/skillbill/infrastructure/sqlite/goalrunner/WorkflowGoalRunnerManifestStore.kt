@@ -6,6 +6,7 @@ import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.decomposition.DecompositionManifestProjectionWriter
 import skillbill.ports.goalrunner.persistence.GoalChildPlanningHydratorPort
 import skillbill.ports.goalrunner.runner.GoalRunnerManifestStore
+import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.engine.WorkflowSnapshotValidator
@@ -61,3 +62,25 @@ private fun buildParts(ctx: WorkflowGoalRunnerManifestStoreContext): ManifestSto
     review = WorkflowGoalRunnerManifestReviewOpsImpl(ctx),
   )
 }
+
+internal class WorkflowGoalRunnerManifestPurgeOpsImpl(
+  private val ctx: WorkflowGoalRunnerManifestStoreContext,
+) : GoalRunnerManifestPurgeCommands {
+  override fun listOwnedGoalChildWorkflowIds(parentWorkflowId: String): List<String> =
+    ctx.database.read { it.workflowStates.listGoalChildWorkflowIdsByParent(parentWorkflowId) }
+
+  override fun purgeDecomposedGoal(parentWorkflowId: String) {
+    ctx.database.transaction { unitOfWork ->
+      goalRunnerPurgePersistence(unitOfWork).purgeDecomposedGoal(unitOfWork, parentWorkflowId)
+    }
+  }
+}
+
+internal class WorkflowGoalRunnerPurgePersistence {
+  fun purgeDecomposedGoal(unitOfWork: UnitOfWork, parentWorkflowId: String) {
+    unitOfWork.purgeDecomposedGoal(parentWorkflowId)
+  }
+}
+
+internal fun goalRunnerPurgePersistence(unitOfWork: UnitOfWork): WorkflowGoalRunnerPurgePersistence =
+  WorkflowGoalRunnerPurgePersistence()

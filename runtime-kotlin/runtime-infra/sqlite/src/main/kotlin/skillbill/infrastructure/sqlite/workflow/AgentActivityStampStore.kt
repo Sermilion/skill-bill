@@ -1,5 +1,6 @@
 package skillbill.infrastructure.sqlite.workflow
 
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.idestatus.model.AgentActivityLabel
 import skillbill.idestatus.model.AgentActivityStamp
 import skillbill.ports.idestatus.AgentActivityStampRepository
@@ -60,9 +61,7 @@ internal class AgentActivityStampStore(
       )
       """.trimIndent(),
     ).use { statement ->
-      statement.setString(WORKFLOW_ID_INDEX, workflowId)
-      statement.setString(RECORDED_AT_INDEX, stamp.recordedAt.toString())
-      statement.setString(LABEL_INDEX, stamp.label.wireValue)
+      statement.bindAll(workflowId, stamp.recordedAt.toString(), stamp.label.wireValue)
       statement.executeUpdate()
     }
   }
@@ -76,7 +75,7 @@ internal class AgentActivityStampStore(
       WHERE workflow_id = ?
       """.trimIndent(),
     ).use { statement ->
-      statement.setString(WORKFLOW_ID_INDEX, workflowId)
+      statement.bindAll(workflowId)
       statement.executeQuery().use(::stampFromResultSet)
     }
   }
@@ -97,9 +96,4 @@ internal class AgentActivityStampStore(
     }
   }
 
-  private companion object {
-    const val WORKFLOW_ID_INDEX: Int = 1
-    const val RECORDED_AT_INDEX: Int = 2
-    const val LABEL_INDEX: Int = 3
-  }
 }

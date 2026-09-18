@@ -1,27 +1,26 @@
 package skillbill.infrastructure.sqlite.review
 import skillbill.contracts.JsonCodec
-import skillbill.infrastructure.sqlite.PARAM_ONE
-import skillbill.infrastructure.sqlite.PARAM_TWO
 import skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxStore
 import skillbill.ports.telemetry.model.toReviewFinishedTelemetryPayload
 import skillbill.review.model.ReviewExecutionMode
 import skillbill.review.model.ReviewFinishedTelemetry
 import skillbill.review.model.ReviewSummary
 import java.sql.Connection
+import skillbill.infrastructure.sqlite.core.bindAll
 
-data class ReviewTelemetryState(
-  val enabled: Boolean,
-  val level: String,
+internal data class ReviewTelemetryState(
+  internal val enabled: Boolean,
+  internal val level: String,
 )
 
-fun resolveTelemetryState(enabled: Boolean?, level: String?): ReviewTelemetryState {
+internal fun resolveTelemetryState(enabled: Boolean?, level: String?): ReviewTelemetryState {
   return ReviewTelemetryState(
     enabled = enabled ?: false,
     level = level ?: "off",
   )
 }
 
-fun reviewAlreadyEmittedForSession(connection: Connection, sessionId: String, reviewRunId: String): Boolean {
+internal fun reviewAlreadyEmittedForSession(connection: Connection, sessionId: String, reviewRunId: String): Boolean {
   if (sessionId.isEmpty()) {
     return false
   }
@@ -33,13 +32,12 @@ fun reviewAlreadyEmittedForSession(connection: Connection, sessionId: String, re
       AND review_finished_event_emitted_at IS NOT NULL
     """.trimIndent(),
   ).use { statement ->
-    statement.setString(PARAM_ONE, sessionId)
-    statement.setString(PARAM_TWO, reviewRunId)
+    statement.bindAll(sessionId, reviewRunId)
     statement.executeQuery().use { resultSet -> resultSet.next() }
   }
 }
 
-fun ensureReviewFinishedTimestamp(
+internal fun ensureReviewFinishedTimestamp(
   connection: Connection,
   reviewRunId: String,
   reviewSummary: ReviewSummary,
@@ -54,13 +52,13 @@ fun ensureReviewFinishedTimestamp(
     WHERE review_run_id = ? AND review_finished_at IS NULL
     """.trimIndent(),
   ).use { statement ->
-    statement.setString(PARAM_ONE, reviewRunId)
+    statement.bindAll(reviewRunId)
     statement.executeUpdate()
   }
   return ReviewRuntime.fetchReviewSummary(connection, reviewRunId)
 }
 
-fun ensureTerminalReviewState(connection: Connection, reviewRunId: String, executionMode: ReviewExecutionMode?) {
+internal fun ensureTerminalReviewState(connection: Connection, reviewRunId: String, executionMode: ReviewExecutionMode?) {
   connection.prepareStatement(
     """
     UPDATE review_runs
@@ -69,13 +67,12 @@ fun ensureTerminalReviewState(connection: Connection, reviewRunId: String, execu
     WHERE review_run_id = ?
     """.trimIndent(),
   ).use { statement ->
-    statement.setString(PARAM_ONE, executionMode?.wireValue)
-    statement.setString(PARAM_TWO, reviewRunId)
+    statement.bindAll(executionMode?.wireValue, reviewRunId)
     statement.executeUpdate()
   }
 }
 
-fun finalizeReviewFinishedTelemetry(
+internal fun finalizeReviewFinishedTelemetry(
   connection: Connection,
   reviewRunId: String,
   reviewSummary: ReviewSummary,
@@ -98,7 +95,7 @@ fun finalizeReviewFinishedTelemetry(
   }
 }
 
-fun enqueueTelemetryEvent(
+internal fun enqueueTelemetryEvent(
   connection: Connection,
   eventName: String,
   payload: ReviewFinishedTelemetry,
@@ -112,7 +109,7 @@ fun enqueueTelemetryEvent(
   }
 }
 
-fun updatePendingReviewFinishedEvent(
+internal fun updatePendingReviewFinishedEvent(
   connection: Connection,
   reviewSessionId: String,
   payload: ReviewFinishedTelemetry,
@@ -126,13 +123,15 @@ fun updatePendingReviewFinishedEvent(
       AND json_extract(payload_json, '$.review_session_id') = ?
     """.trimIndent(),
   ).use { statement ->
-    statement.setString(PARAM_ONE, JsonCodec.mapToJsonString(payload.toReviewFinishedTelemetryPayload().toPayload()))
-    statement.setString(PARAM_TWO, reviewSessionId)
+    statement.bindAll(
+      JsonCodec.mapToJsonString(payload.toReviewFinishedTelemetryPayload().toPayload()),
+      reviewSessionId,
+    )
     statement.executeUpdate()
   }
 }
 
-fun markReviewFinishedEventEmitted(connection: Connection, reviewRunId: String) {
+internal fun markReviewFinishedEventEmitted(connection: Connection, reviewRunId: String) {
   connection.prepareStatement(
     """
     UPDATE review_runs
@@ -140,7 +139,7 @@ fun markReviewFinishedEventEmitted(connection: Connection, reviewRunId: String) 
     WHERE review_run_id = ?
     """.trimIndent(),
   ).use { statement ->
-    statement.setString(PARAM_ONE, reviewRunId)
+    statement.bindAll(reviewRunId)
     statement.executeUpdate()
   }
 }

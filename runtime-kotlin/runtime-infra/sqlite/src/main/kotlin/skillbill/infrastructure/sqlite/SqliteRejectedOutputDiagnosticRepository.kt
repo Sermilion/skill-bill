@@ -2,6 +2,7 @@ package skillbill.infrastructure.sqlite
 
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.InvalidProducerOutputEvidenceSchemaError
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticRepository
 import skillbill.ports.diagnostics.model.ProducerOutputEvidence
 import skillbill.ports.diagnostics.model.RejectedOutputDiagnostic
@@ -17,7 +18,7 @@ import java.sql.SQLException
 import java.time.Instant
 import java.time.format.DateTimeParseException
 
-class SqliteRejectedOutputDiagnosticRepository(
+internal class SqliteRejectedOutputDiagnosticRepository(
   private val connection: Connection,
 ) : RejectedOutputDiagnosticRepository {
   override fun insert(record: RejectedOutputDiagnosticRecord): RejectedOutputDiagnosticRecord {
@@ -38,22 +39,23 @@ class SqliteRejectedOutputDiagnosticRepository(
         """.trimIndent(),
       ).use { statement ->
         val metadata = record.metadata
-        var index = 1
-        statement.setString(index++, metadata.identity)
-        statement.setString(index++, metadata.workflowId)
-        statement.setString(index++, metadata.phaseId)
-        statement.setInt(index++, metadata.attempt)
-        statement.setInt(index++, metadata.repairTurn)
-        statement.setString(index++, metadata.rule)
-        statement.setString(index++, metadata.path)
-        statement.setString(index++, metadata.reason)
-        statement.setString(index++, metadata.agentId)
-        statement.setString(index++, metadata.model)
-        statement.setString(index++, metadata.recordedAt.toString())
-        statement.setLong(index++, metadata.byteSize)
-        statement.setString(index++, metadata.sha256)
-        statement.setString(index++, metadata.lifecycle.name.lowercase())
-        statement.setBytes(index, record.payload)
+        statement.bindAll(
+          metadata.identity,
+          metadata.workflowId,
+          metadata.phaseId,
+          metadata.attempt,
+          metadata.repairTurn,
+          metadata.rule,
+          metadata.path,
+          metadata.reason,
+          metadata.agentId,
+          metadata.model,
+          metadata.recordedAt.toString(),
+          metadata.byteSize,
+          metadata.sha256,
+          metadata.lifecycle.name.lowercase(),
+          record.payload,
+        )
         statement.executeUpdate()
       }
       return record
@@ -69,7 +71,7 @@ class SqliteRejectedOutputDiagnosticRepository(
       connection.prepareStatement(
         "${selectColumns()} WHERE ${selector.whereClause()} ORDER BY phase_id, attempt, repair_turn",
       ).use { statement ->
-        selector.bind(statement)
+        selector.bindAll(statement)
         statement.executeQuery().use { rows ->
           buildList { while (rows.next()) add(rows.toRecord().metadata) }
         }
@@ -89,7 +91,7 @@ class SqliteRejectedOutputDiagnosticRepository(
       WHERE lifecycle = 'stored' AND recorded_at < ?
       """.trimIndent(),
     ).use { statement ->
-      statement.setString(1, before.toString())
+      statement.bindAll(before.toString())
       statement.executeUpdate()
     }
   }
@@ -98,7 +100,7 @@ class SqliteRejectedOutputDiagnosticRepository(
     connection.prepareStatement(
       "DELETE FROM rejected_output_diagnostics WHERE ${selector.whereClause()}",
     ).use { statement ->
-      selector.bind(statement)
+      selector.bindAll(statement)
       statement.executeUpdate()
     }
   }
@@ -113,18 +115,19 @@ class SqliteRejectedOutputDiagnosticRepository(
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """.trimIndent(),
       ).use {
-        var index = 1
-        it.setString(index++, evidence.workflowId)
-        it.setString(index++, evidence.phaseId)
-        it.setInt(index++, evidence.generation)
-        it.setInt(index++, evidence.attempt)
-        it.setInt(index++, evidence.repairTurn)
-        it.setString(index++, evidence.agentId)
-        it.setString(index++, evidence.model)
-        it.setString(index++, evidence.recordedAt.toString())
-        it.setLong(index++, evidence.byteSize)
-        it.setString(index++, evidence.sha256)
-        it.setBytes(index, evidence.payload)
+        it.bindAll(
+          evidence.workflowId,
+          evidence.phaseId,
+          evidence.generation,
+          evidence.attempt,
+          evidence.repairTurn,
+          evidence.agentId,
+          evidence.model,
+          evidence.recordedAt.toString(),
+          evidence.byteSize,
+          evidence.sha256,
+          evidence.payload,
+        )
         it.executeUpdate()
       }
       val retained = connection.queryProducerEvidence(
@@ -169,7 +172,7 @@ class SqliteRejectedOutputDiagnosticRepository(
 
   override fun deleteProducerOutputsBefore(before: Instant): Int = persistence("delete-producer-outputs") {
     connection.prepareStatement("DELETE FROM producer_output_evidence WHERE recorded_at < ?").use {
-      it.setString(1, before.toString())
+      it.bindAll(before.toString())
       it.executeUpdate()
     }
   }
@@ -177,7 +180,7 @@ class SqliteRejectedOutputDiagnosticRepository(
   private fun find(identity: String): RejectedOutputDiagnosticRecord? = connection.prepareStatement(
     "${selectColumns()} WHERE identity = ?",
   ).use { statement ->
-    statement.setString(1, identity)
+    statement.bindAll(identity)
     statement.executeQuery().use { rows -> if (rows.next()) rows.toRecord() else null }
   }
 
@@ -195,12 +198,14 @@ private fun RejectedOutputDiagnosticSelector.whereClause(): String = buildList {
   if (repairTurn != null) add("repair_turn = ?")
 }.joinToString(" AND ")
 
-private fun RejectedOutputDiagnosticSelector.bind(statement: PreparedStatement) {
-  var index = 1
-  statement.setString(index++, workflowId)
-  phaseId?.let { statement.setString(index++, it) }
-  attempt?.let { statement.setInt(index++, it) }
-  repairTurn?.let { statement.setInt(index, it) }
+private fun RejectedOutputDiagnosticSelector.bindAll(statement: PreparedStatement) {
+  val values = buildList<Any?> {
+    add(workflowId)
+    phaseId?.let(::add)
+    attempt?.let(::add)
+    repairTurn?.let(::add)
+  }
+  statement.bindAll(*values.toTypedArray())
 }
 
 private inline fun <T> persistence(operation: String, block: () -> T): T = try {
@@ -263,14 +268,14 @@ private fun payloadsEqual(left: ByteArray?, right: ByteArray?): Boolean =
   (left == null && right == null) || (left != null && right != null && left.contentEquals(right))
 
 private data class ProducerEvidenceLookup(
-  val workflowId: String,
-  val phaseId: String,
-  val attempt: Int,
-  val agentId: String,
-  val generation: Int,
-  val exactGeneration: Boolean,
+  internal val workflowId: String,
+  internal val phaseId: String,
+  internal val attempt: Int,
+  internal val agentId: String,
+  internal val generation: Int,
+  internal val exactGeneration: Boolean,
 
-  val repairTurn: Int?,
+  internal val repairTurn: Int?,
 )
 
 private fun Connection.queryProducerEvidence(lookup: ProducerEvidenceLookup): ProducerOutputEvidence? {
@@ -284,13 +289,15 @@ private fun Connection.queryProducerEvidence(lookup: ProducerEvidenceLookup): Pr
     ORDER BY generation DESC, repair_turn DESC LIMIT 1
     """.trimIndent(),
   ).use {
-    var index = 1
-    it.setString(index++, lookup.workflowId)
-    it.setString(index++, lookup.phaseId)
-    it.setInt(index++, lookup.attempt)
-    it.setString(index++, lookup.agentId)
-    it.setInt(index++, lookup.generation)
-    lookup.repairTurn?.let { turn -> it.setInt(index, turn) }
+    val values = buildList<Any?> {
+      add(lookup.workflowId)
+      add(lookup.phaseId)
+      add(lookup.attempt)
+      add(lookup.agentId)
+      add(lookup.generation)
+      lookup.repairTurn?.let(::add)
+    }
+    it.bindAll(*values.toTypedArray())
     it.executeQuery().use { row -> if (row.next()) row.toProducerEvidence() else null }
   }
 }

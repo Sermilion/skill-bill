@@ -1,9 +1,13 @@
-package skillbill.review
+package skillbill.infrastructure.sqlite.review
 
 import skillbill.SAMPLE_REVIEW
 import skillbill.TABLE_REVIEW
 import skillbill.infrastructure.sqlite.review.ReviewRuntime
+import skillbill.infrastructure.sqlite.review.persistImportedReview
 import skillbill.infrastructure.sqlite.review.reviewSummaryChanged
+import skillbill.review.ReviewParser
+import skillbill.review.canonicalPlatformSlugs
+import skillbill.review.withCanonicalAttribution
 import skillbill.tempDbConnection
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -33,7 +37,7 @@ class ReviewRuntimeTest {
     connection.use {
       val review = ReviewParser.parseReview(TABLE_REVIEW.trimIndent())
 
-      ReviewRuntime.saveImportedReview(connection, review, sourcePath = null)
+      persistImportedReview(connection, review, sourcePath = null)
 
       val summary = ReviewRuntime.fetchReviewSummary(connection, "rvw-20260402-tbl-a")
       val numberedFindings = ReviewRuntime.fetchNumberedFindings(connection, "rvw-20260402-tbl-a")
@@ -59,7 +63,7 @@ class ReviewRuntimeTest {
         knownPlatformSlugs = canonicalPlatformSlugs,
       )
 
-      ReviewRuntime.saveImportedReview(connection, review, sourcePath = null)
+      persistImportedReview(connection, review, sourcePath = null)
       val summary = ReviewRuntime.fetchReviewSummary(connection, review.reviewRunId)
 
       assertEquals("bill-kotlin-code-review", summary.routedSkillCanonical)

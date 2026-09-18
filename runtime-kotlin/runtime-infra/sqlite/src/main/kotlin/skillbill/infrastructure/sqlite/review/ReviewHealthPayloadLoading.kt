@@ -1,12 +1,11 @@
 package skillbill.infrastructure.sqlite.review
 import skillbill.contracts.JsonCodec
-import skillbill.infrastructure.sqlite.PARAM_ONE
-import skillbill.infrastructure.sqlite.PARAM_TWO
 import skillbill.review.model.REVIEW_FINISHED_LEGACY_CONTRACT_VERSION
 import skillbill.review.model.REVIEW_STAGE_DEGRADATION_CONTRACT_VERSION
 import java.sql.Connection
+import skillbill.infrastructure.sqlite.core.bindAll
 
-fun loadStandaloneReviewPayloads(connection: Connection): List<ReviewHealthPayload> = connection.prepareStatement(
+internal fun loadStandaloneReviewPayloads(connection: Connection): List<ReviewHealthPayload> = connection.prepareStatement(
   """
     SELECT payload_json, event_uuid, delivery_attempts
     FROM telemetry_outbox
@@ -36,10 +35,10 @@ fun loadStandaloneReviewPayloads(connection: Connection): List<ReviewHealthPaylo
   }
 }
 
-fun loadEmbeddedReviewPayloads(connection: Connection): List<ReviewHealthPayload> =
+internal fun loadEmbeddedReviewPayloads(connection: Connection): List<ReviewHealthPayload> =
   loadRows(connection, "feature_implement_sessions").flatMap(::embeddedReviewPayloads)
 
-fun restampUnsyncedLegacyTelemetry(connection: Connection) {
+internal fun restampUnsyncedLegacyTelemetry(connection: Connection) {
   connection.prepareStatement(
     """
     UPDATE telemetry_outbox
@@ -49,17 +48,16 @@ fun restampUnsyncedLegacyTelemetry(connection: Connection) {
       AND json_extract(payload_json, '$.contract_version') = ?
     """.trimIndent(),
   ).use { statement ->
-    statement.setString(PARAM_ONE, REVIEW_STAGE_DEGRADATION_CONTRACT_VERSION)
-    statement.setString(PARAM_TWO, REVIEW_FINISHED_LEGACY_CONTRACT_VERSION)
+    statement.bindAll(REVIEW_STAGE_DEGRADATION_CONTRACT_VERSION, REVIEW_FINISHED_LEGACY_CONTRACT_VERSION)
     statement.executeUpdate()
   }
 }
 
-fun Map<String, Any?>.healthInt(key: String): Int = this[key].asHealthInt()
+internal fun Map<String, Any?>.healthInt(key: String): Int = this[key].asHealthInt()
 
-fun Map<String, Any?>.stringHealthValue(key: String): String = this[key]?.toString().orEmpty()
+internal fun Map<String, Any?>.stringHealthValue(key: String): String = this[key]?.toString().orEmpty()
 
-fun persistLegacyTelemetryRewrites(connection: Connection) {
+internal fun persistLegacyTelemetryRewrites(connection: Connection) {
   restampUnsyncedLegacyTelemetry(connection)
   val unsyncedReviewFinished = connection.prepareStatement(
     """

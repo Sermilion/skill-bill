@@ -17,8 +17,8 @@ import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 
 internal data class SavedManifestProjection(
-  val state: GoalRunnerManifestState,
-  val projectionArtifactsJson: String,
+  internal val state: GoalRunnerManifestState,
+  internal val projectionArtifactsJson: String,
 )
 
 internal class WorkflowGoalRunnerManifestProjectionPersistence(

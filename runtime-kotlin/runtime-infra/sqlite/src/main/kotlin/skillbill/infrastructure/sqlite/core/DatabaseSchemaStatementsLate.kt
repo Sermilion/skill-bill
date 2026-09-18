@@ -1,5 +1,7 @@
 package skillbill.infrastructure.sqlite.core
 
+import skillbill.infrastructure.sqlite.workflow.FEATURE_VERIFY_WORKFLOW_CONTRACT_VERSION
+
 internal val databaseSchemaStatementsLate: List<String> =
   listOf(
 
@@ -89,7 +91,7 @@ internal val databaseSchemaStatementsLate: List<String> =
         workflow_id TEXT PRIMARY KEY,
         session_id TEXT NOT NULL DEFAULT '',
         workflow_name TEXT NOT NULL DEFAULT 'bill-feature-verify',
-        contract_version TEXT NOT NULL DEFAULT '${DbConstants.FEATURE_VERIFY_WORKFLOW_CONTRACT_VERSION}',
+        contract_version TEXT NOT NULL DEFAULT '$FEATURE_VERIFY_WORKFLOW_CONTRACT_VERSION',
         workflow_status TEXT NOT NULL DEFAULT 'pending',
         current_step_id TEXT NOT NULL DEFAULT '',
         steps_json TEXT NOT NULL DEFAULT '',

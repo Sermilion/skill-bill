@@ -7,7 +7,11 @@ import skillbill.learnings.model.RejectedLearningSourceOutcome
 
 object LearningsRuntime {
   val learningStatuses: List<String> = listOf("active", "disabled")
-  val rejectedFindingOutcomeTypes: List<String> = listOf("fix_rejected", "false_positive")
+  val rejectedFindingOutcomeTypes: List<String> =
+    listOf(
+      RejectedFindingOutcomeType.FIX_REJECTED,
+      RejectedFindingOutcomeType.FALSE_POSITIVE,
+    ).map { it.wireValue }
 
   fun validateLearningScope(scope: LearningScope, scopeKey: String): Pair<LearningScope, String> =
     scope to scope.normalizeScopeKey(scopeKey)
@@ -84,4 +88,9 @@ object LearningsRuntime {
     } else {
       rationale.trim()
     }
+}
+
+private enum class RejectedFindingOutcomeType(val wireValue: String) {
+  FIX_REJECTED("fix_rejected"),
+  FALSE_POSITIVE("false_positive"),
 }

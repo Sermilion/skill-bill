@@ -1,5 +1,6 @@
 package skillbill.review
 
+import skillbill.review.model.FindingOutcomeType
 import skillbill.review.model.NumberedFinding
 import skillbill.review.model.TriageDecision
 
@@ -65,13 +66,19 @@ object TriageDecisionParser {
     }
   }
 
-  fun normalizeTriageAction(rawAction: String): String = when (rawAction.trim().lowercase()) {
-    "false positive", "false-positive", "false_positive" -> "false_positive"
-    "fix" -> "fix_applied"
-    "accept", "accepted" -> "finding_accepted"
-    "edit", "edited" -> "finding_edited"
-    "dismiss", "skip", "reject" -> "fix_rejected"
-    else -> throw IllegalArgumentException("Unsupported triage action '$rawAction'.")
+  fun normalizeTriageAction(rawAction: String): String {
+    val normalized = rawAction.trim().lowercase()
+    return when {
+      normalized == FindingOutcomeType.FalsePositive.wireValue ||
+        normalized == "false positive" ||
+        normalized == "false-positive" -> FindingOutcomeType.FalsePositive.wireValue
+      normalized == "fix" -> FindingOutcomeType.FixApplied.wireValue
+      normalized == "accept" || normalized == "accepted" -> FindingOutcomeType.FindingAccepted.wireValue
+      normalized == "edit" || normalized == "edited" -> FindingOutcomeType.FindingEdited.wireValue
+      normalized == "dismiss" || normalized == "skip" || normalized == "reject" ->
+        FindingOutcomeType.FixRejected.wireValue
+      else -> throw IllegalArgumentException("Unsupported triage action '$rawAction'.")
+    }
   }
 
   fun normalizeTriageNote(rawNote: String?): String {

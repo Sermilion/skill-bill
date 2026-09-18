@@ -1,5 +1,6 @@
 package skillbill.infrastructure.sqlite.review
 
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.review.TriageDecisionParser
 import skillbill.review.model.FeedbackRequest
 import skillbill.review.model.FeedbackTelemetryOptions
@@ -8,7 +9,7 @@ import skillbill.review.model.ReviewFinishedTelemetry
 import skillbill.review.model.TriageDecision
 import java.sql.Connection
 
-object TriageRuntime {
+internal object TriageRuntime {
   fun expandBulkDecisions(rawDecisions: List<String>, numberedFindings: List<NumberedFinding>): List<String> =
     TriageDecisionParser.expandBulkDecisions(rawDecisions, numberedFindings)
 
@@ -21,14 +22,6 @@ object TriageRuntime {
   fun normalizeTriageAction(rawAction: String): String = TriageDecisionParser.normalizeTriageAction(rawAction)
 
   fun normalizeTriageNote(rawNote: String?): String = TriageDecisionParser.normalizeTriageNote(rawNote)
-
-  fun recordFeedback(
-    connection: Connection,
-    request: FeedbackRequest,
-    telemetryOptions: FeedbackTelemetryOptions = FeedbackTelemetryOptions(),
-  ): ReviewFinishedTelemetry? = connection.inTransaction {
-    recordFeedbackWithoutTransaction(connection, request, telemetryOptions)
-  }
 
   fun recordFeedbackWithoutTransaction(
     connection: Connection,
@@ -48,8 +41,6 @@ object TriageRuntime {
     )
   }
 }
-private const val FEEDBACK_EVENT_TYPE_PARAM_INDEX: Int = 3
-private const val FEEDBACK_NOTE_PARAM_INDEX: Int = 4
 
 private fun validateFeedbackRequest(connection: Connection, request: FeedbackRequest) {
   require(ReviewRuntime.reviewExists(connection, request.reviewRunId)) {
@@ -77,26 +68,7 @@ private fun insertFeedbackEvent(
     VALUES (?, ?, ?, ?)
     """.trimIndent(),
   ).use { statement ->
-    statement.setString(1, reviewRunId)
-    statement.setString(2, findingId)
-    statement.setString(FEEDBACK_EVENT_TYPE_PARAM_INDEX, eventType)
-    statement.setString(FEEDBACK_NOTE_PARAM_INDEX, note)
+    statement.bindAll(reviewRunId, findingId, eventType, note)
     statement.executeUpdate()
-  }
-}
-
-private fun <T> Connection.inTransaction(block: () -> T): T {
-  val previousAutoCommit = autoCommit
-  autoCommit = false
-  try {
-    val outcome = runCatching(block)
-    if (outcome.isSuccess) {
-      commit()
-    } else {
-      rollback()
-    }
-    return outcome.getOrThrow()
-  } finally {
-    autoCommit = previousAutoCommit
   }
 }

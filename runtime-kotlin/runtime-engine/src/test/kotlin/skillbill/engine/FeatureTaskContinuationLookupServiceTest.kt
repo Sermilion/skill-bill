@@ -35,6 +35,7 @@ import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.goal.NoopGoalObservabilityEventValidator
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
+import java.time.Clock
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -328,6 +329,7 @@ class FeatureTaskContinuationLookupServiceTest {
       repositoryRoot = testRepositoryRoot,
       goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
       runtimeDiagnostics = NoopRuntimeDiagnostics,
+      clock = Clock.systemUTC(),
     )
     return Fixture(
       states = states,

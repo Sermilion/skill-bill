@@ -4,7 +4,7 @@ import skillbill.application.workflow.decodeWorkflowArtifacts
 import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliRuntimeContext
 import skillbill.contracts.JsonCodec
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
+import skillbill.infrastructure.sqlite.ensureTestDatabase
 import skillbill.ports.agentrun.ExecutableLookup
 import skillbill.workflow.model.WorkflowStepStatus
 import skillbill.workflow.taskruntime.asWorkflowArtifactEntry
@@ -245,7 +245,7 @@ class CliGoalRepairRuntimeTest {
   }
 
   private fun resolveCompletedChildWorkflowId(fixture: GoalCliFixture): String =
-    DatabaseRuntime.ensureDatabase(fixture.dbPath).use { connection ->
+    ensureTestDatabase(fixture.dbPath).use { connection ->
       connection.createStatement().use { statement ->
         statement.executeQuery(
           "SELECT workflow_id FROM feature_task_workflows " +
@@ -259,7 +259,7 @@ class CliGoalRepairRuntimeTest {
     }
 
   private fun readAllRuntimeArtifactsJson(fixture: GoalCliFixture): List<String> =
-    DatabaseRuntime.ensureDatabase(fixture.dbPath).use { connection ->
+    ensureTestDatabase(fixture.dbPath).use { connection ->
       connection.createStatement().use { statement ->
         statement.executeQuery(
           "SELECT workflow_id, artifacts_json FROM feature_task_workflows WHERE mode = 'runtime' ORDER BY workflow_id",
@@ -274,7 +274,7 @@ class CliGoalRepairRuntimeTest {
     }
 
   private fun readChildArtifacts(fixture: GoalCliFixture, workflowId: String): String =
-    DatabaseRuntime.ensureDatabase(fixture.dbPath).use { connection ->
+    ensureTestDatabase(fixture.dbPath).use { connection ->
       connection.prepareStatement(
         "SELECT artifacts_json FROM feature_task_workflows WHERE workflow_id = ?",
       ).use { statement ->
@@ -287,7 +287,7 @@ class CliGoalRepairRuntimeTest {
     }
 
   private fun stripValidationDepth(fixture: GoalCliFixture, workflowId: String) {
-    DatabaseRuntime.ensureDatabase(fixture.dbPath).use { connection ->
+    ensureTestDatabase(fixture.dbPath).use { connection ->
       val current = connection.prepareStatement(
         "SELECT artifacts_json FROM feature_task_workflows WHERE workflow_id = ?",
       ).use { statement ->
@@ -313,7 +313,7 @@ class CliGoalRepairRuntimeTest {
   }
 
   private fun seedCompletedUpstreamMissingOutput(fixture: GoalCliFixture, workflowId: String) {
-    DatabaseRuntime.ensureDatabase(fixture.dbPath).use { connection ->
+    ensureTestDatabase(fixture.dbPath).use { connection ->
       val current = connection.prepareStatement(
         "SELECT artifacts_json FROM feature_task_workflows WHERE workflow_id = ?",
       ).use { statement ->

@@ -1,13 +1,15 @@
-package skillbill.review
+package skillbill.infrastructure.sqlite.review
 
 import skillbill.SAMPLE_REVIEW
 import skillbill.goalrunner.model.ReviewFindingOutcome
 import skillbill.goalrunner.model.ReviewFindingOutcomeRecord
 import skillbill.infrastructure.sqlite.SQLiteUnaddressedFindingsRepository
 import skillbill.infrastructure.sqlite.review.ReviewRuntime
+import skillbill.infrastructure.sqlite.review.persistImportedReview
 import skillbill.infrastructure.sqlite.review.TriageRuntime
 import skillbill.infrastructure.sqlite.review.queryLatestFindingOutcomes
 import skillbill.infrastructure.sqlite.review.summarizeFindingRows
+import skillbill.review.ReviewParser
 import skillbill.review.model.FeedbackRequest
 import skillbill.review.model.FeedbackTelemetryOptions
 import skillbill.tempDbConnection
@@ -21,7 +23,7 @@ class LoopRecordedOutcomeStatsTest {
     val (_, connection) = tempDbConnection("loop-outcome-stats")
     connection.use {
       val review = ReviewParser.parseReview(SAMPLE_REVIEW.trimIndent())
-      ReviewRuntime.saveImportedReview(connection, review, sourcePath = null)
+      persistImportedReview(connection, review, sourcePath = null)
       val untriaged = summarizeFindingRows(queryLatestFindingOutcomes(connection, review.reviewRunId))
       assertEquals(
         0,
@@ -43,10 +45,10 @@ class LoopRecordedOutcomeStatsTest {
     val (_, connection) = tempDbConnection("loop-outcome-stats-precedence")
     connection.use {
       val review = ReviewParser.parseReview(SAMPLE_REVIEW.trimIndent())
-      ReviewRuntime.saveImportedReview(connection, review, sourcePath = null)
+      persistImportedReview(connection, review, sourcePath = null)
       recordLoopOutcome(connection, review.reviewRunId, "F-001", "addressed")
 
-      TriageRuntime.recordFeedback(
+      TriageRuntime.recordFeedbackWithoutTransaction(
         connection = connection,
         request = FeedbackRequest(
           reviewRunId = review.reviewRunId,
@@ -68,7 +70,7 @@ class LoopRecordedOutcomeStatsTest {
     val (_, connection) = tempDbConnection("loop-outcome-stats-writer")
     connection.use {
       val review = ReviewParser.parseReview(SAMPLE_REVIEW.trimIndent())
-      ReviewRuntime.saveImportedReview(connection, review, sourcePath = null)
+      persistImportedReview(connection, review, sourcePath = null)
 
       SQLiteUnaddressedFindingsRepository(connection).recordOutcomes(
         listOf(
@@ -102,7 +104,7 @@ class LoopRecordedOutcomeStatsTest {
     val (_, connection) = tempDbConnection("loop-outcome-stats-unresolved")
     connection.use {
       val review = ReviewParser.parseReview(SAMPLE_REVIEW.trimIndent())
-      ReviewRuntime.saveImportedReview(connection, review, sourcePath = null)
+      persistImportedReview(connection, review, sourcePath = null)
       connection.createStatement().use { statement ->
         statement.executeUpdate(
           """

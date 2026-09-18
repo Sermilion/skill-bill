@@ -173,7 +173,7 @@ internal fun Connection.optionalRepairEvidenceColumn(table: String): String {
   val hasRepairEvidence = prepareStatement(
     "SELECT 1 FROM pragma_table_info(?) WHERE name = 'repair_evidence_json'",
   ).use { statement ->
-    statement.setString(1, table)
+    statement.bindAll(table)
     statement.executeQuery().use { rows -> rows.next() }
   }
   return if (hasRepairEvidence) ",\n                repair_evidence_json TEXT" else ""

@@ -150,8 +150,8 @@ internal fun dropDelegatedReviewLifecycleTables(connection: Connection) {
 }
 
 internal class DatabaseMigration(
-  val version: Int,
-  val name: String,
+  internal val version: Int,
+  internal val name: String,
   private val operation: (Connection) -> Unit,
 ) {
   fun apply(connection: Connection) {

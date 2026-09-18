@@ -113,6 +113,7 @@ import java.nio.file.Path
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset.UTC
+import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -159,6 +160,7 @@ class WorkflowServiceTest {
       repositoryRoot = testRepositoryRoot,
       goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
       runtimeDiagnostics = NoopRuntimeDiagnostics,
+      clock = Clock.systemUTC(),
     )
 
     val first = assertIs<WorkflowOpenResult.Ok>(
@@ -202,6 +204,7 @@ class WorkflowServiceTest {
       repositoryRoot = testRepositoryRoot,
       goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
       runtimeDiagnostics = NoopRuntimeDiagnostics,
+      clock = Clock.systemUTC(),
     )
     val opened = assertIs<WorkflowOpenResult.Ok>(
       service.openFeatureTask(
@@ -242,6 +245,7 @@ class WorkflowServiceTest {
       repositoryRoot = testRepositoryRoot,
       goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
       runtimeDiagnostics = NoopRuntimeDiagnostics,
+      clock = Clock.systemUTC(),
     )
     val historyArtifact = """{"plan":{"mode":"decompose"},"history_note":"retain-me"}"""
     workflows.saveFeatureImplementWorkflow(
@@ -293,6 +297,7 @@ class WorkflowServiceTest {
       repositoryRoot = testRepositoryRoot,
       goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
       runtimeDiagnostics = NoopRuntimeDiagnostics,
+      clock = Clock.systemUTC(),
     )
     val opened = assertIs<WorkflowOpenResult.Ok>(
       service.openFeatureTask(
@@ -331,6 +336,7 @@ class WorkflowServiceTest {
       repositoryRoot = testRepositoryRoot,
       goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
       runtimeDiagnostics = NoopRuntimeDiagnostics,
+      clock = Clock.systemUTC(),
     )
     val opened = assertIs<WorkflowOpenResult.Ok>(
       service.openFeatureTask(
@@ -385,6 +391,7 @@ class WorkflowServiceTest {
       repositoryRoot = testRepositoryRoot,
       goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
       runtimeDiagnostics = NoopRuntimeDiagnostics,
+      clock = Clock.systemUTC(),
     )
     val opened = assertIs<WorkflowOpenResult.Ok>(
       service.openFeatureTask(
@@ -558,6 +565,7 @@ class WorkflowServiceTest {
       decompositionManifestWriter = testDecompositionManifestWriter,
       repositoryRoot = testRepositoryRoot,
       runtimeDiagnostics = NoopRuntimeDiagnostics,
+      clock = Clock.systemUTC(),
     )
     assertFailsWith<InvalidWorkflowStateSchemaError> {
       service.get(WorkflowFamilyKind.TASK_RUNTIME, "wftr-loud")
@@ -591,6 +599,7 @@ class WorkflowServiceTest {
       decompositionManifestWriter = testDecompositionManifestWriter,
       repositoryRoot = testRepositoryRoot,
       runtimeDiagnostics = NoopRuntimeDiagnostics,
+      clock = Clock.systemUTC(),
     )
 
     assertFailsWith<InvalidWorkflowStateSchemaError> {
@@ -627,6 +636,7 @@ class WorkflowServiceTest {
       repositoryRoot = testRepositoryRoot,
       goalObservabilityEventValidator = testGoalObservabilityEventValidator,
       runtimeDiagnostics = NoopRuntimeDiagnostics,
+      clock = Clock.systemUTC(),
     )
     val opened = assertIs<WorkflowOpenResult.Ok>(service.openTestRuntime("ftr-001"))
 
@@ -683,6 +693,7 @@ class WorkflowServiceTest {
       repositoryRoot = testRepositoryRoot,
       goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
       runtimeDiagnostics = NoopRuntimeDiagnostics,
+      clock = Clock.systemUTC(),
     )
   }
 }
@@ -2015,6 +2026,7 @@ class WorkflowUpdateAcknowledgementBudgetTest {
     decompositionManifestWriter = testDecompositionManifestWriter,
     repositoryRoot = testRepositoryRoot,
     runtimeDiagnostics = NoopRuntimeDiagnostics,
+    clock = Clock.systemUTC(),
   )
 }
 
@@ -3488,6 +3500,7 @@ class GoalChildPlanningHydrationTransactionIntegrationTest {
       repositoryRoot = testRepositoryRoot,
       goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
       runtimeDiagnostics = NoopRuntimeDiagnostics,
+      clock = Clock.systemUTC(),
     )
 
     val opened = service.openFeatureTask(
@@ -3899,6 +3912,8 @@ class DecompositionDiskBootstrapTest {
       validator = testDecompositionManifestValidator,
       repoRoot = Path.of("").toAbsolutePath().normalize(),
       manifestWriter = testDecompositionManifestWriter,
+      clock = Clock.systemUTC(),
+      workflowIdRandom = Random.Default,
     )
 
     assertFailsWith<IllegalArgumentException> {
@@ -3946,6 +3961,8 @@ class DecompositionDiskBootstrapTest {
       fileStore = TestDecompositionManifestStore,
       repoRoot = repoRoot,
       manifestWriter = testDecompositionManifestWriter,
+      clock = Clock.systemUTC(),
+      workflowIdRandom = Random.Default,
     )
 
     val result = db.transaction { unitOfWork ->
@@ -3997,6 +4014,8 @@ class DecompositionDiskBootstrapTest {
       validator = testDecompositionManifestValidator,
       repoRoot = repoRoot,
       manifestWriter = testDecompositionManifestWriter,
+      clock = Clock.systemUTC(),
+      workflowIdRandom = Random.Default,
     )
 
     val result = db.transaction { unitOfWork ->
@@ -4043,6 +4062,8 @@ class DecompositionDiskBootstrapTest {
       fileStore = TestDecompositionManifestStore,
       repoRoot = repoRoot,
       manifestWriter = testDecompositionManifestWriter,
+      clock = Clock.systemUTC(),
+      workflowIdRandom = Random.Default,
     )
 
     db.transaction { unitOfWork ->
@@ -4124,6 +4145,8 @@ class DecompositionDiskBootstrapTest {
       fileStore = TestDecompositionManifestStore,
       repoRoot = repoRoot,
       manifestWriter = testDecompositionManifestWriter,
+      clock = Clock.systemUTC(),
+      workflowIdRandom = Random.Default,
     )
   }
 
@@ -4163,6 +4186,8 @@ class DecompositionDiskBootstrapTest {
       fileStore = TestDecompositionManifestStore,
       repoRoot = repoRoot,
       manifestWriter = testDecompositionManifestWriter,
+      clock = Clock.systemUTC(),
+      workflowIdRandom = Random.Default,
     )
 
     db.transaction { unitOfWork ->
@@ -4232,6 +4257,8 @@ class DecompositionDiskBootstrapTest {
       fileStore = TestDecompositionManifestStore,
       repoRoot = repoRoot,
       manifestWriter = testDecompositionManifestWriter,
+      clock = Clock.systemUTC(),
+      workflowIdRandom = Random.Default,
     )
 
     db.transaction { unitOfWork ->
@@ -4293,6 +4320,8 @@ class DecompositionDiskBootstrapTest {
       fileStore = TestDecompositionManifestStore,
       repoRoot = repoRoot,
       manifestWriter = testDecompositionManifestWriter,
+      clock = Clock.systemUTC(),
+      workflowIdRandom = Random.Default,
     )
 
     db.transaction { unitOfWork ->
@@ -4314,6 +4343,8 @@ class DecompositionDiskBootstrapTest {
       fileStore = TestDecompositionManifestStore,
       repoRoot = repoRoot,
       manifestWriter = testDecompositionManifestWriter,
+      clock = Clock.systemUTC(),
+      workflowIdRandom = Random.Default,
     )
 
     val result = db.transaction { unitOfWork ->

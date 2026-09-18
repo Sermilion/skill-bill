@@ -25,12 +25,14 @@ import skillbill.ports.taskruntime.FeatureTaskRuntimeWorkerSupervisor
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.ports.workflow.get
 import skillbill.ports.workflow.gitops.WorkflowGitOperations
+import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.model.WorkflowFamily
 import skillbill.ports.workflow.save
 import skillbill.workflow.decomposition.DecompositionManifestValidator
 import skillbill.workflow.decomposition.runtime.model.DecompositionManifestProjectionOutcome
 import skillbill.workflow.engine.WorkflowEngine
 import skillbill.workflow.engine.WorkflowSnapshotValidator
+import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowArtifactPatch
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.goal.GoalObservabilityEventValidator
@@ -43,10 +45,20 @@ import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import java.nio.file.Path
 import java.time.Clock
 
+internal data class RecoverMissingResultPrefixTerminalOutcomeArgs(
+  internal val workflowStates: WorkflowStateRepository,
+  internal val family: WorkflowFamily,
+  internal val record: WorkflowStateSnapshot,
+  internal val output: Any,
+  internal val issueKey: String,
+  internal val subtaskId: Int,
+  internal val workflowId: String,
+)
+
 internal data class WorkflowGoalRunnerOutcomeStoreBridges(
-  val workflow: GoalRunnerWorkflowOutcomeStore,
-  val ledger: GoalRunnerAttemptLedgerStore,
-  val childRepair: GoalRunnerChildRepairStore,
+  internal val workflow: GoalRunnerWorkflowOutcomeStore,
+  internal val ledger: GoalRunnerAttemptLedgerStore,
+  internal val childRepair: GoalRunnerChildRepairStore,
 )
 
 class WorkflowGoalRunnerOutcomeStoreBridgeBuilder @Inject constructor(
@@ -66,7 +78,7 @@ class WorkflowGoalRunnerOutcomeStoreBridgeBuilder @Inject constructor(
     childRepairExecutor: GoalRunnerChildRepairRunnerPort,
   ): WorkflowGoalRunnerOutcomeStoreBridges {
     val engine = WorkflowEngine(workflowSnapshotValidator)
-    val blockWrites = WorkflowGoalRunnerBlockWrites(engine)
+    val blockWrites = WorkflowGoalRunnerBlockWrites(engine, clock)
     val terminalPersistence = WorkflowGoalRunnerOutcomeTerminalPersistence(
       engine,
       gitOperations,

@@ -5,7 +5,7 @@ import skillbill.application.decomposition.loadDecompositionManifest
 import skillbill.application.testDecompositionManifestValidator
 import skillbill.cli.core.CliRuntime
 import skillbill.contracts.JsonCodec
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
+import skillbill.infrastructure.sqlite.ensureTestDatabase
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.Test
@@ -118,7 +118,7 @@ class CliGoalPurgeCommandTest {
   }
 
   private fun workflowCount(fixture: GoalCliFixture): Int =
-    DatabaseRuntime.ensureDatabase(fixture.dbPath).use { connection ->
+    ensureTestDatabase(fixture.dbPath).use { connection ->
       connection.prepareStatement("SELECT COUNT(*) FROM feature_task_workflows").use { statement ->
         statement.executeQuery().use { rows ->
           check(rows.next())

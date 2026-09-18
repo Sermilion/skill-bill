@@ -46,6 +46,8 @@ import skillbill.workflow.engine.WorkflowSnapshotValidator
 import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.goal.GoalObservabilityEventValidator
+import java.time.Clock
+import kotlin.random.Random
 
 @Inject
 class WorkflowService(
@@ -58,14 +60,16 @@ class WorkflowService(
   private val repositoryRoot: RepositoryRoot,
   val goalObservabilityEventValidator: GoalObservabilityEventValidator,
   private val runtimeDiagnostics: RuntimeDiagnostics,
+  private val clock: Clock,
 ) {
 
+  private val workflowIdRandom = Random.Default
   private val engine: WorkflowEngine = WorkflowEngine(workflowSnapshotValidator) {
     val resolved = gitOperations.repositoryFingerprint(repositoryRoot.path)
     check(resolved is WorkflowGitOperationResult.Ok) { resolved.error }
     resolved.value.orEmpty()
   }
-  private val featureTaskAbandon = WorkflowServiceFeatureTaskAbandon(engine)
+  private val featureTaskAbandon = WorkflowServiceFeatureTaskAbandon(engine, clock)
   private val blockedPhaseRetry = WorkflowServiceBlockedPhaseRetry(
     engine,
     decompositionManifestValidator,
@@ -73,14 +77,15 @@ class WorkflowService(
     decompositionManifestWriter,
     repositoryRoot,
     runtimeDiagnostics,
+    clock,
   )
-  private val featureTaskIdentityRepair = WorkflowServiceFeatureTaskIdentityRepair(engine)
+  private val featureTaskIdentityRepair = WorkflowServiceFeatureTaskIdentityRepair(engine, clock)
 
   fun open(args: WorkflowServiceOpenArgs): WorkflowOpenResult {
     incompleteFeatureTaskIdentityError(args)?.let { return it }
     val family = args.kind.workflowFamily()
     val stepId = args.currentStepId ?: family.definition.defaultInitialStepId
-    val workflowId = generateWorkflowId(family.definition.workflowIdPrefix)
+    val workflowId = generateWorkflowId(family.definition.workflowIdPrefix, clock, workflowIdRandom)
     val effectiveSessionId = resolveEffectiveSessionId(
       args.kind,
       args.sessionId,
@@ -345,6 +350,8 @@ class WorkflowService(
             decompositionManifestStore,
             repositoryRoot.path,
             decompositionManifestWriter,
+            clock,
+            workflowIdRandom,
           ).continueDecomposedParentByIssueKey(workflowId, unitOfWork, subtaskId)
         pendingProjection = mergePendingProjection(pendingProjection, resolved)
         return@transaction resolved.result

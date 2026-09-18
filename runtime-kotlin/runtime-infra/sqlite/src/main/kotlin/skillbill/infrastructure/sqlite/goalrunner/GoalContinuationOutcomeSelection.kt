@@ -7,14 +7,14 @@ import skillbill.goalrunner.model.GoalRunnerStoredOutcome
 import skillbill.goalrunner.model.GoalRunnerTerminalStatus
 import skillbill.ports.goalrunner.persistence.model.GoalContinuationCandidate
 
-fun List<GoalContinuationCandidate>.authoritativeOutcomesBySubtask(): Map<Int, GoalRunnerStoredOutcome> =
+internal fun List<GoalContinuationCandidate>.authoritativeOutcomesBySubtask(): Map<Int, GoalRunnerStoredOutcome> =
   groupBy { candidate -> candidate.goalContinuation.subtaskId }
     .mapNotNull { (subtaskId, candidates) ->
       candidates.selectAuthoritativeOutcome()?.let { outcome -> subtaskId to outcome }
     }
     .toMap()
 
-fun List<GoalContinuationCandidate>.selectAuthoritativeOutcome(): GoalRunnerStoredOutcome? {
+internal fun List<GoalContinuationCandidate>.selectAuthoritativeOutcome(): GoalRunnerStoredOutcome? {
   val completeWinner = asSequence()
     .filter { candidate -> candidate.outcome?.status == GoalRunnerTerminalStatus.COMPLETE }
     .maxWithOrNull(compareBy<GoalContinuationCandidate> { it.snapshot.updatedAt }.thenBy { it.snapshot.workflowId })
@@ -27,7 +27,7 @@ fun List<GoalContinuationCandidate>.selectAuthoritativeOutcome(): GoalRunnerStor
   return fallbackWinner?.outcome
 }
 
-fun staleRunningReason(
+internal fun staleRunningReason(
   staleWorkflowId: String,
   issueKey: String,
   subtaskId: Int,
@@ -46,7 +46,7 @@ fun staleRunningReason(
     "subtask $subtaskId because it was no longer active."
   )
 
-fun missingResultPrefixTerminalOutcomeArtifact(
+internal fun missingResultPrefixTerminalOutcomeArtifact(
   output: Any,
   issueKey: String,
   subtaskId: Int,
@@ -62,13 +62,13 @@ fun missingResultPrefixTerminalOutcomeArtifact(
     }
 }
 
-fun Map<String, Any?>.matchesGoalContinuation(issueKey: String, subtaskId: Int): Boolean {
+internal fun Map<String, Any?>.matchesGoalContinuation(issueKey: String, subtaskId: Int): Boolean {
   val candidateIssueKey = this[SharedPayloadKeys.ISSUE_KEY]?.toString()?.takeIf(String::isNotBlank) ?: issueKey
   val candidateSubtaskId = this[SharedPayloadKeys.SUBTASK_ID].asGoalRunnerIntOrNull() ?: subtaskId
   return candidateIssueKey == issueKey && candidateSubtaskId == subtaskId
 }
 
-fun Map<String, Any?>.toMissingResultPrefixOutcomeArtifact(
+internal fun Map<String, Any?>.toMissingResultPrefixOutcomeArtifact(
   issueKey: String,
   subtaskId: Int,
   workflowId: String,
@@ -90,9 +90,9 @@ fun Map<String, Any?>.toMissingResultPrefixOutcomeArtifact(
     ?.let { put("blocked_reason", it) }
 }
 
-fun GoalRunnerTerminalStatus.toGoalContinuationWireStatus(): String = wireValue
+internal fun GoalRunnerTerminalStatus.toGoalContinuationWireStatus(): String = wireValue
 
-fun maxHistorySequence(artifacts: Map<String, Any?>, historyKey: String, current: Int?): Int? {
+internal fun maxHistorySequence(artifacts: Map<String, Any?>, historyKey: String, current: Int?): Int? {
   val entries = (artifacts[historyKey] as? List<*>).orEmpty()
   var max = current
   entries.forEach { item ->

@@ -1,4 +1,4 @@
-package skillbill.review
+package skillbill.infrastructure.sqlite.review
 
 import skillbill.SAMPLE_REVIEW
 import skillbill.application.learning.learningAppliedSessionWire
@@ -8,8 +8,10 @@ import skillbill.contracts.telemetry.TelemetryMeasurementAvailability
 import skillbill.infrastructure.sqlite.SQLiteLearningStore
 import skillbill.infrastructure.sqlite.review.ReviewFinishedPayloadBuildRequest
 import skillbill.infrastructure.sqlite.review.ReviewRuntime
+import skillbill.infrastructure.sqlite.review.persistImportedReview
 import skillbill.infrastructure.sqlite.review.ReviewStatsRuntime
 import skillbill.infrastructure.sqlite.review.TriageRuntime
+import skillbill.review.ReviewParser
 import skillbill.infrastructure.sqlite.telemetry.LifecycleTelemetryStore
 import skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxStore
 import skillbill.infrastructure.sqlite.telemetry.listJson
@@ -277,7 +279,7 @@ class ReviewStatsRuntimeTest {
     val (_, connection) = tempDbConnection("review-zero-finding-payload")
     connection.use {
       val review = ReviewParser.parseReview(ZERO_FINDING_REVIEW.trimIndent())
-      ReviewRuntime.saveImportedReview(connection, review, sourcePath = null)
+      persistImportedReview(connection, review, sourcePath = null)
 
       val payload =
         ReviewStatsRuntime.buildReviewFinishedPayload(
@@ -478,7 +480,7 @@ class ReviewStatsRuntimeTest {
 
 private fun importReviewedSample(connection: Connection): ImportedReview {
   val review = ReviewParser.parseReview(SAMPLE_REVIEW.trimIndent())
-  ReviewRuntime.saveImportedReview(connection, review, sourcePath = null)
+  persistImportedReview(connection, review, sourcePath = null)
   recordFindingOutcome(connection, review.reviewRunId, "F-001", "finding_accepted", "")
   recordFindingOutcome(connection, review.reviewRunId, "F-002", "fix_rejected", "Intentional wording")
   return review
@@ -491,7 +493,7 @@ private fun recordFindingOutcome(
   eventType: String,
   note: String,
 ) {
-  TriageRuntime.recordFeedback(
+  TriageRuntime.recordFeedbackWithoutTransaction(
     connection = connection,
     request =
     FeedbackRequest(

@@ -1,8 +1,10 @@
 package skillbill.infrastructure.sqlite.workflow
 
+import skillbill.infrastructure.sqlite.core.bindAll
+
 import skillbill.error.IncompatibleGoalPlanningPreparationRecoveryError
 import skillbill.error.InvalidGoalPlanningPreparationSchemaError
-import skillbill.infrastructure.sqlite.core.inImmediateTransaction
+import skillbill.infrastructure.sqlite.core.inNestedWriteTransaction
 import skillbill.ports.goalrunner.model.GoalPlanningContractProvenance
 import skillbill.ports.goalrunner.model.GoalPlanningIdentity
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationState
@@ -23,7 +25,7 @@ internal class GoalSharedPreplanSql(
 ) {
   fun checkpointSharedPreplan(checkpoint: SharedGoalPreplanCheckpoint) {
     requireNormalizedSharedPreplan(checkpoint)
-    connection.inImmediateTransaction {
+    connection.inNestedWriteTransaction {
       val inserted = connection.insertSharedPreplanRow(checkpoint)
       if (!inserted) {
         val stored = translateSqlFailure(checkpoint.identity.parentGoalWorkflowId, 0) {
@@ -47,7 +49,7 @@ internal class GoalSharedPreplanSql(
   ) {
     requireNormalizedSharedPreplan(checkpoint)
     require(expectedPayloadSha256.isNotBlank()) { "expectedPayloadSha256 is required." }
-    connection.inImmediateTransaction {
+    connection.inNestedWriteTransaction {
       val updated = connection.prepareStatement(
         """UPDATE goal_shared_preplans SET normalized_issue_key = ?, repository_identity = ?,
         preparation_status = ?, contract_version = ?, parent_spec_hash = ?, decomposition_manifest_hash = ?,
@@ -65,7 +67,7 @@ internal class GoalSharedPreplanSql(
           checkpoint.identity.parentGoalWorkflowId,
           expectedPayloadSha256,
         )
-        values.forEachIndexed { i, value -> s.setString(i + 1, value) }
+        s.bindAll(*values.toTypedArray())
         s.executeUpdate() > 0
       }
       if (!updated) {
@@ -95,7 +97,7 @@ internal class GoalSharedPreplanSql(
     normalizedIdentityFailure(identity)?.let { (field, reason) ->
       throw InvalidGoalPlanningPreparationSchemaError(identity.parentGoalWorkflowId, field, reason)
     }
-    connection.inImmediateTransaction {
+    connection.inNestedWriteTransaction {
       val updated = connection.prepareStatement(
         """UPDATE goal_shared_preplans SET parent_spec_hash = ?, decomposition_manifest_hash = ?,
         planning_contract_id = ?, planning_contract_version = ?, phase_output_contract_id = ?,
@@ -111,7 +113,7 @@ internal class GoalSharedPreplanSql(
           provenance.phaseOutputContractVersion,
           identity.parentGoalWorkflowId,
           expectedPayloadSha256,
-        ).forEachIndexed { i, value -> s.setString(i + 1, value) }
+        ).also { s.bindAll(*it.toTypedArray()) }
         s.executeUpdate() > 0
       }
       if (!updated) {
@@ -138,7 +140,7 @@ internal class GoalSharedPreplanSql(
     return connection.prepareStatement(
       "SELECT * FROM goal_shared_preplans WHERE parent_goal_workflow_id = ?",
     ).use { s ->
-      s.setString(1, expectedIdentity.parentGoalWorkflowId)
+      s.bindAll(expectedIdentity.parentGoalWorkflowId)
       s.executeQuery().use { r -> if (!r.next()) null else r.toShared(expectedIdentity) }
     }
   }
@@ -151,8 +153,7 @@ internal class GoalSharedPreplanSql(
     val deleted = connection.prepareStatement(
       "DELETE FROM goal_shared_preplans WHERE parent_goal_workflow_id = ? AND payload_sha256 = ?",
     ).use { statement ->
-      statement.setString(1, identity.parentGoalWorkflowId)
-      statement.setString(2, expectedPayloadSha256)
+      statement.bindAll(identity.parentGoalWorkflowId, expectedPayloadSha256)
       statement.executeUpdate()
     }
     if (deleted == 0) {
@@ -174,10 +175,12 @@ internal class GoalSharedPreplanSql(
       """UPDATE goal_shared_preplans SET payload_sha256 = ?, preplan_payload_json = ?, repair_evidence_json = NULL
       WHERE parent_goal_workflow_id = ? AND payload_sha256 = ?""",
     ).use { statement ->
-      statement.setString(FIRST_COLUMN_INDEX, INVALIDATED_SHARED_PREPLAN_PAYLOAD_SHA256)
-      statement.setString(SECOND_COLUMN_INDEX, INVALIDATED_SHARED_PREPLAN_PAYLOAD)
-      statement.setString(THIRD_COLUMN_INDEX, identity.parentGoalWorkflowId)
-      statement.setString(FOURTH_COLUMN_INDEX, expectedPayloadSha256)
+      statement.bindAll(
+        INVALIDATED_SHARED_PREPLAN_PAYLOAD_SHA256,
+        INVALIDATED_SHARED_PREPLAN_PAYLOAD,
+        identity.parentGoalWorkflowId,
+        expectedPayloadSha256,
+      )
       statement.executeUpdate()
     }
     if (updated == 0) {
@@ -195,7 +198,7 @@ internal class GoalSharedPreplanSql(
     return connection.prepareStatement(
       "SELECT payload_sha256, preplan_payload_json FROM goal_shared_preplans WHERE parent_goal_workflow_id = ?",
     ).use { statement ->
-      statement.setString(1, parentGoalWorkflowId)
+      statement.bindAll(parentGoalWorkflowId)
       statement.executeQuery().use { result ->
         if (!result.next()) {
           null
@@ -210,7 +213,7 @@ internal class GoalSharedPreplanSql(
 
   fun deleteAllByGoal(parentGoalWorkflowId: String): Int =
     connection.prepareStatement("DELETE FROM goal_shared_preplans WHERE parent_goal_workflow_id = ?").use {
-      it.setString(1, parentGoalWorkflowId)
+      it.bindAll(parentGoalWorkflowId)
       it.executeUpdate()
     }
 }
@@ -230,7 +233,7 @@ internal fun Connection.insertSharedPreplanRow(checkpoint: SharedGoalPreplanChec
     checkpoint.provenance.phaseOutputContractId, checkpoint.provenance.phaseOutputContractVersion,
     checkpoint.payloadSha256, checkpoint.preplanPayload, checkpoint.repairEvidenceJson(),
   )
-  values.forEachIndexed { i, value -> s.setString(i + 1, value) }
+  s.bindAll(*values.toTypedArray())
   s.executeUpdate() > 0
 }
 
@@ -242,8 +245,7 @@ internal fun Connection.cascadeSiblingPlanRows(
     prepareStatement(
       "DELETE FROM goal_subtask_plans WHERE parent_goal_workflow_id = ? AND subtask_id = ?",
     ).use { statement ->
-      statement.setString(1, parentGoalWorkflowId)
-      statement.setInt(2, subtaskId)
+      statement.bindAll(parentGoalWorkflowId, subtaskId)
       statement.executeUpdate()
     }
   }
@@ -268,7 +270,7 @@ internal fun Connection.restampSubtaskPlanProvenance(
       provenance.phaseOutputContractId,
       provenance.phaseOutputContractVersion,
       parentGoalWorkflowId,
-    ).forEachIndexed { i, value -> s.setString(i + 1, value) }
+    ).also { s.bindAll(*it.toTypedArray()) }
     s.executeUpdate()
   }
 }

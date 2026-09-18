@@ -1,5 +1,7 @@
 package skillbill.infrastructure.sqlite.workflow
 
+import skillbill.infrastructure.sqlite.core.bindAll
+
 import skillbill.error.InvalidGoalPlanningPreparationSchemaError
 import skillbill.goalrunner.model.GoalPlanningStatusSnapshot
 import java.sql.Connection
@@ -71,7 +73,7 @@ internal class GoalPlanningStatusProjectionSql(
   private fun readSharedPreplanPrepared(parentGoalWorkflowId: String): Boolean = connection.prepareStatement(
     "SELECT preparation_status, preplan_payload_json FROM goal_shared_preplans WHERE parent_goal_workflow_id = ?",
   ).use { statement ->
-    statement.setString(1, parentGoalWorkflowId)
+    statement.bindAll(parentGoalWorkflowId)
     statement.executeQuery().use { result ->
       result.next() &&
         result.getString(1) == "prepared" &&
@@ -83,7 +85,7 @@ internal class GoalPlanningStatusProjectionSql(
     "SELECT subtask_id, preparation_status FROM goal_subtask_plans " +
       "WHERE parent_goal_workflow_id = ? ORDER BY manifest_order, subtask_id",
   ).use { statement ->
-    statement.setString(1, parentGoalWorkflowId)
+    statement.bindAll(parentGoalWorkflowId)
     statement.executeQuery().use { result ->
       buildList {
         while (result.next()) {

@@ -1,6 +1,7 @@
 plugins {
   id("skillbill.jvm-library")
   id("skillbill.quality")
+  `java-test-fixtures`
 }
 
 tasks.named<ProcessResources>("processResources") {
@@ -18,9 +19,11 @@ dependencies {
   implementation(libs.kotlin.inject.runtime)
   implementation(libs.kotlinx.serialization.json)
   implementation(libs.sqlite.jdbc)
-  implementation(libs.json.schema.validator)
-  implementation(libs.jackson.databind)
-  implementation(libs.jackson.dataformat.yaml)
   testImplementation(libs.junit.jupiter)
   testImplementation(libs.kotlin.test)
+  testImplementation(project(":runtime-application"))
+  testFixturesImplementation(project(":runtime-ports"))
+  testFixturesImplementation(project(":runtime-contracts"))
+  testFixturesImplementation(project(":runtime-domain"))
+  testFixturesImplementation(libs.sqlite.jdbc)
 }

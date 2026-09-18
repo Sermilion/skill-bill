@@ -1,4 +1,6 @@
 package skillbill.infrastructure.sqlite.telemetry
+import skillbill.infrastructure.sqlite.core.bindAll
+import skillbill.contracts.telemetry.GoalTelemetryPayloadKeys
 
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.telemetry.model.GoalIssueFinishedRecord
@@ -31,14 +33,14 @@ private fun loadRecoveredGoalSegments(
   ORDER BY datetime(started_at), workflow_id
   """.trimIndent(),
 ).use { statement ->
-  statement.bind(record.issueKey, record.parentWorkflowId, record.parentWorkflowId)
+  statement.bindAll(record.issueKey, record.parentWorkflowId, record.parentWorkflowId)
   statement.executeQuery().use { resultSet ->
     buildList {
       while (resultSet.next()) {
         add(
           RecoveredGoalSegment(
             workflowId = resultSet.getString(SharedPayloadKeys.WORKFLOW_ID),
-            startedAt = resultSet.getString("started_at"),
+            startedAt = resultSet.getString(GoalTelemetryPayloadKeys.STARTED_AT),
             resumed = resultSet.getInt("resumed") != 0,
             status = resultSet.getString(SharedPayloadKeys.STATUS),
           ),
@@ -67,7 +69,7 @@ private fun persistRecoveredGoalProgress(
   ).use { statement ->
     val latestBlocked = history.filter { it.status == "blocked" }
       .maxWithOrNull(compareBy<RecoveredGoalSegment> { it.startedAt }.thenBy { it.workflowId })
-    statement.bind(
+    statement.bindAll(
       record.parentWorkflowId,
       record.issueKey,
       history.size,
@@ -89,13 +91,13 @@ internal fun goalIssueProgressExists(connection: Connection, parentWorkflowId: S
   connection.prepareStatement(
     "SELECT 1 FROM goal_issue_progress WHERE parent_workflow_id = ? AND issue_key = ?",
   ).use { statement ->
-    statement.bind(parentWorkflowId, issueKey)
+    statement.bindAll(parentWorkflowId, issueKey)
     statement.executeQuery().use { it.next() }
   }
 
 private data class RecoveredGoalSegment(
-  val workflowId: String,
-  val startedAt: String,
-  val resumed: Boolean,
-  val status: String?,
+  internal val workflowId: String,
+  internal val startedAt: String,
+  internal val resumed: Boolean,
+  internal val status: String?,
 )

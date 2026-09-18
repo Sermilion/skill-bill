@@ -1,5 +1,10 @@
 package skillbill.infrastructure.sqlite.core
 
+import skillbill.review.model.FindingOutcomeType
+
+private val findingOutcomeCheckValues: String =
+  FindingOutcomeType.entries.joinToString(", ") { "'${it.wireValue}'" }
+
 internal val databaseSchemaStatementsEarly: List<String> =
   listOf(
 
@@ -118,7 +123,7 @@ internal val databaseSchemaStatementsEarly: List<String> =
         review_run_id TEXT NOT NULL,
         finding_id TEXT NOT NULL,
         event_type TEXT NOT NULL CHECK (
-          event_type IN ('finding_accepted', 'fix_applied', 'finding_edited', 'fix_rejected', 'false_positive')
+          event_type IN ($findingOutcomeCheckValues)
         ),
         note TEXT NOT NULL DEFAULT '',
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,

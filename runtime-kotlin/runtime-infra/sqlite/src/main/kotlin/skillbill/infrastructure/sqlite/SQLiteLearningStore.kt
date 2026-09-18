@@ -10,16 +10,9 @@ import skillbill.learnings.model.LearningSourceValidation
 import skillbill.learnings.model.UpdateLearningRequest
 import java.sql.Connection
 import java.sql.ResultSet
+import skillbill.infrastructure.sqlite.core.bindAll
 
-object SQLiteLearningStore {
-  private const val PARAM_ONE: Int = 1
-  private const val PARAM_TWO: Int = 2
-  private const val PARAM_THREE: Int = 3
-  private const val PARAM_FOUR: Int = 4
-  private const val PARAM_FIVE: Int = 5
-  private const val PARAM_SIX: Int = 6
-  private const val PARAM_SEVEN: Int = 7
-
+internal object SQLiteLearningStore {
   fun addLearning(
     connection: Connection,
     request: CreateLearningRequest,
@@ -60,19 +53,13 @@ object SQLiteLearningStore {
       ) VALUES (?, ?, ?, ?, ?, 'active', ?, ?)
       """.trimIndent(),
     ).use { statement ->
-      statement.setString(PARAM_ONE, validatedScope.wireName)
-      statement.setString(PARAM_TWO, validatedScopeKey)
-      statement.setString(PARAM_THREE, validatedTitle)
-      statement.setString(PARAM_FOUR, validatedRuleText)
-      statement.setString(PARAM_FIVE, effectiveRationale)
-      statement.setString(PARAM_SIX, sourceValidation.reviewRunId)
-      statement.setString(PARAM_SEVEN, sourceValidation.findingId)
+      statement.bindAll(validatedScope.wireName, validatedScopeKey, validatedTitle, validatedRuleText, effectiveRationale, sourceValidation.reviewRunId, sourceValidation.findingId)
       statement.executeUpdate()
     }
     return connection.createStatement().use { statement ->
       statement.executeQuery("SELECT last_insert_rowid()").use { resultSet ->
         resultSet.next()
-        resultSet.getInt(PARAM_ONE)
+        resultSet.getInt(1)
       }
     }
   }
@@ -80,7 +67,7 @@ object SQLiteLearningStore {
   fun getLearning(connection: Connection, learningId: Int): LearningRecord = connection.prepareStatement(
     learningRecordSelectSql("WHERE id = ?"),
   ).use { statement ->
-    statement.setInt(PARAM_ONE, learningId)
+    statement.bindAll(learningId)
     statement.executeQuery().use { resultSet ->
       require(resultSet.next()) { "Unknown learning id '$learningId'." }
       resultSet.toLearningRecord()
@@ -98,7 +85,7 @@ object SQLiteLearningStore {
       }
     return connection.prepareStatement(query).use { statement ->
       if (status != "all") {
-        statement.setString(PARAM_ONE, status)
+        statement.bindAll(status)
       }
       statement.executeQuery().use { resultSet ->
         buildList {
@@ -139,9 +126,7 @@ object SQLiteLearningStore {
           id
         """.trimIndent(),
       ).use { statement ->
-        parameters.forEachIndexed { index, parameter ->
-          statement.setString(index + 1, parameter)
-        }
+        statement.bindAll(*parameters.toTypedArray())
         statement.executeQuery().use { resultSet ->
           buildList {
             while (resultSet.next()) {
@@ -177,12 +162,7 @@ object SQLiteLearningStore {
       WHERE id = ?
       """.trimIndent(),
     ).use { statement ->
-      statement.setString(PARAM_ONE, validatedScope.wireName)
-      statement.setString(PARAM_TWO, validatedScopeKey)
-      statement.setString(PARAM_THREE, nextTitle)
-      statement.setString(PARAM_FOUR, nextRuleText)
-      statement.setString(PARAM_FIVE, nextRationale)
-      statement.setInt(PARAM_SIX, request.learningId)
+      statement.bindAll(validatedScope.wireName, validatedScopeKey, nextTitle, nextRuleText, nextRationale, request.learningId)
       statement.executeUpdate()
     }
     return getLearning(connection, request.learningId)
@@ -198,8 +178,7 @@ object SQLiteLearningStore {
       WHERE id = ?
       """.trimIndent(),
     ).use { statement ->
-      statement.setString(PARAM_ONE, validatedStatus)
-      statement.setInt(PARAM_TWO, learningId)
+      statement.bindAll(validatedStatus, learningId)
       statement.executeUpdate()
     }
     return getLearning(connection, learningId)
@@ -208,7 +187,7 @@ object SQLiteLearningStore {
   fun deleteLearning(connection: Connection, learningId: Int) {
     getLearning(connection, learningId)
     connection.prepareStatement("DELETE FROM learnings WHERE id = ?").use { statement ->
-      statement.setInt(PARAM_ONE, learningId)
+      statement.bindAll(learningId)
       statement.executeUpdate()
     }
   }
@@ -222,11 +201,11 @@ object SQLiteLearningStore {
       }
     return connection.prepareStatement(query).use { statement ->
       if (status != null) {
-        statement.setString(PARAM_ONE, status)
+        statement.bindAll(status)
       }
       statement.executeQuery().use { resultSet ->
         if (resultSet.next()) {
-          resultSet.getInt(PARAM_ONE)
+          resultSet.getInt(1)
         } else {
           0
         }
@@ -244,8 +223,7 @@ object SQLiteLearningStore {
         updated_at = CURRENT_TIMESTAMP
       """.trimIndent(),
     ).use { statement ->
-      statement.setString(PARAM_ONE, reviewSessionId)
-      statement.setString(PARAM_TWO, learningsJson)
+      statement.bindAll(reviewSessionId, learningsJson)
       statement.executeUpdate()
     }
   }
@@ -258,7 +236,7 @@ object SQLiteLearningStore {
       WHERE review_session_id = ?
       """.trimIndent(),
     ).use { statement ->
-      statement.setString(PARAM_ONE, reviewSessionId)
+      statement.bindAll(reviewSessionId)
       statement.executeQuery().use { resultSet ->
         if (!resultSet.next()) {
           return null

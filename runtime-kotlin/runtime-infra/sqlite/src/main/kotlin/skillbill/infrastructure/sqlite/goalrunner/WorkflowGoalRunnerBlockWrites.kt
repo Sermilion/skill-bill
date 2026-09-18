@@ -30,11 +30,12 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerAction
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseLedgerEntry
 import skillbill.workflow.taskruntime.model.FeatureTaskRuntimePhaseRecord
 import skillbill.workflow.taskruntime.phaseartifacts.asPendingForOperatorResume
-import java.time.OffsetDateTime
+import java.time.Clock
 import java.time.ZoneOffset
 
 internal class WorkflowGoalRunnerBlockWrites(
   private val engine: WorkflowEngine,
+  private val clock: Clock,
 ) {
   fun markBlocked(
     workflowId: String,
@@ -149,7 +150,7 @@ internal class WorkflowGoalRunnerBlockWrites(
     val retryEntry = FeatureTaskRuntimePhaseLedgerEntry(
       action = FeatureTaskRuntimePhaseLedgerAction.RETRY,
       sequenceNumber = (ledger.maxOfOrNull { it.sequenceNumber } ?: -1) + 1,
-      timestamp = OffsetDateTime.now(ZoneOffset.UTC).toString(),
+      timestamp = clock.instant().atOffset(ZoneOffset.UTC).toString(),
       phaseId = blockedRecord.phaseId,
       attemptCount = blockedRecord.attemptCount,
       resolvedAgentId = blockedRecord.resolvedAgentId,
@@ -177,7 +178,7 @@ internal class WorkflowGoalRunnerBlockWrites(
           FEATURE_TASK_RUNTIME_OPERATOR_BLOCK_RETRY_ARTIFACT_KEY to mapOf(
             SharedPayloadKeys.PHASE_ID to blockedRecord.phaseId,
             "reason" to reason,
-            "retried_at" to OffsetDateTime.now(ZoneOffset.UTC).toString(),
+            "retried_at" to clock.instant().atOffset(ZoneOffset.UTC).toString(),
             "previous_blocked_reason" to blockedRecord.blockedReason,
             "previous_blocked_record" to blockedRecord.encodeWorkflowArtifact(),
           ),

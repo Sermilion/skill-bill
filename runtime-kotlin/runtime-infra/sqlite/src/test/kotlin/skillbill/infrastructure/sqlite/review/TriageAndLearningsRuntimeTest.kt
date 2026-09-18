@@ -1,4 +1,4 @@
-package skillbill.review
+package skillbill.infrastructure.sqlite.review
 
 import skillbill.SAMPLE_REVIEW
 import skillbill.application.learning.learningAppliedSessionWire
@@ -7,8 +7,11 @@ import skillbill.contracts.JsonCodec
 import skillbill.contracts.learning.LearningEntryDto
 import skillbill.infrastructure.sqlite.SQLiteLearningStore
 import skillbill.infrastructure.sqlite.review.ReviewRuntime
+import skillbill.infrastructure.sqlite.review.persistImportedReview
 import skillbill.infrastructure.sqlite.review.TriageRuntime
 import skillbill.learnings.LearningsRuntime
+import skillbill.review.ReviewParser
+import skillbill.review.TriageDecisionParser
 import skillbill.learnings.model.CreateLearningRequest
 import skillbill.learnings.model.LearningScope
 import skillbill.learnings.model.LearningSourceValidation
@@ -153,7 +156,7 @@ class LearningPromotionTest {
 
 private fun importSampleReview(connection: Connection): ImportedReview {
   val review = ReviewParser.parseReview(SAMPLE_REVIEW.trimIndent())
-  ReviewRuntime.saveImportedReview(connection, review, sourcePath = null)
+  persistImportedReview(connection, review, sourcePath = null)
   return review
 }
 
@@ -162,7 +165,7 @@ private fun rejectFinding(
   reviewRunId: String,
   findingId: String,
   note: String,
-): ReviewFinishedTelemetry? = TriageRuntime.recordFeedback(
+): ReviewFinishedTelemetry? = TriageRuntime.recordFeedbackWithoutTransaction(
   connection = connection,
   request =
   FeedbackRequest(

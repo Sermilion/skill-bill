@@ -23,11 +23,14 @@ import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.decompositionStatus
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import java.nio.file.Path
+import java.time.Clock
+import kotlin.random.Random
 
 @Inject
 class GoalRunnerSubtaskLaunchPrepare(
   private val launchBoundaries: GoalRunnerSubtaskLaunchBoundaries,
   private val repositoryEnclosingRootPort: RepositoryEnclosingRootPort,
+  private val clock: Clock,
 ) {
   private val manifestStore get() = launchBoundaries.manifestStore
   private val outcomeStore get() = launchBoundaries.outcomeStore
@@ -168,7 +171,7 @@ class GoalRunnerSubtaskLaunchPrepare(
       reopenBlockedChildForOperatorResume(subtaskId, priorWorkflowId, subtask)
     }
     val firstRun = priorWorkflowId == null
-    val assignedWorkflowId = priorWorkflowId ?: generateWorkflowId(RUNTIME_WORKFLOW_ID_PREFIX)
+    val assignedWorkflowId = priorWorkflowId ?: generateWorkflowId(RUNTIME_WORKFLOW_ID_PREFIX, clock, Random.Default)
     val rawSpecPath = requireNotNull(
       subtask.specPath.takeIf(String::isNotBlank),
     ) { "Goal subtask '$subtaskId' has no governed spec path." }

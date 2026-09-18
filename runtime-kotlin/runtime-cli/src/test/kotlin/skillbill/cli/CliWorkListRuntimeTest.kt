@@ -10,7 +10,7 @@ import skillbill.cli.work.toTerminalSafeText
 import skillbill.cli.work.truncateTerminalDisplayWidth
 import skillbill.di.RuntimeComponent
 import skillbill.di.create
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
+import skillbill.infrastructure.sqlite.ensureTestDatabase
 import skillbill.model.EnvironmentContext
 import skillbill.model.OptionalCallbacks
 import skillbill.model.RuntimeContext
@@ -60,7 +60,7 @@ class CliWorkListRuntimeTest {
     )
     val runtime = component.openWorkflow(WorkflowFamilyKind.TASK_RUNTIME, "SKILL-117")
     val verify = component.openWorkflow(WorkflowFamilyKind.VERIFY, "SKILL-118")
-    DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
+    ensureTestDatabase(dbPath).use { connection ->
       updateStartedAt(connection, "feature_task_workflows", runtime, "2026-05-01T12:00:00.000004Z")
       updateStartedAt(connection, "feature_verify_workflows", verify, "2026-05-01T12:00:00.000003Z")
       seedWorkListGoals(connection)
@@ -103,7 +103,7 @@ class CliWorkListRuntimeTest {
   @Test
   fun `work list table aligns wide and combining issue keys by terminal display cells`() {
     val dbPath = Files.createTempDirectory("skillbill-cli-work-unicode").resolve("metrics.db")
-    DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
+    ensureTestDatabase(dbPath).use { connection ->
       insertGoal(
         connection,
         GoalProgressRow("goal-wide", "界", "2026-05-01T12:00:00Z", "2026-05-01T12:00:00Z", false),
@@ -132,7 +132,7 @@ class CliWorkListRuntimeTest {
   fun `work list sanitizes persisted workflow identifiers for table output only`() {
     val dbPath = Files.createTempDirectory("skillbill-cli-work-workflow-id-controls").resolve("metrics.db")
     val workflowId = "goal\u001b]8;;https://example.test\u0007"
-    DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
+    ensureTestDatabase(dbPath).use { connection ->
       insertGoal(
         connection,
         GoalProgressRow(workflowId, "SKILL-117", "2026-05-01T12:00:00Z", "2026-05-01T12:00:00Z", false),

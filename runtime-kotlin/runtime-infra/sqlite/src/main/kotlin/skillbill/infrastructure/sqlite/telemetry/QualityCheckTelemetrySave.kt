@@ -1,10 +1,11 @@
 package skillbill.infrastructure.sqlite.telemetry
+import skillbill.infrastructure.sqlite.core.bindAll
 
 import skillbill.telemetry.model.QualityCheckFinishedRecord
 import skillbill.telemetry.model.QualityCheckStartedRecord
 import java.sql.Connection
 
-fun saveQualityCheckStarted(connection: Connection, record: QualityCheckStartedRecord) {
+internal fun saveQualityCheckStarted(connection: Connection, record: QualityCheckStartedRecord) {
   connection.prepareStatement(
     """
     INSERT INTO quality_check_sessions (
@@ -12,7 +13,7 @@ fun saveQualityCheckStarted(connection: Connection, record: QualityCheckStartedR
     ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     """.trimIndent(),
   ).use { statement ->
-    statement.bind(
+    statement.bindAll(
       record.sessionId,
       record.routedSkill,
       record.detectedStack,
@@ -25,7 +26,7 @@ fun saveQualityCheckStarted(connection: Connection, record: QualityCheckStartedR
   }
 }
 
-fun saveQualityCheckFinished(connection: Connection, record: QualityCheckFinishedRecord): TerminalSaveOutcome {
+internal fun saveQualityCheckFinished(connection: Connection, record: QualityCheckFinishedRecord): TerminalSaveOutcome {
   val failingCheckNamesJson = listJson(record.failingCheckNames)
   if (rowExists(connection, "quality_check_sessions", record.sessionId)) {
     if (lifecycleAlreadyFinished(connection, "quality_check_sessions", record.sessionId)) {
@@ -63,7 +64,7 @@ private fun updateQualityCheckFinished(
       AND (finished_event_emitted_at IS NULL OR result = 'stale')
     """.trimIndent(),
   ).use { statement ->
-    statement.bind(
+    statement.bindAll(
       record.routedSkill,
       record.detectedStack,
       record.fallback.toSqlInt(),
@@ -95,7 +96,7 @@ private fun insertQualityCheckFinished(
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     """.trimIndent(),
   ).use { statement ->
-    statement.bind(
+    statement.bindAll(
       record.sessionId,
       record.routedSkill,
       record.detectedStack,

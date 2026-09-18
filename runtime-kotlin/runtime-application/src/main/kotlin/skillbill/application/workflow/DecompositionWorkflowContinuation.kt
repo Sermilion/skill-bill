@@ -25,6 +25,8 @@ import skillbill.workflow.engine.model.WorkflowStepUpdates
 import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.model.WorkflowStatus
 import java.nio.file.Path
+import java.time.Clock
+import kotlin.random.Random
 
 class DecompositionWorkflowContinuation(
   private val engine: WorkflowEngine,
@@ -33,6 +35,8 @@ class DecompositionWorkflowContinuation(
   private val fileStore: DecompositionManifestStore? = null,
   private val repoRoot: Path,
   private val manifestWriter: DecompositionManifestWriter,
+  private val clock: Clock,
+  private val workflowIdRandom: Random,
 ) {
   internal fun continueDecomposedParentByIssueKey(
     issueKey: String,
@@ -89,7 +93,7 @@ class DecompositionWorkflowContinuation(
     val existing = existingRecord?.toSnapshot()
     val base = existing ?: engine.openRecord(
       WorkflowFamily.TASK_RUNTIME.definition,
-      generateWorkflowId(WorkflowFamily.TASK_RUNTIME.definition.workflowIdPrefix),
+      generateWorkflowId(WorkflowFamily.TASK_RUNTIME.definition.workflowIdPrefix, clock, workflowIdRandom),
       WorkflowFamily.TASK_RUNTIME.definition.defaultSessionPrefix,
       "plan",
     )
@@ -253,7 +257,7 @@ class DecompositionWorkflowContinuation(
     issueKey: String,
     unitOfWork: UnitOfWork,
   ): ContinuationStepResult {
-    val workflowId = generateWorkflowId(WorkflowFamily.TASK_RUNTIME.definition.workflowIdPrefix)
+    val workflowId = generateWorkflowId(WorkflowFamily.TASK_RUNTIME.definition.workflowIdPrefix, clock, workflowIdRandom)
     val updatedManifest = manifest.withStartedSubtask(selection.subtask.id, workflowId, selection.branchPlan.branch)
     val opened = engine.openRecord(
       WorkflowFamily.TASK_RUNTIME.definition,

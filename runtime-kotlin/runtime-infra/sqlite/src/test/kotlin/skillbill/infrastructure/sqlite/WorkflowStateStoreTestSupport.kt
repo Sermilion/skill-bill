@@ -1,5 +1,7 @@
 package skillbill.infrastructure.sqlite
 
+import java.time.Clock
+
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
 import skillbill.infrastructure.sqlite.workflow.WorkflowStateRow
 import skillbill.infrastructure.sqlite.workflow.WorkflowStateStore
@@ -68,7 +70,7 @@ internal fun assertRuntimeAndVerifyStateTransitions(
 
 internal fun prepareConcurrentWorkflowTransitions(dbPath: Path, initial: WorkflowStateRow) {
   DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
-    WorkflowStateStore(connection).saveFeatureTaskRuntimeWorkflow(initial)
+    WorkflowStateStore(connection, Clock.systemUTC()).saveFeatureTaskRuntimeWorkflow(initial)
     connection.createStatement().use { statement ->
       statement.execute("CREATE TABLE workflow_transition_log (state_entered_at TEXT NOT NULL)")
       statement.execute(

@@ -1,28 +1,30 @@
 package skillbill.infrastructure.sqlite.review
+import skillbill.infrastructure.sqlite.core.bindAll
+import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
 
 import skillbill.contracts.review.ReviewFindingPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
 import skillbill.review.model.FindingOutcomeRow
+import skillbill.review.model.FindingOutcomeType
 import skillbill.review.model.ReviewFindingDetail
 import skillbill.review.model.ReviewFindingStats
 import skillbill.review.model.ReviewSummary
 import java.sql.Connection
 
-internal val acceptedFindingOutcomeTypes = setOf("finding_accepted", "fix_applied", "finding_edited")
-internal val rejectedFindingOutcomeTypes = setOf("fix_rejected", "false_positive")
-private val findingOutcomeTypes =
-  listOf(
-    "finding_accepted",
-    "fix_applied",
-    "finding_edited",
-    "fix_rejected",
-    "false_positive",
-  )
+internal val acceptedFindingOutcomeTypes =
+  setOf(
+    FindingOutcomeType.FindingAccepted,
+    FindingOutcomeType.FixApplied,
+    FindingOutcomeType.FindingEdited,
+  ).map { it.wireValue }.toSet()
+internal val rejectedFindingOutcomeTypes =
+  setOf(FindingOutcomeType.FixRejected, FindingOutcomeType.FalsePositive).map { it.wireValue }.toSet()
+private val findingOutcomeTypes = FindingOutcomeType.entries.map { it.wireValue }
 
 private data class FindingQueryFilter(
-  val latestFeedbackFilter: String,
-  val findingsFilter: String,
-  val parameters: List<String>,
+  internal val latestFeedbackFilter: String,
+  internal val findingsFilter: String,
+  internal val parameters: List<String>,
 )
 
 private class FindingSummaryAccumulator {
@@ -111,12 +113,10 @@ private class FindingSummaryAccumulator {
   }
 }
 
-fun queryLatestFindingOutcomes(connection: Connection, reviewRunId: String?): List<FindingOutcomeRow> {
+internal fun queryLatestFindingOutcomes(connection: Connection, reviewRunId: String?): List<FindingOutcomeRow> {
   val filter = buildFindingOutcomeFilters(reviewRunId)
   return connection.prepareStatement(latestFindingOutcomesSql(filter)).use { statement ->
-    filter.parameters.forEachIndexed { index, value ->
-      statement.setString(index + 1, value)
-    }
+    statement.bindAll(*filter.parameters.toTypedArray())
     statement.executeQuery().use { resultSet ->
       buildList {
         while (resultSet.next()) {
@@ -124,12 +124,12 @@ fun queryLatestFindingOutcomes(connection: Connection, reviewRunId: String?): Li
             FindingOutcomeRow(
               reviewRunId = resultSet.getString(ReviewVerificationSignalKeys.REVIEW_RUN_ID),
               findingId = resultSet.getString(ReviewFindingPayloadKeys.FINDING_ID),
-              severity = resultSet.getString("severity"),
-              confidence = resultSet.getString("confidence"),
+              severity = resultSet.getString(SqliteReviewTelemetryPayloadKeys.SEVERITY),
+              confidence = resultSet.getString(SqliteReviewTelemetryPayloadKeys.CONFIDENCE),
               issueCategory = resultSet.getString(ReviewFindingPayloadKeys.ISSUE_CATEGORY),
-              location = resultSet.getString("location"),
-              description = resultSet.getString("description"),
-              outcomeType = resultSet.getString("outcome_type").orEmpty(),
+              location = resultSet.getString(SqliteReviewTelemetryPayloadKeys.LOCATION),
+              description = resultSet.getString(SqliteReviewTelemetryPayloadKeys.DESCRIPTION),
+              outcomeType = resultSet.getString(SqliteReviewTelemetryPayloadKeys.OUTCOME_TYPE).orEmpty(),
               note = resultSet.getString("note").orEmpty(),
             ),
           )
@@ -139,13 +139,13 @@ fun queryLatestFindingOutcomes(connection: Connection, reviewRunId: String?): Li
   }
 }
 
-fun summarizeFindingRows(findingRows: List<FindingOutcomeRow>): ReviewFindingStats {
+internal fun summarizeFindingRows(findingRows: List<FindingOutcomeRow>): ReviewFindingStats {
   val summary = FindingSummaryAccumulator()
   findingRows.forEach(summary::apply)
   return summary.toStats()
 }
 
-fun shouldSkipReviewFinishedTelemetry(findingRows: List<FindingOutcomeRow>, reviewSummary: ReviewSummary): Boolean {
+internal fun shouldSkipReviewFinishedTelemetry(findingRows: List<FindingOutcomeRow>, reviewSummary: ReviewSummary): Boolean {
   val summary = summarizeFindingRows(findingRows)
   val resolvedFindings = summary.acceptedFindings + summary.rejectedFindings
   return summary.totalFindings > 0 &&
@@ -153,7 +153,7 @@ fun shouldSkipReviewFinishedTelemetry(findingRows: List<FindingOutcomeRow>, revi
     (!reviewSummary.reviewFinishedAt.isNullOrEmpty() || !reviewSummary.reviewFinishedEventEmittedAt.isNullOrEmpty())
 }
 
-fun emptySeverityCounts(): Map<String, Int> = mapOf("Blocker" to 0, "Major" to 0, "Minor" to 0)
+internal fun emptySeverityCounts(): Map<String, Int> = mapOf("Blocker" to 0, "Major" to 0, "Minor" to 0)
 
 private fun buildFindingOutcomeFilters(reviewRunId: String?): FindingQueryFilter = if (reviewRunId == null) {
   FindingQueryFilter(latestFeedbackFilter = "", findingsFilter = "", parameters = emptyList())
@@ -189,8 +189,8 @@ private fun latestFindingOutcomesSql(filter: FindingQueryFilter): String = """
     COALESCE(
       fe.event_type,
       CASE rfo.outcome
-        WHEN 'addressed' THEN 'fix_applied'
-        WHEN 'rejected' THEN 'fix_rejected'
+        WHEN 'addressed' THEN '${FindingOutcomeType.FixApplied.wireValue}'
+        WHEN 'rejected' THEN '${FindingOutcomeType.FixRejected.wireValue}'
         ELSE ''
       END,
       ''

@@ -35,6 +35,7 @@ dependencies {
   testImplementation(testFixtures(project(":runtime-engine")))
   testImplementation(testFixtures(project(":runtime-ports")))
   testImplementation(testFixtures(project(":runtime-domain")))
+  testImplementation(testFixtures(project(":runtime-infra:sqlite")))
   testImplementation(libs.junit.jupiter)
   testImplementation(libs.kotlin.test)
   testImplementation(libs.jackson.dataformat.yaml)

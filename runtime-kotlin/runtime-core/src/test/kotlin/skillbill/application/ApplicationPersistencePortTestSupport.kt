@@ -1083,6 +1083,7 @@ internal fun testWorkflowService(
   repositoryRoot = RepositoryRoot(Path.of("").toAbsolutePath().normalize()),
   goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
   runtimeDiagnostics = NoopRuntimeDiagnostics,
+  clock = Clock.systemUTC(),
 )
 
 internal fun loadTestDecompositionManifest(path: Path) =

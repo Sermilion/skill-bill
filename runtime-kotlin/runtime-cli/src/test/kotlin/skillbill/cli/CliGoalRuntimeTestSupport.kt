@@ -5,7 +5,7 @@ import skillbill.cli.model.CliRuntimeContext
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_WORKER_OWNERSHIP_CONTRACT_VERSION
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
+import skillbill.infrastructure.sqlite.ensureTestDatabase
 import skillbill.install.model.InstallAgent
 import skillbill.ports.agentrun.AgentRunLauncher
 import skillbill.ports.agentrun.ExecutableLookup
@@ -48,7 +48,7 @@ internal fun startRunningRuntimeGoalChild(fixture: GoalCliFixture): String {
     fixture.dbPath,
     fixture.context(launcher = NoopGoalTestAgentRunLauncher),
   )
-  DatabaseRuntime.ensureDatabase(fixture.dbPath).use { connection ->
+  ensureTestDatabase(fixture.dbPath).use { connection ->
     connection.prepareStatement(
       "UPDATE feature_task_workflows SET artifacts_json = replace(artifacts_json, ?, ?) " +
         "WHERE mode = 'runtime' AND instr(artifacts_json, ?) > 0",
@@ -63,7 +63,7 @@ internal fun startRunningRuntimeGoalChild(fixture: GoalCliFixture): String {
 }
 
 internal fun seedLiveWorkerLease(fixture: GoalCliFixture, workflowId: String) {
-  DatabaseRuntime.ensureDatabase(fixture.dbPath).use { connection ->
+  ensureTestDatabase(fixture.dbPath).use { connection ->
     connection.prepareStatement(
       """
       INSERT OR REPLACE INTO feature_task_runtime_worker_leases (
@@ -86,7 +86,7 @@ internal fun seedLiveWorkerLease(fixture: GoalCliFixture, workflowId: String) {
 }
 
 internal fun clearWorkerLease(fixture: GoalCliFixture, workflowId: String) {
-  DatabaseRuntime.ensureDatabase(fixture.dbPath).use { connection ->
+  ensureTestDatabase(fixture.dbPath).use { connection ->
     connection.prepareStatement(
       "DELETE FROM feature_task_runtime_worker_leases WHERE workflow_id = ?",
     ).use { statement ->
@@ -97,7 +97,7 @@ internal fun clearWorkerLease(fixture: GoalCliFixture, workflowId: String) {
 }
 
 internal fun seedExpiredWorkerLease(fixture: GoalCliFixture, workflowId: String) {
-  DatabaseRuntime.ensureDatabase(fixture.dbPath).use { connection ->
+  ensureTestDatabase(fixture.dbPath).use { connection ->
     connection.prepareStatement(
       """
       INSERT OR REPLACE INTO feature_task_runtime_worker_leases (
@@ -160,7 +160,7 @@ internal fun seedIssue342StaleParentControlState(fixture: GoalCliFixture) {
 }
 
 internal fun workerLeaseRowCount(fixture: GoalCliFixture, workflowId: String): Int =
-  DatabaseRuntime.ensureDatabase(fixture.dbPath).use { connection ->
+  ensureTestDatabase(fixture.dbPath).use { connection ->
     connection.prepareStatement(
       "SELECT COUNT(*) FROM feature_task_runtime_worker_leases WHERE workflow_id = ?",
     ).use { statement ->

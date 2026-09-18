@@ -1,5 +1,7 @@
 package skillbill.infrastructure.sqlite.goal
 
+import skillbill.infrastructure.sqlite.core.bindAll
+
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.review.ReviewFindingPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
@@ -26,15 +28,16 @@ internal class UnaddressedFindingsOutcomeRuntime(private val connection: Connect
       """.trimIndent(),
     ).use { statement ->
       outcomes.forEach { outcome ->
-        var parameterIndex = 1
-        statement.setString(parameterIndex++, outcome.workflowId)
-        statement.setInt(parameterIndex++, outcome.reviewPassNumber)
-        statement.setInt(parameterIndex++, outcome.findingOrdinal)
-        statement.setString(parameterIndex++, outcome.reviewRunId)
-        statement.setString(parameterIndex++, outcome.findingId)
-        statement.setString(parameterIndex++, outcome.findingKey)
-        statement.setString(parameterIndex++, outcome.keyState)
-        statement.setString(parameterIndex, outcome.outcome.wireValue)
+        statement.bindAll(
+          outcome.workflowId,
+          outcome.reviewPassNumber,
+          outcome.findingOrdinal,
+          outcome.reviewRunId,
+          outcome.findingId,
+          outcome.findingKey,
+          outcome.keyState,
+          outcome.outcome.wireValue,
+        )
         statement.addBatch()
       }
       statement.executeBatch()
@@ -50,7 +53,7 @@ internal class UnaddressedFindingsOutcomeRuntime(private val connection: Connect
     ORDER BY review_pass_number, finding_ordinal
     """.trimIndent(),
   ).use { statement ->
-    statement.setString(1, workflowId)
+    statement.bindAll(workflowId)
     statement.executeQuery().use { rows ->
       buildList {
         while (rows.next()) {
@@ -81,11 +84,12 @@ internal class UnaddressedFindingsOutcomeRuntime(private val connection: Connect
       """.trimIndent(),
     ).use { statement ->
       terminal.forEach { outcome ->
-        var parameterIndex = 1
-        statement.setString(parameterIndex++, outcome.outcome.wireValue)
-        statement.setString(parameterIndex++, outcome.workflowId)
-        statement.setString(parameterIndex++, outcome.findingKey)
-        statement.setInt(parameterIndex, outcome.reviewPassNumber)
+        statement.bindAll(
+          outcome.outcome.wireValue,
+          outcome.workflowId,
+          outcome.findingKey,
+          outcome.reviewPassNumber,
+        )
         statement.addBatch()
       }
       statement.executeBatch()

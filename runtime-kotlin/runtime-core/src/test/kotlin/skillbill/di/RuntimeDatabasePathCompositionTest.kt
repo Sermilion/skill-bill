@@ -1,6 +1,6 @@
 package skillbill.di
 
-import skillbill.infrastructure.sqlite.core.DbConstants
+import skillbill.infrastructure.sqlite.SqliteTestDatabasePaths
 import skillbill.model.EnvironmentContext
 import skillbill.model.OptionalCallbacks
 import skillbill.model.RuntimeContext
@@ -35,7 +35,7 @@ class RuntimeDatabasePathCompositionTest {
       RuntimeComponent::class.create(
         RuntimeContext(
           environment = EnvironmentContext(
-            environment = mapOf(DbConstants.DB_ENVIRONMENT_KEY to explicitDb.toString()),
+            environment = mapOf(SqliteTestDatabasePaths.DB_ENVIRONMENT_KEY to explicitDb.toString()),
             userHome = home,
           ),
           transport = TransportContext(),

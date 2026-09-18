@@ -1,7 +1,7 @@
 package skillbill.mcp
 
 import skillbill.contracts.JsonCodec
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
+import skillbill.infrastructure.sqlite.ensureTestDatabase
 import skillbill.mcp.core.McpToolDispatcher
 import skillbill.mcp.shared.McpRuntimeContext
 import skillbill.telemetry.CONFIG_ENVIRONMENT_KEY
@@ -34,7 +34,7 @@ class PrDescriptionTelemetryEditDetectionTest {
       context,
     )
 
-    DatabaseRuntime.ensureDatabase(tempDir.resolve("metrics.db")).use { connection ->
+    ensureTestDatabase(tempDir.resolve("metrics.db")).use { connection ->
       val payload = decodeJsonObject(
         scalarString(
           connection,

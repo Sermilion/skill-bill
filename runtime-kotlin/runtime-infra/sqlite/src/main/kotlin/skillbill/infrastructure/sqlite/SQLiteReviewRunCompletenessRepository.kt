@@ -28,8 +28,9 @@ import skillbill.review.model.ReviewRunLane
 import skillbill.review.model.ReviewSpecProjectionReference
 import skillbill.review.model.ReviewStageBoundary
 import java.sql.Connection
+import java.time.Clock
 
-class SQLiteReviewRunLaneCompletenessRepository(
+internal class SQLiteReviewRunLaneCompletenessRepository(
   private val connection: Connection,
 ) : ReviewRunLaneCompletenessRepository {
   override fun replaceReviewRunLanes(runId: String, lanes: List<ReviewRunLane>) =
@@ -53,8 +54,9 @@ class SQLiteReviewRunLaneCompletenessRepository(
     fetchIntegrationPass(connection, runId)
 }
 
-class SQLiteReviewRunStageCompletenessRepository(
+internal class SQLiteReviewRunStageCompletenessRepository(
   private val connection: Connection,
+  private val clock: Clock,
 ) : ReviewRunStageCompletenessRepository {
   override fun recordFindingVerdicts(runId: String, verdicts: List<ReviewFindingVerdict>) =
     recordFindingVerdicts(connection, runId, verdicts)
@@ -62,7 +64,7 @@ class SQLiteReviewRunStageCompletenessRepository(
   override fun fetchFindingVerdicts(runId: String): List<ReviewFindingVerdict> = fetchFindingVerdicts(connection, runId)
 
   override fun recordReviewPassClaims(runId: String, findings: List<ParallelReviewMergedFinding>) =
-    recordReviewPassClaims(connection, runId, findings)
+    recordReviewPassClaims(connection, clock, runId, findings)
 
   override fun fetchReviewPassClaims(runId: String): ReviewPassClaimSnapshot? = fetchReviewPassClaims(connection, runId)
 
@@ -72,14 +74,15 @@ class SQLiteReviewRunStageCompletenessRepository(
   override fun fetchStageBoundaries(runId: String): List<ReviewStageBoundary> = fetchStageBoundaries(connection, runId)
 
   override fun recordSpecProjectionReference(runId: String, reference: ReviewSpecProjectionReference) =
-    recordSpecProjectionReference(connection, runId, reference)
+    recordSpecProjectionReference(connection, clock, runId, reference)
 
   override fun fetchSpecProjectionReference(runId: String): ReviewSpecProjectionReference? =
     fetchSpecProjectionReference(connection, runId)
 }
 
-class SQLiteReviewRunCompletenessRepository(
+internal class SQLiteReviewRunCompletenessRepository(
   connection: Connection,
+  clock: Clock,
 ) : ReviewRunCompletenessRepository,
   ReviewRunLaneCompletenessRepository by SQLiteReviewRunLaneCompletenessRepository(connection),
-  ReviewRunStageCompletenessRepository by SQLiteReviewRunStageCompletenessRepository(connection)
+  ReviewRunStageCompletenessRepository by SQLiteReviewRunStageCompletenessRepository(connection, clock)

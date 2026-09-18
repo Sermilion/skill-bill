@@ -1,19 +1,24 @@
 package skillbill.infrastructure.sqlite.workflow
 
-import skillbill.infrastructure.sqlite.core.DbConstants
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.ports.workflow.FeatureVerifyWorkflowStateRepository
 import skillbill.ports.workflow.model.FeatureVerifySessionSummary
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import java.sql.Connection
+import java.time.Clock
+
+internal const val FEATURE_VERIFY_WORKFLOW_CONTRACT_VERSION: String = "0.3"
 
 internal class FeatureVerifyWorkflowStateStore(
   private val connection: Connection,
+  private val clock: Clock,
 ) : FeatureVerifyWorkflowStateRepository {
   override fun saveFeatureVerifyWorkflow(row: WorkflowStateRecord) {
     connection.upsertWorkflowRow(
       tableName = "feature_verify_workflows",
       row = row,
-      defaultContractVersion = DbConstants.FEATURE_VERIFY_WORKFLOW_CONTRACT_VERSION,
+      defaultContractVersion = FEATURE_VERIFY_WORKFLOW_CONTRACT_VERSION,
+      clock = clock,
     )
   }
 
@@ -40,7 +45,7 @@ internal class FeatureVerifyWorkflowStateStore(
       WHERE session_id = ?
       """.trimIndent(),
     ).use { statement ->
-      statement.setString(WORKFLOW_ID_PARAMETER_INDEX, sessionId)
+      statement.bindAll(sessionId)
       statement.executeQuery().use { resultSet ->
         if (!resultSet.next()) {
           return null

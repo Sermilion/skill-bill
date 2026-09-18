@@ -6,9 +6,11 @@ import skillbill.ports.workflow.FeatureTaskWorkflowRowRepository
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import java.sql.Connection
+import java.time.Clock
 
 internal class FeatureTaskWorkflowRowStore(
   private val connection: Connection,
+  private val clock: Clock,
 ) : FeatureTaskWorkflowRowRepository {
   override fun saveFeatureTaskWorkflow(row: WorkflowStateRecord, mode: FeatureTaskWorkflowMode) {
     if (mode == FeatureTaskWorkflowMode.PROSE) {
@@ -19,6 +21,7 @@ internal class FeatureTaskWorkflowRowStore(
       mode = mode,
       implementationSkill = row.implementationSkill.orEmpty().ifBlank { mode.defaultImplementationSkill },
       defaultContractVersion = mode.defaultContractVersion,
+      clock = clock,
     )
   }
 

@@ -27,6 +27,8 @@ import skillbill.workflow.model.DecompositionStatus
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.decompositionStatus
 import java.nio.file.Path
+import java.time.Clock
+import kotlin.random.Random
 
 internal class WorkflowGoalRunnerManifestLoader(
   private val database: DatabaseSessionFactory,
@@ -34,6 +36,7 @@ internal class WorkflowGoalRunnerManifestLoader(
   private val decompositionManifestStore: DecompositionManifestStore,
   private val engine: WorkflowEngine,
   private val parentProjection: GoalParentProjectionWriter,
+  private val clock: Clock,
 ) {
   fun findProjectedManifest(repoRoot: Path, issueKey: String, recoverPending: Boolean = true) =
     resolveDecompositionManifest(
@@ -90,7 +93,7 @@ internal class WorkflowGoalRunnerManifestLoader(
       existing?.let { migrateLegacyGoalRunnerControls(unitOfWork, it) }
       val base = existing ?: engine.openRecord(
         WorkflowFamily.TASK_RUNTIME.definition,
-        generateWorkflowId(WorkflowFamily.TASK_RUNTIME.definition.workflowIdPrefix),
+        generateWorkflowId(WorkflowFamily.TASK_RUNTIME.definition.workflowIdPrefix, clock, Random.Default),
         WorkflowFamily.TASK_RUNTIME.definition.defaultSessionPrefix,
         "plan",
       )

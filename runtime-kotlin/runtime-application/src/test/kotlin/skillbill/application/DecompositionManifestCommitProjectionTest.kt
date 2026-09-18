@@ -23,6 +23,7 @@ import skillbill.contracts.decomposition.DecompositionPlanningResult
 import skillbill.model.RepositoryRoot
 import skillbill.model.toPath
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
+import java.time.Clock
 import skillbill.ports.workflow.decomposition.DecompositionManifestStore
 import skillbill.ports.workflow.gitops.NoopWorkflowGitOperations
 import skillbill.ports.workflow.model.FeatureTaskExecutionIdentity
@@ -493,6 +494,7 @@ class DecompositionManifestCommitProjectionTest {
       repositoryRoot = RepositoryRoot(repoRoot),
       goalObservabilityEventValidator = NoopGoalObservabilityEventValidator,
       runtimeDiagnostics = NoopRuntimeDiagnostics,
+      clock = Clock.systemUTC(),
     )
     val opened = assertIs<WorkflowOpenResult.Ok>(
       service.open(

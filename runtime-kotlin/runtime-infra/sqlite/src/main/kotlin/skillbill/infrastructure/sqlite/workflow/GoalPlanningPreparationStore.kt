@@ -6,7 +6,7 @@ import skillbill.ports.goalrunner.LegacyGoalPlanningPreparationRepository
 import skillbill.ports.goalrunner.SharedGoalPreplanRepository
 import java.sql.Connection
 
-class GoalPlanningPreparationStore(
+internal class GoalPlanningPreparationStore(
   connection: Connection,
 ) : GoalPlanningPreparationRepository,
   SharedGoalPreplanRepository by SharedGoalPreplanStore(

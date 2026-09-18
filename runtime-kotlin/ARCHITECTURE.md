@@ -191,8 +191,21 @@ Measure repeated work before adding a cache, connection pool, or replacement lib
 for each cache decision (`DatabaseIdentity.matches`) instead of rereading the file
 and `PRAGMA user_version` through `matchesFile`. The synchronized initialization
 path still performs a second identity observation after acquiring the lock.
-`DatabaseWriteReadinessTest` asserts the warm-cache path performs one identity read
-per `ensureReady` call.
+`DatabaseWriteReadinessTest` exercises the gate through `sqliteSessionFactoryForTests`
+and recording diagnostics instead of production-only counters.
+
+`:runtime-infra:sqlite` `testFixtures` own cross-module database evidence:
+`establishTemporarySchemaReadiness` returns a temp directory, database path, and
+connection; `ensureTestDatabase` applies schema readiness only; `sqliteSessionFactoryForTests`
+builds the production session factory with `SqliteTestDiagnostics`. Consumer modules
+(`runtime-cli`, `runtime-core`, `runtime-mcp`, `runtime-engine`) depend on those
+fixtures and must not import `skillbill.infrastructure.sqlite.core` from tests.
+
+Public SQLite DI surface stays limited to `SQLiteDatabaseSessionFactory`,
+`SqliteFeatureTaskPhaseSettlementRepository`, `WorkflowGoalRunnerManifestStore`,
+`WorkflowGoalRunnerOutcomeStore`, and `WorkflowGoalRunnerOutcomeStoreBridgeBuilder`.
+Other adapters are `internal`; repositories mutate only inside
+`SQLiteDatabaseSessionFactory` write/read transaction callbacks.
 
 ### Contract Ownership And Enforcement
 

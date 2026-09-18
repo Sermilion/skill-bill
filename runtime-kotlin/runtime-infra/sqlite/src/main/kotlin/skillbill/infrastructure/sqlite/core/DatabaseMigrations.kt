@@ -1,16 +1,24 @@
 package skillbill.infrastructure.sqlite.core
 
+import skillbill.error.DatabaseAccessOperation
+import skillbill.ports.diagnostics.RuntimeDiagnostics
 import java.sql.Connection
 
 internal object DatabaseMigrations {
   val migrations: List<DatabaseMigration> =
     (databaseMigrationsEarly + databaseMigrationsLate).also(::requireDeterministicMigrations)
 
-  fun apply(connection: Connection) {
+  fun apply(connection: Connection, diagnostics: RuntimeDiagnostics = InternalSqliteDiagnostics) {
     val ledger = MigrationLedger.readState(connection)
     if (!ledger.hasPendingWork(migrations.map { migration -> migration.name })) return
+    val dbPath = connection.databasePath()
 
-    connection.inImmediateTransaction {
+    connection.inDatabaseTransaction(
+      dbPath = dbPath,
+      beginMode = DatabaseTransactionBeginMode.IMMEDIATE,
+      operation = DatabaseAccessOperation.OPEN,
+      diagnostics = diagnostics,
+    ) {
       MigrationLedger.ensureNameKeyed(this)
       val appliedNames = MigrationLedger.appliedNames(this)
       migrations

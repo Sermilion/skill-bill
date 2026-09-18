@@ -1,4 +1,6 @@
 package skillbill.infrastructure.sqlite.review
+import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
+import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
 
 import skillbill.contracts.review.ReviewFindingPayloadKeys
 import skillbill.contracts.review.ReviewVerificationSignalKeys
@@ -13,23 +15,23 @@ import skillbill.review.model.ReviewSeverityAdjustmentDirection
 import skillbill.review.model.ReviewSummary
 import java.sql.ResultSet
 
-fun ResultSet.toImportedFinding(): ImportedFinding = ImportedFinding(
+internal fun ResultSet.toImportedFinding(): ImportedFinding = ImportedFinding(
   findingId = getString(ReviewFindingPayloadKeys.FINDING_ID),
-  severity = getString("severity"),
-  confidence = getString("confidence"),
+  severity = getString(SqliteReviewTelemetryPayloadKeys.SEVERITY),
+  confidence = getString(SqliteReviewTelemetryPayloadKeys.CONFIDENCE),
   issueCategory = getString(ReviewFindingPayloadKeys.ISSUE_CATEGORY),
-  location = getString("location"),
-  description = getString("description"),
+  location = getString(SqliteReviewTelemetryPayloadKeys.LOCATION),
+  description = getString(SqliteReviewTelemetryPayloadKeys.DESCRIPTION),
   findingText = getString("finding_text"),
   laneSkillName = getString("lane_skill_name"),
 )
 
-fun ResultSet.toReviewSummary(): ReviewSummary = ReviewSummary(
+internal fun ResultSet.toReviewSummary(): ReviewSummary = ReviewSummary(
   reviewRunId = getString(ReviewVerificationSignalKeys.REVIEW_RUN_ID),
   reviewSessionId = getString("review_session_id"),
-  routedSkill = getString("routed_skill"),
+  routedSkill = getString(LifecycleTelemetryPayloadKeys.ROUTED_SKILL),
   detectedScope = getString("detected_scope"),
-  detectedStack = getString("detected_stack"),
+  detectedStack = getString(LifecycleTelemetryPayloadKeys.DETECTED_STACK),
   executionMode = getString("execution_mode")?.let(ReviewExecutionMode::fromWire),
   specialistReviewsRaw = getString("specialist_reviews"),
   reviewFinishedAt = getString("review_finished_at"),
@@ -41,13 +43,13 @@ fun ResultSet.toReviewSummary(): ReviewSummary = ReviewSummary(
   detectedScopeDetail = getString("detected_scope_detail"),
 )
 
-fun ResultSet.toNumberedFinding(number: Int): NumberedFinding = NumberedFinding(
+internal fun ResultSet.toNumberedFinding(number: Int): NumberedFinding = NumberedFinding(
   number = number,
   findingId = getString(ReviewFindingPayloadKeys.FINDING_ID),
-  severity = getString("severity"),
-  confidence = getString("confidence"),
-  location = getString("location"),
-  description = getString("description"),
+  severity = getString(SqliteReviewTelemetryPayloadKeys.SEVERITY),
+  confidence = getString(SqliteReviewTelemetryPayloadKeys.CONFIDENCE),
+  location = getString(SqliteReviewTelemetryPayloadKeys.LOCATION),
+  description = getString(SqliteReviewTelemetryPayloadKeys.DESCRIPTION),
   claimVerdict = getString(ReviewFindingPayloadKeys.CLAIM_VERDICT)
     ?.trim()
     ?.takeIf(String::isNotBlank)

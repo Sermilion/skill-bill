@@ -73,8 +73,7 @@ internal object MigrationLedger {
       VALUES (?, ?)
       """.trimIndent(),
     ).use { statement ->
-      statement.setInt(1, migration.version)
-      statement.setString(2, migration.name)
+      statement.bindAll(migration.version, migration.name)
       statement.executeUpdate()
     }
   }

@@ -1,10 +1,9 @@
 package skillbill.infrastructure.sqlite.telemetry
 
-import skillbill.infrastructure.sqlite.PARAM_ONE
-import skillbill.infrastructure.sqlite.PARAM_TWO
 import skillbill.infrastructure.sqlite.core.DatabaseColumnMigrations
 import java.sql.Connection
 import java.util.UUID
+import skillbill.infrastructure.sqlite.core.bindAll
 
 internal object TelemetryOutboxDeliveryIdentityMigration {
   fun apply(connection: Connection) {
@@ -26,8 +25,7 @@ internal object TelemetryOutboxDeliveryIdentityMigration {
       "UPDATE $TABLE SET event_uuid = ? WHERE id = ? AND (event_uuid IS NULL OR event_uuid = '')",
     ).use { statement ->
       ids.forEach { id ->
-        statement.setString(PARAM_ONE, UUID.randomUUID().toString())
-        statement.setLong(PARAM_TWO, id)
+        statement.bindAll(UUID.randomUUID().toString(), id)
         statement.addBatch()
       }
       statement.executeBatch()

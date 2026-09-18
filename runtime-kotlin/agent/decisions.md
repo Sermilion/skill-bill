@@ -1950,3 +1950,10 @@ Consequence: the remaining 19 ports/application basename pairs stay. Twelve of t
 the `FileLocation` migration.
 Revisit when: `FileLocation` lands — then re-run the pair census and expect the twelve
 decomposition pairs to collapse in one move.
+
+## [2026-09-18] SQLite cross-module test fixtures (SKILL-356)
+
+Context: Review and telemetry persistence tests in `runtime-cli`, `runtime-core`, `runtime-mcp`, and `runtime-engine` reached SQLite through `skillbill.infrastructure.sqlite.core` and internal store types, coupling consumer tests to adapter internals and blocking `internal` visibility on stores.
+Decision: Sanction `:runtime-infra:sqlite` `testFixtures` as the only cross-module SQLite test entry: `establishTemporarySchemaReadiness`, `ensureTestDatabase`, `sqliteSessionFactoryForTests`, `withLifecycleTelemetryStore`, `withTelemetryOutboxStore`, and `TelemetryOutboxTestHandle` / `telemetryOutboxOnConnection` for outbox assertions that need `listPending`. Consumer modules add `testImplementation(testFixtures(project(":runtime-infra:sqlite")))`.
+Reason: Keeps schema readiness and session-factory behaviour aligned with production while exposing only port types or fixture handles at module boundaries.
+Alternatives considered: Keeping stores public for tests (rejected: widens the DI surface). Duplicating fixture helpers per consumer module (rejected: drift from production readiness).

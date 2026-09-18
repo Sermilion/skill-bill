@@ -1,4 +1,5 @@
 package skillbill.infrastructure.sqlite.review
+import skillbill.contracts.review.SqliteReviewTelemetryPayloadKeys
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.review.ReviewFindingPayloadKeys
@@ -12,16 +13,16 @@ internal fun encodePassClaims(findings: List<ParallelReviewMergedFinding>): Stri
     ReviewVerificationSignalKeys.REVIEW_FINDINGS to findings.map { finding ->
       mapOf(
         ReviewFindingPayloadKeys.F_NUMBER to finding.fNumber,
-        "agent_ids" to finding.agentIds,
-        "severity" to finding.severity.name,
-        "confidence" to finding.confidence,
-        "location" to finding.location,
-        "description" to finding.description,
-        "specialist_skill_names" to finding.specialistSkillNames,
-        "origin_layer_chains" to finding.originLayerChains,
+        SqliteReviewTelemetryPayloadKeys.AGENT_IDS to finding.agentIds,
+        SqliteReviewTelemetryPayloadKeys.SEVERITY to finding.severity.name,
+        SqliteReviewTelemetryPayloadKeys.CONFIDENCE to finding.confidence,
+        SqliteReviewTelemetryPayloadKeys.LOCATION to finding.location,
+        SqliteReviewTelemetryPayloadKeys.DESCRIPTION to finding.description,
+        SqliteReviewTelemetryPayloadKeys.SPECIALIST_SKILL_NAMES to finding.specialistSkillNames,
+        SqliteReviewTelemetryPayloadKeys.ORIGIN_LAYER_CHAINS to finding.originLayerChains,
         ReviewFindingPayloadKeys.REPOSITORY_PATH to finding.repositoryPath,
-        "line" to finding.line,
-        "commit_shas" to finding.commitShas,
+        SqliteReviewTelemetryPayloadKeys.LINE to finding.line,
+        SqliteReviewTelemetryPayloadKeys.COMMIT_SHAS to finding.commitShas,
       )
     },
   ),
@@ -36,21 +37,21 @@ internal fun decodePassClaims(raw: String): List<ParallelReviewMergedFinding> {
   return items.mapNotNull { item ->
     val map = JsonCodec.anyToStringAnyMap(item) ?: return@mapNotNull null
     val fNumber = map[ReviewFindingPayloadKeys.F_NUMBER] as? String ?: return@mapNotNull null
-    val severityName = map["severity"] as? String ?: return@mapNotNull null
+    val severityName = map[SqliteReviewTelemetryPayloadKeys.SEVERITY] as? String ?: return@mapNotNull null
     val severity = runCatching { ParallelReviewSeverity.valueOf(severityName) }.getOrNull()
       ?: return@mapNotNull null
     ParallelReviewMergedFinding(
       fNumber = fNumber,
-      agentIds = stringList(map["agent_ids"]),
+      agentIds = stringList(map[SqliteReviewTelemetryPayloadKeys.AGENT_IDS]),
       severity = severity,
-      confidence = map["confidence"] as? String ?: "",
-      location = map["location"] as? String ?: "",
-      description = map["description"] as? String ?: "",
-      specialistSkillNames = stringList(map["specialist_skill_names"]),
-      originLayerChains = chainList(map["origin_layer_chains"]),
+      confidence = map[SqliteReviewTelemetryPayloadKeys.CONFIDENCE] as? String ?: "",
+      location = map[SqliteReviewTelemetryPayloadKeys.LOCATION] as? String ?: "",
+      description = map[SqliteReviewTelemetryPayloadKeys.DESCRIPTION] as? String ?: "",
+      specialistSkillNames = stringList(map[SqliteReviewTelemetryPayloadKeys.SPECIALIST_SKILL_NAMES]),
+      originLayerChains = chainList(map[SqliteReviewTelemetryPayloadKeys.ORIGIN_LAYER_CHAINS]),
       repositoryPath = map[ReviewFindingPayloadKeys.REPOSITORY_PATH] as? String,
-      line = intValue(map["line"]),
-      commitShas = stringList(map["commit_shas"]),
+      line = intValue(map[SqliteReviewTelemetryPayloadKeys.LINE]),
+      commitShas = stringList(map[SqliteReviewTelemetryPayloadKeys.COMMIT_SHAS]),
     )
   }
 }

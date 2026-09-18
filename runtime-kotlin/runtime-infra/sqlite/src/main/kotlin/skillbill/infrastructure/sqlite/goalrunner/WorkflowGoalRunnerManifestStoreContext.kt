@@ -13,14 +13,14 @@ import skillbill.workflow.engine.WorkflowSnapshotValidator
 import java.time.Clock
 
 internal class WorkflowGoalRunnerManifestStoreContext(
-  val database: DatabaseSessionFactory,
-  val decompositionManifestValidator: DecompositionManifestValidator,
-  val decompositionManifestStore: DecompositionManifestStore,
+  internal val database: DatabaseSessionFactory,
+  internal val decompositionManifestValidator: DecompositionManifestValidator,
+  internal val decompositionManifestStore: DecompositionManifestStore,
   workflowSnapshotValidator: WorkflowSnapshotValidator,
   private val clock: Clock,
   private val decompositionManifestWriter: DecompositionManifestProjectionWriter,
   private val repositoryRoot: RepositoryRoot,
-  val planningHydrator: GoalChildPlanningHydratorPort,
+  internal val planningHydrator: GoalChildPlanningHydratorPort,
 ) {
   val engine: WorkflowEngine = WorkflowEngine(workflowSnapshotValidator)
   val parentProjection = GoalParentProjectionWriter(engine, decompositionManifestValidator)
@@ -30,6 +30,7 @@ internal class WorkflowGoalRunnerManifestStoreContext(
     decompositionManifestStore,
     engine,
     parentProjection,
+    clock,
   )
   val projectionPersistence = WorkflowGoalRunnerManifestProjectionPersistence(
     database,

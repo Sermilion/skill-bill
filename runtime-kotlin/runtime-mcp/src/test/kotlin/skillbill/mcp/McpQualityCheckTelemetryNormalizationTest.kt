@@ -1,7 +1,7 @@
 package skillbill.mcp
 
 import skillbill.contracts.JsonCodec
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
+import skillbill.infrastructure.sqlite.ensureTestDatabase
 import skillbill.mcp.core.McpToolDispatcher
 import skillbill.mcp.shared.McpRuntimeContext
 import skillbill.telemetry.CONFIG_ENVIRONMENT_KEY
@@ -25,7 +25,7 @@ class McpQualityCheckTelemetryNormalizationTest {
     recordQualityCheckFinished(context, sessionId)
     recordBlankQualityCheckFinished(context)
 
-    DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
+    ensureTestDatabase(dbPath).use { connection ->
       assertDirectKmpPayloads(connection, sessionId)
       assertBlankRoutingPayload(connection)
     }

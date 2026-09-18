@@ -3,8 +3,8 @@ package skillbill.application
 import skillbill.error.InvalidGoalPlanningPreparationSchemaError
 import skillbill.error.ShellContentContractException
 import skillbill.infrastructure.contracts.workflow.GoalPlanningPreparationSchemaValidator
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
-import skillbill.infrastructure.sqlite.workflow.GoalPlanningPreparationStore
+import skillbill.infrastructure.sqlite.withGoalPlanningPreparationRepository
+import skillbill.ports.goalrunner.GoalPlanningPreparationRepository
 import skillbill.ports.goalrunner.model.GoalPlanningContractProvenance
 import skillbill.ports.goalrunner.model.GoalPlanningIdentity
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationState
@@ -102,8 +102,9 @@ class GoalPlanningPreparationStoreSchemaParityTest {
     }
   }
 
-  private fun withStore(block: (GoalPlanningPreparationStore) -> Unit) {
-    DatabaseRuntime.ensureDatabase(tempDb()).use { connection -> block(GoalPlanningPreparationStore(connection)) }
+  private fun withStore(block: (GoalPlanningPreparationRepository) -> Unit) {
+    val dbPath = tempDb()
+    withGoalPlanningPreparationRepository(dbPath.parent, dbPath, block)
   }
 
   private fun sharedEnvelope(checkpoint: SharedGoalPreplanCheckpoint): Map<String, Any?> = linkedMapOf(

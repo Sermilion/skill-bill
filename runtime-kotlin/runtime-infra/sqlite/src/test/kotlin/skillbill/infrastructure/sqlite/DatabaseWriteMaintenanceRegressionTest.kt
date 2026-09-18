@@ -1,5 +1,6 @@
 package skillbill.infrastructure.sqlite
 
+import skillbill.infrastructure.sqlite.sqliteDatabaseSessionFactory
 import org.junit.jupiter.api.parallel.Execution
 import org.junit.jupiter.api.parallel.ExecutionMode
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
@@ -29,14 +30,7 @@ class DatabaseWriteMaintenanceRegressionTest {
   fun `initialized database write round trip records maintenance only during readiness`() {
     val tempDir = Files.createTempDirectory("skillbill-write-maintenance")
     val dbPath = tempDir.resolve("metrics.db")
-    DatabaseRuntime.resetWriteReadinessForTests()
-    val database = SQLiteDatabaseSessionFactory(
-      EnvironmentContext(
-        dbPathOverride = dbPath.toString(),
-        environment = emptyMap(),
-        userHome = tempDir,
-      ),
-    )
+    val database = sqliteDatabaseSessionFactory(userHome = tempDir, dbPathOverride = dbPath.toString(), environment = emptyMap())
 
     val delegate = DriverManager.getDriver("jdbc:sqlite:$dbPath")
     val recordingDriver = RecordingJdbcDriver(delegate)

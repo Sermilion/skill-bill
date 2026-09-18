@@ -4,7 +4,7 @@ import skillbill.application.diagnostics.RejectedOutputDiagnosticService
 import skillbill.application.diagnostics.model.RejectedOutputDiagnosticRequest
 import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliRuntimeContext
-import skillbill.infrastructure.sqlite.SQLiteDatabaseSessionFactory
+import skillbill.infrastructure.sqlite.sqliteDatabaseSessionFactory
 import skillbill.model.EnvironmentContext
 import java.nio.file.Files
 import java.time.Clock
@@ -39,13 +39,7 @@ class RejectedOutputCliRuntimeTest {
     val home = Files.createTempDirectory("skillbill-rejected-raw")
     val db = home.resolve("metrics.db")
     val raw = byteArrayOf(0xff.toByte(), 0, 13, 10, 42)
-    val database = SQLiteDatabaseSessionFactory(
-      EnvironmentContext(
-        dbPathOverride = db.toString(),
-        userHome = home,
-        environment = emptyMap(),
-      ),
-    )
+    val database = sqliteDatabaseSessionFactory(userHome = home, dbPathOverride = db.toString(), environment = emptyMap())
     database.transaction { unitOfWork ->
       RejectedOutputDiagnosticService(
         repository = requireNotNull(unitOfWork.rejectedOutputDiagnostics),

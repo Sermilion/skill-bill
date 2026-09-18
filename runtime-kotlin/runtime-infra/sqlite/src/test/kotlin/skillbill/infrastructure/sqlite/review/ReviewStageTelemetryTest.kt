@@ -1,10 +1,13 @@
-package skillbill.review
+package skillbill.infrastructure.sqlite.review
+
+import java.time.Clock
 
 import skillbill.SAMPLE_REVIEW
 import skillbill.contracts.JsonCodec
 import skillbill.infrastructure.sqlite.SQLiteReviewRunCompletenessRepository
 import skillbill.infrastructure.sqlite.review.ReviewFinishedPayloadBuildRequest
 import skillbill.infrastructure.sqlite.review.ReviewRuntime
+import skillbill.infrastructure.sqlite.review.persistImportedReview
 import skillbill.infrastructure.sqlite.review.ReviewStatsRuntime
 import skillbill.infrastructure.sqlite.review.TriageRuntime
 import skillbill.infrastructure.sqlite.review.persistLegacyTelemetryRewrites
@@ -32,6 +35,8 @@ import skillbill.review.model.ReviewSpecProjectionReference
 import skillbill.review.model.ReviewStage
 import skillbill.review.model.ReviewStageBoundary
 import skillbill.review.model.ReviewStageDegradationReason
+import skillbill.review.ReviewParser
+import skillbill.review.ReviewStageDegradationSelection
 import skillbill.review.model.ReviewStageDegradationSelectionRequest
 import skillbill.review.model.ReviewStageReached
 import skillbill.tempDbConnection
@@ -97,7 +102,7 @@ class ReviewStageTelemetryTest {
   fun `spec_context none writes a degradation outbox row`() {
     val (_, connection) = tempDbConnection("stage-degrade-spec-none")
     connection.use {
-      val repository = SQLiteReviewRunCompletenessRepository(it)
+      val repository = SQLiteReviewRunCompletenessRepository(it, Clock.systemUTC())
       repository.recordSpecProjectionReference(
         "rvw-spec-none",
         ReviewSpecProjectionReference(absenceReason = "no_spec_found"),
@@ -112,7 +117,7 @@ class ReviewStageTelemetryTest {
   fun `skipped adjudication writes a degradation outbox row`() {
     val (_, connection) = tempDbConnection("stage-degrade-adj-skip")
     connection.use {
-      val repository = SQLiteReviewRunCompletenessRepository(it)
+      val repository = SQLiteReviewRunCompletenessRepository(it, Clock.systemUTC())
       repository.recordSpecProjectionReference(
         "rvw-adj-skip",
         ReviewSpecProjectionReference(specPath = "spec.md", contentDigest = "abc"),
@@ -131,7 +136,7 @@ class ReviewStageTelemetryTest {
   fun `worker launch or return failure writes a degradation outbox row`() {
     val (_, connection) = tempDbConnection("stage-degrade-worker")
     connection.use {
-      val repository = SQLiteReviewRunCompletenessRepository(it)
+      val repository = SQLiteReviewRunCompletenessRepository(it, Clock.systemUTC())
       repository.recordFindingVerdicts(
         "rvw-worker-fail",
         listOf(
@@ -154,7 +159,7 @@ class ReviewStageTelemetryTest {
   fun `unparseable verification output is a worker failure and unsettled admission is not`() {
     val (_, connection) = tempDbConnection("stage-degrade-unparseable")
     connection.use {
-      val repository = SQLiteReviewRunCompletenessRepository(it)
+      val repository = SQLiteReviewRunCompletenessRepository(it, Clock.systemUTC())
       repository.recordFindingVerdicts(
         "rvw-unparseable",
         listOf(
@@ -199,7 +204,7 @@ class ReviewStageTelemetryTest {
   fun `a stage without a reached boundary writes a degradation outbox row`() {
     val (_, connection) = tempDbConnection("stage-degrade-boundary")
     connection.use {
-      val repository = SQLiteReviewRunCompletenessRepository(it)
+      val repository = SQLiteReviewRunCompletenessRepository(it, Clock.systemUTC())
       repository.recordReviewPassClaims(
         "rvw-boundary",
         listOf(claim("F-001")),
@@ -320,7 +325,7 @@ class ReviewStageTelemetryTest {
   ) {
     val (_, connection) = tempDbConnection(dbName)
     connection.use {
-      SQLiteReviewRunCompletenessRepository(it).recordFindingVerdicts(
+      SQLiteReviewRunCompletenessRepository(it, Clock.systemUTC()).recordFindingVerdicts(
         dbName,
         listOf(
           ReviewFindingVerdict(
@@ -350,7 +355,7 @@ class ReviewStageTelemetryTest {
   }
 
   private fun emitDegradations(connection: Connection, reviewRunId: String) {
-    val repository = SQLiteReviewRunCompletenessRepository(connection)
+    val repository = SQLiteReviewRunCompletenessRepository(connection, Clock.systemUTC())
     val store = LifecycleTelemetryStore(connection)
     ReviewStageDegradationSelection.select(
       ReviewStageDegradationSelectionRequest(
@@ -371,7 +376,7 @@ class ReviewStageTelemetryTest {
       }
 
   private fun seedMixedVerdicts(connection: Connection, reviewRunId: String) {
-    SQLiteReviewRunCompletenessRepository(connection).recordFindingVerdicts(reviewRunId, mixedVerdicts())
+    SQLiteReviewRunCompletenessRepository(connection, Clock.systemUTC()).recordFindingVerdicts(reviewRunId, mixedVerdicts())
   }
 
   private fun mixedVerdicts(): List<ReviewFindingVerdict> = listOf(
@@ -435,7 +440,7 @@ class ReviewStageTelemetryTest {
   )
 
   private fun seedTierRun(connection: Connection, runId: String, mode: String, refuted: Int, total: Int) {
-    val repository = SQLiteReviewRunCompletenessRepository(connection)
+    val repository = SQLiteReviewRunCompletenessRepository(connection, Clock.systemUTC())
     val verdicts = (1..total).map { index ->
       ReviewFindingVerdict(
         stage = ReviewStage.VERIFICATION,
@@ -452,8 +457,8 @@ class ReviewStageTelemetryTest {
 
   private fun importReviewedSample(connection: Connection): ImportedReview {
     val review = ReviewParser.parseReview(SAMPLE_REVIEW.trimIndent())
-    ReviewRuntime.saveImportedReview(connection, review, sourcePath = null)
-    TriageRuntime.recordFeedback(
+    persistImportedReview(connection, review, sourcePath = null)
+    TriageRuntime.recordFeedbackWithoutTransaction(
       connection = connection,
       request = FeedbackRequest(
         reviewRunId = review.reviewRunId,
@@ -463,7 +468,7 @@ class ReviewStageTelemetryTest {
       ),
       telemetryOptions = FeedbackTelemetryOptions(enabled = false, level = "anonymous"),
     )
-    TriageRuntime.recordFeedback(
+    TriageRuntime.recordFeedbackWithoutTransaction(
       connection = connection,
       request = FeedbackRequest(
         reviewRunId = review.reviewRunId,

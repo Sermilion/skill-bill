@@ -2,7 +2,7 @@ package skillbill.cli
 
 import skillbill.cli.core.CliRuntime
 import skillbill.cli.model.CliRuntimeContext
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
+import skillbill.infrastructure.sqlite.ensureTestDatabase
 import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.DriverManager
@@ -25,7 +25,7 @@ internal const val TELEMETRY_FIXTURE_PROXY_URL = "http://127.0.0.1:9/telemetry"
 
 internal fun materializeTelemetryDatabase(userHome: Path, dbPath: Path, level: String, context: CliRuntimeContext) {
   writeTelemetryConfig(userHome, level = level, proxyUrl = TELEMETRY_FIXTURE_PROXY_URL)
-  DatabaseRuntime.ensureDatabase(dbPath).close()
+  ensureTestDatabase(dbPath).close()
   val status = CliRuntime.run(listOf("--db", dbPath.toString(), "telemetry", "status"), context)
   check(status.exitCode == 0) { "telemetry status did not read the fixture database: ${status.stdout}" }
 }

@@ -2,10 +2,6 @@ package skillbill.infrastructure.sqlite.review
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.review.REVIEW_CONTEXT_CONTRACT_VERSION
-import skillbill.infrastructure.sqlite.PARAM_FOUR
-import skillbill.infrastructure.sqlite.PARAM_ONE
-import skillbill.infrastructure.sqlite.PARAM_THREE
-import skillbill.infrastructure.sqlite.PARAM_TWO
 import skillbill.infrastructure.sqlite.telemetry.LifecycleTelemetryStore
 import skillbill.ports.review.model.ReviewAccountingBoundedPayload
 import skillbill.ports.review.model.ReviewAccountingRecord
@@ -16,8 +12,9 @@ import skillbill.review.model.ReviewStageDegradationMeasurement
 import skillbill.review.model.ReviewStageDegradationReason
 import skillbill.review.model.ReviewSummary
 import java.sql.Connection
+import skillbill.infrastructure.sqlite.core.bindAll
 
-fun upsertReviewAccounting(connection: Connection, record: ReviewAccountingRecord) {
+internal fun upsertReviewAccounting(connection: Connection, record: ReviewAccountingRecord) {
   connection.prepareStatement(
     """
     INSERT INTO review_accounting (review_id, packet_digest, bounded_payload_json, updated_at)
@@ -28,18 +25,17 @@ fun upsertReviewAccounting(connection: Connection, record: ReviewAccountingRecor
       updated_at = CURRENT_TIMESTAMP
     """.trimIndent(),
   ).use { statement ->
-    statement.setString(PARAM_ONE, record.reviewId)
-    statement.setString(PARAM_TWO, record.packetDigest)
-    statement.setString(PARAM_THREE, JsonCodec.mapToJsonString(record.boundedPayload.asMap()))
+    statement.bindAll(record.reviewId, record.packetDigest, JsonCodec.mapToJsonString(record.boundedPayload.asMap()
+))
     statement.executeUpdate()
   }
 }
 
-fun loadReviewAccounting(connection: Connection, reviewId: String): ReviewAccountingRecord? =
+internal fun loadReviewAccounting(connection: Connection, reviewId: String): ReviewAccountingRecord? =
   connection.prepareStatement(
     "SELECT packet_digest, bounded_payload_json FROM review_accounting WHERE review_id = ?",
   ).use { statement ->
-    statement.setString(1, reviewId)
+    statement.bindAll(reviewId)
     statement.executeQuery().use { rows ->
       if (!rows.next()) return@use null
       val payload = requireNotNull(decodeBoundedAccounting(rows.getString("bounded_payload_json"))) {
@@ -85,15 +81,15 @@ private fun decodeBoundedAccounting(rawJson: String): Map<String, Any?>? = JsonC
   JsonCodec.anyToStringAnyMap(JsonCodec.jsonElementToValue(it))
 }
 
-fun existingReviewSummary(connection: Connection, reviewRunId: String): ReviewSummary? =
+internal fun existingReviewSummary(connection: Connection, reviewRunId: String): ReviewSummary? =
   connection.prepareStatement(reviewSummarySql).use { statement ->
-    statement.setString(PARAM_ONE, reviewRunId)
+    statement.bindAll(reviewRunId)
     statement.executeQuery().use { resultSet ->
       if (resultSet.next()) resultSet.toReviewSummary() else null
     }
   }
 
-fun reviewSummaryChanged(
+internal fun reviewSummaryChanged(
   existingReviewSummary: ReviewSummary?,
   review: ImportedReview,
   existingFindings: List<ImportedFinding>,
@@ -110,7 +106,7 @@ fun reviewSummaryChanged(
   existingReviewSummary.specialistReviewsRaw != review.specialistReviews.joinToString(",") ||
   existingFindings != review.findings
 
-fun upsertReviewRun(connection: Connection, review: ImportedReview, sourcePath: String?) {
+internal fun upsertReviewRun(connection: Connection, review: ImportedReview, sourcePath: String?) {
   connection.prepareStatement(
     """
     INSERT INTO review_runs (
@@ -143,24 +139,26 @@ fun upsertReviewRun(connection: Connection, review: ImportedReview, sourcePath: 
       raw_text = excluded.raw_text
     """.trimIndent(),
   ).use { statement ->
-    statement.setString(PARAM_ONE, review.reviewRunId)
-    statement.setString(PARAM_TWO, review.reviewSessionId)
-    statement.setString(PARAM_THREE, review.routedSkill)
-    statement.setString(PARAM_FOUR, review.detectedScope)
-    statement.setString(PARAM_FIVE, review.detectedStack)
-    statement.setString(PARAM_SIX, review.executionMode?.wireValue)
-    statement.setString(PARAM_SEVEN, review.routedSkillCanonical)
-    statement.setString(PARAM_EIGHT, review.detectedStackCanonical)
-    statement.setString(PARAM_NINE, review.detectedScopeCanonical)
-    statement.setString(PARAM_TEN, review.detectedScopeDetail)
-    statement.setString(PARAM_ELEVEN, review.specialistReviews.joinToString(","))
-    statement.setString(PARAM_TWELVE, sourcePath)
-    statement.setString(PARAM_THIRTEEN, review.rawText)
+    statement.bindAll(
+      review.reviewRunId,
+      review.reviewSessionId,
+      review.routedSkill,
+      review.detectedScope,
+      review.detectedStack,
+      review.executionMode?.wireValue,
+      review.routedSkillCanonical,
+      review.detectedStackCanonical,
+      review.detectedScopeCanonical,
+      review.detectedScopeDetail,
+      review.specialistReviews.joinToString(","),
+      sourcePath,
+      review.rawText,
+    )
     statement.executeUpdate()
   }
 }
 
-fun persistImportedReview(connection: Connection, review: ImportedReview, sourcePath: String?) {
+internal fun persistImportedReview(connection: Connection, review: ImportedReview, sourcePath: String?) {
   val existingReviewSummary = existingReviewSummary(connection, review.reviewRunId)
   val existingFindings = ReviewRuntime.fetchImportedFindings(connection, review.reviewRunId)
   val summarySnapshotChanged = reviewSummaryChanged(existingReviewSummary, review, existingFindings)
@@ -184,7 +182,7 @@ fun persistImportedReview(connection: Connection, review: ImportedReview, source
 
 private fun List<ImportedFinding>.withoutLanes(): List<ImportedFinding> = map { it.copy(laneSkillName = null) }
 
-fun replaceFindings(
+internal fun replaceFindings(
   connection: Connection,
   review: ImportedReview,
   lanes: List<ReviewRunLane>,
@@ -192,7 +190,7 @@ fun replaceFindings(
 ) {
   val lanesByName = lanes.associateBy { it.laneSkillName }
   connection.prepareStatement("DELETE FROM findings WHERE review_run_id = ?").use { statement ->
-    statement.setString(PARAM_ONE, review.reviewRunId)
+    statement.bindAll(review.reviewRunId)
     statement.executeUpdate()
   }
   review.findings.forEach { finding ->
@@ -215,17 +213,7 @@ fun replaceFindings(
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       """.trimIndent(),
     ).use { statement ->
-      statement.setString(PARAM_ONE, review.reviewRunId)
-      statement.setString(PARAM_TWO, finding.findingId)
-      statement.setString(PARAM_THREE, finding.severity)
-      statement.setString(PARAM_FOUR, finding.confidence)
-      statement.setString(PARAM_FIVE, finding.issueCategory)
-      statement.setString(PARAM_SIX, finding.location)
-      statement.setString(PARAM_SEVEN, finding.description)
-      statement.setString(PARAM_EIGHT, finding.findingText)
-      statement.setString(PARAM_NINE, laneName)
-      statement.setString(PARAM_TEN, lane?.area)
-      statement.setString(PARAM_ELEVEN, lane?.packSlug)
+      statement.bindAll(review.reviewRunId, finding.findingId, finding.severity, finding.confidence, finding.issueCategory, finding.location, finding.description, finding.findingText, laneName, lane?.area, lane?.packSlug)
       statement.executeUpdate()
     }
   }

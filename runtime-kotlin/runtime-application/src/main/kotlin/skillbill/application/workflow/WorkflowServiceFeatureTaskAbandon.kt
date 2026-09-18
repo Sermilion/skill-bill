@@ -13,11 +13,12 @@ import skillbill.workflow.engine.model.WorkflowUpdateInput
 import skillbill.workflow.engine.model.isTerminalStatus
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.workflowStatus
-import java.time.OffsetDateTime
+import java.time.Clock
 import java.time.ZoneOffset
 
 class WorkflowServiceFeatureTaskAbandon(
   private val engine: WorkflowEngine,
+  private val clock: Clock,
 ) {
   fun abandonRuntimeFeatureTask(
     unitOfWork: UnitOfWork,
@@ -32,6 +33,7 @@ class WorkflowServiceFeatureTaskAbandon(
         unitOfWork.dbPath.toString(),
       )
     }
+    val abandonedAt = clock.instant().atOffset(ZoneOffset.UTC).toString()
     val input = WorkflowUpdateInput(
       workflowStatus = WorkflowStatus.ABANDONED,
       currentStepId = existing.currentStepId.orEmpty(),
@@ -40,7 +42,7 @@ class WorkflowServiceFeatureTaskAbandon(
         mapOf(
           FEATURE_TASK_RUNTIME_OPERATOR_ABANDONMENT_ARTIFACT_KEY to mapOf(
             "reason" to normalizedReason,
-            "abandoned_at" to OffsetDateTime.now(ZoneOffset.UTC).toString(),
+            "abandoned_at" to abandonedAt,
           ),
         ),
       ),
@@ -63,7 +65,7 @@ class WorkflowServiceFeatureTaskAbandon(
         unitOfWork.dbPath.toString(),
       )
     }
-    val abandonedAt = OffsetDateTime.now(ZoneOffset.UTC).toString()
+    val abandonedAt = clock.instant().atOffset(ZoneOffset.UTC).toString()
     val artifacts = LinkedHashMap(decodeWorkflowArtifacts(existing.artifactsJson))
     artifacts[FEATURE_TASK_RUNTIME_OPERATOR_ABANDONMENT_ARTIFACT_KEY] = mapOf(
       "reason" to normalizedReason,

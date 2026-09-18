@@ -1,4 +1,6 @@
 package skillbill.infrastructure.sqlite.telemetry
+import skillbill.infrastructure.sqlite.core.bindAll
+import skillbill.contracts.telemetry.SqliteLifecycleTelemetryMaterializationPayloadKeys
 
 import skillbill.ports.telemetry.TelemetryOutboxRepository
 import skillbill.ports.telemetry.model.TelemetryOutboxClaimRequest
@@ -10,7 +12,7 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 
-typealias TelemetryOutboxRow = TelemetryOutboxRecord
+internal typealias TelemetryOutboxRow = TelemetryOutboxRecord
 
 private const val ROW_COLUMNS =
   "id, event_name, payload_json, created_at, synced_at, last_error, skill_bill_version, " +
@@ -19,7 +21,7 @@ private const val ROW_COLUMNS =
 private val FIXED_WIDTH_CLAIM_TIMESTAMP: DateTimeFormatter =
   DateTimeFormatter.ofPattern("uuuu-MM-dd'T'HH:mm:ss.SSS'Z'").withZone(ZoneOffset.UTC)
 
-class TelemetryOutboxStore(
+internal class TelemetryOutboxStore(
   private val connection: Connection,
   private val version: String = SkillBillRuntimeVersion.VALUE,
 ) : TelemetryOutboxRepository {
@@ -30,7 +32,7 @@ class TelemetryOutboxStore(
       VALUES (?, ?, ?, ?)
       """.trimIndent(),
     ).use { statement ->
-      statement.bind(eventName, payloadJson, version, UUID.randomUUID().toString())
+      statement.bindAll(eventName, payloadJson, version, UUID.randomUUID().toString())
       statement.executeUpdate()
     }
     return connection.createStatement().use { statement ->
@@ -54,7 +56,7 @@ class TelemetryOutboxStore(
       }.trimIndent()
     return connection.prepareStatement(sql).use { statement ->
       if (limit != null) {
-        statement.setInt(1, limit)
+        statement.bindAll(limit)
       }
       statement.executeQuery().use { it.readOutboxRows() }
     }
@@ -75,7 +77,7 @@ class TelemetryOutboxStore(
       )
       """.trimIndent(),
     ).use { statement ->
-      statement.bind(
+      statement.bindAll(
         request.claimToken,
         FIXED_WIDTH_CLAIM_TIMESTAMP.format(request.claimedAt),
         request.attemptBudget,
@@ -93,7 +95,7 @@ class TelemetryOutboxStore(
       LIMIT ?
       """.trimIndent(),
     ).use { statement ->
-      statement.bind(request.claimToken, request.attemptBudget, request.limit)
+      statement.bindAll(request.claimToken, request.attemptBudget, request.limit)
       statement.executeQuery().use { it.readOutboxRows() }
     }
   }
@@ -118,7 +120,7 @@ class TelemetryOutboxStore(
       WHERE synced_at IS NULL AND delivery_attempts >= ?
     """.trimIndent(),
   ).use { statement ->
-    statement.setInt(1, attemptBudget)
+    statement.bindAll(attemptBudget)
     statement.executeQuery().use { resultSet ->
       resultSet.next()
       resultSet.getInt(1)
@@ -165,8 +167,7 @@ class TelemetryOutboxStore(
       WHERE id = ?
       """.trimIndent(),
     ).use { statement ->
-      statement.setString(1, syncedAt)
-      statement.setLong(2, id)
+      statement.bindAll(syncedAt, id)
       statement.executeUpdate()
     }
   }
@@ -184,10 +185,8 @@ class TelemetryOutboxStore(
       WHERE id IN ($placeholders) AND claim_token = ? AND synced_at IS NULL
         """.trimIndent(),
       ).use { statement ->
-        eventIds.forEachIndexed { index, eventId ->
-          statement.setLong(index + 1, eventId)
-        }
-        statement.setString(eventIds.size + 1, claimToken)
+        val values: List<Any?> = eventIds.map { it } + claimToken
+        statement.bindAll(*values.toTypedArray())
         statement.executeUpdate()
       }
     return TelemetryOutboxSettlementResult.forRequest(eventIds, updatedRows = updated)
@@ -236,11 +235,12 @@ class TelemetryOutboxStore(
       WHERE id IN ($placeholders) AND claim_token = ? AND synced_at IS NULL
         """.trimIndent(),
       ).use { statement ->
-        statement.setString(1, lastError)
-        eventIds.forEachIndexed { index, eventId ->
-          statement.setLong(index + 2, eventId)
+        val values: List<Any?> = buildList {
+          add(lastError)
+          addAll(eventIds)
+          add(claimToken)
         }
-        statement.setString(eventIds.size + 2, claimToken)
+        statement.bindAll(*values.toTypedArray())
         statement.executeUpdate()
       }
     return TelemetryOutboxSettlementResult.forRequest(eventIds, updatedRows = updated)
@@ -265,7 +265,7 @@ private fun ResultSet.readOutboxRows(): List<TelemetryOutboxRecord> = buildList 
     add(
       TelemetryOutboxRecord(
         id = getLong("id"),
-        eventName = getString("event_name"),
+        eventName = getString(SqliteLifecycleTelemetryMaterializationPayloadKeys.EVENT_NAME),
         payloadJson = getString("payload_json"),
         createdAt = getString("created_at"),
         syncedAt = getString("synced_at"),

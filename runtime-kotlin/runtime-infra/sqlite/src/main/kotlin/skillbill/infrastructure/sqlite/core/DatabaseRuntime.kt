@@ -5,42 +5,35 @@ import skillbill.error.DatabaseAccessError
 import skillbill.error.DatabaseAccessOperation
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.Paths
 import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.SQLException
 
-data class OpenDatabase(
-  val connection: Connection,
-  val dbPath: Path,
+internal data class OpenDatabase(
+  internal val connection: Connection,
+  internal val dbPath: Path,
 ) : AutoCloseable {
   override fun close() {
     connection.close()
   }
 }
 
-object DatabaseRuntime {
+internal object DatabaseRuntime {
   private var writeReadinessGate = DatabaseWriteReadinessGate()
-
-  internal fun resetWriteReadinessForTests() {
-    writeReadinessGate = DatabaseWriteReadinessGate()
-  }
-
-  internal fun writeReadinessEstablishmentCount(): Int = writeReadinessGate.schemaEstablishmentExecutions
 
   fun ensureWriteReady(path: Path) {
     writeReadinessGate.ensureReady(path.toAbsolutePath().normalize())
   }
   fun resolveDbPath(
     cliValue: String?,
-    environment: Map<String, String> = System.getenv(),
-    userHome: Path = Paths.get(System.getProperty("user.home")),
+    environment: Map<String, String>,
+    userHome: Path,
   ): Path = DatabasePaths.resolveDbPath(cliValue = cliValue, environment = environment, userHome = userHome)
 
   fun openDb(
-    cliValue: String? = null,
-    environment: Map<String, String> = System.getenv(),
-    userHome: Path = Paths.get(System.getProperty("user.home")),
+    cliValue: String?,
+    environment: Map<String, String>,
+    userHome: Path,
   ): OpenDatabase {
     val dbPath = resolveDbPath(cliValue = cliValue, environment = environment, userHome = userHome)
     return openDbAt(dbPath)
@@ -85,9 +78,9 @@ object DatabaseRuntime {
   }
 
   fun openReadDb(
-    cliValue: String? = null,
-    environment: Map<String, String> = System.getenv(),
-    userHome: Path = Paths.get(System.getProperty("user.home")),
+    cliValue: String?,
+    environment: Map<String, String>,
+    userHome: Path,
   ): OpenDatabase {
     val dbPath = resolveDbPath(cliValue = cliValue, environment = environment, userHome = userHome)
     return openReadDbAt(dbPath)
@@ -103,9 +96,9 @@ object DatabaseRuntime {
   internal fun openReadConnectionAt(dbPath: Path): OpenDatabase = openReadOnlyDb(dbPath)
 
   fun openReadDbIfPresent(
-    cliValue: String? = null,
-    environment: Map<String, String> = System.getenv(),
-    userHome: Path = Paths.get(System.getProperty("user.home")),
+    cliValue: String?,
+    environment: Map<String, String>,
+    userHome: Path,
   ): OpenDatabase? {
     val dbPath = resolveDbPath(cliValue = cliValue, environment = environment, userHome = userHome)
     return openReadDbIfPresentAt(dbPath)
@@ -166,6 +159,12 @@ object DatabaseRuntime {
   }
 }
 
+internal fun Connection.databasePath(): Path {
+  val url = metaData.url ?: error("sqlite connection url is missing")
+  val raw = url.removePrefix("jdbc:sqlite:")
+  return Path.of(raw).toAbsolutePath().normalize()
+}
+
 private fun <T> asTypedFailure(dbPath: Path, operation: DatabaseAccessOperation, block: () -> T): T = try {
   block()
 } catch (error: SQLException) {
@@ -174,13 +173,19 @@ private fun <T> asTypedFailure(dbPath: Path, operation: DatabaseAccessOperation,
 
 private fun <T> Connection.closingOnFailure(block: () -> T): T {
   var succeeded = false
+  var primaryFailure: Throwable? = null
   return try {
     val result = block()
     succeeded = true
     result
+  } catch (error: Throwable) {
+    primaryFailure = error
+    throw error
   } finally {
     if (!succeeded) {
-      closeQuietly()
+      runCatching { close() }.onFailure { closeFailure ->
+        primaryFailure?.addSuppressed(closeFailure)
+      }
     }
   }
 }
@@ -194,7 +199,3 @@ internal fun databaseAccessError(
   operation = operation,
   condition = "sqlite result code ${error.errorCode}: ${error.message.orEmpty()}",
 )
-
-internal fun Connection.closeQuietly() {
-  runCatching { close() }
-}

@@ -1,3 +1,13 @@
+## [2026-09-18] SKILL-356 runtime-infra-sqlite boundaries and simplicity
+Areas: runtime-kotlin/runtime-infra/sqlite core/review/telemetry/workflow, runtime-kotlin/runtime-core DI/architecture, runtime-kotlin/runtime-contracts, runtime-kotlin/runtime-ports, runtime-kotlin/runtime-domain, runtime-kotlin/runtime-cli/engine/mcp tests
+- One transaction path now owns read, write, and migration boundaries with typed database failures and rollback behavior; reusable
+- SQLite construction resolves `EnvironmentContext`, `Clock`, and `RuntimeDiagnostics` at the DI boundary, removing ambient defaults and recording degradation decisions; reusable
+- Unit-of-work routing owns feature-task settlements and goal-runner purge persistence; internal SQLite helpers, positional binding, and payload vocabulary are centralized
+- Test fixtures provide explicit database/session setup, while architecture guards enforce dependency, clock, environment, visibility, and wire-key boundaries
+- Known limits: well-formed SQL behavior remains unchanged; goal-runner store-lattice and migration/schema consolidation continue in subtasks 2 and 3
+Feature flag: N/A
+Acceptance criteria: 8/8 implemented
+
 ## [2026-08-07] SKILL-168 Subtask 2 consistent read snapshot for ide-status
 
 Areas: runtime-kotlin/runtime-infra-sqlite infrastructure/sqlite + db/workflow, runtime-kotlin/runtime-application work tests, runtime-kotlin/runtime-cli concurrency tests

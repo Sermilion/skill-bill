@@ -2,6 +2,7 @@ package skillbill.infrastructure.sqlite
 
 import skillbill.goalrunner.model.ReviewFindingOutcomeRecord
 import skillbill.goalrunner.model.UnaddressedFinding
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.infrastructure.sqlite.core.reconcileStaleTelemetrySessions
 import skillbill.infrastructure.sqlite.goal.UnaddressedFindingsRuntime
 import skillbill.infrastructure.sqlite.review.ReviewRuntime
@@ -27,6 +28,7 @@ import skillbill.learnings.model.RejectedLearningSourceOutcome
 import skillbill.learnings.model.UpdateLearningRequest
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticPermissions
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticRepository
+import skillbill.ports.diagnostics.RuntimeDiagnostics
 import skillbill.ports.goalrunner.GoalPlanningPreparationRepository
 import skillbill.ports.goalrunner.GoalRunnerControlRepository
 import skillbill.ports.goalrunner.UnaddressedFindingsRepository
@@ -34,6 +36,7 @@ import skillbill.ports.idestatus.AgentActivityStampRepository
 import skillbill.ports.idestatus.WorktreeEditJournalRepository
 import skillbill.ports.learning.LearningRepository
 import skillbill.ports.learning.model.LearningResolution
+import skillbill.ports.featuretask.FeatureTaskPhaseSettlementRepository
 import skillbill.ports.persistence.UnitOfWork
 import skillbill.ports.review.ReviewRepository
 import skillbill.ports.review.ReviewRunCompletenessRepository
@@ -57,20 +60,27 @@ import skillbill.review.model.NumberedFinding
 import skillbill.review.model.ReviewFinishedTelemetry
 import java.nio.file.Path
 import java.sql.Connection
+import java.time.Clock
 
-class SQLiteUnitOfWork(
+internal class SQLiteUnitOfWork(
   private val connection: Connection,
   override val dbPath: Path,
+  private val clock: Clock,
+  private val diagnostics: RuntimeDiagnostics,
 ) : UnitOfWork {
-  internal val rawConnection: Connection get() = connection
-  override val reviews: ReviewRepository = SQLiteReviewRepository(connection)
+  private val phaseSettlementStore = SqliteFeatureTaskPhaseSettlementStore(connection)
+
+  internal val sessionClock: Clock get() = clock
+  internal val sessionDiagnostics: RuntimeDiagnostics get() = diagnostics
+  override val featureTaskPhaseSettlements: FeatureTaskPhaseSettlementRepository = phaseSettlementStore
+  override val reviews: ReviewRepository = SQLiteReviewRepository(connection, clock)
   override val learnings: LearningRepository = SQLiteLearningRepository(connection)
   override val lifecycleTelemetry: LifecycleTelemetryRepository = LifecycleTelemetryStore(connection)
   override val telemetryReconciliation: TelemetryReconciliationRepository = SQLiteTelemetryReconciliationRepository(
     connection,
   )
   override val telemetryOutbox: TelemetryOutboxRepository = TelemetryOutboxStore(connection)
-  override val workflowStates: WorkflowStateRepository = WorkflowStateStore(connection)
+  override val workflowStates: WorkflowStateRepository = WorkflowStateStore(connection, clock)
   override val workList: WorkListRepository = SQLiteWorkListRepository(connection)
   override val goalPlanningPreparations: GoalPlanningPreparationRepository =
     GoalPlanningPreparationStore(connection)
@@ -84,10 +94,52 @@ class SQLiteUnitOfWork(
   override val rejectedOutputDiagnostics: RejectedOutputDiagnosticRepository =
     SqliteRejectedOutputDiagnosticRepository(connection)
   override val rejectedOutputDiagnosticPermissions: RejectedOutputDiagnosticPermissions =
-    FileRejectedOutputDiagnosticPermissions(dbPath)
+    FileRejectedOutputDiagnosticPermissions(dbPath, diagnostics)
+
+  override fun purgeDecomposedGoal(parentWorkflowId: String) {
+    val childIds = workflowStates.listGoalChildWorkflowIdsByParent(parentWorkflowId)
+    val workflowIds = buildList {
+      add(parentWorkflowId)
+      addAll(childIds)
+    }
+    goalPlanningPreparations.deleteByGoal(parentWorkflowId)
+    connection.prepareStatement(
+      "DELETE FROM goal_runner_controls WHERE parent_workflow_id = ?",
+    ).use { statement ->
+      statement.bindAll(parentWorkflowId)
+      statement.executeUpdate()
+    }
+    deleteByWorkflowIds("goal_run_sessions", workflowIds)
+    deleteByWorkflowIds("goal_subtask_events", workflowIds)
+    phaseSettlementStore.deleteByWorkflowIds(workflowIds)
+    connection.prepareStatement(
+      "DELETE FROM goal_issue_progress WHERE parent_workflow_id = ?",
+    ).use { statement ->
+      statement.bindAll(parentWorkflowId)
+      statement.executeUpdate()
+    }
+    workflowStates.deleteGoalChildWorkflowsByParent(parentWorkflowId)
+    connection.prepareStatement(
+      "DELETE FROM feature_task_workflows WHERE workflow_id = ?",
+    ).use { statement ->
+      statement.bindAll(parentWorkflowId)
+      statement.executeUpdate()
+    }
+  }
+
+  private fun deleteByWorkflowIds(table: String, workflowIds: List<String>) {
+    if (workflowIds.isEmpty()) return
+    val placeholders = workflowIds.joinToString(", ") { "?" }
+    connection.prepareStatement(
+      "DELETE FROM $table WHERE workflow_id IN ($placeholders)",
+    ).use { statement ->
+      statement.bindAll(*workflowIds.toTypedArray())
+      statement.executeUpdate()
+    }
+  }
 }
 
-class SQLiteUnaddressedFindingsRepository(connection: Connection) : UnaddressedFindingsRepository {
+internal class SQLiteUnaddressedFindingsRepository(connection: Connection) : UnaddressedFindingsRepository {
   private val runtime = UnaddressedFindingsRuntime(connection)
 
   override fun replaceLedgerForPass(workflowId: String, reviewPassNumber: Int, findings: List<UnaddressedFinding>) =
@@ -109,7 +161,7 @@ class SQLiteUnaddressedFindingsRepository(connection: Connection) : UnaddressedF
   override fun issueExists(issueKey: String): Boolean = runtime.issueExists(issueKey)
 }
 
-class SQLiteTelemetryReconciliationRepository(
+internal class SQLiteTelemetryReconciliationRepository(
   private val connection: Connection,
 ) : TelemetryReconciliationRepository {
   override fun reconcileStaleSessions(request: TelemetryReconciliationRequest): TelemetryReconciliationResult {
@@ -118,7 +170,7 @@ class SQLiteTelemetryReconciliationRepository(
   }
 }
 
-class SQLiteWorkflowStatsRepository(
+internal class SQLiteWorkflowStatsRepository(
   private val connection: Connection,
 ) : WorkflowStatsRepository {
   override fun featureVerifyStats(): FeatureVerifyWorkflowStats = ReviewStatsRuntime.featureVerifyStats(connection)
@@ -129,14 +181,12 @@ class SQLiteWorkflowStatsRepository(
   override fun goalStats(): GoalWorkflowStats = ReviewStatsRuntime.goalStats(connection)
 }
 
-class SQLiteReviewRepository(
+internal class SQLiteReviewRepository(
   private val connection: Connection,
+  clock: Clock,
 ) : ReviewRepository,
   WorkflowStatsRepository by SQLiteWorkflowStatsRepository(connection),
-  ReviewRunCompletenessRepository by SQLiteReviewRunCompletenessRepository(connection) {
-  private companion object {
-    const val REJECTED_OUTCOME_FIRST_PARAM_INDEX: Int = 3
-  }
+  ReviewRunCompletenessRepository by SQLiteReviewRunCompletenessRepository(connection, clock) {
 
   override fun saveAccounting(record: ReviewAccountingRecord) = upsertReviewAccounting(connection, record)
 
@@ -149,7 +199,7 @@ class SQLiteReviewRepository(
     connection.prepareStatement(
       "UPDATE review_runs SET orchestrated_run = 1 WHERE review_run_id = ?",
     ).use { statement ->
-      statement.setString(1, runId)
+      statement.bindAll(runId)
       statement.executeUpdate()
     }
   }
@@ -194,11 +244,11 @@ class SQLiteReviewRepository(
       LIMIT 1
       """.trimIndent(),
     ).use { statement ->
-      statement.setString(1, runId)
-      statement.setString(2, findingId)
-      LearningsRuntime.rejectedFindingOutcomeTypes.forEachIndexed { index, value ->
-        statement.setString(index + REJECTED_OUTCOME_FIRST_PARAM_INDEX, value)
-      }
+      statement.bindAll(
+        runId,
+        findingId,
+        *LearningsRuntime.rejectedFindingOutcomeTypes.toTypedArray(),
+      )
       statement.executeQuery().use { resultSet ->
         if (resultSet.next()) {
           RejectedLearningSourceOutcome(
@@ -216,7 +266,7 @@ class SQLiteReviewRepository(
     ReviewStatsRuntime.statsSnapshot(connection, runId)
 }
 
-class SQLiteLearningRepository(
+internal class SQLiteLearningRepository(
   private val connection: Connection,
 ) : LearningRepository {
   override fun list(status: String): List<LearningRecord> = SQLiteLearningStore.listLearnings(connection, status)

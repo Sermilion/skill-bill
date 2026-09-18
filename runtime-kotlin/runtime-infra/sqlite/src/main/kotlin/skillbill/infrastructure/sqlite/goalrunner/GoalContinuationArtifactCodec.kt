@@ -21,7 +21,7 @@ import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseOutputValidator
 import skillbill.workflow.taskruntime.FeatureTaskRuntimePhaseWorkflowDefinition
 import skillbill.workflow.taskruntime.model.requireAcceptedOutput
 
-fun goalContinuation(artifacts: Map<String, Any?>): GoalContinuation? =
+internal fun goalContinuation(artifacts: Map<String, Any?>): GoalContinuation? =
   (artifacts["goal_continuation"] as? Map<*, *>)?.let { payload ->
     val issueKey = payload[FeatureTaskRuntimeGoalContinuationArtifactPayloadKeys.ISSUE_KEY]
       ?.toString()
@@ -42,10 +42,10 @@ fun goalContinuation(artifacts: Map<String, Any?>): GoalContinuation? =
     }
   }
 
-fun goalReviewArtifacts(artifacts: Map<String, Any?>): GoalSubtaskReviewArtifacts? =
+internal fun goalReviewArtifacts(artifacts: Map<String, Any?>): GoalSubtaskReviewArtifacts? =
   GoalSubtaskReviewArtifactDecoder.decode(artifacts)
 
-fun validatedGoalReviewPasses(
+internal fun validatedGoalReviewPasses(
   review: GoalSubtaskReviewArtifacts,
   phaseOutputValidator: FeatureTaskRuntimePhaseOutputValidator,
   unitOfWork: GoalRunnerPersistenceSession,
@@ -77,7 +77,7 @@ fun validatedGoalReviewPasses(
   return review.state.passResults
 }
 
-fun goalReviewEmissionEnvelope(rawResult: String, phaseOutputValidator: FeatureTaskRuntimePhaseOutputValidator): Any {
+internal fun goalReviewEmissionEnvelope(rawResult: String, phaseOutputValidator: FeatureTaskRuntimePhaseOutputValidator): Any {
   if (JsonCodec.parseObjectOrNull(rawResult.trim()) == null) return emptyMap<String, Any?>()
   return phaseOutputValidator
     .validatePhaseOutput(rawResult, FeatureTaskRuntimePhaseWorkflowDefinition.PHASE_REVIEW)
@@ -86,7 +86,7 @@ fun goalReviewEmissionEnvelope(rawResult: String, phaseOutputValidator: FeatureT
     .envelopePayload()
 }
 
-fun taskRuntimeRecordOrNull(workflowStates: WorkflowStateRepository, workflowId: String): WorkflowStateSnapshot? = try {
+internal fun taskRuntimeRecordOrNull(workflowStates: WorkflowStateRepository, workflowId: String): WorkflowStateSnapshot? = try {
   WorkflowFamily.TASK_RUNTIME.get(workflowStates, workflowId)
 } catch (error: InvalidWorkflowStateSchemaError) {
   if (error.message.orEmpty().contains("mode='")) {
@@ -96,7 +96,7 @@ fun taskRuntimeRecordOrNull(workflowStates: WorkflowStateRepository, workflowId:
   }
 }
 
-fun featureTaskRecordForLegacyControls(
+internal fun featureTaskRecordForLegacyControls(
   workflowStates: WorkflowStateRepository,
   workflowId: String,
 ): WorkflowStateSnapshot? = workflowStates.getFeatureTaskWorkflow(workflowId)?.toSnapshot()

@@ -1,5 +1,7 @@
 package skillbill.infrastructure.sqlite.workflow
 
+import skillbill.infrastructure.sqlite.core.bindAll
+
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
 import skillbill.contracts.workflow.FeatureTaskRuntimePhaseOutputSchemaPaths
 import skillbill.contracts.workflow.GOAL_PLANNING_PREPARATION_CONTRACT_VERSION
@@ -29,7 +31,7 @@ internal fun Connection.rejectLegacy(workflowId: String) {
   prepareStatement(
     "SELECT 1 FROM goal_planning_preparations WHERE parent_goal_workflow_id = ? LIMIT 1",
   ).use { s ->
-    s.setString(1, workflowId)
+    s.bindAll(workflowId)
     s.executeQuery().use {
       if (it.next()) {
         throw IncompatibleGoalPlanningPreparationRecoveryError(

@@ -43,6 +43,7 @@ import skillbill.ports.agentaddon.ExternalAgentAddonSourceConfigPort
 import skillbill.ports.concurrency.InterruptSignalPort
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.diagnostics.RuntimeDiagnostics
+import java.time.Clock
 import skillbill.ports.featurespec.FeatureSpecPathResolverPort
 import skillbill.ports.install.baseline.InstalledWorkspaceBaselineStatusPort
 import skillbill.ports.install.mcp.InstallMcpRegistrationPort
@@ -106,8 +107,11 @@ abstract class RuntimeComponent(
     RuntimeBootstrapBindings.repositoryEnclosingRootPort()
 
   @Provides @RuntimeSingleton @JvmSynthetic
-  fun databaseSessionFactory(context: EnvironmentContext): DatabaseSessionFactory =
-    RuntimeBootstrapBindings.databaseSessionFactory(context)
+  fun databaseSessionFactory(
+    context: EnvironmentContext,
+    clock: Clock,
+    diagnostics: RuntimeDiagnostics,
+  ): DatabaseSessionFactory = RuntimeBootstrapBindings.databaseSessionFactory(context, clock, diagnostics)
 
   @Provides @JvmSynthetic
   fun interruptSignal(): InterruptSignalPort = JvmInterruptSignalPort

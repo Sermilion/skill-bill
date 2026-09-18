@@ -1,21 +1,22 @@
 package skillbill.infrastructure.sqlite.telemetry
+import skillbill.infrastructure.sqlite.core.bindAll
 
 import skillbill.telemetry.model.GoalFinishedRecord
 import skillbill.telemetry.model.GoalIssueFinishedRecord
 import skillbill.telemetry.model.GoalStartedRecord
 import skillbill.telemetry.model.GoalSubtaskFinishedRecord
+import skillbill.infrastructure.sqlite.core.sqliteDiagnostics
 import java.sql.Connection
-import java.util.logging.Logger
 
 private const val SQLITE_TIMESTAMP_NOW = "strftime('%Y-%m-%dT%H:%M:%fZ', 'now')"
 
-enum class GoalStartedSaveOutcome { INSERTED, DUPLICATE }
+internal enum class GoalStartedSaveOutcome { INSERTED, DUPLICATE }
 
-enum class GoalFinishedSaveOutcome { FIRST_TERMINAL, DUPLICATE }
+internal enum class GoalFinishedSaveOutcome { FIRST_TERMINAL, DUPLICATE }
 
-data class GoalIssueFinishedSaveOutcome(val persisted: Boolean, val suppressionReason: String? = null)
+internal data class GoalIssueFinishedSaveOutcome(val persisted: Boolean, val suppressionReason: String? = null)
 
-fun saveGoalStarted(connection: Connection, record: GoalStartedRecord): GoalStartedSaveOutcome {
+internal fun saveGoalStarted(connection: Connection, record: GoalStartedRecord): GoalStartedSaveOutcome {
   val inserted = connection.prepareStatement(
     """
     INSERT INTO goal_run_sessions (
@@ -24,7 +25,7 @@ fun saveGoalStarted(connection: Connection, record: GoalStartedRecord): GoalStar
     ON CONFLICT(workflow_id) DO NOTHING
     """.trimIndent(),
   ).use { statement ->
-    statement.bind(
+    statement.bindAll(
       record.workflowId,
       record.issueKey,
       record.featureName,
@@ -39,7 +40,7 @@ fun saveGoalStarted(connection: Connection, record: GoalStartedRecord): GoalStar
   return if (inserted) GoalStartedSaveOutcome.INSERTED else GoalStartedSaveOutcome.DUPLICATE
 }
 
-fun saveGoalFinished(connection: Connection, record: GoalFinishedRecord): GoalFinishedSaveOutcome {
+internal fun saveGoalFinished(connection: Connection, record: GoalFinishedRecord): GoalFinishedSaveOutcome {
   if (goalRunSessionExists(connection, record.workflowId)) {
     return if (updateGoalFinished(connection, record)) {
       GoalFinishedSaveOutcome.FIRST_TERMINAL
@@ -70,7 +71,7 @@ private fun updateGoalFinished(connection: Connection, record: GoalFinishedRecor
     WHERE workflow_id = ? AND status IS NULL AND finished_at IS NULL
     """.trimIndent(),
   ).use { statement ->
-    statement.bind(
+    statement.bindAll(
       record.issueKey,
       record.status,
       record.startedAt,
@@ -97,7 +98,7 @@ private fun insertGoalFinished(connection: Connection, record: GoalFinishedRecor
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """.trimIndent(),
   ).use { statement ->
-    statement.bind(
+    statement.bindAll(
       record.workflowId,
       record.issueKey,
       record.startedAt,
@@ -115,7 +116,7 @@ private fun insertGoalFinished(connection: Connection, record: GoalFinishedRecor
   }
 }
 
-fun recordGoalIssueSegmentStarted(connection: Connection, segment: GoalIssueSegmentStart) {
+internal fun recordGoalIssueSegmentStarted(connection: Connection, segment: GoalIssueSegmentStart) {
   connection.prepareStatement(
     """
     INSERT INTO goal_issue_progress (
@@ -144,7 +145,7 @@ fun recordGoalIssueSegmentStarted(connection: Connection, segment: GoalIssueSegm
       AND COALESCE(goal_issue_progress.status, '') NOT IN ('completed', 'failed', 'abandoned')
     """.trimIndent(),
   ).use { statement ->
-    statement.bind(
+    statement.bindAll(
       segment.parentWorkflowId,
       segment.issueKey,
       segment.resumed.toSqlInt(),
@@ -158,16 +159,16 @@ fun recordGoalIssueSegmentStarted(connection: Connection, segment: GoalIssueSegm
   }
 }
 
-data class GoalIssueSegmentStart(
-  val parentWorkflowId: String,
-  val issueKey: String,
-  val workflowId: String,
-  val startedAt: String,
-  val resumed: Boolean,
-  val mode: String,
+internal data class GoalIssueSegmentStart(
+  internal val parentWorkflowId: String,
+  internal val issueKey: String,
+  internal val workflowId: String,
+  internal val startedAt: String,
+  internal val resumed: Boolean,
+  internal val mode: String,
 )
 
-fun recordGoalIssueSegmentEnd(
+internal fun recordGoalIssueSegmentEnd(
   connection: Connection,
   parentWorkflowId: String,
   issueKey: String,
@@ -206,18 +207,19 @@ fun recordGoalIssueSegmentEnd(
   ).use { statement ->
     val tail = listOf(status, status, status, parentWorkflowId, issueKey)
     val params = if (blocked) listOf(workflowId) + tail else tail
-    params.forEachIndexed { offset, value -> statement.setString(offset + 1, value) }
+    statement.bindAll(*params.toTypedArray())
     statement.executeUpdate()
   }
 }
 
-fun saveGoalIssueFinished(connection: Connection, record: GoalIssueFinishedRecord): GoalIssueFinishedSaveOutcome {
+internal fun saveGoalIssueFinished(connection: Connection, record: GoalIssueFinishedRecord): GoalIssueFinishedSaveOutcome {
   if (!goalIssueProgressExists(connection, record.parentWorkflowId, record.issueKey)) {
     val recovered = recoverGoalIssueProgress(connection, record)
     if (!recovered.persisted) {
-      goalTelemetryLogger.severe(
-        "Suppressed goal_issue_finished for ${record.parentWorkflowId}/${record.issueKey}: " +
-          recovered.suppressionReason,
+      connection.sqliteDiagnostics().warning(
+        "skillbill sqlite: suppressed goal_issue_finished for ${record.parentWorkflowId}/${record.issueKey}; " +
+          "reason=${recovered.suppressionReason}",
+        null,
       )
       return recovered
     }
@@ -238,7 +240,7 @@ fun saveGoalIssueFinished(connection: Connection, record: GoalIssueFinishedRecor
     WHERE parent_workflow_id = ? AND issue_key = ? AND finished_event_emitted_at IS NULL
     """.trimIndent(),
   ).use { statement ->
-    statement.bind(
+    statement.bindAll(
       record.status,
       record.subtasksComplete,
       record.subtasksBlocked,
@@ -271,7 +273,7 @@ internal fun nextGoalStateEnteredAtSql(candidateSql: String): String = """
   END
 """.trimIndent()
 
-fun saveGoalSubtaskFinished(connection: Connection, record: GoalSubtaskFinishedRecord): Boolean {
+internal fun saveGoalSubtaskFinished(connection: Connection, record: GoalSubtaskFinishedRecord): Boolean {
   val inserted = connection.prepareStatement(
     """
     INSERT INTO goal_subtask_events (
@@ -282,7 +284,7 @@ fun saveGoalSubtaskFinished(connection: Connection, record: GoalSubtaskFinishedR
     ON CONFLICT (issue_key, subtask_id, workflow_id) DO NOTHING
     """.trimIndent(),
   ).use { statement ->
-    statement.bind(
+    statement.bindAll(
       record.issueKey,
       record.workflowId,
       record.subtaskId,
@@ -319,7 +321,7 @@ fun saveGoalSubtaskFinished(connection: Connection, record: GoalSubtaskFinishedR
     WHERE issue_key = ? AND subtask_id = ? AND workflow_id = ?
     """.trimIndent(),
   ).use { statement ->
-    statement.bind(
+    statement.bindAll(
       record.workflowId,
       record.workflowId,
       record.issueKey,
@@ -333,8 +335,7 @@ fun saveGoalSubtaskFinished(connection: Connection, record: GoalSubtaskFinishedR
 
 private fun goalRunSessionExists(connection: Connection, workflowId: String): Boolean =
   connection.prepareStatement("SELECT 1 FROM goal_run_sessions WHERE workflow_id = ?").use { statement ->
-    statement.bind(workflowId)
+    statement.bindAll(workflowId)
     statement.executeQuery().use { it.next() }
   }
 
-private val goalTelemetryLogger: Logger = Logger.getLogger("skillbill.telemetry.goal")

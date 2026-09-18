@@ -1,7 +1,9 @@
 package skillbill.infrastructure.sqlite.workflow
 
+import skillbill.infrastructure.sqlite.core.bindAll
+
 import skillbill.contracts.SharedPayloadKeys
-import skillbill.infrastructure.sqlite.core.inImmediateTransaction
+import skillbill.infrastructure.sqlite.core.inNestedWriteTransaction
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeCrashReconciliationCandidate
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
 import skillbill.ports.workflow.FeatureTaskRuntimeWorkerRepository
@@ -16,7 +18,7 @@ internal class FeatureTaskRuntimeWorkerStore(
   override fun acquireFeatureTaskRuntimeWorker(
     ownership: FeatureTaskRuntimeWorkerOwnership,
     expectedUpdatedAt: String?,
-  ): Boolean = connection.inImmediateTransaction {
+  ): Boolean = connection.inNestedWriteTransaction {
     val claimed = prepareStatement(
       """
       UPDATE feature_task_workflows
@@ -31,10 +33,7 @@ internal class FeatureTaskRuntimeWorkerStore(
         AND ((updated_at IS NULL AND ? IS NULL) OR updated_at = ?)
       """.trimIndent(),
     ).use { statement ->
-      var parameterIndex = 1
-      statement.setString(parameterIndex++, ownership.workflowId)
-      statement.setString(parameterIndex++, expectedUpdatedAt)
-      statement.setString(parameterIndex, expectedUpdatedAt)
+      statement.bindAll(ownership.workflowId, expectedUpdatedAt, expectedUpdatedAt)
       statement.executeUpdate() == 1
     }
     if (claimed) insertWorkerOwnership(ownership)
@@ -52,10 +51,7 @@ internal class FeatureTaskRuntimeWorkerStore(
     WHERE workflow_id = ? AND owner_token = ? AND generation = ? AND lease_state = 'active'
     """.trimIndent(),
   ).use { statement ->
-    var parameterIndex = 1
-    statement.setString(parameterIndex++, workflowId)
-    statement.setString(parameterIndex++, expectedOwnerToken)
-    statement.setLong(parameterIndex, expectedGeneration)
+    statement.bindAll(workflowId, expectedOwnerToken, expectedGeneration)
     statement.executeUpdate() == 1
   }
 
@@ -72,10 +68,23 @@ internal class FeatureTaskRuntimeWorkerStore(
     WHERE workflow_id = ? AND owner_token = ? AND generation = ? AND lease_state = 'takeover_reserved'
     """.trimIndent(),
   ).use { statement ->
-    var parameterIndex = statement.bindOwnership(ownership, includeWorkflowId = false)
-    statement.setString(parameterIndex++, ownership.workflowId)
-    statement.setString(parameterIndex++, expectedOwnerToken)
-    statement.setLong(parameterIndex, expectedGeneration)
+    statement.bindAll(
+      ownership.contractVersion,
+      ownership.generation,
+      ownership.ownerToken,
+      ownership.hostIdentity,
+      ownership.bootIdentity,
+      ownership.pid,
+      ownership.processBirthToken,
+      ownership.leaseState.wireValue,
+      ownership.heartbeatAt,
+      ownership.expiresAt,
+      ownership.phaseId,
+      ownership.phaseAttempt,
+      ownership.workflowId,
+      expectedOwnerToken,
+      expectedGeneration,
+    )
     statement.executeUpdate() == 1
   }
 
@@ -87,14 +96,15 @@ internal class FeatureTaskRuntimeWorkerStore(
       WHERE workflow_id = ? AND owner_token = ? AND generation = ? AND lease_state = 'active'
       """.trimIndent(),
     ).use { statement ->
-      var parameterIndex = 1
-      statement.setString(parameterIndex++, ownership.heartbeatAt)
-      statement.setString(parameterIndex++, ownership.expiresAt)
-      statement.setString(parameterIndex++, ownership.phaseId)
-      statement.setInt(parameterIndex++, ownership.phaseAttempt)
-      statement.setString(parameterIndex++, ownership.workflowId)
-      statement.setString(parameterIndex++, ownership.ownerToken)
-      statement.setLong(parameterIndex, ownership.generation)
+      statement.bindAll(
+        ownership.heartbeatAt,
+        ownership.expiresAt,
+        ownership.phaseId,
+        ownership.phaseAttempt,
+        ownership.workflowId,
+        ownership.ownerToken,
+        ownership.generation,
+      )
       statement.executeUpdate() == 1
     }
 
@@ -102,10 +112,7 @@ internal class FeatureTaskRuntimeWorkerStore(
     connection.prepareStatement(
       "DELETE FROM feature_task_runtime_worker_leases WHERE workflow_id = ? AND owner_token = ? AND generation = ?",
     ).use { statement ->
-      var parameterIndex = 1
-      statement.setString(parameterIndex++, workflowId)
-      statement.setString(parameterIndex++, ownerToken)
-      statement.setLong(parameterIndex, generation)
+      statement.bindAll(workflowId, ownerToken, generation)
       statement.executeUpdate() == 1
     }
 
@@ -120,11 +127,7 @@ internal class FeatureTaskRuntimeWorkerStore(
     WHERE workflow_id = ? AND owner_token = ? AND generation = ? AND expires_at <= ?
     """.trimIndent(),
   ).use { statement ->
-    var parameterIndex = 1
-    statement.setString(parameterIndex++, workflowId)
-    statement.setString(parameterIndex++, ownerToken)
-    statement.setLong(parameterIndex++, generation)
-    statement.setString(parameterIndex, nowInstant)
+    statement.bindAll(workflowId, ownerToken, generation, nowInstant)
     statement.executeUpdate() == 1
   }
 
@@ -142,7 +145,7 @@ internal class FeatureTaskRuntimeWorkerStore(
     ORDER BY workflows.workflow_id
     """.trimIndent(),
   ).use { statement ->
-    statement.setString(1, nowInstant)
+    statement.bindAll(nowInstant)
     statement.executeQuery().use { rows ->
       buildList {
         while (rows.next()) {
@@ -173,11 +176,7 @@ internal class FeatureTaskRuntimeWorkerStore(
       WHERE workflow_id = ? AND owner_token = ? AND generation = ? AND expires_at < ?
       """.trimIndent(),
     ).use { statement ->
-      var parameterIndex = 1
-      statement.setString(parameterIndex++, workflowId)
-      statement.setString(parameterIndex++, ownerToken)
-      statement.setLong(parameterIndex++, generation)
-      statement.setString(parameterIndex, nowInstant)
+      statement.bindAll(workflowId, ownerToken, generation, nowInstant)
       statement.executeUpdate() == 1
     }
     if (!leaseReleased) return false
@@ -189,9 +188,7 @@ internal class FeatureTaskRuntimeWorkerStore(
       WHERE workflow_id = ? AND mode = 'runtime' AND workflow_status = 'running'
       """.trimIndent(),
     ).use { statement ->
-      var parameterIndex = 1
-      statement.setString(parameterIndex++, interruptionReason)
-      statement.setString(parameterIndex, workflowId)
+      statement.bindAll(interruptionReason, workflowId)
       statement.executeUpdate() == 1
     }
   }

@@ -1,4 +1,6 @@
-package skillbill.review
+package skillbill.infrastructure.sqlite.review
+
+import java.time.Clock
 
 import skillbill.error.InvalidReviewContextSchemaError
 import skillbill.infrastructure.sqlite.SQLiteReviewRunCompletenessRepository
@@ -27,7 +29,7 @@ class ReviewStageStatePersistenceTest {
   fun `malformed SQLite review tokens and citations retain the review typed error`() {
     val (_, connection) = tempDbConnection("review-stage-malformed-row")
     connection.use {
-      val repository = SQLiteReviewRunCompletenessRepository(it)
+      val repository = SQLiteReviewRunCompletenessRepository(it, Clock.systemUTC())
       repository.recordStageBoundary(
         "rvw-malformed",
         ReviewStageBoundary(ReviewStage.REVIEW, ReviewStageReached.REACHED, "2026-08-14T08:00:00Z"),
@@ -68,7 +70,7 @@ class ReviewStageStatePersistenceTest {
     val (dbPath, first) = tempDbConnection("review-stage-durability")
     val fixtures = durableStageFixtures()
     first.use { connection ->
-      val repository = SQLiteReviewRunCompletenessRepository(connection)
+      val repository = SQLiteReviewRunCompletenessRepository(connection, Clock.systemUTC())
       repository.recordFindingVerdicts(RUN_ID, listOf(fixtures.verification, fixtures.adjudication))
       repository.recordFindingVerdicts(RUN_ID, listOf(fixtures.verification, fixtures.adjudication))
       repository.recordStageBoundary(RUN_ID, fixtures.boundary)
@@ -79,7 +81,7 @@ class ReviewStageStatePersistenceTest {
     }
 
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
-      val repository = SQLiteReviewRunCompletenessRepository(connection)
+      val repository = SQLiteReviewRunCompletenessRepository(connection, Clock.systemUTC())
       assertEquals(
         listOf(fixtures.adjudication, fixtures.verification),
         repository.fetchFindingVerdicts(RUN_ID).sortedBy { it.stage.wireValue },
@@ -148,11 +150,11 @@ class ReviewStageStatePruneTest {
   fun `deleting a review run cascades verdicts boundaries and spec projection`() {
     val (_, connection) = tempDbConnection("review-stage-prune")
     connection.use {
-      seedPruneRun(SQLiteReviewRunCompletenessRepository(it))
+      seedPruneRun(SQLiteReviewRunCompletenessRepository(it, Clock.systemUTC()))
       it.createStatement().use { statement ->
         statement.executeUpdate("DELETE FROM review_runs WHERE review_run_id = '$RUN_ID'")
       }
-      val repository = SQLiteReviewRunCompletenessRepository(it)
+      val repository = SQLiteReviewRunCompletenessRepository(it, Clock.systemUTC())
       assertTrue(repository.fetchFindingVerdicts(RUN_ID).isEmpty())
       assertTrue(repository.fetchStageBoundaries(RUN_ID).isEmpty())
       assertEquals(null, repository.fetchSpecProjectionReference(RUN_ID))

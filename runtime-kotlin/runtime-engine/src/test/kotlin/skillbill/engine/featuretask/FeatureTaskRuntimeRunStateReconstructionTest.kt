@@ -12,6 +12,7 @@ import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
 import skillbill.engine.runnerHarness
 import skillbill.engine.satisfiedAuditLauncher
 import skillbill.infrastructure.sqlite.SQLiteDatabaseSessionFactory
+import skillbill.infrastructure.sqlite.sqliteDatabaseSessionFactory
 import skillbill.model.EnvironmentContext
 import skillbill.ports.diagnostics.NoopRuntimeDiagnostics
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
@@ -216,13 +217,11 @@ class FeatureTaskRuntimeRunStateReconstructionTest {
     assertEquals(live.outputFor(output.phaseId)?.payload, resumed.outputFor(output.phaseId)?.payload)
   }
 
-  private fun sqliteResumeDatabase(tempDir: Path): SQLiteDatabaseSessionFactory = SQLiteDatabaseSessionFactory(
-    EnvironmentContext(
-      dbPathOverride = tempDir.resolve("runtime.db").toString(),
-      environment = emptyMap(),
+  private fun sqliteResumeDatabase(tempDir: Path): SQLiteDatabaseSessionFactory =
+    sqliteDatabaseSessionFactory(
       userHome = tempDir,
-    ),
-  )
+      dbPathOverride = tempDir.resolve("runtime.db").toString(),
+     environment = emptyMap())
 
   private fun seedSqliteResumeWorkflow(database: SQLiteDatabaseSessionFactory, workflowId: String) {
     database.transaction { unitOfWork ->

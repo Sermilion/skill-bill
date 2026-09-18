@@ -1,5 +1,8 @@
 package skillbill.application
 
+import skillbill.ports.diagnostics.RuntimeDiagnostics
+import java.time.Clock
+
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_CONTRACT_VERSION
 import skillbill.engine.goalplanning.GoalPlanningPreparationCheckpoint
 import skillbill.error.IncompatibleGoalPlanningPreparationRecoveryError
@@ -279,7 +282,11 @@ class GoalPlanningPreparationCheckpointTest {
 
   private fun checkpointHarness(): CheckpointHarness {
     val tempDir = Files.createTempDirectory("goal-planning-checkpoint")
-    val database = SQLiteDatabaseSessionFactory(EnvironmentContext(environment = emptyMap(), userHome = tempDir))
+    val database = SQLiteDatabaseSessionFactory(
+      EnvironmentContext(environment = emptyMap(), userHome = tempDir),
+      Clock.systemUTC(),
+      NoOpCheckpointDiagnostics,
+    )
     val checkpoint = GoalPlanningPreparationCheckpoint(
       database = database,
       envelopeValidator = FeatureTaskRuntimeWireArtifactSchemaValidator(),
@@ -311,6 +318,11 @@ class GoalPlanningPreparationCheckpointTest {
     fun readPlan(subtaskId: Int = 1): GoalSubtaskPlanCheckpoint? = database.read {
       it.goalPlanningPreparations.findSubtaskPlan(identity(), subtaskId, descriptor(subtaskId).governedSubSpecPath)
     }
+  }
+
+  private object NoOpCheckpointDiagnostics : RuntimeDiagnostics {
+    override fun warning(message: String, error: Throwable?) = Unit
+    override fun error(message: String, error: Throwable?) = Unit
   }
 
   private companion object {

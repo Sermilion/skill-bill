@@ -1,5 +1,7 @@
 package skillbill.infrastructure.sqlite.telemetry
 
+import java.time.Clock
+
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.telemetry.LifecycleSessionCompletion
@@ -7,6 +9,7 @@ import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
 import skillbill.contracts.telemetry.TelemetryMeasurementAvailability
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
 import skillbill.infrastructure.sqlite.core.LifecycleStaleReason
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.infrastructure.sqlite.core.reconcileStaleTelemetrySessions
 import skillbill.telemetry.model.FeatureTaskRuntimeFinishedRecord
 import skillbill.telemetry.model.FeatureTaskRuntimeStartedRecord
@@ -33,7 +36,7 @@ class LifecycleTelemetryTruthfulnessTest {
       store.qualityCheckStarted(startedQualityCheck(), "anonymous")
       ageQualityCheckStart(connection)
 
-      reconcileStaleTelemetrySessions(connection, "anonymous")
+      reconcileStaleTelemetrySessions(connection, Clock.systemUTC(), "anonymous")
 
       val payload = payloadFor(connection, "skillbill_quality_check_finished")
       assertEquals(
@@ -402,7 +405,7 @@ class LifecycleTelemetryTruthfulnessTest {
 
   private fun sessionRow(connection: Connection, sessionId: String): Map<String, Any?> =
     connection.prepareStatement("SELECT * FROM feature_task_runtime_sessions WHERE session_id = ?").use { statement ->
-      statement.bind(sessionId)
+      statement.bindAll(sessionId)
       statement.executeQuery().use { resultSet ->
         assertTrue(resultSet.next(), "expected a session row for $sessionId")
         val metaData = resultSet.metaData
@@ -423,7 +426,7 @@ class LifecycleTelemetryTruthfulnessTest {
   private fun payloadFor(connection: Connection, eventName: String): Map<String, Any?> =
     connection.prepareStatement("SELECT payload_json FROM telemetry_outbox WHERE event_name = ? ORDER BY id DESC")
       .use { statement ->
-        statement.bind(eventName)
+        statement.bindAll(eventName)
         statement.executeQuery().use { resultSet ->
           assertTrue(resultSet.next(), "expected a queued $eventName row")
           JsonCodec.parseObjectOrNull(resultSet.getString("payload_json"))

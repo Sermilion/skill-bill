@@ -1,6 +1,7 @@
-package skillbill.review
+package skillbill.infrastructure.sqlite.review
 
 import skillbill.infrastructure.sqlite.review.ReviewRuntime
+import skillbill.infrastructure.sqlite.review.persistImportedReview
 import skillbill.infrastructure.sqlite.review.ensureTerminalReviewState
 import skillbill.infrastructure.sqlite.review.fetchReviewRunLanes
 import skillbill.infrastructure.sqlite.review.queryReviewLaneEffectiveness
@@ -24,7 +25,7 @@ class ReviewRunLaneAttributionTest {
   fun `saving a review records one row per lane and attributes each finding to its lane`() {
     val (_, connection) = tempDbConnection("review-lanes")
     connection.use {
-      ReviewRuntime.saveImportedReview(connection, reviewWithLanes(), sourcePath = null)
+      persistImportedReview(connection, reviewWithLanes(), sourcePath = null)
 
       val lanes = fetchReviewRunLanes(connection, RUN_ID)
       assertEquals(
@@ -48,10 +49,10 @@ class ReviewRunLaneAttributionTest {
   fun `re-importing a run keeps its recorded lane rows and never duplicates them`() {
     val (_, connection) = tempDbConnection("review-lanes-reimport")
     connection.use {
-      ReviewRuntime.saveImportedReview(connection, reviewWithLanes(), sourcePath = null)
+      persistImportedReview(connection, reviewWithLanes(), sourcePath = null)
       val narrowed = reviewWithLanes().let { review -> review.copy(planLanes = review.planLanes.take(1)) }
 
-      ReviewRuntime.saveImportedReview(connection, narrowed, sourcePath = null)
+      persistImportedReview(connection, narrowed, sourcePath = null)
 
       assertEquals(
         listOf("bill-kmp-code-review-architecture", "bill-kotlin-code-review-testing"),
@@ -65,11 +66,11 @@ class ReviewRunLaneAttributionTest {
   fun `recorded finding lane attribution wins over parsed provenance and preserves dispositions`() {
     val (_, connection) = tempDbConnection("review-finding-lane-attribution")
     connection.use {
-      ReviewRuntime.saveImportedReview(connection, reviewWithLanes(), sourcePath = null)
+      persistImportedReview(connection, reviewWithLanes(), sourcePath = null)
       recordFeedback(connection, RUN_ID, "F-002", "fix_applied")
       recordFindingLaneAttribution(connection, RUN_ID, mapOf("F-002" to "bill-kotlin-code-review-testing"))
 
-      ReviewRuntime.saveImportedReview(connection, reviewWithLanes(), sourcePath = null)
+      persistImportedReview(connection, reviewWithLanes(), sourcePath = null)
 
       assertEquals(
         listOf(
@@ -86,7 +87,7 @@ class ReviewRunLaneAttributionTest {
   fun `lane effectiveness groups by canonical routed skill and lane area and keeps unattributed findings`() {
     val (_, connection) = tempDbConnection("review-lane-effectiveness")
     connection.use {
-      ReviewRuntime.saveImportedReview(connection, reviewWithLanes(), sourcePath = null)
+      persistImportedReview(connection, reviewWithLanes(), sourcePath = null)
       recordFeedback(connection, RUN_ID, "F-001", "fix_applied")
       recordFeedback(connection, RUN_ID, "F-002", "false_positive")
 
@@ -112,7 +113,7 @@ class ReviewRunLaneAttributionTest {
     val (_, connection) = tempDbConnection("review-terminal-state")
     connection.use {
       val review = reviewWithLanes().copy(findings = emptyList())
-      ReviewRuntime.saveImportedReview(connection, review, sourcePath = null)
+      persistImportedReview(connection, review, sourcePath = null)
       assertNull(ReviewRuntime.fetchReviewSummary(connection, RUN_ID).reviewFinishedAt)
 
       ensureTerminalReviewState(connection, RUN_ID, review.executionMode)
@@ -131,7 +132,7 @@ class ReviewRunLaneAttributionTest {
   fun `terminal state records an execution mode for a run that never reported one`() {
     val (_, connection) = tempDbConnection("review-terminal-mode")
     connection.use {
-      ReviewRuntime.saveImportedReview(connection, reviewWithLanes().copy(executionMode = null), sourcePath = null)
+      persistImportedReview(connection, reviewWithLanes().copy(executionMode = null), sourcePath = null)
 
       ensureTerminalReviewState(connection, RUN_ID, executionMode = null)
 

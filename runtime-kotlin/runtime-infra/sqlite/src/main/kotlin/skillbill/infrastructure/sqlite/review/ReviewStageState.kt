@@ -1,11 +1,7 @@
 package skillbill.infrastructure.sqlite.review
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.review.ReviewFindingPayloadKeys
-import skillbill.contracts.time.JvmSystemClock
-import skillbill.infrastructure.sqlite.PARAM_FOUR
-import skillbill.infrastructure.sqlite.PARAM_ONE
-import skillbill.infrastructure.sqlite.PARAM_THREE
-import skillbill.infrastructure.sqlite.PARAM_TWO
+import java.time.Clock
 import skillbill.review.model.ParallelReviewMergedFinding
 import skillbill.review.model.ReviewClaimVerdict
 import skillbill.review.model.ReviewFindingVerdict
@@ -18,8 +14,9 @@ import skillbill.review.model.ReviewStage
 import skillbill.review.model.ReviewStageBoundary
 import skillbill.review.model.ReviewStageReached
 import java.sql.Connection
+import skillbill.infrastructure.sqlite.core.bindAll
 
-fun recordFindingVerdicts(connection: Connection, reviewRunId: String, verdicts: List<ReviewFindingVerdict>) {
+internal fun recordFindingVerdicts(connection: Connection, reviewRunId: String, verdicts: List<ReviewFindingVerdict>) {
   reserveReviewRun(connection, reviewRunId)
   connection.prepareStatement(
     """
@@ -48,23 +45,25 @@ fun recordFindingVerdicts(connection: Connection, reviewRunId: String, verdicts:
     """.trimIndent(),
   ).use { statement ->
     verdicts.forEach { verdict ->
-      statement.setString(PARAM_ONE, reviewRunId)
-      statement.setString(PARAM_TWO, verdict.findingRef)
-      statement.setString(PARAM_THREE, verdict.stage.wireValue)
-      statement.setString(PARAM_FOUR, verdict.claimVerdict.wireValue)
-      statement.setString(PARAM_FIVE, verdict.scopeDisposition?.wireValue)
-      statement.setString(PARAM_SIX, encodeCitations(verdict.citations))
-      statement.setString(PARAM_SEVEN, verdict.severityAdjustment?.direction?.wireValue)
-      statement.setString(PARAM_EIGHT, verdict.severityAdjustment?.justification)
-      statement.setString(PARAM_NINE, verdict.recordedAt)
-      statement.setString(PARAM_TEN, verdict.contractVersion)
-      statement.setString(PARAM_ELEVEN, verdict.rejectionReason)
+      statement.bindAll(
+        reviewRunId,
+        verdict.findingRef,
+        verdict.stage.wireValue,
+        verdict.claimVerdict.wireValue,
+        verdict.scopeDisposition?.wireValue,
+        encodeCitations(verdict.citations),
+        verdict.severityAdjustment?.direction?.wireValue,
+        verdict.severityAdjustment?.justification,
+        verdict.recordedAt,
+        verdict.contractVersion,
+        verdict.rejectionReason,
+      )
       statement.executeUpdate()
     }
   }
 }
 
-fun fetchFindingVerdicts(connection: Connection, reviewRunId: String): List<ReviewFindingVerdict> =
+internal fun fetchFindingVerdicts(connection: Connection, reviewRunId: String): List<ReviewFindingVerdict> =
   connection.prepareStatement(
     """
     SELECT finding_id, stage, claim_verdict, scope_disposition, citations,
@@ -75,7 +74,7 @@ fun fetchFindingVerdicts(connection: Connection, reviewRunId: String): List<Revi
     ORDER BY stage, finding_id
     """.trimIndent(),
   ).use { statement ->
-    statement.setString(PARAM_ONE, reviewRunId)
+    statement.bindAll(reviewRunId)
     statement.executeQuery().use { resultSet ->
       buildList {
         while (resultSet.next()) {
@@ -107,7 +106,12 @@ fun fetchFindingVerdicts(connection: Connection, reviewRunId: String): List<Revi
     }
   }
 
-fun recordReviewPassClaims(connection: Connection, reviewRunId: String, findings: List<ParallelReviewMergedFinding>) {
+internal fun recordReviewPassClaims(
+  connection: Connection,
+  clock: Clock,
+  reviewRunId: String,
+  findings: List<ParallelReviewMergedFinding>,
+) {
   val existing = fetchReviewPassClaims(connection, reviewRunId)
   if (findings.isEmpty() && existing != null && existing.findings.isNotEmpty()) return
   reserveReviewRun(connection, reviewRunId)
@@ -120,14 +124,16 @@ fun recordReviewPassClaims(connection: Connection, reviewRunId: String, findings
       recorded_at = excluded.recorded_at
     """.trimIndent(),
   ).use { statement ->
-    statement.setString(PARAM_ONE, reviewRunId)
-    statement.setString(PARAM_TWO, encodePassClaims(findings))
-    statement.setString(PARAM_THREE, JvmSystemClock.instant().toString())
+    statement.bindAll(
+      reviewRunId,
+      encodePassClaims(findings),
+      clock.instant().toString(),
+    )
     statement.executeUpdate()
   }
 }
 
-fun fetchReviewPassClaims(connection: Connection, reviewRunId: String): ReviewPassClaimSnapshot? =
+internal fun fetchReviewPassClaims(connection: Connection, reviewRunId: String): ReviewPassClaimSnapshot? =
   connection.prepareStatement(
     """
     SELECT claims_json
@@ -135,14 +141,14 @@ fun fetchReviewPassClaims(connection: Connection, reviewRunId: String): ReviewPa
     WHERE review_run_id = ?
     """.trimIndent(),
   ).use { statement ->
-    statement.setString(PARAM_ONE, reviewRunId)
+    statement.bindAll(reviewRunId)
     statement.executeQuery().use { resultSet ->
       if (!resultSet.next()) return null
       ReviewPassClaimSnapshot(decodePassClaims(resultSet.getString("claims_json")))
     }
   }
 
-fun recordStageBoundary(connection: Connection, reviewRunId: String, boundary: ReviewStageBoundary) {
+internal fun recordStageBoundary(connection: Connection, reviewRunId: String, boundary: ReviewStageBoundary) {
   reserveReviewRun(connection, reviewRunId)
   connection.prepareStatement(
     """
@@ -155,16 +161,12 @@ fun recordStageBoundary(connection: Connection, reviewRunId: String, boundary: R
       contract_version = excluded.contract_version
     """.trimIndent(),
   ).use { statement ->
-    statement.setString(PARAM_ONE, reviewRunId)
-    statement.setString(PARAM_TWO, boundary.stage.wireValue)
-    statement.setString(PARAM_THREE, boundary.reached.wireValue)
-    statement.setString(PARAM_FOUR, boundary.recordedAt)
-    statement.setString(PARAM_FIVE, boundary.contractVersion)
+    statement.bindAll(reviewRunId, boundary.stage.wireValue, boundary.reached.wireValue, boundary.recordedAt, boundary.contractVersion)
     statement.executeUpdate()
   }
 }
 
-fun fetchStageBoundaries(connection: Connection, reviewRunId: String): List<ReviewStageBoundary> =
+internal fun fetchStageBoundaries(connection: Connection, reviewRunId: String): List<ReviewStageBoundary> =
   connection.prepareStatement(
     """
     SELECT stage, reached, recorded_at, contract_version
@@ -173,7 +175,7 @@ fun fetchStageBoundaries(connection: Connection, reviewRunId: String): List<Revi
     ORDER BY stage
     """.trimIndent(),
   ).use { statement ->
-    statement.setString(PARAM_ONE, reviewRunId)
+    statement.bindAll(reviewRunId)
     statement.executeQuery().use { resultSet ->
       buildList {
         while (resultSet.next()) {
@@ -190,8 +192,9 @@ fun fetchStageBoundaries(connection: Connection, reviewRunId: String): List<Revi
     }
   }
 
-fun recordSpecProjectionReference(
+internal fun recordSpecProjectionReference(
   connection: Connection,
+  clock: Clock,
   reviewRunId: String,
   reference: ReviewSpecProjectionReference,
 ) {
@@ -208,16 +211,13 @@ fun recordSpecProjectionReference(
       recorded_at = excluded.recorded_at
     """.trimIndent(),
   ).use { statement ->
-    statement.setString(PARAM_ONE, reviewRunId)
-    statement.setString(PARAM_TWO, reference.specPath)
-    statement.setString(PARAM_THREE, reference.contentDigest)
-    statement.setString(PARAM_FOUR, reference.absenceReason)
-    statement.setString(PARAM_FIVE, JvmSystemClock.instant().toString())
+    statement.bindAll(reviewRunId, reference.specPath, reference.contentDigest, reference.absenceReason, clock.instant()
+.toString())
     statement.executeUpdate()
   }
 }
 
-fun fetchSpecProjectionReference(connection: Connection, reviewRunId: String): ReviewSpecProjectionReference? =
+internal fun fetchSpecProjectionReference(connection: Connection, reviewRunId: String): ReviewSpecProjectionReference? =
   connection.prepareStatement(
     """
     SELECT spec_path, content_digest, absence_reason
@@ -225,7 +225,7 @@ fun fetchSpecProjectionReference(connection: Connection, reviewRunId: String): R
     WHERE review_run_id = ?
     """.trimIndent(),
   ).use { statement ->
-    statement.setString(PARAM_ONE, reviewRunId)
+    statement.bindAll(reviewRunId)
     statement.executeQuery().use { resultSet ->
       if (!resultSet.next()) return null
       ReviewSpecProjectionReference(

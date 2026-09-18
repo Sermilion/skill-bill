@@ -6,6 +6,7 @@ import skillbill.engine.featuretask.blockedReasonOf
 import skillbill.engine.featuretask.emitFeatureTaskRuntimeFinishedError
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeFinishedTelemetryContext
 import skillbill.engine.featuretask.model.FeatureTaskRuntimeRunReport
+import java.time.Clock
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -38,7 +39,7 @@ class FeatureTaskRuntimeTerminalFailureReasonTest {
     val database = RuntimeFakeDatabaseSessionFactory(InMemoryRuntimeWorkflowRepository(), lifecycle)
 
     emitFeatureTaskRuntimeFinishedError(
-      LifecycleTelemetryService(database, EnabledRuntimeTelemetrySettingsProvider),
+      LifecycleTelemetryService(database, EnabledRuntimeTelemetrySettingsProvider, Clock.systemUTC()),
       FeatureTaskRuntimeFinishedTelemetryContext(
         telemetrySessionId = SESSION_ID,
         phaseOutcomes = { mapOf("implement" to "completed") },

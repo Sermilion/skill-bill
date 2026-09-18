@@ -4,8 +4,8 @@ import skillbill.application.telemetry.sync.TelemetrySyncRuntime
 import skillbill.contracts.JsonCodec
 import skillbill.infrastructure.host.concurrency.JvmInterruptSignalPort
 import skillbill.infrastructure.http.HttpTelemetryClient
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
-import skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxStore
+import skillbill.infrastructure.sqlite.ensureTestDatabase
+import skillbill.infrastructure.sqlite.withTelemetryOutboxStore
 import skillbill.ports.repository.toFileLocation
 import skillbill.ports.telemetry.RemoteTransportPort
 import skillbill.ports.telemetry.TelemetryClient
@@ -143,8 +143,7 @@ class TelemetryRuntimeTest {
         customProxyUrl = "http://127.0.0.1:0",
       )
 
-    DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
-      val outboxStore = TelemetryOutboxStore(connection)
+    withTelemetryOutboxStore(tempDir, dbPath) { outboxStore ->
       outboxStore.enqueue("skillbill_feature_implement_started", JsonCodec.mapToJsonString(mapOf("name" to "ok")))
       outboxStore.enqueue("skillbill_feature_implement_finished", JsonCodec.mapToJsonString(mapOf("name" to "fail")))
 
@@ -157,8 +156,7 @@ class TelemetryRuntimeTest {
       assertEquals(listOf(listOf(1L, 2L)), successClient.sentBatchIds)
     }
 
-    DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
-      val outboxStore = TelemetryOutboxStore(connection)
+    withTelemetryOutboxStore(tempDir, dbPath) { outboxStore ->
       outboxStore.enqueue("skillbill_feature_verify_started", JsonCodec.mapToJsonString(mapOf("name" to "retry")))
 
       val failingClient = RecordingTelemetryClient(failure = IOException("blocked by network isolation sentinel"))
@@ -173,7 +171,6 @@ class TelemetryRuntimeTest {
 
   @Test
   fun `syncTelemetry covers disabled noop and unconfigured paths`() {
-    val dbPath = Files.createTempFile("telemetry-invalid", ".db")
     val disabledSettings =
       TelemetrySettings(
         configPath = Files.createTempFile("telemetry-invalid-config", ".json").toFileLocation(),
@@ -185,8 +182,9 @@ class TelemetryRuntimeTest {
         batchSize = 50,
       )
 
-    DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
-      val outboxStore = TelemetryOutboxStore(connection)
+    val disabledTempDir = Files.createTempDirectory("telemetry-disabled")
+    val disabledDbPath = disabledTempDir.resolve("metrics.db")
+    withTelemetryOutboxStore(disabledTempDir, disabledDbPath) { outboxStore ->
       val result =
         TelemetrySyncRuntime.autoSyncTelemetry(
           settings = disabledSettings,
@@ -199,12 +197,13 @@ class TelemetryRuntimeTest {
       assertEquals(TelemetrySyncStatus.DISABLED, result?.status)
       assertEquals(
         false,
-        TelemetrySyncRuntime.telemetryStatusPayload(dbPath, disabledSettings).telemetryEnabled,
+        TelemetrySyncRuntime.telemetryStatusPayload(disabledDbPath, disabledSettings).telemetryEnabled,
       )
     }
 
-    DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
-      val outboxStore = TelemetryOutboxStore(connection)
+    val noopTempDir = Files.createTempDirectory("telemetry-noop-run")
+    val noopDbPath = noopTempDir.resolve("metrics.db")
+    withTelemetryOutboxStore(noopTempDir, noopDbPath) { outboxStore ->
       val noopResult =
         TelemetrySyncRuntime.syncTelemetry(
           telemetrySettings(Files.createTempFile("telemetry-noop", ".json")),
@@ -217,8 +216,9 @@ class TelemetryRuntimeTest {
       assertEquals(TelemetrySyncStatus.NOOP, noopResult.status)
     }
 
-    DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
-      val outboxStore = TelemetryOutboxStore(connection)
+    val unconfiguredTempDir = Files.createTempDirectory("telemetry-unconfigured-run")
+    val unconfiguredDbPath = unconfiguredTempDir.resolve("metrics.db")
+    withTelemetryOutboxStore(unconfiguredTempDir, unconfiguredDbPath) { outboxStore ->
       outboxStore.enqueue("skillbill_feature_verify_started", JsonCodec.mapToJsonString(mapOf("name" to "pending")))
       val unconfiguredResult =
         TelemetrySyncRuntime.syncTelemetry(

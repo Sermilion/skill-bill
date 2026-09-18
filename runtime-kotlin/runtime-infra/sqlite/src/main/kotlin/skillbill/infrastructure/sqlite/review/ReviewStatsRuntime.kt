@@ -1,13 +1,15 @@
 package skillbill.infrastructure.sqlite.review
-import skillbill.infrastructure.sqlite.PARAM_ONE
 import skillbill.ports.review.model.ReviewRepositoryStatsSnapshot
 import skillbill.review.model.FeatureTaskRuntimeWorkflowStats
 import skillbill.review.model.FeatureVerifyWorkflowStats
 import skillbill.review.model.GoalWorkflowStats
 import skillbill.review.model.ReviewFinishedTelemetry
+import skillbill.review.model.FindingOutcomeRow
+import skillbill.review.model.ReviewSummary
 import java.sql.Connection
+import skillbill.infrastructure.sqlite.core.bindAll
 
-object ReviewStatsRuntime {
+internal object ReviewStatsRuntime {
   fun statsSnapshot(connection: Connection, reviewRunId: String?): ReviewRepositoryStatsSnapshot {
     if (reviewRunId != null) {
       require(ReviewRuntime.reviewExists(connection, reviewRunId)) {
@@ -54,7 +56,7 @@ object ReviewStatsRuntime {
       WHERE review_run_id = ?
       """.trimIndent(),
     ).use { statement ->
-      statement.setString(PARAM_ONE, reviewRunId)
+      statement.bindAll(reviewRunId)
       statement.executeUpdate()
     }
   }
@@ -106,3 +108,12 @@ object ReviewStatsRuntime {
     }
   }
 }
+
+internal data class ReviewFinishedPayloadBuildRequest(
+  internal val connection: Connection,
+  internal val reviewRunId: String,
+  internal val reviewSummary: ReviewSummary? = null,
+  internal val findingRows: List<FindingOutcomeRow>? = null,
+  internal val level: String = "anonymous",
+  internal val routedSkillPlatformSlugs: Map<String, String> = emptyMap(),
+)

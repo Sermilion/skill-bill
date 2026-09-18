@@ -8,7 +8,7 @@ internal object DatabaseColumnMigrationsWorkList {
   }
 
   fun healWorkListMetadata(connection: Connection) {
-    connection.inImmediateTransaction {
+    connection.inNestedWriteTransaction {
       applyWorkListMetadata(this, recoverIssueKeys = false)
     }
   }

@@ -1,6 +1,7 @@
 package skillbill.infrastructure.sqlite.goalrunner
 
-import skillbill.infrastructure.sqlite.SQLiteDatabaseSessionFactory
+import skillbill.infrastructure.sqlite.sqliteDatabaseSessionFactory
+import java.time.Clock
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
 import skillbill.infrastructure.sqlite.goalChildIdentity
 import skillbill.infrastructure.sqlite.goalChildWorkflow
@@ -26,16 +27,15 @@ private data class GoalPurgeFixture(
 class GoalRunnerPurgePersistenceTest {
   @Test
   fun `purge removes parent goal children and satellites but keeps standalone sibling and telemetry outbox`() {
-    val dbPath = Files.createTempDirectory("goal-purge").resolve("metrics.db")
+    val tempDir = Files.createTempDirectory("goal-purge")
+    val dbPath = tempDir.resolve("metrics.db")
     DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
-      val store = WorkflowStateStore(connection)
+      val store = WorkflowStateStore(connection, Clock.systemUTC())
       val fixture = seedGoalPurgeFixture(connection, store)
       val outboxBefore = connection.prepareStatement("SELECT COUNT(*) FROM telemetry_outbox").use { rows ->
         rows.executeQuery().use { it.getInt(1) }
       }
-      val factory = SQLiteDatabaseSessionFactory(
-        EnvironmentContext(dbPathOverride = dbPath.toString(), environment = emptyMap()),
-      )
+      val factory = sqliteDatabaseSessionFactory(userHome = tempDir, dbPathOverride = dbPath.toString(), environment = emptyMap())
       factory.transaction { unitOfWork ->
         goalRunnerPurgePersistence(unitOfWork).purgeDecomposedGoal(unitOfWork, fixture.parentId)
       }

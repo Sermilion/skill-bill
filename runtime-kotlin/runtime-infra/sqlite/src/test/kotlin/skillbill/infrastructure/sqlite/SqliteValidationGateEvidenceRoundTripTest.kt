@@ -1,5 +1,7 @@
 package skillbill.infrastructure.sqlite
 
+import skillbill.infrastructure.sqlite.sqliteDatabaseSessionFactory
+
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.ValidationEvidencePayloadKeys
@@ -28,12 +30,11 @@ class SqliteValidationGateEvidenceRoundTripTest {
   }
 
   private fun repository(): SqliteFeatureTaskPhaseSettlementRepository {
-    val dbPath = Files.createTempDirectory("validation-gate-evidence").resolve("metrics.db")
+    val tempDir = Files.createTempDirectory("validation-gate-evidence")
+    val dbPath = tempDir.resolve("metrics.db")
     DatabaseRuntime.ensureDatabase(dbPath).close()
     return SqliteFeatureTaskPhaseSettlementRepository(
-      SQLiteDatabaseSessionFactory(
-        EnvironmentContext(dbPathOverride = dbPath.toString(), environment = emptyMap()),
-      ),
+      sqliteDatabaseSessionFactory(userHome = tempDir, dbPathOverride = dbPath.toString(), environment = emptyMap()),
     )
   }
 

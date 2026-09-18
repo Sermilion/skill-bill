@@ -1,127 +1,165 @@
 package skillbill.infrastructure.sqlite.telemetry
+import skillbill.contracts.telemetry.GoalTelemetryPayloadKeys
+import skillbill.contracts.telemetry.LifecycleTelemetryPayloadKeys
 
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.ShellContentContractException
+import skillbill.infrastructure.sqlite.core.InternalSqliteDiagnostics
+import skillbill.infrastructure.sqlite.core.recordDegradedValue
+import skillbill.ports.diagnostics.RuntimeDiagnostics
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
-import java.util.logging.Logger
 
 private const val MILLIS_PER_SECOND = 1000L
 
-private val goalTelemetryPayloadLog: Logger =
-  Logger.getLogger("skillbill.telemetry.goal.payload")
-
-private fun parseAgentIdArray(rawValue: String, workflowId: String): List<Any?> {
+private fun parseAgentIdArray(
+  rawValue: String,
+  workflowId: String,
+  diagnostics: RuntimeDiagnostics,
+): List<Any?> {
   if (rawValue.isBlank()) return emptyList()
   val trimmed = rawValue.trim()
   if (!trimmed.startsWith("[")) {
-    goalTelemetryPayloadLog.warning(
-      "skillbill telemetry: malformed participating_agent_ids for workflow $workflowId; " +
-        "expected a JSON array, got: $rawValue",
+    diagnostics.recordDegradedValue(
+      seam = "telemetry.participating_agent_ids",
+      expected = "JSON array",
+      used = rawValue.take(120),
     )
     return emptyList()
   }
   return try {
     JsonCodec.parseJsonArrayStrict(trimmed)
-  } catch (_: ShellContentContractException) {
-    goalTelemetryPayloadLog.warning(
-      "skillbill telemetry: failed to parse participating_agent_ids for workflow $workflowId; " +
-        "value: $rawValue",
+  } catch (error: ShellContentContractException) {
+    diagnostics.recordDegradedValue(
+      seam = "telemetry.participating_agent_ids",
+      expected = "strict JSON array for workflow $workflowId",
+      used = rawValue.take(120),
+      error = error,
     )
     emptyList()
   }
 }
 
 private fun Map<String, Any?>.redactedWorkflowId(column: String, level: String, salt: String): String =
-  redactIssueKeyReferences(stringOrEmpty(column), stringOrEmpty("issue_key"), level, salt)
+  redactIssueKeyReferences(stringOrEmpty(column), stringOrEmpty(SharedPayloadKeys.ISSUE_KEY), level, salt)
 
-fun goalStartedPayload(row: Map<String, Any?>, level: String, salt: String): Map<String, Any?> =
+internal fun goalStartedPayload(row: Map<String, Any?>, level: String, salt: String): Map<String, Any?> =
   linkedMapOf<String, Any?>(
     SharedPayloadKeys.WORKFLOW_ID to row.redactedWorkflowId("workflow_id", level, salt),
-    SharedPayloadKeys.ISSUE_KEY to redactIssueKey(row.stringOrEmpty("issue_key"), level, salt),
-    "subtask_total" to row.intOrZero("subtask_total"),
-    "resumed" to row.booleanFromInt("resumed"),
-    "started_at" to row.stringOrEmpty("started_at"),
+    SharedPayloadKeys.ISSUE_KEY to redactIssueKey(row.stringOrEmpty(SharedPayloadKeys.ISSUE_KEY), level, salt),
+    GoalTelemetryPayloadKeys.SUBTASK_TOTAL to row.intOrZero(GoalTelemetryPayloadKeys.SUBTASK_TOTAL),
+    GoalTelemetryPayloadKeys.RESUMED to row.booleanFromInt(GoalTelemetryPayloadKeys.RESUMED),
+    GoalTelemetryPayloadKeys.STARTED_AT to row.stringOrEmpty(GoalTelemetryPayloadKeys.STARTED_AT),
     SharedPayloadKeys.STATUS to "running",
-    "mode" to row.stringOrEmpty("mode").ifBlank { "runtime" },
+    LifecycleTelemetryPayloadKeys.MODE to row.stringOrEmpty(LifecycleTelemetryPayloadKeys.MODE).ifBlank { "runtime" },
   ).apply {
     if (level == "full") {
-      put("feature_name", row.stringOrEmpty("feature_name"))
+      put(GoalTelemetryPayloadKeys.FEATURE_NAME, row.stringOrEmpty(GoalTelemetryPayloadKeys.FEATURE_NAME))
     }
   }
 
-fun goalFinishedPayload(row: Map<String, Any?>, level: String, salt: String): Map<String, Any?> =
+internal fun goalFinishedPayload(row: Map<String, Any?>, level: String, salt: String): Map<String, Any?> =
   linkedMapOf<String, Any?>(
     SharedPayloadKeys.WORKFLOW_ID to row.redactedWorkflowId("workflow_id", level, salt),
-    SharedPayloadKeys.ISSUE_KEY to redactIssueKey(row.stringOrEmpty("issue_key"), level, salt),
-    SharedPayloadKeys.STATUS to row.stringOrEmpty("status"),
-    "started_at" to row.stringOrEmpty("started_at"),
-    "finished_at" to row.stringOrEmpty("finished_at"),
-    "duration_seconds" to secondsFromMillis(row.longOrZero("finished_duration_ms")),
-    "subtasks_complete" to row.intOrZero("subtasks_complete"),
-    "subtasks_blocked" to row.intOrZero("subtasks_blocked"),
-    "subtasks_skipped" to row.intOrZero("subtasks_skipped"),
-    "mode" to row.stringOrEmpty("mode").ifBlank { "runtime" },
-    "stop_reason" to row["stop_reason"]?.toString(),
+    SharedPayloadKeys.ISSUE_KEY to redactIssueKey(row.stringOrEmpty(SharedPayloadKeys.ISSUE_KEY), level, salt),
+    SharedPayloadKeys.STATUS to row.stringOrEmpty(SharedPayloadKeys.STATUS),
+    GoalTelemetryPayloadKeys.STARTED_AT to row.stringOrEmpty(GoalTelemetryPayloadKeys.STARTED_AT),
+    GoalTelemetryPayloadKeys.FINISHED_AT to row.stringOrEmpty(GoalTelemetryPayloadKeys.FINISHED_AT),
+    LifecycleTelemetryPayloadKeys.DURATION_SECONDS to secondsFromMillis(row.longOrZero("finished_duration_ms")),
+    GoalTelemetryPayloadKeys.SUBTASKS_COMPLETE to row.intOrZero(GoalTelemetryPayloadKeys.SUBTASKS_COMPLETE),
+    GoalTelemetryPayloadKeys.SUBTASKS_BLOCKED to row.intOrZero(GoalTelemetryPayloadKeys.SUBTASKS_BLOCKED),
+    GoalTelemetryPayloadKeys.SUBTASKS_SKIPPED to row.intOrZero(GoalTelemetryPayloadKeys.SUBTASKS_SKIPPED),
+    LifecycleTelemetryPayloadKeys.MODE to row.stringOrEmpty(LifecycleTelemetryPayloadKeys.MODE).ifBlank { "runtime" },
+    GoalTelemetryPayloadKeys.STOP_REASON to row[GoalTelemetryPayloadKeys.STOP_REASON]?.toString(),
   )
 
-fun goalIssueFinishedPayload(row: Map<String, Any?>, level: String, salt: String): Map<String, Any?> {
-  val firstStartedAt = row.stringOrEmpty("first_started_at")
-  val finishedAt = row.stringOrEmpty("finished_at")
+internal fun goalIssueFinishedPayload(
+  row: Map<String, Any?>,
+  level: String,
+  salt: String,
+  diagnostics: RuntimeDiagnostics = InternalSqliteDiagnostics,
+): Map<String, Any?> {
+  val firstStartedAt = row.stringOrEmpty(GoalTelemetryPayloadKeys.FIRST_STARTED_AT)
+  val finishedAt = row.stringOrEmpty(GoalTelemetryPayloadKeys.FINISHED_AT)
   return linkedMapOf<String, Any?>(
-    "parent_workflow_id" to row.redactedWorkflowId("parent_workflow_id", level, salt),
-    SharedPayloadKeys.ISSUE_KEY to redactIssueKey(row.stringOrEmpty("issue_key"), level, salt),
-    SharedPayloadKeys.STATUS to row.stringOrEmpty("status"),
-    "subtasks_complete" to row.intOrZero("subtasks_complete"),
-    "subtasks_blocked" to row.intOrZero("subtasks_blocked"),
-    "subtasks_skipped" to row.intOrZero("subtasks_skipped"),
-    "total_invocations" to row.intOrZero("total_invocations"),
-    "total_blocks" to row.intOrZero("total_blocks"),
-    "total_resumes" to row.intOrZero("total_resumes"),
-    "first_started_at" to firstStartedAt,
-    "finished_at" to finishedAt,
-    "duration_seconds" to durationBetweenSeconds(firstStartedAt, finishedAt),
-    "mode" to row.stringOrEmpty("mode"),
+    GoalTelemetryPayloadKeys.PARENT_WORKFLOW_ID to row.redactedWorkflowId("parent_workflow_id", level, salt),
+    SharedPayloadKeys.ISSUE_KEY to redactIssueKey(row.stringOrEmpty(SharedPayloadKeys.ISSUE_KEY), level, salt),
+    SharedPayloadKeys.STATUS to row.stringOrEmpty(SharedPayloadKeys.STATUS),
+    GoalTelemetryPayloadKeys.SUBTASKS_COMPLETE to row.intOrZero(GoalTelemetryPayloadKeys.SUBTASKS_COMPLETE),
+    GoalTelemetryPayloadKeys.SUBTASKS_BLOCKED to row.intOrZero(GoalTelemetryPayloadKeys.SUBTASKS_BLOCKED),
+    GoalTelemetryPayloadKeys.SUBTASKS_SKIPPED to row.intOrZero(GoalTelemetryPayloadKeys.SUBTASKS_SKIPPED),
+    GoalTelemetryPayloadKeys.TOTAL_INVOCATIONS to row.intOrZero(GoalTelemetryPayloadKeys.TOTAL_INVOCATIONS),
+    GoalTelemetryPayloadKeys.TOTAL_BLOCKS to row.intOrZero(GoalTelemetryPayloadKeys.TOTAL_BLOCKS),
+    GoalTelemetryPayloadKeys.TOTAL_RESUMES to row.intOrZero(GoalTelemetryPayloadKeys.TOTAL_RESUMES),
+    GoalTelemetryPayloadKeys.FIRST_STARTED_AT to firstStartedAt,
+    GoalTelemetryPayloadKeys.FINISHED_AT to finishedAt,
+    LifecycleTelemetryPayloadKeys.DURATION_SECONDS to durationBetweenSeconds(firstStartedAt, finishedAt, diagnostics),
+    LifecycleTelemetryPayloadKeys.MODE to row.stringOrEmpty(LifecycleTelemetryPayloadKeys.MODE),
   )
 }
 
-fun goalSubtaskFinishedPayload(row: Map<String, Any?>, level: String, salt: String): Map<String, Any?> =
+internal fun goalSubtaskFinishedPayload(
+  row: Map<String, Any?>,
+  level: String,
+  salt: String,
+  diagnostics: RuntimeDiagnostics = InternalSqliteDiagnostics,
+): Map<String, Any?> =
   linkedMapOf<String, Any?>(
     SharedPayloadKeys.WORKFLOW_ID to row.redactedWorkflowId("workflow_id", level, salt),
-    SharedPayloadKeys.ISSUE_KEY to redactIssueKey(row.stringOrEmpty("issue_key"), level, salt),
-    SharedPayloadKeys.SUBTASK_ID to row.intOrZero("subtask_id"),
-    SharedPayloadKeys.STATUS to row.stringOrEmpty("status"),
-    "started_at" to row.stringOrEmpty("started_at"),
-    "finished_at" to row.stringOrEmpty("finished_at"),
-    "duration_seconds" to secondsFromMillis(row.longOrZero("duration_ms")),
-    "attempt_count" to row.intOrZero("attempt_count"),
-    "blocked_reason" to row["blocked_reason"]?.toString(),
+    SharedPayloadKeys.ISSUE_KEY to redactIssueKey(row.stringOrEmpty(SharedPayloadKeys.ISSUE_KEY), level, salt),
+    SharedPayloadKeys.SUBTASK_ID to row.intOrZero(SharedPayloadKeys.SUBTASK_ID),
+    SharedPayloadKeys.STATUS to row.stringOrEmpty(SharedPayloadKeys.STATUS),
+    GoalTelemetryPayloadKeys.STARTED_AT to row.stringOrEmpty(GoalTelemetryPayloadKeys.STARTED_AT),
+    GoalTelemetryPayloadKeys.FINISHED_AT to row.stringOrEmpty(GoalTelemetryPayloadKeys.FINISHED_AT),
+    LifecycleTelemetryPayloadKeys.DURATION_SECONDS to secondsFromMillis(row.longOrZero("duration_ms")),
+    GoalTelemetryPayloadKeys.ATTEMPT_COUNT to row.intOrZero(GoalTelemetryPayloadKeys.ATTEMPT_COUNT),
+    GoalTelemetryPayloadKeys.BLOCKED_REASON to row[GoalTelemetryPayloadKeys.BLOCKED_REASON]?.toString(),
   ).apply {
     if (level == "full") {
-      put("subtask_name", row.stringOrEmpty("subtask_name"))
-      put("finalizing_agent_id", row["finalizing_agent_id"]?.toString()?.takeIf(String::isNotBlank))
+      put(GoalTelemetryPayloadKeys.SUBTASK_NAME, row.stringOrEmpty(GoalTelemetryPayloadKeys.SUBTASK_NAME))
+      put(GoalTelemetryPayloadKeys.FINALIZING_AGENT_ID, row[GoalTelemetryPayloadKeys.FINALIZING_AGENT_ID]?.toString()?.takeIf(String::isNotBlank))
       put(
-        "participating_agent_ids",
-        parseAgentIdArray(row.stringOrEmpty("participating_agent_ids"), row.stringOrEmpty("workflow_id")),
+        GoalTelemetryPayloadKeys.PARTICIPATING_AGENT_IDS,
+        parseAgentIdArray(
+          row.stringOrEmpty(GoalTelemetryPayloadKeys.PARTICIPATING_AGENT_IDS),
+          row.stringOrEmpty(SharedPayloadKeys.WORKFLOW_ID),
+          diagnostics,
+        ),
       )
-      put("boundary_history_written", row.booleanFromInt("boundary_history_written"))
-      put("boundary_history_value", row.stringOrEmpty("boundary_history_value").ifBlank { "none" })
+      put(GoalTelemetryPayloadKeys.BOUNDARY_HISTORY_WRITTEN, row.booleanFromInt(GoalTelemetryPayloadKeys.BOUNDARY_HISTORY_WRITTEN))
+      put(GoalTelemetryPayloadKeys.BOUNDARY_HISTORY_VALUE, row.stringOrEmpty(GoalTelemetryPayloadKeys.BOUNDARY_HISTORY_VALUE).ifBlank { "none" })
     }
   }
 
 private fun secondsFromMillis(durationMs: Long): Long = durationMs.coerceAtLeast(0) / MILLIS_PER_SECOND
 
-private fun durationBetweenSeconds(startedAt: String, finishedAt: String): Long = runCatching {
-  Duration.between(parseTelemetryTimestamp(startedAt), parseTelemetryTimestamp(finishedAt))
-    .seconds
-    .coerceAtLeast(0)
-}.getOrDefault(0)
+private fun durationBetweenSeconds(
+  startedAt: String,
+  finishedAt: String,
+  diagnostics: RuntimeDiagnostics,
+): Long {
+  val start = parseTelemetryTimestamp(startedAt, diagnostics, "first_started_at") ?: return 0
+  val end = parseTelemetryTimestamp(finishedAt, diagnostics, "finished_at") ?: return 0
+  return Duration.between(start, end).seconds.coerceAtLeast(0)
+}
 
-private fun parseTelemetryTimestamp(value: String): Instant = runCatching {
+private fun parseTelemetryTimestamp(
+  value: String,
+  diagnostics: RuntimeDiagnostics,
+  fieldName: String,
+): Instant? = runCatching {
   Instant.parse(value)
-}.getOrElse {
+}.recoverCatching {
   LocalDateTime.parse(value.replace(' ', 'T')).toInstant(ZoneOffset.UTC)
+}.getOrElse { error ->
+  diagnostics.recordDegradedValue(
+    seam = "telemetry.goal_issue.$fieldName",
+    expected = "RFC 3339 instant or local date-time",
+    used = value.take(120),
+    error = error,
+  )
+  null
 }

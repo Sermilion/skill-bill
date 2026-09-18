@@ -14,6 +14,12 @@ internal fun requirePreparedEnvelope(record: GoalPlanningPreparationRecord) {
   }
 }
 
+internal data class StoredRecoveryIdentity(
+  internal val normalizedIssueKey: String,
+  internal val repositoryIdentity: String,
+  internal val provenanceTuple: List<String>,
+)
+
 internal fun recoveryIdentityFailure(stored: StoredRecoveryIdentity, record: GoalPlanningPreparationRecord): String? {
   if (stored.normalizedIssueKey != record.normalizedIssueKey ||
     stored.repositoryIdentity != record.repositoryIdentity

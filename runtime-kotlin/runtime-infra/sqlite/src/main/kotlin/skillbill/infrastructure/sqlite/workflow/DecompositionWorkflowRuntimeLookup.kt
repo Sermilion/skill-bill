@@ -16,18 +16,18 @@ import skillbill.workflow.engine.model.WorkflowStateSnapshot
 import skillbill.workflow.model.WorkflowStatus
 import skillbill.workflow.model.workflowStatus
 
-fun WorkflowStateSnapshot.decompositionRuntime(validator: DecompositionManifestValidator): DecompositionManifest? =
+internal fun WorkflowStateSnapshot.decompositionRuntime(validator: DecompositionManifestValidator): DecompositionManifest? =
   decodeArtifacts(artifactsJson)[DECOMPOSITION_RUNTIME_ARTIFACT_KEY].asStringAnyMapOrNull()
     ?.let {
       validator.decodeManifest(DecompositionManifestWireMap.from(it), DECOMPOSITION_RUNTIME_ARTIFACT_KEY)
     }
 
-fun WorkflowStateSnapshot.hasDecompositionPlan(): Boolean =
+internal fun WorkflowStateSnapshot.hasDecompositionPlan(): Boolean =
   decodeArtifacts(artifactsJson)["plan"].asStringAnyMapOrNull()?.get("mode") == "decompose"
 
-val IMPLEMENT_TERMINAL_STATUSES: Set<WorkflowStatus> = WorkflowStatus.terminalStatuses
+internal val IMPLEMENT_TERMINAL_STATUSES: Set<WorkflowStatus> = WorkflowStatus.terminalStatuses
 
-fun WorkflowStateRepository.listFeatureTaskWorkflowsForParentDiscovery(): List<WorkflowStateRecord> {
+internal fun WorkflowStateRepository.listFeatureTaskWorkflowsForParentDiscovery(): List<WorkflowStateRecord> {
   val byId = LinkedHashMap<String, WorkflowStateRecord>()
   listFeatureTaskWorkflows(FeatureTaskWorkflowMode.RUNTIME, Int.MAX_VALUE).forEach { row ->
     byId[row.workflowId] = row
@@ -38,13 +38,13 @@ fun WorkflowStateRepository.listFeatureTaskWorkflowsForParentDiscovery(): List<W
   return byId.values.toList()
 }
 
-fun WorkflowStateRecord.requireRuntimeModeForEngineWrite() {
+internal fun WorkflowStateRecord.requireRuntimeModeForEngineWrite() {
   if (mode != FeatureTaskWorkflowMode.RUNTIME) {
     throw LegacyProseWorkflowError(workflowId, issueKey)
   }
 }
 
-fun WorkflowStateRepository.findDecomposedParentWorkflow(
+internal fun WorkflowStateRepository.findDecomposedParentWorkflow(
   issueKey: String,
   validator: DecompositionManifestValidator,
   currentProjectedManifest: DecompositionManifest? = null,
@@ -76,8 +76,8 @@ fun WorkflowStateRepository.findDecomposedParentWorkflow(
 }
 
 private data class DecomposedParentLookupCandidate(
-  val record: WorkflowStateRecord,
-  val manifest: DecompositionManifest,
+  internal val record: WorkflowStateRecord,
+  internal val manifest: DecompositionManifest,
 )
 
 private fun DecomposedParentLookupCandidate.isStaleAbandonedLineage(
@@ -90,7 +90,7 @@ private fun DecomposedParentLookupCandidate.isStaleAbandonedLineage(
   return manifest.subtasks.map { it.specPath } != currentProjectedManifest.subtasks.map { it.specPath }
 }
 
-fun WorkflowStateSnapshot.isGoalContinuationChildWorkflow(): Boolean {
+internal fun WorkflowStateSnapshot.isGoalContinuationChildWorkflow(): Boolean {
   val goalContinuation = decodeArtifacts(artifactsJson)["goal_continuation"].asStringAnyMapOrNull() ?: return false
   return goalContinuation["enabled"] == true ||
     goalContinuation.containsKey("issue_key") ||

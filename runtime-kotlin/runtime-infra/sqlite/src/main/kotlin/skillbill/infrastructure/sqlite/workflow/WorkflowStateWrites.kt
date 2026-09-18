@@ -1,8 +1,8 @@
 package skillbill.infrastructure.sqlite.workflow
 
-import skillbill.contracts.time.JvmSystemClock
+import skillbill.infrastructure.sqlite.core.bindAll
+import java.time.Clock
 import skillbill.error.InvalidWorkflowStateSchemaError
-import skillbill.infrastructure.sqlite.core.DbConstants
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.WorkflowStateRecord
 import skillbill.workflow.model.WorkflowStatus
@@ -11,6 +11,10 @@ import java.sql.Connection
 import java.sql.PreparedStatement
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import kotlin.random.Random
+
+internal const val FEATURE_IMPLEMENT_WORKFLOW_CONTRACT_VERSION: String = "0.1"
+internal const val FEATURE_TASK_RUNTIME_WORKFLOW_CONTRACT_VERSION: String = "0.3"
 
 private val terminalWorkflowStatusSqlValues: String = WorkflowStatus.terminalStatuses
   .joinToString(", ") { status -> "'${status.wireValue}'" }
@@ -26,15 +30,20 @@ internal val FeatureTaskWorkflowMode.defaultImplementationSkill: String
 
 internal val FeatureTaskWorkflowMode.defaultContractVersion: String
   get() = when (this) {
-    FeatureTaskWorkflowMode.PROSE -> DbConstants.FEATURE_IMPLEMENT_WORKFLOW_CONTRACT_VERSION
-    FeatureTaskWorkflowMode.RUNTIME -> DbConstants.FEATURE_TASK_RUNTIME_WORKFLOW_CONTRACT_VERSION
+    FeatureTaskWorkflowMode.PROSE -> FEATURE_IMPLEMENT_WORKFLOW_CONTRACT_VERSION
+    FeatureTaskWorkflowMode.RUNTIME -> FEATURE_TASK_RUNTIME_WORKFLOW_CONTRACT_VERSION
   }
 
 internal object WorkflowStateSqlWrites
 
-internal fun Connection.upsertWorkflowRow(tableName: String, row: WorkflowStateRecord, defaultContractVersion: String) {
+internal fun Connection.upsertWorkflowRow(
+  tableName: String,
+  row: WorkflowStateRecord,
+  defaultContractVersion: String,
+  clock: Clock,
+) {
   val transitionTimestamp = nextStateEnteredAtSql(tableName)
-  val insertionTimestamp = row.startedAt.orInsertionTimestamp()
+  val insertionTimestamp = row.startedAt.orInsertionTimestamp(clock)
   prepareStatement(
     """
     INSERT INTO $tableName (
@@ -77,9 +86,10 @@ internal fun Connection.upsertFeatureTaskWorkflowRow(
   mode: FeatureTaskWorkflowMode,
   implementationSkill: String,
   defaultContractVersion: String,
+  clock: Clock,
 ) {
   val transitionTimestamp = nextStateEnteredAtSql("feature_task_workflows")
-  val insertionTimestamp = row.startedAt.orInsertionTimestamp()
+  val insertionTimestamp = row.startedAt.orInsertionTimestamp(clock)
   prepareStatement(
     """
     INSERT INTO feature_task_workflows (
@@ -150,6 +160,7 @@ internal fun Connection.terminalizeLegacyProseFeatureTaskWorkflowRow(row: Workfl
     parameters.text(row.workflowStatus)
     parameters.text(row.finishedAt)
     parameters.text(row.workflowId)
+    parameters.bind()
     val updated = statement.executeUpdate()
     if (updated != 1) {
       throw InvalidWorkflowStateSchemaError(
@@ -179,6 +190,7 @@ private fun PreparedStatement.bindWorkflowRow(
   parameters.text(insertionTimestamp)
   parameters.boolean(WorkflowStatus.fromWire(row.workflowStatus)?.isTerminal == true)
   parameters.text(row.finishedAt)
+  parameters.bind()
 }
 
 private fun PreparedStatement.bindFeatureTaskWorkflowRow(
@@ -203,6 +215,7 @@ private fun PreparedStatement.bindFeatureTaskWorkflowRow(
   parameters.text(row.finishedAt)
   parameters.text(mode.wireValue)
   parameters.text(implementationSkill)
+  parameters.bind()
 }
 
 private fun nextStateEnteredAtSql(tableName: String): String = """
@@ -213,24 +226,36 @@ private fun nextStateEnteredAtSql(tableName: String): String = """
   END
 """.trimIndent()
 
-private fun String?.orInsertionTimestamp(): String =
-  takeUnless { it.isNullOrBlank() } ?: sqliteInsertionTimestampFormatter.format(JvmSystemClock.instant())
+private fun String?.orInsertionTimestamp(clock: Clock): String =
+  takeUnless { it.isNullOrBlank() } ?: sqliteInsertionTimestampFormatter.format(clock.instant())
 
 private class SqlParameterBinder(
   private val statement: PreparedStatement,
 ) {
-  private var nextIndex = FIRST_PARAMETER_INDEX
+  private val values = mutableListOf<Any?>()
 
   fun text(value: String?) {
-    statement.setString(nextIndex, value)
-    nextIndex += INDEX_INCREMENT
+    values += value
   }
 
   fun boolean(value: Boolean) {
-    statement.setBoolean(nextIndex, value)
-    nextIndex += INDEX_INCREMENT
+    values += value
+  }
+
+  fun bind() {
+    statement.bindAll(*values.toTypedArray())
   }
 }
 
-private const val FIRST_PARAMETER_INDEX = 1
-private const val INDEX_INCREMENT = 1
+internal const val WORKFLOW_ID_SUFFIX_LENGTH: Int = 4
+internal const val SUFFIX_CHARS: String = "abcdefghijklmnopqrstuvwxyz0123456789"
+
+internal fun generateWorkflowId(prefix: String, clock: Clock, random: Random): String {
+  val now = clock.instant().atOffset(ZoneOffset.UTC)
+  val suffix = (1..WORKFLOW_ID_SUFFIX_LENGTH).map { SUFFIX_CHARS[random.nextInt(SUFFIX_CHARS.length)] }
+    .joinToString("")
+  return "$prefix-${now.year}${now.monthValue.twoDigits()}${now.dayOfMonth.twoDigits()}-" +
+    "${now.hour.twoDigits()}${now.minute.twoDigits()}${now.second.twoDigits()}-$suffix"
+}
+
+private fun Int.twoDigits(): String = toString().padStart(2, '0')

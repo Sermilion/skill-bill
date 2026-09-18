@@ -1,5 +1,7 @@
 package skillbill.infrastructure.sqlite.workflow
 
+import skillbill.infrastructure.sqlite.core.bindAll
+
 import skillbill.contracts.JsonCodec
 import skillbill.error.InvalidGoalPlanningPreparationSchemaError
 import skillbill.infrastructure.sqlite.featuretask.artifact.encodeWorkflowArtifact
@@ -23,29 +25,24 @@ internal fun Connection.upsertPreparedRow(record: GoalPlanningPreparationRecord)
     ON CONFLICT(parent_goal_workflow_id, subtask_id) DO NOTHING
   """.trimIndent(),
 ).use { statement ->
-  var index = FIRST_COLUMN_INDEX
-  statement.setString(index++, record.parentGoalWorkflowId)
-  statement.setString(index++, record.normalizedIssueKey)
-  statement.setString(index++, record.repositoryIdentity)
-  statement.setInt(index++, record.subtaskId)
-  statement.setString(index++, record.governedSubSpecPath)
-  statement.setString(index++, record.preparationStatus.wireValue)
-  statement.setString(index++, record.contractVersion)
-  statement.setString(index++, record.provenance.parentSpecHash)
-  statement.setString(index++, record.provenance.subSpecHash)
-  statement.setString(index++, record.provenance.decompositionManifestHash)
-  statement.setString(index++, record.provenance.phaseOutputContractId)
-  statement.setString(index++, record.provenance.phaseOutputContractVersion)
-  statement.setString(index++, record.preplanPayload)
-  statement.setString(index++, record.planPayload)
-  statement.setString(
-    index++,
+  statement.bindAll(
+    record.parentGoalWorkflowId,
+    record.normalizedIssueKey,
+    record.repositoryIdentity,
+    record.subtaskId,
+    record.governedSubSpecPath,
+    record.preparationStatus.wireValue,
+    record.contractVersion,
+    record.provenance.parentSpecHash,
+    record.provenance.subSpecHash,
+    record.provenance.decompositionManifestHash,
+    record.provenance.phaseOutputContractId,
+    record.provenance.phaseOutputContractVersion,
+    record.preplanPayload,
+    record.planPayload,
     record.preplanRepairEvidence?.let {
       JsonCodec.mapToJsonString(JsonCodec.anyToStringAnyMap(it.encodeWorkflowArtifact()) ?: emptyMap())
     },
-  )
-  statement.setString(
-    index++,
     record.planRepairEvidence?.let {
       JsonCodec.mapToJsonString(JsonCodec.anyToStringAnyMap(it.encodeWorkflowArtifact()) ?: emptyMap())
     },
@@ -65,8 +62,7 @@ internal fun Connection.selectStoredRecoveryIdentity(
     WHERE parent_goal_workflow_id = ? AND subtask_id = ?
   """.trimIndent(),
 ).use { statement ->
-  statement.setString(FIRST_COLUMN_INDEX, parentGoalWorkflowId)
-  statement.setInt(SECOND_COLUMN_INDEX, subtaskId)
+  statement.bindAll(parentGoalWorkflowId, subtaskId)
   statement.executeQuery().use { rows ->
     if (!rows.next()) return null
     StoredRecoveryIdentity(
@@ -85,8 +81,7 @@ internal fun Connection.selectStoredRecoveryIdentity(
 
 internal fun Connection.selectRecord(parentGoalWorkflowId: String, subtaskId: Int): GoalPlanningPreparationRecord? =
   prepareStatement(selectRecordSql()).use { statement ->
-    statement.setString(FIRST_COLUMN_INDEX, parentGoalWorkflowId)
-    statement.setInt(SECOND_COLUMN_INDEX, subtaskId)
+    statement.bindAll(parentGoalWorkflowId, subtaskId)
     statement.executeQuery().use { rows ->
       if (!rows.next()) return null
       rows.toPreparedRecord()
@@ -102,7 +97,7 @@ internal fun Connection.selectOrderedByGoal(parentGoalWorkflowId: String): List<
     ORDER BY subtask_id
     """.trimIndent(),
   ).use { statement ->
-    statement.setString(FIRST_COLUMN_INDEX, parentGoalWorkflowId)
+    statement.bindAll(parentGoalWorkflowId)
     statement.executeQuery().use { rows ->
       buildList {
         while (rows.next()) {
@@ -119,7 +114,7 @@ internal fun Connection.countPrepared(parentGoalWorkflowId: String): Int = prepa
     WHERE parent_goal_workflow_id = ? AND preparation_status = 'prepared'
   """.trimIndent(),
 ).use { statement ->
-  statement.setString(FIRST_COLUMN_INDEX, parentGoalWorkflowId)
+  statement.bindAll(parentGoalWorkflowId)
   statement.executeQuery().use { rows ->
     rows.next()
     rows.getInt(FIRST_COLUMN_INDEX)
@@ -133,7 +128,7 @@ internal fun Connection.preparedSubtaskStatuses(parentGoalWorkflowId: String): M
     WHERE parent_goal_workflow_id = ?
   """.trimIndent(),
 ).use { statement ->
-  statement.setString(FIRST_COLUMN_INDEX, parentGoalWorkflowId)
+  statement.bindAll(parentGoalWorkflowId)
   statement.executeQuery().use { rows ->
     buildMap {
       while (rows.next()) {
@@ -153,8 +148,7 @@ internal fun Connection.selectStatus(parentGoalWorkflowId: String, subtaskId: In
     WHERE parent_goal_workflow_id = ? AND subtask_id = ?
     """.trimIndent(),
   ).use { statement ->
-    statement.setString(FIRST_COLUMN_INDEX, parentGoalWorkflowId)
-    statement.setInt(SECOND_COLUMN_INDEX, subtaskId)
+    statement.bindAll(parentGoalWorkflowId, subtaskId)
     statement.executeQuery().use { rows ->
       if (!rows.next()) return null
       val label = statusLabel(rows)
@@ -184,6 +178,6 @@ internal fun Connection.selectStatus(parentGoalWorkflowId: String, subtaskId: In
 internal fun Connection.deletePreparedByGoal(parentGoalWorkflowId: String): Int = prepareStatement(
   "DELETE FROM goal_planning_preparations WHERE parent_goal_workflow_id = ?",
 ).use { statement ->
-  statement.setString(1, parentGoalWorkflowId)
+  statement.bindAll(parentGoalWorkflowId)
   statement.executeUpdate()
 }

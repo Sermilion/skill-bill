@@ -1,9 +1,12 @@
 package skillbill.infrastructure.sqlite.workflow
 
+import skillbill.infrastructure.sqlite.core.bindAll
+
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.contracts.workflow.FEATURE_TASK_RUNTIME_WORKER_OWNERSHIP_CONTRACT_VERSION
 import skillbill.error.InvalidFeatureTaskExecutionIdentitySchemaError
 import skillbill.error.InvalidFeatureTaskRuntimeWorkerOwnershipSchemaError
+import skillbill.infrastructure.sqlite.core.sqliteDiagnostics
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerLeaseState
 import skillbill.ports.featuretask.model.FeatureTaskRuntimeWorkerOwnership
 import skillbill.ports.workflow.model.FeatureTaskExecutionIdentity
@@ -33,28 +36,35 @@ internal fun PreparedStatement.bindOwnership(
   ownership: FeatureTaskRuntimeWorkerOwnership,
   includeWorkflowId: Boolean,
 ): Int {
-  var index = 1
-  if (includeWorkflowId) setString(index++, ownership.workflowId)
-  setString(index++, ownership.contractVersion)
-  setLong(index++, ownership.generation)
-  setString(index++, ownership.ownerToken)
-  setString(index++, ownership.hostIdentity)
-  setString(index++, ownership.bootIdentity)
-  setLong(index++, ownership.pid)
-  setString(index++, ownership.processBirthToken)
-  setString(index++, ownership.leaseState.wireValue)
-  setString(index++, ownership.heartbeatAt)
-  setString(index++, ownership.expiresAt)
-  setString(index++, ownership.phaseId)
-  setInt(index++, ownership.phaseAttempt)
-  return index
+  val values = buildList<Any?> {
+    if (includeWorkflowId) add(ownership.workflowId)
+    add(ownership.contractVersion)
+    add(ownership.generation)
+    add(ownership.ownerToken)
+    add(ownership.hostIdentity)
+    add(ownership.bootIdentity)
+    add(ownership.pid)
+    add(ownership.processBirthToken)
+    add(ownership.leaseState.wireValue)
+    add(ownership.heartbeatAt)
+    add(ownership.expiresAt)
+    add(ownership.phaseId)
+    add(ownership.phaseAttempt)
+  }
+  bindAll(*values.toTypedArray())
+  return values.size + 1
 }
 
 internal fun Connection.featureTaskRuntimeWorkerOwnership(workflowId: String): FeatureTaskRuntimeWorkerOwnership? =
   prepareStatement("SELECT * FROM feature_task_runtime_worker_leases WHERE workflow_id = ?").use { statement ->
-    statement.setString(1, workflowId)
+    statement.bindAll(workflowId)
     statement.executeQuery().use { row ->
       if (!row.next()) return null
+      val diagnostics = sqliteDiagnostics()
+      val heartbeatAt = row.requiredWorkerOwnershipString(workflowId, "heartbeat_at")
+      val expiresAt = row.requiredWorkerOwnershipString(workflowId, "expires_at")
+      parseWorkerLeaseInstant(workflowId, "heartbeat_at", heartbeatAt, diagnostics)
+      parseWorkerLeaseInstant(workflowId, "expires_at", expiresAt, diagnostics)
       FeatureTaskRuntimeWorkerOwnership(
         workflowId = row.requiredWorkerOwnershipString(workflowId, "workflow_id"),
         contractVersion = row.requiredWorkerOwnershipString(workflowId, "contract_version"),
@@ -68,8 +78,8 @@ internal fun Connection.featureTaskRuntimeWorkerOwnership(workflowId: String): F
           workflowId,
           row.requiredWorkerOwnershipString(workflowId, "lease_state"),
         ),
-        heartbeatAt = row.requiredWorkerOwnershipString(workflowId, "heartbeat_at"),
-        expiresAt = row.requiredWorkerOwnershipString(workflowId, "expires_at"),
+        heartbeatAt = heartbeatAt,
+        expiresAt = expiresAt,
         phaseId = row.requiredWorkerOwnershipString(workflowId, "phase_id"),
         phaseAttempt = row.getInt("phase_attempt"),
       ).also(::validateWorkerOwnership)
@@ -113,7 +123,7 @@ internal fun Connection.featureTaskIdentity(workflowId: String): FeatureTaskExec
   FROM feature_task_execution_identities WHERE workflow_id = ?
   """.trimIndent(),
 ).use { statement ->
-  statement.setString(1, workflowId)
+  statement.bindAll(workflowId)
   statement.executeQuery().use { row ->
     if (!row.next()) return null
     FeatureTaskExecutionIdentity(

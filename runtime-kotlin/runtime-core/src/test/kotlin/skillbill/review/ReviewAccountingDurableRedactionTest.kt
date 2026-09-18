@@ -12,10 +12,9 @@ import skillbill.application.review.toBoundedPayload
 import skillbill.contracts.JsonCodec
 import skillbill.contracts.review.REVIEW_CONTEXT_CONTRACT_VERSION
 import skillbill.infrastructure.contracts.review.ReviewContextSchemaValidator
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
-import skillbill.infrastructure.sqlite.review.loadReviewAccounting
-import skillbill.infrastructure.sqlite.review.upsertReviewAccounting
-import skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxStore
+import skillbill.infrastructure.sqlite.ensureTestDatabase
+import skillbill.infrastructure.sqlite.reviewAccountingOnConnection
+import skillbill.infrastructure.sqlite.telemetryOutboxOnConnection
 import skillbill.ports.review.model.ReviewAccountingRecord
 import skillbill.review.context.model.ReviewAccountingSummary
 import skillbill.review.model.REVIEW_STAGE_DEGRADATION_EVENT_NAME
@@ -76,11 +75,12 @@ class ReviewAccountingDurableRedactionTest {
 
   @Test fun `sqlite round trip preserves the payload and retains no measured content`() {
     withConnection { connection ->
+      val accounting = reviewAccountingOnConnection(connection)
       val summary = recordedReview().second
       val payload = summary.toBoundedPayload()
 
-      upsertReviewAccounting(connection, ReviewAccountingRecord(REVIEW_RUN_ID, summary.packetDigest, payload))
-      val loaded = assertNotNull(loadReviewAccounting(connection, REVIEW_RUN_ID))
+      accounting.upsert(ReviewAccountingRecord(REVIEW_RUN_ID, summary.packetDigest, payload))
+      val loaded = assertNotNull(accounting.load(REVIEW_RUN_ID))
 
       assertEquals(JsonCodec.mapToJsonString(payload), JsonCodec.mapToJsonString(loaded.boundedPayload))
       assertNoSentinels(storedAccountingJson(connection))
@@ -90,6 +90,7 @@ class ReviewAccountingDurableRedactionTest {
 
   @Test fun `a legacy evidence-unreviewable segment quarantines and regenerates in band`() {
     withConnection { connection ->
+      val accounting = reviewAccountingOnConnection(connection)
       val summary = recordedReview().second
       val current = summary.toBoundedPayload()
       val legacy = legacyEvidenceUnreviewablePayload(current)
@@ -105,8 +106,8 @@ class ReviewAccountingDurableRedactionTest {
         statement.executeUpdate()
       }
 
-      assertNull(loadReviewAccounting(connection, REVIEW_RUN_ID))
-      val quarantined = TelemetryOutboxStore(connection).listPending(null)
+      assertNull(accounting.load(REVIEW_RUN_ID))
+      val quarantined = telemetryOutboxOnConnection(connection).listPending(null)
       assertTrue(
         quarantined.any { record ->
           record.eventName == REVIEW_STAGE_DEGRADATION_EVENT_NAME &&
@@ -114,14 +115,15 @@ class ReviewAccountingDurableRedactionTest {
         },
       )
 
-      upsertReviewAccounting(connection, ReviewAccountingRecord(REVIEW_RUN_ID, summary.packetDigest, current))
-      val regenerated = assertNotNull(loadReviewAccounting(connection, REVIEW_RUN_ID))
+      accounting.upsert(ReviewAccountingRecord(REVIEW_RUN_ID, summary.packetDigest, current))
+      val regenerated = assertNotNull(accounting.load(REVIEW_RUN_ID))
       assertEquals(REVIEW_CONTEXT_CONTRACT_VERSION, regenerated.boundedPayload["contract_version"])
     }
   }
 
   @Test fun `a pre-bump accounting record quarantines and regenerates in band`() {
     withConnection { connection ->
+      val accounting = reviewAccountingOnConnection(connection)
       val summary = recordedReview().second
       val current = summary.toBoundedPayload()
       val legacy = LinkedHashMap(current).apply { this["contract_version"] = "2.0" }
@@ -137,8 +139,8 @@ class ReviewAccountingDurableRedactionTest {
         statement.executeUpdate()
       }
 
-      assertNull(loadReviewAccounting(connection, REVIEW_RUN_ID))
-      val quarantined = TelemetryOutboxStore(connection).listPending(null)
+      assertNull(accounting.load(REVIEW_RUN_ID))
+      val quarantined = telemetryOutboxOnConnection(connection).listPending(null)
       assertTrue(
         quarantined.any { record ->
           record.eventName == REVIEW_STAGE_DEGRADATION_EVENT_NAME &&
@@ -146,8 +148,8 @@ class ReviewAccountingDurableRedactionTest {
         },
       )
 
-      upsertReviewAccounting(connection, ReviewAccountingRecord(REVIEW_RUN_ID, summary.packetDigest, current))
-      val regenerated = assertNotNull(loadReviewAccounting(connection, REVIEW_RUN_ID))
+      accounting.upsert(ReviewAccountingRecord(REVIEW_RUN_ID, summary.packetDigest, current))
+      val regenerated = assertNotNull(accounting.load(REVIEW_RUN_ID))
       assertEquals(REVIEW_CONTEXT_CONTRACT_VERSION, regenerated.boundedPayload["contract_version"])
       assertEquals("2.3", regenerated.boundedPayload["contract_version"])
     }
@@ -155,6 +157,7 @@ class ReviewAccountingDurableRedactionTest {
 
   @Test fun `a legacy accounting row with retired usage fields remains readable`() {
     withConnection { connection ->
+      val accounting = reviewAccountingOnConnection(connection)
       val summary = recordedReview().second
       val legacy = legacyAccountingPayload(summary.toBoundedPayload())
       connection.prepareStatement(
@@ -169,7 +172,7 @@ class ReviewAccountingDurableRedactionTest {
         statement.executeUpdate()
       }
 
-      val loaded = assertNotNull(loadReviewAccounting(connection, REVIEW_RUN_ID))
+      val loaded = assertNotNull(accounting.load(REVIEW_RUN_ID))
       assertEquals("2.1", loaded.boundedPayload["contract_version"])
       assertEquals(JsonCodec.mapToJsonString(legacy), storedAccountingJson(connection))
     }
@@ -280,7 +283,7 @@ class ReviewAccountingDurableRedactionTest {
 
   private fun withConnection(block: (Connection) -> Unit) {
     val dbPath = Files.createTempDirectory("review-accounting-redaction").resolve("metrics.db")
-    DatabaseRuntime.ensureDatabase(dbPath).use(block)
+    ensureTestDatabase(dbPath).use(block)
   }
 
   private companion object {

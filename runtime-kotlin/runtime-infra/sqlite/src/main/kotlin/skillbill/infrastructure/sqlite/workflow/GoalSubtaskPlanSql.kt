@@ -1,8 +1,10 @@
 package skillbill.infrastructure.sqlite.workflow
 
+import skillbill.infrastructure.sqlite.core.bindAll
+
 import skillbill.error.IncompatibleGoalPlanningPreparationRecoveryError
 import skillbill.error.InvalidGoalPlanningPreparationSchemaError
-import skillbill.infrastructure.sqlite.core.inImmediateTransaction
+import skillbill.infrastructure.sqlite.core.inNestedWriteTransaction
 import skillbill.ports.goalrunner.model.GoalPlanningContractProvenance
 import skillbill.ports.goalrunner.model.GoalPlanningIdentity
 import skillbill.ports.goalrunner.model.GoalPlanningPreparationState
@@ -17,7 +19,7 @@ internal class GoalSubtaskPlanSql(
 ) {
   fun checkpointSubtaskPlan(checkpoint: GoalSubtaskPlanCheckpoint) {
     requireNormalizedSubtaskPlan(checkpoint)
-    connection.inImmediateTransaction {
+    connection.inNestedWriteTransaction {
       requireGoverningSharedPreplan(checkpoint)
       val inserted = connection.insertSubtaskPlanRow(checkpoint)
       val stored = findSubtaskPlan(checkpoint.identity, checkpoint.subtaskId, checkpoint.governedSubSpecPath)
@@ -27,13 +29,12 @@ internal class GoalSubtaskPlanSql(
 
   fun replaceSubtaskPlan(checkpoint: GoalSubtaskPlanCheckpoint) {
     requireNormalizedSubtaskPlan(checkpoint)
-    connection.inImmediateTransaction {
+    connection.inNestedWriteTransaction {
       requireGoverningSharedPreplan(checkpoint)
       connection.prepareStatement(
         "DELETE FROM goal_subtask_plans WHERE parent_goal_workflow_id = ? AND subtask_id = ?",
       ).use { s ->
-        s.setString(1, checkpoint.identity.parentGoalWorkflowId)
-        s.setInt(2, checkpoint.subtaskId)
+        s.bindAll(checkpoint.identity.parentGoalWorkflowId, checkpoint.subtaskId)
         s.executeUpdate()
       }
       connection.insertSubtaskPlanRow(checkpoint)
@@ -46,8 +47,7 @@ internal class GoalSubtaskPlanSql(
     return connection.prepareStatement(
       "DELETE FROM goal_subtask_plans WHERE parent_goal_workflow_id = ? AND subtask_id = ?",
     ).use { statement ->
-      statement.setString(1, parentGoalWorkflowId)
-      statement.setInt(2, subtaskId)
+      statement.bindAll(parentGoalWorkflowId, subtaskId)
       statement.executeUpdate()
     }
   }
@@ -61,8 +61,7 @@ internal class GoalSubtaskPlanSql(
     return connection.prepareStatement(
       "SELECT * FROM goal_subtask_plans WHERE parent_goal_workflow_id = ? AND subtask_id = ?",
     ).use { s ->
-      s.setString(1, expectedIdentity.parentGoalWorkflowId)
-      s.setInt(2, subtaskId)
+      s.bindAll(expectedIdentity.parentGoalWorkflowId, subtaskId)
       s.executeQuery().use { r -> if (!r.next()) null else r.toPlan(expectedIdentity, governedSubSpecPath) }
     }
   }
@@ -76,7 +75,7 @@ internal class GoalSubtaskPlanSql(
       "SELECT * FROM goal_subtask_plans WHERE parent_goal_workflow_id = ? ORDER BY manifest_order, subtask_id",
     ).use { s ->
       val descriptors = uniqueDescriptorsBySubtaskId(expectedIdentity.parentGoalWorkflowId, orderedDescriptors)
-      s.setString(1, expectedIdentity.parentGoalWorkflowId)
+      s.bindAll(expectedIdentity.parentGoalWorkflowId)
       s.executeQuery().use { r ->
         buildList {
           while (r.next()) {
@@ -93,7 +92,7 @@ internal class GoalSubtaskPlanSql(
 
   fun deleteAllByGoal(parentGoalWorkflowId: String): Int =
     connection.prepareStatement("DELETE FROM goal_subtask_plans WHERE parent_goal_workflow_id = ?").use {
-      it.setString(1, parentGoalWorkflowId)
+      it.bindAll(parentGoalWorkflowId)
       it.executeUpdate()
     }
 
@@ -178,7 +177,7 @@ internal fun Connection.insertSubtaskPlanRow(checkpoint: GoalSubtaskPlanCheckpoi
   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   ON CONFLICT(parent_goal_workflow_id, subtask_id) DO NOTHING""",
 ).use { s ->
-  val values = listOf(
+  val values: List<Any?> = listOf(
     checkpoint.identity.parentGoalWorkflowId, checkpoint.identity.normalizedIssueKey,
     checkpoint.identity.repositoryIdentity, checkpoint.subtaskId, checkpoint.manifestOrder,
     checkpoint.governedSubSpecPath, checkpoint.subSpecHash, checkpoint.preparationStatus.wireValue,
@@ -189,9 +188,7 @@ internal fun Connection.insertSubtaskPlanRow(checkpoint: GoalSubtaskPlanCheckpoi
     checkpoint.provenance.phaseOutputContractId, checkpoint.provenance.phaseOutputContractVersion,
     checkpoint.payloadSha256, checkpoint.planPayload, checkpoint.repairEvidenceJson(),
   )
-  values.forEachIndexed { i, value ->
-    s.setObject(i + 1, value)
-  }
+  s.bindAll(*values.toTypedArray())
   s.executeUpdate() > 0
 }
 

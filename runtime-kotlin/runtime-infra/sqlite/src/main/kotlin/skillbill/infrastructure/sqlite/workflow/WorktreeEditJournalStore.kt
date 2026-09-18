@@ -1,5 +1,6 @@
 package skillbill.infrastructure.sqlite.workflow
 
+import skillbill.infrastructure.sqlite.core.bindAll
 import skillbill.idestatus.model.WorktreeEditSource
 import skillbill.idestatus.model.WorktreeEditTick
 import skillbill.ports.idestatus.WorktreeEditJournalRepository
@@ -20,8 +21,7 @@ internal class WorktreeEditJournalStore(
       connection.prepareStatement(
         "DELETE FROM worktree_edit_journal WHERE workflow_id = ? AND recorded_at = ?",
       ).use { statement ->
-        statement.setString(WORKFLOW_ID_INDEX, workflowId)
-        statement.setString(TRIM_RECORDED_AT_INDEX, tick.recordedAt.toString())
+        statement.bindAll(workflowId, tick.recordedAt.toString())
         statement.executeUpdate()
       }
     }
@@ -34,13 +34,15 @@ internal class WorktreeEditJournalStore(
       """.trimIndent(),
     ).use { statement ->
       tick.entries.forEach { entry ->
-        statement.setString(WORKFLOW_ID_INDEX, workflowId)
-        statement.setString(PHASE_ID_INDEX, tick.phaseId)
-        statement.setString(RECORDED_AT_INDEX, tick.recordedAt.toString())
-        statement.setString(PATH_INDEX, entry.path)
-        statement.setInt(LINES_ADDED_INDEX, entry.insertions)
-        statement.setInt(LINES_REMOVED_INDEX, entry.deletions)
-        statement.setString(SOURCE_INDEX, tick.source.wireValue)
+        statement.bindAll(
+          workflowId,
+          tick.phaseId,
+          tick.recordedAt.toString(),
+          entry.path,
+          entry.insertions,
+          entry.deletions,
+          tick.source.wireValue,
+        )
         statement.executeUpdate()
       }
     }
@@ -57,8 +59,7 @@ internal class WorktreeEditJournalStore(
       ORDER BY id
       """.trimIndent(),
     ).use { statement ->
-      statement.setString(WORKFLOW_ID_INDEX, workflowId)
-      statement.setString(LATEST_WORKFLOW_ID_INDEX, workflowId)
+      statement.bindAll(workflowId, workflowId)
       statement.executeQuery().use { resultSet ->
         var tick: WorktreeEditTick? = null
         val entries = mutableListOf<GoalObservabilityFileDiffStat>()
@@ -94,8 +95,7 @@ internal class WorktreeEditJournalStore(
       deleted += connection.prepareStatement(
         "DELETE FROM worktree_edit_journal WHERE workflow_id = ? AND recorded_at = ?",
       ).use { statement ->
-        statement.setString(WORKFLOW_ID_INDEX, workflowId)
-        statement.setString(TRIM_RECORDED_AT_INDEX, oldest)
+        statement.bindAll(workflowId, oldest)
         statement.executeUpdate()
       }
     }
@@ -112,21 +112,21 @@ internal class WorktreeEditJournalStore(
   private fun rowCount(workflowId: String): Int = connection.prepareStatement(
     "SELECT COUNT(*) FROM worktree_edit_journal WHERE workflow_id = ?",
   ).use { statement ->
-    statement.setString(WORKFLOW_ID_INDEX, workflowId)
+    statement.bindAll(workflowId)
     statement.executeQuery().use { resultSet -> if (resultSet.next()) resultSet.getInt(1) else 0 }
   }
 
   private fun oldestRecordedAt(workflowId: String): String? = connection.prepareStatement(
     "SELECT MIN(recorded_at) FROM worktree_edit_journal WHERE workflow_id = ?",
   ).use { statement ->
-    statement.setString(WORKFLOW_ID_INDEX, workflowId)
+    statement.bindAll(workflowId)
     statement.executeQuery().use { resultSet -> if (resultSet.next()) resultSet.getString(1) else null }
   }
 
   private fun newestRecordedAt(workflowId: String): String? = connection.prepareStatement(
     "SELECT MAX(recorded_at) FROM worktree_edit_journal WHERE workflow_id = ?",
   ).use { statement ->
-    statement.setString(WORKFLOW_ID_INDEX, workflowId)
+    statement.bindAll(workflowId)
     statement.executeQuery().use { resultSet -> if (resultSet.next()) resultSet.getString(1) else null }
   }
 
@@ -139,15 +139,4 @@ internal class WorktreeEditJournalStore(
     }
   }
 
-  private companion object {
-    const val WORKFLOW_ID_INDEX: Int = 1
-    const val PHASE_ID_INDEX: Int = 2
-    const val RECORDED_AT_INDEX: Int = 3
-    const val PATH_INDEX: Int = 4
-    const val LINES_ADDED_INDEX: Int = 5
-    const val LINES_REMOVED_INDEX: Int = 6
-    const val SOURCE_INDEX: Int = 7
-    const val LATEST_WORKFLOW_ID_INDEX: Int = 2
-    const val TRIM_RECORDED_AT_INDEX: Int = 2
-  }
 }

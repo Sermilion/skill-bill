@@ -4,7 +4,7 @@ import skillbill.infrastructure.sqlite.core.DatabaseColumnMigrations
 import skillbill.infrastructure.sqlite.core.DatabaseMigrations
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
 import skillbill.infrastructure.sqlite.core.DatabaseSchema
-import skillbill.infrastructure.sqlite.core.inImmediateTransaction
+import skillbill.infrastructure.sqlite.core.inNestedWriteTransaction
 import skillbill.infrastructure.sqlite.telemetry.GoalTelemetryMigration
 import skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxStore
 import skillbill.ports.telemetry.model.TelemetryOutboxRecord
@@ -31,14 +31,14 @@ class DatabaseMigrationsTest {
       connection.createStatement().use { it.execute("CREATE TABLE rollback_probe (value TEXT NOT NULL)") }
 
       assertFailsWith<IllegalStateException> {
-        connection.inImmediateTransaction {
+        connection.inNestedWriteTransaction {
           createStatement().use { it.executeUpdate("INSERT INTO rollback_probe VALUES ('partial')") }
           error("non-SQL migration failure")
         }
       }
 
       assertEquals(0, rowCount(connection, "rollback_probe"))
-      connection.inImmediateTransaction {
+      connection.inNestedWriteTransaction {
         createStatement().use { it.executeUpdate("INSERT INTO rollback_probe VALUES ('committed')") }
       }
       assertEquals(1, rowCount(connection, "rollback_probe"))

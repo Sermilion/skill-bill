@@ -14,7 +14,7 @@ class WorktreeEditJournalStoreTest {
   @Test
   fun `latest tick returns only the newest tick and trimming drops whole oldest ticks per workflow`() {
     val tempDir = Files.createTempDirectory("worktree-edit-journal-store")
-    val factory = SQLiteDatabaseSessionFactory(EnvironmentContext(userHome = tempDir))
+    val factory = sqliteDatabaseSessionFactory(userHome = tempDir, environment = emptyMap())
     val firstTick = tick("2026-09-18T10:00:00Z", "implement", "src/A.kt" to (3 to 1), "src/B.kt" to (2 to 0))
     val secondTick = tick("2026-09-18T10:00:05Z", "implement", "src/A.kt" to (5 to 1))
     val otherTick = tick("2026-09-18T10:00:01Z", "review", "docs/README.md" to (1 to 0))

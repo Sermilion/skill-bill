@@ -1,5 +1,7 @@
 package skillbill.infrastructure.sqlite.workflow
 
+import skillbill.infrastructure.sqlite.core.bindAll
+
 import skillbill.ports.workflow.GoalChildWorkflowStateRepository
 import skillbill.ports.workflow.model.GoalChildWorkflowDeletionScope
 import java.sql.Connection
@@ -18,7 +20,7 @@ internal class GoalChildWorkflowStore(
       ORDER BY workflows.workflow_id
     """.trimIndent(),
   ).use { statement ->
-    statement.setString(1, parentWorkflowId)
+    statement.bindAll(parentWorkflowId)
     statement.executeQuery().use { rows ->
       buildList {
         while (rows.next()) {
@@ -41,7 +43,7 @@ internal class GoalChildWorkflowStore(
       )
     """.trimIndent(),
   ).use { statement ->
-    statement.setString(1, parentWorkflowId)
+    statement.bindAll(parentWorkflowId)
     statement.executeUpdate()
   }
 
@@ -67,12 +69,14 @@ internal class GoalChildWorkflowStore(
           AND json_extract(artifacts_json, '$.goal_continuation.subtask_id') = ?
       """.trimIndent(),
     ).use { statement ->
-      statement.setString(1, workflowId)
-      deletableStatuses.forEachIndexed { offset, status ->
-        statement.setString(DELETE_GOAL_CHILD_FIRST_STATUS_INDEX + offset, status)
-      }
-      statement.setString(DELETE_GOAL_CHILD_FIRST_STATUS_INDEX + deletableStatuses.size, parentWorkflowId)
-      statement.setInt(DELETE_GOAL_CHILD_FIRST_STATUS_INDEX + deletableStatuses.size + 1, subtaskId)
+      statement.bindAll(
+        *(
+          listOf<Any?>(workflowId) +
+            deletableStatuses +
+            parentWorkflowId +
+            subtaskId
+          ).toTypedArray(),
+      )
       statement.executeUpdate()
     }
   }

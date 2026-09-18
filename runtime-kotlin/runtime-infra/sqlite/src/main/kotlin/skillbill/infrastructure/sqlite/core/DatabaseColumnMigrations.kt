@@ -1,5 +1,6 @@
 package skillbill.infrastructure.sqlite.core
 
+import skillbill.error.DatabaseAccessOperation
 import skillbill.infrastructure.sqlite.telemetry.TelemetryOutboxDeliveryIdentityMigration
 import java.sql.Connection
 
@@ -21,7 +22,12 @@ internal object DatabaseColumnMigrations {
   }
 
   fun healDiagnosticEvidenceKeys(connection: Connection) {
-    connection.inImmediateTransaction { rekeyDiagnosticEvidenceByRepairTurn(this) }
+    connection.inDatabaseTransaction(
+      dbPath = connection.databasePath(),
+      beginMode = DatabaseTransactionBeginMode.IMMEDIATE,
+      operation = DatabaseAccessOperation.OPEN,
+      diagnostics = InternalSqliteDiagnostics,
+    ) { rekeyDiagnosticEvidenceByRepairTurn(this) }
   }
 
   fun applyWorkListMetadata(connection: Connection) {
@@ -44,7 +50,7 @@ internal object DatabaseColumnMigrations {
   internal fun tableExists(connection: Connection, tableName: String): Boolean = connection.prepareStatement(
     "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
   ).use { statement ->
-    statement.setString(1, tableName)
+    statement.bindAll(tableName)
     statement.executeQuery().use { resultSet -> resultSet.next() }
   }
 

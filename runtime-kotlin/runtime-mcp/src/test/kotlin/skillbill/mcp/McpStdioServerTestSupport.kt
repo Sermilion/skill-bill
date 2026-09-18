@@ -1,8 +1,7 @@
 package skillbill.mcp
 
 import skillbill.contracts.JsonCodec
-import skillbill.infrastructure.sqlite.core.DatabaseRuntime
-import skillbill.infrastructure.sqlite.telemetry.LifecycleTelemetryStore
+import skillbill.infrastructure.sqlite.withLifecycleTelemetryStore
 import skillbill.mcp.core.McpStdioServer
 import skillbill.telemetry.CONFIG_ENVIRONMENT_KEY
 import skillbill.telemetry.TELEMETRY_PROXY_URL_ENVIRONMENT_KEY
@@ -311,8 +310,7 @@ internal fun decodeStdioJsonObject(rawJson: String): Map<String, Any?> {
 }
 
 internal fun seedGoalBlockedRun(dbPath: Path, workflowId: String) {
-  DatabaseRuntime.ensureDatabase(dbPath).use { connection ->
-    val store = LifecycleTelemetryStore(connection)
+  withLifecycleTelemetryStore(dbPath.parent, dbPath) { store ->
     store.goalStarted(
       GoalStartedRecord(
         issueKey = "SKILL-66",

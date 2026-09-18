@@ -1,5 +1,7 @@
 package skillbill.infrastructure.sqlite.telemetry
 
+import java.time.Clock
+
 import skillbill.contracts.JsonCodec
 import skillbill.infrastructure.sqlite.core.DatabaseRuntime
 import skillbill.infrastructure.sqlite.core.reconcileStaleTelemetrySessions
@@ -83,7 +85,7 @@ class TelemetryAnonymousRedactionTest {
     withConnection { connection ->
       seedAbandonedGoalIssue(connection)
 
-      reconcileStaleTelemetrySessions(connection, level = "anonymous", goalIssueAbandonmentDays = 14L)
+      reconcileStaleTelemetrySessions(connection, Clock.systemUTC(), level = "anonymous", goalIssueAbandonmentDays = 14L)
 
       val payload = requireNotNull(storedPayloads(connection)["skillbill_goal_issue_finished"]) {
         "stale reconciliation must emit the goal issue finished event"

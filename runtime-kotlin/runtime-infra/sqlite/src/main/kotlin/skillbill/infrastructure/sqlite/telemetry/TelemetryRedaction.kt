@@ -2,13 +2,13 @@ package skillbill.infrastructure.sqlite.telemetry
 
 import java.security.MessageDigest
 
-const val REDACTED_ISSUE_KEY_PREFIX = "iss_"
+internal const val REDACTED_ISSUE_KEY_PREFIX = "iss_"
 
 private const val REDACTED_TOKEN_HEX_LENGTH = 16
 private const val HEX_MASK = 0xff
 private const val HEX_RADIX = 16
 
-fun redactIssueKey(issueKey: String, level: String, salt: String): String {
+internal fun redactIssueKey(issueKey: String, level: String, salt: String): String {
   if (issueKey.isBlank() || level == "full") {
     return issueKey
   }
@@ -16,7 +16,7 @@ fun redactIssueKey(issueKey: String, level: String, salt: String): String {
   return REDACTED_ISSUE_KEY_PREFIX + hexEncode(digest).take(REDACTED_TOKEN_HEX_LENGTH)
 }
 
-fun redactIssueKeyReferences(value: String, issueKey: String, level: String, salt: String): String {
+internal fun redactIssueKeyReferences(value: String, issueKey: String, level: String, salt: String): String {
   if (issueKey.isBlank() || !value.contains(issueKey)) {
     return value
   }

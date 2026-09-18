@@ -12,14 +12,16 @@ import skillbill.application.telemetry.settings.telemetrySettingsOrNull
 import skillbill.contracts.JsonPayloadContract
 import skillbill.ports.db.DatabaseSessionFactory
 import skillbill.ports.telemetry.TelemetrySettingsProvider
+import java.time.Clock
 
 @Inject
 class LifecycleTelemetryService(
   private val database: DatabaseSessionFactory,
   private val settingsProvider: TelemetrySettingsProvider,
+  private val clock: Clock,
 ) : GoalLifecycleTelemetryEmitter by LifecycleTelemetryGoalEmission(database, settingsProvider) {
   fun featureTaskRuntimeStarted(request: FeatureTaskRuntimeStartedRequest): JsonPayloadContract {
-    val sessionId = request.sessionId.ifBlank { generateLifecycleSessionId("ftr") }
+    val sessionId = request.sessionId.ifBlank { generateLifecycleSessionId("ftr", clock) }
     return enabledStandaloneResult(settingsProvider, sessionId) { settings ->
       database.transaction { unitOfWork ->
         unitOfWork.lifecycleTelemetry.featureTaskRuntimeStarted(request.toRecord(sessionId), settings.level)
@@ -36,7 +38,7 @@ class LifecycleTelemetryService(
     }
 
   fun qualityCheckStarted(request: QualityCheckStartedRequest): JsonPayloadContract {
-    val sessionId = generateLifecycleSessionId("qck")
+    val sessionId = generateLifecycleSessionId("qck", clock)
     val normalizedRequest = request.normalizedLabels()
     return when {
       normalizedRequest.orchestrated -> orchestratedStartedSkippedPayload()
@@ -74,7 +76,7 @@ class LifecycleTelemetryService(
   }
 
   fun featureVerifyStarted(request: FeatureVerifyStartedRequest): JsonPayloadContract {
-    val sessionId = generateLifecycleSessionId("fvr")
+    val sessionId = generateLifecycleSessionId("fvr", clock)
     return when {
       request.orchestrated -> orchestratedStartedSkippedPayload()
       else ->
@@ -100,7 +102,7 @@ class LifecycleTelemetryService(
       }
 
   fun prDescriptionGenerated(request: PrDescriptionGeneratedRequest): JsonPayloadContract {
-    val sessionId = if (request.orchestrated) "" else generateLifecycleSessionId("prd")
+    val sessionId = if (request.orchestrated) "" else generateLifecycleSessionId("prd", clock)
     return when {
       request.orchestrated -> request.orchestratedPayload(telemetryLevelOrAnonymous(settingsProvider))
       else ->

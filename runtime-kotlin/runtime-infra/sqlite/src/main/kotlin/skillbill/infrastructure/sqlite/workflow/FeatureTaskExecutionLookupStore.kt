@@ -1,5 +1,7 @@
 package skillbill.infrastructure.sqlite.workflow
 
+import skillbill.infrastructure.sqlite.core.bindAll
+
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.InvalidFeatureTaskExecutionIdentitySchemaError
 import skillbill.error.InvalidWorkflowStateSchemaError
@@ -21,9 +23,7 @@ internal class FeatureTaskExecutionLookupStore(
         AND ((updated_at IS NULL AND ? IS NULL) OR updated_at = ?)
       """.trimIndent(),
     ).use { statement ->
-      statement.setString(CLAIM_WORKFLOW_ID_INDEX, workflowId)
-      statement.setString(CLAIM_EXPECTED_UPDATED_AT_NULL_INDEX, expectedUpdatedAt)
-      statement.setString(CLAIM_EXPECTED_UPDATED_AT_INDEX, expectedUpdatedAt)
+      statement.bindAll(workflowId, expectedUpdatedAt, expectedUpdatedAt)
       statement.executeUpdate() == 1
     }
 
@@ -37,13 +37,15 @@ internal class FeatureTaskExecutionLookupStore(
       ON CONFLICT(workflow_id) DO NOTHING
       """.trimIndent(),
     ).use { statement ->
-      statement.setString(IDENTITY_WORKFLOW_ID_INDEX, identity.workflowId)
-      statement.setString(IDENTITY_CONTRACT_VERSION_INDEX, identity.contractVersion)
-      statement.setString(IDENTITY_ISSUE_KEY_INDEX, identity.normalizedIssueKey)
-      statement.setString(IDENTITY_REPOSITORY_INDEX, identity.repositoryIdentity)
-      statement.setString(IDENTITY_SPEC_PATH_INDEX, identity.governedSpecPath)
-      statement.setString(IDENTITY_MODE_INDEX, identity.mode.wireValue)
-      statement.setString(IDENTITY_ROUTE_SCOPE_INDEX, identity.routeScope.wireValue)
+      statement.bindAll(
+        identity.workflowId,
+        identity.contractVersion,
+        identity.normalizedIssueKey,
+        identity.repositoryIdentity,
+        identity.governedSpecPath,
+        identity.mode.wireValue,
+        identity.routeScope.wireValue,
+      )
       statement.executeUpdate()
     }
     val persisted = connection.featureTaskIdentity(identity.workflowId)
@@ -84,7 +86,7 @@ internal class FeatureTaskExecutionLookupStore(
     WHERE normalized_issue_key = ? AND route_scope = 'goal_child'
     """.trimIndent(),
   ).use { statement ->
-    statement.setString(1, normalizedIssueKey)
+    statement.bindAll(normalizedIssueKey)
     statement.executeQuery().use { rows -> if (rows.next()) rows.getInt("child_count") else 0 }
   }
 
@@ -110,11 +112,7 @@ internal class FeatureTaskExecutionLookupStore(
     ORDER BY identities.created_at, workflows.workflow_id
     """.trimIndent(),
   ).use { statement ->
-    statement.setString(LOOKUP_WORKFLOW_ISSUE_KEY_INDEX, normalizedIssueKey)
-    statement.setString(LOOKUP_IDENTITY_ISSUE_KEY_INDEX, normalizedIssueKey)
-    statement.setString(LOOKUP_LEGACY_ROUTE_SCOPE_INDEX, routeScope)
-    statement.setString(LOOKUP_REPOSITORY_IDENTITY_INDEX, repositoryIdentity)
-    statement.setString(LOOKUP_ROUTE_SCOPE_INDEX, routeScope)
+    statement.bindAll(normalizedIssueKey, normalizedIssueKey, routeScope, repositoryIdentity, routeScope)
     statement.executeQuery().use { rows ->
       buildList {
         while (rows.next()) {

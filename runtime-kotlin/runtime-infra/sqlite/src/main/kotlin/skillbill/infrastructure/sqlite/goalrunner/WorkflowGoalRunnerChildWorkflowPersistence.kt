@@ -36,8 +36,8 @@ import skillbill.workflow.taskruntime.model.FeatureTaskRuntimeGoalContinuationAr
 import java.nio.file.Path
 
 internal data class SavedGoalChildWorkflow(
-  val state: GoalRunnerManifestState,
-  val projectionArtifactsJson: String,
+  internal val state: GoalRunnerManifestState,
+  internal val projectionArtifactsJson: String,
 )
 
 internal class WorkflowGoalRunnerChildWorkflowPersistence(

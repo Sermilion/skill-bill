@@ -1,10 +1,12 @@
-package skillbill.review
+package skillbill.infrastructure.sqlite.review
 
 import skillbill.SAMPLE_REVIEW
 import skillbill.infrastructure.sqlite.review.ReviewFinishedPayloadBuildRequest
 import skillbill.infrastructure.sqlite.review.ReviewRuntime
+import skillbill.infrastructure.sqlite.review.persistImportedReview
 import skillbill.infrastructure.sqlite.review.ReviewStatsRuntime
 import skillbill.ports.review.toReviewFinishedTelemetryPayload
+import skillbill.review.ReviewParser
 import skillbill.review.model.ImportedReview
 import skillbill.tempDbConnection
 import java.sql.Connection
@@ -181,7 +183,7 @@ class ReviewFinishedTelemetryNormalizationTest {
 
 private fun saveReview(connection: Connection, rawReview: String): ImportedReview {
   val review = ReviewParser.parseReview(rawReview.trimIndent())
-  ReviewRuntime.saveImportedReview(connection, review, sourcePath = null)
+  persistImportedReview(connection, review, sourcePath = null)
   return review
 }
 

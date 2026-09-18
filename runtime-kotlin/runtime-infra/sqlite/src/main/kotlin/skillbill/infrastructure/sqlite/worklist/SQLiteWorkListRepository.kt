@@ -1,5 +1,7 @@
 package skillbill.infrastructure.sqlite.worklist
 
+import skillbill.infrastructure.sqlite.core.bindAll
+
 import skillbill.contracts.SharedPayloadKeys
 import skillbill.error.InvalidWorkListRowError
 import skillbill.ports.work.WorkListRepository
@@ -17,13 +19,13 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 
-class SQLiteWorkListRepository(
+internal class SQLiteWorkListRepository(
   private val connection: Connection,
 ) : WorkListRepository {
   override fun list(limit: Int?): List<WorkItem> {
     require(limit == null || limit > 0) { "Work-list limit must be positive." }
     return connection.prepareStatement(query()).use { statement ->
-      statement.setInt(1, limit ?: -1)
+      statement.bindAll(limit ?: -1)
       statement.executeQuery().use { resultSet ->
         buildList<WorkItem> {
           while (resultSet.next()) {

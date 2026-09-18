@@ -2,28 +2,31 @@ package skillbill.infrastructure.sqlite.review
 
 import skillbill.contracts.JsonCodec
 import skillbill.error.ShellContentContractException
+import skillbill.infrastructure.sqlite.core.InternalSqliteDiagnostics
+import skillbill.infrastructure.sqlite.core.recordDegradedValue
+import skillbill.ports.diagnostics.RuntimeDiagnostics
 import java.sql.ResultSet
 import java.time.Duration
 import java.time.LocalDateTime
+import java.time.format.DateTimeParseException
 import java.util.Locale
-import java.util.logging.Logger
 
-private val reviewStatsLog: Logger =
-  Logger.getLogger("skillbill.review.stats")
-
-fun rate(count: Int, total: Int): Double = if (total == 0) {
+internal fun rate(count: Int, total: Int): Double = if (total == 0) {
   0.0
 } else {
   String.format(Locale.US, "%.3f", count.toDouble() / total).toDouble()
 }
 
-fun average(values: List<Int>): Double = if (values.isEmpty()) {
+internal fun average(values: List<Int>): Double = if (values.isEmpty()) {
   0.0
 } else {
   String.format(Locale.US, "%.2f", values.average()).toDouble()
 }
 
-fun parseJsonList(rawValue: Any?): List<Any?> = when (rawValue) {
+internal fun parseJsonList(
+  rawValue: Any?,
+  diagnostics: RuntimeDiagnostics = InternalSqliteDiagnostics,
+): List<Any?> = when (rawValue) {
   null -> emptyList()
   is String -> {
     val trimmed = rawValue.trim()
@@ -32,19 +35,31 @@ fun parseJsonList(rawValue: Any?): List<Any?> = when (rawValue) {
     } else {
       try {
         JsonCodec.parseJsonArrayStrict(trimmed)
-      } catch (_: ShellContentContractException) {
-        reviewStatsLog.warning("skillbill review stats: degraded malformed JSON array")
+      } catch (error: ShellContentContractException) {
+        diagnostics.recordDegradedValue(
+          seam = "review_stats.json_array",
+          expected = "strict JSON array",
+          used = trimmed.take(120),
+          error = error,
+        )
         emptyList()
       }
     }
   }
   else -> {
-    reviewStatsLog.warning("skillbill review stats: degraded non-text JSON array")
+    diagnostics.recordDegradedValue(
+      seam = "review_stats.json_array",
+      expected = "string JSON array",
+      used = rawValue::class.simpleName.orEmpty(),
+    )
     emptyList()
   }
 }
 
-fun durationSeconds(row: Map<String, Any?>): Int {
+internal fun durationSeconds(
+  row: Map<String, Any?>,
+  diagnostics: RuntimeDiagnostics = InternalSqliteDiagnostics,
+): Int {
   val startedAt = row.stringValue("started_at")
   val finishedAt = row.stringValue("finished_at")
   if (startedAt.isEmpty() || finishedAt.isEmpty()) {
@@ -54,10 +69,20 @@ fun durationSeconds(row: Map<String, Any?>): Int {
     val start = LocalDateTime.parse(startedAt.replace(" ", "T"))
     val end = LocalDateTime.parse(finishedAt.replace(" ", "T"))
     Duration.between(start, end).seconds.coerceAtLeast(0).toInt()
-  }.getOrDefault(0)
+  }.getOrElse { error ->
+    if (error is DateTimeParseException) {
+      diagnostics.recordDegradedValue(
+        seam = "review_stats.duration_seconds",
+        expected = "parseable started_at and finished_at timestamps",
+        used = "started_at=$startedAt; finished_at=$finishedAt",
+        error = error,
+      )
+    }
+    0
+  }
 }
 
-fun collectRows(resultSet: ResultSet): List<Map<String, Any?>> {
+internal fun collectRows(resultSet: ResultSet): List<Map<String, Any?>> {
   val metadata = resultSet.metaData
   val columnNames = (1..metadata.columnCount).map(metadata::getColumnLabel)
   return buildList {
@@ -67,22 +92,22 @@ fun collectRows(resultSet: ResultSet): List<Map<String, Any?>> {
   }
 }
 
-fun Map<String, Any?>.booleanValue(key: String): Boolean = when (val value = this[key]) {
+internal fun Map<String, Any?>.booleanValue(key: String): Boolean = when (val value = this[key]) {
   is Boolean -> value
   is Number -> value.toInt() != 0
   is String -> value == "1" || value.equals("true", ignoreCase = true)
   else -> false
 }
 
-fun Map<String, Any?>.intValue(key: String): Int = when (val value = this[key]) {
+internal fun Map<String, Any?>.intValue(key: String): Int = when (val value = this[key]) {
   is Number -> value.toInt()
   is String -> value.toIntOrNull() ?: 0
   else -> 0
 }
 
-fun Map<String, Any?>.stringValue(key: String): String = this[key]?.toString().orEmpty()
+internal fun Map<String, Any?>.stringValue(key: String): String = this[key]?.toString().orEmpty()
 
-fun Map<String, Any?>.nullableIntValue(key: String): Int? = when (val value = this[key]) {
+internal fun Map<String, Any?>.nullableIntValue(key: String): Int? = when (val value = this[key]) {
   is Number -> value.toInt()
   is String -> value.toIntOrNull()
   else -> null

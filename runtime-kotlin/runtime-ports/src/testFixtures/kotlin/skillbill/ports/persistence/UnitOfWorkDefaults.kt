@@ -2,6 +2,8 @@ package skillbill.ports.persistence
 
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticPermissions
 import skillbill.ports.diagnostics.RejectedOutputDiagnosticRepository
+import skillbill.ports.featuretask.FeatureTaskPhaseSettlementRepository
+import skillbill.ports.featuretask.UnavailableFeatureTaskPhaseSettlementRepository
 import skillbill.ports.goalrunner.UnaddressedFindingsRepository
 import skillbill.ports.goalrunner.UnavailableUnaddressedFindingsRepository
 import skillbill.ports.idestatus.AgentActivityStampRepository
@@ -15,4 +17,8 @@ abstract class UnitOfWorkDefaults : UnitOfWork {
   open override val worktreeEditJournal: WorktreeEditJournalRepository = EmptyWorktreeEditJournalRepository
   open override val rejectedOutputDiagnostics: RejectedOutputDiagnosticRepository? = null
   open override val rejectedOutputDiagnosticPermissions: RejectedOutputDiagnosticPermissions? = null
+  open override val featureTaskPhaseSettlements: FeatureTaskPhaseSettlementRepository =
+    UnavailableFeatureTaskPhaseSettlementRepository
+
+  override fun purgeDecomposedGoal(parentWorkflowId: String) = Unit
 }

@@ -12,7 +12,7 @@ import skillbill.ports.workflow.WorkflowStateRepository
 import skillbill.ports.workflow.model.FeatureTaskWorkflowMode
 import skillbill.ports.workflow.model.WorkflowFamily
 
-fun workflowFamilyFor(workflowStates: WorkflowStateRepository, workflowId: String): WorkflowFamily? {
+internal fun workflowFamilyFor(workflowStates: WorkflowStateRepository, workflowId: String): WorkflowFamily? {
   val featureTaskRow = workflowStates.getFeatureTaskWorkflow(workflowId)
   if (featureTaskRow != null) {
     return when (featureTaskRow.mode) {
@@ -27,7 +27,7 @@ fun workflowFamilyFor(workflowStates: WorkflowStateRepository, workflowId: Strin
   }
 }
 
-fun GoalRunnerControlState.pauseAtOperatorBoundary(
+internal fun GoalRunnerControlState.pauseAtOperatorBoundary(
   pausedAtNow: String,
   targetReached: Boolean = false,
 ): GoalRunnerControlState = when {
@@ -48,7 +48,7 @@ fun GoalRunnerControlState.pauseAtOperatorBoundary(
   else -> this
 }
 
-fun decodeGoalAgentAddonSelection(raw: Any?): AgentAddonSelection {
+internal fun decodeGoalAgentAddonSelection(raw: Any?): AgentAddonSelection {
   val values = raw ?: return AgentAddonSelection()
   val entries = values as? List<*>
     ?: throw InvalidAgentAddonSelectionError("Goal review policy agent_addon_selection must be a list.")
